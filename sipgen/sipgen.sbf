@@ -1,0 +1,7 @@
+# This is the build file for the code generator.
+#
+# @BS_LICENSE@
+
+target = sip
+sources = main.c transform.c gencode.c heap.c parser.c lexer.c 
+headers = sip.h parser.h

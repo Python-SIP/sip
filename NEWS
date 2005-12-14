@@ -1,0 +1,107 @@
+v4.4 ???
+  - The major number of the internal API has changed so it will be necessary
+    to regenerate all modules.
+  - Module names specified with %Module and %CModule can now include periods to
+    denote a Python package structure.
+  - Class templates are now supported and instantiated using "typedef".
+  - Mapped type templates are now supported and instantiated automatically.
+  - Global operators are now supported.
+  - Operator casts in classes are now supported.
+  - C/C++ long and unsigned long types are now wrapped as Python long objects
+    rather than Python integer objects.
+  - C/C++ long long and unsigned long long types are now supported.
+  - Classes can now be declared using the /External/ annotation and be defined
+    in another, unspecified, module.
+  - /TransferThis/ can now be used in non-factory methods to change the
+    ownership to a different C++ instance or to change it to Python.
+  - Added support for Python's buffer interface, %BIGetCharBufferCode,
+    %BIGetReadBufferCode, %BIGetSegCountCode and %BIGetWriteBufferCode.
+  - The "user" member has been added to the sipWrapper structure and can be
+    used for any purpose by handwritten code.
+  - Function argument names are now parsed, but otherwise ignored.
+  - The "explicit" keyword is now parsed, but otherwise ignored.
+  - Added support for the SIP_PYTYPE pseudo-type that represents a Python
+    type object.
+  - Added support for ellipsis (ie. "...") in function arguments.  Any
+    remaining arguments will be gathered as a Python tuple.
+  - Added support for the __hash__ Python special method.
+  - The __getitem__ Python special method no longer requires %MethodCode.
+  - All of the calls to Qt have been moved out of the sip module and into PyQt.
+    The generated sipconfig.py file no longer contains any Qt specific
+    information.  These changes mean that SIP can support PyQt v3 and v4 at the
+    same time.
+  - Static methods can now be defined as Qt slots.
+  - The -c, -l, -q and -x flags to configure.py have been removed.
+
+v4.3.2 14th November 2005
+  - The sipdistutils.py script has contributed by Giovanni Bajo that enables
+    SIP extension modules to be built with distutils.
+
+v4.3.1 10th September 2005
+  - A bug fix release.
+
+v4.3 30th August 2005
+  - The major number of the internal API has changed so it will be necessary
+    to regenerate all modules.
+  - C structures can now have constructors and a destructor defined so that
+    they can be made to behave more Pythonically.
+  - %TypeHeaderCode can now be used in namespaces.
+  - Added sip.SIP_VERSION_STR.
+  - Added support for Python's cyclic garbage collector, %GCTraverseCode and
+    %GCClearCode.
+  - Deprecated sipTransfer() and sip.transfer().
+  - Added sipTransferTo, sipTransferBack(), sip.transferto() and
+    sip.transferback().
+  - Added support for sipCppRet in %ConvertSubClassCode.
+  - Added support for %GetCode and %SetCode for instance variables and
+    structure members.
+  - Added support for %Exception and %RaiseCode.
+  - Added support for __pos__ and __abs__.
+  - sip.voidptr instances can now be created from Python.
+  - The ascobject() method has been added to sip.voidptr.
+  - Added the -c flag to configure.py to explicitly specify the location of
+    the qconfig.h file.
+
+v4.2.1 6th March 2005
+  - Restored the pre-4.2 behaviour of Python exceptions raised in virtual
+    re-implementations.
+  - %Timeline can now be used more than once in a module.
+
+v4.2 19th February 2005
+  - The /PyName/ annotation can now be applied to classes, namespaces,
+    enums, enum members and variables.
+  - Added the %PreInitialisationCode directive and is subject to version
+    control.  %PostInitialisationCode is now subject to version control.
+  - Named enums now have distinct types and so can be differentiated from
+    integers in function signatures.
+  - The handling of Qt signals has changed so that "foreign" signals (ie.
+    those raised by ActiveX controls) can be handled.
+  - The voidptr, wrapper and wrappertype types are now exposed in the sip
+    module.
+  - Virtual and abstract operators are now supported.
+  - The __call__ slot no longer requires %MethodCode.
+  - Any Python exceptions raised in virtual re-implementations are now
+    detected when they occur.
+  - sip.cast() can now cast downwards as well as upwards.
+  - Added sip.SIP_VERSION.
+  - The -k flag to configure.py can now be used to build modules as builtins
+    to custom interpreters.
+  - The build system now strips modules and only exports the module
+    initialisation function by default (when supported by the platform).
+
+v4.1.1 24th September 2004
+  - A bug fix release.
+
+v4.1 20th September 2004
+  - Added the cast() method to the sip module.
+  - Added limited support for protected classes.
+  - Added the /Abstract/ class annotation.
+  - Added support for typedefs that define pointers to functions.
+  - The SIP_PYCALLABLE type now supports the /AllowNone/ annotation.
+  - Added support for MSVC.NET to the build system.
+
+v4.0.1 6th July 2004
+  - A bug fix release.
+
+v4.0 23rd June 2004
+  - The release of SIP v4.

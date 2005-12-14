@@ -1,0 +1,63 @@
+This file describes some things to be aware of when building SIP on MacOS/X
+for use with python from Fink (/sw/bin/python) instead of python from Apple
+(/usr/bin/python).
+
+In short, try using configure.py with the following options:
+
+ /sw/bin/python configure.py -p darwin-g++ INCDIR_QT=/sw/include/qt \
+        LFLAGS_PLUGIN="-bundle -flat_namespace -undefined suppress"
+
+In detail, three problems are addressed:
+
+1) Error message from configure.py:
+
+   Error: /sw/share/qt3/mkspecs/darwin-g++/qmake.conf: macro
+   'QMAKE_LIBDIR/$(TARGET1)' is not defined.
+
+The solution is to give the following option to configure.py:
+
+  -p darwin-g++
+
+Alternatively, "macx-g++" may work also. 
+
+2) Error message from configure.py:
+
+  This is SIP 4.0.1 for Python 2.3.3 on darwin.
+  Error: qglobal.h could not be found in /sw/include.
+
+The solution is to give the following option to configure.py
+
+  INCDIR_QT=/sw/include/qt
+
+2) Linking problem where "make" completes without error, but the sip library
+does not correctly import into python. 
+
+One symptom is that if PyQt has been built, "import qt" results in:
+
+  Python Fatal Error, interpreter not initialized (version mismatch?)
+  Abort trap
+
+(Since building PyQt can be slow, it is best to test SIP first before building
+PyQt.) To test the SIP python library:
+
+  cd siplib
+  /sw/bin/python
+  >>> import sip
+
+If a "bus error" error occurs (perhaps after a few seconds), then the problem
+may be that SIP not linked properly for the version of python in /sw/bin.
+
+Find the correct linking options:
+
+  /sw/bin/python
+  >>> import distutils.sysconfig
+  >>> distutils.sysconfig.get_config_var('LDSHARED')
+  'gcc -L/sw/lib -bundle -flat_namespace -undefined suppress'
+
+The solution is to give the following option to configure.py
+
+  LFLAGS_PLUGIN="-bundle -flat_namespace -undefined suppress"
+
+
+These solutions are for Mac OS X Version 10.3.4, sip-4.0.1, PyQt-mac-gpl-3.12,
+and python 2.3.3 from Fink (/sw/bin/python, not /usr/bin/python), Fink 0.7.0.
