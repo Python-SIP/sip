@@ -18,7 +18,7 @@
 #define	PACKAGE	"sip"
 #endif
 
-#define	VERSION	"@RM_VERSION@ (@RM_LATEST@-@RM_BUILD@)"
+#define	VERSION	"@RM_VERSION@ (@RM_LATEST@)"
 
 
 /* Global variables - see sip.h for their meaning. */

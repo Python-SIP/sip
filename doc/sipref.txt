@@ -3273,13 +3273,6 @@ the GIL has been acquired.  There must be a corresponding
 `SIP_UNBLOCK_THREADS`_ at the same lexical scope.
 
 
-SIP_BUILD
----------
-
-This is a C preprocessor symbol that defines a unique SIP build identifier
-represented as a string.
-
-
 SIP_UNBLOCK_THREADS
 -------------------
 

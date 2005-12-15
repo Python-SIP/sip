@@ -99,7 +99,7 @@ def copydir(dir):
     os.mkdir(ddir)
 
     for f in os.listdir(dir):
-        if f != "CVS":
+        if f != ".svn":
             shutil.copy(os.path.join(dir, f), os.path.join(ddir, f))
 
 
@@ -122,10 +122,10 @@ def mkdistdir(lfile):
     shutil.copy("lib/README.HP-UX",Package)
     shutil.copy("lib/THANKS",Package)
     shutil.copy("lib/sipdistutils.py",Package)
-    os.system("repo release <%s >%s/LICENSE" % (lfile, Package))
+    os.system("srepo release <%s >%s/LICENSE" % (lfile, Package))
 
     lcopy(lfile,"lib/configure.py","configure.py.in")
-    os.system("repo release <configure.py.in >%s/configure.py" % Package)
+    os.system("srepo release <configure.py.in >%s/configure.py" % Package)
     os.remove("configure.py.in")
 
     lcopy(lfile,"lib/siputils.py",Package + "/siputils.py")
@@ -137,7 +137,7 @@ def mkdistdir(lfile):
     copydir("custom")
 
     lcopydir(lfile,"sipgen",Package + "/sipgen")
-    os.system("repo release <%s/sipgen/main.c >%s/sipgen/main.c.new" % (Package,Package))
+    os.system("srepo release <%s/sipgen/main.c >%s/sipgen/main.c.new" % (Package,Package))
     old = os.getcwd()
     os.chdir(Package + "/sipgen")
     os.rename("main.c.new","main.c")
@@ -155,17 +155,14 @@ def mkdistdir(lfile):
     os.chdir(old)
 
     lcopydir(lfile,"siplib",Package + "/siplib")
-    os.system("repo release <%s/siplib/sip.h >%s/siplib/sip.h.new" % (Package,Package))
+    os.system("srepo release <%s/siplib/sip.h >%s/siplib/sip.h.new" % (Package,Package))
     os.rename(Package + "/siplib/sip.h.new",Package + "/siplib/sip.h")
-
-    # We can remove this once we move from CVS to SVN and can rename files.
-    os.rename(Package + "/siplib/qtlib.cpp",Package + "/siplib/qtlib.c")
 
     print "Installing the documentation"
     doc = os.path.join(Package, "doc")
     os.mkdir(doc)
     shutil.copy("doc/default.css",doc)
-    os.system("repo release <doc/sipref.txt >%s/sipref.txt" % doc)
+    os.system("srepo release <doc/sipref.txt >%s/sipref.txt" % doc)
     os.system("docutils-rst2html.py %s/sipref.txt %s/sipref.html" % (doc, doc))
 
 
@@ -217,7 +214,7 @@ mkdistdir("lib/LICENSE")
 
 
 if PkgFormat:
-    p = os.popen("repo query")
+    p = os.popen("srepo query")
     vers = p.readline().strip()
     p.close()
 

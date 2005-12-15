@@ -36,7 +36,6 @@ extern "C" {
  */
 #define	SIP_VERSION		0x@RM_HEXVERSION@
 #define	SIP_VERSION_STR		"@RM_LATEST@"
-#define	SIP_BUILD		"@RM_BUILD@"
 
 
 /*
