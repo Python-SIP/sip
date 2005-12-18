@@ -33,6 +33,10 @@ v4.4 ???
   - Static methods can now be defined as Qt slots.
   - Removed SIP_BUILD from sip.h.
   - The -c, -l, -q and -x flags to configure.py have been removed.
+  - Added the PythonModuleMakefile class to the build system for installing
+    pure Python modules.
+  - Added the create_wrapper() function to the build system for creating
+    platform dependent executable wrappers for Python scripts.
 
 v4.3.2 14th November 2005
   - The sipdistutils.py script has contributed by Giovanni Bajo that enables

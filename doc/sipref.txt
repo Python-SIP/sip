@@ -4028,6 +4028,17 @@ create_content(dict, macros=None)
 
     Returns the dictionary as a string.
 
+create_wrapper(script, wrapper, gui=0)
+    This creates a platform dependent executable wrapper around a Python
+    script.
+
+    ``script`` is the full pathname of the script.
+
+    ``wrapper`` is the pathname of the wrapper to create.
+
+    ``gui`` is non-zero if a GUI enabled version of the interpreter should be
+    used on platforms that require it.
+
 error(msg)
     This displays an error message on ``stderr`` and calls ``sys.exit()`` with
     a value of 1.
@@ -4543,6 +4554,34 @@ ProgramMakefile(Makefile)
     generate_target_default(self, mfile)
         This is a reimplementation of
         ``sipconfig.Makefile.generate_target_default()``.
+
+    generate_target_install(self, mfile)
+        This is a reimplementation of
+        ``sipconfig.Makefile.generate_target_install()``.
+
+PythonModuleMakefile(Makefile)
+    This class encapsulates a Makefile that installs a pure Python module.
+
+    __init__(self, configuration, srcdir, dstdir, dir=None, makefile="Makefile", installs=None)
+        Initialise the instance.
+
+        ``configuration`` - see ``sipconfig.Makefile.__init__()``.
+
+        ``srcdir`` is the name of the directory (relative to ``dir``)
+        containing the module's Python code.
+
+        ``dstdir`` is the name of the directory in which the module's Python
+        code will be installed.
+
+        ``dir`` - see ``sipconfig.Makefile.__init__()``.
+
+        ``makefile`` - see ``sipconfig.Makefile.__init__()``.
+
+        ``installs`` - see ``sipconfig.Makefile.__init__()``.
+
+    generate_macros_and_rules(self, mfile)
+        This is a reimplementation of
+        ``sipconfig.Makefile.generate_macros_and_rules()``.
 
     generate_target_install(self, mfile)
         This is a reimplementation of

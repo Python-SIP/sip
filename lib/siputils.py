@@ -9,6 +9,7 @@ import sys
 import os
 import string
 import types
+import stat
 
 
 # These are installation specific values created when SIP was configured.
@@ -963,6 +964,62 @@ class ParentMakefile(Makefile):
                 mfile.write("\t@cd ..\n")
 
 
+class PythonModuleMakefile(Makefile):
+    """The class that represents a Python module Makefile.
+    """
+    def __init__(self, configuration, srcdir, dstdir, dir=None,
+                 makefile="Makefile", installs=None):
+        """Initialise an instance of a parent Makefile.
+
+        srcdir is the name of the directory (relative to the directory in which
+        the Makefile will be created) containing the module's Python code.
+        dstdir is the name of the directory where the module's Python code will
+        be installed.
+        """
+        Makefile.__init__(self, configuration, dir=dir, makefile=makefile, installs=installs)
+
+        if dir:
+            self._moddir = os.path.join(dir, srcdir)
+        else:
+            self._modir = srcdir
+
+        self._srcdir = srcdir
+        self._dstdir = dstdir
+
+    def generate_macros_and_rules(self, mfile):
+        """Generate the macros and rules.
+
+        mfile is the file object.
+        """
+        # We don't want them.
+        pass
+
+    def generate_target_install(self, mfile):
+        """Generate the install target.
+
+        mfile is the file object.
+        """
+        Makefile.generate_target_install(self, mfile)
+
+        os.path.walk(self._moddir, self._visit, mfile)
+
+    def _visit(self, mfile, dirname, names):
+        """Install the files from a particular directory.
+
+        mfile is the file object.
+        dirname is the sub-directory.
+        names is the list of files to install from the sub-directory.
+        """
+        tail = dirname[len(self._moddir):]
+
+        flist = []
+        for f in names:
+            if os.path.isfile(os.path.join(dirname, f)):
+                flist.append(os.path.join(self._srcdir + tail, f))
+
+        self.install_file(mfile, flist, self._dstdir + tail)
+
+
 class ModuleMakefile(Makefile):
     """The class that represents a Python extension module Makefile
     """
@@ -1881,3 +1938,33 @@ def parse_build_macros(filename, names, overrides=None, properties=None):
         refined[lhs] = rhs
 
     return refined
+
+
+def create_wrapper(script, wrapper, gui=0):
+    """Create a platform dependent executable wrapper around a Python script.
+
+    script is the full pathname of the script.
+    wrapper is the name of the wrapper file to create.
+    gui is non-zero if a GUI enabled version of the interpreter should be used.
+    """
+    if sys.platform == "win32":
+        wrapper = wrapper + ".bat"
+
+    wf = open(wrapper, "w")
+
+    if sys.platform == "win32":
+        # Not yet supported.
+        assert(not gui)
+
+        wf.write("@\"%s\" \"%s\" %%1 %%2 %%3 %%4 %%5 %%6 %%7 %%8 %%9\n" % (sys.executable, script))
+    else:
+        wf.write("exec %s %s ${1+\"$@\"}\n" % (sys.executable, script))
+
+    wf.close()
+
+    if sys.platform != "win32":
+        sbuf = os.stat(wrapper)
+        mode = sbuf.st_mode
+        mode |= (stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+
+        os.chmod(wrapper, mode)
