@@ -3913,12 +3913,7 @@ static void newFunction(sipSpec *pt,moduleDef *mod,int sflags,int isstatic,
 		if (sflags == 0)
 			yyerror("Non-class function specified as abstract");
 
-		/*
-		 * GCC (at least) ignores the abstract specification if it
-		 * isn't virtual, so we do as well.
-		 */
-		if (isvirt)
-			setIsAbstract(od);
+		setIsAbstract(od);
 	}
 
 	if ((of = findOptFlag(optflgs,"AutoGen",opt_name_flag)) != NULL)
