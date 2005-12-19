@@ -4269,7 +4269,8 @@ Makefile
         ``console`` is set if the target is a console (rather than GUI) target.
         This only affects Windows and is ignored on other platforms.
 
-        ``qt`` is set if the target uses Qt.
+        ``qt`` is set if the target uses Qt.  For Qt v4 a list of Qt libraries
+        may be specified and a simple non-zero value implies QtCore and QtGui.
 
         ``opengl`` is set if the target uses OpenGL.
 

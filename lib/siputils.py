@@ -177,7 +177,8 @@ class Makefile:
 
         configuration is the current configuration.
         console is set if the target is a console (rather than windows) target.
-        qt is set if the target uses Qt.
+        qt is set if the target uses Qt.  For Qt v4 a list of Qt libraries may
+        be specified and a simple non-zero value implies QtCore and QtGui.
         opengl is set if the target uses OpenGL.
         python is set if the target #includes Python.h.
         debug is set to generated a debugging version of the target.
@@ -193,8 +194,21 @@ class Makefile:
         destination.  If the source is another list then it is a set of source
         files and the destination is a directory.
         """
-        if qt and configuration.qt_version == 0:
-            error("The target uses Qt but SIP was built with Qt support disabled.")
+        if qt:
+            if not hasattr(configuration, "qt_version"):
+                error("The target uses Qt but pyqtconfig has not been imported.")
+
+            # For Qt v4 interpret Qt support as meaning link against the core
+            # and GUI libraries (which corresponds to the default qmake
+            # configuration).  Also allow a list of Qt v4 modules to be
+            # specified.
+            if configuration.qt_version >= 0x040000:
+                if type(qt) != types.ListType:
+                    qt = ["QtCore", "QtGui"]
+
+            self._threaded = configuration.qt_threaded
+        else:
+            self._threaded = threaded
 
         self.config = configuration
         self.console = console
@@ -208,11 +222,6 @@ class Makefile:
         self._installs = installs
 
         self._finalised = 0
-
-        if qt and configuration.qt_threaded:
-            self._threaded = 1
-        else:
-            self._threaded = threaded
 
         # Copy the macros and convert them all to instance lists.
         macros = configuration.build_macros()
@@ -446,25 +455,64 @@ class Makefile:
             if not self._debug:
                 defines.append("QT_NO_DEBUG")
 
-            if self._threaded and self.config.qt_version < 0x040000:
+            if self.config.qt_version >= 0x040000:
+                # This is really just a help for PyQt's configure.py when it is
+                # detecting what Qt modules are available.
+                qtmods = self.config.pyqt_modules[:]
+                qtmods.extend(self._qt)
+
+                for mod in qtmods:
+                    if mod == "QtCore":
+                        defines.append("QT_CORE_LIB")
+                    elif mod == "QtGui":
+                        defines.append("QT_GUI_LIB")
+                    elif mod == "QtNetwork":
+                        defines.append("QT_NETWORK_LIB")
+                    elif mod == "QtOpenGL":
+                        defines.append("QT_OPENGL_LIB")
+                    elif mod == "QtSql":
+                        defines.append("QT_SQL_LIB")
+                    elif mod == "QtXml":
+                        defines.append("QT_XML_LIB")
+            elif self._threaded:
                 defines.append("QT_THREAD_SUPPORT")
 
-            incdir.extend(self.optional_list("INCDIR_QT"))
+            # This is unlikely to be missing, or to contain more than one
+            # directory, but you never know.
+            qtincdir = self.optional_list("INCDIR_QT")
+
+            if qtincdir:
+                incdir.extend(qtincdir)
+
+                if self.config.qt_version >= 0x040000:
+                    for mod in qtmods:
+                        incdir.append(os.path.join(qtincdir[0], mod))
+
+            incdir.append(os.path.join(self.config.qt_dir, "mkspecs", "default"))
 
             libdir_qt = self.optional_list("LIBDIR_QT")
             libdir.extend(libdir_qt)
             rpaths.extend(libdir_qt)
 
-            # Windows needs the version number appended if Qt is a DLL.
-            qt_lib = self.config.qt_lib
+            if self.config.qt_version >= 0x040000:
+                for mod in self._qt:
+                    if self._debug:
+                        mod = mod + "_debug"
 
-            if self.generator in ("MSVC", "MSVC.NET", "BMAKE") and win_shared:
-                qt_lib = qt_lib + string.replace(version_to_string(self.config.qt_version), ".", "")
+                    libs.append(self.platform_lib(mod))
+                    libs.extend(self._dependent_libs(mod))
+            else:
+                # Windows needs the version number appended if Qt is a DLL.
+                qt_lib = self.config.qt_lib
 
-                if self.config.qt_edition == "non-commercial":
-                    qt_lib = qt_lib + "nc"
+                if self.generator in ("MSVC", "MSVC.NET", "BMAKE") and win_shared:
+                    qt_lib = qt_lib + string.replace(version_to_string(self.config.qt_version), ".", "")
 
-            libs.append(self.platform_lib(qt_lib))
+                    if self.config.qt_edition == "non-commercial":
+                        qt_lib = qt_lib + "nc"
+
+                libs.append(self.platform_lib(qt_lib))
+                libs.extend(self._dependent_libs(self.config.qt_lib))
 
         if self._opengl:
             incdir.extend(self.optional_list("INCDIR_OPENGL"))
@@ -487,9 +535,6 @@ class Makefile:
             libs.extend(self.optional_list("LIBS_CONSOLE"))
 
         libs.extend(self.optional_list("LIBS_WINDOWS"))
-
-        if self._qt:
-            libs.extend(self._dependent_libs(self.config.qt_lib))
 
         lflags.extend(self._platform_rpaths(rpaths.as_list()))
 
@@ -1447,6 +1492,13 @@ class ProgramMakefile(Makefile):
             mfile.write("\t$(LINK) $(LFLAGS) -o $(TARGET) $(OFILES) $(LIBS)\n")
 
         mfile.write("\n$(OFILES): $(HFILES)\n")
+
+        for mf in string.split(self._build["moc_headers"]):
+            root, discard = os.path.splitext(mf)
+            cpp = "moc_" + root + ".cpp"
+
+            mfile.write("\n%s: %s\n" % (cpp, mf))
+            mfile.write("\t$(MOC) -o %s %s\n" % (cpp, mf))
 
     def generate_target_install(self, mfile):
         """Generate the install target.
