@@ -2425,9 +2425,7 @@ static int parsePass2(sipWrapper *self,int selfarg,int nrargs,
 				void **rx = va_arg(va,void **);
 				const char **slot = va_arg(va,const char **);
 
-				if ((*rx = sipGetRx(self,sig,arg,*slot,slot)) == NULL)
-					valid = PARSE_RAISED;
-
+				*rx = sipGetRx(self,sig,arg,*slot,slot);
 				break;
 			}
 
@@ -2453,9 +2451,7 @@ static int parsePass2(sipWrapper *self,int selfarg,int nrargs,
 				void **rx = va_arg(va,void **);
 				const char **slot = va_arg(va,const char **);
 
-				if ((*rx = sipGetRx(self,sig,arg,NULL,slot)) == NULL)
-					valid = PARSE_RAISED;
-
+				*rx = sipGetRx(self,sig,arg,NULL,slot);
 				break;
 			}
 

@@ -747,10 +747,10 @@ static void removeSlotFromPySigList(sipWrapper *txSelf,const char *sig,
 void *sipGetRx(sipWrapper *txSelf,const char *sigargs,PyObject *rxObj,
 	       const char *slot,const char **memberp)
 {
-	void *rx;
-
 	if (slot != NULL)
 	{
+		void *rx;
+
 		rx = sip_api_get_cpp_ptr((sipWrapper *)rxObj, sipQObjectClass);
 
 		if (isQtSlot(slot) || isQtSignal(rx, slot))
@@ -761,10 +761,7 @@ void *sipGetRx(sipWrapper *txSelf,const char *sigargs,PyObject *rxObj,
 		}
 	}
 
-	if ((rx = sipQtSupport->qt_find_slot(sipGetAddress(txSelf), sigargs, rxObj, slot, memberp)) == NULL)
-		PyErr_Format(PyExc_RuntimeError,"Slot hasn't been connected");
-
-	return rx;
+	return sipQtSupport->qt_find_slot(sipGetAddress(txSelf), sigargs, rxObj, slot, memberp);
 }
 
 
@@ -890,7 +887,10 @@ PyObject *sip_api_disconnect_rx(PyObject *txObj,const char *sig,
 		const char *member;
 
 		if ((rx = sipGetRx(txSelf, sig, rxObj, slot, &member)) == NULL)
-			return NULL;
+		{
+			Py_INCREF(Py_False);
+			return Py_False;
+		}
 
 		return doDisconnect(txSelf, sig, rx, member);
 	}
@@ -919,7 +919,10 @@ static PyObject *disconnectFromPythonSlot(sipWrapper *txSelf,const char *sig,
 		const char *member;
 
 		if ((rx = sipGetRx(txSelf, sig, rxObj, NULL, &member)) == NULL)
-			return NULL;
+		{
+			Py_INCREF(Py_False);
+			return Py_False;
+		}
 
 		return doDisconnect(txSelf, sig, rx, member);
 	}
