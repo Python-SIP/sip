@@ -96,6 +96,7 @@ static void generateUnambiguousClass(classDef *cd,classDef *scope,FILE *fp);
 static void generateProtectedEnums(sipSpec *,classDef *,FILE *);
 static void generateProtectedDeclarations(classDef *,FILE *);
 static void generateProtectedDefinitions(classDef *,FILE *);
+static void generateProtectedCallArgs(overDef *od, FILE *fp);
 static void generateConstructorCall(classDef *,ctorDef *,int,FILE *);
 static void generateHandleResult(overDef *,int,char *,FILE *);
 static void generateOrdinaryFunction(sipSpec *,classDef *,memberDef *,FILE *);
@@ -4829,7 +4830,16 @@ static void generateProtectedDeclarations(classDef *cd,FILE *fp)
 
 			generateResultType(&od -> cppsig -> result,fp);
 
-			prcode(fp," sipProtect_%s(",od -> cppname);
+			if (isStatic(od) || isAbstract(od) || !isVirtual(od))
+				prcode(fp, " sipProtect_%s(", od->cppname);
+			else
+			{
+				prcode(fp, " sipProtectVirt_%s(bool sipSelfWasArg", od->cppname);
+
+				if (od->cppsig->nrArgs > 0)
+					prcode(fp, ",");
+			}
+
 			generateArgs(od -> cppsig,Declaration,fp);
 			prcode(fp,")%s;\n"
 				,(isConst(od) ? " const" : ""));
@@ -4852,7 +4862,7 @@ static void generateProtectedDefinitions(classDef *cd,FILE *fp)
 		for (od = vl -> cd -> overs; od != NULL; od = od -> next)
 		{
 			char *mname = od -> cppname;
-			int a, incast;
+			int incast;
 			argDef *res;
 
 			if (od -> common != vl -> m || !isProtected(od))
@@ -4864,8 +4874,16 @@ static void generateProtectedDefinitions(classDef *cd,FILE *fp)
 
 			generateResultType(&od -> cppsig -> result,fp);
 
-			prcode(fp,
-" sip%C::sipProtect_%s(",classFQCName(cd),mname);
+			if (isStatic(od) || isAbstract(od) || !isVirtual(od))
+				prcode(fp, " sip%C::sipProtect_%s(", classFQCName(cd), mname);
+			else
+			{
+				prcode(fp, " sip%C::sipProtectVirt_%s(bool sipSelfWasArg", classFQCName(cd), mname);
+
+				if (od->cppsig->nrArgs > 0)
+					prcode(fp, ",");
+			}
+
 			generateArgs(od -> cppsig,Definition,fp);
 			prcode(fp,")%s\n"
 "{\n"
@@ -4897,24 +4915,18 @@ static void generateProtectedDefinitions(classDef *cd,FILE *fp)
 					prcode(fp,"(%E)",res -> u.ed);
 			}
 
-			/* Don't scope it if it is abstract. */
-			if (!isAbstract(od))
-				prcode(fp,"%S::",classFQCName(vl -> cd));
+			if (!isAbstract(od) && isVirtual(od))
+			{
+				prcode(fp, "sipSelfWasArg ? %S::%s(", classFQCName(vl->cd), mname);
+
+				generateProtectedCallArgs(od, fp);
+
+				prcode(fp, ") : ");
+			}
 
 			prcode(fp,"%s(",mname);
 
-			for (a = 0; a < od -> cppsig -> nrArgs; ++a)
-			{
-				argDef *ad = &od -> cppsig -> args[a];
-
-				if (a > 0)
-					prcode(fp,",");
-
-				if (ad -> atype == enum_type && isProtectedEnum(ad -> u.ed))
-					prcode(fp,"(%S)",ad -> u.ed -> fqcname);
-
-				prcode(fp,"a%d",a);
-			}
+			generateProtectedCallArgs(od, fp);
 
 			if (incast)
 				prcode(fp,")");
@@ -4923,6 +4935,28 @@ static void generateProtectedDefinitions(classDef *cd,FILE *fp)
 "}\n"
 				);
 		}
+	}
+}
+
+
+/*
+ * Generate the arguments for a call to a protected method.
+ */
+static void generateProtectedCallArgs(overDef *od, FILE *fp)
+{
+	int a;
+
+	for (a = 0; a < od->cppsig->nrArgs; ++a)
+	{
+		argDef *ad = &od->cppsig->args[a];
+
+		if (a > 0)
+			prcode(fp, ",");
+
+		if (ad->atype == enum_type && isProtectedEnum(ad->u.ed))
+			prcode(fp, "(%S)", ad->u.ed->fqcname);
+
+		prcode(fp, "a%d", a);
 	}
 }
 
@@ -7430,14 +7464,15 @@ static void generateFunction(sipSpec *pt,memberDef *md,overDef *overs,
 			     classDef *cd,classDef *ocd,FILE *fp)
 {
 	overDef *od;
-	int need_method, need_self, need_args;
+	int need_method, need_self, need_args, need_selfarg;
 
 	/*
 	 * Check that there is at least one overload that needs to be handled.
-	 * Also see if we can avoid naming the "self" argument (and suppress a
-	 * compiler warning).
+	 * See if we can avoid naming the "self" argument (and suppress a
+	 * compiler warning).  Finally see if we need to remember if "self" was
+	 * explicitly passed as an argument.
 	 */
-	need_method = need_self = need_args = FALSE;
+	need_method = need_self = need_args = need_selfarg = FALSE;
 
 	for (od = overs; od != NULL; od = od -> next)
 	{
@@ -7457,7 +7492,13 @@ static void generateFunction(sipSpec *pt,memberDef *md,overDef *overs,
 				need_args = TRUE;
 
 				if (!isStatic(od))
+				{
 					need_self = TRUE;
+
+					if (!isAbstract(od))
+						if (isVirtual(od) || usedInCode(od->methodcode, "sipSelfWasArg"))
+							need_selfarg = TRUE;
+				}
 			}
 		}
 	}
@@ -7482,6 +7523,11 @@ static void generateFunction(sipSpec *pt,memberDef *md,overDef *overs,
 		if (need_args)
 			prcode(fp,
 "	int sipArgsParsed = 0;\n"
+				);
+
+		if (need_selfarg)
+			prcode(fp,
+"	bool sipSelfWasArg = !sipSelf;\n"
 				);
 
 		for (od = overs; od != NULL; od = od -> next)
@@ -8507,12 +8553,9 @@ static void generateCppFunctionCall(classDef *cd,classDef *ocd,overDef *od,
 	char *mname = od -> cppname;
 
 	/*
-	 * If the function is protected then call the public wrapper.
-	 * Otherwise explicitly call the real function and not any version in
-	 * the wrapper class in case it is virtual.  This will prevent virtual
-	 * loops.  The exception is pure virtual functions as this is the way
-	 * we hook into the catcher.  Don't need to worry about indirected
-	 * objects for protected functions.
+	 * If the function is protected then call the public wrapper.  If it is
+	 * virtual then call explicit scoped function if "self" was passed as
+	 * the first argument.
 	 */
 
 	if (cd == NULL)
@@ -8527,15 +8570,28 @@ static void generateCppFunctionCall(classDef *cd,classDef *ocd,overDef *od,
 			prcode(fp,"%S::%s(",classFQCName(ocd),mname);
 	}
 	else if (isProtected(od))
-		prcode(fp,"sipCpp -> sipProtect_%s(",mname);
-	else if (isAbstract(od))
-		prcode(fp,"sipCpp -> %s(",mname);
+	{
+		if (isAbstract(od) || !isVirtual(od))
+			prcode(fp, "sipCpp->sipProtect_%s(", mname);
+		else
+		{
+			prcode(fp, "sipCpp->sipProtectVirt_%s(sipSelfWasArg", mname);
+
+			if (od->cppsig->nrArgs > 0)
+				prcode(fp, ",");
+		}
+	}
+	else if (isAbstract(od) || !isVirtual(od))
+		prcode(fp, "sipCpp->%s(", mname);
 	else
-		prcode(fp,"sipCpp -> %U::%s(",ocd,mname);
+	{
+		prcode(fp, "sipSelfWasArg ? sipCpp->%U::%s(", ocd, mname);
+		generateArgs(od->cppsig, Call, fp);
+		prcode(fp, ") : sipCpp->%s(", mname);
+	}
 
-	generateArgs(od -> cppsig,Call,fp);
-
-	prcode(fp,")");
+	generateArgs(od->cppsig, Call, fp);
+	prcode(fp, ")");
 }
 
 

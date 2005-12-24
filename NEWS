@@ -24,6 +24,11 @@ v4.4 ???
     type object.
   - Added support for ellipsis (ie. "...") in function arguments.  Any
     remaining arguments will be gathered as a Python tuple.
+  - The sipSelfWasArg boolean is now available to the %MethodCode of
+    non-abstract, virtual methods to indicate whether the class implementation
+    of the method rather than the virtual implementation should be called.
+    %MethodCode for non-abstract, virtual, protected methods must now call the
+    sipProtectVirt wrapper (rather than sipProtect).
   - Added support for the __hash__ Python special method.
   - The __getitem__ Python special method no longer requires %MethodCode.
   - All of the calls to Qt have been moved out of the sip module and into PyQt.
