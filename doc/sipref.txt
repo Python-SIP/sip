@@ -3426,7 +3426,7 @@ PyObject \*sipBuildResult(int \*iserr, char \*format, ...)
         instance object.  This should not be used if the structure or class
         instance might already have been wrapped.  Ownership of the structure
         or instance will be with Python.  It is recommended that handwritten
-        code use the ``N`` format character instead.
+        code use the ``M`` format character instead.
 
     ``R`` (object) [PyObject \*]
         The result is value passed without any conversions.  The reference

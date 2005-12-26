@@ -4834,7 +4834,7 @@ static void generateProtectedDeclarations(classDef *cd,FILE *fp)
 				prcode(fp, " sipProtect_%s(", od->cppname);
 			else
 			{
-				prcode(fp, " sipProtectVirt_%s(bool sipSelfWasArg", od->cppname);
+				prcode(fp, " sipProtectVirt_%s(bool", od->cppname);
 
 				if (od->cppsig->nrArgs > 0)
 					prcode(fp, ",");
