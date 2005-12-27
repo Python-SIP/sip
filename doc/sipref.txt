@@ -3053,6 +3053,50 @@ virtual methods that have not been specified and so it cannot be instantiated
 from Python.
 
 
+DelayDtor
+*********
+
+This boolean annotation is used to specify that the class's destructor should
+not be called until the Python interpreter exits.  It would normally only be
+applied to singleton classes.
+
+When the Python interpreter exits the order in which any wrapped instances are
+garbage collected is unpredictable.  However, the underlying C or C++ instances
+may need to be destroyed in a certain order.  If this annotation is specified
+then when the wrapped instance is garbage collected the C or C++ instance is
+not destroyed but instead added to a list of delayed instances.  When the
+interpreter exits then the function ``sipDelayedDtors`` is called with the
+list of delayed instances.  ``sipDelayedDtors`` can then choose to call (or
+ignore) the destructors in any desired order.
+
+The ``sipDelayedDtors`` function must be specified using the `%ModuleCode`_
+directive.  It's signature is as follows::
+
+    static void sipDelayedDtors(const sipDelayedDtor *dd_list);
+
+``dd_list`` is the linked list of delayed instances.  The following fields are
+defined.
+
+const char \*dd_name
+    This is the name of the class excluding any package or module name.
+
+void \*dd_ptr
+    This is the address of the C or C++ instance to be destroyed.  It's exact
+    type depends on the value of ``dd_isderived``.
+
+int dd_isderived
+    This is non-zero if the type of ``dd_ptr`` is actually the generated
+    derived class.  This allows the correct destructor to be called.  See
+    `Generated Derived Classes`_.
+
+sipDelayedDtor \*dd_next
+    This is the address of the next entry in the list or zero if this is the
+    last one.
+
+Note that the above applies only to C and C++ instances that are owned by
+Python.
+
+
 External
 ********
 

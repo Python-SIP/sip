@@ -20,6 +20,8 @@ v4.4 ???
     used for any purpose by handwritten code.
   - Function argument names are now parsed, but otherwise ignored.
   - The "explicit" keyword is now parsed, but otherwise ignored.
+  - Added the /DelayDtor/ class annotation which given more control over the
+    order in which instances are deleted when an application terminates.
   - Added support for the SIP_PYTYPE pseudo-type that represents a Python
     type object.
   - Added support for ellipsis (ie. "...") in function arguments.  Any

@@ -43,7 +43,7 @@ static nameDef *cacheName(sipSpec *,char *);
 static classDef *findClass(sipSpec *,ifaceFileType,scopedNameDef *);
 static classDef *findClassWithInterface(sipSpec *pt, ifaceFileDef *iff);
 static classDef *newClass(sipSpec *,ifaceFileType,scopedNameDef *);
-static void finishClass(sipSpec *,classDef *,optFlags *);
+static void finishClass(sipSpec *,moduleDef *,classDef *,optFlags *);
 static exceptionDef *findException(sipSpec *pt, scopedNameDef *fqname, int new);
 static mappedTypeDef *newMappedType(sipSpec *,argDef *);
 static enumDef *newEnum(sipSpec *,moduleDef *,char *,optFlags *,int);
@@ -1215,7 +1215,7 @@ struct:		TK_STRUCT TK_NAME {
 		} optflags '{' classbody '}' ';' {
 			if (notSkipping())
 			{
-				finishClass(currentSpec,currentScope(),&$4);
+				finishClass(currentSpec, currentModule, currentScope(), &$4);
 				popScope();
 			}
 		}
@@ -1285,7 +1285,7 @@ class:		TK_CLASS scopedname {
 				else
 					setIsOpaque(cd);
 
-				finishClass(currentSpec, cd, &$5);
+				finishClass(currentSpec, currentModule, cd, &$5);
 				popScope();
 
 				/*
@@ -1596,7 +1596,7 @@ function:	cpptype TK_NAME '(' arglist ')' optconst optexceptions optabstract opt
 			currentIsStatic = FALSE;
 			currentOverIsVirt = FALSE;
 		}
-	|	TK_OPERATOR basetype '(' arglist ')' optconst optexceptions optabstract optflags optsig ';' methodcode virtualcatchercode {
+	|	TK_OPERATOR cpptype '(' arglist ')' optconst optexceptions optabstract optflags optsig ';' methodcode virtualcatchercode {
 			classDef *scope = currentScope();
 
 			if (scope == NULL || $4.nrArgs != 0)
@@ -2407,6 +2407,7 @@ static void newModule(FILE *fp,char *filename)
 	newmod -> fullname = NULL;
 	newmod -> name = NULL;
 	newmod -> version = -1;
+	newmod -> modflags = 0;
 	newmod -> modulenr = -1;
 	newmod -> file = filename;
 	newmod -> qualifiers = NULL;
@@ -2764,7 +2765,7 @@ static classDef *newClass(sipSpec *pt,ifaceFileType iftype,
 /*
  * Tidy up after finishing a class definition.
  */
-static void finishClass(sipSpec *pt,classDef *cd,optFlags *of)
+static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd, optFlags *of)
 {
 	char *pyname;
 
@@ -2841,6 +2842,12 @@ static void finishClass(sipSpec *pt,classDef *cd,optFlags *of)
 		/* We assume a public dtor if nothing specific was provided. */
 		if (!isDtor(cd))
 			setIsPublicDtor(cd);
+
+		if (findOptFlag(of, "DelayDtor", bool_flag) != NULL)
+		{
+			setIsDelayedDtor(cd);
+			setHasDelayedDtors(mod);
+		}
 
 		/*
 		 * There are subtle differences between the add and concat

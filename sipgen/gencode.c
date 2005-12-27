@@ -560,6 +560,8 @@ static void generateInternalAPIHeader(sipSpec *pt,char *codeDir,stringList *xsl)
 "#define	sipSameConnection		sipAPI_%s -> api_same_connection\n"
 "#define	sipPySlotExtend			sipAPI_%s -> api_pyslot_extend\n"
 "#define	sipConvertRx			sipAPI_%s -> api_convert_rx\n"
+"#define	sipAddDelayedDtor		sipAPI_%s -> api_add_delayed_dtor\n"
+		,mname
 		,mname
 		,mname
 		,mname
@@ -1454,7 +1456,9 @@ static void generateCpp(sipSpec *pt,char *codeDir,char *srcSuffix,int *parts)
 "	%s,\n"
 "	%s,\n"
 "	%s,\n"
-"	%s\n"
+"	%s,\n"
+"	%s,\n"
+"	NULL\n"
 "};\n"
 		,mname
 		, pt->module->fullname
@@ -1486,7 +1490,8 @@ static void generateCpp(sipSpec *pt,char *codeDir,char *srcSuffix,int *parts)
 		,(pt -> module -> license != NULL ? "&module_license" : "NULL")
 		,(pt -> module -> nrexceptions > 0 ? "exceptionsTable" : "NULL")
 		, (slot_extenders ? "slotExtenders" : "NULL")
-		, (ctor_extenders ? "initExtenders" : "NULL"));
+		, (ctor_extenders ? "initExtenders" : "NULL")
+		, (hasDelayedDtors(pt->module) ? "sipDelayedDtors" : "NULL"));
 
 	/* Generate the storage for the external API pointers. */
 	prcode(fp,
@@ -4056,7 +4061,11 @@ static void generateClassFunctions(sipSpec *pt,classDef *cd,FILE *fp)
 					);
 			}
 
-			if (generating_c)
+			if (isDelayedDtor(cd))
+				prcode(fp,
+"		sipAddDelayedDtor(sipSelf);\n"
+					);
+			else if (generating_c)
 				prcode(fp,
 "		sipFree(sipSelf -> u.cppPtr);\n"
 					);
@@ -7389,7 +7398,18 @@ static void generateConstructorCall(classDef *cd,ctorDef *ct,int error_flag,
 "			sipCpp = new %U(",cd);
 
 		if (isCastCtor(ct))
-			prcode(fp, "a0 -> operator %S()", classFQCName(cd));
+		{
+			classDef *ocd;
+
+			/*
+			 * We have to fiddle the type to generate the correct
+			 * code.
+			 */
+			ocd = ct->pysig.args[0].u.cd;
+			ct->pysig.args[0].u.cd = cd;
+			prcode(fp, "a0 -> operator %B()", &ct->pysig.args[0]);
+			ct->pysig.args[0].u.cd = ocd;
+		}
 		else
 			generateArgs(ct->cppsig, Call, fp);
 

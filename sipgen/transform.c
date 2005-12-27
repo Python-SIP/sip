@@ -309,10 +309,12 @@ static void moveClassCasts(sipSpec *pt, classDef *cd)
 
 		ad->atype = class_type;
 		ad->name = NULL;
-		ad->argflags = ARG_IN;
-		ad->nrderefs = 0;
+		ad->argflags = ARG_IN | (al->arg.argflags & (ARG_IS_REF | ARG_IS_CONST));
+		ad->nrderefs = al->arg.nrderefs;
 		ad->defval = NULL;
 		ad->u.cd = cd;
+
+		ifaceFileIsUsed(pt, dcd->iff, ad);
 
 		ct->pysig.nrArgs = 1;
 
@@ -321,10 +323,12 @@ static void moveClassCasts(sipSpec *pt, classDef *cd)
 			if (sameSignature(&(*ctp)->pysig, &ct->pysig, FALSE))
 			{
 				fatal("operator ");
-				fatalScopedName(classFQCName(cd));
+				fatalScopedName(classFQCName(dcd));
 				fatal("::");
 				fatalScopedName(classFQCName(dcd));
-				fatal("() already defined\n");
+				fatal("(");
+				fatalScopedName(classFQCName(cd));
+				fatal(") already defined\n");
 			}
 
 		*ctp = ct;

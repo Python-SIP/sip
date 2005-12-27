@@ -75,6 +75,7 @@ static void sip_api_bad_operator_arg(PyObject *self, PyObject *arg,
 static PyObject *sip_api_pyslot_extend(sipExportedModuleDef *mod,
 				       sipPySlotType st, sipWrapperType *type,
 				       PyObject *arg0, PyObject *arg1);
+static void sip_api_add_delayed_dtor(sipWrapper *w);
 
 
 /*
@@ -146,6 +147,7 @@ static const sipAPIDef sip_api = {
 	sip_api_add_class_instance,
 	sip_api_bad_operator_arg,
 	sip_api_pyslot_extend,
+	sip_api_add_delayed_dtor,
 };
 
 
@@ -780,6 +782,25 @@ static int sip_api_export_module(sipExportedModuleDef *client,
  */
 static void finalise(void)
 {
+	sipExportedModuleDef *em;
+
+	/* Handle any delayed dtors. */
+	for (em = clientList; em != NULL; em = em->em_next)
+		if (em->em_ddlist != NULL)
+		{
+			em->em_delayeddtors(em->em_ddlist);
+
+			/* Free the list. */
+			do
+			{
+				sipDelayedDtor *dd = em->em_ddlist;
+
+				em->em_ddlist = dd->dd_next;
+				sip_api_free(dd);
+			}
+			while (em->em_ddlist != NULL);
+		}
+
 	Py_XDECREF(licenseName);
 	licenseName = NULL;
 
@@ -801,6 +822,45 @@ static void finalise(void)
 	/* Re-initialise those globals that (might) need it. */
 	clientList = NULL;
 	sipInterpreter = NULL;
+}
+
+
+/*
+ * Add a wrapped C/C++ pointer to the list of delayed dtors.
+ */
+static void sip_api_add_delayed_dtor(sipWrapper *w)
+{
+	void *ptr;
+	sipTypeDef *td;
+	sipExportedModuleDef *em;
+
+	if ((ptr = getPtrTypeDef(w, &td)) == NULL)
+		return;
+
+	/* Fine the defining module. */
+	for (em = clientList; em != NULL; em = em->em_next)
+	{
+		int i;
+
+		for (i = 0; i < em->em_nrtypes; ++i)
+			if (em->em_types[i]->type == td)
+			{
+				sipDelayedDtor *dd;
+
+				if ((dd = sip_api_malloc(sizeof (sipDelayedDtor))) == NULL)
+					return;
+
+				/* Add to the list. */
+				dd->dd_ptr = ptr;
+				dd->dd_name = getBaseName(td->td_name);
+				dd->dd_isderived = !sipIsSimple(w);
+				dd->dd_next = em->em_ddlist;
+
+				em->em_ddlist = dd;
+
+				return;
+			}
+	}
 }
 
 

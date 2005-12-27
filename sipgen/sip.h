@@ -35,6 +35,14 @@
 #define	classFQCName(cd)	((cd) -> iff -> fqcname)
 
 
+/* Handle module flags. */
+
+#define	MOD_HAS_DELAYED_DTORS	0x0001	/* It has a class with a delayed dtor. */
+
+#define	hasDelayedDtors(m)	((m) -> modflags & MOD_HAS_DELAYED_DTORS)
+#define	setHasDelayedDtors(m)	((m) -> modflags |= MOD_HAS_DELAYED_DTORS)
+
+
 /* Handle section flags. */
 
 #define	SECT_IS_PUBLIC		0x0001	/* It is public. */
@@ -60,6 +68,7 @@
 #define	CLASS_IS_INCOMPLETE	0x04000000	/* The specification is incomplete. */
 #define	CLASS_CAN_CREATE	0x08000000	/* It has usable ctors. */
 #define	CLASS_IS_EXTERNAL	0x10000000	/* It is external. */
+#define	CLASS_IS_DELAYED_DTOR	0x20000000	/* The dtor is delayed. */
 
 #define	hasEnums(cd)		((cd) -> classflags & CLASS_HAS_ENUMS)
 #define	setHasEnums(cd)		((cd) -> classflags |= CLASS_HAS_ENUMS)
@@ -91,6 +100,8 @@
 #define	resetCanCreate(cd)	((cd) -> classflags &= ~CLASS_CAN_CREATE)
 #define	isExternal(cd)		((cd) -> classflags & CLASS_IS_EXTERNAL)
 #define	setIsExternal(cd)	((cd) -> classflags |= CLASS_IS_EXTERNAL)
+#define	isDelayedDtor(cd)	((cd) -> classflags & CLASS_IS_DELAYED_DTOR)
+#define	setIsDelayedDtor(cd)	((cd) -> classflags |= CLASS_IS_DELAYED_DTOR)
 
 #define	isPublicDtor(cd)	((cd) -> classflags & SECT_IS_PUBLIC)
 #define	setIsPublicDtor(cd)	((cd) -> classflags |= SECT_IS_PUBLIC)
@@ -476,6 +487,7 @@ typedef struct _moduleDef {
 	char			*fullname;	/* The full module name. */
 	char			*name;		/* The module base name. */
 	int			version;	/* The module version. */
+	int			modflags;	/* The module flags. */
 	int			modulenr;	/* The module number. */
 	char			*file;		/* The filename. */
 	qualDef			*qualifiers;	/* The list of qualifiers. */

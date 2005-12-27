@@ -401,6 +401,17 @@ typedef struct _sipMappedTypeDef {
 
 
 /*
+ * Defines an entry in the module specific list of delayed dtor calls.
+ */
+typedef struct _sipDelayedDtor {
+	void *dd_ptr;			/* The C/C++ instance. */
+	const char *dd_name;		/* The class name. */
+	int dd_isderived;		/* Non-zero if dd_ptr is a derived class instance. */
+	struct _sipDelayedDtor *dd_next;	/* Next in the list. */
+} sipDelayedDtor;
+
+
+/*
  * The information describing an imported module.
  */
 typedef struct _sipImportedModuleDef {
@@ -438,6 +449,8 @@ typedef struct _sipExportedModuleDef {
 	PyObject **em_exceptions;	/* The table of exception types. */
 	sipPySlotExtenderDef *em_slotextend;	/* The table of Python slot extenders. */
 	sipInitExtenderDef *em_initextend;	/* The table of initialiser extenders. */
+	void (*em_delayeddtors)(const sipDelayedDtor *);	/* The delayed dtor handler. */
+	sipDelayedDtor *em_ddlist;	/* The list of delayed dtors. */
 } sipExportedModuleDef;
 
 
@@ -752,6 +765,7 @@ typedef struct _sipAPIDef {
 	int (*api_add_class_instance)(PyObject *dict,char *name,void *cppPtr,sipWrapperType *wt);
 	void (*api_bad_operator_arg)(PyObject *self, PyObject *arg, sipPySlotType st);
 	PyObject *(*api_pyslot_extend)(sipExportedModuleDef *mod, sipPySlotType st, sipWrapperType *type, PyObject *arg0, PyObject *arg1);
+	void (*api_add_delayed_dtor)(sipWrapper *w);
 } sipAPIDef;
 
 
