@@ -27,6 +27,9 @@ static PyObject *sip_api_class_name(PyObject *self);
 static int sip_api_convert_from_sequence_index(int idx,int len);
 static void *sip_api_convert_to_cpp(PyObject *sipSelf,sipWrapperType *type,
 				    int *iserrp);
+static void *sip_api_convert_to_cpp_transfer(PyObject *sipSelf,
+					     sipWrapperType *type, int *iserrp,
+					     PyObject *transferObj);
 static PyObject *sip_api_get_wrapper(void *cppPtr,sipWrapperType *type);
 static sipWrapperType *sip_api_map_int_to_class(int typeInt,
 						const sipIntTypeClassMap *map,
@@ -95,6 +98,7 @@ static const sipAPIDef sip_api = {
 	sip_api_connect_rx,
 	sip_api_convert_from_sequence_index,
 	sip_api_convert_to_cpp,
+	sip_api_convert_to_cpp_transfer,
 	sip_api_disconnect_rx,
 	sip_api_emit_signal,
 	sip_api_free,
@@ -173,11 +177,6 @@ static const sipAPIDef sip_api = {
 #define	sipSetFoundMethod(m)	((m) -> mcflags |= SIP_MC_FOUND)
 #define	sipIsMethod(m)		((m) -> mcflags & SIP_MC_ISMETH)
 #define	sipSetIsMethod(m)	((m) -> mcflags |= SIP_MC_ISMETH)
-
-
-typedef PyObject *(*convfromfunc)(void *);	/* From convertor function. */
-typedef int (*convfunc)(PyObject *,void **,int *);/* To convertor function. */
-typedef void *(*forceconvfunc)(PyObject *,int *);/* Force to convertor function. */
 
 
 static PyTypeObject sipWrapperType_Type;
@@ -1127,6 +1126,23 @@ static PyObject *buildObject(PyObject *obj,char *fmt,va_list va)
 
 			break;
 
+		case 'L':
+			{
+				void *sipCpp = va_arg(va,void *);
+				sipWrapperType *wt = va_arg(va, sipWrapperType *);
+				PyObject *xfer = va_arg(va, PyObject *);
+
+				el = sip_api_map_cpp_to_self_sub_class(sipCpp, wt);
+
+				if (el != NULL && xfer != NULL)
+					if (xfer == Py_None)
+						sip_api_transfer_back(el);
+					else
+						sip_api_transfer_to(el, xfer);
+			}
+
+			break;
+
 		case 'M':
 			{
 				void *sipCpp = va_arg(va,void *);
@@ -1179,9 +1195,9 @@ static PyObject *buildObject(PyObject *obj,char *fmt,va_list va)
 		case 'T':
 			{
 				void *sipCpp = va_arg(va,void *);
-				convfromfunc func = va_arg(va,convfromfunc);
+				sipConvertFromFunc func = va_arg(va,sipConvertFromFunc);
 
-				el = func(sipCpp);
+				el = func(sipCpp, NULL);
 			}
 
 			break;
@@ -1450,11 +1466,11 @@ static int sip_api_parse_result(int *isErr,PyObject *method,PyObject *res,char *
 
 			case 'L':
 				{
-					forceconvfunc func = va_arg(va,forceconvfunc);
+					sipForceConvertToFunc func = va_arg(va,sipForceConvertToFunc);
 					void **sipCpp = va_arg(va,void **);
 					int iserr = FALSE;
 
-					*sipCpp = func(arg,&iserr);
+					*sipCpp = func(arg,&iserr,NULL);
 
 					if (iserr)
 						invalid = TRUE;
@@ -1464,11 +1480,11 @@ static int sip_api_parse_result(int *isErr,PyObject *method,PyObject *res,char *
 
 			case 'M':
 				{
-					forceconvfunc func = va_arg(va,forceconvfunc);
+					sipForceConvertToFunc func = va_arg(va,sipForceConvertToFunc);
 					void **sipCpp = va_arg(va,void **);
 					int iserr = FALSE;
 
-					*sipCpp = func(arg,&iserr);
+					*sipCpp = func(arg,&iserr,NULL);
 
 					if (iserr || *sipCpp == NULL)
 						invalid = TRUE;
@@ -1942,9 +1958,9 @@ static int parsePass1(sipWrapper **selfp,int *selfargp,int *argsParsedp,
 			{
 				/* Class instance with convertors. */
 
-				convfunc func;
+				sipConvertToFunc func;
 
-				func = va_arg(va,convfunc);
+				func = va_arg(va,sipConvertToFunc);
 				va_arg(va,void **);
 				va_arg(va,int *);
 
@@ -1953,7 +1969,7 @@ static int parsePass1(sipWrapper **selfp,int *selfargp,int *argsParsedp,
 				 * convertor function tells it to only check
 				 * the type and not do any conversion.
 				 */
-				if (arg != Py_None && !func(arg,NULL,NULL))
+				if (arg != Py_None && !func(arg, NULL, NULL, NULL))
 					valid = PARSE_TYPE;
 
 				/* Handle the sub-format. */
@@ -2523,15 +2539,19 @@ static int parsePass2(sipWrapper *self,int selfarg,int nrargs,
 				void **p = va_arg(va,void **);
 				int flags = *fmt++ - '0';
 				int iserr = FALSE;
+				PyObject *xfer;
 
-				*p = sip_api_convert_to_cpp(arg,type,&iserr);
+				if (flags & FORMAT_TRANSFER)
+					xfer = (self ? (PyObject *)self : arg);
+				else if (flags & FORMAT_TRANSFER_BACK)
+					xfer = Py_None;
+				else
+					xfer = NULL;
+
+				*p = sip_api_convert_to_cpp_transfer(arg, type, &iserr, xfer);
 
 				if (iserr)
 					valid = PARSE_RAISED;
-				else if (flags & FORMAT_TRANSFER)
-					sip_api_transfer_to(arg,(self ? (PyObject *)self : arg));
-				else if (flags & FORMAT_TRANSFER_BACK)
-					sip_api_transfer_back(arg);
 
 				if (flags & FORMAT_GET_WRAPPER)
 					*va_arg(va,PyObject **) = (*p != NULL ? arg : NULL);
@@ -2543,20 +2563,24 @@ static int parsePass2(sipWrapper *self,int selfarg,int nrargs,
 			{
 				/* Class instance with convertors. */
 
-				convfunc func = va_arg(va,convfunc);
+				sipConvertToFunc func = va_arg(va,sipConvertToFunc);
 				void **p = va_arg(va,void **);
 				int *heap = va_arg(va,int *);
 				int flags = *fmt++ - '0';
 				int iserr = FALSE;
+				PyObject *xfer;
 
-				*heap = func(arg,p,&iserr);
+				if (flags & FORMAT_TRANSFER)
+					xfer = (self ? (PyObject *)self : arg);
+				else if (flags & FORMAT_TRANSFER_BACK)
+					xfer = Py_None;
+				else
+					xfer = NULL;
+
+				*heap = func(arg, p, &iserr, xfer);
 
 				if (iserr)
 					valid = PARSE_RAISED;
-				else if (flags & FORMAT_TRANSFER)
-					sip_api_transfer_to(arg,(self ? (PyObject *)self : arg));
-				else if (flags & FORMAT_TRANSFER_BACK)
-					sip_api_transfer_back(arg);
 
 				break;
 			}
@@ -4154,6 +4178,18 @@ static int checkPointer(void *ptr)
 static void *sip_api_convert_to_cpp(PyObject *sipSelf,sipWrapperType *type,
 				    int *iserrp)
 {
+	return sip_api_convert_to_cpp_transfer(sipSelf, type, iserrp, NULL);
+}
+
+
+/*
+ * Do the same as sip_api_convert_to_cpp() and then possibly transfer ownership
+ * of the instance.
+ */
+static void *sip_api_convert_to_cpp_transfer(PyObject *sipSelf,
+					     sipWrapperType *type, int *iserrp,
+					     PyObject *transferObj)
+{
 	void *ptr;
 
 	if (sipSelf == Py_None)
@@ -4164,6 +4200,16 @@ static void *sip_api_convert_to_cpp(PyObject *sipSelf,sipWrapperType *type,
 		*iserrp = TRUE;
 		return NULL;
 	}
+
+	/*
+	 * See if there is a transfer requested, and there is something to
+	 * transfer.
+	 */
+	if (transferObj != NULL)
+		if (transferObj == Py_None)
+			sip_api_transfer_back(sipSelf);
+		else
+			sip_api_transfer_to(sipSelf, transferObj);
 
 	return ptr;
 }

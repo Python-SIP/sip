@@ -1,6 +1,8 @@
 v4.4 ???
   - The major number of the internal API has changed so it will be necessary
     to regenerate all modules.
+  - This release introduces small incompatibilities that may affect handwritten
+    code.  See the documentation for the details.
   - Module names specified with %Module and %CModule can now include periods to
     denote a Python package structure.
   - Class templates are now supported and instantiated using "typedef".
@@ -31,6 +33,11 @@ v4.4 ???
     of the method rather than the virtual implementation should be called.
     %MethodCode for non-abstract, virtual, protected methods must now call the
     sipProtectVirt wrapper (rather than sipProtect).
+  - sipConvertToCppTransfer() has been added to the SIP API.
+  - Responsibility for interpreting and implementing the /Transfer/ and
+    /TransferBack/ annotations has been pushed down to %ConvertToTypeCode and
+    %ConvertFromTypeCode.  To accomodate this the signature of the generated
+    type convertors has changed.
   - Added support for the __hash__ Python special method.
   - The __getitem__ Python special method no longer requires %MethodCode.
   - All of the calls to Qt have been moved out of the sip module and into PyQt.

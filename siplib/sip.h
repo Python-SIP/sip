@@ -156,9 +156,9 @@ typedef int (*sipSegCountFunc)(PyObject *,void *,int *);
 typedef void (*sipDeallocFunc)(sipWrapper *);
 typedef void *(*sipCastFunc)(void *,sipWrapperType *);
 typedef sipWrapperType *(*sipSubClassConvertFunc)(void **);
-typedef void *(*sipForceConvertToFunc)(PyObject *,int *);
-typedef int (*sipConvertToFunc)(PyObject *,void **,int *);
-typedef PyObject *(*sipConvertFromFunc)(void *);
+typedef void *(*sipForceConvertToFunc)(PyObject *,int *,PyObject *);
+typedef int (*sipConvertToFunc)(PyObject *,void **,int *,PyObject *);
+typedef PyObject *(*sipConvertFromFunc)(void *,PyObject *);
 typedef int (*sipVirtHandlerFunc)(void *,PyObject *,...);
 typedef int (*sipEmitFunc)(sipWrapper *,PyObject *);
 
@@ -713,6 +713,7 @@ typedef struct _sipAPIDef {
 	PyObject *(*api_connect_rx)(PyObject *txObj,const char *sig,PyObject *rxObj,const char *slot, int type);
 	int (*api_convert_from_sequence_index)(int idx,int len);
 	void *(*api_convert_to_cpp)(PyObject *sipSelf,sipWrapperType *type,int *iserrp);
+	void *(*api_convert_to_cpp_transfer)(PyObject *sipSelf,sipWrapperType *type,int *iserrp,PyObject *transferObj);
 	PyObject *(*api_disconnect_rx)(PyObject *txObj,const char *sig,PyObject *rxObj,const char *slot);
 	int (*api_emit_signal)(PyObject *self,const char *sig,PyObject *sigargs);
 	void (*api_free)(void *mem);

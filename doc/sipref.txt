@@ -184,6 +184,20 @@ new Python signals, and allows any Python callable object to be used as a slot.
 SIP itself does not require Qt to be installed.
 
 
+Incompatibilities with Earlier Versions
+=======================================
+
+SIP v4.4
+--------
+
+    - The ``SIP_BUILD`` C preprocessor symbol has been removed.
+
+    - The signatures of the `Generated Type Convertors`_ has been changed.
+      Handwritten `%ConvertFromTypeCode`_ and `%ConvertToTypeCode`_ now has
+      the responsibility for implementing the ``Transfer`` and ``TransferBack``
+      annotations.
+
+
 Installing SIP
 ==============
 
@@ -1463,11 +1477,21 @@ The following variables are made available to the handwritten code:
     This is a pointer to the instance of the mapped type to be converted.  It
     may be zero.
 
+PyObject \*sipTransferObj
+    This specifies any desired ownership changes to the returned object.  If it
+    is ``NULL`` then the ownership should be left unchanged.  If it is
+    ``Py_None`` then ownership should be transferred to Python.  Otherwise
+    ownership should be transferred to C/C++ and the returned object associated
+    with *sipTransferObj*.  The code can choose to interpret these changes in
+    any way.  For example, if the code is converting a C++ container of wrapped
+    classes to a Python list it is likely that the ownership changes should be
+    made to each element of the list.
+
 The handwritten code must explicitly return a ``PyObject *``.  If there was an
 error then a Python exception must be raised and ``NULL`` returned.
 
-The following example converts a ``QValueList<int>`` instance to a Python
-list of numbers::
+The following example converts a ``QList<QWidget *>`` instance to a Python
+list of ``QWidget`` instances::
 
     %ConvertFromTypeCode
         // Handle the case where the C++ instance is 0.
@@ -1477,17 +1501,29 @@ list of numbers::
         PyObject *l;
 
         // Create the Python list of the correct length.
-        if ((l = PyList_New(sipCpp -> count())) == NULL)
+        if ((l = PyList_New(sipCpp -> size())) == NULL)
             return NULL;
 
-        // Go through each int in the C++ instance and convert it to a number.
-        for (uint i = 0; i < sipCpp -> count(); ++i)
-            if (PyList_SetItem(l, i, PyInt_FromLong((*sipCpp)[i])) < 0)
+        // Go through each element in the C++ instance and convert it to a
+        // wrapped QWidget.
+        for (int i = 0; i < sipCpp -> size(); ++i)
+        {
+            QWidget *w = sipCpp -> at(i);
+            PyObject *wobj;
+
+            // Get the Python wrapper for the QWidget instance, creating a new
+            // one if necessary, and handle any ownership transfer.
+            if ((wobj = sipBuildResult(NULL, "L", w, sipClass_QWidget,
+                                       sipTransferObj)) == NULL)
             {
                 // There was an error so garbage collect the Python list.
                 Py_DECREF(l);
                 return NULL;
             }
+
+            // Add the wrapper to the list.
+            PyList_SET_ITEM(l, i, wobj);
+        }
 
         // Return the Python list.
         return l;
@@ -1590,9 +1626,10 @@ based on ordered lookup tables.
     %End
 
 This directive is used to specify the handwritten code that converts a Python
-object to a mapped type instance.  It is used as part of the `%MappedType`_
-directive and as part of a class specification.  The code is also called to
-determine if the Python object is of the correct type prior to conversion.
+object to a mapped type instance and to handle any ownership transfers.  It is
+used as part of the `%MappedType`_ directive and as part of a class
+specification.  The code is also called to determine if the Python object is of
+the correct type prior to conversion.
 
 When used as part of a class specification is can automatically convert
 additional types of Python object.  For example, PyQt uses it in the
@@ -1616,6 +1653,16 @@ PyObject \*sipPy
     zero if appropriate) is returned.  Its value is undefined if ``sipIsErr``
     is ``NULL``.
 
+PyObject \*sipTransferObj
+    This specifies any desired ownership changes to *sipPy*.  If it is ``NULL``
+    then the ownership should be left unchanged.  If it is ``Py_None`` then
+    ownership should be transferred to Python.  Otherwise ownership should be
+    transferred to C/C++ and *sipPy* associated with *sipTransferObj*.  The
+    code can choose to interpret these changes in any way.  For example, if the
+    code is converting a Python list of wrapped classes to a C++ container it
+    is likely that the ownership changes should be made to each element of the
+    list.
+
 The handwritten code must explicitly return an ``int`` that is either zero or
 non-zero.  Its meaning depends on the value of ``sipIsErr``.
 
@@ -1627,14 +1674,26 @@ If ``sipIsErr`` is not ``NULL`` then a non-zero value is returned if the
 mapped type instance returned through ``sipCppPtr`` was created on the heap.
 Otherwise zero is returned.
 
-The following example converts a Python list of numbers to a
-``QValueList<int>`` instance::
+The following example converts a Python list of ``QWidget`` instances to a
+``QList<QWidget *>`` instance::
 
     %ConvertToTypeCode
         // See if we are just being asked to check the type of the Python
         // object.
         if (sipIsErr == NULL)
-            return PyList_Check(sipPy);
+        {
+            if (!PyList_Check(sipPy))
+                return 0;
+
+            // Check the type of each element.
+            for (int i = 0; i < PyList_GET_SIZE(sipPy); ++i)
+                if (!sipIsSubClassInstance(PyList_GET_ITEM(sipPy, i),
+                                           sipClass_QWidget))
+                    return 0;
+
+            // The type is valid.
+            return 1;
+        }
 
         // We map None to a 0 pointer.
         if (sipPy == Py_None)
@@ -1646,29 +1705,33 @@ The following example converts a Python list of numbers to a
         }
 
         // Create the instance on the heap.
-        QValueList<int> *qvl = new QValueList<int>;
-
-        PyErr_Clear();
+        QList<QWidget *> *ql = new QList<QWidget *>;
 
         for (int i = 0; i < PyList_GET_SIZE(sipPy); ++i)
         {
-            qvl -> append(PyInt_AsLong(PyList_GET_ITEM(sipPy, i)));
+            QWidget *qw;
 
-            if (PyErr_Occurred() != NULL)
+            // Get the address of the element's C++ instance while applying
+            // any ownership changes.
+            qw = reinterpret_cast<QWidget *>(sipForceConvertTo_QWidget(
+                                                PyList_GET_ITEM(sipPy, i),
+                                                sipIsErr, sipTransferObj));
+
+            // Deal with any errors.
+            if (*sipIsErr)
             {
                 // Tidy up.
-                delete qvl;
-
-                // Set the error flag.
-                *sipIsErr = 1;
+                delete ql;
 
                 // There is nothing on the heap.
                 return 0;
             }
+
+            ql -> append(qw);
         }
 
         // Return the instance on the heap.
-        *sipCppPtr = qvl;
+        *sipCppPtr = ql;
 
         // The result is a pointer to an instance on the heap.
         return 1;
@@ -3441,13 +3504,28 @@ PyObject \*sipBuildResult(int \*iserr, char \*format, ...)
         Convert a named C/C++ ``enum`` to an instance of the corresponding
         Python named enum type.
 
+    ``L`` (wrapped instance) [*type* \*, sipWrapperType \*, PyObject \*]
+        Convert a C structure or a C++ class instance to a Python class
+        instance object.  If the structure or class instance has already been
+        wrapped then the result is a new reference to the existing class
+        instance object.  Ownership of the structure or instance is determined
+        by the ``PyObject *`` argument.  If it is NULL and the instance has
+        already been wrapped then the ownership is unchanged.  If it is NULL
+        and the instance is newly wrapped then ownership will be with C/C++.
+        If it is ``Py_None`` then ownership is transferred to Python via a call
+        to `sipTransferBack()`_.  Otherwise ownership is transferred to C/C++
+        and the instance associated with the ``PyObject *`` argument via a call
+        to `sipTransferTo()`_.  The Python class is influenced by any
+        applicable `%ConvertToSubClassCode`_ code.
+
     ``M`` (wrapped instance) [*type* \*, sipWrapperType \*]
         Convert a C structure or a C++ class instance to a Python class
         instance object.  If the structure or class instance has already been
         wrapped then the result is a new reference to the existing class
-        instance object.  Ownership of the structure or instance will be with
-        C/C++.  The Python class is influenced by any applicable
-        `%ConvertToSubClassCode`_ code.
+        instance object.  If the instance has already been wrapped then the
+        ownership is unchanged.  If the instance is newly wrapped then
+        ownership will be with C/C++.  The Python class is influenced by any
+        applicable `%ConvertToSubClassCode`_ code.
 
     ``N`` (wrapped instance) [*type* \*, sipWrapperType \*]
         Convert a C structure or a C++ class instance to a Python class
@@ -3480,7 +3558,7 @@ PyObject \*sipBuildResult(int \*iserr, char \*format, ...)
         The result is value passed without any conversions.  The reference
         count is incremented.
 
-    ``T`` (object) [void \*, PyObject \*(\*)(void \*cppptr)]
+    ``T`` (object) [void \*, PyObject \*(\*)(void \*cppptr, PyObject \*transferObj)]
         Convert a C structure or a C++ class instance to a Python object using
         a convertor function.  See `Generated Type Convertors`_.
 
@@ -3556,7 +3634,22 @@ void \*sipConvertToCpp(PyObject \*obj, sipWrapperType \*type, int \*iserr)
     ``Py_None`` then ``NULL`` is returned).  *type* is generated type
     corresponding to the C/C++ type returned.  It may be any class in the
     object's class hierarchy.  If there is an error then the location *iserr*
-    points to is set to a non-zero value.
+
+
+sipConvertToCppTransfer()
+-------------------------
+
+void \*sipConvertToCppTransfer(PyObject \*obj, sipWrapperType \*type, int \*iserr, PyObject \*transferObj)
+    This extracts the pointer to the C structure or C++ class instance from a
+    wrapped instance object.  *obj* is the wrapped instance object (if it is
+    ``Py_None`` then ``NULL`` is returned).  *type* is generated type
+    corresponding to the C/C++ type returned.  It may be any class in the
+    object's class hierarchy.  If there is an error then the location *iserr*
+    points to is set to a non-zero value.  *transferObj* controls any ownership
+    changes to *obj*.  If it is ``NULL`` then the ownership is unchanged.  If
+    it is ``Py_None`` then ownership is transferred to Python via a call to
+    `sipTransferBack()`_.  Otherwise ownership is transferred to C/C++ and
+    *obj* associated with *transferObj* via a call to `sipTransferTo()`_.
 
 
 sipDisconnectRx()
@@ -3742,11 +3835,11 @@ int sipParseResult(int \*iserr, PyObject \*method, PyObject \*result, char \*for
     ``E`` (wrapped enum) [PyTypeObject \*, enum \*]
         Convert a Python named enum type to the corresponding C/C++ ``enum``.
 
-    ``L`` (object) [*type* \*(\*)(PyObject \*obj, int \*iserr), void \*\*]
+    ``L`` (object) [*type* \*(\*)(PyObject \*obj, int \*iserr, PyObject \*transferObj), void \*\*]
         Convert a Python object to a C structure or a C++ class instance using
         a convertor function.  See `Generated Type Convertors`_.
 
-    ``M`` (object) [*type* \*(\*)(PyObject \*obj, int \*iserr), void \*\*]
+    ``M`` (object) [*type* \*(\*)(PyObject \*obj, int \*iserr, PyObject \*transferObj), void \*\*]
         Convert a Python object to a C structure or a C++ class instance using
         a convertor function.  If the structure or class instance pointer is
         ``NULL`` then return an error.  See `Generated Type Convertors`_.
@@ -3858,21 +3951,30 @@ defined with the `%MappedType`_ directive) that convert a Python object to the
 C structure or C++ class instance.  The name of this convertor is the name of
 the structure or class prefixed by ``sipForceConvertTo_``.
 
-void \*sipForceConvertTo_*class*(PyObject \*obj, int \*iserr)
+void \*sipForceConvertTo_*class*(PyObject \*obj, int \*iserr, PyObject \*transferObj)
     *obj* is the Python object to convert.  If *obj* is ``NULL`` or the
     location pointed to by *iserr* is non-zero then the conversion is not
     attempted and ``NULL`` is returned.  If there was an error then the
     location pointed to by *iserr* is set to a non-zero value, a Python
-    exception is raised, and ``NULL`` is returned.
+    exception is raised, and ``NULL`` is returned.  *transferObj* controls any
+    ownership changes to *obj*.  If it is ``NULL`` then the ownership is
+    unchanged.  If it is ``Py_None`` then ownership is transferred to Python
+    via a call to `sipTransferBack()`_.  Otherwise ownership is transferred to
+    C/C++ and *obj* associated with *transferObj* via a call to
+    `sipTransferTo()`_.
 
 SIP also generates functions for mapped types that convert a C structure or
 C++ class instance to a Python object.  The name of this convertor is the name
 of the structure or class prefixed by ``sipConvertFrom_``.
 
-PyObject \*sipConvertFrom_*class*(void \*cppptr)
+PyObject \*sipConvertFrom_*class*(void \*cppptr, PyObject \*transferObj)
     *cppptr* is a pointer to the C structure or C++ class instance to convert.
     If there was an error then ``NULL`` is returned and a Python exception
-    raised.
+    raised.  *transferObj* controls any ownership changes to the returned
+    object.  If it is ``NULL`` then the ownership is unchanged.  If it is
+    ``Py_None`` then ownership is transferred to Python via a call to
+    `sipTransferBack()`_.  Otherwise ownership is transferred to C/C++ and
+    *obj* associated with *transferObj* via a call to `sipTransferTo()`_.
 
 The convertor functions of all imported types are available to handwritten
 code.

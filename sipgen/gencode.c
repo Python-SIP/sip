@@ -520,6 +520,7 @@ static void generateInternalAPIHeader(sipSpec *pt,char *codeDir,stringList *xsl)
 "#define	sipConvertFromSequenceIndex	sipAPI_%s -> api_convert_from_sequence_index\n"
 "#define	sipConvertFromVoidPtr		sipAPI_%s -> api_convert_from_void_ptr\n"
 "#define	sipConvertToCpp			sipAPI_%s -> api_convert_to_cpp\n"
+"#define	sipConvertToCppTransfer		sipAPI_%s -> api_convert_to_cpp_transfer\n"
 "#define	sipConvertToVoidPtr		sipAPI_%s -> api_convert_to_void_ptr\n"
 "#define	sipNoFunction			sipAPI_%s -> api_no_function\n"
 "#define	sipNoMethod			sipAPI_%s -> api_no_method\n"
@@ -561,6 +562,7 @@ static void generateInternalAPIHeader(sipSpec *pt,char *codeDir,stringList *xsl)
 "#define	sipPySlotExtend			sipAPI_%s -> api_pyslot_extend\n"
 "#define	sipConvertRx			sipAPI_%s -> api_convert_rx\n"
 "#define	sipAddDelayedDtor		sipAPI_%s -> api_add_delayed_dtor\n"
+		,mname
 		,mname
 		,mname
 		,mname
@@ -2620,6 +2622,8 @@ static char *createIfaceFileName(char *codeDir,ifaceFileDef *iff,char *suffix)
  */
 static void generateMappedTypeCpp(mappedTypeDef *mtd,FILE *fp)
 {
+	int need_xfer;
+
 	prcode(fp,
 "\n"
 		);
@@ -2628,15 +2632,17 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd,FILE *fp)
 
 	/* Generate the from type convertor. */
 
+	need_xfer = (generating_c || usedInCode(mtd->convfromcode, "sipTransferObj"));
+
 	prcode(fp,
 "\n"
 "\n"
-"static PyObject *convertFrom_%T(void *sipCppV)\n"
+"static PyObject *convertFrom_%T(void *sipCppV,PyObject *%s)\n"
 "{\n"
 "	%b *sipCpp = reinterpret_cast<%b *>(sipCppV);\n"
 "\n"
-		,&mtd -> type
-		,&mtd -> type,&mtd -> type);
+		, &mtd -> type, (need_xfer ? "sipTransferObj" : "")
+		, &mtd -> type, &mtd -> type);
 
 	generateCppCodeBlock(mtd -> convfromcode,fp);
 
@@ -2949,21 +2955,22 @@ static void generateConvertToDefinitions(mappedTypeDef *mtd,classDef *cd,
 
 	if (convtocode != NULL)
 	{
-		int need_ptr;
+		int need_ptr, need_xfer;
 
 		/*
 		 * Sometimes type convertors are just stubs that set the error
 		 * flag, so check if we actually need everything so that we
 		 * can avoid compiler warnings.
 		 */
-		need_ptr = usedInCode(convtocode, "sipCppPtr");
+		need_ptr = (generating_c || usedInCode(convtocode, "sipCppPtr"));
+		need_xfer = (generating_c || usedInCode(convtocode, "sipTransferObj"));
 
 		prcode(fp,
 "\n"
 "\n"
-"static int convertTo_%T(PyObject *sipPy,void **%s,int *sipIsErr)\n"
+"static int convertTo_%T(PyObject *sipPy,void **%s,int *sipIsErr,PyObject *%s)\n"
 "{\n"
-			,&type,(need_ptr ? "sipCppPtrV" : ""));
+			, &type, (need_ptr ? "sipCppPtrV" : ""), (need_xfer ? "sipTransferObj" : ""));
 
 		if (need_ptr)
 			prcode(fp,
@@ -2981,7 +2988,7 @@ static void generateConvertToDefinitions(mappedTypeDef *mtd,classDef *cd,
 	prcode(fp,
 "\n"
 "\n"
-"static void *forceConvertTo_%T(PyObject *valobj,int *iserrp)\n"
+"static void *forceConvertTo_%T(PyObject *valobj,int *iserrp,PyObject *transferObj)\n"
 "{\n"
 "	if (*iserrp || valobj == NULL)\n"
 "		return NULL;\n"
@@ -2990,7 +2997,7 @@ static void generateConvertToDefinitions(mappedTypeDef *mtd,classDef *cd,
 
 	if (convtocode != NULL)
 		prcode(fp,
-"	if (convertTo_%T(valobj,NULL,NULL))\n"
+"	if (convertTo_%T(valobj,NULL,NULL,NULL))\n"
 "	{\n"
 "		void *val;\n"
 "\n"
@@ -2998,7 +3005,7 @@ static void generateConvertToDefinitions(mappedTypeDef *mtd,classDef *cd,
 "		 * Note that we throw away the flag that says if the value\n"
 "		 * has just been created on the heap or not.\n"
 "		 */\n"
-"		convertTo_%T(valobj,&val,iserrp);\n"
+"		convertTo_%T(valobj,&val,iserrp,transferObj);\n"
 "\n"
 "		return val;\n"
 "	}\n"
@@ -3007,7 +3014,7 @@ static void generateConvertToDefinitions(mappedTypeDef *mtd,classDef *cd,
 	else
 		prcode(fp,
 "	if (valobj == Py_None || sipIsSubClassInstance(valobj,sipClass_%T))\n"
-"		return sipConvertToCpp(valobj,sipClass_%T,iserrp);\n"
+"		return sipConvertToCppTransfer(valobj,sipClass_%T,iserrp,transferObj);\n"
 			,&type
 			,&type);
 
@@ -3137,7 +3144,7 @@ static void generateVariableHandler(varDef *vd,FILE *fp)
 		{
 		case mapped_type:
 			prcode(fp,
-"		sipPy = sipConvertFrom_%T(sipVal);\n"
+"		sipPy = sipConvertFrom_%T(sipVal,NULL);\n"
 				,&vd -> type);
 
 			break;
@@ -3409,11 +3416,11 @@ static void generateObjToCppConversion(argDef *ad,FILE *fp)
 	case class_type:
 		if (generating_c)
 			prcode(fp,
-"	sipVal = (%b *)sipForceConvertTo_%T(sipPy,&sipIsErr);\n"
+"	sipVal = (%b *)sipForceConvertTo_%T(sipPy,&sipIsErr,NULL);\n"
 				,ad,ad);
 		else
 			prcode(fp,
-"	sipVal = reinterpret_cast<%b *>(sipForceConvertTo_%T(sipPy,&sipIsErr));\n"
+"	sipVal = reinterpret_cast<%b *>(sipForceConvertTo_%T(sipPy,&sipIsErr,NULL));\n"
 				,ad,ad);
 		break;
 
@@ -7704,8 +7711,8 @@ static void generateHandleResult(overDef *od,int isNew,char *prefix,FILE *fp)
 			else
 				prcode(fp,"sipRes");
 
-			prcode(fp,");\n"
-				);
+			prcode(fp,",%s);\n"
+				, isResultTransferredBack(od) ? "Py_None" : "NULL");
 
 			if (isNew)
 				prcode(fp,
@@ -7877,8 +7884,8 @@ static void generateHandleResult(overDef *od,int isNew,char *prefix,FILE *fp)
 		else
 			prcode(fp,"%s",vname);
 
-		prcode(fp,");\n"
-			);
+		prcode(fp,",%s);\n"
+			, isResultTransferredBack(od) ? "Py_None" : "NULL");
 		break;
 
 	case class_type:
