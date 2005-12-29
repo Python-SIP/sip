@@ -496,11 +496,16 @@ class Makefile:
 
             if self.config.qt_version >= 0x040000:
                 for mod in self._qt:
-                    if self._debug:
-                        mod = mod + "_debug"
+                    if mod == "QtAssistant":
+                        lib = "QtAssistantClient"
+                    else:
+                        lib = mod
 
-                    libs.append(self.platform_lib(mod))
-                    libs.extend(self._dependent_libs(mod))
+                    if self._debug:
+                        lib = lib + "_debug"
+
+                    libs.append(self.platform_lib(lib))
+                    libs.extend(self._dependent_libs(lib))
             else:
                 # Windows needs the version number appended if Qt is a DLL.
                 qt_lib = self.config.qt_lib
