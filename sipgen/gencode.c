@@ -4847,15 +4847,15 @@ static void generateProtectedDeclarations(classDef *cd,FILE *fp)
 
 			generateResultType(&od -> cppsig -> result,fp);
 
-			if (isStatic(od) || isAbstract(od) || !isVirtual(od))
-				prcode(fp, " sipProtect_%s(", od->cppname);
-			else
+			if (!isStatic(od) && !isAbstract(od) && (isVirtual(od) || isVirtualReimp(od)))
 			{
 				prcode(fp, " sipProtectVirt_%s(bool", od->cppname);
 
 				if (od->cppsig->nrArgs > 0)
 					prcode(fp, ",");
 			}
+			else
+				prcode(fp, " sipProtect_%s(", od->cppname);
 
 			generateArgs(od -> cppsig,Declaration,fp);
 			prcode(fp,")%s;\n"
@@ -4891,15 +4891,15 @@ static void generateProtectedDefinitions(classDef *cd,FILE *fp)
 
 			generateResultType(&od -> cppsig -> result,fp);
 
-			if (isStatic(od) || isAbstract(od) || !isVirtual(od))
-				prcode(fp, " sip%C::sipProtect_%s(", classFQCName(cd), mname);
-			else
+			if (!isStatic(od) && !isAbstract(od) && (isVirtual(od) || isVirtualReimp(od)))
 			{
 				prcode(fp, " sip%C::sipProtectVirt_%s(bool sipSelfWasArg", classFQCName(cd), mname);
 
 				if (od->cppsig->nrArgs > 0)
 					prcode(fp, ",");
 			}
+			else
+				prcode(fp, " sip%C::sipProtect_%s(", classFQCName(cd), mname);
 
 			generateArgs(od -> cppsig,Definition,fp);
 			prcode(fp,")%s\n"
@@ -4932,7 +4932,7 @@ static void generateProtectedDefinitions(classDef *cd,FILE *fp)
 					prcode(fp,"(%E)",res -> u.ed);
 			}
 
-			if (!isAbstract(od) && isVirtual(od))
+			if (!isAbstract(od) && (isVirtual(od) || isVirtualReimp(od)))
 			{
 				prcode(fp, "sipSelfWasArg ? %S::%s(", classFQCName(vl->cd), mname);
 
@@ -7524,7 +7524,7 @@ static void generateFunction(sipSpec *pt,memberDef *md,overDef *overs,
 					need_self = TRUE;
 
 					if (!isAbstract(od))
-						if (isVirtual(od) || usedInCode(od->methodcode, "sipSelfWasArg"))
+						if (isVirtual(od) || isVirtualReimp(od) || usedInCode(od->methodcode, "sipSelfWasArg"))
 							need_selfarg = TRUE;
 				}
 			}
@@ -8599,24 +8599,24 @@ static void generateCppFunctionCall(classDef *cd,classDef *ocd,overDef *od,
 	}
 	else if (isProtected(od))
 	{
-		if (isAbstract(od) || !isVirtual(od))
-			prcode(fp, "sipCpp->sipProtect_%s(", mname);
-		else
+		if (!isAbstract(od) && (isVirtual(od) || isVirtualReimp(od)))
 		{
 			prcode(fp, "sipCpp->sipProtectVirt_%s(sipSelfWasArg", mname);
 
 			if (od->cppsig->nrArgs > 0)
 				prcode(fp, ",");
 		}
+		else
+			prcode(fp, "sipCpp->sipProtect_%s(", mname);
 	}
-	else if (isAbstract(od) || !isVirtual(od))
-		prcode(fp, "sipCpp->%s(", mname);
-	else
+	else if (!isAbstract(od) && (isVirtual(od) || isVirtualReimp(od)))
 	{
 		prcode(fp, "sipSelfWasArg ? sipCpp->%U::%s(", ocd, mname);
 		generateArgs(od->cppsig, Call, fp);
 		prcode(fp, ") : sipCpp->%s(", mname);
 	}
+	else
+		prcode(fp, "sipCpp->%s(", mname);
 
 	generateArgs(od->cppsig, Call, fp);
 	prcode(fp, ")");

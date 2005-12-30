@@ -178,6 +178,7 @@
 #define	OVER_IS_FACTORY		0x00400000	/* It is a factory method. */
 #define	OVER_XFERRED_BACK	0x00800000	/* Ownership is transferred back. */
 #define	OVER_RELEASE_GIL	0x01000000	/* The function releases the GIL. */
+#define	OVER_IS_VIRTUAL_REIMP	0x02000000	/* It is a re-implementation of a virtual. */
 
 #define	isPublic(o)		((o) -> overflags & SECT_IS_PUBLIC)
 #define	setIsPublic(o)		((o) -> overflags |= SECT_IS_PUBLIC)
@@ -209,6 +210,8 @@
 #define setIsResultTransferredBack(o)	((o) -> overflags |= OVER_XFERRED_BACK)
 #define	isReleaseGIL(o)		((o) -> overflags & OVER_RELEASE_GIL)
 #define	setIsReleaseGIL(o)	((o) -> overflags |= OVER_RELEASE_GIL)
+#define	isVirtualReimp(o)	((o) -> overflags & OVER_IS_VIRTUAL_REIMP)
+#define	setIsVirtualReimp(o)	((o) -> overflags |= OVER_IS_VIRTUAL_REIMP)
 
 
 /* Handle variable flags. */

@@ -1134,10 +1134,25 @@ static void getVirtuals(sipSpec *pt,classDef *cd)
 
 		for (vod = cd -> vmembers; vod != NULL; vod = vod -> next)
 		{
+			overDef *od;
+
 			/* Make sure we get the name. */
 			setIsUsedName(vod -> o.common -> pyname);
 
 			ifaceFilesAreUsed(pt, cd->iff, &vod -> o);
+
+			/* Identify any re-implementations of virtuals. */
+			for (od = cd->overs; od != NULL; od = od->next)
+			{
+				if (isVirtual(od))
+					continue;
+
+				if (strcmp(vod->o.cppname, od->cppname) == 0 && sameOverload(&vod->o, od))
+				{
+					setIsVirtualReimp(od);
+					break;
+				}
+			}
 		}
 	}
 }
