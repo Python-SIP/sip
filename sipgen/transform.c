@@ -1115,6 +1115,7 @@ static void getVisibleMembers(sipSpec *pt,classDef *cd)
 static void getVirtuals(sipSpec *pt,classDef *cd)
 {
 	mroDef *mro;
+	virtOverDef *vod;
 
 	for (mro = cd -> mro; mro != NULL; mro = mro -> next)
 	{
@@ -1125,34 +1126,35 @@ static void getVirtuals(sipSpec *pt,classDef *cd)
 	}
 
 	/*
-	 * If this class is defined in the main module make sure we get the API
-	 * files for all the visible virtuals.
+	 * Identify any re-implementations of virtuals.  We have to do this for
+	 * all classes, not just those in the main module.
 	 */
-	if (cd -> iff -> module == pt -> module)
+	for (vod = cd -> vmembers; vod != NULL; vod = vod -> next)
 	{
-		virtOverDef *vod;
+		overDef *od;
 
-		for (vod = cd -> vmembers; vod != NULL; vod = vod -> next)
+		for (od = cd->overs; od != NULL; od = od->next)
 		{
-			overDef *od;
+			if (isVirtual(od))
+				continue;
 
+			if (strcmp(vod->o.cppname, od->cppname) == 0 && sameOverload(&vod->o, od))
+			{
+				setIsVirtualReimp(od);
+				break;
+			}
+		}
+
+		/*
+		 * If this class is defined in the main module make sure we get
+		 * the API files for all the visible virtuals.
+		 */
+		if (cd->iff->module == pt->module)
+		{
 			/* Make sure we get the name. */
 			setIsUsedName(vod -> o.common -> pyname);
 
 			ifaceFilesAreUsed(pt, cd->iff, &vod -> o);
-
-			/* Identify any re-implementations of virtuals. */
-			for (od = cd->overs; od != NULL; od = od->next)
-			{
-				if (isVirtual(od))
-					continue;
-
-				if (strcmp(vod->o.cppname, od->cppname) == 0 && sameOverload(&vod->o, od))
-				{
-					setIsVirtualReimp(od);
-					break;
-				}
-			}
 		}
 	}
 }
