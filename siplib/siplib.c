@@ -836,13 +836,13 @@ static void sip_api_add_delayed_dtor(sipWrapper *w)
 	if ((ptr = getPtrTypeDef(w, &td)) == NULL)
 		return;
 
-	/* Fine the defining module. */
+	/* Find the defining module. */
 	for (em = clientList; em != NULL; em = em->em_next)
 	{
 		int i;
 
 		for (i = 0; i < em->em_nrtypes; ++i)
-			if (em->em_types[i]->type == td)
+			if (em->em_types[i] != NULL && em->em_types[i]->type == td)
 			{
 				sipDelayedDtor *dd;
 
