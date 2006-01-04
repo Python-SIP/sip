@@ -3243,6 +3243,17 @@ NewThread
 This boolean annotation specifies that the function will create a new thread.
 
 
+NoDerived
+*********
+
+This boolean annotation is only used with C++ constructors.  In many cases SIP
+generates a derived class for each class being wrapped (see `Generated Derived
+Classes`_).  This derived class contains constructors with the same C++
+signatures as the class being wrapped.  Sometimes you may want to define a
+Python constructor that has no corresponding C++ constructor.  This annotation
+is used to suppress the generation of the constructor in the derived class.
+
+
 Numeric
 *******
 

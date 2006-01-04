@@ -1282,7 +1282,7 @@ static void resolveCtorTypes(sipSpec *pt,classDef *scope,ctorDef *ct)
 	int a;
 
 	/* Handle any C++ signature. */
-	if (ct -> cppsig != &ct -> pysig)
+	if (ct->cppsig != NULL && ct->cppsig != &ct->pysig)
 		for (a = 0; a < ct -> cppsig -> nrArgs; ++a)
 			getBaseType(pt, scope->iff->module, scope, &ct->cppsig->args[a]);
  

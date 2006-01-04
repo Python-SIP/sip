@@ -4128,7 +4128,7 @@ static void generateClassFunctions(sipSpec *pt,classDef *cd,FILE *fp)
 
 
 /*
- * Generate the shadow class code.
+ * Generate the shadow (derived) class code.
  */
 static void generateShadowCode(sipSpec *pt,classDef *cd,FILE *fp)
 {
@@ -4150,9 +4150,12 @@ static void generateShadowCode(sipSpec *pt,classDef *cd,FILE *fp)
 		if (isPrivateCtor(ct))
 			continue;
 
+		if (ct->cppsig == NULL)
+			continue;
+
 		/* Check we haven't already handled this C++ signature. */
 		for (dct = cd -> ctors; dct != ct; dct = dct -> next)
-			if (sameSignature(dct -> cppsig,ct -> cppsig,TRUE))
+			if (dct->cppsig != NULL && sameSignature(dct->cppsig, ct->cppsig, TRUE))
 				break;
 
 		if (dct != ct)
@@ -4643,7 +4646,7 @@ static void generateVirtHandlerErrorReturn(argDef *res,FILE *fp)
 		 * If we don't have a suitable ctor then the generated code
 		 * will issue an error message.
 		 */
-		if (ct != NULL && isPublicCtor(ct))
+		if (ct != NULL && isPublicCtor(ct) && ct->cppsig != NULL)
 		{
 			argDef res_noconstref;
 
@@ -5048,7 +5051,7 @@ static void generateVirtualHandler(sipSpec *pt,virtHandlerDef *vhd,FILE *fp)
 		{
 			ctorDef *ct = res -> u.cd -> defctor;
 
-			if (ct != NULL && isPublicCtor(ct) && ct -> cppsig -> nrArgs > 0 && ct -> cppsig -> args[0].defval == NULL)
+			if (ct != NULL && isPublicCtor(ct) && ct->cppsig != NULL && ct->cppsig->nrArgs > 0 && ct->cppsig->args[0].defval == NULL)
 				generateCallDefaultCtor(ct,fp);
 		}
 		else if (!copy)
@@ -5951,9 +5954,12 @@ static void generateShadowClassDeclaration(sipSpec *pt,classDef *cd,FILE *fp)
 		if (isPrivateCtor(ct))
 			continue;
 
+		if (ct->cppsig == NULL)
+			continue;
+
 		/* Check we haven't already handled this C++ signature. */
 		for (dct = cd -> ctors; dct != ct; dct = dct -> next)
-			if (sameSignature(dct -> cppsig,ct -> cppsig,TRUE))
+			if (dct->cppsig != NULL && sameSignature(dct->cppsig, ct->cppsig, TRUE))
 				break;
 
 		if (dct != ct)

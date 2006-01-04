@@ -3237,7 +3237,9 @@ static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod, classDef *scop
 
 		templateSignature(&nct->pysig, FALSE, tcd, td, cd);
 
-		if (oct->cppsig == &oct->pysig)
+		if (oct->cppsig == NULL)
+			nct->cppsig = NULL;
+		else if (oct->cppsig == &oct->pysig)
 			nct->cppsig = &nct->pysig;
 		else
 		{
@@ -3805,10 +3807,21 @@ static void newCtor(char *name,int sectFlags,signatureDef *args,
 	if (getReleaseGIL(optflgs))
 		setIsReleaseGILCtor(ct);
 
+	if (findOptFlag(optflgs,"NoDerived",bool_flag) != NULL)
+	{
+		if (cppsig != NULL)
+			yyerror("The /NoDerived/ annotation cannot be used with a C++ signature");
+
+		if (methodcode == NULL)
+			yyerror("The /NoDerived/ annotation must be used with %MethodCode");
+
+		ct->cppsig = NULL;
+	}
+
 	if (findOptFlag(optflgs,"Default",bool_flag) != NULL)
 	{
 		if (cd -> defctor != NULL)
-			yyerror("A constructor with the /Default/ flag has already been defined");
+			yyerror("A constructor with the /Default/ annotation has already been defined");
 
 		cd -> defctor = ct;
 	}

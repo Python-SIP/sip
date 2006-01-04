@@ -28,6 +28,8 @@ v4.4 ???
     type object.
   - Added support for ellipsis (ie. "...") in function arguments.  Any
     remaining arguments will be gathered as a Python tuple.
+  - Add support for the /NoDerived/ annotation for Python class constructors
+    that have no C/C++ equivalent.
   - The sipSelfWasArg boolean is now available to the %MethodCode of
     non-abstract, virtual methods to indicate whether the class implementation
     of the method rather than the virtual implementation should be called.
