@@ -35,10 +35,22 @@ class build_ext (distutils.command.build_ext.build_ext):
         import sipconfig
         cfg = sipconfig.Configuration()
         return cfg.sip_bin
+    
+    def _sip_inc_dir(self):
+        import sipconfig
+        cfg = sipconfig.Configuration()
+        return cfg.sip_inc_dir
 
     def swig_sources (self, sources, extension=None):
         if not self.extensions:
             return
+
+        # Add the SIP include directory to the include path
+        if extension is not None:
+            extension.include_dirs.append(self._sip_inc_dir())
+        else:
+            # pre-2.4 compatibility
+            self.include_dirs.append(self._sip_inc_dir())
 
         # Create the temporary directory if it does not exist already
         if not os.path.isdir(self.build_temp):

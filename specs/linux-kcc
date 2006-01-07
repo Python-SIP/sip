@@ -1,9 +1,9 @@
 #
-# $Id: linux-kcc,v 1.2 2004/01/21 18:33:32 phil Exp $
-#
 # qmake configuration for linux-kcc
 #
-# Written for KAI C++ 4.0f for GNU/Linux (discontinued).
+# Written for KAI C++ 4.0f for GNU/Linux
+#
+# This product has been discontinued, use Intel C++ instead.
 #
 # From the KAI C++ man page for Linux:
 # --[no_]thread_safe
@@ -16,10 +16,11 @@
 MAKEFILE_GENERATOR	= UNIX
 TEMPLATE		= app
 CONFIG			+= qt warn_on release link_prl
+QT			+= core gui
 
 QMAKE_CC		= KCC
 QMAKE_LEX		= flex
-QMAKE_LEXFLAGS		= 
+QMAKE_LEXFLAGS		=
 QMAKE_YACC		= yacc
 QMAKE_YACCFLAGS		= -d
 QMAKE_CFLAGS		= --c --display_error_number --backend -pipe
@@ -47,8 +48,8 @@ QMAKE_INCDIR		=
 QMAKE_LIBDIR		=
 QMAKE_INCDIR_X11	= /usr/X11R6/include
 QMAKE_LIBDIR_X11	= /usr/X11R6/lib
-QMAKE_INCDIR_QT		= $(QTDIR)/include
-QMAKE_LIBDIR_QT		= $(QTDIR)/lib
+QMAKE_INCDIR_QT		= $$[QT_INSTALL_HEADERS]
+QMAKE_LIBDIR_QT		= $$[QT_INSTALL_LIBS]
 QMAKE_INCDIR_OPENGL	= /usr/X11R6/include
 QMAKE_LIBDIR_OPENGL	= /usr/X11R6/lib
 
@@ -68,14 +69,12 @@ QMAKE_LIBS_DYNLOAD	= -ldl
 QMAKE_LIBS_X11		= -lXext -lX11 -lm
 QMAKE_LIBS_X11SM	= -lSM -lICE
 QMAKE_LIBS_NIS		= -lnsl
-QMAKE_LIBS_QT		= -lqt
-QMAKE_LIBS_QT_THREAD	= -lqt-mt
-QMAKE_LIBS_OPENGL	= -lGLU -lGL -lXmu
-QMAKE_LIBS_OPENGL_QT	= -lGL -lXmu
+QMAKE_LIBS_OPENGL	= -lGLU -lGL
+QMAKE_LIBS_OPENGL_QT	= -lGL
 QMAKE_LIBS_THREAD	=
 
-QMAKE_MOC		= $(QTDIR)/bin/moc
-QMAKE_UIC		= $(QTDIR)/bin/uic
+QMAKE_MOC		= $$[QT_INSTALL_BINS]/moc
+QMAKE_UIC		= $$[QT_INSTALL_BINS]/uic
 
 QMAKE_AR		= ar cqs
 QMAKE_RANLIB		=
@@ -91,3 +90,4 @@ QMAKE_DEL_FILE		= rm -f
 QMAKE_DEL_DIR		= rmdir
 QMAKE_CHK_DIR_EXISTS	= test -d
 QMAKE_MKDIR		= mkdir -p
+load(qt_config)

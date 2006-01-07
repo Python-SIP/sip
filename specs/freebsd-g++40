@@ -1,5 +1,5 @@
 #
-# qmake configuration for netbsd-g++
+# qmake configuration for freebsd-g++40 (using g++40 from ports/lang/gcc40)
 #
 
 MAKEFILE_GENERATOR	= UNIX
@@ -7,7 +7,7 @@ TEMPLATE		= app
 CONFIG			+= qt warn_on release link_prl
 QT			+= core gui
 
-QMAKE_CC		= gcc
+QMAKE_CC		= gcc40
 QMAKE_LEX		= flex
 QMAKE_LEXFLAGS		=
 QMAKE_YACC		= yacc
@@ -20,9 +20,9 @@ QMAKE_CFLAGS_RELEASE	= -O2
 QMAKE_CFLAGS_DEBUG	= -g
 QMAKE_CFLAGS_SHLIB	= -fPIC
 QMAKE_CFLAGS_YACC	= -Wno-unused -Wno-parentheses
-QMAKE_CFLAGS_THREAD	= -pthread
+QMAKE_CFLAGS_THREAD	= -pthread -D_THREAD_SAFE
 
-QMAKE_CXX		= g++
+QMAKE_CXX		= g++40
 QMAKE_CXXFLAGS		= $$QMAKE_CFLAGS
 QMAKE_CXXFLAGS_DEPS	= $$QMAKE_CFLAGS_DEPS
 QMAKE_CXXFLAGS_WARN_ON	= $$QMAKE_CFLAGS_WARN_ON
@@ -33,6 +33,7 @@ QMAKE_CXXFLAGS_SHLIB	= $$QMAKE_CFLAGS_SHLIB
 QMAKE_CXXFLAGS_YACC	= $$QMAKE_CFLAGS_YACC
 QMAKE_CXXFLAGS_THREAD	= $$QMAKE_CFLAGS_THREAD
 
+# Addon software goes into /usr/local on the BSDs, by default we will look there
 QMAKE_INCDIR		= /usr/local/include
 QMAKE_LIBDIR		= /usr/local/lib
 QMAKE_INCDIR_X11	= /usr/X11R6/include
@@ -42,9 +43,8 @@ QMAKE_LIBDIR_QT		= $$[QT_INSTALL_LIBS]
 QMAKE_INCDIR_OPENGL	= /usr/X11R6/include
 QMAKE_LIBDIR_OPENGL	= /usr/X11R6/lib
 
-QMAKE_LINK		= g++
-QMAKE_LINK_SHLIB	= g++
-QMAKE_LINK_SHLIB_CMD    = $$QMAKE_LINK_SHLIB $$QMAKE_LFLAGS_SHLIB $(LFLAGS) $$QMAKE_LFLAGS -o $(TARGETD) $(OBJECTS) $(OBJMOC) $(LIBS)
+QMAKE_LINK		= g++40
+QMAKE_LINK_SHLIB	= g++40
 QMAKE_LFLAGS		=
 QMAKE_LFLAGS_RELEASE	=
 QMAKE_LFLAGS_DEBUG	=
@@ -66,7 +66,7 @@ QMAKE_MOC		= $$[QT_INSTALL_BINS]/moc
 QMAKE_UIC		= $$[QT_INSTALL_BINS]/uic
 
 QMAKE_AR		= ar cqs
-QMAKE_RANLIB		= ranlib
+QMAKE_RANLIB		=
 
 QMAKE_TAR		= tar -cf
 QMAKE_GZIP		= gzip -9f

@@ -1,17 +1,16 @@
 #
-# $Id: linux-kylix,v 1.2 2004/01/21 18:33:32 phil Exp $
-#
 # qmake configuration for linux-kylix
 #
 
 MAKEFILE_GENERATOR	= UNIX
 TEMPLATE		= app
 CONFIG			+= qt warn_on release incremental link_prl
+QT			+= core gui
 QMAKE_INCREMENTAL_STYLE	= sublib
 
 QMAKE_CC		= bc++
 QMAKE_LEX		= flex
-QMAKE_LEXFLAGS		= 
+QMAKE_LEXFLAGS		=
 QMAKE_YACC		= yacc
 QMAKE_YACCFLAGS		= -d
 QMAKE_CFLAGS		=
@@ -39,8 +38,8 @@ QMAKE_INCDIR		=
 QMAKE_LIBDIR		=
 QMAKE_INCDIR_X11	= /usr/X11R6/include
 QMAKE_LIBDIR_X11	= /usr/X11R6/lib
-QMAKE_INCDIR_QT		= $(QTDIR)/include
-QMAKE_LIBDIR_QT		= $(QTDIR)/lib
+QMAKE_INCDIR_QT		= $$[QT_INSTALL_HEADERS]
+QMAKE_LIBDIR_QT		= $$[QT_INSTALL_LIBS]
 QMAKE_INCDIR_OPENGL	= /usr/X11R6/include
 QMAKE_LIBDIR_OPENGL	= /usr/X11R6/lib
 
@@ -60,14 +59,12 @@ QMAKE_LIBS_DYNLOAD	= -llibdl
 QMAKE_LIBS_X11		= -llibXext -llibX11 -llibm
 QMAKE_LIBS_X11SM	= -llibSM -llibICE
 QMAKE_LIBS_NIS		= -llibnsl
-QMAKE_LIBS_QT		= -llibqt
-QMAKE_LIBS_QT_THREAD	= -llibqt-mt
 QMAKE_LIBS_OPENGL	= -llibGLU -llibGL -llibXmu
 QMAKE_LIBS_OPENGL_QT	= -llibGL -llibXmu
 QMAKE_LIBS_THREAD	= -llibpthread
 
-QMAKE_MOC		= $(QTDIR)/bin/moc
-QMAKE_UIC		= $(QTDIR)/bin/uic
+QMAKE_MOC		= $$[QT_INSTALL_BINS]/moc
+QMAKE_UIC		= $$[QT_INSTALL_BINS]/uic
 
 QMAKE_AR		= ar cqs
 QMAKE_RANLIB		=
@@ -82,3 +79,4 @@ QMAKE_DEL_DIR		= rmdir
 QMAKE_STRIP             = strip
 QMAKE_CHK_DIR_EXISTS	= test -d
 QMAKE_MKDIR		= mkdir -p
+load(qt_config)

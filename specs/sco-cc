@@ -1,9 +1,7 @@
 #
-# $Id: sco-cc,v 1.2 2004/01/21 18:33:32 phil Exp $
-#
 # qmake configuration for sco-cc
 #
-# Written for SCO OpenServer with UDK.
+# Written for SCO OpenServer with UDK
 #
 # -Wf,--diag_suppress,838
 # 	turns off warning about missing return types in X headers
@@ -11,11 +9,12 @@
 
 MAKEFILE_GENERATOR	= UNIX
 TEMPLATE		= app
+QT			+= core gui
 CONFIG			+= qt warn_on release link_prl
 
 QMAKE_CC		= cc
 QMAKE_LEX		= flex
-QMAKE_LEXFLAGS		= 
+QMAKE_LEXFLAGS		=
 QMAKE_YACC		= yacc
 QMAKE_YACCFLAGS		= -d
 QMAKE_CFLAGS		=
@@ -39,8 +38,8 @@ QMAKE_INCDIR		=
 QMAKE_LIBDIR		=
 QMAKE_INCDIR_X11	=
 QMAKE_LIBDIR_X11	= /usr/X/lib
-QMAKE_INCDIR_QT		= $(QTDIR)/include
-QMAKE_LIBDIR_QT		= $(QTDIR)/lib
+QMAKE_INCDIR_QT		= $$[QT_INSTALL_HEADERS]
+QMAKE_LIBDIR_QT		= $$[QT_INSTALL_LIBS]
 QMAKE_INCDIR_OPENGL	=
 QMAKE_LIBDIR_OPENGL	=
 
@@ -57,13 +56,12 @@ QMAKE_LIBS		=
 QMAKE_LIBS_DYNLOAD	= -ldl
 QMAKE_LIBS_X11		= -lXext -lX11 -lresolv -lsocket -lnsl -lm
 QMAKE_LIBS_X11SM	= -lSM -lICE
-QMAKE_LIBS_QT		= -lqt
 
-QMAKE_LIBS_OPENGL	= -lGLU -lGL -lXmu -lXt
-QMAKE_LIBS_OPENGL_QT	= -lGL -lXmu
+QMAKE_LIBS_OPENGL	= -lGLU -lGL -lXt
+QMAKE_LIBS_OPENGL_QT	= -lGL
 
-QMAKE_MOC		= $(QTDIR)/bin/moc
-QMAKE_UIC		= $(QTDIR)/bin/uic
+QMAKE_MOC		= $$[QT_INSTALL_BINS]/moc
+QMAKE_UIC		= $$[QT_INSTALL_BINS]/uic
 
 QMAKE_AR		= ar cq
 QMAKE_RANLIB		=
@@ -77,3 +75,4 @@ QMAKE_DEL_FILE		= rm -f
 QMAKE_DEL_DIR		= rmdir
 QMAKE_CHK_DIR_EXISTS	= test -d
 QMAKE_MKDIR		= mkdir -p
+load(qt_config)

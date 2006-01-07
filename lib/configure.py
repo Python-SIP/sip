@@ -62,6 +62,7 @@ build_macro_names = [
     "INCDIR", "INCDIR_X11", "INCDIR_OPENGL",
     "LINK", "LINK_SHLIB", "AIX_SHLIB", "LINK_SHLIB_CMD",
     "LFLAGS", "LFLAGS_CONSOLE", "LFLAGS_CONSOLE_DLL", "LFLAGS_DEBUG",
+    "LFLAGS_DLL",
     "LFLAGS_PLUGIN", "LFLAGS_RELEASE", "LFLAGS_SHLIB", "LFLAGS_SONAME",
     "LFLAGS_THREAD", "LFLAGS_WINDOWS", "LFLAGS_WINDOWS_DLL", "LFLAGS_OPENGL",
     "LIBDIR", "LIBDIR_X11", "LIBDIR_OPENGL",
@@ -277,6 +278,7 @@ def create_makefiles(macros):
         dir="siplib",
         install_dir=cfg.sip_mod_dir,
         installs=(["sip.h"], cfg.sip_inc_dir),
+        console=1,
         warnings=0,
         static=opt_static,
         debug=opt_debug

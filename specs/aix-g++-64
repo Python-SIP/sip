@@ -1,19 +1,18 @@
 #
-# $Id: aix-g++-64,v 1.5.4.1 2005/09/10 16:31:09 phil Exp $
-#
 # qmake configuration for aix-g++-64
 #
 
 MAKEFILE_GENERATOR	= UNIX
 TEMPLATE		= app
 CONFIG			+= qt warn_on release link_prl
+QT			+= core gui
 
 QMAKE_CC		= gcc
 QMAKE_LEX		= flex
-QMAKE_LEXFLAGS		= 
+QMAKE_LEXFLAGS		=
 QMAKE_YACC		= yacc
 QMAKE_YACCFLAGS		= -d
-QMAKE_CFLAGS		= -maix64 -mminimal-toc
+QMAKE_CFLAGS		= -maix64
 QMAKE_CFLAGS_DEPS	= -M
 QMAKE_CFLAGS_WARN_ON	= -Wall -W
 QMAKE_CFLAGS_WARN_OFF	= -w
@@ -38,8 +37,8 @@ QMAKE_INCDIR		=
 QMAKE_LIBDIR		=
 QMAKE_INCDIR_X11	= /usr/X11R6/include
 QMAKE_LIBDIR_X11	= /usr/X11R6/lib
-QMAKE_INCDIR_QT		= $(QTDIR)/include
-QMAKE_LIBDIR_QT		= $(QTDIR)/lib
+QMAKE_INCDIR_QT		= $$[QT_INSTALL_HEADERS]
+QMAKE_LIBDIR_QT		= $$[QT_INSTALL_LIBS]
 QMAKE_INCDIR_OPENGL	= /usr/X11R6/include
 QMAKE_LIBDIR_OPENGL	= /usr/X11R6/lib
 
@@ -56,19 +55,17 @@ QMAKE_AIX_SHLIB		= 1
 
 QMAKE_LIBS		=
 QMAKE_LIBS_DYNLOAD	= -ldl
-QMAKE_LIBS_X11		= -lXext -lX11 -lm -lbind
+QMAKE_LIBS_X11		= -lXext -lX11 -lm
 QMAKE_LIBS_X11SM	= -lSM -lICE
-QMAKE_LIBS_QT		= -lqt
-QMAKE_LIBS_QT_THREAD	= -lqt-mt
-QMAKE_LIBS_OPENGL	= -lGLU -lGL -lXmu
-QMAKE_LIBS_OPENGL_QT	= -lGL -lXmu
+QMAKE_LIBS_OPENGL	= -lGLU -lGL
+QMAKE_LIBS_OPENGL_QT	= -lGL
 QMAKE_LIBS_THREAD	= -lpthreads
 
-QMAKE_MOC		= $(QTDIR)/bin/moc
-QMAKE_UIC		= $(QTDIR)/bin/uic
+QMAKE_MOC		= $$[QT_INSTALL_BINS]/moc
+QMAKE_UIC		= $$[QT_INSTALL_BINS]/uic
 
-QMAKE_AR		= ar -X 64 cqs
-QMAKE_RANLIB		=
+QMAKE_AR                = ar -X64 cq
+QMAKE_RANLIB            = ranlib -X64
 
 QMAKE_TAR		= tar -cf
 QMAKE_GZIP		= gzip -9f
@@ -79,3 +76,4 @@ QMAKE_DEL_FILE		= rm -f
 QMAKE_DEL_DIR		= rmdir
 QMAKE_CHK_DIR_EXISTS	= test -d
 QMAKE_MKDIR		= mkdir -p
+load(qt_config)

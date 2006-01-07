@@ -1117,18 +1117,22 @@ class ModuleMakefile(Makefile):
     def finalise(self):
         """Finalise the macros common to all module Makefiles.
         """
-        if self.static:
-            if self.console:
-                lflags_console = "LFLAGS_CONSOLE"
-            else:
-                lflags_console = "LFLAGS_WINDOWS"
+        if self.console:
+            lflags_console = "LFLAGS_CONSOLE"
+        else:
+            lflags_console = "LFLAGS_WINDOWS"
 
+        if self.static:
             self.DEFINES.append("SIP_STATIC_MODULE")
         else:
             self.CFLAGS.extend(self.optional_list("CFLAGS_SHLIB"))
             self.CXXFLAGS.extend(self.optional_list("CXXFLAGS_SHLIB"))
 
-            if self.console:
+            lflags_dll = self.optional_list("LFLAGS_DLL")
+
+            if lflags_dll:
+                self.LFLAGS.extend(lflags_dll)
+            elif self.console:
                 lflags_console = "LFLAGS_CONSOLE_DLL"
             else:
                 lflags_console = "LFLAGS_WINDOWS_DLL"
@@ -1897,9 +1901,10 @@ def parse_build_macros(filename, names, overrides=None, properties=None):
         rhs = raw[lhs]
 
         # Resolve any references.
+        estart = string.find(rhs, "$$(")
         mstart = string.find(rhs, "$$")
 
-        while mstart >= 0:
+        while mstart >= 0 and mstart != estart:
             rstart = mstart + 2
             if rstart < len(rhs) and rhs[rstart] == "{":
                 rstart = rstart + 1
@@ -1931,20 +1936,30 @@ def parse_build_macros(filename, names, overrides=None, properties=None):
                     error("%s: macro '%s' is not defined." % (filename, lhs))
 
             rhs = rhs[:mstart] + value + rhs[mend:]
+            estart = string.find(rhs, "$$(")
             mstart = string.find(rhs, "$$")
 
         # Expand any POSIX style environment variables.
-        estart = string.find(rhs, "$(")
+        pleadin = ["$$(", "$("]
+
+        for pl in pleadin:
+            estart = string.find(rhs, pl)
+
+            if estart >= 0:
+                nstart = estart + len(pl)
+                break
+        else:
+            estart = -1
 
         while estart >= 0:
-            eend = string.find(rhs[estart + 2:], ")")
+            eend = string.find(rhs[nstart:], ")")
 
             if eend < 0:
                 break
 
-            eend = estart + 2 + eend
+            eend = nstart + eend
 
-            name = rhs[estart + 2:eend]
+            name = rhs[nstart:eend]
 
             try:
                 env = os.environ[name]
@@ -1953,7 +1968,14 @@ def parse_build_macros(filename, names, overrides=None, properties=None):
 
             rhs = rhs[:estart] + env + rhs[eend + 1:]
 
-            estart = string.find(rhs, "$(")
+            for pl in pleadin:
+                estart = string.find(rhs, pl)
+
+                if estart >= 0:
+                    nstart = estart + len(pl)
+                    break
+            else:
+                estart = -1
 
         # Expand any Windows style environment variables.
         estart = string.find(rhs, "%")

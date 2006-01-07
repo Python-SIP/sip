@@ -1,6 +1,4 @@
 #
-# $Id: solaris-g++,v 1.2 2004/01/21 18:33:33 phil Exp $
-#
 # qmake configuration for solaris-g++
 #
 # The X11 header files used to be broken on Solaris until patches were
@@ -13,6 +11,7 @@
 MAKEFILE_GENERATOR	= UNIX
 TEMPLATE		= app
 CONFIG			+= qt warn_on release link_prl
+QT			+= core gui
 
 QMAKE_CC		= gcc
 QMAKE_LEX		= flex
@@ -40,12 +39,12 @@ QMAKE_CXXFLAGS_SHLIB	= $$QMAKE_CFLAGS_SHLIB
 QMAKE_CXXFLAGS_YACC	= $$QMAKE_CFLAGS_YACC
 QMAKE_CXXFLAGS_THREAD	= $$QMAKE_CFLAGS_THREAD
 
-QMAKE_INCDIR		=
-QMAKE_LIBDIR		=
+QMAKE_INCDIR		= /usr/sfw/include
+QMAKE_LIBDIR		= /usr/sfw/lib
 QMAKE_INCDIR_X11	= /usr/openwin/include
 QMAKE_LIBDIR_X11	= /usr/openwin/lib
-QMAKE_INCDIR_QT		= $(QTDIR)/include
-QMAKE_LIBDIR_QT		= $(QTDIR)/lib
+QMAKE_INCDIR_QT		= $$[QT_INSTALL_HEADERS]
+QMAKE_LIBDIR_QT		= $$[QT_INSTALL_LIBS]
 QMAKE_INCDIR_OPENGL	= /usr/openwin/include
 QMAKE_LIBDIR_OPENGL	= /usr/openwin/lib
 
@@ -65,14 +64,13 @@ QMAKE_LIBS_DYNLOAD	= -ldl
 QMAKE_LIBS_X11		= -lXext -lX11 -lresolv -lsocket -lnsl
 QMAKE_LIBS_X11SM	= -lSM -lICE
 QMAKE_LIBS_NIS		=
-QMAKE_LIBS_QT		= -lqt
-QMAKE_LIBS_QT_THREAD	= -lqt-mt
-QMAKE_LIBS_OPENGL	= -lGLU -lGL -lXmu
-QMAKE_LIBS_OPENGL_QT	= -lGL -lXmu
+QMAKE_LIBS_OPENGL	= -lGLU -lGL
+QMAKE_LIBS_OPENGL_QT	= -lGL
 QMAKE_LIBS_THREAD	= -lpthread -lrt
+QMAKE_LIBS_NETWORK      = -lresolv -lsocket
 
-QMAKE_MOC		= $(QTDIR)/bin/moc
-QMAKE_UIC		= $(QTDIR)/bin/uic
+QMAKE_MOC		= $$[QT_INSTALL_BINS]/moc
+QMAKE_UIC		= $$[QT_INSTALL_BINS]/uic
 
 QMAKE_AR		= ar cq
 QMAKE_RANLIB		=
@@ -86,3 +84,4 @@ QMAKE_DEL_FILE		= rm -f
 QMAKE_DEL_DIR		= rmdir
 QMAKE_CHK_DIR_EXISTS	= test -d
 QMAKE_MKDIR		= mkdir -p
+load(qt_config)
