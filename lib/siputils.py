@@ -495,17 +495,53 @@ class Makefile:
             rpaths.extend(libdir_qt)
 
             if self.config.qt_version >= 0x040000:
+                # For Windows: the macros that define the dependencies on
+                # Windows libraries.
+                wdepmap = {
+                    "QtCore":       "LIBS_CORE",
+                    "QtGui":        "LIBS_GUI",
+                    "QtNetwork":    "LIBS_NETWORK",
+                    "QtOpenGL":     "LIBS_OPENGL"
+                }
+
+                # For Windows: the dependencies between Qt libraries.
+                qdepmap = {
+                    "QtAssistant":  ("QtCore", "QtGui", "QtNetwork"),
+                    "QtGui":        ("QtCore", ),
+                    "QtNetwork":    ("QtCore", ),
+                    "QtOpenGL":     ("QtCore", "QtGui"),
+                    "QtSql":        ("QtCore", ),
+                    "QtSvg":        ("QtCore", "QtGui", "QtXml"),
+                    "QtXml":        ("QtCore", )
+                }
+
                 for mod in self._qt:
-                    if mod == "QtAssistant":
-                        lib = "QtAssistantClient"
-                    else:
-                        lib = mod
-
-                    if self._debug:
-                        lib = lib + "_debug"
-
+                    lib = self._qt4_module_to_lib(mod)
                     libs.append(self.platform_lib(lib))
-                    libs.extend(self._dependent_libs(lib))
+
+                    if sys.platform == "win32":
+                        # On Windows the dependent libraries seem to be in
+                        # qmake.conf rather than the .prl file and the
+                        # inter-dependencies between Qt libraries don't seem to
+                        # be anywhere.
+                        deps = _UniqueList()
+
+                        if mod in wdepmap.keys():
+                            deps.extend(self.optional_list(wdepmap[mod]))
+
+                        if mod in qdepmap.keys():
+                            for qdep in qdepmap[mod]:
+                                # Ignore the dependency if it is explicitly
+                                # linked.
+                                if qdep not in self._qt:
+                                    libs.append(self.platform_lib(self._qt4_module_to_lib(qdep)))
+
+                                    if qdep in wdepmap.keys():
+                                        deps.extend(self.optional_list(wdepmap[qdep]))
+
+                        libs.extend(deps.as_list())
+                    else:
+                        libs.extend(self._dependent_libs(lib))
             else:
                 # Windows needs the version number appended if Qt is a DLL.
                 qt_lib = self.config.qt_lib
@@ -554,6 +590,27 @@ class Makefile:
 
         # Don't do it again because it has side effects.
         self._finalised = 1
+
+    def _qt4_module_to_lib(self, mname):
+        """Return the name of the Qt4 library corresponding to a module.
+
+        mname is the name of the module.
+        """
+        if mname == "QtAssistant":
+            lib = "QtAssistantClient"
+        else:
+            lib = mname
+
+        if self._debug:
+            if sys.platform == "win32":
+                lib = lib + "d"
+            else:
+                lib = lib + "_debug"
+
+        if sys.platform == "win32" and mname in ("QtCore", "QtGui", "QtNetwork", "QtOpenGL", "QtSql", "QtSvg", "QtXml"):
+            lib = lib + "4"
+
+        return lib
 
     def optional_list(self, name):
         """Return an optional Makefile macro as a list.
@@ -2032,10 +2089,12 @@ def create_wrapper(script, wrapper, gui=0):
     wf = open(wrapper, "w")
 
     if sys.platform == "win32":
-        # Not yet supported.
-        assert(not gui)
+        exe = sys.executable
 
-        wf.write("@\"%s\" \"%s\" %%1 %%2 %%3 %%4 %%5 %%6 %%7 %%8 %%9\n" % (sys.executable, script))
+        if gui:
+            exe = exe[:-4] + "w.exe"
+
+        wf.write("@\"%s\" \"%s\" %%1 %%2 %%3 %%4 %%5 %%6 %%7 %%8 %%9\n" % (exe, script))
     else:
         wf.write("exec %s %s ${1+\"$@\"}\n" % (sys.executable, script))
 
