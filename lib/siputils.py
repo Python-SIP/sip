@@ -488,7 +488,12 @@ class Makefile:
                     for mod in qtmods:
                         incdir.append(os.path.join(qtincdir[0], mod))
 
-            incdir.append(os.path.join(self.config.qt_dir, "mkspecs", "default"))
+            specd = os.path.join(self.config.qt_dir, "mkspecs", "default")
+
+            if not os.access(specd, os.F_OK):
+                specd = os.path.join(self.config.qt_dir, "mkspecs", self.config.platform)
+
+            incdir.append(specd)
 
             libdir_qt = self.optional_list("LIBDIR_QT")
             libdir.extend(libdir_qt)
@@ -514,6 +519,12 @@ class Makefile:
                     "QtSvg":        ("QtCore", "QtGui", "QtXml"),
                     "QtXml":        ("QtCore", )
                 }
+
+                # The QtSql .prl file doesn't include QtGui as a dependency (at
+                # least on Linux) so we explcitly set the dependency here for
+                # everything.
+                if "QtSql" in self._qt and "QtGui" not in self._qt:
+                    self._qt.append("QtGui")
 
                 for mod in self._qt:
                     lib = self._qt4_module_to_lib(mod)
@@ -2082,6 +2093,8 @@ def create_wrapper(script, wrapper, gui=0):
     script is the full pathname of the script.
     wrapper is the name of the wrapper file to create.
     gui is non-zero if a GUI enabled version of the interpreter should be used.
+
+    Returns the platform specific name of the wrapper.
     """
     if sys.platform == "win32":
         wrapper = wrapper + ".bat"
@@ -2106,3 +2119,5 @@ def create_wrapper(script, wrapper, gui=0):
         mode |= (stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
         os.chmod(wrapper, mode)
+
+    return wrapper

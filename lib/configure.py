@@ -156,16 +156,21 @@ def set_defaults():
         "sunos5":       "solaris-cc",
         "ultrix":       "ultrix-g++",
         "unix_sv":      "unixware-g++",
-        "unixware":     "unixware-cc",
-        "win32":        "win32-msvc"
+        "unixware":     "unixware-cc"
     }
 
     default_platform = "none"
 
-    for pd in platdefaults.keys():
-        if sys.platform[:len(pd)] == pd:
-            default_platform = platdefaults[pd]
-            break
+    if sys.platform == "win32":
+        if py_version >= 0x020400:
+            default_platform = "win32-msvc.net"
+        else:
+            default_platform = "win32-msvc"
+    else:
+        for pd in platdefaults.keys():
+            if sys.platform[:len(pd)] == pd:
+                default_platform = platdefaults[pd]
+                break
 
     opt_sipbindir = plat_bin_dir
     opt_sipmoddir = plat_py_site_dir
@@ -225,6 +230,7 @@ def create_config(module, template, macros):
     content = {
         "sip_version":      sip_version,
         "sip_version_str":  sip_version_str,
+        "platform":         opt_platform,
         "sip_bin":          os.path.join(opt_sipbindir, "sip"),
         "sip_inc_dir":      opt_sipincdir,
         "sip_mod_dir":      opt_sipmoddir,

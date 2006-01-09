@@ -4211,6 +4211,8 @@ create_wrapper(script, wrapper, gui=0)
     ``gui`` is non-zero if a GUI enabled version of the interpreter should be
     used on platforms that require it.
 
+    Returns the platform specific name of the wrapper.
+
 error(msg)
     This displays an error message on ``stderr`` and calls ``sys.exit()`` with
     a value of 1.
@@ -4328,6 +4330,10 @@ Configuration
             files should be installed in the sub-directory.  The ``.sip``
             files only need to be installed if you might want to build other
             bindings based on them.
+
+        platform
+            The name of the platform/compiler for which the build system has
+            been configured for.
 
         py_inc_dir
             The name of the directory containing the ``Python.h`` header file.

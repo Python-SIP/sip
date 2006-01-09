@@ -53,6 +53,7 @@ v4.4 ???
     pure Python modules.
   - Added the create_wrapper() function to the build system for creating
     platform dependent executable wrappers for Python scripts.
+  - Added Configuration.platform to the build system.
 
 v4.3.2 14th November 2005
   - The sipdistutils.py script has contributed by Giovanni Bajo that enables
