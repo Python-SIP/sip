@@ -3144,7 +3144,7 @@ static void generateVariableHandler(varDef *vd,FILE *fp)
 		{
 		case mapped_type:
 			prcode(fp,
-"		sipPy = sipConvertFrom_%T(sipVal,NULL);\n"
+"		sipPy = sipConvertFromTransfer_%T(sipVal,NULL);\n"
 				,&vd -> type);
 
 			break;
@@ -3416,11 +3416,11 @@ static void generateObjToCppConversion(argDef *ad,FILE *fp)
 	case class_type:
 		if (generating_c)
 			prcode(fp,
-"	sipVal = (%b *)sipForceConvertTo_%T(sipPy,&sipIsErr,NULL);\n"
+"	sipVal = (%b *)sipForceConvertToTransfer_%T(sipPy,&sipIsErr,NULL);\n"
 				,ad,ad);
 		else
 			prcode(fp,
-"	sipVal = reinterpret_cast<%b *>(sipForceConvertTo_%T(sipPy,&sipIsErr,NULL));\n"
+"	sipVal = reinterpret_cast<%b *>(sipForceConvertToTransfer_%T(sipPy,&sipIsErr,NULL));\n"
 				,ad,ad);
 		break;
 
@@ -5282,7 +5282,7 @@ static void generateParseResultExtraArgs(argDef *ad,FILE *fp)
 	{
 	case mapped_type:
 	case class_type:
-		prcode(fp,",sipForceConvertTo_%T",ad);
+		prcode(fp,",sipForceConvertToTransfer_%T",ad);
 		break;
 
 	case pytuple_type:
@@ -5580,7 +5580,7 @@ static void generateTupleBuilder(signatureDef *sd,FILE *fp)
 				prcode(fp,")");
 
 			if (ad -> atype == mapped_type)
-				prcode(fp,",sipConvertFrom_%T",ad);
+				prcode(fp,",sipConvertFromTransfer_%T",ad);
 			else if (ad -> atype == class_type)
 				prcode(fp,",sipClass_%C",classFQCName(ad -> u.cd));
 			else
@@ -5755,12 +5755,16 @@ static void generateImportedMappedTypeHeader(mappedTypeDef *mtd,sipSpec *pt,
 
 	prcode(fp,
 "\n"
-"#define	sipForceConvertTo_%T	sipModuleAPI_%s_%s -> em_mappedtypes[%d] -> mt_fcto\n"
-"#define	sipConvertTo_%T	sipModuleAPI_%s_%s -> em_mappedtypes[%d] -> mt_cto\n"
-"#define	sipConvertFrom_%T	sipModuleAPI_%s_%s -> em_mappedtypes[%d] -> mt_cfrom\n"
+"#define	sipForceConvertToTransfer_%T	sipModuleAPI_%s_%s->em_mappedtypes[%d]->mt_fcto\n"
+"#define	sipConvertToTransfer_%T	sipModuleAPI_%s_%s->em_mappedtypes[%d]->mt_cto\n"
+"#define	sipConvertFromTransfer_%T	sipModuleAPI_%s_%s->em_mappedtypes[%d]->mt_cfrom\n"
+"#define	sipForceConvertTo_%T(p,t)	sipForceConvertToTransfer_%T((p),(t),NULL)\n"
+"#define	sipConvertFrom_%T(p)	sipConvertFromTransfer_%T((p),NULL)\n"
 		,&type,mname,imname,mtd -> mappednr
 		,&type,mname,imname,mtd -> mappednr
-		,&type,mname,imname,mtd -> mappednr);
+		,&type,mname,imname,mtd -> mappednr
+		,&type,&type
+		,&type,&type);
 }
 
 
@@ -5781,11 +5785,15 @@ static void generateMappedTypeHeader(mappedTypeDef *mtd,int genused,FILE *fp)
 
 	prcode(fp,
 "\n"
-"#define	sipForceConvertTo_%T	sipMappedType_%T.mt_fcto\n"
-"#define	sipConvertTo_%T	sipMappedType_%T.mt_cto\n"
-"#define	sipConvertFrom_%T	sipMappedType_%T.mt_cfrom\n"
+"#define	sipForceConvertToTransfer_%T	sipMappedType_%T.mt_fcto\n"
+"#define	sipConvertToTransfer_%T	sipMappedType_%T.mt_cto\n"
+"#define	sipConvertFromTransfer_%T	sipMappedType_%T.mt_cfrom\n"
+"#define	sipForceConvertTo_%T(p,t)	sipForceConvertToTransfer_%T((p),(t),NULL)\n"
+"#define	sipConvertFrom_%T(p)	sipConvertFromTransfer_%T((p),NULL)\n"
 "\n"
 "extern sipMappedTypeDef sipMappedType_%T;\n"
+		,&mtd -> type,&mtd -> type
+		,&mtd -> type,&mtd -> type
 		,&mtd -> type,&mtd -> type
 		,&mtd -> type,&mtd -> type
 		,&mtd -> type,&mtd -> type
@@ -5807,16 +5815,18 @@ static void generateImportedClassHeader(classDef *cd,sipSpec *pt,FILE *fp)
 
 	prcode(fp,
 "\n"
-"#define	sipClass_%C	sipModuleAPI_%s_%s -> em_types[%d]\n"
-"#define	sipCast_%C	sipModuleAPI_%s_%s -> em_types[%d] -> type -> td_cast\n"
-"#define	sipForceConvertTo_%C	sipModuleAPI_%s_%s -> em_types[%d] -> type -> td_fcto\n"
+"#define	sipClass_%C	sipModuleAPI_%s_%s->em_types[%d]\n"
+"#define	sipCast_%C	sipModuleAPI_%s_%s->em_types[%d]->type->td_cast\n"
+"#define	sipForceConvertToTransfer_%C	sipModuleAPI_%s_%s->em_types[%d]->type->td_fcto\n"
+"#define	sipForceConvertTo_%C(p,t)	sipForceConvertToTransfer_%C((p),(t),NULL)\n"
 		,classFQCName(cd),mname,imname,cd -> classnr
 		,classFQCName(cd),mname,imname,cd -> classnr
-		,classFQCName(cd),mname,imname,cd -> classnr);
+		,classFQCName(cd),mname,imname,cd -> classnr
+		,classFQCName(cd),classFQCName(cd));
 
 	if (cd -> convtocode != NULL)
 		prcode(fp,
-"#define	sipConvertTo_%C	sipModuleAPI_%s_%s -> em_types[%d] -> type -> td_cto\n"
+"#define	sipConvertToTransfer_%C	sipModuleAPI_%s_%s->em_types[%d]->type->td_cto\n"
 			,classFQCName(cd),mname,imname,cd -> classnr);
 
 	generateEnumMacros(pt, cd, fp);
@@ -5854,13 +5864,15 @@ static void generateClassHeader(classDef *cd,int genused,sipSpec *pt,FILE *fp)
 		{
 			prcode(fp,
 "#define	sipCast_%C	sipType_%C.td_cast\n"
-"#define	sipForceConvertTo_%C	sipType_%C.td_fcto\n"
+"#define	sipForceConvertToTransfer_%C	sipType_%C.td_fcto\n"
+"#define	sipForceConvertTo_%C(p,t)	sipForceConvertToTransfer_%C((p),(t),NULL)\n"
+				,classFQCName(cd),classFQCName(cd)
 				,classFQCName(cd),classFQCName(cd)
 				,classFQCName(cd),classFQCName(cd));
 
 			if (cd -> convtocode != NULL)
 				prcode(fp,
-"#define	sipConvertTo_%C	sipType_%C.td_cto\n"
+"#define	sipConvertToTransfer_%C	sipType_%C.td_cto\n"
 					,classFQCName(cd),classFQCName(cd));
 		}
 	}
@@ -7711,7 +7723,7 @@ static void generateHandleResult(overDef *od,int isNew,char *prefix,FILE *fp)
 		if (res -> atype == mapped_type)
 		{
 			prcode(fp,
-"			PyObject *sipResObj = sipConvertFrom_%T(",res);
+"			PyObject *sipResObj = sipConvertFromTransfer_%T(",res);
 
 			if (isConstArg(res))
 				prcode(fp,"const_cast<%b *>(sipRes)",res);
@@ -7851,7 +7863,7 @@ static void generateHandleResult(overDef *od,int isNew,char *prefix,FILE *fp)
 				prcode(fp,",a%d",a);
 
 				if (ad -> atype == mapped_type)
-					prcode(fp,",sipConvertFrom_%T",ad);
+					prcode(fp,",sipConvertFromTransfer_%T",ad);
 				else if (ad -> atype == class_type)
 					prcode(fp,",sipClass_%C",classFQCName(ad -> u.cd));
 				else if (ad -> atype == enum_type && ad -> u.ed -> fqcname != NULL)
@@ -7884,7 +7896,7 @@ static void generateHandleResult(overDef *od,int isNew,char *prefix,FILE *fp)
 	{
 	case mapped_type:
 		prcode(fp,
-"			%s sipConvertFrom_%T(",prefix,ad);
+"			%s sipConvertFromTransfer_%T(",prefix,ad);
 
 		if (isConstArg(ad))
 			prcode(fp,"const_cast<%b *>(%s)",ad,vname);
@@ -8953,12 +8965,12 @@ static int generateArgParser(sipSpec *pt, signatureDef *sd, classDef *cd,
 		switch (ad -> atype)
 		{
 		case mapped_type:
-			prcode(fp,",sipConvertTo_%T,&a%d,&a%dIsTemp",ad,a,a);
+			prcode(fp,",sipConvertToTransfer_%T,&a%d,&a%dIsTemp",ad,a,a);
 			break;
 
 		case class_type:
 			if (ad -> u.cd -> convtocode != NULL && !isConstrained(ad))
-				prcode(fp,",sipConvertTo_%T,&a%d,&a%dIsTemp",ad,a,a);
+				prcode(fp,",sipConvertToTransfer_%T,&a%d,&a%dIsTemp",ad,a,a);
 			else
 			{
 				prcode(fp,",sipClass_%T,&a%d",ad,a);

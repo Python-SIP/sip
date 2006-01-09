@@ -3489,7 +3489,9 @@ codeBlock *templateCode(sipSpec *pt, ifaceFileList **used, codeBlock *ocb, scope
 			else
 			{
 				static const char *gen_names[] = {
+					"sipForceConvertToTransfer_",
 					"sipForceConvertTo_",
+					"sipConvertFromTransfer_",
 					"sipConvertFrom_",
 					"sipClass_",
 					"sipEnum_",

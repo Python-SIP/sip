@@ -38,8 +38,9 @@ v4.4 ???
   - sipConvertToCppTransfer() has been added to the SIP API.
   - Responsibility for interpreting and implementing the /Transfer/ and
     /TransferBack/ annotations has been pushed down to %ConvertToTypeCode and
-    %ConvertFromTypeCode.  To accomodate this the signature of the generated
-    type convertors has changed.
+    %ConvertFromTypeCode.  The generated type convertors sipForceConvertTo_*()
+    and sipConvertFrom_*() have been deprecated.  sipForceConvertToTransfer_*()
+    and sipConvertFromTransfer_*() should be used instead.
   - Added support for the __hash__ Python special method.
   - The __getitem__ Python special method no longer requires %MethodCode.
   - All of the calls to Qt have been moved out of the sip module and into PyQt.

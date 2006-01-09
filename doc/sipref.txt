@@ -184,18 +184,20 @@ new Python signals, and allows any Python callable object to be used as a slot.
 SIP itself does not require Qt to be installed.
 
 
-Incompatibilities with Earlier Versions
-=======================================
+Potential Incompatibilities with Earlier Versions
+=================================================
 
 SIP v4.4
 --------
 
     - The ``SIP_BUILD`` C preprocessor symbol has been removed.
 
-    - The signatures of the `Generated Type Convertors`_ has been changed.
-      Handwritten `%ConvertFromTypeCode`_ and `%ConvertToTypeCode`_ now has
-      the responsibility for implementing the ``Transfer`` and ``TransferBack``
-      annotations.
+    - The old `Generated Type Convertors`_ have been deprecated.
+      ``sipForceConvertToTransfer_*()`` and ``sipConvertFromTransfer_*()``
+      should be used instead of ``sipForceConvertTo_*()`` and
+      ``sipConvertFrom_*()`` respectively.  Handwritten `%ConvertFromTypeCode`_
+      and `%ConvertToTypeCode`_ now has the responsibility for using these to
+      implement the ``Transfer`` and ``TransferBack`` annotations.
 
 
 Installing SIP
@@ -1713,7 +1715,7 @@ The following example converts a Python list of ``QWidget`` instances to a
 
             // Get the address of the element's C++ instance while applying
             // any ownership changes.
-            qw = reinterpret_cast<QWidget *>(sipForceConvertTo_QWidget(
+            qw = reinterpret_cast<QWidget *>(sipForceConvertToTransfer_QWidget(
                                                 PyList_GET_ITEM(sipPy, i),
                                                 sipIsErr, sipTransferObj));
 
@@ -2286,7 +2288,9 @@ For example::
         {
             // Use the SIP API to convert the Python object to the
             // corresponding C++ instance.
-            Type *t = reinterpret_cast<Type *>(sipForceConvertTo_Type(PyList_GET_ITEM(sipPy, i), sipIsErr));
+            Type *t = reinterpret_cast<Type *>(sipForceConvertToTransfer_Type(
+                                                PyList_GET_ITEM(sipPy, i),
+                                                sipIsErr, sipTransferObj));
 
             if (*sipIsErr)
             {
@@ -3960,9 +3964,9 @@ Generated Type Convertors
 SIP generates functions for all types being wrapped (including mapped types
 defined with the `%MappedType`_ directive) that convert a Python object to the
 C structure or C++ class instance.  The name of this convertor is the name of
-the structure or class prefixed by ``sipForceConvertTo_``.
+the structure or class prefixed by ``sipForceConvertToTransfer_``.
 
-void \*sipForceConvertTo_*class*(PyObject \*obj, int \*iserr, PyObject \*transferObj)
+void \*sipForceConvertToTransfer_*class*(PyObject \*obj, int \*iserr, PyObject \*transferObj)
     *obj* is the Python object to convert.  If *obj* is ``NULL`` or the
     location pointed to by *iserr* is non-zero then the conversion is not
     attempted and ``NULL`` is returned.  If there was an error then the
@@ -3976,9 +3980,9 @@ void \*sipForceConvertTo_*class*(PyObject \*obj, int \*iserr, PyObject \*transfe
 
 SIP also generates functions for mapped types that convert a C structure or
 C++ class instance to a Python object.  The name of this convertor is the name
-of the structure or class prefixed by ``sipConvertFrom_``.
+of the structure or class prefixed by ``sipConvertFromTransfer_``.
 
-PyObject \*sipConvertFrom_*class*(void \*cppptr, PyObject \*transferObj)
+PyObject \*sipConvertFromTransfer_*class*(void \*cppptr, PyObject \*transferObj)
     *cppptr* is a pointer to the C structure or C++ class instance to convert.
     If there was an error then ``NULL`` is returned and a Python exception
     raised.  *transferObj* controls any ownership changes to the returned
