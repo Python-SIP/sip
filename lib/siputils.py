@@ -1908,6 +1908,7 @@ def parse_build_macros(filename, names, overrides=None, properties=None):
 
     # Get everything into a dictionary.
     raw = {
+        "DIR_SEPARATOR":        os.sep,
         "LITERAL_WHITESPACE":   " ",
         "LITERAL_DOLLAR":       "$",
         "LITERAL_HASH":         "#"

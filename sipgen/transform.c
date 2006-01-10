@@ -1465,6 +1465,7 @@ static void resolveVariableType(sipSpec *pt,varDef *vd)
 	case double_type:
 	case enum_type:
 	case bool_type:
+	case cbool_type:
 	case ushort_type:
 	case short_type:
 	case uint_type:
@@ -1592,6 +1593,7 @@ static int supportedType(classDef *cd,overDef *od,argDef *ad,int outputs)
 	case double_type:
 	case enum_type:
 	case bool_type:
+	case cbool_type:
 	case ushort_type:
 	case short_type:
 	case uint_type:

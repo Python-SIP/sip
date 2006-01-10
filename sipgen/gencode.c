@@ -129,6 +129,7 @@ static int generateVariableType(sipSpec *pt, classDef *cd, argType atype, const 
 static int generateDoubles(sipSpec *,classDef *,FILE *);
 static int generateEnums(sipSpec *,classDef *,FILE *);
 static int generateClasses(sipSpec *,classDef *,FILE *);
+static void generateEnumsInline(sipSpec *,FILE *);
 static void generateClassesInline(sipSpec *,FILE *);
 static void generateAccessFunctions(sipSpec *,classDef *,FILE *);
 static void generateConvertToDefinitions(mappedTypeDef *,classDef *,FILE *);
@@ -554,6 +555,7 @@ static void generateInternalAPIHeader(sipSpec *pt,char *codeDir,stringList *xsl)
 "#define	sipBadLengthForSlice		sipAPI_%s -> api_bad_length_for_slice\n"
 "#define	sipClassName			sipAPI_%s -> api_class_name\n"
 "#define	sipAddClassInstance		sipAPI_%s -> api_add_class_instance\n"
+"#define	sipAddEnumInstance		sipAPI_%s -> api_add_enum_instance\n"
 "#define	sipConvertFromNamedEnum		sipAPI_%s -> api_convert_from_named_enum\n"
 "#define	sipGetAddress			sipAPI_%s -> api_get_address\n"
 "#define	sipFreeConnection		sipAPI_%s -> api_free_connection\n"
@@ -562,6 +564,7 @@ static void generateInternalAPIHeader(sipSpec *pt,char *codeDir,stringList *xsl)
 "#define	sipPySlotExtend			sipAPI_%s -> api_pyslot_extend\n"
 "#define	sipConvertRx			sipAPI_%s -> api_convert_rx\n"
 "#define	sipAddDelayedDtor		sipAPI_%s -> api_add_delayed_dtor\n"
+		,mname
 		,mname
 		,mname
 		,mname
@@ -1206,6 +1209,7 @@ static void generateCpp(sipSpec *pt,char *codeDir,char *srcSuffix,int *parts)
 				break;
 
 			case bool_type:
+			case cbool_type:
 				sat = "bool";
 				break;
 
@@ -1597,6 +1601,7 @@ static void generateCpp(sipSpec *pt,char *codeDir,char *srcSuffix,int *parts)
 	}
 
 	generateClassesInline(pt,fp);
+	generateEnumsInline(pt, fp);
 
 	/* Create any exceptions. */
 	for (xd = pt->exceptions; xd != NULL; xd = xd->next)
@@ -1902,6 +1907,55 @@ static void generateAccessFunctions(sipSpec *pt,classDef *cd,FILE *fp)
 		prcode(fp,
 "}\n"
 			);
+	}
+}
+
+
+/*
+ * Generate the inline code to add a set of enum instances to a dictionary.
+ */
+static void generateEnumsInline(sipSpec *pt, FILE *fp)
+{
+	int noIntro;
+	varDef *vd;
+
+	noIntro = TRUE;
+
+	for (vd = pt->vars; vd != NULL; vd = vd->next)
+	{
+		if (vd->module != pt->module)
+			continue;
+
+		if (vd->type.atype != enum_type)
+			continue;
+
+		if (needsHandler(vd))
+			continue;
+
+		/* Skip enums that don't need inline code. */
+		if (generating_c || vd->accessfunc != NULL || vd->type.nrderefs != 0)
+			continue;
+
+		if (noIntro)
+		{
+			prcode(fp,
+"\n"
+"	/* Define the enum instances that have to be added inline. */\n"
+				);
+
+			noIntro = FALSE;
+		}
+
+		prcode(fp,
+"	sipAddEnumInstance(");
+
+		if (vd->ecd == NULL)
+			prcode(fp,"sip_mdict");
+		else
+			prcode(fp,"(PyObject *)sipClass_%C",classFQCName(vd->ecd));
+
+		prcode(fp,",%N,(int)%S,sipEnum_%C);\n"
+			, vd->pyname, vd -> fqcname, vd->type.u.ed->fqcname);
 	}
 }
 
@@ -2252,6 +2306,10 @@ static int generateEnums(sipSpec *pt, classDef *cd, FILE *fp)
 		if (needsHandler(vd))
 			continue;
 
+		/* Skip enums that need inline code. */
+		if (!generating_c && vd->accessfunc == NULL && vd->type.nrderefs == 0)
+			continue;
+
 		if (noIntro)
 		{
 			if (cd != NULL)
@@ -2279,7 +2337,7 @@ static int generateEnums(sipSpec *pt, classDef *cd, FILE *fp)
 
 	if (!noIntro)
 		prcode(fp,
-"	{0, 0}\n"
+"	{0, 0, 0}\n"
 "};\n"
 			);
 
@@ -2306,7 +2364,10 @@ static int generateInts(sipSpec *pt, classDef *cd, FILE *fp)
 		if (vd -> ecd != cd || vd -> module != pt -> module)
 			continue;
 
-		if (!(vtype == enum_type || vtype == ushort_type || vtype == short_type || vtype == uint_type || vtype == cint_type || vtype == int_type || vtype == bool_type))
+		if (!(vtype == enum_type || vtype == ushort_type ||
+		      vtype == short_type || vtype == uint_type ||
+		      vtype == cint_type || vtype == int_type ||
+		      vtype == bool_type || vtype == cbool_type))
 			continue;
 
 		if (needsHandler(vd))
@@ -3154,6 +3215,7 @@ static void generateVariableHandler(varDef *vd,FILE *fp)
 			break;
 
 		case bool_type:
+		case cbool_type:
 			prcode(fp,
 "		sipPy = PyBool_FromLong(sipVal);\n"
 				);
@@ -3455,6 +3517,7 @@ static void generateObjToCppConversion(argDef *ad,FILE *fp)
 		break;
 
 	case bool_type:
+	case cbool_type:
 		fmt = "\tsipVal = (bool)PyInt_AsLong(sipPy);\n";
 		break;
 
@@ -4882,7 +4945,7 @@ static void generateProtectedDefinitions(classDef *cd,FILE *fp)
 		for (od = vl -> cd -> overs; od != NULL; od = od -> next)
 		{
 			char *mname = od -> cppname;
-			int incast;
+			int parens;
 			argDef *res;
 
 			if (od -> common != vl -> m || !isProtected(od))
@@ -4909,7 +4972,7 @@ static void generateProtectedDefinitions(classDef *cd,FILE *fp)
 "{\n"
 				,(isConst(od) ? " const" : ""));
 
-			incast = FALSE;
+			parens = 1;
 
 			res = &od -> cppsig -> result;
 
@@ -4924,7 +4987,7 @@ static void generateProtectedDefinitions(classDef *cd,FILE *fp)
 				if (res -> atype == class_type && isProtectedClass(res -> u.cd))
 				{
 					prcode(fp,"static_cast<%U *>(",res -> u.cd);
-					incast = TRUE;
+					++parens;
 				}
 				else if (res -> atype == enum_type && isProtectedEnum(res -> u.ed))
 					/*
@@ -4935,23 +4998,27 @@ static void generateProtectedDefinitions(classDef *cd,FILE *fp)
 					prcode(fp,"(%E)",res -> u.ed);
 			}
 
-			if (!isAbstract(od) && (isVirtual(od) || isVirtualReimp(od)))
-			{
-				prcode(fp, "sipSelfWasArg ? %S::%s(", classFQCName(vl->cd), mname);
+			if (!isAbstract(od))
+			       if (isVirtual(od) || isVirtualReimp(od))
+				{
+					prcode(fp, "(sipSelfWasArg ? %S::%s(", classFQCName(vl->cd), mname);
 
-				generateProtectedCallArgs(od, fp);
+					generateProtectedCallArgs(od, fp);
 
-				prcode(fp, ") : ");
-			}
+					prcode(fp, ") : ");
+					++parens;
+				}
+				else
+					prcode(fp, "%S::", classFQCName(cd));
 
 			prcode(fp,"%s(",mname);
 
 			generateProtectedCallArgs(od, fp);
 
-			if (incast)
+			while (parens--)
 				prcode(fp,")");
 
-			prcode(fp,");\n"
+			prcode(fp,";\n"
 "}\n"
 				);
 		}
@@ -5325,6 +5392,7 @@ static char getParseResultFormat(argDef *ad)
 		return ((ad -> nrderefs == 0) ? 'M' : 'L');
 
 	case bool_type:
+	case cbool_type:
 		return 'b';
 
 	case ustring_type:
@@ -5414,6 +5482,7 @@ static void generateTupleBuilder(signatureDef *sd,FILE *fp)
 			break;
 
 		case bool_type:
+		case cbool_type:
 			fmt = "b";
 			break;
 
@@ -6339,6 +6408,7 @@ static void generateNamedBaseType(argDef *ad,char *name,FILE *fp)
 		break;
 
 	case bool_type:
+	case cbool_type:
 		prcode(fp,"bool");
 		break;
 
@@ -7936,6 +8006,7 @@ static void generateHandleResult(overDef *od,int isNew,char *prefix,FILE *fp)
 		break;
 
 	case bool_type:
+	case cbool_type:
 		prcode(fp,
 "			%s PyBool_FromLong(%s);\n"
 			,prefix,vname);
@@ -8083,6 +8154,7 @@ static char getBuildResultFormat(argDef *ad)
 		return (ad -> u.cd -> subbase != NULL) ? 'M' : 'O';
 
 	case bool_type:
+	case cbool_type:
 		return 'b';
 
 	case ustring_type:
@@ -8597,6 +8669,7 @@ static void generateCppFunctionCall(classDef *cd,classDef *ocd,overDef *od,
 				    FILE *fp)
 {
 	char *mname = od -> cppname;
+	int parens = 1;
 
 	/*
 	 * If the function is protected then call the public wrapper.  If it is
@@ -8629,15 +8702,18 @@ static void generateCppFunctionCall(classDef *cd,classDef *ocd,overDef *od,
 	}
 	else if (!isAbstract(od) && (isVirtual(od) || isVirtualReimp(od)))
 	{
-		prcode(fp, "sipSelfWasArg ? sipCpp->%U::%s(", ocd, mname);
+		prcode(fp, "(sipSelfWasArg ? sipCpp->%U::%s(", ocd, mname);
 		generateArgs(od->cppsig, Call, fp);
 		prcode(fp, ") : sipCpp->%s(", mname);
+		++parens;
 	}
 	else
 		prcode(fp, "sipCpp->%s(", mname);
 
 	generateArgs(od->cppsig, Call, fp);
-	prcode(fp, ")");
+
+	while (parens--)
+		prcode(fp, ")");
 }
 
 
@@ -8820,6 +8896,10 @@ static int generateArgParser(sipSpec *pt, signatureDef *sd, classDef *cd,
 
 		case bool_type:
 			fmt = "b";
+			break;
+
+		case cbool_type:
+			fmt = "Xb";
 			break;
 
 		case uint_type:

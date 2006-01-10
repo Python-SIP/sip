@@ -764,6 +764,7 @@ typedef struct _sipAPIDef {
 	void (*api_raise_class_exception)(sipWrapperType *type,void *ptr);
 	void (*api_raise_sub_class_exception)(sipWrapperType *type,void *ptr);
 	int (*api_add_class_instance)(PyObject *dict,char *name,void *cppPtr,sipWrapperType *wt);
+	int (*api_add_enum_instance)(PyObject *dict,char *name,int value,PyTypeObject *type);
 	void (*api_bad_operator_arg)(PyObject *self, PyObject *arg, sipPySlotType st);
 	PyObject *(*api_pyslot_extend)(sipExportedModuleDef *mod, sipPySlotType st, sipWrapperType *type, PyObject *arg0, PyObject *arg1);
 	void (*api_add_delayed_dtor)(sipWrapper *w);

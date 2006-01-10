@@ -16,6 +16,7 @@ v4.4 ???
     in another, unspecified, module.
   - /TransferThis/ can now be used in non-factory methods to change the
     ownership to a different C++ instance or to change it to Python.
+  - /Constrained/ can now be used with booleans.
   - Added support for Python's buffer interface, %BIGetCharBufferCode,
     %BIGetReadBufferCode, %BIGetSegCountCode and %BIGetWriteBufferCode.
   - The "user" member has been added to the sipWrapper structure and can be

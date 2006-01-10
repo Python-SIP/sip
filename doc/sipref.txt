@@ -3007,9 +3007,9 @@ when wrapping C or C++ functions with similar signatures.  For example::
     void foo(int);
 
 This boolean annotation specifies that the corresponding argument (which
-should be either ``int``, ``float``, ``double`` or a wrapped class) must match
-the type without any automatic conversions.  In the context of a wrapped class
-the invocation of any `%ConvertToTypeCode`_ is suppressed.
+should be either ``bool``, ``int``, ``float``, ``double`` or a wrapped class)
+must match the type without any automatic conversions.  In the context of a
+wrapped class the invocation of any `%ConvertToTypeCode`_ is suppressed.
 
 The following example gets around the above problem::
 

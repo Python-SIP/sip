@@ -1614,6 +1614,7 @@ function:	cpptype TK_NAME '(' arglist ')' optconst optexceptions optabstract opt
 					break;
 
 				case bool_type:
+				case cbool_type:
 				case short_type:
 				case ushort_type:
 				case int_type:
@@ -2055,6 +2056,10 @@ argtype:	cpptype optname optflags {
 
 				switch ($$.atype)
 				{
+				case bool_type:
+					$$.atype = cbool_type;
+					break;
+
 				case int_type:
 					$$.atype = cint_type;
 					break;

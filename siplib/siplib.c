@@ -73,6 +73,8 @@ static void sip_api_raise_class_exception(sipWrapperType *type,void *ptr);
 static void sip_api_raise_sub_class_exception(sipWrapperType *type,void *ptr);
 static int sip_api_add_class_instance(PyObject *dict,char *name,void *cppPtr,
 				      sipWrapperType *wt);
+static int sip_api_add_enum_instance(PyObject *dict, char *name, int value,
+				     PyTypeObject *type);
 static void sip_api_bad_operator_arg(PyObject *self, PyObject *arg,
 				     sipPySlotType st);
 static PyObject *sip_api_pyslot_extend(sipExportedModuleDef *mod,
@@ -149,6 +151,7 @@ static const sipAPIDef sip_api = {
 	sip_api_raise_class_exception,
 	sip_api_raise_sub_class_exception,
 	sip_api_add_class_instance,
+	sip_api_add_enum_instance,
 	sip_api_bad_operator_arg,
 	sip_api_pyslot_extend,
 	sip_api_add_delayed_dtor,
@@ -2306,6 +2309,18 @@ static int parsePass1(sipWrapper **selfp,int *selfargp,int *argsParsedp,
 
 				switch (*fmt++)
 				{
+				case 'b':
+					{
+						/* Boolean. */
+
+						if (PyBool_Check(arg))
+							sipSetBool(va_arg(va,void *),(arg == Py_True));
+						else
+							valid = PARSE_TYPE;
+
+						break;
+					}
+
 				case 'd':
 					{
 						/* Double float. */
@@ -3875,28 +3890,52 @@ static int addDoubleInstances(PyObject *dict,sipDoubleInstanceDef *di)
 
 
 /*
- * Add the enum instances to a dictionary.
+ * Wrap a set of enum instances and add them to a dictionary.
  */
 static int addEnumInstances(PyObject *dict, sipEnumInstanceDef *ei)
 {
-	while (ei -> ei_name != NULL)
+	while (ei->ei_name != NULL)
 	{
-		int rc;
-		PyObject *w;
-
-		if ((w = sip_api_convert_from_named_enum(ei -> ei_val, *ei -> ei_type)) == NULL)
-			return -1;
-
-		rc = PyDict_SetItemString(dict, ei -> ei_name, w);
-		Py_DECREF(w);
-
-		if (rc < 0)
+		if (addSingleEnumInstance(dict, ei->ei_val, *ei->ei_type) < 0)
 			return -1;
 
 		++ei;
 	}
 
 	return 0;
+}
+
+
+/*
+ * Wrap a single enum instance and add it to a dictionary.
+ */
+static int addSingleEnumInstance(PyObject *dict, char *name, int value,
+				 PyTypeObject *type)
+{
+	int rc;
+	PyObject *w;
+
+	if ((w = sip_api_convert_from_named_enum(value, type)) == NULL)
+		return -1;
+
+	rc = PyDict_SetItemString(dict, name, w);
+	Py_DECREF(w);
+
+	return rc;
+}
+
+
+/*
+ * Wrap an enum instance and add it to a dictionary.
+ */
+static int sip_api_add_enum_instance(PyObject *dict, char *name, int value,
+				     PyTypeObject *type)
+{
+	/* If this is a wrapped type then get the type dictionary. */
+	if (sipWrapperType_Check(dict))
+		dict = ((sipWrapperType *)dict)->super.type.tp_dict;
+
+	return addSingleEnumInstance(dict, name, value, type);
 }
 
 
