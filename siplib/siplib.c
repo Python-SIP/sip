@@ -3898,7 +3898,7 @@ static int addEnumInstances(PyObject *dict, sipEnumInstanceDef *ei)
 {
 	while (ei->ei_name != NULL)
 	{
-		if (addSingleEnumInstance(dict, ei->ei_val, *ei->ei_type) < 0)
+		if (addSingleEnumInstance(dict, ei->ei_name, ei->ei_val, *ei->ei_type) < 0)
 			return -1;
 
 		++ei;
