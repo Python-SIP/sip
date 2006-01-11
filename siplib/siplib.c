@@ -261,6 +261,8 @@ static int addLongLongInstances(PyObject *dict,sipLongLongInstanceDef *lli);
 static int addUnsignedLongLongInstances(PyObject *dict, sipUnsignedLongLongInstanceDef *ulli);
 static int addDoubleInstances(PyObject *dict,sipDoubleInstanceDef *di);
 static int addEnumInstances(PyObject *dict,sipEnumInstanceDef *ei);
+static int addSingleEnumInstance(PyObject *dict, char *name, int value,
+				 PyTypeObject *type);
 static int addClassInstances(PyObject *dict,sipClassInstanceDef *ci);
 static int addSingleClassInstance(PyObject *dict,char *name,void *cppPtr,
 				  sipWrapperType *wt,int initflags);
