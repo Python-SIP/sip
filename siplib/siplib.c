@@ -284,6 +284,7 @@ static int findMtypeArg(sipMappedTypeDef **mttab, const char *name, size_t len,
 static int findEnumArg(sipExportedModuleDef *emd, const char *name, size_t len,
 		       sipSigArg *at, int indir);
 static int sameScopedName(const char *pyname, const char *name, size_t len);
+static int nameEq(const char *with, const char *name, size_t len);
 
 
 /*
@@ -6078,7 +6079,7 @@ static int findClassArg(sipExportedModuleDef *emd, const char *name,
 
 		if (wt -> type -> td_cname != NULL)
 		{
-			if (strncmp(wt -> type -> td_cname, name, len) != 0)
+			if (!nameEq(wt->type->td_cname, name, len))
 				continue;
 		}
 		else if (!sameScopedName(wt -> type -> td_name, name, len))
@@ -6110,7 +6111,7 @@ static int findMtypeArg(sipMappedTypeDef **mttab, const char *name, size_t len,
 	sipMappedTypeDef *mt;
 
 	while ((mt = *mttab++) != NULL)
-		if (strncmp(mt -> mt_name, name, len) == 0)
+		if (nameEq(mt->mt_name, name, len))
 		{
 			if (indir == 0)
 				at -> atype = mtype_sat;
@@ -6142,7 +6143,7 @@ static int findEnumArg(sipExportedModuleDef *emd, const char *name, size_t len,
 	{
 		if (ed -> e_cname != NULL)
 		{
-			if (strncmp(ed -> e_cname, name, len) != 0)
+			if (!nameEq(ed->e_cname, name, len))
 				continue;
 		}
 		else if (!sameScopedName(ed -> e_name, name, len))
@@ -6180,7 +6181,7 @@ void sipFindSigArgType(const char *name, size_t len, sipSigArg *at, int indir)
 		if ((tdd = em -> em_typedefs) != NULL)
 			while (tdd -> tdd_name != NULL)
 			{
-				if (strncmp(tdd -> tdd_name, name, len) == 0)
+				if (nameEq(tdd->tdd_name, name, len))
 				{
 					sipExportedModuleDef *tem;
 					const char *tn;
@@ -6239,6 +6240,16 @@ void sipFindSigArgType(const char *name, size_t len, sipSigArg *at, int indir)
 		if (em -> em_enums != NULL && findEnumArg(em, name, len, at, indir))
 			return;
 	}
+}
+
+
+/*
+ * Compare a '\0' terminated string with the first len characters of a second
+ * and return a non-zero value if they are equal.
+ */
+static int nameEq(const char *with, const char *name, size_t len)
+{
+	return (strlen(with) == len && strncmp(with, name, len) == 0);
 }
 
 
