@@ -4962,14 +4962,17 @@ static PyObject *sipWrapperType_getattro(PyObject *obj,PyObject *name)
 		int i;
 		sipTypeDef *td;
 		sipEnumMemberDef *enm;
-		PyObject *dict, *tmpdict, *proxy;
+		PyObject *dict, *copy;
 		PyMethodDef *pmd;
 
 		dict = wt -> super.type.tp_dict;
 
 		/* The base type doesn't have any type information. */
 		if ((td = wt -> type) == NULL)
-			return PyDictProxy_New(dict);
+		{
+			Py_INCREF(dict);
+			return dict;
+		}
 
 		/*
 		 * Add the type's lazy enums.  It doesn't matter if they are
@@ -4997,14 +5000,17 @@ static PyObject *sipWrapperType_getattro(PyObject *obj,PyObject *name)
 
 		/* If there are no lazy methods or variables then that's it. */
 		if (td -> td_nrmethods == 0 && td -> td_variables == NULL)
-			return PyDictProxy_New(dict);
+		{
+			Py_INCREF(dict);
+			return dict;
+		}
 
 		/*
 		 * We can't cache the methods or variables so we need to make a
 		 * temporary copy of the type dictionary and return that (so
 		 * that it will get garbage collected immediately afterwards).
 		 */
-		if ((tmpdict = PyDict_Copy(dict)) == NULL)
+		if ((copy = PyDict_Copy(dict)) == NULL)
 			return NULL;
 
 		/* Do the methods. */
@@ -5017,17 +5023,17 @@ static PyObject *sipWrapperType_getattro(PyObject *obj,PyObject *name)
 
 			if ((meth = PyCFunction_New(pmd,NULL)) == NULL)
 			{
-				Py_DECREF(tmpdict);
+				Py_DECREF(copy);
 				return NULL;
 			}
 
-			rc = PyDict_SetItemString(tmpdict,pmd -> ml_name,meth);
+			rc = PyDict_SetItemString(copy,pmd -> ml_name,meth);
 
 			Py_DECREF(meth);
 
 			if (rc < 0)
 			{
-				Py_DECREF(tmpdict);
+				Py_DECREF(copy);
 				return NULL;
 			}
 
@@ -5045,17 +5051,17 @@ static PyObject *sipWrapperType_getattro(PyObject *obj,PyObject *name)
 
 					if ((val = (*pmd -> ml_meth)(NULL,NULL)) == NULL)
 					{
-						Py_DECREF(tmpdict);
+						Py_DECREF(copy);
 						return NULL;
 					}
 
-					rc = PyDict_SetItemString(tmpdict,pmd -> ml_name,val);
+					rc = PyDict_SetItemString(copy,pmd -> ml_name,val);
 
 					Py_DECREF(val);
 
 					if (rc < 0)
 					{
-						Py_DECREF(tmpdict);
+						Py_DECREF(copy);
 						return NULL;
 					}
 				}
@@ -5063,10 +5069,7 @@ static PyObject *sipWrapperType_getattro(PyObject *obj,PyObject *name)
 				++pmd;
 			}
 
-		proxy = PyDictProxy_New(tmpdict);
-		Py_DECREF(tmpdict);
-
-		return proxy;
+		return copy;
 	}
 
 	/* Now try the super-metatype's method. */
