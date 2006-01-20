@@ -525,6 +525,7 @@ static void generateInternalAPIHeader(sipSpec *pt,char *codeDir,stringList *xsl)
 "#define	sipConvertToVoidPtr		sipAPI_%s -> api_convert_to_void_ptr\n"
 "#define	sipNoFunction			sipAPI_%s -> api_no_function\n"
 "#define	sipNoMethod			sipAPI_%s -> api_no_method\n"
+"#define	sipAbstractMethod		sipAPI_%s -> api_abstract_method\n"
 "#define	sipBadClass			sipAPI_%s -> api_bad_class\n"
 "#define	sipBadSetType			sipAPI_%s -> api_bad_set_type\n"
 "#define	sipBadCatcherResult		sipAPI_%s -> api_bad_catcher_result\n"
@@ -564,6 +565,7 @@ static void generateInternalAPIHeader(sipSpec *pt,char *codeDir,stringList *xsl)
 "#define	sipPySlotExtend			sipAPI_%s -> api_pyslot_extend\n"
 "#define	sipConvertRx			sipAPI_%s -> api_convert_rx\n"
 "#define	sipAddDelayedDtor		sipAPI_%s -> api_add_delayed_dtor\n"
+		,mname
 		,mname
 		,mname
 		,mname
@@ -7611,9 +7613,8 @@ static void generateFunction(sipSpec *pt,memberDef *md,overDef *overs,
 				{
 					need_self = TRUE;
 
-					if (!isAbstract(od))
-						if (isVirtual(od) || isVirtualReimp(od) || usedInCode(od->methodcode, "sipSelfWasArg"))
-							need_selfarg = TRUE;
+					if (isAbstract(od) || isVirtual(od) || isVirtualReimp(od) || usedInCode(od->methodcode, "sipSelfWasArg"))
+						need_selfarg = TRUE;
 				}
 			}
 		}
@@ -8342,6 +8343,17 @@ static void generateFunctionCall(classDef *cd,classDef *ocd,overDef *od,
 		prcode(fp,
 "\n"
 			);
+
+	/* If it is abstract make sure that self was bound. */
+	if (isAbstract(od))
+		prcode(fp,
+"			if (sipSelfWasArg)\n"
+"			{\n"
+"				sipAbstractMethod(%N,%N);\n"
+"				return NULL;\n"
+"			}\n"
+"\n"
+			, cd->iff->name, od->common->pyname);
 
 	/* Call any pre-hook. */
 	if (od -> prehook != NULL)

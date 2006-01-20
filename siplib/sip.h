@@ -750,6 +750,7 @@ typedef struct _sipAPIDef {
 	void *(*api_convert_to_void_ptr)(PyObject *obj);
 	void (*api_no_function)(int argsParsed,char *func);
 	void (*api_no_method)(int argsParsed,char *classname,char *method);
+	void (*api_abstract_method)(char *classname,char *method);
 	void (*api_bad_class)(const char *classname);
 	void (*api_bad_set_type)(const char *classname,const char *var);
 	void *(*api_get_cpp_ptr)(sipWrapper *w,sipWrapperType *type);

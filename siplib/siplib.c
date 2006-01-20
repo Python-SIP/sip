@@ -55,6 +55,7 @@ static void sip_api_common_dtor(sipWrapper *sipSelf);
 static void *sip_api_convert_to_void_ptr(PyObject *obj);
 static void sip_api_no_function(int argsParsed,char *func);
 static void sip_api_no_method(int argsParsed,char *classname,char *method);
+static void sip_api_abstract_method(char *classname,char *method);
 static void sip_api_bad_class(const char *classname);
 static void sip_api_bad_set_type(const char *classname,const char *var);
 static void *sip_api_get_complex_cpp_ptr(sipWrapper *w);
@@ -137,6 +138,7 @@ static const sipAPIDef sip_api = {
 	sip_api_convert_to_void_ptr,
 	sip_api_no_function,
 	sip_api_no_method,
+	sip_api_abstract_method,
 	sip_api_bad_class,
 	sip_api_bad_set_type,
 	sip_api_get_cpp_ptr,
@@ -3339,6 +3341,15 @@ static void sip_api_no_method(int argsParsed,char *classname,char *method)
 
 
 /*
+ * Report an abstract method called with an unbound self.
+ */
+static void sip_api_abstract_method(char *classname, char *method)
+{
+	PyErr_Format(PyExc_TypeError,"%s.%s() is abstract and cannot be called as an unbound method", classname, method);
+}
+
+
+/*
  * Handle error reporting for bad arguments to various things.
  */
 static void badArgs(int argsParsed,char *classname,char *method)
@@ -3542,10 +3553,13 @@ static void sip_api_transfer_to(PyObject *self, PyObject *owner)
 	{
 		sipWrapper *w = (sipWrapper *)self;
 
-		removeFromParent(w);
+		/* Keep the object alive while we do the transfer. */
+		Py_INCREF(self);
 
-		if (owner != NULL)
-			addToParent(w, (sipWrapper *)owner);
+		removeFromParent(w);
+		addToParent(w, (sipWrapper *)owner);
+
+		Py_DECREF(self);
 
 		sipResetPyOwned(w);
 	}
