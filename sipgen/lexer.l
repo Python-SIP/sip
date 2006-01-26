@@ -46,6 +46,7 @@ static void fatallex(char *);
 
 %%
 
+^[ \t]*%SIPNoEmitters		{return TK_NOEMITTERS;}
 ^[ \t]*%Include			{return TK_INCLUDE;}
 ^[ \t]*%OptionalInclude		{return TK_OPTINCLUDE;}
 ^[ \t]*%Import			{return TK_IMPORT;}

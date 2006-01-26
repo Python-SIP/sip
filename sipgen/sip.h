@@ -892,6 +892,7 @@ typedef struct {
 	ifaceFileList		*used;		/* Interface files used. */
 	int			sigslots;	/* Set if signals or slots are used. */
 	int			genc;		/* Set if we are generating C code. */
+	int			emitters;	/* Set if we are generating signal emitters. */
 } sipSpec;
 
 

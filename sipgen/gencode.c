@@ -87,6 +87,7 @@ static void generateBaseType(argDef *,FILE *);
 static void generateNamedBaseType(argDef *,char *,FILE *);
 static void generateExpression(valueDef *,FILE *);
 static void generateTupleBuilder(signatureDef *,FILE *);
+static void generateEmitters(sipSpec *pt, classDef *cd, FILE *fp);
 static void generateEmitter(sipSpec *,classDef *,visibleList *,FILE *);
 static void generateVirtualHandler(sipSpec *,virtHandlerDef *,FILE *);
 static void generateVirtHandlerErrorReturn(argDef *res,FILE *fp);
@@ -1424,6 +1425,9 @@ static void generateCpp(sipSpec *pt,char *codeDir,char *srcSuffix,int *parts)
 "/* This defines the Qt support API. */\n"
 "static sipQtAPI qtAPI = {\n"
 "	&typesTable[%d],\n"
+"	sipQtCreateUniversalSignal,\n"
+"	sipQtNeedUniversalSignal,\n"
+"	sipQtEmitSignal,\n"
 "	sipQtCreateUniversalSlot,\n"
 "	sipQtDestroyUniversalSlot,\n"
 "	sipQtFindSlot,\n"
@@ -1432,7 +1436,7 @@ static void generateCpp(sipSpec *pt,char *codeDir,char *srcSuffix,int *parts)
 "	sipQtSignalsBlocked,\n"
 "	sipQtGetSender,\n"
 "	sipQtForgetSender,\n"
-"	sipQtIsSignal\n"
+"	sipQtSameSignalSlotName\n"
 "};\n"
 			,pt->qobjclass);
 
@@ -4199,7 +4203,6 @@ static void generateShadowCode(sipSpec *pt,classDef *cd,FILE *fp)
 {
 	int noIntro, nrVirts, virtNr;
 	virtOverDef *vod;
-	visibleList *vl;
 	ctorDef *ct;
 
 	nrVirts = countVirtuals(cd);
@@ -4314,7 +4317,19 @@ static void generateShadowCode(sipSpec *pt,classDef *cd,FILE *fp)
 
 	generateProtectedDefinitions(cd,fp);
 
-	/* Generate the emitter functions. */
+	/* Generate the emitters if needed. */
+	if (pt->emitters)
+		generateEmitters(pt, cd, fp);
+}
+
+
+/*
+ * Generate the emitter functions.
+ */
+static void generateEmitters(sipSpec *pt, classDef *cd, FILE *fp)
+{
+	int noIntro;
+	visibleList *vl;
 
 	for (vl = cd -> visible; vl != NULL; vl = vl -> next)
 	{
@@ -6004,7 +6019,6 @@ static void generateShadowClassDeclaration(sipSpec *pt,classDef *cd,FILE *fp)
 {
 	int noIntro, nrVirts;
 	ctorDef *ct;
-	visibleList *vl;
 	virtOverDef *vod;
 	classDef *pcd;
 
@@ -6073,37 +6087,41 @@ static void generateShadowClassDeclaration(sipSpec *pt,classDef *cd,FILE *fp)
 	generateProtectedDeclarations(cd,fp);
 
 	/* The public wrapper around each signal emitter. */
-
-	noIntro = TRUE;
-
-	for (vl = cd -> visible; vl != NULL; vl = vl -> next)
+	if (pt->emitters)
 	{
-		overDef *od;
+		visibleList *vl;
 
-		for (od = vl -> cd -> overs; od != NULL; od = od -> next)
+		noIntro = TRUE;
+
+		for (vl = cd -> visible; vl != NULL; vl = vl -> next)
 		{
-			if (od -> common != vl -> m || !isSignal(od))
-				continue;
+			overDef *od;
 
-			if (noIntro)
+			for (od = vl -> cd -> overs; od != NULL; od = od -> next)
 			{
-				prcode(fp,
+				if (od -> common != vl -> m || !isSignal(od))
+					continue;
+
+				if (noIntro)
+				{
+					prcode(fp,
 "\n"
 "	/*\n"
 "	 * There is a public method for every Qt signal that can be emitted\n"
 "	 * by this object.  This function is called by Python to emit the\n"
 "	 * signal.\n"
 "	 */\n"
-					);
+						);
 
-				noIntro = FALSE;
-			}
+					noIntro = FALSE;
+				}
 
-			prcode(fp,
+				prcode(fp,
 "	int sipEmit_%s(PyObject *);\n"
-				,vl -> m -> pyname -> text);
+					,vl -> m -> pyname -> text);
 
-			break;
+				break;
+			}
 		}
 	}
 
@@ -6915,7 +6933,7 @@ static void generateTypeDefinition(sipSpec *pt,classDef *cd,FILE *fp)
 				);
 	}
 
-	if (hasSigSlots(cd))
+	if (pt->emitters && hasSigSlots(cd))
 		prcode(fp,
 "	signals_%C,\n"
 			,classFQCName(cd));

@@ -110,6 +110,7 @@ static int sameName(scopedNameDef *snd, const char *sname);
 	classDef	*klass;
 }
 
+%token			TK_NOEMITTERS
 %token			TK_DOC
 %token			TK_EXPORTEDDOC
 %token			TK_MAKEFILE
@@ -291,6 +292,7 @@ statement:	{
 	;
 
 modstatement:	module
+	|	noemitters
 	|	copying
 	|	include
 	|	optinclude
@@ -332,6 +334,12 @@ nsstatement:	ifstart
 	|	typehdrcode {
 			if (notSkipping())
 				appendCodeBlock(&currentScope() -> hdrcode,$1);
+		}
+	;
+
+noemitters:	TK_NOEMITTERS {
+			if (notSkipping())
+				currentSpec->emitters = FALSE;
 		}
 	;
 
@@ -2311,6 +2319,7 @@ void parse(sipSpec *spec,FILE *fp,char *filename,stringList *tsl,
 	spec -> used = NULL;
 	spec -> sigslots = FALSE;
 	spec -> genc = -1;
+	spec -> emitters = TRUE;
 
 	currentSpec = spec;
 	neededQualifiers = tsl;

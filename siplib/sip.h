@@ -459,7 +459,10 @@ typedef struct _sipExportedModuleDef {
  */
 typedef struct _sipQtAPI {
 	struct _sipWrapperType **qt_qobject;	/* The QObject type. */
-	void *(*qt_create_universal_slot)(struct _sipWrapper *, struct _sipConnection *, const char **);
+	void *(*qt_create_universal_signal)(void *, const struct _sipSignature *);
+	int (*qt_need_universal_signal)(void *, const char *);
+	int (*qt_emit_signal)(void *, const struct _sipSignature *, PyObject *);
+	void *(*qt_create_universal_slot)(struct _sipWrapper *, struct _sipSlotConnection *, const char **);
 	void (*qt_destroy_universal_slot)(void *);
 	void *(*qt_find_slot)(void *, const char *, PyObject *, const char *, const char **);
 	int (*qt_connect)(void *, const char *, void *, const char *, int);
@@ -467,7 +470,7 @@ typedef struct _sipQtAPI {
 	int (*qt_signals_blocked)(void *);
 	const void *(*qt_get_sender)();
 	void (*qt_forget_sender)();
-	int (*qt_is_signal)(void *, const char *);
+	int (*qt_same_name)(const char *, const char *);
 } sipQtAPI;
 
 
@@ -672,15 +675,24 @@ typedef struct _sipSigArg {
 
 
 /*
+ * A parsed signal signature.
+ */
+typedef struct _sipSignature {
+	int sg_nrargs;			/* The number of arguments. */
+	sipSigArg *sg_args;		/* The parsed arguments (heap). */
+	char *sg_signature;		/* The unparsed signature (heap). */
+	struct _sipSignature *sg_next;	/* The next in the list. */
+} sipSignature;
+
+
+/*
  * A connection to a universal slot.
  */
-typedef struct _sipConnection {
+typedef struct _sipSlotConnection {
 	void *sc_transmitter;		/* The transmitter QObject. */
-	int sc_nrargs;			/* The number of arguments. */
-	sipSigArg *sc_args;		/* The parsed arguments (heap). */
-	char *sc_signature;		/* The unparsed arguments (heap). */
+	const sipSignature *sc_signature;	/* The parsed signature. */
 	sipSlot sc_slot;		/* The slot. */
-} sipConnection;
+} sipSlotConnection;
 
 
 /*
@@ -736,9 +748,9 @@ typedef struct _sipAPIDef {
 	PyObject *(*api_convert_from_void_ptr)(void *val);
 	PyObject *(*api_map_cpp_to_self)(void *cppPtr, sipWrapperType *type);
 	PyObject *(*api_map_cpp_to_self_sub_class)(void *cppPtr, sipWrapperType *type);
-	void (*api_free_connection)(sipConnection *conn);
+	void (*api_free_connection)(sipSlotConnection *conn);
 	int (*api_emit_to_slot)(sipSlot *slot, PyObject *sigargs);
-	int (*api_same_connection)(sipConnection *conn, void *tx, const char *sig, PyObject *rxObj, const char *slot);
+	int (*api_same_connection)(sipSlotConnection *conn, void *tx, const char *sig, PyObject *rxObj, const char *slot);
 	void *(*api_convert_rx)(sipWrapper *txSelf, const char *sigargs, PyObject *rxObj, const char *slot, const char **memberp);
 	/*
 	 * The following are not part of the public API.

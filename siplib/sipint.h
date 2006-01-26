@@ -75,9 +75,9 @@ void sip_api_end_thread(void);
 PyObject *sip_api_convert_from_void_ptr(void *val);
 PyObject *sip_api_convert_from_named_enum(int eval, PyTypeObject *et);
 int sip_api_wrapper_check(PyObject *o);
-void sip_api_free_connection(sipConnection *conn);
+void sip_api_free_connection(sipSlotConnection *conn);
 int sip_api_emit_to_slot(sipSlot *slot, PyObject *sigargs);
-int sip_api_same_connection(sipConnection *conn, void *tx, const char *sig,
+int sip_api_same_connection(sipSlotConnection *conn, void *tx, const char *sig,
 			    PyObject *rxObj, const char *slot);
 
 

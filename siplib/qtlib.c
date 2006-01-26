@@ -13,7 +13,7 @@
 
 // This is how Qt "types" signals and slots.
 #define	isQtSlot(s)	(*(s) == '1')
-#define	isQtSignal(o,s)	(*(s) == '2' && sipQtSupport->qt_is_signal((o), (s)))
+#define	isQtSignal(s)	(*(s) == '2')
 
 
 static PyObject *py_sender = NULL;	// The last Python signal sender.
@@ -24,15 +24,13 @@ static int emitQtSig(sipWrapper *,const char *,PyObject *);
 static int emitToSlotList(sipPySigRx *,PyObject *);
 static int addSlotToPySigList(sipWrapper *,const char *,PyObject *,const char *);
 static void removeSlotFromPySigList(sipWrapper *,const char *,PyObject *,const char *);
-static PyObject *connectToPythonSlot(sipWrapper *,const char *,PyObject *,int);
-static PyObject *disconnectFromPythonSlot(sipWrapper *,const char *,PyObject *);
-static PyObject *doDisconnect(sipWrapper *,const char *,void *,const char *);
 static PyObject *getWeakRef(PyObject *obj);
 static sipPySig *findPySignal(sipWrapper *,const char *);
 static char *sipStrdup(const char *);
-static int sameSigSlotName(const char *,const char *);
 static int saveSlot(sipSlot *sp, PyObject *rxObj, const char *slot);
-static int parseSignature(sipConnection *conn, const char *sig);
+static sipSignature *parseSignature(const char *sig);
+static void *createUniversalSlot(sipWrapper *txSelf, const char *sig, PyObject *rxObj, const char *slot, const char **member);
+static void *createUniversalSignal(void *txrx, const char *sig);
 
 
 // Return the most recent signal sender.
@@ -58,14 +56,8 @@ PyObject *sip_api_get_sender()
 
 
 // Release the resources held by a connection.
-void sip_api_free_connection(sipConnection *conn)
+void sip_api_free_connection(sipSlotConnection *conn)
 {
-	if (conn->sc_args)
-		sip_api_free(conn->sc_args);
-
-	if (conn->sc_signature)
-		sip_api_free(conn->sc_signature);
-
 	if (conn->sc_slot.name)
 		sip_api_free(conn->sc_slot.name);
 
@@ -74,24 +66,38 @@ void sip_api_free_connection(sipConnection *conn)
 
 
 // Compare two connections and return TRUE if they are the same.
-int sip_api_same_connection(sipConnection *conn, void *tx, const char *sig,
+int sip_api_same_connection(sipSlotConnection *conn, void *tx, const char *sig,
 			    PyObject *rxObj, const char *slot)
 {
 	return (conn->sc_transmitter == tx &&
-		sameSigSlotName(conn->sc_signature, sig) &&
+		sipQtSupport->qt_same_name(conn->sc_signature->sg_signature, sig) &&
 		isSameSlot(&conn->sc_slot, rxObj, slot));
 }
 
 
 // Parse the signal arguments for a connection.
-static int parseSignature(sipConnection *conn, const char *sig)
+static sipSignature *parseSignature(const char *sig)
 {
+	static sipSignature *psig_list = NULL;
+	sipSignature *psig;
 	const char *sp, *ep;
 
-	// Allocate space for the deep copy of the signal, but we use it as
-	// temporary workspace for the moment.
-	if ((conn->sc_signature = (char *)sip_api_malloc(strlen(sig) + 1)) == NULL)
-		return -1;
+	// First see if it has already been parsed.  Note that both sides of a
+	// connection will probably be parsed twice because the function names
+	// will be different even though the signatures will probably be the
+	// same.  We could be more clever, the most saving is when repeatedly
+	// emitting a signal for which this is sufficient.
+	for (psig = psig_list; psig != NULL; psig = psig->sg_next)
+		if (sipQtSupport->qt_same_name(psig->sg_signature, sig))
+			return psig;
+
+	// Create a new one including space for the copy of the signature. */
+	if ((psig = (sipSignature *)sip_api_malloc(sizeof (sipSignature) + strlen(sig) + 1)) == NULL)
+		return NULL;
+
+	psig->sg_signature = (char *)&psig[1];
+	psig->sg_nrargs = 0;
+	psig->sg_args = 0;
 
 	// Find the start and end of the arguments.
 	sp = strchr(sig, '(');
@@ -103,7 +109,7 @@ static int parseSignature(sipConnection *conn, const char *sig)
 		// Copy the signature arguments while counting them and
 		// removing non-significant spaces.  Each argument is left as a
 		// '\0' terminated string.
-		char *dp = conn->sc_signature;
+		char *dp = psig->sg_signature;
 		int depth = 0, nrcommas = 0, argstart = TRUE;
 
 		for (;;)
@@ -113,7 +119,7 @@ static int parseSignature(sipConnection *conn, const char *sig)
 			if (strchr(",*&)<>", ch))
 			{
 				// Backup over any previous trailing space.
-				if (dp > conn->sc_signature && dp[-1] == ' ')
+				if (dp > psig->sg_signature && dp[-1] == ' ')
 					--dp;
 
 				if (sp == ep)
@@ -154,18 +160,21 @@ static int parseSignature(sipConnection *conn, const char *sig)
 		}
 
 		// Handle the arguments now they are in a normal form.
-		if (*conn->sc_signature)
+		if (*psig->sg_signature)
 		{
-			char *arg = conn->sc_signature;
+			char *arg = psig->sg_signature;
 			int a;
 
 			// Allocate the space.
-			conn->sc_nrargs = nrcommas + 1;
+			psig->sg_nrargs = nrcommas + 1;
 
-			if ((conn->sc_args = (sipSigArg *)sip_api_malloc(sizeof (sipSigArg) * conn->sc_nrargs)) == NULL)
+			if ((psig->sg_args = (sipSigArg *)sip_api_malloc(sizeof (sipSigArg) * psig->sg_nrargs)) == NULL)
+			{
+				sip_api_free(psig);
 				return -1;
+			}
 
-			for (a = 0; a < conn->sc_nrargs; ++a)
+			for (a = 0; a < psig->sg_nrargs; ++a)
 			{
 				size_t btlen = 0;
 				int unsup, isref = FALSE, indir = 0;
@@ -279,13 +288,13 @@ static int parseSignature(sipConnection *conn, const char *sig)
 				}
 
 				if (sat == unknown_sat)
-					sipFindSigArgType(dp, btlen, &conn->sc_args[a], indir);
+					sipFindSigArgType(dp, btlen, &psig->sg_args[a], indir);
 				else
 				{
 					if (unsup)
 						sat = unknown_sat;
 
-					conn->sc_args[a].atype = sat;
+					psig->sg_args[a].atype = sat;
 				}
 
 				// Move to the start of the next argument.
@@ -295,9 +304,30 @@ static int parseSignature(sipConnection *conn, const char *sig)
 	}
 
 	// Make a deep copy of the signal.
-	strcpy(conn->sc_signature, sig);
+	strcpy(psig->sg_signature, sig);
 
-	return 0;
+	// Add it to the list so it can be re-used.
+	psig->sg_next = psig_list;
+	psig_list = psig;
+
+	return psig;
+}
+
+
+// Create a universal signal if one is needed.
+static void *createUniversalSignal(void *txrx, const char *sig)
+{
+	if (sipQtSupport->qt_need_universal_signal && sipQtSupport->qt_need_universal_signal(txrx, sig))
+	{
+		sipSignature *psig;
+
+		if ((psig = parseSignature(sig)) == NULL)
+			return NULL;
+
+		txrx = sipQtSupport->qt_create_universal_signal(txrx, psig);
+	}
+
+	return txrx;
 }
 
 
@@ -307,53 +337,24 @@ static void *createUniversalSlot(sipWrapper *txSelf, const char *sig,
 				 PyObject *rxObj, const char *slot,
 				 const char **member)
 {
-	sipConnection conn;
+	sipSlotConnection conn;
 	void *us;
 
 	// Initialise the connection.
 	conn.sc_transmitter = (txSelf ? sipGetAddress(txSelf) : 0);
-	conn.sc_nrargs = 0;
-	conn.sc_args = 0;
-	conn.sc_signature = 0;
 
 	// Save the real slot.
 	if (saveSlot(&conn.sc_slot, rxObj, slot) < 0)
 		return 0;
 
 	// Parse the signature and create the universal slot.
-	if (parseSignature(&conn, sig) < 0 || (us = sipQtSupport->qt_create_universal_slot(txSelf, &conn, member)) == NULL)
+	if ((conn.sc_signature = parseSignature(sig)) == NULL || (us = sipQtSupport->qt_create_universal_slot(txSelf, &conn, member)) == NULL)
 	{
 		sip_api_free_connection(&conn);
 		return 0;
 	}
 
 	return us;
-}
-
-
-// Compare two signal/slot names and return non-zero if they match.
-static int sameSigSlotName(const char *s1,const char *s2)
-{
-	// moc formats signal names, so we should first convert the supplied
-	// string to the same format before comparing them.  Instead we just
-	// compare them as they are, but ignoring all spaces - this will have
-	// the same result.
-	do
-	{
-		// Skip any spaces.
-
-		while (*s1 == ' ')
-			++s1;
-
-		while (*s2 == ' ')
-			++s2;
-
-		if (*s1++ != *s2)
-			return 0;
-	}
-	while (*s2++ != '\0');
-
-	return 1;
 }
 
 
@@ -369,8 +370,21 @@ int sip_api_emit_signal(PyObject *self,const char *sig,PyObject *sigargs)
 	if ((tx = sip_api_get_cpp_ptr(w, sipQObjectClass)) == NULL || sipQtSupport->qt_signals_blocked(tx))
 		return 0;
 
-	if (isQtSignal(tx, sig))
-		return emitQtSig(w,sig,sigargs);
+	if (isQtSignal(sig))
+	{
+		sipSignature *psig;
+
+		if (!sipQtSupport->qt_emit_signal)
+			return emitQtSig(w, sig, sigargs);
+
+		if ((psig = parseSignature(sig)) == NULL)
+			return -1;
+
+		if (psig->sg_nrargs != PyTuple_GET_SIZE(sigargs))
+			PyErr_Format(PyExc_TypeError, "Signal has %d arguments, but %d given", psig->sg_nrargs, PyTuple_GET_SIZE(sigargs));
+
+		return sipQtSupport->qt_emit_signal(tx, psig, sigargs);
+	}
 
 	if ((ps = findPySignal(w,sig)) != NULL)
 	{
@@ -398,7 +412,7 @@ static sipPySig *findPySignal(sipWrapper *w,const char *sig)
 	sipPySig *ps;
 
 	for (ps = w -> pySigList; ps != NULL; ps = ps -> next)
-		if (sameSigSlotName(ps -> name,sig))
+		if (sipQtSupport->qt_same_name(ps -> name,sig))
 			return ps;
 
 	return NULL;
@@ -688,7 +702,7 @@ static int isSameSlot(sipSlot *slot1,PyObject *rxobj2,const char *slot2)
 	// See if they are signals or Qt slots, ie. they have a name.
 	if (slot1 -> name != NULL)
 		return (slot2 != NULL &&
-			sameSigSlotName(slot1 -> name,slot2) &&
+			sipQtSupport->qt_same_name(slot1 -> name,slot2) &&
 			slot1 -> pyobj == rxobj2);
 
 	// Both must be Python slots.
@@ -707,6 +721,130 @@ static int isSameSlot(sipSlot *slot1,PyObject *rxobj2,const char *slot2)
 
 	// The objects must be the same.
 	return (slot1 -> pyobj == rxobj2);
+}
+
+
+// Convert a valid Python signal or slot to an existing universal slot.
+void *sipGetRx(sipWrapper *txSelf,const char *sigargs,PyObject *rxObj,
+	       const char *slot,const char **memberp)
+{
+	if (slot != NULL)
+		if (isQtSlot(slot) || isQtSignal(slot))
+		{
+			*memberp = slot;
+
+			return sip_api_get_cpp_ptr((sipWrapper *)rxObj, sipQObjectClass);
+		}
+
+	return sipQtSupport->qt_find_slot(sipGetAddress(txSelf), sigargs, rxObj, slot, memberp);
+}
+
+
+// Convert a Python receiver (either a Python signal or slot or a Qt signal
+// or slot) to a Qt receiver.  It is only ever called when the signal is a
+// Qt signal.  Return NULL is there was an error.
+void *sip_api_convert_rx(sipWrapper *txSelf,const char *sig,PyObject *rxObj,
+			 const char *slot,const char **memberp)
+{
+	if (slot == NULL)
+		return createUniversalSlot(txSelf, sig, rxObj, NULL, memberp);
+
+	if (isQtSlot(slot) || isQtSignal(slot))
+	{
+		void *rx;
+
+		*memberp = slot;
+
+		if ((rx = sip_api_get_cpp_ptr((sipWrapper *)rxObj, sipQObjectClass)) == NULL)
+			return NULL;
+
+		if (isQtSignal(slot))
+			rx = createUniversalSignal(rx, slot);
+
+		return rx;
+	}
+
+	// The slot is a Python signal so we need a universal slot to catch it.
+	return createUniversalSlot(txSelf, sig, rxObj, slot, memberp);
+}
+
+
+// Connect a Qt signal or a Python signal to a Qt slot, a Qt signal, a Python
+// slot or a Python signal.  This is all possible combinations.
+PyObject *sip_api_connect_rx(PyObject *txObj,const char *sig,PyObject *rxObj,
+			     const char *slot, int type)
+{
+	sipWrapper *txSelf = (sipWrapper *)txObj;
+
+	// Handle Qt signals.
+	if (isQtSignal(sig))
+	{
+		void *tx, *rx;
+		const char *member;
+		int res;
+
+		if ((tx = sip_api_get_cpp_ptr(txSelf, sipQObjectClass)) == NULL)
+			return NULL;
+
+		if ((tx = createUniversalSignal(tx, sig)) == NULL)
+			return NULL;
+
+		if ((rx = sip_api_convert_rx(txSelf, sig, rxObj, slot, &member)) == NULL)
+			return NULL;
+
+		Py_BEGIN_ALLOW_THREADS
+		res = sipQtSupport->qt_connect(tx, sig, rx, member, type);
+		Py_END_ALLOW_THREADS
+
+		return PyBool_FromLong(res);
+	}
+
+	// Handle Python signals.
+	if (addSlotToPySigList(txSelf, sig, rxObj, slot) < 0)
+		return NULL;
+
+	Py_INCREF(Py_True);
+	return Py_True;
+}
+
+
+// Disconnect a signal to a signal or a Qt slot.
+PyObject *sip_api_disconnect_rx(PyObject *txObj,const char *sig,
+				PyObject *rxObj,const char *slot)
+{
+	sipWrapper *txSelf = (sipWrapper *)txObj;
+
+	// Handle Qt signals.
+	if (isQtSignal(sig))
+	{
+		void *tx, *rx;
+		const char *member;
+		PyObject *res;
+
+		if ((tx = sip_api_get_cpp_ptr(txSelf, sipQObjectClass)) == NULL)
+			return NULL;
+
+		if ((rx = sipGetRx(txSelf, sig, rxObj, slot, &member)) == NULL)
+		{
+			Py_INCREF(Py_False);
+			return Py_False;
+		}
+
+		res = PyBool_FromLong(sipQtSupport->qt_disconnect(tx, sig, rx, member));
+
+		// Delete it if it is a universal slot as this will be it's
+		// only connection.  If the slot is actually a universal signal
+		// then it should leave it in place.
+		sipQtSupport->qt_destroy_universal_slot(rx);
+
+		return res;
+	}
+
+	// Handle Python signals.
+	removeSlotFromPySigList(txSelf,sig,rxObj,slot);
+
+	Py_INCREF(Py_True);
+	return Py_True;
 }
 
 
@@ -740,218 +878,6 @@ static void removeSlotFromPySigList(sipWrapper *txSelf,const char *sig,
 			}
 		}
 	}
-}
-
-
-// Convert a valid Python signal or slot to an existing universal slot.
-void *sipGetRx(sipWrapper *txSelf,const char *sigargs,PyObject *rxObj,
-	       const char *slot,const char **memberp)
-{
-	if (slot != NULL)
-	{
-		void *rx;
-
-		rx = sip_api_get_cpp_ptr((sipWrapper *)rxObj, sipQObjectClass);
-
-		if (isQtSlot(slot) || isQtSignal(rx, slot))
-		{
-			*memberp = slot;
-
-			return rx;
-		}
-	}
-
-	return sipQtSupport->qt_find_slot(sipGetAddress(txSelf), sigargs, rxObj, slot, memberp);
-}
-
-
-// Convert a Python receiver (either a Python signal or slot or a Qt signal
-// or slot) to a Qt receiver.  It is only ever called when the signal is a
-// Qt signal.  Return NULL is there was an error.
-void *sip_api_convert_rx(sipWrapper *txSelf,const char *sig,PyObject *rxObj,
-			 const char *slot,const char **memberp)
-{
-	void *rx;
-
-	if (slot == NULL)
-		return createUniversalSlot(txSelf, sig, rxObj, NULL, memberp);
-
-	rx = sip_api_get_cpp_ptr((sipWrapper *)rxObj, sipQObjectClass);
-
-	if (isQtSlot(slot) || isQtSignal(rx, slot))
-	{
-		*memberp = slot;
-
-		return rx;
-	}
-
-	// The slot is a Python signal so we need a universal slot to catch it.
-	return createUniversalSlot(txSelf, sig, rxObj, slot, memberp);
-}
-
-
-// Connect a Qt signal or a Python signal to a Qt slot, a Qt signal, a Python
-// slot or a Python signal.  This is all possible combinations.
-PyObject *sip_api_connect_rx(PyObject *txObj,const char *sig,PyObject *rxObj,
-			     const char *slot, int type)
-{
-	sipWrapper *txSelf = (sipWrapper *)txObj;
-	void *tx;
-
-	// See if the receiver is a Python slot.
-	if (slot == NULL)
-		return connectToPythonSlot(txSelf,sig,rxObj,type);
-
-	// Handle Qt signals.
-	if ((tx = sip_api_get_cpp_ptr(txSelf, sipQObjectClass)) == NULL)
-		return NULL;
-
-	if (isQtSignal(tx, sig))
-	{
-		void *rx;
-		const char *member;
-		int res;
-
-		if ((rx = sip_api_convert_rx(txSelf,sig,rxObj,slot,&member)) == NULL)
-			return NULL;
-
-		Py_BEGIN_ALLOW_THREADS
-		res = sipQtSupport->qt_connect(tx, sig, rx, member, type);
-		Py_END_ALLOW_THREADS
-
-		return PyBool_FromLong(res);
-	}
-
-	// Handle Python signals.
-	if (addSlotToPySigList(txSelf,sig,rxObj,slot) < 0)
-		return NULL;
-
-	Py_INCREF(Py_True);
-	return Py_True;
-}
-
-
-// Connect either a Qt signal or a Python signal to a Python slot.  This will
-// not be called for any other combination.
-static PyObject *connectToPythonSlot(sipWrapper *txSelf,const char *sig,
-				     PyObject *rxObj, int type)
-{
-	void *tx;
-
-	// Handle Qt signals.
-	if ((tx = sip_api_get_cpp_ptr(txSelf, sipQObjectClass)) == NULL)
-		return NULL;
-
-	if (isQtSignal(tx, sig))
-	{
-		void *rx;
-		const char *member;
-		int res;
-
-		if ((rx = createUniversalSlot(txSelf, sig, rxObj, NULL, &member)) == NULL)
-			return NULL;
-
-		Py_BEGIN_ALLOW_THREADS
-		res = sipQtSupport->qt_connect(tx, sig, rx, member, type);
-		Py_END_ALLOW_THREADS
-
-		return PyBool_FromLong(res);
-	}
-
-	// Handle Python signals.
-	if (addSlotToPySigList(txSelf,sig,rxObj,NULL) < 0)
-		return NULL;
-
-	Py_INCREF(Py_True);
-	return Py_True;
-}
-
-
-// Disconnect a signal to a signal or a Qt slot.
-PyObject *sip_api_disconnect_rx(PyObject *txObj,const char *sig,
-				PyObject *rxObj,const char *slot)
-{
-	sipWrapper *txSelf = (sipWrapper *)txObj;
-	void *tx;
-
-	if (slot == NULL)
-		return disconnectFromPythonSlot(txSelf, sig, rxObj);
-
-	// Handle Qt signals.
-	if ((tx = sip_api_get_cpp_ptr(txSelf, sipQObjectClass)) == NULL)
-		return NULL;
-
-	if (isQtSignal(tx, sig))
-	{
-		void *rx;
-		const char *member;
-
-		if ((rx = sipGetRx(txSelf, sig, rxObj, slot, &member)) == NULL)
-		{
-			Py_INCREF(Py_False);
-			return Py_False;
-		}
-
-		return doDisconnect(txSelf, sig, rx, member);
-	}
-
-	// Handle Python signals.
-	removeSlotFromPySigList(txSelf,sig,rxObj,slot);
-
-	Py_INCREF(Py_True);
-	return Py_True;
-}
-
-
-// Disconnect a signal from a Python slot.
-static PyObject *disconnectFromPythonSlot(sipWrapper *txSelf,const char *sig,
-					  PyObject *rxObj)
-{
-	void *tx;
-
-	// Handle Qt signals.
-	if ((tx = sip_api_get_cpp_ptr(txSelf, sipQObjectClass)) == NULL)
-		return NULL;
-
-	if (isQtSignal(tx, sig))
-	{
-		void *rx;
-		const char *member;
-
-		if ((rx = sipGetRx(txSelf, sig, rxObj, NULL, &member)) == NULL)
-		{
-			Py_INCREF(Py_False);
-			return Py_False;
-		}
-
-		return doDisconnect(txSelf, sig, rx, member);
-	}
-
-	// Handle Python signals.
-	removeSlotFromPySigList(txSelf,sig,rxObj,NULL);
-
-	Py_INCREF(Py_True);
-	return Py_True;
-}
-
-
-// Actually do a QObject disconnect.
-static PyObject *doDisconnect(sipWrapper *txSelf, const char *sig, void *rx,
-			      const char *slot)
-{
-	void *tx;
-	PyObject *res;
-
-	if ((tx = sip_api_get_cpp_ptr(txSelf, sipQObjectClass)) == NULL)
-		res = NULL;
-	else
-		res = PyBool_FromLong(sipQtSupport->qt_disconnect(tx, sig, rx, slot));
-
-	// Delete it if it is a universal slot as this will be it's only
-	// connection.
-	sipQtSupport->qt_destroy_universal_slot(rx);
-
-	return res;
 }
 
 

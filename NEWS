@@ -42,6 +42,7 @@ v4.4 ???
     %ConvertFromTypeCode.  The generated type convertors sipForceConvertTo_*()
     and sipConvertFrom_*() have been deprecated.  sipForceConvertToTransfer_*()
     and sipConvertFromTransfer_*() should be used instead.
+  - Added the %SIPNoEmitters directive for PyQt4.
   - Added support for the __hash__ Python special method.
   - The __getitem__ Python special method no longer requires %MethodCode.
   - All of the calls to Qt have been moved out of the sip module and into PyQt.

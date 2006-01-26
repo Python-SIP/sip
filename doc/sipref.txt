@@ -909,7 +909,7 @@ file.
             `%License`_ | `%MappedType`_ | *mapped-type-template* |
             `%Module`_ | `%ModuleCode`_ | `%ModuleHeaderCode`_ |
             `%OptionalInclude`_ | `%Platforms`_ | `%PreInitialisationCode`_ |
-            `%PostInitialisationCode`_ | `%Timeline`_]
+            `%PostInitialisationCode`_ | `%SIPNoEmitters`_ | `%Timeline`_]
 
     *statement* :: [*class-statement* | *function* | *variable*]
 
@@ -2722,6 +2722,14 @@ PyObject \*sipPy
     This is the Python object that the handwritten code should convert.
 
 See the `%GetCode`_ directive for an example.
+
+
+%SIPNoEmitters
+--------------
+
+Normally SIP generates wrapper functions that allow Qt signals to be emitted
+from Python.  This directive tells SIP not to generate them, implying that
+another mechansim is available.  It is normally only used by PyQt.
 
 
 %Timeline
