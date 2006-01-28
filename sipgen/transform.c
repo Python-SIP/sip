@@ -1341,7 +1341,7 @@ static void resolveFuncTypes(sipSpec *pt, moduleDef *mod, classDef *scope, overD
 			fatal("%s slots must return void\n",od -> common -> pyname -> text);
 
 	/* These slots must return long. */
-	if (od->common->slot == hash_slot)
+	if (isLongReturnSlot(od->common))
 		if (res->atype != long_type || res->nrderefs != 0 ||
 		    isReference(res) || isConstArg(res))
 			fatal("%s slots must return long\n", od->common->pyname->text);

@@ -942,6 +942,7 @@ void freeScopedName(scopedNameDef *);
 void appendToClassList(classList **,classDef *);
 void prOverloadName(FILE *fp, overDef *od);
 int isIntReturnSlot(memberDef *md);
+int isLongReturnSlot(memberDef *md);
 int isVoidReturnSlot(memberDef *md);
 int isNumberSlot(memberDef *md);
 int isRichCompareSlot(memberDef *md);

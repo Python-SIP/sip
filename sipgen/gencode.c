@@ -3637,6 +3637,17 @@ int isIntReturnSlot(memberDef *md)
 
 
 /*
+ * Returns TRUE if the given method is a slot that returns long.
+ */
+int isLongReturnSlot(memberDef *md)
+{
+	slotType st = md -> slot;
+
+	return (st == hash_slot);
+}
+
+
+/*
  * Returns TRUE if the given method is a slot that takes an int argument.
  */
 static int isIntArgSlot(memberDef *md)
@@ -3703,7 +3714,7 @@ int isRichCompareSlot(memberDef *md)
  */
 static void generateSlot(sipSpec *pt, classDef *cd, enumDef *ed, memberDef *md, FILE *fp)
 {
-	char *arg_str, *prefix;
+	char *arg_str, *prefix, *ret_type;
 	int ret_int, nr_args;
 	overDef *od, *overs;
 	scopedNameDef *fqcname;
@@ -3731,7 +3742,20 @@ static void generateSlot(sipSpec *pt, classDef *cd, enumDef *ed, memberDef *md, 
 		overs = pt->overs;
 	}
 
-	ret_int = (isVoidReturnSlot(md) || isIntReturnSlot(md));
+	if (isVoidReturnSlot(md) || isIntReturnSlot(md))
+	{
+		ret_int = TRUE;
+		ret_type = "int ";
+	}
+	else
+	{
+		ret_int = FALSE;
+
+		if (isLongReturnSlot(md))
+			ret_type = "long ";
+		else
+			ret_type = "PyObject *";
+	}
 
 	if (isIntArgSlot(md))
 	{
@@ -3762,7 +3786,7 @@ static void generateSlot(sipSpec *pt, classDef *cd, enumDef *ed, memberDef *md, 
 	prcode(fp,
 "\n"
 "\n"
-"static %sslot_", (ret_int ? "int " : "PyObject *"));
+"static %sslot_", ret_type);
 
 	if (fqcname != NULL)
 		prcode(fp, "%C_", fqcname);
@@ -8645,7 +8669,7 @@ static void generateFunctionCall(classDef *cd,classDef *ocd,overDef *od,
 "			if (sipIsErr)\n"
 "				return %s;\n"
 "\n"
-			,((isVoidReturnSlot(od -> common) || isIntReturnSlot(od -> common)) ? "-1" : "0"));
+			,((isVoidReturnSlot(od->common) || isIntReturnSlot(od->common) || isLongReturnSlot(od->common)) ? "-1" : "0"));
 
 	/* Call any post-hook. */
 	if (od -> posthook != NULL)
@@ -8663,7 +8687,7 @@ static void generateFunctionCall(classDef *cd,classDef *ocd,overDef *od,
 "			Py_INCREF(sipSelf);\n"
 "			return sipSelf;\n"
 			);
-	else if (isIntReturnSlot(od -> common))
+	else if (isIntReturnSlot(od->common) || isLongReturnSlot(od->common))
 		prcode(fp,
 "			return sipRes;\n"
 			);
