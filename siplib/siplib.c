@@ -25,11 +25,36 @@ static PyObject *sip_api_call_method(int *isErr,PyObject *method,char *fmt,
 				     ...);
 static PyObject *sip_api_class_name(PyObject *self);
 static int sip_api_convert_from_sequence_index(int idx,int len);
+static int sip_api_can_convert_to_instance(PyObject *pyObj,
+					   sipWrapperType *type, int flags);
+static int sip_api_can_convert_to_mapped_type(PyObject *pyObj,
+					      const sipMappedType *mt,
+					      int flags);
+static void *sip_api_convert_to_instance(PyObject *pyObj, sipWrapperType *type,
+					 PyObject *transferObj, int flags,
+					 int *statep, int *iserrp);
+static void *sip_api_convert_to_mapped_type(PyObject *pyObj,
+					    const sipMappedType *mt,
+					    PyObject *transferObj, int flags,
+					    int *statep, int *iserrp);
+static void *sip_api_check_convert_to_instance(PyObject *pyObj,
+					       sipWrapperType *type,
+					       PyObject *transferObj,
+					       int flags, int *statep,
+					       int *iserrp);
+static void *sip_api_check_convert_to_mapped_type(PyObject *pyObj,
+						  const sipMappedType *mt,
+						  PyObject *transferObj,
+						  int flags, int *statep,
+						  int *iserrp);
+static void sip_api_release_instance(void *cpp, sipWrapperType *type,
+				     int state);
+static void sip_api_release_mapped_type(void *cpp, sipMappedType *mt,
+					int state);
 static void *sip_api_convert_to_cpp(PyObject *sipSelf,sipWrapperType *type,
 				    int *iserrp);
-static void *sip_api_convert_to_cpp_transfer(PyObject *sipSelf,
-					     sipWrapperType *type, int *iserrp,
-					     PyObject *transferObj);
+static int sip_api_get_state(PyObject *transferObj);
+static const sipMappedType *sip_api_find_mapped_type(const char *type);
 static PyObject *sip_api_get_wrapper(void *cppPtr,sipWrapperType *type);
 static sipWrapperType *sip_api_map_int_to_class(int typeInt,
 						const sipIntTypeClassMap *map,
@@ -100,8 +125,17 @@ static const sipAPIDef sip_api = {
 	sip_api_class_name,
 	sip_api_connect_rx,
 	sip_api_convert_from_sequence_index,
+	sip_api_can_convert_to_instance,
+	sip_api_can_convert_to_mapped_type,
+	sip_api_convert_to_instance,
+	sip_api_convert_to_mapped_type,
+	sip_api_check_convert_to_instance,
+	sip_api_check_convert_to_mapped_type,
+	sip_api_release_instance,
+	sip_api_release_mapped_type,
 	sip_api_convert_to_cpp,
-	sip_api_convert_to_cpp_transfer,
+	sip_api_get_state,
+	sip_api_find_mapped_type,
 	sip_api_disconnect_rx,
 	sip_api_emit_signal,
 	sip_api_free,
@@ -170,10 +204,17 @@ static const sipAPIDef sip_api = {
 #define	PARSE_STICKY	0x80000000		/* The error sticks. */
 #define	PARSE_MASK	0xf0000000
 
+/*
+ * Note that some of the following flags safely share values because they
+ * cannot be used at the same time.
+ */
 #define	FORMAT_DEREF		0x01	/* The pointer will be dereferenced. */
+#define	FORMAT_FACTORY		0x02	/* Implement /Factory/ in a VH. */
 #define	FORMAT_TRANSFER		0x02	/* Implement /Transfer/. */
+#define	FORMAT_NO_STATE		0x04	/* Don't return the C/C++ state. */
 #define	FORMAT_TRANSFER_BACK	0x04	/* Implement /TransferBack/. */
 #define	FORMAT_GET_WRAPPER	0x08	/* Implement /GetWrapper/. */
+#define	FORMAT_NO_CONVERTORS	0x10	/* Suppress any convertors. */
 
 #define	SIP_MC_FOUND	0x01		/* If we have looked for the method. */
 #define	SIP_MC_ISMETH	0x02		/* If we looked and there was one. */
@@ -281,7 +322,7 @@ static void addToParent(sipWrapper *self, sipWrapper *owner);
 static void removeFromParent(sipWrapper *self);
 static int findClassArg(sipExportedModuleDef *emd, const char *name,
 			size_t len, sipSigArg *at, int indir);
-static int findMtypeArg(sipMappedTypeDef **mttab, const char *name, size_t len,
+static int findMtypeArg(sipMappedType **mttab, const char *name, size_t len,
 			sipSigArg *at, int indir);
 static int findEnumArg(sipExportedModuleDef *emd, const char *name, size_t len,
 		       sipSigArg *at, int indir);
@@ -860,7 +901,7 @@ static void sip_api_add_delayed_dtor(sipWrapper *w)
 				/* Add to the list. */
 				dd->dd_ptr = ptr;
 				dd->dd_name = getBaseName(td->td_name);
-				dd->dd_isderived = !sipIsSimple(w);
+				dd->dd_isderived = sipIsDerived(w);
 				dd->dd_next = em->em_ddlist;
 
 				em->em_ddlist = dd;
@@ -1241,40 +1282,37 @@ static PyObject *buildObject(PyObject *obj,char *fmt,va_list va)
  */
 static int sip_api_parse_result(int *isErr,PyObject *method,PyObject *res,char *fmt,...)
 {
-	int badfmt, tupsz, rc = 0;
+	int tupsz, rc = 0;
 	va_list va;
 
 	va_start(va,fmt);
 
 	/* Basic validation of the format string. */
 
-	badfmt = FALSE;
-
 	if (*fmt == '(')
 	{
 		char *ep;
 
 		if ((ep = strchr(fmt,')')) == NULL || ep[1] != '\0')
-			badfmt = TRUE;
+		{
+			PyErr_Format(PyExc_SystemError, "sipParseResult(): invalid format string \"%s\"", fmt);
+			rc = -1;
+		}
 		else
+		{
 			tupsz = ep - ++fmt;
-	}
-	else if (strlen(fmt) == 1)
-		tupsz = -1;
-	else
-		badfmt = TRUE;
 
-	if (badfmt)
-	{
-		PyErr_Format(PyExc_SystemError,"sipParseResult(): invalid format string \"%s\"",fmt);
-		rc = -1;
-	}
-	else if (tupsz >= 0 && (!PyTuple_Check(res) || PyTuple_GET_SIZE(res) != tupsz))
-	{
-		sip_api_bad_catcher_result(method);
-		rc = -1;
+			if (tupsz >= 0 && (!PyTuple_Check(res) || PyTuple_GET_SIZE(res) != tupsz))
+			{
+				sip_api_bad_catcher_result(method);
+				rc = -1;
+			}
+		}
 	}
 	else
+		tupsz = -1;
+
+	if (rc == 0)
 	{
 		char ch;
 		int i = 0;
@@ -1472,13 +1510,73 @@ static int sip_api_parse_result(int *isErr,PyObject *method,PyObject *res,char *
 
 				break;
 
+			case 'C':
+				{
+					if (*fmt == '\0')
+						invalid = TRUE;
+					else
+					{
+						int flags = *fmt++ - '0';
+						int iserr = FALSE;
+						sipWrapperType *type;
+						void **cpp;
+						int *state;
+
+						type = va_arg(va, sipWrapperType *);
+
+						if (flags & FORMAT_NO_STATE)
+							state = NULL;
+						else
+							state = va_arg(va, int *);
+
+						cpp = va_arg(va, void **);
+
+						*cpp = sip_api_check_convert_to_instance(arg, type, (flags & FORMAT_FACTORY ? arg : NULL), (flags & FORMAT_DEREF ? SIP_NOT_NONE : 0), state, &iserr);
+
+						if (iserr)
+							invalid = TRUE;
+					}
+				}
+
+				break;
+
+			case 'D':
+				{
+					if (*fmt == '\0')
+						invalid = TRUE;
+					else
+					{
+						int flags = *fmt++ - '0';
+						int iserr = FALSE;
+						const sipMappedType *mt;
+						void **cpp;
+						int *state;
+
+						mt = va_arg(va, sipMappedType *);
+
+						if (flags & FORMAT_NO_STATE)
+							state = NULL;
+						else
+							state = va_arg(va, int *);
+
+						cpp = va_arg(va, void **);
+
+						*cpp = sip_api_check_convert_to_mapped_type(arg, mt, (flags & FORMAT_FACTORY ? arg : NULL), (flags & FORMAT_DEREF ? SIP_NOT_NONE : 0), state, &iserr);
+
+						if (iserr)
+							invalid = TRUE;
+					}
+				}
+
+				break;
+
 			case 'L':
 				{
 					sipForceConvertToFunc func = va_arg(va,sipForceConvertToFunc);
 					void **sipCpp = va_arg(va,void **);
 					int iserr = FALSE;
 
-					*sipCpp = func(arg,&iserr,NULL);
+					*sipCpp = func(arg,&iserr);
 
 					if (iserr)
 						invalid = TRUE;
@@ -1492,7 +1590,7 @@ static int sip_api_parse_result(int *isErr,PyObject *method,PyObject *res,char *
 					void **sipCpp = va_arg(va,void **);
 					int iserr = FALSE;
 
-					*sipCpp = func(arg,&iserr,NULL);
+					*sipCpp = func(arg,&iserr);
 
 					if (iserr || *sipCpp == NULL)
 						invalid = TRUE;
@@ -1935,28 +2033,32 @@ static int parsePass1(sipWrapper **selfp,int *selfargp,int *argsParsedp,
 
 		case 'J':
 			{
-				/* Class instance with no convertors. */
+				/* Class instance. */
 
-				sipWrapperType *type;
-
-				type = va_arg(va,sipWrapperType *);
-				va_arg(va,void **);
-
-				if (type == NULL || (arg != Py_None && !PyObject_TypeCheck(arg,&type -> super.type)))
-					valid = PARSE_TYPE;
-
-				/* Handle the sub-format. */
 				if (*fmt == '\0')
 					valid = PARSE_FORMAT;
 				else
 				{
 					int flags = *fmt++ - '0';
+					sipWrapperType *type;
+					int iflgs = 0;
 
-					if ((flags & FORMAT_DEREF) && arg == Py_None)
-						valid = PARSE_TYPE;
+					type = va_arg(va,sipWrapperType *);
+					va_arg(va,void **);
+
+					if (flags & FORMAT_DEREF)
+						iflgs |= SIP_NOT_NONE;
 
 					if (flags & FORMAT_GET_WRAPPER)
 						va_arg(va,PyObject **);
+
+					if (flags & FORMAT_NO_CONVERTORS)
+						iflgs |= SIP_NO_CONVERTORS;
+					else
+						va_arg(va, int *);
+
+					if (!sip_api_can_convert_to_instance(arg, type, iflgs))
+						valid = PARSE_TYPE;
 				}
 
 				break;
@@ -1964,30 +2066,24 @@ static int parsePass1(sipWrapper **selfp,int *selfargp,int *argsParsedp,
 
 		case 'M':
 			{
-				/* Class instance with convertors. */
+				/* Mapped type instance. */
 
-				sipConvertToFunc func;
-
-				func = va_arg(va,sipConvertToFunc);
-				va_arg(va,void **);
-				va_arg(va,int *);
-
-				/*
-				 * Passing NULL as the last parameter to the
-				 * convertor function tells it to only check
-				 * the type and not do any conversion.
-				 */
-				if (arg != Py_None && !func(arg, NULL, NULL, NULL))
-					valid = PARSE_TYPE;
-
-				/* Handle the sub-format. */
 				if (*fmt == '\0')
 					valid = PARSE_FORMAT;
 				else
 				{
 					int flags = *fmt++ - '0';
+					sipMappedType *mt;
+					int iflgs = 0;
 
-					if ((flags & FORMAT_DEREF) && arg == Py_None)
+					mt = va_arg(va, sipMappedType *);
+					va_arg(va, void **);
+					va_arg(va, int *);
+
+					if (flags & FORMAT_DEREF)
+						iflgs |= SIP_NOT_NONE;
+
+					if (!sip_api_can_convert_to_mapped_type(arg, mt, iflgs))
 						valid = PARSE_TYPE;
 				}
 
@@ -2553,13 +2649,18 @@ static int parsePass2(sipWrapper *self,int selfarg,int nrargs,
 
 		case 'J':
 			{
-				/* Class instance with no convertors. */
+				/* Class instance. */
 
-				sipWrapperType *type = va_arg(va,sipWrapperType *);
-				void **p = va_arg(va,void **);
 				int flags = *fmt++ - '0';
+				sipWrapperType *type;
+				void **p;
+				int iflgs = 0;
 				int iserr = FALSE;
-				PyObject *xfer;
+				int *state;
+				PyObject *xfer, **wrapper;
+
+				type = va_arg(va,sipWrapperType *);
+				p = va_arg(va,void **);
 
 				if (flags & FORMAT_TRANSFER)
 					xfer = (self ? (PyObject *)self : arg);
@@ -2568,27 +2669,48 @@ static int parsePass2(sipWrapper *self,int selfarg,int nrargs,
 				else
 					xfer = NULL;
 
-				*p = sip_api_convert_to_cpp_transfer(arg, type, &iserr, xfer);
+				if (flags & FORMAT_DEREF)
+					iflgs |= SIP_NOT_NONE;
+
+				if (flags & FORMAT_GET_WRAPPER)
+					wrapper = va_arg(va, PyObject **);
+				else
+					wrapper = NULL;
+
+				if (flags & FORMAT_NO_CONVERTORS)
+				{
+					iflgs |= SIP_NO_CONVERTORS;
+					state = NULL;
+				}
+				else
+					state = va_arg(va, int *);
+
+				*p = sip_api_convert_to_instance(arg, type, xfer, iflgs, state, &iserr);
 
 				if (iserr)
 					valid = PARSE_RAISED;
 
-				if (flags & FORMAT_GET_WRAPPER)
-					*va_arg(va,PyObject **) = (*p != NULL ? arg : NULL);
+				if (wrapper != NULL)
+					*wrapper = (*p != NULL ? arg : NULL);
 
 				break;
 			}
 
 		case 'M':
 			{
-				/* Class instance with convertors. */
+				/* Mapped type instance. */
 
-				sipConvertToFunc func = va_arg(va,sipConvertToFunc);
-				void **p = va_arg(va,void **);
-				int *heap = va_arg(va,int *);
 				int flags = *fmt++ - '0';
+				sipMappedType *mt;
+				void **p;
+				int iflgs = 0;
 				int iserr = FALSE;
+				int *state;
 				PyObject *xfer;
+
+				mt = va_arg(va, sipMappedType *);
+				p = va_arg(va, void **);
+				state = va_arg(va, int *);
 
 				if (flags & FORMAT_TRANSFER)
 					xfer = (self ? (PyObject *)self : arg);
@@ -2597,7 +2719,10 @@ static int parsePass2(sipWrapper *self,int selfarg,int nrargs,
 				else
 					xfer = NULL;
 
-				*heap = func(arg, p, &iserr, xfer);
+				if (flags & FORMAT_DEREF)
+					iflgs |= SIP_NOT_NONE;
+
+				*p = sip_api_convert_to_mapped_type(arg, mt, xfer, iflgs, state, &iserr);
 
 				if (iserr)
 					valid = PARSE_RAISED;
@@ -4011,7 +4136,7 @@ static int sip_api_add_class_instance(PyObject *dict,char *name,void *cppPtr,
  */
 static void *sip_api_get_complex_cpp_ptr(sipWrapper *w)
 {
-	if (sipIsSimple(w))
+	if (!sipIsDerived(w))
 	{
 		PyErr_SetString(PyExc_RuntimeError,"no access to protected functions or signals for objects not created from Python");
 
@@ -4228,46 +4353,277 @@ static int checkPointer(void *ptr)
 
 
 /*
+ * Check to see if a Python object can be converted to a wrapped type.
+ */
+static int sip_api_can_convert_to_instance(PyObject *pyObj,
+					   sipWrapperType *type, int flags)
+{
+	int ok;
+	sipConvertToFunc cto = type->type->td_cto;
+
+	/* None is handled outside the type checkers. */
+	if (pyObj == Py_None)
+		ok = ((flags & SIP_NOT_NONE) == 0);
+	else if (cto == NULL || (flags & SIP_NO_CONVERTORS) != 0)
+		ok = PyObject_TypeCheck(pyObj, &type->super.type);
+	else
+		ok = cto(pyObj, NULL, NULL, NULL);
+
+	return ok;
+}
+
+
+/*
+ * Check to see if a Python object can be converted to a mapped type.
+ */
+static int sip_api_can_convert_to_mapped_type(PyObject *pyObj,
+					      const sipMappedType *mt,
+					      int flags)
+{
+	int ok;
+
+	/* None is handled outside the type checkers. */
+	if (pyObj == Py_None)
+		ok = ((flags & SIP_NOT_NONE) == 0);
+	else
+		ok = mt->mt_cto(pyObj, NULL, NULL, NULL);
+
+	return ok;
+}
+
+
+/*
+ * Convert a Python object to a C/C++ pointer, assuming a previous call to
+ * sip_api_can_convert_to_instance() has been successful.  Allow ownership to
+ * be transferred and any type convertors to be disabled.
+ */
+static void *sip_api_convert_to_instance(PyObject *pyObj, sipWrapperType *type,
+					 PyObject *transferObj, int flags,
+					 int *statep, int *iserrp)
+{
+	void *cpp = NULL;
+	int state = 0;
+	sipConvertToFunc cto = type->type->td_cto;
+
+	/* Don't convert if there has already been an error. */
+	if (!*iserrp)
+	{
+		/* Do the conversion. */
+		if (pyObj == Py_None)
+			cpp = NULL;
+		else if (cto == NULL || (flags & SIP_NO_CONVERTORS) != 0)
+		{
+			if ((cpp = sip_api_get_cpp_ptr((sipWrapper *)pyObj, type)) == NULL)
+				*iserrp = TRUE;
+			else if (transferObj != NULL)
+				if (transferObj == Py_None)
+					sip_api_transfer_back(pyObj);
+				else
+					sip_api_transfer_to(pyObj, transferObj);
+		}
+		else
+			state = cto(pyObj, &cpp, iserrp, transferObj);
+	}
+
+	if (statep != NULL)
+		*statep = state;
+
+	return cpp;
+}
+
+
+/*
+ * Convert a Python object to a C/C++ pointer, assuming a previous call to
+ * sip_api_can_convert_to_mapped_type() has been successful.  Allow ownership
+ * to be transferred.
+ */
+static void *sip_api_convert_to_mapped_type(PyObject *pyObj,
+					    const sipMappedType *mt,
+					    PyObject *transferObj, int flags,
+					    int *statep, int *iserrp)
+{
+	void *cpp = NULL;
+	int state = 0;
+
+	/* Don't convert if there has already been an error. */
+	if (!*iserrp)
+		if (pyObj == Py_None)
+			cpp = NULL;
+		else
+			state = mt->mt_cto(pyObj, &cpp, iserrp, transferObj);
+
+	if (statep != NULL)
+		*statep = state;
+
+	return cpp;
+}
+
+
+/*
+ * Convert a Python object to a C/C++ pointer and raise an exception if it
+ * can't be done.
+ */
+static void *sip_api_check_convert_to_instance(PyObject *pyObj,
+					       sipWrapperType *type,
+					       PyObject *transferObj,
+					       int flags, int *statep,
+					       int *iserrp)
+{
+	/* Don't even try if there has already been an error. */
+	if (*iserrp)
+		return NULL;
+
+	/* See if the object's type can be converted. */
+	if (!sip_api_can_convert_to_instance(pyObj, type, flags))
+	{
+		PyErr_Format(PyExc_TypeError, "%s cannot be converted to %s in this context", pyObj->ob_type->tp_name, type->type->td_name);
+
+		if (statep != NULL)
+			*statep = 0;
+
+		*iserrp = TRUE;
+		return NULL;
+	}
+
+	/* Do the conversion. */
+	return sip_api_convert_to_instance(pyObj, type, transferObj, flags, statep, iserrp);
+}
+
+
+/*
+ * Convert a Python object to a C/C++ pointer and raise an exception if it
+ * can't be done.
+ */
+static void *sip_api_check_convert_to_mapped_type(PyObject *pyObj,
+						  const sipMappedType *mt,
+						  PyObject *transferObj,
+						  int flags, int *statep,
+						  int *iserrp)
+{
+	/* Don't even try if there has already been an error. */
+	if (*iserrp)
+		return NULL;
+
+	/* See if the object's type can be converted. */
+	if (!sip_api_can_convert_to_mapped_type(pyObj, mt, flags))
+	{
+		PyErr_Format(PyExc_TypeError, "%s cannot be converted to %s in this context", pyObj->ob_type->tp_name, mt->mt_name);
+
+		if (statep != NULL)
+			*statep = 0;
+
+		*iserrp = TRUE;
+		return NULL;
+	}
+
+	/* Do the conversion. */
+	return sip_api_convert_to_mapped_type(pyObj, mt, transferObj, flags, statep, iserrp);
+}
+
+
+/*
+ * Release a possibly temporary instance created by a type convertor.
+ */
+static void sip_api_release_instance(void *cpp, sipWrapperType *type, int state)
+{
+	/* See if there is something to release. */
+	if (state & SIP_TEMPORARY)
+	{
+		sipReleaseFunc rel = type->type->td_release;
+
+		/*
+		 * If there is no release function then it must be a C
+		 * structure and we can just free it.
+		 */
+		if (rel == NULL)
+			sip_api_free(cpp);
+		else
+			rel(cpp, state);
+	}
+}
+
+
+/*
+ * Release a possibly temporary mapped type created by a type convertor.
+ */
+static void sip_api_release_mapped_type(void *cpp, sipMappedType *mt, int state)
+{
+	/* See if there is something to release. */
+	if (state & SIP_TEMPORARY)
+	{
+		sipReleaseFunc rel = mt->mt_release;
+
+		/*
+		 * If there is no release function then it must be a C
+		 * structure and we can just free it.
+		 */
+		if (rel == NULL)
+			sip_api_free(cpp);
+		else
+			rel(cpp, state);
+	}
+}
+
+
+/*
  * Convert a Python instance of a class to a C/C++ object pointer, checking
  * that the instance's class is derived from a given base type.
  */
 static void *sip_api_convert_to_cpp(PyObject *sipSelf,sipWrapperType *type,
 				    int *iserrp)
 {
-	return sip_api_convert_to_cpp_transfer(sipSelf, type, iserrp, NULL);
+	return sip_api_convert_to_instance(sipSelf, type, NULL, SIP_NO_CONVERTORS, NULL, iserrp);
 }
 
 
 /*
- * Do the same as sip_api_convert_to_cpp() and then possibly transfer ownership
- * of the instance.
+ * Implement the normal transfer policy for the result of %ConvertToTypeCode,
+ * ie. it is temporary unless it is being transferred from Python.
  */
-static void *sip_api_convert_to_cpp_transfer(PyObject *sipSelf,
-					     sipWrapperType *type, int *iserrp,
-					     PyObject *transferObj)
+int sip_api_get_state(PyObject *transferObj)
 {
-	void *ptr;
+	return (transferObj == NULL || transferObj == Py_None) ? SIP_TEMPORARY : 0;
+}
 
-	if (sipSelf == Py_None)
-		return NULL;
 
-	if ((ptr = sip_api_get_cpp_ptr((sipWrapper *)sipSelf,type)) == NULL)
+/*
+ * Return the mapped type structure for a particular mapped type.
+ */
+static const sipMappedType *sip_api_find_mapped_type(const char *type)
+{
+	sipExportedModuleDef *em;
+
+	for (em = clientList; em != NULL; em = em->em_next)
 	{
-		*iserrp = TRUE;
-		return NULL;
+		sipMappedType **mtypes, *mt;
+
+		if ((mtypes = em->em_mappedtypes) == NULL)
+			continue;
+
+		while ((mt = *mtypes++) != NULL)
+		{
+			const char *s1 = mt->mt_name, *s2 = type;
+
+			/*
+			 * Compare while ignoring spaces so that we don't
+			 * impose a rigorous naming standard.
+			 */
+			do
+			{
+				while (*s1 == ' ')
+					++s1;
+
+				while (*s2 == ' ')
+					++s2;
+
+				if (*s1 == '\0' && *s2 == '\0')
+					return mt;
+			}
+			while (*s1++ == *s2++);
+		}
 	}
 
-	/*
-	 * See if there is a transfer requested, and there is something to
-	 * transfer.
-	 */
-	if (transferObj != NULL)
-		if (transferObj == Py_None)
-			sip_api_transfer_back(sipSelf);
-		else
-			sip_api_transfer_to(sipSelf, transferObj);
-
-	return ptr;
+	return NULL;
 }
 
 
@@ -5247,10 +5603,11 @@ static int sipWrapper_init(sipWrapper *self,PyObject *args,PyObject *kwds)
 		sipWrapperType *wt = (sipWrapperType *)self->ob_type;
 
 		/* Call the C++ ctor. */
-		sipFlags = 0;
 		owner = NULL;
 
-		if ((sipNew = wt->type->td_init(self, args, &owner, &argsparsed)) == NULL)
+		if ((sipNew = wt->type->td_init(self, args, &owner, &argsparsed)) != NULL)
+			sipFlags = SIP_DERIVED_CLASS;
+		else
 		{
 			int pstate = argsparsed & PARSE_MASK;
 			sipInitExtenderDef *ie = wt->iextend;
@@ -5264,14 +5621,7 @@ static int sipWrapper_init(sipWrapper *self,PyObject *args,PyObject *kwds)
 				int ap = 0;
 
 				if ((sipNew = ie->ie_extender(self, args, &owner, &ap)) != NULL)
-				{
-					/*
-					 * Extenders always return simple
-					 * instances.
-					 */
-					sipFlags |= SIP_SIMPLE;
 					break;
-				}
 
 				pstate = ap & PARSE_MASK;
 				ie = ie->ie_next;
@@ -5282,6 +5632,8 @@ static int sipWrapper_init(sipWrapper *self,PyObject *args,PyObject *kwds)
 				badArgs(argsparsed, NULL, getBaseName(wt->type->td_name));
 				return -1;
 			}
+
+			sipFlags = 0;
 		}
 
 		if (owner == NULL)
@@ -6122,10 +6474,10 @@ static int findClassArg(sipExportedModuleDef *emd, const char *name,
  * Search for a mapped type and return TRUE and the necessary information to
  * create an instance of it if it was found.
  */
-static int findMtypeArg(sipMappedTypeDef **mttab, const char *name, size_t len,
+static int findMtypeArg(sipMappedType **mttab, const char *name, size_t len,
 			sipSigArg *at, int indir)
 {
-	sipMappedTypeDef *mt;
+	sipMappedType *mt;
 
 	while ((mt = *mttab++) != NULL)
 		if (nameEq(mt->mt_name, name, len))

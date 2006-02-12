@@ -36,12 +36,16 @@ v4.4 ???
     of the method rather than the virtual implementation should be called.
     %MethodCode for non-abstract, virtual, protected methods must now call the
     sipProtectVirt wrapper (rather than sipProtect).
-  - sipConvertToCppTransfer() has been added to the SIP API.
+  - sipCanConvertToInstance(), sipConvertToInstance(),
+    sipCheckConvertToInstance(), sipReleaseInstance(),
+    sipCanConvertToMappedType(), sipConvertToMappedType(),
+    sipCheckConvertToMappedType(), sipReleaseMappedType() and
+    sipFindMappedType() have been added to the SIP API.
+  - Added the 'C' and 'D' format characters to sipParseResult().
   - Responsibility for interpreting and implementing the /Transfer/ and
     /TransferBack/ annotations has been pushed down to %ConvertToTypeCode and
     %ConvertFromTypeCode.  The generated type convertors sipForceConvertTo_*()
-    and sipConvertFrom_*() have been deprecated.  sipForceConvertToTransfer_*()
-    and sipConvertFromTransfer_*() should be used instead.
+    and sipConvertFrom_*() have been deprecated.
   - Added the %SIPNoEmitters directive for PyQt4.
   - Added support for the __hash__ Python special method.
   - The __getitem__ Python special method no longer requires %MethodCode.

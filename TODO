@@ -9,18 +9,12 @@ KTMainWindow.memberList).  The problem is intercepting references to it
 (__getattr__ and __setattr__ aren't good enough) - probably extending the
 lazy function mechanism.
 
-8.	Add support for handwritten code for signals (eg.
-QNetworkProtocol::newChildren).
-
 11.	Consider changing the way default arguments that are function calls are
 handled.  At the moment the function is always called and the result discarded
 if it is not needed.  It should really only be called if the result is really
 needed.
 
-13.	Look at ways of making a C++ dtor callable from Python.
-
-17.	At least implement simple cast operators (ie. cast to class, cast to
-int), and use in QKeySequence.  (See 29)
+13.	Maybe expose a type's release function in the sip module.
 
 18.	Implement the C++ feature of automatically calling simple ctors to
 transparently convert between types for function parameters.  For example, a
@@ -40,8 +34,6 @@ a table of all types that could be converted to an int (messy and slow?).
 
 19.	Consider changing sipConvertToCpp() etc. to take a PyObject* (rather
 than a sipWrapperType*) and do a check and cast internally.
-
-20.	Fix potential memory leak in sipForceConvertTo_*() for mapped types.
 
 21.	Add support for const void* (ie. add the extra casts where needed).
 
@@ -65,10 +57,6 @@ to enforce const in Python.  Or add a flag to the wrapper which says it is a
 const instance.  I think the only to way to implement it is to have a "const"
 Python type - an instance of which will point to the underlying Python object.
 This will enable const_cast to be implemented.
-
-29.	Allow modules to define global operators, and class casts, for classes
-defined in other modules.  The generated code must be exported and called when
-ctors and operators fail because the signature isn't recognised.
 
 30.	Add support for specifying the reverse arithmetic operators.  (Or just
 document that you should use the normal ones as global operators?)

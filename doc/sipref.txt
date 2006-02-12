@@ -192,11 +192,13 @@ SIP v4.4
 
     - The ``SIP_BUILD`` C preprocessor symbol has been removed.
 
-    - The old `Generated Type Convertors`_ have been deprecated.
-      ``sipForceConvertToTransfer_*()`` and ``sipConvertFromTransfer_*()``
-      should be used instead of ``sipForceConvertTo_*()`` and
-      ``sipConvertFrom_*()`` respectively.  Handwritten `%ConvertFromTypeCode`_
-      and `%ConvertToTypeCode`_ now has the responsibility for using these to
+    - `sipConvertToCpp()`_, `sipIsSubClassInstance()`_ and the old `Generated
+      Type Convertors`_ have been deprecated.  The functions
+      `sipCanConvertToInstance()`_, `sipConvertToInstance()`_,
+      `sipCheckConvertToInstance()`_, `sipCanConvertToMappedType()`_,
+      `sipConvertToMappedType()`_, and `sipCheckConvertToMappedType()`_ should
+      be used instead.  Handwritten `%ConvertFromTypeCode`_ and
+      `%ConvertToTypeCode`_ now has the responsibility for using these to
       implement the ``Transfer`` and ``TransferBack`` annotations.
 
 
@@ -285,10 +287,6 @@ GCC.  You must use the ``-p`` command line option to specify the correct
 platform.  For example::
 
     c:\python24\python configure.py -p win32-g++
-
-You must also make sure you have a MinGW-compatible version of the Python
-library.  See http://sebsauvage.net/python/mingw.html for instructions to do
-this.
 
 
 Configuring SIP Using the Borland C++ Compiler
@@ -1633,7 +1631,7 @@ used as part of the `%MappedType`_ directive and as part of a class
 specification.  The code is also called to determine if the Python object is of
 the correct type prior to conversion.
 
-When used as part of a class specification is can automatically convert
+When used as part of a class specification it can automatically convert
 additional types of Python object.  For example, PyQt uses it in the
 specification of the ``QString`` class to allow Python string objects and
 Unicode objects to be used wherever ``QString`` instances are expected.
@@ -1660,84 +1658,106 @@ PyObject \*sipTransferObj
     then the ownership should be left unchanged.  If it is ``Py_None`` then
     ownership should be transferred to Python.  Otherwise ownership should be
     transferred to C/C++ and *sipPy* associated with *sipTransferObj*.  The
-    code can choose to interpret these changes in any way.  For example, if the
-    code is converting a Python list of wrapped classes to a C++ container it
-    is likely that the ownership changes should be made to each element of the
-    list.
+    code can choose to interpret these changes in any way.
 
-The handwritten code must explicitly return an ``int`` that is either zero or
-non-zero.  Its meaning depends on the value of ``sipIsErr``.
+The handwritten code must explicitly return an ``int`` the meaning of which
+depends on the value of ``sipIsErr``.
 
 If ``sipIsErr`` is ``NULL`` then a non-zero value is returned if the Python
 object has a type that can be converted to the mapped type.  Otherwise zero is
 returned.
 
-If ``sipIsErr`` is not ``NULL`` then a non-zero value is returned if the
-mapped type instance returned through ``sipCppPtr`` was created on the heap.
-Otherwise zero is returned.
+If ``sipIsErr`` is not ``NULL`` then a combination of the following flags is
+returned.
 
-The following example converts a Python list of ``QWidget`` instances to a
-``QList<QWidget *>`` instance::
+        - ``SIP_TEMPORARY`` is set to indicate that the returned instance is a
+          temporary and should be released to avoid a memory leak.
+
+        - ``SIP_DERIVED_CLASS`` is set to indicate that the type of the
+          returned instance is a derived class.  See `Generated Derived
+          Classes`_.
+
+The following example converts a Python list of ``QPoint`` instances to a
+``QList<QPoint>`` instance::
 
     %ConvertToTypeCode
         // See if we are just being asked to check the type of the Python
         // object.
-        if (sipIsErr == NULL)
+        if (!sipIsErr)
         {
+            // Checking whether or not None has been passed instead of a list
+            // has already been done.
             if (!PyList_Check(sipPy))
                 return 0;
 
-            // Check the type of each element.
+            // Check the type of each element.  We specify SIP_NOT_NONE to
+            // disallow None because it is a list of QPoint, not of a pointer
+            // to a QPoint, so None isn't appropriate.
             for (int i = 0; i < PyList_GET_SIZE(sipPy); ++i)
-                if (!sipIsSubClassInstance(PyList_GET_ITEM(sipPy, i),
-                                           sipClass_QWidget))
+                if (!sipCanConvertToInstance(PyList_GET_ITEM(sipPy, i),
+                                             sipClass_QPoint, SIP_NOT_NONE))
                     return 0;
 
             // The type is valid.
             return 1;
         }
 
-        // We map None to a 0 pointer.
-        if (sipPy == Py_None)
-        {
-            *sipCppPtr = 0;
-
-            // There is nothing on the heap.
-            return 0;
-        }
-
         // Create the instance on the heap.
-        QList<QWidget *> *ql = new QList<QWidget *>;
+        QList<QPoint> *ql = new QList<QPoint>;
 
         for (int i = 0; i < PyList_GET_SIZE(sipPy); ++i)
         {
-            QWidget *qw;
+            QPoint *qp;
+            int state;
 
-            // Get the address of the element's C++ instance while applying
-            // any ownership changes.
-            qw = reinterpret_cast<QWidget *>(sipForceConvertToTransfer_QWidget(
-                                                PyList_GET_ITEM(sipPy, i),
-                                                sipIsErr, sipTransferObj));
+            // Get the address of the element's C++ instance.  Note that, in
+            // this case, we don't apply any ownership changes to the list
+            // elements, only to the list itself.
+            qp = reinterpret_cast<QPoint *>(sipConvertToInstance(
+                                                    PyList_GET_ITEM(sipPy, i),
+                                                    sipClass_QPoint, 0,
+                                                    SIP_NOT_NONE,
+                                                    &state, sipIsErr));
 
             // Deal with any errors.
             if (*sipIsErr)
             {
+                sipReleaseInstance(qp, sipClass_QPoint, state);
+
                 // Tidy up.
                 delete ql;
 
-                // There is nothing on the heap.
+                // There is no temporary instance.
                 return 0;
             }
 
-            ql -> append(qw);
+            ql -> append(*qp);
+
+            // A copy of the QPoint was appended to the list so we no longer
+            // need it.  It may be a temporary instance that should be
+            // destroyed, or a wrapped instance that should not be destroyed.
+            // sipReleaseInstance() will do the right thing.
+            sipReleaseInstance(qp, sipClass_QPoint, state);
         }
 
-        // Return the instance on the heap.
+        // Return the instance.
         *sipCppPtr = ql;
 
-        // The result is a pointer to an instance on the heap.
-        return 1;
+        // The instance should be regarded as temporary (and be destroyed as
+        // soon as it has been used) unless it has been transferred from
+        // Python.  sipGetState() is a convenience function that implements
+        // this common transfer behaviour.
+        return sipGetState(sipTransferObj);
     %End
+
+When used in a class specification the handwritten code replaces the code that
+would normally be automatically generated.  This means that the handwritten
+code must also handle instances of the class itself and not just the additional
+types that are being supported.  This should be done by making calls to
+`sipCanConvertToInstance()`_ to check the object type and
+`sipConvertToInstance()`_ to convert the object.  The ``SIP_NO_CONVERTORS``
+flag *must* be passed to both these functions to prevent recursive calls to the
+handwritten code.
 
 
 %Copying
@@ -1756,7 +1776,7 @@ include copyright and licensing terms.
 For example::
 
     %Copying
-    Copyright (c) 2004 Riverbank Computing Limited
+    Copyright (c) 2006 Riverbank Computing Limited
     %End
 
 
@@ -2715,8 +2735,9 @@ The following variables are made available to the handwritten code:
     variable being wrapped is a static class variable.
 
 int sipErr
-    If the conversion failed then the handwritten code should set this to a
-    non-zero value.  Its initial value will be automatically set to zero.
+    If the conversion failed then the handwritten code should raise a Python
+    exception and set this to a non-zero value.  Its initial value will be
+    automatically set to zero.
 
 PyObject \*sipPy
     This is the Python object that the handwritten code should convert.
@@ -3606,6 +3627,56 @@ PyObject \*sipCallMethod(int \*iserr, PyObject \*method, char \*format, ...)
     ``sipMethod``.
 
 
+sipCanConvertToInstance()
+-------------------------
+
+int sipCanConvertToInstance(PyObject \*obj, sipWrapperType \*type, int flags)
+    This returns a non-zero value if a Python object can be converted to an
+    instance of a C structure or C++ class.  *obj* is the Python object.
+    *type* is the generated type corresponding to the C/C++ type being checked.
+    *flags* is any combination of the following values used to fine tune the
+    check.
+
+        - ``SIP_NOT_NONE`` causes the check to fail if *obj* is ``None``.
+
+        - ``SIP_NO_CONVERTORS`` suppresses the use of of any
+          `%ConvertToTypeCode`_ for *type*.
+
+
+sipCanConvertToMappedType()
+---------------------------
+
+int sipCanConvertToMappedType(PyObject \*obj, const sipMappedType \*mt, int flags)
+    This returns a non-zero value if a Python object can be converted to an
+    instance of a C structure or C++ class which has been implemented as a
+    mapped type.  *obj* is the Python object.  *mt* is an opaque structure
+    returned by `sipFindMappedType()`_.  *flags* is any combination of the
+    following values used to fine tune the check.
+
+        - ``SIP_NOT_NONE`` causes the check to fail if *obj* is ``None``.
+
+
+sipCheckConvertToInstance()
+---------------------------
+
+void \*sipCheckConvertToInstance(PyObject \*obj, sipWrapperType \*type, PyObject \*transferObj, int flags, int \*state, int \*iserr)
+    This converts a Python object to an instance of a C structure or C++ class
+    by calling `sipCanConvertToInstance()`_ and, if it is successfull, calling
+    `sipConvertToInstance()`_.  See `sipConvertToInstance()`_ for a full
+    description of the arguments.
+
+
+sipCheckConvertToMappedType()
+-----------------------------
+
+void \*sipCheckConvertToMappedType(PyObject \*obj, const sipMappedType \*mt, PyObject \*transferObj, int flags, int \*state, int \*iserr)
+    This converts a Python object to an instance of a C structure or C++ class
+    which has been implemented as a mapped type by calling
+    `sipCanConvertToMappedType()`_ and, if it is successfull, calling
+    `sipConvertToMappedType()`_.  See `sipConvertToMappedType()`_ for a full
+    description of the arguments.
+
+
 sipClassName()
 --------------
 
@@ -3653,27 +3724,9 @@ sipConvertToCpp()
 -----------------
 
 void \*sipConvertToCpp(PyObject \*obj, sipWrapperType \*type, int \*iserr)
-    This extracts the pointer to the C structure or C++ class instance from a
-    wrapped instance object.  *obj* is the wrapped instance object (if it is
-    ``Py_None`` then ``NULL`` is returned).  *type* is generated type
-    corresponding to the C/C++ type returned.  It may be any class in the
-    object's class hierarchy.  If there is an error then the location *iserr*
+    This function is deprecated from SIP v4.4.  It is equivalent to::
 
-
-sipConvertToCppTransfer()
--------------------------
-
-void \*sipConvertToCppTransfer(PyObject \*obj, sipWrapperType \*type, int \*iserr, PyObject \*transferObj)
-    This extracts the pointer to the C structure or C++ class instance from a
-    wrapped instance object.  *obj* is the wrapped instance object (if it is
-    ``Py_None`` then ``NULL`` is returned).  *type* is generated type
-    corresponding to the C/C++ type returned.  It may be any class in the
-    object's class hierarchy.  If there is an error then the location *iserr*
-    points to is set to a non-zero value.  *transferObj* controls any ownership
-    changes to *obj*.  If it is ``NULL`` then the ownership is unchanged.  If
-    it is ``Py_None`` then ownership is transferred to Python via a call to
-    `sipTransferBack()`_.  Otherwise ownership is transferred to C/C++ and
-    *obj* associated with *transferObj* via a call to `sipTransferTo()`_.
+        sipConvertToInstance(obj, type, NULL, SIP_NO_CONVERTORS, NULL, iserr);
 
 
 sipDisconnectRx()
@@ -3703,12 +3756,82 @@ int sipEmitSignal(PyObject \*txobj, const char \*signal, PyObject \*args)
     implement ``QObject.emit()``.
 
 
+sipFindMappedType()
+-------------------
+
+const sipMappedType \*sipFindMappedType(const char \*type)
+    This returns a pointer to an opaque structure describing a mapped type.
+    *type* is the C/C++ declaration of the type.  NULL is returned if the
+    mapped type doesn't exist.  The value of the pointer will not change and
+    may be saved in a static cache.
+
+
 sipFree()
 ---------
 
 void sipFree(void \*mem)
     This returns an area of memory allocated by `sipMalloc()`_ to the heap.
     *mem* is a pointer to the area of memory.
+
+
+sipConvertToInstance()
+----------------------
+
+void \*sipConvertToInstance(PyObject \*obj, sipWrapperType \*type, PyObject \*transferObj, int flags, int \*state, int \*iserr)
+    This converts a Python object to an instance of a C structure or C++ class
+    assuming that a previous call to `sipCanConvertToInstance()`_ has been
+    successful.  *obj* is the Python object.  *type* is the generated type
+    corresponding to the C/C++ type returned.  It may be any class in the
+    object's class hierarchy.  *transferObj* controls any ownership changes to
+    *obj*.  If it is ``NULL`` then the ownership is unchanged.  If it is
+    ``Py_None`` then ownership is transferred to Python via a call to
+    `sipTransferBack()`_.  Otherwise ownership is transferred to C/C++ and
+    *obj* associated with *transferObj* via a call to `sipTransferTo()`_.
+    *flags* is any combination of the following values used to fine tune the
+    check.
+
+        - ``SIP_NOT_NONE`` causes the check to fail if *obj* is ``None``.
+
+        - ``SIP_NO_CONVERTORS`` suppresses the use of of any
+          `%ConvertToTypeCode`_ for *type*.
+
+    If *state* is not ``NULL`` then the location it points to is set to
+    describe the state of the returned C/C++ instance and is the value returned
+    by any `%ConvertToTypeCode`_.  The calling code must then release the value
+    at some point to prevent a memory leak by calling `sipReleaseInstance()`_.
+    If there is an error then the location *iserr* points to is set to a
+    non-zero value.  If it was initially a non-zero value then the conversion
+    isn't attempted in the first place.  (This allows several calls to be made
+    that share the same error flag so that it only needs to be tested once
+    rather than after each call.)
+
+
+sipConvertToMappedType()
+------------------------
+
+void \*sipConvertToMappedType(PyObject \*obj, const sipMappedType \*mt, PyObject \*transferObj, int flags, int \*state, int \*iserr)
+    This converts a Python object to an instance of a C structure or C++
+    class that is implemented as a mapped type assuming that a previous call to
+    `sipCanConvertToMappedType()`_ has been successful.  *obj* is the Python
+    object.  *mt* is the opaque structure returned by `sipFindMappedType()`_.
+    *transferObj* controls any ownership changes to *obj*.  If it is ``NULL``
+    then the ownership is unchanged.  If it is ``Py_None`` then ownership is
+    transferred to Python via a call to `sipTransferBack()`_.  Otherwise
+    ownership is transferred to C/C++ and *obj* associated with *transferObj*
+    via a call to `sipTransferTo()`_.  *flags* is any combination of the
+    following values used to fine tune the check.
+
+        - ``SIP_NOT_NONE`` causes the check to fail if *obj* is ``None``.
+
+    If *state* is not ``NULL`` then the location it points to is set to
+    describe the state of the returned C/C++ instance and is the value returned
+    by any `%ConvertToTypeCode`_.  The calling code must then release the value
+    at some point to prevent a memory leak by calling
+    `sipReleaseMappedType()`_.  If there is an error then the location *iserr*
+    points to is set to a non-zero value.  If it was initially a non-zero value
+    then the conversion isn't attempted in the first place.  (This allows
+    several calls to be made that share the same error flag so that it only
+    needs to be tested once rather than after each call.)
 
 
 sipGetSender()
@@ -3749,9 +3872,9 @@ sipIsSubClassInstance()
 -----------------------
 
 int sipIsSubClassInstance(PyObject \*obj, sipWrapperType \*type)
-    This is a thin wrapper around the Python ``PyObject_TypeCheck()``
-    function provided to make it easier to write handwritten code that is
-    compatible with `SIP v3.x`_ and versions of Python earlier that v2.2.
+    This function is deprecated from SIP v4.4.  It is equivalent to::
+
+        sipCanConvertToInstance(obj, type, SIP_NOT_NONE | SIP_NO_CONVERTORS);
 
 
 sipMalloc()
@@ -3856,17 +3979,48 @@ int sipParseResult(int \*iserr, PyObject \*method, PyObject \*result, char \*for
         Convert a Python string to a C/C++ ``'\0'`` terminated string.  If the
         Python object is ``Py_None`` then the string is ``NULL``.
 
+    ``Cf`` (wrapped class) [sipWrapperType \*, int \*, void \*\*]
+        Convert a Python object to a C structure or a C++ class instance and
+        return its state as described in `sipConvertToInstance()`_.  ``f`` is a
+        combination of the following flags encoded as an ASCII character by
+        adding ``0`` to the combined value:
+
+            0x01 disallows the conversion of ``Py_None`` to ``NULL``
+
+            0x02 implements the `Factory`_ annotation
+
+            0x04 suppresses the return of the state of the returned C/C++
+                 instance.  Note that the ``int *`` used to return the state is
+                 not passed if this flag is specified.
+
+    ``Df`` (mapped type) [const sipMappedType \*, int \*, void \*\*]
+        Convert a Python object to a C structure or a C++ class instance
+        implemented as a mapped type and return its state as described in
+        `sipConvertToMappedType()`_.  ``f`` is a combination of the following
+        flags encoded as an ASCII character by adding ``0`` to the combined
+        value:
+
+            0x01 disallows the conversion of ``Py_None`` to ``NULL``
+
+            0x02 implements the `Factory`_ annotation
+
+            0x04 suppresses the return of the state of the returned C/C++
+                 instance.  Note that the ``int *`` used to return the state is
+                 not passed if this flag is specified.
+
     ``E`` (wrapped enum) [PyTypeObject \*, enum \*]
         Convert a Python named enum type to the corresponding C/C++ ``enum``.
 
-    ``L`` (object) [*type* \*(\*)(PyObject \*obj, int \*iserr, PyObject \*transferObj), void \*\*]
+    ``L`` (object) [*type* \*(\*)(PyObject \*obj, int \*iserr), void \*\*]
         Convert a Python object to a C structure or a C++ class instance using
-        a convertor function.  See `Generated Type Convertors`_.
+        a convertor function.  See `Generated Type Convertors`_.  This is
+        deprecated from SIP v4.4.
 
-    ``M`` (object) [*type* \*(\*)(PyObject \*obj, int \*iserr, PyObject \*transferObj), void \*\*]
+    ``M`` (object) [*type* \*(\*)(PyObject \*obj, int \*iserr), void \*\*]
         Convert a Python object to a C structure or a C++ class instance using
         a convertor function.  If the structure or class instance pointer is
-        ``NULL`` then return an error.  See `Generated Type Convertors`_.
+        ``NULL`` then return an error.  See `Generated Type Convertors`_.  This
+        is deprecated from SIP v4.4.
 
     ``N`` (object) [PyTypeObject \*, PyObject \*\*]
         A Python object is checked to see if it is a certain type and then
@@ -3889,6 +4043,28 @@ int sipParseResult(int \*iserr, PyObject \*method, PyObject \*result, char \*for
         Check that a Python object is ``Py_None``.  No value is returned.
 
 
+sipReleaseInstance()
+--------------------
+
+void sipReleaseInstance(void \*cpp, sipWrapperType \*type, int state)
+    This destroys a wrapped C/C++ instance if it was a temporary instance.  It
+    is called after a call to either `sipConvertToInstance()`_ or
+    `sipCheckConvertToInstance()`_.  *cpp* is the wrapped C/C++ instance.
+    *type* is the generated type corresponding to *cpp*.  *state* describes the
+    state of the instance.
+
+
+sipReleaseMappedType()
+----------------------
+
+void sipReleaseMappedType(void \*cpp, sipMappedType \*mt, int state)
+    This destroys a wrapped C/C++ mapped type if it was a temporary instance.
+    It is called after a call to either `sipConvertToMappedType()`_ or
+    `sipCheckConvertToMappedType()`_.  *cpp* is the wrapped C/C++ instance.
+    *mt* is the opaque structure returned by `sipFindMappedType()`_.  *state*
+    describes the state of the instance.
+
+
 sipStringTypeClassMap
 ---------------------
 
@@ -3907,7 +4083,7 @@ sipTransfer()
 -------------
 
 void sipTransfer(PyObject \*obj, int tocpp)
-    This function is deprecated in SIP v4.3.  If *tocpp* is non-zero then the
+    This function is deprecated from SIP v4.3.  If *tocpp* is non-zero then the
     equivalent call is::
 
         sipTransferTo(obj, obj);
@@ -3970,35 +4146,28 @@ extension of the Python ``PyObject`` structure) and so may be safely cast to
 Generated Type Convertors
 -------------------------
 
+These functions are deprecated from SIP v4.4.
+
 SIP generates functions for all types being wrapped (including mapped types
 defined with the `%MappedType`_ directive) that convert a Python object to the
 C structure or C++ class instance.  The name of this convertor is the name of
-the structure or class prefixed by ``sipForceConvertToTransfer_``.
+the structure or class prefixed by ``sipForceConvertTo_``.
 
-void \*sipForceConvertToTransfer_*class*(PyObject \*obj, int \*iserr, PyObject \*transferObj)
+void \*sipForceConvertTo_*class*(PyObject \*obj, int \*iserr)
     *obj* is the Python object to convert.  If *obj* is ``NULL`` or the
     location pointed to by *iserr* is non-zero then the conversion is not
     attempted and ``NULL`` is returned.  If there was an error then the
     location pointed to by *iserr* is set to a non-zero value, a Python
-    exception is raised, and ``NULL`` is returned.  *transferObj* controls any
-    ownership changes to *obj*.  If it is ``NULL`` then the ownership is
-    unchanged.  If it is ``Py_None`` then ownership is transferred to Python
-    via a call to `sipTransferBack()`_.  Otherwise ownership is transferred to
-    C/C++ and *obj* associated with *transferObj* via a call to
-    `sipTransferTo()`_.
+    exception is raised, and ``NULL`` is returned.
 
 SIP also generates functions for mapped types that convert a C structure or
 C++ class instance to a Python object.  The name of this convertor is the name
-of the structure or class prefixed by ``sipConvertFromTransfer_``.
+of the structure or class prefixed by ``sipConvertFrom_``.
 
-PyObject \*sipConvertFromTransfer_*class*(void \*cppptr, PyObject \*transferObj)
+PyObject \*sipConvertFrom_*class*(void \*cppptr)
     *cppptr* is a pointer to the C structure or C++ class instance to convert.
     If there was an error then ``NULL`` is returned and a Python exception
-    raised.  *transferObj* controls any ownership changes to the returned
-    object.  If it is ``NULL`` then the ownership is unchanged.  If it is
-    ``Py_None`` then ownership is transferred to Python via a call to
-    `sipTransferBack()`_.  Otherwise ownership is transferred to C/C++ and
-    *obj* associated with *transferObj* via a call to `sipTransferTo()`_.
+    raised.
 
 The convertor functions of all imported types are available to handwritten
 code.
@@ -4104,7 +4273,7 @@ SIP_VERSION_STR
     ``snapshot-``.  It was first implemented in SIP v4.3.
 
 transfer(obj, direction)
-    This function is deprecated in SIP v4.3.  If *direction* is non-zero then
+    This function is deprecated from SIP v4.3.  If *direction* is non-zero then
     the equivalent call is::
 
         sip.transferto(obj, None)

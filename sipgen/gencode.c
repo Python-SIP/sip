@@ -110,7 +110,7 @@ static void generateSlotArg(signatureDef *sd, int argnr, FILE *fp);
 static void generateBinarySlotCall(overDef *od, char *op, int deref, FILE *fp);
 static void generateNumberSlotCall(overDef *od, char *op, FILE *fp);
 static void generateVariableHandler(varDef *,FILE *);
-static void generateObjToCppConversion(argDef *,FILE *);
+static int generateObjToCppConversion(argDef *,FILE *);
 static void generateVarClassConversion(varDef *,FILE *);
 static void generateVarMember(varDef *vd, FILE *fp);
 static int generateVoidPointers(sipSpec *,classDef *,FILE *);
@@ -166,7 +166,7 @@ static int needErrorFlag(codeBlock *cb);
 static int needNewInstance(argDef *ad);
 static int needDealloc(classDef *cd);
 static char getBuildResultFormat(argDef *ad);
-static char getParseResultFormat(argDef *ad);
+static const char *getParseResultFormat(argDef *ad, int isres, int xfervh);
 static void generateParseResultExtraArgs(argDef *ad,FILE *fp);
 static char *makePartName(char *codeDir,char *mname,int part,char *srcSuffix);
 static void normaliseArgs(signatureDef *);
@@ -522,7 +522,6 @@ static void generateInternalAPIHeader(sipSpec *pt,char *codeDir,stringList *xsl)
 "#define	sipConvertFromSequenceIndex	sipAPI_%s -> api_convert_from_sequence_index\n"
 "#define	sipConvertFromVoidPtr		sipAPI_%s -> api_convert_from_void_ptr\n"
 "#define	sipConvertToCpp			sipAPI_%s -> api_convert_to_cpp\n"
-"#define	sipConvertToCppTransfer		sipAPI_%s -> api_convert_to_cpp_transfer\n"
 "#define	sipConvertToVoidPtr		sipAPI_%s -> api_convert_to_void_ptr\n"
 "#define	sipNoFunction			sipAPI_%s -> api_no_function\n"
 "#define	sipNoMethod			sipAPI_%s -> api_no_method\n"
@@ -566,6 +565,25 @@ static void generateInternalAPIHeader(sipSpec *pt,char *codeDir,stringList *xsl)
 "#define	sipPySlotExtend			sipAPI_%s -> api_pyslot_extend\n"
 "#define	sipConvertRx			sipAPI_%s -> api_convert_rx\n"
 "#define	sipAddDelayedDtor		sipAPI_%s -> api_add_delayed_dtor\n"
+"#define	sipCanConvertToInstance		sipAPI_%s -> api_can_convert_to_instance\n"
+"#define	sipCanConvertToMappedType	sipAPI_%s -> api_can_convert_to_mapped_type\n"
+"#define	sipConvertToInstance		sipAPI_%s -> api_convert_to_instance\n"
+"#define	sipConvertToMappedType		sipAPI_%s -> api_convert_to_mapped_type\n"
+"#define	sipCheckConvertToInstance	sipAPI_%s -> api_check_convert_to_instance\n"
+"#define	sipCheckConvertToMappedType	sipAPI_%s -> api_check_convert_to_mapped_type\n"
+"#define	sipReleaseInstance		sipAPI_%s -> api_release_instance\n"
+"#define	sipReleaseMappedType		sipAPI_%s -> api_release_mapped_type\n"
+"#define	sipGetState			sipAPI_%s -> api_get_state\n"
+"#define	sipFindMappedType		sipAPI_%s -> api_find_mapped_type\n"
+		,mname
+		,mname
+		,mname
+		,mname
+		,mname
+		,mname
+		,mname
+		,mname
+		,mname
 		,mname
 		,mname
 		,mname
@@ -1013,7 +1031,7 @@ static void generateCpp(sipSpec *pt,char *codeDir,char *srcSuffix,int *parts)
 "\n"
 "\n"
 "/* This defines each mapped type in this module. */\n"
-"static sipMappedTypeDef *mappedTypesTable[] = {\n"
+"static sipMappedType *mappedTypesTable[] = {\n"
 			);
 
 		for (mtd = pt -> mappedtypes; mtd != NULL; mtd = mtd -> next)
@@ -1025,7 +1043,7 @@ static void generateCpp(sipSpec *pt,char *codeDir,char *srcSuffix,int *parts)
 			type.u.mtd = mtd;
 
 			prcode(fp,
-"	&sipMappedType_%T,\n"
+"	&sipMappedTypeDef_%T,\n"
 				,&type);
 		}
 
@@ -2693,6 +2711,29 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd,FILE *fp)
 
 	prcode(fp,
 "\n"
+"\n"
+"/* Call the mapped type's destructor. */\n"
+"static void release_%T(void *ptr, int%s)\n"
+"{\n"
+		, &mtd->type, (generating_c ? " status" : ""));
+
+	if (release_gil)
+		prcode(fp,
+"	Py_BEGIN_ALLOW_THREADS\n"
+			);
+
+	prcode(fp,
+"	delete reinterpret_cast<%b *>(ptr);\n"
+		, &mtd->type);
+
+	if (release_gil)
+		prcode(fp,
+"	Py_END_ALLOW_THREADS\n"
+			);
+
+	prcode(fp,
+"}\n"
+"\n"
 		);
 
 	generateConvertToDefinitions(mtd,NULL,fp);
@@ -2717,12 +2758,15 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd,FILE *fp)
 "}\n"
 "\n"
 "\n"
-"sipMappedTypeDef sipMappedType_%T = {\n"
+"sipMappedType sipMappedTypeDef_%T = {\n"
 "	\"%B\",\n"
+"	release_%T,\n"
 "	forceConvertTo_%T,\n"
 "	convertTo_%T,\n"
 "	convertFrom_%T\n"
 "};\n"
+		,&mtd -> type
+		,&mtd -> type
 		,&mtd -> type
 		,&mtd -> type
 		,&mtd -> type
@@ -3055,7 +3099,7 @@ static void generateConvertToDefinitions(mappedTypeDef *mtd,classDef *cd,
 	prcode(fp,
 "\n"
 "\n"
-"static void *forceConvertTo_%T(PyObject *valobj,int *iserrp,PyObject *transferObj)\n"
+"static void *forceConvertTo_%T(PyObject *valobj,int *iserrp)\n"
 "{\n"
 "	if (*iserrp || valobj == NULL)\n"
 "		return NULL;\n"
@@ -3072,7 +3116,7 @@ static void generateConvertToDefinitions(mappedTypeDef *mtd,classDef *cd,
 "		 * Note that we throw away the flag that says if the value\n"
 "		 * has just been created on the heap or not.\n"
 "		 */\n"
-"		convertTo_%T(valobj,&val,iserrp,transferObj);\n"
+"		convertTo_%T(valobj,&val,iserrp,NULL);\n"
 "\n"
 "		return val;\n"
 "	}\n"
@@ -3081,7 +3125,7 @@ static void generateConvertToDefinitions(mappedTypeDef *mtd,classDef *cd,
 	else
 		prcode(fp,
 "	if (valobj == Py_None || sipIsSubClassInstance(valobj,sipClass_%T))\n"
-"		return sipConvertToCppTransfer(valobj,sipClass_%T,iserrp,transferObj);\n"
+"		return sipConvertToCpp(valobj,sipClass_%T,iserrp);\n"
 			,&type
 			,&type);
 
@@ -3124,6 +3168,11 @@ static void generateVariableHandler(varDef *vd,FILE *fp)
 	if (atype == class_type || atype == mapped_type)
 		prcode(fp,
 "	int sipIsErr = 0;\n"
+			);
+
+	if (vd->type.nrderefs == 0 && (atype == mapped_type || (atype == class_type && vd->type.u.cd->convtocode != NULL)))
+		prcode(fp,
+"	int sipValState;\n"
 			);
 
 	if (vd->getcode == NULL || vd->setcode == NULL)
@@ -3348,59 +3397,57 @@ static void generateVariableHandler(varDef *vd,FILE *fp)
 		prcode(fp,
 "\n"
 "		if (sipErr)\n"
-"		{\n"
-"			sipBadSetType(%N,%N);\n"
 "			return NULL;\n"
-"		}\n"
 "	}\n"
-			, vd->ecd->iff->name, vd->pyname);
+			);
 	}
 	else
 	{
 		char *deref;
+		int might_be_temp;
 
-		generateObjToCppConversion(&vd -> type,fp);
+		might_be_temp = generateObjToCppConversion(&vd -> type,fp);
 
 		deref = "";
 
 		if (atype == class_type || atype == mapped_type)
 		{
-			char *none_test = "";
-
-			if (vd -> type.nrderefs == 0)
-			{
-				deref = "*";
-				none_test = " || sipVal == NULL";
-			}
-
-			prcode(fp,
-"\n"
-"	if (sipIsErr%s)\n"
-				,none_test);
-		}
-		else if (atype == ustring_type || atype == string_type)
-		{
 			if (vd -> type.nrderefs == 0)
 				deref = "*";
 
 			prcode(fp,
 "\n"
-"	if (sipVal%s == NULL)\n"
-				,ptr);
+"	if (sipIsErr)\n"
+"		return NULL;\n"
+"\n"
+				);
 		}
 		else
-			prcode(fp,
+		{
+			if (atype == ustring_type || atype == string_type)
+			{
+				if (vd -> type.nrderefs == 0)
+					deref = "*";
+
+				prcode(fp,
+"\n"
+"	if (sipVal%s == NULL)\n"
+					,ptr);
+			}
+			else
+				prcode(fp,
 "\n"
 "	if (PyErr_Occurred() != NULL)\n"
-				);
+					);
 
-		prcode(fp,
+			prcode(fp,
 "	{\n"
 "		sipBadSetType(%N,%N);\n"
 "		return NULL;\n"
 "	}\n"
 "\n"
-			,vd -> ecd -> iff -> name,vd -> pyname);
+				,vd -> ecd -> iff -> name,vd -> pyname);
+		}
 
 		if (atype == pyobject_type || atype == pytuple_type ||
 		    atype == pylist_type || atype == pydict_type ||
@@ -3425,6 +3472,17 @@ static void generateVariableHandler(varDef *vd,FILE *fp)
 
 		prcode(fp," = %ssipVal%s;\n"
 			,deref,ptr);
+
+		if (might_be_temp)
+			prcode(fp,
+"\n"
+"	sipReleaseInstance(sipVal,sipClass_%C,sipValState);\n"
+				, classFQCName(vd->type.u.cd));
+		else if (vd->type.atype == mapped_type && vd->type.nrderefs == 0)
+			prcode(fp,
+"\n"
+"	sipReleaseMappedType(sipVal,sipMappedType_%T,sipValState);\n"
+				, &vd->type);
 	}
 
 	prcode(fp,
@@ -3472,24 +3530,74 @@ static void generateVarClassConversion(varDef *vd,FILE *fp)
 
 /*
  * Generate the declaration of a variable that is initialised from a Python
- * object.
+ * object.  Return TRUE if the value might be a temporary on the heap.
  */
-static void generateObjToCppConversion(argDef *ad,FILE *fp)
+static int generateObjToCppConversion(argDef *ad,FILE *fp)
 {
+	int might_be_temp = FALSE;
 	char *fmt = NULL;
 
 	switch (ad -> atype)
 	{
 	case mapped_type:
+		{
+			const char *tail;
+
+			if (generating_c)
+			{
+				prcode(fp,
+"	sipVal = (%b *)", ad);
+				tail = "";
+			}
+			else
+			{
+				prcode(fp,
+"	sipVal = reinterpret_cast<%b *>(", ad);
+				tail = ")";
+			}
+
+			/*
+			 * Note that we don't support /Transfer/ but could do.
+			 */
+
+			prcode(fp, "sipCheckConvertToMappedType(sipPy,sipMappedType_%T,NULL,%s,&sipValState,&sipIsErr)", ad, (ad->nrderefs ? "0" : "SIP_NOT_NONE"));
+
+			prcode(fp, "%s;\n"
+				, tail);
+		}
+		break;
+
 	case class_type:
-		if (generating_c)
-			prcode(fp,
-"	sipVal = (%b *)sipForceConvertToTransfer_%T(sipPy,&sipIsErr,NULL);\n"
-				,ad,ad);
-		else
-			prcode(fp,
-"	sipVal = reinterpret_cast<%b *>(sipForceConvertToTransfer_%T(sipPy,&sipIsErr,NULL));\n"
-				,ad,ad);
+		{
+			const char *tail;
+
+			if (ad->nrderefs == 0 && ad->u.cd->convtocode != NULL)
+				might_be_temp = TRUE;
+
+			if (generating_c)
+			{
+				prcode(fp,
+"	sipVal = (%b *)", ad);
+				tail = "";
+			}
+			else
+			{
+				prcode(fp,
+"	sipVal = reinterpret_cast<%b *>(", ad);
+				tail = ")";
+			}
+
+			/*
+			 * Note that we don't support /Transfer/ but could do.
+			 * We could also support /Constrained/ (so long as we
+			 * also supported it for all types).
+			 */
+
+			prcode(fp, "sipCheckConvertToInstance(sipPy,sipClass_%C,NULL,%s,%s,&sipIsErr)", classFQCName(ad->u.cd), (ad->nrderefs ? "0" : "SIP_NOT_NONE"), (might_be_temp ? "&sipValState" : "NULL"));
+
+			prcode(fp, "%s;\n"
+				, tail);
+		}
 		break;
 
 	case enum_type:
@@ -3583,6 +3691,8 @@ static void generateObjToCppConversion(argDef *ad,FILE *fp)
 
 	if (fmt != NULL)
 		prcode(fp,"%s",fmt);
+
+	return might_be_temp;
 }
 
 
@@ -3925,6 +4035,7 @@ static void generateClassFunctions(sipSpec *pt,classDef *cd,FILE *fp)
 	if (cd -> iff -> type != namespace_iface && !generating_c)
 	{
 		classList *cl;
+		int need_ptr, need_state;
 
 		/* The cast function. */
 		prcode(fp,
@@ -3960,6 +4071,62 @@ static void generateClassFunctions(sipSpec *pt,classDef *cd,FILE *fp)
 		prcode(fp,
 "\n"
 "	return NULL;\n"
+"}\n"
+			);
+
+		/* Generate the release function without compiler warnings. */
+		need_ptr = need_state = FALSE;
+
+		if (canCreate(cd))
+		{
+			if (hasShadow(cd))
+				need_ptr = need_state = TRUE;
+			else if (isPublicDtor(cd))
+				need_ptr = TRUE;
+		}
+
+		prcode(fp,
+"\n"
+"\n"
+"/* Call the instance's destructor. */\n"
+"static void release_%C(void *%s,int%s)\n"
+"{\n"
+			, classFQCName(cd), (need_ptr ? "ptr" : ""), (need_state ? " state" : ""));
+
+		if (canCreate(cd))
+		{
+			if (release_gil || isReleaseGILDtor(cd))
+				prcode(fp,
+"	Py_BEGIN_ALLOW_THREADS\n"
+"\n"
+					);
+
+			if (hasShadow(cd))
+			{
+				prcode(fp,
+"	if (state & SIP_DERIVED_CLASS)\n"
+"		delete reinterpret_cast<sip%C *>(ptr);\n"
+					, classFQCName(cd));
+
+				if (isPublicDtor(cd))
+					prcode(fp,
+"	else\n"
+"		delete reinterpret_cast<%U *>(ptr);\n"
+						, cd);
+			}
+			else if (isPublicDtor(cd))
+				prcode(fp,
+"	delete reinterpret_cast<%U *>(ptr);\n"
+					, cd);
+
+			if (release_gil || isReleaseGILDtor(cd))
+				prcode(fp,
+"\n"
+"	Py_END_ALLOW_THREADS\n"
+					);
+		}
+
+		prcode(fp,
 "}\n"
 			);
 	}
@@ -4129,7 +4296,7 @@ static void generateClassFunctions(sipSpec *pt,classDef *cd,FILE *fp)
 		/* Disable the virtual handlers. */
 		if (hasShadow(cd))
 			prcode(fp,
-"	if (!sipIsSimple(sipSelf))\n"
+"	if (sipIsDerived(sipSelf))\n"
 "		reinterpret_cast<sip%C *>(sipSelf -> u.cppPtr) -> sipPySelf = NULL;\n"
 "\n"
 				,classFQCName(cd));
@@ -4171,38 +4338,9 @@ static void generateClassFunctions(sipSpec *pt,classDef *cd,FILE *fp)
 "		sipFree(sipSelf -> u.cppPtr);\n"
 					);
 			else
-			{
-				if (release_gil || isReleaseGILDtor(cd))
-					prcode(fp,
-"\n"
-"		Py_BEGIN_ALLOW_THREADS\n"
-"\n"
-						);
-
-				if (hasShadow(cd))
-				{
-					prcode(fp,
-"		if (!sipIsSimple(sipSelf))\n"
-"			delete reinterpret_cast<sip%C *>(sipSelf -> u.cppPtr);\n"
-						,classFQCName(cd));
-
-					if (isPublicDtor(cd))
-						prcode(fp,
-"		else\n"
-"			delete reinterpret_cast<%U *>(sipSelf -> u.cppPtr);\n"
-						,cd);
-				}
-				else
-					prcode(fp,
-"		delete reinterpret_cast<%U *>(sipSelf -> u.cppPtr);\n"
-						,cd);
-
-				if (release_gil || isReleaseGILDtor(cd))
-					prcode(fp,
-"\n"
-"		Py_END_ALLOW_THREADS\n"
-						);
-			}
+				prcode(fp,
+"		release_%C(sipSelf -> u.cppPtr,%s);\n"
+					, classFQCName(cd), (hasShadow(cd) ? "sipSelf -> flags" : "0"));
 
 			prcode(fp,
 "	}\n"
@@ -4880,13 +5018,10 @@ static void generateEmitter(sipSpec *pt,classDef *cd,visibleList *vl,FILE *fp)
 "			Py_END_ALLOW_THREADS\n"
 				);
 
-		prcode(fp,
-"\n"
-			);
-
 		deleteTemps(&od -> pysig, fp);
 
 		prcode(fp,
+"\n"
 "			return 0;\n"
 "		}\n"
 "	}\n"
@@ -5233,6 +5368,11 @@ static void generateVirtualHandler(sipSpec *pt,virtHandlerDef *vhd,FILE *fp)
 		generateResultType(&res_noconstref,fp);
 
 		prcode(fp," *sipResOrig;\n");
+
+		if (res->atype == class_type && res->u.cd->convtocode != NULL)
+			prcode(fp,
+"	int sipResState;\n"
+				);
 	}
 
 	/* Call the method. */
@@ -5254,14 +5394,14 @@ static void generateVirtualHandler(sipSpec *pt,virtHandlerDef *vhd,FILE *fp)
 			prcode(fp,"(");
 
 		if (res != NULL)
-			prcode(fp,"%c",getParseResultFormat(res));
+			prcode(fp, "%s", getParseResultFormat(res, TRUE, isTransferVH(vhd)));
 
 		for (a = 0; a < cppsig -> nrArgs; ++a)
 		{
 			argDef *ad = &cppsig -> args[a];
 
 			if (isOutArg(ad))
-				prcode(fp,"%c",getParseResultFormat(ad));
+				prcode(fp, "%s", getParseResultFormat(ad, FALSE, FALSE));
 		}
 
 		if (nrvals > 1)
@@ -5310,43 +5450,19 @@ static void generateVirtualHandler(sipSpec *pt,virtHandlerDef *vhd,FILE *fp)
 "		sipRes = *sipResOrig;\n"
 			);
 
-		/*
-		 * If the result is a mapped type then it is always on the heap
-		 * so delete it now that it has been copied.
-		 */
 		if (res -> atype == mapped_type)
 			prcode(fp,
 "		delete sipResOrig;\n"
 				);
 		else if (res -> atype == class_type && res -> u.cd -> convtocode != NULL)
-		{
-			/*
-			 * If the result type had handwritten conversion code
-			 * then the result might be newly created on the heap.
-			 * (The conversion code tells us this, but it has been
-			 * thrown away by the time we get to here.)  If the
-			 * result object was not a wrapped type then it must be
-			 * on the heap, otherwise we assume it's on the heap if
-			 * the addresses are different.  We know by this point
-			 * that the returned pointer cannot be NULL.
-			 */
 			prcode(fp,
-"\n"
-"		if (!sipWrapper_Check(sipResObj) || sipGetCppPtr((sipWrapper *)sipResObj,sipClass_%T) != sipResOrig)\n"
-"			delete sipResOrig;\n"
-				,res);
-		}
+"		sipReleaseInstance(sipResOrig,sipClass_%C,sipResState);\n"
+				, classFQCName(res->u.cd));
 
 		prcode(fp,
 "	}\n"
 			);
 	}
-
-	if (isTransferVH(vhd))
-		prcode(fp,
-"\n"
-"	sipTransferTo(sipResObj,sipResObj);\n"
-			);
 
 	prcode(fp,
 "\n"
@@ -5389,8 +5505,15 @@ static void generateParseResultExtraArgs(argDef *ad,FILE *fp)
 	switch (ad -> atype)
 	{
 	case mapped_type:
+		prcode(fp, ",sipMappedType_%T", ad);
+		break;
+
 	case class_type:
-		prcode(fp,",sipForceConvertToTransfer_%T",ad);
+		prcode(fp, ",sipClass_%C", classFQCName(ad->u.cd));
+
+		if (ad->nrderefs == 0 && ad->u.cd->convtocode != NULL)
+			prcode(fp, ",&sipResState");
+
 		break;
 
 	case pytuple_type:
@@ -5422,73 +5545,110 @@ static void generateParseResultExtraArgs(argDef *ad,FILE *fp)
 
 
 /*
- * Return the format character used by sipParseResult() for a particular type.
+ * Return the format characters used by sipParseResult() for a particular type.
  */
-static char getParseResultFormat(argDef *ad)
+static const char *getParseResultFormat(argDef *ad, int isres, int xfervh)
 {
 	switch (ad -> atype)
 	{
 	case mapped_type:
+		{
+			static const char *s[] = {
+				"D0", "D1", "D2", "D3",
+				"D4", "D5", "D6", "D7"
+			};
+
+			int f = 0x04;
+
+			if (isres && ad->nrderefs == 0)
+				f |= 0x01;
+
+			if (isres && xfervh)
+				f |= 0x02;
+
+			return s[f];
+		}
+
 	case class_type:
-		return ((ad -> nrderefs == 0) ? 'M' : 'L');
+		{
+			static const char *s[] = {
+				"C0", "C1", "C2", "C3",
+				"C4", "C5", "C6", "C7"
+			};
+
+			int f = 0x04;
+
+			if (isres && ad->nrderefs == 0)
+			{
+				f |= 0x01;
+
+				if (ad->u.cd->convtocode != NULL)
+					f &= ~0x04;
+			}
+
+			if (isres && xfervh)
+				f |= 0x02;
+
+			return s[f];
+		}
 
 	case bool_type:
 	case cbool_type:
-		return 'b';
+		return "b";
 
 	case ustring_type:
 	case string_type:
-		return ((ad -> nrderefs == 0) ? 'c' : 's');
+		return ((ad -> nrderefs == 0) ? "c" : "s");
 
 	case enum_type:
-		return ((ad -> u.ed -> fqcname != NULL) ? 'E' : 'e');
+		return ((ad -> u.ed -> fqcname != NULL) ? "E" : "e");
 
 	case ushort_type:
 	case short_type:
-		return 'h';
+		return "h";
 
 	case uint_type:
 	case int_type:
 	case cint_type:
-		return 'i';
+		return "i";
 
 	case long_type:
-		return 'l';
+		return "l";
 
 	case ulong_type:
-		return 'm';
+		return "m";
 
 	case longlong_type:
-		return 'n';
+		return "n";
 
 	case ulonglong_type:
-		return 'o';
+		return "o";
 
 	case void_type:
 	case struct_type:
-		return 'V';
+		return "V";
 
 	case float_type:
 	case cfloat_type:
-		return 'f';
+		return "f";
 
 	case double_type:
 	case cdouble_type:
-		return 'd';
+		return "d";
 
 	case pyobject_type:
-		return 'O';
+		return "O";
 
 	case pytuple_type:
 	case pylist_type:
 	case pydict_type:
 	case pyslice_type:
 	case pytype_type:
-		return (isAllowNone(ad) ? 'N' : 'T');
+		return (isAllowNone(ad) ? "N" : "T");
 	}
 
 	/* We should never get here. */
-	return ' ';
+	return " ";
 }
 
 
@@ -5865,15 +6025,13 @@ static void generateImportedMappedTypeHeader(mappedTypeDef *mtd,sipSpec *pt,
 
 	prcode(fp,
 "\n"
-"#define	sipForceConvertToTransfer_%T	sipModuleAPI_%s_%s->em_mappedtypes[%d]->mt_fcto\n"
-"#define	sipConvertToTransfer_%T	sipModuleAPI_%s_%s->em_mappedtypes[%d]->mt_cto\n"
+"#define	sipMappedType_%T	sipModuleAPI_%s_%s->em_mappedtypes[%d]\n"
+"#define	sipForceConvertTo_%T	sipModuleAPI_%s_%s->em_mappedtypes[%d]->mt_fcto\n"
 "#define	sipConvertFromTransfer_%T	sipModuleAPI_%s_%s->em_mappedtypes[%d]->mt_cfrom\n"
-"#define	sipForceConvertTo_%T(p,t)	sipForceConvertToTransfer_%T((p),(t),NULL)\n"
 "#define	sipConvertFrom_%T(p)	sipConvertFromTransfer_%T((p),NULL)\n"
 		,&type,mname,imname,mtd -> mappednr
 		,&type,mname,imname,mtd -> mappednr
 		,&type,mname,imname,mtd -> mappednr
-		,&type,&type
 		,&type,&type);
 }
 
@@ -5895,14 +6053,12 @@ static void generateMappedTypeHeader(mappedTypeDef *mtd,int genused,FILE *fp)
 
 	prcode(fp,
 "\n"
-"#define	sipForceConvertToTransfer_%T	sipMappedType_%T.mt_fcto\n"
-"#define	sipConvertToTransfer_%T	sipMappedType_%T.mt_cto\n"
-"#define	sipConvertFromTransfer_%T	sipMappedType_%T.mt_cfrom\n"
-"#define	sipForceConvertTo_%T(p,t)	sipForceConvertToTransfer_%T((p),(t),NULL)\n"
+"#define	sipMappedType_%T	&sipMappedTypeDef_%T\n"
+"#define	sipForceConvertTo_%T	sipMappedTypeDef_%T.mt_fcto\n"
+"#define	sipConvertFromTransfer_%T	sipMappedTypeDef_%T.mt_cfrom\n"
 "#define	sipConvertFrom_%T(p)	sipConvertFromTransfer_%T((p),NULL)\n"
 "\n"
-"extern sipMappedTypeDef sipMappedType_%T;\n"
-		,&mtd -> type,&mtd -> type
+"extern sipMappedType sipMappedTypeDef_%T;\n"
 		,&mtd -> type,&mtd -> type
 		,&mtd -> type,&mtd -> type
 		,&mtd -> type,&mtd -> type
@@ -5927,17 +6083,10 @@ static void generateImportedClassHeader(classDef *cd,sipSpec *pt,FILE *fp)
 "\n"
 "#define	sipClass_%C	sipModuleAPI_%s_%s->em_types[%d]\n"
 "#define	sipCast_%C	sipModuleAPI_%s_%s->em_types[%d]->type->td_cast\n"
-"#define	sipForceConvertToTransfer_%C	sipModuleAPI_%s_%s->em_types[%d]->type->td_fcto\n"
-"#define	sipForceConvertTo_%C(p,t)	sipForceConvertToTransfer_%C((p),(t),NULL)\n"
+"#define	sipForceConvertTo_%C	sipModuleAPI_%s_%s->em_types[%d]->type->td_fcto\n"
 		,classFQCName(cd),mname,imname,cd -> classnr
 		,classFQCName(cd),mname,imname,cd -> classnr
-		,classFQCName(cd),mname,imname,cd -> classnr
-		,classFQCName(cd),classFQCName(cd));
-
-	if (cd -> convtocode != NULL)
-		prcode(fp,
-"#define	sipConvertToTransfer_%C	sipModuleAPI_%s_%s->em_types[%d]->type->td_cto\n"
-			,classFQCName(cd),mname,imname,cd -> classnr);
+		,classFQCName(cd),mname,imname,cd -> classnr);
 
 	generateEnumMacros(pt, cd, fp);
 }
@@ -5971,20 +6120,11 @@ static void generateClassHeader(classDef *cd,int genused,sipSpec *pt,FILE *fp)
 			,classFQCName(cd),mname,cd -> classnr);
 
 		if (!isExternal(cd))
-		{
 			prcode(fp,
 "#define	sipCast_%C	sipType_%C.td_cast\n"
-"#define	sipForceConvertToTransfer_%C	sipType_%C.td_fcto\n"
-"#define	sipForceConvertTo_%C(p,t)	sipForceConvertToTransfer_%C((p),(t),NULL)\n"
-				,classFQCName(cd),classFQCName(cd)
+"#define	sipForceConvertTo_%C	sipType_%C.td_fcto\n"
 				,classFQCName(cd),classFQCName(cd)
 				,classFQCName(cd),classFQCName(cd));
-
-			if (cd -> convtocode != NULL)
-				prcode(fp,
-"#define	sipConvertToTransfer_%C	sipType_%C.td_cto\n"
-					,classFQCName(cd),classFQCName(cd));
-		}
 	}
 
 	generateEnumMacros(pt, cd, fp);
@@ -6634,9 +6774,10 @@ static void generateVariable(argDef *ad,int argnr,FILE *fp)
 		case class_type:
 			if (ad -> u.cd -> convtocode != NULL && !isConstrained(ad))
 				prcode(fp,
-"		int a%dIsTemp = 0;\n"
+"		int a%dState;\n"
 					,argnr);
-			else if (isGetWrapper(ad))
+
+			if (isGetWrapper(ad))
 				prcode(fp,
 "		PyObject *a%dWrapper;\n"
 					,argnr);
@@ -6645,7 +6786,7 @@ static void generateVariable(argDef *ad,int argnr,FILE *fp)
 
 		case mapped_type:
 			prcode(fp,
-"		int a%dIsTemp = 0;\n"
+"		int a%dState;\n"
 				,argnr);
 			break;
 
@@ -6930,11 +7071,14 @@ static void generateTypeDefinition(sipSpec *pt,classDef *cd,FILE *fp)
 	if (cd -> iff -> type == namespace_iface || generating_c)
 		prcode(fp,
 "	0,\n"
+"	0,\n"
 			);
 	else
 		prcode(fp,
 "	cast_%C,\n"
-			,classFQCName(cd));
+"	release_%C,\n"
+			, classFQCName(cd)
+			, classFQCName(cd));
 
 	if (cd -> iff -> type == namespace_iface)
 		prcode(fp,
@@ -9049,7 +9193,7 @@ static int generateArgParser(sipSpec *pt, signatureDef *sd, classDef *cd,
 			break;
 
 		case class_type:
-			fmt = getSubFormatChar(((ad -> u.cd -> convtocode != NULL && !isConstrained(ad)) ? 'M' : 'J'),ad);
+			fmt = getSubFormatChar('J', ad);
 			break;
 
 		case pyobject_type:
@@ -9099,21 +9243,19 @@ static int generateArgParser(sipSpec *pt, signatureDef *sd, classDef *cd,
 		switch (ad -> atype)
 		{
 		case mapped_type:
-			prcode(fp,",sipConvertToTransfer_%T,&a%d,&a%dIsTemp",ad,a,a);
+			prcode(fp,",sipMappedType_%T,&a%d,&a%dState",ad,a,a);
 			break;
 
 		case class_type:
-			if (ad -> u.cd -> convtocode != NULL && !isConstrained(ad))
-				prcode(fp,",sipConvertToTransfer_%T,&a%d,&a%dIsTemp",ad,a,a);
-			else
-			{
-				prcode(fp,",sipClass_%T,&a%d",ad,a);
+			prcode(fp, ",sipClass_%T,&a%d", ad, a);
 
-				if (isThisTransferred(ad))
-					prcode(fp,",%ssipOwner",(ct != NULL ? "" : "&"));
-				else if (isGetWrapper(ad))
-					prcode(fp,",&a%dWrapper",a);
-			}
+			if (isThisTransferred(ad))
+				prcode(fp, ",%ssipOwner", (ct != NULL ? "" : "&"));
+			else if (isGetWrapper(ad))
+				prcode(fp, ",&a%dWrapper", a);
+
+			if (ad->u.cd->convtocode != NULL && !isConstrained(ad))
+				prcode(fp, ",&a%dState", a);
 
 			break;
 
@@ -9221,8 +9363,14 @@ static char *getSubFormatChar(char fc,argDef *ad)
 	if (isTransferredBack(ad))
 		flags |= 0x04;
 
-	if (fc == 'J' && (isThisTransferred(ad) || isGetWrapper(ad)))
-		flags |= 0x08;
+	if (fc == 'J')
+	{
+		if (isThisTransferred(ad) || isGetWrapper(ad))
+			flags |= 0x08;
+
+		if (ad->u.cd->convtocode == NULL || isConstrained(ad))
+			flags |= 0x10;
+	}
 
 	fmt[1] = '0' + flags;
 
@@ -9268,7 +9416,7 @@ static void gc_ellipsis(signatureDef *sd, FILE *fp)
  */
 static void deleteTemps(signatureDef *sd, FILE *fp)
 {
-	int a;
+	int a, first = TRUE;
 
 	for (a = 0; a < sd -> nrArgs; ++a)
 	{
@@ -9276,23 +9424,33 @@ static void deleteTemps(signatureDef *sd, FILE *fp)
 
 		if (isInArg(ad) && hasConvertToCode(ad))
 		{
-			prcode(fp,
-"\n"
-"			if (a%dIsTemp)\n"
-				,a);
+			const char *fstr, *sstr;
 
-			if (generating_c)
+			if (ad->atype == mapped_type)
+				fstr = sstr = "MappedType";
+			else
+			{
+				fstr = "Instance";
+				sstr = "Class";
+			}
+
+			if (first)
+			{
 				prcode(fp,
-"				free(a%d);\n"
-					,a);
-			else if (isConstArg(ad))
+"\n"
+					);
+
+				first = FALSE;
+			}
+
+			if (generating_c || !isConstArg(ad))
 				prcode(fp,
-"				delete const_cast<%b *>(a%d);\n"
-					,ad,a);
+"			sipRelease%s(a%d,sip%s_%T,a%dState);\n"
+					, fstr, a, sstr, ad, a);
 			else
 				prcode(fp,
-"				delete a%d;\n"
-					,a);
+"			sipRelease%s(const_cast<%b *>(a%d),sip%s_%T,a%dState);\n"
+					, fstr, ad, a, sstr, ad, a);
 		}
 	}
 }

@@ -96,9 +96,6 @@ PyObject *sipWrapSimpleInstance(void *cppPtr,sipWrapperType *type,sipWrapper *ow
 	threadDef *td;
 #endif
 
-	/* Update the flags. */
-	flags |= SIP_SIMPLE;
-
 	if (nullargs == NULL && (nullargs = PyTuple_New(0)) == NULL)
 		return NULL;
 

@@ -3985,7 +3985,7 @@ static void newFunction(sipSpec *pt,moduleDef *mod,int sflags,int isstatic,
 		vhd -> virtcode = vcode;
 		vhd -> next = currentModule -> virthandlers;
 
-		if (factory || xferback)
+		if (factory)
 			setIsTransferVH(vhd);
 
 		currentModule -> virthandlers = vhd;

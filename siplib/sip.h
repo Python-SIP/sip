@@ -156,11 +156,12 @@ typedef int (*sipSegCountFunc)(PyObject *,void *,int *);
 typedef void (*sipDeallocFunc)(sipWrapper *);
 typedef void *(*sipCastFunc)(void *,sipWrapperType *);
 typedef sipWrapperType *(*sipSubClassConvertFunc)(void **);
-typedef void *(*sipForceConvertToFunc)(PyObject *,int *,PyObject *);
+typedef void *(*sipForceConvertToFunc)(PyObject *,int *);
 typedef int (*sipConvertToFunc)(PyObject *,void **,int *,PyObject *);
 typedef PyObject *(*sipConvertFromFunc)(void *,PyObject *);
 typedef int (*sipVirtHandlerFunc)(void *,PyObject *,...);
 typedef int (*sipEmitFunc)(sipWrapper *,PyObject *);
+typedef void (*sipReleaseFunc)(void *, int);
 
 
 /*
@@ -373,6 +374,7 @@ typedef struct _sipTypeDef {
 	sipBufferFunc td_charbuffer;	/* The char buffer function. */
 	sipDeallocFunc td_dealloc;	/* The deallocation function. */
 	sipCastFunc td_cast;		/* The cast function, 0 if a C struct. */
+	sipReleaseFunc td_release;	/* The release function. */
 	sipForceConvertToFunc td_fcto;	/* The force convert to function, 0 if a C++ namespace. */
 	sipConvertToFunc td_cto;	/* The convert to function. */
 	struct _sipQtSignal *td_emit;	/* Emit table for Qt signals. */
@@ -392,12 +394,13 @@ typedef struct _sipExternalTypeDef {
 /*
  * The information describing a mapped class.
  */
-typedef struct _sipMappedTypeDef {
+typedef struct _sipMappedType {
 	const char *mt_name;		/* The corresponding C++ definition. */
+	sipReleaseFunc mt_release;	/* The release function. */
 	sipForceConvertToFunc mt_fcto;	/* The force convert to function. */
 	sipConvertToFunc mt_cto;	/* The convert to function. */
 	sipConvertFromFunc mt_cfrom;	/* The convert from function. */
-} sipMappedTypeDef;
+} sipMappedType;
 
 
 /*
@@ -435,7 +438,7 @@ typedef struct _sipExportedModuleDef {
 	int em_nrtypes;			/* The number of types. */
 	struct _sipWrapperType **em_types;	/* The table of type types. */
 	sipExternalTypeDef *em_external;	/* The table of external types. */
-	sipMappedTypeDef **em_mappedtypes;	/* The table of mapped types. */
+	sipMappedType **em_mappedtypes;	/* The table of mapped types. */
 	int em_nrenums;			/* The number of enums. */
 	PyTypeObject **em_enums;	/* The table of enum types. */
 	sipEnumDef *em_enumdefs;	/* The table of enum type data. */
@@ -668,7 +671,7 @@ typedef struct _sipSigArg {
 
 	union {
 		sipWrapperType *wt;	/* The Python type for classes. */
-		sipMappedTypeDef *mt;	/* The data for mapped types. */
+		sipMappedType *mt;	/* The data for mapped types. */
 		PyTypeObject *et;	/* The Python type for named enums. */
 	} u;
 } sipSigArg;
@@ -724,8 +727,17 @@ typedef struct _sipAPIDef {
 	PyObject *(*api_class_name)(PyObject *self);
 	PyObject *(*api_connect_rx)(PyObject *txObj,const char *sig,PyObject *rxObj,const char *slot, int type);
 	int (*api_convert_from_sequence_index)(int idx,int len);
+	int (*api_can_convert_to_instance)(PyObject *pyObj, sipWrapperType *type, int flags);
+	int (*api_can_convert_to_mapped_type)(PyObject *pyObj, sipMappedType *mt, int flags);
+	void *(*api_convert_to_instance)(PyObject *pyObj, sipWrapperType *type, PyObject *transferObj, int flags, int *statep, int *iserrp);
+	void *(*api_convert_to_mapped_type)(PyObject *pyObj, sipMappedType *mt, PyObject *transferObj, int flags, int *statep, int *iserrp);
+	void *(*api_check_convert_to_instance)(PyObject *pyObj, sipWrapperType *type, PyObject *transferObj, int flags, int *statep, int *iserrp);
+	void *(*api_check_convert_to_mapped_type)(PyObject *pyObj, sipMappedType *mt, PyObject *transferObj, int flags, int *statep, int *iserrp);
+	void (*api_release_instance)(void *cpp, sipWrapperType *type, int state);
+	void (*api_release_mapped_type)(void *cpp, sipMappedType *mt, int state);
 	void *(*api_convert_to_cpp)(PyObject *sipSelf,sipWrapperType *type,int *iserrp);
-	void *(*api_convert_to_cpp_transfer)(PyObject *sipSelf,sipWrapperType *type,int *iserrp,PyObject *transferObj);
+	int (*api_get_state)(PyObject *transferObj);
+	const sipMappedType *(*api_find_mapped_type)(const char *type);
 	PyObject *(*api_disconnect_rx)(PyObject *txObj,const char *sig,PyObject *rxObj,const char *slot);
 	int (*api_emit_signal)(PyObject *self,const char *sig,PyObject *sigargs);
 	void (*api_free)(void *mem);
@@ -785,19 +797,34 @@ typedef struct _sipAPIDef {
 
 
 /*
+ * These are flags that can be passed to sipCanGetCpp(), sipGetCpp() and
+ * sipCheckGetCpp().
+ */
+#define	SIP_NOT_NONE		0x01	/* Disallow None. */
+#define	SIP_NO_CONVERTORS	0x02	/* Disable any type convertors. */
+
+
+/*
+ * These are the state flags returned by %ConvertToTypeCode.  Note that these
+ * share the same "namespace" as the flags below.
+ */
+#define	SIP_TEMPORARY		0x01	/* A temporary instance. */
+#define	SIP_DERIVED_CLASS	0x02	/* The instance is derived. */
+
+
+/*
  * Useful macros, not part of the public API.
  */
-#define	SIP_PY_OWNED	0x01		/* Owned by Python. */
-#define	SIP_SIMPLE	0x02		/* If the instance is simple. */
-#define	SIP_INDIRECT	0x04		/* If there is a level of indirection. */
-#define	SIP_ACCFUNC	0x08		/* If there is an access function. */
-#define	SIP_NOT_IN_MAP	0x20		/* If Python object not in the map. */
-#define	SIP_SHARE_MAP	0x40		/* If the map slot might be occupied. */
+#define	SIP_PY_OWNED		0x04	/* Owned by Python. */
+#define	SIP_INDIRECT		0x08	/* If there is a level of indirection. */
+#define	SIP_ACCFUNC		0x10	/* If there is an access function. */
+#define	SIP_NOT_IN_MAP		0x20	/* If Python object not in the map. */
+#define	SIP_SHARE_MAP		0x40	/* If the map slot might be occupied. */
 
 #define	sipIsPyOwned(w)		((w) -> flags & SIP_PY_OWNED)
 #define	sipSetPyOwned(w)	((w) -> flags |= SIP_PY_OWNED)
 #define	sipResetPyOwned(w)	((w) -> flags &= ~SIP_PY_OWNED)
-#define	sipIsSimple(w)		((w) -> flags & SIP_SIMPLE)
+#define	sipIsDerived(w)		((w) -> flags & SIP_DERIVED_CLASS)
 #define	sipIsIndirect(w)	((w) -> flags & SIP_INDIRECT)
 #define	sipIsAccessFunc(w)	((w) -> flags & SIP_ACCFUNC)
 #define	sipNotInMap(w)		((w) -> flags & SIP_NOT_IN_MAP)
