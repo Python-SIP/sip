@@ -1085,21 +1085,25 @@ class ParentMakefile(Makefile):
 class PythonModuleMakefile(Makefile):
     """The class that represents a Python module Makefile.
     """
-    def __init__(self, configuration, srcdir, dstdir, dir=None,
+    def __init__(self, configuration, dstdir, srcdir=None, dir=None,
                  makefile="Makefile", installs=None):
         """Initialise an instance of a parent Makefile.
 
-        srcdir is the name of the directory (relative to the directory in which
-        the Makefile will be created) containing the module's Python code.
         dstdir is the name of the directory where the module's Python code will
         be installed.
+        srcdir is the name of the directory (relative to the directory in which
+        the Makefile will be created) containing the module's Python code.  It
+        defaults to the same directory.
         """
         Makefile.__init__(self, configuration, dir=dir, makefile=makefile, installs=installs)
+
+        if not srcdir:
+            srcdir = "."
 
         if dir:
             self._moddir = os.path.join(dir, srcdir)
         else:
-            self._modir = srcdir
+            self._moddir = srcdir
 
         self._srcdir = srcdir
         self._dstdir = dstdir
@@ -1132,6 +1136,10 @@ class PythonModuleMakefile(Makefile):
 
         flist = []
         for f in names:
+            # Ignore certain files.
+            if f in ("Makefile", ):
+                continue
+
             if os.path.isfile(os.path.join(dirname, f)):
                 flist.append(os.path.join(self._srcdir + tail, f))
 

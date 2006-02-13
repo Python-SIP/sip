@@ -4989,16 +4989,17 @@ ProgramMakefile(Makefile)
 PythonModuleMakefile(Makefile)
     This class encapsulates a Makefile that installs a pure Python module.
 
-    __init__(self, configuration, srcdir, dstdir, dir=None, makefile="Makefile", installs=None)
+    __init__(self, configuration, dstdir, srcdir=None, dir=None, makefile="Makefile", installs=None)
         Initialise the instance.
 
         ``configuration`` - see ``sipconfig.Makefile.__init__()``.
 
-        ``srcdir`` is the name of the directory (relative to ``dir``)
-        containing the module's Python code.
-
         ``dstdir`` is the name of the directory in which the module's Python
         code will be installed.
+
+        ``srcdir`` is the name of the directory (relative to ``dir``)
+        containing the module's Python code.  It defaults to the same
+        directory.
 
         ``dir`` - see ``sipconfig.Makefile.__init__()``.
 
