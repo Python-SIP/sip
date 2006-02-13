@@ -69,7 +69,8 @@ PyObject *sip_api_disconnect_rx(PyObject *txObj,const char *sig,
 void *sip_api_malloc(size_t nbytes);
 void sip_api_free(void *mem);
 void *sip_api_get_cpp_ptr(sipWrapper *w,sipWrapperType *type);
-PyObject *sip_api_map_cpp_to_self_sub_class(void *cppPtr, sipWrapperType *type);
+PyObject *sip_api_convert_from_instance(void *cppPtr, sipWrapperType *type,
+					PyObject *transferObj);
 void sip_api_start_thread(void);
 void sip_api_end_thread(void);
 PyObject *sip_api_convert_from_void_ptr(void *val);

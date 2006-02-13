@@ -42,7 +42,7 @@ PyObject *sip_api_get_sender()
 	// If there is a Qt sender then it is more recent than the last Python
 	// sender, so use it instead.
 	if ((qt_sender = sipQtSupport->qt_get_sender()) != NULL)
-		sender = sip_api_map_cpp_to_self_sub_class(qt_sender, sipQObjectClass);
+		sender = sip_api_convert_from_instance(qt_sender, sipQObjectClass, NULL);
 	else
 	{
 		if ((sender = py_sender) == NULL)

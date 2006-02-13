@@ -539,10 +539,6 @@ static void generateInternalAPIHeader(sipSpec *pt,char *codeDir,stringList *xsl)
 "#define	sipGetCppPtr			sipAPI_%s -> api_get_cpp_ptr\n"
 "#define	sipGetComplexCppPtr		sipAPI_%s -> api_get_complex_cpp_ptr\n"
 "#define	sipIsPyMethod			sipAPI_%s -> api_is_py_method\n"
-"#define	sipMapCppToSelf			sipAPI_%s -> api_map_cpp_to_self\n"
-"#define	sipMapCppToSelfSubClass		sipAPI_%s -> api_map_cpp_to_self_sub_class\n"
-"#define	sipNewCppToSelf			sipAPI_%s -> api_new_cpp_to_self\n"
-"#define	sipNewCppToSelfSubClass		sipAPI_%s -> api_new_cpp_to_self_sub_class\n"
 "#define	sipCallHook			sipAPI_%s -> api_call_hook\n"
 "#define	sipStartThread			sipAPI_%s -> api_start_thread\n"
 "#define	sipEndThread			sipAPI_%s -> api_end_thread\n"
@@ -569,13 +565,15 @@ static void generateInternalAPIHeader(sipSpec *pt,char *codeDir,stringList *xsl)
 "#define	sipCanConvertToMappedType	sipAPI_%s -> api_can_convert_to_mapped_type\n"
 "#define	sipConvertToInstance		sipAPI_%s -> api_convert_to_instance\n"
 "#define	sipConvertToMappedType		sipAPI_%s -> api_convert_to_mapped_type\n"
-"#define	sipCheckConvertToInstance	sipAPI_%s -> api_check_convert_to_instance\n"
-"#define	sipCheckConvertToMappedType	sipAPI_%s -> api_check_convert_to_mapped_type\n"
+"#define	sipForceConvertToInstance	sipAPI_%s -> api_force_convert_to_instance\n"
+"#define	sipForceConvertToMappedType	sipAPI_%s -> api_force_convert_to_mapped_type\n"
 "#define	sipReleaseInstance		sipAPI_%s -> api_release_instance\n"
 "#define	sipReleaseMappedType		sipAPI_%s -> api_release_mapped_type\n"
+"#define	sipConvertFromInstance		sipAPI_%s -> api_convert_from_instance\n"
+"#define	sipConvertFromNewInstance	sipAPI_%s -> api_convert_from_new_instance\n"
+"#define	sipConvertFromMappedType	sipAPI_%s -> api_convert_from_mapped_type\n"
 "#define	sipGetState			sipAPI_%s -> api_get_state\n"
 "#define	sipFindMappedType		sipAPI_%s -> api_find_mapped_type\n"
-		,mname
 		,mname
 		,mname
 		,mname
@@ -3260,7 +3258,7 @@ static void generateVariableHandler(varDef *vd,FILE *fp)
 		{
 		case mapped_type:
 			prcode(fp,
-"		sipPy = sipConvertFromTransfer_%T(sipVal,NULL);\n"
+"		sipPy = sipConvertFromMappedType(sipVal,sipMappedType_%T,NULL);\n"
 				,&vd -> type);
 
 			break;
@@ -3516,14 +3514,14 @@ static void generateVarClassConversion(varDef *vd,FILE *fp)
 	classDef *cd = vd -> type.u.cd;
 
 	prcode(fp,
-"		sipPy = sipMapCppToSelf%s(",(cd -> subbase != NULL ? "SubClass" : ""));
+"		sipPy = sipConvertFromInstance(");
 
 	if (isConstArg(&vd -> type))
 		prcode(fp,"const_cast<%b *>(sipVal)",&vd -> type);
 	else
 		prcode(fp,"sipVal");
 
-	prcode(fp,",sipClass_%C);\n"
+	prcode(fp,",sipClass_%C,NULL);\n"
 		,classFQCName(cd));
 }
 
@@ -3560,7 +3558,7 @@ static int generateObjToCppConversion(argDef *ad,FILE *fp)
 			 * Note that we don't support /Transfer/ but could do.
 			 */
 
-			prcode(fp, "sipCheckConvertToMappedType(sipPy,sipMappedType_%T,NULL,%s,&sipValState,&sipIsErr)", ad, (ad->nrderefs ? "0" : "SIP_NOT_NONE"));
+			prcode(fp, "sipForceConvertToMappedType(sipPy,sipMappedType_%T,NULL,%s,%s,&sipIsErr)", ad, (ad->nrderefs ? "0" : "SIP_NOT_NONE"), (ad->nrderefs ? "NULL" : "&sipValState"));
 
 			prcode(fp, "%s;\n"
 				, tail);
@@ -3593,7 +3591,7 @@ static int generateObjToCppConversion(argDef *ad,FILE *fp)
 			 * also supported it for all types).
 			 */
 
-			prcode(fp, "sipCheckConvertToInstance(sipPy,sipClass_%C,NULL,%s,%s,&sipIsErr)", classFQCName(ad->u.cd), (ad->nrderefs ? "0" : "SIP_NOT_NONE"), (might_be_temp ? "&sipValState" : "NULL"));
+			prcode(fp, "sipForceConvertToInstance(sipPy,sipClass_%C,NULL,%s,%s,&sipIsErr)", classFQCName(ad->u.cd), (ad->nrderefs ? "0" : "SIP_NOT_NONE"), (might_be_temp ? "&sipValState" : "NULL"));
 
 			prcode(fp, "%s;\n"
 				, tail);
@@ -5768,11 +5766,11 @@ static void generateTupleBuilder(signatureDef *sd,FILE *fp)
 			break;
 
 		case mapped_type:
-			fmt = "T";
+			fmt = "D";
 			break;
 
 		case class_type:
-			fmt = (ad -> u.cd -> subbase != NULL ? "M" : "O");
+			fmt = "C";
 			break;
 
 		case rxcon_type:
@@ -5850,9 +5848,9 @@ static void generateTupleBuilder(signatureDef *sd,FILE *fp)
 				prcode(fp,")");
 
 			if (ad -> atype == mapped_type)
-				prcode(fp,",sipConvertFromTransfer_%T",ad);
+				prcode(fp, ",sipMappedType_%T,%s", ad, (isTransferredBack(ad) ? "Py_None" : "NULL"));
 			else if (ad -> atype == class_type)
-				prcode(fp,",sipClass_%C",classFQCName(ad -> u.cd));
+				prcode(fp, ",sipClass_%C", classFQCName(ad->u.cd), (isTransferredBack(ad) ? "Py_None" : "NULL"));
 			else
 				prcode(fp,",sipClass_QObject");
 		}
@@ -6027,9 +6025,7 @@ static void generateImportedMappedTypeHeader(mappedTypeDef *mtd,sipSpec *pt,
 "\n"
 "#define	sipMappedType_%T	sipModuleAPI_%s_%s->em_mappedtypes[%d]\n"
 "#define	sipForceConvertTo_%T	sipModuleAPI_%s_%s->em_mappedtypes[%d]->mt_fcto\n"
-"#define	sipConvertFromTransfer_%T	sipModuleAPI_%s_%s->em_mappedtypes[%d]->mt_cfrom\n"
-"#define	sipConvertFrom_%T(p)	sipConvertFromTransfer_%T((p),NULL)\n"
-		,&type,mname,imname,mtd -> mappednr
+"#define	sipConvertFrom_%T	sipModuleAPI_%s_%s->em_mappedtypes[%d]->mt_cfrom\n"
 		,&type,mname,imname,mtd -> mappednr
 		,&type,mname,imname,mtd -> mappednr
 		,&type,&type);
@@ -6055,11 +6051,9 @@ static void generateMappedTypeHeader(mappedTypeDef *mtd,int genused,FILE *fp)
 "\n"
 "#define	sipMappedType_%T	&sipMappedTypeDef_%T\n"
 "#define	sipForceConvertTo_%T	sipMappedTypeDef_%T.mt_fcto\n"
-"#define	sipConvertFromTransfer_%T	sipMappedTypeDef_%T.mt_cfrom\n"
-"#define	sipConvertFrom_%T(p)	sipConvertFromTransfer_%T((p),NULL)\n"
+"#define	sipConvertFrom_%T	sipMappedTypeDef_%T.mt_cfrom\n"
 "\n"
 "extern sipMappedType sipMappedTypeDef_%T;\n"
-		,&mtd -> type,&mtd -> type
 		,&mtd -> type,&mtd -> type
 		,&mtd -> type,&mtd -> type
 		,&mtd -> type,&mtd -> type
@@ -6932,10 +6926,17 @@ static void generateTypeDefinition(sipSpec *pt,classDef *cd,FILE *fp)
 "/* The main type data structure. */\n"
 "sipTypeDef sipType_%C = {\n"
 "	0,\n"
-"	%s,\n"
+"	" ,classFQCName(cd));
+
+	if (isAbstractClass(cd))
+	       prcode(fp, "SIP_TYPE_ABSTRACT");
+	else if (cd->subbase != NULL)
+	       prcode(fp, "SIP_TYPE_SCC");
+	else
+	       prcode(fp, "0");
+
+	prcode(fp, ",\n"
 "	\"%s.%P\",\n"
-		,classFQCName(cd)
-		,(isAbstractClass(cd) ? "SIP_TYPE_ABSTRACT" : "0")
 		,mname,cd -> ecd,cd -> pyname);
 
 	if (isRenamedClass(cd))
@@ -7980,15 +7981,15 @@ static void generateHandleResult(overDef *od,int isNew,char *prefix,FILE *fp)
 		if (res -> atype == mapped_type)
 		{
 			prcode(fp,
-"			PyObject *sipResObj = sipConvertFromTransfer_%T(",res);
+"			PyObject *sipResObj = sipConvertFromMappedType(");
 
 			if (isConstArg(res))
 				prcode(fp,"const_cast<%b *>(sipRes)",res);
 			else
 				prcode(fp,"sipRes");
 
-			prcode(fp,",%s);\n"
-				, isResultTransferredBack(od) ? "Py_None" : "NULL");
+			prcode(fp,",sipMappedType_%T,%s);\n"
+				, res, isResultTransferredBack(od) ? "Py_None" : "NULL");
 
 			if (isNew)
 				prcode(fp,
@@ -8013,7 +8014,7 @@ static void generateHandleResult(overDef *od,int isNew,char *prefix,FILE *fp)
 			if (isNew || isFactory(od))
 			{
 				prcode(fp,
-"			%s sipNewCppToSelf%s(",(nrvals == 1 ? prefix : "PyObject *sipResObj ="),(cd -> subbase != NULL ? "SubClass" : ""));
+"			%s sipConvertFromNewInstance(",(nrvals == 1 ? prefix : "PyObject *sipResObj ="));
 
 				if (isConstArg(res))
 					prcode(fp,"const_cast<%b *>(sipRes)",res);
@@ -8021,56 +8022,26 @@ static void generateHandleResult(overDef *od,int isNew,char *prefix,FILE *fp)
 					prcode(fp,"sipRes");
 
 				prcode(fp,",sipClass_%C,%s);\n"
-					,classFQCName(cd),((has_owner && isFactory(od)) ? "sipOwner" : "NULL"));
+					,classFQCName(cd),((has_owner && isFactory(od)) ? "(PyObject *)sipOwner" : "NULL"));
 
 				/*
 				 * Shortcut if this is the only value returned.
 				 */
 				if (nrvals == 1)
 					return;
-			}
-			else if (isResultTransferredBack(od))
-			{
-				prcode(fp,
-"			PyObject *sipResObj = sipMapCppToSelf%s(",(cd -> subbase != NULL ? "SubClass" : ""));
-
-				if (isConstArg(res))
-					prcode(fp,"const_cast<%b *>(sipRes)",res);
-				else
-					prcode(fp,"sipRes");
-
-				prcode(fp,",sipClass_%C);\n"
-					,classFQCName(cd));
-
-				prcode(fp,
-"			sipTransferBack(sipResObj);\n"
-					);
-
-				/*
-				 * Shortcut if this is the only value returned.
-				 */
-				if (nrvals == 1)
-				{
-					prcode(fp,
-"\n"
-"			%s sipResObj;\n"
-						,prefix);
-
-					return;
-				}
 			}
 			else
 			{
 				prcode(fp,
-"			%s sipMapCppToSelf%s(",(nrvals == 1 ? prefix : "PyObject *sipResObj ="),(cd -> subbase != NULL ? "SubClass" : ""));
+"			%s sipConvertFromInstance(",(nrvals == 1 ? prefix : "PyObject *sipResObj ="));
 
 				if (isConstArg(res))
 					prcode(fp,"const_cast<%b *>(sipRes)",res);
 				else
 					prcode(fp,"sipRes");
 
-				prcode(fp,",sipClass_%C);\n"
-					,classFQCName(cd));
+				prcode(fp, ",sipClass_%C,%s);\n"
+					, classFQCName(cd), (isResultTransferredBack(od) ? "Py_None" : "NULL"));
 
 				/*
 				 * Shortcut if this is the only value returned.
@@ -8120,9 +8091,9 @@ static void generateHandleResult(overDef *od,int isNew,char *prefix,FILE *fp)
 				prcode(fp,",a%d",a);
 
 				if (ad -> atype == mapped_type)
-					prcode(fp,",sipConvertFromTransfer_%T",ad);
+					prcode(fp, ",sipMappedType_%T,%s", ad, (isTransferredBack(ad) ? "Py_None" : "NULL"));
 				else if (ad -> atype == class_type)
-					prcode(fp,",sipClass_%C",classFQCName(ad -> u.cd));
+					prcode(fp, ",sipClass_%C", classFQCName(ad->u.cd), (isTransferredBack(ad) ? "Py_None" : "NULL"));
 				else if (ad -> atype == enum_type && ad -> u.ed -> fqcname != NULL)
 					prcode(fp,",sipEnum_%C",ad -> u.ed -> fqcname);
 			}
@@ -8149,49 +8120,10 @@ static void generateHandleResult(overDef *od,int isNew,char *prefix,FILE *fp)
 		vname = vnamebuf;
 	}
 
+	/* Mapped types and classes have already been handled by now. */
+
 	switch (ad -> atype)
 	{
-	case mapped_type:
-		prcode(fp,
-"			%s sipConvertFromTransfer_%T(",prefix,ad);
-
-		if (isConstArg(ad))
-			prcode(fp,"const_cast<%b *>(%s)",ad,vname);
-		else
-			prcode(fp,"%s",vname);
-
-		prcode(fp,",%s);\n"
-			, isResultTransferredBack(od) ? "Py_None" : "NULL");
-		break;
-
-	case class_type:
-		{
-			classDef *cd = ad -> u.cd;
-			int needNew = needNewInstance(ad);
-
-			if (needNew)
-				prcode(fp,
-"			%s sipNewCppToSelf(",prefix);
-			else
-				prcode(fp,
-"			%s sipMapCppToSelf%s(",prefix,(cd -> subbase != NULL ? "SubClass" : ""));
-
-			if (isConstArg(ad))
-				prcode(fp,"const_cast<%b *>(%s)",ad,vname);
-			else
-				prcode(fp,"%s",vname);
-
-			prcode(fp,",sipClass_%C",classFQCName(cd));
-
-			if (needNew)
-				prcode(fp,",NULL");
-
-			prcode(fp,");\n"
-				);
-		}
-
-		break;
-
 	case bool_type:
 	case cbool_type:
 		prcode(fp,
@@ -8332,13 +8264,13 @@ static char getBuildResultFormat(argDef *ad)
 	switch (ad -> atype)
 	{
 	case mapped_type:
-		return 'T';
+		return 'D';
 
 	case class_type:
 		if (needNewInstance(ad))
-			return 'P';
+			return 'B';
 
-		return (ad -> u.cd -> subbase != NULL) ? 'M' : 'O';
+		return 'C';
 
 	case bool_type:
 	case cbool_type:

@@ -37,11 +37,14 @@ v4.4 ???
     %MethodCode for non-abstract, virtual, protected methods must now call the
     sipProtectVirt wrapper (rather than sipProtect).
   - sipCanConvertToInstance(), sipConvertToInstance(),
-    sipCheckConvertToInstance(), sipReleaseInstance(),
+    sipForceConvertToInstance(), sipReleaseInstance(),
+    sipConvertFromInstance(), sipConvertFromNewInstance(),
     sipCanConvertToMappedType(), sipConvertToMappedType(),
-    sipCheckConvertToMappedType(), sipReleaseMappedType() and
-    sipFindMappedType() have been added to the SIP API.
+    sipForceConvertToMappedType(), sipReleaseMappedType(),
+    sipConvertFromMappedType() and sipFindMappedType() have been added to the
+    SIP API.
   - Added the 'C' and 'D' format characters to sipParseResult().
+  - Added the 'B', 'C' and 'D' format characters to sipBuildResult().
   - Responsibility for interpreting and implementing the /Transfer/ and
     /TransferBack/ annotations has been pushed down to %ConvertToTypeCode and
     %ConvertFromTypeCode.  The generated type convertors sipForceConvertTo_*()

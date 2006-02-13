@@ -731,10 +731,13 @@ typedef struct _sipAPIDef {
 	int (*api_can_convert_to_mapped_type)(PyObject *pyObj, sipMappedType *mt, int flags);
 	void *(*api_convert_to_instance)(PyObject *pyObj, sipWrapperType *type, PyObject *transferObj, int flags, int *statep, int *iserrp);
 	void *(*api_convert_to_mapped_type)(PyObject *pyObj, sipMappedType *mt, PyObject *transferObj, int flags, int *statep, int *iserrp);
-	void *(*api_check_convert_to_instance)(PyObject *pyObj, sipWrapperType *type, PyObject *transferObj, int flags, int *statep, int *iserrp);
-	void *(*api_check_convert_to_mapped_type)(PyObject *pyObj, sipMappedType *mt, PyObject *transferObj, int flags, int *statep, int *iserrp);
+	void *(*api_force_convert_to_instance)(PyObject *pyObj, sipWrapperType *type, PyObject *transferObj, int flags, int *statep, int *iserrp);
+	void *(*api_force_convert_to_mapped_type)(PyObject *pyObj, sipMappedType *mt, PyObject *transferObj, int flags, int *statep, int *iserrp);
 	void (*api_release_instance)(void *cpp, sipWrapperType *type, int state);
 	void (*api_release_mapped_type)(void *cpp, sipMappedType *mt, int state);
+	PyObject *(*api_convert_from_instance)(void *cpp, sipWrapperType *type, PyObject *transferObj);
+	PyObject *(*api_convert_from_new_instance)(void *cpp, sipWrapperType *type, PyObject *transferObj);
+	PyObject *(*api_convert_from_mapped_type)(void *cpp, sipMappedType *mt, PyObject *transferObj);
 	void *(*api_convert_to_cpp)(PyObject *sipSelf,sipWrapperType *type,int *iserrp);
 	int (*api_get_state)(PyObject *transferObj);
 	const sipMappedType *(*api_find_mapped_type)(const char *type);
@@ -758,8 +761,6 @@ typedef struct _sipAPIDef {
 	 */
 	PyObject *(*api_convert_from_named_enum)(int eval, PyTypeObject *et);
 	PyObject *(*api_convert_from_void_ptr)(void *val);
-	PyObject *(*api_map_cpp_to_self)(void *cppPtr, sipWrapperType *type);
-	PyObject *(*api_map_cpp_to_self_sub_class)(void *cppPtr, sipWrapperType *type);
 	void (*api_free_connection)(sipSlotConnection *conn);
 	int (*api_emit_to_slot)(sipSlot *slot, PyObject *sigargs);
 	int (*api_same_connection)(sipSlotConnection *conn, void *tx, const char *sig, PyObject *rxObj, const char *slot);
@@ -780,8 +781,6 @@ typedef struct _sipAPIDef {
 	void *(*api_get_cpp_ptr)(sipWrapper *w,sipWrapperType *type);
 	void *(*api_get_complex_cpp_ptr)(sipWrapper *w);
 	PyObject *(*api_is_py_method)(sip_gilstate_t *gil,sipMethodCache *pymc,sipWrapper *sipSelf,char *cname,char *mname);
-	PyObject *(*api_new_cpp_to_self)(void *cppPtr,sipWrapperType *type,sipWrapper *owner);
-	PyObject *(*api_new_cpp_to_self_sub_class)(void *cppPtr,sipWrapperType *type,sipWrapper *owner);
 	void (*api_call_hook)(char *hookname);
 	void (*api_start_thread)(void);
 	void (*api_end_thread)(void);
@@ -797,8 +796,8 @@ typedef struct _sipAPIDef {
 
 
 /*
- * These are flags that can be passed to sipCanGetCpp(), sipGetCpp() and
- * sipCheckGetCpp().
+ * These are flags that can be passed to sipCanConvertToInstance(),
+ * sipConvertToInstance() and sipForceConvertToInstance().
  */
 #define	SIP_NOT_NONE		0x01	/* Disallow None. */
 #define	SIP_NO_CONVERTORS	0x02	/* Disable any type convertors. */
@@ -831,8 +830,10 @@ typedef struct _sipAPIDef {
 
 
 #define	SIP_TYPE_ABSTRACT	0x01	/* If the type is abstract. */
+#define	SIP_TYPE_SCC		0x02	/* If the type is subject to sub-class convertors. */
 
 #define	sipTypeIsAbstract(wt)	((wt)->type->td_flags & SIP_TYPE_ABSTRACT)
+#define	sipTypeHasSCC(wt)	((wt)->type->td_flags & SIP_TYPE_SCC)
 
 
 #ifdef __cplusplus
