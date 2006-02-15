@@ -6768,7 +6768,7 @@ static void generateVariable(argDef *ad,int argnr,FILE *fp)
 		case class_type:
 			if (ad -> u.cd -> convtocode != NULL && !isConstrained(ad))
 				prcode(fp,
-"		int a%dState;\n"
+"		int a%dState = 0;\n"
 					,argnr);
 
 			if (isGetWrapper(ad))
@@ -6780,7 +6780,7 @@ static void generateVariable(argDef *ad,int argnr,FILE *fp)
 
 		case mapped_type:
 			prcode(fp,
-"		int a%dState;\n"
+"		int a%dState = 0;\n"
 				,argnr);
 			break;
 
