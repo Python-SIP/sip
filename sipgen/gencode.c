@@ -6028,7 +6028,7 @@ static void generateImportedMappedTypeHeader(mappedTypeDef *mtd,sipSpec *pt,
 "#define	sipConvertFrom_%T	sipModuleAPI_%s_%s->em_mappedtypes[%d]->mt_cfrom\n"
 		,&type,mname,imname,mtd -> mappednr
 		,&type,mname,imname,mtd -> mappednr
-		,&type,&type);
+		,&type,mname,imname,mtd -> mappednr);
 }
 
 
