@@ -1512,8 +1512,7 @@ list of ``QWidget`` instances::
 
             // Get the Python wrapper for the QWidget instance, creating a new
             // one if necessary, and handle any ownership transfer.
-            if ((wobj = sipBuildResult(NULL, "L", w, sipClass_QWidget,
-                                       sipTransferObj)) == NULL)
+            if ((wobj = sipConvertFromInstance(w, sipClass_QWidget, sipTransferObj)) == NULL)
             {
                 // There was an error so garbage collect the Python list.
                 Py_DECREF(l);
@@ -2289,15 +2288,19 @@ For example::
         // See if we are just being asked to check the type of the Python
         // object.
         if (sipIsErr == NULL)
-            return PyList_Check(sipPy);
-
-        // We map None to a 0 pointer.
-        if (sipPy == Py_None)
         {
-            *sipCppPtr = 0;
+            // Check it is a list.
+            if (!PyList_Check(sipPy))
+                return 0;
 
-            // There is nothing on the heap.
-            return 0;
+            // Now check each element of the list is of the type we expect.
+            // The template is for a pointer type so we don't disallow None.
+            for (int i = 0; i < PyList_GET_SIZE(sipPy); ++i)
+                if (!sipCanConvertToInstance(PyList_GET_ITEM(sipPy, i),
+                                             sipClass_Type, 0))
+                    return 0;
+
+            return 1;
         }
 
         // Create the instance on the heap.
@@ -2306,10 +2309,12 @@ For example::
         for (int i = 0; i < PyList_GET_SIZE(sipPy); ++i)
         {
             // Use the SIP API to convert the Python object to the
-            // corresponding C++ instance.
-            Type *t = reinterpret_cast<Type *>(sipForceConvertToTransfer_Type(
+            // corresponding C++ instance.  Note that we apply any ownership
+            // transfer to the list itself, not the individual elements.
+            Type *t = reinterpret_cast<Type *>(sipConvertToInstance(
                                                 PyList_GET_ITEM(sipPy, i),
-                                                sipIsErr, sipTransferObj));
+                                                sipClass_Type, 0, 0, 0,
+                                                sipIsErr));
 
             if (*sipIsErr)
             {
@@ -2327,15 +2332,11 @@ For example::
         // Return the instance on the heap.
         *sipCppPtr = ql;
 
-        // The result is a pointer to an instance on the heap.
-        return 1;
+        // Apply the normal transfer.
+        return sipGetState(sipTransferObj);
     %End
 
     %ConvertFromTypeCode
-        // Handle the case where the C++ instance is 0.
-        if (!sipCpp)
-            return PyList_New(0);
-
         PyObject *l;
 
         // Create the Python list of the correct length.
@@ -2349,7 +2350,7 @@ For example::
             Type *t = sipCpp -> at(i);
             PyObject *tobj;
 
-            if ((tobj = sipBuildResult(NULL, "M", t, sipClass_Type)) == NULL)
+            if ((tobj = sipConvertFromInstance(t, sipClass_Type, sipTransferObj)) == NULL)
             {
                 // There was an error so garbage collect the Python list.
                 Py_DECREF(l);

@@ -5850,7 +5850,7 @@ static void generateTupleBuilder(signatureDef *sd,FILE *fp)
 			if (ad -> atype == mapped_type)
 				prcode(fp, ",sipMappedType_%T,%s", ad, (isTransferredBack(ad) ? "Py_None" : "NULL"));
 			else if (ad -> atype == class_type)
-				prcode(fp, ",sipClass_%C", classFQCName(ad->u.cd), (isTransferredBack(ad) ? "Py_None" : "NULL"));
+				prcode(fp, ",sipClass_%C,%s", classFQCName(ad->u.cd), (isTransferredBack(ad) ? "Py_None" : "NULL"));
 			else
 				prcode(fp,",sipClass_QObject");
 		}
