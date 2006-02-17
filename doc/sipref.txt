@@ -3740,11 +3740,10 @@ PyObject \*sipConvertFromNewInstance(void \*cpp, sipWrapperType \*type, PyObject
     Convert a new C structure or a new C++ class instance to a Python class
     instance object.  *cpp* is the C/C++ instance.  *type* is the generated
     type corresponding to the C/C++ type.  *transferObj* controls the ownership
-    of the returned value.  If it is ``NULL`` and the instance has already been
-    wrapped then the ownership is unchanged.  If it is ``NULL`` or ``Py_None``
-    then ownership will be with Python.  Otherwise ownership will be with C/C++
-    and the instance associated with *transferObj*.  The Python class is
-    influenced by any applicable `%ConvertToSubClassCode`_ code.
+    of the returned value.  If it is ``NULL`` or ``Py_None`` then ownership
+    will be with Python.  Otherwise ownership will be with C/C++ and the
+    instance associated with *transferObj*.  The Python class is influenced by
+    any applicable `%ConvertToSubClassCode`_ code.
 
 
 sipConvertFromSequenceIndex()

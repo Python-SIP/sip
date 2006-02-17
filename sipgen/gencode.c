@@ -5848,9 +5848,9 @@ static void generateTupleBuilder(signatureDef *sd,FILE *fp)
 				prcode(fp,")");
 
 			if (ad -> atype == mapped_type)
-				prcode(fp, ",sipMappedType_%T,%s", ad, (isTransferredBack(ad) ? "Py_None" : "NULL"));
+				prcode(fp, ",sipMappedType_%T,NULL", ad);
 			else if (ad -> atype == class_type)
-				prcode(fp, ",sipClass_%C,%s", classFQCName(ad->u.cd), (isTransferredBack(ad) ? "Py_None" : "NULL"));
+				prcode(fp, ",sipClass_%C,NULL", classFQCName(ad->u.cd));
 			else
 				prcode(fp,",sipClass_QObject");
 		}
@@ -8120,10 +8120,56 @@ static void generateHandleResult(overDef *od,int isNew,char *prefix,FILE *fp)
 		vname = vnamebuf;
 	}
 
-	/* Mapped types and classes have already been handled by now. */
-
 	switch (ad -> atype)
 	{
+	case mapped_type:
+		prcode(fp,
+"			%s sipConvertFromMappedType(", prefix);
+
+		if (isConstArg(ad))
+			prcode(fp,"const_cast<%b *>(%s)",ad,vname);
+		else
+			prcode(fp,"%s",vname);
+
+		prcode(fp,",sipMappedType_%T,%s);\n"
+			, ad, (isTransferredBack(ad) ? "Py_None" : "NULL"));
+
+		prcode(fp,");\n"
+			);
+
+		break;
+
+	case class_type:
+		{
+			classDef *cd = ad -> u.cd;
+			int needNew = needNewInstance(ad);
+
+			if (needNew)
+				prcode(fp,
+"			%s sipConvertFromNewInstance(", prefix);
+			else
+				prcode(fp,
+"			%s sipConvertFromInstance(", prefix);
+
+			if (isConstArg(ad))
+				prcode(fp,"const_cast<%b *>(%s)",ad,vname);
+			else
+				prcode(fp,"%s",vname);
+
+			prcode(fp,",sipClass_%C,",classFQCName(cd));
+
+			if (needNew)
+				prcode(fp,"NULL");
+			else
+				prcode(fp,"%s\n"
+					, (isTransferredBack(ad) ? "Py_None" : "NULL"));
+
+			prcode(fp,");\n"
+				);
+		}
+
+		break;
+
 	case bool_type:
 	case cbool_type:
 		prcode(fp,
