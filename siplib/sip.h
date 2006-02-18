@@ -334,7 +334,8 @@ typedef enum {
 	mtype_sat,
 	mtypep_sat,
 	qvariant_sat,
-	qvariantp_sat
+	qvariantp_sat,
+	pyobject_sat
 } sipSigArgType;
 
 
@@ -462,8 +463,10 @@ typedef struct _sipExportedModuleDef {
  */
 typedef struct _sipQtAPI {
 	struct _sipWrapperType **qt_qobject;	/* The QObject type. */
+	void *(*qt_create_universal_signal_shortcut)(void *, const char *, const char **);
 	void *(*qt_create_universal_signal)(void *, const struct _sipSignature *);
 	int (*qt_need_universal_signal)(void *, const char *);
+	int (*qt_emit_signal_shortcut)(void *, const char *, PyObject *);
 	int (*qt_emit_signal)(void *, const struct _sipSignature *, PyObject *);
 	void *(*qt_create_universal_slot)(struct _sipWrapper *, struct _sipSlotConnection *, const char **);
 	void (*qt_destroy_universal_slot)(void *);
