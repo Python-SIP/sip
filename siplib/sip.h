@@ -463,9 +463,11 @@ typedef struct _sipExportedModuleDef {
  */
 typedef struct _sipQtAPI {
 	struct _sipWrapperType **qt_qobject;	/* The QObject type. */
+	int (*qt_is_qt_signal)(void *, const char *);
 	void *(*qt_create_universal_signal_shortcut)(void *, const char *, const char **);
 	void *(*qt_create_universal_signal)(void *, const struct _sipSignature *);
-	int (*qt_need_universal_signal)(void *, const char *);
+	void *(*qt_find_universal_signal_shortcut)(void *, const char *, const char **);
+	void *(*qt_find_universal_signal)(void *, const struct _sipSignature *);
 	int (*qt_emit_signal_shortcut)(void *, const char *, PyObject *);
 	int (*qt_emit_signal)(void *, const struct _sipSignature *, PyObject *);
 	void *(*qt_create_universal_slot)(struct _sipWrapper *, struct _sipSlotConnection *, const char **);

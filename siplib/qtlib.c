@@ -30,7 +30,8 @@ static char *sipStrdup(const char *);
 static int saveSlot(sipSlot *sp, PyObject *rxObj, const char *slot);
 static sipSignature *parseSignature(const char *sig);
 static void *createUniversalSlot(sipWrapper *txSelf, const char *sig, PyObject *rxObj, const char *slot, const char **member);
-static void *createUniversalSignal(void *txrx, const char **sig);
+static void *findSignal(void *txrx, const char **sig);
+static void *newSignal(void *txrx, const char **sig);
 
 
 // Return the most recent signal sender.
@@ -322,8 +323,8 @@ static sipSignature *parseSignature(const char *sig)
 }
 
 
-// Create a universal signal if one is needed.
-static void *createUniversalSignal(void *txrx, const char **sig)
+// Find an existing signal.
+static void *findSignal(void *txrx, const char **sig)
 {
 	sipSignature *psig;
 
@@ -331,7 +332,35 @@ static void *createUniversalSignal(void *txrx, const char **sig)
 	 * Handle the trivial case where the Qt implementation doesn't support
 	 * universal signals.
 	 */
-	if (sipQtSupport->qt_need_universal_signal == NULL)
+	if (sipQtSupport->qt_is_qt_signal == NULL)
+		return txrx;
+
+	/* See if this a shortcircuited Python signal. */
+	if (strchr(*sig, '(') == NULL)
+		return sipQtSupport->qt_find_universal_signal_shortcut(txrx, *sig, sig);
+
+	/* See if the existing object can be used itself. */
+	if (sipQtSupport->qt_is_qt_signal(txrx, *sig))
+		return txrx;
+
+	if ((psig = parseSignature(*sig)) == NULL)
+		return NULL;
+
+	/* Find an ordinary universal signal. */
+	return sipQtSupport->qt_find_universal_signal(txrx, psig);
+}
+
+
+// Return a usable signal, creating a new universal signal if needed.
+static void *newSignal(void *txrx, const char **sig)
+{
+	sipSignature *psig;
+
+	/*
+	 * Handle the trivial case where the Qt implementation doesn't support
+	 * universal signals.
+	 */
+	if (sipQtSupport->qt_is_qt_signal == NULL)
 		return txrx;
 
 	/* See if this a shortcircuited Python signal. */
@@ -339,7 +368,7 @@ static void *createUniversalSignal(void *txrx, const char **sig)
 		return sipQtSupport->qt_create_universal_signal_shortcut(txrx, *sig, sig);
 
 	/* See if the existing object can be used itself. */
-	if (!sipQtSupport->qt_need_universal_signal(txrx, *sig))
+	if (sipQtSupport->qt_is_qt_signal(txrx, *sig))
 		return txrx;
 
 	if ((psig = parseSignature(*sig)) == NULL)
@@ -752,15 +781,24 @@ static int isSameSlot(sipSlot *slot1,PyObject *rxobj2,const char *slot2)
 void *sipGetRx(sipWrapper *txSelf,const char *sigargs,PyObject *rxObj,
 	       const char *slot,const char **memberp)
 {
-	// ZZZ - this doesn't take account of universal signals.
 	if (slot != NULL)
 		if (isQtSlot(slot) || isQtSignal(slot))
 		{
+			void *rx;
+
 			*memberp = slot;
 
-			return sip_api_get_cpp_ptr((sipWrapper *)rxObj, sipQObjectClass);
+			if ((rx = sip_api_get_cpp_ptr((sipWrapper *)rxObj, sipQObjectClass)) == NULL)
+				return NULL;
+
+			if (isQtSignal(slot))
+				rx = findSignal(rx, memberp);
+
+			return rx;
 		}
 
+	// The slot was either a Python callable or PyQt3 Python signal so
+	// there should be a universal slot.
 	return sipQtSupport->qt_find_slot(sipGetAddress(txSelf), sigargs, rxObj, slot, memberp);
 }
 
@@ -784,7 +822,7 @@ void *sip_api_convert_rx(sipWrapper *txSelf,const char *sig,PyObject *rxObj,
 			return NULL;
 
 		if (isQtSignal(slot))
-			rx = createUniversalSignal(rx, memberp);
+			rx = newSignal(rx, memberp);
 
 		return rx;
 	}
@@ -811,7 +849,7 @@ PyObject *sip_api_connect_rx(PyObject *txObj,const char *sig,PyObject *rxObj,
 		if ((tx = sip_api_get_cpp_ptr(txSelf, sipQObjectClass)) == NULL)
 			return NULL;
 
-		if ((tx = createUniversalSignal(tx, &sig)) == NULL)
+		if ((tx = newSignal(tx, &sig)) == NULL)
 			return NULL;
 
 		if ((rx = sip_api_convert_rx(txSelf, sig, rxObj, slot, &member)) == NULL)
