@@ -12,6 +12,8 @@ v4.4 ???
   - C/C++ long and unsigned long types are now wrapped as Python long objects
     rather than Python integer objects.
   - C/C++ long long and unsigned long long types are now supported.
+  - unsigned short and unsigned int are now implemented as long objects instead
+    of integer objects.
   - Classes can now be declared using the /External/ annotation and be defined
     in another, unspecified, module.
   - /TransferThis/ can now be used in non-factory methods to change the
@@ -43,8 +45,8 @@ v4.4 ???
     sipForceConvertToMappedType(), sipReleaseMappedType(),
     sipConvertFromMappedType() and sipFindMappedType() have been added to the
     SIP API.
-  - Added the 'C' and 'D' format characters to sipParseResult().
-  - Added the 'B', 'C' and 'D' format characters to sipBuildResult().
+  - Added the 't', 'u', 'C' and 'D' format characters to sipParseResult().
+  - Added the 't', 'u', 'B', 'C' and 'D' format characters to sipBuildResult().
   - Responsibility for interpreting and implementing the /Transfer/ and
     /TransferBack/ annotations has been pushed down to %ConvertToTypeCode and
     %ConvertFromTypeCode.  The generated type convertors sipForceConvertTo_*()

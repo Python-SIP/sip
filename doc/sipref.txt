@@ -3544,6 +3544,12 @@ PyObject \*sipBuildResult(int \*iserr, char \*format, ...)
         Convert a C/C++ ``'\0'`` terminated string to a Python string.  If the
         string pointer is ``NULL`` then the result is ``Py_None``.
 
+    ``t`` (long) [unsigned short]
+        Convert a C/C++ ``unsigned short`` to a Python long.
+
+    ``u`` (long) [unsigned int]
+        Convert a C/C++ ``unsigned int`` to a Python long.
+
     ``B`` (wrapped instance) [*type* \*, sipWrapperType \*, PyObject \*]
         Convert a new C structure or a new C++ class instance to a Python class
         instance object.  Ownership of the structure or instance is determined
@@ -4044,6 +4050,12 @@ int sipParseResult(int \*iserr, PyObject \*method, PyObject \*result, char \*for
     ``s`` (string) [char \*\*]
         Convert a Python string to a C/C++ ``'\0'`` terminated string.  If the
         Python object is ``Py_None`` then the string is ``NULL``.
+
+    ``t`` (long) [unsigned short \*]
+        Convert a Python long to a C/C++ ``unsigned short``.
+
+    ``u`` (long) [unsigned int \*]
+        Convert a Python long to a C/C++ ``unsigned int``.
 
     ``Cf`` (wrapped class) [sipWrapperType \*, int \*, void \*\*]
         Convert a Python object to a C structure or a C++ class instance and

@@ -1173,6 +1173,11 @@ static PyObject *buildObject(PyObject *obj,char *fmt,va_list va)
 
 			break;
 
+		case 't':
+		case 'u':
+			el = PyLong_FromUnsignedLong(va_arg(va, unsigned));
+			break;
+
 		case 'B':
 			{
 				void *p = va_arg(va,void *);
@@ -1432,6 +1437,18 @@ static int sip_api_parse_result(int *isErr,PyObject *method,PyObject *res,char *
 
 				break;
 
+			case 't':
+				{
+					unsigned short v = PyLong_AsUnsignedLong(arg);
+
+					if (PyErr_Occurred())
+						invalid = TRUE;
+					else
+						*va_arg(va,unsigned short *) = v;
+				}
+
+				break;
+
 			case 'i':
 				{
 					int v = PyInt_AsLong(arg);
@@ -1440,6 +1457,18 @@ static int sip_api_parse_result(int *isErr,PyObject *method,PyObject *res,char *
 						invalid = TRUE;
 					else
 						*va_arg(va,int *) = v;
+				}
+
+				break;
+
+			case 'u':
+				{
+					unsigned v = PyLong_AsUnsignedLong(arg);
+
+					if (PyErr_Occurred())
+						invalid = TRUE;
+					else
+						*va_arg(va,unsigned *) = v;
 				}
 
 				break;
@@ -2316,6 +2345,20 @@ static int parsePass1(sipWrapper **selfp,int *selfargp,int *argsParsedp,
 				break;
 			}
 
+		case 'u':
+			{
+				/* Unsigned integer. */
+
+				unsigned v = PyLong_AsUnsignedLong(arg);
+
+				if (PyErr_Occurred())
+					valid = PARSE_TYPE;
+				else
+					*va_arg(va, unsigned *) = v;
+
+				break;
+			}
+
 		case 'h':
 			{
 				/* Short integer. */
@@ -2326,6 +2369,20 @@ static int parsePass1(sipWrapper **selfp,int *selfargp,int *argsParsedp,
 					valid = PARSE_TYPE;
 				else
 					*va_arg(va,short *) = v;
+
+				break;
+			}
+
+		case 't':
+			{
+				/* Unsigned short integer. */
+
+				unsigned short v = PyLong_AsUnsignedLong(arg);
+
+				if (PyErr_Occurred())
+					valid = PARSE_TYPE;
+				else
+					*va_arg(va, unsigned short *) = v;
 
 				break;
 			}

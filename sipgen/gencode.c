@@ -3318,9 +3318,7 @@ static void generateVariableHandler(varDef *vd,FILE *fp)
 
 			/* Drop through. */
 
-		case ushort_type:
 		case short_type:
-		case uint_type:
 		case cint_type:
 		case int_type:
 			prcode(fp,
@@ -3334,6 +3332,8 @@ static void generateVariableHandler(varDef *vd,FILE *fp)
 				);
 			break;
 
+		case ushort_type:
+		case uint_type:
 		case ulong_type:
 			prcode(fp,
 "		sipPy = PyLong_FromUnsignedLong(sipVal);\n"
@@ -3638,7 +3638,7 @@ static int generateObjToCppConversion(argDef *ad,FILE *fp)
 		break;
 
 	case ushort_type:
-		fmt = "\tsipVal = (unsigned short)PyInt_AsLong(sipPy);\n";
+		fmt = "\tsipVal = (unsigned short)PyLong_AsUnsignedLong(sipPy);\n";
 		break;
 
 	case short_type:
@@ -3646,7 +3646,7 @@ static int generateObjToCppConversion(argDef *ad,FILE *fp)
 		break;
 
 	case uint_type:
-		fmt = "\tsipVal = (unsigned)PyInt_AsLong(sipPy);\n";
+		fmt = "\tsipVal = (unsigned)PyLong_AsUnsignedLong(sipPy);\n";
 		break;
 
 	case int_type:
@@ -5606,13 +5606,17 @@ static const char *getParseResultFormat(argDef *ad, int isres, int xfervh)
 		return ((ad -> u.ed -> fqcname != NULL) ? "E" : "e");
 
 	case ushort_type:
+		return "t";
+
 	case short_type:
 		return "h";
 
-	case uint_type:
 	case int_type:
 	case cint_type:
 		return "i";
+
+	case uint_type:
+		return "u";
 
 	case long_type:
 		return "l";
@@ -5698,6 +5702,13 @@ static void generateTupleBuilder(signatureDef *sd,FILE *fp)
 			break;
 
 		case uint_type:
+			if (isArraySize(ad))
+				arraylenarg = a;
+			else
+				fmt = "u";
+
+			break;
+
 		case int_type:
 			if (isArraySize(ad))
 				arraylenarg = a;
@@ -5707,6 +5718,13 @@ static void generateTupleBuilder(signatureDef *sd,FILE *fp)
 			break;
 
 		case ushort_type:
+			if (isArraySize(ad))
+				arraylenarg = a;
+			else
+				fmt = "t";
+
+			break;
+
 		case short_type:
 			if (isArraySize(ad))
 				arraylenarg = a;
@@ -5874,7 +5892,7 @@ static void generateTupleBuilder(signatureDef *sd,FILE *fp)
 			{
 				argType astype = sd -> args[arraylenarg].atype;
 
-				prcode(fp,",%sa%d",(astype == int_type || astype == uint_type ? "" : "(int)"),arraylenarg);
+				prcode(fp,",%sa%d",(astype == int_type ? "" : "(int)"),arraylenarg);
 			}
 			else if (ad -> atype == enum_type && ad -> u.ed -> fqcname != NULL)
 				prcode(fp,",sipEnum_%C",ad -> u.ed -> fqcname);
@@ -8214,9 +8232,7 @@ static void generateHandleResult(overDef *od,int isNew,char *prefix,FILE *fp)
 
 		/* Drop through. */
 
-	case ushort_type:
 	case short_type:
-	case uint_type:
 	case int_type:
 	case cint_type:
 		prcode(fp,
@@ -8232,6 +8248,8 @@ static void generateHandleResult(overDef *od,int isNew,char *prefix,FILE *fp)
 
 		break;
 
+	case ushort_type:
+	case uint_type:
 	case ulong_type:
 		prcode(fp,
 "			%s PyLong_FromUnsignedLong(%s);\n"
@@ -8333,14 +8351,18 @@ static char getBuildResultFormat(argDef *ad)
 	case enum_type:
 		return (ad -> u.ed -> fqcname != NULL) ? 'E' : 'e';
 
-	case ushort_type:
 	case short_type:
 		return 'h';
 
-	case uint_type:
+	case ushort_type:
+		return 't';
+
 	case int_type:
 	case cint_type:
 		return 'i';
+
+	case uint_type:
+		return 'u';
 
 	case long_type:
 		return 'l';
@@ -9082,10 +9104,15 @@ static int generateArgParser(sipSpec *pt, signatureDef *sd, classDef *cd,
 			fmt = "Xb";
 			break;
 
-		case uint_type:
 		case int_type:
 			if (!isArraySize(ad))
 				fmt = "i";
+
+			break;
+
+		case uint_type:
+			if (!isArraySize(ad))
+				fmt = "u";
 
 			break;
 
@@ -9093,10 +9120,15 @@ static int generateArgParser(sipSpec *pt, signatureDef *sd, classDef *cd,
 			fmt = "Xi";
 			break;
 
-		case ushort_type:
 		case short_type:
 			if (!isArraySize(ad))
 				fmt = "h";
+
+			break;
+
+		case ushort_type:
+			if (!isArraySize(ad))
+				fmt = "t";
 
 			break;
 
