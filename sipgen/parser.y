@@ -3785,7 +3785,7 @@ static void newVar(sipSpec *pt,moduleDef *mod,char *name,int isstatic,
 	var -> setcode = scode;
 	var -> next = pt -> vars;
 
-	if (isstatic || escope->iff->type == namespace_iface)
+	if (isstatic || (escope != NULL && escope->iff->type == namespace_iface))
 		setIsStaticVar(var);
 
 	pt -> vars = var;
