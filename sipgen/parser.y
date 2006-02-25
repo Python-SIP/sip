@@ -573,7 +573,22 @@ namespace:	TK_NAMESPACE TK_NAME {
 				sectionFlags = 0;
 			}
 		} '{' nsbody '}' ';' {
-			/* Remove the namespace name. */
+			if (inMainModule())
+			{
+				classDef *ns = currentScope();
+
+				if (!isUsedName(ns->iff->name))
+				{
+					varDef *vd;
+
+					for (vd = currentSpec->vars; vd != NULL; vd = vd->next)
+						if (vd->ecd == ns)
+						{
+							setIsUsedName(ns->iff->name);
+							break;
+						}
+				}
+			}
 
 			if (notSkipping())
 				popScope();
@@ -3770,7 +3785,7 @@ static void newVar(sipSpec *pt,moduleDef *mod,char *name,int isstatic,
 	var -> setcode = scode;
 	var -> next = pt -> vars;
 
-	if (isstatic)
+	if (isstatic || escope->iff->type == namespace_iface)
 		setIsStaticVar(var);
 
 	pt -> vars = var;

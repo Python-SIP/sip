@@ -59,7 +59,7 @@ static void generateMappedTypeCpp(mappedTypeDef *,FILE *);
 static void generateImportedMappedTypeHeader(mappedTypeDef *mtd,sipSpec *pt,
 					     FILE *fp);
 static void generateMappedTypeHeader(mappedTypeDef *,int,FILE *);
-static void generateClassCpp(classDef *,sipSpec *,FILE *);
+static void generateClassCpp(classDef *cd, int full, sipSpec *pt, FILE *fp);
 static void generateImportedClassHeader(classDef *cd,sipSpec *pt,FILE *fp);
 static void generateClassTableEntries(nodeDef *,FILE *);
 static void generateClassHeader(classDef *,int,sipSpec *,FILE *);
@@ -836,7 +836,7 @@ static void generateCpp(sipSpec *pt,char *codeDir,char *srcSuffix,int *parts)
 				);
 
 			generateCppCodeBlock(cd->hdrcode, fp);
-			generateTypeDefinition(pt, cd, FALSE, fp);
+			generateClassCpp(cd, FALSE, pt, fp);
 
 			namespace_extenders = TRUE;
 
@@ -2713,7 +2713,7 @@ static void generateIfaceCpp(sipSpec *pt,ifaceFileDef *iff,char *codeDir,
 					,cmname,cd -> ecd -> iff -> fqcname);
 
 			if (!isExternal(cd))
-				generateClassCpp(cd,pt,fp);
+				generateClassCpp(cd, TRUE, pt, fp);
 		}
 
 	for (mtd = pt -> mappedtypes; mtd != NULL; mtd = mtd -> next)
@@ -2823,7 +2823,7 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd,FILE *fp)
 /*
  * Generate the C++ code for a class.
  */
-static void generateClassCpp(classDef *cd,sipSpec *pt,FILE *fp)
+static void generateClassCpp(classDef *cd,int full,sipSpec *pt,FILE *fp)
 {
 	varDef *vd;
 
@@ -2864,7 +2864,7 @@ static void generateClassCpp(classDef *cd,sipSpec *pt,FILE *fp)
 		generateConvertToDefinitions(NULL,cd,fp);
 
 	/* The type definition structure. */
-	generateTypeDefinition(pt, cd, TRUE, fp);
+	generateTypeDefinition(pt, cd, full, fp);
 }
 
 
