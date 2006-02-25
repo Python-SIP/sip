@@ -263,7 +263,7 @@ static int parsePass2(sipWrapper *self,int selfarg,int nrargs,
 		      PyObject *sipArgs,char *fmt,va_list va);
 static int getSelfFromArgs(sipWrapperType *type,PyObject *args,int argnr,
 			   sipWrapper **selfp);
-static PyObject *createEnumMember(sipWrapperType *wt, sipEnumMemberDef *enm);
+static PyObject *createEnumMember(sipTypeDef *td, sipEnumMemberDef *enm);
 static PyObject *handleGetLazyAttr(PyObject *nameobj,sipWrapperType *wt,
 				   sipWrapper *w);
 static int handleSetLazyAttr(PyObject *nameobj,PyObject *valobj,
@@ -272,7 +272,7 @@ static int getNonStaticVariables(sipWrapperType *wt,sipWrapper *w,
 				 PyObject **ndict);
 static void findLazyAttr(sipWrapperType *wt,char *name,PyMethodDef **pmdp,
 			 sipEnumMemberDef **enmp,PyMethodDef **vmdp,
-			 sipWrapperType **in);
+			 sipTypeDef **in);
 static int compareMethodName(const void *key,const void *el);
 static int compareEnumMemberName(const void *key,const void *el);
 static int checkPointer(void *ptr);
@@ -811,6 +811,30 @@ static int sip_api_export_module(sipExportedModuleDef *client,
 					break;
 				}
 			}
+		}
+	}
+
+	/* Append any namespace extenders to the original one. */
+	if (client->em_nsextend != NULL)
+	{
+		sipNamespaceExtenderDef *ne = client->em_nsextend;
+
+		while (ne->ne_extender != NULL)
+		{
+			sipWrapperType *wt;
+			sipTypeDef **tail;
+
+			ne->ne_extender->td_module = client;
+
+			wt = getClassType(&ne->ne_class, client);
+			tail = &wt->type->td_nsextend;
+
+			while (*tail != NULL)
+				tail = &(*tail)->td_nsextend;
+
+			*tail = ne->ne_extender;
+
+			++ne;
 		}
 	}
 
@@ -3345,7 +3369,7 @@ static PyObject *handleGetLazyAttr(PyObject *nameobj,sipWrapperType *wt,
 	char *name;
 	PyMethodDef *pmd, *vmd;
 	sipEnumMemberDef *enm;
-	sipWrapperType *in;
+	sipTypeDef *in;
 
 	/* If it was an error, propagate it. */
 	if (!PyErr_ExceptionMatches(PyExc_AttributeError))
@@ -3401,12 +3425,12 @@ static PyObject *handleGetLazyAttr(PyObject *nameobj,sipWrapperType *wt,
 /*
  * Create a Python object for an enum member.
  */
-static PyObject *createEnumMember(sipWrapperType *wt, sipEnumMemberDef *enm)
+static PyObject *createEnumMember(sipTypeDef *td, sipEnumMemberDef *enm)
 {
-	if (enm -> em_enum < 0)
-		return PyInt_FromLong(enm -> em_val);
+	if (enm->em_enum < 0)
+		return PyInt_FromLong(enm->em_val);
 
-	return sip_api_convert_from_named_enum(enm -> em_val, wt -> type -> td_module -> em_enums[enm -> em_enum]);
+	return sip_api_convert_from_named_enum(enm->em_val, td->td_module->em_enums[enm->em_enum]);
 }
 
 
@@ -3433,41 +3457,49 @@ PyObject *sip_api_convert_from_named_enum(int eval, PyTypeObject *et)
  */
 static void findLazyAttr(sipWrapperType *wt,char *name,PyMethodDef **pmdp,
 			 sipEnumMemberDef **enmp,PyMethodDef **vmdp,
-			 sipWrapperType **in)
+			 sipTypeDef **in)
 {
-	sipTypeDef *td;
+	sipTypeDef *td, *nsx;
 	sipEncodedClassDef *sup;
-
-	/* Assume it will be found in this type. */
-	if (in != NULL)
-		*in = wt;
 
 	/* The base type doesn't have any type information. */
 	if ((td = wt -> type) == NULL)
 		return;
 
-	/* Try the methods. */
-	if (td -> td_nrmethods > 0 &&
-	    (*pmdp = (PyMethodDef *)bsearch(name,td -> td_methods,td -> td_nrmethods,sizeof (PyMethodDef),compareMethodName)) != NULL)
-		return;
+	nsx = td;
 
-	/* Try the enum members. */
-	if (td -> td_nrenummembers > 0 &&
-	    (*enmp = (sipEnumMemberDef *)bsearch(name,td -> td_enummembers,td -> td_nrenummembers,sizeof (sipEnumMemberDef),compareEnumMemberName)) != NULL)
-		return;
-
-	/* Try the variables.  Note, these aren't sorted. */
-	if (td -> td_variables != NULL)
+	do
 	{
-		PyMethodDef *md;
+		/* Assume it will be found in this type. */
+		if (in != NULL)
+			*in = nsx;
 
-		for (md = td -> td_variables; md -> ml_name != NULL; ++md)
-			if (strcmp(name,md -> ml_name) == 0)
-			{
-				*vmdp = md;
-				return;
-			}
+		/* Try the methods. */
+		if (nsx->td_nrmethods > 0 &&
+		    (*pmdp = (PyMethodDef *)bsearch(name, nsx->td_methods, nsx->td_nrmethods, sizeof (PyMethodDef), compareMethodName)) != NULL)
+			return;
+
+		/* Try the enum members. */
+		if (nsx->td_nrenummembers > 0 &&
+		    (*enmp = (sipEnumMemberDef *)bsearch(name, nsx->td_enummembers, nsx->td_nrenummembers, sizeof (sipEnumMemberDef), compareEnumMemberName)) != NULL)
+			return;
+
+		/* Try the variables.  Note, these aren't sorted. */
+		if (nsx->td_variables != NULL)
+		{
+			PyMethodDef *md;
+
+			for (md = nsx->td_variables; md->ml_name != NULL; ++md)
+				if (strcmp(name, md->ml_name) == 0)
+				{
+					*vmdp = md;
+					return;
+				}
+		}
+
+		nsx = nsx->td_nsextend;
 	}
+	while (nsx != NULL);
 
 	/* Check the base classes. */
 	if ((sup = td -> td_supers) != NULL)
@@ -5400,47 +5432,13 @@ static PyObject *sipWrapperType_getattro(PyObject *obj,PyObject *name)
 
 	if (strcmp(nm,"__dict__") == 0)
 	{
-		int i;
 		sipTypeDef *td;
-		sipEnumMemberDef *enm;
 		PyObject *dict, *copy;
-		PyMethodDef *pmd;
 
 		dict = wt -> super.type.tp_dict;
 
 		/* The base type doesn't have any type information. */
 		if ((td = wt -> type) == NULL)
-		{
-			Py_INCREF(dict);
-			return dict;
-		}
-
-		/*
-		 * Add the type's lazy enums.  It doesn't matter if they are
-		 * already there.
-		 */
-		enm = td -> td_enummembers;
-
-		for (i = 0; i < td -> td_nrenummembers; ++i)
-		{
-			int rc;
-			PyObject *val;
-
-			if ((val = createEnumMember(wt, enm)) == NULL)
-				return NULL;
-
-			rc = PyDict_SetItemString(dict,enm -> em_name,val);
-
-			Py_DECREF(val);
-
-			if (rc < 0)
-				return NULL;
-
-			++enm;
-		}
-
-		/* If there are no lazy methods or variables then that's it. */
-		if (td -> td_nrmethods == 0 && td -> td_variables == NULL)
 		{
 			Py_INCREF(dict);
 			return dict;
@@ -5454,61 +5452,95 @@ static PyObject *sipWrapperType_getattro(PyObject *obj,PyObject *name)
 		if ((copy = PyDict_Copy(dict)) == NULL)
 			return NULL;
 
-		/* Do the methods. */
-		pmd = td -> td_methods;
-
-		for (i = 0; i < td -> td_nrmethods; ++i)
+		do
 		{
-			int rc;
-			PyObject *meth;
+			int i;
+			sipEnumMemberDef *enm;
+			PyMethodDef *pmd;
 
-			if ((meth = PyCFunction_New(pmd,NULL)) == NULL)
+			/* Do the type's lazy enums. */
+			enm = td->td_enummembers;
+
+			for (i = 0; i < td->td_nrenummembers; ++i)
 			{
-				Py_DECREF(copy);
-				return NULL;
+				int rc;
+				PyObject *val;
+
+				if ((val = createEnumMember(td, enm)) == NULL)
+					return NULL;
+
+				rc = PyDict_SetItemString(copy, enm->em_name, val);
+
+				Py_DECREF(val);
+
+				if (rc < 0)
+					return NULL;
+
+				++enm;
 			}
 
-			rc = PyDict_SetItemString(copy,pmd -> ml_name,meth);
+			/* Do the methods. */
+			pmd = td->td_methods;
 
-			Py_DECREF(meth);
-
-			if (rc < 0)
+			for (i = 0; i < td->td_nrmethods; ++i)
 			{
-				Py_DECREF(copy);
-				return NULL;
-			}
+				int rc;
+				PyObject *meth;
 
-			++pmd;
-		}
-
-		/* Do the static variables. */
-		if ((pmd = td -> td_variables) != NULL)
-			while (pmd -> ml_name != NULL)
-			{
-				if ((pmd -> ml_flags & METH_STATIC) != 0)
+				if ((meth = PyCFunction_New(pmd, NULL)) == NULL)
 				{
-					int rc;
-					PyObject *val;
+					Py_DECREF(copy);
+					return NULL;
+				}
 
-					if ((val = (*pmd -> ml_meth)(NULL,NULL)) == NULL)
-					{
-						Py_DECREF(copy);
-						return NULL;
-					}
+				rc = PyDict_SetItemString(copy, pmd->ml_name, meth);
 
-					rc = PyDict_SetItemString(copy,pmd -> ml_name,val);
+				Py_DECREF(meth);
 
-					Py_DECREF(val);
-
-					if (rc < 0)
-					{
-						Py_DECREF(copy);
-						return NULL;
-					}
+				if (rc < 0)
+				{
+					Py_DECREF(copy);
+					return NULL;
 				}
 
 				++pmd;
 			}
+
+			/* Do the static variables. */
+			if ((pmd = td->td_variables) != NULL)
+				while (pmd->ml_name != NULL)
+				{
+					if ((pmd->ml_flags & METH_STATIC) != 0)
+					{
+						int rc;
+						PyObject *val;
+
+						if ((val = (*pmd->ml_meth)(NULL, NULL)) == NULL)
+						{
+							Py_DECREF(copy);
+							return NULL;
+						}
+
+						rc = PyDict_SetItemString(copy, pmd->ml_name, val);
+
+						Py_DECREF(val);
+
+						if (rc < 0)
+						{
+							Py_DECREF(copy);
+							return NULL;
+						}
+					}
+
+					++pmd;
+				}
+
+			/*
+			 * Go on the the next if it is an extended namespace.
+			 */
+			td = td->td_nsextend;
+		}
+		while (td != NULL);
 
 		return copy;
 	}

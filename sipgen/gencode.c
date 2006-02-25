@@ -69,7 +69,7 @@ static void generateFunction(sipSpec *,memberDef *,overDef *,classDef *,
 			     classDef *,FILE *);
 static void generateFunctionBody(sipSpec *,overDef *,classDef *,classDef *,
 				 int deref,FILE *);
-static void generateTypeDefinition(sipSpec *,classDef *,FILE *);
+static void generateTypeDefinition(sipSpec *pt, classDef *cd, int full, FILE *fp);
 static void generateTypeInit(sipSpec *,classDef *,FILE *);
 static void generateCppCodeBlock(codeBlock *,FILE *);
 static void generateUsedIncludes(ifaceFileList *, int, FILE *);
@@ -722,6 +722,7 @@ static void generateCpp(sipSpec *pt,char *codeDir,char *srcSuffix,int *parts)
 	int is_inst_int, is_inst_long, is_inst_ulong, is_inst_longlong;
 	int is_inst_ulonglong, is_inst_double, is_inst_enum, nr_enummembers;
 	int hasexternal = FALSE, slot_extenders = FALSE, ctor_extenders = FALSE;
+	int namespace_extenders = FALSE;
 	FILE *fp;
 	moduleListDef *mld;
 	classDef *cd;
@@ -826,9 +827,21 @@ static void generateCpp(sipSpec *pt,char *codeDir,char *srcSuffix,int *parts)
 	/* Generate any class specific ctor or slot extenders. */
 	for (cd = pt->proxies; cd != NULL; cd = cd->next)
 	{
-		/* ZZZ - need to add support for namespace extenders. */
 		if (cd->iff->type == namespace_iface)
+		{
+			prcode(fp,
+"\n"
+"/* Extend the namespace. */\n"
+"\n"
+				);
+
+			generateCppCodeBlock(cd->hdrcode, fp);
+			generateTypeDefinition(pt, cd, FALSE, fp);
+
+			namespace_extenders = TRUE;
+
 			continue;
+		}
 
 		if (cd->ctors != NULL)
 		{
@@ -841,6 +854,34 @@ static void generateCpp(sipSpec *pt,char *codeDir,char *srcSuffix,int *parts)
 			generateSlot(pt, cd, NULL, md, fp);
 			slot_extenders = TRUE;
 		}
+	}
+
+	/* Generate any namespace extender table. */
+	if (namespace_extenders)
+	{
+		prcode(fp,
+"\n"
+"static sipNamespaceExtenderDef namespaceExtenders[] = {\n"
+			);
+
+		for (cd = pt->proxies; cd != NULL; cd = cd->next)
+		{
+			if (cd->iff->type != namespace_iface)
+				continue;
+
+			prcode(fp,
+"	{&sipType_%C, ", classFQCName(cd));
+
+			generateEncodedClass(pt, cd, 0, fp);
+
+			prcode(fp, "},\n"
+				);
+		}
+
+		prcode(fp,
+"	{NULL, {0, 0, 0}}\n"
+"};\n"
+			);
 	}
 
 	/* Generate any ctor extender table. */
@@ -1490,6 +1531,7 @@ static void generateCpp(sipSpec *pt,char *codeDir,char *srcSuffix,int *parts)
 "	%s,\n"
 "	%s,\n"
 "	%s,\n"
+"	%s,\n"
 "	NULL\n"
 "};\n"
 		,mname
@@ -1521,6 +1563,7 @@ static void generateCpp(sipSpec *pt,char *codeDir,char *srcSuffix,int *parts)
 		,(is_inst_enum ? "enumInstances" : "NULL")
 		,(pt -> module -> license != NULL ? "&module_license" : "NULL")
 		,(pt -> module -> nrexceptions > 0 ? "exceptionsTable" : "NULL")
+		, (namespace_extenders ? "namespaceExtenders" : "NULL")
 		, (slot_extenders ? "slotExtenders" : "NULL")
 		, (ctor_extenders ? "initExtenders" : "NULL")
 		, (hasDelayedDtors(pt->module) ? "sipDelayedDtors" : "NULL"));
@@ -2821,7 +2864,7 @@ static void generateClassCpp(classDef *cd,sipSpec *pt,FILE *fp)
 		generateConvertToDefinitions(NULL,cd,fp);
 
 	/* The type definition structure. */
-	generateTypeDefinition(pt,cd,fp);
+	generateTypeDefinition(pt, cd, TRUE, fp);
 }
 
 
@@ -6858,9 +6901,9 @@ static void generateSimpleFunctionCall(fcallDef *fcd,FILE *fp)
 
 /*
  * Generate the type structure that contains all the information needed by the
- * metatype.
+ * metatype.  A sub-set of this is used to extend namespaces.
  */
-static void generateTypeDefinition(sipSpec *pt,classDef *cd,FILE *fp)
+static void generateTypeDefinition(sipSpec *pt, classDef *cd, int full, FILE *fp)
 {
 	char *mname = pt -> module -> name;
 	int is_slots, nr_methods, nr_enums;
@@ -6945,21 +6988,25 @@ static void generateTypeDefinition(sipSpec *pt,classDef *cd,FILE *fp)
 	prcode(fp,
 "\n"
 "\n"
-"/* The main type data structure. */\n"
-"sipTypeDef sipType_%C = {\n"
+"%ssipTypeDef sipType_%C = {\n"
 "	0,\n"
-"	" ,classFQCName(cd));
+"	", (full ? "" : "static "), classFQCName(cd));
 
 	if (isAbstractClass(cd))
-	       prcode(fp, "SIP_TYPE_ABSTRACT");
+	       prcode(fp, "SIP_TYPE_ABSTRACT,\n");
 	else if (cd->subbase != NULL)
-	       prcode(fp, "SIP_TYPE_SCC");
+	       prcode(fp, "SIP_TYPE_SCC,\n");
 	else
-	       prcode(fp, "0");
+	       prcode(fp, "0,\n");
 
-	prcode(fp, ",\n"
+	if (full)
+		prcode(fp,
 "	\"%s.%P\",\n"
-		,mname,cd -> ecd,cd -> pyname);
+			, mname, cd->ecd, cd->pyname);
+	else
+		prcode(fp,
+"	0,\n"
+			);
 
 	if (isRenamedClass(cd))
 		prcode(fp,
@@ -6967,7 +7014,7 @@ static void generateTypeDefinition(sipSpec *pt,classDef *cd,FILE *fp)
 			, classFQCName(cd));
 	else
 		prcode(fp,
-"	NULL,\n"
+"	0,\n"
 			);
 
 	prcode(fp,
@@ -7191,7 +7238,8 @@ static void generateTypeDefinition(sipSpec *pt,classDef *cd,FILE *fp)
 	else
 		prcode(fp,"0");
 
-	prcode(fp,"}\n"
+	prcode(fp,"},\n"
+"	0\n"
 "};\n"
 		);
 }
