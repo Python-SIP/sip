@@ -83,6 +83,7 @@ const				{return TK_CONST;}
 static				{return TK_STATIC;}
 true				{return TK_TRUE;}
 false				{return TK_FALSE;}
+NULL				{return TK_NULL;}
 typedef				{return TK_TYPEDEF;}
 namespace			{return TK_NAMESPACE;}
 operator			{return TK_OPERATOR;}

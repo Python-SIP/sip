@@ -138,7 +138,7 @@ static void generateEncodedClass(sipSpec *,classDef *,int,FILE *);
 static int generateArgParser(sipSpec *, signatureDef *, classDef *, ctorDef *,
 			     overDef *, int, FILE *);
 static void generateTry(throwArgs *,FILE *);
-static void generateCatch(throwArgs *,FILE *);
+static void generateCatch(throwArgs *ta, signatureDef *sd, FILE *fp);
 static void generateThrowSpecifier(throwArgs *,FILE *);
 static void generateSlot(sipSpec *pt, classDef *cd, enumDef *ed, memberDef *md, FILE *fp);
 static void generateCastZero(argDef *ad,FILE *fp);
@@ -7569,7 +7569,7 @@ static void generateTry(throwArgs *ta,FILE *fp)
 /*
  * Generate the catch block for a call.
  */
-static void generateCatch(throwArgs *ta,FILE *fp)
+static void generateCatch(throwArgs *ta, signatureDef *sd, FILE *fp)
 {
 	/*
 	 * Generate the block if there was no throw specifier, or a non-empty
@@ -7587,6 +7587,8 @@ static void generateCatch(throwArgs *ta,FILE *fp)
 "			catch (...)\n"
 "			{\n"
 				);
+
+			deleteTemps(sd, fp);
 
 			if (release_gil)
 				prcode(fp,
@@ -7613,6 +7615,8 @@ static void generateCatch(throwArgs *ta,FILE *fp)
 "			catch (%S &%s)\n"
 "			{\n"
 					,ename,(xd->cd != NULL || usedInCode(xd->raisecode, "sipExceptionRef")) ? "sipExceptionRef" : "");
+
+				deleteTemps(sd, fp);
 
 				if (xd->cd != NULL)
 				{
@@ -7730,7 +7734,7 @@ static void generateConstructorCall(classDef *cd,ctorDef *ct,int error_flag,
 		prcode(fp,");\n"
 			);
 
-		generateCatch(ct -> exceptions,fp);
+		generateCatch(ct->exceptions, &ct->pysig, fp);
 
 		if (release_gil || isReleaseGILCtor(ct))
 			prcode(fp,
@@ -8780,7 +8784,7 @@ static void generateFunctionCall(classDef *cd,classDef *ocd,overDef *od,
 		prcode(fp,";\n"
 			);
 
-		generateCatch(od -> exceptions,fp);
+		generateCatch(od->exceptions, &od->pysig, fp);
 
 		if (release_gil || isReleaseGIL(od))
 			prcode(fp,

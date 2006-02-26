@@ -343,7 +343,12 @@ class Makefile:
         if self._python:
             incdir.append(self.config.py_inc_dir)
 
-            if sys.platform == "win32":
+            if sys.platform == "cygwin":
+                libdir.append(self.config.py_lib_dir)
+
+                py_lib = "python%u.%u" % ((self.config.py_version >> 16), ((self.config.py_version >> 8) & 0xff))
+                libs.append(self.platform_lib(py_lib))
+            elif sys.platform == "win32":
                 libdir.append(self.config.py_lib_dir)
 
                 py_lib = "python%u%u" % ((self.config.py_version >> 16), ((self.config.py_version >> 8) & 0xff))
@@ -1293,6 +1298,8 @@ class ModuleMakefile(Makefile):
                 ext = "pyd"
             elif sys.platform == "darwin":
                 ext = "so"
+            elif sys.platform == "cygwin":
+                ext = "dll"
             else:
                 ext = self.optional_string("EXTENSION_PLUGIN")
                 if not ext:
@@ -1456,7 +1463,7 @@ class ProgramMakefile(Makefile):
         # The name of the executable.
         exe, ignore = os.path.splitext(source)
 
-        if sys.platform == "win32":
+        if sys.platform in ("win32", "cygwin"):
             exe = exe + ".exe"
 
         # The command line.
@@ -1548,7 +1555,7 @@ class ProgramMakefile(Makefile):
 
         target = self._build["target"]
 
-        if sys.platform == "win32":
+        if sys.platform in ("win32", "cygwin"):
             target = target + ".exe"
 
         mfile.write("TARGET = %s\n" % target)

@@ -196,6 +196,7 @@ static int sameName(scopedNameDef *snd, const char *sname);
 %token <qchar>		TK_QCHAR
 %token			TK_TRUE
 %token			TK_FALSE
+%token			TK_NULL
 %token			TK_OPERATOR
 %token			TK_THROW
 %token			TK_QOBJECT
@@ -1156,6 +1157,10 @@ simplevalue:	scopedname {
 			$$.u.vnum = 1;
 		}
 	|	TK_FALSE {
+			$$.vtype = numeric_value;
+			$$.u.vnum = 0;
+		}
+	|	TK_NULL {
 			$$.vtype = numeric_value;
 			$$.u.vnum = 0;
 		}
