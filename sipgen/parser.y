@@ -2562,6 +2562,10 @@ ifaceFileDef *findIfaceFile(sipSpec *pt, moduleDef *mod, scopedNameDef *fqname,
 			continue;
 		}
 
+		/* Ignore a namespace defined in another module. */
+		if (iftype == namespace_iface && iff->module != mod)
+			continue;
+
 		return iff;
 	}
 
@@ -2741,18 +2745,7 @@ static classDef *newClass(sipSpec *pt,ifaceFileType iftype,
 	/* Check it hasn't already been defined. */
 
 	if (cd -> iff -> module != NULL)
-	{
-		/* Namespaces can be defined any number of times. */
-		if (iftype == namespace_iface)
-		{
-			if (cd->iff->module != currentModule)
-				cd = getProxy(pt, cd);
-
-			return cd;
-		}
-
 		yyerror("The struct/class has already been defined");
-	}
 
 	cd -> iff -> module = currentModule;
 

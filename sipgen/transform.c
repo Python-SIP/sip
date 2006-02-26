@@ -59,6 +59,7 @@ static void moveGlobalSlot(sipSpec *pt, memberDef *gmd);
 static void filterVirtualHandlers(sipSpec *pt,moduleDef *mod);
 static ifaceFileDef *getIfaceFile(argDef *ad);
 static mappedTypeDef *instantiateMappedTypeTemplate(sipSpec *pt, moduleDef *mod, mappedTypeTmplDef *mtt, argDef *type);
+static classDef *getProxy(sipSpec *pt, classDef *cd);
 
 
 /*
@@ -524,7 +525,7 @@ static void moveGlobalSlot(sipSpec *pt, memberDef *gmd)
  * Create a proxy for a class if it doesn't already exist.  Proxies are used as
  * containers for cross-module extenders.
  */
-classDef *getProxy(sipSpec *pt, classDef *cd)
+static classDef *getProxy(sipSpec *pt, classDef *cd)
 {
 	classDef *pcd;
 

@@ -61,7 +61,7 @@ static void generateImportedMappedTypeHeader(mappedTypeDef *mtd,sipSpec *pt,
 static void generateMappedTypeHeader(mappedTypeDef *,int,FILE *);
 static void generateClassCpp(classDef *cd, int full, sipSpec *pt, FILE *fp);
 static void generateImportedClassHeader(classDef *cd,sipSpec *pt,FILE *fp);
-static void generateClassTableEntries(nodeDef *,FILE *);
+static void generateClassTableEntries(sipSpec *pt, nodeDef *nd, FILE *fp);
 static void generateClassHeader(classDef *,int,sipSpec *,FILE *);
 static void generateClassFunctions(sipSpec *,classDef *,FILE *);
 static void generateShadowCode(sipSpec *,classDef *,FILE *);
@@ -722,7 +722,6 @@ static void generateCpp(sipSpec *pt,char *codeDir,char *srcSuffix,int *parts)
 	int is_inst_int, is_inst_long, is_inst_ulong, is_inst_longlong;
 	int is_inst_ulonglong, is_inst_double, is_inst_enum, nr_enummembers;
 	int hasexternal = FALSE, slot_extenders = FALSE, ctor_extenders = FALSE;
-	int namespace_extenders = FALSE;
 	FILE *fp;
 	moduleListDef *mld;
 	classDef *cd;
@@ -827,22 +826,6 @@ static void generateCpp(sipSpec *pt,char *codeDir,char *srcSuffix,int *parts)
 	/* Generate any class specific ctor or slot extenders. */
 	for (cd = pt->proxies; cd != NULL; cd = cd->next)
 	{
-		if (cd->iff->type == namespace_iface)
-		{
-			prcode(fp,
-"\n"
-"/* Extend the namespace. */\n"
-"\n"
-				);
-
-			generateCppCodeBlock(cd->hdrcode, fp);
-			generateClassCpp(cd, FALSE, pt, fp);
-
-			namespace_extenders = TRUE;
-
-			continue;
-		}
-
 		if (cd->ctors != NULL)
 		{
 			generateTypeInit(pt, cd, fp);
@@ -856,34 +839,6 @@ static void generateCpp(sipSpec *pt,char *codeDir,char *srcSuffix,int *parts)
 		}
 	}
 
-	/* Generate any namespace extender table. */
-	if (namespace_extenders)
-	{
-		prcode(fp,
-"\n"
-"static sipNamespaceExtenderDef namespaceExtenders[] = {\n"
-			);
-
-		for (cd = pt->proxies; cd != NULL; cd = cd->next)
-		{
-			if (cd->iff->type != namespace_iface)
-				continue;
-
-			prcode(fp,
-"	{&sipType_%C, ", classFQCName(cd));
-
-			generateEncodedClass(pt, cd, 0, fp);
-
-			prcode(fp, "},\n"
-				);
-		}
-
-		prcode(fp,
-"	{NULL, {0, 0, 0}}\n"
-"};\n"
-			);
-	}
-
 	/* Generate any ctor extender table. */
 	if (ctor_extenders)
 	{
@@ -893,10 +848,6 @@ static void generateCpp(sipSpec *pt,char *codeDir,char *srcSuffix,int *parts)
 			);
 
 		for (cd = pt->proxies; cd != NULL; cd = cd->next)
-		{
-			if (cd->iff->type == namespace_iface)
-				continue;
-
 			if (cd->ctors != NULL)
 			{
 				prcode(fp,
@@ -907,7 +858,6 @@ static void generateCpp(sipSpec *pt,char *codeDir,char *srcSuffix,int *parts)
 				prcode(fp, ", NULL},\n"
 					);
 			}
-		}
 
 		prcode(fp,
 "	{NULL, {0, 0, 0}, NULL}\n"
@@ -945,10 +895,6 @@ static void generateCpp(sipSpec *pt,char *codeDir,char *srcSuffix,int *parts)
 		}
 
 		for (cd = pt->proxies; cd != NULL; cd = cd->next)
-		{
-			if (cd->iff->type == namespace_iface)
-				continue;
-
 			for (md = cd->members; md != NULL; md = md->next)
 			{
 				prcode(fp,
@@ -959,7 +905,6 @@ static void generateCpp(sipSpec *pt,char *codeDir,char *srcSuffix,int *parts)
 				prcode(fp, "},\n"
 				      );
 			}
-		}
 
 		prcode(fp,
 "	{NULL, (sipPySlotType)0, {0, 0, 0}}\n"
@@ -1015,7 +960,7 @@ static void generateCpp(sipSpec *pt,char *codeDir,char *srcSuffix,int *parts)
 "static sipWrapperType *typesTable[] = {\n"
 			);
 
-		generateClassTableEntries(&pt -> module -> root,fp);
+		generateClassTableEntries(pt, &pt->module->root, fp);
 
 		prcode(fp,
 "};\n"
@@ -1531,7 +1476,6 @@ static void generateCpp(sipSpec *pt,char *codeDir,char *srcSuffix,int *parts)
 "	%s,\n"
 "	%s,\n"
 "	%s,\n"
-"	%s,\n"
 "	NULL\n"
 "};\n"
 		,mname
@@ -1563,7 +1507,6 @@ static void generateCpp(sipSpec *pt,char *codeDir,char *srcSuffix,int *parts)
 		,(is_inst_enum ? "enumInstances" : "NULL")
 		,(pt -> module -> license != NULL ? "&module_license" : "NULL")
 		,(pt -> module -> nrexceptions > 0 ? "exceptionsTable" : "NULL")
-		, (namespace_extenders ? "namespaceExtenders" : "NULL")
 		, (slot_extenders ? "slotExtenders" : "NULL")
 		, (ctor_extenders ? "initExtenders" : "NULL")
 		, (hasDelayedDtors(pt->module) ? "sipDelayedDtors" : "NULL"));
@@ -1744,7 +1687,7 @@ static void generateCpp(sipSpec *pt,char *codeDir,char *srcSuffix,int *parts)
 /*
  * Generate an entry for a class in the classes table and all its children.
  */
-static void generateClassTableEntries(nodeDef *nd,FILE *fp)
+static void generateClassTableEntries(sipSpec *pt, nodeDef *nd, FILE *fp)
 {
 	nodeDef *cnd;
 
@@ -1756,12 +1699,12 @@ static void generateClassTableEntries(nodeDef *nd,FILE *fp)
 				);
 		else
 			prcode(fp,
-"	(sipWrapperType *)&sipType_%C,\n"
-				,classFQCName(nd -> cd));
+"	(sipWrapperType *)&sipType_%s_%C,\n"
+				, pt->module->name, classFQCName(nd->cd));
 
 	/* Generate all it's children. */
 	for (cnd = nd -> child; cnd != NULL; cnd = cnd -> next)
-		generateClassTableEntries(cnd,fp);
+		generateClassTableEntries(pt, cnd, fp);
 }
 
 
@@ -6018,10 +5961,6 @@ static void generateIfaceHeader(sipSpec *pt,ifaceFileDef *iff,char *codeDir)
 			genused = FALSE;
 		}
 
-	for (cd = pt->proxies; cd != NULL; cd = cd->next)
-		if (cd->iff == iff && iff->type == namespace_iface)
-			generateClassHeader(cd, FALSE, pt, fp);
-
 	genused = TRUE;
 
 	for (mtd = pt -> mappedtypes; mtd != NULL; mtd = mtd -> next)
@@ -6180,10 +6119,10 @@ static void generateClassHeader(classDef *cd,int genused,sipSpec *pt,FILE *fp)
 
 		if (!isExternal(cd))
 			prcode(fp,
-"#define	sipCast_%C	sipType_%C.td_cast\n"
-"#define	sipForceConvertTo_%C	sipType_%C.td_fcto\n"
-				,classFQCName(cd),classFQCName(cd)
-				,classFQCName(cd),classFQCName(cd));
+"#define	sipCast_%C	sipType_%s_%C.td_cast\n"
+"#define	sipForceConvertTo_%C	sipType_%s_%C.td_fcto\n"
+				, classFQCName(cd), mname, classFQCName(cd)
+				, classFQCName(cd), mname, classFQCName(cd));
 	}
 
 	generateEnumMacros(pt, cd, fp);
@@ -6191,8 +6130,8 @@ static void generateClassHeader(classDef *cd,int genused,sipSpec *pt,FILE *fp)
 	if (!isExternal(cd))
 		prcode(fp,
 "\n"
-"extern sipTypeDef sipType_%C;\n"
-			,classFQCName(cd));
+"extern sipTypeDef sipType_%s_%C;\n"
+			, mname, classFQCName(cd));
 
 	if (hasShadow(cd))
 		generateShadowClassDeclaration(pt,cd,fp);
@@ -6988,9 +6927,9 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, int full, FILE *fp
 	prcode(fp,
 "\n"
 "\n"
-"%ssipTypeDef sipType_%C = {\n"
+"sipTypeDef sipType_%s_%C = {\n"
 "	0,\n"
-"	", (full ? "" : "static "), classFQCName(cd));
+"	", mname, classFQCName(cd));
 
 	if (isAbstractClass(cd))
 	       prcode(fp, "SIP_TYPE_ABSTRACT,\n");
@@ -7238,8 +7177,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, int full, FILE *fp
 	else
 		prcode(fp,"0");
 
-	prcode(fp,"},\n"
-"	0\n"
+	prcode(fp,"}\n"
 "};\n"
 		);
 }

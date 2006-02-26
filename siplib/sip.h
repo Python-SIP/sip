@@ -214,15 +214,6 @@ typedef struct _sipInstancesDef {
 
 
 /*
- * The information describing a namespace extender.
- */
-typedef struct _sipNamespaceExtenderDef {
-	struct _sipTypeDef *ne_extender;	/* The extended type. */
-	sipEncodedClassDef ne_class;	/* The namespace being extended. */
-} sipNamespaceExtenderDef;
-
-
-/*
  * The information describing a type initialiser extender.
  */
 typedef struct _sipInitExtenderDef {
@@ -389,7 +380,6 @@ typedef struct _sipTypeDef {
 	sipConvertToFunc td_cto;	/* The convert to function. */
 	struct _sipQtSignal *td_emit;	/* Emit table for Qt signals. */
 	sipInstancesDef td_instances;	/* The static instances. */
-	struct _sipTypeDef *td_nsextend;	/* The extension list if this is a namespace. */
 } sipTypeDef;
 
 
@@ -461,7 +451,6 @@ typedef struct _sipExportedModuleDef {
 	sipInstancesDef em_instances;	/* The static instances. */
 	struct _sipLicenseDef *em_license;	/* The license. */
 	PyObject **em_exceptions;	/* The table of exception types. */
-	sipNamespaceExtenderDef *em_nsextend;	/* The table of namespace extenders. */
 	sipPySlotExtenderDef *em_slotextend;	/* The table of Python slot extenders. */
 	sipInitExtenderDef *em_initextend;	/* The table of initialiser extenders. */
 	void (*em_delayeddtors)(const sipDelayedDtor *);	/* The delayed dtor handler. */
