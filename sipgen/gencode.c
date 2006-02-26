@@ -8126,7 +8126,7 @@ static void generateHandleResult(overDef *od,int isNew,char *prefix,FILE *fp)
 				if (ad -> atype == mapped_type)
 					prcode(fp, ",sipMappedType_%T,%s", ad, (isTransferredBack(ad) ? "Py_None" : "NULL"));
 				else if (ad -> atype == class_type)
-					prcode(fp, ",sipClass_%C", classFQCName(ad->u.cd), (isTransferredBack(ad) ? "Py_None" : "NULL"));
+					prcode(fp, ",sipClass_%C,%s", classFQCName(ad->u.cd), (isTransferredBack(ad) ? "Py_None" : "NULL"));
 				else if (ad -> atype == enum_type && ad -> u.ed -> fqcname != NULL)
 					prcode(fp,",sipEnum_%C",ad -> u.ed -> fqcname);
 			}
