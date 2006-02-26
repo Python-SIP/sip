@@ -1166,6 +1166,10 @@ static void generateCpp(sipSpec *pt,char *codeDir,char *srcSuffix,int *parts)
 				sat = (td -> type.nrderefs == 0 ? "char" : "string");
 				break;
 
+			case sstring_type:
+				sat = (td -> type.nrderefs == 0 ? "schar" : "sstring");
+				break;
+
 			case ustring_type:
 				sat = (td -> type.nrderefs == 0 ? "uchar" : "ustring");
 				break;
@@ -2196,7 +2200,7 @@ static int generateChars(sipSpec *pt,classDef *cd,FILE *fp)
 		if (vd -> ecd != cd || vd -> module != pt -> module)
 			continue;
 
-		if (!((vtype == ustring_type || vtype == string_type) && vd -> type.nrderefs == 0))
+		if (!((vtype == sstring_type || vtype == ustring_type || vtype == string_type) && vd -> type.nrderefs == 0))
 			continue;
 
 		if (needsHandler(vd))
@@ -2255,7 +2259,7 @@ static int generateStrings(sipSpec *pt,classDef *cd,FILE *fp)
 		if (vd -> ecd != cd || vd -> module != pt -> module)
 			continue;
 
-		if (!((vtype == ustring_type || vtype == string_type) && vd -> type.nrderefs != 0))
+		if (!((vtype == sstring_type || vtype == ustring_type || vtype == string_type) && vd -> type.nrderefs != 0))
 			continue;
 
 		if (needsHandler(vd))
@@ -3173,7 +3177,7 @@ static void generateVariableHandler(varDef *vd,FILE *fp)
 
 		mod = vd -> type;
 
-		if ((atype == string_type || atype == ustring_type) && vd -> type.nrderefs == 0)
+		if ((atype == string_type || atype == sstring_type || atype == ustring_type) && vd -> type.nrderefs == 0)
 		{
 			ptr = "Ptr";
 			mod.nrderefs = 1;
@@ -3265,16 +3269,17 @@ static void generateVariableHandler(varDef *vd,FILE *fp)
 
 			break;
 
+		case sstring_type:
 		case ustring_type:
 		case string_type:
 			if (vd -> type.nrderefs == 0)
 				prcode(fp,
 "		sipPy = PyString_FromStringAndSize(%s&sipVal,1);\n"
-					,(atype == ustring_type) ? "(char *)" : "");
+					,(atype != string_type) ? "(char *)" : "");
 			else
 				prcode(fp,
 "		sipPy = PyString_FromString(%ssipVal);\n"
-					,(atype == ustring_type) ? "(char *)" : "");
+					,(atype != string_type) ? "(char *)" : "");
 
 			break;
 
@@ -3412,7 +3417,7 @@ static void generateVariableHandler(varDef *vd,FILE *fp)
 		}
 		else
 		{
-			if (atype == ustring_type || atype == string_type)
+			if (atype == sstring_type || atype == ustring_type || atype == string_type)
 			{
 				if (vd -> type.nrderefs == 0)
 					deref = "*";
@@ -3592,6 +3597,13 @@ static int generateObjToCppConversion(argDef *ad,FILE *fp)
 		prcode(fp,
 "	sipVal = (%E)PyInt_AsLong(sipPy);\n"
 			,ad -> u.ed);
+		break;
+
+	case sstring_type:
+		if (ad -> nrderefs == 0)
+			fmt = "\tsipValPtr = (signed char *)PyString_AsString(sipPy);\n";
+		else
+			fmt = "\tsipVal = (signed char *)PyString_AsString(sipPy);\n";
 		break;
 
 	case ustring_type:
@@ -5584,6 +5596,7 @@ static const char *getParseResultFormat(argDef *ad, int isres, int xfervh)
 	case cbool_type:
 		return "b";
 
+	case sstring_type:
 	case ustring_type:
 	case string_type:
 		return ((ad -> nrderefs == 0) ? "c" : "s");
@@ -5663,6 +5676,7 @@ static void generateTupleBuilder(signatureDef *sd,FILE *fp)
 
 		switch (ad -> atype)
 		{
+		case sstring_type:
 		case ustring_type:
 		case string_type:
 			if (ad -> nrderefs == 0 || (ad -> nrderefs == 1 && isOutArg(ad)))
@@ -5815,6 +5829,7 @@ static void generateTupleBuilder(signatureDef *sd,FILE *fp)
 
 		switch (ad -> atype)
 		{
+		case sstring_type:
 		case ustring_type:
 		case string_type:
 			if (!(ad -> nrderefs == 0 || (ad -> nrderefs == 1 && isOutArg(ad))))
@@ -6447,6 +6462,7 @@ static void generateSingleArg(argDef *ad,int argnr,funcArgType ftype,FILE *fp)
 		if (derefPtr)
 			switch (ad -> atype)
 			{
+			case sstring_type:
 			case ustring_type:
 			case string_type:
 				if (ad -> nrderefs > (isOutArg(ad) ? 0 : 1))
@@ -6531,6 +6547,10 @@ static void generateNamedBaseType(argDef *ad,char *name,FILE *fp)
 
 	switch (ad -> atype)
 	{
+	case sstring_type:
+		prcode(fp,"signed char");
+		break;
+
 	case ustring_type:
 		prcode(fp,"unsigned char");
 		break;
@@ -6722,6 +6742,7 @@ static void generateVariable(argDef *ad,int argnr,FILE *fp)
 
 	switch (atype)
 	{
+	case sstring_type:
 	case ustring_type:
 	case string_type:
 		if (!isReference(ad))
@@ -8186,12 +8207,13 @@ static void generateHandleResult(overDef *od,int isNew,char *prefix,FILE *fp)
 
 		break;
 
+	case sstring_type:
 	case ustring_type:
 	case string_type:
 		if (ad -> nrderefs == 0)
 			prcode(fp,
 "			%s PyString_FromStringAndSize(%s&%s,1);\n"
-				,prefix,(ad -> atype == ustring_type) ? "(char *)" : "",vname);
+				,prefix,(ad -> atype != string_type) ? "(char *)" : "",vname);
 		else
 			prcode(fp,
 "			if (%s == NULL)\n"
@@ -8202,7 +8224,7 @@ static void generateHandleResult(overDef *od,int isNew,char *prefix,FILE *fp)
 "\n"
 "			%s PyString_FromString(%s%s);\n"
 			,vname
-			,prefix,(ad -> atype == ustring_type) ? "(char *)" : "",vname);
+			,prefix,(ad -> atype != string_type) ? "(char *)" : "",vname);
 
 		break;
 
@@ -8330,6 +8352,7 @@ static char getBuildResultFormat(argDef *ad)
 	case cbool_type:
 		return 'b';
 
+	case sstring_type:
 	case ustring_type:
 	case string_type:
 		return (ad -> nrderefs > (isOutArg(ad) ? 1 : 0)) ? 's' : 'c';
@@ -9067,6 +9090,7 @@ static int generateArgParser(sipSpec *pt, signatureDef *sd, classDef *cd,
 
 		switch (ad -> atype)
 		{
+		case sstring_type:
 		case ustring_type:
 		case string_type:
 			if (ad -> nrderefs == 0 || (isOutArg(ad) && ad -> nrderefs == 1))

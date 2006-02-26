@@ -1105,9 +1105,10 @@ file.
     *base-type* ::= [*scoped-name* | *template* | ``struct`` *scoped-name* |
             ``short`` | ``unsigned short`` | ``int`` | ``unsigned`` |
             ``unsigned int`` | ``long`` | ``unsigned long`` | ``float`` |
-            ``double`` | ``bool`` | ``char`` | ``unsigned char`` | ``void`` |
-            SIP_PYCALLABLE_ | SIP_PYDICT_ | SIP_PYLIST_ | SIP_PYOBJECT_ |
-            SIP_PYSLICE_ | SIP_PYTUPLE_ | SIP_PYTYPE_]
+            ``double`` | ``bool`` | ``char`` | ``signed char`` |
+            ``unsigned char`` | ``void`` | SIP_PYCALLABLE_ | SIP_PYDICT_ |
+            SIP_PYLIST_ | SIP_PYOBJECT_ | SIP_PYSLICE_ | SIP_PYTUPLE_ |
+            SIP_PYTYPE_]
 
     *scoped-name* ::= *name* [``::`` *scoped-name*]
 

@@ -396,7 +396,8 @@ typedef enum {
 	longlong_type,
 	ulonglong_type,
 	anyslot_type,
-	cbool_type
+	cbool_type,
+	sstring_type
 } argType;
 
 

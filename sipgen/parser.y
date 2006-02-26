@@ -172,6 +172,7 @@ static int sameName(scopedNameDef *snd, const char *sname);
 %token			TK_PYTYPE
 %token			TK_VIRTUAL
 %token			TK_ENUM
+%token			TK_SIGNED
 %token			TK_UNSIGNED
 %token			TK_SCOPE
 %token			TK_LOGICAL_OR
@@ -2180,6 +2181,9 @@ basetype:	scopedname {
 		}
 	|	TK_BOOL {
 			$$.atype = bool_type;
+		}
+	|	TK_SIGNED TK_CHAR {
+			$$.atype = sstring_type;
 		}
 	|	TK_UNSIGNED TK_CHAR {
 			$$.atype = ustring_type;

@@ -77,6 +77,7 @@ double				{return TK_DOUBLE;}
 void				{return TK_VOID;}
 virtual				{return TK_VIRTUAL;}
 enum				{return TK_ENUM;}
+signed				{return TK_SIGNED;}
 unsigned			{return TK_UNSIGNED;}
 const				{return TK_CONST;}
 static				{return TK_STATIC;}

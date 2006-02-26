@@ -1,14 +1,16 @@
-v4.4 ???
+v4.4 ??? March 2006
   - The major number of the internal API has changed so it will be necessary
     to regenerate all modules.
   - This release introduces small incompatibilities that may affect handwritten
     code.  See the documentation for the details.
   - Module names specified with %Module and %CModule can now include periods to
     denote a Python package structure.
+  - Namespaces can be split across multiple Python modules.
   - Class templates are now supported and instantiated using "typedef".
   - Mapped type templates are now supported and instantiated automatically.
   - Global operators are now supported.
   - Operator casts in classes are now supported.
+  - C/C++ signed char type is now treated as a separate type to char.
   - C/C++ long and unsigned long types are now wrapped as Python long objects
     rather than Python integer objects.
   - C/C++ long long and unsigned long long types are now supported.

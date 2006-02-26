@@ -1452,9 +1452,13 @@ static void resolveVariableType(sipSpec *pt,varDef *vd)
 			bad = FALSE;
 		break;
 
+	case sstring_type:
 	case ustring_type:
 	case string_type:
-		/* (unsigned) char, (unsigned) char * are supported. */
+		/*
+		 * (signed/unsigned) char, (signed/unsigned) char * are
+		 * supported.
+		 */
 
 		if (!isReference(vtype) && vtype -> nrderefs <= 1)
 			bad = FALSE;
@@ -1556,6 +1560,7 @@ static int supportedType(classDef *cd,overDef *od,argDef *ad,int outputs)
 		ensureInput(cd,od,ad);
 		return TRUE;
 
+	case sstring_type:
 	case ustring_type:
 	case string_type:
 		if (isReference(ad))

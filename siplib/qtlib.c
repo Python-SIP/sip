@@ -270,6 +270,14 @@ static sipSignature *parseSignature(const char *sig)
 						sat = longlong_sat;
 					break;
 
+				case 11:
+					if (strncmp(dp, "signed char", 11) == 0)
+					{
+						sat = (indir ? sstring_sat : schar_sat);
+						unsup = (isref || indir > 1);
+					}
+					break;
+
 				case 12:
 					if (strncmp(dp, "unsigned int", 12) == 0)
 						sat = uint_sat;

@@ -335,7 +335,9 @@ typedef enum {
 	mtypep_sat,
 	qvariant_sat,
 	qvariantp_sat,
-	pyobject_sat
+	pyobject_sat,
+	schar_sat,
+	sstring_sat
 } sipSigArgType;
 
 
