@@ -106,6 +106,7 @@ static PyObject *sip_api_pyslot_extend(sipExportedModuleDef *mod,
 				       sipPySlotType st, sipWrapperType *type,
 				       PyObject *arg0, PyObject *arg1);
 static void sip_api_add_delayed_dtor(sipWrapper *w);
+static unsigned long sip_api_long_as_unsigned_long(PyObject *o);
 
 
 /*
@@ -152,6 +153,7 @@ static const sipAPIDef sip_api = {
 	sip_api_transfer_back,
 	sip_api_transfer_to,
 	sip_api_wrapper_check,
+	sip_api_long_as_unsigned_long,
 	/*
 	 * The following may be used by Qt support code but by no other
 	 * handwritten code.
@@ -1439,7 +1441,7 @@ static int sip_api_parse_result(int *isErr,PyObject *method,PyObject *res,char *
 
 			case 't':
 				{
-					unsigned short v = PyLong_AsUnsignedLong(arg);
+					unsigned short v = sip_api_long_as_unsigned_long(arg);
 
 					if (PyErr_Occurred())
 						invalid = TRUE;
@@ -1463,7 +1465,7 @@ static int sip_api_parse_result(int *isErr,PyObject *method,PyObject *res,char *
 
 			case 'u':
 				{
-					unsigned v = PyLong_AsUnsignedLong(arg);
+					unsigned v = sip_api_long_as_unsigned_long(arg);
 
 					if (PyErr_Occurred())
 						invalid = TRUE;
@@ -1487,7 +1489,7 @@ static int sip_api_parse_result(int *isErr,PyObject *method,PyObject *res,char *
 
 			case 'm':
 				{
-					unsigned long v = PyLong_AsUnsignedLong(arg);
+					unsigned long v = sip_api_long_as_unsigned_long(arg);
 
 					if (PyErr_Occurred())
 						invalid = TRUE;
@@ -1698,6 +1700,34 @@ static int sip_api_parse_result(int *isErr,PyObject *method,PyObject *res,char *
 		*isErr = TRUE;
 
 	return rc;
+}
+
+
+/*
+ * A thin wrapper around PyLong_AsUnsignedLong() that works around a bug in
+ * Python versions prior to v2.4 where an integer (or a named enum) causes an
+ * error.
+ */
+static unsigned long sip_api_long_as_unsigned_long(PyObject *o)
+{
+#if PY_VERSION_HEX < 0x02040000
+	if (o != NULL && !PyLong_Check(o) && PyInt_Check(o))
+	{
+		long v = PyInt_AsLong(o);
+
+		if (v < 0)
+		{
+			PyErr_SetString(PyExc_OverflowError,
+			"can't convert negative value to unsigned long");
+
+			return (unsigned long)-1;
+		}
+
+		return v;
+	}
+#endif
+
+	return PyLong_AsUnsignedLong(o);
 }
 
 
@@ -2349,7 +2379,7 @@ static int parsePass1(sipWrapper **selfp,int *selfargp,int *argsParsedp,
 			{
 				/* Unsigned integer. */
 
-				unsigned v = PyLong_AsUnsignedLong(arg);
+				unsigned v = sip_api_long_as_unsigned_long(arg);
 
 				if (PyErr_Occurred())
 					valid = PARSE_TYPE;
@@ -2377,7 +2407,7 @@ static int parsePass1(sipWrapper **selfp,int *selfargp,int *argsParsedp,
 			{
 				/* Unsigned short integer. */
 
-				unsigned short v = PyLong_AsUnsignedLong(arg);
+				unsigned short v = sip_api_long_as_unsigned_long(arg);
 
 				if (PyErr_Occurred())
 					valid = PARSE_TYPE;
@@ -2405,7 +2435,7 @@ static int parsePass1(sipWrapper **selfp,int *selfargp,int *argsParsedp,
 			{
 				/* Unsigned long integer. */
 
-				unsigned long v = PyLong_AsUnsignedLong(arg);
+				unsigned long v = sip_api_long_as_unsigned_long(arg);
 
 				if (PyErr_Occurred())
 					valid = PARSE_TYPE;

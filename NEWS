@@ -47,6 +47,8 @@ v4.4 ??? March 2006
     sipForceConvertToMappedType(), sipReleaseMappedType(),
     sipConvertFromMappedType() and sipFindMappedType() have been added to the
     SIP API.
+  - sipLong_AsUnsignedLong() has been added, primarily as a workaround for a
+    bug in Python v2.3.x and earlier.
   - Added the 't', 'u', 'C' and 'D' format characters to sipParseResult().
   - Added the 't', 'u', 'B', 'C' and 'D' format characters to sipBuildResult().
   - Responsibility for interpreting and implementing the /Transfer/ and

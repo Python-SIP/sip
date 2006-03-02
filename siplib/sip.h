@@ -762,6 +762,7 @@ typedef struct _sipAPIDef {
 	void (*api_transfer_back)(PyObject *self);
 	void (*api_transfer_to)(PyObject *self,PyObject *owner);
 	int (*api_wrapper_check)(PyObject *o);
+	unsigned long (*api_long_as_unsigned_long)(PyObject *o);
 	/*
 	 * The following may be used by Qt support code but no other
 	 * handwritten code.

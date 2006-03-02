@@ -574,6 +574,8 @@ static void generateInternalAPIHeader(sipSpec *pt,char *codeDir,stringList *xsl)
 "#define	sipConvertFromMappedType	sipAPI_%s -> api_convert_from_mapped_type\n"
 "#define	sipGetState			sipAPI_%s -> api_get_state\n"
 "#define	sipFindMappedType		sipAPI_%s -> api_find_mapped_type\n"
+"#define	sipLong_AsUnsignedLong		sipAPI_%s -> api_long_as_unsigned_long\n"
+		,mname
 		,mname
 		,mname
 		,mname
@@ -3636,7 +3638,7 @@ static int generateObjToCppConversion(argDef *ad,FILE *fp)
 		break;
 
 	case ushort_type:
-		fmt = "\tsipVal = (unsigned short)PyLong_AsUnsignedLong(sipPy);\n";
+		fmt = "\tsipVal = (unsigned short)sipLong_AsUnsignedLong(sipPy);\n";
 		break;
 
 	case short_type:
@@ -3644,7 +3646,7 @@ static int generateObjToCppConversion(argDef *ad,FILE *fp)
 		break;
 
 	case uint_type:
-		fmt = "\tsipVal = (unsigned)PyLong_AsUnsignedLong(sipPy);\n";
+		fmt = "\tsipVal = (unsigned)sipLong_AsUnsignedLong(sipPy);\n";
 		break;
 
 	case int_type:
@@ -3653,7 +3655,7 @@ static int generateObjToCppConversion(argDef *ad,FILE *fp)
 		break;
 
 	case ulong_type:
-		fmt = "\tsipVal = PyLong_AsUnsignedLong(sipPy);\n";
+		fmt = "\tsipVal = sipLong_AsUnsignedLong(sipPy);\n";
 		break;
 
 	case long_type:

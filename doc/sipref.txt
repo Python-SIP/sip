@@ -3950,6 +3950,14 @@ int sipIsSubClassInstance(PyObject \*obj, sipWrapperType \*type)
         sipCanConvertToInstance(obj, type, SIP_NOT_NONE | SIP_NO_CONVERTORS);
 
 
+sipLong_AsUnsignedLong()
+------------------------
+
+unsigned long sipLong_AsUnsignedLong(PyObject \*obj)
+    This function is a thin wrapper around PyLong_AsUnsignedLong() that works
+    around a bug in Python v2.3.x and earlier when converting integer objects.
+
+
 sipMalloc()
 -----------
 
