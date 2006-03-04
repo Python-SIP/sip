@@ -614,6 +614,26 @@ int sip_api_emit_to_slot(sipSlot *slot, PyObject *sigargs)
 		// Get the exception.
 		PyErr_Fetch(&xtype,&xvalue,&xtb);
 
+		// If it is a runtime error with no traceback then assume that
+		// a call to checkPointer() has failed, and that this means
+		// than the slot no longer exists (which is acceptable because
+		// we don't explicitly disconnect Python slots).  This won't
+		// be completely reliable (we should create a new exception
+		// class) but should do.
+		if (PyErr_GivenExceptionMatches(xtype, PyExc_RuntimeError) &&
+		    xtb == NULL && sa == sigargs)
+		{
+			Py_XDECREF(newmeth);
+			Py_XDECREF(sref);
+			Py_DECREF(sa);
+
+			Py_XDECREF(xtype);
+			Py_XDECREF(xvalue);
+			Py_XDECREF(xtb);
+
+			return 0;
+		}
+
 		// See if it is unacceptable.  An acceptable failure is a type
 		// error with no traceback - so long as we can still reduce the
 		// number of arguments and try again.
