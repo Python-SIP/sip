@@ -5177,7 +5177,7 @@ static void generateProtectedDefinitions(classDef *cd,FILE *fp)
 			}
 
 			if (!isAbstract(od))
-			       if (isVirtual(od) || isVirtualReimp(od))
+				if (isVirtual(od) || isVirtualReimp(od))
 				{
 					prcode(fp, "(sipSelfWasArg ? %S::%s(", classFQCName(vl->cd), mname);
 
@@ -5187,7 +5187,7 @@ static void generateProtectedDefinitions(classDef *cd,FILE *fp)
 					++parens;
 				}
 				else
-					prcode(fp, "%S::", classFQCName(cd));
+					prcode(fp, "%S::", classFQCName(vl->cd));
 
 			prcode(fp,"%s(",mname);
 
