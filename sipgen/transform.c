@@ -1094,6 +1094,8 @@ static void getVisibleMembers(sipSpec *pt,classDef *cd)
 				vl -> cd = mrocd;
 				vl -> next = cd -> visible;
 
+				addToUsedList(&cd->iff->used, mrocd->iff);
+
 				cd -> visible = vl;
 
 				for (od = mrocd -> overs; od != NULL; od = od -> next)
