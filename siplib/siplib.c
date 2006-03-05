@@ -265,7 +265,7 @@ static int parsePass2(sipWrapper *self,int selfarg,int nrargs,
 		      PyObject *sipArgs,char *fmt,va_list va);
 static int getSelfFromArgs(sipWrapperType *type,PyObject *args,int argnr,
 			   sipWrapper **selfp);
-static PyObject *createEnumMember(sipWrapperType *wt, sipEnumMemberDef *enm);
+static PyObject *createEnumMember(sipTypeDef *td, sipEnumMemberDef *enm);
 static PyObject *handleGetLazyAttr(PyObject *nameobj,sipWrapperType *wt,
 				   sipWrapper *w);
 static int handleSetLazyAttr(PyObject *nameobj,PyObject *valobj,
@@ -274,7 +274,7 @@ static int getNonStaticVariables(sipWrapperType *wt,sipWrapper *w,
 				 PyObject **ndict);
 static void findLazyAttr(sipWrapperType *wt,char *name,PyMethodDef **pmdp,
 			 sipEnumMemberDef **enmp,PyMethodDef **vmdp,
-			 sipWrapperType **in);
+			 sipTypeDef **in);
 static int compareMethodName(const void *key,const void *el);
 static int compareEnumMemberName(const void *key,const void *el);
 static int checkPointer(void *ptr);
@@ -695,15 +695,44 @@ static int sip_api_export_module(sipExportedModuleDef *client,
 	}
 
 	/* Create the module's classes. */
-	if ((mw = client -> em_types) != NULL)
-		for (i = 0; i < client->em_nrtypes; ++i)
+	if ((mw = client->em_types) != NULL)
+		for (i = 0; i < client->em_nrtypes; ++i, ++mw)
 		{
 			sipTypeDef *td = (sipTypeDef *)*mw;
 
-			if (td != NULL && (*mw = createType(client, td, mod_dict)) == NULL)
-				return -1;
+			/* Skip external classes. */
+			if (td == NULL)
+				continue;
 
-			++mw;
+			/* See if this is a namespace extender. */
+			if (td->td_name == NULL)
+			{
+				sipTypeDef **last;
+				sipWrapperType *wt = getClassType(&td->td_scope, client);
+
+				/* Append this type to the real one. */
+				last = &wt->type->td_nsextender;
+
+				while (*last != NULL)
+					last = &(*last)->td_nsextender;
+
+				*last = td;
+
+				/*
+				 * Set this so that the extender's original
+				 * module can be found.
+				 */
+				td->td_module = client;
+
+				/*
+				 * Save the real namespace type so that it is
+				 * the correct scope for any enums or classes
+				 * defined in this module.
+				 */
+				*mw = wt;
+			}
+			else if ((*mw = createType(client, td, mod_dict)) == NULL)
+				return -1;
 		}
 
 	/* Set any Qt support API. */
@@ -3079,10 +3108,10 @@ static sipWrapperType *createType(sipExportedModuleDef *client,
 		goto relargs;
 
 	/* Get the dictionary into which the type will be placed. */
-	if (type -> td_scope >= 0)
-		dict = client -> em_types[type -> td_scope] -> super.type.tp_dict;
-	else
+	if (type->td_scope.sc_flag)
 		dict = mod_dict;
+	else
+		dict = getClassType(&type->td_scope, client)->super.type.tp_dict;
 
 	/* Add the type to the "parent" dictionary. */
 	if (PyDict_SetItem(dict,name,(PyObject *)wt) < 0)
@@ -3127,19 +3156,12 @@ static PyTypeObject *createEnum(sipExportedModuleDef *client, sipEnumDef *ed,
 	static PyObject *bases = NULL;
 	PyObject *name, *typedict, *args, *dict;
 	PyTypeObject *et;
-	sipExportedModuleDef *mod;
 
 	/* Get the module and dictionary into which the type will be placed. */
-	if (ed->e_scope.sc_flag)
-	{
-		mod = client;
+	if (ed->e_scope < 0)
 		dict = mod_dict;
-	}
 	else
-	{
-		mod = getClassModule(&ed->e_scope, client);
-		dict = mod->em_types[ed->e_scope.sc_class]->super.type.tp_dict;
-	}
+		dict = client->em_types[ed->e_scope]->super.type.tp_dict;
 
 	/* Create the base type tuple if it hasn't already been done. */
 	if (bases == NULL && (bases = Py_BuildValue("(O)",&PyInt_Type)) == NULL)
@@ -3150,7 +3172,7 @@ static PyTypeObject *createEnum(sipExportedModuleDef *client, sipEnumDef *ed,
 		goto reterr;
 
 	/* Create the type dictionary. */
-	if ((typedict = createTypeDict(mod->em_nameobj)) == NULL)
+	if ((typedict = createTypeDict(client->em_nameobj)) == NULL)
 		goto relname;
 
 	/* Create the type by calling the metatype. */
@@ -3375,7 +3397,7 @@ static PyObject *handleGetLazyAttr(PyObject *nameobj,sipWrapperType *wt,
 	char *name;
 	PyMethodDef *pmd, *vmd;
 	sipEnumMemberDef *enm;
-	sipWrapperType *in;
+	sipTypeDef *in;
 
 	/* If it was an error, propagate it. */
 	if (!PyErr_ExceptionMatches(PyExc_AttributeError))
@@ -3431,12 +3453,12 @@ static PyObject *handleGetLazyAttr(PyObject *nameobj,sipWrapperType *wt,
 /*
  * Create a Python object for an enum member.
  */
-static PyObject *createEnumMember(sipWrapperType *wt, sipEnumMemberDef *enm)
+static PyObject *createEnumMember(sipTypeDef *td, sipEnumMemberDef *enm)
 {
 	if (enm -> em_enum < 0)
 		return PyInt_FromLong(enm -> em_val);
 
-	return sip_api_convert_from_named_enum(enm -> em_val, wt -> type -> td_module -> em_enums[enm -> em_enum]);
+	return sip_api_convert_from_named_enum(enm->em_val, td->td_module->em_enums[enm->em_enum]);
 }
 
 
@@ -3463,41 +3485,51 @@ PyObject *sip_api_convert_from_named_enum(int eval, PyTypeObject *et)
  */
 static void findLazyAttr(sipWrapperType *wt,char *name,PyMethodDef **pmdp,
 			 sipEnumMemberDef **enmp,PyMethodDef **vmdp,
-			 sipWrapperType **in)
+			 sipTypeDef **in)
 {
-	sipTypeDef *td;
+	sipTypeDef *td, *nsx;
 	sipEncodedClassDef *sup;
-
-	/* Assume it will be found in this type. */
-	if (in != NULL)
-		*in = wt;
 
 	/* The base type doesn't have any type information. */
 	if ((td = wt -> type) == NULL)
 		return;
 
-	/* Try the methods. */
-	if (td -> td_nrmethods > 0 &&
-	    (*pmdp = (PyMethodDef *)bsearch(name,td -> td_methods,td -> td_nrmethods,sizeof (PyMethodDef),compareMethodName)) != NULL)
-		return;
+	/* Search the possible linked list of namespace extenders. */
+	nsx = td;
 
-	/* Try the enum members. */
-	if (td -> td_nrenummembers > 0 &&
-	    (*enmp = (sipEnumMemberDef *)bsearch(name,td -> td_enummembers,td -> td_nrenummembers,sizeof (sipEnumMemberDef),compareEnumMemberName)) != NULL)
-		return;
-
-	/* Try the variables.  Note, these aren't sorted. */
-	if (td -> td_variables != NULL)
+	do
 	{
-		PyMethodDef *md;
+		/* Try the methods. */
+		if (nsx->td_nrmethods > 0 &&
+		    (*pmdp = (PyMethodDef *)bsearch(name, nsx->td_methods, nsx->td_nrmethods, sizeof (PyMethodDef), compareMethodName)) != NULL)
+			return;
 
-		for (md = td -> td_variables; md -> ml_name != NULL; ++md)
-			if (strcmp(name,md -> ml_name) == 0)
-			{
-				*vmdp = md;
-				return;
-			}
+		/* Try the enum members. */
+		if (nsx->td_nrenummembers > 0 &&
+		    (*enmp = (sipEnumMemberDef *)bsearch(name, nsx->td_enummembers, nsx->td_nrenummembers, sizeof (sipEnumMemberDef), compareEnumMemberName)) != NULL)
+		{
+			if (in != NULL)
+				*in = nsx;
+
+			return;
+		}
+
+		/* Try the variables.  Note, these aren't sorted. */
+		if (nsx->td_variables != NULL)
+		{
+			PyMethodDef *md;
+
+			for (md = nsx->td_variables; md->ml_name != NULL; ++md)
+				if (strcmp(name, md->ml_name) == 0)
+				{
+					*vmdp = md;
+					return;
+				}
+		}
+
+		nsx = nsx->td_nsextender;
 	}
+	while (nsx != NULL);
 
 	/* Check the base classes. */
 	if ((sup = td -> td_supers) != NULL)
@@ -5433,7 +5465,7 @@ static PyObject *sipWrapperType_getattro(PyObject *obj,PyObject *name)
 		int i;
 		sipTypeDef *td;
 		sipEnumMemberDef *enm;
-		PyObject *dict, *copy;
+		PyObject *dict;
 		PyMethodDef *pmd;
 
 		dict = wt -> super.type.tp_dict;
@@ -5446,101 +5478,101 @@ static PyObject *sipWrapperType_getattro(PyObject *obj,PyObject *name)
 		}
 
 		/*
-		 * Add the type's lazy enums.  It doesn't matter if they are
-		 * already there.
-		 */
-		enm = td -> td_enummembers;
-
-		for (i = 0; i < td -> td_nrenummembers; ++i)
-		{
-			int rc;
-			PyObject *val;
-
-			if ((val = createEnumMember(wt, enm)) == NULL)
-				return NULL;
-
-			rc = PyDict_SetItemString(dict,enm -> em_name,val);
-
-			Py_DECREF(val);
-
-			if (rc < 0)
-				return NULL;
-
-			++enm;
-		}
-
-		/* If there are no lazy methods or variables then that's it. */
-		if (td -> td_nrmethods == 0 && td -> td_variables == NULL)
-		{
-			Py_INCREF(dict);
-			return dict;
-		}
-
-		/*
 		 * We can't cache the methods or variables so we need to make a
 		 * temporary copy of the type dictionary and return that (so
 		 * that it will get garbage collected immediately afterwards).
 		 */
-		if ((copy = PyDict_Copy(dict)) == NULL)
+		if ((dict = PyDict_Copy(dict)) == NULL)
 			return NULL;
 
-		/* Do the methods. */
-		pmd = td -> td_methods;
-
-		for (i = 0; i < td -> td_nrmethods; ++i)
+		/* Search the possible linked list of namespace extenders. */
+		do
 		{
-			int rc;
-			PyObject *meth;
+			/*
+			 * Add the type's lazy enums.  It doesn't matter if
+			 * they are already there.
+			 */
+			enm = td->td_enummembers;
 
-			if ((meth = PyCFunction_New(pmd,NULL)) == NULL)
+			for (i = 0; i < td->td_nrenummembers; ++i)
 			{
-				Py_DECREF(copy);
-				return NULL;
+				int rc;
+				PyObject *val;
+
+				if ((val = createEnumMember(td, enm)) == NULL)
+					return NULL;
+
+				rc = PyDict_SetItemString(dict, enm->em_name, val);
+
+				Py_DECREF(val);
+
+				if (rc < 0)
+					return NULL;
+
+				++enm;
 			}
 
-			rc = PyDict_SetItemString(copy,pmd -> ml_name,meth);
+			/* Do the methods. */
+			pmd = td->td_methods;
 
-			Py_DECREF(meth);
-
-			if (rc < 0)
+			for (i = 0; i < td->td_nrmethods; ++i)
 			{
-				Py_DECREF(copy);
-				return NULL;
-			}
+				int rc;
+				PyObject *meth;
 
-			++pmd;
-		}
-
-		/* Do the static variables. */
-		if ((pmd = td -> td_variables) != NULL)
-			while (pmd -> ml_name != NULL)
-			{
-				if ((pmd -> ml_flags & METH_STATIC) != 0)
+				if ((meth = PyCFunction_New(pmd, NULL)) == NULL)
 				{
-					int rc;
-					PyObject *val;
+					Py_DECREF(dict);
+					return NULL;
+				}
 
-					if ((val = (*pmd -> ml_meth)(NULL,NULL)) == NULL)
-					{
-						Py_DECREF(copy);
-						return NULL;
-					}
+				rc = PyDict_SetItemString(dict, pmd->ml_name, meth);
 
-					rc = PyDict_SetItemString(copy,pmd -> ml_name,val);
+				Py_DECREF(meth);
 
-					Py_DECREF(val);
-
-					if (rc < 0)
-					{
-						Py_DECREF(copy);
-						return NULL;
-					}
+				if (rc < 0)
+				{
+					Py_DECREF(dict);
+					return NULL;
 				}
 
 				++pmd;
 			}
 
-		return copy;
+			/* Do the static variables. */
+			if ((pmd = td->td_variables) != NULL)
+				while (pmd->ml_name != NULL)
+				{
+					if ((pmd->ml_flags & METH_STATIC) != 0)
+					{
+						int rc;
+						PyObject *val;
+
+						if ((val = (*pmd->ml_meth)(NULL, NULL)) == NULL)
+						{
+							Py_DECREF(dict);
+							return NULL;
+						}
+
+						rc = PyDict_SetItemString(dict, pmd->ml_name, val);
+
+						Py_DECREF(val);
+
+						if (rc < 0)
+						{
+							Py_DECREF(dict);
+							return NULL;
+						}
+					}
+
+					++pmd;
+				}
+
+			td = td->td_nsextender;
+		}
+		while (td != NULL);
+
+		return dict;
 	}
 
 	/* Now try the super-metatype's method. */

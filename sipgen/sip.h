@@ -817,7 +817,7 @@ typedef struct _classDef {
 	char			*pyname;	/* The Python name. */
 	ifaceFileDef		*iff;		/* The interface file. */
 	struct _classDef	*ecd;		/* The enclosing scope. */
-	struct _classDef	*real;		/* The real class if this is a proxy. */
+	struct _classDef	*real;		/* The real class if this is a proxy or extender. */
 	nodeDef			*node;		/* Position in class tree. */
 	classList		*supers;	/* The parent classes. */
 	mroDef			*mro;		/* The super-class hierarchy. */

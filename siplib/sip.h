@@ -190,7 +190,7 @@ typedef struct _sipEnumMemberDef {
 typedef struct _sipEnumDef {
 	const char *e_name;		/* The Python name of the enum. */
 	const char *e_cname;		/* The C/C++ name of the enum, NULL if the same as the Python name. */
-	sipEncodedClassDef e_scope;	/* The scoping type. */
+	int e_scope;			/* The scoping type. */
 	struct _sipPySlotDef *e_pyslots;	/* The Python slots. */
 } sipEnumDef;
 
@@ -360,7 +360,7 @@ typedef struct _sipTypeDef {
 	int td_flags;			/* Type flags, see the sipType*() macros. */
 	const char *td_name;		/* The Python name of the type. */
 	const char *td_cname;		/* The C/C++ name of the type, NULL if the same as the Python name. */
-	int td_scope;			/* The nr. of the scoping type. */
+	sipEncodedClassDef td_scope;	/* The scoping type. */
 	sipEncodedClassDef *td_supers;	/* The super-types. */
 	sipPySlotDef *td_pyslots;	/* The table of Python slots. */
 	int td_nrmethods;		/* The number of lazy methods. */
@@ -382,6 +382,7 @@ typedef struct _sipTypeDef {
 	sipConvertToFunc td_cto;	/* The convert to function. */
 	struct _sipQtSignal *td_emit;	/* Emit table for Qt signals. */
 	sipInstancesDef td_instances;	/* The static instances. */
+	struct _sipTypeDef *td_nsextender;	/* The next namespace extender. */
 } sipTypeDef;
 
 

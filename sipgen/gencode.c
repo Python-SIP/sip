@@ -59,7 +59,7 @@ static void generateMappedTypeCpp(mappedTypeDef *,FILE *);
 static void generateImportedMappedTypeHeader(mappedTypeDef *mtd,sipSpec *pt,
 					     FILE *fp);
 static void generateMappedTypeHeader(mappedTypeDef *,int,FILE *);
-static void generateClassCpp(classDef *cd, int full, sipSpec *pt, FILE *fp);
+static void generateClassCpp(classDef *cd, sipSpec *pt, FILE *fp);
 static void generateImportedClassHeader(classDef *cd,sipSpec *pt,FILE *fp);
 static void generateClassTableEntries(sipSpec *pt, nodeDef *nd, FILE *fp);
 static void generateClassHeader(classDef *,int,sipSpec *,FILE *);
@@ -69,7 +69,7 @@ static void generateFunction(sipSpec *,memberDef *,overDef *,classDef *,
 			     classDef *,FILE *);
 static void generateFunctionBody(sipSpec *,overDef *,classDef *,classDef *,
 				 int deref,FILE *);
-static void generateTypeDefinition(sipSpec *pt, classDef *cd, int full, FILE *fp);
+static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp);
 static void generateTypeInit(sipSpec *,classDef *,FILE *);
 static void generateCppCodeBlock(codeBlock *,FILE *);
 static void generateUsedIncludes(ifaceFileList *, int, FILE *);
@@ -1096,14 +1096,12 @@ static void generateCpp(sipSpec *pt,char *codeDir,char *srcSuffix,int *parts)
 			if (ed -> module != pt -> module || ed -> fqcname == NULL)
 				continue;
 
-			/*
-			 * Take the module name from the enclosing scope in
-			 * case it is a proxy namespace.
-			 */
-			if (ed->ecd != NULL)
-				emname = ed->ecd->iff->module->name;
-			else
+			if (ed->ecd == NULL)
 				emname = mname;
+			else if (ed->ecd->real == NULL)
+				emname = ed->module->name;
+			else
+				emname = ed->ecd->real->iff->module->name;
 
 			prcode(fp,
 "	{\"%s.%P\", ", emname, ed->ecd, ed->pyname->text);
@@ -1113,10 +1111,10 @@ static void generateCpp(sipSpec *pt,char *codeDir,char *srcSuffix,int *parts)
 			else
 				prcode(fp, "NULL, ");
 
-			if (ed->ecd != NULL)
-				generateEncodedClass(pt, ed->ecd, 0, fp);
+			if (ed->ecd == NULL)
+				prcode(fp, "-1");
 			else
-				prcode(fp, "{0, 0, 1}");
+				prcode(fp, "%d", ed->ecd->classnr);
 
 			if (ed->slots != NULL)
 				prcode(fp, ", slots_%C", ed->fqcname);
@@ -2662,7 +2660,7 @@ static void generateIfaceCpp(sipSpec *pt,ifaceFileDef *iff,char *codeDir,
 					,cmname,cd -> ecd -> iff -> fqcname);
 
 			if (!isExternal(cd))
-				generateClassCpp(cd, TRUE, pt, fp);
+				generateClassCpp(cd, pt, fp);
 		}
 
 	for (mtd = pt -> mappedtypes; mtd != NULL; mtd = mtd -> next)
@@ -2772,7 +2770,7 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd,FILE *fp)
 /*
  * Generate the C++ code for a class.
  */
-static void generateClassCpp(classDef *cd,int full,sipSpec *pt,FILE *fp)
+static void generateClassCpp(classDef *cd,sipSpec *pt,FILE *fp)
 {
 	varDef *vd;
 
@@ -2813,7 +2811,7 @@ static void generateClassCpp(classDef *cd,int full,sipSpec *pt,FILE *fp)
 		generateConvertToDefinitions(NULL,cd,fp);
 
 	/* The type definition structure. */
-	generateTypeDefinition(pt, cd, full, fp);
+	generateTypeDefinition(pt, cd, fp);
 }
 
 
@@ -6178,15 +6176,8 @@ static void generateEnumMacros(sipSpec *pt, classDef *cd, FILE *fp)
 		}
 
 		prcode(fp,
-"#define	sipEnum_%C	sipModuleAPI_%s", ed -> fqcname, pt -> module -> name);
-
-		if (pt -> module == ed -> module)
-			prcode(fp, ".");
-		else
-			prcode(fp, "_%s -> ", ed -> module -> name);
-
-		prcode(fp, "em_enums[%d]\n"
-			, ed -> enumnr);
+"#define	sipEnum_%C	sipModuleAPI_%s.em_enums[%d]\n"
+			, ed->fqcname, pt->module->name, ed->enumnr);
 	}
 }
 
@@ -6865,7 +6856,7 @@ static void generateSimpleFunctionCall(fcallDef *fcd,FILE *fp)
  * Generate the type structure that contains all the information needed by the
  * metatype.  A sub-set of this is used to extend namespaces.
  */
-static void generateTypeDefinition(sipSpec *pt, classDef *cd, int full, FILE *fp)
+static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 {
 	char *mname = pt -> module -> name;
 	int is_slots, nr_methods, nr_enums;
@@ -6954,21 +6945,27 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, int full, FILE *fp
 "	0,\n"
 "	", mname, classFQCName(cd));
 
-	if (isAbstractClass(cd))
+	if (isAbstractClass(cd) && cd->subbase != NULL)
+	       prcode(fp, "SIP_TYPE_ABSTRACT|SIP_TYPE_SCC,\n");
+	else if (isAbstractClass(cd))
 	       prcode(fp, "SIP_TYPE_ABSTRACT,\n");
 	else if (cd->subbase != NULL)
 	       prcode(fp, "SIP_TYPE_SCC,\n");
 	else
 	       prcode(fp, "0,\n");
 
-	if (full)
-		prcode(fp,
-"	\"%s.%P\",\n"
-			, mname, cd->ecd, cd->pyname);
-	else
+	if (cd->real != NULL)
 		prcode(fp,
 "	0,\n"
 			);
+	else if (cd->ecd != NULL && cd->ecd->real != NULL)
+		prcode(fp,
+"	\"%s.%P\",\n"
+			, cd->ecd->real->iff->module->name, cd->ecd, cd->pyname);
+	else
+		prcode(fp,
+"	\"%s.%P\",\n"
+			, mname, cd->ecd, cd->pyname);
 
 	if (isRenamedClass(cd))
 		prcode(fp,
@@ -6980,8 +6977,17 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, int full, FILE *fp
 			);
 
 	prcode(fp,
-"	%d,\n"
-		,(cd -> ecd != NULL) ? cd -> ecd -> classnr : -1);
+"	");
+
+	if (cd->real != NULL)
+		generateEncodedClass(pt, cd->real, 0, fp);
+	else if (cd->ecd != NULL)
+		generateEncodedClass(pt, cd->ecd, 0, fp);
+	else
+		prcode(fp, "{0, 0, 1}");
+
+	prcode(fp, ",\n"
+		);
 
 	if (cd -> supers != NULL)
 		prcode(fp,
@@ -7200,7 +7206,8 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, int full, FILE *fp
 	else
 		prcode(fp,"0");
 
-	prcode(fp,"}\n"
+	prcode(fp,"},\n"
+"	0\n"
 "};\n"
 		);
 }

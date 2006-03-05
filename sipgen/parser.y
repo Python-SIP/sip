@@ -2722,7 +2722,7 @@ static classDef *newClass(sipSpec *pt,ifaceFileType iftype,
 			  scopedNameDef *fqname)
 {
 	int flags;
-	classDef *cd, *scope;
+	classDef *cd, *scope, *xtndr;
 	codeBlock *hdrcode;
 
 	if (sectionFlags & SECT_IS_PRIVATE)
@@ -2752,18 +2752,39 @@ static classDef *newClass(sipSpec *pt,ifaceFileType iftype,
 	cd = findClass(pt,iftype,fqname);
 
 	/* Check it hasn't already been defined. */
-
 	if (cd -> iff -> module != NULL)
 		yyerror("The struct/class has already been defined");
 
 	cd -> iff -> module = currentModule;
 
-	/* Complete the initialisation. */
+	/* See if it is a namespace extender. */
+	xtndr = NULL;
 
+	if (iftype == namespace_iface)
+	{
+		classDef *ns;
+
+		for (ns = pt->classes; ns != NULL; ns = ns->next)
+		{
+			if (ns == cd)
+				continue;
+
+			if (ns->iff->type != namespace_iface)
+				continue;
+
+			if (!sameScopedName(ns->iff->fqcname, fqname))
+				continue;
+
+			xtndr = ns;
+			break;
+		}
+	}
+
+	/* Complete the initialisation. */
 	cd -> classflags = flags;
 	cd -> classnr = -1;
 	cd -> ecd = scope;
-	cd -> real = NULL;
+	cd -> real = xtndr;
 	cd -> node = NULL;
 	cd -> supers = NULL;
 	cd -> mro = NULL;
