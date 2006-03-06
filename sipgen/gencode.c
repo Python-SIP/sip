@@ -6174,8 +6174,15 @@ static void generateEnumMacros(sipSpec *pt, classDef *cd, FILE *fp)
 		}
 
 		prcode(fp,
-"#define	sipEnum_%C	sipModuleAPI_%s.em_enums[%d]\n"
-			, ed->fqcname, pt->module->name, ed->enumnr);
+"#define	sipEnum_%C	sipModuleAPI_%s", ed -> fqcname, pt -> module -> name);
+
+		if (pt -> module == ed -> module)
+			prcode(fp, ".");
+		else
+			prcode(fp, "_%s -> ", ed -> module -> name);
+
+		prcode(fp, "em_enums[%d]\n"
+			, ed -> enumnr);
 	}
 }
 
