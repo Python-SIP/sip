@@ -1159,6 +1159,7 @@ static void generateCpp(sipSpec *pt,char *codeDir,char *srcSuffix,int *parts)
 
 			fqname = NULL;
 			mname = NULL;
+			sat = "unknown";
 
 			switch (td -> type.atype)
 			{
@@ -1252,9 +1253,6 @@ static void generateCpp(sipSpec *pt,char *codeDir,char *srcSuffix,int *parts)
 				if (td -> type.u.mtd -> iff -> module != pt -> module)
 					mname = td -> type.u.mtd -> iff -> module -> name;
 				break;
-
-			default:
-				sat = "unknown";
 			}
 
 			prcode(fp,
