@@ -242,7 +242,7 @@ static sipSignature *parseSignature(const char *sig)
 				case 8:
 					if (strncmp(dp, "unsigned", 8) == 0)
 						sat = uint_sat;
-					else if (strncmp(dp, "QVariant", 8) == 0 && indir == 0)
+					else if (strncmp(dp, "QVariant", 8) == 0)
 					{
 						if (indir == 0)
 						{
@@ -255,13 +255,10 @@ static sipSignature *parseSignature(const char *sig)
 							unsup = FALSE;
 						}
 					}
-					else if (strncmp(dp, "PyObject", 8) == 0 && indir == 0)
+					else if (strncmp(dp, "PyObject", 8) == 0 && indir == 1)
 					{
-						if (indir == 1)
-						{
-							sat = pyobject_sat;
-							unsup = FALSE;
-						}
+						sat = pyobject_sat;
+						unsup = FALSE;
 					}
 					break;
 
