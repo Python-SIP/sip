@@ -461,12 +461,7 @@ class Makefile:
                 defines.append("QT_NO_DEBUG")
 
             if self.config.qt_version >= 0x040000:
-                # This is really just a help for PyQt's configure.py when it is
-                # detecting what Qt modules are available.
-                qtmods = self.config.pyqt_modules[:]
-                qtmods.extend(self._qt)
-
-                for mod in qtmods:
+                for mod in self._qt:
                     if mod == "QtCore":
                         defines.append("QT_CORE_LIB")
                     elif mod == "QtGui":
@@ -490,7 +485,7 @@ class Makefile:
                 incdir.extend(qtincdir)
 
                 if self.config.qt_version >= 0x040000:
-                    for mod in qtmods:
+                    for mod in self._qt:
                         incdir.append(os.path.join(qtincdir[0], mod))
 
             specd = os.path.join(self.config.qt_dir, "mkspecs", "default")
