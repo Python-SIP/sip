@@ -623,8 +623,8 @@ platforms:	TK_PLATFORMS {
 				if (qd -> qtype == platform_qualifier && isNeeded(qd))
 					++nrneeded;
 
-			if (nrneeded != 1)
-				yyerror("Exactly one of these %Platforms must be specified with the -t flag");
+			if (nrneeded > 1)
+				yyerror("No more than one of these %Platforms must be specified with the -t flag");
 		}
 	;
 
@@ -660,8 +660,8 @@ timeline:	TK_TIMELINE {
 				if (qd -> qtype == time_qualifier && isNeeded(qd))
 					++nrneeded;
 
-			if (nrneeded != 1)
-				yyerror("Exactly one of this %Timeline must be specified with the -t flag");
+			if (nrneeded > 1)
+				yyerror("At most one of this %Timeline must be specified with the -t flag");
 
 			currentModule -> nrtimelines++;
 		}

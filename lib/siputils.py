@@ -1811,8 +1811,6 @@ def version_to_sip_tag(version, tags, description):
 
     Returns the corresponding tag.
     """
-    tag = None
-
     vl = tags.keys()
     vl.sort()
 
@@ -1824,8 +1822,7 @@ def version_to_sip_tag(version, tags, description):
             if version < v:
                 tag = tags[v]
                 break
-
-        if tag is None:
+        else:
             error("Unsupported %s version: 0x%06x." % (description, version))
 
     return tag
