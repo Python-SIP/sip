@@ -35,8 +35,6 @@ a table of all types that could be converted to an int (messy and slow?).
 19.	Consider changing sipConvertToCpp() etc. to take a PyObject* (rather
 than a sipWrapperType*) and do a check and cast internally.
 
-21.	Add support for const void* (ie. add the extra casts where needed).
-
 22.	Consider adding support for methods that take keyword arguments.  Do it
 by allowing a function parameter to have a name (this becomes the keyword) and
 extend sipParseArgs() to take an options dictionary and list of keywords.

@@ -3342,10 +3342,31 @@ static void generateVariableHandler(varDef *vd,FILE *fp)
 			break;
 
 		case struct_type:
+			prcode(fp,
+"		sipPy = sipConvertFromVoidPtr(");
+
+			if (isConstArg(&vd->type))
+				prcode(fp, "const_cast<%b *>(sipVal)", &vd->type);
+			else
+				prcode(fp, "sipVal");
+
+			prcode(fp, ");\n"
+				);
+
+			break;
+
 		case void_type:
 			prcode(fp,
-"		sipPy = sipConvertFromVoidPtr(sipVal);\n"
+"		sipPy = sipConvertFromVoidPtr(");
+
+			if (isConstArg(&vd->type))
+				prcode(fp, "const_cast<void *>(sipVal)");
+			else
+				prcode(fp, "sipVal");
+
+			prcode(fp, ");\n"
 				);
+
 			break;
 
 		case pyobject_type:
@@ -8299,8 +8320,15 @@ static void generateHandleResult(overDef *od,int isNew,char *prefix,FILE *fp)
 
 	case void_type:
 		prcode(fp,
-"			%s sipConvertFromVoidPtr(%s);\n"
-			,prefix,vname);
+"			%s sipConvertFromVoidPtr(", prefix);
+
+		if (isConstArg(ad))
+			prcode(fp, "const_cast<void *>(%s)", vname);
+		else
+			prcode(fp, "%s", vname);
+
+		prcode(fp, ");\n"
+			);
 
 		break;
 
