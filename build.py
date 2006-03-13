@@ -118,7 +118,6 @@ def mkdistdir(lfile):
     shutil.copy("TODO",Package)
     shutil.copy("ChangeLog",Package)
     shutil.copy("lib/README",Package)
-    shutil.copy("lib/README.Fink",Package)
     shutil.copy("lib/README.HP-UX",Package)
     shutil.copy("lib/THANKS",Package)
     shutil.copy("lib/sipdistutils.py",Package)

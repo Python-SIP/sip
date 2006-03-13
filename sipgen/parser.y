@@ -335,7 +335,14 @@ nsstatement:	ifstart
 	|	variable
 	|	typehdrcode {
 			if (notSkipping())
-				appendCodeBlock(&currentScope() -> hdrcode,$1);
+			{
+				classDef *scope = currentScope();
+
+				if (scope == NULL)
+					yyerror("%TypeHeaderCode can only be used in a namespace, class or mapped type");
+
+				appendCodeBlock(&scope->hdrcode, $1);
+			}
 		}
 	;
 

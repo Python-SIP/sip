@@ -4825,10 +4825,13 @@ Makefile
 
         Returns a dictionary corresponding to the parsed build file.
 
-    platform_lib(self, clib)
+    platform_lib(self, clib, framework=0)
         This converts a library name to a platform specific form.
 
         ``clib`` is the name of the library in cannonical form.
+
+        ``framework`` is set if the library is implemented as a MacOS
+        framework.
 
         Return the platform specific name.
 

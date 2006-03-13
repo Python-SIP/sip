@@ -527,8 +527,10 @@ class Makefile:
                     self._qt.append("QtGui")
 
                 for mod in self._qt:
+                    framework = (self.config.qt_framework and mod != "QtAssistant")
+
                     lib = self._qt4_module_to_lib(mod)
-                    libs.append(self.platform_lib(lib))
+                    libs.append(self.platform_lib(lib, framework))
 
                     if sys.platform == "win32":
                         # On Windows the dependent libraries seem to be in
@@ -563,7 +565,7 @@ class Makefile:
                     if self.config.qt_edition == "non-commercial":
                         qt_lib = qt_lib + "nc"
 
-                libs.append(self.platform_lib(qt_lib))
+                libs.append(self.platform_lib(qt_lib, self.config.qt_framework))
                 libs.extend(self._dependent_libs(self.config.qt_lib))
 
         if self._opengl:
@@ -669,13 +671,16 @@ class Makefile:
 
         return flags
 
-    def platform_lib(self, clib):
+    def platform_lib(self, clib, framework=0):
         """Return a library name in platform specific form.
 
         clib is the library name in cannonical form.
+        framework is set of the library is implemented as a MacOS framework.
         """
         if self.generator in ("MSVC", "MSVC.NET", "BMAKE"):
             plib = clib + ".lib"
+        elif sys.platform == "darwin" and framework:
+            plib = "-framework " + clib
         else:
             plib = "-l" + clib
 
@@ -877,6 +882,9 @@ class Makefile:
             libdir_prefix = "-L"
 
         for ld in self.optional_list("LIBDIR"):
+            if sys.platform == "darwin" and self.config.qt_framework:
+                libs.append("-F" + _quote(ld))
+
             libs.append(libdir_prefix + _quote(ld))
 
         libs.extend(self.optional_list("LIBS"))
@@ -1491,6 +1499,9 @@ class ProgramMakefile(Makefile):
             libdir_prefix = "-L"
 
         for ld in self.optional_list("LIBDIR"):
+            if sys.platform == "darwin" and self.config.qt_framework:
+                build.append("-F" + _quote(ld))
+
             build.append(libdir_prefix + _quote(ld))
 
         lflags = self.optional_list("LFLAGS")
