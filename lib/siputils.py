@@ -366,8 +366,9 @@ class Makefile:
                 if self._debug:
                     py_lib = py_lib + "_d"
 
-                    cflags.append("/D_DEBUG")
-                    cxxflags.append("/D_DEBUG")
+                    if self.generator != "MINGW":
+                        cflags.append("/D_DEBUG")
+                        cxxflags.append("/D_DEBUG")
 
                 libs.append(self.platform_lib(py_lib))
 

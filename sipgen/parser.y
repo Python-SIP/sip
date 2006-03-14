@@ -2327,6 +2327,7 @@ void parse(sipSpec *spec,FILE *fp,char *filename,stringList *tsl,
         /* Initialise the spec. */
  
 	spec -> modules = NULL;
+	spec -> allimports = NULL;
 	spec -> namecache = NULL;
 	spec -> ifacefiles = NULL;
 	spec -> classes = NULL;
@@ -2470,30 +2471,7 @@ static void newModule(FILE *fp,char *filename)
 	newmod -> imports = NULL;
 	newmod -> next = currentSpec -> modules;
 
-	currentSpec -> modules = newmod;
-
-	/*
-	 * If there is a current module then append the new one to its list of
-	 * imports.  We know by this time that it hasn't already been imported.
-	 */
-	if (currentModule != NULL)
-	{
-		moduleListDef *mld, **tailp;
-
-		/* Find the tail. */
-		tailp = &currentModule -> imports;
-
-		while (*tailp != NULL)
-			tailp = &(*tailp) -> next;
-
-		mld = sipMalloc(sizeof (moduleListDef));
-		mld -> module = newmod;
-		mld -> next = NULL;
-
-		*tailp = mld;
-	}
-
-	currentModule = newmod;
+	currentModule = currentSpec->modules = newmod;
 }
 
 
@@ -4805,15 +4783,32 @@ static void newQualifier(moduleDef *mod,int line,int order,char *name,qualType q
  */
 static void newImport(char *name)
 {
-	/* Ignore if the file has already been imported. */
+	moduleDef *from, *mod;
+	moduleListDef *mld;
 
-	moduleDef *mod;
-
+	/* Create a new module if it has already been imported. */
 	for (mod = currentSpec -> modules; mod != NULL; mod = mod -> next)
 		if (strcmp(mod -> file,name) == 0)
+			break;
+
+	from = currentModule;
+
+	if (mod == NULL)
+	{
+		newModule(NULL,name);
+		mod = currentModule;
+	}
+
+	/* Add the new import unless it has already been imported. */
+	for (mld = from->imports; mld != NULL; mld = mld->next)
+		if (mld->module == mod)
 			return;
 
-	newModule(NULL,name);
+	mld = sipMalloc(sizeof (moduleListDef));
+	mld -> module = mod;
+	mld -> next = from->imports;
+
+	from->imports = mld;
 }
 
 

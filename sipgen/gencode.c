@@ -679,7 +679,7 @@ static void generateInternalAPIHeader(sipSpec *pt,char *codeDir,stringList *xsl)
 		,mname
 		,mname,mname);
 
-	for (mld = pt -> module -> imports; mld != NULL; mld = mld -> next)
+	for (mld = pt->allimports; mld != NULL; mld = mld->next)
 		prcode(fp,
 "extern const sipExportedModuleDef *sipModuleAPI_%s_%s;\n"
 			,mname,mld -> module -> name);
@@ -1301,7 +1301,7 @@ static void generateCpp(sipSpec *pt,char *codeDir,char *srcSuffix,int *parts)
 			);
 	}
 
-	if (pt -> module -> imports != NULL)
+	if (pt->allimports != NULL)
 	{
 		prcode(fp,
 "\n"
@@ -1310,7 +1310,7 @@ static void generateCpp(sipSpec *pt,char *codeDir,char *srcSuffix,int *parts)
 "static sipImportedModuleDef importsTable[] = {\n"
 			);
 
-		for (mld = pt -> module -> imports; mld != NULL; mld = mld -> next)
+		for (mld = pt->allimports; mld != NULL; mld = mld->next)
 			prcode(fp,
 "	{\"%s\", %d, NULL},\n"
 				, mld->module->fullname, mld->module->version);
@@ -1483,7 +1483,7 @@ static void generateCpp(sipSpec *pt,char *codeDir,char *srcSuffix,int *parts)
 		,mname
 		, pt->module->fullname
 		,pt -> module -> version
-		,(pt -> module -> imports != NULL ? "importsTable" : "NULL")
+		,(pt->allimports != NULL ? "importsTable" : "NULL")
 		,(pt -> qobjclass >= 0 ? "&qtAPI" : "NULL")
 		,pt -> module -> nrclasses
 		,(pt -> module -> nrclasses > 0 ? "typesTable" : "NULL")
@@ -1521,7 +1521,7 @@ static void generateCpp(sipSpec *pt,char *codeDir,char *srcSuffix,int *parts)
 "const sipAPIDef *sipAPI_%s;\n"
 		,mname);
 
-	for (mld = pt -> module -> imports; mld != NULL; mld = mld -> next)
+	for (mld = pt->allimports; mld != NULL; mld = mld->next)
 		prcode(fp,
 "const sipExportedModuleDef *sipModuleAPI_%s_%s;\n"
 			,mname,mld -> module -> name);
@@ -1597,7 +1597,7 @@ static void generateCpp(sipSpec *pt,char *codeDir,char *srcSuffix,int *parts)
 
 	noIntro = TRUE;
 
-	for (mld = pt -> module -> imports; mld != NULL; mld = mld -> next)
+	for (mld = pt->allimports; mld != NULL; mld = mld->next)
 	{
 		if (noIntro)
 		{
@@ -2165,9 +2165,14 @@ static int generateVoidPointers(sipSpec *pt,classDef *cd,FILE *fp)
 			noIntro = FALSE;
 		}
 
-		prcode(fp,
+		if (isConstArg(&vd->type))
+			prcode(fp,
+"	{%N, const_cast<%b *>(%S)},\n"
+				, vd->pyname, &vd->type, vd->fqcname);
+		else
+			prcode(fp,
 "	{%N, %S},\n"
-			,vd -> pyname,vd -> fqcname);
+				, vd->pyname, vd->fqcname);
 	}
 
 	if (!noIntro)

@@ -17,6 +17,7 @@ static int supportedType(classDef *,overDef *,argDef *,int);
 static int sameOverload(overDef *od1,overDef *od2);
 static int sameVirtualHandler(virtHandlerDef *vhd1,virtHandlerDef *vhd2);
 static int isSubClass(classDef *cc,classDef *pc);
+static void setAllModules(sipSpec *pt);
 static void ensureInput(classDef *,overDef *,argDef *);
 static void defaultInput(argDef *);
 static void defaultOutput(classDef *,overDef *,argDef *);
@@ -68,7 +69,7 @@ static classDef *getProxy(sipSpec *pt, classDef *cd);
 
 void transform(sipSpec *pt)
 {
-	int nr;
+	moduleDef *mod;
 	moduleListDef *mld;
 	classDef *cd, *rev, **tail;
 	classList *newl;
@@ -101,14 +102,8 @@ void transform(sipSpec *pt)
 
 	pt -> classes = rev;
 
-	/*
-	 * Give each module directly imported from the main module a number
-	 * that corresponds to its index in the main module's import table.
-	 */
-	nr = 0;
-
-	for (mld = pt -> module -> imports; mld != NULL; mld = mld -> next)
-		mld -> module -> modulenr = nr++;
+	/* Build the list of all modules and number them. */
+	setAllModules(pt);
 
 	/* Check each class has been defined. */
 	for (cd = pt -> classes; cd != NULL; cd = cd -> next)
@@ -180,14 +175,9 @@ void transform(sipSpec *pt)
 	for (cd = pt -> classes; cd != NULL; cd = cd -> next)
 		positionClass(cd);
 
-	/*
-	 * Assign module specific class numbers for this module and any we
-	 * import directly.
-	 */
-	assignClassNrs(pt,pt -> module,&pt -> module -> root);
-
-	for (mld = pt -> module -> imports; mld != NULL; mld = mld -> next)
-		assignClassNrs(pt,mld -> module,&mld -> module -> root);
+	/* Assign module specific class numbers for all modules. */
+	for (mod = pt->modules; mod != NULL; mod = mod->next)
+		assignClassNrs(pt, mod,&mod->root);
 
 	/* Assign module specific enum numbers for all enums. */
 	assignEnumNrs(pt);
@@ -254,7 +244,7 @@ void transform(sipSpec *pt)
 	 * Remove redundant virtual handlers.  It's important that earlier,
 	 * ie. those at the deepest level of %Import, are done first.
 	 */
-	for (mld = pt -> module -> imports; mld != NULL; mld = mld -> next)
+	for (mld = pt->allimports; mld != NULL; mld = mld->next)
 		filterVirtualHandlers(pt,mld -> module);
 
 	filterVirtualHandlers(pt,pt -> module);
@@ -271,6 +261,62 @@ void transform(sipSpec *pt)
 	/* Update proxies with some information from the real classes. */
 	for (cd = pt->proxies; cd != NULL; cd = cd->next)
 		cd->classnr = cd->real->classnr;
+}
+
+
+/*
+ * Set the list of all modules and number them.  The list is ordered so that
+ * a module appears before any module that imports it.
+ */
+static void setAllModules(sipSpec *pt)
+{
+	int nr, none;
+	moduleListDef **tail;
+
+	/*
+	 * We do multiple passes until there is a pass when nothing was done.
+	 */
+	nr = 0;
+	tail = &pt->allimports;
+
+	do
+	{
+		moduleDef *mod;
+
+		none = TRUE;
+
+		for (mod = pt->modules; mod != NULL; mod = mod->next)
+		{
+			moduleListDef *mld;
+
+			/* Skip the main module and anything already done. */
+			if (mod == pt->module || isOrdered(mod))
+				continue;
+
+			/* This can be done if it only has ordered imports. */
+			for (mld = mod->imports; mld != NULL; mld = mld->next)
+				if (!isOrdered(mld->module))
+					break;
+
+			if (mld != NULL)
+				continue;
+
+			/* Append this to the ordered list. */
+			mld = sipMalloc(sizeof (moduleListDef));
+
+			mld->module = mod;
+			mld->next = NULL;
+
+			*tail = mld;
+			tail = &mld->next;
+
+			mod->modulenr = nr++;
+			setIsOrdered(mod);
+
+			none = FALSE;
+		}
+	}
+	while (!none);
 }
 
 
@@ -597,7 +643,7 @@ static void filterVirtualHandlers(sipSpec *pt,moduleDef *mod)
 		{
 			moduleListDef *mld;
 
-			for (mld = pt -> module -> imports; mld != NULL && mld -> module != mod; mld = mld -> next)
+			for (mld = pt->allimports; mld != NULL && mld->module != mod; mld = mld->next)
 			{
 				for (hd = mld -> module -> virthandlers; hd != NULL; hd = hd -> next)
 					if (sameVirtualHandler(vhd,hd))
@@ -1085,9 +1131,6 @@ static void getVisibleMembers(sipSpec *pt,classDef *cd)
 			{
 				overDef *od;
 
-				/* We probably want the name. */
-				setIsUsedName(md -> pyname);
-
 				vl = sipMalloc(sizeof (visibleList));
 
 				vl -> m = md;
@@ -1105,6 +1148,13 @@ static void getVisibleMembers(sipSpec *pt,classDef *cd)
 							setIsAbstractClass(cd);
 
 						ifaceFilesAreUsed(pt, cd->iff, od);
+
+						/* See if we need the name. */
+						if (cd->iff->module != pt->module)
+							continue;
+
+						if (isProtected(od) || (isSignal(od) && pt->emitters))
+							setIsUsedName(md->pyname);
 					}
 			}
 		}
