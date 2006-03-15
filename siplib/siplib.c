@@ -5960,11 +5960,7 @@ static void sipWrapper_dealloc(sipWrapper *self)
 		while ((psrx = ps -> rxlist) != NULL)
 		{
 			ps -> rxlist = psrx -> next;
-
-			if (psrx -> rx.name != NULL)
-				sip_api_free(psrx -> rx.name);
-
-			sip_api_free(psrx);
+			sipFreePySigRx(psrx);
 		}
 
 		sip_api_free(ps -> name);

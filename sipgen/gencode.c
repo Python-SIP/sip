@@ -1721,10 +1721,8 @@ static void generateEncodedClass(sipSpec *pt,classDef *cd,int last,FILE *fp)
 
 	if (mod == pt -> module)
 		prcode(fp,"255");
-	else if (mod -> modulenr >= 0)
-		prcode(fp,"%u",mod -> modulenr);
 	else
-		fatal("The %s module must explicitly %%Import the %s module\n",pt -> module -> name,mod -> name);
+		prcode(fp,"%u",mod -> modulenr);
 
 	prcode(fp,", %u}",last);
 }

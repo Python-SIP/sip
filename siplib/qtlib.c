@@ -32,6 +32,7 @@ static sipSignature *parseSignature(const char *sig);
 static void *createUniversalSlot(sipWrapper *txSelf, const char *sig, PyObject *rxObj, const char *slot, const char **member);
 static void *findSignal(void *txrx, const char **sig);
 static void *newSignal(void *txrx, const char **sig);
+static void freeSlot(sipSlot *slot);
 
 
 // Return the most recent signal sender.
@@ -59,10 +60,7 @@ PyObject *sip_api_get_sender()
 // Release the resources held by a connection.
 void sip_api_free_connection(sipSlotConnection *conn)
 {
-	if (conn->sc_slot.name)
-		sip_api_free(conn->sc_slot.name);
-
-	Py_XDECREF(conn->sc_slot.weakSlot);
+	freeSlot(&conn->sc_slot);
 }
 
 
@@ -538,17 +536,27 @@ int sip_api_emit_to_slot(sipSlot *slot, PyObject *sigargs)
 	{
 		// If the real object has gone then we pretend everything is
 		// Ok.  This mimics the Qt behaviour of not caring if a
-		// receiving object has been deleted.  (However, programmers
-		// may prefer an exception because it usually means a bug where
-		// they have forgotten to keep the receiving object alive.)
+		// receiving object has been deleted.
 		Py_DECREF(sref);
 		return 0;
 	}
 
 	if (slot -> pyobj == NULL)
 	{
-		if ((sfunc = PyMethod_New(slot -> meth.mfunc,(sref != NULL ? sref : slot -> meth.mself),slot -> meth.mclass)) == NULL)
+		PyObject *self = (sref != NULL ? sref : slot->meth.mself);
+
+		// See if any underlying C++ instance has gone.
+		if (self != NULL && sip_api_wrapper_check(self) && ((sipWrapper *)self)->u.cppPtr == NULL)
+		{
+			Py_XDECREF(sref);
+			return 0;
+		}
+
+		if ((sfunc = PyMethod_New(slot->meth.mfunc, self, slot->meth.mclass)) == NULL)
+		{
+			Py_XDECREF(sref);
 			return -1;
+		}
 
 		// Make sure we garbage collect the new method.
 		newmeth = sfunc;
@@ -562,6 +570,8 @@ int sip_api_emit_to_slot(sipSlot *slot, PyObject *sigargs)
 			// Note that in earlier versions of SIP this error
 			// would be detected when the slot was connected.
 			PyErr_Format(PyExc_NameError,"Invalid slot %s",mname);
+
+			Py_XDECREF(sref);
 			return -1;
 		}
 
@@ -610,26 +620,6 @@ int sip_api_emit_to_slot(sipSlot *slot, PyObject *sigargs)
 
 		// Get the exception.
 		PyErr_Fetch(&xtype,&xvalue,&xtb);
-
-		// If it is a runtime error with no traceback then assume that
-		// a call to checkPointer() has failed, and that this means
-		// than the slot no longer exists (which is acceptable because
-		// we don't explicitly disconnect Python slots).  This won't
-		// be completely reliable (we should create a new exception
-		// class) but should do.
-		if (PyErr_GivenExceptionMatches(xtype, PyExc_RuntimeError) &&
-		    xtb == NULL && sa == sigargs)
-		{
-			Py_XDECREF(newmeth);
-			Py_XDECREF(sref);
-			Py_DECREF(sa);
-
-			Py_XDECREF(xtype);
-			Py_XDECREF(xvalue);
-			Py_XDECREF(xtb);
-
-			return 0;
-		}
 
 		// See if it is unacceptable.  An acceptable failure is a type
 		// error with no traceback - so long as we can still reduce the
@@ -953,19 +943,30 @@ static void removeSlotFromPySigList(sipWrapper *txSelf,const char *sig,
 			if (isSameSlot(&psrx -> rx,rxObj,slot))
 			{
 				*psrxp = psrx -> next;
-
-				if (psrx -> rx.name != NULL)
-					sip_api_free(psrx -> rx.name);
-
-				// Remove any weak reference.
-				Py_XDECREF(psrx -> rx.weakSlot);
-
-				sip_api_free(psrx);
-
+				sipFreePySigRx(psrx);
 				break;
 			}
 		}
 	}
+}
+
+
+// Free a sipSlot structure.
+static void freeSlot(sipSlot *slot)
+{
+	if (slot->name != NULL)
+		sip_api_free(slot->name);
+
+	// Remove any weak reference.
+	Py_XDECREF(slot->weakSlot);
+}
+
+
+// Free a sipPySigRx structure on the heap.
+void sipFreePySigRx(sipPySigRx *rx)
+{
+	freeSlot(&rx->rx);
+	sip_api_free(rx);
 }
 
 
