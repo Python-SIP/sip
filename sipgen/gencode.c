@@ -167,7 +167,7 @@ static int needNewInstance(argDef *ad);
 static int needDealloc(classDef *cd);
 static char getBuildResultFormat(argDef *ad);
 static const char *getParseResultFormat(argDef *ad, int isres, int xfervh);
-static void generateParseResultExtraArgs(argDef *ad,FILE *fp);
+static void generateParseResultExtraArgs(argDef *ad, int isres, FILE *fp);
 static char *makePartName(char *codeDir,char *mname,int part,char *srcSuffix);
 static void normaliseArgs(signatureDef *);
 static void restoreArgs(signatureDef *);
@@ -5435,7 +5435,7 @@ static void generateVirtualHandler(sipSpec *pt,virtHandlerDef *vhd,FILE *fp)
 	/* Pass the destination pointers. */
 	if (res != NULL)
 	{
-		generateParseResultExtraArgs(res,fp);
+		generateParseResultExtraArgs(res, TRUE, fp);
 		prcode(fp,",&sipRes%s",(copy ? "Orig" : ""));
 	}
 
@@ -5445,7 +5445,7 @@ static void generateVirtualHandler(sipSpec *pt,virtHandlerDef *vhd,FILE *fp)
 
 		if (isOutArg(ad))
 		{
-			generateParseResultExtraArgs(ad,fp);
+			generateParseResultExtraArgs(ad, FALSE, fp);
 			prcode(fp,",%sa%d",(isReference(ad) ? "&" : ""),a);
 		}
 	}
@@ -5522,7 +5522,7 @@ static void generateVirtualHandler(sipSpec *pt,virtHandlerDef *vhd,FILE *fp)
  * Generate the extra arguments needed by sipParseResult() for a particular
  * type.
  */
-static void generateParseResultExtraArgs(argDef *ad,FILE *fp)
+static void generateParseResultExtraArgs(argDef *ad, int isres, FILE *fp)
 {
 	switch (ad -> atype)
 	{
@@ -5533,7 +5533,7 @@ static void generateParseResultExtraArgs(argDef *ad,FILE *fp)
 	case class_type:
 		prcode(fp, ",sipClass_%C", classFQCName(ad->u.cd));
 
-		if (ad->nrderefs == 0 && ad->u.cd->convtocode != NULL)
+		if (isres && ad->nrderefs == 0 && ad->u.cd->convtocode != NULL && !isReference(ad))
 			prcode(fp, ",&sipResState");
 
 		break;
@@ -5593,10 +5593,7 @@ static const char *getParseResultFormat(argDef *ad, int isres, int xfervh)
 
 	case class_type:
 		{
-			static const char *s[] = {
-				"C0", "C1", "C2", "C3",
-				"C4", "C5", "C6", "C7"
-			};
+			static char s[] = "C?";
 
 			int f = 0x04;
 
@@ -5605,13 +5602,29 @@ static const char *getParseResultFormat(argDef *ad, int isres, int xfervh)
 				f |= 0x01;
 
 				if (ad->u.cd->convtocode != NULL)
+				{
 					f &= ~0x04;
+
+					/*
+					 * If it is a reference then we are
+					 * going to return the dereference.  To
+					 * make sure it remains valid we can
+					 * either leak the temporary from the
+					 * %ConvertToCode or we can suppress
+					 * the %ConvertToCode.  We choose the
+					 * latter.
+					 */
+					if (isReference(ad))
+						f |= 0x10;
+				}
 			}
 
 			if (isres && xfervh)
 				f |= 0x02;
 
-			return s[f];
+			s[1] = '0' + f;
+
+			return s;
 		}
 
 	case bool_type:

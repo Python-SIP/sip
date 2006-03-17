@@ -969,7 +969,7 @@ file.
             ``__mod__`` | ``__mul__`` | ``__ne__`` | ``__neg__`` |
             ``__nonzero__`` | ``__or__`` | ``__pos__`` | ``__repr__`` |
             ``__rshift__`` | ``__setitem__`` | ``__str__`` | ``__sub__`` |
-            ``__unicode__`` | ``__xor__``]
+            ``__xor__``]
 
     *operator* ::= *operator-type*
             ``(`` [*argument-list*] ``)`` [``const``] [*exceptions*]
