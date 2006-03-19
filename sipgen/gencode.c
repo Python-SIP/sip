@@ -7470,17 +7470,24 @@ static const char *slotName(slotType st)
 static void generateTypeInit(sipSpec *pt, classDef *cd, FILE *fp)
 {
 	ctorDef *ct;
-	int need_owner;
+	int need_self, need_owner;
 
 	/*
-	 * See if we need to name the owner argument so that we can avoid a
-	 * compiler warning about an unused argument.
+	 * See if we need to name the self and owner arguments so that we can
+	 * avoid a compiler warning about an unused argument.
 	 */
+	need_self = (generating_c || hasShadow(cd));
 	need_owner = generating_c;
 
 	for (ct = cd -> ctors; ct != NULL; ct = ct -> next)
 	{
 		int a;
+
+		if (need_self && need_owner)
+			break;
+
+		if (usedInCode(ct->methodcode, "sipSelf"))
+			need_self = TRUE;
 
 		for (a = 0; a < ct -> pysig.nrArgs; ++a)
 			if (isThisTransferred(&ct -> pysig.args[a]))
@@ -7488,9 +7495,6 @@ static void generateTypeInit(sipSpec *pt, classDef *cd, FILE *fp)
 				need_owner = TRUE;
 				break;
 			}
-
-		if (need_owner)
-			break;
 	}
 
 	prcode(fp,
@@ -7498,7 +7502,7 @@ static void generateTypeInit(sipSpec *pt, classDef *cd, FILE *fp)
 "\n"
 "static void *init_%C(sipWrapper *%s,PyObject *sipArgs,sipWrapper **%s,int *sipArgsParsed)\n"
 "{\n"
-		,classFQCName(cd),((generating_c || hasShadow(cd)) ? "sipSelf" : ""),(need_owner ? "sipOwner" : ""));
+		,classFQCName(cd),(need_self ? "sipSelf" : ""),(need_owner ? "sipOwner" : ""));
 
 	if (hasShadow(cd))
 		prcode(fp,

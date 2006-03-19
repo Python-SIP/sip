@@ -44,7 +44,7 @@ static sipWrapper *cppPendingOwner;
 /*
  * Get the address of any C/C++ object waiting to be wrapped.
  */
-void *sipGetPending(sipWrapper **op,int *fp)
+void *sipGetPending(sipWrapper **op, int *fp)
 {
 	void *pend;
 	int pendFlags;
@@ -55,29 +55,29 @@ void *sipGetPending(sipWrapper **op,int *fp)
 
 	if ((td = currentThreadDef()) != NULL)
 	{
-		pend = td -> cppPending;
-		pendFlags = td -> cppPendingFlags;
-		pendOwner = td -> cppPendingOwner;
+		pend = td->cppPending;
+		pendOwner = td->cppPendingOwner;
+		pendFlags = td->cppPendingFlags;
 	}
 	else
 	{
 		pend = cppPending;
-		pendFlags = cppPendingFlags;
 		pendOwner = cppPendingOwner;
+		pendFlags = cppPendingFlags;
 	}
 #else
 	pend = cppPending;
-	pendFlags = cppPendingFlags;
 	pendOwner = cppPendingOwner;
+	pendFlags = cppPendingFlags;
 #endif
 
 	if (pend != NULL)
 	{
-		if (fp != NULL)
-			*fp = pendFlags;
-
 		if (op != NULL)
 			*op = pendOwner;
+
+		if (fp != NULL)
+			*fp = pendFlags;
 	}
 
 	return pend;
@@ -87,7 +87,8 @@ void *sipGetPending(sipWrapper **op,int *fp)
 /*
  * Convert a new C/C++ pointer to a Python instance.
  */
-PyObject *sipWrapSimpleInstance(void *cppPtr,sipWrapperType *type,sipWrapper *owner,int flags)
+PyObject *sipWrapSimpleInstance(void *cppPtr, sipWrapperType *type,
+		sipWrapper *owner, int flags)
 {
 	static PyObject *nullargs = NULL;
 
@@ -108,20 +109,20 @@ PyObject *sipWrapSimpleInstance(void *cppPtr,sipWrapperType *type,sipWrapper *ow
 #ifdef WITH_THREAD
 	if ((td = currentThreadDef()) != NULL)
 	{
-		td -> cppPending = cppPtr;
-		td -> cppPendingFlags = flags;
-		td -> cppPendingOwner = owner;
+		td->cppPending = cppPtr;
+		td->cppPendingOwner = owner;
+		td->cppPendingFlags = flags;
 	}
 	else
 	{
 		cppPending = cppPtr;
-		cppPendingFlags = flags;
 		cppPendingOwner = owner;
+		cppPendingFlags = flags;
 	}
 #else
 	cppPending = cppPtr;
-	cppPendingFlags = flags;
 	cppPendingOwner = owner;
+	cppPendingFlags = flags;
 #endif
 
 	self = PyObject_Call((PyObject *)type,nullargs,NULL);

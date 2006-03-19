@@ -564,8 +564,16 @@ int sip_api_emit_to_slot(sipSlot *slot, PyObject *sigargs)
 	else if (slot -> name != NULL)
 	{
 		char *mname = slot -> name + 1;
+		PyObject *self = (sref != NULL ? sref : slot->pyobj);
 
-		if ((sfunc = PyObject_GetAttrString((sref != NULL ? sref : slot -> pyobj),mname)) == NULL || !PyCFunction_Check(sfunc))
+		// See if any underlying C++ instance has gone.
+		if (self != NULL && sip_api_wrapper_check(self) && ((sipWrapper *)self)->u.cppPtr == NULL)
+		{
+			Py_XDECREF(sref);
+			return 0;
+		}
+
+		if ((sfunc = PyObject_GetAttrString(self, mname)) == NULL || !PyCFunction_Check(sfunc))
 		{
 			// Note that in earlier versions of SIP this error
 			// would be detected when the slot was connected.

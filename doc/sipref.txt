@@ -2459,9 +2459,9 @@ int sipIsErr
     constructors.
 
 PyObject \*sipSelf
-    If the directive is used in the context of a class method then this is the
-    Python object that wraps the the structure or class instance,
-    i.e. ``self``.
+    If the directive is used in the context of a class constructor or method
+    then this is the Python object that wraps the the structure or class
+    instance, i.e. ``self``.
 
 bool sipSelfWasArg
     This is only made available for non-abstract, virtual methods.  It is set
@@ -4210,7 +4210,8 @@ sipWrapper
 This is a C structure that represents a Python wrapped instance.  It is an
 extension of the Python ``PyObject`` structure and so may be safely cast to
 ``PyObject``.  It includes a member called ``user`` which is of type
-``PyObject *``.  This can be used for any purpose by handwritten code.
+``PyObject *``.  This can be used for any purpose by handwritten code and will
+automatically be garbage collected at the appropriate time.
 
 
 sipWrapper_Check()

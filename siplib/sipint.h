@@ -87,9 +87,9 @@ int sip_api_same_connection(sipSlotConnection *conn, void *tx, const char *sig,
  */
 void sipFreePySigRx(sipPySigRx *rx);
 void sipSaveMethod(sipPyMethod *pm,PyObject *meth);
-void *sipGetPending(sipWrapper **op,int *fp);
-PyObject *sipWrapSimpleInstance(void *cppPtr,sipWrapperType *type,
-				sipWrapper *owner,int initflags);
+void *sipGetPending(sipWrapper **op, int *fp);
+PyObject *sipWrapSimpleInstance(void *cppPtr, sipWrapperType *type,
+		sipWrapper *owner, int initflags);
 
 void sipOMInit(sipObjectMap *om);
 void sipOMFinalise(sipObjectMap *om);
