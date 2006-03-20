@@ -328,6 +328,8 @@ static int findEnumArg(sipExportedModuleDef *emd, const char *name, size_t len,
 		       sipSigArg *at, int indir);
 static int sameScopedName(const char *pyname, const char *name, size_t len);
 static int nameEq(const char *with, const char *name, size_t len);
+static int isPythonType(sipWrapperType *wt);
+static int gettingBaseDict(sipWrapperType *wt, PyObject *name);
 
 
 /*
@@ -5375,6 +5377,41 @@ PyObject *sip_api_convert_from_void_ptr(void *val)
 }
 
 
+/*
+ * Return TRUE if a type is a Python sub-type of a wrapped type.
+ */
+static int isPythonType(sipWrapperType *wt)
+{
+	char *name;
+
+	/*
+	 * We check by comparing the actual type name with the name used to
+	 * create the original wrapped type.
+	 */
+	if ((name = PyString_AsString(wt->super.name)) == NULL)
+		return FALSE;
+
+	return (strcmp(name, getBaseName(wt->type->td_name)) != 0);
+}
+
+
+/*
+ * Return TRUE if we are getting the __dict__ attribute of a base wrapped type.
+ */
+static int gettingBaseDict(sipWrapperType *wt, PyObject *name)
+{
+	char *nm;
+
+	if (isPythonType(wt))
+		return FALSE;
+
+	if ((nm = PyString_AsString(name)) == NULL)
+		return FALSE;
+
+	return (strcmp(nm, "__dict__") == 0);
+}
+
+
 /*****************************************************************************
  * The Python metatype for a C++ wrapper type.
  *****************************************************************************/
@@ -5449,18 +5486,14 @@ static int sipWrapperType_init(sipWrapperType *self,PyObject *args,PyObject *kwd
  */
 static PyObject *sipWrapperType_getattro(PyObject *obj,PyObject *name)
 {
-	char *nm;
 	PyObject *attr;
 	sipWrapperType *wt = (sipWrapperType *)obj;
 
 	/*
-	 * If we are getting the type dictionary then we don't want the
-	 * super-metatype to handle it.
+	 * If we are getting the type dictionary for a base wrapped type then
+	 * we don't want the super-metatype to handle it.
 	 */
-	if ((nm = PyString_AsString(name)) == NULL)
-		return NULL;
-
-	if (strcmp(nm,"__dict__") == 0)
+	if (gettingBaseDict(wt, name))
 	{
 		int i;
 		sipTypeDef *td;
@@ -6077,19 +6110,15 @@ static PyObject *sipWrapper_richcompare(PyObject *self,PyObject *arg,int op)
  */
 static PyObject *sipWrapper_getattro(PyObject *obj,PyObject *name)
 {
-	char *nm;
 	PyObject *attr;
 	sipWrapperType *wt = (sipWrapperType *)obj -> ob_type;
 	sipWrapper *w = (sipWrapper *)obj;
 
 	/*
-	 * If we are getting the instance dictionary then we don't want the
-	 * metatype to handle it.
+	 * If we are getting the instance dictionary of a base wrapper type
+	 * then we don't want the metatype to handle it.
 	 */
-	if ((nm = PyString_AsString(name)) == NULL)
-		return NULL;
-
-	if (strcmp(nm,"__dict__") == 0)
+	if (gettingBaseDict(wt, name))
 	{
 		PyObject *tmpdict;
 
