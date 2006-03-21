@@ -328,7 +328,7 @@ static int findEnumArg(sipExportedModuleDef *emd, const char *name, size_t len,
 		       sipSigArg *at, int indir);
 static int sameScopedName(const char *pyname, const char *name, size_t len);
 static int nameEq(const char *with, const char *name, size_t len);
-static int isPythonType(sipWrapperType *wt);
+static int isExactWrappedType(sipWrapperType *wt);
 static int gettingBaseDict(sipWrapperType *wt, PyObject *name);
 
 
@@ -3249,14 +3249,35 @@ static PyObject *getBaseNameObject(const char *name)
  */
 static PyObject *createTypeDict(PyObject *mname)
 {
+	static PyObject *proto = NULL;
 	static PyObject *mstr = NULL;
 	PyObject *dict;
+
+	/* Create a prototype dictionary. */
+	if (proto == NULL)
+	{
+		if ((proto = PyDict_New()) == NULL)
+			return NULL;
+
+		/*
+		 * These tell pickle that SIP generated classes can't be
+		 * pickled.
+		 */
+		if (PyDict_SetItemString(proto, "__reduce_ex__", Py_None) < 0 ||
+		    PyDict_SetItemString(proto, "__reduce__", Py_None) < 0)
+		{
+			Py_DECREF(proto);
+			proto = NULL;
+
+			return NULL;
+		}
+	}
 
 	/* Create an object for "__module__". */
 	if (mstr == NULL && (mstr = PyString_FromString("__module__")) == NULL)
 		return NULL;
 
-	if ((dict = PyDict_New()) == NULL)
+	if ((dict = PyDict_Copy(proto)) == NULL)
 		return NULL;
 
 	/* We need to set the module name as an attribute for dynamic types. */
@@ -5378,11 +5399,16 @@ PyObject *sip_api_convert_from_void_ptr(void *val)
 
 
 /*
- * Return TRUE if a type is a Python sub-type of a wrapped type.
+ * Return TRUE if a type is a wrapped type, rather than a sub-type implemented
+ * in Python or the super-type.
  */
-static int isPythonType(sipWrapperType *wt)
+static int isExactWrappedType(sipWrapperType *wt)
 {
 	char *name;
+
+	/* The super-type doesn't have extra type information. */
+	if (wt->type == NULL)
+		return FALSE;
 
 	/*
 	 * We check by comparing the actual type name with the name used to
@@ -5391,18 +5417,19 @@ static int isPythonType(sipWrapperType *wt)
 	if ((name = PyString_AsString(wt->super.name)) == NULL)
 		return FALSE;
 
-	return (strcmp(name, getBaseName(wt->type->td_name)) != 0);
+	return (strcmp(name, getBaseName(wt->type->td_name)) == 0);
 }
 
 
 /*
- * Return TRUE if we are getting the __dict__ attribute of a base wrapped type.
+ * Return TRUE if we are getting the __dict__ attribute of an exact wrapped
+ * type.
  */
 static int gettingBaseDict(sipWrapperType *wt, PyObject *name)
 {
 	char *nm;
 
-	if (isPythonType(wt))
+	if (!isExactWrappedType(wt))
 		return FALSE;
 
 	if ((nm = PyString_AsString(name)) == NULL)

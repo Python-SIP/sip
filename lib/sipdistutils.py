@@ -35,7 +35,7 @@ class build_ext (distutils.command.build_ext.build_ext):
         import sipconfig
         cfg = sipconfig.Configuration()
         return cfg.sip_bin
-    
+
     def _sip_inc_dir(self):
         import sipconfig
         cfg = sipconfig.Configuration()
@@ -69,9 +69,9 @@ class build_ext (distutils.command.build_ext.build_ext):
             sipbasename = os.path.basename(sip)
             sbf = os.path.join(self.build_temp, replace_suffix(sipbasename, "sbf"))
             if newer(sip, sbf) or self.force:
-              self._sip_compile(sip_bin, sip, sbf)
-              out = self._get_sip_output_list(sbf)
-              generated_sources.extend(out)
+                self._sip_compile(sip_bin, sip, sbf)
+            out = self._get_sip_output_list(sbf)
+            generated_sources.extend(out)
 
         return generated_sources + other_sources
 

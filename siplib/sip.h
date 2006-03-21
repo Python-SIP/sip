@@ -764,11 +764,11 @@ typedef struct _sipAPIDef {
 	void (*api_transfer_to)(PyObject *self,PyObject *owner);
 	int (*api_wrapper_check)(PyObject *o);
 	unsigned long (*api_long_as_unsigned_long)(PyObject *o);
+	PyObject *(*api_convert_from_named_enum)(int eval, PyTypeObject *et);
 	/*
 	 * The following may be used by Qt support code but no other
 	 * handwritten code.
 	 */
-	PyObject *(*api_convert_from_named_enum)(int eval, PyTypeObject *et);
 	PyObject *(*api_convert_from_void_ptr)(void *val);
 	void (*api_free_connection)(sipSlotConnection *conn);
 	int (*api_emit_to_slot)(sipSlot *slot, PyObject *sigargs);

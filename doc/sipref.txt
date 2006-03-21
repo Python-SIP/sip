@@ -3740,6 +3740,15 @@ PyObject \*sipConvertFromMappedType(void \*cpp, sipMappedType \*mt, PyObject \*t
     `sipTransferTo()`_.
 
 
+sipConvertFromNamedEnum()
+-------------------------
+
+PyObject \*sipConvertFromNamedEnum(int eval, PyTypeObject \*type)
+    Convert a named C/C++ ``enum`` to an instance of the corresponding Python
+    named enum type.  *eval* is the enumerated value to convert.  *type* is the
+    generated Python type object (see `Generated Named Enum Type Objects`_).
+
+
 sipConvertFromNewInstance()
 ---------------------------
 
