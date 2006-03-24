@@ -1553,7 +1553,7 @@ static void generateCpp(sipSpec *pt,char *codeDir,char *srcSuffix,int *parts)
 "		{0, 0, 0, 0}\n"
 "	};\n"
 "\n"
-"	PyObject *sip_mod, *sip_mdict, *sip_sipmod, *sip_capiobj;\n"
+"	PyObject *sipModule, *sipModuleDict, *sip_sipmod, *sip_capiobj;\n"
 "\n"
 		);
 
@@ -1562,8 +1562,8 @@ static void generateCpp(sipSpec *pt,char *codeDir,char *srcSuffix,int *parts)
 
 	prcode(fp,
 "	/* Initialise the module and get it's dictionary. */\n"
-"	sip_mod = Py_InitModule(sipModuleAPI_%s.em_name,sip_methods);\n"
-"	sip_mdict = PyModule_GetDict(sip_mod);\n"
+"	sipModule = Py_InitModule(sipModuleAPI_%s.em_name,sip_methods);\n"
+"	sipModuleDict = PyModule_GetDict(sipModule);\n"
 "\n"
 "	/* Import the SIP module and get it's API. */\n"
 "	sip_sipmod = PyImport_ImportModule(\"sip\");\n"
@@ -1590,7 +1590,7 @@ static void generateCpp(sipSpec *pt,char *codeDir,char *srcSuffix,int *parts)
 	prcode(fp,
 "\n"
 "	/* Export the module and publish it's API. */\n"
-"	if (sipAPI_%s -> api_export_module(&sipModuleAPI_%s,SIP_API_MAJOR_NR,SIP_API_MINOR_NR,sip_mdict) < 0)\n"
+"	if (sipAPI_%s -> api_export_module(&sipModuleAPI_%s,SIP_API_MAJOR_NR,SIP_API_MINOR_NR,sipModuleDict) < 0)\n"
 "		return;\n"
 		,mname
 		,mname);
@@ -1640,7 +1640,7 @@ static void generateCpp(sipSpec *pt,char *codeDir,char *srcSuffix,int *parts)
 		else
 			prcode(fp, "sipException_%C", xd->base->iff->fqcname);
 
-		prcode(fp, ",NULL)) == NULL || PyDict_SetItemString(sip_mdict,\"%s\",exceptionsTable[%d]) < 0)\n"
+		prcode(fp, ",NULL)) == NULL || PyDict_SetItemString(sipModuleDict,\"%s\",exceptionsTable[%d]) < 0)\n"
 "		return;\n"
 			, xd->pyname, xd->exceptionnr);
 	}
@@ -1962,7 +1962,7 @@ static void generateEnumsInline(sipSpec *pt, FILE *fp)
 "	sipAddEnumInstance(");
 
 		if (vd->ecd == NULL)
-			prcode(fp,"sip_mdict");
+			prcode(fp,"sipModuleDict");
 		else
 			prcode(fp,"(PyObject *)sipClass_%C",classFQCName(vd->ecd));
 
@@ -2011,7 +2011,7 @@ static void generateClassesInline(sipSpec *pt,FILE *fp)
 "	sipAddClassInstance(");
 
 		if (vd -> ecd == NULL)
-			prcode(fp,"sip_mdict");
+			prcode(fp,"sipModuleDict");
 		else
 			prcode(fp,"(PyObject *)sipClass_%C",classFQCName(vd -> ecd));
 

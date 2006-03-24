@@ -2653,6 +2653,14 @@ For example::
 This directive is used to specify handwritten code that is embedded in-line
 at the very end of the generated module initialisation code.
 
+The following variables are made available to the handwritten code:
+
+PyObject \*sipModule
+    This is the module object returned by ``Py_InitModule()``.
+
+PyObject \*sipModuleDict
+    This is the module's dictionary object returned by ``Py_ModuleGetDict()``.
+
 For example::
 
     %PostInitialisationCode
@@ -2677,7 +2685,7 @@ For example::
 
     %PreInitialisationCode
         // The code will be executed when the module is first imported and
-        // after before other initialisation has been completed.
+        // before other initialisation has been completed.
     %End
 
 
@@ -3308,7 +3316,7 @@ PostHook
 ********
 
 This name annotation is used to specify the name of a Python builtin that is
-called immediately after call to the underlying C or C++ function or any
+called immediately after the call to the underlying C or C++ function or any
 handwritten code.  The builtin is not called if an error occurred.  It is
 primarily used to integrate with debuggers.
 
