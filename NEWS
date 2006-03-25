@@ -1,3 +1,7 @@
+v4.4.1 ??? March 2006
+  - A bug fix release that fixes a regression with the multiple use of
+    namespaces in the same module.
+
 v4.4 24th March 2006
   - The major number of the internal API has changed so it will be necessary
     to regenerate all modules.
