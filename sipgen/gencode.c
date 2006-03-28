@@ -176,6 +176,10 @@ static void ints_intro(classDef *cd, FILE *fp);
 static const char *argName(const char *name, codeBlock *cb);
 static int usedInCode(codeBlock *code, const char *str);
 static void generateDefaultValue(argDef *ad, int argnr, FILE *fp);
+static void generateClassFromVoid(classDef *cd, const char *cname,
+		const char *vname, FILE *fp);
+static void generateMappedTypeFromVoid(mappedTypeDef *mtd, const char *cname,
+		const char *vname, FILE *fp);
 
 
 /*
@@ -2715,9 +2719,14 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd,FILE *fp)
 "	Py_BEGIN_ALLOW_THREADS\n"
 			);
 
-	prcode(fp,
+	if (generating_c)
+		prcode(fp,
+"	sipFree(ptr);\n"
+			);
+	else
+		prcode(fp,
 "	delete reinterpret_cast<%b *>(ptr);\n"
-		, &mtd->type);
+			, &mtd->type);
 
 	if (release_gil)
 		prcode(fp,
@@ -2740,10 +2749,13 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd,FILE *fp)
 "\n"
 "static PyObject *convertFrom_%T(void *sipCppV,PyObject *%s)\n"
 "{\n"
-"	%b *sipCpp = reinterpret_cast<%b *>(sipCppV);\n"
+"	", &mtd->type, (need_xfer ? "sipTransferObj" : ""));
+
+	generateMappedTypeFromVoid(mtd, "sipCpp", "sipCppV", fp);
+
+	prcode(fp, ";\n"
 "\n"
-		, &mtd -> type, (need_xfer ? "sipTransferObj" : "")
-		, &mtd -> type, &mtd -> type);
+		);
 
 	generateCppCodeBlock(mtd -> convfromcode,fp);
 
@@ -3077,10 +3089,16 @@ static void generateConvertToDefinitions(mappedTypeDef *mtd,classDef *cd,
 			, &type, (need_ptr ? "sipCppPtrV" : ""), (need_xfer ? "sipTransferObj" : ""));
 
 		if (need_ptr)
-			prcode(fp,
+			if (generating_c)
+				prcode(fp,
+"	%b **sipCppPtr = (%b **)sipCppPtrV;\n"
+"\n"
+					, &type, &type);
+			else
+				prcode(fp,
 "	%b **sipCppPtr = reinterpret_cast<%b **>(sipCppPtrV);\n"
 "\n"
-				,&type,&type);
+					, &type, &type);
 
 		generateCppCodeBlock(convtocode,fp);
 
@@ -4161,11 +4179,14 @@ static void generateClassFunctions(sipSpec *pt,classDef *cd,FILE *fp)
 "\n"
 "static int traverse_%C(void *sipCppV,visitproc sipVisit,void *sipArg)\n"
 "{\n"
-"	%S *sipCpp = reinterpret_cast<%S *>(sipCppV);\n"
+"	", classFQCName(cd));
+
+		generateClassFromVoid(cd, "sipCpp", "sipCppV", fp);
+
+		prcode(fp, ";\n"
 "	int sipRes;\n"
 "\n"
-			,classFQCName(cd)
-			,classFQCName(cd),classFQCName(cd));
+			);
 
 		generateCppCodeBlock(cd->travcode, fp);
 
@@ -4184,11 +4205,14 @@ static void generateClassFunctions(sipSpec *pt,classDef *cd,FILE *fp)
 "\n"
 "static int clear_%C(void *sipCppV)\n"
 "{\n"
-"	%S *sipCpp = reinterpret_cast<%S *>(sipCppV);\n"
+"	", classFQCName(cd));
+
+		generateClassFromVoid(cd, "sipCpp", "sipCppV", fp);
+
+		prcode(fp, ";\n"
 "	int sipRes;\n"
 "\n"
-			,classFQCName(cd)
-			,classFQCName(cd),classFQCName(cd));
+			);
 
 		generateCppCodeBlock(cd->clearcode, fp);
 
@@ -4207,14 +4231,17 @@ static void generateClassFunctions(sipSpec *pt,classDef *cd,FILE *fp)
 "\n"
 "static int getreadbuffer_%C(PyObject *%s, void *sipCppV, int %s, void **%s)\n"
 "{\n"
-"	%S *sipCpp = reinterpret_cast<%S *>(sipCppV);\n"
+"	", classFQCName(cd)
+	 , argName("sipSelf", cd->readbufcode)
+	 , argName("sipSegment", cd->readbufcode)
+	 , argName("sipPtrPtr", cd->readbufcode));
+
+		generateClassFromVoid(cd, "sipCpp", "sipCppV", fp);
+
+		prcode(fp, ";\n"
 "	int sipRes;\n"
 "\n"
-			,classFQCName(cd)
-			, argName("sipSelf", cd->readbufcode)
-			, argName("sipSegment", cd->readbufcode)
-			, argName("sipPtrPtr", cd->readbufcode)
-			,classFQCName(cd),classFQCName(cd));
+			);
 
 		generateCppCodeBlock(cd->readbufcode, fp);
 
@@ -4232,14 +4259,17 @@ static void generateClassFunctions(sipSpec *pt,classDef *cd,FILE *fp)
 "\n"
 "static int getwritebuffer_%C(PyObject *%s, void *sipCppV, int %s, void **%s)\n"
 "{\n"
-"	%S *sipCpp = reinterpret_cast<%S *>(sipCppV);\n"
+"	", classFQCName(cd)
+	 , argName("sipSelf", cd->writebufcode)
+	 , argName("sipSegment", cd->writebufcode)
+	 , argName("sipPtrPtr", cd->writebufcode));
+
+		generateClassFromVoid(cd, "sipCpp", "sipCppV", fp);
+
+		prcode(fp, ";\n"
 "	int sipRes;\n"
 "\n"
-			,classFQCName(cd)
-			, argName("sipSelf", cd->writebufcode)
-			, argName("sipSegment", cd->writebufcode)
-			, argName("sipPtrPtr", cd->writebufcode)
-			,classFQCName(cd),classFQCName(cd));
+			);
 
 		generateCppCodeBlock(cd->writebufcode, fp);
 
@@ -4257,13 +4287,16 @@ static void generateClassFunctions(sipSpec *pt,classDef *cd,FILE *fp)
 "\n"
 "static int getsegcount_%C(PyObject *%s, void *sipCppV, int *%s)\n"
 "{\n"
-"	%S *sipCpp = reinterpret_cast<%S *>(sipCppV);\n"
+"	", classFQCName(cd)
+	 , argName("sipSelf", cd->segcountcode)
+	 , argName("sipLenPtr", cd->segcountcode));
+
+		generateClassFromVoid(cd, "sipCpp", "sipCppV", fp);
+
+		prcode(fp, ";\n"
 "	int sipRes;\n"
 "\n"
-			,classFQCName(cd)
-			, argName("sipSelf", cd->segcountcode)
-			, argName("sipLenPtr", cd->segcountcode)
-			,classFQCName(cd),classFQCName(cd));
+			);
 
 		generateCppCodeBlock(cd->segcountcode, fp);
 
@@ -4281,14 +4314,17 @@ static void generateClassFunctions(sipSpec *pt,classDef *cd,FILE *fp)
 "\n"
 "static int getcharbuffer_%C(PyObject *%s, void *sipCppV, int %s, void **%s)\n"
 "{\n"
+"	", classFQCName(cd)
+	 , argName("sipSelf", cd->charbufcode)
+	 , argName("sipSegment", cd->charbufcode)
+	 , argName("sipPtrPtr", cd->charbufcode));
+
+		generateClassFromVoid(cd, "sipCpp", "sipCppV", fp);
+
+		prcode(fp, ";\n"
 "	int sipRes;\n"
-"	%S *sipCpp = reinterpret_cast<%S *>(sipCppV);\n"
 "\n"
-			,classFQCName(cd)
-			, argName("sipSelf", cd->charbufcode)
-			, argName("sipSegment", cd->charbufcode)
-			, argName("sipPtrPtr", cd->charbufcode)
-			,classFQCName(cd),classFQCName(cd));
+			);
 
 		generateCppCodeBlock(cd->charbufcode, fp);
 
@@ -4333,16 +4369,15 @@ static void generateClassFunctions(sipSpec *pt,classDef *cd,FILE *fp)
 			if (cd -> dealloccode != NULL)
 			{
 				if (usedInCode(cd->dealloccode, "sipCpp"))
-					if (generating_c)
-						prcode(fp,
-"		%S *sipCpp = (%S *)sipSelf -> u.cppPtr;\n"
-"\n"
-							,classFQCName(cd),classFQCName(cd));
-					else
-						prcode(fp,
-"		%S *sipCpp = reinterpret_cast<%S *>(sipSelf -> u.cppPtr);\n"
-"\n"
-							,classFQCName(cd),classFQCName(cd));
+				{
+					prcode(fp,
+"		");
+
+					generateClassFromVoid(cd, "sipCpp", "sipSelf->u.cppPtr", fp);
+
+					prcode(fp, ";\n"
+						);
+				}
 
 				generateCppCodeBlock(cd -> dealloccode,fp);
 
@@ -10278,4 +10313,32 @@ static int usedInCode(codeBlock *code, const char *str)
 	}
 
 	return FALSE;
+}
+
+
+/*
+ * Generate an assignment statement from a void * variable to a class instance
+ * variable.
+ */
+static void generateClassFromVoid(classDef *cd, const char *cname,
+		const char *vname, FILE *fp)
+{
+	if (generating_c)
+		prcode(fp, "%S *%s = (%S *)%s", classFQCName(cd), cname, classFQCName(cd), vname);
+	else
+		prcode(fp, "%S *%s = reinterpret_cast<%S *>(%s)", classFQCName(cd), cname, classFQCName(cd), vname);
+}
+
+
+/*
+ * Generate an assignment statement from a void * variable to a mapped type
+ * variable.
+ */
+static void generateMappedTypeFromVoid(mappedTypeDef *mtd, const char *cname,
+		const char *vname, FILE *fp)
+{
+	if (generating_c)
+		prcode(fp, "%b *%s = (%b *)%s", &mtd->type, cname, &mtd->type, vname);
+	else
+		prcode(fp, "%b *%s = reinterpret_cast<%b *>(%s)", &mtd->type, cname, &mtd->type, vname);
 }
