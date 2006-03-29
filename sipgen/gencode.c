@@ -8257,9 +8257,6 @@ static void generateHandleResult(overDef *od,int isNew,char *prefix,FILE *fp)
 		prcode(fp,",sipMappedType_%T,%s);\n"
 			, ad, (isTransferredBack(ad) ? "Py_None" : "NULL"));
 
-		prcode(fp,");\n"
-			);
-
 		break;
 
 	case class_type:
