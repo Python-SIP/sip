@@ -557,7 +557,11 @@ typedef struct _sipUnsignedLongInstanceDef {
  */
 typedef struct _sipLongLongInstanceDef {
 	char *lli_name;			/* The long long name. */
+#if defined(HAVE_LONG_LONG)
 	long long lli_val;		/* The long long value. */
+#else
+	long lli_val;
+#endif
 } sipLongLongInstanceDef;
 
 
@@ -567,7 +571,11 @@ typedef struct _sipLongLongInstanceDef {
  */
 typedef struct _sipUnsignedLongLongInstanceDef {
 	char *ulli_name;		/* The unsigned long long name. */
+#if defined(HAVE_LONG_LONG)
 	unsigned long long ulli_val;	/* The unsigned long long value. */
+#else
+	unsigned long ulli_val;
+#endif
 } sipUnsignedLongLongInstanceDef;
 
 
