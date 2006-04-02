@@ -329,7 +329,6 @@ static int findEnumArg(sipExportedModuleDef *emd, const char *name, size_t len,
 static int sameScopedName(const char *pyname, const char *name, size_t len);
 static int nameEq(const char *with, const char *name, size_t len);
 static int isExactWrappedType(sipWrapperType *wt);
-static int gettingBaseDict(sipWrapperType *wt, PyObject *name);
 
 
 /*
@@ -5454,10 +5453,6 @@ static int isExactWrappedType(sipWrapperType *wt)
 {
 	char *name;
 
-	/* The super-type doesn't have extra type information. */
-	if (wt->type == NULL)
-		return FALSE;
-
 	/*
 	 * We check by comparing the actual type name with the name used to
 	 * create the original wrapped type.
@@ -5466,24 +5461,6 @@ static int isExactWrappedType(sipWrapperType *wt)
 		return FALSE;
 
 	return (strcmp(name, getBaseName(wt->type->td_name)) == 0);
-}
-
-
-/*
- * Return TRUE if we are getting the __dict__ attribute of an exact wrapped
- * type.
- */
-static int gettingBaseDict(sipWrapperType *wt, PyObject *name)
-{
-	char *nm;
-
-	if (!isExactWrappedType(wt))
-		return FALSE;
-
-	if ((nm = PyString_AsString(name)) == NULL)
-		return FALSE;
-
-	return (strcmp(nm, "__dict__") == 0);
 }
 
 
@@ -5561,6 +5538,7 @@ static int sipWrapperType_init(sipWrapperType *self,PyObject *args,PyObject *kwd
  */
 static PyObject *sipWrapperType_getattro(PyObject *obj,PyObject *name)
 {
+	char *nm;
 	PyObject *attr;
 	sipWrapperType *wt = (sipWrapperType *)obj;
 
@@ -5568,7 +5546,10 @@ static PyObject *sipWrapperType_getattro(PyObject *obj,PyObject *name)
 	 * If we are getting the type dictionary for a base wrapped type then
 	 * we don't want the super-metatype to handle it.
 	 */
-	if (gettingBaseDict(wt, name))
+	if ((nm = PyString_AsString(name)) == NULL)
+		return NULL;
+
+	if (strcmp(nm, "__dict__") == 0)
 	{
 		int i;
 		sipTypeDef *td;
@@ -5579,7 +5560,7 @@ static PyObject *sipWrapperType_getattro(PyObject *obj,PyObject *name)
 		dict = wt -> super.type.tp_dict;
 
 		/* The base type doesn't have any type information. */
-		if ((td = wt -> type) == NULL)
+		if ((td = wt->type) == NULL || !isExactWrappedType(wt))
 		{
 			Py_INCREF(dict);
 			return dict;
@@ -6185,6 +6166,7 @@ static PyObject *sipWrapper_richcompare(PyObject *self,PyObject *arg,int op)
  */
 static PyObject *sipWrapper_getattro(PyObject *obj,PyObject *name)
 {
+	char *nm;
 	PyObject *attr;
 	sipWrapperType *wt = (sipWrapperType *)obj -> ob_type;
 	sipWrapper *w = (sipWrapper *)obj;
@@ -6193,13 +6175,14 @@ static PyObject *sipWrapper_getattro(PyObject *obj,PyObject *name)
 	 * If we are getting the instance dictionary of a base wrapper type
 	 * then we don't want the metatype to handle it.
 	 */
-	if (gettingBaseDict(wt, name))
+	if ((nm = PyString_AsString(name)) == NULL)
+		return NULL;
+
+	if (strcmp(nm, "__dict__") == 0)
 	{
-		PyObject *tmpdict;
+		PyObject *tmpdict = NULL;
 
-		tmpdict = NULL;
-
-		if (getNonStaticVariables(wt,w,&tmpdict) < 0)
+		if (isExactWrappedType(wt) && getNonStaticVariables(wt, w, &tmpdict) < 0)
 		{
 			Py_XDECREF(tmpdict);
 			return NULL;
@@ -6235,7 +6218,6 @@ static int getNonStaticVariables(sipWrapperType *wt,sipWrapper *w,
 				 PyObject **ndict)
 {
 	PyMethodDef *pmd;
-	sipEncodedClassDef *sup;
 
 	if ((pmd = wt -> type -> td_variables) != NULL)
 		while (pmd -> ml_name != NULL)
@@ -6270,14 +6252,6 @@ static int getNonStaticVariables(sipWrapperType *wt,sipWrapper *w,
 
 			++pmd;
 		}
-
-
-	/* Check the base classes. */
-	if ((sup = wt -> type -> td_supers) != NULL)
-		do
-			if (getNonStaticVariables(getClassType(sup, wt->type->td_module), w, ndict) < 0)
-				return -1;
-		while (!sup++ -> sc_flag);
 
 	return 0;
 }
