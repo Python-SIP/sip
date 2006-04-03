@@ -1,3 +1,6 @@
+v4.4.1 3rd April 2006
+  - A bug fix release.
+
 v4.4 24th March 2006
   - The major number of the internal API has changed so it will be necessary
     to regenerate all modules.

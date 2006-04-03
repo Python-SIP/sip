@@ -2737,7 +2737,7 @@ static classDef *newClass(sipSpec *pt,ifaceFileType iftype,
 	cd = findClass(pt,iftype,fqname);
 
 	/* Check it hasn't already been defined. */
-	if (cd -> iff -> module != NULL)
+	if (iftype != namespace_iface && cd->iff->module != NULL)
 		yyerror("The struct/class has already been defined");
 
 	cd -> iff -> module = currentModule;
