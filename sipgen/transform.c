@@ -12,7 +12,9 @@
 #include "sip.h"
 
 
-static int sameArgType(argDef *,argDef *,int);
+static int samePythonSignature(signatureDef *sd1, signatureDef *sd2);
+static int nextSignificantArg(signatureDef *sd, int a);
+static int sameArgType(argDef *a1, argDef *a2, int strict);
 static int supportedType(classDef *,overDef *,argDef *,int);
 static int sameOverload(overDef *od1,overDef *od2);
 static int sameVirtualHandler(virtHandlerDef *vhd1,virtHandlerDef *vhd2);
@@ -932,12 +934,27 @@ static void transformMappedTypes(sipSpec *pt)
 /*
  * Transform the data types for a list of ctors.
  */
-static void transformCtors(sipSpec *pt,classDef *cd)
+static void transformCtors(sipSpec *pt, classDef *cd)
 {
 	ctorDef *ct;
 
-	for (ct = cd -> ctors; ct != NULL; ct = ct -> next)
-		resolveCtorTypes(pt,cd,ct);
+	for (ct = cd->ctors; ct != NULL; ct = ct->next)
+	{
+		ctorDef *prev;
+
+		resolveCtorTypes(pt, cd, ct);
+
+		/*
+		 * Now check that the Python signature doesn't conflict with an
+		 * earlier one.
+		 */
+		for (prev = cd->ctors; prev != ct; prev = prev->next)
+			if (samePythonSignature(&prev->pysig, &ct->pysig))
+			{
+				fatalScopedName(classFQCName(cd));
+				fatal(" has ctors with the same Python signature\n");
+			}
+	}
 }
 
 
@@ -1044,7 +1061,32 @@ static void transformOverloads(sipSpec *pt, classDef *scope, overDef *overs)
 	overDef *od;
 
 	for (od = overs; od != NULL; od = od -> next)
+	{
+		overDef *prev;
+
 		resolveFuncTypes(pt, od->common->module, scope, od);
+
+		/*
+		 * Now check that the Python signature doesn't conflict with an
+		 * earlier one.
+		 */
+		for (prev = overs; prev != od; prev = prev->next)
+		{
+			if (prev->common != od->common)
+				continue;
+
+			if (samePythonSignature(&prev->pysig, &od->pysig))
+			{
+				if (scope != NULL)
+				{
+					fatalScopedName(classFQCName(scope));
+					fatal("::");
+				}
+
+				fatal("%s() has overloaded functions with the same Python signature\n", od->common->pyname->text);
+			}
+		}
+	}
 }
 
 
@@ -1934,7 +1976,7 @@ int sameSignature(signatureDef *sd1,signatureDef *sd2,int strict)
  * Compare two argument types and return TRUE if they are the same.  "strict"
  * means as C++ would see it, rather than Python.
  */
-static int sameArgType(argDef *a1,argDef *a2,int strict)
+static int sameArgType(argDef *a1, argDef *a2, int strict)
 {
 	/* The indirection and the references must be the same. */
 	if (isReference(a1) != isReference(a2) || a1 -> nrderefs != a2 -> nrderefs)
@@ -2041,6 +2083,51 @@ int sameBaseType(argDef *a1,argDef *a2)
 	/* Must be the same if we've got this far. */
 
 	return TRUE;
+}
+
+
+/*
+ * See if two Python signatures are the same as far as Python is concerned.
+ */
+static int samePythonSignature(signatureDef *sd1, signatureDef *sd2)
+{
+	int a1, a2;
+
+	a1 = a2 = -1;
+
+	for (;;)
+	{
+		a1 = nextSignificantArg(sd1, a1);
+		a2 = nextSignificantArg(sd2, a2);
+
+		if (a1 < 0 || a2 < 0)
+			break;
+
+		if (!sameArgType(&sd1->args[a1], &sd2->args[a2], FALSE))
+			return FALSE;
+	}
+
+	return (a1 < 0 && a2 < 0);
+
+}
+
+
+/*
+ * Return the next significant argument from a Python signature (ie. one that
+ * is not optional or an output only argument.  Return -1 if there isn't one.
+ */
+static int nextSignificantArg(signatureDef *sd, int a)
+{
+	while (++a < sd->nrArgs)
+	{
+		if (sd->args[a].defval != NULL)
+			break;
+
+		if (isInArg(&sd->args[a]))
+			return a;
+	}
+
+	return -1;
 }
 
 

@@ -3814,14 +3814,6 @@ static void newCtor(char *name,int sectFlags,signatureDef *args,
 	if (strcmp(classBaseName(cd),name) != 0)
 		yyerror("Constructor doesn't have the same name as its class");
 
-	/*
-	 * Find the end of the list and, at the same time, check for any
-	 * existing one with the same signature.
-	 */
-	for (ctp = &cd -> ctors; *ctp != NULL; ctp = &(*ctp) -> next)
-		if (sameSignature(&(*ctp) -> pysig,args,FALSE))
-			yyerror("A constructor with the same Python signature has already been defined");
-
 	/* Add to the list of constructors. */
 	ct = sipMalloc(sizeof (ctorDef));
 
@@ -3864,6 +3856,10 @@ static void newCtor(char *name,int sectFlags,signatureDef *args,
 
 		cd -> defctor = ct;
 	}
+
+	/* Append to the list. */
+	for (ctp = &cd->ctors; *ctp != NULL; ctp = &(*ctp)->next)
+		;
 
 	*ctp = ct;
 }
@@ -4059,24 +4055,9 @@ static void newFunction(sipSpec *pt,moduleDef *mod,int sflags,int isstatic,
 
 	od -> next = NULL;
 
-	/*
-	 * Find the end of the list and, at the same time, check for any
-	 * existing one with the same signature.
-	 */
-
-	for (odp = headp; *odp != NULL; odp = &(*odp) -> next)
-	{
-		if ((*odp) -> common != od -> common)
-			continue;
-
-		if (isConst(*odp) != isConst(od))
-			continue;
-
-		if (!sameSignature(&(*odp) -> pysig,&od -> pysig,FALSE))
-			continue;
-
-		yyerror("A function with the same Python signature has already been defined");
-	}
+	/* Append to the list. */
+	for (odp = headp; *odp != NULL; odp = &(*odp)->next)
+		;
 
 	*odp = od;
 }

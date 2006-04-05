@@ -1,9 +1,6 @@
 1.	Make the parser aware of Python keywords so they can't be used as
 member function names.
 
-2.	Tighten up the recognition of function signatures that involve char,
-unsigned char etc.
-
 5.	Allow handwritten code for static class variables (like
 KTMainWindow.memberList).  The problem is intercepting references to it
 (__getattr__ and __setattr__ aren't good enough) - probably extending the
