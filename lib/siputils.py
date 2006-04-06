@@ -489,10 +489,15 @@ class Makefile:
                     for mod in self._qt:
                         incdir.append(os.path.join(qtincdir[0], mod))
 
-            specd = os.path.join(self.config.qt_dir, "mkspecs", "default")
+            try:
+                specd_base = self.config.qt_data_dir
+            except AttributeError:
+                specd_base = self.config.qt_dir
+
+            specd = os.path.join(specd_base, "mkspecs", "default")
 
             if not os.access(specd, os.F_OK):
-                specd = os.path.join(self.config.qt_dir, "mkspecs", self.config.platform)
+                specd = os.path.join(specd_base, "mkspecs", self.config.platform)
 
             incdir.append(specd)
 
