@@ -49,12 +49,13 @@ static void *sip_api_force_convert_to_mapped_type(PyObject *pyObj,
 						  int *iserrp);
 static void sip_api_release_instance(void *cpp, sipWrapperType *type,
 				     int state);
-static void sip_api_release_mapped_type(void *cpp, sipMappedType *mt,
+static void sip_api_release_mapped_type(void *cpp, const sipMappedType *mt,
 					int state);
 static PyObject *sip_api_convert_from_new_instance(void *cpp,
 						   sipWrapperType *type,
 						   PyObject *transferObj);
-static PyObject *sip_api_convert_from_mapped_type(void *cpp, sipMappedType *mt,
+static PyObject *sip_api_convert_from_mapped_type(void *cpp,
+						  const sipMappedType *mt,
 						  PyObject *transferObj);
 static void *sip_api_convert_to_cpp(PyObject *sipSelf,sipWrapperType *type,
 				    int *iserrp);
@@ -1243,7 +1244,7 @@ static PyObject *buildObject(PyObject *obj,char *fmt,va_list va)
 		case 'D':
 			{
 				void *p = va_arg(va, void *);
-				sipMappedType *mt = va_arg(va, sipMappedType *);
+				const sipMappedType *mt = va_arg(va, const sipMappedType *);
 				PyObject *xfer = va_arg(va, PyObject *);
 
 				el = sip_api_convert_from_mapped_type(p, mt, xfer);
@@ -1633,7 +1634,7 @@ static int sip_api_parse_result(int *isErr,PyObject *method,PyObject *res,char *
 						void **cpp;
 						int *state;
 
-						mt = va_arg(va, sipMappedType *);
+						mt = va_arg(va, const sipMappedType *);
 
 						if (flags & FORMAT_NO_STATE)
 							state = NULL;
@@ -4666,7 +4667,8 @@ static void sip_api_release_instance(void *cpp, sipWrapperType *type, int state)
 /*
  * Release a possibly temporary mapped type created by a type convertor.
  */
-static void sip_api_release_mapped_type(void *cpp, sipMappedType *mt, int state)
+static void sip_api_release_mapped_type(void *cpp, const sipMappedType *mt,
+					int state)
 {
 	/* See if there is something to release. */
 	if (state & SIP_TEMPORARY)
@@ -4754,7 +4756,8 @@ static PyObject *sip_api_convert_from_new_instance(void *cpp,
 /*
  * Convert a C/C++ instance implemented as a mapped type to a Python object.
  */
-static PyObject *sip_api_convert_from_mapped_type(void *cpp, sipMappedType *mt,
+static PyObject *sip_api_convert_from_mapped_type(void *cpp,
+						  const sipMappedType *mt,
 						  PyObject *transferObj)
 {
 	/* Handle None. */

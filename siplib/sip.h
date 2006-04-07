@@ -750,10 +750,10 @@ typedef struct _sipAPIDef {
 	void *(*api_force_convert_to_instance)(PyObject *pyObj, sipWrapperType *type, PyObject *transferObj, int flags, int *statep, int *iserrp);
 	void *(*api_force_convert_to_mapped_type)(PyObject *pyObj, sipMappedType *mt, PyObject *transferObj, int flags, int *statep, int *iserrp);
 	void (*api_release_instance)(void *cpp, sipWrapperType *type, int state);
-	void (*api_release_mapped_type)(void *cpp, sipMappedType *mt, int state);
+	void (*api_release_mapped_type)(void *cpp, const sipMappedType *mt, int state);
 	PyObject *(*api_convert_from_instance)(void *cpp, sipWrapperType *type, PyObject *transferObj);
 	PyObject *(*api_convert_from_new_instance)(void *cpp, sipWrapperType *type, PyObject *transferObj);
-	PyObject *(*api_convert_from_mapped_type)(void *cpp, sipMappedType *mt, PyObject *transferObj);
+	PyObject *(*api_convert_from_mapped_type)(void *cpp, const sipMappedType *mt, PyObject *transferObj);
 	void *(*api_convert_to_cpp)(PyObject *sipSelf,sipWrapperType *type,int *iserrp);
 	int (*api_get_state)(PyObject *transferObj);
 	const sipMappedType *(*api_find_mapped_type)(const char *type);

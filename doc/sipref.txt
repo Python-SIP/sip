@@ -3583,7 +3583,7 @@ PyObject \*sipBuildResult(int \*iserr, char \*format, ...)
         via a call to `sipTransferTo()`_.  The Python class is influenced by
         any applicable `%ConvertToSubClassCode`_ code.
 
-    ``D`` (object) [*type* \*, sipMappedType \*, PyObject \*]
+    ``D`` (object) [*type* \*, const sipMappedType \*, PyObject \*]
         Convert a C structure or a C++ class instance wrapped as a mapped type
         to a Python object.  Ownership of the structure or instance is
         determined by the ``PyObject *`` argument.  If it is ``NULL`` then the
@@ -3737,7 +3737,7 @@ PyObject \*sipConvertFromInstance(void \*cpp, sipWrapperType \*type, PyObject \*
 sipConvertFromMappedType()
 --------------------------
 
-PyObject \*sipConvertFromMappedType(void \*cpp, sipMappedType \*mt, PyObject \*transferObj)
+PyObject \*sipConvertFromMappedType(void \*cpp, const sipMappedType \*mt, PyObject \*transferObj)
     Convert a C structure or a C++ class instance wrapped as a mapped type to a
     Python object.  *cpp* is the C/C++ instance.  *mt* is the opaque structure
     returned by `sipFindMappedType()`_.  *transferObj* controls any ownership
@@ -4161,7 +4161,7 @@ void sipReleaseInstance(void \*cpp, sipWrapperType \*type, int state)
 sipReleaseMappedType()
 ----------------------
 
-void sipReleaseMappedType(void \*cpp, sipMappedType \*mt, int state)
+void sipReleaseMappedType(void \*cpp, const sipMappedType \*mt, int state)
     This destroys a wrapped C/C++ mapped type if it was a temporary instance.
     It is called after a call to either `sipConvertToMappedType()`_ or
     `sipForceConvertToMappedType()`_.  *cpp* is the wrapped C/C++ instance.
