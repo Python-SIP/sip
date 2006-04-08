@@ -478,29 +478,7 @@ class Makefile:
             elif self._threaded:
                 defines.append("QT_THREAD_SUPPORT")
 
-            # This is unlikely to be missing, or to contain more than one
-            # directory, but you never know.
-            qtincdir = self.optional_list("INCDIR_QT")
-
-            if qtincdir:
-                incdir.extend(qtincdir)
-
-                if self.config.qt_version >= 0x040000:
-                    for mod in self._qt:
-                        incdir.append(os.path.join(qtincdir[0], mod))
-
-            try:
-                specd_base = self.config.qt_data_dir
-            except AttributeError:
-                specd_base = self.config.qt_dir
-
-            specd = os.path.join(specd_base, "mkspecs", "default")
-
-            if not os.access(specd, os.F_OK):
-                specd = os.path.join(specd_base, "mkspecs", self.config.platform)
-
-            incdir.append(specd)
-
+            # Handle library directories.
             libdir_qt = self.optional_list("LIBDIR_QT")
             libdir.extend(libdir_qt)
             rpaths.extend(libdir_qt)
@@ -533,10 +511,8 @@ class Makefile:
                     self._qt.append("QtGui")
 
                 for mod in self._qt:
-                    framework = (self.config.qt_framework and mod != "QtAssistant")
-
                     lib = self._qt4_module_to_lib(mod)
-                    libs.append(self.platform_lib(lib, framework))
+                    libs.append(self.platform_lib(lib, self._is_framework(mod)))
 
                     if sys.platform == "win32":
                         # On Windows the dependent libraries seem to be in
@@ -574,6 +550,31 @@ class Makefile:
                 libs.append(self.platform_lib(qt_lib, self.config.qt_framework))
                 libs.extend(self._dependent_libs(self.config.qt_lib))
 
+            # Handle header directories.
+            try:
+                specd_base = self.config.qt_data_dir
+            except AttributeError:
+                specd_base = self.config.qt_dir
+
+            specd = os.path.join(specd_base, "mkspecs", "default")
+
+            if not os.access(specd, os.F_OK):
+                specd = os.path.join(specd_base, "mkspecs", self.config.platform)
+
+            incdir.append(specd)
+
+            qtincdir = self.optional_list("INCDIR_QT")
+
+            if qtincdir:
+                incdir.extend(qtincdir)
+
+                if self.config.qt_version >= 0x040000:
+                    for mod in self._qt:
+                        if self._is_framework(mod):
+                            incdir.append(os.path.join(libdir_qt[0], mod + ".framework", "Headers"))
+                        else:
+                            incdir.append(os.path.join(qtincdir[0], mod))
+
         if self._opengl:
             incdir.extend(self.optional_list("INCDIR_OPENGL"))
             lflags.extend(self.optional_list("LFLAGS_OPENGL"))
@@ -609,6 +610,11 @@ class Makefile:
 
         # Don't do it again because it has side effects.
         self._finalised = 1
+
+    def _is_framework(self, mod):
+        """Return true if the given Qt module is a framework.
+        """
+        return (self.config.qt_framework and mod != "QtAssistant")
 
     def _qt4_module_to_lib(self, mname):
         """Return the name of the Qt4 library corresponding to a module.
@@ -874,12 +880,6 @@ class Makefile:
         for f in self.optional_list("INCDIR"):
             cppflags.append("-I" + _quote(f))
 
-        mfile.write("CPPFLAGS = %s\n" % string.join(cppflags))
-
-        mfile.write("CFLAGS = %s\n" % self.optional_string("CFLAGS"))
-        mfile.write("CXXFLAGS = %s\n" % self.optional_string("CXXFLAGS"))
-        mfile.write("LFLAGS = %s\n" % self.optional_string("LFLAGS"))
-
         libs = []
 
         if self.generator in ("MSVC", "MSVC.NET"):
@@ -889,11 +889,19 @@ class Makefile:
 
         for ld in self.optional_list("LIBDIR"):
             if sys.platform == "darwin" and self.config.qt_framework:
-                libs.append("-F" + _quote(ld))
+                fflag = "-F" + _quote(ld)
+                libs.append(fflag)
+                cppflags.append(fflag)
 
             libs.append(libdir_prefix + _quote(ld))
 
         libs.extend(self.optional_list("LIBS"))
+
+        mfile.write("CPPFLAGS = %s\n" % string.join(cppflags))
+
+        mfile.write("CFLAGS = %s\n" % self.optional_string("CFLAGS"))
+        mfile.write("CXXFLAGS = %s\n" % self.optional_string("CXXFLAGS"))
+        mfile.write("LFLAGS = %s\n" % self.optional_string("LFLAGS"))
 
         mfile.write("LIBS = %s\n" % string.join(libs))
 
