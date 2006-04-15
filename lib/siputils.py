@@ -2026,10 +2026,10 @@ def parse_build_macros(filename, names, overrides=None, properties=None):
                 mend = mend + 1
 
             if term == "]":
-                try:
-                    value = properties[lhs]
-                except KeyError:
+                if properties is None or lhs not in properties.keys():
                     error("%s: property '%s' is not defined." % (filename, lhs))
+
+                value = properties[lhs]
             else:
                 try:
                     value = raw[lhs]

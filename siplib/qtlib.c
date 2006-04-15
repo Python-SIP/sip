@@ -866,20 +866,22 @@ PyObject *sip_api_connect_rx(PyObject *txObj,const char *sig,PyObject *rxObj,
 	if (isQtSignal(sig))
 	{
 		void *tx, *rx;
-		const char *member;
+		const char *member, *real_sig;
 		int res;
 
 		if ((tx = sip_api_get_cpp_ptr(txSelf, sipQObjectClass)) == NULL)
 			return NULL;
 
-		if ((tx = newSignal(tx, &sig)) == NULL)
+		real_sig = sig;
+
+		if ((tx = newSignal(tx, &real_sig)) == NULL)
 			return NULL;
 
 		if ((rx = sip_api_convert_rx(txSelf, sig, rxObj, slot, &member)) == NULL)
 			return NULL;
 
 		Py_BEGIN_ALLOW_THREADS
-		res = sipQtSupport->qt_connect(tx, sig, rx, member, type);
+		res = sipQtSupport->qt_connect(tx, real_sig, rx, member, type);
 		Py_END_ALLOW_THREADS
 
 		return PyBool_FromLong(res);
