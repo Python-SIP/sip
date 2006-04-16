@@ -245,7 +245,9 @@ The full set of command line options is:
 -h       Display a help message.
 -a       Export all symbols in any SIP generated module and the SIP module
          itself.  This was the default behaviour of SIP prior to v4.2.
-         Normally only a module's inititialisation function is exported.
+         Normally only a module's inititialisation function is exported.  This
+         option is deprecated as the ``ModuleMakefile`` class of `The SIP Build
+         System`_ allows this to be specified on a per module basis.
 -b dir   The SIP code generator will be installed in the directory ``dir``.
 -d dir   The SIP module will be installed in the directory ``dir``.
 -e dir   The SIP header file will be installed in the directory ``dir``.
@@ -4869,7 +4871,7 @@ ModuleMakefile(Makefile)
     This class encapsulates a Makefile to build a generic Python extension
     module.
 
-    __init__(self, configuration, build_file, install_dir=None, static=0, console=0, opengl=0, threaded=0, warnings=None, debug=0, dir=None, makefile="Makefile", installs=None, strip=1)
+    __init__(self, configuration, build_file, install_dir=None, static=0, console=0, opengl=0, threaded=0, warnings=None, debug=0, dir=None, makefile="Makefile", installs=None, strip=1, export_all=0)
         Initialise the instance.
 
         ``configuration`` - see ``sipconfig.Makefile.__init__()``.
@@ -4904,6 +4906,13 @@ ModuleMakefile(Makefile)
         ``strip`` is set if the module should be stripped of unneeded symbols
         after installation.  It is ignored if either ``debug`` or ``static`` is
         set, or if the platform doesn't support it.
+
+        ``export_all`` is set if all of the module's symbols should be exported
+        rather than just the module's initialisation function.  Exporting all
+        symbols increases the size of the module and slows down module load
+        times but may avoid problems with modules that use C++ exceptions.  All
+        symbols are exported if either ``debug`` or ``static`` is set, or if
+        the platform doesn't support it.
 
     finalise(self)
         This is a reimplementation of ``sipconfig.Makefile.finalise()``.

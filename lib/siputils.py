@@ -1173,7 +1173,8 @@ class ModuleMakefile(Makefile):
     """
     def __init__(self, configuration, build_file, install_dir=None, static=0,
                  console=0, qt=0, opengl=0, threaded=0, warnings=1, debug=0,
-                 dir=None, makefile="Makefile", installs=None, strip=1):
+                 dir=None, makefile="Makefile", installs=None, strip=1,
+                 export_all=0):
         """Initialise an instance of a module Makefile.
 
         build_file is the file containing the target specific information.  If
@@ -1181,7 +1182,11 @@ class ModuleMakefile(Makefile):
         install_dir is the directory the target will be installed in.
         static is set if the module should be built as a static library.
         strip is set if the module should be stripped of unneeded symbols when
-        installed.
+        installed.  The default is 1.
+        export_all is set if all the module's symbols should be exported rather
+        than just the module's initialisation function.  Exporting all symbols
+        increases the size of the module and slows down module load times but
+        may avoid problems with modules that use exceptions.  The default is 0.
         """
         Makefile.__init__(self, configuration, console, qt, opengl, 1, threaded, warnings, debug, dir, makefile, installs)
 
@@ -1190,11 +1195,19 @@ class ModuleMakefile(Makefile):
         self._dir = dir
         self.static = static
 
-        # Don't strip if this is a debug or static build.
+        # Don't strip or restrict the exports if this is a debug or static
+        # build.
         if debug or static:
             self._strip = 0
+            self._limit_exports = 0
         else:
             self._strip = strip
+
+            # The deprecated configuration flag has precedence.
+            if self.config.export_all:
+                self._limit_exports = 0
+            else:
+                self._limit_exports = not export_all
 
         # Save the target name for later.
         self._target = self._build["target"]
@@ -1204,13 +1217,6 @@ class ModuleMakefile(Makefile):
 
         if sys.platform == "win32" and debug:
             self._target = self._target + "_d"
-
-        # See if we should only export the module initialisation function (to
-        # reduce the size of the module and speed up module load times).
-        if self.config.export_all or debug or static:
-            self._export_init = 0
-        else:
-            self._export_init = 1
 
     def finalise(self):
         """Finalise the macros common to all module Makefiles.
@@ -1258,7 +1264,7 @@ class ModuleMakefile(Makefile):
                     # 1.) Import the python symbols
                     aix_lflags = ['-Wl,-bI:%s/python.exp' % self.config.py_lib_dir]
 
-                    if self._export_init:
+                    if self._limit_exports:
                         aix_lflags.append('-Wl,-bnoexpall')
                         aix_lflags.append('-Wl,-bnoentry')
                         aix_lflags.append('-Wl,-bE:%s.exp' % self._target)
@@ -1270,14 +1276,14 @@ class ModuleMakefile(Makefile):
                     aix_lflags = ['-qmkshrobj',
                                   '-bI:%s/python.exp' % self.config.py_lib_dir]
 
-                    if self._export_init:
+                    if self._limit_exports:
                         aix_lflags.append('-bnoexpall')
                         aix_lflags.append('-bnoentry')
                         aix_lflags.append('-bE:%s.exp' % self._target)
 
                 self.LFLAGS.extend(aix_lflags)
             else:
-                if self._export_init:
+                if self._limit_exports:
                     if sys.platform[:5] == 'linux':
                         self.LFLAGS.extend(['-Wl,--version-script=%s.exp' % self._target])
                     elif sys.platform[:5] == 'hp-ux':
@@ -1394,7 +1400,7 @@ class ModuleMakefile(Makefile):
                 if self._ranlib:
                     mfile.write("\t$(RANLIB) $(TARGET)\n")
             else:
-                if self._export_init:
+                if self._limit_exports:
                     # Create an export file for AIX and Linux.
                     if sys.platform[:5] == 'linux':
                         mfile.write("\t@echo '{ global: init%s; local: *; };' > %s.exp\n" % (self._target, self._target))
@@ -1433,7 +1439,7 @@ class ModuleMakefile(Makefile):
         self.clean_build_file_objects(mfile, self._build)
 
         # Remove any export file on AIX and Linux.
-        if self._export_init and (sys.platform[:5] == 'linux' or sys.platform[:3] == 'aix'):
+        if self._limit_exports and (sys.platform[:5] == 'linux' or sys.platform[:3] == 'aix'):
             mfile.write("\t-%s %s.exp\n" % (self.rm, self._target))
 
 
