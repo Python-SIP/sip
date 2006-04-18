@@ -18,6 +18,7 @@ sip_version_str = "@RM_LATEST@"
 py_version = sys.hexversion >> 8
 plat_py_site_dir = None
 plat_py_inc_dir = None
+plat_py_conf_inc_dir = None
 plat_py_lib_dir = None
 plat_sip_dir = None
 plat_bin_dir = None
@@ -192,8 +193,8 @@ def set_platform_directories():
     """Initialise the global variables relating to platform specific
     directories.
     """
-    global plat_py_site_dir, plat_py_inc_dir, plat_bin_dir, plat_sip_dir
-    global plat_py_lib_dir
+    global plat_py_site_dir, plat_py_inc_dir, plat_py_conf_inc_dir
+    global plat_bin_dir, plat_py_lib_dir, plat_sip_dir
 
     if sys.platform == "win32":
         plat_py_site_dir = sys.prefix + "\\Lib"
@@ -201,6 +202,7 @@ def set_platform_directories():
             plat_py_site_dir = plat_py_site_dir + "\\site-packages"
 
         plat_py_inc_dir = sys.prefix + "\\include"
+        plat_py_conf_inc_dir = sys.exec_prefix + "\\include"
         plat_py_lib_dir = sys.prefix + "\\libs"
         plat_bin_dir = sys.exec_prefix
         plat_sip_dir = sys.prefix + "\\sip"
@@ -212,6 +214,7 @@ def set_platform_directories():
             plat_py_site_dir = plat_py_site_dir + "/site-packages"
 
         plat_py_inc_dir = sys.prefix + "/include/python" + vers
+        plat_py_conf_inc_dir = sys.exec_prefix + "/include/python" + vers
         plat_py_lib_dir = sys.prefix + "/lib/python" + vers + "/config"
         plat_bin_dir = sys.exec_prefix + "/bin"
         plat_sip_dir = sys.prefix + "/share/sip"
@@ -240,6 +243,7 @@ def create_config(module, template, macros):
         "export_all":       opt_export_all,
         "py_version":       py_version,
         "py_inc_dir":       plat_py_inc_dir,
+        "py_conf_inc_dir":  plat_py_conf_inc_dir,
         "py_lib_dir":       plat_py_lib_dir
     }
 

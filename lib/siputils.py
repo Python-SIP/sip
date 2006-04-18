@@ -342,6 +342,7 @@ class Makefile:
 
         if self._python:
             incdir.append(self.config.py_inc_dir)
+            incdir.append(self.config.py_conf_inc_dir)
 
             if sys.platform == "cygwin":
                 libdir.append(self.config.py_lib_dir)
