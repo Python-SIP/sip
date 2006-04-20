@@ -2148,6 +2148,8 @@ def create_wrapper(script, wrapper, gui=0):
             exe = exe[:-4] + "w.exe"
 
         wf.write("@\"%s\" \"%s\" %%1 %%2 %%3 %%4 %%5 %%6 %%7 %%8 %%9\n" % (exe, script))
+    elif sys.platform == "darwin":
+        wf.write("exec %sw %s ${1+\"$@\"}\n" % (sys.executable, script))
     else:
         wf.write("exec %s %s ${1+\"$@\"}\n" % (sys.executable, script))
 

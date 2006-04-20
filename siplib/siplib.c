@@ -99,6 +99,8 @@ static void sip_api_raise_class_exception(sipWrapperType *type,void *ptr);
 static void sip_api_raise_sub_class_exception(sipWrapperType *type,void *ptr);
 static int sip_api_add_class_instance(PyObject *dict,char *name,void *cppPtr,
 				      sipWrapperType *wt);
+static int sip_api_add_mapped_type_instance(PyObject *dict,char *name,
+					    void *cppPtr, sipMappedType *mt);
 static int sip_api_add_enum_instance(PyObject *dict, char *name, int value,
 				     PyTypeObject *type);
 static void sip_api_bad_operator_arg(PyObject *self, PyObject *arg,
@@ -192,6 +194,7 @@ static const sipAPIDef sip_api = {
 	sip_api_bad_operator_arg,
 	sip_api_pyslot_extend,
 	sip_api_add_delayed_dtor,
+	sip_api_add_mapped_type_instance,
 };
 
 
@@ -4314,6 +4317,29 @@ static int sip_api_add_class_instance(PyObject *dict,char *name,void *cppPtr,
 		dict = ((sipWrapperType *)dict) -> super.type.tp_dict;
 
 	return addSingleClassInstance(dict,name,cppPtr,wt,0);
+}
+
+
+/*
+ * Wrap a mapped type instance and add it to a dictionary.
+ */
+static int sip_api_add_mapped_type_instance(PyObject *dict, char *name,
+					    void *cppPtr, sipMappedType *mt)
+{
+	int rc;
+	PyObject *w;
+
+	/* If this is a wrapped type then get the type dictionary. */
+	if (sipWrapperType_Check(dict))
+		dict = ((sipWrapperType *)dict)->super.type.tp_dict;
+
+	if ((w = mt->mt_cfrom(cppPtr, NULL)) == NULL)
+		return -1;
+
+	rc = PyDict_SetItemString(dict, name, w);
+	Py_DECREF(w);
+
+	return rc;
 }
 
 
