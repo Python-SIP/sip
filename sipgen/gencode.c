@@ -646,6 +646,7 @@ static void generateInternalAPIHeader(sipSpec *pt,char *codeDir,stringList *xsl)
 		,mname
 		,mname
 		,mname
+		,mname
 		,mname);
 
 	/* The name strings. */
