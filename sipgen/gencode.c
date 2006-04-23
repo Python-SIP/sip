@@ -556,6 +556,7 @@ static void generateInternalAPIHeader(sipSpec *pt,char *codeDir,stringList *xsl)
 "#define	sipBadLengthForSlice		sipAPI_%s -> api_bad_length_for_slice\n"
 "#define	sipClassName			sipAPI_%s -> api_class_name\n"
 "#define	sipAddClassInstance		sipAPI_%s -> api_add_class_instance\n"
+"#define	sipAddMappedTypeInstance	sipAPI_%s -> api_add_mapped_type_instance\n"
 "#define	sipAddEnumInstance		sipAPI_%s -> api_add_enum_instance\n"
 "#define	sipConvertFromNamedEnum		sipAPI_%s -> api_convert_from_named_enum\n"
 "#define	sipGetAddress			sipAPI_%s -> api_get_address\n"
@@ -579,6 +580,7 @@ static void generateInternalAPIHeader(sipSpec *pt,char *codeDir,stringList *xsl)
 "#define	sipGetState			sipAPI_%s -> api_get_state\n"
 "#define	sipFindMappedType		sipAPI_%s -> api_find_mapped_type\n"
 "#define	sipLong_AsUnsignedLong		sipAPI_%s -> api_long_as_unsigned_long\n"
+		,mname
 		,mname
 		,mname
 		,mname
@@ -1991,7 +1993,7 @@ static void generateClassesInline(sipSpec *pt,FILE *fp)
 		if (vd -> module != pt -> module)
 			continue;
 
-		if (vd -> type.atype != class_type)
+		if (vd->type.atype != class_type && vd->type.atype != mapped_type)
 			continue;
 
 		if (needsHandler(vd))
@@ -2005,14 +2007,21 @@ static void generateClassesInline(sipSpec *pt,FILE *fp)
 		{
 			prcode(fp,
 "\n"
-"	/* Define the class instances that have to be added inline. */\n"
+"	/*\n"
+"	 * Define the class and mapped type instances that have to be added\n"
+"	 * inline.\n"
+"	 */\n"
 				);
 
 			noIntro = FALSE;
 		}
 
-		prcode(fp,
+		if (vd->type.atype == class_type)
+			prcode(fp,
 "	sipAddClassInstance(");
+		else
+			prcode(fp,
+"	sipAddMappedTypeInstance(");
 
 		if (vd -> ecd == NULL)
 			prcode(fp,"sipModuleDict");
@@ -2026,8 +2035,12 @@ static void generateClassesInline(sipSpec *pt,FILE *fp)
 		else
 			prcode(fp,"&%S",vd -> fqcname);
 
-		prcode(fp,",sipClass_%C);\n"
-			,classFQCName(vd -> type.u.cd));
+		if (vd->type.atype == class_type)
+			prcode(fp, ",sipClass_%C);\n"
+				, classFQCName(vd->type.u.cd));
+		else
+			prcode(fp, ",sipMappedType_%T);\n"
+				, &vd->type);
 	}
 }
 

@@ -48,6 +48,8 @@ extern "C" {
  *
  * History:
  *
+ * 3.1  Added sip_api_add_mapped_type_instance().
+ *
  * 3.0  Moved the Qt support out of the sip module and into PyQt.  This is
  *      such a dramatic change that there is no point in attempting to maintain
  *      backwards compatibility.
@@ -78,7 +80,7 @@ extern "C" {
  * 0.0	Original version.
  */
 #define	SIP_API_MAJOR_NR	3
-#define	SIP_API_MINOR_NR	0
+#define	SIP_API_MINOR_NR	1
 
 
 /* Some compatibility stuff to help with handwritten code for SIP v3. */
@@ -750,10 +752,10 @@ typedef struct _sipAPIDef {
 	void *(*api_force_convert_to_instance)(PyObject *pyObj, sipWrapperType *type, PyObject *transferObj, int flags, int *statep, int *iserrp);
 	void *(*api_force_convert_to_mapped_type)(PyObject *pyObj, sipMappedType *mt, PyObject *transferObj, int flags, int *statep, int *iserrp);
 	void (*api_release_instance)(void *cpp, sipWrapperType *type, int state);
-	void (*api_release_mapped_type)(void *cpp, sipMappedType *mt, int state);
+	void (*api_release_mapped_type)(void *cpp, const sipMappedType *mt, int state);
 	PyObject *(*api_convert_from_instance)(void *cpp, sipWrapperType *type, PyObject *transferObj);
 	PyObject *(*api_convert_from_new_instance)(void *cpp, sipWrapperType *type, PyObject *transferObj);
-	PyObject *(*api_convert_from_mapped_type)(void *cpp, sipMappedType *mt, PyObject *transferObj);
+	PyObject *(*api_convert_from_mapped_type)(void *cpp, const sipMappedType *mt, PyObject *transferObj);
 	void *(*api_convert_to_cpp)(PyObject *sipSelf,sipWrapperType *type,int *iserrp);
 	int (*api_get_state)(PyObject *transferObj);
 	const sipMappedType *(*api_find_mapped_type)(const char *type);
@@ -809,6 +811,7 @@ typedef struct _sipAPIDef {
 	void (*api_bad_operator_arg)(PyObject *self, PyObject *arg, sipPySlotType st);
 	PyObject *(*api_pyslot_extend)(sipExportedModuleDef *mod, sipPySlotType st, sipWrapperType *type, PyObject *arg0, PyObject *arg1);
 	void (*api_add_delayed_dtor)(sipWrapper *w);
+	int (*api_add_mapped_type_instance)(PyObject *dict,char *name,void *cppPtr,sipMappedType *mt);
 } sipAPIDef;
 
 

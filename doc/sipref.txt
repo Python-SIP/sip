@@ -245,7 +245,9 @@ The full set of command line options is:
 -h       Display a help message.
 -a       Export all symbols in any SIP generated module and the SIP module
          itself.  This was the default behaviour of SIP prior to v4.2.
-         Normally only a module's inititialisation function is exported.
+         Normally only a module's inititialisation function is exported.  This
+         option is deprecated as the ``ModuleMakefile`` class of `The SIP Build
+         System`_ allows this to be specified on a per module basis.
 -b dir   The SIP code generator will be installed in the directory ``dir``.
 -d dir   The SIP module will be installed in the directory ``dir``.
 -e dir   The SIP header file will be installed in the directory ``dir``.
@@ -3583,7 +3585,7 @@ PyObject \*sipBuildResult(int \*iserr, char \*format, ...)
         via a call to `sipTransferTo()`_.  The Python class is influenced by
         any applicable `%ConvertToSubClassCode`_ code.
 
-    ``D`` (object) [*type* \*, sipMappedType \*, PyObject \*]
+    ``D`` (object) [*type* \*, const sipMappedType \*, PyObject \*]
         Convert a C structure or a C++ class instance wrapped as a mapped type
         to a Python object.  Ownership of the structure or instance is
         determined by the ``PyObject *`` argument.  If it is ``NULL`` then the
@@ -3737,7 +3739,7 @@ PyObject \*sipConvertFromInstance(void \*cpp, sipWrapperType \*type, PyObject \*
 sipConvertFromMappedType()
 --------------------------
 
-PyObject \*sipConvertFromMappedType(void \*cpp, sipMappedType \*mt, PyObject \*transferObj)
+PyObject \*sipConvertFromMappedType(void \*cpp, const sipMappedType \*mt, PyObject \*transferObj)
     Convert a C structure or a C++ class instance wrapped as a mapped type to a
     Python object.  *cpp* is the C/C++ instance.  *mt* is the opaque structure
     returned by `sipFindMappedType()`_.  *transferObj* controls any ownership
@@ -4161,7 +4163,7 @@ void sipReleaseInstance(void \*cpp, sipWrapperType \*type, int state)
 sipReleaseMappedType()
 ----------------------
 
-void sipReleaseMappedType(void \*cpp, sipMappedType \*mt, int state)
+void sipReleaseMappedType(void \*cpp, const sipMappedType \*mt, int state)
     This destroys a wrapped C/C++ mapped type if it was a temporary instance.
     It is called after a call to either `sipConvertToMappedType()`_ or
     `sipForceConvertToMappedType()`_.  *cpp* is the wrapped C/C++ instance.
@@ -4622,6 +4624,10 @@ Configuration
             The name of the platform/compiler for which the build system has
             been configured for.
 
+        py_conf_inc_dir
+            The name of the directory containing the ``pyconfig.h`` header
+            file.
+
         py_inc_dir
             The name of the directory containing the ``Python.h`` header file.
 
@@ -4869,7 +4875,7 @@ ModuleMakefile(Makefile)
     This class encapsulates a Makefile to build a generic Python extension
     module.
 
-    __init__(self, configuration, build_file, install_dir=None, static=0, console=0, opengl=0, threaded=0, warnings=None, debug=0, dir=None, makefile="Makefile", installs=None, strip=1)
+    __init__(self, configuration, build_file, install_dir=None, static=0, console=0, opengl=0, threaded=0, warnings=None, debug=0, dir=None, makefile="Makefile", installs=None, strip=1, export_all=0)
         Initialise the instance.
 
         ``configuration`` - see ``sipconfig.Makefile.__init__()``.
@@ -4904,6 +4910,13 @@ ModuleMakefile(Makefile)
         ``strip`` is set if the module should be stripped of unneeded symbols
         after installation.  It is ignored if either ``debug`` or ``static`` is
         set, or if the platform doesn't support it.
+
+        ``export_all`` is set if all of the module's symbols should be exported
+        rather than just the module's initialisation function.  Exporting all
+        symbols increases the size of the module and slows down module load
+        times but may avoid problems with modules that use C++ exceptions.  All
+        symbols are exported if either ``debug`` or ``static`` is set, or if
+        the platform doesn't support it.
 
     finalise(self)
         This is a reimplementation of ``sipconfig.Makefile.finalise()``.

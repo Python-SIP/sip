@@ -49,12 +49,13 @@ static void *sip_api_force_convert_to_mapped_type(PyObject *pyObj,
 						  int *iserrp);
 static void sip_api_release_instance(void *cpp, sipWrapperType *type,
 				     int state);
-static void sip_api_release_mapped_type(void *cpp, sipMappedType *mt,
+static void sip_api_release_mapped_type(void *cpp, const sipMappedType *mt,
 					int state);
 static PyObject *sip_api_convert_from_new_instance(void *cpp,
 						   sipWrapperType *type,
 						   PyObject *transferObj);
-static PyObject *sip_api_convert_from_mapped_type(void *cpp, sipMappedType *mt,
+static PyObject *sip_api_convert_from_mapped_type(void *cpp,
+						  const sipMappedType *mt,
 						  PyObject *transferObj);
 static void *sip_api_convert_to_cpp(PyObject *sipSelf,sipWrapperType *type,
 				    int *iserrp);
@@ -98,6 +99,8 @@ static void sip_api_raise_class_exception(sipWrapperType *type,void *ptr);
 static void sip_api_raise_sub_class_exception(sipWrapperType *type,void *ptr);
 static int sip_api_add_class_instance(PyObject *dict,char *name,void *cppPtr,
 				      sipWrapperType *wt);
+static int sip_api_add_mapped_type_instance(PyObject *dict,char *name,
+					    void *cppPtr, sipMappedType *mt);
 static int sip_api_add_enum_instance(PyObject *dict, char *name, int value,
 				     PyTypeObject *type);
 static void sip_api_bad_operator_arg(PyObject *self, PyObject *arg,
@@ -191,6 +194,7 @@ static const sipAPIDef sip_api = {
 	sip_api_bad_operator_arg,
 	sip_api_pyslot_extend,
 	sip_api_add_delayed_dtor,
+	sip_api_add_mapped_type_instance,
 };
 
 
@@ -1243,7 +1247,7 @@ static PyObject *buildObject(PyObject *obj,char *fmt,va_list va)
 		case 'D':
 			{
 				void *p = va_arg(va, void *);
-				sipMappedType *mt = va_arg(va, sipMappedType *);
+				const sipMappedType *mt = va_arg(va, const sipMappedType *);
 				PyObject *xfer = va_arg(va, PyObject *);
 
 				el = sip_api_convert_from_mapped_type(p, mt, xfer);
@@ -1633,7 +1637,7 @@ static int sip_api_parse_result(int *isErr,PyObject *method,PyObject *res,char *
 						void **cpp;
 						int *state;
 
-						mt = va_arg(va, sipMappedType *);
+						mt = va_arg(va, const sipMappedType *);
 
 						if (flags & FORMAT_NO_STATE)
 							state = NULL;
@@ -4317,6 +4321,29 @@ static int sip_api_add_class_instance(PyObject *dict,char *name,void *cppPtr,
 
 
 /*
+ * Wrap a mapped type instance and add it to a dictionary.
+ */
+static int sip_api_add_mapped_type_instance(PyObject *dict, char *name,
+					    void *cppPtr, sipMappedType *mt)
+{
+	int rc;
+	PyObject *w;
+
+	/* If this is a wrapped type then get the type dictionary. */
+	if (sipWrapperType_Check(dict))
+		dict = ((sipWrapperType *)dict)->super.type.tp_dict;
+
+	if ((w = mt->mt_cfrom(cppPtr, NULL)) == NULL)
+		return -1;
+
+	rc = PyDict_SetItemString(dict, name, w);
+	Py_DECREF(w);
+
+	return rc;
+}
+
+
+/*
  * Get the C/C++ pointer for a complex object.
  */
 static void *sip_api_get_complex_cpp_ptr(sipWrapper *w)
@@ -4666,7 +4693,8 @@ static void sip_api_release_instance(void *cpp, sipWrapperType *type, int state)
 /*
  * Release a possibly temporary mapped type created by a type convertor.
  */
-static void sip_api_release_mapped_type(void *cpp, sipMappedType *mt, int state)
+static void sip_api_release_mapped_type(void *cpp, const sipMappedType *mt,
+					int state)
 {
 	/* See if there is something to release. */
 	if (state & SIP_TEMPORARY)
@@ -4754,7 +4782,8 @@ static PyObject *sip_api_convert_from_new_instance(void *cpp,
 /*
  * Convert a C/C++ instance implemented as a mapped type to a Python object.
  */
-static PyObject *sip_api_convert_from_mapped_type(void *cpp, sipMappedType *mt,
+static PyObject *sip_api_convert_from_mapped_type(void *cpp,
+						  const sipMappedType *mt,
 						  PyObject *transferObj)
 {
 	/* Handle None. */

@@ -342,6 +342,7 @@ class Makefile:
 
         if self._python:
             incdir.append(self.config.py_inc_dir)
+            incdir.append(self.config.py_conf_inc_dir)
 
             if sys.platform == "cygwin":
                 libdir.append(self.config.py_lib_dir)
@@ -478,29 +479,7 @@ class Makefile:
             elif self._threaded:
                 defines.append("QT_THREAD_SUPPORT")
 
-            # This is unlikely to be missing, or to contain more than one
-            # directory, but you never know.
-            qtincdir = self.optional_list("INCDIR_QT")
-
-            if qtincdir:
-                incdir.extend(qtincdir)
-
-                if self.config.qt_version >= 0x040000:
-                    for mod in self._qt:
-                        incdir.append(os.path.join(qtincdir[0], mod))
-
-            try:
-                specd_base = self.config.qt_data_dir
-            except AttributeError:
-                specd_base = self.config.qt_dir
-
-            specd = os.path.join(specd_base, "mkspecs", "default")
-
-            if not os.access(specd, os.F_OK):
-                specd = os.path.join(specd_base, "mkspecs", self.config.platform)
-
-            incdir.append(specd)
-
+            # Handle library directories.
             libdir_qt = self.optional_list("LIBDIR_QT")
             libdir.extend(libdir_qt)
             rpaths.extend(libdir_qt)
@@ -533,10 +512,8 @@ class Makefile:
                     self._qt.append("QtGui")
 
                 for mod in self._qt:
-                    framework = (self.config.qt_framework and mod != "QtAssistant")
-
                     lib = self._qt4_module_to_lib(mod)
-                    libs.append(self.platform_lib(lib, framework))
+                    libs.append(self.platform_lib(lib, self._is_framework(mod)))
 
                     if sys.platform == "win32":
                         # On Windows the dependent libraries seem to be in
@@ -574,6 +551,31 @@ class Makefile:
                 libs.append(self.platform_lib(qt_lib, self.config.qt_framework))
                 libs.extend(self._dependent_libs(self.config.qt_lib))
 
+            # Handle header directories.
+            try:
+                specd_base = self.config.qt_data_dir
+            except AttributeError:
+                specd_base = self.config.qt_dir
+
+            specd = os.path.join(specd_base, "mkspecs", "default")
+
+            if not os.access(specd, os.F_OK):
+                specd = os.path.join(specd_base, "mkspecs", self.config.platform)
+
+            incdir.append(specd)
+
+            qtincdir = self.optional_list("INCDIR_QT")
+
+            if qtincdir:
+                incdir.extend(qtincdir)
+
+                if self.config.qt_version >= 0x040000:
+                    for mod in self._qt:
+                        if self._is_framework(mod):
+                            incdir.append(os.path.join(libdir_qt[0], mod + ".framework", "Headers"))
+                        else:
+                            incdir.append(os.path.join(qtincdir[0], mod))
+
         if self._opengl:
             incdir.extend(self.optional_list("INCDIR_OPENGL"))
             lflags.extend(self.optional_list("LFLAGS_OPENGL"))
@@ -609,6 +611,11 @@ class Makefile:
 
         # Don't do it again because it has side effects.
         self._finalised = 1
+
+    def _is_framework(self, mod):
+        """Return true if the given Qt module is a framework.
+        """
+        return (self.config.qt_framework and mod != "QtAssistant")
 
     def _qt4_module_to_lib(self, mname):
         """Return the name of the Qt4 library corresponding to a module.
@@ -874,12 +881,6 @@ class Makefile:
         for f in self.optional_list("INCDIR"):
             cppflags.append("-I" + _quote(f))
 
-        mfile.write("CPPFLAGS = %s\n" % string.join(cppflags))
-
-        mfile.write("CFLAGS = %s\n" % self.optional_string("CFLAGS"))
-        mfile.write("CXXFLAGS = %s\n" % self.optional_string("CXXFLAGS"))
-        mfile.write("LFLAGS = %s\n" % self.optional_string("LFLAGS"))
-
         libs = []
 
         if self.generator in ("MSVC", "MSVC.NET"):
@@ -889,11 +890,19 @@ class Makefile:
 
         for ld in self.optional_list("LIBDIR"):
             if sys.platform == "darwin" and self.config.qt_framework:
-                libs.append("-F" + _quote(ld))
+                fflag = "-F" + _quote(ld)
+                libs.append(fflag)
+                cppflags.append(fflag)
 
             libs.append(libdir_prefix + _quote(ld))
 
         libs.extend(self.optional_list("LIBS"))
+
+        mfile.write("CPPFLAGS = %s\n" % string.join(cppflags))
+
+        mfile.write("CFLAGS = %s\n" % self.optional_string("CFLAGS"))
+        mfile.write("CXXFLAGS = %s\n" % self.optional_string("CXXFLAGS"))
+        mfile.write("LFLAGS = %s\n" % self.optional_string("LFLAGS"))
 
         mfile.write("LIBS = %s\n" % string.join(libs))
 
@@ -1165,7 +1174,8 @@ class ModuleMakefile(Makefile):
     """
     def __init__(self, configuration, build_file, install_dir=None, static=0,
                  console=0, qt=0, opengl=0, threaded=0, warnings=1, debug=0,
-                 dir=None, makefile="Makefile", installs=None, strip=1):
+                 dir=None, makefile="Makefile", installs=None, strip=1,
+                 export_all=0):
         """Initialise an instance of a module Makefile.
 
         build_file is the file containing the target specific information.  If
@@ -1173,7 +1183,11 @@ class ModuleMakefile(Makefile):
         install_dir is the directory the target will be installed in.
         static is set if the module should be built as a static library.
         strip is set if the module should be stripped of unneeded symbols when
-        installed.
+        installed.  The default is 1.
+        export_all is set if all the module's symbols should be exported rather
+        than just the module's initialisation function.  Exporting all symbols
+        increases the size of the module and slows down module load times but
+        may avoid problems with modules that use exceptions.  The default is 0.
         """
         Makefile.__init__(self, configuration, console, qt, opengl, 1, threaded, warnings, debug, dir, makefile, installs)
 
@@ -1182,11 +1196,19 @@ class ModuleMakefile(Makefile):
         self._dir = dir
         self.static = static
 
-        # Don't strip if this is a debug or static build.
+        # Don't strip or restrict the exports if this is a debug or static
+        # build.
         if debug or static:
             self._strip = 0
+            self._limit_exports = 0
         else:
             self._strip = strip
+
+            # The deprecated configuration flag has precedence.
+            if self.config.export_all:
+                self._limit_exports = 0
+            else:
+                self._limit_exports = not export_all
 
         # Save the target name for later.
         self._target = self._build["target"]
@@ -1196,13 +1218,6 @@ class ModuleMakefile(Makefile):
 
         if sys.platform == "win32" and debug:
             self._target = self._target + "_d"
-
-        # See if we should only export the module initialisation function (to
-        # reduce the size of the module and speed up module load times).
-        if self.config.export_all or debug or static:
-            self._export_init = 0
-        else:
-            self._export_init = 1
 
     def finalise(self):
         """Finalise the macros common to all module Makefiles.
@@ -1250,7 +1265,7 @@ class ModuleMakefile(Makefile):
                     # 1.) Import the python symbols
                     aix_lflags = ['-Wl,-bI:%s/python.exp' % self.config.py_lib_dir]
 
-                    if self._export_init:
+                    if self._limit_exports:
                         aix_lflags.append('-Wl,-bnoexpall')
                         aix_lflags.append('-Wl,-bnoentry')
                         aix_lflags.append('-Wl,-bE:%s.exp' % self._target)
@@ -1262,14 +1277,14 @@ class ModuleMakefile(Makefile):
                     aix_lflags = ['-qmkshrobj',
                                   '-bI:%s/python.exp' % self.config.py_lib_dir]
 
-                    if self._export_init:
+                    if self._limit_exports:
                         aix_lflags.append('-bnoexpall')
                         aix_lflags.append('-bnoentry')
                         aix_lflags.append('-bE:%s.exp' % self._target)
 
                 self.LFLAGS.extend(aix_lflags)
             else:
-                if self._export_init:
+                if self._limit_exports:
                     if sys.platform[:5] == 'linux':
                         self.LFLAGS.extend(['-Wl,--version-script=%s.exp' % self._target])
                     elif sys.platform[:5] == 'hp-ux':
@@ -1386,7 +1401,7 @@ class ModuleMakefile(Makefile):
                 if self._ranlib:
                     mfile.write("\t$(RANLIB) $(TARGET)\n")
             else:
-                if self._export_init:
+                if self._limit_exports:
                     # Create an export file for AIX and Linux.
                     if sys.platform[:5] == 'linux':
                         mfile.write("\t@echo '{ global: init%s; local: *; };' > %s.exp\n" % (self._target, self._target))
@@ -1425,7 +1440,7 @@ class ModuleMakefile(Makefile):
         self.clean_build_file_objects(mfile, self._build)
 
         # Remove any export file on AIX and Linux.
-        if self._export_init and (sys.platform[:5] == 'linux' or sys.platform[:3] == 'aix'):
+        if self._limit_exports and (sys.platform[:5] == 'linux' or sys.platform[:3] == 'aix'):
             mfile.write("\t-%s %s.exp\n" % (self.rm, self._target))
 
 
@@ -2018,10 +2033,10 @@ def parse_build_macros(filename, names, overrides=None, properties=None):
                 mend = mend + 1
 
             if term == "]":
-                try:
-                    value = properties[lhs]
-                except KeyError:
+                if properties is None or lhs not in properties.keys():
                     error("%s: property '%s' is not defined." % (filename, lhs))
+
+                value = properties[lhs]
             else:
                 try:
                     value = raw[lhs]
@@ -2133,6 +2148,8 @@ def create_wrapper(script, wrapper, gui=0):
             exe = exe[:-4] + "w.exe"
 
         wf.write("@\"%s\" \"%s\" %%1 %%2 %%3 %%4 %%5 %%6 %%7 %%8 %%9\n" % (exe, script))
+    elif sys.platform == "darwin":
+        wf.write("exec %sw %s ${1+\"$@\"}\n" % (sys.executable, script))
     else:
         wf.write("exec %s %s ${1+\"$@\"}\n" % (sys.executable, script))
 
