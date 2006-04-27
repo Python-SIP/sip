@@ -2602,9 +2602,37 @@ static classDef *findClassWithInterface(sipSpec *pt, ifaceFileDef *iff)
 	/* Create a new one. */
 	cd = sipMalloc(sizeof (classDef));
 
-	cd -> dtorexceptions = NULL;
 	cd -> iff = iff;
 	cd -> pyname = classBaseName(cd);
+	cd -> classnr = -1;
+	cd -> classflags = 0;
+	cd -> ecd = NULL;
+	cd -> dtorexceptions = NULL;
+	cd -> real = NULL;
+	cd -> node = NULL;
+	cd -> supers = NULL;
+	cd -> mro = NULL;
+	cd -> td = NULL;
+	cd -> ctors = NULL;
+	cd -> defctor = NULL;
+	cd -> dealloccode = NULL;
+	cd -> dtorcode = NULL;
+	cd -> members = NULL;
+	cd -> overs = NULL;
+	cd -> casts = NULL;
+	cd -> vmembers = NULL;
+	cd -> visible = NULL;
+	cd -> cppcode = NULL;
+	cd -> hdrcode = NULL;
+	cd -> convtosubcode = NULL;
+	cd -> subbase = NULL;
+	cd -> convtocode = NULL;
+	cd -> travcode = NULL;
+	cd -> clearcode = NULL;
+	cd -> readbufcode = NULL;
+	cd -> writebufcode = NULL;
+	cd -> segcountcode = NULL;
+	cd -> charbufcode = NULL;
 	cd -> next = pt -> classes;
 
 	pt -> classes = cd;
@@ -2707,7 +2735,7 @@ static classDef *newClass(sipSpec *pt,ifaceFileType iftype,
 			  scopedNameDef *fqname)
 {
 	int flags;
-	classDef *cd, *scope, *xtndr;
+	classDef *cd, *scope;
 	codeBlock *hdrcode;
 
 	if (sectionFlags & SECT_IS_PRIVATE)
@@ -2740,11 +2768,13 @@ static classDef *newClass(sipSpec *pt,ifaceFileType iftype,
 	if (iftype != namespace_iface && cd->iff->module != NULL)
 		yyerror("The struct/class has already been defined");
 
+	/* Complete the initialisation. */
+	cd -> classflags |= flags;
+	cd -> ecd = scope;
+	cd -> hdrcode = hdrcode;
 	cd -> iff -> module = currentModule;
 
 	/* See if it is a namespace extender. */
-	xtndr = NULL;
-
 	if (iftype == namespace_iface)
 	{
 		classDef *ns;
@@ -2760,40 +2790,10 @@ static classDef *newClass(sipSpec *pt,ifaceFileType iftype,
 			if (!sameScopedName(ns->iff->fqcname, fqname))
 				continue;
 
-			xtndr = ns;
+			cd->real = ns;
 			break;
 		}
 	}
-
-	/* Complete the initialisation. */
-	cd -> classflags = flags;
-	cd -> classnr = -1;
-	cd -> ecd = scope;
-	cd -> real = xtndr;
-	cd -> node = NULL;
-	cd -> supers = NULL;
-	cd -> mro = NULL;
-	cd -> td = NULL;
-	cd -> ctors = NULL;
-	cd -> defctor = NULL;
-	cd -> dealloccode = NULL;
-	cd -> dtorcode = NULL;
-	cd -> members = NULL;
-	cd -> overs = NULL;
-	cd -> casts = NULL;
-	cd -> vmembers = NULL;
-	cd -> visible = NULL;
-	cd -> cppcode = NULL;
-	cd -> hdrcode = hdrcode;
-	cd -> convtosubcode = NULL;
-	cd -> subbase = NULL;
-	cd -> convtocode = NULL;
-	cd -> travcode = NULL;
-	cd -> clearcode = NULL;
-	cd -> readbufcode = NULL;
-	cd -> writebufcode = NULL;
-	cd -> segcountcode = NULL;
-	cd -> charbufcode = NULL;
 
 	return cd;
 }

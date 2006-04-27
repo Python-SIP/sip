@@ -1242,7 +1242,14 @@ class ModuleMakefile(Makefile):
             else:
                 lflags_console = "LFLAGS_WINDOWS_DLL"
 
-            lflags_plugin = self.optional_list("LFLAGS_PLUGIN")
+            # We use this to explictly create bundles on MacOS.  Apple's Python
+            # can handle extension modules that are bundles or dynamic
+            # libraries, but python.org versions need bundles (unless built
+            # with DYNLOADFILE=dynload_shlib.o).
+            if sys.platform == "darwin":
+                lflags_plugin = ["-bundle"]
+            else:
+                lflags_plugin = self.optional_list("LFLAGS_PLUGIN")
 
             if not lflags_plugin:
                 lflags_plugin = self.optional_list("LFLAGS_SHLIB")
@@ -1252,6 +1259,13 @@ class ModuleMakefile(Makefile):
         self.LFLAGS.extend(self.optional_list(lflags_console))
 
         if sys.platform == "darwin":
+            # We use the -F flag to explictly specify the directory containing
+            # the Python framework rather than rely on the default search path.
+            # This allows Apple's Python to be used even if a later python.org
+            # version is also installed.
+            dl = string.split(sys.exec_prefix, os.sep)
+            dl = dl[:dl.index("Python.framework")]
+            self.LFLAGS.append("-F%s" % string.join(dl, os.sep))
             self.LFLAGS.append("-framework Python")
 
         Makefile.finalise(self)
