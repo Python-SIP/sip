@@ -237,6 +237,11 @@ static sipSignature *parseSignature(const char *sig)
 						sat = double_sat;
 					break;
 
+				case 7:
+					if (strncmp(dp, "__int64", 7) == 0)
+						sat = longlong_sat;
+					break;
+
 				case 8:
 					if (strncmp(dp, "unsigned", 8) == 0)
 						sat = uint_sat;
@@ -291,6 +296,11 @@ static sipSignature *parseSignature(const char *sig)
 				case 14:
 					if (strncmp(dp, "unsigned short", 14) == 0)
 						sat = ushort_sat;
+					break;
+
+				case 16:
+					if (strncmp(dp, "unsigned __int64", 16) == 0)
+						sat = ulonglong_sat;
 					break;
 
 				case 18:
