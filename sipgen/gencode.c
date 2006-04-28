@@ -6677,11 +6677,11 @@ static void generateNamedBaseType(argDef *ad,char *name,FILE *fp)
 		break;
 
 	case ulonglong_type:
-		prcode(fp,"unsigned long long");
+		prcode(fp,"unsigned PY_LONG_LONG");
 		break;
 
 	case longlong_type:
-		prcode(fp,"long long");
+		prcode(fp,"PY_LONG_LONG");
 		break;
 
 	case struct_type:
