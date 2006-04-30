@@ -40,7 +40,7 @@ static int parseInt(char *,char);
 int main(int argc,char **argv)
 {
 	char *filename, *docFile, *codeDir, *srcSuffix, *flagFile;
-	char arg, *optarg, *buildFile, *apiFile;
+	char arg, *optarg, *buildFile, *apiFile, *xmlFile;
 	int optnr, exceptions, tracing, releaseGIL, parts;
 	FILE *file;
 	sipSpec spec;
@@ -57,6 +57,7 @@ int main(int argc,char **argv)
 	srcSuffix = NULL;
 	flagFile = NULL;
 	apiFile = NULL;
+	xmlFile = NULL;
 	exceptions = FALSE;
 	tracing = FALSE;
 	releaseGIL = FALSE;
@@ -65,12 +66,17 @@ int main(int argc,char **argv)
 	/* Parse the command line. */
 	optnr = 1;
 
-	while ((arg = parseopt(argc,argv,"hVa:b:ec:d:gI:j:rs:t:wx:z:",&flagFile,&optnr,&optarg)) != '\0')
+	while ((arg = parseopt(argc,argv,"hVa:b:ec:d:gI:j:m:rs:t:wx:z:",&flagFile,&optnr,&optarg)) != '\0')
 		switch (arg)
 		{
 		case 'a':
 			/* Where to generate the API file. */
 			apiFile = optarg;
+			break;
+
+		case 'm':
+			/* Where to generate the XML file. */
+			xmlFile = optarg;
 			break;
 
 		case 'b':
@@ -181,6 +187,10 @@ int main(int argc,char **argv)
 	/* Generate code. */
 	generateCode(&spec,codeDir,buildFile,docFile,apiFile,srcSuffix,
 		     exceptions,tracing,releaseGIL,parts,xfeatures);
+
+	/* Generate the XML export. */
+	if (xmlFile != NULL)
+		generateXML(&spec, xmlFile);
 
 	/* All done. */
 	return 0;
@@ -441,6 +451,7 @@ static void help(void)
 "    -e          enable support for exceptions [default disabled]\n"
 "    -I dir      look in this directory when including files\n"
 "    -j #        split the generated code into # files [default 1 per class]\n"
+"    -m file     the name of the XML export file [default not generated]\n"
 "    -r          generate code with tracing enabled [default disabled]\n"
 "    -s suffix   the suffix to use for C or C++ source files [default \".c\" or \".cpp\"]\n"
 "    -t tag      the version/platform to generate code for\n"
@@ -459,5 +470,5 @@ static void help(void)
  */
 static void usage(void)
 {
-	fatal("Usage: %s [-h] [-V] [-a file] [-b file] [-c dir] [-d file] [-e] [-g] [-I dir] [-j #] [-r] [-s suffix] [-t tag] [-w] [-x feature] [-z file] [file]\n",sipPackage);
+	fatal("Usage: %s [-h] [-V] [-a file] [-b file] [-c dir] [-d file] [-e] [-g] [-I dir] [-j #] [-m file] [-r] [-s suffix] [-t tag] [-w] [-x feature] [-z file] [file]\n",sipPackage);
 }

@@ -153,8 +153,7 @@ static char *createIfaceFileName(char *,ifaceFileDef *,char *);
 static FILE *createFile(sipSpec *,char *,char *);
 static void closeFile(FILE *);
 static void prcode(FILE *,char *,...);
-static void prScopedName(FILE *,scopedNameDef *,char *);
-static void prScopedPythonName(FILE *fp, classDef *scope, char *pyname);
+static void prScopedName(FILE *fp,scopedNameDef *snd,char *sep);
 static void prTypeName(FILE *,argDef *,int);
 static void prScopedClassName(FILE *,classDef *,char *);
 static int isZeroArgSlot(memberDef *md);
@@ -10104,7 +10103,7 @@ static void prScopedClassName(FILE *fp,classDef *cd,char *sep)
 /*
  * Generate a scoped Python name.
  */
-static void prScopedPythonName(FILE *fp, classDef *scope, char *pyname)
+void prScopedPythonName(FILE *fp, classDef *scope, char *pyname)
 {
 	if (scope != NULL)
 	{
