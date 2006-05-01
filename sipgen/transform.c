@@ -164,7 +164,7 @@ void transform(sipSpec *pt)
 	/* Handle default ctors now that the argument types are resolved. */ 
 	if (!pt -> genc)
         	for (cd = pt -> classes; cd != NULL; cd = cd -> next)
-                	if (!isOpaque(cd))
+                	if (!isOpaque(cd) && cd->iff->type != namespace_iface)
                         	addDefaultCopyCtor(cd);
 
 	/*

@@ -14,9 +14,11 @@
 
 
 static void xmlClasses(sipSpec *pt, classDef *scope, int indent, FILE *fp);
+static void xmlInit(ctorDef *ctors, int indent, FILE *fp);
 static void xmlFunction(memberDef *md, overDef *oloads, int indent, FILE *fp);
 static void xmlArgument(argDef *ad, const char *dir, int indent, FILE *fp);
 static void xmlIndent(int indent, FILE *fp);
+static const char *dirAttribute(argDef *ad);
 
 
 /*
@@ -73,9 +75,17 @@ static void xmlClasses(sipSpec *pt, classDef *scope, int indent, FILE *fp)
 			continue;
 
 		xmlIndent(indent++, fp);
-		fprintf(fp, "<Class name=\"%s\">\n", cd->pyname);
+		fprintf(fp, "<Class name=\"%s\"", cd->pyname);
+
+		if (cd->real != NULL)
+			fprintf(fp, " extends=\"%s\"", cd->real->iff->module->name);
+
+		fprintf(fp, ">\n");
 
 		xmlClasses(pt, cd, indent, fp);
+
+		if (cd->ctors != NULL)
+			xmlInit(cd->ctors, indent, fp);
 
 		for (md = cd->members; md != NULL; md = md->next)
 			xmlFunction(md, cd->overs, indent, fp);
@@ -83,6 +93,52 @@ static void xmlClasses(sipSpec *pt, classDef *scope, int indent, FILE *fp)
 		xmlIndent(--indent, fp);
 		fprintf(fp, "</Class>\n");
 	}
+}
+
+
+/*
+ * Generate the XML for an __init__ method.
+ */
+static void xmlInit(ctorDef *ctors, int indent, FILE *fp)
+{
+	ctorDef *ct;
+
+	xmlIndent(indent++, fp);
+	fprintf(fp, "<Function name=\"__init__\">\n");
+
+	for (ct = ctors; ct != NULL; ct = ct->next)
+	{
+		int a;
+
+		/*
+		 * ZZZ - need to handle ctors that should expand to 2
+		 * because they contain slots (need a version that takes a
+		 * callable.
+		 */
+
+		/* Handle the trivial case. */
+		if (ct->pysig.nrArgs == 0)
+		{
+			fprintf(fp, "<Overload/>\n");
+			continue;
+		}
+
+		xmlIndent(indent++, fp);
+		fprintf(fp, "<Overload>\n");
+
+		for (a = 0; a < ct->pysig.nrArgs; ++a)
+		{
+			argDef *ad = &ct->pysig.args[a];
+
+			xmlArgument(ad, dirAttribute(ad), indent, fp);
+		}
+
+		xmlIndent(--indent, fp);
+		fprintf(fp, "</Overload>\n");
+	}
+
+	xmlIndent(--indent, fp);
+	fprintf(fp, "</Function>\n");
 }
 
 
@@ -107,6 +163,7 @@ static void xmlFunction(memberDef *md, overDef *oloads, int indent, FILE *fp)
 		 * ZZZ - need to handle overloads that should expand to 2
 		 * because they contain slots (need a version that takes a
 		 * callable.
+		 * Also need to deal with functions vs methods (ie. self).
 		 */
 
 		/* Handle the trivial case. */
@@ -128,20 +185,8 @@ static void xmlFunction(memberDef *md, overDef *oloads, int indent, FILE *fp)
 		for (a = 0; a < od->pysig.nrArgs; ++a)
 		{
 			argDef *ad = &od->pysig.args[a];
-			const char *dir;
 
-			if (isArraySize(ad))
-				continue;
-
-			if (isInArg(ad))
-				if (isOutArg(ad))
-					dir = "inout";
-				else
-					dir = NULL;
-			else
-				dir = "out";
-
-			xmlArgument(ad, dir, indent, fp);
+			xmlArgument(ad, dirAttribute(ad), indent, fp);
 		}
 
 		xmlIndent(--indent, fp);
@@ -154,12 +199,32 @@ static void xmlFunction(memberDef *md, overDef *oloads, int indent, FILE *fp)
 
 
 /*
+ * Convert an arguments direction to an XML attribute value.
+ */
+static const char *dirAttribute(argDef *ad)
+{
+	if (isInArg(ad))
+	{
+		if (isOutArg(ad))
+			return "inout";
+
+		return NULL;
+	}
+
+	return "out";
+}
+
+
+/*
  * Generate the XML for an argument.
  */
 static void xmlArgument(argDef *ad, const char *dir, int indent, FILE *fp)
 {
 	const char *type_type = NULL, *type_name;
 	classDef *type_scope = NULL;
+
+	if (isArraySize(ad))
+		return;
 
 	xmlIndent(indent, fp);
 	fprintf(fp, "<Argument");
