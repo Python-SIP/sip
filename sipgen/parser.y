@@ -87,6 +87,7 @@ static char *getType(scopedNameDef *ename, argDef *ad);
 static char *scopedNameToString(scopedNameDef *name);
 static void addUsedFromCode(sipSpec *pt, ifaceFileList **used, const char *sname);
 static int sameName(scopedNameDef *snd, const char *sname);
+static int optFind(sipSpec *pt, const char *opt);
 %}
 
 %union {
@@ -110,6 +111,7 @@ static int sameName(scopedNameDef *snd, const char *sname);
 	classDef	*klass;
 }
 
+%token			TK_OPTIONS
 %token			TK_NOEMITTERS
 %token			TK_DOC
 %token			TK_EXPORTEDDOC
@@ -294,6 +296,7 @@ statement:	{
 	;
 
 modstatement:	module
+	|	options
 	|	noemitters
 	|	copying
 	|	include
@@ -346,9 +349,23 @@ nsstatement:	ifstart
 		}
 	;
 
+options:	TK_OPTIONS '(' optionlist ')'
+	;
+
+optionlist:	TK_NAME {
+			appendString(&currentSpec->options, $1);
+		}
+	|	optionlist ',' TK_NAME {
+			appendString(&currentSpec->options, $3);
+		}
+	;
+
 noemitters:	TK_NOEMITTERS {
 			if (notSkipping())
-				currentSpec->emitters = FALSE;
+			{
+				yywarning("%SIPNoEmitters is deprecated, please use %SIPOptions instead");
+				appendString(&currentSpec->options, "QtNoEmitters");
+			}
 		}
 	;
 
@@ -684,8 +701,6 @@ qualifiername:	TK_NAME {
 	;
 
 ifstart:	TK_IF '(' qualifiers ')' {
-			int skipNext;
-
 			if (skipStackPtr >= MAX_NESTED_IF)
 				yyerror("Internal error: increase the value of MAX_NESTED_IF");
 
@@ -1641,7 +1656,7 @@ function:	cpptype TK_NAME '(' arglist ')' optconst optexceptions optabstract opt
 
 			if (notSkipping())
 			{
-				const char *sname;
+				char *sname;
 
 				switch ($2.atype)
 				{
@@ -2351,7 +2366,7 @@ void parse(sipSpec *spec,FILE *fp,char *filename,stringList *tsl,
 	spec -> used = NULL;
 	spec -> sigslots = FALSE;
 	spec -> genc = -1;
-	spec -> emitters = TRUE;
+	spec -> options = NULL;
 
 	currentSpec = spec;
 	neededQualifiers = tsl;
@@ -3099,7 +3114,6 @@ void appendTypeStrings(scopedNameDef *ename, signatureDef *patt, signatureDef *s
 	for (a = 0; a < patt->nrArgs; ++a)
 	{
 		argDef *pad = &patt->args[a];
-		char *ts;
 
 		if (pad->atype == defined_type)
 		{
@@ -3525,7 +3539,7 @@ codeBlock *templateCode(sipSpec *pt, ifaceFileList **used, codeBlock *ocb, scope
 			}
 			else
 			{
-				static const char *gen_names[] = {
+				static char *gen_names[] = {
 					"sipForceConvertToTransfer_",
 					"sipForceConvertTo_",
 					"sipConvertFromTransfer_",
@@ -4837,4 +4851,37 @@ static void getHooks(optFlags *optflgs,char **pre,char **post)
 static int getReleaseGIL(optFlags *optflgs)
 {
 	return (findOptFlag(optflgs,"ReleaseGIL",bool_flag) != NULL);
+}
+
+
+/*
+ * Return TRUE if the QtNoEmitters option was specified.
+ */
+int optNoEmitters(sipSpec *pt)
+{
+	return optFind(pt, "QtNoEmitters");
+}
+
+
+/*
+ * Return TRUE if the QtRegisterTypes option was specified.
+ */
+int optRegisterTypes(sipSpec *pt)
+{
+	return optFind(pt, "QtRegisterTypes");
+}
+
+
+/*
+ * Return TRUE if a particular option was specified with %SIPOptions.
+ */
+static int optFind(sipSpec *pt, const char *opt)
+{
+	stringList *sl;
+
+	for (sl = pt->options; sl != NULL; sl = sl->next)
+		if (strcmp(sl->s, opt) == 0)
+			return TRUE;
+
+	return FALSE;
 }

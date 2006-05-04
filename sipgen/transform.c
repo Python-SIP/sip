@@ -162,7 +162,7 @@ void transform(sipSpec *pt)
 	/* Handle default ctors now that the argument types are resolved. */ 
 	if (!pt -> genc)
         	for (cd = pt -> classes; cd != NULL; cd = cd -> next)
-                	if (!isOpaque(cd))
+                	if (!isOpaque(cd) && cd->iff->type != namespace_iface)
                         	addDefaultCopyCtor(cd);
 
 	/*
@@ -589,7 +589,7 @@ static classDef *getProxy(sipSpec *pt, classDef *cd)
 	pcd->real = cd;
 	pcd->node = NULL;
 	pcd->supers = cd->supers;
-	pcd->mro = cd->supers;
+	pcd->mro = cd->mro;
 	pcd->td = NULL;
 	pcd->ctors = NULL;
 	pcd->defctor = NULL;
@@ -1153,7 +1153,7 @@ static void getVisibleMembers(sipSpec *pt,classDef *cd)
 						if (cd->iff->module != pt->module)
 							continue;
 
-						if (isProtected(od) || (isSignal(od) && pt->emitters))
+						if (isProtected(od) || (isSignal(od) && !optNoEmitters(pt)))
 							setIsUsedName(md->pyname);
 					}
 			}

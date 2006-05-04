@@ -730,7 +730,7 @@ typedef struct _overDef {
 typedef struct _ctorDef {
 	int			ctorflags;	/* The ctor flags. */
 	signatureDef		pysig;		/* The Python signature. */
-	signatureDef		*cppsig;	/* The C++ signature. */
+	signatureDef		*cppsig;	/* The C++ signature, NULL if /NoDerived/. */
 	throwArgs		*exceptions;	/* The exceptions. */
 	codeBlock		*methodcode;	/* Method code. */
 	char			*prehook;	/* The pre-hook name. */
@@ -897,14 +897,14 @@ typedef struct {
 	ifaceFileList		*used;		/* Interface files used. */
 	int			sigslots;	/* Set if signals or slots are used. */
 	int			genc;		/* Set if we are generating C code. */
-	int			emitters;	/* Set if we are generating signal emitters. */
+	struct _stringList	*options;	/* The list of options. */
 } sipSpec;
 
 
 /* A list of strings. */
 
 typedef struct _stringList {
-	char			*s;		/* The string. */
+	const char		*s;		/* The string. */
 	struct _stringList	*next;		/* The next in the list. */
 } stringList;
 
@@ -931,7 +931,7 @@ void fatalScopedName(scopedNameDef *);
 void setInputFile(FILE *,char *,parserContext *,int);
 void *sipMalloc(size_t);
 char *sipStrdup(char *);
-char *concat(char *,...);
+char *concat(const char *, ...);
 void append(char **,char *);
 ifaceFileList *addToUsedList(ifaceFileList **, ifaceFileDef *);
 int excludedFeature(stringList *,qualDef *);
@@ -952,9 +952,12 @@ int isVoidReturnSlot(memberDef *md);
 int isNumberSlot(memberDef *md);
 int isRichCompareSlot(memberDef *md);
 mappedTypeDef *allocMappedType(argDef *type);
+void appendString(stringList **headp, const char *s);
 void appendTypeStrings(scopedNameDef *ename, signatureDef *patt, signatureDef *src, signatureDef *known, scopedNameDef **names, scopedNameDef **values);
 codeBlock *templateCode(sipSpec *pt, ifaceFileList **used, codeBlock *ocb, scopedNameDef *names, scopedNameDef *values);
 ifaceFileDef *findIfaceFile(sipSpec *pt, moduleDef *mod, scopedNameDef *fqname, ifaceFileType iftype, argDef *ad);
+int optNoEmitters(sipSpec *pt);
+int optRegisterTypes(sipSpec *pt);
 void yywarning(char *);
 
 
