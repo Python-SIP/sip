@@ -947,7 +947,7 @@ void appendScopedName(scopedNameDef **,scopedNameDef *);
 void freeScopedName(scopedNameDef *);
 void appendToClassList(classList **,classDef *);
 void prOverloadName(FILE *fp, overDef *od);
-void prScopedPythonName(FILE *fp, classDef *scope, char *pyname);
+void prScopedPythonName(FILE *fp, classDef *scope, const char *pyname);
 int isIntReturnSlot(memberDef *md);
 int isLongReturnSlot(memberDef *md);
 int isVoidReturnSlot(memberDef *md);

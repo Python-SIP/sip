@@ -311,7 +311,7 @@ static void xmlArgument(argDef *ad, const char *dir, int indent, FILE *fp)
 		break;
 
 	case mapped_type:
-		// ZZZ - need to pass something that can be replaced later. */
+		/* ZZZ - need to pass something that can be replaced later. */
 		type_name = "mapped type";
 		break;
 

@@ -9902,7 +9902,7 @@ static void prcode(FILE *fp,char *fmt,...)
 			case 'P':
 				{
 					classDef *ecd = va_arg(ap, classDef *);
-					char *pyname = va_arg(ap, char *);
+					const char *pyname = va_arg(ap, const char *);
 
 					prScopedPythonName(fp, ecd, pyname);
 					break;
@@ -10103,7 +10103,7 @@ static void prScopedClassName(FILE *fp,classDef *cd,char *sep)
 /*
  * Generate a scoped Python name.
  */
-void prScopedPythonName(FILE *fp, classDef *scope, char *pyname)
+void prScopedPythonName(FILE *fp, classDef *scope, const char *pyname)
 {
 	if (scope != NULL)
 	{
