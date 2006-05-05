@@ -2320,7 +2320,7 @@ static void searchScope(sipSpec *pt,classDef *scope,scopedNameDef *snd,
 		if (ad -> atype != no_type)
 			break;
 
-		searchClasses(pt, scope, tmpsnd, ad);
+		searchClasses(pt, mro->cd->iff->module, tmpsnd, ad);
 
 		if (ad -> atype != no_type)
 			break;
@@ -2418,21 +2418,29 @@ static void searchEnums(sipSpec *pt,scopedNameDef *snd,argDef *ad)
 
 
 /*
- * Search the classes for a name and return the type.
+ * Search the classes for one with a particular name and return it as a type.
  */
-static void searchClasses(sipSpec *pt, moduleDef *mod, scopedNameDef *snd, argDef *ad)
+static void searchClasses(sipSpec *pt, moduleDef *mod, scopedNameDef *cname, argDef *ad)
 {
 	classDef *cd;
 
 	for (cd = pt -> classes; cd != NULL; cd = cd -> next)
-		if ((cd->iff->module == mod || !isExternal(cd)) &&
-		    sameScopedName(classFQCName(cd), snd))
+	{
+		/*
+		 * Ignore an external class unless it was declared in the same
+		 * context (ie. module) as the name is being used.
+		 */
+		if (isExternal(cd) && cd->iff->module != mod)
+			continue;
+
+		if (sameScopedName(classFQCName(cd), cname))
 		{
 			ad -> atype = class_type;
 			ad -> u.cd = cd;
 
 			break;
 		}
+	}
 }
 
 
