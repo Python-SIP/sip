@@ -84,9 +84,10 @@ static int sip_api_parse_pair(int *argsParsedp,PyObject *sipArg0,
 static void sip_api_common_ctor(sipMethodCache *cache,int nrmeths);
 static void sip_api_common_dtor(sipWrapper *sipSelf);
 static void *sip_api_convert_to_void_ptr(PyObject *obj);
-static void sip_api_no_function(int argsParsed,char *func);
-static void sip_api_no_method(int argsParsed,char *classname,char *method);
-static void sip_api_abstract_method(char *classname,char *method);
+static void sip_api_no_function(int argsParsed, const char *func);
+static void sip_api_no_method(int argsParsed, const char *classname,
+		const char *method);
+static void sip_api_abstract_method(const char *classname, const char *method);
 static void sip_api_bad_class(const char *classname);
 static void sip_api_bad_set_type(const char *classname,const char *var);
 static void *sip_api_get_complex_cpp_ptr(sipWrapper *w);
@@ -282,7 +283,7 @@ static void findLazyAttr(sipWrapperType *wt,char *name,PyMethodDef **pmdp,
 static int compareMethodName(const void *key,const void *el);
 static int compareEnumMemberName(const void *key,const void *el);
 static int checkPointer(void *ptr);
-static void badArgs(int argsParsed,char *classname,char *method);
+static void badArgs(int argsParsed, const char *classname, const char *method);
 static void finalise(void);
 static sipWrapperType *createType(sipExportedModuleDef *client,
 				  sipTypeDef *type, PyObject *mod_dict);
@@ -3410,7 +3411,6 @@ static int handleSetLazyAttr(PyObject *nameobj,PyObject *valobj,
 	char *name;
 	PyMethodDef *pmd, *vmd;
 	sipEnumMemberDef *enm;
-	PyObject *attr;
 
 	/* See if it was a lazy attribute. */
 	if ((name = PyString_AsString(nameobj)) == NULL)
@@ -3631,7 +3631,7 @@ static int compareEnumMemberName(const void *key,const void *el)
 /*
  * Report a function with invalid argument types.
  */
-static void sip_api_no_function(int argsParsed,char *func)
+static void sip_api_no_function(int argsParsed, const char *func)
 {
 	badArgs(argsParsed,NULL,func);
 }
@@ -3640,7 +3640,7 @@ static void sip_api_no_function(int argsParsed,char *func)
 /*
  * Report a method/function/signal with invalid argument types.
  */
-static void sip_api_no_method(int argsParsed,char *classname,char *method)
+static void sip_api_no_method(int argsParsed, const char *classname, const char *method)
 {
 	badArgs(argsParsed,classname,method);
 }
@@ -3649,7 +3649,7 @@ static void sip_api_no_method(int argsParsed,char *classname,char *method)
 /*
  * Report an abstract method called with an unbound self.
  */
-static void sip_api_abstract_method(char *classname, char *method)
+static void sip_api_abstract_method(const char *classname, const char *method)
 {
 	PyErr_Format(PyExc_TypeError,"%s.%s() is abstract and cannot be called as an unbound method", classname, method);
 }
@@ -3658,7 +3658,7 @@ static void sip_api_abstract_method(char *classname, char *method)
 /*
  * Handle error reporting for bad arguments to various things.
  */
-static void badArgs(int argsParsed,char *classname,char *method)
+static void badArgs(int argsParsed, const char *classname, const char *method)
 {
 	char *sep;
 	int nrparsed = argsParsed & ~PARSE_MASK;
@@ -4370,8 +4370,6 @@ static PyObject *sip_api_is_py_method(sip_gilstate_t *gil,sipMethodCache *pymc,
 				      sipWrapper *sipSelf,char *cname,
 				      char *mname)
 {
-	PyObject *meth;
-
 	/* We might still have C++ going after the interpreter has gone. */
 	if (sipInterpreter == NULL)
 		return NULL;
@@ -5542,7 +5540,7 @@ static int sipWrapperType_init(sipWrapperType *self,PyObject *args,PyObject *kwd
 	 */
 	if (self -> type == NULL)
 	{
-		PyObject *sc = self->super.type.tp_base;
+		PyObject *sc = (PyObject *)self->super.type.tp_base;
 
 		/*
 		 * Make sure that the type is derived from sip.wrapper.  It

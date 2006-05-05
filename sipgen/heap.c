@@ -50,7 +50,7 @@ char *sipStrdup(char *s)
  * Return a string on the heap which is the concatonation of all the arguments.
  */
 
-char *concat(char *s,...)
+char *concat(const char *s, ...)
 {
 	char *sp, *new;
 	size_t len;

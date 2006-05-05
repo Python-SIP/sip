@@ -464,30 +464,6 @@ typedef struct _sipExportedModuleDef {
 
 
 /*
- * The API implementing the optional Qt support.
- */
-typedef struct _sipQtAPI {
-	struct _sipWrapperType **qt_qobject;	/* The QObject type. */
-	int (*qt_is_qt_signal)(void *, const char *);
-	void *(*qt_create_universal_signal_shortcut)(void *, const char *, const char **);
-	void *(*qt_create_universal_signal)(void *, const struct _sipSignature *);
-	void *(*qt_find_universal_signal_shortcut)(void *, const char *, const char **);
-	void *(*qt_find_universal_signal)(void *, const struct _sipSignature *);
-	int (*qt_emit_signal_shortcut)(void *, const char *, PyObject *);
-	int (*qt_emit_signal)(void *, const struct _sipSignature *, PyObject *);
-	void *(*qt_create_universal_slot)(struct _sipWrapper *, struct _sipSlotConnection *, const char **);
-	void (*qt_destroy_universal_slot)(void *);
-	void *(*qt_find_slot)(void *, const char *, PyObject *, const char *, const char **);
-	int (*qt_connect)(void *, const char *, void *, const char *, int);
-	int (*qt_disconnect)(void *, const char *, void *, const char *);
-	int (*qt_signals_blocked)(void *);
-	const void *(*qt_get_sender)();
-	void (*qt_forget_sender)();
-	int (*qt_same_name)(const char *, const char *);
-} sipQtAPI;
-
-
-/*
  * The information describing a license to be added to a dictionary.
  */
 typedef struct _sipLicenseDef {
@@ -746,11 +722,11 @@ typedef struct _sipAPIDef {
 	PyObject *(*api_connect_rx)(PyObject *txObj,const char *sig,PyObject *rxObj,const char *slot, int type);
 	int (*api_convert_from_sequence_index)(int idx,int len);
 	int (*api_can_convert_to_instance)(PyObject *pyObj, sipWrapperType *type, int flags);
-	int (*api_can_convert_to_mapped_type)(PyObject *pyObj, sipMappedType *mt, int flags);
+	int (*api_can_convert_to_mapped_type)(PyObject *pyObj, const sipMappedType *mt, int flags);
 	void *(*api_convert_to_instance)(PyObject *pyObj, sipWrapperType *type, PyObject *transferObj, int flags, int *statep, int *iserrp);
-	void *(*api_convert_to_mapped_type)(PyObject *pyObj, sipMappedType *mt, PyObject *transferObj, int flags, int *statep, int *iserrp);
+	void *(*api_convert_to_mapped_type)(PyObject *pyObj, const sipMappedType *mt, PyObject *transferObj, int flags, int *statep, int *iserrp);
 	void *(*api_force_convert_to_instance)(PyObject *pyObj, sipWrapperType *type, PyObject *transferObj, int flags, int *statep, int *iserrp);
-	void *(*api_force_convert_to_mapped_type)(PyObject *pyObj, sipMappedType *mt, PyObject *transferObj, int flags, int *statep, int *iserrp);
+	void *(*api_force_convert_to_mapped_type)(PyObject *pyObj, const sipMappedType *mt, PyObject *transferObj, int flags, int *statep, int *iserrp);
 	void (*api_release_instance)(void *cpp, sipWrapperType *type, int state);
 	void (*api_release_mapped_type)(void *cpp, const sipMappedType *mt, int state);
 	PyObject *(*api_convert_from_instance)(void *cpp, sipWrapperType *type, PyObject *transferObj);
@@ -792,9 +768,9 @@ typedef struct _sipAPIDef {
 	void (*api_common_ctor)(sipMethodCache *cache,int nrmeths);
 	void (*api_common_dtor)(sipWrapper *sipSelf);
 	void *(*api_convert_to_void_ptr)(PyObject *obj);
-	void (*api_no_function)(int argsParsed,char *func);
-	void (*api_no_method)(int argsParsed,char *classname,char *method);
-	void (*api_abstract_method)(char *classname,char *method);
+	void (*api_no_function)(int argsParsed, const char *func);
+	void (*api_no_method)(int argsParsed, const char *classname, const char *method);
+	void (*api_abstract_method)(const char *classname, const char *method);
 	void (*api_bad_class)(const char *classname);
 	void (*api_bad_set_type)(const char *classname,const char *var);
 	void *(*api_get_cpp_ptr)(sipWrapper *w,sipWrapperType *type);
@@ -813,6 +789,30 @@ typedef struct _sipAPIDef {
 	void (*api_add_delayed_dtor)(sipWrapper *w);
 	int (*api_add_mapped_type_instance)(PyObject *dict,char *name,void *cppPtr,sipMappedType *mt);
 } sipAPIDef;
+
+
+/*
+ * The API implementing the optional Qt support.
+ */
+typedef struct _sipQtAPI {
+	struct _sipWrapperType **qt_qobject;	/* The QObject type. */
+	int (*qt_is_qt_signal)(void *, const char *);
+	void *(*qt_create_universal_signal_shortcut)(void *, const char *, const char **);
+	void *(*qt_create_universal_signal)(void *, const struct _sipSignature *);
+	void *(*qt_find_universal_signal_shortcut)(void *, const char *, const char **);
+	void *(*qt_find_universal_signal)(void *, const struct _sipSignature *);
+	int (*qt_emit_signal_shortcut)(void *, const char *, PyObject *);
+	int (*qt_emit_signal)(void *, const struct _sipSignature *, PyObject *);
+	void *(*qt_create_universal_slot)(struct _sipWrapper *, struct _sipSlotConnection *, const char **);
+	void (*qt_destroy_universal_slot)(void *);
+	void *(*qt_find_slot)(void *, const char *, PyObject *, const char *, const char **);
+	int (*qt_connect)(void *, const char *, void *, const char *, int);
+	int (*qt_disconnect)(void *, const char *, void *, const char *);
+	int (*qt_signals_blocked)(void *);
+	const void *(*qt_get_sender)();
+	void (*qt_forget_sender)();
+	int (*qt_same_name)(const char *, const char *);
+} sipQtAPI;
 
 
 /*

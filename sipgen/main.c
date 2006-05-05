@@ -29,7 +29,6 @@ static char *sipPackage = PACKAGE;
 static int warnings = FALSE;
 
 
-static void appendString(stringList **,char *);
 static void help(void);
 static void version(void);
 static void usage(void);
@@ -234,7 +233,7 @@ static char parseopt(int argc,char **argv,char *opts,char **flags,int *optnrp,
 				break;
 
 			if (cp == &buf[sizeof (buf) - 1])
-				fatal("An flag in %s is too long\n",fname);
+				fatal("A flag in %s is too long\n",fname);
 
 			*cp++ = (char)ch;
 		}
@@ -351,7 +350,7 @@ static int parseInt(char *arg, char opt)
 /*
  * Append a string to a list of them.
  */
-static void appendString(stringList **headp,char *s)
+void appendString(stringList **headp, const char *s)
 {
 	stringList *sl;
 

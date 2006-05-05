@@ -46,7 +46,7 @@ static int exceptions;			/* Set if exceptions are enabled. */
 static int tracing;			/* Set if tracing is enabled. */
 static int generating_c;		/* Set if generating C. */
 static int release_gil;			/* Set if always releasing the GIL. */
-static char *prcode_last = NULL;	/* The last prcode format string. */
+static const char *prcode_last = NULL;	/* The last prcode format string. */
 
 
 static void generateDocumentation(sipSpec *,char *);
@@ -152,7 +152,7 @@ static char *getSubFormatChar(char,argDef *);
 static char *createIfaceFileName(char *,ifaceFileDef *,char *);
 static FILE *createFile(sipSpec *,char *,char *);
 static void closeFile(FILE *);
-static void prcode(FILE *,char *,...);
+static void prcode(FILE *fp, const char *, ...);
 static void prScopedName(FILE *fp,scopedNameDef *snd,char *sep);
 static void prTypeName(FILE *,argDef *,int);
 static void prScopedClassName(FILE *,classDef *,char *);
@@ -446,6 +446,12 @@ static void generateInternalAPIHeader(sipSpec *pt,char *codeDir,stringList *xsl)
 "#include <sip.h>\n"
 		,mname
 		,mname);
+
+	if (optRegisterTypes(pt))
+		prcode(fp,
+"\n"
+"#include <QMetaType>\n"
+			);
 
 	/* Define the enabled features. */
 	noIntro = TRUE;
@@ -4432,7 +4438,7 @@ static void generateClassFunctions(sipSpec *pt,classDef *cd,FILE *fp)
  */
 static void generateShadowCode(sipSpec *pt,classDef *cd,FILE *fp)
 {
-	int noIntro, nrVirts, virtNr;
+	int nrVirts, virtNr;
 	virtOverDef *vod;
 	ctorDef *ct;
 
@@ -4549,7 +4555,7 @@ static void generateShadowCode(sipSpec *pt,classDef *cd,FILE *fp)
 	generateProtectedDefinitions(cd,fp);
 
 	/* Generate the emitters if needed. */
-	if (pt->emitters)
+	if (!optNoEmitters(pt))
 		generateEmitters(pt, cd, fp);
 }
 
@@ -6346,7 +6352,7 @@ static void generateShadowClassDeclaration(sipSpec *pt,classDef *cd,FILE *fp)
 	generateProtectedDeclarations(cd,fp);
 
 	/* The public wrapper around each signal emitter. */
-	if (pt->emitters)
+	if (!optNoEmitters(pt))
 	{
 		visibleList *vl;
 
@@ -7228,7 +7234,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 				);
 	}
 
-	if (pt->emitters && hasSigSlots(cd))
+	if (!optNoEmitters(pt) && hasSigSlots(cd))
 		prcode(fp,
 "	signals_%C,\n"
 			,classFQCName(cd));
@@ -7517,7 +7523,19 @@ static const char *slotName(slotType st)
 static void generateTypeInit(sipSpec *pt, classDef *cd, FILE *fp)
 {
 	ctorDef *ct;
-	int need_self, need_owner;
+	int need_self, need_owner, reg_type, pub_def_ctor, pub_copy_ctor;
+
+	/*
+	 * We register types with Qt if enabled, if the class has a public
+	 * default ctor, a public copy ctor, a public dtor and isn't one of the
+	 * internally supported types.
+	 */
+	reg_type = (optRegisterTypes(pt) && !isAbstractClass(cd) &&
+		    isPublicDtor(cd) &&
+		    (classFQCName(cd)->next != NULL ||
+		     (strcmp(classBaseName(cd), "QChar") != 0 &&
+		      strcmp(classBaseName(cd), "QString") != 0 &&
+		      strcmp(classBaseName(cd), "QByteArray") != 0)));
 
 	/*
 	 * See if we need to name the self and owner arguments so that we can
@@ -7525,22 +7543,36 @@ static void generateTypeInit(sipSpec *pt, classDef *cd, FILE *fp)
 	 */
 	need_self = (generating_c || hasShadow(cd));
 	need_owner = generating_c;
+	pub_def_ctor = pub_copy_ctor = FALSE;
 
 	for (ct = cd -> ctors; ct != NULL; ct = ct -> next)
 	{
 		int a;
 
-		if (need_self && need_owner)
-			break;
-
 		if (usedInCode(ct->methodcode, "sipSelf"))
 			need_self = TRUE;
 
-		for (a = 0; a < ct -> pysig.nrArgs; ++a)
-			if (isThisTransferred(&ct -> pysig.args[a]))
+		for (a = 0; a < ct->pysig.nrArgs; ++a)
+			if (isThisTransferred(&ct->pysig.args[a]))
 			{
 				need_owner = TRUE;
 				break;
+			}
+
+		if (reg_type && ct->cppsig != NULL && isPublicCtor(ct))
+			if (ct->cppsig->nrArgs == 0)
+				pub_def_ctor = TRUE;
+			else if (ct->cppsig->nrArgs == 1)
+			{
+				argDef *ad = &ct->cppsig->args[0];
+
+				if (ad->atype == class_type &&
+				    ad->u.cd == cd &&
+				    isReference(ad) &&
+				    isConstArg(ad) &&
+				    ad->nrderefs == 0 &&
+				    ad->defval == NULL)
+					pub_copy_ctor = TRUE;
 			}
 	}
 
@@ -7550,6 +7582,18 @@ static void generateTypeInit(sipSpec *pt, classDef *cd, FILE *fp)
 "static void *init_%C(sipWrapper *%s,PyObject *sipArgs,sipWrapper **%s,int *sipArgsParsed)\n"
 "{\n"
 		,classFQCName(cd),(need_self ? "sipSelf" : ""),(need_owner ? "sipOwner" : ""));
+
+	if (reg_type && pub_def_ctor && pub_copy_ctor)
+		prcode(fp,
+"	static bool sipRegistered = false;\n"
+"\n"
+"	if (!sipRegistered)\n"
+"	{\n"
+"		qRegisterMetaType<%S>(\"%S\");\n"
+"		sipRegistered = true;\n"
+"	}\n"
+"\n"
+			, classFQCName(cd), classFQCName(cd));
 
 	if (hasShadow(cd))
 		prcode(fp,
@@ -7623,7 +7667,7 @@ static void generateTypeInit(sipSpec *pt, classDef *cd, FILE *fp)
 "\n"
 "	if (sipCpp)\n"
 "		sipCpp -> sipPySelf = sipSelf;\n"
-			,classFQCName(cd));
+			);
 
 	prcode(fp,
 "\n"
@@ -9087,7 +9131,6 @@ static void generateNumberSlotCall(overDef *od, char *op, FILE *fp)
 static int generateArgParser(sipSpec *pt, signatureDef *sd, classDef *cd,
 			     ctorDef *ct, overDef *od, int secCall, FILE *fp)
 {
-	char *mname = pt -> module -> name;
 	int a, isQtSlot, optargs, arraylenarg, sigarg, handle_self;
 	int slotconarg, slotdisarg, need_owner;
 
@@ -9737,7 +9780,7 @@ static void closeFile(FILE *fp)
 /*
  * Print formatted code.
  */
-static void prcode(FILE *fp,char *fmt,...)
+static void prcode(FILE *fp, const char *fmt, ...)
 {
 	char ch;
 	va_list ap;

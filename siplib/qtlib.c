@@ -1,7 +1,9 @@
-// The SIP library code that implements the interface to the optional module
-// supplied Qt support.
-//
-// @BS_LICENSE@
+/*
+ * The SIP library code that implements the interface to the optional module
+ * supplied Qt support.
+ *
+ * @BS_LICENSE@
+ */
 
 
 #include <Python.h>
@@ -11,12 +13,12 @@
 #include "sipint.h"
 
 
-// This is how Qt "types" signals and slots.
+/* This is how Qt "types" signals and slots. */
 #define	isQtSlot(s)	(*(s) == '1')
 #define	isQtSignal(s)	(*(s) == '2')
 
 
-static PyObject *py_sender = NULL;	// The last Python signal sender.
+static PyObject *py_sender = NULL;	/* The last Python signal sender. */
 
 
 static int isSameSlot(sipSlot *,PyObject *,const char *);
@@ -35,16 +37,20 @@ static void *newSignal(void *txrx, const char **sig);
 static void freeSlot(sipSlot *slot);
 
 
-// Return the most recent signal sender.
+/*
+ * Return the most recent signal sender.
+ */
 PyObject *sip_api_get_sender()
 {
 	PyObject *sender;
 	const void *qt_sender;
 
-	// If there is a Qt sender then it is more recent than the last Python
-	// sender, so use it instead.
+	/*
+	 * If there is a Qt sender then it is more recent than the last Python
+	 * sender, so use it instead.
+	 */
 	if ((qt_sender = sipQtSupport->qt_get_sender()) != NULL)
-		sender = sip_api_convert_from_instance(qt_sender, sipQObjectClass, NULL);
+		sender = sip_api_convert_from_instance((void *)qt_sender, sipQObjectClass, NULL);
 	else
 	{
 		if ((sender = py_sender) == NULL)
@@ -57,14 +63,18 @@ PyObject *sip_api_get_sender()
 }
 
 
-// Release the resources held by a connection.
+/*
+ * Release the resources held by a connection.
+ */
 void sip_api_free_connection(sipSlotConnection *conn)
 {
 	freeSlot(&conn->sc_slot);
 }
 
 
-// Compare two connections and return TRUE if they are the same.
+/*
+ * Compare two connections and return TRUE if they are the same.
+ */
 int sip_api_same_connection(sipSlotConnection *conn, void *tx, const char *sig,
 			    PyObject *rxObj, const char *slot)
 {
@@ -74,23 +84,27 @@ int sip_api_same_connection(sipSlotConnection *conn, void *tx, const char *sig,
 }
 
 
-// Parse the signal arguments for a connection.
+/*
+ * Parse the signal arguments for a connection.
+ */
 static sipSignature *parseSignature(const char *sig)
 {
 	static sipSignature *psig_list = NULL;
 	sipSignature *psig;
 	const char *sp, *ep;
 
-	// First see if it has already been parsed.  Note that both sides of a
-	// connection will probably be parsed twice because the function names
-	// will be different even though the signatures will probably be the
-	// same.  We could be more clever, the most saving is when repeatedly
-	// emitting a signal for which this is sufficient.
+	/*
+	 * First see if it has already been parsed.  Note that both sides of a
+	 * connection will probably be parsed twice because the function names
+	 * will be different even though the signatures will probably be the
+	 * same.  We could be more clever, the most saving is when repeatedly
+	 * emitting a signal for which this is sufficient.
+	 */
 	for (psig = psig_list; psig != NULL; psig = psig->sg_next)
 		if (sipQtSupport->qt_same_name(psig->sg_signature, sig))
 			return psig;
 
-	// Create a new one including space for the copy of the signature. */
+	/* Create a new one including space for the copy of the signature. */
 	if ((psig = (sipSignature *)sip_api_malloc(sizeof (sipSignature) + strlen(sig) + 1)) == NULL)
 		return NULL;
 
@@ -98,16 +112,18 @@ static sipSignature *parseSignature(const char *sig)
 	psig->sg_nrargs = 0;
 	psig->sg_args = 0;
 
-	// Find the start and end of the arguments.
+	/* Find the start and end of the arguments. */
 	sp = strchr(sig, '(');
 	ep = strrchr(sig, ')');
 
-	// If the signal isn't well formed we assume Qt will pick it up.
+	/* If the signal isn't well formed we assume Qt will pick it up. */
 	if (sp && ep && sp < ep)
 	{
-		// Copy the signature arguments while counting them and
-		// removing non-significant spaces.  Each argument is left as a
-		// '\0' terminated string.
+		/*
+		 * Copy the signature arguments while counting them and
+		 * removing non-significant spaces.  Each argument is left as a
+		 * '\0' terminated string.
+		 */
 		char *dp = psig->sg_signature;
 		int depth = 0, nrcommas = 0, argstart = TRUE;
 
@@ -117,7 +133,7 @@ static sipSignature *parseSignature(const char *sig)
 
 			if (strchr(",*&)<>", ch))
 			{
-				// Backup over any previous trailing space.
+				/* Backup over any previous trailing space. */
 				if (dp > psig->sg_signature && dp[-1] == ' ')
 					--dp;
 
@@ -137,8 +153,10 @@ static sipSignature *parseSignature(const char *sig)
 				{
 					*dp++ = ch;
 
-					// Make sure commas in template
-					// arguments are ignored.
+					/*
+					 * Make sure commas in template
+					 * arguments are ignored.
+					 */
 					if (ch == '<')
 						++depth;
 					else if (ch == '>')
@@ -147,7 +165,7 @@ static sipSignature *parseSignature(const char *sig)
 			}
 			else if (ch == ' ')
 			{
-				// Ignore leading and multiple spaces.
+				/* Ignore leading and multiple spaces. */
 				if (!argstart && dp[-1] != ' ')
 					*dp++ = ch;
 			}
@@ -158,19 +176,19 @@ static sipSignature *parseSignature(const char *sig)
 			}
 		}
 
-		// Handle the arguments now they are in a normal form.
+		/* Handle the arguments now they are in a normal form. */
 		if (*psig->sg_signature)
 		{
 			char *arg = psig->sg_signature;
 			int a;
 
-			// Allocate the space.
+			/* Allocate the space. */
 			psig->sg_nrargs = nrcommas + 1;
 
 			if ((psig->sg_args = (sipSigArg *)sip_api_malloc(sizeof (sipSigArg) * psig->sg_nrargs)) == NULL)
 			{
 				sip_api_free(psig);
-				return -1;
+				return NULL;
 			}
 
 			for (a = 0; a < psig->sg_nrargs; ++a)
@@ -179,15 +197,19 @@ static sipSignature *parseSignature(const char *sig)
 				int unsup, isref = FALSE, indir = 0;
 				sipSigArgType sat = unknown_sat;
 
-				// Find the start of the significant part of
-				// the type.
+				/*
+				 * Find the start of the significant part of
+				 * the type.
+				 */
 				dp = arg;
 
 				if (strncmp(dp, "const ", 6) == 0)
 					dp += 6;
 
-				// Find the length of the base type, the number
-				// of indirections and if it is a reference.
+				/*
+				 * Find the length of the base type, the number
+				 * of indirections and if it is a reference.
+				 */
 				for (ep = dp; *ep; ++ep)
 					if (*ep == '&')
 						isref = TRUE;
@@ -196,11 +218,13 @@ static sipSignature *parseSignature(const char *sig)
 					else
 						++btlen;
 
-				// Assume that anything other than a base type
-				// is unsupported.
+				/*
+				 * Assume that anything other than a base type
+				 * is unsupported.
+				 */
 				unsup = (isref || indir);
 
-				// Parse the base type.
+				/* Parse the base type. */
 				switch (btlen)
 				{
 				case 3:
@@ -319,16 +343,16 @@ static sipSignature *parseSignature(const char *sig)
 					psig->sg_args[a].atype = sat;
 				}
 
-				// Move to the start of the next argument.
+				/* Move to the start of the next argument. */
 				arg += strlen(arg) + 1;
 			}
 		}
 	}
 
-	// Make a deep copy of the signal.
+	/* Make a deep copy of the signal. */
 	strcpy(psig->sg_signature, sig);
 
-	// Add it to the list so it can be re-used.
+	/* Add it to the list so it can be re-used. */
 	psig->sg_next = psig_list;
 	psig_list = psig;
 
@@ -336,7 +360,9 @@ static sipSignature *parseSignature(const char *sig)
 }
 
 
-// Find an existing signal.
+/*
+ * Find an existing signal.
+ */
 static void *findSignal(void *txrx, const char **sig)
 {
 	sipSignature *psig;
@@ -364,7 +390,9 @@ static void *findSignal(void *txrx, const char **sig)
 }
 
 
-// Return a usable signal, creating a new universal signal if needed.
+/*
+ * Return a usable signal, creating a new universal signal if needed.
+ */
 static void *newSignal(void *txrx, const char **sig)
 {
 	sipSignature *psig;
@@ -392,8 +420,10 @@ static void *newSignal(void *txrx, const char **sig)
 }
 
 
-// Create a universal slot.  Returns a pointer to it or 0 if there was an
-// error.
+/*
+ * Create a universal slot.  Returns a pointer to it or 0 if there was an
+ * error.
+ */
 static void *createUniversalSlot(sipWrapper *txSelf, const char *sig,
 				 PyObject *rxObj, const char *slot,
 				 const char **member)
@@ -401,14 +431,14 @@ static void *createUniversalSlot(sipWrapper *txSelf, const char *sig,
 	sipSlotConnection conn;
 	void *us;
 
-	// Initialise the connection.
+	/* Initialise the connection. */
 	conn.sc_transmitter = (txSelf ? sipGetAddress(txSelf) : 0);
 
-	// Save the real slot.
+	/* Save the real slot. */
 	if (saveSlot(&conn.sc_slot, rxObj, slot) < 0)
 		return 0;
 
-	// Parse the signature and create the universal slot.
+	/* Parse the signature and create the universal slot. */
 	if ((conn.sc_signature = parseSignature(sig)) == NULL || (us = sipQtSupport->qt_create_universal_slot(txSelf, &conn, member)) == NULL)
 	{
 		sip_api_free_connection(&conn);
@@ -419,15 +449,19 @@ static void *createUniversalSlot(sipWrapper *txSelf, const char *sig,
 }
 
 
-// Emit a Python or Qt signal.
+/*
+ * Emit a Python or Qt signal.
+ */
 int sip_api_emit_signal(PyObject *self,const char *sig,PyObject *sigargs)
 {
 	sipPySig *ps;
 	void *tx;
 	sipWrapper *w = (sipWrapper *)self;
 
-	// Don't do anything if signals are blocked.  Qt signals would be
-	// blocked anyway, but this blocks Python signals as well.
+	/*
+	 * Don't do anything if signals are blocked.  Qt signals would be
+	 * blocked anyway, but this blocks Python signals as well.
+	 */
 	if ((tx = sip_api_get_cpp_ptr(w, sipQObjectClass)) == NULL || sipQtSupport->qt_signals_blocked(tx))
 		return 0;
 
@@ -456,13 +490,13 @@ int sip_api_emit_signal(PyObject *self,const char *sig,PyObject *sigargs)
 	{
 		int rc;
 
-		// Forget the last Qt sender and remember this one.
+		/* Forget the last Qt sender and remember this one. */
 		sipQtSupport->qt_forget_sender();
 		py_sender = self;
 
 		rc = emitToSlotList(ps -> rxlist,sigargs);
 
-		// Forget this as a sender.
+		/* Forget this as a sender. */
 		py_sender = NULL;
 
 		return rc;
@@ -472,7 +506,9 @@ int sip_api_emit_signal(PyObject *self,const char *sig,PyObject *sigargs)
 }
 
 
-// Search the Python signal list for a signal.
+/*
+ * Search the Python signal list for a signal.
+ */
 static sipPySig *findPySignal(sipWrapper *w,const char *sig)
 {
 	sipPySig *ps;
@@ -485,20 +521,22 @@ static sipPySig *findPySignal(sipWrapper *w,const char *sig)
 }
 
 
-// Search a signal table for a signal.  If found, call the emitter function
-// with the signal arguments.  Return 0 if the signal was emitted or <0 if
-// there was an error.
+/*
+ * Search a signal table for a signal.  If found, call the emitter function
+ * with the signal arguments.  Return 0 if the signal was emitted or <0 if
+ * there was an error.
+ */
 static int emitQtSig(sipWrapper *w,const char *sig,PyObject *sigargs)
 {
 	sipQtSignal *tab;
 
-	// Search the table.
+	/* Search the table. */
 	for (tab = ((sipWrapperType *)(w -> ob_type)) -> type -> td_emit; tab -> st_name != NULL; ++tab)
 	{
 		const char *sp, *tp;
 		int found;
 
-		// Compare only the base name.
+		/* Compare only the base name. */
 		sp = &sig[1];
 		tp = tab -> st_name;
 
@@ -515,26 +553,28 @@ static int emitQtSig(sipWrapper *w,const char *sig,PyObject *sigargs)
 			return (*tab -> st_emitfunc)(w,sigargs);
 	}
 
-	// It wasn't found if we got this far.
+	/* It wasn't found if we got this far. */
 	PyErr_Format(PyExc_NameError,"Invalid signal %s",&sig[1]);
 
 	return -1;
 }
 
 
-// Send a signal to a single slot (Qt or Python).
+/*
+ * Send a signal to a single slot (Qt or Python).
+ */
 int sip_api_emit_to_slot(sipSlot *slot, PyObject *sigargs)
 {
 	PyObject *sa, *oxtype, *oxvalue, *oxtb, *sfunc, *newmeth, *sref;
 
-	// Keep some compilers quiet.
+	/* Keep some compilers quiet. */
 	oxtype = oxvalue = oxtb = NULL;
 
-	// Fan out Qt signals.
+	/* Fan out Qt signals. */
 	if (slot -> name != NULL && slot -> name[0] != '\0')
 		return sip_api_emit_signal(slot -> pyobj,slot -> name,sigargs);
 
-	// Get the object to call, resolving any weak references.
+	/* Get the object to call, resolving any weak references. */
 	if (slot -> weakSlot == NULL)
 		sref = NULL;
 	else if ((sref = PyWeakref_GetObject(slot -> weakSlot)) == NULL)
@@ -544,9 +584,11 @@ int sip_api_emit_to_slot(sipSlot *slot, PyObject *sigargs)
 
 	if (sref == Py_None)
 	{
-		// If the real object has gone then we pretend everything is
-		// Ok.  This mimics the Qt behaviour of not caring if a
-		// receiving object has been deleted.
+		/*
+		 * If the real object has gone then we pretend everything is
+		 * Ok.  This mimics the Qt behaviour of not caring if a
+		 * receiving object has been deleted.
+		 */
 		Py_DECREF(sref);
 		return 0;
 	}
@@ -555,7 +597,7 @@ int sip_api_emit_to_slot(sipSlot *slot, PyObject *sigargs)
 	{
 		PyObject *self = (sref != NULL ? sref : slot->meth.mself);
 
-		// See if any underlying C++ instance has gone.
+		/* See if any underlying C++ instance has gone. */
 		if (self != NULL && sip_api_wrapper_check(self) && ((sipWrapper *)self)->u.cppPtr == NULL)
 		{
 			Py_XDECREF(sref);
@@ -568,7 +610,7 @@ int sip_api_emit_to_slot(sipSlot *slot, PyObject *sigargs)
 			return -1;
 		}
 
-		// Make sure we garbage collect the new method.
+		/* Make sure we garbage collect the new method. */
 		newmeth = sfunc;
 	}
 	else if (slot -> name != NULL)
@@ -576,7 +618,7 @@ int sip_api_emit_to_slot(sipSlot *slot, PyObject *sigargs)
 		char *mname = slot -> name + 1;
 		PyObject *self = (sref != NULL ? sref : slot->pyobj);
 
-		// See if any underlying C++ instance has gone.
+		/* See if any underlying C++ instance has gone. */
 		if (self != NULL && sip_api_wrapper_check(self) && ((sipWrapper *)self)->u.cppPtr == NULL)
 		{
 			Py_XDECREF(sref);
@@ -585,15 +627,17 @@ int sip_api_emit_to_slot(sipSlot *slot, PyObject *sigargs)
 
 		if ((sfunc = PyObject_GetAttrString(self, mname)) == NULL || !PyCFunction_Check(sfunc))
 		{
-			// Note that in earlier versions of SIP this error
-			// would be detected when the slot was connected.
+			/*
+			 * Note that in earlier versions of SIP this error
+			 * would be detected when the slot was connected.
+			 */
 			PyErr_Format(PyExc_NameError,"Invalid slot %s",mname);
 
 			Py_XDECREF(sref);
 			return -1;
 		}
 
-		// Make sure we garbage collect the new method.
+		/* Make sure we garbage collect the new method. */
 		newmeth = sfunc;
 	}
 	else
@@ -602,11 +646,13 @@ int sip_api_emit_to_slot(sipSlot *slot, PyObject *sigargs)
 		newmeth = NULL;
 	}
 
-	// We make repeated attempts to call a slot.  If we work out that it
-	// failed because of an immediate type error we try again with one less
-	// argument.  We keep going until we run out of arguments to drop.
-	// This emulates the Qt ability of the slot to accept fewer arguments
-	// than a signal provides.
+	/*
+	 * We make repeated attempts to call a slot.  If we work out that it
+	 * failed because of an immediate type error we try again with one less
+	 * argument.  We keep going until we run out of arguments to drop.
+	 * This emulates the Qt ability of the slot to accept fewer arguments
+	 * than a signal provides.
+	 */
 	sa = sigargs;
         Py_INCREF(sa);
 
@@ -621,7 +667,7 @@ int sip_api_emit_to_slot(sipSlot *slot, PyObject *sigargs)
 			Py_XDECREF(newmeth);
 			Py_XDECREF(sref);
 
-			// Remove any previous exception. */
+			/* Remove any previous exception. */
 
 			if (sa != sigargs)
 			{
@@ -636,19 +682,23 @@ int sip_api_emit_to_slot(sipSlot *slot, PyObject *sigargs)
 			return 0;
 		}
 
-		// Get the exception.
+		/* Get the exception. */
 		PyErr_Fetch(&xtype,&xvalue,&xtb);
 
-		// See if it is unacceptable.  An acceptable failure is a type
-		// error with no traceback - so long as we can still reduce the
-		// number of arguments and try again.
+		/*
+		 * See if it is unacceptable.  An acceptable failure is a type
+		 * error with no traceback - so long as we can still reduce the
+		 * number of arguments and try again.
+		 */
 		if (!PyErr_GivenExceptionMatches(xtype,PyExc_TypeError) ||
 		    xtb != NULL ||
 		    PyTuple_GET_SIZE(sa) == 0)
 		{
-			// If there is a traceback then we must have called the
-                        // slot and the exception was later on - so report the
-                        // exception as is.
+			/*
+			 * If there is a traceback then we must have called the
+                         * slot and the exception was later on - so report the
+                         * exception as is.
+			 */
                         if (xtb != NULL)
                         {
                                 if (sa != sigargs)
@@ -664,8 +714,10 @@ int sip_api_emit_to_slot(sipSlot *slot, PyObject *sigargs)
 				PyErr_Restore(xtype,xvalue,xtb);
 			else
 			{
-				// Discard the latest exception and restore the
-				// original one.
+				/*
+				 * Discard the latest exception and restore the
+				 * original one.
+				 */
 				Py_XDECREF(xtype);
 				Py_XDECREF(xvalue);
 				Py_XDECREF(xtb);
@@ -676,7 +728,7 @@ int sip_api_emit_to_slot(sipSlot *slot, PyObject *sigargs)
 			break;
 		}
 
-		// If this is the first attempt, save the exception.
+		/* If this is the first attempt, save the exception. */
 		if (sa == sigargs)
 		{
 			oxtype = xtype;
@@ -690,10 +742,10 @@ int sip_api_emit_to_slot(sipSlot *slot, PyObject *sigargs)
 			Py_XDECREF(xtb);
 		}
 
-		// Create the new argument tuple.
+		/* Create the new argument tuple. */
 		if ((nsa = PyTuple_GetSlice(sa,0,PyTuple_GET_SIZE(sa) - 1)) == NULL)
 		{
-			// Tidy up.
+			/* Tidy up. */
 			Py_XDECREF(oxtype);
 			Py_XDECREF(oxvalue);
 			Py_XDECREF(oxtb);
@@ -714,21 +766,25 @@ int sip_api_emit_to_slot(sipSlot *slot, PyObject *sigargs)
 }
 
 
-// Send a signal to the slots (Qt or Python) in a Python list.
+/*
+ * Send a signal to the slots (Qt or Python) in a Python list.
+ */
 static int emitToSlotList(sipPySigRx *rxlist,PyObject *sigargs)
 {
 	int rc;
 
-	// Apply the arguments to each slot method.
+	/* Apply the arguments to each slot method. */
 	rc = 0;
 
 	while (rxlist != NULL && rc >= 0)
 	{
 		sipPySigRx *next;
 
-		// We get the next in the list before calling the slot in case
-		// the list gets changed by the slot - usually because the slot
-		// disconnects itself.
+		/*
+		 * We get the next in the list before calling the slot in case
+		 * the list gets changed by the slot - usually because the slot
+		 * disconnects itself.
+		 */
 		next = rxlist -> next;
 		rc = sip_api_emit_to_slot(&rxlist -> rx, sigargs);
 		rxlist = next;
@@ -738,16 +794,18 @@ static int emitToSlotList(sipPySigRx *rxlist,PyObject *sigargs)
 }
 
 
-// Add a slot to a transmitter's Python signal list.  The signal is a Python
-// signal, the slot may be either a Qt signal, a Qt slot, a Python signal or a
-// Python slot.
+/*
+ * Add a slot to a transmitter's Python signal list.  The signal is a Python
+ * signal, the slot may be either a Qt signal, a Qt slot, a Python signal or a
+ * Python slot.
+ */
 static int addSlotToPySigList(sipWrapper *txSelf,const char *sig,
 			      PyObject *rxObj,const char *slot)
 {
 	sipPySig *ps;
 	sipPySigRx *psrx;
 
-	// Create a new one if necessary.
+	/* Create a new one if necessary. */
 	if ((ps = findPySignal(txSelf,sig)) == NULL)
 	{
 		if ((ps = (sipPySig *)sip_api_malloc(sizeof (sipPySig))) == NULL)
@@ -765,7 +823,7 @@ static int addSlotToPySigList(sipWrapper *txSelf,const char *sig,
 		txSelf -> pySigList = ps;
 	}
 
-	// Create the new receiver.
+	/* Create the new receiver. */
 	if ((psrx = (sipPySigRx *)sip_api_malloc(sizeof (sipPySigRx))) == NULL)
 		return -1;
 
@@ -782,20 +840,22 @@ static int addSlotToPySigList(sipWrapper *txSelf,const char *sig,
 }
 
 
-// Compare two slots to see if they are the same.
+/*
+ * Compare two slots to see if they are the same.
+ */
 static int isSameSlot(sipSlot *slot1,PyObject *rxobj2,const char *slot2)
 {
-	// See if they are signals or Qt slots, ie. they have a name.
+	/* See if they are signals or Qt slots, ie. they have a name. */
 	if (slot1 -> name != NULL)
 		return (slot2 != NULL &&
 			sipQtSupport->qt_same_name(slot1 -> name,slot2) &&
 			slot1 -> pyobj == rxobj2);
 
-	// Both must be Python slots.
+	/* Both must be Python slots. */
 	if (slot2 != NULL)
 		return 0;
 
-	// See if they are Python methods.
+	/* See if they are Python methods. */
 	if (slot1 -> pyobj == NULL)
 		return (PyMethod_Check(rxobj2) &&
 			slot1 -> meth.mfunc == PyMethod_GET_FUNCTION(rxobj2) &&
@@ -805,12 +865,14 @@ static int isSameSlot(sipSlot *slot1,PyObject *rxobj2,const char *slot2)
 	if (PyMethod_Check(rxobj2))
 		return 0;
 
-	// The objects must be the same.
+	/* The objects must be the same. */
 	return (slot1 -> pyobj == rxobj2);
 }
 
 
-// Convert a valid Python signal or slot to an existing universal slot.
+/*
+ * Convert a valid Python signal or slot to an existing universal slot.
+ */
 void *sipGetRx(sipWrapper *txSelf,const char *sigargs,PyObject *rxObj,
 	       const char *slot,const char **memberp)
 {
@@ -830,15 +892,19 @@ void *sipGetRx(sipWrapper *txSelf,const char *sigargs,PyObject *rxObj,
 			return rx;
 		}
 
-	// The slot was either a Python callable or PyQt3 Python signal so
-	// there should be a universal slot.
+	/*
+	 * The slot was either a Python callable or PyQt3 Python signal so
+	 * there should be a universal slot.
+	 */
 	return sipQtSupport->qt_find_slot(sipGetAddress(txSelf), sigargs, rxObj, slot, memberp);
 }
 
 
-// Convert a Python receiver (either a Python signal or slot or a Qt signal
-// or slot) to a Qt receiver.  It is only ever called when the signal is a
-// Qt signal.  Return NULL is there was an error.
+/*
+ * Convert a Python receiver (either a Python signal or slot or a Qt signal
+ * or slot) to a Qt receiver.  It is only ever called when the signal is a
+ * Qt signal.  Return NULL is there was an error.
+ */
 void *sip_api_convert_rx(sipWrapper *txSelf,const char *sig,PyObject *rxObj,
 			 const char *slot,const char **memberp)
 {
@@ -860,19 +926,23 @@ void *sip_api_convert_rx(sipWrapper *txSelf,const char *sig,PyObject *rxObj,
 		return rx;
 	}
 
-	// The slot is a Python signal so we need a universal slot to catch it.
+	/*
+	 * The slot is a Python signal so we need a universal slot to catch it.
+	 */
 	return createUniversalSlot(txSelf, sig, rxObj, slot, memberp);
 }
 
 
-// Connect a Qt signal or a Python signal to a Qt slot, a Qt signal, a Python
-// slot or a Python signal.  This is all possible combinations.
+/*
+ * Connect a Qt signal or a Python signal to a Qt slot, a Qt signal, a Python
+ * slot or a Python signal.  This is all possible combinations.
+ */
 PyObject *sip_api_connect_rx(PyObject *txObj,const char *sig,PyObject *rxObj,
 			     const char *slot, int type)
 {
 	sipWrapper *txSelf = (sipWrapper *)txObj;
 
-	// Handle Qt signals.
+	/* Handle Qt signals. */
 	if (isQtSignal(sig))
 	{
 		void *tx, *rx;
@@ -897,7 +967,7 @@ PyObject *sip_api_connect_rx(PyObject *txObj,const char *sig,PyObject *rxObj,
 		return PyBool_FromLong(res);
 	}
 
-	// Handle Python signals.
+	/* Handle Python signals. */
 	if (addSlotToPySigList(txSelf, sig, rxObj, slot) < 0)
 		return NULL;
 
@@ -906,13 +976,15 @@ PyObject *sip_api_connect_rx(PyObject *txObj,const char *sig,PyObject *rxObj,
 }
 
 
-// Disconnect a signal to a signal or a Qt slot.
+/*
+ * Disconnect a signal to a signal or a Qt slot.
+ */
 PyObject *sip_api_disconnect_rx(PyObject *txObj,const char *sig,
 				PyObject *rxObj,const char *slot)
 {
 	sipWrapper *txSelf = (sipWrapper *)txObj;
 
-	// Handle Qt signals.
+	/* Handle Qt signals. */
 	if (isQtSignal(sig))
 	{
 		void *tx, *rx;
@@ -930,15 +1002,17 @@ PyObject *sip_api_disconnect_rx(PyObject *txObj,const char *sig,
 
 		res = PyBool_FromLong(sipQtSupport->qt_disconnect(tx, sig, rx, member));
 
-		// Delete it if it is a universal slot as this will be it's
-		// only connection.  If the slot is actually a universal signal
-		// then it should leave it in place.
+		/*
+		 * Delete it if it is a universal slot as this will be it's
+		 * only connection.  If the slot is actually a universal signal
+		 * then it should leave it in place.
+		 */
 		sipQtSupport->qt_destroy_universal_slot(rx);
 
 		return res;
 	}
 
-	// Handle Python signals.
+	/* Handle Python signals. */
 	removeSlotFromPySigList(txSelf,sig,rxObj,slot);
 
 	Py_INCREF(Py_True);
@@ -946,7 +1020,9 @@ PyObject *sip_api_disconnect_rx(PyObject *txObj,const char *sig,
 }
 
 
-// Remove a slot from a transmitter's Python signal list.
+/*
+ * Remove a slot from a transmitter's Python signal list.
+ */
 static void removeSlotFromPySigList(sipWrapper *txSelf,const char *sig,
 				    PyObject *rxObj,const char *slot)
 {
@@ -971,18 +1047,22 @@ static void removeSlotFromPySigList(sipWrapper *txSelf,const char *sig,
 }
 
 
-// Free a sipSlot structure.
+/*
+ * Free a sipSlot structure.
+ */
 static void freeSlot(sipSlot *slot)
 {
 	if (slot->name != NULL)
 		sip_api_free(slot->name);
 
-	// Remove any weak reference.
+	/* Remove any weak reference. */
 	Py_XDECREF(slot->weakSlot);
 }
 
 
-// Free a sipPySigRx structure on the heap.
+/*
+ * Free a sipPySigRx structure on the heap.
+ */
 void sipFreePySigRx(sipPySigRx *rx)
 {
 	freeSlot(&rx->rx);
@@ -990,7 +1070,9 @@ void sipFreePySigRx(sipPySigRx *rx)
 }
 
 
-// Implement strdup() using sip_api_malloc().
+/*
+ * Implement strdup() using sip_api_malloc().
+ */
 static char *sipStrdup(const char *s)
 {
 	char *d;
@@ -1002,9 +1084,11 @@ static char *sipStrdup(const char *s)
 }
 
 
-// Initialise a slot, returning 0 if there was no error.  If the signal was a
-// Qt signal, then the slot may be a Python signal or a Python slot.  If the
-// signal was a Python signal, then the slot may be anything.
+/*
+ * Initialise a slot, returning 0 if there was no error.  If the signal was a
+ * Qt signal, then the slot may be a Python signal or a Python slot.  If the
+ * signal was a Python signal, then the slot may be anything.
+ */
 static int saveSlot(sipSlot *sp, PyObject *rxObj, const char *slot)
 {
 	sp -> weakSlot = NULL;
@@ -1015,49 +1099,57 @@ static int saveSlot(sipSlot *sp, PyObject *rxObj, const char *slot)
 
 		if (PyMethod_Check(rxObj))
 		{
-			// Python creates methods on the fly.  We could
-			// increment the reference count to keep it alive, but
-			// that would keep "self" alive as well and would
-			// probably be a circular reference.  Instead we
-			// remember the component parts and hope they are still
-			// valid when we re-create the method when we need it.
+			/*
+			 * Python creates methods on the fly.  We could
+			 * increment the reference count to keep it alive, but
+			 * that would keep "self" alive as well and would
+			 * probably be a circular reference.  Instead we
+			 * remember the component parts and hope they are still
+			 * valid when we re-create the method when we need it.
+			 */
 			sipSaveMethod(&sp -> meth,rxObj);
 
-			// Notice if the class instance disappears.
+			/* Notice if the class instance disappears. */
 			sp -> weakSlot = getWeakRef(sp -> meth.mself);
 
-			// This acts a flag to say that the slot is a method.
+			/* This acts a flag to say that the slot is a method. */
 			sp -> pyobj = NULL;
 		}
 		else
 		{
 			PyObject *self;
 
-			// We know that it is another type of callable, ie. a
-			// function/builtin.
+			/*
+			 * We know that it is another type of callable, ie. a
+			 * function/builtin.
+			 */
 
 			if (PyCFunction_Check(rxObj) &&
 			    (self = PyCFunction_GET_SELF(rxObj)) != NULL &&
 			    sip_api_wrapper_check(self))
 			{
-				// It is a wrapped C++ class method.  We can't
-				// keep a copy because they are generated on
-				// the fly and we can't take a reference as
-				// that may keep the instance (ie. self) alive.
-				// We therefore treat it as if the user had
-				// specified the slot at "obj, SLOT('meth()')"
-				// rather than "obj.meth" (see below).
+				/*
+				 * It is a wrapped C++ class method.  We can't
+				 * keep a copy because they are generated on
+				 * the fly and we can't take a reference as
+				 * that may keep the instance (ie. self) alive.
+				 * We therefore treat it as if the user had
+				 * specified the slot at "obj, SLOT('meth()')"
+				 * rather than "obj.meth" (see below).
+				 */
 
 				char *meth;
 
-				// Get the method name.
+				/* Get the method name. */
 				meth = ((PyCFunctionObject *)rxObj) -> m_ml -> ml_name;
 
 				if ((sp -> name = (char *)sip_api_malloc(strlen(meth) + 2)) == NULL)
 					return -1;
 
-				// Copy the name and set the marker that it
-				// needs converting to a built-in method.
+				/*
+				 * Copy the name and set the marker that it
+				 * needs converting to a built-in method.
+				 */
 				sp -> name[0] = '\0';
 				strcpy(&sp -> name[1],meth);
 
@@ -1066,11 +1158,13 @@ static int saveSlot(sipSlot *sp, PyObject *rxObj, const char *slot)
 			}
 			else
 			{
-				// It's unlikely that we will succeed in
-				// getting a weak reference to the slot, but
-				// there is no harm in trying (and future
-				// versions of Python may support references to
-				// more object types).
+				/*
+				 * It's unlikely that we will succeed in
+				 * getting a weak reference to the slot, but
+				 * there is no harm in trying (and future
+				 * versions of Python may support references to
+				 * more object types).
+				 */
 				sp -> pyobj = rxObj;
 				sp -> weakSlot = getWeakRef(rxObj);
 			}
@@ -1080,34 +1174,40 @@ static int saveSlot(sipSlot *sp, PyObject *rxObj, const char *slot)
 		return -1;
 	else if (isQtSlot(slot))
 	{
-		// The user has decided to connect a Python signal to a Qt slot
-		// and specified the slot as "obj, SLOT('meth()')" rather than
-		// "obj.meth".
+		/*
+		 * The user has decided to connect a Python signal to a Qt slot
+		 * and specified the slot as "obj, SLOT('meth()')" rather than
+		 * "obj.meth".
+		 */
 
 		char *tail;
 
-		// Remove any arguments.
+		/* Remove any arguments. */
 		if ((tail = strchr(sp -> name,'(')) != NULL)
 			*tail = '\0';
 
-		// A bit of a hack to indicate that this needs converting to a
-		// built-in method.
+		/*
+		 * A bit of a hack to indicate that this needs converting to a
+		 * built-in method.
+		 */
 		sp -> name[0] = '\0';
 
-		// Notice if the class instance disappears.
+		/* Notice if the class instance disappears. */
 		sp -> weakSlot = getWeakRef(rxObj);
 
 		sp -> pyobj = rxObj;
 	}
 	else
-		// It's a Qt signal.
+		/* It's a Qt signal. */
 		sp -> pyobj = rxObj;
 
 	return 0;
 }
 
 
-// Return a weak reference to the given object.
+/*
+ * Return a weak reference to the given object.
+ */
 static PyObject *getWeakRef(PyObject *obj)
 {
 	PyObject *wr;
