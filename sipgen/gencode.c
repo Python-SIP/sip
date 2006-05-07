@@ -4727,10 +4727,10 @@ static void generateVirtualCatcher(sipSpec *pt,classDef *cd,int virtNr,
 		prcode(fp," (*sipVH_%s_%d)(sip_gilstate_t,PyObject *",vhd -> module -> name,vhd -> virthandlernr);
 	}
 
-	if (vhd -> sd -> nrArgs > 0)
+	if (vhd->cppsig->nrArgs > 0)
 	{
 		prcode(fp,",");
-		generateArgs(vhd -> sd,Declaration,fp);
+		generateArgs(vhd->cppsig,Declaration,fp);
 	}
 
 	prcode(fp,");\n"
@@ -5307,11 +5307,9 @@ static void generateProtectedCallArgs(overDef *od, FILE *fp)
 static void generateVirtualHandler(sipSpec *pt,virtHandlerDef *vhd,FILE *fp)
 {
 	int a, nrvals, copy, isref;
-	signatureDef *cppsig;
 	argDef *res, res_noconstref;
 
-	cppsig = vhd -> sd;
-	res = &cppsig -> result;
+	res = &vhd->cppsig->result;
 
 	copy = isref = FALSE;
 
@@ -5342,16 +5340,16 @@ static void generateVirtualHandler(sipSpec *pt,virtHandlerDef *vhd,FILE *fp)
 "\n"
 		);
 
-	generateResultType(&cppsig -> result,fp);
+	generateResultType(&vhd->cppsig->result, fp);
 
 	prcode(fp," sipVH_%s_%d(sip_gilstate_t sipGILState,PyObject *sipMethod"
 		,pt -> module -> name,vhd -> virthandlernr);
 
-	if (cppsig -> nrArgs > 0)
+	if (vhd->cppsig->nrArgs > 0)
 	{
 		prcode(fp,",");
 
-		generateArgs(cppsig,Definition,fp);
+		generateArgs(vhd->cppsig, Definition, fp);
 	}
 
 	prcode(fp,")\n"
@@ -5432,8 +5430,8 @@ static void generateVirtualHandler(sipSpec *pt,virtHandlerDef *vhd,FILE *fp)
 	/* See how many values we expect. */
 	nrvals = (res != NULL ? 1 : 0);
 
-	for (a = 0; a < cppsig -> nrArgs; ++a)
-		if (isOutArg(&cppsig -> args[a]))
+	for (a = 0; a < vhd->pysig->nrArgs; ++a)
+		if (isOutArg(&vhd->pysig->args[a]))
 			++nrvals;
 
 	if (copy)
@@ -5455,7 +5453,7 @@ static void generateVirtualHandler(sipSpec *pt,virtHandlerDef *vhd,FILE *fp)
 	prcode(fp,
 "	PyObject *sipResObj = sipCallMethod(0,sipMethod,");
 
-	generateTupleBuilder(cppsig,fp);
+	generateTupleBuilder(vhd->pysig, fp);
 
 	prcode(fp,");\n"
 "\n"
@@ -5472,9 +5470,9 @@ static void generateVirtualHandler(sipSpec *pt,virtHandlerDef *vhd,FILE *fp)
 		if (res != NULL)
 			prcode(fp, "%s", getParseResultFormat(res, TRUE, isTransferVH(vhd)));
 
-		for (a = 0; a < cppsig -> nrArgs; ++a)
+		for (a = 0; a < vhd->pysig->nrArgs; ++a)
 		{
-			argDef *ad = &cppsig -> args[a];
+			argDef *ad = &vhd->pysig->args[a];
 
 			if (isOutArg(ad))
 				prcode(fp, "%s", getParseResultFormat(ad, FALSE, FALSE));
@@ -5493,9 +5491,9 @@ static void generateVirtualHandler(sipSpec *pt,virtHandlerDef *vhd,FILE *fp)
 		prcode(fp,",&sipRes%s",(copy ? "Orig" : ""));
 	}
 
-	for (a = 0; a < cppsig -> nrArgs; ++a)
+	for (a = 0; a < vhd->pysig->nrArgs; ++a)
 	{
-		argDef *ad = &cppsig -> args[a];
+		argDef *ad = &vhd->pysig->args[a];
 
 		if (isOutArg(ad))
 		{

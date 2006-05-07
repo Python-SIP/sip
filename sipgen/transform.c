@@ -256,7 +256,7 @@ void transform(sipSpec *pt)
 	 */
 	for (vhd = pt->module->virthandlers; vhd != NULL; vhd = vhd->next)
 		if (!isDuplicateVH(vhd))
-			ifaceFilesAreUsedFromOther(pt, vhd->sd);
+			ifaceFilesAreUsedFromOther(pt, vhd->cppsig);
 
 	/* Update proxies with some information from the real classes. */
 	for (cd = pt->proxies; cd != NULL; cd = cd->next)
@@ -1856,10 +1856,19 @@ static int sameVirtualHandler(virtHandlerDef *vhd1,virtHandlerDef *vhd2)
 	if (isTransferVH(vhd1) != isTransferVH(vhd2))
 		return FALSE;
 
-	if (!sameArgType(&vhd1 -> sd -> result,&vhd2 -> sd -> result,TRUE))
+	if (!sameArgType(&vhd1->pysig->result, &vhd2->pysig->result, TRUE))
 		return FALSE;
 
-	return sameSignature(vhd1 -> sd,vhd2 -> sd,TRUE);
+	if (!sameSignature(vhd1->pysig, vhd2->pysig, TRUE))
+		return FALSE;
+
+	if (vhd1->pysig == vhd1->cppsig && vhd2->pysig == vhd2->cppsig)
+		return TRUE;
+
+	if (!sameArgType(&vhd1->cppsig->result, &vhd2->cppsig->result, TRUE))
+		return FALSE;
+
+	return sameSignature(vhd1->cppsig, vhd2->cppsig, TRUE);
 }
 
 

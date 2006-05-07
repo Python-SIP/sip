@@ -3375,15 +3375,15 @@ static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod, classDef *scop
 			/* Start with a shallow copy. */
 			*nod->virthandler = *ood->virthandler;
 
-			if (ood->virthandler->sd == &ood->pysig)
-				nod->virthandler->sd = &nod->pysig;
+			if (ood->virthandler->cppsig == &ood->pysig)
+				nod->virthandler->cppsig = &nod->pysig;
 			else
 			{
-				nod->virthandler->sd = sipMalloc(sizeof (signatureDef));
+				nod->virthandler->cppsig = sipMalloc(sizeof (signatureDef));
 
-				*nod->virthandler->sd = *ood->virthandler->sd;
+				*nod->virthandler->cppsig = *ood->virthandler->cppsig;
 
-				templateSignature(nod->virthandler->sd, TRUE, tcd, td, cd);
+				templateSignature(nod->virthandler->cppsig, TRUE, tcd, td, cd);
 			}
 
 			nod->virthandler->module = mod;
@@ -4017,7 +4017,8 @@ static void newFunction(sipSpec *pt,moduleDef *mod,int sflags,int isstatic,
 
 		vhd -> virthandlernr = -1;
 		vhd -> vhflags = 0;
-		vhd -> sd = (cppsig != NULL ? cppsig : &od -> pysig);
+		vhd -> pysig = &od -> pysig;
+		vhd -> cppsig = (cppsig != NULL ? cppsig : &od -> pysig);
 		vhd -> module = currentModule;
 		vhd -> virtcode = vcode;
 		vhd -> next = currentModule -> virthandlers;

@@ -674,7 +674,8 @@ typedef struct _templateDef {
 typedef struct _virtHandlerDef {
 	int			virthandlernr;	/* The nr. of the virtual handler. */
 	int			vhflags;	/* The virtual handler flags. */
-	signatureDef		*sd;		/* The signature. */
+	signatureDef		*pysig;		/* The Python signature. */
+	signatureDef		*cppsig;	/* The C++ signature. */
 	struct _moduleDef	*module;	/* The defining module. */
 	codeBlock		*virtcode;	/* Virtual handler code. */
 	struct _virtHandlerDef	*next;		/* Next in the list. */
