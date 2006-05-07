@@ -480,6 +480,7 @@ static void generateInternalAPIHeader(sipSpec *pt,char *codeDir,stringList *xsl)
 			}
 	}
 
+	generateCppCodeBlock(pt -> exphdrcode,fp);
 	generateCppCodeBlock(pt -> hdrcode,fp);
 
 	/* Shortcuts that hide the messy detail of the APIs. */

@@ -227,6 +227,11 @@ SIP_QOBJECT			{return TK_QOBJECT;}
 	return TK_TOSUBCLASS;
 }
 
+^%ExportedHeaderCode {		/* The start of an exported header code block. */
+	codeIdx = 0;
+	return TK_EXPHEADERCODE;
+}
+
 ^%ModuleHeaderCode {		/* The start of a module header code block. */
 	codeIdx = 0;
 	return TK_MODHEADERCODE;

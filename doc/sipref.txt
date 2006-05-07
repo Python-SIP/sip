@@ -907,11 +907,12 @@ file.
     *module-statement* ::= [*module-directive* | *statement*]
 
     *module-directive* ::= [`%CModule`_ | `%Copying`_ | `%Doc`_ |
-            `%ExportedDoc`_ | `%Feature`_ | `%Import`_ | `%Include`_ |
-            `%License`_ | `%MappedType`_ | *mapped-type-template* |
-            `%Module`_ | `%ModuleCode`_ | `%ModuleHeaderCode`_ |
-            `%OptionalInclude`_ | `%Platforms`_ | `%PreInitialisationCode`_ |
-            `%PostInitialisationCode`_ | *sip-option-list* | `%Timeline`_]
+            `%ExportedDoc`_ | `%ExportedHeaderCode`_ | `%Feature`_ |
+            `%Import`_ | `%Include`_ | `%License`_ | `%MappedType`_ |
+            *mapped-type-template* | `%Module`_ | `%ModuleCode`_ |
+            `%ModuleHeaderCode`_ | `%OptionalInclude`_ | `%Platforms`_ |
+            `%PreInitialisationCode`_ | `%PostInitialisationCode`_ |
+            *sip-option-list* | `%Timeline`_]
 
     *sip-option-list* :: `%SIPOptions`_ ``(`` *option-list* ``)``
 
@@ -1901,6 +1902,23 @@ For example::
     %End
 
 
+%ExportedHeaderCode
+-------------------
+
+.. parsed-literal::
+
+    %ExportedHeaderCode
+        *code*
+    %End
+
+This directive is used to specify handwritten code, typically the declarations
+of types, that is placed in a header file that is included by all generated
+code for all modules.  It should not include function declarations because
+Python modules should not explicitly call functions in another Python module.
+
+See also `%ModuleCode`_ and `%ModuleHeaderCode`_.
+
+
 %Feature
 --------
 
@@ -2151,6 +2169,7 @@ following parts of a specification are affected by it:
     - `%ConvertToSubClassCode`_
     - `%ConvertToTypeCode`_
     - ``enum``
+    - `%ExportedHeaderCode`_
     - functions
     - `%GCClearCode`_
     - `%GCTraverseCode`_
@@ -2579,7 +2598,7 @@ For example::
     }
     %End
 
-See also `%ModuleHeaderCode`_.
+See also `%ExportedHeaderCode`_ and `%ModuleHeaderCode`_.
 
 
 %ModuleHeaderCode
@@ -2593,7 +2612,7 @@ See also `%ModuleHeaderCode`_.
 
 This directive is used to specify handwritten code, typically the declarations
 of utility functions, that is placed in a header file that is included by all
-generated code.
+generated code for the same module.
 
 For example::
 
@@ -2601,7 +2620,7 @@ For example::
     void dump_object(PyObject *o);
     %End
 
-See also `%ModuleCode`_.
+See also `%ExportedHeaderCode`_ and `%ModuleCode`_.
 
 
 %OptionalInclude
