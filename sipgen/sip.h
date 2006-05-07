@@ -890,6 +890,7 @@ typedef struct {
 	overDef			*overs;		/* Global overloads. */
 	typedefDef		*typedefs;	/* List of typedefs. */
 	codeBlock		*copying;	/* Software license. */
+	codeBlock		*exphdrcode;	/* Exported header code. */
 	codeBlock		*hdrcode;	/* Header code. */
 	codeBlock		*cppcode;	/* Global C++ code. */
 	codeBlock		*docs;		/* Documentation. */

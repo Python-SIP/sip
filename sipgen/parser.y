@@ -146,6 +146,7 @@ static int optFind(sipSpec *pt, const char *opt);
 %token			TK_INCLUDE
 %token			TK_OPTINCLUDE
 %token			TK_IMPORT
+%token			TK_EXPHEADERCODE
 %token			TK_MODHEADERCODE
 %token			TK_TYPEHEADERCODE
 %token			TK_MODULE
@@ -234,6 +235,7 @@ static int optFind(sipSpec *pt, const char *opt);
 %type <codeb>		optaccesscode
 %type <codeb>		optgetcode
 %type <codeb>		optsetcode
+%type <codeb>		exphdrcode
 %type <codeb>		modhdrcode
 %type <codeb>		typehdrcode
 %type <codeb>		opttypehdrcode
@@ -306,6 +308,10 @@ modstatement:	module
 	|	platforms
 	|	feature
 	|	license
+	|	exphdrcode {
+			if (notSkipping())
+				appendCodeBlock(&currentSpec->exphdrcode, $1);
+		}
 	|	modhdrcode {
 			if (notSkipping() && inMainModule())
 				appendCodeBlock(&currentSpec -> hdrcode,$1);
@@ -864,6 +870,11 @@ optsetcode:	{
 copying:	TK_COPYING codeblock {
 			if (inMainModule())
 				appendCodeBlock(&currentSpec -> copying,$2);
+		}
+	;
+
+exphdrcode:	TK_EXPHEADERCODE codeblock {
+			$$ = $2;
 		}
 	;
 
@@ -2358,6 +2369,7 @@ void parse(sipSpec *spec,FILE *fp,char *filename,stringList *tsl,
 	spec -> overs = NULL;
 	spec -> typedefs = NULL;
 	spec -> copying = NULL;
+	spec -> exphdrcode = NULL;
 	spec -> hdrcode = NULL;
 	spec -> cppcode = NULL;
 	spec -> docs = NULL;
