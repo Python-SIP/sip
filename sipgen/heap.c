@@ -52,7 +52,8 @@ char *sipStrdup(char *s)
 
 char *concat(const char *s, ...)
 {
-	char *sp, *new;
+	const char *sp;
+	char *new;
 	size_t len;
 	va_list ap;
 
@@ -61,7 +62,7 @@ char *concat(const char *s, ...)
 	len = 1;
 	va_start(ap,s);
 
-	for (sp = s; sp != NULL; sp = va_arg(ap,char *))
+	for (sp = s; sp != NULL; sp = va_arg(ap, const char *))
 		len += strlen(sp);
 
 	va_end(ap);
@@ -73,7 +74,7 @@ char *concat(const char *s, ...)
 
 	va_start(ap,s);
 
-	for (sp = s; sp != NULL; sp = va_arg(ap,char *))
+	for (sp = s; sp != NULL; sp = va_arg(ap, const char *))
 		strcat(new,sp);
 
 	va_end(ap);
