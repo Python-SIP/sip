@@ -3910,6 +3910,18 @@ int sipEmitSignal(PyObject \*txobj, const char \*signal, PyObject \*args)
     implement ``QObject.emit()``.
 
 
+sipExportSymbol()
+-----------------
+
+int sipExportSymbol(const char \*name, void \*sym)
+    Python does not allow extension modules to directly access symbols in
+    another extension module.  This exports a symbol, referenced by a name,
+    that can subsequently be imported, using `sipImportSymbol()`_, by another
+    module.  *name* is the name of the symbol and *sym* is its value.  Zero is
+    returned if there was no error.  A negative value is returned if *name* is
+    already associated with a symbol or there was some other error.
+
+
 sipFindMappedType()
 -------------------
 
@@ -3967,6 +3979,18 @@ PyObject \*sipGetWrapper(void \*cppptr, sipWrapperType \*type)
     hasn't been wrapped then ``NULL`` is returned (and no Python exception is
     raised).  *cppptr* is the pointer to the structure or class instance.
     *type* is the generated type corresponding to the C/C++ type.
+
+
+sipImportSymbol()
+-----------------
+
+void \*sipImportSymbol(const char \*name)
+    Python does not allow extension modules to directly access symbols in
+    another extension module.  This imports a symbol, referenced by a name,
+    that has previously been exported, using `sipExportSymbol()`_, by another
+    module.  *name* is the name of the symbol.  The value of the symbol is
+    returned if there was no error.  ``NULL`` is returned if there is no such
+    symbol.
 
 
 sipIntTypeClassMap

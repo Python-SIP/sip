@@ -48,6 +48,8 @@ extern "C" {
  *
  * History:
  *
+ * 3.2  Added sip_api_export_symbol() and sip_api_import_symbol().
+ *
  * 3.1  Added sip_api_add_mapped_type_instance().
  *
  * 3.0  Moved the Qt support out of the sip module and into PyQt.  This is
@@ -80,7 +82,7 @@ extern "C" {
  * 0.0	Original version.
  */
 #define	SIP_API_MAJOR_NR	3
-#define	SIP_API_MINOR_NR	1
+#define	SIP_API_MINOR_NR	2
 
 
 /* Some compatibility stuff to help with handwritten code for SIP v3. */
@@ -787,7 +789,13 @@ typedef struct _sipAPIDef {
 	void (*api_bad_operator_arg)(PyObject *self, PyObject *arg, sipPySlotType st);
 	PyObject *(*api_pyslot_extend)(sipExportedModuleDef *mod, sipPySlotType st, sipWrapperType *type, PyObject *arg0, PyObject *arg1);
 	void (*api_add_delayed_dtor)(sipWrapper *w);
-	int (*api_add_mapped_type_instance)(PyObject *dict,char *name,void *cppPtr,sipMappedType *mt);
+	int (*api_add_mapped_type_instance)(PyObject *dict, char *name,
+			void *cppPtr, const sipMappedType *mt);
+	/*
+	 * The following are part of the public API.
+	 */
+	int (*api_export_symbol)(const char *name, void *sym);
+	void *(*api_import_symbol)(const char *name);
 } sipAPIDef;
 
 
