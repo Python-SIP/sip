@@ -100,8 +100,8 @@ static void sip_api_raise_class_exception(sipWrapperType *type,void *ptr);
 static void sip_api_raise_sub_class_exception(sipWrapperType *type,void *ptr);
 static int sip_api_add_class_instance(PyObject *dict,char *name,void *cppPtr,
 				      sipWrapperType *wt);
-static int sip_api_add_mapped_type_instance(PyObject *dict,char *name,
-					    void *cppPtr, sipMappedType *mt);
+static int sip_api_add_mapped_type_instance(PyObject *dict, char *name,
+		void *cppPtr, const sipMappedType *mt);
 static int sip_api_add_enum_instance(PyObject *dict, char *name, int value,
 				     PyTypeObject *type);
 static void sip_api_bad_operator_arg(PyObject *self, PyObject *arg,
@@ -111,6 +111,8 @@ static PyObject *sip_api_pyslot_extend(sipExportedModuleDef *mod,
 				       PyObject *arg0, PyObject *arg1);
 static void sip_api_add_delayed_dtor(sipWrapper *w);
 static unsigned long sip_api_long_as_unsigned_long(PyObject *o);
+static int sip_api_export_symbol(const char *name, void *sym);
+static void *sip_api_import_symbol(const char *name);
 
 
 /*
@@ -196,6 +198,11 @@ static const sipAPIDef sip_api = {
 	sip_api_pyslot_extend,
 	sip_api_add_delayed_dtor,
 	sip_api_add_mapped_type_instance,
+	/*
+	 * The following are part of the public API.
+	 */
+	sip_api_export_symbol,
+	sip_api_import_symbol,
 };
 
 
@@ -230,6 +237,16 @@ static const sipAPIDef sip_api = {
 #define	sipSetIsMethod(m)	((m) -> mcflags |= SIP_MC_ISMETH)
 
 
+/*
+ * An entry in a linked list of name/symbol pairs.
+ */
+typedef struct _sipSymbol {
+	const char *name;		/* The name. */
+	void *symbol;			/* The symbol. */
+	struct _sipSymbol *next;	/* The next in the list. */
+} sipSymbol;
+
+
 static PyTypeObject sipWrapperType_Type;
 static sipWrapperType sipWrapper_Type;
 static PyTypeObject sipVoidPtr_Type;
@@ -237,6 +254,7 @@ static PyTypeObject sipVoidPtr_Type;
 PyInterpreterState *sipInterpreter = NULL;
 sipQtAPI *sipQtSupport = NULL;
 sipWrapperType *sipQObjectClass;
+sipSymbol *sipSymbolList = NULL;
 
 
 /*
@@ -4324,7 +4342,7 @@ static int sip_api_add_class_instance(PyObject *dict,char *name,void *cppPtr,
  * Wrap a mapped type instance and add it to a dictionary.
  */
 static int sip_api_add_mapped_type_instance(PyObject *dict, char *name,
-					    void *cppPtr, sipMappedType *mt)
+		void *cppPtr, const sipMappedType *mt)
 {
 	int rc;
 	PyObject *w;
@@ -6885,4 +6903,44 @@ static int sameScopedName(const char *pyname, const char *name, size_t len)
 			return FALSE;
 
 	return (ch == '\0' && len == 0);
+}
+
+
+/*
+ * Register a symbol with a name.  A negative value is returned if the name was
+ * already registered.
+ */
+static int sip_api_export_symbol(const char *name, void *sym)
+{
+	sipSymbol *ss;
+
+	if (sip_api_import_symbol(name) != NULL)
+		return -1;
+
+	if ((ss = sip_api_malloc(sizeof (sipSymbol))) == NULL)
+		return -1;
+
+	ss->name = name;
+	ss->symbol = sym;
+	ss->next = sipSymbolList;
+
+	sipSymbolList = ss;
+
+	return 0;
+}
+
+
+/*
+ * Return the symbol registered with the given name.  NULL is returned if the
+ * name was not registered.
+ */
+static void *sip_api_import_symbol(const char *name)
+{
+	sipSymbol *ss;
+
+	for (ss = sipSymbolList; ss != NULL; ss = ss->next)
+		if (strcmp(ss->name, name) == 0)
+			return ss->symbol;
+
+	return NULL;
 }

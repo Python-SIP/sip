@@ -587,6 +587,10 @@ static void generateInternalAPIHeader(sipSpec *pt,char *codeDir,stringList *xsl)
 "#define	sipGetState			sipAPI_%s -> api_get_state\n"
 "#define	sipFindMappedType		sipAPI_%s -> api_find_mapped_type\n"
 "#define	sipLong_AsUnsignedLong		sipAPI_%s -> api_long_as_unsigned_long\n"
+"#define	sipExportSymbol			sipAPI_%s -> api_export_symbol\n"
+"#define	sipImportSymbol			sipAPI_%s -> api_import_symbol\n"
+		,mname
+		,mname
 		,mname
 		,mname
 		,mname
