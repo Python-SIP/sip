@@ -252,6 +252,11 @@ SIP_QOBJECT			{return TK_QOBJECT;}
 	return TK_POSTINITCODE;
 }
 
+^%UnitCode {			/* The start of a unit code block. */
+	codeIdx = 0;
+	return TK_UNITCODE;
+}
+
 ^%ModuleCode {			/* The start of a module code block. */
 	codeIdx = 0;
 	return TK_MODCODE;

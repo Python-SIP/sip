@@ -912,7 +912,7 @@ file.
             *mapped-type-template* | `%Module`_ | `%ModuleCode`_ |
             `%ModuleHeaderCode`_ | `%OptionalInclude`_ | `%Platforms`_ |
             `%PreInitialisationCode`_ | `%PostInitialisationCode`_ |
-            *sip-option-list* | `%Timeline`_]
+            *sip-option-list* | `%Timeline`_ | `%UnitCode`_]
 
     *sip-option-list* :: `%SIPOptions`_ ``(`` *option-list* ``)``
 
@@ -2185,6 +2185,7 @@ following parts of a specification are affected by it:
     - ``typedef``
     - `%TypeCode`_
     - `%TypeHeaderCode`_
+    - `%UnitCode`_
     - variables
     - `%VirtualCatcherCode`_
 
@@ -2882,6 +2883,20 @@ For example::
 
         // The rest of the class specification.
     };
+
+
+%UnitCode
+---------
+
+.. parsed-literal::
+
+    %UnitCode
+        *code*
+    %End
+
+This directive is used to specify handwritten code that it included at the very
+start of a generated compilation unit (ie. C or C++ source file).  It is
+typically used to ``#include`` a C++ precompiled header file.
 
 
 %VirtualCatcherCode

@@ -896,6 +896,7 @@ typedef struct {
 	codeBlock		*docs;		/* Documentation. */
 	codeBlock		*preinitcode;	/* Pre-initialisation code. */
 	codeBlock		*postinitcode;	/* Post-initialisation code. */
+	codeBlock		*unitcode;	/* Compileation unit code. */
 	ifaceFileList		*used;		/* Interface files used. */
 	int			sigslots;	/* Set if signals or slots are used. */
 	int			genc;		/* Set if we are generating C code. */
