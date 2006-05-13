@@ -885,6 +885,9 @@ static void finalise(void)
 {
 	sipExportedModuleDef *em;
 
+	/* Mark the Python API as unavailable. */
+	sipInterpreter = NULL;
+
 	/* Handle any delayed dtors. */
 	for (em = clientList; em != NULL; em = em->em_next)
 		if (em->em_ddlist != NULL)
@@ -902,19 +905,10 @@ static void finalise(void)
 			while (em->em_ddlist != NULL);
 		}
 
-	Py_XDECREF(licenseName);
 	licenseName = NULL;
-
-	Py_XDECREF(licenseeName);
 	licenseeName = NULL;
-
-	Py_XDECREF(typeName);
 	typeName = NULL;
-
-	Py_XDECREF(timestampName);
 	timestampName = NULL;
-
-	Py_XDECREF(signatureName);
 	signatureName = NULL;
 
 	/* Release all memory we've allocated directly. */
@@ -922,7 +916,6 @@ static void finalise(void)
 
 	/* Re-initialise those globals that (might) need it. */
 	clientList = NULL;
-	sipInterpreter = NULL;
 }
 
 
