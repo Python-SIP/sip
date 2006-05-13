@@ -885,6 +885,9 @@ static void finalise(void)
 {
 	sipExportedModuleDef *em;
 
+	/* Mark the Python API as unavailable. */
+	sipInterpreter = NULL;
+
 	/* Handle any delayed dtors. */
 	for (em = clientList; em != NULL; em = em->em_next)
 		if (em->em_ddlist != NULL)
@@ -922,7 +925,6 @@ static void finalise(void)
 
 	/* Re-initialise those globals that (might) need it. */
 	clientList = NULL;
-	sipInterpreter = NULL;
 }
 
 
