@@ -905,19 +905,10 @@ static void finalise(void)
 			while (em->em_ddlist != NULL);
 		}
 
-	Py_XDECREF(licenseName);
 	licenseName = NULL;
-
-	Py_XDECREF(licenseeName);
 	licenseeName = NULL;
-
-	Py_XDECREF(typeName);
 	typeName = NULL;
-
-	Py_XDECREF(timestampName);
 	timestampName = NULL;
-
-	Py_XDECREF(signatureName);
 	signatureName = NULL;
 
 	/* Release all memory we've allocated directly. */
