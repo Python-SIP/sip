@@ -1,6 +1,6 @@
 v4.4.4 ??? ????? 2006
-  - Added %ExportedHeaderCode.  Added sipExportSymbol() and sipImportSymbol()
-    to the public API.
+  - Added %ExportedHeaderCode and %UnitCode.  Added sipExportSymbol() and
+    sipImportSymbol() to the public API.
 
 v4.4.3 27th April 2006
   - A bug fix release.

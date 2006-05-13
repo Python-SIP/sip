@@ -150,6 +150,7 @@ static int compareMethTab(const void *,const void *);
 static int compareEnumMembers(const void *,const void *);
 static char *getSubFormatChar(char,argDef *);
 static char *createIfaceFileName(char *,ifaceFileDef *,char *);
+static FILE *createCompilationUnit(sipSpec *pt, char *fname, char *description);
 static FILE *createFile(sipSpec *,char *,char *);
 static void closeFile(FILE *);
 static void prcode(FILE *fp, const char *, ...);
@@ -767,7 +768,7 @@ static void generateCpp(sipSpec *pt,char *codeDir,char *srcSuffix,int *parts)
 	else
 		cppfile = concat(codeDir,"/sip",mname,"cmodule",srcSuffix,NULL);
 
-	fp = createFile(pt,cppfile,"Module code.");
+	fp = createCompilationUnit(pt, cppfile, "Module code.");
 
 	prcode(fp,
 "\n"
@@ -1684,7 +1685,7 @@ static void generateCpp(sipSpec *pt,char *codeDir,char *srcSuffix,int *parts)
 				++this_part;
 
 				cppfile = makePartName(codeDir,mname,this_part,srcSuffix);
-				fp = createFile(pt,cppfile,"Module code.");
+				fp = createCompilationUnit(pt, cppfile, "Module code.");
 			}
 
 			generateIfaceCpp(pt,iff,codeDir,srcSuffix,(*parts ? fp : NULL));
@@ -2664,7 +2665,7 @@ static void generateIfaceCpp(sipSpec *pt,ifaceFileDef *iff,char *codeDir,
 	if (master == NULL)
 	{
 		cppfile = createIfaceFileName(codeDir,iff,srcSuffix);
-		fp = createFile(pt,cppfile,"Interface wrapper code.");
+		fp = createCompilationUnit(pt, cppfile, "Interface wrapper code.");
 	}
 	else
 		fp = master;
@@ -9691,6 +9692,20 @@ static void generateCppCodeBlock(codeBlock *code,FILE *fp)
 "#line %d \"%s\"\n"
 			,currentLineNr + 1,bn);
 	}
+}
+
+
+/*
+ * Create a source file.
+ */
+static FILE *createCompilationUnit(sipSpec *pt, char *fname, char *description)
+{
+	FILE *fp = createFile(pt, fname, description);
+
+	if (fp != NULL)
+		generateCppCodeBlock(pt->unitcode, fp);
+
+	return fp;
 }
 
 

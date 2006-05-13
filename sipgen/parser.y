@@ -121,6 +121,7 @@ static int optFind(sipSpec *pt, const char *opt);
 %token			TK_SETCODE
 %token			TK_PREINITCODE
 %token			TK_POSTINITCODE
+%token			TK_UNITCODE
 %token			TK_MODCODE
 %token			TK_TYPECODE
 %token			TK_PREPYCODE
@@ -322,6 +323,7 @@ modstatement:	module
 		}
 	|	preinitcode
 	|	postinitcode
+	|	unitcode
 	|	prepycode
 	|	doc
 	|	exporteddoc
@@ -943,6 +945,12 @@ preinitcode:	TK_PREINITCODE codeblock {
 postinitcode:	TK_POSTINITCODE codeblock {
 			if (notSkipping() && inMainModule())
 				appendCodeBlock(&currentSpec -> postinitcode,$2);
+		}
+	;
+
+unitcode:	TK_UNITCODE codeblock {
+			if (notSkipping() && inMainModule())
+				appendCodeBlock(&currentSpec->unitcode, $2);
 		}
 	;
 
@@ -2375,6 +2383,7 @@ void parse(sipSpec *spec,FILE *fp,char *filename,stringList *tsl,
 	spec -> docs = NULL;
 	spec -> preinitcode = NULL;
 	spec -> postinitcode = NULL;
+	spec -> unitcode = NULL;
 	spec -> used = NULL;
 	spec -> sigslots = FALSE;
 	spec -> genc = -1;
