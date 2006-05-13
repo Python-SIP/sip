@@ -4000,6 +4000,16 @@ static void generateSlot(sipSpec *pt, classDef *cd, enumDef *ed, memberDef *md, 
 "	int sipArgsParsed = 0;\n"
 			);
 
+	for (od = overs; od != NULL; od = od->next)
+		if (od->common == md && isAbstract(od))
+		{
+			prcode(fp,
+"	bool sipSelfWasArg = !sipSelf;\n"
+				);
+
+			break;
+		}
+
 	for (od = overs; od != NULL; od = od -> next)
 		if (od -> common == md)
 			generateFunctionBody(pt,od,cd,cd,(ed == NULL),fp);
