@@ -16,7 +16,10 @@
 static void xmlClasses(sipSpec *pt, classDef *scope, int indent, FILE *fp);
 static void xmlInit(ctorDef *ctors, int indent, FILE *fp);
 static void xmlFunction(memberDef *md, overDef *oloads, int indent, FILE *fp);
-static void xmlArgument(argDef *ad, const char *dir, int indent, FILE *fp);
+static int xmlOverload(const char *name, signatureDef *sd, int ctor, int sec,
+		int indent, FILE *fp);
+static void xmlArgument(argDef *ad, const char *dir, int sec, int indent,
+		FILE *fp);
 static void xmlIndent(int indent, FILE *fp);
 static const char *dirAttribute(argDef *ad);
 
@@ -36,7 +39,7 @@ void generateXML(sipSpec *pt, const char *xmlFile)
 	fprintf(fp, "<Module version=\"%u\" name=\"%s\">\n",
 			XML_VERSION_NR, pt->module->name);
 
-	/* ZZZ - need to handle mapped types, templates(?), exceptions. */
+	/* ZZZ - need to handle enums, mapped types, templates(?), exceptions. */
 
 	xmlClasses(pt, NULL, 1, fp);
 
@@ -103,42 +106,14 @@ static void xmlInit(ctorDef *ctors, int indent, FILE *fp)
 {
 	ctorDef *ct;
 
-	xmlIndent(indent++, fp);
-	fprintf(fp, "<Function name=\"__init__\">\n");
-
 	for (ct = ctors; ct != NULL; ct = ct->next)
 	{
-		int a;
-
-		/*
-		 * ZZZ - need to handle ctors that should expand to 2
-		 * because they contain slots (need a version that takes a
-		 * callable.
-		 */
-
-		/* Handle the trivial case. */
-		if (ct->pysig.nrArgs == 0)
-		{
-			fprintf(fp, "<Overload/>\n");
+		if (isPrivateCtor(ct))
 			continue;
-		}
 
-		xmlIndent(indent++, fp);
-		fprintf(fp, "<Overload>\n");
-
-		for (a = 0; a < ct->pysig.nrArgs; ++a)
-		{
-			argDef *ad = &ct->pysig.args[a];
-
-			xmlArgument(ad, dirAttribute(ad), indent, fp);
-		}
-
-		xmlIndent(--indent, fp);
-		fprintf(fp, "</Overload>\n");
+		if (xmlOverload("__init__", &ct->pysig, TRUE, FALSE, indent, fp))
+			xmlOverload("__init__", &ct->pysig, TRUE, TRUE, indent, fp);
 	}
-
-	xmlIndent(--indent, fp);
-	fprintf(fp, "</Function>\n");
 }
 
 
@@ -149,52 +124,62 @@ static void xmlFunction(memberDef *md, overDef *oloads, int indent, FILE *fp)
 {
 	overDef *od;
 
-	xmlIndent(indent++, fp);
-	fprintf(fp, "<Function name=\"%s\">\n", md->pyname->text);
-
 	for (od = oloads; od != NULL; od = od->next)
 	{
-		int a;
-
 		if (od->common != md)
 			continue;
 
-		/*
-		 * ZZZ - need to handle overloads that should expand to 2
-		 * because they contain slots (need a version that takes a
-		 * callable.
-		 * Also need to deal with functions vs methods (ie. self).
-		 */
-
-		/* Handle the trivial case. */
-		if (od->pysig.result.atype == void_type &&
-				od->pysig.result.nrderefs == 0 &&
-				od->pysig.nrArgs == 0)
-		{
-			fprintf(fp, "<Overload/>\n");
+		if (isPrivate(od))
 			continue;
-		}
 
-		xmlIndent(indent++, fp);
-		fprintf(fp, "<Overload>\n");
+		/* ZZZ - need to deal with functions vs methods (ie. self). */
 
-		if (od->pysig.result.atype != void_type ||
-				od->pysig.result.nrderefs != 0)
-			xmlArgument(&od->pysig.result, "out", indent, fp);
+		if (xmlOverload(md->pyname->text, &od->pysig, FALSE, FALSE, indent, fp))
+			xmlOverload(md->pyname->text, &od->pysig, FALSE, TRUE, indent, fp);
+	}
+}
 
-		for (a = 0; a < od->pysig.nrArgs; ++a)
-		{
-			argDef *ad = &od->pysig.args[a];
 
-			xmlArgument(ad, dirAttribute(ad), indent, fp);
-		}
+/*
+ * Generate the XML for an overload.
+ */
+static int xmlOverload(const char *name, signatureDef *sd, int ctor, int sec,
+		int indent, FILE *fp)
+{
+	int a, need_sec = FALSE, no_res;
 
-		xmlIndent(--indent, fp);
-		fprintf(fp, "</Overload>\n");
+	no_res = (ctor || (sd->result.atype == void_type &&
+				sd->result.nrderefs == 0));
+
+	/* Handle the trivial case. */
+	if (no_res && sd->nrArgs == 0)
+	{
+		xmlIndent(indent, fp);
+		fprintf(fp, "<Function name=\"%s\"/>\n", name);
+
+		return FALSE;
+	}
+
+	xmlIndent(indent++, fp);
+	fprintf(fp, "<Function name=\"%s\">\n", name);
+
+	if (!no_res)
+		xmlArgument(&sd->result, "out", FALSE, indent, fp);
+
+	for (a = 0; a < sd->nrArgs; ++a)
+	{
+		argDef *ad = &sd->args[a];
+
+		xmlArgument(ad, dirAttribute(ad), sec, indent, fp);
+
+		if (ad->atype == rxcon_type || ad->atype == rxdis_type)
+			need_sec = TRUE;
 	}
 
 	xmlIndent(--indent, fp);
 	fprintf(fp, "</Function>\n");
+
+	return need_sec;
 }
 
 
@@ -218,16 +203,20 @@ static const char *dirAttribute(argDef *ad)
 /*
  * Generate the XML for an argument.
  */
-static void xmlArgument(argDef *ad, const char *dir, int indent, FILE *fp)
+static void xmlArgument(argDef *ad, const char *dir, int sec, int indent,
+		FILE *fp)
 {
-	const char *type_type = NULL, *type_name;
+	const char *type_type = NULL, *type_name = NULL;
 	classDef *type_scope = NULL;
 
 	if (isArraySize(ad))
 		return;
 
+	if (sec && (ad->atype == slotcon_type || ad->atype == slotdis_type))
+		return;
+
 	xmlIndent(indent, fp);
-	fprintf(fp, "<Argument");
+	fprintf(fp, "<Argument typename=\"");
 
 	switch (ad->atype)
 	{
@@ -263,6 +252,16 @@ static void xmlArgument(argDef *ad, const char *dir, int indent, FILE *fp)
 
 	case rxcon_type:
 	case rxdis_type:
+		if (sec)
+			type_name = "callable";
+		else
+		{
+			type_type = "class";
+			type_name = "QObject";
+		}
+
+		break;
+
 	case qobject_type:
 		type_type = "class";
 		type_name = "QObject";
@@ -270,8 +269,22 @@ static void xmlArgument(argDef *ad, const char *dir, int indent, FILE *fp)
 
 	case slotcon_type:
 	case slotdis_type:
-		/* ZZZ - need to handle the slot arguments. */
-		type_name = "SLOT()";
+		{
+			int a;
+
+			prcode(fp, "SLOT(");
+
+			for (a = 0; a < ad->u.sa->nrArgs; ++a)
+			{
+				if (a > 0)
+					prcode(fp, ",");
+
+				prcode(fp, "%M%B%M", &ad->u.sa->args[a]);
+			}
+
+			prcode(fp, ")");
+		}
+
 		break;
 
 	case ustring_type:
@@ -311,12 +324,12 @@ static void xmlArgument(argDef *ad, const char *dir, int indent, FILE *fp)
 		break;
 
 	case mapped_type:
-		/* ZZZ - need to pass something that can be replaced later. */
-		type_name = "mapped type";
+		prcode(fp, "%M%B%M", &ad->u.mtd->type);
+		type_type = "mappedtype";
 		break;
 
 	case pyobject_type:
-		type_name = "any object";
+		type_name = "object";
 		break;
 
 	case pytuple_type:
@@ -356,8 +369,9 @@ static void xmlArgument(argDef *ad, const char *dir, int indent, FILE *fp)
 		type_name = "unknown";
 	}
 
-	fprintf(fp, " typename=\"");
-	prScopedPythonName(fp, type_scope, type_name);
+	if (type_name != NULL)
+		prScopedPythonName(fp, type_scope, type_name);
+
 	fprintf(fp, "\"");
 
 	if (type_type != NULL)

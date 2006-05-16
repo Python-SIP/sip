@@ -949,6 +949,7 @@ scopedNameDef *copyScopedName(scopedNameDef *);
 void appendScopedName(scopedNameDef **,scopedNameDef *);
 void freeScopedName(scopedNameDef *);
 void appendToClassList(classList **,classDef *);
+void prcode(FILE *fp, const char *fmt, ...);
 void prOverloadName(FILE *fp, overDef *od);
 void prScopedPythonName(FILE *fp, classDef *scope, const char *pyname);
 int isIntReturnSlot(memberDef *md);

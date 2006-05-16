@@ -47,6 +47,7 @@ static int tracing;			/* Set if tracing is enabled. */
 static int generating_c;		/* Set if generating C. */
 static int release_gil;			/* Set if always releasing the GIL. */
 static const char *prcode_last = NULL;	/* The last prcode format string. */
+static int prcode_xml = FALSE;		/* Set if prcode is XML aware. */
 
 
 static void generateDocumentation(sipSpec *,char *);
@@ -153,7 +154,6 @@ static char *createIfaceFileName(char *,ifaceFileDef *,char *);
 static FILE *createCompilationUnit(sipSpec *pt, char *fname, char *description);
 static FILE *createFile(sipSpec *,char *,char *);
 static void closeFile(FILE *);
-static void prcode(FILE *fp, const char *, ...);
 static void prScopedName(FILE *fp,scopedNameDef *snd,char *sep);
 static void prTypeName(FILE *,argDef *,int);
 static void prScopedClassName(FILE *,classDef *,char *);
@@ -6755,7 +6755,7 @@ static void generateNamedBaseType(argDef *ad,char *name,FILE *fp)
 			int a;
 			templateDef *td = ad -> u.td;
 
-			prcode(fp,"%S<",td -> fqname);
+			prcode(fp, "%S%s", td->fqname, (prcode_xml ? "&lt;" : "<"));
 
 			for (a = 0; a < td -> types.nrArgs; ++a)
 			{
@@ -6768,7 +6768,7 @@ static void generateNamedBaseType(argDef *ad,char *name,FILE *fp)
 			if (prcode_last == tail)
 				prcode(fp, " ");
 
-			prcode(fp, tail);
+			prcode(fp, (prcode_xml ? "&gt;" : tail));
 			break;
 		}
 
@@ -6800,7 +6800,7 @@ static void generateNamedBaseType(argDef *ad,char *name,FILE *fp)
 	}
 
 	if (isReference(ad))
-		prcode(fp,"&");
+		prcode(fp, (prcode_xml ? "&amp;" : "&"));
 
 	if (*name != '\0')
 	{
@@ -9808,7 +9808,7 @@ static void closeFile(FILE *fp)
 /*
  * Print formatted code.
  */
-static void prcode(FILE *fp, const char *fmt, ...)
+void prcode(FILE *fp, const char *fmt, ...)
 {
 	char ch;
 	va_list ap;
@@ -9898,6 +9898,10 @@ static void prcode(FILE *fp, const char *fmt, ...)
 
 					break;
 				}
+
+			case 'M':
+				prcode_xml = !prcode_xml;
+				break;
 
 			case 'B':
 				generateBaseType(va_arg(ap,argDef *),fp);

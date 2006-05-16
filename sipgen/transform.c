@@ -1971,11 +1971,15 @@ int sameSignature(signatureDef *sd1,signatureDef *sd2,int strict)
 }
 
 
+#define	pyAsString(t)	((t) == ustring_type || (t) == sstring_type || \
+			 (t) == string_type)
 #define	pyAsFloat(t)	((t) == cfloat_type || (t) == float_type || \
 			 (t) == cdouble_type || (t) == double_type)
 #define	pyAsInt(t)	((t) == cint_type || (t) == bool_type || \
 			 (t) == short_type || (t) == ushort_type || \
 			 (t) == int_type || (t) == uint_type)
+#define	pyAsLong(t)	((t) == long_type || (t) == longlong_type)
+#define	pyAsULong(t)	((t) == ulong_type || (t) == ulonglong_type)
 #define	pyAsAuto(t)	((t) == bool_type || \
 			 (t) == short_type || (t) == ushort_type || \
 			 (t) == int_type || (t) == uint_type || \
@@ -1987,20 +1991,28 @@ int sameSignature(signatureDef *sd1,signatureDef *sd2,int strict)
  */
 static int sameArgType(argDef *a1, argDef *a2, int strict)
 {
-	/* The indirection and the references must be the same. */
-	if (isReference(a1) != isReference(a2) || a1 -> nrderefs != a2 -> nrderefs)
+	/* The references must be the same. */
+	if (isReference(a1) != isReference(a2))
 		return FALSE;
 
 	if (strict)
 	{
+		if (a1->nrderefs != a2->nrderefs)
+			return FALSE;
+
 		/* The const should be the same. */
 		if (isConstArg(a1) != isConstArg(a2))
 			return FALSE;
 
 		return sameBaseType(a1,a2);
 	}
-	else if (sameBaseType(a1,a2))
+
+	/* Python will see all these as strings. */
+	if (pyAsString(a1->atype) && pyAsString(a2->atype))
 		return TRUE;
+
+	if (a1->nrderefs != a2->nrderefs)
+		return FALSE;
 
 	/* Python will see all these as floats. */
 	if (pyAsFloat(a1->atype) && pyAsFloat(a2->atype))
@@ -2010,12 +2022,20 @@ static int sameArgType(argDef *a1, argDef *a2, int strict)
 	if (pyAsInt(a1->atype) && pyAsInt(a2->atype))
 		return TRUE;
 
+	/* Python will see all these as longs. */
+	if (pyAsLong(a1->atype) && pyAsLong(a2->atype))
+		return TRUE;
+
+	/* Python will see all these as unsigned longs. */
+	if (pyAsULong(a1->atype) && pyAsULong(a2->atype))
+		return TRUE;
+
 	/* Python will automatically convert between these. */
 	if (pyAsAuto(a1->atype) && pyAsAuto(a2->atype))
 		return TRUE;
 
-	/* They must be different if we have got this far. */
-	return FALSE;
+	/* All the special cases have been handled. */
+	return sameBaseType(a1, a2);
 }
 
 
