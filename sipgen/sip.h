@@ -929,6 +929,7 @@ void parserEOF(char *,parserContext *);
 void transform(sipSpec *);
 void generateCode(sipSpec *,char *,char *,char *,char *,char *,int,int,int,int,stringList *);
 void generateXML(sipSpec *pt, const char *xml);
+void generateExpression(valueDef *vd, FILE *fp);
 void warning(char *,...);
 void fatal(char *,...);
 void fatalScopedName(scopedNameDef *);

@@ -86,7 +86,6 @@ static void generateNamedValueType(argDef *,char *,FILE *);
 static void generateSingleArg(argDef *,int,funcArgType,FILE *);
 static void generateBaseType(argDef *,FILE *);
 static void generateNamedBaseType(argDef *,char *,FILE *);
-static void generateExpression(valueDef *,FILE *);
 static void generateTupleBuilder(signatureDef *,FILE *);
 static void generateEmitters(sipSpec *pt, classDef *cd, FILE *fp);
 static void generateEmitter(sipSpec *,classDef *,visibleList *,FILE *);
@@ -379,7 +378,7 @@ static void generateBuildFile(sipSpec *pt,char *buildFile,char *srcSuffix,
 /*
  * Generate an expression in C++.
  */
-static void generateExpression(valueDef *vd,FILE *fp)
+void generateExpression(valueDef *vd, FILE *fp)
 {
 	while (vd != NULL)
 	{
@@ -405,7 +404,11 @@ static void generateExpression(valueDef *vd,FILE *fp)
 			break;
 
 		case scoped_value:
-			prcode(fp,"%S",vd -> u.vscp);
+			if (prcode_xml)
+				prScopedName(fp, vd->u.vscp, ".");
+			else
+				prcode(fp, "%S", vd->u.vscp);
+
 			break;
 
 		case fcall_value:

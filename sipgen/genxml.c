@@ -14,12 +14,15 @@
 
 
 static void xmlClasses(sipSpec *pt, classDef *scope, int indent, FILE *fp);
+static void xmlEnums(sipSpec *pt, classDef *scope, int indent, FILE *fp);
+static void xmlVars(sipSpec *pt, classDef *scope, int indent, FILE *fp);
 static void xmlInit(ctorDef *ctors, int indent, FILE *fp);
 static void xmlFunction(memberDef *md, overDef *oloads, int indent, FILE *fp);
-static int xmlOverload(const char *name, signatureDef *sd, int ctor, int sec,
-		int indent, FILE *fp);
+static int xmlOverload(const char *name, signatureDef *sd, int ctor, int stat,
+		int abstract, int sec, int indent, FILE *fp);
 static void xmlArgument(argDef *ad, const char *dir, int sec, int indent,
 		FILE *fp);
+static void xmlType(argDef *ad, int sec, FILE *fp);
 static void xmlIndent(int indent, FILE *fp);
 static const char *dirAttribute(argDef *ad);
 
@@ -39,9 +42,13 @@ void generateXML(sipSpec *pt, const char *xmlFile)
 	fprintf(fp, "<Module version=\"%u\" name=\"%s\">\n",
 			XML_VERSION_NR, pt->module->name);
 
-	/* ZZZ - need to handle enums, mapped types, templates(?), exceptions. */
+	/*
+	 * Note that we don't yet handle mapped types, templates or exceptions.
+	 */
 
 	xmlClasses(pt, NULL, 1, fp);
+	xmlEnums(pt, NULL, 1, fp);
+	xmlVars(pt, NULL, 1, fp);
 
 	for (md = pt->othfuncs; md != NULL; md = md->next)
 	{
@@ -86,6 +93,8 @@ static void xmlClasses(sipSpec *pt, classDef *scope, int indent, FILE *fp)
 		fprintf(fp, ">\n");
 
 		xmlClasses(pt, cd, indent, fp);
+		xmlEnums(pt, cd, indent, fp);
+		xmlVars(pt, cd, indent, fp);
 
 		if (cd->ctors != NULL)
 			xmlInit(cd->ctors, indent, fp);
@@ -95,6 +104,67 @@ static void xmlClasses(sipSpec *pt, classDef *scope, int indent, FILE *fp)
 
 		xmlIndent(--indent, fp);
 		fprintf(fp, "</Class>\n");
+	}
+}
+
+
+/*
+ * Generate the XML for all the enums in a scope.
+ */
+static void xmlEnums(sipSpec *pt, classDef *scope, int indent, FILE *fp)
+{
+	enumDef *ed;
+
+	for (ed = pt->enums; ed != NULL; ed = ed->next)
+	{
+		if (ed->module != pt->module)
+			continue;
+
+		if (ed->ecd != scope)
+			continue;
+
+		if (ed->pyname != NULL)
+		{
+			xmlIndent(indent, fp);
+			fprintf(fp, "<Enum name=\"%s\"/>\n", ed->pyname->text);
+		}
+		else
+		{
+			enumMemberDef *emd;
+
+			for (emd = ed->members; emd != NULL; emd = emd->next)
+			{
+				xmlIndent(indent, fp);
+				fprintf(fp, "<Const name=\"%s\" typename=\"int\"/>\n", emd->pyname->text);
+			}
+		}
+	}
+}
+
+
+/*
+ * Generate the XML for all the variables in a scope.
+ */
+static void xmlVars(sipSpec *pt, classDef *scope, int indent, FILE *fp)
+{
+	varDef *vd;
+
+	for (vd = pt->vars; vd != NULL; vd = vd->next)
+	{
+		if (vd->module != pt->module)
+			continue;
+
+		if (vd->ecd != scope)
+			continue;
+
+		xmlIndent(indent, fp);
+		fprintf(fp, "<%s name=\"%s\"", (isConstArg(&vd->type) || scope == NULL ? "Const" : "Var"), vd->pyname->text);
+
+		if (isStaticVar(vd))
+			fprintf(fp, " static=\"1\"");
+
+		xmlType(&vd->type, FALSE, fp);
+		fprintf(fp, "/>\n");
 	}
 }
 
@@ -111,8 +181,8 @@ static void xmlInit(ctorDef *ctors, int indent, FILE *fp)
 		if (isPrivateCtor(ct))
 			continue;
 
-		if (xmlOverload("__init__", &ct->pysig, TRUE, FALSE, indent, fp))
-			xmlOverload("__init__", &ct->pysig, TRUE, TRUE, indent, fp);
+		if (xmlOverload("__init__", &ct->pysig, TRUE, FALSE, FALSE, FALSE, indent, fp))
+			xmlOverload("__init__", &ct->pysig, TRUE, FALSE, FALSE, TRUE, indent, fp);
 	}
 }
 
@@ -132,10 +202,8 @@ static void xmlFunction(memberDef *md, overDef *oloads, int indent, FILE *fp)
 		if (isPrivate(od))
 			continue;
 
-		/* ZZZ - need to deal with functions vs methods (ie. self). */
-
-		if (xmlOverload(md->pyname->text, &od->pysig, FALSE, FALSE, indent, fp))
-			xmlOverload(md->pyname->text, &od->pysig, FALSE, TRUE, indent, fp);
+		if (xmlOverload(md->pyname->text, &od->pysig, FALSE, isStatic(od), isAbstract(od), FALSE, indent, fp))
+			xmlOverload(md->pyname->text, &od->pysig, FALSE, isStatic(od), isAbstract(od), TRUE, indent, fp);
 	}
 }
 
@@ -143,10 +211,12 @@ static void xmlFunction(memberDef *md, overDef *oloads, int indent, FILE *fp)
 /*
  * Generate the XML for an overload.
  */
-static int xmlOverload(const char *name, signatureDef *sd, int ctor, int sec,
-		int indent, FILE *fp)
+static int xmlOverload(const char *name, signatureDef *sd, int ctor, int stat,
+		int abstract, int sec, int indent, FILE *fp)
 {
 	int a, need_sec = FALSE, no_res;
+	const char *abstr = (abstract ? " abstract=\"1\"" : "");
+	const char *ststr = (stat ? " static=\"1\"" : "");
 
 	no_res = (ctor || (sd->result.atype == void_type &&
 				sd->result.nrderefs == 0));
@@ -155,13 +225,13 @@ static int xmlOverload(const char *name, signatureDef *sd, int ctor, int sec,
 	if (no_res && sd->nrArgs == 0)
 	{
 		xmlIndent(indent, fp);
-		fprintf(fp, "<Function name=\"%s\"/>\n", name);
+		fprintf(fp, "<Function name=\"%s\"%s%s/>\n", name, ststr, abstr);
 
 		return FALSE;
 	}
 
 	xmlIndent(indent++, fp);
-	fprintf(fp, "<Function name=\"%s\">\n", name);
+	fprintf(fp, "<Function name=\"%s\"%s%s>\n", name, ststr, abstr);
 
 	if (!no_res)
 		xmlArgument(&sd->result, "out", FALSE, indent, fp);
@@ -206,9 +276,6 @@ static const char *dirAttribute(argDef *ad)
 static void xmlArgument(argDef *ad, const char *dir, int sec, int indent,
 		FILE *fp)
 {
-	const char *type_type = NULL, *type_name = NULL;
-	classDef *type_scope = NULL;
-
 	if (isArraySize(ad))
 		return;
 
@@ -216,7 +283,64 @@ static void xmlArgument(argDef *ad, const char *dir, int sec, int indent,
 		return;
 
 	xmlIndent(indent, fp);
-	fprintf(fp, "<Argument typename=\"");
+	fprintf(fp, "<Argument");
+	xmlType(ad, sec, fp);
+
+	if (dir != NULL)
+		fprintf(fp, " dir=\"%s\"", dir);
+
+	if (isAllowNone(ad))
+		fprintf(fp, " allownone=\"1\"");
+
+	if (isTransferred(ad))
+		fprintf(fp, " transfer=\"to\"");
+	else if (isThisTransferred(ad))
+		fprintf(fp, " transfer=\"this\"");
+	else if (isTransferredBack(ad))
+		fprintf(fp, " transfer=\"back\"");
+
+	/*
+	 * Handle the default value, but ignore it if it is an output only
+	 * argument.
+	 */
+	if (ad->defval && (dir == NULL || strcmp(dir, "out") != 0))
+	{
+		int handled = FALSE;
+
+		prcode(fp, " default=\"%M");
+
+		/* Translate some special cases. */
+		if (ad->defval->next == NULL && ad->defval->vtype == numeric_value)
+			if (ad->nrderefs > 0 && ad->defval->u.vnum == 0)
+			{
+				prcode(fp, "None");
+				handled = TRUE;
+			}
+			else if (ad->atype == bool_type || ad->atype == cbool_type)
+			{
+				prcode(fp, ad->defval->u.vnum ? "True" : "False");
+				handled = TRUE;
+			}
+
+		if (!handled)
+			generateExpression(ad->defval, fp);
+
+		prcode(fp, "%M\"");
+	}
+
+	fprintf(fp, "/>\n");
+}
+
+
+/*
+ * Generate the XML for a type.
+ */
+static void xmlType(argDef *ad, int sec, FILE *fp)
+{
+	const char *type_type = NULL, *type_name = NULL;
+	classDef *type_scope = NULL;
+
+	fprintf(fp, " typename=\"");
 
 	switch (ad->atype)
 	{
@@ -379,17 +503,6 @@ static void xmlArgument(argDef *ad, const char *dir, int sec, int indent,
 
 	if (ad->name != NULL)
 		fprintf(fp, " name=\"%s\"", ad->name);
-
-	if (dir != NULL)
-		fprintf(fp, " dir=\"%s\"", dir);
-
-	/*
-	 * ZZZ - need to do default value, flags:
-	 * 	transfer
-	 * 	allow none
-	 */
-
-	fprintf(fp, "/>\n");
 }
 
 
