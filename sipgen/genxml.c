@@ -90,6 +90,16 @@ static void xmlClasses(sipSpec *pt, classDef *scope, int indent, FILE *fp)
 		if (cd->real != NULL)
 			fprintf(fp, " extends=\"%s\"", cd->real->iff->module->name);
 
+		if (cd->supers != NULL)
+		{
+			classList *cl;
+
+			for (cl = cd->supers; cl != NULL; cl = cl->next)
+				fprintf(fp, " %s%s", (cl == cd->supers ? "inherits=\"" : ""), cl->cd->pyname);
+
+			fprintf(fp, "\"");
+		}
+
 		fprintf(fp, ">\n");
 
 		xmlClasses(pt, cd, indent, fp);
