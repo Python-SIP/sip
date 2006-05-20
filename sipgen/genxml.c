@@ -414,7 +414,11 @@ static void xmlType(argDef *ad, int sec, FILE *fp)
 	case ustring_type:
 	case string_type:
 	case sstring_type:
-		type_name = "str";
+		if (ad->nrderefs > 0)
+			type_name = "str";
+		else
+			type_name = "char";
+
 		break;
 
 	case short_type:

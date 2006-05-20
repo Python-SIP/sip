@@ -1992,14 +1992,11 @@ int sameSignature(signatureDef *sd1,signatureDef *sd2,int strict)
 static int sameArgType(argDef *a1, argDef *a2, int strict)
 {
 	/* The references must be the same. */
-	if (isReference(a1) != isReference(a2))
+	if (isReference(a1) != isReference(a2) || a1->nrderefs != a2->nrderefs)
 		return FALSE;
 
 	if (strict)
 	{
-		if (a1->nrderefs != a2->nrderefs)
-			return FALSE;
-
 		/* The const should be the same. */
 		if (isConstArg(a1) != isConstArg(a2))
 			return FALSE;
@@ -2010,9 +2007,6 @@ static int sameArgType(argDef *a1, argDef *a2, int strict)
 	/* Python will see all these as strings. */
 	if (pyAsString(a1->atype) && pyAsString(a2->atype))
 		return TRUE;
-
-	if (a1->nrderefs != a2->nrderefs)
-		return FALSE;
 
 	/* Python will see all these as floats. */
 	if (pyAsFloat(a1->atype) && pyAsFloat(a2->atype))
