@@ -1000,6 +1000,9 @@ PyObject *sip_api_disconnect_rx(PyObject *txObj,const char *sig,
 			return Py_False;
 		}
 
+		/* Handle Python signals. */
+		tx = findSignal(tx, &sig);
+
 		res = PyBool_FromLong(sipQtSupport->qt_disconnect(tx, sig, rx, member));
 
 		/*
