@@ -18,10 +18,11 @@ static void xmlEnums(sipSpec *pt, classDef *scope, int indent, FILE *fp);
 static void xmlVars(sipSpec *pt, classDef *scope, int indent, FILE *fp);
 static void xmlInit(ctorDef *ctors, int indent, FILE *fp);
 static void xmlFunction(memberDef *md, overDef *oloads, int indent, FILE *fp);
-static int xmlOverload(const char *name, signatureDef *sd, int ctor, int stat,
-		int abstract, int sec, int indent, FILE *fp);
-static void xmlArgument(argDef *ad, const char *dir, int sec, int indent,
+static int xmlOverload(const char *name, signatureDef *sd, int seqnr, int ctor,
+		int res_xfer, int stat, int abstract, int sec, int indent,
 		FILE *fp);
+static void xmlArgument(argDef *ad, const char *dir, int res_xfer, int sec,
+		int indent, FILE *fp);
 static void xmlType(argDef *ad, int sec, FILE *fp);
 static void xmlIndent(int indent, FILE *fp);
 static const char *dirAttribute(argDef *ad);
@@ -145,7 +146,7 @@ static void xmlEnums(sipSpec *pt, classDef *scope, int indent, FILE *fp)
 			for (emd = ed->members; emd != NULL; emd = emd->next)
 			{
 				xmlIndent(indent, fp);
-				fprintf(fp, "<Const name=\"%s\" typename=\"int\"/>\n", emd->pyname->text);
+				fprintf(fp, "<Member name=\"%s\" const=\"1\" typename=\"int\"/>\n", emd->pyname->text);
 			}
 		}
 	}
@@ -168,7 +169,7 @@ static void xmlVars(sipSpec *pt, classDef *scope, int indent, FILE *fp)
 			continue;
 
 		xmlIndent(indent, fp);
-		fprintf(fp, "<%s name=\"%s\"", (isConstArg(&vd->type) || scope == NULL ? "Const" : "Var"), vd->pyname->text);
+		fprintf(fp, "<Member name=\"%s\"%s", vd->pyname->text, (isConstArg(&vd->type) || scope == NULL ? " const=\"1\"" : ""));
 
 		if (isStaticVar(vd))
 			fprintf(fp, " static=\"1\"");
@@ -184,6 +185,7 @@ static void xmlVars(sipSpec *pt, classDef *scope, int indent, FILE *fp)
  */
 static void xmlInit(ctorDef *ctors, int indent, FILE *fp)
 {
+	int seqnr = 1;
 	ctorDef *ct;
 
 	for (ct = ctors; ct != NULL; ct = ct->next)
@@ -191,8 +193,8 @@ static void xmlInit(ctorDef *ctors, int indent, FILE *fp)
 		if (isPrivateCtor(ct))
 			continue;
 
-		if (xmlOverload("__init__", &ct->pysig, TRUE, FALSE, FALSE, FALSE, indent, fp))
-			xmlOverload("__init__", &ct->pysig, TRUE, FALSE, FALSE, TRUE, indent, fp);
+		if (xmlOverload("__init__", &ct->pysig, seqnr++, TRUE, FALSE, FALSE, FALSE, FALSE, indent, fp))
+			xmlOverload("__init__", &ct->pysig, seqnr++, TRUE, FALSE, FALSE, FALSE, TRUE, indent, fp);
 	}
 }
 
@@ -202,6 +204,7 @@ static void xmlInit(ctorDef *ctors, int indent, FILE *fp)
  */
 static void xmlFunction(memberDef *md, overDef *oloads, int indent, FILE *fp)
 {
+	int seqnr = 1;
 	overDef *od;
 
 	for (od = oloads; od != NULL; od = od->next)
@@ -212,8 +215,8 @@ static void xmlFunction(memberDef *md, overDef *oloads, int indent, FILE *fp)
 		if (isPrivate(od))
 			continue;
 
-		if (xmlOverload(md->pyname->text, &od->pysig, FALSE, isStatic(od), isAbstract(od), FALSE, indent, fp))
-			xmlOverload(md->pyname->text, &od->pysig, FALSE, isStatic(od), isAbstract(od), TRUE, indent, fp);
+		if (xmlOverload(md->pyname->text, &od->pysig, seqnr++, FALSE, isResultTransferredBack(od), isStatic(od), isAbstract(od), FALSE, indent, fp))
+			xmlOverload(md->pyname->text, &od->pysig, seqnr++, FALSE, isResultTransferredBack(od), isStatic(od), isAbstract(od), TRUE, indent, fp);
 	}
 }
 
@@ -221,8 +224,9 @@ static void xmlFunction(memberDef *md, overDef *oloads, int indent, FILE *fp)
 /*
  * Generate the XML for an overload.
  */
-static int xmlOverload(const char *name, signatureDef *sd, int ctor, int stat,
-		int abstract, int sec, int indent, FILE *fp)
+static int xmlOverload(const char *name, signatureDef *sd, int seqnr, int ctor,
+		int res_xfer, int stat, int abstract, int sec, int indent,
+		FILE *fp)
 {
 	int a, need_sec = FALSE, no_res;
 	const char *abstr = (abstract ? " abstract=\"1\"" : "");
@@ -235,22 +239,22 @@ static int xmlOverload(const char *name, signatureDef *sd, int ctor, int stat,
 	if (no_res && sd->nrArgs == 0)
 	{
 		xmlIndent(indent, fp);
-		fprintf(fp, "<Function name=\"%s\"%s%s/>\n", name, ststr, abstr);
+		fprintf(fp, "<Function name=\"%s\" seqnr=\"%d\"%s%s/>\n", name, seqnr, ststr, abstr);
 
 		return FALSE;
 	}
 
 	xmlIndent(indent++, fp);
-	fprintf(fp, "<Function name=\"%s\"%s%s>\n", name, ststr, abstr);
+	fprintf(fp, "<Function name=\"%s\" seqnr=\"%d\"%s%s>\n", name, seqnr, ststr, abstr);
 
 	if (!no_res)
-		xmlArgument(&sd->result, "out", FALSE, indent, fp);
+		xmlArgument(&sd->result, "out", res_xfer, FALSE, indent, fp);
 
 	for (a = 0; a < sd->nrArgs; ++a)
 	{
 		argDef *ad = &sd->args[a];
 
-		xmlArgument(ad, dirAttribute(ad), sec, indent, fp);
+		xmlArgument(ad, dirAttribute(ad), FALSE, sec, indent, fp);
 
 		if (ad->atype == rxcon_type || ad->atype == rxdis_type)
 			need_sec = TRUE;
@@ -283,8 +287,8 @@ static const char *dirAttribute(argDef *ad)
 /*
  * Generate the XML for an argument.
  */
-static void xmlArgument(argDef *ad, const char *dir, int sec, int indent,
-		FILE *fp)
+static void xmlArgument(argDef *ad, const char *dir, int res_xfer, int sec,
+		int indent, FILE *fp)
 {
 	if (isArraySize(ad))
 		return;
@@ -306,7 +310,7 @@ static void xmlArgument(argDef *ad, const char *dir, int sec, int indent,
 		fprintf(fp, " transfer=\"to\"");
 	else if (isThisTransferred(ad))
 		fprintf(fp, " transfer=\"this\"");
-	else if (isTransferredBack(ad))
+	else if (res_xfer || isTransferredBack(ad))
 		fprintf(fp, " transfer=\"back\"");
 
 	/*
