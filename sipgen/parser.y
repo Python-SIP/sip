@@ -1042,18 +1042,22 @@ enumline:	ifstart
 				 * we have got around to updating all the .sip
 				 * files.
 				 */
-				enumMemberDef *emd;
+				enumMemberDef *emd, **tail;
 
 				emd = sipMalloc(sizeof (enumMemberDef));
 
 				emd -> pyname = cacheName(currentSpec, getPythonName(&$3, $1));
 				emd -> cname = $1;
 				emd -> ed = currentEnum;
+				emd -> next = NULL;
 
 				checkAttributes(currentSpec,emd -> ed -> ecd,emd -> pyname -> text,FALSE);
 
-				emd -> next = currentEnum -> members;
-				currentEnum -> members = emd;
+				/* Append to preserve the order. */
+				for (tail = &currentEnum->members; *tail != NULL; tail = &(*tail)->next)
+					;
+
+				*tail = emd;
 
 				if (inMainModule())
 					setIsUsedName(emd -> pyname);

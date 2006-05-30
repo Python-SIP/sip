@@ -6443,17 +6443,8 @@ static void generateShadowClassDeclaration(sipSpec *pt,classDef *cd,FILE *fp)
 		prcode(fp,
 "	");
  
-		normaliseArgs(od -> cppsig);
-
-		generateResultType(&od -> cppsig -> result,fp);
- 
-		prcode(fp," %O(",od);
-		generateArgs(od -> cppsig,Declaration,fp);
- 
-		prcode(fp,")%s%X;\n"
-			,(isConst(od) ? " const" : ""),od -> exceptions);
-
-		restoreArgs(od -> cppsig);
+		prOverloadDecl(fp, od);
+		prcode(fp, ";\n");
 	}
 
 	prcode(fp,
@@ -6481,6 +6472,24 @@ static void generateShadowClassDeclaration(sipSpec *pt,classDef *cd,FILE *fp)
 	prcode(fp,
 "};\n"
 		);
+}
+
+
+/*
+ * Generate the C++ declaration for an overload.
+ */
+void prOverloadDecl(FILE *fp, overDef *od)
+{
+	normaliseArgs(od->cppsig);
+
+	generateResultType(&od->cppsig->result, fp);
+ 
+	prcode(fp, " %O(", od);
+	generateArgs(od->cppsig, Declaration, fp);
+ 
+	prcode(fp, ")%s%X", (isConst(od) ? " const" : ""), od->exceptions);
+
+	restoreArgs(od->cppsig);
 }
 
 
@@ -6788,7 +6797,7 @@ static void generateNamedBaseType(argDef *ad,char *name,FILE *fp)
 	case pytype_type:
 	case qobject_type:
 	case ellipsis_type:
-		prcode(fp,"PyObject *",fp);
+		prcode(fp, "PyObject *");
 		break;
 	}
 

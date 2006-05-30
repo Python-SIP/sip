@@ -16,12 +16,12 @@
 static void xmlClass(sipSpec *pt, classDef *cd, FILE *fp);
 static void xmlEnums(sipSpec *pt, classDef *scope, int indent, FILE *fp);
 static void xmlVars(sipSpec *pt, classDef *scope, int indent, FILE *fp);
-static void xmlInit(ctorDef *ctors, int indent, FILE *fp);
 static void xmlFunction(classDef *scope, memberDef *md, overDef *oloads,
 		int indent, FILE *fp);
-static int xmlOverload(const char *name, signatureDef *sd, int ctor,
-		int res_xfer, int stat, int abstract, int sec, int indent,
-		FILE *fp);
+static int xmlCtor(classDef *scope, ctorDef *ct, int sec, int indent, FILE *fp);
+static int xmlOverload(classDef *scope, memberDef *md, overDef *od,
+		classDef *xtnds, int stat, int sec, int indent, FILE *fp);
+static void xmlCppSignature(FILE *fp, overDef *od);
 static void xmlArgument(argDef *ad, const char *dir, int res_xfer, int sec,
 		int indent, FILE *fp);
 static void xmlType(argDef *ad, int sec, FILE *fp);
@@ -86,13 +86,13 @@ void generateXML(sipSpec *pt, const char *xmlFile)
 static void xmlClass(sipSpec *pt, classDef *cd, FILE *fp)
 {
 	int indent = 1;
+	ctorDef *ct;
 	memberDef *md;
 
 	xmlIndent(indent++, fp);
-	fprintf(fp, "<Class name=\"%s\"", cd->pyname);
-
-	if (cd->ecd != NULL)
-		fprintf(fp, " scope=\"%s\"", cd->ecd->pyname);
+	fprintf(fp, "<Class name=\"", cd->pyname);
+	prScopedPythonName(fp, cd->ecd, cd->pyname);
+	fprintf(fp, "\"");
 
 	if (cd->real != NULL)
 		fprintf(fp, " extends=\"%s\"", cd->real->iff->module->name);
@@ -101,8 +101,15 @@ static void xmlClass(sipSpec *pt, classDef *cd, FILE *fp)
 	{
 		classList *cl;
 
+		fprintf(fp, " inherits=\"");
+
 		for (cl = cd->supers; cl != NULL; cl = cl->next)
-			fprintf(fp, " %s%s", (cl == cd->supers ? "inherits=\"" : ""), cl->cd->pyname);
+		{
+			if (cl != cd->supers)
+				fprintf(fp, " ");
+
+			prScopedPythonName(fp, cl->cd->ecd, cl->cd->pyname);
+		}
 
 		fprintf(fp, "\"");
 	}
@@ -112,8 +119,14 @@ static void xmlClass(sipSpec *pt, classDef *cd, FILE *fp)
 	xmlEnums(pt, cd, indent, fp);
 	xmlVars(pt, cd, indent, fp);
 
-	if (cd->ctors != NULL)
-		xmlInit(cd->ctors, indent, fp);
+	for (ct = cd->ctors; ct != NULL; ct = ct->next)
+	{
+		if (isPrivateCtor(ct))
+			continue;
+
+		if (xmlCtor(cd, ct, FALSE, indent, fp))
+			xmlCtor(cd, ct, TRUE, indent, fp);
+	}
 
 	for (md = cd->members; md != NULL; md = md->next)
 		xmlFunction(cd, md, cd->overs, indent, fp);
@@ -143,12 +156,16 @@ static void xmlEnums(sipSpec *pt, classDef *scope, int indent, FILE *fp)
 			enumMemberDef *emd;
 
 			xmlIndent(indent++, fp);
-			fprintf(fp, "<Enum name=\"%s\">\n", ed->pyname->text);
+			fprintf(fp, "<Enum name=\"");
+			prScopedPythonName(fp, ed->ecd, ed->pyname->text);
+			fprintf(fp, "\">\n");
 
 			for (emd = ed->members; emd != NULL; emd = emd->next)
 			{
 				xmlIndent(indent, fp);
-				fprintf(fp, "<EnumMember name=\"%s\"/>\n", emd->pyname->text);
+				fprintf(fp, "<EnumMember name=\"");
+				prScopedPythonName(fp, ed->ecd, emd->pyname->text);
+				fprintf(fp, "\"/>\n");
 			}
 
 			xmlIndent(--indent, fp);
@@ -161,7 +178,9 @@ static void xmlEnums(sipSpec *pt, classDef *scope, int indent, FILE *fp)
 			for (emd = ed->members; emd != NULL; emd = emd->next)
 			{
 				xmlIndent(indent, fp);
-				fprintf(fp, "<Member name=\"%s\" const=\"1\" typename=\"int\"/>\n", emd->pyname->text);
+				fprintf(fp, "<Member name=\"");
+				prScopedPythonName(fp, ed->ecd, emd->pyname->text);
+				fprintf(fp, "\" const=\"1\" typename=\"int\"/>\n");
 			}
 		}
 	}
@@ -184,7 +203,12 @@ static void xmlVars(sipSpec *pt, classDef *scope, int indent, FILE *fp)
 			continue;
 
 		xmlIndent(indent, fp);
-		fprintf(fp, "<Member name=\"%s\"%s", vd->pyname->text, (isConstArg(&vd->type) || scope == NULL ? " const=\"1\"" : ""));
+		fprintf(fp, "<Member name=\"");
+		prScopedPythonName(fp, vd->ecd, vd->pyname->text);
+		fprintf(fp, "\"");
+
+		if (isConstArg(&vd->type) || scope == NULL)
+			fprintf(fp, " const=\"1\"");
 
 		if (isStaticVar(vd))
 			fprintf(fp, " static=\"1\"");
@@ -196,20 +220,42 @@ static void xmlVars(sipSpec *pt, classDef *scope, int indent, FILE *fp)
 
 
 /*
- * Generate the XML for an __init__ method.
+ * Generate the XML for a ctor.
  */
-static void xmlInit(ctorDef *ctors, int indent, FILE *fp)
+static int xmlCtor(classDef *scope, ctorDef *ct, int sec, int indent, FILE *fp)
 {
-	ctorDef *ct;
+	int a, need_sec;
 
-	for (ct = ctors; ct != NULL; ct = ct->next)
+	xmlIndent(indent++, fp);
+	fprintf(fp, "<Function name=\"");
+	prScopedPythonName(fp, scope, "__init__");
+	fprintf(fp, "\"");
+
+	/* Handle the trivial case. */
+	if (ct->pysig.nrArgs == 0)
 	{
-		if (isPrivateCtor(ct))
-			continue;
-
-		if (xmlOverload("__init__", &ct->pysig, TRUE, FALSE, FALSE, FALSE, FALSE, indent, fp))
-			xmlOverload("__init__", &ct->pysig, TRUE, FALSE, FALSE, FALSE, TRUE, indent, fp);
+		fprintf(fp, "/>\n");
+		return FALSE;
 	}
+
+	fprintf(fp, ">\n");
+
+	need_sec = FALSE;
+
+	for (a = 0; a < ct->pysig.nrArgs; ++a)
+	{
+		argDef *ad = &ct->pysig.args[a];
+
+		xmlArgument(ad, dirAttribute(ad), FALSE, sec, indent, fp);
+
+		if (ad->atype == rxcon_type || ad->atype == rxdis_type)
+			need_sec = TRUE;
+	}
+
+	xmlIndent(--indent, fp);
+	fprintf(fp, "</Function>\n");
+
+	return need_sec;
 }
 
 
@@ -224,6 +270,7 @@ static void xmlFunction(classDef *scope, memberDef *md, overDef *oloads,
 	for (od = oloads; od != NULL; od = od->next)
 	{
 		int isstat;
+		classDef *xtnds;
 
 		if (od->common != md)
 			continue;
@@ -231,10 +278,29 @@ static void xmlFunction(classDef *scope, memberDef *md, overDef *oloads,
 		if (isPrivate(od))
 			continue;
 
+		if (isSignal(od))
+		{
+			xmlIndent(indent, fp);
+			fprintf(fp, "<Signal name=\"");
+			prScopedPythonName(fp, scope, md->pyname->text);
+			fprintf(fp, "\" sig=\"");
+			xmlCppSignature(fp, od);
+			fprintf(fp, "\"/>\n", md->pyname->text);
+
+			continue;
+		}
+
+		xtnds = NULL;
 		isstat = (scope == NULL || scope->iff->type == namespace_iface || isStatic(od));
 
-		if (xmlOverload(md->pyname->text, &od->pysig, FALSE, isResultTransferredBack(od), isstat, isAbstract(od), FALSE, indent, fp))
-			xmlOverload(md->pyname->text, &od->pysig, FALSE, isResultTransferredBack(od), isstat, isAbstract(od), TRUE, indent, fp);
+		if (scope == NULL && md->slot != no_slot && od->pysig.args[0].atype == class_type)
+		{
+			xtnds = od->pysig.args[0].u.cd;
+			isstat = FALSE;
+		}
+
+		if (xmlOverload(scope, md, od, xtnds, isstat, FALSE, indent, fp))
+			xmlOverload(scope, md, od, xtnds, isstat, TRUE, indent, fp);
 	}
 }
 
@@ -242,35 +308,59 @@ static void xmlFunction(classDef *scope, memberDef *md, overDef *oloads,
 /*
  * Generate the XML for an overload.
  */
-static int xmlOverload(const char *name, signatureDef *sd, int ctor,
-		int res_xfer, int stat, int abstract, int sec, int indent,
-		FILE *fp)
+static int xmlOverload(classDef *scope, memberDef *md, overDef *od,
+		classDef *xtnds, int stat, int sec, int indent, FILE *fp)
 {
-	int a, need_sec = FALSE, no_res;
-	const char *abstr = (abstract ? " abstract=\"1\"" : "");
-	const char *ststr = (stat ? " static=\"1\"" : "");
+	int a, need_sec, no_res;
 
-	no_res = (ctor || (sd->result.atype == void_type &&
-				sd->result.nrderefs == 0));
+	xmlIndent(indent++, fp);
+	fprintf(fp, "<Function name=\"");
+	prScopedPythonName(fp, scope, md->pyname->text);
+	fprintf(fp, "\"");
+
+	if (isAbstract(od))
+		fprintf(fp, " abstract=\"1\"");
+
+	if (stat)
+		fprintf(fp, " static=\"1\"");
+
+	if (isSlot(od))
+	{
+		fprintf(fp, " slot=\"");
+		xmlCppSignature(fp, od);
+		fprintf(fp, "\"");
+	}
+
+	if (xtnds != NULL)
+	{
+		fprintf(fp, " extends=\"");
+		prScopedPythonName(fp, xtnds->ecd, xtnds->pyname);
+		fprintf(fp, "\"");
+	}
+
+	no_res = (od->pysig.result.atype == void_type && od->pysig.result.nrderefs == 0);
 
 	/* Handle the trivial case. */
-	if (no_res && sd->nrArgs == 0)
+	if (no_res && od->pysig.nrArgs == 0)
 	{
-		xmlIndent(indent, fp);
-		fprintf(fp, "<Function name=\"%s\"%s%s/>\n", name, ststr, abstr);
-
+		fprintf(fp, "/>\n");
 		return FALSE;
 	}
 
-	xmlIndent(indent++, fp);
-	fprintf(fp, "<Function name=\"%s\"%s%s>\n", name, ststr, abstr);
+	fprintf(fp, ">\n");
 
 	if (!no_res)
-		xmlArgument(&sd->result, "out", res_xfer, FALSE, indent, fp);
+		xmlArgument(&od->pysig.result, "out", isResultTransferredBack(od), FALSE, indent, fp);
 
-	for (a = 0; a < sd->nrArgs; ++a)
+	need_sec = FALSE;
+
+	for (a = 0; a < od->pysig.nrArgs; ++a)
 	{
-		argDef *ad = &sd->args[a];
+		argDef *ad = &od->pysig.args[a];
+
+		/* Ignore the first argument of number slots. */
+		if (isNumberSlot(md) && a == 0 && od->pysig.nrArgs == 2)
+			continue;
 
 		xmlArgument(ad, dirAttribute(ad), FALSE, sec, indent, fp);
 
@@ -282,6 +372,17 @@ static int xmlOverload(const char *name, signatureDef *sd, int ctor,
 	fprintf(fp, "</Function>\n");
 
 	return need_sec;
+}
+
+
+/*
+ * Generate the XML for a C++ signature.
+ */
+static void xmlCppSignature(FILE *fp, overDef *od)
+{
+	prcode(fp, "%M");
+	prOverloadDecl(fp, od);
+	prcode(fp, "%M");
 }
 
 
