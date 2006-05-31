@@ -94,6 +94,9 @@ static void xmlClass(sipSpec *pt, classDef *cd, FILE *fp)
 	prScopedPythonName(fp, cd->ecd, cd->pyname);
 	fprintf(fp, "\"");
 
+	if (cd->convtocode != NULL)
+		fprintf(fp, " convert=\"1\"");
+
 	if (cd->real != NULL)
 		fprintf(fp, " extends=\"%s\"", cd->real->iff->module->name);
 
@@ -381,7 +384,7 @@ static int xmlOverload(classDef *scope, memberDef *md, overDef *od,
 static void xmlCppSignature(FILE *fp, overDef *od)
 {
 	prcode(fp, "%M");
-	prOverloadDecl(fp, od);
+	prOverloadDecl(fp, od, TRUE);
 	prcode(fp, "%M");
 }
 

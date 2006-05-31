@@ -76,7 +76,6 @@ static void generateCppCodeBlock(codeBlock *,FILE *);
 static void generateUsedIncludes(ifaceFileList *, int, FILE *);
 static void generateIfaceHeader(sipSpec *,ifaceFileDef *,char *);
 static void generateShadowClassDeclaration(sipSpec *,classDef *,FILE *);
-static void generateResultType(argDef *,FILE *);
 static int hasConvertToCode(argDef *ad);
 static void deleteTemps(signatureDef *sd, FILE *fp);
 static void gc_ellipsis(signatureDef *sd, FILE *fp);
@@ -4703,7 +4702,7 @@ static void generateVirtualCatcher(sipSpec *pt,classDef *cd,int virtNr,
 	prcode(fp,
 "\n");
 
-	generateResultType(&od -> cppsig -> result,fp);
+	generateBaseType(&od -> cppsig -> result,fp);
 
 	prcode(fp," sip%C::%O(",classFQCName(cd),od);
 	generateArgs(od -> cppsig,Definition,fp);
@@ -4716,7 +4715,7 @@ static void generateVirtualCatcher(sipSpec *pt,classDef *cd,int virtNr,
 		prcode(fp,
 "	sipTrace(SIP_TRACE_CATCHERS,\"");
 
-		generateResultType(&od -> cppsig -> result,fp);
+		generateBaseType(&od -> cppsig -> result,fp);
 		prcode(fp," sip%C::%O(",classFQCName(cd),od);
 		generateArgs(od -> cppsig,Declaration,fp);
 		prcode(fp,")%s%X (this=0x%%08x)\\n\",this);\n"
@@ -4731,7 +4730,7 @@ static void generateVirtualCatcher(sipSpec *pt,classDef *cd,int virtNr,
 		prcode(fp,
 "	extern ");
 
-		generateResultType(&od -> cppsig -> result,fp);
+		generateBaseType(&od -> cppsig -> result,fp);
 
 		prcode(fp," sipVH_%s_%d(sip_gilstate_t,PyObject *",vhd -> module -> name,vhd -> virthandlernr);
 	}
@@ -4740,7 +4739,7 @@ static void generateVirtualCatcher(sipSpec *pt,classDef *cd,int virtNr,
 		prcode(fp,
 "	typedef ");
 
-		generateResultType(&od -> cppsig -> result,fp);
+		generateBaseType(&od -> cppsig -> result,fp);
 
 		prcode(fp," (*sipVH_%s_%d)(sip_gilstate_t,PyObject *",vhd -> module -> name,vhd -> virthandlernr);
 	}
@@ -5181,7 +5180,7 @@ static void generateProtectedDeclarations(classDef *cd,FILE *fp)
 			if (isStatic(od))
 				prcode(fp,"static ");
 
-			generateResultType(&od -> cppsig -> result,fp);
+			generateBaseType(&od -> cppsig -> result,fp);
 
 			if (!isStatic(od) && !isAbstract(od) && (isVirtual(od) || isVirtualReimp(od)))
 			{
@@ -5225,7 +5224,7 @@ static void generateProtectedDefinitions(classDef *cd,FILE *fp)
 "\n"
 				);
 
-			generateResultType(&od -> cppsig -> result,fp);
+			generateBaseType(&od -> cppsig -> result,fp);
 
 			if (!isStatic(od) && !isAbstract(od) && (isVirtual(od) || isVirtualReimp(od)))
 			{
@@ -5358,7 +5357,7 @@ static void generateVirtualHandler(sipSpec *pt,virtHandlerDef *vhd,FILE *fp)
 "\n"
 		);
 
-	generateResultType(&vhd->cppsig->result, fp);
+	generateBaseType(&vhd->cppsig->result, fp);
 
 	prcode(fp," sipVH_%s_%d(sip_gilstate_t sipGILState,PyObject *sipMethod"
 		,pt -> module -> name,vhd -> virthandlernr);
@@ -5378,7 +5377,7 @@ static void generateVirtualHandler(sipSpec *pt,virtHandlerDef *vhd,FILE *fp)
 	{
 		prcode(fp,"	");
 
-		generateResultType(&res_noconstref,fp);
+		generateBaseType(&res_noconstref,fp);
 
 		prcode(fp," %ssipRes",(isref ? "*" : ""));
 
@@ -5457,7 +5456,7 @@ static void generateVirtualHandler(sipSpec *pt,virtHandlerDef *vhd,FILE *fp)
 		prcode(fp,
 "	");
 
-		generateResultType(&res_noconstref,fp);
+		generateBaseType(&res_noconstref,fp);
 
 		prcode(fp," *sipResOrig;\n");
 
@@ -6443,7 +6442,7 @@ static void generateShadowClassDeclaration(sipSpec *pt,classDef *cd,FILE *fp)
 		prcode(fp,
 "	");
  
-		prOverloadDecl(fp, od);
+		prOverloadDecl(fp, od, FALSE);
 		prcode(fp, ";\n");
 	}
 
@@ -6478,27 +6477,35 @@ static void generateShadowClassDeclaration(sipSpec *pt,classDef *cd,FILE *fp)
 /*
  * Generate the C++ declaration for an overload.
  */
-void prOverloadDecl(FILE *fp, overDef *od)
+void prOverloadDecl(FILE *fp, overDef *od, int defval)
 {
+	int a;
+
 	normaliseArgs(od->cppsig);
 
-	generateResultType(&od->cppsig->result, fp);
+	generateBaseType(&od->cppsig->result, fp);
  
 	prcode(fp, " %O(", od);
-	generateArgs(od->cppsig, Declaration, fp);
+
+	for (a = 0; a < od->cppsig->nrArgs; ++a)
+	{
+		argDef *ad = &od->cppsig->args[a];
+
+		if (a > 0)
+			prcode(fp, ",");
+
+		generateBaseType(ad, fp);
+
+		if (defval)
+		{
+			prcode(fp, " = ");
+			generateExpression(ad->defval, fp);
+		}
+	}
  
 	prcode(fp, ")%s%X", (isConst(od) ? " const" : ""), od->exceptions);
 
 	restoreArgs(od->cppsig);
-}
-
-
-/*
- * Generate the return type of a member function.
- */
-static void generateResultType(argDef *res,FILE *fp)
-{
-	generateSingleArg(res,-1,Declaration,fp);
 }
 
 
