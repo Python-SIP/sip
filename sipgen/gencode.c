@@ -6496,7 +6496,7 @@ void prOverloadDecl(FILE *fp, overDef *od, int defval)
 
 		generateBaseType(ad, fp);
 
-		if (defval)
+		if (defval && ad->defval != NULL)
 		{
 			prcode(fp, " = ");
 			generateExpression(ad->defval, fp);
