@@ -94,6 +94,9 @@ static void xmlClass(sipSpec *pt, classDef *cd, FILE *fp)
 	prScopedPythonName(fp, cd->ecd, cd->pyname);
 	fprintf(fp, "\"");
 
+	if (isOpaque(cd))
+		fprintf(fp, " opaque=\"1\"");
+
 	if (cd->convtocode != NULL)
 		fprintf(fp, " convert=\"1\"");
 
