@@ -89,13 +89,20 @@ static void xmlClass(sipSpec *pt, classDef *cd, FILE *fp)
 	ctorDef *ct;
 	memberDef *md;
 
+	if (isOpaque(cd))
+	{
+		xmlIndent(indent, fp);
+		fprintf(fp, "<OpaqueClass name=\"", cd->pyname);
+		prScopedPythonName(fp, cd->ecd, cd->pyname);
+		fprintf(fp, "\"/>\n");
+
+		return;
+	}
+
 	xmlIndent(indent++, fp);
 	fprintf(fp, "<Class name=\"", cd->pyname);
 	prScopedPythonName(fp, cd->ecd, cd->pyname);
 	fprintf(fp, "\"");
-
-	if (isOpaque(cd))
-		fprintf(fp, " opaque=\"1\"");
 
 	if (cd->convtocode != NULL)
 		fprintf(fp, " convert=\"1\"");
@@ -484,7 +491,7 @@ static void xmlType(argDef *ad, int sec, FILE *fp)
 	switch (ad->atype)
 	{
 	case class_type:
-		type_type = "class";
+		type_type = (isOpaque(ad->u.cd) ? "opaque" : "class");
 		type_name = ad->u.cd->pyname;
 		type_scope = ad->u.cd->ecd;
 		break;
