@@ -3535,7 +3535,7 @@ void sipBadLengthForSlice(int seqlen, int slicelen)
 sipBuildResult()
 ----------------
 
-PyObject \*sipBuildResult(int \*iserr, char \*format, ...)
+PyObject \*sipBuildResult(int \*iserr, const char \*format, ...)
     This creates a Python object based on a format string and associated
     values in a similar way to the Python ``Py_BuildValue()`` function.  If
     there was an error then ``NULL`` is returned and a Python exception is
@@ -3687,7 +3687,7 @@ PyObject \*sipBuildResult(int \*iserr, char \*format, ...)
 sipCallMethod()
 ---------------
 
-PyObject \*sipCallMethod(int \*iserr, PyObject \*method, char \*format, ...)
+PyObject \*sipCallMethod(int \*iserr, PyObject \*method, const char \*format, ...)
     This calls a Python method passing a tuple of arguments based on a format
     string and associated values in a similar way to the Python
     ``PyObject_CallObject()`` function.  If there was an error then ``NULL`` is
@@ -4077,7 +4077,7 @@ sipWrapperType \*sipMapStringToClass(char \*type, const sipStringTypeClassMap \*
 sipParseResult()
 ----------------
 
-int sipParseResult(int \*iserr, PyObject \*method, PyObject \*result, char \*format, ...)
+int sipParseResult(int \*iserr, PyObject \*method, PyObject \*result, const char \*format, ...)
     This converts a Python object (usually returned by a method) to C/C++ based
     on a format string and associated values in a similar way to the Python
     ``PyArg_ParseTuple()`` function.  If there was an error then a negative

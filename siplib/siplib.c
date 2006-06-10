@@ -20,9 +20,9 @@
  */
 static void sip_api_bad_catcher_result(PyObject *method);
 static void sip_api_bad_length_for_slice(int seqlen,int slicelen);
-static PyObject *sip_api_build_result(int *isErr,char *fmt,...);
-static PyObject *sip_api_call_method(int *isErr,PyObject *method,char *fmt,
-				     ...);
+static PyObject *sip_api_build_result(int *isErr, const char *fmt, ...);
+static PyObject *sip_api_call_method(int *isErr, PyObject *method,
+		const char *fmt, ...);
 static PyObject *sip_api_class_name(PyObject *self);
 static int sip_api_convert_from_sequence_index(int idx,int len);
 static int sip_api_can_convert_to_instance(PyObject *pyObj,
@@ -68,8 +68,8 @@ static sipWrapperType *sip_api_map_int_to_class(int typeInt,
 static sipWrapperType *sip_api_map_string_to_class(const char *typeString,
 						   const sipStringTypeClassMap *map,
 						   int maplen);
-static int sip_api_parse_result(int *isErr,PyObject *method,PyObject *res,
-				char *fmt,...);
+static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
+		const char *fmt, ...);
 static void sip_api_trace(unsigned mask,const char *fmt,...);
 static void sip_api_transfer(PyObject *self,int toCpp);
 static void sip_api_transfer_back(PyObject *self);
@@ -77,10 +77,10 @@ static void sip_api_transfer_to(PyObject *self,PyObject *owner);
 static int sip_api_export_module(sipExportedModuleDef *client,
 				 unsigned api_major,unsigned api_minor,
 				 PyObject *mod_dict);
-static int sip_api_parse_args(int *argsParsedp,PyObject *sipArgs,char *fmt,
-			      ...);
-static int sip_api_parse_pair(int *argsParsedp,PyObject *sipArg0,
-			      PyObject *sipArg1,char *fmt,...);
+static int sip_api_parse_args(int *argsParsedp, PyObject *sipArgs,
+		const char *fmt, ...);
+static int sip_api_parse_pair(int *argsParsedp, PyObject *sipArg0,
+		PyObject *sipArg1, const char *fmt, ...);
 static void sip_api_common_ctor(sipMethodCache *cache,int nrmeths);
 static void sip_api_common_dtor(sipWrapper *sipSelf);
 static void *sip_api_convert_to_void_ptr(PyObject *obj);
@@ -281,11 +281,11 @@ static int objobjargprocSlot(PyObject *self,PyObject *arg1,PyObject *arg2,
 			     sipPySlotType st);
 static int intobjargprocSlot(PyObject *self,int arg1,PyObject *arg2,
 			     sipPySlotType st);
-static PyObject *buildObject(PyObject *tup,char *fmt,va_list va);
-static int parsePass1(sipWrapper **selfp,int *selfargp,int *argsParsedp,
-		      PyObject *sipArgs,char *fmt,va_list va);
-static int parsePass2(sipWrapper *self,int selfarg,int nrargs,
-		      PyObject *sipArgs,char *fmt,va_list va);
+static PyObject *buildObject(PyObject *tup, const char *fmt, va_list va);
+static int parsePass1(sipWrapper **selfp, int *selfargp, int *argsParsedp,
+		PyObject *sipArgs, const char *fmt, va_list va);
+static int parsePass2(sipWrapper *self, int selfarg, int nrargs,
+		PyObject *sipArgs, const char *fmt, va_list va);
 static int getSelfFromArgs(sipWrapperType *type,PyObject *args,int argnr,
 			   sipWrapper **selfp);
 static PyObject *createEnumMember(sipTypeDef *td, sipEnumMemberDef *enm);
@@ -1038,7 +1038,8 @@ static PyObject *sip_api_pyslot_extend(sipExportedModuleDef *mod,
 /*
  * Call the Python re-implementation of a C++ virtual.
  */
-static PyObject *sip_api_call_method(int *isErr,PyObject *method,char *fmt,...)
+static PyObject *sip_api_call_method(int *isErr, PyObject *method,
+		const char *fmt, ...)
 {
 	PyObject *args, *res;
 	va_list va;
@@ -1066,7 +1067,7 @@ static PyObject *sip_api_call_method(int *isErr,PyObject *method,char *fmt,...)
 /*
  * Build a result object based on a format string.
  */
-static PyObject *sip_api_build_result(int *isErr,char *fmt,...)
+static PyObject *sip_api_build_result(int *isErr, const char *fmt, ...)
 {
 	PyObject *res = NULL;
 	int badfmt, tupsz;
@@ -1109,7 +1110,7 @@ static PyObject *sip_api_build_result(int *isErr,char *fmt,...)
 /*
  * Get the values off the stack and put them into an object.
  */
-static PyObject *buildObject(PyObject *obj,char *fmt,va_list va)
+static PyObject *buildObject(PyObject *obj, const char *fmt, va_list va)
 {
 	char ch, termch;
 	int i;
@@ -1337,7 +1338,8 @@ static PyObject *buildObject(PyObject *obj,char *fmt,va_list va)
 /*
  * Parse a result object based on a format string.
  */
-static int sip_api_parse_result(int *isErr,PyObject *method,PyObject *res,char *fmt,...)
+static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
+		const char *fmt, ...)
 {
 	int tupsz, rc = 0;
 	va_list va;
@@ -1804,7 +1806,8 @@ static unsigned long sip_api_long_as_unsigned_long(PyObject *o)
 /*
  * Parse the arguments to a C/C++ function without any side effects.
  */
-static int sip_api_parse_args(int *argsParsedp,PyObject *sipArgs,char *fmt,...)
+static int sip_api_parse_args(int *argsParsedp, PyObject *sipArgs,
+		const char *fmt, ...)
 {
 	int valid, nrargs, selfarg;
 	sipWrapper *self;
@@ -1889,7 +1892,8 @@ static int sip_api_parse_args(int *argsParsedp,PyObject *sipArgs,char *fmt,...)
 /*
  * Parse a pair of arguments to a C/C++ function without any side effects.
  */
-static int sip_api_parse_pair(int *argsParsedp, PyObject *sipArg0, PyObject *sipArg1, char *fmt, ...)
+static int sip_api_parse_pair(int *argsParsedp, PyObject *sipArg0,
+		PyObject *sipArg1, const char *fmt, ...)
 {
 	int valid, nrargs, selfarg;
 	sipWrapper *self;
@@ -1969,8 +1973,8 @@ static int sip_api_parse_pair(int *argsParsedp, PyObject *sipArg0, PyObject *sip
  * First pass of the argument parse, converting those that can be done so
  * without any side effects.  Return PARSE_OK if the arguments matched.
  */
-static int parsePass1(sipWrapper **selfp,int *selfargp,int *argsParsedp,
-		      PyObject *sipArgs,char *fmt,va_list va)
+static int parsePass1(sipWrapper **selfp, int *selfargp, int *argsParsedp,
+		PyObject *sipArgs, const char *fmt, va_list va)
 {
 	int valid, compulsory, nrargs, argnr, nrparsed;
 
@@ -2692,8 +2696,8 @@ static int parsePass1(sipWrapper **selfp,int *selfargp,int *argsParsedp,
  * Second pass of the argument parse, converting the remaining ones that might
  * have side effects.  Return PARSE_OK if there was no error.
  */
-static int parsePass2(sipWrapper *self,int selfarg,int nrargs,
-		      PyObject *sipArgs,char *fmt,va_list va)
+static int parsePass2(sipWrapper *self, int selfarg, int nrargs,
+		PyObject *sipArgs, const char *fmt, va_list va)
 {
 	int a, valid;
 

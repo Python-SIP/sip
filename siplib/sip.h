@@ -718,8 +718,8 @@ typedef struct _sipAPIDef {
 	 */
 	void (*api_bad_catcher_result)(PyObject *method);
 	void (*api_bad_length_for_slice)(int seqlen,int slicelen);
-	PyObject *(*api_build_result)(int *isErr,char *fmt,...);
-	PyObject *(*api_call_method)(int *isErr,PyObject *method,char *fmt,...);
+	PyObject *(*api_build_result)(int *isErr, const char *fmt, ...);
+	PyObject *(*api_call_method)(int *isErr, PyObject *method, const char *fmt, ...);
 	PyObject *(*api_class_name)(PyObject *self);
 	PyObject *(*api_connect_rx)(PyObject *txObj,const char *sig,PyObject *rxObj,const char *slot, int type);
 	int (*api_convert_from_sequence_index)(int idx,int len);
@@ -745,7 +745,7 @@ typedef struct _sipAPIDef {
 	void *(*api_malloc)(size_t nbytes);
 	sipWrapperType *(*api_map_int_to_class)(int typeInt,const sipIntTypeClassMap *map,int maplen);
 	sipWrapperType *(*api_map_string_to_class)(const char *typeString,const sipStringTypeClassMap *map,int maplen);
-	int (*api_parse_result)(int *isErr,PyObject *method,PyObject *res,char *fmt,...);
+	int (*api_parse_result)(int *isErr, PyObject *method, PyObject *res, const char *fmt, ...);
 	void (*api_trace)(unsigned mask,const char *fmt,...);
 	void (*api_transfer)(PyObject *self,int toCpp);
 	void (*api_transfer_back)(PyObject *self);
@@ -765,7 +765,8 @@ typedef struct _sipAPIDef {
 	/*
 	 * The following are not part of the public API.
 	 */
-	int (*api_parse_args)(int *argsParsedp,PyObject *sipArgs,char *fmt,...);
+	int (*api_parse_args)(int *argsParsedp, PyObject *sipArgs,
+			const char *fmt, ...);
 	int (*api_parse_pair)(int *argsParsedp,PyObject *arg0,PyObject *arg1,char *fmt,...);
 	void (*api_common_ctor)(sipMethodCache *cache,int nrmeths);
 	void (*api_common_dtor)(sipWrapper *sipSelf);
