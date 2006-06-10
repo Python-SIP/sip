@@ -24,9 +24,7 @@ C++ libraries.  SIP was originally developed in 1998 for
 the Qt GUI toolkit - but is suitable for generating bindings for any C or C++
 library.
 
-This version of SIP generates bindings for Python v2.3 or later.  If you want
-to generate bindings for earlier versions of Python (going back as far as
-Python v1.5) then you need to use `SIP v3.x`_.
+This version of SIP generates bindings for Python v2.3 or later.
 
 There are many other similar tools available.  One of the original such tools
 is `SWIG <http://www.swig.org>`__ and, in fact, SIP is so called because it
@@ -116,26 +114,6 @@ SIP, and the bindings it produces, have the following features.
 
     - SIP, and the bindings it produces, runs under UNIX, Linux, Windows and
       MacOS/X
-
-
-SIP v3.x
---------
-
-SIP v3.x differs from current versions in the following respects.
-
-    - It uses Python's classic classes to wrap C++ classes (and so generated
-      bindings can be built against any version of Python).
-
-    - It does not support the creation of bindings for C libraries.
-
-    - It does not generate bindings that will work on MacOS/X.
-
-    - It is not formally documented.  However, most of this document does
-      apply to SIP v3.x - just don't be surprised if you come across something
-      that doesn't.
-
-New releases of SIP v3.x may be made in the future, but no significant
-development will be done.
 
 
 SIP Components
@@ -2424,7 +2402,7 @@ to return the C structure or C++ class instance to the heap.  The code is only
 called if ownership of the structure or class is with Python.
 
 The specified code must also handle the Python Global Interpreter Lock (GIL).
-If compatibility with `SIP v3.x`_ is required then the GIL must be released
+If compatibility with SIP v3.x is required then the GIL must be released
 immediately before the C++ call and reacquired immediately afterwards as shown
 in this example fragment::
 
@@ -2432,7 +2410,7 @@ in this example fragment::
     sipCpp -> foo();
     Py_END_ALLOW_THREADS
 
-If compatibility with `SIP v3.x`_ is not required then this is optional but
+If compatibility with SIP v3.x is not required then this is optional but
 should be done if the C++ function might block the current thread or take a
 significant amount of time to execute.  (See the ReleaseGIL_ annotation.)
 
@@ -3535,7 +3513,7 @@ void sipBadLengthForSlice(int seqlen, int slicelen)
 sipBuildResult()
 ----------------
 
-PyObject \*sipBuildResult(int \*iserr, char \*format, ...)
+PyObject \*sipBuildResult(int \*iserr, const char \*format, ...)
     This creates a Python object based on a format string and associated
     values in a similar way to the Python ``Py_BuildValue()`` function.  If
     there was an error then ``NULL`` is returned and a Python exception is
@@ -3687,7 +3665,7 @@ PyObject \*sipBuildResult(int \*iserr, char \*format, ...)
 sipCallMethod()
 ---------------
 
-PyObject \*sipCallMethod(int \*iserr, PyObject \*method, char \*format, ...)
+PyObject \*sipCallMethod(int \*iserr, PyObject \*method, const char \*format, ...)
     This calls a Python method passing a tuple of arguments based on a format
     string and associated values in a similar way to the Python
     ``PyObject_CallObject()`` function.  If there was an error then ``NULL`` is
@@ -3826,7 +3804,7 @@ sipConvertFromSliceObject()
 int sipConvertFromSliceObject(PyObject \*slice, int length, int \*start, int \*stop, int \*step, int \*slicelength)
     This is a thin wrapper around the Python ``PySlice_GetIndicesEx()``
     function provided to make it easier to write handwritten code that is
-    compatible with `SIP v3.x`_ and versions of Python earlier that v2.3.
+    compatible with SIP v3.x and versions of Python earlier that v2.3.
 
 
 sipConvertToCpp()
@@ -4077,7 +4055,7 @@ sipWrapperType \*sipMapStringToClass(char \*type, const sipStringTypeClassMap \*
 sipParseResult()
 ----------------
 
-int sipParseResult(int \*iserr, PyObject \*method, PyObject \*result, char \*format, ...)
+int sipParseResult(int \*iserr, PyObject \*method, PyObject \*result, const char \*format, ...)
     This converts a Python object (usually returned by a method) to C/C++ based
     on a format string and associated values in a similar way to the Python
     ``PyArg_ParseTuple()`` function.  If there was an error then a negative
