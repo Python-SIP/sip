@@ -1951,7 +1951,7 @@ rawarglist:	{
 
 argvalue:	TK_SIPSIGNAL optname optassign {
 			$$.atype = signal_type;
-			$$.argflags = 0;
+			$$.argflags = ARG_IS_CONST;
 			$$.nrderefs = 0;
 			$$.name = $2;
 			$$.defval = $3;
@@ -1960,7 +1960,7 @@ argvalue:	TK_SIPSIGNAL optname optassign {
 		}
 	|	TK_SIPSLOT optname optassign {
 			$$.atype = slot_type;
-			$$.argflags = 0;
+			$$.argflags = ARG_IS_CONST;
 			$$.nrderefs = 0;
 			$$.name = $2;
 			$$.defval = $3;
@@ -1969,7 +1969,7 @@ argvalue:	TK_SIPSIGNAL optname optassign {
 		}
 	|	TK_SIPANYSLOT optname optassign {
 			$$.atype = anyslot_type;
-			$$.argflags = 0;
+			$$.argflags = ARG_IS_CONST;
 			$$.nrderefs = 0;
 			$$.name = $2;
 			$$.defval = $3;
@@ -1994,7 +1994,7 @@ argvalue:	TK_SIPSIGNAL optname optassign {
 		}
 	|	TK_SIPSLOTCON '(' arglist ')' optname {
 			$$.atype = slotcon_type;
-			$$.argflags = 0;
+			$$.argflags = ARG_IS_CONST;
 			$$.nrderefs = 0;
 			$$.name = $5;
 
@@ -2009,7 +2009,7 @@ argvalue:	TK_SIPSIGNAL optname optassign {
 		}
 	|	TK_SIPSLOTDIS '(' arglist ')' optname {
 			$$.atype = slotdis_type;
-			$$.argflags = 0;
+			$$.argflags = ARG_IS_CONST;
 			$$.nrderefs = 0;
 			$$.name = $5;
 

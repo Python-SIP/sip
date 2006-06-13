@@ -10008,9 +10008,9 @@ void prcode(FILE *fp, const char *fmt, ...)
 
 			case 'L':
 				if (generating_c)
-					fprintf(fp, "static ");
+					fprintf(fp, "static");
 				else
-					fprintf(fp, "extern \"C\" ");
+					fprintf(fp, "extern \"C\"");
 
 				break;
 
