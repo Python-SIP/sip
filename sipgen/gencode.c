@@ -178,6 +178,7 @@ static void generateClassFromVoid(classDef *cd, const char *cname,
 		const char *vname, FILE *fp);
 static void generateMappedTypeFromVoid(mappedTypeDef *mtd, const char *cname,
 		const char *vname, FILE *fp);
+static int generateSubClassConvertors(sipSpec *pt, FILE *fp);
 
 
 /*
@@ -939,37 +940,7 @@ static void generateCpp(sipSpec *pt,char *codeDir,char *srcSuffix,int *parts)
 	/* Generate the module data structures. */
 	if (pt -> module -> nrclasses > 0)
 	{
-		/* Generate the sub-class convertors. */
-		for (cd = pt -> classes; cd != NULL; cd = cd -> next)
-		{
-			if (cd -> iff -> module != pt -> module)
-				continue;
-
-			if (cd -> convtosubcode == NULL)
-				continue;
-
-			prcode(fp,
-"\n"
-"\n"
-"/* Convert to a sub-class if possible. */\n"
-"%L sipWrapperType *sipSubClass_%C(void **sipCppRet)\n"
-"{\n"
-"	%S *sipCpp = reinterpret_cast<%S *>(*sipCppRet);\n"
-"	sipWrapperType *sipClass;\n"
-"\n"
-				,classFQCName(cd)
-				,classFQCName(cd -> subbase),classFQCName(cd -> subbase));
-
-			generateCppCodeBlock(cd -> convtosubcode,fp);
-
-			prcode(fp,
-"\n"
-"	return sipClass;\n"
-"}\n"
-				);
-
-			++nrSccs;
-		}
+		nrSccs = generateSubClassConvertors(pt, fp);
 
 		prcode(fp,
 "\n"
@@ -1706,6 +1677,57 @@ static void generateCpp(sipSpec *pt,char *codeDir,char *srcSuffix,int *parts)
 
 
 /*
+ * Generate all the sub-class convertors for a module.
+ */
+static int generateSubClassConvertors(sipSpec *pt, FILE *fp)
+{
+	int nrSccs = 0;
+	classDef *cd;
+
+	for (cd = pt->classes; cd != NULL; cd = cd->next)
+	{
+		if (cd->iff->module != pt->module)
+			continue;
+
+		if (cd->convtosubcode == NULL)
+			continue;
+
+		prcode(fp,
+"\n"
+"\n"
+"/* Convert to a sub-class if possible. */\n"
+			);
+
+		if (!generating_c)
+			prcode(fp,
+"extern \"C\" {static sipWrapperType *sipSubClass_%C(void **);}\n"
+				, classFQCName(cd));
+
+		prcode(fp,
+"static sipWrapperType *sipSubClass_%C(void **sipCppRet)\n"
+"{\n"
+"	%S *sipCpp = reinterpret_cast<%S *>(*sipCppRet);\n"
+"	sipWrapperType *sipClass;\n"
+"\n"
+			, classFQCName(cd)
+			, classFQCName(cd->subbase), classFQCName(cd->subbase));
+
+		generateCppCodeBlock(cd->convtosubcode, fp);
+
+		prcode(fp,
+"\n"
+"	return sipClass;\n"
+"}\n"
+			);
+
+		++nrSccs;
+	}
+
+	return nrSccs;
+}
+
+
+/*
  * Generate an entry for a class in the classes table and all its children.
  */
 static void generateClassTableEntries(sipSpec *pt, nodeDef *nd, FILE *fp)
@@ -1762,16 +1784,26 @@ static void generateOrdinaryFunction(sipSpec *pt,classDef *cd,memberDef *md,
 
 	if (cd != NULL)
 	{
+		if (!generating_c)
+			prcode(fp,
+"extern \"C\" {static PyObject *meth_%C_%s(PyObject *,PyObject *);}\n"
+				, classFQCName(cd), md->pyname->text);
+
 		prcode(fp,
-"%L PyObject *meth_%C_%s(PyObject *,PyObject *sipArgs)\n"
+"static PyObject *meth_%C_%s(PyObject *,PyObject *sipArgs)\n"
 			,classFQCName(cd),md -> pyname -> text);
 
 		od = cd -> overs;
 	}
 	else
 	{
+		if (!generating_c)
+			prcode(fp,
+"extern \"C\" {static PyObject *func_%s(PyObject *,PyObject *);}\n"
+				, md->pyname->text);
+
 		prcode(fp,
-"%L PyObject *func_%s(PyObject *%s,PyObject *sipArgs)\n"
+"static PyObject *func_%s(PyObject *%s,PyObject *sipArgs)\n"
 			,md -> pyname -> text,(generating_c ? "sipSelf" : ""));
 
 		od = pt -> overs;
@@ -1929,7 +1961,15 @@ static void generateAccessFunctions(sipSpec *pt,classDef *cd,FILE *fp)
 "\n"
 "\n"
 "/* Access function. */\n"
-"%L void *access_%C()\n"
+			);
+
+		if (!generating_c)
+			prcode(fp,
+"extern \"C\" {static void *access_%C();}\n"
+			, vd->fqcname);
+
+		prcode(fp,
+"static void *access_%C()\n"
 "{\n"
 			,vd -> fqcname);
 
@@ -2736,7 +2776,15 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd,FILE *fp)
 "\n"
 "\n"
 "/* Call the mapped type's destructor. */\n"
-"%L void release_%T(void *ptr, int%s)\n"
+		);
+
+	if (!generating_c)
+		prcode(fp,
+"extern \"C\" {static void release_%T(void *, int);}\n"
+			, &mtd->type);
+
+	prcode(fp,
+"static void release_%T(void *ptr, int%s)\n"
 "{\n"
 		, &mtd->type, (generating_c ? " status" : ""));
 
@@ -2773,7 +2821,15 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd,FILE *fp)
 	prcode(fp,
 "\n"
 "\n"
-"%L PyObject *convertFrom_%T(void *sipCppV,PyObject *%s)\n"
+		);
+
+	if (!generating_c)
+		prcode(fp,
+"extern \"C\" {static PyObject *convertFrom_%T(void *, PyObject *);}\n"
+			, &mtd->type);
+
+	prcode(fp,
+"static PyObject *convertFrom_%T(void *sipCppV,PyObject *%s)\n"
 "{\n"
 "	", &mtd->type, (need_xfer ? "sipTransferObj" : ""));
 
@@ -3110,7 +3166,15 @@ static void generateConvertToDefinitions(mappedTypeDef *mtd,classDef *cd,
 		prcode(fp,
 "\n"
 "\n"
-"%L int convertTo_%T(PyObject *sipPy,void **%s,int *sipIsErr,PyObject *%s)\n"
+			);
+
+		if (!generating_c)
+			prcode(fp,
+"extern \"C\" {static int convertTo_%T(PyObject *, void **, int *, PyObject *);}\n"
+				, &type);
+
+		prcode(fp,
+"static int convertTo_%T(PyObject *sipPy,void **%s,int *sipIsErr,PyObject *%s)\n"
 "{\n"
 			, &type, (need_ptr ? "sipCppPtrV" : ""), (need_xfer ? "sipTransferObj" : ""));
 
@@ -3136,7 +3200,15 @@ static void generateConvertToDefinitions(mappedTypeDef *mtd,classDef *cd,
 	prcode(fp,
 "\n"
 "\n"
-"%L void *forceConvertTo_%T(PyObject *valobj,int *iserrp)\n"
+		);
+
+	if (!generating_c)
+		prcode(fp,
+"extern \"C\" {static void *forceConvertTo_%T(PyObject *, int *);}\n"
+			, &type);
+
+	prcode(fp,
+"static void *forceConvertTo_%T(PyObject *valobj,int *iserrp)\n"
 "{\n"
 "	if (*iserrp || valobj == NULL)\n"
 "		return NULL;\n"
@@ -3198,7 +3270,15 @@ static void generateVariableHandler(varDef *vd,FILE *fp)
 	prcode(fp,
 "\n"
 "\n"
-"%L PyObject *var_%C(PyObject *%s,PyObject *sipPy)\n"
+		);
+
+	if (!generating_c)
+		prcode(fp,
+"extern \"C\" {static PyObject *var_%C(PyObject *, PyObject *);}\n"
+			, vd->fqcname);
+
+	prcode(fp,
+"static PyObject *var_%C(PyObject *%s,PyObject *sipPy)\n"
 "{\n"
 		,vd -> fqcname,(isStaticVar(vd) ? "" : "sipSelf"));
 
@@ -3962,7 +4042,22 @@ static void generateSlot(sipSpec *pt, classDef *cd, enumDef *ed, memberDef *md, 
 	prcode(fp,
 "\n"
 "\n"
-"%L %sslot_", ret_type);
+		);
+
+	if (!generating_c)
+	{
+		prcode(fp,
+"extern \"C\" {static %sslot_", ret_type);
+
+		if (fqcname != NULL)
+			prcode(fp, "%C_", fqcname);
+
+		prcode(fp, "%s(%s);}\n"
+			, md->pyname->text, arg_str);
+	}
+
+	prcode(fp,
+"static %sslot_", ret_type);
 
 	if (fqcname != NULL)
 		prcode(fp, "%C_", fqcname);
@@ -4118,7 +4213,15 @@ static void generateClassFunctions(sipSpec *pt,classDef *cd,FILE *fp)
 "\n"
 "\n"
 "/* Cast a pointer to a type somewhere in its superclass hierarchy. */\n"
-"%L void *cast_%C(void *ptr,sipWrapperType *targetClass)\n"
+			);
+
+		if (!generating_c)
+			prcode(fp,
+"extern \"C\" {static void *cast_%C(void *, sipWrapperType *);}\n"
+				, classFQCName(cd));
+
+		prcode(fp,
+"static void *cast_%C(void *ptr,sipWrapperType *targetClass)\n"
 "{\n"
 			,classFQCName(cd));
 
@@ -4165,7 +4268,15 @@ static void generateClassFunctions(sipSpec *pt,classDef *cd,FILE *fp)
 "\n"
 "\n"
 "/* Call the instance's destructor. */\n"
-"%L void release_%C(void *%s,int%s)\n"
+			);
+
+		if (!generating_c)
+			prcode(fp,
+"extern \"C\" {static void release_%C(void *, int);}\n"
+				, classFQCName(cd));
+
+		prcode(fp,
+"static void release_%C(void *%s,int%s)\n"
 "{\n"
 			, classFQCName(cd), (need_ptr ? "ptr" : ""), (need_state ? " state" : ""));
 
@@ -4213,7 +4324,15 @@ static void generateClassFunctions(sipSpec *pt,classDef *cd,FILE *fp)
 		prcode(fp,
 "\n"
 "\n"
-"%L int traverse_%C(void *sipCppV,visitproc sipVisit,void *sipArg)\n"
+			);
+
+		if (!generating_c)
+			prcode(fp,
+"extern \"C\" {static int traverse_%C(void *, visitproc, void *);}\n"
+				, classFQCName(cd));
+
+		prcode(fp,
+"static int traverse_%C(void *sipCppV,visitproc sipVisit,void *sipArg)\n"
 "{\n"
 "	", classFQCName(cd));
 
@@ -4239,7 +4358,15 @@ static void generateClassFunctions(sipSpec *pt,classDef *cd,FILE *fp)
 		prcode(fp,
 "\n"
 "\n"
-"%L int clear_%C(void *sipCppV)\n"
+			);
+
+		if (!generating_c)
+			prcode(fp,
+"extern \"C\" {static int clear_%C(void *);}\n"
+				, classFQCName(cd));
+
+		prcode(fp,
+"static int clear_%C(void *sipCppV)\n"
 "{\n"
 "	", classFQCName(cd));
 
@@ -4265,7 +4392,15 @@ static void generateClassFunctions(sipSpec *pt,classDef *cd,FILE *fp)
 		prcode(fp,
 "\n"
 "\n"
-"%L int getreadbuffer_%C(PyObject *%s, void *sipCppV, int %s, void **%s)\n"
+			);
+
+		if (!generating_c)
+			prcode(fp,
+"extern \"C\" {static int getreadbuffer_%C(PyObject *, void *, int, void **);}\n"
+				, classFQCName(cd));
+
+		prcode(fp,
+"static int getreadbuffer_%C(PyObject *%s, void *sipCppV, int %s, void **%s)\n"
 "{\n"
 "	", classFQCName(cd)
 	 , argName("sipSelf", cd->readbufcode)
@@ -4293,7 +4428,15 @@ static void generateClassFunctions(sipSpec *pt,classDef *cd,FILE *fp)
 		prcode(fp,
 "\n"
 "\n"
-"%L int getwritebuffer_%C(PyObject *%s, void *sipCppV, int %s, void **%s)\n"
+			);
+
+		if (!generating_c)
+			prcode(fp,
+"extern \"C\" {static int getwritebuffer_%C(PyObject *, void *, int, void **);}\n"
+				, classFQCName(cd));
+
+		prcode(fp,
+"static int getwritebuffer_%C(PyObject *%s, void *sipCppV, int %s, void **%s)\n"
 "{\n"
 "	", classFQCName(cd)
 	 , argName("sipSelf", cd->writebufcode)
@@ -4321,7 +4464,15 @@ static void generateClassFunctions(sipSpec *pt,classDef *cd,FILE *fp)
 		prcode(fp,
 "\n"
 "\n"
-"%L int getsegcount_%C(PyObject *%s, void *sipCppV, int *%s)\n"
+			);
+
+		if (!generating_c)
+			prcode(fp,
+"extern \"C\" {static int getsegcount_%C(PyObject *, void *, int *);}\n"
+				, classFQCName(cd));
+
+		prcode(fp,
+"static int getsegcount_%C(PyObject *%s, void *sipCppV, int *%s)\n"
 "{\n"
 "	", classFQCName(cd)
 	 , argName("sipSelf", cd->segcountcode)
@@ -4348,7 +4499,15 @@ static void generateClassFunctions(sipSpec *pt,classDef *cd,FILE *fp)
 		prcode(fp,
 "\n"
 "\n"
-"%L int getcharbuffer_%C(PyObject *%s, void *sipCppV, int %s, void **%s)\n"
+			);
+
+		if (!generating_c)
+			prcode(fp,
+"extern \"C\" {static int getcharbuffer_%C(PyObject *, void *, int, void **);}\n"
+				, classFQCName(cd));
+
+		prcode(fp,
+"static int getcharbuffer_%C(PyObject *%s, void *sipCppV, int %s, void **%s)\n"
 "{\n"
 "	", classFQCName(cd)
 	 , argName("sipSelf", cd->charbufcode)
@@ -4377,7 +4536,15 @@ static void generateClassFunctions(sipSpec *pt,classDef *cd,FILE *fp)
 		prcode(fp,
 "\n"
 "\n"
-"%L void dealloc_%C(sipWrapper *sipSelf)\n"
+			);
+
+		if (!generating_c)
+			prcode(fp,
+"extern \"C\" {static void dealloc_%C(sipWrapper *);}\n"
+				, classFQCName(cd));
+
+		prcode(fp,
+"static void dealloc_%C(sipWrapper *sipSelf)\n"
 "{\n"
 			,classFQCName(cd));
 
@@ -5128,13 +5295,20 @@ static void generateEmitter(sipSpec *pt,classDef *cd,visibleList *vl,FILE *fp)
 "	return -1;\n"
 "}\n"
 "\n"
-"%L int %C_emit_%s(sipWrapper *w,PyObject *sipArgs)\n"
+		, cd->iff->name, vl->m->pyname);
+
+	if (!generating_c)
+		prcode(fp,
+"extern \"C\" {static int %C_emit_%s(sipWrapper *, PyObject *);}\n"
+			, classFQCName(cd), pname);
+
+	prcode(fp,
+"static int %C_emit_%s(sipWrapper *w,PyObject *sipArgs)\n"
 "{\n"
 "	sip%C *ptr = reinterpret_cast<sip%C *>(sipGetComplexCppPtr(w));\n"
 "\n"
 "	return (ptr ? ptr -> sipEmit_%s(sipArgs) : -1);\n"
 "}\n"
-		,cd -> iff -> name,vl -> m -> pyname
 		,classFQCName(cd),pname
 		,classFQCName(cd),classFQCName(cd)
 		,pname);
@@ -7612,7 +7786,15 @@ static void generateTypeInit(sipSpec *pt, classDef *cd, FILE *fp)
 	prcode(fp,
 "\n"
 "\n"
-"%L void *init_%C(sipWrapper *%s,PyObject *sipArgs,sipWrapper **%s,int *sipArgsParsed)\n"
+		);
+
+	if (!generating_c)
+		prcode(fp,
+"extern \"C\" {static void *init_%C(sipWrapper *, PyObject *, sipWrapper **, int *);}\n"
+			, classFQCName(cd));
+
+	prcode(fp,
+"static void *init_%C(sipWrapper *%s,PyObject *sipArgs,sipWrapper **%s,int *sipArgsParsed)\n"
 "{\n"
 		,classFQCName(cd),(need_self ? "sipSelf" : ""),(need_owner ? "sipOwner" : ""));
 
@@ -8026,7 +8208,15 @@ static void generateFunction(sipSpec *pt,memberDef *md,overDef *overs,
 		prcode(fp,
 "\n"
 "\n"
-"%L PyObject *meth_%C_%s(PyObject *%s,PyObject *%s)\n"
+			);
+
+		if (!generating_c)
+			prcode(fp,
+"extern \"C\" {static PyObject *meth_%C_%s(PyObject *, PyObject *);}\n"
+			, classFQCName(cd), pname);
+
+		prcode(fp,
+"static PyObject *meth_%C_%s(PyObject *%s,PyObject *%s)\n"
 "{\n"
 			,classFQCName(cd),pname,(need_self ? "sipSelf" : ""),(need_args ? "sipArgs" : ""));
 
@@ -10004,14 +10194,6 @@ void prcode(FILE *fp, const char *fmt, ...)
 
 			case 'X':
 				generateThrowSpecifier(va_arg(ap,throwArgs *),fp);
-				break;
-
-			case 'L':
-				if (generating_c)
-					fprintf(fp, "static");
-				else
-					fprintf(fp, "extern \"C\"");
-
 				break;
 
 			default:
