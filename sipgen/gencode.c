@@ -1552,11 +1552,11 @@ static void generateCpp(sipSpec *pt,char *codeDir,char *srcSuffix,int *parts)
 
 	prcode(fp,
 "	/* Initialise the module and get it's dictionary. */\n"
-"	sipModule = Py_InitModule(sipModuleAPI_%s.em_name,sip_methods);\n"
+"	sipModule = Py_InitModule((char *)sipModuleAPI_%s.em_name,sip_methods);\n"
 "	sipModuleDict = PyModule_GetDict(sipModule);\n"
 "\n"
 "	/* Import the SIP module and get it's API. */\n"
-"	sip_sipmod = PyImport_ImportModule(\"sip\");\n"
+"	sip_sipmod = PyImport_ImportModule((char *)\"sip\");\n"
 "\n"
 "	if (sip_sipmod == NULL)\n"
 "		return;\n"
@@ -1621,7 +1621,7 @@ static void generateCpp(sipSpec *pt,char *codeDir,char *srcSuffix,int *parts)
 
 		prcode(fp,
 "\n"
-"	if ((exceptionsTable[%d] = PyErr_NewException(\"%s.%s\",", xd->exceptionnr, xd->iff->module->name, xd->pyname);
+"	if ((exceptionsTable[%d] = PyErr_NewException((char *)\"%s.%s\",", xd->exceptionnr, xd->iff->module->name, xd->pyname);
 
 		if (xd->bibase != NULL)
 			prcode(fp, "PyExc_%s", xd->bibase);

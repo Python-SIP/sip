@@ -426,7 +426,7 @@ typedef struct _sipDelayedDtor {
  * The information describing an imported module.
  */
 typedef struct _sipImportedModuleDef {
-	char *im_name;			/* The module name. */
+	const char *im_name;		/* The module name. */
 	int im_version;			/* The required version. */
 	struct _sipExportedModuleDef *im_module;	/* The imported module. */
 } sipImportedModuleDef;
@@ -438,7 +438,7 @@ typedef struct _sipImportedModuleDef {
 typedef struct _sipExportedModuleDef {
 	struct _sipExportedModuleDef *em_next;	/* The next in the list. */
 	unsigned em_api_minor;		/* The SIP API minor version number. */
-	char *em_name;			/* The module name. */
+	const char *em_name;		/* The module name. */
 	PyObject *em_nameobj;		/* The module name as an object. */
 	int em_version;			/* The module version. */
 	sipImportedModuleDef *em_imports;	/* The imported modules. */
@@ -469,10 +469,10 @@ typedef struct _sipExportedModuleDef {
  * The information describing a license to be added to a dictionary.
  */
 typedef struct _sipLicenseDef {
-	char *lc_type;			/* The type of license. */
-	char *lc_licensee;		/* The licensee. */
-	char *lc_timestamp;		/* The timestamp. */
-	char *lc_signature;		/* The signature. */
+	const char *lc_type;		/* The type of license. */
+	const char *lc_licensee;	/* The licensee. */
+	const char *lc_timestamp;	/* The timestamp. */
+	const char *lc_signature;	/* The signature. */
 } sipLicenseDef;
 
 
@@ -481,7 +481,7 @@ typedef struct _sipLicenseDef {
  * dictionary.
  */
 typedef struct _sipVoidPtrInstanceDef {
-	char *vi_name;			/* The void pointer name. */
+	const char *vi_name;		/* The void pointer name. */
 	void *vi_val;			/* The void pointer value. */
 } sipVoidPtrInstanceDef;
 
@@ -490,7 +490,7 @@ typedef struct _sipVoidPtrInstanceDef {
  * The information describing a char instance to be added to a dictionary.
  */
 typedef struct _sipCharInstanceDef {
-	char *ci_name;			/* The char name. */
+	const char *ci_name;		/* The char name. */
 	char ci_val;			/* The char value. */
 } sipCharInstanceDef;
 
@@ -499,8 +499,8 @@ typedef struct _sipCharInstanceDef {
  * The information describing a string instance to be added to a dictionary.
  */
 typedef struct _sipStringInstanceDef {
-	char *si_name;			/* The string name. */
-	char *si_val;			/* The string value. */
+	const char *si_name;		/* The string name. */
+	const char *si_val;		/* The string value. */
 } sipStringInstanceDef;
 
 
@@ -508,7 +508,7 @@ typedef struct _sipStringInstanceDef {
  * The information describing an int instance to be added to a dictionary.
  */
 typedef struct _sipIntInstanceDef {
-	char *ii_name;			/* The int name. */
+	const char *ii_name;		/* The int name. */
 	int ii_val;			/* The int value. */
 } sipIntInstanceDef;
 
@@ -517,7 +517,7 @@ typedef struct _sipIntInstanceDef {
  * The information describing a long instance to be added to a dictionary.
  */
 typedef struct _sipLongInstanceDef {
-	char *li_name;			/* The long name. */
+	const char *li_name;		/* The long name. */
 	long li_val;			/* The long value. */
 } sipLongInstanceDef;
 
@@ -527,7 +527,7 @@ typedef struct _sipLongInstanceDef {
  * dictionary.
  */
 typedef struct _sipUnsignedLongInstanceDef {
-	char *uli_name;			/* The unsigned long name. */
+	const char *uli_name;		/* The unsigned long name. */
 	unsigned long uli_val;		/* The unsigned long value. */
 } sipUnsignedLongInstanceDef;
 
@@ -536,7 +536,7 @@ typedef struct _sipUnsignedLongInstanceDef {
  * The information describing a long long instance to be added to a dictionary.
  */
 typedef struct _sipLongLongInstanceDef {
-	char *lli_name;			/* The long long name. */
+	const char *lli_name;		/* The long long name. */
 #if defined(HAVE_LONG_LONG)
 	PY_LONG_LONG lli_val;		/* The long long value. */
 #else
@@ -550,7 +550,7 @@ typedef struct _sipLongLongInstanceDef {
  * dictionary.
  */
 typedef struct _sipUnsignedLongLongInstanceDef {
-	char *ulli_name;		/* The unsigned long long name. */
+	const char *ulli_name;		/* The unsigned long long name. */
 #if defined(HAVE_LONG_LONG)
 	unsigned PY_LONG_LONG ulli_val;	/* The unsigned long long value. */
 #else
@@ -563,7 +563,7 @@ typedef struct _sipUnsignedLongLongInstanceDef {
  * The information describing a double instance to be added to a dictionary.
  */
 typedef struct _sipDoubleInstanceDef {
-	char *di_name;			/* The double name. */
+	const char *di_name;		/* The double name. */
 	double di_val;			/* The double value. */
 } sipDoubleInstanceDef;
 
@@ -572,7 +572,7 @@ typedef struct _sipDoubleInstanceDef {
  * The information describing a class instance to be added to a dictionary.
  */
 typedef struct _sipClassInstanceDef {
-	char *ci_name;			/* The class instance name. */
+	const char *ci_name;		/* The class instance name. */
 	void *ci_ptr;			/* The actual instance. */
 	struct _sipWrapperType **ci_type;	/* A pointer to the Python type. */
 	int ci_flags;			/* The wrapping flags. */
@@ -583,7 +583,7 @@ typedef struct _sipClassInstanceDef {
  * The information describing an enum instance to be added to a dictionary.
  */
 typedef struct _sipEnumInstanceDef {
-	char *ei_name;			/* The enum instance name. */
+	const char *ei_name;		/* The enum instance name. */
 	int ei_val;			/* The enum value. */
 	PyTypeObject **ei_type;		/* A pointer to the Python type. */
 } sipEnumInstanceDef;
@@ -594,7 +594,7 @@ typedef struct _sipEnumInstanceDef {
  * corresponding Python type.
  */
 typedef struct _sipStringTypeClassMap {
-	char *typeString;		/* The type as a string. */
+	const char *typeString;		/* The type as a string. */
 	struct _sipWrapperType **pyType;	/* A pointer to the Python type. */
 } sipStringTypeClassMap;
 
@@ -767,7 +767,7 @@ typedef struct _sipAPIDef {
 	 */
 	int (*api_parse_args)(int *argsParsedp, PyObject *sipArgs,
 			const char *fmt, ...);
-	int (*api_parse_pair)(int *argsParsedp,PyObject *arg0,PyObject *arg1,char *fmt,...);
+	int (*api_parse_pair)(int *argsParsedp, PyObject *arg0, PyObject *arg1, const char *fmt, ...);
 	void (*api_common_ctor)(sipMethodCache *cache,int nrmeths);
 	void (*api_common_dtor)(sipWrapper *sipSelf);
 	void *(*api_convert_to_void_ptr)(PyObject *obj);
@@ -779,7 +779,7 @@ typedef struct _sipAPIDef {
 	void *(*api_get_cpp_ptr)(sipWrapper *w,sipWrapperType *type);
 	void *(*api_get_complex_cpp_ptr)(sipWrapper *w);
 	PyObject *(*api_is_py_method)(sip_gilstate_t *gil,sipMethodCache *pymc,sipWrapper *sipSelf,char *cname,char *mname);
-	void (*api_call_hook)(char *hookname);
+	void (*api_call_hook)(const char *hookname);
 	void (*api_start_thread)(void);
 	void (*api_end_thread)(void);
 	void (*api_raise_unknown_exception)(void);

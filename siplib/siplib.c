@@ -94,7 +94,7 @@ static void *sip_api_get_complex_cpp_ptr(sipWrapper *w);
 static PyObject *sip_api_is_py_method(sip_gilstate_t *gil,sipMethodCache *pymc,
 				      sipWrapper *sipSelf,char *cname,
 				      char *mname);
-static void sip_api_call_hook(char *hookname);
+static void sip_api_call_hook(const char *hookname);
 static void sip_api_raise_unknown_exception(void);
 static void sip_api_raise_class_exception(sipWrapperType *type,void *ptr);
 static void sip_api_raise_sub_class_exception(sipWrapperType *type,void *ptr);
@@ -4886,7 +4886,7 @@ void sipSaveMethod(sipPyMethod *pm,PyObject *meth)
 /*
  * Call a hook.
  */
-static void sip_api_call_hook(char *hookname)
+static void sip_api_call_hook(const char *hookname)
 {
 	PyObject *dictofmods, *mod, *dict, *hook, *res;
  

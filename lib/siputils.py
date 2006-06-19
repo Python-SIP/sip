@@ -1301,6 +1301,11 @@ class ModuleMakefile(Makefile):
                 if self._limit_exports:
                     if sys.platform[:5] == 'linux':
                         self.LFLAGS.extend(['-Wl,--version-script=%s.exp' % self._target])
+                    elif sys.platform[:5] == 'sunos':
+                        if self.required_string('LINK') == 'g++':
+                            self.LFLAGS.extend(['-Wl,-z,noversion', '-Wl,-M,%s.exp' % self._target])
+                        else:
+                            self.LFLAGS.extend(['-z' 'noversion', '-M', '%s.exp' % self._target])
                     elif sys.platform[:5] == 'hp-ux':
                         self.LFLAGS.extend(['-Wl,+e,init%s' % self._target])
                     elif sys.platform[:5] == 'irix' and self.required_string('LINK') != 'g++':
@@ -1416,8 +1421,10 @@ class ModuleMakefile(Makefile):
                     mfile.write("\t$(RANLIB) $(TARGET)\n")
             else:
                 if self._limit_exports:
-                    # Create an export file for AIX and Linux.
+                    # Create an export file for AIX, Linux and Solaris.
                     if sys.platform[:5] == 'linux':
+                        mfile.write("\t@echo '{ global: init%s; local: *; };' > %s.exp\n" % (self._target, self._target))
+                    elif sys.platform[:5] == 'sunos':
                         mfile.write("\t@echo '{ global: init%s; local: *; };' > %s.exp\n" % (self._target, self._target))
                     elif sys.platform[:3] == 'aix':
                         mfile.write("\t@echo '#!' >%s.exp" % self._target)
@@ -1453,8 +1460,10 @@ class ModuleMakefile(Makefile):
         mfile.write("\nclean:\n")
         self.clean_build_file_objects(mfile, self._build)
 
-        # Remove any export file on AIX and Linux.
-        if self._limit_exports and (sys.platform[:5] == 'linux' or sys.platform[:3] == 'aix'):
+        # Remove any export file on AIX, Linux and Solaris.
+        if self._limit_exports and (sys.platform[:5] == 'linux' or
+                                    sys.platform[:5] == 'sunos' or
+                                    sys.platform[:3] == 'aix'):
             mfile.write("\t-%s %s.exp\n" % (self.rm, self._target))
 
 
