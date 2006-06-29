@@ -231,7 +231,7 @@ def create_config(module, template, macros):
     siputils.inform("Creating %s..." % module)
 
     content = {
-        "sip_config_args":  sys.argv,
+        "sip_config_args":  sys.argv[1:],
         "sip_version":      sip_version,
         "sip_version_str":  sip_version_str,
         "platform":         opt_platform,
