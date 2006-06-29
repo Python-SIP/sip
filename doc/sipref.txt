@@ -4448,6 +4448,9 @@ voidptr
     __int__()
         This returns the pointer as an integer.
 
+    __hex__()
+        This returns the pointer as a hexadecimal string.
+
     ascobject()
         This returns the pointer as a Python CObject.
 
@@ -4681,6 +4684,10 @@ Configuration
 
         sip_bin
             The full pathname of the SIP executable.
+
+        sip_config_args
+            The command line passed to ``configure.py`` when SIP was
+            configured.
 
         sip_inc_dir
             The name of the directory containing the ``sip.h`` header file.

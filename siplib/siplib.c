@@ -5345,6 +5345,19 @@ static PyObject *sipVoidPtr_int(sipVoidPtr *v)
 
 
 /*
+ * Implement hex() for the type.
+ */
+static PyObject *sipVoidPtr_hex(sipVoidPtr *v)
+{
+	char buf[2 + 16 + 1];
+
+	PyOS_snprintf(buf, sizeof (buf), "0x%.*lx", (int)(sizeof (void *) * 2), (unsigned long)v->voidptr);
+
+	return PyString_FromString(buf);
+}
+
+
+/*
  * Implement ascobject() for the type.
  */
 static PyObject *sipVoidPtr_ascobject(sipVoidPtr *v, PyObject *arg)
@@ -5396,6 +5409,10 @@ PyNumberMethods sipVoidPtr_NumberMethods = {
 	0,						/* nb_or */
 	0,						/* nb_coerce */
 	(unaryfunc)sipVoidPtr_int,			/* nb_int */
+	0,						/* nb_long */
+	0,						/* nb_float */
+	0,						/* nb_oct */
+	(unaryfunc)sipVoidPtr_hex,			/* nb_hex */
 };
 
 
