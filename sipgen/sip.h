@@ -927,8 +927,9 @@ extern stringList *includeDirList;	/* The include directory list for SIP files. 
 void parse(sipSpec *,FILE *,char *,stringList *,stringList *);
 void parserEOF(char *,parserContext *);
 void transform(sipSpec *);
-void generateCode(sipSpec *,char *,char *,char *,char *,char *,int,int,int,int,stringList *);
-void generateXML(sipSpec *pt, const char *xml);
+void generateCode(sipSpec *,char *,char *,char *,char *,int,int,int,int,stringList *);
+void generateAPI(sipSpec *pt, const char *apiFile, int omit_name);
+void generateXML(sipSpec *pt, const char *xmlFile);
 void generateExpression(valueDef *vd, FILE *fp);
 void warning(char *,...);
 void fatal(char *,...);

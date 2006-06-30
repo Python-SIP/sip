@@ -783,10 +783,11 @@ The full set of command line options is:
 -h      Display a help message.
 -V      Display the SIP version number.
 -a file
-        The name of the Scintilla API file to generate.  This file contains a
-        description of the module API in a form that the Scintilla editor
-        component can use for auto-completion and call tips.  By default the
-        file is not generated.
+        The name of the QScintilla API file to generate.  This file contains a
+        description of the module API in a form that the QScintilla editor
+        component can use for auto-completion and call tips.  (The file may
+        also be used by the SciTE editor but must be sorted first.)  By default
+        the file is not generated.
 -b file
         The name of the build file to generate.  This file contains the
         information about the module needed by the SIP build system to generate
@@ -798,7 +799,7 @@ The full set of command line options is:
         The name of the documentation file to generate.  Documentation is
         included in specification files using the `%Doc`_ and `%ExportedDoc`_
         directives.  By default the file is not generated.
--e      Support for C++ exceptions is enabled.  The causes all calls to C++
+-e      Support for C++ exceptions is enabled.  This causes all calls to C++
         code to be enclosed in ``try``/``catch`` blocks and C++ exceptions to
         be converted to Python exceptions.  By default exception support is
         disabled.
@@ -810,6 +811,9 @@ The full set of command line options is:
         it easier to use the parallel build facility of most modern
         implementations of ``make``.  By default 1 file is generated for each C
         structure or C++ class.
+-n      The QScintilla API file created using the ``-a`` command line option
+        normally includes the module name as a prefix to all elements of the
+        API.  This causes the module name to be omitted.
 -r      Debugging statements that trace the execution of the bindings are
         automatically generated.  By default the statements are not generated.
 -s suffix

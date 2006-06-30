@@ -1,6 +1,8 @@
 v4.5 ??? ???? 2006
   - Added sip_config_args to sipconfig.py.
   - sip.voidptr now implements __hex__().
+  - The generated API files are now more complete and use Python types rather
+    than C/C++ types.
 
 v4.4.5 10th June 2006
   - A bug fix release.

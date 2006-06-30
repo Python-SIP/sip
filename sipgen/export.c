@@ -1,5 +1,5 @@
 /*
- * The XML export file generator module for SIP.
+ * The XML and API file generator module for SIP.
  *
  * @BS_LICENSE@
  */
@@ -13,6 +13,13 @@
 #define	XML_VERSION_NR	0		/* The schema version number. */
 
 
+static void apiEnums(sipSpec *pt, const char *mname, classDef *scope, FILE *fp);
+static void apiVars(sipSpec *pt, const char *mname, classDef *scope, FILE *fp);
+static int apiCtor(const char *mname, classDef *scope, ctorDef *ct, int sec,
+		FILE *fp);
+static int apiOverload(const char *mname, classDef *scope, overDef *od,
+		int sec, FILE *fp);
+static int apiArgument(argDef *ad, int out, int need_comma, int sec, FILE *fp);
 static void xmlClass(sipSpec *pt, classDef *cd, FILE *fp);
 static void xmlEnums(sipSpec *pt, classDef *scope, int indent, FILE *fp);
 static void xmlVars(sipSpec *pt, classDef *scope, int indent, FILE *fp);
@@ -27,6 +34,285 @@ static void xmlArgument(argDef *ad, const char *dir, int res_xfer, int sec,
 static void xmlType(argDef *ad, int sec, FILE *fp);
 static void xmlIndent(int indent, FILE *fp);
 static const char *dirAttribute(argDef *ad);
+static void exportDefaultValue(argDef *ad, FILE *fp);
+static const char *pyType(argDef *ad, int sec, classDef **scope);
+
+
+/*
+ * Generate the API file.
+ */
+void generateAPI(sipSpec *pt, const char *apiFile, int omit_name)
+{
+	const char *mname;
+	overDef *od;
+	classDef *cd;
+	FILE *fp;
+
+	/* Generate the file. */
+	if ((fp = fopen(apiFile, "w")) == NULL)
+		fatal("Unable to create file \"%s\"\n", apiFile);
+
+	mname = (omit_name ? NULL : pt->module->name);
+
+	apiEnums(pt, mname, NULL, fp);
+	apiVars(pt, mname, NULL, fp);
+
+	for (od = pt->overs; od != NULL; od = od->next)
+	{
+		if (od->common->slot != no_slot)
+			continue;
+
+		if (apiOverload(mname, NULL, od, FALSE, fp))
+			apiOverload(mname, NULL, od, TRUE, fp);
+	}
+
+	for (cd = pt->classes; cd != NULL; cd = cd->next)
+	{
+		ctorDef *ct;
+
+		if (cd->iff->module != pt->module)
+			continue;
+
+		if (isExternal(cd))
+			continue;
+
+		apiEnums(pt, mname, cd, fp);
+		apiVars(pt, mname, cd, fp);
+
+		for (ct = cd->ctors; ct != NULL; ct = ct->next)
+		{
+			if (isPrivateCtor(ct))
+				continue;
+
+			if (apiCtor(mname, cd, ct, FALSE, fp))
+				apiCtor(mname, cd, ct, TRUE, fp);
+		}
+
+		for (od = cd->overs; od != NULL; od = od->next)
+		{
+			if (isPrivate(od))
+				continue;
+
+			if (od->common->slot != no_slot)
+				continue;
+
+			if (apiOverload(mname, cd, od, FALSE, fp))
+				apiOverload(mname, cd, od, TRUE, fp);
+		}
+	}
+
+	fclose(fp);
+}
+
+
+/*
+ * Generate an API ctor.
+ */
+static int apiCtor(const char *mname, classDef *scope, ctorDef *ct, int sec,
+		FILE *fp)
+{
+	int need_sec = FALSE, need_comma, a;
+
+	if (mname != NULL)
+		fprintf(fp, "%s.", mname);
+
+	prScopedPythonName(fp, scope->ecd, scope->pyname);
+	fprintf(fp, "(");
+
+	need_comma = FALSE;
+
+	for (a = 0; a < ct->pysig.nrArgs; ++a)
+	{
+		argDef *ad = &ct->pysig.args[a];
+
+		need_comma = apiArgument(ad, FALSE, need_comma, sec, fp);
+
+		if (ad->atype == rxcon_type || ad->atype == rxdis_type)
+			need_sec = TRUE;
+	}
+
+	fprintf(fp, ")\n");
+
+	return need_sec;
+}
+
+
+/*
+ * Generate the APIs for all the enums in a scope.
+ */
+static void apiEnums(sipSpec *pt, const char *mname, classDef *scope, FILE *fp)
+{
+	enumDef *ed;
+
+	for (ed = pt->enums; ed != NULL; ed = ed->next)
+	{
+		enumMemberDef *emd;
+
+		if (ed->module != pt->module)
+			continue;
+
+		if (ed->ecd != scope)
+			continue;
+
+		if (ed->pyname != NULL)
+		{
+			if (mname != NULL)
+				fprintf(fp, "%s.", mname);
+
+			prScopedPythonName(fp, ed->ecd, ed->pyname->text);
+
+			fprintf(fp, "\n");
+		}
+
+		for (emd = ed->members; emd != NULL; emd = emd->next)
+		{
+			if (mname != NULL)
+				fprintf(fp, "%s.", mname);
+
+			prScopedPythonName(fp, ed->ecd, emd->pyname->text);
+
+			fprintf(fp, "\n");
+		}
+	}
+}
+
+
+/*
+ * Generate the APIs for all the variables in a scope.
+ */
+static void apiVars(sipSpec *pt, const char *mname, classDef *scope, FILE *fp)
+{
+	varDef *vd;
+
+	for (vd = pt->vars; vd != NULL; vd = vd->next)
+	{
+		if (vd->module != pt->module)
+			continue;
+
+		if (vd->ecd != scope)
+			continue;
+
+		if (mname != NULL)
+			fprintf(fp, "%s.", mname);
+
+		prScopedPythonName(fp, vd->ecd, vd->pyname->text);
+
+		fprintf(fp, "\n");
+	}
+}
+
+
+/*
+ * Generate a single API overload.
+ */
+static int apiOverload(const char *mname, classDef *scope, overDef *od,
+		int sec, FILE *fp)
+{
+	int need_sec = FALSE, need_comma = FALSE, is_res, nr_out, a;
+
+	if (mname != NULL)
+		fprintf(fp, "%s.", mname);
+
+	prScopedPythonName(fp, scope, od->common->pyname->text);
+	fprintf(fp, "(");
+
+	if (scope != NULL && scope->iff->type != namespace_iface && !isStatic(od))
+	{
+		fprintf(fp, "self");
+		need_comma = TRUE;
+	}
+
+	nr_out = 0;
+
+	for (a = 0; a < od->pysig.nrArgs; ++a)
+	{
+		argDef *ad = &od->pysig.args[a];
+
+		if (isOutArg(ad))
+			++nr_out;
+
+		if (!isInArg(ad))
+			continue;
+
+		need_comma = apiArgument(ad, FALSE, need_comma, sec, fp);
+
+		if (ad->atype == rxcon_type || ad->atype == rxdis_type)
+			need_sec = TRUE;
+	}
+
+	fprintf(fp, ")");
+
+	is_res = (od->pysig.result.atype != void_type || od->pysig.result.nrderefs != 0);
+
+	if (is_res || nr_out > 0)
+	{
+		fprintf(fp, " -> ");
+
+		if ((is_res && nr_out > 0) || nr_out > 1)
+			fprintf(fp, "(");
+
+		if (is_res)
+			need_comma = apiArgument(&od->pysig.result, TRUE, FALSE, sec, fp);
+		else
+			need_comma = FALSE;
+
+		for (a = 0; a < od->pysig.nrArgs; ++a)
+		{
+			argDef *ad = &od->pysig.args[a];
+
+			if (!isOutArg(ad))
+				continue;
+
+			need_comma = apiArgument(ad, TRUE, need_comma, sec, fp);
+		}
+
+		if ((is_res && nr_out > 0) || nr_out > 1)
+			fprintf(fp, ")");
+	}
+
+	fprintf(fp, "\n");
+
+	return need_sec;
+}
+
+
+/*
+ * Generate the API for an argument.
+ */
+static int apiArgument(argDef *ad, int out, int need_comma, int sec, FILE *fp)
+{
+	const char *tname;
+	classDef *tscope;
+
+	if (isArraySize(ad))
+		return need_comma;
+
+	if (sec && (ad->atype == slotcon_type || ad->atype == slotdis_type))
+		return need_comma;
+
+	if ((tname = pyType(ad, sec, &tscope)) == NULL)
+		return need_comma;
+
+	if (need_comma)
+		fprintf(fp, ", ");
+
+	prScopedPythonName(fp, tscope, tname);
+
+	if (ad->name != NULL)
+		fprintf(fp, " %s", ad->name);
+
+	/*
+	 * Handle the default value, but ignore it if it is an output only
+	 * argument.
+	 */
+	if (ad->defval && out)
+	{
+		fprintf(fp, "=");
+		exportDefaultValue(ad, fp);
+	}
+
+	return TRUE;
+}
 
 
 /*
@@ -451,26 +737,8 @@ static void xmlArgument(argDef *ad, const char *dir, int res_xfer, int sec,
 	 */
 	if (ad->defval && (dir == NULL || strcmp(dir, "out") != 0))
 	{
-		int handled = FALSE;
-
 		prcode(fp, " default=\"%M");
-
-		/* Translate some special cases. */
-		if (ad->defval->next == NULL && ad->defval->vtype == numeric_value)
-			if (ad->nrderefs > 0 && ad->defval->u.vnum == 0)
-			{
-				prcode(fp, "None");
-				handled = TRUE;
-			}
-			else if (ad->atype == bool_type || ad->atype == cbool_type)
-			{
-				prcode(fp, ad->defval->u.vnum ? "True" : "False");
-				handled = TRUE;
-			}
-
-		if (!handled)
-			generateExpression(ad->defval, fp);
-
+		exportDefaultValue(ad, fp);
 		prcode(fp, "%M\"");
 	}
 
@@ -483,8 +751,8 @@ static void xmlArgument(argDef *ad, const char *dir, int res_xfer, int sec,
  */
 static void xmlType(argDef *ad, int sec, FILE *fp)
 {
-	const char *type_type = NULL, *type_name = NULL;
-	classDef *type_scope = NULL;
+	const char *type_type = NULL, *type_name;
+	classDef *type_scope;
 
 	fprintf(fp, " typename=\"");
 
@@ -492,8 +760,111 @@ static void xmlType(argDef *ad, int sec, FILE *fp)
 	{
 	case class_type:
 		type_type = (isOpaque(ad->u.cd) ? "opaque" : "class");
+		break;
+
+	case enum_type:
+		if (ad->u.ed->pyname != NULL)
+			type_type = "enum";
+		break;
+
+	case rxcon_type:
+	case rxdis_type:
+		if (!sec)
+			type_type = "class";
+		break;
+
+	case qobject_type:
+		type_type = "class";
+		break;
+
+	case slotcon_type:
+	case slotdis_type:
+		{
+			int a;
+
+			prcode(fp, "SLOT(");
+
+			for (a = 0; a < ad->u.sa->nrArgs; ++a)
+			{
+				if (a > 0)
+					prcode(fp, ", ");
+
+				prcode(fp, "%M%B%M", &ad->u.sa->args[a]);
+			}
+
+			prcode(fp, ")");
+		}
+
+		break;
+
+	case mapped_type:
+		prcode(fp, "%M%B%M", &ad->u.mtd->type);
+		type_type = "mappedtype";
+		break;
+	}
+
+	if ((type_name = pyType(ad, sec, &type_scope)) != NULL)
+		prScopedPythonName(fp, type_scope, type_name);
+
+	fprintf(fp, "\"");
+
+	if (type_type != NULL)
+		fprintf(fp, " typetype=\"%s\"", type_type);
+
+	if (ad->name != NULL)
+		fprintf(fp, " name=\"%s\"", ad->name);
+}
+
+
+/*
+ * Generate the indentation for a line.
+ */
+static void xmlIndent(int indent, FILE *fp)
+{
+	while (indent-- > 0)
+		fprintf(fp, "  ");
+}
+
+
+/*
+ * Export the default value of an argument.
+ */
+static void exportDefaultValue(argDef *ad, FILE *fp)
+{
+	/* Translate some special cases. */
+	if (ad->defval->next == NULL && ad->defval->vtype == numeric_value)
+	{
+		if (ad->nrderefs > 0 && ad->defval->u.vnum == 0)
+		{
+			prcode(fp, "None");
+			return;
+		}
+
+		if (ad->atype == bool_type || ad->atype == cbool_type)
+		{
+			prcode(fp, ad->defval->u.vnum ? "True" : "False");
+			return;
+		}
+	}
+
+	generateExpression(ad->defval, fp);
+}
+
+
+/*
+ * Get the Python representation of a type.
+ */
+static const char *pyType(argDef *ad, int sec, classDef **scope)
+{
+	const char *type_name;
+
+	*scope = NULL;
+
+	switch (ad->atype)
+	{
+	case class_type:
 		type_name = ad->u.cd->pyname;
-		type_scope = ad->u.cd->ecd;
+		*scope = ad->u.cd->ecd;
 		break;
 
 	case struct_type:
@@ -504,9 +875,8 @@ static void xmlType(argDef *ad, int sec, FILE *fp)
 	case enum_type:
 		if (ad->u.ed->pyname != NULL)
 		{
-			type_type = "enum";
 			type_name = ad->u.ed->pyname->text;
-			type_scope = ad->u.ed->ecd;
+			*scope = ad->u.ed->ecd;
 		}
 		else
 			type_name = "int";
@@ -525,36 +895,12 @@ static void xmlType(argDef *ad, int sec, FILE *fp)
 		if (sec)
 			type_name = "callable";
 		else
-		{
-			type_type = "class";
 			type_name = "QObject";
-		}
 
 		break;
 
 	case qobject_type:
-		type_type = "class";
 		type_name = "QObject";
-		break;
-
-	case slotcon_type:
-	case slotdis_type:
-		{
-			int a;
-
-			prcode(fp, "SLOT(");
-
-			for (a = 0; a < ad->u.sa->nrArgs; ++a)
-			{
-				if (a > 0)
-					prcode(fp, ",");
-
-				prcode(fp, "%M%B%M", &ad->u.sa->args[a]);
-			}
-
-			prcode(fp, ")");
-		}
-
 		break;
 
 	case ustring_type:
@@ -597,11 +943,6 @@ static void xmlType(argDef *ad, int sec, FILE *fp)
 		type_name = "bool";
 		break;
 
-	case mapped_type:
-		prcode(fp, "%M%B%M", &ad->u.mtd->type);
-		type_type = "mappedtype";
-		break;
-
 	case pyobject_type:
 		type_name = "object";
 		break;
@@ -640,27 +981,8 @@ static void xmlType(argDef *ad, int sec, FILE *fp)
 		break;
 
 	default:
-		type_name = "unknown";
+		type_name = NULL;
 	}
 
-	if (type_name != NULL)
-		prScopedPythonName(fp, type_scope, type_name);
-
-	fprintf(fp, "\"");
-
-	if (type_type != NULL)
-		fprintf(fp, " typetype=\"%s\"", type_type);
-
-	if (ad->name != NULL)
-		fprintf(fp, " name=\"%s\"", ad->name);
-}
-
-
-/*
- * Generate the indentation for a line.
- */
-static void xmlIndent(int indent, FILE *fp)
-{
-	while (indent-- > 0)
-		fprintf(fp, "  ");
+	return type_name;
 }

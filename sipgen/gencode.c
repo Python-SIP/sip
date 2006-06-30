@@ -30,14 +30,6 @@ typedef struct {
 } sortedMethTab;
 
 
-/* An API definition. */
-typedef struct _apiDef {
-	char		*name;		/* The function name. */
-	signatureDef	*sd;		/* The function signature. */
-	struct _apiDef	*next;		/* The next in the list. */
-} apiDef;
-
-
 static int currentLineNr;		/* Current output line number. */
 static char *currentFileName;		/* Current output file name. */
 static int previousLineNr;		/* Previous output line number. */
@@ -51,7 +43,6 @@ static int prcode_xml = FALSE;		/* Set if prcode is XML aware. */
 
 
 static void generateDocumentation(sipSpec *,char *);
-static void generateAPI(sipSpec *,char *);
 static void generateBuildFile(sipSpec *,char *,char *,int);
 static void generateInternalAPIHeader(sipSpec *,char *,stringList *);
 static void generateCpp(sipSpec *,char *,char *,int *);
@@ -142,7 +133,6 @@ static void generateThrowSpecifier(throwArgs *,FILE *);
 static void generateSlot(sipSpec *pt, classDef *cd, enumDef *ed, memberDef *md, FILE *fp);
 static void generateCastZero(argDef *ad,FILE *fp);
 static void generateCallDefaultCtor(ctorDef *ct,FILE *fp);
-static void addUniqueAPI(apiDef **,char *,signatureDef *);
 static int countVirtuals(classDef *);
 static int skipOverload(overDef *,memberDef *,classDef *,classDef *,int);
 static int compareMethTab(const void *,const void *);
@@ -184,9 +174,9 @@ static int generateSubClassConvertors(sipSpec *pt, FILE *fp);
 /*
  * Generate the code from a specification.
  */
-void generateCode(sipSpec *pt,char *codeDir,char *buildfile,char *docFile,
-		  char *apiFile,char *srcSuffix,int except,int trace,
-		  int releaseGIL,int parts,stringList *xsl)
+void generateCode(sipSpec *pt, char *codeDir, char *buildfile, char *docFile,
+		char *srcSuffix, int except, int trace, int releaseGIL,
+		int parts, stringList *xsl)
 {
 	exceptions = except;
 	tracing = trace;
@@ -210,92 +200,6 @@ void generateCode(sipSpec *pt,char *codeDir,char *buildfile,char *docFile,
 	/* Generate the build file. */
 	if (buildfile != NULL)
 		generateBuildFile(pt,buildfile,srcSuffix,parts);
-
-	/* Generate the API file. */
-	if (apiFile != NULL)
-		generateAPI(pt,apiFile);
-}
-
-
-/*
- * Generate the Scintilla API file.
- */
-static void generateAPI(sipSpec *pt,char *apiFile)
-{
-	apiDef *head, *ad;
-	overDef *od;
-	classDef *cd;
-	FILE *fp;
-
-	/* Create the list of unique names/signatures. */
-	head = NULL;
-
-	for (od = pt -> overs; od != NULL; od = od -> next)
-		addUniqueAPI(&head,od -> cppname,&od -> pysig);
-
-	for (cd = pt -> classes; cd != NULL; cd = cd -> next)
-	{
-		ctorDef *ct;
-
-		if (cd -> iff -> module != pt -> module)
-			continue;
-
-		for (ct = cd -> ctors; ct != NULL; ct = ct -> next)
-		{
-			if (isPrivateCtor(ct))
-				continue;
-
-			addUniqueAPI(&head,classBaseName(cd),&ct -> pysig);
-		}
-
-		for (od = cd -> overs; od != NULL; od = od -> next)
-		{
-			if (isPrivate(od))
-				continue;
-
-			addUniqueAPI(&head,od -> cppname,&od -> pysig);
-		}
-	}
-
-	/* Generate the file. */
-	fp = createFile(pt,apiFile,NULL);
-
-	for (ad = head; ad != NULL; ad = ad -> next)
-	{
-		fprintf(fp,"%s(",ad -> name);
-		generateArgs(ad -> sd,Declaration,fp);
-		fprintf(fp,")\n");
-	}
-
-	closeFile(fp);
-}
-
-
-/*
- * Add an API function to a list if it isn't already there.
- */
-static void addUniqueAPI(apiDef **headp,char *name,signatureDef *sd)
-{
-	apiDef *ad;
-
-	for (ad = *headp; ad != NULL; ad = ad -> next)
-	{
-		if (strcmp(ad -> name,name) != 0)
-			continue;
-
-		if (sameSignature(ad -> sd,sd,TRUE))
-			break;
-	}
-
-	if (ad == NULL)
-	{
-		ad = sipMalloc(sizeof (apiDef));
-
-		ad -> name = name;
-		ad -> sd = sd;
-		ad -> next = *headp;
-		*headp = ad;
-	}
 }
 
 

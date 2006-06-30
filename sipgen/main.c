@@ -40,7 +40,7 @@ int main(int argc,char **argv)
 {
 	char *filename, *docFile, *codeDir, *srcSuffix, *flagFile;
 	char arg, *optarg, *buildFile, *apiFile, *xmlFile;
-	int optnr, exceptions, tracing, releaseGIL, parts;
+	int optnr, exceptions, tracing, releaseGIL, parts, omit_name;
 	FILE *file;
 	sipSpec spec;
 	stringList *versions, *xfeatures;
@@ -61,16 +61,22 @@ int main(int argc,char **argv)
 	tracing = FALSE;
 	releaseGIL = FALSE;
 	parts = 0;
+	omit_name = FALSE;
 
 	/* Parse the command line. */
 	optnr = 1;
 
-	while ((arg = parseopt(argc,argv,"hVa:b:ec:d:gI:j:m:rs:t:wx:z:",&flagFile,&optnr,&optarg)) != '\0')
+	while ((arg = parseopt(argc, argv, "hVa:b:ec:d:gI:j:m:nrs:t:wx:z:", &flagFile, &optnr, &optarg)) != '\0')
 		switch (arg)
 		{
 		case 'a':
 			/* Where to generate the API file. */
 			apiFile = optarg;
+			break;
+
+		case 'n':
+			/* Omit the module name from the API file. */
+			omit_name = TRUE;
 			break;
 
 		case 'm':
@@ -184,8 +190,12 @@ int main(int argc,char **argv)
 	transform(&spec);
 
 	/* Generate code. */
-	generateCode(&spec,codeDir,buildFile,docFile,apiFile,srcSuffix,
-		     exceptions,tracing,releaseGIL,parts,xfeatures);
+	generateCode(&spec, codeDir, buildFile, docFile, srcSuffix, exceptions,
+			tracing, releaseGIL, parts, xfeatures);
+
+	/* Generate the API file. */
+	if (apiFile != NULL)
+		generateAPI(&spec, apiFile, omit_name);
 
 	/* Generate the XML export. */
 	if (xmlFile != NULL)
@@ -439,11 +449,11 @@ static void help(void)
 {
 	printf(
 "Usage:\n"
-"    %s [-h] [-V] [-a file] [-c dir] [-d file] [-e] [-I dir] [-j #] [-m file] [-r] [-s suffix] [-t version] [-w] [-x feature] [-z file] [file]\n"
+"    %s [-h] [-V] [-a file] [-c dir] [-d file] [-e] [-I dir] [-j #] [-m file] [-n] [-r] [-s suffix] [-t version] [-w] [-x feature] [-z file] [file]\n"
 "where:\n"
 "    -h          display this help message\n"
 "    -V          display the %s version number\n"
-"    -a file     the name of the Scintilla API file [default not generated]\n"
+"    -a file     the name of the QScintilla API file [default not generated]\n"
 "    -b file     the name of the build file [default none generated]\n"
 "    -c dir      the name of the code directory [default not generated]\n"
 "    -d file     the name of the documentation file [default not generated]\n"
@@ -451,6 +461,7 @@ static void help(void)
 "    -I dir      look in this directory when including files\n"
 "    -j #        split the generated code into # files [default 1 per class]\n"
 "    -m file     the name of the XML export file [default not generated]\n"
+"    -n          omit the module name from entries in the QScintilla API file\n"
 "    -r          generate code with tracing enabled [default disabled]\n"
 "    -s suffix   the suffix to use for C or C++ source files [default \".c\" or \".cpp\"]\n"
 "    -t tag      the version/platform to generate code for\n"
@@ -469,5 +480,5 @@ static void help(void)
  */
 static void usage(void)
 {
-	fatal("Usage: %s [-h] [-V] [-a file] [-b file] [-c dir] [-d file] [-e] [-g] [-I dir] [-j #] [-m file] [-r] [-s suffix] [-t tag] [-w] [-x feature] [-z file] [file]\n",sipPackage);
+	fatal("Usage: %s [-h] [-V] [-a file] [-b file] [-c dir] [-d file] [-e] [-g] [-I dir] [-j #] [-m file] [-n] [-r] [-s suffix] [-t tag] [-w] [-x feature] [-z file] [file]\n",sipPackage);
 }

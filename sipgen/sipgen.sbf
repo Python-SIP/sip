@@ -3,5 +3,5 @@
 # @BS_LICENSE@
 
 target = sip
-sources = main.c transform.c gencode.c genxml.c heap.c parser.c lexer.c 
+sources = main.c transform.c gencode.c export.c heap.c parser.c lexer.c 
 headers = sip.h parser.h
