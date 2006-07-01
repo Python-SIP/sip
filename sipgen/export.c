@@ -305,10 +305,12 @@ static int apiArgument(argDef *ad, int out, int need_comma, int sec, FILE *fp)
 	 * Handle the default value, but ignore it if it is an output only
 	 * argument.
 	 */
-	if (ad->defval && out)
+	if (ad->defval && !out)
 	{
 		fprintf(fp, "=");
+		prcode(fp, "%M");
 		exportDefaultValue(ad, fp);
+		prcode(fp, "%M");
 	}
 
 	return TRUE;
