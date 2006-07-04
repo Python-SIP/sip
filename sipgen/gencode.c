@@ -4160,7 +4160,7 @@ static void generateClassFunctions(sipSpec *pt,classDef *cd,FILE *fp)
 		/* Generate the release function without compiler warnings. */
 		need_ptr = need_state = FALSE;
 
-		if (canCreate(cd))
+		if (canCreate(cd) || isPublicDtor(cd))
 		{
 			if (hasShadow(cd))
 				need_ptr = need_state = TRUE;
@@ -4184,7 +4184,12 @@ static void generateClassFunctions(sipSpec *pt,classDef *cd,FILE *fp)
 "{\n"
 			, classFQCName(cd), (need_ptr ? "ptr" : ""), (need_state ? " state" : ""));
 
-		if (canCreate(cd))
+		/*
+		 * If there is an explicit public dtor then assume there is
+		 * some way to call it which we haven't worked out (because we
+		 * don't fully understand C++).
+		 */
+		if (canCreate(cd) || isPublicDtor(cd))
 		{
 			if (release_gil || isReleaseGILDtor(cd))
 				prcode(fp,
