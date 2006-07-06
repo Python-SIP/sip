@@ -209,13 +209,21 @@ def set_platform_directories():
     else:
         vers = "%d.%d" % ((py_version >> 16) & 0xff, (py_version >> 8) & 0xff)
 
-        plat_py_site_dir = sys.prefix + "/lib/python" + vers
+        # Some 64 bit Linux distros (Mandriva, SuSE) seem to add sys.lib as a
+        # non-standard extension presumably to allow 32 and 64 bit versions to
+        # be installed side by side.  Use it if it seems to be available.
+        try:
+            lib_dir = sys.lib
+        except AttributeError:
+            lib_dir = sys.prefix + "/lib/python" + vers
+
+        plat_py_site_dir = lib_dir
         if py_version >= 0x020000:
             plat_py_site_dir = plat_py_site_dir + "/site-packages"
 
         plat_py_inc_dir = sys.prefix + "/include/python" + vers
         plat_py_conf_inc_dir = sys.exec_prefix + "/include/python" + vers
-        plat_py_lib_dir = sys.prefix + "/lib/python" + vers + "/config"
+        plat_py_lib_dir = lib_dir + "/config"
         plat_bin_dir = sys.exec_prefix + "/bin"
         plat_sip_dir = sys.prefix + "/share/sip"
 
