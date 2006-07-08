@@ -215,7 +215,9 @@ def set_platform_directories():
         try:
             lib_dir = sys.lib
         except AttributeError:
-            lib_dir = sys.prefix + "/lib/python" + vers
+            lib_dir = "lib"
+
+        lib_dir = sys.prefix + "/" + lib_dir + "/python" + vers
 
         plat_py_site_dir = lib_dir
         if py_version >= 0x020000:
