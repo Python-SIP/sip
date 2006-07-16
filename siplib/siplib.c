@@ -19,55 +19,46 @@
  * These are the functions that make up the public and private SIP API.
  */
 static void sip_api_bad_catcher_result(PyObject *method);
-static void sip_api_bad_length_for_slice(int seqlen,int slicelen);
+static void sip_api_bad_length_for_slice(_SIP_SSIZE_T seqlen,
+        _SIP_SSIZE_T slicelen);
 static PyObject *sip_api_build_result(int *isErr, const char *fmt, ...);
 static PyObject *sip_api_call_method(int *isErr, PyObject *method,
         const char *fmt, ...);
 static PyObject *sip_api_class_name(PyObject *self);
-static int sip_api_convert_from_sequence_index(int idx,int len);
+static _SIP_SSIZE_T sip_api_convert_from_sequence_index(_SIP_SSIZE_T idx,
+        _SIP_SSIZE_T len);
 static int sip_api_can_convert_to_instance(PyObject *pyObj,
-                       sipWrapperType *type, int flags);
+        sipWrapperType *type, int flags);
 static int sip_api_can_convert_to_mapped_type(PyObject *pyObj,
-                          const sipMappedType *mt,
-                          int flags);
+        const sipMappedType *mt, int flags);
 static void *sip_api_convert_to_instance(PyObject *pyObj, sipWrapperType *type,
-                     PyObject *transferObj, int flags,
-                     int *statep, int *iserrp);
+        PyObject *transferObj, int flags, int *statep, int *iserrp);
 static void *sip_api_convert_to_mapped_type(PyObject *pyObj,
-                        const sipMappedType *mt,
-                        PyObject *transferObj, int flags,
-                        int *statep, int *iserrp);
+        const sipMappedType *mt, PyObject *transferObj, int flags, int *statep,
+        int *iserrp);
 static void *sip_api_force_convert_to_instance(PyObject *pyObj,
-                           sipWrapperType *type,
-                           PyObject *transferObj,
-                           int flags, int *statep,
-                           int *iserrp);
+        sipWrapperType *type, PyObject *transferObj, int flags, int *statep,
+        int *iserrp);
 static void *sip_api_force_convert_to_mapped_type(PyObject *pyObj,
-                          const sipMappedType *mt,
-                          PyObject *transferObj,
-                          int flags, int *statep,
-                          int *iserrp);
+        const sipMappedType *mt, PyObject *transferObj, int flags, int *statep,
+        int *iserrp);
 static void sip_api_release_instance(void *cpp, sipWrapperType *type,
-                     int state);
+        int state);
 static void sip_api_release_mapped_type(void *cpp, const sipMappedType *mt,
-                    int state);
+        int state);
 static PyObject *sip_api_convert_from_new_instance(void *cpp,
-                           sipWrapperType *type,
-                           PyObject *transferObj);
+        sipWrapperType *type, PyObject *transferObj);
 static PyObject *sip_api_convert_from_mapped_type(void *cpp,
-                          const sipMappedType *mt,
-                          PyObject *transferObj);
-static void *sip_api_convert_to_cpp(PyObject *sipSelf,sipWrapperType *type,
-                    int *iserrp);
+        const sipMappedType *mt, PyObject *transferObj);
+static void *sip_api_convert_to_cpp(PyObject *sipSelf, sipWrapperType *type,
+        int *iserrp);
 static int sip_api_get_state(PyObject *transferObj);
 static const sipMappedType *sip_api_find_mapped_type(const char *type);
-static PyObject *sip_api_get_wrapper(void *cppPtr,sipWrapperType *type);
+static PyObject *sip_api_get_wrapper(void *cppPtr, sipWrapperType *type);
 static sipWrapperType *sip_api_map_int_to_class(int typeInt,
-                        const sipIntTypeClassMap *map,
-                        int maplen);
+        const sipIntTypeClassMap *map, int maplen);
 static sipWrapperType *sip_api_map_string_to_class(const char *typeString,
-                           const sipStringTypeClassMap *map,
-                           int maplen);
+        const sipStringTypeClassMap *map, int maplen);
 static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
         const char *fmt, ...);
 static void sip_api_trace(unsigned mask,const char *fmt,...);
@@ -75,8 +66,7 @@ static void sip_api_transfer(PyObject *self,int toCpp);
 static void sip_api_transfer_back(PyObject *self);
 static void sip_api_transfer_to(PyObject *self,PyObject *owner);
 static int sip_api_export_module(sipExportedModuleDef *client,
-                 unsigned api_major,unsigned api_minor,
-                 PyObject *mod_dict);
+        unsigned api_major,unsigned api_minor, PyObject *mod_dict);
 static int sip_api_parse_args(int *argsParsedp, PyObject *sipArgs,
         const char *fmt, ...);
 static int sip_api_parse_pair(int *argsParsedp, PyObject *sipArg0,
@@ -89,26 +79,25 @@ static void sip_api_no_method(int argsParsed, const char *classname,
         const char *method);
 static void sip_api_abstract_method(const char *classname, const char *method);
 static void sip_api_bad_class(const char *classname);
-static void sip_api_bad_set_type(const char *classname,const char *var);
+static void sip_api_bad_set_type(const char *classname, const char *var);
 static void *sip_api_get_complex_cpp_ptr(sipWrapper *w);
-static PyObject *sip_api_is_py_method(sip_gilstate_t *gil,sipMethodCache *pymc,
-                      sipWrapper *sipSelf,char *cname,
-                      char *mname);
+static PyObject *sip_api_is_py_method(sip_gilstate_t *gil,
+        sipMethodCache *pymc, sipWrapper *sipSelf, char *cname, char *mname);
 static void sip_api_call_hook(const char *hookname);
 static void sip_api_raise_unknown_exception(void);
-static void sip_api_raise_class_exception(sipWrapperType *type,void *ptr);
-static void sip_api_raise_sub_class_exception(sipWrapperType *type,void *ptr);
-static int sip_api_add_class_instance(PyObject *dict,char *name,void *cppPtr,
-                      sipWrapperType *wt);
+static void sip_api_raise_class_exception(sipWrapperType *type, void *ptr);
+static void sip_api_raise_sub_class_exception(sipWrapperType *type, void *ptr);
+static int sip_api_add_class_instance(PyObject *dict, char *name, void *cppPtr,
+        sipWrapperType *wt);
 static int sip_api_add_mapped_type_instance(PyObject *dict, char *name,
         void *cppPtr, const sipMappedType *mt);
 static int sip_api_add_enum_instance(PyObject *dict, char *name, int value,
-                     PyTypeObject *type);
+        PyTypeObject *type);
 static void sip_api_bad_operator_arg(PyObject *self, PyObject *arg,
-                     sipPySlotType st);
+        sipPySlotType st);
 static PyObject *sip_api_pyslot_extend(sipExportedModuleDef *mod,
-                       sipPySlotType st, sipWrapperType *type,
-                       PyObject *arg0, PyObject *arg1);
+        sipPySlotType st, sipWrapperType *type, PyObject *arg0,
+        PyObject *arg1);
 static void sip_api_add_delayed_dtor(sipWrapper *w);
 static unsigned long sip_api_long_as_unsigned_long(PyObject *o);
 static int sip_api_export_symbol(const char *name, void *sym);
@@ -3092,7 +3081,8 @@ static void removeFromParent(sipWrapper *self)
  * Convert a sequence index.  Return the index or a negative value if there was
  * an error.
  */
-static int sip_api_convert_from_sequence_index(int idx,int len)
+static _SIP_SSIZE_T sip_api_convert_from_sequence_index(_SIP_SSIZE_T idx,
+        _SIP_SSIZE_T len)
 {
     /* Negative indices start from the other end. */
     if (idx < 0)
@@ -3100,7 +3090,7 @@ static int sip_api_convert_from_sequence_index(int idx,int len)
 
     if (idx < 0 || idx >= len)
     {
-        PyErr_Format(PyExc_IndexError,"sequence index out of range");
+        PyErr_Format(PyExc_IndexError, "sequence index out of range");
         return -1;
     }
 
@@ -3759,9 +3749,16 @@ static void sip_api_bad_operator_arg(PyObject *self, PyObject *arg,
 /*
  * Report a sequence length that does not match the length of a slice.
  */
-static void sip_api_bad_length_for_slice(int seqlen,int slicelen)
+static void sip_api_bad_length_for_slice(_SIP_SSIZE_T seqlen,
+        _SIP_SSIZE_T slicelen)
 {
-    PyErr_Format(PyExc_ValueError,"attempt to assign sequence of size %d to slice of size %d",seqlen,slicelen);
+    PyErr_Format(PyExc_ValueError,
+#if PY_VERSION_HEX >= 0x02050000
+            "attempt to assign sequence of size %zd to slice of size %zd",
+#else
+            "attempt to assign sequence of size %d to slice of size %d",
+#endif
+            seqlen, slicelen);
 }
 
 

@@ -3507,11 +3507,12 @@ void sipBadCatcherResult(PyObject \*method)
 sipBadLengthForSlice()
 ----------------------
 
-void sipBadLengthForSlice(int seqlen, int slicelen)
+void sipBadLengthForSlice(Py_ssize_t seqlen, Py_ssize_t slicelen)
     This raises a Python exception when the length of a slice object is
     inappropriate for a sequence-like object.  It is normally called by
     handwritten code specified for ``__setitem__()`` methods.  *seqlen* is the
-    length of the sequence.  *slicelen* is the length of the slice.
+    length of the sequence.  *slicelen* is the length of the slice.  With
+    versions of Python prior to v2.5 the arguments have type ``int``.
 
 
 sipBuildResult()
@@ -3795,20 +3796,23 @@ PyObject \*sipConvertFromNewInstance(void \*cpp, sipWrapperType \*type, PyObject
 sipConvertFromSequenceIndex()
 -----------------------------
 
-int sipConvertFromSequenceIndex(int idx, int len)
+Py_ssize_t sipConvertFromSequenceIndex(Py_ssize_t idx, Py_ssize_t len)
     This converts a Python sequence index (i.e. where a negative value refers
     to the offset from the end of the sequence) to a C/C++ array index.  If the
     index was out of range then a negative value is returned and a Python
-    exception raised.
+    exception raised.  With versions of Python prior to v2.5 the result and the
+    arguments have type ``int``.
 
 
 sipConvertFromSliceObject()
 ---------------------------
 
-int sipConvertFromSliceObject(PyObject \*slice, int length, int \*start, int \*stop, int \*step, int \*slicelength)
+int sipConvertFromSliceObject(PyObject \*slice, Py_ssize_t length, Py_ssize_t \*start, Py_ssize_t \*stop, Py_ssize_t \*step, Py_ssize_t \*slicelength)
     This is a thin wrapper around the Python ``PySlice_GetIndicesEx()``
     function provided to make it easier to write handwritten code that is
-    compatible with SIP v3.x and versions of Python earlier that v2.3.
+    compatible with SIP v3.x and versions of Python earlier that v2.3.  With
+    versions of Python prior to v2.5 the ``Py_ssize_t`` and ``Py_ssize_t *``
+    arguments have type ``int`` and ``int *`` respectively.
 
 
 sipConvertToCpp()

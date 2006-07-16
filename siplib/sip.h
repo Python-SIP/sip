@@ -34,7 +34,7 @@ extern "C" {
 /*
  * Define the SIP version number.
  */
-#define SIP_VERSION     0x@RM_HEXVERSION@
+#define SIP_VERSION         0x@RM_HEXVERSION@
 #define SIP_VERSION_STR     "@RM_LATEST@"
 
 
@@ -88,6 +88,14 @@ extern "C" {
 /* Some compatibility stuff to help with handwritten code for SIP v3. */
 #if !defined(ANY)
 #define ANY     void
+#endif
+
+
+/* Some internal compatibility stuff. */
+#if PY_VERSION_HEX >= 0x02050000
+#define _SIP_SSIZE_T    Py_ssize_t
+#else
+#define _SIP_SSIZE_T    int
 #endif
 
 
@@ -1036,14 +1044,16 @@ typedef struct _sipAPIDef {
      * The following are part of the public API.
      */
     void (*api_bad_catcher_result)(PyObject *method);
-    void (*api_bad_length_for_slice)(int seqlen, int slicelen);
+    void (*api_bad_length_for_slice)(_SIP_SSIZE_T seqlen,
+            _SIP_SSIZE_T slicelen);
     PyObject *(*api_build_result)(int *isErr, const char *fmt, ...);
     PyObject *(*api_call_method)(int *isErr, PyObject *method, const char *fmt,
             ...);
     PyObject *(*api_class_name)(PyObject *self);
     PyObject *(*api_connect_rx)(PyObject *txObj, const char *sig,
             PyObject *rxObj, const char *slot, int type);
-    int (*api_convert_from_sequence_index)(int idx, int len);
+    _SIP_SSIZE_T (*api_convert_from_sequence_index)(_SIP_SSIZE_T idx,
+            _SIP_SSIZE_T len);
     int (*api_can_convert_to_instance)(PyObject *pyObj, sipWrapperType *type,
             int flags);
     int (*api_can_convert_to_mapped_type)(PyObject *pyObj,
