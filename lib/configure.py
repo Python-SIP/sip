@@ -38,7 +38,7 @@ opt_export_all = 0
 # The names of build macros extracted from the platform specific configuration
 # files.
 build_macro_names = [
-    "DEFINES",
+    "DEFINES", "CONFIG",
     "CC",
     "CFLAGS",
     "CFLAGS_RELEASE", "CFLAGS_DEBUG",

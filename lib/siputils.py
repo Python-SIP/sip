@@ -236,7 +236,7 @@ class Makefile:
             # These require special handling as they are (potentially) a set of
             # space separated values rather than a single value that might
             # contain spaces.
-            if m == "DEFINES" or m[:6] in ("INCDIR", "LIBDIR"):
+            if m in ("DEFINES", "CONFIG") or m[:6] in ("INCDIR", "LIBDIR"):
                 val = string.split(val)
 
             # We also want to treat lists of libraries in the same way so that
@@ -1382,6 +1382,9 @@ class ModuleMakefile(Makefile):
                 mfile.write("\t$(LINK) $(LFLAGS) /OUT:$(TARGET) @<<\n")
                 mfile.write("\t  $(OFILES) $(LIBS)\n")
                 mfile.write("<<\n")
+
+                if "embed_manifest_dll" in self.optional_list("CONFIG"):
+                    mfile.write("\tmt -nologo -manifest $(TARGET).manifest -outputresource:$(TARGET);2\n")
         elif self.generator == "BMAKE":
             if self.static:
                 mfile.write("\t-%s $(TARGET)\n" % (self.rm))
@@ -1626,6 +1629,9 @@ class ProgramMakefile(Makefile):
             mfile.write("\t$(LINK) $(LFLAGS) /OUT:$(TARGET) @<<\n")
             mfile.write("\t  $(OFILES) $(LIBS)\n")
             mfile.write("<<\n")
+
+            if "embed_manifest_dll" in self.optional_list("CONFIG"):
+                mfile.write("\tmt -nologo -manifest $(TARGET).manifest -outputresource:$(TARGET);1\n")
         elif self.generator == "BMAKE":
             mfile.write("\t$(LINK) @&&|\n")
             mfile.write("\t$(LFLAGS) $(OFILES) ,$(TARGET),,$(LIBS),,\n")
