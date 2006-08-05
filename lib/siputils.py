@@ -502,7 +502,8 @@ class Makefile:
                     "QtOpenGL":     ("QtCore", "QtGui"),
                     "QtSql":        ("QtCore", ),
                     "QtSvg":        ("QtCore", "QtGui", "QtXml"),
-                    "QtXml":        ("QtCore", )
+                    "QtXml":        ("QtCore", ),
+                    "QAxContainer": ("QtCore", "QtGui")
                 }
 
                 # The QtSql .prl file doesn't include QtGui as a dependency (at
@@ -571,7 +572,9 @@ class Makefile:
 
                 if self.config.qt_version >= 0x040000:
                     for mod in self._qt:
-                        if self._is_framework(mod):
+                        if mod == "QAxContainer":
+                            incdir.append(os.path.join(qtincdir[0], "ActiveQt"))
+                        elif self._is_framework(mod):
                             incdir.append(os.path.join(libdir_qt[0], mod + ".framework", "Headers"))
                         else:
                             incdir.append(os.path.join(qtincdir[0], mod))
