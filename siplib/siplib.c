@@ -102,6 +102,7 @@ static void sip_api_add_delayed_dtor(sipWrapper *w);
 static unsigned long sip_api_long_as_unsigned_long(PyObject *o);
 static int sip_api_export_symbol(const char *name, void *sym);
 static void *sip_api_import_symbol(const char *name);
+static void sip_api_register_int_types(PyObject *args);
 
 
 /*
@@ -192,48 +193,62 @@ static const sipAPIDef sip_api = {
      */
     sip_api_export_symbol,
     sip_api_import_symbol,
+    /*
+     * The following may be used by Qt support code but by no other
+     * handwritten code.
+     */
+    sip_api_register_int_types,
 };
 
 
-#define PARSE_OK    0x00000000      /* Parse is Ok so far. */
-#define PARSE_MANY  0x10000000      /* Too many arguments. */
-#define PARSE_FEW   0x20000000      /* Too few arguments. */
-#define PARSE_TYPE  0x30000000      /* Argument with a bad type. */
-#define PARSE_UNBOUND   0x40000000      /* Unbound method. */
-#define PARSE_FORMAT    0x50000000      /* Bad format character. */
-#define PARSE_RAISED    0x60000000      /* Exception already raised. */
-#define PARSE_STICKY    0x80000000      /* The error sticks. */
-#define PARSE_MASK  0xf0000000
+#define PARSE_OK                0x00000000      /* Parse is Ok so far. */
+#define PARSE_MANY              0x10000000      /* Too many arguments. */
+#define PARSE_FEW               0x20000000      /* Too few arguments. */
+#define PARSE_TYPE              0x30000000      /* Argument with a bad type. */
+#define PARSE_UNBOUND           0x40000000      /* Unbound method. */
+#define PARSE_FORMAT            0x50000000      /* Bad format character. */
+#define PARSE_RAISED            0x60000000      /* Exception already raised. */
+#define PARSE_STICKY            0x80000000      /* The error sticks. */
+#define PARSE_MASK              0xf0000000
 
 /*
  * Note that some of the following flags safely share values because they
  * cannot be used at the same time.
  */
-#define FORMAT_DEREF        0x01    /* The pointer will be dereferenced. */
-#define FORMAT_FACTORY      0x02    /* Implement /Factory/ in a VH. */
-#define FORMAT_TRANSFER     0x02    /* Implement /Transfer/. */
-#define FORMAT_NO_STATE     0x04    /* Don't return the C/C++ state. */
+#define FORMAT_DEREF            0x01    /* The pointer will be dereferenced. */
+#define FORMAT_FACTORY          0x02    /* Implement /Factory/ in a VH. */
+#define FORMAT_TRANSFER         0x02    /* Implement /Transfer/. */
+#define FORMAT_NO_STATE         0x04    /* Don't return the C/C++ state. */
 #define FORMAT_TRANSFER_BACK    0x04    /* Implement /TransferBack/. */
-#define FORMAT_GET_WRAPPER  0x08    /* Implement /GetWrapper/. */
+#define FORMAT_GET_WRAPPER      0x08    /* Implement /GetWrapper/. */
 #define FORMAT_NO_CONVERTORS    0x10    /* Suppress any convertors. */
 
-#define SIP_MC_FOUND    0x01        /* If we have looked for the method. */
-#define SIP_MC_ISMETH   0x02        /* If we looked and there was one. */
+#define SIP_MC_FOUND            0x01    /* If we have looked for the method. */
+#define SIP_MC_ISMETH           0x02    /* If we looked and there was one. */
 
-#define sipFoundMethod(m)   ((m) -> mcflags & SIP_MC_FOUND)
-#define sipSetFoundMethod(m)    ((m) -> mcflags |= SIP_MC_FOUND)
-#define sipIsMethod(m)      ((m) -> mcflags & SIP_MC_ISMETH)
-#define sipSetIsMethod(m)   ((m) -> mcflags |= SIP_MC_ISMETH)
+#define sipFoundMethod(m)       ((m)->mcflags & SIP_MC_FOUND)
+#define sipSetFoundMethod(m)    ((m)->mcflags |= SIP_MC_FOUND)
+#define sipIsMethod(m)          ((m)->mcflags & SIP_MC_ISMETH)
+#define sipSetIsMethod(m)       ((m)->mcflags |= SIP_MC_ISMETH)
 
 
 /*
  * An entry in a linked list of name/symbol pairs.
  */
 typedef struct _sipSymbol {
-    const char *name;       /* The name. */
-    void *symbol;           /* The symbol. */
+    const char *name;           /* The name. */
+    void *symbol;               /* The symbol. */
     struct _sipSymbol *next;    /* The next in the list. */
 } sipSymbol;
+
+
+/*
+ * An entry in a linked list of Python objects.
+ */
+typedef struct _sipPyObject {
+    PyObject *object;           /* The Python object. */
+    struct _sipPyObject *next;  /* The next in the list. */
+} sipPyObject;
 
 
 static PyTypeObject sipWrapperType_Type;
@@ -243,6 +258,7 @@ static PyTypeObject sipVoidPtr_Type;
 PyInterpreterState *sipInterpreter = NULL;
 sipQtAPI *sipQtSupport = NULL;
 sipWrapperType *sipQObjectClass;
+sipPyObject *sipRegisteredIntTypes = NULL;
 sipSymbol *sipSymbolList = NULL;
 
 
@@ -259,85 +275,88 @@ static sipObjectMap cppPyMap;           /* The C/C++ to Python map. */
 static sipExportedModuleDef *clientList = NULL; /* List of registered clients. */
 static unsigned traceMask = 0;          /* The current trace mask. */
 
-static sipTypeDef *currentType = NULL;      /* The type being created. */
+static sipTypeDef *currentType = NULL;  /* The type being created. */
 
 
 static void addSlots(sipWrapperType *wt, sipTypeDef *td);
-static void initSlots(PyTypeObject *to, PyNumberMethods *nb, PySequenceMethods *sq, PyMappingMethods *mp, sipPySlotDef *slots, int force);
-static void *findSlot(PyObject *self,sipPySlotType st);
+static void initSlots(PyTypeObject *to, PyNumberMethods *nb,
+        PySequenceMethods *sq, PyMappingMethods *mp, sipPySlotDef *slots,
+        int force);
+static void *findSlot(PyObject *self, sipPySlotType st);
 static void *findSlotInType(sipTypeDef *td, sipPySlotType st);
-static int objobjargprocSlot(PyObject *self,PyObject *arg1,PyObject *arg2,
-                 sipPySlotType st);
-static int intobjargprocSlot(PyObject *self,int arg1,PyObject *arg2,
-                 sipPySlotType st);
+static int objobjargprocSlot(PyObject *self, PyObject *arg1, PyObject *arg2,
+        sipPySlotType st);
+static int intobjargprocSlot(PyObject *self, int arg1, PyObject *arg2,
+        sipPySlotType st);
 static PyObject *buildObject(PyObject *tup, const char *fmt, va_list va);
 static int parsePass1(sipWrapper **selfp, int *selfargp, int *argsParsedp,
         PyObject *sipArgs, const char *fmt, va_list va);
 static int parsePass2(sipWrapper *self, int selfarg, int nrargs,
         PyObject *sipArgs, const char *fmt, va_list va);
-static int getSelfFromArgs(sipWrapperType *type,PyObject *args,int argnr,
-               sipWrapper **selfp);
+static int getSelfFromArgs(sipWrapperType *type, PyObject *args, int argnr,
+        sipWrapper **selfp);
 static PyObject *createEnumMember(sipTypeDef *td, sipEnumMemberDef *enm);
-static PyObject *handleGetLazyAttr(PyObject *nameobj,sipWrapperType *wt,
-                   sipWrapper *w);
-static int handleSetLazyAttr(PyObject *nameobj,PyObject *valobj,
-                 sipWrapperType *wt,sipWrapper *w);
-static int getNonStaticVariables(sipWrapperType *wt,sipWrapper *w,
-                 PyObject **ndict);
-static void findLazyAttr(sipWrapperType *wt,char *name,PyMethodDef **pmdp,
-             sipEnumMemberDef **enmp,PyMethodDef **vmdp,
-             sipTypeDef **in);
-static int compareMethodName(const void *key,const void *el);
-static int compareEnumMemberName(const void *key,const void *el);
+static PyObject *handleGetLazyAttr(PyObject *nameobj, sipWrapperType *wt,
+        sipWrapper *w);
+static int handleSetLazyAttr(PyObject *nameobj, PyObject *valobj,
+        sipWrapperType *wt, sipWrapper *w);
+static int getNonStaticVariables(sipWrapperType *wt, sipWrapper *w,
+        PyObject **ndict);
+static void findLazyAttr(sipWrapperType *wt, char *name, PyMethodDef **pmdp,
+        sipEnumMemberDef **enmp, PyMethodDef **vmdp, sipTypeDef **in);
+static int compareMethodName(const void *key, const void *el);
+static int compareEnumMemberName(const void *key, const void *el);
 static int checkPointer(void *ptr);
 static void badArgs(int argsParsed, const char *classname, const char *method);
 static void finalise(void);
 static sipWrapperType *createType(sipExportedModuleDef *client,
-                  sipTypeDef *type, PyObject *mod_dict);
+        sipTypeDef *type, PyObject *mod_dict);
 static PyTypeObject *createEnum(sipExportedModuleDef *client, sipEnumDef *ed,
-                PyObject *mod_dict);
+        PyObject *mod_dict);
 static const char *getBaseName(const char *name);
 static PyObject *getBaseNameObject(const char *name);
 static PyObject *createTypeDict(PyObject *mname);
 static sipExportedModuleDef *getClassModule(sipEncodedClassDef *enc,
-                        sipExportedModuleDef *em);
+        sipExportedModuleDef *em);
 static sipWrapperType *getClassType(sipEncodedClassDef *enc,
-                    sipExportedModuleDef *em);
-static sipWrapperType *convertSubClass(sipWrapperType *type,void **cppPtr);
+        sipExportedModuleDef *em);
+static sipWrapperType *convertSubClass(sipWrapperType *type, void **cppPtr);
 static void *getPtrTypeDef(sipWrapper *self, sipTypeDef **td);
-static int addInstances(PyObject *dict,sipInstancesDef *id);
-static int addVoidPtrInstances(PyObject *dict,sipVoidPtrInstanceDef *vi);
-static int addCharInstances(PyObject *dict,sipCharInstanceDef *ci);
-static int addStringInstances(PyObject *dict,sipStringInstanceDef *si);
+static int addInstances(PyObject *dict, sipInstancesDef *id);
+static int addVoidPtrInstances(PyObject *dict, sipVoidPtrInstanceDef *vi);
+static int addCharInstances(PyObject *dict, sipCharInstanceDef *ci);
+static int addStringInstances(PyObject *dict, sipStringInstanceDef *si);
 static int addIntInstances(PyObject *dict, sipIntInstanceDef *ii);
-static int addLongInstances(PyObject *dict,sipLongInstanceDef *li);
-static int addUnsignedLongInstances(PyObject *dict, sipUnsignedLongInstanceDef *uli);
-static int addLongLongInstances(PyObject *dict,sipLongLongInstanceDef *lli);
-static int addUnsignedLongLongInstances(PyObject *dict, sipUnsignedLongLongInstanceDef *ulli);
-static int addDoubleInstances(PyObject *dict,sipDoubleInstanceDef *di);
-static int addEnumInstances(PyObject *dict,sipEnumInstanceDef *ei);
+static int addLongInstances(PyObject *dict, sipLongInstanceDef *li);
+static int addUnsignedLongInstances(PyObject *dict,
+        sipUnsignedLongInstanceDef *uli);
+static int addLongLongInstances(PyObject *dict, sipLongLongInstanceDef *lli);
+static int addUnsignedLongLongInstances(PyObject *dict,
+        sipUnsignedLongLongInstanceDef *ulli);
+static int addDoubleInstances(PyObject *dict, sipDoubleInstanceDef *di);
+static int addEnumInstances(PyObject *dict, sipEnumInstanceDef *ei);
 static int addSingleEnumInstance(PyObject *dict, char *name, int value,
-                 PyTypeObject *type);
-static int addClassInstances(PyObject *dict,sipClassInstanceDef *ci);
-static int addSingleClassInstance(PyObject *dict,char *name,void *cppPtr,
-                  sipWrapperType *wt,int initflags);
-static int addLicense(PyObject *dict,sipLicenseDef *lc);
-static PyObject *cast(PyObject *self,PyObject *args);
-static PyObject *setTraceMask(PyObject *self,PyObject *args);
-static PyObject *wrapInstance(PyObject *self,PyObject *args);
-static PyObject *unwrapInstance(PyObject *self,PyObject *args);
-static PyObject *transfer(PyObject *self,PyObject *args);
-static PyObject *transferback(PyObject *self,PyObject *args);
-static PyObject *transferto(PyObject *self,PyObject *args);
+        PyTypeObject *type);
+static int addClassInstances(PyObject *dict, sipClassInstanceDef *ci);
+static int addSingleClassInstance(PyObject *dict, char *name, void *cppPtr,
+        sipWrapperType *wt, int initflags);
+static int addLicense(PyObject *dict, sipLicenseDef *lc);
+static PyObject *cast(PyObject *self, PyObject *args);
+static PyObject *setTraceMask(PyObject *self, PyObject *args);
+static PyObject *wrapInstance(PyObject *self, PyObject *args);
+static PyObject *unwrapInstance(PyObject *self, PyObject *args);
+static PyObject *transfer(PyObject *self, PyObject *args);
+static PyObject *transferback(PyObject *self, PyObject *args);
+static PyObject *transferto(PyObject *self, PyObject *args);
 static int sipWrapperType_Check(PyObject *op);
 static void addToParent(sipWrapper *self, sipWrapper *owner);
 static void removeFromParent(sipWrapper *self);
 static int findClassArg(sipExportedModuleDef *emd, const char *name,
-            size_t len, sipSigArg *at, int indir);
+        size_t len, sipSigArg *at, int indir);
 static int findMtypeArg(sipMappedType **mttab, const char *name, size_t len,
-            sipSigArg *at, int indir);
+        sipSigArg *at, int indir);
 static int findEnumArg(sipExportedModuleDef *emd, const char *name, size_t len,
-               sipSigArg *at, int indir);
+        sipSigArg *at, int indir);
 static int sameScopedName(const char *pyname, const char *name, size_t len);
 static int nameEq(const char *with, const char *name, size_t len);
 static int isExactWrappedType(sipWrapperType *wt);
@@ -427,7 +446,7 @@ PyMODINIT_FUNC initsip(void)
          * Get the current interpreter.  This will be shared between
          * all threads.
          */
-        sipInterpreter = PyThreadState_Get() -> interp;
+        sipInterpreter = PyThreadState_Get()->interp;
     }
 }
 
@@ -551,7 +570,7 @@ static PyObject *cast(PyObject *self,PyObject *args)
     if (!PyArg_ParseTuple(args,"O!O!:cast",&sipWrapper_Type,&w,&sipWrapperType_Type,&wt))
         return NULL;
 
-    ft = ((PyObject *)w) -> ob_type;
+    ft = ((PyObject *)w)->ob_type;
     tt = (PyTypeObject *)wt;
 
     if (ft == tt || PyType_IsSubtype(tt, ft))
@@ -639,9 +658,9 @@ static int sip_api_export_module(sipExportedModuleDef *client,
     if (api_major != SIP_API_MAJOR_NR || api_minor > SIP_API_MINOR_NR)
     {
 #if SIP_API_MINOR_NR > 0
-        PyErr_Format(PyExc_RuntimeError,"the sip module supports API v%d.0 to v%d.%d but the %s module requires API v%d.%d",SIP_API_MAJOR_NR,SIP_API_MAJOR_NR,SIP_API_MINOR_NR,client -> em_name,api_major,api_minor);
+        PyErr_Format(PyExc_RuntimeError,"the sip module supports API v%d.0 to v%d.%d but the %s module requires API v%d.%d",SIP_API_MAJOR_NR,SIP_API_MAJOR_NR,SIP_API_MINOR_NR,client->em_name,api_major,api_minor);
 #else
-        PyErr_Format(PyExc_RuntimeError,"the sip module supports API v%d.0 but the %s module requires API v%d.%d",SIP_API_MAJOR_NR,client -> em_name,api_major,api_minor);
+        PyErr_Format(PyExc_RuntimeError,"the sip module supports API v%d.0 but the %s module requires API v%d.%d",SIP_API_MAJOR_NR,client->em_name,api_major,api_minor);
 #endif
 
         return -1;
@@ -651,57 +670,57 @@ static int sip_api_export_module(sipExportedModuleDef *client,
     if ((client->em_nameobj = PyString_FromString(client->em_name)) == NULL)
         return -1;
 
-    for (em = clientList; em != NULL; em = em -> em_next)
+    for (em = clientList; em != NULL; em = em->em_next)
     {
         /* SIP clients must have unique names. */
-        if (strcmp(em -> em_name,client -> em_name) == 0)
+        if (strcmp(em->em_name,client->em_name) == 0)
         {
-            PyErr_Format(PyExc_RuntimeError,"the sip module has already registered a module called %s",client -> em_name);
+            PyErr_Format(PyExc_RuntimeError,"the sip module has already registered a module called %s",client->em_name);
 
             return -1;
         }
 
         /* Only one module can claim to wrap QObject. */
-        if (em -> em_qt_api != NULL && client -> em_qt_api != NULL)
+        if (em->em_qt_api != NULL && client->em_qt_api != NULL)
         {
-            PyErr_Format(PyExc_RuntimeError,"the %s and %s modules both wrap the QObject class",client -> em_name,em -> em_name);
+            PyErr_Format(PyExc_RuntimeError,"the %s and %s modules both wrap the QObject class",client->em_name,em->em_name);
 
             return -1;
         }
     }
 
     /* Import any required modules. */
-    if ((im = client -> em_imports) != NULL)
+    if ((im = client->em_imports) != NULL)
     {
-        while (im -> im_name != NULL)
+        while (im->im_name != NULL)
         {
             PyObject *mod;
 
-            if ((mod = PyImport_ImportModule(im -> im_name)) == NULL)
+            if ((mod = PyImport_ImportModule(im->im_name)) == NULL)
                 return -1;
 
-            for (em = clientList; em != NULL; em = em -> em_next)
-                if (strcmp(em -> em_name,im -> im_name) == 0)
+            for (em = clientList; em != NULL; em = em->em_next)
+                if (strcmp(em->em_name,im->im_name) == 0)
                     break;
 
             if (em == NULL)
             {
-                PyErr_Format(PyExc_RuntimeError,"the %s module failed to register with the sip module",im -> im_name);
+                PyErr_Format(PyExc_RuntimeError,"the %s module failed to register with the sip module",im->im_name);
 
                 return -1;
             }
 
             /* Check the versions are compatible. */
-            if (im -> im_version >= 0 || em -> em_version >= 0)
-                if (im -> im_version != em -> em_version)
+            if (im->im_version >= 0 || em->em_version >= 0)
+                if (im->im_version != em->em_version)
                 {
-                    PyErr_Format(PyExc_RuntimeError,"the %s module is version %d but the %s module requires version %d",em -> em_name,em -> em_version,client -> em_name,im -> im_version);
+                    PyErr_Format(PyExc_RuntimeError,"the %s module is version %d but the %s module requires version %d",em->em_name,em->em_version,client->em_name,im->im_version);
 
                     return -1;
                 }
 
             /* Save the imported module. */
-            im -> im_module = em;
+            im->im_module = em;
 
             ++im;
         }
@@ -768,8 +787,8 @@ static int sip_api_export_module(sipExportedModuleDef *client,
         }
 
     /* Set the base class object for any sub-class convertors. */
-    if ((scc = client -> em_convertors) != NULL)
-        while (scc -> scc_convertor != NULL)
+    if ((scc = client->em_convertors) != NULL)
+        while (scc->scc_convertor != NULL)
         {
             scc->scc_basetype = getClassType(&scc->scc_base, client);
 
@@ -777,24 +796,24 @@ static int sip_api_export_module(sipExportedModuleDef *client,
         }
 
     /* Create the module's enums. */
-    if (client -> em_nrenums != 0)
+    if (client->em_nrenums != 0)
     {
-        if ((client -> em_enums = sip_api_malloc(client -> em_nrenums * sizeof (PyTypeObject *))) == NULL)
+        if ((client->em_enums = sip_api_malloc(client->em_nrenums * sizeof (PyTypeObject *))) == NULL)
             return -1;
 
-        for (i = 0; i < client -> em_nrenums; ++i)
+        for (i = 0; i < client->em_nrenums; ++i)
             if ((client->em_enums[i] = createEnum(client, &client->em_enumdefs[i], mod_dict)) == NULL)
                 return -1;
     }
 
-    for (emd = client -> em_enummembers, i = 0; i < client -> em_nrenummembers; ++i, ++emd)
+    for (emd = client->em_enummembers, i = 0; i < client->em_nrenummembers; ++i, ++emd)
     {
         PyObject *mo;
 
-        if ((mo = sip_api_convert_from_named_enum(emd -> em_val, client -> em_enums[emd -> em_enum])) == NULL)
+        if ((mo = sip_api_convert_from_named_enum(emd->em_val, client->em_enums[emd->em_enum])) == NULL)
             return -1;
 
-        if (PyDict_SetItemString(mod_dict, emd -> em_name, mo) < 0)
+        if (PyDict_SetItemString(mod_dict, emd->em_name, mo) < 0)
             return -1;
 
         Py_DECREF(mo);
@@ -815,11 +834,11 @@ static int sip_api_export_module(sipExportedModuleDef *client,
         }
 
     /* Add any global static instances. */
-    if (addInstances(mod_dict,&client -> em_instances) < 0)
+    if (addInstances(mod_dict,&client->em_instances) < 0)
         return -1;
 
     /* Add any license. */
-    if (client -> em_license != NULL && addLicense(mod_dict,client -> em_license) < 0)
+    if (client->em_license != NULL && addLicense(mod_dict,client->em_license) < 0)
         return -1;
 
     /* See if the new module satisfies any outstanding external types. */
@@ -859,7 +878,7 @@ static int sip_api_export_module(sipExportedModuleDef *client,
     }
 
     /* Add to the list of client modules. */
-    client -> em_next = clientList;
+    client->em_next = clientList;
     clientList = client;
 
     return 0;
@@ -2995,7 +3014,7 @@ static void sip_api_common_ctor(sipMethodCache *cache,int nrmeths)
 {
     /* This is thread safe. */
     while (nrmeths-- > 0)
-        cache++ -> mcflags = 0;
+        cache++->mcflags = 0;
 }
 
 
@@ -3012,7 +3031,7 @@ static void sip_api_common_dtor(sipWrapper *sipSelf)
             sipOMRemoveObject(&cppPyMap,sipSelf);
 
         /* This no longer points to anything useful. */
-        sipSelf -> u.cppPtr = NULL;
+        sipSelf->u.cppPtr = NULL;
 
         /* Remove it from any parent. */
         removeFromParent(sipSelf);
@@ -3109,11 +3128,11 @@ static sipWrapperType *createType(sipExportedModuleDef *client,
     sipWrapperType *wt;
 
     /* Create an object corresponding to the type name. */
-    if ((name = getBaseNameObject(type -> td_name)) == NULL)
+    if ((name = getBaseNameObject(type->td_name)) == NULL)
         goto reterr;
 
     /* Create the tuple of super types. */
-    if ((sup = type -> td_supers) == NULL)
+    if ((sup = type->td_supers) == NULL)
     {
         static PyObject *nobases = NULL;
 
@@ -3129,12 +3148,12 @@ static sipWrapperType *createType(sipExportedModuleDef *client,
 
         do
             ++nrsupers;
-        while (!sup++ -> sc_flag);
+        while (!sup++->sc_flag);
 
         if ((bases = PyTuple_New(nrsupers)) == NULL)
             goto relname;
 
-        for (sup = type -> td_supers, i = 0; i < nrsupers; ++i, ++sup)
+        for (sup = type->td_supers, i = 0; i < nrsupers; ++i, ++sup)
         {
             PyObject *st = (PyObject *)getClassType(sup, client);
 
@@ -3148,7 +3167,7 @@ static sipWrapperType *createType(sipExportedModuleDef *client,
         goto relbases;
 
     /* Initialise the rest of the type and pass it via the back door. */
-    type -> td_module = client;
+    type->td_module = client;
     currentType = type;
 
     /* Create the type by calling the metatype. */
@@ -3219,7 +3238,7 @@ static PyTypeObject *createEnum(sipExportedModuleDef *client, sipEnumDef *ed,
         goto reterr;
 
     /* Create an object corresponding to the type name. */
-    if ((name = getBaseNameObject(ed -> e_name)) == NULL)
+    if ((name = getBaseNameObject(ed->e_name)) == NULL)
         goto reterr;
 
     /* Create the type dictionary. */
@@ -3234,8 +3253,8 @@ static PyTypeObject *createEnum(sipExportedModuleDef *client, sipEnumDef *ed,
         goto relargs;
 
     /* Initialise any slots. */
-    if (ed -> e_pyslots != NULL)
-        initSlots(et, et->tp_as_number, et->tp_as_sequence, et->tp_as_mapping, ed -> e_pyslots, TRUE);
+    if (ed->e_pyslots != NULL)
+        initSlots(et, et->tp_as_number, et->tp_as_sequence, et->tp_as_mapping, ed->e_pyslots, TRUE);
 
     /* Add the type to the "parent" dictionary. */
     if (PyDict_SetItem(dict,name,(PyObject *)et) < 0)
@@ -3345,22 +3364,22 @@ static PyObject *createTypeDict(PyObject *mname)
  */
 static int addInstances(PyObject *dict,sipInstancesDef *id)
 {
-    if (id -> id_class != NULL && addClassInstances(dict,id -> id_class) < 0)
+    if (id->id_class != NULL && addClassInstances(dict,id->id_class) < 0)
         return -1;
 
-    if (id -> id_voidp != NULL && addVoidPtrInstances(dict,id -> id_voidp) < 0)
+    if (id->id_voidp != NULL && addVoidPtrInstances(dict,id->id_voidp) < 0)
         return -1;
 
-    if (id -> id_char != NULL && addCharInstances(dict,id -> id_char) < 0)
+    if (id->id_char != NULL && addCharInstances(dict,id->id_char) < 0)
         return -1;
 
-    if (id -> id_string != NULL && addStringInstances(dict,id -> id_string) < 0)
+    if (id->id_string != NULL && addStringInstances(dict,id->id_string) < 0)
         return -1;
 
-    if (id -> id_int != NULL && addIntInstances(dict, id -> id_int) < 0)
+    if (id->id_int != NULL && addIntInstances(dict, id->id_int) < 0)
         return -1;
 
-    if (id -> id_long != NULL && addLongInstances(dict,id -> id_long) < 0)
+    if (id->id_long != NULL && addLongInstances(dict,id->id_long) < 0)
         return -1;
 
     if (id->id_ulong != NULL && addUnsignedLongInstances(dict, id->id_ulong) < 0)
@@ -3372,10 +3391,10 @@ static int addInstances(PyObject *dict,sipInstancesDef *id)
     if (id->id_ullong != NULL && addUnsignedLongLongInstances(dict, id->id_ullong) < 0)
         return -1;
 
-    if (id -> id_double != NULL && addDoubleInstances(dict,id -> id_double) < 0)
+    if (id->id_double != NULL && addDoubleInstances(dict,id->id_double) < 0)
         return -1;
 
-    if (id -> id_enum != NULL && addEnumInstances(dict,id -> id_enum) < 0)
+    if (id->id_enum != NULL && addEnumInstances(dict,id->id_enum) < 0)
         return -1;
 
     return 0;
@@ -3431,16 +3450,16 @@ static int handleSetLazyAttr(PyObject *nameobj,PyObject *valobj,
     {
         if (valobj == NULL)
         {
-            PyErr_Format(PyExc_ValueError,"%s.%s cannot be deleted",wt -> type -> td_name,name);
+            PyErr_Format(PyExc_ValueError,"%s.%s cannot be deleted",wt->type->td_name,name);
 
             return -1;
         }
 
-        if ((vmd -> ml_flags & METH_STATIC) != 0 || w != NULL)
+        if ((vmd->ml_flags & METH_STATIC) != 0 || w != NULL)
         {
             PyObject *res;
 
-            if ((res = (*vmd -> ml_meth)((PyObject *)w,valobj)) == NULL)
+            if ((res = (*vmd->ml_meth)((PyObject *)w,valobj)) == NULL)
                 return -1;
 
             /* Ignore the result (which should be Py_None). */
@@ -3512,8 +3531,8 @@ static PyObject *handleGetLazyAttr(PyObject *nameobj,sipWrapperType *wt,
     }
 
     if (vmd != NULL)
-        if ((vmd -> ml_flags & METH_STATIC) != 0 || w != NULL)
-            return (*vmd -> ml_meth)((PyObject *)w,NULL);
+        if ((vmd->ml_flags & METH_STATIC) != 0 || w != NULL)
+            return (*vmd->ml_meth)((PyObject *)w,NULL);
 
     PyErr_SetObject(PyExc_AttributeError,nameobj);
 
@@ -3526,8 +3545,8 @@ static PyObject *handleGetLazyAttr(PyObject *nameobj,sipWrapperType *wt,
  */
 static PyObject *createEnumMember(sipTypeDef *td, sipEnumMemberDef *enm)
 {
-    if (enm -> em_enum < 0)
-        return PyInt_FromLong(enm -> em_val);
+    if (enm->em_enum < 0)
+        return PyInt_FromLong(enm->em_val);
 
     return sip_api_convert_from_named_enum(enm->em_val, td->td_module->em_enums[enm->em_enum]);
 }
@@ -3562,7 +3581,7 @@ static void findLazyAttr(sipWrapperType *wt,char *name,PyMethodDef **pmdp,
     sipEncodedClassDef *sup;
 
     /* The base type doesn't have any type information. */
-    if ((td = wt -> type) == NULL)
+    if ((td = wt->type) == NULL)
         return;
 
     /* Search the possible linked list of namespace extenders. */
@@ -3603,7 +3622,7 @@ static void findLazyAttr(sipWrapperType *wt,char *name,PyMethodDef **pmdp,
     while (nsx != NULL);
 
     /* Check the base classes. */
-    if ((sup = td -> td_supers) != NULL)
+    if ((sup = td->td_supers) != NULL)
         do
         {
             findLazyAttr(getClassType(sup, td->td_module), name, pmdp, enmp, vmdp, in);
@@ -3611,7 +3630,7 @@ static void findLazyAttr(sipWrapperType *wt,char *name,PyMethodDef **pmdp,
             if (*pmdp != NULL || *enmp != NULL || *vmdp != NULL)
                 break;
         }
-        while (!sup++ -> sc_flag);
+        while (!sup++->sc_flag);
 }
 
 
@@ -3620,7 +3639,7 @@ static void findLazyAttr(sipWrapperType *wt,char *name,PyMethodDef **pmdp,
  */
 static int compareMethodName(const void *key,const void *el)
 {
-    return strcmp((const char *)key,((const PyMethodDef *)el) -> ml_name);
+    return strcmp((const char *)key,((const PyMethodDef *)el)->ml_name);
 }
 
 
@@ -3629,7 +3648,7 @@ static int compareMethodName(const void *key,const void *el)
  */
 static int compareEnumMemberName(const void *key,const void *el)
 {
-    return strcmp((const char *)key,((const sipEnumMemberDef *)el) -> em_name);
+    return strcmp((const char *)key,((const sipEnumMemberDef *)el)->em_name);
 }
 
 
@@ -3800,7 +3819,7 @@ static void sip_api_bad_catcher_result(PyObject *method)
         return;
     }
 
-    mname = PyString_AsString(((PyFunctionObject *)PyMethod_GET_FUNCTION(method)) -> func_name);
+    mname = PyString_AsString(((PyFunctionObject *)PyMethod_GET_FUNCTION(method))->func_name);
 
     if (mname == NULL)
         return;
@@ -3817,7 +3836,7 @@ static void sip_api_bad_catcher_result(PyObject *method)
  */
 static PyObject *sip_api_class_name(PyObject *self)
 {
-    return PyString_FromString(self -> ob_type -> tp_name);
+    return PyString_FromString(self->ob_type->tp_name);
 }
 
 
@@ -3927,7 +3946,7 @@ static int addLicense(PyObject *dict,sipLicenseDef *lc)
         return -1;
 
     /* The license type is compulsory, the rest are optional. */
-    if (lc -> lc_type == NULL || (o = PyString_FromString(lc -> lc_type)) == NULL)
+    if (lc->lc_type == NULL || (o = PyString_FromString(lc->lc_type)) == NULL)
         goto deldict;
 
     rc = PyDict_SetItem(ldict,typeName,o);
@@ -3936,9 +3955,9 @@ static int addLicense(PyObject *dict,sipLicenseDef *lc)
     if (rc < 0)
         goto deldict;
 
-    if (lc -> lc_licensee != NULL)
+    if (lc->lc_licensee != NULL)
     {
-        if ((o = PyString_FromString(lc -> lc_licensee)) == NULL)
+        if ((o = PyString_FromString(lc->lc_licensee)) == NULL)
             goto deldict;
 
         rc = PyDict_SetItem(ldict,licenseeName,o);
@@ -3948,9 +3967,9 @@ static int addLicense(PyObject *dict,sipLicenseDef *lc)
             goto deldict;
     }
 
-    if (lc -> lc_timestamp != NULL)
+    if (lc->lc_timestamp != NULL)
     {
-        if ((o = PyString_FromString(lc -> lc_timestamp)) == NULL)
+        if ((o = PyString_FromString(lc->lc_timestamp)) == NULL)
             goto deldict;
 
         rc = PyDict_SetItem(ldict,timestampName,o);
@@ -3960,9 +3979,9 @@ static int addLicense(PyObject *dict,sipLicenseDef *lc)
             goto deldict;
     }
 
-    if (lc -> lc_signature != NULL)
+    if (lc->lc_signature != NULL)
     {
-        if ((o = PyString_FromString(lc -> lc_signature)) == NULL)
+        if ((o = PyString_FromString(lc->lc_signature)) == NULL)
             goto deldict;
 
         rc = PyDict_SetItem(ldict,signatureName,o);
@@ -3995,15 +4014,15 @@ deldict:
  */
 static int addVoidPtrInstances(PyObject *dict,sipVoidPtrInstanceDef *vi)
 {
-    while (vi -> vi_name != NULL)
+    while (vi->vi_name != NULL)
     {
         int rc;
         PyObject *w;
 
-        if ((w = sip_api_convert_from_void_ptr(vi -> vi_val)) == NULL)
+        if ((w = sip_api_convert_from_void_ptr(vi->vi_val)) == NULL)
             return -1;
 
-        rc = PyDict_SetItemString(dict,vi -> vi_name,w);
+        rc = PyDict_SetItemString(dict,vi->vi_name,w);
         Py_DECREF(w);
 
         if (rc < 0)
@@ -4021,15 +4040,15 @@ static int addVoidPtrInstances(PyObject *dict,sipVoidPtrInstanceDef *vi)
  */
 static int addCharInstances(PyObject *dict,sipCharInstanceDef *ci)
 {
-    while (ci -> ci_name != NULL)
+    while (ci->ci_name != NULL)
     {
         int rc;
         PyObject *w;
 
-        if ((w = PyString_FromStringAndSize(&ci -> ci_val,1)) == NULL)
+        if ((w = PyString_FromStringAndSize(&ci->ci_val,1)) == NULL)
             return -1;
 
-        rc = PyDict_SetItemString(dict,ci -> ci_name,w);
+        rc = PyDict_SetItemString(dict,ci->ci_name,w);
         Py_DECREF(w);
 
         if (rc < 0)
@@ -4047,15 +4066,15 @@ static int addCharInstances(PyObject *dict,sipCharInstanceDef *ci)
  */
 static int addStringInstances(PyObject *dict,sipStringInstanceDef *si)
 {
-    while (si -> si_name != NULL)
+    while (si->si_name != NULL)
     {
         int rc;
         PyObject *w;
 
-        if ((w = PyString_FromString(si -> si_val)) == NULL)
+        if ((w = PyString_FromString(si->si_val)) == NULL)
             return -1;
 
-        rc = PyDict_SetItemString(dict,si -> si_name,w);
+        rc = PyDict_SetItemString(dict,si->si_name,w);
         Py_DECREF(w);
 
         if (rc < 0)
@@ -4099,15 +4118,15 @@ static int addIntInstances(PyObject *dict, sipIntInstanceDef *ii)
  */
 static int addLongInstances(PyObject *dict,sipLongInstanceDef *li)
 {
-    while (li -> li_name != NULL)
+    while (li->li_name != NULL)
     {
         int rc;
         PyObject *w;
 
-        if ((w = PyLong_FromLong(li -> li_val)) == NULL)
+        if ((w = PyLong_FromLong(li->li_val)) == NULL)
             return -1;
 
-        rc = PyDict_SetItemString(dict,li -> li_name,w);
+        rc = PyDict_SetItemString(dict,li->li_name,w);
         Py_DECREF(w);
 
         if (rc < 0)
@@ -4211,15 +4230,15 @@ static int addUnsignedLongLongInstances(PyObject *dict, sipUnsignedLongLongInsta
  */
 static int addDoubleInstances(PyObject *dict,sipDoubleInstanceDef *di)
 {
-    while (di -> di_name != NULL)
+    while (di->di_name != NULL)
     {
         int rc;
         PyObject *w;
 
-        if ((w = PyFloat_FromDouble(di -> di_val)) == NULL)
+        if ((w = PyFloat_FromDouble(di->di_val)) == NULL)
             return -1;
 
-        rc = PyDict_SetItemString(dict,di -> di_name,w);
+        rc = PyDict_SetItemString(dict,di->di_name,w);
         Py_DECREF(w);
 
         if (rc < 0)
@@ -4287,9 +4306,9 @@ static int sip_api_add_enum_instance(PyObject *dict, char *name, int value,
  */
 static int addClassInstances(PyObject *dict,sipClassInstanceDef *ci)
 {
-    while (ci -> ci_name != NULL)
+    while (ci->ci_name != NULL)
     {
-        if (addSingleClassInstance(dict,ci -> ci_name,ci -> ci_ptr,*ci -> ci_type,ci -> ci_flags) < 0)
+        if (addSingleClassInstance(dict,ci->ci_name,ci->ci_ptr,*ci->ci_type,ci->ci_flags) < 0)
             return -1;
 
         ++ci;
@@ -4367,10 +4386,10 @@ static void *sip_api_get_complex_cpp_ptr(sipWrapper *w)
         return NULL;
     }
 
-    if (checkPointer(w -> u.cppPtr) < 0)
+    if (checkPointer(w->u.cppPtr) < 0)
         return NULL;
 
-    return w -> u.cppPtr;
+    return w->u.cppPtr;
 }
 
 
@@ -4417,7 +4436,7 @@ static PyObject *sip_api_is_py_method(sip_gilstate_t *gil,sipMethodCache *pymc,
             if (PyMethod_Check(methobj))
             {
                 sipSetIsMethod(pymc);
-                sipSaveMethod(&pymc -> pyMethod,methobj);
+                sipSaveMethod(&pymc->pyMethod,methobj);
             }
 
             Py_DECREF(methobj);
@@ -4431,7 +4450,7 @@ static PyObject *sip_api_is_py_method(sip_gilstate_t *gil,sipMethodCache *pymc,
         PyErr_Clear();
 
     if (sipIsMethod(pymc))
-        return PyMethod_New(pymc -> pyMethod.mfunc,pymc -> pyMethod.mself,pymc -> pyMethod.mclass);
+        return PyMethod_New(pymc->pyMethod.mfunc,pymc->pyMethod.mself,pymc->pyMethod.mclass);
 
     if (cname != NULL)
         PyErr_Format(PyExc_NotImplementedError,"%s.%s() is abstract and must be overridden",cname,mname);
@@ -4459,12 +4478,12 @@ static PyObject *sip_api_get_wrapper(void *cppPtr,sipWrapperType *type)
 void *sipGetAddress(sipWrapper *w)
 {
     if (sipIsAccessFunc(w))
-        return (*w -> u.afPtr)();
+        return (*w->u.afPtr)();
 
     if (sipIsIndirect(w))
-        return *((void **)w -> u.cppPtr);
+        return *((void **)w->u.cppPtr);
 
-    return w -> u.cppPtr;
+    return w->u.cppPtr;
 }
 
 
@@ -4483,7 +4502,7 @@ void *sip_api_get_cpp_ptr(sipWrapper *w,sipWrapperType *type)
     {
         sipCastFunc cast;
 
-        cast = ((sipWrapperType *)w -> ob_type) -> type -> td_cast;
+        cast = ((sipWrapperType *)w->ob_type)->type->td_cast;
 
         /* C structures don't have cast functions. */
         if (cast != NULL)
@@ -4874,9 +4893,9 @@ static const sipMappedType *sip_api_find_mapped_type(const char *type)
  */
 void sipSaveMethod(sipPyMethod *pm,PyObject *meth)
 {
-    pm -> mfunc = PyMethod_GET_FUNCTION(meth);
-    pm -> mself = PyMethod_GET_SELF(meth);
-    pm -> mclass = PyMethod_GET_CLASS(meth);
+    pm->mfunc = PyMethod_GET_FUNCTION(meth);
+    pm->mself = PyMethod_GET_SELF(meth);
+    pm->mclass = PyMethod_GET_CLASS(meth);
 }
 
 
@@ -4922,14 +4941,14 @@ static sipWrapperType *convertSubClass(sipWrapperType *type, void **cppPtr)
     if (*cppPtr == NULL)
         return NULL;
 
-    for (em = clientList; em != NULL; em = em -> em_next)
+    for (em = clientList; em != NULL; em = em->em_next)
     {
         sipSubClassConvertorDef *scc;
 
-        if ((scc = em -> em_convertors) == NULL)
+        if ((scc = em->em_convertors) == NULL)
             continue;
 
-        while (scc -> scc_convertor != NULL)
+        while (scc->scc_convertor != NULL)
         {
             /*
              * The base type is the "root" class that may have a number of
@@ -4944,7 +4963,7 @@ static sipWrapperType *convertSubClass(sipWrapperType *type, void **cppPtr)
             {
                 sipWrapperType *subtype;
 
-                if ((subtype = (*scc -> scc_convertor)(cppPtr)) != NULL)
+                if ((subtype = (*scc->scc_convertor)(cppPtr)) != NULL)
                     return subtype;
             }
 
@@ -4968,7 +4987,7 @@ static sipWrapperType *convertSubClass(sipWrapperType *type, void **cppPtr)
  */
 static int compareStringMapEntry(const void *key,const void *el)
 {
-    return strcmp((const char *)key,((const sipStringTypeClassMap *)el) -> typeString);
+    return strcmp((const char *)key,((const sipStringTypeClassMap *)el)->typeString);
 }
 
 
@@ -4988,7 +5007,7 @@ static sipWrapperType *sip_api_map_string_to_class(const char *typeString,
                           sizeof (sipStringTypeClassMap),
                           compareStringMapEntry);
 
-        return ((me != NULL) ? *me -> pyType : NULL);
+        return ((me != NULL) ? *me->pyType : NULL);
 }
 
 
@@ -4999,10 +5018,10 @@ static int compareIntMapEntry(const void *keyp,const void *el)
 {
     int key = *(int *)keyp;
 
-    if (key > ((const sipIntTypeClassMap *)el) -> typeInt)
+    if (key > ((const sipIntTypeClassMap *)el)->typeInt)
         return 1;
 
-    if (key < ((const sipIntTypeClassMap *)el) -> typeInt)
+    if (key < ((const sipIntTypeClassMap *)el)->typeInt)
         return -1;
 
     return 0;
@@ -5025,7 +5044,7 @@ static sipWrapperType *sip_api_map_int_to_class(int typeInt,
                        sizeof (sipIntTypeClassMap),
                        compareIntMapEntry);
 
-        return ((me != NULL) ? *me -> pyType : NULL);
+        return ((me != NULL) ? *me->pyType : NULL);
 }
 
 
@@ -5143,10 +5162,10 @@ static void *findSlotInType(sipTypeDef *td, sipPySlotType st)
     sipPySlotDef *psd;
 
     if ((psd = td->td_pyslots) != NULL)
-        while (psd -> psd_func != NULL)
+        while (psd->psd_func != NULL)
         {
-            if (psd -> psd_type == st)
-                return psd -> psd_func;
+            if (psd->psd_type == st)
+                return psd->psd_func;
 
             ++psd;
         }
@@ -5335,7 +5354,7 @@ static PyObject *sipVoidPtr_new(PyTypeObject *subtype, PyObject *args, PyObject 
  */
 static PyObject *sipVoidPtr_int(sipVoidPtr *v)
 {
-    return PyInt_FromLong((long)v -> voidptr);
+    return PyInt_FromLong((long)v->voidptr);
 }
 
 
@@ -5371,7 +5390,7 @@ static PyObject *sipVoidPtr_asstring(sipVoidPtr *v,PyObject *arg)
     if (PyErr_Occurred())
         return NULL;
 
-    return PyString_FromStringAndSize(v -> voidptr,nbytes);
+    return PyString_FromStringAndSize(v->voidptr,nbytes);
 }
 
 
@@ -5470,8 +5489,8 @@ static void *sip_api_convert_to_void_ptr(PyObject *obj)
         return NULL;
 
     /* Save a conversion if it's not a sub-type. */
-    if (obj -> ob_type == &sipVoidPtr_Type)
-        return ((sipVoidPtr *)obj) -> voidptr;
+    if (obj->ob_type == &sipVoidPtr_Type)
+        return ((sipVoidPtr *)obj)->voidptr;
 
     return (void *)PyInt_AsLong(obj);
 }
@@ -5493,7 +5512,7 @@ PyObject *sip_api_convert_from_void_ptr(void *val)
     if ((self = PyObject_NEW(sipVoidPtr,&sipVoidPtr_Type)) == NULL)
         return NULL;
 
-    self -> voidptr = val;
+    self->voidptr = val;
 
     return (PyObject *)self;
 }
@@ -5546,7 +5565,7 @@ static PyObject *sipWrapperType_alloc(PyTypeObject *self, int nitems)
      */
     if (currentType != NULL)
     {
-        ((sipWrapperType *)o) -> type = currentType;
+        ((sipWrapperType *)o)->type = currentType;
         addSlots((sipWrapperType *)o, currentType);
         currentType = NULL;
     }
@@ -5858,7 +5877,7 @@ static int sipWrapper_init(sipWrapper *self,PyObject *args,PyObject *kwds)
     int sipFlags;
     sipWrapper *owner;
 
-    if (self -> ob_type == (PyTypeObject *)&sipWrapper_Type)
+    if (self->ob_type == (PyTypeObject *)&sipWrapper_Type)
     {
         PyErr_SetString(PyExc_TypeError,"the sip.wrapper type cannot be instantiated");
         return -1;
@@ -5876,7 +5895,7 @@ static int sipWrapper_init(sipWrapper *self,PyObject *args,PyObject *kwds)
      * creates instance attributes before calling it's super-class __init__
      * method (ie. this one).
      */
-    if (self -> dict == NULL && (self -> dict = PyDict_New()) == NULL)
+    if (self->dict == NULL && (self->dict = PyDict_New()) == NULL)
         return -1;
 
     /* Check there is no existing C++ instance waiting to be wrapped. */
@@ -5925,8 +5944,8 @@ static int sipWrapper_init(sipWrapper *self,PyObject *args,PyObject *kwds)
 
     addToParent(self, owner);
 
-    self -> u.cppPtr = sipNew;
-    self -> flags = sipFlags;
+    self->u.cppPtr = sipNew;
+    self->flags = sipFlags;
 
     if (!sipNotInMap(self))
         sipOMAddObject(&cppPyMap,self);
@@ -6098,22 +6117,22 @@ static void sipWrapper_dealloc(sipWrapper *self)
             td->td_dealloc(self);
     }
 
-    while (self -> pySigList != NULL)
+    while (self->pySigList != NULL)
     {
         sipPySig *ps;
         sipPySigRx *psrx;
 
         /* Take this one out of the list. */
-        ps = self -> pySigList;
-        self -> pySigList = ps -> next;
+        ps = self->pySigList;
+        self->pySigList = ps->next;
 
-        while ((psrx = ps -> rxlist) != NULL)
+        while ((psrx = ps->rxlist) != NULL)
         {
-            ps -> rxlist = psrx -> next;
+            ps->rxlist = psrx->next;
             sipFreePySigRx(psrx);
         }
 
-        sip_api_free(ps -> name);
+        sip_api_free(ps->name);
         sip_api_free(ps);
     }
 
@@ -6229,7 +6248,7 @@ static PyObject *sipWrapper_getattro(PyObject *obj,PyObject *name)
 {
     char *nm;
     PyObject *attr;
-    sipWrapperType *wt = (sipWrapperType *)obj -> ob_type;
+    sipWrapperType *wt = (sipWrapperType *)obj->ob_type;
     sipWrapper *w = (sipWrapper *)obj;
 
     /*
@@ -6255,7 +6274,7 @@ static PyObject *sipWrapper_getattro(PyObject *obj,PyObject *name)
          * proxy.
          */
         if (tmpdict == NULL)
-            if ((tmpdict = w -> dict) == NULL)
+            if ((tmpdict = w->dict) == NULL)
                 tmpdict = PyDict_New();
             else
                 Py_INCREF(tmpdict);
@@ -6280,10 +6299,10 @@ static int getNonStaticVariables(sipWrapperType *wt,sipWrapper *w,
 {
     PyMethodDef *pmd;
 
-    if ((pmd = wt -> type -> td_variables) != NULL)
-        while (pmd -> ml_name != NULL)
+    if ((pmd = wt->type->td_variables) != NULL)
+        while (pmd->ml_name != NULL)
         {
-            if ((pmd -> ml_flags & METH_STATIC) == 0)
+            if ((pmd->ml_flags & METH_STATIC) == 0)
             {
                 int rc;
                 PyObject *val, *dict;
@@ -6294,16 +6313,16 @@ static int getNonStaticVariables(sipWrapperType *wt,sipWrapper *w,
                  */
                 if ((dict = *ndict) == NULL)
                 {
-                    if ((dict = PyDict_Copy(w -> dict)) == NULL)
+                    if ((dict = PyDict_Copy(w->dict)) == NULL)
                         return -1;
 
                     *ndict = dict;
                 }
 
-                if ((val = (*pmd -> ml_meth)((PyObject *)w,NULL)) == NULL)
+                if ((val = (*pmd->ml_meth)((PyObject *)w,NULL)) == NULL)
                     return -1;
 
-                rc = PyDict_SetItemString(dict,pmd -> ml_name,val);
+                rc = PyDict_SetItemString(dict,pmd->ml_name,val);
 
                 Py_DECREF(val);
 
@@ -6325,7 +6344,7 @@ static int sipWrapper_setattro(PyObject *obj,PyObject *name,PyObject *value)
 {
     int rc;
 
-    rc = handleSetLazyAttr(name,value,(sipWrapperType *)obj -> ob_type,(sipWrapper *)obj);
+    rc = handleSetLazyAttr(name,value,(sipWrapperType *)obj->ob_type,(sipWrapper *)obj);
 
     if (rc <= 0)
         return rc;
@@ -6411,14 +6430,14 @@ static void addSlots(sipWrapperType *wt, sipTypeDef *td)
         wt->super.as_buffer.bf_getcharbuffer = (getcharbufferproc)sipWrapper_getcharbuffer;
 
     /* Add the slots for this type. */
-    if (td -> td_pyslots != NULL)
+    if (td->td_pyslots != NULL)
         initSlots((PyTypeObject *)wt, &wt->super.as_number, &wt->super.as_sequence, &wt->super.as_mapping, td->td_pyslots, FALSE);
 
     /* Recurse through any super-types. */
-    if ((sup = td -> td_supers) != NULL)
+    if ((sup = td->td_supers) != NULL)
         do
             addSlots(wt, getClassType(sup, td->td_module)->type);
-        while (!sup++ -> sc_flag);
+        while (!sup++->sc_flag);
 }
 
 
@@ -6430,8 +6449,8 @@ static void initSlots(PyTypeObject *to, PyNumberMethods *nb, PySequenceMethods *
 {
     void *f;
 
-    while ((f = slots -> psd_func) != NULL)
-        switch (slots++ -> psd_type)
+    while ((f = slots->psd_func) != NULL)
+        switch (slots++->psd_type)
         {
         case str_slot:
             if (force || to->tp_str == NULL)
@@ -6714,22 +6733,22 @@ static int findClassArg(sipExportedModuleDef *emd, const char *name,
         if ((wt = *wtp++) == NULL)
             continue;
 
-        if (wt -> type -> td_cname != NULL)
+        if (wt->type->td_cname != NULL)
         {
             if (!nameEq(wt->type->td_cname, name, len))
                 continue;
         }
-        else if (!sameScopedName(wt -> type -> td_name, name, len))
+        else if (!sameScopedName(wt->type->td_name, name, len))
             continue;
 
         if (indir == 0)
-            at -> atype = class_sat;
+            at->atype = class_sat;
         else if (indir == 1)
-            at -> atype = classp_sat;
+            at->atype = classp_sat;
         else
-            at -> atype = unknown_sat;
+            at->atype = unknown_sat;
 
-        at -> u.wt = wt;
+        at->u.wt = wt;
 
         return TRUE;
     }
@@ -6751,13 +6770,13 @@ static int findMtypeArg(sipMappedType **mttab, const char *name, size_t len,
         if (nameEq(mt->mt_name, name, len))
         {
             if (indir == 0)
-                at -> atype = mtype_sat;
+                at->atype = mtype_sat;
             else if (indir == 1)
-                at -> atype = mtypep_sat;
+                at->atype = mtypep_sat;
             else
-                at -> atype = unknown_sat;
+                at->atype = unknown_sat;
 
-            at -> u.mt = mt;
+            at->u.mt = mt;
 
             return TRUE;
         }
@@ -6776,22 +6795,22 @@ static int findEnumArg(sipExportedModuleDef *emd, const char *name, size_t len,
     int i;
     sipEnumDef *ed;
 
-    for (ed = emd -> em_enumdefs, i = 0; i < emd -> em_nrenums; ++i, ++ed)
+    for (ed = emd->em_enumdefs, i = 0; i < emd->em_nrenums; ++i, ++ed)
     {
-        if (ed -> e_cname != NULL)
+        if (ed->e_cname != NULL)
         {
             if (!nameEq(ed->e_cname, name, len))
                 continue;
         }
-        else if (!sameScopedName(ed -> e_name, name, len))
+        else if (!sameScopedName(ed->e_name, name, len))
             continue;
 
         if (indir == 0)
-            at -> atype = enum_sat;
+            at->atype = enum_sat;
         else
-            at -> atype = unknown_sat;
+            at->atype = unknown_sat;
 
-        at -> u.et = emd -> em_enums[i];
+        at->u.et = emd->em_enums[i];
 
         return TRUE;
     }
@@ -6807,16 +6826,17 @@ static int findEnumArg(sipExportedModuleDef *emd, const char *name, size_t len,
 void sipFindSigArgType(const char *name, size_t len, sipSigArg *at, int indir)
 {
     sipExportedModuleDef *em;
+    sipPyObject *po;
 
-    at -> atype = unknown_sat;
+    at->atype = unknown_sat;
 
-    for (em = clientList; em != NULL; em = em -> em_next)
+    for (em = clientList; em != NULL; em = em->em_next)
     {
         sipTypedefDef *tdd;
 
         /* Search for a typedef. */
-        if ((tdd = em -> em_typedefs) != NULL)
-            while (tdd -> tdd_name != NULL)
+        if ((tdd = em->em_typedefs) != NULL)
+            while (tdd->tdd_name != NULL)
             {
                 if (nameEq(tdd->tdd_name, name, len))
                 {
@@ -6824,33 +6844,33 @@ void sipFindSigArgType(const char *name, size_t len, sipSigArg *at, int indir)
                     const char *tn;
                     size_t tnlen;
 
-                    at -> atype = tdd -> tdd_type;
+                    at->atype = tdd->tdd_type;
 
                     /* Done with the simple cases. */
-                    if ((tn = tdd -> tdd_type_name) == NULL)
+                    if ((tn = tdd->tdd_type_name) == NULL)
                         return;
 
                     /*
                      * Find the module that this class,
                      * mapped type or enum is defined in.
                      */
-                    if (tdd -> tdd_mod_name == NULL)
+                    if (tdd->tdd_mod_name == NULL)
                         tem = em;
                     else
-                        for (tem = clientList; tem != NULL; tem = tem -> em_next)
-                            if (strcmp(tem -> em_name, tdd -> tdd_mod_name) == 0)
+                        for (tem = clientList; tem != NULL; tem = tem->em_next)
+                            if (strcmp(tem->em_name, tdd->tdd_mod_name) == 0)
                                 break;
 
                     tnlen = strlen(tn);
 
-                    switch (tdd -> tdd_type)
+                    switch (tdd->tdd_type)
                     {
                     case class_sat:
                         findClassArg(tem, tn, tnlen, at, indir);
                         break;
 
                     case mtype_sat:
-                        findMtypeArg(tem -> em_mappedtypes, tn, tnlen, at, indir);
+                        findMtypeArg(tem->em_mappedtypes, tn, tnlen, at, indir);
                         break;
 
                     case enum_sat:
@@ -6866,16 +6886,36 @@ void sipFindSigArgType(const char *name, size_t len, sipSigArg *at, int indir)
             }
 
         /* Search for a class. */
-        if (em -> em_types != NULL && findClassArg(em, name, len, at, indir))
+        if (em->em_types != NULL && findClassArg(em, name, len, at, indir))
             return;
 
         /* Search for a mapped type. */
-        if (em -> em_mappedtypes != NULL && findMtypeArg(em -> em_mappedtypes, name, len, at, indir))
+        if (em->em_mappedtypes != NULL && findMtypeArg(em->em_mappedtypes, name, len, at, indir))
             return;
 
         /* Search for an enum. */
-        if (em -> em_enums != NULL && findEnumArg(em, name, len, at, indir))
+        if (em->em_enums != NULL && findEnumArg(em, name, len, at, indir))
             return;
+    }
+
+    /* Search for a dynamically registered int type. */
+    for (po = sipRegisteredIntTypes; po != NULL; po = po->next)
+    {
+        int i;
+
+        for (i = 0; i < PyTuple_GET_SIZE(po->object); ++i)
+        {
+            char *int_nm = PyString_AsString(PyTuple_GET_ITEM(po->object, i));
+
+            if (int_nm == NULL)
+                continue;
+
+            if (nameEq(int_nm, name, len))
+            {
+                at->atype = int_sat;
+                return;
+            }
+        }
     }
 }
 
@@ -6919,6 +6959,26 @@ static int sameScopedName(const char *pyname, const char *name, size_t len)
             return FALSE;
 
     return (ch == '\0' && len == 0);
+}
+
+
+/*
+ * Register a Python tuple of type names that will be interpreted as ints if
+ * they are seen as signal arguments.
+ */
+static void sip_api_register_int_types(PyObject *args)
+{
+    sipPyObject *po;
+
+    if ((po = sip_api_malloc(sizeof (sipPyObject))) == NULL)
+        return;
+
+    Py_INCREF(args);
+
+    po->object = args;
+    po->next = sipRegisteredIntTypes;
+
+    sipRegisteredIntTypes = po;
 }
 
 

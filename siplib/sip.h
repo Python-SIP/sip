@@ -48,6 +48,8 @@ extern "C" {
  *
  * History:
  *
+ * 3.3  Added sip_api_register_int_types().
+ *
  * 3.2  Added sip_api_export_symbol() and sip_api_import_symbol().
  *
  * 3.1  Added sip_api_add_mapped_type_instance().
@@ -93,9 +95,9 @@ extern "C" {
 
 /* Some internal compatibility stuff. */
 #if PY_VERSION_HEX >= 0x02050000
-#define _SIP_SSIZE_T    Py_ssize_t
+#define _SIP_SSIZE_T        Py_ssize_t
 #else
-#define _SIP_SSIZE_T    int
+#define _SIP_SSIZE_T        int
 #endif
 
 
@@ -190,19 +192,19 @@ typedef struct _sipWrapper {
 /*
  * Some convenient function pointers.
  */
-typedef void *(*sipInitFunc)(sipWrapper *,PyObject *,sipWrapper **,int *);
+typedef void *(*sipInitFunc)(sipWrapper *, PyObject *, sipWrapper **, int *);
 typedef int (*sipTraverseFunc)(void *, visitproc, void *);
 typedef int (*sipClearFunc)(void *);
-typedef int (*sipBufferFunc)(PyObject *,void *,int,void **);
-typedef int (*sipSegCountFunc)(PyObject *,void *,int *);
+typedef int (*sipBufferFunc)(PyObject *, void *, int, void **);
+typedef int (*sipSegCountFunc)(PyObject *, void *, int *);
 typedef void (*sipDeallocFunc)(sipWrapper *);
-typedef void *(*sipCastFunc)(void *,sipWrapperType *);
+typedef void *(*sipCastFunc)(void *, sipWrapperType *);
 typedef sipWrapperType *(*sipSubClassConvertFunc)(void **);
-typedef void *(*sipForceConvertToFunc)(PyObject *,int *);
-typedef int (*sipConvertToFunc)(PyObject *,void **,int *,PyObject *);
-typedef PyObject *(*sipConvertFromFunc)(void *,PyObject *);
-typedef int (*sipVirtHandlerFunc)(void *,PyObject *,...);
-typedef int (*sipEmitFunc)(sipWrapper *,PyObject *);
+typedef void *(*sipForceConvertToFunc)(PyObject *, int *);
+typedef int (*sipConvertToFunc)(PyObject *, void **, int *, PyObject *);
+typedef PyObject *(*sipConvertFromFunc)(void *, PyObject *);
+typedef int (*sipVirtHandlerFunc)(void *, PyObject *, ...);
+typedef int (*sipEmitFunc)(sipWrapper *, PyObject *);
 typedef void (*sipReleaseFunc)(void *, int);
 
 
@@ -1158,6 +1160,12 @@ typedef struct _sipAPIDef {
      */
     int (*api_export_symbol)(const char *name, void *sym);
     void *(*api_import_symbol)(const char *name);
+
+    /*
+     * The following may be used by Qt support code but no other handwritten
+     * code.
+     */
+    void (*api_register_int_types)(PyObject *args);
 } sipAPIDef;
 
 
@@ -1214,13 +1222,13 @@ typedef struct _sipQtAPI {
 #define SIP_NOT_IN_MAP      0x20    /* If Python object not in the map. */
 #define SIP_SHARE_MAP       0x40    /* If the map slot might be occupied. */
 
-#define sipIsPyOwned(w)     ((w) -> flags & SIP_PY_OWNED)
-#define sipSetPyOwned(w)    ((w) -> flags |= SIP_PY_OWNED)
-#define sipResetPyOwned(w)  ((w) -> flags &= ~SIP_PY_OWNED)
-#define sipIsDerived(w)     ((w) -> flags & SIP_DERIVED_CLASS)
-#define sipIsIndirect(w)    ((w) -> flags & SIP_INDIRECT)
-#define sipIsAccessFunc(w)  ((w) -> flags & SIP_ACCFUNC)
-#define sipNotInMap(w)      ((w) -> flags & SIP_NOT_IN_MAP)
+#define sipIsPyOwned(w)     ((w)->flags & SIP_PY_OWNED)
+#define sipSetPyOwned(w)    ((w)->flags |= SIP_PY_OWNED)
+#define sipResetPyOwned(w)  ((w)->flags &= ~SIP_PY_OWNED)
+#define sipIsDerived(w)     ((w)->flags & SIP_DERIVED_CLASS)
+#define sipIsIndirect(w)    ((w)->flags & SIP_INDIRECT)
+#define sipIsAccessFunc(w)  ((w)->flags & SIP_ACCFUNC)
+#define sipNotInMap(w)      ((w)->flags & SIP_NOT_IN_MAP)
 
 
 #define SIP_TYPE_ABSTRACT   0x01    /* If the type is abstract. */
