@@ -1165,7 +1165,7 @@ typedef struct _sipAPIDef {
      * The following may be used by Qt support code but no other handwritten
      * code.
      */
-    void (*api_register_int_types)(PyObject *args);
+    int (*api_register_int_types)(PyObject *args);
 } sipAPIDef;
 
 

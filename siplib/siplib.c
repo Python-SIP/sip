@@ -102,7 +102,7 @@ static void sip_api_add_delayed_dtor(sipWrapper *w);
 static unsigned long sip_api_long_as_unsigned_long(PyObject *o);
 static int sip_api_export_symbol(const char *name, void *sym);
 static void *sip_api_import_symbol(const char *name);
-static void sip_api_register_int_types(PyObject *args);
+static int sip_api_register_int_types(PyObject *args);
 
 
 /*
@@ -6966,12 +6966,34 @@ static int sameScopedName(const char *pyname, const char *name, size_t len)
  * Register a Python tuple of type names that will be interpreted as ints if
  * they are seen as signal arguments.
  */
-static void sip_api_register_int_types(PyObject *args)
+static int sip_api_register_int_types(PyObject *args)
 {
     sipPyObject *po;
+    int bad_args = FALSE;
+
+    /* Raise an exception if the arguments are bad. */
+    if (PyTuple_Check(args))
+    {
+        int i;
+
+        for (i = 0; i < PyTuple_GET_SIZE(args); ++i)
+            if (!PyString_Check(PyTuple_GET_ITEM(args, i)))
+            {
+                bad_args = TRUE;
+                break;
+            }
+    }
+    else
+        bad_args = TRUE;
+
+    if (bad_args)
+    {
+        PyErr_SetString(PyExc_TypeError, "all arguments must be strings");
+        return -1;
+    }
 
     if ((po = sip_api_malloc(sizeof (sipPyObject))) == NULL)
-        return;
+        return -1;
 
     Py_INCREF(args);
 
@@ -6979,6 +7001,8 @@ static void sip_api_register_int_types(PyObject *args)
     po->next = sipRegisteredIntTypes;
 
     sipRegisteredIntTypes = po;
+
+    return 0;
 }
 
 
