@@ -62,16 +62,16 @@ static sipWrapperType *sip_api_map_string_to_class(const char *typeString,
 static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
         const char *fmt, ...);
 static void sip_api_trace(unsigned mask,const char *fmt,...);
-static void sip_api_transfer(PyObject *self,int toCpp);
+static void sip_api_transfer(PyObject *self, int toCpp);
 static void sip_api_transfer_back(PyObject *self);
-static void sip_api_transfer_to(PyObject *self,PyObject *owner);
+static void sip_api_transfer_to(PyObject *self, PyObject *owner);
 static int sip_api_export_module(sipExportedModuleDef *client,
-        unsigned api_major,unsigned api_minor, PyObject *mod_dict);
+        unsigned api_major, unsigned api_minor, PyObject *mod_dict);
 static int sip_api_parse_args(int *argsParsedp, PyObject *sipArgs,
         const char *fmt, ...);
 static int sip_api_parse_pair(int *argsParsedp, PyObject *sipArg0,
         PyObject *sipArg1, const char *fmt, ...);
-static void sip_api_common_ctor(sipMethodCache *cache,int nrmeths);
+static void sip_api_common_ctor(sipMethodCache *cache, int nrmeths);
 static void sip_api_common_dtor(sipWrapper *sipSelf);
 static void *sip_api_convert_to_void_ptr(PyObject *obj);
 static void sip_api_no_function(int argsParsed, const char *func);
@@ -151,8 +151,8 @@ static const sipAPIDef sip_api = {
     sip_api_wrapper_check,
     sip_api_long_as_unsigned_long,
     /*
-     * The following may be used by Qt support code but by no other
-     * handwritten code.
+     * The following may be used by Qt support code but by no other handwritten
+     * code.
      */
     sip_api_convert_from_named_enum,
     sip_api_convert_from_void_ptr,
@@ -194,8 +194,8 @@ static const sipAPIDef sip_api = {
     sip_api_export_symbol,
     sip_api_import_symbol,
     /*
-     * The following may be used by Qt support code but by no other
-     * handwritten code.
+     * The following may be used by Qt support code but by no other handwritten
+     * code.
      */
     sip_api_register_int_types,
 };
@@ -401,14 +401,14 @@ PyMODINIT_FUNC initsip(void)
     if (PyType_Ready(&sipVoidPtr_Type) < 0)
         Py_FatalError("sip: Failed to initialise sip.voidptr type");
 
-    mod = Py_InitModule("sip",methods);
+    mod = Py_InitModule("sip", methods);
     mod_dict = PyModule_GetDict(mod);
 
     /* Publish the SIP API. */
-    if ((obj = PyCObject_FromVoidPtr((void *)&sip_api,NULL)) == NULL)
+    if ((obj = PyCObject_FromVoidPtr((void *)&sip_api, NULL)) == NULL)
         Py_FatalError("sip: Failed to create _C_API object");
 
-    rc = PyDict_SetItemString(mod_dict,"_C_API",obj);
+    rc = PyDict_SetItemString(mod_dict, "_C_API", obj);
     Py_DECREF(obj);
 
     if (rc < 0)
@@ -443,8 +443,8 @@ PyMODINIT_FUNC initsip(void)
         sipQtSupport = NULL;
 
         /*
-         * Get the current interpreter.  This will be shared between
-         * all threads.
+         * Get the current interpreter.  This will be shared between all
+         * threads.
          */
         sipInterpreter = PyThreadState_Get()->interp;
     }
@@ -455,14 +455,14 @@ PyMODINIT_FUNC initsip(void)
  * Display a printf() style message to stderr according to the current trace
  * mask.
  */
-static void sip_api_trace(unsigned mask,const char *fmt,...)
+static void sip_api_trace(unsigned mask, const char *fmt, ...)
 {
     va_list ap;
 
     va_start(ap,fmt);
 
     if (mask & traceMask)
-        vfprintf(stderr,fmt,ap);
+        vfprintf(stderr, fmt, ap);
 
     va_end(ap);
 }
@@ -471,11 +471,11 @@ static void sip_api_trace(unsigned mask,const char *fmt,...)
 /*
  * Set the trace mask.
  */
-static PyObject *setTraceMask(PyObject *self,PyObject *args)
+static PyObject *setTraceMask(PyObject *self, PyObject *args)
 {
     unsigned new_mask;
 
-    if (PyArg_ParseTuple(args,"I:settracemask",&new_mask))
+    if (PyArg_ParseTuple(args, "I:settracemask", &new_mask))
     {
         traceMask = new_mask;
 
@@ -490,17 +490,17 @@ static PyObject *setTraceMask(PyObject *self,PyObject *args)
 /*
  * Transfer the ownership of an instance to C/C++.
  */
-static PyObject *transferto(PyObject *self,PyObject *args)
+static PyObject *transferto(PyObject *self, PyObject *args)
 {
     PyObject *w, *owner;
 
-    if (PyArg_ParseTuple(args,"O!O:transferto",&sipWrapper_Type,&w,&owner))
+    if (PyArg_ParseTuple(args, "O!O:transferto", &sipWrapper_Type, &w, &owner))
     {
         if (owner == Py_None)
             owner = NULL;
         else if (!sip_api_wrapper_check(owner))
         {
-            PyErr_Format(PyExc_TypeError,"transferto() argument 2 must be sip.wrapper, not %s",owner->ob_type->tp_name);
+            PyErr_Format(PyExc_TypeError, "transferto() argument 2 must be sip.wrapper, not %s", owner->ob_type->tp_name);
             return NULL;
         }
 
@@ -517,11 +517,11 @@ static PyObject *transferto(PyObject *self,PyObject *args)
 /*
  * Transfer the ownership of an instance to Python.
  */
-static PyObject *transferback(PyObject *self,PyObject *args)
+static PyObject *transferback(PyObject *self, PyObject *args)
 {
     PyObject *w;
 
-    if (PyArg_ParseTuple(args,"O!:transferback",&sipWrapper_Type,&w))
+    if (PyArg_ParseTuple(args, "O!:transferback", &sipWrapper_Type, &w))
     {
         sip_api_transfer_back(w);
 
@@ -536,12 +536,12 @@ static PyObject *transferback(PyObject *self,PyObject *args)
 /*
  * Transfer the ownership of an instance.  This is deprecated.
  */
-static PyObject *transfer(PyObject *self,PyObject *args)
+static PyObject *transfer(PyObject *self, PyObject *args)
 {
     PyObject *w;
     int toCpp;
 
-    if (PyArg_ParseTuple(args,"O!i:transfer",&sipWrapper_Type,&w,&toCpp))
+    if (PyArg_ParseTuple(args, "O!i:transfer", &sipWrapper_Type, &w, &toCpp))
     {
         if (toCpp)
             sip_api_transfer_to(w, NULL);
@@ -560,14 +560,14 @@ static PyObject *transfer(PyObject *self,PyObject *args)
  * Cast an instance to one of it's sub or super-classes by returning a new
  * Python object with the superclass type wrapping the same C++ instance.
  */
-static PyObject *cast(PyObject *self,PyObject *args)
+static PyObject *cast(PyObject *self, PyObject *args)
 {
     sipWrapper *w;
     sipWrapperType *wt, *type;
     void *addr;
     PyTypeObject *ft, *tt;
 
-    if (!PyArg_ParseTuple(args,"O!O!:cast",&sipWrapper_Type,&w,&sipWrapperType_Type,&wt))
+    if (!PyArg_ParseTuple(args, "O!O!:cast", &sipWrapper_Type, &w, &sipWrapperType_Type, &wt))
         return NULL;
 
     ft = ((PyObject *)w)->ob_type;
@@ -579,7 +579,7 @@ static PyObject *cast(PyObject *self,PyObject *args)
         type = wt;
     else
     {
-        PyErr_SetString(PyExc_TypeError,"argument 1 of sip.cast() must be an instance of a sub or super-type of argument 2");
+        PyErr_SetString(PyExc_TypeError, "argument 1 of sip.cast() must be an instance of a sub or super-type of argument 2");
         return NULL;
     }
 
@@ -587,32 +587,31 @@ static PyObject *cast(PyObject *self,PyObject *args)
         return NULL;
 
     /*
-     * We don't put this new object into the map so that the original
-     * object is always found.  It would also totally confuse the map
-     * logic.
+     * We don't put this new object into the map so that the original object is
+     * always found.  It would also totally confuse the map logic.
      */
-    return sipWrapSimpleInstance(addr,wt,NULL,(w->flags | SIP_NOT_IN_MAP) & ~SIP_PY_OWNED);
+    return sipWrapSimpleInstance(addr, wt, NULL, (w->flags | SIP_NOT_IN_MAP) & ~SIP_PY_OWNED);
 }
 
 
 /*
  * Unwrap an instance.
  */
-static PyObject *unwrapInstance(PyObject *self,PyObject *args)
+static PyObject *unwrapInstance(PyObject *self, PyObject *args)
 {
     sipWrapper *w;
 
-    if (PyArg_ParseTuple(args,"O!:unwrapinstance",&sipWrapper_Type,&w))
+    if (PyArg_ParseTuple(args, "O!:unwrapinstance", &sipWrapper_Type, &w))
     {
         void *addr;
 
         /*
-         * We just get the pointer but don't try and cast it (which
-         * isn't needed and wouldn't work with the way casts are
-         * currently implemented if we are unwrapping something derived
-         * from a wrapped class).
+         * We just get the pointer but don't try and cast it (which isn't
+         * needed and wouldn't work with the way casts are currently
+         * implemented if we are unwrapping something derived from a wrapped
+         * class).
          */
-        if ((addr = sip_api_get_cpp_ptr(w,NULL)) == NULL)
+        if ((addr = sip_api_get_cpp_ptr(w, NULL)) == NULL)
             return NULL;
 
         return PyLong_FromVoidPtr(addr);
@@ -625,12 +624,12 @@ static PyObject *unwrapInstance(PyObject *self,PyObject *args)
 /*
  * Wrap an instance.
  */
-static PyObject *wrapInstance(PyObject *self,PyObject *args)
+static PyObject *wrapInstance(PyObject *self, PyObject *args)
 {
     unsigned long addr;
     sipWrapperType *wt;
 
-    if (PyArg_ParseTuple(args,"kO!:wrapinstance",&addr,&sipWrapperType_Type,&wt))
+    if (PyArg_ParseTuple(args, "kO!:wrapinstance", &addr, &sipWrapperType_Type, &wt))
         return sip_api_convert_from_instance((void *)addr, wt, NULL);
 
     return NULL;
@@ -642,8 +641,7 @@ static PyObject *wrapInstance(PyObject *self,PyObject *args)
  * raised if there was an error.  Not normally needed by handwritten code.
  */
 static int sip_api_export_module(sipExportedModuleDef *client,
-                 unsigned api_major,unsigned api_minor,
-                 PyObject *mod_dict)
+        unsigned api_major, unsigned api_minor, PyObject *mod_dict)
 {
     sipExportedModuleDef *em;
     sipImportedModuleDef *im;
@@ -658,9 +656,9 @@ static int sip_api_export_module(sipExportedModuleDef *client,
     if (api_major != SIP_API_MAJOR_NR || api_minor > SIP_API_MINOR_NR)
     {
 #if SIP_API_MINOR_NR > 0
-        PyErr_Format(PyExc_RuntimeError,"the sip module supports API v%d.0 to v%d.%d but the %s module requires API v%d.%d",SIP_API_MAJOR_NR,SIP_API_MAJOR_NR,SIP_API_MINOR_NR,client->em_name,api_major,api_minor);
+        PyErr_Format(PyExc_RuntimeError, "the sip module supports API v%d.0 to v%d.%d but the %s module requires API v%d.%d", SIP_API_MAJOR_NR, SIP_API_MAJOR_NR, SIP_API_MINOR_NR, client->em_name, api_major,api_minor);
 #else
-        PyErr_Format(PyExc_RuntimeError,"the sip module supports API v%d.0 but the %s module requires API v%d.%d",SIP_API_MAJOR_NR,client->em_name,api_major,api_minor);
+        PyErr_Format(PyExc_RuntimeError, "the sip module supports API v%d.0 but the %s module requires API v%d.%d", SIP_API_MAJOR_NR, client->em_name, api_major,api_minor);
 #endif
 
         return -1;
@@ -673,9 +671,9 @@ static int sip_api_export_module(sipExportedModuleDef *client,
     for (em = clientList; em != NULL; em = em->em_next)
     {
         /* SIP clients must have unique names. */
-        if (strcmp(em->em_name,client->em_name) == 0)
+        if (strcmp(em->em_name, client->em_name) == 0)
         {
-            PyErr_Format(PyExc_RuntimeError,"the sip module has already registered a module called %s",client->em_name);
+            PyErr_Format(PyExc_RuntimeError, "the sip module has already registered a module called %s", client->em_name);
 
             return -1;
         }
@@ -683,7 +681,7 @@ static int sip_api_export_module(sipExportedModuleDef *client,
         /* Only one module can claim to wrap QObject. */
         if (em->em_qt_api != NULL && client->em_qt_api != NULL)
         {
-            PyErr_Format(PyExc_RuntimeError,"the %s and %s modules both wrap the QObject class",client->em_name,em->em_name);
+            PyErr_Format(PyExc_RuntimeError, "the %s and %s modules both wrap the QObject class", client->em_name, em->em_name);
 
             return -1;
         }
@@ -700,12 +698,12 @@ static int sip_api_export_module(sipExportedModuleDef *client,
                 return -1;
 
             for (em = clientList; em != NULL; em = em->em_next)
-                if (strcmp(em->em_name,im->im_name) == 0)
+                if (strcmp(em->em_name, im->im_name) == 0)
                     break;
 
             if (em == NULL)
             {
-                PyErr_Format(PyExc_RuntimeError,"the %s module failed to register with the sip module",im->im_name);
+                PyErr_Format(PyExc_RuntimeError, "the %s module failed to register with the sip module", im->im_name);
 
                 return -1;
             }
@@ -714,7 +712,7 @@ static int sip_api_export_module(sipExportedModuleDef *client,
             if (im->im_version >= 0 || em->em_version >= 0)
                 if (im->im_version != em->em_version)
                 {
-                    PyErr_Format(PyExc_RuntimeError,"the %s module is version %d but the %s module requires version %d",em->em_name,em->em_version,client->em_name,im->im_version);
+                    PyErr_Format(PyExc_RuntimeError, "the %s module is version %d but the %s module requires version %d", em->em_name, em->em_version, client->em_name, im->im_version);
 
                     return -1;
                 }
@@ -834,11 +832,11 @@ static int sip_api_export_module(sipExportedModuleDef *client,
         }
 
     /* Add any global static instances. */
-    if (addInstances(mod_dict,&client->em_instances) < 0)
+    if (addInstances(mod_dict, &client->em_instances) < 0)
         return -1;
 
     /* Add any license. */
-    if (client->em_license != NULL && addLicense(mod_dict,client->em_license) < 0)
+    if (client->em_license != NULL && addLicense(mod_dict, client->em_license) < 0)
         return -1;
 
     /* See if the new module satisfies any outstanding external types. */
@@ -6405,6 +6403,7 @@ static sipWrapperType sipWrapper_Type = {
             0,              /* tp_free */
         },
     },
+    0,
     0
 };
 

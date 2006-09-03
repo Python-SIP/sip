@@ -1654,7 +1654,7 @@ static void generateClassTableEntries(sipSpec *pt, nodeDef *nd, FILE *fp)
                 );
         else
             prcode(fp,
-"    (sipWrapperType *)&sipType_%s_%C,\n"
+"    (sipWrapperType *)(void *)&sipType_%s_%C,\n"
                 , pt->module->name, classFQCName(nd->cd));
 
     /* Generate all it's children. */
