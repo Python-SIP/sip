@@ -1148,23 +1148,14 @@ static void getVisibleMembers(sipSpec *pt,classDef *cd)
 		{
 			visibleList *vl;
 
-			if (md -> slot != no_slot)
-			{
-				if (mrocd == cd)
-					ifaceFilesAreUsedByMethod(pt, cd, md);
-
-				continue;
-			}
-
 			/*
-			 * See if it is already in the list.  This has the
-			 * desired side effect of eliminating any functions
-			 * that have an implementation closer to this class in
-			 * the hierarchy.  This is the only reason to define
-			 * private functions.
+			 * See if it is already in the list.  This has the desired side
+             * effect of eliminating any functions that have an implementation
+             * closer to this class in the hierarchy.  This is the only reason
+             * to define private functions.
 			 */
-			for (vl = cd -> visible; vl != NULL; vl = vl -> next)
-				if (vl -> m -> pyname == md -> pyname)
+			for (vl = cd->visible; vl != NULL; vl = vl->next)
+				if (vl->m->pyname == md->pyname)
 					break;
 
 			/* See if it is a new member function. */

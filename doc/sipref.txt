@@ -927,7 +927,7 @@ file.
 
     *c++-constructor-signature* ::= ``[(`` [*argument-list*] ``)]``
 
-    *destructor* ::= [``virtual``] ``~`` *name* ``()`` [*exceptions*]
+    *destructor* ::= [``virtual``] ``~`` *name* ``()`` [*exceptions*] [``= 0``]
             [*function-annotations*] ``;`` [`%MethodCode`_]
             [`%VirtualCatcherCode`_]
 
@@ -3177,7 +3177,7 @@ Abstract
 
 This boolean annotation is used to specify that the class has additional pure
 virtual methods that have not been specified and so it cannot be instantiated
-from Python.
+or sub-classed from Python.
 
 
 DelayDtor

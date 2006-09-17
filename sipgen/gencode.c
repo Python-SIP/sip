@@ -2870,26 +2870,29 @@ static sortedMethTab *createFunctionTable(classDef *cd,int *nrp)
  * Return a sorted array of relevant methods (either lazy or non-lazy) for a
  * class.
  */
-static sortedMethTab *createMethodTable(classDef *cd,int *nrp)
+static sortedMethTab *createMethodTable(classDef *cd, int *nrp)
 {
     int nr;
     visibleList *vl;
     sortedMethTab *mtab, *mt;
 
     /*
-     * First we need to count the number of applicable methods.  Only
-     * provide an entry point if there is at least one overload that is
-     * defined in this class and is a non-abstract function or slot.  We
-     * allow private (even though we don't actually generate code) because
-     * we need to intercept the name before it reaches a more public
-     * version further up the class hierarchy.  We add the ctor and any
-     * variable handlers as special entries.
+     * First we need to count the number of applicable methods.  Only provide
+     * an entry point if there is at least one overload that is defined in this
+     * class and is a non-abstract function or slot.  We allow private (even
+     * though we don't actually generate code) because we need to intercept the
+     * name before it reaches a more public version further up the class
+     * hierarchy.  We add the ctor and any variable handlers as special
+     * entries.
      */
     nr = 0;
 
     for (vl = cd->visible; vl != NULL; vl = vl->next)
     {
         overDef *od;
+
+        if (vl->m->slot != no_slot)
+            continue;
 
         for (od = vl->cd->overs; od != NULL; od = od->next)
         {
@@ -2924,6 +2927,9 @@ static sortedMethTab *createMethodTable(classDef *cd,int *nrp)
     {
         int need_method, is_static;
         overDef *od;
+
+        if (vl->m->slot != no_slot)
+            continue;
 
         need_method = FALSE;
         is_static = TRUE;
@@ -4106,7 +4112,8 @@ static void generateClassFunctions(sipSpec *pt,classDef *cd,FILE *fp)
 
     /* The member functions. */
     for (vl = cd->visible; vl != NULL; vl = vl->next)
-        generateFunction(pt,vl->m,vl->cd->overs,cd,vl->cd,fp);
+        if (vl->m->slot == no_slot)
+            generateFunction(pt, vl->m, vl->cd->overs, cd, vl->cd, fp);
 
     /* The slot functions. */
     for (md = cd->members; md != NULL; md = md->next)
@@ -5247,6 +5254,9 @@ static void generateProtectedDeclarations(classDef *cd,FILE *fp)
     {
         overDef *od;
 
+        if (vl->m->slot != no_slot)
+            continue;
+
         for (od = vl->cd->overs; od != NULL; od = od->next)
         {
             if (od->common != vl->m || !isProtected(od))
@@ -5301,6 +5311,9 @@ static void generateProtectedDefinitions(classDef *cd,FILE *fp)
     for (vl = cd->visible; vl != NULL; vl = vl->next)
     {
         overDef *od;
+
+        if (vl->m->slot != no_slot)
+            continue;
 
         for (od = vl->cd->overs; od != NULL; od = od->next)
         {
@@ -5466,7 +5479,7 @@ static void generateVirtualHandler(sipSpec *pt,virtHandlerDef *vhd,FILE *fp)
 
     if (res != NULL)
     {
-        prcode(fp," ");
+        prcode(fp, "    ");
 
         generateBaseType(&res_noconstref,fp);
 
@@ -6468,6 +6481,9 @@ static void generateShadowClassDeclaration(sipSpec *pt,classDef *cd,FILE *fp)
         for (vl = cd->visible; vl != NULL; vl = vl->next)
         {
             overDef *od;
+
+            if (vl->m->slot != no_slot)
+                continue;
 
             for (od = vl->cd->overs; od != NULL; od = od->next)
             {
@@ -7650,9 +7666,9 @@ static void generateTypeInit(sipSpec *pt, classDef *cd, FILE *fp)
     int need_self, need_owner, reg_type, pub_def_ctor, pub_copy_ctor;
 
     /*
-     * We register types with Qt if enabled, if the class has a public
-     * default ctor, a public copy ctor, a public dtor and isn't one of the
-     * internally supported types.
+     * We register types with Qt if enabled, if the class is not abstract, has
+     * a public default ctor, a public copy ctor, a public dtor and isn't one
+     * of the internally supported types.
      */
     reg_type = (optRegisterTypes(pt) && !isAbstractClass(cd) &&
             isPublicDtor(cd) &&
