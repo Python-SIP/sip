@@ -4015,9 +4015,6 @@ static void newFunction(sipSpec *pt,moduleDef *mod,int sflags,int isstatic,
         if (sflags == 0)
             yyerror("Non-class function specified as abstract");
 
-        if (!isvirt)
-            yyerror("Abstract functions must be virtual");
-
         setIsAbstract(od);
     }
 
