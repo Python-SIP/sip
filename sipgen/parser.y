@@ -2817,10 +2817,11 @@ static classDef *newClass(sipSpec *pt,ifaceFileType iftype,
         yyerror("The struct/class has already been defined");
 
     /* Complete the initialisation. */
-    cd -> classflags |= flags;
-    cd -> ecd = scope;
-    cd -> hdrcode = hdrcode;
-    cd -> iff -> module = currentModule;
+    cd->classflags |= flags;
+    cd->ecd = scope;
+    cd->iff->module = currentModule;
+
+    appendCodeBlock(&cd->hdrcode, hdrcode);
 
     /* See if it is a namespace extender. */
     if (iftype == namespace_iface)

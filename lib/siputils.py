@@ -474,6 +474,8 @@ class Makefile:
                         defines.append("QT_OPENGL_LIB")
                     elif mod == "QtSql":
                         defines.append("QT_SQL_LIB")
+                    elif mod == "QtTest":
+                        defines.append("QT_TEST_LIB")
                     elif mod == "QtXml":
                         defines.append("QT_XML_LIB")
             elif self._threaded:
@@ -502,6 +504,7 @@ class Makefile:
                     "QtOpenGL":     ("QtCore", "QtGui"),
                     "QtSql":        ("QtCore", ),
                     "QtSvg":        ("QtCore", "QtGui", "QtXml"),
+                    "QtTest":       ("QtCore", "QtGui"),
                     "QtXml":        ("QtCore", ),
                     "QAxContainer": ("QtCore", "QtGui")
                 }
