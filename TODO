@@ -11,8 +11,6 @@ handled.  At the moment the function is always called and the result discarded
 if it is not needed.  It should really only be called if the result is really
 needed.
 
-13.	Maybe expose a type's release function in the sip module.
-
 18.	Implement the C++ feature of automatically calling simple ctors to
 transparently convert between types for function parameters.  For example, a
 function takes a parameter of type QKeySequence, but is passed an int, but

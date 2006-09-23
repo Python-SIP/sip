@@ -61,6 +61,9 @@ SIP, and the bindings it produces, have the following features.
     - the ability to define a Python class that is a sub-class of a C++ class,
       including abstract C++ classes
 
+    - Python sub-classes can implement the ``__dtor__(self)`` method which
+      will be called from the C++ class's virtual destructor
+
     - support for ordinary C++ functions, class methods, static class methods,
       virtual class methods and abstract class methods
 

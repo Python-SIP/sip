@@ -342,7 +342,7 @@ static int addSingleClassInstance(PyObject *dict, char *name, void *cppPtr,
         sipWrapperType *wt, int initflags);
 static int addLicense(PyObject *dict, sipLicenseDef *lc);
 static PyObject *cast(PyObject *self, PyObject *args);
-static PyObject *call_dtor(PyObject *self, PyObject *args);
+static PyObject *callDtor(PyObject *self, PyObject *args);
 static PyObject *isdeleted(PyObject *self, PyObject *args);
 static PyObject *setTraceMask(PyObject *self, PyObject *args);
 static PyObject *wrapInstance(PyObject *self, PyObject *args);
@@ -363,6 +363,7 @@ static int sameScopedName(const char *pyname, const char *name, size_t len);
 static int nameEq(const char *with, const char *name, size_t len);
 static int isExactWrappedType(sipWrapperType *wt);
 static void release(void *addr, sipTypeDef *td, int state);
+static void callPyDtor(sipWrapper *self);
 
 
 /*
@@ -376,7 +377,7 @@ PyMODINIT_FUNC initsip(void)
 {
     static PyMethodDef methods[] = {
         {"cast", cast, METH_VARARGS, NULL},
-        {"delete", call_dtor, METH_VARARGS, NULL},
+        {"delete", callDtor, METH_VARARGS, NULL},
         {"isdeleted", isdeleted, METH_VARARGS, NULL},
         {"settracemask", setTraceMask, METH_VARARGS, NULL},
         {"transfer", transfer, METH_VARARGS, NULL},
@@ -602,7 +603,7 @@ static PyObject *cast(PyObject *self, PyObject *args)
 /*
  * Call an instance's dtor.
  */
-static PyObject *call_dtor(PyObject *self, PyObject *args)
+static PyObject *callDtor(PyObject *self, PyObject *args)
 {
     sipWrapper *w;
     void *addr;
@@ -3079,6 +3080,8 @@ static void sip_api_common_dtor(sipWrapper *sipSelf)
     {
         SIP_BLOCK_THREADS
 
+        callPyDtor(sipSelf);
+
         if (!sipNotInMap(sipSelf))
             sipOMRemoveObject(&cppPyMap,sipSelf);
 
@@ -3089,6 +3092,33 @@ static void sip_api_common_dtor(sipWrapper *sipSelf)
         removeFromParent(sipSelf);
 
         SIP_UNBLOCK_THREADS
+    }
+}
+
+
+/*
+ * Call self.__dtor__() if it is implemented.
+ */
+static void callPyDtor(sipWrapper *self)
+{
+    sip_gilstate_t sipGILState;
+    sipMethodCache pymc;
+    PyObject *meth;
+
+    /* No need to cache the method, it will only be called once. */
+    pymc.mcflags = 0;
+    meth = sip_api_is_py_method(&sipGILState, &pymc, self, NULL, "__dtor__");
+
+    if (meth != NULL)
+    {
+        PyObject *res = sip_api_call_method(0, meth, "", NULL);
+
+        Py_DECREF(meth);
+
+        /* Discard any result. */
+        Py_XDECREF(res);
+
+        SIP_RELEASE_GIL(sipGILState);
     }
 }
 
