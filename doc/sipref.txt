@@ -811,9 +811,6 @@ The full set of command line options is:
         it easier to use the parallel build facility of most modern
         implementations of ``make``.  By default 1 file is generated for each C
         structure or C++ class.
--n      The QScintilla API file created using the ``-a`` command line option
-        normally includes the module name as a prefix to all elements of the
-        API.  This causes the module name to be omitted.
 -r      Debugging statements that trace the execution of the bindings are
         automatically generated.  By default the statements are not generated.
 -s suffix

@@ -928,7 +928,7 @@ void parse(sipSpec *,FILE *,char *,stringList *,stringList *);
 void parserEOF(char *,parserContext *);
 void transform(sipSpec *);
 void generateCode(sipSpec *,char *,char *,char *,char *,int,int,int,int,stringList *);
-void generateAPI(sipSpec *pt, const char *apiFile, int omit_name);
+void generateAPI(sipSpec *pt, const char *apiFile);
 void generateXML(sipSpec *pt, const char *xmlFile);
 void generateExpression(valueDef *vd, FILE *fp);
 void warning(char *,...);
