@@ -342,6 +342,8 @@ static int addSingleClassInstance(PyObject *dict, char *name, void *cppPtr,
         sipWrapperType *wt, int initflags);
 static int addLicense(PyObject *dict, sipLicenseDef *lc);
 static PyObject *cast(PyObject *self, PyObject *args);
+static PyObject *call_dtor(PyObject *self, PyObject *args);
+static PyObject *isdeleted(PyObject *self, PyObject *args);
 static PyObject *setTraceMask(PyObject *self, PyObject *args);
 static PyObject *wrapInstance(PyObject *self, PyObject *args);
 static PyObject *unwrapInstance(PyObject *self, PyObject *args);
@@ -360,6 +362,7 @@ static int findEnumArg(sipExportedModuleDef *emd, const char *name, size_t len,
 static int sameScopedName(const char *pyname, const char *name, size_t len);
 static int nameEq(const char *with, const char *name, size_t len);
 static int isExactWrappedType(sipWrapperType *wt);
+static void release(void *addr, sipTypeDef *td, int state);
 
 
 /*
@@ -373,6 +376,8 @@ PyMODINIT_FUNC initsip(void)
 {
     static PyMethodDef methods[] = {
         {"cast", cast, METH_VARARGS, NULL},
+        {"delete", call_dtor, METH_VARARGS, NULL},
+        {"isdeleted", isdeleted, METH_VARARGS, NULL},
         {"settracemask", setTraceMask, METH_VARARGS, NULL},
         {"transfer", transfer, METH_VARARGS, NULL},
         {"transferback", transferback, METH_VARARGS, NULL},
@@ -591,6 +596,55 @@ static PyObject *cast(PyObject *self, PyObject *args)
      * always found.  It would also totally confuse the map logic.
      */
     return sipWrapSimpleInstance(addr, wt, NULL, (w->flags | SIP_NOT_IN_MAP) & ~SIP_PY_OWNED);
+}
+
+
+/*
+ * Call an instance's dtor.
+ */
+static PyObject *call_dtor(PyObject *self, PyObject *args)
+{
+    sipWrapper *w;
+    void *addr;
+    sipTypeDef *td;
+
+    if (!PyArg_ParseTuple(args, "O!:delete", &sipWrapper_Type, &w))
+        return NULL;
+
+    addr = getPtrTypeDef(w, &td);
+
+    if (checkPointer(addr) < 0)
+        return NULL;
+
+    /*
+     * Transfer ownership to C++ so we don't try to release it again when the
+     * Python object is garbage collected.
+     */
+    removeFromParent(w);
+    sipResetPyOwned(w);
+
+    release(addr, td, w->flags);
+
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+
+
+/*
+ * Check if an instance still exists without raising an exception.
+ */
+static PyObject *isdeleted(PyObject *self, PyObject *args)
+{
+    sipWrapper *w;
+    PyObject *res;
+
+    if (!PyArg_ParseTuple(args, "O!:isdeleted", &sipWrapper_Type, &w))
+        return NULL;
+
+    res = (sipGetAddress(w) == NULL ? Py_True : Py_False);
+
+    Py_INCREF(res);
+    return res;
 }
 
 
@@ -4702,18 +4756,25 @@ static void sip_api_release_instance(void *cpp, sipWrapperType *type, int state)
 {
     /* See if there is something to release. */
     if (state & SIP_TEMPORARY)
-    {
-        sipReleaseFunc rel = type->type->td_release;
+        release(cpp, type->type, state);
+}
 
-        /*
-         * If there is no release function then it must be a C
-         * structure and we can just free it.
-         */
-        if (rel == NULL)
-            sip_api_free(cpp);
-        else
-            rel(cpp, state);
-    }
+
+/*
+ * Release an instance.
+ */
+static void release(void *addr, sipTypeDef *td, int state)
+{
+    sipReleaseFunc rel = td->td_release;
+
+    /*
+     * If there is no release function then it must be a C structure and we can
+     * just free it.
+     */
+    if (rel == NULL)
+        sip_api_free(addr);
+    else
+        rel(addr, state);
 }
 
 

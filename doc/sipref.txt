@@ -4396,6 +4396,14 @@ cast(obj, type)
     type.  A new Python object is returned that wraps the same C++ instance as
     *obj*, but has the type *type*.
 
+delete(obj)
+    For C++ instances this calls the C++ destructor.  For C structures it
+    returns the structure's memory to the heap.  *obj* is the Python object.
+
+isdeleted(obj)
+    This returns True if the C++ instance or C structure has been destroyed or
+    returned to the heap.  *obj* is the Python object.
+
 settracemask(mask)
     If the bindings have been created with SIP's ``-r`` command line option
     then the generated code will produce debugging statements that trace the

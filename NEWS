@@ -1,6 +1,10 @@
 v4.5 ??? ???? 2006
   - Added sip_config_args to sipconfig.py.
   - sip.voidptr now implements __hex__().
+  - Added sip.delete() to call a C++ instance's destructor, or return a C
+    structure to the heap.
+  - Added sip.isdeleted() to check if a C++ instance or C structure has been
+    destroyed or returned to the heap.
   - The generated API files are now more complete and use Python types rather
     than C/C++ types.
 
