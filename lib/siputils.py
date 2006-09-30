@@ -639,7 +639,7 @@ class Makefile:
             else:
                 lib = lib + "_debug"
 
-        if sys.platform == "win32" and mname in ("QtCore", "QtGui", "QtNetwork", "QtOpenGL", "QtSql", "QtSvg", "QtXml"):
+        if sys.platform == "win32" and mname in ("QtCore", "QtGui", "QtNetwork", "QtOpenGL", "QtSql", "QtSvg", "QtTest", "QtXml"):
             lib = lib + "4"
 
         return lib
