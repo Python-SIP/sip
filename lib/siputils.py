@@ -1975,10 +1975,42 @@ def parse_build_macros(filename, names, overrides=None, properties=None):
 
             orides[name] = prefix + oride[val_start:]
 
-    try:
-        f = open(filename, "r")
-    except IOError, detail:
-        error("Unable to open %s: %s" % (filename, detail))
+    # This class defines a file like object that handles the nested include()
+    # directives in qmake files.
+    class qmake_build_file_reader:
+        def __init__(self, filename):
+            self.filename = filename
+            self.path = os.path.dirname(filename)
+            self.filestack = []
+            self.pathstack = []
+            self._openfile(filename)
+
+        def _openfile(self,filename):
+            try:
+                self.currentfile = open(filename, 'r')
+            except IOError, detail:
+                error("Unable to open %s: %s" % (filename, detail))
+
+            self.filestack.append(self.currentfile)
+            self.pathstack.append(self.path)
+            self.path = os.path.dirname(filename)
+
+        def readline(self):
+            line = self.currentfile.readline()
+            sline = line.strip()
+            if sline.startswith('include('):
+                nextfile = os.path.normpath(os.path.join(self.path, sline[8:-1]))
+                self._openfile(nextfile)
+                return self.readline()
+
+            if not line and self.filestack:
+                self.currentfile = self.filestack.pop()
+                self.path = self.pathstack.pop()
+                return self.readline()
+
+            return line
+
+    f = qmake_build_file_reader(filename)
 
     # Get everything into a dictionary.
     raw = {
