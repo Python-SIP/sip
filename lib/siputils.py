@@ -1270,7 +1270,10 @@ class ModuleMakefile(Makefile):
             # This allows Apple's Python to be used even if a later python.org
             # version is also installed.
             dl = string.split(sys.exec_prefix, os.sep)
-            dl = dl[:dl.index("Python.framework")]
+            try:
+                dl = dl[:dl.index("Python.framework")]
+            except ValueError:
+                error("SIP requires Python to be built as a framework")
             self.LFLAGS.append("-F%s" % string.join(dl, os.sep))
             self.LFLAGS.append("-framework Python")
 
@@ -1362,6 +1365,9 @@ class ModuleMakefile(Makefile):
         if self.static:
             if self.generator in ("MSVC", "MSVC.NET", "BMAKE"):
                 mfile.write("LIB = %s\n" % self.required_string("LIB"))
+            if self.generator == "MINGW":
+                mfile.write("AR = %s\n" % self.required_string("LIB"))
+                self._ranlib = None
             else:
                 mfile.write("AR = %s\n" % self.required_string("AR"))
 

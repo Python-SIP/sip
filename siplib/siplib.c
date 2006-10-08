@@ -5142,14 +5142,14 @@ static sipWrapperType *sip_api_map_int_to_class(int typeInt,
  */
 static void sip_api_raise_unknown_exception(void)
 {
-        static PyObject *mobj = NULL;
+    static PyObject *mobj = NULL;
 
     SIP_BLOCK_THREADS
 
-        if (mobj == NULL)
-                mobj = PyString_FromString("unknown");
+    if (mobj == NULL)
+        mobj = PyString_FromString("unknown");
 
-        PyErr_SetObject(PyExc_Exception,mobj);
+    PyErr_SetObject(PyExc_Exception, mobj);
 
     SIP_UNBLOCK_THREADS
 }
@@ -6001,12 +6001,22 @@ static int sipWrapper_init(sipWrapper *self,PyObject *args,PyObject *kwds)
         else
         {
             int pstate = argsparsed & PARSE_MASK;
-            sipInitExtenderDef *ie = wt->iextend;
+            sipInitExtenderDef *ie;
 
             /*
-             * While we just have signature errors, try any
-             * initialiser extenders.
+             * If the arguments were parsed without error then assume an
+             * exception has already been raised for why the instance wasn't
+             * created.
              */
+            if (pstate == PARSE_OK)
+                return -1;
+
+            /*
+             * While we just have signature errors, try any initialiser
+             * extenders.
+             */
+            ie = wt->iextend;
+
             while (ie != NULL && (pstate == PARSE_MANY || pstate == PARSE_FEW || pstate == PARSE_TYPE))
             {
                 int ap = 0;
@@ -6053,10 +6063,25 @@ static int sipWrapper_traverse(sipWrapper *self, visitproc visit, void *arg)
     sipTypeDef *td;
     sipWrapper *w;
 
-    /* Call any handwritten traverse code. */
-    if ((ptr = getPtrTypeDef(self, &td)) != NULL && td->td_traverse != NULL)
-        if ((vret = td->td_traverse(ptr, visit, arg)) != 0)
-            return vret;
+    /* Call the nearest handwritten traverse code in the class hierachy. */
+    if ((ptr = getPtrTypeDef(self, &td)) != NULL)
+    {
+        sipTypeDef *ctd = td;
+
+        if (td->td_traverse == NULL)
+        {
+            sipEncodedClassDef *sup;
+
+            if ((sup = td->td_supers) != NULL)
+                do
+                    ctd = getClassType(sup, td->td_module)->type;
+                while (ctd->td_traverse == NULL && !sup++->sc_flag);
+        }
+
+        if (ctd->td_traverse != NULL)
+            if ((vret = ctd->td_traverse(ptr, visit, arg)) != 0)
+                return vret;
+    }
 
     if (self->user != NULL)
         if ((vret = visit(self->user, arg)) != 0)
@@ -6094,9 +6119,24 @@ static int sipWrapper_clear(sipWrapper *self)
     sipTypeDef *td;
     PyObject *tmp;
 
-    /* Call any handwritten clear code. */
-    if ((ptr = getPtrTypeDef(self, &td)) != NULL && td->td_clear != NULL)
-        vret = td->td_clear(ptr);
+    /* Call the nearest handwritten clear code in the class hierachy. */
+    if ((ptr = getPtrTypeDef(self, &td)) != NULL)
+    {
+        sipTypeDef *ctd = td;
+
+        if (td->td_clear == NULL)
+        {
+            sipEncodedClassDef *sup;
+
+            if ((sup = td->td_supers) != NULL)
+                do
+                    ctd = getClassType(sup, td->td_module)->type;
+                while (ctd->td_clear == NULL && !sup++->sc_flag);
+        }
+
+        if (ctd->td_clear != NULL)
+            vret = ctd->td_clear(ptr);
+    }
 
     /* Remove any user object. */
     tmp = self->user;
