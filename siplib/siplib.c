@@ -6001,35 +6001,33 @@ static int sipWrapper_init(sipWrapper *self,PyObject *args,PyObject *kwds)
         else
         {
             int pstate = argsparsed & PARSE_MASK;
-            sipInitExtenderDef *ie;
-
-            /*
-             * If the arguments were parsed without error then assume an
-             * exception has already been raised for why the instance wasn't
-             * created.
-             */
-            if (pstate == PARSE_OK)
-                return -1;
+            sipInitExtenderDef *ie = wt->iextend;
 
             /*
              * While we just have signature errors, try any initialiser
              * extenders.
              */
-            ie = wt->iextend;
-
             while (ie != NULL && (pstate == PARSE_MANY || pstate == PARSE_FEW || pstate == PARSE_TYPE))
             {
-                int ap = 0;
+                argsparsed = 0;
 
-                if ((sipNew = ie->ie_extender(self, args, &owner, &ap)) != NULL)
+                if ((sipNew = ie->ie_extender(self, args, &owner, &argsparsed)) != NULL)
                     break;
 
-                pstate = ap & PARSE_MASK;
+                pstate = argsparsed & PARSE_MASK;
                 ie = ie->ie_next;
             }
 
             if (sipNew == NULL)
             {
+            	/*
+            	 * If the arguments were parsed without error then assume an
+            	 * exception has already been raised for why the instance
+            	 * wasn't created.
+            	 */
+		if (pstate == PARSE_OK)
+			argsparsed = PARSE_RAISED;
+
                 badArgs(argsparsed, NULL, getBaseName(wt->type->td_name));
                 return -1;
             }
