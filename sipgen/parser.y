@@ -4037,7 +4037,7 @@ static void newFunction(sipSpec *pt,moduleDef *mod,int sflags,int isstatic,
 
     if (isvirt)
     {
-        if (isSignal(od))
+        if (isSignal(od) && !optNoEmitters(pt))
             yyerror("Virtual signals aren't supported");
 
         setIsVirtual(od);
