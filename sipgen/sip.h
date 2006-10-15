@@ -182,6 +182,7 @@
 #define OVER_XFERRED_BACK   0x00800000  /* Ownership is transferred back. */
 #define OVER_RELEASE_GIL    0x01000000  /* The function releases the GIL. */
 #define OVER_IS_VIRTUAL_REIMP   0x02000000  /* It is a re-implementation of a virtual. */
+#define OVER_DONT_DEREF_SELF    0x04000000  /* For comparison operators, don't dereference self. */
 
 #define isPublic(o)         ((o) -> overflags & SECT_IS_PUBLIC)
 #define setIsPublic(o)      ((o) -> overflags |= SECT_IS_PUBLIC)
@@ -215,6 +216,8 @@
 #define setIsReleaseGIL(o)  ((o) -> overflags |= OVER_RELEASE_GIL)
 #define isVirtualReimp(o)   ((o) -> overflags & OVER_IS_VIRTUAL_REIMP)
 #define setIsVirtualReimp(o)    ((o) -> overflags |= OVER_IS_VIRTUAL_REIMP)
+#define dontDerefSelf(o)    ((o) -> overflags & OVER_DONT_DEREF_SELF)
+#define setDontDerefSelf(o) ((o) -> overflags |= OVER_DONT_DEREF_SELF)
 
 
 /* Handle variable flags. */

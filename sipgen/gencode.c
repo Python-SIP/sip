@@ -4027,7 +4027,7 @@ static void generateSlot(sipSpec *pt, classDef *cd, enumDef *ed, memberDef *md, 
 
     for (od = overs; od != NULL; od = od->next)
         if (od->common == md)
-            generateFunctionBody(pt,od,cd,cd,(ed == NULL),fp);
+            generateFunctionBody(pt, od, cd, cd, (ed == NULL && !dontDerefSelf(od)), fp);
 
     if (nr_args > 0)
         switch (md->slot)
@@ -8802,9 +8802,9 @@ static void generateFunctionCall(classDef *cd,classDef *ocd,overDef *od,
         argDef *ad = &od->pysig.args[a];
 
         /*
-         * If we have an In,Out argument that has conversion code then
-         * we delay the destruction of any temporary variables until
-         * after we have converted the outputs.
+         * If we have an In,Out argument that has conversion code then we delay
+         * the destruction of any temporary variables until after we have
+         * converted the outputs.
          */
         if (isInArg(ad) && isOutArg(ad) && hasConvertToCode(ad) && deltemps)
         {
@@ -8818,8 +8818,8 @@ static void generateFunctionCall(classDef *cd,classDef *ocd,overDef *od,
         }
 
         /*
-         * If we are returning a class via an output only reference or
-         * pointer then we need an instance on the heap.
+         * If we are returning a class via an output only reference or pointer
+         * then we need an instance on the heap.
          */
         if (needNewInstance(ad))
         {
@@ -8833,10 +8833,7 @@ static void generateFunctionCall(classDef *cd,classDef *ocd,overDef *od,
 
     if (od->methodcode != NULL)
     {
-        /*
-         * See if the handwritten code seems to be using the error
-         * flag.
-         */
+        /* See if the handwritten code seems to be using the error flag. */
         if (needErrorFlag(od->methodcode))
         {
             prcode(fp,
