@@ -216,7 +216,7 @@ example::
 This assumes that the Python interpreter is on your path.  Something like the
 following may be appropriate on Windows::
 
-    c:\python24\python configure.py
+    c:\python25\python configure.py
 
 If you have multiple versions of Python installed then make sure you use the
 interpreter for which you wish SIP to generate bindings for.
@@ -271,7 +271,7 @@ SIP, and the modules it generates, can be built with MinGW, the Windows port of
 GCC.  You must use the ``-p`` command line option to specify the correct
 platform.  For example::
 
-    c:\python24\python configure.py -p win32-g++
+    c:\python25\python configure.py -p win32-g++
 
 
 Configuring SIP Using the Borland C++ Compiler
@@ -281,14 +281,14 @@ SIP, and the modules it generates, can be built with the free Borland C++
 compiler.  You must use the ``-p`` command line option to specify the correct
 platform.  For example::
 
-    c:\python24\python configure.py -p win32-borland
+    c:\python25\python configure.py -p win32-borland
 
 You must also make sure you have a Borland-compatible version of the Python
 library.  If you are using the standard Python distribution (built using the
 Microsoft compiler) then you must convert the format of the Python library.
 For example::
 
-    coff2omf python24.lib python24_bcpp.lib
+    coff2omf python25.lib python25_bcpp.lib
 
 
 Building SIP

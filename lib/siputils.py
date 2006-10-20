@@ -10,6 +10,7 @@ import os
 import string
 import types
 import stat
+import re
 
 
 # These are installation specific values created when SIP was configured.
@@ -512,8 +513,20 @@ class Makefile:
                 # The QtSql .prl file doesn't include QtGui as a dependency (at
                 # least on Linux) so we explcitly set the dependency here for
                 # everything.
-                if "QtSql" in self._qt and "QtGui" not in self._qt:
-                    self._qt.append("QtGui")
+                if "QtSql" in self._qt:
+                    if "QtGui" not in self._qt:
+                        self._qt.append("QtGui")
+
+                # With Qt v4.2.0, the QtAssistantClient library is now a shared
+                # library on UNIX. The QtAssistantClient .prl file doesn't
+                # include QtGui and QtNetwork as a dependency any longer.  This
+                # seems to be a bug in Qt v4.2.0.  We explicitly set the
+                # dependencies here.
+                if self.config.qt_version >= 0x040200 and "QtAssistant" in self._qt:
+                    if "QtGui" not in self._qt:
+                        self._qt.append("QtGui")
+                    if "QtNetwork" not in self._qt:
+                        self._qt.append("QtNetwork")
 
                 for mod in self._qt:
                     lib = self._qt4_module_to_lib(mod)
@@ -571,8 +584,6 @@ class Makefile:
             qtincdir = self.optional_list("INCDIR_QT")
 
             if qtincdir:
-                incdir.extend(qtincdir)
-
                 if self.config.qt_version >= 0x040000:
                     for mod in self._qt:
                         if mod == "QAxContainer":
@@ -581,6 +592,9 @@ class Makefile:
                             incdir.append(os.path.join(libdir_qt[0], mod + ".framework", "Headers"))
                         else:
                             incdir.append(os.path.join(qtincdir[0], mod))
+
+                # This must go after the module include directories.
+                incdir.extend(qtincdir)
 
         if self._opengl:
             incdir.extend(self.optional_list("INCDIR_OPENGL"))
@@ -636,11 +650,14 @@ class Makefile:
         if self._debug:
             if sys.platform == "win32":
                 lib = lib + "d"
-            else:
+            elif self.config.qt_version < 0x040200 or sys.platform == "darwin":
                 lib = lib + "_debug"
 
-        if sys.platform == "win32" and mname in ("QtCore", "QtGui", "QtNetwork", "QtOpenGL", "QtSql", "QtSvg", "QtTest", "QtXml"):
-            lib = lib + "4"
+        if sys.platform == "win32":
+            if (mname in ("QtCore", "QtGui", "QtNetwork", "QtOpenGL",
+                          "QtSql", "QtSvg", "QtTest", "QtXml") or
+                (self.config.qt_version >= 0x040200 and mname == "QtAssistant")):
+                lib = lib + "4"
 
         return lib
 
@@ -1989,12 +2006,17 @@ def parse_build_macros(filename, names, overrides=None, properties=None):
             self.path = os.path.dirname(filename)
             self.filestack = []
             self.pathstack = []
+            self.cond_fname = None
             self._openfile(filename)
 
-        def _openfile(self,filename):
+        def _openfile(self, filename):
             try:
                 self.currentfile = open(filename, 'r')
             except IOError, detail:
+                # If this file is conditional then don't raise an error.
+                if self.cond_fname == filename:
+                    return
+
                 error("Unable to open %s: %s" % (filename, detail))
 
             self.filestack.append(self.currentfile)
@@ -2004,8 +2026,17 @@ def parse_build_macros(filename, names, overrides=None, properties=None):
         def readline(self):
             line = self.currentfile.readline()
             sline = line.strip()
-            if sline.startswith('include('):
-                nextfile = os.path.normpath(os.path.join(self.path, sline[8:-1]))
+
+            if self.cond_fname and sline == '}':
+                # The current condition is closed.
+                self.cond_fname = None
+                line = self.currentfile.readline()
+            elif sline.startswith('exists(') and sline.endswith('{'):
+                # A new condition is opened so extract the filename.
+                self.cond_fname = self._normalise(sline[:-1].strip()[7:-1].strip())
+                line = self.currentfile.readline()
+            elif sline.startswith('include('):
+                nextfile = self._normalise(sline[8:-1].strip())
                 self._openfile(nextfile)
                 return self.readline()
 
@@ -2015,6 +2046,37 @@ def parse_build_macros(filename, names, overrides=None, properties=None):
                 return self.readline()
 
             return line
+
+        # Normalise a filename by expanding any environment variables and
+        # making sure it is absolute.
+        def _normalise(self, fname):
+            if "$(" in fname:
+                fname = os.path.normpath(self._expandvars(fname))
+
+            if not os.path.isabs(fname):
+                fname = os.path.join(self.path, fname)
+
+            return fname
+
+        # Expand the environment variables in a filename.
+        def _expandvars(self, fname):
+            i = 0
+            while True:
+                m = re.search(r'\$\((\w+)\)', fname[i:])
+                if not m:
+                    break
+
+                i, j = m.span(0)
+                name = m.group(1)
+                if name in os.environ:
+                    tail = fname[j:]
+                    fname = fname[:i] + os.environ[name]
+                    i = len(fname)
+                    fname += tail
+                else:
+                    i = j
+
+            return fname
 
     f = qmake_build_file_reader(filename)
 
