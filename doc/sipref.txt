@@ -4407,6 +4407,13 @@ isdeleted(obj)
     This returns True if the C++ instance or C structure has been destroyed or
     returned to the heap.  *obj* is the Python object.
 
+setdeleted(obj)
+    This marks the C++ instance or C structure as having been destroyed or
+    returned to the heap so that future references to it raise an exception
+    rather than cause a program crash.  Normally SIP handles such things
+    automatically, but there are circumstances where this isn't possible.
+    *obj* is the Python object.
+
 settracemask(mask)
     If the bindings have been created with SIP's ``-r`` command line option
     then the generated code will produce debugging statements that trace the

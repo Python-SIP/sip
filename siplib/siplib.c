@@ -343,13 +343,14 @@ static int addSingleClassInstance(PyObject *dict, char *name, void *cppPtr,
 static int addLicense(PyObject *dict, sipLicenseDef *lc);
 static PyObject *cast(PyObject *self, PyObject *args);
 static PyObject *callDtor(PyObject *self, PyObject *args);
-static PyObject *isdeleted(PyObject *self, PyObject *args);
+static PyObject *isDeleted(PyObject *self, PyObject *args);
+static PyObject *setDeleted(PyObject *self, PyObject *args);
 static PyObject *setTraceMask(PyObject *self, PyObject *args);
 static PyObject *wrapInstance(PyObject *self, PyObject *args);
 static PyObject *unwrapInstance(PyObject *self, PyObject *args);
 static PyObject *transfer(PyObject *self, PyObject *args);
-static PyObject *transferback(PyObject *self, PyObject *args);
-static PyObject *transferto(PyObject *self, PyObject *args);
+static PyObject *transferBack(PyObject *self, PyObject *args);
+static PyObject *transferTo(PyObject *self, PyObject *args);
 static int sipWrapperType_Check(PyObject *op);
 static void addToParent(sipWrapper *self, sipWrapper *owner);
 static void removeFromParent(sipWrapper *self);
@@ -378,11 +379,12 @@ PyMODINIT_FUNC initsip(void)
     static PyMethodDef methods[] = {
         {"cast", cast, METH_VARARGS, NULL},
         {"delete", callDtor, METH_VARARGS, NULL},
-        {"isdeleted", isdeleted, METH_VARARGS, NULL},
+        {"isdeleted", isDeleted, METH_VARARGS, NULL},
+        {"setdeleted", setDeleted, METH_VARARGS, NULL},
         {"settracemask", setTraceMask, METH_VARARGS, NULL},
         {"transfer", transfer, METH_VARARGS, NULL},
-        {"transferback", transferback, METH_VARARGS, NULL},
-        {"transferto", transferto, METH_VARARGS, NULL},
+        {"transferback", transferBack, METH_VARARGS, NULL},
+        {"transferto", transferTo, METH_VARARGS, NULL},
         {"wrapinstance", wrapInstance, METH_VARARGS, NULL},
         {"unwrapinstance", unwrapInstance, METH_VARARGS, NULL},
         {NULL, NULL, 0, NULL}
@@ -496,7 +498,7 @@ static PyObject *setTraceMask(PyObject *self, PyObject *args)
 /*
  * Transfer the ownership of an instance to C/C++.
  */
-static PyObject *transferto(PyObject *self, PyObject *args)
+static PyObject *transferTo(PyObject *self, PyObject *args)
 {
     PyObject *w, *owner;
 
@@ -523,7 +525,7 @@ static PyObject *transferto(PyObject *self, PyObject *args)
 /*
  * Transfer the ownership of an instance to Python.
  */
-static PyObject *transferback(PyObject *self, PyObject *args)
+static PyObject *transferBack(PyObject *self, PyObject *args)
 {
     PyObject *w;
 
@@ -634,7 +636,7 @@ static PyObject *callDtor(PyObject *self, PyObject *args)
 /*
  * Check if an instance still exists without raising an exception.
  */
-static PyObject *isdeleted(PyObject *self, PyObject *args)
+static PyObject *isDeleted(PyObject *self, PyObject *args)
 {
     sipWrapper *w;
     PyObject *res;
@@ -646,6 +648,30 @@ static PyObject *isdeleted(PyObject *self, PyObject *args)
 
     Py_INCREF(res);
     return res;
+}
+
+
+/*
+ * Mark an instance as having been deleted.
+ */
+static PyObject *setDeleted(PyObject *self, PyObject *args)
+{
+    sipWrapper *w;
+
+    if (!PyArg_ParseTuple(args, "O!:setdeleted", &sipWrapper_Type, &w))
+        return NULL;
+
+    /*
+     * Transfer ownership to C++ so we don't try to release it when the Python
+     * object is garbage collected.
+     */
+    removeFromParent(w);
+    sipResetPyOwned(w);
+
+    w->u.cppPtr = NULL;
+
+    Py_INCREF(Py_None);
+    return Py_None;
 }
 
 
@@ -5637,7 +5663,7 @@ static int isExactWrappedType(sipWrapperType *wt)
 /*
  * The type alloc slot.
  */
-static PyObject *sipWrapperType_alloc(PyTypeObject *self, int nitems)
+static PyObject *sipWrapperType_alloc(PyTypeObject *self, _SIP_SSIZE_T nitems)
 {
     PyObject *o;
 
