@@ -2935,14 +2935,16 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd, optFlags *of)
             setHasDelayedDtors(mod);
         }
 
+        if (findOptFlag(of, "NoDefaultCopyCtor", bool_flag) != NULL)
+            setNoDefaultCtor(cd);
+
         /*
-         * There are subtle differences between the add and concat
-         * methods and the multiply and repeat methods.  The number
-         * versions can have their operands swapped and may return
-         * NotImplemented.  If the user has used the /Numeric/
-         * annotation or there are other numeric operators then we use
-         * add/multiply.  Otherwise, if there are indexing operators
-         * then we use concat/repeat.
+         * There are subtle differences between the add and concat methods and
+         * the multiply and repeat methods.  The number versions can have their
+         * operands swapped and may return NotImplemented.  If the user has
+         * used the /Numeric/ annotation or there are other numeric operators
+         * then we use add/multiply.  Otherwise, if there are indexing
+         * operators then we use concat/repeat.
          */
         seq_might = seq_not = FALSE;
 

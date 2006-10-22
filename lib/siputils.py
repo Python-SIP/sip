@@ -635,7 +635,7 @@ class Makefile:
     def _is_framework(self, mod):
         """Return true if the given Qt module is a framework.
         """
-        return (self.config.qt_framework and mod != "QtAssistant")
+        return (self.config.qt_framework and (self.config.qt_version >= 0x040200 or mod != "QtAssistant"))
 
     def _qt4_module_to_lib(self, mname):
         """Return the name of the Qt4 library corresponding to a module.

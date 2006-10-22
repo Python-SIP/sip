@@ -72,6 +72,7 @@
 #define CLASS_CAN_CREATE    0x08000000  /* It has usable ctors. */
 #define CLASS_IS_EXTERNAL   0x10000000  /* It is external. */
 #define CLASS_IS_DELAYED_DTOR   0x20000000  /* The dtor is delayed. */
+#define CLASS_NO_DEFAULT_CTOR   0x40000000  /* Don't create a default ctor. */
 
 #define hasEnums(cd)        ((cd) -> classflags & CLASS_HAS_ENUMS)
 #define setHasEnums(cd)     ((cd) -> classflags |= CLASS_HAS_ENUMS)
@@ -105,6 +106,8 @@
 #define setIsExternal(cd)   ((cd) -> classflags |= CLASS_IS_EXTERNAL)
 #define isDelayedDtor(cd)   ((cd) -> classflags & CLASS_IS_DELAYED_DTOR)
 #define setIsDelayedDtor(cd)    ((cd) -> classflags |= CLASS_IS_DELAYED_DTOR)
+#define noDefaultCtor(cd)   ((cd) -> classflags & CLASS_NO_DEFAULT_CTOR)
+#define setNoDefaultCtor(cd)    ((cd) -> classflags |= CLASS_NO_DEFAULT_CTOR)
 
 #define isPublicDtor(cd)    ((cd) -> classflags & SECT_IS_PUBLIC)
 #define setIsPublicDtor(cd) ((cd) -> classflags |= SECT_IS_PUBLIC)
