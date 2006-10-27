@@ -164,7 +164,7 @@ void transform(sipSpec *pt)
     /* Handle default ctors now that the argument types are resolved. */ 
     if (!pt -> genc)
         for (cd = pt -> classes; cd != NULL; cd = cd -> next)
-            if (!noDefaultCtor(cd) && !isOpaque(cd) && cd->iff->type != namespace_iface)
+            if (!noDefaultCtors(cd) && !isOpaque(cd) && cd->iff->type != namespace_iface)
                 addDefaultCopyCtor(cd);
 
     /*
@@ -1481,11 +1481,11 @@ static void resolvePySigTypes(sipSpec *pt, moduleDef *mod, classDef *scope,
         getBaseType(pt, mod, scope, ad);
 
         if (ad -> atype == slotcon_type)
-            resolvePySigTypes(pt, mod, scope, od, ad->u.sa,TRUE);
+            resolvePySigTypes(pt, mod, scope, od, ad->u.sa, TRUE);
 
         /*
-         * Note signal arguments are restricted in their types because
-         * we don't (yet) support handwritten code for them.
+         * Note signal arguments are restricted in their types because we don't
+         * (yet) support handwritten code for them.
          */
         if (issignal)
         {
@@ -2304,7 +2304,7 @@ static void getBaseType(sipSpec *pt, moduleDef *mod, classDef *defscope, argDef 
             fatalNoDefinedType(snd);
     }
 
-    /* Get the base of type of any slot arguments. */
+    /* Get the base type of any slot arguments. */
     if (type -> atype == slotcon_type || type -> atype == slotdis_type)
     {
         int sa;

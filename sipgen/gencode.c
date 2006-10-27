@@ -9299,8 +9299,8 @@ static int generateArgParser(sipSpec *pt, signatureDef *sd, classDef *cd,
     isQtSlot = FALSE;
 
     /*
-     * Generate the local variables that will hold the parsed arguments
-     * and values returned via arguments.
+     * Generate the local variables that will hold the parsed arguments and
+     * values returned via arguments.
      */
 
     sigarg = -1;

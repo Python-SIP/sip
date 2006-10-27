@@ -1,12 +1,20 @@
-v4.5 ??? ???? 2006
+v4.5 ?? November 2006
+  - Added support for Python v2.5.
   - Added sip_config_args to sipconfig.py.
   - sip.voidptr now implements __hex__().
   - Added sip.delete() to call a C++ instance's destructor, or return a C
     structure to the heap.
   - Added sip.isdeleted() to check if a C++ instance or C structure has been
     destroyed or returned to the heap.
+  - Added sip.setdeleted() to mark that a C++ instance or C structure has been
+    destroyed or returned to the heap.
+  - Added support for pure virtual destructors.
+  - Added the __dtor__() method to allow Python code to be called from a C++
+    destructor.
+  - Added the /NoDefaultCtors/ class annotation.
   - The generated API files are now more complete and use Python types rather
     than C/C++ types.
+  - Added support for embedding manifests for MSVC 2005.
 
 v4.4.5 10th June 2006
   - A bug fix release.

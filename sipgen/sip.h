@@ -26,7 +26,7 @@
 
 #define DEFAULT_OFILE_EXT   ".o"    /* Default object file extension. */
 
-#define MAX_NR_ARGS     20  /* Max. nr. args. to a function or template. */
+#define MAX_NR_ARGS         20      /* Max. nr. args. to a function or template. */
 
 
 /* For convenience. */
@@ -72,7 +72,7 @@
 #define CLASS_CAN_CREATE    0x08000000  /* It has usable ctors. */
 #define CLASS_IS_EXTERNAL   0x10000000  /* It is external. */
 #define CLASS_IS_DELAYED_DTOR   0x20000000  /* The dtor is delayed. */
-#define CLASS_NO_DEFAULT_CTOR   0x40000000  /* Don't create a default ctor. */
+#define CLASS_NO_DEFAULT_CTORS  0x40000000  /* Don't create default ctors. */
 
 #define hasEnums(cd)        ((cd) -> classflags & CLASS_HAS_ENUMS)
 #define setHasEnums(cd)     ((cd) -> classflags |= CLASS_HAS_ENUMS)
@@ -106,8 +106,8 @@
 #define setIsExternal(cd)   ((cd) -> classflags |= CLASS_IS_EXTERNAL)
 #define isDelayedDtor(cd)   ((cd) -> classflags & CLASS_IS_DELAYED_DTOR)
 #define setIsDelayedDtor(cd)    ((cd) -> classflags |= CLASS_IS_DELAYED_DTOR)
-#define noDefaultCtor(cd)   ((cd) -> classflags & CLASS_NO_DEFAULT_CTOR)
-#define setNoDefaultCtor(cd)    ((cd) -> classflags |= CLASS_NO_DEFAULT_CTOR)
+#define noDefaultCtors(cd)  ((cd) -> classflags & CLASS_NO_DEFAULT_CTORS)
+#define setNoDefaultCtors(cd)   ((cd) -> classflags |= CLASS_NO_DEFAULT_CTORS)
 
 #define isPublicDtor(cd)    ((cd) -> classflags & SECT_IS_PUBLIC)
 #define setIsPublicDtor(cd) ((cd) -> classflags |= SECT_IS_PUBLIC)
@@ -564,37 +564,37 @@ typedef struct _exceptionDef {
 /* A value. */
 
 typedef struct _valueDef {
-    valueType       vtype;      /* The type. */
-    char            vunop;      /* Any unary operator. */
-    char            vbinop;     /* Any binary operator. */
+    valueType vtype;            /* The type. */
+    char vunop;                 /* Any unary operator. */
+    char vbinop;                /* Any binary operator. */
     union {
-        char        vqchar;     /* Quoted character value. */
-        long        vnum;       /* Numeric value. */
-        double      vreal;      /* Real value. */
-        char        *vstr;      /* String value. */
-        scopedNameDef   *vscp;      /* Scoped value. */
-        struct _fcallDef *fcd;      /* Function call. */
+        char vqchar;            /* Quoted character value. */
+        long vnum;              /* Numeric value. */
+        double vreal;           /* Real value. */
+        char *vstr;             /* String value. */
+        scopedNameDef *vscp;    /* Scoped value. */
+        struct _fcallDef *fcd;  /* Function call. */
     } u;
-    struct _valueDef    *next;      /* Next in the expression. */
+    struct _valueDef *next;     /* Next in the expression. */
 } valueDef;
 
 
 /* A member function argument (or result). */
 
 typedef struct {
-    argType         atype;      /* The type. */
-    char            *name;      /* The name. */
-    int         argflags;   /* The argument flags. */
-    int         nrderefs;   /* Nr. of dereferences. */
-    valueDef        *defval;    /* The default value. */
+    argType atype;              /* The type. */
+    char *name;                 /* The name. */
+    int argflags;               /* The argument flags. */
+    int nrderefs;               /* Nr. of dereferences. */
+    valueDef *defval;           /* The default value. */
     union {
-        struct _signatureDef    *sa;    /* If it is a function. */
-        struct _templateDef *td;    /* If it is a template. */
-        struct _scopedNameDef   *snd;   /* If it is a defined type. */
-        struct _classDef    *cd;    /* If it is a class. */
-        struct _enumDef     *ed;    /* If it is an enum. */
-        struct _scopedNameDef   *sname; /* If it is a struct. */
-        struct _mappedTypeDef   *mtd;   /* If it is a mapped type. */
+        struct _signatureDef *sa;       /* If it is a function. */
+        struct _templateDef *td;        /* If it is a template. */
+        struct _scopedNameDef *snd;     /* If it is a defined type. */
+        struct _classDef *cd;           /* If it is a class. */
+        struct _enumDef *ed;            /* If it is an enum. */
+        struct _scopedNameDef *sname;   /* If it is a struct. */
+        struct _mappedTypeDef *mtd;     /* If it is a mapped type. */
     } u;
 } argDef;
 

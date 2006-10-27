@@ -511,10 +511,7 @@ mappedtypetmpl: template TK_MAPPEDTYPE basetype {
             if (currentSpec->genc)
                 yyerror("%MappedType templates not allowed in a C module");
 
-            /*
-             * Check the template arguments are all just simple
-             * names.
-             */
+            /* Check the template arguments are all just simple names. */
             for (a = 0; a < $1.nrArgs; ++a)
                 if ($1.args[a].atype != defined_type || $1.args[a].u.snd->next != NULL)
                     yyerror("%MappedType template arguments must be simple names");
@@ -526,10 +523,7 @@ mappedtypetmpl: template TK_MAPPEDTYPE basetype {
             {
                 mappedTypeTmplDef *mtt;
 
-                /*
-                 * Check a template hasn't already been
-                 * provided.
-                 */
+                /* Check a template hasn't already been provided. */
                 for (mtt = currentSpec->mappedtypetemplates; mtt != NULL; mtt = mtt->next)
                     if (sameScopedName(mtt->mt->type.u.td->fqname, $3.u.td->fqname) && sameTemplateSignature(&mtt->mt->type.u.td->types, &$3.u.td->types, TRUE))
                         yyerror("%MappedType template for this type has already been defined");
@@ -2875,24 +2869,30 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd, optFlags *of)
         int seq_might, seq_not;
         memberDef *md;
 
+        if (findOptFlag(of, "NoDefaultCtors", bool_flag) != NULL)
+            setNoDefaultCtors(cd);
+
         if (cd -> ctors == NULL)
         {
-            /* Provide a default ctor. */
+            if (!noDefaultCtors(cd))
+            {
+                /* Provide a default ctor. */
 
-            cd -> ctors = sipMalloc(sizeof (ctorDef));
+                cd->ctors = sipMalloc(sizeof (ctorDef));
  
-            cd -> ctors -> ctorflags = SECT_IS_PUBLIC;
-            cd -> ctors -> pysig.nrArgs = 0;
-            cd -> ctors -> cppsig = &cd -> ctors -> pysig;
-            cd -> ctors -> exceptions = NULL;
-            cd -> ctors -> methodcode = NULL;
-            cd -> ctors -> prehook = NULL;
-            cd -> ctors -> posthook = NULL;
-            cd -> ctors -> next = NULL;
+                cd->ctors->ctorflags = SECT_IS_PUBLIC;
+                cd->ctors->pysig.nrArgs = 0;
+                cd->ctors->cppsig = &cd -> ctors -> pysig;
+                cd->ctors->exceptions = NULL;
+                cd->ctors->methodcode = NULL;
+                cd->ctors->prehook = NULL;
+                cd->ctors->posthook = NULL;
+                cd->ctors->next = NULL;
 
-            cd -> defctor = cd -> ctors;
+                cd->defctor = cd->ctors;
 
-            setCanCreate(cd);
+                setCanCreate(cd);
+            }
         }
         else if (cd -> defctor == NULL)
         {
@@ -2934,9 +2934,6 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd, optFlags *of)
             setIsDelayedDtor(cd);
             setHasDelayedDtors(mod);
         }
-
-        if (findOptFlag(of, "NoDefaultCopyCtor", bool_flag) != NULL)
-            setNoDefaultCtor(cd);
 
         /*
          * There are subtle differences between the add and concat methods and

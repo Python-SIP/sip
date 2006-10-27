@@ -3232,11 +3232,11 @@ module.  Declarations of external classes are private to the module in which
 they appear.
 
 
-NoDefaultCopyCtor
-*****************
+NoDefaultCtors
+**************
 
-This boolean annotation is used to suppress the automatic generation of a
-default copy constructor for the class.
+This boolean annotation is used to suppress the automatic generation of default
+constructors for the class.
 
 
 PyName
