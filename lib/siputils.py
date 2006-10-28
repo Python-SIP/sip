@@ -554,7 +554,7 @@ class Makefile:
 
                         libs.extend(deps.as_list())
                     else:
-                        libs.extend(self._dependent_libs(lib))
+                        libs.extend(self._dependent_libs(lib, self._is_framework(mod)))
             else:
                 # Windows needs the version number appended if Qt is a DLL.
                 qt_lib = self.config.qt_lib
@@ -589,6 +589,9 @@ class Makefile:
                         if mod == "QAxContainer":
                             incdir.append(os.path.join(qtincdir[0], "ActiveQt"))
                         elif self._is_framework(mod):
+                            if mod == "QtAssistant":
+                                mod = "QtAssistantClient"
+
                             incdir.append(os.path.join(libdir_qt[0], mod + ".framework", "Headers"))
                         else:
                             incdir.append(os.path.join(qtincdir[0], mod))
@@ -722,16 +725,19 @@ class Makefile:
 
         return plib
 
-    def _dependent_libs(self, clib):
+    def _dependent_libs(self, clib, framework=0):
         """Return a list of additional libraries (in platform specific form)
         that must be linked with a library.
 
         clib is the library name in cannonical form.
+        framework is set of the library is implemented as a MacOS framework.
         """
         prl_libs = []
 
         if self.generator in ("MSVC", "MSVC.NET", "BMAKE"):
             prl_name = os.path.join(self.config.qt_lib_dir, clib + ".prl")
+        elif sys.platform == "darwin" and framework:
+            prl_name = os.path.join(self.config.qt_lib_dir, clib + ".framework", clib + ".prl")
         else:
             prl_name = os.path.join(self.config.qt_lib_dir, "lib" + clib + ".prl")
 
