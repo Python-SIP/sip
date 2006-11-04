@@ -1,4 +1,4 @@
-v4.5 ?? November 2006
+v4.5 4th November 2006
   - Added support for Python v2.5.
   - Added sip_config_args to sipconfig.py.
   - sip.voidptr now implements __hex__().
