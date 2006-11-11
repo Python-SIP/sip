@@ -2367,7 +2367,6 @@ void parse(sipSpec *spec,FILE *fp,char *filename,stringList *tsl,
         /* Initialise the spec. */
  
     spec -> modules = NULL;
-    spec -> allimports = NULL;
     spec -> namecache = NULL;
     spec -> ifacefiles = NULL;
     spec -> classes = NULL;
@@ -2510,6 +2509,7 @@ static void newModule(FILE *fp,char *filename)
     newmod -> nrvirthandlers = 0;
     newmod -> virthandlers = NULL;
     newmod -> license = NULL;
+    newmod -> allimports = NULL;
     newmod -> imports = NULL;
     newmod -> next = currentSpec -> modules;
 
