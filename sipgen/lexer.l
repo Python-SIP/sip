@@ -19,23 +19,23 @@
 #endif
 
 
-#define	YY_FATAL_ERROR(s)	fatallex(s)
+#define YY_FATAL_ERROR(s)   fatallex(s)
 
-#define	MAX_INCLUDE_DEPTH	10
-#define	MAX_CODE_LINE_LENGTH	1000
+#define MAX_INCLUDE_DEPTH   10
+#define MAX_CODE_LINE_LENGTH    1000
 
 
 static struct inputFile {
-	int		lineno;		/* The line number. */
-	YY_BUFFER_STATE	bs;		/* The flex buffer state handle. */
-	char		*name;		/* The file name. */
-	char		*cwd;		/* The path part of the file name. */
-	parserContext	pc;		/* The parser context. */
+    int     lineno;     /* The line number. */
+    YY_BUFFER_STATE bs;     /* The flex buffer state handle. */
+    char        *name;      /* The file name. */
+    char        *cwd;       /* The path part of the file name. */
+    parserContext   pc;     /* The parser context. */
 } inputFileStack[MAX_INCLUDE_DEPTH];
 
-static int currentFile = -1;		/* Index of the current input file. */
-static char codeLine[MAX_CODE_LINE_LENGTH + 2];	/* The current code line. */
-static int codeIdx = -1;		/* Index of next code character. */
+static int currentFile = -1;        /* Index of the current input file. */
+static char codeLine[MAX_CODE_LINE_LENGTH + 2]; /* The current code line. */
+static int codeIdx = -1;        /* Index of next code character. */
 
 static FILE *openFile(char *);
 static void fatallex(char *);
@@ -46,341 +46,341 @@ static void fatallex(char *);
 
 %%
 
-^[ \t]*%SIPOptions		{return TK_OPTIONS;}
-^[ \t]*%SIPNoEmitters		{return TK_NOEMITTERS;}
-^[ \t]*%Include			{return TK_INCLUDE;}
-^[ \t]*%OptionalInclude		{return TK_OPTINCLUDE;}
-^[ \t]*%Import			{return TK_IMPORT;}
-^[ \t]*%Module			{return TK_MODULE;}
-^[ \t]*%CModule			{return TK_CMODULE;}
-^[ \t]*%Timeline		{return TK_TIMELINE;}
-^[ \t]*%Platforms		{return TK_PLATFORMS;}
-^[ \t]*%Feature			{return TK_FEATURE;}
-^[ \t]*%License			{return TK_LICENSE;}
-^[ \t]*%MappedType		{return TK_MAPPEDTYPE;}
-^[ \t]*%Exception		{return TK_EXCEPTION;}
-^[ \t]*%If			{return TK_IF;}
-<INITIAL>^[ \t]*%End		{return TK_END;}
-class				{return TK_CLASS;}
-struct				{return TK_STRUCT;}
-public				{return TK_PUBLIC;}
-protected			{return TK_PROTECTED;}
-private				{return TK_PRIVATE;}
-signals				{return TK_SIGNALS;}
-slots				{return TK_SLOTS;}
-char				{return TK_CHAR;}
-bool				{return TK_BOOL;}
-short				{return TK_SHORT;}
-int				{return TK_INT;}
-long				{return TK_LONG;}
-float				{return TK_FLOAT;}
-double				{return TK_DOUBLE;}
-void				{return TK_VOID;}
-virtual				{return TK_VIRTUAL;}
-enum				{return TK_ENUM;}
-signed				{return TK_SIGNED;}
-unsigned			{return TK_UNSIGNED;}
-const				{return TK_CONST;}
-static				{return TK_STATIC;}
-true				{return TK_TRUE;}
-false				{return TK_FALSE;}
-NULL				{return TK_NULL;}
-typedef				{return TK_TYPEDEF;}
-namespace			{return TK_NAMESPACE;}
-operator			{return TK_OPERATOR;}
-throw				{return TK_THROW;}
-explicit			{return TK_EXPLICIT;}
-template			{return TK_TEMPLATE;}
-::				{return TK_SCOPE;}
-\|\|				{return TK_LOGICAL_OR;}
-SIP_PYOBJECT			{return TK_PYOBJECT;}
-SIP_PYTUPLE			{return TK_PYTUPLE;}
-SIP_PYLIST			{return TK_PYLIST;}
-SIP_PYDICT			{return TK_PYDICT;}
-SIP_PYCALLABLE			{return TK_PYCALLABLE;}
-SIP_PYSLICE			{return TK_PYSLICE;}
-SIP_PYTYPE			{return TK_PYTYPE;}
-SIP_SIGNAL			{return TK_SIPSIGNAL;}
-SIP_SLOT			{return TK_SIPSLOT;}
-SIP_ANYSLOT			{return TK_SIPANYSLOT;}
-SIP_RXOBJ_CON			{return TK_SIPRXCON;}
-SIP_RXOBJ_DIS			{return TK_SIPRXDIS;}
-SIP_SLOT_CON			{return TK_SIPSLOTCON;}
-SIP_SLOT_DIS			{return TK_SIPSLOTDIS;}
-SIP_QOBJECT			{return TK_QOBJECT;}
-\.\.\.				{return TK_ELLIPSIS;}
+^[ \t]*%SIPOptions      {return TK_OPTIONS;}
+^[ \t]*%SIPNoEmitters       {return TK_NOEMITTERS;}
+^[ \t]*%Include         {return TK_INCLUDE;}
+^[ \t]*%OptionalInclude     {return TK_OPTINCLUDE;}
+^[ \t]*%Import          {return TK_IMPORT;}
+^[ \t]*%Module          {return TK_MODULE;}
+^[ \t]*%CModule         {return TK_CMODULE;}
+^[ \t]*%Timeline        {return TK_TIMELINE;}
+^[ \t]*%Platforms       {return TK_PLATFORMS;}
+^[ \t]*%Feature         {return TK_FEATURE;}
+^[ \t]*%License         {return TK_LICENSE;}
+^[ \t]*%MappedType      {return TK_MAPPEDTYPE;}
+^[ \t]*%Exception       {return TK_EXCEPTION;}
+^[ \t]*%If          {return TK_IF;}
+<INITIAL>^[ \t]*%End        {return TK_END;}
+class               {return TK_CLASS;}
+struct              {return TK_STRUCT;}
+public              {return TK_PUBLIC;}
+protected           {return TK_PROTECTED;}
+private             {return TK_PRIVATE;}
+signals             {return TK_SIGNALS;}
+slots               {return TK_SLOTS;}
+char                {return TK_CHAR;}
+bool                {return TK_BOOL;}
+short               {return TK_SHORT;}
+int             {return TK_INT;}
+long                {return TK_LONG;}
+float               {return TK_FLOAT;}
+double              {return TK_DOUBLE;}
+void                {return TK_VOID;}
+virtual             {return TK_VIRTUAL;}
+enum                {return TK_ENUM;}
+signed              {return TK_SIGNED;}
+unsigned            {return TK_UNSIGNED;}
+const               {return TK_CONST;}
+static              {return TK_STATIC;}
+true                {return TK_TRUE;}
+false               {return TK_FALSE;}
+NULL                {return TK_NULL;}
+typedef             {return TK_TYPEDEF;}
+namespace           {return TK_NAMESPACE;}
+operator            {return TK_OPERATOR;}
+throw               {return TK_THROW;}
+explicit            {return TK_EXPLICIT;}
+template            {return TK_TEMPLATE;}
+::              {return TK_SCOPE;}
+\|\|                {return TK_LOGICAL_OR;}
+SIP_PYOBJECT            {return TK_PYOBJECT;}
+SIP_PYTUPLE         {return TK_PYTUPLE;}
+SIP_PYLIST          {return TK_PYLIST;}
+SIP_PYDICT          {return TK_PYDICT;}
+SIP_PYCALLABLE          {return TK_PYCALLABLE;}
+SIP_PYSLICE         {return TK_PYSLICE;}
+SIP_PYTYPE          {return TK_PYTYPE;}
+SIP_SIGNAL          {return TK_SIPSIGNAL;}
+SIP_SLOT            {return TK_SIPSLOT;}
+SIP_ANYSLOT         {return TK_SIPANYSLOT;}
+SIP_RXOBJ_CON           {return TK_SIPRXCON;}
+SIP_RXOBJ_DIS           {return TK_SIPRXDIS;}
+SIP_SLOT_CON            {return TK_SIPSLOTCON;}
+SIP_SLOT_DIS            {return TK_SIPSLOTDIS;}
+SIP_QOBJECT         {return TK_QOBJECT;}
+\.\.\.              {return TK_ELLIPSIS;}
 
 
-[ \t] {				/* Ignore whitespace. */
-	;
+[ \t] {             /* Ignore whitespace. */
+    ;
 }
 
-\n {				/* Maintain the line number. */
-	++inputFileStack[currentFile].lineno;
+\n {                /* Maintain the line number. */
+    ++inputFileStack[currentFile].lineno;
 
-	if (codeIdx == 0)
-	{
-		BEGIN code;
-	}
+    if (codeIdx == 0)
+    {
+        BEGIN code;
+    }
 }
 
-\/\/.* {			/* Ignore C++ style comments. */
-	;
+\/\/.* {            /* Ignore C++ style comments. */
+    ;
 }
 
 
--?[0-9]+ {			/* A signed decimal number. */
-	yylval.number = strtol(yytext,NULL,0);
-	return TK_NUMBER;
+-?[0-9]+ {          /* A signed decimal number. */
+    yylval.number = strtol(yytext,NULL,0);
+    return TK_NUMBER;
 }
 
 
 -?(([0-9]+)|([0-9]*\.[0-9]+)([eE][-+]?[0-9]+)?) {/* A floating point number. */
-	yylval.real = strtod(yytext,NULL);
-	return TK_REAL;
+    yylval.real = strtod(yytext,NULL);
+    return TK_REAL;
 }
 
 
-0x[0-9a-fA-F]+ {		/* An unsigned hexadecimal number. */
-	yylval.number = strtol(yytext,NULL,16);
-	return TK_NUMBER;
+0x[0-9a-fA-F]+ {        /* An unsigned hexadecimal number. */
+    yylval.number = strtol(yytext,NULL,16);
+    return TK_NUMBER;
 }
 
 
-[_A-Za-z][_A-Za-z0-9]* {	/* An identifier name. */
-	yylval.text = sipStrdup(yytext);
-	return TK_NAME;
+[_A-Za-z][_A-Za-z0-9]* {    /* An identifier name. */
+    yylval.text = sipStrdup(yytext);
+    return TK_NAME;
 }
 
 
-[._A-Za-z][._/A-Za-z0-9\-]*[._A-Za-z0-9] {	/* A relative pathname. */
-	yylval.text = sipStrdup(yytext);
-	return TK_PATHNAME;
+[._A-Za-z][._/A-Za-z0-9\-]*[._A-Za-z0-9] {  /* A relative pathname. */
+    yylval.text = sipStrdup(yytext);
+    return TK_PATHNAME;
 }
 
 
-\"[^"\n]*["\n] {		/* A double-quoted string. */
-	char *dp, *sp;
+\"[^"\n]*["\n] {        /* A double-quoted string. */
+    char *dp, *sp;
 
-	/* Copy the string without the quotes. */
+    /* Copy the string without the quotes. */
 
-	yylval.text = sipMalloc(strlen(yytext) + 1);
+    yylval.text = sipMalloc(strlen(yytext) + 1);
 
-	dp = yylval.text;
-	sp = yytext;
+    dp = yylval.text;
+    sp = yytext;
 
-	while (*sp != '\0')
-	{
-		if (*sp != '"')
-			*dp++ = *sp;
+    while (*sp != '\0')
+    {
+        if (*sp != '"')
+            *dp++ = *sp;
 
-		++sp;
-	}
+        ++sp;
+    }
 
-	*dp = '\0';
+    *dp = '\0';
 
-	return TK_STRING;
+    return TK_STRING;
 }
 
 
-\'[^'\n]*['\n] {		/* A single-quoted character. */
-	if (strlen(yytext) != 3)
-		fatallex("Exactly one character expected between single quotes");
+\'[^'\n]*['\n] {        /* A single-quoted character. */
+    if (strlen(yytext) != 3)
+        fatallex("Exactly one character expected between single quotes");
 
-	yylval.qchar = yytext[1];
+    yylval.qchar = yytext[1];
 
-	return TK_QCHAR;
+    return TK_QCHAR;
 }
 
 
-\/\* {				/* Ignore C-style comments. */
-	BEGIN ccomment;
+\/\* {              /* Ignore C-style comments. */
+    BEGIN ccomment;
 }
 <ccomment>\n {
-	++inputFileStack[currentFile].lineno;
+    ++inputFileStack[currentFile].lineno;
 }
 <ccomment>\*\/ {
-	BEGIN INITIAL;
+    BEGIN INITIAL;
 }
 <ccomment>. {
-	;
+    ;
 }
 
 
-^%Copying {			/* The software license. */
-	codeIdx = 0;
-	return TK_COPYING;
+^%Copying {         /* The software license. */
+    codeIdx = 0;
+    return TK_COPYING;
 }
 
-^%ConvertFromTypeCode {		/* The start of a from-type code block. */
-	codeIdx = 0;
-	return TK_FROMTYPE;
+^%ConvertFromTypeCode {     /* The start of a from-type code block. */
+    codeIdx = 0;
+    return TK_FROMTYPE;
 }
 
-^%ConvertToTypeCode {		/* The start of a to-type code block. */
-	codeIdx = 0;
-	return TK_TOTYPE;
+^%ConvertToTypeCode {       /* The start of a to-type code block. */
+    codeIdx = 0;
+    return TK_TOTYPE;
 }
 
-^%ConvertToSubClassCode {	/* The start of a to-sub-class code block. */
-	codeIdx = 0;
-	return TK_TOSUBCLASS;
+^%ConvertToSubClassCode {   /* The start of a to-sub-class code block. */
+    codeIdx = 0;
+    return TK_TOSUBCLASS;
 }
 
-^%ExportedHeaderCode {		/* The start of an exported header code block. */
-	codeIdx = 0;
-	return TK_EXPHEADERCODE;
+^%ExportedHeaderCode {      /* The start of an exported header code block. */
+    codeIdx = 0;
+    return TK_EXPHEADERCODE;
 }
 
-^%ModuleHeaderCode {		/* The start of a module header code block. */
-	codeIdx = 0;
-	return TK_MODHEADERCODE;
+^%ModuleHeaderCode {        /* The start of a module header code block. */
+    codeIdx = 0;
+    return TK_MODHEADERCODE;
 }
 
-^%TypeHeaderCode {		/* The start of a type header code block. */
-	codeIdx = 0;
-	return TK_TYPEHEADERCODE;
+^%TypeHeaderCode {      /* The start of a type header code block. */
+    codeIdx = 0;
+    return TK_TYPEHEADERCODE;
 }
 
-^%PreInitialisationCode {	/* The start of a pre-initialisation code block. */
-	codeIdx = 0;
-	return TK_PREINITCODE;
+^%PreInitialisationCode {   /* The start of a pre-initialisation code block. */
+    codeIdx = 0;
+    return TK_PREINITCODE;
 }
 
-^%PostInitialisationCode {	/* The start of a post-initialisation code block. */
-	codeIdx = 0;
-	return TK_POSTINITCODE;
+^%PostInitialisationCode {  /* The start of a post-initialisation code block. */
+    codeIdx = 0;
+    return TK_POSTINITCODE;
 }
 
-^%UnitCode {			/* The start of a unit code block. */
-	codeIdx = 0;
-	return TK_UNITCODE;
+^%UnitCode {            /* The start of a unit code block. */
+    codeIdx = 0;
+    return TK_UNITCODE;
 }
 
-^%ModuleCode {			/* The start of a module code block. */
-	codeIdx = 0;
-	return TK_MODCODE;
+^%ModuleCode {          /* The start of a module code block. */
+    codeIdx = 0;
+    return TK_MODCODE;
 }
 
-^%TypeCode {			/* The start of a type code block. */
-	codeIdx = 0;
-	return TK_TYPECODE;
+^%TypeCode {            /* The start of a type code block. */
+    codeIdx = 0;
+    return TK_TYPECODE;
 }
 
-^%MethodCode {			/* The start of a C++ method code block. */
-	codeIdx = 0;
-	return TK_METHODCODE;
+^%MethodCode {          /* The start of a C++ method code block. */
+    codeIdx = 0;
+    return TK_METHODCODE;
 }
 
-^%VirtualCatcherCode {		/* The start of a C++ virtual code block. */
-	codeIdx = 0;
-	return TK_VIRTUALCATCHERCODE;
+^%VirtualCatcherCode {      /* The start of a C++ virtual code block. */
+    codeIdx = 0;
+    return TK_VIRTUALCATCHERCODE;
 }
 
-^%GCTraverseCode {		/* The start of a traverse code block. */
-	codeIdx = 0;
-	return TK_TRAVERSECODE;
+^%GCTraverseCode {      /* The start of a traverse code block. */
+    codeIdx = 0;
+    return TK_TRAVERSECODE;
 }
 
-^%GCClearCode {			/* The start of a clear code block. */
-	codeIdx = 0;
-	return TK_CLEARCODE;
+^%GCClearCode {         /* The start of a clear code block. */
+    codeIdx = 0;
+    return TK_CLEARCODE;
 }
 
-^%BIGetReadBufferCode {		/* The start of a read buffer code block. */
-	codeIdx = 0;
-	return TK_READBUFFERCODE;
+^%BIGetReadBufferCode {     /* The start of a read buffer code block. */
+    codeIdx = 0;
+    return TK_READBUFFERCODE;
 }
 
-^%BIGetWriteBufferCode {	/* The start of a write buffer code block. */
-	codeIdx = 0;
-	return TK_WRITEBUFFERCODE;
+^%BIGetWriteBufferCode {    /* The start of a write buffer code block. */
+    codeIdx = 0;
+    return TK_WRITEBUFFERCODE;
 }
 
-^%BIGetSegCountCode {		/* The start of a segment count code block. */
-	codeIdx = 0;
-	return TK_SEGCOUNTCODE;
+^%BIGetSegCountCode {       /* The start of a segment count code block. */
+    codeIdx = 0;
+    return TK_SEGCOUNTCODE;
 }
 
-^%BIGetCharBufferCode {		/* The start of a char buffer code block. */
-	codeIdx = 0;
-	return TK_CHARBUFFERCODE;
+^%BIGetCharBufferCode {     /* The start of a char buffer code block. */
+    codeIdx = 0;
+    return TK_CHARBUFFERCODE;
 }
 
-^%PrePythonCode {		/* The start of a pre-Python code block. */
-	codeIdx = 0;
-	return TK_PREPYCODE;
+^%PrePythonCode {       /* The start of a pre-Python code block. */
+    codeIdx = 0;
+    return TK_PREPYCODE;
 }
 
-^%RaiseCode {			/* The start of a raise exception code block. */
-	codeIdx = 0;
-	return TK_RAISECODE;
+^%RaiseCode {           /* The start of a raise exception code block. */
+    codeIdx = 0;
+    return TK_RAISECODE;
 }
 
-^%Doc {				/* The start of a documentation block. */
-	codeIdx = 0;
-	return TK_DOC;
+^%Doc {             /* The start of a documentation block. */
+    codeIdx = 0;
+    return TK_DOC;
 }
 
-^%ExportedDoc {			/* The start of an exported documentation block. */
-	codeIdx = 0;
-	return TK_EXPORTEDDOC;
+^%ExportedDoc {         /* The start of an exported documentation block. */
+    codeIdx = 0;
+    return TK_EXPORTEDDOC;
 }
 
-^%Makefile {			/* The start of a Makefile code block. */
-	codeIdx = 0;
-	return TK_MAKEFILE;
+^%Makefile {            /* The start of a Makefile code block. */
+    codeIdx = 0;
+    return TK_MAKEFILE;
 }
 
-^%AccessCode {			/* The start of an access code block. */
-	codeIdx = 0;
-	return TK_ACCESSCODE;
+^%AccessCode {          /* The start of an access code block. */
+    codeIdx = 0;
+    return TK_ACCESSCODE;
 }
 
-^%GetCode {			/* The start of a get code block. */
-	codeIdx = 0;
-	return TK_GETCODE;
+^%GetCode {         /* The start of a get code block. */
+    codeIdx = 0;
+    return TK_GETCODE;
 }
 
-^%SetCode {			/* The start of a set code block. */
-	codeIdx = 0;
-	return TK_SETCODE;
+^%SetCode {         /* The start of a set code block. */
+    codeIdx = 0;
+    return TK_SETCODE;
 }
 
-<code>^%End {			/* The end of a code block. */
-	BEGIN INITIAL;
-	codeIdx = -1;
-	return TK_END;
+<code>^%End {           /* The end of a code block. */
+    BEGIN INITIAL;
+    codeIdx = -1;
+    return TK_END;
 }
 
-<code>\n {			/* The end of a code line . */
-	struct inputFile *ifp;
+<code>\n {          /* The end of a code line . */
+    struct inputFile *ifp;
 
-	codeLine[codeIdx] = '\n';
-	codeLine[codeIdx + 1] = '\0';
-	codeIdx = 0;
+    codeLine[codeIdx] = '\n';
+    codeLine[codeIdx + 1] = '\0';
+    codeIdx = 0;
 
-	ifp = &inputFileStack[currentFile];
+    ifp = &inputFileStack[currentFile];
 
-	yylval.codeb = sipMalloc(sizeof (codeBlock));
+    yylval.codeb = sipMalloc(sizeof (codeBlock));
 
-	yylval.codeb -> frag = sipStrdup(codeLine);
-	yylval.codeb -> linenr = ifp -> lineno++;
-	yylval.codeb -> filename = sipStrdup(ifp -> name);
-	yylval.codeb -> next = NULL;
+    yylval.codeb -> frag = sipStrdup(codeLine);
+    yylval.codeb -> linenr = ifp -> lineno++;
+    yylval.codeb -> filename = sipStrdup(ifp -> name);
+    yylval.codeb -> next = NULL;
 
-	return TK_CODELINE;
+    return TK_CODELINE;
 }
 
-<code>. {			/* The contents of a code line. */
-	if (codeIdx == MAX_CODE_LINE_LENGTH)
-		fatallex("Line is too long");
+<code>. {           /* The contents of a code line. */
+    if (codeIdx == MAX_CODE_LINE_LENGTH)
+        fatallex("Line is too long");
 
-	codeLine[codeIdx++] = yytext[0];
+    codeLine[codeIdx++] = yytext[0];
 }
 
-. {				/* Anything else is returned as is. */
-	return yytext[0];
+. {             /* Anything else is returned as is. */
+    return yytext[0];
 }
 
 %%
@@ -391,32 +391,32 @@ SIP_QOBJECT			{return TK_QOBJECT;}
 
 int yywrap()
 {
-	char *cwd;
-	struct inputFile *ifp;
+    char *cwd;
+    struct inputFile *ifp;
 
-	if ((cwd = inputFileStack[currentFile].cwd) != NULL)
-		free(cwd);
+    if ((cwd = inputFileStack[currentFile].cwd) != NULL)
+        free(cwd);
 
-	ifp = &inputFileStack[currentFile--];
+    ifp = &inputFileStack[currentFile--];
 
-	/* Tell the parser if this is the end of a file. */
+    /* Tell the parser if this is the end of a file. */
 
-	parserEOF(ifp -> name,&ifp -> pc);
+    parserEOF(ifp -> name,&ifp -> pc);
 
-	/* Tidy up this file. */
+    /* Tidy up this file. */
 
-	fclose(yyin);
-	free(ifp -> name);
+    fclose(yyin);
+    free(ifp -> name);
 
-	/* See if this was the original file. */
+    /* See if this was the original file. */
 
-	if (currentFile < 0)
-		return 1;
+    if (currentFile < 0)
+        return 1;
 
-	yy_delete_buffer(YY_CURRENT_BUFFER);
-	yy_switch_to_buffer(ifp -> bs);
+    yy_delete_buffer(YY_CURRENT_BUFFER);
+    yy_switch_to_buffer(ifp -> bs);
 
-	return 0;
+    return 0;
 }
 
 
@@ -425,81 +425,81 @@ int yywrap()
  */
 void setInputFile(FILE *fp,char *name,parserContext *pc,int optional)
 {
-	char *fullname = NULL;
+    char *fullname = NULL;
 
-	if (currentFile >= MAX_INCLUDE_DEPTH - 1)
-		fatal("Too many nested %%Include, %%OptionalInclude or %%Import statements\n");
+    if (currentFile >= MAX_INCLUDE_DEPTH - 1)
+        fatal("Too many nested %%Include, %%OptionalInclude or %%Import statements\n");
 
-	if (fp != NULL || (fp = openFile(name)) != NULL)
-		fullname = sipStrdup(name);
-	else
-	{
-		char *cwd;
+    if (fp != NULL || (fp = openFile(name)) != NULL)
+        fullname = sipStrdup(name);
+    else
+    {
+        char *cwd;
 
-		/* Try the directory that contains the current file. */
-		if (currentFile >= 0 && (cwd = inputFileStack[currentFile].cwd) != NULL)
-		{
-			fullname = concat(cwd,"/",name,NULL);
+        /* Try the directory that contains the current file. */
+        if (currentFile >= 0 && (cwd = inputFileStack[currentFile].cwd) != NULL)
+        {
+            fullname = concat(cwd,"/",name,NULL);
 
-			if ((fp = openFile(fullname)) == NULL)
-			{
-				free(fullname);
-				fullname = NULL;
-			}
-		}
-	}
+            if ((fp = openFile(fullname)) == NULL)
+            {
+                free(fullname);
+                fullname = NULL;
+            }
+        }
+    }
 
-	/* Try the include path if we haven't found anything yet. */
-	if (fullname == NULL)
-	{
-		stringList *sl;
+    /* Try the include path if we haven't found anything yet. */
+    if (fullname == NULL)
+    {
+        stringList *sl;
 
-		fullname = NULL;
+        fullname = NULL;
 
-		for (sl = includeDirList; sl != NULL; sl = sl -> next)
-		{
-			if (fullname != NULL)
-				free(fullname);
+        for (sl = includeDirList; sl != NULL; sl = sl -> next)
+        {
+            if (fullname != NULL)
+                free(fullname);
 
-			fullname = concat(sl -> s,"/",name,NULL);
+            fullname = concat(sl -> s,"/",name,NULL);
 
-			if ((fp = openFile(fullname)) != NULL)
-				break;
-		}
+            if ((fp = openFile(fullname)) != NULL)
+                break;
+        }
 
-		if (fp == NULL && !optional)
-			fatal("Unable to find file \"%s\"\n",name);
-	}
+        if (fp == NULL && !optional)
+            fatal("Unable to find file \"%s\"\n",name);
+    }
 
-	if (fp != NULL)
-	{
-		char *cwd;
+    if (fp != NULL)
+    {
+        char *cwd;
 
-		yyin = fp;
+        yyin = fp;
 
-		++currentFile;
+        ++currentFile;
 
-		/*
-		 * Remember the directory containing the new file and make it
-		 * "current".
-		 */
-		if ((cwd = strchr(fullname,'/')) != NULL)
-		{
-			cwd = sipStrdup(fullname);
-			*strrchr(cwd,'/') = '\0';
-		}
+        /*
+         * Remember the directory containing the new file and make it
+         * "current".
+         */
+        if ((cwd = strchr(fullname,'/')) != NULL)
+        {
+            cwd = sipStrdup(fullname);
+            *strrchr(cwd,'/') = '\0';
+        }
 
-		inputFileStack[currentFile].lineno = 1;
-		inputFileStack[currentFile].name = fullname;
-		inputFileStack[currentFile].pc = *pc;
-		inputFileStack[currentFile].cwd = cwd;
+        inputFileStack[currentFile].lineno = 1;
+        inputFileStack[currentFile].name = fullname;
+        inputFileStack[currentFile].pc = *pc;
+        inputFileStack[currentFile].cwd = cwd;
 
-		if (currentFile > 0)
-		{
-			inputFileStack[currentFile].bs = YY_CURRENT_BUFFER;
-			yy_switch_to_buffer(yy_create_buffer(yyin,YY_BUF_SIZE));
-		}
-	}
+        if (currentFile > 0)
+        {
+            inputFileStack[currentFile].bs = YY_CURRENT_BUFFER;
+            yy_switch_to_buffer(yy_create_buffer(yyin,YY_BUF_SIZE));
+        }
+    }
 }
 
 
@@ -509,12 +509,12 @@ void setInputFile(FILE *fp,char *name,parserContext *pc,int optional)
  */
 static FILE *openFile(char *name)
 {
-	FILE *fp;
+    FILE *fp;
 
-	if ((fp = fopen(name,"r")) == NULL && errno != ENOENT)
-		fatal("Error in opening file %s\n",name);
+    if ((fp = fopen(name,"r")) == NULL && errno != ENOENT)
+        fatal("Error in opening file %s\n",name);
 
-	return fp;
+    return fp;
 }
 
 
@@ -523,13 +523,13 @@ static FILE *openFile(char *name)
  */
 void yyerror(char *s)
 {
-	if (currentFile < 0)
-		fatal("Unexpected end of input\n");
+    if (currentFile < 0)
+        fatal("%s\n", s);
 
-	fatal("%s:%d: %s\n",
-		inputFileStack[currentFile].name,
-		inputFileStack[currentFile].lineno,
-		s);
+    fatal("%s:%d: %s\n",
+        inputFileStack[currentFile].name,
+        inputFileStack[currentFile].lineno,
+        s);
 }
 
 
@@ -538,10 +538,10 @@ void yyerror(char *s)
  */
 void yywarning(char *s)
 {
-	warning("%s:%d: %s\n",
-		inputFileStack[currentFile].name,
-		inputFileStack[currentFile].lineno,
-		s);
+    warning("%s:%d: %s\n",
+        inputFileStack[currentFile].name,
+        inputFileStack[currentFile].lineno,
+        s);
 }
 
 
@@ -550,8 +550,8 @@ void yywarning(char *s)
  */
 static void fatallex(char *s)
 {
-	fatal("%s:%d: Lexical analyser error: %s\n",
-		inputFileStack[currentFile].name,
-		inputFileStack[currentFile].lineno,
-		s);
+    fatal("%s:%d: Lexical analyser error: %s\n",
+        inputFileStack[currentFile].name,
+        inputFileStack[currentFile].lineno,
+        s);
 }
