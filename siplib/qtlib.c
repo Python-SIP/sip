@@ -1129,7 +1129,7 @@ static int saveSlot(sipSlot *sp, PyObject *rxObj, const char *slot)
                  * at "obj, SLOT('meth()')" rather than "obj.meth" (see below).
                  */
 
-                char *meth;
+                const char *meth;
 
                 /* Get the method name. */
                 meth = ((PyCFunctionObject *)rxObj) -> m_ml -> ml_name;
