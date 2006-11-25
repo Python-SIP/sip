@@ -19,14 +19,14 @@
  * These are the functions that make up the public and private SIP API.
  */
 static void sip_api_bad_catcher_result(PyObject *method);
-static void sip_api_bad_length_for_slice(_SIP_SSIZE_T seqlen,
-        _SIP_SSIZE_T slicelen);
+static void sip_api_bad_length_for_slice(SIP_SSIZE_T seqlen,
+        SIP_SSIZE_T slicelen);
 static PyObject *sip_api_build_result(int *isErr, const char *fmt, ...);
 static PyObject *sip_api_call_method(int *isErr, PyObject *method,
         const char *fmt, ...);
 static PyObject *sip_api_class_name(PyObject *self);
-static _SIP_SSIZE_T sip_api_convert_from_sequence_index(_SIP_SSIZE_T idx,
-        _SIP_SSIZE_T len);
+static SIP_SSIZE_T sip_api_convert_from_sequence_index(SIP_SSIZE_T idx,
+        SIP_SSIZE_T len);
 static int sip_api_can_convert_to_instance(PyObject *pyObj,
         sipWrapperType *type, int flags);
 static int sip_api_can_convert_to_mapped_type(PyObject *pyObj,
@@ -286,8 +286,8 @@ static void *findSlot(PyObject *self, sipPySlotType st);
 static void *findSlotInType(sipTypeDef *td, sipPySlotType st);
 static int objobjargprocSlot(PyObject *self, PyObject *arg1, PyObject *arg2,
         sipPySlotType st);
-static int intobjargprocSlot(PyObject *self, int arg1, PyObject *arg2,
-        sipPySlotType st);
+static int ssizeobjargprocSlot(PyObject *self, SIP_SSIZE_T arg1,
+        PyObject *arg2, sipPySlotType st);
 static PyObject *buildObject(PyObject *tup, const char *fmt, va_list va);
 static int parsePass1(sipWrapper **selfp, int *selfargp, int *argsParsedp,
         PyObject *sipArgs, const char *fmt, va_list va);
@@ -3208,8 +3208,8 @@ static void removeFromParent(sipWrapper *self)
  * Convert a sequence index.  Return the index or a negative value if there was
  * an error.
  */
-static _SIP_SSIZE_T sip_api_convert_from_sequence_index(_SIP_SSIZE_T idx,
-        _SIP_SSIZE_T len)
+static SIP_SSIZE_T sip_api_convert_from_sequence_index(SIP_SSIZE_T idx,
+        SIP_SSIZE_T len)
 {
     /* Negative indices start from the other end. */
     if (idx < 0)
@@ -3876,8 +3876,8 @@ static void sip_api_bad_operator_arg(PyObject *self, PyObject *arg,
 /*
  * Report a sequence length that does not match the length of a slice.
  */
-static void sip_api_bad_length_for_slice(_SIP_SSIZE_T seqlen,
-        _SIP_SSIZE_T slicelen)
+static void sip_api_bad_length_for_slice(SIP_SSIZE_T seqlen,
+        SIP_SSIZE_T slicelen)
 {
     PyErr_Format(PyExc_ValueError,
 #if PY_VERSION_HEX >= 0x02050000
@@ -5356,10 +5356,10 @@ static int objobjargprocSlot(PyObject *self,PyObject *arg1,PyObject *arg2,
 
 
 /*
- * Handle an intobjargproc slot.
+ * Handle an ssizeobjargproc slot.
  */
-static int intobjargprocSlot(PyObject *self,int arg1,PyObject *arg2,
-                 sipPySlotType st)
+static int ssizeobjargprocSlot(PyObject *self, SIP_SSIZE_T arg1,
+        PyObject *arg2, sipPySlotType st)
 {
     int (*f)(PyObject *,PyObject *);
     PyObject *args;
@@ -5370,9 +5370,17 @@ static int intobjargprocSlot(PyObject *self,int arg1,PyObject *arg2,
      * optional.
      */
     if (arg2 == NULL)
+#if PY_VERSION_HEX >= 0x02050000
+        args = PyInt_FromSsize_t(arg1);
+#else
         args = PyInt_FromLong(arg1);
+#endif
     else
-        args = Py_BuildValue("(iO)",arg1,arg2);
+#if PY_VERSION_HEX >= 0x02050000
+        args = Py_BuildValue("(nO)", arg1, arg2);
+#else
+        args = Py_BuildValue("(iO)", arg1, arg2);
+#endif
 
     if (args == NULL)
         return -1;
@@ -5664,7 +5672,7 @@ static int isExactWrappedType(sipWrapperType *wt)
 /*
  * The type alloc slot.
  */
-static PyObject *sipWrapperType_alloc(PyTypeObject *self, _SIP_SSIZE_T nitems)
+static PyObject *sipWrapperType_alloc(PyTypeObject *self, SIP_SSIZE_T nitems)
 {
     PyObject *o;
 
@@ -6184,7 +6192,8 @@ static int sipWrapper_clear(sipWrapper *self)
 /*
  * The instance read buffer slot.
  */
-static int sipWrapper_getreadbuffer(sipWrapper *self, int segment, void **ptrptr)
+static SIP_SSIZE_T sipWrapper_getreadbuffer(sipWrapper *self,
+        SIP_SSIZE_T segment, void **ptrptr)
 {
     void *ptr;
     sipTypeDef *td;
@@ -6199,7 +6208,8 @@ static int sipWrapper_getreadbuffer(sipWrapper *self, int segment, void **ptrptr
 /*
  * The instance write buffer slot.
  */
-static int sipWrapper_getwritebuffer(sipWrapper *self, int segment, void **ptrptr)
+static SIP_SSIZE_T sipWrapper_getwritebuffer(sipWrapper *self,
+        SIP_SSIZE_T segment, void **ptrptr)
 {
     void *ptr;
     sipTypeDef *td;
@@ -6214,7 +6224,7 @@ static int sipWrapper_getwritebuffer(sipWrapper *self, int segment, void **ptrpt
 /*
  * The instance segment count slot.
  */
-static int sipWrapper_getsegcount(sipWrapper *self, int *lenp)
+static SIP_SSIZE_T sipWrapper_getsegcount(sipWrapper *self, SIP_SSIZE_T *lenp)
 {
     void *ptr;
     sipTypeDef *td;
@@ -6229,7 +6239,8 @@ static int sipWrapper_getsegcount(sipWrapper *self, int *lenp)
 /*
  * The instance char buffer slot.
  */
-static int sipWrapper_getcharbuffer(sipWrapper *self, int segment, void **ptrptr)
+static SIP_SSIZE_T sipWrapper_getcharbuffer(sipWrapper *self,
+        SIP_SSIZE_T segment, void **ptrptr)
 {
     void *ptr;
     sipTypeDef *td;
@@ -6311,12 +6322,16 @@ static PyObject *sipWrapper_call(PyObject *self,PyObject *args,PyObject *kw)
 /*
  * The sequence instance item slot.
  */
-static PyObject *sipWrapper_sq_item(PyObject *self,int n)
+static PyObject *sipWrapper_sq_item(PyObject *self, SIP_SSIZE_T n)
 {
     PyObject *(*f)(PyObject *,PyObject *);
     PyObject *arg, *res;
 
+#if PY_VERSION_HEX >= 0x02050000
+    if ((arg = PyInt_FromSsize_t(n)) == NULL)
+#else
     if ((arg = PyInt_FromLong(n)) == NULL)
+#endif
         return NULL;
 
     f = (PyObject *(*)(PyObject *,PyObject *))findSlot(self,getitem_slot);
@@ -6342,9 +6357,9 @@ static int sipWrapper_mp_ass_subscript(PyObject *self,PyObject *key,
 /*
  * The sequence instance assign item slot.
  */
-static int sipWrapper_sq_ass_item(PyObject *self,int i,PyObject *o)
+static int sipWrapper_sq_ass_item(PyObject *self, SIP_SSIZE_T i, PyObject *o)
 {
-    return intobjargprocSlot(self,i,o,(o != NULL ? setitem_slot : delitem_slot));
+    return ssizeobjargprocSlot(self, i, o, (o != NULL ? setitem_slot : delitem_slot));
 }
 
 
@@ -6573,16 +6588,32 @@ static void addSlots(sipWrapperType *wt, sipTypeDef *td)
 
     /* Add the buffer interface. */
     if (td->td_readbuffer != NULL)
+#if PY_VERSION_HEX >= 0x02050000
+        wt->super.as_buffer.bf_getreadbuffer = (readbufferproc)sipWrapper_getreadbuffer;
+#else
         wt->super.as_buffer.bf_getreadbuffer = (getreadbufferproc)sipWrapper_getreadbuffer;
+#endif
 
     if (td->td_writebuffer != NULL)
+#if PY_VERSION_HEX >= 0x02050000
+        wt->super.as_buffer.bf_getwritebuffer = (writebufferproc)sipWrapper_getwritebuffer;
+#else
         wt->super.as_buffer.bf_getwritebuffer = (getwritebufferproc)sipWrapper_getwritebuffer;
+#endif
 
     if (td->td_segcount != NULL)
+#if PY_VERSION_HEX >= 0x02050000
+        wt->super.as_buffer.bf_getsegcount = (segcountproc)sipWrapper_getsegcount;
+#else
         wt->super.as_buffer.bf_getsegcount = (getsegcountproc)sipWrapper_getsegcount;
+#endif
 
     if (td->td_charbuffer != NULL)
+#if PY_VERSION_HEX >= 0x02050000
+        wt->super.as_buffer.bf_getcharbuffer = (charbufferproc)sipWrapper_getcharbuffer;
+#else
         wt->super.as_buffer.bf_getcharbuffer = (getcharbufferproc)sipWrapper_getcharbuffer;
+#endif
 
     /* Add the slots for this type. */
     if (td->td_pyslots != NULL)
@@ -6633,10 +6664,18 @@ static void initSlots(PyTypeObject *to, PyNumberMethods *nb, PySequenceMethods *
         case len_slot:
             if (mp != NULL)
                 if (force || mp->mp_length == NULL)
+#if PY_VERSION_HEX >= 0x02050000
+                    mp->mp_length = (lenfunc)f;
+#else
                     mp->mp_length = (inquiry)f;
+#endif
             if (sq != NULL)
                 if (force || sq->sq_length == NULL)
+#if PY_VERSION_HEX >= 0x02050000
+                    sq->sq_length = (lenfunc)f;
+#else
                     sq->sq_length = (inquiry)f;
+#endif
             break;
 
         case contains_slot:
@@ -6672,7 +6711,11 @@ static void initSlots(PyTypeObject *to, PyNumberMethods *nb, PySequenceMethods *
         case repeat_slot:
             if (sq != NULL)
                 if (force || sq->sq_repeat == NULL)
+#if PY_VERSION_HEX >= 0x02050000
+                    sq->sq_repeat = (ssizeargfunc)f;
+#else
                     sq->sq_repeat = (intargfunc)f;
+#endif
             break;
 
         case div_slot:
@@ -6744,7 +6787,11 @@ static void initSlots(PyTypeObject *to, PyNumberMethods *nb, PySequenceMethods *
         case irepeat_slot:
             if (sq != NULL)
                 if (force || sq->sq_inplace_repeat == NULL)
+#if PY_VERSION_HEX >= 0x02050000
+                    sq->sq_inplace_repeat = (ssizeargfunc)f;
+#else
                     sq->sq_inplace_repeat = (intargfunc)f;
+#endif
             break;
 
         case idiv_slot:

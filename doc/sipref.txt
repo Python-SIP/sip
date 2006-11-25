@@ -913,7 +913,7 @@ file.
 
     *class-line* ::= [*class-statement* | `%BIGetReadBufferCode`_ |
             `%BIGetWriteBufferCode`_ | `%BIGetSegCountCode`_ |
-            `%BiGetCharBufferCode`_ | `%ConvertToSubClassCode`_ |
+            `%BIGetCharBufferCode`_ | `%ConvertToSubClassCode`_ |
             `%ConvertToTypeCode`_ | `%GCClearCode`_ | `%GCTraverseCode`_ |
             `%TypeCode`_ | `%TypeHeaderCode`_ | *constructor* | *destructor* |
             *method* | *static-method* | *virtual-method* | *special-method* |
@@ -1321,11 +1321,11 @@ The following variables are made available to the handwritten code:
 void \*\*sipPtrPtr
     This is the pointer used to return the address of the character buffer.
 
-int sipRes
+SIP_SSIZE_T sipRes
     The handwritten code should set this to the length of the character buffer
     or -1 if there was an error.
 
-int sipSegment
+SIP_SSIZE_T sipSegment
     This is the number of the segment of the character buffer.
 
 PyObject \*sipSelf
@@ -1355,11 +1355,11 @@ The following variables are made available to the handwritten code:
 void \*\*sipPtrPtr
     This is the pointer used to return the address of the read buffer.
 
-int sipRes
+SIP_SSIZE_T sipRes
     The handwritten code should set this to the length of the read buffer or
     -1 if there was an error.
 
-int sipSegment
+SIP_SSIZE_T sipSegment
     This is the number of the segment of the read buffer.
 
 PyObject \*sipSelf
@@ -1386,11 +1386,11 @@ The following variables are made available to the handwritten code:
     This is a pointer to the structure or class instance.  Its *type* is a
     pointer to the structure or class.
 
-int \*sipLenPtr
+SIP_SSIZE_T \*sipLenPtr
     This is the pointer used to return the total length in bytes of all
     segments of the buffer.
 
-int sipRes
+SIP_SSIZE_T sipRes
     The handwritten code should set this to the number of segments that make
     up the buffer.
 
@@ -1421,11 +1421,11 @@ The following variables are made available to the handwritten code:
 void \*\*sipPtrPtr
     This is the pointer used to return the address of the write buffer.
 
-int sipRes
+SIP_SSIZE_T sipRes
     The handwritten code should set this to the length of the write buffer or
     -1 if there was an error.
 
-int sipSegment
+SIP_SSIZE_T sipSegment
     This is the number of the segment of the write buffer.
 
 PyObject \*sipSelf
@@ -3475,6 +3475,14 @@ This is a C preprocessor macro that will make sure the Python Global
 Interpreter Lock (GIL) is acquired.  Python API calls must only be made when
 the GIL has been acquired.  There must be a corresponding
 `SIP_UNBLOCK_THREADS`_ at the same lexical scope.
+
+
+SIP_SSIZE_T
+-----------
+
+This is a C preprocessor macro that is defined as ``Py_ssize_t`` for Python
+v2.5 and later, and as ``int`` for earlier versions of Python.  It makes it
+easier to write PEP 353 compliant handwritten code.
 
 
 SIP_UNBLOCK_THREADS

@@ -93,11 +93,11 @@ extern "C" {
 #endif
 
 
-/* Some internal compatibility stuff. */
+/* Some Python compatibility stuff. */
 #if PY_VERSION_HEX >= 0x02050000
-#define _SIP_SSIZE_T        Py_ssize_t
+#define SIP_SSIZE_T         Py_ssize_t
 #else
-#define _SIP_SSIZE_T        int
+#define SIP_SSIZE_T         int
 #endif
 
 
@@ -195,8 +195,8 @@ typedef struct _sipWrapper {
 typedef void *(*sipInitFunc)(sipWrapper *, PyObject *, sipWrapper **, int *);
 typedef int (*sipTraverseFunc)(void *, visitproc, void *);
 typedef int (*sipClearFunc)(void *);
-typedef int (*sipBufferFunc)(PyObject *, void *, int, void **);
-typedef int (*sipSegCountFunc)(PyObject *, void *, int *);
+typedef SIP_SSIZE_T (*sipBufferFunc)(PyObject *, void *, SIP_SSIZE_T, void **);
+typedef SIP_SSIZE_T (*sipSegCountFunc)(PyObject *, void *, SIP_SSIZE_T *);
 typedef void (*sipDeallocFunc)(sipWrapper *);
 typedef void *(*sipCastFunc)(void *, sipWrapperType *);
 typedef sipWrapperType *(*sipSubClassConvertFunc)(void **);
@@ -1046,16 +1046,15 @@ typedef struct _sipAPIDef {
      * The following are part of the public API.
      */
     void (*api_bad_catcher_result)(PyObject *method);
-    void (*api_bad_length_for_slice)(_SIP_SSIZE_T seqlen,
-            _SIP_SSIZE_T slicelen);
+    void (*api_bad_length_for_slice)(SIP_SSIZE_T seqlen, SIP_SSIZE_T slicelen);
     PyObject *(*api_build_result)(int *isErr, const char *fmt, ...);
     PyObject *(*api_call_method)(int *isErr, PyObject *method, const char *fmt,
             ...);
     PyObject *(*api_class_name)(PyObject *self);
     PyObject *(*api_connect_rx)(PyObject *txObj, const char *sig,
             PyObject *rxObj, const char *slot, int type);
-    _SIP_SSIZE_T (*api_convert_from_sequence_index)(_SIP_SSIZE_T idx,
-            _SIP_SSIZE_T len);
+    SIP_SSIZE_T (*api_convert_from_sequence_index)(SIP_SSIZE_T idx,
+            SIP_SSIZE_T len);
     int (*api_can_convert_to_instance)(PyObject *pyObj, sipWrapperType *type,
             int flags);
     int (*api_can_convert_to_mapped_type)(PyObject *pyObj,
