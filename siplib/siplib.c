@@ -3114,8 +3114,17 @@ static void sip_api_common_dtor(sipWrapper *sipSelf)
         /* This no longer points to anything useful. */
         sipSelf->u.cppPtr = NULL;
 
-        /* Remove it from any parent. */
-        removeFromParent(sipSelf);
+        /*
+         * If C/C++ has a reference (and therefore no parent) then remove it.
+         * Otherwise remove the object from any parent.
+         */
+        if (sipCppHasRef(sipSelf))
+        {
+            sipResetCppHasRef(sipSelf);
+            Py_DECREF(sipSelf);
+        }
+        else
+            removeFromParent(sipSelf);
 
         SIP_UNBLOCK_THREADS
     }
@@ -3976,7 +3985,14 @@ static void sip_api_transfer_back(PyObject *self)
     {
         sipWrapper *w = (sipWrapper *)self;
 
-        removeFromParent(w);
+        if (sipCppHasRef(w))
+        {
+            sipResetCppHasRef(w);
+            Py_DECREF(w);
+        }
+        else
+            removeFromParent(w);
+
         sipSetPyOwned(w);
     }
 }
@@ -6060,8 +6076,8 @@ static int sipWrapper_init(sipWrapper *self,PyObject *args,PyObject *kwds)
             	 * exception has already been raised for why the instance
             	 * wasn't created.
             	 */
-		if (pstate == PARSE_OK)
-			argsparsed = PARSE_RAISED;
+                if (pstate == PARSE_OK)
+                    argsparsed = PARSE_RAISED;
 
                 badArgs(argsparsed, NULL, getBaseName(wt->type->td_name));
                 return -1;
@@ -6181,9 +6197,19 @@ static int sipWrapper_clear(sipWrapper *self)
     self->dict = NULL;
     Py_XDECREF(tmp);
 
-    /* Remove anything we own. */
+    /* Detach children (which will be owned by C/C++. */
     while (self->first_child != NULL)
+    {
+        /*
+         * Although this object is being garbage collected it doesn't follow
+         * that it's children should be.  So we make sure that the child stays
+         * alive and remember we have done so.
+         */
+        Py_INCREF(self->first_child);
+        sipSetCppHasRef(self->first_child);
+
         removeFromParent(self->first_child);
+    }
 
     return vret;
 }
