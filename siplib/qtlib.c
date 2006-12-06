@@ -35,6 +35,7 @@ static void *createUniversalSlot(sipWrapper *txSelf, const char *sig, PyObject *
 static void *findSignal(void *txrx, const char **sig);
 static void *newSignal(void *txrx, const char **sig);
 static void freeSlot(sipSlot *slot);
+static int lambdaSlot(PyObject *slotObj);
 
 
 /*
@@ -278,11 +279,6 @@ static sipSignature *parseSignature(const char *sig)
                             unsup = FALSE;
                         }
                     }
-                    else if (strncmp(dp, "PyObject", 8) == 0 && indir == 1)
-                    {
-                        sat = pyobject_sat;
-                        unsup = FALSE;
-                    }
                     break;
 
                 case 9:
@@ -310,6 +306,11 @@ static sipSignature *parseSignature(const char *sig)
                     {
                         sat = (indir ? ustring_sat : uchar_sat);
                         unsup = (isref || indir > 1);
+                    }
+                    else if (strncmp(dp, "PyQt_PyObject", 13) == 0 && indir == 0)
+                    {
+                        sat = pyobject_sat;
+                        unsup = FALSE;
                     }
                     break;
 
@@ -1048,6 +1049,8 @@ static void freeSlot(sipSlot *slot)
 {
     if (slot->name != NULL)
         sip_api_free(slot->name);
+    else if (slot->pyobj != NULL && lambdaSlot(slot->pyobj))
+        Py_DECREF(slot->pyobj);
 
     /* Remove any weak reference. */
     Py_XDECREF(slot->weakSlot);
@@ -1150,6 +1153,13 @@ static int saveSlot(sipSlot *sp, PyObject *rxObj, const char *slot)
             else
             {
                 /*
+                 * A bit of a hack to allow lamba functions to be used as
+                 * slots.
+                 */
+                if (lambdaSlot(rxObj))
+                    Py_INCREF(rxObj);
+
+                /*
                  * It's unlikely that we will succeed in getting a weak
                  * reference to the slot, but there is no harm in trying (and
                  * future versions of Python may support references to more
@@ -1205,4 +1215,16 @@ static PyObject *getWeakRef(PyObject *obj)
         PyErr_Clear();
 
     return wr;
+}
+
+
+/*
+ * See if an object is a lambda function.
+ */
+static int lambdaSlot(PyObject *slotObj)
+{
+    if (!PyFunction_Check(slotObj))
+        return FALSE;
+
+    return (strcmp(PyString_AsString(((PyFunctionObject *)slotObj)->func_name), "<lambda>") == 0);
 }
