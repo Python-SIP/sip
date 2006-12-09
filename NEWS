@@ -1,5 +1,6 @@
-v4.5.1 ?? December 2006
-  - A bug fix release.
+v4.5.1 9th December 2006
+  - Added the SIP_SSIZE_T type to help write PEP 353 compliant handwritten
+    code.
 
 v4.5 4th November 2006
   - Added support for Python v2.5.
