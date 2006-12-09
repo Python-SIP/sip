@@ -56,6 +56,9 @@ void generateAPI(sipSpec *pt, const char *apiFile)
 
     for (od = pt->overs; od != NULL; od = od->next)
     {
+        if (od->common->module != pt->module)
+            continue;
+
         if (od->common->slot != no_slot)
             continue;
 

@@ -19,7 +19,8 @@ static int supportedType(classDef *,overDef *,argDef *,int);
 static int sameOverload(overDef *od1,overDef *od2);
 static int sameVirtualHandler(virtHandlerDef *vhd1,virtHandlerDef *vhd2);
 static int isSubClass(classDef *cc,classDef *pc);
-static void setAllModules(sipSpec *pt);
+static void setAllImports(sipSpec *pt, moduleDef *mod);
+static void addUniqueModule(moduleDef *mod, moduleDef *imp);
 static void ensureInput(classDef *,overDef *,argDef *);
 static void defaultInput(argDef *);
 static void defaultOutput(classDef *,overDef *,argDef *);
@@ -59,7 +60,7 @@ static void searchClasses(sipSpec *,moduleDef *mod,scopedNameDef *,argDef *);
 static void appendToMRO(mroDef *,mroDef ***,classDef *);
 static void moveClassCasts(sipSpec *pt, classDef *cd);
 static void moveGlobalSlot(sipSpec *pt, memberDef *gmd);
-static void filterVirtualHandlers(sipSpec *pt,moduleDef *mod);
+static void filterVirtualHandlers(moduleDef *mod);
 static ifaceFileDef *getIfaceFile(argDef *ad);
 static mappedTypeDef *instantiateMappedTypeTemplate(sipSpec *pt, moduleDef *mod, mappedTypeTmplDef *mtt, argDef *type);
 static classDef *getProxy(sipSpec *pt, classDef *cd);
@@ -78,6 +79,7 @@ void transform(sipSpec *pt)
     overDef *od;
     mappedTypeDef *mtd;
     virtHandlerDef *vhd;
+    int nr;
 
     if (pt -> module -> name == NULL)
         fatal("No %%Module has been specified for the module\n");
@@ -104,8 +106,9 @@ void transform(sipSpec *pt)
 
     pt -> classes = rev;
 
-    /* Build the list of all modules and number them. */
-    setAllModules(pt);
+    /* Build the list of all imports for each module. */
+    for (mod = pt->modules; mod != NULL; mod = mod->next)
+        setAllImports(pt, mod);
 
     /* Check each class has been defined. */
     for (cd = pt -> classes; cd != NULL; cd = cd -> next)
@@ -246,10 +249,16 @@ void transform(sipSpec *pt)
      * Remove redundant virtual handlers.  It's important that earlier,
      * ie. those at the deepest level of %Import, are done first.
      */
-    for (mld = pt->allimports; mld != NULL; mld = mld->next)
-        filterVirtualHandlers(pt,mld -> module);
+    nr = 0;
 
-    filterVirtualHandlers(pt,pt -> module);
+    for (mld = pt->module->allimports; mld != NULL; mld = mld->next)
+    {
+        mld->module->modulenr = nr++;
+        filterVirtualHandlers(mld->module);
+    }
+
+    pt->module->modulenr = nr;
+    filterVirtualHandlers(pt->module);
 
     /*
      * Make sure we have the interface files for all types from other modules
@@ -266,58 +275,56 @@ void transform(sipSpec *pt)
 
 
 /*
- * Set the list of all modules and number them.  The list is ordered so that
- * a module appears before any module that imports it.
+ * Set the list of all imports for a module.  The list is ordered so that a
+ * module appears before any module that imports it.
  */
-static void setAllModules(sipSpec *pt)
+static void setAllImports(sipSpec *pt, moduleDef *mod)
 {
-    int nr, none;
-    moduleListDef **tail;
+    moduleListDef *mld;
 
     /*
-     * We do multiple passes until there is a pass when nothing was done.
+     * Handle the trivial case where there are no imports, or the list has
+     * already been done.
      */
-    nr = 0;
-    tail = &pt->allimports;
+    if (mod->imports == NULL || mod->allimports != NULL)
+        return;
 
-    do
+    /* Make sure all the direct imports are done first. */
+    for (mld = mod->imports; mld != NULL; mld = mld->next)
+        setAllImports(pt, mld->module);
+
+    /*
+     * Now build the list from our direct imports lists but ignoring
+     * duplicates.
+     */
+    for (mld = mod->imports; mld != NULL; mld = mld->next)
     {
-        moduleDef *mod;
+        moduleListDef *amld;
 
-        none = TRUE;
+        for (amld = mld->module->allimports; amld != NULL; amld = amld->next)
+            addUniqueModule(mod, amld->module);
 
-        for (mod = pt->modules; mod != NULL; mod = mod->next)
-        {
-            moduleListDef *mld;
-
-            /* Skip the main module and anything already done. */
-            if (mod == pt->module || isOrdered(mod))
-                continue;
-
-            /* This can be done if it only has ordered imports. */
-            for (mld = mod->imports; mld != NULL; mld = mld->next)
-                if (!isOrdered(mld->module))
-                    break;
-
-            if (mld != NULL)
-                continue;
-
-            /* Append this to the ordered list. */
-            mld = sipMalloc(sizeof (moduleListDef));
-
-            mld->module = mod;
-            mld->next = NULL;
-
-            *tail = mld;
-            tail = &mld->next;
-
-            mod->modulenr = nr++;
-            setIsOrdered(mod);
-
-            none = FALSE;
-        }
+        addUniqueModule(mod, mld->module);
     }
-    while (!none);
+}
+
+
+/*
+ * Append a module to the list of all imported modules if it isn't already
+ * there.
+ */
+static void addUniqueModule(moduleDef *mod, moduleDef *imp)
+{
+    moduleListDef **tail;
+
+    for (tail = &mod->allimports; *tail != NULL; tail = &(*tail)->next)
+        if ((*tail)->module == imp)
+            return;
+
+    *tail = sipMalloc(sizeof (moduleListDef));
+
+    (*tail)->module = imp;
+    (*tail)->next = NULL;
 }
 
 
@@ -630,11 +637,11 @@ static classDef *getProxy(sipSpec *pt, classDef *cd)
  * ones.  Make sure each virtual is numbered within its module, and according
  * to their position in the list (ignoring duplicates).
  */
-static void filterVirtualHandlers(sipSpec *pt,moduleDef *mod)
+static void filterVirtualHandlers(moduleDef *mod)
 {
     virtHandlerDef *vhd;
 
-    for (vhd = mod -> virthandlers; vhd != NULL; vhd = vhd -> next)
+    for (vhd = mod->virthandlers; vhd != NULL; vhd = vhd->next)
     {
         virtHandlerDef *best, *best_thismod, *hd;
 
@@ -644,23 +651,22 @@ static void filterVirtualHandlers(sipSpec *pt,moduleDef *mod)
          * If this has handwritten code then we will want to use it.
          * Otherwise, look for a handler in earlier modules.
          */
-        if (vhd -> virtcode == NULL)
+        if (vhd->virtcode == NULL)
         {
             moduleListDef *mld;
 
-            for (mld = pt->allimports; mld != NULL && mld->module != mod; mld = mld->next)
+            for (mld = mod->allimports; mld != NULL && mld->module != mod; mld = mld->next)
             {
-                for (hd = mld -> module -> virthandlers; hd != NULL; hd = hd -> next)
-                    if (sameVirtualHandler(vhd,hd))
+                for (hd = mld->module->virthandlers; hd != NULL; hd = hd->next)
+                    if (sameVirtualHandler(vhd, hd))
                     {
                         best = hd;
                         break;
                     }
 
                 /*
-                 * No need to check later modules as this will
-                 * either be the right one, or a duplicate of
-                 * the right one.
+                 * No need to check later modules as this will either be the
+                 * right one, or a duplicate of the right one.
                  */
                 if (best != NULL)
                     break;
@@ -668,43 +674,40 @@ static void filterVirtualHandlers(sipSpec *pt,moduleDef *mod)
         }
 
         /*
-         * Find the best candidate in this module in case we want to
-         * give it our handwritten code.
+         * Find the best candidate in this module in case we want to give it
+         * our handwritten code.
          */
-        for (hd = mod -> virthandlers; hd != vhd; hd = hd -> next)
-            if (sameVirtualHandler(vhd,hd))
+        for (hd = mod->virthandlers; hd != vhd; hd = hd->next)
+            if (sameVirtualHandler(vhd, hd))
             {
                 best_thismod = hd;
                 break;
             }
 
         /*
-         * We don't use this one if it doesn't have virtual code and
-         * there is an alternative, or if it does have virtual code and
-         * there is already an alternative in the same module which
-         * doesn't have virtual code.
+         * We don't use this one if it doesn't have virtual code and there is
+         * an alternative, or if it does have virtual code and there is already
+         * an alternative in the same module which doesn't have virtual code.
          */
-        if ((vhd -> virtcode == NULL && (best != NULL || best_thismod != NULL)) ||
-            (vhd -> virtcode != NULL && best_thismod != NULL && best_thismod -> virtcode == NULL))
+        if ((vhd->virtcode == NULL && (best != NULL || best_thismod != NULL)) ||
+            (vhd->virtcode != NULL && best_thismod != NULL && best_thismod->virtcode == NULL))
         {
             virtHandlerDef *saved;
 
             /*
-             * If the alternative is in the same module and we
-             * have virtual code then give it to the alternative.
-             * Note that there is a bug here.  If there are three
-             * handlers, the first without code and the second and
-             * third with code then which code is transfered to the
-             * first is down to luck.  We should really only
-             * transfer code to methods that are known to be
-             * re-implementations - just having the same signature
-             * isn't enough.
+             * If the alternative is in the same module and we have virtual
+             * code then give it to the alternative.  Note that there is a bug
+             * here.  If there are three handlers, the first without code and
+             * the second and third with code then which code is transfered to
+             * the first is down to luck.  We should really only transfer code
+             * to methods that are known to be re-implementations - just having
+             * the same signature isn't enough.
              */
             if (best_thismod != NULL)
             {
-                if (best_thismod -> virtcode == NULL && vhd -> virtcode != NULL)
+                if (best_thismod->virtcode == NULL && vhd->virtcode != NULL)
                 {
-                    best_thismod -> virtcode = vhd -> virtcode;
+                    best_thismod->virtcode = vhd->virtcode;
                     resetIsDuplicateVH(best_thismod);
                 }
 
@@ -712,13 +715,13 @@ static void filterVirtualHandlers(sipSpec *pt,moduleDef *mod)
             }
 
             /* Use the better one in place of this one. */
-            saved = vhd -> next;
+            saved = vhd->next;
             *vhd = *best;
             setIsDuplicateVH(vhd);
-            vhd -> next = saved;
+            vhd->next = saved;
         }
         else
-            vhd -> virthandlernr = mod -> nrvirthandlers++;
+            vhd->virthandlernr = mod->nrvirthandlers++;
     }
 }
 
@@ -1034,6 +1037,7 @@ static void addDefaultCopyCtor(classDef *cd)
  
         copyct -> ctorflags = SECT_IS_PUBLIC;
         copyct -> pysig.nrArgs = 1;
+        copyct -> pysig.args[0].name = "other";
         copyct -> pysig.args[0].atype = class_type;
         copyct -> pysig.args[0].u.cd = cd;
         copyct -> pysig.args[0].argflags = (ARG_IS_REF | ARG_IS_CONST | ARG_IN);

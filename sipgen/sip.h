@@ -38,12 +38,9 @@
 /* Handle module flags. */
 
 #define MOD_HAS_DELAYED_DTORS   0x0001  /* It has a class with a delayed dtor. */
-#define MOD_IS_ORDERED      0x0002  /* Set if the module has been ordered. */
 
 #define hasDelayedDtors(m)  ((m) -> modflags & MOD_HAS_DELAYED_DTORS)
 #define setHasDelayedDtors(m)   ((m) -> modflags |= MOD_HAS_DELAYED_DTORS)
-#define isOrdered(m)        ((m) -> modflags & MOD_IS_ORDERED)
-#define setIsOrdered(m)     ((m) -> modflags |= MOD_IS_ORDERED)
 
 
 /* Handle section flags. */
@@ -515,7 +512,8 @@ typedef struct _moduleDef {
     int         nrvirthandlers; /* The nr. of virtual handlers. */
     struct _virtHandlerDef  *virthandlers;  /* The virtual handlers. */
     licenseDef      *license;   /* The software license. */
-    struct _moduleListDef   *imports;   /* The list of imports. */
+    struct _moduleListDef   *allimports;    /* The list of all imports. */
+    struct _moduleListDef   *imports;   /* The list of direct imports. */
     struct _moduleDef   *next;      /* Next in the list. */
 } moduleDef;
 
@@ -880,7 +878,6 @@ typedef struct _mappedTypeTmplDef {
 typedef struct {
     moduleDef       *module;    /* This module. */
     moduleDef       *modules;   /* The list of modules. */
-    moduleListDef       *allimports;    /* The list of all imports. */
     nameDef         *namecache; /* The name cache. */
     ifaceFileDef        *ifacefiles;    /* The list of interface files. */
     classDef        *classes;   /* The list of classes. */

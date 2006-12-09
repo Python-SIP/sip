@@ -611,7 +611,7 @@ static void generateInternalAPIHeader(sipSpec *pt,char *codeDir,stringList *xsl)
         ,mname
         ,mname,mname);
 
-    for (mld = pt->allimports; mld != NULL; mld = mld->next)
+    for (mld = pt->module->allimports; mld != NULL; mld = mld->next)
         prcode(fp,
 "extern const sipExportedModuleDef *sipModuleAPI_%s_%s;\n"
             ,mname,mld->module->name);
@@ -1203,7 +1203,7 @@ static void generateCpp(sipSpec *pt, char *codeDir, char *srcSuffix, int *parts)
             );
     }
 
-    if (pt->allimports != NULL)
+    if (pt->module->allimports != NULL)
     {
         prcode(fp,
 "\n"
@@ -1212,7 +1212,7 @@ static void generateCpp(sipSpec *pt, char *codeDir, char *srcSuffix, int *parts)
 "static sipImportedModuleDef importsTable[] = {\n"
             );
 
-        for (mld = pt->allimports; mld != NULL; mld = mld->next)
+        for (mld = pt->module->allimports; mld != NULL; mld = mld->next)
             prcode(fp,
 "    {\"%s\", %d, NULL},\n"
                 , mld->module->fullname, mld->module->version);
@@ -1385,7 +1385,7 @@ static void generateCpp(sipSpec *pt, char *codeDir, char *srcSuffix, int *parts)
         , mname
         , pt->module->fullname
         , pt->module->version
-        , pt->allimports != NULL ? "importsTable" : "NULL"
+        , pt->module->allimports != NULL ? "importsTable" : "NULL"
         , pt->qobjclass >= 0 ? "&qtAPI" : "NULL"
         , pt->module->nrclasses
         , pt->module->nrclasses > 0 ? "typesTable" : "NULL"
@@ -1423,7 +1423,7 @@ static void generateCpp(sipSpec *pt, char *codeDir, char *srcSuffix, int *parts)
 "const sipAPIDef *sipAPI_%s;\n"
         ,mname);
 
-    for (mld = pt->allimports; mld != NULL; mld = mld->next)
+    for (mld = pt->module->allimports; mld != NULL; mld = mld->next)
         prcode(fp,
 "const sipExportedModuleDef *sipModuleAPI_%s_%s;\n"
             ,mname,mld->module->name);
@@ -1499,7 +1499,7 @@ static void generateCpp(sipSpec *pt, char *codeDir, char *srcSuffix, int *parts)
 
     noIntro = TRUE;
 
-    for (mld = pt->allimports; mld != NULL; mld = mld->next)
+    for (mld = pt->module->allimports; mld != NULL; mld = mld->next)
     {
         if (noIntro)
         {
@@ -4320,13 +4320,13 @@ static void generateClassFunctions(sipSpec *pt,classDef *cd,FILE *fp)
 
         if (!generating_c)
             prcode(fp,
-"extern \"C\" {static int getreadbuffer_%C(PyObject *, void *, int, void **);}\n"
+"extern \"C\" {static SIP_SSIZE_T getreadbuffer_%C(PyObject *, void *, SIP_SSIZE_T, void **);}\n"
                 , classFQCName(cd));
 
         prcode(fp,
-"static int getreadbuffer_%C(PyObject *%s, void *sipCppV, int %s, void **%s)\n"
+"static SIP_SSIZE_T getreadbuffer_%C(PyObject *%s, void *sipCppV, SIP_SSIZE_T %s, void **%s)\n"
 "{\n"
-"   ", classFQCName(cd)
+"    ", classFQCName(cd)
      , argName("sipSelf", cd->readbufcode)
      , argName("sipSegment", cd->readbufcode)
      , argName("sipPtrPtr", cd->readbufcode));
@@ -4334,7 +4334,7 @@ static void generateClassFunctions(sipSpec *pt,classDef *cd,FILE *fp)
         generateClassFromVoid(cd, "sipCpp", "sipCppV", fp);
 
         prcode(fp, ";\n"
-"    int sipRes;\n"
+"    SIP_SSIZE_T sipRes;\n"
 "\n"
             );
 
@@ -4356,13 +4356,13 @@ static void generateClassFunctions(sipSpec *pt,classDef *cd,FILE *fp)
 
         if (!generating_c)
             prcode(fp,
-"extern \"C\" {static int getwritebuffer_%C(PyObject *, void *, int, void **);}\n"
+"extern \"C\" {static SIP_SSIZE_T getwritebuffer_%C(PyObject *, void *, SIP_SSIZE_T, void **);}\n"
                 , classFQCName(cd));
 
         prcode(fp,
-"static int getwritebuffer_%C(PyObject *%s, void *sipCppV, int %s, void **%s)\n"
+"static SIP_SSIZE_T getwritebuffer_%C(PyObject *%s, void *sipCppV, SIP_SSIZE_T %s, void **%s)\n"
 "{\n"
-"   ", classFQCName(cd)
+"    ", classFQCName(cd)
      , argName("sipSelf", cd->writebufcode)
      , argName("sipSegment", cd->writebufcode)
      , argName("sipPtrPtr", cd->writebufcode));
@@ -4370,7 +4370,7 @@ static void generateClassFunctions(sipSpec *pt,classDef *cd,FILE *fp)
         generateClassFromVoid(cd, "sipCpp", "sipCppV", fp);
 
         prcode(fp, ";\n"
-"    int sipRes;\n"
+"    SIP_SSIZE_T sipRes;\n"
 "\n"
             );
 
@@ -4392,20 +4392,20 @@ static void generateClassFunctions(sipSpec *pt,classDef *cd,FILE *fp)
 
         if (!generating_c)
             prcode(fp,
-"extern \"C\" {static int getsegcount_%C(PyObject *, void *, int *);}\n"
+"extern \"C\" {static SIP_SSIZE_T getsegcount_%C(PyObject *, void *, SIP_SSIZE_T *);}\n"
                 , classFQCName(cd));
 
         prcode(fp,
-"static int getsegcount_%C(PyObject *%s, void *sipCppV, int *%s)\n"
+"static SIP_SSIZE_T getsegcount_%C(PyObject *%s, void *sipCppV, SIP_SSIZE_T *%s)\n"
 "{\n"
-"   ", classFQCName(cd)
+"    ", classFQCName(cd)
      , argName("sipSelf", cd->segcountcode)
      , argName("sipLenPtr", cd->segcountcode));
 
         generateClassFromVoid(cd, "sipCpp", "sipCppV", fp);
 
         prcode(fp, ";\n"
-"    int sipRes;\n"
+"    SIP_SSIZE_T sipRes;\n"
 "\n"
             );
 
@@ -4427,13 +4427,13 @@ static void generateClassFunctions(sipSpec *pt,classDef *cd,FILE *fp)
 
         if (!generating_c)
             prcode(fp,
-"extern \"C\" {static int getcharbuffer_%C(PyObject *, void *, int, void **);}\n"
+"extern \"C\" {static SIP_SSIZE_T getcharbuffer_%C(PyObject *, void *, SIP_SSIZE_T, void **);}\n"
                 , classFQCName(cd));
 
         prcode(fp,
-"static int getcharbuffer_%C(PyObject *%s, void *sipCppV, int %s, void **%s)\n"
+"static SIP_SSIZE_T getcharbuffer_%C(PyObject *%s, void *sipCppV, SIP_SSIZE_T %s, void **%s)\n"
 "{\n"
-"   ", classFQCName(cd)
+"    ", classFQCName(cd)
      , argName("sipSelf", cd->charbufcode)
      , argName("sipSegment", cd->charbufcode)
      , argName("sipPtrPtr", cd->charbufcode));
@@ -4441,7 +4441,7 @@ static void generateClassFunctions(sipSpec *pt,classDef *cd,FILE *fp)
         generateClassFromVoid(cd, "sipCpp", "sipCppV", fp);
 
         prcode(fp, ";\n"
-"    int sipRes;\n"
+"    SIP_SSIZE_T sipRes;\n"
 "\n"
             );
 

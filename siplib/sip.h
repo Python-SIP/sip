@@ -93,11 +93,11 @@ extern "C" {
 #endif
 
 
-/* Some internal compatibility stuff. */
+/* Some Python compatibility stuff. */
 #if PY_VERSION_HEX >= 0x02050000
-#define _SIP_SSIZE_T        Py_ssize_t
+#define SIP_SSIZE_T         Py_ssize_t
 #else
-#define _SIP_SSIZE_T        int
+#define SIP_SSIZE_T         int
 #endif
 
 
@@ -195,8 +195,8 @@ typedef struct _sipWrapper {
 typedef void *(*sipInitFunc)(sipWrapper *, PyObject *, sipWrapper **, int *);
 typedef int (*sipTraverseFunc)(void *, visitproc, void *);
 typedef int (*sipClearFunc)(void *);
-typedef int (*sipBufferFunc)(PyObject *, void *, int, void **);
-typedef int (*sipSegCountFunc)(PyObject *, void *, int *);
+typedef SIP_SSIZE_T (*sipBufferFunc)(PyObject *, void *, SIP_SSIZE_T, void **);
+typedef SIP_SSIZE_T (*sipSegCountFunc)(PyObject *, void *, SIP_SSIZE_T *);
 typedef void (*sipDeallocFunc)(sipWrapper *);
 typedef void *(*sipCastFunc)(void *, sipWrapperType *);
 typedef sipWrapperType *(*sipSubClassConvertFunc)(void **);
@@ -1046,16 +1046,15 @@ typedef struct _sipAPIDef {
      * The following are part of the public API.
      */
     void (*api_bad_catcher_result)(PyObject *method);
-    void (*api_bad_length_for_slice)(_SIP_SSIZE_T seqlen,
-            _SIP_SSIZE_T slicelen);
+    void (*api_bad_length_for_slice)(SIP_SSIZE_T seqlen, SIP_SSIZE_T slicelen);
     PyObject *(*api_build_result)(int *isErr, const char *fmt, ...);
     PyObject *(*api_call_method)(int *isErr, PyObject *method, const char *fmt,
             ...);
     PyObject *(*api_class_name)(PyObject *self);
     PyObject *(*api_connect_rx)(PyObject *txObj, const char *sig,
             PyObject *rxObj, const char *slot, int type);
-    _SIP_SSIZE_T (*api_convert_from_sequence_index)(_SIP_SSIZE_T idx,
-            _SIP_SSIZE_T len);
+    SIP_SSIZE_T (*api_convert_from_sequence_index)(SIP_SSIZE_T idx,
+            SIP_SSIZE_T len);
     int (*api_can_convert_to_instance)(PyObject *pyObj, sipWrapperType *type,
             int flags);
     int (*api_can_convert_to_mapped_type)(PyObject *pyObj,
@@ -1143,16 +1142,16 @@ typedef struct _sipAPIDef {
     void (*api_raise_unknown_exception)(void);
     void (*api_raise_class_exception)(sipWrapperType *type, void *ptr);
     void (*api_raise_sub_class_exception)(sipWrapperType *type, void *ptr);
-    int (*api_add_class_instance)(PyObject *dict, char *name, void *cppPtr,
-            sipWrapperType *wt);
-    int (*api_add_enum_instance)(PyObject *dict, char *name, int value,
+    int (*api_add_class_instance)(PyObject *dict, const char *name,
+            void *cppPtr, sipWrapperType *wt);
+    int (*api_add_enum_instance)(PyObject *dict, const char *name, int value,
             PyTypeObject *type);
     void (*api_bad_operator_arg)(PyObject *self, PyObject *arg,
             sipPySlotType st);
     PyObject *(*api_pyslot_extend)(sipExportedModuleDef *mod, sipPySlotType st,
             sipWrapperType *type, PyObject *arg0, PyObject *arg1);
     void (*api_add_delayed_dtor)(sipWrapper *w);
-    int (*api_add_mapped_type_instance)(PyObject *dict, char *name,
+    int (*api_add_mapped_type_instance)(PyObject *dict, const char *name,
             void *cppPtr, const sipMappedType *mt);
 
     /*
@@ -1221,6 +1220,7 @@ typedef struct _sipQtAPI {
 #define SIP_ACCFUNC         0x10    /* If there is an access function. */
 #define SIP_NOT_IN_MAP      0x20    /* If Python object not in the map. */
 #define SIP_SHARE_MAP       0x40    /* If the map slot might be occupied. */
+#define SIP_CPP_HAS_REF     0x80    /* If C/C++ has a reference. */
 
 #define sipIsPyOwned(w)     ((w)->flags & SIP_PY_OWNED)
 #define sipSetPyOwned(w)    ((w)->flags |= SIP_PY_OWNED)
@@ -1229,6 +1229,9 @@ typedef struct _sipQtAPI {
 #define sipIsIndirect(w)    ((w)->flags & SIP_INDIRECT)
 #define sipIsAccessFunc(w)  ((w)->flags & SIP_ACCFUNC)
 #define sipNotInMap(w)      ((w)->flags & SIP_NOT_IN_MAP)
+#define sipCppHasRef(w)     ((w)->flags & SIP_CPP_HAS_REF)
+#define sipSetCppHasRef(w)  ((w)->flags |= SIP_CPP_HAS_REF)
+#define sipResetCppHasRef(w) ((w)->flags &= SIP_CPP_HAS_REF)
 
 
 #define SIP_TYPE_ABSTRACT   0x01    /* If the type is abstract. */
