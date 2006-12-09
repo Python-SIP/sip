@@ -589,7 +589,7 @@ class Makefile:
                         if mod == "QAxContainer":
                             incdir.append(os.path.join(qtincdir[0], "ActiveQt"))
                         elif self._is_framework(mod):
-                            if mod == "QtAssistant":
+                            if mod == "QtAssistant" and self.config.qt_version < 0x040202:
                                 mod = "QtAssistantClient"
 
                             incdir.append(os.path.join(libdir_qt[0], mod + ".framework", "Headers"))
@@ -646,7 +646,10 @@ class Makefile:
         mname is the name of the module.
         """
         if mname == "QtAssistant":
-            lib = "QtAssistantClient"
+            if self.config.qt_version >= 0x040202 and sys.platform == "darwin":
+                lib = mname
+            else:
+                lib = "QtAssistantClient"
         else:
             lib = mname
 
