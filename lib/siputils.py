@@ -2012,7 +2012,7 @@ def parse_build_macros(filename, names, overrides=None, properties=None):
     class qmake_build_file_reader:
         def __init__(self, filename):
             self.filename = filename
-            self.path = os.path.dirname(filename)
+            self.currentfile = None
             self.filestack = []
             self.pathstack = []
             self.cond_fname = None
@@ -2020,7 +2020,7 @@ def parse_build_macros(filename, names, overrides=None, properties=None):
 
         def _openfile(self, filename):
             try:
-                self.currentfile = open(filename, 'r')
+                f = open(filename, 'r')
             except IOError, detail:
                 # If this file is conditional then don't raise an error.
                 if self.cond_fname == filename:
@@ -2028,8 +2028,11 @@ def parse_build_macros(filename, names, overrides=None, properties=None):
 
                 error("Unable to open %s: %s" % (filename, detail))
 
-            self.filestack.append(self.currentfile)
-            self.pathstack.append(self.path)
+            if self.currentfile:
+                self.filestack.append(self.currentfile)
+                self.pathstack.append(self.path)
+
+            self.currentfile = f
             self.path = os.path.dirname(filename)
 
         def readline(self):
