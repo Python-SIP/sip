@@ -2296,7 +2296,16 @@ def create_wrapper(script, wrapper, gui=0):
 
         wf.write("@\"%s\" \"%s\" %%1 %%2 %%3 %%4 %%5 %%6 %%7 %%8 %%9\n" % (exe, script))
     elif sys.platform == "darwin":
-        wf.write("exec %sw %s ${1+\"$@\"}\n" % (sys.executable, script))
+        # python, pythonw and sys.executable are all different images.  We
+        # would prefer to use the latter (because it includes the version
+        # number) but that would mean being unable to support the "gui"
+        # argument.
+        if gui:
+            exe = "pythonw"
+        else:
+            exe = "python"
+
+        wf.write("exec %s %s ${1+\"$@\"}\n" % (exe, script))
     else:
         wf.write("exec %s %s ${1+\"$@\"}\n" % (sys.executable, script))
 
