@@ -5,7 +5,7 @@
 # Based on Pyrex.Distutils, written by Graham Fawcett and Darrel Gallion.
 
 import distutils.command.build_ext
-from distutils.dep_util import newer
+from distutils.dep_util import newer, newer_group
 import os
 import sys
 
@@ -48,9 +48,17 @@ class build_ext (distutils.command.build_ext.build_ext):
         # Add the SIP include directory to the include path
         if extension is not None:
             extension.include_dirs.append(self._sip_inc_dir())
+            depends = extension.depends
         else:
             # pre-2.4 compatibility
             self.include_dirs.append(self._sip_inc_dir())
+            depends = []  # ?
+
+        # Filter dependencies list: we are interested only in .sip files,
+        # since the main .sip files can only depend on additional .sip
+        # files. For instance, if a .h changes, there is no need to
+        # run sip again.
+        depends = [f for f in depends if os.path.splitext(f)[1] == ".sip"]
 
         # Create the temporary directory if it does not exist already
         if not os.path.isdir(self.build_temp):
@@ -67,8 +75,8 @@ class build_ext (distutils.command.build_ext.build_ext):
         for sip in sip_sources:
             # Use the sbf file as dependency check
             sipbasename = os.path.basename(sip)
-            sbf = os.path.join(self.build_temp, replace_suffix(sipbasename, "sbf"))
-            if newer(sip, sbf) or self.force:
+            sbf = os.path.join(self.build_temp, replace_suffix(sipbasename, ".sbf"))
+            if newer_group([sip]+depends, sbf) or self.force:
                 self._sip_compile(sip_bin, sip, sbf)
             out = self._get_sip_output_list(sbf)
             generated_sources.extend(out)
