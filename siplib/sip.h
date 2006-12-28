@@ -1231,7 +1231,7 @@ typedef struct _sipQtAPI {
 #define sipNotInMap(w)      ((w)->flags & SIP_NOT_IN_MAP)
 #define sipCppHasRef(w)     ((w)->flags & SIP_CPP_HAS_REF)
 #define sipSetCppHasRef(w)  ((w)->flags |= SIP_CPP_HAS_REF)
-#define sipResetCppHasRef(w) ((w)->flags &= SIP_CPP_HAS_REF)
+#define sipResetCppHasRef(w) ((w)->flags &= ~SIP_CPP_HAS_REF)
 
 
 #define SIP_TYPE_ABSTRACT   0x01    /* If the type is abstract. */
