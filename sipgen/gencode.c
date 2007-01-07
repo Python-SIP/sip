@@ -1053,14 +1053,14 @@ static void generateCpp(sipSpec *pt, char *codeDir, char *srcSuffix, int *parts)
 
         for (td = pt->typedefs; td != NULL; td = td->next)
         {
-            char *mname, *sat;
+            char *tdmname, *sat;
             scopedNameDef *fqname;
 
             if (td->module != pt->module)
                 continue;
 
             fqname = NULL;
-            mname = NULL;
+            tdmname = NULL;
             sat = "unknown";
 
             switch (td->type.atype)
@@ -1136,7 +1136,7 @@ static void generateCpp(sipSpec *pt, char *codeDir, char *srcSuffix, int *parts)
                     sat = "enum";
 
                     if (td->type.u.ed->module != pt->module)
-                        mname = td->type.u.ed->module->name;
+                        tdmname = td->type.u.ed->module->fullname;
                 }
                 break;
 
@@ -1145,7 +1145,7 @@ static void generateCpp(sipSpec *pt, char *codeDir, char *srcSuffix, int *parts)
                 fqname = classFQCName(td->type.u.cd);
 
                 if (td->type.u.cd->iff->module != pt->module)
-                    mname = td->type.u.cd->iff->module->name;
+                    tdmname = td->type.u.cd->iff->module->fullname;
                 break;
 
             case mapped_type:
@@ -1153,7 +1153,7 @@ static void generateCpp(sipSpec *pt, char *codeDir, char *srcSuffix, int *parts)
                 fqname = td->type.u.mtd->iff->fqcname;
 
                 if (td->type.u.mtd->iff->module != pt->module)
-                    mname = td->type.u.mtd->iff->module->name;
+                    tdmname = td->type.u.mtd->iff->module->fullname;
                 break;
             }
 
@@ -1165,8 +1165,8 @@ static void generateCpp(sipSpec *pt, char *codeDir, char *srcSuffix, int *parts)
             else
                 prcode(fp, ", NULL");
 
-            if (mname != NULL)
-                prcode(fp, ", \"%s\"", mname);
+            if (tdmname != NULL)
+                prcode(fp, ", \"%s\"", tdmname);
             else
                 prcode(fp, ", NULL");
 

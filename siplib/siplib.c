@@ -7079,8 +7079,8 @@ void sipFindSigArgType(const char *name, size_t len, sipSigArg *at, int indir)
                         return;
 
                     /*
-                     * Find the module that this class,
-                     * mapped type or enum is defined in.
+                     * Find the module that this class, mapped type or enum is
+                     * defined in.
                      */
                     if (tdd->tdd_mod_name == NULL)
                         tem = em;
