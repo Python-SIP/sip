@@ -6746,8 +6746,13 @@ static void initSlots(PyTypeObject *to, PyNumberMethods *nb, PySequenceMethods *
 
         case div_slot:
             if (nb != NULL)
+            {
                 if (force || nb->nb_divide == NULL)
                     nb->nb_divide = (binaryfunc)f;
+
+                if (force || nb->nb_true_divide == NULL)
+                    nb->nb_true_divide = (binaryfunc)f;
+            }
             break;
 
         case mod_slot:
@@ -6822,8 +6827,13 @@ static void initSlots(PyTypeObject *to, PyNumberMethods *nb, PySequenceMethods *
 
         case idiv_slot:
             if (nb != NULL)
+            {
                 if (force || nb->nb_inplace_divide == NULL)
                     nb->nb_inplace_divide = (binaryfunc)f;
+
+                if (force || nb->nb_inplace_true_divide == NULL)
+                    nb->nb_inplace_true_divide = (binaryfunc)f;
+            }
             break;
 
         case imod_slot:

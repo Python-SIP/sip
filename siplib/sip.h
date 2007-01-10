@@ -84,7 +84,7 @@ extern "C" {
  * 0.0  Original version.
  */
 #define SIP_API_MAJOR_NR    3
-#define SIP_API_MINOR_NR    2
+#define SIP_API_MINOR_NR    3
 
 
 /* Some compatibility stuff to help with handwritten code for SIP v3. */
