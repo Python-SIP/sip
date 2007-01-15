@@ -9341,7 +9341,7 @@ static int generateArgParser(sipSpec *pt, signatureDef *sd, classDef *cd,
 
     if (od != NULL && need_owner)
         prcode(fp,
-"        sipWrapper *sipOwner;\n"
+"        sipWrapper *sipOwner = 0;\n"
             );
 
     if (handle_self)
@@ -9695,7 +9695,10 @@ static char *getSubFormatChar(char fc,argDef *ad)
 
     if (fc == 'J')
     {
-        if (isThisTransferred(ad) || isGetWrapper(ad))
+        if (isThisTransferred(ad))
+            flags |= 0x20;
+
+        if (isGetWrapper(ad))
             flags |= 0x08;
 
         if (ad->u.cd->convtocode == NULL || isConstrained(ad))

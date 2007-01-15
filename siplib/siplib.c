@@ -222,6 +222,7 @@ static const sipAPIDef sip_api = {
 #define FORMAT_TRANSFER_BACK    0x04    /* Implement /TransferBack/. */
 #define FORMAT_GET_WRAPPER      0x08    /* Implement /GetWrapper/. */
 #define FORMAT_NO_CONVERTORS    0x10    /* Suppress any convertors. */
+#define FORMAT_TRANSFER_THIS    0x20    /* Support for /TransferThis/. */
 
 #define SIP_MC_FOUND            0x01    /* If we have looked for the method. */
 #define SIP_MC_ISMETH           0x02    /* If we looked and there was one. */
@@ -2265,7 +2266,7 @@ static int parsePass1(sipWrapper **selfp, int *selfargp, int *argsParsedp,
                     if (flags & FORMAT_DEREF)
                         iflgs |= SIP_NOT_NONE;
 
-                    if (flags & FORMAT_GET_WRAPPER)
+                    if (flags & (FORMAT_GET_WRAPPER|FORMAT_TRANSFER_THIS))
                         va_arg(va,PyObject **);
 
                     if (flags & FORMAT_NO_CONVERTORS)
@@ -2932,10 +2933,8 @@ static int parsePass2(sipWrapper *self, int selfarg, int nrargs,
                 if (flags & FORMAT_DEREF)
                     iflgs |= SIP_NOT_NONE;
 
-                if (flags & FORMAT_GET_WRAPPER)
+                if (flags & (FORMAT_GET_WRAPPER|FORMAT_TRANSFER_THIS))
                     wrapper = va_arg(va, PyObject **);
-                else
-                    wrapper = NULL;
 
                 if (flags & FORMAT_NO_CONVERTORS)
                 {
@@ -2950,8 +2949,10 @@ static int parsePass2(sipWrapper *self, int selfarg, int nrargs,
                 if (iserr)
                     valid = PARSE_RAISED;
 
-                if (wrapper != NULL)
+                if (flags & FORMAT_GET_WRAPPER)
                     *wrapper = (*p != NULL ? arg : NULL);
+                else if (flags & FORMAT_TRANSFER_THIS && *p != NULL)
+                    *wrapper = arg;
 
                 break;
             }

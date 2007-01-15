@@ -3166,6 +3166,9 @@ In the context of a non-factory method it specifies that ownership of ``this``
 is transferred from Python to C++ if the corresponding argument is not
 ``None``.  If it is ``None`` then ownership is transferred to Python.
 
+The annotation may be used more that once, in which case ownership is
+transferred to last instance that is not ``None``.
+
 See `Ownership of Objects`_ for more detail.
 
 
