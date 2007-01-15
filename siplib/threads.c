@@ -11,6 +11,16 @@
 #include "sipint.h"
 
 
+/*
+ * The data associated with pending request to wrap an object.
+ */
+typedef struct _pendingDef {
+    void *cpp;                      /* The C/C++ object ot be wrapped. */
+    sipWrapper *owner;              /* The owner of the object. */
+    int flags;                      /* The flags. */
+} pendingDef;
+
+
 #ifdef WITH_THREAD
 
 #include <pythread.h>
@@ -20,15 +30,13 @@
  * The per thread data we need to maintain.
  */
 typedef struct _threadDef {
-	long thr_ident;				/* The thread identifier. */
-	void *cppPending;
-	int cppPendingFlags;
-	sipWrapper *cppPendingOwner;
-	struct _threadDef *next;		/* Next in the list. */
+    long thr_ident;                 /* The thread identifier. */
+    pendingDef pending;             /* An object waiting to be wrapped. */
+    struct _threadDef *next;        /* Next in the list. */
 } threadDef;
 
 
-static threadDef *threads = NULL;		/* Linked list of threads. */
+static threadDef *threads = NULL;   /* Linked list of threads. */
 
 
 static threadDef *currentThreadDef(void);
@@ -36,9 +44,7 @@ static threadDef *currentThreadDef(void);
 #endif
 
 
-static void *cppPending = NULL;
-static int cppPendingFlags;
-static sipWrapper *cppPendingOwner;
+static pendingDef pending;          /* An object waiting to be wrapped. */
 
 
 /*
@@ -46,41 +52,29 @@ static sipWrapper *cppPendingOwner;
  */
 void *sipGetPending(sipWrapper **op, int *fp)
 {
-	void *pend;
-	int pendFlags;
-	sipWrapper *pendOwner;
+    pendingDef *pp;
 
 #ifdef WITH_THREAD
-	threadDef *td;
+    threadDef *td;
 
-	if ((td = currentThreadDef()) != NULL)
-	{
-		pend = td->cppPending;
-		pendOwner = td->cppPendingOwner;
-		pendFlags = td->cppPendingFlags;
-	}
-	else
-	{
-		pend = cppPending;
-		pendOwner = cppPendingOwner;
-		pendFlags = cppPendingFlags;
-	}
+    if ((td = currentThreadDef()) != NULL)
+        pp = &td->pending;
+    else
+        pp = &pending;
 #else
-	pend = cppPending;
-	pendOwner = cppPendingOwner;
-	pendFlags = cppPendingFlags;
+    pp = &pending;
 #endif
 
-	if (pend != NULL)
-	{
-		if (op != NULL)
-			*op = pendOwner;
+    if (pp->cpp != NULL)
+    {
+        if (op != NULL)
+            *op = pp->owner;
 
-		if (fp != NULL)
-			*fp = pendFlags;
-	}
+        if (fp != NULL)
+            *fp = pp->flags;
+    }
 
-	return pend;
+    return pp->cpp;
 }
 
 
@@ -88,55 +82,68 @@ void *sipGetPending(sipWrapper **op, int *fp)
  * Convert a new C/C++ pointer to a Python instance.
  */
 PyObject *sipWrapSimpleInstance(void *cppPtr, sipWrapperType *type,
-		sipWrapper *owner, int flags)
+        sipWrapper *owner, int flags)
 {
-	static PyObject *nullargs = NULL;
+    static PyObject *nullargs = NULL;
 
-	PyObject *self;
+    pendingDef old_pending;
+    PyObject *self;
 #ifdef WITH_THREAD
-	threadDef *td;
+    threadDef *td;
 #endif
 
-	if (nullargs == NULL && (nullargs = PyTuple_New(0)) == NULL)
-		return NULL;
+    if (nullargs == NULL && (nullargs = PyTuple_New(0)) == NULL)
+        return NULL;
 
-	if (cppPtr == NULL)
-	{
-		Py_INCREF(Py_None);
-		return Py_None;
-	}
+    if (cppPtr == NULL)
+    {
+        Py_INCREF(Py_None);
+        return Py_None;
+    }
 
+    /*
+     * Object creation can trigger the Python garbage collector which in turn
+     * can execute arbitrary Python code which can then call this function
+     * recursively.  Therefore we save any existing pending object before
+     * setting the new one.
+     */
 #ifdef WITH_THREAD
-	if ((td = currentThreadDef()) != NULL)
-	{
-		td->cppPending = cppPtr;
-		td->cppPendingOwner = owner;
-		td->cppPendingFlags = flags;
-	}
-	else
-	{
-		cppPending = cppPtr;
-		cppPendingOwner = owner;
-		cppPendingFlags = flags;
-	}
+    if ((td = currentThreadDef()) != NULL)
+    {
+        old_pending = td->pending;
+
+        td->pending.cpp = cppPtr;
+        td->pending.owner = owner;
+        td->pending.flags = flags;
+    }
+    else
+    {
+        old_pending = pending;
+
+        pending.cpp = cppPtr;
+        pending.owner = owner;
+        pending.flags = flags;
+    }
 #else
-	cppPending = cppPtr;
-	cppPendingOwner = owner;
-	cppPendingFlags = flags;
+    old_pending = pending;
+
+    pending.cpp = cppPtr;
+    pending.owner = owner;
+    pending.flags = flags;
 #endif
 
-	self = PyObject_Call((PyObject *)type,nullargs,NULL);
+    self = PyObject_Call((PyObject *)type, nullargs, NULL);
 
 #ifdef WITH_THREAD
-	if (td != NULL)
-		td -> cppPending = NULL;
-	else
-		cppPending = NULL;
+    if (td != NULL)
+        td->pending = old_pending;
+    else
+        pending = old_pending;
 #else
-	cppPending = NULL;
+    pending = old_pending;
 #endif
 
-	return self;
+    return self;
 }
 
 
@@ -147,25 +154,25 @@ PyObject *sipWrapSimpleInstance(void *cppPtr, sipWrapperType *type,
 void sip_api_start_thread(void)
 {
 #ifdef WITH_THREAD
-	threadDef *td;
+    threadDef *td;
 
-	/* Save the thread ID.  First, find an empty slot in the list. */
-	for (td = threads; td != NULL; td = td -> next)
-		if (td -> thr_ident == 0)
-			break;
+    /* Save the thread ID.  First, find an empty slot in the list. */
+    for (td = threads; td != NULL; td = td->next)
+        if (td->thr_ident == 0)
+            break;
 
-	if (td == NULL)
-	{
-		td = sip_api_malloc(sizeof (threadDef));
-		td -> next = threads;
-		threads = td;
-	}
+    if (td == NULL)
+    {
+        td = sip_api_malloc(sizeof (threadDef));
+        td->next = threads;
+        threads = td;
+    }
 
-	if (td != NULL)
-	{
-		td -> thr_ident = PyThread_get_thread_ident();
-		td -> cppPending = NULL;
-	}
+    if (td != NULL)
+    {
+        td->thr_ident = PyThread_get_thread_ident();
+        td->pending.cpp = NULL;
+    }
 #endif
 }
 
@@ -177,11 +184,11 @@ void sip_api_start_thread(void)
 void sip_api_end_thread(void)
 {
 #ifdef WITH_THREAD
-	threadDef *td;
+    threadDef *td;
 
-	/* We have the GIL at this point. */
-	if ((td = currentThreadDef()) != NULL)
-		td -> thr_ident = 0;
+    /* We have the GIL at this point. */
+    if ((td = currentThreadDef()) != NULL)
+        td->thr_ident = 0;
 #endif
 }
 
@@ -194,14 +201,14 @@ void sip_api_end_thread(void)
  */
 static threadDef *currentThreadDef(void)
 {
-	threadDef *td;
-	long ident = PyThread_get_thread_ident();
+    threadDef *td;
+    long ident = PyThread_get_thread_ident();
 
-	for (td = threads; td != NULL; td = td -> next)
-		if (td -> thr_ident == ident)
-			break;
+    for (td = threads; td != NULL; td = td->next)
+        if (td->thr_ident == ident)
+            break;
 
-	return td;
+    return td;
 }
 
 #endif

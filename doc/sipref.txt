@@ -8,7 +8,7 @@
 
 :Contact:   info@riverbankcomputing.co.uk
 :Version:   @RM_LATEST@
-:Copyright: Copyright (c) 2006 Riverbank Computing Limited
+:Copyright: Copyright (c) 2007 Riverbank Computing Limited
 
 .. contents::
 .. section-numbering::
