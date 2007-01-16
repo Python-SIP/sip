@@ -175,6 +175,7 @@ static void generateClassFromVoid(classDef *cd, const char *cname,
 static void generateMappedTypeFromVoid(mappedTypeDef *mtd, const char *cname,
         const char *vname, FILE *fp);
 static int generateSubClassConvertors(sipSpec *pt, FILE *fp);
+static void generateRegisterMetaType(classDef *cd, FILE *fp);
 
 
 /*
@@ -1546,6 +1547,16 @@ static void generateCpp(sipSpec *pt, char *codeDir, char *srcSuffix, int *parts)
 "        return;\n"
             , xd->pyname, xd->exceptionnr);
     }
+
+    /* Generate any Qt metatype registration calls. */
+    if (optRegisterTypes(pt))
+        for (cd = pt->classes; cd != NULL; cd = cd->next)
+        {
+            if (cd->iff->module != pt->module)
+                continue;
+
+            generateRegisterMetaType(cd, fp);
+        }
 
     /* Generate the post-initialisation code. */
     generateCppCodeBlock(pt->postinitcode,fp);
@@ -7658,24 +7669,69 @@ static const char *slotName(slotType st)
 
 
 /*
+ * Generate the code to register a class as a Qt metatype.
+ */
+static void generateRegisterMetaType(classDef *cd, FILE *fp)
+{
+    int pub_def_ctor, pub_copy_ctor;
+    ctorDef *ct;
+
+    /*
+     * We register types with Qt if the class is not abstract, has a public
+     * default ctor, a public copy ctor, a public dtor and isn't one of the
+     * internally supported types.
+     */
+    if (isAbstractClass(cd))
+        return;
+
+    if (!isPublicDtor(cd))
+        return;
+
+    if (classFQCName(cd)->next == NULL)
+    {
+        if (strcmp(classBaseName(cd), "QChar") == 0)
+            return;
+
+        if (strcmp(classBaseName(cd), "QString") == 0)
+            return;
+
+        if (strcmp(classBaseName(cd), "QByteArray") == 0)
+            return;
+    }
+
+    pub_def_ctor = pub_copy_ctor = FALSE;
+
+    for (ct = cd->ctors; ct != NULL; ct = ct->next)
+    {
+        if (ct->cppsig == NULL || !isPublicCtor(ct))
+            continue;
+
+        if (ct->cppsig->nrArgs == 0)
+            pub_def_ctor = TRUE;
+        else if (ct->cppsig->nrArgs == 1)
+        {
+            argDef *ad = &ct->cppsig->args[0];
+
+            if (ad->atype == class_type && ad->u.cd == cd && isReference(ad) &&
+                isConstArg(ad) && ad->nrderefs == 0 && ad->defval == NULL)
+                pub_copy_ctor = TRUE;
+        }
+    }
+
+    if (pub_def_ctor && pub_copy_ctor)
+        prcode(fp,
+"    qRegisterMetaType<%S>(\"%S\");\n"
+            , classFQCName(cd), classFQCName(cd));
+}
+
+
+/*
  * Generate the initialisation function or cast operators for the type.
  */
 static void generateTypeInit(sipSpec *pt, classDef *cd, FILE *fp)
 {
     ctorDef *ct;
-    int need_self, need_owner, reg_type, pub_def_ctor, pub_copy_ctor;
-
-    /*
-     * We register types with Qt if enabled, if the class is not abstract, has
-     * a public default ctor, a public copy ctor, a public dtor and isn't one
-     * of the internally supported types.
-     */
-    reg_type = (optRegisterTypes(pt) && !isAbstractClass(cd) &&
-            isPublicDtor(cd) &&
-            (classFQCName(cd)->next != NULL ||
-             (strcmp(classBaseName(cd), "QChar") != 0 &&
-              strcmp(classBaseName(cd), "QString") != 0 &&
-              strcmp(classBaseName(cd), "QByteArray") != 0)));
+    int need_self, need_owner;
 
     /*
      * See if we need to name the self and owner arguments so that we can
@@ -7683,7 +7739,6 @@ static void generateTypeInit(sipSpec *pt, classDef *cd, FILE *fp)
      */
     need_self = (generating_c || hasShadow(cd));
     need_owner = generating_c;
-    pub_def_ctor = pub_copy_ctor = FALSE;
 
     for (ct = cd->ctors; ct != NULL; ct = ct->next)
     {
@@ -7697,22 +7752,6 @@ static void generateTypeInit(sipSpec *pt, classDef *cd, FILE *fp)
             {
                 need_owner = TRUE;
                 break;
-            }
-
-        if (reg_type && ct->cppsig != NULL && isPublicCtor(ct))
-            if (ct->cppsig->nrArgs == 0)
-                pub_def_ctor = TRUE;
-            else if (ct->cppsig->nrArgs == 1)
-            {
-                argDef *ad = &ct->cppsig->args[0];
-
-                if (ad->atype == class_type &&
-                    ad->u.cd == cd &&
-                    isReference(ad) &&
-                    isConstArg(ad) &&
-                    ad->nrderefs == 0 &&
-                    ad->defval == NULL)
-                    pub_copy_ctor = TRUE;
             }
     }
 
@@ -7730,18 +7769,6 @@ static void generateTypeInit(sipSpec *pt, classDef *cd, FILE *fp)
 "static void *init_%C(sipWrapper *%s,PyObject *sipArgs,sipWrapper **%s,int *sipArgsParsed)\n"
 "{\n"
         ,classFQCName(cd),(need_self ? "sipSelf" : ""),(need_owner ? "sipOwner" : ""));
-
-    if (reg_type && pub_def_ctor && pub_copy_ctor)
-        prcode(fp,
-"    static bool sipRegistered = false;\n"
-"\n"
-"    if (!sipRegistered)\n"
-"    {\n"
-"        qRegisterMetaType<%S>(\"%S\");\n"
-"        sipRegistered = true;\n"
-"    }\n"
-"\n"
-            , classFQCName(cd), classFQCName(cd));
 
     if (hasShadow(cd))
         prcode(fp,
