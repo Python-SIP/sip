@@ -85,11 +85,13 @@ int sip_api_same_connection(sipSlotConnection *conn, void *tx, const char *sig,
 /*
  * These are not part of the SIP API but are used within the SIP module.
  */
-void sipFreePySigRx(sipPySigRx *rx);
+void sipFreeSlotList(sipSlotList *rx);
 void sipSaveMethod(sipPyMethod *pm,PyObject *meth);
 void *sipGetPending(sipWrapper **op, int *fp);
 PyObject *sipWrapSimpleInstance(void *cppPtr, sipWrapperType *type,
 		sipWrapper *owner, int initflags);
+int sipLambdaSlot(PyObject *slotObj);
+void sipClearAnyLambda(sipSlot *slot);
 
 void sipOMInit(sipObjectMap *om);
 void sipOMFinalise(sipObjectMap *om);

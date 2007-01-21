@@ -23,7 +23,7 @@ static PyObject *py_sender = NULL;  /* The last Python signal sender. */
 
 static int isSameSlot(sipSlot *,PyObject *,const char *);
 static int emitQtSig(sipWrapper *,const char *,PyObject *);
-static int emitToSlotList(sipPySigRx *,PyObject *);
+static int emitToSlotList(sipSlotList *rxlist, PyObject *sigargs);
 static int addSlotToPySigList(sipWrapper *,const char *,PyObject *,const char *);
 static void removeSlotFromPySigList(sipWrapper *,const char *,PyObject *,const char *);
 static PyObject *getWeakRef(PyObject *obj);
@@ -35,7 +35,6 @@ static void *createUniversalSlot(sipWrapper *txSelf, const char *sig, PyObject *
 static void *findSignal(void *txrx, const char **sig);
 static void *newSignal(void *txrx, const char **sig);
 static void freeSlot(sipSlot *slot);
-static int lambdaSlot(PyObject *slotObj);
 
 
 /*
@@ -763,7 +762,7 @@ int sip_api_emit_to_slot(sipSlot *slot, PyObject *sigargs)
 /*
  * Send a signal to the slots (Qt or Python) in a Python list.
  */
-static int emitToSlotList(sipPySigRx *rxlist,PyObject *sigargs)
+static int emitToSlotList(sipSlotList *rxlist,PyObject *sigargs)
 {
     int rc;
 
@@ -772,7 +771,7 @@ static int emitToSlotList(sipPySigRx *rxlist,PyObject *sigargs)
 
     while (rxlist != NULL && rc >= 0)
     {
-        sipPySigRx *next;
+        sipSlotList *next;
 
         /*
          * We get the next in the list before calling the slot in case the list
@@ -797,7 +796,7 @@ static int addSlotToPySigList(sipWrapper *txSelf,const char *sig,
                   PyObject *rxObj,const char *slot)
 {
     sipPySig *ps;
-    sipPySigRx *psrx;
+    sipSlotList *psrx;
 
     /* Create a new one if necessary. */
     if ((ps = findPySignal(txSelf,sig)) == NULL)
@@ -818,7 +817,7 @@ static int addSlotToPySigList(sipWrapper *txSelf,const char *sig,
     }
 
     /* Create the new receiver. */
-    if ((psrx = (sipPySigRx *)sip_api_malloc(sizeof (sipPySigRx))) == NULL)
+    if ((psrx = (sipSlotList *)sip_api_malloc(sizeof (sipSlotList))) == NULL)
         return -1;
 
     if (saveSlot(&psrx->rx, rxObj, slot) < 0)
@@ -1025,16 +1024,16 @@ static void removeSlotFromPySigList(sipWrapper *txSelf,const char *sig,
 
     if ((ps = findPySignal(txSelf,sig)) != NULL)
     {
-        sipPySigRx **psrxp;
+        sipSlotList **psrxp;
 
         for (psrxp = &ps -> rxlist; *psrxp != NULL; psrxp = &(*psrxp) -> next)
         {
-            sipPySigRx *psrx = *psrxp;
+            sipSlotList *psrx = *psrxp;
 
             if (isSameSlot(&psrx -> rx,rxObj,slot))
             {
                 *psrxp = psrx -> next;
-                sipFreePySigRx(psrx);
+                sipFreeSlotList(psrx);
                 break;
             }
         }
@@ -1049,8 +1048,8 @@ static void freeSlot(sipSlot *slot)
 {
     if (slot->name != NULL)
         sip_api_free(slot->name);
-    else if (slot->pyobj != NULL && lambdaSlot(slot->pyobj))
-        Py_DECREF(slot->pyobj);
+    else
+        sipClearAnyLambda(slot);
 
     /* Remove any weak reference. */
     Py_XDECREF(slot->weakSlot);
@@ -1058,9 +1057,9 @@ static void freeSlot(sipSlot *slot)
 
 
 /*
- * Free a sipPySigRx structure on the heap.
+ * Free a sipSlotList structure on the heap.
  */
-void sipFreePySigRx(sipPySigRx *rx)
+void sipFreeSlotList(sipSlotList *rx)
 {
     freeSlot(&rx->rx);
     sip_api_free(rx);
@@ -1156,7 +1155,7 @@ static int saveSlot(sipSlot *sp, PyObject *rxObj, const char *slot)
                  * A bit of a hack to allow lamba functions to be used as
                  * slots.
                  */
-                if (lambdaSlot(rxObj))
+                if (sipLambdaSlot(rxObj))
                     Py_INCREF(rxObj);
 
                 /*
@@ -1221,10 +1220,25 @@ static PyObject *getWeakRef(PyObject *obj)
 /*
  * See if an object is a lambda function.
  */
-static int lambdaSlot(PyObject *slotObj)
+int sipLambdaSlot(PyObject *slotObj)
 {
     if (!PyFunction_Check(slotObj))
         return FALSE;
 
     return (strcmp(PyString_AsString(((PyFunctionObject *)slotObj)->func_name), "<lambda>") == 0);
+}
+
+
+/*
+ * Clear a slot if it is a lambda function.
+ */
+void sipClearAnyLambda(sipSlot *slot)
+{
+    PyObject *lam = slot->pyobj;
+
+    if (lam != NULL && sipLambdaSlot(lam))
+    {
+        slot->pyobj = NULL;
+        Py_DECREF(lam);
+    }
 }

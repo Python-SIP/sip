@@ -6112,6 +6112,7 @@ static int sipWrapper_traverse(sipWrapper *self, visitproc visit, void *arg)
     void *ptr;
     sipTypeDef *td;
     sipWrapper *w;
+    sipPySig *ps;
 
     /* Call the nearest handwritten traverse code in the class hierachy. */
     if ((ptr = getPtrTypeDef(self, &td)) != NULL)
@@ -6131,6 +6132,20 @@ static int sipWrapper_traverse(sipWrapper *self, visitproc visit, void *arg)
         if (ctd->td_traverse != NULL)
             if ((vret = ctd->td_traverse(ptr, visit, arg)) != 0)
                 return vret;
+    }
+
+    for (ps = self->pySigList; ps != NULL; ps = ps->next)
+    {
+        sipSlotList *psrx;
+
+        for (psrx = ps->rxlist; psrx != NULL; psrx = psrx->next)
+        {
+            PyObject *lam = psrx->rx.pyobj;
+
+            if (lam != NULL && sipLambdaSlot(lam))
+                if ((vret = visit(lam, arg)) != 0)
+                    return vret;
+        }
     }
 
     if (self->user != NULL)
@@ -6168,6 +6183,7 @@ static int sipWrapper_clear(sipWrapper *self)
     void *ptr;
     sipTypeDef *td;
     PyObject *tmp;
+    sipPySig *ps;
 
     /* Call the nearest handwritten clear code in the class hierachy. */
     if ((ptr = getPtrTypeDef(self, &td)) != NULL)
@@ -6186,6 +6202,15 @@ static int sipWrapper_clear(sipWrapper *self)
 
         if (ctd->td_clear != NULL)
             vret = ctd->td_clear(ptr);
+    }
+
+    /* Remove any lambda slots. */
+    for (ps = self->pySigList; ps != NULL; ps = ps->next)
+    {
+        sipSlotList *psrx;
+
+        for (psrx = ps->rxlist; psrx != NULL; psrx = psrx->next)
+            sipClearAnyLambda(&psrx->rx);
     }
 
     /* Remove any user object. */
@@ -6312,7 +6337,7 @@ static void sipWrapper_dealloc(sipWrapper *self)
     while (self->pySigList != NULL)
     {
         sipPySig *ps;
-        sipPySigRx *psrx;
+        sipSlotList *psrx;
 
         /* Take this one out of the list. */
         ps = self->pySigList;
@@ -6321,7 +6346,7 @@ static void sipWrapper_dealloc(sipWrapper *self)
         while ((psrx = ps->rxlist) != NULL)
         {
             ps->rxlist = psrx->next;
-            sipFreePySigRx(psrx);
+            sipFreeSlotList(psrx);
         }
 
         sip_api_free(ps->name);

@@ -947,15 +947,15 @@ typedef struct _sipSlot {
 
 
 /*
- * A receiver of a Python signal.
+ * An entry in a linked list of slots.
  */
-typedef struct _sipPySigRx {
+typedef struct _sipSlotList {
     /* The receiver. */
     sipSlot rx;
 
     /* Next in the list. */
-    struct _sipPySigRx *next;
-} sipPySigRx;
+    struct _sipSlotList *next;
+} sipSlotList;
 
 
 /*
@@ -966,7 +966,7 @@ typedef struct _sipPySig {
     char *name;
 
     /* The list of receivers. */
-    sipPySigRx *rxlist;
+    sipSlotList *rxlist;
 
     /* Next in the list. */
     struct _sipPySig *next;
