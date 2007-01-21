@@ -56,6 +56,8 @@ extern "C" {
  *
  * History:
  *
+ * 3.4  Added qt_find_connection() to the Qt support API.
+ *
  * 3.3  Added sip_api_register_int_types().
  *
  * 3.2  Added sip_api_export_symbol() and sip_api_import_symbol().
@@ -92,7 +94,7 @@ extern "C" {
  * 0.0  Original version.
  */
 #define SIP_API_MAJOR_NR    3
-#define SIP_API_MINOR_NR    3
+#define SIP_API_MINOR_NR    4
 
 
 /* Some compatibility stuff to help with handwritten code for SIP v3. */
@@ -1201,6 +1203,7 @@ typedef struct _sipQtAPI {
     const void *(*qt_get_sender)();
     void (*qt_forget_sender)();
     int (*qt_same_name)(const char *, const char *);
+    sipSlotConnection *(*qt_find_connection)(void *, void **);
 } sipQtAPI;
 
 

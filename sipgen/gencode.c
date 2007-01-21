@@ -1347,7 +1347,8 @@ static void generateCpp(sipSpec *pt, char *codeDir, char *srcSuffix, int *parts)
 "    sipQtSignalsBlocked,\n"
 "    sipQtGetSender,\n"
 "    sipQtForgetSender,\n"
-"    sipQtSameSignalSlotName\n"
+"    sipQtSameSignalSlotName,\n"
+"    sipQtFindConnection\n"
 "};\n"
             ,pt->qobjclass);
 

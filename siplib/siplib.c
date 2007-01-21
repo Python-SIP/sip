@@ -366,6 +366,8 @@ static int nameEq(const char *with, const char *name, size_t len);
 static int isExactWrappedType(sipWrapperType *wt);
 static void release(void *addr, sipTypeDef *td, int state);
 static void callPyDtor(sipWrapper *self);
+static int findConnectionSupported(void);
+static int visitSlot(sipSlot *slot, visitproc visit, void *arg);
 
 
 /*
@@ -6134,18 +6136,33 @@ static int sipWrapper_traverse(sipWrapper *self, visitproc visit, void *arg)
                 return vret;
     }
 
+    if (findConnectionSupported())
+    {
+        void *tx = sipGetAddress(self);
+
+        if (tx != NULL)
+        {
+            sipSlotConnection *conn;
+            void *context = NULL;
+
+            while ((conn = sipQtSupport->qt_find_connection(tx, &context)) != NULL)
+            {
+                if ((vret = visitSlot(&conn->sc_slot, visit, arg)) != 0)
+                    return vret;
+
+                if (context == NULL)
+                    break;
+            }
+        }
+    }
+
     for (ps = self->pySigList; ps != NULL; ps = ps->next)
     {
         sipSlotList *psrx;
 
         for (psrx = ps->rxlist; psrx != NULL; psrx = psrx->next)
-        {
-            PyObject *lam = psrx->rx.pyobj;
-
-            if (lam != NULL && sipLambdaSlot(lam))
-                if ((vret = visit(lam, arg)) != 0)
-                    return vret;
-        }
+            if ((vret = visitSlot(&psrx->rx, visit, arg)) != 0)
+                return vret;
     }
 
     if (self->user != NULL)
@@ -6205,6 +6222,25 @@ static int sipWrapper_clear(sipWrapper *self)
     }
 
     /* Remove any lambda slots. */
+    if (findConnectionSupported())
+    {
+        void *tx = sipGetAddress(self);
+
+        if (tx != NULL)
+        {
+            sipSlotConnection *conn;
+            void *context = NULL;
+
+            while ((conn = sipQtSupport->qt_find_connection(tx, &context)) != NULL)
+            {
+                sipClearAnyLambda(&conn->sc_slot);
+
+                if (context == NULL)
+                    break;
+            }
+        }
+    }
+
     for (ps = self->pySigList; ps != NULL; ps = ps->next)
     {
         sipSlotList *psrx;
@@ -7307,4 +7343,25 @@ static void *sip_api_import_symbol(const char *name)
             return ss->symbol;
 
     return NULL;
+}
+
+
+/*
+ * Returns TRUE if the Qt support API implements qt_find_connection().
+ */
+static int findConnectionSupported(void)
+{
+    return (sipQtSupport != NULL && sipQObjectClass->type->td_module->em_api_minor >= 4);
+}
+
+
+/*
+ * Visit a slot connected to an object for the cyclic garbage collector.
+ */
+static int visitSlot(sipSlot *slot, visitproc visit, void *arg)
+{
+    if (slot->pyobj != NULL && sipLambdaSlot(slot->pyobj))
+        return visit(slot->pyobj, arg);
+
+    return 0;
 }
