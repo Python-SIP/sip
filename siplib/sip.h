@@ -57,6 +57,7 @@ extern "C" {
  * History:
  *
  * 3.4  Added qt_find_connection() to the Qt support API.
+ *      Added sip_api_parse_signature().
  *
  * 3.3  Added sip_api_register_int_types().
  *
@@ -1175,6 +1176,7 @@ typedef struct _sipAPIDef {
      * code.
      */
     int (*api_register_int_types)(PyObject *args);
+    sipSignature *(*api_parse_signature)(const char *sig);
 } sipAPIDef;
 
 

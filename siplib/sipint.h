@@ -61,6 +61,7 @@ PyObject *sip_api_connect_rx(PyObject *txObj,const char *sig,
 			     PyObject *rxObj,const char *slot, int type);
 PyObject *sip_api_disconnect_rx(PyObject *txObj,const char *sig,
 				PyObject *rxObj,const char *slot);
+sipSignature *sip_api_parse_signature(const char *sig);
 
 
 /*

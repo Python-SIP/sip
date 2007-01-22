@@ -198,6 +198,7 @@ static const sipAPIDef sip_api = {
      * code.
      */
     sip_api_register_int_types,
+    sip_api_parse_signature,
 };
 
 

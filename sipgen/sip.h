@@ -970,6 +970,7 @@ codeBlock *templateCode(sipSpec *pt, ifaceFileList **used, codeBlock *ocb, scope
 ifaceFileDef *findIfaceFile(sipSpec *pt, moduleDef *mod, scopedNameDef *fqname, ifaceFileType iftype, argDef *ad);
 int optNoEmitters(sipSpec *pt);
 int optRegisterTypes(sipSpec *pt);
+int optMetaCall(sipSpec *pt);
 void yywarning(char *);
 
 

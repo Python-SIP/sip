@@ -30,7 +30,6 @@ static PyObject *getWeakRef(PyObject *obj);
 static sipPySig *findPySignal(sipWrapper *,const char *);
 static char *sipStrdup(const char *);
 static int saveSlot(sipSlot *sp, PyObject *rxObj, const char *slot);
-static sipSignature *parseSignature(const char *sig);
 static void *createUniversalSlot(sipWrapper *txSelf, const char *sig, PyObject *rxObj, const char *slot, const char **member);
 static void *findSignal(void *txrx, const char **sig);
 static void *newSignal(void *txrx, const char **sig);
@@ -87,7 +86,7 @@ int sip_api_same_connection(sipSlotConnection *conn, void *tx, const char *sig,
 /*
  * Parse the signal arguments for a connection.
  */
-static sipSignature *parseSignature(const char *sig)
+sipSignature *sip_api_parse_signature(const char *sig)
 {
     static sipSignature *psig_list = NULL;
     sipSignature *psig;
@@ -378,7 +377,7 @@ static void *findSignal(void *txrx, const char **sig)
     if (sipQtSupport->qt_is_qt_signal(txrx, *sig))
         return txrx;
 
-    if ((psig = parseSignature(*sig)) == NULL)
+    if ((psig = sip_api_parse_signature(*sig)) == NULL)
         return NULL;
 
     /* Find an ordinary universal signal. */
@@ -408,7 +407,7 @@ static void *newSignal(void *txrx, const char **sig)
     if (sipQtSupport->qt_is_qt_signal(txrx, *sig))
         return txrx;
 
-    if ((psig = parseSignature(*sig)) == NULL)
+    if ((psig = sip_api_parse_signature(*sig)) == NULL)
         return NULL;
 
     /* Create an ordinary universal signal. */
@@ -435,7 +434,7 @@ static void *createUniversalSlot(sipWrapper *txSelf, const char *sig,
         return 0;
 
     /* Parse the signature and create the universal slot. */
-    if ((conn.sc_signature = parseSignature(sig)) == NULL || (us = sipQtSupport->qt_create_universal_slot(txSelf, &conn, member)) == NULL)
+    if ((conn.sc_signature = sip_api_parse_signature(sig)) == NULL || (us = sipQtSupport->qt_create_universal_slot(txSelf, &conn, member)) == NULL)
     {
         sip_api_free_connection(&conn);
         return 0;
@@ -473,7 +472,7 @@ int sip_api_emit_signal(PyObject *self,const char *sig,PyObject *sigargs)
         if (strchr(sig, '(') == NULL)
             return sipQtSupport->qt_emit_signal_shortcut(tx, sig, sigargs);
 
-        if ((psig = parseSignature(sig)) == NULL)
+        if ((psig = sip_api_parse_signature(sig)) == NULL)
             return -1;
 
         if (psig->sg_nrargs != PyTuple_GET_SIZE(sigargs))

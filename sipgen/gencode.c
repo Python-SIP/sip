@@ -504,6 +504,8 @@ static void generateInternalAPIHeader(sipSpec *pt,char *codeDir,stringList *xsl)
 "#define sipExportSymbol             sipAPI_%s->api_export_symbol\n"
 "#define sipImportSymbol             sipAPI_%s->api_import_symbol\n"
 "#define sipRegisterIntTypes         sipAPI_%s->api_register_int_types\n"
+"#define sipParseSignature           sipAPI_%s->api_parse_signature\n"
+        ,mname
         ,mname
         ,mname
         ,mname
@@ -4786,14 +4788,19 @@ static void generateProtectedEnums(sipSpec *pt,classDef *cd,FILE *fp)
 /*
  * Generate the catcher for a virtual function.
  */
-
-static void generateVirtualCatcher(sipSpec *pt,classDef *cd,int virtNr,
-                   virtOverDef *vod,FILE *fp)
+static void generateVirtualCatcher(sipSpec *pt, classDef *cd, int virtNr,
+        virtOverDef *vod, FILE *fp)
 {
     overDef *od = &vod->o;
     virtHandlerDef *vhd = od->virthandler;
     argDef *res, *ad;
-    int a;
+    int a, metacall;
+
+    /*
+     * See if this is a catcher for qt_metacall() and special handling has been
+     * requested.
+     */
+    metacall = (od->common->slot == no_slot && strcmp(od->cppname, "qt_metacall") == 0 && optMetaCall(pt));
 
     normaliseArgs(od->cppsig);
 
@@ -4894,6 +4901,28 @@ static void generateVirtualCatcher(sipSpec *pt,classDef *cd,int virtNr,
 "    {\n"
 "        sipStartThread();\n"
 "        ");
+    else if (metacall)
+    {
+        /*
+         * The special handling for qt_metacall() is really a hack.  It could
+         * be avoided if either SIP allowed handwritten code for the real
+         * virtual catcher (as opposed to the virtual handler) and that this
+         * could be auto-generated (and allowed something like the old macro
+         * system to specify the class).  This is easier.
+         */
+
+        prcode(fp,
+"    a1 = ");
+
+        generateUnambiguousClass(cd, vod->scope, fp);
+
+        prcode(fp, "::qt_metacall(a0,a1,a2);\n"
+"\n"
+"    if (!meth)\n"
+"        return a1;\n"
+"\n"
+"    return ");
+    }
     else
     {
         prcode(fp,
