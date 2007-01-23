@@ -4888,11 +4888,11 @@ int optRegisterTypes(sipSpec *pt)
 
 
 /*
- * Return TRUE if the QtMetaCall option was specified.
+ * Return TRUE if the Qt4MetaCall option was specified.
  */
-int optMetaCall(sipSpec *pt)
+int optMetaCall4(sipSpec *pt)
 {
-    return optFind(pt, "QtMetaCall");
+    return optFind(pt, "Qt4MetaCall");
 }
 
 

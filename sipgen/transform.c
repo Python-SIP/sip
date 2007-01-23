@@ -101,6 +101,13 @@ void transform(sipSpec *pt)
         cd -> next = rev;
         rev = cd;
 
+        /*
+         * Mark any QObject class.  This flag will ripple through all derived
+         * classes when we set the hierarchy.
+         */
+        if (strcmp(classBaseName(cd), "QObject") == 0)
+            setIsQObjectSubClass(cd);
+
         cd = next;
     }
 
@@ -182,7 +189,7 @@ void transform(sipSpec *pt)
 
     /* Assign module specific class numbers for all modules. */
     for (mod = pt->modules; mod != NULL; mod = mod->next)
-        assignClassNrs(pt, mod,&mod->root);
+        assignClassNrs(pt, mod, &mod->root);
 
     /* Assign module specific enum numbers for all enums. */
     assignEnumNrs(pt);
@@ -825,18 +832,25 @@ static void setHierarchy(sipSpec *pt,classDef *base,classDef *cd,
                 appendToMRO(cd -> mro,&tailp,mro -> cd);
 
                 /*
-                 * If the super-class has a shadow then this
-                 * one should have one as well.
+                 * If the super-class is a QObject sub-class then this one is
+                 * as well.
                  */
-                if (hasShadow(mro -> cd))
+                if (isQObjectSubClass(mro->cd))
+                    setIsQObjectSubClass(cd);
+
+                /*
+                 * If the super-class has a shadow then this one should have
+                 * one as well.
+                 */
+                if (hasShadow(mro->cd))
                     setHasShadow(cd);
 
                 /*
-                 * Ensure that the sub-class base class is the
-                 * furthest up the hierarchy.
+                 * Ensure that the sub-class base class is the furthest up the
+                 * hierarchy.
                  */
-                if (mro -> cd -> subbase != NULL)
-                    cd -> subbase = mro -> cd -> subbase;
+                if (mro->cd->subbase != NULL)
+                    cd->subbase = mro->cd->subbase;
             }
         }
     }
@@ -2796,8 +2810,8 @@ static void assignClassNrs(sipSpec *pt,moduleDef *mod,nodeDef *nd)
         cd -> classnr = mod -> nrclasses++;
 
         /*
-         * If we find a class defined in the main module called
-         * QObject, assume it's Qt.
+         * If we find a class defined in the main module called QObject, assume
+         * it's Qt.
          */
         if (mod == pt -> module && strcmp(classBaseName(cd),"QObject") == 0)
             pt -> qobjclass = cd -> classnr;

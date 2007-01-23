@@ -619,6 +619,13 @@ static void generateInternalAPIHeader(sipSpec *pt,char *codeDir,stringList *xsl)
 "extern const sipExportedModuleDef *sipModuleAPI_%s_%s;\n"
             ,mname,mld->module->name);
 
+    if (optMetaCall4(pt))
+        prcode(fp,
+"\n"
+"typedef int (*sip_qt_metacall_func)(sipWrapper *,sipWrapperType *,QMetaObject::Call,int,void **);\n"
+"extern sip_qt_metacall_func sip_%s_qt_metacall;\n"
+            , mname);
+
     /*
      * Note that we don't forward declare the virtual handlers.  This is
      * because we would need to #include everything needed for their
@@ -1432,6 +1439,12 @@ static void generateCpp(sipSpec *pt, char *codeDir, char *srcSuffix, int *parts)
 "const sipExportedModuleDef *sipModuleAPI_%s_%s;\n"
             ,mname,mld->module->name);
 
+    if (optMetaCall4(pt))
+        prcode(fp,
+"\n"
+"sip_qt_metacall_func sip_%s_qt_metacall;\n"
+            , mname);
+
     /* Generate the Python module initialisation function. */
     prcode(fp,
 "\n"
@@ -1563,6 +1576,16 @@ static void generateCpp(sipSpec *pt, char *codeDir, char *srcSuffix, int *parts)
 
     /* Generate the post-initialisation code. */
     generateCppCodeBlock(pt->postinitcode,fp);
+
+    /*
+     * This has to be done after the post-initialisation code in case this
+     * module is exporting the symbol.
+     */
+    if (optMetaCall4(pt))
+        prcode(fp,
+"\n"
+"    sip_%s_qt_metacall = (sip_qt_metacall_func)sipImportSymbol(\"qtcore_qt_metacall\");\n"
+            , mname);
 
     prcode(fp,
 "}\n"
@@ -4650,6 +4673,30 @@ static void generateShadowCode(sipSpec *pt,classDef *cd,FILE *fp)
             );
     }
 
+    /* The metacall method if required. */
+    if (isQObjectSubClass(cd) && optMetaCall4(pt))
+    {
+        prcode(fp,
+"\n"
+"int sip%C::qt_metacall(QMetaObject::Call _c,int _id,void **_a)\n"
+"{\n"
+"    _id = %C::qt_metacall(_c,_id,_a);\n"
+"\n"
+"    if (_id >= 0)\n"
+"    {\n"
+"        SIP_BLOCK_THREADS\n"
+"        _id = sip_%s_qt_metacall(sipPySelf,sipClass_%C,_c,_id,_a);\n"
+"        SIP_UNBLOCK_THREADS\n"
+"    }\n"
+"\n"
+"    return _id;\n"
+"}\n"
+            , classFQCName(cd)
+            , classFQCName(cd)
+            , pt->module->name, classFQCName(cd)
+            );
+    }
+
     /* Generate the virtual catchers. */
  
     virtNr = 0;
@@ -4794,13 +4841,7 @@ static void generateVirtualCatcher(sipSpec *pt, classDef *cd, int virtNr,
     overDef *od = &vod->o;
     virtHandlerDef *vhd = od->virthandler;
     argDef *res, *ad;
-    int a, metacall;
-
-    /*
-     * See if this is a catcher for qt_metacall() and special handling has been
-     * requested.
-     */
-    metacall = (od->common->slot == no_slot && strcmp(od->cppname, "qt_metacall") == 0 && optMetaCall(pt));
+    int a;
 
     normaliseArgs(od->cppsig);
 
@@ -4901,28 +4942,6 @@ static void generateVirtualCatcher(sipSpec *pt, classDef *cd, int virtNr,
 "    {\n"
 "        sipStartThread();\n"
 "        ");
-    else if (metacall)
-    {
-        /*
-         * The special handling for qt_metacall() is really a hack.  It could
-         * be avoided if either SIP allowed handwritten code for the real
-         * virtual catcher (as opposed to the virtual handler) and that this
-         * could be auto-generated (and allowed something like the old macro
-         * system to specify the class).  This is easier.
-         */
-
-        prcode(fp,
-"    a1 = ");
-
-        generateUnambiguousClass(cd, vod->scope, fp);
-
-        prcode(fp, "::qt_metacall(a0,a1,a2);\n"
-"\n"
-"    if (!meth)\n"
-"        return a1;\n"
-"\n"
-"    return ");
-    }
     else
     {
         prcode(fp,
@@ -6503,6 +6522,13 @@ static void generateShadowClassDeclaration(sipSpec *pt,classDef *cd,FILE *fp)
         prcode(fp,
 "    %s~sip%C()%X;\n"
             ,(cd->vmembers != NULL ? "virtual " : ""),classFQCName(cd),cd->dtorexceptions);
+
+    /* The metacall method if required. */
+    if (isQObjectSubClass(cd) && optMetaCall4(pt))
+        prcode(fp,
+"\n"
+"    int qt_metacall(QMetaObject::Call,int,void **);\n"
+            );
 
     /* The exposure of protected enums. */
 

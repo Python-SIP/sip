@@ -45,31 +45,32 @@
 
 /* Handle section flags. */
 
-#define SECT_IS_PUBLIC      0x0001  /* It is public. */
-#define SECT_IS_PROT        0x0002  /* It is protected. */
-#define SECT_IS_PRIVATE     0x0004  /* It is private. */
-#define SECT_IS_SLOT        0x0008  /* It is a slot. */
-#define SECT_IS_SIGNAL      0x0010  /* It is a signal. */
-#define SECT_MASK           0x001f  /* The mask of all flags. */
+#define SECT_IS_PUBLIC      0x01        /* It is public. */
+#define SECT_IS_PROT        0x02        /* It is protected. */
+#define SECT_IS_PRIVATE     0x04        /* It is private. */
+#define SECT_IS_SLOT        0x08        /* It is a slot. */
+#define SECT_IS_SIGNAL      0x10        /* It is a signal. */
+#define SECT_MASK           0x1f        /* The mask of all flags. */
 
 
-/* Handle class flags. */
+/* Handle class flags.  These are combined with the section flags. */
 
-#define CLASS_HAS_ENUMS     0x00010000  /* It has enums. */
-#define CLASS_HAS_SIGSLOTS  0x00020000  /* It has signals or slots. */
-#define CLASS_IS_ABSTRACT   0x00040000  /* It is an abstract class. */
-#define CLASS_HAS_SHADOW    0x00080000  /* It is has a shadow class. */
-#define CLASS_IS_OPAQUE     0x00100000  /* It is opaque. */
-#define CLASS_HAS_VAR_HANDLERS  0x00200000  /* It has variable handlers. */
-#define CLASS_DTOR_RELEASE_GIL  0x00400000  /* The dtor releases the GIL. */
-#define CLASS_IS_PROTECTED  0x00800000  /* It is protected. */
-#define CLASS_IS_PROTECTED_SAV  0x01000000  /* It is protected (saved). */
-#define CLASS_IS_RENAMED    0x02000000  /* It has a different Python name. */
-#define CLASS_IS_INCOMPLETE 0x04000000  /* The specification is incomplete. */
-#define CLASS_CAN_CREATE    0x08000000  /* It has usable ctors. */
-#define CLASS_IS_EXTERNAL   0x10000000  /* It is external. */
-#define CLASS_IS_DELAYED_DTOR   0x20000000  /* The dtor is delayed. */
-#define CLASS_NO_DEFAULT_CTORS  0x40000000  /* Don't create default ctors. */
+#define CLASS_HAS_ENUMS     0x00000100  /* It has enums. */
+#define CLASS_HAS_SIGSLOTS  0x00000200  /* It has signals or slots. */
+#define CLASS_IS_ABSTRACT   0x00000400  /* It is an abstract class. */
+#define CLASS_HAS_SHADOW    0x00000800  /* It is has a shadow class. */
+#define CLASS_IS_OPAQUE     0x00001000  /* It is opaque. */
+#define CLASS_HAS_VAR_HANDLERS  0x00002000  /* It has variable handlers. */
+#define CLASS_DTOR_RELEASE_GIL  0x00004000  /* The dtor releases the GIL. */
+#define CLASS_IS_PROTECTED  0x00008000  /* It is protected. */
+#define CLASS_IS_PROTECTED_SAV  0x00010000  /* It is protected (saved). */
+#define CLASS_IS_RENAMED    0x00020000  /* It has a different Python name. */
+#define CLASS_IS_INCOMPLETE 0x00040000  /* The specification is incomplete. */
+#define CLASS_CAN_CREATE    0x00080000  /* It has usable ctors. */
+#define CLASS_IS_EXTERNAL   0x00100000  /* It is external. */
+#define CLASS_IS_DELAYED_DTOR   0x00200000  /* The dtor is delayed. */
+#define CLASS_NO_DEFAULT_CTORS  0x00400000  /* Don't create default ctors. */
+#define CLASS_QOBJECT_SUB   0x00800000  /* It is derived from QObject. */
 
 #define hasEnums(cd)        ((cd) -> classflags & CLASS_HAS_ENUMS)
 #define setHasEnums(cd)     ((cd) -> classflags |= CLASS_HAS_ENUMS)
@@ -105,6 +106,8 @@
 #define setIsDelayedDtor(cd)    ((cd) -> classflags |= CLASS_IS_DELAYED_DTOR)
 #define noDefaultCtors(cd)  ((cd) -> classflags & CLASS_NO_DEFAULT_CTORS)
 #define setNoDefaultCtors(cd)   ((cd) -> classflags |= CLASS_NO_DEFAULT_CTORS)
+#define isQObjectSubClass(cd)   ((cd) -> classflags & CLASS_QOBJECT_SUB)
+#define setIsQObjectSubClass(cd)    ((cd) -> classflags |= CLASS_QOBJECT_SUB)
 
 #define isPublicDtor(cd)    ((cd) -> classflags & SECT_IS_PUBLIC)
 #define setIsPublicDtor(cd) ((cd) -> classflags |= SECT_IS_PUBLIC)
@@ -114,11 +117,11 @@
 #define isDtor(cd)      ((cd) -> classflags & (SECT_IS_PUBLIC | SECT_IS_PROT | SECT_IS_PRIVATE))
 
 
-/* Handle ctor flags. */
+/* Handle ctor flags.  These are combined with the section flags. */
 
-#define CTOR_RELEASE_GIL    0x00010000  /* The ctor releases the GIL. */
-#define CTOR_EXPLICIT       0x00020000  /* The ctor is explicit. */
-#define CTOR_CAST           0x00040000  /* The ctor is a cast. */
+#define CTOR_RELEASE_GIL    0x00000100  /* The ctor releases the GIL. */
+#define CTOR_EXPLICIT       0x00000200  /* The ctor is explicit. */
+#define CTOR_CAST           0x00000400  /* The ctor is a cast. */
 
 #define isPublicCtor(c)     ((c) -> ctorflags & SECT_IS_PUBLIC)
 #define setIsPublicCtor(c)  ((c) -> ctorflags |= SECT_IS_PUBLIC)
@@ -142,10 +145,10 @@
 #define setIsNumeric(m)     ((m) -> memberflags |= MEMBR_NUMERIC)
 
 
-/* Handle enum flags. */
+/* Handle enum flags.  These are combined with the section flags. */
 
-#define ENUM_WAS_PROT       0x00010000  /* It was defined as protected. */
-#define ENUM_IS_RENAMED     0x00020000  /* It has been renamed. */
+#define ENUM_WAS_PROT       0x00000100  /* It was defined as protected. */
+#define ENUM_IS_RENAMED     0x00000200  /* It has been renamed. */
 
 #define isProtectedEnum(e)  ((e) -> enumflags & SECT_IS_PROT)
 #define setIsProtectedEnum(e)   ((e) -> enumflags |= SECT_IS_PROT)
@@ -169,19 +172,18 @@
 #define setHasDuplicateSuper(m) ((m) -> mroflags |= HIER_HAS_DUPLICATE)
 
 
-/* Handle overload flags. */
+/* Handle overload flags.  These are combined with the section flags. */
 
-#define OVER_IS_VIRTUAL     0x00010000  /* It is virtual. */
-#define OVER_IS_ABSTRACT    0x00020000  /* It is abstract. */
-#define OVER_IS_CONST       0x00040000  /* It is a const function. */
-#define OVER_IS_STATIC      0x00080000  /* It is a static function. */
-#define OVER_IS_AUTOGEN     0x00100000  /* It is auto-generated. */
-#define OVER_IS_NEW_THREAD  0x00200000  /* It is in a new thread. */
-#define OVER_IS_FACTORY     0x00400000  /* It is a factory method. */
-#define OVER_IS_FACTORY     0x00400000  /* It is a factory method. */
-#define OVER_XFERRED_BACK   0x00800000  /* Ownership is transferred back. */
-#define OVER_RELEASE_GIL    0x01000000  /* The function releases the GIL. */
-#define OVER_IS_VIRTUAL_REIMP   0x02000000  /* It is a re-implementation of a virtual. */
+#define OVER_IS_VIRTUAL     0x00000100  /* It is virtual. */
+#define OVER_IS_ABSTRACT    0x00000200  /* It is abstract. */
+#define OVER_IS_CONST       0x00000400  /* It is a const function. */
+#define OVER_IS_STATIC      0x00000800  /* It is a static function. */
+#define OVER_IS_AUTOGEN     0x00001000  /* It is auto-generated. */
+#define OVER_IS_NEW_THREAD  0x00002000  /* It is in a new thread. */
+#define OVER_IS_FACTORY     0x00004000  /* It is a factory method. */
+#define OVER_XFERRED_BACK   0x00008000  /* Ownership is transferred back. */
+#define OVER_RELEASE_GIL    0x00010000  /* The function releases the GIL. */
+#define OVER_IS_VIRTUAL_REIMP   0x00020000  /* It is a re-implementation of a virtual. */
 #define OVER_DONT_DEREF_SELF    0x04000000  /* For comparison operators, don't dereference self. */
 
 #define isPublic(o)         ((o) -> overflags & SECT_IS_PUBLIC)
@@ -970,7 +972,7 @@ codeBlock *templateCode(sipSpec *pt, ifaceFileList **used, codeBlock *ocb, scope
 ifaceFileDef *findIfaceFile(sipSpec *pt, moduleDef *mod, scopedNameDef *fqname, ifaceFileType iftype, argDef *ad);
 int optNoEmitters(sipSpec *pt);
 int optRegisterTypes(sipSpec *pt);
-int optMetaCall(sipSpec *pt);
+int optMetaCall4(sipSpec *pt);
 void yywarning(char *);
 
 
