@@ -507,6 +507,7 @@ class Makefile:
                     "QtSvg":        ("QtCore", "QtGui", "QtXml"),
                     "QtTest":       ("QtCore", "QtGui"),
                     "QtXml":        ("QtCore", ),
+                    "QtDesigner":   ("QtCore", "QtGui"),
                     "QAxContainer": ("QtCore", "QtGui")
                 }
 
@@ -1391,7 +1392,7 @@ class ModuleMakefile(Makefile):
         if self.static:
             if self.generator in ("MSVC", "MSVC.NET", "BMAKE"):
                 mfile.write("LIB = %s\n" % self.required_string("LIB"))
-            if self.generator == "MINGW":
+            elif self.generator == "MINGW":
                 mfile.write("AR = %s\n" % self.required_string("LIB"))
                 self._ranlib = None
             else:

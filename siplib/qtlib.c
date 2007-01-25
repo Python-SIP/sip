@@ -893,7 +893,7 @@ void *sipGetRx(sipWrapper *txSelf,const char *sigargs,PyObject *rxObj,
 
 
 /*
- * Convert a Python receiver (either a Python signal or slot or a Qt signals or
+ * Convert a Python receiver (either a Python signal or slot or a Qt signal or
  * slot) to a Qt receiver.  It is only ever called when the signal is a Qt
  * signal.  Return NULL is there was an error.
  */
