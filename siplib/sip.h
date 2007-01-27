@@ -57,6 +57,7 @@ extern "C" {
  * History:
  *
  * 3.4  Added qt_find_connection() to the Qt support API.
+ *      Added qt_meta_object() to the Qt support API.
  *      Added sip_api_parse_signature().
  *
  * 3.3  Added sip_api_register_int_types().
@@ -154,6 +155,9 @@ typedef struct _sipWrapperType {
 
     /* The list of init extenders. */
     struct _sipInitExtenderDef *iextend;
+
+    /* The optional PyQt defined meta-object information. */
+    void *qt_meta_object;
 } sipWrapperType;
 
 
@@ -1206,6 +1210,7 @@ typedef struct _sipQtAPI {
     void (*qt_forget_sender)();
     int (*qt_same_name)(const char *, const char *);
     sipSlotConnection *(*qt_find_connection)(void *, void **);
+    void (*qt_meta_object)(struct _sipWrapperType *);
 } sipQtAPI;
 
 
@@ -1221,19 +1226,19 @@ typedef struct _sipQtAPI {
  * These are the state flags returned by %ConvertToTypeCode.  Note that these
  * share the same "namespace" as the flags below.
  */
-#define SIP_TEMPORARY       0x01    /* A temporary instance. */
-#define SIP_DERIVED_CLASS   0x02    /* The instance is derived. */
+#define SIP_TEMPORARY       0x0001  /* A temporary instance. */
+#define SIP_DERIVED_CLASS   0x0002  /* The instance is derived. */
 
 
 /*
  * Useful macros, not part of the public API.
  */
-#define SIP_PY_OWNED        0x04    /* Owned by Python. */
-#define SIP_INDIRECT        0x08    /* If there is a level of indirection. */
-#define SIP_ACCFUNC         0x10    /* If there is an access function. */
-#define SIP_NOT_IN_MAP      0x20    /* If Python object not in the map. */
-#define SIP_SHARE_MAP       0x40    /* If the map slot might be occupied. */
-#define SIP_CPP_HAS_REF     0x80    /* If C/C++ has a reference. */
+#define SIP_PY_OWNED        0x0004  /* Owned by Python. */
+#define SIP_INDIRECT        0x0008  /* If there is a level of indirection. */
+#define SIP_ACCFUNC         0x0010  /* If there is an access function. */
+#define SIP_NOT_IN_MAP      0x0020  /* If Python object not in the map. */
+#define SIP_SHARE_MAP       0x0040  /* If the map slot might be occupied. */
+#define SIP_CPP_HAS_REF     0x0080  /* If C/C++ has a reference. */
 
 #define sipIsPyOwned(w)     ((w)->flags & SIP_PY_OWNED)
 #define sipSetPyOwned(w)    ((w)->flags |= SIP_PY_OWNED)
@@ -1247,11 +1252,13 @@ typedef struct _sipQtAPI {
 #define sipResetCppHasRef(w) ((w)->flags &= ~SIP_CPP_HAS_REF)
 
 
-#define SIP_TYPE_ABSTRACT   0x01    /* If the type is abstract. */
-#define SIP_TYPE_SCC        0x02    /* If the type is subject to sub-class convertors. */
+#define SIP_TYPE_ABSTRACT   0x0001  /* If the type is abstract. */
+#define SIP_TYPE_SCC        0x0002  /* If the type is subject to sub-class convertors. */
+#define SIP_TYPE_QOBJECT    0x0100  /* The type is derived from QObject. */
 
 #define sipTypeIsAbstract(wt)   ((wt)->type->td_flags & SIP_TYPE_ABSTRACT)
 #define sipTypeHasSCC(wt)   ((wt)->type->td_flags & SIP_TYPE_SCC)
+#define sipTypeIsQObject(wt)    ((wt)->type->td_flags & SIP_TYPE_QOBJECT)
 
 
 #ifdef __cplusplus

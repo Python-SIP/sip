@@ -1357,7 +1357,8 @@ static void generateCpp(sipSpec *pt, char *codeDir, char *srcSuffix, int *parts)
 "    sipQtGetSender,\n"
 "    sipQtForgetSender,\n"
 "    sipQtSameSignalSlotName,\n"
-"    sipQtFindConnection\n"
+"    sipQtFindConnection,\n"
+"    sipQtMetaObject\n"
 "};\n"
             ,pt->qobjclass);
 
@@ -7161,6 +7162,7 @@ static void generateSimpleFunctionCall(fcallDef *fcd,FILE *fp)
 static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 {
     char *mname = pt->module->name;
+    const char *sep;
     int is_slots, nr_methods, nr_enums;
     int is_inst_class, is_inst_voidp, is_inst_char, is_inst_string;
     int is_inst_int, is_inst_long, is_inst_ulong, is_inst_longlong;
@@ -7247,14 +7249,30 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 "    0,\n"
 "    ", mname, classFQCName(cd));
 
-    if (isAbstractClass(cd) && cd->subbase != NULL)
-           prcode(fp, "SIP_TYPE_ABSTRACT|SIP_TYPE_SCC,\n");
-    else if (isAbstractClass(cd))
-           prcode(fp, "SIP_TYPE_ABSTRACT,\n");
-    else if (cd->subbase != NULL)
-           prcode(fp, "SIP_TYPE_SCC,\n");
-    else
-           prcode(fp, "0,\n");
+    sep = "";
+
+    if (isQObjectSubClass(cd))
+    {
+        prcode(fp, "%sSIP_TYPE_QOBJECT", sep);
+        sep = "|";
+    }
+
+    if (isAbstractClass(cd))
+    {
+        prcode(fp, "%sSIP_TYPE_ABSTRACT", sep);
+        sep = "|";
+    }
+
+    if (cd->subbase != NULL)
+    {
+        prcode(fp, "%sSIP_TYPE_SCC", sep);
+        sep = "|";
+    }
+
+    if (*sep == '\0')
+        prcode(fp, "0");
+
+    prcode(fp, ",\n");
 
     if (cd->real != NULL)
         prcode(fp,

@@ -367,7 +367,7 @@ static int nameEq(const char *with, const char *name, size_t len);
 static int isExactWrappedType(sipWrapperType *wt);
 static void release(void *addr, sipTypeDef *td, int state);
 static void callPyDtor(sipWrapper *self);
-static int findConnectionSupported(void);
+static int qt_and_sip_api_3_4(void);
 static int visitSlot(sipSlot *slot, visitproc visit, void *arg);
 
 
@@ -5751,6 +5751,13 @@ static int sipWrapperType_init(sipWrapperType *self, PyObject *args,
         }
 
         self->type = ((sipWrapperType *)sc)->type;
+
+        /*
+         * Set up the Qt meta-object if the class is derived from QObject and
+         * the necessary hook has been implemented.
+         */
+        if (sipTypeIsQObject(self) && qt_and_sip_api_3_4() && sipQtSupport->qt_meta_object != NULL)
+            sipQtSupport->qt_meta_object(self);
     }
 
     return 0;
@@ -6137,7 +6144,7 @@ static int sipWrapper_traverse(sipWrapper *self, visitproc visit, void *arg)
                 return vret;
     }
 
-    if (findConnectionSupported())
+    if (qt_and_sip_api_3_4())
     {
         void *tx = sipGetAddress(self);
 
@@ -6223,7 +6230,7 @@ static int sipWrapper_clear(sipWrapper *self)
     }
 
     /* Remove any lambda slots. */
-    if (findConnectionSupported())
+    if (qt_and_sip_api_3_4())
     {
         void *tx = sipGetAddress(self);
 
@@ -7348,9 +7355,10 @@ static void *sip_api_import_symbol(const char *name)
 
 
 /*
- * Returns TRUE if the Qt support API implements qt_find_connection().
+ * Returns TRUE if the Qt support is present and conforms to the v3.4 or later
+ * of the SIP API.
  */
-static int findConnectionSupported(void)
+static int qt_and_sip_api_3_4(void)
 {
     return (sipQtSupport != NULL && sipQObjectClass->type->td_module->em_api_minor >= 4);
 }
