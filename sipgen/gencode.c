@@ -709,6 +709,24 @@ static void generateCpp(sipSpec *pt, char *codeDir, char *srcSuffix, int *parts)
 
     generateUsedIncludes(pt->used, FALSE, fp);
 
+    /*
+     * If there should be a Qt support API then generate stubs values for the
+     * optional parts.  These should be undefined in %ModuleCode if a C++
+     * implementation is provided.
+     */
+    if (pt->qobjclass >= 0)
+        prcode(fp,
+"\n"
+"#define sipQtIsQtSignal                     0\n"
+"#define sipQtCreateUniversalSignalShortcut  0\n"
+"#define sipQtCreateUniversalSignal          0\n"
+"#define sipQtFindUniversalSignalShortcut    0\n"
+"#define sipQtFindUniversalSignal            0\n"
+"#define sipQtEmitSignalShortcut             0\n"
+"#define sipQtEmitSignal                     0\n"
+"#define sipQtMetaObject                     0\n"
+            );
+
     /* Define the names. */
     noIntro = TRUE;
 
@@ -1339,6 +1357,7 @@ static void generateCpp(sipSpec *pt, char *codeDir, char *srcSuffix, int *parts)
 "\n"
 "\n"
 "/* This defines the Qt support API. */\n"
+"\n"
 "static sipQtAPI qtAPI = {\n"
 "    &typesTable[%d],\n"
 "    sipQtIsQtSignal,\n"
