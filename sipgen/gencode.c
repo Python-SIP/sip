@@ -622,7 +622,7 @@ static void generateInternalAPIHeader(sipSpec *pt,char *codeDir,stringList *xsl)
     if (optMetaCall4(pt))
         prcode(fp,
 "\n"
-"typedef const QMetaObject *(*sip_qt_metaobject_func)(sipWrapper *,sipWrapperType *,const QMetaObject *);\n"
+"typedef const QMetaObject *(*sip_qt_metaobject_func)(PyTypeObject *,sipWrapperType *,const QMetaObject *);\n"
 "extern sip_qt_metaobject_func sip_%s_qt_metaobject;\n"
 "\n"
 "typedef int (*sip_qt_metacall_func)(sipWrapper *,sipWrapperType *,QMetaObject::Call,int,void **);\n"
@@ -4706,7 +4706,7 @@ static void generateShadowCode(sipSpec *pt,classDef *cd,FILE *fp)
 "\n"
 "const QMetaObject *sip%C::metaObject() const\n"
 "{\n"
-"    return sip_%s_qt_metaobject(sipPySelf,sipClass_%C,&%S::staticMetaObject);\n"
+"    return sip_%s_qt_metaobject(((PyObject *)sipPySelf)->ob_type,sipClass_%C,&%S::staticMetaObject);\n"
 "}\n"
 "\n"
 "int sip%C::qt_metacall(QMetaObject::Call _c,int _id,void **_a)\n"
