@@ -57,7 +57,6 @@ extern "C" {
  * History:
  *
  * 3.4  Added qt_find_connection() to the Qt support API.
- *      Added qt_meta_object() to the Qt support API.
  *      Added sip_api_parse_signature().
  *
  * 3.3  Added sip_api_register_int_types().
@@ -157,7 +156,7 @@ typedef struct _sipWrapperType {
     struct _sipInitExtenderDef *iextend;
 
     /* The optional PyQt defined meta-object information. */
-    void *qt_meta_object;
+    const void *qt_meta_object;
 } sipWrapperType;
 
 
@@ -1210,7 +1209,6 @@ typedef struct _sipQtAPI {
     void (*qt_forget_sender)();
     int (*qt_same_name)(const char *, const char *);
     sipSlotConnection *(*qt_find_connection)(void *, void **);
-    void (*qt_meta_object)(struct _sipWrapperType *);
 } sipQtAPI;
 
 
@@ -1254,11 +1252,9 @@ typedef struct _sipQtAPI {
 
 #define SIP_TYPE_ABSTRACT   0x0001  /* If the type is abstract. */
 #define SIP_TYPE_SCC        0x0002  /* If the type is subject to sub-class convertors. */
-#define SIP_TYPE_QOBJECT    0x0100  /* The type is derived from QObject. */
 
 #define sipTypeIsAbstract(wt)   ((wt)->type->td_flags & SIP_TYPE_ABSTRACT)
 #define sipTypeHasSCC(wt)   ((wt)->type->td_flags & SIP_TYPE_SCC)
-#define sipTypeIsQObject(wt)    ((wt)->type->td_flags & SIP_TYPE_QOBJECT)
 
 
 #ifdef __cplusplus

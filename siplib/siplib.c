@@ -5751,13 +5751,6 @@ static int sipWrapperType_init(sipWrapperType *self, PyObject *args,
         }
 
         self->type = ((sipWrapperType *)sc)->type;
-
-        /*
-         * Set up the Qt meta-object if the class is derived from QObject and
-         * the necessary hook has been implemented.
-         */
-        if (sipTypeIsQObject(self) && qt_and_sip_api_3_4() && sipQtSupport->qt_meta_object != NULL)
-            sipQtSupport->qt_meta_object(self);
     }
 
     return 0;

@@ -622,8 +622,12 @@ static void generateInternalAPIHeader(sipSpec *pt,char *codeDir,stringList *xsl)
     if (optMetaCall4(pt))
         prcode(fp,
 "\n"
+"typedef const QMetaObject *(*sip_qt_metaobject_func)(sipWrapper *,sipWrapperType *,const QMetaObject *);\n"
+"extern sip_qt_metaobject_func sip_%s_qt_metaobject;\n"
+"\n"
 "typedef int (*sip_qt_metacall_func)(sipWrapper *,sipWrapperType *,QMetaObject::Call,int,void **);\n"
 "extern sip_qt_metacall_func sip_%s_qt_metacall;\n"
+            , mname
             , mname);
 
     /*
@@ -724,7 +728,6 @@ static void generateCpp(sipSpec *pt, char *codeDir, char *srcSuffix, int *parts)
 "#define sipQtFindUniversalSignal            0\n"
 "#define sipQtEmitSignalShortcut             0\n"
 "#define sipQtEmitSignal                     0\n"
-"#define sipQtMetaObject                     0\n"
             );
 
     /* Define the names. */
@@ -1376,8 +1379,7 @@ static void generateCpp(sipSpec *pt, char *codeDir, char *srcSuffix, int *parts)
 "    sipQtGetSender,\n"
 "    sipQtForgetSender,\n"
 "    sipQtSameSignalSlotName,\n"
-"    sipQtFindConnection,\n"
-"    sipQtMetaObject\n"
+"    sipQtFindConnection\n"
 "};\n"
             ,pt->qobjclass);
 
@@ -1462,7 +1464,9 @@ static void generateCpp(sipSpec *pt, char *codeDir, char *srcSuffix, int *parts)
     if (optMetaCall4(pt))
         prcode(fp,
 "\n"
+"sip_qt_metaobject_func sip_%s_qt_metaobject;\n"
 "sip_qt_metacall_func sip_%s_qt_metacall;\n"
+            , mname
             , mname);
 
     /* Generate the Python module initialisation function. */
@@ -1604,7 +1608,9 @@ static void generateCpp(sipSpec *pt, char *codeDir, char *srcSuffix, int *parts)
     if (optMetaCall4(pt))
         prcode(fp,
 "\n"
+"    sip_%s_qt_metaobject = (sip_qt_metaobject_func)sipImportSymbol(\"qtcore_qt_metaobject\");\n"
 "    sip_%s_qt_metacall = (sip_qt_metacall_func)sipImportSymbol(\"qtcore_qt_metacall\");\n"
+            , mname
             , mname);
 
     prcode(fp,
@@ -4698,9 +4704,16 @@ static void generateShadowCode(sipSpec *pt,classDef *cd,FILE *fp)
     {
         prcode(fp,
 "\n"
+"const QMetaObject *sip%C::metaObject() const\n"
+"{\n"
+"    return sip_%s_qt_metaobject(sipPySelf,sipClass_%C,&%S::staticMetaObject);\n"
+"}\n"
+"\n"
 "int sip%C::qt_metacall(QMetaObject::Call _c,int _id,void **_a)\n"
 "{\n"
-"    _id = %C::qt_metacall(_c,_id,_a);\n"
+"    sip%C::metaObject();\n"
+"\n"
+"    _id = %S::qt_metacall(_c,_id,_a);\n"
 "\n"
 "    if (_id >= 0)\n"
 "    {\n"
@@ -4712,9 +4725,11 @@ static void generateShadowCode(sipSpec *pt,classDef *cd,FILE *fp)
 "    return _id;\n"
 "}\n"
             , classFQCName(cd)
+            , pt->module->name, classFQCName(cd), classFQCName(cd)
             , classFQCName(cd)
-            , pt->module->name, classFQCName(cd)
-            );
+            , classFQCName(cd)
+            , classFQCName(cd)
+            , pt->module->name, classFQCName(cd));
     }
 
     /* Generate the virtual catchers. */
@@ -6543,10 +6558,11 @@ static void generateShadowClassDeclaration(sipSpec *pt,classDef *cd,FILE *fp)
 "    %s~sip%C()%X;\n"
             ,(cd->vmembers != NULL ? "virtual " : ""),classFQCName(cd),cd->dtorexceptions);
 
-    /* The metacall method if required. */
+    /* The metacall methods if required. */
     if (isQObjectSubClass(cd) && optMetaCall4(pt))
         prcode(fp,
 "\n"
+"    const QMetaObject *metaObject() const;\n"
 "    int qt_metacall(QMetaObject::Call,int,void **);\n"
             );
 
@@ -7269,12 +7285,6 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 "    ", mname, classFQCName(cd));
 
     sep = "";
-
-    if (isQObjectSubClass(cd))
-    {
-        prcode(fp, "%sSIP_TYPE_QOBJECT", sep);
-        sep = "|";
-    }
 
     if (isAbstractClass(cd))
     {
