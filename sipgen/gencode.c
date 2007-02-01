@@ -4706,7 +4706,10 @@ static void generateShadowCode(sipSpec *pt,classDef *cd,FILE *fp)
 "\n"
 "const QMetaObject *sip%C::metaObject() const\n"
 "{\n"
-"    return sip_%s_qt_metaobject(((PyObject *)sipPySelf)->ob_type,sipClass_%C,&%S::staticMetaObject);\n"
+"    if (sipPySelf)\n"
+"        return sip_%s_qt_metaobject(((PyObject *)sipPySelf)->ob_type,sipClass_%C,&%S::staticMetaObject);\n"
+"\n"
+"    return &%S::staticMetaObject;\n"
 "}\n"
 "\n"
 "int sip%C::qt_metacall(QMetaObject::Call _c,int _id,void **_a)\n"
@@ -4726,6 +4729,7 @@ static void generateShadowCode(sipSpec *pt,classDef *cd,FILE *fp)
 "}\n"
             , classFQCName(cd)
             , pt->module->name, classFQCName(cd), classFQCName(cd)
+            , classFQCName(cd)
             , classFQCName(cd)
             , classFQCName(cd)
             , classFQCName(cd)
