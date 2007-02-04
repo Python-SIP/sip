@@ -619,7 +619,7 @@ static void generateInternalAPIHeader(sipSpec *pt,char *codeDir,stringList *xsl)
 "extern const sipExportedModuleDef *sipModuleAPI_%s_%s;\n"
             ,mname,mld->module->name);
 
-    if (optMetaCall4(pt))
+    if (optQ_OBJECT4(pt))
         prcode(fp,
 "\n"
 "typedef const QMetaObject *(*sip_qt_metaobject_func)(PyTypeObject *,sipWrapperType *,const QMetaObject *);\n"
@@ -1461,7 +1461,7 @@ static void generateCpp(sipSpec *pt, char *codeDir, char *srcSuffix, int *parts)
 "const sipExportedModuleDef *sipModuleAPI_%s_%s;\n"
             ,mname,mld->module->name);
 
-    if (optMetaCall4(pt))
+    if (optQ_OBJECT4(pt))
         prcode(fp,
 "\n"
 "sip_qt_metaobject_func sip_%s_qt_metaobject;\n"
@@ -1605,7 +1605,7 @@ static void generateCpp(sipSpec *pt, char *codeDir, char *srcSuffix, int *parts)
      * This has to be done after the post-initialisation code in case this
      * module is exporting the symbol.
      */
-    if (optMetaCall4(pt))
+    if (optQ_OBJECT4(pt))
         prcode(fp,
 "\n"
 "    sip_%s_qt_metaobject = (sip_qt_metaobject_func)sipImportSymbol(\"qtcore_qt_metaobject\");\n"
@@ -4700,7 +4700,7 @@ static void generateShadowCode(sipSpec *pt,classDef *cd,FILE *fp)
     }
 
     /* The metacall method if required. */
-    if (isQObjectSubClass(cd) && optMetaCall4(pt))
+    if (isQObjectSubClass(cd) && optQ_OBJECT4(pt))
     {
         prcode(fp,
 "\n"
@@ -6563,7 +6563,7 @@ static void generateShadowClassDeclaration(sipSpec *pt,classDef *cd,FILE *fp)
             ,(cd->vmembers != NULL ? "virtual " : ""),classFQCName(cd),cd->dtorexceptions);
 
     /* The metacall methods if required. */
-    if (isQObjectSubClass(cd) && optMetaCall4(pt))
+    if (isQObjectSubClass(cd) && optQ_OBJECT4(pt))
         prcode(fp,
 "\n"
 "    const QMetaObject *metaObject() const;\n"
