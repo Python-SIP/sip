@@ -15,6 +15,14 @@
 #include "sip.h"
 
 
+/*
+ * These must match the values of SIP_TYPE_FLAGS_SHIFT and SIP_TYPE_FLAGS_MASK
+ * in siplib/sip.h.
+ */
+#define TYPE_FLAGS_SHIFT    8
+#define TYPE_FLAGS_MASK     0x0f00
+
+
 /* Control what generateSingleArg() actually generates. */
 typedef enum {
     Call,
@@ -505,6 +513,10 @@ static void generateInternalAPIHeader(sipSpec *pt,char *codeDir,stringList *xsl)
 "#define sipImportSymbol             sipAPI_%s->api_import_symbol\n"
 "#define sipRegisterIntTypes         sipAPI_%s->api_register_int_types\n"
 "#define sipParseSignature           sipAPI_%s->api_parse_signature\n"
+"#define sipFindClass                sipAPI_%s->api_find_class\n"
+"#define sipFindNamedEnum            sipAPI_%s->api_find_named_enum\n"
+        ,mname
+        ,mname
         ,mname
         ,mname
         ,mname
@@ -7285,6 +7297,12 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 "    ", mname, classFQCName(cd));
 
     sep = "";
+
+    if (cd->userflags)
+    {
+        prcode(fp, "%s%x", sep, ((cd->userflags << TYPE_FLAGS_SHIFT) & TYPE_FLAGS_MASK));
+        sep = "|";
+    }
 
     if (isAbstractClass(cd))
     {

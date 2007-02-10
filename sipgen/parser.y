@@ -2648,6 +2648,7 @@ static classDef *findClassWithInterface(sipSpec *pt, ifaceFileDef *iff)
     cd -> pyname = classBaseName(cd);
     cd -> classnr = -1;
     cd -> classflags = 0;
+    cd -> userflags = 0;
     cd -> ecd = NULL;
     cd -> dtorexceptions = NULL;
     cd -> real = NULL;
@@ -2848,6 +2849,7 @@ static classDef *newClass(sipSpec *pt,ifaceFileType iftype,
 static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd, optFlags *of)
 {
     char *pyname;
+    optFlag *flg;
 
     /* Get the Python name and see if it is different to the C++ name. */
     pyname = getPythonName(of, classBaseName(cd));
@@ -2858,6 +2860,9 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd, optFlags *of)
 
     if (cd->pyname != classBaseName(cd))
         setIsRenamedClass(cd);
+
+    if ((flg = findOptFlag(of, "TypeFlags", integer_flag)) != NULL)
+        cd->userflags = flg->fvalue.ival;
 
     if (isOpaque(cd))
     {

@@ -57,7 +57,8 @@ extern "C" {
  * History:
  *
  * 3.4  Added qt_find_connection() to the Qt support API.
- *      Added sip_api_parse_signature().
+ *      Added sip_api_find_class(), sip_api_find_named_enum() and
+ *      sip_api_parse_signature().
  *
  * 3.3  Added sip_api_register_int_types().
  *
@@ -1180,6 +1181,12 @@ typedef struct _sipAPIDef {
      */
     int (*api_register_int_types)(PyObject *args);
     sipSignature *(*api_parse_signature)(const char *sig);
+
+    /*
+     * The following are part of the public API.
+     */
+    sipWrapperType *(*api_find_class)(const char *type);
+    PyTypeObject *(*api_find_named_enum)(const char *type);
 } sipAPIDef;
 
 
@@ -1252,9 +1259,12 @@ typedef struct _sipQtAPI {
 
 #define SIP_TYPE_ABSTRACT   0x0001  /* If the type is abstract. */
 #define SIP_TYPE_SCC        0x0002  /* If the type is subject to sub-class convertors. */
+#define SIP_TYPE_FLAGS_SHIFT    8   /* The user type flags shift. */
+#define SIP_TYPE_FLAGS_MASK 0x0f00  /* The user type flags mask. */
 
 #define sipTypeIsAbstract(wt)   ((wt)->type->td_flags & SIP_TYPE_ABSTRACT)
 #define sipTypeHasSCC(wt)   ((wt)->type->td_flags & SIP_TYPE_SCC)
+#define sipTypeFlags(wt)    (((wt)->type->td_flags & SIP_TYPE_FLAGS_MASK) >> SIP_TYPE_FLAGS_SHIFT)
 
 
 #ifdef __cplusplus

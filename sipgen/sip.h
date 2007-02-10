@@ -814,7 +814,7 @@ typedef struct _virtOverDef {
 
 typedef struct _mroDef {
     struct _classDef    *cd;        /* The class. */
-    int         mroflags;       /* The hierarchy flags. */
+    int             mroflags;       /* The hierarchy flags. */
     struct _mroDef      *next;      /* The next in the list. */
 } mroDef;
 
@@ -822,33 +822,34 @@ typedef struct _mroDef {
 /* A class definition. */
 
 typedef struct _classDef {
-    int         classflags; /* The class flags. */
-    int         classnr;    /* The class number. */
-    char            *pyname;    /* The Python name. */
-    ifaceFileDef        *iff;       /* The interface file. */
+    int             classflags;     /* The class flags. */
+    int             userflags;      /* The user type flags. */
+    int             classnr;        /* The class number. */
+    char            *pyname;        /* The Python name. */
+    ifaceFileDef    *iff;           /* The interface file. */
     struct _classDef    *ecd;       /* The enclosing scope. */
     struct _classDef    *real;      /* The real class if this is a proxy or extender. */
-    nodeDef         *node;      /* Position in class tree. */
-    classList       *supers;    /* The parent classes. */
-    mroDef          *mro;       /* The super-class hierarchy. */
-    templateDef     *td;        /* The instantiated template. */
-    ctorDef         *ctors;     /* The constructors. */
-    ctorDef         *defctor;   /* The default ctor. */
+    nodeDef         *node;          /* Position in class tree. */
+    classList       *supers;        /* The parent classes. */
+    mroDef          *mro;           /* The super-class hierarchy. */
+    templateDef     *td;            /* The instantiated template. */
+    ctorDef         *ctors;         /* The constructors. */
+    ctorDef         *defctor;       /* The default ctor. */
     codeBlock       *dealloccode;   /* Handwritten dealloc code. */
-    codeBlock       *dtorcode;  /* Handwritten dtor code. */
+    codeBlock       *dtorcode;      /* Handwritten dtor code. */
     throwArgs       *dtorexceptions;    /* The dtor exceptions. */
-    memberDef       *members;   /* The member functions. */
-    overDef         *overs;     /* The overloads. */
-    argList         *casts;     /* The operator casts. */
-    virtOverDef     *vmembers;  /* The virtual members. */
-    visibleList     *visible;   /* The visible members. */
-    codeBlock       *cppcode;   /* Class C++ code. */
-    codeBlock       *hdrcode;   /* Class header code. */
+    memberDef       *members;       /* The member functions. */
+    overDef         *overs;         /* The overloads. */
+    argList         *casts;         /* The operator casts. */
+    virtOverDef     *vmembers;      /* The virtual members. */
+    visibleList     *visible;       /* The visible members. */
+    codeBlock       *cppcode;       /* Class C++ code. */
+    codeBlock       *hdrcode;       /* Class header code. */
     codeBlock       *convtosubcode; /* Convert to sub C++ code. */
     struct _classDef    *subbase;   /* Sub-class base class. */
     codeBlock       *convtocode;    /* Convert to C++ code. */
-    codeBlock       *travcode;  /* Traverse code. */
-    codeBlock       *clearcode; /* Clear code. */
+    codeBlock       *travcode;      /* Traverse code. */
+    codeBlock       *clearcode;     /* Clear code. */
     codeBlock       *readbufcode;   /* Read buffer code. */
     codeBlock       *writebufcode;  /* Write buffer code. */
     codeBlock       *segcountcode;  /* Segment count code. */
@@ -991,16 +992,16 @@ typedef enum {
 } flagType;
 
 typedef struct {
-    char        *fname;         /* The flag name. */
-    flagType    ftype;          /* The flag type. */
-    union {                 /* The flag value. */
-        char    *sval;          /* A string value. */
-        long    ival;           /* An integer value. */
+    char        *fname;             /* The flag name. */
+    flagType    ftype;              /* The flag type. */
+    union {                         /* The flag value. */
+        char    *sval;              /* A string value. */
+        long    ival;               /* An integer value. */
     } fvalue;
 } optFlag;
 
 typedef struct {
-    int     nrFlags;        /* The number of flags. */
+    int     nrFlags;                /* The number of flags. */
     optFlag     flags[MAX_NR_FLAGS];    /* Each flag. */
 } optFlags;
 

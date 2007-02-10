@@ -103,6 +103,8 @@ static unsigned long sip_api_long_as_unsigned_long(PyObject *o);
 static int sip_api_export_symbol(const char *name, void *sym);
 static void *sip_api_import_symbol(const char *name);
 static int sip_api_register_int_types(PyObject *args);
+static sipWrapperType *sip_api_find_class(const char *type);
+static PyTypeObject *sip_api_find_named_enum(const char *type);
 
 
 /*
@@ -199,6 +201,11 @@ static const sipAPIDef sip_api = {
      */
     sip_api_register_int_types,
     sip_api_parse_signature,
+    /*
+     * The following are part of the public API.
+     */
+    sip_api_find_class,
+    sip_api_find_named_enum,
 };
 
 
@@ -356,10 +363,14 @@ static PyObject *transferTo(PyObject *self, PyObject *args);
 static int sipWrapperType_Check(PyObject *op);
 static void addToParent(sipWrapper *self, sipWrapper *owner);
 static void removeFromParent(sipWrapper *self);
+static sipWrapperType *findClass(sipExportedModuleDef *emd, const char *name,
+        size_t len);
 static int findClassArg(sipExportedModuleDef *emd, const char *name,
         size_t len, sipSigArg *at, int indir);
 static int findMtypeArg(sipMappedType **mttab, const char *name, size_t len,
         sipSigArg *at, int indir);
+static PyTypeObject *findEnum(sipExportedModuleDef *emd, const char *name,
+        size_t len);
 static int findEnumArg(sipExportedModuleDef *emd, const char *name, size_t len,
         sipSigArg *at, int indir);
 static int sameScopedName(const char *pyname, const char *name, size_t len);
@@ -5002,8 +5013,8 @@ static const sipMappedType *sip_api_find_mapped_type(const char *type)
             const char *s1 = mt->mt_name, *s2 = type;
 
             /*
-             * Compare while ignoring spaces so that we don't
-             * impose a rigorous naming standard.
+             * Compare while ignoring spaces so that we don't impose a rigorous
+             * naming standard.
              */
             do
             {
@@ -5018,6 +5029,46 @@ static const sipMappedType *sip_api_find_mapped_type(const char *type)
             }
             while (*s1++ == *s2++);
         }
+    }
+
+    return NULL;
+}
+
+
+/*
+ * Return the type structure for a particular class.
+ */
+static sipWrapperType *sip_api_find_class(const char *type)
+{
+    sipExportedModuleDef *em;
+    size_t type_len = strlen(type);
+
+    for (em = clientList; em != NULL; em = em->em_next)
+    {
+        sipWrapperType *wt = findClass(em, type, type_len);
+
+        if (wt != NULL)
+            return wt;
+    }
+
+    return NULL;
+}
+
+
+/*
+ * Return the type structure for a particular named enum.
+ */
+static PyTypeObject *sip_api_find_named_enum(const char *type)
+{
+    sipExportedModuleDef *em;
+    size_t type_len = strlen(type);
+
+    for (em = clientList; em != NULL; em = em->em_next)
+    {
+        PyTypeObject *py = findEnum(em, type, type_len);
+
+        if (py != NULL)
+            return py;
     }
 
     return NULL;
@@ -5737,9 +5788,8 @@ static int sipWrapperType_init(sipWrapperType *self, PyObject *args,
         PyTypeObject *sc = ((PyTypeObject *)self)->tp_base;
 
         /*
-         * Make sure that the type is derived from sip.wrapper.  It
-         * might not if the type specifies sip.wrappertype as the
-         * __metaclass__.
+         * Make sure that the type is derived from sip.wrapper.  It might not
+         * if the type specifies sip.wrappertype as the __metaclass__.
          */
         if (sc == NULL || !sipWrapperType_Check((PyObject *)sc))
         {
@@ -7018,11 +7068,10 @@ static void initSlots(PyTypeObject *to, PyNumberMethods *nb, PySequenceMethods *
 
 
 /*
- * Search for a named class and return TRUE and the necessary information to
- * create an instance of it if it was found.
+ * Search for a named class and return the wrapper type.
  */
-static int findClassArg(sipExportedModuleDef *emd, const char *name,
-            size_t len, sipSigArg *at, int indir)
+static sipWrapperType *findClass(sipExportedModuleDef *emd, const char *name,
+        size_t len)
 {
     int i;
     sipWrapperType **wtp = emd->em_types;
@@ -7042,19 +7091,35 @@ static int findClassArg(sipExportedModuleDef *emd, const char *name,
         else if (!sameScopedName(wt->type->td_name, name, len))
             continue;
 
-        if (indir == 0)
-            at->atype = class_sat;
-        else if (indir == 1)
-            at->atype = classp_sat;
-        else
-            at->atype = unknown_sat;
-
-        at->u.wt = wt;
-
-        return TRUE;
+        return wt;
     }
 
-    return FALSE;
+    return NULL;
+}
+
+
+/*
+ * Search for a named class and return TRUE and the necessary information to
+ * create an instance of it if it was found.
+ */
+static int findClassArg(sipExportedModuleDef *emd, const char *name,
+        size_t len, sipSigArg *at, int indir)
+{
+    sipWrapperType *wt = findClass(emd, name, len);
+
+    if (wt == NULL)
+        return FALSE;
+
+    if (indir == 0)
+        at->atype = class_sat;
+    else if (indir == 1)
+        at->atype = classp_sat;
+    else
+        at->atype = unknown_sat;
+
+    at->u.wt = wt;
+
+    return TRUE;
 }
 
 
@@ -7087,11 +7152,11 @@ static int findMtypeArg(sipMappedType **mttab, const char *name, size_t len,
 
 
 /*
- * Search for a named enum and return TRUE and the necessary information to
- * create an instance of it if it was found.
+ * Search for a named enum in a particular module and return the corresponding
+ * type object.
  */
-static int findEnumArg(sipExportedModuleDef *emd, const char *name, size_t len,
-               sipSigArg *at, int indir)
+static PyTypeObject *findEnum(sipExportedModuleDef *emd, const char *name,
+        size_t len)
 {
     int i;
     sipEnumDef *ed;
@@ -7106,17 +7171,33 @@ static int findEnumArg(sipExportedModuleDef *emd, const char *name, size_t len,
         else if (!sameScopedName(ed->e_name, name, len))
             continue;
 
-        if (indir == 0)
-            at->atype = enum_sat;
-        else
-            at->atype = unknown_sat;
-
-        at->u.et = emd->em_enums[i];
-
-        return TRUE;
+        return emd->em_enums[i];
     }
 
-    return FALSE;
+    return NULL;
+}
+
+
+/*
+ * Search for a named enum and return TRUE and the necessary information to
+ * create an instance of it if it was found.
+ */
+static int findEnumArg(sipExportedModuleDef *emd, const char *name, size_t len,
+               sipSigArg *at, int indir)
+{
+    PyTypeObject *py = findEnum(emd, name, len);
+
+    if (py == NULL)
+        return FALSE;
+
+    if (indir == 0)
+        at->atype = enum_sat;
+    else
+        at->atype = unknown_sat;
+
+    at->u.et = py;
+
+    return TRUE;
 }
 
 

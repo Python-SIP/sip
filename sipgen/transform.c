@@ -601,6 +601,7 @@ static classDef *getProxy(sipSpec *pt, classDef *cd)
     pcd = sipMalloc(sizeof (classDef));
 
     pcd->classflags = 0;
+    pcd->userflags = 0;
     pcd->classnr = -1;
     pcd->pyname = cd->pyname;
     pcd->iff = cd->iff;

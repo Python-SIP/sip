@@ -3941,6 +3941,16 @@ int sipExportSymbol(const char \*name, void \*sym)
     already associated with a symbol or there was some other error.
 
 
+sipFindClass()
+--------------
+
+sipWrapperType \*sipFindClass(const char \*type)
+    This returns a pointer to the generated type corresponding to a C/C++ type.
+    *type* is the C/C++ declaration of the type.  ``NULL`` is returned if the
+    C/C++ type doesn't exist.  The value of the pointer will not change and
+    may be saved in a static cache.
+
+
 sipFindMappedType()
 -------------------
 
@@ -3949,6 +3959,16 @@ const sipMappedType \*sipFindMappedType(const char \*type)
     *type* is the C/C++ declaration of the type.  ``NULL`` is returned if the
     mapped type doesn't exist.  The value of the pointer will not change and
     may be saved in a static cache.
+
+
+sipFindNamedEnum()
+------------------
+
+PyTypeObject \*sipFindNamedEnum(const char \*type)
+    This returns a pointer to the generated type corresponding to a named C/C++
+    enum.  *type* is the C/C++ declaration of the enum.  ``NULL`` is returned
+    if the named C/C++ enum doesn't exist.  The value of the pointer will not
+    change and may be saved in a static cache.
 
 
 sipForceConvertToInstance()
