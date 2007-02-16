@@ -662,7 +662,7 @@ class Makefile:
 
         if sys.platform == "win32":
             if (mname in ("QtCore", "QtGui", "QtNetwork", "QtOpenGL",
-                          "QtSql", "QtSvg", "QtTest", "QtXml") or
+                          "QtSql", "QtSvg", "QtTest", "QtXml", "QtDesigner") or
                 (self.config.qt_version >= 0x040200 and mname == "QtAssistant")):
                 lib = lib + "4"
 
