@@ -6272,26 +6272,10 @@ static int sipWrapper_clear(sipWrapper *self)
             vret = ctd->td_clear(ptr);
     }
 
-    /* Remove any lambda slots. */
-    if (qt_and_sip_api_3_4())
-    {
-        void *tx = sipGetAddress(self);
-
-        if (tx != NULL)
-        {
-            sipSlotConnection *conn;
-            void *context = NULL;
-
-            while ((conn = sipQtSupport->qt_find_connection(tx, &context)) != NULL)
-            {
-                sipClearAnyLambda(&conn->sc_slot);
-
-                if (context == NULL)
-                    break;
-            }
-        }
-    }
-
+    /*
+     * Remove any lambda slots connected to PyQt v3 Python signals.  lambda
+     * slots connected via a proxy will be reomved when the proxy is destroyed.
+     */
     for (ps = self->pySigList; ps != NULL; ps = ps->next)
     {
         sipSlotList *psrx;
