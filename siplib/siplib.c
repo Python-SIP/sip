@@ -4030,10 +4030,20 @@ static void sip_api_transfer_to(PyObject *self, PyObject *owner)
     {
         sipWrapper *w = (sipWrapper *)self;
 
-        /* Keep the object alive while we do the transfer. */
-        Py_INCREF(self);
+        /*
+         * Keep the object alive while we do the transfer.  If C++ has a
+         * reference then there is no need to increment it, just reset the flag
+         * and the following decrement will bring everything back to the way it
+         * should be.
+         */
+        if (sipCppHasRef(w))
+            sipResetCppHasRef(w);
+        else
+        {
+            Py_INCREF(self);
+            removeFromParent(w);
+        }
 
-        removeFromParent(w);
         addToParent(w, (sipWrapper *)owner);
 
         Py_DECREF(self);
