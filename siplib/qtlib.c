@@ -635,6 +635,15 @@ int sip_api_emit_to_slot(sipSlot *slot, PyObject *sigargs)
         /* Make sure we garbage collect the new method. */
         newmeth = sfunc;
     }
+    else if (slot->pyobj == Py_None)
+    {
+        /*
+         * This was a lambda function that has been freed by the cyclic garbage
+         * collector so ignore it.
+         */
+        Py_XDECREF(sref);
+        return 0;
+    }
     else
     {
         sfunc = slot -> pyobj;
@@ -1048,7 +1057,12 @@ static void freeSlot(sipSlot *slot)
     if (slot->name != NULL)
         sip_api_free(slot->name);
     else
-        sipClearAnyLambda(slot);
+    {
+        PyObject *lam = slot->pyobj;
+
+        if (lam != NULL && (lam == Py_None || sipLambdaSlot(lam)))
+            Py_DECREF(lam);
+    }
 
     /* Remove any weak reference. */
     Py_XDECREF(slot->weakSlot);
@@ -1225,19 +1239,4 @@ int sipLambdaSlot(PyObject *slotObj)
         return FALSE;
 
     return (strcmp(PyString_AsString(((PyFunctionObject *)slotObj)->func_name), "<lambda>") == 0);
-}
-
-
-/*
- * Clear a slot if it is a lambda function.
- */
-void sipClearAnyLambda(sipSlot *slot)
-{
-    PyObject *lam = slot->pyobj;
-
-    if (lam != NULL && sipLambdaSlot(lam))
-    {
-        slot->pyobj = NULL;
-        Py_DECREF(lam);
-    }
 }

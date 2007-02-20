@@ -380,6 +380,7 @@ static void release(void *addr, sipTypeDef *td, int state);
 static void callPyDtor(sipWrapper *self);
 static int qt_and_sip_api_3_4(void);
 static int visitSlot(sipSlot *slot, visitproc visit, void *arg);
+static void clearAnyLambda(sipSlot *slot);
 
 
 /*
@@ -6093,15 +6094,6 @@ static int sipWrapper_init(sipWrapper *self,PyObject *args,PyObject *kwds)
         return -1;
     }
 
-    /*
-     * Create the instance dictionary if it hasn't already been done.  I think
-     * that it will have been created if an __init__ method of a sub-class
-     * creates instance attributes before calling it's super-class __init__
-     * method (ie. this one).
-     */
-    if (self->dict == NULL && (self->dict = PyDict_New()) == NULL)
-        return -1;
-
     /* Check there is no existing C++ instance waiting to be wrapped. */
     if ((sipNew = sipGetPending(&owner, &sipFlags)) == NULL)
     {
@@ -6282,16 +6274,33 @@ static int sipWrapper_clear(sipWrapper *self)
             vret = ctd->td_clear(ptr);
     }
 
-    /*
-     * Remove any lambda slots connected to PyQt v3 Python signals.  lambda
-     * slots connected via a proxy will be reomved when the proxy is destroyed.
-     */
+    /* Remove any lambda slots connected via a proxy. */
+    if (qt_and_sip_api_3_4())
+    {
+        void *tx = sipGetAddress(self);
+
+        if (tx != NULL)
+        {
+            sipSlotConnection *conn;
+            void *context = NULL;
+
+            while ((conn = sipQtSupport->qt_find_connection(tx, &context)) != NULL)
+            {
+                clearAnyLambda(&conn->sc_slot);
+
+                if (context == NULL)
+                    break;
+            }
+        }
+    }
+
+    /* Remove any lambda slots connected to PyQt v3 Python signals. */
     for (ps = self->pySigList; ps != NULL; ps = ps->next)
     {
         sipSlotList *psrx;
 
         for (psrx = ps->rxlist; psrx != NULL; psrx = psrx->next)
-            sipClearAnyLambda(&psrx->rx);
+            clearAnyLambda(&psrx->rx);
     }
 
     /* Remove any user object. */
@@ -7441,4 +7450,25 @@ static int visitSlot(sipSlot *slot, visitproc visit, void *arg)
         return visit(slot->pyobj, arg);
 
     return 0;
+}
+
+
+/*
+ * Clear a slot if it is a lambda function.
+ */
+static void clearAnyLambda(sipSlot *slot)
+{
+    PyObject *lam = slot->pyobj;
+
+    if (lam != NULL && sipLambdaSlot(lam))
+    {
+        /*
+         * Replace the lambda function with None.  We don't use NULL as this
+         * has another meaning.
+         */
+        Py_INCREF(Py_None);
+        slot->pyobj = Py_None;
+
+        Py_DECREF(lam);
+    }
 }
