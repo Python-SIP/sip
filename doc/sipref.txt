@@ -1530,8 +1530,8 @@ list of ``QWidget`` instances::
 When SIP needs to wrap a C++ class instance it first checks to make sure it
 hasn't already done so.  If it has then it just returns a new reference to the
 corresponding Python object.  Otherwise it creates a new Python object of the
-appropriate type.  In C++ a function may be defined to returned an instance of
-a certain class, but can often return a sub-class instead.
+appropriate type.  In C++ a function may be defined to return an instance of a
+certain class, but can often return a sub-class instead.
 
 This directive is used to specify handwritten code that exploits any available
 real-time type information (RTTI) to see if there is a more specific Python
@@ -1587,7 +1587,7 @@ class hierarchy in PyQt::
             sipClass = sipClass_QKeyEvent;
             break;
 
-        // Skip the remaining event types the keep the example short.
+        // Skip the remaining event types to keep the example short.
 
         default:
             // We don't recognise the type.

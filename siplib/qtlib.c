@@ -959,9 +959,7 @@ PyObject *sip_api_connect_rx(PyObject *txObj,const char *sig,PyObject *rxObj,
         if ((rx = sip_api_convert_rx(txSelf, sig, rxObj, slot, &member)) == NULL)
             return NULL;
 
-        Py_BEGIN_ALLOW_THREADS
         res = sipQtSupport->qt_connect(tx, real_sig, rx, member, type);
-        Py_END_ALLOW_THREADS
 
         return PyBool_FromLong(res);
     }
@@ -988,7 +986,7 @@ PyObject *sip_api_disconnect_rx(PyObject *txObj,const char *sig,
     {
         void *tx, *rx;
         const char *member;
-        PyObject *res;
+        int res;
 
         if ((tx = sip_api_get_cpp_ptr(txSelf, sipQObjectClass)) == NULL)
             return NULL;
@@ -1002,7 +1000,7 @@ PyObject *sip_api_disconnect_rx(PyObject *txObj,const char *sig,
         /* Handle Python signals. */
         tx = findSignal(tx, &sig);
 
-        res = PyBool_FromLong(sipQtSupport->qt_disconnect(tx, sig, rx, member));
+        res = sipQtSupport->qt_disconnect(tx, sig, rx, member);
 
         /*
          * Delete it if it is a universal slot as this will be it's only
@@ -1011,7 +1009,7 @@ PyObject *sip_api_disconnect_rx(PyObject *txObj,const char *sig,
          */
         sipQtSupport->qt_destroy_universal_slot(rx);
 
-        return res;
+        return PyBool_FromLong(res);
     }
 
     /* Handle Python signals. */
