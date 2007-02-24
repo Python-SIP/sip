@@ -3525,7 +3525,7 @@ void sipBadCatcherResult(PyObject \*method)
 sipBadLengthForSlice()
 ----------------------
 
-void sipBadLengthForSlice(Py_ssize_t seqlen, Py_ssize_t slicelen)
+void sipBadLengthForSlice(SIP_SSIZE_T seqlen, SIP_SSIZE_T slicelen)
     This raises a Python exception when the length of a slice object is
     inappropriate for a sequence-like object.  It is normally called by
     handwritten code specified for ``__setitem__()`` methods.  *seqlen* is the
@@ -3814,7 +3814,7 @@ PyObject \*sipConvertFromNewInstance(void \*cpp, sipWrapperType \*type, PyObject
 sipConvertFromSequenceIndex()
 -----------------------------
 
-Py_ssize_t sipConvertFromSequenceIndex(Py_ssize_t idx, Py_ssize_t len)
+SIP_SSIZE_T sipConvertFromSequenceIndex(SIP_SSIZE_T idx, SIP_SSIZE_T len)
     This converts a Python sequence index (i.e. where a negative value refers
     to the offset from the end of the sequence) to a C/C++ array index.  If the
     index was out of range then a negative value is returned and a Python
@@ -3825,12 +3825,10 @@ Py_ssize_t sipConvertFromSequenceIndex(Py_ssize_t idx, Py_ssize_t len)
 sipConvertFromSliceObject()
 ---------------------------
 
-int sipConvertFromSliceObject(PyObject \*slice, Py_ssize_t length, Py_ssize_t \*start, Py_ssize_t \*stop, Py_ssize_t \*step, Py_ssize_t \*slicelength)
+int sipConvertFromSliceObject(PyObject \*slice, SIP_SSIZE_T length, SIP_SSIZE_T \*start, SIP_SSIZE_T \*stop, SIP_SSIZE_T \*step, SIP_SSIZE_T \*slicelength)
     This is a thin wrapper around the Python ``PySlice_GetIndicesEx()``
     function provided to make it easier to write handwritten code that is
-    compatible with SIP v3.x and versions of Python earlier that v2.3.  With
-    versions of Python prior to v2.5 the ``Py_ssize_t`` and ``Py_ssize_t *``
-    arguments have type ``int`` and ``int *`` respectively.
+    compatible with SIP v3.x and versions of Python earlier that v2.3.
 
 
 sipConvertToCpp()
