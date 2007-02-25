@@ -5139,6 +5139,11 @@ static sipWrapperType *convertSubClass(sipWrapperType *type, void **cppPtr)
     if (*cppPtr == NULL)
         return NULL;
 
+    /*
+     * Note that this code depends on the fact that a module appears in the
+     * list of modules before any module it imports, ie. sub-class convertors
+     * will be invoked for more specific types first.
+     */
     for (em = clientList; em != NULL; em = em->em_next)
     {
         sipSubClassConvertorDef *scc;
@@ -5159,9 +5164,18 @@ static sipWrapperType *convertSubClass(sipWrapperType *type, void **cppPtr)
              */
             if (PyType_IsSubtype((PyTypeObject *)type, (PyTypeObject *)scc->scc_basetype))
             {
-                sipWrapperType *subtype;
+                sipWrapperType *subtype = (*scc->scc_convertor)(cppPtr);
 
-                if ((subtype = (*scc->scc_convertor)(cppPtr)) != NULL)
+                /*
+                 * We are only interested in types that are not super-classes
+                 * of the target.  This happens either because it is in an
+                 * earlier convertor than the one that handles the type or it
+                 * is in a later convertor that handles a different branch of
+                 * the hierarchy.  Either way, the ordering of the modules
+                 * ensures that there will be no more than one and that it will
+                 * be the right one.
+                 */
+                if (subtype != NULL && !PyType_IsSubtype((PyTypeObject *)type, (PyTypeObject *)subtype))
                     return subtype;
             }
 
