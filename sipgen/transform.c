@@ -2618,14 +2618,14 @@ static void ifaceFilesAreUsed(sipSpec *pt, ifaceFileDef *iff, overDef *od)
 
     ifaceFileIsUsed(pt, iff, &od->pysig.result);
 
-    if (od->cppsig != &od->pysig)
-        ifaceFileIsUsed(pt, iff, &od->cppsig->result);
-
-    for (a = 0; a < od -> pysig.nrArgs; ++a)
-    {
+    for (a = 0; a < od->pysig.nrArgs; ++a)
         ifaceFileIsUsed(pt, iff, &od->pysig.args[a]);
 
-        if (od->cppsig != &od->pysig)
+    if (od->cppsig != &od->pysig)
+    {
+        ifaceFileIsUsed(pt, iff, &od->cppsig->result);
+
+        for (a = 0; a < od->cppsig->nrArgs; ++a)
             ifaceFileIsUsed(pt, iff, &od->cppsig->args[a]);
     }
 }

@@ -6414,6 +6414,10 @@ static SIP_SSIZE_T sipWrapper_getcharbuffer(sipWrapper *self,
 static void sipWrapper_dealloc(sipWrapper *self)
 {
     sipTypeDef *td;
+    PyObject *et, *ev, *etb;
+
+    /* Make sure we don't alter the exception state. */
+    PyErr_Fetch(&et, &ev, &etb);
 
     sipWrapper_clear(self);
 
@@ -6456,6 +6460,8 @@ static void sipWrapper_dealloc(sipWrapper *self)
         sip_api_free(ps->name);
         sip_api_free(ps);
     }
+
+    PyErr_Restore(et, ev, etb);
 
     /* Call the standard super-type dealloc. */
     PyBaseObject_Type.tp_dealloc((PyObject *)self);
