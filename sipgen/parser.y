@@ -80,6 +80,7 @@ static int isNeeded(qualDef *);
 static int notSkipping(void);
 static void getHooks(optFlags *,char **,char **);
 static int getReleaseGIL(optFlags *);
+static int getHoldGIL(optFlags *);
 static void templateSignature(signatureDef *sd, int result, classTmplDef *tcd, templateDef *td, classDef *ncd);
 static void templateType(argDef *ad, classTmplDef *tcd, templateDef *td, classDef *ncd);
 static int search_back(const char *end, const char *start, const char *target);
@@ -1567,6 +1568,8 @@ dtor:       optvirtual '~' TK_NAME '(' ')' optexceptions optabstract optflags ';
 
                 if (getReleaseGIL(&$8))
                     setIsReleaseGILDtor(cd);
+                else if (getHoldGIL(&$8))
+                    setIsHoldGILDtor(cd);
             }
         }
     ;
@@ -3889,6 +3892,8 @@ static void newCtor(char *name,int sectFlags,signatureDef *args,
 
     if (getReleaseGIL(optflgs))
         setIsReleaseGILCtor(ct);
+    else if (getHoldGIL(optflgs))
+        setIsHoldGILCtor(ct);
 
     if (findOptFlag(optflgs,"NoDerived",bool_flag) != NULL)
     {
@@ -4105,6 +4110,8 @@ static void newFunction(sipSpec *pt,moduleDef *mod,int sflags,int isstatic,
 
     if (getReleaseGIL(optflgs))
         setIsReleaseGIL(od);
+    else if (getHoldGIL(optflgs))
+        setIsHoldGIL(od);
 
     od -> next = NULL;
 
@@ -4870,7 +4877,16 @@ static void getHooks(optFlags *optflgs,char **pre,char **post)
  */
 static int getReleaseGIL(optFlags *optflgs)
 {
-    return (findOptFlag(optflgs,"ReleaseGIL",bool_flag) != NULL);
+    return (findOptFlag(optflgs, "ReleaseGIL", bool_flag) != NULL);
+}
+
+
+/*
+ * Get the /HoldGIL/ option flag.
+ */
+static int getHoldGIL(optFlags *optflgs)
+{
+    return (findOptFlag(optflgs, "HoldGIL", bool_flag) != NULL);
 }
 
 

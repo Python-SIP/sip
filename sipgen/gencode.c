@@ -4281,7 +4281,9 @@ static void generateClassFunctions(sipSpec *pt,classDef *cd,FILE *fp)
          */
         if (canCreate(cd) || isPublicDtor(cd))
         {
-            if (release_gil || isReleaseGILDtor(cd))
+            int rgil = ((release_gil || isReleaseGILDtor(cd)) && !isHoldGILDtor(cd));
+
+            if (rgil)
                 prcode(fp,
 "    Py_BEGIN_ALLOW_THREADS\n"
 "\n"
@@ -4305,7 +4307,7 @@ static void generateClassFunctions(sipSpec *pt,classDef *cd,FILE *fp)
 "    delete reinterpret_cast<%U *>(ptr);\n"
                     , cd);
 
-            if (release_gil || isReleaseGILDtor(cd))
+            if (rgil)
                 prcode(fp,
 "\n"
 "    Py_END_ALLOW_THREADS\n"
@@ -5272,6 +5274,8 @@ static void generateEmitter(sipSpec *pt,classDef *cd,visibleList *vl,FILE *fp)
 
     for (od = vl->cd->overs; od != NULL; od = od->next)
     {
+        int rgil = ((release_gil || isReleaseGIL(od)) && !isHoldGIL(od));
+
         if (od->common != vl->m || !isSignal(od))
             continue;
 
@@ -5290,7 +5294,7 @@ static void generateEmitter(sipSpec *pt,classDef *cd,visibleList *vl,FILE *fp)
 "        {\n"
             );
 
-        if (release_gil || isReleaseGIL(od))
+        if (rgil)
             prcode(fp,
 "            Py_BEGIN_ALLOW_THREADS\n"
                 );
@@ -5304,7 +5308,7 @@ static void generateEmitter(sipSpec *pt,classDef *cd,visibleList *vl,FILE *fp)
         prcode(fp,");\n"
             );
 
-        if (release_gil || isReleaseGIL(od))
+        if (rgil)
             prcode(fp,
 "            Py_END_ALLOW_THREADS\n"
                 );
@@ -8143,7 +8147,9 @@ static void generateConstructorCall(classDef *cd,ctorDef *ct,int error_flag,
             ,classFQCName(cd));
     else
     {
-        if (release_gil || isReleaseGILCtor(ct))
+        int rgil = ((release_gil || isReleaseGILCtor(ct)) && !isHoldGILCtor(ct));
+
+        if (rgil)
             prcode(fp,
 "            Py_BEGIN_ALLOW_THREADS\n"
                 );
@@ -8161,10 +8167,7 @@ static void generateConstructorCall(classDef *cd,ctorDef *ct,int error_flag,
         {
             classDef *ocd;
 
-            /*
-             * We have to fiddle the type to generate the correct
-             * code.
-             */
+            /* We have to fiddle the type to generate the correct code. */
             ocd = ct->pysig.args[0].u.cd;
             ct->pysig.args[0].u.cd = cd;
             prcode(fp, "a0->operator %B()", &ct->pysig.args[0]);
@@ -8178,7 +8181,7 @@ static void generateConstructorCall(classDef *cd,ctorDef *ct,int error_flag,
 
         generateCatch(ct->exceptions, &ct->pysig, fp);
 
-        if (release_gil || isReleaseGILCtor(ct))
+        if (rgil)
             prcode(fp,
 "            Py_END_ALLOW_THREADS\n"
                 );
@@ -9020,6 +9023,8 @@ static void generateFunctionCall(classDef *cd,classDef *ocd,overDef *od,
         generateCppCodeBlock(od->methodcode,fp);
     else
     {
+        int rgil = ((release_gil || isReleaseGIL(od)) && !isHoldGIL(od));
+
         if (needsNew && generating_c)
         {
             prcode(fp,
@@ -9036,7 +9041,7 @@ static void generateFunctionCall(classDef *cd,classDef *ocd,overDef *od,
                 );
         }
 
-        if (release_gil || isReleaseGIL(od))
+        if (rgil)
             prcode(fp,
 "            Py_BEGIN_ALLOW_THREADS\n"
                 );
@@ -9237,7 +9242,7 @@ static void generateFunctionCall(classDef *cd,classDef *ocd,overDef *od,
 
         generateCatch(od->exceptions, &od->pysig, fp);
 
-        if (release_gil || isReleaseGIL(od))
+        if (rgil)
             prcode(fp,
 "            Py_END_ALLOW_THREADS\n"
                 );

@@ -771,6 +771,28 @@ heap using the ``free()`` function.
 See also `sipTransferTo()`_ and `sipTransferBack()`_.
 
 
+The Python Global Interpreter Lock
+----------------------------------
+
+Python's Global Interpretor Lock (GIL) must be acquired before calls can be
+made to the Python API.  It should also be released when a potentially
+blocking call to C/C++ library is made in order to allow other Python threads
+to be executed.  In addition, some C/C++ libraries may implement their own
+locking strategies that conflict with the GIL causing application deadlocks.
+SIP provides ways of specifying when the GIL is released and acquired to
+ensure that locking problems can be avoided.
+
+SIP always ensures that the GIL is acquired before making calls to the Python
+API.  By default SIP does not release the GIL when making calls to the C/C++
+library being wrapped.  The ReleaseGIL_ annotation can be used to override
+this behaviour when required.
+
+If SIP is given the ``-g`` command line option then the default behaviour is
+changed and SIP releases the GIL every time is makes calls to the C/C++
+library being wrapped.  The HoldGIL_ annotation can be used to override this
+behaviour when required.
+
+
 The SIP Command Line
 ====================
 
@@ -806,6 +828,9 @@ The full set of command line options is:
         code to be enclosed in ``try``/``catch`` blocks and C++ exceptions to
         be converted to Python exceptions.  By default exception support is
         disabled.
+-g      The Python GIL is released before making any calls to the C/C++ library
+        being wrapped and reacquired afterwards.  See `The Python Global
+        Interpreter Lock`_ and the ReleaseGIL_ and HoldGIL_ annotations.
 -I dir  The directory is added to the list of directories searched when looking
         for a specification file given in an `%Include`_ or `%Import`_
         directive.  This option may be given any number of times.
@@ -2418,7 +2443,8 @@ in this example fragment::
 
 If compatibility with SIP v3.x is not required then this is optional but
 should be done if the C++ function might block the current thread or take a
-significant amount of time to execute.  (See the ReleaseGIL_ annotation.)
+significant amount of time to execute.  (See `The Python Global Interpreter
+Lock`_ and the ReleaseGIL_ and HoldGIL_ annotations.)
 
 The following variables are made available to the handwritten code:
 
@@ -3313,6 +3339,14 @@ created instance and is owned by Python.
 See `Ownership of Objects`_ for more detail.
 
 
+HoldGIL
+*******
+
+This boolean annotation specifies that the Python Global Interpreter Lock (GIL)
+is not released before the call to the underlying C or C++ function.  See
+`The Python Global Interpreter Lock`_ and the ReleaseGIL_ annotation.
+
+
 NewThread
 *********
 
@@ -3377,10 +3411,11 @@ have the same name in the same C++ scope.
 ReleaseGIL
 **********
 
-This boolean annotation specifies that the Python Global Interpreter Lock
-(GIL) is automatically released before the call to the underlying C or C++
-function and reacquired afterwards.  It should be used for functions that
-might block or take a significant amount of time to execute.
+This boolean annotation specifies that the Python Global Interpreter Lock (GIL)
+is released before the call to the underlying C or C++ function and reacquired
+afterwards.  It should be used for functions that might block or take a
+significant amount of time to execute.  See `The Python Global Interpreter
+Lock`_ and the HoldGIL_ annotation.
 
 
 TransferBack

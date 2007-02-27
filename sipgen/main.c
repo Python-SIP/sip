@@ -174,9 +174,6 @@ int main(int argc,char **argv)
 		filename = "stdin";
 	}
 
-	if (releaseGIL && warnings)
-		warning("The -g command line flag is deprecated\n");
-
 	/* Parse the input file. */
 	parse(&spec,file,filename,versions,xfeatures);
 
@@ -443,7 +440,7 @@ static void help(void)
 {
 	printf(
 "Usage:\n"
-"    %s [-h] [-V] [-a file] [-c dir] [-d file] [-e] [-I dir] [-j #] [-m file] [-r] [-s suffix] [-t version] [-w] [-x feature] [-z file] [file]\n"
+"    %s [-h] [-V] [-a file] [-c dir] [-d file] [-e] [-g] [-I dir] [-j #] [-m file] [-r] [-s suffix] [-t version] [-w] [-x feature] [-z file] [file]\n"
 "where:\n"
 "    -h          display this help message\n"
 "    -V          display the %s version number\n"
@@ -452,6 +449,7 @@ static void help(void)
 "    -c dir      the name of the code directory [default not generated]\n"
 "    -d file     the name of the documentation file [default not generated]\n"
 "    -e          enable support for exceptions [default disabled]\n"
+"    -g          always release and reacquire the GIL [default only when specified]\n"
 "    -I dir      look in this directory when including files\n"
 "    -j #        split the generated code into # files [default 1 per class]\n"
 "    -m file     the name of the XML export file [default not generated]\n"

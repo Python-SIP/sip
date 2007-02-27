@@ -71,6 +71,7 @@
 #define CLASS_IS_DELAYED_DTOR   0x00200000  /* The dtor is delayed. */
 #define CLASS_NO_DEFAULT_CTORS  0x00400000  /* Don't create default ctors. */
 #define CLASS_QOBJECT_SUB   0x00800000  /* It is derived from QObject. */
+#define CLASS_DTOR_HOLD_GIL 0x01000000  /* The dtor holds the GIL. */
 
 #define hasEnums(cd)        ((cd) -> classflags & CLASS_HAS_ENUMS)
 #define setHasEnums(cd)     ((cd) -> classflags |= CLASS_HAS_ENUMS)
@@ -108,6 +109,8 @@
 #define setNoDefaultCtors(cd)   ((cd) -> classflags |= CLASS_NO_DEFAULT_CTORS)
 #define isQObjectSubClass(cd)   ((cd) -> classflags & CLASS_QOBJECT_SUB)
 #define setIsQObjectSubClass(cd)    ((cd) -> classflags |= CLASS_QOBJECT_SUB)
+#define isHoldGILDtor(c)    ((cd) -> classflags & CLASS_DTOR_HOLD_GIL)
+#define setIsHoldGILDtor(c) ((cd) -> classflags |= CLASS_DTOR_HOLD_GIL)
 
 #define isPublicDtor(cd)    ((cd) -> classflags & SECT_IS_PUBLIC)
 #define setIsPublicDtor(cd) ((cd) -> classflags |= SECT_IS_PUBLIC)
@@ -122,6 +125,7 @@
 #define CTOR_RELEASE_GIL    0x00000100  /* The ctor releases the GIL. */
 #define CTOR_EXPLICIT       0x00000200  /* The ctor is explicit. */
 #define CTOR_CAST           0x00000400  /* The ctor is a cast. */
+#define CTOR_HOLD_GIL       0x00000800  /* The ctor holds the GIL. */
 
 #define isPublicCtor(c)     ((c) -> ctorflags & SECT_IS_PUBLIC)
 #define setIsPublicCtor(c)  ((c) -> ctorflags |= SECT_IS_PUBLIC)
@@ -135,6 +139,8 @@
 #define isExplicitCtor(c)   ((c) -> ctorflags & CTOR_EXPLICIT)
 #define setIsExplicitCtor(c)    ((c) -> ctorflags |= CTOR_EXPLICIT)
 #define isCastCtor(c)       ((c) -> ctorflags & CTOR_CAST)
+#define isHoldGILCtor(c)    ((c) -> ctorflags & CTOR_HOLD_GIL)
+#define setIsHoldGILCtor(c) ((c) -> ctorflags |= CTOR_HOLD_GIL)
 
 
 /* Handle member flags. */
@@ -184,7 +190,8 @@
 #define OVER_XFERRED_BACK   0x00008000  /* Ownership is transferred back. */
 #define OVER_RELEASE_GIL    0x00010000  /* The function releases the GIL. */
 #define OVER_IS_VIRTUAL_REIMP   0x00020000  /* It is a re-implementation of a virtual. */
-#define OVER_DONT_DEREF_SELF    0x04000000  /* For comparison operators, don't dereference self. */
+#define OVER_DONT_DEREF_SELF    0x00040000  /* For comparison operators, don't dereference self. */
+#define OVER_HOLD_GIL       0x00080000  /* The function holds the GIL. */
 
 #define isPublic(o)         ((o) -> overflags & SECT_IS_PUBLIC)
 #define setIsPublic(o)      ((o) -> overflags |= SECT_IS_PUBLIC)
@@ -220,6 +227,8 @@
 #define setIsVirtualReimp(o)    ((o) -> overflags |= OVER_IS_VIRTUAL_REIMP)
 #define dontDerefSelf(o)    ((o) -> overflags & OVER_DONT_DEREF_SELF)
 #define setDontDerefSelf(o) ((o) -> overflags |= OVER_DONT_DEREF_SELF)
+#define isHoldGIL(o)        ((o) -> overflags & OVER_HOLD_GIL)
+#define setIsHoldGIL(o)     ((o) -> overflags |= OVER_HOLD_GIL)
 
 
 /* Handle variable flags. */
