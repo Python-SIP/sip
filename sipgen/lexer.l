@@ -111,7 +111,7 @@ SIP_QOBJECT         {return TK_QOBJECT;}
 \.\.\.              {return TK_ELLIPSIS;}
 
 
-[ \t] {             /* Ignore whitespace. */
+[ \t\r] {           /* Ignore whitespace. */
     ;
 }
 
