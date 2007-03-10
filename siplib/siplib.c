@@ -6056,19 +6056,18 @@ static PyObject *sipWrapper_new(sipWrapperType *wt,PyObject *args,PyObject *kwds
     }
 
     /*
-     * See if the object is being created explicitly rather than being
-     * wrapped.
+     * See if the object is being created explicitly rather than being wrapped.
      */
     if (sipGetPending(NULL, NULL) == NULL)
     {
         /*
-         * See if it cannot be instantiated or sub-classed from Python,
-         * eg. it's an opaque class.  Some restrictions might be
-         * overcome with better SIP support.
+         * See if it cannot be instantiated or sub-classed from Python, eg.
+         * it's an opaque class.  Some restrictions might be overcome with
+         * better SIP support.
          */
         if (wt->type->td_init == NULL)
         {
-            PyErr_Format(PyExc_TypeError,"%s represents a C++ class that cannot be instantiated or sub-classed", wt->type->td_name);
+            PyErr_Format(PyExc_TypeError,"%s cannot be instantiated or sub-classed", wt->type->td_name);
 
             return NULL;
         }

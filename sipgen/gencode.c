@@ -2226,7 +2226,7 @@ static int generateVoidPointers(sipSpec *pt,classDef *cd,FILE *fp)
                 , vd->pyname, &vd->type, vd->fqcname);
         else
             prcode(fp,
-"     {%N, %S},\n"
+"    {%N, %S},\n"
                 , vd->pyname, vd->fqcname);
     }
 
@@ -6437,12 +6437,6 @@ static void generateClassHeader(classDef *cd,int genused,sipSpec *pt,FILE *fp)
 
     if (genused)
         generateUsedIncludes(cd->iff->used, TRUE, fp);
-
-    if (isOpaque(cd))
-        prcode(fp,
-"\n"
-"class %S;\n"
-            ,classFQCName(cd));
 
     if (cd->iff->type != namespace_iface)
     {
