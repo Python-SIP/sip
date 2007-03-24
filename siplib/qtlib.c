@@ -259,6 +259,11 @@ sipSignature *sip_api_parse_signature(const char *sig)
                 case 7:
                     if (strncmp(dp, "__int64", 7) == 0)
                         sat = longlong_sat;
+                    else if (strncmp(dp, "wchar_t", 7) == 0)
+                    {
+                        sat = (indir ? wstring_sat : wchar_sat);
+                        unsup = (isref || indir > 1);
+                    }
                     break;
 
                 case 8:

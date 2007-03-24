@@ -57,8 +57,12 @@ extern "C" {
  * History:
  *
  * 3.4  Added qt_find_connection() to the Qt support API.
- *      Added sip_api_find_class(), sip_api_find_named_enum() and
- *      sip_api_parse_signature().
+ *      Added sip_api_string_as_char(), sip_api_unicode_as_wchar(),
+ *      sip_api_unicode_as_wstring(), sip_api_find_class(),
+ *      sip_api_find_named_enum() and sip_api_parse_signature().
+ *      Added the 'A', 'w' and 'x' format characters to sip_api_parse_args(),
+ *      sip_api_parse_result(), sip_api_build_result() and
+ *      sip_api_call_method().
  *
  * 3.3  Added sip_api_register_int_types().
  *
@@ -452,7 +456,9 @@ typedef enum {
     qvariantp_sat,
     pyobject_sat,
     schar_sat,
-    sstring_sat
+    sstring_sat,
+    wchar_sat,
+    wstring_sat
 } sipSigArgType;
 
 
@@ -1187,6 +1193,18 @@ typedef struct _sipAPIDef {
      */
     sipWrapperType *(*api_find_class)(const char *type);
     PyTypeObject *(*api_find_named_enum)(const char *type);
+
+    /*
+     * The following are not part of the public API.
+     */
+    char (*api_string_as_char)(PyObject *obj);
+#if defined(HAVE_WCHAR_H)
+    wchar_t (*api_unicode_as_wchar)(PyObject *obj);
+    wchar_t *(*api_unicode_as_wstring)(PyObject *obj);
+#else
+    int (*api_unicode_as_wchar)(PyObject *obj);
+    int *(*api_unicode_as_wstring)(PyObject *obj);
+#endif
 } sipAPIDef;
 
 

@@ -19,8 +19,8 @@
  * These must match the values of SIP_TYPE_FLAGS_SHIFT and SIP_TYPE_FLAGS_MASK
  * in siplib/sip.h.
  */
-#define TYPE_FLAGS_SHIFT    8
-#define TYPE_FLAGS_MASK     0x0f00
+#define TYPE_FLAGS_SHIFT        8
+#define TYPE_FLAGS_MASK         0x0f00
 
 
 /* Control what generateSingleArg() actually generates. */
@@ -33,21 +33,21 @@ typedef enum {
 
 /* An entry in the sorted array of methods. */
 typedef struct {
-    memberDef   *md;                /* The method. */
-    int         is_static;          /* Set if all overloads are static. */
+    memberDef *md;                      /* The method. */
+    int is_static;                      /* Set if all overloads are static. */
 } sortedMethTab;
 
 
-static int currentLineNr;           /* Current output line number. */
-static char *currentFileName;       /* Current output file name. */
-static int previousLineNr;          /* Previous output line number. */
-static char *previousFileName;      /* Previous output file name. */
-static int exceptions;              /* Set if exceptions are enabled. */
-static int tracing;                 /* Set if tracing is enabled. */
-static int generating_c;            /* Set if generating C. */
-static int release_gil;             /* Set if always releasing the GIL. */
+static int currentLineNr;               /* Current output line number. */
+static char *currentFileName;           /* Current output file name. */
+static int previousLineNr;              /* Previous output line number. */
+static char *previousFileName;          /* Previous output file name. */
+static int exceptions;                  /* Set if exceptions are enabled. */
+static int tracing;                     /* Set if tracing is enabled. */
+static int generating_c;                /* Set if generating C. */
+static int release_gil;                 /* Set if always releasing the GIL. */
 static const char *prcode_last = NULL;  /* The last prcode format string. */
-static int prcode_xml = FALSE;      /* Set if prcode is XML aware. */
+static int prcode_xml = FALSE;          /* Set if prcode is XML aware. */
 
 
 static void generateDocumentation(sipSpec *, char *);
@@ -515,6 +515,12 @@ static void generateInternalAPIHeader(sipSpec *pt,char *codeDir,stringList *xsl)
 "#define sipParseSignature           sipAPI_%s->api_parse_signature\n"
 "#define sipFindClass                sipAPI_%s->api_find_class\n"
 "#define sipFindNamedEnum            sipAPI_%s->api_find_named_enum\n"
+"#define sipString_AsChar            sipAPI_%s->api_string_as_char\n"
+"#define sipUnicode_AsWChar          sipAPI_%s->api_unicode_as_wchar\n"
+"#define sipUnicode_AsWString        sipAPI_%s->api_unicode_as_wstring\n"
+        ,mname
+        ,mname
+        ,mname
         ,mname
         ,mname
         ,mname
@@ -1118,6 +1124,10 @@ static void generateCpp(sipSpec *pt, char *codeDir, char *srcSuffix, int *parts)
 
             case ustring_type:
                 sat = (td->type.nrderefs == 0 ? "uchar" : "ustring");
+                break;
+
+            case wstring_type:
+                sat = (td->type.nrderefs == 0 ? "wchar" : "wstring");
                 break;
 
             case short_type:
@@ -2258,7 +2268,7 @@ static int generateChars(sipSpec *pt,classDef *cd,FILE *fp)
         if (vd->ecd != cd || vd->module != pt->module)
             continue;
 
-        if (!((vtype == sstring_type || vtype == ustring_type || vtype == string_type) && vd->type.nrderefs == 0))
+        if (!((vtype == sstring_type || vtype == ustring_type || vtype == string_type || vtype == wstring_type) && vd->type.nrderefs == 0))
             continue;
 
         if (needsHandler(vd))
@@ -2317,7 +2327,7 @@ static int generateStrings(sipSpec *pt,classDef *cd,FILE *fp)
         if (vd->ecd != cd || vd->module != pt->module)
             continue;
 
-        if (!((vtype == sstring_type || vtype == ustring_type || vtype == string_type) && vd->type.nrderefs != 0))
+        if (!((vtype == sstring_type || vtype == ustring_type || vtype == string_type || vtype == wstring_type) && vd->type.nrderefs != 0))
             continue;
 
         if (needsHandler(vd))
@@ -3257,7 +3267,6 @@ static void generateConvertToDefinitions(mappedTypeDef *mtd,classDef *cd,
  */
 static void generateVariableHandler(varDef *vd,FILE *fp)
 {
-    char *ptr;
     argType atype = vd->type.atype;
 
     prcode(fp,
@@ -3287,27 +3296,12 @@ static void generateVariableHandler(varDef *vd,FILE *fp)
 
     if (vd->getcode == NULL || vd->setcode == NULL)
     {
-        char name[50];
-        argDef mod;
-
         prcode(fp,
 "   ");
 
-        mod = vd->type;
+        generateNamedValueType(&vd->type, "sipVal", fp);
 
-        if ((atype == string_type || atype == sstring_type || atype == ustring_type) && vd->type.nrderefs == 0)
-        {
-            ptr = "Ptr";
-            mod.nrderefs = 1;
-        }
-        else
-            ptr = "";
-
-        sprintf(name,"sipVal%s",ptr);
-
-        generateNamedValueType(&mod,name,fp);
-
-        prcode(fp,";\n"
+        prcode(fp, ";\n"
             );
     }
 
@@ -3351,18 +3345,11 @@ static void generateVariableHandler(varDef *vd,FILE *fp)
         int pyobj = FALSE;
 
         prcode(fp,
-"        ");
-
-        if (ptr[0] == '\0')
-            prcode(fp,"sipVal");
-        else
-            generateNamedValueType(&vd->type,"sipVal",fp);
-
-        prcode(fp," = %s",(((atype == class_type || atype == mapped_type) && vd->type.nrderefs == 0) ? "&" : ""));
+"        sipVal = %s", (((atype == class_type || atype == mapped_type) && vd->type.nrderefs == 0) ? "&" : ""));
 
         generateVarMember(vd, fp);
 
-        prcode(fp,";\n"
+        prcode(fp, ";\n"
 "\n"
             );
 
@@ -3398,6 +3385,18 @@ static void generateVariableHandler(varDef *vd,FILE *fp)
                 prcode(fp,
 "        sipPy = PyString_FromString(%ssipVal);\n"
                     ,(atype != string_type) ? "(char *)" : "");
+
+            break;
+
+        case wstring_type:
+            if (vd->type.nrderefs == 0)
+                prcode(fp,
+"        sipPy = PyUnicode_FromWideChar(&sipVal,1);\n"
+                    );
+            else
+                prcode(fp,
+"        sipPy = PyUnicode_FromWideChar(sipVal,(SIP_SSIZE_T)wcslen(sipVal));\n"
+                    );
 
             break;
 
@@ -3556,15 +3555,12 @@ static void generateVariableHandler(varDef *vd,FILE *fp)
         }
         else
         {
-            if (atype == sstring_type || atype == ustring_type || atype == string_type)
+            if ((atype == sstring_type || atype == ustring_type || atype == string_type || atype == wstring_type) && vd->type.nrderefs != 0)
             {
-                if (vd->type.nrderefs == 0)
-                    deref = "*";
-
                 prcode(fp,
 "\n"
-"    if (sipVal%s == NULL)\n"
-                    ,ptr);
+"    if (sipVal == NULL)\n"
+                    );
             }
             else
                 prcode(fp,
@@ -3602,8 +3598,8 @@ static void generateVariableHandler(varDef *vd,FILE *fp)
 
         generateVarMember(vd, fp);
 
-        prcode(fp," = %ssipVal%s;\n"
-            ,deref,ptr);
+        prcode(fp, " = %ssipVal;\n"
+            , deref);
 
         if (might_be_temp)
             prcode(fp,
@@ -3667,7 +3663,10 @@ static void generateVarClassConversion(varDef *vd,FILE *fp)
 static int generateObjToCppConversion(argDef *ad,FILE *fp)
 {
     int might_be_temp = FALSE;
-    char *fmt = NULL;
+    char *rhs = NULL;
+
+    prcode(fp,
+"    sipVal = ");
 
     switch (ad->atype)
     {
@@ -3677,14 +3676,12 @@ static int generateObjToCppConversion(argDef *ad,FILE *fp)
 
             if (generating_c)
             {
-                prcode(fp,
-"    sipVal = (%b *)", ad);
+                prcode(fp, "(%b *)", ad);
                 tail = "";
             }
             else
             {
-                prcode(fp,
-"    sipVal = reinterpret_cast<%b *>(", ad);
+                prcode(fp, "reinterpret_cast<%b *>(", ad);
                 tail = ")";
             }
 
@@ -3708,14 +3705,12 @@ static int generateObjToCppConversion(argDef *ad,FILE *fp)
 
             if (generating_c)
             {
-                prcode(fp,
-"    sipVal = (%b *)", ad);
+                prcode(fp, "(%b *)", ad);
                 tail = "";
             }
             else
             {
-                prcode(fp,
-"    sipVal = reinterpret_cast<%b *>(", ad);
+                prcode(fp, "reinterpret_cast<%b *>(", ad);
                 tail = ")";
             }
 
@@ -3733,88 +3728,93 @@ static int generateObjToCppConversion(argDef *ad,FILE *fp)
         break;
 
     case enum_type:
-        prcode(fp,
-"    sipVal = (%E)PyInt_AsLong(sipPy);\n"
-            ,ad->u.ed);
+        prcode(fp, "(%E)PyInt_AsLong(sipPy);\n"
+            , ad->u.ed);
         break;
 
     case sstring_type:
         if (ad->nrderefs == 0)
-            fmt = "\tsipValPtr = (signed char *)PyString_AsString(sipPy);\n";
+            rhs = "(signed char)sipString_AsChar(sipPy)";
         else
-            fmt = "\tsipVal = (signed char *)PyString_AsString(sipPy);\n";
+            rhs = "(signed char *)PyString_AsString(sipPy)";
         break;
 
     case ustring_type:
         if (ad->nrderefs == 0)
-            fmt = "\tsipValPtr = (unsigned char *)PyString_AsString(sipPy);\n";
+            rhs = "(unsigned char)sipString_AsChar(sipPy)";
         else
-            fmt = "\tsipVal = (unsigned char *)PyString_AsString(sipPy);\n";
+            rhs = "(unsigned char *)PyString_AsString(sipPy)";
         break;
 
     case string_type:
         if (ad->nrderefs == 0)
-            fmt = "\tsipValPtr = PyString_AsString(sipPy);\n";
+            rhs = "sipString_AsChar(sipPy)";
         else
-            fmt = "\tsipVal = PyString_AsString(sipPy);\n";
+            rhs = "PyString_AsString(sipPy)";
+        break;
+
+    case wstring_type:
+        if (ad->nrderefs == 0)
+            rhs = "sipUnicode_AsWChar(sipPy)";
+        else
+            rhs = "sipUnicode_AsWString(sipPy)";
         break;
 
     case float_type:
     case cfloat_type:
-        fmt = "\tsipVal = (float)PyFloat_AsDouble(sipPy);\n";
+        rhs = "(float)PyFloat_AsDouble(sipPy)";
         break;
 
     case double_type:
     case cdouble_type:
-        fmt = "\tsipVal = PyFloat_AsDouble(sipPy);\n";
+        rhs = "PyFloat_AsDouble(sipPy)";
         break;
 
     case bool_type:
     case cbool_type:
-        fmt = "\tsipVal = (bool)PyInt_AsLong(sipPy);\n";
+        rhs = "(bool)PyInt_AsLong(sipPy)";
         break;
 
     case ushort_type:
-        fmt = "\tsipVal = (unsigned short)sipLong_AsUnsignedLong(sipPy);\n";
+        rhs = "(unsigned short)sipLong_AsUnsignedLong(sipPy)";
         break;
 
     case short_type:
-        fmt = "\tsipVal = (short)PyInt_AsLong(sipPy);\n";
+        rhs = "(short)PyInt_AsLong(sipPy)";
         break;
 
     case uint_type:
-        fmt = "\tsipVal = (unsigned)sipLong_AsUnsignedLong(sipPy);\n";
+        rhs = "(unsigned)sipLong_AsUnsignedLong(sipPy)";
         break;
 
     case int_type:
     case cint_type:
-        fmt = "\tsipVal = (int)PyInt_AsLong(sipPy);\n";
+        rhs = "(int)PyInt_AsLong(sipPy)";
         break;
 
     case ulong_type:
-        fmt = "\tsipVal = sipLong_AsUnsignedLong(sipPy);\n";
+        rhs = "sipLong_AsUnsignedLong(sipPy)";
         break;
 
     case long_type:
-        fmt = "\tsipVal = PyLong_AsLong(sipPy);\n";
+        rhs = "PyLong_AsLong(sipPy)";
         break;
 
     case ulonglong_type:
-        fmt = "\tsipVal = PyLong_AsUnsignedLongLong(sipPy);\n";
+        rhs = "PyLong_AsUnsignedLongLong(sipPy)";
         break;
 
     case longlong_type:
-        fmt = "\tsipVal = PyLong_AsLongLong(sipPy);\n";
+        rhs = "PyLong_AsLongLong(sipPy)";
         break;
 
     case struct_type:
-        prcode(fp,
-"    sipVal = (struct %S *)sipConvertToVoidPtr(sipPy);\n"
-            ,ad->u.sname);
+        prcode(fp, "(struct %S *)sipConvertToVoidPtr(sipPy);\n"
+            , ad->u.sname);
         break;
 
     case void_type:
-        fmt = "\tsipVal = sipConvertToVoidPtr(sipPy);\n";
+        rhs = "sipConvertToVoidPtr(sipPy)";
         break;
 
     case pyobject_type:
@@ -3824,12 +3824,13 @@ static int generateObjToCppConversion(argDef *ad,FILE *fp)
     case pycallable_type:
     case pyslice_type:
     case pytype_type:
-        fmt = "\tsipVal = sipPy;\n";
+        rhs = "sipPy";
         break;
     }
 
-    if (fmt != NULL)
-        prcode(fp,"%s",fmt);
+    if (rhs != NULL)
+        prcode(fp, "%s;\n"
+            , rhs);
 
     return might_be_temp;
 }
@@ -5920,6 +5921,9 @@ static const char *getParseResultFormat(argDef *ad, int isres, int xfervh)
     case string_type:
         return ((ad->nrderefs == 0) ? "c" : "s");
 
+    case wstring_type:
+        return ((ad->nrderefs == 0) ? "w" : "x");
+
     case enum_type:
         return ((ad->u.ed->fqcname != NULL) ? "E" : "e");
 
@@ -6004,6 +6008,16 @@ static void generateTupleBuilder(signatureDef *sd,FILE *fp)
                 fmt = "a";
             else
                 fmt = "s";
+
+            break;
+
+        case wstring_type:
+            if (ad->nrderefs == 0 || (ad->nrderefs == 1 && isOutArg(ad)))
+                fmt = "w";
+            else if (isArray(ad))
+                fmt = "A";
+            else
+                fmt = "x";
 
             break;
 
@@ -6151,6 +6165,7 @@ static void generateTupleBuilder(signatureDef *sd,FILE *fp)
         case sstring_type:
         case ustring_type:
         case string_type:
+        case wstring_type:
             if (!(ad->nrderefs == 0 || (ad->nrderefs == 1 && isOutArg(ad))))
                 --derefs;
 
@@ -6806,6 +6821,7 @@ static void generateSingleArg(argDef *ad,int argnr,funcArgType ftype,FILE *fp)
             case sstring_type:
             case ustring_type:
             case string_type:
+            case wstring_type:
                 if (ad->nrderefs > (isOutArg(ad) ? 0 : 1))
                     ind = "&";
 
@@ -6894,6 +6910,10 @@ static void generateNamedBaseType(argDef *ad,char *name,FILE *fp)
 
     case ustring_type:
         prcode(fp,"unsigned char");
+        break;
+
+    case wstring_type:
+        prcode(fp,"wchar_t");
         break;
 
     case signal_type:
@@ -7086,6 +7106,7 @@ static void generateVariable(argDef *ad,int argnr,FILE *fp)
     case sstring_type:
     case ustring_type:
     case string_type:
+    case wstring_type:
         if (!isReference(ad))
             if (ad->nrderefs == 2)
                 ad->nrderefs = 1;
@@ -8676,6 +8697,25 @@ static void generateHandleResult(overDef *od,int isNew,char *prefix,FILE *fp)
 
         break;
 
+    case wstring_type:
+        if (ad->nrderefs == 0)
+            prcode(fp,
+"            %s PyUnicode_FromWideChar(&%s,1);\n"
+                , prefix, vname);
+        else
+            prcode(fp,
+"            if (%s == NULL)\n"
+"            {\n"
+"                Py_INCREF(Py_None);\n"
+"                return Py_None;\n"
+"            }\n"
+"\n"
+"            %s PyUnicode_FromWideChar(%s,(SIP_SSIZE_T)wcslen(%s));\n"
+            , vname
+            , prefix, vname, vname);
+
+        break;
+
     case enum_type:
         if (ad->u.ed->fqcname != NULL)
         {
@@ -8811,6 +8851,9 @@ static char getBuildResultFormat(argDef *ad)
     case ustring_type:
     case string_type:
         return (ad->nrderefs > (isOutArg(ad) ? 1 : 0)) ? 's' : 'c';
+
+    case wstring_type:
+        return (ad->nrderefs > (isOutArg(ad) ? 1 : 0)) ? 'x' : 'w';
 
     case enum_type:
         return (ad->u.ed->fqcname != NULL) ? 'E' : 'e';
@@ -9552,6 +9595,16 @@ static int generateArgParser(sipSpec *pt, signatureDef *sd, classDef *cd,
                 fmt = "a";
             else
                 fmt = "s";
+
+            break;
+
+        case wstring_type:
+            if (ad->nrderefs == 0 || (isOutArg(ad) && ad->nrderefs == 1))
+                fmt = "w";
+            else if (isArray(ad))
+                fmt = "A";
+            else
+                fmt = "x";
 
             break;
 

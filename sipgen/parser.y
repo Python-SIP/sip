@@ -167,6 +167,7 @@ static int optFind(sipSpec *pt, const char *opt);
 %token          TK_FLOAT
 %token          TK_DOUBLE
 %token          TK_CHAR
+%token          TK_WCHAR_T
 %token          TK_VOID
 %token          TK_PYOBJECT
 %token          TK_PYTUPLE
@@ -2245,6 +2246,9 @@ basetype:   scopedname {
         }
     |   TK_CHAR {
             $$.atype = string_type;
+        }
+    |   TK_WCHAR_T {
+            $$.atype = wstring_type;
         }
     |   TK_VOID {
             $$.atype = void_type;

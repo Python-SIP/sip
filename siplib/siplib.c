@@ -105,6 +105,14 @@ static void *sip_api_import_symbol(const char *name);
 static int sip_api_register_int_types(PyObject *args);
 static sipWrapperType *sip_api_find_class(const char *type);
 static PyTypeObject *sip_api_find_named_enum(const char *type);
+static char sip_api_string_as_char(PyObject *obj);
+#if defined(HAVE_WCHAR_H)
+static wchar_t sip_api_unicode_as_wchar(PyObject *obj);
+static wchar_t *sip_api_unicode_as_wstring(PyObject *obj);
+#else
+static int sip_api_unicode_as_wchar(PyObject *obj);
+static int *sip_api_unicode_as_wstring(PyObject *obj);
+#endif
 
 
 /*
@@ -206,6 +214,12 @@ static const sipAPIDef sip_api = {
      */
     sip_api_find_class,
     sip_api_find_named_enum,
+    /*
+     * The following are not part of the public API.
+     */
+    sip_api_string_as_char,
+    sip_api_unicode_as_wchar,
+    sip_api_unicode_as_wstring,
 };
 
 
@@ -381,6 +395,16 @@ static void callPyDtor(sipWrapper *self);
 static int qt_and_sip_api_3_4(void);
 static int visitSlot(sipSlot *slot, visitproc visit, void *arg);
 static void clearAnyLambda(sipSlot *slot);
+static int parseCharArray(PyObject *obj, char **ap, int *aszp);
+static int parseChar(PyObject *obj, char *ap);
+static int parseCharString(PyObject *obj, char **ap);
+#if defined(HAVE_WCHAR_H)
+static int parseWCharArray(PyObject *obj, wchar_t **ap, int *aszp);
+static int parseWChar(PyObject *obj, wchar_t *ap);
+static int parseWCharString(PyObject *obj, wchar_t **ap);
+#else
+static void raiseNoWChar();
+#endif
 
 
 /*
@@ -1243,17 +1267,41 @@ static PyObject *buildObject(PyObject *obj, const char *fmt, va_list va)
                 char *s;
                 int l;
 
-                s = va_arg(va,char *);
-                l = va_arg(va,int);
+                s = va_arg(va, char *);
+                l = va_arg(va, int);
 
                 if (s != NULL)
-                    el = PyString_FromStringAndSize(s,l);
+                    el = PyString_FromStringAndSize(s, (SIP_SSIZE_T)l);
                 else
                 {
                     Py_INCREF(Py_None);
                     el = Py_None;
                 }
             }
+
+            break;
+
+        case 'A':
+#if defined(HAVE_WCHAR_H)
+            {
+                wchar_t *s;
+                int l;
+
+                s = va_arg(va, wchar_t *);
+                l = va_arg(va, int);
+
+                if (s != NULL)
+                    el = PyUnicode_FromWideChar(s, (SIP_SSIZE_T)l);
+                else
+                {
+                    Py_INCREF(Py_None);
+                    el = Py_None;
+                }
+            }
+#else
+            raiseNoWChar();
+            el = NULL;
+#endif
 
             break;
 
@@ -1267,6 +1315,20 @@ static PyObject *buildObject(PyObject *obj, const char *fmt, va_list va)
 
                 el = PyString_FromStringAndSize(&c,1);
             }
+
+            break;
+
+        case 'w':
+#if defined(HAVE_WCHAR_H)
+            {
+                wchar_t c = va_arg(va, wchar_t);
+
+                el = PyUnicode_FromWideChar(&c, 1);
+            }
+#else
+            raiseNoWChar();
+            el = NULL;
+#endif
 
             break;
 
@@ -1320,7 +1382,7 @@ static PyObject *buildObject(PyObject *obj, const char *fmt, va_list va)
 
         case 's':
             {
-                char *s = va_arg(va,char *);
+                char *s = va_arg(va, char *);
 
                 if (s != NULL)
                     el = PyString_FromString(s);
@@ -1330,6 +1392,26 @@ static PyObject *buildObject(PyObject *obj, const char *fmt, va_list va)
                     el = Py_None;
                 }
             }
+
+            break;
+
+        case 'x':
+#if defined(HAVE_WCHAR_H)
+            {
+                wchar_t *s = va_arg(va, wchar_t *);
+
+                if (s != NULL)
+                    el = PyUnicode_FromWideChar(s, (SIP_SSIZE_T)wcslen(s));
+                else
+                {
+                    Py_INCREF(Py_None);
+                    el = Py_None;
+                }
+            }
+#else
+            raiseNoWChar();
+            el = NULL;
+#endif
 
             break;
 
@@ -1496,22 +1578,28 @@ static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
             {
             case 'a':
                 {
-                    char **p = va_arg(va,char **);
-                    int *szp = va_arg(va,int *);
+                    char **p = va_arg(va, char **);
+                    int *szp = va_arg(va, int *);
 
-                    if (arg == Py_None)
-                    {
-                        *p = NULL;
-                        *szp = 0;
-                    }
-                    else if (PyString_Check(arg))
-                    {
-                        *p = PyString_AS_STRING(arg);
-                        *szp = PyString_GET_SIZE(arg);
-                    }
-                    else
+                    if (parseCharArray(arg, p, szp) < 0)
                         invalid = TRUE;
                 }
+
+                break;
+
+            case 'A':
+#if defined(HAVE_WCHAR_H)
+                {
+                    wchar_t **p = va_arg(va, wchar_t **);
+                    int *szp = va_arg(va, int *);
+
+                    if (parseWCharArray(arg, p, szp) < 0)
+                        invalid = TRUE;
+                }
+#else
+                raiseNoWChar();
+                invalid = TRUE;
+#endif
 
                 break;
 
@@ -1529,11 +1617,26 @@ static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
 
             case 'c':
                 {
-                    if (PyString_Check(arg) && PyString_GET_SIZE(arg) == 1)
-                        *va_arg(va,char *) = *PyString_AS_STRING(arg);
-                    else
+                    char *p = va_arg(va, char *);
+
+                    if (parseChar(arg, p) < 0)
                         invalid = TRUE;
                 }
+
+                break;
+
+            case 'w':
+#if defined(HAVE_WCHAR_H)
+                {
+                    wchar_t *p = va_arg(va, wchar_t *);
+
+                    if (parseWChar(arg, p) < 0)
+                        invalid = TRUE;
+                }
+#else
+                raiseNoWChar();
+                invalid = TRUE;
+#endif
 
                 break;
 
@@ -1700,15 +1803,26 @@ static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
 
             case 's':
                 {
-                    char **p = va_arg(va,char **);
+                    char **p = va_arg(va, char **);
 
-                    if (arg == Py_None)
-                        *p = NULL;
-                    else if (PyString_Check(arg))
-                        *p = PyString_AS_STRING(arg);
-                    else
+                    if (parseCharString(arg, p) < 0)
                         invalid = TRUE;
                 }
+
+                break;
+
+            case 'x':
+#if defined(HAVE_WCHAR_H)
+                {
+                    wchar_t **p = va_arg(va, wchar_t **);
+
+                    if (parseWCharString(arg, p) < 0)
+                        invalid = TRUE;
+                }
+#else
+                raiseNoWChar();
+                invalid = TRUE;
+#endif
 
                 break;
 
@@ -2183,17 +2297,31 @@ static int parsePass1(sipWrapper **selfp, int *selfargp, int *argsParsedp,
             {
                 /* String or None. */
 
-                char **p = va_arg(va,char **);
+                char **p = va_arg(va, char **);
 
-                if (arg == Py_None)
-                    *p = NULL;
-                else if (PyString_Check(arg))
-                    *p = PyString_AS_STRING(arg);
-                else
+                if (parseCharString(arg, p) < 0)
                     valid = PARSE_TYPE;
 
                 break;
             }
+
+        case 'x':
+#if defined(HAVE_WCHAR_H)
+            {
+                /* Wide string or None. */
+
+                wchar_t **p = va_arg(va, wchar_t **);
+
+                if (parseWCharString(arg, p) < 0)
+                    valid = PARSE_TYPE;
+
+                break;
+            }
+#else
+            raiseNoWChar();
+            valid = PARSE_RAISED;
+            break;
+#endif
 
         case 'U':
             {
@@ -2463,38 +2591,65 @@ static int parsePass1(sipWrapper **selfp, int *selfargp, int *argsParsedp,
 
         case 'a':
             {
-                /* Byte array or None. */
+                /* Char array or None. */
 
-                char **p = va_arg(va,char **);
-                int *szp = va_arg(va,int *);
+                char **p = va_arg(va, char **);
+                int *szp = va_arg(va, int *);
 
-                if (arg == Py_None)
-                {
-                    *p = NULL;
-                    *szp = 0;
-                }
-                else if (PyString_Check(arg))
-                {
-                    *p = PyString_AS_STRING(arg);
-                    *szp = PyString_GET_SIZE(arg);
-                }
-                else
+                if (parseCharArray(arg, p, szp) < 0)
                     valid = PARSE_TYPE;
 
                 break;
             }
+
+        case 'A':
+#if defined(HAVE_WCHAR_H)
+            {
+                /* Wide char array or None. */
+
+                wchar_t **p = va_arg(va, wchar_t **);
+                int *szp = va_arg(va, int *);
+
+                if (parseWCharArray(arg, p, szp) < 0)
+                    valid = PARSE_TYPE;
+
+                break;
+            }
+#else
+            raiseNoWChar();
+            valid = PARSE_RAISED;
+            break
+#endif
 
         case 'c':
             {
                 /* Character. */
 
-                if (PyString_Check(arg) && PyString_GET_SIZE(arg) == 1)
-                    *va_arg(va,char *) = *PyString_AS_STRING(arg);
-                else
+                char *p = va_arg(va, char *);
+
+                if (parseChar(arg, p) < 0)
                     valid = PARSE_TYPE;
 
                 break;
             }
+
+        case 'w':
+#if defined(HAVE_WCHAR_H)
+            {
+                /* Wide character. */
+
+                wchar_t *p = va_arg(va, wchar_t *);
+
+                if (parseWChar(arg, p) < 0)
+                    valid = PARSE_TYPE;
+
+                break;
+            }
+#else
+            raiseNoWChar();
+            valid = PARSE_RAISED;
+            break
+#endif
 
         case 'b':
             {
@@ -3060,6 +3215,7 @@ static int parsePass2(sipWrapper *self, int selfarg, int nrargs,
         case 'N':
         case 'T':
         case 'a':
+        case 'A':
             va_arg(va,void *);
 
             /* Drop through. */
@@ -7491,3 +7647,233 @@ static void clearAnyLambda(sipSlot *slot)
         Py_DECREF(lam);
     }
 }
+
+
+/*
+ * Convert a Python object to a character.
+ */
+static char sip_api_string_as_char(PyObject *obj)
+{
+    char ch;
+
+    if (parseChar(obj, &ch) < 0)
+    {
+        PyErr_SetString(PyExc_ValueError, "string of length 1 expected");
+
+        return '\0';
+    }
+
+    return ch;
+}
+
+
+/*
+ * Parse a character array and return it's address and length.
+ */
+static int parseCharArray(PyObject *obj, char **ap, int *aszp)
+{
+    if (obj == Py_None)
+    {
+        *ap = NULL;
+        *aszp = 0;
+    }
+    else if (PyString_Check(obj))
+    {
+        *ap = PyString_AS_STRING(obj);
+        *aszp = (int)PyString_GET_SIZE(obj);
+    }
+    else
+        return -1;
+
+    return 0;
+}
+
+
+/*
+ * Parse a character and return it.
+ */
+static int parseChar(PyObject *obj, char *ap)
+{
+    if (!PyString_Check(obj) || PyString_GET_SIZE(obj) != 1)
+        return -1;
+
+    *ap = *PyString_AS_STRING(obj);
+
+    return 0;
+}
+
+
+/*
+ * Parse a character string and return it.
+ */
+static int parseCharString(PyObject *obj, char **ap)
+{
+    if (obj == Py_None)
+        *ap = NULL;
+    else if (PyString_Check(obj))
+        *ap = PyString_AS_STRING(obj);
+    else
+        return -1;
+
+    return 0;
+}
+
+
+#if defined(HAVE_WCHAR_H)
+/*
+ * Convert a Python object to a wide character.
+ */
+static wchar_t sip_api_unicode_as_wchar(PyObject *obj)
+{
+    wchar_t ch;
+
+    if (parseWChar(obj, &ch) < 0)
+    {
+        PyErr_SetString(PyExc_ValueError, "unicode string of length 1 expected");
+
+        return L'\0';
+    }
+
+    return ch;
+}
+
+
+/*
+ * Convert a Python object to a wide character string on the heap.
+ */
+static wchar_t *sip_api_unicode_as_wstring(PyObject *obj)
+{
+    wchar_t *p;
+
+    if (parseWCharString(obj, &p) < 0)
+    {
+        PyErr_SetString(PyExc_ValueError, "unicode string expected");
+
+        return NULL;
+    }
+
+    return p;
+}
+
+
+/*
+ * Parse a wide character array and return it's address and length.
+ */
+static int parseWCharArray(PyObject *obj, wchar_t **ap, int *aszp)
+{
+    if (obj == Py_None)
+    {
+        *ap = NULL;
+        *aszp = 0;
+    }
+    else if (PyUnicode_Check(obj))
+    {
+        SIP_SSIZE_T ulen;
+        wchar_t *wc;
+
+        ulen = PyUnicode_GET_SIZE(obj);
+
+        if ((wc = sip_api_malloc(ulen * sizeof (wchar_t))) == NULL)
+            return -1;
+
+        ulen = PyUnicode_AsWideChar((PyUnicodeObject *)obj, wc, ulen);
+
+        if (ulen < 0)
+        {
+            sip_api_free(wc);
+            return -1;
+        }
+
+        *ap = wc;
+        *aszp = (int)ulen;
+    }
+    else
+        return -1;
+
+    return 0;
+}
+
+
+/*
+ * Parse a wide character and return it.
+ */
+static int parseWChar(PyObject *obj, wchar_t *ap)
+{
+    if (!PyUnicode_Check(obj) || PyUnicode_GET_SIZE(obj) != 1)
+        return -1;
+
+    if (PyUnicode_AsWideChar((PyUnicodeObject *)obj, ap, 1) != 1)
+        return -1;
+
+    return 0;
+}
+
+
+/*
+ * Parse a wide character string and return it.
+ */
+static int parseWCharString(PyObject *obj, wchar_t **ap)
+{
+    if (obj == Py_None)
+        *ap = NULL;
+    else if (PyUnicode_Check(obj))
+    {
+        SIP_SSIZE_T ulen;
+        wchar_t *wc;
+
+        ulen = PyUnicode_GET_SIZE(obj);
+
+        if ((wc = sip_api_malloc((ulen + 1) * sizeof (wchar_t))) == NULL)
+            return -1;
+
+        ulen = PyUnicode_AsWideChar((PyUnicodeObject *)obj, wc, ulen);
+
+        if (ulen < 0)
+        {
+            sip_api_free(wc);
+            return -1;
+        }
+
+        wc[ulen] = L'\0';
+
+        *ap = wc;
+    }
+    else
+        return -1;
+
+    return 0;
+}
+
+#else
+
+/*
+ * Convert a Python object to a wide character.
+ */
+static int sip_api_unicode_as_wchar(PyObject *obj)
+{
+    raiseNoWChar();
+
+    return 0;
+}
+
+
+/*
+ * Convert a Python object to a wide character.
+ */
+static int *sip_api_unicode_as_wstring(PyObject *obj)
+{
+    raiseNoWChar();
+
+    return NULL;
+}
+
+
+/*
+ * Report the need for absent wide character support.
+ */
+static void raiseNoWChar()
+{
+    PyErr_SetString(PyExc_SystemError, "sip built without wchar_t support");
+}
+
+#endif

@@ -895,6 +895,7 @@ static const char *pyType(argDef *ad, int sec, classDef **scope)
     case ustring_type:
     case string_type:
     case sstring_type:
+    case wstring_type:
         if (ad->nrderefs > 0)
             type_name = "str";
         else

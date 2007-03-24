@@ -19,23 +19,23 @@
 #endif
 
 
-#define YY_FATAL_ERROR(s)   fatallex(s)
+#define YY_FATAL_ERROR(s)       fatallex(s)
 
-#define MAX_INCLUDE_DEPTH   10
+#define MAX_INCLUDE_DEPTH       10
 #define MAX_CODE_LINE_LENGTH    1000
 
 
 static struct inputFile {
-    int     lineno;     /* The line number. */
-    YY_BUFFER_STATE bs;     /* The flex buffer state handle. */
-    char        *name;      /* The file name. */
-    char        *cwd;       /* The path part of the file name. */
-    parserContext   pc;     /* The parser context. */
+    int lineno;                         /* The line number. */
+    YY_BUFFER_STATE bs;                 /* The flex buffer state handle. */
+    char *name;                         /* The file name. */
+    char *cwd;                          /* The path part of the file name. */
+    parserContext pc;                   /* The parser context. */
 } inputFileStack[MAX_INCLUDE_DEPTH];
 
-static int currentFile = -1;        /* Index of the current input file. */
+static int currentFile = -1;            /* Index of the current input file. */
 static char codeLine[MAX_CODE_LINE_LENGTH + 2]; /* The current code line. */
-static int codeIdx = -1;        /* Index of next code character. */
+static int codeIdx = -1;                /* Index of next code character. */
 
 static FILE *openFile(char *);
 static void fatallex(char *);
@@ -46,69 +46,70 @@ static void fatallex(char *);
 
 %%
 
-^[ \t]*%SIPOptions      {return TK_OPTIONS;}
+^[ \t]*%SIPOptions          {return TK_OPTIONS;}
 ^[ \t]*%SIPNoEmitters       {return TK_NOEMITTERS;}
-^[ \t]*%Include         {return TK_INCLUDE;}
+^[ \t]*%Include             {return TK_INCLUDE;}
 ^[ \t]*%OptionalInclude     {return TK_OPTINCLUDE;}
-^[ \t]*%Import          {return TK_IMPORT;}
-^[ \t]*%Module          {return TK_MODULE;}
-^[ \t]*%CModule         {return TK_CMODULE;}
-^[ \t]*%Timeline        {return TK_TIMELINE;}
-^[ \t]*%Platforms       {return TK_PLATFORMS;}
-^[ \t]*%Feature         {return TK_FEATURE;}
-^[ \t]*%License         {return TK_LICENSE;}
-^[ \t]*%MappedType      {return TK_MAPPEDTYPE;}
-^[ \t]*%Exception       {return TK_EXCEPTION;}
-^[ \t]*%If          {return TK_IF;}
+^[ \t]*%Import              {return TK_IMPORT;}
+^[ \t]*%Module              {return TK_MODULE;}
+^[ \t]*%CModule             {return TK_CMODULE;}
+^[ \t]*%Timeline            {return TK_TIMELINE;}
+^[ \t]*%Platforms           {return TK_PLATFORMS;}
+^[ \t]*%Feature             {return TK_FEATURE;}
+^[ \t]*%License             {return TK_LICENSE;}
+^[ \t]*%MappedType          {return TK_MAPPEDTYPE;}
+^[ \t]*%Exception           {return TK_EXCEPTION;}
+^[ \t]*%If                  {return TK_IF;}
 <INITIAL>^[ \t]*%End        {return TK_END;}
-class               {return TK_CLASS;}
-struct              {return TK_STRUCT;}
-public              {return TK_PUBLIC;}
-protected           {return TK_PROTECTED;}
-private             {return TK_PRIVATE;}
-signals             {return TK_SIGNALS;}
-slots               {return TK_SLOTS;}
-char                {return TK_CHAR;}
-bool                {return TK_BOOL;}
-short               {return TK_SHORT;}
-int             {return TK_INT;}
-long                {return TK_LONG;}
-float               {return TK_FLOAT;}
-double              {return TK_DOUBLE;}
-void                {return TK_VOID;}
-virtual             {return TK_VIRTUAL;}
-enum                {return TK_ENUM;}
-signed              {return TK_SIGNED;}
-unsigned            {return TK_UNSIGNED;}
-const               {return TK_CONST;}
-static              {return TK_STATIC;}
-true                {return TK_TRUE;}
-false               {return TK_FALSE;}
-NULL                {return TK_NULL;}
-typedef             {return TK_TYPEDEF;}
-namespace           {return TK_NAMESPACE;}
-operator            {return TK_OPERATOR;}
-throw               {return TK_THROW;}
-explicit            {return TK_EXPLICIT;}
-template            {return TK_TEMPLATE;}
-::              {return TK_SCOPE;}
-\|\|                {return TK_LOGICAL_OR;}
-SIP_PYOBJECT            {return TK_PYOBJECT;}
-SIP_PYTUPLE         {return TK_PYTUPLE;}
-SIP_PYLIST          {return TK_PYLIST;}
-SIP_PYDICT          {return TK_PYDICT;}
-SIP_PYCALLABLE          {return TK_PYCALLABLE;}
-SIP_PYSLICE         {return TK_PYSLICE;}
-SIP_PYTYPE          {return TK_PYTYPE;}
-SIP_SIGNAL          {return TK_SIPSIGNAL;}
-SIP_SLOT            {return TK_SIPSLOT;}
-SIP_ANYSLOT         {return TK_SIPANYSLOT;}
-SIP_RXOBJ_CON           {return TK_SIPRXCON;}
-SIP_RXOBJ_DIS           {return TK_SIPRXDIS;}
-SIP_SLOT_CON            {return TK_SIPSLOTCON;}
-SIP_SLOT_DIS            {return TK_SIPSLOTDIS;}
-SIP_QOBJECT         {return TK_QOBJECT;}
-\.\.\.              {return TK_ELLIPSIS;}
+class                       {return TK_CLASS;}
+struct                      {return TK_STRUCT;}
+public                      {return TK_PUBLIC;}
+protected                   {return TK_PROTECTED;}
+private                     {return TK_PRIVATE;}
+signals                     {return TK_SIGNALS;}
+slots                       {return TK_SLOTS;}
+char                        {return TK_CHAR;}
+wchar_t                     {return TK_WCHAR_T;}
+bool                        {return TK_BOOL;}
+short                       {return TK_SHORT;}
+int                         {return TK_INT;}
+long                        {return TK_LONG;}
+float                       {return TK_FLOAT;}
+double                      {return TK_DOUBLE;}
+void                        {return TK_VOID;}
+virtual                     {return TK_VIRTUAL;}
+enum                        {return TK_ENUM;}
+signed                      {return TK_SIGNED;}
+unsigned                    {return TK_UNSIGNED;}
+const                       {return TK_CONST;}
+static                      {return TK_STATIC;}
+true                        {return TK_TRUE;}
+false                       {return TK_FALSE;}
+NULL                        {return TK_NULL;}
+typedef                     {return TK_TYPEDEF;}
+namespace                   {return TK_NAMESPACE;}
+operator                    {return TK_OPERATOR;}
+throw                       {return TK_THROW;}
+explicit                    {return TK_EXPLICIT;}
+template                    {return TK_TEMPLATE;}
+::                          {return TK_SCOPE;}
+\|\|                        {return TK_LOGICAL_OR;}
+SIP_PYOBJECT                {return TK_PYOBJECT;}
+SIP_PYTUPLE                 {return TK_PYTUPLE;}
+SIP_PYLIST                  {return TK_PYLIST;}
+SIP_PYDICT                  {return TK_PYDICT;}
+SIP_PYCALLABLE              {return TK_PYCALLABLE;}
+SIP_PYSLICE                 {return TK_PYSLICE;}
+SIP_PYTYPE                  {return TK_PYTYPE;}
+SIP_SIGNAL                  {return TK_SIPSIGNAL;}
+SIP_SLOT                    {return TK_SIPSLOT;}
+SIP_ANYSLOT                 {return TK_SIPANYSLOT;}
+SIP_RXOBJ_CON               {return TK_SIPRXCON;}
+SIP_RXOBJ_DIS               {return TK_SIPRXDIS;}
+SIP_SLOT_CON                {return TK_SIPSLOTCON;}
+SIP_SLOT_DIS                {return TK_SIPSLOTDIS;}
+SIP_QOBJECT                 {return TK_QOBJECT;}
+\.\.\.                      {return TK_ELLIPSIS;}
 
 
 [ \t\r] {           /* Ignore whitespace. */
