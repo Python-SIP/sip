@@ -3297,7 +3297,7 @@ static void generateVariableHandler(varDef *vd,FILE *fp)
     if (vd->getcode == NULL || vd->setcode == NULL)
     {
         prcode(fp,
-"   ");
+"    ");
 
         generateNamedValueType(&vd->type, "sipVal", fp);
 
@@ -3600,6 +3600,8 @@ static void generateVariableHandler(varDef *vd,FILE *fp)
 
         prcode(fp, " = %ssipVal;\n"
             , deref);
+
+        /* Note that wchar_t * leaks here. */
 
         if (might_be_temp)
             prcode(fp,
@@ -5217,11 +5219,11 @@ static void generateVirtHandlerErrorReturn(argDef *res,FILE *fp)
 /*
  * Generate the call to a default ctor.
  */
-static void generateCallDefaultCtor(ctorDef *ct,FILE *fp)
+static void generateCallDefaultCtor(ctorDef *ct, FILE *fp)
 {
     int a;
 
-    prcode(fp,"(");
+    prcode(fp, "(");
 
     for (a = 0; a < ct->cppsig->nrArgs; ++a)
     {
@@ -5231,30 +5233,34 @@ static void generateCallDefaultCtor(ctorDef *ct,FILE *fp)
             break;
 
         if (a > 0)
-            prcode(fp,",");
+            prcode(fp, ",");
 
         /*
          * Do what we can to provide type information to the compiler.
          */
         if (ad->atype == class_type && ad->nrderefs > 0 && !isReference(ad))
-            prcode(fp,"static_cast<%B>(0)",ad);
+            prcode(fp, "static_cast<%B>(0)", ad);
         else if (ad->atype == enum_type)
-            prcode(fp,"static_cast<%E>(0)",ad->u.ed);
+            prcode(fp, "static_cast<%E>(0)", ad->u.ed);
         else if (ad->atype == float_type || ad->atype == cfloat_type)
-            prcode(fp,"0.0F");
+            prcode(fp, "0.0F");
         else if (ad->atype == double_type || ad->atype == cdouble_type)
-            prcode(fp,"0.0");
+            prcode(fp, "0.0");
         else if (ad->atype == uint_type)
-            prcode(fp,"0U");
+            prcode(fp, "0U");
         else if (ad->atype == long_type || ad->atype == longlong_type)
-            prcode(fp,"0L");
+            prcode(fp, "0L");
         else if (ad->atype == ulong_type || ad->atype == ulonglong_type)
-            prcode(fp,"0UL");
+            prcode(fp, "0UL");
+        else if ((ad->atype == ustring_type || ad->atype == sstring_type || ad->atype == string_type) && ad->nrderefs == 0)
+            prcode(fp, "'\\0'");
+        else if (ad->atype == wstring_type && ad->nrderefs == 0)
+            prcode(fp, "L'\\0'");
         else
-            prcode(fp,"0");
+            prcode(fp, "0");
     }
 
-    prcode(fp,")");
+    prcode(fp, ")");
 }
 
 
@@ -9955,7 +9961,14 @@ static void deleteTemps(signatureDef *sd, FILE *fp)
     {
         argDef *ad = &sd->args[a];
 
-        if (isInArg(ad) && hasConvertToCode(ad))
+        if (!isInArg(ad))
+            continue;
+
+        if (ad->atype == wstring_type && ad->nrderefs == 1)
+            prcode(fp,
+"            sipFree(a%d);\n"
+                , a);
+        else if (hasConvertToCode(ad))
         {
             const char *fstr, *sstr;
 

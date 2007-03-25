@@ -771,6 +771,30 @@ heap using the ``free()`` function.
 See also `sipTransferTo()`_ and `sipTransferBack()`_.
 
 
+Support for Wide Characters
+---------------------------
+
+SIP v4.6 introduced support for wide characters (i.e. the ``wchar_t`` type).
+Python's C API includes support for converting between unicode objects and wide
+character strings and arrays.  When converting from a unicode object to wide
+characters SIP creates the string or array on the heap (using memory allocated
+using `sipMalloc()`_).  This then raises the problem of how this memory is
+subsequently freed.
+
+The following describes how SIP handles this memory in the different situations
+where this is an issue.
+
+    - When a wide string or array is passed to a function or method then the
+      memory is freed (using `sipFree()`_) after than function or method
+      returns.
+
+    - When a wide string or array is returned from a virtual method then SIP
+      does not free the memory.
+
+    - When an assignment is made to a wide string or array instance variable
+      then SIP does not first free the instance's current string or array.
+
+
 The Python Global Interpreter Lock
 ----------------------------------
 
@@ -1120,9 +1144,9 @@ file.
             ``short`` | ``unsigned short`` | ``int`` | ``unsigned`` |
             ``unsigned int`` | ``long`` | ``unsigned long`` | ``float`` |
             ``double`` | ``bool`` | ``char`` | ``signed char`` |
-            ``unsigned char`` | ``void`` | SIP_PYCALLABLE_ | SIP_PYDICT_ |
-            SIP_PYLIST_ | SIP_PYOBJECT_ | SIP_PYSLICE_ | SIP_PYTUPLE_ |
-            SIP_PYTYPE_]
+            ``unsigned char`` | ``void`` | ``wchar_t`` | SIP_PYCALLABLE_ |
+            SIP_PYDICT_ | SIP_PYLIST_ | SIP_PYOBJECT_ | SIP_PYSLICE_ |
+            SIP_PYTUPLE_ | SIP_PYTYPE_]
 
     *scoped-name* ::= *name* [``::`` *scoped-name*]
 
@@ -1649,7 +1673,7 @@ the correct type prior to conversion.
 When used as part of a class specification it can automatically convert
 additional types of Python object.  For example, PyQt uses it in the
 specification of the ``QString`` class to allow Python string objects and
-Unicode objects to be used wherever ``QString`` instances are expected.
+unicode objects to be used wherever ``QString`` instances are expected.
 
 The following variables are made available to the handwritten code:
 
@@ -1791,7 +1815,7 @@ include copyright and licensing terms.
 For example::
 
     %Copying
-    Copyright (c) 2006 Riverbank Computing Limited
+    Copyright (c) 2007 Riverbank Computing Limited
     %End
 
 
@@ -3591,8 +3615,8 @@ PyObject \*sipBuildResult(int \*iserr, const char \*format, ...)
 
     ``a`` (string) [char \*, int]
         Convert a C/C++ character array and its length to a Python string.  If
-        the character array is ``NULL`` then the length is ignored and the
-        result is ``Py_None``.
+        the array is ``NULL`` then the length is ignored and the result is
+        ``Py_None``.
 
     ``b`` (boolean) [int]
         Convert a C/C++ ``int`` to a Python boolean.
@@ -3636,6 +3660,19 @@ PyObject \*sipBuildResult(int \*iserr, const char \*format, ...)
 
     ``u`` (long) [unsigned int]
         Convert a C/C++ ``unsigned int`` to a Python long.
+
+    ``w`` (unicode) [wchar_t]
+        Convert a C/C++ wide character to a Python unicode object.
+
+    ``x`` (unicode) [wchar_t \*]
+        Convert a C/C++ ``L'\0'`` terminated wide character string to a Python
+        unicode object.  If the string pointer is ``NULL`` then the result is
+        ``Py_None``.
+
+    ``A`` (unicode) [wchar_t \*, int]
+        Convert a C/C++ wide character array and its length to a Python unicode
+        object.  If the array is ``NULL`` then the length is ignored and the
+        result is ``Py_None``.
 
     ``B`` (wrapped instance) [*type* \*, sipWrapperType \*, PyObject \*]
         Convert a new C structure or a new C++ class instance to a Python class
@@ -4205,6 +4242,19 @@ int sipParseResult(int \*iserr, PyObject \*method, PyObject \*result, const char
 
     ``u`` (long) [unsigned int \*]
         Convert a Python long to a C/C++ ``unsigned int``.
+
+    ``w`` (unicode) [wchar_t \*]
+        Convert a Python unicode object of length 1 to a C/C++ wide character.
+
+    ``x`` (unicode) [wchar_t \*\*]
+        Convert a Python unicode object to a C/C++ ``L'\0'`` terminated wide
+        character string.  If the Python object is ``Py_None`` then the string
+        is ``NULL``.
+
+    ``A`` (unicode) [wchar_t \*\*, int \*]
+        Convert a Python unicode object to a C/C++ wide character array and its
+        length.  If the Python object is ``Py_None`` then the array and length
+        are ``NULL`` and zero respectively.
 
     ``Cf`` (wrapped class) [sipWrapperType \*, int \*, void \*\*]
         Convert a Python object to a C structure or a C++ class instance and
