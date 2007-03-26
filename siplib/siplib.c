@@ -6574,8 +6574,6 @@ static void sipWrapper_dealloc(sipWrapper *self)
     /* Make sure we don't alter the exception state. */
     PyErr_Fetch(&et, &ev, &etb);
 
-    sipWrapper_clear(self);
-
     if (getPtrTypeDef(self, &td) != NULL)
     {
         /*
@@ -6596,6 +6594,13 @@ static void sipWrapper_dealloc(sipWrapper *self)
         if (td->td_dealloc != NULL)
             td->td_dealloc(self);
     }
+
+    /*
+     * Now that the C++ object no longer exists we can tidy up the Python
+     * object.  We used to do this first but that meant lambda slots were
+     * removed too soon (if they were connected to QObject.destroyed()).
+     */
+    sipWrapper_clear(self);
 
     while (self->pySigList != NULL)
     {
