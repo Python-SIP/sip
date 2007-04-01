@@ -9965,9 +9965,16 @@ static void deleteTemps(signatureDef *sd, FILE *fp)
             continue;
 
         if (ad->atype == wstring_type && ad->nrderefs == 1)
-            prcode(fp,
+        {
+            if (generating_c || !isConstArg(ad))
+                prcode(fp,
 "            sipFree(a%d);\n"
-                , a);
+                    , a);
+            else
+                prcode(fp,
+"            sipFree(const_cast<wchar_t *>(a%d));\n"
+                    , a);
+        }
         else if (hasConvertToCode(ad))
         {
             const char *fstr, *sstr;

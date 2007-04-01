@@ -1987,7 +1987,7 @@ int sameSignature(signatureDef *sd1,signatureDef *sd2,int strict)
 
 
 #define pyAsString(t)   ((t) == ustring_type || (t) == sstring_type || \
-             (t) == string_type || (t) == wstring_type)
+             (t) == string_type)
 #define pyAsFloat(t)    ((t) == cfloat_type || (t) == float_type || \
              (t) == cdouble_type || (t) == double_type)
 #define pyAsInt(t)  ((t) == cint_type || (t) == bool_type || \
