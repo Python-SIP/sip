@@ -330,6 +330,8 @@ static void findLazyAttr(sipWrapperType *wt, char *name, PyMethodDef **pmdp,
 static int compareMethodName(const void *key, const void *el);
 static int compareEnumMemberName(const void *key, const void *el);
 static int checkPointer(void *ptr);
+static void *cast_cpp_ptr(void *ptr, sipWrapperType *src_type,
+        sipWrapperType *dst_type);
 static void badArgs(int argsParsed, const char *classname, const char *method);
 static void finalise(void);
 static sipWrapperType *createType(sipExportedModuleDef *client,
@@ -4806,15 +4808,23 @@ void *sip_api_get_cpp_ptr(sipWrapper *w,sipWrapperType *type)
         return NULL;
 
     if (type != NULL)
-    {
-        sipCastFunc cast;
+        ptr = cast_cpp_ptr(ptr, (sipWrapperType *)w->ob_type, type);
 
-        cast = ((sipWrapperType *)w->ob_type)->type->td_cast;
+    return ptr;
+}
 
-        /* C structures don't have cast functions. */
-        if (cast != NULL)
-            ptr = (*cast)(ptr,type);
-    }
+
+/*
+ * Cast a C/C++ pointer from a source type to a destination type.
+ */
+static void *cast_cpp_ptr(void *ptr, sipWrapperType *src_type,
+        sipWrapperType *dst_type)
+{
+    sipCastFunc cast = src_type->type->td_cast;
+
+    /* C structures don't have cast functions. */
+    if (cast != NULL)
+        ptr = (*cast)(ptr, dst_type);
 
     return ptr;
 }
@@ -5320,7 +5330,11 @@ static sipWrapperType *convertSubClass(sipWrapperType *type, void **cppPtr)
              */
             if (PyType_IsSubtype((PyTypeObject *)type, (PyTypeObject *)scc->scc_basetype))
             {
-                sipWrapperType *subtype = (*scc->scc_convertor)(cppPtr);
+                void *ptr;
+                sipWrapperType *subtype;
+
+                ptr = cast_cpp_ptr(*cppPtr, type, scc->scc_basetype);
+                subtype = (*scc->scc_convertor)(&ptr);
 
                 /*
                  * We are only interested in types that are not super-classes
@@ -5332,7 +5346,10 @@ static sipWrapperType *convertSubClass(sipWrapperType *type, void **cppPtr)
                  * be the right one.
                  */
                 if (subtype != NULL && !PyType_IsSubtype((PyTypeObject *)type, (PyTypeObject *)subtype))
+                {
+                    *cppPtr = ptr;
                     return subtype;
+                }
             }
 
             ++scc;
