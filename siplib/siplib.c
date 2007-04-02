@@ -6586,24 +6586,18 @@ static SIP_SSIZE_T sipWrapper_getcharbuffer(sipWrapper *self,
 static void sipWrapper_dealloc(sipWrapper *self)
 {
     sipTypeDef *td;
-    PyObject *et, *ev, *etb;
-
-    /* Make sure we don't alter the exception state. */
-    PyErr_Fetch(&et, &ev, &etb);
 
     if (getPtrTypeDef(self, &td) != NULL)
     {
         /*
-         * Remove the object from the map before calling the class
-         * specific dealloc code.  This code calls the C++ dtor and
-         * may result in further calls that pass the instance as an
-         * argument.  If this is still in the map then it's reference
-         * count would be increased (to one) and bad things happen
-         * when it drops back to zero again.  (An example is PyQt
-         * events generated during the dtor call being passed to an
-         * event filter implemented in Python.)  By removing it from
-         * the map first we ensure that a new Python object is
-         * created.
+         * Remove the object from the map before calling the class specific
+         * dealloc code.  This code calls the C++ dtor and may result in
+         * further calls that pass the instance as an argument.  If this is
+         * still in the map then it's reference count would be increased (to
+         * one) and bad things happen when it drops back to zero again.  (An
+         * example is PyQt events generated during the dtor call being passed
+         * to an event filter implemented in Python.)  By removing it from the
+         * map first we ensure that a new Python object is created.
          */
         sipOMRemoveObject(&cppPyMap, self);
 
@@ -6637,8 +6631,6 @@ static void sipWrapper_dealloc(sipWrapper *self)
         sip_api_free(ps->name);
         sip_api_free(ps);
     }
-
-    PyErr_Restore(et, ev, etb);
 
     /* Call the standard super-type dealloc. */
     PyBaseObject_Type.tp_dealloc((PyObject *)self);
