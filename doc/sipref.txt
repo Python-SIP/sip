@@ -235,6 +235,8 @@ The full set of command line options is:
 -k       The SIP module will be built as a static library.  This is useful when
          building the SIP module as a Python builtin (see
          `Builtin Modules and Custom Interpreters`_).
+-n       The SIP code generator and module will be built as universal binaries
+         under MacOS/X.
 -p plat  Explicitly specify the platform/compiler to be used by the build
          system, otherwise a platform specific default will be used.  The
          ``-h`` option will display all the supported platform/compilers and
@@ -4849,6 +4851,9 @@ Configuration
             The SIP version as a string.  For development snapshots it will
             start with ``snapshot-``.
 
+        universal
+            The name of the MacOS/X SDK used when creating universal binaries.
+
     __init__(self, sub_cfg=None)
         Initialise the instance.
 
@@ -4924,7 +4929,7 @@ Makefile
         rm
             A string that will remove a file.
 
-    __init__(self, configuration, console=0, qt=0, opengl=0, python=0, threaded=0, warnings=None, debug=0, dir=None, makefile="Makefile", installs=None)
+    __init__(self, configuration, console=0, qt=0, opengl=0, python=0, threaded=0, warnings=None, debug=0, dir=None, makefile="Makefile", installs=None, universal='')
         Initialise the instance.
 
         ``configuration`` is the current configuration and is an instance of
@@ -4959,6 +4964,9 @@ Makefile
         part list, the first of which is the source and the second is the
         destination.  If the source is another list then it is a list of source
         files and the destination is a directory.
+
+        ``universal`` is the name of the SDK if universal binaries are to be
+        created under MacOS/X.
 
     clean_build_file_objects(self, mfile, build)
         This generates the Makefile commands that will remove any files
@@ -5068,7 +5076,7 @@ ModuleMakefile(Makefile)
     This class encapsulates a Makefile to build a generic Python extension
     module.
 
-    __init__(self, configuration, build_file, install_dir=None, static=0, console=0, opengl=0, threaded=0, warnings=None, debug=0, dir=None, makefile="Makefile", installs=None, strip=1, export_all=0)
+    __init__(self, configuration, build_file, install_dir=None, static=0, console=0, opengl=0, threaded=0, warnings=None, debug=0, dir=None, makefile="Makefile", installs=None, strip=1, export_all=0, universal='')
         Initialise the instance.
 
         ``configuration`` - see ``sipconfig.Makefile.__init__()``.
@@ -5175,7 +5183,7 @@ ParentMakefile(Makefile)
 ProgramMakefile(Makefile)
     This class encapsulates a Makefile to build an executable program.
 
-    __init__(self, configuration, build_file=None, install_dir=None, console=0, qt=0, opengl=0, python=0, threaded=0, warnings=None, debug=0, dir=None, makefile="Makefile", installs=None)
+    __init__(self, configuration, build_file=None, install_dir=None, console=0, qt=0, opengl=0, python=0, threaded=0, warnings=None, debug=0, dir=None, makefile="Makefile", installs=None, universal='')
         Initialise the instance.
 
         ``configuration`` - see ``sipconfig.Makefile.__init__()``.

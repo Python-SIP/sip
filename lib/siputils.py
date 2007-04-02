@@ -102,6 +102,13 @@ class _UniqueList:
         if value not in self._list:
             self._list.append(value)
 
+    def lextend(self, value):
+        """A normal list extend ignoring the uniqueness.
+
+        value is the list of elements to append.
+        """
+        self._list.extend(value)
+
     def extend(self, value):
         """Append each element of a value to a list if it isn't already
         present.
@@ -172,7 +179,7 @@ class Makefile:
     """
     def __init__(self, configuration, console=0, qt=0, opengl=0, python=0,
                  threaded=0, warnings=1, debug=0, dir=None,
-                 makefile="Makefile", installs=None):
+                 makefile="Makefile", installs=None, universal=''):
         """Initialise an instance of the target.  All the macros are left
         unchanged allowing scripts to manipulate them at will.
 
@@ -194,6 +201,8 @@ class Makefile:
         part list, the first of which is the source and the second is the
         destination.  If the source is another list then it is a set of source
         files and the destination is a directory.
+        universal is the name of the SDK if the target is a MacOS/X universal
+        binary.
         """
         if qt:
             if not hasattr(configuration, "qt_version"):
@@ -211,6 +220,9 @@ class Makefile:
         else:
             self._threaded = threaded
 
+        if sys.platform != "darwin":
+            universal = ''
+
         self.config = configuration
         self.console = console
         self._qt = qt
@@ -221,6 +233,7 @@ class Makefile:
         self._dir = dir
         self._makefile = makefile
         self._installs = installs
+        self._universal = universal
 
         self._finalised = 0
 
@@ -319,6 +332,15 @@ class Makefile:
         libdir = _UniqueList()
         libdir.extend(self.extra_lib_dirs)
         libdir.extend(self.optional_list("LIBDIR"))
+
+        # Handle MacOS/X universal binaries.
+        if self._universal:
+            unicflags = ('-arch ppc -arch i386 -isysroot %s' % self._universal).split()
+            unilflags = ('-arch ppc -arch i386 -Wl,-syslibroot,%s' % self._universal).split()
+
+            cflags.lextend(unicflags)
+            cxxflags.lextend(unicflags)
+            lflags.lextend(unilflags)
 
         # Don't use a unique list as libraries may need to be searched more
         # than once.  Also MacOS/X uses the form "-framework lib" so we don't
@@ -1208,7 +1230,7 @@ class ModuleMakefile(Makefile):
     def __init__(self, configuration, build_file, install_dir=None, static=0,
                  console=0, qt=0, opengl=0, threaded=0, warnings=1, debug=0,
                  dir=None, makefile="Makefile", installs=None, strip=1,
-                 export_all=0):
+                 export_all=0, universal=''):
         """Initialise an instance of a module Makefile.
 
         build_file is the file containing the target specific information.  If
@@ -1222,7 +1244,7 @@ class ModuleMakefile(Makefile):
         increases the size of the module and slows down module load times but
         may avoid problems with modules that use exceptions.  The default is 0.
         """
-        Makefile.__init__(self, configuration, console, qt, opengl, 1, threaded, warnings, debug, dir, makefile, installs)
+        Makefile.__init__(self, configuration, console, qt, opengl, 1, threaded, warnings, debug, dir, makefile, installs, universal)
 
         self._build = self.parse_build_file(build_file)
         self._install_dir = install_dir
@@ -1525,14 +1547,15 @@ class ProgramMakefile(Makefile):
     """
     def __init__(self, configuration, build_file=None, install_dir=None,
                  console=0, qt=0, opengl=0, python=0, threaded=0, warnings=1,
-                 debug=0, dir=None, makefile="Makefile", installs=None):
+                 debug=0, dir=None, makefile="Makefile", installs=None,
+                 universal=''):
         """Initialise an instance of a program Makefile.
 
         build_file is the file containing the target specific information.  If
         it is a dictionary instead then its contents are validated.
         install_dir is the directory the target will be installed in.
         """
-        Makefile.__init__(self, configuration, console, qt, opengl, python, threaded, warnings, debug, dir, makefile, installs)
+        Makefile.__init__(self, configuration, console, qt, opengl, python, threaded, warnings, debug, dir, makefile, installs, universal)
 
         self._install_dir = install_dir
 

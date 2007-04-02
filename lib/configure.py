@@ -34,6 +34,7 @@ opt_sipsipdir = None
 opt_static = 0
 opt_debug = 0
 opt_export_all = 0
+opt_universal = ''
 
 # The names of build macros extracted from the platform specific configuration
 # files.
@@ -83,13 +84,14 @@ def usage(rcode = 2):
     rcode is the return code passed back to the calling process.
     """
     print "Usage:"
-    print "  python configure.py [-h] [-b dir] [-d dir] [-e dir] [-k] [-p plat] [-u] [-v dir] option=value option+=value ..."
+    print "  python configure.py [-h] [-b dir] [-d dir] [-e dir] [-k] [-n] [-p plat] [-u] [-v dir] option=value option+=value ..."
     print "where:"
     print "  -h       display this help message"
     print "  -b dir   where the SIP code generator will be installed [default %s]" % opt_sipbindir
     print "  -d dir   where the SIP module will be installed [default %s]" % opt_sipmoddir
     print "  -e dir   where the SIP header file will be installed [default %s]" % opt_sipincdir
     print "  -k       build the SIP module as a static library"
+    print "  -n       build the SIP code generator and module as universal binaries on MacOS/X"
     print "  -p plat  the platform/compiler configuration [default %s]" % default_platform
     print "  -u       build with debugging symbols"
     print "  -v dir   where .sip files are normally installed [default %s]" % opt_sipsipdir
@@ -188,6 +190,9 @@ def inform_user():
     siputils.inform("The default directory to install .sip files in is %s." % opt_sipsipdir)
     siputils.inform("The platform/compiler configuration is %s." % opt_platform)
 
+    if opt_universal:
+        siputils.inform("MacOS/X universal binaries will be created.")
+
 
 def set_platform_directories():
     """Initialise the global variables relating to platform specific
@@ -255,7 +260,8 @@ def create_config(module, template, macros):
         "py_version":       py_version,
         "py_inc_dir":       plat_py_inc_dir,
         "py_conf_inc_dir":  plat_py_conf_inc_dir,
-        "py_lib_dir":       plat_py_lib_dir
+        "py_lib_dir":       plat_py_lib_dir,
+        "universal":        opt_universal
     }
 
     siputils.create_config_module(module, template, content, macros)
@@ -289,7 +295,8 @@ def create_makefiles(macros):
         dir="sipgen",
         install_dir=os.path.dirname(cfg.sip_bin),
         console=1,
-        warnings=0
+        warnings=0,
+        universal=opt_universal
     ).generate()
 
     sipconfig.inform("Creating sip module Makefile...")
@@ -303,7 +310,8 @@ def create_makefiles(macros):
         console=1,
         warnings=0,
         static=opt_static,
-        debug=opt_debug
+        debug=opt_debug,
+        universal=opt_universal
     )
 
     makefile.generate()
@@ -330,12 +338,12 @@ def main(argv):
     set_defaults()
 
     try:
-        optlist, args = getopt.getopt(argv[1:], "hab:d:e:kp:uv:")
+        optlist, args = getopt.getopt(argv[1:], "hab:d:e:knp:uv:")
     except getopt.GetoptError:
         usage()
 
     global opt_sipbindir, opt_sipmoddir, opt_sipincdir, opt_sipsipdir
-    global opt_platform, opt_static, opt_debug, opt_export_all
+    global opt_platform, opt_static, opt_debug, opt_export_all, opt_universal
 
     for opt, arg in optlist:
         if opt == "-h":
@@ -350,6 +358,10 @@ def main(argv):
             opt_sipincdir = os.path.abspath(arg)
         elif opt == "-k":
             opt_static = 1
+        elif opt == "-n":
+            # This should probably be determined dynamically or passed as an
+            # argument.
+            opt_universal = '/Developer/SDKs/MacOSX10.4u.sdk'
         elif opt == "-p":
             if arg not in platform_specs:
                 usage()
