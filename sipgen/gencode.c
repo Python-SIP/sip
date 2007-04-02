@@ -5557,12 +5557,11 @@ static void generateVirtualHandler(sipSpec *pt,virtHandlerDef *vhd,FILE *fp)
     else
     {
         /*
-         * If we are returning a reference to an instance then we take
-         * care to handle Python errors but still return a valid C++
-         * instance.  If we are returning an instance then we take care
-         * to make a local copy of the instance returned from Python
-         * before the Python object is garbage collected and the C++
-         * instance (possibly) destroyed.
+         * If we are returning a reference to an instance then we take care to
+         * handle Python errors but still return a valid C++ instance.  If we
+         * are returning an instance then we take care to make a local copy of
+         * the instance returned from Python before the Python object is
+         * garbage collected and the C++ instance (possibly) destroyed.
          */
         if ((res->atype == class_type || res->atype == mapped_type) && res->nrderefs == 0)
             if (isReference(res))
@@ -5599,6 +5598,16 @@ static void generateVirtualHandler(sipSpec *pt,virtHandlerDef *vhd,FILE *fp)
     {
         prcode(fp, "    ");
 
+        /*
+         * wchar_t * return values are always on the heap.  To reduce memory
+         * leaks we keep the last result around until we have a new one.  This
+         * means that ownership of the return value stays with the function
+         * returning it - which is consistent with how other types work, even
+         * thought it may not be what's required in all cases.
+         */
+        if (res->atype == wstring_type && res->nrderefs == 1)
+            prcode(fp, "static ");
+
         generateBaseType(&res_noconstref,fp);
 
         prcode(fp," %ssipRes",(isref ? "*" : ""));
@@ -5622,6 +5631,18 @@ static void generateVirtualHandler(sipSpec *pt,virtHandlerDef *vhd,FILE *fp)
 
         prcode(fp,";\n"
             );
+
+        if (res->atype == wstring_type && res->nrderefs == 1)
+            prcode(fp,
+"\n"
+"    if (sipRes)\n"
+"    {\n"
+"        // Return any previous result to the heap.\n"
+"        sipFree(%s);\n"
+"        sipRes = 0;\n"
+"    }\n"
+"\n"
+                , (isConstArg(res) ? "const_cast<wchar_t *>(sipRes)" : "sipRes"));
     }
 
     if (vhd->virtcode != NULL)

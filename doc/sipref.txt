@@ -789,7 +789,7 @@ where this is an issue.
       returns.
 
     - When a wide string or array is returned from a virtual method then SIP
-      does not free the memory.
+      does not free the memory until the next time the method is called.
 
     - When an assignment is made to a wide string or array instance variable
       then SIP does not first free the instance's current string or array.
