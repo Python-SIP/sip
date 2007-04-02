@@ -7,8 +7,8 @@ v4.6 ??? April 2007
   - Added sipFindClass() and sipFindNamedEnum() to the public API.
   - /TransferThis/ may be specified more than once.
   - Added support for __truediv__ and __itruediv__.
-  - The SIP code generator and module may be built as universal binaried under
-    MacOS/X.
+  - The SIP code generator and module may be built as universal binaries under
+    MacOS/X using the -n command line option to configure.py.
 
 v4.5.2 9th December 2006
   - A bug fix release.
