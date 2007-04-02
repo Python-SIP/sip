@@ -1323,7 +1323,7 @@ static PyObject *buildObject(PyObject *obj, const char *fmt, va_list va)
         case 'w':
 #if defined(HAVE_WCHAR_H)
             {
-                wchar_t c = va_arg(va, wchar_t);
+                wchar_t c = va_arg(va, int);
 
                 el = PyUnicode_FromWideChar(&c, 1);
             }
