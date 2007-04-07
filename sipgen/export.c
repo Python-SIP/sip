@@ -113,6 +113,7 @@ static int apiCtor(sipSpec *pt, classDef *scope, ctorDef *ct, int sec,
 {
     int need_sec = FALSE, need_comma, a;
 
+    /* Do the callable type form. */
     fprintf(fp, "%s.", pt->module->name);
     prScopedPythonName(fp, scope->ecd, scope->pyname);
     fprintf(fp, "(");
@@ -128,6 +129,16 @@ static int apiCtor(sipSpec *pt, classDef *scope, ctorDef *ct, int sec,
         if (ad->atype == rxcon_type || ad->atype == rxdis_type)
             need_sec = TRUE;
     }
+
+    fprintf(fp, ")\n");
+
+    /* Do the call __init__ form. */
+    fprintf(fp, "%s.", pt->module->name);
+    prScopedPythonName(fp, scope->ecd, scope->pyname);
+    fprintf(fp, ".__init__(self");
+
+    for (a = 0; a < ct->pysig.nrArgs; ++a)
+        apiArgument(&ct->pysig.args[a], FALSE, TRUE, sec, fp);
 
     fprintf(fp, ")\n");
 
