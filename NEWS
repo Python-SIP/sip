@@ -1,8 +1,8 @@
-v4.6 ??? April 2007
+v4.6 10th April 2007
   - Added support for wchar_t.
   - The -g command line option releases the GIL whenever a call is made to the
     wrapped library.
-  - Added the /HoldGIL/ annotation to explicitly retail the GIL when calling a
+  - Added the /HoldGIL/ annotation to explicitly retain the GIL when calling a
     particular function in the wrapped library.
   - Added sipFindClass() and sipFindNamedEnum() to the public API.
   - /TransferThis/ may be specified more than once.
