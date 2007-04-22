@@ -3525,54 +3525,52 @@ static PyTypeObject *createEnum(sipExportedModuleDef *client, sipEnumDef *ed,
         dict = ((PyTypeObject *)client->em_types[ed->e_scope])->tp_dict;
 
     /* Create the base type tuple if it hasn't already been done. */
-    if (bases == NULL && (bases = Py_BuildValue("(O)",&PyInt_Type)) == NULL)
-        goto reterr;
+    if (bases == NULL && (bases = Py_BuildValue("(O)", &PyInt_Type)) == NULL)
+        return NULL;
 
     /* Create an object corresponding to the type name. */
     if ((name = getBaseNameObject(ed->e_name)) == NULL)
-        goto reterr;
+        return NULL;
 
     /* Create the type dictionary. */
     if ((typedict = createTypeDict(client->em_nameobj)) == NULL)
         goto relname;
 
     /* Create the type by calling the metatype. */
-    if ((args = Py_BuildValue("OOO",name,bases,typedict)) == NULL)
-        goto reldict;
+    args = Py_BuildValue("OOO", name, bases, typedict);
 
-    if ((et = (PyTypeObject *)PyObject_Call((PyObject *)&PyType_Type,args,NULL)) == NULL)
-        goto relargs;
+    Py_DECREF(typedict);
+
+    if (args == NULL)
+        goto relname;
+
+    et = (PyTypeObject *)PyObject_Call((PyObject *)&PyType_Type, args, NULL);
+
+    Py_DECREF(args);
+
+    if (et == NULL)
+        goto relname;
 
     /* Initialise any slots. */
     if (ed->e_pyslots != NULL)
         initSlots(et, et->tp_as_number, et->tp_as_sequence, et->tp_as_mapping, ed->e_pyslots, TRUE);
 
     /* Add the type to the "parent" dictionary. */
-    if (PyDict_SetItem(dict,name,(PyObject *)et) < 0)
-        goto reltype;
+    if (PyDict_SetItem(dict, name, (PyObject *)et) < 0)
+    {
+        Py_DECREF((PyObject *)et);
+        goto relname;
+    }
 
-    /* We can now release our references. */
-    Py_DECREF(args);
-    Py_DECREF(typedict);
+    /* We can now release our remaining references. */
     Py_DECREF(name);
 
     return et;
 
     /* Unwind after an error. */
 
-reltype:
-    Py_DECREF((PyObject *)et);
-
-relargs:
-    Py_DECREF(args);
-
-reldict:
-    Py_DECREF(typedict);
-
 relname:
     Py_DECREF(name);
-
-reterr:
     return NULL;
 }
 
@@ -3608,35 +3606,15 @@ static PyObject *getBaseNameObject(const char *name)
  */
 static PyObject *createTypeDict(PyObject *mname)
 {
-    static PyObject *proto = NULL;
     static PyObject *mstr = NULL;
     PyObject *dict;
-
-    /* Create a prototype dictionary. */
-    if (proto == NULL)
-    {
-        if ((proto = PyDict_New()) == NULL)
-            return NULL;
-
-        /*
-         * These tell pickle that SIP generated classes can't be
-         * pickled.
-         */
-        if (PyDict_SetItemString(proto, "__reduce_ex__", Py_None) < 0 ||
-            PyDict_SetItemString(proto, "__reduce__", Py_None) < 0)
-        {
-            Py_DECREF(proto);
-            proto = NULL;
-
-            return NULL;
-        }
-    }
 
     /* Create an object for "__module__". */
     if (mstr == NULL && (mstr = PyString_FromString("__module__")) == NULL)
         return NULL;
 
-    if ((dict = PyDict_Copy(proto)) == NULL)
+    /* Create the dictionary. */
+    if ((dict = PyDict_New()) == NULL)
         return NULL;
 
     /* We need to set the module name as an attribute for dynamic types. */
@@ -3804,16 +3782,15 @@ static PyObject *handleGetLazyAttr(PyObject *nameobj,sipWrapperType *wt,
         PyObject *attr;
 
         /*
-         * Convert the value to an object.  Note that we cannot cache
-         * it in the type dictionary because a sub-type might have a
-         * lazy attribute of the same name.  In this case (because we
-         * call the standard getattro code first) this one would be
-         * wrongly found in preference to the one in the sub-class.
-         * The example in PyQt is QScrollView::ResizePolicy and
-         * QListView::WidthMode both having a member called Manual.
-         * One way around this might be to cache them in a separate
-         * dictionary and search that before doing the binary search
-         * through the lazy enum table.
+         * Convert the value to an object.  Note that we cannot cache it in the
+         * type dictionary because a sub-type might have a lazy attribute of
+         * the same name.  In this case (because we call the standard getattro
+         * code first) this one would be wrongly found in preference to the one
+         * in the sub-class.  The example in PyQt is QScrollView::ResizePolicy
+         * and QListView::WidthMode both having a member called Manual.  One
+         * way around this might be to cache them in a separate dictionary and
+         * search that before doing the binary search through the lazy enum
+         * table.
          */
         if ((attr = createEnumMember(in, enm)) == NULL)
             return NULL;
@@ -6040,8 +6017,8 @@ static PyObject *sipWrapperType_getattro(PyObject *obj,PyObject *name)
 
         /*
          * We can't cache the methods or variables so we need to make a
-         * temporary copy of the type dictionary and return that (so
-         * that it will get garbage collected immediately afterwards).
+         * temporary copy of the type dictionary and return that (so that it
+         * will get garbage collected immediately afterwards).
          */
         if ((dict = PyDict_Copy(dict)) == NULL)
             return NULL;
@@ -6050,8 +6027,8 @@ static PyObject *sipWrapperType_getattro(PyObject *obj,PyObject *name)
         do
         {
             /*
-             * Add the type's lazy enums.  It doesn't matter if
-             * they are already there.
+             * Add the type's lazy enums.  It doesn't matter if they are
+             * already there.
              */
             enm = td->td_enummembers;
 
@@ -6220,6 +6197,14 @@ static PyTypeObject sipWrapperType_Type = {
  */
 static PyObject *sipWrapper_new(sipWrapperType *wt,PyObject *args,PyObject *kwds)
 {
+    /* Check sip.wrapper is not being used directly. */
+    if (wt == &sipWrapper_Type)
+    {
+        PyErr_Format(PyExc_TypeError,"the %s type cannot be instantiated or sub-classed", ((PyTypeObject *)wt)->tp_name);
+
+        return NULL;
+    }
+
     /* See if it is a namespace. */
     if (wt->type->td_fcto == NULL)
     {
@@ -6267,12 +6252,6 @@ static int sipWrapper_init(sipWrapper *self,PyObject *args,PyObject *kwds)
     void *sipNew;
     int sipFlags;
     sipWrapper *owner;
-
-    if (self->ob_type == (PyTypeObject *)&sipWrapper_Type)
-    {
-        PyErr_SetString(PyExc_TypeError,"the sip.wrapper type cannot be instantiated");
-        return -1;
-    }
 
     if (kwds != NULL)
     {
