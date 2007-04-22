@@ -632,6 +632,7 @@ static classDef *getProxy(sipSpec *pt, classDef *cd)
     pcd->writebufcode = NULL;
     pcd->segcountcode = NULL;
     pcd->charbufcode = NULL;
+    pcd->picklecode = NULL;
     pcd->next = pt->proxies;
 
     pt->proxies = pcd;

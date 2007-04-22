@@ -141,6 +141,7 @@ static int optFind(sipSpec *pt, const char *opt);
 %token          TK_WRITEBUFFERCODE
 %token          TK_SEGCOUNTCODE
 %token          TK_CHARBUFFERCODE
+%token          TK_PICKLECODE
 %token          TK_METHODCODE
 %token          TK_FROMTYPE
 %token          TK_TOTYPE
@@ -248,6 +249,7 @@ static int optFind(sipSpec *pt, const char *opt);
 %type <codeb>           writebufcode
 %type <codeb>           segcountcode
 %type <codeb>           charbufcode
+%type <codeb>           picklecode
 %type <codeb>           modcode
 %type <codeb>           typecode
 %type <codeb>           codeblock
@@ -922,6 +924,11 @@ charbufcode:    TK_CHARBUFFERCODE codeblock {
         }
     ;
 
+picklecode: TK_PICKLECODE codeblock {
+            $$ = $2;
+        }
+    ;
+
 modcode:    TK_MODCODE codeblock {
             $$ = $2;
         }
@@ -1462,6 +1469,13 @@ classline:  ifstart
 
             if (notSkipping())
                 currentScope()->charbufcode = $1;
+        }
+    |   picklecode {
+            if (currentScope()->picklecode != NULL)
+                yyerror("%PickleCode already given for class");
+
+            if (notSkipping())
+                currentScope()->picklecode = $1;
         }
     |   ctor
     |   dtor
@@ -2683,6 +2697,7 @@ static classDef *findClassWithInterface(sipSpec *pt, ifaceFileDef *iff)
     cd -> writebufcode = NULL;
     cd -> segcountcode = NULL;
     cd -> charbufcode = NULL;
+    cd -> picklecode = NULL;
     cd -> next = pt -> classes;
 
     pt -> classes = cd;
@@ -3453,6 +3468,7 @@ static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod, classDef *scop
     cd->writebufcode = templateCode(pt, used, cd->writebufcode, type_names, type_values);
     cd->segcountcode = templateCode(pt, used, cd->segcountcode, type_names, type_values);
     cd->charbufcode = templateCode(pt, used, cd->charbufcode, type_names, type_values);
+    cd->picklecode = templateCode(pt, used, cd->picklecode, type_names, type_values);
     cd->next = pt->classes;
 
     pt->classes = cd;

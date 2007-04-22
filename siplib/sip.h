@@ -56,6 +56,8 @@ extern "C" {
  *
  * History:
  *
+ * 3.5  Added the td_pickle field to the sipTypeDef structure.
+ *
  * 3.4  Added qt_find_connection() to the Qt support API.
  *      Added sip_api_string_as_char(), sip_api_unicode_as_wchar(),
  *      sip_api_unicode_as_wstring(), sip_api_find_class(),
@@ -100,7 +102,7 @@ extern "C" {
  * 0.0  Original version.
  */
 #define SIP_API_MAJOR_NR    3
-#define SIP_API_MINOR_NR    4
+#define SIP_API_MINOR_NR    5
 
 
 /* Some compatibility stuff to help with handwritten code for SIP v3. */
@@ -564,6 +566,9 @@ typedef struct _sipTypeDef {
 
     /* The next namespace extender. */
     struct _sipTypeDef *td_nsextender;
+
+    /* The pickle function. */
+    PyMethodDef *td_pickle;
 } sipTypeDef;
 
 

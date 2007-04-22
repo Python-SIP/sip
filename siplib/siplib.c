@@ -336,6 +336,7 @@ static void badArgs(int argsParsed, const char *classname, const char *method);
 static void finalise(void);
 static sipWrapperType *createType(sipExportedModuleDef *client,
         sipTypeDef *type, PyObject *mod_dict);
+static int registerPickle(sipWrapperType *wt);
 static PyTypeObject *createEnum(sipExportedModuleDef *client, sipEnumDef *ed,
         PyObject *mod_dict);
 static const char *getBaseName(const char *name);
@@ -3478,6 +3479,10 @@ static sipWrapperType *createType(sipExportedModuleDef *client,
     if (PyDict_SetItem(dict,name,(PyObject *)wt) < 0)
         goto reltype;
 
+    /* Handle the pickle function for API v3.5 and later. */
+    if (client->em_api_minor >= 5 && registerPickle(wt) < 0)
+        goto reltype;
+
     /* We can now release our references. */
     Py_DECREF(args);
     Py_DECREF(typedict);
@@ -3505,6 +3510,47 @@ relname:
 
 reterr:
     return NULL;
+}
+
+
+/*
+ * Register any pickle code for the given type.
+ */
+static int registerPickle(sipWrapperType *wt)
+{
+    static PyObject *copy_reg_str = NULL;
+    PyObject *copy_reg, *cpick, *res;
+
+    /* Handle the trivial case. */
+    if (wt->type->td_pickle == NULL)
+        return 0;
+
+    /* Get the copy_reg module. */
+    if (copy_reg_str == NULL && (copy_reg_str = PyString_FromString("copy_reg")) == NULL)
+        return -1;
+
+    if ((copy_reg = PyImport_Import(copy_reg_str)) == NULL)
+        return -1;
+
+    /* Wrap the C pickler. */
+    if ((cpick = PyCFunction_New(wt->type->td_pickle, NULL)) == NULL)
+    {
+        Py_DECREF(copy_reg);
+        return -1;
+    }
+
+    /* Register the pickler. */
+    res = PyObject_CallMethod(copy_reg, "pickle", "OO", wt, cpick);
+
+    Py_DECREF(cpick);
+    Py_DECREF(copy_reg);
+
+    if (res == NULL)
+        return -1;
+
+    Py_DECREF(res);
+
+    return 0;
 }
 
 

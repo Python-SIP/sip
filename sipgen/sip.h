@@ -864,6 +864,7 @@ typedef struct _classDef {
     codeBlock *writebufcode;            /* Write buffer code. */
     codeBlock *segcountcode;            /* Segment count code. */
     codeBlock *charbufcode;             /* Character buffer code. */
+    codeBlock *picklecode;              /* Pickle code. */
     struct _classDef *next;             /* Next in the list. */
 } classDef;
 

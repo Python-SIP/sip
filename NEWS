@@ -1,3 +1,7 @@
+v4.7 ??? 2007
+  - Added %PickleCode to allow handwritten code to pickle a wrapped C++
+    instance or C structure.
+
 v4.6 10th April 2007
   - Added support for wchar_t.
   - The -g command line option releases the GIL whenever a call is made to the

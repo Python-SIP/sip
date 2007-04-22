@@ -308,6 +308,11 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
     return TK_CHARBUFFERCODE;
 }
 
+^%PickleCode {         /* The start of a pickle code block. */
+    codeIdx = 0;
+    return TK_PICKLECODE;
+}
+
 ^%PrePythonCode {       /* The start of a pre-Python code block. */
     codeIdx = 0;
     return TK_PREPYCODE;

@@ -3687,9 +3687,7 @@ static int generateObjToCppConversion(argDef *ad,FILE *fp)
                 tail = ")";
             }
 
-            /*
-             * Note that we don't support /Transfer/ but could do.
-             */
+            /* Note that we don't support /Transfer/ but could do. */
 
             prcode(fp, "sipForceConvertToMappedType(sipPy,sipMappedType_%T,NULL,%s,%s,&sipIsErr)", ad, (ad->nrderefs ? "0" : "SIP_NOT_NONE"), (ad->nrderefs ? "NULL" : "&sipValState"));
 
@@ -3717,9 +3715,9 @@ static int generateObjToCppConversion(argDef *ad,FILE *fp)
             }
 
             /*
-             * Note that we don't support /Transfer/ but could do.
-             * We could also support /Constrained/ (so long as we
-             * also supported it for all types).
+             * Note that we don't support /Transfer/ but could do.  We could
+             * also support /Constrained/ (so long as we also supported it for
+             * all types).
              */
 
             prcode(fp, "sipForceConvertToInstance(sipPy,sipClass_%C,NULL,%s,%s,&sipIsErr)", classFQCName(ad->u.cd), (ad->nrderefs ? "0" : "SIP_NOT_NONE"), (might_be_temp ? "&sipValState" : "NULL"));
@@ -4532,6 +4530,69 @@ static void generateClassFunctions(sipSpec *pt,classDef *cd,FILE *fp)
 "    return sipRes;\n"
 "}\n"
             );
+    }
+
+    /* The pickle function. */
+    if (cd->picklecode != NULL)
+    {
+        prcode(fp,
+"\n"
+"\n"
+            );
+
+        if (!generating_c)
+            prcode(fp,
+"extern \"C\" {static PyObject *pickle_%C(PyObject *, PyObject *);}\n"
+                , classFQCName(cd));
+
+        prcode(fp,
+"static PyObject *pickle_%C(PyObject *%s, PyObject *sipPy)\n"
+"{\n"
+"    int sipIsErr = 0;\n"
+"    %U *sipCpp = ", classFQCName(cd), argName("sipSelf", NULL)
+            , cd);
+
+        if (generating_c)
+            prcode(fp, "(%U *)", cd);
+        else
+            prcode(fp, "reinterpret_cast<%U *>(", cd);
+
+        prcode(fp, "sipForceConvertToInstance(sipPy, sipClass_%C, NULL, SIP_NOT_NONE|SIP_NO_CONVERTORS, NULL, &sipIsErr)", classFQCName(cd));
+
+        if (!generating_c)
+            prcode(fp, ")");
+
+        prcode(fp, ";\n"
+"    PyObject *sipRes, *sipResTup;\n"
+"\n"
+"    if (sipIsErr)\n"
+"        return NULL;\n"
+"\n"
+            );
+
+        generateCppCodeBlock(cd->picklecode, fp);
+
+        prcode(fp,
+"\n"
+"    if (sipRes == NULL)\n"
+"        return NULL;\n"
+"\n"
+"    sipResTup = Py_BuildValue(\"OO\", sipClass_%C, sipRes);\n"
+"    Py_DECREF(sipRes);\n"
+"\n"
+"    return sipResTup;\n"
+"}\n"
+"\n"
+"static PyMethodDef pickle_%C_md = {\n"
+"    \"_pickle_%C\",\n"
+"    pickle_%C,\n"
+"    METH_O,\n"
+"    NULL\n"
+"};\n"
+            , classFQCName(cd)
+            , classFQCName(cd)
+            , classFQCName(cd)
+            , classFQCName(cd));
     }
 
     /* The dealloc function. */
@@ -7620,7 +7681,19 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
         prcode(fp,"0");
 
     prcode(fp,"},\n"
+"    0,\n"
+        );
+
+    if (cd->picklecode != NULL)
+        prcode(fp,
+"    &pickle_%C_md\n"
+            ,classFQCName(cd));
+    else
+        prcode(fp,
 "    0\n"
+            );
+
+    prcode(fp,
 "};\n"
         );
 }
