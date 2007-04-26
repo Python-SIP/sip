@@ -335,8 +335,9 @@ static void *cast_cpp_ptr(void *ptr, sipWrapperType *src_type,
 static void badArgs(int argsParsed, const char *classname, const char *method);
 static void finalise(void);
 static sipWrapperType *createType(sipExportedModuleDef *client,
-        sipTypeDef *type, PyObject *mod_dict);
-static int registerPickle(sipWrapperType *wt);
+        sipTypeDef *type, PyObject *mod_dict, PyObject *copy_reg);
+static PyObject *import_copy_reg(sipExportedModuleDef *client);
+static int registerPickle(PyObject *copy_reg, sipWrapperType *wt);
 static PyTypeObject *createEnum(sipExportedModuleDef *client, sipEnumDef *ed,
         PyObject *mod_dict);
 static const char *getBaseName(const char *name);
@@ -850,6 +851,9 @@ static int sip_api_export_module(sipExportedModuleDef *client,
 
     /* Create the module's classes. */
     if ((mw = client->em_types) != NULL)
+    {
+        PyObject *copy_reg = import_copy_reg(client);
+
         for (i = 0; i < client->em_nrtypes; ++i, ++mw)
         {
             sipTypeDef *td = (sipTypeDef *)*mw;
@@ -885,9 +889,15 @@ static int sip_api_export_module(sipExportedModuleDef *client,
                  */
                 *mw = wt;
             }
-            else if ((*mw = createType(client, td, mod_dict)) == NULL)
+            else if ((*mw = createType(client, td, mod_dict, copy_reg)) == NULL)
+            {
+                Py_XDECREF(copy_reg);
                 return -1;
+            }
         }
+
+        Py_XDECREF(copy_reg);
+    }
 
     /* Set any Qt support API. */
     if (client->em_qt_api != NULL)
@@ -3413,7 +3423,7 @@ static SIP_SSIZE_T sip_api_convert_from_sequence_index(SIP_SSIZE_T idx,
  * Create and return a single type object.
  */
 static sipWrapperType *createType(sipExportedModuleDef *client,
-                  sipTypeDef *type, PyObject *mod_dict)
+        sipTypeDef *type, PyObject *mod_dict, PyObject *copy_reg)
 {
     PyObject *name, *bases, *typedict, *args, *dict;
     sipEncodedClassDef *sup;
@@ -3479,9 +3489,10 @@ static sipWrapperType *createType(sipExportedModuleDef *client,
     if (PyDict_SetItem(dict,name,(PyObject *)wt) < 0)
         goto reltype;
 
-    /* Handle the pickle function for API v3.5 and later. */
-    if (client->em_api_minor >= 5 && registerPickle(wt) < 0)
-        goto reltype;
+    /* Handle the pickle function. */
+    if (copy_reg != NULL && wt->type->td_pickle != NULL)
+        if (registerPickle(copy_reg, wt) < 0)
+            goto reltype;
 
     /* We can now release our references. */
     Py_DECREF(args);
@@ -3514,36 +3525,37 @@ reterr:
 
 
 /*
- * Register any pickle code for the given type.
+ * Import the copy_reg module if a module needs it.
  */
-static int registerPickle(sipWrapperType *wt)
+static PyObject *import_copy_reg(sipExportedModuleDef *client)
 {
     static PyObject *copy_reg_str = NULL;
-    PyObject *copy_reg, *cpick, *res;
 
-    /* Handle the trivial case. */
-    if (wt->type->td_pickle == NULL)
-        return 0;
+    /* It's not needed for modules using APIs before v3.5. */
+    if (client->em_api_minor < 5)
+        return NULL;
 
     /* Get the copy_reg module. */
     if (copy_reg_str == NULL && (copy_reg_str = PyString_FromString("copy_reg")) == NULL)
-        return -1;
+        return NULL;
 
-    if ((copy_reg = PyImport_Import(copy_reg_str)) == NULL)
-        return -1;
+    return PyImport_Import(copy_reg_str);
+}
+
+
+/*
+ * Register the pickle code for the given type.
+ */
+static int registerPickle(PyObject *copy_reg, sipWrapperType *wt)
+{
+    PyObject *cpick, *res;
 
     /* Wrap the C pickler. */
     if ((cpick = PyCFunction_New(wt->type->td_pickle, NULL)) == NULL)
-    {
-        Py_DECREF(copy_reg);
         return -1;
-    }
 
     /* Register the pickler. */
-    res = PyObject_CallMethod(copy_reg, "pickle", "OO", wt, cpick);
-
-    Py_DECREF(cpick);
-    Py_DECREF(copy_reg);
+    res = PyObject_CallMethod(copy_reg, "pickle", "ON", wt, cpick);
 
     if (res == NULL)
         return -1;
