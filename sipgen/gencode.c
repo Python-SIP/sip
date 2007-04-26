@@ -4563,7 +4563,7 @@ static void generateClassFunctions(sipSpec *pt,classDef *cd,FILE *fp)
             prcode(fp, ")");
 
         prcode(fp, ";\n"
-"    PyObject *sipRes, *sipResTup;\n"
+"    PyObject *sipRes;\n"
 "\n"
 "    if (sipIsErr)\n"
 "        return NULL;\n"
@@ -4577,10 +4577,7 @@ static void generateClassFunctions(sipSpec *pt,classDef *cd,FILE *fp)
 "    if (sipRes == NULL)\n"
 "        return NULL;\n"
 "\n"
-"    sipResTup = Py_BuildValue(\"OO\", sipClass_%C, sipRes);\n"
-"    Py_DECREF(sipRes);\n"
-"\n"
-"    return sipResTup;\n"
+"    return Py_BuildValue(\"ON\", sipClass_%C, sipRes);\n"
 "}\n"
 "\n"
 "static PyMethodDef pickle_%C_md = {\n"
