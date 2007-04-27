@@ -295,10 +295,12 @@ static PyObject *timestampName = NULL;
 static PyObject *signatureName = NULL;
 
 static sipObjectMap cppPyMap;           /* The C/C++ to Python map. */
-static sipExportedModuleDef *clientList = NULL; /* List of registered clients. */
+static sipExportedModuleDef *moduleList = NULL; /* List of registered modules. */
 static unsigned traceMask = 0;          /* The current trace mask. */
 
 static sipTypeDef *currentType = NULL;  /* The type being created. */
+
+static PyObject *enum_unpickler;        /* The enum unpickler function. */
 
 
 static void addSlots(sipWrapperType *wt, sipTypeDef *td);
@@ -337,7 +339,9 @@ static void finalise(void);
 static sipWrapperType *createType(sipExportedModuleDef *client,
         sipTypeDef *type, PyObject *mod_dict, PyObject *copy_reg);
 static PyObject *import_copy_reg(sipExportedModuleDef *client);
-static int registerPickle(PyObject *copy_reg, sipWrapperType *wt);
+static PyObject *unpickle_enum(PyObject *, PyObject *args);
+static int registerPickle(PyObject *copy_reg, PyTypeObject *type,
+        PyObject *pickler);
 static PyTypeObject *createEnum(sipExportedModuleDef *client, sipEnumDef *ed,
         PyObject *mod_dict);
 static const char *getBaseName(const char *name);
@@ -387,8 +391,8 @@ static int findClassArg(sipExportedModuleDef *emd, const char *name,
         size_t len, sipSigArg *at, int indir);
 static int findMtypeArg(sipMappedType **mttab, const char *name, size_t len,
         sipSigArg *at, int indir);
-static PyTypeObject *findEnum(sipExportedModuleDef *emd, const char *name,
-        size_t len);
+static PyTypeObject *findEnumTypeByName(sipExportedModuleDef *emd,
+        const char *name, size_t len);
 static int findEnumArg(sipExportedModuleDef *emd, const char *name, size_t len,
         sipSigArg *at, int indir);
 static int sameScopedName(const char *pyname, const char *name, size_t len);
@@ -431,6 +435,7 @@ PyMODINIT_FUNC initsip(void)
         {"transferto", transferTo, METH_VARARGS, NULL},
         {"wrapinstance", wrapInstance, METH_VARARGS, NULL},
         {"unwrapinstance", unwrapInstance, METH_VARARGS, NULL},
+        {"_unpickle_enum", unpickle_enum, METH_VARARGS, NULL},
         {NULL, NULL, 0, NULL}
     };
 
@@ -455,6 +460,14 @@ PyMODINIT_FUNC initsip(void)
 
     mod = Py_InitModule("sip", methods);
     mod_dict = PyModule_GetDict(mod);
+
+    /* Get a reference to the pickle helpers. */
+    enum_unpickler = PyDict_GetItemString(mod_dict, "_unpickle_enum");
+
+    if (enum_unpickler == NULL)
+        Py_FatalError("sip: Failed to get pickle helpers");
+
+    Py_INCREF(enum_unpickler);
 
     /* Publish the SIP API. */
     if ((obj = PyCObject_FromVoidPtr((void *)&sip_api, NULL)) == NULL)
@@ -774,6 +787,7 @@ static int sip_api_export_module(sipExportedModuleDef *client,
     sipWrapperType **mw;
     sipEnumMemberDef *emd;
     sipInitExtenderDef *ie;
+    PyObject *copy_reg;
     int i;
 
     /* Check that we can support it. */
@@ -793,7 +807,7 @@ static int sip_api_export_module(sipExportedModuleDef *client,
     if ((client->em_nameobj = PyString_FromString(client->em_name)) == NULL)
         return -1;
 
-    for (em = clientList; em != NULL; em = em->em_next)
+    for (em = moduleList; em != NULL; em = em->em_next)
     {
         /* SIP clients must have unique names. */
         if (strcmp(em->em_name, client->em_name) == 0)
@@ -822,7 +836,7 @@ static int sip_api_export_module(sipExportedModuleDef *client,
             if ((mod = PyImport_ImportModule(im->im_name)) == NULL)
                 return -1;
 
-            for (em = clientList; em != NULL; em = em->em_next)
+            for (em = moduleList; em != NULL; em = em->em_next)
                 if (strcmp(em->em_name, im->im_name) == 0)
                     break;
 
@@ -849,11 +863,11 @@ static int sip_api_export_module(sipExportedModuleDef *client,
         }
     }
 
+    /* Import copy_reg if it is needed. */
+    copy_reg = import_copy_reg(client);
+
     /* Create the module's classes. */
     if ((mw = client->em_types) != NULL)
-    {
-        PyObject *copy_reg = import_copy_reg(client);
-
         for (i = 0; i < client->em_nrtypes; ++i, ++mw)
         {
             sipTypeDef *td = (sipTypeDef *)*mw;
@@ -890,14 +904,8 @@ static int sip_api_export_module(sipExportedModuleDef *client,
                 *mw = wt;
             }
             else if ((*mw = createType(client, td, mod_dict, copy_reg)) == NULL)
-            {
-                Py_XDECREF(copy_reg);
                 return -1;
-            }
         }
-
-        Py_XDECREF(copy_reg);
-    }
 
     /* Set any Qt support API. */
     if (client->em_qt_api != NULL)
@@ -930,12 +938,24 @@ static int sip_api_export_module(sipExportedModuleDef *client,
     /* Create the module's enums. */
     if (client->em_nrenums != 0)
     {
+        sipEnumDef *ed;
+
         if ((client->em_enums = sip_api_malloc(client->em_nrenums * sizeof (PyTypeObject *))) == NULL)
             return -1;
 
-        for (i = 0; i < client->em_nrenums; ++i)
-            if ((client->em_enums[i] = createEnum(client, &client->em_enumdefs[i], mod_dict)) == NULL)
+        for (ed = client->em_enumdefs, i = 0; i < client->em_nrenums; ++i, ++ed)
+        {
+            if ((client->em_enums[i] = createEnum(client, ed, mod_dict)) == NULL)
                 return -1;
+
+            /*
+             * Register the enum pickler for scoped enums (unscoped, ie. those
+             * not nested, don't need special treatment.
+             */
+            if (copy_reg != NULL && ed->e_scope >= 0)
+                if (registerPickle(copy_reg, client->em_enums[i], NULL) < 0)
+                    return -1;
+        }
     }
 
     for (emd = client->em_enummembers, i = 0; i < client->em_nrenummembers; ++i, ++emd)
@@ -974,7 +994,7 @@ static int sip_api_export_module(sipExportedModuleDef *client,
         return -1;
 
     /* See if the new module satisfies any outstanding external types. */
-    for (em = clientList; em != NULL; em = em->em_next)
+    for (em = moduleList; em != NULL; em = em->em_next)
     {
         sipExternalTypeDef *etd;
 
@@ -1010,8 +1030,8 @@ static int sip_api_export_module(sipExportedModuleDef *client,
     }
 
     /* Add to the list of client modules. */
-    client->em_next = clientList;
-    clientList = client;
+    client->em_next = moduleList;
+    moduleList = client;
 
     return 0;
 }
@@ -1029,7 +1049,7 @@ static void finalise(void)
     sipInterpreter = NULL;
 
     /* Handle any delayed dtors. */
-    for (em = clientList; em != NULL; em = em->em_next)
+    for (em = moduleList; em != NULL; em = em->em_next)
         if (em->em_ddlist != NULL)
         {
             em->em_delayeddtors(em->em_ddlist);
@@ -1055,7 +1075,7 @@ static void finalise(void)
     sipOMFinalise(&cppPyMap);
 
     /* Re-initialise those globals that (might) need it. */
-    clientList = NULL;
+    moduleList = NULL;
 }
 
 
@@ -1072,7 +1092,7 @@ static void sip_api_add_delayed_dtor(sipWrapper *w)
         return;
 
     /* Find the defining module. */
-    for (em = clientList; em != NULL; em = em->em_next)
+    for (em = moduleList; em != NULL; em = em->em_next)
     {
         int i;
 
@@ -1133,7 +1153,7 @@ static PyObject *sip_api_pyslot_extend(sipExportedModuleDef *mod,
     sipExportedModuleDef *em;
 
     /* Go through each module. */
-    for (em = clientList; em != NULL; em = em->em_next)
+    for (em = moduleList; em != NULL; em = em->em_next)
     {
         sipPySlotExtenderDef *ex;
 
@@ -3491,8 +3511,20 @@ static sipWrapperType *createType(sipExportedModuleDef *client,
 
     /* Handle the pickle function. */
     if (copy_reg != NULL && wt->type->td_pickle != NULL)
-        if (registerPickle(copy_reg, wt) < 0)
+    {
+        PyObject *pickler;
+        int rc;
+
+        /* Wrap the C pickler. */
+        if ((pickler = PyCFunction_New(wt->type->td_pickle, NULL)) == NULL)
             goto reltype;
+
+        rc = registerPickle(copy_reg, (PyTypeObject *)wt, pickler);
+        Py_DECREF(pickler);
+
+        if (rc < 0)
+            goto reltype;
+    }
 
     /* We can now release our references. */
     Py_DECREF(args);
@@ -3525,37 +3557,145 @@ reterr:
 
 
 /*
- * Import the copy_reg module if a module needs it.
+ * Import the copy_reg module if a module needs it and return a borrowed
+ * reference (which is never released).
  */
 static PyObject *import_copy_reg(sipExportedModuleDef *client)
 {
-    static PyObject *copy_reg_str = NULL;
+    static PyObject *copy_reg = NULL;
 
     /* It's not needed for modules using APIs before v3.5. */
     if (client->em_api_minor < 5)
         return NULL;
 
-    /* Get the copy_reg module. */
-    if (copy_reg_str == NULL && (copy_reg_str = PyString_FromString("copy_reg")) == NULL)
+    /* See if it has already been imported. */
+    if (copy_reg == NULL)
+    {
+        PyObject *name;
+
+        if ((name = PyString_FromString("copy_reg")) == NULL)
+            return NULL;
+
+        copy_reg = PyImport_Import(name);
+    }
+
+    return copy_reg;
+}
+
+
+/*
+ * The enum unpickler.
+ */
+static PyObject *unpickle_enum(PyObject *ignore, PyObject *args)
+{
+    PyObject *mname_obj, *evalue_obj, *mod;
+    char *ename;
+    sipExportedModuleDef *em;
+    sipEnumDef *ed;
+    int i;
+
+    if (!PyArg_ParseTuple(args, "SsO:_unpickle_enum", &mname_obj, &ename, &evalue_obj))
         return NULL;
 
-    return PyImport_Import(copy_reg_str);
+    /* Make sure the module is imported. */
+    if ((mod = PyImport_Import(mname_obj)) == NULL)
+        return NULL;
+
+    /* Find the module definition. */
+    for (em = moduleList; em != NULL; em = em->em_next)
+        if (strcmp(em->em_name, PyString_AS_STRING(mname_obj)) == 0)
+            break;
+
+    Py_DECREF(mod);
+
+    if (em == NULL)
+    {
+        PyErr_Format(PyExc_SystemError, "unable to find to find module: %s", PyString_AS_STRING(mname_obj));
+        return NULL;
+    }
+
+    /* Find the enum type object. */
+    for (ed = em->em_enumdefs, i = 0; i < em->em_nrenums; ++i, ++ed)
+    {
+        const char *name = strchr(ed->e_name, '.') + 1;
+
+        if (strcmp(name, ename) == 0)
+            return PyObject_CallFunctionObjArgs((PyObject *)em->em_enums[i], evalue_obj, NULL);
+    }
+
+    PyErr_Format(PyExc_SystemError, "unable to find to find enum: %s", ename);
+
+    return NULL;
 }
+
+
+/*
+ * The enum pickler.
+ */
+static PyObject *pickle_enum(PyObject *ignore, PyObject *obj)
+{
+    sipExportedModuleDef *em;
+
+    /* Find the enum definition and defining module. */
+    for (em = moduleList; em != NULL; em = em->em_next)
+    {
+        int i;
+        PyTypeObject **etypes;
+
+        for (etypes = em->em_enums, i = 0; i < em->em_nrenums; ++i, ++etypes)
+            if (*etypes == obj->ob_type)
+            {
+                const char *name;
+
+                /*
+                 * Get the enum name but ignore the module name.  We do this
+                 * because I don't think the module name is used any more
+                 * (except maybe in exceptions, but we should get it from
+                 * __module__ in that case) and it may get removed in a future
+                 * version of SIP.  However, we want pickled data to continue
+                 * to be usable if that change is ever made.
+                 */
+                name = strchr(em->em_enumdefs[i].e_name, '.') + 1;
+
+                return Py_BuildValue("O(Osi)", enum_unpickler, em->em_nameobj, name, (int)PyInt_AS_LONG(obj));
+            }
+    }
+
+    /* We should never get here. */
+    PyErr_Format(PyExc_SystemError, "attempt to pickle unknown enum: %s", obj->ob_type->tp_name);
+
+    return NULL;
+}
+
+
+/*
+ * The data structure that describes the enum pickler.
+ */
+static PyMethodDef pickle_enum_md = {"_pickle_enum", pickle_enum, METH_O, NULL};
 
 
 /*
  * Register the pickle code for the given type.
  */
-static int registerPickle(PyObject *copy_reg, sipWrapperType *wt)
+static int registerPickle(PyObject *copy_reg, PyTypeObject *type,
+        PyObject *pickler)
 {
-    PyObject *cpick, *res;
+    PyObject *res;
 
-    /* Wrap the C pickler. */
-    if ((cpick = PyCFunction_New(wt->type->td_pickle, NULL)) == NULL)
-        return -1;
+    /* If a pickler wasn't provided then use the enum pickler. */
+    if (pickler == NULL)
+    {
+        static PyObject *enum_pickler = NULL;
+
+        if (enum_pickler == NULL)
+            if ((enum_pickler = PyCFunction_New(&pickle_enum_md, NULL)) == NULL)
+                return -1;
+
+        pickler = enum_pickler;
+    }
 
     /* Register the pickler. */
-    res = PyObject_CallMethod(copy_reg, "pickle", "ON", wt, cpick);
+    res = PyObject_CallMethod(copy_reg, "pickle", "OO", type, pickler);
 
     if (res == NULL)
         return -1;
@@ -3883,16 +4023,7 @@ static PyObject *createEnumMember(sipTypeDef *td, sipEnumMemberDef *enm)
  */
 PyObject *sip_api_convert_from_named_enum(int eval, PyTypeObject *et)
 {
-    PyObject *args, *mo;
-
-    if ((args = Py_BuildValue("(i)", eval)) == NULL)
-        return NULL;
-
-    mo = PyObject_Call((PyObject *)et, args, NULL);
-
-    Py_DECREF(args);
-
-    return mo;
+    return PyObject_CallFunction((PyObject *)et, "(i)", eval);
 }
 
 
@@ -5213,7 +5344,7 @@ static const sipMappedType *sip_api_find_mapped_type(const char *type)
 {
     sipExportedModuleDef *em;
 
-    for (em = clientList; em != NULL; em = em->em_next)
+    for (em = moduleList; em != NULL; em = em->em_next)
     {
         sipMappedType **mtypes, *mt;
 
@@ -5255,7 +5386,7 @@ static sipWrapperType *sip_api_find_class(const char *type)
     sipExportedModuleDef *em;
     size_t type_len = strlen(type);
 
-    for (em = clientList; em != NULL; em = em->em_next)
+    for (em = moduleList; em != NULL; em = em->em_next)
     {
         sipWrapperType *wt = findClass(em, type, type_len);
 
@@ -5275,9 +5406,9 @@ static PyTypeObject *sip_api_find_named_enum(const char *type)
     sipExportedModuleDef *em;
     size_t type_len = strlen(type);
 
-    for (em = clientList; em != NULL; em = em->em_next)
+    for (em = moduleList; em != NULL; em = em->em_next)
     {
-        PyTypeObject *py = findEnum(em, type, type_len);
+        PyTypeObject *py = findEnumTypeByName(em, type, type_len);
 
         if (py != NULL)
             return py;
@@ -5345,7 +5476,7 @@ static sipWrapperType *convertSubClass(sipWrapperType *type, void **cppPtr)
      * list of modules before any module it imports, ie. sub-class convertors
      * will be invoked for more specific types first.
      */
-    for (em = clientList; em != NULL; em = em->em_next)
+    for (em = moduleList; em != NULL; em = em->em_next)
     {
         sipSubClassConvertorDef *scc;
 
@@ -7384,8 +7515,8 @@ static int findMtypeArg(sipMappedType **mttab, const char *name, size_t len,
  * Search for a named enum in a particular module and return the corresponding
  * type object.
  */
-static PyTypeObject *findEnum(sipExportedModuleDef *emd, const char *name,
-        size_t len)
+static PyTypeObject *findEnumTypeByName(sipExportedModuleDef *emd,
+        const char *name, size_t len)
 {
     int i;
     sipEnumDef *ed;
@@ -7414,7 +7545,7 @@ static PyTypeObject *findEnum(sipExportedModuleDef *emd, const char *name,
 static int findEnumArg(sipExportedModuleDef *emd, const char *name, size_t len,
                sipSigArg *at, int indir)
 {
-    PyTypeObject *py = findEnum(emd, name, len);
+    PyTypeObject *py = findEnumTypeByName(emd, name, len);
 
     if (py == NULL)
         return FALSE;
@@ -7441,7 +7572,7 @@ void sipFindSigArgType(const char *name, size_t len, sipSigArg *at, int indir)
 
     at->atype = unknown_sat;
 
-    for (em = clientList; em != NULL; em = em->em_next)
+    for (em = moduleList; em != NULL; em = em->em_next)
     {
         sipTypedefDef *tdd;
 
@@ -7468,7 +7599,7 @@ void sipFindSigArgType(const char *name, size_t len, sipSigArg *at, int indir)
                     if (tdd->tdd_mod_name == NULL)
                         tem = em;
                     else
-                        for (tem = clientList; tem != NULL; tem = tem->em_next)
+                        for (tem = moduleList; tem != NULL; tem = tem->em_next)
                             if (strcmp(tem->em_name, tdd->tdd_mod_name) == 0)
                                 break;
 

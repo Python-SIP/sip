@@ -2714,6 +2714,12 @@ For example::
     %End
     }
 
+Note that SIP works around the Python limitation that prevents nested types
+being pickled.
+
+Both named and unnamed enums can be pickled automatically without providing any
+handwritten code.
+
 
 %Platforms
 ----------
