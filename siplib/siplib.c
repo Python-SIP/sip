@@ -338,15 +338,13 @@ static void *cast_cpp_ptr(void *ptr, sipWrapperType *src_type,
 static void badArgs(int argsParsed, const char *classname, const char *method);
 static void finalise(void);
 static sipWrapperType *createType(sipExportedModuleDef *client,
-        sipTypeDef *type, PyObject *mod_dict, PyObject *copy_reg);
-static PyObject *import_copy_reg(sipExportedModuleDef *client);
+        sipTypeDef *type, PyObject *mod_dict);
 static sipExportedModuleDef *getModule(PyObject *mname_obj);
-static PyObject *pickle_type(PyObject *, PyObject *obj);
+static PyObject *pickle_type(PyObject *obj, PyObject *);
 static PyObject *unpickle_type(PyObject *, PyObject *args);
-static PyObject *pickle_enum(PyObject *, PyObject *obj);
+static PyObject *pickle_enum(PyObject *obj, PyObject *);
 static PyObject *unpickle_enum(PyObject *, PyObject *args);
-static int registerPickle(PyObject *copy_reg, PyTypeObject *type,
-        PyObject *pickler);
+static int setReduce(PyTypeObject *type, PyMethodDef *pickler);
 static PyTypeObject *createEnum(sipExportedModuleDef *client, sipEnumDef *ed,
         PyObject *mod_dict);
 static const char *getBaseName(const char *name);
@@ -794,7 +792,6 @@ static int sip_api_export_module(sipExportedModuleDef *client,
     sipWrapperType **mw;
     sipEnumMemberDef *emd;
     sipInitExtenderDef *ie;
-    PyObject *copy_reg;
     int i;
 
     /* Check that we can support it. */
@@ -870,9 +867,6 @@ static int sip_api_export_module(sipExportedModuleDef *client,
         }
     }
 
-    /* Import copy_reg if it is needed. */
-    copy_reg = import_copy_reg(client);
-
     /* Create the module's classes. */
     if ((mw = client->em_types) != NULL)
         for (i = 0; i < client->em_nrtypes; ++i, ++mw)
@@ -910,7 +904,7 @@ static int sip_api_export_module(sipExportedModuleDef *client,
                  */
                 *mw = wt;
             }
-            else if ((*mw = createType(client, td, mod_dict, copy_reg)) == NULL)
+            else if ((*mw = createType(client, td, mod_dict)) == NULL)
                 return -1;
         }
 
@@ -959,19 +953,13 @@ static int sip_api_export_module(sipExportedModuleDef *client,
              * Register the enum pickler for scoped enums (unscoped, ie. those
              * not nested, don't need special treatment.
              */
-            if (copy_reg != NULL && ed->e_scope >= 0)
+            if (client->em_api_minor >= 5 && ed->e_scope >= 0)
             {
-                static PyObject *pickler = NULL;
                 static PyMethodDef md = {
-                    "_pickle_enum", pickle_enum, METH_O, NULL
+                    "_pickle_enum", pickle_enum, METH_NOARGS, NULL
                 };
 
-                /* Create the pickler if it hasn't already been done. */
-                if (pickler == NULL)
-                    if ((pickler = PyCFunction_New(&md, NULL)) == NULL)
-                        return -1;
-
-                if (registerPickle(copy_reg, client->em_enums[i], pickler) < 0)
+                if (setReduce(client->em_enums[i], &md) < 0)
                     return -1;
             }
         }
@@ -3462,7 +3450,7 @@ static SIP_SSIZE_T sip_api_convert_from_sequence_index(SIP_SSIZE_T idx,
  * Create and return a single type object.
  */
 static sipWrapperType *createType(sipExportedModuleDef *client,
-        sipTypeDef *type, PyObject *mod_dict, PyObject *copy_reg)
+        sipTypeDef *type, PyObject *mod_dict)
 {
     PyObject *name, *bases, *typedict, *args, *dict;
     sipEncodedClassDef *sup;
@@ -3529,19 +3517,13 @@ static sipWrapperType *createType(sipExportedModuleDef *client,
         goto reltype;
 
     /* Handle the pickle function. */
-    if (copy_reg != NULL && wt->type->td_pickle != NULL)
+    if (client->em_api_minor >= 5 && wt->type->td_pickle != NULL)
     {
-        static PyObject *pickler = NULL;
         static PyMethodDef md = {
-            "_pickle_type", pickle_type, METH_O, NULL
+            "_pickle_type", pickle_type, METH_NOARGS, NULL
         };
 
-        /* Create the pickler if it hasn't already been done. */
-        if (pickler == NULL)
-            if ((pickler = PyCFunction_New(&md, NULL)) == NULL)
-                goto reltype;
-
-        if (registerPickle(copy_reg, (PyTypeObject *)wt, pickler) < 0)
+        if (setReduce((PyTypeObject *)wt, &md) < 0)
             goto reltype;
     }
 
@@ -3572,33 +3554,6 @@ relname:
 
 reterr:
     return NULL;
-}
-
-
-/*
- * Import the copy_reg module if a module needs it and return a borrowed
- * reference (which is never released).
- */
-static PyObject *import_copy_reg(sipExportedModuleDef *client)
-{
-    static PyObject *copy_reg = NULL;
-
-    /* It's not needed for modules using APIs before v3.5. */
-    if (client->em_api_minor < 5)
-        return NULL;
-
-    /* See if it has already been imported. */
-    if (copy_reg == NULL)
-    {
-        PyObject *name;
-
-        if ((name = PyString_FromString("copy_reg")) == NULL)
-            return NULL;
-
-        copy_reg = PyImport_Import(name);
-    }
-
-    return copy_reg;
 }
 
 
@@ -3669,7 +3624,7 @@ static PyObject *unpickle_type(PyObject *ignore, PyObject *args)
 /*
  * The type pickler.
  */
-static PyObject *pickle_type(PyObject *ignore, PyObject *obj)
+static PyObject *pickle_type(PyObject *obj, PyObject *ignore)
 {
     sipExportedModuleDef *em;
 
@@ -3759,7 +3714,7 @@ static PyObject *unpickle_enum(PyObject *ignore, PyObject *args)
 /*
  * The enum pickler.
  */
-static PyObject *pickle_enum(PyObject *ignore, PyObject *obj)
+static PyObject *pickle_enum(PyObject *obj, PyObject *ignore)
 {
     sipExportedModuleDef *em;
 
@@ -3796,27 +3751,28 @@ static PyObject *pickle_enum(PyObject *ignore, PyObject *obj)
 
 
 /*
- * Register the pickle code for the given type.
+ * Set the __reduce__method for a type.
  */
-static int registerPickle(PyObject *copy_reg, PyTypeObject *type,
-        PyObject *pickler)
+static int setReduce(PyTypeObject *type, PyMethodDef *pickler)
 {
-    static PyObject *pstr = NULL;
-    PyObject *res;
+    static PyObject *rstr = NULL;
+    PyObject *descr;
+    int rc;
 
-    if (pstr == NULL)
-        if ((pstr = PyString_FromString("pickle")) == NULL)
+    if (rstr == NULL)
+        if ((rstr = PyString_FromString("__reduce__")) == NULL)
             return -1;
 
-    /* Register the pickler. */
-    res = PyObject_CallMethodObjArgs(copy_reg, pstr, type, pickler, NULL);
-
-    if (res == NULL)
+    /* Create the method descripter. */
+    if ((descr = PyDescr_NewMethod(type, pickler)) == NULL)
         return -1;
 
-    Py_DECREF(res);
+    /* Save the method. */
+    rc = PyObject_SetAttr((PyObject *)type, rstr, descr);
 
-    return 0;
+    Py_DECREF(descr);
+
+    return rc;
 }
 
 
