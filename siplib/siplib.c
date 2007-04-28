@@ -339,6 +339,7 @@ static void finalise(void);
 static sipWrapperType *createType(sipExportedModuleDef *client,
         sipTypeDef *type, PyObject *mod_dict, PyObject *copy_reg);
 static PyObject *import_copy_reg(sipExportedModuleDef *client);
+static PyObject *pickle_enum(PyObject *, PyObject *obj);
 static PyObject *unpickle_enum(PyObject *, PyObject *args);
 static int registerPickle(PyObject *copy_reg, PyTypeObject *type,
         PyObject *pickler);
@@ -953,8 +954,20 @@ static int sip_api_export_module(sipExportedModuleDef *client,
              * not nested, don't need special treatment.
              */
             if (copy_reg != NULL && ed->e_scope >= 0)
-                if (registerPickle(copy_reg, client->em_enums[i], NULL) < 0)
+            {
+                static PyObject *pickler = NULL;
+                static PyMethodDef md = {
+                    "_pickle_enum", pickle_enum, METH_O, NULL
+                };
+
+                /* Create the pickler if it hasn't already been done. */
+                if (pickler == NULL)
+                    if ((pickler = PyCFunction_New(&md, NULL)) == NULL)
+                        return -1;
+
+                if (registerPickle(copy_reg, client->em_enums[i], pickler) < 0)
                     return -1;
+            }
         }
     }
 
@@ -3669,33 +3682,20 @@ static PyObject *pickle_enum(PyObject *ignore, PyObject *obj)
 
 
 /*
- * The data structure that describes the enum pickler.
- */
-static PyMethodDef pickle_enum_md = {"_pickle_enum", pickle_enum, METH_O, NULL};
-
-
-/*
  * Register the pickle code for the given type.
  */
 static int registerPickle(PyObject *copy_reg, PyTypeObject *type,
         PyObject *pickler)
 {
+    static PyObject *pstr = NULL;
     PyObject *res;
 
-    /* If a pickler wasn't provided then use the enum pickler. */
-    if (pickler == NULL)
-    {
-        static PyObject *enum_pickler = NULL;
-
-        if (enum_pickler == NULL)
-            if ((enum_pickler = PyCFunction_New(&pickle_enum_md, NULL)) == NULL)
-                return -1;
-
-        pickler = enum_pickler;
-    }
+    if (pstr == NULL)
+        if ((pstr = PyString_FromString("pickle")) == NULL)
+            return -1;
 
     /* Register the pickler. */
-    res = PyObject_CallMethod(copy_reg, "pickle", "OO", type, pickler);
+    res = PyObject_CallMethodObjArgs(copy_reg, pstr, type, pickler, NULL);
 
     if (res == NULL)
         return -1;
