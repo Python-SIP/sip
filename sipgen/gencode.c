@@ -4542,31 +4542,18 @@ static void generateClassFunctions(sipSpec *pt,classDef *cd,FILE *fp)
 
         if (!generating_c)
             prcode(fp,
-"extern \"C\" {static PyObject *pickle_%C(PyObject *, PyObject *);}\n"
+"extern \"C\" {static PyObject *pickle_%C(void *);}\n"
                 , classFQCName(cd));
 
         prcode(fp,
-"static PyObject *pickle_%C(PyObject *%s, PyObject *sipPy)\n"
+"static PyObject *pickle_%C(void *sipCppV)\n"
 "{\n"
-"    int sipIsErr = 0;\n"
-"    %U *sipCpp = ", classFQCName(cd), argName("sipSelf", NULL)
-            , cd);
+"    ", classFQCName(cd));
 
-        if (generating_c)
-            prcode(fp, "(%U *)", cd);
-        else
-            prcode(fp, "reinterpret_cast<%U *>(", cd);
-
-        prcode(fp, "sipForceConvertToInstance(sipPy, sipClass_%C, NULL, SIP_NOT_NONE|SIP_NO_CONVERTORS, NULL, &sipIsErr)", classFQCName(cd));
-
-        if (!generating_c)
-            prcode(fp, ")");
+        generateClassFromVoid(cd, "sipCpp", "sipCppV", fp);
 
         prcode(fp, ";\n"
 "    PyObject *sipRes;\n"
-"\n"
-"    if (sipIsErr)\n"
-"        return NULL;\n"
 "\n"
             );
 
@@ -4574,22 +4561,9 @@ static void generateClassFunctions(sipSpec *pt,classDef *cd,FILE *fp)
 
         prcode(fp,
 "\n"
-"    if (sipRes == NULL)\n"
-"        return NULL;\n"
-"\n"
-"    return Py_BuildValue(\"ON\", sipClass_%C, sipRes);\n"
+"    return sipRes;\n"
 "}\n"
-"\n"
-"static PyMethodDef pickle_%C_md = {\n"
-"    \"_pickle_%C\",\n"
-"    pickle_%C,\n"
-"    METH_O,\n"
-"    NULL\n"
-"};\n"
-            , classFQCName(cd)
-            , classFQCName(cd)
-            , classFQCName(cd)
-            , classFQCName(cd));
+            );
     }
 
     /* The dealloc function. */
@@ -7683,7 +7657,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 
     if (cd->picklecode != NULL)
         prcode(fp,
-"    &pickle_%C_md\n"
+"    pickle_%C\n"
             ,classFQCName(cd));
     else
         prcode(fp,

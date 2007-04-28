@@ -300,6 +300,7 @@ static unsigned traceMask = 0;          /* The current trace mask. */
 
 static sipTypeDef *currentType = NULL;  /* The type being created. */
 
+static PyObject *type_unpickler;        /* The type unpickler function. */
 static PyObject *enum_unpickler;        /* The enum unpickler function. */
 
 
@@ -339,6 +340,9 @@ static void finalise(void);
 static sipWrapperType *createType(sipExportedModuleDef *client,
         sipTypeDef *type, PyObject *mod_dict, PyObject *copy_reg);
 static PyObject *import_copy_reg(sipExportedModuleDef *client);
+static sipExportedModuleDef *getModule(PyObject *mname_obj);
+static PyObject *pickle_type(PyObject *, PyObject *obj);
+static PyObject *unpickle_type(PyObject *, PyObject *args);
 static PyObject *pickle_enum(PyObject *, PyObject *obj);
 static PyObject *unpickle_enum(PyObject *, PyObject *args);
 static int registerPickle(PyObject *copy_reg, PyTypeObject *type,
@@ -436,6 +440,7 @@ PyMODINIT_FUNC initsip(void)
         {"transferto", transferTo, METH_VARARGS, NULL},
         {"wrapinstance", wrapInstance, METH_VARARGS, NULL},
         {"unwrapinstance", unwrapInstance, METH_VARARGS, NULL},
+        {"_unpickle_type", unpickle_type, METH_VARARGS, NULL},
         {"_unpickle_enum", unpickle_enum, METH_VARARGS, NULL},
         {NULL, NULL, 0, NULL}
     };
@@ -463,9 +468,10 @@ PyMODINIT_FUNC initsip(void)
     mod_dict = PyModule_GetDict(mod);
 
     /* Get a reference to the pickle helpers. */
+    type_unpickler = PyDict_GetItemString(mod_dict, "_unpickle_type");
     enum_unpickler = PyDict_GetItemString(mod_dict, "_unpickle_enum");
 
-    if (enum_unpickler == NULL)
+    if (type_unpickler == NULL || enum_unpickler == NULL)
         Py_FatalError("sip: Failed to get pickle helpers");
 
     Py_INCREF(enum_unpickler);
@@ -3525,17 +3531,17 @@ static sipWrapperType *createType(sipExportedModuleDef *client,
     /* Handle the pickle function. */
     if (copy_reg != NULL && wt->type->td_pickle != NULL)
     {
-        PyObject *pickler;
-        int rc;
+        static PyObject *pickler = NULL;
+        static PyMethodDef md = {
+            "_pickle_type", pickle_type, METH_O, NULL
+        };
 
-        /* Wrap the C pickler. */
-        if ((pickler = PyCFunction_New(wt->type->td_pickle, NULL)) == NULL)
-            goto reltype;
+        /* Create the pickler if it hasn't already been done. */
+        if (pickler == NULL)
+            if ((pickler = PyCFunction_New(&md, NULL)) == NULL)
+                goto reltype;
 
-        rc = registerPickle(copy_reg, (PyTypeObject *)wt, pickler);
-        Py_DECREF(pickler);
-
-        if (rc < 0)
+        if (registerPickle(copy_reg, (PyTypeObject *)wt, pickler) < 0)
             goto reltype;
     }
 
@@ -3597,18 +3603,12 @@ static PyObject *import_copy_reg(sipExportedModuleDef *client)
 
 
 /*
- * The enum unpickler.
+ * Return the module definition for a named module.
  */
-static PyObject *unpickle_enum(PyObject *ignore, PyObject *args)
+static sipExportedModuleDef *getModule(PyObject *mname_obj)
 {
-    PyObject *mname_obj, *evalue_obj, *mod;
-    char *ename;
+    PyObject *mod;
     sipExportedModuleDef *em;
-    sipEnumDef *ed;
-    int i;
-
-    if (!PyArg_ParseTuple(args, "SsO:_unpickle_enum", &mname_obj, &ename, &evalue_obj))
-        return NULL;
 
     /* Make sure the module is imported. */
     if ((mod = PyImport_Import(mname_obj)) == NULL)
@@ -3622,10 +3622,124 @@ static PyObject *unpickle_enum(PyObject *ignore, PyObject *args)
     Py_DECREF(mod);
 
     if (em == NULL)
-    {
         PyErr_Format(PyExc_SystemError, "unable to find to find module: %s", PyString_AS_STRING(mname_obj));
+
+    return em;
+}
+
+
+/*
+ * The type unpickler.
+ */
+static PyObject *unpickle_type(PyObject *ignore, PyObject *args)
+{
+    PyObject *mname_obj, *init_args;
+    char *tname;
+    sipExportedModuleDef *em;
+    int i;
+
+    if (!PyArg_ParseTuple(args, "SsO!:_unpickle_type", &mname_obj, &tname, &PyTuple_Type, &init_args))
         return NULL;
+
+    /* Get the module definition. */
+    if ((em = getModule(mname_obj)) == NULL)
+        return NULL;
+
+    /* Find the type type object. */
+    for (i = 0; i < em->em_nrtypes; ++i)
+    {
+        sipWrapperType *wt;
+        const char *name;
+
+        if ((wt = em->em_types[i]) == NULL)
+            continue;
+
+        name = strchr(wt->type->td_name, '.') + 1;
+
+        if (strcmp(name, tname) == 0)
+            return PyObject_CallObject((PyObject *)wt, init_args);
     }
+
+    PyErr_Format(PyExc_SystemError, "unable to find to find type: %s", tname);
+
+    return NULL;
+}
+
+
+/*
+ * The type pickler.
+ */
+static PyObject *pickle_type(PyObject *ignore, PyObject *obj)
+{
+    sipExportedModuleDef *em;
+
+    /* Find the type definition and defining module. */
+    for (em = moduleList; em != NULL; em = em->em_next)
+    {
+        int i;
+        sipWrapperType **wtypes;
+
+        for (wtypes = em->em_types, i = 0; i < em->em_nrtypes; ++i, ++wtypes)
+        {
+            sipWrapperType *wt = *wtypes;
+
+            if ((PyTypeObject *)wt == obj->ob_type)
+            {
+                PyObject *init_args;
+                const char *name;
+
+                /*
+                 * Ask the handwritten pickle code for the tuple of arguments
+                 * that will recreate the object.
+                 */
+                init_args = wt->type->td_pickle(sip_api_get_cpp_ptr((sipWrapper *)obj, NULL));
+
+                if (!PyTuple_Check(init_args))
+                {
+                    PyErr_Format(PyExc_TypeError, "%%PickleCode for type %s did not return a tuple", wt->type->td_name);
+
+                    return NULL;
+                }
+
+                /*
+                 * Get the type name but ignore the module name.  We do this
+                 * because I don't think the module name is used any more
+                 * (except maybe in exceptions, but we should get it from
+                 * __module__ in that case) and it may get removed in a future
+                 * version of SIP.  However, we want pickled data to continue
+                 * to be usable if that change is ever made.
+                 */
+                name = strchr(wt->type->td_name, '.') + 1;
+
+                return Py_BuildValue("O(OsN)", type_unpickler, em->em_nameobj, name, init_args);
+            }
+        }
+    }
+
+    /* We should never get here. */
+    PyErr_Format(PyExc_SystemError, "attempt to pickle unknown type: %s", obj->ob_type->tp_name);
+
+    return NULL;
+}
+
+
+/*
+ * The enum unpickler.
+ */
+static PyObject *unpickle_enum(PyObject *ignore, PyObject *args)
+{
+    PyObject *mname_obj, *evalue_obj;
+    char *ename;
+    sipExportedModuleDef *em;
+    sipEnumDef *ed;
+    int i;
+
+    if (!PyArg_ParseTuple(args, "SsO:_unpickle_enum", &mname_obj, &ename, &evalue_obj))
+        return NULL;
+
+    /* Get the module definition. */
+    if ((em = getModule(mname_obj)) == NULL)
+        return NULL;
 
     /* Find the enum type object. */
     for (ed = em->em_enumdefs, i = 0; i < em->em_nrenums; ++i, ++ed)
@@ -4966,7 +5080,7 @@ void *sipGetAddress(sipWrapper *w)
  * Get the C/C++ pointer from a wrapper and optionally cast it to the required
  * type.
  */
-void *sip_api_get_cpp_ptr(sipWrapper *w,sipWrapperType *type)
+void *sip_api_get_cpp_ptr(sipWrapper *w, sipWrapperType *type)
 {
     void *ptr = sipGetAddress(w);
 

@@ -227,6 +227,7 @@ typedef PyObject *(*sipConvertFromFunc)(void *, PyObject *);
 typedef int (*sipVirtHandlerFunc)(void *, PyObject *, ...);
 typedef int (*sipEmitFunc)(sipWrapper *, PyObject *);
 typedef void (*sipReleaseFunc)(void *, int);
+typedef PyObject *(*sipPickleFunc)(void *);
 
 
 /*
@@ -568,7 +569,7 @@ typedef struct _sipTypeDef {
     struct _sipTypeDef *td_nsextender;
 
     /* The pickle function. */
-    PyMethodDef *td_pickle;
+    sipPickleFunc td_pickle;
 } sipTypeDef;
 
 
