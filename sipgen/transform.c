@@ -29,7 +29,7 @@ static void assignEnumNrs(sipSpec *pt);
 static void positionClass(classDef *);
 static void addNodeToParent(nodeDef *,classDef *);
 static void addAutoOverload(sipSpec *,classDef *,overDef *);
-static void ifaceFileIsUsed(sipSpec *, ifaceFileDef *, argDef *);
+static ifaceFileList *ifaceFileIsUsed(sipSpec *pt, ifaceFileDef *iff, argDef *ad);
 static void ifaceFilesAreUsed(sipSpec *, ifaceFileDef *, overDef *);
 static void ifaceFilesAreUsedByMethod(sipSpec *, classDef *, memberDef *);
 static void ifaceFilesAreUsedFromOther(sipSpec *pt, signatureDef *sd);
@@ -1376,9 +1376,18 @@ static void resolveMappedTypeTypes(sipSpec *pt,mappedTypeDef *mt)
 
     for (a = 0; a < td -> types.nrArgs; ++a)
     {
-        getBaseType(pt, mt->iff->module, NULL, &td->types.args[a]);
+        argDef *ad = &td->types.args[a];
+        ifaceFileList *iffl;
 
-        ifaceFileIsUsed(pt, mt->iff, &td->types.args[a]);
+        getBaseType(pt, mt->iff->module, NULL, ad);
+
+        /*
+         * Promote any interface to the header file so it is picked up by the
+         * users of the template.  (It's possible this is only needed if the
+         * modules are different.)
+         */
+        if ((iffl = ifaceFileIsUsed(pt, mt->iff, ad)) != NULL)
+            iffl->header = TRUE;
     }
 }
 
@@ -2638,13 +2647,14 @@ static void ifaceFilesAreUsed(sipSpec *pt, ifaceFileDef *iff, overDef *od)
  * If a type has an interface file then add it to the appropriate list of used
  * interface files so that the header file is #included in the generated code.
  */
-static void ifaceFileIsUsed(sipSpec *pt, ifaceFileDef *iff, argDef *ad)
+static ifaceFileList *ifaceFileIsUsed(sipSpec *pt, ifaceFileDef *iff, argDef *ad)
 {
     ifaceFileDef *usediff;
+    ifaceFileList *iffl;
 
     if ((usediff = getIfaceFile(ad)) != NULL && usediff != iff)
     {
-        ifaceFileList *iffl, **used;
+        ifaceFileList **used;
 
         used = (iff != NULL ? &iff->used : &pt->used);
 
@@ -2657,6 +2667,10 @@ static void ifaceFileIsUsed(sipSpec *pt, ifaceFileDef *iff, argDef *ad)
         if (ad->atype == enum_type && isProtectedEnum(ad->u.ed))
             iffl->header = TRUE;
     }
+    else
+        iffl = NULL;
+
+    return iffl;
 }
 
 
