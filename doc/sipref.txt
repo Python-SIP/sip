@@ -1896,10 +1896,10 @@ For example::
     #include <exception>
     %End
     %RaiseCode
-            const char *detail = sipExceptionReference.what();
+            const char *detail = sipExceptionRef.what();
 
             SIP_BLOCK_THREADS
-            PyErr_SetString(sipException_StdException, detail);
+            PyErr_SetString(sipException_std_exception, detail);
             SIP_UNBLOCK_THREADS
     %End
     };
