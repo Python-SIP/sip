@@ -57,8 +57,8 @@ static void generateCpp(sipSpec *, char *, char *, int *);
 static void generateIfaceCpp(sipSpec *, ifaceFileDef *, char *, char *,
         FILE *);
 static void generateMappedTypeCpp(mappedTypeDef *, FILE *);
-static void generateImportedMappedTypeHeader(mappedTypeDef *mtd, sipSpec *pt,
-        FILE *fp);
+static void generateImportedMappedTypeHeader(mappedTypeDef *mtd, int genused,
+        sipSpec *pt, FILE *fp);
 static void generateMappedTypeHeader(mappedTypeDef *, int, FILE *);
 static void generateClassCpp(classDef *cd, sipSpec *pt, FILE *fp);
 static void generateImportedClassHeader(classDef *cd, sipSpec *pt, FILE *fp);
@@ -6377,7 +6377,7 @@ static void generateIfaceHeader(sipSpec *pt,ifaceFileDef *iff,char *codeDir)
             if (iff->module == pt->module)
                 generateMappedTypeHeader(mtd,genused,fp);
             else
-                generateImportedMappedTypeHeader(mtd,pt,fp);
+                generateImportedMappedTypeHeader(mtd, genused, pt, fp);
 
             genused = FALSE;
         }
@@ -6417,14 +6417,17 @@ static void generateIfaceHeader(sipSpec *pt,ifaceFileDef *iff,char *codeDir)
 /*
  * Generate the C++ header code for an imported mapped type.
  */
-static void generateImportedMappedTypeHeader(mappedTypeDef *mtd,sipSpec *pt,
-                         FILE *fp)
+static void generateImportedMappedTypeHeader(mappedTypeDef *mtd, int genused,
+        sipSpec *pt, FILE *fp)
 {
     char *mname = pt->module->name;
     char *imname = mtd->iff->module->name;
     argDef type;
 
     generateCppCodeBlock(mtd->hdrcode,fp);
+
+    if (genused)
+        generateUsedIncludes(mtd->iff->used, TRUE, fp);
 
     type.atype = mapped_type;
     type.u.mtd = mtd;
