@@ -515,9 +515,9 @@ mappedtypetmpl: template TK_MAPPEDTYPE basetype {
             if (currentSpec->genc)
                 yyerror("%MappedType templates not allowed in a C module");
 
-            /* Check the template arguments are all just simple names. */
+            /* Check the template arguments are basic types or simple names. */
             for (a = 0; a < $1.nrArgs; ++a)
-                if ($1.args[a].atype != defined_type || $1.args[a].u.snd->next != NULL)
+                if ($1.args[a].atype == defined_type && $1.args[a].u.snd->next != NULL)
                     yyerror("%MappedType template arguments must be simple names");
 
             if ($3.atype != template_type)
@@ -3180,8 +3180,8 @@ void appendTypeStrings(scopedNameDef *ename, signatureDef *patt, signatureDef *s
             char *nam = NULL;
 
             /*
-             * If the type names are already known then check that
-             * this is one of them.
+             * If the type names are already known then check that this is one
+             * of them.
              */
             if (known == NULL)
                 nam = scopedNameTail(pad->u.snd);
@@ -3190,11 +3190,17 @@ void appendTypeStrings(scopedNameDef *ename, signatureDef *patt, signatureDef *s
                 int k;
 
                 for (k = 0; k < known->nrArgs; ++k)
+                {
+                    /* Skip base types. */
+                    if (known->args[k].atype != defined_type)
+                        continue;
+
                     if (strcmp(pad->u.snd->name, known->args[k].u.snd->name) == 0)
                     {
                         nam = pad->u.snd->name;
                         break;
                     }
+                }
             }
 
             if (nam == NULL)
