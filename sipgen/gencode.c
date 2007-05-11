@@ -6515,20 +6515,21 @@ static void generateClassHeader(classDef *cd,int genused,sipSpec *pt,FILE *fp)
     if (genused)
         generateUsedIncludes(cd->iff->used, TRUE, fp);
 
-    if (cd->iff->type != namespace_iface)
-    {
-        prcode(fp,
+    prcode(fp,
 "\n"
-"#define sipClass_%C             sipModuleAPI_%s.em_types[%d]\n"
-            ,classFQCName(cd),mname,cd->classnr);
+            );
 
-        if (!isExternal(cd))
-            prcode(fp,
+    if (cd->real == NULL)
+        prcode(fp,
+"#define sipClass_%C             sipModuleAPI_%s.em_types[%d]\n"
+            , classFQCName(cd),mname,cd->classnr);
+
+    if (cd->iff->type != namespace_iface && !isExternal(cd))
+        prcode(fp,
 "#define sipCast_%C              sipType_%s_%C.td_cast\n"
 "#define sipForceConvertTo_%C    sipType_%s_%C.td_fcto\n"
-                , classFQCName(cd), mname, classFQCName(cd)
-                , classFQCName(cd), mname, classFQCName(cd));
-    }
+            , classFQCName(cd), mname, classFQCName(cd)
+            , classFQCName(cd), mname, classFQCName(cd));
 
     generateEnumMacros(pt, cd, fp);
 
