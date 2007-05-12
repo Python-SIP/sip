@@ -605,25 +605,27 @@ namespace:  TK_NAMESPACE TK_NAME {
                 sectionFlags = 0;
             }
         } '{' nsbody '}' ';' {
-            if (inMainModule())
-            {
-                classDef *ns = currentScope();
-
-                if (!isUsedName(ns->iff->name))
-                {
-                    varDef *vd;
-
-                    for (vd = currentSpec->vars; vd != NULL; vd = vd->next)
-                        if (vd->ecd == ns)
-                        {
-                            setIsUsedName(ns->iff->name);
-                            break;
-                        }
-                }
-            }
-
             if (notSkipping())
+            {
+                if (inMainModule())
+                {
+                    classDef *ns = currentScope();
+
+                    if (!isUsedName(ns->iff->name))
+                    {
+                        varDef *vd;
+
+                        for (vd = currentSpec->vars; vd != NULL; vd = vd->next)
+                            if (vd->ecd == ns)
+                            {
+                                setIsUsedName(ns->iff->name);
+                                break;
+                            }
+                    }
+                }
+
                 popScope();
+            }
         }
     ;
 
@@ -1422,60 +1424,88 @@ classline:  ifstart
     |   enum
     |   typecode {
             if (notSkipping())
-                appendCodeBlock(&currentScope() -> cppcode,$1);
+                appendCodeBlock(&currentScope()->cppcode, $1);
         }
     |   typehdrcode {
             if (notSkipping())
-                appendCodeBlock(&currentScope() -> hdrcode,$1);
+                appendCodeBlock(&currentScope()->hdrcode, $1);
         }
     |   travcode {
-            if (currentScope()->travcode != NULL)
-                yyerror("%GCTraverseCode already given for class");
-
             if (notSkipping())
-                currentScope()->travcode = $1;
+            {
+                classDef *scope = currentScope();
+
+                if (scope->travcode != NULL)
+                    yyerror("%GCTraverseCode already given for class");
+
+                scope->travcode = $1;
+            }
         }
     |   clearcode {
-            if (currentScope()->clearcode != NULL)
-                yyerror("%GCClearCode already given for class");
-
             if (notSkipping())
-                currentScope()->clearcode = $1;
+            {
+                classDef *scope = currentScope();
+
+                if (scope->clearcode != NULL)
+                    yyerror("%GCClearCode already given for class");
+
+                scope->clearcode = $1;
+            }
         }
     |   readbufcode {
-            if (currentScope()->readbufcode != NULL)
-                yyerror("%BIGetReadBufferCode already given for class");
-
             if (notSkipping())
-                currentScope()->readbufcode = $1;
+            {
+                classDef *scope = currentScope();
+
+                if (scope->readbufcode != NULL)
+                    yyerror("%BIGetReadBufferCode already given for class");
+
+                scope->readbufcode = $1;
+            }
         }
     |   writebufcode {
-            if (currentScope()->writebufcode != NULL)
-                yyerror("%BIGetWriteBufferCode already given for class");
-
             if (notSkipping())
-                currentScope()->writebufcode = $1;
+            {
+                classDef *scope = currentScope();
+
+                if (scope->writebufcode != NULL)
+                    yyerror("%BIGetWriteBufferCode already given for class");
+
+                scope->writebufcode = $1;
+            }
         }
     |   segcountcode {
-            if (currentScope()->segcountcode != NULL)
-                yyerror("%BIGetSegCountCode already given for class");
-
             if (notSkipping())
-                currentScope()->segcountcode = $1;
+            {
+                classDef *scope = currentScope();
+
+                if (scope->segcountcode != NULL)
+                    yyerror("%BIGetSegCountCode already given for class");
+
+                scope->segcountcode = $1;
+            }
         }
     |   charbufcode {
-            if (currentScope()->charbufcode != NULL)
-                yyerror("%BIGetCharBufferCode already given for class");
-
             if (notSkipping())
-                currentScope()->charbufcode = $1;
+            {
+                classDef *scope = currentScope();
+
+                if (scope->charbufcode != NULL)
+                    yyerror("%BIGetCharBufferCode already given for class");
+
+                scope->charbufcode = $1;
+            }
         }
     |   picklecode {
-            if (currentScope()->picklecode != NULL)
-                yyerror("%PickleCode already given for class");
-
             if (notSkipping())
-                currentScope()->picklecode = $1;
+            {
+                classDef *scope = currentScope();
+
+                if (scope->picklecode != NULL)
+                    yyerror("%PickleCode already given for class");
+
+                scope->picklecode = $1;
+            }
         }
     |   ctor
     |   dtor
@@ -1483,23 +1513,23 @@ classline:  ifstart
     |   TK_TOSUBCLASS codeblock {
             if (notSkipping())
             {
-                classDef *cd = currentScope();
+                classDef *scope = currentScope();
 
-                if (cd -> convtosubcode != NULL)
+                if (scope->convtosubcode != NULL)
                     yyerror("Class has more than one %ConvertToSubClassCode directive");
 
-                cd -> convtosubcode = $2;
+                scope->convtosubcode = $2;
             }
         }
     |   TK_TOTYPE codeblock {
             if (notSkipping())
             {
-                classDef *cd = currentScope();
+                classDef *scope = currentScope();
 
-                if (cd -> convtocode != NULL)
+                if (scope->convtocode != NULL)
                     yyerror("Class has more than one %ConvertToTypeCode directive");
 
-                cd -> convtocode = $2;
+                scope->convtocode = $2;
             }
         }
     |   TK_PUBLIC optslot ':' {
@@ -1691,15 +1721,13 @@ function:   cpptype TK_NAME '(' arglist ')' optconst optexceptions optabstract o
             currentOverIsVirt = FALSE;
         }
     |   TK_OPERATOR cpptype '(' arglist ')' optconst optexceptions optabstract optflags optsig ';' methodcode virtualcatchercode {
-            classDef *scope = currentScope();
-
-            if (scope == NULL || $4.nrArgs != 0)
-                yyerror("Operator casts must be specified in a class and have no arguments");
-
-
             if (notSkipping())
             {
                 char *sname;
+                classDef *scope = currentScope();
+
+                if (scope == NULL || $4.nrArgs != 0)
+                    yyerror("Operator casts must be specified in a class and have no arguments");
 
                 switch ($2.atype)
                 {
