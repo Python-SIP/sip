@@ -188,10 +188,11 @@
 #define OVER_IS_NEW_THREAD  0x00002000  /* It is in a new thread. */
 #define OVER_IS_FACTORY     0x00004000  /* It is a factory method. */
 #define OVER_XFERRED_BACK   0x00008000  /* Ownership is transferred back. */
-#define OVER_RELEASE_GIL    0x00010000  /* The function releases the GIL. */
+#define OVER_XFERRED        0x00010000  /* Ownership is transferred. */
 #define OVER_IS_VIRTUAL_REIMP   0x00020000  /* It is a re-implementation of a virtual. */
 #define OVER_DONT_DEREF_SELF    0x00040000  /* For comparison operators, don't dereference self. */
 #define OVER_HOLD_GIL       0x00080000  /* The function holds the GIL. */
+#define OVER_RELEASE_GIL    0x00100000  /* The function releases the GIL. */
 
 #define isPublic(o)         ((o)->overflags & SECT_IS_PUBLIC)
 #define setIsPublic(o)      ((o)->overflags |= SECT_IS_PUBLIC)
@@ -221,14 +222,16 @@
 #define setIsFactory(o)     ((o)->overflags |= OVER_IS_FACTORY)
 #define isResultTransferredBack(o)  ((o)->overflags & OVER_XFERRED_BACK)
 #define setIsResultTransferredBack(o)   ((o)->overflags |= OVER_XFERRED_BACK)
-#define isReleaseGIL(o)     ((o)->overflags & OVER_RELEASE_GIL)
-#define setIsReleaseGIL(o)  ((o)->overflags |= OVER_RELEASE_GIL)
+#define isResultTransferred(o)  ((o)->overflags & OVER_XFERRED)
+#define setIsResultTransferred(o)   ((o)->overflags |= OVER_XFERRED)
 #define isVirtualReimp(o)   ((o)->overflags & OVER_IS_VIRTUAL_REIMP)
 #define setIsVirtualReimp(o)    ((o)->overflags |= OVER_IS_VIRTUAL_REIMP)
 #define dontDerefSelf(o)    ((o)->overflags & OVER_DONT_DEREF_SELF)
 #define setDontDerefSelf(o) ((o)->overflags |= OVER_DONT_DEREF_SELF)
 #define isHoldGIL(o)        ((o)->overflags & OVER_HOLD_GIL)
 #define setIsHoldGIL(o)     ((o)->overflags |= OVER_HOLD_GIL)
+#define isReleaseGIL(o)     ((o)->overflags & OVER_RELEASE_GIL)
+#define setIsReleaseGIL(o)  ((o)->overflags |= OVER_RELEASE_GIL)
 
 
 /* Handle variable flags. */

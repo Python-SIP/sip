@@ -761,7 +761,7 @@ ensure that Python's cyclic garbage collector can detect and break any
 reference cycles between the owning and owned instances.  The association is
 implemented as the owning instance taking a reference to the owned instance.
 
-The TransferThis_, Transfer_ and TransferBack annotations are used to specify
+The TransferThis_, Transfer and TransferBack annotations are used to specify
 where, and it what direction, transfers of ownership happen.  It is very
 important that these are specified correctly to avoid crashes (where both
 Python and C++ call the destructor) and memory leaks (where neither Python and
@@ -3235,6 +3235,8 @@ transferred from Python to C++.  In addition, if the argument is of a class
 method, then it is associated with the class instance with regard to the
 cyclic garbage collector.
 
+Note that this can also be used as a function annotation.
+
 See `Ownership of Objects`_ for more detail.
 
 
@@ -3488,6 +3490,22 @@ is released before the call to the underlying C or C++ function and reacquired
 afterwards.  It should be used for functions that might block or take a
 significant amount of time to execute.  See `The Python Global Interpreter
 Lock`_ and the HoldGIL_ annotation.
+
+
+Transfer
+********
+
+This boolean annotation specifies that ownership of the value returned by the
+function (which should be a wrapped C structure or C++ class instance) is
+transferred to C++.  It is only used in the context of a class method.
+Normally returned values (unless they are new references to already wrapped
+values) are owned by C++ anyway.  However, in addition, an association between
+the returned value and the instance containing the method is created with
+regard to the cyclic garbage collector.
+
+Note that this can also be used as an argument annotation.
+
+See `Ownership of Objects`_ for more detail.
 
 
 TransferBack

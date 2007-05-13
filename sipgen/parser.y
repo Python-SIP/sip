@@ -4046,6 +4046,9 @@ static void newFunction(sipSpec *pt,moduleDef *mod,int sflags,int isstatic,
     if (xferback)
         setIsResultTransferredBack(od);
 
+    if (findOptFlag(optflgs,"Transfer",bool_flag) != NULL)
+        setIsResultTransferred(od);
+
     if (isProtected(od))
         setHasShadow(cd);
 

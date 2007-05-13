@@ -184,6 +184,7 @@ static void generateMappedTypeFromVoid(mappedTypeDef *mtd, const char *cname,
         const char *vname, FILE *fp);
 static int generateSubClassConvertors(sipSpec *pt, FILE *fp);
 static void generateRegisterMetaType(classDef *cd, FILE *fp);
+static const char *resultOwner(overDef *od);
 
 
 /*
@@ -8565,7 +8566,7 @@ static void generateHandleResult(overDef *od,int isNew,char *prefix,FILE *fp)
                 prcode(fp,"sipRes");
 
             prcode(fp,",sipMappedType_%T,%s);\n"
-                , res, isResultTransferredBack(od) ? "Py_None" : "NULL");
+                , res, resultOwner(od));
 
             if (isNew)
                 prcode(fp,
@@ -8617,7 +8618,7 @@ static void generateHandleResult(overDef *od,int isNew,char *prefix,FILE *fp)
                     prcode(fp,"sipRes");
 
                 prcode(fp, ",sipClass_%C,%s);\n"
-                    , classFQCName(cd), (isResultTransferredBack(od) ? "Py_None" : "NULL"));
+                    , classFQCName(cd), resultOwner(od));
 
                 /*
                  * Shortcut if this is the only value returned.
@@ -8899,6 +8900,21 @@ static void generateHandleResult(overDef *od,int isNew,char *prefix,FILE *fp)
 
         break;
     }
+}
+
+
+/*
+ * Return the owner of a method result.
+ */
+static const char *resultOwner(overDef *od)
+{
+    if (isResultTransferredBack(od))
+        return "Py_None";
+
+    if (isResultTransferred(od))
+        return "sipSelf";
+
+    return "NULL";
 }
 
 
