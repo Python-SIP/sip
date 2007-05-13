@@ -113,6 +113,7 @@ static wchar_t *sip_api_unicode_as_wstring(PyObject *obj);
 static int sip_api_unicode_as_wchar(PyObject *obj);
 static int *sip_api_unicode_as_wstring(PyObject *obj);
 #endif
+static void sip_api_transfer_break(PyObject *self);
 
 
 /*
@@ -220,6 +221,10 @@ static const sipAPIDef sip_api = {
     sip_api_string_as_char,
     sip_api_unicode_as_wchar,
     sip_api_unicode_as_wstring,
+    /*
+     * The following are part of the public API.
+     */
+    sip_api_transfer_break,
 };
 
 
@@ -3417,8 +3422,8 @@ static void removeFromParent(sipWrapper *self)
         self->sibling_prev = NULL;
 
         /*
-         * We must do this last, after all the pointers are correct,
-         * because this is used by the clear slot.
+         * We must do this last, after all the pointers are correct, because
+         * this is used by the clear slot.
          */
         Py_DECREF(self);
     }
@@ -4404,6 +4409,26 @@ static void sip_api_transfer_back(PyObject *self)
             removeFromParent(w);
 
         sipSetPyOwned(w);
+    }
+}
+
+
+/*
+ * Break the association of a C++ owned Python object with any parent.
+ */
+static void sip_api_transfer_break(PyObject *self)
+{
+    if (self != NULL && sip_api_wrapper_check(self))
+    {
+        sipWrapper *w = (sipWrapper *)self;
+
+        if (sipCppHasRef(w))
+        {
+            sipResetCppHasRef(w);
+            Py_DECREF(w);
+        }
+        else
+            removeFromParent(w);
     }
 }
 
@@ -6737,7 +6762,7 @@ static int sipWrapper_clear(sipWrapper *self)
     self->dict = NULL;
     Py_XDECREF(tmp);
 
-    /* Detach children (which will be owned by C/C++. */
+    /* Detach children (which will be owned by C/C++). */
     while (self->first_child != NULL)
     {
         /*

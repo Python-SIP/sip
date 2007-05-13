@@ -770,7 +770,7 @@ C++ call the destructor).
 This applies equally to C structures where the structure is returned to the
 heap using the ``free()`` function.
 
-See also `sipTransferTo()`_ and `sipTransferBack()`_.
+See also `sipTransferTo()`_, `sipTransferBack()`_ and `sipTransferBreak()`_.
 
 
 Support for Wide Characters
@@ -4444,6 +4444,15 @@ void sipTransferBack(PyObject \*obj)
     `Ownership of Objects`_).  *obj* is the wrapped instance.  In addition,
     any association of the instance with regard to the cyclic garbage
     collector with another instance is removed.
+
+
+sipTransferBreak()
+------------------
+
+void sipTransferBreak(PyObject \*obj)
+    Any association of a Python wrapped instance with regard to the cyclic
+    garbage collector with another instance is removed.  *obj* is the wrapped
+    instance.  Ownership of the instance should be with C++.
 
 
 sipTransferTo()

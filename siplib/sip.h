@@ -57,6 +57,7 @@ extern "C" {
  * History:
  *
  * 3.5  Added the td_pickle field to the sipTypeDef structure.
+ *      Add sip_api_transfer_break().
  *
  * 3.4  Added qt_find_connection() to the Qt support API.
  *      Added sip_api_string_as_char(), sip_api_unicode_as_wchar(),
@@ -1211,6 +1212,11 @@ typedef struct _sipAPIDef {
     int (*api_unicode_as_wchar)(PyObject *obj);
     int *(*api_unicode_as_wstring)(PyObject *obj);
 #endif
+
+    /*
+     * The following are part of the public API.
+     */
+    void (*api_transfer_break)(PyObject *self);
 } sipAPIDef;
 
 

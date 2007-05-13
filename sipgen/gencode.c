@@ -468,6 +468,7 @@ static void generateInternalAPIHeader(sipSpec *pt,char *codeDir,stringList *xsl)
 "#define sipTransfer                 sipAPI_%s->api_transfer\n"
 "#define sipTransferBack             sipAPI_%s->api_transfer_back\n"
 "#define sipTransferTo               sipAPI_%s->api_transfer_to\n"
+"#define sipTransferBreak            sipAPI_%s->api_transfer_break\n"
 "#define sipWrapper_Check            sipAPI_%s->api_wrapper_check\n"
 "#define sipGetWrapper               sipAPI_%s->api_get_wrapper\n"
 "#define sipGetCppPtr                sipAPI_%s->api_get_cpp_ptr\n"
@@ -519,6 +520,7 @@ static void generateInternalAPIHeader(sipSpec *pt,char *codeDir,stringList *xsl)
 "#define sipString_AsChar            sipAPI_%s->api_string_as_char\n"
 "#define sipUnicode_AsWChar          sipAPI_%s->api_unicode_as_wchar\n"
 "#define sipUnicode_AsWString        sipAPI_%s->api_unicode_as_wstring\n"
+        ,mname
         ,mname
         ,mname
         ,mname
