@@ -382,6 +382,7 @@ static int addSingleClassInstance(PyObject *dict, const char *name,
 static int addLicense(PyObject *dict, sipLicenseDef *lc);
 static PyObject *cast(PyObject *self, PyObject *args);
 static PyObject *callDtor(PyObject *self, PyObject *args);
+static PyObject *dumpWrapper(PyObject *self, PyObject *args);
 static PyObject *isDeleted(PyObject *self, PyObject *args);
 static PyObject *setDeleted(PyObject *self, PyObject *args);
 static PyObject *setTraceMask(PyObject *self, PyObject *args);
@@ -390,6 +391,7 @@ static PyObject *unwrapInstance(PyObject *self, PyObject *args);
 static PyObject *transfer(PyObject *self, PyObject *args);
 static PyObject *transferBack(PyObject *self, PyObject *args);
 static PyObject *transferTo(PyObject *self, PyObject *args);
+static void print_wrapper(const char *label, sipWrapper *w);
 static int sipWrapperType_Check(PyObject *op);
 static void addToParent(sipWrapper *self, sipWrapper *owner);
 static void removeFromParent(sipWrapper *self);
@@ -435,6 +437,7 @@ PyMODINIT_FUNC initsip(void)
     static PyMethodDef methods[] = {
         {"cast", cast, METH_VARARGS, NULL},
         {"delete", callDtor, METH_VARARGS, NULL},
+        {"dump", dumpWrapper, METH_VARARGS, NULL},
         {"isdeleted", isDeleted, METH_VARARGS, NULL},
         {"setdeleted", setDeleted, METH_VARARGS, NULL},
         {"settracemask", setTraceMask, METH_VARARGS, NULL},
@@ -559,6 +562,50 @@ static PyObject *setTraceMask(PyObject *self, PyObject *args)
     }
 
     return NULL;
+}
+
+
+/*
+ * Dump various bits of potentially useful information to stdout.
+ */
+static PyObject *dumpWrapper(PyObject *self, PyObject *args)
+{
+    sipWrapper *w;
+
+    if (PyArg_ParseTuple(args, "O!:dump", &sipWrapper_Type, &w))
+    {
+        print_wrapper(NULL, w);
+
+        printf("    Reference count: %zd\n", w->ob_refcnt);
+        printf("    Address of wrapped object: %p\n", sipGetAddress(w));
+        printf("    To be destroyed by: %s\n", (sipIsPyOwned(w) ? "Python" : "C/C++"));
+        printf("    Derived class?: %s\n", (sipIsDerived(w) ? "yes" : "no"));
+        print_wrapper("Parent wrapper", w->parent);
+        print_wrapper("Next sibling wrapper", w->sibling_next);
+        print_wrapper("Previous sibling wrapper", w->sibling_prev);
+
+        Py_INCREF(Py_None);
+        return Py_None;
+    }
+
+    return NULL;
+}
+
+
+/*
+ * Write a reference to a wrapper to stdout.
+ */
+static void print_wrapper(const char *label, sipWrapper *w)
+{
+    if (label != NULL)
+        printf("    %s: ", label);
+
+    if (w != NULL)
+        PyObject_Print((PyObject *)w, stdout, 0);
+    else
+        printf("NULL");
+
+    printf("\n");
 }
 
 

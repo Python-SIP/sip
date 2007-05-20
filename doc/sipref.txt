@@ -4601,6 +4601,10 @@ delete(obj)
     For C++ instances this calls the C++ destructor.  For C structures it
     returns the structure's memory to the heap.  *obj* is the Python object.
 
+dump(obj)
+    This writes various bits of useful information about the internal state of
+    the Python object that wraps a C++ instance or C structure.
+
 isdeleted(obj)
     This returns True if the C++ instance or C structure has been destroyed or
     returned to the heap.  *obj* is the Python object.
