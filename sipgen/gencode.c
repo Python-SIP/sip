@@ -53,7 +53,11 @@ static int prcode_xml = FALSE;          /* Set if prcode is XML aware. */
 static void generateDocumentation(sipSpec *, char *);
 static void generateBuildFile(sipSpec *, char *, char *, int);
 static void generateInternalAPIHeader(sipSpec *, char *, stringList *);
-static void generateCpp(sipSpec *, char *, char *, int *);
+static void generateCpp(sipSpec *pt, char *codeDir, char *srcSuffix,
+        int *parts);
+static void generateConsolidatedCpp(sipSpec *pt, char *codeDir,
+        char *srcSuffix);
+static void generateModInitStart(sipSpec *pt, FILE *fp);
 static void generateIfaceCpp(sipSpec *, ifaceFileDef *, char *, char *,
         FILE *);
 static void generateMappedTypeCpp(mappedTypeDef *, FILE *);
@@ -208,14 +212,17 @@ void generateCode(sipSpec *pt, char *codeDir, char *buildfile, char *docFile,
 
     /* Generate the code. */
     if (codeDir != NULL)
-    {
-        generateCpp(pt,codeDir,srcSuffix,&parts);
-        generateInternalAPIHeader(pt,codeDir,xsl);
-    }
+        if (isConsolidated(pt->module))
+            generateConsolidatedCpp(pt, codeDir, srcSuffix);
+        else
+        {
+            generateCpp(pt, codeDir, srcSuffix, &parts);
+            generateInternalAPIHeader(pt, codeDir, xsl);
+        }
 
     /* Generate the build file. */
     if (buildfile != NULL)
-        generateBuildFile(pt,buildfile,srcSuffix,parts);
+        generateBuildFile(pt, buildfile, srcSuffix, parts);
 }
 
 
@@ -250,43 +257,48 @@ static void generateBuildFile(sipSpec *pt, char *buildFile, char *srcSuffix,
 
     prcode(fp, "target = %s\nsources = ", mname);
 
-    if (parts)
-    {
-        int p;
-
-        for (p = 0; p < parts; ++p)
-        {
-            if (p > 0)
-                prcode(fp, " ");
-
-            prcode(fp, "sip%spart%d%s", mname, p, srcSuffix);
-        }
-    }
+    if (isConsolidated(pt->module))
+        prcode(fp, "sip%scmodule%s", mname, srcSuffix);
     else
     {
-        prcode(fp, "sip%scmodule%s", mname, srcSuffix);
+        if (parts)
+        {
+            int p;
+
+            for (p = 0; p < parts; ++p)
+            {
+                if (p > 0)
+                    prcode(fp, " ");
+
+                prcode(fp, "sip%spart%d%s", mname, p, srcSuffix);
+            }
+        }
+        else
+        {
+            prcode(fp, "sip%scmodule%s", mname, srcSuffix);
+
+            for (iff = pt->ifacefiles; iff != NULL; iff = iff->next)
+            {
+                if (iff->module != pt->module)
+                    continue;
+
+                if (iff->type == exception_iface)
+                    continue;
+
+                prcode(fp, " sip%s%F%s", mname, iff->fqcname, srcSuffix);
+            }
+        }
+
+        prcode(fp, "\nheaders = sipAPI%s.h", mname);
 
         for (iff = pt->ifacefiles; iff != NULL; iff = iff->next)
         {
-            if (iff->module != pt->module)
-                continue;
+            char *imname;
 
-            if (iff->type == exception_iface)
-                continue;
+            imname = (iff->module == pt->module ? mname : iff->module->name);
 
-            prcode(fp, " sip%s%F%s", mname, iff->fqcname, srcSuffix);
+            prcode(fp, " sip%s%F.h", imname, iff->fqcname);
         }
-    }
-
-    prcode(fp, "\nheaders = sipAPI%s.h", mname);
-
-    for (iff = pt->ifacefiles; iff != NULL; iff = iff->next)
-    {
-        char *imname;
-
-        imname = (iff->module == pt->module ? mname : iff->module->name);
-
-        prcode(fp, " sip%s%F.h", imname, iff->fqcname);
     }
 
     prcode(fp, "\n");
@@ -405,7 +417,7 @@ static void generateInternalAPIHeader(sipSpec *pt,char *codeDir,stringList *xsl)
     }
 
     generateCppCodeBlock(pt->exphdrcode,fp);
-    generateCppCodeBlock(pt->hdrcode,fp);
+    generateCppCodeBlock(pt->module->hdrcode,fp);
 
     /* Shortcuts that hide the messy detail of the APIs. */
     noIntro = TRUE;
@@ -681,11 +693,41 @@ static char *makePartName(char *codeDir,char *mname,int part,char *srcSuffix)
 
 
 /*
+ * Generate the C/C++ code for a consolidated module.
+ */
+static void generateConsolidatedCpp(sipSpec *pt, char *codeDir,
+        char *srcSuffix)
+{
+    char *mname, *cppfile;
+    FILE *fp;
+
+    mname = pt->module->name;
+    cppfile = concat(codeDir, "/sip", mname, "cmodule", srcSuffix, NULL);
+    fp = createCompilationUnit(pt, cppfile, "Consolidated module code.");
+
+    generateModInitStart(pt, fp);
+
+    /* Generate any pre-initialisation code. */
+    generateCppCodeBlock(pt->module->preinitcode, fp);
+
+    /* Generate any post-initialisation code. */
+    generateCppCodeBlock(pt->module->postinitcode, fp);
+
+    prcode(fp,
+"}\n"
+        );
+
+    closeFile(fp);
+    free(cppfile);
+}
+
+
+/*
  * Generate the C/C++ code.
  */
 static void generateCpp(sipSpec *pt, char *codeDir, char *srcSuffix, int *parts)
 {
-    char *cppfile, *mname = pt->module->name;
+    char *mname, *cppfile;
     int noIntro, nrSccs = 0, files_in_part, max_per_part, this_part;
     int is_inst_class, is_inst_voidp, is_inst_char, is_inst_string;
     int is_inst_int, is_inst_long, is_inst_ulong, is_inst_longlong;
@@ -699,6 +741,8 @@ static void generateCpp(sipSpec *pt, char *codeDir, char *srcSuffix, int *parts)
     virtHandlerDef *vhd;
     nameDef *nd;
     exceptionDef *xd;
+
+    mname = pt->module->name;
 
     /* Calculate the number of files in each part. */
     if (*parts)
@@ -776,7 +820,7 @@ static void generateCpp(sipSpec *pt, char *codeDir, char *srcSuffix, int *parts)
     }
 
     /* Generate the C++ code blocks. */
-    generateCppCodeBlock(pt->cppcode,fp);
+    generateCppCodeBlock(pt->module->cppcode,fp);
 
     /* Generate any virtual handler declarations. */
     for (vhd = pt->module->virthandlers; vhd != NULL; vhd = vhd->next)
@@ -1495,21 +1539,14 @@ static void generateCpp(sipSpec *pt, char *codeDir, char *srcSuffix, int *parts)
             , mname);
 
     /* Generate the Python module initialisation function. */
-    prcode(fp,
-"\n"
-"\n"
-"/* The Python module initialisation function. */\n"
-"#if defined(SIP_STATIC_MODULE)\n"
-"%svoid init%s()\n"
-"#else\n"
-"PyMODINIT_FUNC init%s()\n"
-"#endif\n"
-"{\n"
-"   static PyMethodDef sip_methods[] = {\n"
-        ,(generating_c ? "" : "extern \"C\" "), mname
-        ,mname);
+
+    generateModInitStart(pt, fp);
 
     /* Generate the global functions. */
+
+    prcode(fp,
+"   static PyMethodDef sip_methods[] = {\n"
+        );
 
     for (md = pt->othfuncs; md != NULL; md = md->next)
         if (md->module == pt->module && md->slot == no_slot)
@@ -1525,8 +1562,8 @@ static void generateCpp(sipSpec *pt, char *codeDir, char *srcSuffix, int *parts)
 "\n"
         );
 
-    /* Generate the pre-initialisation code. */
-    generateCppCodeBlock(pt->preinitcode,fp);
+    /* Generate any pre-initialisation code. */
+    generateCppCodeBlock(pt->module->preinitcode, fp);
 
     prcode(fp,
 "    /* Initialise the module and get it's dictionary. */\n"
@@ -1623,8 +1660,8 @@ static void generateCpp(sipSpec *pt, char *codeDir, char *srcSuffix, int *parts)
             generateRegisterMetaType(cd, fp);
         }
 
-    /* Generate the post-initialisation code. */
-    generateCppCodeBlock(pt->postinitcode,fp);
+    /* Generate any post-initialisation code. */
+    generateCppCodeBlock(pt->module->postinitcode, fp);
 
     /*
      * This has to be done after the post-initialisation code in case this
@@ -1673,6 +1710,28 @@ static void generateCpp(sipSpec *pt, char *codeDir, char *srcSuffix, int *parts)
     /* How many parts we actually generated. */
     if (*parts)
         *parts = this_part + 1;
+}
+
+
+/*
+ * Generate the start of the Python module initialisation function.
+ */
+static void generateModInitStart(sipSpec *pt, FILE *fp)
+{
+    char *mname = pt->module->name;
+
+    prcode(fp,
+"\n"
+"\n"
+"/* The Python module initialisation function. */\n"
+"#if defined(SIP_STATIC_MODULE)\n"
+"%svoid init%s()\n"
+"#else\n"
+"PyMODINIT_FUNC init%s()\n"
+"#endif\n"
+"{\n"
+        , (generating_c ? "" : "extern \"C\" "), mname
+        , mname);
 }
 
 
@@ -10162,7 +10221,7 @@ static FILE *createCompilationUnit(sipSpec *pt, char *fname, char *description)
     FILE *fp = createFile(pt, fname, description);
 
     if (fp != NULL)
-        generateCppCodeBlock(pt->unitcode, fp);
+        generateCppCodeBlock(pt->module->unitcode, fp);
 
     return fp;
 }
@@ -10203,14 +10262,14 @@ static FILE *createFile(sipSpec *pt,char *fname,char *description)
             ,description
             ,sipVersion,ctime(&now));
 
-        if (pt->copying != NULL)
+        if (pt->module->copying != NULL)
             prcode(fp,
 " *\n"
                 );
 
         needComment = TRUE;
 
-        for (cb = pt->copying; cb != NULL; cb = cb->next)
+        for (cb = pt->module->copying; cb != NULL; cb = cb->next)
         {
             char *cp;
 

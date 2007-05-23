@@ -510,6 +510,16 @@ typedef struct _nodeDef {
 } nodeDef;
 
 
+/* A literal code block. */
+
+typedef struct _codeBlock {
+    char *frag;                         /* The code itself. */
+    char *filename;                     /* The original file. */
+    int linenr;                         /* The line in the file. */
+    struct _codeBlock *next;            /* Next in the list. */
+} codeBlock;
+
+
 /* A module definition. */
 
 typedef struct _moduleDef {
@@ -517,6 +527,12 @@ typedef struct _moduleDef {
     char *name;                         /* The module base name. */
     int version;                        /* The module version. */
     int modflags;                       /* The module flags. */
+    codeBlock *hdrcode;                 /* Header code. */
+    codeBlock *cppcode;                 /* Global C++ code. */
+    codeBlock *copying;                 /* Software license. */
+    codeBlock *preinitcode;             /* Pre-initialisation code. */
+    codeBlock *postinitcode;            /* Post-initialisation code. */
+    codeBlock *unitcode;                /* Compilation unit code. */
     int modulenr;                       /* The module number. */
     char *file;                         /* The filename. */
     qualDef *qualifiers;                /* The list of qualifiers. */
@@ -543,16 +559,6 @@ typedef struct _moduleListDef {
     moduleDef *module;                  /* The module itself. */
     struct _moduleListDef *next;        /* The next in the list. */
 } moduleListDef;
-
-
-/* A literal code block. */
-
-typedef struct _codeBlock {
-    char *frag;                         /* The code itself. */
-    char *filename;                     /* The original file. */
-    int linenr;                         /* The line in the file. */
-    struct _codeBlock *next;            /* Next in the list. */
-} codeBlock;
 
 
 /* The arguments to a throw specifier. */
@@ -913,14 +919,8 @@ typedef struct {
     memberDef *othfuncs;                /* List of other functions. */
     overDef *overs;                     /* Global overloads. */
     typedefDef *typedefs;               /* List of typedefs. */
-    codeBlock *copying;                 /* Software license. */
     codeBlock *exphdrcode;              /* Exported header code. */
-    codeBlock *hdrcode;                 /* Header code. */
-    codeBlock *cppcode;                 /* Global C++ code. */
     codeBlock *docs;                    /* Documentation. */
-    codeBlock *preinitcode;             /* Pre-initialisation code. */
-    codeBlock *postinitcode;            /* Post-initialisation code. */
-    codeBlock *unitcode;                /* Compilation unit code. */
     ifaceFileList *used;                /* Interface files used. */
     int sigslots;                       /* Set if signals or slots are used. */
     int genc;                           /* Set if we are generating C code. */

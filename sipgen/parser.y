@@ -15,7 +15,7 @@
 #define MAX_NESTED_IF       10
 #define MAX_NESTED_SCOPE    10
 
-#define inMainModule()      (currentSpec->module == currentModule)
+#define inMainModule()      (currentSpec->module == currentModule || currentModule->cons != NULL)
 
 
 static sipSpec *currentSpec;            /* The current spec being parsed. */
@@ -322,12 +322,12 @@ modstatement:   module
                 appendCodeBlock(&currentSpec->exphdrcode, $1);
         }
     |   modhdrcode {
-            if (notSkipping() && inMainModule())
-                appendCodeBlock(&currentSpec -> hdrcode,$1);
+            if (notSkipping())
+                appendCodeBlock(&currentModule->hdrcode, $1);
         }
     |   modcode {
-            if (notSkipping() && inMainModule())
-                appendCodeBlock(&currentSpec -> cppcode,$1);
+            if (notSkipping())
+                appendCodeBlock(&currentModule->cppcode, $1);
         }
     |   preinitcode
     |   postinitcode
@@ -780,7 +780,7 @@ license:    TK_LICENSE optflags {
 
 consmodule: TK_CONSMODULE modname {
             /* Make sure this is the first mention of a module. */
-            if (!inMainModule())
+            if (currentSpec->module != currentModule)
                 yyerror("A %ConsolidatedModule cannot be %Imported");
 
             if (currentModule->fullname != NULL)
@@ -895,8 +895,7 @@ optsetcode: {
     ;
 
 copying:    TK_COPYING codeblock {
-            if (inMainModule())
-                appendCodeBlock(&currentSpec -> copying,$2);
+            appendCodeBlock(&currentModule->copying, $2);
         }
     ;
 
@@ -967,20 +966,20 @@ typecode:   TK_TYPECODE codeblock {
     ;
 
 preinitcode:    TK_PREINITCODE codeblock {
-            if (notSkipping() && inMainModule())
-                appendCodeBlock(&currentSpec -> preinitcode,$2);
+            if (notSkipping())
+                appendCodeBlock(&currentModule->preinitcode, $2);
         }
     ;
 
 postinitcode:   TK_POSTINITCODE codeblock {
-            if (notSkipping() && inMainModule())
-                appendCodeBlock(&currentSpec -> postinitcode,$2);
+            if (notSkipping())
+                appendCodeBlock(&currentModule->postinitcode, $2);
         }
     ;
 
 unitcode:   TK_UNITCODE codeblock {
-            if (notSkipping() && inMainModule())
-                appendCodeBlock(&currentSpec->unitcode, $2);
+            if (notSkipping())
+                appendCodeBlock(&currentModule->unitcode, $2);
         }
     ;
 
@@ -2455,14 +2454,8 @@ void parse(sipSpec *spec, FILE *fp, char *filename, stringList *tsl,
     spec -> othfuncs = NULL;
     spec -> overs = NULL;
     spec -> typedefs = NULL;
-    spec -> copying = NULL;
     spec -> exphdrcode = NULL;
-    spec -> hdrcode = NULL;
-    spec -> cppcode = NULL;
     spec -> docs = NULL;
-    spec -> preinitcode = NULL;
-    spec -> postinitcode = NULL;
-    spec -> unitcode = NULL;
     spec -> used = NULL;
     spec -> sigslots = FALSE;
     spec -> genc = -1;
@@ -2571,13 +2564,19 @@ static void newModule(FILE *fp, char *filename)
  */
 static moduleDef *allocModule()
 {
-    moduleDef *newmod;
+    moduleDef *newmod, **tailp;
 
     newmod = sipMalloc(sizeof (moduleDef));
     newmod->fullname = NULL;
     newmod->name = NULL;
     newmod->version = -1;
     newmod->modflags = 0;
+    newmod->hdrcode = NULL;
+    newmod->cppcode = NULL;
+    newmod->copying = NULL;
+    newmod->preinitcode = NULL;
+    newmod->postinitcode = NULL;
+    newmod->unitcode = NULL;
     newmod->modulenr = -1;
     newmod->file = NULL;
     newmod->qualifiers = NULL;
@@ -2595,9 +2594,16 @@ static moduleDef *allocModule()
     newmod->cons = NULL;
     newmod->allimports = NULL;
     newmod->imports = NULL;
-    newmod->next = currentSpec->modules;
+    newmod->next = NULL;
 
-    currentSpec->modules = newmod;
+    /*
+     * The consolidated module support needs these to be in order that they
+     * appeared.
+     */
+    for (tailp = &currentSpec->modules; *tailp != NULL; tailp = &(*tailp)->next)
+        ;
+
+    *tailp = newmod;
 }
 
 
