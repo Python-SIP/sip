@@ -38,9 +38,12 @@
 /* Handle module flags. */
 
 #define MOD_HAS_DELAYED_DTORS   0x0001  /* It has a class with a delayed dtor. */
+#define MOD_IS_CONSOLIDATED     0x0002  /* It is a consolidated module. */
 
 #define hasDelayedDtors(m)  ((m)->modflags & MOD_HAS_DELAYED_DTORS)
 #define setHasDelayedDtors(m)   ((m)->modflags |= MOD_HAS_DELAYED_DTORS)
+#define isConsolidated(m)   ((m)->modflags & MOD_IS_CONSOLIDATED)
+#define setIsConsolidated(m)    ((m)->modflags |= MOD_IS_CONSOLIDATED)
 
 
 /* Handle section flags. */
@@ -527,6 +530,7 @@ typedef struct _moduleDef {
     int nrvirthandlers;                 /* The nr. of virtual handlers. */
     struct _virtHandlerDef *virthandlers;   /* The virtual handlers. */
     licenseDef *license;                /* The software license. */
+    struct _moduleDef *cons;            /* The consolidated module, if any. */
     struct _moduleListDef *allimports;  /* The list of all imports. */
     struct _moduleListDef *imports;     /* The list of direct imports. */
     struct _moduleDef *next;            /* Next in the list. */
@@ -893,7 +897,7 @@ typedef struct _mappedTypeTmplDef {
 /* The parse tree corresponding to the specification file. */
 
 typedef struct {
-    moduleDef *module;                  /* This module. */
+    moduleDef *module;                  /* The module being generated. */
     moduleDef *modules;                 /* The list of modules. */
     nameDef *namecache;                 /* The name cache. */
     ifaceFileDef *ifacefiles;           /* The list of interface files. */
@@ -935,6 +939,7 @@ typedef struct _stringList {
 /* File specific context information for the parser. */
 
 typedef struct _parserContext {
+    const char *filename;               /* The %Import or %Include filename. */
     int ifdepth;                        /* The depth of nested if's. */
     moduleDef *prevmod;                 /* The previous module. */
 } parserContext;
@@ -954,7 +959,7 @@ void generateExpression(valueDef *vd, FILE *fp);
 void warning(char *,...);
 void fatal(char *,...);
 void fatalScopedName(scopedNameDef *);
-void setInputFile(FILE *,char *,parserContext *,int);
+void setInputFile(FILE *open_fp, parserContext *pc, int optional);
 void *sipMalloc(size_t);
 char *sipStrdup(char *);
 char *concat(const char *, ...);

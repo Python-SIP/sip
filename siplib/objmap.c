@@ -122,27 +122,25 @@ void sipOMAddObject(sipObjectMap *om,sipWrapper *val)
     sipHashEntry *he = findHashEntry(om,val -> u.cppPtr);
 
     /*
-     * If the bucket is in use then we appear to have several objects at
-     * the same address.
+     * If the bucket is in use then we appear to have several objects at the
+     * same address.
      */
     if (he -> first != NULL)
     {
         /*
-         * This can happen for three reasons.  A variable of one class
-         * can be declared at the start of another class.  Therefore
-         * there are two objects, of different classes, with the same
-         * address.  The second reason is that the old C/C++ object has
-         * been deleted by C/C++ but we didn't get to find out for some
-         * reason, and a new C/C++ instance has been created at the
-         * same address.  The third reason is if we are in the process
-         * of deleting a Python object but the C++ object gets wrapped
-         * again because the C++ dtor called a method that has been
-         * re-implemented in Python.  The absence of the SIP_SHARE_MAP
-         * flag tells us that a new C++ instance has just been created
-         * and so we know the second reason is the correct one so we
-         * mark the old pointers as invalid and reuse the entry.
-         * Otherwise we just add this one to the existing list of
-         * objects at this address.
+         * This can happen for three reasons.  A variable of one class can be
+         * declared at the start of another class.  Therefore there are two
+         * objects, of different classes, with the same address.  The second
+         * reason is that the old C/C++ object has been deleted by C/C++ but we
+         * didn't get to find out for some reason, and a new C/C++ instance has
+         * been created at the same address.  The third reason is if we are in
+         * the process of deleting a Python object but the C++ object gets
+         * wrapped again because the C++ dtor called a method that has been
+         * re-implemented in Python.  The absence of the SIP_SHARE_MAP flag
+         * tells us that a new C++ instance has just been created and so we
+         * know the second reason is the correct one so we mark the old
+         * pointers as invalid and reuse the entry.  Otherwise we just add this
+         * one to the existing list of objects at this address.
          */
         if (!(val -> flags & SIP_SHARE_MAP))
         {

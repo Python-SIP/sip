@@ -15,7 +15,7 @@
 #define MAX_NESTED_IF       10
 #define MAX_NESTED_SCOPE    10
 
-#define inMainModule()      (currentSpec -> module == currentModule)
+#define inMainModule()      (currentSpec->module == currentModule)
 
 
 static sipSpec *currentSpec;            /* The current spec being parsed. */
@@ -29,7 +29,7 @@ static int currentOverIsVirt;           /* Set if the overload is virtual. */
 static int currentCtorIsExplicit;       /* Set if the ctor is explicit. */
 static int currentIsStatic;             /* Set if the current is static. */
 static char *previousFile;              /* The file just parsed. */
-static parserContext newContext;        /* The new pending context. */
+static parserContext currentContext;    /* The current context. */
 static int skipStackPtr;                /* The skip stack pointer. */
 static int skipStack[MAX_NESTED_IF];    /* Stack of skip flags. */
 static classDef *scopeStack[MAX_NESTED_SCOPE];  /* The scope stack. */
@@ -60,9 +60,10 @@ static optFlag *findOptFlag(optFlags *,char *,flagType);
 static memberDef *findFunction(sipSpec *,moduleDef *,classDef *,nameDef *,int,
                    int);
 static void checkAttributes(sipSpec *,classDef *,char *,int);
-static void newModule(FILE *,char *);
+static void newModule(FILE *fp, char *filename);
+static moduleDef *allocModule();
 static void appendCodeBlock(codeBlock **,codeBlock *);
-static void parseFile(FILE *,char *,moduleDef *,int);
+static void parseFile(FILE *fp, char *name, moduleDef *prevmod, int optional);
 static void handleEOF(void);
 static void handleEOM(void);
 static qualDef *findQualifier(char *);
@@ -72,7 +73,7 @@ static void pushScope(classDef *);
 static void popScope(void);
 static classDef *currentScope(void);
 static void newQualifier(moduleDef *,int,int,char *,qualType);
-static void newImport(char *);
+static void newImport(char *filename);
 static void usedInMainModule(sipSpec *,ifaceFileDef *);
 static int timePeriod(char *,char *);
 static int platOrFeature(char *,int);
@@ -89,6 +90,7 @@ static char *scopedNameToString(scopedNameDef *name);
 static void addUsedFromCode(sipSpec *pt, ifaceFileList **used, const char *sname);
 static int sameName(scopedNameDef *snd, const char *sname);
 static int optFind(sipSpec *pt, const char *opt);
+static void setModuleName(moduleDef *mod, const char *fullname);
 %}
 
 %union {
@@ -154,6 +156,7 @@ static int optFind(sipSpec *pt, const char *opt);
 %token          TK_TYPEHEADERCODE
 %token          TK_MODULE
 %token          TK_CMODULE
+%token          TK_CONSMODULE
 %token          TK_CLASS
 %token          TK_STRUCT
 %token          TK_PUBLIC
@@ -285,15 +288,15 @@ specification:  statement
 
 statement:  {
             /*
-             * We don't do these in parserEOF() because the parser
-             * is reading ahead and that would be too early.
+             * We don't do these in parserEOF() because the parser is reading
+             * ahead and that would be too early.
              */
 
             if (previousFile != NULL)
             {
                 handleEOF();
 
-                if (newContext.prevmod != NULL)
+                if (currentContext.prevmod != NULL)
                     handleEOM();
 
                 free(previousFile);
@@ -303,6 +306,7 @@ statement:  {
     ;
 
 modstatement:   module
+    |   consmodule
     |   options
     |   noemitters
     |   copying
@@ -774,27 +778,48 @@ license:    TK_LICENSE optflags {
         }
     ;
 
+consmodule: TK_CONSMODULE modname {
+            /* Make sure this is the first mention of a module. */
+            if (!inMainModule())
+                yyerror("A %ConsolidatedModule cannot be %Imported");
+
+            if (currentModule->fullname != NULL)
+                yyerror("%ConsolidatedModule must appear before any %Module or %CModule directive");
+
+            setModuleName(currentModule, $2);
+            setIsConsolidated(currentModule);
+        }
+    ;
+
 module:     modlang modname optnumber {
             /* Check the module hasn't already been defined. */
 
             moduleDef *mod;
 
-            for (mod = currentSpec -> modules; mod != NULL; mod = mod -> next)
+            for (mod = currentSpec->modules; mod != NULL; mod = mod->next)
                 if (mod->fullname != NULL && strcmp(mod->fullname, $2) == 0)
                     yyerror("Module is already defined");
 
-            currentModule->fullname = $2;
+            /*
+             * If we are in a consolidated module then create a component
+             * module and make it current.
+             */
+            if (isConsolidated(currentModule) || currentModule->cons != NULL)
+            {
+                mod = allocModule();
 
-            if ((currentModule->name = strrchr($2, '.')) != NULL)
-                currentModule->name++;
-            else
-                currentModule->name = $2;
+                mod->file = currentContext.filename;
+                mod->cons = (isConsolidated(currentModule) ? currentModule : currentModule->cons);
 
-            currentModule -> version = $3;
+                currentModule = mod;
+            }
 
-            if (currentSpec -> genc < 0)
-                currentSpec -> genc = $1;
-            else if (currentSpec -> genc != $1)
+            setModuleName(currentModule, $2);
+            currentModule->version = $3;
+
+            if (currentSpec->genc < 0)
+                currentSpec->genc = $1;
+            else if (currentSpec->genc != $1)
                 yyerror("Cannot mix C and C++ modules");
         }
     ;
@@ -831,12 +856,12 @@ optnumber:  {
     ;
 
 include:    TK_INCLUDE TK_PATHNAME {
-            parseFile(NULL,$2,NULL,FALSE);
+            parseFile(NULL, $2, NULL, FALSE);
         }
     ;
 
 optinclude: TK_OPTINCLUDE TK_PATHNAME {
-            parseFile(NULL,$2,NULL,TRUE);
+            parseFile(NULL, $2, NULL, TRUE);
         }
     ;
 
@@ -2408,8 +2433,8 @@ exceptionlist:  {
 /*
  * Parse the specification.
  */
-void parse(sipSpec *spec,FILE *fp,char *filename,stringList *tsl,
-       stringList *xfl)
+void parse(sipSpec *spec, FILE *fp, char *filename, stringList *tsl,
+        stringList *xfl)
 {
     classTmplDef *tcd;
 
@@ -2456,7 +2481,7 @@ void parse(sipSpec *spec,FILE *fp,char *filename,stringList *tsl,
     currentScopeIdx = 0;
     sectionFlags = 0;
 
-    newModule(fp,filename);
+    newModule(fp, filename);
     spec -> module = currentModule;
 
     yyparse();
@@ -2495,10 +2520,10 @@ void parse(sipSpec *spec,FILE *fp,char *filename,stringList *tsl,
 /*
  * Tell the parser that a complete file has now been read.
  */
-void parserEOF(char *name,parserContext *pc)
+void parserEOF(char *name, parserContext *pc)
 {
     previousFile = sipStrdup(name);
-    newContext = *pc;
+    currentContext = *pc;
 }
 
 
@@ -2533,50 +2558,61 @@ void appendToClassList(classList **clp,classDef *cd)
 /*
  * Create a new module for the current specification and make it current.
  */
-static void newModule(FILE *fp,char *filename)
+static void newModule(FILE *fp, char *filename)
+{
+    parseFile(fp, filename, currentModule, FALSE);
+    currentModule = allocModule();
+    currentModule->file = filename;
+}
+
+
+/*
+ * Allocate and initialise the memory for a new module.
+ */
+static moduleDef *allocModule()
 {
     moduleDef *newmod;
 
-    parseFile(fp,filename,currentModule,FALSE);
-
     newmod = sipMalloc(sizeof (moduleDef));
-    newmod -> fullname = NULL;
-    newmod -> name = NULL;
-    newmod -> version = -1;
-    newmod -> modflags = 0;
-    newmod -> modulenr = -1;
-    newmod -> file = filename;
-    newmod -> qualifiers = NULL;
-    newmod -> root.cd = NULL;
-    newmod -> root.child = NULL;
-    newmod -> nrtimelines = 0;
-    newmod -> nrclasses = 0;
-    newmod -> nrexceptions = 0;
-    newmod -> nrmappedtypes = 0;
-    newmod -> nrenums = 0;
-    newmod -> nrtypedefs = 0;
-    newmod -> nrvirthandlers = 0;
-    newmod -> virthandlers = NULL;
-    newmod -> license = NULL;
-    newmod -> allimports = NULL;
-    newmod -> imports = NULL;
-    newmod -> next = currentSpec -> modules;
+    newmod->fullname = NULL;
+    newmod->name = NULL;
+    newmod->version = -1;
+    newmod->modflags = 0;
+    newmod->modulenr = -1;
+    newmod->file = NULL;
+    newmod->qualifiers = NULL;
+    newmod->root.cd = NULL;
+    newmod->root.child = NULL;
+    newmod->nrtimelines = 0;
+    newmod->nrclasses = 0;
+    newmod->nrexceptions = 0;
+    newmod->nrmappedtypes = 0;
+    newmod->nrenums = 0;
+    newmod->nrtypedefs = 0;
+    newmod->nrvirthandlers = 0;
+    newmod->virthandlers = NULL;
+    newmod->license = NULL;
+    newmod->cons = NULL;
+    newmod->allimports = NULL;
+    newmod->imports = NULL;
+    newmod->next = currentSpec->modules;
 
-    currentModule = currentSpec->modules = newmod;
+    currentSpec->modules = newmod;
 }
 
 
 /*
  * Switch to parsing a new file.
  */
-static void parseFile(FILE *fp,char *name,moduleDef *prevmod,int optional)
+static void parseFile(FILE *fp, char *name, moduleDef *prevmod, int optional)
 {
     parserContext pc;
 
+    pc.filename = name;
     pc.ifdepth = skipStackPtr;
     pc.prevmod = prevmod;
 
-    setInputFile(fp,name,&pc,optional);
+    setInputFile(fp, &pc, optional);
 }
 
 
@@ -4521,11 +4557,11 @@ static void handleEOF()
      * the file.
      */
 
-    if (skipStackPtr > newContext.ifdepth)
-        fatal("Too many %%If statements in %s\n",previousFile);
+    if (skipStackPtr > currentContext.ifdepth)
+        fatal("Too many %%If statements in %s\n", previousFile);
 
-    if (skipStackPtr < newContext.ifdepth)
-        fatal("Too many %%End statements in %s\n",previousFile);
+    if (skipStackPtr < currentContext.ifdepth)
+        fatal("Too many %%End statements in %s\n", previousFile);
 }
 
 
@@ -4541,7 +4577,7 @@ static void handleEOM()
 
     /* The previous module is now current. */
 
-    currentModule = newContext.prevmod;
+    currentModule = currentContext.prevmod;
 }
 
 
@@ -4856,7 +4892,8 @@ static classDef *currentScope(void)
 /*
  * Create a new qualifier.
  */
-static void newQualifier(moduleDef *mod,int line,int order,char *name,qualType qt)
+static void newQualifier(moduleDef *mod, int line, int order, char *name,
+        qualType qt)
 {
     qualDef *qd;
 
@@ -4866,34 +4903,34 @@ static void newQualifier(moduleDef *mod,int line,int order,char *name,qualType q
         yyerror("Version is already defined");
 
     qd = sipMalloc(sizeof (qualDef));
-    qd -> name = name;
-    qd -> qtype = qt;
-    qd -> module = mod;
-    qd -> line = line;
-    qd -> order = order;
-    qd -> next = mod -> qualifiers;
-    mod -> qualifiers = qd;
+    qd->name = name;
+    qd->qtype = qt;
+    qd->module = mod;
+    qd->line = line;
+    qd->order = order;
+    qd->next = mod -> qualifiers;
+    mod->qualifiers = qd;
 }
 
 
 /*
  * Create a new imported module.
  */
-static void newImport(char *name)
+static void newImport(char *filename)
 {
     moduleDef *from, *mod;
     moduleListDef *mld;
 
-    /* Create a new module if it has already been imported. */
-    for (mod = currentSpec -> modules; mod != NULL; mod = mod -> next)
-        if (strcmp(mod -> file,name) == 0)
+    /* Create a new module if it has not already been defined. */
+    for (mod = currentSpec->modules; mod != NULL; mod = mod->next)
+        if (strcmp(mod->file, filename) == 0)
             break;
 
     from = currentModule;
 
     if (mod == NULL)
     {
-        newModule(NULL,name);
+        newModule(NULL, filename);
         mod = currentModule;
     }
 
@@ -4903,8 +4940,8 @@ static void newImport(char *name)
             return;
 
     mld = sipMalloc(sizeof (moduleListDef));
-    mld -> module = mod;
-    mld -> next = from->imports;
+    mld->module = mod;
+    mld->next = from->imports;
 
     from->imports = mld;
 }
@@ -4986,4 +5023,18 @@ static int optFind(sipSpec *pt, const char *opt)
             return TRUE;
 
     return FALSE;
+}
+
+
+/*
+ * Set the name of a module.
+ */
+static void setModuleName(moduleDef *mod, const char *fullname)
+{
+    mod->fullname = fullname;
+
+    if ((mod->name = strrchr(fullname, '.')) != NULL)
+        mod->name++;
+    else
+        mod->name = fullname;
 }

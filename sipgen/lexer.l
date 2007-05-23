@@ -53,6 +53,7 @@ static void fatallex(char *);
 ^[ \t]*%Import              {return TK_IMPORT;}
 ^[ \t]*%Module              {return TK_MODULE;}
 ^[ \t]*%CModule             {return TK_CMODULE;}
+^[ \t]*%ConsolidatedModule  {return TK_CONSMODULE;}
 ^[ \t]*%Timeline            {return TK_TIMELINE;}
 ^[ \t]*%Platforms           {return TK_PLATFORMS;}
 ^[ \t]*%Feature             {return TK_FEATURE;}
@@ -407,7 +408,7 @@ int yywrap()
 
     /* Tell the parser if this is the end of a file. */
 
-    parserEOF(ifp -> name,&ifp -> pc);
+    parserEOF(ifp -> name, &ifp -> pc);
 
     /* Tidy up this file. */
 
@@ -429,15 +430,17 @@ int yywrap()
 /*
  * Set up an input file to be read by the lexer, opening it if necessary.
  */
-void setInputFile(FILE *fp,char *name,parserContext *pc,int optional)
+void setInputFile(FILE *open_fp, parserContext *pc, int optional)
 {
-    char *fullname = NULL;
+    static stringList *all = NULL;
+    char *cwd, *fullname = NULL;
+    FILE *fp = open_fp;
 
     if (currentFile >= MAX_INCLUDE_DEPTH - 1)
         fatal("Too many nested %%Include, %%OptionalInclude or %%Import statements\n");
 
-    if (fp != NULL || (fp = openFile(name)) != NULL)
-        fullname = sipStrdup(name);
+    if (fp != NULL || (fp = openFile(pc->filename)) != NULL)
+        fullname = sipStrdup(pc->filename);
     else
     {
         char *cwd;
@@ -445,7 +448,7 @@ void setInputFile(FILE *fp,char *name,parserContext *pc,int optional)
         /* Try the directory that contains the current file. */
         if (currentFile >= 0 && (cwd = inputFileStack[currentFile].cwd) != NULL)
         {
-            fullname = concat(cwd,"/",name,NULL);
+            fullname = concat(cwd, "/", pc->filename, NULL);
 
             if ((fp = openFile(fullname)) == NULL)
             {
@@ -467,44 +470,60 @@ void setInputFile(FILE *fp,char *name,parserContext *pc,int optional)
             if (fullname != NULL)
                 free(fullname);
 
-            fullname = concat(sl -> s,"/",name,NULL);
+            fullname = concat(sl->s, "/", pc->filename, NULL);
 
             if ((fp = openFile(fullname)) != NULL)
                 break;
         }
 
         if (fp == NULL && !optional)
-            fatal("Unable to find file \"%s\"\n",name);
+            fatal("Unable to find file \"%s\"\n", pc->filename);
     }
 
-    if (fp != NULL)
+    if (fp == NULL)
+        return;
+
+    /*
+     * If we have just opened the file, make sure that we haven't already read
+     * it.  While it should never happen with normal modules (if the user
+     * doesn't specify recursive %Imports or %Includes) it is likely to happen
+     * with consolidated modules.
+     */
+    if (open_fp == NULL)
     {
-        char *cwd;
+        stringList *sl;
 
-        yyin = fp;
+        for (sl = all; sl != NULL; sl = sl->next)
+            if (strcmp(sl->s, fullname) == 0)
+            {
+                fclose(fp);
+                return;
+            }
+    }
 
-        ++currentFile;
+    /* Remember the filename. */
+    appendString(&all, sipStrdup(fullname));
 
-        /*
-         * Remember the directory containing the new file and make it
-         * "current".
-         */
-        if ((cwd = strchr(fullname,'/')) != NULL)
-        {
-            cwd = sipStrdup(fullname);
-            *strrchr(cwd,'/') = '\0';
-        }
+    yyin = fp;
 
-        inputFileStack[currentFile].lineno = 1;
-        inputFileStack[currentFile].name = fullname;
-        inputFileStack[currentFile].pc = *pc;
-        inputFileStack[currentFile].cwd = cwd;
+    ++currentFile;
 
-        if (currentFile > 0)
-        {
-            inputFileStack[currentFile].bs = YY_CURRENT_BUFFER;
-            yy_switch_to_buffer(yy_create_buffer(yyin,YY_BUF_SIZE));
-        }
+    /* Remember the directory containing the new file and make it "current". */
+    if ((cwd = strchr(fullname, '/')) != NULL)
+    {
+        cwd = sipStrdup(fullname);
+        *strrchr(cwd,'/') = '\0';
+    }
+
+    inputFileStack[currentFile].lineno = 1;
+    inputFileStack[currentFile].name = fullname;
+    inputFileStack[currentFile].pc = *pc;
+    inputFileStack[currentFile].cwd = cwd;
+
+    if (currentFile > 0)
+    {
+        inputFileStack[currentFile].bs = YY_CURRENT_BUFFER;
+        yy_switch_to_buffer(yy_create_buffer(yyin,YY_BUF_SIZE));
     }
 }
 
