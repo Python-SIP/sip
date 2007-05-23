@@ -1282,6 +1282,7 @@ typedef struct _sipQtAPI {
 #define sipIsIndirect(w)    ((w)->flags & SIP_INDIRECT)
 #define sipIsAccessFunc(w)  ((w)->flags & SIP_ACCFUNC)
 #define sipNotInMap(w)      ((w)->flags & SIP_NOT_IN_MAP)
+#define sipSetNotInMap(w)   ((w)->flags |= SIP_NOT_IN_MAP)
 #define sipCppHasRef(w)     ((w)->flags & SIP_CPP_HAS_REF)
 #define sipSetCppHasRef(w)  ((w)->flags |= SIP_CPP_HAS_REF)
 #define sipResetCppHasRef(w) ((w)->flags &= ~SIP_CPP_HAS_REF)

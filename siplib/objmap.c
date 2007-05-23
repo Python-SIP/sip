@@ -92,7 +92,7 @@ static sipHashEntry *findHashEntry(sipObjectMap *om,void *key)
  * Return the wrapped Python object of a specific type for a C/C++ address or
  * NULL if it wasn't found.
  */
-sipWrapper *sipOMFindObject(sipObjectMap *om,void *key, sipWrapperType *type)
+sipWrapper *sipOMFindObject(sipObjectMap *om, void *key, sipWrapperType *type)
 {
     sipHashEntry *he = findHashEntry(om, key);
     sipWrapper *w;
@@ -101,12 +101,10 @@ sipWrapper *sipOMFindObject(sipObjectMap *om,void *key, sipWrapperType *type)
     for (w = he->first; w != NULL; w = w->next)
     {
         /*
-         * If this wrapped object is of the given type, or a sub-type
-         * of it, or vice versa, then we assume it is the same C++
-         * object.
+         * If this wrapped object is of the given type, or a sub-type of it,
+         * then we assume it is the same C++ object.
          */
-        if (PyObject_TypeCheck(w, (PyTypeObject *)type) ||
-                PyType_IsSubtype((PyTypeObject *)type, w->ob_type))
+        if (PyObject_TypeCheck(w, (PyTypeObject *)type))
             return w;
     }
 
@@ -144,12 +142,18 @@ void sipOMAddObject(sipObjectMap *om,sipWrapper *val)
          */
         if (!(val -> flags & SIP_SHARE_MAP))
         {
-            sipWrapper *w;
+            sipWrapper *w = he->first;
 
-            for (w = he -> first; w != NULL; w = w -> next)
-                w -> u.cppPtr = NULL;
+            he->first = NULL;
 
-            he -> first = NULL;
+            while (w != NULL)
+            {
+                /* We are removing it from the map here. */
+                sipSetNotInMap(w);
+                sip_api_common_dtor(w);
+
+                w = w->next;
+            }
         }
 
         val -> next = he -> first;

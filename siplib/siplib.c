@@ -72,7 +72,6 @@ static int sip_api_parse_args(int *argsParsedp, PyObject *sipArgs,
 static int sip_api_parse_pair(int *argsParsedp, PyObject *sipArg0,
         PyObject *sipArg1, const char *fmt, ...);
 static void sip_api_common_ctor(sipMethodCache *cache, int nrmeths);
-static void sip_api_common_dtor(sipWrapper *sipSelf);
 static void *sip_api_convert_to_void_ptr(PyObject *obj);
 static void sip_api_no_function(int argsParsed, const char *func);
 static void sip_api_no_method(int argsParsed, const char *classname,
@@ -3364,7 +3363,7 @@ static void sip_api_common_ctor(sipMethodCache *cache,int nrmeths)
 /*
  * Carry out actions common to all dtors.
  */
-static void sip_api_common_dtor(sipWrapper *sipSelf)
+void sip_api_common_dtor(sipWrapper *sipSelf)
 {
     if (sipSelf != NULL && sipInterpreter != NULL)
     {
