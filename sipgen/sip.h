@@ -959,7 +959,7 @@ void generateExpression(valueDef *vd, FILE *fp);
 void warning(char *,...);
 void fatal(char *,...);
 void fatalScopedName(scopedNameDef *);
-void setInputFile(FILE *open_fp, parserContext *pc, int optional);
+int setInputFile(FILE *open_fp, parserContext *pc, int optional);
 void *sipMalloc(size_t);
 char *sipStrdup(char *);
 char *concat(const char *, ...);

@@ -428,9 +428,10 @@ int yywrap()
 
 
 /*
- * Set up an input file to be read by the lexer, opening it if necessary.
+ * Set up an input file to be read by the lexer, opening it if necessary.  TRUE
+ * is returned if the file has not already been read.
  */
-void setInputFile(FILE *open_fp, parserContext *pc, int optional)
+int setInputFile(FILE *open_fp, parserContext *pc, int optional)
 {
     static stringList *all = NULL;
     char *cwd, *fullname = NULL;
@@ -476,12 +477,14 @@ void setInputFile(FILE *open_fp, parserContext *pc, int optional)
                 break;
         }
 
-        if (fp == NULL && !optional)
-            fatal("Unable to find file \"%s\"\n", pc->filename);
-    }
+        if (fp == NULL)
+        {
+            if (optional)
+                return FALSE;
 
-    if (fp == NULL)
-        return;
+            fatal("Unable to find file \"%s\"\n", pc->filename);
+        }
+    }
 
     /*
      * If we have just opened the file, make sure that we haven't already read
@@ -497,7 +500,7 @@ void setInputFile(FILE *open_fp, parserContext *pc, int optional)
             if (strcmp(sl->s, fullname) == 0)
             {
                 fclose(fp);
-                return;
+                return FALSE;
             }
     }
 
@@ -525,6 +528,8 @@ void setInputFile(FILE *open_fp, parserContext *pc, int optional)
         inputFileStack[currentFile].bs = YY_CURRENT_BUFFER;
         yy_switch_to_buffer(yy_create_buffer(yyin,YY_BUF_SIZE));
     }
+
+    return TRUE;
 }
 
 

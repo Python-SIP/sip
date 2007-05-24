@@ -2618,7 +2618,8 @@ static void parseFile(FILE *fp, char *name, moduleDef *prevmod, int optional)
     pc.ifdepth = skipStackPtr;
     pc.prevmod = prevmod;
 
-    setInputFile(fp, &pc, optional);
+    if (setInputFile(fp, &pc, optional))
+        currentContext = pc;
 }
 
 

@@ -699,16 +699,54 @@ static void generateConsolidatedCpp(sipSpec *pt, char *codeDir,
         char *srcSuffix)
 {
     char *mname, *cppfile;
+    moduleDef *mod;
     FILE *fp;
 
     mname = pt->module->name;
     cppfile = concat(codeDir, "/sip", mname, "cmodule", srcSuffix, NULL);
     fp = createCompilationUnit(pt, cppfile, "Consolidated module code.");
 
+    prcode(fp,
+"\n"
+"\n"
+"#include <Python.h>\n"
+"\n"
+"\n"
+"static void sip_import_component_module(PyObject *d, char *name)\n"
+"{\n"
+"    PyObject *mod = PyImport_ImportModule(name);\n"
+"\n"
+"    /*\n"
+"     * Note that we don't complain if the module can't be imported.  This\n"
+"     * is a favour to Linux distro packagers who like to split PyQt into\n"
+"     * different sub-packages.\n"
+"     */\n"
+"    if (mod)\n"
+"        PyDict_Merge(d, PyModule_GetDict(mod), 0);\n"
+"}\n"
+        );
+
     generateModInitStart(pt, fp);
+
+    prcode(fp,
+"    PyObject *sipModule, *sipModuleDict;\n"
+"\n"
+        );
 
     /* Generate any pre-initialisation code. */
     generateCppCodeBlock(pt->module->preinitcode, fp);
+
+    prcode(fp,
+"    sipModule = Py_InitModule(\"%s\", 0);\n"
+"    sipModuleDict = PyModule_GetDict(sipModule);\n"
+"\n"
+        , pt->module->fullname);
+
+    for (mod = pt->modules; mod != NULL; mod = mod->next)
+        if (mod->cons == pt->module)
+            prcode(fp,
+"    sip_import_component_module(sipModuleDict, \"%s\");\n"
+                , mod->fullname);
 
     /* Generate any post-initialisation code. */
     generateCppCodeBlock(pt->module->postinitcode, fp);
