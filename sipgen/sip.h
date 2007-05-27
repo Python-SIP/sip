@@ -534,6 +534,7 @@ typedef struct _moduleDef {
     codeBlock *postinitcode;            /* Post-initialisation code. */
     codeBlock *unitcode;                /* Compilation unit code. */
     int modulenr;                       /* The module number. */
+    int parts;                          /* The number of parts generated. */
     char *file;                         /* The filename. */
     qualDef *qualifiers;                /* The list of qualifiers. */
     nodeDef root;                       /* Root of class tree. */

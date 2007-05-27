@@ -112,6 +112,7 @@ static wchar_t *sip_api_unicode_as_wstring(PyObject *obj);
 static int sip_api_unicode_as_wchar(PyObject *obj);
 static int *sip_api_unicode_as_wstring(PyObject *obj);
 #endif
+static void sip_api_import_from_cons_module(const char *from, const char *to);
 static void sip_api_transfer_break(PyObject *self);
 
 
@@ -220,6 +221,7 @@ static const sipAPIDef sip_api = {
     sip_api_string_as_char,
     sip_api_unicode_as_wchar,
     sip_api_unicode_as_wstring,
+    sip_api_import_from_cons_module,
     /*
      * The following are part of the public API.
      */
@@ -8200,3 +8202,13 @@ static void raiseNoWChar()
 }
 
 #endif
+
+
+/*
+ * Import a consolidated module on behalf of a component stub and complete its
+ * initialisation.
+ */
+static void sip_api_import_from_cons_module(const char *from, const char *to)
+{
+    /* ZZZ - not yet implemented. */
+}
