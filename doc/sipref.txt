@@ -90,6 +90,10 @@ SIP, and the bindings it produces, have the following features.
       to specify that a C++ function of method may block, therefore allowing
       the lock to be released and other Python threads to run
 
+    - support for consolidated modules where the generated wrapper code for a
+      number of related modules may be included in a single, possibly private,
+      module
+
     - support for the concept of ownership of a C++ instance (i.e. what part of
       the code is responsible for calling the instance's destructor) and how
       the ownership may change during the execution of an application
@@ -865,6 +869,14 @@ The full set of command line options is:
         it easier to use the parallel build facility of most modern
         implementations of ``make``.  By default 1 file is generated for each C
         structure or C++ class.
+-n      If the `%ConsolidatedModule`_ directive has been used to specify a
+        consolidated module then this causes the wrapper code of the
+        corresponding component modules to be included as part of the
+        consolidated module.  By default a component module's wrapper code is
+        part of the component module.
+-p module
+        The name of the consoldated module which will contain the wrapper code
+        for this component module.
 -r      Debugging statements that trace the execution of the bindings are
         automatically generated.  By default the statements are not generated.
 -s suffix
@@ -939,13 +951,14 @@ file.
 
     *module-statement* ::= [*module-directive* | *statement*]
 
-    *module-directive* ::= [`%CModule`_ | `%Copying`_ | `%Doc`_ |
-            `%ExportedDoc`_ | `%ExportedHeaderCode`_ | `%Feature`_ |
-            `%Import`_ | `%Include`_ | `%License`_ | `%MappedType`_ |
-            *mapped-type-template* | `%Module`_ | `%ModuleCode`_ |
-            `%ModuleHeaderCode`_ | `%OptionalInclude`_ | `%Platforms`_ |
-            `%PreInitialisationCode`_ | `%PostInitialisationCode`_ |
-            *sip-option-list* | `%Timeline`_ | `%UnitCode`_]
+    *module-directive* ::= [`%CModule`_ | `%ConsolidatedModule`_ |
+            `%Copying`_ | `%Doc`_ | `%ExportedDoc`_ | `%ExportedHeaderCode`_ |
+            `%Feature`_ | `%Import`_ | `%Include`_ | `%License`_ |
+            `%MappedType`_ | *mapped-type-template* | `%Module`_ |
+            `%ModuleCode`_ | `%ModuleHeaderCode`_ | `%OptionalInclude`_ |
+            `%Platforms`_ | `%PreInitialisationCode`_ |
+            `%PostInitialisationCode`_ | *sip-option-list* | `%Timeline`_ |
+            `%UnitCode`_]
 
     *sip-option-list* :: `%SIPOptions`_ ``(`` *option-list* ``)``
 
@@ -1500,6 +1513,55 @@ See the `%Module`_ directive for an explanation of the version number.
 For example::
 
     %CModule dbus 1
+
+
+%ConsolidatedModule
+-------------------
+
+.. parsed-literal::
+
+    %ConsolidatedModule *name*
+
+A consolidated module is one that consolidates a number of related SIP
+generated modules (refered to as component modules in this context).  For
+example, a module that consolidates the modules ``a_mod``, ``b_mod`` and
+``c_mod`` is equivalent to the following pure Python module::
+
+    from a_mod import *
+    from b_mod import *
+    from c_mod import *
+
+Clearly the component modules should not define module-level objects with the
+same name.
+
+This directive is used to specify the name of a consolidated module.  Any
+subsequent `%CModule`_ or `%Module`_ directive is interpreted as defining a
+component module.
+
+For example::
+
+    %ConsolidatedModule PyQt4.Qt
+    %Include QtCore/QtCoremod.sip
+    %Include QtGui/QtGuimod.sip
+
+Modules, both consolidated and component, may be built in two ways depending
+on which module actually contains the generated wrapper code.
+
+Normally the wrapper code is contained in the component module and is linked
+against the corresponding C or C++ library.  The consolidated module is not
+linked against the C or C++ libraries being wrapped and populates its module
+dictionary by importing each of the component modules in the same way as the
+example Python module above.  The main purpose of the consolidated module in
+this case is as a programmer convenience as they don't have to remember which
+which component module an object is defined in.
+
+Alternatively modules can be built the other way around using the ``-n`` and
+``-p`` command line options.  In this case the wrapper code for all component
+modules is contained in the consolidated module and only the consolidated
+module is linked against all the corresponding C or C++ libraries.  This can
+make distribution easier if, for example, the C or C++ libraries are static
+libraries.  It also provides a mechanism to breaking up a monolithic library
+into a number of smaller Python modules.
 
 
 %ConvertFromTypeCode

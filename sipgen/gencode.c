@@ -196,7 +196,7 @@ static const char *resultOwner(overDef *od);
  */
 void generateCode(sipSpec *pt, char *codeDir, char *buildfile, char *docFile,
         char *srcSuffix, int except, int trace, int releaseGIL, int parts,
-        stringList *xsl)
+        stringList *xsl, int incComponentsCode, const char *consModule)
 {
     exceptions = except;
     tracing = trace;
@@ -213,7 +213,14 @@ void generateCode(sipSpec *pt, char *codeDir, char *buildfile, char *docFile,
     /* Generate the code. */
     if (codeDir != NULL)
         if (isConsolidated(pt->module))
+        {
+            if (incComponentsCode)
+                fatal("Including component modules code not yet implemented\n");
+
             generateConsolidatedCpp(pt, codeDir, srcSuffix);
+        }
+        else if (consModule != NULL)
+            fatal("Component module of a consolidated module not yet implemented\n");
         else
         {
             generateCpp(pt, codeDir, srcSuffix, &parts);

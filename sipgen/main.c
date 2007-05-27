@@ -15,10 +15,10 @@
 
 
 #ifndef PACKAGE
-#define	PACKAGE	"sip"
+#define PACKAGE "sip"
 #endif
 
-#define	VERSION	"@RM_VERSION@ (@RM_LATEST@)"
+#define VERSION "@RM_VERSION@ (@RM_LATEST@)"
 
 
 /* Global variables - see sip.h for their meaning. */
@@ -36,164 +36,177 @@ static char parseopt(int,char **,char *,char **,int *,char **);
 static int parseInt(char *,char);
 
 
-int main(int argc,char **argv)
+int main(int argc, char **argv)
 {
-	char *filename, *docFile, *codeDir, *srcSuffix, *flagFile;
-	char arg, *optarg, *buildFile, *apiFile, *xmlFile;
-	int optnr, exceptions, tracing, releaseGIL, parts;
-	FILE *file;
-	sipSpec spec;
-	stringList *versions, *xfeatures;
+    char *filename, *docFile, *codeDir, *srcSuffix, *flagFile, *consModule;
+    char arg, *optarg, *buildFile, *apiFile, *xmlFile;
+    int optnr, exceptions, tracing, releaseGIL, parts, incComponentsCode;
+    FILE *file;
+    sipSpec spec;
+    stringList *versions, *xfeatures;
 
-	/* Initialise. */
-	sipVersion = VERSION;
-	includeDirList = NULL;
-	versions = NULL;
-	xfeatures = NULL;
-	buildFile = NULL;
-	codeDir = NULL;
-	docFile = NULL;
-	srcSuffix = NULL;
-	flagFile = NULL;
-	apiFile = NULL;
-	xmlFile = NULL;
-	exceptions = FALSE;
-	tracing = FALSE;
-	releaseGIL = FALSE;
-	parts = 0;
+    /* Initialise. */
+    sipVersion = VERSION;
+    includeDirList = NULL;
+    versions = NULL;
+    xfeatures = NULL;
+    buildFile = NULL;
+    codeDir = NULL;
+    docFile = NULL;
+    srcSuffix = NULL;
+    flagFile = NULL;
+    apiFile = NULL;
+    xmlFile = NULL;
+    consModule = NULL;
+    incComponentsCode = FALSE;
+    exceptions = FALSE;
+    tracing = FALSE;
+    releaseGIL = FALSE;
+    parts = 0;
 
-	/* Parse the command line. */
-	optnr = 1;
+    /* Parse the command line. */
+    optnr = 1;
 
-	while ((arg = parseopt(argc, argv, "hVa:b:ec:d:gI:j:m:rs:t:wx:z:", &flagFile, &optnr, &optarg)) != '\0')
-		switch (arg)
-		{
-		case 'a':
-			/* Where to generate the API file. */
-			apiFile = optarg;
-			break;
+    while ((arg = parseopt(argc, argv, "hVa:b:ec:d:gI:j:m:np:rs:t:wx:z:", &flagFile, &optnr, &optarg)) != '\0')
+        switch (arg)
+        {
+        case 'n':
+            /* Include component modules code in a consolidated module. */
+            incComponentsCode = TRUE;
+            break;
 
-		case 'm':
-			/* Where to generate the XML file. */
-			xmlFile = optarg;
-			break;
+        case 'p':
+            /* The name of the consolidated module. */
+            consModule = optarg;
+            break;
 
-		case 'b':
-			/* Generate a build file. */
-			buildFile = optarg;
-			break;
+        case 'a':
+            /* Where to generate the API file. */
+            apiFile = optarg;
+            break;
 
-		case 'e':
-			/* Enable exceptions. */
-			exceptions = TRUE;
-			break;
+        case 'm':
+            /* Where to generate the XML file. */
+            xmlFile = optarg;
+            break;
 
-		case 'g':
-			/* Always release the GIL. */
-			releaseGIL = TRUE;
-			break;
+        case 'b':
+            /* Generate a build file. */
+            buildFile = optarg;
+            break;
 
-		case 'j':
-			/* Generate the code in this number of parts. */
-			parts = parseInt(optarg,'j');
-			break;
+        case 'e':
+            /* Enable exceptions. */
+            exceptions = TRUE;
+            break;
 
-		case 'z':
-			/* Read a file for the next flags. */
-			if (flagFile != NULL)
-				fatal("The -z flag cannot be specified in an argument file\n");
+        case 'g':
+            /* Always release the GIL. */
+            releaseGIL = TRUE;
+            break;
 
-			flagFile = optarg;
-			break;
+        case 'j':
+            /* Generate the code in this number of parts. */
+            parts = parseInt(optarg,'j');
+            break;
 
-		case 'c':
-			/* Where to generate the code. */
-			codeDir = optarg;
-			break;
+        case 'z':
+            /* Read a file for the next flags. */
+            if (flagFile != NULL)
+                fatal("The -z flag cannot be specified in an argument file\n");
 
-		case 'd':
-			/* Where to generate the documentation. */
-			docFile = optarg;
-			break;
+            flagFile = optarg;
+            break;
 
-		case 't':
-			/* Which platform or version to generate code for. */
-			appendString(&versions,optarg);
-			break;
+        case 'c':
+            /* Where to generate the code. */
+            codeDir = optarg;
+            break;
 
-		case 'x':
-			/* Which features are disabled. */
-			appendString(&xfeatures,optarg);
-			break;
+        case 'd':
+            /* Where to generate the documentation. */
+            docFile = optarg;
+            break;
 
-		case 'I':
-			/* Where to get included files from. */
-			appendString(&includeDirList,optarg);
-			break;
+        case 't':
+            /* Which platform or version to generate code for. */
+            appendString(&versions,optarg);
+            break;
 
-		case 'r':
-			/* Enable tracing. */
-			tracing = TRUE;
-			break;
+        case 'x':
+            /* Which features are disabled. */
+            appendString(&xfeatures,optarg);
+            break;
 
-		case 's':
-			/* The suffix to use for source files. */
-			srcSuffix = optarg;
-			break;
+        case 'I':
+            /* Where to get included files from. */
+            appendString(&includeDirList,optarg);
+            break;
 
-		case 'w':
-			/* Enable warning messages. */
-			warnings = TRUE;
-			break;
+        case 'r':
+            /* Enable tracing. */
+            tracing = TRUE;
+            break;
 
-		case 'h':
-			/* Help message. */
-			help();
-			break;
+        case 's':
+            /* The suffix to use for source files. */
+            srcSuffix = optarg;
+            break;
 
-		case 'V':
-			/* Display the version number. */
-			version();
-			break;
+        case 'w':
+            /* Enable warning messages. */
+            warnings = TRUE;
+            break;
 
-		default:
-			usage();
-		}
+        case 'h':
+            /* Help message. */
+            help();
+            break;
 
-	if (optnr < argc)
-	{
-		file = NULL;
-		filename = argv[optnr++];
+        case 'V':
+            /* Display the version number. */
+            version();
+            break;
 
-		if (optnr < argc)
-			usage();
-	}
-	else
-	{
-		file = stdin;
-		filename = "stdin";
-	}
+        default:
+            usage();
+        }
 
-	/* Parse the input file. */
-	parse(&spec,file,filename,versions,xfeatures);
+    if (optnr < argc)
+    {
+        file = NULL;
+        filename = argv[optnr++];
 
-	/* Verify and transform the parse tree. */
-	transform(&spec);
+        if (optnr < argc)
+            usage();
+    }
+    else
+    {
+        file = stdin;
+        filename = "stdin";
+    }
 
-	/* Generate code. */
-	generateCode(&spec, codeDir, buildFile, docFile, srcSuffix, exceptions,
-			tracing, releaseGIL, parts, xfeatures);
+    /* Parse the input file. */
+    parse(&spec, file, filename, versions, xfeatures);
 
-	/* Generate the API file. */
-	if (apiFile != NULL)
-		generateAPI(&spec, apiFile);
+    /* Verify and transform the parse tree. */
+    transform(&spec);
 
-	/* Generate the XML export. */
-	if (xmlFile != NULL)
-		generateXML(&spec, xmlFile);
+    /* Generate code. */
+    generateCode(&spec, codeDir, buildFile, docFile, srcSuffix, exceptions,
+            tracing, releaseGIL, parts, xfeatures, incComponentsCode,
+            consModule);
 
-	/* All done. */
-	return 0;
+    /* Generate the API file. */
+    if (apiFile != NULL)
+        generateAPI(&spec, apiFile);
+
+    /* Generate the XML export. */
+    if (xmlFile != NULL)
+        generateXML(&spec, xmlFile);
+
+    /* All done. */
+    return 0;
 }
 
 
@@ -201,133 +214,133 @@ int main(int argc,char **argv)
  * Parse the next command line argument - similar to UNIX getopts().  Allow a
  * flag to specify that a file contains further arguments.
  */
-static char parseopt(int argc,char **argv,char *opts,char **flags,int *optnrp,
-		     char **optargp)
+static char parseopt(int argc, char **argv, char *opts, char **flags,
+        int *optnrp, char **optargp)
 {
-	char arg, *op, *fname;
-	int optnr;
-	static FILE *fp = NULL;
+    char arg, *op, *fname;
+    int optnr;
+    static FILE *fp = NULL;
 
-	/* Deal with any file first. */
+    /* Deal with any file first. */
 
-	fname = *flags;
+    fname = *flags;
 
-	if (fname != NULL && fp == NULL && (fp = fopen(fname,"r")) == NULL)
-		fatal("Unable to open %s\n",fname);
+    if (fname != NULL && fp == NULL && (fp = fopen(fname,"r")) == NULL)
+        fatal("Unable to open %s\n",fname);
 
-	if (fp != NULL)
-	{
-		char buf[200], *cp, *fname;
-		int ch;
+    if (fp != NULL)
+    {
+        char buf[200], *cp, *fname;
+        int ch;
 
-		fname = *flags;
-		cp = buf;
+        fname = *flags;
+        cp = buf;
 
-		while ((ch = fgetc(fp)) != EOF)
-		{
-			/* Skip leading whitespace. */
+        while ((ch = fgetc(fp)) != EOF)
+        {
+            /* Skip leading whitespace. */
 
-			if (cp == buf && isspace(ch))
-				continue;
+            if (cp == buf && isspace(ch))
+                continue;
 
-			if (ch == '\n')
-				break;
+            if (ch == '\n')
+                break;
 
-			if (cp == &buf[sizeof (buf) - 1])
-				fatal("A flag in %s is too long\n",fname);
+            if (cp == &buf[sizeof (buf) - 1])
+                fatal("A flag in %s is too long\n",fname);
 
-			*cp++ = (char)ch;
-		}
+            *cp++ = (char)ch;
+        }
 
-		*cp = '\0';
+        *cp = '\0';
 
-		if (ch == EOF)
-		{
-			fclose(fp);
-			fp = NULL;
-			*flags = NULL;
-		}
+        if (ch == EOF)
+        {
+            fclose(fp);
+            fp = NULL;
+            *flags = NULL;
+        }
 
-		/*
-		 * Get the option character and any optional argument from the
-		 * line.
-		 */
+        /*
+         * Get the option character and any optional argument from the
+         * line.
+         */
 
-		if (buf[0] != '\0')
-		{
-			if (buf[0] != '-' || buf[1] == '\0')
-				fatal("An non-flag was given in %s\n",fname);
+        if (buf[0] != '\0')
+        {
+            if (buf[0] != '-' || buf[1] == '\0')
+                fatal("An non-flag was given in %s\n",fname);
 
-			arg = buf[1];
+            arg = buf[1];
 
-			/* Find any optional argument. */
+            /* Find any optional argument. */
 
-			for (cp = &buf[2]; *cp != '\0'; ++cp)
-				if (!isspace(*cp))
-					break;
+            for (cp = &buf[2]; *cp != '\0'; ++cp)
+                if (!isspace(*cp))
+                    break;
 
-			if (*cp == '\0')
-				cp = NULL;
-			else
-				cp = sipStrdup(cp);
+            if (*cp == '\0')
+                cp = NULL;
+            else
+                cp = sipStrdup(cp);
 
-			*optargp = cp;
+            *optargp = cp;
 
-			if ((op = strchr(opts,arg)) == NULL)
-				fatal("An invalid flag was given in %s\n",fname);
+            if ((op = strchr(opts,arg)) == NULL)
+                fatal("An invalid flag was given in %s\n",fname);
 
-			if (op[1] == ':' && cp == NULL)
-				fatal("Missing flag argument in %s\n",fname);
+            if (op[1] == ':' && cp == NULL)
+                fatal("Missing flag argument in %s\n",fname);
 
-			if (op[1] != ':' && cp != NULL)
-				fatal("Unexpected flag argument in %s\n",fname);
+            if (op[1] != ':' && cp != NULL)
+                fatal("Unexpected flag argument in %s\n",fname);
 
-			return arg;
-		}
-	}
+            return arg;
+        }
+    }
 
-	/* Check there is an argument and it is a switch. */
+    /* Check there is an argument and it is a switch. */
 
-	optnr = *optnrp;
+    optnr = *optnrp;
 
-	if (optnr >= argc || argv[optnr] == NULL || argv[optnr][0] != '-')
-		return '\0';
+    if (optnr >= argc || argv[optnr] == NULL || argv[optnr][0] != '-')
+        return '\0';
 
-	/* Check it is a valid switch. */
+    /* Check it is a valid switch. */
 
-	arg = argv[optnr][1];
+    arg = argv[optnr][1];
 
-	if (arg == '\0' || (op = strchr(opts,arg)) == NULL)
-		usage();
+    if (arg == '\0' || (op = strchr(opts,arg)) == NULL)
+        usage();
 
-	/* Check for the switch parameter, if any. */
+    /* Check for the switch parameter, if any. */
 
-	if (op[1] == ':')
-	{
-		if (argv[optnr][2] != '\0')
-		{
-			*optargp = &argv[optnr][2];
-			++optnr;
-		}
-		else if (optnr + 1 >= argc || argv[optnr + 1] == NULL)
-			usage();
-		else
-		{
-			*optargp = argv[optnr + 1];
-			optnr += 2;
-		}
-	}
-	else if (argv[optnr][2] != '\0')
-		usage();
-	else
-	{
-		*optargp = NULL;
-		++optnr;
-	}
+    if (op[1] == ':')
+    {
+        if (argv[optnr][2] != '\0')
+        {
+            *optargp = &argv[optnr][2];
+            ++optnr;
+        }
+        else if (optnr + 1 >= argc || argv[optnr + 1] == NULL)
+            usage();
+        else
+        {
+            *optargp = argv[optnr + 1];
+            optnr += 2;
+        }
+    }
+    else if (argv[optnr][2] != '\0')
+        usage();
+    else
+    {
+        *optargp = NULL;
+        ++optnr;
+    }
 
-	*optnrp = optnr;
+    *optnrp = optnr;
 
-	return arg;
+    return arg;
 }
 
 
@@ -336,15 +349,15 @@ static char parseopt(int argc,char **argv,char *opts,char **flags,int *optnrp,
  */
 static int parseInt(char *arg, char opt)
 {
-	char *endptr;
-	int val;
+    char *endptr;
+    int val;
 
-	val = strtol(arg, &endptr, 10);
+    val = strtol(arg, &endptr, 10);
 
-	if (*arg == '\0' || *endptr != '\0')
-		fatal("Invalid integer argument for -%c flag\n", opt);
+    if (*arg == '\0' || *endptr != '\0')
+        fatal("Invalid integer argument for -%c flag\n", opt);
 
-	return val;
+    return val;
 }
 
 
@@ -353,21 +366,21 @@ static int parseInt(char *arg, char opt)
  */
 void appendString(stringList **headp, const char *s)
 {
-	stringList *sl;
+    stringList *sl;
 
-	/* Create the new entry. */
+    /* Create the new entry. */
 
-	sl = sipMalloc(sizeof (stringList));
+    sl = sipMalloc(sizeof (stringList));
 
-	sl -> s = s;
-	sl -> next = NULL;
+    sl -> s = s;
+    sl -> next = NULL;
 
-	/* Append it to the list. */
+    /* Append it to the list. */
 
-	while (*headp != NULL)
-		headp = &(*headp) -> next;
+    while (*headp != NULL)
+        headp = &(*headp) -> next;
 
-	*headp = sl;
+    *headp = sl;
 }
 
 
@@ -376,25 +389,25 @@ void appendString(stringList **headp, const char *s)
  */
 void warning(char *fmt,...)
 {
-	static int start = TRUE;
+    static int start = TRUE;
 
-	va_list ap;
+    va_list ap;
 
-	if (!warnings)
-		return;
+    if (!warnings)
+        return;
 
-	if (start)
-	{
-		fprintf(stderr,"%s: Warning: ",sipPackage);
-		start = FALSE;
-	}
+    if (start)
+    {
+        fprintf(stderr,"%s: Warning: ",sipPackage);
+        start = FALSE;
+    }
 
-	va_start(ap,fmt);
-	vfprintf(stderr,fmt,ap);
-	va_end(ap);
+    va_start(ap,fmt);
+    vfprintf(stderr,fmt,ap);
+    va_end(ap);
 
-	if (strchr(fmt,'\n') != NULL)
-		start = TRUE;
+    if (strchr(fmt,'\n') != NULL)
+        start = TRUE;
 }
 
 
@@ -404,22 +417,22 @@ void warning(char *fmt,...)
  */
 void fatal(char *fmt,...)
 {
-	static int start = TRUE;
+    static int start = TRUE;
 
-	va_list ap;
+    va_list ap;
 
-	if (start)
-	{
-		fprintf(stderr,"%s: ",sipPackage);
-		start = FALSE;
-	}
+    if (start)
+    {
+        fprintf(stderr,"%s: ",sipPackage);
+        start = FALSE;
+    }
 
-	va_start(ap,fmt);
-	vfprintf(stderr,fmt,ap);
-	va_end(ap);
+    va_start(ap,fmt);
+    vfprintf(stderr,fmt,ap);
+    va_end(ap);
 
-	if (strchr(fmt,'\n') != NULL)
-		exit(1);
+    if (strchr(fmt,'\n') != NULL)
+        exit(1);
 }
 
 
@@ -428,8 +441,8 @@ void fatal(char *fmt,...)
  */
 static void version(void)
 {
-	printf("%s\n",sipVersion);
-	exit(0);
+    printf("%s\n",sipVersion);
+    exit(0);
 }
 
 
@@ -438,9 +451,9 @@ static void version(void)
  */
 static void help(void)
 {
-	printf(
+    printf(
 "Usage:\n"
-"    %s [-h] [-V] [-a file] [-c dir] [-d file] [-e] [-g] [-I dir] [-j #] [-m file] [-r] [-s suffix] [-t version] [-w] [-x feature] [-z file] [file]\n"
+"    %s [-h] [-V] [-a file] [-c dir] [-d file] [-e] [-g] [-I dir] [-j #] [-m file] [-n] [-p module] [-r] [-s suffix] [-t version] [-w] [-x feature] [-z file] [file]\n"
 "where:\n"
 "    -h          display this help message\n"
 "    -V          display the %s version number\n"
@@ -453,6 +466,8 @@ static void help(void)
 "    -I dir      look in this directory when including files\n"
 "    -j #        split the generated code into # files [default 1 per class]\n"
 "    -m file     the name of the XML export file [default not generated]\n"
+"    -n          include code for all component modules\n"
+"    -p module   the name of the consoldated module that this is a component of\n"
 "    -r          generate code with tracing enabled [default disabled]\n"
 "    -s suffix   the suffix to use for C or C++ source files [default \".c\" or \".cpp\"]\n"
 "    -t tag      the version/platform to generate code for\n"
@@ -460,9 +475,9 @@ static void help(void)
 "    -x feature  this feature is disabled\n"
 "    -z file     the name of a file containing more command line flags\n"
 "    file        the name of the specification file [default stdin]\n"
-		,sipPackage,sipPackage);
+        ,sipPackage,sipPackage);
 
-	exit(0);
+    exit(0);
 }
 
 
@@ -471,5 +486,5 @@ static void help(void)
  */
 static void usage(void)
 {
-	fatal("Usage: %s [-h] [-V] [-a file] [-b file] [-c dir] [-d file] [-e] [-g] [-I dir] [-j #] [-m file] [-r] [-s suffix] [-t tag] [-w] [-x feature] [-z file] [file]\n",sipPackage);
+    fatal("Usage: %s [-h] [-V] [-a file] [-b file] [-c dir] [-d file] [-e] [-g] [-I dir] [-j #] [-m file] [-r] [-s suffix] [-t tag] [-w] [-x feature] [-z file] [file]\n",sipPackage);
 }
