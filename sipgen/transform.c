@@ -2600,11 +2600,11 @@ static void ifaceFilesAreUsedFromOther(sipSpec *pt, signatureDef *sd)
     ifaceFileDef *iff;
 
     if ((iff = getIfaceFile(&sd->result)) != NULL && iff->module != pt->module)
-        addToUsedList(&pt->used, iff);
+        addToUsedList(&pt->module->used, iff);
 
     for (a = 0; a < sd->nrArgs; ++a)
         if ((iff = getIfaceFile(&sd->args[a])) != NULL && iff->module != pt->module)
-            addToUsedList(&pt->used, iff);
+            addToUsedList(&pt->module->used, iff);
 }
 
 
@@ -2656,13 +2656,13 @@ static ifaceFileList *ifaceFileIsUsed(sipSpec *pt, ifaceFileDef *iff, argDef *ad
     {
         ifaceFileList **used;
 
-        used = (iff != NULL ? &iff->used : &pt->used);
+        used = (iff != NULL ? &iff->used : &pt->module->used);
 
         iffl = addToUsedList(used, usediff);
 
         /*
-         * If the type is a protected enum then its scoping shadow
-         * class is needed in the generated header file.
+         * If the type is a protected enum then its scoping shadow class is
+         * needed in the generated header file.
          */
         if (ad->atype == enum_type && isProtectedEnum(ad->u.ed))
             iffl->header = TRUE;
@@ -2825,27 +2825,24 @@ static void addNodeToParent(nodeDef *root,classDef *cd)
 /*
  * Assign the module specific class number for a class and all it's children.
  */
-static void assignClassNrs(sipSpec *pt,moduleDef *mod,nodeDef *nd)
+static void assignClassNrs(sipSpec *pt, moduleDef *mod, nodeDef *nd)
 {
     classDef *cd;
     nodeDef *cnd;
 
     /* Assign the class if it's not the root. */
-    if ((cd = nd -> cd) != NULL)
+    if ((cd = nd->cd) != NULL)
     {
-        cd -> classnr = mod -> nrclasses++;
+        cd->classnr = mod->nrclasses++;
 
-        /*
-         * If we find a class defined in the main module called QObject, assume
-         * it's Qt.
-         */
-        if (mod == pt -> module && strcmp(classBaseName(cd),"QObject") == 0)
-            pt -> qobjclass = cd -> classnr;
+        /* If we find a class called QObject, assume it's Qt. */
+        if (strcmp(classBaseName(cd), "QObject") == 0)
+            mod->qobjclass = cd->classnr;
     }
 
     /* Assign all it's children. */
-    for (cnd = nd -> child; cnd != NULL; cnd = cnd -> next)
-        assignClassNrs(pt,mod,cnd);
+    for (cnd = nd->child; cnd != NULL; cnd = cnd->next)
+        assignClassNrs(pt, mod, cnd);
 }
 
 
@@ -2856,7 +2853,7 @@ static void assignEnumNrs(sipSpec *pt)
 {
     enumDef *ed;
 
-    for (ed = pt -> enums; ed != NULL; ed = ed -> next)
-        if (ed -> fqcname != NULL)
-            ed -> enumnr = ed -> module -> nrenums++;
+    for (ed = pt->enums; ed != NULL; ed = ed->next)
+        if (ed->fqcname != NULL)
+            ed->enumnr = ed->module->nrenums++;
 }

@@ -195,6 +195,7 @@ static void generateMappedTypeFromVoid(mappedTypeDef *mtd, const char *cname,
         const char *vname, FILE *fp);
 static int generateSubClassConvertors(sipSpec *pt, FILE *fp);
 static void generateRegisterMetaType(classDef *cd, FILE *fp);
+static void generateNameCache(sipSpec *pt, FILE *fp);
 static const char *resultOwner(overDef *od);
 
 
@@ -748,7 +749,22 @@ static void generateConsolidatedCpp(sipSpec *pt, const char *codeDir,
     prcode(fp,
 "\n"
 "\n"
-"#include <%s.h>\n"
+        );
+
+    if (inc_components)
+    {
+        prcode(fp,
+"#include \"sipAPI%s.h\"\n"
+            , mname);
+
+        generateNameCache(pt, fp);
+    }
+    else
+        prcode(fp,
+"#include <Python.h>\n"
+            );
+
+    prcode(fp,
 "\n"
 "\n"
 "static void sip_import_component_module(PyObject *d, const char *name)\n"
@@ -767,7 +783,7 @@ static void generateConsolidatedCpp(sipSpec *pt, const char *codeDir,
 "    if (mod)\n"
 "        PyDict_Merge(d, PyModule_GetDict(mod), 0);\n"
 "}\n"
-        , (inc_components ? "sip" : "Python"));
+        );
 
     if (inc_components)
     {
@@ -886,81 +902,12 @@ static void generateComponentCppStub(sipSpec *pt, const char *codeDir,
 
 
 /*
- * Generate the C/C++ code.
+ * Generate the name cache definition.
  */
-static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
-        const char *srcSuffix, int parts, stringList *xsl)
+static void generateNameCache(sipSpec *pt, FILE *fp)
 {
-    char *mname, *cppfile;
-    int noIntro, nrSccs = 0, files_in_part, max_per_part, this_part;
-    int is_inst_class, is_inst_voidp, is_inst_char, is_inst_string;
-    int is_inst_int, is_inst_long, is_inst_ulong, is_inst_longlong;
-    int is_inst_ulonglong, is_inst_double, is_inst_enum, nr_enummembers;
-    int hasexternal = FALSE, slot_extenders = FALSE, ctor_extenders = FALSE;
-    FILE *fp;
-    moduleListDef *mld;
-    classDef *cd;
-    memberDef *md;
-    ifaceFileDef *iff;
-    virtHandlerDef *vhd;
+    int noIntro = TRUE;
     nameDef *nd;
-    exceptionDef *xd;
-
-    mname = mod->name;
-
-    /* Calculate the number of files in each part. */
-    if (parts)
-    {
-        int nr_files = 1;
-
-        for (iff = pt->ifacefiles; iff != NULL; iff = iff->next)
-            if (iff->module == pt->module)
-                ++nr_files;
-
-        max_per_part = (nr_files + parts - 1) / parts;
-        files_in_part = 1;
-        this_part = 0;
-
-        cppfile = makePartName(codeDir,mname,0,srcSuffix);
-    }
-    else
-        cppfile = concat(codeDir, "/sip", mname, "cmodule", srcSuffix, NULL);
-
-    fp = createCompilationUnit(pt, cppfile, "Module code.");
-
-    prcode(fp,
-"\n"
-"#include \"sipAPI%s.h\"\n"
-"\n"
-        ,mname);
-
-    for (iff = pt->ifacefiles; iff != NULL; iff = iff->next)
-        if (iff->module == pt->module && iff->type != exception_iface)
-            prcode(fp,
-"#include \"sip%s%F.h\"\n"
-                ,iff->module->name,iff->fqcname);
-
-    generateUsedIncludes(pt->used, FALSE, fp);
-
-    /*
-     * If there should be a Qt support API then generate stubs values for the
-     * optional parts.  These should be undefined in %ModuleCode if a C++
-     * implementation is provided.
-     */
-    if (pt->qobjclass >= 0)
-        prcode(fp,
-"\n"
-"#define sipQtIsQtSignal                     0\n"
-"#define sipQtCreateUniversalSignalShortcut  0\n"
-"#define sipQtCreateUniversalSignal          0\n"
-"#define sipQtFindUniversalSignalShortcut    0\n"
-"#define sipQtFindUniversalSignal            0\n"
-"#define sipQtEmitSignalShortcut             0\n"
-"#define sipQtEmitSignal                     0\n"
-            );
-
-    /* Define the names. */
-    noIntro = TRUE;
 
     for (nd = pt->namecache; nd != NULL; nd = nd->next)
     {
@@ -980,32 +927,115 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 
         prcode(fp,
 "char %N[] = \"%s\";\n"
-            ,nd,nd->text);
+            , nd, nd->text);
     }
+}
+
+
+/*
+ * Generate the C/C++ code.
+ */
+static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
+        const char *srcSuffix, int parts, stringList *xsl)
+{
+    const char *cons_mname, *mname;
+    char *cppfile;
+    int noIntro, nrSccs = 0, files_in_part, max_per_part, this_part;
+    int is_inst_class, is_inst_voidp, is_inst_char, is_inst_string;
+    int is_inst_int, is_inst_long, is_inst_ulong, is_inst_longlong;
+    int is_inst_ulonglong, is_inst_double, is_inst_enum, nr_enummembers;
+    int hasexternal = FALSE, slot_extenders = FALSE, ctor_extenders = FALSE;
+    FILE *fp;
+    moduleListDef *mld;
+    classDef *cd;
+    memberDef *md;
+    ifaceFileDef *iff;
+    virtHandlerDef *vhd;
+    exceptionDef *xd;
+
+    cons_mname = pt->module->name;
+    mname = mod->name;
+
+    /* Calculate the number of files in each part. */
+    if (parts)
+    {
+        int nr_files = 1;
+
+        for (iff = pt->ifacefiles; iff != NULL; iff = iff->next)
+            if (iff->module == mod)
+                ++nr_files;
+
+        max_per_part = (nr_files + parts - 1) / parts;
+        files_in_part = 1;
+        this_part = 0;
+
+        cppfile = makePartName(codeDir, mname, 0, srcSuffix);
+    }
+    else
+        cppfile = concat(codeDir, "/sip", mname, "cmodule", srcSuffix, NULL);
+
+    fp = createCompilationUnit(pt, cppfile, "Module code.");
+
+    prcode(fp,
+"\n"
+"#include \"sipAPI%s.h\"\n"
+"\n"
+        , cons_mname);
+
+    /* Include the interface files for things defined in this module. */
+    for (iff = pt->ifacefiles; iff != NULL; iff = iff->next)
+        if (iff->module == mod && iff->type != exception_iface)
+            prcode(fp,
+"#include \"sip%s%F.h\"\n"
+                , iff->module->name, iff->fqcname);
+
+    /* Include the interface files for things defined in other modules. */
+    generateUsedIncludes(mod->used, FALSE, fp);
+
+    /*
+     * If there should be a Qt support API then generate stubs values for the
+     * optional parts.  These should be undefined in %ModuleCode if a C++
+     * implementation is provided.
+     */
+    if (mod->qobjclass >= 0)
+        prcode(fp,
+"\n"
+"#define sipQtIsQtSignal                     0\n"
+"#define sipQtCreateUniversalSignalShortcut  0\n"
+"#define sipQtCreateUniversalSignal          0\n"
+"#define sipQtFindUniversalSignalShortcut    0\n"
+"#define sipQtFindUniversalSignal            0\n"
+"#define sipQtEmitSignalShortcut             0\n"
+"#define sipQtEmitSignal                     0\n"
+            );
+
+    /* Define the names. */
+    if (mod->cons == NULL)
+        generateNameCache(pt, fp);
 
     /* Generate the C++ code blocks. */
-    generateCppCodeBlock(pt->module->cppcode,fp);
+    generateCppCodeBlock(mod->cppcode, fp);
 
     /* Generate any virtual handler declarations. */
-    for (vhd = pt->module->virthandlers; vhd != NULL; vhd = vhd->next)
+    for (vhd = mod->virthandlers; vhd != NULL; vhd = vhd->next)
         if (!isDuplicateVH(vhd))
-            generateVirtualHandler(pt,vhd,fp);
+            generateVirtualHandler(pt, vhd, fp);
 
     /* Generate the global functions. */
     for (md = pt->othfuncs; md != NULL; md = md->next)
     {
-        if (md->module != pt->module)
+        if (md->module != mod)
             continue;
 
         if (md->slot == no_slot)
-            generateOrdinaryFunction(pt,NULL,md,fp);
+            generateOrdinaryFunction(pt, NULL, md, fp);
         else
         {
             overDef *od;
 
             /*
-             * Make sure that there is still an overload and we
-             * haven't moved them all to classes.
+             * Make sure that there is still an overload and we haven't moved
+             * them all to classes.
              */
             for (od = pt->overs; od != NULL; od = od->next)
                 if (od->common == md)
@@ -1588,7 +1618,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
             ,pt->module->nrexceptions);
 
     /* Generate any Qt support API. */
-    if (pt->qobjclass >= 0)
+    if (mod->qobjclass >= 0)
         prcode(fp,
 "\n"
 "\n"
@@ -1614,7 +1644,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "    sipQtSameSignalSlotName,\n"
 "    sipQtFindConnection\n"
 "};\n"
-            ,pt->qobjclass);
+            , mod->qobjclass);
 
     prcode(fp,
 "\n"
@@ -1649,20 +1679,20 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "    NULL\n"
 "};\n"
         , mname
-        , pt->module->fullname
-        , pt->module->version
-        , pt->module->allimports != NULL ? "importsTable" : "NULL"
-        , pt->qobjclass >= 0 ? "&qtAPI" : "NULL"
-        , pt->module->nrclasses
-        , pt->module->nrclasses > 0 ? "typesTable" : "NULL"
+        , mod->fullname
+        , mod->version
+        , mod->allimports != NULL ? "importsTable" : "NULL"
+        , mod->qobjclass >= 0 ? "&qtAPI" : "NULL"
+        , mod->nrclasses
+        , mod->nrclasses > 0 ? "typesTable" : "NULL"
         , hasexternal ? "externalTypesTable" : "NULL"
-        , pt->module->nrmappedtypes > 0 ? "mappedTypesTable" : "NULL"
-        , pt->module->nrenums
-        , pt->module->nrenums > 0 ? "enumTypesTable" : "NULL"
+        , mod->nrmappedtypes > 0 ? "mappedTypesTable" : "NULL"
+        , mod->nrenums
+        , mod->nrenums > 0 ? "enumTypesTable" : "NULL"
         , nr_enummembers
         , nr_enummembers > 0 ? "enummembers" : "NULL"
-        , pt->module->nrtypedefs > 0 ? "typedefsTable" : "NULL"
-        , pt->module->nrvirthandlers > 0 ? "virtHandlersTable" : "NULL"
+        , mod->nrtypedefs > 0 ? "typedefsTable" : "NULL"
+        , mod->nrvirthandlers > 0 ? "virtHandlersTable" : "NULL"
         , nrSccs > 0 ? "convertorsTable" : "NULL"
         , is_inst_class ? "classInstances" : "NULL"
         , is_inst_voidp ? "voidPtrInstances" : "NULL"
@@ -1675,11 +1705,11 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         , is_inst_ulonglong ? "unsignedLongLongInstances" : "NULL"
         , is_inst_double ? "doubleInstances" : "NULL"
         , is_inst_enum ? "enumInstances" : "NULL"
-        , pt->module->license != NULL ? "&module_license" : "NULL"
-        , pt->module->nrexceptions > 0 ? "exceptionsTable" : "NULL"
+        , mod->license != NULL ? "&module_license" : "NULL"
+        , mod->nrexceptions > 0 ? "exceptionsTable" : "NULL"
         , slot_extenders ? "slotExtenders" : "NULL"
         , ctor_extenders ? "initExtenders" : "NULL"
-        , hasDelayedDtors(pt->module) ? "sipDelayedDtors" : "NULL");
+        , hasDelayedDtors(mod) ? "sipDelayedDtors" : "NULL");
 
     /* Generate the storage for the external API pointers. */
     prcode(fp,

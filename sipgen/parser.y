@@ -407,7 +407,6 @@ exception:  TK_EXCEPTION scopedname baseexception optflags '{' opttypehdrcode ra
                     yyerror("The %Exception has already been defined");
 
                 /* Complete the definition. */
-
                 xd->iff->module = currentModule;
                 xd->pyname = pyname;
                 xd->bibase = $3.bibase;
@@ -418,8 +417,12 @@ exception:  TK_EXCEPTION scopedname baseexception optflags '{' opttypehdrcode ra
                 if (xd->bibase != NULL || xd->base != NULL)
                     xd->exceptionnr = currentModule->nrexceptions++;
 
-                if (inMainModule() && xd->base != NULL && xd->base->iff->module != currentModule)
-                    addToUsedList(&currentSpec->used, xd->base->iff);
+                /*
+                 * If the exception is from another module then we need its
+                 * interface file.
+                 */
+                if (xd->base != NULL && xd->base->iff->module != currentModule)
+                    addToUsedList(&currentModule->used, xd->base->iff);
             }
         }
     ;
@@ -2380,14 +2383,13 @@ optexceptions:  {
                 ifaceFileList **ifl;
 
                 /*
-                 * Make sure the exceptions' header files are
-                 * included.  We unconditionally mark them to
-                 * be included in the current scope's header
-                 * file to save us the effort of checking if
-                 * they are being used with a protected method,
-                 * a virtual or a signal.
+                 * Make sure the exceptions' header files are included.  We
+                 * unconditionally mark them to be included in the current
+                 * scope's header file to save us the effort of checking if
+                 * they are being used with a protected method, a virtual or a
+                 * signal.
                  */
-                ifl = (currentScope() != NULL) ? &currentScope()->iff->used : &currentSpec->used;
+                ifl = (currentScope() != NULL) ? &currentScope()->iff->used : &currentModule->used;
 
                 for (e = 0; e < $3->nrArgs; ++e)
                     addToUsedList(ifl, $3->args[e]->iff);
@@ -2448,7 +2450,6 @@ void parse(sipSpec *spec, FILE *fp, char *filename, stringList *tsl,
     spec -> exceptions = NULL;
     spec -> mappedtypes = NULL;
     spec -> mappedtypetemplates = NULL;
-    spec -> qobjclass = -1;
     spec -> enums = NULL;
     spec -> vars = NULL;
     spec -> othfuncs = NULL;
@@ -2456,7 +2457,6 @@ void parse(sipSpec *spec, FILE *fp, char *filename, stringList *tsl,
     spec -> typedefs = NULL;
     spec -> exphdrcode = NULL;
     spec -> docs = NULL;
-    spec -> used = NULL;
     spec -> sigslots = FALSE;
     spec -> genc = -1;
     spec -> options = NULL;
@@ -2571,6 +2571,7 @@ static moduleDef *allocModule()
     newmod->name = NULL;
     newmod->version = -1;
     newmod->modflags = 0;
+    newmod->qobjclass = -1;
     newmod->hdrcode = NULL;
     newmod->cppcode = NULL;
     newmod->copying = NULL;
@@ -2592,6 +2593,7 @@ static moduleDef *allocModule()
     newmod->virthandlers = NULL;
     newmod->license = NULL;
     newmod->cons = NULL;
+    newmod->used = NULL;
     newmod->allimports = NULL;
     newmod->imports = NULL;
     newmod->next = NULL;

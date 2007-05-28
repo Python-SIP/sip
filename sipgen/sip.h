@@ -527,6 +527,7 @@ typedef struct _moduleDef {
     char *name;                         /* The module base name. */
     int version;                        /* The module version. */
     int modflags;                       /* The module flags. */
+    int qobjclass;                      /* QObject class, -1 if none. */
     codeBlock *hdrcode;                 /* Header code. */
     codeBlock *cppcode;                 /* Global C++ code. */
     codeBlock *copying;                 /* Software license. */
@@ -548,6 +549,7 @@ typedef struct _moduleDef {
     struct _virtHandlerDef *virthandlers;   /* The virtual handlers. */
     licenseDef *license;                /* The software license. */
     struct _moduleDef *cons;            /* The consolidated module, if any. */
+    struct _ifaceFileList *used;        /* Interface files used. */
     struct _moduleListDef *allimports;  /* The list of all imports. */
     struct _moduleListDef *imports;     /* The list of direct imports. */
     struct _moduleDef *next;            /* Next in the list. */
@@ -914,7 +916,6 @@ typedef struct {
     exceptionDef *exceptions;           /* The list of exceptions. */
     mappedTypeDef *mappedtypes;         /* The mapped types. */
     mappedTypeTmplDef *mappedtypetemplates; /* The list of mapped type templates. */
-    int qobjclass;                      /* QObject class, -1 if none. */
     enumDef *enums;                     /* List of enums. */
     varDef *vars;                       /* List of variables. */
     memberDef *othfuncs;                /* List of other functions. */
@@ -922,7 +923,6 @@ typedef struct {
     typedefDef *typedefs;               /* List of typedefs. */
     codeBlock *exphdrcode;              /* Exported header code. */
     codeBlock *docs;                    /* Documentation. */
-    ifaceFileList *used;                /* Interface files used. */
     int sigslots;                       /* Set if signals or slots are used. */
     int genc;                           /* Set if we are generating C code. */
     struct _stringList *options;        /* The list of options. */
