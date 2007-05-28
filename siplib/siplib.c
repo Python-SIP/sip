@@ -113,6 +113,8 @@ static int sip_api_unicode_as_wchar(PyObject *obj);
 static int *sip_api_unicode_as_wstring(PyObject *obj);
 #endif
 static void sip_api_import_from_cons_module(const char *from, const char *to);
+static void sip_api_register_component_init(const char *name,
+        sipComponentInit init);
 static void sip_api_transfer_break(PyObject *self);
 
 
@@ -222,6 +224,7 @@ static const sipAPIDef sip_api = {
     sip_api_unicode_as_wchar,
     sip_api_unicode_as_wstring,
     sip_api_import_from_cons_module,
+    sip_api_register_component_init,
     /*
      * The following are part of the public API.
      */
@@ -8209,6 +8212,16 @@ static void raiseNoWChar()
  * initialisation.
  */
 static void sip_api_import_from_cons_module(const char *from, const char *to)
+{
+    /* ZZZ - not yet implemented. */
+}
+
+
+/*
+ * Register the initialisation function for a component module.
+ */
+static void sip_api_register_component_init(const char *name,
+        sipComponentInit init)
 {
     /* ZZZ - not yet implemented. */
 }

@@ -2627,24 +2627,24 @@ static void parseFile(FILE *fp, char *name, moduleDef *prevmod, int optional)
  * Find an interface file, or create a new one.
  */
 ifaceFileDef *findIfaceFile(sipSpec *pt, moduleDef *mod, scopedNameDef *fqname,
-                ifaceFileType iftype, argDef *ad)
+        ifaceFileType iftype, argDef *ad)
 {
     ifaceFileDef *iff;
 
     /* See if the name is already used. */
 
-    for (iff = pt -> ifacefiles; iff != NULL; iff = iff -> next)
+    for (iff = pt->ifacefiles; iff != NULL; iff = iff->next)
     {
-        if (!sameScopedName(iff -> fqcname,fqname))
+        if (!sameScopedName(iff->fqcname, fqname))
             continue;
 
         /*
-         * They must be the same type except that we allow a class if
-         * if we want an exception.  This is because we allow classes
-         * to be used before they are defined.
+         * They must be the same type except that we allow a class if if we
+         * want an exception.  This is because we allow classes to be used
+         * before they are defined.
          */
-        if (iff -> type != iftype)
-            if (iftype != exception_iface || iff -> type != class_iface)
+        if (iff->type != iftype)
+            if (iftype != exception_iface || iff->type != class_iface)
                 yyerror("A class, exception, namespace or mapped type has already been defined with the same name");
 
         /* Ignore an external class declared in another module. */
@@ -2661,30 +2661,29 @@ ifaceFileDef *findIfaceFile(sipSpec *pt, moduleDef *mod, scopedNameDef *fqname,
         }
 
         /*
-         * If this is a mapped type with the same name defined in a
-         * different module, then check that this type isn't the same
-         * as any of the mapped types defined in that module.
+         * If this is a mapped type with the same name defined in a different
+         * module, then check that this type isn't the same as any of the
+         * mapped types defined in that module.
          */
-        if (iftype == mappedtype_iface && iff -> module != mod)
+        if (iftype == mappedtype_iface && iff->module != mod)
         {
             mappedTypeDef *mtd;
 
-            for (mtd = pt -> mappedtypes; mtd != NULL; mtd = mtd -> next)
+            for (mtd = pt->mappedtypes; mtd != NULL; mtd = mtd->next)
             {
-                if (mtd -> iff != iff)
+                if (mtd->iff != iff)
                     continue;
 
-                if (ad -> atype != template_type ||
-                    mtd -> type.atype != template_type ||
-                    sameBaseType(ad,&mtd -> type))
+                if (ad->atype != template_type ||
+                    mtd->type.atype != template_type ||
+                    sameBaseType(ad, &mtd->type))
                     yyerror("Mapped type has already been defined in another module");
             }
 
             /*
-             * If we got here then we have a mapped type based on
-             * an existing template, but with unique parameters.
-             * We don't want to use interface files from other
-             * modules, so skip this one.
+             * If we got here then we have a mapped type based on an existing
+             * template, but with unique parameters.  We don't want to use
+             * interface files from other modules, so skip this one.
              */
 
             continue;
@@ -2699,14 +2698,14 @@ ifaceFileDef *findIfaceFile(sipSpec *pt, moduleDef *mod, scopedNameDef *fqname,
 
     iff = sipMalloc(sizeof (ifaceFileDef));
 
-    iff -> name = cacheName(pt,scopedNameTail(fqname));
-    iff -> type = iftype;
-    iff -> fqcname = fqname;
-    iff -> module = NULL;
-    iff -> used = NULL;
-    iff -> next = pt -> ifacefiles;
+    iff->name = cacheName(pt, scopedNameTail(fqname));
+    iff->type = iftype;
+    iff->fqcname = fqname;
+    iff->module = NULL;
+    iff->used = NULL;
+    iff->next = pt->ifacefiles;
 
-    pt -> ifacefiles = iff;
+    pt->ifacefiles = iff;
 
     return iff;
 }
@@ -2787,7 +2786,7 @@ ifaceFileList *addToUsedList(ifaceFileList **ifflp, ifaceFileDef *iff)
     while ((iffl = *ifflp) != NULL)
     {
         /* Don't bother if it is already there. */
-        if (iffl -> iff == iff)
+        if (iffl->iff == iff)
             return iffl;
 
         ifflp = &iffl -> next;
@@ -3692,9 +3691,8 @@ codeBlock *templateCode(sipSpec *pt, ifaceFileList **used, codeBlock *ocb, scope
                 int genname = FALSE;
 
                 /*
-                 * If the context in which the text is used is
-                 * in the name of a SIP generated object then
-                 * translate any "::" scoping to "_".
+                 * If the context in which the text is used is in the name of a
+                 * SIP generated object then translate any "::" scoping to "_".
                  */
                 for (gn = gen_names; *gn != NULL; ++gn)
                     if (search_back(first, at, *gn))
