@@ -2606,6 +2606,8 @@ static moduleDef *allocModule()
         ;
 
     *tailp = newmod;
+
+    return newmod;
 }
 
 
