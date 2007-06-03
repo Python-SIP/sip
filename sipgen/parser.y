@@ -59,7 +59,7 @@ static void newFunction(sipSpec *,moduleDef *,int,int,int,char *,
 static optFlag *findOptFlag(optFlags *,char *,flagType);
 static memberDef *findFunction(sipSpec *,moduleDef *,classDef *,nameDef *,int,
                    int);
-static void checkAttributes(sipSpec *,classDef *,char *,int);
+static void checkAttributes(sipSpec *, moduleDef *, classDef *, char *, int);
 static void newModule(FILE *fp, char *filename);
 static moduleDef *allocModule();
 static void appendCodeBlock(codeBlock **,codeBlock *);
@@ -396,7 +396,7 @@ exception:  TK_EXCEPTION scopedname baseexception optflags '{' opttypehdrcode ra
 
                 pyname = getPythonName(&$4, scopedNameTail($2));
 
-                checkAttributes(currentSpec, NULL, pyname, FALSE);
+                checkAttributes(currentSpec, currentModule, NULL, pyname, FALSE);
 
                 xd = findException(currentSpec, $2, TRUE);
 
@@ -1083,7 +1083,7 @@ enumline:   ifstart
                 emd -> ed = currentEnum;
                 emd -> next = NULL;
 
-                checkAttributes(currentSpec,emd -> ed -> ecd,emd -> pyname -> text,FALSE);
+                checkAttributes(currentSpec, currentModule, emd->ed->ecd, emd->pyname->text, FALSE);
 
                 /* Append to preserve the order. */
                 for (tail = &currentEnum->members; *tail != NULL; tail = &(*tail)->next)
@@ -2452,8 +2452,6 @@ void parse(sipSpec *spec, FILE *fp, char *filename, stringList *tsl,
     spec -> mappedtypetemplates = NULL;
     spec -> enums = NULL;
     spec -> vars = NULL;
-    spec -> othfuncs = NULL;
-    spec -> overs = NULL;
     spec -> typedefs = NULL;
     spec -> exphdrcode = NULL;
     spec -> docs = NULL;
@@ -2572,6 +2570,8 @@ static moduleDef *allocModule()
     newmod->version = -1;
     newmod->modflags = 0;
     newmod->qobjclass = -1;
+    newmod->othfuncs = NULL;
+    newmod->overs = NULL;
     newmod->hdrcode = NULL;
     newmod->cppcode = NULL;
     newmod->copying = NULL;
@@ -2589,7 +2589,7 @@ static moduleDef *allocModule()
     newmod->nrmappedtypes = 0;
     newmod->nrenums = 0;
     newmod->nrtypedefs = 0;
-    newmod->nrvirthandlers = 0;
+    newmod->nrvirthandlers = -1;
     newmod->virthandlers = NULL;
     newmod->license = NULL;
     newmod->cons = NULL;
@@ -2951,7 +2951,7 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd, optFlags *of)
     pyname = getPythonName(of, classBaseName(cd));
 
     cd -> pyname = NULL;
-    checkAttributes(pt, cd->ecd, pyname, FALSE);
+    checkAttributes(pt, mod, cd->ecd, pyname, FALSE);
     cd->pyname = pyname;
 
     if (cd->pyname != classBaseName(cd))
@@ -3207,7 +3207,7 @@ static enumDef *newEnum(sipSpec *pt,moduleDef *mod,char *name,optFlags *of,
         ed -> fqcname = text2scopedName(name);
         ed -> pyname = cacheName(pt, getPythonName(of, name));
 
-        checkAttributes(pt, escope, ed->pyname->text, FALSE);
+        checkAttributes(pt, mod, escope, ed->pyname->text, FALSE);
     }
     else
     {
@@ -3932,7 +3932,7 @@ static void newVar(sipSpec *pt,moduleDef *mod,char *name,int isstatic,
     if (inMainModule())
         setIsUsedName(nd);
 
-    checkAttributes(pt,escope,nd -> text,FALSE);
+    checkAttributes(pt, mod, escope, nd->text, FALSE);
 
     var = sipMalloc(sizeof (varDef));
 
@@ -4050,7 +4050,7 @@ static void newFunction(sipSpec *pt,moduleDef *mod,int sflags,int isstatic,
             yyerror("Exceptions not allowed in a C module");
     }
 
-    headp = (cd != NULL ?  &cd -> overs : &pt -> overs);
+    headp = (cd != NULL ?  &cd->overs : &mod->overs);
 
     /* See if it is a factory method. */
     if (findOptFlag(optflgs,"Factory",bool_flag) != NULL)
@@ -4382,10 +4382,10 @@ static memberDef *findFunction(sipSpec *pt,moduleDef *mod,classDef *cd,
         setIsUsedName(pname);
 
     /* Check there is no name clash. */
-    checkAttributes(pt,cd,pname -> text,TRUE);
+    checkAttributes(pt, mod, cd, pname->text, TRUE);
 
     /* See if it already exists. */
-    flist = (cd != NULL ? &cd -> members : &pt -> othfuncs);
+    flist = (cd != NULL ? &cd->members : &mod->othfuncs);
 
     for (md = *flist; md != NULL; md = md -> next)
         if (md -> pyname == pname && md -> module == mod)
@@ -4454,7 +4454,8 @@ static optFlag *findOptFlag(optFlags *flgs,char *name,flagType ft)
  * (ie. a Python dictionary), so check against what we already know is going in
  * the same scope in case there is a clash.
  */
-static void checkAttributes(sipSpec *pt,classDef *pyscope,char *attr,int isfunc)
+static void checkAttributes(sipSpec *pt, moduleDef *mod, classDef *pyscope,
+        char *attr, int isfunc)
 {
     enumDef *ed;
     varDef *vd;
@@ -4496,7 +4497,7 @@ static void checkAttributes(sipSpec *pt,classDef *pyscope,char *attr,int isfunc)
     {
         memberDef *md, *membs;
 
-        membs = (pyscope != NULL ? pyscope -> members : pt -> othfuncs);
+        membs = (pyscope != NULL ? pyscope->members : mod->othfuncs);
 
         for (md = membs; md != NULL; md = md -> next)
         {
@@ -4507,7 +4508,7 @@ static void checkAttributes(sipSpec *pt,classDef *pyscope,char *attr,int isfunc)
 
             /* Check for a conflict with all overloads. */
 
-            overs = (pyscope != NULL ? pyscope -> overs : pt -> overs);
+            overs = (pyscope != NULL ? pyscope->overs : mod->overs);
 
             for (od = overs; od != NULL; od = od -> next)
             {

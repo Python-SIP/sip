@@ -54,7 +54,7 @@ void generateAPI(sipSpec *pt, const char *apiFile)
     apiEnums(pt, NULL, fp);
     apiVars(pt, NULL, fp);
 
-    for (od = pt->overs; od != NULL; od = od->next)
+    for (od = pt->module->overs; od != NULL; od = od->next)
     {
         if (od->common->module != pt->module)
             continue;
@@ -352,13 +352,8 @@ void generateXML(sipSpec *pt, const char *xmlFile)
     xmlEnums(pt, NULL, 1, fp);
     xmlVars(pt, NULL, 1, fp);
 
-    for (md = pt->othfuncs; md != NULL; md = md->next)
-    {
-        if (md->module != pt->module)
-            continue;
-
-        xmlFunction(NULL, md, pt->overs, 1, fp);
-    }
+    for (md = pt->module->othfuncs; md != NULL; md = md->next)
+        xmlFunction(NULL, md, pt->module->overs, 1, fp);
 
     fprintf(fp, "</Module>\n");
 

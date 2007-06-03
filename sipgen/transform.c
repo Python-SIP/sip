@@ -19,7 +19,7 @@ static int supportedType(classDef *,overDef *,argDef *,int);
 static int sameOverload(overDef *od1,overDef *od2);
 static int sameVirtualHandler(virtHandlerDef *vhd1,virtHandlerDef *vhd2);
 static int isSubClass(classDef *cc,classDef *pc);
-static void setAllImports(sipSpec *pt, moduleDef *mod);
+static void setAllImports(moduleDef *mod);
 static void addUniqueModule(moduleDef *mod, moduleDef *imp);
 static void ensureInput(classDef *,overDef *,argDef *);
 static void defaultInput(argDef *);
@@ -32,13 +32,15 @@ static void addAutoOverload(sipSpec *,classDef *,overDef *);
 static ifaceFileList *ifaceFileIsUsed(sipSpec *pt, ifaceFileDef *iff, argDef *ad);
 static void ifaceFilesAreUsed(sipSpec *, ifaceFileDef *, overDef *);
 static void ifaceFilesAreUsedByMethod(sipSpec *, classDef *, memberDef *);
-static void ifaceFilesAreUsedFromOther(sipSpec *pt, signatureDef *sd);
+static void ifaceFilesAreUsedByFunctions(moduleDef *mod);
+static void ifaceFilesAreUsedBySignature(moduleDef *mod, signatureDef *sd);
 static void scopeDefaultValue(sipSpec *,classDef *,argDef *);
 static void setHierarchy(sipSpec *,classDef *,classDef *,classList **);
 static void transformCtors(sipSpec *,classDef *);
 static void transformCasts(sipSpec *,classDef *);
 static void addDefaultCopyCtor(classDef *);
-static void transformOverloads(sipSpec *,classDef *,overDef *);
+static void transformScopeOverloads(sipSpec *pt, classDef *scope,
+        overDef *overs);
 static void transformVariableList(sipSpec *);
 static void transformMappedTypes(sipSpec *);
 static void getVisibleMembers(sipSpec *,classDef *);
@@ -58,9 +60,11 @@ static void searchTypedefs(sipSpec *,scopedNameDef *,argDef *);
 static void searchEnums(sipSpec *,scopedNameDef *,argDef *);
 static void searchClasses(sipSpec *,moduleDef *mod,scopedNameDef *,argDef *);
 static void appendToMRO(mroDef *,mroDef ***,classDef *);
-static void moveClassCasts(sipSpec *pt, classDef *cd);
-static void moveGlobalSlot(sipSpec *pt, memberDef *gmd);
-static void filterVirtualHandlers(moduleDef *mod);
+static void moveMainModuleCastsSlots(sipSpec *pt, moduleDef *mod);
+static void moveClassCasts(sipSpec *pt, moduleDef *mod, classDef *cd);
+static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd);
+static void filterMainModuleVirtualHandlers(moduleDef *mod);
+static void filterModuleVirtualHandlers(moduleDef *mod);
 static ifaceFileDef *getIfaceFile(argDef *ad);
 static mappedTypeDef *instantiateMappedTypeTemplate(sipSpec *pt, moduleDef *mod, mappedTypeTmplDef *mtt, argDef *type);
 static classDef *getProxy(sipSpec *pt, classDef *cd);
@@ -73,13 +77,11 @@ static classDef *getProxy(sipSpec *pt, classDef *cd);
 void transform(sipSpec *pt)
 {
     moduleDef *mod;
-    moduleListDef *mld;
     classDef *cd, *rev, **tail;
     classList *newl;
     overDef *od;
     mappedTypeDef *mtd;
     virtHandlerDef *vhd;
-    int nr;
 
     if (pt -> module -> name == NULL)
         fatal("No %%Module has been specified for the module\n");
@@ -115,7 +117,7 @@ void transform(sipSpec *pt)
 
     /* Build the list of all imports for each module. */
     for (mod = pt->modules; mod != NULL; mod = mod->next)
-        setAllImports(pt, mod);
+        setAllImports(mod);
 
     /* Check each class has been defined. */
     for (cd = pt -> classes; cd != NULL; cd = cd -> next)
@@ -154,16 +156,24 @@ void transform(sipSpec *pt)
     /* Transform typedefs, variables and global functions. */
     transformTypedefs(pt);
     transformVariableList(pt);
-    transformOverloads(pt,NULL,pt -> overs);
+
+    if (isConsolidated(pt->module))
+    {
+        for (mod = pt->modules; mod != NULL; mod = mod->next)
+            if (mod->cons == pt->module)
+                transformScopeOverloads(pt, NULL, mod->overs);
+    }
+    else
+        transformScopeOverloads(pt, NULL, pt->module->overs);
 
     /* Transform class ctors, functions and casts. */
-    for (cd = pt -> classes; cd != NULL; cd = cd -> next)
+    for (cd = pt->classes; cd != NULL; cd = cd->next)
     {
-        transformCtors(pt,cd);
+        transformCtors(pt, cd);
 
-        if (!pt -> genc)
+        if (!pt->genc)
         {
-            transformOverloads(pt,cd,cd -> overs);
+            transformScopeOverloads(pt, cd, cd->overs);
             transformCasts(pt, cd);
         }
     }
@@ -210,15 +220,14 @@ void transform(sipSpec *pt)
      */
     if (!pt -> genc)
     {
-        memberDef *md;
-
-        for (cd = pt -> classes; cd != NULL; cd = cd -> next)
-            if (cd->iff->module == pt->module)
-                moveClassCasts(pt, cd);
-
-        for (md = pt->othfuncs; md != NULL; md = md->next)
-            if (md->slot != no_slot && md->module == pt->module)
-                moveGlobalSlot(pt, md);
+        if (isConsolidated(pt->module))
+        {
+            for (mod = pt->modules; mod != NULL; mod = mod->next)
+                if (mod->cons == pt->module)
+                    moveMainModuleCastsSlots(pt, mod);
+        }
+        else
+            moveMainModuleCastsSlots(pt, pt->module);
     }
 
     /* Generate the different class views. */
@@ -245,35 +254,23 @@ void transform(sipSpec *pt)
     }
 
     /*
-     * In case there are any global functions that need external interface
-     * files.
+     * Filter the virtuals of all component modules (if consolidated) or the
+     * main module (if not).
      */
-    for (od = pt -> overs; od != NULL; od = od -> next)
-        if (od->common->module == pt->module)
-            ifaceFilesAreUsedFromOther(pt, &od->pysig);
-
-    /*
-     * Remove redundant virtual handlers.  It's important that earlier,
-     * ie. those at the deepest level of %Import, are done first.
-     */
-    nr = 0;
-
-    for (mld = pt->module->allimports; mld != NULL; mld = mld->next)
+    if (isConsolidated(pt->module))
     {
-        mld->module->modulenr = nr++;
-        filterVirtualHandlers(mld->module);
+        for (mod = pt->modules; mod != NULL; mod = mod->next)
+            if (mod->cons == pt->module)
+            {
+                filterMainModuleVirtualHandlers(mod);
+                ifaceFilesAreUsedByFunctions(mod);
+            }
     }
-
-    pt->module->modulenr = nr;
-    filterVirtualHandlers(pt->module);
-
-    /*
-     * Make sure we have the interface files for all types from other modules
-     * that are used in virtual handlers implemented in this module.
-     */
-    for (vhd = pt->module->virthandlers; vhd != NULL; vhd = vhd->next)
-        if (!isDuplicateVH(vhd))
-            ifaceFilesAreUsedFromOther(pt, vhd->cppsig);
+    else
+    {
+        filterMainModuleVirtualHandlers(pt->module);
+        ifaceFilesAreUsedByFunctions(pt->module);
+    }
 
     /* Update proxies with some information from the real classes. */
     for (cd = pt->proxies; cd != NULL; cd = cd->next)
@@ -285,7 +282,7 @@ void transform(sipSpec *pt)
  * Set the list of all imports for a module.  The list is ordered so that a
  * module appears before any module that imports it.
  */
-static void setAllImports(sipSpec *pt, moduleDef *mod)
+static void setAllImports(moduleDef *mod)
 {
     moduleListDef *mld;
 
@@ -298,7 +295,7 @@ static void setAllImports(sipSpec *pt, moduleDef *mod)
 
     /* Make sure all the direct imports are done first. */
     for (mld = mod->imports; mld != NULL; mld = mld->next)
-        setAllImports(pt, mld->module);
+        setAllImports(mld->module);
 
     /*
      * Now build the list from our direct imports lists but ignoring
@@ -336,9 +333,28 @@ static void addUniqueModule(moduleDef *mod, moduleDef *imp)
 
 
 /*
+ * Move the casts and slots to the correct place for a main module (ie. one we
+ * are generating code for).
+ */
+static void moveMainModuleCastsSlots(sipSpec *pt, moduleDef *mod)
+{
+    classDef *cd;
+    memberDef *md;
+
+    for (cd = pt->classes; cd != NULL; cd = cd->next)
+        if (cd->iff->module == mod)
+            moveClassCasts(pt, mod, cd);
+
+    for (md = mod->othfuncs; md != NULL; md = md->next)
+        if (md->slot != no_slot && md->module == mod)
+            moveGlobalSlot(pt, mod, md);
+}
+
+
+/*
  * Move any class casts to its correct class, or publish as a ctor extender.
  */
-static void moveClassCasts(sipSpec *pt, classDef *cd)
+static void moveClassCasts(sipSpec *pt, moduleDef *mod, classDef *cd)
 {
     argList *al;
 
@@ -352,7 +368,7 @@ static void moveClassCasts(sipSpec *pt, classDef *cd)
          * If the destination class is in a different module then use
          * a proxy.
          */
-        if (dcd->iff->module != pt->module)
+        if (dcd->iff->module != mod)
             dcd = getProxy(pt, dcd);
 
         /* Create the new ctor. */
@@ -401,9 +417,9 @@ static void moveClassCasts(sipSpec *pt, classDef *cd)
 /*
  * If possible, move a global slot to its correct class.
  */
-static void moveGlobalSlot(sipSpec *pt, memberDef *gmd)
+static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd)
 {
-    overDef **odp = &pt->overs, *od;
+    overDef **odp = &mod->overs, *od;
 
     while ((od = *odp) != NULL)
     {
@@ -468,10 +484,10 @@ static void moveGlobalSlot(sipSpec *pt, memberDef *gmd)
         }
 
         /*
-         * For rich comparisons the first argument must be a class or
-         * an enum.  For cross-module slots then it may only be a
-         * class.  (This latter limitation is artificial, but is
-         * unlikely to be a problem in practice.)
+         * For rich comparisons the first argument must be a class or an enum.
+         * For cross-module slots then it may only be a class.  (This latter
+         * limitation is artificial, but is unlikely to be a problem in
+         * practice.)
          */
         if (isRichCompareSlot(gmd))
         {
@@ -642,13 +658,52 @@ static classDef *getProxy(sipSpec *pt, classDef *cd)
 
 
 /*
+ * Filter the virtual handlers for a main module (ie. one we are generating
+ * code for.
+ */
+static void filterMainModuleVirtualHandlers(moduleDef *mod)
+{
+    int nr = 0;
+    moduleListDef *mld;
+    virtHandlerDef *vhd;
+
+    /*
+     * Remove redundant virtual handlers.  It's important that earlier, ie.
+     * those at the deepest level of %Import, are done first.
+     */
+    for (mld = mod->allimports; mld != NULL; mld = mld->next)
+    {
+        mld->module->modulenr = nr++;
+        filterModuleVirtualHandlers(mld->module);
+    }
+
+    mod->modulenr = nr;
+    filterModuleVirtualHandlers(mod);
+
+    /*
+     * Make sure we have the interface files for all types from other modules
+     * that are used in virtual handlers implemented in this module.
+     */
+    for (vhd = mod->virthandlers; vhd != NULL; vhd = vhd->next)
+        if (!isDuplicateVH(vhd))
+            ifaceFilesAreUsedBySignature(mod, vhd->cppsig);
+}
+
+
+/*
  * Go through the virtual handlers filtering those that can duplicate earlier
  * ones.  Make sure each virtual is numbered within its module, and according
  * to their position in the list (ignoring duplicates).
  */
-static void filterVirtualHandlers(moduleDef *mod)
+static void filterModuleVirtualHandlers(moduleDef *mod)
 {
     virtHandlerDef *vhd;
+
+    /* See if it has already been done for this module. */
+    if (mod->nrvirthandlers >= 0)
+        return;
+
+    mod->nrvirthandlers = 0;
 
     for (vhd = mod->virthandlers; vhd != NULL; vhd = vhd->next)
     {
@@ -1079,7 +1134,8 @@ static void addDefaultCopyCtor(classDef *cd)
 /*
  * Transform the data types for a list of overloads.
  */
-static void transformOverloads(sipSpec *pt, classDef *scope, overDef *overs)
+static void transformScopeOverloads(sipSpec *pt, classDef *scope,
+        overDef *overs)
 {
     overDef *od;
 
@@ -2591,20 +2647,32 @@ static void fatalNoDefinedType(scopedNameDef *snd)
 
 
 /*
- * Make sure all external interface files for all other functions of a module
- * are used.
+ * Make sure all external interface files for a module's function are used.
  */
-static void ifaceFilesAreUsedFromOther(sipSpec *pt, signatureDef *sd)
+static void ifaceFilesAreUsedByFunctions(moduleDef *mod)
+{
+    overDef *od;
+
+    for (od = mod->overs; od != NULL; od = od->next)
+        if (od->common->module == mod)
+            ifaceFilesAreUsedBySignature(mod, &od->pysig);
+}
+
+
+/*
+ * Make sure all external interface files for a signature are used.
+ */
+static void ifaceFilesAreUsedBySignature(moduleDef *mod, signatureDef *sd)
 {
     int a;
     ifaceFileDef *iff;
 
-    if ((iff = getIfaceFile(&sd->result)) != NULL && iff->module != pt->module)
-        addToUsedList(&pt->module->used, iff);
+    if ((iff = getIfaceFile(&sd->result)) != NULL && iff->module != mod)
+        addToUsedList(&mod->used, iff);
 
     for (a = 0; a < sd->nrArgs; ++a)
-        if ((iff = getIfaceFile(&sd->args[a])) != NULL && iff->module != pt->module)
-            addToUsedList(&pt->module->used, iff);
+        if ((iff = getIfaceFile(&sd->args[a])) != NULL && iff->module != mod)
+            addToUsedList(&mod->used, iff);
 }
 
 

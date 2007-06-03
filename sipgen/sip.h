@@ -528,6 +528,8 @@ typedef struct _moduleDef {
     int version;                        /* The module version. */
     int modflags;                       /* The module flags. */
     int qobjclass;                      /* QObject class, -1 if none. */
+    struct _memberDef *othfuncs;        /* List of other functions. */
+    struct _overDef *overs;             /* Global overloads. */
     codeBlock *hdrcode;                 /* Header code. */
     codeBlock *cppcode;                 /* Global C++ code. */
     codeBlock *copying;                 /* Software license. */
@@ -918,8 +920,6 @@ typedef struct {
     mappedTypeTmplDef *mappedtypetemplates; /* The list of mapped type templates. */
     enumDef *enums;                     /* List of enums. */
     varDef *vars;                       /* List of variables. */
-    memberDef *othfuncs;                /* List of other functions. */
-    overDef *overs;                     /* Global overloads. */
     typedefDef *typedefs;               /* List of typedefs. */
     codeBlock *exphdrcode;              /* Exported header code. */
     codeBlock *docs;                    /* Documentation. */
