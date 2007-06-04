@@ -3275,8 +3275,8 @@ static sortedMethTab *createMethodTable(classDef *cd, int *nrp)
         for (od = vl->cd->overs; od != NULL; od = od->next)
         {
             /*
-             * Skip protected methods if we don't have the means to
-             * handle them.
+             * Skip protected methods if we don't have the means to handle
+             * them.
              */
             if (isProtected(od) && !hasShadow(cd))
                 continue;
@@ -3315,8 +3315,8 @@ static sortedMethTab *createMethodTable(classDef *cd, int *nrp)
         for (od = vl->cd->overs; od != NULL; od = od->next)
         {
             /*
-             * Skip protected methods if we don't have the means to
-             * handle them.
+             * Skip protected methods if we don't have the means to handle
+             * them.
              */
             if (isProtected(od) && !hasShadow(cd))
                 continue;
@@ -4479,7 +4479,10 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 
     /* Any shadow code. */
     if (hasShadow(cd))
-        generateShadowCode(pt,cd,fp);
+    {
+        generateShadowClassDeclaration(pt, cd, fp);
+        generateShadowCode(pt, cd, fp);
+    }
 
     /* The member functions. */
     for (vl = cd->visible; vl != NULL; vl = vl->next)
@@ -6833,9 +6836,6 @@ static void generateClassHeader(classDef *cd,int genused,sipSpec *pt,FILE *fp)
 "\n"
 "extern sipTypeDef sipType_%s_%C;\n"
             , mname, classFQCName(cd));
-
-    if (hasShadow(cd))
-        generateShadowClassDeclaration(pt,cd,fp);
 }
 
 
@@ -10674,15 +10674,8 @@ void prcode(FILE *fp, const char *fmt, ...)
                 {
                     enumDef *ed = va_arg(ap,enumDef *);
 
-                    if (ed->fqcname == NULL)
+                    if (ed->fqcname == NULL || isProtectedEnum(ed))
                         fprintf(fp,"int");
-                    else if (isProtectedEnum(ed))
-                    {
-                        fprintf(fp,"sip");
-                        prScopedName(fp,classFQCName(ed->pcd),"_");
-
-                        fprintf(fp,"::sip%s",scopedNameTail(ed->fqcname));
-                    }
                     else
                         prScopedName(fp,ed->fqcname,"::");
 
