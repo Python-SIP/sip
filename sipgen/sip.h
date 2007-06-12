@@ -75,6 +75,7 @@
 #define CLASS_NO_DEFAULT_CTORS  0x00400000  /* Don't create default ctors. */
 #define CLASS_QOBJECT_SUB   0x00800000  /* It is derived from QObject. */
 #define CLASS_DTOR_HOLD_GIL 0x01000000  /* The dtor holds the GIL. */
+#define CLASS_QT_META_TYPE  0x02000000  /* Register as a Qt meta type. */
 
 #define hasEnums(cd)        ((cd)->classflags & CLASS_HAS_ENUMS)
 #define setHasEnums(cd)     ((cd)->classflags |= CLASS_HAS_ENUMS)
@@ -114,6 +115,8 @@
 #define setIsQObjectSubClass(cd)    ((cd)->classflags |= CLASS_QOBJECT_SUB)
 #define isHoldGILDtor(c)    ((cd)->classflags & CLASS_DTOR_HOLD_GIL)
 #define setIsHoldGILDtor(c) ((cd)->classflags |= CLASS_DTOR_HOLD_GIL)
+#define registerQtMetaType(c)   ((cd)->classflags & CLASS_QT_META_TYPE)
+#define setRegisterQtMetaType(c)    ((cd)->classflags |= CLASS_QT_META_TYPE)
 
 #define isPublicDtor(cd)    ((cd)->classflags & SECT_IS_PUBLIC)
 #define setIsPublicDtor(cd) ((cd)->classflags |= SECT_IS_PUBLIC)
@@ -583,7 +586,6 @@ typedef struct _exceptionDef {
     struct _classDef *cd;               /* The exception class. */
     char *bibase;                       /* The builtin base exception. */
     struct _exceptionDef *base;         /* The defined base exception. */
-    codeBlock *hdrcode;                 /* Optional header code. */
     codeBlock *raisecode;               /* Raise exception code. */
     struct _exceptionDef *next;         /* The next in the list. */
 } exceptionDef;
@@ -651,6 +653,7 @@ typedef struct _ifaceFileDef {
     ifaceFileType type;                 /* Interface file type. */
     scopedNameDef *fqcname;             /* The fully qualified C++ name. */
     moduleDef *module;                  /* The owning module. */
+    codeBlock *hdrcode;                 /* Header code. */
     struct _ifaceFileList *used;        /* Interface files used. */
     struct _ifaceFileDef *next;         /* Next in the list. */
 } ifaceFileDef;
@@ -660,7 +663,6 @@ typedef struct _ifaceFileDef {
 
 typedef struct _ifaceFileList {
     ifaceFileDef *iff;                  /* The interface file itself. */
-    int header;                         /* If needed in the .h file. */
     struct _ifaceFileList *next;        /* Next in the list. */
 } ifaceFileList;
 
@@ -671,7 +673,6 @@ typedef struct _mappedTypeDef {
     argDef type;                        /* The type being mapped. */
     int mappednr;                       /* The mapped type number. */
     ifaceFileDef *iff;                  /* The interface file. */
-    codeBlock *hdrcode;                 /* Header code. */
     codeBlock *convfromcode;            /* Convert from C++ code. */
     codeBlock *convtocode;              /* Convert to C++ code. */
     struct _mappedTypeDef *next;        /* Next in the list. */
@@ -872,7 +873,6 @@ typedef struct _classDef {
     virtOverDef *vmembers;              /* The virtual members. */
     visibleList *visible;               /* The visible members. */
     codeBlock *cppcode;                 /* Class C++ code. */
-    codeBlock *hdrcode;                 /* Class header code. */
     codeBlock *convtosubcode;           /* Convert to sub C++ code. */
     struct _classDef *subbase;          /* Sub-class base class. */
     codeBlock *convtocode;              /* Convert to C++ code. */

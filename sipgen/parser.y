@@ -360,7 +360,7 @@ nsstatement:    ifstart
                 if (scope == NULL)
                     yyerror("%TypeHeaderCode can only be used in a namespace, class or mapped type");
 
-                appendCodeBlock(&scope->hdrcode, $1);
+                appendCodeBlock(&scope->iff->hdrcode, $1);
             }
         }
     ;
@@ -408,21 +408,14 @@ exception:  TK_EXCEPTION scopedname baseexception optflags '{' opttypehdrcode ra
 
                 /* Complete the definition. */
                 xd->iff->module = currentModule;
+                xd->iff->hdrcode = $6;
                 xd->pyname = pyname;
                 xd->bibase = $3.bibase;
                 xd->base = $3.base;
-                xd->hdrcode = $6;
                 xd->raisecode = $7;
 
                 if (xd->bibase != NULL || xd->base != NULL)
                     xd->exceptionnr = currentModule->nrexceptions++;
-
-                /*
-                 * If the exception is from another module then we need its
-                 * interface file.
-                 */
-                if (xd->base != NULL && xd->base->iff->module != currentModule)
-                    addToUsedList(&currentModule->used, xd->base->iff);
             }
         }
     ;
@@ -512,7 +505,7 @@ raisecode:  TK_RAISECODE codeblock {
 
 mappedtype: TK_MAPPEDTYPE basetype {
             if (notSkipping())
-                currentMappedType = newMappedType(currentSpec,&$2);
+                currentMappedType = newMappedType(currentSpec, &$2);
         } mtdefinition
     ;
 
@@ -533,6 +526,7 @@ mappedtypetmpl: template TK_MAPPEDTYPE basetype {
             if (notSkipping())
             {
                 mappedTypeTmplDef *mtt;
+                ifaceFileDef *iff;
 
                 /* Check a template hasn't already been provided. */
                 for (mtt = currentSpec->mappedtypetemplates; mtt != NULL; mtt = mtt->next)
@@ -551,6 +545,11 @@ mappedtypetmpl: template TK_MAPPEDTYPE basetype {
                 currentSpec->mappedtypetemplates = mtt;
 
                 currentMappedType = mtt->mt;
+
+                /* Create a dummy interface file. */
+                iff = sipMalloc(sizeof (ifaceFileDef));
+                iff->hdrcode = NULL;
+                mtt->mt->iff = iff;
             }
         } mtdefinition
     ;
@@ -575,7 +574,7 @@ mtbody:     mtline
 
 mtline:     typehdrcode {
             if (notSkipping())
-                appendCodeBlock(&currentMappedType -> hdrcode,$1);
+                appendCodeBlock(&currentMappedType->iff->hdrcode, $1);
         }
     |   TK_FROMTYPE codeblock {
             if (notSkipping())
@@ -1424,7 +1423,6 @@ superclass: scopedname {
                 super = findClass(currentSpec,class_iface,$1);
 
                 appendToClassList(&cd -> supers,super);
-                addToUsedList(&cd->iff->used, super->iff);
             }
         }
     ;
@@ -1455,7 +1453,7 @@ classline:  ifstart
         }
     |   typehdrcode {
             if (notSkipping())
-                appendCodeBlock(&currentScope()->hdrcode, $1);
+                appendCodeBlock(&currentScope()->iff->hdrcode, $1);
         }
     |   travcode {
             if (notSkipping())
@@ -2377,24 +2375,6 @@ optexceptions:  {
             if (currentSpec->genc)
                 yyerror("Exceptions not allowed in a C module");
 
-            if (notSkipping() && inMainModule())
-            {
-                int e;
-                ifaceFileList **ifl;
-
-                /*
-                 * Make sure the exceptions' header files are included.  We
-                 * unconditionally mark them to be included in the current
-                 * scope's header file to save us the effort of checking if
-                 * they are being used with a protected method, a virtual or a
-                 * signal.
-                 */
-                ifl = (currentScope() != NULL) ? &currentScope()->iff->used : &currentModule->used;
-
-                for (e = 0; e < $3->nrArgs; ++e)
-                    addToUsedList(ifl, $3->args[e]->iff);
-            }
-
             $$ = $3;
         }
     ;
@@ -2706,6 +2686,7 @@ ifaceFileDef *findIfaceFile(sipSpec *pt, moduleDef *mod, scopedNameDef *fqname,
     iff->type = iftype;
     iff->fqcname = fqname;
     iff->module = NULL;
+    iff->hdrcode = NULL;
     iff->used = NULL;
     iff->next = pt->ifacefiles;
 
@@ -2761,7 +2742,6 @@ static classDef *findClassWithInterface(sipSpec *pt, ifaceFileDef *iff)
     cd -> vmembers = NULL;
     cd -> visible = NULL;
     cd -> cppcode = NULL;
-    cd -> hdrcode = NULL;
     cd -> convtosubcode = NULL;
     cd -> subbase = NULL;
     cd -> convtocode = NULL;
@@ -2799,7 +2779,6 @@ ifaceFileList *addToUsedList(ifaceFileList **ifflp, ifaceFileDef *iff)
     iffl = sipMalloc(sizeof (ifaceFileList));
 
     iffl->iff = iff;
-    iffl->header = FALSE;
     iffl->next = NULL;
 
     *ifflp = iffl;
@@ -2853,7 +2832,6 @@ static exceptionDef *findException(sipSpec *pt, scopedNameDef *fqname, int new)
     xd->cd = cd;
     xd->bibase = NULL;
     xd->base = NULL;
-    xd->hdrcode = NULL;
     xd->raisecode = NULL;
     xd->next = NULL;
 
@@ -2887,7 +2865,8 @@ static classDef *newClass(sipSpec *pt,ifaceFileType iftype,
         if (sectionFlags & SECT_IS_PROT)
             flags = CLASS_IS_PROTECTED;
 
-        hdrcode = scope -> hdrcode;
+        /* Header code from outer scopes is also included. */
+        hdrcode = scope->iff->hdrcode;
     }
     else
         hdrcode = NULL;
@@ -2901,7 +2880,7 @@ static classDef *newClass(sipSpec *pt,ifaceFileType iftype,
         scope = NULL;
     }
 
-    cd = findClass(pt,iftype,fqname);
+    cd = findClass(pt, iftype, fqname);
 
     /* Check it hasn't already been defined. */
     if (iftype != namespace_iface && cd->iff->module != NULL)
@@ -2912,7 +2891,7 @@ static classDef *newClass(sipSpec *pt,ifaceFileType iftype,
     cd->ecd = scope;
     cd->iff->module = currentModule;
 
-    appendCodeBlock(&cd->hdrcode, hdrcode);
+    appendCodeBlock(&cd->iff->hdrcode, hdrcode);
 
     /* See if it is a namespace extender. */
     if (iftype == namespace_iface)
@@ -3108,25 +3087,25 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd, optFlags *of)
 /*
  * Create a new mapped type.
  */
-static mappedTypeDef *newMappedType(sipSpec *pt,argDef *ad)
+static mappedTypeDef *newMappedType(sipSpec *pt, argDef *ad)
 {
     mappedTypeDef *mtd;
     scopedNameDef *snd;
     ifaceFileDef *iff;
 
     /* Check that the type is one we want to map. */
-    switch (ad -> atype)
+    switch (ad->atype)
     {
     case defined_type:
-        snd = ad -> u.snd;
+        snd = ad->u.snd;
         break;
 
     case template_type:
-        snd = ad -> u.td -> fqname;
+        snd = ad->u.td->fqname;
         break;
 
     case struct_type:
-        snd = ad -> u.sname;
+        snd = ad->u.sname;
         break;
 
     default:
@@ -3136,32 +3115,30 @@ static mappedTypeDef *newMappedType(sipSpec *pt,argDef *ad)
     iff = findIfaceFile(pt, currentModule, snd, mappedtype_iface, ad);
 
     if (inMainModule())
-        setIsUsedName(iff -> name);
+        setIsUsedName(iff->name);
 
     /* Check it hasn't already been defined. */
-    for (mtd = pt -> mappedtypes; mtd != NULL; mtd = mtd -> next)
-        if (mtd -> iff == iff)
+    for (mtd = pt->mappedtypes; mtd != NULL; mtd = mtd->next)
+        if (mtd->iff == iff)
         {
             /*
              * We allow types based on the same template but with
              * different arguments.
              */
-
-            if (ad -> atype != template_type ||
-                sameBaseType(ad,&mtd -> type))
+            if (ad->atype != template_type || sameBaseType(ad, &mtd->type))
                 yyerror("Mapped type has already been defined in this module");
         }
 
     /* The module may not have been set yet. */
-    iff -> module = currentModule;
+    iff->module = currentModule;
 
     /* Create a new mapped type. */
     mtd = allocMappedType(ad);
 
-    mtd -> iff = iff;
-    mtd -> next = pt -> mappedtypes;
+    mtd->iff = iff;
+    mtd->next = pt->mappedtypes;
 
-    pt -> mappedtypes = mtd;
+    pt->mappedtypes = mtd;
 
     return mtd;
 }
@@ -3182,7 +3159,6 @@ mappedTypeDef *allocMappedType(argDef *type)
 
     mtd->mappednr = -1;
     mtd->iff = NULL;
-    mtd->hdrcode = NULL;
     mtd->convfromcode = NULL;
     mtd->convtocode = NULL;
     mtd->next = NULL;
@@ -3539,7 +3515,7 @@ static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod, classDef *scop
     }
 
     cd->cppcode = templateCode(pt, used, cd->cppcode, type_names, type_values);
-    cd->hdrcode = templateCode(pt, used, cd->hdrcode, type_names, type_values);
+    cd->iff->hdrcode = templateCode(pt, used, cd->iff->hdrcode, type_names, type_values);
     cd->convtosubcode = templateCode(pt, used, cd->convtosubcode, type_names, type_values);
     cd->convtocode = templateCode(pt, used, cd->convtocode, type_names, type_values);
     cd->travcode = templateCode(pt, used, cd->travcode, type_names, type_values);
@@ -3617,7 +3593,8 @@ static void templateType(argDef *ad, classTmplDef *tcd, templateDef *td, classDe
 /*
  * Replace any template arguments in a literal code block.
  */
-codeBlock *templateCode(sipSpec *pt, ifaceFileList **used, codeBlock *ocb, scopedNameDef *names, scopedNameDef *values)
+codeBlock *templateCode(sipSpec *pt, ifaceFileList **used, codeBlock *ocb,
+        scopedNameDef *names, scopedNameDef *values)
 {
     codeBlock *ncb = NULL, **tail = &ncb;
 
@@ -3632,8 +3609,8 @@ codeBlock *templateCode(sipSpec *pt, ifaceFileList **used, codeBlock *ocb, scope
             scopedNameDef *nam, *val, *nam_first, *val_first;
 
             /*
-             * Go through the rest of this fragment looking for
-             * each of the types and the name of the class itself.
+             * Go through the rest of this fragment looking for each of the
+             * types and the name of the class itself.
              */
             nam = names;
             val = values;
@@ -4245,24 +4222,24 @@ static char *getPythonName(optFlags *optflgs, char *cname)
 /*
  * Cache a name in a module.
  */
-static nameDef *cacheName(sipSpec *pt,char *name)
+static nameDef *cacheName(sipSpec *pt, char *name)
 {
     nameDef *nd;
 
     /* See if it already exists. */
-    for (nd = pt -> namecache; nd != NULL; nd = nd -> next)
-        if (strcmp(nd -> text,name) == 0)
+    for (nd = pt->namecache; nd != NULL; nd = nd->next)
+        if (strcmp(nd->text, name) == 0)
             return nd;
 
     /* Create a new one. */
     nd = sipMalloc(sizeof (nameDef));
 
-    nd -> nameflags = 0;
-    nd -> module = currentSpec -> module;
-    nd -> text = name;
-    nd -> next = pt -> namecache;
+    nd->nameflags = 0;
+    nd->module = currentSpec->module;
+    nd->text = name;
+    nd->next = pt->namecache;
 
-    pt -> namecache = nd;
+    pt->namecache = nd;
 
     return nd;
 }

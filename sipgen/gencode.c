@@ -55,7 +55,8 @@ static void generateBuildFile(sipSpec *pt, const char *buildFile,
         const char *srcSuffix, int incComponentsCode, const char *consModule);
 static void generateBuildFileSources(sipSpec *pt, moduleDef *mod,
         const char *srcSuffix, FILE *fp);
-static void generateInternalAPIHeader(sipSpec *, const char *, stringList *);
+static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
+        const char *codeDir, stringList *xsl);
 static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         const char *srcSuffix, int parts, stringList *xsl);
 static void generateConsolidatedCpp(sipSpec *pt, const char *codeDir,
@@ -68,14 +69,15 @@ static void generateModInitStart(sipSpec *pt, FILE *fp);
 static void generateIfaceCpp(sipSpec *, ifaceFileDef *, char *, const char *,
         FILE *);
 static void generateMappedTypeCpp(mappedTypeDef *, FILE *);
-static void generateImportedMappedTypeHeader(mappedTypeDef *mtd, int genused,
-        sipSpec *pt, FILE *fp);
-static void generateMappedTypeHeader(mappedTypeDef *, int, FILE *);
+static void generateImportedMappedTypeAPI(mappedTypeDef *mtd, sipSpec *pt,
+        moduleDef *mod, FILE *fp);
+static void generateMappedTypeAPI(mappedTypeDef *mtd, FILE *fp);
 static void generateClassCpp(classDef *cd, sipSpec *pt, moduleDef *mod,
         FILE *fp);
-static void generateImportedClassHeader(classDef *cd, sipSpec *pt, FILE *fp);
+static void generateImportedClassAPI(classDef *cd, sipSpec *pt, moduleDef *mod,
+        FILE *fp);
 static void generateClassTableEntries(sipSpec *pt, nodeDef *nd, FILE *fp);
-static void generateClassHeader(classDef *, int, sipSpec *, FILE *);
+static void generateClassAPI(classDef *cd, sipSpec *pt, FILE *fp);
 static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
         FILE *fp);
 static void generateShadowCode(sipSpec *, classDef *, FILE *);
@@ -86,8 +88,10 @@ static void generateFunctionBody(sipSpec *, overDef *, classDef *, classDef *,
 static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp);
 static void generateTypeInit(sipSpec *, classDef *, FILE *);
 static void generateCppCodeBlock(codeBlock *, FILE *);
-static void generateUsedIncludes(ifaceFileList *, int, FILE *);
-static void generateIfaceHeader(sipSpec *, ifaceFileDef *, char *);
+static void generateUsedIncludes(ifaceFileList *iffl, FILE *fp);
+static void generateModuleAPI(sipSpec *pt, moduleDef *mod, FILE *fp);
+static void generateImportedModuleAPI(sipSpec *pt, moduleDef *mod,
+        moduleDef *immod, FILE *fp);
 static void generateShadowClassDeclaration(sipSpec *, classDef *, FILE *);
 static int hasConvertToCode(argDef *ad);
 static void deleteTemps(signatureDef *sd, FILE *fp);
@@ -132,7 +136,8 @@ static int generateStrings(sipSpec *, classDef *, FILE *);
 static sortedMethTab *createFunctionTable(classDef *, int *);
 static sortedMethTab *createMethodTable(classDef *, int *);
 static int generateMethodTable(classDef *, FILE *);
-static void generateEnumMacros(sipSpec *pt, classDef *cd, FILE *fp);
+static void generateEnumMacros(sipSpec *pt, moduleDef *mod, classDef *cd,
+        FILE *fp);
 static int generateEnumMemberTable(sipSpec *, classDef *, FILE *);
 static int generateInts(sipSpec *, classDef *, FILE *);
 static int generateLongs(sipSpec *, classDef *, FILE *);
@@ -195,8 +200,7 @@ static void generateClassFromVoid(classDef *cd, const char *cname,
         const char *vname, FILE *fp);
 static void generateMappedTypeFromVoid(mappedTypeDef *mtd, const char *cname,
         const char *vname, FILE *fp);
-static int generateSubClassConvertors(sipSpec *pt, FILE *fp);
-static void generateRegisterMetaType(classDef *cd, FILE *fp);
+static int generateSubClassConvertors(sipSpec *pt, moduleDef *mod, FILE *fp);
 static void generateNameCache(sipSpec *pt, FILE *fp);
 static const char *resultOwner(overDef *od);
 
@@ -290,21 +294,26 @@ static void generateBuildFile(sipSpec *pt, const char *buildFile,
 
         prcode(fp, " sip%scmodule%s", mname, srcSuffix);
     }
-    else if (consModule != NULL)
-        prcode(fp, " sip%scmodule%s", mname, srcSuffix);
-    else
+    else if (consModule == NULL)
         generateBuildFileSources(pt, pt->module, srcSuffix, fp);
+    else
+        prcode(fp, " sip%scmodule%s", mname, srcSuffix);
 
-    if ((isConsolidated(pt->module) && incComponentsCode) ||
-        (!isConsolidated(pt->module) && consModule == NULL))
+    prcode(fp, "\nheaders =");
+
+    if (isConsolidated(pt->module))
     {
-        ifaceFileDef *iff;
+        if (incComponentsCode)
+        {
+            moduleDef *mod;
 
-        prcode(fp, "\nheaders = sipAPI%s.h", mname);
-
-        for (iff = pt->ifacefiles; iff != NULL; iff = iff->next)
-            prcode(fp, " sip%s%F.h", iff->module->name, iff->fqcname);
+            for (mod = pt->modules; mod != NULL; mod = mod->next)
+                if (mod->cons == pt->module)
+                    prcode(fp, " sipAPI%s.h", mod->name);
+        }
     }
+    else if (consModule == NULL)
+        prcode(fp, " sipAPI%s.h", mname);
 
     prcode(fp, "\n");
 
@@ -399,17 +408,17 @@ void generateExpression(valueDef *vd, FILE *fp)
 /*
  * Generate the C++ internal module API header file.
  */
-static void generateInternalAPIHeader(sipSpec *pt, const char *codeDir,
-        stringList *xsl)
+static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
+        const char *codeDir, stringList *xsl)
 {
-    char *hfile, *mname = pt->module->name;
+    char *hfile, *mname = mod->name;
     int noIntro;
     FILE *fp;
     nameDef *nd;
-    moduleDef *mod;
+    moduleDef *imp;
     moduleListDef *mld;
 
-    hfile = concat(codeDir,"/sipAPI",mname,".h",NULL);
+    hfile = concat(codeDir, "/sipAPI", mname, ".h",NULL);
     fp = createFile(pt,hfile,"Internal module API header file.");
 
     /* Include files. */
@@ -421,8 +430,8 @@ static void generateInternalAPIHeader(sipSpec *pt, const char *codeDir,
 "\n"
 "\n"
 "#include <sip.h>\n"
-        ,mname
-        ,mname);
+        , mname
+        , mname);
 
     if (optRegisterTypes(pt))
         prcode(fp,
@@ -433,17 +442,16 @@ static void generateInternalAPIHeader(sipSpec *pt, const char *codeDir,
     /* Define the enabled features. */
     noIntro = TRUE;
 
-    for (mod = pt->modules; mod != NULL; mod = mod->next)
+    for (imp = pt->modules; imp != NULL; imp = imp->next)
     {
         qualDef *qd;
 
-        for (qd = mod->qualifiers; qd != NULL; qd = qd->next)
-            if (qd->qtype == feature_qualifier && !excludedFeature(xsl,qd))
+        for (qd = imp->qualifiers; qd != NULL; qd = qd->next)
+            if (qd->qtype == feature_qualifier && !excludedFeature(xsl, qd))
             {
                 if (noIntro)
                 {
                     prcode(fp,
-"\n"
 "\n"
 "/* These are the features that are enabled. */\n"
                         );
@@ -453,12 +461,17 @@ static void generateInternalAPIHeader(sipSpec *pt, const char *codeDir,
 
                 prcode(fp,
 "#define SIP_FEATURE_%s\n"
-                    ,qd->name);
+                    , qd->name);
             }
+
+        if (!noIntro)
+            prcode(fp,
+"\n"
+                );
     }
 
-    generateCppCodeBlock(pt->exphdrcode,fp);
-    generateCppCodeBlock(pt->module->hdrcode,fp);
+    generateCppCodeBlock(pt->exphdrcode, fp);
+    generateCppCodeBlock(mod->hdrcode, fp);
 
     /* Shortcuts that hide the messy detail of the APIs. */
     noIntro = TRUE;
@@ -472,12 +485,10 @@ static void generateInternalAPIHeader(sipSpec *pt, const char *codeDir,
         {
             prcode(fp,
 "\n"
-"\n"
 "/*\n"
 " * Convenient names to refer to the names of classes defined in this module.\n"
 " * These are part of the public API.\n"
 " */\n"
-"\n"
                 );
 
             noIntro = FALSE;
@@ -485,11 +496,10 @@ static void generateInternalAPIHeader(sipSpec *pt, const char *codeDir,
 
         prcode(fp,
 "#define sipName_%s  %N\n"
-            ,nd->text,nd);
+            , nd->text, nd);
     }
 
     prcode(fp,
-"\n"
 "\n"
 "/* Convenient names to call the SIP API. */\n"
 "#define sipConvertFromSliceObject(o,len,start,stop,step,slen)   PySlice_GetIndicesEx((PySliceObject *)(o),(len),(start),(stop),(step),(slen))\n"
@@ -664,7 +674,6 @@ static void generateInternalAPIHeader(sipSpec *pt, const char *codeDir,
         {
             prcode(fp,
 "\n"
-"\n"
 "/* The strings used by this module. */\n"
                 );
 
@@ -673,25 +682,30 @@ static void generateInternalAPIHeader(sipSpec *pt, const char *codeDir,
 
         prcode(fp,
 "extern char %N[];\n"
-            ,nd);
+            , nd);
     }
 
     /* The unscoped enum macros. */
-    generateEnumMacros(pt, NULL, fp);
+    generateEnumMacros(pt, mod, NULL, fp);
+
+    generateModuleAPI(pt, mod, fp);
 
     prcode(fp,
-"\n"
 "\n"
 "/* The SIP API, this module's API and the APIs of any imported modules. */\n"
 "extern const sipAPIDef *sipAPI_%s;\n"
 "extern sipExportedModuleDef sipModuleAPI_%s;\n"
-        ,mname
-        ,mname,mname);
+        , mname
+        , mname, mname);
 
-    for (mld = pt->module->allimports; mld != NULL; mld = mld->next)
+    for (mld = mod->allimports; mld != NULL; mld = mld->next)
+    {
+        generateImportedModuleAPI(pt, mod, mld->module, fp);
+
         prcode(fp,
 "extern const sipExportedModuleDef *sipModuleAPI_%s_%s;\n"
-            ,mname,mld->module->name);
+            , mname, mld->module->name);
+    }
 
     if (optQ_OBJECT4(pt))
         prcode(fp,
@@ -706,10 +720,9 @@ static void generateInternalAPIHeader(sipSpec *pt, const char *codeDir,
 
     /*
      * Note that we don't forward declare the virtual handlers.  This is
-     * because we would need to #include everything needed for their
-     * argument types.
+     * because we would need to #include everything needed for their argument
+     * types.
      */
-
     prcode(fp,
 "\n"
 "#endif\n"
@@ -749,7 +762,6 @@ static void generateConsolidatedCpp(sipSpec *pt, const char *codeDir,
     fp = createCompilationUnit(pt, cppfile, "Consolidated module code.");
 
     prcode(fp,
-"\n"
 "\n"
         );
 
@@ -877,7 +889,6 @@ static void generateComponentCppStub(sipSpec *pt, const char *codeDir,
 
     prcode(fp,
 "\n"
-"\n"
 "#include <sip.h>\n"
         );
 
@@ -920,7 +931,6 @@ static void generateNameCache(sipSpec *pt, FILE *fp)
         {
             prcode(fp,
 "\n"
-"\n"
 "/* Define the strings used by this module. */\n"
                 );
 
@@ -940,7 +950,7 @@ static void generateNameCache(sipSpec *pt, FILE *fp)
 static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         const char *srcSuffix, int parts, stringList *xsl)
 {
-    const char *cons_mname, *mname;
+    const char *mname;
     char *cppfile;
     int noIntro, nrSccs = 0, files_in_part, max_per_part, this_part;
     int is_inst_class, is_inst_voidp, is_inst_char, is_inst_string;
@@ -955,7 +965,6 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
     virtHandlerDef *vhd;
     exceptionDef *xd;
 
-    cons_mname = pt->module->name;
     mname = mod->name;
 
     /* Calculate the number of files in each part. */
@@ -981,18 +990,13 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
     prcode(fp,
 "\n"
 "#include \"sipAPI%s.h\"\n"
-"\n"
-        , cons_mname);
+        , mname);
 
-    /* Include the interface files for things defined in this module. */
-    for (iff = pt->ifacefiles; iff != NULL; iff = iff->next)
-        if (iff->module == mod && iff->type != exception_iface)
-            prcode(fp,
-"#include \"sip%s%F.h\"\n"
-                , iff->module->name, iff->fqcname);
-
-    /* Include the interface files for things defined in other modules. */
-    generateUsedIncludes(mod->used, FALSE, fp);
+    /*
+     * Include the library headers for types used by virtual handlers, module
+     * level functions, module level variables and Qt meta types.
+     */
+    generateUsedIncludes(mod->used, fp);
 
     /*
      * If there should be a Qt support API then generate stubs values for the
@@ -1134,9 +1138,9 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
     generateAccessFunctions(pt,NULL,fp);
 
     /* Generate the module data structures. */
-    if (pt->module->nrclasses > 0)
+    if (mod->nrclasses > 0)
     {
-        nrSccs = generateSubClassConvertors(pt, fp);
+        nrSccs = generateSubClassConvertors(pt, mod, fp);
 
         prcode(fp,
 "\n"
@@ -1826,15 +1830,13 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
             , xd->pyname, xd->exceptionnr);
     }
 
-    /* Generate any Qt metatype registration calls. */
+    /* Generate any Qt meta type registration calls. */
     if (optRegisterTypes(pt))
         for (cd = pt->classes; cd != NULL; cd = cd->next)
-        {
-            if (cd->iff->module != pt->module)
-                continue;
-
-            generateRegisterMetaType(cd, fp);
-        }
+            if (registerQtMetaType(cd))
+                prcode(fp,
+"    qRegisterMetaType<%S>(\"%S\");\n"
+                    , classFQCName(cd), classFQCName(cd));
 
     /* Generate any post-initialisation code. */
     generateCppCodeBlock(pt->module->postinitcode, fp);
@@ -1855,10 +1857,9 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "}\n"
         );
 
-    /* Generate the interface source and header files. */
+    /* Generate the interface source files. */
     for (iff = pt->ifacefiles; iff != NULL; iff = iff->next)
-    {
-        if (!isConsolidated(mod) && iff->module == mod && iff->type != exception_iface)
+        if (iff->module == mod && iff->type != exception_iface)
         {
             if (parts && files_in_part++ == max_per_part)
             {
@@ -1870,15 +1871,17 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
                 files_in_part = 1;
                 ++this_part;
 
-                cppfile = makePartName(codeDir,mname,this_part,srcSuffix);
+                cppfile = makePartName(codeDir, mname, this_part, srcSuffix);
                 fp = createCompilationUnit(pt, cppfile, "Module code.");
+
+                prcode(fp,
+"\n"
+"#include \"sipAPI%s.h\"\n"
+                    , mname);
             }
 
             generateIfaceCpp(pt, iff, codeDir, srcSuffix, (parts ? fp : NULL));
         }
-
-        generateIfaceHeader(pt,iff,codeDir);
-    }
 
     closeFile(fp);
     free(cppfile);
@@ -1887,9 +1890,9 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
     if (parts)
         parts = this_part + 1;
 
-    pt->module->parts = parts;
+    mod->parts = parts;
 
-    generateInternalAPIHeader(pt, codeDir, xsl);
+    generateInternalAPIHeader(pt, mod, codeDir, xsl);
 }
 
 
@@ -1968,14 +1971,14 @@ static void generateModInitStart(sipSpec *pt, FILE *fp)
 /*
  * Generate all the sub-class convertors for a module.
  */
-static int generateSubClassConvertors(sipSpec *pt, FILE *fp)
+static int generateSubClassConvertors(sipSpec *pt, moduleDef *mod, FILE *fp)
 {
     int nrSccs = 0;
     classDef *cd;
 
     for (cd = pt->classes; cd != NULL; cd = cd->next)
     {
-        if (cd->iff->module != pt->module)
+        if (cd->iff->module != mod)
             continue;
 
         if (cd->convtosubcode == NULL)
@@ -2997,31 +3000,25 @@ static void generateIfaceCpp(sipSpec *pt, ifaceFileDef *iff, char *codeDir,
     {
         cppfile = createIfaceFileName(codeDir,iff,srcSuffix);
         fp = createCompilationUnit(pt, cppfile, "Interface wrapper code.");
+
+        prcode(fp,
+"\n"
+"#include \"sipAPI%s.h\"\n"
+            , cmname);
     }
     else
         fp = master;
 
     prcode(fp,
 "\n"
-"#include \"sipAPI%s.h\"\n"
-"#include \"sip%s%F.h\"\n"
-        ,cmname
-        ,cmname,iff->fqcname);
+            );
 
-    generateUsedIncludes(iff->used, FALSE, fp);
+    generateCppCodeBlock(iff->hdrcode, fp);
+    generateUsedIncludes(iff->used, fp);
 
     for (cd = pt->classes; cd != NULL; cd = cd->next)
-        if (cd->iff == iff)
-        {
-            if (isProtectedClass(cd))
-                prcode(fp,
-"\n"
-"#include \"sip%s%F.h\"\n"
-                    ,cmname,cd->ecd->iff->fqcname);
-
-            if (!isExternal(cd))
-                generateClassCpp(cd, pt, iff->module, fp);
-        }
+        if (cd->iff == iff && !isExternal(cd))
+            generateClassCpp(cd, pt, iff->module, fp);
 
     for (mtd = pt->mappedtypes; mtd != NULL; mtd = mtd->next)
         if (mtd->iff == iff)
@@ -6594,138 +6591,85 @@ static void generateTupleBuilder(signatureDef *sd,FILE *fp)
 
 
 /*
- * Generate the class interface #include directives required by either a class
+ * Generate the library header #include directives required by either a class
  * or a module.
  */
-static void generateUsedIncludes(ifaceFileList *iffl, int header, FILE *fp)
+static void generateUsedIncludes(ifaceFileList *iffl, FILE *fp)
 {
-    int newl = TRUE;
+    prcode(fp,
+"\n"
+        );
 
     while (iffl != NULL)
     {
-        if (header == iffl->header)
-        {
-            if (newl)
-            {
-                prcode(fp,
-"\n"
-                    );
-
-                newl = FALSE;
-            }
-
-            prcode(fp,
-"#include \"sip%s%F.h\"\n"
-                , iffl->iff->module->name, iffl->iff->fqcname);
-        }
-
+        generateCppCodeBlock(iffl->iff->hdrcode, fp);
         iffl = iffl->next;
     }
-
-    if (!newl)
-        prcode(fp,
-"\n"
-            );
 }
 
 
 /*
- * Generate the header file for the C++ interface.
+ * Generate the API details for a module.
  */
-static void generateIfaceHeader(sipSpec *pt,ifaceFileDef *iff,char *codeDir)
+static void generateModuleAPI(sipSpec *pt, moduleDef *mod, FILE *fp)
 {
-    char *wfile;
-    char *cmname = iff->module->name;
     classDef *cd;
     mappedTypeDef *mtd;
     exceptionDef *xd;
-    int genused;
-    FILE *fp;
-
-    /* Create the header file. */
-
-    wfile = createIfaceFileName(codeDir,iff,".h");
-    fp = createFile(pt,wfile,"Interface header file.");
-
-    prcode(fp,
-"\n"
-"#ifndef _%s%F_h\n"
-"#define _%s%F_h\n"
-"\n"
-        ,cmname,iff->fqcname,cmname,iff->fqcname);
-
-    genused = TRUE;
 
     for (cd = pt->classes; cd != NULL; cd = cd->next)
-        if (cd->iff == iff)
-        {
-            if (iff->module == pt->module)
-                generateClassHeader(cd,genused,pt,fp);
-            else if (!isExternal(cd))
-                generateImportedClassHeader(cd,pt,fp);
-
-            genused = FALSE;
-        }
-
-    genused = TRUE;
+        if (cd->iff->module == mod)
+            generateClassAPI(cd, pt, fp);
 
     for (mtd = pt->mappedtypes; mtd != NULL; mtd = mtd->next)
-        if (mtd->iff == iff)
-        {
-            if (iff->module == pt->module)
-                generateMappedTypeHeader(mtd,genused,fp);
-            else
-                generateImportedMappedTypeHeader(mtd, genused, pt, fp);
-
-            genused = FALSE;
-        }
+        if (mtd->iff->module == mod)
+            generateMappedTypeAPI(mtd, fp);
 
     for (xd = pt->exceptions; xd != NULL; xd = xd->next)
-        if (xd->iff == iff)
-        {
-            generateCppCodeBlock(xd->hdrcode,fp);
-
-            if (xd->exceptionnr >= 0)
-            {
-                prcode(fp,
+        if (xd->iff->module == mod && xd->exceptionnr >= 0)
+            prcode(fp,
 "\n"
-"#define sipException_%C sipModuleAPI_%s"
-                    ,iff->fqcname,pt->module->name);
-
-                if (iff->module == pt->module)
-                    prcode(fp,".");
-                else
-                    prcode(fp,"_%s->",iff->module->name);
-
-                prcode(fp,"em_exceptions[%d]\n"
-                    ,xd->exceptionnr);
-            }
-        }
-
-    prcode(fp,
-"\n"
-"#endif\n"
-        );
-
-    closeFile(fp);
-    free(wfile);
+"#define sipException_%C sipModuleAPI_%s.em_exceptions[%d]\n"
+                , xd->iff->fqcname, mod->name, xd->exceptionnr);
 }
 
 
 /*
- * Generate the C++ header code for an imported mapped type.
+ * Generate the API details for an imported module.
  */
-static void generateImportedMappedTypeHeader(mappedTypeDef *mtd, int genused,
-        sipSpec *pt, FILE *fp)
+static void generateImportedModuleAPI(sipSpec *pt, moduleDef *mod,
+        moduleDef *immod, FILE *fp)
 {
-    char *mname = pt->module->name;
+    classDef *cd;
+    mappedTypeDef *mtd;
+    exceptionDef *xd;
+
+    for (cd = pt->classes; cd != NULL; cd = cd->next)
+        if (cd->iff->module == immod && !isExternal(cd))
+            generateImportedClassAPI(cd, pt, mod, fp);
+
+    for (mtd = pt->mappedtypes; mtd != NULL; mtd = mtd->next)
+        if (mtd->iff->module == immod)
+            generateImportedMappedTypeAPI(mtd, pt, mod, fp);
+
+    for (xd = pt->exceptions; xd != NULL; xd = xd->next)
+        if (xd->iff->module == immod && xd->exceptionnr >= 0)
+                prcode(fp,
+"\n"
+"#define sipException_%C sipModuleAPI_%s_%s->em_exceptions[%d]\n"
+                    , xd->iff->fqcname, mod->name, xd->iff->module->name, xd->exceptionnr);
+}
+
+
+/*
+ * Generate the API details for an imported mapped type.
+ */
+static void generateImportedMappedTypeAPI(mappedTypeDef *mtd, sipSpec *pt,
+        moduleDef *mod, FILE *fp)
+{
+    char *mname = mod->name;
     char *imname = mtd->iff->module->name;
     argDef type;
-
-    generateCppCodeBlock(mtd->hdrcode,fp);
-
-    if (genused)
-        generateUsedIncludes(mtd->iff->used, TRUE, fp);
 
     type.atype = mapped_type;
     type.u.mtd = mtd;
@@ -6739,27 +6683,17 @@ static void generateImportedMappedTypeHeader(mappedTypeDef *mtd, int genused,
 "#define sipMappedType_%T        sipModuleAPI_%s_%s->em_mappedtypes[%d]\n"
 "#define sipForceConvertTo_%T    sipModuleAPI_%s_%s->em_mappedtypes[%d]->mt_fcto\n"
 "#define sipConvertFrom_%T       sipModuleAPI_%s_%s->em_mappedtypes[%d]->mt_cfrom\n"
-        ,&type,mname,imname,mtd->mappednr
-        ,&type,mname,imname,mtd->mappednr
-        ,&type,mname,imname,mtd->mappednr);
+        , &type, mname, imname, mtd->mappednr
+        , &type, mname, imname, mtd->mappednr
+        , &type, mname, imname, mtd->mappednr);
 }
 
 
 /*
- * Generate the C++ header code for a generated mapped type.
+ * Generate the API details for a mapped type.
  */
-static void generateMappedTypeHeader(mappedTypeDef *mtd,int genused,FILE *fp)
+static void generateMappedTypeAPI(mappedTypeDef *mtd, FILE *fp)
 {
-    prcode(fp,
-"\n"
-"\n"
-        );
-
-    generateCppCodeBlock(mtd->hdrcode,fp);
-
-    if (genused)
-        generateUsedIncludes(mtd->iff->used, TRUE, fp);
-
     prcode(fp,
 "\n"
 "#define sipMappedType_%T        &sipMappedTypeDef_%T\n"
@@ -6767,51 +6701,50 @@ static void generateMappedTypeHeader(mappedTypeDef *mtd,int genused,FILE *fp)
 "#define sipConvertFrom_%T       sipMappedTypeDef_%T.mt_cfrom\n"
 "\n"
 "extern sipMappedType sipMappedTypeDef_%T;\n"
-        ,&mtd->type,&mtd->type
-        ,&mtd->type,&mtd->type
-        ,&mtd->type,&mtd->type
-        ,&mtd->type);
+        , &mtd->type, &mtd->type
+        , &mtd->type, &mtd->type
+        , &mtd->type, &mtd->type
+        , &mtd->type);
 }
 
 
 /*
- * Generate the C++ header code for an imported class.
+ * Generate the API details for an imported class.
  */
-static void generateImportedClassHeader(classDef *cd,sipSpec *pt,FILE *fp)
+static void generateImportedClassAPI(classDef *cd, sipSpec *pt, moduleDef *mod,
+        FILE *fp)
 {
-    char *mname = pt->module->name;
+    char *mname = mod->name;
     char *imname = cd->iff->module->name;
-    classDef *hcd;
 
-    for (hcd = cd; hcd != NULL; hcd = hcd->ecd)
-        generateCppCodeBlock(hcd->hdrcode,fp);
-
-    prcode(fp,
+    if (cd->iff->type == namespace_iface)
+        prcode(fp,
+"\n"
+"#if !defined(sipClass_%C)\n"
+"#define sipClass_%C             sipModuleAPI_%s_%s->em_types[%d]\n"
+"#endif\n"
+            , classFQCName(cd)
+            , classFQCName(cd), mname, imname, cd->classnr);
+    else
+        prcode(fp,
 "\n"
 "#define sipClass_%C             sipModuleAPI_%s_%s->em_types[%d]\n"
 "#define sipCast_%C              sipModuleAPI_%s_%s->em_types[%d]->type->td_cast\n"
 "#define sipForceConvertTo_%C    sipModuleAPI_%s_%s->em_types[%d]->type->td_fcto\n"
-        ,classFQCName(cd),mname,imname,cd->classnr
-        ,classFQCName(cd),mname,imname,cd->classnr
-        ,classFQCName(cd),mname,imname,cd->classnr);
+            , classFQCName(cd), mname, imname, cd->classnr
+            , classFQCName(cd), mname, imname, cd->classnr
+            , classFQCName(cd), mname, imname, cd->classnr);
 
-    generateEnumMacros(pt, cd, fp);
+    generateEnumMacros(pt, mod, cd, fp);
 }
 
 
 /*
- * Generate the C++ header code for a generated class.
+ * Generate the C++ API for a class.
  */
-static void generateClassHeader(classDef *cd,int genused,sipSpec *pt,FILE *fp)
+static void generateClassAPI(classDef *cd, sipSpec *pt, FILE *fp)
 {
-    char *mname = pt->module->name;
-    classDef *hcd;
-
-    for (hcd = cd; hcd != NULL; hcd = hcd->ecd)
-        generateCppCodeBlock(hcd->hdrcode,fp);
-
-    if (genused)
-        generateUsedIncludes(cd->iff->used, TRUE, fp);
+    char *mname = cd->iff->module->name;
 
     prcode(fp,
 "\n"
@@ -6820,7 +6753,7 @@ static void generateClassHeader(classDef *cd,int genused,sipSpec *pt,FILE *fp)
     if (cd->real == NULL)
         prcode(fp,
 "#define sipClass_%C             sipModuleAPI_%s.em_types[%d]\n"
-            , classFQCName(cd),mname,cd->classnr);
+            , classFQCName(cd), mname, cd->classnr);
 
     if (cd->iff->type != namespace_iface && !isExternal(cd))
         prcode(fp,
@@ -6829,7 +6762,7 @@ static void generateClassHeader(classDef *cd,int genused,sipSpec *pt,FILE *fp)
             , classFQCName(cd), mname, classFQCName(cd)
             , classFQCName(cd), mname, classFQCName(cd));
 
-    generateEnumMacros(pt, cd, fp);
+    generateEnumMacros(pt, cd->iff->module, cd, fp);
 
     if (!isExternal(cd))
         prcode(fp,
@@ -6842,7 +6775,8 @@ static void generateClassHeader(classDef *cd,int genused,sipSpec *pt,FILE *fp)
 /*
  * Generate the sipEnum_* macros.
  */
-static void generateEnumMacros(sipSpec *pt, classDef *cd, FILE *fp)
+static void generateEnumMacros(sipSpec *pt, moduleDef *mod, classDef *cd,
+        FILE *fp)
 {
     enumDef *ed;
     int noIntro = TRUE;
@@ -6862,9 +6796,9 @@ static void generateEnumMacros(sipSpec *pt, classDef *cd, FILE *fp)
         }
 
         prcode(fp,
-"#define sipEnum_%C              sipModuleAPI_%s", ed->fqcname, pt->module->name);
+"#define sipEnum_%C              sipModuleAPI_%s", ed->fqcname, mod->name);
 
-        if (pt->module == ed->module)
+        if (mod == ed->module)
             prcode(fp, ".");
         else
             prcode(fp, "_%s->", ed->module->name);
@@ -8175,63 +8109,6 @@ static const char *slotName(slotType st)
     }
 
     return sn;
-}
-
-
-/*
- * Generate the code to register a class as a Qt metatype.
- */
-static void generateRegisterMetaType(classDef *cd, FILE *fp)
-{
-    int pub_def_ctor, pub_copy_ctor;
-    ctorDef *ct;
-
-    /*
-     * We register types with Qt if the class is not abstract, has a public
-     * default ctor, a public copy ctor, a public dtor and isn't one of the
-     * internally supported types.
-     */
-    if (isAbstractClass(cd))
-        return;
-
-    if (!isPublicDtor(cd))
-        return;
-
-    if (classFQCName(cd)->next == NULL)
-    {
-        if (strcmp(classBaseName(cd), "QChar") == 0)
-            return;
-
-        if (strcmp(classBaseName(cd), "QString") == 0)
-            return;
-
-        if (strcmp(classBaseName(cd), "QByteArray") == 0)
-            return;
-    }
-
-    pub_def_ctor = pub_copy_ctor = FALSE;
-
-    for (ct = cd->ctors; ct != NULL; ct = ct->next)
-    {
-        if (ct->cppsig == NULL || !isPublicCtor(ct))
-            continue;
-
-        if (ct->cppsig->nrArgs == 0)
-            pub_def_ctor = TRUE;
-        else if (ct->cppsig->nrArgs == 1)
-        {
-            argDef *ad = &ct->cppsig->args[0];
-
-            if (ad->atype == class_type && ad->u.cd == cd && isReference(ad) &&
-                isConstArg(ad) && ad->nrderefs == 0 && ad->defval == NULL)
-                pub_copy_ctor = TRUE;
-        }
-    }
-
-    if (pub_def_ctor && pub_copy_ctor)
-        prcode(fp,
-"    qRegisterMetaType<%S>(\"%S\");\n"
-            , classFQCName(cd), classFQCName(cd));
 }
 
 
@@ -10391,7 +10268,7 @@ static void deleteTemps(signatureDef *sd, FILE *fp)
 /*
  * Generate a C++ code block.
  */
-static void generateCppCodeBlock(codeBlock *code,FILE *fp)
+static void generateCppCodeBlock(codeBlock *code, FILE *fp)
 {
     int reset_line = FALSE;
     codeBlock *cb;
@@ -10401,8 +10278,8 @@ static void generateCppCodeBlock(codeBlock *code,FILE *fp)
         char *cp;
 
         /*
-         * Fragmented fragments (possibly created when applying
-         * template types) don't have a filename.
+         * Fragmented fragments (possibly created when applying template types)
+         * don't have a filename.
          */
         if ((cp = cb->filename) != NULL)
         {
@@ -10433,15 +10310,14 @@ static void generateCppCodeBlock(codeBlock *code,FILE *fp)
         char *bn;
 
         /* Just use the base name. */
-
-        if ((bn = strrchr(currentFileName,'/')) != NULL)
+        if ((bn = strrchr(currentFileName, '/')) != NULL)
             ++bn;
         else
             bn = currentFileName;
 
         prcode(fp,
 "#line %d \"%s\"\n"
-            ,currentLineNr + 1,bn);
+            , currentLineNr + 1, bn);
     }
 }
 
@@ -10468,8 +10344,7 @@ static FILE *createFile(sipSpec *pt,char *fname,char *description)
     FILE *fp;
 
     /* Create the file. */
-
-    if ((fp = fopen(fname,"w")) == NULL)
+    if ((fp = fopen(fname, "w")) == NULL)
         fatal("Unable to create file \"%s\"\n",fname);
 
     /* The "stack" doesn't have to be very deep. */
