@@ -1628,26 +1628,37 @@ static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
     va_start(va,fmt);
 
     /* Basic validation of the format string. */
-
     if (*fmt == '(')
     {
-        char *ep;
+        char ch;
+        const char *cp = ++fmt;
 
-        if ((ep = strchr(fmt,')')) == NULL || ep[1] != '\0')
+        tupsz = 0;
+
+        while ((ch = *cp++) != ')')
         {
-            PyErr_Format(PyExc_SystemError, "sipParseResult(): invalid format string \"%s\"", fmt);
-            rc = -1;
+            if (ch == '\0')
+            {
+                PyErr_Format(PyExc_SystemError, "sipParseResult(): invalid format string \"%s\"", fmt - 1);
+                rc = -1;
+
+                break;
+            }
+
+            /*
+             * Some format characters have a sub-format so skip the character
+             * and count the sub-format character next time round.
+             */
+            if (strchr("CD", ch) == NULL)
+                ++tupsz;
         }
-        else
-        {
-            tupsz = ep - ++fmt;
 
-            if (tupsz >= 0 && (!PyTuple_Check(res) || PyTuple_GET_SIZE(res) != tupsz))
+        if (rc == 0)
+            if (!PyTuple_Check(res) || PyTuple_GET_SIZE(res) != tupsz)
             {
                 sip_api_bad_catcher_result(method);
                 rc = -1;
             }
-        }
     }
     else
         tupsz = -1;
