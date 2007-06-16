@@ -344,7 +344,7 @@ static void generateBuildFileSources(sipSpec *pt, moduleDef *mod,
 
         for (iff = pt->ifacefiles; iff != NULL; iff = iff->next)
         {
-            if (iff->module != pt->module)
+            if (iff->module != mod)
                 continue;
 
             if (iff->type == exception_iface)

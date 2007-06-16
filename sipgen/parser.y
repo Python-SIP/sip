@@ -3380,8 +3380,9 @@ static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod, classDef *scop
     for (iffl = tcd->cd->iff->used; iffl != NULL; iffl = iffl->next)
         addToUsedList(used, iffl->iff);
 
+    /* Include any scope header code. */
     if (scope != NULL)
-        addToUsedList(&cd->iff->used, scope->iff);
+        appendCodeBlock(&cd->iff->hdrcode, scope->iff->hdrcode);
 
     if (inMainModule())
     {
