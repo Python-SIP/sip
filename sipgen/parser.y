@@ -2426,7 +2426,6 @@ void parse(sipSpec *spec, FILE *fp, char *filename, stringList *tsl,
     spec -> ifacefiles = NULL;
     spec -> classes = NULL;
     spec -> classtemplates = NULL;
-    spec -> proxies = NULL;
     spec -> exceptions = NULL;
     spec -> mappedtypes = NULL;
     spec -> mappedtypetemplates = NULL;
@@ -2572,6 +2571,7 @@ static moduleDef *allocModule()
     newmod->nrvirthandlers = -1;
     newmod->virthandlers = NULL;
     newmod->license = NULL;
+    newmod->proxies = NULL;
     newmod->cons = NULL;
     newmod->used = NULL;
     newmod->allimports = NULL;

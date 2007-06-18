@@ -66,7 +66,7 @@ static void filterMainModuleVirtualHandlers(moduleDef *mod);
 static void filterModuleVirtualHandlers(moduleDef *mod);
 static ifaceFileDef *getIfaceFile(argDef *ad);
 static mappedTypeDef *instantiateMappedTypeTemplate(sipSpec *pt, moduleDef *mod, mappedTypeTmplDef *mtt, argDef *type);
-static classDef *getProxy(sipSpec *pt, classDef *cd);
+static classDef *getProxy(moduleDef *mod, classDef *cd);
 static int generatingCodeForModule(sipSpec *pt, moduleDef *mod);
 static void registerMetaType(classDef *cd);
 
@@ -83,9 +83,6 @@ void transform(sipSpec *pt)
     overDef *od;
     mappedTypeDef *mtd;
     virtHandlerDef *vhd;
-
-    if (pt -> module -> name == NULL)
-        fatal("No %%Module has been specified for the module\n");
 
     /*
      * The class list has the main module's classes at the front and the
@@ -116,9 +113,17 @@ void transform(sipSpec *pt)
 
     pt -> classes = rev;
 
-    /* Build the list of all imports for each module. */
+    /*
+     * Build the list of all imports for each module and check each has been
+     * named.
+     */
     for (mod = pt->modules; mod != NULL; mod = mod->next)
+    {
+        if (mod->name == NULL)
+            fatal("A module is missing a %%Module or %%CModule directive\n");
+
         setAllImports(mod);
+    }
 
     /* Check each class has been defined. */
     for (cd = pt -> classes; cd != NULL; cd = cd -> next)
@@ -158,14 +163,9 @@ void transform(sipSpec *pt)
     transformTypedefs(pt);
     transformVariableList(pt);
 
-    if (isConsolidated(pt->module))
-    {
-        for (mod = pt->modules; mod != NULL; mod = mod->next)
-            if (mod->cons == pt->module)
-                transformScopeOverloads(pt, NULL, mod->overs);
-    }
-    else
-        transformScopeOverloads(pt, NULL, pt->module->overs);
+    for (mod = pt->modules; mod != NULL; mod = mod->next)
+        if (generatingCodeForModule(pt, mod))
+            transformScopeOverloads(pt, NULL, mod->overs);
 
     /* Transform class ctors, functions and casts. */
     for (cd = pt->classes; cd != NULL; cd = cd->next)
@@ -192,8 +192,8 @@ void transform(sipSpec *pt)
      * Go through each class and add it to it's defining module's tree of
      * classes.  The tree reflects the namespace hierarchy.
      */
-    for (cd = pt -> classes; cd != NULL; cd = cd -> next)
-        addNodeToParent(&cd -> iff -> module -> root,cd);
+    for (cd = pt->classes; cd != NULL; cd = cd->next)
+        addNodeToParent(&cd->iff->module->root, cd);
 
     for (cd = pt -> classes; cd != NULL; cd = cd -> next)
         positionClass(cd);
@@ -220,16 +220,9 @@ void transform(sipSpec *pt)
      * module) or create proxies for them (if cross-module).
      */
     if (!pt -> genc)
-    {
-        if (isConsolidated(pt->module))
-        {
-            for (mod = pt->modules; mod != NULL; mod = mod->next)
-                if (mod->cons == pt->module)
-                    moveMainModuleCastsSlots(pt, mod);
-        }
-        else
-            moveMainModuleCastsSlots(pt, pt->module);
-    }
+        for (mod = pt->modules; mod != NULL; mod = mod->next)
+            if (generatingCodeForModule(pt, mod))
+                moveMainModuleCastsSlots(pt, mod);
 
     /* Generate the different class views. */
     for (cd = pt->classes; cd != NULL; cd = cd->next)
@@ -251,6 +244,7 @@ void transform(sipSpec *pt)
      * main module (if not).
      */
     for (mod = pt->modules; mod != NULL; mod = mod->next)
+    {
         if (generatingCodeForModule(pt, mod))
         {
             filterMainModuleVirtualHandlers(mod);
@@ -259,9 +253,10 @@ void transform(sipSpec *pt)
                 ifaceFilesAreUsedByOverload(&mod->used, od);
         }
 
-    /* Update proxies with some information from the real classes. */
-    for (cd = pt->proxies; cd != NULL; cd = cd->next)
-        cd->classnr = cd->real->classnr;
+        /* Update proxies with some information from the real classes. */
+        for (cd = mod->proxies; cd != NULL; cd = cd->next)
+            cd->classnr = cd->real->classnr;
+    }
 
     /* Mark classes that should be registered as Qt meta types. */
     if (optRegisterTypes(pt))
@@ -420,7 +415,7 @@ static void moveClassCasts(sipSpec *pt, moduleDef *mod, classDef *cd)
          * a proxy.
          */
         if (dcd->iff->module != mod)
-            dcd = getProxy(pt, dcd);
+            dcd = getProxy(mod, dcd);
 
         /* Create the new ctor. */
         ct = sipMalloc(sizeof (ctorDef));
@@ -561,7 +556,7 @@ static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd)
         {
             if (isRichCompareSlot(gmd))
             {
-                classDef *pcd = getProxy(pt, arg0->u.cd);
+                classDef *pcd = getProxy(mod, arg0->u.cd);
                 memberDef *pmd;
                 overDef *pod;
 
@@ -657,11 +652,11 @@ static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd)
  * Create a proxy for a class if it doesn't already exist.  Proxies are used as
  * containers for cross-module extenders.
  */
-static classDef *getProxy(sipSpec *pt, classDef *cd)
+static classDef *getProxy(moduleDef *mod, classDef *cd)
 {
     classDef *pcd;
 
-    for (pcd = pt->proxies; pcd != NULL; pcd = pcd->next)
+    for (pcd = mod->proxies; pcd != NULL; pcd = pcd->next)
         if (pcd->iff == cd->iff)
             return pcd;
 
@@ -699,9 +694,9 @@ static classDef *getProxy(sipSpec *pt, classDef *cd)
     pcd->segcountcode = NULL;
     pcd->charbufcode = NULL;
     pcd->picklecode = NULL;
-    pcd->next = pt->proxies;
+    pcd->next = mod->proxies;
 
-    pt->proxies = pcd;
+    mod->proxies = pcd;
 
     return pcd;
 }
@@ -889,7 +884,7 @@ static void addAutoOverload(sipSpec *pt,classDef *autocd,overDef *autood)
 
                 resetIsAutoGen(od);
 
-                if (cd -> iff -> module == pt -> module)
+                if (generatingCodeForModule(pt, cd->iff->module))
                     setIsUsedName(md -> pyname);
 
                 break;

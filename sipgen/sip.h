@@ -553,6 +553,7 @@ typedef struct _moduleDef {
     int nrvirthandlers;                 /* The nr. of virtual handlers. */
     struct _virtHandlerDef *virthandlers;   /* The virtual handlers. */
     licenseDef *license;                /* The software license. */
+    struct _classDef *proxies;          /* The list of proxy classes. */
     struct _moduleDef *cons;            /* The consolidated module, if any. */
     struct _ifaceFileList *used;        /* Interface files used. */
     struct _moduleListDef *allimports;  /* The list of all imports. */
@@ -914,7 +915,6 @@ typedef struct {
     ifaceFileDef *ifacefiles;           /* The list of interface files. */
     classDef *classes;                  /* The list of classes. */
     classTmplDef *classtemplates;       /* The list of class templates. */
-    classDef *proxies;                  /* The list of proxy classes. */
     exceptionDef *exceptions;           /* The list of exceptions. */
     mappedTypeDef *mappedtypes;         /* The mapped types. */
     mappedTypeTmplDef *mappedtypetemplates; /* The list of mapped type templates. */
@@ -955,8 +955,8 @@ void parserEOF(char *,parserContext *);
 void transform(sipSpec *);
 void generateCode(sipSpec *, char *, char *, char *, const char *, int, int,
         int, int, stringList *, int, const char *);
-void generateAPI(sipSpec *pt, const char *apiFile);
-void generateXML(sipSpec *pt, const char *xmlFile);
+void generateAPI(sipSpec *pt, moduleDef *mod, const char *apiFile);
+void generateXML(sipSpec *pt, moduleDef *mod, const char *xmlFile);
 void generateExpression(valueDef *vd, FILE *fp);
 void warning(char *,...);
 void fatal(char *,...);

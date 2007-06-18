@@ -199,11 +199,11 @@ int main(int argc, char **argv)
 
     /* Generate the API file. */
     if (apiFile != NULL)
-        generateAPI(&spec, apiFile);
+        generateAPI(&spec, spec.module, apiFile);
 
     /* Generate the XML export. */
     if (xmlFile != NULL)
-        generateXML(&spec, xmlFile);
+        generateXML(&spec, spec.module,  xmlFile);
 
     /* All done. */
     return 0;

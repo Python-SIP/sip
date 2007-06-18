@@ -13,16 +13,18 @@
 #define XML_VERSION_NR  0       /* The schema version number. */
 
 
-static void apiEnums(sipSpec *pt, classDef *scope, FILE *fp);
-static void apiVars(sipSpec *pt, classDef *scope, FILE *fp);
-static int apiCtor(sipSpec *pt, classDef *scope, ctorDef *ct, int sec,
+static void apiEnums(sipSpec *pt, moduleDef *mod, classDef *scope, FILE *fp);
+static void apiVars(sipSpec *pt, moduleDef *mod, classDef *scope, FILE *fp);
+static int apiCtor(moduleDef *mod, classDef *scope, ctorDef *ct, int sec,
         FILE *fp);
-static int apiOverload(sipSpec *pt, classDef *scope, overDef *od, int sec,
+static int apiOverload(moduleDef *mod, classDef *scope, overDef *od, int sec,
         FILE *fp);
 static int apiArgument(argDef *ad, int out, int need_comma, int sec, FILE *fp);
-static void xmlClass(sipSpec *pt, classDef *cd, FILE *fp);
-static void xmlEnums(sipSpec *pt, classDef *scope, int indent, FILE *fp);
-static void xmlVars(sipSpec *pt, classDef *scope, int indent, FILE *fp);
+static void xmlClass(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp);
+static void xmlEnums(sipSpec *pt, moduleDef *mod, classDef *scope, int indent,
+        FILE *fp);
+static void xmlVars(sipSpec *pt, moduleDef *mod, classDef *scope, int indent,
+        FILE *fp);
 static void xmlFunction(classDef *scope, memberDef *md, overDef *oloads,
         int indent, FILE *fp);
 static int xmlCtor(classDef *scope, ctorDef *ct, int sec, int indent, FILE *fp);
@@ -41,7 +43,7 @@ static const char *pyType(argDef *ad, int sec, classDef **scope);
 /*
  * Generate the API file.
  */
-void generateAPI(sipSpec *pt, const char *apiFile)
+void generateAPI(sipSpec *pt, moduleDef *mod, const char *apiFile)
 {
     overDef *od;
     classDef *cd;
@@ -51,41 +53,41 @@ void generateAPI(sipSpec *pt, const char *apiFile)
     if ((fp = fopen(apiFile, "w")) == NULL)
         fatal("Unable to create file \"%s\"\n", apiFile);
 
-    apiEnums(pt, NULL, fp);
-    apiVars(pt, NULL, fp);
+    apiEnums(pt, mod, NULL, fp);
+    apiVars(pt, mod, NULL, fp);
 
-    for (od = pt->module->overs; od != NULL; od = od->next)
+    for (od = mod->overs; od != NULL; od = od->next)
     {
-        if (od->common->module != pt->module)
+        if (od->common->module != mod)
             continue;
 
         if (od->common->slot != no_slot)
             continue;
 
-        if (apiOverload(pt, NULL, od, FALSE, fp))
-            apiOverload(pt, NULL, od, TRUE, fp);
+        if (apiOverload(mod, NULL, od, FALSE, fp))
+            apiOverload(mod, NULL, od, TRUE, fp);
     }
 
     for (cd = pt->classes; cd != NULL; cd = cd->next)
     {
         ctorDef *ct;
 
-        if (cd->iff->module != pt->module)
+        if (cd->iff->module != mod)
             continue;
 
         if (isExternal(cd))
             continue;
 
-        apiEnums(pt, cd, fp);
-        apiVars(pt, cd, fp);
+        apiEnums(pt, mod, cd, fp);
+        apiVars(pt, mod, cd, fp);
 
         for (ct = cd->ctors; ct != NULL; ct = ct->next)
         {
             if (isPrivateCtor(ct))
                 continue;
 
-            if (apiCtor(pt, cd, ct, FALSE, fp))
-                apiCtor(pt, cd, ct, TRUE, fp);
+            if (apiCtor(mod, cd, ct, FALSE, fp))
+                apiCtor(mod, cd, ct, TRUE, fp);
         }
 
         for (od = cd->overs; od != NULL; od = od->next)
@@ -96,8 +98,8 @@ void generateAPI(sipSpec *pt, const char *apiFile)
             if (od->common->slot != no_slot)
                 continue;
 
-            if (apiOverload(pt, cd, od, FALSE, fp))
-                apiOverload(pt, cd, od, TRUE, fp);
+            if (apiOverload(mod, cd, od, FALSE, fp))
+                apiOverload(mod, cd, od, TRUE, fp);
         }
     }
 
@@ -108,13 +110,13 @@ void generateAPI(sipSpec *pt, const char *apiFile)
 /*
  * Generate an API ctor.
  */
-static int apiCtor(sipSpec *pt, classDef *scope, ctorDef *ct, int sec,
+static int apiCtor(moduleDef *mod, classDef *scope, ctorDef *ct, int sec,
         FILE *fp)
 {
     int need_sec = FALSE, need_comma, a;
 
     /* Do the callable type form. */
-    fprintf(fp, "%s.", pt->module->name);
+    fprintf(fp, "%s.", mod->name);
     prScopedPythonName(fp, scope->ecd, scope->pyname);
     fprintf(fp, "(");
 
@@ -133,7 +135,7 @@ static int apiCtor(sipSpec *pt, classDef *scope, ctorDef *ct, int sec,
     fprintf(fp, ")\n");
 
     /* Do the call __init__ form. */
-    fprintf(fp, "%s.", pt->module->name);
+    fprintf(fp, "%s.", mod->name);
     prScopedPythonName(fp, scope->ecd, scope->pyname);
     fprintf(fp, ".__init__(self");
 
@@ -149,7 +151,7 @@ static int apiCtor(sipSpec *pt, classDef *scope, ctorDef *ct, int sec,
 /*
  * Generate the APIs for all the enums in a scope.
  */
-static void apiEnums(sipSpec *pt, classDef *scope, FILE *fp)
+static void apiEnums(sipSpec *pt, moduleDef *mod, classDef *scope, FILE *fp)
 {
     enumDef *ed;
 
@@ -157,7 +159,7 @@ static void apiEnums(sipSpec *pt, classDef *scope, FILE *fp)
     {
         enumMemberDef *emd;
 
-        if (ed->module != pt->module)
+        if (ed->module != mod)
             continue;
 
         if (ed->ecd != scope)
@@ -165,14 +167,14 @@ static void apiEnums(sipSpec *pt, classDef *scope, FILE *fp)
 
         if (ed->pyname != NULL)
         {
-            fprintf(fp, "%s.", pt->module->name);
+            fprintf(fp, "%s.", mod->name);
             prScopedPythonName(fp, ed->ecd, ed->pyname->text);
             fprintf(fp, "\n");
         }
 
         for (emd = ed->members; emd != NULL; emd = emd->next)
         {
-            fprintf(fp, "%s.", pt->module->name);
+            fprintf(fp, "%s.", mod->name);
             prScopedPythonName(fp, ed->ecd, emd->pyname->text);
             fprintf(fp, "\n");
         }
@@ -183,19 +185,19 @@ static void apiEnums(sipSpec *pt, classDef *scope, FILE *fp)
 /*
  * Generate the APIs for all the variables in a scope.
  */
-static void apiVars(sipSpec *pt, classDef *scope, FILE *fp)
+static void apiVars(sipSpec *pt, moduleDef *mod, classDef *scope, FILE *fp)
 {
     varDef *vd;
 
     for (vd = pt->vars; vd != NULL; vd = vd->next)
     {
-        if (vd->module != pt->module)
+        if (vd->module != mod)
             continue;
 
         if (vd->ecd != scope)
             continue;
 
-        fprintf(fp, "%s.", pt->module->name);
+        fprintf(fp, "%s.", mod->name);
         prScopedPythonName(fp, vd->ecd, vd->pyname->text);
         fprintf(fp, "\n");
     }
@@ -205,12 +207,12 @@ static void apiVars(sipSpec *pt, classDef *scope, FILE *fp)
 /*
  * Generate a single API overload.
  */
-static int apiOverload(sipSpec *pt, classDef *scope, overDef *od, int sec,
+static int apiOverload(moduleDef *mod, classDef *scope, overDef *od, int sec,
         FILE *fp)
 {
     int need_sec = FALSE, need_comma = FALSE, is_res, nr_out, a;
 
-    fprintf(fp, "%s.", pt->module->name);
+    fprintf(fp, "%s.", mod->name);
     prScopedPythonName(fp, scope, od->common->pyname->text);
     fprintf(fp, "(");
 
@@ -318,7 +320,7 @@ static int apiArgument(argDef *ad, int out, int need_comma, int sec, FILE *fp)
 /*
  * Generate the XML export file.
  */
-void generateXML(sipSpec *pt, const char *xmlFile)
+void generateXML(sipSpec *pt, moduleDef *mod, const char *xmlFile)
 {
     FILE *fp;
     classDef *cd;
@@ -329,7 +331,7 @@ void generateXML(sipSpec *pt, const char *xmlFile)
 
     fprintf(fp, "<?xml version=\"1.0\"?>\n");
     fprintf(fp, "<Module version=\"%u\" name=\"%s\">\n",
-            XML_VERSION_NR, pt->module->name);
+            XML_VERSION_NR, mod->name);
 
     /*
      * Note that we don't yet handle mapped types, templates or exceptions.
@@ -337,23 +339,23 @@ void generateXML(sipSpec *pt, const char *xmlFile)
 
     for (cd = pt->classes; cd != NULL; cd = cd->next)
     {
-        if (cd->iff->module != pt->module)
+        if (cd->iff->module != mod)
             continue;
 
         if (isExternal(cd))
             continue;
 
-        xmlClass(pt, cd, fp);
+        xmlClass(pt, mod, cd, fp);
     }
 
-    for (cd = pt->proxies; cd != NULL; cd = cd->next)
-        xmlClass(pt, cd, fp);
+    for (cd = mod->proxies; cd != NULL; cd = cd->next)
+        xmlClass(pt, mod, cd, fp);
 
-    xmlEnums(pt, NULL, 1, fp);
-    xmlVars(pt, NULL, 1, fp);
+    xmlEnums(pt, mod, NULL, 1, fp);
+    xmlVars(pt, mod, NULL, 1, fp);
 
-    for (md = pt->module->othfuncs; md != NULL; md = md->next)
-        xmlFunction(NULL, md, pt->module->overs, 1, fp);
+    for (md = mod->othfuncs; md != NULL; md = md->next)
+        xmlFunction(NULL, md, mod->overs, 1, fp);
 
     fprintf(fp, "</Module>\n");
 
@@ -364,7 +366,7 @@ void generateXML(sipSpec *pt, const char *xmlFile)
 /*
  * Generate the XML for a class.
  */
-static void xmlClass(sipSpec *pt, classDef *cd, FILE *fp)
+static void xmlClass(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
 {
     int indent = 1;
     ctorDef *ct;
@@ -410,8 +412,8 @@ static void xmlClass(sipSpec *pt, classDef *cd, FILE *fp)
 
     fprintf(fp, ">\n");
 
-    xmlEnums(pt, cd, indent, fp);
-    xmlVars(pt, cd, indent, fp);
+    xmlEnums(pt, mod, cd, indent, fp);
+    xmlVars(pt, mod, cd, indent, fp);
 
     for (ct = cd->ctors; ct != NULL; ct = ct->next)
     {
@@ -433,13 +435,14 @@ static void xmlClass(sipSpec *pt, classDef *cd, FILE *fp)
 /*
  * Generate the XML for all the enums in a scope.
  */
-static void xmlEnums(sipSpec *pt, classDef *scope, int indent, FILE *fp)
+static void xmlEnums(sipSpec *pt, moduleDef *mod, classDef *scope, int indent,
+        FILE *fp)
 {
     enumDef *ed;
 
     for (ed = pt->enums; ed != NULL; ed = ed->next)
     {
-        if (ed->module != pt->module)
+        if (ed->module != mod)
             continue;
 
         if (ed->ecd != scope)
@@ -484,13 +487,14 @@ static void xmlEnums(sipSpec *pt, classDef *scope, int indent, FILE *fp)
 /*
  * Generate the XML for all the variables in a scope.
  */
-static void xmlVars(sipSpec *pt, classDef *scope, int indent, FILE *fp)
+static void xmlVars(sipSpec *pt, moduleDef *mod, classDef *scope, int indent,
+        FILE *fp)
 {
     varDef *vd;
 
     for (vd = pt->vars; vd != NULL; vd = vd->next)
     {
-        if (vd->module != pt->module)
+        if (vd->module != mod)
             continue;
 
         if (vd->ecd != scope)
