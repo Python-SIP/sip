@@ -8281,7 +8281,7 @@ static int sip_api_import_from_cons_module(const char *from, const char *to)
      * Add the component's module dictionary to that of the consolidated
      * module.
      */
-    if (PyDict_Merge(PyModule_GetDict(mod), PyModule_GetDict(comp_mod), 0) < 0)
+    if (PyDict_Merge(PyModule_GetDict(sipConsolidatedModule), PyModule_GetDict(comp_mod), 0) < 0)
         goto tidy_up;
 
     /*
