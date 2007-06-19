@@ -57,8 +57,8 @@ extern "C" {
  * History:
  *
  * 3.5  Added the td_pickle field to the sipTypeDef structure.
- *      Added sip_api_import_from_cons_module(),
- *      sip_api_register_component_init() and sip_api_transfer_break().
+ *      Added sip_api_import_from_cons_module(), sip_api_init_cons_module()
+ *      and sip_api_transfer_break().
  *
  * 3.4  Added qt_find_connection() to the Qt support API.
  *      Added sip_api_string_as_char(), sip_api_unicode_as_wchar(),
@@ -230,7 +230,19 @@ typedef int (*sipVirtHandlerFunc)(void *, PyObject *, ...);
 typedef int (*sipEmitFunc)(sipWrapper *, PyObject *);
 typedef void (*sipReleaseFunc)(void *, int);
 typedef PyObject *(*sipPickleFunc)(void *);
-typedef void (*sipComponentInit)(void);
+typedef PyObject *(*sipComponentInit)(void);
+
+
+/*
+ * The information describing a component module.
+ */
+typedef struct _sipComponentDef {
+    /* The component module name. */
+    const char *name;
+
+    /* The initialiser. */
+    sipComponentInit init;
+} sipComponentDef;
 
 
 /*
@@ -1214,9 +1226,8 @@ typedef struct _sipAPIDef {
     int (*api_unicode_as_wchar)(PyObject *obj);
     int *(*api_unicode_as_wstring)(PyObject *obj);
 #endif
-    void (*api_import_from_cons_module)(const char *from, const char *to);
-    void (*api_register_component_init)(const char *name,
-            sipComponentInit init);
+    int (*api_import_from_cons_module)(const char *from, const char *to);
+    int (*api_init_cons_module)(const char *name, sipComponentDef *ctab);
 
     /*
      * The following are part of the public API.
