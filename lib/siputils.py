@@ -296,6 +296,11 @@ class Makefile:
         to a Makefile.
         """
         # Extract the things we might need from the Windows Qt configuration.
+        # Note that we used to think that if Qt was built with exceptions, RTTI
+        # and STL support enabled then anything that linked against it also
+        # needed the same flags.  However, detecting this was broken for some
+        # time and nobody complained.  For the moment we'll leave the code in
+        # but it will never be used.
         if self._qt:
             wcfg = string.split(self.config.qt_winconfig)
             win_shared = ("shared" in wcfg)
