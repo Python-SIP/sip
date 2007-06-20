@@ -54,6 +54,7 @@ static void fatallex(char *);
 ^[ \t]*%Module              {return TK_MODULE;}
 ^[ \t]*%CModule             {return TK_CMODULE;}
 ^[ \t]*%ConsolidatedModule  {return TK_CONSMODULE;}
+^[ \t]*%CompositeModule     {return TK_COMPOMODULE;}
 ^[ \t]*%Timeline            {return TK_TIMELINE;}
 ^[ \t]*%Platforms           {return TK_PLATFORMS;}
 ^[ \t]*%Feature             {return TK_FEATURE;}

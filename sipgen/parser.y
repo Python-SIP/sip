@@ -15,7 +15,7 @@
 #define MAX_NESTED_IF       10
 #define MAX_NESTED_SCOPE    10
 
-#define inMainModule()      (currentSpec->module == currentModule || currentModule->cons != NULL)
+#define inMainModule()      (currentSpec->module == currentModule || currentModule->container != NULL)
 
 
 static sipSpec *currentSpec;            /* The current spec being parsed. */
@@ -157,6 +157,7 @@ static void setModuleName(moduleDef *mod, const char *fullname);
 %token          TK_MODULE
 %token          TK_CMODULE
 %token          TK_CONSMODULE
+%token          TK_COMPOMODULE
 %token          TK_CLASS
 %token          TK_STRUCT
 %token          TK_PUBLIC
@@ -307,6 +308,7 @@ statement:  {
 
 modstatement:   module
     |   consmodule
+    |   compmodule
     |   options
     |   noemitters
     |   copying
@@ -793,6 +795,19 @@ consmodule: TK_CONSMODULE modname {
         }
     ;
 
+compmodule: TK_COMPOMODULE modname {
+            /* Make sure this is the first mention of a module. */
+            if (currentSpec->module != currentModule)
+                yyerror("A %CompositeModule cannot be %Imported");
+
+            if (currentModule->fullname != NULL)
+                yyerror("%CompositeModule must appear before any %Module or %CModule directive");
+
+            setModuleName(currentModule, $2);
+            setIsComposite(currentModule);
+        }
+    ;
+
 module:     modlang modname optnumber {
             /* Check the module hasn't already been defined. */
 
@@ -803,15 +818,15 @@ module:     modlang modname optnumber {
                     yyerror("Module is already defined");
 
             /*
-             * If we are in a consolidated module then create a component
-             * module and make it current.
+             * If we are in a container module then create a component module
+             * and make it current.
              */
-            if (isConsolidated(currentModule) || currentModule->cons != NULL)
+            if (isContainer(currentModule) || currentModule->container != NULL)
             {
                 mod = allocModule();
 
                 mod->file = currentContext.filename;
-                mod->cons = (isConsolidated(currentModule) ? currentModule : currentModule->cons);
+                mod->container = (isContainer(currentModule) ? currentModule : currentModule->container);
 
                 currentModule = mod;
             }
@@ -2572,7 +2587,7 @@ static moduleDef *allocModule()
     newmod->virthandlers = NULL;
     newmod->license = NULL;
     newmod->proxies = NULL;
-    newmod->cons = NULL;
+    newmod->container = NULL;
     newmod->used = NULL;
     newmod->allimports = NULL;
     newmod->imports = NULL;

@@ -112,8 +112,6 @@ static wchar_t *sip_api_unicode_as_wstring(PyObject *obj);
 static int sip_api_unicode_as_wchar(PyObject *obj);
 static int *sip_api_unicode_as_wstring(PyObject *obj);
 #endif
-static int sip_api_import_from_cons_module(const char *from, const char *to);
-static int sip_api_init_cons_module(const char *name, sipComponentDef *ctab);
 static void sip_api_transfer_break(PyObject *self);
 
 
@@ -222,8 +220,6 @@ static const sipAPIDef sip_api = {
     sip_api_string_as_char,
     sip_api_unicode_as_wchar,
     sip_api_unicode_as_wstring,
-    sip_api_import_from_cons_module,
-    sip_api_init_cons_module,
     /*
      * The following are part of the public API.
      */
@@ -291,9 +287,6 @@ sipQtAPI *sipQtSupport = NULL;
 sipWrapperType *sipQObjectClass;
 sipPyObject *sipRegisteredIntTypes = NULL;
 sipSymbol *sipSymbolList = NULL;
-const char *sipExplicitImport = NULL;
-PyObject *sipConsolidatedModule = NULL;
-sipComponentDef *sipComponents = NULL;
 
 
 /*
@@ -486,9 +479,6 @@ PyMODINIT_FUNC initsip(void)
 
     if (type_unpickler == NULL || enum_unpickler == NULL)
         Py_FatalError("sip: Failed to get pickle helpers");
-
-    /* ZZZ: Is this still needed, why different from type_unpickler? */
-    Py_INCREF(enum_unpickler);
 
     /* Publish the SIP API. */
     if ((obj = PyCObject_FromVoidPtr((void *)&sip_api, NULL)) == NULL)
@@ -8220,160 +8210,3 @@ static void raiseNoWChar()
 }
 
 #endif
-
-
-/*
- * Import a consolidated module on behalf of a component stub and complete its
- * initialisation.
- */
-static int sip_api_import_from_cons_module(const char *from, const char *to)
-{
-    int rc;
-    PyObject *mod, *comp_mod;
-    sipComponentDef *sc;
-
-    /*
-     * If there is no current consolidated module then we are being imported
-     * explicitly and we need to import the consolidated module.
-     */
-    if (sipConsolidatedModule == NULL)
-    {
-        /*
-         * This tells the consolidated module that it is being implicitly
-         * imported.
-         */
-        sipExplicitImport = to;
-
-#if PY_VERSION_HEX >= 0x02050000
-        mod = PyImport_ImportModule(from);
-#else
-        mod = PyImport_ImportModule((char *)from);
-#endif
-
-        if (mod == NULL)
-        {
-            sipExplicitImport = NULL;
-            return -1;
-        }
-    }
-    else
-        mod = NULL;
-
-    /*
-     * By now we will have the component module initialisers from the
-     * consolidated module, so find ours and complete the initialisation.
-     */
-    for (sc = sipComponents; sc->name != NULL; ++sc)
-        if (strcmp(sc->name, to) == 0)
-            break;
-
-    /* This should never happen. */
-    if (sc->name == NULL)
-    {
-        PyErr_Format(PyExc_SystemError,"%s is not a component of %s", to, from);
-        goto tidy_up;
-    }
-
-    if ((comp_mod = (*sc->init)()) == NULL)
-        goto tidy_up;
-
-    /*
-     * Add the component's module dictionary to that of the consolidated
-     * module.
-     */
-    if (PyDict_Merge(PyModule_GetDict(sipConsolidatedModule), PyModule_GetDict(comp_mod), 0) < 0)
-        goto tidy_up;
-
-    /*
-     * If we were explicitly imported then import the remainder of the
-     * consolidated module's components.
-     */
-    rc = 0;
-
-    if (mod != NULL)
-    {
-        rc = importComponents();
-
-        /* The explicit import is now complete. */
-        sipConsolidatedModule = NULL;
-        sipExplicitImport = NULL;
-
-        Py_DECREF(mod);
-    }
-
-    return rc;
-
-tidy_up:
-    sipConsolidatedModule = NULL;
-    sipExplicitImport = NULL;
-
-    Py_XDECREF(mod);
-
-    return -1;
-}
-
-
-/*
- * Initialise a consolidated module.
- */
-static int sip_api_init_cons_module(const char *name, sipComponentDef *ctab)
-{
-    int rc = 0;
-    PyObject *mod;
-
-    if ((mod = Py_InitModule(name, NULL)) == NULL)
-        return -1;
-
-    /* Save the consolidated module and its components. */
-    sipConsolidatedModule = mod;
-    sipComponents = ctab;
-
-    /*
-     * If we are being imported explicitly (rather than a component) then
-     * import all the components.
-     */
-    if (sipExplicitImport == NULL)
-    {
-        rc = importComponents();
-
-        /* The explicit import is now complete. */
-        sipConsolidatedModule = NULL;
-    }
-
-    return rc;
-}
-
-
-/*
- * Import the components of the current consolidated module.
- */
-static int importComponents(void)
-{
-    sipComponentDef *sc;
-
-    for (sc = sipComponents; sc->name != NULL; ++sc)
-    {
-        /*
-         * Don't import any component that is being explicitly imported because
-         * it will already have been done and we are trying to avoid a
-         * deadlock.
-         */
-        if (sipExplicitImport == NULL || strcmp(sipExplicitImport, sc->name) != 0)
-        {
-            PyObject *mod;
-
-#if PY_VERSION_HEX >= 0x02050000
-            mod = PyImport_ImportModule(sc->name);
-#else
-            mod = PyImport_ImportModule((char *)sc->name);
-#endif
-
-            if (mod == NULL)
-                return -1;
-
-            Py_DECREF(mod);
-        }
-    }
-
-    return 0;
-}

@@ -39,11 +39,15 @@
 
 #define MOD_HAS_DELAYED_DTORS   0x0001  /* It has a class with a delayed dtor. */
 #define MOD_IS_CONSOLIDATED     0x0002  /* It is a consolidated module. */
+#define MOD_IS_COMPOSITE        0x0004  /* It is a composite module. */
 
 #define hasDelayedDtors(m)  ((m)->modflags & MOD_HAS_DELAYED_DTORS)
 #define setHasDelayedDtors(m)   ((m)->modflags |= MOD_HAS_DELAYED_DTORS)
 #define isConsolidated(m)   ((m)->modflags & MOD_IS_CONSOLIDATED)
 #define setIsConsolidated(m)    ((m)->modflags |= MOD_IS_CONSOLIDATED)
+#define isComposite(m)      ((m)->modflags & MOD_IS_COMPOSITE)
+#define setIsComposite(m)   ((m)->modflags |= MOD_IS_COMPOSITE)
+#define isContainer(m)      ((m)->modflags & (MOD_IS_CONSOLIDATED | MOD_IS_COMPOSITE))
 
 
 /* Handle section flags. */
@@ -554,7 +558,7 @@ typedef struct _moduleDef {
     struct _virtHandlerDef *virthandlers;   /* The virtual handlers. */
     licenseDef *license;                /* The software license. */
     struct _classDef *proxies;          /* The list of proxy classes. */
-    struct _moduleDef *cons;            /* The consolidated module, if any. */
+    struct _moduleDef *container;       /* The container module, if any. */
     struct _ifaceFileList *used;        /* Interface files used. */
     struct _moduleListDef *allimports;  /* The list of all imports. */
     struct _moduleListDef *imports;     /* The list of direct imports. */
@@ -954,7 +958,7 @@ void parse(sipSpec *,FILE *,char *,stringList *,stringList *);
 void parserEOF(char *,parserContext *);
 void transform(sipSpec *);
 void generateCode(sipSpec *, char *, char *, char *, const char *, int, int,
-        int, int, stringList *, int, const char *);
+        int, int, stringList *, const char *);
 void generateAPI(sipSpec *pt, moduleDef *mod, const char *apiFile);
 void generateXML(sipSpec *pt, moduleDef *mod, const char *xmlFile);
 void generateExpression(valueDef *vd, FILE *fp);

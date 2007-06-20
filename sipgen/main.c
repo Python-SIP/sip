@@ -40,7 +40,7 @@ int main(int argc, char **argv)
 {
     char *filename, *docFile, *codeDir, *srcSuffix, *flagFile, *consModule;
     char arg, *optarg, *buildFile, *apiFile, *xmlFile;
-    int optnr, exceptions, tracing, releaseGIL, parts, incComponentsCode;
+    int optnr, exceptions, tracing, releaseGIL, parts;
     FILE *file;
     sipSpec spec;
     stringList *versions, *xfeatures;
@@ -58,7 +58,6 @@ int main(int argc, char **argv)
     apiFile = NULL;
     xmlFile = NULL;
     consModule = NULL;
-    incComponentsCode = FALSE;
     exceptions = FALSE;
     tracing = FALSE;
     releaseGIL = FALSE;
@@ -67,14 +66,9 @@ int main(int argc, char **argv)
     /* Parse the command line. */
     optnr = 1;
 
-    while ((arg = parseopt(argc, argv, "hVa:b:ec:d:gI:j:m:np:rs:t:wx:z:", &flagFile, &optnr, &optarg)) != '\0')
+    while ((arg = parseopt(argc, argv, "hVa:b:ec:d:gI:j:m:p:rs:t:wx:z:", &flagFile, &optnr, &optarg)) != '\0')
         switch (arg)
         {
-        case 'n':
-            /* Include component modules code in a consolidated module. */
-            incComponentsCode = TRUE;
-            break;
-
         case 'p':
             /* The name of the consolidated module. */
             consModule = optarg;
@@ -194,8 +188,7 @@ int main(int argc, char **argv)
 
     /* Generate code. */
     generateCode(&spec, codeDir, buildFile, docFile, srcSuffix, exceptions,
-            tracing, releaseGIL, parts, xfeatures, incComponentsCode,
-            consModule);
+            tracing, releaseGIL, parts, xfeatures, consModule);
 
     /* Generate the API file. */
     if (apiFile != NULL)
@@ -453,7 +446,7 @@ static void help(void)
 {
     printf(
 "Usage:\n"
-"    %s [-h] [-V] [-a file] [-c dir] [-d file] [-e] [-g] [-I dir] [-j #] [-m file] [-n] [-p module] [-r] [-s suffix] [-t version] [-w] [-x feature] [-z file] [file]\n"
+"    %s [-h] [-V] [-a file] [-c dir] [-d file] [-e] [-g] [-I dir] [-j #] [-m file] [-p module] [-r] [-s suffix] [-t tag] [-w] [-x feature] [-z file] [file]\n"
 "where:\n"
 "    -h          display this help message\n"
 "    -V          display the %s version number\n"
@@ -466,7 +459,6 @@ static void help(void)
 "    -I dir      look in this directory when including files\n"
 "    -j #        split the generated code into # files [default 1 per class]\n"
 "    -m file     the name of the XML export file [default not generated]\n"
-"    -n          include code for all component modules\n"
 "    -p module   the name of the consoldated module that this is a component of\n"
 "    -r          generate code with tracing enabled [default disabled]\n"
 "    -s suffix   the suffix to use for C or C++ source files [default \".c\" or \".cpp\"]\n"
@@ -475,7 +467,7 @@ static void help(void)
 "    -x feature  this feature is disabled\n"
 "    -z file     the name of a file containing more command line flags\n"
 "    file        the name of the specification file [default stdin]\n"
-        ,sipPackage,sipPackage);
+        , sipPackage, sipPackage);
 
     exit(0);
 }
@@ -486,5 +478,5 @@ static void help(void)
  */
 static void usage(void)
 {
-    fatal("Usage: %s [-h] [-V] [-a file] [-b file] [-c dir] [-d file] [-e] [-g] [-I dir] [-j #] [-m file] [-r] [-s suffix] [-t tag] [-w] [-x feature] [-z file] [file]\n",sipPackage);
+    fatal("Usage: %s [-h] [-V] [-a file] [-c dir] [-d file] [-e] [-g] [-I dir] [-j #] [-m file] [-p module] [-r] [-s suffix] [-t tag] [-w] [-x feature] [-z file] [file]\n", sipPackage);
 }

@@ -2943,7 +2943,7 @@ static void assignEnumNrs(sipSpec *pt)
 static int generatingCodeForModule(sipSpec *pt, moduleDef *mod)
 {
     if (isConsolidated(pt->module))
-        return (pt->module == mod->cons);
+        return (pt->module == mod->container);
 
     return (pt->module == mod);
 }
