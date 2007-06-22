@@ -1889,9 +1889,12 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "\n"
 "    sip_%s_qt_metaobject = (sip_qt_metaobject_func)sipImportSymbol(\"qtcore_qt_metaobject\");\n"
 "    sip_%s_qt_metacall = (sip_qt_metacall_func)sipImportSymbol(\"qtcore_qt_metacall\");\n"
-"}\n"
             , mname
             , mname);
+
+    prcode(fp,
+"}\n"
+        );
 
     /* Generate the interface source files. */
     for (iff = pt->ifacefiles; iff != NULL; iff = iff->next)
