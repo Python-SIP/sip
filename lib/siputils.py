@@ -2221,7 +2221,10 @@ def parse_build_macros(filename, names, overrides=None, properties=None):
                 try:
                     value = raw[lhs]
                 except KeyError:
-                    error("%s: macro '%s' is not defined." % (filename, lhs))
+                    # We used to treat this as an error, but Qt v4.3.0 has at
+                    # least one case that refers to an undefined macro.  If
+                    # qmake handles it then this must be the correct behaviour.
+                    value = ""
 
             rhs = rhs[:mstart] + value + rhs[mend:]
             estart = string.find(rhs, "$$(")
