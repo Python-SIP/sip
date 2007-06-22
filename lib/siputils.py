@@ -690,7 +690,7 @@ class Makefile:
             elif self.config.qt_version < 0x040200 or sys.platform == "darwin":
                 lib = lib + "_debug"
 
-        if sys.platform == "win32":
+        if sys.platform == "win32" and "shared" in string.split(self.config.qt_winconfig):
             if (mname in ("QtCore", "QtGui", "QtNetwork", "QtOpenGL",
                           "QtScript", "QtSql", "QtSvg", "QtTest", "QtXml",
                           "QtDesigner") or
