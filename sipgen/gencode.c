@@ -60,7 +60,8 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         const char *srcSuffix, int parts, stringList *xsl);
 static void generateCompositeCpp(sipSpec *pt, const char *codeDir);
-static void generateConsolidatedCpp(sipSpec *pt, const char *codeDir);
+static void generateConsolidatedCpp(sipSpec *pt, const char *codeDir,
+        const char *srcSuffix);
 static void generateComponentCpp(sipSpec *pt, const char *codeDir,
         const char *consModule);
 static void generateSipImport(moduleDef *mod, FILE *fp);
@@ -244,7 +245,7 @@ void generateCode(sipSpec *pt, char *codeDir, char *buildfile, char *docFile,
                 if (mod->container == pt->module)
                     generateCpp(pt, mod, codeDir, srcSuffix, parts, xsl);
 
-            generateConsolidatedCpp(pt, codeDir);
+            generateConsolidatedCpp(pt, codeDir, srcSuffix);
         }
         else if (consModule != NULL)
             generateComponentCpp(pt, codeDir, consModule);
@@ -297,7 +298,7 @@ static void generateBuildFile(sipSpec *pt, const char *buildFile,
             if (mod->container == pt->module)
                 generateBuildFileSources(pt, mod, srcSuffix, fp);
 
-        prcode(fp, " sip%scmodule.c", mname);
+        prcode(fp, " sip%scmodule%s", mname, srcSuffix);
     }
     else if (consModule == NULL)
         generateBuildFileSources(pt, pt->module, srcSuffix, fp);
@@ -817,14 +818,15 @@ static void generateCompositeCpp(sipSpec *pt, const char *codeDir)
 /*
  * Generate the C/C++ code for a consolidated module.
  */
-static void generateConsolidatedCpp(sipSpec *pt, const char *codeDir)
+static void generateConsolidatedCpp(sipSpec *pt, const char *codeDir,
+        const char *srcSuffix)
 {
     char *mname, *cppfile;
     moduleDef *mod;
     FILE *fp;
 
     mname = pt->module->name;
-    cppfile = concat(codeDir, "/sip", mname, "cmodule.c", NULL);
+    cppfile = concat(codeDir, "/sip", mname, "cmodule", srcSuffix, NULL);
     fp = createCompilationUnit(pt->module, cppfile, "Consolidated module code.");
 
     prcode(fp,
@@ -852,6 +854,14 @@ static void generateConsolidatedCpp(sipSpec *pt, const char *codeDir)
     prcode(fp,
 "\n"
 "\n"
+        );
+
+    if (!generating_c)
+        prcode(fp,
+"extern \"C\" {static PyObject *sip_init(PyObject *, PyObject *);}\n"
+            );
+
+    prcode(fp,
 "static PyObject *sip_init(PyObject *self, PyObject *arg)\n"
 "{\n"
 "    struct component {\n"
@@ -893,7 +903,7 @@ static void generateConsolidatedCpp(sipSpec *pt, const char *codeDir)
 "}\n"
         );
 
-    generateModInitStart(pt->module, TRUE, fp);
+    generateModInitStart(pt->module, generating_c, fp);
 
     prcode(fp,
 "    static PyMethodDef sip_methods[] = {\n"
@@ -1772,9 +1782,9 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 
     if (mod->container == pt->module)
         prcode(fp,
-"%svoid sip_init_%s()\n"
+"void sip_init_%s()\n"
 "{\n"
-            , (generating_c ? "" : "extern \"C\" "), mname);
+            , mname);
     else
         generateModInitStart(pt->module, generating_c, fp);
 

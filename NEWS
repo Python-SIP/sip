@@ -1,6 +1,13 @@
 v4.7 ??? 2007
   - Added %PickleCode to allow handwritten code to pickle a wrapped C++
     instance or C structure.
+  - Added %CompositeModule to create modules that are composites of ordinary
+    modules.
+  - Added %ConsolidatedModule (and the -p command line option) to create
+    modules that contain all the wrapper code on behalf of ordinary modules.
+  - Added the dump() function to the sip module.
+  - Added sipTransferBreak() to the SIP API.
+  - Added support for /Transfer/ as a function annotation.
 
 v4.6 10th April 2007
   - Added support for wchar_t.
