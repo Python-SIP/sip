@@ -3530,7 +3530,7 @@ static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod, classDef *scop
     }
 
     cd->cppcode = templateCode(pt, used, cd->cppcode, type_names, type_values);
-    appendCodeBlock(&cd->iff->hdrcode, templateCode(pt, used, cd->iff->hdrcode, type_names, type_values));
+    cd->iff->hdrcode = templateCode(pt, used, cd->iff->hdrcode, type_names, type_values);
     cd->convtosubcode = templateCode(pt, used, cd->convtosubcode, type_names, type_values);
     cd->convtocode = templateCode(pt, used, cd->convtocode, type_names, type_values);
     cd->travcode = templateCode(pt, used, cd->travcode, type_names, type_values);
