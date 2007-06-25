@@ -862,7 +862,7 @@ static void generateConsolidatedCpp(sipSpec *pt, const char *codeDir,
             );
 
     prcode(fp,
-"static PyObject *sip_init(PyObject *self, PyObject *arg)\n"
+"static PyObject *sip_init(PyObject *%s, PyObject *arg)\n"
 "{\n"
 "    struct component {\n"
 "        const char *name;\n"
@@ -870,7 +870,7 @@ static void generateConsolidatedCpp(sipSpec *pt, const char *codeDir,
 "    };\n"
 "\n"
 "    static struct component components[] = {\n"
-        );
+        , (generating_c ? "self" : ""));
 
     for (mod = pt->modules; mod != NULL; mod = mod->next)
         if (mod->container == pt->module)
