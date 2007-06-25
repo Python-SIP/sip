@@ -2497,7 +2497,7 @@ static mappedTypeDef *instantiateMappedTypeTemplate(sipSpec *pt, moduleDef *mod,
     mtd->iff = findIfaceFile(pt, mod, type->u.td->fqname, mappedtype_iface, type);
     mtd->iff->module = mod;
 
-    mtd->iff->hdrcode = templateCode(pt, &mtd->iff->used, mtt->mt->iff->hdrcode, type_names, type_values);
+    appendCodeBlock(&mtd->iff->hdrcode, templateCode(pt, &mtd->iff->used, mtt->mt->iff->hdrcode, type_names, type_values));
     mtd->convfromcode = templateCode(pt, &mtd->iff->used, mtt->mt->convfromcode, type_names, type_values);
     mtd->convtocode = templateCode(pt, &mtd->iff->used, mtt->mt->convtocode, type_names, type_values);
 

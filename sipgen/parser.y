@@ -62,7 +62,6 @@ static memberDef *findFunction(sipSpec *,moduleDef *,classDef *,nameDef *,int,
 static void checkAttributes(sipSpec *, moduleDef *, classDef *, char *, int);
 static void newModule(FILE *fp, char *filename);
 static moduleDef *allocModule();
-static void appendCodeBlock(codeBlock **,codeBlock *);
 static void parseFile(FILE *fp, char *name, moduleDef *prevmod, int optional);
 static void handleEOF(void);
 static void handleEOM(void);
@@ -3531,7 +3530,7 @@ static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod, classDef *scop
     }
 
     cd->cppcode = templateCode(pt, used, cd->cppcode, type_names, type_values);
-    cd->iff->hdrcode = templateCode(pt, used, cd->iff->hdrcode, type_names, type_values);
+    appendCodeBlock(&cd->iff->hdrcode, templateCode(pt, used, cd->iff->hdrcode, type_names, type_values));
     cd->convtosubcode = templateCode(pt, used, cd->convtosubcode, type_names, type_values);
     cd->convtocode = templateCode(pt, used, cd->convtocode, type_names, type_values);
     cd->travcode = templateCode(pt, used, cd->travcode, type_names, type_values);
@@ -4541,10 +4540,10 @@ static void checkAttributes(sipSpec *pt, moduleDef *mod, classDef *pyscope,
  * Append a code block to a list of them.  Append is needed to give the
  * specifier easy control over the order of the documentation.
  */
-static void appendCodeBlock(codeBlock **headp,codeBlock *new)
+void appendCodeBlock(codeBlock **headp, codeBlock *new)
 {
     while (*headp != NULL)
-        headp = &(*headp) -> next;
+        headp = &(*headp)->next;
 
     *headp = new;
 }
