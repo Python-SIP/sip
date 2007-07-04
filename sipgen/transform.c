@@ -23,7 +23,7 @@ static void setAllImports(moduleDef *mod);
 static void addUniqueModule(moduleDef *mod, moduleDef *imp);
 static void ensureInput(classDef *,overDef *,argDef *);
 static void defaultInput(argDef *);
-static void defaultOutput(classDef *,overDef *,argDef *);
+static void defaultOutput(argDef *ad);
 static void assignClassNrs(sipSpec *,moduleDef *,nodeDef *);
 static void assignEnumNrs(sipSpec *pt);
 static void positionClass(classDef *);
@@ -1780,7 +1780,7 @@ static int supportedType(classDef *cd,overDef *od,argDef *ad,int outputs)
         {
             if (outputs && ad -> nrderefs <= 1)
             {
-                defaultOutput(cd,od,ad);
+                defaultOutput(ad);
                 return TRUE;
             }
         }
@@ -1800,7 +1800,7 @@ static int supportedType(classDef *cd,overDef *od,argDef *ad,int outputs)
         }
         else if (ad -> nrderefs == 2 && outputs)
         {
-            defaultOutput(cd,od,ad);
+            defaultOutput(ad);
             return TRUE;
         }
 
@@ -1833,7 +1833,7 @@ static int supportedType(classDef *cd,overDef *od,argDef *ad,int outputs)
         {
             if (ad -> nrderefs == 0 && outputs)
             {
-                defaultOutput(cd,od,ad);
+                defaultOutput(ad);
                 return TRUE;
             }
         }
@@ -1844,7 +1844,7 @@ static int supportedType(classDef *cd,overDef *od,argDef *ad,int outputs)
         }
         else if (ad -> nrderefs == 1 && outputs)
         {
-            defaultOutput(cd,od,ad);
+            defaultOutput(ad);
             return TRUE;
         }
 
@@ -1861,7 +1861,7 @@ static int supportedType(classDef *cd,overDef *od,argDef *ad,int outputs)
             }
             else if (ad -> nrderefs == 1 && outputs)
             {
-                defaultOutput(cd,od,ad);
+                defaultOutput(ad);
                 return TRUE;
             }
         }
@@ -1881,7 +1881,7 @@ static int supportedType(classDef *cd,overDef *od,argDef *ad,int outputs)
         }
         else if (ad -> nrderefs == 2 && outputs)
         {
-            defaultOutput(cd,od,ad);
+            defaultOutput(ad);
             return TRUE;
         }
 
@@ -1893,7 +1893,7 @@ static int supportedType(classDef *cd,overDef *od,argDef *ad,int outputs)
         {
             if (ad -> nrderefs == 1 && outputs)
             {
-                defaultOutput(cd,od,ad);
+                defaultOutput(ad);
                 return TRUE;
             }
         }
@@ -1904,7 +1904,7 @@ static int supportedType(classDef *cd,overDef *od,argDef *ad,int outputs)
         }
         else if (ad -> nrderefs == 2 && outputs)
         {
-            defaultOutput(cd,od,ad);
+            defaultOutput(ad);
             return TRUE;
         }
 
@@ -1953,25 +1953,9 @@ static void defaultInput(argDef *ad)
  * Default the direction of an argument to an output unless the argument is
  * const.
  */
-static void defaultOutput(classDef *cd,overDef *od,argDef *ad)
+static void defaultOutput(argDef *ad)
 {
-    if (isOutArg(ad))
-    {
-        if (isConstArg(ad))
-        {
-            if (cd != NULL)
-            {
-                fatalScopedName(classFQCName(cd));
-                fatal("::");
-            }
-
-            if (od != NULL)
-                fatal("%s",od -> cppname);
-
-            fatal("() const argument cannot have /Out/ specified\n");
-        }
-    }
-    else if (!isInArg(ad))
+    if (!isOutArg(ad) && !isInArg(ad))
         if (isConstArg(ad))
             setIsInArg(ad);
         else
