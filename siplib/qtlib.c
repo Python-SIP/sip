@@ -575,7 +575,16 @@ int sip_api_emit_to_slot(sipSlot *slot, PyObject *sigargs)
         return sip_api_emit_signal(slot -> pyobj,slot -> name,sigargs);
 
     /* Get the object to call, resolving any weak references. */
-    if (slot -> weakSlot == NULL)
+    if (slot->weakSlot == Py_True)
+    {
+        /*
+         * The slot is guaranteed to be Ok because it has an extra reference or
+         * is None.
+         */
+        sref = slot->pyobj;
+        Py_INCREF(sref);
+    }
+    else if (slot -> weakSlot == NULL)
         sref = NULL;
     else if ((sref = PyWeakref_GetObject(slot -> weakSlot)) == NULL)
         return -1;
@@ -639,15 +648,6 @@ int sip_api_emit_to_slot(sipSlot *slot, PyObject *sigargs)
 
         /* Make sure we garbage collect the new method. */
         newmeth = sfunc;
-    }
-    else if (slot->pyobj == Py_None)
-    {
-        /*
-         * This was a lambda function that has been freed by the cyclic garbage
-         * collector so ignore it.
-         */
-        Py_XDECREF(sref);
-        return 0;
     }
     else
     {
@@ -1059,13 +1059,8 @@ static void freeSlot(sipSlot *slot)
 {
     if (slot->name != NULL)
         sip_api_free(slot->name);
-    else
-    {
-        PyObject *lam = slot->pyobj;
-
-        if (lam != NULL && (lam == Py_None || sipLambdaSlot(lam)))
-            Py_DECREF(lam);
-    }
+    else if (slot->weakSlot == Py_True)
+        Py_DECREF(slot->pyobj);
 
     /* Remove any weak reference. */
     Py_XDECREF(slot->weakSlot);
@@ -1168,20 +1163,14 @@ static int saveSlot(sipSlot *sp, PyObject *rxObj, const char *slot)
             else
             {
                 /*
-                 * A bit of a hack to allow lamba functions to be used as
-                 * slots.
+                 * Give the slot an extra reference to keep it alive and
+                 * remember we have done so by treating weakSlot specially.
                  */
-                if (sipLambdaSlot(rxObj))
-                    Py_INCREF(rxObj);
+                Py_INCREF(rxObj);
+                sp->pyobj = rxObj;
 
-                /*
-                 * It's unlikely that we will succeed in getting a weak
-                 * reference to the slot, but there is no harm in trying (and
-                 * future versions of Python may support references to more
-                 * object types).
-                 */
-                sp -> pyobj = rxObj;
-                sp -> weakSlot = getWeakRef(rxObj);
+                Py_INCREF(Py_True);
+                sp->weakSlot = Py_True;
             }
         }
     }
@@ -1230,16 +1219,4 @@ static PyObject *getWeakRef(PyObject *obj)
         PyErr_Clear();
 
     return wr;
-}
-
-
-/*
- * See if an object is a lambda function.
- */
-int sipLambdaSlot(PyObject *slotObj)
-{
-    if (!PyFunction_Check(slotObj))
-        return FALSE;
-
-    return (strcmp(PyString_AsString(((PyFunctionObject *)slotObj)->func_name), "<lambda>") == 0);
 }

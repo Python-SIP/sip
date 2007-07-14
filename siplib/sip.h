@@ -961,7 +961,7 @@ typedef struct _sipSlot {
     /* Python slot method, pyobj is NULL. */
     sipPyMethod meth;
 
-    /* A weak reference to the slot. */
+    /* A weak reference to the slot, Py_True if pyobj has an extra reference. */
     PyObject *weakSlot;
 } sipSlot;
 

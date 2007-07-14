@@ -91,7 +91,6 @@ void sipSaveMethod(sipPyMethod *pm,PyObject *meth);
 void *sipGetPending(sipWrapper **op, int *fp);
 PyObject *sipWrapSimpleInstance(void *cppPtr, sipWrapperType *type,
         sipWrapper *owner, int initflags);
-int sipLambdaSlot(PyObject *slotObj);
 
 void sipOMInit(sipObjectMap *om);
 void sipOMFinalise(sipObjectMap *om);
