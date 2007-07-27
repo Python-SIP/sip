@@ -849,30 +849,40 @@ static int addSlotToPySigList(sipWrapper *txSelf,const char *sig,
 /*
  * Compare two slots to see if they are the same.
  */
-static int isSameSlot(sipSlot *slot1,PyObject *rxobj2,const char *slot2)
+static int isSameSlot(sipSlot *slot1, PyObject *rxobj2, const char *slot2)
 {
     /* See if they are signals or Qt slots, ie. they have a name. */
-    if (slot1 -> name != NULL)
-        return (slot2 != NULL &&
-            sipQtSupport->qt_same_name(slot1 -> name,slot2) &&
-            slot1 -> pyobj == rxobj2);
-
-    /* Both must be Python slots. */
     if (slot2 != NULL)
-        return 0;
+    {
+        if (slot1->name == NULL || slot1->name[0] == '\0')
+            return 0;
 
-    /* See if they are Python methods. */
-    if (slot1 -> pyobj == NULL)
-        return (PyMethod_Check(rxobj2) &&
-            slot1 -> meth.mfunc == PyMethod_GET_FUNCTION(rxobj2) &&
-            slot1 -> meth.mself == PyMethod_GET_SELF(rxobj2) &&
-            slot1 -> meth.mclass == PyMethod_GET_CLASS(rxobj2));
+        return (sipQtSupport->qt_same_name(slot1->name, slot2) && slot1->pyobj == rxobj2);
+    }
 
+    /* See if they are pure Python methods. */
     if (PyMethod_Check(rxobj2))
-        return 0;
+    {
+        if (slot1->pyobj != NULL)
+            return 0;
+
+        return (slot1->meth.mfunc == PyMethod_GET_FUNCTION(rxobj2) &&
+                slot1->meth.mself == PyMethod_GET_SELF(rxobj2) &&
+                slot1->meth.mclass == PyMethod_GET_CLASS(rxobj2));
+    }
+
+    /* See if they are wrapped C++ methods. */
+    if (PyCFunction_Check(rxobj2))
+    {
+        if (slot1->name == NULL || slot1->name[0] != '\0')
+            return 0;
+
+        return (slot1->pyobj == PyCFunction_GET_SELF(rxobj2) &&
+                strcmp(&slot1->name[1], ((PyCFunctionObject *)rxobj2)->m_ml->ml_name) == 0);
+    }
 
     /* The objects must be the same. */
-    return (slot1 -> pyobj == rxobj2);
+    return (slot1->pyobj == rxobj2);
 }
 
 
