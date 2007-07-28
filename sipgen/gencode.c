@@ -9333,6 +9333,19 @@ static void generateFunctionCall(classDef *cd,classDef *ocd,overDef *od,
          */
         if (needNewInstance(ad))
         {
+            /*
+             * If it's a mapped type then we will need to destroy the instance
+             * after it has been converted.
+             */
+            if (ad->atype == mapped_type)
+            {
+                deltemps = FALSE;
+
+                prcode(fp,
+"            PyObject *sipResult;\n"
+                    );
+            }
+
             prcode(fp,
 "            a%d = new %b();\n"
                 ,a,ad);
@@ -10276,6 +10289,15 @@ static void deleteTemps(signatureDef *sd, FILE *fp)
     for (a = 0; a < sd->nrArgs; ++a)
     {
         argDef *ad = &sd->args[a];
+
+        if (ad->atype == mapped_type && needNewInstance(ad))
+        {
+            prcode(fp,
+"            delete a%d;\n"
+                , a);
+
+            continue;
+        }
 
         if (!isInArg(ad))
             continue;
