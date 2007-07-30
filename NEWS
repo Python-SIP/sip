@@ -1,4 +1,4 @@
-v4.7 ??? 2007
+v4.7 30th July 2007
   - Added %PickleCode to allow handwritten code to pickle a wrapped C++
     instance or C structure.
   - Added %CompositeModule to create modules that are composites of ordinary
