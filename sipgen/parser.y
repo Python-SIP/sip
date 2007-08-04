@@ -90,6 +90,7 @@ static void addUsedFromCode(sipSpec *pt, ifaceFileList **used, const char *sname
 static int sameName(scopedNameDef *snd, const char *sname);
 static int optFind(sipSpec *pt, const char *opt);
 static void setModuleName(moduleDef *mod, const char *fullname);
+static int foundInScope(scopedNameDef *fq_name, scopedNameDef *rel_name);
 %}
 
 %union {
@@ -3814,6 +3815,34 @@ static int sameName(scopedNameDef *snd, const char *sname)
 
 
 /*
+ * Compare a (possibly) relative scoped name with a fully qualified scoped name
+ * while taking the current scope into account.
+ */
+static int foundInScope(scopedNameDef *fq_name, scopedNameDef *rel_name)
+{
+    classDef *scope;
+
+    for (scope = currentScope(); scope != NULL; scope = scope->ecd)
+    {
+        scopedNameDef *snd;
+        int found;
+
+        snd = copyScopedName(classFQCName(scope));
+        appendScopedName(&snd, copyScopedName(rel_name));
+
+        found = sameScopedName(fq_name, snd);
+
+        freeScopedName(snd);
+
+        if (found)
+            return TRUE;
+    }
+
+    return sameScopedName(fq_name, rel_name);
+}
+
+
+/*
  * Create a new typedef.
  */
 static void newTypedef(sipSpec *pt,moduleDef *mod,char *name,argDef *type)
@@ -3829,11 +3858,9 @@ static void newTypedef(sipSpec *pt,moduleDef *mod,char *name,argDef *type)
         templateDef *td = type->u.td;
 
         for (tcd = pt->classtemplates; tcd != NULL; tcd = tcd->next)
-            if (sameScopedName(tcd->cd->iff->fqcname, td->fqname))
+            if (foundInScope(tcd->cd->iff->fqcname, td->fqname) &&
+                sameTemplateSignature(&tcd->sig, &td->types, FALSE))
             {
-                if (!sameTemplateSignature(&tcd->sig, &td->types, FALSE))
-                    continue;
-
                 instantiateClassTemplate(pt, mod, scope, fqname, tcd, td);
 
                 /* All done. */
