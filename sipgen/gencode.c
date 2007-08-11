@@ -3129,10 +3129,11 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd,FILE *fp)
 "{\n"
         , &mtd->type, (generating_c ? " status" : ""));
 
-    /*
-     * Note that we don't release the GIL when garbage collection might be in
-     * progress.
-     */
+    if (release_gil)
+        prcode(fp,
+"    Py_BEGIN_ALLOW_THREADS\n"
+            );
+
     if (generating_c)
         prcode(fp,
 "    sipFree(ptr);\n"
@@ -3141,6 +3142,11 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd,FILE *fp)
         prcode(fp,
 "    delete reinterpret_cast<%b *>(ptr);\n"
             , &mtd->type);
+
+    if (release_gil)
+        prcode(fp,
+"    Py_END_ALLOW_THREADS\n"
+            );
 
     prcode(fp,
 "}\n"
@@ -4626,10 +4632,14 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
          */
         if (canCreate(cd) || isPublicDtor(cd))
         {
-            /*
-             * Note that we don't release the GIL when garbage collection might
-             * be in progress.
-             */
+            int rgil = ((release_gil || isReleaseGILDtor(cd)) && !isHoldGILDtor(cd));
+
+            if (rgil)
+                prcode(fp,
+"    Py_BEGIN_ALLOW_THREADS\n"
+"\n"
+                    );
+
             if (hasShadow(cd))
             {
                 prcode(fp,
@@ -4647,6 +4657,12 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
                 prcode(fp,
 "    delete reinterpret_cast<%U *>(ptr);\n"
                     , cd);
+
+            if (rgil)
+                prcode(fp,
+"\n"
+"    Py_END_ALLOW_THREADS\n"
+                    );
         }
 
         prcode(fp,

@@ -6906,6 +6906,13 @@ static void sipWrapper_dealloc(sipWrapper *self)
 {
     sipTypeDef *td;
 
+    /*
+     * This is needed because we release the GIL when calling a C++ dtor.
+     * Without it the cyclic garbage collector can be invoked from another
+     * thread resulting in a crash.
+     */
+    PyObject_GC_UnTrack((PyObject *)self);
+
     if (getPtrTypeDef(self, &td) != NULL)
     {
         /*

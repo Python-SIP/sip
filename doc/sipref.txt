@@ -815,8 +815,7 @@ ensure that locking problems can be avoided.
 SIP always ensures that the GIL is acquired before making calls to the Python
 API.  By default SIP does not release the GIL when making calls to the C/C++
 library being wrapped.  The ReleaseGIL_ annotation can be used to override
-this behaviour when required.  However the GIL is never released when a C++
-destructor is called.
+this behaviour when required.
 
 If SIP is given the ``-g`` command line option then the default behaviour is
 changed and SIP releases the GIL every time is makes calls to the C/C++
