@@ -68,7 +68,6 @@
 #define CLASS_HAS_SHADOW    0x00000800  /* It is has a shadow class. */
 #define CLASS_IS_OPAQUE     0x00001000  /* It is opaque. */
 #define CLASS_HAS_VAR_HANDLERS  0x00002000  /* It has variable handlers. */
-#define CLASS_DTOR_RELEASE_GIL  0x00004000  /* The dtor releases the GIL. */
 #define CLASS_IS_PROTECTED  0x00008000  /* It is protected. */
 #define CLASS_IS_PROTECTED_SAV  0x00010000  /* It is protected (saved). */
 #define CLASS_IS_RENAMED    0x00020000  /* It has a different Python name. */
@@ -78,7 +77,6 @@
 #define CLASS_IS_DELAYED_DTOR   0x00200000  /* The dtor is delayed. */
 #define CLASS_NO_DEFAULT_CTORS  0x00400000  /* Don't create default ctors. */
 #define CLASS_QOBJECT_SUB   0x00800000  /* It is derived from QObject. */
-#define CLASS_DTOR_HOLD_GIL 0x01000000  /* The dtor holds the GIL. */
 #define CLASS_QT_META_TYPE  0x02000000  /* Register as a Qt meta type. */
 
 #define hasEnums(cd)        ((cd)->classflags & CLASS_HAS_ENUMS)
@@ -100,8 +98,6 @@
 #define wasProtectedClass(cd)   ((cd)->classflags & CLASS_IS_PROTECTED_SAV)
 #define setWasProtectedClass(cd)    ((cd)->classflags |= CLASS_IS_PROTECTED_SAV)
 #define resetWasProtectedClass(cd)  ((cd)->classflags &= ~CLASS_IS_PROTECTED_SAV)
-#define isReleaseGILDtor(c) ((cd)->classflags & CLASS_DTOR_RELEASE_GIL)
-#define setIsReleaseGILDtor(c)  ((cd)->classflags |= CLASS_DTOR_RELEASE_GIL)
 #define isRenamedClass(cd)  ((cd)->classflags & CLASS_IS_RENAMED)
 #define setIsRenamedClass(cd)   ((cd)->classflags |= CLASS_IS_RENAMED)
 #define isIncomplete(cd)    ((cd)->classflags & CLASS_IS_INCOMPLETE)
@@ -117,8 +113,6 @@
 #define setNoDefaultCtors(cd)   ((cd)->classflags |= CLASS_NO_DEFAULT_CTORS)
 #define isQObjectSubClass(cd)   ((cd)->classflags & CLASS_QOBJECT_SUB)
 #define setIsQObjectSubClass(cd)    ((cd)->classflags |= CLASS_QOBJECT_SUB)
-#define isHoldGILDtor(c)    ((cd)->classflags & CLASS_DTOR_HOLD_GIL)
-#define setIsHoldGILDtor(c) ((cd)->classflags |= CLASS_DTOR_HOLD_GIL)
 #define registerQtMetaType(c)   ((cd)->classflags & CLASS_QT_META_TYPE)
 #define setRegisterQtMetaType(c)    ((cd)->classflags |= CLASS_QT_META_TYPE)
 

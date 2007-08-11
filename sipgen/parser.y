@@ -1650,11 +1650,6 @@ dtor:       optvirtual '~' TK_NAME '(' ')' optexceptions optabstract optflags ';
 
                     setHasShadow(cd);
                 }
-
-                if (getReleaseGIL(&$8))
-                    setIsReleaseGILDtor(cd);
-                else if (getHoldGIL(&$8))
-                    setIsHoldGILDtor(cd);
             }
         }
     ;
