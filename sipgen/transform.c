@@ -1714,10 +1714,10 @@ static void resolveVariableType(sipSpec *pt, varDef *vd)
         break;
     }
 
-    if (bad)
+    if (bad && (vd->getcode == NULL || vd->setcode == NULL))
     {
         fatalScopedName(vd->fqcname);
-        fatal(" has an unsupported type\n");
+        fatal(" has an unsupported type - provide %%GetCode and %%SetCode\n");
     }
  
     if (vtype->atype != class_type && vd->accessfunc != NULL)
@@ -1732,8 +1732,8 @@ static void resolveVariableType(sipSpec *pt, varDef *vd)
         ifaceFileIsUsed(&vd->module->used, vtype);
 
     /*
-     * Instance variables or static class variables (unless they are
-     * constants) need a handler.
+     * Instance variables or static class variables (unless they are constants)
+     * need a handler.
      */
     if (vd->ecd != NULL && vd->accessfunc == NULL &&
         (!isStaticVar(vd) || vtype->nrderefs != 0 || !isConstArg(vtype)))
