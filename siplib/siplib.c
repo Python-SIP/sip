@@ -7187,7 +7187,9 @@ static int sipWrapper_setattro(PyObject *obj,PyObject *name,PyObject *value)
  * assumptions about which Python will choose.
  */
 static sipWrapperType sipWrapper_Type = {
+#if !defined(STACKLESS)
     {
+#endif
         {
             PyObject_HEAD_INIT(&sipWrapperType_Type)
             0,              /* ob_size */
@@ -7230,7 +7232,9 @@ static sipWrapperType sipWrapper_Type = {
             (newfunc)sipWrapper_new,    /* tp_new */
             0,              /* tp_free */
         },
+#if !defined(STACKLESS)
     },
+#endif
     0,
     0
 };
