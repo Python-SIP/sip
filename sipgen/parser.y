@@ -28,6 +28,7 @@ static int sectionFlags;                /* The current section flags. */
 static int currentOverIsVirt;           /* Set if the overload is virtual. */
 static int currentCtorIsExplicit;       /* Set if the ctor is explicit. */
 static int currentIsStatic;             /* Set if the current is static. */
+static int currentIsTemplate;           /* Set if the current is a template. */
 static char *previousFile;              /* The file just parsed. */
 static parserContext currentContext;    /* The current context. */
 static int skipStackPtr;                /* The skip stack pointer. */
@@ -1341,7 +1342,7 @@ struct:     TK_STRUCT TK_NAME {
         }
     ;
 
-classtmpl:  template class {
+classtmpl:  template {currentIsTemplate = TRUE;} class {
             if (currentSpec->genc)
                 yyerror("Class templates not allowed in a C module");
 
@@ -1358,11 +1359,13 @@ classtmpl:  template class {
 
                 tcd = sipMalloc(sizeof (classTmplDef));
                 tcd->sig = $1;
-                tcd->cd = $2;
+                tcd->cd = $3;
                 tcd->next = currentSpec->classtemplates;
 
                 currentSpec->classtemplates = tcd;
             }
+
+            currentIsTemplate = FALSE;
         }
     ;
 
@@ -2461,6 +2464,7 @@ void parse(sipSpec *spec, FILE *fp, char *filename, stringList *tsl,
     currentOverIsVirt = FALSE;
     currentCtorIsExplicit = FALSE;
     currentIsStatic = FALSE;
+    currentIsTemplate = FALSE;
     previousFile = NULL;
     skipStackPtr = 0;
     currentScopeIdx = 0;
@@ -4175,18 +4179,26 @@ static void newFunction(sipSpec *pt,moduleDef *mod,int sflags,int isstatic,
 
         vhd = sipMalloc(sizeof (virtHandlerDef));
 
-        vhd -> virthandlernr = -1;
-        vhd -> vhflags = 0;
-        vhd -> pysig = &od -> pysig;
-        vhd -> cppsig = (cppsig != NULL ? cppsig : &od -> pysig);
-        vhd -> module = currentModule;
-        vhd -> virtcode = vcode;
-        vhd -> next = currentModule -> virthandlers;
+        vhd->virthandlernr = -1;
+        vhd->vhflags = 0;
+        vhd->pysig = &od->pysig;
+        vhd->cppsig = (cppsig != NULL ? cppsig : &od->pysig);
+        vhd->virtcode = vcode;
 
         if (factory || xferback)
             setIsTransferVH(vhd);
 
-        currentModule -> virthandlers = vhd;
+        /*
+         * Only add it to the module's virtual handlers if we are not in a
+         * class template.
+         */
+        if (!currentIsTemplate)
+        {
+            vhd->module = currentModule;
+
+            vhd->next = currentModule->virthandlers;
+            currentModule->virthandlers = vhd;
+        }
     }
     else
     {
