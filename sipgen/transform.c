@@ -55,7 +55,7 @@ static void fatalNoDefinedType(scopedNameDef *);
 static void getBaseType(sipSpec *,moduleDef *,classDef *,argDef *);
 static void searchScope(sipSpec *,classDef *,scopedNameDef *,argDef *);
 static void searchMappedTypes(sipSpec *,scopedNameDef *,argDef *);
-static void searchTypedefs(sipSpec *,scopedNameDef *,argDef *);
+void searchTypedefs(sipSpec *pt, scopedNameDef *snd, argDef *ad);
 static void searchEnums(sipSpec *,scopedNameDef *,argDef *);
 static void searchClasses(sipSpec *,moduleDef *mod,scopedNameDef *,argDef *);
 static void appendToMRO(mroDef *,mroDef ***,classDef *);
@@ -2586,8 +2586,7 @@ static void searchMappedTypes(sipSpec *pt,scopedNameDef *snd,argDef *ad)
 /*
  * Search the typedefs for a name and return the type.
  */
-
-static void searchTypedefs(sipSpec *pt,scopedNameDef *snd,argDef *ad)
+void searchTypedefs(sipSpec *pt, scopedNameDef *snd, argDef *ad)
 {
     typedefDef *td;
 

@@ -1434,13 +1434,37 @@ superlist:  superclass
 superclass: scopedname {
             if (notSkipping())
             {
-                classDef *cd, *super;
+                argDef ad;
+                classDef *super;
+                scopedNameDef *snd = $1;
 
-                cd = currentScope();
+                /*
+                 * This is a hack to allow typedef'ed classes to be used before
+                 * we have resolved the typedef definitions.  Unlike elsewhere,
+                 * we require that the typedef is defined before being used.
+                 */
+                for (;;)
+                {
+                    ad.atype = no_type;
+                    ad.argflags = 0;
+                    ad.nrderefs = 0;
 
-                super = findClass(currentSpec,class_iface,$1);
+                    searchTypedefs(currentSpec, snd, &ad);
 
-                appendToClassList(&cd -> supers,super);
+                    if (ad.atype != defined_type)
+                        break;
+
+                    if (ad.nrderefs != 0 || isConstArg(&ad) || isReference(&ad))
+                        break;
+
+                    snd = ad.u.snd;
+                }
+
+                if (ad.atype != no_type)
+                    yyerror("Super-class list contains an invalid type");
+
+                super = findClass(currentSpec, class_iface, snd);
+                appendToClassList(&currentScope()->supers, super);
             }
         }
     ;
