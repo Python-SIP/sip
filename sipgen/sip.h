@@ -62,7 +62,6 @@
 
 /* Handle class flags.  These are combined with the section flags. */
 
-#define CLASS_HAS_ENUMS     0x00000100  /* It has enums. */
 #define CLASS_HAS_SIGSLOTS  0x00000200  /* It has signals or slots. */
 #define CLASS_IS_ABSTRACT   0x00000400  /* It is an abstract class. */
 #define CLASS_HAS_SHADOW    0x00000800  /* It is has a shadow class. */
@@ -81,8 +80,6 @@
 #define CLASS_DTOR_HOLD_GIL 0x01000000  /* The dtor holds the GIL. */
 #define CLASS_QT_META_TYPE  0x02000000  /* Register as a Qt meta type. */
 
-#define hasEnums(cd)        ((cd)->classflags & CLASS_HAS_ENUMS)
-#define setHasEnums(cd)     ((cd)->classflags |= CLASS_HAS_ENUMS)
 #define hasSigSlots(cd)     ((cd)->classflags & CLASS_HAS_SIGSLOTS)
 #define setHasSigSlots(cd)  ((cd)->classflags |= CLASS_HAS_SIGSLOTS)
 #define isAbstractClass(cd) ((cd)->classflags & CLASS_IS_ABSTRACT)

@@ -184,7 +184,7 @@ static FILE *createFile(moduleDef *mod, char *fname, char *description);
 static void closeFile(FILE *);
 static void prScopedName(FILE *fp, scopedNameDef *snd, char *sep);
 static void prTypeName(FILE *, argDef *, int);
-static void prScopedClassName(FILE *, classDef *, char *);
+static void prScopedClassName(FILE *fp, classDef *cd);
 static int isZeroArgSlot(memberDef *md);
 static int isMultiArgSlot(memberDef *md);
 static int isIntArgSlot(memberDef *md);
@@ -2252,15 +2252,14 @@ static int generateEnumMemberTable(sipSpec *pt, moduleDef *mod, classDef *cd,
         if (cd != NULL)
         {
             if (isProtectedEnum(emd->ed))
-                prcode(fp, "sip");
-
-            prcode(fp, "%S::%s", classFQCName(cd), emd->cname);
+                prcode(fp, "sip%C::", classFQCName(cd));
+            else if (isProtectedClass(cd))
+                prcode(fp, "%U::", cd);
+            else
+                prcode(fp, "%S::", classFQCName(cd));
         }
-        else
-            prcode(fp,"%s"
-                , emd->cname);
 
-        prcode(fp, ", %d},\n", emd->ed->enumnr);
+        prcode(fp, "%s, %d},\n", emd->cname, emd->ed->enumnr);
     }
 
     prcode(fp,
@@ -3072,8 +3071,26 @@ static void generateIfaceCpp(sipSpec *pt, ifaceFileDef *iff, char *codeDir,
     generateUsedIncludes(iff->used, fp);
 
     for (cd = pt->classes; cd != NULL; cd = cd->next)
+    {
+        /*
+         * Protected classes must be generated in the interface file of the
+         * enclosing scope.
+         */
+        if (isProtectedClass(cd))
+            continue;
+
         if (cd->iff == iff && !isExternal(cd))
+        {
+            classDef *pcd;
+
             generateClassCpp(cd, pt, fp);
+
+            /* Generate any enclosed protected classes. */
+            for (pcd = pt->classes; pcd != NULL; pcd = pcd->next)
+                if (isProtectedClass(pcd) && pcd->ecd == cd)
+                    generateClassCpp(pcd, pt, fp);
+        }
+    }
 
     for (mtd = pt->mappedtypes; mtd != NULL; mtd = mtd->next)
         if (mtd->iff == iff)
@@ -6891,8 +6908,15 @@ static void generateShadowClassDeclaration(sipSpec *pt,classDef *cd,FILE *fp)
             continue;
 
         prcode(fp,
-"    class sip%s : public %s {};\n"
-            ,classBaseName(pcd),classBaseName(pcd));
+"    class sip%s : public %s {\n"
+"    public:", classBaseName(pcd), classBaseName(pcd));
+
+        generateProtectedEnums(pt, pcd, fp);
+
+        prcode(fp,
+"    };\n"
+"\n"
+                );
     }
 
     /* The constructor declarations. */
@@ -10659,7 +10683,7 @@ void prcode(FILE *fp, const char *fmt, ...)
                 if (generating_c)
                     fprintf(fp,"struct ");
 
-                prScopedClassName(fp,va_arg(ap,classDef *),"::");
+                prScopedClassName(fp, va_arg(ap,classDef *));
                 break;
 
             case 'O':
@@ -10848,21 +10872,27 @@ static void prScopedName(FILE *fp,scopedNameDef *snd,char *sep)
 
 /*
  * Generate a scoped class name with the given separator string.  At the moment
- * this provides (probably) broken support for protected classes.
+ * this provides (maybe) broken support for protected classes.
  */
-static void prScopedClassName(FILE *fp,classDef *cd,char *sep)
+static void prScopedClassName(FILE *fp, classDef *cd)
 {
-    scopedNameDef *snd = classFQCName(cd);
-
-    while (snd != NULL)
+    /*
+     * Protected classes have to be referred to by the shadow class which is
+     * not put into a namespace.
+     */
+    if (isProtectedClass(cd))
+        prcode(fp, "sip%C::sip%s", classFQCName(cd->ecd), classBaseName(cd));
+    else
     {
-        if (isProtectedClass(cd))
-            fprintf(fp,"sip");
+        scopedNameDef *snd = classFQCName(cd);
 
-        fprintf(fp,"%s",snd->name);
+        while (snd != NULL)
+        {
+            fprintf(fp,"%s",snd->name);
 
-        if ((snd = snd->next) != NULL)
-            fprintf(fp,"%s",sep);
+            if ((snd = snd->next) != NULL)
+                fprintf(fp, "::");
+        }
     }
 }
 

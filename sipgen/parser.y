@@ -2906,7 +2906,12 @@ static classDef *newClass(sipSpec *pt,ifaceFileType iftype,
     if ((scope = currentScope()) != NULL)
     {
         if (sectionFlags & SECT_IS_PROT)
+        {
             flags = CLASS_IS_PROTECTED;
+
+            if (scope->iff->type == class_iface)
+                setHasShadow(scope);
+        }
 
         /* Header code from outer scopes is also included. */
         hdrcode = scope->iff->hdrcode;
@@ -3237,20 +3242,23 @@ static enumDef *newEnum(sipSpec *pt,moduleDef *mod,char *name,optFlags *of,
     ed -> enumflags = flags;
     ed -> enumnr = -1;
     ed -> ecd = escope;
-    ed -> pcd = (flags & SECT_IS_PROT) ? escope : NULL;
+    ed -> pcd = NULL;
     ed -> module = mod;
     ed -> members = NULL;
     ed -> slots = NULL;
     ed -> overs = NULL;
     ed -> next = pt -> enums;
 
+    /*
+     * Publish the enum if it is protected or its enclosing scope is protected.
+     */
+    if (escope != NULL && ((flags & SECT_IS_PROT) || isProtectedClass(escope)))
+        ed->pcd = escope;
+
     if (name != NULL && strcmp(ed->pyname->text, name) != 0)
         setIsRenamedEnum(ed);
 
     pt -> enums = ed;
-
-    if (escope != NULL)
-        setHasEnums(escope);
 
     return ed;
 }
