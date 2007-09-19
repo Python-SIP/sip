@@ -1274,6 +1274,7 @@ typedef struct _sipQtAPI {
 #define SIP_NOT_IN_MAP      0x0020  /* If Python object not in the map. */
 #define SIP_SHARE_MAP       0x0040  /* If the map slot might be occupied. */
 #define SIP_CPP_HAS_REF     0x0080  /* If C/C++ has a reference. */
+#define SIP_POSSIBLE_PROXY  0x0100  /* If there might be a proxy slot. */
 
 #define sipIsPyOwned(w)     ((w)->flags & SIP_PY_OWNED)
 #define sipSetPyOwned(w)    ((w)->flags |= SIP_PY_OWNED)
@@ -1285,7 +1286,9 @@ typedef struct _sipQtAPI {
 #define sipSetNotInMap(w)   ((w)->flags |= SIP_NOT_IN_MAP)
 #define sipCppHasRef(w)     ((w)->flags & SIP_CPP_HAS_REF)
 #define sipSetCppHasRef(w)  ((w)->flags |= SIP_CPP_HAS_REF)
-#define sipResetCppHasRef(w) ((w)->flags &= ~SIP_CPP_HAS_REF)
+#define sipResetCppHasRef(w)    ((w)->flags &= ~SIP_CPP_HAS_REF)
+#define sipPossibleProxy(w) ((w)->flags & SIP_POSSIBLE_PROXY)
+#define sipSetPossibleProxy(w)  ((w)->flags |= SIP_POSSIBLE_PROXY)
 
 
 #define SIP_TYPE_ABSTRACT   0x0001  /* If the type is abstract. */

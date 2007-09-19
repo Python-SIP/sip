@@ -6780,7 +6780,7 @@ static int sipWrapper_clear(sipWrapper *self)
     }
 
     /* Remove any lambda slots connected via a proxy. */
-    if (qt_and_sip_api_3_4())
+    if (qt_and_sip_api_3_4() && sipPossibleProxy(self))
     {
         void *tx = sipGetAddress(self);
 

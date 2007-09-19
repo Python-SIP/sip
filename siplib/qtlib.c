@@ -445,6 +445,9 @@ static void *createUniversalSlot(sipWrapper *txSelf, const char *sig,
         return 0;
     }
 
+    if (txSelf)
+        sipSetPossibleProxy(txSelf);
+
     return us;
 }
 
