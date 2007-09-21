@@ -423,6 +423,7 @@ static int parseWCharString(PyObject *obj, wchar_t **ap);
 static void raiseNoWChar();
 #endif
 static int importComponents(void);
+static void *getComplexCppPtr(sipWrapper *w, sipWrapperType *type);
 
 
 /*
@@ -3092,13 +3093,14 @@ static int parsePass2(sipWrapper *self, int selfarg, int nrargs,
              * its protected methods.
              */
 
+            sipWrapperType *type;
             void **p;
 
             *va_arg(va,PyObject **) = (PyObject *)self;
-            va_arg(va,sipWrapperType *);
+            type = va_arg(va,sipWrapperType *);
             p = va_arg(va,void **);
 
-            if ((*p = sip_api_get_complex_cpp_ptr(self)) == NULL)
+            if ((*p = getComplexCppPtr(self, type)) == NULL)
                 valid = PARSE_RAISED;
 
             break;
@@ -5001,25 +5003,6 @@ static int sip_api_add_mapped_type_instance(PyObject *dict, const char *name,
 
 
 /*
- * Get the C/C++ pointer for a complex object.
- */
-static void *sip_api_get_complex_cpp_ptr(sipWrapper *w)
-{
-    if (!sipIsDerived(w))
-    {
-        PyErr_SetString(PyExc_RuntimeError,"no access to protected functions or signals for objects not created from Python");
-
-        return NULL;
-    }
-
-    if (checkPointer(w->u.cppPtr) < 0)
-        return NULL;
-
-    return w->u.cppPtr;
-}
-
-
-/*
  * Return the Python member function corresponding to a C/C++ virtual function,
  * if any.  If one was found then the Python lock is acquired.
  */
@@ -5110,6 +5093,34 @@ void *sipGetAddress(sipWrapper *w)
         return *((void **)w->u.cppPtr);
 
     return w->u.cppPtr;
+}
+
+
+/*
+ * Get the C/C++ pointer for a complex object.  Note that not casting the C++
+ * pointer is a bug.  However this is only ever called by PyQt3 signal emitter
+ * code and PyQt doesn't contain anything that mutliply inherits from QObject.
+ */
+static void *sip_api_get_complex_cpp_ptr(sipWrapper *w)
+{
+    return getComplexCppPtr(w, NULL);
+}
+
+
+/*
+ * Get the C/C++ pointer for a complex object and optionally cast it to the
+ * required type.
+ */
+static void *getComplexCppPtr(sipWrapper *w, sipWrapperType *type)
+{
+    if (!sipIsDerived(w))
+    {
+        PyErr_SetString(PyExc_RuntimeError,"no access to protected functions or signals for objects not created from Python");
+
+        return NULL;
+    }
+
+    return sip_api_get_cpp_ptr(w, type);
 }
 
 
