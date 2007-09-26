@@ -148,11 +148,13 @@ void sipOMAddObject(sipObjectMap *om,sipWrapper *val)
 
             while (w != NULL)
             {
+                sipWrapper *next = w->next;
+
                 /* We are removing it from the map here. */
                 sipSetNotInMap(w);
                 sip_api_common_dtor(w);
 
-                w = w->next;
+                w = next;
             }
         }
 
