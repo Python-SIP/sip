@@ -1,3 +1,6 @@
+v4.7.1 28th September 2007
+  - A bug fix release.
+
 v4.7 30th July 2007
   - Added %PickleCode to allow handwritten code to pickle a wrapped C++
     instance or C structure.
