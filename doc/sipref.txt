@@ -589,7 +589,7 @@ previous examples.
     - The ``public`` keyword used in defining the super-classes has been
       removed.  This is not supported by SIP.
 
-    - The TransferThis_ annotation has been added to the first argument
+    - The TransferThis annotation has been added to the first argument
       of the constructor.  It specifies that if the argument is not 0 (i.e. the
       ``Hello`` instance being constructed has a parent) then ownership of the
       instance is transferred from Python to C++.  It is needed because Qt
@@ -765,7 +765,7 @@ ensure that Python's cyclic garbage collector can detect and break any
 reference cycles between the owning and owned instances.  The association is
 implemented as the owning instance taking a reference to the owned instance.
 
-The TransferThis_, Transfer and TransferBack annotations are used to specify
+The TransferThis, Transfer and TransferBack annotations are used to specify
 where, and it what direction, transfers of ownership happen.  It is very
 important that these are specified correctly to avoid crashes (where both
 Python and C++ call the destructor) and memory leaks (where neither Python and
@@ -3347,6 +3347,8 @@ is transferred from Python to C++ if the corresponding argument is not
 The annotation may be used more that once, in which case ownership is
 transferred to last instance that is not ``None``.
 
+Note that this can also be used as a function annotation.
+
 See `Ownership of Objects`_ for more detail.
 
 
@@ -3593,6 +3595,17 @@ transferred back to Python from C++.  Normally returned values (unless they are
 new references to already wrapped values) are owned by C++.  In addition, any
 association of the returned value with regard to the cyclic garbage collector
 with another instance is removed.
+
+Note that this can also be used as an argument annotation.
+
+See `Ownership of Objects`_ for more detail.
+
+
+TransferThis
+************
+
+This boolean annotation specifies that ownership of ``this`` is transferred
+from Python to C++.
 
 Note that this can also be used as an argument annotation.
 

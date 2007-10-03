@@ -9661,11 +9661,17 @@ static void generateFunctionCall(classDef *cd,classDef *ocd,overDef *od,
 "                sipTransferTo(sipSelf, (PyObject *)sipOwner);\n"
 "            else\n"
 "                sipTransferBack(sipSelf);\n"
-                );
+                        );
 
                 break;
             }
         }
+
+    if (isThisTransferredMeth(od))
+        prcode(fp,
+"\n"
+"            sipTransferTo(sipSelf, NULL);\n"
+                );
 
     gc_ellipsis(&od->pysig, fp);
 

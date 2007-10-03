@@ -200,6 +200,7 @@
 #define OVER_DONT_DEREF_SELF    0x00040000  /* For comparison operators, don't dereference self. */
 #define OVER_HOLD_GIL       0x00080000  /* The function holds the GIL. */
 #define OVER_RELEASE_GIL    0x00100000  /* The function releases the GIL. */
+#define OVER_THIS_XFERRED   0x00200000  /* Ownership of this is transferred. */
 
 #define isPublic(o)         ((o)->overflags & SECT_IS_PUBLIC)
 #define setIsPublic(o)      ((o)->overflags |= SECT_IS_PUBLIC)
@@ -239,6 +240,8 @@
 #define setIsHoldGIL(o)     ((o)->overflags |= OVER_HOLD_GIL)
 #define isReleaseGIL(o)     ((o)->overflags & OVER_RELEASE_GIL)
 #define setIsReleaseGIL(o)  ((o)->overflags |= OVER_RELEASE_GIL)
+#define isThisTransferredMeth(o)    ((o)->overflags & OVER_THIS_XFERRED)
+#define setIsThisTransferredMeth(o) ((o)->overflags |= OVER_THIS_XFERRED)
 
 
 /* Handle variable flags. */
