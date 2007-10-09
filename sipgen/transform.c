@@ -1251,29 +1251,6 @@ static void getVisibleMembers(sipSpec *pt, classDef *cd)
 
         mrocd = mro->cd;
 
-        /*
-         * If the base class is in the main module, see if it needs to publish
-         * any protected enums.
-         */
-        if (generatingCodeForModule(pt, cd->iff->module))
-        {
-            enumDef *ed;
-
-            for (ed = pt->enums; ed != NULL; ed = ed->next)
-            {
-                /* Skip unless we are the publisher. */
-                if (ed->pcd != mrocd)
-                    continue;
-
-                /*
-                 * If we are not in the main module then the base class must
-                 * take over as the publisher.
-                 */
-                if (!generatingCodeForModule(pt, mrocd->iff->module))
-                    ed->pcd = cd;
-            }
-        }
-
         for (md = mrocd->members; md != NULL; md = md->next)
         {
             visibleList *vl;

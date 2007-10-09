@@ -428,7 +428,8 @@ typedef enum {
     anyslot_type,
     cbool_type,
     sstring_type,
-    wstring_type
+    wstring_type,
+    fake_void_type
 } argType;
 
 
@@ -798,7 +799,6 @@ typedef struct _enumDef {
     nameDef *pyname;                    /* The Python name (may be NULL). */
     int enumnr;                         /* The enum number. */
     struct _classDef *ecd;              /* The enclosing class. */
-    struct _classDef *pcd;              /* The publishing class. */
     moduleDef *module;                  /* The owning module. */
     enumMemberDef *members;             /* The list of members. */
     struct _memberDef *slots;           /* The list of slots. */
@@ -986,7 +986,7 @@ void appendCodeBlock(codeBlock **headp, codeBlock *new);
 void prcode(FILE *fp, const char *fmt, ...);
 void prOverloadName(FILE *fp, overDef *od);
 void prScopedPythonName(FILE *fp, classDef *scope, const char *pyname);
-void prOverloadDecl(FILE *fp, overDef *od, int defval);
+void prOverloadDecl(FILE *fp, classDef *context, overDef *od, int defval);
 void searchTypedefs(sipSpec *pt, scopedNameDef *snd, argDef *ad);
 int isIntReturnSlot(memberDef *md);
 int isLongReturnSlot(memberDef *md);

@@ -3242,18 +3242,11 @@ static enumDef *newEnum(sipSpec *pt,moduleDef *mod,char *name,optFlags *of,
     ed -> enumflags = flags;
     ed -> enumnr = -1;
     ed -> ecd = escope;
-    ed -> pcd = NULL;
     ed -> module = mod;
     ed -> members = NULL;
     ed -> slots = NULL;
     ed -> overs = NULL;
     ed -> next = pt -> enums;
-
-    /*
-     * Publish the enum if it is protected or its enclosing scope is protected.
-     */
-    if (escope != NULL && ((flags & SECT_IS_PROT) || isProtectedClass(escope)))
-        ed->pcd = escope;
 
     if (name != NULL && strcmp(ed->pyname->text, name) != 0)
         setIsRenamedEnum(ed);

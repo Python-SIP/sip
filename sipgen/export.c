@@ -679,7 +679,7 @@ static int xmlOverload(classDef *scope, memberDef *md, overDef *od,
 static void xmlCppSignature(FILE *fp, overDef *od)
 {
     prcode(fp, "%M");
-    prOverloadDecl(fp, od, TRUE);
+    prOverloadDecl(fp, NULL, od, TRUE);
     prcode(fp, "%M");
 }
 
