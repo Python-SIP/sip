@@ -387,6 +387,9 @@ static void xmlClass(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
     prScopedPythonName(fp, cd->ecd, cd->pyname);
     fprintf(fp, "\"");
 
+    if (cd->picklecode != NULL)
+        fprintf(fp, " pickle=\"1\"");
+
     if (cd->convtocode != NULL)
         fprintf(fp, " convert=\"1\"");
 
