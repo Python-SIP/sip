@@ -1222,9 +1222,14 @@ class PythonModuleMakefile(Makefile):
         tail = dirname[len(self._moddir):]
 
         flist = []
-        for f in names:
+        for f in list(names):
             # Ignore certain files.
             if f in ("Makefile", ):
+                continue
+
+            # Do not recurse into certain directories.
+            if f in (".svn", "CVS"):
+                names.remove(f)
                 continue
 
             if os.path.isfile(os.path.join(dirname, f)):
