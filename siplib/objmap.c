@@ -101,6 +101,16 @@ sipWrapper *sipOMFindObject(sipObjectMap *om, void *key, sipWrapperType *type)
     for (w = he->first; w != NULL; w = w->next)
     {
         /*
+         * If the reference count is 0 then it is in the process of being
+         * deleted, so ignore it.  It's not completely clear how this can
+         * happen (but it can) because it implies that the garbage collection
+         * code is being re-entered (and there are guards in place to prevent
+         * this).
+         */
+        if (w->ob_refcnt == 0)
+            continue;
+
+        /*
          * If this wrapped object is of the given type, or a sub-type of it,
          * then we assume it is the same C++ object.
          */
@@ -241,13 +251,12 @@ int sipOMRemoveObject(sipObjectMap *om,sipWrapper *val)
             *wp = val -> next;
 
             /*
-             * If the bucket is now empty then count it as stale.
-             * Note that we do not NULL the key and count it as
-             * unused because that might throw out the search for
-             * another entry that wanted to go here, found it
-             * already occupied, and was put somewhere else.  In
-             * other words, searches must be repeatable until we
-             * reorganise the table.
+             * If the bucket is now empty then count it as stale.  Note that we
+             * do not NULL the key and count it as unused because that might
+             * throw out the search for another entry that wanted to go here,
+             * found it already occupied, and was put somewhere else.  In other
+             * words, searches must be repeatable until we reorganise the
+             * table.
              */
             if (he -> first == NULL)
                 om -> stale++;
