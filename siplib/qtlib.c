@@ -30,7 +30,8 @@ static PyObject *getWeakRef(PyObject *obj);
 static sipPySig *findPySignal(sipWrapper *,const char *);
 static char *sipStrdup(const char *);
 static int saveSlot(sipSlot *sp, PyObject *rxObj, const char *slot);
-static void *createUniversalSlot(sipWrapper *txSelf, const char *sig, PyObject *rxObj, const char *slot, const char **member);
+static void *createUniversalSlot(sipWrapper *txSelf, const char *sig,
+        PyObject *rxObj, const char *slot, const char **member, int flags);
 static void *findSignal(void *txrx, const char **sig);
 static void *newSignal(void *txrx, const char **sig);
 static void freeSlot(sipSlot *slot);
@@ -426,7 +427,7 @@ static void *newSignal(void *txrx, const char **sig)
  */
 static void *createUniversalSlot(sipWrapper *txSelf, const char *sig,
                  PyObject *rxObj, const char *slot,
-                 const char **member)
+                 const char **member, int flags)
 {
     sipSlotConnection conn;
     void *us;
@@ -439,7 +440,19 @@ static void *createUniversalSlot(sipWrapper *txSelf, const char *sig,
         return 0;
 
     /* Parse the signature and create the universal slot. */
-    if ((conn.sc_signature = sip_api_parse_signature(sig)) == NULL || (us = sipQtSupport->qt_create_universal_slot(txSelf, &conn, member)) == NULL)
+    if ((conn.sc_signature = sip_api_parse_signature(sig)) == NULL)
+    {
+        sip_api_free_connection(&conn);
+        return 0;
+    }
+
+    if (sipQtSupport->qt_create_universal_slot_ex != NULL)
+        us = sipQtSupport->qt_create_universal_slot_ex(txSelf, &conn, member,
+                flags);
+    else
+        us = sipQtSupport->qt_create_universal_slot(txSelf, &conn, member);
+
+    if (us == NULL)
     {
         sip_api_free_connection(&conn);
         return 0;
@@ -924,11 +937,11 @@ void *sipGetRx(sipWrapper *txSelf,const char *sigargs,PyObject *rxObj,
  * slot) to a Qt receiver.  It is only ever called when the signal is a Qt
  * signal.  Return NULL is there was an error.
  */
-void *sip_api_convert_rx(sipWrapper *txSelf,const char *sig,PyObject *rxObj,
-             const char *slot,const char **memberp)
+void *sipConvertRxEx(sipWrapper *txSelf,const char *sig,PyObject *rxObj,
+             const char *slot,const char **memberp, int flags)
 {
     if (slot == NULL)
-        return createUniversalSlot(txSelf, sig, rxObj, NULL, memberp);
+        return createUniversalSlot(txSelf, sig, rxObj, NULL, memberp, flags);
 
     if (isQtSlot(slot) || isQtSignal(slot))
     {
@@ -946,7 +959,7 @@ void *sip_api_convert_rx(sipWrapper *txSelf,const char *sig,PyObject *rxObj,
     }
 
     /* The slot is a Python signal so we need a universal slot to catch it. */
-    return createUniversalSlot(txSelf, sig, rxObj, slot, memberp);
+    return createUniversalSlot(txSelf, sig, rxObj, slot, memberp, 0);
 }
 
 
@@ -974,7 +987,7 @@ PyObject *sip_api_connect_rx(PyObject *txObj,const char *sig,PyObject *rxObj,
         if ((tx = newSignal(tx, &real_sig)) == NULL)
             return NULL;
 
-        if ((rx = sip_api_convert_rx(txSelf, sig, rxObj, slot, &member)) == NULL)
+        if ((rx = sipConvertRxEx(txSelf, sig, rxObj, slot, &member, 0)) == NULL)
             return NULL;
 
         res = sipQtSupport->qt_connect(tx, real_sig, rx, member, type);

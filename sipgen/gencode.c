@@ -1062,6 +1062,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "#define sipQtFindUniversalSignal            0\n"
 "#define sipQtEmitSignalShortcut             0\n"
 "#define sipQtEmitSignal                     0\n"
+"#define sipQtCreateUniversalSlotEx          0\n"
             );
 
     /* Define the names. */
@@ -1690,7 +1691,8 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "    sipQtGetSender,\n"
 "    sipQtForgetSender,\n"
 "    sipQtSameSignalSlotName,\n"
-"    sipQtFindConnection\n"
+"    sipQtFindConnection,\n"
+"    sipQtCreateUniversalSlotEx\n"
 "};\n"
             , mod->qobjclass);
 
@@ -10117,7 +10119,7 @@ static int generateArgParser(sipSpec *pt, signatureDef *sd, classDef *cd,
             break;
 
         case rxcon_type:
-            fmt = (secCall ? "y" : "q");
+            fmt = (secCall ? (isSingleShot(ad) ? "g" : "y") : "q");
             break;
 
         case rxdis_type:

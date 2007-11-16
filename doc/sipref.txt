@@ -3302,6 +3302,14 @@ annotation is specified.
 Both In_ and Out_ may be specified for the same argument.
 
 
+SingleShot
+**********
+
+This boolean annotation is used only with arguments of type SIP_RXOBJ_CON_ to
+specify that the signal connected to the slot will only ever be emitted once.
+This prevents a certain class of memory leaks.
+
+
 Transfer
 ********
 

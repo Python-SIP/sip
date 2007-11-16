@@ -50,8 +50,6 @@ extern PyInterpreterState *sipInterpreter;  /* The interpreter. */
 extern sipQtAPI *sipQtSupport;  /* The Qt support API. */
 extern sipWrapperType *sipQObjectClass; /* The Python QObject class. */
 
-void *sip_api_convert_rx(sipWrapper *txSelf, const char *sigargs,
-        PyObject *rxObj, const char *slot, const char **memberp);
 void *sipGetRx(sipWrapper *txSelf, const char *sigargs, PyObject *rxObj,
         const char *slot, const char **memberp);
 int sip_api_emit_signal(PyObject *self, const char *sig, PyObject *sigargs);
@@ -91,6 +89,8 @@ void sipSaveMethod(sipPyMethod *pm,PyObject *meth);
 void *sipGetPending(sipWrapper **op, int *fp);
 PyObject *sipWrapSimpleInstance(void *cppPtr, sipWrapperType *type,
         sipWrapper *owner, int initflags);
+void *sipConvertRxEx(sipWrapper *txSelf, const char *sigargs,
+        PyObject *rxObj, const char *slot, const char **memberp, int flags);
 
 void sipOMInit(sipObjectMap *om);
 void sipOMFinalise(sipObjectMap *om);

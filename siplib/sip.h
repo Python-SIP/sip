@@ -56,6 +56,8 @@ extern "C" {
  *
  * History:
  *
+ * 3.6  Added the 'g' format character to sip_api_parse_args().
+ *
  * 3.5  Added the td_pickle field to the sipTypeDef structure.
  *      Added sip_api_transfer_break().
  *
@@ -103,7 +105,7 @@ extern "C" {
  * 0.0  Original version.
  */
 #define SIP_API_MAJOR_NR    3
-#define SIP_API_MINOR_NR    5
+#define SIP_API_MINOR_NR    6
 
 
 /* Some compatibility stuff to help with handwritten code for SIP v3. */
@@ -1246,6 +1248,8 @@ typedef struct _sipQtAPI {
     void (*qt_forget_sender)();
     int (*qt_same_name)(const char *, const char *);
     sipSlotConnection *(*qt_find_connection)(void *, void **);
+    void *(*qt_create_universal_slot_ex)(struct _sipWrapper *,
+            struct _sipSlotConnection *, const char **, int);
 } sipQtAPI;
 
 
@@ -1263,6 +1267,12 @@ typedef struct _sipQtAPI {
  */
 #define SIP_TEMPORARY       0x0001  /* A temporary instance. */
 #define SIP_DERIVED_CLASS   0x0002  /* The instance is derived. */
+
+
+/*
+ * These flags are specific to the Qt support API.
+ */
+#define SIP_SINGLE_SHOT     0x01    /* The connection is single shot. */
 
 
 /*

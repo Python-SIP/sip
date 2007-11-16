@@ -2064,42 +2064,45 @@ rawarglist: {
         }
     ;
 
-argvalue:   TK_SIPSIGNAL optname optassign {
+argvalue:   TK_SIPSIGNAL optname optflags optassign {
             $$.atype = signal_type;
             $$.argflags = ARG_IS_CONST;
             $$.nrderefs = 0;
             $$.name = $2;
-            $$.defval = $3;
+            $$.defval = $4;
 
             currentSpec -> sigslots = TRUE;
         }
-    |   TK_SIPSLOT optname optassign {
+    |   TK_SIPSLOT optname optflags optassign {
             $$.atype = slot_type;
             $$.argflags = ARG_IS_CONST;
             $$.nrderefs = 0;
             $$.name = $2;
-            $$.defval = $3;
+            $$.defval = $4;
 
             currentSpec -> sigslots = TRUE;
         }
-    |   TK_SIPANYSLOT optname optassign {
+    |   TK_SIPANYSLOT optname optflags optassign {
             $$.atype = anyslot_type;
             $$.argflags = ARG_IS_CONST;
             $$.nrderefs = 0;
             $$.name = $2;
-            $$.defval = $3;
+            $$.defval = $4;
 
             currentSpec -> sigslots = TRUE;
         }
-    |   TK_SIPRXCON optname {
+    |   TK_SIPRXCON optname optflags {
             $$.atype = rxcon_type;
             $$.argflags = 0;
             $$.nrderefs = 0;
             $$.name = $2;
 
+            if (findOptFlag(&$3, "SingleShot", bool_flag) != NULL)
+                $$.argflags |= ARG_SINGLE_SHOT;
+
             currentSpec -> sigslots = TRUE;
         }
-    |   TK_SIPRXDIS optname {
+    |   TK_SIPRXDIS optname optflags {
             $$.atype = rxdis_type;
             $$.argflags = 0;
             $$.nrderefs = 0;
@@ -2107,7 +2110,7 @@ argvalue:   TK_SIPSIGNAL optname optassign {
 
             currentSpec -> sigslots = TRUE;
         }
-    |   TK_SIPSLOTCON '(' arglist ')' optname {
+    |   TK_SIPSLOTCON '(' arglist ')' optname optflags {
             $$.atype = slotcon_type;
             $$.argflags = ARG_IS_CONST;
             $$.nrderefs = 0;
@@ -2122,7 +2125,7 @@ argvalue:   TK_SIPSIGNAL optname optassign {
 
             currentSpec -> sigslots = TRUE;
         }
-    |   TK_SIPSLOTDIS '(' arglist ')' optname {
+    |   TK_SIPSLOTDIS '(' arglist ')' optname optflags {
             $$.atype = slotdis_type;
             $$.argflags = ARG_IS_CONST;
             $$.nrderefs = 0;
@@ -2137,7 +2140,7 @@ argvalue:   TK_SIPSIGNAL optname optassign {
 
             currentSpec -> sigslots = TRUE;
         }
-    |   TK_QOBJECT optname {
+    |   TK_QOBJECT optname optflags {
             $$.atype = qobject_type;
             $$.argflags = 0;
             $$.nrderefs = 0;

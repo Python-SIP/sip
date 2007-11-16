@@ -269,6 +269,7 @@
 #define ARG_IN              0x0200  /* It passes an argument. */
 #define ARG_OUT             0x0400  /* It returns a result. */
 #define ARG_CONSTRAINED     0x0800  /* Suppress type conversion. */
+#define ARG_SINGLE_SHOT     0x1000  /* The slot is only ever fired once. */
 
 #define isReference(a)      ((a)->argflags & ARG_IS_REF)
 #define setIsReference(a)   ((a)-> argflags |= ARG_IS_REF)
@@ -297,6 +298,7 @@
 #define isConstrained(a)    ((a)->argflags & ARG_CONSTRAINED)
 #define setIsConstrained(a) ((a)->argflags |= ARG_CONSTRAINED)
 #define resetIsConstrained(a)   ((a)->argflags &= ~ARG_CONSTRAINED)
+#define isSingleShot(a)     ((a)->argflags & ARG_SINGLE_SHOT)
 
 
 /* Handle name flags. */
