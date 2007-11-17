@@ -446,7 +446,11 @@ static void *createUniversalSlot(sipWrapper *txSelf, const char *sig,
         return 0;
     }
 
-    if (sipQtSupport->qt_create_universal_slot_ex != NULL)
+    /*
+     * Use the new API only if it is needed.  This ensures binary
+     * compatibility.
+     */
+    if (flags)
         us = sipQtSupport->qt_create_universal_slot_ex(txSelf, &conn, member,
                 flags);
     else
