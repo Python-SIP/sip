@@ -578,7 +578,7 @@ static PyObject *dumpWrapper(PyObject *self, PyObject *args)
         print_wrapper(NULL, w);
 
 #if PY_VERSION_HEX >= 0x02050000
-        printf("    Reference count: %zd\n", w->ob_refcnt);
+        printf("    Reference count: %" PY_FORMAT_SIZE_T "d\n", w->ob_refcnt);
 #else
         printf("    Reference count: %d\n", w->ob_refcnt);
 #endif
