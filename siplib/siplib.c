@@ -577,7 +577,11 @@ static PyObject *dumpWrapper(PyObject *self, PyObject *args)
     {
         print_wrapper(NULL, w);
 
+#if PY_VERSION_HEX >= 0x02050000
         printf("    Reference count: %zd\n", w->ob_refcnt);
+#else
+        printf("    Reference count: %d\n", w->ob_refcnt);
+#endif
         printf("    Address of wrapped object: %p\n", sipGetAddress(w));
         printf("    To be destroyed by: %s\n", (sipIsPyOwned(w) ? "Python" : "C/C++"));
         printf("    Derived class?: %s\n", (sipIsDerived(w) ? "yes" : "no"));
