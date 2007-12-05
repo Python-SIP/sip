@@ -125,7 +125,8 @@ static void generateFunctionCall(classDef *cd, classDef *ocd, overDef *od,
 static void generateCppFunctionCall(classDef *cd, classDef *ocd, overDef *od,
         FILE *fp);
 static void generateSlotArg(signatureDef *sd, int argnr, FILE *fp);
-static void generateBinarySlotCall(overDef *od, char *op, int deref, FILE *fp);
+static void generateBinarySlotCall(classDef *cd, overDef *od, char *op,
+        int deref, FILE *fp);
 static void generateNumberSlotCall(overDef *od, char *op, FILE *fp);
 static void generateVariableHandler(classDef *, varDef *, FILE *);
 static int generateObjToCppConversion(argDef *, FILE *);
@@ -9537,7 +9538,7 @@ static void generateFunctionCall(classDef *cd,classDef *ocd,overDef *od,
             break;
 
         case concat_slot:
-            generateBinarySlotCall(od,"+",deref,fp);
+            generateBinarySlotCall(cd, od, "+", deref, fp);
             break;
 
         case sub_slot:
@@ -9549,7 +9550,7 @@ static void generateFunctionCall(classDef *cd,classDef *ocd,overDef *od,
             break;
 
         case repeat_slot:
-            generateBinarySlotCall(od,"*",deref,fp);
+            generateBinarySlotCall(cd, od, "*", deref, fp);
             break;
 
         case div_slot:
@@ -9582,44 +9583,44 @@ static void generateFunctionCall(classDef *cd,classDef *ocd,overDef *od,
 
         case iadd_slot:
         case iconcat_slot:
-            generateBinarySlotCall(od,"+=",deref,fp);
+            generateBinarySlotCall(cd, od, "+=", deref, fp);
             break;
 
         case isub_slot:
-            generateBinarySlotCall(od,"-=",deref,fp);
+            generateBinarySlotCall(cd, od, "-=", deref, fp);
             break;
 
         case imul_slot:
         case irepeat_slot:
-            generateBinarySlotCall(od,"*=",deref,fp);
+            generateBinarySlotCall(cd, od, "*=", deref, fp);
             break;
 
         case idiv_slot:
-            generateBinarySlotCall(od,"/=",deref,fp);
+            generateBinarySlotCall(cd, od, "/=", deref, fp);
             break;
 
         case imod_slot:
-            generateBinarySlotCall(od,"%=",deref,fp);
+            generateBinarySlotCall(cd, od, "%=", deref, fp);
             break;
 
         case iand_slot:
-            generateBinarySlotCall(od,"&=",deref,fp);
+            generateBinarySlotCall(cd, od, "&=", deref, fp);
             break;
 
         case ior_slot:
-            generateBinarySlotCall(od,"|=",deref,fp);
+            generateBinarySlotCall(cd, od, "|=", deref, fp);
             break;
 
         case ixor_slot:
-            generateBinarySlotCall(od,"^=",deref,fp);
+            generateBinarySlotCall(cd, od, "^=", deref, fp);
             break;
 
         case ilshift_slot:
-            generateBinarySlotCall(od,"<<=",deref,fp);
+            generateBinarySlotCall(cd, od, "<<=", deref, fp);
             break;
 
         case irshift_slot:
-            generateBinarySlotCall(od,">>=",deref,fp);
+            generateBinarySlotCall(cd, od, ">>=", deref, fp);
             break;
 
         case invert_slot:
@@ -9627,27 +9628,27 @@ static void generateFunctionCall(classDef *cd,classDef *ocd,overDef *od,
             break;
 
         case lt_slot:
-            generateBinarySlotCall(od,"<",deref,fp);
+            generateBinarySlotCall(cd, od, "<", deref, fp);
             break;
 
         case le_slot:
-            generateBinarySlotCall(od,"<=",deref,fp);
+            generateBinarySlotCall(cd, od, "<=", deref, fp);
             break;
 
         case eq_slot:
-            generateBinarySlotCall(od,"==",deref,fp);
+            generateBinarySlotCall(cd, od, "==", deref, fp);
             break;
 
         case ne_slot:
-            generateBinarySlotCall(od,"!=",deref,fp);
+            generateBinarySlotCall(cd, od, "!=", deref, fp);
             break;
 
         case gt_slot:
-            generateBinarySlotCall(od,">",deref,fp);
+            generateBinarySlotCall(cd, od, ">", deref, fp);
             break;
 
         case ge_slot:
-            generateBinarySlotCall(od,">=",deref,fp);
+            generateBinarySlotCall(cd, od, ">=", deref, fp);
             break;
 
         case neg_slot:
@@ -9660,11 +9661,11 @@ static void generateFunctionCall(classDef *cd,classDef *ocd,overDef *od,
 
         case cmp_slot:
             prcode(fp,"if ");
-            generateBinarySlotCall(od,"<",deref,fp);
+            generateBinarySlotCall(cd, od, "<", deref, fp);
             prcode(fp,"\n"
 "                sipRes = -1;\n"
 "            else if ");
-            generateBinarySlotCall(od,">",deref,fp);
+            generateBinarySlotCall(cd, od, ">", deref, fp);
             prcode(fp,"\n"
 "                sipRes = 1;\n"
 "            else\n"
@@ -9851,12 +9852,16 @@ static void generateSlotArg(signatureDef *sd, int argnr, FILE *fp)
 /*
  * Generate the call to a binary (non-number) slot method.
  */
-static void generateBinarySlotCall(overDef *od, char *op, int deref, FILE *fp)
+static void generateBinarySlotCall(classDef *cd, overDef *od, char *op,
+        int deref, FILE *fp)
 {
-    if (deref)
-        prcode(fp, "((*sipCpp) %s ", op);
+    if (!isGlobal(od))
+        prcode(fp, "sipCpp%s%S::operator%s(", (deref ? "->" : "."),
+                classFQCName(cd), op);
+    else if (deref)
+        prcode(fp, "::operator%s((*sipCpp), ", op);
     else
-        prcode(fp, "(sipCpp %s ", op);
+        prcode(fp, "::operator%s(sipCpp, ", op);
 
     generateSlotArg(&od->pysig, 0, fp);
     prcode(fp, ")");

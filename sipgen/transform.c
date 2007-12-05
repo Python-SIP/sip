@@ -603,10 +603,7 @@ static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd)
         /* Remove from the list. */
         *odp = od->next;
 
-        /*
-         * The only time we need the name of an enum is when it has
-         * slots.
-         */
+        /* The only time we need the name of an enum is when it has slots. */
         if (nd != NULL)
             setIsUsedName(nd);
 
@@ -629,6 +626,7 @@ static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd)
 
         /* Move the overload. */
         setIsPublic(od);
+        setIsGlobal(od);
         od->common = md;
         od->next = *odhead;
 

@@ -201,6 +201,7 @@
 #define OVER_HOLD_GIL       0x00080000  /* The function holds the GIL. */
 #define OVER_RELEASE_GIL    0x00100000  /* The function releases the GIL. */
 #define OVER_THIS_XFERRED   0x00200000  /* Ownership of this is transferred. */
+#define OVER_IS_GLOBAL      0x00400000  /* It is a global operator. */
 
 #define isPublic(o)         ((o)->overflags & SECT_IS_PUBLIC)
 #define setIsPublic(o)      ((o)->overflags |= SECT_IS_PUBLIC)
@@ -242,6 +243,8 @@
 #define setIsReleaseGIL(o)  ((o)->overflags |= OVER_RELEASE_GIL)
 #define isThisTransferredMeth(o)    ((o)->overflags & OVER_THIS_XFERRED)
 #define setIsThisTransferredMeth(o) ((o)->overflags |= OVER_THIS_XFERRED)
+#define isGlobal(o)         ((o)->overflags & OVER_IS_GLOBAL)
+#define setIsGlobal(o)      ((o)->overflags |= OVER_IS_GLOBAL)
 
 
 /* Handle variable flags. */
