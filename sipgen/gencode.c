@@ -125,7 +125,9 @@ static void generateFunctionCall(classDef *cd, classDef *ocd, overDef *od,
 static void generateCppFunctionCall(classDef *cd, classDef *ocd, overDef *od,
         FILE *fp);
 static void generateSlotArg(signatureDef *sd, int argnr, FILE *fp);
-static void generateBinarySlotCall(classDef *cd, overDef *od, char *op,
+static void generateComparisonSlotCall(classDef *cd, overDef *od,
+        const char *op, const char *cop, int deref, FILE *fp);
+static void generateBinarySlotCall(classDef *cd, overDef *od, const char *op,
         int deref, FILE *fp);
 static void generateNumberSlotCall(overDef *od, char *op, FILE *fp);
 static void generateVariableHandler(classDef *, varDef *, FILE *);
@@ -9628,27 +9630,27 @@ static void generateFunctionCall(classDef *cd,classDef *ocd,overDef *od,
             break;
 
         case lt_slot:
-            generateBinarySlotCall(cd, od, "<", deref, fp);
+            generateComparisonSlotCall(cd, od, "<", ">=", deref, fp);
             break;
 
         case le_slot:
-            generateBinarySlotCall(cd, od, "<=", deref, fp);
+            generateComparisonSlotCall(cd, od, "<=", ">", deref, fp);
             break;
 
         case eq_slot:
-            generateBinarySlotCall(cd, od, "==", deref, fp);
+            generateComparisonSlotCall(cd, od, "==", "!=", deref, fp);
             break;
 
         case ne_slot:
-            generateBinarySlotCall(cd, od, "!=", deref, fp);
+            generateComparisonSlotCall(cd, od, "!=", "==", deref, fp);
             break;
 
         case gt_slot:
-            generateBinarySlotCall(cd, od, ">", deref, fp);
+            generateComparisonSlotCall(cd, od, ">", "<=", deref, fp);
             break;
 
         case ge_slot:
-            generateBinarySlotCall(cd, od, ">=", deref, fp);
+            generateComparisonSlotCall(cd, od, ">=", "<", deref, fp);
             break;
 
         case neg_slot:
@@ -9850,11 +9852,17 @@ static void generateSlotArg(signatureDef *sd, int argnr, FILE *fp)
 
 
 /*
- * Generate the call to a binary (non-number) slot method.
+ * Generate the call to a comparison slot method.
  */
-static void generateBinarySlotCall(classDef *cd, overDef *od, char *op,
-        int deref, FILE *fp)
+static void generateComparisonSlotCall(classDef *cd, overDef *od,
+        const char *op, const char *cop, int deref, FILE *fp)
 {
+    if (isComplementary(od))
+    {
+        op = cop;
+        prcode(fp, "!");
+    }
+
     if (!isGlobal(od))
         prcode(fp, "sipCpp%s%S::operator%s(", (deref ? "->" : "."),
                 classFQCName(cd), op);
@@ -9865,6 +9873,16 @@ static void generateBinarySlotCall(classDef *cd, overDef *od, char *op,
 
     generateSlotArg(&od->pysig, 0, fp);
     prcode(fp, ")");
+}
+
+
+/*
+ * Generate the call to a binary (non-number) slot method.
+ */
+static void generateBinarySlotCall(classDef *cd, overDef *od, const char *op,
+        int deref, FILE *fp)
+{
+    generateComparisonSlotCall(cd, od, op, "", deref, fp);
 }
 
 

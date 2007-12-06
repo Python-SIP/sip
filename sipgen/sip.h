@@ -202,6 +202,7 @@
 #define OVER_RELEASE_GIL    0x00100000  /* The function releases the GIL. */
 #define OVER_THIS_XFERRED   0x00200000  /* Ownership of this is transferred. */
 #define OVER_IS_GLOBAL      0x00400000  /* It is a global operator. */
+#define OVER_IS_COMPLEMENTARY   0x00800000  /* It is a complementary operator. */
 
 #define isPublic(o)         ((o)->overflags & SECT_IS_PUBLIC)
 #define setIsPublic(o)      ((o)->overflags |= SECT_IS_PUBLIC)
@@ -216,6 +217,7 @@
 
 #define isVirtual(o)        ((o)->overflags & OVER_IS_VIRTUAL)
 #define setIsVirtual(o)     ((o)->overflags |= OVER_IS_VIRTUAL)
+#define resetIsVirtual(o)   ((o)->overflags &= ~OVER_IS_VIRTUAL)
 #define isAbstract(o)       ((o)->overflags & OVER_IS_ABSTRACT)
 #define setIsAbstract(o)    ((o)->overflags |= OVER_IS_ABSTRACT)
 #define isConst(o)          ((o)->overflags & OVER_IS_CONST)
@@ -245,6 +247,8 @@
 #define setIsThisTransferredMeth(o) ((o)->overflags |= OVER_THIS_XFERRED)
 #define isGlobal(o)         ((o)->overflags & OVER_IS_GLOBAL)
 #define setIsGlobal(o)      ((o)->overflags |= OVER_IS_GLOBAL)
+#define isComplementary(o)  ((o)->overflags & OVER_IS_COMPLEMENTARY)
+#define setIsComplementary(o)   ((o)->overflags |= OVER_IS_COMPLEMENTARY)
 
 
 /* Handle variable flags. */
@@ -504,7 +508,7 @@ typedef struct _scopedNameDef {
 typedef struct _nameDef {
     int nameflags;                      /* The name flags. */
     struct _moduleDef *module;          /* The main module. */
-    char *text;                         /* The text of the name. */
+    const char *text;                   /* The text of the name. */
     struct _nameDef *next;              /* Next in the list. */
 } nameDef;
 
@@ -1007,6 +1011,7 @@ int optNoEmitters(sipSpec *pt);
 int optRegisterTypes(sipSpec *pt);
 int optQ_OBJECT4(sipSpec *pt);
 void yywarning(char *);
+nameDef *cacheName(sipSpec *pt, const char *name);
 
 
 /* These are only here because bison publically references them. */

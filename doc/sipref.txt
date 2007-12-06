@@ -79,6 +79,8 @@ SIP, and the bindings it produces, have the following features.
 
     - support for C++ exceptions and wrapping them as Python exceptions
 
+    - the automatic generation of complementary rich comparison slots
+
     - the ability to define mappings between C++ classes and similar Python
       data types that are automatically invoked
 
@@ -171,6 +173,21 @@ SIP itself does not require Qt to be installed.
 
 Potential Incompatibilities with Earlier Versions
 =================================================
+
+SIP v4.7.3
+----------
+
+Prior to this version SIP did not automatically generate missing complementary
+comparison operators.  Typically this was worked around by adding them
+explicitly to the .sip files, even though they weren't implemented in C++ and
+relied on the C++ compiler calling the complementary operator that was
+implemented.
+
+A necessary change to the code generator meant that this not longer worked and
+so SIP was changed to automatically generate any missing complementary
+operators.  If you have added such operators explicitly then you should remove
+them or make them dependent on the particular version of SIP.
+
 
 SIP v4.4
 --------

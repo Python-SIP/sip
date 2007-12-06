@@ -69,6 +69,9 @@ static mappedTypeDef *instantiateMappedTypeTemplate(sipSpec *pt, moduleDef *mod,
 static classDef *getProxy(moduleDef *mod, classDef *cd);
 static int generatingCodeForModule(sipSpec *pt, moduleDef *mod);
 static void registerMetaType(classDef *cd);
+static void addComplementarySlots(sipSpec *pt, classDef *cd);
+static void addComplementarySlot(sipSpec *pt, classDef *cd, memberDef *md,
+        slotType cslot, const char *cslot_name);
 
 
 /*
@@ -219,10 +222,22 @@ void transform(sipSpec *pt)
      * Move casts and slots around to their correct classes (if in the same
      * module) or create proxies for them (if cross-module).
      */
-    if (!pt -> genc)
+    if (!pt->genc)
         for (mod = pt->modules; mod != NULL; mod = mod->next)
             if (generatingCodeForModule(pt, mod))
                 moveMainModuleCastsSlots(pt, mod);
+
+    /* Automatically generate missing complementary slots. */
+    if (!pt->genc)
+    {
+        for (cd = pt->classes; cd != NULL; cd = cd->next)
+            addComplementarySlots(pt, cd);
+
+        for (mod = pt->modules; mod != NULL; mod = mod->next)
+            if (generatingCodeForModule(pt, mod))
+                for (cd = mod->proxies; cd != NULL; cd = cd->next)
+                    addComplementarySlots(pt, cd);
+    }
 
     /* Generate the different class views. */
     for (cd = pt->classes; cd != NULL; cd = cd->next)
@@ -263,6 +278,107 @@ void transform(sipSpec *pt)
         for (cd = pt->classes; cd != NULL; cd = cd->next)
             if (generatingCodeForModule(pt, cd->iff->module))
                 registerMetaType(cd);
+}
+
+
+/*
+ * Add any missing complementary slots to a class.  This emulates the C++
+ * behaviour of automatically interpreting (for example) >= as !<.
+ */
+static void addComplementarySlots(sipSpec *pt, classDef *cd)
+{
+    memberDef *md;
+
+    for (md = cd->members; md != NULL; md = md->next)
+        switch (md->slot)
+        {
+        case lt_slot:
+            addComplementarySlot(pt, cd, md, ge_slot, "__ge__");
+            break;
+
+        case le_slot:
+            addComplementarySlot(pt, cd, md, gt_slot, "__gt__");
+            break;
+
+        case gt_slot:
+            addComplementarySlot(pt, cd, md, le_slot, "__le__");
+            break;
+
+        case ge_slot:
+            addComplementarySlot(pt, cd, md, lt_slot, "__lt__");
+            break;
+
+        case eq_slot:
+            addComplementarySlot(pt, cd, md, ne_slot, "__ne__");
+            break;
+
+        case ne_slot:
+            addComplementarySlot(pt, cd, md, eq_slot, "__eq__");
+            break;
+        }
+}
+
+
+/*
+ * Add a complementary slot if it is missing.
+ */
+static void addComplementarySlot(sipSpec *pt, classDef *cd, memberDef *md,
+        slotType cslot, const char *cslot_name)
+{
+    overDef *od1;
+    memberDef *md2 = NULL;
+
+    for (od1 = cd->overs; od1 != NULL; od1 = od1->next)
+    {
+        overDef *od2;
+
+        if (od1->common != md || isComplementary(od1) || od1->methodcode != NULL)
+            continue;
+
+        /* Try and find an existing complementary slot. */
+        for (od2 = cd->overs; od2 != NULL; od2 = od2->next)
+            if (od2->common->slot == cslot && sameSignature(&od1->pysig, &od2->pysig, TRUE))
+                break;
+
+        /*
+         * If there is an explicit complementary slot then there is nothing to
+         * do.
+         */
+        if (od2 != NULL)
+            continue;
+
+        /* Create a new member if needed. */
+        if (md2 == NULL)
+        {
+            for (md2 = cd->members; md2 != NULL; md2 = md2->next)
+                if (md2->slot == cslot)
+                    break;
+
+            if (md2 == NULL)
+            {
+                md2 = sipMalloc(sizeof (memberDef));
+
+                md2->pyname = cacheName(pt, cslot_name);
+                md2->memberflags = md->memberflags;
+                md2->slot = cslot;
+                md2->module = md->module;
+
+                md2->next = cd->members;
+                cd->members = md2;
+            }
+        }
+
+        /* Create the complementary slot. */
+        od2 = sipMalloc(sizeof (overDef));
+
+        *od2 = *od1;
+        resetIsVirtual(od2);
+        setIsComplementary(od2);
+        od2->common = md2;
+
+        od2->next = cd->overs;
+        cd->overs = od2;
+    }
 }
 
 

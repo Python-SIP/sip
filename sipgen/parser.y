@@ -40,7 +40,6 @@ static int currentTimelineOrder;        /* The current timeline order. */
 
 
 static char *getPythonName(optFlags *optflgs, char *cname);
-static nameDef *cacheName(sipSpec *,char *);
 static classDef *findClass(sipSpec *,ifaceFileType,scopedNameDef *);
 static classDef *findClassWithInterface(sipSpec *pt, ifaceFileDef *iff);
 static classDef *newClass(sipSpec *,ifaceFileType,scopedNameDef *);
@@ -4307,7 +4306,7 @@ static char *getPythonName(optFlags *optflgs, char *cname)
 /*
  * Cache a name in a module.
  */
-static nameDef *cacheName(sipSpec *pt, char *name)
+nameDef *cacheName(sipSpec *pt, const char *name)
 {
     nameDef *nd;
 
