@@ -8258,17 +8258,22 @@ static void generateTypeInit(sipSpec *pt, classDef *cd, FILE *fp)
 
     for (ct = cd->ctors; ct != NULL; ct = ct->next)
     {
-        int a;
-
         if (usedInCode(ct->methodcode, "sipSelf"))
             need_self = TRUE;
 
-        for (a = 0; a < ct->pysig.nrArgs; ++a)
-            if (isThisTransferred(&ct->pysig.args[a]))
-            {
-                need_owner = TRUE;
-                break;
-            }
+        if (isResultTransferredCtor(ct))
+            need_owner = TRUE;
+        else
+        {
+            int a;
+
+            for (a = 0; a < ct->pysig.nrArgs; ++a)
+                if (isThisTransferred(&ct->pysig.args[a]))
+                {
+                    need_owner = TRUE;
+                    break;
+                }
+        }
     }
 
     prcode(fp,
@@ -8575,6 +8580,17 @@ static void generateConstructorCall(classDef *cd,ctorDef *ct,int error_flag,
         if (rgil)
             prcode(fp,
 "            Py_END_ALLOW_THREADS\n"
+                );
+
+        /*
+         * This is a bit of a hack to say we want the result transferred.  We
+         * don't simply call sipTransferTo() because the wrapper object hasn't
+         * been fully initialised yet.
+         */
+        if (isResultTransferredCtor(ct))
+            prcode(fp,
+"\n"
+"            *sipOwner = (sipWrapper *)Py_None;\n"
                 );
     }
 

@@ -79,6 +79,7 @@ static int platOrFeature(char *,int);
 static int isNeeded(qualDef *);
 static int notSkipping(void);
 static void getHooks(optFlags *,char **,char **);
+static int getTransfer(optFlags *);
 static int getReleaseGIL(optFlags *);
 static int getHoldGIL(optFlags *);
 static void templateSignature(signatureDef *sd, int result, classTmplDef *tcd, templateDef *td, classDef *ncd);
@@ -2226,7 +2227,7 @@ argtype:    cpptype optname optflags {
             if (findOptFlag(&$3,"ArraySize",bool_flag) != NULL)
                 $$.argflags |= ARG_ARRAY_SIZE;
 
-            if (findOptFlag(&$3,"Transfer",bool_flag) != NULL)
+            if (getTransfer(&$3))
                 $$.argflags |= ARG_XFERRED;
 
             if (findOptFlag(&$3,"TransferThis",bool_flag) != NULL)
@@ -4044,6 +4045,9 @@ static void newCtor(char *name,int sectFlags,signatureDef *args,
     else if (getHoldGIL(optflgs))
         setIsHoldGILCtor(ct);
 
+    if (getTransfer(optflgs))
+        setIsResultTransferredCtor(ct);
+
     if (findOptFlag(optflgs,"NoDerived",bool_flag) != NULL)
     {
         if (cppsig != NULL)
@@ -4141,7 +4145,7 @@ static void newFunction(sipSpec *pt,moduleDef *mod,int sflags,int isstatic,
     if (xferback)
         setIsResultTransferredBack(od);
 
-    if (findOptFlag(optflgs,"Transfer",bool_flag) != NULL)
+    if (getTransfer(optflgs))
         setIsResultTransferred(od);
 
     if (findOptFlag(optflgs, "TransferThis", bool_flag) != NULL)
@@ -5034,6 +5038,15 @@ static void getHooks(optFlags *optflgs,char **pre,char **post)
         *post = of -> fvalue.sval;
     else
         *post = NULL;
+}
+
+
+/*
+ * Get the /Transfer/ option flag.
+ */
+static int getTransfer(optFlags *optflgs)
+{
+    return (findOptFlag(optflgs, "Transfer", bool_flag) != NULL);
 }
 
 

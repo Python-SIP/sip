@@ -133,6 +133,7 @@
 #define CTOR_EXPLICIT       0x00000200  /* The ctor is explicit. */
 #define CTOR_CAST           0x00000400  /* The ctor is a cast. */
 #define CTOR_HOLD_GIL       0x00000800  /* The ctor holds the GIL. */
+#define CTOR_XFERRED        0x00001000  /* Ownership is transferred. */
 
 #define isPublicCtor(c)     ((c)->ctorflags & SECT_IS_PUBLIC)
 #define setIsPublicCtor(c)  ((c)->ctorflags |= SECT_IS_PUBLIC)
@@ -148,6 +149,8 @@
 #define isCastCtor(c)       ((c)->ctorflags & CTOR_CAST)
 #define isHoldGILCtor(c)    ((c)->ctorflags & CTOR_HOLD_GIL)
 #define setIsHoldGILCtor(c) ((c)->ctorflags |= CTOR_HOLD_GIL)
+#define isResultTransferredCtor(c)  ((c)->ctorflags & CTOR_XFERRED)
+#define setIsResultTransferredCtor(c)   ((c)->ctorflags |= CTOR_XFERRED)
 
 
 /* Handle member flags. */

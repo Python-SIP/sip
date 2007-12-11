@@ -3600,11 +3600,13 @@ Transfer
 
 This boolean annotation specifies that ownership of the value returned by the
 function (which should be a wrapped C structure or C++ class instance) is
-transferred to C++.  It is only used in the context of a class method.
-Normally returned values (unless they are new references to already wrapped
-values) are owned by C++ anyway.  However, in addition, an association between
-the returned value and the instance containing the method is created with
-regard to the cyclic garbage collector.
+transferred to C++.  It is only used in the context of a class constructor or a
+method.
+
+In the case of methods returned values (unless they are new references to
+already wrapped values) are normally owned by C++ anyway.  However, in
+addition, an association between the returned value and the instance containing
+the method is created with regard to the cyclic garbage collector.
 
 Note that this can also be used as an argument annotation.
 

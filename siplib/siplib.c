@@ -6692,6 +6692,13 @@ static int sipWrapper_init(sipWrapper *self,PyObject *args,PyObject *kwds)
 
         if (owner == NULL)
             sipFlags |= SIP_PY_OWNED;
+        else if (owner == (sipWrapper *)Py_None)
+        {
+            /* This is the hack that means that C++ owns the new instance. */
+            sipFlags |= SIP_CPP_HAS_REF;
+            Py_INCREF(self);
+            owner = NULL;
+        }
     }
 
     addToParent(self, owner);
