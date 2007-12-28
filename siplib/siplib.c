@@ -949,15 +949,14 @@ static int sip_api_export_module(sipExportedModuleDef *client,
                 *last = td;
 
                 /*
-                 * Set this so that the extender's original
-                 * module can be found.
+                 * Set this so that the extender's original module can be
+                 * found.
                  */
                 td->td_module = client;
 
                 /*
-                 * Save the real namespace type so that it is
-                 * the correct scope for any enums or classes
-                 * defined in this module.
+                 * Save the real namespace type so that it is the correct scope
+                 * for any enums or classes defined in this module.
                  */
                 *mw = wt;
             }
@@ -1340,8 +1339,8 @@ static PyObject *buildObject(PyObject *obj, const char *fmt, va_list va)
     int i;
 
     /*
-     * The format string has already been checked that it is properly
-     * formed if it is enclosed in parenthesis.
+     * The format string has already been checked that it is properly formed if
+     * it is enclosed in parenthesis.
      */
     if (*fmt == '(')
     {
@@ -2161,8 +2160,8 @@ static int sip_api_parse_args(int *argsParsedp, PyObject *sipArgs,
         return 0;
 
     /*
-     * The first pass checks all the types and does conversions that are
-     * cheap and have no side effects.
+     * The first pass checks all the types and does conversions that are cheap
+     * and have no side effects.
      */
     va_start(va,fmt);
     valid = parsePass1(&self,&selfarg,&nrargs,sipArgs,fmt,va);
@@ -2173,9 +2172,9 @@ static int sip_api_parse_args(int *argsParsedp, PyObject *sipArgs,
         int pvalid, pnrargs;
 
         /*
-         * Use this error if there was no previous error, or if we
-         * have parsed more arguments this time, or if the previous
-         * error was that there were too many arguments.
+         * Use this error if there was no previous error, or if we have parsed
+         * more arguments this time, or if the previous error was that there
+         * were too many arguments.
          */
         pvalid = (*argsParsedp & PARSE_MASK);
         pnrargs = (*argsParsedp & ~PARSE_MASK);
@@ -2190,8 +2189,8 @@ static int sip_api_parse_args(int *argsParsedp, PyObject *sipArgs,
     }
 
     /*
-     * The second pass does any remaining conversions now that we know we
-     * have the right signature.
+     * The second pass does any remaining conversions now that we know we have
+     * the right signature.
      */
     va_start(va,fmt);
     valid = parsePass2(self,selfarg,nrargs,sipArgs,fmt,va);
@@ -2241,8 +2240,8 @@ static int sip_api_parse_pair(int *argsParsedp, PyObject *sipArg0,
     nrargs = 2;
 
     /*
-     * The first pass checks all the types and does conversions that are
-     * cheap and have no side effects.
+     * The first pass checks all the types and does conversions that are cheap
+     * and have no side effects.
      */
     va_start(va,fmt);
     valid = parsePass1(&self,&selfarg,&nrargs,args,fmt,va);
@@ -2253,9 +2252,9 @@ static int sip_api_parse_pair(int *argsParsedp, PyObject *sipArg0,
         int pvalid, pnrargs;
 
         /*
-         * Use this error if there was no previous error, or if we
-         * have parsed more arguments this time, or if the previous
-         * error was that there were too many arguments.
+         * Use this error if there was no previous error, or if we have parsed
+         * more arguments this time, or if the previous error was that there
+         * were too many arguments.
          */
         pvalid = (*argsParsedp & PARSE_MASK);
         pnrargs = (*argsParsedp & ~PARSE_MASK);
@@ -2270,8 +2269,8 @@ static int sip_api_parse_pair(int *argsParsedp, PyObject *sipArg0,
     }
 
     /*
-     * The second pass does any remaining conversions now that we know we
-     * have the right signature.
+     * The second pass does any remaining conversions now that we know we have
+     * the right signature.
      */
     va_start(va,fmt);
     valid = parsePass2(self,selfarg,nrargs,args,fmt,va);
@@ -2310,8 +2309,8 @@ static int parsePass1(sipWrapper **selfp, int *selfargp, int *argsParsedp,
     argnr = 0;
 
     /*
-     * Handle those format characters that deal with the "self" argument.
-     * They will always be the first one.
+     * Handle those format characters that deal with the "self" argument.  They
+     * will always be the first one.
      */
     *selfp = NULL;
     *selfargp = FALSE;
@@ -2382,8 +2381,8 @@ static int parsePass1(sipWrapper **selfp, int *selfargp, int *argsParsedp,
         if (argnr == nrargs)
         {
             /*
-             * It is an error if we are still expecting compulsory
-             * arguments unless the current argume is an ellipsis.
+             * It is an error if we are still expecting compulsory arguments
+             * unless the current argument is an ellipsis.
              */
             if (ch != 'W' && ch != '\0' && compulsory)
                 valid = PARSE_FEW;
@@ -2433,10 +2432,7 @@ static int parsePass1(sipWrapper **selfp, int *selfargp, int *argsParsedp,
 
         case 'U':
             {
-                /*
-                 * Slot name or callable, return the name or
-                 * callable.
-                 */
+                /* Slot name or callable, return the name or callable. */
 
                 char **sname = va_arg(va, char **);
                 PyObject **scall = va_arg(va, PyObject **);
@@ -2576,10 +2572,7 @@ static int parsePass1(sipWrapper **selfp, int *selfargp, int *argsParsedp,
 
         case 'P':
             {
-                /*
-                 * Python object of any type with a
-                 * sub-format.
-                 */
+                /* Python object of any type with a sub-format. */
 
                 *va_arg(va,PyObject **) = arg;
 
@@ -3041,10 +3034,7 @@ static int parsePass1(sipWrapper **selfp, int *selfargp, int *argsParsedp,
         {
             if (ch == 'W')
             {
-                /*
-                 * An ellipsis matches everything and ends the
-                 * parse.
-                 */
+                /* An ellipsis matches everything and ends the parse. */
                 nrparsed = nrargs;
                 break;
             }
@@ -3076,8 +3066,8 @@ static int parsePass2(sipWrapper *self, int selfarg, int nrargs,
     case 'B':
         {
             /*
-             * The address of a C++ instance when calling one of
-             * its public methods.
+             * The address of a C++ instance when calling one of its public
+             * methods.
              */
 
             sipWrapperType *type;
@@ -3096,8 +3086,8 @@ static int parsePass2(sipWrapper *self, int selfarg, int nrargs,
     case 'p':
         {
             /*
-             * The address of a C++ instance when calling one of
-             * its protected methods.
+             * The address of a C++ instance when calling one of its protected
+             * methods.
              */
 
             sipWrapperType *type;
@@ -3131,8 +3121,8 @@ static int parsePass2(sipWrapper *self, int selfarg, int nrargs,
             ch = *fmt++;
 
         /*
-         * Do the outstanding conversions.  For most types it has
-         * already been done, so we are just skipping the parameters.
+         * Do the outstanding conversions.  For most types it has already been
+         * done, so we are just skipping the parameters.
          */
         switch (ch)
         {
@@ -3287,10 +3277,7 @@ static int parsePass2(sipWrapper *self, int selfarg, int nrargs,
 
         case 'P':
             {
-                /*
-                 * Python object of any type with a
-                 * sub-format.
-                 */
+                /* Python object of any type with a sub-format. */
 
                 PyObject **p = va_arg(va,PyObject **);
                 int flags = *fmt++ - '0';
@@ -3333,8 +3320,8 @@ static int parsePass2(sipWrapper *self, int selfarg, int nrargs,
             }
 
         /*
-         * Every other argument is a pointer and only differ in how
-         * many there are.
+         * Every other argument is a pointer and only differ in how many there
+         * are.
          */
         case 'N':
         case 'T':
@@ -5047,11 +5034,10 @@ static PyObject *sip_api_is_py_method(sip_gilstate_t *gil,sipMethodCache *pymc,
         return NULL;
 
     /*
-     * It's possible that the Python object has been deleted but the
-     * underlying (complex) C/C++ instance is still working and trying to
-     * handle virtual functions.  Or an instance has started handling
-     * virtual functions before its ctor has returned.  In either case say
-     * there is no Python method.
+     * It's possible that the Python object has been deleted but the underlying
+     * (complex) C/C++ instance is still working and trying to handle virtual
+     * functions.  Or an instance has started handling virtual functions before
+     * its ctor has returned.  In either case say there is no Python method.
      */
     if (sipSelf == NULL)
         return NULL;
@@ -5066,11 +5052,11 @@ static PyObject *sip_api_is_py_method(sip_gilstate_t *gil,sipMethodCache *pymc,
         PyObject *methobj;
 
         /*
-         * Using PyMethod_Check() rather than PyCallable_Check() has
-         * the added benefits of ensuring the (common) case of there
-         * being no Python method is handled as a direct call to C/C++
-         * (rather than converted to Python and then back to C/C++) and
-         * makes sure that abstract virtuals are trapped.
+         * Using PyMethod_Check() rather than PyCallable_Check() has the added
+         * benefits of ensuring the (common) case of there being no Python
+         * method is handled as a direct call to C/C++ (rather than converted
+         * to Python and then back to C/C++) and makes sure that abstract
+         * virtuals are trapped.
          */
         if ((methobj = PyObject_GetAttrString((PyObject *)sipSelf,mname)) != NULL)
         {
@@ -5251,8 +5237,7 @@ static int sip_api_can_convert_to_mapped_type(PyObject *pyObj,
  * be transferred and any type convertors to be disabled.
  */
 static void *sip_api_convert_to_instance(PyObject *pyObj, sipWrapperType *type,
-                     PyObject *transferObj, int flags,
-                     int *statep, int *iserrp)
+        PyObject *transferObj, int flags, int *statep, int *iserrp)
 {
     void *cpp = NULL;
     int state = 0;
@@ -5291,9 +5276,8 @@ static void *sip_api_convert_to_instance(PyObject *pyObj, sipWrapperType *type,
  * to be transferred.
  */
 static void *sip_api_convert_to_mapped_type(PyObject *pyObj,
-                        const sipMappedType *mt,
-                        PyObject *transferObj, int flags,
-                        int *statep, int *iserrp)
+        const sipMappedType *mt, PyObject *transferObj, int flags, int *statep,
+        int *iserrp)
 {
     void *cpp = NULL;
     int state = 0;
@@ -5317,10 +5301,8 @@ static void *sip_api_convert_to_mapped_type(PyObject *pyObj,
  * can't be done.
  */
 static void *sip_api_force_convert_to_instance(PyObject *pyObj,
-                           sipWrapperType *type,
-                           PyObject *transferObj,
-                           int flags, int *statep,
-                           int *iserrp)
+        sipWrapperType *type, PyObject *transferObj, int flags, int *statep,
+        int *iserrp)
 {
     /* Don't even try if there has already been an error. */
     if (*iserrp)
@@ -5348,10 +5330,8 @@ static void *sip_api_force_convert_to_instance(PyObject *pyObj,
  * can't be done.
  */
 static void *sip_api_force_convert_to_mapped_type(PyObject *pyObj,
-                          const sipMappedType *mt,
-                          PyObject *transferObj,
-                          int flags, int *statep,
-                          int *iserrp)
+        const sipMappedType *mt, PyObject *transferObj, int flags, int *statep,
+        int *iserrp)
 {
     /* Don't even try if there has already been an error. */
     if (*iserrp)
@@ -5415,8 +5395,8 @@ static void sip_api_release_mapped_type(void *cpp, const sipMappedType *mt,
         sipReleaseFunc rel = mt->mt_release;
 
         /*
-         * If there is no release function then it must be a C
-         * structure and we can just free it.
+         * If there is no release function then it must be a C structure and we
+         * can just free it.
          */
         if (rel == NULL)
             sip_api_free(cpp);
@@ -5742,8 +5722,7 @@ static int compareStringMapEntry(const void *key,const void *el)
  * recognised.
  */
 static sipWrapperType *sip_api_map_string_to_class(const char *typeString,
-                         const sipStringTypeClassMap *map,
-                         int maplen)
+        const sipStringTypeClassMap *map, int maplen)
 {
     sipStringTypeClassMap *me;
 
@@ -5779,8 +5758,7 @@ static int compareIntMapEntry(const void *keyp,const void *el)
  * recognised.
  */
 static sipWrapperType *sip_api_map_int_to_class(int typeInt,
-                          const sipIntTypeClassMap *map,
-                          int maplen)
+        const sipIntTypeClassMap *map, int maplen)
 {
     sipIntTypeClassMap *me;
 
@@ -5815,17 +5793,17 @@ static void sip_api_raise_unknown_exception(void)
  * Raise an exception implemented as a class.  Make no assumptions about the
  * GIL.
  */
-static void sip_api_raise_class_exception(sipWrapperType *type,void *ptr)
+static void sip_api_raise_class_exception(sipWrapperType *type, void *ptr)
 {
-        PyObject *self;
+    PyObject *self;
 
     SIP_BLOCK_THREADS
 
-        self = sipWrapSimpleInstance(ptr,type,NULL,SIP_PY_OWNED);
+    self = sipWrapSimpleInstance(ptr, type, NULL, SIP_PY_OWNED);
 
-        PyErr_SetObject((PyObject *)type,self);
+    PyErr_SetObject((PyObject *)type, self);
 
-        Py_XDECREF(self);
+    Py_XDECREF(self);
 
     SIP_UNBLOCK_THREADS
 }
@@ -5835,17 +5813,17 @@ static void sip_api_raise_class_exception(sipWrapperType *type,void *ptr)
  * Raise an exception implemented as a class or sub-class.  Make no assumptions
  * about the GIL.
  */
-static void sip_api_raise_sub_class_exception(sipWrapperType *type,void *ptr)
+static void sip_api_raise_sub_class_exception(sipWrapperType *type, void *ptr)
 {
-        PyObject *self;
+    PyObject *self;
 
     SIP_BLOCK_THREADS
 
-        self = sipWrapSimpleInstance(ptr,type,NULL,SIP_PY_OWNED);
+    self = sipWrapSimpleInstance(ptr, type, NULL, SIP_PY_OWNED);
 
-        PyErr_SetObject((PyObject *)type,self);
+    PyErr_SetObject((PyObject *)type, self);
 
-        Py_XDECREF(self);
+    Py_XDECREF(self);
 
     SIP_UNBLOCK_THREADS
 }
@@ -5855,7 +5833,7 @@ static void sip_api_raise_sub_class_exception(sipWrapperType *type,void *ptr)
  * Return the module of an encoded class.
  */
 static sipExportedModuleDef *getClassModule(sipEncodedClassDef *enc,
-                        sipExportedModuleDef *em)
+        sipExportedModuleDef *em)
 {
     if (enc->sc_module != 255)
         em = em->em_imports[enc->sc_module].im_module;
@@ -5868,7 +5846,7 @@ static sipExportedModuleDef *getClassModule(sipEncodedClassDef *enc,
  * Return the type of an encoded class.
  */
 static sipWrapperType *getClassType(sipEncodedClassDef *enc,
-                    sipExportedModuleDef *em)
+        sipExportedModuleDef *em)
 {
     return getClassModule(enc, em)->em_types[enc->sc_class];
 }
@@ -5934,7 +5912,7 @@ static void *getPtrTypeDef(sipWrapper *self, sipTypeDef **td)
  * Handle an objobjargproc slot.
  */
 static int objobjargprocSlot(PyObject *self,PyObject *arg1,PyObject *arg2,
-                 sipPySlotType st)
+        sipPySlotType st)
 {
     int (*f)(PyObject *,PyObject *);
     PyObject *args;
@@ -5950,10 +5928,7 @@ static int objobjargprocSlot(PyObject *self,PyObject *arg1,PyObject *arg2,
     {
         int i;
 
-        /*
-         * It's already a tuple so we need to copy it and append the
-         * value.
-         */
+        /* It's already a tuple so we need to copy it and append the value. */
         if ((args = PyTuple_New(PyTuple_GET_SIZE(arg1) + 1)) == NULL)
             return -1;
 
@@ -6068,9 +6043,7 @@ static PyObject *sipVoidPtr_new(PyTypeObject *subtype, PyObject *args, PyObject 
             ptr = PyCObject_AsVoidPtr(arg);
         else if (arg->ob_type == &sipVoidPtr_Type)
         {
-            /*
-             * The type is immutable so just return the argument.
-             */
+            /* The type is immutable so just return the argument. */
             Py_INCREF(arg);
             return arg;
         }
@@ -6310,11 +6283,11 @@ static PyObject *sipWrapperType_alloc(PyTypeObject *self, SIP_SSIZE_T nitems)
         return NULL;
 
     /*
-     * Consume any extra type specific information and use it to initialise
-     * the slots.  This only happens for directly wrapped classes (and not
+     * Consume any extra type specific information and use it to initialise the
+     * slots.  This only happens for directly wrapped classes (and not
      * programmer written sub-classes).  This must be done in the alloc
-     * function because it is the only place we can break out of the
-     * default new() function before PyType_Ready() is called.
+     * function because it is the only place we can break out of the default
+     * new() function before PyType_Ready() is called.
      */
     if (currentType != NULL)
     {
@@ -6744,7 +6717,7 @@ static int sipWrapper_traverse(sipWrapper *self, visitproc visit, void *arg)
                 return vret;
     }
 
-    if (qt_and_sip_api_3_4())
+    if (qt_and_sip_api_3_4() && sipIsPyOwned(self))
     {
         void *tx = sipGetAddress(self);
 
@@ -6784,11 +6757,10 @@ static int sipWrapper_traverse(sipWrapper *self, visitproc visit, void *arg)
     for (w = self->first_child; w != NULL; w = w->sibling_next)
     {
         /*
-         * We don't traverse if the wrapper is a child of itself.  We
-         * do this so that wrapped objects returned by virtual methods
-         * with the /Factory/ don't have those objects collected.  This
-         * then means that plugins implemented in Python have a chance
-         * of working.
+         * We don't traverse if the wrapper is a child of itself.  We do this
+         * so that wrapped objects returned by virtual methods with the
+         * /Factory/ don't have those objects collected.  This then means that
+         * plugins implemented in Python have a chance of working.
          */
         if (w != self)
             if ((vret = visit((PyObject *)w, arg)) != 0)
@@ -6829,8 +6801,8 @@ static int sipWrapper_clear(sipWrapper *self)
             vret = ctd->td_clear(ptr);
     }
 
-    /* Remove any lambda slots connected via a proxy. */
-    if (qt_and_sip_api_3_4() && sipPossibleProxy(self))
+    /* Remove any slots connected via a proxy. */
+    if (qt_and_sip_api_3_4() && sipIsPyOwned(self) && sipPossibleProxy(self))
     {
         void *tx = sipGetAddress(self);
 
@@ -7055,7 +7027,7 @@ static PyObject *sipWrapper_sq_item(PyObject *self, SIP_SSIZE_T n)
  * The mapping instance assign subscript slot.
  */
 static int sipWrapper_mp_ass_subscript(PyObject *self,PyObject *key,
-                       PyObject *value)
+        PyObject *value)
 {
     return objobjargprocSlot(self,key,value,(value != NULL ? setitem_slot : delitem_slot));
 }
@@ -7128,8 +7100,8 @@ static PyObject *sipWrapper_getattro(PyObject *obj,PyObject *name)
     sipWrapper *w = (sipWrapper *)obj;
 
     /*
-     * If we are getting the instance dictionary of a base wrapper type
-     * then we don't want the metatype to handle it.
+     * If we are getting the instance dictionary of a base wrapper type then we
+     * don't want the metatype to handle it.
      */
     if ((nm = PyString_AsString(name)) == NULL)
         return NULL;
@@ -7145,9 +7117,8 @@ static PyObject *sipWrapper_getattro(PyObject *obj,PyObject *name)
         }
 
         /*
-         * If a copy of the instance dictionary wasn't created then
-         * just return the original.  Note that Python doesn't want a
-         * proxy.
+         * If a copy of the instance dictionary wasn't created then just return
+         * the original.  Note that Python doesn't want a proxy.
          */
         if (tmpdict == NULL)
             if ((tmpdict = w->dict) == NULL)
@@ -7170,8 +7141,8 @@ static PyObject *sipWrapper_getattro(PyObject *obj,PyObject *name)
  * Add the values of all non-static variables to a dictionary (first making a
  * copy of the dictionary if needed).
  */
-static int getNonStaticVariables(sipWrapperType *wt,sipWrapper *w,
-                 PyObject **ndict)
+static int getNonStaticVariables(sipWrapperType *wt, sipWrapper *w,
+        PyObject **ndict)
 {
     PyMethodDef *pmd;
 
@@ -7184,8 +7155,8 @@ static int getNonStaticVariables(sipWrapperType *wt,sipWrapper *w,
                 PyObject *val, *dict;
 
                 /*
-                 * Create a copy of the original dictionary if
-                 * it hasn't already been done.
+                 * Create a copy of the original dictionary if it hasn't
+                 * already been done.
                  */
                 if ((dict = *ndict) == NULL)
                 {
@@ -7342,7 +7313,9 @@ static void addSlots(sipWrapperType *wt, sipTypeDef *td)
  * Add the slot handler for each slot present in the type, optionally replacing
  * any that have already been defined.
  */
-static void initSlots(PyTypeObject *to, PyNumberMethods *nb, PySequenceMethods *sq, PyMappingMethods *mp, sipPySlotDef *slots, int force)
+static void initSlots(PyTypeObject *to, PyNumberMethods *nb,
+        PySequenceMethods *sq, PyMappingMethods *mp, sipPySlotDef *slots,
+        int force)
 {
     void *f;
 
@@ -7755,7 +7728,7 @@ static PyTypeObject *findEnumTypeByName(sipExportedModuleDef *emd,
  * create an instance of it if it was found.
  */
 static int findEnumArg(sipExportedModuleDef *emd, const char *name, size_t len,
-               sipSigArg *at, int indir)
+        sipSigArg *at, int indir)
 {
     PyTypeObject *py = findEnumTypeByName(emd, name, len);
 
