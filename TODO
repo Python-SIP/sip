@@ -34,10 +34,6 @@ than a sipWrapperType*) and do a check and cast internally.
 by allowing a function parameter to have a name (this becomes the keyword) and
 extend sipParseArgs() to take an options dictionary and list of keywords.
 
-24.	Need some way of implementing new Qt properties, or at least fiddle the
-implementation of QSqlPropertyMap to allow new customer editor widgets to be
-implemented in Python.
-
 25.	Add support for specifying docstrings for generated methods.
 
 26.	Fully implement QObject.disconnect().
