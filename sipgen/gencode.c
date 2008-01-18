@@ -9423,7 +9423,7 @@ static void generateFunctionCall(classDef *cd,classDef *ocd,overDef *od,
              * If it's a mapped type then we will need to destroy the instance
              * after it has been converted.
              */
-            if (ad->atype == mapped_type)
+            if (ad->atype == mapped_type && deltemps)
             {
                 deltemps = FALSE;
 
