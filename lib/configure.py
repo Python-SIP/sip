@@ -8,6 +8,7 @@ import os
 import string
 import glob
 import getopt
+from distutils import sysconfig
 
 import siputils
 
@@ -201,13 +202,12 @@ def set_platform_directories():
     global plat_py_site_dir, plat_py_inc_dir, plat_py_conf_inc_dir
     global plat_bin_dir, plat_py_lib_dir, plat_sip_dir
 
-    if sys.platform == "win32":
-        plat_py_site_dir = sys.prefix + "\\Lib"
-        if py_version >= 0x020200:
-            plat_py_site_dir = plat_py_site_dir + "\\site-packages"
+    # We trust distutils for some stuff.
+    plat_py_site_dir = sysconfig.get_python_lib()
+    plat_py_inc_dir = sysconfig.get_python_inc()
+    plat_py_conf_inc_dir = os.path.dirname(sysconfig.get_config_h_filename())
 
-        plat_py_inc_dir = sys.prefix + "\\include"
-        plat_py_conf_inc_dir = sys.exec_prefix + "\\include"
+    if sys.platform == "win32":
         plat_py_lib_dir = sys.prefix + "\\libs"
         plat_bin_dir = sys.exec_prefix
         plat_sip_dir = sys.prefix + "\\sip"
@@ -224,12 +224,6 @@ def set_platform_directories():
 
         lib_dir = sys.prefix + "/" + lib_dir + "/python" + vers
 
-        plat_py_site_dir = lib_dir
-        if py_version >= 0x020000:
-            plat_py_site_dir = plat_py_site_dir + "/site-packages"
-
-        plat_py_inc_dir = sys.prefix + "/include/python" + vers
-        plat_py_conf_inc_dir = sys.exec_prefix + "/include/python" + vers
         plat_py_lib_dir = lib_dir + "/config"
         plat_bin_dir = sys.exec_prefix + "/bin"
         plat_sip_dir = sys.prefix + "/share/sip"
