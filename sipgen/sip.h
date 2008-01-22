@@ -534,7 +534,7 @@ typedef struct _nodeDef {
 
 typedef struct _codeBlock {
     char *frag;                         /* The code itself. */
-    char *filename;                     /* The original file. */
+    const char *filename;               /* The original file. */
     int linenr;                         /* The line in the file. */
     struct _codeBlock *next;            /* Next in the list. */
 } codeBlock;
@@ -543,8 +543,8 @@ typedef struct _codeBlock {
 /* A module definition. */
 
 typedef struct _moduleDef {
-    char *fullname;                     /* The full module name. */
-    char *name;                         /* The module base name. */
+    const char *fullname;               /* The full module name. */
+    const char *name;                   /* The module base name. */
     int version;                        /* The module version. */
     int modflags;                       /* The module flags. */
     int qobjclass;                      /* QObject class, -1 if none. */
@@ -871,7 +871,7 @@ typedef struct _classDef {
     int classflags;                     /* The class flags. */
     int userflags;                      /* The user type flags. */
     int classnr;                        /* The class number. */
-    char *pyname;                       /* The Python name. */
+    const char *pyname;                 /* The Python name. */
     ifaceFileDef *iff;                  /* The interface file. */
     struct _classDef *ecd;              /* The enclosing scope. */
     struct _classDef *real;             /* The real class if this is a proxy or extender. */
@@ -979,10 +979,10 @@ void fatal(char *,...);
 void fatalScopedName(scopedNameDef *);
 int setInputFile(FILE *open_fp, parserContext *pc, int optional);
 void *sipMalloc(size_t);
-char *sipStrdup(char *);
+char *sipStrdup(const char *);
 char *concat(const char *, ...);
-void append(char **,char *);
-ifaceFileList *addToUsedList(ifaceFileList **, ifaceFileDef *);
+void append(char **, const char *);
+void addToUsedList(ifaceFileList **, ifaceFileDef *);
 int excludedFeature(stringList *,qualDef *);
 int sameSignature(signatureDef *,signatureDef *,int);
 int sameTemplateSignature(signatureDef *sd1, signatureDef *sd2, int deep);

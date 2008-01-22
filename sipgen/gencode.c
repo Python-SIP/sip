@@ -39,9 +39,9 @@ typedef struct {
 
 
 static int currentLineNr;               /* Current output line number. */
-static char *currentFileName;           /* Current output file name. */
+static const char *currentFileName;     /* Current output file name. */
 static int previousLineNr;              /* Previous output line number. */
-static char *previousFileName;          /* Previous output file name. */
+static const char *previousFileName;    /* Previous output file name. */
 static int exceptions;                  /* Set if exceptions are enabled. */
 static int tracing;                     /* Set if tracing is enabled. */
 static int generating_c;                /* Set if generating C. */
@@ -50,7 +50,7 @@ static const char *prcode_last = NULL;  /* The last prcode format string. */
 static int prcode_xml = FALSE;          /* Set if prcode is XML aware. */
 
 
-static void generateDocumentation(sipSpec *, char *);
+static void generateDocumentation(sipSpec *pt, const char *docFile);
 static void generateBuildFile(sipSpec *pt, const char *buildFile,
         const char *srcSuffix, const char *consModule);
 static void generateBuildFileSources(sipSpec *pt, moduleDef *mod,
@@ -67,11 +67,11 @@ static void generateComponentCpp(sipSpec *pt, const char *codeDir,
 static void generateSipImport(moduleDef *mod, FILE *fp);
 static void generateSipImportVariables(FILE *fp);
 static void generateModInitStart(moduleDef *mod, int gen_c, FILE *fp);
-static void generateIfaceCpp(sipSpec *, ifaceFileDef *, char *, const char *,
-        FILE *);
+static void generateIfaceCpp(sipSpec *, ifaceFileDef *, const char *,
+        const char *, FILE *);
 static void generateMappedTypeCpp(mappedTypeDef *, FILE *);
-static void generateImportedMappedTypeAPI(mappedTypeDef *mtd, sipSpec *pt,
-        moduleDef *mod, FILE *fp);
+static void generateImportedMappedTypeAPI(mappedTypeDef *mtd, moduleDef *mod,
+        FILE *fp);
 static void generateMappedTypeAPI(mappedTypeDef *mtd, FILE *fp);
 static void generateClassCpp(classDef *cd, sipSpec *pt, FILE *fp);
 static void generateImportedClassAPI(classDef *cd, sipSpec *pt, moduleDef *mod,
@@ -82,12 +82,12 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
         FILE *fp);
 static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
         FILE *fp);
-static void generateFunction(sipSpec *, memberDef *, overDef *, classDef *,
-        classDef *, FILE *);
-static void generateFunctionBody(sipSpec *, overDef *, classDef *, classDef *,
-        int deref, FILE *);
+static void generateFunction(memberDef *, overDef *, classDef *, classDef *,
+        FILE *);
+static void generateFunctionBody(overDef *, classDef *, classDef *, int deref,
+        FILE *);
 static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp);
-static void generateTypeInit(sipSpec *, classDef *, FILE *);
+static void generateTypeInit(classDef *, FILE *);
 static void generateCppCodeBlock(codeBlock *, FILE *);
 static void generateUsedIncludes(ifaceFileList *iffl, FILE *fp);
 static void generateModuleAPI(sipSpec *pt, moduleDef *mod, FILE *fp);
@@ -104,12 +104,12 @@ static void generateSingleArg(classDef *, argDef *, int, funcArgType, FILE *);
 static void generateBaseType(classDef *, argDef *, FILE *);
 static void generateNamedBaseType(classDef *, argDef *, char *, FILE *);
 static void generateTupleBuilder(signatureDef *, FILE *);
-static void generateEmitters(sipSpec *pt, classDef *cd, FILE *fp);
-static void generateEmitter(sipSpec *, classDef *, visibleList *, FILE *);
+static void generateEmitters(classDef *cd, FILE *fp);
+static void generateEmitter(classDef *, visibleList *, FILE *);
 static void generateVirtualHandler(virtHandlerDef *vhd, FILE *fp);
 static void generateVirtHandlerErrorReturn(argDef *res, FILE *fp);
-static void generateVirtualCatcher(sipSpec *pt, moduleDef *mod, classDef *cd,
-        int virtNr, virtOverDef *vod, FILE *fp);
+static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
+        virtOverDef *vod, FILE *fp);
 static void generateUnambiguousClass(classDef *cd, classDef *scope, FILE *fp);
 static void generateProtectedEnums(sipSpec *, classDef *, FILE *);
 static void generateProtectedDeclarations(classDef *, FILE *);
@@ -117,7 +117,7 @@ static void generateProtectedDefinitions(classDef *, FILE *);
 static void generateProtectedCallArgs(overDef *od, FILE *fp);
 static void generateConstructorCall(classDef *, ctorDef *, int, FILE *);
 static void generateHandleResult(overDef *, int, char *, FILE *);
-static void generateOrdinaryFunction(sipSpec *pt, moduleDef *mod, classDef *cd,
+static void generateOrdinaryFunction(moduleDef *mod, classDef *cd,
         memberDef *md, FILE *fp);
 static void generateSimpleFunctionCall(fcallDef *, FILE *);
 static void generateFunctionCall(classDef *cd, classDef *ocd, overDef *od,
@@ -166,13 +166,13 @@ static void generateAccessFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 static void generateConvertToDefinitions(mappedTypeDef *, classDef *, FILE *);
 static void generateEncodedClass(moduleDef *mod, classDef *cd, int last,
         FILE *fp);
-static int generateArgParser(sipSpec *, signatureDef *, classDef *, ctorDef *,
-        overDef *, int, FILE *);
+static int generateArgParser(signatureDef *, classDef *, ctorDef *, overDef *,
+        int, FILE *);
 static void generateTry(throwArgs *, FILE *);
 static void generateCatch(throwArgs *ta, signatureDef *sd, FILE *fp);
 static void generateThrowSpecifier(throwArgs *, FILE *);
-static void generateSlot(sipSpec *pt, moduleDef *mod, classDef *cd,
-        enumDef *ed, memberDef *md, FILE *fp);
+static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
+        memberDef *md, FILE *fp);
 static void generateCastZero(argDef *ad, FILE *fp);
 static void generateCallDefaultCtor(ctorDef *ct, FILE *fp);
 static int countVirtuals(classDef *);
@@ -180,10 +180,11 @@ static int skipOverload(overDef *, memberDef *, classDef *, classDef *, int);
 static int compareMethTab(const void *, const void *);
 static int compareEnumMembers(const void *, const void *);
 static char *getSubFormatChar(char, argDef *);
-static char *createIfaceFileName(char *, ifaceFileDef *, char *);
-static FILE *createCompilationUnit(moduleDef *mod, char *fname,
-        char *description);
-static FILE *createFile(moduleDef *mod, char *fname, char *description);
+static char *createIfaceFileName(const char *, ifaceFileDef *, const char *);
+static FILE *createCompilationUnit(moduleDef *mod, const char *fname,
+        const char *description);
+static FILE *createFile(moduleDef *mod, const char *fname,
+        const char *description);
 static void closeFile(FILE *);
 static void prScopedName(FILE *fp, scopedNameDef *snd, char *sep);
 static void prTypeName(FILE *, argDef *, int);
@@ -199,7 +200,7 @@ static int needDealloc(classDef *cd);
 static char getBuildResultFormat(argDef *ad);
 static const char *getParseResultFormat(argDef *ad, int isres, int xfervh);
 static void generateParseResultExtraArgs(argDef *ad, int isres, FILE *fp);
-static char *makePartName(char *codeDir, char *mname, int part,
+static char *makePartName(const char *codeDir, const char *mname, int part,
         const char *srcSuffix);
 static void fakeProtectedArgs(signatureDef *sd);
 static void normaliseArgs(signatureDef *);
@@ -239,6 +240,7 @@ void generateCode(sipSpec *pt, char *codeDir, char *buildfile, char *docFile,
 
     /* Generate the code. */
     if (codeDir != NULL)
+    {
         if (isComposite(pt->module))
             generateCompositeCpp(pt, codeDir);
         else if (isConsolidated(pt->module))
@@ -255,6 +257,7 @@ void generateCode(sipSpec *pt, char *codeDir, char *buildfile, char *docFile,
             generateComponentCpp(pt, codeDir, consModule);
         else
             generateCpp(pt, pt->module, codeDir, srcSuffix, parts, xsl);
+    }
 
     /* Generate the build file. */
     if (buildfile != NULL)
@@ -265,7 +268,7 @@ void generateCode(sipSpec *pt, char *codeDir, char *buildfile, char *docFile,
 /*
  * Generate the documentation.
  */
-static void generateDocumentation(sipSpec *pt, char *docFile)
+static void generateDocumentation(sipSpec *pt, const char *docFile)
 {
     FILE *fp;
     codeBlock *cb;
@@ -285,7 +288,7 @@ static void generateDocumentation(sipSpec *pt, char *docFile)
 static void generateBuildFile(sipSpec *pt, const char *buildFile,
         const char *srcSuffix, const char *consModule)
 {
-    char *mname = pt->module->name;
+    const char *mname = pt->module->name;
     FILE *fp;
 
     fp = createFile(pt->module, buildFile, NULL);
@@ -418,7 +421,8 @@ void generateExpression(valueDef *vd, FILE *fp)
 static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
         const char *codeDir, stringList *xsl)
 {
-    char *hfile, *mname = mod->name;
+    char *hfile;
+    const char *mname = mod->name;
     int noIntro;
     FILE *fp;
     nameDef *nd;
@@ -743,7 +747,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 /*
  * Return the filename of a source code part on the heap.
  */
-static char *makePartName(char *codeDir, char *mname, int part,
+static char *makePartName(const char *codeDir, const char *mname, int part,
         const char *srcSuffix)
 {
     char buf[20];
@@ -825,11 +829,11 @@ static void generateCompositeCpp(sipSpec *pt, const char *codeDir)
 static void generateConsolidatedCpp(sipSpec *pt, const char *codeDir,
         const char *srcSuffix)
 {
-    char *mname, *cppfile;
+    char *cppfile;
+    const char *mname = pt->module->name;
     moduleDef *mod;
     FILE *fp;
 
-    mname = pt->module->name;
     cppfile = concat(codeDir, "/sip", mname, "cmodule", srcSuffix, NULL);
     fp = createCompilationUnit(pt->module, cppfile, "Consolidated module code.");
 
@@ -1002,8 +1006,8 @@ static void generateNameCache(sipSpec *pt, FILE *fp)
 static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         const char *srcSuffix, int parts, stringList *xsl)
 {
-    const char *mname;
     char *cppfile;
+    const char *mname = mod->name;
     int noIntro, nrSccs = 0, files_in_part, max_per_part, this_part;
     int is_inst_class, is_inst_voidp, is_inst_char, is_inst_string;
     int is_inst_int, is_inst_long, is_inst_ulong, is_inst_longlong;
@@ -1016,8 +1020,6 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
     ifaceFileDef *iff;
     virtHandlerDef *vhd;
     exceptionDef *xd;
-
-    mname = mod->name;
 
     /* Calculate the number of files in each part. */
     if (parts)
@@ -1083,7 +1085,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
     /* Generate the global functions. */
     for (md = mod->othfuncs; md != NULL; md = md->next)
         if (md->slot == no_slot)
-            generateOrdinaryFunction(pt, mod, NULL, md, fp);
+            generateOrdinaryFunction(mod, NULL, md, fp);
         else
         {
             overDef *od;
@@ -1095,7 +1097,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
             for (od = mod->overs; od != NULL; od = od->next)
                 if (od->common == md)
                 {
-                    generateSlot(pt, mod, NULL, NULL, md, fp);
+                    generateSlot(mod, NULL, NULL, md, fp);
                     slot_extenders = TRUE;
                     break;
                 }
@@ -1106,13 +1108,13 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
     {
         if (cd->ctors != NULL)
         {
-            generateTypeInit(pt, cd, fp);
+            generateTypeInit(cd, fp);
             ctor_extenders = TRUE;
         }
 
         for (md = cd->members; md != NULL; md = md->next)
         {
-            generateSlot(pt, mod, cd, NULL, md, fp);
+            generateSlot(mod, cd, NULL, md, fp);
             slot_extenders = TRUE;
         }
     }
@@ -1304,7 +1306,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
                 continue;
 
             for (slot = ed->slots; slot != NULL; slot = slot->next)
-                generateSlot(pt, mod, NULL, ed, slot, fp);
+                generateSlot(mod, NULL, ed, slot, fp);
 
             prcode(fp,
 "\n"
@@ -1334,7 +1336,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 
         for (ed = pt->enums; ed != NULL; ed = ed->next)
         {
-            char *emname;
+            const char *emname;
 
             if (ed->module != mod || ed->fqcname == NULL)
                 continue;
@@ -1394,7 +1396,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 
         for (td = pt->typedefs; td != NULL; td = td->next)
         {
-            char *tdmname, *sat;
+            const char *tdmname, *sat;
             scopedNameDef *fqname;
 
             if (td->module != mod)
@@ -2082,6 +2084,7 @@ static void generateClassTableEntries(moduleDef *mod, nodeDef *nd, FILE *fp)
 
     /* Generate the entry if it's not the root. */
     if (nd->cd != NULL)
+    {
         if (isExternal(nd->cd))
             prcode(fp,
 "    0,\n"
@@ -2090,6 +2093,7 @@ static void generateClassTableEntries(moduleDef *mod, nodeDef *nd, FILE *fp)
             prcode(fp,
 "    (sipWrapperType *)(void *)&sipType_%s_%C,\n"
                 , mod->name, classFQCName(nd->cd));
+    }
 
     /* Generate all it's children. */
     for (cnd = nd->child; cnd != NULL; cnd = cnd->next)
@@ -2119,7 +2123,7 @@ static void generateEncodedClass(moduleDef *mod, classDef *cd, int last,
 /*
  * Generate an ordinary function (ie. not a class method).
  */
-static void generateOrdinaryFunction(sipSpec *pt, moduleDef *mod, classDef *cd,
+static void generateOrdinaryFunction(moduleDef *mod, classDef *cd,
         memberDef *md, FILE *fp)
 {
     overDef *od;
@@ -2164,7 +2168,7 @@ static void generateOrdinaryFunction(sipSpec *pt, moduleDef *mod, classDef *cd,
     while (od != NULL)
     {
         if (od->common == md)
-            generateFunctionBody(pt,od,cd,cd,TRUE,fp);
+            generateFunctionBody(od, cd, cd, TRUE, fp);
 
         od = od->next;
     }
@@ -3049,10 +3053,11 @@ static int generateDoubles(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
 /*
  * Generate the C/C++ code for an interface.
  */
-static void generateIfaceCpp(sipSpec *pt, ifaceFileDef *iff, char *codeDir,
-        const char *srcSuffix, FILE *master)
+static void generateIfaceCpp(sipSpec *pt, ifaceFileDef *iff,
+        const char *codeDir, const char *srcSuffix, FILE *master)
 {
-    char *cppfile, *cmname = iff->module->name;
+    char *cppfile;
+    const char *cmname = iff->module->name;
     classDef *cd;
     mappedTypeDef *mtd;
     FILE *fp;
@@ -3114,7 +3119,8 @@ static void generateIfaceCpp(sipSpec *pt, ifaceFileDef *iff, char *codeDir,
 /*
  * Return a filename for an interface C++ or header file on the heap.
  */
-static char *createIfaceFileName(char *codeDir,ifaceFileDef *iff,char *suffix)
+static char *createIfaceFileName(const char *codeDir, ifaceFileDef *iff,
+        const char *suffix)
 {
     char *fn;
     scopedNameDef *snd;
@@ -3551,6 +3557,7 @@ static void generateConvertToDefinitions(mappedTypeDef *mtd,classDef *cd,
             , &type, (need_ptr ? "sipCppPtrV" : ""), (need_xfer ? "sipTransferObj" : ""));
 
         if (need_ptr)
+        {
             if (generating_c)
                 prcode(fp,
 "    %b **sipCppPtr = (%b **)sipCppPtrV;\n"
@@ -3561,6 +3568,7 @@ static void generateConvertToDefinitions(mappedTypeDef *mtd,classDef *cd,
 "    %b **sipCppPtr = reinterpret_cast<%b **>(sipCppPtrV);\n"
 "\n"
                     , &type, &type);
+        }
 
         generateCppCodeBlock(convtocode,fp);
 
@@ -4331,8 +4339,8 @@ int isRichCompareSlot(memberDef *md)
 /*
  * Generate a Python slot handler for either a class, an enum or an extender.
  */
-static void generateSlot(sipSpec *pt, moduleDef *mod, classDef *cd,
-        enumDef *ed, memberDef *md, FILE *fp)
+static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
+        memberDef *md, FILE *fp)
 {
     char *arg_str, *prefix, *ret_type;
     int ret_int, nr_args;
@@ -4441,6 +4449,7 @@ static void generateSlot(sipSpec *pt, moduleDef *mod, classDef *cd,
             , prefix, fqcname);
 
     if (!isNumberSlot(md))
+    {
         if (cd != NULL)
             prcode(fp,
 "    %S *sipCpp = reinterpret_cast<%S *>(sipGetCppPtr((sipWrapper *)sipSelf,sipClass_%C));\n"
@@ -4455,6 +4464,7 @@ static void generateSlot(sipSpec *pt, moduleDef *mod, classDef *cd,
 "    %S sipCpp = static_cast<%S>(PyInt_AsLong(sipSelf));\n"
 "\n"
                 , fqcname, fqcname);
+    }
 
     if (nr_args > 0)
         prcode(fp,
@@ -4473,7 +4483,7 @@ static void generateSlot(sipSpec *pt, moduleDef *mod, classDef *cd,
 
     for (od = overs; od != NULL; od = od->next)
         if (od->common == md)
-            generateFunctionBody(pt, od, cd, cd, (ed == NULL && !dontDerefSelf(od)), fp);
+            generateFunctionBody(od, cd, cd, (ed == NULL && !dontDerefSelf(od)), fp);
 
     if (nr_args > 0)
         switch (md->slot)
@@ -4563,14 +4573,14 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
     /* The member functions. */
     for (vl = cd->visible; vl != NULL; vl = vl->next)
         if (vl->m->slot == no_slot)
-            generateFunction(pt, vl->m, vl->cd->overs, cd, vl->cd, fp);
+            generateFunction(vl->m, vl->cd->overs, cd, vl->cd, fp);
 
     /* The slot functions. */
     for (md = cd->members; md != NULL; md = md->next)
         if (cd->iff->type == namespace_iface)
-            generateOrdinaryFunction(pt, mod, cd, md, fp);
+            generateOrdinaryFunction(mod, cd, md, fp);
         else if (md->slot != no_slot && md->slot != unicode_slot)
-            generateSlot(pt, mod, cd, NULL, md, fp);
+            generateSlot(mod, cd, NULL, md, fp);
 
     if (cd->iff->type != namespace_iface && !generating_c)
     {
@@ -5024,7 +5034,7 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 
     /* The type initialisation function. */
     if (canCreate(cd))
-        generateTypeInit(pt, cd, fp);
+        generateTypeInit(cd, fp);
 }
 
 
@@ -5176,7 +5186,7 @@ static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
         if (dvod != vod)
             continue;
 
-        generateVirtualCatcher(pt, mod, cd, virtNr++, vod, fp);
+        generateVirtualCatcher(mod, cd, virtNr++, vod, fp);
     }
 
     /* Generate the wrapper around each protected member function. */
@@ -5185,14 +5195,14 @@ static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
 
     /* Generate the emitters if needed. */
     if (!optNoEmitters(pt))
-        generateEmitters(pt, cd, fp);
+        generateEmitters(cd, fp);
 }
 
 
 /*
  * Generate the emitter functions.
  */
-static void generateEmitters(sipSpec *pt, classDef *cd, FILE *fp)
+static void generateEmitters(classDef *cd, FILE *fp)
 {
     int noIntro;
     visibleList *vl;
@@ -5204,7 +5214,7 @@ static void generateEmitters(sipSpec *pt, classDef *cd, FILE *fp)
         for (od = vl->cd->overs; od != NULL; od = od->next)
             if (od->common == vl->m && isSignal(od))
             {
-                generateEmitter(pt,cd,vl,fp);
+                generateEmitter(cd,vl,fp);
                 break;
             }
     }
@@ -5302,8 +5312,8 @@ static void generateProtectedEnums(sipSpec *pt,classDef *cd,FILE *fp)
 /*
  * Generate the catcher for a virtual function.
  */
-static void generateVirtualCatcher(sipSpec *pt, moduleDef *mod, classDef *cd,
-        int virtNr, virtOverDef *vod, FILE *fp)
+static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
+        virtOverDef *vod, FILE *fp)
 {
     overDef *od = &vod->o;
     virtHandlerDef *vhd = od->virthandler;
@@ -5688,9 +5698,9 @@ static void generateCallDefaultCtor(ctorDef *ct, FILE *fp)
 /*
  * Generate the emitter function for a signal.
  */
-static void generateEmitter(sipSpec *pt,classDef *cd,visibleList *vl,FILE *fp)
+static void generateEmitter(classDef *cd, visibleList *vl, FILE *fp)
 {
-    char *pname = vl->m->pyname->text;
+    const char *pname = vl->m->pyname->text;
     overDef *od;
 
     prcode(fp,
@@ -5716,7 +5726,7 @@ static void generateEmitter(sipSpec *pt,classDef *cd,visibleList *vl,FILE *fp)
 "    {\n"
             );
 
-        generateArgParser(pt, &od->pysig, cd, NULL, NULL, FALSE, fp);
+        generateArgParser(&od->pysig, cd, NULL, NULL, FALSE, fp);
 
         prcode(fp,
 "        {\n"
@@ -5910,6 +5920,7 @@ static void generateProtectedDefinitions(classDef *cd,FILE *fp)
             }
 
             if (!isAbstract(od))
+            {
                 if (isVirtual(od) || isVirtualReimp(od))
                 {
                     prcode(fp, "(sipSelfWasArg ? %S::%s(", classFQCName(vl->cd), mname);
@@ -5921,6 +5932,7 @@ static void generateProtectedDefinitions(classDef *cd,FILE *fp)
                 }
                 else
                     prcode(fp, "%S::", classFQCName(vl->cd));
+            }
 
             prcode(fp,"%s(",mname);
 
@@ -5985,10 +5997,12 @@ static void generateVirtualHandler(virtHandlerDef *vhd, FILE *fp)
          * garbage collected and the C++ instance (possibly) destroyed.
          */
         if ((res->atype == class_type || res->atype == mapped_type) && res->nrderefs == 0)
+        {
             if (isReference(res))
                 isref = TRUE;
             else
                 copy = TRUE;
+        }
 
         res_noconstref = *res;
         resetIsConstArg(&res_noconstref);
@@ -6752,7 +6766,7 @@ static void generateImportedModuleAPI(sipSpec *pt, moduleDef *mod,
 
     for (mtd = pt->mappedtypes; mtd != NULL; mtd = mtd->next)
         if (mtd->iff->module == immod)
-            generateImportedMappedTypeAPI(mtd, pt, mod, fp);
+            generateImportedMappedTypeAPI(mtd, mod, fp);
 
     for (xd = pt->exceptions; xd != NULL; xd = xd->next)
         if (xd->iff->module == immod && xd->exceptionnr >= 0)
@@ -6766,11 +6780,11 @@ static void generateImportedModuleAPI(sipSpec *pt, moduleDef *mod,
 /*
  * Generate the API details for an imported mapped type.
  */
-static void generateImportedMappedTypeAPI(mappedTypeDef *mtd, sipSpec *pt,
-        moduleDef *mod, FILE *fp)
+static void generateImportedMappedTypeAPI(mappedTypeDef *mtd, moduleDef *mod,
+        FILE *fp)
 {
-    char *mname = mod->name;
-    char *imname = mtd->iff->module->name;
+    const char *mname = mod->name;
+    const char *imname = mtd->iff->module->name;
     argDef type;
 
     type.atype = mapped_type;
@@ -6816,8 +6830,8 @@ static void generateMappedTypeAPI(mappedTypeDef *mtd, FILE *fp)
 static void generateImportedClassAPI(classDef *cd, sipSpec *pt, moduleDef *mod,
         FILE *fp)
 {
-    char *mname = mod->name;
-    char *imname = cd->iff->module->name;
+    const char *mname = mod->name;
+    const char *imname = cd->iff->module->name;
 
     if (cd->iff->type == namespace_iface)
         prcode(fp,
@@ -6846,7 +6860,7 @@ static void generateImportedClassAPI(classDef *cd, sipSpec *pt, moduleDef *mod,
  */
 static void generateClassAPI(classDef *cd, sipSpec *pt, FILE *fp)
 {
-    char *mname = cd->iff->module->name;
+    const char *mname = cd->iff->module->name;
 
     prcode(fp,
 "\n"
@@ -7184,10 +7198,12 @@ static void generateNamedValueType(classDef *context, argDef *ad, char *name,
     argDef mod = *ad;
 
     if (ad->nrderefs == 0)
+    {
         if (ad->atype == class_type || ad->atype == mapped_type)
             mod.nrderefs = 1;
         else
             resetIsConstArg(&mod);
+    }
 
     resetIsReference(&mod);
     generateNamedBaseType(context, &mod, name, fp);
@@ -7525,10 +7541,12 @@ static void generateVariable(classDef *context, argDef *ad, int argnr,
     case string_type:
     case wstring_type:
         if (!isReference(ad))
+        {
             if (ad->nrderefs == 2)
                 ad->nrderefs = 1;
             else if (ad->nrderefs == 1 && isOutArg(ad))
                 ad->nrderefs = 0;
+        }
 
         break;
 
@@ -7644,8 +7662,7 @@ static void generateSimpleFunctionCall(fcallDef *fcd,FILE *fp)
  */
 static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 {
-    char *mname;
-    const char *sep;
+    const char *mname, *sep;
     int is_slots, nr_methods, nr_enums;
     int is_inst_class, is_inst_voidp, is_inst_char, is_inst_string;
     int is_inst_int, is_inst_long, is_inst_ulong, is_inst_longlong;
@@ -8244,7 +8261,7 @@ static const char *slotName(slotType st)
 /*
  * Generate the initialisation function or cast operators for the type.
  */
-static void generateTypeInit(sipSpec *pt, classDef *cd, FILE *fp)
+static void generateTypeInit(classDef *cd, FILE *fp)
 {
     ctorDef *ct;
     int need_self, need_owner;
@@ -8332,7 +8349,7 @@ static void generateTypeInit(sipSpec *pt, classDef *cd, FILE *fp)
             error_flag = TRUE;
         }
 
-        needSecCall = generateArgParser(pt, &ct->pysig, cd, ct, NULL, FALSE, fp);
+        needSecCall = generateArgParser(&ct->pysig, cd, ct, NULL, FALSE, fp);
         generateConstructorCall(cd,ct,error_flag,fp);
 
         if (needSecCall)
@@ -8349,7 +8366,7 @@ static void generateTypeInit(sipSpec *pt, classDef *cd, FILE *fp)
 "        int sipIsErr = 0;\n"
                     );
 
-            generateArgParser(pt, &ct->pysig, cd, ct, NULL, TRUE, fp);
+            generateArgParser(&ct->pysig, cd, ct, NULL, TRUE, fp);
             generateConstructorCall(cd,ct,error_flag,fp);
         }
 
@@ -8650,8 +8667,8 @@ static int skipOverload(overDef *od,memberDef *md,classDef *cd,classDef *ccd,
 /*
  * Generate a class member function.
  */
-static void generateFunction(sipSpec *pt,memberDef *md,overDef *overs,
-                 classDef *cd,classDef *ocd,FILE *fp)
+static void generateFunction(memberDef *md, overDef *overs, classDef *cd,
+        classDef *ocd, FILE *fp)
 {
     overDef *od;
     int need_method, need_self, need_args, need_selfarg;
@@ -8694,7 +8711,7 @@ static void generateFunction(sipSpec *pt,memberDef *md,overDef *overs,
 
     if (need_method)
     {
-        char *pname = md->pyname->text;
+        const char *pname = md->pyname->text;
 
         prcode(fp,
 "\n"
@@ -8739,7 +8756,7 @@ static void generateFunction(sipSpec *pt,memberDef *md,overDef *overs,
             if (isPrivate(od))
                 continue;
 
-            generateFunctionBody(pt,od,cd,ocd,TRUE,fp);
+            generateFunctionBody(od, cd, ocd, TRUE, fp);
         }
 
         prcode(fp,
@@ -8757,8 +8774,8 @@ static void generateFunction(sipSpec *pt,memberDef *md,overDef *overs,
 /*
  * Generate the function calls for a particular overload.
  */
-static void generateFunctionBody(sipSpec *pt,overDef *od,classDef *cd,
-                 classDef *ocd,int deref,FILE *fp)
+static void generateFunctionBody(overDef *od, classDef *cd, classDef *ocd,
+        int deref, FILE *fp)
 {
     int needSecCall;
     signatureDef saved;
@@ -8791,13 +8808,13 @@ static void generateFunctionBody(sipSpec *pt,overDef *od,classDef *cd,
             od->pysig.args[0].u.cd = ocd;
         }
 
-        generateArgParser(pt, &od->pysig, cd, NULL, od, FALSE, fp);
+        generateArgParser(&od->pysig, cd, NULL, od, FALSE, fp);
         needSecCall = FALSE;
     }
     else if (isIntArgSlot(od->common) || isZeroArgSlot(od->common))
         needSecCall = FALSE;
     else
-        needSecCall = generateArgParser(pt, &od->pysig, cd, NULL, od, FALSE, fp);
+        needSecCall = generateArgParser(&od->pysig, cd, NULL, od, FALSE, fp);
 
     generateFunctionCall(cd,ocd,od,deref,fp);
 
@@ -8809,7 +8826,7 @@ static void generateFunctionBody(sipSpec *pt,overDef *od,classDef *cd,
 "    {\n"
             );
 
-        generateArgParser(pt, &od->pysig, cd, NULL, od, TRUE, fp);
+        generateArgParser(&od->pysig, cd, NULL, od, TRUE, fp);
         generateFunctionCall(cd,ocd,od,deref,fp);
     }
 
@@ -8871,6 +8888,7 @@ static void generateHandleResult(overDef *od,int isNew,char *prefix,FILE *fp)
 
     /* Handle results that are classes or mapped types separately. */
     if (res != NULL)
+    {
         if (res->atype == mapped_type)
         {
             prcode(fp,
@@ -8943,6 +8961,7 @@ static void generateHandleResult(overDef *od,int isNew,char *prefix,FILE *fp)
                     return;
             }
         }
+    }
 
     /* If there are multiple values then build a tuple. */
     if (nrvals > 1)
@@ -9918,8 +9937,8 @@ static void generateNumberSlotCall(overDef *od, char *op, FILE *fp)
 /*
  * Generate the argument variables for a member function/constructor/operator.
  */
-static int generateArgParser(sipSpec *pt, signatureDef *sd, classDef *cd,
-                 ctorDef *ct, overDef *od, int secCall, FILE *fp)
+static int generateArgParser(signatureDef *sd, classDef *cd, ctorDef *ct,
+        overDef *od, int secCall, FILE *fp)
 {
     int a, isQtSlot, optargs, arraylenarg, sigarg, handle_self;
     int slotconarg, slotdisarg, need_owner;
@@ -10469,7 +10488,7 @@ static void generateCppCodeBlock(codeBlock *code, FILE *fp)
 
     for (cb = code; cb != NULL; cb = cb->next)
     {
-        char *cp;
+        const char *cp;
 
         /*
          * Fragmented fragments (possibly created when applying template types)
@@ -10501,7 +10520,7 @@ static void generateCppCodeBlock(codeBlock *code, FILE *fp)
 
     if (reset_line)
     {
-        char *bn;
+        const char *bn;
 
         /* Just use the base name. */
         if ((bn = strrchr(currentFileName, '/')) != NULL)
@@ -10519,8 +10538,8 @@ static void generateCppCodeBlock(codeBlock *code, FILE *fp)
 /*
  * Create a source file.
  */
-static FILE *createCompilationUnit(moduleDef *mod, char *fname,
-        char *description)
+static FILE *createCompilationUnit(moduleDef *mod, const char *fname,
+        const char *description)
 {
     FILE *fp = createFile(mod, fname, description);
 
@@ -10534,7 +10553,8 @@ static FILE *createCompilationUnit(moduleDef *mod, char *fname,
 /*
  * Create a file with an optional standard header.
  */
-static FILE *createFile(moduleDef *mod, char *fname, char *description)
+static FILE *createFile(moduleDef *mod, const char *fname,
+        const char *description)
 {
     FILE *fp;
 
@@ -10574,7 +10594,7 @@ static FILE *createFile(moduleDef *mod, char *fname, char *description)
 
         for (cb = mod->copying; cb != NULL; cb = cb->next)
         {
-            char *cp;
+            const char *cp;
 
             for (cp = cb->frag; *cp != '\0'; ++cp)
             {

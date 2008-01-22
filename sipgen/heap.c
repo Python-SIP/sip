@@ -35,7 +35,7 @@ void *sipMalloc(size_t n)
  * Wrap strdup() and handle any errors.
  */
 
-char *sipStrdup(char *s)
+char *sipStrdup(const char *s)
 {
 	char *h;
 
@@ -87,7 +87,7 @@ char *concat(const char *s, ...)
  * Append a string to another that is on the heap.
  */
 
-void append(char **s,char *new)
+void append(char **s, const char *new)
 {
 	if ((*s = realloc(*s,strlen(*s) + strlen(new) + 1)) == NULL)
 		nomem();

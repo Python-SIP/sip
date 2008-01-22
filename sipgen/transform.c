@@ -60,8 +60,8 @@ static void searchEnums(sipSpec *,scopedNameDef *,argDef *);
 static void searchClasses(sipSpec *,moduleDef *mod,scopedNameDef *,argDef *);
 static void appendToMRO(mroDef *,mroDef ***,classDef *);
 static void moveMainModuleCastsSlots(sipSpec *pt, moduleDef *mod);
-static void moveClassCasts(sipSpec *pt, moduleDef *mod, classDef *cd);
-static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd);
+static void moveClassCasts(moduleDef *mod, classDef *cd);
+static void moveGlobalSlot(moduleDef *mod, memberDef *gmd);
 static void filterMainModuleVirtualHandlers(moduleDef *mod);
 static void filterModuleVirtualHandlers(moduleDef *mod);
 static ifaceFileDef *getIfaceFile(argDef *ad);
@@ -85,7 +85,6 @@ void transform(sipSpec *pt)
     classList *newl;
     overDef *od;
     mappedTypeDef *mtd;
-    virtHandlerDef *vhd;
 
     /*
      * The class list has the main module's classes at the front and the
@@ -505,18 +504,18 @@ static void moveMainModuleCastsSlots(sipSpec *pt, moduleDef *mod)
 
     for (cd = pt->classes; cd != NULL; cd = cd->next)
         if (cd->iff->module == mod)
-            moveClassCasts(pt, mod, cd);
+            moveClassCasts(mod, cd);
 
     for (md = mod->othfuncs; md != NULL; md = md->next)
         if (md->slot != no_slot && md->module == mod)
-            moveGlobalSlot(pt, mod, md);
+            moveGlobalSlot(mod, md);
 }
 
 
 /*
  * Move any class casts to its correct class, or publish as a ctor extender.
  */
-static void moveClassCasts(sipSpec *pt, moduleDef *mod, classDef *cd)
+static void moveClassCasts(moduleDef *mod, classDef *cd)
 {
     argList *al;
 
@@ -579,7 +578,7 @@ static void moveClassCasts(sipSpec *pt, moduleDef *mod, classDef *cd)
 /*
  * If possible, move a global slot to its correct class.
  */
-static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd)
+static void moveGlobalSlot(moduleDef *mod, memberDef *gmd)
 {
     overDef **odp = &mod->overs, *od;
 
@@ -2047,10 +2046,12 @@ static void defaultInput(argDef *ad)
 static void defaultOutput(argDef *ad)
 {
     if (!isOutArg(ad) && !isInArg(ad))
+    {
         if (isConstArg(ad))
             setIsInArg(ad);
         else
             setIsOutArg(ad);
+    }
 }
 
 
@@ -2789,7 +2790,7 @@ static void ifaceFilesAreUsedByOverload(ifaceFileList **used, overDef *od)
         int a;
 
         for (a = 0; a < ta->nrArgs; ++a)
-            ifaceFileIsUsed(used, &ta->args[a]);
+            addToUsedList(used, ta->args[a]->cd->iff);
     }
 }
 
@@ -2802,8 +2803,7 @@ static void ifaceFileIsUsed(ifaceFileList **used, argDef *ad)
 {
     ifaceFileDef *iff;
 
-    /* Make sure we don't try to add an interface file to its own list. */
-    if ((iff = getIfaceFile(ad)) != NULL && &iff->used != used)
+    if ((iff = getIfaceFile(ad)) != NULL)
     {
         addToUsedList(used, iff);
 
@@ -2817,8 +2817,7 @@ static void ifaceFileIsUsed(ifaceFileList **used, argDef *ad)
             ifaceFileList *iffl = iff->used;
 
             for (iffl = iff->used; iffl != NULL; iffl = iffl->next)
-                if (&iffl->iff->used != used)
-                    addToUsedList(used, iffl->iff);
+                addToUsedList(used, iffl->iff);
         }
     }
 }

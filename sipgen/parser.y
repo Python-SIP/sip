@@ -39,7 +39,7 @@ static int currentScopeIdx;             /* The scope stack index. */
 static int currentTimelineOrder;        /* The current timeline order. */
 
 
-static char *getPythonName(optFlags *optflgs, char *cname);
+static const char *getPythonName(optFlags *optflgs, const char *cname);
 static classDef *findClass(sipSpec *,ifaceFileType,scopedNameDef *);
 static classDef *findClassWithInterface(sipSpec *pt, ifaceFileDef *iff);
 static classDef *newClass(sipSpec *,ifaceFileType,scopedNameDef *);
@@ -49,17 +49,18 @@ static mappedTypeDef *newMappedType(sipSpec *,argDef *);
 static enumDef *newEnum(sipSpec *,moduleDef *,char *,optFlags *,int);
 static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod, classDef *scope, scopedNameDef *fqname, classTmplDef *tcd, templateDef *td);
 static void newTypedef(sipSpec *,moduleDef *,char *,argDef *);
-static void newVar(sipSpec *,moduleDef *,char *,int,argDef *,optFlags *,
-           codeBlock *,codeBlock *,codeBlock *);
-static void newCtor(char *,int,signatureDef *,optFlags *,codeBlock *,
-            throwArgs *,signatureDef *,int);
-static void newFunction(sipSpec *,moduleDef *,int,int,int,char *,
-            signatureDef *,int,int,optFlags *,codeBlock *,
-            codeBlock *,throwArgs *,signatureDef *);
+static void newVar(sipSpec *, moduleDef *, char *, int, argDef *, optFlags *,
+        codeBlock *, codeBlock *, codeBlock *);
+static void newCtor(char *, int, signatureDef *, optFlags *, codeBlock *,
+        throwArgs *, signatureDef *, int);
+static void newFunction(sipSpec *, moduleDef *, int, int, int, char *,
+        signatureDef *, int, int, optFlags *, codeBlock *, codeBlock *,
+        throwArgs *, signatureDef *);
 static optFlag *findOptFlag(optFlags *,char *,flagType);
 static memberDef *findFunction(sipSpec *,moduleDef *,classDef *,nameDef *,int,
-                   int);
-static void checkAttributes(sipSpec *, moduleDef *, classDef *, char *, int);
+        int);
+static void checkAttributes(sipSpec *, moduleDef *, classDef *, const char *,
+        int);
 static void newModule(FILE *fp, char *filename);
 static moduleDef *allocModule();
 static void parseFile(FILE *fp, char *name, moduleDef *prevmod, int optional);
@@ -73,7 +74,6 @@ static void popScope(void);
 static classDef *currentScope(void);
 static void newQualifier(moduleDef *,int,int,char *,qualType);
 static void newImport(char *filename);
-static void usedInMainModule(sipSpec *,ifaceFileDef *);
 static int timePeriod(char *,char *);
 static int platOrFeature(char *,int);
 static int isNeeded(qualDef *);
@@ -1037,7 +1037,7 @@ codelines:  TK_CODELINE
             append(&$$->frag, $2->frag);
 
             free($2->frag);
-            free($2->filename);
+            free((char *)$2->filename);
             free($2);
         }
     ;
@@ -2809,27 +2809,29 @@ static classDef *findClassWithInterface(sipSpec *pt, ifaceFileDef *iff)
 /*
  * Add an interface file to an interface file list if it isn't already there.
  */
-ifaceFileList *addToUsedList(ifaceFileList **ifflp, ifaceFileDef *iff)
+void addToUsedList(ifaceFileList **ifflp, ifaceFileDef *iff)
 {
-    ifaceFileList *iffl;
-
-    while ((iffl = *ifflp) != NULL)
+    /* Make sure we don't try to add an interface file to its own list. */
+    if (&iff->used != ifflp)
     {
-        /* Don't bother if it is already there. */
-        if (iffl->iff == iff)
-            return iffl;
+        ifaceFileList *iffl;
 
-        ifflp = &iffl -> next;
+        while ((iffl = *ifflp) != NULL)
+        {
+            /* Don't bother if it is already there. */
+            if (iffl->iff == iff)
+                return;
+
+            ifflp = &iffl -> next;
+        }
+
+        iffl = sipMalloc(sizeof (ifaceFileList));
+
+        iffl->iff = iff;
+        iffl->next = NULL;
+
+        *ifflp = iffl;
     }
-
-    iffl = sipMalloc(sizeof (ifaceFileList));
-
-    iffl->iff = iff;
-    iffl->next = NULL;
-
-    *ifflp = iffl;
-
-    return iffl;
 }
 
 
@@ -2974,7 +2976,7 @@ static classDef *newClass(sipSpec *pt,ifaceFileType iftype,
  */
 static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd, optFlags *of)
 {
-    char *pyname;
+    const char *pyname;
     optFlag *flg;
 
     /* Get the Python name and see if it is different to the C++ name. */
@@ -3800,7 +3802,6 @@ static void addUsedFromCode(sipSpec *pt, ifaceFileList **used, const char *sname
         if (sameName(iff->fqcname, sname))
         {
             addToUsedList(used, iff);
-
             return;
         }
     }
@@ -3813,7 +3814,6 @@ static void addUsedFromCode(sipSpec *pt, ifaceFileList **used, const char *sname
         if (sameName(ed->fqcname, sname))
         {
             addToUsedList(used, ed->ecd->iff);
-
             return;
         }
     }
@@ -4293,9 +4293,9 @@ static void newFunction(sipSpec *pt,moduleDef *mod,int sflags,int isstatic,
 /*
  * Return the Python name based on the C/C++ name and any /PyName/ annotation.
  */
-static char *getPythonName(optFlags *optflgs, char *cname)
+static const char *getPythonName(optFlags *optflgs, const char *cname)
 {
-    char *pname;
+    const char *pname;
     optFlag *of;
 
     if ((of = findOptFlag(optflgs, "PyName", name_flag)) != NULL)
@@ -4520,7 +4520,7 @@ static optFlag *findOptFlag(optFlags *flgs,char *name,flagType ft)
  * the same scope in case there is a clash.
  */
 static void checkAttributes(sipSpec *pt, moduleDef *mod, classDef *pyscope,
-        char *attr, int isfunc)
+        const char *attr, int isfunc)
 {
     enumDef *ed;
     varDef *vd;

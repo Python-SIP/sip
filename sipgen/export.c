@@ -6,6 +6,7 @@
 
 
 #include <stdio.h>
+#include <string.h>
 
 #include "sip.h"
 
@@ -375,7 +376,7 @@ static void xmlClass(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
     if (isOpaque(cd))
     {
         xmlIndent(indent, fp);
-        fprintf(fp, "<OpaqueClass name=\"", cd->pyname);
+        fprintf(fp, "<OpaqueClass name=\"");
         prScopedPythonName(fp, cd->ecd, cd->pyname);
         fprintf(fp, "\"/>\n");
 
@@ -383,7 +384,7 @@ static void xmlClass(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
     }
 
     xmlIndent(indent++, fp);
-    fprintf(fp, "<Class name=\"", cd->pyname);
+    fprintf(fp, "<Class name=\"");
     prScopedPythonName(fp, cd->ecd, cd->pyname);
     fprintf(fp, "\"");
 
@@ -586,7 +587,7 @@ static void xmlFunction(classDef *scope, memberDef *md, overDef *oloads,
             prScopedPythonName(fp, scope, md->pyname->text);
             fprintf(fp, "\" sig=\"");
             xmlCppSignature(fp, od);
-            fprintf(fp, "\"/>\n", md->pyname->text);
+            fprintf(fp, "\"/>\n");
 
             continue;
         }
