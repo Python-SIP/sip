@@ -5138,6 +5138,39 @@ static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
     {
         prcode(fp,
 "\n"
+"void *sip%C::qt_metacast(const char *_clname)\n"
+"{\n"
+"    if (!_clname)\n"
+"        return 0;\n"
+"\n"
+"    void *ptr = 0;\n"
+"\n"
+"    SIP_BLOCK_THREADS\n"
+"\n"
+"    PyObject *mro = sipPySelf->ob_type->tp_mro;\n"
+"\n"
+"    for (int i = 0; i < PyTuple_GET_SIZE(mro); ++i)\n"
+"    {\n"
+"        PyTypeObject *pytype = (PyTypeObject *)PyTuple_GET_ITEM(mro, i);\n"
+"\n"
+"        if (pytype == (PyTypeObject *)sipClass_%C)\n"
+"            break;\n"
+"\n"
+"        if (qstrcmp(pytype->tp_name, _clname) == 0)\n"
+"        {\n"
+"            ptr = this;\n"
+"            break;\n"
+"        }\n"
+"    }\n"
+"\n"
+"    SIP_UNBLOCK_THREADS\n"
+"\n"
+"    if (!ptr)\n"
+"        ptr = %S::qt_metacast(_clname);\n"
+"\n"
+"    return ptr;\n"
+"}\n"
+"\n"
 "const QMetaObject *sip%C::metaObject() const\n"
 "{\n"
 "    return sip_%s_qt_metaobject(sipPySelf,sipClass_%C,%S::metaObject());\n"
@@ -5158,6 +5191,9 @@ static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
 "\n"
 "    return _id;\n"
 "}\n"
+            , classFQCName(cd)
+            , classFQCName(cd)
+            , classFQCName(cd)
             , classFQCName(cd)
             , mod->name, classFQCName(cd), classFQCName(cd)
             , classFQCName(cd)
@@ -7013,6 +7049,7 @@ static void generateShadowClassDeclaration(sipSpec *pt,classDef *cd,FILE *fp)
     if (isQObjectSubClass(cd) && optQ_OBJECT4(pt))
         prcode(fp,
 "\n"
+"    void *qt_metacast(const char *);\n"
 "    const QMetaObject *metaObject() const;\n"
 "    int qt_metacall(QMetaObject::Call,int,void **);\n"
             );
