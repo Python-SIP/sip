@@ -726,6 +726,10 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "\n"
 "typedef int (*sip_qt_metacall_func)(sipWrapper *,sipWrapperType *,QMetaObject::Call,int,void **);\n"
 "extern sip_qt_metacall_func sip_%s_qt_metacall;\n"
+"\n"
+"typedef int (*sip_qt_metacast_func)(sipWrapper *,sipWrapperType *,const char *);\n"
+"extern sip_qt_metacast_func sip_%s_qt_metacast;\n"
+            , mname
             , mname
             , mname);
 
@@ -1784,6 +1788,8 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "\n"
 "sip_qt_metaobject_func sip_%s_qt_metaobject;\n"
 "sip_qt_metacall_func sip_%s_qt_metacall;\n"
+"sip_qt_metacast_func sip_%s_qt_metacast;\n"
+            , mname
             , mname
             , mname);
 
@@ -1908,6 +1914,8 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "\n"
 "    sip_%s_qt_metaobject = (sip_qt_metaobject_func)sipImportSymbol(\"qtcore_qt_metaobject\");\n"
 "    sip_%s_qt_metacall = (sip_qt_metacall_func)sipImportSymbol(\"qtcore_qt_metacall\");\n"
+"    sip_%s_qt_metacast = (sip_qt_metacast_func)sipImportSymbol(\"qtcore_qt_metacast\");\n"
+            , mname
             , mname
             , mname);
 
@@ -5133,43 +5141,10 @@ static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
             );
     }
 
-    /* The metacall method if required. */
+    /* The meta methods if required. */
     if (isQObjectSubClass(cd) && optQ_OBJECT4(pt))
     {
         prcode(fp,
-"\n"
-"void *sip%C::qt_metacast(const char *_clname)\n"
-"{\n"
-"    if (!_clname)\n"
-"        return 0;\n"
-"\n"
-"    void *ptr = 0;\n"
-"\n"
-"    SIP_BLOCK_THREADS\n"
-"\n"
-"    PyObject *mro = sipPySelf->ob_type->tp_mro;\n"
-"\n"
-"    for (int i = 0; i < PyTuple_GET_SIZE(mro); ++i)\n"
-"    {\n"
-"        PyTypeObject *pytype = (PyTypeObject *)PyTuple_GET_ITEM(mro, i);\n"
-"\n"
-"        if (pytype == (PyTypeObject *)sipClass_%C)\n"
-"            break;\n"
-"\n"
-"        if (qstrcmp(pytype->tp_name, _clname) == 0)\n"
-"        {\n"
-"            ptr = this;\n"
-"            break;\n"
-"        }\n"
-"    }\n"
-"\n"
-"    SIP_UNBLOCK_THREADS\n"
-"\n"
-"    if (!ptr)\n"
-"        ptr = %S::qt_metacast(_clname);\n"
-"\n"
-"    return ptr;\n"
-"}\n"
 "\n"
 "const QMetaObject *sip%C::metaObject() const\n"
 "{\n"
@@ -5183,23 +5158,23 @@ static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
 "    _id = %S::qt_metacall(_c,_id,_a);\n"
 "\n"
 "    if (_id >= 0)\n"
-"    {\n"
-"        SIP_BLOCK_THREADS\n"
 "        _id = sip_%s_qt_metacall(sipPySelf,sipClass_%C,_c,_id,_a);\n"
-"        SIP_UNBLOCK_THREADS\n"
-"    }\n"
 "\n"
 "    return _id;\n"
 "}\n"
-            , classFQCName(cd)
-            , classFQCName(cd)
-            , classFQCName(cd)
+"\n"
+"void *sip%C::qt_metacast(const char *_clname)\n"
+"{\n"
+"    return sip_%s_qt_metacast(sipPySelf,sipClass_%C,_clname) ? this : %S::qt_metacast(_clname);\n"
+"}\n"
             , classFQCName(cd)
             , mod->name, classFQCName(cd), classFQCName(cd)
             , classFQCName(cd)
             , classFQCName(cd)
             , classFQCName(cd)
-            , mod->name, classFQCName(cd));
+            , mod->name, classFQCName(cd)
+            , classFQCName(cd)
+            , mod->name, classFQCName(cd), classFQCName(cd));
     }
 
     /* Generate the virtual catchers. */
@@ -7049,9 +7024,9 @@ static void generateShadowClassDeclaration(sipSpec *pt,classDef *cd,FILE *fp)
     if (isQObjectSubClass(cd) && optQ_OBJECT4(pt))
         prcode(fp,
 "\n"
-"    void *qt_metacast(const char *);\n"
 "    const QMetaObject *metaObject() const;\n"
 "    int qt_metacall(QMetaObject::Call,int,void **);\n"
+"    void *qt_metacast(const char *);\n"
             );
 
     /* The exposure of protected enums. */
