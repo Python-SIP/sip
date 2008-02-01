@@ -4319,7 +4319,7 @@ static int isInplaceSequenceSlot(memberDef *md)
 
 
 /*
- * Returns TRUE if the given method is a number slot slot.
+ * Returns TRUE if the given method is a number slot.
  */
 int isNumberSlot(memberDef *md)
 {
@@ -8803,21 +8803,32 @@ static void generateFunctionBody(overDef *od, classDef *cd, classDef *ocd,
     if (isNumberSlot(od->common))
     {
         /*
-         * Number slots must have two arguments because we parse them
-         * slightly differently.
+         * Number slots must have two arguments because we parse them slightly
+         * differently.  We also need to handle reflected slots.
          */
         if (od->pysig.nrArgs == 1)
         {
-            od->pysig.nrArgs = 2;
-            od->pysig.args[1] = od->pysig.args[0];
+            int self;
 
-            /* Insert self as the first argument. */
-            od->pysig.args[0].atype = class_type;
-            od->pysig.args[0].name = NULL;
-            od->pysig.args[0].argflags = ARG_IS_REF|ARG_IN;
-            od->pysig.args[0].nrderefs = 0;
-            od->pysig.args[0].defval = NULL;
-            od->pysig.args[0].u.cd = ocd;
+            if (isReflected(od))
+            {
+                self = 1;
+            }
+            else
+            {
+                od->pysig.args[1] = od->pysig.args[0];
+                self = 0;
+            }
+
+            /* Insert self in the right place. */
+            od->pysig.args[self].atype = class_type;
+            od->pysig.args[self].name = NULL;
+            od->pysig.args[self].argflags = ARG_IS_REF|ARG_IN;
+            od->pysig.args[self].nrderefs = 0;
+            od->pysig.args[self].defval = NULL;
+            od->pysig.args[self].u.cd = ocd;
+
+            od->pysig.nrArgs = 2;
         }
 
         generateArgParser(&od->pysig, cd, NULL, od, FALSE, fp);
@@ -9939,9 +9950,9 @@ static void generateBinarySlotCall(classDef *cd, overDef *od, const char *op,
 static void generateNumberSlotCall(overDef *od, char *op, FILE *fp)
 {
     prcode(fp, "(");
-    generateSlotArg(&od->pysig, 0, fp);
+    generateSlotArg(&od->pysig, (isReflected(od) ? 1 : 0), fp);
     prcode(fp, " %s ", op);
-    generateSlotArg(&od->pysig, 1, fp);
+    generateSlotArg(&od->pysig, (isReflected(od) ? 0 : 1), fp);
     prcode(fp, ")");
 }
 
@@ -9956,21 +9967,18 @@ static int generateArgParser(signatureDef *sd, classDef *cd, ctorDef *ct,
     int slotconarg, slotdisarg, need_owner;
 
     /* If the class is just a namespace, then ignore it. */
-
     if (cd != NULL && cd->iff->type == namespace_iface)
         cd = NULL;
 
     handle_self = (od != NULL && od->common->slot == no_slot && !isStatic(od) && cd != NULL);
 
     /* Assume there isn't a Qt slot. */
-
     isQtSlot = FALSE;
 
     /*
      * Generate the local variables that will hold the parsed arguments and
      * values returned via arguments.
      */
-
     sigarg = -1;
     need_owner = FALSE;
 

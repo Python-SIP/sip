@@ -1310,15 +1310,15 @@ static void transformScopeOverloads(sipSpec *pt, classDef *scope,
         resolveFuncTypes(pt, od->common->module, scope, od);
 
         /*
-         * Now check that the Python signature doesn't conflict with an
-         * earlier one.
+         * Now check that the Python signature doesn't conflict with an earlier
+         * one.
          */
         for (prev = overs; prev != od; prev = prev->next)
         {
             if (prev->common != od->common)
                 continue;
 
-            if (samePythonSignature(&prev->pysig, &od->pysig))
+            if (samePythonSignature(&prev->pysig, &od->pysig) && isReflected(prev) == isReflected(od))
             {
                 if (scope != NULL)
                 {

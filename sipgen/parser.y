@@ -57,8 +57,8 @@ static void newFunction(sipSpec *, moduleDef *, int, int, int, char *,
         signatureDef *, int, int, optFlags *, codeBlock *, codeBlock *,
         throwArgs *, signatureDef *);
 static optFlag *findOptFlag(optFlags *,char *,flagType);
-static memberDef *findFunction(sipSpec *,moduleDef *,classDef *,nameDef *,int,
-        int);
+static void findFunction(sipSpec *, moduleDef *, classDef *, const char *, int,
+        int, overDef *);
 static void checkAttributes(sipSpec *, moduleDef *, classDef *, const char *,
         int);
 static void newModule(FILE *fp, char *filename);
@@ -4128,9 +4128,6 @@ static void newFunction(sipSpec *pt,moduleDef *mod,int sflags,int isstatic,
     if (factory && xferback)
         yyerror("/TransferBack/ and /Factory/ cannot both be specified");
 
-    /* Use the C++ name if a Python name wasn't given. */
-    pname = cacheName(pt, getPythonName(optflgs, name));
-
     /* Create a new overload definition. */
 
     od = sipMalloc(sizeof (overDef));
@@ -4242,13 +4239,15 @@ static void newFunction(sipSpec *pt,moduleDef *mod,int sflags,int isstatic,
         vhd = NULL;
     }
 
-    od -> cppname = name;
-    od -> pysig = *sig;
-    od -> cppsig = (cppsig != NULL ? cppsig : &od -> pysig);
-    od -> exceptions = exceptions;
-    od -> methodcode = methodcode;
-    od -> virthandler = vhd;
-    od -> common = findFunction(pt,mod,cd,pname,(methodcode != NULL),sig -> nrArgs);
+    od->cppname = name;
+    od->pysig = *sig;
+    od->cppsig = (cppsig != NULL ? cppsig : &od->pysig);
+    od->exceptions = exceptions;
+    od->methodcode = methodcode;
+    od->virthandler = vhd;
+
+    findFunction(pt, mod, cd, getPythonName(optflgs, name),
+            (methodcode != NULL), sig->nrArgs, od);
 
     if (findOptFlag(optflgs,"Numeric",bool_flag) != NULL)
         setIsNumeric(od -> common);
@@ -4336,60 +4335,71 @@ nameDef *cacheName(sipSpec *pt, const char *name)
 /*
  * Find (or create) an overloaded function name.
  */
-static memberDef *findFunction(sipSpec *pt,moduleDef *mod,classDef *cd,
-                   nameDef *pname,int hwcode,int nrargs)
+static void findFunction(sipSpec *pt, moduleDef *mod, classDef *cd,
+        const char *pname, int hwcode, int nrargs, overDef *od)
 {
     static struct slot_map {
-        char *name;     /* The slot name. */
+        char *name;         /* The slot name. */
         slotType type;      /* The corresponding type. */
-        int needs_hwcode;   /* If handwritten code is required. */
-        int nrargs;     /* Nr. of arguments. */
+        int reflected;      /* Set if the slot is reflected. */
+        int needs_hwcode;   /* Set if handwritten code is required. */
+        int nrargs;         /* Nr. of arguments. */
     } slot_table[] = {
-        {"__str__", str_slot, TRUE, 0},
-        {"__unicode__", unicode_slot, TRUE, 0},
-        {"__int__", int_slot, FALSE, 0},
-        {"__long__", long_slot, FALSE, 0},
-        {"__float__", float_slot, FALSE, 0},
-        {"__len__", len_slot, TRUE, 0},
-        {"__contains__", contains_slot, TRUE, 1},
-        {"__add__", add_slot, FALSE, 1},
-        {"__sub__", sub_slot, FALSE, 1},
-        {"__mul__", mul_slot, FALSE, 1},
-        {"__div__", div_slot, FALSE, 1},
-        {"__mod__", mod_slot, FALSE, 1},
-        {"__and__", and_slot, FALSE, 1},
-        {"__or__", or_slot, FALSE, 1},
-        {"__xor__", xor_slot, FALSE, 1},
-        {"__lshift__", lshift_slot, FALSE, 1},
-        {"__rshift__", rshift_slot, FALSE, 1},
-        {"__iadd__", iadd_slot, FALSE, 1},
-        {"__isub__", isub_slot, FALSE, 1},
-        {"__imul__", imul_slot, FALSE, 1},
-        {"__idiv__", idiv_slot, FALSE, 1},
-        {"__imod__", imod_slot, FALSE, 1},
-        {"__iand__", iand_slot, FALSE, 1},
-        {"__ior__", ior_slot, FALSE, 1},
-        {"__ixor__", ixor_slot, FALSE, 1},
-        {"__ilshift__", ilshift_slot, FALSE, 1},
-        {"__irshift__", irshift_slot, FALSE, 1},
-        {"__invert__", invert_slot, FALSE, 0},
-        {"__call__", call_slot, FALSE, -1},
-        {"__getitem__", getitem_slot, FALSE, -1},
-        {"__setitem__", setitem_slot, TRUE, -1},
-        {"__delitem__", delitem_slot, TRUE, -1},
-        {"__lt__", lt_slot, FALSE, 1},
-        {"__le__", le_slot, FALSE, 1},
-        {"__eq__", eq_slot, FALSE, 1},
-        {"__ne__", ne_slot, FALSE, 1},
-        {"__gt__", gt_slot, FALSE, 1},
-        {"__ge__", ge_slot, FALSE, 1},
-        {"__cmp__", cmp_slot, FALSE, 1},
-        {"__nonzero__", nonzero_slot, TRUE, 0},
-        {"__neg__", neg_slot, FALSE, 0},
-        {"__pos__", pos_slot, FALSE, 0},
-        {"__abs__", abs_slot, TRUE, 0},
-        {"__repr__", repr_slot, TRUE, 0},
-        {"__hash__", hash_slot, TRUE, 0},
+        {"__str__", str_slot, FALSE, TRUE, 0},
+        {"__unicode__", unicode_slot, FALSE, TRUE, 0},
+        {"__int__", int_slot, FALSE, FALSE, 0},
+        {"__long__", long_slot, FALSE, FALSE, 0},
+        {"__float__", float_slot, FALSE, FALSE, 0},
+        {"__len__", len_slot, FALSE, TRUE, 0},
+        {"__contains__", contains_slot, FALSE, TRUE, 1},
+        {"__add__", add_slot, FALSE, FALSE, 1},
+        {"__radd__", add_slot, TRUE, FALSE, 1},
+        {"__sub__", sub_slot, FALSE, FALSE, 1},
+        {"__rsub__", sub_slot, TRUE, FALSE, 1},
+        {"__mul__", mul_slot, FALSE, FALSE, 1},
+        {"__rmul__", mul_slot, TRUE, FALSE, 1},
+        {"__div__", div_slot, FALSE, FALSE, 1},
+        {"__rdiv__", div_slot, TRUE, FALSE, 1},
+        {"__mod__", mod_slot, FALSE, FALSE, 1},
+        {"__rmod__", mod_slot, TRUE, FALSE, 1},
+        {"__and__", and_slot, FALSE, FALSE, 1},
+        {"__rand__", and_slot, TRUE, FALSE, 1},
+        {"__or__", or_slot, FALSE, FALSE, 1},
+        {"__ror__", or_slot, TRUE, FALSE, 1},
+        {"__xor__", xor_slot, FALSE, FALSE, 1},
+        {"__rxor__", xor_slot, TRUE, FALSE, 1},
+        {"__lshift__", lshift_slot, FALSE, FALSE, 1},
+        {"__rlshift__", lshift_slot, TRUE, FALSE, 1},
+        {"__rshift__", rshift_slot, FALSE, FALSE, 1},
+        {"__rrshift__", rshift_slot, TRUE, FALSE, 1},
+        {"__iadd__", iadd_slot, FALSE, FALSE, 1},
+        {"__isub__", isub_slot, FALSE, FALSE, 1},
+        {"__imul__", imul_slot, FALSE, FALSE, 1},
+        {"__idiv__", idiv_slot, FALSE, FALSE, 1},
+        {"__imod__", imod_slot, FALSE, FALSE, 1},
+        {"__iand__", iand_slot, FALSE, FALSE, 1},
+        {"__ior__", ior_slot, FALSE, FALSE, 1},
+        {"__ixor__", ixor_slot, FALSE, FALSE, 1},
+        {"__ilshift__", ilshift_slot, FALSE, FALSE, 1},
+        {"__irshift__", irshift_slot, FALSE, FALSE, 1},
+        {"__invert__", invert_slot, FALSE, FALSE, 0},
+        {"__call__", call_slot, FALSE, FALSE, -1},
+        {"__getitem__", getitem_slot, FALSE, FALSE, -1},
+        {"__setitem__", setitem_slot, FALSE, TRUE, -1},
+        {"__delitem__", delitem_slot, FALSE, TRUE, -1},
+        {"__lt__", lt_slot, FALSE, FALSE, 1},
+        {"__le__", le_slot, FALSE, FALSE, 1},
+        {"__eq__", eq_slot, FALSE, FALSE, 1},
+        {"__ne__", ne_slot, FALSE, FALSE, 1},
+        {"__gt__", gt_slot, FALSE, FALSE, 1},
+        {"__ge__", ge_slot, FALSE, FALSE, 1},
+        {"__cmp__", cmp_slot, FALSE, FALSE, 1},
+        {"__nonzero__", nonzero_slot, FALSE, TRUE, 0},
+        {"__neg__", neg_slot, FALSE, FALSE, 0},
+        {"__pos__", pos_slot, FALSE, FALSE, 0},
+        {"__abs__", abs_slot, FALSE, TRUE, 0},
+        {"__repr__", repr_slot, FALSE, TRUE, 0},
+        {"__hash__", hash_slot, FALSE, TRUE, 0},
         {NULL}
     };
 
@@ -4400,18 +4410,18 @@ static memberDef *findFunction(sipSpec *pt,moduleDef *mod,classDef *cd,
     /* Get the slot type. */
     st = no_slot;
 
-    for (sm = slot_table; sm -> name != NULL; ++sm)
-        if (strcmp(sm -> name,pname -> text) == 0)
+    for (sm = slot_table; sm->name != NULL; ++sm)
+        if (strcmp(sm->name, pname) == 0)
         {
-            if (sm -> needs_hwcode && !hwcode)
+            if (sm->needs_hwcode && !hwcode)
                 yyerror("This Python slot requires %MethodCode");
 
-            if (sm -> nrargs < 0)
+            if (sm->nrargs < 0)
             {
                 int min_nr;
 
                 /* These require a minimum number. */
-                switch (sm -> type)
+                switch (sm->type)
                 {
                 case getitem_slot:
                 case delitem_slot:
@@ -4435,43 +4445,57 @@ static memberDef *findFunction(sipSpec *pt,moduleDef *mod,classDef *cd,
                 if (sm -> nrargs + 1 != nrargs)
                     yyerror("Incorrect number of arguments to global operator");
             }
-            else if (sm -> nrargs != nrargs)
+            else if (sm->nrargs != nrargs)
                 yyerror("Incorrect number of arguments to Python slot");
 
-            st = sm -> type;
+            /*
+             * If this is a reflected slot then use the name of the previous
+             * entry in the table (which will be the unreflected slot) and tell
+             * the overload.
+             */
+            if (sm->reflected)
+            {
+                pname = (sm - 1)->name;
+                setIsReflected(od);
+            }
+
+            st = sm->type;
 
             break;
         }
 
-    if (inMainModule())
-        setIsUsedName(pname);
-
     /* Check there is no name clash. */
-    checkAttributes(pt, mod, cd, pname->text, TRUE);
+    checkAttributes(pt, mod, cd, pname, TRUE);
 
     /* See if it already exists. */
     flist = (cd != NULL ? &cd->members : &mod->othfuncs);
 
-    for (md = *flist; md != NULL; md = md -> next)
-        if (md -> pyname == pname && md -> module == mod)
-            return md;
+    for (md = *flist; md != NULL; md = md->next)
+        if (strcmp(md->pyname->text, pname) == 0 && md->module == mod)
+            break;
 
-    /* Create a new one. */
-    md = sipMalloc(sizeof (memberDef));
+    if (md == NULL)
+    {
+        /* Create a new one. */
+        md = sipMalloc(sizeof (memberDef));
 
-    md -> pyname = pname;
-    md -> memberflags = 0;
-    md -> slot = st;
-    md -> module = mod;
-    md -> next = *flist;
+        md->pyname = cacheName(pt, pname);
+        md->memberflags = 0;
+        md->slot = st;
+        md->module = mod;
+        md->next = *flist;
 
-    *flist = md;
+        *flist = md;
+
+        if (inMainModule())
+            setIsUsedName(md->pyname);
+    }
 
     /* Global operators are a subset. */
     if (cd == NULL && st != no_slot && st != neg_slot && st != pos_slot && !isNumberSlot(md) && !isRichCompareSlot(md))
         yyerror("Global operators must be either numeric or comparison operators");
 
-    return md;
+    od->common = md;
 }
 
 
