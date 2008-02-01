@@ -5165,7 +5165,7 @@ static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
 "\n"
 "void *sip%C::qt_metacast(const char *_clname)\n"
 "{\n"
-"    return sip_%s_qt_metacast(sipPySelf,sipClass_%C,_clname) ? this : %S::qt_metacast(_clname);\n"
+"    return (sip_%s_qt_metacast && sip_%s_qt_metacast(sipPySelf,sipClass_%C,_clname)) ? this : %S::qt_metacast(_clname);\n"
 "}\n"
             , classFQCName(cd)
             , mod->name, classFQCName(cd), classFQCName(cd)
@@ -5174,7 +5174,7 @@ static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
             , classFQCName(cd)
             , mod->name, classFQCName(cd)
             , classFQCName(cd)
-            , mod->name, classFQCName(cd), classFQCName(cd));
+            , mod->name, mod->name, classFQCName(cd), classFQCName(cd));
     }
 
     /* Generate the virtual catchers. */
