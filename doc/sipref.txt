@@ -1033,11 +1033,9 @@ file.
             ``__irshift__`` | ``__isub__`` | ``__ixor__`` | ``__le__`` |
             ``__len__`` | ``__long__`` | ``__lshift__`` | ``__lt__`` |
             ``__mod__`` | ``__mul__`` | ``__ne__`` | ``__neg__`` |
-            ``__nonzero__`` | ``__or__`` | ``__pos__`` | ``__radd__`` |
-            ``__rand__`` | ``__rdiv__`` | ``__repr__`` | ``__rlshift__`` |
-            ``__rmod__`` | ``__rmul__`` | ``__ror__`` | ``__rrshift__`` |
-            ``__rshift__`` | ``__rsub__`` | ``__rxor__`` | ``__setitem__`` |
-            ``__str__`` | ``__sub__`` | ``__xor__``]
+            ``__nonzero__`` | ``__or__`` | ``__pos__`` | ``__repr__`` |
+            ``__rshift__`` | ``__setitem__`` | ``__str__`` | ``__sub__`` |
+            ``__xor__``]
 
     *operator* ::= *operator-type*
             ``(`` [*argument-list*] ``)`` [``const``] [*exceptions*]
@@ -2600,10 +2598,7 @@ PyObject \*a0Wrapper
     or class.
     
     Standard binary operator methods follow the same convention as global
-    functions and instead define two arguments called ``a0`` and ``a1``.  In
-    the case of the reflected operators (e.g. ``__radd__``, ``__ror__``) then
-    the types of the arguments are swapped, i.e. ``a1`` is the pointer to the
-    structure or class rather than ``a0``.
+    functions and instead define two arguments called ``a0`` and ``a1``.
 
 int sipIsErr
     The handwritten code should set this to a non-zero value, and raise an

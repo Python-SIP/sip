@@ -1318,7 +1318,7 @@ static void transformScopeOverloads(sipSpec *pt, classDef *scope,
             if (prev->common != od->common)
                 continue;
 
-            if (samePythonSignature(&prev->pysig, &od->pysig) && isReflected(prev) == isReflected(od))
+            if (samePythonSignature(&prev->pysig, &od->pysig))
             {
                 if (scope != NULL)
                 {

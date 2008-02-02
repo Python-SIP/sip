@@ -8804,31 +8804,20 @@ static void generateFunctionBody(overDef *od, classDef *cd, classDef *ocd,
     {
         /*
          * Number slots must have two arguments because we parse them slightly
-         * differently.  We also need to handle reflected slots.
+         * differently.
          */
         if (od->pysig.nrArgs == 1)
         {
-            int self;
-
-            if (isReflected(od))
-            {
-                self = 1;
-            }
-            else
-            {
-                od->pysig.args[1] = od->pysig.args[0];
-                self = 0;
-            }
+            od->pysig.nrArgs = 2;
+            od->pysig.args[1] = od->pysig.args[0];
 
             /* Insert self in the right place. */
-            od->pysig.args[self].atype = class_type;
-            od->pysig.args[self].name = NULL;
-            od->pysig.args[self].argflags = ARG_IS_REF|ARG_IN;
-            od->pysig.args[self].nrderefs = 0;
-            od->pysig.args[self].defval = NULL;
-            od->pysig.args[self].u.cd = ocd;
-
-            od->pysig.nrArgs = 2;
+            od->pysig.args[0].atype = class_type;
+            od->pysig.args[0].name = NULL;
+            od->pysig.args[0].argflags = ARG_IS_REF|ARG_IN;
+            od->pysig.args[0].nrderefs = 0;
+            od->pysig.args[0].defval = NULL;
+            od->pysig.args[0].u.cd = ocd;
         }
 
         generateArgParser(&od->pysig, cd, NULL, od, FALSE, fp);
@@ -9950,9 +9939,9 @@ static void generateBinarySlotCall(classDef *cd, overDef *od, const char *op,
 static void generateNumberSlotCall(overDef *od, char *op, FILE *fp)
 {
     prcode(fp, "(");
-    generateSlotArg(&od->pysig, (isReflected(od) ? 1 : 0), fp);
+    generateSlotArg(&od->pysig, 0, fp);
     prcode(fp, " %s ", op);
-    generateSlotArg(&od->pysig, (isReflected(od) ? 0 : 1), fp);
+    generateSlotArg(&od->pysig, 1, fp);
     prcode(fp, ")");
 }
 
