@@ -1,3 +1,8 @@
+v4.7.4 10th February 2008
+  - The build system handles the directory structure used by Leopard's Python
+    installation.
+  - Added support for /Transfer/ as a constructor annotation.
+
 v4.7.3 6th December 2007
   - Added support for automatically generating missing complementary
     comparision operators.  Note that this introduces a potential compatibility

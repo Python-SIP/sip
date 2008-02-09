@@ -217,12 +217,6 @@ static int apiOverload(moduleDef *mod, classDef *scope, overDef *od, int sec,
     prScopedPythonName(fp, scope, od->common->pyname->text);
     fprintf(fp, "(");
 
-    if (scope != NULL && scope->iff->type != namespace_iface && !isStatic(od))
-    {
-        fprintf(fp, "self");
-        need_comma = TRUE;
-    }
-
     nr_out = 0;
 
     for (a = 0; a < od->pysig.nrArgs; ++a)
