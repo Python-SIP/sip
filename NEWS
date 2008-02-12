@@ -1,4 +1,4 @@
-v4.7.4 10th February 2008
+v4.7.4 12th February 2008
   - The build system handles the directory structure used by Leopard's Python
     installation.
   - Added support for /Transfer/ as a constructor annotation.
