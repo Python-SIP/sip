@@ -203,7 +203,7 @@ def set_platform_directories():
     global plat_bin_dir, plat_py_lib_dir, plat_sip_dir
 
     # We trust distutils for some stuff.
-    plat_py_site_dir = sysconfig.get_python_lib()
+    plat_py_site_dir = sysconfig.get_python_lib(plat_specific=1)
     plat_py_inc_dir = sysconfig.get_python_inc()
     plat_py_conf_inc_dir = os.path.dirname(sysconfig.get_config_h_filename())
 
@@ -212,17 +212,7 @@ def set_platform_directories():
         plat_bin_dir = sys.exec_prefix
         plat_sip_dir = sys.prefix + "\\sip"
     else:
-        vers = "%d.%d" % ((py_version >> 16) & 0xff, (py_version >> 8) & 0xff)
-
-        # Some 64 bit Linux distros (Mandriva, SuSE) seem to add sys.lib as a
-        # non-standard extension presumably to allow 32 and 64 bit versions to
-        # be installed side by side.  Use it if it seems to be available.
-        try:
-            lib_dir = sys.lib
-        except AttributeError:
-            lib_dir = "lib"
-
-        lib_dir = sys.prefix + "/" + lib_dir + "/python" + vers
+        lib_dir = sysconfig.get_python_lib(plat_specific=1, standard_lib=1)
 
         plat_py_lib_dir = lib_dir + "/config"
         plat_bin_dir = sys.exec_prefix + "/bin"
