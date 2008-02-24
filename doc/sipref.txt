@@ -3234,9 +3234,10 @@ Array
 
 This boolean annotation specifies that the corresponding argument (which
 should be either ``char *`` or ``unsigned char *``) refers to an array
-rather than a ``'\0'`` terminated string.  There must be a corresponding
-argument with the ArraySize_ annotation specified.  The annotation may only be
-specified once in a list of arguments.
+rather than a ``'\0'`` terminated string.  The Python object may be a string
+or any object that implements the Python buffer interface.  There must be a
+corresponding argument with the ArraySize_ annotation specified.  The
+annotation may only be specified once in a list of arguments.
 
 
 ArraySize

@@ -8051,7 +8051,27 @@ static int parseCharArray(PyObject *obj, char **ap, int *aszp)
         *aszp = (int)PyString_GET_SIZE(obj);
     }
     else
-        return -1;
+    {
+        PyTypeObject *type = obj->ob_type;
+        int sz;
+#if PY_VERSION_HEX >= 0x02050000
+        charbufferproc chbuf;
+#else
+        getcharbufferproc chbuf;
+#endif
+
+        if (type->tp_as_buffer == NULL ||
+                !PyType_HasFeature(type, Py_TPFLAGS_HAVE_GETCHARBUFFER) ||
+                (chbuf = type->tp_as_buffer->bf_getcharbuffer) == NULL)
+            return -1;
+
+        sz = (int)chbuf(obj, 0, ap);
+
+        if (sz < 0)
+            return -1;
+
+        *aszp = sz;
+    }
 
     return 0;
 }
