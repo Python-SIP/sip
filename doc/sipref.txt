@@ -794,6 +794,17 @@ heap using the ``free()`` function.
 See also `sipTransferTo()`_, `sipTransferBack()`_ and `sipTransferBreak()`_.
 
 
+Support for Python's Buffer Interface
+-------------------------------------
+
+SIP supports Python's buffer interface in that whenever C/C++ requires a
+``char`` or ``char *`` type then any Python type that supports the buffer
+interface (including ordinary Python strings) can be used.
+
+If a buffer is made up of a number of segments then all but the first will be
+ignored.
+
+
 Support for Wide Characters
 ---------------------------
 
@@ -3234,10 +3245,9 @@ Array
 
 This boolean annotation specifies that the corresponding argument (which
 should be either ``char *`` or ``unsigned char *``) refers to an array
-rather than a ``'\0'`` terminated string.  The Python object may be a string
-or any object that implements the Python buffer interface.  There must be a
-corresponding argument with the ArraySize_ annotation specified.  The
-annotation may only be specified once in a list of arguments.
+rather than a ``'\0'`` terminated string.  There must be a corresponding
+argument with the ArraySize_ annotation specified.  The annotation may only be
+specified once in a list of arguments.
 
 
 ArraySize

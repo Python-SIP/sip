@@ -417,6 +417,7 @@ static void clearAnySlotReference(sipSlot *slot);
 static int parseCharArray(PyObject *obj, char **ap, int *aszp);
 static int parseChar(PyObject *obj, char *ap);
 static int parseCharString(PyObject *obj, char **ap);
+static int getStringFromBuffer(PyObject *obj, char **ap, int *aszp);
 #if defined(HAVE_WCHAR_H)
 static int parseWCharArray(PyObject *obj, wchar_t **ap, int *aszp);
 static int parseWChar(PyObject *obj, wchar_t *ap);
@@ -8050,28 +8051,8 @@ static int parseCharArray(PyObject *obj, char **ap, int *aszp)
         *ap = PyString_AS_STRING(obj);
         *aszp = (int)PyString_GET_SIZE(obj);
     }
-    else
-    {
-        PyTypeObject *type = obj->ob_type;
-        int sz;
-#if PY_VERSION_HEX >= 0x02050000
-        charbufferproc chbuf;
-#else
-        getcharbufferproc chbuf;
-#endif
-
-        if (type->tp_as_buffer == NULL ||
-                !PyType_HasFeature(type, Py_TPFLAGS_HAVE_GETCHARBUFFER) ||
-                (chbuf = type->tp_as_buffer->bf_getcharbuffer) == NULL)
-            return -1;
-
-        sz = (int)chbuf(obj, 0, ap);
-
-        if (sz < 0)
-            return -1;
-
-        *aszp = sz;
-    }
+    else if (getStringFromBuffer(obj, ap, aszp) < 0)
+        return -1;
 
     return 0;
 }
@@ -8082,10 +8063,21 @@ static int parseCharArray(PyObject *obj, char **ap, int *aszp)
  */
 static int parseChar(PyObject *obj, char *ap)
 {
-    if (!PyString_Check(obj) || PyString_GET_SIZE(obj) != 1)
+    char *chp;
+    int sz;
+
+    if (PyString_Check(obj))
+    {
+        chp = PyString_AS_STRING(obj);
+        sz = (int)PyString_GET_SIZE(obj);
+    }
+    else if (getStringFromBuffer(obj, &chp, &sz) < 0)
         return -1;
 
-    *ap = *PyString_AS_STRING(obj);
+    if (sz != 1)
+        return -1;
+
+    *ap = *chp;
 
     return 0;
 }
@@ -8096,14 +8088,39 @@ static int parseChar(PyObject *obj, char *ap)
  */
 static int parseCharString(PyObject *obj, char **ap)
 {
-    if (obj == Py_None)
-        *ap = NULL;
-    else if (PyString_Check(obj))
-        *ap = PyString_AS_STRING(obj);
-    else
-        return -1;
+    int sz;
 
-    return 0;
+    return parseCharArray(obj, ap, &sz);
+}
+
+
+/*
+ * Return the data from an object that supports the buffer interface.
+ */
+static int getStringFromBuffer(PyObject *obj, char **ap, int *aszp)
+{
+    PyTypeObject *type = obj->ob_type;
+#if PY_VERSION_HEX >= 0x02050000
+    charbufferproc chbuf;
+#else
+    getcharbufferproc chbuf;
+#endif
+
+    /* See if the buffer interface is supported. */
+    if (type->tp_as_buffer != NULL &&
+            PyType_HasFeature(type, Py_TPFLAGS_HAVE_GETCHARBUFFER) &&
+            (chbuf = type->tp_as_buffer->bf_getcharbuffer) != NULL)
+    {
+        int sz = (int)chbuf(obj, 0, ap);
+
+        if (sz >= 0)
+        {
+            *aszp = sz;
+            return 0;
+        }
+    }
+
+    return -1;
 }
 
 
