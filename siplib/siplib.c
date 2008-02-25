@@ -256,6 +256,7 @@ static const sipAPIDef sip_api = {
 #define SIP_MC_METHOD           0x02    /* The reimp is a method. */
 #define SIP_MC_CALLABLE         0x04    /* The reimp is another callable. */
 
+#define sipNoReimp(m)           ((m)->mcflags == SIP_MC_CHECKED)
 #define sipCheckedReimp(m)      ((m)->mcflags & SIP_MC_CHECKED)
 #define sipSetCheckedReimp(m)   ((m)->mcflags |= SIP_MC_CHECKED)
 #define sipMethodReimp(m)       ((m)->mcflags & SIP_MC_METHOD)
@@ -5032,6 +5033,13 @@ static int sip_api_add_mapped_type_instance(PyObject *dict, const char *name,
 static PyObject *sip_api_is_py_method(sip_gilstate_t *gil,
         sipMethodCache *pymc, sipWrapper *sipSelf, char *cname, char *mname)
 {
+    /*
+     * This is the most common case (where there is no Python reimplementation)
+     * so we take a fast shortcut without acquiring the GIL.
+     */
+    if (sipNoReimp(pymc))
+        return NULL;
+
     /* We might still have C++ going after the interpreter has gone. */
     if (sipInterpreter == NULL)
         return NULL;
@@ -5120,6 +5128,7 @@ static PyObject *sip_api_is_py_method(sip_gilstate_t *gil,
 
     if (cname != NULL)
     {
+        /* Note that this will only be raised once per object/method. */
         PyErr_Format(PyExc_NotImplementedError,
                 "%s.%s() is abstract and must be overridden", cname, mname);
         PyErr_Print();
