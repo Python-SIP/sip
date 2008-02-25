@@ -252,13 +252,16 @@ static const sipAPIDef sip_api = {
 #define FORMAT_NO_CONVERTORS    0x10    /* Suppress any convertors. */
 #define FORMAT_TRANSFER_THIS    0x20    /* Support for /TransferThis/. */
 
-#define SIP_MC_FOUND            0x01    /* If we have looked for the method. */
-#define SIP_MC_ISMETH           0x02    /* If we looked and there was one. */
+#define SIP_MC_CHECKED          0x01    /* If we have looked for the reimp. */
+#define SIP_MC_METHOD           0x02    /* The reimp is a method. */
+#define SIP_MC_CALLABLE         0x04    /* The reimp is another callable. */
 
-#define sipFoundMethod(m)       ((m)->mcflags & SIP_MC_FOUND)
-#define sipSetFoundMethod(m)    ((m)->mcflags |= SIP_MC_FOUND)
-#define sipIsMethod(m)          ((m)->mcflags & SIP_MC_ISMETH)
-#define sipSetIsMethod(m)       ((m)->mcflags |= SIP_MC_ISMETH)
+#define sipCheckedReimp(m)      ((m)->mcflags & SIP_MC_CHECKED)
+#define sipSetCheckedReimp(m)   ((m)->mcflags |= SIP_MC_CHECKED)
+#define sipMethodReimp(m)       ((m)->mcflags & SIP_MC_METHOD)
+#define sipSetMethodReimp(m)    ((m)->mcflags |= SIP_MC_METHOD)
+#define sipCallableReimp(m)     ((m)->mcflags & SIP_MC_CALLABLE)
+#define sipSetCallableReimp(m)  ((m)->mcflags |= SIP_MC_CALLABLE)
 
 
 /*
@@ -5023,12 +5026,11 @@ static int sip_api_add_mapped_type_instance(PyObject *dict, const char *name,
 
 
 /*
- * Return the Python member function corresponding to a C/C++ virtual function,
+ * Return a Python reimplementation corresponding to a C/C++ virtual function,
  * if any.  If one was found then the Python lock is acquired.
  */
-static PyObject *sip_api_is_py_method(sip_gilstate_t *gil,sipMethodCache *pymc,
-                      sipWrapper *sipSelf,char *cname,
-                      char *mname)
+static PyObject *sip_api_is_py_method(sip_gilstate_t *gil,
+        sipMethodCache *pymc, sipWrapper *sipSelf, char *cname, char *mname)
 {
     /* We might still have C++ going after the interpreter has gone. */
     if (sipInterpreter == NULL)
@@ -5036,9 +5038,10 @@ static PyObject *sip_api_is_py_method(sip_gilstate_t *gil,sipMethodCache *pymc,
 
     /*
      * It's possible that the Python object has been deleted but the underlying
-     * (complex) C/C++ instance is still working and trying to handle virtual
-     * functions.  Or an instance has started handling virtual functions before
-     * its ctor has returned.  In either case say there is no Python method.
+     * C++ instance is still working and trying to handle virtual functions.
+     * Alternatively, an instance has started handling virtual functions before
+     * its ctor has returned.  In either case say there is no Python
+     * reimplementation.
      */
     if (sipSelf == NULL)
         return NULL;
@@ -5047,41 +5050,80 @@ static PyObject *sip_api_is_py_method(sip_gilstate_t *gil,sipMethodCache *pymc,
     *gil = PyGILState_Ensure();
 #endif
 
-    /* See if we have already looked for the Python method. */
-    if (!sipFoundMethod(pymc))
+    /* See if we have already looked for a Python reimplementation. */
+    if (!sipCheckedReimp(pymc))
     {
-        PyObject *methobj;
+        PyObject *reimp = PyObject_GetAttrString((PyObject *)sipSelf, mname);
 
         /*
-         * Using PyMethod_Check() rather than PyCallable_Check() has the added
-         * benefits of ensuring the (common) case of there being no Python
-         * method is handled as a direct call to C/C++ (rather than converted
-         * to Python and then back to C/C++) and makes sure that abstract
-         * virtuals are trapped.
+         * This should always succeed unless there are bugs in the code
+         * generation.
          */
-        if ((methobj = PyObject_GetAttrString((PyObject *)sipSelf,mname)) != NULL)
+        if (reimp != NULL)
         {
-            if (PyMethod_Check(methobj))
+            /*
+             * Ignore if it's not a callable or if it is a builtin function or
+             * method.  The latter is the most common case as it represents the
+             * wrapper around the generated C++ implementation.  We don't want
+             * to use it because we'd rather handle it faster as a direct call.
+             */
+            if (PyCFunction_Check(reimp) || !PyCallable_Check(reimp))
+                Py_DECREF(reimp);
+            else if (PyMethod_Check(reimp))
             {
-                sipSetIsMethod(pymc);
-                sipSaveMethod(&pymc->pyMethod,methobj);
+                sipSaveMethod(&pymc->pyMethod, reimp);
+                sipSetMethodReimp(pymc);
             }
+            else
+            {
+                /*
+                 * Note that the callable is never garbage collected.  The main
+                 * reason for this is that it's not possible to get hold of the
+                 * method cache without make incompatible changes to the SIP
+                 * API, particularly to support the cyclic garbage collector.
+                 * It would be a lot easier if the cache was held in the
+                 * Python object rather than the derived C++ class (and this
+                 * function would be passed a cache index instead of a pointer
+                 * to the cache entry).  Dropping the cache completely should
+                 * also be considered which would have the advantage of making
+                 * monkey patching predictable.  With cyclic garbage collector
+                 * support we could also just save a reference to a
+                 * reimplementation that was a method rather than save the
+                 * separate components, which would also allow a borrowed
+                 * reference to the reimplementation to be returned so that the
+                 * virtual handler wouldn't need to decrement its reference
+                 * count.
+                 */
 
-            Py_DECREF(methobj);
+                pymc->pyMethod.mfunc = reimp;
+                sipSetCallableReimp(pymc);
+            }
         }
+        else
+            PyErr_Clear();
 
-        PyErr_Clear();
-
-        sipSetFoundMethod(pymc);
+        /* Don't check again. */
+        sipSetCheckedReimp(pymc);
     }
-    else if (sipIsMethod(pymc))
-        PyErr_Clear();
 
-    if (sipIsMethod(pymc))
-        return PyMethod_New(pymc->pyMethod.mfunc,pymc->pyMethod.mself,pymc->pyMethod.mclass);
+    if (sipMethodReimp(pymc))
+        return PyMethod_New(pymc->pyMethod.mfunc, pymc->pyMethod.mself,
+                pymc->pyMethod.mclass);
+
+    if (sipCallableReimp(pymc))
+    {
+        PyObject *reimp = pymc->pyMethod.mfunc;
+
+        Py_INCREF(reimp);
+        return reimp;
+    }
 
     if (cname != NULL)
-        PyErr_Format(PyExc_NotImplementedError,"%s.%s() is abstract and must be overridden",cname,mname);
+    {
+        PyErr_Format(PyExc_NotImplementedError,
+                "%s.%s() is abstract and must be overridden", cname, mname);
+        PyErr_Print();
+    }
 
 #ifdef WITH_THREAD
     PyGILState_Release(*gil);
@@ -5596,7 +5638,7 @@ static PyTypeObject *sip_api_find_named_enum(const char *type)
 /*
  * Save the components of a Python method.
  */
-void sipSaveMethod(sipPyMethod *pm,PyObject *meth)
+void sipSaveMethod(sipPyMethod *pm, PyObject *meth)
 {
     pm->mfunc = PyMethod_GET_FUNCTION(meth);
     pm->mself = PyMethod_GET_SELF(meth);
