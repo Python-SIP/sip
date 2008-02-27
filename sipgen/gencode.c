@@ -8048,8 +8048,17 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 
     if (cd->picklecode != NULL)
         prcode(fp,
-"    pickle_%C\n"
+"    pickle_%C,\n"
             , classFQCName(cd));
+    else
+        prcode(fp,
+"    0,\n"
+            );
+
+    if (isQObjectSubClass(cd) && optQ_OBJECT4(pt))
+        prcode(fp,
+"    &%U::staticMetaObject\n"
+            , cd);
     else
         prcode(fp,
 "    0\n"

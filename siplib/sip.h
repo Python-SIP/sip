@@ -573,6 +573,9 @@ typedef struct _sipTypeDef {
 
     /* The pickle function. */
     sipPickleFunc td_pickle;
+
+    /* The optional PyQt defined information. */
+    const void *td_qt;
 } sipTypeDef;
 
 
