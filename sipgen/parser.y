@@ -2992,6 +2992,9 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd, optFlags *of)
     if ((flg = findOptFlag(of, "TypeFlags", integer_flag)) != NULL)
         cd->userflags = flg->fvalue.ival;
 
+    if (findOptFlag(of, "NoQMetaObject", bool_flag) != NULL)
+        setNoQMetaObject(cd);
+
     if (isOpaque(cd))
     {
         if (findOptFlag(of, "External", bool_flag) != NULL)

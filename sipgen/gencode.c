@@ -8055,7 +8055,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 "    0,\n"
             );
 
-    if (isQObjectSubClass(cd) && optQ_OBJECT4(pt))
+    if (isQObjectSubClass(cd) && !noQMetaObject(cd) && optQ_OBJECT4(pt))
         prcode(fp,
 "    &%U::staticMetaObject\n"
             , cd);

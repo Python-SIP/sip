@@ -79,6 +79,7 @@
 #define CLASS_QOBJECT_SUB   0x00800000  /* It is derived from QObject. */
 #define CLASS_DTOR_HOLD_GIL 0x01000000  /* The dtor holds the GIL. */
 #define CLASS_QT_META_TYPE  0x02000000  /* Register as a Qt meta type. */
+#define CLASS_NO_QMETAOBJECT    0x04000000  /* It has no QMetaObject. */
 
 #define hasSigSlots(cd)     ((cd)->classflags & CLASS_HAS_SIGSLOTS)
 #define setHasSigSlots(cd)  ((cd)->classflags |= CLASS_HAS_SIGSLOTS)
@@ -118,6 +119,8 @@
 #define setIsHoldGILDtor(c) ((cd)->classflags |= CLASS_DTOR_HOLD_GIL)
 #define registerQtMetaType(c)   ((cd)->classflags & CLASS_QT_META_TYPE)
 #define setRegisterQtMetaType(c)    ((cd)->classflags |= CLASS_QT_META_TYPE)
+#define noQMetaObject(c)    ((cd)->classflags & CLASS_NO_QMETAOBJECT)
+#define setNoQMetaObject(c) ((cd)->classflags |= CLASS_NO_QMETAOBJECT)
 
 #define isPublicDtor(cd)    ((cd)->classflags & SECT_IS_PUBLIC)
 #define setIsPublicDtor(cd) ((cd)->classflags |= SECT_IS_PUBLIC)
