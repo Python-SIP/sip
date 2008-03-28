@@ -9923,9 +9923,9 @@ static void generateComparisonSlotCall(classDef *cd, overDef *od,
         prcode(fp, "sipCpp%s%S::operator%s(", (deref ? "->" : "."),
                 classFQCName(cd), op);
     else if (deref)
-        prcode(fp, "::operator%s((*sipCpp), ", op);
+        prcode(fp, "operator%s((*sipCpp), ", op);
     else
-        prcode(fp, "::operator%s(sipCpp, ", op);
+        prcode(fp, "operator%s(sipCpp, ", op);
 
     generateSlotArg(&od->pysig, 0, fp);
     prcode(fp, ")");

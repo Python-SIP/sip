@@ -36,16 +36,10 @@ extend sipParseArgs() to take an options dictionary and list of keywords.
 
 25.	Add support for specifying docstrings for generated methods.
 
-26.	Fully implement QObject.disconnect().
-
-27.	Look at adding QObject.Q_OBJECT() that will create the moc generated
-methods dynamically (maybe just the tr() functions).
-
 28.	Consider creating a copy of a const reference when wrapping it in order
 to enforce const in Python.  Or add a flag to the wrapper which says it is a
 const instance.  I think the only to way to implement it is to have a "const"
 Python type - an instance of which will point to the underlying Python object.
 This will enable const_cast to be implemented.
 
-30.	Add support for specifying the reverse arithmetic operators.  (Or just
-document that you should use the normal ones as global operators?)
+31.	Allow (some) handwritten code to be implemented in Python.
