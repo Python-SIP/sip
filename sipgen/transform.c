@@ -2231,8 +2231,7 @@ static int sameArgType(argDef *a1, argDef *a2, int strict)
 /*
  * Compare two basic types and return TRUE if they are the same.
  */
-
-int sameBaseType(argDef *a1,argDef *a2)
+int sameBaseType(argDef *a1, argDef *a2)
 {
     /* The types must be the same. */
 

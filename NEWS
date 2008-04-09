@@ -1,3 +1,8 @@
+v4.7.5 ???
+  - The sip.voidptr type has an optional size associated with it and supports
+    const void *.  If a size is associated then it also supports Python's
+    buffer protocol.
+
 v4.7.4 12th February 2008
   - The build system handles the directory structure used by Leopard's Python
     installation.

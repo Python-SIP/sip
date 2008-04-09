@@ -56,6 +56,10 @@ extern "C" {
  *
  * History:
  *
+ * 3.7  Added sip_api_convert_from_const_void_ptr(),
+ *      sip_api_convert_from_void_ptr_and_size() and
+ *      sip_api_convert_from_const_void_ptr_and_size().
+ *
  * 3.6  Added the 'g' format character to sip_api_parse_args().
  *
  * 3.5  Added the td_pickle field to the sipTypeDef structure.
@@ -105,7 +109,7 @@ extern "C" {
  * 0.0  Original version.
  */
 #define SIP_API_MAJOR_NR    3
-#define SIP_API_MINOR_NR    6
+#define SIP_API_MINOR_NR    7
 
 
 /* Some compatibility stuff to help with handwritten code for SIP v3. */
@@ -1222,6 +1226,15 @@ typedef struct _sipAPIDef {
      * The following are part of the public API.
      */
     void (*api_transfer_break)(PyObject *self);
+
+    /*
+     * The following are not part of the public API.
+     */
+    PyObject *(*api_convert_from_const_void_ptr)(const void *val);
+    PyObject *(*api_convert_from_void_ptr_and_size)(void *val,
+            SIP_SSIZE_T size);
+    PyObject *(*api_convert_from_const_void_ptr_and_size)(const void *val,
+            SIP_SSIZE_T size);
 } sipAPIDef;
 
 

@@ -72,7 +72,6 @@ PyObject *sip_api_convert_from_instance(void *cppPtr, sipWrapperType *type,
 void sip_api_common_dtor(sipWrapper *sipSelf);
 void sip_api_start_thread(void);
 void sip_api_end_thread(void);
-PyObject *sip_api_convert_from_void_ptr(void *val);
 PyObject *sip_api_convert_from_named_enum(int eval, PyTypeObject *et);
 int sip_api_wrapper_check(PyObject *o);
 void sip_api_free_connection(sipSlotConnection *conn);

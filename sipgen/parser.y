@@ -2242,6 +2242,9 @@ argtype:    cpptype optname optflags {
             if (findOptFlag(&$3,"Out",bool_flag) != NULL)
                 $$.argflags |= ARG_OUT;
 
+            if (findOptFlag(&$3, "ResultSize", bool_flag) != NULL)
+                $$.argflags |= ARG_RESULT_SIZE;
+
             if (findOptFlag(&$3,"Constrained",bool_flag) != NULL)
             {
                 $$.argflags |= ARG_CONSTRAINED;

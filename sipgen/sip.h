@@ -283,6 +283,7 @@
 #define ARG_OUT             0x0400  /* It returns a result. */
 #define ARG_CONSTRAINED     0x0800  /* Suppress type conversion. */
 #define ARG_SINGLE_SHOT     0x1000  /* The slot is only ever fired once. */
+#define ARG_RESULT_SIZE     0x2000  /* It defines the result size. */
 
 #define isReference(a)      ((a)->argflags & ARG_IS_REF)
 #define setIsReference(a)   ((a)-> argflags |= ARG_IS_REF)
@@ -312,6 +313,8 @@
 #define setIsConstrained(a) ((a)->argflags |= ARG_CONSTRAINED)
 #define resetIsConstrained(a)   ((a)->argflags &= ~ARG_CONSTRAINED)
 #define isSingleShot(a)     ((a)->argflags & ARG_SINGLE_SHOT)
+#define isResultSize(a)     ((a)->argflags & ARG_RESULT_SIZE)
+#define setResultSize(a)    ((a)->argflags |= ARG_RESULT_SIZE)
 
 
 /* Handle name flags. */

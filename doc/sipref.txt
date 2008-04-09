@@ -3335,6 +3335,17 @@ annotation is specified.
 Both In_ and Out_ may be specified for the same argument.
 
 
+ResultSize
+**********
+
+This boolean annotation is used with functions or methods that return a
+``void *`` or ``const void *``.  It identifies an argument that defines the
+size of the block of memory whose address is being returned.  This allows the
+``sip.voidptr`` object that wraps the address to support the Python buffer
+protocol and allows the memory to be read and updated when wrapped by the
+Python ``buffer()`` builtin.
+
+
 SingleShot
 **********
 
@@ -4863,22 +4874,47 @@ unwrapinstance(obj)
 
 voidptr
     This is the type object for the type SIP uses to represent a C/C++
-    ``void *``.  The type constructor takes a single argument that must either
-    be another ``voidptr``, ``None``, a Python CObject, or an integer.  The
-    type has the following methods:
+    ``void *``.  It may have a size associated with the address in which case
+    the Python buffer protocol is supported.  This means that the memory can
+    be treated as a mutable array of bytes when wrapped with the ``buffer()``
+    builtin.  The type has the following methods:
 
-    __int__()
-        This returns the pointer as an integer.
+    __init__(self, address, size=-1, writeable=True)
+        ``address`` is either another ``voidptr``, ``None``, a Python CObject,
+        or an integer.  ``size`` is the optional associated size of the block
+        of memory and is negative if the size is not known.  ``writeable`` is
+        set if the memory is writeable.  If it is not specified, and
+        ``address`` is a ``voidptr`` then the its value will be used.
 
-    __hex__()
-        This returns the pointer as a hexadecimal string.
+    __int__(self)
+        This returns the address as an integer.
 
-    ascobject()
-        This returns the pointer as a Python CObject.
+    __hex__(self)
+        This returns the address as a hexadecimal string.
 
-    asstring(nbytes)
-        This returns a copy of the first *nbytes* of memory at the pointer as a
-        Python string.
+    ascobject(self)
+        This returns the address as a Python CObject.
+
+    asstring(self, size=-1)
+        This returns a copy of the block of memory as a Python string.  If
+        ``size`` is given then it specifies the number of bytes to copy.  If
+        it is not given (or is negative) then the size associated with the
+        address is used.  If there is no associated size then an exception is
+        raised.
+
+    getsize(self)
+        This returns the size associated with the address.  It will be
+        negative if there is no associated size.
+
+    setsize(self, size)
+        This sets the size associated with the address.  If ``size`` is
+        negative then no size is associated.
+
+    getwriteable(self)
+        This returns the writeable state of the memory.
+
+    setwriteable(self, writeable)
+        writeable state of the memory.
 
 wrapinstance(addr, type)
     A C/C++ structure or class instance is wrapped and the Python object
