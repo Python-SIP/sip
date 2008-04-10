@@ -168,17 +168,6 @@ class _Macro:
         for el in value:
             self.append(el)
 
-    def remove(self, value):
-        """Remove a value from the macro.  It doesn't matter if the value
-        wasn't present.
-
-        value is the value to remove.
-        """
-        try:
-            self._macro.remove(value)
-        except:
-            pass
-
     def as_list(self):
         """Return the macro as a list.
         """
@@ -1400,10 +1389,6 @@ class ModuleMakefile(Makefile):
 
                 if link_shlib:
                     self.LINK.set(link_shlib)
-
-        # This appeared in Qt v4.4rc1 and breaks extension modules so remove
-        # it.
-        self.LFLAGS.remove('-Wl,--no-undefined')
 
     def module_as_lib(self, mname):
         """Return the name of a SIP v3.x module when it is used as a library.
