@@ -492,6 +492,7 @@ class Makefile:
 
             if self.config.qt_version >= 0x040000:
                 for mod in self._qt:
+                    # Note that qmake doesn't define anything for QtHelp.
                     if mod == "QtCore":
                         defines.append("QT_CORE_LIB")
                     elif mod == "QtGui":
@@ -530,6 +531,7 @@ class Makefile:
                 qdepmap = {
                     "QtAssistant":  ("QtCore", "QtGui", "QtNetwork"),
                     "QtGui":        ("QtCore", ),
+                    "QtHelp":       ("QtCore", "QtGui", "QtSql"),
                     "QtNetwork":    ("QtCore", ),
                     "QtOpenGL":     ("QtCore", "QtGui"),
                     "QtScript":     ("QtCore", ),
@@ -691,7 +693,7 @@ class Makefile:
                 lib = lib + "_debug"
 
         if sys.platform == "win32" and "shared" in string.split(self.config.qt_winconfig):
-            if (mname in ("QtCore", "QtGui", "QtNetwork", "QtOpenGL",
+            if (mname in ("QtCore", "QtGui", "QtHelp", "QtNetwork", "QtOpenGL",
                           "QtScript", "QtSql", "QtSvg", "QtTest", "QtXml",
                           "QtDesigner") or
                 (self.config.qt_version >= 0x040200 and mname == "QtAssistant")):

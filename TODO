@@ -43,3 +43,16 @@ Python type - an instance of which will point to the underlying Python object.
 This will enable const_cast to be implemented.
 
 31.	Allow (some) handwritten code to be implemented in Python.
+
+32.	Consider support for Python properties. Something like...
+
+		const char *GetTitle() const /PropertyGetter=Title/;
+		void SetTitle(const char *title) /PropertySetter=Title/;
+
+	...which would define the getter and setter for a property "Title".
+	Would the getter and setter also be exposed as separate functions?
+	Would that be an option?  You could infer the property name (by
+	removing the optional leading [Gg]et and [Ss]set...
+
+		const char *GetTitle() const /Property/;
+		void SetTitle(const char *title) /Property/;
