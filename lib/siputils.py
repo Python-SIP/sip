@@ -511,6 +511,8 @@ class Makefile:
                         defines.append("QT_WEBKIT_LIB")
                     elif mod == "QtXml":
                         defines.append("QT_XML_LIB")
+                    elif mod == "QtXmlPatterns":
+                        defines.append("QT_XMLPATTERNS_LIB")
             elif self._threaded:
                 defines.append("QT_THREAD_SUPPORT")
 
@@ -531,19 +533,20 @@ class Makefile:
 
                 # For Windows: the dependencies between Qt libraries.
                 qdepmap = {
-                    "QtAssistant":  ("QtCore", "QtGui", "QtNetwork"),
-                    "QtGui":        ("QtCore", ),
-                    "QtHelp":       ("QtCore", "QtGui", "QtSql"),
-                    "QtNetwork":    ("QtCore", ),
-                    "QtOpenGL":     ("QtCore", "QtGui"),
-                    "QtScript":     ("QtCore", ),
-                    "QtSql":        ("QtCore", ),
-                    "QtSvg":        ("QtCore", "QtGui", "QtXml"),
-                    "QtTest":       ("QtCore", "QtGui"),
-                    "QtWebKit":     ("QtCore", "QtGui", "QtNetwork"),
-                    "QtXml":        ("QtCore", ),
-                    "QtDesigner":   ("QtCore", "QtGui"),
-                    "QAxContainer": ("QtCore", "QtGui")
+                    "QtAssistant":      ("QtCore", "QtGui", "QtNetwork"),
+                    "QtGui":            ("QtCore", ),
+                    "QtHelp":           ("QtCore", "QtGui", "QtSql"),
+                    "QtNetwork":        ("QtCore", ),
+                    "QtOpenGL":         ("QtCore", "QtGui"),
+                    "QtScript":         ("QtCore", ),
+                    "QtSql":            ("QtCore", ),
+                    "QtSvg":            ("QtCore", "QtGui", "QtXml"),
+                    "QtTest":           ("QtCore", "QtGui"),
+                    "QtWebKit":         ("QtCore", "QtGui", "QtNetwork"),
+                    "QtXml":            ("QtCore", ),
+                    "QtXmlPatterns":    ("QtCore", ),
+                    "QtDesigner":       ("QtCore", "QtGui"),
+                    "QAxContainer":     ("QtCore", "QtGui")
                 }
 
                 # The QtSql .prl file doesn't include QtGui as a dependency (at
@@ -696,9 +699,10 @@ class Makefile:
                 lib = lib + "_debug"
 
         if sys.platform == "win32" and "shared" in string.split(self.config.qt_winconfig):
-            if (mname in ("QtCore", "QtGui", "QtHelp", "QtNetwork", "QtOpenGL",
-                          "QtScript", "QtSql", "QtSvg", "QtTest", "QtWebKit",
-                          "QtXml", "QtDesigner") or
+            if (mname in ("QtCore", "QtDesigner", "QtGui", "QtHelp",
+                          "QtNetwork", "QtOpenGL", "QtScript", "QtSql",
+                          "QtSvg", "QtTest", "QtWebKit", "QtXml",
+                          "QtXmlPatterns") or
                 (self.config.qt_version >= 0x040200 and mname == "QtAssistant")):
                 lib = lib + "4"
 
