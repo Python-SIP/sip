@@ -513,6 +513,8 @@ class Makefile:
                         defines.append("QT_XML_LIB")
                     elif mod == "QtXmlPatterns":
                         defines.append("QT_XMLPATTERNS_LIB")
+                    elif mod == "phonon":
+                        defines.append("QT_PHONON_LIB")
             elif self._threaded:
                 defines.append("QT_THREAD_SUPPORT")
 
@@ -545,6 +547,7 @@ class Makefile:
                     "QtWebKit":         ("QtCore", "QtGui", "QtNetwork"),
                     "QtXml":            ("QtCore", ),
                     "QtXmlPatterns":    ("QtCore", ),
+                    "phonon":           ("QtCore", "QtGui"),
                     "QtDesigner":       ("QtCore", "QtGui"),
                     "QAxContainer":     ("QtCore", "QtGui")
                 }
@@ -702,7 +705,7 @@ class Makefile:
             if (mname in ("QtCore", "QtDesigner", "QtGui", "QtHelp",
                           "QtNetwork", "QtOpenGL", "QtScript", "QtSql",
                           "QtSvg", "QtTest", "QtWebKit", "QtXml",
-                          "QtXmlPatterns") or
+                          "QtXmlPatterns", "phonon") or
                 (self.config.qt_version >= 0x040200 and mname == "QtAssistant")):
                 lib = lib + "4"
 
