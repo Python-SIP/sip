@@ -991,7 +991,8 @@ void append(char **, const char *);
 void addToUsedList(ifaceFileList **, ifaceFileDef *);
 int excludedFeature(stringList *,qualDef *);
 int sameSignature(signatureDef *,signatureDef *,int);
-int sameTemplateSignature(signatureDef *sd1, signatureDef *sd2, int deep);
+int sameTemplateSignature(signatureDef *tmpl_sd, signatureDef *args_sd,
+        int deep);
 int sameScopedName(scopedNameDef *,scopedNameDef *);
 int sameBaseType(argDef *,argDef *);
 char *scopedNameTail(scopedNameDef *);

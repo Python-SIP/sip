@@ -3615,6 +3615,20 @@ static void templateType(argDef *ad, classTmplDef *tcd, templateDef *td, classDe
     int a;
     char *name;
 
+    /* Descend into any sub-templates. */
+    if (ad->atype == template_type)
+    {
+        templateDef *new_td = sipMalloc(sizeof (templateDef));
+
+        /* Make a deep copy of the template definition. */
+        *new_td = *ad->u.td;
+        ad->u.td = new_td;
+
+        templateSignature(&ad->u.td->types, FALSE, tcd, td, ncd);
+
+        return;
+    }
+
     /* Ignore if it isn't an unscoped name. */
     if (ad->atype != defined_type || ad->u.snd->next != NULL)
         return;
@@ -3933,41 +3947,42 @@ static void newTypedef(sipSpec *pt,moduleDef *mod,char *name,argDef *type)
  * used for mapped type templates where we want to recurse into any nested
  * templates.
  */
-int sameTemplateSignature(signatureDef *sd1, signatureDef *sd2, int deep)
+int sameTemplateSignature(signatureDef *tmpl_sd, signatureDef *args_sd,
+        int deep)
 {
     int a;
 
-    if (sd1->nrArgs != sd2->nrArgs)
+    if (tmpl_sd->nrArgs != args_sd->nrArgs)
         return FALSE;
 
-    for (a = 0; a < sd1->nrArgs; ++a)
+    for (a = 0; a < tmpl_sd->nrArgs; ++a)
     {
-        argDef *ad1 = &sd1->args[a];
-        argDef *ad2 = &sd2->args[a];
+        argDef *tmpl_ad = &tmpl_sd->args[a];
+        argDef *args_ad = &args_sd->args[a];
 
         /*
-         * If we are doing a shallow comparision (ie. for class
-         * templates) then a type name on the left hand side matches
-         * anything on the right hand side.
+         * If we are doing a shallow comparision (ie. for class templates) then
+         * a type name in the template signature matches anything in the
+         * argument signature.
          */
-        if (ad1->atype == defined_type && !deep)
+        if (tmpl_ad->atype == defined_type && !deep)
             continue;
 
         /*
-         * For type names only compare the references and pointers, and
-         * do the same for any nested templates.
+         * For type names only compare the references and pointers, and do the
+         * same for any nested templates.
          */
-        if (ad1->atype == defined_type && ad2->atype == defined_type)
+        if (tmpl_ad->atype == defined_type && args_ad->atype == defined_type)
         {
-            if (isReference(ad1) != isReference(ad2) || ad1->nrderefs != ad2->nrderefs)
+            if (isReference(tmpl_ad) != isReference(args_ad) || tmpl_ad->nrderefs != args_ad->nrderefs)
                 return FALSE;
         }
-        else if (ad1->atype == template_type && ad2->atype == template_type)
+        else if (tmpl_ad->atype == template_type && args_ad->atype == template_type)
         {
-            if (!sameTemplateSignature(&ad1->u.td->types, &ad2->u.td->types, deep))
+            if (!sameTemplateSignature(&tmpl_ad->u.td->types, &args_ad->u.td->types, deep))
                 return FALSE;
         }
-        else if (!sameBaseType(ad1, ad2))
+        else if (!sameBaseType(tmpl_ad, args_ad))
             return FALSE;
     }
 

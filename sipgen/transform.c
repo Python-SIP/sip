@@ -72,6 +72,7 @@ static void registerMetaType(classDef *cd);
 static void addComplementarySlots(sipSpec *pt, classDef *cd);
 static void addComplementarySlot(sipSpec *pt, classDef *cd, memberDef *md,
         slotType cslot, const char *cslot_name);
+static void resolveInstantiatedClassTemplate(sipSpec *pt, argDef *type);
 
 
 /*
@@ -2234,9 +2235,21 @@ static int sameArgType(argDef *a1, argDef *a2, int strict)
 int sameBaseType(argDef *a1, argDef *a2)
 {
     /* The types must be the same. */
+    if (a1->atype != a2->atype)
+    {
+        /*
+         * If we are comparing a template with those that have already been
+         * used to instantiate a class then we need to compare with the class
+         * name.  Hopefully this won't have wider side effects.
+         */
+        if (a1->atype == class_type && a2->atype == defined_type)
+            return sameScopedName(a1->u.cd->iff->fqcname, a2->u.snd);
 
-    if (a1 -> atype != a2 ->atype)
+        if (a1->atype == defined_type && a2->atype == class_type)
+            return sameScopedName(a1->u.snd, a2->u.cd->iff->fqcname);
+
         return FALSE;
+    }
 
     switch (a1 -> atype)
     {
@@ -2514,21 +2527,7 @@ static void getBaseType(sipSpec *pt, moduleDef *mod, classDef *defscope, argDef 
     }
 
     /* See if the type refers to an instantiated template. */
-    if (type->atype == template_type)
-    {
-        classDef *cd;
-
-        for (cd = pt->classes; cd != NULL; cd = cd->next)
-            if (cd->td != NULL &&
-                sameScopedName(cd->td->fqname, type->u.td->fqname) &&
-                sameSignature(&cd->td->types, &type->u.td->types, TRUE))
-            {
-                type->atype = class_type;
-                type->u.cd = cd;
-
-                break;
-            }
-    }
+    resolveInstantiatedClassTemplate(pt, type);
 
     /* Replace the base type if it has been mapped. */
     if (type -> atype == struct_type || type -> atype == template_type)
@@ -2536,15 +2535,15 @@ static void getBaseType(sipSpec *pt, moduleDef *mod, classDef *defscope, argDef 
         searchMappedTypes(pt,NULL,type);
 
         /*
-         * If we still have a template then see if we need to
-         * automatically instantiate it.
+         * If we still have a template then see if we need to automatically
+         * instantiate it.
          */
         if (type->atype == template_type)
         {
             mappedTypeTmplDef *mtt;
 
             for (mtt = pt->mappedtypetemplates; mtt != NULL; mtt = mtt->next)
-                if (sameScopedName(type->u.td->fqname, mtt->mt->type.u.td->fqname) && sameTemplateSignature(&type->u.td->types, &mtt->mt->type.u.td->types, TRUE))
+                if (sameScopedName(type->u.td->fqname, mtt->mt->type.u.td->fqname) && sameTemplateSignature(&mtt->mt->type.u.td->types, &type->u.td->types, TRUE))
                 {
                     type->u.mtd = instantiateMappedTypeTemplate(pt, mod, mtt, type);
                     type->atype = mapped_type;
@@ -2553,6 +2552,38 @@ static void getBaseType(sipSpec *pt, moduleDef *mod, classDef *defscope, argDef 
                 }
         }
     }
+}
+
+
+/*
+ * If the type corresponds to a previously instantiated class template then
+ * replace it with the class that was created.
+ */
+static void resolveInstantiatedClassTemplate(sipSpec *pt, argDef *type)
+{
+    int a;
+    classDef *cd;
+    templateDef *td;
+    signatureDef *sd;
+
+    if (type->atype != template_type)
+        return;
+
+    td = type->u.td;
+    sd = &td->types;
+
+    for (a = 0; a < sd->nrArgs; ++a)
+        resolveInstantiatedClassTemplate(pt, &sd->args[a]);
+
+    for (cd = pt->classes; cd != NULL; cd = cd->next)
+        if (cd->td != NULL && sameScopedName(cd->td->fqname, td->fqname) &&
+            sameSignature(&cd->td->types, sd, TRUE))
+        {
+            type->atype = class_type;
+            type->u.cd = cd;
+
+            break;
+        }
 }
 
 
