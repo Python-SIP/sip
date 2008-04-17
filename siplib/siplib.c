@@ -430,12 +430,11 @@ static void callPyDtor(sipWrapper *self);
 static int qt_and_sip_api_3_4(void);
 static int visitSlot(sipSlot *slot, visitproc visit, void *arg);
 static void clearAnySlotReference(sipSlot *slot);
-static int parseCharArray(PyObject *obj, char **ap, int *aszp);
+static int parseCharArray(PyObject *obj, const char **ap, SIP_SSIZE_T *aszp);
 static int parseChar(PyObject *obj, char *ap);
-static int parseCharString(PyObject *obj, char **ap);
-static int getStringFromBuffer(PyObject *obj, char **ap, int *aszp);
+static int parseCharString(PyObject *obj, const char **ap);
 #if defined(HAVE_WCHAR_H)
-static int parseWCharArray(PyObject *obj, wchar_t **ap, int *aszp);
+static int parseWCharArray(PyObject *obj, wchar_t **ap, SIP_SSIZE_T *aszp);
 static int parseWChar(PyObject *obj, wchar_t *ap);
 static int parseWCharString(PyObject *obj, wchar_t **ap);
 #else
@@ -1381,11 +1380,32 @@ static PyObject *buildObject(PyObject *obj, const char *fmt, va_list va)
                 char *s;
                 int l;
 
+                /* Note that this is deprecated in favor of 'g'. */
+
                 s = va_arg(va, char *);
                 l = va_arg(va, int);
 
                 if (s != NULL)
                     el = PyString_FromStringAndSize(s, (SIP_SSIZE_T)l);
+                else
+                {
+                    Py_INCREF(Py_None);
+                    el = Py_None;
+                }
+            }
+
+            break;
+
+        case 'g':
+            {
+                char *s;
+                SIP_SSIZE_T l;
+
+                s = va_arg(va, char *);
+                l = va_arg(va, SIP_SSIZE_T);
+
+                if (s != NULL)
+                    el = PyString_FromStringAndSize(s, l);
                 else
                 {
                     Py_INCREF(Py_None);
@@ -1401,11 +1421,37 @@ static PyObject *buildObject(PyObject *obj, const char *fmt, va_list va)
                 wchar_t *s;
                 int l;
 
+                /* Note that this is deprecated in favor of 'G'. */
+
                 s = va_arg(va, wchar_t *);
                 l = va_arg(va, int);
 
                 if (s != NULL)
                     el = PyUnicode_FromWideChar(s, (SIP_SSIZE_T)l);
+                else
+                {
+                    Py_INCREF(Py_None);
+                    el = Py_None;
+                }
+            }
+#else
+            raiseNoWChar();
+            el = NULL;
+#endif
+
+            break;
+
+        case 'G':
+#if defined(HAVE_WCHAR_H)
+            {
+                wchar_t *s;
+                SIP_SSIZE_T l;
+
+                s = va_arg(va, wchar_t *);
+                l = va_arg(va, SIP_SSIZE_T);
+
+                if (s != NULL)
+                    el = PyUnicode_FromWideChar(s, l);
                 else
                 {
                     Py_INCREF(Py_None);
@@ -1703,8 +1749,24 @@ static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
             {
             case 'a':
                 {
-                    char **p = va_arg(va, char **);
+                    const char **p = va_arg(va, const char **);
                     int *szp = va_arg(va, int *);
+                    SIP_SSIZE_T sz;
+
+                    /* Note that this is deprecated in favor of 'g'. */
+
+                    if (parseCharArray(arg, p, &sz) < 0)
+                        invalid = TRUE;
+
+                    *szp = (int)sz;
+                }
+
+                break;
+
+            case 'g':
+                {
+                    const char **p = va_arg(va, const char **);
+                    SIP_SSIZE_T *szp = va_arg(va, SIP_SSIZE_T *);
 
                     if (parseCharArray(arg, p, szp) < 0)
                         invalid = TRUE;
@@ -1717,6 +1779,27 @@ static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
                 {
                     wchar_t **p = va_arg(va, wchar_t **);
                     int *szp = va_arg(va, int *);
+                    SIP_SSIZE_T sz;
+
+                    /* Note that this is deprecated in favor of 'G'. */
+
+                    if (parseWCharArray(arg, p, &sz) < 0)
+                        invalid = TRUE;
+
+                    *szp = (int)sz;
+                }
+#else
+                raiseNoWChar();
+                invalid = TRUE;
+#endif
+
+                break;
+
+            case 'G':
+#if defined(HAVE_WCHAR_H)
+                {
+                    wchar_t **p = va_arg(va, wchar_t **);
+                    SIP_SSIZE_T *szp = va_arg(va, SIP_SSIZE_T *);
 
                     if (parseWCharArray(arg, p, szp) < 0)
                         invalid = TRUE;
@@ -1928,7 +2011,7 @@ static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
 
             case 's':
                 {
-                    char **p = va_arg(va, char **);
+                    const char **p = va_arg(va, const char **);
 
                     if (parseCharString(arg, p) < 0)
                         invalid = TRUE;
@@ -2422,7 +2505,7 @@ static int parsePass1(sipWrapper **selfp, int *selfargp, int *argsParsedp,
             {
                 /* String or None. */
 
-                char **p = va_arg(va, char **);
+                const char **p = va_arg(va, const char **);
 
                 if (parseCharString(arg, p) < 0)
                     valid = PARSE_TYPE;
@@ -2711,10 +2794,29 @@ static int parsePass1(sipWrapper **selfp, int *selfargp, int *argsParsedp,
 
         case 'a':
             {
+                /*
+                 * Char array or None.  Note that this is deprecated in favor
+                 * of 'k'.
+                 */
+
+                const char **p = va_arg(va, const char **);
+                int *szp = va_arg(va, int *);
+                SIP_SSIZE_T sz;
+
+                if (parseCharArray(arg, p, &sz) < 0)
+                    valid = PARSE_TYPE;
+
+                *szp = (int)sz;
+
+                break;
+            }
+
+        case 'k':
+            {
                 /* Char array or None. */
 
-                char **p = va_arg(va, char **);
-                int *szp = va_arg(va, int *);
+                const char **p = va_arg(va, const char **);
+                SIP_SSIZE_T *szp = va_arg(va, SIP_SSIZE_T *);
 
                 if (parseCharArray(arg, p, szp) < 0)
                     valid = PARSE_TYPE;
@@ -2725,10 +2827,35 @@ static int parsePass1(sipWrapper **selfp, int *selfargp, int *argsParsedp,
         case 'A':
 #if defined(HAVE_WCHAR_H)
             {
-                /* Wide char array or None. */
+                /*
+                 * Wide char array or None.  Note that this is deprecated in
+                 * favor of 'K'.
+                 */
 
                 wchar_t **p = va_arg(va, wchar_t **);
                 int *szp = va_arg(va, int *);
+                SIP_SSIZE_T sz;
+
+                if (parseWCharArray(arg, p, &sz) < 0)
+                    valid = PARSE_TYPE;
+
+                *szp = (int)sz;
+
+                break;
+            }
+#else
+            raiseNoWChar();
+            valid = PARSE_RAISED;
+            break
+#endif
+
+        case 'K':
+#if defined(HAVE_WCHAR_H)
+            {
+                /* Wide char array or None. */
+
+                wchar_t **p = va_arg(va, wchar_t **);
+                SIP_SSIZE_T *szp = va_arg(va, SIP_SSIZE_T *);
 
                 if (parseWCharArray(arg, p, szp) < 0)
                     valid = PARSE_TYPE;
@@ -3344,7 +3471,9 @@ static int parsePass2(sipWrapper *self, int selfarg, int nrargs,
         case 'N':
         case 'T':
         case 'a':
+        case 'k':
         case 'A':
+        case 'K':
             va_arg(va,void *);
 
             /* Drop through. */
@@ -8321,7 +8450,7 @@ static char sip_api_string_as_char(PyObject *obj)
 /*
  * Parse a character array and return it's address and length.
  */
-static int parseCharArray(PyObject *obj, char **ap, int *aszp)
+static int parseCharArray(PyObject *obj, const char **ap, SIP_SSIZE_T *aszp)
 {
     if (obj == Py_None)
     {
@@ -8331,9 +8460,9 @@ static int parseCharArray(PyObject *obj, char **ap, int *aszp)
     else if (PyString_Check(obj))
     {
         *ap = PyString_AS_STRING(obj);
-        *aszp = (int)PyString_GET_SIZE(obj);
+        *aszp = PyString_GET_SIZE(obj);
     }
-    else if (getStringFromBuffer(obj, ap, aszp) < 0)
+    else if (PyObject_AsCharBuffer(obj, ap, aszp) < 0)
         return -1;
 
     return 0;
@@ -8345,15 +8474,15 @@ static int parseCharArray(PyObject *obj, char **ap, int *aszp)
  */
 static int parseChar(PyObject *obj, char *ap)
 {
-    char *chp;
-    int sz;
+    const char *chp;
+    SIP_SSIZE_T sz;
 
     if (PyString_Check(obj))
     {
         chp = PyString_AS_STRING(obj);
-        sz = (int)PyString_GET_SIZE(obj);
+        sz = PyString_GET_SIZE(obj);
     }
-    else if (getStringFromBuffer(obj, &chp, &sz) < 0)
+    else if (PyObject_AsCharBuffer(obj, &chp, &sz) < 0)
         return -1;
 
     if (sz != 1)
@@ -8368,44 +8497,11 @@ static int parseChar(PyObject *obj, char *ap)
 /*
  * Parse a character string and return it.
  */
-static int parseCharString(PyObject *obj, char **ap)
+static int parseCharString(PyObject *obj, const char **ap)
 {
-    int sz;
+    SIP_SSIZE_T sz;
 
     return parseCharArray(obj, ap, &sz);
-}
-
-
-/*
- * Return the data from an object that supports the buffer interface.
- * Note: This needs to be replaced by a call to PyObject_AsCharBuffer() and all
- * calls to it converted to use const char * and SIP_SSIZE_T.  This will need
- * the addition of new formatting characters.
- */
-static int getStringFromBuffer(PyObject *obj, char **ap, int *aszp)
-{
-    PyTypeObject *type = obj->ob_type;
-#if PY_VERSION_HEX >= 0x02050000
-    charbufferproc chbuf;
-#else
-    getcharbufferproc chbuf;
-#endif
-
-    /* See if the buffer interface is supported. */
-    if (type->tp_as_buffer != NULL &&
-            PyType_HasFeature(type, Py_TPFLAGS_HAVE_GETCHARBUFFER) &&
-            (chbuf = type->tp_as_buffer->bf_getcharbuffer) != NULL)
-    {
-        int sz = (int)chbuf(obj, 0, ap);
-
-        if (sz >= 0)
-        {
-            *aszp = sz;
-            return 0;
-        }
-    }
-
-    return -1;
 }
 
 
@@ -8420,7 +8516,6 @@ static wchar_t sip_api_unicode_as_wchar(PyObject *obj)
     if (parseWChar(obj, &ch) < 0)
     {
         PyErr_SetString(PyExc_ValueError, "unicode string of length 1 expected");
-
         return L'\0';
     }
 
@@ -8438,7 +8533,6 @@ static wchar_t *sip_api_unicode_as_wstring(PyObject *obj)
     if (parseWCharString(obj, &p) < 0)
     {
         PyErr_SetString(PyExc_ValueError, "unicode string expected");
-
         return NULL;
     }
 
@@ -8449,7 +8543,7 @@ static wchar_t *sip_api_unicode_as_wstring(PyObject *obj)
 /*
  * Parse a wide character array and return it's address and length.
  */
-static int parseWCharArray(PyObject *obj, wchar_t **ap, int *aszp)
+static int parseWCharArray(PyObject *obj, wchar_t **ap, SIP_SSIZE_T *aszp)
 {
     if (obj == Py_None)
     {
@@ -8475,7 +8569,7 @@ static int parseWCharArray(PyObject *obj, wchar_t **ap, int *aszp)
         }
 
         *ap = wc;
-        *aszp = (int)ulen;
+        *aszp = ulen;
     }
     else
         return -1;

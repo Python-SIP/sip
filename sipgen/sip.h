@@ -447,7 +447,8 @@ typedef enum {
     cbool_type,
     sstring_type,
     wstring_type,
-    fake_void_type
+    fake_void_type,
+    ssize_type
 } argType;
 
 

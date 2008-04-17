@@ -3825,7 +3825,7 @@ PyObject \*sipBuildResult(int \*iserr, const char \*format, ...)
     ``a`` (string) [char \*, int]
         Convert a C/C++ character array and its length to a Python string.  If
         the array is ``NULL`` then the length is ignored and the result is
-        ``Py_None``.
+        ``Py_None``.  This is deprecated, use ``g`` instead.
 
     ``b`` (boolean) [int]
         Convert a C/C++ ``int`` to a Python boolean.
@@ -3841,6 +3841,11 @@ PyObject \*sipBuildResult(int \*iserr, const char \*format, ...)
 
     ``f`` (float) [float]
         Convert a C/C++ ``float`` to a Python floating point number.
+
+    ``g`` (string) [char \*, SIP_SSIZE_T]
+        Convert a C/C++ character array and its length to a Python string.  If
+        the array is ``NULL`` then the length is ignored and the result is
+        ``Py_None``.
 
     ``h`` (integer) [short]
         Convert a C/C++ ``short`` to a Python integer.
@@ -3881,7 +3886,7 @@ PyObject \*sipBuildResult(int \*iserr, const char \*format, ...)
     ``A`` (unicode) [wchar_t \*, int]
         Convert a C/C++ wide character array and its length to a Python unicode
         object.  If the array is ``NULL`` then the length is ignored and the
-        result is ``Py_None``.
+        result is ``Py_None``.  This is deprecated, use ``G`` instead.
 
     ``B`` (wrapped instance) [*type* \*, sipWrapperType \*, PyObject \*]
         Convert a new C structure or a new C++ class instance to a Python class
@@ -3919,6 +3924,11 @@ PyObject \*sipBuildResult(int \*iserr, const char \*format, ...)
     ``E`` (wrapped enum) [enum, PyTypeObject \*]
         Convert a named C/C++ ``enum`` to an instance of the corresponding
         Python named enum type.
+
+    ``G`` (unicode) [wchar_t \*, SIP_SSIZE_T]
+        Convert a C/C++ wide character array and its length to a Python unicode
+        object.  If the array is ``NULL`` then the length is ignored and the
+        result is ``Py_None``.
 
     ``M`` (wrapped instance) [*type* \*, sipWrapperType \*]
         Convert a C structure or a C++ class instance to a Python class
@@ -4404,10 +4414,10 @@ int sipParseResult(int \*iserr, PyObject \*method, PyObject \*result, const char
     will convert, and the entry in brackets are the types of the C/C++ values
     to be passed. 
 
-    ``a`` (string) [char \*\*, int \*]
+    ``a`` (string) [const char \*\*, int \*]
         Convert a Python string to a C/C++ character array and its length.  If
         the Python object is ``Py_None`` then the array and length are ``NULL``
-        and zero respectively.
+        and zero respectively.  This is deprecated, use ``g`` instead.
 
     ``b`` (integer) [bool \*]
         Convert a Python integer to a C/C++ ``bool``.
@@ -4423,6 +4433,11 @@ int sipParseResult(int \*iserr, PyObject \*method, PyObject \*result, const char
 
     ``f`` (float) [float \*]
         Convert a Python floating point number to a C/C++ ``float``.
+
+    ``g`` (string) [const char \*\*, SIP_SSIZE_T \*]
+        Convert a Python string to a C/C++ character array and its length.  If
+        the Python object is ``Py_None`` then the array and length are ``NULL``
+        and zero respectively.
 
     ``h`` (integer) [short \*]
         Convert a Python integer to a C/C++ ``short``.
@@ -4442,7 +4457,7 @@ int sipParseResult(int \*iserr, PyObject \*method, PyObject \*result, const char
     ``o`` (long) [unsigned long long \*]
         Convert a Python long to a C/C++ ``unsigned long long``.
 
-    ``s`` (string) [char \*\*]
+    ``s`` (string) [const char \*\*]
         Convert a Python string to a C/C++ ``'\0'`` terminated string.  If the
         Python object is ``Py_None`` then the string is ``NULL``.
 
@@ -4463,7 +4478,8 @@ int sipParseResult(int \*iserr, PyObject \*method, PyObject \*result, const char
     ``A`` (unicode) [wchar_t \*\*, int \*]
         Convert a Python unicode object to a C/C++ wide character array and its
         length.  If the Python object is ``Py_None`` then the array and length
-        are ``NULL`` and zero respectively.
+        are ``NULL`` and zero respectively.  This is deprecated, use ``G``
+        instead.
 
     ``Cf`` (wrapped class) [sipWrapperType \*, int \*, void \*\*]
         Convert a Python object to a C structure or a C++ class instance and
@@ -4496,6 +4512,11 @@ int sipParseResult(int \*iserr, PyObject \*method, PyObject \*result, const char
 
     ``E`` (wrapped enum) [PyTypeObject \*, enum \*]
         Convert a Python named enum type to the corresponding C/C++ ``enum``.
+
+    ``G`` (unicode) [wchar_t \*\*, SIP_SSIZE_T \*]
+        Convert a Python unicode object to a C/C++ wide character array and its
+        length.  If the Python object is ``Py_None`` then the array and length
+        are ``NULL`` and zero respectively.
 
     ``L`` (object) [*type* \*(\*)(PyObject \*obj, int \*iserr), void \*\*]
         Convert a Python object to a C structure or a C++ class instance using

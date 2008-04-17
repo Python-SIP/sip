@@ -59,6 +59,11 @@ extern "C" {
  * 3.7  Added sip_api_convert_from_const_void_ptr(),
  *      sip_api_convert_from_void_ptr_and_size() and
  *      sip_api_convert_from_const_void_ptr_and_size().
+ *      Added the 'g' and 'G' format characters (to replace the now deprecated
+ *      'a' and 'A' format characters) to sip_api_build_result(),
+ *      sip_api_call_method() and sip_api_parse_result().
+ *      Added the 'k' and 'K' format characters (to replace the now deprecated
+ *      'a' and 'A' format characters) to sip_api_parse_args().
  *
  * 3.6  Added the 'g' format character to sip_api_parse_args().
  *

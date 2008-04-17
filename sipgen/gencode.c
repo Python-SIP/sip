@@ -6469,7 +6469,7 @@ static void generateTupleBuilder(signatureDef *sd,FILE *fp)
             if (ad->nrderefs == 0 || (ad->nrderefs == 1 && isOutArg(ad)))
                 fmt = "c";
             else if (isArray(ad))
-                fmt = "a";
+                fmt = "g";
             else
                 fmt = "s";
 
@@ -6479,7 +6479,7 @@ static void generateTupleBuilder(signatureDef *sd,FILE *fp)
             if (ad->nrderefs == 0 || (ad->nrderefs == 1 && isOutArg(ad)))
                 fmt = "w";
             else if (isArray(ad))
-                fmt = "A";
+                fmt = "G";
             else
                 fmt = "x";
 
@@ -6690,11 +6690,7 @@ static void generateTupleBuilder(signatureDef *sd,FILE *fp)
             }
 
             if (isArray(ad))
-            {
-                argType astype = sd->args[arraylenarg].atype;
-
-                prcode(fp,",%sa%d",(astype == int_type ? "" : "(int)"),arraylenarg);
-            }
+                prcode(fp, ",(SIP_SSIZE_T)a%d", arraylenarg);
             else if (ad->atype == enum_type && ad->u.ed->fqcname != NULL)
                 prcode(fp,",sipEnum_%C",ad->u.ed->fqcname);
         }
@@ -7211,7 +7207,7 @@ static void generateCallArgs(classDef *context, signatureDef *sd,
 
         ad = &sd->args[a];
 
-        /* See if the argument needs derefenceing or it's address taking. */
+        /* See if the argument needs dereferencing or it's address taking. */
         switch (ad->atype)
         {
         case sstring_type:
@@ -7262,7 +7258,12 @@ static void generateCallArgs(classDef *context, signatureDef *sd,
             py_ad = NULL;
 
         if (py_ad == NULL)
+        {
+            if (isArraySize(ad))
+                prcode(fp, "(%b)", ad);
+
             prcode(fp, "a%d", a);
+        }
         else if (generating_c)
             prcode(fp, "(%b *)a%d", ad, a);
         else
@@ -7378,6 +7379,10 @@ static void generateNamedBaseType(classDef *context, argDef *ad, char *name,
     case int_type:
     case cint_type:
         prcode(fp,"int");
+        break;
+
+    case ssize_type:
+        prcode(fp, "SIP_SSIZE_T");
         break;
 
     case ulong_type:
@@ -7563,9 +7568,9 @@ static void generateVariable(classDef *context, argDef *ad, int argnr,
         ad->nrderefs = 0;
     }
 
-    /* Array sizes are always integers. */
+    /* Array sizes are always SIP_SSIZE_T. */
     if (isArraySize(ad))
-        ad->atype = int_type;
+        ad->atype = ssize_type;
 
     resetIsReference(ad);
 
@@ -10067,7 +10072,7 @@ static int generateArgParser(signatureDef *sd, classDef *cd, ctorDef *ct,
             if (ad->nrderefs == 0 || (isOutArg(ad) && ad->nrderefs == 1))
                 fmt = "c";
             else if (isArray(ad))
-                fmt = "a";
+                fmt = "k";
             else
                 fmt = "s";
 
@@ -10077,7 +10082,7 @@ static int generateArgParser(signatureDef *sd, classDef *cd, ctorDef *ct,
             if (ad->nrderefs == 0 || (isOutArg(ad) && ad->nrderefs == 1))
                 fmt = "w";
             else if (isArray(ad))
-                fmt = "A";
+                fmt = "K";
             else
                 fmt = "x";
 
