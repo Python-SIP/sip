@@ -1145,12 +1145,12 @@ typedef struct _sipAPIDef {
     int (*api_wrapper_check)(PyObject *o);
     unsigned long (*api_long_as_unsigned_long)(PyObject *o);
     PyObject *(*api_convert_from_named_enum)(int eval, PyTypeObject *et);
+    PyObject *(*api_convert_from_void_ptr)(void *val);
 
     /*
      * The following may be used by Qt support code but no other handwritten
      * code.
      */
-    PyObject *(*api_convert_from_void_ptr)(void *val);
     void (*api_free_connection)(sipSlotConnection *conn);
     int (*api_emit_to_slot)(sipSlot *slot, PyObject *sigargs);
     int (*api_same_connection)(sipSlotConnection *conn, void *tx,
@@ -1231,10 +1231,6 @@ typedef struct _sipAPIDef {
      * The following are part of the public API.
      */
     void (*api_transfer_break)(PyObject *self);
-
-    /*
-     * The following are not part of the public API.
-     */
     PyObject *(*api_convert_from_const_void_ptr)(const void *val);
     PyObject *(*api_convert_from_void_ptr_and_size)(void *val,
             SIP_SSIZE_T size);

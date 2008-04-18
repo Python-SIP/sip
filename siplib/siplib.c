@@ -168,12 +168,12 @@ static const sipAPIDef sip_api = {
     sip_api_transfer_to,
     sip_api_wrapper_check,
     sip_api_long_as_unsigned_long,
+    sip_api_convert_from_named_enum,
+    sip_api_convert_from_void_ptr,
     /*
      * The following may be used by Qt support code but by no other handwritten
      * code.
      */
-    sip_api_convert_from_named_enum,
-    sip_api_convert_from_void_ptr,
     sip_api_free_connection,
     sip_api_emit_to_slot,
     sip_api_same_connection,
@@ -232,9 +232,6 @@ static const sipAPIDef sip_api = {
      * The following are part of the public API.
      */
     sip_api_transfer_break,
-    /*
-     * The following are not part of the public API.
-     */
     sip_api_convert_from_const_void_ptr,
     sip_api_convert_from_void_ptr_and_size,
     sip_api_convert_from_const_void_ptr_and_size,

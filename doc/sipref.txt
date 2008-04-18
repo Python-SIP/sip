@@ -4048,14 +4048,33 @@ PyObject \*sipConnectRx(PyObject \*sender, const char \*signal, PyObject \*recei
     implement ``QObject.connect()``.
 
 
+sipConvertFromConstVoidPtr()
+----------------------------
+
+PyObject \*sipConvertFromConstVoidPtr(const void \*cpp)
+    This creates a ``sip.voidptr`` object for a memory address.  The object
+    will not be writeable and has no associated size.  *cpp* is the memory
+    address.
+
+
+sipConvertFromConstVoidPtrAndSize()
+-----------------------------------
+
+PyObject \*sipConvertFromConstVoidPtrAndSize(const void \*cpp, SIP_SSIZE_T size)
+    This creates a ``sip.voidptr`` object for a memory address.  The object
+    will not be writeable.  *cpp* is the memory address.  *size* is the size
+    associated with the address.  The object can be used as an immutable buffer
+    object.
+
+
 sipConvertFromInstance()
 ------------------------
 
 PyObject \*sipConvertFromInstance(void \*cpp, sipWrapperType \*type, PyObject \*transferObj)
-    Convert a C structure or a C++ class instance to a Python class instance
-    object.  *cpp* is the C/C++ instance.  If the instance has already been
-    wrapped then the result is a new reference to the existing instance object.
-    *type* is the generated type corresponding to the C/C++ type.
+    This converts a C structure or a C++ class instance to a Python class
+    instance object.  *cpp* is the C/C++ instance.  If the instance has already
+    been wrapped then the result is a new reference to the existing instance
+    object.  *type* is the generated type corresponding to the C/C++ type.
     *transferObj* controls the ownership of the returned value.  If the
     structure or class instance has already been wrapped then the result is a
     new reference to the existing class instance object.  If it is ``NULL`` and
@@ -4072,36 +4091,37 @@ sipConvertFromMappedType()
 --------------------------
 
 PyObject \*sipConvertFromMappedType(void \*cpp, const sipMappedType \*mt, PyObject \*transferObj)
-    Convert a C structure or a C++ class instance wrapped as a mapped type to a
-    Python object.  *cpp* is the C/C++ instance.  *mt* is the opaque structure
-    returned by `sipFindMappedType()`_.  *transferObj* controls any ownership
-    changes to *obj*.  If it is ``NULL`` then the ownership is unchanged.  If
-    it is ``Py_None`` then ownership is transferred to Python via a call to
-    `sipTransferBack()`_.  Otherwise ownership is transferred to C/C++ and the
-    instance associated with the ``PyObject *`` argument via a call to
-    `sipTransferTo()`_.
+    This converts a C structure or a C++ class instance wrapped as a mapped
+    type to a Python object.  *cpp* is the C/C++ instance.  *mt* is the opaque
+    structure returned by `sipFindMappedType()`_.  *transferObj* controls any
+    ownership changes to *obj*.  If it is ``NULL`` then the ownership is
+    unchanged.  If it is ``Py_None`` then ownership is transferred to Python
+    via a call to `sipTransferBack()`_.  Otherwise ownership is transferred to
+    C/C++ and the instance associated with the ``PyObject *`` argument via a
+    call to `sipTransferTo()`_.
 
 
 sipConvertFromNamedEnum()
 -------------------------
 
 PyObject \*sipConvertFromNamedEnum(int eval, PyTypeObject \*type)
-    Convert a named C/C++ ``enum`` to an instance of the corresponding Python
-    named enum type.  *eval* is the enumerated value to convert.  *type* is the
-    generated Python type object (see `Generated Named Enum Type Objects`_).
+    This converts a named C/C++ ``enum`` to an instance of the corresponding
+    Python named enum type.  *eval* is the enumerated value to convert.  *type*
+    is the generated Python type object (see `Generated Named Enum Type
+    Objects`_).
 
 
 sipConvertFromNewInstance()
 ---------------------------
 
 PyObject \*sipConvertFromNewInstance(void \*cpp, sipWrapperType \*type, PyObject \*transferObj)
-    Convert a new C structure or a new C++ class instance to a Python class
-    instance object.  *cpp* is the C/C++ instance.  *type* is the generated
-    type corresponding to the C/C++ type.  *transferObj* controls the ownership
-    of the returned value.  If it is ``NULL`` or ``Py_None`` then ownership
-    will be with Python.  Otherwise ownership will be with C/C++ and the
-    instance associated with *transferObj*.  The Python class is influenced by
-    any applicable `%ConvertToSubClassCode`_ code.
+    This converts a new C structure or a new C++ class instance to a Python
+    class instance object.  *cpp* is the C/C++ instance.  *type* is the
+    generated type corresponding to the C/C++ type.  *transferObj* controls the
+    ownership of the returned value.  If it is ``NULL`` or ``Py_None`` then
+    ownership will be with Python.  Otherwise ownership will be with C/C++ and
+    the instance associated with *transferObj*.  The Python class is influenced
+    by any applicable `%ConvertToSubClassCode`_ code.
 
 
 sipConvertFromSequenceIndex()
@@ -4122,6 +4142,24 @@ int sipConvertFromSliceObject(PyObject \*slice, SIP_SSIZE_T length, SIP_SSIZE_T 
     This is a thin wrapper around the Python ``PySlice_GetIndicesEx()``
     function provided to make it easier to write handwritten code that is
     compatible with SIP v3.x and versions of Python earlier that v2.3.
+
+
+sipConvertFromVoidPtr()
+-----------------------
+
+PyObject \*sipConvertFromVoidPtr(void \*cpp)
+    This creates a ``sip.voidptr`` object for a memory address.  The object
+    will be writeable but has no associated size.  *cpp* is the memory address.
+
+
+sipConvertFromVoidPtrAndSize()
+------------------------------
+
+PyObject \*sipConvertFromVoidPtrAndSize(void \*cpp, SIP_SSIZE_T size)
+    This creates a ``sip.voidptr`` object for a memory address.  The object
+    will be writeable.  *cpp* is the memory address.  *size* is the size
+    associated with the address.  The object can be used as a mutable buffer
+    object.
 
 
 sipConvertToCpp()
@@ -4905,7 +4943,7 @@ voidptr
         or an integer.  ``size`` is the optional associated size of the block
         of memory and is negative if the size is not known.  ``writeable`` is
         set if the memory is writeable.  If it is not specified, and
-        ``address`` is a ``voidptr`` then the its value will be used.
+        ``address`` is a ``voidptr`` then its value will be used.
 
     __int__(self)
         This returns the address as an integer.
