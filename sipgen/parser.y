@@ -45,7 +45,7 @@ static classDef *findClassWithInterface(sipSpec *pt, ifaceFileDef *iff);
 static classDef *newClass(sipSpec *,ifaceFileType,scopedNameDef *);
 static void finishClass(sipSpec *,moduleDef *,classDef *,optFlags *);
 static exceptionDef *findException(sipSpec *pt, scopedNameDef *fqname, int new);
-static mappedTypeDef *newMappedType(sipSpec *,argDef *);
+static mappedTypeDef *newMappedType(sipSpec *,argDef *, optFlags *);
 static enumDef *newEnum(sipSpec *,moduleDef *,char *,optFlags *,int);
 static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod, classDef *scope, scopedNameDef *fqname, classTmplDef *tcd, templateDef *td);
 static void newTypedef(sipSpec *,moduleDef *,char *,argDef *);
@@ -506,9 +506,9 @@ raisecode:  TK_RAISECODE codeblock {
         }
     ;
 
-mappedtype: TK_MAPPEDTYPE basetype {
+mappedtype: TK_MAPPEDTYPE basetype optflags {
             if (notSkipping())
-                currentMappedType = newMappedType(currentSpec, &$2);
+                currentMappedType = newMappedType(currentSpec, &$2, &$3);
         } mtdefinition
     ;
 
@@ -3146,7 +3146,7 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd, optFlags *of)
 /*
  * Create a new mapped type.
  */
-static mappedTypeDef *newMappedType(sipSpec *pt, argDef *ad)
+static mappedTypeDef *newMappedType(sipSpec *pt, argDef *ad, optFlags *of)
 {
     mappedTypeDef *mtd;
     scopedNameDef *snd;
@@ -3194,6 +3194,9 @@ static mappedTypeDef *newMappedType(sipSpec *pt, argDef *ad)
     /* Create a new mapped type. */
     mtd = allocMappedType(ad);
 
+    if (findOptFlag(of, "NoRelease", bool_flag) != NULL)
+        setNoRelease(mtd);
+
     mtd->iff = iff;
     mtd->next = pt->mappedtypes;
 
@@ -3212,6 +3215,7 @@ mappedTypeDef *allocMappedType(argDef *type)
 
     mtd = sipMalloc(sizeof (mappedTypeDef));
 
+    mtd->mtflags = 0;
     mtd->type = *type;
     mtd->type.argflags = 0;
     mtd->type.nrderefs = 0;

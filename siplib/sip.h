@@ -1167,7 +1167,15 @@ typedef struct _sipAPIDef {
             const char *fmt, ...);
     void (*api_common_ctor)(sipMethodCache *cache, int nrmeths);
     void (*api_common_dtor)(sipWrapper *sipSelf);
+
+    /*
+     * The following are part of the public API.
+     */
     void *(*api_convert_to_void_ptr)(PyObject *obj);
+
+    /*
+     * The following are not part of the public API.
+     */
     void (*api_no_function)(int argsParsed, const char *func);
     void (*api_no_method)(int argsParsed, const char *classname,
             const char *method);

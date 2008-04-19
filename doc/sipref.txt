@@ -3198,9 +3198,10 @@ SIP Annotations
 In this section we describe each of the annotations that can be used in
 specification files.
 
-Annotations can either be argument annotations, class annotations, enum
-annotations, exception annotations, function annotations, license annotations,
-or variable annotations depending on the context in which they can be used.
+Annotations can either be argument annotations, class annotations, mapped type
+annotations, enum annotations, exception annotations, function annotations,
+license annotations, or variable annotations depending on the context in which
+they can be used.
 
 Annotations are placed between forward slashes (``/``).  Multiple annotations
 are comma separated within the slashes.
@@ -3482,6 +3483,18 @@ which is used when it is referred to from Python.  It is required when a class
 name is the same as a Python keyword.  It may also be used to avoid name
 clashes with other objects (e.g. enums, exceptions, functions) that have the
 same name in the same C++ scope.
+
+
+Mapped Type Annotations
+-----------------------
+
+NoRelease
+*********
+
+This boolean annotation is used to specify that the mapped type does not
+support the `sipReleaseMappedType()`_ function.  Any `%ConvertToTypeCode`_
+should not create temporary instances of the mapped type, i.e. it should not
+return ``SIP_TEMPORARY``.
 
 
 Enum Annotations
@@ -4229,6 +4242,16 @@ void \*sipConvertToMappedType(PyObject \*obj, const sipMappedType \*mt, PyObject
     then the conversion isn't attempted in the first place.  (This allows
     several calls to be made that share the same error flag so that it only
     needs to be tested once rather than after each call.)
+
+
+sipConvertToVoidPtr()
+---------------------
+
+void \*sipConvertToVoidPtr(PyObject \*obj)
+    This converts a Python object to a memory address.  ``obj`` may be
+    ``Py_None``, a ``sip.voidptr`` or a PyCObject.  The memory address is
+    returned.  ``PyErr_Occurred()`` must be used to determine if the conversion
+    was successful.
 
 
 sipDisconnectRx()

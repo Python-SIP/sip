@@ -185,7 +185,13 @@ static const sipAPIDef sip_api = {
     sip_api_parse_pair,
     sip_api_common_ctor,
     sip_api_common_dtor,
+    /*
+     * The following are part of the public API.
+     */
     sip_api_convert_to_void_ptr,
+    /*
+     * The following are not part of the public API.
+     */
     sip_api_no_function,
     sip_api_no_method,
     sip_api_abstract_method,
@@ -6583,9 +6589,11 @@ static void *sip_api_convert_to_void_ptr(PyObject *obj)
     if (obj == Py_None)
         return NULL;
 
-    /* Shortcut if possible. */
     if (PyObject_TypeCheck(obj, &sipVoidPtr_Type))
         return ((sipVoidPtr *)obj)->voidptr;
+
+    if (PyCObject_Check(obj))
+        return PyCObject_AsVoidPtr(obj);
 
     return (void *)PyInt_AsLong(obj);
 }

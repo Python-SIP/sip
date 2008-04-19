@@ -342,6 +342,14 @@
 #define setIsTransferVH(vh) ((vh)->vhflags |= VH_TRANSFERS)
 
 
+/* Handle mapped type flags. */
+
+#define MT_NO_RELEASE       0x01    /* Do not generate a release function. */
+
+#define noRelease(mt)       ((mt)->mtflags & MT_NO_RELEASE)
+#define setNoRelease(mt)    ((mt)->mtflags |= MT_NO_RELEASE)
+
+
 /* Slot types. */
 
 typedef enum {
@@ -695,6 +703,7 @@ typedef struct _ifaceFileList {
 /* A mapped type. */
 
 typedef struct _mappedTypeDef {
+    int mtflags;                        /* The mapped type flags. */
     argDef type;                        /* The type being mapped. */
     int mappednr;                       /* The mapped type number. */
     ifaceFileDef *iff;                  /* The interface file. */

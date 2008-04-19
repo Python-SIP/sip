@@ -3153,49 +3153,52 @@ static char *createIfaceFileName(const char *codeDir, ifaceFileDef *iff,
 /*
  * Generate the C++ code for a mapped type version.
  */
-static void generateMappedTypeCpp(mappedTypeDef *mtd,FILE *fp)
+static void generateMappedTypeCpp(mappedTypeDef *mtd, FILE *fp)
 {
     int need_xfer;
 
-    prcode(fp,
+    if (!noRelease(mtd))
+    {
+        prcode(fp,
 "\n"
 "\n"
 "/* Call the mapped type's destructor. */\n"
-        );
+            );
 
-    if (!generating_c)
-        prcode(fp,
+        if (!generating_c)
+            prcode(fp,
 "extern \"C\" {static void release_%T(void *, int);}\n"
-            , &mtd->type);
+                , &mtd->type);
 
-    prcode(fp,
+        prcode(fp,
 "static void release_%T(void *ptr, int%s)\n"
 "{\n"
-        , &mtd->type, (generating_c ? " status" : ""));
+            , &mtd->type, (generating_c ? " status" : ""));
 
-    if (release_gil)
-        prcode(fp,
+        if (release_gil)
+            prcode(fp,
 "    Py_BEGIN_ALLOW_THREADS\n"
-            );
+                );
 
-    if (generating_c)
-        prcode(fp,
+        if (generating_c)
+            prcode(fp,
 "    sipFree(ptr);\n"
-            );
-    else
-        prcode(fp,
+                );
+        else
+            prcode(fp,
 "    delete reinterpret_cast<%b *>(ptr);\n"
-            , &mtd->type);
+                , &mtd->type);
 
-    if (release_gil)
-        prcode(fp,
+        if (release_gil)
+            prcode(fp,
 "    Py_END_ALLOW_THREADS\n"
-            );
+                );
 
-    prcode(fp,
+        prcode(fp,
 "}\n"
 "\n"
-        );
+            );
+    }
 
     generateConvertToDefinitions(mtd,NULL,fp);
 
@@ -3232,15 +3235,23 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd,FILE *fp)
 "\n"
 "sipMappedType sipMappedTypeDef_%T = {\n"
 "    \"%B\",\n"
+        , &mtd->type
+        , &mtd->type);
+
+    if (noRelease(mtd))
+        prcode(fp,
+"    0,\n"
+            );
+    else
+        prcode(fp,
 "    release_%T,\n"
+            , &mtd->type);
+
+    prcode(fp,
 "    forceConvertTo_%T,\n"
 "    convertTo_%T,\n"
 "    convertFrom_%T\n"
 "};\n"
-        , &mtd->type
-        , &mtd->type
-        , &mtd->type
-        , &mtd->type
         , &mtd->type
         , &mtd->type
         , &mtd->type);
@@ -3978,7 +3989,7 @@ static void generateVariableHandler(classDef *context, varDef *vd, FILE *fp)
 "\n"
 "    sipReleaseInstance(sipVal,sipClass_%C,sipValState);\n"
                 , classFQCName(vd->type.u.cd));
-        else if (vd->type.atype == mapped_type && vd->type.nrderefs == 0)
+        else if (vd->type.atype == mapped_type && vd->type.nrderefs == 0 && !noRelease(vd->type.u.mtd))
             prcode(fp,
 "\n"
 "    sipReleaseMappedType(sipVal,sipMappedType_%T,sipValState);\n"
@@ -7608,9 +7619,11 @@ static void generateVariable(classDef *context, argDef *ad, int argnr,
             break;
 
         case mapped_type:
-            prcode(fp,
+            if (!noRelease(ad->u.mtd))
+                prcode(fp,
 "        int a%dState = 0;\n"
-                ,argnr);
+                    ,argnr);
+
             break;
 
         case anyslot_type:
@@ -10253,7 +10266,11 @@ static int generateArgParser(signatureDef *sd, classDef *cd, ctorDef *ct,
         switch (ad->atype)
         {
         case mapped_type:
-            prcode(fp,",sipMappedType_%T,&a%d,&a%dState",ad,a,a);
+            if (noRelease(ad->u.mtd))
+                prcode(fp, ",sipMappedType_%T,&a%d,NULL", ad, a);
+            else
+                prcode(fp, ",sipMappedType_%T,&a%d,&a%dState", ad, a, a);
+
             break;
 
         case class_type:
@@ -10463,7 +10480,12 @@ static void deleteTemps(signatureDef *sd, FILE *fp)
             const char *fstr, *sstr;
 
             if (ad->atype == mapped_type)
+            {
+                if (noRelease(ad->u.mtd))
+                    continue;
+
                 fstr = sstr = "MappedType";
+            }
             else
             {
                 fstr = "Instance";
