@@ -58,7 +58,7 @@ static void newFunction(sipSpec *, moduleDef *, int, int, int, char *,
         throwArgs *, signatureDef *);
 static optFlag *findOptFlag(optFlags *,char *,flagType);
 static memberDef *findFunction(sipSpec *, moduleDef *, classDef *,
-        const char *, int, int);
+        const char *, int, int, int);
 static void checkAttributes(sipSpec *, moduleDef *, classDef *, const char *,
         int);
 static void newModule(FILE *fp, char *filename);
@@ -4111,7 +4111,7 @@ static void newFunction(sipSpec *pt,moduleDef *mod,int sflags,int isstatic,
 {
     classDef *cd = currentScope();
     nameDef *pname;
-    int factory, xferback;
+    int factory, xferback, no_arg_parser;
     overDef *od, **odp, **headp;
     optFlag *of;
     virtHandlerDef *vhd;
@@ -4271,8 +4271,19 @@ static void newFunction(sipSpec *pt,moduleDef *mod,int sflags,int isstatic,
     od->methodcode = methodcode;
     od->virthandler = vhd;
 
+    no_arg_parser = (findOptFlag(optflgs, "NoArgParser", bool_flag) != NULL);
+
+    if (no_arg_parser)
+    {
+        if (cd != NULL)
+            yyerror("/NoArgParser/ may only be specified for global functions");
+
+        if (methodcode == NULL)
+            yyerror("%MethodCode must be supplied if /NoArgParser/ is specified");
+    }
+
     od->common = findFunction(pt, mod, cd, getPythonName(optflgs, name),
-            (methodcode != NULL), sig->nrArgs);
+            (methodcode != NULL), sig->nrArgs, no_arg_parser);
 
     if (findOptFlag(optflgs,"Numeric",bool_flag) != NULL)
         setIsNumeric(od -> common);
@@ -4361,7 +4372,7 @@ nameDef *cacheName(sipSpec *pt, const char *name)
  * Find (or create) an overloaded function name.
  */
 static memberDef *findFunction(sipSpec *pt, moduleDef *mod, classDef *cd,
-        const char *pname, int hwcode, int nrargs)
+        const char *pname, int hwcode, int nrargs, int no_arg_parser)
 {
     static struct slot_map {
         char *name;         /* The slot name. */
@@ -4492,7 +4503,12 @@ static memberDef *findFunction(sipSpec *pt, moduleDef *mod, classDef *cd,
 
         if (inMainModule())
             setIsUsedName(md->pyname);
+
+        if (no_arg_parser)
+            setNoArgParser(md);
     }
+    else if (noArgParser(md))
+        yyerror("Another overload has already been defined that is annotated as /NoArgParser/");
 
     /* Global operators are a subset. */
     if (cd == NULL && st != no_slot && st != neg_slot && st != pos_slot && !isNumberSlot(md) && !isRichCompareSlot(md))

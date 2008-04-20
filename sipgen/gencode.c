@@ -1817,9 +1817,14 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 
     for (md = mod->othfuncs; md != NULL; md = md->next)
         if (md->slot == no_slot)
-            prcode(fp,
+            if (noArgParser(md))
+                prcode(fp,
+"        {%N, (PyCFunction)func_%s, METH_KEYWORDS, NULL},\n"
+                    , md->pyname, md->pyname->text);
+            else
+                prcode(fp,
 "        {%N, func_%s, METH_VARARGS, NULL},\n"
-                , md->pyname, md->pyname->text);
+                    , md->pyname, md->pyname->text);
 
     prcode(fp,
 "        {0, 0, 0, 0}\n"
@@ -2135,12 +2140,13 @@ static void generateEncodedClass(moduleDef *mod, classDef *cd, int last,
 
 
 /*
- * Generate an ordinary function (ie. not a class method).
+ * Generate an ordinary function.
  */
 static void generateOrdinaryFunction(moduleDef *mod, classDef *cd,
         memberDef *md, FILE *fp)
 {
     overDef *od;
+    int need_intro;
 
     prcode(fp,
 "\n"
@@ -2162,39 +2168,73 @@ static void generateOrdinaryFunction(moduleDef *mod, classDef *cd,
     }
     else
     {
-        if (!generating_c)
-            prcode(fp,
-"extern \"C\" {static PyObject *func_%s(PyObject *,PyObject *);}\n"
-                , md->pyname->text);
+        const char *self = (generating_c ? "sipSelf" : "");
 
-        prcode(fp,
+        if (!generating_c)
+            if (noArgParser(md))
+                prcode(fp,
+"extern \"C\" {static PyObject *func_%s(PyObject *,PyObject *,PyObject *);}\n"
+                    , md->pyname->text);
+            else
+                prcode(fp,
+"extern \"C\" {static PyObject *func_%s(PyObject *,PyObject *);}\n"
+                    , md->pyname->text);
+
+        if (noArgParser(md))
+            prcode(fp,
+"static PyObject *func_%s(PyObject *%s,PyObject *sipArgs,PyObject *sipKwds)\n"
+                , md->pyname->text, self);
+        else
+            prcode(fp,
 "static PyObject *func_%s(PyObject *%s,PyObject *sipArgs)\n"
-            ,md->pyname->text,(generating_c ? "sipSelf" : ""));
+                , md->pyname->text, self);
 
         od = mod->overs;
     }
 
     prcode(fp,
 "{\n"
-"    int sipArgsParsed = 0;\n"
         );
+
+    need_intro = TRUE;
 
     while (od != NULL)
     {
         if (od->common == md)
+        {
+            if (noArgParser(md))
+            {
+                generateCppCodeBlock(od->methodcode, fp);
+                break;
+            }
+
+            if (need_intro)
+            {
+                prcode(fp,
+"    int sipArgsParsed = 0;\n"
+                    );
+
+                need_intro = FALSE;
+            }
+
             generateFunctionBody(od, cd, cd, TRUE, fp);
+        }
 
         od = od->next;
     }
 
-    prcode(fp,
+    if (!need_intro)
+        prcode(fp,
 "\n"
 "    /* Raise an exception if the arguments couldn't be parsed. */\n"
 "    sipNoFunction(sipArgsParsed,%N);\n"
 "\n"
 "    return NULL;\n"
+            ,md->pyname);
+
+    prcode(fp,
 "}\n"
-        ,md->pyname);
+        );
 }
 
 
