@@ -241,6 +241,11 @@ static const sipAPIDef sip_api = {
     sip_api_convert_from_const_void_ptr,
     sip_api_convert_from_void_ptr_and_size,
     sip_api_convert_from_const_void_ptr_and_size,
+    /*
+     * The following may be used by Qt support code but by no other handwritten
+     * code.
+     */
+    sip_api_invoke_slot,
 };
 
 

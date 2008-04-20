@@ -581,9 +581,26 @@ static int emitQtSig(sipWrapper *w,const char *sig,PyObject *sigargs)
 
 
 /*
- * Send a signal to a single slot (Qt or Python).
+ * Send a signal to a single slot (Qt or Python).  This is deprecated.
  */
 int sip_api_emit_to_slot(sipSlot *slot, PyObject *sigargs)
+{
+    PyObject *obj = sip_api_invoke_slot(slot, sigargs);
+
+    if (obj != NULL)
+    {
+        Py_DECREF(obj);
+        return 0;
+    }
+
+    return -1;
+}
+
+
+/*
+ * Invoke a single slot (Qt or Python) and return the result.
+ */
+PyObject *sip_api_invoke_slot(sipSlot *slot, PyObject *sigargs)
 {
     PyObject *sa, *oxtype, *oxvalue, *oxtb, *sfunc, *newmeth, *sref;
 
@@ -591,8 +608,14 @@ int sip_api_emit_to_slot(sipSlot *slot, PyObject *sigargs)
     oxtype = oxvalue = oxtb = NULL;
 
     /* Fan out Qt signals. */
-    if (slot -> name != NULL && slot -> name[0] != '\0')
-        return sip_api_emit_signal(slot -> pyobj,slot -> name,sigargs);
+    if (slot->name != NULL && slot->name[0] != '\0')
+    {
+        if (sip_api_emit_signal(slot->pyobj, slot->name, sigargs) < 0)
+            return NULL;
+
+        Py_INCREF(Py_None);
+        return Py_None;
+    }
 
     /* Get the object to call, resolving any weak references. */
     if (slot->weakSlot == Py_True)
@@ -607,7 +630,7 @@ int sip_api_emit_to_slot(sipSlot *slot, PyObject *sigargs)
     else if (slot -> weakSlot == NULL)
         sref = NULL;
     else if ((sref = PyWeakref_GetObject(slot -> weakSlot)) == NULL)
-        return -1;
+        return NULL;
     else
         Py_INCREF(sref);
 
@@ -619,7 +642,9 @@ int sip_api_emit_to_slot(sipSlot *slot, PyObject *sigargs)
          * deleted.
          */
         Py_DECREF(sref);
-        return 0;
+
+        Py_INCREF(Py_None);
+        return Py_None;
     }
 
     if (slot -> pyobj == NULL)
@@ -630,13 +655,15 @@ int sip_api_emit_to_slot(sipSlot *slot, PyObject *sigargs)
         if (self != NULL && sip_api_wrapper_check(self) && ((sipWrapper *)self)->u.cppPtr == NULL)
         {
             Py_XDECREF(sref);
-            return 0;
+
+            Py_INCREF(Py_None);
+            return Py_None;
         }
 
         if ((sfunc = PyMethod_New(slot->meth.mfunc, self, slot->meth.mclass)) == NULL)
         {
             Py_XDECREF(sref);
-            return -1;
+            return NULL;
         }
 
         /* Make sure we garbage collect the new method. */
@@ -651,7 +678,9 @@ int sip_api_emit_to_slot(sipSlot *slot, PyObject *sigargs)
         if (self != NULL && sip_api_wrapper_check(self) && ((sipWrapper *)self)->u.cppPtr == NULL)
         {
             Py_XDECREF(sref);
-            return 0;
+
+            Py_INCREF(Py_None);
+            return Py_None;
         }
 
         if ((sfunc = PyObject_GetAttrString(self, mname)) == NULL || !PyCFunction_Check(sfunc))
@@ -663,7 +692,7 @@ int sip_api_emit_to_slot(sipSlot *slot, PyObject *sigargs)
             PyErr_Format(PyExc_NameError,"Invalid slot %s",mname);
 
             Py_XDECREF(sref);
-            return -1;
+            return NULL;
         }
 
         /* Make sure we garbage collect the new method. */
@@ -690,8 +719,6 @@ int sip_api_emit_to_slot(sipSlot *slot, PyObject *sigargs)
 
         if ((resobj = PyEval_CallObject(sfunc,sa)) != NULL)
         {
-            Py_DECREF(resobj);
-
             Py_XDECREF(newmeth);
             Py_XDECREF(sref);
 
@@ -707,7 +734,7 @@ int sip_api_emit_to_slot(sipSlot *slot, PyObject *sigargs)
 
             Py_DECREF(sa);
 
-            return 0;
+            return resobj;
         }
 
         /* Get the exception. */
@@ -788,7 +815,7 @@ int sip_api_emit_to_slot(sipSlot *slot, PyObject *sigargs)
 
     Py_DECREF(sa);
 
-    return -1;
+    return NULL;
 }
 
 
