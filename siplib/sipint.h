@@ -75,10 +75,11 @@ void sip_api_end_thread(void);
 PyObject *sip_api_convert_from_named_enum(int eval, PyTypeObject *et);
 int sip_api_wrapper_check(PyObject *o);
 void sip_api_free_connection(sipSlotConnection *conn);
-int sip_api_emit_to_slot(sipSlot *slot, PyObject *sigargs);
+int sip_api_emit_to_slot(const sipSlot *slot, PyObject *sigargs);
 int sip_api_same_connection(sipSlotConnection *conn, void *tx, const char *sig,
         PyObject *rxObj, const char *slot);
-PyObject *sip_api_invoke_slot(sipSlot *slot, PyObject *sigargs);
+PyObject *sip_api_invoke_slot(const sipSlot *slot, PyObject *sigargs);
+void sip_api_parse_type(const char *type, sipSigArg *arg);
 
 
 /*

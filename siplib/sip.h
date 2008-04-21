@@ -65,6 +65,7 @@ extern "C" {
  *      Added the 'k' and 'K' format characters (to replace the now deprecated
  *      'a' and 'A' format characters) to sip_api_parse_args().
  *      Added sip_api_invoke_slot().
+ *      Added sip_api_parse_type().
  *
  * 3.6  Added the 'g' format character to sip_api_parse_args().
  *
@@ -1153,7 +1154,7 @@ typedef struct _sipAPIDef {
      * code.
      */
     void (*api_free_connection)(sipSlotConnection *conn);
-    int (*api_emit_to_slot)(sipSlot *slot, PyObject *sigargs);
+    int (*api_emit_to_slot)(const sipSlot *slot, PyObject *sigargs);
     int (*api_same_connection)(sipSlotConnection *conn, void *tx,
             const char *sig, PyObject *rxObj, const char *slot);
     void *(*api_convert_rx)(sipWrapper *txSelf, const char *sigargs,
@@ -1250,7 +1251,8 @@ typedef struct _sipAPIDef {
      * The following may be used by Qt support code but no other handwritten
      * code.
      */
-    PyObject *(*api_invoke_slot)(sipSlot *slot, PyObject *sigargs);
+    PyObject *(*api_invoke_slot)(const sipSlot *slot, PyObject *sigargs);
+    void (*api_parse_type)(const char *type, sipSigArg *arg);
 } sipAPIDef;
 
 

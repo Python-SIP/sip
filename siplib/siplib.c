@@ -246,6 +246,7 @@ static const sipAPIDef sip_api = {
      * code.
      */
     sip_api_invoke_slot,
+    sip_api_parse_type,
 };
 
 

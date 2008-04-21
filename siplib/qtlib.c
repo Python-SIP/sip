@@ -193,156 +193,7 @@ sipSignature *sip_api_parse_signature(const char *sig)
 
             for (a = 0; a < psig->sg_nrargs; ++a)
             {
-                size_t btlen = 0;
-                int unsup, isref = FALSE, indir = 0;
-                sipSigArgType sat = unknown_sat;
-
-                /* Find the start of the significant part of the type. */
-                dp = arg;
-
-                if (strncmp(dp, "const ", 6) == 0)
-                    dp += 6;
-
-                /*
-                 * Find the length of the base type, the number of indirections
-                 * and if it is a reference.
-                 */
-                for (ep = dp; *ep; ++ep)
-                    if (*ep == '&')
-                        isref = TRUE;
-                    else if (*ep == '*')
-                        ++indir;
-                    else
-                        ++btlen;
-
-                /*
-                 * Assume that anything other than a base type is unsupported.
-                 */
-                unsup = (isref || indir);
-
-                /* Parse the base type. */
-                switch (btlen)
-                {
-                case 3:
-                    if (strncmp(dp, "int", 3) == 0)
-                        sat = int_sat;
-                    break;
-
-                case 4:
-                    if (strncmp(dp, "bool", 4) == 0)
-                        sat = bool_sat;
-                    else if (strncmp(dp, "long", 4) == 0)
-                        sat = long_sat;
-                    else if (strncmp(dp, "char", 4) == 0)
-                    {
-                        sat = (indir ? string_sat : char_sat);
-                        unsup = (isref || indir > 1);
-                    }
-                    else if (strncmp(dp, "void", 4) == 0)
-                    {
-                        sat = void_sat;
-                        unsup = (isref || indir != 1);
-                    }
-                    break;
-
-                case 5:
-                    if (strncmp(dp, "float", 5) == 0)
-                        sat = float_sat;
-                    else if (strncmp(dp, "short", 5) == 0)
-                        sat = short_sat;
-                    break;
-
-                case 6:
-                    if (strncmp(dp, "double", 6) == 0)
-                        sat = double_sat;
-                    break;
-
-                case 7:
-                    if (strncmp(dp, "__int64", 7) == 0)
-                        sat = longlong_sat;
-                    else if (strncmp(dp, "wchar_t", 7) == 0)
-                    {
-                        sat = (indir ? wstring_sat : wchar_sat);
-                        unsup = (isref || indir > 1);
-                    }
-                    break;
-
-                case 8:
-                    if (strncmp(dp, "unsigned", 8) == 0)
-                        sat = uint_sat;
-                    else if (strncmp(dp, "QVariant", 8) == 0)
-                    {
-                        if (indir == 0)
-                        {
-                            sat = qvariant_sat;
-                            unsup = FALSE;
-                        }
-                        else if (indir == 1)
-                        {
-                            sat = qvariantp_sat;
-                            unsup = FALSE;
-                        }
-                    }
-                    break;
-
-                case 9:
-                    if (strncmp(dp, "long long", 9) == 0)
-                        sat = longlong_sat;
-                    break;
-
-                case 11:
-                    if (strncmp(dp, "signed char", 11) == 0)
-                    {
-                        sat = (indir ? sstring_sat : schar_sat);
-                        unsup = (isref || indir > 1);
-                    }
-                    break;
-
-                case 12:
-                    if (strncmp(dp, "unsigned int", 12) == 0)
-                        sat = uint_sat;
-                    break;
-
-                case 13:
-                    if (strncmp(dp, "unsigned long", 13) == 0)
-                        sat = ulong_sat;
-                    else if (strncmp(dp, "unsigned char", 13) == 0)
-                    {
-                        sat = (indir ? ustring_sat : uchar_sat);
-                        unsup = (isref || indir > 1);
-                    }
-                    else if (strncmp(dp, "PyQt_PyObject", 13) == 0 && indir == 0)
-                    {
-                        sat = pyobject_sat;
-                        unsup = FALSE;
-                    }
-                    break;
-
-                case 14:
-                    if (strncmp(dp, "unsigned short", 14) == 0)
-                        sat = ushort_sat;
-                    break;
-
-                case 16:
-                    if (strncmp(dp, "unsigned __int64", 16) == 0)
-                        sat = ulonglong_sat;
-                    break;
-
-                case 18:
-                    if (strncmp(dp, "unsigned long long", 18) == 0)
-                        sat = ulonglong_sat;
-                    break;
-                }
-
-                if (sat == unknown_sat)
-                    sipFindSigArgType(dp, btlen, &psig->sg_args[a], indir);
-                else
-                {
-                    if (unsup)
-                        sat = unknown_sat;
-
-                    psig->sg_args[a].atype = sat;
-                }
+                sip_api_parse_type(arg, &psig->sg_args[a]);
 
                 /* Move to the start of the next argument. */
                 arg += strlen(arg) + 1;
@@ -358,6 +209,161 @@ sipSignature *sip_api_parse_signature(const char *sig)
     psig_list = psig;
 
     return psig;
+}
+
+
+/*
+ * Parse a single type.
+ */
+void sip_api_parse_type(const char *type, sipSigArg *arg)
+{
+    size_t btlen = 0;
+    int unsup, isref = FALSE, indir = 0;
+    const char *ep;
+    sipSigArgType sat = unknown_sat;
+
+    /* Find the start of the significant part of the type. */
+    if (strncmp(type, "const ", 6) == 0)
+        type += 6;
+
+    /*
+     * Find the length of the base type, the number of indirections and if it
+     * is a reference.
+     */
+     for (ep = type; *ep; ++ep)
+        if (*ep == '&')
+            isref = TRUE;
+        else if (*ep == '*')
+            ++indir;
+        else
+            ++btlen;
+
+    /* Assume that anything other than a base type is unsupported. */
+    unsup = (isref || indir);
+
+    /* Parse the base type. */
+    switch (btlen)
+    {
+    case 3:
+        if (strncmp(type, "int", 3) == 0)
+            sat = int_sat;
+        break;
+
+    case 4:
+        if (strncmp(type, "bool", 4) == 0)
+            sat = bool_sat;
+        else if (strncmp(type, "long", 4) == 0)
+            sat = long_sat;
+        else if (strncmp(type, "char", 4) == 0)
+        {
+            sat = (indir ? string_sat : char_sat);
+            unsup = (isref || indir > 1);
+        }
+        else if (strncmp(type, "void", 4) == 0)
+        {
+            sat = void_sat;
+            unsup = (isref || indir != 1);
+        }
+        break;
+
+    case 5:
+        if (strncmp(type, "float", 5) == 0)
+            sat = float_sat;
+        else if (strncmp(type, "short", 5) == 0)
+            sat = short_sat;
+        break;
+
+    case 6:
+        if (strncmp(type, "double", 6) == 0)
+            sat = double_sat;
+        break;
+
+    case 7:
+        if (strncmp(type, "__int64", 7) == 0)
+            sat = longlong_sat;
+        else if (strncmp(type, "wchar_t", 7) == 0)
+        {
+            sat = (indir ? wstring_sat : wchar_sat);
+            unsup = (isref || indir > 1);
+        }
+        break;
+
+    case 8:
+        if (strncmp(type, "unsigned", 8) == 0)
+            sat = uint_sat;
+        else if (strncmp(type, "QVariant", 8) == 0)
+        {
+            if (indir == 0)
+            {
+                sat = qvariant_sat;
+                unsup = FALSE;
+            }
+            else if (indir == 1)
+            {
+                sat = qvariantp_sat;
+                unsup = FALSE;
+            }
+        }
+        break;
+
+    case 9:
+        if (strncmp(type, "long long", 9) == 0)
+            sat = longlong_sat;
+        break;
+
+    case 11:
+        if (strncmp(type, "signed char", 11) == 0)
+        {
+            sat = (indir ? sstring_sat : schar_sat);
+            unsup = (isref || indir > 1);
+        }
+        break;
+
+    case 12:
+        if (strncmp(type, "unsigned int", 12) == 0)
+            sat = uint_sat;
+        break;
+
+    case 13:
+        if (strncmp(type, "unsigned long", 13) == 0)
+            sat = ulong_sat;
+        else if (strncmp(type, "unsigned char", 13) == 0)
+        {
+            sat = (indir ? ustring_sat : uchar_sat);
+            unsup = (isref || indir > 1);
+        }
+        else if (strncmp(type, "PyQt_PyObject", 13) == 0 && indir == 0)
+        {
+            sat = pyobject_sat;
+            unsup = FALSE;
+        }
+        break;
+
+    case 14:
+        if (strncmp(type, "unsigned short", 14) == 0)
+            sat = ushort_sat;
+        break;
+
+    case 16:
+        if (strncmp(type, "unsigned __int64", 16) == 0)
+            sat = ulonglong_sat;
+        break;
+
+    case 18:
+        if (strncmp(type, "unsigned long long", 18) == 0)
+            sat = ulonglong_sat;
+        break;
+    }
+
+    if (sat == unknown_sat)
+        sipFindSigArgType(type, btlen, arg, indir);
+    else
+    {
+        if (unsup)
+            sat = unknown_sat;
+
+        arg->atype = sat;
+    }
 }
 
 
@@ -583,7 +589,7 @@ static int emitQtSig(sipWrapper *w,const char *sig,PyObject *sigargs)
 /*
  * Send a signal to a single slot (Qt or Python).  This is deprecated.
  */
-int sip_api_emit_to_slot(sipSlot *slot, PyObject *sigargs)
+int sip_api_emit_to_slot(const sipSlot *slot, PyObject *sigargs)
 {
     PyObject *obj = sip_api_invoke_slot(slot, sigargs);
 
@@ -600,7 +606,7 @@ int sip_api_emit_to_slot(sipSlot *slot, PyObject *sigargs)
 /*
  * Invoke a single slot (Qt or Python) and return the result.
  */
-PyObject *sip_api_invoke_slot(sipSlot *slot, PyObject *sigargs)
+PyObject *sip_api_invoke_slot(const sipSlot *slot, PyObject *sigargs)
 {
     PyObject *sa, *oxtype, *oxvalue, *oxtb, *sfunc, *newmeth, *sref;
 
