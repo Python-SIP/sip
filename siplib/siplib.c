@@ -2243,7 +2243,7 @@ static unsigned long sip_api_long_as_unsigned_long(PyObject *o)
 static int sip_api_parse_args(int *argsParsedp, PyObject *sipArgs,
         const char *fmt, ...)
 {
-    int valid, nrargs, selfarg;
+    int no_tmp_tuple, valid, nrargs, selfarg;
     sipWrapper *self;
     PyObject *single_arg;
     va_list va;
@@ -2252,8 +2252,20 @@ static int sip_api_parse_args(int *argsParsedp, PyObject *sipArgs,
     if (*argsParsedp & PARSE_STICKY)
         return 0;
 
-    /* See if we are parsing a tuple or a single argument. */
-    if (PyTuple_Check(sipArgs))
+    /*
+     * See if we are parsing a single argument.  In current versions we are
+     * told explicitly by the first character of the format string.  In earlier
+     * versions we guessed (sometimes wrongly).
+     */
+    if (*fmt == '1')
+    {
+        ++fmt;
+        no_tmp_tuple = FALSE;
+    }
+    else
+        no_tmp_tuple = PyTuple_Check(sipArgs);
+
+    if (no_tmp_tuple)
     {
         Py_INCREF(sipArgs);
         nrargs = PyTuple_GET_SIZE(sipArgs);

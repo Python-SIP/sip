@@ -9829,7 +9829,7 @@ static void generateFunctionCall(classDef *cd,classDef *ocd,overDef *od,
 
     gc_ellipsis(&od->pysig, fp);
 
-    if (deltemps)
+    if (deltemps && !isZeroArgSlot(od->common))
         deleteTemps(&od->pysig, fp);
 
     prcode(fp,
@@ -10014,7 +10014,7 @@ static void generateNumberSlotCall(overDef *od, char *op, FILE *fp)
 static int generateArgParser(signatureDef *sd, classDef *cd, ctorDef *ct,
         overDef *od, int secCall, FILE *fp)
 {
-    int a, isQtSlot, optargs, arraylenarg, sigarg, handle_self;
+    int a, isQtSlot, optargs, arraylenarg, sigarg, handle_self, single_arg;
     int slotconarg, slotdisarg, need_owner;
 
     /* If the class is just a namespace, then ignore it. */
@@ -10093,14 +10093,25 @@ static int generateArgParser(signatureDef *sd, classDef *cd, ctorDef *ct,
 
     /* Generate the call to the parser function. */
     if (od != NULL && isNumberSlot(od->common))
+    {
+        single_arg = FALSE;
+
         prcode(fp,
 "        if (sipParsePair(%ssipArgsParsed,sipArg0,sipArg1,\"", (ct != NULL ? "" : "&"));
+    }
     else
+    {
+        single_arg = (od != NULL && od->common->slot != no_slot && !isMultiArgSlot(od->common));
+
         prcode(fp,
-"        if (sipParseArgs(%ssipArgsParsed,sipArg%s,\"", (ct != NULL ? "" : "&"), (od == NULL || od->common->slot == no_slot || isMultiArgSlot(od->common)) ? "s" : "");
+"        if (sipParseArgs(%ssipArgsParsed,sipArg%s,\"", (ct != NULL ? "" : "&"), (single_arg ? "" : "s"));
+    }
 
     /* Generate the format string. */
     optargs = FALSE;
+
+    if (single_arg)
+        prcode(fp, "1");
 
     if (handle_self)
         prcode(fp,"%c",(isProtected(od) ? 'p' : 'B'));
