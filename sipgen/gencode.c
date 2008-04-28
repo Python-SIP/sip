@@ -4683,7 +4683,9 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
         /* Generate the release function without compiler warnings. */
         need_ptr = need_state = FALSE;
 
-        if (canCreate(cd) || isPublicDtor(cd))
+        if (cd->dealloccode != NULL)
+            need_ptr = usedInCode(cd->dealloccode, "sipCpp");
+        else if (canCreate(cd) || isPublicDtor(cd))
         {
             if (hasShadow(cd))
                 need_ptr = need_state = TRUE;
@@ -4705,16 +4707,32 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
         prcode(fp,
 "static void release_%C(void *%s,int%s)\n"
 "{\n"
-            , classFQCName(cd), (need_ptr ? "ptr" : ""), (need_state ? " state" : ""));
+            , classFQCName(cd), (need_ptr ? "sipCppV" : ""), (need_state ? " state" : ""));
 
-        /*
-         * If there is an explicit public dtor then assume there is
-         * some way to call it which we haven't worked out (because we
-         * don't fully understand C++).
-         */
-        if (canCreate(cd) || isPublicDtor(cd))
+        if (cd->dealloccode != NULL)
+        {
+            if (need_ptr)
+            {
+                prcode(fp,
+"    ");
+
+                generateClassFromVoid(cd, "sipCpp", "sipCppV", fp);
+
+                prcode(fp, ";\n"
+                    );
+            }
+
+            generateCppCodeBlock(cd->dealloccode, fp);
+        }
+        else if (canCreate(cd) || isPublicDtor(cd))
         {
             int rgil = ((release_gil || isReleaseGILDtor(cd)) && !isHoldGILDtor(cd));
+
+            /*
+             * If there is an explicit public dtor then assume there is some
+             * way to call it which we haven't worked out (because we don't
+             * fully understand C++).
+             */
 
             if (rgil)
                 prcode(fp,
@@ -4726,18 +4744,18 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
             {
                 prcode(fp,
 "    if (state & SIP_DERIVED_CLASS)\n"
-"        delete reinterpret_cast<sip%C *>(ptr);\n"
+"        delete reinterpret_cast<sip%C *>(sipCppV);\n"
                     , classFQCName(cd));
 
                 if (isPublicDtor(cd))
                     prcode(fp,
 "    else\n"
-"        delete reinterpret_cast<%U *>(ptr);\n"
+"        delete reinterpret_cast<%U *>(sipCppV);\n"
                         , cd);
             }
             else if (isPublicDtor(cd))
                 prcode(fp,
-"    delete reinterpret_cast<%U *>(ptr);\n"
+"    delete reinterpret_cast<%U *>(sipCppV);\n"
                     , cd);
 
             if (rgil)
@@ -5036,26 +5054,6 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 "    if (sipIsPyOwned(sipSelf))\n"
 "    {\n"
                 );
-
-            if (cd->dealloccode != NULL)
-            {
-                if (usedInCode(cd->dealloccode, "sipCpp"))
-                {
-                    prcode(fp,
-"        ");
-
-                    generateClassFromVoid(cd, "sipCpp", "sipSelf->u.cppPtr", fp);
-
-                    prcode(fp, ";\n"
-                        );
-                }
-
-                generateCppCodeBlock(cd->dealloccode,fp);
-
-                prcode(fp,
-"\n"
-                    );
-            }
 
             if (isDelayedDtor(cd))
                 prcode(fp,

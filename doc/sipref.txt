@@ -2610,9 +2610,9 @@ PyObject \*a0Wrapper
     If the directive is used in the context of a class constructor then this
     must be set by the handwritten code to the constructed instance.  If the
     directive is used in the context of a method (but not the standard binary
-    operator methods, e.g. ``__add__``) then this is a pointer to the C
-    structure or C++ class instance.  Its *type* is a pointer to the structure
-    or class.
+    operator methods, e.g. ``__add__``) or a destructor then this is a pointer
+    to the C structure or C++ class instance.  Its *type* is a pointer to the
+    structure or class.
     
     Standard binary operator methods follow the same convention as global
     functions and instead define two arguments called ``a0`` and ``a1``.
@@ -2634,7 +2634,7 @@ int sipIsErr
 
     ``sipRes`` is not provided for inplace operators (e.g. ``+=`` or
     ``__imul__``) as their results are handled automatically, nor for class
-    constructors.
+    constructors or destructors.
 
 PyObject \*sipSelf
     If the directive is used in the context of a class constructor, destructor
