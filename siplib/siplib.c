@@ -7067,6 +7067,14 @@ static int sipWrapper_init(sipWrapper *self,PyObject *args,PyObject *kwds)
             sipInitExtenderDef *ie = wt->iextend;
 
             /*
+             * If the parse was successful but no C/C++ object was created then
+             * we assume that handwritten code decided after the parse that
+             * it didn't want to handle the signature.
+             */
+            if (pstate == PARSE_OK)
+                pstate = PARSE_TYPE;
+
+            /*
              * While we just have signature errors, try any initialiser
              * extenders.
              */
