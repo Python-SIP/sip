@@ -3714,6 +3714,17 @@ static void generateConvertToDefinitions(mappedTypeDef *mtd,classDef *cd,
 static void generateVariableHandler(classDef *context, varDef *vd, FILE *fp)
 {
     argType atype = vd->type.atype;
+    const char *first_arg;
+    int no_setter;
+
+    no_setter = (vd->type.nrderefs == 0 && isConstArg(&vd->type));
+
+    if (generating_c || !isStaticVar(vd))
+        first_arg = "sipSelf";
+    else if (usedInCode(vd->getcode, "sipPyType") || usedInCode(vd->setcode, "sipPyType"))
+        first_arg = "sipPyType";
+    else
+        first_arg = "";
 
     prcode(fp,
 "\n"
@@ -3728,19 +3739,9 @@ static void generateVariableHandler(classDef *context, varDef *vd, FILE *fp)
     prcode(fp,
 "static PyObject *var_%C(PyObject *%s,PyObject *sipPy)\n"
 "{\n"
-        ,vd->fqcname,(isStaticVar(vd) ? "" : "sipSelf"));
+        , vd->fqcname, first_arg);
 
-    if (atype == class_type || atype == mapped_type)
-        prcode(fp,
-"    int sipIsErr = 0;\n"
-            );
-
-    if (vd->type.nrderefs == 0 && (atype == mapped_type || (atype == class_type && vd->type.u.cd->convtocode != NULL)))
-        prcode(fp,
-"    int sipValState;\n"
-            );
-
-    if (vd->getcode == NULL || vd->setcode == NULL)
+    if (vd->getcode == NULL || (vd->setcode == NULL && !no_setter))
     {
         prcode(fp,
 "    ");
@@ -3957,10 +3958,31 @@ static void generateVariableHandler(classDef *context, varDef *vd, FILE *fp)
 "    }\n"
             );
     }
+    else if (no_setter)
+    {
+        prcode(fp,
+"    sipBadSetType(%N,%N);\n"
+"    return NULL;\n"
+"}\n"
+            , vd->ecd->iff->name, vd->pyname);
+
+        return;
+    }
     else
     {
         char *deref;
         int might_be_temp;
+
+        if (vd->type.nrderefs == 0 && (atype == mapped_type || (atype == class_type && vd->type.u.cd->convtocode != NULL)))
+            prcode(fp,
+"    int sipValState;\n"
+                );
+
+        if (atype == class_type || atype == mapped_type)
+            prcode(fp,
+"    int sipIsErr = 0;\n"
+"\n"
+                );
 
         might_be_temp = generateObjToCppConversion(&vd->type,fp);
 

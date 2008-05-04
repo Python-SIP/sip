@@ -4231,10 +4231,12 @@ static int handleSetLazyAttr(PyObject *nameobj,PyObject *valobj,
     enm = NULL;
     vmd = NULL;
 
-    findLazyAttr(wt,name,&pmd,&enm,&vmd,NULL);
+    findLazyAttr(wt, name, &pmd, &enm, &vmd, NULL);
 
     if (vmd != NULL)
     {
+        PyObject *res;
+
         if (valobj == NULL)
         {
             PyErr_Format(PyExc_ValueError,"%s.%s cannot be deleted",wt->type->td_name,name);
@@ -4242,22 +4244,18 @@ static int handleSetLazyAttr(PyObject *nameobj,PyObject *valobj,
             return -1;
         }
 
-        if ((vmd->ml_flags & METH_STATIC) != 0 || w != NULL)
-        {
-            PyObject *res;
+        if ((vmd->ml_flags & METH_STATIC) != 0)
+            res = (*vmd->ml_meth)((PyObject *)wt, valobj);
+        else
+            res = (*vmd->ml_meth)((PyObject *)w, valobj);
 
-            if ((res = (*vmd->ml_meth)((PyObject *)w,valobj)) == NULL)
-                return -1;
+        if (res == NULL)
+            return -1;
 
-            /* Ignore the result (which should be Py_None). */
-            Py_DECREF(res);
+        /* Ignore the result (which should be Py_None). */
+        Py_DECREF(res);
 
-            return 0;
-        }
-
-        PyErr_SetObject(PyExc_AttributeError,nameobj);
-
-        return -1;
+        return 0;
     }
 
     /* It isn't a variable. */
@@ -4290,7 +4288,7 @@ static PyObject *handleGetLazyAttr(PyObject *nameobj,sipWrapperType *wt,
     enm = NULL;
     vmd = NULL;
 
-    findLazyAttr(wt,name,&pmd,&enm,&vmd,&in);
+    findLazyAttr(wt, name, &pmd, &enm, &vmd, &in);
 
     if (pmd != NULL)
         return PyCFunction_New(pmd,(PyObject *)w);
@@ -4317,8 +4315,16 @@ static PyObject *handleGetLazyAttr(PyObject *nameobj,sipWrapperType *wt,
     }
 
     if (vmd != NULL)
-        if ((vmd->ml_flags & METH_STATIC) != 0 || w != NULL)
-            return (*vmd->ml_meth)((PyObject *)w,NULL);
+    {
+        PyObject *res;
+
+        if ((vmd->ml_flags & METH_STATIC) != 0)
+            res = (*vmd->ml_meth)((PyObject *)wt, NULL);
+        else
+            res = (*vmd->ml_meth)((PyObject *)w, NULL);
+
+        return res;
+    }
 
     PyErr_SetObject(PyExc_AttributeError,nameobj);
 
@@ -4350,9 +4356,8 @@ PyObject *sip_api_convert_from_named_enum(int eval, PyTypeObject *et)
 /*
  * Find definition for a lazy class attribute.
  */
-static void findLazyAttr(sipWrapperType *wt,char *name,PyMethodDef **pmdp,
-             sipEnumMemberDef **enmp,PyMethodDef **vmdp,
-             sipTypeDef **in)
+static void findLazyAttr(sipWrapperType *wt, char *name, PyMethodDef **pmdp,
+        sipEnumMemberDef **enmp, PyMethodDef **vmdp, sipTypeDef **in)
 {
     sipTypeDef *td, *nsx;
     sipEncodedClassDef *sup;
@@ -6868,7 +6873,10 @@ static PyObject *sipWrapperType_getattro(PyObject *obj,PyObject *name)
                 ++pmd;
             }
 
-            /* Do the static variables. */
+            /*
+             * Do the static variables.  Note that the use of METH_STATIC is
+             * historic - METH_CLASS would be more accurate.
+             */
             if ((pmd = td->td_variables) != NULL)
                 while (pmd->ml_name != NULL)
                 {
@@ -6877,7 +6885,7 @@ static PyObject *sipWrapperType_getattro(PyObject *obj,PyObject *name)
                         int rc;
                         PyObject *val;
 
-                        if ((val = (*pmd->ml_meth)(NULL, NULL)) == NULL)
+                        if ((val = (*pmd->ml_meth)(obj, NULL)) == NULL)
                         {
                             Py_DECREF(dict);
                             return NULL;

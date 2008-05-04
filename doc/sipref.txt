@@ -2210,6 +2210,12 @@ PyObject \*sipPy
     class variable or structure member.  If there is an error then the code
     must raise an exception and set this to ``NULL``.
 
+PyObject \*sipPyType
+    If the variable being wrapped is a static class variable then this is the
+    Python type object of the class from which the variable was referenced
+    (*not* the class in which it is defined).  It may be safely cast to a
+    PyTypeObject \* or a sipWrapperType \*.
+
 For example::
 
     struct Entity
@@ -2982,6 +2988,12 @@ int sipErr
 
 PyObject \*sipPy
     This is the Python object that the handwritten code should convert.
+
+PyObject \*sipPyType
+    If the variable being wrapped is a static class variable then this is the
+    Python type object of the class from which the variable was referenced
+    (*not* the class in which it is defined).  It may be safely cast to a
+    PyTypeObject \* or a sipWrapperType \*.
 
 See the `%GetCode`_ directive for an example.
 

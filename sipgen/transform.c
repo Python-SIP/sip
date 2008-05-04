@@ -1822,12 +1822,8 @@ static void resolveVariableType(sipSpec *pt, varDef *vd)
     else
         ifaceFileIsUsed(&vd->module->used, vtype);
 
-    /*
-     * Instance variables or static class variables (unless they are constants)
-     * need a handler.
-     */
-    if (vd->ecd != NULL && vd->accessfunc == NULL &&
-        (!isStaticVar(vd) || vtype->nrderefs != 0 || !isConstArg(vtype)))
+    /* Scoped variables need a handler unless they have %AccessCode. */
+    if (vd->ecd != NULL && vd->accessfunc == NULL)
     {
         setNeedsHandler(vd);
         setHasVarHandlers(vd->ecd);
