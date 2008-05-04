@@ -66,6 +66,7 @@ extern "C" {
  *      'a' and 'A' format characters) to sip_api_parse_args().
  *      Added sip_api_invoke_slot().
  *      Added sip_api_parse_type().
+ *      Added sip_api_is_exact_wrapped_type().
  *
  * 3.6  Added the 'g' format character to sip_api_parse_args().
  *
@@ -1253,6 +1254,7 @@ typedef struct _sipAPIDef {
      */
     PyObject *(*api_invoke_slot)(const sipSlot *slot, PyObject *sigargs);
     void (*api_parse_type)(const char *type, sipSigArg *arg);
+    int (*api_is_exact_wrapped_type)(sipWrapperType *wt);
 } sipAPIDef;
 
 

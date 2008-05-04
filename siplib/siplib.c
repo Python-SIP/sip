@@ -121,6 +121,7 @@ static PyObject *sip_api_convert_from_void_ptr_and_size(void *val,
         SIP_SSIZE_T size);
 static PyObject *sip_api_convert_from_const_void_ptr_and_size(const void *val,
         SIP_SSIZE_T size);
+static int sip_api_is_exact_wrapped_type(sipWrapperType *wt);
 
 
 /*
@@ -247,6 +248,7 @@ static const sipAPIDef sip_api = {
      */
     sip_api_invoke_slot,
     sip_api_parse_type,
+    sip_api_is_exact_wrapped_type,
 };
 
 
@@ -433,7 +435,6 @@ static int findEnumArg(sipExportedModuleDef *emd, const char *name, size_t len,
         sipSigArg *at, int indir);
 static int sameScopedName(const char *pyname, const char *name, size_t len);
 static int nameEq(const char *with, const char *name, size_t len);
-static int isExactWrappedType(sipWrapperType *wt);
 static void release(void *addr, sipTypeDef *td, int state);
 static void callPyDtor(sipWrapper *self);
 static int qt_and_sip_api_3_4(void);
@@ -6688,13 +6689,14 @@ static PyObject *make_voidptr(void *voidptr, SIP_SSIZE_T size, int rw)
  * Return TRUE if a type is a wrapped type, rather than a sub-type implemented
  * in Python or the super-type.
  */
-static int isExactWrappedType(sipWrapperType *wt)
+static int sip_api_is_exact_wrapped_type(sipWrapperType *wt)
 {
     char *name;
 
     /*
      * We check by comparing the actual type name with the name used to create
-     * the original wrapped type.
+     * the original wrapped type.  An alternative approach would be to add a
+     * flag to sipWrapperType that was only set by createType().
      */
 #if PY_VERSION_HEX >= 0x02050000
     if ((name = PyString_AsString(wt->super.ht_name)) == NULL)
@@ -6805,7 +6807,7 @@ static PyObject *sipWrapperType_getattro(PyObject *obj,PyObject *name)
         dict = ((PyTypeObject *)wt)->tp_dict;
 
         /* The base type doesn't have any type information. */
-        if ((td = wt->type) == NULL || !isExactWrappedType(wt))
+        if ((td = wt->type) == NULL || !sip_api_is_exact_wrapped_type(wt))
         {
             Py_INCREF(dict);
             return dict;
@@ -7561,7 +7563,7 @@ static PyObject *sipWrapper_getattro(PyObject *obj,PyObject *name)
     {
         PyObject *tmpdict = NULL;
 
-        if (isExactWrappedType(wt) && getNonStaticVariables(wt, w, &tmpdict) < 0)
+        if (sip_api_is_exact_wrapped_type(wt) && getNonStaticVariables(wt, w, &tmpdict) < 0)
         {
             Py_XDECREF(tmpdict);
             return NULL;

@@ -599,6 +599,8 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipConvertFromConstVoidPtrAndSize   sipAPI_%s->api_convert_from_const_void_ptr_and_size\n"
 "#define sipInvokeSlot               sipAPI_%s->api_invoke_slot\n"
 "#define sipParseType                sipAPI_%s->api_parse_type\n"
+"#define sipIsExactWrappedType       sipAPI_%s->api_is_exact_wrapped_type\n"
+        ,mname
         ,mname
         ,mname
         ,mname
@@ -731,7 +733,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
     if (optQ_OBJECT4(pt))
         prcode(fp,
 "\n"
-"typedef const QMetaObject *(*sip_qt_metaobject_func)(sipWrapper *,sipWrapperType *,const QMetaObject *);\n"
+"typedef const QMetaObject *(*sip_qt_metaobject_func)(sipWrapper *,sipWrapperType *);\n"
 "extern sip_qt_metaobject_func sip_%s_qt_metaobject;\n"
 "\n"
 "typedef int (*sip_qt_metacall_func)(sipWrapper *,sipWrapperType *,QMetaObject::Call,int,void **);\n"
@@ -5208,7 +5210,7 @@ static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
 "\n"
 "const QMetaObject *sip%C::metaObject() const\n"
 "{\n"
-"    return sip_%s_qt_metaobject(sipPySelf,sipClass_%C,%S::metaObject());\n"
+"    return sip_%s_qt_metaobject(sipPySelf,sipClass_%C);\n"
 "}\n"
 "\n"
 "int sip%C::qt_metacall(QMetaObject::Call _c,int _id,void **_a)\n"
@@ -5228,7 +5230,7 @@ static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
 "    return (sip_%s_qt_metacast && sip_%s_qt_metacast(sipPySelf,sipClass_%C,_clname)) ? this : %S::qt_metacast(_clname);\n"
 "}\n"
             , classFQCName(cd)
-            , mod->name, classFQCName(cd), classFQCName(cd)
+            , mod->name, classFQCName(cd)
             , classFQCName(cd)
             , classFQCName(cd)
             , classFQCName(cd)
