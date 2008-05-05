@@ -6,9 +6,9 @@
  Reference Guide
 -----------------
 
-:Contact:   info@riverbankcomputing.co.uk
+:Contact:   info@riverbankcomputing.com
 :Version:   @RM_LATEST@
-:Copyright: Copyright (c) 2007 Riverbank Computing Limited
+:Copyright: Copyright (c) 2008 Riverbank Computing Limited
 
 .. contents::
 .. section-numbering::
@@ -20,9 +20,9 @@ Introduction
 This is the reference guide for SIP @RM_LATEST@.  SIP is a tool for
 automatically generating `Python <http://www.python.org>`__ bindings for C and
 C++ libraries.  SIP was originally developed in 1998 for
-`PyQt <http://www.riverbankcomputing.co.uk/pyqt/>`__ - the Python bindings for
-the Qt GUI toolkit - but is suitable for generating bindings for any C or C++
-library.
+`PyQt <http://www.riverbankcomputing.com/software/pyqt/>`__ - the Python
+bindings for the Qt GUI toolkit - but is suitable for generating bindings for
+any C or C++ library.
 
 This version of SIP generates bindings for Python v2.3 or later.
 
@@ -32,9 +32,9 @@ started out as a small SWIG.  Unlike SWIG, SIP is specifically designed for
 bringing together Python and C/C++ and goes to great lengths to make the
 integration as tight as possible.
 
-The homepage for SIP is http://www.riverbankcomputing.co.uk/sip/.  Here you
-will always find the latest stable version, current development snapshots, and
-the latest version of this documentation.
+The homepage for SIP is http://www.riverbankcomputing.com/software/sip/.  Here
+you will always find the latest stable version, current development snapshots,
+and the latest version of this documentation.
 
 
 License
@@ -213,13 +213,10 @@ Downloading SIP
 ---------------
 
 You can get the latest release of the SIP source code from
-http://www.riverbankcomputing.co.uk/sip/download.php.
+http://www.riverbankcomputing.com/software/sip/download.
 
 SIP is also included with all of the major Linux distributions.  However, it
 may be a version or two out of date.
-
-You may also find more up to date pre-compiled binaries on
-`SourceForge <http://sourceforge.net/project/showfiles.php?group_id=61057>`_.
 
 
 Configuring SIP
@@ -5063,7 +5060,7 @@ with other Python based build systems (e.g.
 
 An important feature of SIP is the ability to generate bindings that are built
 on top of existing bindings.  For example, both
-`PyKDE <http://www.riverbankcomputing.co.uk/pykde/>`_ and
+`PyKDE <http://www.riverbankcomputing.com/software/pykde/>`_ and
 `PyQwt <http://pyqwt.sourceforge.net/>`_ are built on top of PyQt but all three
 packages are maintained by different developers.  To make this easier PyQt
 includes its own configuration module, ``pyqtconfig``, that contains additional
@@ -5776,4 +5773,4 @@ Note that this technique does not restrict how the interpreter can be used.
 For example, it still allows users to write their own applications that can
 import your builtin modules.  If you want to prevent users from doing that,
 perhaps to protect a proprietary API, then take a look at the
-`VendorID <http://www.riverbankcomputing.co.uk/vendorid/>`__ package.
+`VendorID <http://www.riverbankcomputing.com/software/vendorid/>`__ package.

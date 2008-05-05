@@ -1,7 +1,22 @@
-v4.7.5 ???
+v4.7.5 ??? May 2008
   - The sip.voidptr type has an optional size associated with it and supports
     const void *.  If a size is associated then it also supports Python's
     buffer protocol.
+  - Added sipConvertToVoidPtr() to the SIP API.
+  - Added sipConvertFromConstVoidPtr(), sipConvertFromConstVoidPtrAndSize(),
+    sipConvertFromVoidPtr() and sipConvertFromVoidPtrAndSize() to the SIP API.
+  - Added the /ResultSize/ argument annotation to specify the size of a block
+    of memory returned as a void * or const void *.
+  - Added the /NoArgParser/ function annotation to give %MethodCode complete
+    responsibility for argument parsing.
+  - Added the /NoRelease/ mapped type annotation to specify that the
+    sipReleaseMappedType() function is not supported.
+  - The /ArraySize/ annotation now supports arrays with more than 2^31
+    elements.
+  - %GetCode and %SetCode for class attributes now have access to the
+    referencing type object.
+  - Any object that supports the Python buffer protocol can now be passed as a
+    char or char * argument.
 
 v4.7.4 12th February 2008
   - The build system handles the directory structure used by Leopard's Python
@@ -14,8 +29,8 @@ v4.7.3 6th December 2007
     problem - see the documentation for details.
 
 v4.7.2 5th December 2007
-  - Added the SingleShot argument annotation.
-  - Added the TransferThis function annotation.
+  - Added the /SingleShot/ argument annotation.
+  - Added the /TransferThis/ function annotation.
 
 v4.7.1 28th September 2007
   - A bug fix release.
