@@ -731,9 +731,13 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
     }
 
     if (optQ_OBJECT4(pt))
+        /*
+         * Note that the third argument is no longer used and is there only to
+         * preserve backwards binary compatibility.
+         */
         prcode(fp,
 "\n"
-"typedef const QMetaObject *(*sip_qt_metaobject_func)(sipWrapper *,sipWrapperType *);\n"
+"typedef const QMetaObject *(*sip_qt_metaobject_func)(sipWrapper *,sipWrapperType *,const QMetaObject *);\n"
 "extern sip_qt_metaobject_func sip_%s_qt_metaobject;\n"
 "\n"
 "typedef int (*sip_qt_metacall_func)(sipWrapper *,sipWrapperType *,QMetaObject::Call,int,void **);\n"
@@ -5210,7 +5214,7 @@ static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
 "\n"
 "const QMetaObject *sip%C::metaObject() const\n"
 "{\n"
-"    return sip_%s_qt_metaobject(sipPySelf,sipClass_%C);\n"
+"    return sip_%s_qt_metaobject(sipPySelf,sipClass_%C,0);\n"
 "}\n"
 "\n"
 "int sip%C::qt_metacall(QMetaObject::Call _c,int _id,void **_a)\n"
