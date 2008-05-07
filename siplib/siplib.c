@@ -122,6 +122,10 @@ static PyObject *sip_api_convert_from_void_ptr_and_size(void *val,
 static PyObject *sip_api_convert_from_const_void_ptr_and_size(const void *val,
         SIP_SSIZE_T size);
 static int sip_api_is_exact_wrapped_type(sipWrapperType *wt);
+static int sip_api_assign_instance(void *dst, const void *src,
+        sipWrapperType *wt);
+static int sip_api_assign_mapped_type(void *dst, const void *src,
+        sipMappedType *mt);
 
 
 /*
@@ -249,6 +253,8 @@ static const sipAPIDef sip_api = {
     sip_api_invoke_slot,
     sip_api_parse_type,
     sip_api_is_exact_wrapped_type,
+    sip_api_assign_instance,
+    sip_api_assign_mapped_type,
 };
 
 
@@ -1229,6 +1235,40 @@ void *sip_api_malloc(size_t nbytes)
 void sip_api_free(void *mem)
 {
     PyMem_Free(mem);
+}
+
+
+/*
+ * Assign a C/C++ instance if it is supported by the type.
+ */
+static int sip_api_assign_instance(void *dst, const void *src,
+        sipWrapperType *wt)
+{
+    sipAssignFunc assign = wt->type->td_assign;
+
+    if (assign == NULL)
+        return FALSE;
+
+    assign(dst, src);
+
+    return TRUE;
+}
+
+
+/*
+ * Assign a C/C++ mapped type if it is supported by the type.
+ */
+static int sip_api_assign_mapped_type(void *dst, const void *src,
+        sipMappedType *mt)
+{
+    sipAssignFunc assign = mt->mt_assign;
+
+    if (assign == NULL)
+        return FALSE;
+
+    assign(dst, src);
+
+    return TRUE;
 }
 
 

@@ -67,6 +67,10 @@ extern "C" {
  *      Added sip_api_invoke_slot().
  *      Added sip_api_parse_type().
  *      Added sip_api_is_exact_wrapped_type().
+ *      Added sip_api_assign_instance().
+ *      Added sip_api_assign_mapped_type().
+ *      Added the td_assign and td_qt fields to the sipTypeDef structure.
+ *      Added the mt_assign field to the sipMappedType structure.
  *
  * 3.6  Added the 'g' format character to sip_api_parse_args().
  *
@@ -243,6 +247,7 @@ typedef int (*sipVirtHandlerFunc)(void *, PyObject *, ...);
 typedef int (*sipEmitFunc)(sipWrapper *, PyObject *);
 typedef void (*sipReleaseFunc)(void *, int);
 typedef PyObject *(*sipPickleFunc)(void *);
+typedef void (*sipAssignFunc)(void *, const void *);
 
 
 /*
@@ -586,6 +591,9 @@ typedef struct _sipTypeDef {
     /* The pickle function. */
     sipPickleFunc td_pickle;
 
+    /* The assignment function. */
+    sipAssignFunc td_assign;
+
     /* The optional PyQt defined information. */
     const void *td_qt;
 } sipTypeDef;
@@ -621,6 +629,9 @@ typedef struct _sipMappedType {
 
     /* The convert from function. */
     sipConvertFromFunc mt_cfrom;
+
+    /* The assignment function. */
+    sipAssignFunc mt_assign;
 } sipMappedType;
 
 
@@ -1255,6 +1266,9 @@ typedef struct _sipAPIDef {
     PyObject *(*api_invoke_slot)(const sipSlot *slot, PyObject *sigargs);
     void (*api_parse_type)(const char *type, sipSigArg *arg);
     int (*api_is_exact_wrapped_type)(sipWrapperType *wt);
+    int (*api_assign_instance)(void *dst, const void *src, sipWrapperType *wt);
+    int (*api_assign_mapped_type)(void *dst, const void *src,
+            sipMappedType *mt);
 } sipAPIDef;
 
 

@@ -1293,6 +1293,10 @@ static void addDefaultCopyCtor(classDef *cd)
  
         *tailp = copyct;
     }
+
+    /* We assume it has an assignment operator if it has a public copy ctor. */
+    if (isPublicCtor(copyct))
+        setCanAssign(cd);
 }
 
 

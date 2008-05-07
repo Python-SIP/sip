@@ -68,7 +68,7 @@ static void generateSipImportVariables(FILE *fp);
 static void generateModInitStart(moduleDef *mod, int gen_c, FILE *fp);
 static void generateIfaceCpp(sipSpec *, ifaceFileDef *, const char *,
         const char *, FILE *);
-static void generateMappedTypeCpp(mappedTypeDef *, FILE *);
+static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp);
 static void generateImportedMappedTypeAPI(mappedTypeDef *mtd, moduleDef *mod,
         FILE *fp);
 static void generateMappedTypeAPI(mappedTypeDef *mtd, FILE *fp);
@@ -600,6 +600,10 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipInvokeSlot               sipAPI_%s->api_invoke_slot\n"
 "#define sipParseType                sipAPI_%s->api_parse_type\n"
 "#define sipIsExactWrappedType       sipAPI_%s->api_is_exact_wrapped_type\n"
+"#define sipAssignInstance           sipAPI_%s->api_assign_instance\n"
+"#define sipAssignMappedType         sipAPI_%s->api_assign_mapped_type\n"
+        ,mname
+        ,mname
         ,mname
         ,mname
         ,mname
@@ -3170,7 +3174,7 @@ static void generateIfaceCpp(sipSpec *pt, ifaceFileDef *iff,
 
     for (mtd = pt->mappedtypes; mtd != NULL; mtd = mtd->next)
         if (mtd->iff == iff)
-            generateMappedTypeCpp(mtd,fp);
+            generateMappedTypeCpp(mtd, pt, fp);
 
     if (master == NULL)
     {
@@ -3203,9 +3207,40 @@ static char *createIfaceFileName(const char *codeDir, ifaceFileDef *iff,
 /*
  * Generate the C++ code for a mapped type version.
  */
-static void generateMappedTypeCpp(mappedTypeDef *mtd, FILE *fp)
+static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 {
     int need_xfer;
+
+    if (optAssignmentHelpers(pt) && !noRelease(mtd))
+    {
+        prcode(fp,
+"\n"
+"\n"
+            );
+
+        if (!generating_c)
+            prcode(fp,
+"extern \"C\" {static void assign_%T(void *, const void*);}\n"
+                , &mtd->type);
+
+        prcode(fp,
+"static void assign_%T(void *sipDst, const void *sipSrc)\n"
+"{\n"
+            , &mtd->type);
+
+        if (generating_c)
+            prcode(fp,
+"    *(%b *)sipDst = *(const %b *)sipSrc;\n"
+                , &mtd->type, &mtd->type);
+        else
+            prcode(fp,
+"    *reinterpret_cast<%b *>(sipDst) = *reinterpret_cast<const %b *>(sipSrc);\n"
+                , &mtd->type, &mtd->type);
+
+        prcode(fp,
+"}\n"
+            );
+    }
 
     if (!noRelease(mtd))
     {
@@ -3300,11 +3335,23 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, FILE *fp)
     prcode(fp,
 "    forceConvertTo_%T,\n"
 "    convertTo_%T,\n"
-"    convertFrom_%T\n"
-"};\n"
+"    convertFrom_%T,\n"
         , &mtd->type
         , &mtd->type
         , &mtd->type);
+
+    if (optAssignmentHelpers(pt) && !noRelease(mtd))
+        prcode(fp,
+"    assign_%T\n"
+            , &mtd->type);
+    else
+        prcode(fp,
+"    0\n"
+            );
+
+    prcode(fp,
+"};\n"
+        );
 }
 
 
@@ -5040,6 +5087,38 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
         prcode(fp,
 "\n"
 "    return sipRes;\n"
+"}\n"
+            );
+    }
+
+    /* The assignment helper. */
+    if (optAssignmentHelpers(pt) && (generating_c || canAssign(cd)))
+    {
+        prcode(fp,
+"\n"
+"\n"
+            );
+
+        if (!generating_c)
+            prcode(fp,
+"extern \"C\" {static void assign_%C(void *, const void*);}\n"
+                , classFQCName(cd));
+
+        prcode(fp,
+"static void assign_%C(void *sipDst, const void *sipSrc)\n"
+"{\n"
+            ,classFQCName(cd));
+
+        if (generating_c)
+            prcode(fp,
+"    *(%S *)sipDst = *(const %S *)sipSrc;\n"
+                , classFQCName(cd), classFQCName(cd));
+        else
+            prcode(fp,
+"    *reinterpret_cast<%S *>(sipDst) = *reinterpret_cast<const %S *>(sipSrc);\n"
+                , classFQCName(cd), classFQCName(cd));
+
+        prcode(fp,
 "}\n"
             );
     }
@@ -8127,6 +8206,15 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
     if (cd->picklecode != NULL)
         prcode(fp,
 "    pickle_%C,\n"
+            , classFQCName(cd));
+    else
+        prcode(fp,
+"    0,\n"
+            );
+
+    if (optAssignmentHelpers(pt) && (generating_c || canAssign(cd)))
+        prcode(fp,
+"    assign_%C,\n"
             , classFQCName(cd));
     else
         prcode(fp,
