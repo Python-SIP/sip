@@ -162,7 +162,7 @@ def mkdistdir(lfile):
     os.mkdir(doc)
     shutil.copy("doc/default.css",doc)
     os.system("srepo release <doc/sipref.txt >%s/sipref.txt" % doc)
-    os.system("rst2html.py %s/sipref.txt %s/sipref.html" % (doc, doc))
+    os.system("rst2html %s/sipref.txt %s/sipref.html" % (doc, doc))
 
 
 def tgzdist(root):
