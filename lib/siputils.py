@@ -118,6 +118,17 @@ class _UniqueList:
         for el in value:
             self.append(el)
 
+    def remove(self, value): 
+        """Remove a value from the macro.  It doesn't matter if the value 
+        wasn't present. 
+ 
+        value is the value to remove. 
+        """ 
+        try: 
+            self._macro.remove(value) 
+        except: 
+            pass 
+
     def as_list(self):
         """Return the list as a raw list.
         """
@@ -1401,6 +1412,11 @@ class ModuleMakefile(Makefile):
 
                 if link_shlib:
                     self.LINK.set(link_shlib)
+
+        # This made an appearence in Qt v4.4rc1 and breaks extension modules so
+        # remove it.  It was removed at my request but some stupid distros may
+        # have kept it.
+        self.LFLAGS.remove('-Wl,--no-undefined') 
 
     def module_as_lib(self, mname):
         """Return the name of a SIP v3.x module when it is used as a library.
