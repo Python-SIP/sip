@@ -118,17 +118,6 @@ class _UniqueList:
         for el in value:
             self.append(el)
 
-    def remove(self, value): 
-        """Remove a value from the macro.  It doesn't matter if the value 
-        wasn't present. 
- 
-        value is the value to remove. 
-        """ 
-        try: 
-            self._macro.remove(value) 
-        except: 
-            pass 
-
     def as_list(self):
         """Return the list as a raw list.
         """
@@ -178,6 +167,17 @@ class _Macro:
         """
         for el in value:
             self.append(el)
+
+    def remove(self, value): 
+        """Remove a value from the macro.  It doesn't matter if the value 
+        wasn't present. 
+ 
+        value is the value to remove. 
+        """ 
+        try: 
+            self._macro.remove(value) 
+        except: 
+            pass 
 
     def as_list(self):
         """Return the macro as a list.
