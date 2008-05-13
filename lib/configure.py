@@ -387,6 +387,6 @@ if __name__ == "__main__":
     except:
         print \
 """An internal error occured.  Please report all the output from the program,
-including the following traceback, to support@riverbankcomputing.co.uk.
+including the following traceback, to support@riverbankcomputing.com.
 """
         raise
