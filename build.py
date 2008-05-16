@@ -160,7 +160,6 @@ def mkdistdir(lfile):
     print "Installing the documentation"
     doc = os.path.join(Package, "doc")
     os.mkdir(doc)
-    shutil.copy("doc/default.css",doc)
     os.system("srepo release <doc/sipref.txt >%s/sipref.txt" % doc)
     os.system("rst2html %s/sipref.txt %s/sipref.html" % (doc, doc))
 
