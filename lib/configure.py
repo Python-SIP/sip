@@ -26,6 +26,9 @@ plat_bin_dir = None
 platform_specs = []
 default_platform = None
 
+# Constants.
+DEFAULT_MACOSX_SDK = 'MacOSX10.5.sdk'
+
 # Command line options.
 opt_platform = None
 opt_sipbindir = None
@@ -35,7 +38,7 @@ opt_sipsipdir = None
 opt_static = 0
 opt_debug = 0
 opt_export_all = 0
-opt_universal = ''
+opt_universal = None
 
 # The names of build macros extracted from the platform specific configuration
 # files.
@@ -85,7 +88,7 @@ def usage(rcode = 2):
     rcode is the return code passed back to the calling process.
     """
     print "Usage:"
-    print "  python configure.py [-h] [-b dir] [-d dir] [-e dir] [-k] [-n] [-p plat] [-u] [-v dir] option=value option+=value ..."
+    print "  python configure.py [-h] [-b dir] [-d dir] [-e dir] [-k] [-n] [-p plat] [-s sdk] [-u] [-v dir] option=value option+=value ..."
     print "where:"
     print "  -h       display this help message"
     print "  -b dir   where the SIP code generator will be installed [default %s]" % opt_sipbindir
@@ -94,6 +97,7 @@ def usage(rcode = 2):
     print "  -k       build the SIP module as a static library"
     print "  -n       build the SIP code generator and module as universal binaries on MacOS/X"
     print "  -p plat  the platform/compiler configuration [default %s]" % default_platform
+    print "  -s sdk   the name of the MacOS/X SDK used when building universal binaries [default %s]" % DEFAULT_MACOSX_SDK
     print "  -u       build with debugging symbols"
     print "  -v dir   where .sip files are normally installed [default %s]" % opt_sipsipdir
 
@@ -192,7 +196,7 @@ def inform_user():
     siputils.inform("The platform/compiler configuration is %s." % opt_platform)
 
     if opt_universal:
-        siputils.inform("MacOS/X universal binaries will be created.")
+        siputils.inform("MacOS/X universal binaries will be created using %s." % opt_universal)
 
 
 def set_platform_directories():
@@ -322,12 +326,14 @@ def main(argv):
     set_defaults()
 
     try:
-        optlist, args = getopt.getopt(argv[1:], "hab:d:e:knp:uv:")
+        optlist, args = getopt.getopt(argv[1:], "hab:d:e:knp:s:uv:")
     except getopt.GetoptError:
         usage()
 
     global opt_sipbindir, opt_sipmoddir, opt_sipincdir, opt_sipsipdir
     global opt_platform, opt_static, opt_debug, opt_export_all, opt_universal
+
+    sdk = DEFAULT_MACOSX_SDK
 
     for opt, arg in optlist:
         if opt == "-h":
@@ -343,14 +349,14 @@ def main(argv):
         elif opt == "-k":
             opt_static = 1
         elif opt == "-n":
-            # This should probably be determined dynamically or passed as an
-            # argument.
-            opt_universal = '/Developer/SDKs/MacOSX10.4u.sdk'
+            opt_universal = ''
         elif opt == "-p":
             if arg not in platform_specs:
                 usage()
             
             opt_platform = arg
+        elif opt == "-s":
+            sdk = arg
         elif opt == "-u":
             opt_debug = 1
         elif opt == "-v":
@@ -358,6 +364,15 @@ def main(argv):
 
     if opt_platform is None:
         opt_platform = default_platform
+
+    if opt_universal is not None:
+        if '/' in sdk:
+            opt_universal = os.path.abspath(sdk)
+        else:
+            opt_universal = '/Developer/SDKs/' + sdk
+
+        if not os.path.isdir(opt_universal):
+            siputils.error("Unable to find the SDK directory %s. Use the -s flag to specify the name of the SDK (e.g. %s) or its full path." % (opt_universal, DEFAULT_MACOSX_SDK))
 
     # Get the platform specific macros for building.
     macros = siputils.parse_build_macros(os.path.join("specs", opt_platform), build_macro_names, args)

@@ -1,4 +1,6 @@
 v4.7.6 ???
+  - Added the -s flag to configure.py to specify the SDK directory to use when
+    building universal binaries on MacOS/X.
   - Added support for MSVC 2008 to the build system.
   - Added support for v10.x of the Intel compiler and removed support for
     earlier versions.

@@ -259,6 +259,9 @@ The full set of command line options is:
          system, otherwise a platform specific default will be used.  The
          ``-h`` option will display all the supported platform/compilers and
          the default.
+-s sdk   If the ``-n`` option was given then this specifies the name of the SDK
+         directory.  If a path is not given then it is assumed to be a
+         sub-directory of ``/Developer/SDKs``.
 -u       The SIP module will be built with debugging symbols.
 -v dir   By default ``.sip`` files will be installed in the directory ``dir``.
 
