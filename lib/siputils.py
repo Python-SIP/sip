@@ -1870,13 +1870,13 @@ def create_content(dict, macros=None):
     for k in keys:
         val = dict[k]
         vtype = type(val)
+        delim = None
 
         if val is None:
             val = "None"
         elif vtype == types.ListType:
-            val = "'" + string.join(val) + "'"
-        elif vtype == types.StringType:
-            val = "'" + val + "'"
+            val = string.join(val)
+            delim = "'"
         elif vtype == types.IntType:
             if string.find(k, "version") >= 0:
                 # Assume it's a hexadecimal version number.  It doesn't matter
@@ -1885,7 +1885,14 @@ def create_content(dict, macros=None):
             else:
                 val = str(val)
         else:
-            val = "'" + str(val) + "'"
+            val = str(val)
+            delim = "'"
+
+        if delim:
+            if "'" in val:
+                delim = "'''"
+
+            val = delim + val + delim
 
         content = content + "    '" + k + "':" + (" " * (width - len(k) + 2)) + string.replace(val, "\\", "\\\\")
 
@@ -1917,8 +1924,14 @@ def create_content(dict, macros=None):
             else:
                 sep = ","
 
+            val = macros[c]
+            if "'" in val:
+                delim = "'''"
+            else:
+                delim = "'"
+
             k = "'" + c + "':"
-            content = content + "    %-*s  '%s'%s\n" % (1 + width + 2, k, string.replace(macros[c], "\\", "\\\\"), sep)
+            content = content + "    %-*s  %s%s%s%s\n" % (1 + width + 2, k, delim, string.replace(val, "\\", "\\\\"), delim, sep)
 
         content = content + "}\n"
     else:
@@ -2193,6 +2206,9 @@ def parse_build_macros(filename, names, overrides=None, properties=None):
             if assstart > 0:
                 lhs = string.strip(line[:assstart])
                 rhs = string.strip(line[assend + 1:])
+
+                # Remove the escapes for any quotes.
+                rhs = rhs.replace(r'\"', '"').replace(r"\'", "'")
 
                 raw[lhs] = rhs
 
