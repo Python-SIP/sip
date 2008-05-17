@@ -1734,7 +1734,7 @@ class ProgramMakefile(Makefile):
             mfile.write("\t  $(OFILES) $(LIBS)\n")
             mfile.write("<<\n")
 
-            if "embed_manifest_dll" in self.optional_list("CONFIG"):
+            if "embed_manifest_exe" in self.optional_list("CONFIG"):
                 mfile.write("\tmt -nologo -manifest $(TARGET).manifest -outputresource:$(TARGET);1\n")
         elif self.generator == "BMAKE":
             mfile.write("\t$(LINK) @&&|\n")
@@ -1762,6 +1762,9 @@ class ProgramMakefile(Makefile):
 
         mfile.write("\ninstall: $(TARGET)\n")
         self.install_file(mfile, "$(TARGET)", self._install_dir)
+
+        if "embed_manifest_exe" in self.optional_list("CONFIG"):
+            self.install_file(mfile, "$(TARGET).manifest", self._install_dir)
 
     def generate_target_clean(self, mfile):
         """Generate the clean target.
