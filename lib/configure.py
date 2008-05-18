@@ -170,7 +170,9 @@ def set_defaults():
     default_platform = "none"
 
     if sys.platform == "win32":
-        if py_version >= 0x020400:
+        if py_version >= 0x020600:
+            default_platform = "win32-msvc2008"
+        elif py_version >= 0x020400:
             default_platform = "win32-msvc.net"
         else:
             default_platform = "win32-msvc"
