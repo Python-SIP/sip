@@ -4,6 +4,7 @@ v4.7.6 ???
   - Added support for MSVC 2008 to the build system.
   - Added support for v10.x of the Intel compiler and removed support for
     earlier versions.
+  - MSVC 2008 is the default platform when using Python v2.6.
 
 v4.7.5 13th May 2008
   - The sip.voidptr type has an optional size associated with it and supports

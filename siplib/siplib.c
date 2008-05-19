@@ -7038,6 +7038,17 @@ static PyTypeObject sipWrapperType_Type = {
  */
 static PyObject *sipWrapper_new(sipWrapperType *wt,PyObject *args,PyObject *kwds)
 {
+    static PyObject *noargs = NULL;
+
+    /* We need an empty tuple for an empty argument list. */
+    if (noargs == NULL)
+    {
+        noargs = PyTuple_New(0);
+
+        if (noargs == NULL)
+            return NULL;
+    }
+
     /* Check sip.wrapper is not being used directly. */
     if (wt == &sipWrapper_Type)
     {
@@ -7080,8 +7091,11 @@ static PyObject *sipWrapper_new(sipWrapperType *wt,PyObject *args,PyObject *kwds
         }
     }
 
-    /* Call the standard super-type new. */
-    return PyBaseObject_Type.tp_new((PyTypeObject *)wt, args, kwds);
+    /*
+     * Call the standard super-type new.  Passing arguments was deprecated in
+     * Python v2.6.
+     */
+    return PyBaseObject_Type.tp_new((PyTypeObject *)wt, noargs, NULL);
 }
 
 
