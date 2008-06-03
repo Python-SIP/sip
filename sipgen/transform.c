@@ -2820,7 +2820,7 @@ static void ifaceFilesAreUsedByOverload(ifaceFileList **used, overDef *od)
         int a;
 
         for (a = 0; a < ta->nrArgs; ++a)
-            addToUsedList(used, ta->args[a]->cd->iff);
+            addToUsedList(used, ta->args[a]->iff);
     }
 }
 
