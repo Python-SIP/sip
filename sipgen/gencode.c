@@ -774,7 +774,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 static char *makePartName(const char *codeDir, const char *mname, int part,
         const char *srcSuffix)
 {
-    char buf[20];
+    char buf[50];
 
     sprintf(buf, "part%d", part);
 
@@ -11259,7 +11259,7 @@ static void prTypeName(FILE *fp,argDef *ad,int intmpl)
 {
     if (intmpl)
     {
-        char buf[10];
+        char buf[50];
         int flgs;
 
         /* We use numbers so they don't conflict with names. */
