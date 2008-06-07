@@ -8664,28 +8664,23 @@ static void generateCatch(throwArgs *ta, signatureDef *sd, FILE *fp)
 
                 deleteTemps(sd, fp);
 
+                /* See if the exception is a wrapped class. */
                 if (xd->cd != NULL)
-                {
-                    /* The exception is a wrapped class. */
-
                     prcode(fp,
 "                /* Hope that there is a valid copy ctor. */\n"
 "                %S *sipExceptionCopy = new %S(sipExceptionRef);\n"
 "\n"
-                        ,ename,ename);
-
-                    if (release_gil)
-                        prcode(fp,
-"                Py_BLOCK_THREADS\n"
-"\n"
-                            );
-
-                    prcode(fp,
 "                sipRaise%sClassException(sipClass_%C,sipExceptionCopy);\n"
-                        ,(xd->cd->subbase != NULL ? "Sub" : ""),ename);
-                }
+                        , ename, ename
+                        , (xd->cd->subbase != NULL ? "Sub" : ""), ename);
                 else
                     generateCppCodeBlock(xd->raisecode,fp);
+
+                if (release_gil)
+                    prcode(fp,
+"\n"
+"                Py_BLOCK_THREADS\n"
+                        );
 
                 prcode(fp,
 "\n"
