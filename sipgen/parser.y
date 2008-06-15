@@ -2606,7 +2606,6 @@ static moduleDef *allocModule()
     newmod->preinitcode = NULL;
     newmod->postinitcode = NULL;
     newmod->unitcode = NULL;
-    newmod->modulenr = -1;
     newmod->file = NULL;
     newmod->qualifiers = NULL;
     newmod->root.cd = NULL;

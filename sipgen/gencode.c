@@ -1032,7 +1032,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 {
     char *cppfile;
     const char *mname = mod->name;
-    int noIntro, nrSccs = 0, files_in_part, max_per_part, this_part;
+    int noIntro, nrSccs = 0, files_in_part, max_per_part, this_part, mod_nr;
     int is_inst_class, is_inst_voidp, is_inst_char, is_inst_string;
     int is_inst_int, is_inst_long, is_inst_ulong, is_inst_longlong;
     int is_inst_ulonglong, is_inst_double, is_inst_enum, nr_enummembers;
@@ -1868,23 +1868,21 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         , mname
         , mname);
 
-    noIntro = TRUE;
+    mod_nr = 0;
 
     for (mld = mod->allimports; mld != NULL; mld = mld->next)
     {
-        if (noIntro)
-        {
+        if (mod_nr == 0)
             prcode(fp,
 "\n"
 "    /* Get the APIs of the modules that this one is dependent on. */\n"
                 );
 
-            noIntro = FALSE;
-        }
-
         prcode(fp,
 "    sipModuleAPI_%s_%s = sipModuleAPI_%s.em_imports[%d].im_module;\n"
-            , mname, mld->module->name, mname, mld->module->modulenr);
+            , mname, mld->module->name, mname, mod_nr);
+
+        ++mod_nr;
     }
 
     generateClassesInline(pt, mod, fp);
@@ -2147,7 +2145,21 @@ static void generateEncodedClass(moduleDef *mod, classDef *cd, int last,
     if (cmod == mod)
         prcode(fp, "255");
     else
-        prcode(fp, "%u", cmod->modulenr);
+    {
+        int mod_nr = 0;
+        moduleListDef *mld;
+
+        for (mld = mod->allimports; mld != NULL; mld = mld->next)
+        {
+            if (mld->module == cmod)
+            {
+                prcode(fp, "%u", mod_nr);
+                break;
+            }
+
+            ++mod_nr;
+        }
+    }
 
     prcode(fp, ", %u}", last);
 }

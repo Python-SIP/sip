@@ -822,7 +822,6 @@ static classDef *getProxy(moduleDef *mod, classDef *cd)
  */
 static void filterMainModuleVirtualHandlers(moduleDef *mod)
 {
-    int nr = 0;
     moduleListDef *mld;
     virtHandlerDef *vhd;
 
@@ -831,12 +830,8 @@ static void filterMainModuleVirtualHandlers(moduleDef *mod)
      * those at the deepest level of %Import, are done first.
      */
     for (mld = mod->allimports; mld != NULL; mld = mld->next)
-    {
-        mld->module->modulenr = nr++;
         filterModuleVirtualHandlers(mld->module);
-    }
 
-    mod->modulenr = nr;
     filterModuleVirtualHandlers(mod);
 
     /*
