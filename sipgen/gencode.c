@@ -8646,13 +8646,13 @@ static void generateCatch(throwArgs *ta, signatureDef *sd, FILE *fp)
 "            {\n"
                 );
 
-            deleteTemps(sd, fp);
-
             if (release_gil)
                 prcode(fp,
 "                Py_BLOCK_THREADS\n"
 "\n"
                     );
+
+            deleteTemps(sd, fp);
 
             prcode(fp,
 "                sipRaiseUnknownException();\n"
@@ -8674,6 +8674,12 @@ static void generateCatch(throwArgs *ta, signatureDef *sd, FILE *fp)
 "            {\n"
                     ,ename,(xd->cd != NULL || usedInCode(xd->raisecode, "sipExceptionRef")) ? "sipExceptionRef" : "");
 
+                if (release_gil)
+                    prcode(fp,
+"\n"
+"                Py_BLOCK_THREADS\n"
+                        );
+
                 deleteTemps(sd, fp);
 
                 /* See if the exception is a wrapped class. */
@@ -8687,12 +8693,6 @@ static void generateCatch(throwArgs *ta, signatureDef *sd, FILE *fp)
                         , (xd->cd->subbase != NULL ? "Sub" : ""), ename);
                 else
                     generateCppCodeBlock(xd->raisecode,fp);
-
-                if (release_gil)
-                    prcode(fp,
-"\n"
-"                Py_BLOCK_THREADS\n"
-                        );
 
                 prcode(fp,
 "\n"
