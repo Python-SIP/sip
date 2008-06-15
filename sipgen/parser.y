@@ -3503,6 +3503,9 @@ static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod, classDef *scop
 
         nmd->module = mod;
 
+        if (inMainModule())
+            setIsUsedName(nmd->pyname);
+
         nmd->next = NULL;
         *mdtail = nmd;
         mdtail = &nmd->next;
