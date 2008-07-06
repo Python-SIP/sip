@@ -621,6 +621,7 @@ static PyObject *dumpWrapper(PyObject *self, PyObject *args)
         print_wrapper("Parent wrapper", w->parent);
         print_wrapper("Next sibling wrapper", w->sibling_next);
         print_wrapper("Previous sibling wrapper", w->sibling_prev);
+        print_wrapper("First child wrapper", w->first_child);
 
         Py_INCREF(Py_None);
         return Py_None;
@@ -5289,6 +5290,8 @@ static PyObject *sip_api_is_py_method(sip_gilstate_t *gil,
             else if (PyMethod_Check(reimp))
             {
                 sipSaveMethod(&pymc->pyMethod, reimp);
+                Py_DECREF(reimp);
+
                 sipSetMethodReimp(pymc);
             }
             else
