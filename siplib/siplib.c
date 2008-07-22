@@ -3608,9 +3608,14 @@ void sip_api_common_dtor(sipWrapper *sipSelf)
 {
     if (sipSelf != NULL && sipInterpreter != NULL)
     {
+        PyObject *xtype, *xvalue, *xtb;
+
         SIP_BLOCK_THREADS
 
+        /* We may be tidying up after an exception so preserve it. */
+        PyErr_Fetch(&xtype, &xvalue, &xtb);
         callPyDtor(sipSelf);
+        PyErr_Restore(xtype, xvalue, xtb);
 
         if (!sipNotInMap(sipSelf))
             sipOMRemoveObject(&cppPyMap,sipSelf);
