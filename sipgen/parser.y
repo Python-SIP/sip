@@ -92,6 +92,8 @@ static int sameName(scopedNameDef *snd, const char *sname);
 static int optFind(sipSpec *pt, const char *opt);
 static void setModuleName(moduleDef *mod, const char *fullname);
 static int foundInScope(scopedNameDef *fq_name, scopedNameDef *rel_name);
+static void defineClass(scopedNameDef *snd);
+static classDef *completeClass(scopedNameDef *snd, optFlags *of, int has_def);
 %}
 
 %union {
@@ -1322,22 +1324,22 @@ typedef:    TK_TYPEDEF cpptype TK_NAME ';' {
         }
     ;
 
-struct:     TK_STRUCT TK_NAME {
+struct:     TK_STRUCT scopedname {
+            if (currentSpec -> genc && $2->next != NULL)
+                yyerror("Namespaces not allowed in a C module");
+
             if (notSkipping())
             {
-                classDef *cd;
-
-                cd = newClass(currentSpec,class_iface,text2scopedName($2));
-
-                pushScope(cd);
-
+                defineClass($2);
                 sectionFlags = SECT_IS_PUBLIC;
             }
-        } optflags '{' classbody '}' ';' {
+        } superclasses optflags optclassbody ';' {
             if (notSkipping())
             {
-                finishClass(currentSpec, currentModule, currentScope(), &$4);
-                popScope();
+                classDef *cd = completeClass($2, &$5, $6);
+
+                if (currentSpec -> genc && cd->supers != NULL)
+                    yyerror("Super-classes not allowed in a C module struct");
             }
         }
     ;
@@ -1380,46 +1382,12 @@ class:      TK_CLASS scopedname {
 
             if (notSkipping())
             {
-                classDef *cd;
-
-                cd = newClass(currentSpec, class_iface, scopeScopedName($2));
-
-                pushScope(cd);
-
+                defineClass($2);
                 sectionFlags = SECT_IS_PRIVATE;
             }
         } superclasses optflags optclassbody ';' {
             if (notSkipping())
-            {
-                classDef *cd = currentScope();
-
-                /*
-                 * See if the class was defined or just
-                 * declared.
-                 */
-                if ($6)
-                {
-                    if ($2->next != NULL)
-                        yyerror("A scoped name cannot be given in a class definition");
-
-                }
-                else if (cd->supers != NULL)
-                    yyerror("Class has super-classes but no definition");
-                else
-                    setIsOpaque(cd);
-
-                finishClass(currentSpec, currentModule, cd, &$5);
-                popScope();
-
-                /*
-                 * Check that external classes have only been
-                 * declared at the global scope.
-                 */
-                if (isExternal(cd) && currentScope() != NULL)
-                    yyerror("External classes can only be declared in the global scope");
-
-                $$ = cd;
-            }
+                $$ = completeClass($2, &$5, $6);
         }
     ;
 
@@ -5153,4 +5121,45 @@ static void setModuleName(moduleDef *mod, const char *fullname)
         mod->name++;
     else
         mod->name = fullname;
+}
+
+
+/*
+ * Define a new class and set its name.
+ */
+static void defineClass(scopedNameDef *snd)
+{
+    pushScope(newClass(currentSpec, class_iface, scopeScopedName(snd)));
+}
+
+
+/*
+ * Complete the definition of a class.
+ */
+static classDef *completeClass(scopedNameDef *snd, optFlags *of, int has_def)
+{
+    classDef *cd = currentScope();
+
+    /* See if the class was defined or just declared. */
+    if (has_def)
+    {
+        if (snd->next != NULL)
+            yyerror("A scoped name cannot be given in a class/struct definition");
+
+    }
+    else if (cd->supers != NULL)
+        yyerror("Class/struct has super-classes but no definition");
+    else
+        setIsOpaque(cd);
+
+    finishClass(currentSpec, currentModule, cd, of);
+    popScope();
+
+    /*
+     * Check that external classes have only been declared at the global scope.
+     */
+    if (isExternal(cd) && currentScope() != NULL)
+        yyerror("External classes/structs can only be declared in the global scope");
+
+    return cd;
 }
