@@ -657,15 +657,6 @@ PyObject *sip_api_invoke_slot(const sipSlot *slot, PyObject *sigargs)
     {
         PyObject *self = (sref != NULL ? sref : slot->meth.mself);
 
-        /* See if any underlying C++ instance has gone. */
-        if (self != NULL && sip_api_wrapper_check(self) && ((sipWrapper *)self)->u.cppPtr == NULL)
-        {
-            Py_XDECREF(sref);
-
-            Py_INCREF(Py_None);
-            return Py_None;
-        }
-
         if ((sfunc = PyMethod_New(slot->meth.mfunc, self, slot->meth.mclass)) == NULL)
         {
             Py_XDECREF(sref);
@@ -679,15 +670,6 @@ PyObject *sip_api_invoke_slot(const sipSlot *slot, PyObject *sigargs)
     {
         char *mname = slot -> name + 1;
         PyObject *self = (sref != NULL ? sref : slot->pyobj);
-
-        /* See if any underlying C++ instance has gone. */
-        if (self != NULL && sip_api_wrapper_check(self) && ((sipWrapper *)self)->u.cppPtr == NULL)
-        {
-            Py_XDECREF(sref);
-
-            Py_INCREF(Py_None);
-            return Py_None;
-        }
 
         if ((sfunc = PyObject_GetAttrString(self, mname)) == NULL || !PyCFunction_Check(sfunc))
         {
