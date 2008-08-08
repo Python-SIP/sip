@@ -1,3 +1,8 @@
+v4.7.7 8th Aug 2008
+  - C++ structs are now properly handled as a class with a default public
+    section.
+  - sip.dump() now includes the object's first child wrapper.
+
 v4.7.6 20th May 2008
   - Added the -s flag to configure.py to specify the SDK directory to use when
     building universal binaries on MacOS/X.

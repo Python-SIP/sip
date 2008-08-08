@@ -1041,7 +1041,7 @@ static int sip_api_export_module(sipExportedModuleDef *client,
 
             /*
              * Register the enum pickler for scoped enums (unscoped, ie. those
-             * not nested, don't need special treatment.
+             * not nested, don't need special treatment).
              */
             if (client->em_api_minor >= 5 && ed->e_scope >= 0)
             {
