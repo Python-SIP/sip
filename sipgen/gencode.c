@@ -1422,12 +1422,14 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         {
             const char *tdmname, *sat;
             scopedNameDef *fqname;
+            argDef *argtype;
 
             if (td->module != mod)
                 continue;
 
             fqname = NULL;
             tdmname = NULL;
+            argtype = NULL;
             sat = "unknown";
 
             switch (td->type.atype)
@@ -1522,7 +1524,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 
             case mapped_type:
                 sat = "mtype";
-                fqname = td->type.u.mtd->iff->fqcname;
+                argtype = &td->type.u.mtd->type;
 
                 if (td->type.u.mtd->iff->module != mod)
                     tdmname = td->type.u.mtd->iff->module->fullname;
@@ -1532,7 +1534,9 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
             prcode(fp,
 "    {\"%S\", %s_sat", td->fqname, sat);
 
-            if (fqname != NULL)
+            if (argtype != NULL)
+                prcode(fp, ", \"%b\"", argtype);
+            else if (fqname != NULL)
                 prcode(fp, ", \"%S\"", fqname);
             else
                 prcode(fp, ", NULL");
