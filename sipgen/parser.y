@@ -3309,6 +3309,60 @@ static char *getType(scopedNameDef *ename, argDef *ad)
     if (ad->atype == defined_type)
         return scopedNameToString(ad->u.snd);
 
+    /* For the moment only handle non-pointer, non-reference base types. */
+    if (ad->nrderefs == 0 && !isReference(ad))
+        switch (ad->atype)
+        {
+        case ustring_type:
+            return "unsigned char";
+
+        case string_type:
+            return "char";
+
+        case sstring_type:
+            return "signed char";
+
+        case wstring_type:
+            return "wchar_t";
+
+        case ushort_type:
+            return "unsigned short";
+
+        case short_type:
+            return "short";
+
+        case uint_type:
+            return "unsigned int";
+
+        case int_type:
+        case cint_type:
+            return "int";
+
+        case ulong_type:
+            return "unsigned long";
+
+        case long_type:
+            return "long";
+
+        case ulonglong_type:
+            return "unsigned long long";
+
+        case longlong_type:
+            return "long long";
+
+        case float_type:
+        case cfloat_type:
+            return "float";
+
+        case double_type:
+        case cdouble_type:
+            return "double";
+
+        case bool_type:
+        case cbool_type:
+            return "bool";
+        }
+
     fatalScopedName(ename);
     fatal(": unsupported type argument to template class instantiation\n");
 
