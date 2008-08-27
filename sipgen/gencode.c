@@ -1365,6 +1365,9 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
             if (ed->module != mod || ed->fqcname == NULL)
                 continue;
 
+            if (ed->ecd != NULL && isTemplateClass(ed->ecd))
+                continue;
+
             if (ed->ecd == NULL)
                 emname = mname;
             else if (ed->ecd->real == NULL)

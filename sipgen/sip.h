@@ -81,6 +81,7 @@
 #define CLASS_QT_META_TYPE  0x02000000  /* Register as a Qt meta type. */
 #define CLASS_NO_QMETAOBJECT    0x04000000  /* It has no QMetaObject. */
 #define CLASS_CAN_ASSIGN    0x08000000  /* It has an assignment operator. */
+#define CLASS_IS_TEMPLATE   0x10000000  /* It is a template class. */
 
 #define hasSigSlots(cd)     ((cd)->classflags & CLASS_HAS_SIGSLOTS)
 #define setHasSigSlots(cd)  ((cd)->classflags |= CLASS_HAS_SIGSLOTS)
@@ -124,6 +125,9 @@
 #define setNoQMetaObject(c) ((cd)->classflags |= CLASS_NO_QMETAOBJECT)
 #define canAssign(c)        ((cd)->classflags & CLASS_CAN_ASSIGN)
 #define setCanAssign(c)     ((cd)->classflags |= CLASS_CAN_ASSIGN)
+#define isTemplateClass(cd) ((cd)->classflags & CLASS_IS_TEMPLATE)
+#define setIsTemplateClass(cd)  ((cd)->classflags |= CLASS_IS_TEMPLATE)
+#define resetIsTemplateClass(cd)    ((cd)->classflags &= ~CLASS_IS_TEMPLATE)
 
 #define isPublicDtor(cd)    ((cd)->classflags & SECT_IS_PUBLIC)
 #define setIsPublicDtor(cd) ((cd)->classflags |= SECT_IS_PUBLIC)

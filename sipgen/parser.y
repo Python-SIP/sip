@@ -67,8 +67,8 @@ static void parseFile(FILE *fp, char *name, moduleDef *prevmod, int optional);
 static void handleEOF(void);
 static void handleEOM(void);
 static qualDef *findQualifier(char *);
-static scopedNameDef *text2scopedName(char *);
-static scopedNameDef *scopeScopedName(scopedNameDef *name);
+static scopedNameDef *text2scopedName(classDef *scope, char *text);
+static scopedNameDef *scopeScopedName(classDef *scope, scopedNameDef *name);
 static void pushScope(classDef *);
 static void popScope(void);
 static classDef *currentScope(void);
@@ -94,6 +94,14 @@ static void setModuleName(moduleDef *mod, const char *fullname);
 static int foundInScope(scopedNameDef *fq_name, scopedNameDef *rel_name);
 static void defineClass(scopedNameDef *snd);
 static classDef *completeClass(scopedNameDef *snd, optFlags *of, int has_def);
+static memberDef *instantiateTemplateMethods(memberDef *tmd, moduleDef *mod);
+static void instantiateTemplateEnums(sipSpec *pt, classTmplDef *tcd,
+        templateDef *td, classDef *cd, ifaceFileList **used,
+        scopedNameDef *type_names, scopedNameDef *type_values);
+static overDef *instantiateTemplateOverloads(sipSpec *pt, overDef *tod,
+        memberDef *tmethods, memberDef *methods, classTmplDef *tcd,
+        templateDef *td, classDef *cd, ifaceFileList **used,
+        scopedNameDef *type_names, scopedNameDef *type_values);
 %}
 
 %union {
@@ -609,7 +617,8 @@ namespace:  TK_NAMESPACE TK_NAME {
             {
                 classDef *ns;
 
-                ns = newClass(currentSpec,namespace_iface,text2scopedName($2));
+                ns = newClass(currentSpec, namespace_iface,
+                        text2scopedName(currentScope(), $2));
 
                 pushScope(ns);
 
@@ -2435,7 +2444,7 @@ void parse(sipSpec *spec, FILE *fp, char *filename, stringList *tsl,
 {
     classTmplDef *tcd;
 
-        /* Initialise the spec. */
+    /* Initialise the spec. */
  
     spec -> modules = NULL;
     spec -> namecache = NULL;
@@ -2477,8 +2486,7 @@ void parse(sipSpec *spec, FILE *fp, char *filename, stringList *tsl,
     handleEOM();
 
     /*
-     * Go through each template class and remove it from the list of
-     * classes.
+     * Go through each template class and remove it from the list of classes.
      */
     for (tcd = spec->classtemplates; tcd != NULL; tcd = tcd->next)
     {
@@ -2914,6 +2922,9 @@ static classDef *newClass(sipSpec *pt,ifaceFileType iftype,
     cd->ecd = scope;
     cd->iff->module = currentModule;
 
+    if (currentIsTemplate)
+        setIsTemplateClass(cd);
+
     appendCodeBlock(&cd->iff->hdrcode, hdrcode);
 
     /* See if it is a namespace extender. */
@@ -3210,15 +3221,15 @@ static enumDef *newEnum(sipSpec *pt,moduleDef *mod,char *name,optFlags *of,
 
     if (name != NULL)
     {
-        ed -> fqcname = text2scopedName(name);
-        ed -> pyname = cacheName(pt, getPythonName(of, name));
+        ed->fqcname = text2scopedName(escope, name);
+        ed->pyname = cacheName(pt, getPythonName(of, name));
 
         checkAttributes(pt, mod, escope, ed->pyname->text, FALSE);
     }
     else
     {
-        ed -> fqcname = NULL;
-        ed -> pyname = NULL;
+        ed->fqcname = NULL;
+        ed->pyname = NULL;
     }
 
     ed -> enumflags = flags;
@@ -3413,13 +3424,13 @@ static char *scopedNameToString(scopedNameDef *name)
 /*
  * Instantiate a class template.
  */
-static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod, classDef *scope, scopedNameDef *fqname, classTmplDef *tcd, templateDef *td)
+static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod,
+        classDef *scope, scopedNameDef *fqname, classTmplDef *tcd,
+        templateDef *td)
 {
     scopedNameDef *type_names, *type_values;
     classDef *cd;
     ctorDef *oct, **cttail;
-    memberDef *omd, **mdtail;
-    overDef *ood, **odtail;
     argDef *ad;
     ifaceFileList *iffl, **used;
 
@@ -3427,8 +3438,8 @@ static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod, classDef *scop
     appendTypeStrings(classFQCName(tcd->cd), &tcd->sig, &td->types, NULL, &type_names, &type_values);
 
     /*
-     * Add a mapping from the template name to the instantiated name.  If
-     * we have got this far we know there is room for it.
+     * Add a mapping from the template name to the instantiated name.  If we
+     * have got this far we know there is room for it.
      */
     ad = &tcd->sig.args[tcd->sig.nrArgs++];
     ad->atype = defined_type;
@@ -3447,6 +3458,7 @@ static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod, classDef *scop
     /* Start with a shallow copy. */
     *cd = *tcd->cd;
 
+    resetIsTemplateClass(cd);
     cd->pyname = scopedNameTail(fqname);
     cd->td = td;
 
@@ -3471,6 +3483,9 @@ static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod, classDef *scop
     }
 
     cd->ecd = currentScope();
+
+    /* Handle the enums. */
+    instantiateTemplateEnums(pt, tcd, td, cd, used, type_names, type_values);
 
     /* Handle the ctors. */
     cd->ctors = NULL;
@@ -3512,91 +3527,11 @@ static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod, classDef *scop
     cd->dealloccode = templateCode(pt, used, cd->dealloccode, type_names, type_values);
     cd->dtorcode = templateCode(pt, used, cd->dtorcode, type_names, type_values);
 
-    /* Handle the members, ie. the common parts of overloads. */
-    cd->members = NULL;
-    mdtail = &cd->members;
-
-    for (omd = tcd->cd->members; omd != NULL; omd = omd->next)
-    {
-        memberDef *nmd = sipMalloc(sizeof (memberDef));
-
-        /* Start with a shallow copy. */
-        *nmd = *omd;
-
-        nmd->module = mod;
-
-        if (inMainModule())
-            setIsUsedName(nmd->pyname);
-
-        nmd->next = NULL;
-        *mdtail = nmd;
-        mdtail = &nmd->next;
-    }
-
-    /* Handle the overloads. */
-    cd->overs = NULL;
-    odtail = &cd->overs;
-
-    for (ood = tcd->cd->overs; ood != NULL; ood = ood->next)
-    {
-        overDef *nod = sipMalloc(sizeof (overDef));
-        memberDef *nmd;
-
-        /* Start with a shallow copy. */
-        *nod = *ood;
-
-        for (nmd = cd->members, omd = tcd->cd->members; omd != NULL; omd = omd->next, nmd = nmd->next)
-            if (omd == ood->common)
-            {
-                nod->common = nmd;
-                break;
-            }
-
-        templateSignature(&nod->pysig, TRUE, tcd, td, cd);
-
-        if (ood->cppsig == &ood->pysig)
-            nod->cppsig = &nod->pysig;
-        else
-        {
-            nod->cppsig = sipMalloc(sizeof (signatureDef));
-
-            *nod->cppsig = *ood->cppsig;
-
-            templateSignature(nod->cppsig, TRUE, tcd, td, cd);
-        }
-
-        nod->methodcode = templateCode(pt, used, nod->methodcode, type_names, type_values);
-
-        /* Handle any virtual handler. */
-        if (ood->virthandler != NULL)
-        {
-            nod->virthandler = sipMalloc(sizeof (virtHandlerDef));
-
-            /* Start with a shallow copy. */
-            *nod->virthandler = *ood->virthandler;
-
-            if (ood->virthandler->cppsig == &ood->pysig)
-                nod->virthandler->cppsig = &nod->pysig;
-            else
-            {
-                nod->virthandler->cppsig = sipMalloc(sizeof (signatureDef));
-
-                *nod->virthandler->cppsig = *ood->virthandler->cppsig;
-
-                templateSignature(nod->virthandler->cppsig, TRUE, tcd, td, cd);
-            }
-
-            nod->virthandler->module = mod;
-            nod->virthandler->virtcode = templateCode(pt, used, nod->virthandler->virtcode, type_names, type_values);
-            nod->virthandler->next = mod->virthandlers;
-
-            mod->virthandlers = nod->virthandler;
-        }
-
-        nod->next = NULL;
-        *odtail = nod;
-        odtail = &nod->next;
-    }
+    /* Handle the methods. */
+    cd->members = instantiateTemplateMethods(tcd->cd->members, mod);
+    cd->overs = instantiateTemplateOverloads(pt, tcd->cd->overs,
+            tcd->cd->members, cd->members, tcd, td, cd, used, type_names,
+            type_values);
 
     cd->cppcode = templateCode(pt, used, cd->cppcode, type_names, type_values);
     cd->iff->hdrcode = templateCode(pt, used, cd->iff->hdrcode, type_names, type_values);
@@ -3617,6 +3552,173 @@ static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod, classDef *scop
 
     freeScopedName(type_names);
     freeScopedName(type_values);
+}
+
+
+/*
+ * Instantiate the methods of a template class.
+ */
+static memberDef *instantiateTemplateMethods(memberDef *tmd, moduleDef *mod)
+{
+    memberDef *md, *methods, **mdtail;
+
+    methods = NULL;
+    mdtail = &methods;
+
+    for (md = tmd; md != NULL; md = md->next)
+    {
+        memberDef *nmd = sipMalloc(sizeof (memberDef));
+
+        /* Start with a shallow copy. */
+        *nmd = *md;
+
+        nmd->module = mod;
+
+        if (inMainModule())
+            setIsUsedName(nmd->pyname);
+
+        nmd->next = NULL;
+        *mdtail = nmd;
+        mdtail = &nmd->next;
+    }
+
+    return methods;
+}
+
+
+/*
+ * Instantiate the overloads of a template class.
+ */
+static overDef *instantiateTemplateOverloads(sipSpec *pt, overDef *tod,
+        memberDef *tmethods, memberDef *methods, classTmplDef *tcd,
+        templateDef *td, classDef *cd, ifaceFileList **used,
+        scopedNameDef *type_names, scopedNameDef *type_values)
+{
+    overDef *od, *overloads, **odtail;
+
+    overloads = NULL;
+    odtail = &overloads;
+
+    for (od = tod; od != NULL; od = od->next)
+    {
+        overDef *nod = sipMalloc(sizeof (overDef));
+        memberDef *nmd, *omd;
+
+        /* Start with a shallow copy. */
+        *nod = *od;
+
+        for (nmd = methods, omd = tmethods; omd != NULL; omd = omd->next, nmd = nmd->next)
+            if (omd == od->common)
+            {
+                nod->common = nmd;
+                break;
+            }
+
+        templateSignature(&nod->pysig, TRUE, tcd, td, cd);
+
+        if (od->cppsig == &od->pysig)
+            nod->cppsig = &nod->pysig;
+        else
+        {
+            nod->cppsig = sipMalloc(sizeof (signatureDef));
+
+            *nod->cppsig = *od->cppsig;
+
+            templateSignature(nod->cppsig, TRUE, tcd, td, cd);
+        }
+
+        nod->methodcode = templateCode(pt, used, nod->methodcode, type_names, type_values);
+
+        /* Handle any virtual handler. */
+        if (od->virthandler != NULL)
+        {
+            moduleDef *mod = cd->iff->module;
+
+            nod->virthandler = sipMalloc(sizeof (virtHandlerDef));
+
+            /* Start with a shallow copy. */
+            *nod->virthandler = *od->virthandler;
+
+            if (od->virthandler->cppsig == &od->pysig)
+                nod->virthandler->cppsig = &nod->pysig;
+            else
+            {
+                nod->virthandler->cppsig = sipMalloc(sizeof (signatureDef));
+
+                *nod->virthandler->cppsig = *od->virthandler->cppsig;
+
+                templateSignature(nod->virthandler->cppsig, TRUE, tcd, td, cd);
+            }
+
+            nod->virthandler->module = mod;
+            nod->virthandler->virtcode = templateCode(pt, used, nod->virthandler->virtcode, type_names, type_values);
+            nod->virthandler->next = mod->virthandlers;
+
+            mod->virthandlers = nod->virthandler;
+        }
+
+        nod->next = NULL;
+        *odtail = nod;
+        odtail = &nod->next;
+    }
+
+    return overloads;
+}
+
+
+/*
+ * Instantiate the enums of a template class.
+ */
+static void instantiateTemplateEnums(sipSpec *pt, classTmplDef *tcd,
+        templateDef *td, classDef *cd, ifaceFileList **used,
+        scopedNameDef *type_names, scopedNameDef *type_values)
+{
+    enumDef *ted;
+    moduleDef *mod = cd->iff->module;
+
+    for (ted = pt->enums; ted != NULL; ted = ted->next)
+        if (ted->ecd == tcd->cd)
+        {
+            enumDef *ed;
+            enumMemberDef *temd;
+
+            ed = sipMalloc(sizeof (enumDef));
+
+            /* Start with a shallow copy. */
+            *ed = *ted;
+
+            if (ed->fqcname != NULL)
+                ed->fqcname = text2scopedName(cd, scopedNameTail(ed->fqcname));
+
+            if (ed->pyname != NULL && inMainModule())
+                setIsUsedName(ed->pyname);
+
+            ed->ecd = cd;
+            ed->module = mod;
+            ed->members = NULL;
+
+            for (temd = ted->members; temd != NULL; temd = temd->next)
+            {
+                enumMemberDef *emd;
+
+                emd = sipMalloc(sizeof (enumMemberDef));
+
+                /* Start with a shallow copy. */
+                *emd = *temd;
+                emd->ed = ed;
+
+                emd->next = ed->members;
+                ed->members = emd;
+            }
+
+            ed->slots = instantiateTemplateMethods(ted->slots, mod);
+            ed->overs = instantiateTemplateOverloads(pt, ted->overs,
+                    ted->slots, ed->slots, tcd, td, cd, used, type_names,
+                    type_values);
+
+            ed->next = pt->enums;
+            pt->enums = ed;
+        }
 }
 
 
@@ -3928,8 +4030,11 @@ static int foundInScope(scopedNameDef *fq_name, scopedNameDef *rel_name)
 static void newTypedef(sipSpec *pt,moduleDef *mod,char *name,argDef *type)
 {
     typedefDef *td;
-    scopedNameDef *fqname = text2scopedName(name);
-    classDef *scope = currentScope();
+    scopedNameDef *fqname;
+    classDef *scope;
+
+    scope = currentScope();
+    fqname = text2scopedName(scope, name);
 
     /* See if we are instantiating a template class. */
     if (type->atype == template_type)
@@ -4037,7 +4142,7 @@ static void newVar(sipSpec *pt,moduleDef *mod,char *name,int isstatic,
     var = sipMalloc(sizeof (varDef));
 
     var -> pyname = nd;
-    var -> fqcname = text2scopedName(name);
+    var -> fqcname = text2scopedName(escope, name);
     var -> ecd = escope;
     var -> module = mod;
     var -> varflags = 0;
@@ -4787,21 +4892,20 @@ scopedNameDef *text2scopePart(char *text)
 /*
  * Convert a text string to a fully scoped name.
  */
-static scopedNameDef *text2scopedName(char *text)
+static scopedNameDef *text2scopedName(classDef *scope, char *text)
 {
-    return scopeScopedName(text2scopePart(text));
+    return scopeScopedName(scope, text2scopePart(text));
 }
 
 
 /*
  * Prepend any current scope to a scoped name.
  */
-static scopedNameDef *scopeScopedName(scopedNameDef *name)
+static scopedNameDef *scopeScopedName(classDef *scope, scopedNameDef *name)
 {
-    classDef *cd = currentScope();
     scopedNameDef *snd;
 
-    snd = (cd != NULL ? copyScopedName(cd->iff->fqcname) : NULL);
+    snd = (scope != NULL ? copyScopedName(scope->iff->fqcname) : NULL);
 
     appendScopedName(&snd, name);
 
@@ -5183,7 +5287,8 @@ static void setModuleName(moduleDef *mod, const char *fullname)
  */
 static void defineClass(scopedNameDef *snd)
 {
-    pushScope(newClass(currentSpec, class_iface, scopeScopedName(snd)));
+    pushScope(newClass(currentSpec, class_iface,
+            scopeScopedName(currentScope(), snd)));
 }
 
 
