@@ -1325,6 +1325,11 @@ class ModuleMakefile(Makefile):
     def finalise(self):
         """Finalise the macros common to all module Makefiles.
         """
+        if self.console:
+            lflags_console = "LFLAGS_CONSOLE"
+        else:
+            lflags_console = "LFLAGS_WINDOWS"
+
         if self.static:
             self.DEFINES.append("SIP_STATIC_MODULE")
         else:
@@ -1335,6 +1340,10 @@ class ModuleMakefile(Makefile):
 
             if lflags_dll:
                 self.LFLAGS.extend(lflags_dll)
+            elif self.console:
+                lflags_console = "LFLAGS_CONSOLE_DLL"
+            else:
+                lflags_console = "LFLAGS_WINDOWS_DLL"
 
             if self._manifest:
                 self._add_manifest()
@@ -1352,6 +1361,8 @@ class ModuleMakefile(Makefile):
                 lflags_plugin = self.optional_list("LFLAGS_SHLIB")
 
             self.LFLAGS.extend(lflags_plugin)
+
+        self.LFLAGS.extend(self.optional_list(lflags_console))
 
         if sys.platform == "darwin":
             # We use the -F flag to explictly specify the directory containing

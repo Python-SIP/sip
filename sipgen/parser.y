@@ -1093,15 +1093,9 @@ enumline:   ifstart
     |   TK_NAME optenumassign optflags optcomma {
             if (notSkipping())
             {
-                /*
-                 * Note that we don't use the assigned value.
-                 * This is a hangover from when enums where
-                 * generated in Python.  We can remove it when
-                 * we have got around to updating all the .sip
-                 * files.
-                 */
                 enumMemberDef *emd, **tail;
 
+                /* Note that we don't use the assigned value. */
                 emd = sipMalloc(sizeof (enumMemberDef));
 
                 emd -> pyname = cacheName(currentSpec, getPythonName(&$3, $1));
