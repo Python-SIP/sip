@@ -344,9 +344,9 @@ static PyObject *enum_unpickler;        /* The enum unpickler function. */
 
 
 static void addSlots(sipWrapperType *wt, sipTypeDef *td);
-static void initSlots(PyTypeObject *to, sipPySlotDef *slots, int is_enum);
+static void addTypeSlots(PyTypeObject *to, PyNumberMethods *nb,
+        PySequenceMethods *sq, PyMappingMethods *mp, sipPySlotDef *slots);
 static void *findSlot(PyObject *self, sipPySlotType st);
-static void *findSlotInType(sipTypeDef *td, sipPySlotType st);
 static int objobjargprocSlot(PyObject *self, PyObject *arg1, PyObject *arg2,
         sipPySlotType st);
 static int ssizeobjargprocSlot(PyObject *self, SIP_SSIZE_T arg1,
@@ -4116,7 +4116,8 @@ static PyTypeObject *createEnum(sipExportedModuleDef *client, sipEnumDef *ed,
 
     /* Initialise any slots. */
     if (ed->e_pyslots != NULL)
-        initSlots(et, ed->e_pyslots, TRUE);
+        addTypeSlots(et, et->tp_as_number, et->tp_as_sequence,
+                et->tp_as_mapping, ed->e_pyslots);
 
     /* Add the type to the "parent" dictionary. */
     if (PyDict_SetItem(dict, name, (PyObject *)et) < 0)
@@ -6120,38 +6121,39 @@ static sipWrapperType *getClassType(sipEncodedClassDef *enc,
 
 
 /*
- * Find a particular slot function for a wrapper.
+ * Find a particular slot function for a type.
  */
 static void *findSlot(PyObject *self, sipPySlotType st)
 {
-    sipTypeDef *td = ((sipWrapperType *)(self->ob_type))->type;
-    sipEncodedClassDef *sup;
-    void *slot;
-
-    /* Check the immediate type. */
-    if ((slot = findSlotInType(td, st)) != NULL)
-        return slot;
-
-    /* Check the super-types, if there are any. */
-    if ((sup = td->td_supers) != NULL)
-        do
-            if ((slot = findSlotInType(getClassType(sup, td->td_module)->type, st)) != NULL)
-                return slot;
-        while (!sup++->sc_flag);
-
-    /* This should never happen. */
-    return NULL;
-}
-
-
-/*
- * Find a particular slot function in a type.
- */
-static void *findSlotInType(sipTypeDef *td, sipPySlotType st)
-{
     sipPySlotDef *psd;
 
-    if ((psd = td->td_pyslots) != NULL)
+    /* If it is not a wrapper then it must be an enum. */
+    if (sip_api_wrapper_check(self))
+        psd = ((sipWrapperType *)(self->ob_type))->type->td_pyslots;
+    else
+    {
+        sipExportedModuleDef *em;
+
+        /* Find the enum definition using its type. */
+        psd = NULL;
+
+        for (em = moduleList; em != NULL; em = em->em_next)
+        {
+            int i;
+
+            for (i = 0; i < em->em_nrenums; ++i)
+                if (em->em_enums[i] == self->ob_type)
+                {
+                    psd = em->em_enumdefs[i].e_pyslots;
+                    break;
+                }
+
+            if (psd != NULL)
+                break;
+        }
+    }
+
+    if (psd != NULL)
         while (psd->psd_func != NULL)
         {
             if (psd->psd_type == st)
@@ -6160,6 +6162,7 @@ static void *findSlotInType(sipTypeDef *td, sipPySlotType st)
             ++psd;
         }
 
+    /* This should never happen. */
     return NULL;
 }
 
@@ -7500,9 +7503,9 @@ static void sipWrapper_dealloc(sipWrapper *self)
 
 
 /*
- * The instance call slot.  Note that keyword arguments aren't supported.
+ * The type call slot.  Note that keyword arguments aren't supported.
  */
-static PyObject *sipWrapper_call(PyObject *self,PyObject *args,PyObject *kw)
+static PyObject *slot_call(PyObject *self,PyObject *args,PyObject *kw)
 {
     PyObject *(*f)(PyObject *,PyObject *);
 
@@ -7513,9 +7516,9 @@ static PyObject *sipWrapper_call(PyObject *self,PyObject *args,PyObject *kw)
 
 
 /*
- * The sequence instance item slot.
+ * The sequence type item slot.
  */
-static PyObject *sipWrapper_sq_item(PyObject *self, SIP_SSIZE_T n)
+static PyObject *slot_sq_item(PyObject *self, SIP_SSIZE_T n)
 {
     PyObject *(*f)(PyObject *,PyObject *);
     PyObject *arg, *res;
@@ -7538,9 +7541,9 @@ static PyObject *sipWrapper_sq_item(PyObject *self, SIP_SSIZE_T n)
 
 
 /*
- * The mapping instance assign subscript slot.
+ * The mapping type assign subscript slot.
  */
-static int sipWrapper_mp_ass_subscript(PyObject *self,PyObject *key,
+static int slot_mp_ass_subscript(PyObject *self,PyObject *key,
         PyObject *value)
 {
     return objobjargprocSlot(self,key,value,(value != NULL ? setitem_slot : delitem_slot));
@@ -7548,20 +7551,20 @@ static int sipWrapper_mp_ass_subscript(PyObject *self,PyObject *key,
 
 
 /*
- * The sequence instance assign item slot.
+ * The sequence type assign item slot.
  */
-static int sipWrapper_sq_ass_item(PyObject *self, SIP_SSIZE_T i, PyObject *o)
+static int slot_sq_ass_item(PyObject *self, SIP_SSIZE_T i, PyObject *o)
 {
     return ssizeobjargprocSlot(self, i, o, (o != NULL ? setitem_slot : delitem_slot));
 }
 
 
 /*
- * The instance rich compare slot.
+ * The type rich compare slot.
  */
-static PyObject *sipWrapper_richcompare(PyObject *self, PyObject *arg, int op)
+static PyObject *slot_richcompare(PyObject *self,PyObject *arg,int op)
 {
-    PyObject *(*f)(PyObject *, PyObject *);
+    PyObject *(*f)(PyObject *,PyObject *);
     sipPySlotType st;
 
     /* Convert the operation to a slot type. */
@@ -7593,7 +7596,7 @@ static PyObject *sipWrapper_richcompare(PyObject *self, PyObject *arg, int op)
     }
 
     /* It might not exist if not all the above have been implemented. */
-    if ((f = (PyObject *(*)(PyObject *, PyObject *))findSlot(self, st)) == NULL)
+    if ((f = (PyObject *(*)(PyObject *,PyObject *))findSlot(self,st)) == NULL)
     {
         Py_INCREF(Py_NotImplemented);
         return Py_NotImplemented;
@@ -7780,8 +7783,6 @@ static sipWrapperType sipWrapper_Type = {
  */
 static void addSlots(sipWrapperType *wt, sipTypeDef *td)
 {
-    sipEncodedClassDef *sup;
-
     /* Add the buffer interface. */
     if (td->td_readbuffer != NULL)
 #if PY_VERSION_HEX >= 0x02050000
@@ -7813,266 +7814,217 @@ static void addSlots(sipWrapperType *wt, sipTypeDef *td)
 
     /* Add the slots for this type. */
     if (td->td_pyslots != NULL)
-        initSlots((PyTypeObject *)wt, td->td_pyslots, FALSE);
-
-    /* Recurse through any super-types. */
-    if ((sup = td->td_supers) != NULL)
-        do
-            addSlots(wt, getClassType(sup, td->td_module)->type);
-        while (!sup++->sc_flag);
+        addTypeSlots((PyTypeObject *)wt, &wt->super.as_number,
+                &wt->super.as_sequence, &wt->super.as_mapping, td->td_pyslots);
 }
 
 
 /*
- * Add the slot handler for each slot present in the type, optionally replacing
- * any that have already been defined.
+ * Add the slot handler for each slot present in the type.
  */
-static void initSlots(PyTypeObject *to, sipPySlotDef *slots, int is_enum)
+static void addTypeSlots(PyTypeObject *to, PyNumberMethods *nb,
+        PySequenceMethods *sq, PyMappingMethods *mp, sipPySlotDef *slots)
 {
-    PyNumberMethods *nb = to->tp_as_number;
-    PySequenceMethods *sq = to->tp_as_sequence;
-    PyMappingMethods *mp = to->tp_as_mapping;
     void *f;
 
     while ((f = slots->psd_func) != NULL)
         switch (slots++->psd_type)
         {
         case str_slot:
-            if (is_enum || to->tp_str == NULL)
-                to->tp_str = (reprfunc)f;
+            to->tp_str = (reprfunc)f;
             break;
 
         case int_slot:
             if (nb != NULL)
-                if (is_enum || nb->nb_int == NULL)
-                    nb->nb_int = (unaryfunc)f;
+                nb->nb_int = (unaryfunc)f;
             break;
 
         case long_slot:
             if (nb != NULL)
-                if (is_enum || nb->nb_long == NULL)
-                    nb->nb_long = (unaryfunc)f;
+                nb->nb_long = (unaryfunc)f;
             break;
 
         case float_slot:
             if (nb != NULL)
-                if (is_enum || nb->nb_float == NULL)
-                    nb->nb_float = (unaryfunc)f;
+                nb->nb_float = (unaryfunc)f;
             break;
 
         case len_slot:
             if (mp != NULL)
-                if (is_enum || mp->mp_length == NULL)
 #if PY_VERSION_HEX >= 0x02050000
-                    mp->mp_length = (lenfunc)f;
+                mp->mp_length = (lenfunc)f;
 #else
-                    mp->mp_length = (inquiry)f;
+                mp->mp_length = (inquiry)f;
 #endif
             if (sq != NULL)
-                if (is_enum || sq->sq_length == NULL)
 #if PY_VERSION_HEX >= 0x02050000
-                    sq->sq_length = (lenfunc)f;
+                sq->sq_length = (lenfunc)f;
 #else
-                    sq->sq_length = (inquiry)f;
+                sq->sq_length = (inquiry)f;
 #endif
             break;
 
         case contains_slot:
             if (sq != NULL)
-                if (is_enum || sq->sq_contains == NULL)
-                    sq->sq_contains = (objobjproc)f;
+                sq->sq_contains = (objobjproc)f;
             break;
 
         case add_slot:
             if (nb != NULL)
-                if (is_enum || nb->nb_add == NULL)
-                    nb->nb_add = (binaryfunc)f;
+                nb->nb_add = (binaryfunc)f;
             break;
 
         case concat_slot:
             if (sq != NULL)
-                if (is_enum || sq->sq_concat == NULL)
-                    sq->sq_concat = (binaryfunc)f;
+                sq->sq_concat = (binaryfunc)f;
             break;
 
         case sub_slot:
             if (nb != NULL)
-                if (is_enum || nb->nb_subtract == NULL)
-                    nb->nb_subtract = (binaryfunc)f;
+                nb->nb_subtract = (binaryfunc)f;
             break;
 
         case mul_slot:
             if (nb != NULL)
-                if (is_enum || nb->nb_multiply == NULL)
-                    nb->nb_multiply = (binaryfunc)f;
+                nb->nb_multiply = (binaryfunc)f;
             break;
 
         case repeat_slot:
             if (sq != NULL)
-                if (is_enum || sq->sq_repeat == NULL)
 #if PY_VERSION_HEX >= 0x02050000
-                    sq->sq_repeat = (ssizeargfunc)f;
+                sq->sq_repeat = (ssizeargfunc)f;
 #else
-                    sq->sq_repeat = (intargfunc)f;
+                sq->sq_repeat = (intargfunc)f;
 #endif
             break;
 
         case div_slot:
             if (nb != NULL)
             {
-                if (is_enum || nb->nb_divide == NULL)
-                    nb->nb_divide = (binaryfunc)f;
-
-                if (is_enum || nb->nb_true_divide == NULL)
-                    nb->nb_true_divide = (binaryfunc)f;
+                nb->nb_divide = (binaryfunc)f;
+                nb->nb_true_divide = (binaryfunc)f;
             }
             break;
 
         case mod_slot:
             if (nb != NULL)
-                if (is_enum || nb->nb_remainder == NULL)
-                    nb->nb_remainder = (binaryfunc)f;
+                nb->nb_remainder = (binaryfunc)f;
             break;
 
         case and_slot:
             if (nb != NULL)
-                if (is_enum || nb->nb_and == NULL)
-                    nb->nb_and = (binaryfunc)f;
+                nb->nb_and = (binaryfunc)f;
             break;
 
         case or_slot:
             if (nb != NULL)
-                if (is_enum || nb->nb_or == NULL)
-                    nb->nb_or = (binaryfunc)f;
+                nb->nb_or = (binaryfunc)f;
             break;
 
         case xor_slot:
             if (nb != NULL)
-                if (is_enum || nb->nb_xor == NULL)
-                    nb->nb_xor = (binaryfunc)f;
+                nb->nb_xor = (binaryfunc)f;
             break;
 
         case lshift_slot:
             if (nb != NULL)
-                if (is_enum || nb->nb_lshift == NULL)
-                    nb->nb_lshift = (binaryfunc)f;
+                nb->nb_lshift = (binaryfunc)f;
             break;
 
         case rshift_slot:
             if (nb != NULL)
-                if (is_enum || nb->nb_rshift == NULL)
-                    nb->nb_rshift = (binaryfunc)f;
+                nb->nb_rshift = (binaryfunc)f;
             break;
 
         case iadd_slot:
             if (nb != NULL)
-                if (is_enum || nb->nb_inplace_add == NULL)
-                    nb->nb_inplace_add = (binaryfunc)f;
+                nb->nb_inplace_add = (binaryfunc)f;
             break;
 
         case iconcat_slot:
             if (sq != NULL)
-                if (is_enum || sq->sq_inplace_concat == NULL)
-                    sq->sq_inplace_concat = (binaryfunc)f;
+                sq->sq_inplace_concat = (binaryfunc)f;
             break;
 
         case isub_slot:
             if (nb != NULL)
-                if (is_enum || nb->nb_inplace_subtract == NULL)
-                    nb->nb_inplace_subtract = (binaryfunc)f;
+                nb->nb_inplace_subtract = (binaryfunc)f;
             break;
 
         case imul_slot:
             if (nb != NULL)
-                if (is_enum || nb->nb_inplace_multiply == NULL)
-                    nb->nb_inplace_multiply = (binaryfunc)f;
+                nb->nb_inplace_multiply = (binaryfunc)f;
             break;
 
         case irepeat_slot:
             if (sq != NULL)
-                if (is_enum || sq->sq_inplace_repeat == NULL)
 #if PY_VERSION_HEX >= 0x02050000
-                    sq->sq_inplace_repeat = (ssizeargfunc)f;
+                sq->sq_inplace_repeat = (ssizeargfunc)f;
 #else
-                    sq->sq_inplace_repeat = (intargfunc)f;
+                sq->sq_inplace_repeat = (intargfunc)f;
 #endif
             break;
 
         case idiv_slot:
             if (nb != NULL)
             {
-                if (is_enum || nb->nb_inplace_divide == NULL)
-                    nb->nb_inplace_divide = (binaryfunc)f;
-
-                if (is_enum || nb->nb_inplace_true_divide == NULL)
-                    nb->nb_inplace_true_divide = (binaryfunc)f;
+                nb->nb_inplace_divide = (binaryfunc)f;
+                nb->nb_inplace_true_divide = (binaryfunc)f;
             }
             break;
 
         case imod_slot:
             if (nb != NULL)
-                if (is_enum || nb->nb_inplace_remainder == NULL)
-                    nb->nb_inplace_remainder = (binaryfunc)f;
+                nb->nb_inplace_remainder = (binaryfunc)f;
             break;
 
         case iand_slot:
             if (nb != NULL)
-                if (is_enum || nb->nb_inplace_and == NULL)
-                    nb->nb_inplace_and = (binaryfunc)f;
+                nb->nb_inplace_and = (binaryfunc)f;
             break;
 
         case ior_slot:
             if (nb != NULL)
-                if (is_enum || nb->nb_inplace_or == NULL)
-                    nb->nb_inplace_or = (binaryfunc)f;
+                nb->nb_inplace_or = (binaryfunc)f;
             break;
 
         case ixor_slot:
             if (nb != NULL)
-                if (is_enum || nb->nb_inplace_xor == NULL)
-                    nb->nb_inplace_xor = (binaryfunc)f;
+                nb->nb_inplace_xor = (binaryfunc)f;
             break;
 
         case ilshift_slot:
             if (nb != NULL)
-                if (is_enum || nb->nb_inplace_lshift == NULL)
-                    nb->nb_inplace_lshift = (binaryfunc)f;
+                nb->nb_inplace_lshift = (binaryfunc)f;
             break;
 
         case irshift_slot:
             if (nb != NULL)
-                if (is_enum || nb->nb_inplace_rshift == NULL)
-                    nb->nb_inplace_rshift = (binaryfunc)f;
+                nb->nb_inplace_rshift = (binaryfunc)f;
             break;
 
         case invert_slot:
             if (nb != NULL)
-                if (is_enum || nb->nb_invert == NULL)
-                    nb->nb_invert = (unaryfunc)f;
+                nb->nb_invert = (unaryfunc)f;
             break;
 
         case call_slot:
-            if (is_enum || to->tp_call == NULL)
-                to->tp_call = sipWrapper_call;
+            to->tp_call = slot_call;
             break;
 
         case getitem_slot:
             if (mp != NULL)
-                if (is_enum || mp->mp_subscript == NULL)
-                    mp->mp_subscript = (binaryfunc)f;
+                mp->mp_subscript = (binaryfunc)f;
             if (sq != NULL)
-                if (is_enum || sq->sq_item == NULL)
-                    sq->sq_item = sipWrapper_sq_item;
+                sq->sq_item = slot_sq_item;
             break;
 
         case setitem_slot:
         case delitem_slot:
             if (mp != NULL)
-                if (is_enum || mp->mp_ass_subscript == NULL)
-                    mp->mp_ass_subscript = sipWrapper_mp_ass_subscript;
+                mp->mp_ass_subscript = slot_mp_ass_subscript;
             if (sq != NULL)
-                if (is_enum || sq->sq_ass_item == NULL)
-                    sq->sq_ass_item = sipWrapper_sq_ass_item;
+                sq->sq_ass_item = slot_sq_ass_item;
             break;
 
         case lt_slot:
@@ -8081,47 +8033,39 @@ static void initSlots(PyTypeObject *to, sipPySlotDef *slots, int is_enum)
         case ne_slot:
         case gt_slot:
         case ge_slot:
-            if (is_enum || to->tp_richcompare == NULL)
-                to->tp_richcompare = sipWrapper_richcompare;
+            to->tp_richcompare = slot_richcompare;
             break;
 
         case cmp_slot:
-            if (is_enum || to->tp_compare == NULL)
-                to->tp_compare = (cmpfunc)f;
+            to->tp_compare = (cmpfunc)f;
             break;
 
         case nonzero_slot:
             if (nb != NULL)
-                if (is_enum || nb->nb_nonzero == NULL)
-                    nb->nb_nonzero = (inquiry)f;
+                nb->nb_nonzero = (inquiry)f;
             break;
 
         case neg_slot:
             if (nb != NULL)
-                if (is_enum || nb->nb_negative == NULL)
-                    nb->nb_negative = (unaryfunc)f;
+                nb->nb_negative = (unaryfunc)f;
             break;
 
         case repr_slot:
-            if (is_enum || to->tp_repr == NULL)
-                to->tp_repr = (reprfunc)f;
+            to->tp_repr = (reprfunc)f;
             break;
 
         case hash_slot:
-            if (is_enum || to->tp_hash == NULL)
-                to->tp_hash = (hashfunc)f;
+            to->tp_hash = (hashfunc)f;
             break;
 
         case pos_slot:
             if (nb != NULL)
-                if (is_enum || nb->nb_positive == NULL)
-                    nb->nb_positive = (unaryfunc)f;
+                nb->nb_positive = (unaryfunc)f;
             break;
 
         case abs_slot:
             if (nb != NULL)
-                if (is_enum || nb->nb_absolute == NULL)
-                    nb->nb_absolute = (unaryfunc)f;
+                nb->nb_absolute = (unaryfunc)f;
             break;
         }
 }
