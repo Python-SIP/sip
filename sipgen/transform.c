@@ -1341,7 +1341,8 @@ static void transformVariableList(sipSpec *pt)
     varDef *vd;
 
     for (vd = pt->vars; vd != NULL; vd = vd->next)
-        resolveVariableType(pt, vd);
+        if (vd->ecd == NULL || !isTemplateClass(vd->ecd))
+            resolveVariableType(pt, vd);
 }
 
 

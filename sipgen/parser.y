@@ -98,6 +98,9 @@ static memberDef *instantiateTemplateMethods(memberDef *tmd, moduleDef *mod);
 static void instantiateTemplateEnums(sipSpec *pt, classTmplDef *tcd,
         templateDef *td, classDef *cd, ifaceFileList **used,
         scopedNameDef *type_names, scopedNameDef *type_values);
+static void instantiateTemplateVars(sipSpec *pt, classTmplDef *tcd,
+        templateDef *td, classDef *cd, ifaceFileList **used,
+        scopedNameDef *type_names, scopedNameDef *type_values);
 static overDef *instantiateTemplateOverloads(sipSpec *pt, overDef *tod,
         memberDef *tmethods, memberDef *methods, classTmplDef *tcd,
         templateDef *td, classDef *cd, ifaceFileList **used,
@@ -3481,6 +3484,9 @@ static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod,
     /* Handle the enums. */
     instantiateTemplateEnums(pt, tcd, td, cd, used, type_names, type_values);
 
+    /* Handle the variables. */
+    instantiateTemplateVars(pt, tcd, td, cd, used, type_names, type_values);
+
     /* Handle the ctors. */
     cd->ctors = NULL;
     cttail = &cd->ctors;
@@ -3712,6 +3718,44 @@ static void instantiateTemplateEnums(sipSpec *pt, classTmplDef *tcd,
 
             ed->next = pt->enums;
             pt->enums = ed;
+        }
+}
+
+
+/*
+ * Instantiate the variables of a template class.
+ */
+static void instantiateTemplateVars(sipSpec *pt, classTmplDef *tcd,
+        templateDef *td, classDef *cd, ifaceFileList **used,
+        scopedNameDef *type_names, scopedNameDef *type_values)
+{
+    varDef *tvd;
+
+    for (tvd = pt->vars; tvd != NULL; tvd = tvd->next)
+        if (tvd->ecd == tcd->cd)
+        {
+            varDef *vd;
+
+            vd = sipMalloc(sizeof (varDef));
+
+            /* Start with a shallow copy. */
+            *vd = *tvd;
+
+            if (inMainModule())
+                setIsUsedName(vd->pyname);
+
+            vd->fqcname = text2scopedName(cd, scopedNameTail(vd->fqcname));
+            vd->ecd = cd;
+            vd->module = cd->iff->module;
+
+            templateType(&vd->type, tcd, td, cd);
+
+            vd->accessfunc = templateCode(pt, used, vd->accessfunc, type_names, type_values);
+            vd->getcode = templateCode(pt, used, vd->getcode, type_names, type_values);
+            vd->setcode = templateCode(pt, used, vd->setcode, type_names, type_values);
+
+            vd->next = pt->vars;
+            pt->vars = vd;
         }
 }
 
