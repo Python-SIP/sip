@@ -602,6 +602,8 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipIsExactWrappedType       sipAPI_%s->api_is_exact_wrapped_type\n"
 "#define sipAssignInstance           sipAPI_%s->api_assign_instance\n"
 "#define sipAssignMappedType         sipAPI_%s->api_assign_mapped_type\n"
+"#define sipRegisterMetaType         sipAPI_%s->api_register_meta_type\n"
+        ,mname
         ,mname
         ,mname
         ,mname
@@ -1092,6 +1094,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "#define sipQtEmitSignalShortcut             0\n"
 "#define sipQtEmitSignal                     0\n"
 "#define sipQtCreateUniversalSlotEx          0\n"
+"#define sipQtRegisterMetaType               0\n"
             );
 
     /* Define the names. */
@@ -1728,7 +1731,8 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "    sipQtForgetSender,\n"
 "    sipQtSameSignalSlotName,\n"
 "    sipQtFindConnection,\n"
-"    sipQtCreateUniversalSlotEx\n"
+"    sipQtCreateUniversalSlotEx,\n"
+"    sipQtRegisterMetaType\n"
 "};\n"
             , mod->qobjclass);
 
@@ -1929,8 +1933,8 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
             if (cd->iff->module == mod)
                 if (registerQtMetaType(cd))
                     prcode(fp,
-"    qRegisterMetaType<%S>(\"%S\");\n"
-                        , classFQCName(cd), classFQCName(cd));
+"    sipRegisterMetaType(qRegisterMetaType<%S>(\"%S\"), sipClass_%C);\n"
+                        , classFQCName(cd), classFQCName(cd), classFQCName(cd));
 
     /* Generate any post-initialisation code. */
     generateCppCodeBlock(mod->postinitcode, fp);

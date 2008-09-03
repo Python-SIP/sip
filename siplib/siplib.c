@@ -126,6 +126,7 @@ static int sip_api_assign_instance(void *dst, const void *src,
         sipWrapperType *wt);
 static int sip_api_assign_mapped_type(void *dst, const void *src,
         sipMappedType *mt);
+static void sip_api_register_meta_type(int type, sipWrapperType *py_type);
 
 
 /*
@@ -255,6 +256,10 @@ static const sipAPIDef sip_api = {
     sip_api_is_exact_wrapped_type,
     sip_api_assign_instance,
     sip_api_assign_mapped_type,
+    /*
+     * The following are not part of the public API.
+     */
+    sip_api_register_meta_type,
 };
 
 
@@ -441,7 +446,7 @@ static int sameScopedName(const char *pyname, const char *name, size_t len);
 static int nameEq(const char *with, const char *name, size_t len);
 static void release(void *addr, sipTypeDef *td, int state);
 static void callPyDtor(sipWrapper *self);
-static int qt_and_sip_api_3_4(void);
+static int qt_and_sip_api_3_x(int x);
 static int visitSlot(sipSlot *slot, visitproc visit, void *arg);
 static void clearAnySlotReference(sipSlot *slot);
 static int parseCharArray(PyObject *obj, const char **ap, SIP_SSIZE_T *aszp);
@@ -5385,7 +5390,7 @@ void *sipGetAddress(sipWrapper *w)
 /*
  * Get the C/C++ pointer for a complex object.  Note that not casting the C++
  * pointer is a bug.  However this is only ever called by PyQt3 signal emitter
- * code and PyQt doesn't contain anything that mutliply inherits from QObject.
+ * code and PyQt doesn't contain anything that multiply inherits from QObject.
  */
 static void *sip_api_get_complex_cpp_ptr(sipWrapper *w)
 {
@@ -7234,7 +7239,7 @@ static int sipWrapper_traverse(sipWrapper *self, visitproc visit, void *arg)
                 return vret;
     }
 
-    if (qt_and_sip_api_3_4() && sipIsPyOwned(self))
+    if (qt_and_sip_api_3_x(4) && sipIsPyOwned(self))
     {
         void *tx = sipGetAddress(self);
 
@@ -7319,7 +7324,7 @@ static int sipWrapper_clear(sipWrapper *self)
     }
 
     /* Remove any slots connected via a proxy. */
-    if (qt_and_sip_api_3_4() && sipIsPyOwned(self) && sipPossibleProxy(self))
+    if (qt_and_sip_api_3_x(4) && sipIsPyOwned(self) && sipPossibleProxy(self))
     {
         void *tx = sipGetAddress(self);
 
@@ -8433,12 +8438,24 @@ static void *sip_api_import_symbol(const char *name)
 
 
 /*
- * Returns TRUE if the Qt support is present and conforms to the v3.4 or later
+ * Register (internally) the Qt meta-type number and the corresponding Python
+ * type.
+ */
+static void sip_api_register_meta_type(int type, sipWrapperType *py_type)
+{
+    /* Just delegate to the Qt support if it is available. */
+    if (qt_and_sip_api_3_x(8) && sipQtSupport->qt_register_meta_type != NULL)
+        sipQtSupport->qt_register_meta_type(type, py_type);
+}
+
+
+/*
+ * Returns TRUE if the Qt support is present and conforms to the v3.x or later
  * of the SIP API.
  */
-static int qt_and_sip_api_3_4(void)
+static int qt_and_sip_api_3_x(int x)
 {
-    return (sipQtSupport != NULL && sipQObjectClass->type->td_module->em_api_minor >= 4);
+    return (sipQtSupport != NULL && sipQObjectClass->type->td_module->em_api_minor >= x);
 }
 
 

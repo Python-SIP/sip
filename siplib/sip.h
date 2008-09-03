@@ -56,6 +56,9 @@ extern "C" {
  *
  * History:
  *
+ * 3.8  Added sip_api_register_meta_type().
+ *      Added qt_register_meta_type() to the Qt support API.
+ *
  * 3.7  Added sip_api_convert_from_const_void_ptr(),
  *      sip_api_convert_from_void_ptr_and_size() and
  *      sip_api_convert_from_const_void_ptr_and_size().
@@ -121,7 +124,7 @@ extern "C" {
  * 0.0  Original version.
  */
 #define SIP_API_MAJOR_NR    3
-#define SIP_API_MINOR_NR    7
+#define SIP_API_MINOR_NR    8
 
 
 /* Some compatibility stuff to help with handwritten code for SIP v3. */
@@ -1269,6 +1272,11 @@ typedef struct _sipAPIDef {
     int (*api_assign_instance)(void *dst, const void *src, sipWrapperType *wt);
     int (*api_assign_mapped_type)(void *dst, const void *src,
             sipMappedType *mt);
+
+    /*
+     * The following are not part of the public API.
+     */
+    void (*api_register_meta_type)(int type, struct _sipWrapperType *py_type);
 } sipAPIDef;
 
 
@@ -1300,6 +1308,7 @@ typedef struct _sipQtAPI {
     sipSlotConnection *(*qt_find_connection)(void *, void **);
     void *(*qt_create_universal_slot_ex)(struct _sipWrapper *,
             struct _sipSlotConnection *, const char **, int);
+    void (*qt_register_meta_type)(int type, struct _sipWrapperType *py_type);
 } sipQtAPI;
 
 
