@@ -392,26 +392,13 @@ static void registerMetaType(classDef *cd)
 
     /*
      * We register types with Qt if the class is not abstract, has a public
-     * default ctor, a public copy ctor, a public dtor and isn't one of the
-     * internally supported types.
+     * default ctor, a public copy ctor and a public dtor.
      */
     if (isAbstractClass(cd))
         return;
 
     if (!isPublicDtor(cd))
         return;
-
-    if (classFQCName(cd)->next == NULL)
-    {
-        if (strcmp(classBaseName(cd), "QChar") == 0)
-            return;
-
-        if (strcmp(classBaseName(cd), "QString") == 0)
-            return;
-
-        if (strcmp(classBaseName(cd), "QByteArray") == 0)
-            return;
-    }
 
     pub_def_ctor = pub_copy_ctor = FALSE;
 
