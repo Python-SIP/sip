@@ -3865,16 +3865,28 @@ static void generateVariableHandler(classDef *context, varDef *vd, FILE *fp)
     }
     else
     {
-        int pyobj = FALSE;
+        int pyobj = FALSE, needsNew;
 
-        prcode(fp,
-"        sipVal = %s", (((atype == class_type || atype == mapped_type) && vd->type.nrderefs == 0) ? "&" : ""));
+        needsNew = ((atype == class_type || atype == mapped_type) && vd->type.nrderefs == 0);
+
+        if (needsNew)
+        {
+            if (generating_c)
+                prcode(fp,
+"        *sipVal = ");
+            else
+                prcode(fp,
+"        sipVal = new %b(", &vd->type);
+        }
+        else
+            prcode(fp,
+"        sipVal = ");
 
         generateVarMember(vd, fp);
 
-        prcode(fp, ";\n"
+        prcode(fp, "%s;\n"
 "\n"
-            );
+            , ((needsNew && !generating_c) ? ")" : ""));
 
         switch (atype)
         {
