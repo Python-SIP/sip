@@ -132,7 +132,7 @@ static void generateBinarySlotCall(classDef *cd, overDef *od, const char *op,
 static void generateNumberSlotCall(overDef *od, char *op, FILE *fp);
 static void generateVariableHandler(classDef *, varDef *, FILE *);
 static int generateObjToCppConversion(argDef *, FILE *);
-static void generateVarClassConversion(varDef *, FILE *);
+static void generateVarClassConversion(varDef *, int, FILE *);
 static void generateVarMember(varDef *vd, FILE *fp);
 static int generateVoidPointers(sipSpec *pt, moduleDef *mod, classDef *cd,
         FILE *fp);
@@ -3898,7 +3898,7 @@ static void generateVariableHandler(classDef *context, varDef *vd, FILE *fp)
             break;
 
         case class_type:
-            generateVarClassConversion(vd,fp);
+            generateVarClassConversion(vd, needsNew, fp);
             break;
 
         case bool_type:
@@ -4176,12 +4176,12 @@ static void generateVarMember(varDef *vd, FILE *fp)
 /*
  * Generate an variable class conversion fragment.
  */
-static void generateVarClassConversion(varDef *vd,FILE *fp)
+static void generateVarClassConversion(varDef *vd, int is_new, FILE *fp)
 {
     classDef *cd = vd->type.u.cd;
 
     prcode(fp,
-"        sipPy = sipConvertFromInstance(");
+"        sipPy = sipConvertFrom%sInstance(", (is_new ? "New" : ""));
 
     if (isConstArg(&vd->type))
         prcode(fp,"const_cast<%b *>(sipVal)",&vd->type);
