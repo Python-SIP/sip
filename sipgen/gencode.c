@@ -603,6 +603,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipAssignInstance           sipAPI_%s->api_assign_instance\n"
 "#define sipAssignMappedType         sipAPI_%s->api_assign_mapped_type\n"
 "#define sipRegisterMetaType         sipAPI_%s->api_register_meta_type\n"
+"#define sipWrappedTypeName(wt)      ((wt)->type->td_cname)\n"
         ,mname
         ,mname
         ,mname
@@ -1381,10 +1382,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
             prcode(fp,
 "    {\"%s.%P\", ", emname, ed->ecd, ed->pyname->text);
 
-            if (isRenamedEnum(ed) || (ed->ecd != NULL && isRenamedClass(ed->ecd)))
-                prcode(fp, "\"%S\", ", ed->fqcname);
-            else
-                prcode(fp, "NULL, ");
+            prcode(fp, "\"%S\", ", ed->fqcname);
 
             if (ed->ecd == NULL)
                 prcode(fp, "-1");
@@ -7995,14 +7993,9 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 "    \"%s.%P\",\n"
             , mname, cd->ecd, cd->pyname);
 
-    if (isRenamedClass(cd))
-        prcode(fp,
+    prcode(fp,
 "    \"%S\",\n"
-            , classFQCName(cd));
-    else
-        prcode(fp,
-"    0,\n"
-            );
+        , classFQCName(cd));
 
     prcode(fp,
 "    ");

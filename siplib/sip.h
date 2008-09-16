@@ -58,6 +58,8 @@ extern "C" {
  *
  * 3.8  Added sip_api_register_meta_type().
  *      Added qt_register_meta_type() to the Qt support API.
+ *      The C/C++ names of enums and types are now always defined in the
+ *      relevant structures and don't default to the Python name.
  *
  * 3.7  Added sip_api_convert_from_const_void_ptr(),
  *      sip_api_convert_from_void_ptr_and_size() and
@@ -287,10 +289,13 @@ typedef struct _sipEnumMemberDef {
  * The information describing a named enum.
  */
 typedef struct _sipEnumDef {
-    /* The Python name of the enum. */
+    /*
+     * The Python name of the enum.  This includes the name of the containing
+     * module which should be removed when SIP_API_MAJOR_NR is moved to 4.
+     */
     const char *e_name;
 
-    /* The C/C++ name of the enum, NULL if the same as the Python name. */
+    /* The C/C++ name of the enum. */
     const char *e_cname;
 
     /* The scoping type. */
@@ -516,10 +521,13 @@ typedef struct _sipTypeDef {
     /* Type flags, see the sipType*() macros. */
     int td_flags;
 
-    /* The Python name of the type. */
+    /*
+     * The Python name of the type.  This includes the name of the containing
+     * module which should be removed when SIP_API_MAJOR_NR is moved to 4.
+     */
     const char *td_name;
 
-    /* The C/C++ name of the type, NULL if the same as the Python name. */
+    /* The C/C++ name of the type. */
     const char *td_cname;
 
     /* The scoping type. */

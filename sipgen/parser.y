@@ -2964,9 +2964,6 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd, optFlags *of)
     checkAttributes(pt, mod, cd->ecd, pyname, FALSE);
     cd->pyname = pyname;
 
-    if (cd->pyname != classBaseName(cd))
-        setIsRenamedClass(cd);
-
     if ((flg = findOptFlag(of, "TypeFlags", integer_flag)) != NULL)
         cd->userflags = flg->fvalue.ival;
 
@@ -3237,9 +3234,6 @@ static enumDef *newEnum(sipSpec *pt,moduleDef *mod,char *name,optFlags *of,
     ed -> slots = NULL;
     ed -> overs = NULL;
     ed -> next = pt -> enums;
-
-    if (name != NULL && strcmp(ed->pyname->text, name) != 0)
-        setIsRenamedEnum(ed);
 
     pt -> enums = ed;
 
