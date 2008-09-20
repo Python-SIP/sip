@@ -1001,8 +1001,13 @@ static void setHierarchy(sipSpec *pt,classDef *base,classDef *cd,
     if (cd -> mro != NULL)
         return;
 
-    if (cd -> ecd != NULL)
-        setHierarchy(pt,base,cd -> ecd,head);
+    if (cd->ecd != NULL)
+    {
+        setHierarchy(pt, base, cd->ecd, head);
+
+        if (isDeprecatedClass(cd->ecd))
+            setIsDeprecatedClass(cd);
+    }
 
     if (cd -> iff -> type == class_iface)
     {
@@ -1028,6 +1033,9 @@ static void setHierarchy(sipSpec *pt,classDef *base,classDef *cd,
             for (mro = cl -> cd -> mro; mro != NULL; mro = mro -> next)
             {
                 appendToMRO(cd -> mro,&tailp,mro -> cd);
+
+                if (isDeprecatedClass(mro->cd))
+                    setIsDeprecatedClass(cd);
 
                 /*
                  * If the super-class is a QObject sub-class then this one is
@@ -1178,6 +1186,9 @@ static void transformCtors(sipSpec *pt, classDef *cd)
                 fatalScopedName(classFQCName(cd));
                 fatal(" has ctors with the same Python signature\n");
             }
+
+        if (isDeprecatedClass(cd))
+            setIsDeprecatedCtor(ct);
     }
 }
 
@@ -1269,6 +1280,9 @@ static void addDefaultCopyCtor(classDef *cd)
         copyct -> posthook = NULL;
         copyct -> next = NULL;
  
+        if (isDeprecatedClass(cd))
+            setIsDeprecatedCtor(copyct);
+
         /* Append it to the list. */
         for (tailp = &cd -> ctors; *tailp != NULL; tailp = &(*tailp) -> next)
             ;
@@ -1316,6 +1330,9 @@ static void transformScopeOverloads(sipSpec *pt, classDef *scope,
                 fatal("%s() has overloaded functions with the same Python signature\n", od->common->pyname->text);
             }
         }
+
+        if (scope != NULL && isDeprecatedClass(scope))
+            setIsDeprecated(od);
     }
 }
 

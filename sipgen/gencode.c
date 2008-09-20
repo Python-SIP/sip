@@ -604,6 +604,10 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipAssignMappedType         sipAPI_%s->api_assign_mapped_type\n"
 "#define sipRegisterMetaType         sipAPI_%s->api_register_meta_type\n"
 "#define sipWrappedTypeName(wt)      ((wt)->type->td_cname)\n"
+"#define sipDeprecatedCtor           sipAPI_%s->api_deprecated_ctor\n"
+"#define sipDeprecatedMethod         sipAPI_%s->api_deprecated_method\n"
+        ,mname
+        ,mname
         ,mname
         ,mname
         ,mname
@@ -8755,6 +8759,14 @@ static void generateConstructorCall(classDef *cd,ctorDef *ct,int error_flag,
 "        {\n"
         );
 
+    if (isDeprecatedCtor(ct))
+        /* Note that any temporaries will leak if an exception is raised. */
+        prcode(fp,
+"            if (sipDeprecatedCtor(%N) < 0)\n"
+"                return NULL;\n"
+"\n"
+            , cd->iff->name);
+
     /* Call any pre-hook. */
     if (ct->prehook != NULL)
         prcode(fp,
@@ -9698,6 +9710,24 @@ static void generateFunctionCall(classDef *cd,classDef *ocd,overDef *od,
 "            }\n"
 "\n"
             , cd->iff->name, od->common->pyname);
+
+    if (isDeprecated(od))
+    {
+        /* Note that any temporaries will leak if an exception is raised. */
+        if (cd != NULL)
+            prcode(fp,
+"            if (sipDeprecatedMethod(%N,%N) < 0)\n"
+                , cd->iff->name, od->common->pyname);
+        else
+            prcode(fp,
+"            if (sipDeprecatedMethod(NULL,%N) < 0)\n"
+                , od->common->pyname);
+
+        prcode(fp,
+"                return %s;\n"
+"\n"
+            , ((isVoidReturnSlot(od->common) || isIntReturnSlot(od->common) || isLongReturnSlot(od->common)) ? "-1" : "NULL"));
+    }
 
     /* Call any pre-hook. */
     if (od->prehook != NULL)

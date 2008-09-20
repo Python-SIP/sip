@@ -127,6 +127,9 @@ static int sip_api_assign_instance(void *dst, const void *src,
 static int sip_api_assign_mapped_type(void *dst, const void *src,
         sipMappedType *mt);
 static void sip_api_register_meta_type(int type, sipWrapperType *py_type);
+static int sip_api_deprecated_ctor(const char *classname);
+static int sip_api_deprecated_method(const char *classname,
+        const char *method);
 
 
 /*
@@ -260,6 +263,8 @@ static const sipAPIDef sip_api = {
      * The following are not part of the public API.
      */
     sip_api_register_meta_type,
+    sip_api_deprecated_ctor,
+    sip_api_deprecated_method,
 };
 
 
@@ -4509,6 +4514,36 @@ static void sip_api_no_method(int argsParsed, const char *classname, const char 
 static void sip_api_abstract_method(const char *classname, const char *method)
 {
     PyErr_Format(PyExc_TypeError,"%s.%s() is abstract and cannot be called as an unbound method", classname, method);
+}
+
+
+/*
+ * Report a deprecated ctor called.
+ */
+static int sip_api_deprecated_ctor(const char *classname)
+{
+    char buf[100];
+
+    PyOS_snprintf(buf, sizeof (buf), "%s constructor is deprecated", classname);
+
+    return PyErr_WarnEx(PyExc_DeprecationWarning, buf, 1);
+}
+
+
+/*
+ * Report a deprecated method called.
+ */
+static int sip_api_deprecated_method(const char *classname, const char *method)
+{
+    char buf[100];
+
+    if (classname != NULL)
+        PyOS_snprintf(buf, sizeof (buf), "%s.%s() is deprecated", classname,
+                method);
+    else
+        PyOS_snprintf(buf, sizeof (buf), "%s() is deprecated", method);
+
+    return PyErr_WarnEx(PyExc_DeprecationWarning, buf, 1);
 }
 
 

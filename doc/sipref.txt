@@ -81,6 +81,8 @@ SIP, and the bindings it produces, have the following features.
 
     - the automatic generation of complementary rich comparison slots
 
+    - support for deprecation warnings
+
     - the ability to define mappings between C++ classes and similar Python
       data types that are automatically invoked
 
@@ -3491,6 +3493,16 @@ Note that the above applies only to C and C++ instances that are owned by
 Python.
 
 
+Deprecated
+**********
+
+This boolean annotation is used to specify that the class is deprecated.  It is
+the equivalent of annotating all the class's constructors, function and methods
+as being deprecated.
+
+Note that this can also be used as a function annotation.
+
+
 External
 ********
 
@@ -3575,6 +3587,16 @@ compulsory arguments if one is specified.  (SIP will automatically generate a
 constructor with no arguments if no constructors are specified.)  This
 annotation is used to explicitly specify which constructor to use.  Zero is
 passed as the value of any arguments to the constructor.
+
+
+Deprecated
+**********
+
+This boolean annotation is used to specify that the constructor or function is
+deprecated.  A deprecation warning is issued whenever the constructor or
+function is called.
+
+Note that this can also be used as a class annotation.
 
 
 Factory

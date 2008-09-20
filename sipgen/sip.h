@@ -81,6 +81,7 @@
 #define CLASS_NO_QMETAOBJECT    0x02000000  /* It has no QMetaObject. */
 #define CLASS_CAN_ASSIGN    0x04000000  /* It has an assignment operator. */
 #define CLASS_IS_TEMPLATE   0x08000000  /* It is a template class. */
+#define CLASS_IS_DEPRECATED 0x10000000  /* It is deprecated. */
 
 #define hasSigSlots(cd)     ((cd)->classflags & CLASS_HAS_SIGSLOTS)
 #define setHasSigSlots(cd)  ((cd)->classflags |= CLASS_HAS_SIGSLOTS)
@@ -125,6 +126,8 @@
 #define isTemplateClass(cd) ((cd)->classflags & CLASS_IS_TEMPLATE)
 #define setIsTemplateClass(cd)  ((cd)->classflags |= CLASS_IS_TEMPLATE)
 #define resetIsTemplateClass(cd)    ((cd)->classflags &= ~CLASS_IS_TEMPLATE)
+#define isDeprecatedClass(cd)   ((cd)->classflags & CLASS_IS_DEPRECATED)
+#define setIsDeprecatedClass(cd)    ((cd)->classflags |= CLASS_IS_DEPRECATED)
 
 #define isPublicDtor(cd)    ((cd)->classflags & SECT_IS_PUBLIC)
 #define setIsPublicDtor(cd) ((cd)->classflags |= SECT_IS_PUBLIC)
@@ -141,6 +144,7 @@
 #define CTOR_CAST           0x00000400  /* The ctor is a cast. */
 #define CTOR_HOLD_GIL       0x00000800  /* The ctor holds the GIL. */
 #define CTOR_XFERRED        0x00001000  /* Ownership is transferred. */
+#define CTOR_IS_DEPRECATED  0x00002000  /* The ctor is deprecated. */
 
 #define isPublicCtor(c)     ((c)->ctorflags & SECT_IS_PUBLIC)
 #define setIsPublicCtor(c)  ((c)->ctorflags |= SECT_IS_PUBLIC)
@@ -158,6 +162,8 @@
 #define setIsHoldGILCtor(c) ((c)->ctorflags |= CTOR_HOLD_GIL)
 #define isResultTransferredCtor(c)  ((c)->ctorflags & CTOR_XFERRED)
 #define setIsResultTransferredCtor(c)   ((c)->ctorflags |= CTOR_XFERRED)
+#define isDeprecatedCtor(c) ((c)->ctorflags & CTOR_IS_DEPRECATED)
+#define setIsDeprecatedCtor(c)  ((c)->ctorflags |= CTOR_IS_DEPRECATED)
 
 
 /* Handle member flags. */
@@ -213,6 +219,7 @@
 #define OVER_THIS_XFERRED   0x00200000  /* Ownership of this is transferred. */
 #define OVER_IS_GLOBAL      0x00400000  /* It is a global operator. */
 #define OVER_IS_COMPLEMENTARY   0x00800000  /* It is a complementary operator. */
+#define OVER_IS_DEPRECATED  0x01000000  /* It is deprecated. */
 
 #define isPublic(o)         ((o)->overflags & SECT_IS_PUBLIC)
 #define setIsPublic(o)      ((o)->overflags |= SECT_IS_PUBLIC)
@@ -259,6 +266,8 @@
 #define setIsGlobal(o)      ((o)->overflags |= OVER_IS_GLOBAL)
 #define isComplementary(o)  ((o)->overflags & OVER_IS_COMPLEMENTARY)
 #define setIsComplementary(o)   ((o)->overflags |= OVER_IS_COMPLEMENTARY)
+#define isDeprecated(o)     ((o)->overflags & OVER_IS_DEPRECATED)
+#define setIsDeprecated(o)  ((o)->overflags |= OVER_IS_DEPRECATED)
 
 
 /* Handle variable flags. */
