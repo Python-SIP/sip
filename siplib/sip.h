@@ -56,8 +56,7 @@ extern "C" {
  *
  * History:
  *
- * 3.8  Added sip_api_register_meta_type(), sip_api_deprecated_ctor() and
- *      sip_api_deprecated_method().
+ * 3.8  Added sip_api_register_meta_type() and sip_api_deprecated().
  *      Added qt_register_meta_type() to the Qt support API.
  *      The C/C++ names of enums and types are now always defined in the
  *      relevant structures and don't default to the Python name.
@@ -1286,8 +1285,7 @@ typedef struct _sipAPIDef {
      * The following are not part of the public API.
      */
     void (*api_register_meta_type)(int type, struct _sipWrapperType *py_type);
-    int (*api_deprecated_ctor)(const char *classname);
-    int (*api_deprecated_method)(const char *classname, const char *method);
+    int (*api_deprecated)(const char *classname, const char *method);
 } sipAPIDef;
 
 
