@@ -709,7 +709,11 @@ static PyObject *transfer(PyObject *self, PyObject *args)
 
     if (PyArg_ParseTuple(args, "O!i:transfer", &sipWrapper_Type, &w, &toCpp))
     {
+#if PY_VERSION_HEX >= 0x02050000
         if (PyErr_WarnEx(PyExc_DeprecationWarning, "sip.transfer() is deprecated", 1) < 0)
+#else
+        if (PyErr_Warn(PyExc_DeprecationWarning, "sip.transfer() is deprecated") < 0)
+#endif
             return NULL;
 
         if (toCpp)
@@ -4533,7 +4537,11 @@ static int sip_api_deprecated(const char *classname, const char *method)
         PyOS_snprintf(buf, sizeof (buf), "%s.%s() is deprecated", classname,
                 method);
 
+#if PY_VERSION_HEX >= 0x02050000
     return PyErr_WarnEx(PyExc_DeprecationWarning, buf, 1);
+#else
+    return PyErr_Warn(PyExc_DeprecationWarning, buf);
+#endif
 }
 
 
