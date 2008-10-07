@@ -2712,15 +2712,18 @@ void searchTypedefs(sipSpec *pt, scopedNameDef *snd, argDef *ad)
 {
     typedefDef *td;
 
-    for (td = pt -> typedefs; td != NULL; td = td -> next)
-        if (sameScopedName(td -> fqname,snd))
+    for (td = pt->typedefs; td != NULL; td = td->next)
+        if (sameScopedName(td->fqname, snd))
         {
             /* Copy the type. */
 
-            ad -> atype = td -> type.atype;
-            ad -> argflags |= td -> type.argflags;
-            ad -> nrderefs += td -> type.nrderefs;
-            ad -> u = td -> type.u;
+            ad->atype = td->type.atype;
+            ad->argflags |= td->type.argflags;
+            ad->nrderefs += td->type.nrderefs;
+            ad->u = td->type.u;
+
+            if (ad->type_name == NULL)
+                ad->type_name = td->type.type_name;
 
             break;
         }

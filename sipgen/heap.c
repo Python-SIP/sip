@@ -27,6 +27,8 @@ void *sipMalloc(size_t n)
 	if ((h = malloc(n)) == NULL)
 		nomem();
 
+    memset(h, 0, n);
+
 	return h;
 }
 

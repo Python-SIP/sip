@@ -1093,7 +1093,8 @@ file.
 
     *struct* ::= ``struct`` *name* ``{`` {*class-line*} ``};``
 
-    *typedef* ::= ``typedef`` [*typed-name* | *function-pointer*] ``;``
+    *typedef* ::= ``typedef`` [*typed-name* | *function-pointer*]
+            *typedef-annotations* ``;``
 
     *variable*::= *typed-name* [*variable-annotations*] ``;`` [`%AccessCode`_]
             [`%GetCode`_] [`%SetCode`_]
@@ -1174,6 +1175,8 @@ file.
     *enum-annotations* ::= see `Enum Annotations`_
 
     *function-annotations* ::= see `Function Annotations`_
+
+    *typedef-annotations* ::= see `Typedef Annotations`_
 
     *variable-annotations* ::= see `Variable Annotations`_
 
@@ -3233,8 +3236,8 @@ specification files.
 
 Annotations can either be argument annotations, class annotations, mapped type
 annotations, enum annotations, exception annotations, function annotations,
-license annotations, or variable annotations depending on the context in which
-they can be used.
+license annotations, typedef annotations or variable annotations depending on
+the context in which they can be used.
 
 Annotations are placed between forward slashes (``/``).  Multiple annotations
 are comma separated within the slashes.
@@ -3776,6 +3779,25 @@ This string annotation specifies the license's type.  No restrictions are
 placed on the contents of the string.
 
 See the `%License`_ directive.
+
+
+Typedef Annotations
+-------------------
+
+NoTypeName
+**********
+
+This boolean annotation specifies that the definition of the type rather than
+the name of the type being defined should be used in the generated code.
+
+Normally a typedef would be defined as follows::
+
+    typedef bool MyBool;
+
+This would result in ``MyBool`` being used in the generated code.
+
+Specifying the annotation means that ``bool`` will be used in the generated
+code instead.
 
 
 Variable Annotations

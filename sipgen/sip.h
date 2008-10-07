@@ -662,6 +662,7 @@ typedef struct {
     int argflags;                       /* The argument flags. */
     int nrderefs;                       /* Nr. of dereferences. */
     valueDef *defval;                   /* The default value. */
+    struct _scopedNameDef *type_name;   /* The type name if typedef'd. */
     union {
         struct _signatureDef *sa;       /* If it is a function. */
         struct _templateDef *td;        /* If it is a template. */
