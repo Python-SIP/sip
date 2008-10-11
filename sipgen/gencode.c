@@ -98,11 +98,12 @@ static void deleteTemps(signatureDef *sd, FILE *fp);
 static void gc_ellipsis(signatureDef *sd, FILE *fp);
 static void generateCallArgs(classDef *, signatureDef *, signatureDef *,
         FILE *);
-static void generateCalledArgs(classDef *, signatureDef *, funcArgType, FILE *);
+static void generateCalledArgs(classDef *, signatureDef *, funcArgType, int,
+        FILE *);
 static void generateVariable(classDef *, argDef *, int, FILE *);
 static void generateNamedValueType(classDef *, argDef *, char *, FILE *);
 static void generateBaseType(classDef *, argDef *, FILE *);
-static void generateNamedBaseType(classDef *, argDef *, char *, FILE *);
+static void generateNamedBaseType(classDef *, argDef *, char *, int, FILE *);
 static void generateTupleBuilder(signatureDef *, FILE *);
 static void generateEmitters(classDef *cd, FILE *fp);
 static void generateEmitter(classDef *, visibleList *, FILE *);
@@ -5258,7 +5259,7 @@ static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
 "\n"
 "sip%C::sip%C(",classFQCName(cd),classFQCName(cd));
 
-        generateCalledArgs(cd, ct->cppsig, Definition, fp);
+        generateCalledArgs(cd, ct->cppsig, Definition, TRUE, fp);
 
         prcode(fp,")%X: %S(",ct->exceptions,classFQCName(cd));
 
@@ -5278,7 +5279,7 @@ static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
         {
             prcode(fp,
 "    sipTrace(SIP_TRACE_CTORS,\"sip%C::sip%C(",classFQCName(cd),classFQCName(cd));
-            generateCalledArgs(cd, ct->cppsig, Declaration, fp);
+            generateCalledArgs(cd, ct->cppsig, Declaration, TRUE, fp);
             prcode(fp,")%X (this=0x%%08x)\\n\",this);\n"
 "\n"
                 ,ct->exceptions);
@@ -5519,7 +5520,7 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
     generateBaseType(cd, &od->cppsig->result, fp);
 
     prcode(fp," sip%C::%O(",classFQCName(cd),od);
-    generateCalledArgs(cd, od->cppsig, Definition, fp);
+    generateCalledArgs(cd, od->cppsig, Definition, TRUE, fp);
     prcode(fp,")%s%X\n"
 "{\n"
         ,(isConst(od) ? " const" : ""),od->exceptions);
@@ -5531,7 +5532,7 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
 
         generateBaseType(cd, &od->cppsig->result, fp);
         prcode(fp," sip%C::%O(",classFQCName(cd),od);
-        generateCalledArgs(cd, od->cppsig, Declaration, fp);
+        generateCalledArgs(cd, od->cppsig, Declaration, TRUE, fp);
         prcode(fp,")%s%X (this=0x%%08x)\\n\",this);\n"
 "\n"
             ,(isConst(od) ? " const" : ""),od->exceptions);
@@ -5564,7 +5565,7 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
     if (vhd->cppsig->nrArgs > 0)
     {
         prcode(fp,",");
-        generateCalledArgs(cd, vhd->cppsig, Declaration, fp);
+        generateCalledArgs(cd, vhd->cppsig, Declaration, FALSE, fp);
     }
 
     prcode(fp,");\n"
@@ -6027,7 +6028,7 @@ static void generateProtectedDeclarations(classDef *cd,FILE *fp)
             else
                 prcode(fp, " sipProtect_%s(", od->cppname);
 
-            generateCalledArgs(cd, od->cppsig, Declaration, fp);
+            generateCalledArgs(cd, od->cppsig, Declaration, TRUE, fp);
             prcode(fp,")%s;\n"
                 ,(isConst(od) ? " const" : ""));
         }
@@ -6074,7 +6075,7 @@ static void generateProtectedDefinitions(classDef *cd,FILE *fp)
             else
                 prcode(fp, " sip%C::sipProtect_%s(", classFQCName(cd), mname);
 
-            generateCalledArgs(cd, od->cppsig, Definition, fp);
+            generateCalledArgs(cd, od->cppsig, Definition, TRUE, fp);
             prcode(fp,")%s\n"
 "{\n"
                 ,(isConst(od) ? " const" : ""));
@@ -6210,7 +6211,7 @@ static void generateVirtualHandler(virtHandlerDef *vhd, FILE *fp)
     {
         prcode(fp,",");
 
-        generateCalledArgs(NULL, vhd->cppsig, Definition, fp);
+        generateCalledArgs(NULL, vhd->cppsig, Definition, FALSE, fp);
     }
 
     *vhd->cppsig = saved;
@@ -7175,7 +7176,7 @@ static void generateShadowClassDeclaration(sipSpec *pt,classDef *cd,FILE *fp)
         prcode(fp,
 "    sip%C(",classFQCName(cd));
 
-        generateCalledArgs(cd, ct->cppsig, Declaration, fp);
+        generateCalledArgs(cd, ct->cppsig, Declaration, TRUE, fp);
 
         prcode(fp,")%X;\n"
             ,ct->exceptions);
@@ -7354,7 +7355,7 @@ void prOverloadDecl(FILE *fp, classDef *context, overDef *od, int defval)
  * Generate typed arguments for a declaration or a definition.
  */
 static void generateCalledArgs(classDef *context, signatureDef *sd,
-        funcArgType ftype, FILE *fp)
+        funcArgType ftype, int use_typename, FILE *fp)
 {
     char name[50];
     int a;
@@ -7371,7 +7372,7 @@ static void generateCalledArgs(classDef *context, signatureDef *sd,
         else
             name[0] = '\0';
 
-        generateNamedBaseType(context, ad, name, fp);
+        generateNamedBaseType(context, ad, name, use_typename, fp);
     }
 }
 
@@ -7477,7 +7478,7 @@ static void generateNamedValueType(classDef *context, argDef *ad, char *name,
     }
 
     resetIsReference(&mod);
-    generateNamedBaseType(context, &mod, name, fp);
+    generateNamedBaseType(context, &mod, name, TRUE, fp);
 }
 
 
@@ -7486,7 +7487,7 @@ static void generateNamedValueType(classDef *context, argDef *ad, char *name,
  */
 static void generateBaseType(classDef *context, argDef *ad, FILE *fp)
 {
-    generateNamedBaseType(context, ad, "", fp);
+    generateNamedBaseType(context, ad, "", TRUE, fp);
 }
 
 
@@ -7494,7 +7495,7 @@ static void generateBaseType(classDef *context, argDef *ad, FILE *fp)
  * Generate a C++ type and name.
  */
 static void generateNamedBaseType(classDef *context, argDef *ad, char *name,
-        FILE *fp)
+        int use_typename, FILE *fp)
 {
     int nr_derefs = ad->nrderefs;
 
@@ -7515,7 +7516,7 @@ static void generateNamedBaseType(classDef *context, argDef *ad, char *name,
             prcode(fp,"*");
 
         prcode(fp,"%s)(",name);
-        generateCalledArgs(context, sig, Declaration, fp);
+        generateCalledArgs(context, sig, Declaration, use_typename, fp);
         prcode(fp,")");
 
         return;
@@ -7525,7 +7526,7 @@ static void generateNamedBaseType(classDef *context, argDef *ad, char *name,
         prcode(fp,"const ");
 
     /* If the type has a name then use it. */
-    if (ad->type_name != NULL)
+    if (use_typename && ad->type_name != NULL)
         prcode(fp, "%S", ad->type_name);
     else
         switch (ad->atype)
@@ -10511,7 +10512,7 @@ static int generateArgParser(signatureDef *sd, classDef *cd, ctorDef *ct,
                 {
                     prcode(fp,",\"(");
 
-                    generateCalledArgs(cd, sd->args[slotconarg].u.sa, Declaration, fp);
+                    generateCalledArgs(cd, sd->args[slotconarg].u.sa, Declaration, TRUE, fp);
 
                     prcode(fp,")\"");
                 }
@@ -10525,7 +10526,7 @@ static int generateArgParser(signatureDef *sd, classDef *cd, ctorDef *ct,
             {
                 prcode(fp,",\"(");
 
-                generateCalledArgs(cd, sd->args[slotdisarg].u.sa, Declaration, fp);
+                generateCalledArgs(cd, sd->args[slotdisarg].u.sa, Declaration, TRUE, fp);
 
                 prcode(fp,")\",&a%d,&a%d",a,slotdisarg);
 
