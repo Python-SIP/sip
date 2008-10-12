@@ -2418,6 +2418,7 @@ def create_wrapper(script, wrapper, gui=0):
         else:
             exe = "python"
 
+        wf.write("#!/bin/sh\n")
         wf.write("exec %s %s ${1+\"$@\"}\n" % (exe, script))
     else:
         wf.write("#!/bin/sh\n")
