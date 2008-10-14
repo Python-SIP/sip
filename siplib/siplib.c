@@ -365,6 +365,7 @@ static int parsePass2(sipWrapper *self, int selfarg, int nrargs,
         PyObject *sipArgs, const char *fmt, va_list va);
 static int getSelfFromArgs(sipWrapperType *type, PyObject *args, int argnr,
         sipWrapper **selfp);
+static int canConvertToNamedEnum(PyObject *obj, PyTypeObject *et);
 static PyObject *createEnumMember(sipTypeDef *td, sipEnumMemberDef *enm);
 static PyObject *handleGetLazyAttr(PyObject *nameobj, sipWrapperType *wt,
         sipWrapper *w);
@@ -1555,10 +1556,6 @@ static PyObject *buildObject(PyObject *obj, const char *fmt, va_list va)
 
             break;
 
-        case 'e':
-            el = PyInt_FromLong(va_arg(va,int));
-            break;
-
         case 'E':
             {
                 int ev = va_arg(va, int);
@@ -1574,6 +1571,7 @@ static PyObject *buildObject(PyObject *obj, const char *fmt, va_list va)
             el = PyFloat_FromDouble(va_arg(va,double));
             break;
 
+        case 'e':
         case 'h':
         case 'i':
             el = PyInt_FromLong(va_arg(va,int));
@@ -1923,24 +1921,12 @@ static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
 
                 break;
 
-            case 'e':
-                {
-                    int v = PyInt_AsLong(arg);
-
-                    if (PyErr_Occurred())
-                        invalid = TRUE;
-                    else
-                        *va_arg(va,int *) = v;
-                }
-
-                break;
-
             case 'E':
                 {
                     PyTypeObject *et = va_arg(va, PyTypeObject *);
                     int *p = va_arg(va, int *);
 
-                    if (PyObject_TypeCheck(arg, et))
+                    if (canConvertToNamedEnum(arg, et))
                         *p = PyInt_AsLong(arg);
                     else
                         invalid = TRUE;
@@ -1984,6 +1970,7 @@ static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
 
                 break;
 
+            case 'e':
             case 'i':
                 {
                     int v = PyInt_AsLong(arg);
@@ -2987,37 +2974,24 @@ static int parsePass1(sipWrapper **selfp, int *selfargp, int *argsParsedp,
                 break;
             }
 
-        case 'e':
-            {
-                /* Anonymous enum. */
-
-                int v = PyInt_AsLong(arg);
-
-                if (PyErr_Occurred())
-                    valid = PARSE_TYPE;
-                else
-                    *va_arg(va,int *) = v;
-
-                break;
-            }
-
         case 'E':
             {
-                /* Named enum. */
+                /* Named enum or exact integer. */
 
                 PyTypeObject *et = va_arg(va, PyTypeObject *);
 
                 va_arg(va, int *);
 
-                if (!PyObject_TypeCheck(arg, et))
+                if (!canConvertToNamedEnum(arg, et))
                     valid = PARSE_TYPE;
             }
 
             break;
 
+        case 'e':
         case 'i':
             {
-                /* Integer. */
+                /* Integer or anonymous enum. */
 
                 int v = PyInt_AsLong(arg);
 
@@ -3159,7 +3133,7 @@ static int parsePass1(sipWrapper **selfp, int *selfargp, int *argsParsedp,
 
         case 'X':
             {
-                /* Constrained (ie. exact) types. */
+                /* Constrained types. */
 
                 switch (*fmt++)
                 {
@@ -3209,6 +3183,18 @@ static int parsePass1(sipWrapper **selfp, int *selfargp, int *argsParsedp,
                             valid = PARSE_TYPE;
 
                         break;
+                    }
+
+                case 'E':
+                    {
+                        /* Named enum. */
+
+                        PyTypeObject *et = va_arg(va, PyTypeObject *);
+
+                        va_arg(va, int *);
+
+                        if (!PyObject_TypeCheck(arg, et))
+                            valid = PARSE_TYPE;
                     }
 
                 default:
@@ -3516,10 +3502,27 @@ static int parsePass2(sipWrapper *self, int selfarg, int nrargs,
 
         case 'X':
             {
-                /* Constrained (ie. exact) type. */
+                /* Constrained types. */
 
-                ++fmt;
-                va_arg(va,void *);
+                switch (*fmt++)
+                {
+                case 'E':
+                    {
+                        /* Named enum. */
+
+                        int *p;
+
+                        va_arg(va, PyTypeObject *);
+                        p = va_arg(va, int *);
+
+                        *p = PyInt_AsLong(arg);
+
+                        break;
+                    }
+
+                default:
+                    va_arg(va,void *);
+                }
 
                 break;
             }
@@ -4389,6 +4392,21 @@ static PyObject *handleGetLazyAttr(PyObject *nameobj,sipWrapperType *wt,
     PyErr_SetObject(PyExc_AttributeError,nameobj);
 
     return NULL;
+}
+
+
+/*
+ * Return TRUE if an unconstrained object can be converted to a named enum.
+ */
+static int canConvertToNamedEnum(PyObject *obj, PyTypeObject *et)
+{
+    /*
+     * We allow an integer but don't allow another enum (hence the exact
+     * check).  Consider introducing a base type (sub-typed from int) common to
+     * all named enums so that we can specifically exclude then but allow an
+     * application defined sub-type of int.
+     */
+    return (PyObject_TypeCheck(obj, et) || PyInt_CheckExact(obj));
 }
 
 

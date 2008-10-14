@@ -10320,7 +10320,12 @@ static int generateArgParser(signatureDef *sd, classDef *cd, ctorDef *ct,
             break;
 
         case enum_type:
-            fmt = (ad->u.ed->fqcname != NULL) ? "E" : "e";
+            if (ad->u.ed->fqcname == NULL)
+                fmt = "e";
+            else if (isConstrained(ad))
+                fmt = "XE";
+            else
+                fmt = "E";
             break;
 
         case bool_type:

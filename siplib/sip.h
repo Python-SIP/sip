@@ -60,6 +60,7 @@ extern "C" {
  *      Added qt_register_meta_type() to the Qt support API.
  *      The C/C++ names of enums and types are now always defined in the
  *      relevant structures and don't default to the Python name.
+ *      Added the 'XE' format characters to sip_api_parse_args().
  *
  * 3.7  Added sip_api_convert_from_const_void_ptr(),
  *      sip_api_convert_from_void_ptr_and_size() and
