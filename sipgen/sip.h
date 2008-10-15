@@ -363,6 +363,14 @@
 #define setNoRelease(mt)    ((mt)->mtflags |= MT_NO_RELEASE)
 
 
+/* Handle typedef flags. */
+
+#define TD_NO_TYPE_NAME     0x01    /* Do not use the typedef name. */
+
+#define noTypeName(td)      ((td)->tdflags & TD_NO_TYPE_NAME)
+#define setNoTypeName(td)   ((td)->tdflags |= TD_NO_TYPE_NAME)
+
+
 /* Slot types. */
 
 typedef enum {
@@ -662,7 +670,7 @@ typedef struct {
     int argflags;                       /* The argument flags. */
     int nrderefs;                       /* Nr. of dereferences. */
     valueDef *defval;                   /* The default value. */
-    struct _scopedNameDef *type_name;   /* The type name if typedef'd. */
+    struct _typedefDef *original_type;  /* The original type if typedef'd. */
     union {
         struct _signatureDef *sa;       /* If it is a function. */
         struct _templateDef *td;        /* If it is a template. */
@@ -767,6 +775,7 @@ typedef struct _virtHandlerDef {
 /* A typedef definition. */
 
 typedef struct _typedefDef {
+    int tdflags;                        /* The typedef flags. */
     scopedNameDef *fqname;              /* The fully qualified name. */
     struct _classDef *ecd;              /* The enclosing class. */
     moduleDef *module;                  /* The owning module. */

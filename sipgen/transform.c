@@ -2733,8 +2733,8 @@ void searchTypedefs(sipSpec *pt, scopedNameDef *snd, argDef *ad)
             ad->nrderefs += td->type.nrderefs;
             ad->u = td->type.u;
 
-            if (ad->type_name == NULL)
-                ad->type_name = td->type.type_name;
+            if (ad->original_type == NULL)
+                ad->original_type = td;
 
             break;
         }

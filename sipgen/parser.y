@@ -1427,7 +1427,7 @@ superclass: scopedname {
                     ad.atype = no_type;
                     ad.argflags = 0;
                     ad.nrderefs = 0;
-                    ad.type_name = NULL;
+                    ad.original_type = NULL;
 
                     searchTypedefs(currentSpec, snd, &ad);
 
@@ -2273,7 +2273,7 @@ deref:      {
 basetype:   scopedname {
             $$.nrderefs = 0;
             $$.argflags = 0;
-            $$.type_name = NULL;
+            $$.original_type = NULL;
 
             $$.atype = defined_type;
             $$.u.snd = $1;
@@ -2290,7 +2290,7 @@ basetype:   scopedname {
 
             $$.nrderefs = 0;
             $$.argflags = 0;
-            $$.type_name = NULL;
+            $$.original_type = NULL;
 
             $$.atype = template_type;
             $$.u.td = td;
@@ -2298,7 +2298,7 @@ basetype:   scopedname {
     |   TK_STRUCT scopedname {
             $$.nrderefs = 0;
             $$.argflags = 0;
-            $$.type_name = NULL;
+            $$.original_type = NULL;
 
             /* In a C module all structures must be defined. */
             if (currentSpec -> genc)
@@ -2315,175 +2315,175 @@ basetype:   scopedname {
     |   TK_UNSIGNED TK_SHORT {
             $$.nrderefs = 0;
             $$.argflags = 0;
-            $$.type_name = NULL;
+            $$.original_type = NULL;
 
             $$.atype = ushort_type;
         }
     |   TK_SHORT {
             $$.nrderefs = 0;
             $$.argflags = 0;
-            $$.type_name = NULL;
+            $$.original_type = NULL;
 
             $$.atype = short_type;
         }
     |   TK_UNSIGNED {
             $$.nrderefs = 0;
             $$.argflags = 0;
-            $$.type_name = NULL;
+            $$.original_type = NULL;
 
             $$.atype = uint_type;
         }
     |   TK_UNSIGNED TK_INT {
             $$.nrderefs = 0;
             $$.argflags = 0;
-            $$.type_name = NULL;
+            $$.original_type = NULL;
 
             $$.atype = uint_type;
         }
     |   TK_INT {
             $$.nrderefs = 0;
             $$.argflags = 0;
-            $$.type_name = NULL;
+            $$.original_type = NULL;
 
             $$.atype = int_type;
         }
     |   TK_LONG {
             $$.nrderefs = 0;
             $$.argflags = 0;
-            $$.type_name = NULL;
+            $$.original_type = NULL;
 
             $$.atype = long_type;
         }
     |   TK_UNSIGNED TK_LONG {
             $$.nrderefs = 0;
             $$.argflags = 0;
-            $$.type_name = NULL;
+            $$.original_type = NULL;
 
             $$.atype = ulong_type;
         }
     |   TK_LONG TK_LONG {
             $$.nrderefs = 0;
             $$.argflags = 0;
-            $$.type_name = NULL;
+            $$.original_type = NULL;
 
             $$.atype = longlong_type;
         }
     |   TK_UNSIGNED TK_LONG TK_LONG {
             $$.nrderefs = 0;
             $$.argflags = 0;
-            $$.type_name = NULL;
+            $$.original_type = NULL;
 
             $$.atype = ulonglong_type;
         }
     |   TK_FLOAT {
             $$.nrderefs = 0;
             $$.argflags = 0;
-            $$.type_name = NULL;
+            $$.original_type = NULL;
 
             $$.atype = float_type;
         }
     |   TK_DOUBLE {
             $$.nrderefs = 0;
             $$.argflags = 0;
-            $$.type_name = NULL;
+            $$.original_type = NULL;
 
             $$.atype = double_type;
         }
     |   TK_BOOL {
             $$.nrderefs = 0;
             $$.argflags = 0;
-            $$.type_name = NULL;
+            $$.original_type = NULL;
 
             $$.atype = bool_type;
         }
     |   TK_SIGNED TK_CHAR {
             $$.nrderefs = 0;
             $$.argflags = 0;
-            $$.type_name = NULL;
+            $$.original_type = NULL;
 
             $$.atype = sstring_type;
         }
     |   TK_UNSIGNED TK_CHAR {
             $$.nrderefs = 0;
             $$.argflags = 0;
-            $$.type_name = NULL;
+            $$.original_type = NULL;
 
             $$.atype = ustring_type;
         }
     |   TK_CHAR {
             $$.nrderefs = 0;
             $$.argflags = 0;
-            $$.type_name = NULL;
+            $$.original_type = NULL;
 
             $$.atype = string_type;
         }
     |   TK_WCHAR_T {
             $$.nrderefs = 0;
             $$.argflags = 0;
-            $$.type_name = NULL;
+            $$.original_type = NULL;
 
             $$.atype = wstring_type;
         }
     |   TK_VOID {
             $$.nrderefs = 0;
             $$.argflags = 0;
-            $$.type_name = NULL;
+            $$.original_type = NULL;
 
             $$.atype = void_type;
         }
     |   TK_PYOBJECT {
             $$.nrderefs = 0;
             $$.argflags = 0;
-            $$.type_name = NULL;
+            $$.original_type = NULL;
 
             $$.atype = pyobject_type;
         }
     |   TK_PYTUPLE {
             $$.nrderefs = 0;
             $$.argflags = 0;
-            $$.type_name = NULL;
+            $$.original_type = NULL;
 
             $$.atype = pytuple_type;
         }
     |   TK_PYLIST {
             $$.nrderefs = 0;
             $$.argflags = 0;
-            $$.type_name = NULL;
+            $$.original_type = NULL;
 
             $$.atype = pylist_type;
         }
     |   TK_PYDICT {
             $$.nrderefs = 0;
             $$.argflags = 0;
-            $$.type_name = NULL;
+            $$.original_type = NULL;
 
             $$.atype = pydict_type;
         }
     |   TK_PYCALLABLE {
             $$.nrderefs = 0;
             $$.argflags = 0;
-            $$.type_name = NULL;
+            $$.original_type = NULL;
 
             $$.atype = pycallable_type;
         }
     |   TK_PYSLICE {
             $$.nrderefs = 0;
             $$.argflags = 0;
-            $$.type_name = NULL;
+            $$.original_type = NULL;
 
             $$.atype = pyslice_type;
         }
     |   TK_PYTYPE {
             $$.nrderefs = 0;
             $$.argflags = 0;
-            $$.type_name = NULL;
+            $$.original_type = NULL;
 
             $$.atype = pytype_type;
         }
     |   TK_ELLIPSIS {
             $$.nrderefs = 0;
             $$.argflags = 0;
-            $$.type_name = NULL;
+            $$.original_type = NULL;
 
             $$.atype = ellipsis_type;
         }
@@ -3941,7 +3941,7 @@ static void templateType(argDef *ad, classTmplDef *tcd, templateDef *td, classDe
     {
         ad->atype = class_type;
         ad->u.cd = ncd;
-        ad->type_name = NULL;
+        ad->original_type = NULL;
     }
 }
 
@@ -4211,8 +4211,8 @@ static void newTypedef(sipSpec *pt, moduleDef *mod, char *name, argDef *type,
     }
 
     /* Check it doesn't already exist. */
-    for (td = pt -> typedefs; td != NULL; td = td -> next)
-        if (sameScopedName(td -> fqname,fqname))
+    for (td = pt->typedefs; td != NULL; td = td->next)
+        if (sameScopedName(td->fqname, fqname))
         {
             fatalScopedName(fqname);
             fatal(" already defined\n");
@@ -4220,18 +4220,19 @@ static void newTypedef(sipSpec *pt, moduleDef *mod, char *name, argDef *type,
 
     td = sipMalloc(sizeof (typedefDef));
 
-    td -> fqname = fqname;
-    td -> ecd = scope;
-    td -> module = mod;
-    td -> type = *type;
-    td -> next = pt -> typedefs;
+    td->tdflags = 0;
+    td->fqname = fqname;
+    td->ecd = scope;
+    td->module = mod;
+    td->type = *type;
+    td->next = pt->typedefs;
 
-    if (findOptFlag(optflgs, "NoTypeName", bool_flag) == NULL)
-        td->type.type_name = fqname;
+    if (findOptFlag(optflgs, "NoTypeName", bool_flag) != NULL)
+        setNoTypeName(td);
 
-    mod -> nrtypedefs++;
+    mod->nrtypedefs++;
 
-    pt -> typedefs = td;
+    pt->typedefs = td;
 }
 
 

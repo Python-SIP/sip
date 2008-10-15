@@ -7497,50 +7497,62 @@ static void generateBaseType(classDef *context, argDef *ad, FILE *fp)
 static void generateNamedBaseType(classDef *context, argDef *ad, char *name,
         int use_typename, FILE *fp)
 {
+    typedefDef *td = ad->original_type;
     int nr_derefs = ad->nrderefs;
+    int is_reference = isReference(ad);
 
-    /*
-     * A function type is handled differently because of the position of
-     * the name.
-     */
-    if (ad->atype == function_type)
+    if (use_typename && td != NULL && !noTypeName(td))
     {
-        int i;
-        signatureDef *sig = ad->u.sa;
+        if (isConstArg(ad) && !isConstArg(&td->type))
+            prcode(fp, "const ");
 
-        generateBaseType(context, &sig->result, fp);
+        nr_derefs -= td->type.nrderefs;
 
-        prcode(fp," (");
+        if (isReference(&td->type))
+            is_reference = FALSE;
 
-        for (i = 0; i < nr_derefs; ++i)
-            prcode(fp,"*");
-
-        prcode(fp,"%s)(",name);
-        generateCalledArgs(context, sig, Declaration, use_typename, fp);
-        prcode(fp,")");
-
-        return;
+        prcode(fp, "%S", td->fqname);
     }
-
-    if (isConstArg(ad))
-        prcode(fp,"const ");
-
-    /* If the type has a name then use it. */
-    if (use_typename && ad->type_name != NULL)
-        prcode(fp, "%S", ad->type_name);
     else
+    {
+        /*
+         * A function type is handled differently because of the position of
+         * the name.
+         */
+        if (ad->atype == function_type)
+        {
+            int i;
+            signatureDef *sig = ad->u.sa;
+
+            generateBaseType(context, &sig->result, fp);
+
+            prcode(fp," (");
+
+            for (i = 0; i < nr_derefs; ++i)
+                prcode(fp, "*");
+
+            prcode(fp, "%s)(",name);
+            generateCalledArgs(context, sig, Declaration, use_typename, fp);
+            prcode(fp, ")");
+
+            return;
+        }
+
+        if (isConstArg(ad))
+            prcode(fp, "const ");
+
         switch (ad->atype)
         {
         case sstring_type:
-            prcode(fp,"signed char");
+            prcode(fp, "signed char");
             break;
 
         case ustring_type:
-            prcode(fp,"unsigned char");
+            prcode(fp, "unsigned char");
             break;
 
         case wstring_type:
-            prcode(fp,"wchar_t");
+            prcode(fp, "wchar_t");
             break;
 
         case signal_type:
@@ -7553,24 +7565,24 @@ static void generateNamedBaseType(classDef *context, argDef *ad, char *name,
             /* Drop through. */
 
         case string_type:
-            prcode(fp,"char");
+            prcode(fp, "char");
             break;
 
         case ushort_type:
-            prcode(fp,"unsigned short");
+            prcode(fp, "unsigned short");
             break;
 
         case short_type:
-            prcode(fp,"short");
+            prcode(fp, "short");
             break;
 
         case uint_type:
-            prcode(fp,"unsigned");
+            prcode(fp, "unsigned");
             break;
 
         case int_type:
         case cint_type:
-            prcode(fp,"int");
+            prcode(fp, "int");
             break;
 
         case ssize_type:
@@ -7578,43 +7590,43 @@ static void generateNamedBaseType(classDef *context, argDef *ad, char *name,
             break;
 
         case ulong_type:
-            prcode(fp,"unsigned long");
+            prcode(fp, "unsigned long");
             break;
 
         case long_type:
-            prcode(fp,"long");
+            prcode(fp, "long");
             break;
 
         case ulonglong_type:
-            prcode(fp,"unsigned PY_LONG_LONG");
+            prcode(fp, "unsigned PY_LONG_LONG");
             break;
 
         case longlong_type:
-            prcode(fp,"PY_LONG_LONG");
+            prcode(fp, "PY_LONG_LONG");
             break;
 
         case struct_type:
-            prcode(fp,"struct %S",ad->u.sname);
+            prcode(fp, "struct %S", ad->u.sname);
             break;
 
         case fake_void_type:
         case void_type:
-            prcode(fp,"void");
+            prcode(fp, "void");
             break;
 
         case bool_type:
         case cbool_type:
-            prcode(fp,"bool");
+            prcode(fp, "bool");
             break;
 
         case float_type:
         case cfloat_type:
-            prcode(fp,"float");
+            prcode(fp, "float");
             break;
 
         case double_type:
         case cdouble_type:
-            prcode(fp,"double");
+            prcode(fp, "double");
             break;
 
         case defined_type:
@@ -7628,7 +7640,7 @@ static void generateNamedBaseType(classDef *context, argDef *ad, char *name,
         case rxcon_type:
         case rxdis_type:
             nr_derefs = 1;
-            prcode(fp,"QObject");
+            prcode(fp, "QObject");
             break;
 
         case mapped_type:
@@ -7650,7 +7662,7 @@ static void generateNamedBaseType(classDef *context, argDef *ad, char *name,
                 for (a = 0; a < td->types.nrArgs; ++a)
                 {
                     if (a > 0)
-                        prcode(fp,",");
+                        prcode(fp, ",");
 
                     generateBaseType(context, &td->types.args[a], fp);
                 }
@@ -7663,7 +7675,7 @@ static void generateNamedBaseType(classDef *context, argDef *ad, char *name,
             }
 
         case enum_type:
-            prcode(fp,"%E",ad->u.ed);
+            prcode(fp, "%E", ad->u.ed);
             break;
 
         case pyobject_type:
@@ -7678,26 +7690,27 @@ static void generateNamedBaseType(classDef *context, argDef *ad, char *name,
             prcode(fp, "PyObject *");
             break;
         }
+    }
 
     if (nr_derefs > 0)
     {
         int i;
 
-        prcode(fp," ");
+        prcode(fp, " ");
 
         for (i = 0; i < nr_derefs; ++i)
-            prcode(fp,"*");
+            prcode(fp, "*");
     }
 
-    if (isReference(ad))
+    if (is_reference)
         prcode(fp, (prcode_xml ? "&amp;" : "&"));
 
     if (*name != '\0')
     {
         if (nr_derefs == 0)
-            prcode(fp," ");
+            prcode(fp, " ");
 
-        prcode(fp,name);
+        prcode(fp, name);
     }
 }
 
@@ -9022,7 +9035,7 @@ static void generateFunctionBody(overDef *od, classDef *cd, classDef *ocd,
             od->pysig.args[0].argflags = ARG_IS_REF|ARG_IN;
             od->pysig.args[0].nrderefs = 0;
             od->pysig.args[0].defval = NULL;
-            od->pysig.args[0].type_name = NULL;
+            od->pysig.args[0].original_type = NULL;
             od->pysig.args[0].u.cd = ocd;
         }
 
