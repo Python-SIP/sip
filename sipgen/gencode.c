@@ -5319,17 +5319,29 @@ static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
     /* The meta methods if required. */
     if (isQObjectSubClass(cd) && optQ_OBJECT4(pt))
     {
-        prcode(fp,
+        if (!noQMetaObject(cd))
+            prcode(fp,
 "\n"
 "const QMetaObject *sip%C::metaObject() const\n"
 "{\n"
 "    return sip_%s_qt_metaobject(sipPySelf,sipClass_%C,0);\n"
 "}\n"
+                , classFQCName(cd)
+                , mod->name, classFQCName(cd));
+
+        prcode(fp,
 "\n"
 "int sip%C::qt_metacall(QMetaObject::Call _c,int _id,void **_a)\n"
 "{\n"
+            , classFQCName(cd));
+
+        if (!noQMetaObject(cd))
+            prcode(fp,
 "    sip%C::metaObject();\n"
 "\n"
+                , classFQCName(cd));
+
+        prcode(fp,
 "    _id = %S::qt_metacall(_c,_id,_a);\n"
 "\n"
 "    if (_id >= 0)\n"
@@ -5342,10 +5354,6 @@ static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
 "{\n"
 "    return (sip_%s_qt_metacast && sip_%s_qt_metacast(sipPySelf,sipClass_%C,_clname)) ? this : %S::qt_metacast(_clname);\n"
 "}\n"
-            , classFQCName(cd)
-            , mod->name, classFQCName(cd)
-            , classFQCName(cd)
-            , classFQCName(cd)
             , classFQCName(cd)
             , mod->name, classFQCName(cd)
             , classFQCName(cd)
@@ -7191,12 +7199,18 @@ static void generateShadowClassDeclaration(sipSpec *pt,classDef *cd,FILE *fp)
 
     /* The metacall methods if required. */
     if (isQObjectSubClass(cd) && optQ_OBJECT4(pt))
+    {
         prcode(fp,
 "\n"
-"    const QMetaObject *metaObject() const;\n"
 "    int qt_metacall(QMetaObject::Call,int,void **);\n"
 "    void *qt_metacast(const char *);\n"
             );
+
+        if (!noQMetaObject(cd))
+            prcode(fp,
+"    const QMetaObject *metaObject() const;\n"
+                );
+    }
 
     /* The exposure of protected enums. */
 
