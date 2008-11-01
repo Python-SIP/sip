@@ -539,7 +539,7 @@ introduce SIP's versioning system.
 The library contains a single C++ class called ``Hello`` which is derived from
 Qt's ``QLabel`` class.  It behaves just like ``QLabel`` except that the text
 in the label is hard coded to be ``Hello World``.  To make the example more
-interesting we'll also say that the library only supports Qt v3.0 and later,
+interesting we'll also say that the library only supports Qt v4.2 and later,
 and also includes a function called ``setDefault()`` that is not implemented
 in the Windows version of the library.
 
@@ -574,9 +574,9 @@ The corresponding SIP specification file would then look something like this::
 
     %Module hello 0
 
-    %Import qt/qtmod.sip
+    %Import QtCore/QtCoremod.sip
 
-    %If (Qt_3_0_0 -)
+    %If (Qt_4_2_0 -)
 
     class Hello : QLabel {
 
@@ -601,19 +601,19 @@ Again we look at the differences, but we'll skip those that we've looked at in
 previous examples.
 
     - The `%Import`_ directive has been added to specify that we are extending
-      the class hierarchy defined in the file ``qt/qtmod.sip``.  This file is
-      part of PyQt.  The build system will take care of finding the file's
-      exact location.
+      the class hierarchy defined in the file ``QtCore/QtCoremod.sip``.  This
+      file is part of PyQt.  The build system will take care of finding the
+      file's exact location.
 
-    - The `%If`_ directive has been added to specify that
-      everything [#]_ up to the matching `%End`_ directive only applies to Qt
-      v3.0 and later.  ``Qt_3_0_0`` is a *tag* defined in ``qtmod.sip`` [#]_
-      using the `%Timeline`_ directive.  `%Timeline`_ is used to define a tag
-      for each version of a library's API you are wrapping allowing you to
-      maintain all the different versions in a single SIP specification.  The
-      build system provides support to ``configure.py`` scripts for working out
-      the correct tags to use according to which version of the library is
-      actually installed.
+    - The `%If`_ directive has been added to specify that everything [#]_ up to
+      the matching `%End`_ directive only applies to Qt v4.2 and later.
+      ``Qt_4_2_0`` is a *tag* defined in ``QtCoremod.sip`` [#]_ using the
+      `%Timeline`_ directive.  `%Timeline`_ is used to define a tag for each
+      version of a library's API you are wrapping allowing you to maintain all
+      the different versions in a single SIP specification.  The build system
+      provides support to ``configure.py`` scripts for working out the correct
+      tags to use according to which version of the library is actually
+      installed.
 
     - The ``public`` keyword used in defining the super-classes has been
       removed.  This is not supported by SIP.

@@ -1,7 +1,14 @@
-v4.7.8 ???
+v4.7.8 ??? Nov 2008
   - Added the /Deprecated/ class and function annotation (based on a patch from
     Lorenzo Berni).
   - Templates now support instance variables and enums.
+  - A Python int object can now be used whenever an enum is expected without
+    needing to explicitly cast it using the enum's constructor.  The
+    /Constrained/ argument annotation can be used to suppress this behaviour.
+  - typedef type names are now used in string representations of types (e.g. in
+    the names of mapped types) to reflect what the programmer sees rather than
+    what the compiler sees.  The /NoTypeName/ typedef annotation can be used to
+    suppress this behaviour.
 
 v4.7.7 8th Aug 2008
   - C++ structs are now properly handled as a class with a default public
