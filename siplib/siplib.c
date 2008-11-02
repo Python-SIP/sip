@@ -5342,12 +5342,18 @@ static PyObject *sip_api_is_py_method(sip_gilstate_t *gil,
         if (reimp != NULL)
         {
             /*
-             * Ignore if it's not a callable or if it is a builtin function or
-             * method.  The latter is the most common case as it represents the
-             * wrapper around the generated C++ implementation.  We don't want
-             * to use it because we'd rather handle it faster as a direct call.
+             * Ignore if it's not a callable, or if it is a method wrapper from
+             * a descriptor (in which case it is the C implementation of a
+             * special method), or if it is a builtin function or method.  The
+             * latter is the most common case as it represents the wrapper
+             * around the generated C++ implementation.  We don't want to use
+             * it because we'd rather handle it faster as a direct call.  Note
+             * that the test for the method wrapper type name is because Python
+             * makes it very difficult to get hold of the type object that is
+             * needed to compare against.
              */
-            if (PyCFunction_Check(reimp) || !PyCallable_Check(reimp))
+            if (PyCFunction_Check(reimp) || !PyCallable_Check(reimp) ||
+                    strcmp(reimp->ob_type->tp_name, "method-wrapper") == 0)
                 Py_DECREF(reimp);
             else if (PyMethod_Check(reimp))
             {
