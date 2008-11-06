@@ -475,12 +475,12 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define SIP_FEATURE_%s\n"
                     , qd->name);
             }
-
-        if (!noIntro)
-            prcode(fp,
-"\n"
-                );
     }
+
+    if (!noIntro)
+        prcode(fp,
+"\n"
+            );
 
     generateCppCodeBlock(pt->exphdrcode, fp);
     generateCppCodeBlock(mod->hdrcode, fp);
