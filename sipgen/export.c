@@ -6,6 +6,7 @@
 
 
 #include <stdio.h>
+#include <string.h>
 
 #include "sip.h"
 
@@ -216,12 +217,6 @@ static int apiOverload(moduleDef *mod, classDef *scope, overDef *od, int sec,
     prScopedPythonName(fp, scope, od->common->pyname->text);
     fprintf(fp, "(");
 
-    if (scope != NULL && scope->iff->type != namespace_iface && !isStatic(od))
-    {
-        fprintf(fp, "self");
-        need_comma = TRUE;
-    }
-
     nr_out = 0;
 
     for (a = 0; a < od->pysig.nrArgs; ++a)
@@ -375,7 +370,7 @@ static void xmlClass(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
     if (isOpaque(cd))
     {
         xmlIndent(indent, fp);
-        fprintf(fp, "<OpaqueClass name=\"", cd->pyname);
+        fprintf(fp, "<OpaqueClass name=\"");
         prScopedPythonName(fp, cd->ecd, cd->pyname);
         fprintf(fp, "\"/>\n");
 
@@ -383,9 +378,12 @@ static void xmlClass(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
     }
 
     xmlIndent(indent++, fp);
-    fprintf(fp, "<Class name=\"", cd->pyname);
+    fprintf(fp, "<Class name=\"");
     prScopedPythonName(fp, cd->ecd, cd->pyname);
     fprintf(fp, "\"");
+
+    if (cd->picklecode != NULL)
+        fprintf(fp, " pickle=\"1\"");
 
     if (cd->convtocode != NULL)
         fprintf(fp, " convert=\"1\"");
@@ -583,7 +581,7 @@ static void xmlFunction(classDef *scope, memberDef *md, overDef *oloads,
             prScopedPythonName(fp, scope, md->pyname->text);
             fprintf(fp, "\" sig=\"");
             xmlCppSignature(fp, od);
-            fprintf(fp, "\"/>\n", md->pyname->text);
+            fprintf(fp, "\"/>\n");
 
             continue;
         }
@@ -679,7 +677,7 @@ static int xmlOverload(classDef *scope, memberDef *md, overDef *od,
 static void xmlCppSignature(FILE *fp, overDef *od)
 {
     prcode(fp, "%M");
-    prOverloadDecl(fp, od, TRUE);
+    prOverloadDecl(fp, NULL, od, TRUE);
     prcode(fp, "%M");
 }
 

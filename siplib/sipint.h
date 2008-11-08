@@ -50,8 +50,6 @@ extern PyInterpreterState *sipInterpreter;  /* The interpreter. */
 extern sipQtAPI *sipQtSupport;  /* The Qt support API. */
 extern sipWrapperType *sipQObjectClass; /* The Python QObject class. */
 
-void *sip_api_convert_rx(sipWrapper *txSelf, const char *sigargs,
-        PyObject *rxObj, const char *slot, const char **memberp);
 void *sipGetRx(sipWrapper *txSelf, const char *sigargs, PyObject *rxObj,
         const char *slot, const char **memberp);
 int sip_api_emit_signal(PyObject *self, const char *sig, PyObject *sigargs);
@@ -74,13 +72,14 @@ PyObject *sip_api_convert_from_instance(void *cppPtr, sipWrapperType *type,
 void sip_api_common_dtor(sipWrapper *sipSelf);
 void sip_api_start_thread(void);
 void sip_api_end_thread(void);
-PyObject *sip_api_convert_from_void_ptr(void *val);
 PyObject *sip_api_convert_from_named_enum(int eval, PyTypeObject *et);
 int sip_api_wrapper_check(PyObject *o);
 void sip_api_free_connection(sipSlotConnection *conn);
-int sip_api_emit_to_slot(sipSlot *slot, PyObject *sigargs);
+int sip_api_emit_to_slot(const sipSlot *slot, PyObject *sigargs);
 int sip_api_same_connection(sipSlotConnection *conn, void *tx, const char *sig,
         PyObject *rxObj, const char *slot);
+PyObject *sip_api_invoke_slot(const sipSlot *slot, PyObject *sigargs);
+void sip_api_parse_type(const char *type, sipSigArg *arg);
 
 
 /*
@@ -91,6 +90,8 @@ void sipSaveMethod(sipPyMethod *pm,PyObject *meth);
 void *sipGetPending(sipWrapper **op, int *fp);
 PyObject *sipWrapSimpleInstance(void *cppPtr, sipWrapperType *type,
         sipWrapper *owner, int initflags);
+void *sipConvertRxEx(sipWrapper *txSelf, const char *sigargs,
+        PyObject *rxObj, const char *slot, const char **memberp, int flags);
 
 void sipOMInit(sipObjectMap *om);
 void sipOMFinalise(sipObjectMap *om);

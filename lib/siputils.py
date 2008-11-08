@@ -168,6 +168,17 @@ class _Macro:
         for el in value:
             self.append(el)
 
+    def remove(self, value): 
+        """Remove a value from the macro.  It doesn't matter if the value 
+        wasn't present. 
+ 
+        value is the value to remove. 
+        """ 
+        try: 
+            self._macro.remove(value) 
+        except: 
+            pass 
+
     def as_list(self):
         """Return the macro as a list.
         """
@@ -492,6 +503,7 @@ class Makefile:
 
             if self.config.qt_version >= 0x040000:
                 for mod in self._qt:
+                    # Note that qmake doesn't define anything for QtHelp.
                     if mod == "QtCore":
                         defines.append("QT_CORE_LIB")
                     elif mod == "QtGui":
@@ -506,8 +518,14 @@ class Makefile:
                         defines.append("QT_SQL_LIB")
                     elif mod == "QtTest":
                         defines.append("QT_TEST_LIB")
+                    elif mod == "QtWebKit":
+                        defines.append("QT_WEBKIT_LIB")
                     elif mod == "QtXml":
                         defines.append("QT_XML_LIB")
+                    elif mod == "QtXmlPatterns":
+                        defines.append("QT_XMLPATTERNS_LIB")
+                    elif mod == "phonon":
+                        defines.append("QT_PHONON_LIB")
             elif self._threaded:
                 defines.append("QT_THREAD_SUPPORT")
 
@@ -528,17 +546,21 @@ class Makefile:
 
                 # For Windows: the dependencies between Qt libraries.
                 qdepmap = {
-                    "QtAssistant":  ("QtCore", "QtGui", "QtNetwork"),
-                    "QtGui":        ("QtCore", ),
-                    "QtNetwork":    ("QtCore", ),
-                    "QtOpenGL":     ("QtCore", "QtGui"),
-                    "QtScript":     ("QtCore", ),
-                    "QtSql":        ("QtCore", ),
-                    "QtSvg":        ("QtCore", "QtGui", "QtXml"),
-                    "QtTest":       ("QtCore", "QtGui"),
-                    "QtXml":        ("QtCore", ),
-                    "QtDesigner":   ("QtCore", "QtGui"),
-                    "QAxContainer": ("QtCore", "QtGui")
+                    "QtAssistant":      ("QtCore", "QtGui", "QtNetwork"),
+                    "QtGui":            ("QtCore", ),
+                    "QtHelp":           ("QtCore", "QtGui", "QtSql"),
+                    "QtNetwork":        ("QtCore", ),
+                    "QtOpenGL":         ("QtCore", "QtGui"),
+                    "QtScript":         ("QtCore", ),
+                    "QtSql":            ("QtCore", ),
+                    "QtSvg":            ("QtCore", "QtGui", "QtXml"),
+                    "QtTest":           ("QtCore", "QtGui"),
+                    "QtWebKit":         ("QtCore", "QtGui", "QtNetwork"),
+                    "QtXml":            ("QtCore", ),
+                    "QtXmlPatterns":    ("QtCore", ),
+                    "phonon":           ("QtCore", "QtGui"),
+                    "QtDesigner":       ("QtCore", "QtGui"),
+                    "QAxContainer":     ("QtCore", "QtGui")
                 }
 
                 # The QtSql .prl file doesn't include QtGui as a dependency (at
@@ -666,6 +688,15 @@ class Makefile:
         # Don't do it again because it has side effects.
         self._finalised = 1
 
+    def _add_manifest(self, target=None):
+        """Add the link flags for creating a manifest file.
+        """
+        if target is None:
+            target = "$(TARGET)"
+
+        self.LFLAGS.append("/MANIFEST")
+        self.LFLAGS.append("/MANIFESTFILE:%s.manifest" % target)
+
     def _is_framework(self, mod):
         """Return true if the given Qt module is a framework.
         """
@@ -691,9 +722,10 @@ class Makefile:
                 lib = lib + "_debug"
 
         if sys.platform == "win32" and "shared" in string.split(self.config.qt_winconfig):
-            if (mname in ("QtCore", "QtGui", "QtNetwork", "QtOpenGL",
-                          "QtScript", "QtSql", "QtSvg", "QtTest", "QtXml",
-                          "QtDesigner") or
+            if (mname in ("QtCore", "QtDesigner", "QtGui", "QtHelp",
+                          "QtNetwork", "QtOpenGL", "QtScript", "QtSql",
+                          "QtSvg", "QtTest", "QtWebKit", "QtXml",
+                          "QtXmlPatterns", "phonon") or
                 (self.config.qt_version >= 0x040200 and mname == "QtAssistant")):
                 lib = lib + "4"
 
@@ -1222,9 +1254,14 @@ class PythonModuleMakefile(Makefile):
         tail = dirname[len(self._moddir):]
 
         flist = []
-        for f in names:
+        for f in list(names):
             # Ignore certain files.
             if f in ("Makefile", ):
+                continue
+
+            # Do not recurse into certain directories.
+            if f in (".svn", "CVS"):
+                names.remove(f)
                 continue
 
             if os.path.isfile(os.path.join(dirname, f)):
@@ -1259,6 +1296,8 @@ class ModuleMakefile(Makefile):
         self._install_dir = install_dir
         self._dir = dir
         self.static = static
+
+        self._manifest = ("embed_manifest_dll" in self.optional_list("CONFIG"))
 
         # Don't strip or restrict the exports if this is a debug or static
         # build.
@@ -1305,6 +1344,9 @@ class ModuleMakefile(Makefile):
                 lflags_console = "LFLAGS_CONSOLE_DLL"
             else:
                 lflags_console = "LFLAGS_WINDOWS_DLL"
+
+            if self._manifest:
+                self._add_manifest()
 
             # We use this to explictly create bundles on MacOS.  Apple's Python
             # can handle extension modules that are bundles or dynamic
@@ -1385,6 +1427,11 @@ class ModuleMakefile(Makefile):
                 if link_shlib:
                     self.LINK.set(link_shlib)
 
+        # This made an appearence in Qt v4.4rc1 and breaks extension modules so
+        # remove it.  It was removed at my request but some stupid distros may
+        # have kept it.
+        self.LFLAGS.remove('-Wl,--no-undefined') 
+
     def module_as_lib(self, mname):
         """Return the name of a SIP v3.x module when it is used as a library.
         This will raise an exception when used with SIP v4.x modules.
@@ -1453,7 +1500,7 @@ class ModuleMakefile(Makefile):
                 mfile.write("\t  $(OFILES) $(LIBS)\n")
                 mfile.write("<<\n")
 
-                if "embed_manifest_dll" in self.optional_list("CONFIG"):
+                if self._manifest:
                     mfile.write("\tmt -nologo -manifest $(TARGET).manifest -outputresource:$(TARGET);2\n")
         elif self.generator == "BMAKE":
             if self.static:
@@ -1533,6 +1580,9 @@ class ModuleMakefile(Makefile):
         mfile.write("\nclean:\n")
         self.clean_build_file_objects(mfile, self._build)
 
+        if self._manifest and not self.static:
+            mfile.write("\t-%s $(TARGET).manifest\n" % self.rm)
+
         # Remove any export file on AIX, Linux and Solaris.
         if self._limit_exports and (sys.platform[:5] == 'linux' or
                                     sys.platform[:5] == 'sunos' or
@@ -1568,6 +1618,9 @@ class ProgramMakefile(Makefile):
 
         self._install_dir = install_dir
 
+        self._manifest = ("embed_manifest_exe" in self.optional_list("CONFIG"))
+        self._target = None
+
         if build_file:
             self._build = self.parse_build_file(build_file)
         else:
@@ -1579,13 +1632,15 @@ class ProgramMakefile(Makefile):
 
         source is the name of the source file.
         """
-        self.ready()
-
         # The name of the executable.
-        exe, ignore = os.path.splitext(source)
+        self._target, _ = os.path.splitext(source)
 
         if sys.platform in ("win32", "cygwin"):
-            exe = exe + ".exe"
+            exe = self._target + ".exe"
+        else:
+            exe = self._target
+
+        self.ready()
 
         # The command line.
         build = []
@@ -1660,6 +1715,9 @@ class ProgramMakefile(Makefile):
         if self.generator in ("MSVC", "MSVC.NET"):
             self.LFLAGS.append("/INCREMENTAL:NO")
 
+        if self._manifest:
+            self._add_manifest(self._target)
+
         if self.console:
             lflags_console = "LFLAGS_CONSOLE"
         else:
@@ -1700,15 +1758,15 @@ class ProgramMakefile(Makefile):
             mfile.write("\t$(LINK) $(LFLAGS) /OUT:$(TARGET) @<<\n")
             mfile.write("\t  $(OFILES) $(LIBS)\n")
             mfile.write("<<\n")
-
-            if "embed_manifest_dll" in self.optional_list("CONFIG"):
-                mfile.write("\tmt -nologo -manifest $(TARGET).manifest -outputresource:$(TARGET);1\n")
         elif self.generator == "BMAKE":
             mfile.write("\t$(LINK) @&&|\n")
             mfile.write("\t$(LFLAGS) $(OFILES) ,$(TARGET),,$(LIBS),,\n")
             mfile.write("|\n")
         else:
             mfile.write("\t$(LINK) $(LFLAGS) -o $(TARGET) $(OFILES) $(LIBS)\n")
+
+        if self._manifest:
+            mfile.write("\tmt -nologo -manifest $(TARGET).manifest -outputresource:$(TARGET);1\n")
 
         mfile.write("\n$(OFILES): $(HFILES)\n")
 
@@ -1737,6 +1795,9 @@ class ProgramMakefile(Makefile):
         """
         mfile.write("\nclean:\n")
         self.clean_build_file_objects(mfile, self._build)
+
+        if self._manifest:
+            mfile.write("\t-%s $(TARGET).manifest\n" % self.rm)
 
 
 def _quote(s):
@@ -1837,13 +1898,13 @@ def create_content(dict, macros=None):
     for k in keys:
         val = dict[k]
         vtype = type(val)
+        delim = None
 
         if val is None:
             val = "None"
         elif vtype == types.ListType:
-            val = "'" + string.join(val) + "'"
-        elif vtype == types.StringType:
-            val = "'" + val + "'"
+            val = string.join(val)
+            delim = "'"
         elif vtype == types.IntType:
             if string.find(k, "version") >= 0:
                 # Assume it's a hexadecimal version number.  It doesn't matter
@@ -1852,7 +1913,14 @@ def create_content(dict, macros=None):
             else:
                 val = str(val)
         else:
-            val = "'" + str(val) + "'"
+            val = str(val)
+            delim = "'"
+
+        if delim:
+            if "'" in val:
+                delim = "'''"
+
+            val = delim + val + delim
 
         content = content + "    '" + k + "':" + (" " * (width - len(k) + 2)) + string.replace(val, "\\", "\\\\")
 
@@ -1884,8 +1952,14 @@ def create_content(dict, macros=None):
             else:
                 sep = ","
 
+            val = macros[c]
+            if "'" in val:
+                delim = "'''"
+            else:
+                delim = "'"
+
             k = "'" + c + "':"
-            content = content + "    %-*s  '%s'%s\n" % (1 + width + 2, k, string.replace(macros[c], "\\", "\\\\"), sep)
+            content = content + "    %-*s  %s%s%s%s\n" % (1 + width + 2, k, delim, string.replace(val, "\\", "\\\\"), delim, sep)
 
         content = content + "}\n"
     else:
@@ -2161,6 +2235,9 @@ def parse_build_macros(filename, names, overrides=None, properties=None):
                 lhs = string.strip(line[:assstart])
                 rhs = string.strip(line[assend + 1:])
 
+                # Remove the escapes for any quotes.
+                rhs = rhs.replace(r'\"', '"').replace(r"\'", "'")
+
                 raw[lhs] = rhs
 
         line = f.readline()
@@ -2341,8 +2418,10 @@ def create_wrapper(script, wrapper, gui=0):
         else:
             exe = "python"
 
+        wf.write("#!/bin/sh\n")
         wf.write("exec %s %s ${1+\"$@\"}\n" % (exe, script))
     else:
+        wf.write("#!/bin/sh\n")
         wf.write("exec %s %s ${1+\"$@\"}\n" % (sys.executable, script))
 
     wf.close()

@@ -6,9 +6,9 @@
  Reference Guide
 -----------------
 
-:Contact:   info@riverbankcomputing.co.uk
+:Contact:   info@riverbankcomputing.com
 :Version:   @RM_LATEST@
-:Copyright: Copyright (c) 2007 Riverbank Computing Limited
+:Copyright: Copyright (c) 2008 Riverbank Computing Limited
 
 .. contents::
 .. section-numbering::
@@ -20,9 +20,9 @@ Introduction
 This is the reference guide for SIP @RM_LATEST@.  SIP is a tool for
 automatically generating `Python <http://www.python.org>`__ bindings for C and
 C++ libraries.  SIP was originally developed in 1998 for
-`PyQt <http://www.riverbankcomputing.co.uk/pyqt/>`__ - the Python bindings for
-the Qt GUI toolkit - but is suitable for generating bindings for any C or C++
-library.
+`PyQt <http://www.riverbankcomputing.com/software/pyqt/>`__ - the Python
+bindings for the Qt GUI toolkit - but is suitable for generating bindings for
+any C or C++ library.
 
 This version of SIP generates bindings for Python v2.3 or later.
 
@@ -32,9 +32,9 @@ started out as a small SWIG.  Unlike SWIG, SIP is specifically designed for
 bringing together Python and C/C++ and goes to great lengths to make the
 integration as tight as possible.
 
-The homepage for SIP is http://www.riverbankcomputing.co.uk/sip/.  Here you
-will always find the latest stable version, current development snapshots, and
-the latest version of this documentation.
+The homepage for SIP is http://www.riverbankcomputing.com/software/sip/.  Here
+you will always find the latest stable version, current development snapshots,
+and the latest version of this documentation.
 
 
 License
@@ -78,6 +78,10 @@ SIP, and the bindings it produces, have the following features.
     - support for C++ templates
 
     - support for C++ exceptions and wrapping them as Python exceptions
+
+    - the automatic generation of complementary rich comparison slots
+
+    - support for deprecation warnings
 
     - the ability to define mappings between C++ classes and similar Python
       data types that are automatically invoked
@@ -172,6 +176,31 @@ SIP itself does not require Qt to be installed.
 Potential Incompatibilities with Earlier Versions
 =================================================
 
+SIP v4.7.8
+----------
+
+This version allows a Python int object to be passed whenever an enum is
+expected.  This can mean that two signatures that were different with prior
+versions are now the same as far as Python is concerned.  The `Constrained`_
+annotation can now be applied to an enum argument to revert to the earlier
+behaviour.
+
+
+SIP v4.7.3
+----------
+
+Prior to this version SIP did not automatically generate missing complementary
+comparison operators.  Typically this was worked around by adding them
+explicitly to the .sip files, even though they weren't implemented in C++ and
+relied on the C++ compiler calling the complementary operator that was
+implemented.
+
+A necessary change to the code generator meant that this not longer worked and
+so SIP was changed to automatically generate any missing complementary
+operators.  If you have added such operators explicitly then you should remove
+them or make them dependent on the particular version of SIP.
+
+
 SIP v4.4
 --------
 
@@ -196,13 +225,10 @@ Downloading SIP
 ---------------
 
 You can get the latest release of the SIP source code from
-http://www.riverbankcomputing.co.uk/sip/download.php.
+http://www.riverbankcomputing.com/software/sip/download.
 
 SIP is also included with all of the major Linux distributions.  However, it
 may be a version or two out of date.
-
-You may also find more up to date pre-compiled binaries on
-`SourceForge <http://sourceforge.net/project/showfiles.php?group_id=61057>`_.
 
 
 Configuring SIP
@@ -220,7 +246,7 @@ example::
 This assumes that the Python interpreter is on your path.  Something like the
 following may be appropriate on Windows::
 
-    c:\python25\python configure.py
+    c:\python26\python configure.py
 
 If you have multiple versions of Python installed then make sure you use the
 interpreter for which you wish SIP to generate bindings for.
@@ -245,6 +271,9 @@ The full set of command line options is:
          system, otherwise a platform specific default will be used.  The
          ``-h`` option will display all the supported platform/compilers and
          the default.
+-s sdk   If the ``-n`` option was given then this specifies the name of the SDK
+         directory.  If a path is not given then it is assumed to be a
+         sub-directory of ``/Developer/SDKs``.
 -u       The SIP module will be built with debugging symbols.
 -v dir   By default ``.sip`` files will be installed in the directory ``dir``.
 
@@ -277,7 +306,7 @@ SIP, and the modules it generates, can be built with MinGW, the Windows port of
 GCC.  You must use the ``-p`` command line option to specify the correct
 platform.  For example::
 
-    c:\python25\python configure.py -p win32-g++
+    c:\python26\python configure.py -p win32-g++
 
 
 Configuring SIP Using the Borland C++ Compiler
@@ -287,14 +316,14 @@ SIP, and the modules it generates, can be built with the free Borland C++
 compiler.  You must use the ``-p`` command line option to specify the correct
 platform.  For example::
 
-    c:\python25\python configure.py -p win32-borland
+    c:\python26\python configure.py -p win32-borland
 
 You must also make sure you have a Borland-compatible version of the Python
 library.  If you are using the standard Python distribution (built using the
 Microsoft compiler) then you must convert the format of the Python library.
 For example::
 
-    coff2omf python25.lib python25_bcpp.lib
+    coff2omf python26.lib python26_bcpp.lib
 
 
 Building SIP
@@ -510,7 +539,7 @@ introduce SIP's versioning system.
 The library contains a single C++ class called ``Hello`` which is derived from
 Qt's ``QLabel`` class.  It behaves just like ``QLabel`` except that the text
 in the label is hard coded to be ``Hello World``.  To make the example more
-interesting we'll also say that the library only supports Qt v3.0 and later,
+interesting we'll also say that the library only supports Qt v4.2 and later,
 and also includes a function called ``setDefault()`` that is not implemented
 in the Windows version of the library.
 
@@ -545,9 +574,9 @@ The corresponding SIP specification file would then look something like this::
 
     %Module hello 0
 
-    %Import qt/qtmod.sip
+    %Import QtCore/QtCoremod.sip
 
-    %If (Qt_3_0_0 -)
+    %If (Qt_4_2_0 -)
 
     class Hello : QLabel {
 
@@ -572,24 +601,24 @@ Again we look at the differences, but we'll skip those that we've looked at in
 previous examples.
 
     - The `%Import`_ directive has been added to specify that we are extending
-      the class hierarchy defined in the file ``qt/qtmod.sip``.  This file is
-      part of PyQt.  The build system will take care of finding the file's
-      exact location.
+      the class hierarchy defined in the file ``QtCore/QtCoremod.sip``.  This
+      file is part of PyQt.  The build system will take care of finding the
+      file's exact location.
 
-    - The `%If`_ directive has been added to specify that
-      everything [#]_ up to the matching `%End`_ directive only applies to Qt
-      v3.0 and later.  ``Qt_3_0_0`` is a *tag* defined in ``qtmod.sip`` [#]_
-      using the `%Timeline`_ directive.  `%Timeline`_ is used to define a tag
-      for each version of a library's API you are wrapping allowing you to
-      maintain all the different versions in a single SIP specification.  The
-      build system provides support to ``configure.py`` scripts for working out
-      the correct tags to use according to which version of the library is
-      actually installed.
+    - The `%If`_ directive has been added to specify that everything [#]_ up to
+      the matching `%End`_ directive only applies to Qt v4.2 and later.
+      ``Qt_4_2_0`` is a *tag* defined in ``QtCoremod.sip`` [#]_ using the
+      `%Timeline`_ directive.  `%Timeline`_ is used to define a tag for each
+      version of a library's API you are wrapping allowing you to maintain all
+      the different versions in a single SIP specification.  The build system
+      provides support to ``configure.py`` scripts for working out the correct
+      tags to use according to which version of the library is actually
+      installed.
 
     - The ``public`` keyword used in defining the super-classes has been
       removed.  This is not supported by SIP.
 
-    - The TransferThis_ annotation has been added to the first argument
+    - The TransferThis annotation has been added to the first argument
       of the constructor.  It specifies that if the argument is not 0 (i.e. the
       ``Hello`` instance being constructed has a parent) then ownership of the
       instance is transferred from Python to C++.  It is needed because Qt
@@ -765,7 +794,7 @@ ensure that Python's cyclic garbage collector can detect and break any
 reference cycles between the owning and owned instances.  The association is
 implemented as the owning instance taking a reference to the owned instance.
 
-The TransferThis_, Transfer and TransferBack annotations are used to specify
+The TransferThis, Transfer and TransferBack annotations are used to specify
 where, and it what direction, transfers of ownership happen.  It is very
 important that these are specified correctly to avoid crashes (where both
 Python and C++ call the destructor) and memory leaks (where neither Python and
@@ -775,6 +804,17 @@ This applies equally to C structures where the structure is returned to the
 heap using the ``free()`` function.
 
 See also `sipTransferTo()`_, `sipTransferBack()`_ and `sipTransferBreak()`_.
+
+
+Support for Python's Buffer Interface
+-------------------------------------
+
+SIP supports Python's buffer interface in that whenever C/C++ requires a
+``char`` or ``char *`` type then any Python type that supports the buffer
+interface (including ordinary Python strings) can be used.
+
+If a buffer is made up of a number of segments then all but the first will be
+ignored.
 
 
 Support for Wide Characters
@@ -1063,7 +1103,8 @@ file.
 
     *struct* ::= ``struct`` *name* ``{`` {*class-line*} ``};``
 
-    *typedef* ::= ``typedef`` [*typed-name* | *function-pointer*] ``;``
+    *typedef* ::= ``typedef`` [*typed-name* | *function-pointer*]
+            *typedef-annotations* ``;``
 
     *variable*::= *typed-name* [*variable-annotations*] ``;`` [`%AccessCode`_]
             [`%GetCode`_] [`%SetCode`_]
@@ -1144,6 +1185,8 @@ file.
     *enum-annotations* ::= see `Enum Annotations`_
 
     *function-annotations* ::= see `Function Annotations`_
+
+    *typedef-annotations* ::= see `Typedef Annotations`_
 
     *variable-annotations* ::= see `Variable Annotations`_
 
@@ -2182,6 +2225,12 @@ PyObject \*sipPy
     class variable or structure member.  If there is an error then the code
     must raise an exception and set this to ``NULL``.
 
+PyObject \*sipPyType
+    If the variable being wrapped is a static class variable then this is the
+    Python type object of the class from which the variable was referenced
+    (*not* the class in which it is defined).  It may be safely cast to a
+    PyTypeObject \* or a sipWrapperType \*.
+
 For example::
 
     struct Entity
@@ -2525,9 +2574,14 @@ replaces the normally generated call to the function being wrapped.  It is
 usually used to handle argument types and results that SIP cannot deal with
 automatically.
 
-The specified code is embedded in-line after the function's arguments have
-been successfully converted from Python objects to their C or C++ equivalents.
-The specified code must not include any ``return`` statements.
+Normally the specified code is embedded in-line after the function's arguments
+have been successfully converted from Python objects to their C or C++
+equivalents.  In this case the specified code must not include any ``return``
+statements.
+
+However if the `NoArgParser`_ annotation has been used then the specified code
+is also responsible for parsing the arguments.  No other code is generated by
+SIP and the specified code must include a ``return`` statement.
 
 In the context of a destructor the specified code is embedded in-line in the
 Python type's deallocation function.  Unlike other contexts it supplements
@@ -2549,7 +2603,8 @@ should be done if the C++ function might block the current thread or take a
 significant amount of time to execute.  (See `The Python Global Interpreter
 Lock`_ and the ReleaseGIL_ and HoldGIL_ annotations.)
 
-The following variables are made available to the handwritten code:
+If the `NoArgParser`_ annotation has not been used then the following variables
+are made available to the handwritten code:
 
 *type* a0
     There is a variable for each argument of the Python signature (excluding
@@ -2574,9 +2629,18 @@ PyObject \*a0Wrapper
 
 *type* \*sipCpp
     If the directive is used in the context of a class constructor then this
-    must be set by the handwritten code to the constructed instance.  In any
-    other context then this is a pointer to the C structure or C++ class
-    instance.  Its *type* is a pointer to the structure or class.
+    must be set by the handwritten code to the constructed instance.  If it is
+    set to ``0`` and no Python exception is raised then SIP will continue to
+    try other Python signatures.
+    
+    If the directive is used in the context of a method (but not the standard
+    binary operator methods, e.g. ``__add__``) or a destructor then this is a
+    pointer to the C structure or C++ class instance.
+    
+    Its *type* is a pointer to the structure or class.
+    
+    Standard binary operator methods follow the same convention as global
+    functions and instead define two arguments called ``a0`` and ``a1``.
 
 int sipIsErr
     The handwritten code should set this to a non-zero value, and raise an
@@ -2595,12 +2659,12 @@ int sipIsErr
 
     ``sipRes`` is not provided for inplace operators (e.g. ``+=`` or
     ``__imul__``) as their results are handled automatically, nor for class
-    constructors.
+    constructors or destructors.
 
 PyObject \*sipSelf
-    If the directive is used in the context of a class constructor or method
-    then this is the Python object that wraps the the structure or class
-    instance, i.e. ``self``.
+    If the directive is used in the context of a class constructor, destructor
+    or method then this is the Python object that wraps the the structure or
+    class instance, i.e. ``self``.
 
 bool sipSelfWasArg
     This is only made available for non-abstract, virtual methods.  It is set
@@ -2612,6 +2676,15 @@ bool sipSelfWasArg
     rather than::
 
         self.foo(...)
+
+If the `NoArgParser`_ annotation has been used then only the following
+variables are made available to the handwritten code:
+
+PyObject \*sipArgs
+    This is the tuple of arguments.
+
+PyObject \*sipKwds
+    This is the dictionary of keyword arguments.
 
 The following is a complete example::
 
@@ -2935,6 +3008,12 @@ int sipErr
 PyObject \*sipPy
     This is the Python object that the handwritten code should convert.
 
+PyObject \*sipPyType
+    If the variable being wrapped is a static class variable then this is the
+    Python type object of the class from which the variable was referenced
+    (*not* the class in which it is defined).  It may be safely cast to a
+    PyTypeObject \* or a sipWrapperType \*.
+
 See the `%GetCode`_ directive for an example.
 
 
@@ -3165,9 +3244,10 @@ SIP Annotations
 In this section we describe each of the annotations that can be used in
 specification files.
 
-Annotations can either be argument annotations, class annotations, enum
-annotations, exception annotations, function annotations, license annotations,
-or variable annotations depending on the context in which they can be used.
+Annotations can either be argument annotations, class annotations, mapped type
+annotations, enum annotations, exception annotations, function annotations,
+license annotations, typedef annotations or variable annotations depending on
+the context in which they can be used.
 
 Annotations are placed between forward slashes (``/``).  Multiple annotations
 are comma separated within the slashes.
@@ -3243,9 +3323,10 @@ when wrapping C or C++ functions with similar signatures.  For example::
     void foo(int);
 
 This boolean annotation specifies that the corresponding argument (which
-should be either ``bool``, ``int``, ``float``, ``double`` or a wrapped class)
-must match the type without any automatic conversions.  In the context of a
-wrapped class the invocation of any `%ConvertToTypeCode`_ is suppressed.
+should be either ``bool``, ``int``, ``float``, ``double``, ``enum`` or a
+wrapped class) must match the type without any automatic conversions.  In the
+context of a wrapped class the invocation of any `%ConvertToTypeCode`_ is
+suppressed.
 
 The following example gets around the above problem::
 
@@ -3302,6 +3383,25 @@ annotation is specified.
 Both In_ and Out_ may be specified for the same argument.
 
 
+ResultSize
+**********
+
+This boolean annotation is used with functions or methods that return a
+``void *`` or ``const void *``.  It identifies an argument that defines the
+size of the block of memory whose address is being returned.  This allows the
+``sip.voidptr`` object that wraps the address to support the Python buffer
+protocol and allows the memory to be read and updated when wrapped by the
+Python ``buffer()`` builtin.
+
+
+SingleShot
+**********
+
+This boolean annotation is used only with arguments of type SIP_RXOBJ_CON_ to
+specify that the signal connected to the slot will only ever be emitted once.
+This prevents a certain class of memory leaks.
+
+
 Transfer
 ********
 
@@ -3346,6 +3446,8 @@ is transferred from Python to C++ if the corresponding argument is not
 
 The annotation may be used more that once, in which case ownership is
 transferred to last instance that is not ``None``.
+
+Note that this can also be used as a function annotation.
 
 See `Ownership of Objects`_ for more detail.
 
@@ -3405,6 +3507,16 @@ Note that the above applies only to C and C++ instances that are owned by
 Python.
 
 
+Deprecated
+**********
+
+This boolean annotation is used to specify that the class is deprecated.  It is
+the equivalent of annotating all the class's constructors, function and methods
+as being deprecated.
+
+Note that this can also be used as a function annotation.
+
+
 External
 ********
 
@@ -3428,6 +3540,18 @@ which is used when it is referred to from Python.  It is required when a class
 name is the same as a Python keyword.  It may also be used to avoid name
 clashes with other objects (e.g. enums, exceptions, functions) that have the
 same name in the same C++ scope.
+
+
+Mapped Type Annotations
+-----------------------
+
+NoRelease
+*********
+
+This boolean annotation is used to specify that the mapped type does not
+support the `sipReleaseMappedType()`_ function.  Any `%ConvertToTypeCode`_
+should not create temporary instances of the mapped type, i.e. it should not
+return ``SIP_TEMPORARY``.
 
 
 Enum Annotations
@@ -3479,6 +3603,16 @@ annotation is used to explicitly specify which constructor to use.  Zero is
 passed as the value of any arguments to the constructor.
 
 
+Deprecated
+**********
+
+This boolean annotation is used to specify that the constructor or function is
+deprecated.  A deprecation warning is issued whenever the constructor or
+function is called.
+
+Note that this can also be used as a class annotation.
+
+
 Factory
 *******
 
@@ -3501,6 +3635,13 @@ NewThread
 *********
 
 This boolean annotation specifies that the function will create a new thread.
+
+
+NoArgParser
+***********
+
+This boolean annotation is used with global functions to specify that the
+supplied `%MethodCode`_ will handle the parsing of the arguments.
 
 
 NoDerived
@@ -3573,11 +3714,13 @@ Transfer
 
 This boolean annotation specifies that ownership of the value returned by the
 function (which should be a wrapped C structure or C++ class instance) is
-transferred to C++.  It is only used in the context of a class method.
-Normally returned values (unless they are new references to already wrapped
-values) are owned by C++ anyway.  However, in addition, an association between
-the returned value and the instance containing the method is created with
-regard to the cyclic garbage collector.
+transferred to C++.  It is only used in the context of a class constructor or a
+method.
+
+In the case of methods returned values (unless they are new references to
+already wrapped values) are normally owned by C++ anyway.  However, in
+addition, an association between the returned value and the instance containing
+the method is created with regard to the cyclic garbage collector.
 
 Note that this can also be used as an argument annotation.
 
@@ -3593,6 +3736,17 @@ transferred back to Python from C++.  Normally returned values (unless they are
 new references to already wrapped values) are owned by C++.  In addition, any
 association of the returned value with regard to the cyclic garbage collector
 with another instance is removed.
+
+Note that this can also be used as an argument annotation.
+
+See `Ownership of Objects`_ for more detail.
+
+
+TransferThis
+************
+
+This boolean annotation specifies that ownership of ``this`` is transferred
+from Python to C++.
 
 Note that this can also be used as an argument annotation.
 
@@ -3636,6 +3790,25 @@ This string annotation specifies the license's type.  No restrictions are
 placed on the contents of the string.
 
 See the `%License`_ directive.
+
+
+Typedef Annotations
+-------------------
+
+NoTypeName
+**********
+
+This boolean annotation specifies that the definition of the type rather than
+the name of the type being defined should be used in the generated code.
+
+Normally a typedef would be defined as follows::
+
+    typedef bool MyBool;
+
+This would result in ``MyBool`` being used in the generated code.
+
+Specifying the annotation means that ``bool`` will be used in the generated
+code instead.
 
 
 Variable Annotations
@@ -3758,7 +3931,7 @@ PyObject \*sipBuildResult(int \*iserr, const char \*format, ...)
     ``a`` (string) [char \*, int]
         Convert a C/C++ character array and its length to a Python string.  If
         the array is ``NULL`` then the length is ignored and the result is
-        ``Py_None``.
+        ``Py_None``.  This is deprecated, use ``g`` instead.
 
     ``b`` (boolean) [int]
         Convert a C/C++ ``int`` to a Python boolean.
@@ -3774,6 +3947,11 @@ PyObject \*sipBuildResult(int \*iserr, const char \*format, ...)
 
     ``f`` (float) [float]
         Convert a C/C++ ``float`` to a Python floating point number.
+
+    ``g`` (string) [char \*, SIP_SSIZE_T]
+        Convert a C/C++ character array and its length to a Python string.  If
+        the array is ``NULL`` then the length is ignored and the result is
+        ``Py_None``.
 
     ``h`` (integer) [short]
         Convert a C/C++ ``short`` to a Python integer.
@@ -3814,7 +3992,7 @@ PyObject \*sipBuildResult(int \*iserr, const char \*format, ...)
     ``A`` (unicode) [wchar_t \*, int]
         Convert a C/C++ wide character array and its length to a Python unicode
         object.  If the array is ``NULL`` then the length is ignored and the
-        result is ``Py_None``.
+        result is ``Py_None``.  This is deprecated, use ``G`` instead.
 
     ``B`` (wrapped instance) [*type* \*, sipWrapperType \*, PyObject \*]
         Convert a new C structure or a new C++ class instance to a Python class
@@ -3852,6 +4030,11 @@ PyObject \*sipBuildResult(int \*iserr, const char \*format, ...)
     ``E`` (wrapped enum) [enum, PyTypeObject \*]
         Convert a named C/C++ ``enum`` to an instance of the corresponding
         Python named enum type.
+
+    ``G`` (unicode) [wchar_t \*, SIP_SSIZE_T]
+        Convert a C/C++ wide character array and its length to a Python unicode
+        object.  If the array is ``NULL`` then the length is ignored and the
+        result is ``Py_None``.
 
     ``M`` (wrapped instance) [*type* \*, sipWrapperType \*]
         Convert a C structure or a C++ class instance to a Python class
@@ -3971,14 +4154,33 @@ PyObject \*sipConnectRx(PyObject \*sender, const char \*signal, PyObject \*recei
     implement ``QObject.connect()``.
 
 
+sipConvertFromConstVoidPtr()
+----------------------------
+
+PyObject \*sipConvertFromConstVoidPtr(const void \*cpp)
+    This creates a ``sip.voidptr`` object for a memory address.  The object
+    will not be writeable and has no associated size.  *cpp* is the memory
+    address.
+
+
+sipConvertFromConstVoidPtrAndSize()
+-----------------------------------
+
+PyObject \*sipConvertFromConstVoidPtrAndSize(const void \*cpp, SIP_SSIZE_T size)
+    This creates a ``sip.voidptr`` object for a memory address.  The object
+    will not be writeable.  *cpp* is the memory address.  *size* is the size
+    associated with the address.  The object can be used as an immutable buffer
+    object.
+
+
 sipConvertFromInstance()
 ------------------------
 
 PyObject \*sipConvertFromInstance(void \*cpp, sipWrapperType \*type, PyObject \*transferObj)
-    Convert a C structure or a C++ class instance to a Python class instance
-    object.  *cpp* is the C/C++ instance.  If the instance has already been
-    wrapped then the result is a new reference to the existing instance object.
-    *type* is the generated type corresponding to the C/C++ type.
+    This converts a C structure or a C++ class instance to a Python class
+    instance object.  *cpp* is the C/C++ instance.  If the instance has already
+    been wrapped then the result is a new reference to the existing instance
+    object.  *type* is the generated type corresponding to the C/C++ type.
     *transferObj* controls the ownership of the returned value.  If the
     structure or class instance has already been wrapped then the result is a
     new reference to the existing class instance object.  If it is ``NULL`` and
@@ -3995,36 +4197,37 @@ sipConvertFromMappedType()
 --------------------------
 
 PyObject \*sipConvertFromMappedType(void \*cpp, const sipMappedType \*mt, PyObject \*transferObj)
-    Convert a C structure or a C++ class instance wrapped as a mapped type to a
-    Python object.  *cpp* is the C/C++ instance.  *mt* is the opaque structure
-    returned by `sipFindMappedType()`_.  *transferObj* controls any ownership
-    changes to *obj*.  If it is ``NULL`` then the ownership is unchanged.  If
-    it is ``Py_None`` then ownership is transferred to Python via a call to
-    `sipTransferBack()`_.  Otherwise ownership is transferred to C/C++ and the
-    instance associated with the ``PyObject *`` argument via a call to
-    `sipTransferTo()`_.
+    This converts a C structure or a C++ class instance wrapped as a mapped
+    type to a Python object.  *cpp* is the C/C++ instance.  *mt* is the opaque
+    structure returned by `sipFindMappedType()`_.  *transferObj* controls any
+    ownership changes to *obj*.  If it is ``NULL`` then the ownership is
+    unchanged.  If it is ``Py_None`` then ownership is transferred to Python
+    via a call to `sipTransferBack()`_.  Otherwise ownership is transferred to
+    C/C++ and the instance associated with the ``PyObject *`` argument via a
+    call to `sipTransferTo()`_.
 
 
 sipConvertFromNamedEnum()
 -------------------------
 
 PyObject \*sipConvertFromNamedEnum(int eval, PyTypeObject \*type)
-    Convert a named C/C++ ``enum`` to an instance of the corresponding Python
-    named enum type.  *eval* is the enumerated value to convert.  *type* is the
-    generated Python type object (see `Generated Named Enum Type Objects`_).
+    This converts a named C/C++ ``enum`` to an instance of the corresponding
+    Python named enum type.  *eval* is the enumerated value to convert.  *type*
+    is the generated Python type object (see `Generated Named Enum Type
+    Objects`_).
 
 
 sipConvertFromNewInstance()
 ---------------------------
 
 PyObject \*sipConvertFromNewInstance(void \*cpp, sipWrapperType \*type, PyObject \*transferObj)
-    Convert a new C structure or a new C++ class instance to a Python class
-    instance object.  *cpp* is the C/C++ instance.  *type* is the generated
-    type corresponding to the C/C++ type.  *transferObj* controls the ownership
-    of the returned value.  If it is ``NULL`` or ``Py_None`` then ownership
-    will be with Python.  Otherwise ownership will be with C/C++ and the
-    instance associated with *transferObj*.  The Python class is influenced by
-    any applicable `%ConvertToSubClassCode`_ code.
+    This converts a new C structure or a new C++ class instance to a Python
+    class instance object.  *cpp* is the C/C++ instance.  *type* is the
+    generated type corresponding to the C/C++ type.  *transferObj* controls the
+    ownership of the returned value.  If it is ``NULL`` or ``Py_None`` then
+    ownership will be with Python.  Otherwise ownership will be with C/C++ and
+    the instance associated with *transferObj*.  The Python class is influenced
+    by any applicable `%ConvertToSubClassCode`_ code.
 
 
 sipConvertFromSequenceIndex()
@@ -4045,6 +4248,24 @@ int sipConvertFromSliceObject(PyObject \*slice, SIP_SSIZE_T length, SIP_SSIZE_T 
     This is a thin wrapper around the Python ``PySlice_GetIndicesEx()``
     function provided to make it easier to write handwritten code that is
     compatible with SIP v3.x and versions of Python earlier that v2.3.
+
+
+sipConvertFromVoidPtr()
+-----------------------
+
+PyObject \*sipConvertFromVoidPtr(void \*cpp)
+    This creates a ``sip.voidptr`` object for a memory address.  The object
+    will be writeable but has no associated size.  *cpp* is the memory address.
+
+
+sipConvertFromVoidPtrAndSize()
+------------------------------
+
+PyObject \*sipConvertFromVoidPtrAndSize(void \*cpp, SIP_SSIZE_T size)
+    This creates a ``sip.voidptr`` object for a memory address.  The object
+    will be writeable.  *cpp* is the memory address.  *size* is the size
+    associated with the address.  The object can be used as a mutable buffer
+    object.
 
 
 sipConvertToCpp()
@@ -4114,6 +4335,16 @@ void \*sipConvertToMappedType(PyObject \*obj, const sipMappedType \*mt, PyObject
     then the conversion isn't attempted in the first place.  (This allows
     several calls to be made that share the same error flag so that it only
     needs to be tested once rather than after each call.)
+
+
+sipConvertToVoidPtr()
+---------------------
+
+void \*sipConvertToVoidPtr(PyObject \*obj)
+    This converts a Python object to a memory address.  ``obj`` may be
+    ``Py_None``, a ``sip.voidptr`` or a PyCObject.  The memory address is
+    returned.  ``PyErr_Occurred()`` must be used to determine if the conversion
+    was successful.
 
 
 sipDisconnectRx()
@@ -4337,10 +4568,10 @@ int sipParseResult(int \*iserr, PyObject \*method, PyObject \*result, const char
     will convert, and the entry in brackets are the types of the C/C++ values
     to be passed. 
 
-    ``a`` (string) [char \*\*, int \*]
+    ``a`` (string) [const char \*\*, int \*]
         Convert a Python string to a C/C++ character array and its length.  If
         the Python object is ``Py_None`` then the array and length are ``NULL``
-        and zero respectively.
+        and zero respectively.  This is deprecated, use ``g`` instead.
 
     ``b`` (integer) [bool \*]
         Convert a Python integer to a C/C++ ``bool``.
@@ -4356,6 +4587,11 @@ int sipParseResult(int \*iserr, PyObject \*method, PyObject \*result, const char
 
     ``f`` (float) [float \*]
         Convert a Python floating point number to a C/C++ ``float``.
+
+    ``g`` (string) [const char \*\*, SIP_SSIZE_T \*]
+        Convert a Python string to a C/C++ character array and its length.  If
+        the Python object is ``Py_None`` then the array and length are ``NULL``
+        and zero respectively.
 
     ``h`` (integer) [short \*]
         Convert a Python integer to a C/C++ ``short``.
@@ -4375,7 +4611,7 @@ int sipParseResult(int \*iserr, PyObject \*method, PyObject \*result, const char
     ``o`` (long) [unsigned long long \*]
         Convert a Python long to a C/C++ ``unsigned long long``.
 
-    ``s`` (string) [char \*\*]
+    ``s`` (string) [const char \*\*]
         Convert a Python string to a C/C++ ``'\0'`` terminated string.  If the
         Python object is ``Py_None`` then the string is ``NULL``.
 
@@ -4396,7 +4632,8 @@ int sipParseResult(int \*iserr, PyObject \*method, PyObject \*result, const char
     ``A`` (unicode) [wchar_t \*\*, int \*]
         Convert a Python unicode object to a C/C++ wide character array and its
         length.  If the Python object is ``Py_None`` then the array and length
-        are ``NULL`` and zero respectively.
+        are ``NULL`` and zero respectively.  This is deprecated, use ``G``
+        instead.
 
     ``Cf`` (wrapped class) [sipWrapperType \*, int \*, void \*\*]
         Convert a Python object to a C structure or a C++ class instance and
@@ -4429,6 +4666,11 @@ int sipParseResult(int \*iserr, PyObject \*method, PyObject \*result, const char
 
     ``E`` (wrapped enum) [PyTypeObject \*, enum \*]
         Convert a Python named enum type to the corresponding C/C++ ``enum``.
+
+    ``G`` (unicode) [wchar_t \*\*, SIP_SSIZE_T \*]
+        Convert a Python unicode object to a C/C++ wide character array and its
+        length.  If the Python object is ``Py_None`` then the array and length
+        are ``NULL`` and zero respectively.
 
     ``L`` (object) [*type* \*(\*)(PyObject \*obj, int \*iserr), void \*\*]
         Convert a Python object to a C structure or a C++ class instance using
@@ -4659,6 +4901,71 @@ object for enum ``Except`` defined in class ``Klass`` is
 The objects of all imported exceptions are available to handwritten code.
 
 
+Using the SIP API when Embedding
+================================
+
+The SIP API described in the previous section is intended to be called from
+handwritten code in SIP generated modules.  However it is also often necessary
+to call it from C or C++ applications that embed the Python interpreter and
+need to pass C or C++ instances between the application and the interpreter.
+
+The API is exported by the SIP module as a ``sipAPIDef`` data structure
+containing a set of function pointers.  The data structure is defined in the
+SIP header file ``sip.h``.  The data structure is wrapped as a Python
+``PyCObject`` object and is referenced by the name ``_C_API`` in the SIP
+module dictionary.
+
+Each member of the data structure is a pointer to one of the functions of the
+SIP API.  The name of the member can be derived from the function name by
+replacing the ``sip`` prefix with ``api`` and converting each word in the
+name to lower case and preceding it with an underscore.  For example:
+
+    ``sipExportSymbol`` becomes ``api_export_symbol``
+
+    ``sipWrapperCheck`` becomes ``api_wrapper_check``
+
+Note that the type objects that SIP generates for a wrapped module (see
+`Generated Type Objects`_, `Generated Named Enum Type Objects`_ and
+`Generated Exception Objects`_) cannot be refered to directly and must be
+obtained using the `sipFindClass()`_, `sipFindMappedType()`_ and
+`sipFindNamedEnum()`_ functions.  Of course, the corresponding modules must
+already have been imported into the interpreter.
+
+The following code fragment shows how to get a pointer to the ``sipAPIDef``
+data structure::
+
+    #include <sip.h>
+
+    const sipAPIDef *get_sip_api()
+    {
+        PyObject *sip_module;
+        PyObject *sip_module_dict;
+        PyObject *c_api;
+
+        /* Import the SIP module. */
+        sip_module = PyImport_ImportModule("sip");
+
+        if (sip_module == NULL)
+            return NULL;
+
+        /* Get the module's dictionary. */
+        sip_module_dict = PyModule_GetDict(sip_module);
+
+        /* Get the "_C_API" attribute. */
+        c_api = PyDict_GetItemString(sip_module_dict, "_C_API");
+
+        if (c_api == NULL)
+            return NULL;
+
+        /* Sanity check that it is the right type. */
+        if (!PyCObject_Check(c_api))
+            return NULL;
+
+        /* Get the actual pointer from the object. */
+        return (const sipAPIDef *)PyCObject_AsVoidPtr(c_api);
+    }
+
+
 Using the SIP Module in Applications
 ====================================
 
@@ -4742,22 +5049,47 @@ unwrapinstance(obj)
 
 voidptr
     This is the type object for the type SIP uses to represent a C/C++
-    ``void *``.  The type constructor takes a single argument that must either
-    be another ``voidptr``, ``None``, a Python CObject, or an integer.  The
-    type has the following methods:
+    ``void *``.  It may have a size associated with the address in which case
+    the Python buffer protocol is supported.  This means that the memory can
+    be treated as a mutable array of bytes when wrapped with the ``buffer()``
+    builtin.  The type has the following methods:
 
-    __int__()
-        This returns the pointer as an integer.
+    __init__(self, address, size=-1, writeable=True)
+        ``address`` is either another ``voidptr``, ``None``, a Python CObject,
+        or an integer.  ``size`` is the optional associated size of the block
+        of memory and is negative if the size is not known.  ``writeable`` is
+        set if the memory is writeable.  If it is not specified, and
+        ``address`` is a ``voidptr`` then its value will be used.
 
-    __hex__()
-        This returns the pointer as a hexadecimal string.
+    __int__(self)
+        This returns the address as an integer.
 
-    ascobject()
-        This returns the pointer as a Python CObject.
+    __hex__(self)
+        This returns the address as a hexadecimal string.
 
-    asstring(nbytes)
-        This returns a copy of the first *nbytes* of memory at the pointer as a
-        Python string.
+    ascobject(self)
+        This returns the address as a Python CObject.
+
+    asstring(self, size=-1)
+        This returns a copy of the block of memory as a Python string.  If
+        ``size`` is given then it specifies the number of bytes to copy.  If
+        it is not given (or is negative) then the size associated with the
+        address is used.  If there is no associated size then an exception is
+        raised.
+
+    getsize(self)
+        This returns the size associated with the address.  It will be
+        negative if there is no associated size.
+
+    setsize(self, size)
+        This sets the size associated with the address.  If ``size`` is
+        negative then no size is associated.
+
+    getwriteable(self)
+        This returns the writeable state of the memory.
+
+    setwriteable(self, writeable)
+        writeable state of the memory.
 
 wrapinstance(addr, type)
     A C/C++ structure or class instance is wrapped and the Python object
@@ -4790,7 +5122,7 @@ with other Python based build systems (e.g.
 
 An important feature of SIP is the ability to generate bindings that are built
 on top of existing bindings.  For example, both
-`PyKDE <http://www.riverbankcomputing.co.uk/pykde/>`_ and
+`PyKDE <http://www.riverbankcomputing.com/software/pykde/>`_ and
 `PyQwt <http://pyqwt.sourceforge.net/>`_ are built on top of PyQt but all three
 packages are maintained by different developers.  To make this easier PyQt
 includes its own configuration module, ``pyqtconfig``, that contains additional
@@ -5503,4 +5835,4 @@ Note that this technique does not restrict how the interpreter can be used.
 For example, it still allows users to write their own applications that can
 import your builtin modules.  If you want to prevent users from doing that,
 perhaps to protect a proprietary API, then take a look at the
-`VendorID <http://www.riverbankcomputing.co.uk/vendorid/>`__ package.
+`VendorID <http://www.riverbankcomputing.com/software/vendorid/>`__ package.

@@ -55,13 +55,13 @@ static void fatalNoDefinedType(scopedNameDef *);
 static void getBaseType(sipSpec *,moduleDef *,classDef *,argDef *);
 static void searchScope(sipSpec *,classDef *,scopedNameDef *,argDef *);
 static void searchMappedTypes(sipSpec *,scopedNameDef *,argDef *);
-static void searchTypedefs(sipSpec *,scopedNameDef *,argDef *);
+void searchTypedefs(sipSpec *pt, scopedNameDef *snd, argDef *ad);
 static void searchEnums(sipSpec *,scopedNameDef *,argDef *);
 static void searchClasses(sipSpec *,moduleDef *mod,scopedNameDef *,argDef *);
 static void appendToMRO(mroDef *,mroDef ***,classDef *);
 static void moveMainModuleCastsSlots(sipSpec *pt, moduleDef *mod);
-static void moveClassCasts(sipSpec *pt, moduleDef *mod, classDef *cd);
-static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd);
+static void moveClassCasts(moduleDef *mod, classDef *cd);
+static void moveGlobalSlot(moduleDef *mod, memberDef *gmd);
 static void filterMainModuleVirtualHandlers(moduleDef *mod);
 static void filterModuleVirtualHandlers(moduleDef *mod);
 static ifaceFileDef *getIfaceFile(argDef *ad);
@@ -69,6 +69,10 @@ static mappedTypeDef *instantiateMappedTypeTemplate(sipSpec *pt, moduleDef *mod,
 static classDef *getProxy(moduleDef *mod, classDef *cd);
 static int generatingCodeForModule(sipSpec *pt, moduleDef *mod);
 static void registerMetaType(classDef *cd);
+static void addComplementarySlots(sipSpec *pt, classDef *cd);
+static void addComplementarySlot(sipSpec *pt, classDef *cd, memberDef *md,
+        slotType cslot, const char *cslot_name);
+static void resolveInstantiatedClassTemplate(sipSpec *pt, argDef *type);
 
 
 /*
@@ -82,7 +86,6 @@ void transform(sipSpec *pt)
     classList *newl;
     overDef *od;
     mappedTypeDef *mtd;
-    virtHandlerDef *vhd;
 
     /*
      * The class list has the main module's classes at the front and the
@@ -219,10 +222,22 @@ void transform(sipSpec *pt)
      * Move casts and slots around to their correct classes (if in the same
      * module) or create proxies for them (if cross-module).
      */
-    if (!pt -> genc)
+    if (!pt->genc)
         for (mod = pt->modules; mod != NULL; mod = mod->next)
             if (generatingCodeForModule(pt, mod))
                 moveMainModuleCastsSlots(pt, mod);
+
+    /* Automatically generate missing complementary slots. */
+    if (!pt->genc)
+    {
+        for (cd = pt->classes; cd != NULL; cd = cd->next)
+            addComplementarySlots(pt, cd);
+
+        for (mod = pt->modules; mod != NULL; mod = mod->next)
+            if (generatingCodeForModule(pt, mod))
+                for (cd = mod->proxies; cd != NULL; cd = cd->next)
+                    addComplementarySlots(pt, cd);
+    }
 
     /* Generate the different class views. */
     for (cd = pt->classes; cd != NULL; cd = cd->next)
@@ -267,6 +282,107 @@ void transform(sipSpec *pt)
 
 
 /*
+ * Add any missing complementary slots to a class.  This emulates the C++
+ * behaviour of automatically interpreting (for example) >= as !<.
+ */
+static void addComplementarySlots(sipSpec *pt, classDef *cd)
+{
+    memberDef *md;
+
+    for (md = cd->members; md != NULL; md = md->next)
+        switch (md->slot)
+        {
+        case lt_slot:
+            addComplementarySlot(pt, cd, md, ge_slot, "__ge__");
+            break;
+
+        case le_slot:
+            addComplementarySlot(pt, cd, md, gt_slot, "__gt__");
+            break;
+
+        case gt_slot:
+            addComplementarySlot(pt, cd, md, le_slot, "__le__");
+            break;
+
+        case ge_slot:
+            addComplementarySlot(pt, cd, md, lt_slot, "__lt__");
+            break;
+
+        case eq_slot:
+            addComplementarySlot(pt, cd, md, ne_slot, "__ne__");
+            break;
+
+        case ne_slot:
+            addComplementarySlot(pt, cd, md, eq_slot, "__eq__");
+            break;
+        }
+}
+
+
+/*
+ * Add a complementary slot if it is missing.
+ */
+static void addComplementarySlot(sipSpec *pt, classDef *cd, memberDef *md,
+        slotType cslot, const char *cslot_name)
+{
+    overDef *od1;
+    memberDef *md2 = NULL;
+
+    for (od1 = cd->overs; od1 != NULL; od1 = od1->next)
+    {
+        overDef *od2;
+
+        if (od1->common != md || isComplementary(od1) || od1->methodcode != NULL)
+            continue;
+
+        /* Try and find an existing complementary slot. */
+        for (od2 = cd->overs; od2 != NULL; od2 = od2->next)
+            if (od2->common->slot == cslot && sameSignature(&od1->pysig, &od2->pysig, TRUE))
+                break;
+
+        /*
+         * If there is an explicit complementary slot then there is nothing to
+         * do.
+         */
+        if (od2 != NULL)
+            continue;
+
+        /* Create a new member if needed. */
+        if (md2 == NULL)
+        {
+            for (md2 = cd->members; md2 != NULL; md2 = md2->next)
+                if (md2->slot == cslot)
+                    break;
+
+            if (md2 == NULL)
+            {
+                md2 = sipMalloc(sizeof (memberDef));
+
+                md2->pyname = cacheName(pt, cslot_name);
+                md2->memberflags = md->memberflags;
+                md2->slot = cslot;
+                md2->module = md->module;
+
+                md2->next = cd->members;
+                cd->members = md2;
+            }
+        }
+
+        /* Create the complementary slot. */
+        od2 = sipMalloc(sizeof (overDef));
+
+        *od2 = *od1;
+        resetIsVirtual(od2);
+        setIsComplementary(od2);
+        od2->common = md2;
+
+        od2->next = cd->overs;
+        cd->overs = od2;
+    }
+}
+
+
+/*
  * See if a class needs to be registered as a Qt meta type.
  */
 static void registerMetaType(classDef *cd)
@@ -276,26 +392,13 @@ static void registerMetaType(classDef *cd)
 
     /*
      * We register types with Qt if the class is not abstract, has a public
-     * default ctor, a public copy ctor, a public dtor and isn't one of the
-     * internally supported types.
+     * default ctor, a public copy ctor and a public dtor.
      */
     if (isAbstractClass(cd))
         return;
 
     if (!isPublicDtor(cd))
         return;
-
-    if (classFQCName(cd)->next == NULL)
-    {
-        if (strcmp(classBaseName(cd), "QChar") == 0)
-            return;
-
-        if (strcmp(classBaseName(cd), "QString") == 0)
-            return;
-
-        if (strcmp(classBaseName(cd), "QByteArray") == 0)
-            return;
-    }
 
     pub_def_ctor = pub_copy_ctor = FALSE;
 
@@ -389,18 +492,18 @@ static void moveMainModuleCastsSlots(sipSpec *pt, moduleDef *mod)
 
     for (cd = pt->classes; cd != NULL; cd = cd->next)
         if (cd->iff->module == mod)
-            moveClassCasts(pt, mod, cd);
+            moveClassCasts(mod, cd);
 
     for (md = mod->othfuncs; md != NULL; md = md->next)
         if (md->slot != no_slot && md->module == mod)
-            moveGlobalSlot(pt, mod, md);
+            moveGlobalSlot(mod, md);
 }
 
 
 /*
  * Move any class casts to its correct class, or publish as a ctor extender.
  */
-static void moveClassCasts(sipSpec *pt, moduleDef *mod, classDef *cd)
+static void moveClassCasts(moduleDef *mod, classDef *cd)
 {
     argList *al;
 
@@ -463,7 +566,7 @@ static void moveClassCasts(sipSpec *pt, moduleDef *mod, classDef *cd)
 /*
  * If possible, move a global slot to its correct class.
  */
-static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd)
+static void moveGlobalSlot(moduleDef *mod, memberDef *gmd)
 {
     overDef **odp = &mod->overs, *od;
 
@@ -603,10 +706,7 @@ static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd)
         /* Remove from the list. */
         *odp = od->next;
 
-        /*
-         * The only time we need the name of an enum is when it has
-         * slots.
-         */
+        /* The only time we need the name of an enum is when it has slots. */
         if (nd != NULL)
             setIsUsedName(nd);
 
@@ -629,6 +729,7 @@ static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd)
 
         /* Move the overload. */
         setIsPublic(od);
+        setIsGlobal(od);
         od->common = md;
         od->next = *odhead;
 
@@ -708,7 +809,6 @@ static classDef *getProxy(moduleDef *mod, classDef *cd)
  */
 static void filterMainModuleVirtualHandlers(moduleDef *mod)
 {
-    int nr = 0;
     moduleListDef *mld;
     virtHandlerDef *vhd;
 
@@ -717,12 +817,8 @@ static void filterMainModuleVirtualHandlers(moduleDef *mod)
      * those at the deepest level of %Import, are done first.
      */
     for (mld = mod->allimports; mld != NULL; mld = mld->next)
-    {
-        mld->module->modulenr = nr++;
         filterModuleVirtualHandlers(mld->module);
-    }
 
-    mod->modulenr = nr;
     filterModuleVirtualHandlers(mod);
 
     /*
@@ -905,8 +1001,13 @@ static void setHierarchy(sipSpec *pt,classDef *base,classDef *cd,
     if (cd -> mro != NULL)
         return;
 
-    if (cd -> ecd != NULL)
-        setHierarchy(pt,base,cd -> ecd,head);
+    if (cd->ecd != NULL)
+    {
+        setHierarchy(pt, base, cd->ecd, head);
+
+        if (isDeprecatedClass(cd->ecd))
+            setIsDeprecatedClass(cd);
+    }
 
     if (cd -> iff -> type == class_iface)
     {
@@ -932,6 +1033,9 @@ static void setHierarchy(sipSpec *pt,classDef *base,classDef *cd,
             for (mro = cl -> cd -> mro; mro != NULL; mro = mro -> next)
             {
                 appendToMRO(cd -> mro,&tailp,mro -> cd);
+
+                if (isDeprecatedClass(mro->cd))
+                    setIsDeprecatedClass(cd);
 
                 /*
                  * If the super-class is a QObject sub-class then this one is
@@ -1082,6 +1186,9 @@ static void transformCtors(sipSpec *pt, classDef *cd)
                 fatalScopedName(classFQCName(cd));
                 fatal(" has ctors with the same Python signature\n");
             }
+
+        if (isDeprecatedClass(cd))
+            setIsDeprecatedCtor(ct);
     }
 }
 
@@ -1173,12 +1280,19 @@ static void addDefaultCopyCtor(classDef *cd)
         copyct -> posthook = NULL;
         copyct -> next = NULL;
  
+        if (isDeprecatedClass(cd))
+            setIsDeprecatedCtor(copyct);
+
         /* Append it to the list. */
         for (tailp = &cd -> ctors; *tailp != NULL; tailp = &(*tailp) -> next)
             ;
  
         *tailp = copyct;
     }
+
+    /* We assume it has an assignment operator if it has a public copy ctor. */
+    if (isPublicCtor(copyct))
+        setCanAssign(cd);
 }
 
 
@@ -1197,8 +1311,8 @@ static void transformScopeOverloads(sipSpec *pt, classDef *scope,
         resolveFuncTypes(pt, od->common->module, scope, od);
 
         /*
-         * Now check that the Python signature doesn't conflict with an
-         * earlier one.
+         * Now check that the Python signature doesn't conflict with an earlier
+         * one.
          */
         for (prev = overs; prev != od; prev = prev->next)
         {
@@ -1216,6 +1330,9 @@ static void transformScopeOverloads(sipSpec *pt, classDef *scope,
                 fatal("%s() has overloaded functions with the same Python signature\n", od->common->pyname->text);
             }
         }
+
+        if (scope != NULL && isDeprecatedClass(scope))
+            setIsDeprecated(od);
     }
 }
 
@@ -1228,7 +1345,8 @@ static void transformVariableList(sipSpec *pt)
     varDef *vd;
 
     for (vd = pt->vars; vd != NULL; vd = vd->next)
-        resolveVariableType(pt, vd);
+        if (vd->ecd == NULL || !isTemplateClass(vd->ecd))
+            resolveVariableType(pt, vd);
 }
 
 
@@ -1250,29 +1368,6 @@ static void getVisibleMembers(sipSpec *pt, classDef *cd)
             continue;
 
         mrocd = mro->cd;
-
-        /*
-         * If the base class is in the main module, see if it needs to publish
-         * any protected enums.
-         */
-        if (generatingCodeForModule(pt, cd->iff->module))
-        {
-            enumDef *ed;
-
-            for (ed = pt->enums; ed != NULL; ed = ed->next)
-            {
-                /* Skip unless we are the publisher. */
-                if (ed->pcd != mrocd)
-                    continue;
-
-                /*
-                 * If we are not in the main module then the base class must
-                 * take over as the publisher.
-                 */
-                if (!generatingCodeForModule(pt, mrocd->iff->module))
-                    ed->pcd = cd;
-            }
-        }
 
         for (md = mrocd->members; md != NULL; md = md->next)
         {
@@ -1714,10 +1809,10 @@ static void resolveVariableType(sipSpec *pt, varDef *vd)
         break;
     }
 
-    if (bad)
+    if (bad && (vd->getcode == NULL || vd->setcode == NULL))
     {
         fatalScopedName(vd->fqcname);
-        fatal(" has an unsupported type\n");
+        fatal(" has an unsupported type - provide %%GetCode and %%SetCode\n");
     }
  
     if (vtype->atype != class_type && vd->accessfunc != NULL)
@@ -1731,12 +1826,8 @@ static void resolveVariableType(sipSpec *pt, varDef *vd)
     else
         ifaceFileIsUsed(&vd->module->used, vtype);
 
-    /*
-     * Instance variables or static class variables (unless they are
-     * constants) need a handler.
-     */
-    if (vd->ecd != NULL && vd->accessfunc == NULL &&
-        (!isStaticVar(vd) || vtype->nrderefs != 0 || !isConstArg(vtype)))
+    /* Scoped variables need a handler unless they have %AccessCode. */
+    if (vd->ecd != NULL && vd->accessfunc == NULL)
     {
         setNeedsHandler(vd);
         setHasVarHandlers(vd->ecd);
@@ -1956,10 +2047,12 @@ static void defaultInput(argDef *ad)
 static void defaultOutput(argDef *ad)
 {
     if (!isOutArg(ad) && !isInArg(ad))
+    {
         if (isConstArg(ad))
             setIsInArg(ad);
         else
             setIsOutArg(ad);
+    }
 }
 
 
@@ -2075,18 +2168,20 @@ int sameSignature(signatureDef *sd1,signatureDef *sd2,int strict)
 
 
 #define pyAsString(t)   ((t) == ustring_type || (t) == sstring_type || \
-             (t) == string_type)
+            (t) == string_type)
 #define pyAsFloat(t)    ((t) == cfloat_type || (t) == float_type || \
-             (t) == cdouble_type || (t) == double_type)
-#define pyAsInt(t)  ((t) == cint_type || (t) == bool_type || \
-             (t) == short_type || (t) == ushort_type || \
-             (t) == int_type || (t) == uint_type)
+            (t) == cdouble_type || (t) == double_type)
+#define pyAsInt(t)  ((t) == bool_type || \
+            (t) == short_type || (t) == ushort_type || \
+            (t) == cint_type || (t) == int_type || (t) == uint_type)
 #define pyAsLong(t) ((t) == long_type || (t) == longlong_type)
 #define pyAsULong(t)    ((t) == ulong_type || (t) == ulonglong_type)
 #define pyAsAuto(t) ((t) == bool_type || \
-             (t) == short_type || (t) == ushort_type || \
-             (t) == int_type || (t) == uint_type || \
-             (t) == float_type || (t) == double_type)
+            (t) == short_type || (t) == ushort_type || \
+            (t) == int_type || (t) == uint_type || \
+            (t) == float_type || (t) == double_type)
+#define pyIsConstrained(t)  ((t) == cbool_type || (t) == cint_type || \
+            (t) == cfloat_type || (t) == cdouble_type)
 
 /*
  * Compare two argument types and return TRUE if they are the same.  "strict"
@@ -2106,6 +2201,15 @@ static int sameArgType(argDef *a1, argDef *a2, int strict)
 
         return sameBaseType(a1,a2);
     }
+
+    /* If both are constrained fundamental types then the types must match. */
+    if (pyIsConstrained(a1->atype) && pyIsConstrained(a2->atype))
+        return (a1->atype == a2->atype);
+
+    /* An unconstrained enum also acts as a (very) constrained int. */
+    if ((pyAsInt(a1->atype) && a2->atype == enum_type && !isConstrained(a2)) ||
+        (a1->atype == enum_type && !isConstrained(a1) && pyAsInt(a2->atype)))
+        return TRUE;
 
     /* Python will see all these as strings. */
     if (pyAsString(a1->atype) && pyAsString(a2->atype))
@@ -2139,13 +2243,24 @@ static int sameArgType(argDef *a1, argDef *a2, int strict)
 /*
  * Compare two basic types and return TRUE if they are the same.
  */
-
-int sameBaseType(argDef *a1,argDef *a2)
+int sameBaseType(argDef *a1, argDef *a2)
 {
     /* The types must be the same. */
+    if (a1->atype != a2->atype)
+    {
+        /*
+         * If we are comparing a template with those that have already been
+         * used to instantiate a class then we need to compare with the class
+         * name.  Hopefully this won't have wider side effects.
+         */
+        if (a1->atype == class_type && a2->atype == defined_type)
+            return sameScopedName(a1->u.cd->iff->fqcname, a2->u.snd);
 
-    if (a1 -> atype != a2 ->atype)
+        if (a1->atype == defined_type && a2->atype == class_type)
+            return sameScopedName(a1->u.snd, a2->u.cd->iff->fqcname);
+
         return FALSE;
+    }
 
     switch (a1 -> atype)
     {
@@ -2423,21 +2538,7 @@ static void getBaseType(sipSpec *pt, moduleDef *mod, classDef *defscope, argDef 
     }
 
     /* See if the type refers to an instantiated template. */
-    if (type->atype == template_type)
-    {
-        classDef *cd;
-
-        for (cd = pt->classes; cd != NULL; cd = cd->next)
-            if (cd->td != NULL &&
-                sameScopedName(cd->td->fqname, type->u.td->fqname) &&
-                sameSignature(&cd->td->types, &type->u.td->types, TRUE))
-            {
-                type->atype = class_type;
-                type->u.cd = cd;
-
-                break;
-            }
-    }
+    resolveInstantiatedClassTemplate(pt, type);
 
     /* Replace the base type if it has been mapped. */
     if (type -> atype == struct_type || type -> atype == template_type)
@@ -2445,15 +2546,15 @@ static void getBaseType(sipSpec *pt, moduleDef *mod, classDef *defscope, argDef 
         searchMappedTypes(pt,NULL,type);
 
         /*
-         * If we still have a template then see if we need to
-         * automatically instantiate it.
+         * If we still have a template then see if we need to automatically
+         * instantiate it.
          */
         if (type->atype == template_type)
         {
             mappedTypeTmplDef *mtt;
 
             for (mtt = pt->mappedtypetemplates; mtt != NULL; mtt = mtt->next)
-                if (sameScopedName(type->u.td->fqname, mtt->mt->type.u.td->fqname) && sameTemplateSignature(&type->u.td->types, &mtt->mt->type.u.td->types, TRUE))
+                if (sameScopedName(type->u.td->fqname, mtt->mt->type.u.td->fqname) && sameTemplateSignature(&mtt->mt->type.u.td->types, &type->u.td->types, TRUE))
                 {
                     type->u.mtd = instantiateMappedTypeTemplate(pt, mod, mtt, type);
                     type->atype = mapped_type;
@@ -2462,6 +2563,38 @@ static void getBaseType(sipSpec *pt, moduleDef *mod, classDef *defscope, argDef 
                 }
         }
     }
+}
+
+
+/*
+ * If the type corresponds to a previously instantiated class template then
+ * replace it with the class that was created.
+ */
+static void resolveInstantiatedClassTemplate(sipSpec *pt, argDef *type)
+{
+    int a;
+    classDef *cd;
+    templateDef *td;
+    signatureDef *sd;
+
+    if (type->atype != template_type)
+        return;
+
+    td = type->u.td;
+    sd = &td->types;
+
+    for (a = 0; a < sd->nrArgs; ++a)
+        resolveInstantiatedClassTemplate(pt, &sd->args[a]);
+
+    for (cd = pt->classes; cd != NULL; cd = cd->next)
+        if (cd->td != NULL && sameScopedName(cd->td->fqname, td->fqname) &&
+            sameSignature(&cd->td->types, sd, TRUE))
+        {
+            type->atype = class_type;
+            type->u.cd = cd;
+
+            break;
+        }
 }
 
 
@@ -2586,20 +2719,22 @@ static void searchMappedTypes(sipSpec *pt,scopedNameDef *snd,argDef *ad)
 /*
  * Search the typedefs for a name and return the type.
  */
-
-static void searchTypedefs(sipSpec *pt,scopedNameDef *snd,argDef *ad)
+void searchTypedefs(sipSpec *pt, scopedNameDef *snd, argDef *ad)
 {
     typedefDef *td;
 
-    for (td = pt -> typedefs; td != NULL; td = td -> next)
-        if (sameScopedName(td -> fqname,snd))
+    for (td = pt->typedefs; td != NULL; td = td->next)
+        if (sameScopedName(td->fqname, snd))
         {
             /* Copy the type. */
 
-            ad -> atype = td -> type.atype;
-            ad -> argflags |= td -> type.argflags;
-            ad -> nrderefs += td -> type.nrderefs;
-            ad -> u = td -> type.u;
+            ad->atype = td->type.atype;
+            ad->argflags |= td->type.argflags;
+            ad->nrderefs += td->type.nrderefs;
+            ad->u = td->type.u;
+
+            if (ad->original_type == NULL)
+                ad->original_type = td;
 
             break;
         }
@@ -2699,7 +2834,7 @@ static void ifaceFilesAreUsedByOverload(ifaceFileList **used, overDef *od)
         int a;
 
         for (a = 0; a < ta->nrArgs; ++a)
-            ifaceFileIsUsed(used, &ta->args[a]);
+            addToUsedList(used, ta->args[a]->iff);
     }
 }
 
@@ -2712,8 +2847,7 @@ static void ifaceFileIsUsed(ifaceFileList **used, argDef *ad)
 {
     ifaceFileDef *iff;
 
-    /* Make sure we don't try to add an interface file to its own list. */
-    if ((iff = getIfaceFile(ad)) != NULL && &iff->used != used)
+    if ((iff = getIfaceFile(ad)) != NULL)
     {
         addToUsedList(used, iff);
 
@@ -2727,8 +2861,7 @@ static void ifaceFileIsUsed(ifaceFileList **used, argDef *ad)
             ifaceFileList *iffl = iff->used;
 
             for (iffl = iff->used; iffl != NULL; iffl = iffl->next)
-                if (&iffl->iff->used != used)
-                    addToUsedList(used, iffl->iff);
+                addToUsedList(used, iffl->iff);
         }
     }
 }
@@ -2914,8 +3047,15 @@ static void assignEnumNrs(sipSpec *pt)
     enumDef *ed;
 
     for (ed = pt->enums; ed != NULL; ed = ed->next)
-        if (ed->fqcname != NULL)
-            ed->enumnr = ed->module->nrenums++;
+    {
+        if (ed->fqcname == NULL)
+            continue;
+
+        if (ed->ecd != NULL && isTemplateClass(ed->ecd))
+            continue;
+
+        ed->enumnr = ed->module->nrenums++;
+    }
 }
 
 

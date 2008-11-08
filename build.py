@@ -118,8 +118,6 @@ def mkdistdir(lfile):
     shutil.copy("TODO",Package)
     shutil.copy("ChangeLog",Package)
     shutil.copy("lib/README",Package)
-    shutil.copy("lib/README.HP-UX",Package)
-    shutil.copy("lib/THANKS",Package)
     shutil.copy("lib/sipdistutils.py",Package)
     os.system("srepo release <%s >%s/LICENSE" % (lfile, Package))
 
@@ -160,9 +158,8 @@ def mkdistdir(lfile):
     print "Installing the documentation"
     doc = os.path.join(Package, "doc")
     os.mkdir(doc)
-    shutil.copy("doc/default.css",doc)
     os.system("srepo release <doc/sipref.txt >%s/sipref.txt" % doc)
-    os.system("rst2html.py %s/sipref.txt %s/sipref.html" % (doc, doc))
+    os.system("rst2html %s/sipref.txt %s/sipref.html" % (doc, doc))
 
 
 def tgzdist(root):

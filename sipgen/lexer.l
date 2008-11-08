@@ -37,7 +37,7 @@ static int currentFile = -1;            /* Index of the current input file. */
 static char codeLine[MAX_CODE_LINE_LENGTH + 2]; /* The current code line. */
 static int codeIdx = -1;                /* Index of next code character. */
 
-static FILE *openFile(char *);
+static FILE *openFile(const char *);
 static void fatallex(char *);
 %}
 
@@ -138,7 +138,7 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
 }
 
 
--?(([0-9]+)|([0-9]*\.[0-9]+)([eE][-+]?[0-9]+)?) {/* A floating point number. */
+-?(([0-9]+)|([0-9]*\.[0-9]*)([eE][-+]?[0-9]+)?)[fF]? {/* A floating point number. */
     yylval.real = strtod(yytext,NULL);
     return TK_REAL;
 }
@@ -538,7 +538,7 @@ int setInputFile(FILE *open_fp, parserContext *pc, int optional)
  * Open a file for reading or return NULL if it doesn't exist.  Any other error
  * is fatal.
  */
-static FILE *openFile(char *name)
+static FILE *openFile(const char *name)
 {
     FILE *fp;
 

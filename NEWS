@@ -1,3 +1,65 @@
+v4.7.8 8th November 2008
+  - Added the /Deprecated/ class and function annotation (based on a patch from
+    Lorenzo Berni).
+  - Templates now support instance variables and enums.
+  - A Python int object can now be used whenever an enum is expected without
+    needing to explicitly cast it using the enum's constructor.  The
+    /Constrained/ argument annotation can be used to suppress this behaviour.
+  - typedef type names are now used in string representations of types (e.g. in
+    the names of mapped types) to reflect what the programmer sees rather than
+    what the compiler sees.  The /NoTypeName/ typedef annotation can be used to
+    suppress this behaviour.
+
+v4.7.7 8th August 2008
+  - C++ structs are now properly handled as a class with a default public
+    section.
+  - sip.dump() now includes the object's first child wrapper.
+
+v4.7.6 20th May 2008
+  - Added the -s flag to configure.py to specify the SDK directory to use when
+    building universal binaries on MacOS/X.
+  - Added support for MSVC 2008 to the build system.
+  - Added support for v10.x of the Intel compiler and removed support for
+    earlier versions.
+  - MSVC 2008 is the default platform when using Python v2.6.
+
+v4.7.5 13th May 2008
+  - The sip.voidptr type has an optional size associated with it and supports
+    const void *.  If a size is associated then it also supports Python's
+    buffer protocol.
+  - Added sipConvertToVoidPtr() to the SIP API.
+  - Added sipConvertFromConstVoidPtr(), sipConvertFromConstVoidPtrAndSize(),
+    sipConvertFromVoidPtr() and sipConvertFromVoidPtrAndSize() to the SIP API.
+  - Added the /ResultSize/ argument annotation to specify the size of a block
+    of memory returned as a void * or const void *.
+  - Added the /NoArgParser/ function annotation to give %MethodCode complete
+    responsibility for argument parsing.
+  - Added the /NoRelease/ mapped type annotation to specify that the
+    sipReleaseMappedType() function is not supported.
+  - The /ArraySize/ annotation now supports arrays with more than 2^31
+    elements.
+  - %GetCode and %SetCode for class attributes now have access to the
+    referencing type object.
+  - Any object that supports the Python buffer protocol can now be passed as a
+    char or char * argument.
+
+v4.7.4 12th February 2008
+  - The build system handles the directory structure used by Leopard's Python
+    installation.
+  - Added support for /Transfer/ as a constructor annotation.
+
+v4.7.3 6th December 2007
+  - Added support for automatically generating missing complementary
+    comparision operators.  Note that this introduces a potential compatibility
+    problem - see the documentation for details.
+
+v4.7.2 5th December 2007
+  - Added the /SingleShot/ argument annotation.
+  - Added the /TransferThis/ function annotation.
+
+v4.7.1 28th September 2007
+  - A bug fix release.
+
 v4.7 30th July 2007
   - Added %PickleCode to allow handwritten code to pickle a wrapped C++
     instance or C structure.

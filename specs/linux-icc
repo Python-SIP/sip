@@ -1,31 +1,15 @@
 #
 # qmake configuration for linux-icc
 #
-# Written for Intel C++ 5.0.1, 6.0.1, 7.0 and 8.0 for GNU/Linux
+# Written for Intel C++ Compiler versions 10.x for GNU/Linux
 #
 # Note: Some of the remarks from the Intel compiler are disabled (even
 # with 'warn_on' specified):
 #
-# remark #171: invalid type conversion: "int" to "void *"
-# remark #193: zero used for undefined preprocessing identifier
-# remark #279: controlling expression is constant
-# remark #304: access control not specified ("public" by default)
-# remark #310: old-style parameter list (anachronism)
-# remark #383: value copied to temporary, reference to temporary used
-# remark #424: extra ";" ignored
-# remark #444: destructor for base class "Class" is not virtual
-# remark #488: template parameter "T" is not used in declaring the parameter
-#              types of function template "function"
-# remark #810: conversion from "type1" to "type2" may loose significant bits
-# remark #858: type qualifier on return type is meaningless
-# remark #967: conversion from "type1" to "type2"; sizes do not match
-# remark #981: operands are evaluated in unspecified order
-# remark #1418: external definition with no prior declaration
-# remark #1419: external declaration in primary source file
-# warning #1476: field uses tail padding of a base class
-# warning #1477: GNU C++ compilers may use bit field padding
+# warning #654: overloaded virtual function "T::f" is only partially overridden in class "U"
 # warning #1572: floating-point equality and inequality comparisons are unreliable
 #
+
 
 MAKEFILE_GENERATOR	= UNIX
 TEMPLATE		= app
@@ -37,13 +21,14 @@ QMAKE_LEX		= flex
 QMAKE_LEXFLAGS		=
 QMAKE_YACC		= yacc
 QMAKE_YACCFLAGS		= -d
-QMAKE_CFLAGS		= -wd858,1572
+QMAKE_CFLAGS		= -wd654,1572
 QMAKE_CFLAGS_DEPS	= -M
-QMAKE_CFLAGS_WARN_ON	= -w2 -wd171,193,279,304,310,383,424,444,488,810,967,981,1418,1419,1476,1477
+QMAKE_CFLAGS_WARN_ON	=
 QMAKE_CFLAGS_WARN_OFF	= -w
-QMAKE_CFLAGS_RELEASE	=
+QMAKE_CFLAGS_RELEASE	= -O2
 QMAKE_CFLAGS_DEBUG	= -g
-QMAKE_CFLAGS_SHLIB	= -KPIC
+QMAKE_CFLAGS_SHLIB	= -fPIC
+QMAKE_CFLAGS_STATIC_LIB = $$QMAKE_CFLAGS_SHLIB
 QMAKE_CFLAGS_YACC	=
 QMAKE_CFLAGS_THREAD	= -D_REENTRANT
 
@@ -55,6 +40,7 @@ QMAKE_CXXFLAGS_WARN_OFF	= $$QMAKE_CFLAGS_WARN_OFF
 QMAKE_CXXFLAGS_RELEASE	= $$QMAKE_CFLAGS_RELEASE
 QMAKE_CXXFLAGS_DEBUG	= $$QMAKE_CFLAGS_DEBUG
 QMAKE_CXXFLAGS_SHLIB	= $$QMAKE_CFLAGS_SHLIB
+QMAKE_CXXFLAGS_STATIC_LIB = $$QMAKE_CFLAGS_STATIC_LIB
 QMAKE_CXXFLAGS_YACC	= $$QMAKE_CFLAGS_YACC
 QMAKE_CXXFLAGS_THREAD	= $$QMAKE_CFLAGS_THREAD
 
@@ -91,6 +77,7 @@ QMAKE_MOC		= $$[QT_INSTALL_BINS]/moc
 QMAKE_UIC		= $$[QT_INSTALL_BINS]/uic
 
 QMAKE_AR		= ar cqs
+QMAKE_OBJCOPY           = objcopy
 QMAKE_RANLIB		=
 
 QMAKE_CLEAN		= -r $(OBJECTS_DIR)/ti_files

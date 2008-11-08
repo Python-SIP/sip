@@ -34,16 +34,7 @@ than a sipWrapperType*) and do a check and cast internally.
 by allowing a function parameter to have a name (this becomes the keyword) and
 extend sipParseArgs() to take an options dictionary and list of keywords.
 
-24.	Need some way of implementing new Qt properties, or at least fiddle the
-implementation of QSqlPropertyMap to allow new customer editor widgets to be
-implemented in Python.
-
 25.	Add support for specifying docstrings for generated methods.
-
-26.	Fully implement QObject.disconnect().
-
-27.	Look at adding QObject.Q_OBJECT() that will create the moc generated
-methods dynamically (maybe just the tr() functions).
 
 28.	Consider creating a copy of a const reference when wrapping it in order
 to enforce const in Python.  Or add a flag to the wrapper which says it is a
@@ -51,5 +42,17 @@ const instance.  I think the only to way to implement it is to have a "const"
 Python type - an instance of which will point to the underlying Python object.
 This will enable const_cast to be implemented.
 
-30.	Add support for specifying the reverse arithmetic operators.  (Or just
-document that you should use the normal ones as global operators?)
+31.	Allow (some) handwritten code to be implemented in Python.
+
+32.	Consider support for Python properties. Something like...
+
+		const char *GetTitle() const /PropertyGetter=Title/;
+		void SetTitle(const char *title) /PropertySetter=Title/;
+
+	...which would define the getter and setter for a property "Title".
+	Would the getter and setter also be exposed as separate functions?
+	Would that be an option?  You could infer the property name (by
+	removing the optional leading [Gg]et and [Ss]set...
+
+		const char *GetTitle() const /Property/;
+		void SetTitle(const char *title) /Property/;

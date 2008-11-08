@@ -62,7 +62,6 @@
 
 /* Handle class flags.  These are combined with the section flags. */
 
-#define CLASS_HAS_ENUMS     0x00000100  /* It has enums. */
 #define CLASS_HAS_SIGSLOTS  0x00000200  /* It has signals or slots. */
 #define CLASS_IS_ABSTRACT   0x00000400  /* It is an abstract class. */
 #define CLASS_HAS_SHADOW    0x00000800  /* It is has a shadow class. */
@@ -71,18 +70,19 @@
 #define CLASS_DTOR_RELEASE_GIL  0x00004000  /* The dtor releases the GIL. */
 #define CLASS_IS_PROTECTED  0x00008000  /* It is protected. */
 #define CLASS_IS_PROTECTED_SAV  0x00010000  /* It is protected (saved). */
-#define CLASS_IS_RENAMED    0x00020000  /* It has a different Python name. */
-#define CLASS_IS_INCOMPLETE 0x00040000  /* The specification is incomplete. */
-#define CLASS_CAN_CREATE    0x00080000  /* It has usable ctors. */
-#define CLASS_IS_EXTERNAL   0x00100000  /* It is external. */
-#define CLASS_IS_DELAYED_DTOR   0x00200000  /* The dtor is delayed. */
-#define CLASS_NO_DEFAULT_CTORS  0x00400000  /* Don't create default ctors. */
-#define CLASS_QOBJECT_SUB   0x00800000  /* It is derived from QObject. */
-#define CLASS_DTOR_HOLD_GIL 0x01000000  /* The dtor holds the GIL. */
-#define CLASS_QT_META_TYPE  0x02000000  /* Register as a Qt meta type. */
+#define CLASS_IS_INCOMPLETE 0x00020000  /* The specification is incomplete. */
+#define CLASS_CAN_CREATE    0x00040000  /* It has usable ctors. */
+#define CLASS_IS_EXTERNAL   0x00080000  /* It is external. */
+#define CLASS_IS_DELAYED_DTOR   0x00100000  /* The dtor is delayed. */
+#define CLASS_NO_DEFAULT_CTORS  0x00200000  /* Don't create default ctors. */
+#define CLASS_QOBJECT_SUB   0x00400000  /* It is derived from QObject. */
+#define CLASS_DTOR_HOLD_GIL 0x00800000  /* The dtor holds the GIL. */
+#define CLASS_QT_META_TYPE  0x01000000  /* Register as a Qt meta type. */
+#define CLASS_NO_QMETAOBJECT    0x02000000  /* It has no QMetaObject. */
+#define CLASS_CAN_ASSIGN    0x04000000  /* It has an assignment operator. */
+#define CLASS_IS_TEMPLATE   0x08000000  /* It is a template class. */
+#define CLASS_IS_DEPRECATED 0x10000000  /* It is deprecated. */
 
-#define hasEnums(cd)        ((cd)->classflags & CLASS_HAS_ENUMS)
-#define setHasEnums(cd)     ((cd)->classflags |= CLASS_HAS_ENUMS)
 #define hasSigSlots(cd)     ((cd)->classflags & CLASS_HAS_SIGSLOTS)
 #define setHasSigSlots(cd)  ((cd)->classflags |= CLASS_HAS_SIGSLOTS)
 #define isAbstractClass(cd) ((cd)->classflags & CLASS_IS_ABSTRACT)
@@ -102,8 +102,6 @@
 #define resetWasProtectedClass(cd)  ((cd)->classflags &= ~CLASS_IS_PROTECTED_SAV)
 #define isReleaseGILDtor(c) ((cd)->classflags & CLASS_DTOR_RELEASE_GIL)
 #define setIsReleaseGILDtor(c)  ((cd)->classflags |= CLASS_DTOR_RELEASE_GIL)
-#define isRenamedClass(cd)  ((cd)->classflags & CLASS_IS_RENAMED)
-#define setIsRenamedClass(cd)   ((cd)->classflags |= CLASS_IS_RENAMED)
 #define isIncomplete(cd)    ((cd)->classflags & CLASS_IS_INCOMPLETE)
 #define setIsIncomplete(cd) ((cd)->classflags |= CLASS_IS_INCOMPLETE)
 #define canCreate(cd)       ((cd)->classflags & CLASS_CAN_CREATE)
@@ -121,6 +119,15 @@
 #define setIsHoldGILDtor(c) ((cd)->classflags |= CLASS_DTOR_HOLD_GIL)
 #define registerQtMetaType(c)   ((cd)->classflags & CLASS_QT_META_TYPE)
 #define setRegisterQtMetaType(c)    ((cd)->classflags |= CLASS_QT_META_TYPE)
+#define noQMetaObject(c)    ((cd)->classflags & CLASS_NO_QMETAOBJECT)
+#define setNoQMetaObject(c) ((cd)->classflags |= CLASS_NO_QMETAOBJECT)
+#define canAssign(c)        ((cd)->classflags & CLASS_CAN_ASSIGN)
+#define setCanAssign(c)     ((cd)->classflags |= CLASS_CAN_ASSIGN)
+#define isTemplateClass(cd) ((cd)->classflags & CLASS_IS_TEMPLATE)
+#define setIsTemplateClass(cd)  ((cd)->classflags |= CLASS_IS_TEMPLATE)
+#define resetIsTemplateClass(cd)    ((cd)->classflags &= ~CLASS_IS_TEMPLATE)
+#define isDeprecatedClass(cd)   ((cd)->classflags & CLASS_IS_DEPRECATED)
+#define setIsDeprecatedClass(cd)    ((cd)->classflags |= CLASS_IS_DEPRECATED)
 
 #define isPublicDtor(cd)    ((cd)->classflags & SECT_IS_PUBLIC)
 #define setIsPublicDtor(cd) ((cd)->classflags |= SECT_IS_PUBLIC)
@@ -136,6 +143,8 @@
 #define CTOR_EXPLICIT       0x00000200  /* The ctor is explicit. */
 #define CTOR_CAST           0x00000400  /* The ctor is a cast. */
 #define CTOR_HOLD_GIL       0x00000800  /* The ctor holds the GIL. */
+#define CTOR_XFERRED        0x00001000  /* Ownership is transferred. */
+#define CTOR_IS_DEPRECATED  0x00002000  /* The ctor is deprecated. */
 
 #define isPublicCtor(c)     ((c)->ctorflags & SECT_IS_PUBLIC)
 #define setIsPublicCtor(c)  ((c)->ctorflags |= SECT_IS_PUBLIC)
@@ -151,20 +160,26 @@
 #define isCastCtor(c)       ((c)->ctorflags & CTOR_CAST)
 #define isHoldGILCtor(c)    ((c)->ctorflags & CTOR_HOLD_GIL)
 #define setIsHoldGILCtor(c) ((c)->ctorflags |= CTOR_HOLD_GIL)
+#define isResultTransferredCtor(c)  ((c)->ctorflags & CTOR_XFERRED)
+#define setIsResultTransferredCtor(c)   ((c)->ctorflags |= CTOR_XFERRED)
+#define isDeprecatedCtor(c) ((c)->ctorflags & CTOR_IS_DEPRECATED)
+#define setIsDeprecatedCtor(c)  ((c)->ctorflags |= CTOR_IS_DEPRECATED)
 
 
 /* Handle member flags. */
 
 #define MEMBR_NUMERIC       0x0001      /* It is a numeric slot. */
+#define MEMBR_NO_ARG_PARSER 0x0002      /* Don't generate an argument parser. */
 
 #define isNumeric(m)        ((m)->memberflags & MEMBR_NUMERIC)
 #define setIsNumeric(m)     ((m)->memberflags |= MEMBR_NUMERIC)
+#define noArgParser(m)      ((m)->memberflags & MEMBR_NO_ARG_PARSER)
+#define setNoArgParser(m)   ((m)->memberflags |= MEMBR_NO_ARG_PARSER)
 
 
 /* Handle enum flags.  These are combined with the section flags. */
 
 #define ENUM_WAS_PROT       0x00000100  /* It was defined as protected. */
-#define ENUM_IS_RENAMED     0x00000200  /* It has been renamed. */
 
 #define isProtectedEnum(e)  ((e)->enumflags & SECT_IS_PROT)
 #define setIsProtectedEnum(e)   ((e)->enumflags |= SECT_IS_PROT)
@@ -173,8 +188,6 @@
 #define wasProtectedEnum(e) ((e)->enumflags & ENUM_WAS_PROT)
 #define setWasProtectedEnum(e)  ((e)->enumflags |= ENUM_WAS_PROT)
 #define resetWasProtectedEnum(e)    ((e)->enumflags &= ~ENUM_WAS_PROT)
-#define isRenamedEnum(e)    ((e)->enumflags & ENUM_IS_RENAMED)
-#define setIsRenamedEnum(e) ((e)->enumflags |= ENUM_IS_RENAMED)
 
 
 /* Handle hierarchy flags. */
@@ -203,6 +216,10 @@
 #define OVER_DONT_DEREF_SELF    0x00040000  /* For comparison operators, don't dereference self. */
 #define OVER_HOLD_GIL       0x00080000  /* The function holds the GIL. */
 #define OVER_RELEASE_GIL    0x00100000  /* The function releases the GIL. */
+#define OVER_THIS_XFERRED   0x00200000  /* Ownership of this is transferred. */
+#define OVER_IS_GLOBAL      0x00400000  /* It is a global operator. */
+#define OVER_IS_COMPLEMENTARY   0x00800000  /* It is a complementary operator. */
+#define OVER_IS_DEPRECATED  0x01000000  /* It is deprecated. */
 
 #define isPublic(o)         ((o)->overflags & SECT_IS_PUBLIC)
 #define setIsPublic(o)      ((o)->overflags |= SECT_IS_PUBLIC)
@@ -217,6 +234,7 @@
 
 #define isVirtual(o)        ((o)->overflags & OVER_IS_VIRTUAL)
 #define setIsVirtual(o)     ((o)->overflags |= OVER_IS_VIRTUAL)
+#define resetIsVirtual(o)   ((o)->overflags &= ~OVER_IS_VIRTUAL)
 #define isAbstract(o)       ((o)->overflags & OVER_IS_ABSTRACT)
 #define setIsAbstract(o)    ((o)->overflags |= OVER_IS_ABSTRACT)
 #define isConst(o)          ((o)->overflags & OVER_IS_CONST)
@@ -242,6 +260,14 @@
 #define setIsHoldGIL(o)     ((o)->overflags |= OVER_HOLD_GIL)
 #define isReleaseGIL(o)     ((o)->overflags & OVER_RELEASE_GIL)
 #define setIsReleaseGIL(o)  ((o)->overflags |= OVER_RELEASE_GIL)
+#define isThisTransferredMeth(o)    ((o)->overflags & OVER_THIS_XFERRED)
+#define setIsThisTransferredMeth(o) ((o)->overflags |= OVER_THIS_XFERRED)
+#define isGlobal(o)         ((o)->overflags & OVER_IS_GLOBAL)
+#define setIsGlobal(o)      ((o)->overflags |= OVER_IS_GLOBAL)
+#define isComplementary(o)  ((o)->overflags & OVER_IS_COMPLEMENTARY)
+#define setIsComplementary(o)   ((o)->overflags |= OVER_IS_COMPLEMENTARY)
+#define isDeprecated(o)     ((o)->overflags & OVER_IS_DEPRECATED)
+#define setIsDeprecated(o)  ((o)->overflags |= OVER_IS_DEPRECATED)
 
 
 /* Handle variable flags. */
@@ -269,6 +295,8 @@
 #define ARG_IN              0x0200  /* It passes an argument. */
 #define ARG_OUT             0x0400  /* It returns a result. */
 #define ARG_CONSTRAINED     0x0800  /* Suppress type conversion. */
+#define ARG_SINGLE_SHOT     0x1000  /* The slot is only ever fired once. */
+#define ARG_RESULT_SIZE     0x2000  /* It defines the result size. */
 
 #define isReference(a)      ((a)->argflags & ARG_IS_REF)
 #define setIsReference(a)   ((a)-> argflags |= ARG_IS_REF)
@@ -297,6 +325,9 @@
 #define isConstrained(a)    ((a)->argflags & ARG_CONSTRAINED)
 #define setIsConstrained(a) ((a)->argflags |= ARG_CONSTRAINED)
 #define resetIsConstrained(a)   ((a)->argflags &= ~ARG_CONSTRAINED)
+#define isSingleShot(a)     ((a)->argflags & ARG_SINGLE_SHOT)
+#define isResultSize(a)     ((a)->argflags & ARG_RESULT_SIZE)
+#define setResultSize(a)    ((a)->argflags |= ARG_RESULT_SIZE)
 
 
 /* Handle name flags. */
@@ -322,6 +353,22 @@
 #define resetIsDuplicateVH(vh)  ((vh)->vhflags &= ~VH_IS_DUPLICATE)
 #define isTransferVH(vh)    ((vh)->vhflags & VH_TRANSFERS)
 #define setIsTransferVH(vh) ((vh)->vhflags |= VH_TRANSFERS)
+
+
+/* Handle mapped type flags. */
+
+#define MT_NO_RELEASE       0x01    /* Do not generate a release function. */
+
+#define noRelease(mt)       ((mt)->mtflags & MT_NO_RELEASE)
+#define setNoRelease(mt)    ((mt)->mtflags |= MT_NO_RELEASE)
+
+
+/* Handle typedef flags. */
+
+#define TD_NO_TYPE_NAME     0x01    /* Do not use the typedef name. */
+
+#define noTypeName(td)      ((td)->tdflags & TD_NO_TYPE_NAME)
+#define setNoTypeName(td)   ((td)->tdflags |= TD_NO_TYPE_NAME)
 
 
 /* Slot types. */
@@ -428,7 +475,9 @@ typedef enum {
     anyslot_type,
     cbool_type,
     sstring_type,
-    wstring_type
+    wstring_type,
+    fake_void_type,
+    ssize_type
 } argType;
 
 
@@ -498,7 +547,7 @@ typedef struct _scopedNameDef {
 typedef struct _nameDef {
     int nameflags;                      /* The name flags. */
     struct _moduleDef *module;          /* The main module. */
-    char *text;                         /* The text of the name. */
+    const char *text;                   /* The text of the name. */
     struct _nameDef *next;              /* Next in the list. */
 } nameDef;
 
@@ -521,7 +570,7 @@ typedef struct _nodeDef {
 
 typedef struct _codeBlock {
     char *frag;                         /* The code itself. */
-    char *filename;                     /* The original file. */
+    const char *filename;               /* The original file. */
     int linenr;                         /* The line in the file. */
     struct _codeBlock *next;            /* Next in the list. */
 } codeBlock;
@@ -530,8 +579,8 @@ typedef struct _codeBlock {
 /* A module definition. */
 
 typedef struct _moduleDef {
-    char *fullname;                     /* The full module name. */
-    char *name;                         /* The module base name. */
+    const char *fullname;               /* The full module name. */
+    const char *name;                   /* The module base name. */
     int version;                        /* The module version. */
     int modflags;                       /* The module flags. */
     int qobjclass;                      /* QObject class, -1 if none. */
@@ -543,7 +592,6 @@ typedef struct _moduleDef {
     codeBlock *preinitcode;             /* Pre-initialisation code. */
     codeBlock *postinitcode;            /* Post-initialisation code. */
     codeBlock *unitcode;                /* Compilation unit code. */
-    int modulenr;                       /* The module number. */
     int parts;                          /* The number of parts generated. */
     char *file;                         /* The filename. */
     qualDef *qualifiers;                /* The list of qualifiers. */
@@ -622,6 +670,7 @@ typedef struct {
     int argflags;                       /* The argument flags. */
     int nrderefs;                       /* Nr. of dereferences. */
     valueDef *defval;                   /* The default value. */
+    struct _typedefDef *original_type;  /* The original type if typedef'd. */
     union {
         struct _signatureDef *sa;       /* If it is a function. */
         struct _templateDef *td;        /* If it is a template. */
@@ -675,6 +724,7 @@ typedef struct _ifaceFileList {
 /* A mapped type. */
 
 typedef struct _mappedTypeDef {
+    int mtflags;                        /* The mapped type flags. */
     argDef type;                        /* The type being mapped. */
     int mappednr;                       /* The mapped type number. */
     ifaceFileDef *iff;                  /* The interface file. */
@@ -725,6 +775,7 @@ typedef struct _virtHandlerDef {
 /* A typedef definition. */
 
 typedef struct _typedefDef {
+    int tdflags;                        /* The typedef flags. */
     scopedNameDef *fqname;              /* The fully qualified name. */
     struct _classDef *ecd;              /* The enclosing class. */
     moduleDef *module;                  /* The owning module. */
@@ -798,7 +849,6 @@ typedef struct _enumDef {
     nameDef *pyname;                    /* The Python name (may be NULL). */
     int enumnr;                         /* The enum number. */
     struct _classDef *ecd;              /* The enclosing class. */
-    struct _classDef *pcd;              /* The publishing class. */
     moduleDef *module;                  /* The owning module. */
     enumMemberDef *members;             /* The list of members. */
     struct _memberDef *slots;           /* The list of slots. */
@@ -859,7 +909,7 @@ typedef struct _classDef {
     int classflags;                     /* The class flags. */
     int userflags;                      /* The user type flags. */
     int classnr;                        /* The class number. */
-    char *pyname;                       /* The Python name. */
+    const char *pyname;                 /* The Python name. */
     ifaceFileDef *iff;                  /* The interface file. */
     struct _classDef *ecd;              /* The enclosing scope. */
     struct _classDef *real;             /* The real class if this is a proxy or extender. */
@@ -967,13 +1017,14 @@ void fatal(char *,...);
 void fatalScopedName(scopedNameDef *);
 int setInputFile(FILE *open_fp, parserContext *pc, int optional);
 void *sipMalloc(size_t);
-char *sipStrdup(char *);
+char *sipStrdup(const char *);
 char *concat(const char *, ...);
-void append(char **,char *);
-ifaceFileList *addToUsedList(ifaceFileList **, ifaceFileDef *);
+void append(char **, const char *);
+void addToUsedList(ifaceFileList **, ifaceFileDef *);
 int excludedFeature(stringList *,qualDef *);
 int sameSignature(signatureDef *,signatureDef *,int);
-int sameTemplateSignature(signatureDef *sd1, signatureDef *sd2, int deep);
+int sameTemplateSignature(signatureDef *tmpl_sd, signatureDef *args_sd,
+        int deep);
 int sameScopedName(scopedNameDef *,scopedNameDef *);
 int sameBaseType(argDef *,argDef *);
 char *scopedNameTail(scopedNameDef *);
@@ -986,7 +1037,8 @@ void appendCodeBlock(codeBlock **headp, codeBlock *new);
 void prcode(FILE *fp, const char *fmt, ...);
 void prOverloadName(FILE *fp, overDef *od);
 void prScopedPythonName(FILE *fp, classDef *scope, const char *pyname);
-void prOverloadDecl(FILE *fp, overDef *od, int defval);
+void prOverloadDecl(FILE *fp, classDef *context, overDef *od, int defval);
+void searchTypedefs(sipSpec *pt, scopedNameDef *snd, argDef *ad);
 int isIntReturnSlot(memberDef *md);
 int isLongReturnSlot(memberDef *md);
 int isVoidReturnSlot(memberDef *md);
@@ -1000,7 +1052,9 @@ ifaceFileDef *findIfaceFile(sipSpec *pt, moduleDef *mod, scopedNameDef *fqname, 
 int optNoEmitters(sipSpec *pt);
 int optRegisterTypes(sipSpec *pt);
 int optQ_OBJECT4(sipSpec *pt);
+int optAssignmentHelpers(sipSpec *pt);
 void yywarning(char *);
+nameDef *cacheName(sipSpec *pt, const char *name);
 
 
 /* These are only here because bison publically references them. */
