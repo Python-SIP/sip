@@ -1,4 +1,4 @@
-v4.7.8 ??? Nov 2008
+v4.7.8 8th November 2008
   - Added the /Deprecated/ class and function annotation (based on a patch from
     Lorenzo Berni).
   - Templates now support instance variables and enums.
@@ -10,7 +10,7 @@ v4.7.8 ??? Nov 2008
     what the compiler sees.  The /NoTypeName/ typedef annotation can be used to
     suppress this behaviour.
 
-v4.7.7 8th Aug 2008
+v4.7.7 8th August 2008
   - C++ structs are now properly handled as a class with a default public
     section.
   - sip.dump() now includes the object's first child wrapper.
