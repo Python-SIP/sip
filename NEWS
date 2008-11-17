@@ -1,3 +1,6 @@
+v4.7.9 17th November 2008
+  - A bug fix release.
+
 v4.7.8 8th November 2008
   - Added the /Deprecated/ class and function annotation (based on a patch from
     Lorenzo Berni).

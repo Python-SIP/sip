@@ -102,7 +102,7 @@ static void generateCalledArgs(classDef *, signatureDef *, funcArgType, int,
         FILE *);
 static void generateVariable(classDef *, argDef *, int, FILE *);
 static void generateNamedValueType(classDef *, argDef *, char *, FILE *);
-static void generateBaseType(classDef *, argDef *, FILE *);
+static void generateBaseType(classDef *, argDef *, int, FILE *);
 static void generateNamedBaseType(classDef *, argDef *, char *, int, FILE *);
 static void generateTupleBuilder(signatureDef *, FILE *);
 static void generateEmitters(classDef *cd, FILE *fp);
@@ -5525,7 +5525,7 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
     prcode(fp,
 "\n");
 
-    generateBaseType(cd, &od->cppsig->result, fp);
+    generateBaseType(cd, &od->cppsig->result, TRUE, fp);
 
     prcode(fp," sip%C::%O(",classFQCName(cd),od);
     generateCalledArgs(cd, od->cppsig, Definition, TRUE, fp);
@@ -5538,7 +5538,7 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
         prcode(fp,
 "    sipTrace(SIP_TRACE_CATCHERS,\"");
 
-        generateBaseType(cd, &od->cppsig->result, fp);
+        generateBaseType(cd, &od->cppsig->result, TRUE, fp);
         prcode(fp," sip%C::%O(",classFQCName(cd),od);
         generateCalledArgs(cd, od->cppsig, Declaration, TRUE, fp);
         prcode(fp,")%s%X (this=0x%%08x)\\n\",this);\n"
@@ -5556,7 +5556,7 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
         prcode(fp,
 "    extern ");
 
-        generateBaseType(cd, &od->cppsig->result, fp);
+        generateBaseType(cd, &od->cppsig->result, FALSE, fp);
 
         prcode(fp," sipVH_%s_%d(sip_gilstate_t,PyObject *",vhd->module->name,vhd->virthandlernr);
     }
@@ -5565,7 +5565,7 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
         prcode(fp,
 "    typedef ");
 
-        generateBaseType(cd, &od->cppsig->result, fp);
+        generateBaseType(cd, &od->cppsig->result, FALSE, fp);
 
         prcode(fp," (*sipVH_%s_%d)(sip_gilstate_t,PyObject *",vhd->module->name,vhd->virthandlernr);
     }
@@ -6024,7 +6024,7 @@ static void generateProtectedDeclarations(classDef *cd,FILE *fp)
             if (isStatic(od))
                 prcode(fp,"static ");
 
-            generateBaseType(cd, &od->cppsig->result, fp);
+            generateBaseType(cd, &od->cppsig->result, TRUE, fp);
 
             if (!isStatic(od) && !isAbstract(od) && (isVirtual(od) || isVirtualReimp(od)))
             {
@@ -6071,7 +6071,7 @@ static void generateProtectedDefinitions(classDef *cd,FILE *fp)
 "\n"
                 );
 
-            generateBaseType(cd, &od->cppsig->result, fp);
+            generateBaseType(cd, &od->cppsig->result, TRUE, fp);
 
             if (!isStatic(od) && !isAbstract(od) && (isVirtual(od) || isVirtualReimp(od)))
             {
@@ -6210,7 +6210,7 @@ static void generateVirtualHandler(virtHandlerDef *vhd, FILE *fp)
     saved = *vhd->cppsig;
     fakeProtectedArgs(vhd->cppsig);
 
-    generateBaseType(NULL, &vhd->cppsig->result, fp);
+    generateBaseType(NULL, &vhd->cppsig->result, FALSE, fp);
 
     prcode(fp," sipVH_%s_%d(sip_gilstate_t sipGILState,PyObject *sipMethod"
         , vhd->module->name, vhd->virthandlernr);
@@ -6242,7 +6242,7 @@ static void generateVirtualHandler(virtHandlerDef *vhd, FILE *fp)
         if (res->atype == wstring_type && res->nrderefs == 1)
             prcode(fp, "static ");
 
-        generateBaseType(NULL, &res_noconstref, fp);
+        generateBaseType(NULL, &res_noconstref, FALSE, fp);
 
         prcode(fp," %ssipRes",(isref ? "*" : ""));
 
@@ -6333,7 +6333,7 @@ static void generateVirtualHandler(virtHandlerDef *vhd, FILE *fp)
         prcode(fp,
 "    ");
 
-        generateBaseType(NULL, &res_noconstref, fp);
+        generateBaseType(NULL, &res_noconstref, FALSE, fp);
 
         prcode(fp," *sipResOrig;\n");
 
@@ -7339,7 +7339,7 @@ void prOverloadDecl(FILE *fp, classDef *context, overDef *od, int defval)
 
     normaliseArgs(od->cppsig);
 
-    generateBaseType(context, &od->cppsig->result, fp);
+    generateBaseType(context, &od->cppsig->result, TRUE, fp);
  
     prcode(fp, " %O(", od);
 
@@ -7350,7 +7350,7 @@ void prOverloadDecl(FILE *fp, classDef *context, overDef *od, int defval)
         if (a > 0)
             prcode(fp, ",");
 
-        generateBaseType(context, ad, fp);
+        generateBaseType(context, ad, TRUE, fp);
 
         if (defval && ad->defval != NULL)
         {
@@ -7499,9 +7499,10 @@ static void generateNamedValueType(classDef *context, argDef *ad, char *name,
 /*
  * Generate a C++ type.
  */
-static void generateBaseType(classDef *context, argDef *ad, FILE *fp)
+static void generateBaseType(classDef *context, argDef *ad, int use_typename,
+        FILE *fp)
 {
-    generateNamedBaseType(context, ad, "", TRUE, fp);
+    generateNamedBaseType(context, ad, "", use_typename, fp);
 }
 
 
@@ -7538,7 +7539,7 @@ static void generateNamedBaseType(classDef *context, argDef *ad, char *name,
             int i;
             signatureDef *sig = ad->u.sa;
 
-            generateBaseType(context, &sig->result, fp);
+            generateBaseType(context, &sig->result, TRUE, fp);
 
             prcode(fp," (");
 
@@ -7658,7 +7659,7 @@ static void generateNamedBaseType(classDef *context, argDef *ad, char *name,
             break;
 
         case mapped_type:
-            generateBaseType(context, &ad->u.mtd->type, fp);
+            generateBaseType(context, &ad->u.mtd->type, TRUE, fp);
             break;
 
         case class_type:
@@ -7678,7 +7679,7 @@ static void generateNamedBaseType(classDef *context, argDef *ad, char *name,
                     if (a > 0)
                         prcode(fp, ",");
 
-                    generateBaseType(context, &td->types.args[a], fp);
+                    generateBaseType(context, &td->types.args[a], TRUE, fp);
                 }
 
                 if (prcode_last == tail)
@@ -11009,7 +11010,7 @@ void prcode(FILE *fp, const char *fmt, ...)
                     resetIsReference(ad);
                     ad->nrderefs = 0;
 
-                    generateBaseType(NULL, ad, fp);
+                    generateBaseType(NULL, ad, TRUE, fp);
 
                     *ad = orig;
 
@@ -11025,12 +11026,12 @@ void prcode(FILE *fp, const char *fmt, ...)
                     classDef *context = va_arg(ap, classDef *);
                     argDef *ad = va_arg(ap, argDef *);
 
-                    generateBaseType(context, ad, fp);
+                    generateBaseType(context, ad, TRUE, fp);
                     break;
                 }
 
             case 'B':
-                generateBaseType(NULL, va_arg(ap,argDef *),fp);
+                generateBaseType(NULL, va_arg(ap,argDef *),TRUE, fp);
                 break;
 
             case 'T':
