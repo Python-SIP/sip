@@ -128,6 +128,7 @@ static int sip_api_assign_mapped_type(void *dst, const void *src,
         sipMappedType *mt);
 static void sip_api_register_meta_type(int type, sipWrapperType *py_type);
 static int sip_api_deprecated(const char *classname, const char *method);
+static int sip_api_wrappertype_check(PyObject *obj);
 
 
 /*
@@ -261,7 +262,11 @@ static const sipAPIDef sip_api = {
      * The following are not part of the public API.
      */
     sip_api_register_meta_type,
-    sip_api_deprecated
+    sip_api_deprecated,
+    /*
+     * The following are part of the public API.
+     */
+    sip_api_wrappertype_check
 };
 
 
@@ -432,7 +437,6 @@ static PyObject *transfer(PyObject *self, PyObject *args);
 static PyObject *transferBack(PyObject *self, PyObject *args);
 static PyObject *transferTo(PyObject *self, PyObject *args);
 static void print_wrapper(const char *label, sipWrapper *w);
-static int sipWrapperType_Check(PyObject *op);
 static void addToParent(sipWrapper *self, sipWrapper *owner);
 static void removeFromParent(sipWrapper *self);
 static sipWrapperType *findClass(sipExportedModuleDef *emd, const char *name,
@@ -4739,9 +4743,9 @@ int sip_api_wrapper_check(PyObject *o)
 /*
  * Return non-zero if the object is a C++ instance wrapper type.
  */
-static int sipWrapperType_Check(PyObject *op)
+static int sip_api_wrappertype_check(PyObject *obj)
 {
-    return PyObject_TypeCheck(op,(PyTypeObject *)&sipWrapperType_Type);
+    return PyObject_TypeCheck(obj, (PyTypeObject *)&sipWrapperType_Type);
 }
 
 
@@ -5218,7 +5222,7 @@ static int sip_api_add_enum_instance(PyObject *dict, const char *name,
         int value, PyTypeObject *type)
 {
     /* If this is a wrapped type then get the type dictionary. */
-    if (sipWrapperType_Check(dict))
+    if (sip_api_wrappertype_check(dict))
         dict = ((PyTypeObject *)dict)->tp_dict;
 
     return addSingleEnumInstance(dict, name, value, type);
@@ -5268,7 +5272,7 @@ static int sip_api_add_class_instance(PyObject *dict, const char *name,
         void *cppPtr, sipWrapperType *wt)
 {
     /* If this is a wrapped type then get the type dictionary. */
-    if (sipWrapperType_Check(dict))
+    if (sip_api_wrappertype_check(dict))
         dict = ((PyTypeObject *)dict)->tp_dict;
 
     return addSingleClassInstance(dict, name, cppPtr, wt, 0);
@@ -5285,7 +5289,7 @@ static int sip_api_add_mapped_type_instance(PyObject *dict, const char *name,
     PyObject *w;
 
     /* If this is a wrapped type then get the type dictionary. */
-    if (sipWrapperType_Check(dict))
+    if (sip_api_wrappertype_check(dict))
         dict = ((PyTypeObject *)dict)->tp_dict;
 
     if ((w = mt->mt_cfrom(cppPtr, NULL)) == NULL)
@@ -6877,7 +6881,7 @@ static int sipWrapperType_init(sipWrapperType *self, PyObject *args,
          * Make sure that the type is derived from sip.wrapper.  It might not
          * if the type specifies sip.wrappertype as the __metaclass__.
          */
-        if (sc == NULL || !sipWrapperType_Check((PyObject *)sc))
+        if (sc == NULL || !sip_api_wrappertype_check((PyObject *)sc))
         {
             PyErr_Format(PyExc_TypeError,
                     "type %s must be derived from sip.wrapper",

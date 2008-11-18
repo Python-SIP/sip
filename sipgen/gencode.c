@@ -545,6 +545,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipTransferTo               sipAPI_%s->api_transfer_to\n"
 "#define sipTransferBreak            sipAPI_%s->api_transfer_break\n"
 "#define sipWrapper_Check            sipAPI_%s->api_wrapper_check\n"
+"#define sipWrapperType_Check        sipAPI_%s->api_wrappertype_check\n"
 "#define sipGetWrapper               sipAPI_%s->api_get_wrapper\n"
 "#define sipGetCppPtr                sipAPI_%s->api_get_cpp_ptr\n"
 "#define sipGetComplexCppPtr         sipAPI_%s->api_get_complex_cpp_ptr\n"
@@ -606,6 +607,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipRegisterMetaType         sipAPI_%s->api_register_meta_type\n"
 "#define sipWrappedTypeName(wt)      ((wt)->type->td_cname)\n"
 "#define sipDeprecated               sipAPI_%s->api_deprecated\n"
+        ,mname
         ,mname
         ,mname
         ,mname

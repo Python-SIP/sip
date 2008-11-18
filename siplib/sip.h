@@ -56,6 +56,8 @@ extern "C" {
  *
  * History:
  *
+ * 4.0  Added sip_api_wrappertype_check().
+ *
  * 3.8  Added sip_api_register_meta_type() and sip_api_deprecated().
  *      Added qt_register_meta_type() to the Qt support API.
  *      The C/C++ names of enums and types are now always defined in the

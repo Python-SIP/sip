@@ -4814,6 +4814,14 @@ extension of the Python ``PyObject`` structure) and so may be safely cast to
 ``PyTypeObject`` (and ``PyObject``).
 
 
+sipWrapperType_Check()
+----------------------
+
+int sipWrapperType_Check(PyObject \*obj)
+    This returns a non-zero value if a Python object is a generated type
+    object.  *obj* is the Python object.
+
+
 Generated Type Convertors
 -------------------------
 
