@@ -1365,17 +1365,11 @@ class ModuleMakefile(Makefile):
         self.LFLAGS.extend(self.optional_list(lflags_console))
 
         if sys.platform == "darwin":
-            # We use the -F flag to explictly specify the directory containing
-            # the Python framework rather than rely on the default search path.
-            # This allows Apple's Python to be used even if a later python.org
-            # version is also installed.
             dl = string.split(sys.exec_prefix, os.sep)
-            try:
-                dl = dl[:dl.index("Python.framework")]
-            except ValueError:
+            if "Python.framework" not in dl:
                 error("SIP requires Python to be built as a framework")
-            self.LFLAGS.append("-F%s" % string.join(dl, os.sep))
-            self.LFLAGS.append("-framework Python")
+
+            self.LFLAGS.append("-undefined dynamic_lookup")
 
         Makefile.finalise(self)
 
