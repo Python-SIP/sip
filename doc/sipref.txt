@@ -176,6 +176,27 @@ SIP itself does not require Qt to be installed.
 Potential Incompatibilities with Earlier Versions
 =================================================
 
+SIP v4.8
+--------
+
+The following deprecated parts of the API have been removed.
+
+    - The ``a``, ``A``, ``M``, ``N``, ``O``, ``P`` and ``T`` format characters
+      from `sipBuildResult()`_ and `sipCallMethod()`_.
+
+    - The ``a``, ``A``, ``L`` and ``M`` format characters from
+      `sipParseResult()`_.
+
+    - ``sipConvertToCpp()``, ``sipIsSubClassInstance()`` and ``sipTransfer()``.
+
+    - The old-style generated type convertors.
+
+    - The ``transfer()`` function of the ``sip`` module.
+
+In addition the deprecated ``-a`` command line option to ``configure.py`` has
+been removed.
+
+
 SIP v4.7.8
 ----------
 
@@ -206,8 +227,8 @@ SIP v4.4
 
     - The ``SIP_BUILD`` C preprocessor symbol has been removed.
 
-    - `sipConvertToCpp()`_, `sipIsSubClassInstance()`_ and the old `Generated
-      Type Convertors`_ have been deprecated.  The functions
+    - ``sipConvertToCpp()``, ``sipIsSubClassInstance()`` and the old-style
+      generated type convertors have been deprecated.  The functions
       `sipCanConvertToInstance()`_, `sipConvertToInstance()`_,
       `sipForceConvertToInstance()`_, `sipConvertFromInstance()`_,
       `sipConvertFromNewInstance()`_, `sipCanConvertToMappedType()`_,
@@ -254,11 +275,6 @@ interpreter for which you wish SIP to generate bindings for.
 The full set of command line options is:
 
 -h       Display a help message.
--a       Export all symbols in any SIP generated module and the SIP module
-         itself.  This was the default behaviour of SIP prior to v4.2.
-         Normally only a module's inititialisation function is exported.  This
-         option is deprecated as the ``ModuleMakefile`` class of `The SIP Build
-         System`_ allows this to be specified on a per module basis.
 -b dir   The SIP code generator will be installed in the directory ``dir``.
 -d dir   The SIP module will be installed in the directory ``dir``.
 -e dir   The SIP header file will be installed in the directory ``dir``.
@@ -3928,11 +3944,6 @@ PyObject \*sipBuildResult(int \*iserr, const char \*format, ...)
     will create, and the entry in brackets are the types of the C/C++ values
     to be passed. 
 
-    ``a`` (string) [char \*, int]
-        Convert a C/C++ character array and its length to a Python string.  If
-        the array is ``NULL`` then the length is ignored and the result is
-        ``Py_None``.  This is deprecated, use ``g`` instead.
-
     ``b`` (boolean) [int]
         Convert a C/C++ ``int`` to a Python boolean.
 
@@ -3989,11 +4000,6 @@ PyObject \*sipBuildResult(int \*iserr, const char \*format, ...)
         unicode object.  If the string pointer is ``NULL`` then the result is
         ``Py_None``.
 
-    ``A`` (unicode) [wchar_t \*, int]
-        Convert a C/C++ wide character array and its length to a Python unicode
-        object.  If the array is ``NULL`` then the length is ignored and the
-        result is ``Py_None``.  This is deprecated, use ``G`` instead.
-
     ``B`` (wrapped instance) [*type* \*, sipWrapperType \*, PyObject \*]
         Convert a new C structure or a new C++ class instance to a Python class
         instance object.  Ownership of the structure or instance is determined
@@ -4036,37 +4042,6 @@ PyObject \*sipBuildResult(int \*iserr, const char \*format, ...)
         object.  If the array is ``NULL`` then the length is ignored and the
         result is ``Py_None``.
 
-    ``M`` (wrapped instance) [*type* \*, sipWrapperType \*]
-        Convert a C structure or a C++ class instance to a Python class
-        instance object.  If the structure or class instance has already been
-        wrapped then the result is a new reference to the existing class
-        instance object.  If the instance has already been wrapped then the
-        ownership is unchanged.  If the instance is newly wrapped then
-        ownership will be with C/C++.  The Python class is influenced by any
-        applicable `%ConvertToSubClassCode`_ code.  This is deprecated from
-        SIP v4.4.
-
-    ``N`` (wrapped instance) [*type* \*, sipWrapperType \*]
-        Convert a C structure or a C++ class instance to a Python class
-        instance object.  This should not be used if the structure or class
-        instance might already have been wrapped.  Ownership of the structure
-        or instance will be with Python.  The Python class is influenced by
-        any applicable `%ConvertToSubClassCode`_ code.  This is deprecated
-        from SIP v4.4.
-
-    ``O`` (wrapped instance) [*type* \*, sipWrapperType \*]
-        Convert a C structure or a C++ class instance to a Python class
-        instance object.  If the structure or class instance has already been
-        wrapped then the result is a new reference to the existing class
-        instance object.  Ownership of the structure or instance will be with
-        C/C++.  This is deprecated from SIP v4.4.
-
-    ``P`` (wrapped instance) [*type* \*, sipWrapperType \*]
-        Convert a C structure or a C++ class instance to a Python class
-        instance object.  This should not be used if the structure or class
-        instance might already have been wrapped.  Ownership of the structure
-        or instance will be with Python.  This is deprecated from SIP v4.4.
-
     ``R`` (object) [PyObject \*]
         The result is value passed without any conversions.  The reference
         count is unaffected, i.e. a reference is taken.
@@ -4074,11 +4049,6 @@ PyObject \*sipBuildResult(int \*iserr, const char \*format, ...)
     ``S`` (object) [PyObject \*]
         The result is value passed without any conversions.  The reference
         count is incremented.
-
-    ``T`` (object) [void \*, PyObject \*(\*)(void \*cppptr)]
-        Convert a C structure or a C++ class instance to a Python object using
-        a convertor function.  See `Generated Type Convertors`_.  This is
-        deprecated from SIP v4.4.
 
     ``V`` (sip.voidptr) [void \*]
         Convert a C/C++ ``void *`` Python ``sip.voidptr`` object.
@@ -4266,15 +4236,6 @@ PyObject \*sipConvertFromVoidPtrAndSize(void \*cpp, SIP_SSIZE_T size)
     will be writeable.  *cpp* is the memory address.  *size* is the size
     associated with the address.  The object can be used as a mutable buffer
     object.
-
-
-sipConvertToCpp()
------------------
-
-void \*sipConvertToCpp(PyObject \*obj, sipWrapperType \*type, int \*iserr)
-    This function is deprecated from SIP v4.4.  It is equivalent to::
-
-        sipConvertToInstance(obj, type, NULL, SIP_NO_CONVERTORS, NULL, iserr);
 
 
 sipConvertToInstance()
@@ -4491,15 +4452,6 @@ sipWrapperType \*\*pyType.
     A pointer to the corresponding Python type object.
 
 
-sipIsSubClassInstance()
------------------------
-
-int sipIsSubClassInstance(PyObject \*obj, sipWrapperType \*type)
-    This function is deprecated from SIP v4.4.  It is equivalent to::
-
-        sipCanConvertToInstance(obj, type, SIP_NOT_NONE | SIP_NO_CONVERTORS);
-
-
 sipLong_AsUnsignedLong()
 ------------------------
 
@@ -4568,11 +4520,6 @@ int sipParseResult(int \*iserr, PyObject \*method, PyObject \*result, const char
     will convert, and the entry in brackets are the types of the C/C++ values
     to be passed. 
 
-    ``a`` (string) [const char \*\*, int \*]
-        Convert a Python string to a C/C++ character array and its length.  If
-        the Python object is ``Py_None`` then the array and length are ``NULL``
-        and zero respectively.  This is deprecated, use ``g`` instead.
-
     ``b`` (integer) [bool \*]
         Convert a Python integer to a C/C++ ``bool``.
 
@@ -4629,12 +4576,6 @@ int sipParseResult(int \*iserr, PyObject \*method, PyObject \*result, const char
         character string.  If the Python object is ``Py_None`` then the string
         is ``NULL``.
 
-    ``A`` (unicode) [wchar_t \*\*, int \*]
-        Convert a Python unicode object to a C/C++ wide character array and its
-        length.  If the Python object is ``Py_None`` then the array and length
-        are ``NULL`` and zero respectively.  This is deprecated, use ``G``
-        instead.
-
     ``Cf`` (wrapped class) [sipWrapperType \*, int \*, void \*\*]
         Convert a Python object to a C structure or a C++ class instance and
         return its state as described in `sipConvertToInstance()`_.  ``f`` is a
@@ -4671,17 +4612,6 @@ int sipParseResult(int \*iserr, PyObject \*method, PyObject \*result, const char
         Convert a Python unicode object to a C/C++ wide character array and its
         length.  If the Python object is ``Py_None`` then the array and length
         are ``NULL`` and zero respectively.
-
-    ``L`` (object) [*type* \*(\*)(PyObject \*obj, int \*iserr), void \*\*]
-        Convert a Python object to a C structure or a C++ class instance using
-        a convertor function.  See `Generated Type Convertors`_.  This is
-        deprecated from SIP v4.4.
-
-    ``M`` (object) [*type* \*(\*)(PyObject \*obj, int \*iserr), void \*\*]
-        Convert a Python object to a C structure or a C++ class instance using
-        a convertor function.  If the structure or class instance pointer is
-        ``NULL`` then return an error.  See `Generated Type Convertors`_.  This
-        is deprecated from SIP v4.4.
 
     ``N`` (object) [PyTypeObject \*, PyObject \*\*]
         A Python object is checked to see if it is a certain type and then
@@ -4738,20 +4668,6 @@ char \*typeString
 
 sipWrapperType \*\*pyType.
     A pointer to the corresponding Python type object.
-
-
-sipTransfer()
--------------
-
-void sipTransfer(PyObject \*obj, int tocpp)
-    This function is deprecated from SIP v4.3.  If *tocpp* is non-zero then the
-    equivalent call is::
-
-        sipTransferTo(obj, obj);
-
-    If *tocpp* is zero then the equivalent call is::
-
-        sipTransferBack(obj);
 
 
 sipTransferBack()
@@ -4820,36 +4736,6 @@ sipWrapperType_Check()
 int sipWrapperType_Check(PyObject \*obj)
     This returns a non-zero value if a Python object is a generated type
     object.  *obj* is the Python object.
-
-
-Generated Type Convertors
--------------------------
-
-These functions are deprecated from SIP v4.4.
-
-SIP generates functions for all types being wrapped (including mapped types
-defined with the `%MappedType`_ directive) that convert a Python object to the
-C structure or C++ class instance.  The name of this convertor is the name of
-the structure or class prefixed by ``sipForceConvertTo_``.
-
-void \*sipForceConvertTo_*class*(PyObject \*obj, int \*iserr)
-    *obj* is the Python object to convert.  If *obj* is ``NULL`` or the
-    location pointed to by *iserr* is non-zero then the conversion is not
-    attempted and ``NULL`` is returned.  If there was an error then the
-    location pointed to by *iserr* is set to a non-zero value, a Python
-    exception is raised, and ``NULL`` is returned.
-
-SIP also generates functions for mapped types that convert a C structure or
-C++ class instance to a Python object.  The name of this convertor is the name
-of the structure or class prefixed by ``sipConvertFrom_``.
-
-PyObject \*sipConvertFrom_*class*(void \*cppptr)
-    *cppptr* is a pointer to the C structure or C++ class instance to convert.
-    If there was an error then ``NULL`` is returned and a Python exception
-    raised.
-
-The convertor functions of all imported types are available to handwritten
-code.
 
 
 Generated Type Objects
@@ -5034,16 +4920,6 @@ SIP_VERSION_STR
     This is a Python string object that defines the SIP version number as
     represented as a string.  For development snapshots it will start with
     ``snapshot-``.  It was first implemented in SIP v4.3.
-
-transfer(obj, direction)
-    This function is deprecated from SIP v4.3.  If *direction* is non-zero then
-    the equivalent call is::
-
-        sip.transferto(obj, None)
-
-    If *direction* is zero then the equivalent call is::
-
-        sip.transferback(obj)
 
 transferback(obj)
     This function is a wrapper around `sipTransferBack()`_.

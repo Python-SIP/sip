@@ -37,7 +37,6 @@ opt_sipincdir = None
 opt_sipsipdir = None
 opt_static = 0
 opt_debug = 0
-opt_export_all = 0
 opt_universal = None
 
 # The names of build macros extracted from the platform specific configuration
@@ -246,7 +245,6 @@ def create_config(module, template, macros):
         "default_bin_dir":  plat_bin_dir,
         "default_mod_dir":  plat_py_site_dir,
         "default_sip_dir":  opt_sipsipdir,
-        "export_all":       opt_export_all,
         "py_version":       py_version,
         "py_inc_dir":       plat_py_inc_dir,
         "py_conf_inc_dir":  plat_py_conf_inc_dir,
@@ -328,20 +326,18 @@ def main(argv):
     set_defaults()
 
     try:
-        optlist, args = getopt.getopt(argv[1:], "hab:d:e:knp:s:uv:")
+        optlist, args = getopt.getopt(argv[1:], "hb:d:e:knp:s:uv:")
     except getopt.GetoptError:
         usage()
 
     global opt_sipbindir, opt_sipmoddir, opt_sipincdir, opt_sipsipdir
-    global opt_platform, opt_static, opt_debug, opt_export_all, opt_universal
+    global opt_platform, opt_static, opt_debug, opt_universal
 
     sdk = DEFAULT_MACOSX_SDK
 
     for opt, arg in optlist:
         if opt == "-h":
             usage(0)
-        elif opt == "-a":
-            opt_export_all = 1
         elif opt == "-b":
             opt_sipbindir = os.path.abspath(arg)
         elif opt == "-d":

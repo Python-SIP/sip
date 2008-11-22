@@ -1306,12 +1306,7 @@ class ModuleMakefile(Makefile):
             self._limit_exports = 0
         else:
             self._strip = strip
-
-            # The deprecated configuration flag has precedence.
-            if self.config.export_all:
-                self._limit_exports = 0
-            else:
-                self._limit_exports = not export_all
+            self._limit_exports = not export_all
 
         # Save the target name for later.
         self._target = self._build["target"]

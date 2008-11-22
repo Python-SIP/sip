@@ -50,8 +50,6 @@ static PyObject *sip_api_convert_from_new_instance(void *cpp,
         sipWrapperType *type, PyObject *transferObj);
 static PyObject *sip_api_convert_from_mapped_type(void *cpp,
         const sipMappedType *mt, PyObject *transferObj);
-static void *sip_api_convert_to_cpp(PyObject *sipSelf, sipWrapperType *type,
-        int *iserrp);
 static int sip_api_get_state(PyObject *transferObj);
 static const sipMappedType *sip_api_find_mapped_type(const char *type);
 static PyObject *sip_api_get_wrapper(void *cppPtr, sipWrapperType *type);
@@ -62,7 +60,6 @@ static sipWrapperType *sip_api_map_string_to_class(const char *typeString,
 static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
         const char *fmt, ...);
 static void sip_api_trace(unsigned mask,const char *fmt,...);
-static void sip_api_transfer(PyObject *self, int toCpp);
 static void sip_api_transfer_back(PyObject *self);
 static void sip_api_transfer_to(PyObject *self, PyObject *owner);
 static int sip_api_export_module(sipExportedModuleDef *client,
@@ -158,7 +155,6 @@ static const sipAPIDef sip_api = {
     sip_api_convert_from_instance,
     sip_api_convert_from_new_instance,
     sip_api_convert_from_mapped_type,
-    sip_api_convert_to_cpp,
     sip_api_get_state,
     sip_api_find_mapped_type,
     sip_api_disconnect_rx,
@@ -171,13 +167,22 @@ static const sipAPIDef sip_api = {
     sip_api_map_string_to_class,
     sip_api_parse_result,
     sip_api_trace,
-    sip_api_transfer,
     sip_api_transfer_back,
     sip_api_transfer_to,
+    sip_api_transfer_break,
     sip_api_wrapper_check,
+    sip_api_wrappertype_check,
     sip_api_long_as_unsigned_long,
     sip_api_convert_from_named_enum,
     sip_api_convert_from_void_ptr,
+    sip_api_convert_from_const_void_ptr,
+    sip_api_convert_from_void_ptr_and_size,
+    sip_api_convert_from_const_void_ptr_and_size,
+    sip_api_convert_to_void_ptr,
+    sip_api_export_symbol,
+    sip_api_import_symbol,
+    sip_api_find_class,
+    sip_api_find_named_enum,
     /*
      * The following may be used by Qt support code but by no other handwritten
      * code.
@@ -186,6 +191,13 @@ static const sipAPIDef sip_api = {
     sip_api_emit_to_slot,
     sip_api_same_connection,
     sip_api_convert_rx,
+    sip_api_register_int_types,
+    sip_api_parse_signature,
+    sip_api_invoke_slot,
+    sip_api_parse_type,
+    sip_api_is_exact_wrapped_type,
+    sip_api_assign_instance,
+    sip_api_assign_mapped_type,
     /*
      * The following are not part of the public API.
      */
@@ -193,13 +205,6 @@ static const sipAPIDef sip_api = {
     sip_api_parse_pair,
     sip_api_common_ctor,
     sip_api_common_dtor,
-    /*
-     * The following are part of the public API.
-     */
-    sip_api_convert_to_void_ptr,
-    /*
-     * The following are not part of the public API.
-     */
     sip_api_no_function,
     sip_api_no_method,
     sip_api_abstract_method,
@@ -220,53 +225,11 @@ static const sipAPIDef sip_api = {
     sip_api_pyslot_extend,
     sip_api_add_delayed_dtor,
     sip_api_add_mapped_type_instance,
-    /*
-     * The following are part of the public API.
-     */
-    sip_api_export_symbol,
-    sip_api_import_symbol,
-    /*
-     * The following may be used by Qt support code but by no other handwritten
-     * code.
-     */
-    sip_api_register_int_types,
-    sip_api_parse_signature,
-    /*
-     * The following are part of the public API.
-     */
-    sip_api_find_class,
-    sip_api_find_named_enum,
-    /*
-     * The following are not part of the public API.
-     */
     sip_api_string_as_char,
     sip_api_unicode_as_wchar,
     sip_api_unicode_as_wstring,
-    /*
-     * The following are part of the public API.
-     */
-    sip_api_transfer_break,
-    sip_api_convert_from_const_void_ptr,
-    sip_api_convert_from_void_ptr_and_size,
-    sip_api_convert_from_const_void_ptr_and_size,
-    /*
-     * The following may be used by Qt support code but by no other handwritten
-     * code.
-     */
-    sip_api_invoke_slot,
-    sip_api_parse_type,
-    sip_api_is_exact_wrapped_type,
-    sip_api_assign_instance,
-    sip_api_assign_mapped_type,
-    /*
-     * The following are not part of the public API.
-     */
     sip_api_register_meta_type,
-    sip_api_deprecated,
-    /*
-     * The following are part of the public API.
-     */
-    sip_api_wrappertype_check
+    sip_api_deprecated
 };
 
 
@@ -433,7 +396,6 @@ static PyObject *setDeleted(PyObject *self, PyObject *args);
 static PyObject *setTraceMask(PyObject *self, PyObject *args);
 static PyObject *wrapInstance(PyObject *self, PyObject *args);
 static PyObject *unwrapInstance(PyObject *self, PyObject *args);
-static PyObject *transfer(PyObject *self, PyObject *args);
 static PyObject *transferBack(PyObject *self, PyObject *args);
 static PyObject *transferTo(PyObject *self, PyObject *args);
 static void print_wrapper(const char *label, sipWrapper *w);
@@ -453,7 +415,6 @@ static int sameScopedName(const char *pyname, const char *name, size_t len);
 static int nameEq(const char *with, const char *name, size_t len);
 static void release(void *addr, sipTypeDef *td, int state);
 static void callPyDtor(sipWrapper *self);
-static int qt_and_sip_api_3_x(int x);
 static int visitSlot(sipSlot *slot, visitproc visit, void *arg);
 static void clearAnySlotReference(sipSlot *slot);
 static int parseCharArray(PyObject *obj, const char **ap, SIP_SSIZE_T *aszp);
@@ -487,7 +448,6 @@ PyMODINIT_FUNC initsip(void)
         {"isdeleted", isDeleted, METH_VARARGS, NULL},
         {"setdeleted", setDeleted, METH_VARARGS, NULL},
         {"settracemask", setTraceMask, METH_VARARGS, NULL},
-        {"transfer", transfer, METH_VARARGS, NULL},
         {"transferback", transferBack, METH_VARARGS, NULL},
         {"transferto", transferTo, METH_VARARGS, NULL},
         {"wrapinstance", wrapInstance, METH_VARARGS, NULL},
@@ -705,36 +665,6 @@ static PyObject *transferBack(PyObject *self, PyObject *args)
 
 
 /*
- * Transfer the ownership of an instance.  This is deprecated.
- */
-static PyObject *transfer(PyObject *self, PyObject *args)
-{
-    PyObject *w;
-    int toCpp;
-
-    if (PyArg_ParseTuple(args, "O!i:transfer", &sipWrapper_Type, &w, &toCpp))
-    {
-#if PY_VERSION_HEX >= 0x02050000
-        if (PyErr_WarnEx(PyExc_DeprecationWarning, "sip.transfer() is deprecated", 1) < 0)
-#else
-        if (PyErr_Warn(PyExc_DeprecationWarning, "sip.transfer() is deprecated") < 0)
-#endif
-            return NULL;
-
-        if (toCpp)
-            sip_api_transfer_to(w, NULL);
-        else
-            sip_api_transfer_back(w);
-
-        Py_INCREF(Py_None);
-        return Py_None;
-    }
-
-    return NULL;
-}
-
-
-/*
  * Cast an instance to one of it's sub or super-classes by returning a new
  * Python object with the superclass type wrapping the same C++ instance.
  */
@@ -907,9 +837,9 @@ static int sip_api_export_module(sipExportedModuleDef *client,
     if (api_major != SIP_API_MAJOR_NR || api_minor > SIP_API_MINOR_NR)
     {
 #if SIP_API_MINOR_NR > 0
-        PyErr_Format(PyExc_RuntimeError, "the sip module supports API v%d.0 to v%d.%d but the %s module requires API v%d.%d", SIP_API_MAJOR_NR, SIP_API_MAJOR_NR, SIP_API_MINOR_NR, client->em_name, api_major,api_minor);
+        PyErr_Format(PyExc_RuntimeError, "the sip module implements API v%d.0 to v%d.%d but the %s module requires API v%d.%d", SIP_API_MAJOR_NR, SIP_API_MAJOR_NR, SIP_API_MINOR_NR, client->em_name, api_major,api_minor);
 #else
-        PyErr_Format(PyExc_RuntimeError, "the sip module supports API v%d.0 but the %s module requires API v%d.%d", SIP_API_MAJOR_NR, client->em_name, api_major,api_minor);
+        PyErr_Format(PyExc_RuntimeError, "the sip module implements API v%d.0 but the %s module requires API v%d.%d", SIP_API_MAJOR_NR, client->em_name, api_major,api_minor);
 #endif
 
         return -1;
@@ -1443,27 +1373,6 @@ static PyObject *buildObject(PyObject *obj, const char *fmt, va_list va)
 
         switch (ch)
         {
-        case 'a':
-            {
-                char *s;
-                int l;
-
-                /* Note that this is deprecated in favor of 'g'. */
-
-                s = va_arg(va, char *);
-                l = va_arg(va, int);
-
-                if (s != NULL)
-                    el = PyString_FromStringAndSize(s, (SIP_SSIZE_T)l);
-                else
-                {
-                    Py_INCREF(Py_None);
-                    el = Py_None;
-                }
-            }
-
-            break;
-
         case 'g':
             {
                 char *s;
@@ -1480,32 +1389,6 @@ static PyObject *buildObject(PyObject *obj, const char *fmt, va_list va)
                     el = Py_None;
                 }
             }
-
-            break;
-
-        case 'A':
-#if defined(HAVE_WCHAR_H)
-            {
-                wchar_t *s;
-                int l;
-
-                /* Note that this is deprecated in favor of 'G'. */
-
-                s = va_arg(va, wchar_t *);
-                l = va_arg(va, int);
-
-                if (s != NULL)
-                    el = PyUnicode_FromWideChar(s, (SIP_SSIZE_T)l);
-                else
-                {
-                    Py_INCREF(Py_None);
-                    el = Py_None;
-                }
-            }
-#else
-            raiseNoWChar();
-            el = NULL;
-#endif
 
             break;
 
@@ -1678,28 +1561,6 @@ static PyObject *buildObject(PyObject *obj, const char *fmt, va_list va)
 
             break;
 
-        case 'M':
-        case 'O':
-            {
-                void *sipCpp = va_arg(va,void *);
-                sipWrapperType *wt = va_arg(va,sipWrapperType *);
-
-                el = sip_api_convert_from_instance(sipCpp,wt,NULL);
-            }
-
-            break;
-
-        case 'N':
-        case 'P':
-            {
-                void *sipCpp = va_arg(va,void *);
-                sipWrapperType *wt = va_arg(va,sipWrapperType *);
-
-                el = sip_api_convert_from_new_instance(sipCpp,wt,NULL);
-            }
-
-            break;
-
         case 'R':
             el = va_arg(va,PyObject *);
             break;
@@ -1707,16 +1568,6 @@ static PyObject *buildObject(PyObject *obj, const char *fmt, va_list va)
         case 'S':
             el = va_arg(va,PyObject *);
             Py_INCREF(el);
-            break;
-
-        case 'T':
-            {
-                void *sipCpp = va_arg(va,void *);
-                sipConvertFromFunc func = va_arg(va,sipConvertFromFunc);
-
-                el = func(sipCpp, NULL);
-            }
-
             break;
 
         case 'V':
@@ -1812,22 +1663,6 @@ static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
 
             switch (ch)
             {
-            case 'a':
-                {
-                    const char **p = va_arg(va, const char **);
-                    int *szp = va_arg(va, int *);
-                    SIP_SSIZE_T sz;
-
-                    /* Note that this is deprecated in favor of 'g'. */
-
-                    if (parseCharArray(arg, p, &sz) < 0)
-                        invalid = TRUE;
-
-                    *szp = (int)sz;
-                }
-
-                break;
-
             case 'g':
                 {
                     const char **p = va_arg(va, const char **);
@@ -1836,27 +1671,6 @@ static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
                     if (parseCharArray(arg, p, szp) < 0)
                         invalid = TRUE;
                 }
-
-                break;
-
-            case 'A':
-#if defined(HAVE_WCHAR_H)
-                {
-                    wchar_t **p = va_arg(va, wchar_t **);
-                    int *szp = va_arg(va, int *);
-                    SIP_SSIZE_T sz;
-
-                    /* Note that this is deprecated in favor of 'G'. */
-
-                    if (parseWCharArray(arg, p, &sz) < 0)
-                        invalid = TRUE;
-
-                    *szp = (int)sz;
-                }
-#else
-                raiseNoWChar();
-                invalid = TRUE;
-#endif
 
                 break;
 
@@ -2144,34 +1958,6 @@ static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
                         if (iserr)
                             invalid = TRUE;
                     }
-                }
-
-                break;
-
-            case 'L':
-                {
-                    sipForceConvertToFunc func = va_arg(va,sipForceConvertToFunc);
-                    void **sipCpp = va_arg(va,void **);
-                    int iserr = FALSE;
-
-                    *sipCpp = func(arg,&iserr);
-
-                    if (iserr)
-                        invalid = TRUE;
-                }
-
-                break;
-
-            case 'M':
-                {
-                    sipForceConvertToFunc func = va_arg(va,sipForceConvertToFunc);
-                    void **sipCpp = va_arg(va,void **);
-                    int iserr = FALSE;
-
-                    *sipCpp = func(arg,&iserr);
-
-                    if (iserr || *sipCpp == NULL)
-                        invalid = TRUE;
                 }
 
                 break;
@@ -2858,25 +2644,6 @@ static int parsePass1(sipWrapper **selfp, int *selfargp, int *argsParsedp,
                 break;
             }
 
-        case 'a':
-            {
-                /*
-                 * Char array or None.  Note that this is deprecated in favor
-                 * of 'k'.
-                 */
-
-                const char **p = va_arg(va, const char **);
-                int *szp = va_arg(va, int *);
-                SIP_SSIZE_T sz;
-
-                if (parseCharArray(arg, p, &sz) < 0)
-                    valid = PARSE_TYPE;
-
-                *szp = (int)sz;
-
-                break;
-            }
-
         case 'k':
             {
                 /* Char array or None. */
@@ -2889,31 +2656,6 @@ static int parsePass1(sipWrapper **selfp, int *selfargp, int *argsParsedp,
 
                 break;
             }
-
-        case 'A':
-#if defined(HAVE_WCHAR_H)
-            {
-                /*
-                 * Wide char array or None.  Note that this is deprecated in
-                 * favor of 'K'.
-                 */
-
-                wchar_t **p = va_arg(va, wchar_t **);
-                int *szp = va_arg(va, int *);
-                SIP_SSIZE_T sz;
-
-                if (parseWCharArray(arg, p, &sz) < 0)
-                    valid = PARSE_TYPE;
-
-                *szp = (int)sz;
-
-                break;
-            }
-#else
-            raiseNoWChar();
-            valid = PARSE_RAISED;
-            break
-#endif
 
         case 'K':
 #if defined(HAVE_WCHAR_H)
@@ -4832,19 +4574,6 @@ static void sip_api_transfer_to(PyObject *self, PyObject *owner)
 
 
 /*
- * Transfer ownership of a class instance from Python to C/C++, or vice versa.
- * This is deprecated.
- */
-static void sip_api_transfer(PyObject *self, int toCpp)
-{
-    if (toCpp)
-        sip_api_transfer_to(self, self);
-    else
-        sip_api_transfer_back(self);
-}
-
-
-/*
  * Add a license to a dictionary.
  */
 static int addLicense(PyObject *dict,sipLicenseDef *lc)
@@ -5823,17 +5552,6 @@ static PyObject *sip_api_convert_from_mapped_type(void *cpp,
     }
 
     return mt->mt_cfrom(cpp, transferObj);
-}
-
-
-/*
- * Convert a Python instance of a class to a C/C++ object pointer, checking
- * that the instance's class is derived from a given base type.
- */
-static void *sip_api_convert_to_cpp(PyObject *sipSelf,sipWrapperType *type,
-                    int *iserrp)
-{
-    return sip_api_convert_to_instance(sipSelf, type, NULL, SIP_NO_CONVERTORS, NULL, iserrp);
 }
 
 
@@ -7135,7 +6853,7 @@ static PyObject *sipWrapper_new(sipWrapperType *wt,PyObject *args,PyObject *kwds
     }
 
     /* See if it is a namespace. */
-    if (wt->type->td_fcto == NULL)
+    if (sipTypeIsNamespace(wt))
     {
         PyErr_Format(PyExc_TypeError, "%s represents a C++ namespace that cannot be instantiated", wt->type->td_name);
 
@@ -7302,7 +7020,7 @@ static int sipWrapper_traverse(sipWrapper *self, visitproc visit, void *arg)
                 return vret;
     }
 
-    if (qt_and_sip_api_3_x(4) && sipIsPyOwned(self))
+    if (sipQtSupport != NULL && sipIsPyOwned(self))
     {
         void *tx = sipGetAddress(self);
 
@@ -7387,7 +7105,7 @@ static int sipWrapper_clear(sipWrapper *self)
     }
 
     /* Remove any slots connected via a proxy. */
-    if (qt_and_sip_api_3_x(4) && sipIsPyOwned(self) && sipPossibleProxy(self))
+    if (sipQtSupport != NULL && sipIsPyOwned(self) && sipPossibleProxy(self))
     {
         void *tx = sipGetAddress(self);
 
@@ -8507,18 +8225,8 @@ static void *sip_api_import_symbol(const char *name)
 static void sip_api_register_meta_type(int type, sipWrapperType *py_type)
 {
     /* Just delegate to the Qt support if it is available. */
-    if (qt_and_sip_api_3_x(8) && sipQtSupport->qt_register_meta_type != NULL)
+    if (sipQtSupport != NULL && sipQtSupport->qt_register_meta_type != NULL)
         sipQtSupport->qt_register_meta_type(type, py_type);
-}
-
-
-/*
- * Returns TRUE if the Qt support is present and conforms to the v3.x or later
- * of the SIP API.
- */
-static int qt_and_sip_api_3_x(int x)
-{
-    return (sipQtSupport != NULL && sipQObjectClass->type->td_module->em_api_minor >= x);
 }
 
 

@@ -515,7 +515,6 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "\n"
 "/* Convenient names to call the SIP API. */\n"
 "#define sipConvertFromSliceObject(o,len,start,stop,step,slen)   PySlice_GetIndicesEx((PySliceObject *)(o),(len),(start),(stop),(step),(slen))\n"
-"#define sipIsSubClassInstance(o,wt) PyObject_TypeCheck((o),(PyTypeObject *)(wt))\n"
 "\n"
 "#define sipMapStringToClass         sipAPI_%s->api_map_string_to_class\n"
 "#define sipMapIntToClass            sipAPI_%s->api_map_int_to_class\n"
@@ -530,7 +529,6 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipCommonDtor               sipAPI_%s->api_common_dtor\n"
 "#define sipConvertFromSequenceIndex sipAPI_%s->api_convert_from_sequence_index\n"
 "#define sipConvertFromVoidPtr       sipAPI_%s->api_convert_from_void_ptr\n"
-"#define sipConvertToCpp             sipAPI_%s->api_convert_to_cpp\n"
 "#define sipConvertToVoidPtr         sipAPI_%s->api_convert_to_void_ptr\n"
 "#define sipNoFunction               sipAPI_%s->api_no_function\n"
 "#define sipNoMethod                 sipAPI_%s->api_no_method\n"
@@ -540,7 +538,6 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipBadCatcherResult         sipAPI_%s->api_bad_catcher_result\n"
 "#define sipBadOperatorArg           sipAPI_%s->api_bad_operator_arg\n"
 "#define sipTrace                    sipAPI_%s->api_trace\n"
-"#define sipTransfer                 sipAPI_%s->api_transfer\n"
 "#define sipTransferBack             sipAPI_%s->api_transfer_back\n"
 "#define sipTransferTo               sipAPI_%s->api_transfer_to\n"
 "#define sipTransferBreak            sipAPI_%s->api_transfer_break\n"
@@ -693,8 +690,6 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
         ,mname
         ,mname
         ,mname
-        ,mname
-        ,mname
         ,mname);
 
     /* The name strings. */
@@ -749,7 +744,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
          */
         prcode(fp,
 "\n"
-"typedef const QMetaObject *(*sip_qt_metaobject_func)(sipWrapper *,sipWrapperType *,const QMetaObject *);\n"
+"typedef const QMetaObject *(*sip_qt_metaobject_func)(sipWrapper *,sipWrapperType *);\n"
 "extern sip_qt_metaobject_func sip_%s_qt_metaobject;\n"
 "\n"
 "typedef int (*sip_qt_metacall_func)(sipWrapper *,sipWrapperType *,QMetaObject::Call,int,void **);\n"
@@ -3356,10 +3351,8 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
             , &mtd->type);
 
     prcode(fp,
-"    forceConvertTo_%T,\n"
 "    convertTo_%T,\n"
 "    convertFrom_%T,\n"
-        , &mtd->type
         , &mtd->type
         , &mtd->type);
 
@@ -3718,66 +3711,6 @@ static void generateConvertToDefinitions(mappedTypeDef *mtd,classDef *cd,
 "}\n"
             );
     }
-
-    prcode(fp,
-"\n"
-"\n"
-        );
-
-    if (!generating_c)
-        prcode(fp,
-"extern \"C\" {static void *forceConvertTo_%T(PyObject *, int *);}\n"
-            , &type);
-
-    prcode(fp,
-"static void *forceConvertTo_%T(PyObject *valobj,int *iserrp)\n"
-"{\n"
-"    if (*iserrp || valobj == NULL)\n"
-"        return NULL;\n"
-"\n"
-        ,&type);
-
-    if (convtocode != NULL)
-        prcode(fp,
-"    if (convertTo_%T(valobj,NULL,NULL,NULL))\n"
-"    {\n"
-"        void *val;\n"
-"\n"
-"        /*\n"
-"         * Note that we throw away the flag that says if the value\n"
-"         * has just been created on the heap or not.\n"
-"         */\n"
-"        convertTo_%T(valobj,&val,iserrp,NULL);\n"
-"\n"
-"        return val;\n"
-"    }\n"
-            ,&type
-            ,&type);
-    else
-        prcode(fp,
-"    if (valobj == Py_None || sipIsSubClassInstance(valobj,sipClass_%T))\n"
-"        return sipConvertToCpp(valobj,sipClass_%T,iserrp);\n"
-            ,&type
-            ,&type);
-
-    if (cd != NULL)
-        prcode(fp,
-"\n"
-"    sipBadClass(%N);\n"
-            , iff->name);
-    else
-        prcode(fp,
-"\n"
-"    sipBadClass(\"%B\");\n"
-            , &mtd->type);
-
-    prcode(fp,
-"\n"
-"    *iserrp = 1;\n"
-"\n"
-"    return NULL;\n"
-"}\n"
-        );
 }
 
 
@@ -5326,7 +5259,7 @@ static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
 "\n"
 "const QMetaObject *sip%C::metaObject() const\n"
 "{\n"
-"    return sip_%s_qt_metaobject(sipPySelf,sipClass_%C,0);\n"
+"    return sip_%s_qt_metaobject(sipPySelf,sipClass_%C);\n"
 "}\n"
                 , classFQCName(cd)
                 , mod->name, classFQCName(cd));
@@ -6987,10 +6920,6 @@ static void generateImportedMappedTypeAPI(mappedTypeDef *mtd, moduleDef *mod,
     prcode(fp,
 "\n"
 "#define sipMappedType_%T        sipModuleAPI_%s_%s->em_mappedtypes[%d]\n"
-"#define sipForceConvertTo_%T    sipModuleAPI_%s_%s->em_mappedtypes[%d]->mt_fcto\n"
-"#define sipConvertFrom_%T       sipModuleAPI_%s_%s->em_mappedtypes[%d]->mt_cfrom\n"
-        , &type, mname, imname, mtd->mappednr
-        , &type, mname, imname, mtd->mappednr
         , &type, mname, imname, mtd->mappednr);
 }
 
@@ -7003,12 +6932,8 @@ static void generateMappedTypeAPI(mappedTypeDef *mtd, FILE *fp)
     prcode(fp,
 "\n"
 "#define sipMappedType_%T        &sipMappedTypeDef_%T\n"
-"#define sipForceConvertTo_%T    sipMappedTypeDef_%T.mt_fcto\n"
-"#define sipConvertFrom_%T       sipMappedTypeDef_%T.mt_cfrom\n"
 "\n"
 "extern sipMappedType sipMappedTypeDef_%T;\n"
-        , &mtd->type, &mtd->type
-        , &mtd->type, &mtd->type
         , &mtd->type, &mtd->type
         , &mtd->type);
 }
@@ -7036,8 +6961,6 @@ static void generateImportedClassAPI(classDef *cd, sipSpec *pt, moduleDef *mod,
 "\n"
 "#define sipClass_%C             sipModuleAPI_%s_%s->em_types[%d]\n"
 "#define sipCast_%C              sipModuleAPI_%s_%s->em_types[%d]->type->td_cast\n"
-"#define sipForceConvertTo_%C    sipModuleAPI_%s_%s->em_types[%d]->type->td_fcto\n"
-            , classFQCName(cd), mname, imname, cd->classnr
             , classFQCName(cd), mname, imname, cd->classnr
             , classFQCName(cd), mname, imname, cd->classnr);
 
@@ -7064,8 +6987,6 @@ static void generateClassAPI(classDef *cd, sipSpec *pt, FILE *fp)
     if (cd->iff->type != namespace_iface && !isExternal(cd))
         prcode(fp,
 "#define sipCast_%C              sipType_%s_%C.td_cast\n"
-"#define sipForceConvertTo_%C    sipType_%s_%C.td_fcto\n"
-            , classFQCName(cd), mname, classFQCName(cd)
             , classFQCName(cd), mname, classFQCName(cd));
 
     generateEnumMacros(pt, cd->iff->module, cd, fp);
@@ -8004,6 +7925,12 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
         sep = "|";
     }
 
+    if (cd->iff->type == namespace_iface)
+    {
+        prcode(fp, "%sSIP_TYPE_NAMESPACE", sep);
+        sep = "|";
+    }
+
     if (*sep == '\0')
         prcode(fp, "0");
 
@@ -8171,14 +8098,9 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
     if (cd->iff->type == namespace_iface)
         prcode(fp,
 "    0,\n"
-"    0,\n"
             );
     else
     {
-        prcode(fp,
-"    forceConvertTo_%C,\n"
-            , classFQCName(cd));
-
         if (cd->convtocode != NULL)
             prcode(fp,
 "    convertTo_%C,\n"

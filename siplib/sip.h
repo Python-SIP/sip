@@ -56,7 +56,8 @@ extern "C" {
  *
  * History:
  *
- * 4.0  Added sip_api_wrappertype_check().
+ * 4.0  Removed all the deprecated parts of the API.
+ *      Added sip_api_wrappertype_check().
  *
  * 3.8  Added sip_api_register_meta_type() and sip_api_deprecated().
  *      Added qt_register_meta_type() to the Qt support API.
@@ -128,8 +129,8 @@ extern "C" {
  *
  * 0.0  Original version.
  */
-#define SIP_API_MAJOR_NR    3
-#define SIP_API_MINOR_NR    8
+#define SIP_API_MAJOR_NR    4
+#define SIP_API_MINOR_NR    0
 
 
 /* Some compatibility stuff to help with handwritten code for SIP v3. */
@@ -248,7 +249,6 @@ typedef SIP_SSIZE_T (*sipSegCountFunc)(PyObject *, void *, SIP_SSIZE_T *);
 typedef void (*sipDeallocFunc)(sipWrapper *);
 typedef void *(*sipCastFunc)(void *, sipWrapperType *);
 typedef sipWrapperType *(*sipSubClassConvertFunc)(void **);
-typedef void *(*sipForceConvertToFunc)(PyObject *, int *);
 typedef int (*sipConvertToFunc)(PyObject *, void **, int *, PyObject *);
 typedef PyObject *(*sipConvertFromFunc)(void *, PyObject *);
 typedef int (*sipVirtHandlerFunc)(void *, PyObject *, ...);
@@ -587,9 +587,6 @@ typedef struct _sipTypeDef {
     /* The release function. */
     sipReleaseFunc td_release;
 
-    /* The force convert to function, 0 if a C++ namespace. */
-    sipForceConvertToFunc td_fcto;
-
     /* The convert to function. */
     sipConvertToFunc td_cto;
 
@@ -634,9 +631,6 @@ typedef struct _sipMappedType {
 
     /* The release function. */
     sipReleaseFunc mt_release;
-
-    /* The force convert to function. */
-    sipForceConvertToFunc mt_fcto;
 
     /* The convert to function. */
     sipConvertToFunc mt_cto;
@@ -1149,8 +1143,6 @@ typedef struct _sipAPIDef {
             PyObject *transferObj);
     PyObject *(*api_convert_from_mapped_type)(void *cpp,
             const sipMappedType *mt, PyObject *transferObj);
-    void *(*api_convert_to_cpp)(PyObject *sipSelf, sipWrapperType *type,
-            int *iserrp);
     int (*api_get_state)(PyObject *transferObj);
     const sipMappedType *(*api_find_mapped_type)(const char *type);
     PyObject *(*api_disconnect_rx)(PyObject *txObj, const char *sig,
@@ -1167,13 +1159,24 @@ typedef struct _sipAPIDef {
     int (*api_parse_result)(int *isErr, PyObject *method, PyObject *res,
             const char *fmt, ...);
     void (*api_trace)(unsigned mask, const char *fmt, ...);
-    void (*api_transfer)(PyObject *self, int toCpp);
     void (*api_transfer_back)(PyObject *self);
     void (*api_transfer_to)(PyObject *self, PyObject *owner);
+    void (*api_transfer_break)(PyObject *self);
     int (*api_wrapper_check)(PyObject *o);
+    int (*api_wrappertype_check)(PyObject *o);
     unsigned long (*api_long_as_unsigned_long)(PyObject *o);
     PyObject *(*api_convert_from_named_enum)(int eval, PyTypeObject *et);
     PyObject *(*api_convert_from_void_ptr)(void *val);
+    PyObject *(*api_convert_from_const_void_ptr)(const void *val);
+    PyObject *(*api_convert_from_void_ptr_and_size)(void *val,
+            SIP_SSIZE_T size);
+    PyObject *(*api_convert_from_const_void_ptr_and_size)(const void *val,
+            SIP_SSIZE_T size);
+    void *(*api_convert_to_void_ptr)(PyObject *obj);
+    int (*api_export_symbol)(const char *name, void *sym);
+    void *(*api_import_symbol)(const char *name);
+    sipWrapperType *(*api_find_class)(const char *type);
+    PyTypeObject *(*api_find_named_enum)(const char *type);
 
     /*
      * The following may be used by Qt support code but no other handwritten
@@ -1185,6 +1188,14 @@ typedef struct _sipAPIDef {
             const char *sig, PyObject *rxObj, const char *slot);
     void *(*api_convert_rx)(sipWrapper *txSelf, const char *sigargs,
             PyObject *rxObj, const char *slot, const char **memberp);
+    int (*api_register_int_types)(PyObject *args);
+    sipSignature *(*api_parse_signature)(const char *sig);
+    PyObject *(*api_invoke_slot)(const sipSlot *slot, PyObject *sigargs);
+    void (*api_parse_type)(const char *type, sipSigArg *arg);
+    int (*api_is_exact_wrapped_type)(sipWrapperType *wt);
+    int (*api_assign_instance)(void *dst, const void *src, sipWrapperType *wt);
+    int (*api_assign_mapped_type)(void *dst, const void *src,
+            sipMappedType *mt);
 
     /*
      * The following are not part of the public API.
@@ -1195,15 +1206,6 @@ typedef struct _sipAPIDef {
             const char *fmt, ...);
     void (*api_common_ctor)(sipMethodCache *cache, int nrmeths);
     void (*api_common_dtor)(sipWrapper *sipSelf);
-
-    /*
-     * The following are part of the public API.
-     */
-    void *(*api_convert_to_void_ptr)(PyObject *obj);
-
-    /*
-     * The following are not part of the public API.
-     */
     void (*api_no_function)(int argsParsed, const char *func);
     void (*api_no_method)(int argsParsed, const char *classname,
             const char *method);
@@ -1231,29 +1233,6 @@ typedef struct _sipAPIDef {
     void (*api_add_delayed_dtor)(sipWrapper *w);
     int (*api_add_mapped_type_instance)(PyObject *dict, const char *name,
             void *cppPtr, const sipMappedType *mt);
-
-    /*
-     * The following are part of the public API.
-     */
-    int (*api_export_symbol)(const char *name, void *sym);
-    void *(*api_import_symbol)(const char *name);
-
-    /*
-     * The following may be used by Qt support code but no other handwritten
-     * code.
-     */
-    int (*api_register_int_types)(PyObject *args);
-    sipSignature *(*api_parse_signature)(const char *sig);
-
-    /*
-     * The following are part of the public API.
-     */
-    sipWrapperType *(*api_find_class)(const char *type);
-    PyTypeObject *(*api_find_named_enum)(const char *type);
-
-    /*
-     * The following are not part of the public API.
-     */
     char (*api_string_as_char)(PyObject *obj);
 #if defined(HAVE_WCHAR_H)
     wchar_t (*api_unicode_as_wchar)(PyObject *obj);
@@ -1262,31 +1241,6 @@ typedef struct _sipAPIDef {
     int (*api_unicode_as_wchar)(PyObject *obj);
     int *(*api_unicode_as_wstring)(PyObject *obj);
 #endif
-
-    /*
-     * The following are part of the public API.
-     */
-    void (*api_transfer_break)(PyObject *self);
-    PyObject *(*api_convert_from_const_void_ptr)(const void *val);
-    PyObject *(*api_convert_from_void_ptr_and_size)(void *val,
-            SIP_SSIZE_T size);
-    PyObject *(*api_convert_from_const_void_ptr_and_size)(const void *val,
-            SIP_SSIZE_T size);
-
-    /*
-     * The following may be used by Qt support code but no other handwritten
-     * code.
-     */
-    PyObject *(*api_invoke_slot)(const sipSlot *slot, PyObject *sigargs);
-    void (*api_parse_type)(const char *type, sipSigArg *arg);
-    int (*api_is_exact_wrapped_type)(sipWrapperType *wt);
-    int (*api_assign_instance)(void *dst, const void *src, sipWrapperType *wt);
-    int (*api_assign_mapped_type)(void *dst, const void *src,
-            sipMappedType *mt);
-
-    /*
-     * The following are not part of the public API.
-     */
     void (*api_register_meta_type)(int type, struct _sipWrapperType *py_type);
     int (*api_deprecated)(const char *classname, const char *method);
 } sipAPIDef;
@@ -1374,11 +1328,13 @@ typedef struct _sipQtAPI {
 
 #define SIP_TYPE_ABSTRACT   0x0001  /* If the type is abstract. */
 #define SIP_TYPE_SCC        0x0002  /* If the type is subject to sub-class convertors. */
+#define SIP_TYPE_NAMESPACE  0x0004  /* If the type is a C++ namespace. */
 #define SIP_TYPE_FLAGS_SHIFT    8   /* The user type flags shift. */
 #define SIP_TYPE_FLAGS_MASK 0x0f00  /* The user type flags mask. */
 
 #define sipTypeIsAbstract(wt)   ((wt)->type->td_flags & SIP_TYPE_ABSTRACT)
 #define sipTypeHasSCC(wt)   ((wt)->type->td_flags & SIP_TYPE_SCC)
+#define sipTypeIsNamespace(wt)  ((wt)->type->td_flags & SIP_TYPE_NAMESPACE)
 #define sipTypeFlags(wt)    (((wt)->type->td_flags & SIP_TYPE_FLAGS_MASK) >> SIP_TYPE_FLAGS_SHIFT)
 
 
