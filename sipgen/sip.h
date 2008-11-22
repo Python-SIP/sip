@@ -333,14 +333,10 @@
 /* Handle name flags. */
 
 #define NAME_IS_USED        0x01    /* It is used in the main module. */
-#define NAME_IS_CLASS       0x02    /* It is the name of a class. */
 
 #define isUsedName(n)       ((n)->nameflags & NAME_IS_USED)
 #define setIsUsedName(n)    ((n)->nameflags |= NAME_IS_USED)
 #define resetIsUsedName(n)  ((n)->nameflags &= ~NAME_IS_USED)
-#define isClassName(n)      ((n)->nameflags & NAME_IS_CLASS)
-#define setIsClassName(n)   ((n)->nameflags |= NAME_IS_CLASS)
-#define resetIsClassName(n) ((n)->nameflags &= ~NAME_IS_CLASS)
 
 
 /* Handle virtual handler flags. */
@@ -546,8 +542,8 @@ typedef struct _scopedNameDef {
 
 typedef struct _nameDef {
     int nameflags;                      /* The name flags. */
-    struct _moduleDef *module;          /* The main module. */
     const char *text;                   /* The text of the name. */
+    int offset;                         /* The offset in the string pool. */
     struct _nameDef *next;              /* Next in the list. */
 } nameDef;
 

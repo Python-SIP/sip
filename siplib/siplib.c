@@ -80,7 +80,8 @@ static void sip_api_bad_class(const char *classname);
 static void sip_api_bad_set_type(const char *classname, const char *var);
 static void *sip_api_get_complex_cpp_ptr(sipWrapper *w);
 static PyObject *sip_api_is_py_method(sip_gilstate_t *gil,
-        sipMethodCache *pymc, sipWrapper *sipSelf, char *cname, char *mname);
+        sipMethodCache *pymc, sipWrapper *sipSelf, const char *cname,
+        const char *mname);
 static void sip_api_call_hook(const char *hookname);
 static void sip_api_raise_unknown_exception(void);
 static void sip_api_raise_class_exception(sipWrapperType *type, void *ptr);
@@ -5036,7 +5037,8 @@ static int sip_api_add_mapped_type_instance(PyObject *dict, const char *name,
  * if any.  If one was found then the Python lock is acquired.
  */
 static PyObject *sip_api_is_py_method(sip_gilstate_t *gil,
-        sipMethodCache *pymc, sipWrapper *sipSelf, char *cname, char *mname)
+        sipMethodCache *pymc, sipWrapper *sipSelf, const char *cname,
+        const char *mname)
 {
     /*
      * This is the most common case (where there is no Python reimplementation)

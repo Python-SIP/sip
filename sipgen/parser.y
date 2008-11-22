@@ -3232,10 +3232,7 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd, optFlags *of)
     }
 
     if (inMainModule())
-    {
         setIsUsedName(cd->iff->name);
-        setIsClassName(cd->iff->name);
-    }
 }
 
 
@@ -3589,10 +3586,7 @@ static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod,
         appendCodeBlock(&cd->iff->hdrcode, scope->iff->hdrcode);
 
     if (inMainModule())
-    {
         setIsUsedName(cd->iff->name);
-        setIsClassName(cd->iff->name);
-    }
 
     cd->ecd = currentScope();
 
@@ -4676,7 +4670,6 @@ nameDef *cacheName(sipSpec *pt, const char *name)
     nd = sipMalloc(sizeof (nameDef));
 
     nd->nameflags = 0;
-    nd->module = currentSpec->module;
     nd->text = name;
     nd->next = pt->namecache;
 

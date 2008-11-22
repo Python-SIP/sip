@@ -1215,7 +1215,7 @@ typedef struct _sipAPIDef {
     void *(*api_get_cpp_ptr)(sipWrapper *w, sipWrapperType *type);
     void *(*api_get_complex_cpp_ptr)(sipWrapper *w);
     PyObject *(*api_is_py_method)(sip_gilstate_t *gil, sipMethodCache *pymc,
-            sipWrapper *sipSelf, char *cname, char *mname);
+            sipWrapper *sipSelf, const char *cname, const char *mname);
     void (*api_call_hook)(const char *hookname);
     void (*api_start_thread)(void);
     void (*api_end_thread)(void);

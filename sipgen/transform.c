@@ -73,6 +73,7 @@ static void addComplementarySlots(sipSpec *pt, classDef *cd);
 static void addComplementarySlot(sipSpec *pt, classDef *cd, memberDef *md,
         slotType cslot, const char *cslot_name);
 static void resolveInstantiatedClassTemplate(sipSpec *pt, argDef *type);
+static void setStringPoolOffsets(sipSpec *pt);
 
 
 /*
@@ -86,6 +87,8 @@ void transform(sipSpec *pt)
     classList *newl;
     overDef *od;
     mappedTypeDef *mtd;
+
+    setStringPoolOffsets(pt);
 
     /*
      * The class list has the main module's classes at the front and the
@@ -278,6 +281,25 @@ void transform(sipSpec *pt)
         for (cd = pt->classes; cd != NULL; cd = cd->next)
             if (generatingCodeForModule(pt, cd->iff->module))
                 registerMetaType(cd);
+}
+
+
+/*
+ * Set the offset into the string pool for every used name.
+ */
+static void setStringPoolOffsets(sipSpec *pt)
+{
+    nameDef *nd;
+    int offset = 0;
+
+    for (nd = pt->namecache; nd != NULL; nd = nd->next)
+    {
+        if (!isUsedName(nd))
+            continue;
+
+        nd->offset = offset;
+        offset += strlen(nd->text) + 1;
+    }
 }
 
 

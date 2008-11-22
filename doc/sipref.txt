@@ -196,6 +196,8 @@ The following deprecated parts of the API have been removed.
 In addition the deprecated ``-a`` command line option to ``configure.py`` has
 been removed.
 
+The generated class names are now ``const char *`` rather than ``char *``.
+
 
 SIP v4.7.8
 ----------

@@ -490,7 +490,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 
     for (nd = pt->namecache; nd != NULL; nd = nd->next)
     {
-        if (!isClassName(nd))
+        if (!isUsedName(nd))
             continue;
 
         if (noIntro)
@@ -498,8 +498,8 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
             prcode(fp,
 "\n"
 "/*\n"
-" * Convenient names to refer to the names of classes defined in this module.\n"
-" * These are part of the public API.\n"
+" * Convenient names to refer to various strings defined in this module.\n"
+" * Only the class names are part of the public API.\n"
 " */\n"
                 );
 
@@ -507,8 +507,8 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
         }
 
         prcode(fp,
-"#define sipName_%s  %N\n"
-            , nd->text, nd);
+"#define sipName_%s &sipStrings_%s[%d]\n"
+            , nd->text, mname, nd->offset);
     }
 
     prcode(fp,
@@ -693,27 +693,11 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
         ,mname);
 
     /* The name strings. */
-    noIntro = TRUE;
-
-    for (nd = pt->namecache; nd != NULL; nd = nd->next)
-    {
-        if (!isUsedName(nd))
-            continue;
-
-        if (noIntro)
-        {
-            prcode(fp,
+    prcode(fp,
 "\n"
 "/* The strings used by this module. */\n"
-                );
-
-            noIntro = FALSE;
-        }
-
-        prcode(fp,
-"extern char %N[];\n"
-            , nd);
-    }
+"extern const char *sipStrings_%s;\n"
+        , mname);
 
     /* The unscoped enum macros. */
     generateEnumMacros(pt, mod, NULL, fp);
@@ -1002,28 +986,23 @@ static void generateComponentCpp(sipSpec *pt, const char *codeDir,
  */
 static void generateNameCache(sipSpec *pt, FILE *fp)
 {
-    int noIntro = TRUE;
     nameDef *nd;
+
+    prcode(fp,
+"\n"
+"/* Define the strings used by this module. */\n"
+"const char *sipStrings_%s =", pt->module->name);
 
     for (nd = pt->namecache; nd != NULL; nd = nd->next)
     {
         if (!isUsedName(nd))
             continue;
 
-        if (noIntro)
-        {
-            prcode(fp,
-"\n"
-"/* Define the strings used by this module. */\n"
-                );
-
-            noIntro = FALSE;
-        }
-
-        prcode(fp,
-"char %N[] = \"%s\";\n"
-            , nd, nd->text);
+        prcode(fp, "\n"
+"    \"%s\\0\"", nd->text);
     }
+
+    prcode(fp, ";\n");
 }
 
 
@@ -10976,7 +10955,7 @@ void prcode(FILE *fp, const char *fmt, ...)
                 {
                     nameDef *nd = va_arg(ap,nameDef *);
 
-                    fprintf(fp,"sipNm_%s_%s",nd->module->name,nd->text);
+                    fprintf(fp, "sipName_%s", nd->text);
                     break;
                 }
 
