@@ -290,15 +290,41 @@ void transform(sipSpec *pt)
 static void setStringPoolOffsets(sipSpec *pt)
 {
     nameDef *nd;
-    int offset = 0;
+    size_t offset = 0;
 
     for (nd = pt->namecache; nd != NULL; nd = nd->next)
     {
+        size_t len;
+        nameDef *prev;
+
         if (!isUsedName(nd))
             continue;
 
-        nd->offset = offset;
-        offset += strlen(nd->text) + 1;
+        /* See if the tail of a previous used name could be used instead. */
+        len = nd->len;
+
+        for (prev = pt->namecache; prev->len > len; prev = prev->next)
+        {
+            size_t pos;
+
+            if (!isUsedName(prev) || isSubstring(prev))
+                continue;
+
+            pos = prev->len - len;
+
+            if (memcmp(&prev->text[pos], nd->text, len) == 0)
+            {
+                setIsSubstring(nd);
+                nd->offset = prev->offset + pos;
+                break;
+            }
+        }
+
+        if (!isSubstring(nd))
+        {
+            nd->offset = offset;
+            offset += len + 1;
+        }
     }
 }
 

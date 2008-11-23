@@ -333,10 +333,13 @@
 /* Handle name flags. */
 
 #define NAME_IS_USED        0x01    /* It is used in the main module. */
+#define NAME_IS_SUBSTR      0x02    /* It is a substring of another. */
 
 #define isUsedName(n)       ((n)->nameflags & NAME_IS_USED)
 #define setIsUsedName(n)    ((n)->nameflags |= NAME_IS_USED)
 #define resetIsUsedName(n)  ((n)->nameflags &= ~NAME_IS_USED)
+#define isSubstring(n)      ((n)->nameflags & NAME_IS_SUBSTR)
+#define setIsSubstring(n)   ((n)->nameflags |= NAME_IS_SUBSTR)
 
 
 /* Handle virtual handler flags. */
@@ -543,7 +546,8 @@ typedef struct _scopedNameDef {
 typedef struct _nameDef {
     int nameflags;                      /* The name flags. */
     const char *text;                   /* The text of the name. */
-    int offset;                         /* The offset in the string pool. */
+    size_t len;                         /* The length of the name. */
+    size_t offset;                      /* The offset in the string pool. */
     struct _nameDef *next;              /* Next in the list. */
 } nameDef;
 

@@ -4668,15 +4668,21 @@ static const char *getPythonName(optFlags *optflgs, const char *cname)
 
 
 /*
- * Cache a name in a module.
+ * Cache a name in a module.  Entries in the cache are stored in order of
+ * decreasing length.
  */
 nameDef *cacheName(sipSpec *pt, const char *name)
 {
-    nameDef *nd;
+    nameDef *nd, **ndp = &pt->namecache;
+    size_t len = strlen(name);
 
-    /* See if it already exists. */
-    for (nd = pt->namecache; nd != NULL; nd = nd->next)
-        if (strcmp(nd->text, name) == 0)
+    /* Skip entries that are too large. */
+    while (*ndp != NULL && (*ndp)->len > len)
+        ndp = &(*ndp)->next;
+
+    /* Check entries that are the right length. */
+    for (nd = *ndp; nd != NULL && nd->len == len; nd = nd->next)
+        if (memcmp(nd->text, name, len) == 0)
             return nd;
 
     /* Create a new one. */
@@ -4684,9 +4690,10 @@ nameDef *cacheName(sipSpec *pt, const char *name)
 
     nd->nameflags = 0;
     nd->text = name;
-    nd->next = pt->namecache;
+    nd->len = len;
+    nd->next = *ndp;
 
-    pt->namecache = nd;
+    *ndp = nd;
 
     return nd;
 }

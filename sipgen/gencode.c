@@ -510,8 +510,8 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
         prcode(fp,
 "#define %n %d\n"
 "#define %N &sipStrings_%s[%d]\n"
-            , nd, nd->offset
-            , nd, mname, nd->offset);
+            , nd, (int)nd->offset
+            , nd, mname, (int)nd->offset);
     }
 
     prcode(fp,
@@ -998,7 +998,7 @@ static void generateNameCache(sipSpec *pt, FILE *fp)
 
     for (nd = pt->namecache; nd != NULL; nd = nd->next)
     {
-        if (!isUsedName(nd))
+        if (!isUsedName(nd) || isSubstring(nd))
             continue;
 
         prcode(fp, "\n"
