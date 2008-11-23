@@ -637,7 +637,12 @@ namespace:  TK_NAMESPACE TK_NAME {
             if (notSkipping())
             {
                 if (inMainModule())
-                    setIsUsedName(currentScope()->iff->name);
+                {
+                    classDef *ns = currentScope();
+
+                    setIsUsedName(ns->iff->name);
+                    setIsUsedName(ns->pyname);
+                }
 
                 popScope();
             }

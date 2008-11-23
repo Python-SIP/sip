@@ -942,7 +942,6 @@ static int sip_api_export_module(sipExportedModuleDef *client,
             /*
              * Set this up as soon as possible to gain access to the string
              * pool.
-             * FIXME: String pools don't work properly with namespace extenders.
              */
             td->td_module = client;
 

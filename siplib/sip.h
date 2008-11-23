@@ -533,7 +533,10 @@ typedef struct _sipTypeDef {
     /* The C/C++ name of the type. */
     int td_cname;
 
-    /* The scoping type. */
+    /*
+     * The scoping type or the namespace this is extending if it is a namespace
+     * extender.
+     */
     sipEncodedClassDef td_scope;
 
     /* The super-types. */
