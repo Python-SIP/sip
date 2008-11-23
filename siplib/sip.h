@@ -292,16 +292,13 @@ typedef struct _sipEnumMemberDef {
  * The information describing a named enum.
  */
 typedef struct _sipEnumDef {
-    /*
-     * The Python name of the enum.  This includes the name of the containing
-     * module which should be removed when SIP_API_MAJOR_NR is moved to 4.
-     */
-    const char *e_name;
+    /* The Python name of the enum. */
+    int e_name;
 
     /* The C/C++ name of the enum. */
-    const char *e_cname;
+    int e_cname;
 
-    /* The scoping type. */
+    /* The scoping type, -1 if it is defined at the module level. */
     int e_scope;
 
     /* The Python slots. */

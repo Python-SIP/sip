@@ -3319,8 +3319,8 @@ mappedTypeDef *allocMappedType(argDef *type)
 /*
  * Create a new enum.
  */
-static enumDef *newEnum(sipSpec *pt,moduleDef *mod,char *name,optFlags *of,
-            int flags)
+static enumDef *newEnum(sipSpec *pt, moduleDef *mod, char *name, optFlags *of,
+        int flags)
 {
     enumDef *ed;
     classDef *escope = currentScope();
@@ -3329,15 +3329,23 @@ static enumDef *newEnum(sipSpec *pt,moduleDef *mod,char *name,optFlags *of,
 
     if (name != NULL)
     {
-        ed->fqcname = text2scopedName(escope, name);
         ed->pyname = cacheName(pt, getPythonName(of, name));
-
         checkAttributes(pt, mod, escope, ed->pyname->text, FALSE);
+
+        ed->fqcname = text2scopedName(escope, name);
+        ed->cname = cacheName(pt, scopedNameToString(ed->fqcname));
+
+        if (inMainModule())
+        {
+            setIsUsedName(ed->pyname);
+            setIsUsedName(ed->cname);
+        }
     }
     else
     {
-        ed->fqcname = NULL;
         ed->pyname = NULL;
+        ed->fqcname = NULL;
+        ed->cname = NULL;
     }
 
     ed -> enumflags = flags;
@@ -3793,10 +3801,19 @@ static void instantiateTemplateEnums(sipSpec *pt, classTmplDef *tcd,
             *ed = *ted;
 
             if (ed->fqcname != NULL)
+            {
                 ed->fqcname = text2scopedName(cd, scopedNameTail(ed->fqcname));
+                ed->cname = scopedNameToString(ed->fqcname);
+            }
 
-            if (ed->pyname != NULL && inMainModule())
-                setIsUsedName(ed->pyname);
+            if (inMainModule())
+            {
+                if (ed->pyname != NULL)
+                    setIsUsedName(ed->pyname);
+
+                if (ed->cname != NULL)
+                    setIsUsedName(ed->cname);
+            }
 
             ed->ecd = cd;
             ed->module = mod;

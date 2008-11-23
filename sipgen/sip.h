@@ -841,8 +841,9 @@ typedef struct _enumMemberDef {
 
 typedef struct _enumDef {
     int enumflags;                      /* The enum flags. */
-    scopedNameDef *fqcname;             /* The name (may be NULL). */
     nameDef *pyname;                    /* The Python name (may be NULL). */
+    scopedNameDef *fqcname;             /* The C/C++ name (may be NULL). */
+    nameDef *cname;                     /* The C/C++ name (may be NULL). */
     int enumnr;                         /* The enum number. */
     struct _classDef *ecd;              /* The enclosing class. */
     moduleDef *module;                  /* The owning module. */
@@ -1032,7 +1033,6 @@ void appendToClassList(classList **,classDef *);
 void appendCodeBlock(codeBlock **headp, codeBlock *new);
 void prcode(FILE *fp, const char *fmt, ...);
 void prOverloadName(FILE *fp, overDef *od);
-void prScopedPythonName(FILE *fp, classDef *scope, const char *pyname);
 void prOverloadDecl(FILE *fp, classDef *context, overDef *od, int defval);
 void searchTypedefs(sipSpec *pt, scopedNameDef *snd, argDef *ad);
 int isIntReturnSlot(memberDef *md);

@@ -39,6 +39,7 @@ static void xmlIndent(int indent, FILE *fp);
 static const char *dirAttribute(argDef *ad);
 static void exportDefaultValue(argDef *ad, FILE *fp);
 static const char *pyType(argDef *ad, int sec, classDef **scope);
+static void prScopedPythonName(FILE *fp, classDef *scope, const char *pyname);
 
 
 /*
@@ -118,7 +119,7 @@ static int apiCtor(moduleDef *mod, classDef *scope, ctorDef *ct, int sec,
 
     /* Do the callable type form. */
     fprintf(fp, "%s.", mod->name);
-    prScopedPythonName(fp, scope->ecd, scope->pyname);
+    prScopedPythonName(fp, scope->ecd, scope->pyname->text);
     fprintf(fp, "(");
 
     need_comma = FALSE;
@@ -137,7 +138,7 @@ static int apiCtor(moduleDef *mod, classDef *scope, ctorDef *ct, int sec,
 
     /* Do the call __init__ form. */
     fprintf(fp, "%s.", mod->name);
-    prScopedPythonName(fp, scope->ecd, scope->pyname);
+    prScopedPythonName(fp, scope->ecd, scope->pyname->text);
     fprintf(fp, ".__init__(self");
 
     for (a = 0; a < ct->pysig.nrArgs; ++a)
@@ -371,7 +372,7 @@ static void xmlClass(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
     {
         xmlIndent(indent, fp);
         fprintf(fp, "<OpaqueClass name=\"");
-        prScopedPythonName(fp, cd->ecd, cd->pyname);
+        prScopedPythonName(fp, cd->ecd, cd->pyname->text);
         fprintf(fp, "\"/>\n");
 
         return;
@@ -379,7 +380,7 @@ static void xmlClass(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
 
     xmlIndent(indent++, fp);
     fprintf(fp, "<Class name=\"");
-    prScopedPythonName(fp, cd->ecd, cd->pyname);
+    prScopedPythonName(fp, cd->ecd, cd->pyname->text);
     fprintf(fp, "\"");
 
     if (cd->picklecode != NULL)
@@ -402,7 +403,7 @@ static void xmlClass(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
             if (cl != cd->supers)
                 fprintf(fp, " ");
 
-            prScopedPythonName(fp, cl->cd->ecd, cl->cd->pyname);
+            prScopedPythonName(fp, cl->cd->ecd, cl->cd->pyname->text);
         }
 
         fprintf(fp, "\"");
@@ -630,7 +631,7 @@ static int xmlOverload(classDef *scope, memberDef *md, overDef *od,
     if (xtnds != NULL)
     {
         fprintf(fp, " extends=\"");
-        prScopedPythonName(fp, xtnds->ecd, xtnds->pyname);
+        prScopedPythonName(fp, xtnds->ecd, xtnds->pyname->text);
         fprintf(fp, "\"");
     }
 
@@ -983,4 +984,20 @@ static const char *pyType(argDef *ad, int sec, classDef **scope)
     }
 
     return type_name;
+}
+
+
+/*
+ * Generate a scoped Python name.
+ */
+static void prScopedPythonName(FILE *fp, classDef *scope, const char *pyname)
+{
+    if (scope != NULL)
+    {
+        prScopedPythonName(fp, scope->ecd, NULL);
+        fprintf(fp, "%s.", scope->pyname->text);
+    }
+
+    if (pyname != NULL)
+        fprintf(fp, "%s", pyname);
 }

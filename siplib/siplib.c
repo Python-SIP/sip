@@ -276,6 +276,8 @@ static const sipAPIDef sip_api = {
 #define getNameOfModule(em)     (&((em)->em_strings)[(em)->em_name])
 #define getPyNameOfType(td)     (&((td)->td_module->em_strings)[(td)->td_name])
 #define getCppNameOfType(td)    (&((td)->td_module->em_strings)[(td)->td_cname])
+#define getPyNameOfEnum(em, ed) (&((em)->em_strings)[(ed)->e_name])
+#define getCppNameOfEnum(em, ed)    (&((em)->em_strings)[(ed)->e_cname])
 
 
 /*
@@ -369,8 +371,6 @@ static PyObject *unpickle_enum(PyObject *, PyObject *args);
 static int setReduce(PyTypeObject *type, PyMethodDef *pickler);
 static PyTypeObject *createEnum(sipExportedModuleDef *client, sipEnumDef *ed,
         PyObject *mod_dict);
-static const char *getBaseName(const char *name);
-static PyObject *getBaseNameObject(const char *name);
 static PyObject *createTypeDict(PyObject *mname);
 static sipExportedModuleDef *getClassModule(sipEncodedClassDef *enc,
         sipExportedModuleDef *em);
@@ -420,7 +420,6 @@ static PyTypeObject *findEnumTypeByName(sipExportedModuleDef *emd,
         const char *name, size_t len);
 static int findEnumArg(sipExportedModuleDef *emd, const char *name, size_t len,
         sipSigArg *at, int indir);
-static int sameScopedName(const char *pyname, const char *name, size_t len);
 static int nameEq(const char *with, const char *name, size_t len);
 static void release(void *addr, sipTypeDef *td, int state);
 static void callPyDtor(sipWrapper *self);
@@ -3769,9 +3768,7 @@ static PyObject *unpickle_enum(PyObject *ignore, PyObject *args)
     /* Find the enum type object. */
     for (ed = em->em_enumdefs, i = 0; i < em->em_nrenums; ++i, ++ed)
     {
-        const char *name = strchr(ed->e_name, '.') + 1;
-
-        if (strcmp(name, ename) == 0)
+        if (strcmp(getPyNameOfEnum(em, ed), ename) == 0)
             return PyObject_CallFunctionObjArgs((PyObject *)em->em_enums[i], evalue_obj, NULL);
     }
 
@@ -3796,21 +3793,9 @@ static PyObject *pickle_enum(PyObject *obj, PyObject *ignore)
 
         for (etypes = em->em_enums, i = 0; i < em->em_nrenums; ++i, ++etypes)
             if (*etypes == obj->ob_type)
-            {
-                const char *name;
-
-                /*
-                 * Get the enum name but ignore the module name.  We do this
-                 * because I don't think the module name is used any more
-                 * (except maybe in exceptions, but we should get it from
-                 * __module__ in that case) and it may get removed in a future
-                 * version of SIP.  However, we want pickled data to continue
-                 * to be usable if that change is ever made.
-                 */
-                name = strchr(em->em_enumdefs[i].e_name, '.') + 1;
-
-                return Py_BuildValue("O(Osi)", enum_unpickler, em->em_nameobj, name, (int)PyInt_AS_LONG(obj));
-            }
+                return Py_BuildValue("O(Osi)", enum_unpickler, em->em_nameobj,
+                        getPyNameOfEnum(em, &em->em_enumdefs[i]),
+                        (int)PyInt_AS_LONG(obj));
     }
 
     /* We should never get here. */
@@ -3867,7 +3852,7 @@ static PyTypeObject *createEnum(sipExportedModuleDef *client, sipEnumDef *ed,
         return NULL;
 
     /* Create an object corresponding to the type name. */
-    if ((name = getBaseNameObject(ed->e_name)) == NULL)
+    if ((name = PyString_FromString(getPyNameOfEnum(client, ed))) == NULL)
         return NULL;
 
     /* Create the type dictionary. */
@@ -3911,31 +3896,6 @@ static PyTypeObject *createEnum(sipExportedModuleDef *client, sipEnumDef *ed,
 relname:
     Py_DECREF(name);
     return NULL;
-}
-
-
-/*
- * Return a pointer to the basename of a Python "pathname".
- */
-static const char *getBaseName(const char *name)
-{
-    const char *bn;
-
-    if ((bn = strrchr(name, '.')) != NULL)
-        ++bn;
-    else
-        bn = name;
-
-    return bn;
-}
-
-
-/*
- * Create a Python object corresponding to the basename of a Python "pathname".
- */
-static PyObject *getBaseNameObject(const char *name)
-{
-    return PyString_FromString(getBaseName(name));
 }
 
 
@@ -7985,17 +7945,8 @@ static PyTypeObject *findEnumTypeByName(sipExportedModuleDef *emd,
     sipEnumDef *ed;
 
     for (ed = emd->em_enumdefs, i = 0; i < emd->em_nrenums; ++i, ++ed)
-    {
-        if (ed->e_cname != NULL)
-        {
-            if (!nameEq(ed->e_cname, name, len))
-                continue;
-        }
-        else if (!sameScopedName(ed->e_name, name, len))
-            continue;
-
-        return emd->em_enums[i];
-    }
+        if (nameEq(getCppNameOfEnum(emd, ed), name, len))
+            return emd->em_enums[i];
 
     return NULL;
 }
@@ -8132,38 +8083,6 @@ void sipFindSigArgType(const char *name, size_t len, sipSigArg *at, int indir)
 static int nameEq(const char *with, const char *name, size_t len)
 {
     return (strlen(with) == len && strncmp(with, name, len) == 0);
-}
-
-
-/*
- * Return TRUE if a Python scoped name and a fixed length C++ scoped name
- * match.
- */
-static int sameScopedName(const char *pyname, const char *name, size_t len)
-{
-    char ch;
-
-    /* Skip the module name from the Python name. */
-    pyname = strchr(pyname, '.') + 1;
-
-    while ((ch = *pyname++) != '\0' && len)
-        if (ch == '.')
-        {
-            if (len < 2 || name[0] != ':' || name[1] != ':')
-                return FALSE;
-
-            name += 2;
-            len -= 2;
-        }
-        else if (ch == name[0])
-        {
-            ++name;
-            --len;
-        }
-        else
-            return FALSE;
-
-    return (ch == '\0' && len == 0);
 }
 
 

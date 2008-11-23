@@ -1359,9 +1359,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
                 emname = ed->ecd->real->iff->module->name;
 
             prcode(fp,
-"    {\"%s.%P\", ", emname, ed->ecd, ed->pyname->text);
-
-            prcode(fp, "\"%S\", ", ed->fqcname);
+"    {%n, %n, ", ed->pyname, ed->cname);
 
             if (ed->ecd == NULL)
                 prcode(fp, "-1");
@@ -11026,15 +11024,6 @@ void prcode(FILE *fp, const char *fmt, ...)
                 prOverloadName(fp, va_arg(ap, overDef *));
                 break;
 
-            case 'P':
-                {
-                    classDef *ecd = va_arg(ap, classDef *);
-                    const char *pyname = va_arg(ap, const char *);
-
-                    prScopedPythonName(fp, ecd, pyname);
-                    break;
-                }
-
             case 'X':
                 generateThrowSpecifier(va_arg(ap,throwArgs *),fp);
                 break;
@@ -11262,22 +11251,6 @@ static void prScopedClassName(FILE *fp, classDef *context, classDef *cd)
                 fprintf(fp, "::");
         }
     }
-}
-
-
-/*
- * Generate a scoped Python name.
- */
-void prScopedPythonName(FILE *fp, classDef *scope, const char *pyname)
-{
-    if (scope != NULL)
-    {
-        prScopedPythonName(fp, scope->ecd, NULL);
-        fprintf(fp, "%s.", scope->pyname->text);
-    }
-
-    if (pyname != NULL)
-        fprintf(fp, "%s", pyname);
 }
 
 
