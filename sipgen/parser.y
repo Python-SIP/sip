@@ -91,7 +91,7 @@ static char *scopedNameToString(scopedNameDef *name);
 static void addUsedFromCode(sipSpec *pt, ifaceFileList **used, const char *sname);
 static int sameName(scopedNameDef *snd, const char *sname);
 static int optFind(sipSpec *pt, const char *opt);
-static void setModuleName(moduleDef *mod, const char *fullname);
+static void setModuleName(sipSpec *pt, moduleDef *mod, const char *fullname);
 static int foundInScope(scopedNameDef *fq_name, scopedNameDef *rel_name);
 static void defineClass(scopedNameDef *snd);
 static classDef *completeClass(scopedNameDef *snd, optFlags *of, int has_def);
@@ -637,21 +637,7 @@ namespace:  TK_NAMESPACE TK_NAME {
             if (notSkipping())
             {
                 if (inMainModule())
-                {
-                    classDef *ns = currentScope();
-
-                    if (!isUsedName(ns->iff->name))
-                    {
-                        varDef *vd;
-
-                        for (vd = currentSpec->vars; vd != NULL; vd = vd->next)
-                            if (vd->ecd == ns)
-                            {
-                                setIsUsedName(ns->iff->name);
-                                break;
-                            }
-                    }
-                }
+                    setIsUsedName(currentScope()->iff->name);
 
                 popScope();
             }
@@ -811,7 +797,7 @@ consmodule: TK_CONSMODULE modname {
             if (currentModule->fullname != NULL)
                 yyerror("%ConsolidatedModule must appear before any %Module or %CModule directive");
 
-            setModuleName(currentModule, $2);
+            setModuleName(currentSpec, currentModule, $2);
             setIsConsolidated(currentModule);
         }
     ;
@@ -824,7 +810,7 @@ compmodule: TK_COMPOMODULE modname {
             if (currentModule->fullname != NULL)
                 yyerror("%CompositeModule must appear before any %Module or %CModule directive");
 
-            setModuleName(currentModule, $2);
+            setModuleName(currentSpec, currentModule, $2);
             setIsComposite(currentModule);
         }
     ;
@@ -835,7 +821,7 @@ module:     modlang modname optnumber {
             moduleDef *mod;
 
             for (mod = currentSpec->modules; mod != NULL; mod = mod->next)
-                if (mod->fullname != NULL && strcmp(mod->fullname, $2) == 0)
+                if (mod->fullname != NULL && strcmp(mod->fullname->text, $2) == 0)
                     yyerror("Module is already defined");
 
             /*
@@ -852,7 +838,7 @@ module:     modlang modname optnumber {
                 currentModule = mod;
             }
 
-            setModuleName(currentModule, $2);
+            setModuleName(currentSpec, currentModule, $2);
             currentModule->version = $3;
 
             if (currentSpec->genc < 0)
@@ -2824,7 +2810,7 @@ ifaceFileDef *findIfaceFile(sipSpec *pt, moduleDef *mod, scopedNameDef *fqname,
 
     iff = sipMalloc(sizeof (ifaceFileDef));
 
-    iff->name = cacheName(pt, scopedNameTail(fqname));
+    iff->name = cacheName(pt, scopedNameToString(fqname));
     iff->type = iftype;
     iff->fqcname = fqname;
     iff->module = NULL;
@@ -2863,7 +2849,7 @@ static classDef *findClassWithInterface(sipSpec *pt, ifaceFileDef *iff)
     cd = sipMalloc(sizeof (classDef));
 
     cd -> iff = iff;
-    cd -> pyname = classBaseName(cd);
+    cd -> pyname = cacheName(pt, classBaseName(cd));
     cd -> classnr = -1;
     cd -> classflags = 0;
     cd -> userflags = 0;
@@ -3081,9 +3067,8 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd, optFlags *of)
     /* Get the Python name and see if it is different to the C++ name. */
     pyname = getPythonName(of, classBaseName(cd));
 
-    cd -> pyname = NULL;
     checkAttributes(pt, mod, cd->ecd, pyname, FALSE);
-    cd->pyname = pyname;
+    cd->pyname = cacheName(pt, pyname);
 
     if ((flg = findOptFlag(of, "TypeFlags", integer_flag)) != NULL)
         cd->userflags = flg->fvalue.ival;
@@ -3232,7 +3217,10 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd, optFlags *of)
     }
 
     if (inMainModule())
+    {
         setIsUsedName(cd->iff->name);
+        setIsUsedName(cd->pyname);
+    }
 }
 
 
@@ -3568,7 +3556,7 @@ static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod,
     *cd = *tcd->cd;
 
     resetIsTemplateClass(cd);
-    cd->pyname = scopedNameTail(fqname);
+    cd->pyname = cacheName(pt, scopedNameTail(fqname));
     cd->td = td;
 
     /* Handle the interface file. */
@@ -3586,7 +3574,10 @@ static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod,
         appendCodeBlock(&cd->iff->hdrcode, scope->iff->hdrcode);
 
     if (inMainModule())
+    {
         setIsUsedName(cd->iff->name);
+        setIsUsedName(cd->pyname);
+    }
 
     cd->ecd = currentScope();
 
@@ -4686,7 +4677,7 @@ static memberDef *findFunction(sipSpec *pt, moduleDef *mod, classDef *cd,
         const char *pname, int hwcode, int nrargs, int no_arg_parser)
 {
     static struct slot_map {
-        char *name;         /* The slot name. */
+        const char *name;   /* The slot name. */
         slotType type;      /* The corresponding type. */
         int needs_hwcode;   /* Set if handwritten code is required. */
         int nrargs;         /* Nr. of arguments. */
@@ -5462,9 +5453,12 @@ static int optFind(sipSpec *pt, const char *opt)
 /*
  * Set the name of a module.
  */
-static void setModuleName(moduleDef *mod, const char *fullname)
+static void setModuleName(sipSpec *pt, moduleDef *mod, const char *fullname)
 {
-    mod->fullname = fullname;
+    mod->fullname = cacheName(pt, fullname);
+
+    if (inMainModule())
+        setIsUsedName(mod->fullname);
 
     if ((mod->name = strrchr(fullname, '.')) != NULL)
         mod->name++;

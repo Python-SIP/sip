@@ -31,7 +31,7 @@
 
 /* For convenience. */
 
-#define classBaseName(cd)   ((cd)->iff->name->text)
+#define classBaseName(cd)   scopedNameTail((cd)->iff->fqcname)
 #define classFQCName(cd)    ((cd)->iff->fqcname)
 
 
@@ -575,7 +575,7 @@ typedef struct _codeBlock {
 /* A module definition. */
 
 typedef struct _moduleDef {
-    const char *fullname;               /* The full module name. */
+    nameDef *fullname;                  /* The full module name. */
     const char *name;                   /* The module base name. */
     int version;                        /* The module version. */
     int modflags;                       /* The module flags. */
@@ -905,7 +905,7 @@ typedef struct _classDef {
     int classflags;                     /* The class flags. */
     int userflags;                      /* The user type flags. */
     int classnr;                        /* The class number. */
-    const char *pyname;                 /* The Python name. */
+    nameDef *pyname;                    /* The Python name. */
     ifaceFileDef *iff;                  /* The interface file. */
     struct _classDef *ecd;              /* The enclosing scope. */
     struct _classDef *real;             /* The real class if this is a proxy or extender. */

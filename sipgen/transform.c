@@ -88,8 +88,6 @@ void transform(sipSpec *pt)
     overDef *od;
     mappedTypeDef *mtd;
 
-    setStringPoolOffsets(pt);
-
     /*
      * The class list has the main module's classes at the front and the
      * ones from the module at the most nested %Import at the end.  This
@@ -281,6 +279,8 @@ void transform(sipSpec *pt)
         for (cd = pt->classes; cd != NULL; cd = cd->next)
             if (generatingCodeForModule(pt, cd->iff->module))
                 registerMetaType(cd);
+
+    setStringPoolOffsets(pt);
 }
 
 

@@ -218,6 +218,7 @@ static void generateMappedTypeFromVoid(mappedTypeDef *mtd, const char *cname,
 static int generateSubClassConvertors(sipSpec *pt, moduleDef *mod, FILE *fp);
 static void generateNameCache(sipSpec *pt, FILE *fp);
 static const char *resultOwner(overDef *od);
+static void prCachedName(FILE *fp, nameDef *nd, const char *prefix);
 
 
 /*
@@ -507,8 +508,10 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
         }
 
         prcode(fp,
-"#define sipName_%s &sipStrings_%s[%d]\n"
-            , nd->text, mname, nd->offset);
+"#define %n %d\n"
+"#define %N &sipStrings_%s[%d]\n"
+            , nd, nd->offset
+            , nd, mname, nd->offset);
     }
 
     prcode(fp,
@@ -815,13 +818,13 @@ static void generateCompositeCpp(sipSpec *pt, const char *codeDir)
 "    sipModule = Py_InitModule(\"%s\", 0);\n"
 "    sipModuleDict = PyModule_GetDict(sipModule);\n"
 "\n"
-        , pt->module->fullname);
+        , pt->module->fullname->text);
 
     for (mod = pt->modules; mod != NULL; mod = mod->next)
         if (mod->container == pt->module)
             prcode(fp,
 "    sip_import_component_module(sipModuleDict, \"%s\");\n"
-                , mod->fullname);
+                , mod->fullname->text);
 
     prcode(fp,
 "\n"
@@ -894,7 +897,7 @@ static void generateConsolidatedCpp(sipSpec *pt, const char *codeDir,
     for (mod = pt->modules; mod != NULL; mod = mod->next)
         if (mod->container == pt->module)
             prcode(fp,
-"        {\"%s\", sip_init_%s},\n"
+"        {%N, sip_init_%s},\n"
                 , mod->fullname, mod->name);
 
     prcode(fp,
@@ -974,7 +977,7 @@ static void generateComponentCpp(sipSpec *pt, const char *codeDir,
 "    Py_XDECREF(sip_result);\n"
 "    Py_DECREF(sip_mod);\n"
 "}\n"
-        , pt->module->fullname);
+        , pt->module->fullname->text);
 
     closeFile(fp);
     free(cppfile);
@@ -1490,7 +1493,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
                     sat = "enum";
 
                     if (td->type.u.ed->module != mod)
-                        tdmname = td->type.u.ed->module->fullname;
+                        tdmname = td->type.u.ed->module->fullname->text;
                 }
                 break;
 
@@ -1499,7 +1502,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
                 fqname = classFQCName(td->type.u.cd);
 
                 if (td->type.u.cd->iff->module != mod)
-                    tdmname = td->type.u.cd->iff->module->fullname;
+                    tdmname = td->type.u.cd->iff->module->fullname->text;
                 break;
 
             case mapped_type:
@@ -1507,7 +1510,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
                 argtype = &td->type.u.mtd->type;
 
                 if (td->type.u.mtd->iff->module != mod)
-                    tdmname = td->type.u.mtd->iff->module->fullname;
+                    tdmname = td->type.u.mtd->iff->module->fullname->text;
                 break;
             }
 
@@ -1571,7 +1574,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         for (mld = mod->allimports; mld != NULL; mld = mld->next)
             prcode(fp,
 "    {\"%s\", %d, NULL},\n"
-                , mld->module->fullname, mld->module->version);
+                , mld->module->fullname->text, mld->module->version);
 
         prcode(fp,
 "    {NULL, -1, NULL}\n"
@@ -1717,9 +1720,10 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "sipExportedModuleDef sipModuleAPI_%s = {\n"
 "    NULL,\n"
 "    SIP_API_MINOR_NR,\n"
-"    \"%s\",\n"
+"    %n,\n"
 "    NULL,\n"
 "    %d,\n"
+"    sipStrings_%s,\n"
 "    %s,\n"
 "    %s,\n"
 "    %d,\n"
@@ -1745,6 +1749,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         , mname
         , mod->fullname
         , mod->version
+        , mname
         , mod->allimports != NULL ? "importsTable" : "NULL"
         , mod->qobjclass >= 0 ? "&qtAPI" : "NULL"
         , mod->nrclasses
@@ -1839,10 +1844,10 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 
     prcode(fp,
 "    /* Initialise the module and get it's dictionary. */\n"
-"    sipModule = Py_InitModule((char *)sipModuleAPI_%s.em_name,sip_methods);\n"
+"    sipModule = Py_InitModule((char *)%N,sip_methods);\n"
 "    sipModuleDict = PyModule_GetDict(sipModule);\n"
 "\n"
-        , mname);
+        , mod->fullname);
 
     generateSipImport(mod, fp);
 
@@ -3961,7 +3966,7 @@ static void generateVariableHandler(classDef *context, varDef *vd, FILE *fp)
 "    sipBadSetType(%N,%N);\n"
 "    return NULL;\n"
 "}\n"
-            , vd->ecd->iff->name, vd->pyname);
+            , vd->ecd->pyname, vd->pyname);
 
         return;
     }
@@ -4018,7 +4023,7 @@ static void generateVariableHandler(classDef *context, varDef *vd, FILE *fp)
 "        return NULL;\n"
 "    }\n"
 "\n"
-                ,vd->ecd->iff->name,vd->pyname);
+                , vd->ecd->pyname, vd->pyname);
         }
 
         if (atype == pyobject_type || atype == pytuple_type ||
@@ -4425,7 +4430,7 @@ static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
     else if (cd != NULL)
     {
         prefix = "Class";
-        pyname = cd->iff->name;
+        pyname = cd->pyname;
         fqcname = classFQCName(cd);
         overs = cd->overs;
     }
@@ -5519,7 +5524,7 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
     prcode(fp,",sipPySelf,");
 
     if (isAbstract(od))
-        prcode(fp,"%N",cd->iff->name);
+        prcode(fp, "%N", cd->pyname);
     else
         prcode(fp,"NULL");
 
@@ -5876,7 +5881,7 @@ static void generateEmitter(classDef *cd, visibleList *vl, FILE *fp)
 "    return -1;\n"
 "}\n"
 "\n"
-        , cd->iff->name, vl->m->pyname);
+        , cd->pyname, vl->m->pyname);
 
     if (!generating_c)
         prcode(fp,
@@ -7915,22 +7920,22 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 
     prcode(fp, ",\n");
 
-    if (cd->real != NULL)
+    prcode(fp,
+"    -1,\n"
+        );
+
+    if (cd->real == NULL)
         prcode(fp,
-"    0,\n"
-            );
-    else if (cd->ecd != NULL && cd->ecd->real != NULL)
-        prcode(fp,
-"    \"%s.%P\",\n"
-            , cd->ecd->real->iff->module->name, cd->ecd, cd->pyname);
+"    %n,\n"
+            , cd->pyname);
     else
         prcode(fp,
-"    \"%s.%P\",\n"
-            , mname, cd->ecd, cd->pyname);
+"    -1,\n"
+            );
 
     prcode(fp,
-"    \"%S\",\n"
-        , classFQCName(cd));
+"    %n,\n"
+        , cd->iff->name);
 
     prcode(fp,
 "    ");
@@ -8691,7 +8696,7 @@ static void generateConstructorCall(classDef *cd,ctorDef *ct,int error_flag,
 "            if (sipDeprecated(%N,NULL) < 0)\n"
 "                return NULL;\n"
 "\n"
-            , cd->iff->name);
+            , cd->pyname);
 
     /* Call any pre-hook. */
     if (ct->prehook != NULL)
@@ -8914,7 +8919,7 @@ static void generateFunction(memberDef *md, overDef *overs, classDef *cd,
 "\n"
 "    return NULL;\n"
 "}\n"
-            ,(need_args ? "sipArgsParsed" : "0"),cd->iff->name,md->pyname);
+            ,(need_args ? "sipArgsParsed" : "0"),cd->pyname,md->pyname);
     }
 }
 
@@ -9636,7 +9641,7 @@ static void generateFunctionCall(classDef *cd,classDef *ocd,overDef *od,
 "                return NULL;\n"
 "            }\n"
 "\n"
-            , cd->iff->name, od->common->pyname);
+            , cd->pyname, od->common->pyname);
 
     if (isDeprecated(od))
     {
@@ -9644,7 +9649,7 @@ static void generateFunctionCall(classDef *cd,classDef *ocd,overDef *od,
         if (cd != NULL)
             prcode(fp,
 "            if (sipDeprecated(%N,%N) < 0)\n"
-                , cd->iff->name, od->common->pyname);
+                , cd->pyname, od->common->pyname);
         else
             prcode(fp,
 "            if (sipDeprecated(NULL,%N) < 0)\n"
@@ -10955,7 +10960,15 @@ void prcode(FILE *fp, const char *fmt, ...)
                 {
                     nameDef *nd = va_arg(ap,nameDef *);
 
-                    fprintf(fp, "sipName_%s", nd->text);
+                    prCachedName(fp, nd, "sipName_");
+                    break;
+                }
+
+            case 'n':
+                {
+                    nameDef *nd = va_arg(ap,nameDef *);
+
+                    prCachedName(fp, nd, "sipNameNr_");
                     break;
                 }
 
@@ -11039,6 +11052,37 @@ void prcode(FILE *fp, const char *fmt, ...)
             fputc(ch,fp);
 
     va_end(ap);
+}
+
+
+/*
+ * Generate the symbolic name of a cached name.
+ */
+static void prCachedName(FILE *fp, nameDef *nd, const char *prefix)
+{
+    prcode(fp, "%s", prefix);
+
+    /*
+     * If the name seems to be a template then just use the offset to ensure
+     * that it is unique.
+     */
+    if (strchr(nd->text, '<') != NULL)
+        prcode(fp, "%d", nd->offset);
+    else
+    {
+        const char *cp;
+
+        /* Handle C++ and Python scopes. */
+        for (cp = nd->text; *cp != '\0'; ++cp)
+        {
+            char ch = *cp;
+
+            if (ch == ':' || ch == '.')
+                ch = '_';
+
+            prcode(fp, "%c", ch);
+        }
+    }
 }
 
 
@@ -11229,7 +11273,7 @@ void prScopedPythonName(FILE *fp, classDef *scope, const char *pyname)
     if (scope != NULL)
     {
         prScopedPythonName(fp, scope->ecd, NULL);
-        fprintf(fp, "%s.", scope->pyname);
+        fprintf(fp, "%s.", scope->pyname->text);
     }
 
     if (pyname != NULL)

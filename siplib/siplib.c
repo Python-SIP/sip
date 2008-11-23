@@ -271,6 +271,14 @@ static const sipAPIDef sip_api = {
 
 
 /*
+ * Get various names from the string pool for various data types.
+ */
+#define getNameOfModule(em)     (&((em)->em_strings)[(em)->em_name])
+#define getPyNameOfType(td)     (&((td)->td_module->em_strings)[(td)->td_name])
+#define getCppNameOfType(td)    (&((td)->td_module->em_strings)[(td)->td_cname])
+
+
+/*
  * An entry in a linked list of name/symbol pairs.
  */
 typedef struct _sipSymbol {
@@ -349,7 +357,7 @@ static int compareEnumMemberName(const void *key, const void *el);
 static int checkPointer(void *ptr);
 static void *cast_cpp_ptr(void *ptr, sipWrapperType *src_type,
         sipWrapperType *dst_type);
-static void badArgs(int argsParsed, const char *classname, const char *method);
+static void badArgs(int argsParsed, const char *scope, const char *method);
 static void finalise(void);
 static sipWrapperType *createType(sipExportedModuleDef *client,
         sipTypeDef *type, PyObject *mod_dict);
@@ -831,6 +839,7 @@ static int sip_api_export_module(sipExportedModuleDef *client,
     sipWrapperType **mw;
     sipEnumMemberDef *emd;
     sipInitExtenderDef *ie;
+    const char *full_name = getNameOfModule(client);
     int i;
 
     /* Check that we can support it. */
@@ -838,24 +847,31 @@ static int sip_api_export_module(sipExportedModuleDef *client,
     if (api_major != SIP_API_MAJOR_NR || api_minor > SIP_API_MINOR_NR)
     {
 #if SIP_API_MINOR_NR > 0
-        PyErr_Format(PyExc_RuntimeError, "the sip module implements API v%d.0 to v%d.%d but the %s module requires API v%d.%d", SIP_API_MAJOR_NR, SIP_API_MAJOR_NR, SIP_API_MINOR_NR, client->em_name, api_major,api_minor);
+        PyErr_Format(PyExc_RuntimeError,
+                "the sip module implements API v%d.0 to v%d.%d but the %s module requires API v%d.%d",
+                SIP_API_MAJOR_NR, SIP_API_MAJOR_NR, SIP_API_MINOR_NR,
+                full_name, api_major, api_minor);
 #else
-        PyErr_Format(PyExc_RuntimeError, "the sip module implements API v%d.0 but the %s module requires API v%d.%d", SIP_API_MAJOR_NR, client->em_name, api_major,api_minor);
+        PyErr_Format(PyExc_RuntimeError,
+                "the sip module implements API v%d.0 but the %s module requires API v%d.%d",
+                SIP_API_MAJOR_NR, full_name, api_major, api_minor);
 #endif
 
         return -1;
     }
 
     /* Convert the module name to an object. */
-    if ((client->em_nameobj = PyString_FromString(client->em_name)) == NULL)
+    if ((client->em_nameobj = PyString_FromString(full_name)) == NULL)
         return -1;
 
     for (em = moduleList; em != NULL; em = em->em_next)
     {
         /* SIP clients must have unique names. */
-        if (strcmp(em->em_name, client->em_name) == 0)
+        if (strcmp(getNameOfModule(em), full_name) == 0)
         {
-            PyErr_Format(PyExc_RuntimeError, "the sip module has already registered a module called %s", client->em_name);
+            PyErr_Format(PyExc_RuntimeError,
+                    "the sip module has already registered a module called %s",
+                    full_name);
 
             return -1;
         }
@@ -863,7 +879,9 @@ static int sip_api_export_module(sipExportedModuleDef *client,
         /* Only one module can claim to wrap QObject. */
         if (em->em_qt_api != NULL && client->em_qt_api != NULL)
         {
-            PyErr_Format(PyExc_RuntimeError, "the %s and %s modules both wrap the QObject class", client->em_name, em->em_name);
+            PyErr_Format(PyExc_RuntimeError,
+                    "the %s and %s modules both wrap the QObject class",
+                    full_name, getNameOfModule(em));
 
             return -1;
         }
@@ -880,12 +898,14 @@ static int sip_api_export_module(sipExportedModuleDef *client,
                 return -1;
 
             for (em = moduleList; em != NULL; em = em->em_next)
-                if (strcmp(em->em_name, im->im_name) == 0)
+                if (strcmp(getNameOfModule(em), im->im_name) == 0)
                     break;
 
             if (em == NULL)
             {
-                PyErr_Format(PyExc_RuntimeError, "the %s module failed to register with the sip module", im->im_name);
+                PyErr_Format(PyExc_RuntimeError,
+                        "the %s module failed to register with the sip module",
+                        im->im_name);
 
                 return -1;
             }
@@ -894,7 +914,10 @@ static int sip_api_export_module(sipExportedModuleDef *client,
             if (im->im_version >= 0 || em->em_version >= 0)
                 if (im->im_version != em->em_version)
                 {
-                    PyErr_Format(PyExc_RuntimeError, "the %s module is version %d but the %s module requires version %d", em->em_name, em->em_version, client->em_name, im->im_version);
+                    PyErr_Format(PyExc_RuntimeError,
+                            "the %s module is version %d but the %s module requires version %d",
+                            getNameOfModule(em), em->em_version, full_name,
+                            im->im_version);
 
                     return -1;
                 }
@@ -916,8 +939,15 @@ static int sip_api_export_module(sipExportedModuleDef *client,
             if (td == NULL)
                 continue;
 
+            /*
+             * Set this up as soon as possible to gain access to the string
+             * pool.
+             * FIXME: String pools don't work properly with namespace extenders.
+             */
+            td->td_module = client;
+
             /* See if this is a namespace extender. */
-            if (td->td_name == NULL)
+            if (td->td_name < 0)
             {
                 sipTypeDef **last;
                 sipWrapperType *wt = getClassType(&td->td_scope, client);
@@ -929,12 +959,6 @@ static int sip_api_export_module(sipExportedModuleDef *client,
                     last = &(*last)->td_nsextender;
 
                 *last = td;
-
-                /*
-                 * Set this so that the extender's original module can be
-                 * found.
-                 */
-                td->td_module = client;
 
                 /*
                  * Save the real namespace type so that it is the correct scope
@@ -991,7 +1015,7 @@ static int sip_api_export_module(sipExportedModuleDef *client,
              * Register the enum pickler for scoped enums (unscoped, ie. those
              * not nested, don't need special treatment).
              */
-            if (client->em_api_minor >= 5 && ed->e_scope >= 0)
+            if (ed->e_scope >= 0)
             {
                 static PyMethodDef md = {
                     "_pickle_enum", pickle_enum, METH_NOARGS, NULL
@@ -1056,14 +1080,11 @@ static int sip_api_export_module(sipExportedModuleDef *client,
             for (i = 0; i < client->em_nrtypes; ++i)
             {
                 sipWrapperType *wt;
-                const char *tname;
 
                 if ((wt = *mw++) == NULL)
                     continue;
 
-                tname = strchr(wt->type->td_name, '.') + 1;
-
-                if (strcmp(etd->et_name, tname) == 0)
+                if (strcmp(etd->et_name, getPyNameOfType(wt->type)) == 0)
                 {
                     em->em_types[etd->et_nr] = wt;
                     etd->et_name = NULL;
@@ -1151,7 +1172,7 @@ static void sip_api_add_delayed_dtor(sipWrapper *w)
 
                 /* Add to the list. */
                 dd->dd_ptr = ptr;
-                dd->dd_name = getBaseName(td->td_name);
+                dd->dd_name = getPyNameOfType(td);
                 dd->dd_isderived = sipIsDerived(w);
                 dd->dd_next = em->em_ddlist;
 
@@ -3518,7 +3539,7 @@ static sipWrapperType *createType(sipExportedModuleDef *client,
     sipWrapperType *wt;
 
     /* Create an object corresponding to the type name. */
-    if ((name = getBaseNameObject(type->td_name)) == NULL)
+    if ((name = PyString_FromString(getPyNameOfType(type))) == NULL)
         goto reterr;
 
     /* Create the tuple of super types. */
@@ -3556,8 +3577,7 @@ static sipWrapperType *createType(sipExportedModuleDef *client,
     if ((typedict = createTypeDict(client->em_nameobj)) == NULL)
         goto relbases;
 
-    /* Initialise the rest of the type and pass it via the back door. */
-    type->td_module = client;
+    /* Pass the type via the back door. */
     currentType = type;
 
     /* Create the type by calling the metatype. */
@@ -3578,7 +3598,7 @@ static sipWrapperType *createType(sipExportedModuleDef *client,
         goto reltype;
 
     /* Handle the pickle function. */
-    if (client->em_api_minor >= 5 && wt->type->td_pickle != NULL)
+    if (wt->type->td_pickle != NULL)
     {
         static PyMethodDef md = {
             "_pickle_type", pickle_type, METH_NOARGS, NULL
@@ -3632,7 +3652,7 @@ static sipExportedModuleDef *getModule(PyObject *mname_obj)
 
     /* Find the module definition. */
     for (em = moduleList; em != NULL; em = em->em_next)
-        if (strcmp(em->em_name, PyString_AS_STRING(mname_obj)) == 0)
+        if (strcmp(getNameOfModule(em), PyString_AS_STRING(mname_obj)) == 0)
             break;
 
     Py_DECREF(mod);
@@ -3665,14 +3685,11 @@ static PyObject *unpickle_type(PyObject *ignore, PyObject *args)
     for (i = 0; i < em->em_nrtypes; ++i)
     {
         sipWrapperType *wt;
-        const char *name;
 
         if ((wt = em->em_types[i]) == NULL)
             continue;
 
-        name = strchr(wt->type->td_name, '.') + 1;
-
-        if (strcmp(name, tname) == 0)
+        if (strcmp(getPyNameOfType(wt->type), tname) == 0)
             return PyObject_CallObject((PyObject *)wt, init_args);
     }
 
@@ -3702,7 +3719,7 @@ static PyObject *pickle_type(PyObject *obj, PyObject *ignore)
             if ((PyTypeObject *)wt == obj->ob_type)
             {
                 PyObject *init_args;
-                const char *name;
+                const char *pyname = getPyNameOfType(wt->type);
 
                 /*
                  * Ask the handwritten pickle code for the tuple of arguments
@@ -3712,22 +3729,15 @@ static PyObject *pickle_type(PyObject *obj, PyObject *ignore)
 
                 if (!PyTuple_Check(init_args))
                 {
-                    PyErr_Format(PyExc_TypeError, "%%PickleCode for type %s did not return a tuple", wt->type->td_name);
+                    PyErr_Format(PyExc_TypeError,
+                            "%%PickleCode for type %s.%s did not return a tuple",
+                            getNameOfModule(em), pyname);
 
                     return NULL;
                 }
 
-                /*
-                 * Get the type name but ignore the module name.  We do this
-                 * because I don't think the module name is used any more
-                 * (except maybe in exceptions, but we should get it from
-                 * __module__ in that case) and it may get removed in a future
-                 * version of SIP.  However, we want pickled data to continue
-                 * to be usable if that change is ever made.
-                 */
-                name = strchr(wt->type->td_name, '.') + 1;
-
-                return Py_BuildValue("O(OsN)", type_unpickler, em->em_nameobj, name, init_args);
+                return Py_BuildValue("O(OsN)", type_unpickler, em->em_nameobj,
+                        pyname, init_args);
             }
         }
     }
@@ -4028,10 +4038,10 @@ static int getSelfFromArgs(sipWrapperType *type, PyObject *args, int argnr,
 /*
  * Handle the result of a call to the class/instance setattro methods.
  */
-static int handleSetLazyAttr(PyObject *nameobj,PyObject *valobj,
-                 sipWrapperType *wt,sipWrapper *w)
+static int handleSetLazyAttr(PyObject *nameobj, PyObject *valobj,
+        sipWrapperType *wt, sipWrapper *w)
 {
-    char *name;
+    const char *name;
     PyMethodDef *pmd, *vmd;
     sipEnumMemberDef *enm;
 
@@ -4051,7 +4061,9 @@ static int handleSetLazyAttr(PyObject *nameobj,PyObject *valobj,
 
         if (valobj == NULL)
         {
-            PyErr_Format(PyExc_ValueError,"%s.%s cannot be deleted",wt->type->td_name,name);
+            PyErr_Format(PyExc_ValueError, "%s.%s.%s cannot be deleted",
+                    getNameOfModule(wt->type->td_module),
+                    getPyNameOfType(wt->type), name);
 
             return -1;
         }
@@ -4266,7 +4278,7 @@ static int compareEnumMemberName(const void *key,const void *el)
  */
 static void sip_api_no_function(int argsParsed, const char *func)
 {
-    badArgs(argsParsed,NULL,func);
+    badArgs(argsParsed, NULL, func);
 }
 
 
@@ -4275,7 +4287,7 @@ static void sip_api_no_function(int argsParsed, const char *func)
  */
 static void sip_api_no_method(int argsParsed, const char *classname, const char *method)
 {
-    badArgs(argsParsed,classname,method);
+    badArgs(argsParsed, classname, method);
 }
 
 
@@ -4284,7 +4296,9 @@ static void sip_api_no_method(int argsParsed, const char *classname, const char 
  */
 static void sip_api_abstract_method(const char *classname, const char *method)
 {
-    PyErr_Format(PyExc_TypeError,"%s.%s() is abstract and cannot be called as an unbound method", classname, method);
+    PyErr_Format(PyExc_TypeError,
+            "%s.%s() is abstract and cannot be called as an unbound method",
+            classname, method);
 }
 
 
@@ -4315,49 +4329,59 @@ static int sip_api_deprecated(const char *classname, const char *method)
 /*
  * Handle error reporting for bad arguments to various things.
  */
-static void badArgs(int argsParsed, const char *classname, const char *method)
+static void badArgs(int argsParsed, const char *scope, const char *method)
 {
-    char *sep;
+    const char *sep;
     int nrparsed = argsParsed & ~PARSE_MASK;
 
-    if (classname != NULL)
+    if (scope != NULL)
         sep = ".";
     else
     {
-        classname = "";
+        scope = "";
         sep = "";
     }
 
     switch (argsParsed & PARSE_MASK)
     {
     case PARSE_FEW:
-        PyErr_Format(PyExc_TypeError,"insufficient number of arguments to %s%s%s()",classname,sep,method);
+        PyErr_Format(PyExc_TypeError,
+                "insufficient number of arguments to %s%s%s()", scope, sep,
+                method);
         break;
 
     case PARSE_MANY:
-        PyErr_Format(PyExc_TypeError,"too many arguments to %s%s%s(), %d at most expected",classname,sep,method,nrparsed);
+        PyErr_Format(PyExc_TypeError,
+                "too many arguments to %s%s%s(), %d at most expected", scope,
+                sep, method, nrparsed);
         break;
 
     case PARSE_TYPE:
-        PyErr_Format(PyExc_TypeError,"argument %d of %s%s%s() has an invalid type",nrparsed + 1,classname,sep,method);
+        PyErr_Format(PyExc_TypeError,
+                "argument %d of %s%s%s() has an invalid type", nrparsed + 1,
+                scope, sep, method);
         break;
 
     case PARSE_FORMAT:
-        PyErr_Format(PyExc_TypeError,"invalid format to sipParseArgs() from %s%s%s()",classname,sep,method);
+        PyErr_Format(PyExc_TypeError,
+                "invalid format to sipParseArgs() from %s%s%s()", scope,
+                sep, method);
         break;
 
     case PARSE_UNBOUND:
-        PyErr_Format(PyExc_TypeError,"first argument of unbound method %s%s%s() must be a %s instance",classname,sep,method,classname);
+        PyErr_Format(PyExc_TypeError,
+                "first argument of unbound method %s%s%s() must be a %s instance",
+                scope, sep, method, scope);
         break;
 
     case PARSE_RAISED:
         /* It has already been taken care of. */
-
         break;
 
     case PARSE_OK:
         /* This is raised by a private re-implementation. */
-        PyErr_Format(PyExc_AttributeError,"%s%s%s is a private method",classname,sep,method);
+        PyErr_Format(PyExc_AttributeError, "%s%s%s is a private method", scope,
+                sep, method);
         break;
     }
 }
@@ -4368,7 +4392,7 @@ static void badArgs(int argsParsed, const char *classname, const char *method)
  * be handled (those that don't return Py_NotImplemented).
  */
 static void sip_api_bad_operator_arg(PyObject *self, PyObject *arg,
-                     sipPySlotType st)
+        sipPySlotType st)
 {
     const char *sn = NULL;
 
@@ -5378,7 +5402,11 @@ static void *sip_api_force_convert_to_instance(PyObject *pyObj,
     /* See if the object's type can be converted. */
     if (!sip_api_can_convert_to_instance(pyObj, type, flags))
     {
-        PyErr_Format(PyExc_TypeError, "%s cannot be converted to %s in this context", pyObj->ob_type->tp_name, type->type->td_name);
+        PyErr_Format(PyExc_TypeError,
+                "%s cannot be converted to %s.%s in this context",
+                pyObj->ob_type->tp_name,
+                getNameOfModule(type->type->td_module),
+                getPyNameOfType(type->type));
 
         if (statep != NULL)
             *statep = 0;
@@ -6528,7 +6556,7 @@ static PyObject *make_voidptr(void *voidptr, SIP_SSIZE_T size, int rw)
  */
 static int sip_api_is_exact_wrapped_type(sipWrapperType *wt)
 {
-    char *name;
+    const char *name;
 
     /*
      * We check by comparing the actual type name with the name used to create
@@ -6542,7 +6570,7 @@ static int sip_api_is_exact_wrapped_type(sipWrapperType *wt)
 #endif
         return FALSE;
 
-    return (strcmp(name, getBaseName(wt->type->td_name)) == 0);
+    return (strcmp(name, getPyNameOfType(wt->type)) == 0);
 }
 
 
@@ -6785,8 +6813,8 @@ static int sipWrapperType_setattro(PyObject *obj,PyObject *name,PyObject *value)
 static PyTypeObject sipWrapperType_Type = {
     PyObject_HEAD_INIT(NULL)
     0,                      /* ob_size */
-    "sip.wrappertype",              /* tp_name */
-    sizeof (sipWrapperType),            /* tp_basicsize */
+    "sip.wrappertype",      /* tp_name */
+    sizeof (sipWrapperType),    /* tp_basicsize */
     0,                      /* tp_itemsize */
     0,                      /* tp_dealloc */
     0,                      /* tp_print */
@@ -6800,8 +6828,8 @@ static PyTypeObject sipWrapperType_Type = {
     0,                      /* tp_hash */
     0,                      /* tp_call */
     0,                      /* tp_str */
-    sipWrapperType_getattro,            /* tp_getattro */
-    sipWrapperType_setattro,            /* tp_setattro */
+    sipWrapperType_getattro,    /* tp_getattro */
+    sipWrapperType_setattro,    /* tp_setattro */
     0,                      /* tp_as_buffer */
     Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,   /* tp_flags */
     0,                      /* tp_doc */
@@ -6819,8 +6847,8 @@ static PyTypeObject sipWrapperType_Type = {
     0,                      /* tp_descr_get */
     0,                      /* tp_descr_set */
     0,                      /* tp_dictoffset */
-    (initproc)sipWrapperType_init,          /* tp_init */
-    sipWrapperType_alloc,               /* tp_alloc */
+    (initproc)sipWrapperType_init,  /* tp_init */
+    sipWrapperType_alloc,   /* tp_alloc */
     0,                      /* tp_new */
     0,                      /* tp_free */
 };
@@ -6833,7 +6861,8 @@ static PyTypeObject sipWrapperType_Type = {
 /*
  * The instance new slot.
  */
-static PyObject *sipWrapper_new(sipWrapperType *wt,PyObject *args,PyObject *kwds)
+static PyObject *sipWrapper_new(sipWrapperType *wt, PyObject *args,
+        PyObject *kwds)
 {
     static PyObject *noargs = NULL;
 
@@ -6849,7 +6878,10 @@ static PyObject *sipWrapper_new(sipWrapperType *wt,PyObject *args,PyObject *kwds
     /* Check sip.wrapper is not being used directly. */
     if (wt == &sipWrapper_Type)
     {
-        PyErr_Format(PyExc_TypeError,"the %s type cannot be instantiated or sub-classed", ((PyTypeObject *)wt)->tp_name);
+        PyErr_Format(PyExc_TypeError,
+                "the %s.%s type cannot be instantiated or sub-classed",
+                getNameOfModule(wt->type->td_module),
+                getPyNameOfType(wt->type));
 
         return NULL;
     }
@@ -6857,7 +6889,10 @@ static PyObject *sipWrapper_new(sipWrapperType *wt,PyObject *args,PyObject *kwds
     /* See if it is a namespace. */
     if (sipTypeIsNamespace(wt))
     {
-        PyErr_Format(PyExc_TypeError, "%s represents a C++ namespace that cannot be instantiated", wt->type->td_name);
+        PyErr_Format(PyExc_TypeError,
+                "%s.%s represents a C++ namespace that cannot be instantiated",
+                getNameOfModule(wt->type->td_module),
+                getPyNameOfType(wt->type));
 
         return NULL;
     }
@@ -6874,24 +6909,27 @@ static PyObject *sipWrapper_new(sipWrapperType *wt,PyObject *args,PyObject *kwds
          */
         if (wt->type->td_init == NULL)
         {
-            PyErr_Format(PyExc_TypeError,"%s cannot be instantiated or sub-classed", wt->type->td_name);
+            PyErr_Format(PyExc_TypeError,
+                    "%s.%s cannot be instantiated or sub-classed",
+                    getNameOfModule(wt->type->td_module),
+                    getPyNameOfType(wt->type));
 
             return NULL;
         }
 
         /* See if it is an abstract type. */
-        if (sipTypeIsAbstract(wt) && strcmp(strchr(wt->type->td_name, '.') + 1, ((PyTypeObject *)wt)->tp_name) == 0)
+        if (sipTypeIsAbstract(wt) && sip_api_is_exact_wrapped_type(wt))
         {
-            PyErr_Format(PyExc_TypeError, "%s represents a C++ abstract class and cannot be instantiated", wt->type->td_name);
+            PyErr_Format(PyExc_TypeError,
+                    "%s.%s represents a C++ abstract class and cannot be instantiated",
+                    getNameOfModule(wt->type->td_module),
+                    getPyNameOfType(wt->type));
 
             return NULL;
         }
     }
 
-    /*
-     * Call the standard super-type new.  Passing arguments was deprecated in
-     * Python v2.6.
-     */
+    /* Call the standard super-type new. */
     return PyBaseObject_Type.tp_new((PyTypeObject *)wt, noargs, NULL);
 }
 
@@ -6961,7 +6999,8 @@ static int sipWrapper_init(sipWrapper *self,PyObject *args,PyObject *kwds)
                 if (pstate == PARSE_OK)
                     argsparsed = PARSE_RAISED;
 
-                badArgs(argsparsed, NULL, getBaseName(wt->type->td_name));
+                badArgs(argsparsed, getNameOfModule(wt->type->td_module),
+                        getPyNameOfType(wt->type));
                 return -1;
             }
 
@@ -7519,8 +7558,8 @@ static sipWrapperType sipWrapper_Type = {
         {
             PyObject_HEAD_INIT(&sipWrapperType_Type)
             0,              /* ob_size */
-            "sip.wrapper",          /* tp_name */
-            sizeof (sipWrapper),        /* tp_basicsize */
+            "sip.wrapper",  /* tp_name */
+            sizeof (sipWrapper),    /* tp_basicsize */
             0,              /* tp_itemsize */
             (destructor)sipWrapper_dealloc, /* tp_dealloc */
             0,              /* tp_print */
@@ -7534,8 +7573,8 @@ static sipWrapperType sipWrapper_Type = {
             0,              /* tp_hash */
             0,              /* tp_call */
             0,              /* tp_str */
-            sipWrapper_getattro,        /* tp_getattro */
-            sipWrapper_setattro,        /* tp_setattro */
+            sipWrapper_getattro,    /* tp_getattro */
+            sipWrapper_setattro,    /* tp_setattro */
             0,              /* tp_as_buffer */
             Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_HAVE_GC,  /* tp_flags */
             0,              /* tp_doc */
@@ -7875,15 +7914,8 @@ static sipWrapperType *findClass(sipExportedModuleDef *emd, const char *name,
         if ((wt = *wtp++) == NULL)
             continue;
 
-        if (wt->type->td_cname != NULL)
-        {
-            if (!nameEq(wt->type->td_cname, name, len))
-                continue;
-        }
-        else if (!sameScopedName(wt->type->td_name, name, len))
-            continue;
-
-        return wt;
+        if (nameEq(getCppNameOfType(wt->type), name, len))
+            return wt;
     }
 
     return NULL;
@@ -8032,7 +8064,7 @@ void sipFindSigArgType(const char *name, size_t len, sipSigArg *at, int indir)
                         tem = em;
                     else
                         for (tem = moduleList; tem != NULL; tem = tem->em_next)
-                            if (strcmp(tem->em_name, tdd->tdd_mod_name) == 0)
+                            if (strcmp(getNameOfModule(tem), tdd->tdd_mod_name) == 0)
                                 break;
 
                     tnlen = strlen(tn);

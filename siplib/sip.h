@@ -524,14 +524,14 @@ typedef struct _sipTypeDef {
     /* Type flags, see the sipType*() macros. */
     int td_flags;
 
-    /*
-     * The Python name of the type.  This includes the name of the containing
-     * module which should be removed when SIP_API_MAJOR_NR is moved to 4.
-     */
-    const char *td_name;
+    /* The metatype name, -1 to use sipWrapperType. */
+    int td_metatype;
+
+    /* The Python name of the type, -1 if a namespace extender. */
+    int td_name;
 
     /* The C/C++ name of the type. */
-    const char *td_cname;
+    int td_cname;
 
     /* The scoping type. */
     sipEncodedClassDef td_scope;
@@ -687,13 +687,16 @@ typedef struct _sipExportedModuleDef {
     unsigned em_api_minor;
 
     /* The module name. */
-    const char *em_name;
+    int em_name;
 
     /* The module name as an object. */
     PyObject *em_nameobj;
 
     /* The module version. */
     int em_version;
+
+    /* The string pool. */
+    const char *em_strings;
 
     /* The imported modules. */
     sipImportedModuleDef *em_imports;
