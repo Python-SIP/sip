@@ -47,7 +47,6 @@ static void fatallex(char *);
 %%
 
 ^[ \t]*%SIPOptions          {return TK_OPTIONS;}
-^[ \t]*%SIPNoEmitters       {return TK_NOEMITTERS;}
 ^[ \t]*%Include             {return TK_INCLUDE;}
 ^[ \t]*%OptionalInclude     {return TK_OPTINCLUDE;}
 ^[ \t]*%Import              {return TK_IMPORT;}
@@ -62,6 +61,8 @@ static void fatallex(char *);
 ^[ \t]*%MappedType          {return TK_MAPPEDTYPE;}
 ^[ \t]*%Exception           {return TK_EXCEPTION;}
 ^[ \t]*%If                  {return TK_IF;}
+^[ \t]*%DefaultMetatype     {return TK_DEFMETATYPE;}
+^[ \t]*%Metatype            {return TK_METATYPE;}
 <INITIAL>^[ \t]*%End        {return TK_END;}
 class                       {return TK_CLASS;}
 struct                      {return TK_STRUCT;}

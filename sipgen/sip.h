@@ -576,6 +576,15 @@ typedef struct _codeBlock {
 } codeBlock;
 
 
+/* A metatype definition. */
+
+typedef struct _metatypeDef {
+    nameDef *name;                      /* The metatype name. */
+    nameDef *super;                     /* The super-metatype. */
+    struct _metatypeDef *next;          /* Next in the list. */
+} metatypeDef;
+
+
 /* A module definition. */
 
 typedef struct _moduleDef {
@@ -586,6 +595,8 @@ typedef struct _moduleDef {
     int qobjclass;                      /* QObject class, -1 if none. */
     struct _memberDef *othfuncs;        /* List of other functions. */
     struct _overDef *overs;             /* Global overloads. */
+    nameDef *defmetatype;               /* The optional default metatype. */
+    metatypeDef *metatypes;             /* The metatypes. */
     codeBlock *hdrcode;                 /* Header code. */
     codeBlock *cppcode;                 /* Global C++ code. */
     codeBlock *copying;                 /* Software license. */
@@ -917,6 +928,7 @@ typedef struct _classDef {
     nodeDef *node;                      /* Position in class tree. */
     classList *supers;                  /* The parent classes. */
     mroDef *mro;                        /* The super-class hierarchy. */
+    nameDef *metatype;                  /* The metatype. */
     templateDef *td;                    /* The instantiated template. */
     ctorDef *ctors;                     /* The constructors. */
     ctorDef *defctor;                   /* The default ctor. */

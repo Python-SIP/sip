@@ -107,6 +107,7 @@ static overDef *instantiateTemplateOverloads(sipSpec *pt, overDef *tod,
         templateDef *td, classDef *cd, ifaceFileList **used,
         scopedNameDef *type_names, scopedNameDef *type_values);
 static void resolveAnyTypedef(sipSpec *pt, argDef *ad);
+static char *prefixModuleName(moduleDef *mod, const char *suffix);
 %}
 
 %union {
@@ -131,7 +132,6 @@ static void resolveAnyTypedef(sipSpec *pt, argDef *ad);
 }
 
 %token          TK_OPTIONS
-%token          TK_NOEMITTERS
 %token          TK_DOC
 %token          TK_EXPORTEDDOC
 %token          TK_MAKEFILE
@@ -232,6 +232,8 @@ static void resolveAnyTypedef(sipSpec *pt, argDef *ad);
 %token          TK_EXPLICIT
 %token          TK_TEMPLATE
 %token          TK_ELLIPSIS
+%token          TK_DEFMETATYPE
+%token          TK_METATYPE
 
 %type <memArg>          argvalue
 %type <memArg>          argtype
@@ -280,7 +282,8 @@ static void resolveAnyTypedef(sipSpec *pt, argDef *ad);
 %type <text>            operatorname
 %type <text>            optfilename
 %type <text>            optname
-%type <text>            modname
+%type <text>            dottedname
+%type <text>            optsupermetatype
 %type <optflags>        optflags
 %type <optflags>        flaglist
 %type <flag>            flag
@@ -326,7 +329,6 @@ modstatement:   module
     |   consmodule
     |   compmodule
     |   options
-    |   noemitters
     |   copying
     |   include
     |   optinclude
@@ -335,6 +337,8 @@ modstatement:   module
     |   platforms
     |   feature
     |   license
+    |   defmetatype
+    |   metatype
     |   exphdrcode {
             if (notSkipping())
                 appendCodeBlock(&currentSpec->exphdrcode, $1);
@@ -391,15 +395,6 @@ optionlist: TK_NAME {
         }
     |   optionlist ',' TK_NAME {
             appendString(&currentSpec->options, $3);
-        }
-    ;
-
-noemitters: TK_NOEMITTERS {
-            if (notSkipping())
-            {
-                yywarning("%SIPNoEmitters is deprecated, please use %SIPOptions instead");
-                appendString(&currentSpec->options, "QtNoEmitters");
-            }
         }
     ;
 
@@ -794,7 +789,68 @@ license:    TK_LICENSE optflags {
         }
     ;
 
-consmodule: TK_CONSMODULE modname {
+defmetatype:TK_DEFMETATYPE TK_NAME {
+            if (notSkipping())
+            {
+                if (currentModule->defmetatype != NULL)
+                    yyerror("%DefaultMetatype has already been defined for this module");
+
+                currentModule->defmetatype = cacheName(currentSpec,
+                        prefixModuleName(currentModule, $2));
+            }
+        }
+    ;
+
+metatype:   TK_METATYPE TK_NAME optsupermetatype {
+            if (notSkipping())
+            {
+                metatypeDef **mtdp, *mtd;
+                nameDef *name, *super;
+
+                name = cacheName(currentSpec,
+                        prefixModuleName(currentModule, $2));
+
+                if ($3 != NULL)
+                    super = cacheName(currentSpec, $3);
+                else
+                    super = NULL;
+
+                /*
+                 * Find the end of the metatype list and check if it has
+                 * already been defined.
+                 */
+                for (mtdp = &currentModule->metatypes; *mtdp != NULL; mtdp = &(*mtdp)->next)
+                    if ((*mtdp)->name == name)
+                        yyerror("%Metatype has already been defined");
+
+                mtd = sipMalloc(sizeof(metatypeDef));
+
+                mtd->name = name;
+                mtd->super = super;
+                mtd->next = *mtdp;
+
+                *mtdp = mtd;
+
+                if (inMainModule())
+                {
+                    setIsUsedName(name);
+
+                    if (super != NULL)
+                        setIsUsedName(super);
+                }
+            }
+        }
+    ;
+
+optsupermetatype: {
+            $$ = NULL;
+        }
+    |   '(' dottedname ')' {
+            $$ = $2;
+        }
+    ;
+
+consmodule: TK_CONSMODULE dottedname {
             /* Make sure this is the first mention of a module. */
             if (currentSpec->module != currentModule)
                 yyerror("A %ConsolidatedModule cannot be %Imported");
@@ -807,7 +863,7 @@ consmodule: TK_CONSMODULE modname {
         }
     ;
 
-compmodule: TK_COMPOMODULE modname {
+compmodule: TK_COMPOMODULE dottedname {
             /* Make sure this is the first mention of a module. */
             if (currentSpec->module != currentModule)
                 yyerror("A %CompositeModule cannot be %Imported");
@@ -820,7 +876,7 @@ compmodule: TK_COMPOMODULE modname {
         }
     ;
 
-module:     modlang modname optnumber {
+module:     modlang dottedname optnumber {
             /* Check the module hasn't already been defined. */
 
             moduleDef *mod;
@@ -861,18 +917,18 @@ modlang:    TK_MODULE {
         }
     ;
 
-modname:    TK_NAME
+dottedname: TK_NAME
     |   TK_PATHNAME {
             /*
-             * The grammar design is a bit broken and this is the
-             * easiest way to allow periods in module names.
+             * The grammar design is a bit broken and this is the easiest way
+             * to allow periods in names.
              */
 
             char *cp;
 
             for (cp = $1; *cp != '\0'; ++cp)
                 if (*cp != '.' && *cp != '_' && !isalnum(*cp))
-                    yyerror("Invalid character in module name");
+                    yyerror("Invalid character in name");
 
             $$ = $1;
         }
@@ -2678,38 +2734,10 @@ static moduleDef *allocModule()
     moduleDef *newmod, **tailp;
 
     newmod = sipMalloc(sizeof (moduleDef));
-    newmod->fullname = NULL;
-    newmod->name = NULL;
+
     newmod->version = -1;
-    newmod->modflags = 0;
     newmod->qobjclass = -1;
-    newmod->othfuncs = NULL;
-    newmod->overs = NULL;
-    newmod->hdrcode = NULL;
-    newmod->cppcode = NULL;
-    newmod->copying = NULL;
-    newmod->preinitcode = NULL;
-    newmod->postinitcode = NULL;
-    newmod->unitcode = NULL;
-    newmod->file = NULL;
-    newmod->qualifiers = NULL;
-    newmod->root.cd = NULL;
-    newmod->root.child = NULL;
-    newmod->nrtimelines = 0;
-    newmod->nrclasses = 0;
-    newmod->nrexceptions = 0;
-    newmod->nrmappedtypes = 0;
-    newmod->nrenums = 0;
-    newmod->nrtypedefs = 0;
     newmod->nrvirthandlers = -1;
-    newmod->virthandlers = NULL;
-    newmod->license = NULL;
-    newmod->proxies = NULL;
-    newmod->container = NULL;
-    newmod->used = NULL;
-    newmod->allimports = NULL;
-    newmod->imports = NULL;
-    newmod->next = NULL;
 
     /*
      * The consolidated module support needs these to be in order that they
@@ -2856,35 +2884,6 @@ static classDef *findClassWithInterface(sipSpec *pt, ifaceFileDef *iff)
     cd -> iff = iff;
     cd -> pyname = cacheName(pt, classBaseName(cd));
     cd -> classnr = -1;
-    cd -> classflags = 0;
-    cd -> userflags = 0;
-    cd -> ecd = NULL;
-    cd -> dtorexceptions = NULL;
-    cd -> real = NULL;
-    cd -> node = NULL;
-    cd -> supers = NULL;
-    cd -> mro = NULL;
-    cd -> td = NULL;
-    cd -> ctors = NULL;
-    cd -> defctor = NULL;
-    cd -> dealloccode = NULL;
-    cd -> dtorcode = NULL;
-    cd -> members = NULL;
-    cd -> overs = NULL;
-    cd -> casts = NULL;
-    cd -> vmembers = NULL;
-    cd -> visible = NULL;
-    cd -> cppcode = NULL;
-    cd -> convtosubcode = NULL;
-    cd -> subbase = NULL;
-    cd -> convtocode = NULL;
-    cd -> travcode = NULL;
-    cd -> clearcode = NULL;
-    cd -> readbufcode = NULL;
-    cd -> writebufcode = NULL;
-    cd -> segcountcode = NULL;
-    cd -> charbufcode = NULL;
-    cd -> picklecode = NULL;
     cd -> next = pt -> classes;
 
     pt -> classes = cd;
@@ -3074,6 +3073,9 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd, optFlags *of)
 
     checkAttributes(pt, mod, cd->ecd, pyname, FALSE);
     cd->pyname = cacheName(pt, pyname);
+
+    if ((flg = findOptFlag(of, "Metatype", name_flag)) != NULL)
+        cd->metatype = cacheName(pt, prefixModuleName(mod, flg->fvalue.sval));
 
     if ((flg = findOptFlag(of, "TypeFlags", integer_flag)) != NULL)
         cd->userflags = flg->fvalue.ival;
@@ -5535,4 +5537,17 @@ static classDef *completeClass(scopedNameDef *snd, optFlags *of, int has_def)
         yyerror("External classes/structs can only be declared in the global scope");
 
     return cd;
+}
+
+
+/*
+ * Return the name of the given module and the given suffix separated by a
+ * period.
+ */
+static char *prefixModuleName(moduleDef *mod, const char *suffix)
+{
+    if (mod->fullname == NULL)
+        yyerror("%Module or %CModule not yet specified");
+
+    return concat(mod->fullname->text, ".", suffix, NULL);
 }

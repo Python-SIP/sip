@@ -811,38 +811,13 @@ static classDef *getProxy(moduleDef *mod, classDef *cd)
 
     pcd = sipMalloc(sizeof (classDef));
 
-    pcd->classflags = 0;
-    pcd->userflags = 0;
     pcd->classnr = -1;
     pcd->pyname = cd->pyname;
     pcd->iff = cd->iff;
     pcd->ecd = cd->ecd;
     pcd->real = cd;
-    pcd->node = NULL;
     pcd->supers = cd->supers;
     pcd->mro = cd->mro;
-    pcd->td = NULL;
-    pcd->ctors = NULL;
-    pcd->defctor = NULL;
-    pcd->dealloccode = NULL;
-    pcd->dtorcode = NULL;
-    pcd->dtorexceptions = NULL;
-    pcd->members = NULL;
-    pcd->overs = NULL;
-    pcd->casts = NULL;
-    pcd->vmembers = NULL;
-    pcd->visible = NULL;
-    pcd->cppcode = NULL;
-    pcd->convtosubcode = NULL;
-    pcd->subbase = NULL;
-    pcd->convtocode = NULL;
-    pcd->travcode = NULL;
-    pcd->clearcode = NULL;
-    pcd->readbufcode = NULL;
-    pcd->writebufcode = NULL;
-    pcd->segcountcode = NULL;
-    pcd->charbufcode = NULL;
-    pcd->picklecode = NULL;
     pcd->next = mod->proxies;
 
     mod->proxies = pcd;

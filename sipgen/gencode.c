@@ -7918,9 +7918,14 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 
     prcode(fp, ",\n");
 
-    prcode(fp,
+    if (cd->metatype != NULL)
+        prcode(fp,
+"    %n,\n"
+            , cd->metatype);
+    else
+        prcode(fp,
 "    -1,\n"
-        );
+            );
 
     if (cd->real == NULL)
         prcode(fp,

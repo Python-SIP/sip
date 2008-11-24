@@ -1090,7 +1090,7 @@ typedef struct _sipSlotConnection {
  */
 typedef struct _sipQtSignal {
     /* The signal name. */
-    char *st_name;
+    const char *st_name;
 
     /* The emitter function. */
     sipEmitFunc st_emitfunc;
