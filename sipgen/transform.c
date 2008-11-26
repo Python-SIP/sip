@@ -89,11 +89,11 @@ void transform(sipSpec *pt)
     mappedTypeDef *mtd;
 
     /*
-     * The class list has the main module's classes at the front and the
-     * ones from the module at the most nested %Import at the end.  This
-     * affects some of the following algorithms, eg. when assigning class
-     * numbers.  We have to have consistency whenever a module is used.  To
-     * achieve this we reverse the order of the classes.
+     * The class list has the main module's classes at the front and the ones
+     * from the module at the most nested %Import at the end.  This affects
+     * some of the following algorithms, eg. when assigning class numbers.  We
+     * have to have consistency whenever a module is used.  To achieve this we
+     * reverse the order of the classes.
      */
     rev = NULL;
     cd = pt -> classes;
@@ -128,6 +128,24 @@ void transform(sipSpec *pt)
 
         setAllImports(mod);
     }
+
+    /*
+     * Set the default metatype for the main module if it doesn't have one
+     * explicitly set.
+     */
+    if (pt->module->defmetatype == NULL)
+        for (mod = pt->module->allimports; mod != NULL; mod = mod->next)
+        {
+            if (mod->defmetatype == NULL)
+                continue;
+
+            if (pt->module->defmetatype == NULL)
+                pt->module->defmetatype = mod->defmetatype;
+            else if (pt->module->defmetatype != mod->defmetatype)
+                fatal("The %s module has imported different default metatypes %s and %s\n",
+                        pt->module->fullname->text,
+                        pt->module->defmetatype->text, mod->defmetatype->text);
+        }
 
     /* Check each class has been defined. */
     for (cd = pt -> classes; cd != NULL; cd = cd -> next)
@@ -1015,13 +1033,13 @@ static void addAutoOverload(sipSpec *pt,classDef *autocd,overDef *autood)
 /*
  * Set the complete hierarchy for a class.
  */
-static void setHierarchy(sipSpec *pt,classDef *base,classDef *cd,
-             classList **head)
+static void setHierarchy(sipSpec *pt, classDef *base, classDef *cd,
+        classList **head)
 {
-    mroDef **tailp = &cd -> mro;
+    mroDef **tailp = &cd->mro;
 
     /* See if it has already been done. */
-    if (cd -> mro != NULL)
+    if (cd->mro != NULL)
         return;
 
     if (cd->ecd != NULL)
@@ -1032,30 +1050,28 @@ static void setHierarchy(sipSpec *pt,classDef *base,classDef *cd,
             setIsDeprecatedClass(cd);
     }
 
-    if (cd -> iff -> type == class_iface)
+    if (cd->iff->type == class_iface)
     {
         classList *cl;
 
         /* The first thing is itself. */
-        appendToMRO(cd -> mro,&tailp,cd);
+        appendToMRO(cd->mro, &tailp, cd);
 
         if (cd->convtosubcode != NULL)
             cd->subbase = cd;
 
         /* Now do it's superclasses. */
-        for (cl = cd -> supers; cl != NULL; cl = cl -> next)
+        for (cl = cd->supers; cl != NULL; cl = cl->next)
         {
             mroDef *mro;
 
-            /*
-             * Make sure the super-class's hierarchy has been done.
-             */
-            setHierarchy(pt,base,cl -> cd,head);
+            /* Make sure the super-class's hierarchy has been done. */
+            setHierarchy(pt, base, cl->cd, head);
 
             /* Append the super-classes hierarchy. */
-            for (mro = cl -> cd -> mro; mro != NULL; mro = mro -> next)
+            for (mro = cl->cd->mro; mro != NULL; mro = mro->next)
             {
-                appendToMRO(cd -> mro,&tailp,mro -> cd);
+                appendToMRO(cd->mro, &tailp, mro->cd);
 
                 if (isDeprecatedClass(mro->cd))
                     setIsDeprecatedClass(cd);
@@ -1082,6 +1098,22 @@ static void setHierarchy(sipSpec *pt,classDef *base,classDef *cd,
                     cd->subbase = mro->cd->subbase;
             }
         }
+
+        /*
+         * If the class doesn't have an explicit metatype then inherit from the
+         * first super-class or, as a last resort, the module's default.
+         */
+        if (cd->metatype == NULL)
+        {
+            if (cd->supers != NULL)
+                cd->metatype = cd->supers->cd->metatype;
+
+            if (cd->metatype == NULL)
+                cd->metatype = cd->iff->module->defmetatype;
+        }
+
+        if (cd->metatype != NULL && generatingCodeForModule(pt, cd->iff->module))
+            setIsUsedName(cd->metatype);
     }
 
     /*

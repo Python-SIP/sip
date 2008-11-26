@@ -22,6 +22,9 @@
 #define TYPE_FLAGS_SHIFT        8
 #define TYPE_FLAGS_MASK         0x0f00
 
+/* Return the base (ie. C/C++) name of a metatype. */
+#define metatypeName(meta)      (strrchr((meta)->name->text, '.') + 1)
+
 
 /* Control what generateCalledArgs() actually generates. */
 typedef enum {
@@ -430,6 +433,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
     nameDef *nd;
     moduleDef *imp;
     moduleListDef *mld;
+    metatypeDef *meta;
 
     hfile = concat(codeDir, "/sipAPI", mname, ".h",NULL);
     fp = createFile(mod, hfile, "Internal module API header file.");
@@ -604,7 +608,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipIsExactWrappedType       sipAPI_%s->api_is_exact_wrapped_type\n"
 "#define sipAssignInstance           sipAPI_%s->api_assign_instance\n"
 "#define sipAssignMappedType         sipAPI_%s->api_assign_mapped_type\n"
-"#define sipRegisterMetaType         sipAPI_%s->api_register_meta_type\n"
+"#define sipRegisterQtMetatype       sipAPI_%s->api_register_qt_metatype\n"
 "#define sipWrappedTypeName(wt)      ((wt)->type->td_cname)\n"
 "#define sipDeprecated               sipAPI_%s->api_deprecated\n"
         ,mname
@@ -701,6 +705,16 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "/* The strings used by this module. */\n"
 "extern const char *sipStrings_%s;\n"
         , mname);
+
+    /* The metatypes defined in this module. */
+    if (mod->metatypes != NULL)
+        prcode(fp,
+"\n"
+"/* The metatypes defined in this module. */\n"
+            );
+
+    for (meta = mod->metatypes; meta != NULL; meta = meta->next)
+        prcode(fp, "extern PyTypeObject *%s;\n", metatypeName(meta));
 
     /* The unscoped enum macros. */
     generateEnumMacros(pt, mod, NULL, fp);
@@ -1580,6 +1594,33 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
             );
     }
 
+    if (mod->metatypes != NULL)
+    {
+        metatypeDef *meta;
+
+        prcode(fp,
+"\n"
+"\n"
+"/* This defines the metatypes that are defined by this module. */\n"
+"static sipMetatypeDef metatypesTable[] = {\n"
+            );
+
+        for (meta = mod->metatypes; meta != NULL; meta = meta->next)
+            if (meta->super != NULL)
+                prcode(fp,
+"    {%s, %n},\n"
+                    , metatypeName(meta), meta->super);
+            else
+                prcode(fp,
+"    {%s, -1},\n"
+                    , metatypeName(meta));
+
+        prcode(fp,
+"    {NULL, -1}\n"
+"};\n"
+            );
+    }
+
     if (nrSccs > 0)
     {
         prcode(fp,
@@ -1724,6 +1765,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "    sipStrings_%s,\n"
 "    %s,\n"
 "    %s,\n"
+"    %s,\n"
 "    %d,\n"
 "    %s,\n"
 "    %s,\n"
@@ -1749,6 +1791,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         , mod->version
         , mname
         , mod->allimports != NULL ? "importsTable" : "NULL"
+        , mod->metatypes != NULL ? "metatypesTable" : "NULL"
         , mod->qobjclass >= 0 ? "&qtAPI" : "NULL"
         , mod->nrclasses
         , mod->nrclasses > 0 ? "typesTable" : "NULL"
@@ -1910,7 +1953,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
             if (cd->iff->module == mod)
                 if (registerQtMetaType(cd))
                     prcode(fp,
-"    sipRegisterMetaType(qRegisterMetaType<%S>(\"%S\"), sipClass_%C);\n"
+"    sipRegisterQtMetatype(qRegisterMetaType<%S>(\"%S\"), sipClass_%C);\n"
                         , classFQCName(cd), classFQCName(cd), classFQCName(cd));
 
     /* Generate any post-initialisation code. */

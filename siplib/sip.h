@@ -662,6 +662,18 @@ typedef struct _sipDelayedDtor {
 
 
 /*
+ * The information describing a metatype.
+ */
+typedef struct _sipMetatypeDef {
+    /* The metatype's type object. */
+    PyTypeObject *m_metatype;
+
+    /* The name of the metatype's super-type. */
+    int m_super;
+} sipMetatypeDef;
+
+
+/*
  * The information describing an imported module.
  */
 typedef struct _sipImportedModuleDef {
@@ -700,6 +712,9 @@ typedef struct _sipExportedModuleDef {
 
     /* The imported modules. */
     sipImportedModuleDef *em_imports;
+
+    /* The metatypes. */
+    sipMetatypeDef *em_metatypes;
 
     /* The optional Qt support API. */
     struct _sipQtAPI *em_qt_api;
@@ -1244,7 +1259,8 @@ typedef struct _sipAPIDef {
     int (*api_unicode_as_wchar)(PyObject *obj);
     int *(*api_unicode_as_wstring)(PyObject *obj);
 #endif
-    void (*api_register_meta_type)(int type, struct _sipWrapperType *py_type);
+    void (*api_register_qt_metatype)(int type,
+            struct _sipWrapperType *py_type);
     int (*api_deprecated)(const char *classname, const char *method);
 } sipAPIDef;
 

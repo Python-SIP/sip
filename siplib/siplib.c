@@ -124,7 +124,7 @@ static int sip_api_assign_instance(void *dst, const void *src,
         sipWrapperType *wt);
 static int sip_api_assign_mapped_type(void *dst, const void *src,
         sipMappedType *mt);
-static void sip_api_register_meta_type(int type, sipWrapperType *py_type);
+static void sip_api_register_qt_metatype(int type, sipWrapperType *py_type);
 static int sip_api_deprecated(const char *classname, const char *method);
 static int sip_api_wrappertype_check(PyObject *obj);
 
@@ -229,7 +229,7 @@ static const sipAPIDef sip_api = {
     sip_api_string_as_char,
     sip_api_unicode_as_wchar,
     sip_api_unicode_as_wstring,
-    sip_api_register_meta_type,
+    sip_api_register_qt_metatype,
     sip_api_deprecated
 };
 
@@ -827,7 +827,7 @@ static PyObject *wrapInstance(PyObject *self, PyObject *args)
 
 /*
  * Register a client module.  A negative value is returned and an exception
- * raised if there was an error.  Not normally needed by handwritten code.
+ * raised if there was an error.
  */
 static int sip_api_export_module(sipExportedModuleDef *client,
         unsigned api_major, unsigned api_minor, PyObject *mod_dict)
@@ -8174,7 +8174,7 @@ static void *sip_api_import_symbol(const char *name)
  * Register (internally) the Qt meta-type number and the corresponding Python
  * type.
  */
-static void sip_api_register_meta_type(int type, sipWrapperType *py_type)
+static void sip_api_register_qt_metatype(int type, sipWrapperType *py_type)
 {
     /* Just delegate to the Qt support if it is available. */
     if (sipQtSupport != NULL && sipQtSupport->qt_register_meta_type != NULL)
