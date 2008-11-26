@@ -1953,8 +1953,8 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
             if (cd->iff->module == mod)
                 if (registerQtMetaType(cd))
                     prcode(fp,
-"    sipRegisterQtMetatype(qRegisterMetaType<%S>(\"%S\"), sipClass_%C);\n"
-                        , classFQCName(cd), classFQCName(cd), classFQCName(cd));
+"    sipRegisterQtMetatype(qRegisterMetaType<%S>(%N), sipClass_%C);\n"
+                        , classFQCName(cd), cd->iff->name, classFQCName(cd));
 
     /* Generate any post-initialisation code. */
     generateCppCodeBlock(mod->postinitcode, fp);
