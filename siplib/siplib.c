@@ -435,7 +435,6 @@ static int parseWCharString(PyObject *obj, wchar_t **ap);
 #else
 static void raiseNoWChar();
 #endif
-static int importComponents(void);
 static void *getComplexCppPtr(sipWrapper *w, sipWrapperType *type);
 static PyObject *make_voidptr(void *voidptr, SIP_SSIZE_T size, int rw);
 

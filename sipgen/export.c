@@ -861,7 +861,7 @@ static const char *pyType(argDef *ad, int sec, classDef **scope)
     switch (ad->atype)
     {
     case class_type:
-        type_name = ad->u.cd->pyname;
+        type_name = ad->u.cd->pyname->text;
         *scope = ad->u.cd->ecd;
         break;
 

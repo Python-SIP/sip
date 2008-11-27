@@ -134,18 +134,23 @@ void transform(sipSpec *pt)
      * explicitly set.
      */
     if (pt->module->defmetatype == NULL)
-        for (mod = pt->module->allimports; mod != NULL; mod = mod->next)
+    {
+        moduleListDef *mld;
+
+        for (mld = pt->module->allimports; mld != NULL; mld = mld->next)
         {
-            if (mod->defmetatype == NULL)
+            if (mld->module->defmetatype == NULL)
                 continue;
 
             if (pt->module->defmetatype == NULL)
-                pt->module->defmetatype = mod->defmetatype;
-            else if (pt->module->defmetatype != mod->defmetatype)
+                pt->module->defmetatype = mld->module->defmetatype;
+            else if (pt->module->defmetatype != mld->module->defmetatype)
                 fatal("The %s module has imported different default metatypes %s and %s\n",
                         pt->module->fullname->text,
-                        pt->module->defmetatype->text, mod->defmetatype->text);
+                        pt->module->defmetatype->text,
+                        mld->module->defmetatype->text);
         }
+    }
 
     /* Check each class has been defined. */
     for (cd = pt -> classes; cd != NULL; cd = cd -> next)

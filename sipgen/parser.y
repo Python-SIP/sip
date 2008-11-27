@@ -3071,6 +3071,7 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd, optFlags *of)
     /* Get the Python name and see if it is different to the C++ name. */
     pyname = getPythonName(of, classBaseName(cd));
 
+    cd->pyname = NULL;
     checkAttributes(pt, mod, cd->ecd, pyname, FALSE);
     cd->pyname = cacheName(pt, pyname);
 
@@ -3805,7 +3806,7 @@ static void instantiateTemplateEnums(sipSpec *pt, classTmplDef *tcd,
             if (ed->fqcname != NULL)
             {
                 ed->fqcname = text2scopedName(cd, scopedNameTail(ed->fqcname));
-                ed->cname = scopedNameToString(ed->fqcname);
+                ed->cname = cacheName(pt, scopedNameToString(ed->fqcname));
             }
 
             if (inMainModule())
@@ -4434,7 +4435,6 @@ static void newFunction(sipSpec *pt,moduleDef *mod,int sflags,int isstatic,
             signatureDef *cppsig)
 {
     classDef *cd = currentScope();
-    nameDef *pname;
     int factory, xferback, no_arg_parser;
     overDef *od, **odp, **headp;
     optFlag *of;
@@ -4946,7 +4946,7 @@ static void checkAttributes(sipSpec *pt, moduleDef *mod, classDef *pyscope,
         if (cd -> ecd != pyscope || cd -> pyname == NULL)
             continue;
 
-        if (strcmp(cd->pyname, attr) == 0 && !isExternal(cd))
+        if (strcmp(cd->pyname->text, attr) == 0 && !isExternal(cd))
             yyerror("There is already a class or namespace in scope with the same Python name");
     }
 
