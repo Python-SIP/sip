@@ -274,6 +274,7 @@ static const sipAPIDef sip_api = {
  * Get various names from the string pool for various data types.
  */
 #define getNameOfModule(em)     (&((em)->em_strings)[(em)->em_name])
+#define getNameOfMetatype(em, mt)   (&((em)->em_strings)[(mt)->m_super])
 #define getPyNameOfType(td)     (&((td)->td_module->em_strings)[(td)->td_name])
 #define getCppNameOfType(td)    (&((td)->td_module->em_strings)[(td)->td_cname])
 #define getPyNameOfEnum(em, ed) (&((em)->em_strings)[(ed)->e_name])
@@ -306,6 +307,7 @@ static PyTypeObject sipVoidPtr_Type;
 PyInterpreterState *sipInterpreter = NULL;
 sipQtAPI *sipQtSupport = NULL;
 sipWrapperType *sipQObjectClass;
+sipPyObject *sipRegisteredMetatypes = NULL;
 sipPyObject *sipRegisteredIntTypes = NULL;
 sipSymbol *sipSymbolList = NULL;
 
@@ -437,6 +439,7 @@ static void raiseNoWChar();
 #endif
 static void *getComplexCppPtr(sipWrapper *w, sipWrapperType *type);
 static PyObject *make_voidptr(void *voidptr, SIP_SSIZE_T size, int rw);
+static PyTypeObject *findMetatype(const char *name);
 
 
 /*
@@ -832,11 +835,7 @@ static int sip_api_export_module(sipExportedModuleDef *client,
         unsigned api_major, unsigned api_minor, PyObject *mod_dict)
 {
     sipExportedModuleDef *em;
-    sipImportedModuleDef *im;
-    sipSubClassConvertorDef *scc;
-    sipWrapperType **mw;
     sipEnumMemberDef *emd;
-    sipInitExtenderDef *ie;
     const char *full_name = getNameOfModule(client);
     int i;
 
@@ -886,8 +885,10 @@ static int sip_api_export_module(sipExportedModuleDef *client,
     }
 
     /* Import any required modules. */
-    if ((im = client->em_imports) != NULL)
+    if (client->em_imports != NULL)
     {
+        sipImportedModuleDef *im = client->em_imports;
+
         while (im->im_name != NULL)
         {
             PyObject *mod;
@@ -927,8 +928,41 @@ static int sip_api_export_module(sipExportedModuleDef *client,
         }
     }
 
+    /* Register and ready the module's metatypes. */
+    if (client->em_metatypes != NULL)
+    {
+        sipMetatypeDef *mtd = client->em_metatypes;
+
+        while (mtd->m_metatype != NULL)
+        {
+            PyTypeObject *super;
+            sipPyObject *po;
+
+            /* Find the super-metatype. */
+            if (mtd->m_super < 0)
+                super = &sipWrapperType_Type;
+            else
+            {
+                const char *metatype_name = getNameOfMetatype(client, mtd);
+
+                if ((super = findMetatype(metatype_name)) == NULL)
+                    return -1;
+            }
+
+            mtd->m_metatype->tp_base = super;
+
+            if (PyType_Ready(mtd->m_metatype) < 0)
+                return -1;
+
+            ++mtd;
+        }
+    }
+
     /* Create the module's classes. */
-    if ((mw = client->em_types) != NULL)
+    if (client->em_types != NULL)
+    {
+        sipWrapperType **mw = client->em_types;
+
         for (i = 0; i < client->em_nrtypes; ++i, ++mw)
         {
             sipTypeDef *td = (sipTypeDef *)*mw;
@@ -966,6 +1000,7 @@ static int sip_api_export_module(sipExportedModuleDef *client,
             else if ((*mw = createType(client, td, mod_dict)) == NULL)
                 return -1;
         }
+    }
 
     /* Set any Qt support API. */
     if (client->em_qt_api != NULL)
@@ -975,7 +1010,10 @@ static int sip_api_export_module(sipExportedModuleDef *client,
     }
 
     /* Append any initialiser extenders to the relevant classes. */
-    if ((ie = client->em_initextend) != NULL)
+    if (client->em_initextend != NULL)
+    {
+        sipInitExtenderDef *ie = client->em_initextend;
+
         while (ie->ie_extender != NULL)
         {
             sipWrapperType *wt = getClassType(&ie->ie_class, client);
@@ -985,15 +1023,20 @@ static int sip_api_export_module(sipExportedModuleDef *client,
 
             ++ie;
         }
+    }
 
     /* Set the base class object for any sub-class convertors. */
-    if ((scc = client->em_convertors) != NULL)
+    if (client->em_convertors != NULL)
+    {
+        sipSubClassConvertorDef *scc = client->em_convertors;
+
         while (scc->scc_convertor != NULL)
         {
             scc->scc_basetype = getClassType(&scc->scc_base, client);
 
             ++scc;
         }
+    }
 
     /* Create the module's enums. */
     if (client->em_nrenums != 0)
@@ -1042,7 +1085,10 @@ static int sip_api_export_module(sipExportedModuleDef *client,
      * Add any class static instances.  We need to do this once all types are
      * fully formed because of potential interdependencies.
      */
-    if ((mw = client->em_types) != NULL)
+    if (client->em_types != NULL)
+    {
+        sipWrapperType **mw = client->em_types;
+
         for (i = 0; i < client->em_nrtypes; ++i)
         {
             sipWrapperType *wt;
@@ -1050,6 +1096,7 @@ static int sip_api_export_module(sipExportedModuleDef *client,
             if ((wt = *mw++) != NULL && addInstances(((PyTypeObject *)wt)->tp_dict, &wt->type->td_instances) < 0)
                 return -1;
         }
+    }
 
     /* Add any global static instances. */
     if (addInstances(mod_dict, &client->em_instances) < 0)
@@ -1069,6 +1116,8 @@ static int sip_api_export_module(sipExportedModuleDef *client,
 
         for (etd = em->em_external; etd->et_nr >= 0; ++etd)
         {
+            sipWrapperType **mw;
+
             if (etd->et_name == NULL)
                 continue;
 
@@ -1139,6 +1188,28 @@ static void finalise(void)
 
     /* Re-initialise those globals that (might) need it. */
     moduleList = NULL;
+}
+
+
+/*
+ * Find the registered metatype with the given name.  Raise an exception if it
+ * couldn't be found.
+ */
+static PyTypeObject *findMetatype(const char *name)
+{
+    sipPyObject *po;
+
+    for (po = sipRegisteredMetatypes; po != NULL; po = po->next)
+    {
+        PyTypeObject *type = (PyTypeObject *)po->object;
+
+        if (strcmp(type->tp_name, name) == 0)
+            return type;
+    }
+
+    PyErr_Format(PyExc_RuntimeError, "%s is an unknown metatype", name);
+
+    return NULL;
 }
 
 

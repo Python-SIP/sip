@@ -714,7 +714,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
             );
 
     for (meta = mod->metatypes; meta != NULL; meta = meta->next)
-        prcode(fp, "extern PyTypeObject *%s;\n", metatypeName(meta));
+        prcode(fp, "extern PyTypeObject %s;\n", metatypeName(meta));
 
     /* The unscoped enum macros. */
     generateEnumMacros(pt, mod, NULL, fp);
@@ -1608,11 +1608,11 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         for (meta = mod->metatypes; meta != NULL; meta = meta->next)
             if (meta->super != NULL)
                 prcode(fp,
-"    {%s, %n},\n"
+"    {&%s, %n},\n"
                     , metatypeName(meta), meta->super);
             else
                 prcode(fp,
-"    {%s, -1},\n"
+"    {&%s, -1},\n"
                     , metatypeName(meta));
 
         prcode(fp,
