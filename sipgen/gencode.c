@@ -707,14 +707,25 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
         , mname);
 
     /* The metatypes defined in this module. */
-    if (mod->metatypes != NULL)
-        prcode(fp,
+    noIntro = TRUE;
+
+    for (meta = pt->metatypes; meta != NULL; meta = meta->next)
+    {
+        if (meta->module != mod)
+            continue;
+
+        if (noIntro)
+        {
+            prcode(fp,
 "\n"
 "/* The metatypes defined in this module. */\n"
-            );
+                );
 
-    for (meta = mod->metatypes; meta != NULL; meta = meta->next)
+            noIntro = FALSE;
+        }
+
         prcode(fp, "extern PyTypeObject %s;\n", metatypeName(meta));
+    }
 
     /* The unscoped enum macros. */
     generateEnumMacros(pt, mod, NULL, fp);
@@ -1031,11 +1042,12 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 {
     char *cppfile;
     const char *mname = mod->name;
-    int nrSccs = 0, files_in_part, max_per_part, this_part, mod_nr;
+    int noIntro, nrSccs = 0, files_in_part, max_per_part, this_part, mod_nr;
     int is_inst_class, is_inst_voidp, is_inst_char, is_inst_string;
     int is_inst_int, is_inst_long, is_inst_ulong, is_inst_longlong;
     int is_inst_ulonglong, is_inst_double, is_inst_enum, nr_enummembers;
     int hasexternal = FALSE, slot_extenders = FALSE, ctor_extenders = FALSE;
+    int hasmetatypes = FALSE;
     FILE *fp;
     moduleListDef *mld;
     classDef *cd;
@@ -1043,6 +1055,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
     ifaceFileDef *iff;
     virtHandlerDef *vhd;
     exceptionDef *xd;
+    metatypeDef *meta;
 
     /* Calculate the number of files in each part. */
     if (parts)
@@ -1594,32 +1607,53 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
             );
     }
 
-    if (mod->metatypes != NULL)
-    {
-        metatypeDef *meta;
+    noIntro = TRUE;
 
-        prcode(fp,
+    for (meta = pt->metatypes; meta != NULL; meta = meta->next)
+    {
+        nameDef *super_name;
+
+        if (meta->module != mod)
+            continue;
+
+        hasmetatypes = TRUE;
+
+        if (noIntro)
+        {
+            prcode(fp,
 "\n"
 "\n"
 "/* This defines the metatypes that are defined by this module. */\n"
 "static sipMetatypeDef metatypesTable[] = {\n"
+                );
+
+            noIntro = FALSE;
+        }
+
+        prcode(fp,
+"    {&%s, ", metatypeName(meta));
+
+        if (meta->super == NULL)
+            super_name = NULL;
+        else if (meta->super->sip_default)
+            super_name = NULL;
+        else
+            super_name = meta->super->name;
+
+        if (super_name != NULL)
+            prcode(fp, "%n", super_name);
+        else
+            prcode(fp, "-1");
+
+        prcode(fp, "},\n"
             );
+    }
 
-        for (meta = mod->metatypes; meta != NULL; meta = meta->next)
-            if (meta->super != NULL)
-                prcode(fp,
-"    {&%s, %n},\n"
-                    , metatypeName(meta), meta->super);
-            else
-                prcode(fp,
-"    {&%s, -1},\n"
-                    , metatypeName(meta));
-
+    if (!noIntro)
         prcode(fp,
 "    {NULL, -1}\n"
 "};\n"
             );
-    }
 
     if (nrSccs > 0)
     {
@@ -1791,7 +1825,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         , mod->version
         , mname
         , mod->allimports != NULL ? "importsTable" : "NULL"
-        , mod->metatypes != NULL ? "metatypesTable" : "NULL"
+        , hasmetatypes ? "metatypesTable" : "NULL"
         , mod->qobjclass >= 0 ? "&qtAPI" : "NULL"
         , mod->nrclasses
         , mod->nrclasses > 0 ? "typesTable" : "NULL"
@@ -7964,7 +7998,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
     if (cd->metatype != NULL)
         prcode(fp,
 "    %n,\n"
-            , cd->metatype);
+            , cd->metatype->name);
     else
         prcode(fp,
 "    -1,\n"

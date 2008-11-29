@@ -273,12 +273,12 @@ static const sipAPIDef sip_api = {
 /*
  * Get various names from the string pool for various data types.
  */
-#define getNameOfModule(em)     (&((em)->em_strings)[(em)->em_name])
-#define getNameOfMetatype(em, mt)   (&((em)->em_strings)[(mt)->m_super])
-#define getPyNameOfType(td)     (&((td)->td_module->em_strings)[(td)->td_name])
-#define getCppNameOfType(td)    (&((td)->td_module->em_strings)[(td)->td_cname])
-#define getPyNameOfEnum(em, ed) (&((em)->em_strings)[(ed)->e_name])
-#define getCppNameOfEnum(em, ed)    (&((em)->em_strings)[(ed)->e_cname])
+#define getNameFromPool(em, mr) (&((em)->em_strings)[(mr)])
+#define getNameOfModule(em)     getNameFromPool((em), (em)->em_name)
+#define getPyNameOfType(td)     getNameFromPool((td)->td_module, (td)->td_name)
+#define getCppNameOfType(td)    getNameFromPool((td)->td_module, (td)->td_cname)
+#define getPyNameOfEnum(em, ed) getNameFromPool((em), (ed)->e_name)
+#define getCppNameOfEnum(em, ed)    getNameFromPool((em), (ed)->e_cname)
 
 
 /*
@@ -440,6 +440,7 @@ static void raiseNoWChar();
 static void *getComplexCppPtr(sipWrapper *w, sipWrapperType *type);
 static PyObject *make_voidptr(void *voidptr, SIP_SSIZE_T size, int rw);
 static PyTypeObject *findMetatype(const char *name);
+static int addPyObjectToList(sipPyObject **head, PyObject *object);
 
 
 /*
@@ -936,14 +937,14 @@ static int sip_api_export_module(sipExportedModuleDef *client,
         while (mtd->m_metatype != NULL)
         {
             PyTypeObject *super;
-            sipPyObject *po;
 
             /* Find the super-metatype. */
             if (mtd->m_super < 0)
                 super = &sipWrapperType_Type;
             else
             {
-                const char *metatype_name = getNameOfMetatype(client, mtd);
+                const char *metatype_name = getNameFromPool(client,
+                        mtd->m_super);
 
                 if ((super = findMetatype(metatype_name)) == NULL)
                     return -1;
@@ -952,6 +953,9 @@ static int sip_api_export_module(sipExportedModuleDef *client,
             mtd->m_metatype->tp_base = super;
 
             if (PyType_Ready(mtd->m_metatype) < 0)
+                return -1;
+
+            if (addPyObjectToList(&sipRegisteredMetatypes, (PyObject *)mtd->m_metatype) < 0)
                 return -1;
 
             ++mtd;
@@ -3603,8 +3607,20 @@ static sipWrapperType *createType(sipExportedModuleDef *client,
         sipTypeDef *type, PyObject *mod_dict)
 {
     PyObject *name, *bases, *typedict, *args, *dict;
+    PyTypeObject *metatype;
     sipEncodedClassDef *sup;
     sipWrapperType *wt;
+
+    /* Get the metatype to use. */
+    if (type->td_metatype < 0)
+        metatype = &sipWrapperType_Type;
+    else
+    {
+        const char *metatype_name = getNameFromPool(client, type->td_metatype);
+
+        if ((metatype = findMetatype(metatype_name)) == NULL)
+            goto reterr;
+    }
 
     /* Create an object corresponding to the type name. */
     if ((name = PyString_FromString(getPyNameOfType(type))) == NULL)
@@ -3652,7 +3668,7 @@ static sipWrapperType *createType(sipExportedModuleDef *client,
     if ((args = Py_BuildValue("OOO",name,bases,typedict)) == NULL)
         goto reldict;
 
-    if ((wt = (sipWrapperType *)PyObject_Call((PyObject *)&sipWrapperType_Type,args,NULL)) == NULL)
+    if ((wt = (sipWrapperType *)PyObject_Call((PyObject *)metatype, args, NULL)) == NULL)
         goto relargs;
 
     /* Get the dictionary into which the type will be placed. */
@@ -8162,7 +8178,6 @@ static int nameEq(const char *with, const char *name, size_t len)
  */
 static int sip_api_register_int_types(PyObject *args)
 {
-    sipPyObject *po;
     int bad_args = FALSE;
 
     /* Raise an exception if the arguments are bad. */
@@ -8186,15 +8201,30 @@ static int sip_api_register_int_types(PyObject *args)
         return -1;
     }
 
-    if ((po = sip_api_malloc(sizeof (sipPyObject))) == NULL)
+    if (addPyObjectToList(&sipRegisteredIntTypes, args) < 0)
         return -1;
 
     Py_INCREF(args);
 
-    po->object = args;
-    po->next = sipRegisteredIntTypes;
+    return 0;
+}
 
-    sipRegisteredIntTypes = po;
+
+/*
+ * Add the given Python object to the given list.  Return 0 if there was no
+ * error.
+ */
+static int addPyObjectToList(sipPyObject **head, PyObject *object)
+{
+    sipPyObject *po;
+
+    if ((po = sip_api_malloc(sizeof (sipPyObject))) == NULL)
+        return -1;
+
+    po->object = object;
+    po->next = *head;
+
+    *head = po;
 
     return 0;
 }

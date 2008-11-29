@@ -147,8 +147,8 @@ void transform(sipSpec *pt)
             else if (pt->module->defmetatype != mld->module->defmetatype)
                 fatal("The %s module has imported different default metatypes %s and %s\n",
                         pt->module->fullname->text,
-                        pt->module->defmetatype->text,
-                        mld->module->defmetatype->text);
+                        pt->module->defmetatype->name->text,
+                        mld->module->defmetatype->name->text);
         }
     }
 
@@ -1117,8 +1117,9 @@ static void setHierarchy(sipSpec *pt, classDef *base, classDef *cd,
                 cd->metatype = cd->iff->module->defmetatype;
         }
 
-        if (cd->metatype != NULL && generatingCodeForModule(pt, cd->iff->module))
-            setIsUsedName(cd->metatype);
+        if (cd->metatype != NULL && !cd->metatype->sip_default &&
+                    generatingCodeForModule(pt, cd->iff->module))
+            setIsUsedName(cd->metatype->name);
     }
 
     /*

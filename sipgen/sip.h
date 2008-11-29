@@ -580,7 +580,9 @@ typedef struct _codeBlock {
 
 typedef struct _metatypeDef {
     nameDef *name;                      /* The metatype name. */
-    nameDef *super;                     /* The super-metatype. */
+    int sip_default;                    /* Set if this is SIP's default metatype. */
+    struct _metatypeDef *super;         /* The super-metatype. */
+    struct _moduleDef *module;          /* The defining module. */
     struct _metatypeDef *next;          /* Next in the list. */
 } metatypeDef;
 
@@ -595,8 +597,7 @@ typedef struct _moduleDef {
     int qobjclass;                      /* QObject class, -1 if none. */
     struct _memberDef *othfuncs;        /* List of other functions. */
     struct _overDef *overs;             /* Global overloads. */
-    nameDef *defmetatype;               /* The optional default metatype. */
-    metatypeDef *metatypes;             /* The metatypes. */
+    metatypeDef *defmetatype;           /* The optional default metatype. */
     codeBlock *hdrcode;                 /* Header code. */
     codeBlock *cppcode;                 /* Global C++ code. */
     codeBlock *copying;                 /* Software license. */
@@ -928,7 +929,7 @@ typedef struct _classDef {
     nodeDef *node;                      /* Position in class tree. */
     classList *supers;                  /* The parent classes. */
     mroDef *mro;                        /* The super-class hierarchy. */
-    nameDef *metatype;                  /* The metatype. */
+    metatypeDef *metatype;              /* The metatype. */
     templateDef *td;                    /* The instantiated template. */
     ctorDef *ctors;                     /* The constructors. */
     ctorDef *defctor;                   /* The default ctor. */
@@ -980,6 +981,7 @@ typedef struct {
     moduleDef *modules;                 /* The list of modules. */
     nameDef *namecache;                 /* The name cache. */
     ifaceFileDef *ifacefiles;           /* The list of interface files. */
+    metatypeDef *metatypes;             /* The metatypes. */
     classDef *classes;                  /* The list of classes. */
     classTmplDef *classtemplates;       /* The list of class templates. */
     exceptionDef *exceptions;           /* The list of exceptions. */
@@ -1080,6 +1082,7 @@ typedef enum {
     string_flag,
     name_flag,
     opt_name_flag,
+    dotted_name_flag,
     integer_flag
 } flagType;
 
