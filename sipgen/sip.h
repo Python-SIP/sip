@@ -576,17 +576,6 @@ typedef struct _codeBlock {
 } codeBlock;
 
 
-/* A metatype definition. */
-
-typedef struct _metatypeDef {
-    nameDef *name;                      /* The metatype name. */
-    int sip_default;                    /* Set if this is SIP's default metatype. */
-    struct _metatypeDef *super;         /* The super-metatype. */
-    struct _moduleDef *module;          /* The defining module. */
-    struct _metatypeDef *next;          /* Next in the list. */
-} metatypeDef;
-
-
 /* A module definition. */
 
 typedef struct _moduleDef {
@@ -597,11 +586,12 @@ typedef struct _moduleDef {
     int qobjclass;                      /* QObject class, -1 if none. */
     struct _memberDef *othfuncs;        /* List of other functions. */
     struct _overDef *overs;             /* Global overloads. */
-    metatypeDef *defmetatype;           /* The optional default metatype. */
+    nameDef *defsupertype;              /* The optional default super-type. */
     codeBlock *hdrcode;                 /* Header code. */
     codeBlock *cppcode;                 /* Global C++ code. */
     codeBlock *copying;                 /* Software license. */
     codeBlock *preinitcode;             /* Pre-initialisation code. */
+    codeBlock *initcode;                /* Initialisation code. */
     codeBlock *postinitcode;            /* Post-initialisation code. */
     codeBlock *unitcode;                /* Compilation unit code. */
     int parts;                          /* The number of parts generated. */
@@ -929,7 +919,7 @@ typedef struct _classDef {
     nodeDef *node;                      /* Position in class tree. */
     classList *supers;                  /* The parent classes. */
     mroDef *mro;                        /* The super-class hierarchy. */
-    metatypeDef *metatype;              /* The metatype. */
+    nameDef *supertype;                 /* The super-type. */
     templateDef *td;                    /* The instantiated template. */
     ctorDef *ctors;                     /* The constructors. */
     ctorDef *defctor;                   /* The default ctor. */
@@ -981,7 +971,6 @@ typedef struct {
     moduleDef *modules;                 /* The list of modules. */
     nameDef *namecache;                 /* The name cache. */
     ifaceFileDef *ifacefiles;           /* The list of interface files. */
-    metatypeDef *metatypes;             /* The metatypes. */
     classDef *classes;                  /* The list of classes. */
     classTmplDef *classtemplates;       /* The list of class templates. */
     exceptionDef *exceptions;           /* The list of exceptions. */

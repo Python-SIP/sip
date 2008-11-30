@@ -61,8 +61,7 @@ static void fatallex(char *);
 ^[ \t]*%MappedType          {return TK_MAPPEDTYPE;}
 ^[ \t]*%Exception           {return TK_EXCEPTION;}
 ^[ \t]*%If                  {return TK_IF;}
-^[ \t]*%DefaultMetatype     {return TK_DEFMETATYPE;}
-^[ \t]*%Metatype            {return TK_METATYPE;}
+^[ \t]*%DefaultSupertype    {return TK_DEFSUPERTYPE;}
 <INITIAL>^[ \t]*%End        {return TK_END;}
 class                       {return TK_CLASS;}
 struct                      {return TK_STRUCT;}
@@ -249,6 +248,11 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
 ^%PreInitialisationCode {   /* The start of a pre-initialisation code block. */
     codeIdx = 0;
     return TK_PREINITCODE;
+}
+
+^%InitialisationCode {      /* The start of an initialisation code block. */
+    codeIdx = 0;
+    return TK_INITCODE;
 }
 
 ^%PostInitialisationCode {  /* The start of a post-initialisation code block. */

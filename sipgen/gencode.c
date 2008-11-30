@@ -22,8 +22,8 @@
 #define TYPE_FLAGS_SHIFT        8
 #define TYPE_FLAGS_MASK         0x0f00
 
-/* Return the base (ie. C/C++) name of a metatype. */
-#define metatypeName(meta)      (strrchr((meta)->name->text, '.') + 1)
+/* Return the base (ie. C/C++) name of a super-type or meta-type. */
+#define smtypeName(sm)          (strrchr((sm)->name->text, '.') + 1)
 
 
 /* Control what generateCalledArgs() actually generates. */
@@ -433,7 +433,6 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
     nameDef *nd;
     moduleDef *imp;
     moduleListDef *mld;
-    metatypeDef *meta;
 
     hfile = concat(codeDir, "/sipAPI", mname, ".h",NULL);
     fp = createFile(mod, hfile, "Internal module API header file.");
@@ -548,8 +547,10 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipTransferBack             sipAPI_%s->api_transfer_back\n"
 "#define sipTransferTo               sipAPI_%s->api_transfer_to\n"
 "#define sipTransferBreak            sipAPI_%s->api_transfer_break\n"
+"#define sipWrapper_Type             sipAPI_%s->api_wrapper_type\n"
 "#define sipWrapper_Check            sipAPI_%s->api_wrapper_check\n"
-"#define sipWrapperType_Check        sipAPI_%s->api_wrappertype_check\n"
+"#define sipWrapperType_Type         sipAPI_%s->api_wrappertype_type\n"
+"#define sipVoidPtr_Type             sipAPI_%s->api_voidptr_type\n"
 "#define sipGetWrapper               sipAPI_%s->api_get_wrapper\n"
 "#define sipGetCppPtr                sipAPI_%s->api_get_cpp_ptr\n"
 "#define sipGetComplexCppPtr         sipAPI_%s->api_get_complex_cpp_ptr\n"
@@ -611,6 +612,10 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipRegisterQtMetatype       sipAPI_%s->api_register_qt_metatype\n"
 "#define sipWrappedTypeName(wt)      ((wt)->type->td_cname)\n"
 "#define sipDeprecated               sipAPI_%s->api_deprecated\n"
+"#define sipRegisterSupertype        sipAPI_%s->api_register_supertype\n"
+        ,mname
+        ,mname
+        ,mname
         ,mname
         ,mname
         ,mname
@@ -705,27 +710,6 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "/* The strings used by this module. */\n"
 "extern const char *sipStrings_%s;\n"
         , mname);
-
-    /* The metatypes defined in this module. */
-    noIntro = TRUE;
-
-    for (meta = pt->metatypes; meta != NULL; meta = meta->next)
-    {
-        if (meta->module != mod)
-            continue;
-
-        if (noIntro)
-        {
-            prcode(fp,
-"\n"
-"/* The metatypes defined in this module. */\n"
-                );
-
-            noIntro = FALSE;
-        }
-
-        prcode(fp, "extern PyTypeObject %s;\n", metatypeName(meta));
-    }
 
     /* The unscoped enum macros. */
     generateEnumMacros(pt, mod, NULL, fp);
@@ -1042,12 +1026,11 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 {
     char *cppfile;
     const char *mname = mod->name;
-    int noIntro, nrSccs = 0, files_in_part, max_per_part, this_part, mod_nr;
+    int nrSccs = 0, files_in_part, max_per_part, this_part, mod_nr;
     int is_inst_class, is_inst_voidp, is_inst_char, is_inst_string;
     int is_inst_int, is_inst_long, is_inst_ulong, is_inst_longlong;
     int is_inst_ulonglong, is_inst_double, is_inst_enum, nr_enummembers;
     int hasexternal = FALSE, slot_extenders = FALSE, ctor_extenders = FALSE;
-    int hasmetatypes = FALSE;
     FILE *fp;
     moduleListDef *mld;
     classDef *cd;
@@ -1055,7 +1038,6 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
     ifaceFileDef *iff;
     virtHandlerDef *vhd;
     exceptionDef *xd;
-    metatypeDef *meta;
 
     /* Calculate the number of files in each part. */
     if (parts)
@@ -1607,54 +1589,6 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
             );
     }
 
-    noIntro = TRUE;
-
-    for (meta = pt->metatypes; meta != NULL; meta = meta->next)
-    {
-        nameDef *super_name;
-
-        if (meta->module != mod)
-            continue;
-
-        hasmetatypes = TRUE;
-
-        if (noIntro)
-        {
-            prcode(fp,
-"\n"
-"\n"
-"/* This defines the metatypes that are defined by this module. */\n"
-"static sipMetatypeDef metatypesTable[] = {\n"
-                );
-
-            noIntro = FALSE;
-        }
-
-        prcode(fp,
-"    {&%s, ", metatypeName(meta));
-
-        if (meta->super == NULL)
-            super_name = NULL;
-        else if (meta->super->sip_default)
-            super_name = NULL;
-        else
-            super_name = meta->super->name;
-
-        if (super_name != NULL)
-            prcode(fp, "%n", super_name);
-        else
-            prcode(fp, "-1");
-
-        prcode(fp, "},\n"
-            );
-    }
-
-    if (!noIntro)
-        prcode(fp,
-"    {NULL, -1}\n"
-"};\n"
-            );
-
     if (nrSccs > 0)
     {
         prcode(fp,
@@ -1799,7 +1733,6 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "    sipStrings_%s,\n"
 "    %s,\n"
 "    %s,\n"
-"    %s,\n"
 "    %d,\n"
 "    %s,\n"
 "    %s,\n"
@@ -1825,7 +1758,6 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         , mod->version
         , mname
         , mod->allimports != NULL ? "importsTable" : "NULL"
-        , hasmetatypes ? "metatypesTable" : "NULL"
         , mod->qobjclass >= 0 ? "&qtAPI" : "NULL"
         , mod->nrclasses
         , mod->nrclasses > 0 ? "typesTable" : "NULL"
@@ -1925,6 +1857,9 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         , mod->fullname);
 
     generateSipImport(mod, fp);
+
+    /* Generate any initialisation code. */
+    generateCppCodeBlock(mod->initcode, fp);
 
     prcode(fp,
 "    /* Export the module and publish it's API. */\n"
@@ -7869,7 +7804,7 @@ static void generateSimpleFunctionCall(fcallDef *fcd,FILE *fp)
 
 /*
  * Generate the type structure that contains all the information needed by the
- * metatype.  A sub-set of this is used to extend namespaces.
+ * meta-type.  A sub-set of this is used to extend namespaces.
  */
 static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 {
@@ -7995,10 +7930,10 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 
     prcode(fp, ",\n");
 
-    if (cd->metatype != NULL)
+    if (cd->supertype != NULL)
         prcode(fp,
 "    %n,\n"
-            , cd->metatype->name);
+            , cd->supertype);
     else
         prcode(fp,
 "    -1,\n"

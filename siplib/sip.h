@@ -56,8 +56,11 @@ extern "C" {
  *
  * History:
  *
- * 4.0  Removed all the deprecated parts of the API.
- *      Added sip_api_wrappertype_check().
+ * 4.0  Removed all the previously deprecated parts of the API.
+ *      Added the sipWrapper_Type, sipWrapperType_Type and sipVoidPtr_Type type
+ *      objects.
+ *      Added sip_api_register_supertype().
+ *      Deprecated sipWrapper_Check().
  *
  * 3.8  Added sip_api_register_meta_type() and sip_api_deprecated().
  *      Added qt_register_meta_type() to the Qt support API.
@@ -521,8 +524,8 @@ typedef struct _sipTypeDef {
     /* Type flags, see the sipType*() macros. */
     int td_flags;
 
-    /* The metatype name, -1 to use sipWrapperType. */
-    int td_metatype;
+    /* The super-type name, -1 to use sipWrapper. */
+    int td_supertype;
 
     /* The Python name of the type, -1 if a namespace extender. */
     int td_name;
@@ -662,18 +665,6 @@ typedef struct _sipDelayedDtor {
 
 
 /*
- * The information describing a metatype.
- */
-typedef struct _sipMetatypeDef {
-    /* The metatype's type object. */
-    PyTypeObject *m_metatype;
-
-    /* The name of the metatype's super-type. */
-    int m_super;
-} sipMetatypeDef;
-
-
-/*
  * The information describing an imported module.
  */
 typedef struct _sipImportedModuleDef {
@@ -712,9 +703,6 @@ typedef struct _sipExportedModuleDef {
 
     /* The imported modules. */
     sipImportedModuleDef *em_imports;
-
-    /* The metatypes. */
-    sipMetatypeDef *em_metatypes;
 
     /* The optional Qt support API. */
     struct _sipQtAPI *em_qt_api;
@@ -1127,6 +1115,10 @@ typedef struct _sipAPIDef {
     /*
      * The following are part of the public API.
      */
+    PyTypeObject *api_wrapper_type;
+    PyTypeObject *api_wrappertype_type;
+    PyTypeObject *api_voidptr_type;
+
     void (*api_bad_catcher_result)(PyObject *method);
     void (*api_bad_length_for_slice)(SIP_SSIZE_T seqlen, SIP_SSIZE_T slicelen);
     PyObject *(*api_build_result)(int *isErr, const char *fmt, ...);
@@ -1181,7 +1173,6 @@ typedef struct _sipAPIDef {
     void (*api_transfer_to)(PyObject *self, PyObject *owner);
     void (*api_transfer_break)(PyObject *self);
     int (*api_wrapper_check)(PyObject *o);
-    int (*api_wrappertype_check)(PyObject *o);
     unsigned long (*api_long_as_unsigned_long)(PyObject *o);
     PyObject *(*api_convert_from_named_enum)(int eval, PyTypeObject *et);
     PyObject *(*api_convert_from_void_ptr)(void *val);
@@ -1195,6 +1186,7 @@ typedef struct _sipAPIDef {
     void *(*api_import_symbol)(const char *name);
     sipWrapperType *(*api_find_class)(const char *type);
     PyTypeObject *(*api_find_named_enum)(const char *type);
+    int (*api_register_supertype)(PyTypeObject *supertype);
 
     /*
      * The following may be used by Qt support code but no other handwritten

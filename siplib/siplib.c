@@ -16,8 +16,13 @@
 
 
 /*
- * These are the functions that make up the public and private SIP API.
+ * Forward declarations for the objects and functions that make up the public
+ * and private SIP API.
  */
+static sipWrapperType sipWrapper_Type;
+static PyTypeObject sipWrapperType_Type;
+static PyTypeObject sipVoidPtr_Type;
+
 static void sip_api_bad_catcher_result(PyObject *method);
 static void sip_api_bad_length_for_slice(SIP_SSIZE_T seqlen,
         SIP_SSIZE_T slicelen);
@@ -126,7 +131,7 @@ static int sip_api_assign_mapped_type(void *dst, const void *src,
         sipMappedType *mt);
 static void sip_api_register_qt_metatype(int type, sipWrapperType *py_type);
 static int sip_api_deprecated(const char *classname, const char *method);
-static int sip_api_wrappertype_check(PyObject *obj);
+static int sip_api_register_supertype(PyTypeObject *supertype);
 
 
 /*
@@ -138,6 +143,10 @@ static const sipAPIDef sip_api = {
     /*
      * The following are part of the public API.
      */
+    (PyTypeObject *)&sipWrapper_Type,
+    &sipWrapperType_Type,
+    &sipVoidPtr_Type,
+
     sip_api_bad_catcher_result,
     sip_api_bad_length_for_slice,
     sip_api_build_result,
@@ -172,7 +181,6 @@ static const sipAPIDef sip_api = {
     sip_api_transfer_to,
     sip_api_transfer_break,
     sip_api_wrapper_check,
-    sip_api_wrappertype_check,
     sip_api_long_as_unsigned_long,
     sip_api_convert_from_named_enum,
     sip_api_convert_from_void_ptr,
@@ -184,6 +192,7 @@ static const sipAPIDef sip_api = {
     sip_api_import_symbol,
     sip_api_find_class,
     sip_api_find_named_enum,
+    sip_api_register_supertype,
     /*
      * The following may be used by Qt support code but by no other handwritten
      * code.
@@ -300,14 +309,10 @@ typedef struct _sipPyObject {
 } sipPyObject;
 
 
-static PyTypeObject sipWrapperType_Type;
-static sipWrapperType sipWrapper_Type;
-static PyTypeObject sipVoidPtr_Type;
-
 PyInterpreterState *sipInterpreter = NULL;
 sipQtAPI *sipQtSupport = NULL;
 sipWrapperType *sipQObjectClass;
-sipPyObject *sipRegisteredMetatypes = NULL;
+sipPyObject *sipRegisteredSupertypes = NULL;
 sipPyObject *sipRegisteredIntTypes = NULL;
 sipSymbol *sipSymbolList = NULL;
 
@@ -439,8 +444,9 @@ static void raiseNoWChar();
 #endif
 static void *getComplexCppPtr(sipWrapper *w, sipWrapperType *type);
 static PyObject *make_voidptr(void *voidptr, SIP_SSIZE_T size, int rw);
-static PyTypeObject *findMetatype(const char *name);
+static PyObject *findSupertype(const char *name);
 static int addPyObjectToList(sipPyObject **head, PyObject *object);
+static PyObject *getDictFromObject(PyObject *obj);
 
 
 /*
@@ -929,39 +935,6 @@ static int sip_api_export_module(sipExportedModuleDef *client,
         }
     }
 
-    /* Register and ready the module's metatypes. */
-    if (client->em_metatypes != NULL)
-    {
-        sipMetatypeDef *mtd = client->em_metatypes;
-
-        while (mtd->m_metatype != NULL)
-        {
-            PyTypeObject *super;
-
-            /* Find the super-metatype. */
-            if (mtd->m_super < 0)
-                super = &sipWrapperType_Type;
-            else
-            {
-                const char *metatype_name = getNameFromPool(client,
-                        mtd->m_super);
-
-                if ((super = findMetatype(metatype_name)) == NULL)
-                    return -1;
-            }
-
-            mtd->m_metatype->tp_base = super;
-
-            if (PyType_Ready(mtd->m_metatype) < 0)
-                return -1;
-
-            if (addPyObjectToList(&sipRegisteredMetatypes, (PyObject *)mtd->m_metatype) < 0)
-                return -1;
-
-            ++mtd;
-        }
-    }
-
     /* Create the module's classes. */
     if (client->em_types != NULL)
     {
@@ -1196,22 +1169,39 @@ static void finalise(void)
 
 
 /*
- * Find the registered metatype with the given name.  Raise an exception if it
- * couldn't be found.
+ * Register the given supertype.
  */
-static PyTypeObject *findMetatype(const char *name)
+static int sip_api_register_supertype(PyTypeObject *supertype)
+{
+    PyObject *tup;
+
+    if ((tup = PyTuple_New(1)) == NULL)
+        return -1;
+
+    PyTuple_SET_ITEM(tup, 0, (PyObject *)supertype);
+    Py_INCREF((PyObject *)supertype);
+
+    return addPyObjectToList(&sipRegisteredSupertypes, tup);
+}
+
+
+/*
+ * Find the registered super-type tuple with the given name.  Raise an
+ * exception if it couldn't be found.
+ */
+static PyObject *findSupertype(const char *name)
 {
     sipPyObject *po;
 
-    for (po = sipRegisteredMetatypes; po != NULL; po = po->next)
+    for (po = sipRegisteredSupertypes; po != NULL; po = po->next)
     {
-        PyTypeObject *type = (PyTypeObject *)po->object;
+        PyObject *tup = po->object;
 
-        if (strcmp(type->tp_name, name) == 0)
-            return type;
+        if (strcmp(((PyTypeObject *)PyTuple_GET_ITEM(tup, 0))->tp_name, name) == 0)
+            return tup;
     }
 
-    PyErr_Format(PyExc_RuntimeError, "%s is an unknown metatype", name);
+    PyErr_Format(PyExc_RuntimeError, "%s is an unknown super-type", name);
 
     return NULL;
 }
@@ -3607,35 +3597,37 @@ static sipWrapperType *createType(sipExportedModuleDef *client,
         sipTypeDef *type, PyObject *mod_dict)
 {
     PyObject *name, *bases, *typedict, *args, *dict;
-    PyTypeObject *metatype;
+    PyObject *metatype;
     sipEncodedClassDef *sup;
     sipWrapperType *wt;
-
-    /* Get the metatype to use. */
-    if (type->td_metatype < 0)
-        metatype = &sipWrapperType_Type;
-    else
-    {
-        const char *metatype_name = getNameFromPool(client, type->td_metatype);
-
-        if ((metatype = findMetatype(metatype_name)) == NULL)
-            goto reterr;
-    }
 
     /* Create an object corresponding to the type name. */
     if ((name = PyString_FromString(getPyNameOfType(type))) == NULL)
         goto reterr;
 
-    /* Create the tuple of super types. */
+    /* Create the tuple of super-types. */
     if ((sup = type->td_supers) == NULL)
     {
-        static PyObject *nobases = NULL;
+        if (type->td_supertype < 0)
+        {
+            static PyObject *default_bases = NULL;
 
-        if (nobases == NULL && (nobases = Py_BuildValue("(O)",&sipWrapper_Type)) == NULL)
-            goto relname;
+            /* Only do this once. */
+            if (default_bases == NULL && (default_bases = Py_BuildValue("(O)", &sipWrapper_Type)) == NULL)
+                goto relname;
 
-        Py_INCREF(nobases);
-        bases = nobases;
+            bases = default_bases;
+        }
+        else
+        {
+            const char *supertype_name = getNameFromPool(client,
+                    type->td_supertype);
+
+            if ((bases = findSupertype(supertype_name)) == NULL)
+                goto relname;
+        }
+
+        Py_INCREF(bases);
     }
     else
     {
@@ -3657,6 +3649,9 @@ static sipWrapperType *createType(sipExportedModuleDef *client,
         }
     }
 
+    /* The meta-type we use is the meta-type of the first super-type. */
+    metatype = (PyObject *)PyTuple_GET_ITEM(bases, 0)->ob_type;
+
     /* Create the type dictionary. */
     if ((typedict = createTypeDict(client->em_nameobj)) == NULL)
         goto relbases;
@@ -3668,7 +3663,7 @@ static sipWrapperType *createType(sipExportedModuleDef *client,
     if ((args = Py_BuildValue("OOO",name,bases,typedict)) == NULL)
         goto reldict;
 
-    if ((wt = (sipWrapperType *)PyObject_Call((PyObject *)metatype, args, NULL)) == NULL)
+    if ((wt = (sipWrapperType *)PyObject_Call(metatype, args, NULL)) == NULL)
         goto relargs;
 
     /* Get the dictionary into which the type will be placed. */
@@ -4553,15 +4548,6 @@ int sip_api_wrapper_check(PyObject *o)
 
 
 /*
- * Return non-zero if the object is a C++ instance wrapper type.
- */
-static int sip_api_wrappertype_check(PyObject *obj)
-{
-    return PyObject_TypeCheck(obj, (PyTypeObject *)&sipWrapperType_Type);
-}
-
-
-/*
  * Transfer ownership of a class instance to Python from C/C++.
  */
 static void sip_api_transfer_back(PyObject *self)
@@ -5020,11 +5006,7 @@ static int addSingleEnumInstance(PyObject *dict, const char *name, int value,
 static int sip_api_add_enum_instance(PyObject *dict, const char *name,
         int value, PyTypeObject *type)
 {
-    /* If this is a wrapped type then get the type dictionary. */
-    if (sip_api_wrappertype_check(dict))
-        dict = ((PyTypeObject *)dict)->tp_dict;
-
-    return addSingleEnumInstance(dict, name, value, type);
+    return addSingleEnumInstance(getDictFromObject(dict), name, value, type);
 }
 
 
@@ -5070,11 +5052,7 @@ static int addSingleClassInstance(PyObject *dict, const char *name,
 static int sip_api_add_class_instance(PyObject *dict, const char *name,
         void *cppPtr, sipWrapperType *wt)
 {
-    /* If this is a wrapped type then get the type dictionary. */
-    if (sip_api_wrappertype_check(dict))
-        dict = ((PyTypeObject *)dict)->tp_dict;
-
-    return addSingleClassInstance(dict, name, cppPtr, wt, 0);
+    return addSingleClassInstance(getDictFromObject(dict), name, cppPtr, wt, 0);
 }
 
 
@@ -5087,17 +5065,26 @@ static int sip_api_add_mapped_type_instance(PyObject *dict, const char *name,
     int rc;
     PyObject *w;
 
-    /* If this is a wrapped type then get the type dictionary. */
-    if (sip_api_wrappertype_check(dict))
-        dict = ((PyTypeObject *)dict)->tp_dict;
-
     if ((w = mt->mt_cfrom(cppPtr, NULL)) == NULL)
         return -1;
 
-    rc = PyDict_SetItemString(dict, name, w);
+    rc = PyDict_SetItemString(getDictFromObject(dict), name, w);
     Py_DECREF(w);
 
     return rc;
+}
+
+
+/*
+ * Return the instance dictionary for an object if it is a wrapped type.
+ * Otherwise assume that it is a module dictionary.
+ */
+static PyObject *getDictFromObject(PyObject *obj)
+{
+    if (PyObject_TypeCheck(obj, (PyTypeObject *)&sipWrapperType_Type))
+        obj = ((PyTypeObject *)obj)->tp_dict;
+
+    return obj;
 }
 
 
@@ -6674,7 +6661,7 @@ static int sipWrapperType_init(sipWrapperType *self, PyObject *args,
          * Make sure that the type is derived from sip.wrapper.  It might not
          * if the type specifies sip.wrappertype as the __metaclass__.
          */
-        if (sc == NULL || !sip_api_wrappertype_check((PyObject *)sc))
+        if (sc == NULL || !PyObject_TypeCheck((PyObject *)sc, (PyTypeObject *)&sipWrapperType_Type))
         {
             PyErr_Format(PyExc_TypeError,
                     "type %s must be derived from sip.wrapper",

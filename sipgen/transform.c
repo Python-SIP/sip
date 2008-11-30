@@ -130,25 +130,25 @@ void transform(sipSpec *pt)
     }
 
     /*
-     * Set the default metatype for the main module if it doesn't have one
+     * Set the default super-type for the main module if it doesn't have one
      * explicitly set.
      */
-    if (pt->module->defmetatype == NULL)
+    if (pt->module->defsupertype == NULL)
     {
         moduleListDef *mld;
 
         for (mld = pt->module->allimports; mld != NULL; mld = mld->next)
         {
-            if (mld->module->defmetatype == NULL)
+            if (mld->module->defsupertype == NULL)
                 continue;
 
-            if (pt->module->defmetatype == NULL)
-                pt->module->defmetatype = mld->module->defmetatype;
-            else if (pt->module->defmetatype != mld->module->defmetatype)
-                fatal("The %s module has imported different default metatypes %s and %s\n",
+            if (pt->module->defsupertype == NULL)
+                pt->module->defsupertype = mld->module->defsupertype;
+            else if (pt->module->defsupertype != mld->module->defsupertype)
+                fatal("The %s module has imported different default super-types %s and %s\n",
                         pt->module->fullname->text,
-                        pt->module->defmetatype->name->text,
-                        mld->module->defmetatype->name->text);
+                        pt->module->defsupertype->text,
+                        mld->module->defsupertype->text);
         }
     }
 
@@ -1105,21 +1105,14 @@ static void setHierarchy(sipSpec *pt, classDef *base, classDef *cd,
         }
 
         /*
-         * If the class doesn't have an explicit metatype then inherit from the
-         * first super-class or, as a last resort, the module's default.
+         * If the class doesn't have an explicit super-type then inherit from
+         * the module's default.
          */
-        if (cd->metatype == NULL)
-        {
-            if (cd->supers != NULL)
-                cd->metatype = cd->supers->cd->metatype;
+        if (cd->supertype == NULL && cd->supers == NULL)
+            cd->supertype = cd->iff->module->defsupertype;
 
-            if (cd->metatype == NULL)
-                cd->metatype = cd->iff->module->defmetatype;
-        }
-
-        if (cd->metatype != NULL && !cd->metatype->sip_default &&
-                    generatingCodeForModule(pt, cd->iff->module))
-            setIsUsedName(cd->metatype->name);
+        if (cd->supertype != NULL && generatingCodeForModule(pt, cd->iff->module))
+            setIsUsedName(cd->supertype);
     }
 
     /*

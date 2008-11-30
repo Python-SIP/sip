@@ -90,6 +90,9 @@ SIP, and the bindings it produces, have the following features.
       information to ensure that the class of a Python instance object matches
       the class of the corresponding C++ instance
 
+    - the ability to change the type and meta-type of the Python object used to
+      wrap a C/C++ data type
+
     - full support of the Python global interpreter lock, including the ability
       to specify that a C++ function of method may block, therefore allowing
       the lock to be released and other Python threads to run
@@ -1005,11 +1008,12 @@ file.
     *module-statement* ::= [*module-directive* | *statement*]
 
     *module-directive* ::= [`%CModule`_ | `%CompositeModule`_ |
-            `%ConsolidatedModule`_ | `%Copying`_ | `%Doc`_ | `%ExportedDoc`_ |
-            `%ExportedHeaderCode`_ | `%Feature`_ | `%Import`_ | `%Include`_ |
-            `%License`_ | `%MappedType`_ | *mapped-type-template* |
-            `%Module`_ | `%ModuleCode`_ | `%ModuleHeaderCode`_ |
-            `%OptionalInclude`_ | `%Platforms`_ | `%PreInitialisationCode`_ |
+            `%ConsolidatedModule`_ | `%Copying`_ | `%DefaultSupertype`_ |
+            `%Doc`_ | `%ExportedDoc`_ | `%ExportedHeaderCode`_ | `%Feature`_ |
+            `%Import`_ | `%Include`_ | `%InitialisationCode`_ | `%License`_ |
+            `%MappedType`_ | *mapped-type-template* | `%Module`_ |
+            `%ModuleCode`_ | `%ModuleHeaderCode`_ | `%OptionalInclude`_ |
+            `%Platforms`_ | `%PreInitialisationCode`_ |
             `%PostInitialisationCode`_ | *sip-option-list* | `%Timeline`_ |
             `%UnitCode`_]
 
@@ -1223,6 +1227,8 @@ file.
     *scoped-name* ::= *name* [``::`` *scoped-name*]
 
     *template* ::= *scoped-name* ``<`` *type-list* ``>``
+
+    *dotted-name* ::= *name* [``.`` *dotted-name*]
 
     *name* ::= _A-Za-z {_A-Za-z0-9}
 
@@ -1955,8 +1961,38 @@ include copyright and licensing terms.
 For example::
 
     %Copying
-    Copyright (c) 2007 Riverbank Computing Limited
+    Copyright (c) 2008 Riverbank Computing Limited
     %End
+
+
+%DefaultSupertype
+-----------------
+
+.. parsed-literal::
+
+    %DefaultSupertype *dotted-name*
+
+This directive is used to specify the Python type that should be used as the
+super-type for any C/C++ data type that doesn't have an explicit super-type.
+
+When SIP creates a Python type for a C structure or a C++ class that has no
+super-classes it normally uses the `sipWrapper`_ type as its super-type.  This
+means that the Python type's meta-type will be `sipWrapperType`_.
+
+Instead you can create and use your own type, possibly with your own meta-type.
+Your own type must inherit from `sipWrapper`_.  If you create your own
+meta-type then it must inherit from `sipWrapperType`_.
+
+In order to use your own type you must first register it with
+`sipRegisterSupertype()`_.  This is normally done in an `%InitialisationCode`_
+section.
+
+You can also use the `Supertype`_ class annotation to specify the super-type
+used by a particular C/C++ type.
+
+For example::
+
+    %DefaultSupertype pyqtWrapper
 
 
 %Doc
@@ -2353,6 +2389,7 @@ following parts of a specification are affected by it:
     - `%GCClearCode`_
     - `%GCTraverseCode`_
     - `%If`_
+    - `%InitialisationCode`_
     - `%MappedType`_
     - `%MethodCode`_
     - `%ModuleCode`_
@@ -2412,6 +2449,30 @@ specification into manageable pieces.
 For example::
 
     %Include qwidget.sip
+
+
+%InitialisationCode
+-------------------
+
+.. parsed-literal::
+
+    %InitialisationCode
+        *code*
+    %End
+
+This directive is used to specify handwritten code that is embedded in-line
+in the generated module initialisation code after the SIP module has been
+imported but before the module itself has been intialised.
+
+It is typically used to call `sipRegisterSupertype()`_.
+
+For example::
+
+    %InitialisationCode
+        // The code will be executed when the module is first imported, after
+        // the SIP module has been imported, but before other module-specific
+        // initialisation has been completed.
+    %End
 
 
 %License
@@ -3283,6 +3344,10 @@ name
     The value is a name that is compatible with a C/C++ identifier.  In some
     cases the value is optional.
 
+dotted name
+    The value is a name that is compatible with an identifier preceded by a
+    Python scope.
+
 string
     The value is a double quoted string.
 
@@ -3558,6 +3623,16 @@ which is used when it is referred to from Python.  It is required when a class
 name is the same as a Python keyword.  It may also be used to avoid name
 clashes with other objects (e.g. enums, exceptions, functions) that have the
 same name in the same C++ scope.
+
+
+Supertype
+*********
+
+This dotted name annotation specifies the name of the Python type object (i.e.
+the value of the ``tp_name`` field) used as the super-type used when creating
+the type object for this C structure or C++ type.
+
+See the `%DefaultSupertype`_ directive for more details.
 
 
 Mapped Type Annotations
@@ -4636,6 +4711,17 @@ int sipParseResult(int \*iserr, PyObject \*method, PyObject \*result, const char
         Check that a Python object is ``Py_None``.  No value is returned.
 
 
+sipRegisterSupertype()
+----------------------
+
+int sipRegisterSupertype(PyTypeObject \*supertype)
+    This registers a type object that can be used as the super-type of a
+    wrapped C++ type when the C++ type doesn't have any super-classes.  By
+    default the `sipWrapper`_ type is used but this can be changed using either
+    `%DefaultSupertype`_ or the `Supertype`_ class annotation.  *supertype* is
+    the type.  0 is returned if there is no error.
+
+
 sipReleaseInstance()
 --------------------
 
@@ -4705,11 +4791,18 @@ void sipTransferTo(PyObject \*obj, PyObject \*owner)
     destructor is always transfered to C++.
 
 
+sipVoidPtr_Type
+---------------
+
+This is a pointer to a ``PyTypeObject`` structure that is the type of a
+``PyObject`` structure that is used to wrap a ``void *``.
+
+
 sipWrapper
 ----------
 
 This is a C structure that represents a Python wrapped instance.  It is an
-extension of the Python ``PyObject`` structure and so may be safely cast to
+extension of the ``PyObject`` structure and so may be safely cast to
 ``PyObject``.  It includes a member called ``user`` which is of type
 ``PyObject *``.  This can be used for any purpose by handwritten code and will
 automatically be garbage collected at the appropriate time.
@@ -4722,22 +4815,32 @@ int sipWrapper_Check(PyObject \*obj)
     This returns a non-zero value if a Python object is a wrapped instance.
     *obj* is the Python object.
 
+This is deprecated.  Instead you should use the following::
+
+    PyObject_TypeCheck(obj, sipWrapper_Type)
+
+
+sipWrapper_Type
+---------------
+
+This is a pointer to a `PyTypeObject`_ structure that is the type of a
+`sipWrapper`_ structure.  It may be safely cast to `sipWrapperType`_.
+
 
 sipWrapperType
 --------------
 
 This is a C structure that represents a SIP generated type object.  It is an
-extension of the Python ``PyTypeObject`` structure (which is itself an
-extension of the Python ``PyObject`` structure) and so may be safely cast to
-``PyTypeObject`` (and ``PyObject``).
+extension of the ``PyTypeObject`` structure (which is itself an extension of
+the ``PyObject`` structure) and so may be safely cast to ``PyTypeObject`` (and
+``PyObject``).
 
 
-sipWrapperType_Check()
-----------------------
+sipWrapperType_Type
+-------------------
 
-int sipWrapperType_Check(PyObject \*obj)
-    This returns a non-zero value if a Python object is a generated type
-    object.  *obj* is the Python object.
+This is a pointer to a ``PyTypeObject`` structure that is the type of a
+`sipWrapperType`_ structure.
 
 
 Generated Type Objects

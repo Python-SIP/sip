@@ -108,9 +108,6 @@ static overDef *instantiateTemplateOverloads(sipSpec *pt, overDef *tod,
         scopedNameDef *type_names, scopedNameDef *type_values);
 static void resolveAnyTypedef(sipSpec *pt, argDef *ad);
 static char *prefixModuleName(moduleDef *mod, const char *suffix);
-static metatypeDef *findMetatype(sipSpec *pt, const char *full_name);
-static metatypeDef *newMetatype(sipSpec *pt, moduleDef *mod,
-        const char *full_name, metatypeDef *super);
 %}
 
 %union {
@@ -142,6 +139,7 @@ static metatypeDef *newMetatype(sipSpec *pt, moduleDef *mod,
 %token          TK_GETCODE
 %token          TK_SETCODE
 %token          TK_PREINITCODE
+%token          TK_INITCODE
 %token          TK_POSTINITCODE
 %token          TK_UNITCODE
 %token          TK_MODCODE
@@ -235,8 +233,7 @@ static metatypeDef *newMetatype(sipSpec *pt, moduleDef *mod,
 %token          TK_EXPLICIT
 %token          TK_TEMPLATE
 %token          TK_ELLIPSIS
-%token          TK_DEFMETATYPE
-%token          TK_METATYPE
+%token          TK_DEFSUPERTYPE
 
 %type <memArg>          argvalue
 %type <memArg>          argtype
@@ -286,7 +283,6 @@ static metatypeDef *newMetatype(sipSpec *pt, moduleDef *mod,
 %type <text>            optfilename
 %type <text>            optname
 %type <text>            dottedname
-%type <text>            optdottedname
 %type <optflags>        optflags
 %type <optflags>        flaglist
 %type <flag>            flag
@@ -340,8 +336,7 @@ modstatement:   module
     |   platforms
     |   feature
     |   license
-    |   defmetatype
-    |   metatype
+    |   defsupertype
     |   exphdrcode {
             if (notSkipping())
                 appendCodeBlock(&currentSpec->exphdrcode, $1);
@@ -355,6 +350,7 @@ modstatement:   module
                 appendCodeBlock(&currentModule->cppcode, $1);
         }
     |   preinitcode
+    |   initcode
     |   postinitcode
     |   unitcode
     |   prepycode
@@ -792,53 +788,14 @@ license:    TK_LICENSE optflags {
         }
     ;
 
-defmetatype:TK_DEFMETATYPE dottedname {
+defsupertype:   TK_DEFSUPERTYPE dottedname {
             if (notSkipping())
             {
-                if (currentModule->defmetatype != NULL)
-                    yyerror("%DefaultMetatype has already been defined for this module");
+                if (currentModule->defsupertype != NULL)
+                    yyerror("%DefaultSupertype has already been defined for this module");
 
-                if ((currentModule->defmetatype = findMetatype(currentSpec, $2)) == NULL)
-                    yyerror("%DefaultMetatype specifies an unknown metatype");
+                currentModule->defsupertype = cacheName(currentSpec, $2);
             }
-        }
-    ;
-
-metatype:   TK_METATYPE TK_NAME optdottedname {
-            if (notSkipping())
-            {
-                metatypeDef *new_metatype, *super;
-                const char *full_name;
-
-                full_name = prefixModuleName(currentModule, $2);
-
-                if (findMetatype(currentSpec, full_name) != NULL)
-                    yyerror("%Metatype has already been defined");
-
-                if ($3 == NULL)
-                    super = NULL;
-                else if ((super = findMetatype(currentSpec, $3)) == NULL)
-                    yyerror("The %Metatype super-type has not been defined");
-
-                new_metatype = newMetatype(currentSpec, currentModule,
-                        full_name, super);
-
-                if (inMainModule())
-                {
-                    setIsUsedName(new_metatype->name);
-
-                    if (super != NULL && !super->sip_default)
-                        setIsUsedName(super->name);
-                }
-            }
-        }
-    ;
-
-optdottedname: {
-            $$ = NULL;
-        }
-    |   '(' dottedname ')' {
-            $$ = $2;
         }
     ;
 
@@ -1045,6 +1002,12 @@ typecode:   TK_TYPECODE codeblock {
 preinitcode:    TK_PREINITCODE codeblock {
             if (notSkipping())
                 appendCodeBlock(&currentModule->preinitcode, $2);
+        }
+    ;
+
+initcode:   TK_INITCODE codeblock {
+            if (notSkipping())
+                appendCodeBlock(&currentModule->initcode, $2);
         }
     ;
 
@@ -2606,7 +2569,6 @@ void parse(sipSpec *spec, FILE *fp, char *filename, stringList *tsl,
     spec->modules = NULL;
     spec->namecache = NULL;
     spec->ifacefiles = NULL;
-    spec->metatypes = NULL;
     spec->classes = NULL;
     spec->classtemplates = NULL;
     spec->exceptions = NULL;
@@ -2620,9 +2582,6 @@ void parse(sipSpec *spec, FILE *fp, char *filename, stringList *tsl,
     spec->sigslots = FALSE;
     spec->genc = -1;
     spec->options = NULL;
-
-    /* Register the builtin metatypes. */
-    newMetatype(spec, NULL, "sip.wrappertype", NULL)->sip_default = TRUE;
 
     currentSpec = spec;
     neededQualifiers = tsl;
@@ -3071,9 +3030,8 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd, optFlags *of)
     checkAttributes(pt, mod, cd->ecd, pyname, FALSE);
     cd->pyname = cacheName(pt, pyname);
 
-    if ((flg = findOptFlag(of, "Metatype", dotted_name_flag)) != NULL)
-        if ((cd->metatype = findMetatype(pt, flg->fvalue.sval)) == NULL)
-            yyerror("The class \"Metatype\" has not been defined");
+    if ((flg = findOptFlag(of, "Supertype", dotted_name_flag)) != NULL)
+        cd->supertype = cacheName(pt, flg->fvalue.sval);
 
     if ((flg = findOptFlag(of, "TypeFlags", integer_flag)) != NULL)
         cd->userflags = flg->fvalue.ival;
@@ -5547,45 +5505,4 @@ static char *prefixModuleName(moduleDef *mod, const char *suffix)
         yyerror("%Module or %CModule not yet specified");
 
     return concat(mod->fullname->text, ".", suffix, NULL);
-}
-
-
-/*
- * Return the metatype definition for the given metatype name.
- */
-static metatypeDef *findMetatype(sipSpec *pt, const char *full_name)
-{
-    metatypeDef *meta;
-
-    for (meta = pt->metatypes; meta != NULL; meta = meta->next)
-        if (strcmp(meta->name->text, full_name) == 0)
-            return meta;
-
-    return NULL;
-}
-
-
-/*
- * Create a new metatype with the given name and super-type.
- */
-static metatypeDef *newMetatype(sipSpec *pt, moduleDef *mod,
-        const char *full_name, metatypeDef *super)
-{
-    metatypeDef *mtd, **tailp;
-
-    mtd = sipMalloc(sizeof (metatypeDef));
-
-    mtd->name = cacheName(pt, full_name);
-    mtd->sip_default = FALSE;
-    mtd->super = super;
-    mtd->module = mod;
-    mtd->next = NULL;
-
-    /* Append it to the metatype list. */
-    for (tailp = &pt->metatypes; *tailp != NULL; tailp = &(*tailp)->next)
-        ;
-
-    *tailp = mtd;
-
-    return mtd;
 }
