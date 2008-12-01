@@ -178,7 +178,7 @@ typedef int sip_gilstate_t;
 
 
 /*
- * The metatype of a wrapper type.
+ * The meta-type of a wrapper type.
  */
 typedef struct _sipWrapperType {
     /*
@@ -199,13 +199,10 @@ typedef struct _sipWrapperType {
 
 
 /*
- * The type of a C/C++ wrapper object.
+ * The type of a simple C/C++ wrapper object.
  */
-typedef struct _sipWrapper {
+typedef struct _sipSimpleWrapper {
     PyObject_HEAD
-
-    /* For the user to use. */
-    PyObject *user;
 
     union {
         /* C/C++ object pointer. */
@@ -221,11 +218,20 @@ typedef struct _sipWrapper {
     /* The instance dictionary. */
     PyObject *dict;
 
+    /* Next object at this address. */
+    struct _sipSimpleWrapper *next;
+} sipSimpleWrapper;
+
+
+/*
+ * The type of a C/C++ wrapper object that supports parent/child relationships.
+ */
+typedef struct _sipWrapper {
+    /* The super-type. */
+    sipSimpleWrapper super;
+
     /* Python signal list (complex). */
     struct _sipPySig *pySigList;
-
-    /* Next object at this address. */
-    struct _sipWrapper *next;
 
     /* First child object. */
     struct _sipWrapper *first_child;
@@ -238,6 +244,9 @@ typedef struct _sipWrapper {
 
     /* Owning object. */
     struct _sipWrapper *parent;
+
+    /* For the user to use. */
+    PyObject *user;
 } sipWrapper;
 
 
@@ -1115,6 +1124,7 @@ typedef struct _sipAPIDef {
     /*
      * The following are part of the public API.
      */
+    PyTypeObject *api_simplewrapper_type;
     PyTypeObject *api_wrapper_type;
     PyTypeObject *api_wrappertype_type;
     PyTypeObject *api_voidptr_type;
@@ -1172,7 +1182,6 @@ typedef struct _sipAPIDef {
     void (*api_transfer_back)(PyObject *self);
     void (*api_transfer_to)(PyObject *self, PyObject *owner);
     void (*api_transfer_break)(PyObject *self);
-    int (*api_wrapper_check)(PyObject *o);
     unsigned long (*api_long_as_unsigned_long)(PyObject *o);
     PyObject *(*api_convert_from_named_enum)(int eval, PyTypeObject *et);
     PyObject *(*api_convert_from_void_ptr)(void *val);
