@@ -4190,7 +4190,9 @@ static PyObject *handleGetLazyAttr(PyObject *nameobj,sipWrapperType *wt,
         return res;
     }
 
-    PyErr_SetObject(PyExc_AttributeError,nameobj);
+    /* Mimic the corresponding message from the interpreter. */
+    PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%s'",
+            ((PyTypeObject *)wt)->tp_name, name);
 
     return NULL;
 }

@@ -4823,7 +4823,7 @@ This is deprecated.  Instead you should use the following::
 sipWrapper_Type
 ---------------
 
-This is a pointer to a `PyTypeObject`_ structure that is the type of a
+This is a pointer to a ``PyTypeObject`` structure that is the type of a
 `sipWrapper`_ structure.  It may be safely cast to `sipWrapperType`_.
 
 
