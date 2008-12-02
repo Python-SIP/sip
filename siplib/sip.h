@@ -1224,17 +1224,17 @@ typedef struct _sipAPIDef {
     int (*api_parse_pair)(int *argsParsedp, PyObject *arg0, PyObject *arg1,
             const char *fmt, ...);
     void (*api_common_ctor)(sipMethodCache *cache, int nrmeths);
-    void (*api_common_dtor)(sipWrapper *sipSelf);
+    void (*api_common_dtor)(sipSimpleWrapper *sipSelf);
     void (*api_no_function)(int argsParsed, const char *func);
     void (*api_no_method)(int argsParsed, const char *classname,
             const char *method);
     void (*api_abstract_method)(const char *classname, const char *method);
     void (*api_bad_class)(const char *classname);
     void (*api_bad_set_type)(const char *classname, const char *var);
-    void *(*api_get_cpp_ptr)(sipWrapper *w, sipWrapperType *type);
-    void *(*api_get_complex_cpp_ptr)(sipWrapper *w);
+    void *(*api_get_cpp_ptr)(sipSimpleWrapper *w, sipWrapperType *type);
+    void *(*api_get_complex_cpp_ptr)(sipSimpleWrapper *w);
     PyObject *(*api_is_py_method)(sip_gilstate_t *gil, sipMethodCache *pymc,
-            sipWrapper *sipSelf, const char *cname, const char *mname);
+            sipSimpleWrapper *sipSelf, const char *cname, const char *mname);
     void (*api_call_hook)(const char *hookname);
     void (*api_start_thread)(void);
     void (*api_end_thread)(void);
@@ -1249,7 +1249,7 @@ typedef struct _sipAPIDef {
             sipPySlotType st);
     PyObject *(*api_pyslot_extend)(sipExportedModuleDef *mod, sipPySlotType st,
             sipWrapperType *type, PyObject *arg0, PyObject *arg1);
-    void (*api_add_delayed_dtor)(sipWrapper *w);
+    void (*api_add_delayed_dtor)(sipSimpleWrapper *w);
     int (*api_add_mapped_type_instance)(PyObject *dict, const char *name,
             void *cppPtr, const sipMappedType *mt);
     char (*api_string_as_char)(PyObject *obj);

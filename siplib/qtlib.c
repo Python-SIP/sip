@@ -469,7 +469,7 @@ static void *createUniversalSlot(sipWrapper *txSelf, const char *sig,
     }
 
     if (txSelf)
-        sipSetPossibleProxy(txSelf);
+        sipSetPossibleProxy((sipSimpleWrapper *)txSelf);
 
     return us;
 }
@@ -557,7 +557,7 @@ static int emitQtSig(sipWrapper *w,const char *sig,PyObject *sigargs)
     sipQtSignal *tab;
 
     /* Search the table. */
-    for (tab = ((sipWrapperType *)(w -> ob_type)) -> type -> td_emit; tab -> st_name != NULL; ++tab)
+    for (tab = ((sipWrapperType *)(((PyObject *)w)->ob_type))->type->td_emit; tab->st_name != NULL; ++tab)
     {
         const char *sp, *tp;
         int found;

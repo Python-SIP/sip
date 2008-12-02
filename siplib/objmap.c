@@ -92,13 +92,14 @@ static sipHashEntry *findHashEntry(sipObjectMap *om,void *key)
  * Return the wrapped Python object of a specific type for a C/C++ address or
  * NULL if it wasn't found.
  */
-sipWrapper *sipOMFindObject(sipObjectMap *om, void *key, sipWrapperType *type)
+sipSimpleWrapper *sipOMFindObject(sipObjectMap *om, void *key,
+        sipWrapperType *type)
 {
     sipHashEntry *he = findHashEntry(om, key);
-    sipWrapper *w;
+    sipSimpleWrapper *sw;
 
     /* Go through each wrapped object at this address. */
-    for (w = he->first; w != NULL; w = w->next)
+    for (sw = he->first; sw != NULL; sw = sw->next)
     {
         /*
          * If the reference count is 0 then it is in the process of being
@@ -107,15 +108,15 @@ sipWrapper *sipOMFindObject(sipObjectMap *om, void *key, sipWrapperType *type)
          * code is being re-entered (and there are guards in place to prevent
          * this).
          */
-        if (w->ob_refcnt == 0)
+        if (sw->ob_refcnt == 0)
             continue;
 
         /*
          * If this wrapped object is of the given type, or a sub-type of it,
          * then we assume it is the same C++ object.
          */
-        if (PyObject_TypeCheck(w, (PyTypeObject *)type))
-            return w;
+        if (PyObject_TypeCheck(sw, (PyTypeObject *)type))
+            return sw;
     }
 
     return NULL;
@@ -125,9 +126,9 @@ sipWrapper *sipOMFindObject(sipObjectMap *om, void *key, sipWrapperType *type)
 /*
  * Add a C/C++ address and the corresponding wrapped Python object to the map.
  */
-void sipOMAddObject(sipObjectMap *om,sipWrapper *val)
+void sipOMAddObject(sipObjectMap *om, sipSimpleWrapper *val)
 {
-    sipHashEntry *he = findHashEntry(om,val -> u.cppPtr);
+    sipHashEntry *he = findHashEntry(om, val->u.cppPtr);
 
     /*
      * If the bucket is in use then we appear to have several objects at the
@@ -150,42 +151,42 @@ void sipOMAddObject(sipObjectMap *om,sipWrapper *val)
          * pointers as invalid and reuse the entry.  Otherwise we just add this
          * one to the existing list of objects at this address.
          */
-        if (!(val -> flags & SIP_SHARE_MAP))
+        if (!(val->flags & SIP_SHARE_MAP))
         {
-            sipWrapper *w = he->first;
+            sipSimpleWrapper *sw = he->first;
 
             he->first = NULL;
 
-            while (w != NULL)
+            while (sw != NULL)
             {
-                sipWrapper *next = w->next;
+                sipSimpleWrapper *next = sw->next;
 
                 /* We are removing it from the map here. */
-                sipSetNotInMap(w);
-                sip_api_common_dtor(w);
+                sipSetNotInMap(sw);
+                sip_api_common_dtor(sw);
 
-                w = next;
+                sw = next;
             }
         }
 
-        val -> next = he -> first;
-        he -> first = val;
+        val->next = he->first;
+        he->first = val;
 
         return;
     }
 
     /* See if the bucket was unused or stale. */
-    if (he -> key == NULL)
+    if (he->key == NULL)
     {
-        he -> key = val -> u.cppPtr;
-        om -> unused--;
+        he->key = val -> u.cppPtr;
+        om->unused--;
     }
     else
-        om -> stale--;
+        om->stale--;
 
     /* Add the rest of the new value. */
-    he -> first = val;
-    val -> next = NULL;
+    he->first = val;
+    val->next = NULL;
 
     reorganiseMap(om);
 }
@@ -240,15 +241,15 @@ static void reorganiseMap(sipObjectMap *om)
  * Remove a C/C++ object from the table.  Return 0 if it was removed
  * successfully.
  */
-int sipOMRemoveObject(sipObjectMap *om,sipWrapper *val)
+int sipOMRemoveObject(sipObjectMap *om, sipSimpleWrapper *val)
 {
-    sipHashEntry *he = findHashEntry(om,val -> u.cppPtr);
-    sipWrapper **wp;
+    sipHashEntry *he = findHashEntry(om, val->u.cppPtr);
+    sipSimpleWrapper **swp;
 
-    for (wp = &he -> first; *wp != NULL; wp = &(*wp) -> next)
-        if (*wp == val)
+    for (swp = &he->first; *swp != NULL; swp = &(*swp)->next)
+        if (*swp == val)
         {
-            *wp = val -> next;
+            *swp = val->next;
 
             /*
              * If the bucket is now empty then count it as stale.  Note that we
@@ -258,8 +259,8 @@ int sipOMRemoveObject(sipObjectMap *om,sipWrapper *val)
              * words, searches must be repeatable until we reorganise the
              * table.
              */
-            if (he -> first == NULL)
-                om -> stale++;
+            if (he->first == NULL)
+                om->stale++;
 
             return 0;
         }

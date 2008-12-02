@@ -26,7 +26,7 @@ extern "C" {
 typedef struct
 {
     void *key;                  /* The C/C++ address. */
-    sipWrapper *first;          /* The first object at this address. */
+    sipSimpleWrapper *first;    /* The first object at this address. */
 } sipHashEntry;
 
 
@@ -66,10 +66,10 @@ sipSignature *sip_api_parse_signature(const char *sig);
  */
 void *sip_api_malloc(size_t nbytes);
 void sip_api_free(void *mem);
-void *sip_api_get_cpp_ptr(sipWrapper *w,sipWrapperType *type);
+void *sip_api_get_cpp_ptr(sipSimpleWrapper *w, sipWrapperType *type);
 PyObject *sip_api_convert_from_instance(void *cppPtr, sipWrapperType *type,
         PyObject *transferObj);
-void sip_api_common_dtor(sipWrapper *sipSelf);
+void sip_api_common_dtor(sipSimpleWrapper *sipSelf);
 void sip_api_start_thread(void);
 void sip_api_end_thread(void);
 PyObject *sip_api_convert_from_named_enum(int eval, PyTypeObject *et);
@@ -95,13 +95,14 @@ void *sipConvertRxEx(sipWrapper *txSelf, const char *sigargs,
 
 void sipOMInit(sipObjectMap *om);
 void sipOMFinalise(sipObjectMap *om);
-sipWrapper *sipOMFindObject(sipObjectMap *om,void *key,sipWrapperType *type);
-void sipOMAddObject(sipObjectMap *om,sipWrapper *val);
-int sipOMRemoveObject(sipObjectMap *om,sipWrapper *val);
+sipSimpleWrapper *sipOMFindObject(sipObjectMap *om, void *key,
+        sipWrapperType *type);
+void sipOMAddObject(sipObjectMap *om, sipSimpleWrapper *val);
+int sipOMRemoveObject(sipObjectMap *om, sipSimpleWrapper *val);
 
 void sipSetBool(void *ptr,int val);
 
-void *sipGetAddress(sipWrapper *w);
+void *sipGetAddress(sipSimpleWrapper *w);
 void sipFindSigArgType(const char *name, size_t len, sipSigArg *at, int indir);
 
 
