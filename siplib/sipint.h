@@ -48,6 +48,7 @@ extern PyInterpreterState *sipInterpreter;  /* The interpreter. */
 
 
 extern sipQtAPI *sipQtSupport;  /* The Qt support API. */
+extern sipWrapperType sipSimpleWrapper_Type;    /* The simple wrapper type. */
 extern sipWrapperType *sipQObjectClass; /* The Python QObject class. */
 
 void *sipGetRx(sipSimpleWrapper *txSelf, const char *sigargs, PyObject *rxObj,
@@ -73,7 +74,6 @@ void sip_api_common_dtor(sipSimpleWrapper *sipSelf);
 void sip_api_start_thread(void);
 void sip_api_end_thread(void);
 PyObject *sip_api_convert_from_named_enum(int eval, PyTypeObject *et);
-int sip_api_wrapper_check(PyObject *o);
 void sip_api_free_connection(sipSlotConnection *conn);
 int sip_api_emit_to_slot(const sipSlot *slot, PyObject *sigargs);
 int sip_api_same_connection(sipSlotConnection *conn, void *tx, const char *sig,

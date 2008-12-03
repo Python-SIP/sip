@@ -1177,7 +1177,7 @@ static int saveSlot(sipSlot *sp, PyObject *rxObj, const char *slot)
 
             if (PyCFunction_Check(rxObj) &&
                 (self = PyCFunction_GET_SELF(rxObj)) != NULL &&
-                sip_api_wrapper_check(self))
+                PyObject_TypeCheck(self, &sipSimpleWrapper_Type))
             {
                 /*
                  * It is a wrapped C++ class method.  We can't keep a copy

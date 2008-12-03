@@ -521,7 +521,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "\n"
 "/* Convenient names to call the SIP API. */\n"
 "#define sipConvertFromSliceObject(o,len,start,stop,step,slen)   PySlice_GetIndicesEx((PySliceObject *)(o),(len),(start),(stop),(step),(slen))\n"
-"#define sipWrapper_Check(w)         PyObject_TypeCheck((w), sipAPI_%s->api_wrapper_type\n"
+"#define sipWrapper_Check(w)         PyObject_TypeCheck((w), sipAPI_%s->api_wrapper_type)\n"
 "\n"
 "#define sipMapStringToClass         sipAPI_%s->api_map_string_to_class\n"
 "#define sipMapIntToClass            sipAPI_%s->api_map_int_to_class\n"
@@ -742,13 +742,13 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
          */
         prcode(fp,
 "\n"
-"typedef const QMetaObject *(*sip_qt_metaobject_func)(sipWrapper *,sipWrapperType *);\n"
+"typedef const QMetaObject *(*sip_qt_metaobject_func)(sipSimpleWrapper *,sipWrapperType *);\n"
 "extern sip_qt_metaobject_func sip_%s_qt_metaobject;\n"
 "\n"
-"typedef int (*sip_qt_metacall_func)(sipWrapper *,sipWrapperType *,QMetaObject::Call,int,void **);\n"
+"typedef int (*sip_qt_metacall_func)(sipSimpleWrapper *,sipWrapperType *,QMetaObject::Call,int,void **);\n"
 "extern sip_qt_metacall_func sip_%s_qt_metacall;\n"
 "\n"
-"typedef int (*sip_qt_metacast_func)(sipWrapper *,sipWrapperType *,const char *);\n"
+"typedef int (*sip_qt_metacast_func)(sipSimpleWrapper *,sipWrapperType *,const char *);\n"
 "extern sip_qt_metacast_func sip_%s_qt_metacast;\n"
             , mname
             , mname
@@ -3758,11 +3758,11 @@ static void generateVariableHandler(classDef *context, varDef *vd, FILE *fp)
     {
         if (generating_c)
             prcode(fp,
-"    %S *sipCpp = (%S *)sipGetCppPtr((sipWrapper *)sipSelf,sipClass_%C);\n"
+"    %S *sipCpp = (%S *)sipGetCppPtr((sipSimpleWrapper *)sipSelf,sipClass_%C);\n"
                 ,classFQCName(vd->ecd),classFQCName(vd->ecd),classFQCName(vd->ecd));
         else
             prcode(fp,
-"    %S *sipCpp = reinterpret_cast<%S *>(sipGetCppPtr((sipWrapper *)sipSelf,sipClass_%C));\n"
+"    %S *sipCpp = reinterpret_cast<%S *>(sipGetCppPtr((sipSimpleWrapper *)sipSelf,sipClass_%C));\n"
                 ,classFQCName(vd->ecd),classFQCName(vd->ecd),classFQCName(vd->ecd));
 
         prcode(fp,
@@ -4536,7 +4536,7 @@ static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
     {
         if (cd != NULL)
             prcode(fp,
-"    %S *sipCpp = reinterpret_cast<%S *>(sipGetCppPtr((sipWrapper *)sipSelf,sipClass_%C));\n"
+"    %S *sipCpp = reinterpret_cast<%S *>(sipGetCppPtr((sipSimpleWrapper *)sipSelf,sipClass_%C));\n"
 "\n"
 "    if (!sipCpp)\n"
 "        return %s;\n"
@@ -5094,11 +5094,11 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 
         if (!generating_c)
             prcode(fp,
-"extern \"C\" {static void dealloc_%C(sipWrapper *);}\n"
+"extern \"C\" {static void dealloc_%C(sipSimpleWrapper *);}\n"
                 , classFQCName(cd));
 
         prcode(fp,
-"static void dealloc_%C(sipWrapper *sipSelf)\n"
+"static void dealloc_%C(sipSimpleWrapper *sipSelf)\n"
 "{\n"
             ,classFQCName(cd));
 
@@ -5897,13 +5897,13 @@ static void generateEmitter(classDef *cd, visibleList *vl, FILE *fp)
 
     if (!generating_c)
         prcode(fp,
-"extern \"C\" {static int %C_emit_%s(sipWrapper *, PyObject *);}\n"
+"extern \"C\" {static int %C_emit_%s(sipSimpleWrapper *, PyObject *);}\n"
             , classFQCName(cd), pname);
 
     prcode(fp,
-"static int %C_emit_%s(sipWrapper *w,PyObject *sipArgs)\n"
+"static int %C_emit_%s(sipSimpleWrapper *sw,PyObject *sipArgs)\n"
 "{\n"
-"    sip%C *ptr = reinterpret_cast<sip%C *>(sipGetComplexCppPtr(w));\n"
+"    sip%C *ptr = reinterpret_cast<sip%C *>(sipGetComplexCppPtr(sw));\n"
 "\n"
 "    return (ptr ? ptr->sipEmit_%s(sipArgs) : -1);\n"
 "}\n"
@@ -7224,7 +7224,7 @@ static void generateShadowClassDeclaration(sipSpec *pt,classDef *cd,FILE *fp)
     prcode(fp,
 "\n"
 "public:\n"
-"    sipWrapper *sipPySelf;\n"
+"    sipSimpleWrapper *sipPySelf;\n"
         );
 
     /* The private declarations. */
@@ -8467,11 +8467,11 @@ static void generateTypeInit(classDef *cd, FILE *fp)
 
     if (!generating_c)
         prcode(fp,
-"extern \"C\" {static void *init_%C(sipWrapper *, PyObject *, sipWrapper **, int *);}\n"
+"extern \"C\" {static void *init_%C(sipSimpleWrapper *, PyObject *, sipWrapper **, int *);}\n"
             , classFQCName(cd));
 
     prcode(fp,
-"static void *init_%C(sipWrapper *%s,PyObject *sipArgs,sipWrapper **%s,int *sipArgsParsed)\n"
+"static void *init_%C(sipSimpleWrapper *%s,PyObject *sipArgs,sipWrapper **%s,int *sipArgsParsed)\n"
 "{\n"
         ,classFQCName(cd),(need_self ? "sipSelf" : ""),(need_owner ? "sipOwner" : ""));
 

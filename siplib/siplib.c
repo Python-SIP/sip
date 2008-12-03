@@ -19,7 +19,6 @@
  * Forward declarations for the objects and functions that make up the public
  * and private SIP API.
  */
-static sipWrapperType sipSimpleWrapper_Type;
 static sipWrapperType sipWrapper_Type;
 static PyTypeObject sipWrapperType_Type;
 static PyTypeObject sipVoidPtr_Type;
@@ -7485,7 +7484,7 @@ static int sipSimpleWrapper_setattro(PyObject *obj, PyObject *name,
  * depending on the context, but we implement as much as we can and don't make
  * assumptions about which Python will choose.
  */
-static sipWrapperType sipSimpleWrapper_Type = {
+sipWrapperType sipSimpleWrapper_Type = {
 #if !defined(STACKLESS)
     {
 #endif

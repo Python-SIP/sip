@@ -827,6 +827,12 @@ heap using the ``free()`` function.
 See also `sipTransferTo()`_, `sipTransferBack()`_ and `sipTransferBreak()`_.
 
 
+Types and Meta-types
+--------------------
+
+FIXME: TODO
+
+
 Support for Python's Buffer Interface
 -------------------------------------
 
