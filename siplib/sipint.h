@@ -50,7 +50,7 @@ extern PyInterpreterState *sipInterpreter;  /* The interpreter. */
 extern sipQtAPI *sipQtSupport;  /* The Qt support API. */
 extern sipWrapperType *sipQObjectClass; /* The Python QObject class. */
 
-void *sipGetRx(sipWrapper *txSelf, const char *sigargs, PyObject *rxObj,
+void *sipGetRx(sipSimpleWrapper *txSelf, const char *sigargs, PyObject *rxObj,
         const char *slot, const char **memberp);
 int sip_api_emit_signal(PyObject *self, const char *sig, PyObject *sigargs);
 PyObject *sip_api_get_sender();

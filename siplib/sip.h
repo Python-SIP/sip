@@ -253,12 +253,13 @@ typedef struct _sipWrapper {
 /*
  * Some convenient function pointers.
  */
-typedef void *(*sipInitFunc)(sipWrapper *, PyObject *, sipWrapper **, int *);
+typedef void *(*sipInitFunc)(sipSimpleWrapper *, PyObject *, sipWrapper **,
+        int *);
 typedef int (*sipTraverseFunc)(void *, visitproc, void *);
 typedef int (*sipClearFunc)(void *);
 typedef SIP_SSIZE_T (*sipBufferFunc)(PyObject *, void *, SIP_SSIZE_T, void **);
 typedef SIP_SSIZE_T (*sipSegCountFunc)(PyObject *, void *, SIP_SSIZE_T *);
-typedef void (*sipDeallocFunc)(sipWrapper *);
+typedef void (*sipDeallocFunc)(sipSimpleWrapper *);
 typedef void *(*sipCastFunc)(void *, sipWrapperType *);
 typedef sipWrapperType *(*sipSubClassConvertFunc)(void **);
 typedef int (*sipConvertToFunc)(PyObject *, void **, int *, PyObject *);

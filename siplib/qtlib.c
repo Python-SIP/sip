@@ -439,7 +439,7 @@ static void *createUniversalSlot(sipWrapper *txSelf, const char *sig,
     void *us;
 
     /* Initialise the connection. */
-    conn.sc_transmitter = (txSelf ? sipGetAddress(txSelf) : 0);
+    conn.sc_transmitter = (txSelf ? sipGetAddress((sipSimpleWrapper *)txSelf) : 0);
 
     /* Save the real slot. */
     if (saveSlot(&conn.sc_slot, rxObj, slot) < 0)
@@ -488,7 +488,7 @@ int sip_api_emit_signal(PyObject *self,const char *sig,PyObject *sigargs)
      * Don't do anything if signals are blocked.  Qt signals would be blocked
      * anyway, but this blocks Python signals as well.
      */
-    if ((tx = sip_api_get_cpp_ptr(w, sipQObjectClass)) == NULL || sipQtSupport->qt_signals_blocked(tx))
+    if ((tx = sip_api_get_cpp_ptr((sipSimpleWrapper *)w, sipQObjectClass)) == NULL || sipQtSupport->qt_signals_blocked(tx))
         return 0;
 
     if (isQtSignal(sig))
@@ -924,8 +924,8 @@ static int isSameSlot(sipSlot *slot1, PyObject *rxobj2, const char *slot2)
 /*
  * Convert a valid Python signal or slot to an existing universal slot.
  */
-void *sipGetRx(sipWrapper *txSelf,const char *sigargs,PyObject *rxObj,
-           const char *slot,const char **memberp)
+void *sipGetRx(sipSimpleWrapper *txSelf, const char *sigargs, PyObject *rxObj,
+           const char *slot, const char **memberp)
 {
     if (slot != NULL)
         if (isQtSlot(slot) || isQtSignal(slot))
@@ -934,7 +934,7 @@ void *sipGetRx(sipWrapper *txSelf,const char *sigargs,PyObject *rxObj,
 
             *memberp = slot;
 
-            if ((rx = sip_api_get_cpp_ptr((sipWrapper *)rxObj, sipQObjectClass)) == NULL)
+            if ((rx = sip_api_get_cpp_ptr((sipSimpleWrapper *)rxObj, sipQObjectClass)) == NULL)
                 return NULL;
 
             if (isQtSignal(slot))
@@ -968,7 +968,7 @@ void *sipConvertRxEx(sipWrapper *txSelf,const char *sig,PyObject *rxObj,
 
         *memberp = slot;
 
-        if ((rx = sip_api_get_cpp_ptr((sipWrapper *)rxObj, sipQObjectClass)) == NULL)
+        if ((rx = sip_api_get_cpp_ptr((sipSimpleWrapper *)rxObj, sipQObjectClass)) == NULL)
             return NULL;
 
         if (isQtSignal(slot))
@@ -998,7 +998,7 @@ PyObject *sip_api_connect_rx(PyObject *txObj,const char *sig,PyObject *rxObj,
         const char *member, *real_sig;
         int res;
 
-        if ((tx = sip_api_get_cpp_ptr(txSelf, sipQObjectClass)) == NULL)
+        if ((tx = sip_api_get_cpp_ptr((sipSimpleWrapper *)txSelf, sipQObjectClass)) == NULL)
             return NULL;
 
         real_sig = sig;
@@ -1038,10 +1038,10 @@ PyObject *sip_api_disconnect_rx(PyObject *txObj,const char *sig,
         const char *member;
         int res;
 
-        if ((tx = sip_api_get_cpp_ptr(txSelf, sipQObjectClass)) == NULL)
+        if ((tx = sip_api_get_cpp_ptr((sipSimpleWrapper *)txSelf, sipQObjectClass)) == NULL)
             return NULL;
 
-        if ((rx = sipGetRx(txSelf, sig, rxObj, slot, &member)) == NULL)
+        if ((rx = sipGetRx((sipSimpleWrapper *)txSelf, sig, rxObj, slot, &member)) == NULL)
         {
             Py_INCREF(Py_False);
             return Py_False;

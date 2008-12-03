@@ -355,7 +355,7 @@ static int getSelfFromArgs(sipWrapperType *type, PyObject *args, int argnr,
 static int canConvertToNamedEnum(PyObject *obj, PyTypeObject *et);
 static PyObject *createEnumMember(sipTypeDef *td, sipEnumMemberDef *enm);
 static PyObject *handleGetLazyAttr(PyObject *nameobj, sipWrapperType *wt,
-        sipWrapper *w);
+        sipSimpleWrapper *sw);
 static int handleSetLazyAttr(PyObject *nameobj, PyObject *valobj,
         sipWrapperType *wt, sipSimpleWrapper *sw);
 static int getNonStaticVariables(sipWrapperType *wt, sipSimpleWrapper *sw,
@@ -2405,13 +2405,13 @@ static int parsePass1(sipSimpleWrapper **selfp, int *selfargp,
                 ++argnr;
             }
             else
-                *selfp = (sipWrapper *)self;
+                *selfp = (sipSimpleWrapper *)self;
 
             break;
         }
 
     case 'C':
-        *selfp = (sipWrapper *)va_arg(va,PyObject *);
+        *selfp = (sipSimpleWrapper *)va_arg(va,PyObject *);
         break;
 
     default:
@@ -3203,7 +3203,7 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, int nrargs,
                 void **rx = va_arg(va,void **);
                 const char **slot = va_arg(va,const char **);
 
-                if ((*rx = sip_api_convert_rx(self,sig,arg,*slot,slot)) == NULL)
+                if ((*rx = sip_api_convert_rx((sipWrapper *)self, sig, arg, *slot, slot)) == NULL)
                     valid = PARSE_RAISED;
 
                 break;
@@ -3217,7 +3217,7 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, int nrargs,
                 void **rx = va_arg(va,void **);
                 const char **slot = va_arg(va,const char **);
 
-                *rx = sipGetRx(self,sig,arg,*slot,slot);
+                *rx = sipGetRx(self, sig, arg, *slot, slot);
                 break;
             }
 
@@ -3229,7 +3229,7 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, int nrargs,
                 void **rx = va_arg(va,void **);
                 const char **slot = va_arg(va,const char **);
 
-                if ((*rx = sipConvertRxEx(self, sig, arg, NULL, slot, SIP_SINGLE_SHOT)) == NULL)
+                if ((*rx = sipConvertRxEx((sipWrapper *)self, sig, arg, NULL, slot, SIP_SINGLE_SHOT)) == NULL)
                     valid = PARSE_RAISED;
 
                 break;
@@ -3243,7 +3243,7 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, int nrargs,
                 void **rx = va_arg(va,void **);
                 const char **slot = va_arg(va,const char **);
 
-                if ((*rx = sip_api_convert_rx(self,sig,arg,NULL,slot)) == NULL)
+                if ((*rx = sip_api_convert_rx((sipWrapper *)self, sig, arg, NULL, slot)) == NULL)
                     valid = PARSE_RAISED;
 
                 break;
@@ -3257,7 +3257,7 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, int nrargs,
                 void **rx = va_arg(va,void **);
                 const char **slot = va_arg(va,const char **);
 
-                *rx = sipGetRx(self,sig,arg,NULL,slot);
+                *rx = sipGetRx(self, sig, arg, NULL, slot);
                 break;
             }
 
@@ -4159,7 +4159,7 @@ static int handleSetLazyAttr(PyObject *nameobj, PyObject *valobj,
  * Handle the result of a call to the class/instance getattro methods.
  */
 static PyObject *handleGetLazyAttr(PyObject *nameobj,sipWrapperType *wt,
-                   sipWrapper *w)
+        sipSimpleWrapper *sw)
 {
     const char *name;
     PyMethodDef *pmd, *vmd;
@@ -4183,7 +4183,7 @@ static PyObject *handleGetLazyAttr(PyObject *nameobj,sipWrapperType *wt,
     findLazyAttr(wt, name, &pmd, &enm, &vmd, &in);
 
     if (pmd != NULL)
-        return PyCFunction_New(pmd,(PyObject *)w);
+        return PyCFunction_New(pmd, (PyObject *)sw);
 
     if (enm != NULL)
     {
@@ -4213,7 +4213,7 @@ static PyObject *handleGetLazyAttr(PyObject *nameobj,sipWrapperType *wt,
         if ((vmd->ml_flags & METH_STATIC) != 0)
             res = (*vmd->ml_meth)((PyObject *)wt, NULL);
         else
-            res = (*vmd->ml_meth)((PyObject *)w, NULL);
+            res = (*vmd->ml_meth)((PyObject *)sw, NULL);
 
         return res;
     }
@@ -5403,10 +5403,12 @@ static void *sip_api_convert_to_instance(PyObject *pyObj, sipWrapperType *type,
             if ((cpp = sip_api_get_cpp_ptr((sipSimpleWrapper *)pyObj, type)) == NULL)
                 *iserrp = TRUE;
             else if (transferObj != NULL)
+            {
                 if (transferObj == Py_None)
                     sip_api_transfer_back(pyObj);
                 else
                     sip_api_transfer_to(pyObj, transferObj);
+            }
         }
         else
             state = cto(pyObj, &cpp, iserrp, transferObj);
@@ -5433,10 +5435,12 @@ static void *sip_api_convert_to_mapped_type(PyObject *pyObj,
 
     /* Don't convert if there has already been an error. */
     if (!*iserrp)
+    {
         if (pyObj == Py_None)
             cpp = NULL;
         else
             state = mt->mt_cto(pyObj, &cpp, iserrp, transferObj);
+    }
 
     if (statep != NULL)
         *statep = state;
@@ -5586,10 +5590,12 @@ PyObject *sip_api_convert_from_instance(void *cpp, sipWrapperType *type,
 
     /* Handle any ownership transfer. */
     if (transferObj != NULL)
+    {
         if (transferObj == Py_None)
             sip_api_transfer_back(py);
         else
             sip_api_transfer_to(py, transferObj);
+    }
 
     return py;
 }
@@ -7389,10 +7395,12 @@ static PyObject *sipSimpleWrapper_getattro(PyObject *obj, PyObject *name)
          * the original.  Note that Python doesn't want a proxy.
          */
         if (tmpdict == NULL)
+        {
             if ((tmpdict = sw->dict) == NULL)
                 tmpdict = PyDict_New();
             else
                 Py_INCREF(tmpdict);
+        }
 
         return tmpdict;
     }
@@ -7551,7 +7559,7 @@ static int sipWrapper_clear(sipWrapper *self)
     /* Remove any slots connected via a proxy. */
     if (sipQtSupport != NULL && sipIsPyOwned(sw) && sipPossibleProxy(sw))
     {
-        void *tx = sipGetAddress(self);
+        void *tx = sipGetAddress(sw);
 
         if (tx != NULL)
         {
