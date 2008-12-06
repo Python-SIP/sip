@@ -130,6 +130,29 @@ void transform(sipSpec *pt)
     }
 
     /*
+     * Set the default meta-type for the main module if it doesn't have one
+     * explicitly set.
+     */
+    if (pt->module->defmetatype == NULL)
+    {
+        moduleListDef *mld;
+
+        for (mld = pt->module->allimports; mld != NULL; mld = mld->next)
+        {
+            if (mld->module->defmetatype == NULL)
+                continue;
+
+            if (pt->module->defmetatype == NULL)
+                pt->module->defmetatype = mld->module->defmetatype;
+            else if (pt->module->defmetatype != mld->module->defmetatype)
+                fatal("The %s module has imported different default meta-types %s and %s\n",
+                        pt->module->fullname->text,
+                        pt->module->defmetatype->text,
+                        mld->module->defmetatype->text);
+        }
+    }
+
+    /*
      * Set the default super-type for the main module if it doesn't have one
      * explicitly set.
      */
@@ -1105,11 +1128,24 @@ static void setHierarchy(sipSpec *pt, classDef *base, classDef *cd,
         }
 
         /*
+         * If the class doesn't have an explicit meta-type then inherit from
+         * the module's default.
+         */
+        if (cd->metatype == NULL && cd->supers == NULL)
+            cd->metatype = cd->iff->module->defmetatype;
+
+        if (cd->metatype != NULL && generatingCodeForModule(pt, cd->iff->module))
+            setIsUsedName(cd->metatype);
+
+        /*
          * If the class doesn't have an explicit super-type then inherit from
          * the module's default.
          */
         if (cd->supertype == NULL && cd->supers == NULL)
             cd->supertype = cd->iff->module->defsupertype;
+
+        if (cd->supertype != NULL && strcmp(cd->supertype->text, "sip.wrapper") == 0)
+            cd->supertype = NULL;
 
         if (cd->supertype != NULL && generatingCodeForModule(pt, cd->iff->module))
             setIsUsedName(cd->supertype);

@@ -830,7 +830,45 @@ See also `sipTransferTo()`_, `sipTransferBack()`_ and `sipTransferBreak()`_.
 Types and Meta-types
 --------------------
 
-FIXME: TODO
+Every Python object (with the exception of the ``object`` object itself) has a
+meta-type and at least one super-type.  By default an object's meta-type is the
+meta-type of its first super-type.
+
+SIP implements two super-types, ``sip.simplewrapper`` and ``sip.wrapper``, and
+a meta-type, ``sip.wrappertype``.
+
+``sip.simplewrapper`` is the super-type of ``sip.wrapper``.  The super-type of
+``sip.simplewrapper`` is ``object``.
+
+``sip.wrappertype`` is the meta-type of both ``sip.simplewrapper`` and
+``sip.wrapper``.  The super-type of ``sip.wrappertype`` is ``type``.
+
+``sip.wrapper`` supports the concept of object ownership described in
+`Ownership of Objects`_ and, by default, is the super-type of all the types
+that SIP generates.
+
+``sip.simplewrapper`` does not support the concept of object ownership but SIP
+generated types that are sub-classed from it have Python objects that take less
+memory.
+
+SIP allows a class's meta-type and super-type to be explicitly specified using
+the `Metatype`_ and `Supertype`_ class annotations.
+
+SIP also allows the default meta-type and super-type to be changed for a module
+using the `%DefaultMetatype`_ and `%DefaultSupertype`_ directives.
+
+If you want to use your own meta-type or super-type then they must be
+sub-classed from one of the SIP provided types.  Your types must be registered
+using `sipRegisterPyType()`_.  This is normally done in code specified using
+the `%InitialisationCode`_ directive.
+
+As an example, PyQt4 uses `%DefaultMetatype`_ to specify a new meta-type that
+handles the interaction with Qt's own meta-type system.  It also uses
+`%DefaultSupertype`_ to specify that the smaller ``sip.simplewrapper``
+super-type is normally used.  Finally it uses `Supertype`_ as an annotation of
+the ``QObject`` class to override the default and use ``sip.wrapper`` as the
+super-type so that the parent/child relationships of ``QObject`` instances are
+properly maintained.
 
 
 Support for Python's Buffer Interface
@@ -1014,14 +1052,14 @@ file.
     *module-statement* ::= [*module-directive* | *statement*]
 
     *module-directive* ::= [`%CModule`_ | `%CompositeModule`_ |
-            `%ConsolidatedModule`_ | `%Copying`_ | `%DefaultSupertype`_ |
-            `%Doc`_ | `%ExportedDoc`_ | `%ExportedHeaderCode`_ | `%Feature`_ |
-            `%Import`_ | `%Include`_ | `%InitialisationCode`_ | `%License`_ |
-            `%MappedType`_ | *mapped-type-template* | `%Module`_ |
-            `%ModuleCode`_ | `%ModuleHeaderCode`_ | `%OptionalInclude`_ |
-            `%Platforms`_ | `%PreInitialisationCode`_ |
-            `%PostInitialisationCode`_ | *sip-option-list* | `%Timeline`_ |
-            `%UnitCode`_]
+            `%ConsolidatedModule`_ | `%Copying`_ | `%DefaultMetatype`_ |
+            `%DefaultSupertype`_ | `%Doc`_ | `%ExportedDoc`_ |
+            `%ExportedHeaderCode`_ | `%Feature`_ | `%Import`_ | `%Include`_ |
+            `%InitialisationCode`_ | `%License`_ | `%MappedType`_ |
+            *mapped-type-template* | `%Module`_ | `%ModuleCode`_ |
+            `%ModuleHeaderCode`_ | `%OptionalInclude`_ | `%Platforms`_ |
+            `%PreInitialisationCode`_ | `%PostInitialisationCode`_ |
+            *sip-option-list* | `%Timeline`_ | `%UnitCode`_]
 
     *sip-option-list* :: `%SIPOptions`_ ``(`` *option-list* ``)``
 
@@ -1971,6 +2009,28 @@ For example::
     %End
 
 
+%DefaultMetatype
+----------------
+
+.. parsed-literal::
+
+    %DefaultMetatype *dotted-name*
+
+This directive is used to specify the Python type that should be used as the
+meta-type for any C/C++ data type that doesn't have an explicit super-type.
+
+If this is not specified then ``sip.wrappertype`` is used.
+
+You can also use the `Metatype`_ class annotation to specify the meta-type
+used by a particular C/C++ type.
+
+See the section `Types and Meta-types`_ for more details.
+
+For example::
+
+    %DefaultMetatype PyQt4.QtCore.pyqtWrapperType
+
+
 %DefaultSupertype
 -----------------
 
@@ -1981,24 +2041,16 @@ For example::
 This directive is used to specify the Python type that should be used as the
 super-type for any C/C++ data type that doesn't have an explicit super-type.
 
-When SIP creates a Python type for a C structure or a C++ class that has no
-super-classes it normally uses the `sipWrapper`_ type as its super-type.  This
-means that the Python type's meta-type will be `sipWrapperType`_.
-
-Instead you can create and use your own type, possibly with your own meta-type.
-Your own type must inherit from `sipWrapper`_.  If you create your own
-meta-type then it must inherit from `sipWrapperType`_.
-
-In order to use your own type you must first register it with
-`sipRegisterSupertype()`_.  This is normally done in an `%InitialisationCode`_
-section.
+If this is not specified then ``sip.wrapper`` is used.
 
 You can also use the `Supertype`_ class annotation to specify the super-type
 used by a particular C/C++ type.
 
+See the section `Types and Meta-types`_ for more details.
+
 For example::
 
-    %DefaultSupertype pyqtWrapper
+    %DefaultSupertype sip.simplewrapper
 
 
 %Doc
@@ -2470,7 +2522,7 @@ This directive is used to specify handwritten code that is embedded in-line
 in the generated module initialisation code after the SIP module has been
 imported but before the module itself has been intialised.
 
-It is typically used to call `sipRegisterSupertype()`_.
+It is typically used to call `sipRegisterPyType()`_.
 
 For example::
 
@@ -3614,6 +3666,16 @@ module.  Declarations of external classes are private to the module in which
 they appear.
 
 
+Metatype
+********
+
+This dotted name annotation specifies the name of the Python type object (i.e.
+the value of the ``tp_name`` field) used as the meta-type used when creating
+the type object for this C structure or C++ type.
+
+See the section `Types and Meta-types`_ for more details.
+
+
 NoDefaultCtors
 **************
 
@@ -3638,7 +3700,7 @@ This dotted name annotation specifies the name of the Python type object (i.e.
 the value of the ``tp_name`` field) used as the super-type used when creating
 the type object for this C structure or C++ type.
 
-See the `%DefaultSupertype`_ directive for more details.
+See the section `Types and Meta-types`_ for more details.
 
 
 Mapped Type Annotations
@@ -4717,15 +4779,15 @@ int sipParseResult(int \*iserr, PyObject \*method, PyObject \*result, const char
         Check that a Python object is ``Py_None``.  No value is returned.
 
 
-sipRegisterSupertype()
-----------------------
+sipRegisterPyType()
+-------------------
 
-int sipRegisterSupertype(PyTypeObject \*supertype)
-    This registers a type object that can be used as the super-type of a
-    wrapped C++ type when the C++ type doesn't have any super-classes.  By
-    default the `sipWrapper`_ type is used but this can be changed using either
-    `%DefaultSupertype`_ or the `Supertype`_ class annotation.  *supertype* is
-    the type.  0 is returned if there is no error.
+int sipRegisterPyType(PyTypeObject \*type)
+    This registers a type object that can be used as the meta-type or
+    super-type of a wrapped C++ type.  *type* is the type.  0 is returned if
+    there is no error.
+
+    See the section `Types and Meta-types`_ for more details.
 
 
 sipReleaseInstance()
@@ -4748,6 +4810,22 @@ void sipReleaseMappedType(void \*cpp, const sipMappedType \*mt, int state)
     `sipForceConvertToMappedType()`_.  *cpp* is the wrapped C/C++ instance.
     *mt* is the opaque structure returned by `sipFindMappedType()`_.  *state*
     describes the state of the instance.
+
+
+sipSimpleWrapper
+----------------
+
+This is a C structure that represents a Python wrapped instance whose type is
+``sip.simplewrapper``.  It is an extension of the ``PyObject`` structure and so
+may be safely cast to it.
+
+
+sipSimpleWrapper_Type
+---------------------
+
+This is a pointer to a ``PyTypeObject`` structure that is the type of a
+`sipSimpleWrapper`_ structure and is the C implementation of
+``sip.simplewrapper``.  It may be safely cast to `sipWrapperType`_.
 
 
 sipStringTypeClassMap
@@ -4807,11 +4885,12 @@ This is a pointer to a ``PyTypeObject`` structure that is the type of a
 sipWrapper
 ----------
 
-This is a C structure that represents a Python wrapped instance.  It is an
-extension of the ``PyObject`` structure and so may be safely cast to
-``PyObject``.  It includes a member called ``user`` which is of type
-``PyObject *``.  This can be used for any purpose by handwritten code and will
-automatically be garbage collected at the appropriate time.
+This is a C structure that represents a Python wrapped instance whose type is
+``sip.wrapper``.  It is an extension of the `sipSimpleWrapper`_ and
+``PyObject`` structures and so may be safely cast to both.  It includes a
+member called ``user`` which is of type ``PyObject *``.  This can be used for
+any purpose by handwritten code and will automatically be garbage collected at
+the appropriate time.
 
 
 sipWrapper_Check()
@@ -4830,7 +4909,8 @@ sipWrapper_Type
 ---------------
 
 This is a pointer to a ``PyTypeObject`` structure that is the type of a
-`sipWrapper`_ structure.  It may be safely cast to `sipWrapperType`_.
+`sipWrapper`_ structure and is the C implementation of ``sip.wrapper``.  It may
+be safely cast to `sipWrapperType`_.
 
 
 sipWrapperType
@@ -4846,7 +4926,7 @@ sipWrapperType_Type
 -------------------
 
 This is a pointer to a ``PyTypeObject`` structure that is the type of a
-`sipWrapperType`_ structure.
+`sipWrapperType`_ structure and is the C implementation of ``sip.wrappertype``.
 
 
 Generated Type Objects

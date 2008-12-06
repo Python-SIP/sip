@@ -57,9 +57,9 @@ extern "C" {
  * History:
  *
  * 4.0  Removed all the previously deprecated parts of the API.
- *      Added the sipWrapper_Type, sipWrapperType_Type and sipVoidPtr_Type type
- *      objects.
- *      Added sip_api_register_supertype().
+ *      Added the sipSimpleWrapper_Type, sipWrapper_Type, sipWrapperType_Type
+ *      and sipVoidPtr_Type type objects.
+ *      Added sip_api_register_py_type().
  *      Deprecated sipWrapper_Check().
  *
  * 3.8  Added sip_api_register_meta_type() and sip_api_deprecated().
@@ -533,6 +533,12 @@ typedef struct _sipTypeDef {
 
     /* Type flags, see the sipType*() macros. */
     int td_flags;
+
+    /*
+     * The meta-type name, -1 to use the meta-type of the first super-type
+     * (normally sipWrapperType).
+     */
+    int td_metatype;
 
     /* The super-type name, -1 to use sipWrapper. */
     int td_supertype;
@@ -1196,7 +1202,7 @@ typedef struct _sipAPIDef {
     void *(*api_import_symbol)(const char *name);
     sipWrapperType *(*api_find_class)(const char *type);
     PyTypeObject *(*api_find_named_enum)(const char *type);
-    int (*api_register_supertype)(PyTypeObject *supertype);
+    int (*api_register_py_type)(PyTypeObject *type);
 
     /*
      * The following may be used by Qt support code but no other handwritten

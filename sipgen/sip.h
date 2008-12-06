@@ -586,6 +586,7 @@ typedef struct _moduleDef {
     int qobjclass;                      /* QObject class, -1 if none. */
     struct _memberDef *othfuncs;        /* List of other functions. */
     struct _overDef *overs;             /* Global overloads. */
+    nameDef *defmetatype;               /* The optional default meta-type. */
     nameDef *defsupertype;              /* The optional default super-type. */
     codeBlock *hdrcode;                 /* Header code. */
     codeBlock *cppcode;                 /* Global C++ code. */
@@ -919,6 +920,7 @@ typedef struct _classDef {
     nodeDef *node;                      /* Position in class tree. */
     classList *supers;                  /* The parent classes. */
     mroDef *mro;                        /* The super-class hierarchy. */
+    nameDef *metatype;                  /* The meta-type. */
     nameDef *supertype;                 /* The super-type. */
     templateDef *td;                    /* The instantiated template. */
     ctorDef *ctors;                     /* The constructors. */

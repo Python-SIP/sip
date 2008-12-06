@@ -613,7 +613,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipRegisterQtMetatype       sipAPI_%s->api_register_qt_metatype\n"
 "#define sipWrappedTypeName(wt)      ((wt)->type->td_cname)\n"
 "#define sipDeprecated               sipAPI_%s->api_deprecated\n"
-"#define sipRegisterSupertype        sipAPI_%s->api_register_supertype\n"
+"#define sipRegisterPyType           sipAPI_%s->api_register_py_type\n"
         ,mname
         ,mname
         ,mname
@@ -7931,6 +7931,15 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
         prcode(fp, "0");
 
     prcode(fp, ",\n");
+
+    if (cd->metatype != NULL)
+        prcode(fp,
+"    %n,\n"
+            , cd->metatype);
+    else
+        prcode(fp,
+"    -1,\n"
+            );
 
     if (cd->supertype != NULL)
         prcode(fp,

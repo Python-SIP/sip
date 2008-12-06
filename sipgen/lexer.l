@@ -61,6 +61,7 @@ static void fatallex(char *);
 ^[ \t]*%MappedType          {return TK_MAPPEDTYPE;}
 ^[ \t]*%Exception           {return TK_EXCEPTION;}
 ^[ \t]*%If                  {return TK_IF;}
+^[ \t]*%DefaultMetatype     {return TK_DEFMETATYPE;}
 ^[ \t]*%DefaultSupertype    {return TK_DEFSUPERTYPE;}
 <INITIAL>^[ \t]*%End        {return TK_END;}
 class                       {return TK_CLASS;}

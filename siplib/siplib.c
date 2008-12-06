@@ -131,7 +131,7 @@ static int sip_api_assign_mapped_type(void *dst, const void *src,
         sipMappedType *mt);
 static void sip_api_register_qt_metatype(int type, sipWrapperType *py_type);
 static int sip_api_deprecated(const char *classname, const char *method);
-static int sip_api_register_supertype(PyTypeObject *supertype);
+static int sip_api_register_py_type(PyTypeObject *supertype);
 
 
 /*
@@ -192,7 +192,7 @@ static const sipAPIDef sip_api = {
     sip_api_import_symbol,
     sip_api_find_class,
     sip_api_find_named_enum,
-    sip_api_register_supertype,
+    sip_api_register_py_type,
     /*
      * The following may be used by Qt support code but by no other handwritten
      * code.
@@ -312,7 +312,7 @@ typedef struct _sipPyObject {
 PyInterpreterState *sipInterpreter = NULL;
 sipQtAPI *sipQtSupport = NULL;
 sipWrapperType *sipQObjectClass;
-sipPyObject *sipRegisteredSupertypes = NULL;
+sipPyObject *sipRegisteredPyTypes = NULL;
 sipPyObject *sipRegisteredIntTypes = NULL;
 sipSymbol *sipSymbolList = NULL;
 
@@ -445,7 +445,7 @@ static void raiseNoWChar();
 #endif
 static void *getComplexCppPtr(sipSimpleWrapper *w, sipWrapperType *type);
 static PyObject *make_voidptr(void *voidptr, SIP_SSIZE_T size, int rw);
-static PyObject *findSupertype(const char *name);
+static PyObject *findPyType(const char *name);
 static int addPyObjectToList(sipPyObject **head, PyObject *object);
 static PyObject *getDictFromObject(PyObject *obj);
 static void forgetObject(sipSimpleWrapper *sw);
@@ -492,7 +492,7 @@ PyMODINIT_FUNC initsip(void)
     if (PyType_Ready((PyTypeObject *)&sipSimpleWrapper_Type) < 0)
         Py_FatalError("sip: Failed to initialise sip.simplewrapper type");
 
-    if (sip_api_register_supertype((PyTypeObject *)&sipSimpleWrapper_Type) < 0)
+    if (sip_api_register_py_type((PyTypeObject *)&sipSimpleWrapper_Type) < 0)
         Py_FatalError("sip: Failed to register sip.simplewrapper type");
 
 #if PY_VERSION_HEX >= 0x02050000
@@ -1199,39 +1199,31 @@ static void finalise(void)
 
 
 /*
- * Register the given supertype.
+ * Register the given Python type.
  */
-static int sip_api_register_supertype(PyTypeObject *supertype)
+static int sip_api_register_py_type(PyTypeObject *type)
 {
-    PyObject *tup;
-
-    if ((tup = PyTuple_New(1)) == NULL)
-        return -1;
-
-    PyTuple_SET_ITEM(tup, 0, (PyObject *)supertype);
-    Py_INCREF((PyObject *)supertype);
-
-    return addPyObjectToList(&sipRegisteredSupertypes, tup);
+    return addPyObjectToList(&sipRegisteredPyTypes, (PyObject *)type);
 }
 
 
 /*
- * Find the registered super-type tuple with the given name.  Raise an
- * exception if it couldn't be found.
+ * Find the registered type with the given name.  Raise an exception if it
+ * couldn't be found.
  */
-static PyObject *findSupertype(const char *name)
+static PyObject *findPyType(const char *name)
 {
     sipPyObject *po;
 
-    for (po = sipRegisteredSupertypes; po != NULL; po = po->next)
+    for (po = sipRegisteredPyTypes; po != NULL; po = po->next)
     {
-        PyObject *tup = po->object;
+        PyObject *type = po->object;
 
-        if (strcmp(((PyTypeObject *)PyTuple_GET_ITEM(tup, 0))->tp_name, name) == 0)
-            return tup;
+        if (strcmp(((PyTypeObject *)type)->tp_name, name) == 0)
+            return type;
     }
 
-    PyErr_Format(PyExc_RuntimeError, "%s is an unknown super-type", name);
+    PyErr_Format(PyExc_RuntimeError, "%s is not a registered type", name);
 
     return NULL;
 }
@@ -3640,21 +3632,40 @@ static sipWrapperType *createType(sipExportedModuleDef *client,
             static PyObject *default_bases = NULL;
 
             /* Only do this once. */
-            if (default_bases == NULL && (default_bases = Py_BuildValue("(O)", &sipWrapper_Type)) == NULL)
-                goto relname;
+            if (default_bases == NULL)
+            {
+#if PY_VERSION_HEX >= 0x02040000
+                default_bases = PyTuple_Pack(1, (PyObject *)&sipWrapper_Type);
+#else
+                default_bases = Py_BuildValue("(O)", &sipWrapper_Type);
+#endif
+
+                if (default_bases == NULL)
+                    goto relname;
+            }
+
+            Py_INCREF(default_bases);
 
             bases = default_bases;
         }
         else
         {
+            PyObject *supertype;
             const char *supertype_name = getNameFromPool(client,
                     type->td_supertype);
 
-            if ((bases = findSupertype(supertype_name)) == NULL)
+            if ((supertype = findPyType(supertype_name)) == NULL)
+                goto relname;
+
+#if PY_VERSION_HEX >= 0x02040000
+                bases = PyTuple_Pack(1, supertype);
+#else
+                bases = Py_BuildValue("(O)", supertype);
+#endif
+
+            if (bases == NULL)
                 goto relname;
         }
-
-        Py_INCREF(bases);
     }
     else
     {
@@ -3676,8 +3687,19 @@ static sipWrapperType *createType(sipExportedModuleDef *client,
         }
     }
 
-    /* The meta-type we use is the meta-type of the first super-type. */
-    metatype = (PyObject *)PyTuple_GET_ITEM(bases, 0)->ob_type;
+    /*
+     * Use the explicit meta-type if there is one, otherwise use the meta-type
+     * of the first super-type.
+     */
+    if (type->td_metatype >= 0)
+    {
+        const char *metatype_name = getNameFromPool(client, type->td_metatype);
+
+        if ((metatype = findPyType(metatype_name)) == NULL)
+            goto relbases;
+    }
+    else
+        metatype = (PyObject *)PyTuple_GET_ITEM(bases, 0)->ob_type;
 
     /* Create the type dictionary. */
     if ((typedict = createTypeDict(client->em_nameobj)) == NULL)
@@ -3687,7 +3709,13 @@ static sipWrapperType *createType(sipExportedModuleDef *client,
     currentType = type;
 
     /* Create the type by calling the metatype. */
-    if ((args = Py_BuildValue("OOO",name,bases,typedict)) == NULL)
+#if PY_VERSION_HEX >= 0x02040000
+    args = PyTuple_Pack(3, name, bases, typedict);
+#else
+    args = Py_BuildValue("OOO", name, bases, typedict);
+#endif
+
+    if (args == NULL)
         goto reldict;
 
     if ((wt = (sipWrapperType *)PyObject_Call(metatype, args, NULL)) == NULL)
@@ -3956,8 +3984,17 @@ static PyTypeObject *createEnum(sipExportedModuleDef *client, sipEnumDef *ed,
         dict = ((PyTypeObject *)client->em_types[ed->e_scope])->tp_dict;
 
     /* Create the base type tuple if it hasn't already been done. */
-    if (bases == NULL && (bases = Py_BuildValue("(O)", &PyInt_Type)) == NULL)
-        return NULL;
+    if (bases == NULL)
+    {
+#if PY_VERSION_HEX >= 0x02040000
+        bases = PyTuple_Pack(1, (PyObject *)&PyInt_Type);
+#else
+        bases = Py_BuildValue("(O)", &PyInt_Type);
+#endif
+
+        if (bases == NULL)
+            return NULL;
+    }
 
     /* Create an object corresponding to the type name. */
     if ((name = PyString_FromString(getPyNameOfEnum(client, ed))) == NULL)
@@ -3968,7 +4005,11 @@ static PyTypeObject *createEnum(sipExportedModuleDef *client, sipEnumDef *ed,
         goto relname;
 
     /* Create the type by calling the metatype. */
+#if PY_VERSION_HEX >= 0x02040000
+    args = PyTuple_Pack(3, name, bases, typedict);
+#else
     args = Py_BuildValue("OOO", name, bases, typedict);
+#endif
 
     Py_DECREF(typedict);
 
@@ -6092,8 +6133,17 @@ static int objobjargprocSlot(PyObject *self,PyObject *arg1,PyObject *arg2,
         PyTuple_SET_ITEM(args,i,arg2);
         Py_INCREF(arg2);
     }
-    else if ((args = Py_BuildValue("(OO)",arg1,arg2)) == NULL)
-        return -1;
+    else
+    {
+#if PY_VERSION_HEX >= 0x02040000
+        args = PyTuple_Pack(2, arg1, arg2);
+#else
+        args = Py_BuildValue("(OO)", arg1, arg2);
+#endif
+
+        if (args == NULL)
+            return -1;
+    }
 
     f = (int (*)(PyObject *,PyObject *))findSlot(self,st);
 

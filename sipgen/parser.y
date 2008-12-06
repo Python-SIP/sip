@@ -233,6 +233,7 @@ static char *prefixModuleName(moduleDef *mod, const char *suffix);
 %token          TK_EXPLICIT
 %token          TK_TEMPLATE
 %token          TK_ELLIPSIS
+%token          TK_DEFMETATYPE
 %token          TK_DEFSUPERTYPE
 
 %type <memArg>          argvalue
@@ -336,6 +337,7 @@ modstatement:   module
     |   platforms
     |   feature
     |   license
+    |   defmetatype
     |   defsupertype
     |   exphdrcode {
             if (notSkipping())
@@ -785,6 +787,17 @@ license:    TK_LICENSE optflags {
             currentModule -> license -> sig = 
                 ((of = findOptFlag(&$2,"Signature",string_flag)) != NULL)
                     ? of -> fvalue.sval : NULL;
+        }
+    ;
+
+defmetatype:TK_DEFMETATYPE dottedname {
+            if (notSkipping())
+            {
+                if (currentModule->defmetatype != NULL)
+                    yyerror("%DefaultMetatype has already been defined for this module");
+
+                currentModule->defmetatype = cacheName(currentSpec, $2);
+            }
         }
     ;
 
@@ -3029,6 +3042,9 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd, optFlags *of)
     cd->pyname = NULL;
     checkAttributes(pt, mod, cd->ecd, pyname, FALSE);
     cd->pyname = cacheName(pt, pyname);
+
+    if ((flg = findOptFlag(of, "Metatype", dotted_name_flag)) != NULL)
+        cd->metatype = cacheName(pt, flg->fvalue.sval);
 
     if ((flg = findOptFlag(of, "Supertype", dotted_name_flag)) != NULL)
         cd->supertype = cacheName(pt, flg->fvalue.sval);
