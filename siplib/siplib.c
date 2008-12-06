@@ -7183,6 +7183,10 @@ static int sipSimpleWrapper_traverse(sipSimpleWrapper *self, visitproc visit,
         if ((vret = visit(self->dict, arg)) != 0)
             return vret;
 
+    if (self->user != NULL)
+        if ((vret = visit(self->user, arg)) != 0)
+            return vret;
+
     return 0;
 }
 
@@ -7219,6 +7223,11 @@ static int sipSimpleWrapper_clear(sipSimpleWrapper *self)
     /* Remove the instance dictionary. */
     tmp = self->dict;
     self->dict = NULL;
+    Py_XDECREF(tmp);
+
+    /* Remove any user object. */
+    tmp = self->user;
+    self->user = NULL;
     Py_XDECREF(tmp);
 
     return vret;
@@ -7600,7 +7609,6 @@ static int sipWrapper_clear(sipWrapper *self)
 {
     int vret;
     sipSimpleWrapper *sw = (sipSimpleWrapper *)self;
-    PyObject *tmp;
     sipPySig *ps;
 
     vret = sipSimpleWrapper_clear(sw);
@@ -7633,11 +7641,6 @@ static int sipWrapper_clear(sipWrapper *self)
         for (psrx = ps->rxlist; psrx != NULL; psrx = psrx->next)
             clearAnySlotReference(&psrx->rx);
     }
-
-    /* Remove any user object. */
-    tmp = self->user;
-    self->user = NULL;
-    Py_XDECREF(tmp);
 
     /* Detach children (which will be owned by C/C++). */
     while ((sw = (sipSimpleWrapper *)self->first_child) != NULL)
@@ -7736,10 +7739,6 @@ static int sipWrapper_traverse(sipWrapper *self, visitproc visit, void *arg)
             if ((vret = visitSlot(&psrx->rx, visit, arg)) != 0)
                 return vret;
     }
-
-    if (self->user != NULL)
-        if ((vret = visit(self->user, arg)) != 0)
-            return vret;
 
     for (w = self->first_child; w != NULL; w = w->sibling_next)
     {

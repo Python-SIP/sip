@@ -4819,6 +4819,10 @@ This is a C structure that represents a Python wrapped instance whose type is
 ``sip.simplewrapper``.  It is an extension of the ``PyObject`` structure and so
 may be safely cast to it.
 
+It includes a member called ``user`` which is of type ``PyObject *``.  This can
+be used for any purpose by handwritten code and will automatically be garbage
+collected at the appropriate time.
+
 
 sipSimpleWrapper_Type
 ---------------------
@@ -4887,10 +4891,7 @@ sipWrapper
 
 This is a C structure that represents a Python wrapped instance whose type is
 ``sip.wrapper``.  It is an extension of the `sipSimpleWrapper`_ and
-``PyObject`` structures and so may be safely cast to both.  It includes a
-member called ``user`` which is of type ``PyObject *``.  This can be used for
-any purpose by handwritten code and will automatically be garbage collected at
-the appropriate time.
+``PyObject`` structures and so may be safely cast to both.
 
 
 sipWrapper_Check()

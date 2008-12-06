@@ -215,6 +215,9 @@ typedef struct _sipSimpleWrapper {
     /* Object flags. */
     int flags;
 
+    /* For the user to use. */
+    PyObject *user;
+
     /* The instance dictionary. */
     PyObject *dict;
 
@@ -244,9 +247,6 @@ typedef struct _sipWrapper {
 
     /* Owning object. */
     struct _sipWrapper *parent;
-
-    /* For the user to use. */
-    PyObject *user;
 } sipWrapper;
 
 
