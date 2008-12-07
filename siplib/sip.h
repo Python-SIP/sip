@@ -525,14 +525,27 @@ typedef struct _sipTypedefDef {
 
 
 /*
- * The information describing a type.
+ * The information describing a type, either a C++ class (or C struct), a C++
+ * namespace, or a mapped type.
  */
 typedef struct _sipTypeDef {
+    /* The version number. */
+    int td_version;
+
     /* The module. */
     struct _sipExportedModuleDef *td_module;
 
     /* Type flags, see the sipType*() macros. */
     int td_flags;
+
+    /* The C/C++ name of the type. */
+    int td_cname;
+
+    /* The Python name of the type. */
+    int td_name;
+
+    /* The Python type object. */
+    sipWrapperType *td_wrapper_type;
 
     /*
      * The meta-type name, -1 to use the meta-type of the first super-type
@@ -542,12 +555,6 @@ typedef struct _sipTypeDef {
 
     /* The super-type name, -1 to use sipWrapper. */
     int td_supertype;
-
-    /* The Python name of the type, -1 if a namespace extender. */
-    int td_name;
-
-    /* The C/C++ name of the type. */
-    int td_cname;
 
     /*
      * The scoping type or the namespace this is extending if it is a namespace
@@ -600,17 +607,20 @@ typedef struct _sipTypeDef {
     /* The deallocation function. */
     sipDeallocFunc td_dealloc;
 
-    /* The cast function, 0 if a C struct. */
-    sipCastFunc td_cast;
+    /* The assignment function. */
+    sipAssignFunc td_assign;
 
     /* The release function. */
     sipReleaseFunc td_release;
 
+    /* The cast function, 0 if a C struct. */
+    sipCastFunc td_cast;
+
     /* The convert to function. */
     sipConvertToFunc td_cto;
 
-    /* Emit table for Qt signals. */
-    struct _sipQtSignal *td_emit;
+    /* The convert from function (mapped types only). */
+    sipConvertFromFunc td_cfrom;
 
     /* The static instances. */
     sipInstancesDef td_instances;
@@ -621,8 +631,8 @@ typedef struct _sipTypeDef {
     /* The pickle function. */
     sipPickleFunc td_pickle;
 
-    /* The assignment function. */
-    sipAssignFunc td_assign;
+    /* Emit table for Qt signals. */
+    struct _sipQtSignal *td_emit;
 
     /* The optional PyQt defined information. */
     const void *td_qt;
@@ -642,24 +652,10 @@ typedef struct _sipExternalTypeDef {
 
 
 /*
- * The information describing a mapped class.
+ * The information describing a mapped class.  This (and anything that uses it)
+ * is deprecated.
  */
-typedef struct _sipMappedType {
-    /* The corresponding C++ definition. */
-    const char *mt_name;
-
-    /* The release function. */
-    sipReleaseFunc mt_release;
-
-    /* The convert to function. */
-    sipConvertToFunc mt_cto;
-
-    /* The convert from function. */
-    sipConvertFromFunc mt_cfrom;
-
-    /* The assignment function. */
-    sipAssignFunc mt_assign;
-} sipMappedType;
+typedef sipTypeDef sipMappedType;
 
 
 /*
@@ -732,8 +728,11 @@ typedef struct _sipExportedModuleDef {
     /* The table of external types. */
     sipExternalTypeDef *em_external;
 
+    /* The number of mapped types. */
+    int em_nrmappedtypes;
+
     /* The table of mapped types. */
-    sipMappedType **em_mappedtypes;
+    sipTypeDef **em_mappedtypes;
 
     /* The number of enums. */
     int em_nrenums;
@@ -1063,7 +1062,7 @@ typedef struct _sipSigArg {
         sipWrapperType *wt;
 
         /* The data for mapped types. */
-        sipMappedType *mt;
+        sipTypeDef *mt;
 
         /* The Python type for named enums. */
         PyTypeObject *et;
@@ -1203,6 +1202,10 @@ typedef struct _sipAPIDef {
     sipWrapperType *(*api_find_class)(const char *type);
     PyTypeObject *(*api_find_named_enum)(const char *type);
     int (*api_register_py_type)(PyTypeObject *type);
+
+    /*
+     * The following are deprecated parts of the public API.
+     */
 
     /*
      * The following may be used by Qt support code but no other handwritten
@@ -1356,12 +1359,14 @@ typedef struct _sipQtAPI {
 #define SIP_TYPE_ABSTRACT   0x0001  /* If the type is abstract. */
 #define SIP_TYPE_SCC        0x0002  /* If the type is subject to sub-class convertors. */
 #define SIP_TYPE_NAMESPACE  0x0004  /* If the type is a C++ namespace. */
+#define SIP_TYPE_MAPPED     0x0008  /* If the type is a mapped type. */
 #define SIP_TYPE_FLAGS_SHIFT    8   /* The user type flags shift. */
 #define SIP_TYPE_FLAGS_MASK 0x0f00  /* The user type flags mask. */
 
 #define sipTypeIsAbstract(wt)   ((wt)->type->td_flags & SIP_TYPE_ABSTRACT)
 #define sipTypeHasSCC(wt)   ((wt)->type->td_flags & SIP_TYPE_SCC)
 #define sipTypeIsNamespace(wt)  ((wt)->type->td_flags & SIP_TYPE_NAMESPACE)
+#define sipTypeIsMapped(wt) ((wt)->type->td_flags & SIP_TYPE_MAPPED)
 #define sipTypeFlags(wt)    (((wt)->type->td_flags & SIP_TYPE_FLAGS_MASK) >> SIP_TYPE_FLAGS_SHIFT)
 
 

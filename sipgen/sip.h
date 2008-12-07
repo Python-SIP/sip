@@ -729,6 +729,7 @@ typedef struct _ifaceFileList {
 typedef struct _mappedTypeDef {
     int mtflags;                        /* The mapped type flags. */
     argDef type;                        /* The type being mapped. */
+    nameDef *cname;                     /* The C/C++ name. */
     int mappednr;                       /* The mapped type number. */
     ifaceFileDef *iff;                  /* The interface file. */
     codeBlock *convfromcode;            /* Convert from C++ code. */
@@ -1049,7 +1050,7 @@ int isLongReturnSlot(memberDef *md);
 int isVoidReturnSlot(memberDef *md);
 int isNumberSlot(memberDef *md);
 int isRichCompareSlot(memberDef *md);
-mappedTypeDef *allocMappedType(argDef *type);
+mappedTypeDef *allocMappedType(sipSpec *pt, argDef *type);
 void appendString(stringList **headp, const char *s);
 void appendTypeStrings(scopedNameDef *ename, signatureDef *patt, signatureDef *src, signatureDef *known, scopedNameDef **names, scopedNameDef **values);
 codeBlock *templateCode(sipSpec *pt, ifaceFileList **used, codeBlock *ocb, scopedNameDef *names, scopedNameDef *values);

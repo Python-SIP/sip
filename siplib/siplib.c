@@ -1009,6 +1009,15 @@ static int sip_api_export_module(sipExportedModuleDef *client,
         }
     }
 
+    /* Complete the initialisation of any mapped types. */
+    if (client->em_mappedtypes != NULL)
+    {
+        sipTypeDef **tdp = client->em_mappedtypes;
+
+        for (i = 0; i < client->em_nrmappedtypes; ++i, ++tdp)
+            (*tdp)->td_module = client;
+    }
+
     /* Set any Qt support API. */
     if (client->em_qt_api != NULL)
     {
@@ -1315,7 +1324,7 @@ static int sip_api_assign_instance(void *dst, const void *src,
 static int sip_api_assign_mapped_type(void *dst, const void *src,
         sipMappedType *mt)
 {
-    sipAssignFunc assign = mt->mt_assign;
+    sipAssignFunc assign = mt->td_assign;
 
     if (assign == NULL)
         return FALSE;
@@ -3721,6 +3730,8 @@ static sipWrapperType *createType(sipExportedModuleDef *client,
     if ((wt = (sipWrapperType *)PyObject_Call(metatype, args, NULL)) == NULL)
         goto relargs;
 
+    type->td_wrapper_type = wt;
+
     /* Get the dictionary into which the type will be placed. */
     if (type->td_scope.sc_flag)
         dict = mod_dict;
@@ -5131,7 +5142,7 @@ static int sip_api_add_mapped_type_instance(PyObject *dict, const char *name,
     int rc;
     PyObject *w;
 
-    if ((w = mt->mt_cfrom(cppPtr, NULL)) == NULL)
+    if ((w = mt->td_cfrom(cppPtr, NULL)) == NULL)
         return -1;
 
     rc = PyDict_SetItemString(getDictFromObject(dict), name, w);
@@ -5414,7 +5425,7 @@ static int sip_api_can_convert_to_mapped_type(PyObject *pyObj,
     if (pyObj == Py_None)
         ok = ((flags & SIP_NOT_NONE) == 0);
     else
-        ok = mt->mt_cto(pyObj, NULL, NULL, NULL);
+        ok = mt->td_cto(pyObj, NULL, NULL, NULL);
 
     return ok;
 }
@@ -5479,7 +5490,7 @@ static void *sip_api_convert_to_mapped_type(PyObject *pyObj,
         if (pyObj == Py_None)
             cpp = NULL;
         else
-            state = mt->mt_cto(pyObj, &cpp, iserrp, transferObj);
+            state = mt->td_cto(pyObj, &cpp, iserrp, transferObj);
     }
 
     if (statep != NULL)
@@ -5537,7 +5548,7 @@ static void *sip_api_force_convert_to_mapped_type(PyObject *pyObj,
     /* See if the object's type can be converted. */
     if (!sip_api_can_convert_to_mapped_type(pyObj, mt, flags))
     {
-        PyErr_Format(PyExc_TypeError, "%s cannot be converted to %s in this context", pyObj->ob_type->tp_name, mt->mt_name);
+        PyErr_Format(PyExc_TypeError, "%s cannot be converted to %s in this context", pyObj->ob_type->tp_name, getCppNameOfType(mt));
 
         if (statep != NULL)
             *statep = 0;
@@ -5589,7 +5600,7 @@ static void sip_api_release_mapped_type(void *cpp, const sipMappedType *mt,
     /* See if there is something to release. */
     if (state & SIP_TEMPORARY)
     {
-        sipReleaseFunc rel = mt->mt_release;
+        sipReleaseFunc rel = mt->td_release;
 
         /*
          * If there is no release function then it must be a C structure and we
@@ -5685,7 +5696,7 @@ static PyObject *sip_api_convert_from_mapped_type(void *cpp,
         return Py_None;
     }
 
-    return mt->mt_cfrom(cpp, transferObj);
+    return mt->td_cfrom(cpp, transferObj);
 }
 
 
@@ -5715,7 +5726,7 @@ static const sipMappedType *sip_api_find_mapped_type(const char *type)
 
         while ((mt = *mtypes++) != NULL)
         {
-            const char *s1 = mt->mt_name, *s2 = type;
+            const char *s1 = getCppNameOfType(mt), *s2 = type;
 
             /*
              * Compare while ignoring spaces so that we don't impose a rigorous
@@ -8202,7 +8213,7 @@ static int findMtypeArg(sipMappedType **mttab, const char *name, size_t len,
     sipMappedType *mt;
 
     while ((mt = *mttab++) != NULL)
-        if (nameEq(mt->mt_name, name, len))
+        if (nameEq(getCppNameOfType(mt), name, len))
         {
             if (indir == 0)
                 at->atype = mtype_sat;

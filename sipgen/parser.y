@@ -86,7 +86,7 @@ static int getDeprecated(optFlags *);
 static void templateSignature(signatureDef *sd, int result, classTmplDef *tcd, templateDef *td, classDef *ncd);
 static void templateType(argDef *ad, classTmplDef *tcd, templateDef *td, classDef *ncd);
 static int search_back(const char *end, const char *start, const char *target);
-static char *getType(scopedNameDef *ename, argDef *ad);
+static char *type2string(argDef *ad);
 static char *scopedNameToString(scopedNameDef *name);
 static void addUsedFromCode(sipSpec *pt, ifaceFileList **used, const char *sname);
 static int sameName(scopedNameDef *snd, const char *sname);
@@ -107,7 +107,6 @@ static overDef *instantiateTemplateOverloads(sipSpec *pt, overDef *tod,
         templateDef *td, classDef *cd, ifaceFileList **used,
         scopedNameDef *type_names, scopedNameDef *type_values);
 static void resolveAnyTypedef(sipSpec *pt, argDef *ad);
-static char *prefixModuleName(moduleDef *mod, const char *suffix);
 %}
 
 %union {
@@ -557,7 +556,7 @@ mappedtypetmpl: template TK_MAPPEDTYPE basetype {
                 mtt = sipMalloc(sizeof (mappedTypeTmplDef));
 
                 mtt->sig = $1;
-                mtt->mt = allocMappedType(&$3);
+                mtt->mt = allocMappedType(currentSpec, &$3);
                 mtt->next = currentSpec->mappedtypetemplates;
 
                 currentSpec->mappedtypetemplates = mtt;
@@ -3233,9 +3232,6 @@ static mappedTypeDef *newMappedType(sipSpec *pt, argDef *ad, optFlags *of)
 
     iff = findIfaceFile(pt, currentModule, snd, mappedtype_iface, ad);
 
-    if (inMainModule())
-        setIsUsedName(iff->name);
-
     /* Check it hasn't already been defined. */
     for (mtd = pt->mappedtypes; mtd != NULL; mtd = mtd->next)
         if (mtd->iff == iff)
@@ -3252,7 +3248,7 @@ static mappedTypeDef *newMappedType(sipSpec *pt, argDef *ad, optFlags *of)
     iff->module = currentModule;
 
     /* Create a new mapped type. */
-    mtd = allocMappedType(ad);
+    mtd = allocMappedType(pt, ad);
 
     if (findOptFlag(of, "NoRelease", bool_flag) != NULL)
         setNoRelease(mtd);
@@ -3262,6 +3258,9 @@ static mappedTypeDef *newMappedType(sipSpec *pt, argDef *ad, optFlags *of)
 
     pt->mappedtypes = mtd;
 
+    if (inMainModule())
+        setIsUsedName(mtd->cname);
+
     return mtd;
 }
 
@@ -3269,22 +3268,18 @@ static mappedTypeDef *newMappedType(sipSpec *pt, argDef *ad, optFlags *of)
 /*
  * Allocate, intialise and return a mapped type structure.
  */
-mappedTypeDef *allocMappedType(argDef *type)
+mappedTypeDef *allocMappedType(sipSpec *pt, argDef *type)
 {
     mappedTypeDef *mtd;
 
     mtd = sipMalloc(sizeof (mappedTypeDef));
 
-    mtd->mtflags = 0;
     mtd->type = *type;
     mtd->type.argflags = 0;
     mtd->type.nrderefs = 0;
 
+    mtd->cname = cacheName(pt, type2string(type));
     mtd->mappednr = -1;
-    mtd->iff = NULL;
-    mtd->convfromcode = NULL;
-    mtd->convtocode = NULL;
-    mtd->next = NULL;
 
     return mtd;
 }
@@ -3351,7 +3346,8 @@ void appendTypeStrings(scopedNameDef *ename, signatureDef *patt, signatureDef *s
 
         if (pad->atype == defined_type)
         {
-            char *nam = NULL;
+            char *nam = NULL, *val;
+            argDef *sad;
 
             /*
              * If the type names are already known then check that this is one
@@ -3383,8 +3379,18 @@ void appendTypeStrings(scopedNameDef *ename, signatureDef *patt, signatureDef *s
             /* Add the name. */
             appendScopedName(names, text2scopePart(nam));
 
-            /* Add the corresponding value. */
-            appendScopedName(values, text2scopePart(getType(ename, &src->args[a])));
+            /*
+             * Add the corresponding value.  For defined types we don't want 
+             * any indirection or references.
+             */
+            sad = &src->args[a];
+
+            if (sad->atype == defined_type)
+                val = scopedNameToString(sad->u.snd);
+            else
+                val = type2string(sad);
+
+            appendScopedName(values, text2scopePart(val));
         }
         else if (pad->atype == template_type)
         {
@@ -3399,72 +3405,127 @@ void appendTypeStrings(scopedNameDef *ename, signatureDef *patt, signatureDef *s
 
 
 /*
- * Convert a type to a string.  We impose some limitations because I'm too lazy
- * to handle everything that might be needed one day.
+ * Convert a type to a string on the heap.  The string will use the minimum
+ * whitespace while still remaining valid C++.
  */
-static char *getType(scopedNameDef *ename, argDef *ad)
+static char *type2string(argDef *ad)
 {
-    if (ad->atype == defined_type)
-        return scopedNameToString(ad->u.snd);
+    int i, on_heap = FALSE;
+    char *s;
 
-    /* For the moment only handle non-pointer, non-reference base types. */
-    if (ad->nrderefs == 0 && !isReference(ad))
-        switch (ad->atype)
+    switch (ad->atype)
+    {
+    case template_type:
         {
-        case ustring_type:
-            return "unsigned char";
+            templateDef *td = ad->u.td;
 
-        case string_type:
-            return "char";
+            s = scopedNameToString(td->fqname);
+            append(&s, "<");
 
-        case sstring_type:
-            return "signed char";
+            for (i = 0; i < td->types.nrArgs; ++i)
+            {
+                char *sub_type = type2string(&td->types.args[i]);
 
-        case wstring_type:
-            return "wchar_t";
+                if (i > 0)
+                    append(&s, ",");
 
-        case ushort_type:
-            return "unsigned short";
+                append(&s, sub_type);
+                free(sub_type);
+            }
 
-        case short_type:
-            return "short";
+            if (s[strlen(s) - 1] == '>')
+                append(&s, " >");
+            else
+                append(&s, ">");
 
-        case uint_type:
-            return "unsigned int";
-
-        case int_type:
-        case cint_type:
-            return "int";
-
-        case ulong_type:
-            return "unsigned long";
-
-        case long_type:
-            return "long";
-
-        case ulonglong_type:
-            return "unsigned long long";
-
-        case longlong_type:
-            return "long long";
-
-        case float_type:
-        case cfloat_type:
-            return "float";
-
-        case double_type:
-        case cdouble_type:
-            return "double";
-
-        case bool_type:
-        case cbool_type:
-            return "bool";
+            on_heap = TRUE;
+            break;
         }
 
-    fatalScopedName(ename);
-    fatal(": unsupported type argument to template class instantiation\n");
+    case defined_type:
+        s = scopedNameToString(ad->u.snd);
+        on_heap = TRUE;
+        break;
 
-    return NULL;
+    case ustring_type:
+        s = "unsigned char";
+        break;
+
+    case string_type:
+        s = "char";
+        break;
+
+    case sstring_type:
+        s = "signed char";
+        break;
+
+    case wstring_type:
+        s = "wchar_t";
+        break;
+
+    case ushort_type:
+        s = "unsigned short";
+        break;
+
+    case short_type:
+        s = "short";
+        break;
+
+    case uint_type:
+        s = "unsigned int";
+        break;
+
+    case int_type:
+    case cint_type:
+        s = "int";
+        break;
+
+    case ulong_type:
+        s = "unsigned long";
+        break;
+
+    case long_type:
+        s = "long";
+        break;
+
+    case ulonglong_type:
+        s = "unsigned long long";
+        break;
+
+    case longlong_type:
+        s = "long long";
+        break;
+
+    case float_type:
+    case cfloat_type:
+        s = "float";
+        break;
+
+    case double_type:
+    case cdouble_type:
+        s = "double";
+        break;
+
+    case bool_type:
+    case cbool_type:
+        s = "bool";
+        break;
+
+    default:
+        fatal("Unsupported type argument to type2string()\n");
+    }
+
+    /* Make sure the string is on the heap. */
+    if (!on_heap)
+        s = sipStrdup(s);
+
+    for (i = 0; i < ad->nrderefs; ++i)
+        append(&s, "*");
+
+    if (isReference(ad))
+        append(&s, "&");
+
+    return s;
 }
 
 
@@ -3995,10 +4056,7 @@ codeBlock *templateCode(sipSpec *pt, ifaceFileList **used, codeBlock *ocb,
             else
             {
                 static char *gen_names[] = {
-                    "sipForceConvertToTransfer_",
-                    "sipForceConvertTo_",
-                    "sipConvertFromTransfer_",
-                    "sipConvertFrom_",
+                    "sipType_",
                     "sipClass_",
                     "sipEnum_",
                     "sipException_",
@@ -5508,17 +5566,4 @@ static classDef *completeClass(scopedNameDef *snd, optFlags *of, int has_def)
         yyerror("External classes/structs can only be declared in the global scope");
 
     return cd;
-}
-
-
-/*
- * Return the name of the given module and the given suffix separated by a
- * period.
- */
-static char *prefixModuleName(moduleDef *mod, const char *suffix)
-{
-    if (mod->fullname == NULL)
-        yyerror("%Module or %CModule not yet specified");
-
-    return concat(mod->fullname->text, ".", suffix, NULL);
 }

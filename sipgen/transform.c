@@ -2699,7 +2699,9 @@ static mappedTypeDef *instantiateMappedTypeTemplate(sipSpec *pt, moduleDef *mod,
     type_names = type_values = NULL;
     appendTypeStrings(type->u.td->fqname, &mtt->mt->type.u.td->types, &type->u.td->types, &mtt->sig, &type_names, &type_values);
 
-    mtd = allocMappedType(type);
+    mtd = allocMappedType(pt, type);
+
+    setIsUsedName(mtd->cname);
 
     mtd->iff = findIfaceFile(pt, mod, type->u.td->fqname, mappedtype_iface, type);
     mtd->iff->module = mod;
