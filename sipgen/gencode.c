@@ -1221,10 +1221,9 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "\n"
 "\n"
 "/*\n"
-" * This defines each class in this module.  The values are replaced by the\n"
-" * proper Python types during the export process.\n"
+" * This defines each class in this module.\n"
 " */\n"
-"static sipWrapperType *typesTable[] = {\n"
+"static sipTypeDef *typesTable[] = {\n"
             );
 
         generateClassTableEntries(mod, &mod->root, fp);
@@ -2125,7 +2124,7 @@ static void generateClassTableEntries(moduleDef *mod, nodeDef *nd, FILE *fp)
                 );
         else
             prcode(fp,
-"    (sipWrapperType *)(void *)&sipType_%s_%C,\n"
+"    &sipType_%s_%C,\n"
                 , mod->name, classFQCName(nd->cd));
     }
 
@@ -4640,8 +4639,8 @@ static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
                 else
                     prcode(fp,
 "\n"
-"    return sipPySlotExtend(&sipModuleAPI_%s,%s,sip%s_%C,sipSelf,sipArg);\n"
-                        , mod->name, slotName(md->slot), prefix, fqcname);
+"    return sipPySlotExtend(&sipModuleAPI_%s,%s,sipType_%C,sipSelf,sipArg);\n"
+                        , mod->name, slotName(md->slot), fqcname);
             }
             else if (isInplaceNumberSlot(md))
                 prcode(fp,
@@ -4710,11 +4709,11 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 
         if (!generating_c)
             prcode(fp,
-"extern \"C\" {static void *cast_%C(void *, sipWrapperType *);}\n"
+"extern \"C\" {static void *cast_%C(void *, sipTypeDef *);}\n"
                 , classFQCName(cd));
 
         prcode(fp,
-"static void *cast_%C(void *ptr,sipWrapperType *targetClass)\n"
+"static void *cast_%C(void *ptr,sipTypeDef *targetType)\n"
 "{\n"
             ,classFQCName(cd));
 
@@ -4725,7 +4724,7 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
                 );
 
         prcode(fp,
-"    if (targetClass == sipClass_%C)\n"
+"    if (targetType == sipType_%C)\n"
 "        return ptr;\n"
             ,classFQCName(cd));
 
@@ -4735,7 +4734,7 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 
             prcode(fp,
 "\n"
-"    if ((res = sipCast_%C((%S *)(%S *)ptr,targetClass)) != NULL)\n"
+"    if ((res = sipType_%C->td_cast((%S *)(%S *)ptr,targetType)) != NULL)\n"
 "        return res;\n"
                 ,sname,sname,classFQCName(cd));
         }
@@ -6977,16 +6976,18 @@ static void generateImportedClassAPI(classDef *cd, sipSpec *pt, moduleDef *mod,
     if (cd->iff->type == namespace_iface)
         prcode(fp,
 "\n"
-"#if !defined(sipClass_%C)\n"
-"#define sipClass_%C             sipModuleAPI_%s_%s->em_types[%d]\n"
+"#if !defined(sipType_%C)\n"
+"#define sipType_%C              sipModuleAPI_%s_%s->em_types[%d]\n"
+"#define sipClass_%C             sipModuleAPI_%s_%s->em_types[%d]->td_wrapper_type\n"
 "#endif\n"
             , classFQCName(cd)
+            , classFQCName(cd), mname, imname, cd->classnr
             , classFQCName(cd), mname, imname, cd->classnr);
     else
         prcode(fp,
 "\n"
-"#define sipClass_%C             sipModuleAPI_%s_%s->em_types[%d]\n"
-"#define sipCast_%C              sipModuleAPI_%s_%s->em_types[%d]->type->td_cast\n"
+"#define sipType_%C              sipModuleAPI_%s_%s->em_types[%d]\n"
+"#define sipClass_%C             sipModuleAPI_%s_%s->em_types[%d]->td_wrapper_type\n"
             , classFQCName(cd), mname, imname, cd->classnr
             , classFQCName(cd), mname, imname, cd->classnr);
 
@@ -7006,14 +7007,18 @@ static void generateClassAPI(classDef *cd, sipSpec *pt, FILE *fp)
             );
 
     if (cd->real == NULL)
-        prcode(fp,
-"#define sipClass_%C             sipModuleAPI_%s.em_types[%d]\n"
-            , classFQCName(cd), mname, cd->classnr);
-
-    if (cd->iff->type != namespace_iface && !isExternal(cd))
-        prcode(fp,
-"#define sipCast_%C              sipType_%s_%C.td_cast\n"
-            , classFQCName(cd), mname, classFQCName(cd));
+        if (!isExternal(cd))
+            prcode(fp,
+"#define sipType_%C              (&sipType_%s_%C)\n"
+"#define sipClass_%C             sipType_%s_%C.td_wrapper_type\n"
+                , classFQCName(cd), mname, classFQCName(cd)
+                , classFQCName(cd), mname, classFQCName(cd));
+        else
+            prcode(fp,
+"#define sipType_%C              sipModuleAPI_%s.em_types[%d]\n"
+"#define sipClass_%C             sipModuleAPI_%s.em_types[%d]->td_wrapper_type\n"
+                , classFQCName(cd), mname, cd->classnr
+                , classFQCName(cd), mname, cd->classnr);
 
     generateEnumMacros(pt, cd->iff->module, cd, fp);
 

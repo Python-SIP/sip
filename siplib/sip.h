@@ -260,7 +260,7 @@ typedef int (*sipClearFunc)(void *);
 typedef SIP_SSIZE_T (*sipBufferFunc)(PyObject *, void *, SIP_SSIZE_T, void **);
 typedef SIP_SSIZE_T (*sipSegCountFunc)(PyObject *, void *, SIP_SSIZE_T *);
 typedef void (*sipDeallocFunc)(sipSimpleWrapper *);
-typedef void *(*sipCastFunc)(void *, sipWrapperType *);
+typedef void *(*sipCastFunc)(void *, struct _sipTypeDef *);
 typedef sipWrapperType *(*sipSubClassConvertFunc)(void **);
 typedef int (*sipConvertToFunc)(PyObject *, void **, int *, PyObject *);
 typedef PyObject *(*sipConvertFromFunc)(void *, PyObject *);
@@ -384,7 +384,7 @@ typedef struct _sipSubClassConvertorDef {
     sipEncodedClassDef scc_base;
 
     /* The base type. */
-    sipWrapperType *scc_basetype;
+    struct _sipTypeDef *scc_basetype;
 } sipSubClassConvertorDef;
 
 
@@ -723,7 +723,7 @@ typedef struct _sipExportedModuleDef {
     int em_nrtypes;
 
     /* The table of type types. */
-    struct _sipWrapperType **em_types;
+    sipTypeDef **em_types;
 
     /* The table of external types. */
     sipExternalTypeDef *em_external;
@@ -1257,7 +1257,7 @@ typedef struct _sipAPIDef {
     void (*api_bad_operator_arg)(PyObject *self, PyObject *arg,
             sipPySlotType st);
     PyObject *(*api_pyslot_extend)(sipExportedModuleDef *mod, sipPySlotType st,
-            sipWrapperType *type, PyObject *arg0, PyObject *arg1);
+            sipTypeDef *type, PyObject *arg0, PyObject *arg1);
     void (*api_add_delayed_dtor)(sipSimpleWrapper *w);
     int (*api_add_mapped_type_instance)(PyObject *dict, const char *name,
             void *cppPtr, const sipMappedType *mt);
@@ -1279,7 +1279,7 @@ typedef struct _sipAPIDef {
  * The API implementing the optional Qt support.
  */
 typedef struct _sipQtAPI {
-    struct _sipWrapperType **qt_qobject;
+    struct _sipTypeDef **qt_qobject;
     int (*qt_is_qt_signal)(void *, const char *);
     void *(*qt_create_universal_signal_shortcut)(void *, const char *,
             const char **);
