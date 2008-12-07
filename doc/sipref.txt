@@ -201,6 +201,12 @@ been removed.
 
 The generated class names are now ``const char *`` rather than ``char *``.
 
+The following parts of the API are now deprecated.
+
+    - `sipClassName()`_
+
+    - `sipWrapper_Check()`_
+
 
 SIP v4.7.8
 ----------
@@ -4252,6 +4258,10 @@ PyObject \*sipClassName(PyObject \*obj)
     This returns the class name of a wrapped instance as a Python string.  It
     comes with a reference.
 
+    This is deprecated.  Use the following instead::
+
+        PyString_FromString(obj->ob_type->tp_name)
+
 
 sipConnectRx()
 --------------
@@ -4901,9 +4911,9 @@ int sipWrapper_Check(PyObject \*obj)
     This returns a non-zero value if a Python object is a wrapped instance.
     *obj* is the Python object.
 
-This is deprecated.  Instead you should use the following::
+    This is deprecated.  Instead you should use the following::
 
-    PyObject_TypeCheck(obj, sipWrapper_Type)
+        PyObject_TypeCheck(obj, sipWrapper_Type)
 
 
 sipWrapper_Type

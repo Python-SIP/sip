@@ -29,7 +29,6 @@ static void sip_api_bad_length_for_slice(SIP_SSIZE_T seqlen,
 static PyObject *sip_api_build_result(int *isErr, const char *fmt, ...);
 static PyObject *sip_api_call_method(int *isErr, PyObject *method,
         const char *fmt, ...);
-static PyObject *sip_api_class_name(PyObject *self);
 static SIP_SSIZE_T sip_api_convert_from_sequence_index(SIP_SSIZE_T idx,
         SIP_SSIZE_T len);
 static int sip_api_can_convert_to_instance(PyObject *pyObj,
@@ -152,7 +151,6 @@ static const sipAPIDef sip_api = {
     sip_api_bad_length_for_slice,
     sip_api_build_result,
     sip_api_call_method,
-    sip_api_class_name,
     sip_api_connect_rx,
     sip_api_convert_from_sequence_index,
     sip_api_can_convert_to_instance,
@@ -4607,16 +4605,6 @@ static void sip_api_bad_catcher_result(PyObject *method)
     cname = PyMethod_GET_SELF(method)->ob_type->tp_name;
 
     PyErr_Format(PyExc_TypeError,"invalid result type from %s.%s()",cname,mname);
-}
-
-
-/*
- * Return the name of the class corresponding to a wrapper object.  This comes
- * with a reference.
- */
-static PyObject *sip_api_class_name(PyObject *self)
-{
-    return PyString_FromString(self->ob_type->tp_name);
 }
 
 

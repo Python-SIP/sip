@@ -1140,7 +1140,6 @@ typedef struct _sipAPIDef {
     PyObject *(*api_build_result)(int *isErr, const char *fmt, ...);
     PyObject *(*api_call_method)(int *isErr, PyObject *method, const char *fmt,
             ...);
-    PyObject *(*api_class_name)(PyObject *self);
     PyObject *(*api_connect_rx)(PyObject *txObj, const char *sig,
             PyObject *rxObj, const char *slot, int type);
     SIP_SSIZE_T (*api_convert_from_sequence_index)(SIP_SSIZE_T idx,

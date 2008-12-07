@@ -522,6 +522,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "/* Convenient names to call the SIP API. */\n"
 "#define sipConvertFromSliceObject(o,len,start,stop,step,slen)   PySlice_GetIndicesEx((PySliceObject *)(o),(len),(start),(stop),(step),(slen))\n"
 "#define sipWrapper_Check(w)         PyObject_TypeCheck((w), sipAPI_%s->api_wrapper_type)\n"
+"#define sipClassName(w)             PyString_FromString((w)->ob_type->tp_name)\n"
 "\n"
 "#define sipMapStringToClass         sipAPI_%s->api_map_string_to_class\n"
 "#define sipMapIntToClass            sipAPI_%s->api_map_int_to_class\n"
@@ -567,7 +568,6 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipRaiseClassException      sipAPI_%s->api_raise_class_exception\n"
 "#define sipRaiseSubClassException   sipAPI_%s->api_raise_sub_class_exception\n"
 "#define sipBadLengthForSlice        sipAPI_%s->api_bad_length_for_slice\n"
-"#define sipClassName                sipAPI_%s->api_class_name\n"
 "#define sipAddClassInstance         sipAPI_%s->api_add_class_instance\n"
 "#define sipAddMappedTypeInstance    sipAPI_%s->api_add_mapped_type_instance\n"
 "#define sipAddEnumInstance          sipAPI_%s->api_add_enum_instance\n"
@@ -614,7 +614,6 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipWrappedTypeName(wt)      ((wt)->type->td_cname)\n"
 "#define sipDeprecated               sipAPI_%s->api_deprecated\n"
 "#define sipRegisterPyType           sipAPI_%s->api_register_py_type\n"
-        ,mname
         ,mname
         ,mname
         ,mname
