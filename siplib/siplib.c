@@ -6,6 +6,7 @@
 
 
 #include <Python.h>
+#include <assert.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <stddef.h>
@@ -123,11 +124,8 @@ static PyObject *sip_api_convert_from_void_ptr_and_size(void *val,
 static PyObject *sip_api_convert_from_const_void_ptr_and_size(const void *val,
         SIP_SSIZE_T size);
 static int sip_api_is_exact_wrapped_type(sipWrapperType *wt);
-static int sip_api_assign_instance(void *dst, const void *src,
-        sipWrapperType *wt);
-static int sip_api_assign_mapped_type(void *dst, const void *src,
-        sipMappedType *mt);
-static void sip_api_register_qt_metatype(int type, sipWrapperType *py_type);
+static int sip_api_assign_type(void *dst, const void *src, sipTypeDef *td);
+static void sip_api_register_qt_metatype(int type, sipTypeDef *td);
 static int sip_api_deprecated(const char *classname, const char *method);
 static int sip_api_register_py_type(PyTypeObject *supertype);
 
@@ -203,8 +201,7 @@ static const sipAPIDef sip_api = {
     sip_api_invoke_slot,
     sip_api_parse_type,
     sip_api_is_exact_wrapped_type,
-    sip_api_assign_instance,
-    sip_api_assign_mapped_type,
+    sip_api_assign_type,
     /*
      * The following are not part of the public API.
      */
@@ -1283,29 +1280,11 @@ void sip_api_free(void *mem)
 
 
 /*
- * Assign a C/C++ instance if it is supported by the type.
+ * Assign a type if it is supported by the type.
  */
-static int sip_api_assign_instance(void *dst, const void *src,
-        sipWrapperType *wt)
+static int sip_api_assign_type(void *dst, const void *src, sipTypeDef *td)
 {
-    sipAssignFunc assign = wt->type->td_assign;
-
-    if (assign == NULL)
-        return FALSE;
-
-    assign(dst, src);
-
-    return TRUE;
-}
-
-
-/*
- * Assign a C/C++ mapped type if it is supported by the type.
- */
-static int sip_api_assign_mapped_type(void *dst, const void *src,
-        sipMappedType *mt)
-{
-    sipAssignFunc assign = mt->td_assign;
+    sipAssignFunc assign = td->td_assign;
 
     if (assign == NULL)
         return FALSE;
@@ -5599,7 +5578,7 @@ PyObject *sip_api_convert_from_instance(void *cpp, sipWrapperType *type,
     }
 
     /* Apply any sub-class convertor. */
-    if (sipTypeHasSCC(type))
+    if (sipTypeHasSCC(type->type))
         type = convertSubClass(type, &cpp);
 
     /* See if we have already wrapped it. */
@@ -5638,7 +5617,7 @@ static PyObject *sip_api_convert_from_new_instance(void *cpp,
     }
 
     /* Apply any sub-class convertor. */
-    if (sipTypeHasSCC(type))
+    if (sipTypeHasSCC(type->type))
         type = convertSubClass(type, &cpp);
 
     /* Handle any ownership transfer. */
@@ -6958,6 +6937,7 @@ static PyObject *sipSimpleWrapper_new(sipWrapperType *wt, PyObject *args,
         PyObject *kwds)
 {
     static PyObject *noargs = NULL;
+    sipTypeDef *td = wt->type;
 
     /* We need an empty tuple for an empty argument list. */
     if (noargs == NULL)
@@ -6973,19 +6953,19 @@ static PyObject *sipSimpleWrapper_new(sipWrapperType *wt, PyObject *args,
     {
         PyErr_Format(PyExc_TypeError,
                 "the %s.%s type cannot be instantiated or sub-classed",
-                getNameOfModule(wt->type->td_module),
-                getPyNameOfType(wt->type));
+                getNameOfModule(td->td_module),
+                getPyNameOfType(td));
 
         return NULL;
     }
 
     /* See if it is a namespace. */
-    if (sipTypeIsNamespace(wt))
+    if (sipTypeIsNamespace(td))
     {
         PyErr_Format(PyExc_TypeError,
                 "%s.%s represents a C++ namespace that cannot be instantiated",
-                getNameOfModule(wt->type->td_module),
-                getPyNameOfType(wt->type));
+                getNameOfModule(td->td_module),
+                getPyNameOfType(td));
 
         return NULL;
     }
@@ -7000,23 +6980,23 @@ static PyObject *sipSimpleWrapper_new(sipWrapperType *wt, PyObject *args,
          * it's an opaque class.  Some restrictions might be overcome with
          * better SIP support.
          */
-        if (wt->type->td_init == NULL)
+        if (td->td_init == NULL)
         {
             PyErr_Format(PyExc_TypeError,
                     "%s.%s cannot be instantiated or sub-classed",
-                    getNameOfModule(wt->type->td_module),
-                    getPyNameOfType(wt->type));
+                    getNameOfModule(td->td_module),
+                    getPyNameOfType(td));
 
             return NULL;
         }
 
         /* See if it is an abstract type. */
-        if (sipTypeIsAbstract(wt) && sip_api_is_exact_wrapped_type(wt))
+        if (sipTypeIsAbstract(td) && sip_api_is_exact_wrapped_type(wt))
         {
             PyErr_Format(PyExc_TypeError,
                     "%s.%s represents a C++ abstract class and cannot be instantiated",
-                    getNameOfModule(wt->type->td_module),
-                    getPyNameOfType(wt->type));
+                    getNameOfModule(td->td_module),
+                    getPyNameOfType(td));
 
             return NULL;
         }
@@ -8453,11 +8433,13 @@ static void *sip_api_import_symbol(const char *name)
  * Register (internally) the Qt meta-type number and the corresponding Python
  * type.
  */
-static void sip_api_register_qt_metatype(int type, sipWrapperType *py_type)
+static void sip_api_register_qt_metatype(int type, sipTypeDef *td)
 {
+    assert(sipTypeIsClass(td));
+
     /* Just delegate to the Qt support if it is available. */
     if (sipQtSupport != NULL && sipQtSupport->qt_register_meta_type != NULL)
-        sipQtSupport->qt_register_meta_type(type, py_type);
+        sipQtSupport->qt_register_meta_type(type, td);
 }
 
 

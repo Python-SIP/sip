@@ -971,6 +971,9 @@ class Makefile:
 
         cppflags = []
 
+        if not self._debug:
+            cppflags.append("-DNDEBUG")
+
         for f in self.optional_list("DEFINES"):
             cppflags.append("-D" + f)
 

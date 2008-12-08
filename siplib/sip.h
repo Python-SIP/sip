@@ -1203,10 +1203,6 @@ typedef struct _sipAPIDef {
     int (*api_register_py_type)(PyTypeObject *type);
 
     /*
-     * The following are deprecated parts of the public API.
-     */
-
-    /*
      * The following may be used by Qt support code but no other handwritten
      * code.
      */
@@ -1221,9 +1217,7 @@ typedef struct _sipAPIDef {
     PyObject *(*api_invoke_slot)(const sipSlot *slot, PyObject *sigargs);
     void (*api_parse_type)(const char *type, sipSigArg *arg);
     int (*api_is_exact_wrapped_type)(sipWrapperType *wt);
-    int (*api_assign_instance)(void *dst, const void *src, sipWrapperType *wt);
-    int (*api_assign_mapped_type)(void *dst, const void *src,
-            sipMappedType *mt);
+    int (*api_assign_type)(void *dst, const void *src, sipTypeDef *td);
 
     /*
      * The following are not part of the public API.
@@ -1269,8 +1263,7 @@ typedef struct _sipAPIDef {
     int (*api_unicode_as_wchar)(PyObject *obj);
     int *(*api_unicode_as_wstring)(PyObject *obj);
 #endif
-    void (*api_register_qt_metatype)(int type,
-            struct _sipWrapperType *py_type);
+    void (*api_register_qt_metatype)(int type, struct _sipTypeDef *td);
     int (*api_deprecated)(const char *classname, const char *method);
 } sipAPIDef;
 
@@ -1303,7 +1296,7 @@ typedef struct _sipQtAPI {
     sipSlotConnection *(*qt_find_connection)(void *, void **);
     void *(*qt_create_universal_slot_ex)(struct _sipWrapper *,
             struct _sipSlotConnection *, const char **, int);
-    void (*qt_register_meta_type)(int type, struct _sipWrapperType *py_type);
+    void (*qt_register_meta_type)(int type, struct _sipTypeDef *td);
 } sipQtAPI;
 
 
@@ -1355,18 +1348,21 @@ typedef struct _sipQtAPI {
 #define sipSetPossibleProxy(w)  ((w)->flags |= SIP_POSSIBLE_PROXY)
 
 
-#define SIP_TYPE_ABSTRACT   0x0001  /* If the type is abstract. */
-#define SIP_TYPE_SCC        0x0002  /* If the type is subject to sub-class convertors. */
-#define SIP_TYPE_NAMESPACE  0x0004  /* If the type is a C++ namespace. */
-#define SIP_TYPE_MAPPED     0x0008  /* If the type is a mapped type. */
+#define SIP_TYPE_TYPE_MASK  0x0007  /* The type type mask. */
+#define SIP_TYPE_CLASS      0x0000  /* If the type is a C++ class. */
+#define SIP_TYPE_NAMESPACE  0x0001  /* If the type is a C++ namespace. */
+#define SIP_TYPE_MAPPED     0x0002  /* If the type is a mapped type. */
+#define SIP_TYPE_ABSTRACT   0x0008  /* If the type is abstract. */
+#define SIP_TYPE_SCC        0x0010  /* If the type is subject to sub-class convertors. */
 #define SIP_TYPE_FLAGS_SHIFT    8   /* The user type flags shift. */
 #define SIP_TYPE_FLAGS_MASK 0x0f00  /* The user type flags mask. */
 
-#define sipTypeIsAbstract(wt)   ((wt)->type->td_flags & SIP_TYPE_ABSTRACT)
-#define sipTypeHasSCC(wt)   ((wt)->type->td_flags & SIP_TYPE_SCC)
-#define sipTypeIsNamespace(wt)  ((wt)->type->td_flags & SIP_TYPE_NAMESPACE)
-#define sipTypeIsMapped(wt) ((wt)->type->td_flags & SIP_TYPE_MAPPED)
-#define sipTypeFlags(wt)    (((wt)->type->td_flags & SIP_TYPE_FLAGS_MASK) >> SIP_TYPE_FLAGS_SHIFT)
+#define sipTypeIsClass(td)  (((td)->td_flags & SIP_TYPE_TYPE_MASK) == SIP_TYPE_CLASS)
+#define sipTypeIsNamespace(td)  (((td)->td_flags & SIP_TYPE_TYPE_MASK) == SIP_TYPE_NAMESPACE)
+#define sipTypeIsMapped(td) (((td)->td_flags & SIP_TYPE_TYPE_MASK) == SIP_TYPE_MAPPED)
+#define sipTypeIsAbstract(td)   ((td)->td_flags & SIP_TYPE_ABSTRACT)
+#define sipTypeHasSCC(td)   ((td)->td_flags & SIP_TYPE_SCC)
+#define sipTypeFlags(td)    (((td)->td_flags & SIP_TYPE_FLAGS_MASK) >> SIP_TYPE_FLAGS_SHIFT)
 
 
 #ifdef __cplusplus

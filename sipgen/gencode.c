@@ -608,13 +608,11 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipInvokeSlot               sipAPI_%s->api_invoke_slot\n"
 "#define sipParseType                sipAPI_%s->api_parse_type\n"
 "#define sipIsExactWrappedType       sipAPI_%s->api_is_exact_wrapped_type\n"
-"#define sipAssignInstance           sipAPI_%s->api_assign_instance\n"
-"#define sipAssignMappedType         sipAPI_%s->api_assign_mapped_type\n"
+"#define sipAssignType               sipAPI_%s->api_assign_type\n"
 "#define sipRegisterQtMetatype       sipAPI_%s->api_register_qt_metatype\n"
 "#define sipWrappedTypeName(wt)      ((wt)->type->td_cname)\n"
 "#define sipDeprecated               sipAPI_%s->api_deprecated\n"
 "#define sipRegisterPyType           sipAPI_%s->api_register_py_type\n"
-        ,mname
         ,mname
         ,mname
         ,mname
@@ -1924,7 +1922,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
             if (cd->iff->module == mod)
                 if (registerQtMetaType(cd))
                     prcode(fp,
-"    sipRegisterQtMetatype(qRegisterMetaType<%S>(%N), sipClass_%C);\n"
+"    sipRegisterQtMetatype(qRegisterMetaType<%S>(%N), sipType_%C);\n"
                         , classFQCName(cd), cd->iff->name, classFQCName(cd));
 
     /* Generate any post-initialisation code. */
@@ -7960,6 +7958,11 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
     if (cd->iff->type == namespace_iface)
     {
         prcode(fp, "%sSIP_TYPE_NAMESPACE", sep);
+        sep = "|";
+    }
+    else
+    {
+        prcode(fp, "%sSIP_TYPE_CLASS", sep);
         sep = "|";
     }
 
