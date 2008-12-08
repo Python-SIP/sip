@@ -2526,7 +2526,7 @@ static void generateClassesInline(sipSpec *pt, moduleDef *mod, FILE *fp)
             prcode(fp, ",sipClass_%C);\n"
                 , classFQCName(vd->type.u.cd));
         else
-            prcode(fp, ",sipMappedType_%T);\n"
+            prcode(fp, ",sipType_%T);\n"
                 , &vd->type);
     }
 }
@@ -3847,7 +3847,7 @@ static void generateVariableHandler(classDef *context, varDef *vd, FILE *fp)
         {
         case mapped_type:
             prcode(fp,
-"        sipPy = sipConvertFromMappedType(sipVal,sipMappedType_%T,NULL);\n"
+"        sipPy = sipConvertFromMappedType(sipVal,sipType_%T,NULL);\n"
                 ,&vd->type);
 
             break;
@@ -4101,7 +4101,7 @@ static void generateVariableHandler(classDef *context, varDef *vd, FILE *fp)
         else if (vd->type.atype == mapped_type && vd->type.nrderefs == 0 && !noRelease(vd->type.u.mtd))
             prcode(fp,
 "\n"
-"    sipReleaseMappedType(sipVal,sipMappedType_%T,sipValState);\n"
+"    sipReleaseMappedType(sipVal,sipType_%T,sipValState);\n"
                 , &vd->type);
     }
 
@@ -4179,7 +4179,7 @@ static int generateObjToCppConversion(argDef *ad,FILE *fp)
 
             /* Note that we don't support /Transfer/ but could do. */
 
-            prcode(fp, "sipForceConvertToMappedType(sipPy,sipMappedType_%T,NULL,%s,%s,&sipIsErr)", ad, (ad->nrderefs ? "0" : "SIP_NOT_NONE"), (ad->nrderefs ? "NULL" : "&sipValState"));
+            prcode(fp, "sipForceConvertToMappedType(sipPy,sipType_%T,NULL,%s,%s,&sipIsErr)", ad, (ad->nrderefs ? "0" : "SIP_NOT_NONE"), (ad->nrderefs ? "NULL" : "&sipValState"));
 
             prcode(fp, "%s;\n"
                 , tail);
@@ -6436,7 +6436,7 @@ static void generateParseResultExtraArgs(argDef *ad, int isres, FILE *fp)
     switch (ad->atype)
     {
     case mapped_type:
-        prcode(fp, ",sipMappedType_%T", ad);
+        prcode(fp, ",sipType_%T", ad);
         break;
 
     case class_type:
@@ -6829,7 +6829,7 @@ static void generateTupleBuilder(signatureDef *sd,FILE *fp)
                 prcode(fp,")");
 
             if (ad->atype == mapped_type)
-                prcode(fp, ",sipMappedType_%T,NULL", ad);
+                prcode(fp, ",sipType_%T,NULL", ad);
             else if (ad->atype == fake_void_type || ad->atype == class_type)
                 prcode(fp, ",sipClass_%C,NULL", classFQCName(ad->u.cd));
             else
@@ -6944,7 +6944,7 @@ static void generateImportedMappedTypeAPI(mappedTypeDef *mtd, moduleDef *mod,
 
     prcode(fp,
 "\n"
-"#define sipMappedType_%T        sipModuleAPI_%s_%s->em_mappedtypes[%d]\n"
+"#define sipType_%T      sipModuleAPI_%s_%s->em_mappedtypes[%d]\n"
         , &type, mname, imname, mtd->mappednr);
 }
 
@@ -6956,7 +6956,7 @@ static void generateMappedTypeAPI(mappedTypeDef *mtd, FILE *fp)
 {
     prcode(fp,
 "\n"
-"#define sipMappedType_%T        &sipMappedTypeDef_%T\n"
+"#define sipType_%T      (&sipMappedTypeDef_%T)\n"
 "\n"
 "extern sipTypeDef sipMappedTypeDef_%T;\n"
         , &mtd->type, &mtd->type
@@ -9124,7 +9124,7 @@ static void generateHandleResult(overDef *od, int isNew, int result_size,
             else
                 prcode(fp,"sipRes");
 
-            prcode(fp,",sipMappedType_%T,%s);\n"
+            prcode(fp,",sipType_%T,%s);\n"
                 , res, resultOwner(od));
 
             if (isNew)
@@ -9228,7 +9228,7 @@ static void generateHandleResult(overDef *od, int isNew, int result_size,
                 prcode(fp,",a%d",a);
 
                 if (ad->atype == mapped_type)
-                    prcode(fp, ",sipMappedType_%T,%s", ad, (isTransferredBack(ad) ? "Py_None" : "NULL"));
+                    prcode(fp, ",sipType_%T,%s", ad, (isTransferredBack(ad) ? "Py_None" : "NULL"));
                 else if (ad->atype == class_type)
                     prcode(fp, ",sipClass_%C,%s", classFQCName(ad->u.cd), (isTransferredBack(ad) ? "Py_None" : "NULL"));
                 else if (ad->atype == enum_type && ad->u.ed->fqcname != NULL)
@@ -9268,7 +9268,7 @@ static void generateHandleResult(overDef *od, int isNew, int result_size,
         else
             prcode(fp,"%s",vname);
 
-        prcode(fp,",sipMappedType_%T,%s);\n"
+        prcode(fp,",sipType_%T,%s);\n"
             , ad, (isTransferredBack(ad) ? "Py_None" : "NULL"));
 
         break;
@@ -10496,9 +10496,9 @@ static int generateArgParser(signatureDef *sd, classDef *cd, ctorDef *ct,
         {
         case mapped_type:
             if (noRelease(ad->u.mtd))
-                prcode(fp, ",sipMappedType_%T,&a%d,NULL", ad, a);
+                prcode(fp, ",sipType_%T,&a%d,NULL", ad, a);
             else
-                prcode(fp, ",sipMappedType_%T,&a%d,&a%dState", ad, a, a);
+                prcode(fp, ",sipType_%T,&a%d,&a%dState", ad, a, a);
 
             break;
 
@@ -10713,7 +10713,8 @@ static void deleteTemps(signatureDef *sd, FILE *fp)
                 if (noRelease(ad->u.mtd))
                     continue;
 
-                fstr = sstr = "MappedType";
+                fstr = "MappedType";
+                sstr = "Type";
             }
             else
             {
