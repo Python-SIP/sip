@@ -55,10 +55,10 @@ void *sipGetPending(sipWrapper **op, int *fp)
     pendingDef *pp;
 
 #ifdef WITH_THREAD
-    threadDef *td;
+    threadDef *thread;
 
-    if ((td = currentThreadDef()) != NULL)
-        pp = &td->pending;
+    if ((thread = currentThreadDef()) != NULL)
+        pp = &thread->pending;
     else
         pp = &pending;
 #else
@@ -81,7 +81,7 @@ void *sipGetPending(sipWrapper **op, int *fp)
 /*
  * Convert a new C/C++ pointer to a Python instance.
  */
-PyObject *sipWrapSimpleInstance(void *cppPtr, sipWrapperType *type,
+PyObject *sipWrapSimpleInstance(void *cppPtr, sipTypeDef *td,
         sipWrapper *owner, int flags)
 {
     static PyObject *nullargs = NULL;
@@ -89,7 +89,7 @@ PyObject *sipWrapSimpleInstance(void *cppPtr, sipWrapperType *type,
     pendingDef old_pending;
     PyObject *self;
 #ifdef WITH_THREAD
-    threadDef *td;
+    threadDef *thread;
 #endif
 
     if (nullargs == NULL && (nullargs = PyTuple_New(0)) == NULL)
@@ -108,13 +108,13 @@ PyObject *sipWrapSimpleInstance(void *cppPtr, sipWrapperType *type,
      * setting the new one.
      */
 #ifdef WITH_THREAD
-    if ((td = currentThreadDef()) != NULL)
+    if ((thread = currentThreadDef()) != NULL)
     {
-        old_pending = td->pending;
+        old_pending = thread->pending;
 
-        td->pending.cpp = cppPtr;
-        td->pending.owner = owner;
-        td->pending.flags = flags;
+        thread->pending.cpp = cppPtr;
+        thread->pending.owner = owner;
+        thread->pending.flags = flags;
     }
     else
     {
@@ -132,11 +132,11 @@ PyObject *sipWrapSimpleInstance(void *cppPtr, sipWrapperType *type,
     pending.flags = flags;
 #endif
 
-    self = PyObject_Call((PyObject *)type, nullargs, NULL);
+    self = PyObject_Call((PyObject *)sipTypePyTypeObject(td), nullargs, NULL);
 
 #ifdef WITH_THREAD
-    if (td != NULL)
-        td->pending = old_pending;
+    if (thread != NULL)
+        thread->pending = old_pending;
     else
         pending = old_pending;
 #else
@@ -154,24 +154,24 @@ PyObject *sipWrapSimpleInstance(void *cppPtr, sipWrapperType *type,
 void sip_api_start_thread(void)
 {
 #ifdef WITH_THREAD
-    threadDef *td;
+    threadDef *thread;
 
     /* Save the thread ID.  First, find an empty slot in the list. */
-    for (td = threads; td != NULL; td = td->next)
-        if (td->thr_ident == 0)
+    for (thread = threads; thread != NULL; thread = thread->next)
+        if (thread->thr_ident == 0)
             break;
 
-    if (td == NULL)
+    if (thread == NULL)
     {
-        td = sip_api_malloc(sizeof (threadDef));
-        td->next = threads;
-        threads = td;
+        thread = sip_api_malloc(sizeof (threadDef));
+        thread->next = threads;
+        threads = thread;
     }
 
-    if (td != NULL)
+    if (thread != NULL)
     {
-        td->thr_ident = PyThread_get_thread_ident();
-        td->pending.cpp = NULL;
+        thread->thr_ident = PyThread_get_thread_ident();
+        thread->pending.cpp = NULL;
     }
 #endif
 }
@@ -184,11 +184,11 @@ void sip_api_start_thread(void)
 void sip_api_end_thread(void)
 {
 #ifdef WITH_THREAD
-    threadDef *td;
+    threadDef *thread;
 
     /* We have the GIL at this point. */
-    if ((td = currentThreadDef()) != NULL)
-        td->thr_ident = 0;
+    if ((thread = currentThreadDef()) != NULL)
+        thread->thr_ident = 0;
 #endif
 }
 
@@ -201,14 +201,14 @@ void sip_api_end_thread(void)
  */
 static threadDef *currentThreadDef(void)
 {
-    threadDef *td;
+    threadDef *thread;
     long ident = PyThread_get_thread_ident();
 
-    for (td = threads; td != NULL; td = td->next)
-        if (td->thr_ident == ident)
+    for (thread = threads; thread != NULL; thread = thread->next)
+        if (thread->thr_ident == ident)
             break;
 
-    return td;
+    return thread;
 }
 
 #endif

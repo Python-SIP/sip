@@ -88,7 +88,7 @@ void sip_api_parse_type(const char *type, sipSigArg *arg);
 void sipFreeSlotList(sipSlotList *rx);
 void sipSaveMethod(sipPyMethod *pm,PyObject *meth);
 void *sipGetPending(sipWrapper **op, int *fp);
-PyObject *sipWrapSimpleInstance(void *cppPtr, sipWrapperType *type,
+PyObject *sipWrapSimpleInstance(void *cppPtr, sipTypeDef *td,
         sipWrapper *owner, int initflags);
 void *sipConvertRxEx(sipWrapper *txSelf, const char *sigargs,
         PyObject *rxObj, const char *slot, const char **memberp, int flags);

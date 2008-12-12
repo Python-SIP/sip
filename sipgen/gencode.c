@@ -568,8 +568,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipRaiseClassException      sipAPI_%s->api_raise_class_exception\n"
 "#define sipRaiseSubClassException   sipAPI_%s->api_raise_sub_class_exception\n"
 "#define sipBadLengthForSlice        sipAPI_%s->api_bad_length_for_slice\n"
-"#define sipAddClassInstance         sipAPI_%s->api_add_class_instance\n"
-"#define sipAddMappedTypeInstance    sipAPI_%s->api_add_mapped_type_instance\n"
+"#define sipAddTypeInstance          sipAPI_%s->api_add_type_instance\n"
 "#define sipAddEnumInstance          sipAPI_%s->api_add_enum_instance\n"
 "#define sipConvertFromNamedEnum     sipAPI_%s->api_convert_from_named_enum\n"
 "#define sipGetAddress               sipAPI_%s->api_get_address\n"
@@ -613,7 +612,6 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipWrappedTypeName(wt)      ((wt)->type->td_cname)\n"
 "#define sipDeprecated               sipAPI_%s->api_deprecated\n"
 "#define sipRegisterPyType           sipAPI_%s->api_register_py_type\n"
-        ,mname
         ,mname
         ,mname
         ,mname
@@ -2501,17 +2499,13 @@ static void generateClassesInline(sipSpec *pt, moduleDef *mod, FILE *fp)
             noIntro = FALSE;
         }
 
-        if (vd->type.atype == class_type)
-            prcode(fp,
-"    sipAddClassInstance(");
-        else
-            prcode(fp,
-"    sipAddMappedTypeInstance(");
+        prcode(fp,
+"    sipAddTypeInstance(");
 
         if (vd->ecd == NULL)
             prcode(fp, "sipModuleDict");
         else
-            prcode(fp, "(PyObject *)sipClass_%C", classFQCName(vd->ecd));
+            prcode(fp, "(PyObject *)sipTypePyTypeObject(sipType_%C)", classFQCName(vd->ecd));
 
         prcode(fp, ",%N,", vd->pyname);
 
@@ -2521,7 +2515,7 @@ static void generateClassesInline(sipSpec *pt, moduleDef *mod, FILE *fp)
             prcode(fp, "&%S", vd->fqcname);
 
         if (vd->type.atype == class_type)
-            prcode(fp, ",sipClass_%C);\n"
+            prcode(fp, ",sipType_%C);\n"
                 , classFQCName(vd->type.u.cd));
         else
             prcode(fp, ",sipType_%T);\n"
@@ -2570,15 +2564,15 @@ static int generateClasses(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
                 prcode(fp,
 "\n"
 "\n"
-"/* Define the class instances to be added to this type dictionary. */\n"
-"static sipClassInstanceDef classInstances_%C[] = {\n"
+"/* Define the type instances to be added to this type dictionary. */\n"
+"static sipTypeInstanceDef typeInstances_%C[] = {\n"
                     , classFQCName(cd));
             else
                 prcode(fp,
 "\n"
 "\n"
-"/* Define the class instances to be added to this module dictionary. */\n"
-"static sipClassInstanceDef classInstances[] = {\n"
+"/* Define the type instances to be added to this module dictionary. */\n"
+"static sipTypeInstanceDef typeInstances[] = {\n"
                     );
 
             noIntro = FALSE;
@@ -2589,25 +2583,25 @@ static int generateClasses(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
         if (vd->accessfunc != NULL)
         {
             prcode(fp,
-"    {%N, (void *)access_%C, &sipClass_%C, SIP_ACCFUNC},\n"
+"    {%N, (void *)access_%C, sipType_%C, SIP_ACCFUNC},\n"
                 , vd->pyname, vd->fqcname, vcname);
         }
         else if (vd->type.nrderefs != 0)
         {
             prcode(fp,
-"    {%N, &%S, &sipClass_%C, SIP_INDIRECT},\n"
+"    {%N, &%S, sipType_%C, SIP_INDIRECT},\n"
                 , vd->pyname, vd->fqcname, vcname);
         }
         else if (isConstArg(&vd->type))
         {
             prcode(fp,
-"    {%N, const_cast<%b *>(&%S), &sipClass_%C, 0},\n"
+"    {%N, const_cast<%b *>(&%S), sipType_%C, 0},\n"
                 , vd->pyname, &vd->type, vd->fqcname, vcname);
         }
         else
         {
             prcode(fp,
-"    {%N, &%S, &sipClass_%C, 0},\n"
+"    {%N, &%S, sipType_%C, 0},\n"
                 , vd->pyname, vd->fqcname, vcname);
         }
     }
@@ -6976,18 +6970,18 @@ static void generateImportedClassAPI(classDef *cd, sipSpec *pt, moduleDef *mod,
 "\n"
 "#if !defined(sipType_%C)\n"
 "#define sipType_%C              sipModuleAPI_%s_%s->em_types[%d]\n"
-"#define sipClass_%C             sipModuleAPI_%s_%s->em_types[%d]->td_wrapper_type\n"
 "#endif\n"
             , classFQCName(cd)
-            , classFQCName(cd), mname, imname, cd->classnr
             , classFQCName(cd), mname, imname, cd->classnr);
     else
         prcode(fp,
 "\n"
 "#define sipType_%C              sipModuleAPI_%s_%s->em_types[%d]\n"
-"#define sipClass_%C             sipModuleAPI_%s_%s->em_types[%d]->td_wrapper_type\n"
-            , classFQCName(cd), mname, imname, cd->classnr
             , classFQCName(cd), mname, imname, cd->classnr);
+
+    prcode(fp,
+"#define sipClass_%C             sipTypePyTypeObject(sipType_%C)\n"
+            , classFQCName(cd), classFQCName(cd));
 
     generateEnumMacros(pt, mod, cd, fp);
 }
@@ -7008,15 +7002,15 @@ static void generateClassAPI(classDef *cd, sipSpec *pt, FILE *fp)
         if (!isExternal(cd))
             prcode(fp,
 "#define sipType_%C              (&sipType_%s_%C)\n"
-"#define sipClass_%C             sipType_%s_%C.td_wrapper_type\n"
-                , classFQCName(cd), mname, classFQCName(cd)
                 , classFQCName(cd), mname, classFQCName(cd));
         else
             prcode(fp,
 "#define sipType_%C              sipModuleAPI_%s.em_types[%d]\n"
-"#define sipClass_%C             sipModuleAPI_%s.em_types[%d]->td_wrapper_type\n"
-                , classFQCName(cd), mname, cd->classnr
                 , classFQCName(cd), mname, cd->classnr);
+
+    prcode(fp,
+"#define sipClass_%C             sipTypePyTypeObject(sipType_%C)\n"
+            , classFQCName(cd), classFQCName(cd));
 
     generateEnumMacros(pt, cd->iff->module, cd, fp);
 

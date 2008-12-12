@@ -60,6 +60,8 @@ extern "C" {
  *      Added the sipSimpleWrapper_Type, sipWrapper_Type, sipWrapperType_Type
  *      and sipVoidPtr_Type type objects.
  *      Added sip_api_register_py_type().
+ *      Replaced sip_api_add_class_instance() and
+ *      sip_api_add_mapped_type_instance() with sip_api_add_type_instance().
  *      Deprecated sipWrapper_Check().
  *
  * 3.8  Added sip_api_register_meta_type() and sip_api_deprecated().
@@ -323,8 +325,8 @@ typedef struct _sipEnumDef {
  * The information describing static instances.
  */
 typedef struct _sipInstancesDef {
-    /* The classes. */
-    struct _sipClassInstanceDef *id_class;
+    /* The types. */
+    struct _sipTypeInstanceDef *id_type;
 
     /* The void *. */
     struct _sipVoidPtrInstanceDef *id_voidp;
@@ -919,21 +921,21 @@ typedef struct _sipDoubleInstanceDef {
 
 
 /*
- * The information describing a class instance to be added to a dictionary.
+ * The information describing a type instance to be added to a dictionary.
  */
-typedef struct _sipClassInstanceDef {
-    /* The class instance name. */
-    const char *ci_name;
+typedef struct _sipTypeInstanceDef {
+    /* The type instance name. */
+    const char *ti_name;
 
     /* The actual instance. */
-    void *ci_ptr;
+    void *ti_ptr;
 
     /* A pointer to the Python type. */
-    struct _sipWrapperType **ci_type;
+    struct _sipTypeDef *ti_type;
 
     /* The wrapping flags. */
-    int ci_flags;
-} sipClassInstanceDef;
+    int ti_flags;
+} sipTypeInstanceDef;
 
 
 /*
@@ -1244,8 +1246,8 @@ typedef struct _sipAPIDef {
     void (*api_raise_unknown_exception)(void);
     void (*api_raise_class_exception)(sipWrapperType *type, void *ptr);
     void (*api_raise_sub_class_exception)(sipWrapperType *type, void *ptr);
-    int (*api_add_class_instance)(PyObject *dict, const char *name,
-            void *cppPtr, sipWrapperType *wt);
+    int (*api_add_type_instance)(PyObject *dict, const char *name,
+            void *cppPtr, sipTypeDef *td);
     int (*api_add_enum_instance)(PyObject *dict, const char *name, int value,
             PyTypeObject *type);
     void (*api_bad_operator_arg)(PyObject *self, PyObject *arg,
@@ -1253,8 +1255,6 @@ typedef struct _sipAPIDef {
     PyObject *(*api_pyslot_extend)(sipExportedModuleDef *mod, sipPySlotType st,
             sipTypeDef *type, PyObject *arg0, PyObject *arg1);
     void (*api_add_delayed_dtor)(sipSimpleWrapper *w);
-    int (*api_add_mapped_type_instance)(PyObject *dict, const char *name,
-            void *cppPtr, const sipMappedType *mt);
     char (*api_string_as_char)(PyObject *obj);
 #if defined(HAVE_WCHAR_H)
     wchar_t (*api_unicode_as_wchar)(PyObject *obj);
@@ -1357,12 +1357,16 @@ typedef struct _sipQtAPI {
 #define SIP_TYPE_FLAGS_SHIFT    8   /* The user type flags shift. */
 #define SIP_TYPE_FLAGS_MASK 0x0f00  /* The user type flags mask. */
 
+/* These are part of the public API. */
 #define sipTypeIsClass(td)  (((td)->td_flags & SIP_TYPE_TYPE_MASK) == SIP_TYPE_CLASS)
 #define sipTypeIsNamespace(td)  (((td)->td_flags & SIP_TYPE_TYPE_MASK) == SIP_TYPE_NAMESPACE)
 #define sipTypeIsMapped(td) (((td)->td_flags & SIP_TYPE_TYPE_MASK) == SIP_TYPE_MAPPED)
+#define sipTypeFlags(td)    (((td)->td_flags & SIP_TYPE_FLAGS_MASK) >> SIP_TYPE_FLAGS_SHIFT)
+#define sipTypePyTypeObject(td) ((td)->td_wrapper_type)
+
+/* These aren't part of the public API. */
 #define sipTypeIsAbstract(td)   ((td)->td_flags & SIP_TYPE_ABSTRACT)
 #define sipTypeHasSCC(td)   ((td)->td_flags & SIP_TYPE_SCC)
-#define sipTypeFlags(td)    (((td)->td_flags & SIP_TYPE_FLAGS_MASK) >> SIP_TYPE_FLAGS_SHIFT)
 
 
 #ifdef __cplusplus
