@@ -211,6 +211,10 @@ The following parts of the API are now deprecated.
 
     - `sipGetWrapper()`_
 
+    - `sipReleaseInstance()`_
+
+    - `sipReleaseMappedType()`_
+
     - `sipWrapper_Check()`_
 
 
@@ -1959,7 +1963,7 @@ The following example converts a Python list of ``QPoint`` instances to a
             // Deal with any errors.
             if (*sipIsErr)
             {
-                sipReleaseInstance(qp, sipClass_QPoint, state);
+                sipReleaseType(qp, sipType_QPoint, state);
 
                 // Tidy up.
                 delete ql;
@@ -1973,8 +1977,8 @@ The following example converts a Python list of ``QPoint`` instances to a
             // A copy of the QPoint was appended to the list so we no longer
             // need it.  It may be a temporary instance that should be
             // destroyed, or a wrapped instance that should not be destroyed.
-            // sipReleaseInstance() will do the right thing.
-            sipReleaseInstance(qp, sipClass_QPoint, state);
+            // sipReleaseType() will do the right thing.
+            sipReleaseType(qp, sipType_QPoint, state);
         }
 
         // Return the instance.
@@ -3718,9 +3722,9 @@ NoRelease
 *********
 
 This boolean annotation is used to specify that the mapped type does not
-support the `sipReleaseMappedType()`_ function.  Any `%ConvertToTypeCode`_
-should not create temporary instances of the mapped type, i.e. it should not
-return ``SIP_TEMPORARY``.
+support the `sipReleaseType()`_ function.  Any `%ConvertToTypeCode`_ should not
+create temporary instances of the mapped type, i.e. it should not return
+``SIP_TEMPORARY``.
 
 
 Enum Annotations
@@ -4419,12 +4423,12 @@ void \*sipConvertToInstance(PyObject \*obj, sipWrapperType \*type, PyObject \*tr
     If *state* is not ``NULL`` then the location it points to is set to
     describe the state of the returned C/C++ instance and is the value returned
     by any `%ConvertToTypeCode`_.  The calling code must then release the value
-    at some point to prevent a memory leak by calling `sipReleaseInstance()`_.
-    If there is an error then the location *iserr* points to is set to a
-    non-zero value.  If it was initially a non-zero value then the conversion
-    isn't attempted in the first place.  (This allows several calls to be made
-    that share the same error flag so that it only needs to be tested once
-    rather than after each call.)
+    at some point to prevent a memory leak by calling `sipReleaseType()`_.  If
+    there is an error then the location *iserr* points to is set to a non-zero
+    value.  If it was initially a non-zero value then the conversion isn't
+    attempted in the first place.  (This allows several calls to be made that
+    share the same error flag so that it only needs to be tested once rather
+    than after each call.)
 
 
 sipConvertToMappedType()
@@ -4447,12 +4451,12 @@ void \*sipConvertToMappedType(PyObject \*obj, const sipMappedType \*mt, PyObject
     If *state* is not ``NULL`` then the location it points to is set to
     describe the state of the returned C/C++ instance and is the value returned
     by any `%ConvertToTypeCode`_.  The calling code must then release the value
-    at some point to prevent a memory leak by calling
-    `sipReleaseMappedType()`_.  If there is an error then the location *iserr*
-    points to is set to a non-zero value.  If it was initially a non-zero value
-    then the conversion isn't attempted in the first place.  (This allows
-    several calls to be made that share the same error flag so that it only
-    needs to be tested once rather than after each call.)
+    at some point to prevent a memory leak by calling `sipReleaseType()`_.  If
+    there is an error then the location *iserr* points to is set to a non-zero
+    value.  If it was initially a non-zero value then the conversion isn't
+    attempted in the first place.  (This allows several calls to be made that
+    share the same error flag so that it only needs to be tested once rather
+    than after each call.)
 
 
 sipConvertToVoidPtr()
@@ -4845,6 +4849,8 @@ void sipReleaseInstance(void \*cpp, sipWrapperType \*type, int state)
     *type* is the generated type corresponding to *cpp*.  *state* describes the
     state of the instance.
 
+    This is deprecated.  Instead you should use `sipReleaseType()`_.
+
 
 sipReleaseMappedType()
 ----------------------
@@ -4855,6 +4861,18 @@ void sipReleaseMappedType(void \*cpp, const sipMappedType \*mt, int state)
     `sipForceConvertToMappedType()`_.  *cpp* is the wrapped C/C++ instance.
     *mt* is the opaque structure returned by `sipFindMappedType()`_.  *state*
     describes the state of the instance.
+
+    This is deprecated.  Instead you should use `sipReleaseType()`_.
+
+
+sipReleaseType()
+----------------
+
+void sipReleaseType(void \*cpp, sipTypeDef \*td, int state)
+    This destroys a wrapped C/C++ or mapped type instance if it was a temporary
+    instance.  It is called after a call to either `sipConvertToType()`_ or
+    `sipForceConvertToType()`_.  *cpp* is the wrapped C/C++ instance.  *td* is
+    the generated type structure.  *state* describes the state of the instance.
 
 
 sipSimpleWrapper

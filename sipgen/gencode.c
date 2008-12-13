@@ -578,8 +578,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipConvertToMappedType      sipAPI_%s->api_convert_to_mapped_type\n"
 "#define sipForceConvertToInstance   sipAPI_%s->api_force_convert_to_instance\n"
 "#define sipForceConvertToMappedType sipAPI_%s->api_force_convert_to_mapped_type\n"
-"#define sipReleaseInstance          sipAPI_%s->api_release_instance\n"
-"#define sipReleaseMappedType        sipAPI_%s->api_release_mapped_type\n"
+"#define sipReleaseType              sipAPI_%s->api_release_type\n"
 "#define sipConvertFromInstance      sipAPI_%s->api_convert_from_instance\n"
 "#define sipConvertFromNewInstance   sipAPI_%s->api_convert_from_new_instance\n"
 "#define sipConvertFromMappedType    sipAPI_%s->api_convert_from_mapped_type\n"
@@ -610,7 +609,8 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "/* These are deprecated. */\n"
 "#define sipWrapper_Check(w)         PyObject_TypeCheck((w), sipAPI_%s->api_wrapper_type)\n"
 "#define sipGetWrapper(p, wt)        sipGetPyObject((p), (wt)->type)\n"
-        ,mname
+"#define sipReleaseInstance(p, wt, s)    sipReleaseType((p), (wt)->type, (s))\n"
+"#define sipReleaseMappedType        sipReleaseType\n"
         ,mname
         ,mname
         ,mname
@@ -4085,12 +4085,12 @@ static void generateVariableHandler(classDef *context, varDef *vd, FILE *fp)
         if (might_be_temp)
             prcode(fp,
 "\n"
-"    sipReleaseInstance(sipVal,sipClass_%C,sipValState);\n"
+"    sipReleaseType(sipVal,sipType_%C,sipValState);\n"
                 , classFQCName(vd->type.u.cd));
         else if (vd->type.atype == mapped_type && vd->type.nrderefs == 0 && !noRelease(vd->type.u.mtd))
             prcode(fp,
 "\n"
-"    sipReleaseMappedType(sipVal,sipType_%T,sipValState);\n"
+"    sipReleaseType(sipVal,sipType_%T,sipValState);\n"
                 , &vd->type);
     }
 
@@ -6376,7 +6376,7 @@ static void generateVirtualHandler(virtHandlerDef *vhd, FILE *fp)
                 );
         else if (res->atype == class_type && res->u.cd->convtocode != NULL)
             prcode(fp,
-"        sipReleaseInstance(sipResOrig,sipClass_%C,sipResState);\n"
+"        sipReleaseType(sipResOrig,sipType_%C,sipResState);\n"
                 , classFQCName(res->u.cd));
 
         prcode(fp,

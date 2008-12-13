@@ -62,6 +62,8 @@ extern "C" {
  *      Added sip_api_register_py_type().
  *      Replaced sip_api_add_class_instance() and
  *      sip_api_add_mapped_type_instance() with sip_api_add_type_instance().
+ *      Replaced sip_api_release_instance() and
+ *      sip_api_release_mapped_type() with sip_api_release_type().
  *      Replaced sip_api_raise_class_exception() and
  *      sip_api_raise_sub_class_exception() with
  *      sip_api_raise_type_exception().
@@ -1172,9 +1174,7 @@ typedef struct _sipAPIDef {
     void *(*api_force_convert_to_mapped_type)(PyObject *pyObj,
             const sipMappedType *mt, PyObject *transferObj, int flags,
             int *statep, int *iserrp);
-    void (*api_release_instance)(void *cpp, sipWrapperType *type, int state);
-    void (*api_release_mapped_type)(void *cpp, const sipMappedType *mt,
-            int state);
+    void (*api_release_type)(void *cpp, sipTypeDef *td, int state);
     PyObject *(*api_convert_from_instance)(void *cpp, sipWrapperType *type,
             PyObject *transferObj);
     PyObject *(*api_convert_from_new_instance)(void *cpp, sipWrapperType *type,

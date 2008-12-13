@@ -47,10 +47,7 @@ static void *sip_api_force_convert_to_instance(PyObject *pyObj,
 static void *sip_api_force_convert_to_mapped_type(PyObject *pyObj,
         const sipMappedType *mt, PyObject *transferObj, int flags, int *statep,
         int *iserrp);
-static void sip_api_release_instance(void *cpp, sipWrapperType *type,
-        int state);
-static void sip_api_release_mapped_type(void *cpp, const sipMappedType *mt,
-        int state);
+static void sip_api_release_type(void *cpp, sipTypeDef *td, int state);
 static PyObject *sip_api_convert_from_new_instance(void *cpp,
         sipWrapperType *type, PyObject *transferObj);
 static PyObject *sip_api_convert_from_mapped_type(void *cpp,
@@ -153,8 +150,7 @@ static const sipAPIDef sip_api = {
     sip_api_convert_to_mapped_type,
     sip_api_force_convert_to_instance,
     sip_api_force_convert_to_mapped_type,
-    sip_api_release_instance,
-    sip_api_release_mapped_type,
+    sip_api_release_type,
     sip_api_convert_from_instance,
     sip_api_convert_from_new_instance,
     sip_api_convert_from_mapped_type,
@@ -5503,13 +5499,13 @@ static void *sip_api_force_convert_to_mapped_type(PyObject *pyObj,
 
 
 /*
- * Release a possibly temporary instance created by a type convertor.
+ * Release a possibly temporary C/C++ instance created by a type convertor.
  */
-static void sip_api_release_instance(void *cpp, sipWrapperType *type, int state)
+static void sip_api_release_type(void *cpp, sipTypeDef *td, int state)
 {
     /* See if there is something to release. */
     if (state & SIP_TEMPORARY)
-        release(cpp, type->type, state);
+        release(cpp, td, state);
 }
 
 
@@ -5528,29 +5524,6 @@ static void release(void *addr, sipTypeDef *td, int state)
         sip_api_free(addr);
     else
         rel(addr, state);
-}
-
-
-/*
- * Release a possibly temporary mapped type created by a type convertor.
- */
-static void sip_api_release_mapped_type(void *cpp, const sipMappedType *mt,
-                    int state)
-{
-    /* See if there is something to release. */
-    if (state & SIP_TEMPORARY)
-    {
-        sipReleaseFunc rel = mt->td_release;
-
-        /*
-         * If there is no release function then it must be a C structure and we
-         * can just free it.
-         */
-        if (rel == NULL)
-            sip_api_free(cpp);
-        else
-            rel(cpp, state);
-    }
 }
 
 
