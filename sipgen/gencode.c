@@ -520,9 +520,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
     prcode(fp,
 "\n"
 "/* Convenient names to call the SIP API. */\n"
-"#define sipConvertFromSliceObject(o,len,start,stop,step,slen)   PySlice_GetIndicesEx((PySliceObject *)(o),(len),(start),(stop),(step),(slen))\n"
 "#define sipWrapper_Check(w)         PyObject_TypeCheck((w), sipAPI_%s->api_wrapper_type)\n"
-"#define sipClassName(w)             PyString_FromString((w)->ob_type->tp_name)\n"
 "\n"
 "#define sipMapStringToClass         sipAPI_%s->api_map_string_to_class\n"
 "#define sipMapIntToClass            sipAPI_%s->api_map_int_to_class\n"
@@ -565,8 +563,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipDisconnectRx             sipAPI_%s->api_disconnect_rx\n"
 "#define sipGetSender                sipAPI_%s->api_get_sender\n"
 "#define sipRaiseUnknownException    sipAPI_%s->api_raise_unknown_exception\n"
-"#define sipRaiseClassException      sipAPI_%s->api_raise_class_exception\n"
-"#define sipRaiseSubClassException   sipAPI_%s->api_raise_sub_class_exception\n"
+"#define sipRaiseTypeException       sipAPI_%s->api_raise_type_exception\n"
 "#define sipBadLengthForSlice        sipAPI_%s->api_bad_length_for_slice\n"
 "#define sipAddTypeInstance          sipAPI_%s->api_add_type_instance\n"
 "#define sipAddEnumInstance          sipAPI_%s->api_add_enum_instance\n"
@@ -606,14 +603,11 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipConvertFromConstVoidPtrAndSize   sipAPI_%s->api_convert_from_const_void_ptr_and_size\n"
 "#define sipInvokeSlot               sipAPI_%s->api_invoke_slot\n"
 "#define sipParseType                sipAPI_%s->api_parse_type\n"
-"#define sipIsExactWrappedType       sipAPI_%s->api_is_exact_wrapped_type\n"
 "#define sipAssignType               sipAPI_%s->api_assign_type\n"
 "#define sipRegisterQtMetatype       sipAPI_%s->api_register_qt_metatype\n"
 "#define sipWrappedTypeName(wt)      ((wt)->type->td_cname)\n"
 "#define sipDeprecated               sipAPI_%s->api_deprecated\n"
 "#define sipRegisterPyType           sipAPI_%s->api_register_py_type\n"
-        ,mname
-        ,mname
         ,mname
         ,mname
         ,mname
@@ -3779,11 +3773,11 @@ static void generateVariableHandler(classDef *context, varDef *vd, FILE *fp)
     {
         if (generating_c)
             prcode(fp,
-"    %S *sipCpp = (%S *)sipGetCppPtr((sipSimpleWrapper *)sipSelf,sipClass_%C);\n"
+"    %S *sipCpp = (%S *)sipGetCppPtr((sipSimpleWrapper *)sipSelf,sipType_%C);\n"
                 ,classFQCName(vd->ecd),classFQCName(vd->ecd),classFQCName(vd->ecd));
         else
             prcode(fp,
-"    %S *sipCpp = reinterpret_cast<%S *>(sipGetCppPtr((sipSimpleWrapper *)sipSelf,sipClass_%C));\n"
+"    %S *sipCpp = reinterpret_cast<%S *>(sipGetCppPtr((sipSimpleWrapper *)sipSelf,sipType_%C));\n"
                 ,classFQCName(vd->ecd),classFQCName(vd->ecd),classFQCName(vd->ecd));
 
         prcode(fp,
@@ -4557,7 +4551,7 @@ static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
     {
         if (cd != NULL)
             prcode(fp,
-"    %S *sipCpp = reinterpret_cast<%S *>(sipGetCppPtr((sipSimpleWrapper *)sipSelf,sipClass_%C));\n"
+"    %S *sipCpp = reinterpret_cast<%S *>(sipGetCppPtr((sipSimpleWrapper *)sipSelf,sipType_%C));\n"
 "\n"
 "    if (!sipCpp)\n"
 "        return %s;\n"
@@ -8706,9 +8700,9 @@ static void generateCatch(throwArgs *ta, signatureDef *sd, FILE *fp)
 "                /* Hope that there is a valid copy ctor. */\n"
 "                %S *sipExceptionCopy = new %S(sipExceptionRef);\n"
 "\n"
-"                sipRaise%sClassException(sipClass_%C,sipExceptionCopy);\n"
+"                sipRaiseTypeException(sipType_%C,sipExceptionCopy);\n"
                         , ename, ename
-                        , (xd->cd->subbase != NULL ? "Sub" : ""), ename);
+                        , ename);
                 else
                     generateCppCodeBlock(xd->raisecode,fp);
 

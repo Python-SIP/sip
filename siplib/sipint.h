@@ -67,7 +67,7 @@ sipSignature *sip_api_parse_signature(const char *sig);
  */
 void *sip_api_malloc(size_t nbytes);
 void sip_api_free(void *mem);
-void *sip_api_get_cpp_ptr(sipSimpleWrapper *w, sipWrapperType *type);
+void *sip_api_get_cpp_ptr(sipSimpleWrapper *w, sipTypeDef *td);
 PyObject *sip_api_convert_from_instance(void *cppPtr, sipWrapperType *type,
         PyObject *transferObj);
 void sip_api_common_dtor(sipSimpleWrapper *sipSelf);
@@ -95,8 +95,7 @@ void *sipConvertRxEx(sipWrapper *txSelf, const char *sigargs,
 
 void sipOMInit(sipObjectMap *om);
 void sipOMFinalise(sipObjectMap *om);
-sipSimpleWrapper *sipOMFindObject(sipObjectMap *om, void *key,
-        sipWrapperType *type);
+sipSimpleWrapper *sipOMFindObject(sipObjectMap *om, void *key, sipTypeDef *td);
 void sipOMAddObject(sipObjectMap *om, sipSimpleWrapper *val);
 int sipOMRemoveObject(sipObjectMap *om, sipSimpleWrapper *val);
 

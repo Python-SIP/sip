@@ -92,11 +92,11 @@ static sipHashEntry *findHashEntry(sipObjectMap *om,void *key)
  * Return the wrapped Python object of a specific type for a C/C++ address or
  * NULL if it wasn't found.
  */
-sipSimpleWrapper *sipOMFindObject(sipObjectMap *om, void *key,
-        sipWrapperType *type)
+sipSimpleWrapper *sipOMFindObject(sipObjectMap *om, void *key, sipTypeDef *td)
 {
     sipHashEntry *he = findHashEntry(om, key);
     sipSimpleWrapper *sw;
+    PyTypeObject *py_type = (PyTypeObject *)sipTypePyTypeObject(td);
 
     /* Go through each wrapped object at this address. */
     for (sw = he->first; sw != NULL; sw = sw->next)
@@ -115,7 +115,7 @@ sipSimpleWrapper *sipOMFindObject(sipObjectMap *om, void *key,
          * If this wrapped object is of the given type, or a sub-type of it,
          * then we assume it is the same C++ object.
          */
-        if (PyObject_TypeCheck(sw, (PyTypeObject *)type))
+        if (PyObject_TypeCheck(sw, py_type))
             return sw;
     }
 

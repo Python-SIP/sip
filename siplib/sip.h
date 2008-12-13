@@ -62,6 +62,10 @@ extern "C" {
  *      Added sip_api_register_py_type().
  *      Replaced sip_api_add_class_instance() and
  *      sip_api_add_mapped_type_instance() with sip_api_add_type_instance().
+ *      Replaced sip_api_raise_class_exception() and
+ *      sip_api_raise_sub_class_exception() with
+ *      sip_api_raise_type_exception().
+ *      Replaced sip_api_is_exact_wrapped_type() with a macro.
  *      Deprecated sipWrapper_Check().
  *
  * 3.8  Added sip_api_register_meta_type() and sip_api_deprecated().
@@ -1218,7 +1222,6 @@ typedef struct _sipAPIDef {
     sipSignature *(*api_parse_signature)(const char *sig);
     PyObject *(*api_invoke_slot)(const sipSlot *slot, PyObject *sigargs);
     void (*api_parse_type)(const char *type, sipSigArg *arg);
-    int (*api_is_exact_wrapped_type)(sipWrapperType *wt);
     int (*api_assign_type)(void *dst, const void *src, sipTypeDef *td);
 
     /*
@@ -1236,7 +1239,7 @@ typedef struct _sipAPIDef {
     void (*api_abstract_method)(const char *classname, const char *method);
     void (*api_bad_class)(const char *classname);
     void (*api_bad_set_type)(const char *classname, const char *var);
-    void *(*api_get_cpp_ptr)(sipSimpleWrapper *w, sipWrapperType *type);
+    void *(*api_get_cpp_ptr)(sipSimpleWrapper *w, sipTypeDef *td);
     void *(*api_get_complex_cpp_ptr)(sipSimpleWrapper *w);
     PyObject *(*api_is_py_method)(sip_gilstate_t *gil, sipMethodCache *pymc,
             sipSimpleWrapper *sipSelf, const char *cname, const char *mname);
@@ -1244,8 +1247,7 @@ typedef struct _sipAPIDef {
     void (*api_start_thread)(void);
     void (*api_end_thread)(void);
     void (*api_raise_unknown_exception)(void);
-    void (*api_raise_class_exception)(sipWrapperType *type, void *ptr);
-    void (*api_raise_sub_class_exception)(sipWrapperType *type, void *ptr);
+    void (*api_raise_type_exception)(sipTypeDef *td, void *ptr);
     int (*api_add_type_instance)(PyObject *dict, const char *name,
             void *cppPtr, sipTypeDef *td);
     int (*api_add_enum_instance)(PyObject *dict, const char *name, int value,
@@ -1357,14 +1359,32 @@ typedef struct _sipQtAPI {
 #define SIP_TYPE_FLAGS_SHIFT    8   /* The user type flags shift. */
 #define SIP_TYPE_FLAGS_MASK 0x0f00  /* The user type flags mask. */
 
-/* These are part of the public API. */
+
+/*
+ * The following are part of the public API.
+ */
 #define sipTypeIsClass(td)  (((td)->td_flags & SIP_TYPE_TYPE_MASK) == SIP_TYPE_CLASS)
 #define sipTypeIsNamespace(td)  (((td)->td_flags & SIP_TYPE_TYPE_MASK) == SIP_TYPE_NAMESPACE)
 #define sipTypeIsMapped(td) (((td)->td_flags & SIP_TYPE_TYPE_MASK) == SIP_TYPE_MAPPED)
 #define sipTypeFlags(td)    (((td)->td_flags & SIP_TYPE_FLAGS_MASK) >> SIP_TYPE_FLAGS_SHIFT)
 #define sipTypePyTypeObject(td) ((td)->td_wrapper_type)
 
-/* These aren't part of the public API. */
+#define sipIsExactWrappedType(wt)   (sipTypePyTypeObject((wt)->type) == (wt))
+
+#define sipConvertFromSliceObject(o,len,start,stop,step,slen) \
+        PySlice_GetIndicesEx((PySliceObject *)(o), (len), (start), (stop), \
+                (step), (slen))
+
+
+/*
+ * The following are deprecated parts of the public API.
+ */
+#define sipClassName(w)     PyString_FromString((w)->ob_type->tp_name)
+
+
+/*
+ * The following are not part of the public API.
+ */
 #define sipTypeIsAbstract(td)   ((td)->td_flags & SIP_TYPE_ABSTRACT)
 #define sipTypeHasSCC(td)   ((td)->td_flags & SIP_TYPE_SCC)
 

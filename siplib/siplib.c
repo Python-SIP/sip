@@ -89,8 +89,7 @@ static PyObject *sip_api_is_py_method(sip_gilstate_t *gil,
         const char *mname);
 static void sip_api_call_hook(const char *hookname);
 static void sip_api_raise_unknown_exception(void);
-static void sip_api_raise_class_exception(sipWrapperType *type, void *ptr);
-static void sip_api_raise_sub_class_exception(sipWrapperType *type, void *ptr);
+static void sip_api_raise_type_exception(sipTypeDef *td, void *ptr);
 static int sip_api_add_type_instance(PyObject *dict, const char *name,
         void *cppPtr, sipTypeDef *td);
 static int sip_api_add_enum_instance(PyObject *dict, const char *name,
@@ -121,7 +120,6 @@ static PyObject *sip_api_convert_from_void_ptr_and_size(void *val,
         SIP_SSIZE_T size);
 static PyObject *sip_api_convert_from_const_void_ptr_and_size(const void *val,
         SIP_SSIZE_T size);
-static int sip_api_is_exact_wrapped_type(sipWrapperType *wt);
 static int sip_api_assign_type(void *dst, const void *src, sipTypeDef *td);
 static void sip_api_register_qt_metatype(int type, sipTypeDef *td);
 static int sip_api_deprecated(const char *classname, const char *method);
@@ -198,7 +196,6 @@ static const sipAPIDef sip_api = {
     sip_api_parse_signature,
     sip_api_invoke_slot,
     sip_api_parse_type,
-    sip_api_is_exact_wrapped_type,
     sip_api_assign_type,
     /*
      * The following are not part of the public API.
@@ -219,8 +216,7 @@ static const sipAPIDef sip_api = {
     sip_api_start_thread,
     sip_api_end_thread,
     sip_api_raise_unknown_exception,
-    sip_api_raise_class_exception,
-    sip_api_raise_sub_class_exception,
+    sip_api_raise_type_exception,
     sip_api_add_type_instance,
     sip_api_add_enum_instance,
     sip_api_bad_operator_arg,
@@ -722,7 +718,7 @@ static PyObject *cast(PyObject *self, PyObject *args)
         return NULL;
     }
 
-    if ((addr = sip_api_get_cpp_ptr(sw, type)) == NULL)
+    if ((addr = sip_api_get_cpp_ptr(sw, type->type)) == NULL)
         return NULL;
 
     /*
@@ -3102,7 +3098,7 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, int nrargs,
             type = va_arg(va,sipWrapperType *);
             p = va_arg(va,void **);
 
-            if ((*p = sip_api_get_cpp_ptr(self,type)) == NULL)
+            if ((*p = sip_api_get_cpp_ptr(self, type->type)) == NULL)
                 valid = PARSE_RAISED;
 
             break;
@@ -5232,7 +5228,7 @@ static PyObject *sip_api_is_py_method(sip_gilstate_t *gil,
  */
 static PyObject *sip_api_get_wrapper(void *cppPtr,sipWrapperType *type)
 {
-    return (PyObject *)sipOMFindObject(&cppPyMap,cppPtr,type);
+    return (PyObject *)sipOMFindObject(&cppPyMap, cppPtr, type->type);
 }
 
 
@@ -5275,7 +5271,7 @@ static void *getComplexCppPtr(sipSimpleWrapper *sw, sipWrapperType *type)
         return NULL;
     }
 
-    return sip_api_get_cpp_ptr(sw, type);
+    return sip_api_get_cpp_ptr(sw, type->type);
 }
 
 
@@ -5283,15 +5279,15 @@ static void *getComplexCppPtr(sipSimpleWrapper *sw, sipWrapperType *type)
  * Get the C/C++ pointer from a wrapper and optionally cast it to the required
  * type.
  */
-void *sip_api_get_cpp_ptr(sipSimpleWrapper *sw, sipWrapperType *type)
+void *sip_api_get_cpp_ptr(sipSimpleWrapper *sw, sipTypeDef *td)
 {
     void *ptr = sipGetAddress(sw);
 
     if (checkPointer(ptr) < 0)
         return NULL;
 
-    if (type != NULL)
-        ptr = cast_cpp_ptr(ptr, (sipWrapperType *)sw->ob_type, type->type);
+    if (td != NULL)
+        ptr = cast_cpp_ptr(ptr, (sipWrapperType *)sw->ob_type, td);
 
     return ptr;
 }
@@ -5378,17 +5374,19 @@ static void *sip_api_convert_to_instance(PyObject *pyObj, sipWrapperType *type,
 {
     void *cpp = NULL;
     int state = 0;
-    sipConvertToFunc cto = type->type->td_cto;
 
     /* Don't convert if there has already been an error. */
     if (!*iserrp)
     {
+        sipTypeDef *td = type->type;
+        sipConvertToFunc cto = td->td_cto;
+
         /* Do the conversion. */
         if (pyObj == Py_None)
             cpp = NULL;
         else if (cto == NULL || (flags & SIP_NO_CONVERTORS) != 0)
         {
-            if ((cpp = sip_api_get_cpp_ptr((sipSimpleWrapper *)pyObj, type)) == NULL)
+            if ((cpp = sip_api_get_cpp_ptr((sipSimpleWrapper *)pyObj, td)) == NULL)
                 *iserrp = TRUE;
             else if (transferObj != NULL)
             {
@@ -5926,38 +5924,20 @@ static void sip_api_raise_unknown_exception(void)
 
 
 /*
- * Raise an exception implemented as a class.  Make no assumptions about the
+ * Raise an exception implemented as a type.  Make no assumptions about the
  * GIL.
  */
-static void sip_api_raise_class_exception(sipWrapperType *type, void *ptr)
+static void sip_api_raise_type_exception(sipTypeDef *td, void *ptr)
 {
     PyObject *self;
 
-    SIP_BLOCK_THREADS
-
-    self = sipWrapSimpleInstance(ptr, type->type, NULL, SIP_PY_OWNED);
-
-    PyErr_SetObject((PyObject *)type, self);
-
-    Py_XDECREF(self);
-
-    SIP_UNBLOCK_THREADS
-}
-
-
-/*
- * Raise an exception implemented as a class or sub-class.  Make no assumptions
- * about the GIL.
- */
-static void sip_api_raise_sub_class_exception(sipWrapperType *type, void *ptr)
-{
-    PyObject *self;
+    assert(sipTypeIsClass(td));
 
     SIP_BLOCK_THREADS
 
-    self = sipWrapSimpleInstance(ptr, type->type, NULL, SIP_PY_OWNED);
+    self = sipWrapSimpleInstance(ptr, td, NULL, SIP_PY_OWNED);
 
-    PyErr_SetObject((PyObject *)type, self);
+    PyErr_SetObject((PyObject *)sipTypePyTypeObject(td), self);
 
     Py_XDECREF(self);
 
@@ -6611,30 +6591,6 @@ static PyObject *make_voidptr(void *voidptr, SIP_SSIZE_T size, int rw)
 }
 
 
-/*
- * Return TRUE if a type is a wrapped type, rather than a sub-type implemented
- * in Python or the super-type.
- */
-static int sip_api_is_exact_wrapped_type(sipWrapperType *wt)
-{
-    const char *name;
-
-    /*
-     * We check by comparing the actual type name with the name used to create
-     * the original wrapped type.  An alternative approach would be to add a
-     * flag to sipWrapperType that was only set by createType().
-     */
-#if PY_VERSION_HEX >= 0x02050000
-    if ((name = PyString_AsString(wt->super.ht_name)) == NULL)
-#else
-    if ((name = PyString_AsString(wt->super.name)) == NULL)
-#endif
-        return FALSE;
-
-    return (strcmp(name, getPyNameOfType(wt->type)) == 0);
-}
-
-
 /*****************************************************************************
  * The Python metatype for a C++ wrapper type.
  *****************************************************************************/
@@ -6733,7 +6689,7 @@ static PyObject *sipWrapperType_getattro(PyObject *obj,PyObject *name)
         dict = ((PyTypeObject *)wt)->tp_dict;
 
         /* The base type doesn't have any type information. */
-        if ((td = wt->type) == NULL || !sip_api_is_exact_wrapped_type(wt))
+        if ((td = wt->type) == NULL || !sipIsExactWrappedType(wt))
         {
             Py_INCREF(dict);
             return dict;
@@ -6980,7 +6936,7 @@ static PyObject *sipSimpleWrapper_new(sipWrapperType *wt, PyObject *args,
         }
 
         /* See if it is an abstract type. */
-        if (sipTypeIsAbstract(td) && sip_api_is_exact_wrapped_type(wt))
+        if (sipTypeIsAbstract(td) && sipIsExactWrappedType(wt))
         {
             PyErr_Format(PyExc_TypeError,
                     "%s.%s represents a C++ abstract class and cannot be instantiated",
@@ -7391,7 +7347,7 @@ static PyObject *sipSimpleWrapper_getattro(PyObject *obj, PyObject *name)
     {
         PyObject *tmpdict = NULL;
 
-        if (sip_api_is_exact_wrapped_type(wt) && getNonStaticVariables(wt, sw, &tmpdict) < 0)
+        if (sipIsExactWrappedType(wt) && getNonStaticVariables(wt, sw, &tmpdict) < 0)
         {
             Py_XDECREF(tmpdict);
             return NULL;
