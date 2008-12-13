@@ -587,13 +587,12 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipConvertFromNewInstance   sipAPI_%s->api_convert_from_new_instance\n"
 "#define sipConvertFromMappedType    sipAPI_%s->api_convert_from_mapped_type\n"
 "#define sipGetState                 sipAPI_%s->api_get_state\n"
-"#define sipFindMappedType           sipAPI_%s->api_find_mapped_type\n"
 "#define sipLong_AsUnsignedLong      sipAPI_%s->api_long_as_unsigned_long\n"
 "#define sipExportSymbol             sipAPI_%s->api_export_symbol\n"
 "#define sipImportSymbol             sipAPI_%s->api_import_symbol\n"
 "#define sipRegisterIntTypes         sipAPI_%s->api_register_int_types\n"
 "#define sipParseSignature           sipAPI_%s->api_parse_signature\n"
-"#define sipFindClass                sipAPI_%s->api_find_class\n"
+"#define sipFindType                 sipAPI_%s->api_find_type\n"
 "#define sipFindNamedEnum            sipAPI_%s->api_find_named_enum\n"
 "#define sipString_AsChar            sipAPI_%s->api_string_as_char\n"
 "#define sipUnicode_AsWChar          sipAPI_%s->api_unicode_as_wchar\n"
@@ -608,6 +607,9 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipWrappedTypeName(wt)      ((wt)->type->td_cname)\n"
 "#define sipDeprecated               sipAPI_%s->api_deprecated\n"
 "#define sipRegisterPyType           sipAPI_%s->api_register_py_type\n"
+"#define sipFindClass                sipAPI_%s->api_find_class\n"
+"#define sipFindMappedType           sipAPI_%s->api_find_mapped_type\n"
+        ,mname
         ,mname
         ,mname
         ,mname
@@ -1762,7 +1764,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         , mod->nrtypedefs > 0 ? "typedefsTable" : "NULL"
         , mod->nrvirthandlers > 0 ? "virtHandlersTable" : "NULL"
         , nrSccs > 0 ? "convertorsTable" : "NULL"
-        , is_inst_class ? "classInstances" : "NULL"
+        , is_inst_class ? "typeInstances" : "NULL"
         , is_inst_voidp ? "voidPtrInstances" : "NULL"
         , is_inst_char ? "charInstances" : "NULL"
         , is_inst_string ? "stringInstances" : "NULL"
@@ -3324,7 +3326,7 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 "    SIP_TYPE_MAPPED,\n"
 "    %n,\n"
 "    -1,\n"
-"    0,\n"
+"    {0},\n"
 "    -1,\n"
 "    -1,\n"
 "    {0, 0, 0},\n"
@@ -6974,7 +6976,7 @@ static void generateImportedClassAPI(classDef *cd, sipSpec *pt, moduleDef *mod,
             , classFQCName(cd), mname, imname, cd->classnr);
 
     prcode(fp,
-"#define sipClass_%C             sipTypePyTypeObject(sipType_%C)\n"
+"#define sipClass_%C             (sipType_%C->u.td_wrapper_type)\n"
             , classFQCName(cd), classFQCName(cd));
 
     generateEnumMacros(pt, mod, cd, fp);
@@ -7003,7 +7005,7 @@ static void generateClassAPI(classDef *cd, sipSpec *pt, FILE *fp)
                 , classFQCName(cd), mname, cd->classnr);
 
     prcode(fp,
-"#define sipClass_%C             sipTypePyTypeObject(sipType_%C)\n"
+"#define sipClass_%C             (sipType_%C->u.td_wrapper_type)\n"
             , classFQCName(cd), classFQCName(cd));
 
     generateEnumMacros(pt, cd->iff->module, cd, fp);
@@ -7963,9 +7965,6 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 "    %n,\n"
         , cd->iff->name);
 
-    prcode(fp,
-"    ");
-
     if (cd->real == NULL)
         prcode(fp,
 "    %n,\n"
@@ -7976,7 +7975,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
             );
 
     prcode(fp,
-"    0,\n"
+"    {0},\n"
         );
 
     if (cd->metatype != NULL)
@@ -7996,6 +7995,9 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
         prcode(fp,
 "    -1,\n"
             );
+
+    prcode(fp,
+"    ");
 
     if (cd->real != NULL)
         generateEncodedClass(mod, cd->real, 0, fp);
@@ -8169,7 +8171,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 "    {");
 
     if (is_inst_class)
-        prcode(fp, "classInstances_%C, ", classFQCName(cd));
+        prcode(fp, "typeInstances_%C, ", classFQCName(cd));
     else
         prcode(fp, "0, ");
 

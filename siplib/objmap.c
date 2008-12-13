@@ -96,7 +96,7 @@ sipSimpleWrapper *sipOMFindObject(sipObjectMap *om, void *key, sipTypeDef *td)
 {
     sipHashEntry *he = findHashEntry(om, key);
     sipSimpleWrapper *sw;
-    PyTypeObject *py_type = (PyTypeObject *)sipTypePyTypeObject(td);
+    PyTypeObject *py_type = sipTypePyTypeObject(td);
 
     /* Go through each wrapped object at this address. */
     for (sw = he->first; sw != NULL; sw = sw->next)

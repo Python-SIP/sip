@@ -550,8 +550,14 @@ typedef struct _sipTypeDef {
     /* The Python name of the type. */
     int td_name;
 
-    /* The Python type object. */
-    sipWrapperType *td_wrapper_type;
+    /*
+     * The Python type object.  This needs to be a union until we remove the
+     * deprecated sipClass_* macros.
+     */
+    union {
+        PyTypeObject *td_py_type;
+        sipWrapperType *td_wrapper_type;
+    } u;
 
     /*
      * The meta-type name, -1 to use the meta-type of the first super-type
@@ -1175,7 +1181,6 @@ typedef struct _sipAPIDef {
     PyObject *(*api_convert_from_mapped_type)(void *cpp,
             const sipMappedType *mt, PyObject *transferObj);
     int (*api_get_state)(PyObject *transferObj);
-    const sipMappedType *(*api_find_mapped_type)(const char *type);
     PyObject *(*api_disconnect_rx)(PyObject *txObj, const char *sig,
             PyObject *rxObj, const char *slot);
     int (*api_emit_signal)(PyObject *self, const char *sig, PyObject *sigargs);
@@ -1204,9 +1209,15 @@ typedef struct _sipAPIDef {
     void *(*api_convert_to_void_ptr)(PyObject *obj);
     int (*api_export_symbol)(const char *name, void *sym);
     void *(*api_import_symbol)(const char *name);
-    sipWrapperType *(*api_find_class)(const char *type);
+    sipTypeDef *(*api_find_type)(const char *type);
     PyTypeObject *(*api_find_named_enum)(const char *type);
     int (*api_register_py_type)(PyTypeObject *type);
+
+    /*
+     * The following are deprecated parts of the public API.
+     */
+    const sipMappedType *(*api_find_mapped_type)(const char *type);
+    sipWrapperType *(*api_find_class)(const char *type);
 
     /*
      * The following may be used by Qt support code but no other handwritten
@@ -1366,10 +1377,9 @@ typedef struct _sipQtAPI {
 #define sipTypeIsClass(td)  (((td)->td_flags & SIP_TYPE_TYPE_MASK) == SIP_TYPE_CLASS)
 #define sipTypeIsNamespace(td)  (((td)->td_flags & SIP_TYPE_TYPE_MASK) == SIP_TYPE_NAMESPACE)
 #define sipTypeIsMapped(td) (((td)->td_flags & SIP_TYPE_TYPE_MASK) == SIP_TYPE_MAPPED)
-#define sipTypeFlags(td)    (((td)->td_flags & SIP_TYPE_FLAGS_MASK) >> SIP_TYPE_FLAGS_SHIFT)
-#define sipTypePyTypeObject(td) ((td)->td_wrapper_type)
+#define sipTypePyTypeObject(td) ((td)->u.td_py_type)
 
-#define sipIsExactWrappedType(wt)   (sipTypePyTypeObject((wt)->type) == (wt))
+#define sipIsExactWrappedType(wt)   (sipTypePyTypeObject((wt)->type) == (PyTypeObject *)(wt))
 
 #define sipConvertFromSliceObject(o,len,start,stop,step,slen) \
         PySlice_GetIndicesEx((PySliceObject *)(o), (len), (start), (stop), \
@@ -1387,6 +1397,8 @@ typedef struct _sipQtAPI {
  */
 #define sipTypeIsAbstract(td)   ((td)->td_flags & SIP_TYPE_ABSTRACT)
 #define sipTypeHasSCC(td)   ((td)->td_flags & SIP_TYPE_SCC)
+/* FIXME: Decide if this is part of the public API. */
+#define sipTypeFlags(td)    (((td)->td_flags & SIP_TYPE_FLAGS_MASK) >> SIP_TYPE_FLAGS_SHIFT)
 
 
 #ifdef __cplusplus

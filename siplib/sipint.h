@@ -49,7 +49,7 @@ extern PyInterpreterState *sipInterpreter;  /* The interpreter. */
 
 extern sipQtAPI *sipQtSupport;  /* The Qt support API. */
 extern sipWrapperType sipSimpleWrapper_Type;    /* The simple wrapper type. */
-extern sipWrapperType *sipQObjectClass; /* The Python QObject class. */
+extern sipTypeDef *sipQObjectType;  /* The QObject type. */
 
 void *sipGetRx(sipSimpleWrapper *txSelf, const char *sigargs, PyObject *rxObj,
         const char *slot, const char **memberp);

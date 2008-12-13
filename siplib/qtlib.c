@@ -50,7 +50,7 @@ PyObject *sip_api_get_sender()
      * sender, so use it instead.
      */
     if ((qt_sender = sipQtSupport->qt_get_sender()) != NULL)
-        sender = sip_api_convert_from_instance((void *)qt_sender, sipQObjectClass, NULL);
+        sender = sip_api_convert_from_instance((void *)qt_sender, (sipWrapperType *)sipTypePyTypeObject(sipQObjectType), NULL);
     else
     {
         if ((sender = py_sender) == NULL)
@@ -488,7 +488,7 @@ int sip_api_emit_signal(PyObject *self,const char *sig,PyObject *sigargs)
      * Don't do anything if signals are blocked.  Qt signals would be blocked
      * anyway, but this blocks Python signals as well.
      */
-    if ((tx = sip_api_get_cpp_ptr((sipSimpleWrapper *)w, sipQObjectClass)) == NULL || sipQtSupport->qt_signals_blocked(tx))
+    if ((tx = sip_api_get_cpp_ptr((sipSimpleWrapper *)w, sipQObjectType)) == NULL || sipQtSupport->qt_signals_blocked(tx))
         return 0;
 
     if (isQtSignal(sig))
@@ -507,7 +507,7 @@ int sip_api_emit_signal(PyObject *self,const char *sig,PyObject *sigargs)
             return -1;
 
         if (psig->sg_nrargs != PyTuple_GET_SIZE(sigargs))
-            PyErr_Format(PyExc_TypeError, "Signal has %d arguments, but %d given", psig->sg_nrargs, PyTuple_GET_SIZE(sigargs));
+            PyErr_Format(PyExc_TypeError, "Signal has %d arguments, but %d given", psig->sg_nrargs, (int)PyTuple_GET_SIZE(sigargs));
 
         return sipQtSupport->qt_emit_signal(tx, psig, sigargs);
     }
@@ -934,7 +934,7 @@ void *sipGetRx(sipSimpleWrapper *txSelf, const char *sigargs, PyObject *rxObj,
 
             *memberp = slot;
 
-            if ((rx = sip_api_get_cpp_ptr((sipSimpleWrapper *)rxObj, sipQObjectClass)) == NULL)
+            if ((rx = sip_api_get_cpp_ptr((sipSimpleWrapper *)rxObj, sipQObjectType)) == NULL)
                 return NULL;
 
             if (isQtSignal(slot))
@@ -968,7 +968,7 @@ void *sipConvertRxEx(sipWrapper *txSelf,const char *sig,PyObject *rxObj,
 
         *memberp = slot;
 
-        if ((rx = sip_api_get_cpp_ptr((sipSimpleWrapper *)rxObj, sipQObjectClass)) == NULL)
+        if ((rx = sip_api_get_cpp_ptr((sipSimpleWrapper *)rxObj, sipQObjectType)) == NULL)
             return NULL;
 
         if (isQtSignal(slot))
@@ -998,7 +998,7 @@ PyObject *sip_api_connect_rx(PyObject *txObj,const char *sig,PyObject *rxObj,
         const char *member, *real_sig;
         int res;
 
-        if ((tx = sip_api_get_cpp_ptr((sipSimpleWrapper *)txSelf, sipQObjectClass)) == NULL)
+        if ((tx = sip_api_get_cpp_ptr((sipSimpleWrapper *)txSelf, sipQObjectType)) == NULL)
             return NULL;
 
         real_sig = sig;
@@ -1038,7 +1038,7 @@ PyObject *sip_api_disconnect_rx(PyObject *txObj,const char *sig,
         const char *member;
         int res;
 
-        if ((tx = sip_api_get_cpp_ptr((sipSimpleWrapper *)txSelf, sipQObjectClass)) == NULL)
+        if ((tx = sip_api_get_cpp_ptr((sipSimpleWrapper *)txSelf, sipQObjectType)) == NULL)
             return NULL;
 
         if ((rx = sipGetRx((sipSimpleWrapper *)txSelf, sig, rxObj, slot, &member)) == NULL)
@@ -1177,7 +1177,7 @@ static int saveSlot(sipSlot *sp, PyObject *rxObj, const char *slot)
 
             if (PyCFunction_Check(rxObj) &&
                 (self = PyCFunction_GET_SELF(rxObj)) != NULL &&
-                PyObject_TypeCheck(self, &sipSimpleWrapper_Type))
+                PyObject_TypeCheck(self, (PyTypeObject *)&sipSimpleWrapper_Type))
             {
                 /*
                  * It is a wrapped C++ class method.  We can't keep a copy
