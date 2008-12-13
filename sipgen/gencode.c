@@ -519,9 +519,6 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 
     prcode(fp,
 "\n"
-"/* Convenient names to call the SIP API. */\n"
-"#define sipWrapper_Check(w)         PyObject_TypeCheck((w), sipAPI_%s->api_wrapper_type)\n"
-"\n"
 "#define sipMapStringToClass         sipAPI_%s->api_map_string_to_class\n"
 "#define sipMapIntToClass            sipAPI_%s->api_map_int_to_class\n"
 "#define sipMalloc                   sipAPI_%s->api_malloc\n"
@@ -551,7 +548,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipWrapper_Type             sipAPI_%s->api_wrapper_type\n"
 "#define sipWrapperType_Type         sipAPI_%s->api_wrappertype_type\n"
 "#define sipVoidPtr_Type             sipAPI_%s->api_voidptr_type\n"
-"#define sipGetWrapper               sipAPI_%s->api_get_wrapper\n"
+"#define sipGetPyObject              sipAPI_%s->api_get_pyobject\n"
 "#define sipGetCppPtr                sipAPI_%s->api_get_cpp_ptr\n"
 "#define sipGetComplexCppPtr         sipAPI_%s->api_get_complex_cpp_ptr\n"
 "#define sipIsPyMethod               sipAPI_%s->api_is_py_method\n"
@@ -609,6 +606,10 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipRegisterPyType           sipAPI_%s->api_register_py_type\n"
 "#define sipFindClass                sipAPI_%s->api_find_class\n"
 "#define sipFindMappedType           sipAPI_%s->api_find_mapped_type\n"
+"\n"
+"/* These are deprecated. */\n"
+"#define sipWrapper_Check(w)         PyObject_TypeCheck((w), sipAPI_%s->api_wrapper_type)\n"
+"#define sipGetWrapper(p, wt)        sipGetPyObject((p), (wt)->type)\n"
         ,mname
         ,mname
         ,mname

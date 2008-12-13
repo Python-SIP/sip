@@ -209,6 +209,8 @@ The following parts of the API are now deprecated.
 
     - `sipFindMappedType()`_
 
+    - `sipGetWrapper()`_
+
     - `sipWrapper_Check()`_
 
 
@@ -1849,10 +1851,6 @@ class hierarchy in PyQt::
         // The rest of the class specification.
 
     };
-
-The SIP API includes the `sipMapIntToClass()`_ and `sipMapStringToClass()`_
-functions that convert integer and string based RTTI to Python type objects
-based on ordered lookup tables.
 
 
 %ConvertToTypeCode
@@ -4588,6 +4586,17 @@ const void \*sipGetSender()
     ``QObject.sender()``.
 
 
+sipGetPyObject()
+----------------
+
+PyObject \*sipGetPyObject(void \*cppptr, sipTypeDef \*td)
+    This returns a borrowed reference to the Python object for a C structure or
+    C++ class instance.  If the structure or class instance hasn't been wrapped
+    then ``NULL`` is returned (and no Python exception is raised).  *cppptr* is
+    the pointer to the structure or class instance.  *td* is the generated type
+    structure corresponding to the C/C++ type.
+
+
 sipGetWrapper()
 ---------------
 
@@ -4597,6 +4606,8 @@ PyObject \*sipGetWrapper(void \*cppptr, sipWrapperType \*type)
     hasn't been wrapped then ``NULL`` is returned (and no Python exception is
     raised).  *cppptr* is the pointer to the structure or class instance.
     *type* is the generated type corresponding to the C/C++ type.
+
+    This is deprecated.  Instead you should use `sipGetPyObject()`_.
 
 
 sipImportSymbol()
@@ -4623,6 +4634,8 @@ int typeInt
 
 sipWrapperType \*\*pyType.
     A pointer to the corresponding Python type object.
+
+This is deprecated.
 
 
 sipLong_AsUnsignedLong()
@@ -4654,6 +4667,8 @@ sipWrapperType \*sipMapIntToClass(int type, const sipIntTypeClassMap \*map, int 
     the table.  The corresponding Python type object is returned, or ``NULL``
     if *type* wasn't in *map*.
 
+    This is deprecated
+
 
 sipMapStringToClass()
 ---------------------
@@ -4666,6 +4681,8 @@ sipWrapperType \*sipMapStringToClass(char \*type, const sipStringTypeClassMap \*
     entries in the table must be sorted in ascending order of RTTI.  *maplen*
     is the number of entries in the table.  The corresponding Python type
     object is returned, or ``NULL`` if *type* wasn't in *map*.
+
+    This is deprecated
 
 
 sipParseResult()
@@ -4872,6 +4889,8 @@ char \*typeString
 
 sipWrapperType \*\*pyType.
     A pointer to the corresponding Python type object.
+
+This is deprecated.
 
 
 sipTransferBack()

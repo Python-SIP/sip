@@ -56,7 +56,7 @@ static PyObject *sip_api_convert_from_new_instance(void *cpp,
 static PyObject *sip_api_convert_from_mapped_type(void *cpp,
         const sipMappedType *mt, PyObject *transferObj);
 static int sip_api_get_state(PyObject *transferObj);
-static PyObject *sip_api_get_wrapper(void *cppPtr, sipWrapperType *type);
+static PyObject *sip_api_get_pyobject(void *cppPtr, sipTypeDef *td);
 static sipWrapperType *sip_api_map_int_to_class(int typeInt,
         const sipIntTypeClassMap *map, int maplen);
 static sipWrapperType *sip_api_map_string_to_class(const char *typeString,
@@ -163,10 +163,8 @@ static const sipAPIDef sip_api = {
     sip_api_emit_signal,
     sip_api_free,
     sip_api_get_sender,
-    sip_api_get_wrapper,
+    sip_api_get_pyobject,
     sip_api_malloc,
-    sip_api_map_int_to_class,
-    sip_api_map_string_to_class,
     sip_api_parse_result,
     sip_api_trace,
     sip_api_transfer_back,
@@ -189,6 +187,8 @@ static const sipAPIDef sip_api = {
      */
     sip_api_find_mapped_type,
     sip_api_find_class,
+    sip_api_map_int_to_class,
+    sip_api_map_string_to_class,
     /*
      * The following may be used by Qt support code but by no other handwritten
      * code.
@@ -5231,9 +5231,9 @@ static PyObject *sip_api_is_py_method(sip_gilstate_t *gil,
 /*
  * Convert a C/C++ pointer to the object that wraps it.
  */
-static PyObject *sip_api_get_wrapper(void *cppPtr,sipWrapperType *type)
+static PyObject *sip_api_get_pyobject(void *cppPtr, sipTypeDef *td)
 {
-    return (PyObject *)sipOMFindObject(&cppPyMap, cppPtr, type->type);
+    return (PyObject *)sipOMFindObject(&cppPyMap, cppPtr, td);
 }
 
 
@@ -5574,7 +5574,7 @@ PyObject *sip_api_convert_from_instance(void *cpp, sipWrapperType *type,
         type = convertSubClass(type, &cpp);
 
     /* See if we have already wrapped it. */
-    if ((py = sip_api_get_wrapper(cpp, type)) != NULL)
+    if ((py = sip_api_get_pyobject(cpp, type->type)) != NULL)
         Py_INCREF(py);
     else if ((py = sipWrapSimpleInstance(cpp, type->type, NULL, SIP_SHARE_MAP)) == NULL)
         return NULL;
@@ -5878,7 +5878,7 @@ static int compareStringMapEntry(const void *key,const void *el)
 /*
  * A convenience function for %ConvertToSubClassCode for types represented as a
  * string.  Returns the Python class object or NULL if the type wasn't
- * recognised.
+ * recognised.  This is deprecated.
  */
 static sipWrapperType *sip_api_map_string_to_class(const char *typeString,
         const sipStringTypeClassMap *map, int maplen)
@@ -5914,7 +5914,7 @@ static int compareIntMapEntry(const void *keyp,const void *el)
 /*
  * A convenience function for %ConvertToSubClassCode for types represented as
  * an integer.  Returns the Python class object or NULL if the type wasn't
- * recognised.
+ * recognised.  This is deprecated.
  */
 static sipWrapperType *sip_api_map_int_to_class(int typeInt,
         const sipIntTypeClassMap *map, int maplen)

@@ -66,6 +66,7 @@ extern "C" {
  *      sip_api_raise_sub_class_exception() with
  *      sip_api_raise_type_exception().
  *      Replaced sip_api_is_exact_wrapped_type() with a macro.
+ *      Replaced sip_api_get_wrapper() with sip_api_get_pyobject().
  *      Deprecated sipWrapper_Check().
  *
  * 3.8  Added sip_api_register_meta_type() and sip_api_deprecated().
@@ -965,7 +966,7 @@ typedef struct _sipEnumInstanceDef {
 
 /*
  * Define a mapping between a wrapped type identified by a string and the
- * corresponding Python type.
+ * corresponding Python type.  This is deprecated.
  */
 typedef struct _sipStringTypeClassMap {
     /* The type as a string. */
@@ -978,7 +979,7 @@ typedef struct _sipStringTypeClassMap {
 
 /*
  * Define a mapping between a wrapped type identified by an integer and the
- * corresponding Python type.
+ * corresponding Python type.  This is deprecated.
  */
 typedef struct _sipIntTypeClassMap {
     /* The type as an integer. */
@@ -1186,12 +1187,8 @@ typedef struct _sipAPIDef {
     int (*api_emit_signal)(PyObject *self, const char *sig, PyObject *sigargs);
     void (*api_free)(void *mem);
     PyObject *(*api_get_sender)();
-    PyObject *(*api_get_wrapper)(void *cppPtr, sipWrapperType *type);
+    PyObject *(*api_get_pyobject)(void *cppPtr, sipTypeDef *td);
     void *(*api_malloc)(size_t nbytes);
-    sipWrapperType *(*api_map_int_to_class)(int typeInt,
-            const sipIntTypeClassMap *map, int maplen);
-    sipWrapperType *(*api_map_string_to_class)(const char *typeString,
-            const sipStringTypeClassMap *map, int maplen);
     int (*api_parse_result)(int *isErr, PyObject *method, PyObject *res,
             const char *fmt, ...);
     void (*api_trace)(unsigned mask, const char *fmt, ...);
@@ -1218,6 +1215,10 @@ typedef struct _sipAPIDef {
      */
     const sipMappedType *(*api_find_mapped_type)(const char *type);
     sipWrapperType *(*api_find_class)(const char *type);
+    sipWrapperType *(*api_map_int_to_class)(int typeInt,
+            const sipIntTypeClassMap *map, int maplen);
+    sipWrapperType *(*api_map_string_to_class)(const char *typeString,
+            const sipStringTypeClassMap *map, int maplen);
 
     /*
      * The following may be used by Qt support code but no other handwritten
