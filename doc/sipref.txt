@@ -203,6 +203,10 @@ The generated class names are now ``const char *`` rather than ``char *``.
 
 The following parts of the API are now deprecated.
 
+    - `sipCanConvertToInstance()`_
+
+    - `sipCanConvertToMappedType()`_
+
     - `sipClassName()`_
 
     - `sipFindClass()`_
@@ -250,14 +254,13 @@ SIP v4.4
 
     - ``sipConvertToCpp()``, ``sipIsSubClassInstance()`` and the old-style
       generated type convertors have been deprecated.  The functions
-      `sipCanConvertToInstance()`_, `sipConvertToInstance()`_,
+      `sipCanConvertToType()`_, `sipConvertToInstance()`_,
       `sipForceConvertToInstance()`_, `sipConvertFromInstance()`_,
-      `sipConvertFromNewInstance()`_, `sipCanConvertToMappedType()`_,
-      `sipConvertToMappedType()`_, `sipForceConvertToMappedType()`_ and
-      `sipConvertFromMappedType()`_ should be used instead.  Handwritten
-      `%ConvertFromTypeCode`_ and `%ConvertToTypeCode`_ now has the
-      responsibility for using these to implement the ``Transfer`` and
-      ``TransferBack`` annotations.
+      `sipConvertFromNewInstance()`_, `sipConvertToMappedType()`_,
+      `sipForceConvertToMappedType()`_ and `sipConvertFromMappedType()`_ should
+      be used instead.  Handwritten `%ConvertFromTypeCode`_ and
+      `%ConvertToTypeCode`_ now has the responsibility for using these to
+      implement the ``Transfer`` and ``TransferBack`` annotations.
 
 
 Installing SIP
@@ -1935,8 +1938,8 @@ The following example converts a Python list of ``QPoint`` instances to a
             // disallow None because it is a list of QPoint, not of a pointer
             // to a QPoint, so None isn't appropriate.
             for (int i = 0; i < PyList_GET_SIZE(sipPy); ++i)
-                if (!sipCanConvertToInstance(PyList_GET_ITEM(sipPy, i),
-                                             sipClass_QPoint, SIP_NOT_NONE))
+                if (!sipCanConvertToType(PyList_GET_ITEM(sipPy, i),
+                                         sipType_QPoint, SIP_NOT_NONE))
                     return 0;
 
             // The type is valid.
@@ -1995,10 +1998,9 @@ When used in a class specification the handwritten code replaces the code that
 would normally be automatically generated.  This means that the handwritten
 code must also handle instances of the class itself and not just the additional
 types that are being supported.  This should be done by making calls to
-`sipCanConvertToInstance()`_ to check the object type and
-`sipConvertToInstance()`_ to convert the object.  The ``SIP_NO_CONVERTORS``
-flag *must* be passed to both these functions to prevent recursive calls to the
-handwritten code.
+`sipCanConvertToType()`_ to check the object type and `sipConvertToInstance()`_
+to convert the object.  The ``SIP_NO_CONVERTORS`` flag *must* be passed to both
+these functions to prevent recursive calls to the handwritten code.
 
 
 %Copying
@@ -2633,8 +2635,8 @@ For example::
             // Now check each element of the list is of the type we expect.
             // The template is for a pointer type so we don't disallow None.
             for (int i = 0; i < PyList_GET_SIZE(sipPy); ++i)
-                if (!sipCanConvertToInstance(PyList_GET_ITEM(sipPy, i),
-                                             sipClass_Type, 0))
+                if (!sipCanConvertToType(PyList_GET_ITEM(sipPy, i),
+                                         sipType_Type, 0))
                     return 0;
 
             return 1;
@@ -4243,6 +4245,8 @@ int sipCanConvertToInstance(PyObject \*obj, sipWrapperType \*type, int flags)
         - ``SIP_NO_CONVERTORS`` suppresses the use of of any
           `%ConvertToTypeCode`_ for *type*.
 
+    This is deprecated.  Instead you should use `sipCanConvertToType()`_.
+
 
 sipCanConvertToMappedType()
 ---------------------------
@@ -4255,6 +4259,24 @@ int sipCanConvertToMappedType(PyObject \*obj, const sipMappedType \*mt, int flag
     following values used to fine tune the check.
 
         - ``SIP_NOT_NONE`` causes the check to fail if *obj* is ``None``.
+
+    This is deprecated.  Instead you should use `sipCanConvertToType()`_.
+
+
+sipCanConvertToType()
+---------------------
+
+int sipCanConvertToType(PyObject \*obj, sipTypeDef \*td, int flags)
+    This returns a non-zero value if a Python object can be converted to an
+    instance of a C structure, C++ class or mapped type.  *obj* is the Python
+    object.  *td* is the generated type structure corresponding to the C/C++
+    type being checked.  *flags* is any combination of the following values
+    used to fine tune the check.
+
+        - ``SIP_NOT_NONE`` causes the check to fail if *obj* is ``None``.
+
+        - ``SIP_NO_CONVERTORS`` suppresses the use of of any
+          `%ConvertToTypeCode`_ for *td*.  It is ignored for mapped types.
 
 
 sipClassName()

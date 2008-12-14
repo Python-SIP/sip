@@ -60,6 +60,9 @@ extern "C" {
  *      Added the sipSimpleWrapper_Type, sipWrapper_Type, sipWrapperType_Type
  *      and sipVoidPtr_Type type objects.
  *      Added sip_api_register_py_type().
+ *      Replaced sip_api_can_convert_to_instance() and
+ *      sip_api_can_convert_to_mapped_type() with
+ *      sip_api_can_convert_to_type().
  *      Replaced sip_api_add_class_instance() and
  *      sip_api_add_mapped_type_instance() with sip_api_add_type_instance().
  *      Replaced sip_api_release_instance() and
@@ -1159,10 +1162,7 @@ typedef struct _sipAPIDef {
             PyObject *rxObj, const char *slot, int type);
     SIP_SSIZE_T (*api_convert_from_sequence_index)(SIP_SSIZE_T idx,
             SIP_SSIZE_T len);
-    int (*api_can_convert_to_instance)(PyObject *pyObj, sipWrapperType *type,
-            int flags);
-    int (*api_can_convert_to_mapped_type)(PyObject *pyObj,
-            const sipMappedType *mt, int flags);
+    int (*api_can_convert_to_type)(PyObject *pyObj, sipTypeDef *td, int flags);
     void *(*api_convert_to_instance)(PyObject *pyObj, sipWrapperType *type,
             PyObject *transferObj, int flags, int *statep, int *iserrp);
     void *(*api_convert_to_mapped_type)(PyObject *pyObj,
