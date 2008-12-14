@@ -573,8 +573,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipConvertRx                sipAPI_%s->api_convert_rx\n"
 "#define sipAddDelayedDtor           sipAPI_%s->api_add_delayed_dtor\n"
 "#define sipCanConvertToType         sipAPI_%s->api_can_convert_to_type\n"
-"#define sipConvertToInstance        sipAPI_%s->api_convert_to_instance\n"
-"#define sipConvertToMappedType      sipAPI_%s->api_convert_to_mapped_type\n"
+"#define sipConvertToType            sipAPI_%s->api_convert_to_type\n"
 "#define sipForceConvertToInstance   sipAPI_%s->api_force_convert_to_instance\n"
 "#define sipForceConvertToMappedType sipAPI_%s->api_force_convert_to_mapped_type\n"
 "#define sipReleaseType              sipAPI_%s->api_release_type\n"
@@ -610,9 +609,10 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipGetWrapper(p, wt)        sipGetPyObject((p), (wt)->type)\n"
 "#define sipReleaseInstance(p, wt, s)    sipReleaseType((p), (wt)->type, (s))\n"
 "#define sipReleaseMappedType        sipReleaseType\n"
-"#define sipCanConvertToInstance(o, wt, s)   sipCanConvertToType((o), (wt)->type, (f))\n"
+"#define sipCanConvertToInstance(o, wt, f)   sipCanConvertToType((o), (wt)->type, (f))\n"
 "#define sipCanConvertToMappedType   sipCanConvertToType\n"
-        ,mname
+"#define sipConvertToInstance(o, wt, t, f, s, e)     sipConvertToType((o), (wt)->type, (t), (f), (s), (e))\n"
+"#define sipConvertToMappedType      sipConvertToType\n"
         ,mname
         ,mname
         ,mname

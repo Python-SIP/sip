@@ -63,6 +63,8 @@ extern "C" {
  *      Replaced sip_api_can_convert_to_instance() and
  *      sip_api_can_convert_to_mapped_type() with
  *      sip_api_can_convert_to_type().
+ *      Replaced sip_api_convert_to_instance() and
+ *      sip_api_convert_to_mapped_type() with sip_api_convert_to_type().
  *      Replaced sip_api_add_class_instance() and
  *      sip_api_add_mapped_type_instance() with sip_api_add_type_instance().
  *      Replaced sip_api_release_instance() and
@@ -1163,11 +1165,8 @@ typedef struct _sipAPIDef {
     SIP_SSIZE_T (*api_convert_from_sequence_index)(SIP_SSIZE_T idx,
             SIP_SSIZE_T len);
     int (*api_can_convert_to_type)(PyObject *pyObj, sipTypeDef *td, int flags);
-    void *(*api_convert_to_instance)(PyObject *pyObj, sipWrapperType *type,
+    void *(*api_convert_to_type)(PyObject *pyObj, sipTypeDef *td,
             PyObject *transferObj, int flags, int *statep, int *iserrp);
-    void *(*api_convert_to_mapped_type)(PyObject *pyObj,
-            const sipMappedType *mt, PyObject *transferObj, int flags,
-            int *statep, int *iserrp);
     void *(*api_force_convert_to_instance)(PyObject *pyObj,
             sipWrapperType *type, PyObject *transferObj, int flags,
             int *statep, int *iserrp);
@@ -1315,8 +1314,8 @@ typedef struct _sipQtAPI {
 
 
 /*
- * These are flags that can be passed to sipCanConvertToInstance(),
- * sipConvertToInstance() and sipForceConvertToInstance().
+ * These are flags that can be passed to sipCanConvertToType(),
+ * sipConvertToType() and sipForceConvertToType().
  */
 #define SIP_NOT_NONE        0x01    /* Disallow None. */
 #define SIP_NO_CONVERTORS   0x02    /* Disable any type convertors. */
