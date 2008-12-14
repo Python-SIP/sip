@@ -50,7 +50,7 @@ PyObject *sip_api_get_sender()
      * sender, so use it instead.
      */
     if ((qt_sender = sipQtSupport->qt_get_sender()) != NULL)
-        sender = sip_api_convert_from_instance((void *)qt_sender, (sipWrapperType *)sipTypePyTypeObject(sipQObjectType), NULL);
+        sender = sip_api_convert_from_type((void *)qt_sender, sipQObjectType, NULL);
     else
     {
         if ((sender = py_sender) == NULL)

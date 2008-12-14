@@ -39,10 +39,8 @@ static void *sip_api_convert_to_type(PyObject *pyObj, sipTypeDef *td,
 static void *sip_api_force_convert_to_type(PyObject *pyObj, sipTypeDef *td,
         PyObject *transferObj, int flags, int *statep, int *iserrp);
 static void sip_api_release_type(void *cpp, sipTypeDef *td, int state);
-static PyObject *sip_api_convert_from_new_instance(void *cpp,
-        sipWrapperType *type, PyObject *transferObj);
-static PyObject *sip_api_convert_from_mapped_type(void *cpp,
-        const sipMappedType *mt, PyObject *transferObj);
+static PyObject *sip_api_convert_from_new_type(void *cpp, sipTypeDef *td,
+        PyObject *transferObj);
 static int sip_api_get_state(PyObject *transferObj);
 static PyObject *sip_api_get_pyobject(void *cppPtr, sipTypeDef *td);
 static sipWrapperType *sip_api_map_int_to_class(int typeInt,
@@ -139,9 +137,8 @@ static const sipAPIDef sip_api = {
     sip_api_convert_to_type,
     sip_api_force_convert_to_type,
     sip_api_release_type,
-    sip_api_convert_from_instance,
-    sip_api_convert_from_new_instance,
-    sip_api_convert_from_mapped_type,
+    sip_api_convert_from_type,
+    sip_api_convert_from_new_type,
     sip_api_get_state,
     sip_api_disconnect_rx,
     sip_api_emit_signal,
@@ -359,7 +356,7 @@ static sipExportedModuleDef *getClassModule(sipEncodedClassDef *enc,
         sipExportedModuleDef *em);
 static sipTypeDef *getClassType(sipEncodedClassDef *enc,
         sipExportedModuleDef *em);
-static sipWrapperType *convertSubClass(sipWrapperType *type, void **cppPtr);
+static sipTypeDef *convertSubClass(sipTypeDef *td, void **cppPtr);
 static void *getPtrTypeDef(sipSimpleWrapper *self, sipTypeDef **td);
 static int addInstances(PyObject *dict, sipInstancesDef *id);
 static int addVoidPtrInstances(PyObject *dict, sipVoidPtrInstanceDef *vi);
@@ -833,7 +830,7 @@ static PyObject *wrapInstance(PyObject *self, PyObject *args)
     sipWrapperType *wt;
 
     if (PyArg_ParseTuple(args, "kO!:wrapinstance", &addr, &sipWrapperType_Type, &wt))
-        return sip_api_convert_from_instance((void *)addr, wt, NULL);
+        return sip_api_convert_from_type((void *)addr, wt->type, NULL);
 
     return NULL;
 }
@@ -1590,7 +1587,7 @@ static PyObject *buildObject(PyObject *obj, const char *fmt, va_list va)
                 sipWrapperType *wt = va_arg(va, sipWrapperType *);
                 PyObject *xfer = va_arg(va, PyObject *);
 
-                el = sip_api_convert_from_new_instance(p, wt, xfer);
+                el = sip_api_convert_from_new_type(p, wt->type, xfer);
             }
 
             break;
@@ -1601,7 +1598,7 @@ static PyObject *buildObject(PyObject *obj, const char *fmt, va_list va)
                 sipWrapperType *wt = va_arg(va, sipWrapperType *);
                 PyObject *xfer = va_arg(va, PyObject *);
 
-                el = sip_api_convert_from_instance(p, wt, xfer);
+                el = sip_api_convert_from_type(p, wt->type, xfer);
             }
 
             break;
@@ -1609,10 +1606,10 @@ static PyObject *buildObject(PyObject *obj, const char *fmt, va_list va)
         case 'D':
             {
                 void *p = va_arg(va, void *);
-                const sipMappedType *mt = va_arg(va, const sipMappedType *);
+                sipTypeDef *mt = va_arg(va, sipTypeDef *);
                 PyObject *xfer = va_arg(va, PyObject *);
 
-                el = sip_api_convert_from_mapped_type(p, mt, xfer);
+                el = sip_api_convert_from_type(p, mt, xfer);
             }
 
             break;
@@ -5446,7 +5443,7 @@ static void release(void *addr, sipTypeDef *td, int state)
 /*
  * Convert a C/C++ instance to a Python instance.
  */
-PyObject *sip_api_convert_from_instance(void *cpp, sipWrapperType *type,
+PyObject *sip_api_convert_from_type(void *cpp, sipTypeDef *td,
         PyObject *transferObj)
 {
     PyObject *py;
@@ -5458,14 +5455,19 @@ PyObject *sip_api_convert_from_instance(void *cpp, sipWrapperType *type,
         return Py_None;
     }
 
+    if (sipTypeIsMapped(td))
+        return td->td_cfrom(cpp, transferObj);
+
+    assert(sipTypeIsClass(td));
+
     /* Apply any sub-class convertor. */
-    if (sipTypeHasSCC(type->type))
-        type = convertSubClass(type, &cpp);
+    if (sipTypeHasSCC(td))
+        td = convertSubClass(td, &cpp);
 
     /* See if we have already wrapped it. */
-    if ((py = sip_api_get_pyobject(cpp, type->type)) != NULL)
+    if ((py = sip_api_get_pyobject(cpp, td)) != NULL)
         Py_INCREF(py);
-    else if ((py = sipWrapSimpleInstance(cpp, type->type, NULL, SIP_SHARE_MAP)) == NULL)
+    else if ((py = sipWrapSimpleInstance(cpp, td, NULL, SIP_SHARE_MAP)) == NULL)
         return NULL;
 
     /* Handle any ownership transfer. */
@@ -5484,9 +5486,8 @@ PyObject *sip_api_convert_from_instance(void *cpp, sipWrapperType *type,
 /*
  * Convert a new C/C++ instance to a Python instance.
  */
-static PyObject *sip_api_convert_from_new_instance(void *cpp,
-                           sipWrapperType *type,
-                           PyObject *transferObj)
+static PyObject *sip_api_convert_from_new_type(void *cpp, sipTypeDef *td,
+        PyObject *transferObj)
 {
     sipWrapper *owner;
 
@@ -5497,9 +5498,14 @@ static PyObject *sip_api_convert_from_new_instance(void *cpp,
         return Py_None;
     }
 
+    if (sipTypeIsMapped(td))
+        return td->td_cfrom(cpp, transferObj);
+
+    assert(sipTypeIsClass(td));
+
     /* Apply any sub-class convertor. */
-    if (sipTypeHasSCC(type->type))
-        type = convertSubClass(type, &cpp);
+    if (sipTypeHasSCC(td))
+        td = convertSubClass(td, &cpp);
 
     /* Handle any ownership transfer. */
     if (transferObj != NULL && transferObj != Py_None)
@@ -5507,25 +5513,7 @@ static PyObject *sip_api_convert_from_new_instance(void *cpp,
     else
         owner = NULL;
 
-    return sipWrapSimpleInstance(cpp, type->type, owner, (owner == NULL ? SIP_PY_OWNED : 0));
-}
-
-
-/*
- * Convert a C/C++ instance implemented as a mapped type to a Python object.
- */
-static PyObject *sip_api_convert_from_mapped_type(void *cpp,
-                          const sipMappedType *mt,
-                          PyObject *transferObj)
-{
-    /* Handle None. */
-    if (cpp == NULL)
-    {
-        Py_INCREF(Py_None);
-        return Py_None;
-    }
-
-    return mt->td_cfrom(cpp, transferObj);
+    return sipWrapSimpleInstance(cpp, td, owner, (owner == NULL ? SIP_PY_OWNED : 0));
 }
 
 
@@ -5686,8 +5674,9 @@ static void sip_api_call_hook(const char *hookname)
  * sub-type object, and possibly modifying the C++ address (in the case of
  * multiple inheritence).
  */
-static sipWrapperType *convertSubClass(sipWrapperType *type, void **cppPtr)
+static sipTypeDef *convertSubClass(sipTypeDef *td, void **cppPtr)
 {
+    PyTypeObject *py_type = sipTypePyTypeObject(td);
     sipExportedModuleDef *em;
 
     if (*cppPtr == NULL)
@@ -5716,12 +5705,12 @@ static sipWrapperType *convertSubClass(sipWrapperType *type, void **cppPtr)
              * sub-class of the root, ie. see if the convertor might be able to
              * convert the target type to something more specific.
              */
-            if (PyType_IsSubtype((PyTypeObject *)type, sipTypePyTypeObject(scc->scc_basetype)))
+            if (PyType_IsSubtype(py_type, sipTypePyTypeObject(scc->scc_basetype)))
             {
                 void *ptr;
                 sipWrapperType *subtype;
 
-                ptr = cast_cpp_ptr(*cppPtr, type, scc->scc_basetype);
+                ptr = cast_cpp_ptr(*cppPtr, py_type, scc->scc_basetype);
                 subtype = (*scc->scc_convertor)(&ptr);
 
                 /*
@@ -5733,10 +5722,10 @@ static sipWrapperType *convertSubClass(sipWrapperType *type, void **cppPtr)
                  * ensures that there will be no more than one and that it will
                  * be the right one.
                  */
-                if (subtype != NULL && !PyType_IsSubtype((PyTypeObject *)type, (PyTypeObject *)subtype))
+                if (subtype != NULL && !PyType_IsSubtype(py_type, (PyTypeObject *)subtype))
                 {
                     *cppPtr = ptr;
-                    return subtype;
+                    return subtype->type;
                 }
             }
 
@@ -5751,7 +5740,7 @@ static sipWrapperType *convertSubClass(sipWrapperType *type, void **cppPtr)
      * Also we want this function to be safe when a class doesn't have any
      * convertors.
      */
-    return type;
+    return td;
 }
 
 

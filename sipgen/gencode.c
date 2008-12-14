@@ -576,9 +576,8 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipConvertToType            sipAPI_%s->api_convert_to_type\n"
 "#define sipForceConvertToType       sipAPI_%s->api_force_convert_to_type\n"
 "#define sipReleaseType              sipAPI_%s->api_release_type\n"
-"#define sipConvertFromInstance      sipAPI_%s->api_convert_from_instance\n"
-"#define sipConvertFromNewInstance   sipAPI_%s->api_convert_from_new_instance\n"
-"#define sipConvertFromMappedType    sipAPI_%s->api_convert_from_mapped_type\n"
+"#define sipConvertFromType          sipAPI_%s->api_convert_from_type\n"
+"#define sipConvertFromNewType       sipAPI_%s->api_convert_from_new_type\n"
 "#define sipGetState                 sipAPI_%s->api_get_state\n"
 "#define sipLong_AsUnsignedLong      sipAPI_%s->api_long_as_unsigned_long\n"
 "#define sipExportSymbol             sipAPI_%s->api_export_symbol\n"
@@ -614,7 +613,9 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipConvertToMappedType      sipConvertToType\n"
 "#define sipForceConvertToInstance(o, wt, t, f, s, e)    sipForceConvertToType((o), (wt)->type, (t), (f), (s), (e))\n"
 "#define sipForceConvertToMappedType sipForceConvertToType\n"
-        ,mname
+"#define sipConvertFromInstance(p, wt, t)    sipConvertFromType((p), (wt)->type, (t))\n"
+"#define sipConvertFromMappedType    sipConvertFromType\n"
+"#define sipConvertFromNewInstance(p, wt, t) sipConvertFromNewType((p), (wt)->type, (t))\n"
         ,mname
         ,mname
         ,mname
@@ -3836,7 +3837,7 @@ static void generateVariableHandler(classDef *context, varDef *vd, FILE *fp)
         {
         case mapped_type:
             prcode(fp,
-"        sipPy = sipConvertFromMappedType(sipVal,sipType_%T,NULL);\n"
+"        sipPy = sipConvertFromType(sipVal,sipType_%T,NULL);\n"
                 ,&vd->type);
 
             break;
@@ -4125,14 +4126,14 @@ static void generateVarClassConversion(varDef *vd, int is_new, FILE *fp)
     classDef *cd = vd->type.u.cd;
 
     prcode(fp,
-"        sipPy = sipConvertFrom%sInstance(", (is_new ? "New" : ""));
+"        sipPy = sipConvertFrom%sType(", (is_new ? "New" : ""));
 
     if (isConstArg(&vd->type))
         prcode(fp,"const_cast<%b *>(sipVal)",&vd->type);
     else
         prcode(fp,"sipVal");
 
-    prcode(fp,",sipClass_%C,NULL);\n"
+    prcode(fp,",sipType_%C,NULL);\n"
         ,classFQCName(cd));
 }
 
@@ -9111,7 +9112,7 @@ static void generateHandleResult(overDef *od, int isNew, int result_size,
         if (res->atype == mapped_type)
         {
             prcode(fp,
-"            PyObject *sipResObj = sipConvertFromMappedType(");
+"            PyObject *sipResObj = sipConvertFromType(");
 
             if (isConstArg(res))
                 prcode(fp,"const_cast<%b *>(sipRes)",res);
@@ -9144,14 +9145,14 @@ static void generateHandleResult(overDef *od, int isNew, int result_size,
             if (isNew || isFactory(od))
             {
                 prcode(fp,
-"            %s sipConvertFromNewInstance(",(nrvals == 1 ? prefix : "PyObject *sipResObj ="));
+"            %s sipConvertFromNewType(",(nrvals == 1 ? prefix : "PyObject *sipResObj ="));
 
                 if (isConstArg(res))
                     prcode(fp,"const_cast<%b *>(sipRes)",res);
                 else
                     prcode(fp,"sipRes");
 
-                prcode(fp,",sipClass_%C,%s);\n"
+                prcode(fp,",sipType_%C,%s);\n"
                     ,classFQCName(cd),((has_owner && isFactory(od)) ? "(PyObject *)sipOwner" : "NULL"));
 
                 /*
@@ -9163,14 +9164,14 @@ static void generateHandleResult(overDef *od, int isNew, int result_size,
             else
             {
                 prcode(fp,
-"            %s sipConvertFromInstance(",(nrvals == 1 ? prefix : "PyObject *sipResObj ="));
+"            %s sipConvertFromType(",(nrvals == 1 ? prefix : "PyObject *sipResObj ="));
 
                 if (isConstArg(res))
                     prcode(fp,"const_cast<%b *>(sipRes)",res);
                 else
                     prcode(fp,"sipRes");
 
-                prcode(fp, ",sipClass_%C,%s);\n"
+                prcode(fp, ",sipType_%C,%s);\n"
                     , classFQCName(cd), resultOwner(od));
 
                 /*
@@ -9255,7 +9256,7 @@ static void generateHandleResult(overDef *od, int isNew, int result_size,
     {
     case mapped_type:
         prcode(fp,
-"            %s sipConvertFromMappedType(", prefix);
+"            %s sipConvertFromType(", prefix);
 
         if (isConstArg(ad))
             prcode(fp,"const_cast<%b *>(%s)",ad,vname);
@@ -9274,17 +9275,17 @@ static void generateHandleResult(overDef *od, int isNew, int result_size,
 
             if (needNew)
                 prcode(fp,
-"            %s sipConvertFromNewInstance(", prefix);
+"            %s sipConvertFromNewType(", prefix);
             else
                 prcode(fp,
-"            %s sipConvertFromInstance(", prefix);
+"            %s sipConvertFromType(", prefix);
 
             if (isConstArg(ad))
                 prcode(fp,"const_cast<%b *>(%s)",ad,vname);
             else
                 prcode(fp,"%s",vname);
 
-            prcode(fp,",sipClass_%C,",classFQCName(cd));
+            prcode(fp,",sipType_%C,",classFQCName(cd));
 
             if (needNew)
                 prcode(fp,"NULL");

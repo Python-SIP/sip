@@ -203,6 +203,12 @@ The generated class names are now ``const char *`` rather than ``char *``.
 
 The following parts of the API are now deprecated.
 
+    - `sipConvertFromInstance()`_
+
+    - `sipConvertFromMappedType()`_
+
+    - `sipConvertFromNewInstance()`_
+
     - `sipCanConvertToInstance()`_
 
     - `sipCanConvertToMappedType()`_
@@ -263,11 +269,11 @@ SIP v4.4
     - ``sipConvertToCpp()``, ``sipIsSubClassInstance()`` and the old-style
       generated type convertors have been deprecated.  The functions
       `sipCanConvertToType()`_, `sipConvertToType()`_,
-      `sipForceConvertToType()`_, `sipConvertFromInstance()`_,
-      `sipConvertFromNewInstance()`_ and `sipConvertFromMappedType()`_ should
-      be used instead.  Handwritten `%ConvertFromTypeCode`_ and
-      `%ConvertToTypeCode`_ now has the responsibility for using these to
-      implement the ``Transfer`` and ``TransferBack`` annotations.
+      `sipForceConvertToType()`_, `sipConvertFromType()`_ and
+      `sipConvertFromNewType()`_ should be used instead.  Handwritten
+      `%ConvertFromTypeCode`_ and `%ConvertToTypeCode`_ now has the
+      responsibility for using these to implement the ``Transfer`` and
+      ``TransferBack`` annotations.
 
 
 Installing SIP
@@ -1767,7 +1773,7 @@ list of ``QWidget`` instances::
 
             // Get the Python wrapper for the QWidget instance, creating a new
             // one if necessary, and handle any ownership transfer.
-            if ((wobj = sipConvertFromInstance(w, sipClass_QWidget, sipTransferObj)) == NULL)
+            if ((wobj = sipConvertFromType(w, sipType_QWidget, sipTransferObj)) == NULL)
             {
                 // There was an error so garbage collect the Python list.
                 Py_DECREF(l);
@@ -2696,7 +2702,7 @@ For example::
             Type *t = sipCpp -> at(i);
             PyObject *tobj;
 
-            if ((tobj = sipConvertFromInstance(t, sipClass_Type, sipTransferObj)) == NULL)
+            if ((tobj = sipConvertFromType(t, sipType_Type, sipTransferObj)) == NULL)
             {
                 // There was an error so garbage collect the Python list.
                 Py_DECREF(l);
@@ -4352,6 +4358,8 @@ PyObject \*sipConvertFromInstance(void \*cpp, sipWrapperType \*type, PyObject \*
     `sipTransferTo()`_.  The Python class is influenced by any applicable
     `%ConvertToSubClassCode`_ code.
 
+    This is deprecated.  Instead you should use `sipConvertFromType()`_.
+
 
 sipConvertFromMappedType()
 --------------------------
@@ -4365,6 +4373,8 @@ PyObject \*sipConvertFromMappedType(void \*cpp, const sipMappedType \*mt, PyObje
     via a call to `sipTransferBack()`_.  Otherwise ownership is transferred to
     C/C++ and the instance associated with the ``PyObject *`` argument via a
     call to `sipTransferTo()`_.
+
+    This is deprecated.  Instead you should use `sipConvertFromType()`_.
 
 
 sipConvertFromNamedEnum()
@@ -4389,6 +4399,21 @@ PyObject \*sipConvertFromNewInstance(void \*cpp, sipWrapperType \*type, PyObject
     the instance associated with *transferObj*.  The Python class is influenced
     by any applicable `%ConvertToSubClassCode`_ code.
 
+    This is deprecated.  Instead you should use `sipConvertFromNewType()`_.
+
+
+sipConvertFromNewType()
+-----------------------
+
+PyObject \*sipConvertFromNewType(void \*cpp, sipTypeDef \*td, PyObject \*transferObj)
+    This converts a new C structure, C++ class or mapped type instance to a
+    Python object.  *cpp* is the C/C++ instance.  *td* is the generated type
+    structure corresponding to the C/C++ type.  *transferObj* controls the
+    ownership of the returned value.  If it is ``NULL`` or ``Py_None`` then
+    ownership will be with Python.  Otherwise ownership will be with C/C++ and
+    the instance associated with *transferObj*.  The Python class is influenced
+    by any applicable `%ConvertToSubClassCode`_ code.
+
 
 sipConvertFromSequenceIndex()
 -----------------------------
@@ -4408,6 +4433,26 @@ int sipConvertFromSliceObject(PyObject \*slice, SIP_SSIZE_T length, SIP_SSIZE_T 
     This is a thin wrapper around the Python ``PySlice_GetIndicesEx()``
     function provided to make it easier to write handwritten code that is
     compatible with SIP v3.x and versions of Python earlier that v2.3.
+
+
+sipConvertFromType()
+--------------------
+
+PyObject \*sipConvertFromType(void \*cpp, sipTypeDef \*td, PyObject \*transferObj)
+    This converts a C structure, a C++ class instance or a mapped type to a
+    Python object.  *cpp* is the C/C++ instance.  If the instance has already
+    been wrapped then the result is a new reference to the existing object.
+    *td* is the generated type structure corresponding to the C/C++ type.
+    *transferObj* controls the ownership of the returned value.  If the
+    structure or class instance has already been wrapped then the result is a
+    new reference to the existing object.  If it is ``NULL`` and the instance
+    has already been wrapped then the ownership is unchanged.  If it is
+    ``NULL`` and the instance is newly wrapped then ownership will be with
+    C/C++.  If it is ``Py_None`` then ownership is transferred to Python via a
+    call to `sipTransferBack()`_.  Otherwise ownership is transferred to C/C++
+    and the instance associated with *transferObj* via a call to
+    `sipTransferTo()`_.  The Python class is influenced by any applicable
+    `%ConvertToSubClassCode`_ code.
 
 
 sipConvertFromVoidPtr()

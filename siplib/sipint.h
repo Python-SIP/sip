@@ -68,7 +68,7 @@ sipSignature *sip_api_parse_signature(const char *sig);
 void *sip_api_malloc(size_t nbytes);
 void sip_api_free(void *mem);
 void *sip_api_get_cpp_ptr(sipSimpleWrapper *w, sipTypeDef *td);
-PyObject *sip_api_convert_from_instance(void *cppPtr, sipWrapperType *type,
+PyObject *sip_api_convert_from_type(void *cppPtr, sipTypeDef *td,
         PyObject *transferObj);
 void sip_api_common_dtor(sipSimpleWrapper *sipSelf);
 void sip_api_start_thread(void);
