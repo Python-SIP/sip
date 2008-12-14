@@ -574,8 +574,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipAddDelayedDtor           sipAPI_%s->api_add_delayed_dtor\n"
 "#define sipCanConvertToType         sipAPI_%s->api_can_convert_to_type\n"
 "#define sipConvertToType            sipAPI_%s->api_convert_to_type\n"
-"#define sipForceConvertToInstance   sipAPI_%s->api_force_convert_to_instance\n"
-"#define sipForceConvertToMappedType sipAPI_%s->api_force_convert_to_mapped_type\n"
+"#define sipForceConvertToType       sipAPI_%s->api_force_convert_to_type\n"
 "#define sipReleaseType              sipAPI_%s->api_release_type\n"
 "#define sipConvertFromInstance      sipAPI_%s->api_convert_from_instance\n"
 "#define sipConvertFromNewInstance   sipAPI_%s->api_convert_from_new_instance\n"
@@ -613,7 +612,8 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipCanConvertToMappedType   sipCanConvertToType\n"
 "#define sipConvertToInstance(o, wt, t, f, s, e)     sipConvertToType((o), (wt)->type, (t), (f), (s), (e))\n"
 "#define sipConvertToMappedType      sipConvertToType\n"
-        ,mname
+"#define sipForceConvertToInstance(o, wt, t, f, s, e)    sipForceConvertToType((o), (wt)->type, (t), (f), (s), (e))\n"
+"#define sipForceConvertToMappedType sipForceConvertToType\n"
         ,mname
         ,mname
         ,mname
@@ -4168,7 +4168,7 @@ static int generateObjToCppConversion(argDef *ad,FILE *fp)
 
             /* Note that we don't support /Transfer/ but could do. */
 
-            prcode(fp, "sipForceConvertToMappedType(sipPy,sipType_%T,NULL,%s,%s,&sipIsErr)", ad, (ad->nrderefs ? "0" : "SIP_NOT_NONE"), (ad->nrderefs ? "NULL" : "&sipValState"));
+            prcode(fp, "sipForceConvertToType(sipPy,sipType_%T,NULL,%s,%s,&sipIsErr)", ad, (ad->nrderefs ? "0" : "SIP_NOT_NONE"), (ad->nrderefs ? "NULL" : "&sipValState"));
 
             prcode(fp, "%s;\n"
                 , tail);
@@ -4199,7 +4199,7 @@ static int generateObjToCppConversion(argDef *ad,FILE *fp)
              * all types).
              */
 
-            prcode(fp, "sipForceConvertToInstance(sipPy,sipClass_%C,NULL,%s,%s,&sipIsErr)", classFQCName(ad->u.cd), (ad->nrderefs ? "0" : "SIP_NOT_NONE"), (might_be_temp ? "&sipValState" : "NULL"));
+            prcode(fp, "sipForceConvertToType(sipPy,sipType_%C,NULL,%s,%s,&sipIsErr)", classFQCName(ad->u.cd), (ad->nrderefs ? "0" : "SIP_NOT_NONE"), (might_be_temp ? "&sipValState" : "NULL"));
 
             prcode(fp, "%s;\n"
                 , tail);

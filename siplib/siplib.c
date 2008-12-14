@@ -36,12 +36,8 @@ static int sip_api_can_convert_to_type(PyObject *pyObj, sipTypeDef *td,
         int flags);
 static void *sip_api_convert_to_type(PyObject *pyObj, sipTypeDef *td,
         PyObject *transferObj, int flags, int *statep, int *iserrp);
-static void *sip_api_force_convert_to_instance(PyObject *pyObj,
-        sipWrapperType *type, PyObject *transferObj, int flags, int *statep,
-        int *iserrp);
-static void *sip_api_force_convert_to_mapped_type(PyObject *pyObj,
-        const sipMappedType *mt, PyObject *transferObj, int flags, int *statep,
-        int *iserrp);
+static void *sip_api_force_convert_to_type(PyObject *pyObj, sipTypeDef *td,
+        PyObject *transferObj, int flags, int *statep, int *iserrp);
 static void sip_api_release_type(void *cpp, sipTypeDef *td, int state);
 static PyObject *sip_api_convert_from_new_instance(void *cpp,
         sipWrapperType *type, PyObject *transferObj);
@@ -141,8 +137,7 @@ static const sipAPIDef sip_api = {
     sip_api_convert_from_sequence_index,
     sip_api_can_convert_to_type,
     sip_api_convert_to_type,
-    sip_api_force_convert_to_instance,
-    sip_api_force_convert_to_mapped_type,
+    sip_api_force_convert_to_type,
     sip_api_release_type,
     sip_api_convert_from_instance,
     sip_api_convert_from_new_instance,
@@ -1984,7 +1979,7 @@ static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
 
                         cpp = va_arg(va, void **);
 
-                        *cpp = sip_api_force_convert_to_instance(arg, type, (flags & FORMAT_FACTORY ? arg : NULL), (flags & FORMAT_DEREF ? SIP_NOT_NONE : 0), state, &iserr);
+                        *cpp = sip_api_force_convert_to_type(arg, type->type, (flags & FORMAT_FACTORY ? arg : NULL), (flags & FORMAT_DEREF ? SIP_NOT_NONE : 0), state, &iserr);
 
                         if (iserr)
                             invalid = TRUE;
@@ -2001,11 +1996,11 @@ static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
                     {
                         int flags = *fmt++ - '0';
                         int iserr = FALSE;
-                        const sipMappedType *mt;
+                        sipTypeDef *mt;
                         void **cpp;
                         int *state;
 
-                        mt = va_arg(va, const sipMappedType *);
+                        mt = va_arg(va, sipTypeDef *);
 
                         if (flags & FORMAT_NO_STATE)
                             state = NULL;
@@ -2014,7 +2009,7 @@ static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
 
                         cpp = va_arg(va, void **);
 
-                        *cpp = sip_api_force_convert_to_mapped_type(arg, mt, (flags & FORMAT_FACTORY ? arg : NULL), (flags & FORMAT_DEREF ? SIP_NOT_NONE : 0), state, &iserr);
+                        *cpp = sip_api_force_convert_to_type(arg, mt, (flags & FORMAT_FACTORY ? arg : NULL), (flags & FORMAT_DEREF ? SIP_NOT_NONE : 0), state, &iserr);
 
                         if (iserr)
                             invalid = TRUE;
@@ -5392,22 +5387,20 @@ static void *sip_api_convert_to_type(PyObject *pyObj, sipTypeDef *td,
  * Convert a Python object to a C/C++ pointer and raise an exception if it
  * can't be done.
  */
-static void *sip_api_force_convert_to_instance(PyObject *pyObj,
-        sipWrapperType *type, PyObject *transferObj, int flags, int *statep,
-        int *iserrp)
+static void *sip_api_force_convert_to_type(PyObject *pyObj, sipTypeDef *td,
+        PyObject *transferObj, int flags, int *statep, int *iserrp)
 {
     /* Don't even try if there has already been an error. */
     if (*iserrp)
         return NULL;
 
     /* See if the object's type can be converted. */
-    if (!sip_api_can_convert_to_type(pyObj, type->type, flags))
+    if (!sip_api_can_convert_to_type(pyObj, td, flags))
     {
         PyErr_Format(PyExc_TypeError,
                 "%s cannot be converted to %s.%s in this context",
-                pyObj->ob_type->tp_name,
-                getNameOfModule(type->type->td_module),
-                getPyNameOfType(type->type));
+                pyObj->ob_type->tp_name, getNameOfModule(td->td_module),
+                getPyNameOfType(td));
 
         if (statep != NULL)
             *statep = 0;
@@ -5417,36 +5410,7 @@ static void *sip_api_force_convert_to_instance(PyObject *pyObj,
     }
 
     /* Do the conversion. */
-    return sip_api_convert_to_type(pyObj, type->type, transferObj, flags, statep, iserrp);
-}
-
-
-/*
- * Convert a Python object to a C/C++ pointer and raise an exception if it
- * can't be done.
- */
-static void *sip_api_force_convert_to_mapped_type(PyObject *pyObj,
-        const sipMappedType *mt, PyObject *transferObj, int flags, int *statep,
-        int *iserrp)
-{
-    /* Don't even try if there has already been an error. */
-    if (*iserrp)
-        return NULL;
-
-    /* See if the object's type can be converted. */
-    if (!sip_api_can_convert_to_type(pyObj, mt, flags))
-    {
-        PyErr_Format(PyExc_TypeError, "%s cannot be converted to %s in this context", pyObj->ob_type->tp_name, getCppNameOfType(mt));
-
-        if (statep != NULL)
-            *statep = 0;
-
-        *iserrp = TRUE;
-        return NULL;
-    }
-
-    /* Do the conversion. */
-    return sip_api_convert_to_type(pyObj, mt, transferObj, flags, statep, iserrp);
+    return sip_api_convert_to_type(pyObj, td, transferObj, flags, statep, iserrp);
 }
 
 

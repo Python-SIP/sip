@@ -211,6 +211,10 @@ The following parts of the API are now deprecated.
 
     - `sipConvertToMappedType()`_
 
+    - `sipForceConvertToInstance()`_
+
+    - `sipForceConvertToMappedType()`_
+
     - `sipClassName()`_
 
     - `sipFindClass()`_
@@ -259,12 +263,11 @@ SIP v4.4
     - ``sipConvertToCpp()``, ``sipIsSubClassInstance()`` and the old-style
       generated type convertors have been deprecated.  The functions
       `sipCanConvertToType()`_, `sipConvertToType()`_,
-      `sipForceConvertToInstance()`_, `sipConvertFromInstance()`_,
-      `sipConvertFromNewInstance()`_, `sipForceConvertToMappedType()`_ and
-      `sipConvertFromMappedType()`_ should be used instead.  Handwritten
-      `%ConvertFromTypeCode`_ and `%ConvertToTypeCode`_ now has the
-      responsibility for using these to implement the ``Transfer`` and
-      ``TransferBack`` annotations.
+      `sipForceConvertToType()`_, `sipConvertFromInstance()`_,
+      `sipConvertFromNewInstance()`_ and `sipConvertFromMappedType()`_ should
+      be used instead.  Handwritten `%ConvertFromTypeCode`_ and
+      `%ConvertToTypeCode`_ now has the responsibility for using these to
+      implement the ``Transfer`` and ``TransferBack`` annotations.
 
 
 Installing SIP
@@ -4623,6 +4626,8 @@ void \*sipForceConvertToInstance(PyObject \*obj, sipWrapperType \*type, PyObject
     `sipConvertToInstance()`_.  See `sipConvertToInstance()`_ for a full
     description of the arguments.
 
+    This is deprecated.  Instead you should use `sipForceConvertToType()`_.
+
 
 sipForceConvertToMappedType()
 -----------------------------
@@ -4632,6 +4637,18 @@ void \*sipForceConvertToMappedType(PyObject \*obj, const sipMappedType \*mt, PyO
     which has been implemented as a mapped type by calling
     `sipCanConvertToMappedType()`_ and, if it is successfull, calling
     `sipConvertToMappedType()`_.  See `sipConvertToMappedType()`_ for a full
+    description of the arguments.
+
+    This is deprecated.  Instead you should use `sipForceConvertToType()`_.
+
+
+sipForceConvertToType()
+-----------------------
+
+void \*sipForceConvertToType(PyObject \*obj, sipTypeDef \*td, PyObject \*transferObj, int flags, int \*state, int \*iserr)
+    This converts a Python object to an instance of a C structure, C++ class or
+    mapped type by calling `sipCanConvertToType()`_ and, if it is successfull,
+    calling `sipConvertToType()`_.  See `sipConvertToType()`_ for a full
     description of the arguments.
 
 

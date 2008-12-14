@@ -65,6 +65,9 @@ extern "C" {
  *      sip_api_can_convert_to_type().
  *      Replaced sip_api_convert_to_instance() and
  *      sip_api_convert_to_mapped_type() with sip_api_convert_to_type().
+ *      Replaced sip_api_force_convert_to_instance() and
+ *      sip_api_force_convert_to_mapped_type() with
+ *      sip_api_force_convert_to_type().
  *      Replaced sip_api_add_class_instance() and
  *      sip_api_add_mapped_type_instance() with sip_api_add_type_instance().
  *      Replaced sip_api_release_instance() and
@@ -1167,12 +1170,8 @@ typedef struct _sipAPIDef {
     int (*api_can_convert_to_type)(PyObject *pyObj, sipTypeDef *td, int flags);
     void *(*api_convert_to_type)(PyObject *pyObj, sipTypeDef *td,
             PyObject *transferObj, int flags, int *statep, int *iserrp);
-    void *(*api_force_convert_to_instance)(PyObject *pyObj,
-            sipWrapperType *type, PyObject *transferObj, int flags,
-            int *statep, int *iserrp);
-    void *(*api_force_convert_to_mapped_type)(PyObject *pyObj,
-            const sipMappedType *mt, PyObject *transferObj, int flags,
-            int *statep, int *iserrp);
+    void *(*api_force_convert_to_type)(PyObject *pyObj, sipTypeDef *td,
+            PyObject *transferObj, int flags, int *statep, int *iserrp);
     void (*api_release_type)(void *cpp, sipTypeDef *td, int state);
     PyObject *(*api_convert_from_instance)(void *cpp, sipWrapperType *type,
             PyObject *transferObj);
