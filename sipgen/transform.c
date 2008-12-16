@@ -2701,7 +2701,8 @@ static mappedTypeDef *instantiateMappedTypeTemplate(sipSpec *pt, moduleDef *mod,
 
     mtd = allocMappedType(pt, type);
 
-    setIsUsedName(mtd->cname);
+    if (generatingCodeForModule(pt, mod))
+        setIsUsedName(mtd->cname);
 
     mtd->iff = findIfaceFile(pt, mod, type->u.td->fqname, mappedtype_iface, type);
     mtd->iff->module = mod;
