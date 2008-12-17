@@ -1957,6 +1957,8 @@ static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
 
             case 'C':
                 {
+                    /* This is deprecated. */
+
                     if (*fmt == '\0')
                         invalid = TRUE;
                     else
@@ -1993,11 +1995,11 @@ static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
                     {
                         int flags = *fmt++ - '0';
                         int iserr = FALSE;
-                        sipTypeDef *mt;
+                        sipTypeDef *td;
                         void **cpp;
                         int *state;
 
-                        mt = va_arg(va, sipTypeDef *);
+                        td = va_arg(va, sipTypeDef *);
 
                         if (flags & FORMAT_NO_STATE)
                             state = NULL;
@@ -2006,7 +2008,7 @@ static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
 
                         cpp = va_arg(va, void **);
 
-                        *cpp = sip_api_force_convert_to_type(arg, mt, (flags & FORMAT_FACTORY ? arg : NULL), (flags & FORMAT_DEREF ? SIP_NOT_NONE : 0), state, &iserr);
+                        *cpp = sip_api_force_convert_to_type(arg, td, (flags & FORMAT_FACTORY ? arg : NULL), (flags & FORMAT_DEREF ? SIP_NOT_NONE : 0), state, &iserr);
 
                         if (iserr)
                             invalid = TRUE;

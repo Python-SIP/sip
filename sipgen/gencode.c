@@ -6451,7 +6451,7 @@ static void generateParseResultExtraArgs(argDef *ad, int isres, FILE *fp)
         break;
 
     case class_type:
-        prcode(fp, ",sipClass_%C", classFQCName(ad->u.cd));
+        prcode(fp, ",sipType_%C", classFQCName(ad->u.cd));
 
         if (isres && ad->nrderefs == 0 && ad->u.cd->convtocode != NULL && !isReference(ad))
             prcode(fp, ",&sipResState");
@@ -6514,7 +6514,7 @@ static const char *getParseResultFormat(argDef *ad, int isres, int xfervh)
     case fake_void_type:
     case class_type:
         {
-            static char s[] = "C?";
+            static char s[] = "D?";
 
             int f = 0x04;
 
