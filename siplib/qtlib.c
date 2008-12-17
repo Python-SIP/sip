@@ -22,7 +22,7 @@ static PyObject *py_sender = NULL;  /* The last Python signal sender. */
 
 
 static int isSameSlot(sipSlot *,PyObject *,const char *);
-static int emitQtSig(sipWrapper *,const char *,PyObject *);
+static int emitQtSig(sipSimpleWrapper *sw, const char *sig, PyObject *sigargs);
 static int emitToSlotList(sipSlotList *rxlist, PyObject *sigargs);
 static int addSlotToPySigList(sipWrapper *,const char *,PyObject *,const char *);
 static void removeSlotFromPySigList(sipWrapper *,const char *,PyObject *,const char *);
@@ -497,7 +497,7 @@ int sip_api_emit_signal(PyObject *self,const char *sig,PyObject *sigargs)
 
         /* Handle Qt implementations that emit using generated code. */
         if (!sipQtSupport->qt_emit_signal)
-            return emitQtSig(w, sig, sigargs);
+            return emitQtSig((sipSimpleWrapper *)w, sig, sigargs);
 
         /* See if the signal is a shortcut. */
         if (strchr(sig, '(') == NULL)
@@ -552,12 +552,12 @@ static sipPySig *findPySignal(sipWrapper *w,const char *sig)
  * with the signal arguments.  Return 0 if the signal was emitted or <0 if
  * there was an error.
  */
-static int emitQtSig(sipWrapper *w,const char *sig,PyObject *sigargs)
+static int emitQtSig(sipSimpleWrapper *sw, const char *sig, PyObject *sigargs)
 {
     sipQtSignal *tab;
 
     /* Search the table. */
-    for (tab = ((sipWrapperType *)(((PyObject *)w)->ob_type))->type->td_emit; tab->st_name != NULL; ++tab)
+    for (tab = ((sipWrapperType *)(((PyObject *)sw)->ob_type))->type->td_emit; tab->st_name != NULL; ++tab)
     {
         const char *sp, *tp;
         int found;
@@ -576,7 +576,7 @@ static int emitQtSig(sipWrapper *w,const char *sig,PyObject *sigargs)
             }
 
         if (found)
-            return (*tab -> st_emitfunc)(w,sigargs);
+            return (*tab->st_emitfunc)(sw, sigargs);
     }
 
     /* It wasn't found if we got this far. */

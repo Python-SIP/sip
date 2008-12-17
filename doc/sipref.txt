@@ -182,6 +182,18 @@ Potential Incompatibilities with Earlier Versions
 SIP v4.8
 --------
 
+Prior to this version the `sipWrapper`_ structure had a member called ``user``
+which is available for handwritten code to use.  From this version ``user`` is
+a member of the `sipSimpleWrapper`_ structure.  `sipWrapper`_ pointers can be
+safely cast to `sipSimpleWrapper`_ pointers, so if your code does something
+like::
+
+    ((sipWrapper *)obj)->user = an_object_reference;
+
+then you just need to change it to::
+
+    ((sipSimpleWrapper *)obj)->user = an_object_reference;
+
 The following deprecated parts of the API have been removed.
 
     - The ``a``, ``A``, ``M``, ``N``, ``O``, ``P`` and ``T`` format characters
@@ -1832,6 +1844,14 @@ void \*\*sipCppRet
     C++ address of the instance when cast (usually using ``static_cast``)
     from the super-class to the sub-class.
 
+sipTypeDef \*sipType
+    The handwritten code must set this to the SIP generated type structure
+    that corresponds to the class instance.  (The type structure for class
+    ``Klass`` is ``sipType_Klass``.)  If the RTTI of the class instance isn't
+    recognised then ``sipType`` must be set to ``NULL``.  The code doesn't
+    have to recognise the exact class, only the most specific sub-class that
+    it can.
+
 sipWrapperType \*sipClass
     The handwritten code must set this to the SIP generated Python type object
     that corresponds to the class instance.  (The type object for class
@@ -1839,6 +1859,8 @@ sipWrapperType \*sipClass
     recognised then ``sipClass`` must be set to ``NULL``.  The code doesn't
     have to recognise the exact class, only the most specific sub-class that
     it can.
+
+    This is deprecated.  Instead you should use ``sipType``.
 
 The handwritten code must not explicitly return.
 
@@ -1849,22 +1871,22 @@ class hierarchy in PyQt::
     {
     %ConvertToSubClassCode
         // QEvent sub-classes provide a unique type ID.
-        switch (sipCpp -> type())
+        switch (sipCpp->type())
         {
         case QEvent::Timer:
-            sipClass = sipClass_QTimerEvent;
+            sipType = sipType_QTimerEvent;
             break;
 
         case QEvent::KeyPress:
         case QEvent::KeyRelease:
-            sipClass = sipClass_QKeyEvent;
+            sipType = sipType_QKeyEvent;
             break;
 
         // Skip the remaining event types to keep the example short.
 
         default:
             // We don't recognise the type.
-            sipClass = NULL;
+            sipType = NULL;
         }
     %End
 

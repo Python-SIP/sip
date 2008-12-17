@@ -4093,6 +4093,8 @@ static int getSelfFromArgs(sipWrapperType *type, PyObject *args, int argnr,
 
 /*
  * Handle the result of a call to the class/instance setattro methods.
+ * FIXME: Don't even call this if the type doesn't have wrapped variables and
+ * don't search for methods and enums if it does.
  */
 static int handleSetLazyAttr(PyObject *nameobj, PyObject *valobj,
         sipWrapperType *wt, sipSimpleWrapper *sw)
@@ -4301,7 +4303,7 @@ static void findLazyAttr(sipTypeDef *td, const char *name, PyMethodDef **pmdp,
     while (nsx != NULL);
 
     /* Check the base classes. */
-    /* ZZZ - isn't this done automatically? */
+    /* FIXME - isn't this done automatically? */
     if ((sup = td->td_supers) != NULL)
         do
         {
@@ -5708,7 +5710,7 @@ static sipTypeDef *convertSubClass(sipTypeDef *td, void **cppPtr)
             if (PyType_IsSubtype(py_type, sipTypePyTypeObject(scc->scc_basetype)))
             {
                 void *ptr;
-                sipWrapperType *subtype;
+                sipTypeDef *subtype;
 
                 ptr = cast_cpp_ptr(*cppPtr, py_type, scc->scc_basetype);
                 subtype = (*scc->scc_convertor)(&ptr);
@@ -5722,10 +5724,10 @@ static sipTypeDef *convertSubClass(sipTypeDef *td, void **cppPtr)
                  * ensures that there will be no more than one and that it will
                  * be the right one.
                  */
-                if (subtype != NULL && !PyType_IsSubtype(py_type, (PyTypeObject *)subtype))
+                if (subtype != NULL && !PyType_IsSubtype(py_type, sipTypePyTypeObject(subtype)))
                 {
                     *cppPtr = ptr;
-                    return subtype->type;
+                    return subtype;
                 }
             }
 
@@ -6942,10 +6944,13 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
 
     /*
      * If there is an owner then we assume that the wrapper supports the
-     * concept.  (A bit of a hack.)
+     * concept.
      */
     if (owner != NULL)
+    {
+        assert(PyObject_IsInstance(self, (PyObject *)&sipWrapper_Type) > 0);
         addToParent((sipWrapper *)self, owner);
+    }
 
     self->u.cppPtr = sipNew;
     self->flags = sipFlags;
