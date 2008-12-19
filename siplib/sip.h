@@ -82,6 +82,11 @@ extern "C" {
  *      Replaced sip_api_is_exact_wrapped_type() with a macro.
  *      Replaced sip_api_get_wrapper() with sip_api_get_pyobject().
  *      Deprecated sipWrapper_Check().
+ *      Added the 'N' format character of sip_api_build_result() and
+ *      sip_api_call_method().
+ *      Deprecated the 'B' and 'C' format characters of sip_api_build_result()
+ *      and sip_api_call_method().
+ *      Deprecated the 'C' format character of sip_api_parse_result().
  *
  * 3.8  Added sip_api_register_meta_type() and sip_api_deprecated().
  *      Added qt_register_meta_type() to the Qt support API.

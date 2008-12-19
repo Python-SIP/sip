@@ -6754,18 +6754,12 @@ static void generateTupleBuilder(signatureDef *sd,FILE *fp)
             break;
 
         case mapped_type:
-            fmt = "D";
-            break;
-
         case fake_void_type:
         case class_type:
-            fmt = "C";
-            break;
-
         case rxcon_type:
         case rxdis_type:
         case qobject_type:
-            fmt = "O";
+            fmt = "D";
             break;
 
         case pyobject_type:
@@ -6842,9 +6836,9 @@ static void generateTupleBuilder(signatureDef *sd,FILE *fp)
             if (ad->atype == mapped_type)
                 prcode(fp, ",sipType_%T,NULL", ad);
             else if (ad->atype == fake_void_type || ad->atype == class_type)
-                prcode(fp, ",sipClass_%C,NULL", classFQCName(ad->u.cd));
+                prcode(fp, ",sipType_%C,NULL", classFQCName(ad->u.cd));
             else
-                prcode(fp,",sipClass_QObject");
+                prcode(fp,",sipType_QObject,NULL");
         }
         else
         {
@@ -9241,7 +9235,7 @@ static void generateHandleResult(overDef *od, int isNew, int result_size,
                 if (ad->atype == mapped_type)
                     prcode(fp, ",sipType_%T,%s", ad, (isTransferredBack(ad) ? "Py_None" : "NULL"));
                 else if (ad->atype == class_type)
-                    prcode(fp, ",sipClass_%C,%s", classFQCName(ad->u.cd), (isTransferredBack(ad) ? "Py_None" : "NULL"));
+                    prcode(fp, ",sipType_%C,%s", classFQCName(ad->u.cd), (isTransferredBack(ad) ? "Py_None" : "NULL"));
                 else if (ad->atype == enum_type && ad->u.ed->fqcname != NULL)
                     prcode(fp,",sipEnum_%C",ad->u.ed->fqcname);
             }
@@ -9496,9 +9490,9 @@ static char getBuildResultFormat(argDef *ad)
     case fake_void_type:
     case class_type:
         if (needNewInstance(ad))
-            return 'B';
+            return 'N';
 
-        return 'C';
+        return 'D';
 
     case bool_type:
     case cbool_type:

@@ -1583,6 +1583,8 @@ static PyObject *buildObject(PyObject *obj, const char *fmt, va_list va)
 
         case 'B':
             {
+                /* This is deprecated. */
+
                 void *p = va_arg(va,void *);
                 sipWrapperType *wt = va_arg(va, sipWrapperType *);
                 PyObject *xfer = va_arg(va, PyObject *);
@@ -1592,8 +1594,21 @@ static PyObject *buildObject(PyObject *obj, const char *fmt, va_list va)
 
             break;
 
+        case 'N':
+            {
+                void *p = va_arg(va,void *);
+                sipTypeDef *td = va_arg(va, sipTypeDef *);
+                PyObject *xfer = va_arg(va, PyObject *);
+
+                el = sip_api_convert_from_new_type(p, td, xfer);
+            }
+
+            break;
+
         case 'C':
             {
+                /* This is deprecated. */
+
                 void *p = va_arg(va,void *);
                 sipWrapperType *wt = va_arg(va, sipWrapperType *);
                 PyObject *xfer = va_arg(va, PyObject *);
@@ -1606,10 +1621,10 @@ static PyObject *buildObject(PyObject *obj, const char *fmt, va_list va)
         case 'D':
             {
                 void *p = va_arg(va, void *);
-                sipTypeDef *mt = va_arg(va, sipTypeDef *);
+                sipTypeDef *td = va_arg(va, sipTypeDef *);
                 PyObject *xfer = va_arg(va, PyObject *);
 
-                el = sip_api_convert_from_type(p, mt, xfer);
+                el = sip_api_convert_from_type(p, td, xfer);
             }
 
             break;

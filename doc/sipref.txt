@@ -247,6 +247,9 @@ The following parts of the API are now deprecated.
 
     - `sipWrapper_Check()`_
 
+    - The ``B`` and ``C`` format characters of `sipBuildResult()`_ and
+      `sipCallMethod()`_.
+
     - The ``C`` format character of `sipParseResult()`_.
 
 
@@ -1862,7 +1865,7 @@ sipWrapperType \*sipClass
     have to recognise the exact class, only the most specific sub-class that
     it can.
 
-    This is deprecated.  Instead you should use ``sipType``.
+    This is deprecated from SIP v4.8.  Instead you should use ``sipType``.
 
 The handwritten code must not explicitly return.
 
@@ -4220,14 +4223,18 @@ PyObject \*sipBuildResult(int \*iserr, const char \*format, ...)
         via a call to `sipTransferTo()`_.  The Python class is influenced by
         any applicable `%ConvertToSubClassCode`_ code.
 
-    ``D`` (object) [*type* \*, const sipMappedType \*, PyObject \*]
-        Convert a C structure or a C++ class instance wrapped as a mapped type
-        to a Python object.  Ownership of the structure or instance is
-        determined by the ``PyObject *`` argument.  If it is ``NULL`` then the
-        ownership is unchanged.  If it is ``Py_None`` then ownership is
-        transferred to Python via a call to `sipTransferBack()`_.  Otherwise
-        ownership is transferred to C/C++ and the instance associated with the
-        ``PyObject *`` argument via a call to `sipTransferTo()`_.
+    ``D`` (wrapped instance) [*type* \*, const sipTypeDef \*, PyObject \*]
+        Convert a C structure, C++ class or mapped type instance to a Python
+        object.  If the instance has already been wrapped then the result is a
+        new reference to the existing object.  Ownership of the instance is
+        determined by the ``PyObject *`` argument.  If it is ``NULL`` and the
+        instance has already been wrapped then the ownership is unchanged.  If
+        it is ``NULL`` and the instance is newly wrapped then ownership will be
+        with C/C++.  If it is ``Py_None`` then ownership is transferred to
+        Python via a call to `sipTransferBack()`_.  Otherwise ownership is
+        transferred to C/C++ and the instance associated with the
+        ``PyObject *`` argument via a call to `sipTransferTo()`_.  The Python
+        class is influenced by any applicable `%ConvertToSubClassCode`_ code.
 
     ``E`` (wrapped enum) [enum, PyTypeObject \*]
         Convert a named C/C++ ``enum`` to an instance of the corresponding
@@ -4237,6 +4244,16 @@ PyObject \*sipBuildResult(int \*iserr, const char \*format, ...)
         Convert a C/C++ wide character array and its length to a Python unicode
         object.  If the array is ``NULL`` then the length is ignored and the
         result is ``Py_None``.
+
+    ``N`` (wrapped instance) [*type* \*, sipTypeDef \*, PyObject \*]
+        Convert a new C structure, C++ class or mapped type instance to a
+        Python object.  Ownership of the instance is determined by the
+        ``PyObject *`` argument.  If it is ``NULL`` and the instance has
+        already been wrapped then the ownership is unchanged.  If it is
+        ``NULL`` or ``Py_None`` then ownership will be with Python.  Otherwise
+        ownership will be with C/C++ and the instance associated with the
+        ``PyObject *`` argument.  The Python class is influenced by any
+        applicable `%ConvertToSubClassCode`_ code.
 
     ``R`` (object) [PyObject \*]
         The result is value passed without any conversions.  The reference
@@ -4282,7 +4299,8 @@ int sipCanConvertToInstance(PyObject \*obj, sipWrapperType \*type, int flags)
         - ``SIP_NO_CONVERTORS`` suppresses the use of of any
           `%ConvertToTypeCode`_ for *type*.
 
-    This is deprecated.  Instead you should use `sipCanConvertToType()`_.
+    This is deprecated from SIP v4.8.  Instead you should use
+    `sipCanConvertToType()`_.
 
 
 sipCanConvertToMappedType()
@@ -4297,7 +4315,8 @@ int sipCanConvertToMappedType(PyObject \*obj, const sipMappedType \*mt, int flag
 
         - ``SIP_NOT_NONE`` causes the check to fail if *obj* is ``None``.
 
-    This is deprecated.  Instead you should use `sipCanConvertToType()`_.
+    This is deprecated from SIP v4.8.  Instead you should use
+    `sipCanConvertToType()`_.
 
 
 sipCanConvertToType()
@@ -4323,7 +4342,7 @@ PyObject \*sipClassName(PyObject \*obj)
     This returns the class name of a wrapped instance as a Python string.  It
     comes with a reference.
 
-    This is deprecated.  Instead you should use the following::
+    This is deprecated from SIP v4.8.  Instead you should use the following::
 
         PyString_FromString(obj->ob_type->tp_name)
 
@@ -4382,7 +4401,8 @@ PyObject \*sipConvertFromInstance(void \*cpp, sipWrapperType \*type, PyObject \*
     `sipTransferTo()`_.  The Python class is influenced by any applicable
     `%ConvertToSubClassCode`_ code.
 
-    This is deprecated.  Instead you should use `sipConvertFromType()`_.
+    This is deprecated from SIP v4.8.  Instead you should use
+    `sipConvertFromType()`_.
 
 
 sipConvertFromMappedType()
@@ -4398,7 +4418,8 @@ PyObject \*sipConvertFromMappedType(void \*cpp, const sipMappedType \*mt, PyObje
     C/C++ and the instance associated with the ``PyObject *`` argument via a
     call to `sipTransferTo()`_.
 
-    This is deprecated.  Instead you should use `sipConvertFromType()`_.
+    This is deprecated from SIP v4.8.  Instead you should use
+    `sipConvertFromType()`_.
 
 
 sipConvertFromNamedEnum()
@@ -4423,7 +4444,8 @@ PyObject \*sipConvertFromNewInstance(void \*cpp, sipWrapperType \*type, PyObject
     the instance associated with *transferObj*.  The Python class is influenced
     by any applicable `%ConvertToSubClassCode`_ code.
 
-    This is deprecated.  Instead you should use `sipConvertFromNewType()`_.
+    This is deprecated from SIP v4.8.  Instead you should use
+    `sipConvertFromNewType()`_.
 
 
 sipConvertFromNewType()
@@ -4528,7 +4550,8 @@ void \*sipConvertToInstance(PyObject \*obj, sipWrapperType \*type, PyObject \*tr
     that share the same error flag so that it only needs to be tested once
     rather than after each call.)
 
-    This is deprecated.  Instead you should use `sipConvertToType()`_
+    This is deprecated from SIP v4.8.  Instead you should use
+    `sipConvertToType()`_
 
 
 sipConvertToMappedType()
@@ -4558,7 +4581,8 @@ void \*sipConvertToMappedType(PyObject \*obj, const sipMappedType \*mt, PyObject
     several calls to be made that share the same error flag so that it only
     needs to be tested once rather than after each call.)
 
-    This is deprecated.  Instead you should use `sipConvertToType()`_
+    This is deprecated from SIP v4.8.  Instead you should use
+    `sipConvertToType()`_
 
 
 sipConvertToType()
@@ -4651,7 +4675,7 @@ sipWrapperType \*sipFindClass(const char \*type)
     C/C++ type doesn't exist.  The value of the pointer will not change and
     may be saved in a static cache.
 
-    This is deprecated.  Instead you should use `sipFindType()`_.
+    This is deprecated from SIP v4.8.  Instead you should use `sipFindType()`_.
 
 
 sipFindMappedType()
@@ -4663,7 +4687,7 @@ const sipMappedType \*sipFindMappedType(const char \*type)
     mapped type doesn't exist.  The value of the pointer will not change and
     may be saved in a static cache.
 
-    This is deprecated.  Instead you should use `sipFindType()`_.
+    This is deprecated from SIP v4.8.  Instead you should use `sipFindType()`_.
 
 
 sipFindNamedEnum()
@@ -4695,7 +4719,8 @@ void \*sipForceConvertToInstance(PyObject \*obj, sipWrapperType \*type, PyObject
     `sipConvertToInstance()`_.  See `sipConvertToInstance()`_ for a full
     description of the arguments.
 
-    This is deprecated.  Instead you should use `sipForceConvertToType()`_.
+    This is deprecated from SIP v4.8.  Instead you should use
+    `sipForceConvertToType()`_.
 
 
 sipForceConvertToMappedType()
@@ -4708,7 +4733,8 @@ void \*sipForceConvertToMappedType(PyObject \*obj, const sipMappedType \*mt, PyO
     `sipConvertToMappedType()`_.  See `sipConvertToMappedType()`_ for a full
     description of the arguments.
 
-    This is deprecated.  Instead you should use `sipForceConvertToType()`_.
+    This is deprecated from SIP v4.8.  Instead you should use
+    `sipForceConvertToType()`_.
 
 
 sipForceConvertToType()
@@ -4759,7 +4785,8 @@ PyObject \*sipGetWrapper(void \*cppptr, sipWrapperType \*type)
     raised).  *cppptr* is the pointer to the structure or class instance.
     *type* is the generated type corresponding to the C/C++ type.
 
-    This is deprecated.  Instead you should use `sipGetPyObject()`_.
+    This is deprecated from SIP v4.8.  Instead you should use
+    `sipGetPyObject()`_.
 
 
 sipImportSymbol()
@@ -4787,7 +4814,7 @@ int typeInt
 sipWrapperType \*\*pyType.
     A pointer to the corresponding Python type object.
 
-This is deprecated.
+This is deprecated from SIP v4.8.
 
 
 sipLong_AsUnsignedLong()
@@ -4819,7 +4846,7 @@ sipWrapperType \*sipMapIntToClass(int type, const sipIntTypeClassMap \*map, int 
     the table.  The corresponding Python type object is returned, or ``NULL``
     if *type* wasn't in *map*.
 
-    This is deprecated
+    This is deprecated from SIP v4.8.
 
 
 sipMapStringToClass()
@@ -4834,7 +4861,7 @@ sipWrapperType \*sipMapStringToClass(char \*type, const sipStringTypeClassMap \*
     is the number of entries in the table.  The corresponding Python type
     object is returned, or ``NULL`` if *type* wasn't in *map*.
 
-    This is deprecated
+    This is deprecated from SIP v4.8.
 
 
 sipParseResult()
@@ -4932,9 +4959,9 @@ int sipParseResult(int \*iserr, PyObject \*method, PyObject \*result, const char
                  instance.  Note that the ``int *`` used to return the state is
                  not passed if this flag is specified.
 
-        This is deprecated.  Instead you should use ``Df``.
+        This is deprecated from SIP v4.8.  Instead you should use ``Df``.
 
-    ``Df`` (mapped class) [const sipTypeDef \*, int \*, void \*\*]
+    ``Df`` (wrapped instance) [const sipTypeDef \*, int \*, void \*\*]
         Convert a Python object to a C structure, C++ class or mapped type
         instance and return its state as described in `sipConvertToType()`_.
         ``f`` is a combination of the following flags encoded as an ASCII
@@ -4998,7 +5025,8 @@ void sipReleaseInstance(void \*cpp, sipWrapperType \*type, int state)
     *type* is the generated type corresponding to *cpp*.  *state* describes the
     state of the instance.
 
-    This is deprecated.  Instead you should use `sipReleaseType()`_.
+    This is deprecated from SIP v4.8.  Instead you should use
+    `sipReleaseType()`_.
 
 
 sipReleaseMappedType()
@@ -5011,7 +5039,8 @@ void sipReleaseMappedType(void \*cpp, const sipMappedType \*mt, int state)
     *mt* is the opaque structure returned by `sipFindMappedType()`_.  *state*
     describes the state of the instance.
 
-    This is deprecated.  Instead you should use `sipReleaseType()`_.
+    This is deprecated from SIP v4.8.  Instead you should use
+    `sipReleaseType()`_.
 
 
 sipReleaseType()
@@ -5057,7 +5086,7 @@ char \*typeString
 sipWrapperType \*\*pyType.
     A pointer to the corresponding Python type object.
 
-This is deprecated.
+This is deprecated from SIP v4.8.
 
 
 sipTransferBack()
@@ -5153,7 +5182,7 @@ int sipWrapper_Check(PyObject \*obj)
     This returns a non-zero value if a Python object is a wrapped instance.
     *obj* is the Python object.
 
-    This is deprecated.  Instead you should use the following::
+    This is deprecated from SIP v4.8.  Instead you should use the following::
 
         PyObject_TypeCheck(obj, sipWrapper_Type)
 
