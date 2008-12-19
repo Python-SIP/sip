@@ -87,6 +87,8 @@ extern "C" {
  *      Deprecated the 'B' and 'C' format characters of sip_api_build_result()
  *      and sip_api_call_method().
  *      Deprecated the 'C' format character of sip_api_parse_result().
+ *      Removed the 'M' format character of sip_api_parse_args().
+ *      The 'J' format character of sip_api_parse_args() now uses sipTypeDef.
  *
  * 3.8  Added sip_api_register_meta_type() and sip_api_deprecated().
  *      Added qt_register_meta_type() to the Qt support API.
@@ -218,9 +220,6 @@ typedef struct _sipWrapperType {
 
     /* The list of init extenders. */
     struct _sipInitExtenderDef *iextend;
-
-    /* The optional PyQt defined Q_OBJECT information. */
-    void *qt_qobject;
 } sipWrapperType;
 
 
