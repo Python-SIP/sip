@@ -4209,6 +4209,8 @@ PyObject \*sipBuildResult(int \*iserr, const char \*format, ...)
         ``PyObject *`` argument.  The Python class is influenced by any
         applicable `%ConvertToSubClassCode`_ code.
 
+        This is deprecated from SIP v4.8.  Instead you should use ``N``.
+
     ``C`` (wrapped instance) [*type* \*, sipWrapperType \*, PyObject \*]
         Convert a C structure or a C++ class instance to a Python class
         instance object.  If the structure or class instance has already been
@@ -4222,6 +4224,8 @@ PyObject \*sipBuildResult(int \*iserr, const char \*format, ...)
         to C/C++ and the instance associated with the ``PyObject *`` argument
         via a call to `sipTransferTo()`_.  The Python class is influenced by
         any applicable `%ConvertToSubClassCode`_ code.
+
+        This is deprecated from SIP v4.8.  Instead you should use ``D``.
 
     ``D`` (wrapped instance) [*type* \*, const sipTypeDef \*, PyObject \*]
         Convert a C structure, C++ class or mapped type instance to a Python
@@ -5241,8 +5245,8 @@ These objects are named with the structure or class name prefixed by
 ``sipClass_``.  For example, the type object for class ``Klass`` is
 ``sipClass_Klass``.
 
-Using these names to refer is deprecated.  Instead use the corresponding
-generated type structure (see `Generated Type Structures`_) and
+Using these names to refer is deprecated from SIP v4.8.  Instead use the
+corresponding generated type structure (see `Generated Type Structures`_) and
 `sipTypePyTypeObject()`_.
 
 
