@@ -322,7 +322,7 @@ static int parsePass1(sipSimpleWrapper **selfp, int *selfargp,
         int *argsParsedp, PyObject *sipArgs, const char *fmt, va_list va);
 static int parsePass2(sipSimpleWrapper *self, int selfarg, int nrargs,
         PyObject *sipArgs, const char *fmt, va_list va);
-static int getSelfFromArgs(sipWrapperType *type, PyObject *args, int argnr,
+static int getSelfFromArgs(sipTypeDef *td, PyObject *args, int argnr,
         sipSimpleWrapper **selfp);
 static int canConvertToNamedEnum(PyObject *obj, PyTypeObject *et);
 static PyObject *createEnumMember(sipTypeDef *td, sipEnumMemberDef *enm);
@@ -415,7 +415,7 @@ static int parseWCharString(PyObject *obj, wchar_t **ap);
 #else
 static void raiseNoWChar();
 #endif
-static void *getComplexCppPtr(sipSimpleWrapper *w, sipWrapperType *type);
+static void *getComplexCppPtr(sipSimpleWrapper *w, sipTypeDef *td);
 static PyObject *make_voidptr(void *voidptr, SIP_SSIZE_T size, int rw);
 static PyObject *findPyType(const char *name);
 static int addPyObjectToList(sipPyObject **head, PyObject *object);
@@ -2344,15 +2344,15 @@ static int parsePass1(sipSimpleWrapper **selfp, int *selfargp,
     case 'p':
         {
             PyObject *self;
-            sipWrapperType *type;
+            sipTypeDef *td;
 
             self = *va_arg(va,PyObject **);
-            type = va_arg(va,sipWrapperType *);
+            td = va_arg(va,sipTypeDef *);
             va_arg(va,void **);
 
             if (self == NULL)
             {
-                if ((valid = getSelfFromArgs(type,sipArgs,argnr,selfp)) != PARSE_OK)
+                if ((valid = getSelfFromArgs(td, sipArgs, argnr, selfp)) != PARSE_OK)
                     break;
 
                 *selfargp = TRUE;
@@ -2520,18 +2520,18 @@ static int parsePass1(sipSimpleWrapper **selfp, int *selfargp,
 
         case 'J':
             {
-                /* Class instance. */
+                /* Class or mapped type instance. */
 
                 if (*fmt == '\0')
                     valid = PARSE_FORMAT;
                 else
                 {
                     int flags = *fmt++ - '0';
-                    sipWrapperType *type;
+                    sipTypeDef *td;
                     int iflgs = 0;
 
-                    type = va_arg(va,sipWrapperType *);
-                    va_arg(va,void **);
+                    td = va_arg(va, sipTypeDef *);
+                    va_arg(va, void **);
 
                     if (flags & FORMAT_DEREF)
                         iflgs |= SIP_NOT_NONE;
@@ -2544,39 +2544,12 @@ static int parsePass1(sipSimpleWrapper **selfp, int *selfargp,
                     else
                         va_arg(va, int *);
 
-                    if (!sip_api_can_convert_to_type(arg, type->type, iflgs))
+                    if (!sip_api_can_convert_to_type(arg, td, iflgs))
                         valid = PARSE_TYPE;
                 }
 
                 break;
             }
-
-        case 'M':
-            {
-                /* Mapped type instance. */
-
-                if (*fmt == '\0')
-                    valid = PARSE_FORMAT;
-                else
-                {
-                    int flags = *fmt++ - '0';
-                    sipTypeDef *mt;
-                    int iflgs = 0;
-
-                    mt = va_arg(va, sipTypeDef *);
-                    va_arg(va, void **);
-                    va_arg(va, int *);
-
-                    if (flags & FORMAT_DEREF)
-                        iflgs |= SIP_NOT_NONE;
-
-                    if (!sip_api_can_convert_to_type(arg, mt, iflgs))
-                        valid = PARSE_TYPE;
-                }
-
-                break;
-            }
-
 
         case 'N':
             {
@@ -3094,14 +3067,14 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, int nrargs,
              * methods.
              */
 
-            sipWrapperType *type;
+            sipTypeDef *td;
             void **p;
 
-            *va_arg(va,PyObject **) = (PyObject *)self;
-            type = va_arg(va,sipWrapperType *);
-            p = va_arg(va,void **);
+            *va_arg(va, PyObject **) = (PyObject *)self;
+            td = va_arg(va, sipTypeDef *);
+            p = va_arg(va, void **);
 
-            if ((*p = sip_api_get_cpp_ptr(self, type->type)) == NULL)
+            if ((*p = sip_api_get_cpp_ptr(self, td)) == NULL)
                 valid = PARSE_RAISED;
 
             break;
@@ -3114,14 +3087,14 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, int nrargs,
              * methods.
              */
 
-            sipWrapperType *type;
+            sipTypeDef *td;
             void **p;
 
-            *va_arg(va,PyObject **) = (PyObject *)self;
-            type = va_arg(va,sipWrapperType *);
-            p = va_arg(va,void **);
+            *va_arg(va, PyObject **) = (PyObject *)self;
+            td = va_arg(va, sipTypeDef *);
+            p = va_arg(va, void **);
 
-            if ((*p = getComplexCppPtr(self, type)) == NULL)
+            if ((*p = getComplexCppPtr(self, td)) == NULL)
                 valid = PARSE_RAISED;
 
             break;
@@ -3218,18 +3191,18 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, int nrargs,
 
         case 'J':
             {
-                /* Class instance. */
+                /* Class or mapped type instance. */
 
                 int flags = *fmt++ - '0';
-                sipWrapperType *type;
+                sipTypeDef *td;
                 void **p;
                 int iflgs = 0;
                 int iserr = FALSE;
                 int *state;
                 PyObject *xfer, **wrapper;
 
-                type = va_arg(va,sipWrapperType *);
-                p = va_arg(va,void **);
+                td = va_arg(va, sipTypeDef *);
+                p = va_arg(va, void **);
 
                 if (flags & FORMAT_TRANSFER)
                     xfer = (self ? (PyObject *)self : arg);
@@ -3252,7 +3225,7 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, int nrargs,
                 else
                     state = va_arg(va, int *);
 
-                *p = sip_api_convert_to_type(arg, type->type, xfer, iflgs, state, &iserr);
+                *p = sip_api_convert_to_type(arg, td, xfer, iflgs, state, &iserr);
 
                 if (iserr)
                     valid = PARSE_RAISED;
@@ -3261,40 +3234,6 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, int nrargs,
                     *wrapper = (*p != NULL ? arg : NULL);
                 else if (flags & FORMAT_TRANSFER_THIS && *p != NULL)
                     *wrapper = arg;
-
-                break;
-            }
-
-        case 'M':
-            {
-                /* Mapped type instance. */
-
-                int flags = *fmt++ - '0';
-                sipTypeDef *mt;
-                void **p;
-                int iflgs = 0;
-                int iserr = FALSE;
-                int *state;
-                PyObject *xfer;
-
-                mt = va_arg(va, sipTypeDef *);
-                p = va_arg(va, void **);
-                state = va_arg(va, int *);
-
-                if (flags & FORMAT_TRANSFER)
-                    xfer = (self ? (PyObject *)self : arg);
-                else if (flags & FORMAT_TRANSFER_BACK)
-                    xfer = Py_None;
-                else
-                    xfer = NULL;
-
-                if (flags & FORMAT_DEREF)
-                    iflgs |= SIP_NOT_NONE;
-
-                *p = sip_api_convert_to_type(arg, mt, xfer, iflgs, state, &iserr);
-
-                if (iserr)
-                    valid = PARSE_RAISED;
 
                 break;
             }
@@ -4087,7 +4026,7 @@ static int addInstances(PyObject *dict, sipInstancesDef *id)
  * Get "self" from the argument tuple for a method called as
  * Class.Method(self, ...) rather than self.Method(...).
  */
-static int getSelfFromArgs(sipWrapperType *type, PyObject *args, int argnr,
+static int getSelfFromArgs(sipTypeDef *td, PyObject *args, int argnr,
         sipSimpleWrapper **selfp)
 {
     PyObject *self;
@@ -4099,7 +4038,7 @@ static int getSelfFromArgs(sipWrapperType *type, PyObject *args, int argnr,
 
     self = PyTuple_GET_ITEM(args, argnr);
 
-    if (!PyObject_TypeCheck(self, (PyTypeObject *)type))
+    if (!PyObject_TypeCheck(self, sipTypePyTypeObject(td)))
         return PARSE_UNBOUND;
 
     *selfp = (sipSimpleWrapper *)self;
@@ -5267,16 +5206,17 @@ static void *sip_api_get_complex_cpp_ptr(sipSimpleWrapper *sw)
  * Get the C/C++ pointer for a complex object and optionally cast it to the
  * required type.
  */
-static void *getComplexCppPtr(sipSimpleWrapper *sw, sipWrapperType *type)
+static void *getComplexCppPtr(sipSimpleWrapper *sw, sipTypeDef *td)
 {
     if (!sipIsDerived(sw))
     {
-        PyErr_SetString(PyExc_RuntimeError,"no access to protected functions or signals for objects not created from Python");
+        PyErr_SetString(PyExc_RuntimeError,
+                "no access to protected functions or signals for objects not created from Python");
 
         return NULL;
     }
 
-    return sip_api_get_cpp_ptr(sw, type->type);
+    return sip_api_get_cpp_ptr(sw, td);
 }
 
 

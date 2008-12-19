@@ -735,13 +735,13 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
          */
         prcode(fp,
 "\n"
-"typedef const QMetaObject *(*sip_qt_metaobject_func)(sipSimpleWrapper *,sipWrapperType *);\n"
+"typedef const QMetaObject *(*sip_qt_metaobject_func)(sipSimpleWrapper *,sipTypeDef *);\n"
 "extern sip_qt_metaobject_func sip_%s_qt_metaobject;\n"
 "\n"
-"typedef int (*sip_qt_metacall_func)(sipSimpleWrapper *,sipWrapperType *,QMetaObject::Call,int,void **);\n"
+"typedef int (*sip_qt_metacall_func)(sipSimpleWrapper *,sipTypeDef *,QMetaObject::Call,int,void **);\n"
 "extern sip_qt_metacall_func sip_%s_qt_metacall;\n"
 "\n"
-"typedef int (*sip_qt_metacast_func)(sipSimpleWrapper *,sipWrapperType *,const char *);\n"
+"typedef int (*sip_qt_metacast_func)(sipSimpleWrapper *,sipTypeDef *,const char *);\n"
 "extern sip_qt_metacast_func sip_%s_qt_metacast;\n"
             , mname
             , mname
@@ -2472,7 +2472,7 @@ static void generateEnumsInline(sipSpec *pt, moduleDef *mod, FILE *fp)
         if (vd->ecd == NULL)
             prcode(fp, "sipModuleDict");
         else
-            prcode(fp, "(PyObject *)sipClass_%C", classFQCName(vd->ecd));
+            prcode(fp, "(PyObject *)sipTypePyTypeObject(sipType_%C)", classFQCName(vd->ecd));
 
         prcode(fp, ",%N,(int)%S,sipEnum_%C);\n"
             , vd->pyname, vd->fqcname, vd->type.u.ed->fqcname);
@@ -5295,7 +5295,7 @@ static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
 "\n"
 "const QMetaObject *sip%C::metaObject() const\n"
 "{\n"
-"    return sip_%s_qt_metaobject(sipPySelf,sipClass_%C);\n"
+"    return sip_%s_qt_metaobject(sipPySelf,sipType_%C);\n"
 "}\n"
                 , classFQCName(cd)
                 , mod->name, classFQCName(cd));
@@ -5316,14 +5316,14 @@ static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
 "    _id = %S::qt_metacall(_c,_id,_a);\n"
 "\n"
 "    if (_id >= 0)\n"
-"        _id = sip_%s_qt_metacall(sipPySelf,sipClass_%C,_c,_id,_a);\n"
+"        _id = sip_%s_qt_metacall(sipPySelf,sipType_%C,_c,_id,_a);\n"
 "\n"
 "    return _id;\n"
 "}\n"
 "\n"
 "void *sip%C::qt_metacast(const char *_clname)\n"
 "{\n"
-"    return (sip_%s_qt_metacast && sip_%s_qt_metacast(sipPySelf,sipClass_%C,_clname)) ? this : %S::qt_metacast(_clname);\n"
+"    return (sip_%s_qt_metacast && sip_%s_qt_metacast(sipPySelf,sipType_%C,_clname)) ? this : %S::qt_metacast(_clname);\n"
 "}\n"
             , classFQCName(cd)
             , mod->name, classFQCName(cd)
@@ -10446,9 +10446,6 @@ static int generateArgParser(signatureDef *sd, classDef *cd, ctorDef *ct,
             break;
 
         case mapped_type:
-            fmt = getSubFormatChar('M',ad);
-            break;
-
         case class_type:
             fmt = getSubFormatChar('J', ad);
             break;
@@ -10486,7 +10483,7 @@ static int generateArgParser(signatureDef *sd, classDef *cd, ctorDef *ct,
     /* Generate the parameters corresponding to the format string. */
 
     if (handle_self)
-        prcode(fp,",&sipSelf,sipClass_%C,&sipCpp",classFQCName(cd));
+        prcode(fp,",&sipSelf,sipType_%C,&sipCpp",classFQCName(cd));
     else if (isQtSlot && od == NULL)
         prcode(fp,",sipSelf");
 
@@ -10508,7 +10505,7 @@ static int generateArgParser(signatureDef *sd, classDef *cd, ctorDef *ct,
             break;
 
         case class_type:
-            prcode(fp, ",sipClass_%T,&a%d", ad, a);
+            prcode(fp, ",sipType_%T,&a%d", ad, a);
 
             if (isThisTransferred(ad))
                 prcode(fp, ",%ssipOwner", (ct != NULL ? "" : "&"));
