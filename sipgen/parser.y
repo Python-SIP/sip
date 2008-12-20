@@ -5477,15 +5477,6 @@ int optNoEmitters(sipSpec *pt)
 
 
 /*
- * Return TRUE if the QtRegisterTypes option was specified.
- */
-int optRegisterTypes(sipSpec *pt)
-{
-    return stringFind(pt->options, "QtRegisterTypes");
-}
-
-
-/*
  * Return TRUE if the Qt4Q_OBJECT option was specified.
  */
 int optQ_OBJECT4(sipSpec *pt)

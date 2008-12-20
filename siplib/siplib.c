@@ -108,7 +108,6 @@ static PyObject *sip_api_convert_from_void_ptr_and_size(void *val,
 static PyObject *sip_api_convert_from_const_void_ptr_and_size(const void *val,
         SIP_SSIZE_T size);
 static int sip_api_assign_type(void *dst, const void *src, sipTypeDef *td);
-static void sip_api_register_qt_metatype(int type, sipTypeDef *td);
 static int sip_api_deprecated(const char *classname, const char *method);
 static int sip_api_register_py_type(PyTypeObject *supertype);
 
@@ -211,7 +210,6 @@ static const sipAPIDef sip_api = {
     sip_api_string_as_char,
     sip_api_unicode_as_wchar,
     sip_api_unicode_as_wstring,
-    sip_api_register_qt_metatype,
     sip_api_deprecated
 };
 
@@ -8244,20 +8242,6 @@ static void *sip_api_import_symbol(const char *name)
             return ss->symbol;
 
     return NULL;
-}
-
-
-/*
- * Register (internally) the Qt meta-type number and the corresponding Python
- * type.
- */
-static void sip_api_register_qt_metatype(int type, sipTypeDef *td)
-{
-    assert(sipTypeIsClass(td));
-
-    /* Just delegate to the Qt support if it is available. */
-    if (sipQtSupport != NULL && sipQtSupport->qt_register_meta_type != NULL)
-        sipQtSupport->qt_register_meta_type(type, td);
 }
 
 

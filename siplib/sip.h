@@ -89,8 +89,10 @@ extern "C" {
  *      Deprecated the 'C' format character of sip_api_parse_result().
  *      Removed the 'M' format character of sip_api_parse_args().
  *      The 'J' format character of sip_api_parse_args() now uses sipTypeDef.
+ *      Removed sip_api_register_qt_metatype().
+ *      Removed qt_register_meta_type() from the Qt support API.
  *
- * 3.8  Added sip_api_register_meta_type() and sip_api_deprecated().
+ * 3.8  Added sip_api_register_qt_metatype() and sip_api_deprecated().
  *      Added qt_register_meta_type() to the Qt support API.
  *      The C/C++ names of enums and types are now always defined in the
  *      relevant structures and don't default to the Python name.
@@ -1282,7 +1284,6 @@ typedef struct _sipAPIDef {
     int (*api_unicode_as_wchar)(PyObject *obj);
     int *(*api_unicode_as_wstring)(PyObject *obj);
 #endif
-    void (*api_register_qt_metatype)(int type, struct _sipTypeDef *td);
     int (*api_deprecated)(const char *classname, const char *method);
 } sipAPIDef;
 
@@ -1315,7 +1316,6 @@ typedef struct _sipQtAPI {
     sipSlotConnection *(*qt_find_connection)(void *, void **);
     void *(*qt_create_universal_slot_ex)(struct _sipWrapper *,
             struct _sipSlotConnection *, const char **, int);
-    void (*qt_register_meta_type)(int type, struct _sipTypeDef *td);
 } sipQtAPI;
 
 
@@ -1420,6 +1420,9 @@ typedef struct _pyqt4TypeDef {
 
     /* A pointer to the QObject sub-class's staticMetaObject class variable. */
     const void *qt4_static_metaobject;
+
+    /* The meta-type id. */
+    int qt4_metatype_id;
 } pyqt4TypeDef;
 
 

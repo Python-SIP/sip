@@ -451,7 +451,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
         , mname
         , mname);
 
-    if (optRegisterTypes(pt))
+    if (pluginPyQt4(pt))
         prcode(fp,
 "\n"
 "#include <QMetaType>\n"
@@ -597,7 +597,6 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipInvokeSlot               sipAPI_%s->api_invoke_slot\n"
 "#define sipParseType                sipAPI_%s->api_parse_type\n"
 "#define sipAssignType               sipAPI_%s->api_assign_type\n"
-"#define sipRegisterQtMetatype       sipAPI_%s->api_register_qt_metatype\n"
 "#define sipWrappedTypeName(wt)      ((wt)->type->td_cname)\n"
 "#define sipDeprecated               sipAPI_%s->api_deprecated\n"
 "#define sipRegisterPyType           sipAPI_%s->api_register_py_type\n"
@@ -618,7 +617,6 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipConvertFromInstance(p, wt, t)    sipConvertFromType((p), (wt)->type, (t))\n"
 "#define sipConvertFromMappedType    sipConvertFromType\n"
 "#define sipConvertFromNewInstance(p, wt, t) sipConvertFromNewType((p), (wt)->type, (t))\n"
-        ,mname
         ,mname
         ,mname
         ,mname
@@ -1079,7 +1077,6 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "#define sipQtEmitSignalShortcut             0\n"
 "#define sipQtEmitSignal                     0\n"
 "#define sipQtCreateUniversalSlotEx          0\n"
-"#define sipQtRegisterMetaType               0\n"
             );
 
     /* Define the names. */
@@ -1707,8 +1704,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "    sipQtForgetSender,\n"
 "    sipQtSameSignalSlotName,\n"
 "    sipQtFindConnection,\n"
-"    sipQtCreateUniversalSlotEx,\n"
-"    sipQtRegisterMetaType\n"
+"    sipQtCreateUniversalSlotEx\n"
 "};\n"
             , mod->qobjclass);
 
@@ -1855,6 +1851,15 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
     /* Generate any initialisation code. */
     generateCppCodeBlock(mod->initcode, fp);
 
+    /* Generate any Qt meta-type registration calls. */
+    if (pluginPyQt4(pt))
+        for (cd = pt->classes; cd != NULL; cd = cd->next)
+            if (cd->iff->module == mod)
+                if (registerQtMetaType(cd))
+                    prcode(fp,
+"    pyqt4Type_%s_%C.qt4_metatype_id = qRegisterMetaType<%S>(%N);\n"
+                        , mname , classFQCName(cd), classFQCName(cd), cd->iff->name);
+
     prcode(fp,
 "    /* Export the module and publish it's API. */\n"
 "    if (sipAPI_%s->api_export_module(&sipModuleAPI_%s,SIP_API_MAJOR_NR,SIP_API_MINOR_NR,sipModuleDict) < 0)\n"
@@ -1909,15 +1914,6 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "        return;\n"
             , xd->pyname, xd->exceptionnr);
     }
-
-    /* Generate any Qt meta type registration calls. */
-    if (optRegisterTypes(pt))
-        for (cd = pt->classes; cd != NULL; cd = cd->next)
-            if (cd->iff->module == mod)
-                if (registerQtMetaType(cd))
-                    prcode(fp,
-"    sipRegisterQtMetatype(qRegisterMetaType<%S>(%N), sipType_%C);\n"
-                        , classFQCName(cd), cd->iff->name, classFQCName(cd));
 
     /* Generate any post-initialisation code. */
     generateCppCodeBlock(mod->postinitcode, fp);
@@ -8293,12 +8289,16 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
     {
         if (isQObjectSubClass(cd) && !noQMetaObject(cd))
             prcode(fp,
-"    &%U::staticMetaObject\n"
+"    &%U::staticMetaObject,\n"
                 , cd);
         else
             prcode(fp,
-"    0\n"
+"    0,\n"
                 );
+
+        prcode(fp,
+"    0\n"
+            );
     }
 
     prcode(fp,

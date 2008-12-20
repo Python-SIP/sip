@@ -321,7 +321,7 @@ void transform(sipSpec *pt)
     }
 
     /* Mark classes that should be registered as Qt meta types. */
-    if (optRegisterTypes(pt))
+    if (pluginPyQt4(pt))
         for (cd = pt->classes; cd != NULL; cd = cd->next)
             if (generatingCodeForModule(pt, cd->iff->module))
                 registerMetaType(cd);
