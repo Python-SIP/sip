@@ -3624,8 +3624,6 @@ static int createType(sipExportedModuleDef *client, sipTypeDef *type,
     if ((py_type = (PyTypeObject *)PyObject_Call(metatype, args, NULL)) == NULL)
         goto relargs;
 
-    type->u.td_py_type = py_type;
-
     /* Get the dictionary into which the type will be placed. */
     if (type->td_scope.sc_flag)
         dict = mod_dict;
@@ -6505,19 +6503,29 @@ static int sipWrapperType_init(sipWrapperType *self, PyObject *args,
         PyTypeObject *sc = ((PyTypeObject *)self)->tp_base;
 
         /*
-         * Make sure that the type is derived from sip.wrapper.  It might not
-         * if the type specifies sip.wrappertype as the __metaclass__.
+         * Make sure that the type is derived from sip.simplewrapper.  It might
+         * not if the type specifies sip.wrappertype as the __metaclass__.
          */
         if (sc == NULL || !PyObject_TypeCheck((PyObject *)sc, (PyTypeObject *)&sipWrapperType_Type))
         {
             PyErr_Format(PyExc_TypeError,
-                    "type %s must be derived from sip.wrapper",
+                    "type %s must be derived from sip.simplewrapper",
                     ((PyTypeObject *)self)->tp_name);
 
             return -1;
         }
 
         self->type = ((sipWrapperType *)sc)->type;
+    }
+    else
+    {
+        /*
+         * We must be a generated type so remember the type object in the
+         * generated type structure.
+         */
+        assert(self->type->u.td_py_type == NULL);
+
+        self->type->u.td_py_type = (PyTypeObject *)self;
     }
 
     return 0;

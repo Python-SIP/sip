@@ -5299,7 +5299,7 @@ static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
     }
 
     /* The meta methods if required. */
-    if (isQt4QObjectSubClass(pt, cd))
+    if (pluginPyQt4(pt) && isQObjectSubClass(cd))
     {
         if (!noQMetaObject(cd))
             prcode(fp,
@@ -5315,15 +5315,6 @@ static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
 "\n"
 "int sip%C::qt_metacall(QMetaObject::Call _c,int _id,void **_a)\n"
 "{\n"
-            , classFQCName(cd));
-
-        if (!noQMetaObject(cd))
-            prcode(fp,
-"    sip%C::metaObject();\n"
-"\n"
-                , classFQCName(cd));
-
-        prcode(fp,
 "    _id = %S::qt_metacall(_c,_id,_a);\n"
 "\n"
 "    if (_id >= 0)\n"
@@ -5336,6 +5327,7 @@ static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
 "{\n"
 "    return (sip_%s_qt_metacast && sip_%s_qt_metacast(sipPySelf,sipType_%C,_clname)) ? this : %S::qt_metacast(_clname);\n"
 "}\n"
+            , classFQCName(cd)
             , classFQCName(cd)
             , mod->name, classFQCName(cd)
             , classFQCName(cd)
