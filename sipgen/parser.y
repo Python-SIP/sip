@@ -90,7 +90,7 @@ static char *type2string(argDef *ad);
 static char *scopedNameToString(scopedNameDef *name);
 static void addUsedFromCode(sipSpec *pt, ifaceFileList **used, const char *sname);
 static int sameName(scopedNameDef *snd, const char *sname);
-static int optFind(sipSpec *pt, const char *opt);
+static int stringFind(stringList *sl, const char *s);
 static void setModuleName(sipSpec *pt, moduleDef *mod, const char *fullname);
 static int foundInScope(scopedNameDef *fq_name, scopedNameDef *rel_name);
 static void defineClass(scopedNameDef *snd);
@@ -130,6 +130,7 @@ static void resolveAnyTypedef(sipSpec *pt, argDef *ad);
     classDef        *klass;
 }
 
+%token          TK_PLUGIN
 %token          TK_OPTIONS
 %token          TK_DOC
 %token          TK_EXPORTEDDOC
@@ -327,6 +328,7 @@ statement:  {
 modstatement:   module
     |   consmodule
     |   compmodule
+    |   plugin
     |   options
     |   copying
     |   include
@@ -384,6 +386,11 @@ nsstatement:    ifstart
 
                 appendCodeBlock(&scope->iff->hdrcode, $1);
             }
+        }
+    ;
+
+plugin:     TK_PLUGIN TK_NAME {
+            appendString(&currentSpec->plugins, $2);
         }
     ;
 
@@ -2593,6 +2600,7 @@ void parse(sipSpec *spec, FILE *fp, char *filename, stringList *tsl,
     spec->docs = NULL;
     spec->sigslots = FALSE;
     spec->genc = -1;
+    spec->plugins = NULL;
     spec->options = NULL;
 
     currentSpec = spec;
@@ -5464,7 +5472,7 @@ static int getDeprecated(optFlags *optflgs)
  */
 int optNoEmitters(sipSpec *pt)
 {
-    return optFind(pt, "QtNoEmitters");
+    return stringFind(pt->options, "QtNoEmitters");
 }
 
 
@@ -5473,7 +5481,7 @@ int optNoEmitters(sipSpec *pt)
  */
 int optRegisterTypes(sipSpec *pt)
 {
-    return optFind(pt, "QtRegisterTypes");
+    return stringFind(pt->options, "QtRegisterTypes");
 }
 
 
@@ -5482,7 +5490,7 @@ int optRegisterTypes(sipSpec *pt)
  */
 int optQ_OBJECT4(sipSpec *pt)
 {
-    return optFind(pt, "Qt4Q_OBJECT");
+    return stringFind(pt->options, "Qt4Q_OBJECT");
 }
 
 
@@ -5491,20 +5499,31 @@ int optQ_OBJECT4(sipSpec *pt)
  */
 int optAssignmentHelpers(sipSpec *pt)
 {
-    return optFind(pt, "AssignmentHelpers");
+    return stringFind(pt->options, "AssignmentHelpers");
 }
 
 
 /*
- * Return TRUE if a particular option was specified with %SIPOptions.
+ * Return TRUE if the PyQt4 plugin was specified.
  */
-static int optFind(sipSpec *pt, const char *opt)
+int pluginPyQt4(sipSpec *pt)
 {
-    stringList *sl;
+    return stringFind(pt->plugins, "PyQt4");
+}
 
-    for (sl = pt->options; sl != NULL; sl = sl->next)
-        if (strcmp(sl->s, opt) == 0)
+
+/*
+ * Return TRUE if a list of strings contains a given entry.
+ */
+static int stringFind(stringList *sl, const char *s)
+{
+    while (sl != NULL)
+    {
+        if (strcmp(sl->s, s) == 0)
             return TRUE;
+
+        sl = sl->next;
+    }
 
     return FALSE;
 }

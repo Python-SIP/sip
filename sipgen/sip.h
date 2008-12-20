@@ -986,6 +986,7 @@ typedef struct {
     codeBlock *docs;                    /* Documentation. */
     int sigslots;                       /* Set if signals or slots are used. */
     int genc;                           /* Set if we are generating C code. */
+    struct _stringList *plugins;        /* The list of plugins. */
     struct _stringList *options;        /* The list of options. */
 } sipSpec;
 
@@ -1059,6 +1060,7 @@ int optNoEmitters(sipSpec *pt);
 int optRegisterTypes(sipSpec *pt);
 int optQ_OBJECT4(sipSpec *pt);
 int optAssignmentHelpers(sipSpec *pt);
+int pluginPyQt4(sipSpec *pt);
 void yywarning(char *);
 nameDef *cacheName(sipSpec *pt, const char *name);
 

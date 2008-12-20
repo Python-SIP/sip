@@ -78,7 +78,8 @@ static void generateMappedTypeAPI(mappedTypeDef *mtd, FILE *fp);
 static void generateClassCpp(classDef *cd, sipSpec *pt, FILE *fp);
 static void generateImportedClassAPI(classDef *cd, sipSpec *pt, moduleDef *mod,
         FILE *fp);
-static void generateClassTableEntries(moduleDef *mod, nodeDef *nd, FILE *fp);
+static void generateClassTableEntries(sipSpec *pt, moduleDef *mod, nodeDef *nd,
+        FILE *fp);
 static void generateClassAPI(classDef *cd, sipSpec *pt, FILE *fp);
 static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
         FILE *fp);
@@ -222,6 +223,7 @@ static int generateSubClassConvertors(sipSpec *pt, moduleDef *mod, FILE *fp);
 static void generateNameCache(sipSpec *pt, FILE *fp);
 static const char *resultOwner(overDef *od);
 static void prCachedName(FILE *fp, nameDef *nd, const char *prefix);
+static int isQt4QObjectSubClass(sipSpec *pt, classDef *cd);
 
 
 /*
@@ -729,10 +731,6 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
     }
 
     if (optQ_OBJECT4(pt))
-        /*
-         * Note that the third argument is no longer used and is there only to
-         * preserve backwards binary compatibility.
-         */
         prcode(fp,
 "\n"
 "typedef const QMetaObject *(*sip_qt_metaobject_func)(sipSimpleWrapper *,sipTypeDef *);\n"
@@ -1220,7 +1218,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "static sipTypeDef *typesTable[] = {\n"
             );
 
-        generateClassTableEntries(mod, &mod->root, fp);
+        generateClassTableEntries(pt, mod, &mod->root, fp);
 
         prcode(fp,
 "};\n"
@@ -2126,7 +2124,8 @@ static int generateSubClassConvertors(sipSpec *pt, moduleDef *mod, FILE *fp)
 /*
  * Generate an entry for a class in the classes table and all its children.
  */
-static void generateClassTableEntries(moduleDef *mod, nodeDef *nd, FILE *fp)
+static void generateClassTableEntries(sipSpec *pt, moduleDef *mod, nodeDef *nd,
+        FILE *fp)
 {
     nodeDef *cnd;
 
@@ -2138,14 +2137,27 @@ static void generateClassTableEntries(moduleDef *mod, nodeDef *nd, FILE *fp)
 "    0,\n"
                 );
         else
+        {
+            const char *type_prefix;
+            int embedded = TRUE;
+
+            if (pluginPyQt4(pt))
+                type_prefix = "pyqt4";
+            else
+            {
+                type_prefix = "sip";
+                embedded = FALSE;
+            }
+
             prcode(fp,
-"    &sipType_%s_%C,\n"
-                , mod->name, classFQCName(nd->cd));
+"    &%sType_%s_%C%s,\n"
+                , type_prefix, mod->name, classFQCName(nd->cd), (embedded ? ".super" : ""));
+        }
     }
 
     /* Generate all it's children. */
     for (cnd = nd->child; cnd != NULL; cnd = cnd->next)
-        generateClassTableEntries(mod, cnd, fp);
+        generateClassTableEntries(pt, mod, cnd, fp);
 }
 
 
@@ -3394,7 +3406,6 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 "    convertTo_%T,\n"
 "    convertFrom_%T,\n"
 "    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},\n"
-"    0,\n"
 "    0,\n"
 "    0,\n"
 "    0\n"
@@ -5288,7 +5299,7 @@ static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
     }
 
     /* The meta methods if required. */
-    if (isQObjectSubClass(cd) && optQ_OBJECT4(pt))
+    if (isQt4QObjectSubClass(pt, cd))
     {
         if (!noQMetaObject(cd))
             prcode(fp,
@@ -7023,10 +7034,19 @@ static void generateClassAPI(classDef *cd, sipSpec *pt, FILE *fp)
     generateEnumMacros(pt, cd->iff->module, cd, fp);
 
     if (!isExternal(cd))
+    {
+        const char *type_prefix;
+
+        if (pluginPyQt4(pt))
+            type_prefix = "pyqt4";
+        else
+            type_prefix = "sip";
+
         prcode(fp,
 "\n"
-"extern sipTypeDef sipType_%s_%C;\n"
-            , mname, classFQCName(cd));
+"extern %sTypeDef %sType_%s_%C;\n"
+            , type_prefix, type_prefix, mname, classFQCName(cd));
+    }
 }
 
 
@@ -7152,7 +7172,7 @@ static void generateShadowClassDeclaration(sipSpec *pt,classDef *cd,FILE *fp)
             ,(cd->vmembers != NULL ? "virtual " : ""),classFQCName(cd),cd->dtorexceptions);
 
     /* The metacall methods if required. */
-    if (isQObjectSubClass(cd) && optQ_OBJECT4(pt))
+    if (isQt4QObjectSubClass(pt, cd))
     {
         prcode(fp,
 "\n"
@@ -7845,8 +7865,8 @@ static void generateSimpleFunctionCall(fcallDef *fcd,FILE *fp)
  */
 static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 {
-    const char *mname, *sep;
-    int is_slots, nr_methods, nr_enums;
+    const char *mname, *sep, *type_prefix;
+    int is_slots, nr_methods, nr_enums, embedded;
     int is_inst_class, is_inst_voidp, is_inst_char, is_inst_string;
     int is_inst_int, is_inst_long, is_inst_ulong, is_inst_longlong;
     int is_inst_ulonglong, is_inst_double, is_inst_enum;
@@ -7929,13 +7949,26 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
     is_inst_double = generateDoubles(pt, mod, cd, fp);
     is_inst_enum = generateEnums(pt, mod, cd, fp);
 
+    embedded = TRUE;
+
+    if (pluginPyQt4(pt))
+        type_prefix = "pyqt4";
+    else
+    {
+        type_prefix = "sip";
+        embedded = FALSE;
+    }
+
     prcode(fp,
 "\n"
 "\n"
-"sipTypeDef sipType_%s_%C = {\n"
+"%sTypeDef %sType_%s_%C = {\n"
+"%s"
 "    0,\n"
 "    0,\n"
-"    ", mname, classFQCName(cd));
+"    "
+        , type_prefix, type_prefix, mname, classFQCName(cd)
+        , (embedded ? "{\n" : ""));
 
     sep = "";
 
@@ -8256,21 +8289,38 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
             , classFQCName(cd));
     else
         prcode(fp,
-"    0,\n"
-            );
-
-    if (isQObjectSubClass(cd) && !noQMetaObject(cd) && optQ_OBJECT4(pt))
-        prcode(fp,
-"    &%U::staticMetaObject\n"
-            , cd);
-    else
-        prcode(fp,
 "    0\n"
             );
+
+    if (embedded)
+        prcode(fp,
+"},\n"
+            );
+
+    if (pluginPyQt4(pt))
+    {
+        if (isQObjectSubClass(cd) && !noQMetaObject(cd))
+            prcode(fp,
+"    &%U::staticMetaObject\n"
+                , cd);
+        else
+            prcode(fp,
+"    0\n"
+                );
+    }
 
     prcode(fp,
 "};\n"
         );
+}
+
+
+/*
+ * Return TRUE if the class is a Qt4 QObject sub-class.
+ */
+static int isQt4QObjectSubClass(sipSpec *pt, classDef *cd)
+{
+    return optQ_OBJECT4(pt) && isQObjectSubClass(cd);
 }
 
 

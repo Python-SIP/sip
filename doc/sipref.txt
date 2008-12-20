@@ -1108,11 +1108,7 @@ file.
             *mapped-type-template* | `%Module`_ | `%ModuleCode`_ |
             `%ModuleHeaderCode`_ | `%OptionalInclude`_ | `%Platforms`_ |
             `%PreInitialisationCode`_ | `%PostInitialisationCode`_ |
-            *sip-option-list* | `%Timeline`_ | `%UnitCode`_]
-
-    *sip-option-list* :: `%SIPOptions`_ ``(`` *option-list* ``)``
-
-    *option-list* ::= *option* [``,`` *option-list*]
+            `%Timeline`_ | `%UnitCode`_]
 
     *statement* :: [*class-statement* | *function* | *variable*]
 
@@ -3206,14 +3202,6 @@ PyObject \*sipPyType
     PyTypeObject \* or a sipWrapperType \*.
 
 See the `%GetCode`_ directive for an example.
-
-
-%SIPOptions
------------
-
-This directive sets one or more options that controls different aspects of
-SIP's behaviour.  In this version all the available options are provided
-specifically to support PyQt and so are not documented.
 
 
 %Timeline

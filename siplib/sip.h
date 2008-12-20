@@ -259,6 +259,7 @@ typedef struct _sipWrapper {
     sipSimpleWrapper super;
 
     /* Python signal list (complex). */
+    /* FIXME: Move this to PyQt3. */
     struct _sipPySig *pySigList;
 
     /* First child object. */
@@ -639,9 +640,11 @@ typedef struct _sipTypeDef {
     sipDeallocFunc td_dealloc;
 
     /* The assignment function. */
+    /* FIXME: Move this to pyqt4TypeDef. */
     sipAssignFunc td_assign;
 
     /* The release function. */
+    /* FIXME: Possible move this to pyqt4TypeDef. */
     sipReleaseFunc td_release;
 
     /* The cast function, 0 if a C struct. */
@@ -663,10 +666,8 @@ typedef struct _sipTypeDef {
     sipPickleFunc td_pickle;
 
     /* Emit table for Qt signals. */
+    /* FIXME: Move this to pyqt3TypeDef. */
     struct _sipQtSignal *td_emit;
-
-    /* The optional PyQt defined information. */
-    const void *td_qt;
 } sipTypeDef;
 
 
@@ -1404,6 +1405,22 @@ typedef struct _sipQtAPI {
 #define sipTypeHasSCC(td)   ((td)->td_flags & SIP_TYPE_SCC)
 /* FIXME: Decide if this is part of the public API. */
 #define sipTypeFlags(td)    (((td)->td_flags & SIP_TYPE_FLAGS_MASK) >> SIP_TYPE_FLAGS_SHIFT)
+
+
+/*
+ * This is the PyQt4-specific extension to the generated type structure.  In
+ * SIP v5 this will be pushed out to a plugin supplied by PyQt4.
+ */
+typedef struct _pyqt4TypeDef {
+    /*
+     * The super-type structure.  This must be first in the structure so that
+     * it can be cast to sipTypeDef *.
+     */
+    sipTypeDef super;
+
+    /* A pointer to the QObject sub-class's staticMetaObject class variable. */
+    const void *qt4_static_metaobject;
+} pyqt4TypeDef;
 
 
 #ifdef __cplusplus
