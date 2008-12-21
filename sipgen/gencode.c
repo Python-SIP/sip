@@ -74,7 +74,7 @@ static void generateIfaceCpp(sipSpec *, ifaceFileDef *, const char *,
 static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp);
 static void generateImportedMappedTypeAPI(mappedTypeDef *mtd, moduleDef *mod,
         FILE *fp);
-static void generateMappedTypeAPI(mappedTypeDef *mtd, FILE *fp);
+static void generateMappedTypeAPI(sipSpec *pt, mappedTypeDef *mtd, FILE *fp);
 static void generateClassCpp(classDef *cd, sipSpec *pt, FILE *fp);
 static void generateImportedClassAPI(classDef *cd, sipSpec *pt, moduleDef *mod,
         FILE *fp);
@@ -1258,10 +1258,21 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 
     if (mod->nrmappedtypes > 0)
     {
+        const char *type_prefix, *type_suffix;
         mappedTypeDef *mtd;
         argDef type;
 
         memset(&type, 0, sizeof (argDef));
+
+        type_suffix = ".super";
+
+        if (pluginPyQt4(pt))
+            type_prefix = "pyqt4";
+        else
+        {
+            type_prefix = "sip";
+            type_suffix = "";
+        }
 
         prcode(fp,
 "\n"
@@ -1279,8 +1290,8 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
             type.u.mtd = mtd;
 
             prcode(fp,
-"    &sipMappedTypeDef_%T,\n"
-                ,&type);
+"    &%sMappedTypeDef_%T%s,\n"
+                , type_prefix, &type, type_suffix);
         }
 
         prcode(fp,
@@ -1853,12 +1864,19 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 
     /* Generate any Qt meta-type registration calls. */
     if (pluginPyQt4(pt))
+    {
         for (cd = pt->classes; cd != NULL; cd = cd->next)
             if (cd->iff->module == mod)
                 if (registerQtMetaType(cd))
                     prcode(fp,
 "    pyqt4Type_%s_%C.qt4_metatype_id = qRegisterMetaType<%S>(%N);\n"
                         , mname , classFQCName(cd), classFQCName(cd), cd->iff->name);
+
+        /*
+         * FIXME: Generate registration calls for any mapped type that has
+         * asked for it.
+         */
+    }
 
     prcode(fp,
 "    /* Export the module and publish it's API. */\n"
@@ -2134,20 +2152,21 @@ static void generateClassTableEntries(sipSpec *pt, moduleDef *mod, nodeDef *nd,
                 );
         else
         {
-            const char *type_prefix;
-            int embedded = TRUE;
+            const char *type_prefix, *type_suffix;
+
+            type_suffix = ".super";
 
             if (pluginPyQt4(pt))
                 type_prefix = "pyqt4";
             else
             {
                 type_prefix = "sip";
-                embedded = FALSE;
+                type_suffix = "";
             }
 
             prcode(fp,
 "    &%sType_%s_%C%s,\n"
-                , type_prefix, mod->name, classFQCName(nd->cd), (embedded ? ".super" : ""));
+                , type_prefix, mod->name, classFQCName(nd->cd), type_suffix);
         }
     }
 
@@ -3242,7 +3261,8 @@ static char *createIfaceFileName(const char *codeDir, ifaceFileDef *iff,
  */
 static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 {
-    int need_xfer;
+    const char *type_prefix;
+    int need_xfer, embedded;
 
     if (optAssignmentHelpers(pt) && !noRelease(mtd))
     {
@@ -3347,11 +3367,22 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 
     generateCppCodeBlock(mtd->convfromcode,fp);
 
+    embedded = TRUE;
+
+    if (pluginPyQt4(pt))
+        type_prefix = "pyqt4";
+    else
+    {
+        type_prefix = "sip";
+        embedded = FALSE;
+    }
+
     prcode(fp,
 "}\n"
 "\n"
 "\n"
-"sipTypeDef sipMappedTypeDef_%T = {\n"
+"%sTypeDef %sMappedTypeDef_%T = {\n"
+"%s"
 "    0,\n"
 "    0,\n"
 "    SIP_TYPE_MAPPED,\n"
@@ -3376,7 +3407,8 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 "    0,\n"
 "    0,\n"
 "    0,\n"
-        , &mtd->type
+        , type_prefix, type_prefix, &mtd->type
+        , (embedded ? "{\n" : "")
         , mtd->cname);
 
     if (optAssignmentHelpers(pt) && !noRelease(mtd))
@@ -3407,6 +3439,13 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 "    0\n"
         , &mtd->type
         , &mtd->type);
+
+    if (pluginPyQt4(pt))
+        prcode(fp,
+"},\n"
+"    0,\n"
+"    0\n"
+            );
 
     prcode(fp,
 "};\n"
@@ -6893,7 +6932,7 @@ static void generateModuleAPI(sipSpec *pt, moduleDef *mod, FILE *fp)
 
     for (mtd = pt->mappedtypes; mtd != NULL; mtd = mtd->next)
         if (mtd->iff->module == mod)
-            generateMappedTypeAPI(mtd, fp);
+            generateMappedTypeAPI(pt, mtd, fp);
 
     for (xd = pt->exceptions; xd != NULL; xd = xd->next)
         if (xd->iff->module == mod && xd->exceptionnr >= 0)
@@ -6956,15 +6995,27 @@ static void generateImportedMappedTypeAPI(mappedTypeDef *mtd, moduleDef *mod,
 /*
  * Generate the API details for a mapped type.
  */
-static void generateMappedTypeAPI(mappedTypeDef *mtd, FILE *fp)
+static void generateMappedTypeAPI(sipSpec *pt, mappedTypeDef *mtd, FILE *fp)
 {
+    const char *type_prefix, *type_suffix;
+
+    type_suffix = ".super";
+
+    if (pluginPyQt4(pt))
+        type_prefix = "pyqt4";
+    else
+    {
+        type_prefix = "sip";
+        type_suffix = "";
+    }
+
     prcode(fp,
 "\n"
-"#define sipType_%T      (&sipMappedTypeDef_%T)\n"
+"#define sipType_%T      (&%sMappedTypeDef_%T%s)\n"
 "\n"
-"extern sipTypeDef sipMappedTypeDef_%T;\n"
-        , &mtd->type, &mtd->type
-        , &mtd->type);
+"extern %sTypeDef %sMappedTypeDef_%T;\n"
+        , &mtd->type, type_prefix, &mtd->type, type_suffix
+        , type_prefix, type_prefix, &mtd->type);
 }
 
 
