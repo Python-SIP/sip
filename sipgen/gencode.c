@@ -1869,8 +1869,8 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
             if (cd->iff->module == mod)
                 if (registerQtMetaType(cd))
                     prcode(fp,
-"    pyqt4Type_%s_%C.qt4_metatype_id = qRegisterMetaType<%S>(%N);\n"
-                        , mname , classFQCName(cd), classFQCName(cd), cd->iff->name);
+"    qpycore_register_qt_metatype(qRegisterMetaType<%S>(%N), sipType_%C);\n"
+                        , classFQCName(cd), cd->iff->name, classFQCName(cd));
 
         /*
          * FIXME: Generate registration calls for any mapped type that has
@@ -3443,7 +3443,6 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
     if (pluginPyQt4(pt))
         prcode(fp,
 "},\n"
-"    0,\n"
 "    0\n"
             );
 
@@ -8340,16 +8339,12 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
     {
         if (isQObjectSubClass(cd) && !noQMetaObject(cd))
             prcode(fp,
-"    &%U::staticMetaObject,\n"
+"    &%U::staticMetaObject\n"
                 , cd);
         else
             prcode(fp,
-"    0,\n"
-                );
-
-        prcode(fp,
 "    0\n"
-            );
+                );
     }
 
     prcode(fp,

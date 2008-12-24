@@ -642,11 +642,11 @@ typedef struct _sipTypeDef {
     sipDeallocFunc td_dealloc;
 
     /* The assignment function. */
-    /* FIXME: Move this to pyqt4TypeDef. */
+    /* FIXME: Move this to pyqt4TypeDef (if still needed). */
     sipAssignFunc td_assign;
 
     /* The release function. */
-    /* FIXME: Possible move this to pyqt4TypeDef. */
+    /* FIXME: Possible move this to pyqt4TypeDef (if still needed). */
     sipReleaseFunc td_release;
 
     /* The cast function, 0 if a C struct. */
@@ -1420,9 +1420,6 @@ typedef struct _pyqt4TypeDef {
 
     /* A pointer to the QObject sub-class's staticMetaObject class variable. */
     const void *qt4_static_metaobject;
-
-    /* The meta-type id. */
-    int qt4_metatype_id;
 } pyqt4TypeDef;
 
 
