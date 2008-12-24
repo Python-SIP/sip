@@ -53,7 +53,9 @@ static void sip_api_trace(unsigned mask,const char *fmt,...);
 static void sip_api_transfer_back(PyObject *self);
 static void sip_api_transfer_to(PyObject *self, PyObject *owner);
 static int sip_api_export_module(sipExportedModuleDef *client,
-        unsigned api_major, unsigned api_minor, PyObject *mod_dict);
+        unsigned api_major, unsigned api_minor, void *unused);
+static int sip_api_init_module(sipExportedModuleDef *client,
+        PyObject *mod_dict);
 static void *sip_api_convert_rx(sipWrapper *txSelf, const char *sigargs,
         PyObject *rxObj, const char *slot, const char **memberp);
 static int sip_api_parse_args(int *argsParsedp, PyObject *sipArgs,
@@ -126,6 +128,7 @@ static const sipAPIDef sip_api = {
     &sipWrapperType_Type,
     &sipVoidPtr_Type,
 
+    sip_api_init_module,
     sip_api_bad_catcher_result,
     sip_api_bad_length_for_slice,
     sip_api_build_result,
@@ -839,12 +842,10 @@ static PyObject *wrapInstance(PyObject *self, PyObject *args)
  * raised if there was an error.
  */
 static int sip_api_export_module(sipExportedModuleDef *client,
-        unsigned api_major, unsigned api_minor, PyObject *mod_dict)
+        unsigned api_major, unsigned api_minor, void *unused)
 {
     sipExportedModuleDef *em;
-    sipEnumMemberDef *emd;
     const char *full_name = getNameOfModule(client);
-    int i;
 
     /* Check that we can support it. */
 
@@ -862,33 +863,6 @@ static int sip_api_export_module(sipExportedModuleDef *client,
 #endif
 
         return -1;
-    }
-
-    /* Convert the module name to an object. */
-    if ((client->em_nameobj = PyString_FromString(full_name)) == NULL)
-        return -1;
-
-    for (em = moduleList; em != NULL; em = em->em_next)
-    {
-        /* SIP clients must have unique names. */
-        if (strcmp(getNameOfModule(em), full_name) == 0)
-        {
-            PyErr_Format(PyExc_RuntimeError,
-                    "the sip module has already registered a module called %s",
-                    full_name);
-
-            return -1;
-        }
-
-        /* Only one module can claim to wrap QObject. */
-        if (em->em_qt_api != NULL && client->em_qt_api != NULL)
-        {
-            PyErr_Format(PyExc_RuntimeError,
-                    "the %s and %s modules both wrap the QObject class",
-                    full_name, getNameOfModule(em));
-
-            return -1;
-        }
     }
 
     /* Import any required modules. */
@@ -934,6 +908,53 @@ static int sip_api_export_module(sipExportedModuleDef *client,
             ++im;
         }
     }
+
+    for (em = moduleList; em != NULL; em = em->em_next)
+    {
+        /* SIP clients must have unique names. */
+        if (strcmp(getNameOfModule(em), full_name) == 0)
+        {
+            PyErr_Format(PyExc_RuntimeError,
+                    "the sip module has already registered a module called %s",
+                    full_name);
+
+            return -1;
+        }
+
+        /* Only one module can claim to wrap QObject. */
+        if (em->em_qt_api != NULL && client->em_qt_api != NULL)
+        {
+            PyErr_Format(PyExc_RuntimeError,
+                    "the %s and %s modules both wrap the QObject class",
+                    full_name, getNameOfModule(em));
+
+            return -1;
+        }
+    }
+
+    /* Convert the module name to an object. */
+    if ((client->em_nameobj = PyString_FromString(full_name)) == NULL)
+        return -1;
+
+    /* Add it to the list of client modules. */
+    client->em_next = moduleList;
+    moduleList = client;
+
+    return 0;
+}
+
+
+/*
+ * Initialise the contents of a client module.  By this time anything that
+ * this depends on should have been initialised.  A negative value is returned
+ * and an exception raised if there was an error.
+ */
+static int sip_api_init_module(sipExportedModuleDef *client,
+        PyObject *mod_dict)
+{
+    sipExportedModuleDef *em;
+    sipEnumMemberDef *emd;
+    int i;
 
     /* Create the module's classes. */
     if (client->em_types != NULL)
@@ -1086,7 +1107,7 @@ static int sip_api_export_module(sipExportedModuleDef *client,
     {
         sipExternalTypeDef *etd;
 
-        if (em->em_external == NULL)
+        if (em == client || em->em_external == NULL)
             continue;
 
         for (etd = em->em_external; etd->et_nr >= 0; ++etd)
@@ -1111,10 +1132,6 @@ static int sip_api_export_module(sipExportedModuleDef *client,
             }
         }
     }
-
-    /* Add to the list of client modules. */
-    client->em_next = moduleList;
-    moduleList = client;
 
     return 0;
 }

@@ -5477,15 +5477,6 @@ int optNoEmitters(sipSpec *pt)
 
 
 /*
- * Return TRUE if the Qt4Q_OBJECT option was specified.
- */
-int optQ_OBJECT4(sipSpec *pt)
-{
-    return stringFind(pt->options, "Qt4Q_OBJECT");
-}
-
-
-/*
  * Return TRUE if the AssignmentHelpers option was specified.
  */
 int optAssignmentHelpers(sipSpec *pt)

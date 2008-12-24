@@ -91,6 +91,7 @@ extern "C" {
  *      The 'J' format character of sip_api_parse_args() now uses sipTypeDef.
  *      Removed sip_api_register_qt_metatype().
  *      Removed qt_register_meta_type() from the Qt support API.
+ *      Added sip_api_init_module().
  *
  * 3.8  Added sip_api_register_qt_metatype() and sip_api_deprecated().
  *      Added qt_register_meta_type() to the Qt support API.
@@ -1159,7 +1160,7 @@ typedef struct _sipAPIDef {
      * version number mismatches can be detected and reported.
      */
     int (*api_export_module)(sipExportedModuleDef *client, unsigned api_major,
-            unsigned api_minor, PyObject *mod_dict);
+            unsigned api_minor, void *unused);
 
     /*
      * The following are part of the public API.
@@ -1169,6 +1170,7 @@ typedef struct _sipAPIDef {
     PyTypeObject *api_wrappertype_type;
     PyTypeObject *api_voidptr_type;
 
+    int (*api_init_module)(sipExportedModuleDef *client, PyObject *mod_dict);
     void (*api_bad_catcher_result)(PyObject *method);
     void (*api_bad_length_for_slice)(SIP_SSIZE_T seqlen, SIP_SSIZE_T slicelen);
     PyObject *(*api_build_result)(int *isErr, const char *fmt, ...);

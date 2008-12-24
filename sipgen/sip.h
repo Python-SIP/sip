@@ -1057,7 +1057,6 @@ void appendTypeStrings(scopedNameDef *ename, signatureDef *patt, signatureDef *s
 codeBlock *templateCode(sipSpec *pt, ifaceFileList **used, codeBlock *ocb, scopedNameDef *names, scopedNameDef *values);
 ifaceFileDef *findIfaceFile(sipSpec *pt, moduleDef *mod, scopedNameDef *fqname, ifaceFileType iftype, argDef *ad);
 int optNoEmitters(sipSpec *pt);
-int optQ_OBJECT4(sipSpec *pt);
 int optAssignmentHelpers(sipSpec *pt);
 int pluginPyQt4(sipSpec *pt);
 void yywarning(char *);

@@ -223,7 +223,6 @@ static int generateSubClassConvertors(sipSpec *pt, moduleDef *mod, FILE *fp);
 static void generateNameCache(sipSpec *pt, FILE *fp);
 static const char *resultOwner(overDef *od);
 static void prCachedName(FILE *fp, nameDef *nd, const char *prefix);
-static int isQt4QObjectSubClass(sipSpec *pt, classDef *cd);
 
 
 /*
@@ -728,7 +727,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
             , mname, mld->module->name);
     }
 
-    if (optQ_OBJECT4(pt))
+    if (pluginPyQt4(pt))
         prcode(fp,
 "\n"
 "typedef const QMetaObject *(*sip_qt_metaobject_func)(sipSimpleWrapper *,sipTypeDef *);\n"
@@ -1258,21 +1257,10 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 
     if (mod->nrmappedtypes > 0)
     {
-        const char *type_prefix, *type_suffix;
         mappedTypeDef *mtd;
         argDef type;
 
         memset(&type, 0, sizeof (argDef));
-
-        type_suffix = ".super";
-
-        if (pluginPyQt4(pt))
-            type_prefix = "pyqt4";
-        else
-        {
-            type_prefix = "sip";
-            type_suffix = "";
-        }
 
         prcode(fp,
 "\n"
@@ -1290,8 +1278,8 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
             type.u.mtd = mtd;
 
             prcode(fp,
-"    &%sMappedTypeDef_%T%s,\n"
-                , type_prefix, &type, type_suffix);
+"    &sipMappedTypeDef_%T,\n"
+                , &type);
         }
 
         prcode(fp,
@@ -1801,7 +1789,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "const sipExportedModuleDef *sipModuleAPI_%s_%s;\n"
             , mname, mld->module->name);
 
-    if (optQ_OBJECT4(pt))
+    if (pluginPyQt4(pt))
         prcode(fp,
 "\n"
 "sip_qt_metaobject_func sip_%s_qt_metaobject;\n"
@@ -1862,14 +1850,35 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
     /* Generate any initialisation code. */
     generateCppCodeBlock(mod->initcode, fp);
 
-    /* Generate any Qt meta-type registration calls. */
+    prcode(fp,
+"    /* Export the module and publish it's API. */\n"
+"    if (sipAPI_%s->api_export_module(&sipModuleAPI_%s,SIP_API_MAJOR_NR,SIP_API_MINOR_NR,0) < 0)\n"
+"       return;\n"
+        , mname
+        , mname);
+
     if (pluginPyQt4(pt))
     {
+        /* Import the helpers. */
+        prcode(fp,
+"\n"
+"    sip_%s_qt_metaobject = (sip_qt_metaobject_func)sipImportSymbol(\"qtcore_qt_metaobject\");\n"
+"    sip_%s_qt_metacall = (sip_qt_metacall_func)sipImportSymbol(\"qtcore_qt_metacall\");\n"
+"    sip_%s_qt_metacast = (sip_qt_metacast_func)sipImportSymbol(\"qtcore_qt_metacast\");\n"
+"\n"
+"    typedef void (*sip_qt_register_func)(int,sipTypeDef *);\n"
+"    sip_qt_register_func sip_qt_register = (sip_qt_register_func)sipImportSymbol(\"qtcore_qt_register\");\n"
+"\n"
+            , mname
+            , mname
+            , mname);
+
+        /* Generate any Qt meta-type registration calls. */
         for (cd = pt->classes; cd != NULL; cd = cd->next)
             if (cd->iff->module == mod)
                 if (registerQtMetaType(cd))
                     prcode(fp,
-"    qpycore_register_qt_metatype(qRegisterMetaType<%S>(%N), sipType_%C);\n"
+"    sip_qt_register(qRegisterMetaType<%S>(%N), sipType_%C);\n"
                         , classFQCName(cd), cd->iff->name, classFQCName(cd));
 
         /*
@@ -1879,8 +1888,8 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
     }
 
     prcode(fp,
-"    /* Export the module and publish it's API. */\n"
-"    if (sipAPI_%s->api_export_module(&sipModuleAPI_%s,SIP_API_MAJOR_NR,SIP_API_MINOR_NR,sipModuleDict) < 0)\n"
+"    /* Initialise the module now all its dependencies have been set up. */\n"
+"    if (sipAPI_%s->api_init_module(&sipModuleAPI_%s,sipModuleDict) < 0)\n"
 "       return;\n"
         , mname
         , mname);
@@ -1935,20 +1944,6 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 
     /* Generate any post-initialisation code. */
     generateCppCodeBlock(mod->postinitcode, fp);
-
-    /*
-     * This has to be done after the post-initialisation code in case this
-     * module is exporting the symbol.
-     */
-    if (optQ_OBJECT4(pt))
-        prcode(fp,
-"\n"
-"    sip_%s_qt_metaobject = (sip_qt_metaobject_func)sipImportSymbol(\"qtcore_qt_metaobject\");\n"
-"    sip_%s_qt_metacall = (sip_qt_metacall_func)sipImportSymbol(\"qtcore_qt_metacall\");\n"
-"    sip_%s_qt_metacast = (sip_qt_metacast_func)sipImportSymbol(\"qtcore_qt_metacast\");\n"
-            , mname
-            , mname
-            , mname);
 
     prcode(fp,
 "}\n"
@@ -3261,8 +3256,7 @@ static char *createIfaceFileName(const char *codeDir, ifaceFileDef *iff,
  */
 static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 {
-    const char *type_prefix;
-    int need_xfer, embedded;
+    int need_xfer;
 
     if (optAssignmentHelpers(pt) && !noRelease(mtd))
     {
@@ -3367,22 +3361,11 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 
     generateCppCodeBlock(mtd->convfromcode,fp);
 
-    embedded = TRUE;
-
-    if (pluginPyQt4(pt))
-        type_prefix = "pyqt4";
-    else
-    {
-        type_prefix = "sip";
-        embedded = FALSE;
-    }
-
     prcode(fp,
 "}\n"
 "\n"
 "\n"
-"%sTypeDef %sMappedTypeDef_%T = {\n"
-"%s"
+"sipTypeDef sipMappedTypeDef_%T = {\n"
 "    0,\n"
 "    0,\n"
 "    SIP_TYPE_MAPPED,\n"
@@ -3407,8 +3390,7 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 "    0,\n"
 "    0,\n"
 "    0,\n"
-        , type_prefix, type_prefix, &mtd->type
-        , (embedded ? "{\n" : "")
+        , &mtd->type
         , mtd->cname);
 
     if (optAssignmentHelpers(pt) && !noRelease(mtd))
@@ -3437,18 +3419,9 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 "    0,\n"
 "    0,\n"
 "    0\n"
+"};\n"
         , &mtd->type
         , &mtd->type);
-
-    if (pluginPyQt4(pt))
-        prcode(fp,
-"},\n"
-"    0\n"
-            );
-
-    prcode(fp,
-"};\n"
-        );
 }
 
 
@@ -6996,25 +6969,13 @@ static void generateImportedMappedTypeAPI(mappedTypeDef *mtd, moduleDef *mod,
  */
 static void generateMappedTypeAPI(sipSpec *pt, mappedTypeDef *mtd, FILE *fp)
 {
-    const char *type_prefix, *type_suffix;
-
-    type_suffix = ".super";
-
-    if (pluginPyQt4(pt))
-        type_prefix = "pyqt4";
-    else
-    {
-        type_prefix = "sip";
-        type_suffix = "";
-    }
-
     prcode(fp,
 "\n"
-"#define sipType_%T      (&%sMappedTypeDef_%T%s)\n"
+"#define sipType_%T      (&sipMappedTypeDef_%T)\n"
 "\n"
-"extern %sTypeDef %sMappedTypeDef_%T;\n"
-        , &mtd->type, type_prefix, &mtd->type, type_suffix
-        , type_prefix, type_prefix, &mtd->type);
+"extern sipTypeDef sipMappedTypeDef_%T;\n"
+        , &mtd->type, &mtd->type
+        , &mtd->type);
 }
 
 
@@ -7210,7 +7171,7 @@ static void generateShadowClassDeclaration(sipSpec *pt,classDef *cd,FILE *fp)
             ,(cd->vmembers != NULL ? "virtual " : ""),classFQCName(cd),cd->dtorexceptions);
 
     /* The metacall methods if required. */
-    if (isQt4QObjectSubClass(pt, cd))
+    if (pluginPyQt4(pt) && isQObjectSubClass(cd))
     {
         prcode(fp,
 "\n"
@@ -8350,15 +8311,6 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
     prcode(fp,
 "};\n"
         );
-}
-
-
-/*
- * Return TRUE if the class is a Qt4 QObject sub-class.
- */
-static int isQt4QObjectSubClass(sipSpec *pt, classDef *cd)
-{
-    return optQ_OBJECT4(pt) && isQObjectSubClass(cd);
 }
 
 
