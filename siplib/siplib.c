@@ -22,6 +22,7 @@
  */
 static sipWrapperType sipWrapper_Type;
 static PyTypeObject sipWrapperType_Type;
+static PyTypeObject sipEnumType_Type;
 static PyTypeObject sipVoidPtr_Type;
 
 static void sip_api_bad_catcher_result(PyObject *method);
@@ -283,6 +284,55 @@ typedef struct _sipPyObject {
 } sipPyObject;
 
 
+/*****************************************************************************
+ * The structures to support a Python type to hold a named enum.
+ *****************************************************************************/
+
+/*
+ * The meta-type of an enum type.
+ */
+typedef struct _sipEnumTypeObject {
+    /*
+     * The super-metatype.  This must be first in the structure so that it can
+     * be cast to a PyTypeObject *.
+     */
+    PyHeapTypeObject super;
+
+    /* The additional type information. */
+    sipEnumDef *type;
+} sipEnumTypeObject;
+
+
+/*
+ * The type data structure.  We inherit everything from the standard Python
+ * metatype and the size of the type object created is increased to accomodate
+ * the extra information we associate with a named enum type.
+ */
+static PyTypeObject sipEnumType_Type = {
+    PyObject_HEAD_INIT(NULL)
+    0,                      /* ob_size */
+    "sip.enumtype",         /* tp_name */
+    sizeof (sipEnumTypeObject), /* tp_basicsize */
+    0,                      /* tp_itemsize */
+    0,                      /* tp_dealloc */
+    0,                      /* tp_print */
+    0,                      /* tp_getattr */
+    0,                      /* tp_setattr */
+    0,                      /* tp_compare */
+    0,                      /* tp_repr */
+    0,                      /* tp_as_number */
+    0,                      /* tp_as_sequence */
+    0,                      /* tp_as_mapping */
+    0,                      /* tp_hash */
+    0,                      /* tp_call */
+    0,                      /* tp_str */
+    0,                      /* tp_getattro */
+    0,                      /* tp_setattro */
+    0,                      /* tp_as_buffer */
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,   /* tp_flags */
+};
+
+
 PyInterpreterState *sipInterpreter = NULL;
 sipQtAPI *sipQtSupport = NULL;
 sipTypeDef *sipQObjectType;
@@ -476,6 +526,11 @@ PyMODINIT_FUNC initsip(void)
 
     if (PyType_Ready((PyTypeObject *)&sipWrapper_Type) < 0)
         Py_FatalError("sip: Failed to initialise sip.wrapper type");
+
+    sipEnumType_Type.tp_base = &PyType_Type;
+
+    if (PyType_Ready(&sipEnumType_Type) < 0)
+        Py_FatalError("sip: Failed to initialise sip.enumtype type");
 
     if (PyType_Ready(&sipVoidPtr_Type) < 0)
         Py_FatalError("sip: Failed to initialise sip.voidptr type");
@@ -3933,12 +3988,15 @@ static PyTypeObject *createEnum(sipExportedModuleDef *client, sipEnumDef *ed,
     if (args == NULL)
         goto relname;
 
-    et = (PyTypeObject *)PyObject_Call((PyObject *)&PyType_Type, args, NULL);
+    et = (PyTypeObject *)PyObject_Call((PyObject *)&sipEnumType_Type, args, NULL);
 
     Py_DECREF(args);
 
     if (et == NULL)
         goto relname;
+
+    /* Save the generated enum structure. */
+    ((sipEnumTypeObject *)et)->type = ed;
 
     /* Initialise any slots. */
     if (ed->e_pyslots != NULL)
@@ -6012,7 +6070,7 @@ typedef struct {
     void *voidptr;
     SIP_SSIZE_T size;
     int rw;
-} sipVoidPtr;
+} sipVoidPtrObject;
 
 
 /* The structure used to hold the results of a voidptr conversion. */
@@ -6038,9 +6096,9 @@ static int vp_convertor(PyObject *arg, struct vp_values *vp)
         ptr = PyCObject_AsVoidPtr(arg);
     else if (PyObject_TypeCheck(arg, &sipVoidPtr_Type))
     {
-        ptr = ((sipVoidPtr *)arg)->voidptr;
-        size = ((sipVoidPtr *)arg)->size;
-        rw = ((sipVoidPtr *)arg)->rw;
+        ptr = ((sipVoidPtrObject *)arg)->voidptr;
+        size = ((sipVoidPtrObject *)arg)->size;
+        rw = ((sipVoidPtrObject *)arg)->rw;
     }
     else
     {
@@ -6096,9 +6154,9 @@ static PyObject *sipVoidPtr_new(PyTypeObject *subtype, PyObject *args,
         return NULL;
 
     /* Save the values. */
-    ((sipVoidPtr *)obj)->voidptr = vp_conversion.voidptr;
-    ((sipVoidPtr *)obj)->size = vp_conversion.size;
-    ((sipVoidPtr *)obj)->rw = vp_conversion.rw;
+    ((sipVoidPtrObject *)obj)->voidptr = vp_conversion.voidptr;
+    ((sipVoidPtrObject *)obj)->size = vp_conversion.size;
+    ((sipVoidPtrObject *)obj)->rw = vp_conversion.rw;
 
     return obj;
 }
@@ -6110,7 +6168,7 @@ static PyObject *sipVoidPtr_new(PyTypeObject *subtype, PyObject *args,
 static SIP_SSIZE_T sipVoidPtr_getbuffer(PyObject *self, SIP_SSIZE_T seg,
         void **ptr)
 {
-    SIP_SSIZE_T size = ((sipVoidPtr *)self)->size;
+    SIP_SSIZE_T size = ((sipVoidPtrObject *)self)->size;
 
     if (size < 0 || seg != 0)
     {
@@ -6118,7 +6176,7 @@ static SIP_SSIZE_T sipVoidPtr_getbuffer(PyObject *self, SIP_SSIZE_T seg,
         return -1;
     }
 
-    *ptr = ((sipVoidPtr *)self)->voidptr;
+    *ptr = ((sipVoidPtrObject *)self)->voidptr;
 
     return size;
 }
@@ -6130,7 +6188,7 @@ static SIP_SSIZE_T sipVoidPtr_getbuffer(PyObject *self, SIP_SSIZE_T seg,
 static SIP_SSIZE_T sipVoidPtr_getwritebuffer(PyObject *self, SIP_SSIZE_T seg,
         void **ptr)
 {
-    if (((sipVoidPtr *)self)->rw)
+    if (((sipVoidPtrObject *)self)->rw)
         return sipVoidPtr_getbuffer(self, seg, ptr);
 
     PyErr_SetString(PyExc_TypeError, "the sip.voidptr is not writeable");
@@ -6145,7 +6203,7 @@ static SIP_SSIZE_T sipVoidPtr_getsegcount(PyObject *self, SIP_SSIZE_T *lenp)
 {
     SIP_SSIZE_T segs, len;
 
-    len = ((sipVoidPtr *)self)->size;
+    len = ((sipVoidPtrObject *)self)->size;
     segs = (len < 0 ? 0 : 1);
 
     if (lenp != NULL)
@@ -6158,7 +6216,7 @@ static SIP_SSIZE_T sipVoidPtr_getsegcount(PyObject *self, SIP_SSIZE_T *lenp)
 /*
  * Implement int() for the type.
  */
-static PyObject *sipVoidPtr_int(sipVoidPtr *v)
+static PyObject *sipVoidPtr_int(sipVoidPtrObject *v)
 {
     return PyLong_FromVoidPtr(v->voidptr);
 }
@@ -6167,7 +6225,7 @@ static PyObject *sipVoidPtr_int(sipVoidPtr *v)
 /*
  * Implement hex() for the type.
  */
-static PyObject *sipVoidPtr_hex(sipVoidPtr *v)
+static PyObject *sipVoidPtr_hex(sipVoidPtrObject *v)
 {
     char buf[2 + 16 + 1];
 
@@ -6180,7 +6238,7 @@ static PyObject *sipVoidPtr_hex(sipVoidPtr *v)
 /*
  * Implement ascobject() for the type.
  */
-static PyObject *sipVoidPtr_ascobject(sipVoidPtr *v, PyObject *arg)
+static PyObject *sipVoidPtr_ascobject(sipVoidPtrObject *v, PyObject *arg)
 {
     return PyCObject_FromVoidPtr(v->voidptr, NULL);
 }
@@ -6189,7 +6247,7 @@ static PyObject *sipVoidPtr_ascobject(sipVoidPtr *v, PyObject *arg)
 /*
  * Implement asstring() for the type.
  */
-static PyObject *sipVoidPtr_asstring(sipVoidPtr *v, PyObject *args,
+static PyObject *sipVoidPtr_asstring(sipVoidPtrObject *v, PyObject *args,
         PyObject *kw)
 {
     static char *kwlist[] = {"size", NULL};
@@ -6222,7 +6280,7 @@ static PyObject *sipVoidPtr_asstring(sipVoidPtr *v, PyObject *args,
 /*
  * Implement getsize() for the type.
  */
-static PyObject *sipVoidPtr_getsize(sipVoidPtr *v, PyObject *arg)
+static PyObject *sipVoidPtr_getsize(sipVoidPtrObject *v, PyObject *arg)
 {
 #if PY_VERSION_HEX >= 0x02050000
     return PyInt_FromSsize_t(v->size);
@@ -6235,7 +6293,7 @@ static PyObject *sipVoidPtr_getsize(sipVoidPtr *v, PyObject *arg)
 /*
  * Implement setsize() for the type.
  */
-static PyObject *sipVoidPtr_setsize(sipVoidPtr *v, PyObject *arg)
+static PyObject *sipVoidPtr_setsize(sipVoidPtrObject *v, PyObject *arg)
 {
     SIP_SSIZE_T size;
 
@@ -6258,7 +6316,7 @@ static PyObject *sipVoidPtr_setsize(sipVoidPtr *v, PyObject *arg)
 /*
  * Implement getwriteable() for the type.
  */
-static PyObject *sipVoidPtr_getwriteable(sipVoidPtr *v, PyObject *arg)
+static PyObject *sipVoidPtr_getwriteable(sipVoidPtrObject *v, PyObject *arg)
 {
     return PyBool_FromLong(v->rw);
 }
@@ -6267,7 +6325,7 @@ static PyObject *sipVoidPtr_getwriteable(sipVoidPtr *v, PyObject *arg)
 /*
  * Implement setwriteable() for the type.
  */
-static PyObject *sipVoidPtr_setwriteable(sipVoidPtr *v, PyObject *arg)
+static PyObject *sipVoidPtr_setwriteable(sipVoidPtrObject *v, PyObject *arg)
 {
     int rw;
 
@@ -6341,7 +6399,7 @@ static PyTypeObject sipVoidPtr_Type = {
     PyObject_HEAD_INIT(NULL)
     0,                      /* ob_size */
     "sip.voidptr",          /* tp_name */
-    sizeof (sipVoidPtr),    /* tp_basicsize */
+    sizeof (sipVoidPtrObject),  /* tp_basicsize */
     0,                      /* tp_itemsize */
     0,                      /* tp_dealloc */
     0,                      /* tp_print */
@@ -6395,7 +6453,7 @@ static void *sip_api_convert_to_void_ptr(PyObject *obj)
         return NULL;
 
     if (PyObject_TypeCheck(obj, &sipVoidPtr_Type))
-        return ((sipVoidPtr *)obj)->voidptr;
+        return ((sipVoidPtrObject *)obj)->voidptr;
 
     if (PyCObject_Check(obj))
         return PyCObject_AsVoidPtr(obj);
@@ -6447,7 +6505,7 @@ static PyObject *sip_api_convert_from_const_void_ptr_and_size(const void *val,
  */
 static PyObject *make_voidptr(void *voidptr, SIP_SSIZE_T size, int rw)
 {
-    sipVoidPtr *self;
+    sipVoidPtrObject *self;
 
     if (voidptr == NULL)
     {
@@ -6455,7 +6513,7 @@ static PyObject *make_voidptr(void *voidptr, SIP_SSIZE_T size, int rw)
         return Py_None;
     }
 
-    if ((self = PyObject_NEW(sipVoidPtr, &sipVoidPtr_Type)) == NULL)
+    if ((self = PyObject_NEW(sipVoidPtrObject, &sipVoidPtr_Type)) == NULL)
         return NULL;
 
     self->voidptr = voidptr;
