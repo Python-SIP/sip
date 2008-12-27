@@ -555,11 +555,14 @@ typedef struct _sipTypedefDef {
 
 /*
  * The information describing a type, either a C++ class (or C struct), a C++
- * namespace, or a mapped type.
+ * namespace, a mapped type or a named enum.
  */
 typedef struct _sipTypeDef {
-    /* The version number. */
-    int td_version;
+    /* The version number, -1 if the type isn't versioned. */
+    int td_version_nr;
+
+    /* The next version of this type. */
+    struct _sipTypeDef *td_next_version;
 
     /* The module. */
     struct _sipExportedModuleDef *td_module;
@@ -570,9 +573,6 @@ typedef struct _sipTypeDef {
     /* The C/C++ name of the type. */
     int td_cname;
 
-    /* The Python name of the type. */
-    int td_name;
-
     /*
      * The Python type object.  This needs to be a union until we remove the
      * deprecated sipClass_* macros.
@@ -581,97 +581,128 @@ typedef struct _sipTypeDef {
         PyTypeObject *td_py_type;
         sipWrapperType *td_wrapper_type;
     } u;
+} sipTypeDef;
+
+
+/*
+ * The information describing a C++ class (or C struct) or a C++ namespace.
+ */
+typedef struct _sipClassTypeDef {
+    /* The base type information. */
+    sipTypeDef ctd_base;
+
+    /* The Python name of the type, -1 if this is a namespace extender. */
+    int ctd_name;
 
     /*
      * The meta-type name, -1 to use the meta-type of the first super-type
      * (normally sipWrapperType).
      */
-    int td_metatype;
+    int ctd_metatype;
 
     /* The super-type name, -1 to use sipWrapper. */
-    int td_supertype;
+    int ctd_supertype;
 
     /*
      * The scoping type or the namespace this is extending if it is a namespace
      * extender.
      */
-    sipEncodedClassDef td_scope;
+    sipEncodedClassDef ctd_scope;
 
     /* The super-types. */
-    sipEncodedClassDef *td_supers;
+    sipEncodedClassDef *ctd_supers;
 
     /* The table of Python slots. */
-    sipPySlotDef *td_pyslots;
+    sipPySlotDef *ctd_pyslots;
 
     /* The number of lazy methods. */
-    int td_nrmethods;
+    int ctd_nrmethods;
 
     /* The table of lazy methods. */
-    PyMethodDef *td_methods;
+    PyMethodDef *ctd_methods;
 
     /* The number of lazy enum members. */
-    int td_nrenummembers;
+    int ctd_nrenummembers;
 
     /* The table of lazy enum members. */
-    sipEnumMemberDef *td_enummembers;
+    sipEnumMemberDef *ctd_enummembers;
 
     /* The variable table. */
-    PyMethodDef *td_variables;
+    PyMethodDef *ctd_variables;
 
     /* The initialisation function. */
-    sipInitFunc td_init;
+    sipInitFunc ctd_init;
 
     /* The traverse function. */
-    sipTraverseFunc td_traverse;
+    sipTraverseFunc ctd_traverse;
 
     /* The clear function. */
-    sipClearFunc td_clear;
+    sipClearFunc ctd_clear;
 
     /* The read buffer function. */
-    sipBufferFunc td_readbuffer;
+    sipBufferFunc ctd_readbuffer;
 
     /* The write buffer function. */
-    sipBufferFunc td_writebuffer;
+    sipBufferFunc ctd_writebuffer;
 
     /* The segment count function. */
-    sipSegCountFunc td_segcount;
+    sipSegCountFunc ctd_segcount;
 
     /* The char buffer function. */
-    sipBufferFunc td_charbuffer;
+    sipBufferFunc ctd_charbuffer;
 
     /* The deallocation function. */
-    sipDeallocFunc td_dealloc;
+    sipDeallocFunc ctd_dealloc;
 
     /* The assignment function. */
-    /* FIXME: Move this to pyqt4TypeDef (if still needed). */
-    sipAssignFunc td_assign;
+    /* FIXME: Move this to pyqt4ClassTypeDef (if still needed). */
+    sipAssignFunc ctd_assign;
 
-    /* The release function. */
+    /* The release function, 0 if a C strict. */
     /* FIXME: Possible move this to pyqt4TypeDef (if still needed). */
-    sipReleaseFunc td_release;
+    sipReleaseFunc ctd_release;
 
     /* The cast function, 0 if a C struct. */
-    sipCastFunc td_cast;
+    sipCastFunc ctd_cast;
 
-    /* The convert to function. */
-    sipConvertToFunc td_cto;
-
-    /* The convert from function (mapped types only). */
-    sipConvertFromFunc td_cfrom;
+    /* The optional convert to function. */
+    sipConvertToFunc ctd_cto;
 
     /* The static instances. */
-    sipInstancesDef td_instances;
+    sipInstancesDef ctd_instances;
 
     /* The next namespace extender. */
-    struct _sipTypeDef *td_nsextender;
+    struct _sipClassTypeDef *ctd_nsextender;
 
     /* The pickle function. */
-    sipPickleFunc td_pickle;
+    sipPickleFunc ctd_pickle;
 
     /* Emit table for Qt signals. */
-    /* FIXME: Move this to pyqt3TypeDef. */
-    struct _sipQtSignal *td_emit;
-} sipTypeDef;
+    /* FIXME: Move this to pyqt3ClassTypeDef. */
+    struct _sipQtSignal *ctd_emit;
+} sipClassTypeDef;
+
+
+/*
+ * The information describing a mapped type.
+ */
+typedef struct _sipMappedTypeDef {
+    /* The base type information. */
+    sipTypeDef mtd_base;
+
+    /* The assignment function. */
+    /* FIXME: Move this to pyqt4ClassTypeDef (if still needed). */
+    sipAssignFunc mtd_assign;
+
+    /* The optional release function. */
+    sipReleaseFunc mtd_release;
+
+    /* The convert to function. */
+    sipConvertToFunc mtd_cto;
+
+    /* The convert from function. */
+    sipConvertFromFunc mtd_cfrom;
+} sipMappedTypeDef;
 
 
 /*
@@ -757,8 +788,8 @@ typedef struct _sipExportedModuleDef {
     /* The number of types. */
     int em_nrtypes;
 
-    /* The table of type types. */
-    sipTypeDef **em_types;
+    /* The table of class types. */
+    sipTypeDef **em_classtypes;
 
     /* The table of external types. */
     sipExternalTypeDef *em_external;
@@ -1410,19 +1441,19 @@ typedef struct _sipQtAPI {
 
 
 /*
- * This is the PyQt4-specific extension to the generated type structure.  In
- * SIP v5 this will be pushed out to a plugin supplied by PyQt4.
+ * This is the PyQt4-specific extension to the generated class type structure.
+ * In SIP v5 this will be pushed out to a plugin supplied by PyQt4.
  */
-typedef struct _pyqt4TypeDef {
+typedef struct _pyqt4ClassTypeDef {
     /*
      * The super-type structure.  This must be first in the structure so that
-     * it can be cast to sipTypeDef *.
+     * it can be cast to sipClassTypeDef *.
      */
-    sipTypeDef super;
+    sipClassTypeDef super;
 
     /* A pointer to the QObject sub-class's staticMetaObject class variable. */
     const void *qt4_static_metaobject;
-} pyqt4TypeDef;
+} pyqt4ClassTypeDef;
 
 
 #ifdef __cplusplus

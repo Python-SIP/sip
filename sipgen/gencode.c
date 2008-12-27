@@ -1278,7 +1278,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
             type.u.mtd = mtd;
 
             prcode(fp,
-"    &sipMappedTypeDef_%T,\n"
+"    &sipMappedTypeDef_%T.mtd_base,\n"
                 , &type);
         }
 
@@ -2160,7 +2160,7 @@ static void generateClassTableEntries(sipSpec *pt, moduleDef *mod, nodeDef *nd,
             }
 
             prcode(fp,
-"    &%sType_%s_%C%s,\n"
+"    &%sType_%s_%C%s.ctd_base,\n"
                 , type_prefix, mod->name, classFQCName(nd->cd), type_suffix);
         }
     }
@@ -3365,31 +3365,15 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 "}\n"
 "\n"
 "\n"
-"sipTypeDef sipMappedTypeDef_%T = {\n"
-"    0,\n"
-"    0,\n"
-"    SIP_TYPE_MAPPED,\n"
-"    %n,\n"
-"    -1,\n"
-"    {0},\n"
-"    -1,\n"
-"    -1,\n"
-"    {0, 0, 0},\n"
-"    0,\n"
-"    0,\n"
-"    0,\n"
-"    0,\n"
-"    0,\n"
-"    0,\n"
-"    0,\n"
-"    0,\n"
-"    0,\n"
-"    0,\n"
-"    0,\n"
-"    0,\n"
-"    0,\n"
-"    0,\n"
-"    0,\n"
+"sipMappedTypeDef sipMappedTypeDef_%T = {\n"
+"    {\n"
+"        -1,\n"
+"        0,\n"
+"        0,\n"
+"        SIP_TYPE_MAPPED,\n"
+"        %n,\n"
+"        {0}\n"
+"    },\n"
         , &mtd->type
         , mtd->cname);
 
@@ -3412,13 +3396,8 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
             , &mtd->type);
 
     prcode(fp,
-"    0,\n"
 "    convertTo_%T,\n"
-"    convertFrom_%T,\n"
-"    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},\n"
-"    0,\n"
-"    0,\n"
-"    0\n"
+"    convertFrom_%T\n"
 "};\n"
         , &mtd->type
         , &mtd->type);
@@ -4763,7 +4742,7 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 
             prcode(fp,
 "\n"
-"    if ((res = sipType_%C->td_cast((%S *)(%S *)ptr,targetType)) != NULL)\n"
+"    if ((res = ((sipClassTypeDef *)sipType_%C)->ctd_cast((%S *)(%S *)ptr,targetType)) != NULL)\n"
 "        return res;\n"
                 ,sname,sname,classFQCName(cd));
         }
@@ -6971,9 +6950,9 @@ static void generateMappedTypeAPI(sipSpec *pt, mappedTypeDef *mtd, FILE *fp)
 {
     prcode(fp,
 "\n"
-"#define sipType_%T      (&sipMappedTypeDef_%T)\n"
+"#define sipType_%T      (&sipMappedTypeDef_%T.mtd_base)\n"
 "\n"
-"extern sipTypeDef sipMappedTypeDef_%T;\n"
+"extern sipMappedTypeDef sipMappedTypeDef_%T;\n"
         , &mtd->type, &mtd->type
         , &mtd->type);
 }
@@ -6998,8 +6977,8 @@ static void generateImportedClassAPI(classDef *cd, sipSpec *pt, moduleDef *mod,
             , classFQCName(cd));
 
     prcode(fp,
-"#define sipType_%C              sipModuleAPI_%s_%s->em_types[%d]\n"
-"#define sipClass_%C             sipModuleAPI_%s_%s->em_types[%d]->u.td_wrapper_type\n"
+"#define sipType_%C              sipModuleAPI_%s_%s->em_classtypes[%d]\n"
+"#define sipClass_%C             sipModuleAPI_%s_%s->em_classtypes[%d]->u.td_wrapper_type\n"
         , classFQCName(cd), mname, imname, cd->classnr
         , classFQCName(cd), mname, imname, cd->classnr);
 
@@ -7025,8 +7004,8 @@ static void generateClassAPI(classDef *cd, sipSpec *pt, FILE *fp)
 
     if (cd->real == NULL)
         prcode(fp,
-"#define sipType_%C              sipModuleAPI_%s.em_types[%d]\n"
-"#define sipClass_%C             sipModuleAPI_%s.em_types[%d]->u.td_wrapper_type\n"
+"#define sipType_%C              sipModuleAPI_%s.em_classtypes[%d]\n"
+"#define sipClass_%C             sipModuleAPI_%s.em_classtypes[%d]->u.td_wrapper_type\n"
             , classFQCName(cd), mname, cd->classnr
             , classFQCName(cd), mname, cd->classnr);
 
@@ -7043,7 +7022,7 @@ static void generateClassAPI(classDef *cd, sipSpec *pt, FILE *fp)
 
         prcode(fp,
 "\n"
-"extern %sTypeDef %sType_%s_%C;\n"
+"extern %sClassTypeDef %sType_%s_%C;\n"
             , type_prefix, type_prefix, mname, classFQCName(cd));
     }
 }
@@ -7961,11 +7940,13 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
     prcode(fp,
 "\n"
 "\n"
-"%sTypeDef %sType_%s_%C = {\n"
+"%sClassTypeDef %sType_%s_%C = {\n"
 "%s"
-"    0,\n"
-"    0,\n"
-"    "
+"    {\n"
+"        -1,\n"
+"        0,\n"
+"        0,\n"
+"        "
         , type_prefix, type_prefix, mname, classFQCName(cd)
         , (embedded ? "{\n" : ""));
 
@@ -8006,7 +7987,9 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
     prcode(fp, ",\n");
 
     prcode(fp,
-"    %n,\n"
+"        %n,\n"
+"        {0}\n"
+"    },\n"
         , cd->iff->name);
 
     if (cd->real == NULL)
@@ -8017,10 +8000,6 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
         prcode(fp,
 "    -1,\n"
             );
-
-    prcode(fp,
-"    {0},\n"
-        );
 
     if (cd->metatype != NULL)
         prcode(fp,
@@ -8206,10 +8185,6 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 "    0,\n"
                 );
     }
-
-    prcode(fp,
-"    0,\n"
-        );
 
     prcode(fp,
 "    {");

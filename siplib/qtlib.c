@@ -557,7 +557,7 @@ static int emitQtSig(sipSimpleWrapper *sw, const char *sig, PyObject *sigargs)
     sipQtSignal *tab;
 
     /* Search the table. */
-    for (tab = ((sipWrapperType *)(((PyObject *)sw)->ob_type))->type->td_emit; tab->st_name != NULL; ++tab)
+    for (tab = ((sipClassTypeDef *)((sipWrapperType *)(((PyObject *)sw)->ob_type))->type)->ctd_emit; tab->st_name != NULL; ++tab)
     {
         const char *sp, *tp;
         int found;

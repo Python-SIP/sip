@@ -259,7 +259,7 @@ static const sipAPIDef sip_api = {
  */
 #define getNameFromPool(em, mr) (&((em)->em_strings)[(mr)])
 #define getNameOfModule(em)     getNameFromPool((em), (em)->em_name)
-#define getPyNameOfType(td)     getNameFromPool((td)->td_module, (td)->td_name)
+#define getPyNameOfClass(ctd)   getNameFromPool((ctd)->ctd_base.td_module, (ctd)->ctd_name)
 #define getCppNameOfType(td)    getNameFromPool((td)->td_module, (td)->td_cname)
 #define getPyNameOfEnum(em, ed) getNameFromPool((em), (ed)->e_name)
 #define getCppNameOfEnum(em, ed)    getNameFromPool((em), (ed)->e_cname)
@@ -354,13 +354,13 @@ static sipObjectMap cppPyMap;           /* The C/C++ to Python map. */
 static sipExportedModuleDef *moduleList = NULL; /* List of registered modules. */
 static unsigned traceMask = 0;          /* The current trace mask. */
 
-static sipTypeDef *currentType = NULL;  /* The type being created. */
+static sipClassTypeDef *currentClassType = NULL;    /* The class type being created. */
 
 static PyObject *type_unpickler;        /* The type unpickler function. */
 static PyObject *enum_unpickler;        /* The enum unpickler function. */
 
 
-static void addSlots(sipWrapperType *wt, sipTypeDef *td);
+static void addClassSlots(sipWrapperType *wt, sipClassTypeDef *ctd);
 static void addTypeSlots(PyTypeObject *to, PyNumberMethods *nb,
         PySequenceMethods *sq, PyMappingMethods *mp, sipPySlotDef *slots);
 static void *findSlot(PyObject *self, sipPySlotType st);
@@ -376,15 +376,16 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, int nrargs,
 static int getSelfFromArgs(sipTypeDef *td, PyObject *args, int argnr,
         sipSimpleWrapper **selfp);
 static int canConvertToNamedEnum(PyObject *obj, PyTypeObject *et);
-static PyObject *createEnumMember(sipTypeDef *td, sipEnumMemberDef *enm);
+static PyObject *createEnumMember(sipClassTypeDef *ctd, sipEnumMemberDef *enm);
 static PyObject *handleGetLazyAttr(PyObject *nameobj, sipWrapperType *wt,
         sipSimpleWrapper *sw);
 static int handleSetLazyAttr(PyObject *nameobj, PyObject *valobj,
         sipWrapperType *wt, sipSimpleWrapper *sw);
 static int getNonStaticVariables(sipWrapperType *wt, sipSimpleWrapper *sw,
         PyObject **ndict);
-static void findLazyAttr(sipTypeDef *td, const char *name, PyMethodDef **pmdp,
-        sipEnumMemberDef **enmp, PyMethodDef **vmdp, sipTypeDef **in);
+static void findLazyAttr(sipClassTypeDef *ctd, const char *name,
+        PyMethodDef **pmdp, sipEnumMemberDef **enmp, PyMethodDef **vmdp,
+        sipClassTypeDef **in);
 static int compareMethodName(const void *key, const void *el);
 static int compareEnumMemberName(const void *key, const void *el);
 static int checkPointer(void *ptr);
@@ -392,7 +393,7 @@ static void *cast_cpp_ptr(void *ptr, sipWrapperType *src_type,
         sipTypeDef *dst_type);
 static void badArgs(int argsParsed, const char *scope, const char *method);
 static void finalise(void);
-static int createType(sipExportedModuleDef *client, sipTypeDef *type,
+static int createClassType(sipExportedModuleDef *client, sipClassTypeDef *ctd,
         PyObject *mod_dict);
 static sipExportedModuleDef *getModule(PyObject *mname_obj);
 static PyObject *pickle_type(PyObject *obj, PyObject *);
@@ -405,10 +406,10 @@ static PyTypeObject *createEnum(sipExportedModuleDef *client, sipEnumDef *ed,
 static PyObject *createTypeDict(PyObject *mname);
 static sipExportedModuleDef *getClassModule(sipEncodedClassDef *enc,
         sipExportedModuleDef *em);
-static sipTypeDef *getClassType(sipEncodedClassDef *enc,
+static sipClassTypeDef *getClassType(sipEncodedClassDef *enc,
         sipExportedModuleDef *em);
 static sipTypeDef *convertSubClass(sipTypeDef *td, void **cppPtr);
-static void *getPtrTypeDef(sipSimpleWrapper *self, sipTypeDef **td);
+static void *getPtrTypeDef(sipSimpleWrapper *self, sipClassTypeDef **ctd);
 static int addInstances(PyObject *dict, sipInstancesDef *id);
 static int addVoidPtrInstances(PyObject *dict, sipVoidPtrInstanceDef *vi);
 static int addCharInstances(PyObject *dict, sipCharInstanceDef *ci);
@@ -778,12 +779,12 @@ static PyObject *callDtor(PyObject *self, PyObject *args)
 {
     sipSimpleWrapper *sw;
     void *addr;
-    sipTypeDef *td;
+    sipClassTypeDef *ctd;
 
     if (!PyArg_ParseTuple(args, "O!:delete", &sipSimpleWrapper_Type, &sw))
         return NULL;
 
-    addr = getPtrTypeDef(sw, &td);
+    addr = getPtrTypeDef(sw, &ctd);
 
     if (checkPointer(addr) < 0)
         return NULL;
@@ -798,7 +799,7 @@ static PyObject *callDtor(PyObject *self, PyObject *args)
         sipResetPyOwned(sw);
     }
 
-    release(addr, td, sw->flags);
+    release(addr, (sipTypeDef *)ctd, sw->flags);
 
     Py_INCREF(Py_None);
     return Py_None;
@@ -1012,43 +1013,43 @@ static int sip_api_init_module(sipExportedModuleDef *client,
     int i;
 
     /* Create the module's classes. */
-    if (client->em_types != NULL)
+    if (client->em_classtypes != NULL)
         for (i = 0; i < client->em_nrtypes; ++i)
         {
-            sipTypeDef *td = client->em_types[i];
+            sipClassTypeDef *ctd = (sipClassTypeDef *)client->em_classtypes[i];
 
             /* Skip external classes. */
-            if (td == NULL)
+            if (ctd == NULL)
                 continue;
 
             /*
              * Set this up as soon as possible to gain access to the string
              * pool.
              */
-            td->td_module = client;
+            ctd->ctd_base.td_module = client;
 
             /* See if this is a namespace extender. */
-            if (td->td_name < 0)
+            if (ctd->ctd_name < 0)
             {
-                sipTypeDef *real_nspace, **last;
+                sipClassTypeDef *real_nspace, **last;
 
-                real_nspace = getClassType(&td->td_scope, client);
+                real_nspace = getClassType(&ctd->ctd_scope, client);
 
                 /* Append this type to the real one. */
-                last = &real_nspace->td_nsextender;
+                last = &real_nspace->ctd_nsextender;
 
                 while (*last != NULL)
-                    last = &(*last)->td_nsextender;
+                    last = &(*last)->ctd_nsextender;
 
-                *last = td;
+                *last = ctd;
 
                 /*
                  * Save the real namespace type so that it is the correct scope
                  * for any enums or classes defined in this module.
                  */
-                client->em_types[i] = real_nspace;
+                client->em_classtypes[i] = (sipTypeDef *)real_nspace;
             }
-            else if (createType(client, td, mod_dict) < 0)
+            else if (createClassType(client, ctd, mod_dict) < 0)
                 return -1;
         }
 
@@ -1071,7 +1072,7 @@ static int sip_api_init_module(sipExportedModuleDef *client,
 
         while (ie->ie_extender != NULL)
         {
-            sipWrapperType *wt = (sipWrapperType *)sipTypePyTypeObject(getClassType(&ie->ie_class, client));
+            sipWrapperType *wt = (sipWrapperType *)sipTypePyTypeObject((sipTypeDef *)getClassType(&ie->ie_class, client));
 
             ie->ie_next = wt->iextend;
             wt->iextend = ie;
@@ -1087,7 +1088,7 @@ static int sip_api_init_module(sipExportedModuleDef *client,
 
         while (scc->scc_convertor != NULL)
         {
-            scc->scc_basetype = getClassType(&scc->scc_base, client);
+            scc->scc_basetype = (sipTypeDef *)getClassType(&scc->scc_base, client);
 
             ++scc;
         }
@@ -1140,12 +1141,12 @@ static int sip_api_init_module(sipExportedModuleDef *client,
      * Add any class static instances.  We need to do this once all types are
      * fully formed because of potential interdependencies.
      */
-    if (client->em_types != NULL)
+    if (client->em_classtypes != NULL)
         for (i = 0; i < client->em_nrtypes; ++i)
         {
-            sipTypeDef *td = client->em_types[i];
+            sipTypeDef *td = client->em_classtypes[i];
 
-            if (td != NULL && addInstances((sipTypePyTypeObject(td))->tp_dict, &td->td_instances) < 0)
+            if (td != NULL && addInstances((sipTypePyTypeObject(td))->tp_dict, &((sipClassTypeDef *)td)->ctd_instances) < 0)
                 return -1;
         }
 
@@ -1172,14 +1173,14 @@ static int sip_api_init_module(sipExportedModuleDef *client,
 
             for (i = 0; i < client->em_nrtypes; ++i)
             {
-                sipTypeDef *td = client->em_types[i];
+                sipClassTypeDef *ctd = (sipClassTypeDef *)client->em_classtypes[i];
 
-                if (td == NULL)
+                if (ctd == NULL)
                     continue;
 
-                if (strcmp(etd->et_name, getPyNameOfType(td)) == 0)
+                if (strcmp(etd->et_name, getPyNameOfClass(ctd)) == 0)
                 {
-                    em->em_types[etd->et_nr] = td;
+                    em->em_classtypes[etd->et_nr] = (sipTypeDef *)ctd;
                     etd->et_name = NULL;
 
                     break;
@@ -1271,10 +1272,10 @@ static PyObject *findPyType(const char *name)
 static void sip_api_add_delayed_dtor(sipSimpleWrapper *sw)
 {
     void *ptr;
-    sipTypeDef *td;
+    sipClassTypeDef *ctd;
     sipExportedModuleDef *em;
 
-    if ((ptr = getPtrTypeDef(sw, &td)) == NULL)
+    if ((ptr = getPtrTypeDef(sw, &ctd)) == NULL)
         return;
 
     /* Find the defining module. */
@@ -1283,7 +1284,7 @@ static void sip_api_add_delayed_dtor(sipSimpleWrapper *sw)
         int i;
 
         for (i = 0; i < em->em_nrtypes; ++i)
-            if (em->em_types[i] == td)
+            if (em->em_classtypes[i] == (sipTypeDef *)ctd)
             {
                 sipDelayedDtor *dd;
 
@@ -1292,7 +1293,7 @@ static void sip_api_add_delayed_dtor(sipSimpleWrapper *sw)
 
                 /* Add to the list. */
                 dd->dd_ptr = ptr;
-                dd->dd_name = getPyNameOfType(td);
+                dd->dd_name = getPyNameOfClass(ctd);
                 dd->dd_isderived = sipIsDerived(sw);
                 dd->dd_next = em->em_ddlist;
 
@@ -1333,7 +1334,14 @@ void sip_api_free(void *mem)
  */
 static int sip_api_assign_type(void *dst, const void *src, sipTypeDef *td)
 {
-    sipAssignFunc assign = td->td_assign;
+    sipAssignFunc assign;
+
+    if (sipTypeIsClass(td))
+        assign = ((sipClassTypeDef *)td)->ctd_assign;
+    else if (sipTypeIsMapped(td))
+        assign = ((sipMappedTypeDef *)td)->mtd_assign;
+    else
+        assign = NULL;
 
     if (assign == NULL)
         return FALSE;
@@ -1376,7 +1384,7 @@ static PyObject *sip_api_pyslot_extend(sipExportedModuleDef *mod,
                 continue;
 
             /* Check against the type if one was given. */
-            if (type != NULL && type != getClassType(&ex->pse_class, NULL))
+            if (type != NULL && type != (sipTypeDef *)getClassType(&ex->pse_class, NULL))
                 continue;
 
             PyErr_Clear();
@@ -3583,9 +3591,9 @@ static SIP_SSIZE_T sip_api_convert_from_sequence_index(SIP_SSIZE_T idx,
 
 
 /*
- * Create a single type object.
+ * Create a single class type object.
  */
-static int createType(sipExportedModuleDef *client, sipTypeDef *type,
+static int createClassType(sipExportedModuleDef *client, sipClassTypeDef *ctd,
         PyObject *mod_dict)
 {
     PyObject *name, *bases, *typedict, *args, *dict;
@@ -3594,13 +3602,13 @@ static int createType(sipExportedModuleDef *client, sipTypeDef *type,
     PyTypeObject *py_type;
 
     /* Create an object corresponding to the type name. */
-    if ((name = PyString_FromString(getPyNameOfType(type))) == NULL)
+    if ((name = PyString_FromString(getPyNameOfClass(ctd))) == NULL)
         goto reterr;
 
     /* Create the tuple of super-types. */
-    if ((sup = type->td_supers) == NULL)
+    if ((sup = ctd->ctd_supers) == NULL)
     {
-        if (type->td_supertype < 0)
+        if (ctd->ctd_supertype < 0)
         {
             static PyObject *default_bases = NULL;
 
@@ -3625,7 +3633,7 @@ static int createType(sipExportedModuleDef *client, sipTypeDef *type,
         {
             PyObject *supertype;
             const char *supertype_name = getNameFromPool(client,
-                    type->td_supertype);
+                    ctd->ctd_supertype);
 
             if ((supertype = findPyType(supertype_name)) == NULL)
                 goto relname;
@@ -3651,9 +3659,9 @@ static int createType(sipExportedModuleDef *client, sipTypeDef *type,
         if ((bases = PyTuple_New(nrsupers)) == NULL)
             goto relname;
 
-        for (sup = type->td_supers, i = 0; i < nrsupers; ++i, ++sup)
+        for (sup = ctd->ctd_supers, i = 0; i < nrsupers; ++i, ++sup)
         {
-            PyObject *st = (PyObject *)sipTypePyTypeObject(getClassType(sup, client));
+            PyObject *st = (PyObject *)sipTypePyTypeObject((sipTypeDef *)getClassType(sup, client));
 
             Py_INCREF(st);
             PyTuple_SET_ITEM(bases, i, st);
@@ -3664,9 +3672,9 @@ static int createType(sipExportedModuleDef *client, sipTypeDef *type,
      * Use the explicit meta-type if there is one, otherwise use the meta-type
      * of the first super-type.
      */
-    if (type->td_metatype >= 0)
+    if (ctd->ctd_metatype >= 0)
     {
-        const char *metatype_name = getNameFromPool(client, type->td_metatype);
+        const char *metatype_name = getNameFromPool(client, ctd->ctd_metatype);
 
         if ((metatype = findPyType(metatype_name)) == NULL)
             goto relbases;
@@ -3679,7 +3687,7 @@ static int createType(sipExportedModuleDef *client, sipTypeDef *type,
         goto relbases;
 
     /* Pass the type via the back door. */
-    currentType = type;
+    currentClassType = ctd;
 
     /* Create the type by calling the metatype. */
 #if PY_VERSION_HEX >= 0x02040000
@@ -3695,17 +3703,17 @@ static int createType(sipExportedModuleDef *client, sipTypeDef *type,
         goto relargs;
 
     /* Get the dictionary into which the type will be placed. */
-    if (type->td_scope.sc_flag)
+    if (ctd->ctd_scope.sc_flag)
         dict = mod_dict;
     else
-        dict = (sipTypePyTypeObject(getClassType(&type->td_scope, client)))->tp_dict;
+        dict = (sipTypePyTypeObject((sipTypeDef *)getClassType(&ctd->ctd_scope, client)))->tp_dict;
 
     /* Add the type to the "parent" dictionary. */
     if (PyDict_SetItem(dict, name, (PyObject *)py_type) < 0)
         goto reltype;
 
     /* Handle the pickle function. */
-    if (type->td_pickle != NULL)
+    if (ctd->ctd_pickle != NULL)
     {
         static PyMethodDef md = {
             "_pickle_type", pickle_type, METH_NOARGS, NULL
@@ -3777,7 +3785,7 @@ static sipExportedModuleDef *getModule(PyObject *mname_obj)
 static PyObject *unpickle_type(PyObject *ignore, PyObject *args)
 {
     PyObject *mname_obj, *init_args;
-    char *tname;
+    const char *tname;
     sipExportedModuleDef *em;
     int i;
 
@@ -3788,16 +3796,16 @@ static PyObject *unpickle_type(PyObject *ignore, PyObject *args)
     if ((em = getModule(mname_obj)) == NULL)
         return NULL;
 
-    /* Find the type type object. */
+    /* Find the class type object. */
     for (i = 0; i < em->em_nrtypes; ++i)
     {
-        sipTypeDef *td = em->em_types[i];
+        sipClassTypeDef *ctd = (sipClassTypeDef *)em->em_classtypes[i];
 
-        if (td == NULL)
+        if (ctd == NULL)
             continue;
 
-        if (strcmp(getPyNameOfType(td), tname) == 0)
-            return PyObject_CallObject((PyObject *)sipTypePyTypeObject(td), init_args);
+        if (strcmp(getPyNameOfClass(ctd), tname) == 0)
+            return PyObject_CallObject((PyObject *)sipTypePyTypeObject((sipTypeDef *)ctd), init_args);
     }
 
     PyErr_Format(PyExc_SystemError, "unable to find to find type: %s", tname);
@@ -3820,18 +3828,18 @@ static PyObject *pickle_type(PyObject *obj, PyObject *ignore)
 
         for (i = 0; i < em->em_nrtypes; ++i)
         {
-            sipTypeDef *td = em->em_types[i];
+            sipClassTypeDef *ctd = (sipClassTypeDef *)em->em_classtypes[i];
 
-            if (td != NULL && sipTypePyTypeObject(td) == obj->ob_type)
+            if (ctd != NULL && sipTypePyTypeObject((sipTypeDef *)ctd) == obj->ob_type)
             {
                 PyObject *init_args;
-                const char *pyname = getPyNameOfType(td);
+                const char *pyname = getPyNameOfClass(ctd);
 
                 /*
                  * Ask the handwritten pickle code for the tuple of arguments
                  * that will recreate the object.
                  */
-                init_args = td->td_pickle(sip_api_get_cpp_ptr((sipSimpleWrapper *)obj, NULL));
+                init_args = ctd->ctd_pickle(sip_api_get_cpp_ptr((sipSimpleWrapper *)obj, NULL));
 
                 if (!PyTuple_Check(init_args))
                 {
@@ -3953,7 +3961,7 @@ static PyTypeObject *createEnum(sipExportedModuleDef *client, sipEnumDef *ed,
     if (ed->e_scope < 0)
         dict = mod_dict;
     else
-        dict = (sipTypePyTypeObject(client->em_types[ed->e_scope]))->tp_dict;
+        dict = (sipTypePyTypeObject(client->em_classtypes[ed->e_scope]))->tp_dict;
 
     /* Create the base type tuple if it hasn't already been done. */
     if (bases == NULL)
@@ -4138,7 +4146,9 @@ static int handleSetLazyAttr(PyObject *nameobj, PyObject *valobj,
     enm = NULL;
     vmd = NULL;
 
-    findLazyAttr(wt->type, name, &pmd, &enm, &vmd, NULL);
+    assert(sipTypeIsClass(wt->type));
+
+    findLazyAttr((sipClassTypeDef *)wt->type, name, &pmd, &enm, &vmd, NULL);
 
     if (vmd != NULL)
     {
@@ -4148,7 +4158,7 @@ static int handleSetLazyAttr(PyObject *nameobj, PyObject *valobj,
         {
             PyErr_Format(PyExc_ValueError, "%s.%s.%s cannot be deleted",
                     getNameOfModule(wt->type->td_module),
-                    getPyNameOfType(wt->type), name);
+                    getPyNameOfClass((sipClassTypeDef *)wt->type), name);
 
             return -1;
         }
@@ -4181,7 +4191,7 @@ static PyObject *handleGetLazyAttr(PyObject *nameobj, sipWrapperType *wt,
     const char *name;
     PyMethodDef *pmd, *vmd;
     sipEnumMemberDef *enm;
-    sipTypeDef *in;
+    sipClassTypeDef *in;
 
     /* If it was an error, propagate it. */
     if (!PyErr_ExceptionMatches(PyExc_AttributeError))
@@ -4197,7 +4207,9 @@ static PyObject *handleGetLazyAttr(PyObject *nameobj, sipWrapperType *wt,
     enm = NULL;
     vmd = NULL;
 
-    findLazyAttr(wt->type, name, &pmd, &enm, &vmd, &in);
+    assert(sipTypeIsClass(wt->type) || sipTypeIsNamespace(wt->type));
+
+    findLazyAttr((sipClassTypeDef *)wt->type, name, &pmd, &enm, &vmd, &in);
 
     if (pmd != NULL)
         return PyCFunction_New(pmd, (PyObject *)sw);
@@ -4253,6 +4265,7 @@ static int canConvertToNamedEnum(PyObject *obj, PyTypeObject *et)
      * check).  Consider introducing a base type (sub-typed from int) common to
      * all named enums so that we can specifically exclude then but allow an
      * application defined sub-type of int.
+     * FIXME: The above can now be implemented with the new enum meta-type.
      */
     return (PyObject_TypeCheck(obj, et) || PyInt_CheckExact(obj));
 }
@@ -4261,12 +4274,12 @@ static int canConvertToNamedEnum(PyObject *obj, PyTypeObject *et)
 /*
  * Create a Python object for an enum member.
  */
-static PyObject *createEnumMember(sipTypeDef *td, sipEnumMemberDef *enm)
+static PyObject *createEnumMember(sipClassTypeDef *ctd, sipEnumMemberDef *enm)
 {
     if (enm->em_enum < 0)
         return PyInt_FromLong(enm->em_val);
 
-    return sip_api_convert_from_named_enum(enm->em_val, td->td_module->em_enums[enm->em_enum]);
+    return sip_api_convert_from_named_enum(enm->em_val, ctd->ctd_base.td_module->em_enums[enm->em_enum]);
 }
 
 
@@ -4282,29 +4295,30 @@ PyObject *sip_api_convert_from_named_enum(int eval, PyTypeObject *et)
 /*
  * Find definition for a lazy class attribute.
  */
-static void findLazyAttr(sipTypeDef *td, const char *name, PyMethodDef **pmdp,
-        sipEnumMemberDef **enmp, PyMethodDef **vmdp, sipTypeDef **in)
+static void findLazyAttr(sipClassTypeDef *ctd, const char *name,
+        PyMethodDef **pmdp, sipEnumMemberDef **enmp, PyMethodDef **vmdp,
+        sipClassTypeDef **in)
 {
-    sipTypeDef *nsx;
+    sipClassTypeDef *nsx;
     sipEncodedClassDef *sup;
 
     /* The base type doesn't have any type information. */
-    if (td == NULL)
+    if (ctd == NULL)
         return;
 
     /* Search the possible linked list of namespace extenders. */
-    nsx = td;
+    nsx = ctd;
 
     do
     {
         /* Try the methods. */
-        if (nsx->td_nrmethods > 0 &&
-            (*pmdp = (PyMethodDef *)bsearch(name, nsx->td_methods, nsx->td_nrmethods, sizeof (PyMethodDef), compareMethodName)) != NULL)
+        if (nsx->ctd_nrmethods > 0 &&
+            (*pmdp = (PyMethodDef *)bsearch(name, nsx->ctd_methods, nsx->ctd_nrmethods, sizeof (PyMethodDef), compareMethodName)) != NULL)
             return;
 
         /* Try the enum members. */
-        if (nsx->td_nrenummembers > 0 &&
-            (*enmp = (sipEnumMemberDef *)bsearch(name, nsx->td_enummembers, nsx->td_nrenummembers, sizeof (sipEnumMemberDef), compareEnumMemberName)) != NULL)
+        if (nsx->ctd_nrenummembers > 0 &&
+            (*enmp = (sipEnumMemberDef *)bsearch(name, nsx->ctd_enummembers, nsx->ctd_nrenummembers, sizeof (sipEnumMemberDef), compareEnumMemberName)) != NULL)
         {
             if (in != NULL)
                 *in = nsx;
@@ -4313,11 +4327,11 @@ static void findLazyAttr(sipTypeDef *td, const char *name, PyMethodDef **pmdp,
         }
 
         /* Try the variables.  Note, these aren't sorted. */
-        if (nsx->td_variables != NULL)
+        if (nsx->ctd_variables != NULL)
         {
             PyMethodDef *md;
 
-            for (md = nsx->td_variables; md->ml_name != NULL; ++md)
+            for (md = nsx->ctd_variables; md->ml_name != NULL; ++md)
                 if (strcmp(name, md->ml_name) == 0)
                 {
                     *vmdp = md;
@@ -4325,16 +4339,17 @@ static void findLazyAttr(sipTypeDef *td, const char *name, PyMethodDef **pmdp,
                 }
         }
 
-        nsx = nsx->td_nsextender;
+        nsx = nsx->ctd_nsextender;
     }
     while (nsx != NULL);
 
     /* Check the base classes. */
     /* FIXME - isn't this done automatically? */
-    if ((sup = td->td_supers) != NULL)
+    if ((sup = ctd->ctd_supers) != NULL)
         do
         {
-            findLazyAttr(getClassType(sup, td->td_module), name, pmdp, enmp, vmdp, in);
+            findLazyAttr(getClassType(sup, ctd->ctd_base.td_module), name,
+                    pmdp, enmp, vmdp, in);
 
             if (*pmdp != NULL || *enmp != NULL || *vmdp != NULL)
                 break;
@@ -5077,7 +5092,7 @@ static int addSingleTypeInstance(PyObject *dict, const char *name,
     {
         assert(sipTypeIsMapped(td));
 
-        obj = td->td_cfrom(cppPtr, NULL);
+        obj = ((sipMappedTypeDef *)td)->mtd_cfrom(cppPtr, NULL);
     }
 
     if (obj == NULL)
@@ -5315,7 +5330,7 @@ void *sip_api_get_cpp_ptr(sipSimpleWrapper *sw, sipTypeDef *td)
 static void *cast_cpp_ptr(void *ptr, sipWrapperType *src_type,
         sipTypeDef *dst_type)
 {
-    sipCastFunc cast = src_type->type->td_cast;
+    sipCastFunc cast = ((sipClassTypeDef *)src_type->type)->ctd_cast;
 
     /* C structures don't have cast functions. */
     if (cast != NULL)
@@ -5353,7 +5368,14 @@ static int sip_api_can_convert_to_type(PyObject *pyObj, sipTypeDef *td,
         ok = ((flags & SIP_NOT_NONE) == 0);
     else
     {
-        sipConvertToFunc cto = td->td_cto;
+        sipConvertToFunc cto;
+
+        if (sipTypeIsClass(td))
+            cto = ((sipClassTypeDef *)td)->ctd_cto;
+        else if (sipTypeIsMapped(td))
+            cto = ((sipMappedTypeDef *)td)->mtd_cto;
+        else
+            cto = NULL;
 
         if (cto == NULL || (flags & SIP_NO_CONVERTORS) != 0)
             ok = PyObject_TypeCheck(pyObj, sipTypePyTypeObject(td));
@@ -5384,7 +5406,14 @@ static void *sip_api_convert_to_type(PyObject *pyObj, sipTypeDef *td,
             cpp = NULL;
         else
         {
-            sipConvertToFunc cto = td->td_cto;
+            sipConvertToFunc cto;
+
+            if (sipTypeIsClass(td))
+                cto = ((sipClassTypeDef *)td)->ctd_cto;
+            else if (sipTypeIsMapped(td))
+                cto = ((sipMappedTypeDef *)td)->mtd_cto;
+            else
+                cto = NULL;
 
             if (cto == NULL || (flags & SIP_NO_CONVERTORS) != 0)
             {
@@ -5424,10 +5453,15 @@ static void *sip_api_force_convert_to_type(PyObject *pyObj, sipTypeDef *td,
     /* See if the object's type can be converted. */
     if (!sip_api_can_convert_to_type(pyObj, td, flags))
     {
-        PyErr_Format(PyExc_TypeError,
-                "%s cannot be converted to %s.%s in this context",
-                pyObj->ob_type->tp_name, getNameOfModule(td->td_module),
-                getPyNameOfType(td));
+        if (sipTypeIsMapped(td))
+            PyErr_Format(PyExc_TypeError,
+                    "%s cannot be converted to a C/C++ %s in this context",
+                    pyObj->ob_type->tp_name, getCppNameOfType(td));
+        else
+            PyErr_Format(PyExc_TypeError,
+                    "%s cannot be converted to %s.%s in this context",
+                    pyObj->ob_type->tp_name, getNameOfModule(td->td_module),
+                    getPyNameOfClass((sipClassTypeDef *)td));
 
         if (statep != NULL)
             *statep = 0;
@@ -5437,7 +5471,8 @@ static void *sip_api_force_convert_to_type(PyObject *pyObj, sipTypeDef *td,
     }
 
     /* Do the conversion. */
-    return sip_api_convert_to_type(pyObj, td, transferObj, flags, statep, iserrp);
+    return sip_api_convert_to_type(pyObj, td, transferObj, flags, statep,
+            iserrp);
 }
 
 
@@ -5457,15 +5492,25 @@ static void sip_api_release_type(void *cpp, sipTypeDef *td, int state)
  */
 static void release(void *addr, sipTypeDef *td, int state)
 {
-    sipReleaseFunc rel = td->td_release;
+    sipReleaseFunc rel;
 
-    /*
-     * If there is no release function then it must be a C structure and we can
-     * just free it.
-     */
-    if (rel == NULL)
-        sip_api_free(addr);
+    if (sipTypeIsClass(td))
+    {
+        rel = ((sipClassTypeDef *)td)->ctd_release;
+
+        /*
+         * If there is no release function then it must be a C structure and we
+         * can just free it.
+         */
+        if (rel == NULL)
+            sip_api_free(addr);
+    }
+    else if (sipTypeIsMapped(td))
+        rel = ((sipMappedTypeDef *)td)->mtd_release;
     else
+        rel = NULL;
+
+    if (rel != NULL)
         rel(addr, state);
 }
 
@@ -5486,7 +5531,7 @@ PyObject *sip_api_convert_from_type(void *cpp, sipTypeDef *td,
     }
 
     if (sipTypeIsMapped(td))
-        return td->td_cfrom(cpp, transferObj);
+        return ((sipMappedTypeDef *)td)->mtd_cfrom(cpp, transferObj);
 
     assert(sipTypeIsClass(td));
 
@@ -5529,7 +5574,7 @@ static PyObject *sip_api_convert_from_new_type(void *cpp, sipTypeDef *td,
     }
 
     if (sipTypeIsMapped(td))
-        return td->td_cfrom(cpp, transferObj);
+        return ((sipMappedTypeDef *)td)->mtd_cfrom(cpp, transferObj);
 
     assert(sipTypeIsClass(td));
 
@@ -5892,12 +5937,12 @@ static sipExportedModuleDef *getClassModule(sipEncodedClassDef *enc,
 
 
 /*
- * Return the type of an encoded class.
+ * Return the generated type structure of an encoded class.
  */
-static sipTypeDef *getClassType(sipEncodedClassDef *enc,
+static sipClassTypeDef *getClassType(sipEncodedClassDef *enc,
         sipExportedModuleDef *em)
 {
-    return getClassModule(enc, em)->em_types[enc->sc_class];
+    return (sipTypeDef *)getClassModule(enc, em)->em_classtypes[enc->sc_class];
 }
 
 
@@ -5910,7 +5955,7 @@ static void *findSlot(PyObject *self, sipPySlotType st)
 
     /* If it is not a wrapper then it must be an enum. */
     if (PyObject_TypeCheck(self, (PyTypeObject *)&sipSimpleWrapper_Type))
-        psd = ((sipWrapperType *)(self->ob_type))->type->td_pyslots;
+        psd = ((sipClassTypeDef *)((sipWrapperType *)(self->ob_type))->type)->ctd_pyslots;
     else
     {
         sipExportedModuleDef *em;
@@ -5949,11 +5994,11 @@ static void *findSlot(PyObject *self, sipPySlotType st)
 
 
 /*
- * Return the C/C++ address and the basic type information for a wrapper.
+ * Return the C/C++ address and the generated class structure for a wrapper.
  */
-static void *getPtrTypeDef(sipSimpleWrapper *self, sipTypeDef **td)
+static void *getPtrTypeDef(sipSimpleWrapper *self, sipClassTypeDef **ctd)
 {
-    *td = ((sipWrapperType *)self->ob_type)->type;
+    *ctd = (sipClassTypeDef *)((sipWrapperType *)self->ob_type)->type;
 
     return (sipNotInMap(self) ? NULL : self->u.cppPtr);
 }
@@ -6546,11 +6591,11 @@ static PyObject *sipWrapperType_alloc(PyTypeObject *self, SIP_SSIZE_T nitems)
      * function because it is the only place we can break out of the default
      * new() function before PyType_Ready() is called.
      */
-    if (currentType != NULL)
+    if (currentClassType != NULL)
     {
-        ((sipWrapperType *)o)->type = currentType;
-        addSlots((sipWrapperType *)o, currentType);
-        currentType = NULL;
+        ((sipWrapperType *)o)->type = (sipTypeDef *)currentClassType;
+        addClassSlots((sipWrapperType *)o, currentClassType);
+        currentClassType = NULL;
     }
 
     return o;
@@ -6624,7 +6669,7 @@ static PyObject *sipWrapperType_getattro(PyObject *obj,PyObject *name)
     if (strcmp(nm, "__dict__") == 0)
     {
         int i;
-        sipTypeDef *td;
+        sipClassTypeDef *ctd;
         sipEnumMemberDef *enm;
         PyObject *dict;
         PyMethodDef *pmd;
@@ -6632,7 +6677,7 @@ static PyObject *sipWrapperType_getattro(PyObject *obj,PyObject *name)
         dict = ((PyTypeObject *)wt)->tp_dict;
 
         /* The base type doesn't have any type information. */
-        if ((td = wt->type) == NULL || !sipIsExactWrappedType(wt))
+        if ((ctd = (sipClassTypeDef *)wt->type) == NULL || !sipIsExactWrappedType(wt))
         {
             Py_INCREF(dict);
             return dict;
@@ -6653,14 +6698,14 @@ static PyObject *sipWrapperType_getattro(PyObject *obj,PyObject *name)
              * Add the type's lazy enums.  It doesn't matter if they are
              * already there.
              */
-            enm = td->td_enummembers;
+            enm = ctd->ctd_enummembers;
 
-            for (i = 0; i < td->td_nrenummembers; ++i)
+            for (i = 0; i < ctd->ctd_nrenummembers; ++i)
             {
                 int rc;
                 PyObject *val;
 
-                if ((val = createEnumMember(td, enm)) == NULL)
+                if ((val = createEnumMember(ctd, enm)) == NULL)
                     return NULL;
 
                 rc = PyDict_SetItemString(dict, enm->em_name, val);
@@ -6674,9 +6719,9 @@ static PyObject *sipWrapperType_getattro(PyObject *obj,PyObject *name)
             }
 
             /* Do the methods. */
-            pmd = td->td_methods;
+            pmd = ctd->ctd_methods;
 
-            for (i = 0; i < td->td_nrmethods; ++i)
+            for (i = 0; i < ctd->ctd_nrmethods; ++i)
             {
                 int rc;
                 PyObject *meth;
@@ -6704,7 +6749,7 @@ static PyObject *sipWrapperType_getattro(PyObject *obj,PyObject *name)
              * Do the static variables.  Note that the use of METH_STATIC is
              * historic - METH_CLASS would be more accurate.
              */
-            if ((pmd = td->td_variables) != NULL)
+            if ((pmd = ctd->ctd_variables) != NULL)
                 while (pmd->ml_name != NULL)
                 {
                     if ((pmd->ml_flags & METH_STATIC) != 0)
@@ -6732,18 +6777,18 @@ static PyObject *sipWrapperType_getattro(PyObject *obj,PyObject *name)
                     ++pmd;
                 }
 
-            td = td->td_nsextender;
+            ctd = ctd->ctd_nsextender;
         }
-        while (td != NULL);
+        while (ctd != NULL);
 
         return dict;
     }
 
     /* Now try the super-metatype's method. */
-    if ((attr = PyType_Type.tp_getattro(obj,name)) != NULL)
+    if ((attr = PyType_Type.tp_getattro(obj, name)) != NULL)
         return attr;
 
-    return handleGetLazyAttr(name,wt,NULL);
+    return handleGetLazyAttr(name, wt, NULL);
 }
 
 
@@ -6825,7 +6870,7 @@ static PyObject *sipSimpleWrapper_new(sipWrapperType *wt, PyObject *args,
         PyObject *kwds)
 {
     static PyObject *noargs = NULL;
-    sipTypeDef *td = wt->type;
+    sipClassTypeDef *ctd = (sipClassTypeDef *)wt->type;
 
     /* We need an empty tuple for an empty argument list. */
     if (noargs == NULL)
@@ -6841,19 +6886,19 @@ static PyObject *sipSimpleWrapper_new(sipWrapperType *wt, PyObject *args,
     {
         PyErr_Format(PyExc_TypeError,
                 "the %s.%s type cannot be instantiated or sub-classed",
-                getNameOfModule(td->td_module),
-                getPyNameOfType(td));
+                getNameOfModule(ctd->ctd_base.td_module),
+                getPyNameOfClass(ctd));
 
         return NULL;
     }
 
     /* See if it is a namespace. */
-    if (sipTypeIsNamespace(td))
+    if (sipTypeIsNamespace((sipTypeDef *)ctd))
     {
         PyErr_Format(PyExc_TypeError,
                 "%s.%s represents a C++ namespace that cannot be instantiated",
-                getNameOfModule(td->td_module),
-                getPyNameOfType(td));
+                getNameOfModule(ctd->ctd_base.td_module),
+                getPyNameOfClass(ctd));
 
         return NULL;
     }
@@ -6868,23 +6913,23 @@ static PyObject *sipSimpleWrapper_new(sipWrapperType *wt, PyObject *args,
          * it's an opaque class.  Some restrictions might be overcome with
          * better SIP support.
          */
-        if (td->td_init == NULL)
+        if (ctd->ctd_init == NULL)
         {
             PyErr_Format(PyExc_TypeError,
                     "%s.%s cannot be instantiated or sub-classed",
-                    getNameOfModule(td->td_module),
-                    getPyNameOfType(td));
+                    getNameOfModule(ctd->ctd_base.td_module),
+                    getPyNameOfClass(ctd));
 
             return NULL;
         }
 
         /* See if it is an abstract type. */
-        if (sipTypeIsAbstract(td) && sipIsExactWrappedType(wt))
+        if (sipTypeIsAbstract((sipTypeDef *)ctd) && sipIsExactWrappedType(wt))
         {
             PyErr_Format(PyExc_TypeError,
                     "%s.%s represents a C++ abstract class and cannot be instantiated",
-                    getNameOfModule(td->td_module),
-                    getPyNameOfType(td));
+                    getNameOfModule(ctd->ctd_base.td_module),
+                    getPyNameOfClass(ctd));
 
             return NULL;
         }
@@ -6916,11 +6961,12 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
     {
         int argsparsed = 0;
         sipWrapperType *wt = (sipWrapperType *)self->ob_type;
+        sipClassTypeDef *ctd = (sipClassTypeDef *)wt->type;
 
         /* Call the C++ ctor. */
         owner = NULL;
 
-        if ((sipNew = wt->type->td_init(self, args, &owner, &argsparsed)) != NULL)
+        if ((sipNew = ctd->ctd_init(self, args, &owner, &argsparsed)) != NULL)
             sipFlags = SIP_DERIVED_CLASS;
         else
         {
@@ -6961,8 +7007,8 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
                 if (pstate == PARSE_OK)
                     argsparsed = PARSE_RAISED;
 
-                badArgs(argsparsed, getNameOfModule(wt->type->td_module),
-                        getPyNameOfType(wt->type));
+                badArgs(argsparsed, getNameOfModule(ctd->ctd_base.td_module),
+                        getPyNameOfClass(ctd));
                 return -1;
             }
 
@@ -7008,25 +7054,25 @@ static int sipSimpleWrapper_traverse(sipSimpleWrapper *self, visitproc visit,
 {
     int vret;
     void *ptr;
-    sipTypeDef *td;
+    sipClassTypeDef *ctd;
 
     /* Call the nearest handwritten traverse code in the class hierachy. */
-    if ((ptr = getPtrTypeDef(self, &td)) != NULL)
+    if ((ptr = getPtrTypeDef(self, &ctd)) != NULL)
     {
-        sipTypeDef *ctd = td;
+        sipClassTypeDef *sup_ctd = ctd;
 
-        if (td->td_traverse == NULL)
+        if (ctd->ctd_traverse == NULL)
         {
             sipEncodedClassDef *sup;
 
-            if ((sup = td->td_supers) != NULL)
+            if ((sup = ctd->ctd_supers) != NULL)
                 do
-                    ctd = getClassType(sup, td->td_module);
-                while (ctd->td_traverse == NULL && !sup++->sc_flag);
+                    sup_ctd = getClassType(sup, ctd->ctd_base.td_module);
+                while (sup_ctd->ctd_traverse == NULL && !sup++->sc_flag);
         }
 
-        if (ctd->td_traverse != NULL)
-            if ((vret = ctd->td_traverse(ptr, visit, arg)) != 0)
+        if (sup_ctd->ctd_traverse != NULL)
+            if ((vret = sup_ctd->ctd_traverse(ptr, visit, arg)) != 0)
                 return vret;
     }
 
@@ -7049,26 +7095,26 @@ static int sipSimpleWrapper_clear(sipSimpleWrapper *self)
 {
     int vret = 0;
     void *ptr;
-    sipTypeDef *td;
+    sipClassTypeDef *ctd;
     PyObject *tmp;
 
     /* Call the nearest handwritten clear code in the class hierachy. */
-    if ((ptr = getPtrTypeDef(self, &td)) != NULL)
+    if ((ptr = getPtrTypeDef(self, &ctd)) != NULL)
     {
-        sipTypeDef *ctd = td;
+        sipClassTypeDef *sup_ctd = ctd;
 
-        if (td->td_clear == NULL)
+        if (ctd->ctd_clear == NULL)
         {
             sipEncodedClassDef *sup;
 
-            if ((sup = td->td_supers) != NULL)
+            if ((sup = ctd->ctd_supers) != NULL)
                 do
-                    ctd = getClassType(sup, td->td_module);
-                while (ctd->td_clear == NULL && !sup++->sc_flag);
+                    sup_ctd = getClassType(sup, ctd->ctd_base.td_module);
+                while (sup_ctd->ctd_clear == NULL && !sup++->sc_flag);
         }
 
-        if (ctd->td_clear != NULL)
-            vret = ctd->td_clear(ptr);
+        if (sup_ctd->ctd_clear != NULL)
+            vret = sup_ctd->ctd_clear(ptr);
     }
 
     /* Remove the instance dictionary. */
@@ -7092,12 +7138,12 @@ static SIP_SSIZE_T sipSimpleWrapper_getreadbuffer(sipSimpleWrapper *self,
         SIP_SSIZE_T segment, void **ptrptr)
 {
     void *ptr;
-    sipTypeDef *td;
+    sipClassTypeDef *ctd;
 
-    if ((ptr = getPtrTypeDef(self, &td)) == NULL)
+    if ((ptr = getPtrTypeDef(self, &ctd)) == NULL)
         return -1;
 
-    return td->td_readbuffer((PyObject *)self, ptr, segment, ptrptr);
+    return ctd->ctd_readbuffer((PyObject *)self, ptr, segment, ptrptr);
 }
 
 
@@ -7108,12 +7154,12 @@ static SIP_SSIZE_T sipSimpleWrapper_getwritebuffer(sipSimpleWrapper *self,
         SIP_SSIZE_T segment, void **ptrptr)
 {
     void *ptr;
-    sipTypeDef *td;
+    sipClassTypeDef *ctd;
 
-    if ((ptr = getPtrTypeDef(self, &td)) == NULL)
+    if ((ptr = getPtrTypeDef(self, &ctd)) == NULL)
         return -1;
 
-    return td->td_writebuffer((PyObject *)self, ptr, segment, ptrptr);
+    return ctd->ctd_writebuffer((PyObject *)self, ptr, segment, ptrptr);
 }
 
 
@@ -7124,12 +7170,12 @@ static SIP_SSIZE_T sipSimpleWrapper_getsegcount(sipSimpleWrapper *self,
         SIP_SSIZE_T *lenp)
 {
     void *ptr;
-    sipTypeDef *td;
+    sipClassTypeDef *ctd;
 
-    if ((ptr = getPtrTypeDef(self, &td)) == NULL)
+    if ((ptr = getPtrTypeDef(self, &ctd)) == NULL)
         return 0;
 
-    return td->td_segcount((PyObject *)self, ptr, lenp);
+    return ctd->ctd_segcount((PyObject *)self, ptr, lenp);
 }
 
 
@@ -7140,12 +7186,12 @@ static SIP_SSIZE_T sipSimpleWrapper_getcharbuffer(sipSimpleWrapper *self,
         SIP_SSIZE_T segment, void **ptrptr)
 {
     void *ptr;
-    sipTypeDef *td;
+    sipClassTypeDef *ctd;
 
-    if ((ptr = getPtrTypeDef(self, &td)) == NULL)
+    if ((ptr = getPtrTypeDef(self, &ctd)) == NULL)
         return -1;
 
-    return td->td_charbuffer((PyObject *)self, ptr, segment, ptrptr);
+    return ctd->ctd_charbuffer((PyObject *)self, ptr, segment, ptrptr);
 }
 
 
@@ -7331,7 +7377,7 @@ static int getNonStaticVariables(sipWrapperType *wt, sipSimpleWrapper *sw,
 {
     PyMethodDef *pmd;
 
-    if ((pmd = wt->type->td_variables) != NULL)
+    if ((pmd = ((sipClassTypeDef *)wt->type)->ctd_variables) != NULL)
         while (pmd->ml_name != NULL)
         {
             if ((pmd->ml_flags & METH_STATIC) == 0)
@@ -7666,33 +7712,33 @@ static sipWrapperType sipWrapper_Type = {
 
 
 /*
- * Add the slots for a type and all its super-types.
+ * Add the slots for a class type and all its super-types.
  */
-static void addSlots(sipWrapperType *wt, sipTypeDef *td)
+static void addClassSlots(sipWrapperType *wt, sipClassTypeDef *ctd)
 {
     /* Add the buffer interface. */
-    if (td->td_readbuffer != NULL)
+    if (ctd->ctd_readbuffer != NULL)
 #if PY_VERSION_HEX >= 0x02050000
         wt->super.as_buffer.bf_getreadbuffer = (readbufferproc)sipSimpleWrapper_getreadbuffer;
 #else
         wt->super.as_buffer.bf_getreadbuffer = (getreadbufferproc)sipSimpleWrapper_getreadbuffer;
 #endif
 
-    if (td->td_writebuffer != NULL)
+    if (ctd->ctd_writebuffer != NULL)
 #if PY_VERSION_HEX >= 0x02050000
         wt->super.as_buffer.bf_getwritebuffer = (writebufferproc)sipSimpleWrapper_getwritebuffer;
 #else
         wt->super.as_buffer.bf_getwritebuffer = (getwritebufferproc)sipSimpleWrapper_getwritebuffer;
 #endif
 
-    if (td->td_segcount != NULL)
+    if (ctd->ctd_segcount != NULL)
 #if PY_VERSION_HEX >= 0x02050000
         wt->super.as_buffer.bf_getsegcount = (segcountproc)sipSimpleWrapper_getsegcount;
 #else
         wt->super.as_buffer.bf_getsegcount = (getsegcountproc)sipSimpleWrapper_getsegcount;
 #endif
 
-    if (td->td_charbuffer != NULL)
+    if (ctd->ctd_charbuffer != NULL)
 #if PY_VERSION_HEX >= 0x02050000
         wt->super.as_buffer.bf_getcharbuffer = (charbufferproc)sipSimpleWrapper_getcharbuffer;
 #else
@@ -7700,9 +7746,10 @@ static void addSlots(sipWrapperType *wt, sipTypeDef *td)
 #endif
 
     /* Add the slots for this type. */
-    if (td->td_pyslots != NULL)
+    if (ctd->ctd_pyslots != NULL)
         addTypeSlots((PyTypeObject *)wt, &wt->super.as_number,
-                &wt->super.as_sequence, &wt->super.as_mapping, td->td_pyslots);
+                &wt->super.as_sequence, &wt->super.as_mapping,
+                ctd->ctd_pyslots);
 }
 
 
@@ -7964,7 +8011,7 @@ static void addTypeSlots(PyTypeObject *to, PyNumberMethods *nb,
  */
 static void forgetObject(sipSimpleWrapper *sw)
 {
-    sipTypeDef *td;
+    sipClassTypeDef *ctd;
 
     /*
      * This is needed because we release the GIL when calling a C++ dtor.
@@ -7973,7 +8020,7 @@ static void forgetObject(sipSimpleWrapper *sw)
      */
     PyObject_GC_UnTrack((PyObject *)sw);
 
-    if (getPtrTypeDef(sw, &td) != NULL)
+    if (getPtrTypeDef(sw, &ctd) != NULL)
     {
         /*
          * Remove the object from the map before calling the class specific
@@ -7988,8 +8035,8 @@ static void forgetObject(sipSimpleWrapper *sw)
         sipOMRemoveObject(&cppPyMap, sw);
 
         /* Call the C++ dtor if there is one. */
-        if (td->td_dealloc != NULL)
-            td->td_dealloc(sw);
+        if (ctd->ctd_dealloc != NULL)
+            ctd->ctd_dealloc(sw);
     }
 }
 
@@ -8004,7 +8051,7 @@ static sipWrapperType *findClass(sipExportedModuleDef *emd, const char *name,
 
     for (i = 0; i < emd->em_nrtypes; ++i)
     {
-        sipTypeDef *td = emd->em_types[i];
+        sipTypeDef *td = emd->em_classtypes[i];
 
         if (td == NULL)
             continue;
@@ -8178,7 +8225,7 @@ void sipFindSigArgType(const char *name, size_t len, sipSigArg *at, int indir)
             }
 
         /* Search for a class. */
-        if (em->em_types != NULL && findClassArg(em, name, len, at, indir))
+        if (em->em_classtypes != NULL && findClassArg(em, name, len, at, indir))
             return;
 
         /* Search for a mapped type. */
