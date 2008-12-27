@@ -331,24 +331,6 @@ typedef struct _sipEnumMemberDef {
 
 
 /*
- * The information describing a named enum.
- */
-typedef struct _sipEnumDef {
-    /* The Python name of the enum. */
-    int e_name;
-
-    /* The C/C++ name of the enum. */
-    int e_cname;
-
-    /* The scoping type, -1 if it is defined at the module level. */
-    int e_scope;
-
-    /* The Python slots. */
-    struct _sipPySlotDef *e_pyslots;
-} sipEnumDef;
-
-
-/*
  * The information describing static instances.
  */
 typedef struct _sipInstancesDef {
@@ -706,6 +688,24 @@ typedef struct _sipMappedTypeDef {
 
 
 /*
+ * The information describing a named enum.
+ */
+typedef struct _sipEnumTypeDef {
+    /* The base type information. */
+    sipTypeDef etd_base;
+
+    /* The Python name of the enum. */
+    int etd_name;
+
+    /* The scoping type, -1 if it is defined at the module level. */
+    int etd_scope;
+
+    /* The Python slots. */
+    struct _sipPySlotDef *etd_pyslots;
+} sipEnumTypeDef;
+
+
+/*
  * The information describing an external type.
  */
 typedef struct _sipExternalTypeDef {
@@ -804,10 +804,7 @@ typedef struct _sipExportedModuleDef {
     int em_nrenums;
 
     /* The table of enum types. */
-    PyTypeObject **em_enums;
-
-    /* The table of enum type data. */
-    sipEnumDef *em_enumdefs;
+    sipTypeDef **em_enumtypes;
 
     /* The number of members in global enums. */
     int em_nrenummembers;
@@ -1404,6 +1401,7 @@ typedef struct _sipQtAPI {
 #define SIP_TYPE_CLASS      0x0000  /* If the type is a C++ class. */
 #define SIP_TYPE_NAMESPACE  0x0001  /* If the type is a C++ namespace. */
 #define SIP_TYPE_MAPPED     0x0002  /* If the type is a mapped type. */
+#define SIP_TYPE_ENUM       0x0003  /* If the type is a named enum. */
 #define SIP_TYPE_ABSTRACT   0x0008  /* If the type is abstract. */
 #define SIP_TYPE_SCC        0x0010  /* If the type is subject to sub-class convertors. */
 #define SIP_TYPE_FLAGS_SHIFT    8   /* The user type flags shift. */
@@ -1416,6 +1414,7 @@ typedef struct _sipQtAPI {
 #define sipTypeIsClass(td)  (((td)->td_flags & SIP_TYPE_TYPE_MASK) == SIP_TYPE_CLASS)
 #define sipTypeIsNamespace(td)  (((td)->td_flags & SIP_TYPE_TYPE_MASK) == SIP_TYPE_NAMESPACE)
 #define sipTypeIsMapped(td) (((td)->td_flags & SIP_TYPE_TYPE_MASK) == SIP_TYPE_MAPPED)
+#define sipTypeIsEnum(td)   (((td)->td_flags & SIP_TYPE_TYPE_MASK) == SIP_TYPE_ENUM)
 #define sipTypePyTypeObject(td) ((td)->u.td_py_type)
 
 #define sipIsExactWrappedType(wt)   (sipTypePyTypeObject((wt)->type) == (PyTypeObject *)(wt))

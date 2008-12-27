@@ -1290,6 +1290,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 
     if (mod->nrenums > 0)
     {
+        int i;
         enumDef *ed;
 
         prcode(fp,
@@ -1335,28 +1336,19 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         }
 
         prcode(fp,
-"static sipEnumDef enumTypesTable[] = {\n"
+"static sipEnumTypeDef enumTypes[] = {\n"
             );
 
         for (ed = pt->enums; ed != NULL; ed = ed->next)
         {
-            const char *emname;
-
             if (ed->module != mod || ed->fqcname == NULL)
                 continue;
 
             if (ed->ecd != NULL && isTemplateClass(ed->ecd))
                 continue;
 
-            if (ed->ecd == NULL)
-                emname = mname;
-            else if (ed->ecd->real == NULL)
-                emname = ed->module->name;
-            else
-                emname = ed->ecd->real->iff->module->name;
-
             prcode(fp,
-"    {%n, %n, ", ed->pyname, ed->cname);
+"    {{-1, 0, 0, SIP_TYPE_ENUM, %n, {0}}, %n, ", ed->cname, ed->pyname);
 
             if (ed->ecd == NULL)
                 prcode(fp, "-1");
@@ -1370,6 +1362,27 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 
             prcode(fp, "},\n"
                 );
+        }
+
+        prcode(fp,
+"};\n"
+            );
+
+        prcode(fp,
+"static sipTypeDef *enumTypesTable[] = {\n"
+            );
+
+        for (i = 0, ed = pt->enums; ed != NULL; ed = ed->next, ++i)
+        {
+            if (ed->module != mod || ed->fqcname == NULL)
+                continue;
+
+            if (ed->ecd != NULL && isTemplateClass(ed->ecd))
+                continue;
+
+            prcode(fp,
+"    &enumTypes[%d].etd_base,\n"
+                , i);
         }
 
         prcode(fp,
@@ -1726,7 +1739,6 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "    %d,\n"
 "    %s,\n"
 "    %d,\n"
-"    0,\n"
 "    %s,\n"
 "    %d,\n"
 "    %s,\n"
@@ -6950,10 +6962,10 @@ static void generateMappedTypeAPI(sipSpec *pt, mappedTypeDef *mtd, FILE *fp)
 {
     prcode(fp,
 "\n"
-"#define sipType_%T      (&sipMappedTypeDef_%T.mtd_base)\n"
+"#define sipType_%T      sipModuleAPI_%s.em_mappedtypes[%d]\n"
 "\n"
 "extern sipMappedTypeDef sipMappedTypeDef_%T;\n"
-        , &mtd->type, &mtd->type
+        , &mtd->type, mtd->iff->module->name, mtd->mappednr
         , &mtd->type);
 }
 
@@ -7051,16 +7063,18 @@ static void generateEnumMacros(sipSpec *pt, moduleDef *mod, classDef *cd,
             noIntro = FALSE;
         }
 
-        prcode(fp,
-"#define sipEnum_%C              sipModuleAPI_%s", ed->fqcname, mod->name);
-
         if (mod == ed->module)
-            prcode(fp, ".");
+            prcode(fp,
+"#define sipType_%C              sipModuleAPI_%s.em_enumtypes[%d]\n"
+"#define sipEnum_%C              sipModuleAPI_%s.em_enumtypes[%d]->u.td_py_type\n"
+                , ed->fqcname, mod->name, ed->enumnr
+                , ed->fqcname, mod->name, ed->enumnr);
         else
-            prcode(fp, "_%s->", ed->module->name);
-
-        prcode(fp, "em_enums[%d]\n"
-            , ed->enumnr);
+            prcode(fp,
+"#define sipType_%C              sipModuleAPI_%s_%s->em_enumtypes[%d]\n"
+"#define sipEnum_%C              sipModuleAPI_%s_%s->em_enumtypes[%d]->u.td_py_type\n"
+                , ed->fqcname, mod->name, ed->module->name, ed->enumnr
+                , ed->fqcname, mod->name, ed->module->name, ed->enumnr);
     }
 }
 
