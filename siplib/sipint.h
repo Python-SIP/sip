@@ -73,7 +73,6 @@ PyObject *sip_api_convert_from_type(void *cppPtr, sipTypeDef *td,
 void sip_api_common_dtor(sipSimpleWrapper *sipSelf);
 void sip_api_start_thread(void);
 void sip_api_end_thread(void);
-PyObject *sip_api_convert_from_named_enum(int eval, PyTypeObject *et);
 void sip_api_free_connection(sipSlotConnection *conn);
 int sip_api_emit_to_slot(const sipSlot *slot, PyObject *sigargs);
 int sip_api_same_connection(sipSlotConnection *conn, void *tx, const char *sig,

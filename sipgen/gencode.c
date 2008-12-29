@@ -162,10 +162,8 @@ static int generateVariableType(sipSpec *pt, moduleDef *mod, classDef *cd,
         argType atype, const char *eng, const char *s1, const char *s2,
         FILE *fp);
 static int generateDoubles(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp);
-static int generateEnums(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp);
 static int generateClasses(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp);
-static void generateEnumsInline(sipSpec *pt, moduleDef *mod, FILE *fp);
-static void generateClassesInline(sipSpec *pt, moduleDef *mod, FILE *fp);
+static void generateTypesInline(sipSpec *pt, moduleDef *mod, FILE *fp);
 static void generateAccessFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
         FILE *fp);
 static void generateConvertToDefinitions(mappedTypeDef *, classDef *, FILE *);
@@ -564,8 +562,6 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipRaiseTypeException       sipAPI_%s->api_raise_type_exception\n"
 "#define sipBadLengthForSlice        sipAPI_%s->api_bad_length_for_slice\n"
 "#define sipAddTypeInstance          sipAPI_%s->api_add_type_instance\n"
-"#define sipAddEnumInstance          sipAPI_%s->api_add_enum_instance\n"
-"#define sipConvertFromNamedEnum     sipAPI_%s->api_convert_from_named_enum\n"
 "#define sipGetAddress               sipAPI_%s->api_get_address\n"
 "#define sipFreeConnection           sipAPI_%s->api_free_connection\n"
 "#define sipEmitToSlot               sipAPI_%s->api_emit_to_slot\n"
@@ -579,6 +575,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipReleaseType              sipAPI_%s->api_release_type\n"
 "#define sipConvertFromType          sipAPI_%s->api_convert_from_type\n"
 "#define sipConvertFromNewType       sipAPI_%s->api_convert_from_new_type\n"
+"#define sipConvertFromEnum          sipAPI_%s->api_convert_from_enum\n"
 "#define sipGetState                 sipAPI_%s->api_get_state\n"
 "#define sipLong_AsUnsignedLong      sipAPI_%s->api_long_as_unsigned_long\n"
 "#define sipExportSymbol             sipAPI_%s->api_export_symbol\n"
@@ -615,9 +612,8 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipForceConvertToMappedType sipForceConvertToType\n"
 "#define sipConvertFromInstance(p, wt, t)    sipConvertFromType((p), (wt)->type, (t))\n"
 "#define sipConvertFromMappedType    sipConvertFromType\n"
+"#define sipConvertFromNamedEnum(v, pt)  sipConvertFromEnum((v), ((sipEnumTypeObject *)(pt))->type)\n"
 "#define sipConvertFromNewInstance(p, wt, t) sipConvertFromNewType((p), (wt)->type, (t))\n"
-        ,mname
-        ,mname
         ,mname
         ,mname
         ,mname
@@ -1019,7 +1015,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
     int nrSccs = 0, files_in_part, max_per_part, this_part, mod_nr;
     int is_inst_class, is_inst_voidp, is_inst_char, is_inst_string;
     int is_inst_int, is_inst_long, is_inst_ulong, is_inst_longlong;
-    int is_inst_ulonglong, is_inst_double, is_inst_enum, nr_enummembers;
+    int is_inst_ulonglong, is_inst_double, nr_enummembers;
     int hasexternal = FALSE, slot_extenders = FALSE, ctor_extenders = FALSE;
     FILE *fp;
     moduleListDef *mld;
@@ -1680,7 +1676,6 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
     is_inst_longlong = generateLongLongs(pt, mod, NULL, fp);
     is_inst_ulonglong = generateUnsignedLongLongs(pt, mod, NULL, fp);
     is_inst_double = generateDoubles(pt, mod, NULL, fp);
-    is_inst_enum = generateEnums(pt, mod, NULL, fp);
 
     /* Generate any exceptions table. */
     if (mod->nrexceptions > 0)
@@ -1745,7 +1740,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "    %s,\n"
 "    %s,\n"
 "    %s,\n"
-"    {%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s},\n"
+"    {%s, %s, %s, %s, %s, %s, %s, %s, %s, %s},\n"
 "    %s,\n"
 "    %s,\n"
 "    %s,\n"
@@ -1781,7 +1776,6 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         , is_inst_longlong ? "longLongInstances" : "NULL"
         , is_inst_ulonglong ? "unsignedLongLongInstances" : "NULL"
         , is_inst_double ? "doubleInstances" : "NULL"
-        , is_inst_enum ? "enumInstances" : "NULL"
         , mod->license != NULL ? "&module_license" : "NULL"
         , mod->nrexceptions > 0 ? "exceptionsTable" : "NULL"
         , slot_extenders ? "slotExtenders" : "NULL"
@@ -1923,8 +1917,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         ++mod_nr;
     }
 
-    generateClassesInline(pt, mod, fp);
-    generateEnumsInline(pt, mod, fp);
+    generateTypesInline(pt, mod, fp);
 
     /* Create any exceptions. */
     for (xd = pt->exceptions; xd != NULL; xd = xd->next)
@@ -2248,6 +2241,7 @@ static void generateOrdinaryFunction(moduleDef *mod, classDef *cd,
         const char *self = (generating_c ? "sipSelf" : "");
 
         if (!generating_c)
+        {
             if (noArgParser(md))
                 prcode(fp,
 "extern \"C\" {static PyObject *func_%s(PyObject *,PyObject *,PyObject *);}\n"
@@ -2256,6 +2250,7 @@ static void generateOrdinaryFunction(moduleDef *mod, classDef *cd,
                 prcode(fp,
 "extern \"C\" {static PyObject *func_%s(PyObject *,PyObject *);}\n"
                     , md->pyname->text);
+        }
 
         if (noArgParser(md))
             prcode(fp,
@@ -2466,9 +2461,10 @@ static void generateAccessFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 
 
 /*
- * Generate the inline code to add a set of enum instances to a dictionary.
+ * Generate the inline code to add a set of generated type instances to a
+ * dictionary.
  */
-static void generateEnumsInline(sipSpec *pt, moduleDef *mod, FILE *fp)
+static void generateTypesInline(sipSpec *pt, moduleDef *mod, FILE *fp)
 {
     int noIntro;
     varDef *vd;
@@ -2480,56 +2476,7 @@ static void generateEnumsInline(sipSpec *pt, moduleDef *mod, FILE *fp)
         if (vd->module != mod)
             continue;
 
-        if (vd->type.atype != enum_type)
-            continue;
-
-        if (needsHandler(vd))
-            continue;
-
-        /* Skip enums that don't need inline code. */
-        if (generating_c || vd->accessfunc != NULL || vd->type.nrderefs != 0)
-            continue;
-
-        if (noIntro)
-        {
-            prcode(fp,
-"\n"
-"    /* Define the enum instances that have to be added inline. */\n"
-                );
-
-            noIntro = FALSE;
-        }
-
-        prcode(fp,
-"    sipAddEnumInstance(");
-
-        if (vd->ecd == NULL)
-            prcode(fp, "sipModuleDict");
-        else
-            prcode(fp, "(PyObject *)sipTypePyTypeObject(sipType_%C)", classFQCName(vd->ecd));
-
-        prcode(fp, ",%N,(int)%S,sipEnum_%C);\n"
-            , vd->pyname, vd->fqcname, vd->type.u.ed->fqcname);
-    }
-}
-
-
-/*
- * Generate the inline code to add a set of class instances to a dictionary.
- */
-static void generateClassesInline(sipSpec *pt, moduleDef *mod, FILE *fp)
-{
-    int noIntro;
-    varDef *vd;
-
-    noIntro = TRUE;
-
-    for (vd = pt->vars; vd != NULL; vd = vd->next)
-    {
-        if (vd->module != mod)
-            continue;
-
-        if (vd->type.atype != class_type && vd->type.atype != mapped_type)
+        if (vd->type.atype != class_type && vd->type.atype != mapped_type && vd->type.atype != enum_type)
             continue;
 
         if (needsHandler(vd))
@@ -2544,8 +2491,8 @@ static void generateClassesInline(sipSpec *pt, moduleDef *mod, FILE *fp)
             prcode(fp,
 "\n"
 "    /*\n"
-"     * Define the class and mapped type instances that have to be added\n"
-"     * inline.\n"
+"     * Define the class, mapped type and enum instances that have to be\n"
+"     * added inline.\n"
 "     */\n"
                 );
 
@@ -2570,6 +2517,9 @@ static void generateClassesInline(sipSpec *pt, moduleDef *mod, FILE *fp)
         if (vd->type.atype == class_type)
             prcode(fp, ",sipType_%C);\n"
                 , classFQCName(vd->type.u.cd));
+        else if (vd->type.atype == enum_type)
+            prcode(fp, ",sipType_%C);\n"
+                , vd->type.u.ed->fqcname);
         else
             prcode(fp, ",sipType_%T);\n"
                 , &vd->type);
@@ -2590,12 +2540,10 @@ static int generateClasses(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
 
     for (vd = pt->vars; vd != NULL; vd = vd->next)
     {
-        scopedNameDef *vcname;
-
         if (vd->ecd != cd || vd->module != mod)
             continue;
 
-        if (vd->type.atype != class_type)
+        if (vd->type.atype != class_type && (vd->type.atype != enum_type || vd->type.u.ed->fqcname == NULL))
             continue;
 
         if (needsHandler(vd))
@@ -2617,46 +2565,51 @@ static int generateClasses(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
                 prcode(fp,
 "\n"
 "\n"
-"/* Define the type instances to be added to this type dictionary. */\n"
+"/* Define the class and enum instances to be added to this type dictionary. */\n"
 "static sipTypeInstanceDef typeInstances_%C[] = {\n"
                     , classFQCName(cd));
             else
                 prcode(fp,
 "\n"
 "\n"
-"/* Define the type instances to be added to this module dictionary. */\n"
+"/* Define the class and enum instances to be added to this module dictionary. */\n"
 "static sipTypeInstanceDef typeInstances[] = {\n"
                     );
 
             noIntro = FALSE;
         }
 
-        vcname = classFQCName(vd->type.u.cd);
+        prcode(fp,
+"    {%N, ", vd->pyname);
 
-        if (vd->accessfunc != NULL)
+        if (vd->type.atype == class_type)
         {
-            prcode(fp,
-"    {%N, (void *)access_%C, sipType_%C, SIP_ACCFUNC},\n"
-                , vd->pyname, vd->fqcname, vcname);
-        }
-        else if (vd->type.nrderefs != 0)
-        {
-            prcode(fp,
-"    {%N, &%S, sipType_%C, SIP_INDIRECT},\n"
-                , vd->pyname, vd->fqcname, vcname);
-        }
-        else if (isConstArg(&vd->type))
-        {
-            prcode(fp,
-"    {%N, const_cast<%b *>(&%S), sipType_%C, 0},\n"
-                , vd->pyname, &vd->type, vd->fqcname, vcname);
+            scopedNameDef *vcname = classFQCName(vd->type.u.cd);
+
+            if (vd->accessfunc != NULL)
+            {
+                prcode(fp, "(void *)access_%C, &sipType_%C, SIP_ACCFUNC", vd->fqcname, vcname);
+            }
+            else if (vd->type.nrderefs != 0)
+            {
+                prcode(fp, "&%S, &sipType_%C, SIP_INDIRECT", vd->fqcname, vcname);
+            }
+            else if (isConstArg(&vd->type))
+            {
+                prcode(fp, "const_cast<%b *>(&%S), &sipType_%C, 0", &vd->type, vd->fqcname, vcname);
+            }
+            else
+            {
+                prcode(fp, "&%S, &sipType_%C, 0", vd->fqcname, vcname);
+            }
         }
         else
         {
-            prcode(fp,
-"    {%N, &%S, sipType_%C, 0},\n"
-                , vd->pyname, vd->fqcname, vcname);
+            prcode(fp, "&%S, &sipType_%C, 0", vd->fqcname, vd->type.u.ed->fqcname);
         }
+
+        prcode(fp, "},\n"
+            );
     }
 
     if (!noIntro)
@@ -2843,67 +2796,6 @@ static int generateStrings(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
     if (!noIntro)
         prcode(fp,
 "    {0, 0}\n"
-"};\n"
-            );
-
-    return !noIntro;
-}
-
-
-/*
- * Generate the code to add a set of enum instances to a dictionary.  Return
- * TRUE if there was at least one.
- */
-static int generateEnums(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
-{
-    int noIntro;
-    varDef *vd;
-
-    noIntro = TRUE;
-
-    for (vd = pt->vars; vd != NULL; vd = vd->next)
-    {
-        if (vd->ecd != cd || vd->module != mod)
-            continue;
-
-        if (vd->type.atype != enum_type || vd->type.u.ed->fqcname == NULL)
-            continue;
-
-        if (needsHandler(vd))
-            continue;
-
-        /* Skip enums that need inline code. */
-        if (!generating_c && vd->accessfunc == NULL && vd->type.nrderefs == 0)
-            continue;
-
-        if (noIntro)
-        {
-            if (cd != NULL)
-                prcode(fp,
-"\n"
-"\n"
-"/* Define the enum instances to be added to this type dictionary. */\n"
-"static sipEnumInstanceDef enumInstances_%C[] = {\n"
-                    , classFQCName(cd));
-            else
-                prcode(fp,
-"\n"
-"\n"
-"/* Define the enum instances to be added to this module dictionary. */\n"
-"static sipEnumInstanceDef enumInstances[] = {\n"
-                    );
-
-            noIntro = FALSE;
-        }
-
-        prcode(fp,
-"    {%N, (int)%S, &sipEnum_%C},\n"
-            , vd->pyname, vd->fqcname, vd->type.u.ed->fqcname);
-    }
-
-    if (!noIntro)
-        prcode(fp,
-"    {0, 0, 0}\n"
 "};\n"
             );
 
@@ -3928,8 +3820,8 @@ static void generateVariableHandler(classDef *context, varDef *vd, FILE *fp)
             if (vd->type.u.ed->fqcname != NULL)
             {
                 prcode(fp,
-"        sipPy = sipConvertFromNamedEnum(sipVal,sipEnum_%C);\n"
-                    ,vd->type.u.ed->fqcname);
+"        sipPy = sipConvertFromEnum(sipVal,sipType_%C);\n"
+                    , vd->type.u.ed->fqcname);
 
                 break;
             }
@@ -6481,7 +6373,7 @@ static void generateParseResultExtraArgs(argDef *ad, int isres, FILE *fp)
 
     case enum_type:
         if (ad->u.ed->fqcname != NULL)
-            prcode(fp,",sipEnum_%C",ad->u.ed->fqcname);
+            prcode(fp, ",sipType_%C", ad->u.ed->fqcname);
         break;
     }
 }
@@ -6559,7 +6451,7 @@ static const char *getParseResultFormat(argDef *ad, int isres, int xfervh)
         return ((ad->nrderefs == 0) ? "w" : "x");
 
     case enum_type:
-        return ((ad->u.ed->fqcname != NULL) ? "E" : "e");
+        return ((ad->u.ed->fqcname != NULL) ? "F" : "e");
 
     case ushort_type:
         return "t";
@@ -6661,7 +6553,7 @@ static void generateTupleBuilder(signatureDef *sd,FILE *fp)
             break;
 
         case enum_type:
-            fmt = (ad->u.ed->fqcname != NULL) ? "E" : "e";
+            fmt = (ad->u.ed->fqcname != NULL) ? "F" : "e";
             break;
 
         case cint_type:
@@ -6845,18 +6737,18 @@ static void generateTupleBuilder(signatureDef *sd,FILE *fp)
         {
             if (!isArraySize(ad))
             {
-                prcode(fp,",");
+                prcode(fp, ",");
 
                 while (derefs-- != 0)
-                    prcode(fp,"*");
+                    prcode(fp, "*");
 
-                prcode(fp,"a%d",a);
+                prcode(fp, "a%d", a);
             }
 
             if (isArray(ad))
                 prcode(fp, ",(SIP_SSIZE_T)a%d", arraylenarg);
             else if (ad->atype == enum_type && ad->u.ed->fqcname != NULL)
-                prcode(fp,",sipEnum_%C",ad->u.ed->fqcname);
+                prcode(fp, ",sipType_%C", ad->u.ed->fqcname);
         }
     }
 }
@@ -7861,7 +7753,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
     int is_slots, nr_methods, nr_enums, embedded;
     int is_inst_class, is_inst_voidp, is_inst_char, is_inst_string;
     int is_inst_int, is_inst_long, is_inst_ulong, is_inst_longlong;
-    int is_inst_ulonglong, is_inst_double, is_inst_enum;
+    int is_inst_ulonglong, is_inst_double;
     memberDef *md;
     moduleDef *mod;
 
@@ -7939,7 +7831,6 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
     is_inst_longlong = generateLongLongs(pt, mod, cd, fp);
     is_inst_ulonglong = generateUnsignedLongLongs(pt, mod, cd, fp);
     is_inst_double = generateDoubles(pt, mod, cd, fp);
-    is_inst_enum = generateEnums(pt, mod, cd, fp);
 
     embedded = TRUE;
 
@@ -8249,12 +8140,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
         prcode(fp, "0, ");
 
     if (is_inst_double)
-        prcode(fp, "doubleInstances_%C, ", classFQCName(cd));
-    else
-        prcode(fp, "0, ");
-
-    if (is_inst_enum)
-        prcode(fp, "enumInstances_%C", classFQCName(cd));
+        prcode(fp, "doubleInstances_%C", classFQCName(cd));
     else
         prcode(fp, "0");
 
@@ -9245,12 +9131,12 @@ static void generateHandleResult(overDef *od, int isNew, int result_size,
         /* Pass the values for conversion. */
         if (res != NULL)
         {
-            prcode(fp,",sipRes");
+            prcode(fp, ",sipRes");
 
             if (res->atype == mapped_type || res->atype == class_type)
-                prcode(fp,"Obj");
+                prcode(fp, "Obj");
             else if (res->atype == enum_type && res->u.ed->fqcname != NULL)
-                prcode(fp,",sipEnum_%C",res->u.ed->fqcname);
+                prcode(fp, ",sipType_%C", res->u.ed->fqcname);
         }
 
         for (a = 0; a < od->pysig.nrArgs; ++a)
@@ -9259,14 +9145,14 @@ static void generateHandleResult(overDef *od, int isNew, int result_size,
 
             if (isOutArg(ad))
             {
-                prcode(fp,",a%d",a);
+                prcode(fp, ",a%d", a);
 
                 if (ad->atype == mapped_type)
                     prcode(fp, ",sipType_%T,%s", ad, (isTransferredBack(ad) ? "Py_None" : "NULL"));
                 else if (ad->atype == class_type)
                     prcode(fp, ",sipType_%C,%s", classFQCName(ad->u.cd), (isTransferredBack(ad) ? "Py_None" : "NULL"));
                 else if (ad->atype == enum_type && ad->u.ed->fqcname != NULL)
-                    prcode(fp,",sipEnum_%C",ad->u.ed->fqcname);
+                    prcode(fp,",sipType_%C", ad->u.ed->fqcname);
             }
         }
 
@@ -9390,8 +9276,8 @@ static void generateHandleResult(overDef *od, int isNew, int result_size,
         if (ad->u.ed->fqcname != NULL)
         {
             prcode(fp,
-"            %s sipConvertFromNamedEnum(%s,sipEnum_%C);\n"
-                ,prefix,vname,ad->u.ed->fqcname);
+"            %s sipConvertFromEnum(%s,sipType_%C);\n"
+                , prefix, vname, ad->u.ed->fqcname);
 
             break;
         }
@@ -9536,7 +9422,7 @@ static char getBuildResultFormat(argDef *ad)
         return (ad->nrderefs > (isOutArg(ad) ? 1 : 0)) ? 'x' : 'w';
 
     case enum_type:
-        return (ad->u.ed->fqcname != NULL) ? 'E' : 'e';
+        return (ad->u.ed->fqcname != NULL) ? 'F' : 'e';
 
     case short_type:
         return 'h';
@@ -10608,7 +10494,7 @@ static int generateArgParser(signatureDef *sd, classDef *cd, ctorDef *ct,
 
         case enum_type:
             if (ad->u.ed->fqcname != NULL)
-                prcode(fp,",sipEnum_%C",ad->u.ed->fqcname);
+                prcode(fp, ",sipType_%C", ad->u.ed->fqcname);
 
             prcode(fp,",&a%d",a);
             break;

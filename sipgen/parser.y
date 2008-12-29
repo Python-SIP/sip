@@ -4812,6 +4812,7 @@ static memberDef *findFunction(sipSpec *pt, moduleDef *mod, classDef *cd,
                 yyerror("This Python slot requires %MethodCode");
 
             if (sm->nrargs >= 0)
+            {
                 if (cd == NULL)
                 {
                     /* Global operators need one extra argument. */
@@ -4820,6 +4821,7 @@ static memberDef *findFunction(sipSpec *pt, moduleDef *mod, classDef *cd,
                 }
                 else if (sm->nrargs != nrargs)
                     yyerror("Incorrect number of arguments to Python slot");
+            }
 
             st = sm->type;
 

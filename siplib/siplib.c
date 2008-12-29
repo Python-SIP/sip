@@ -80,8 +80,6 @@ static void sip_api_raise_unknown_exception(void);
 static void sip_api_raise_type_exception(sipTypeDef *td, void *ptr);
 static int sip_api_add_type_instance(PyObject *dict, const char *name,
         void *cppPtr, sipTypeDef *td);
-static int sip_api_add_enum_instance(PyObject *dict, const char *name,
-        int value, PyTypeObject *type);
 static void sip_api_bad_operator_arg(PyObject *self, PyObject *arg,
         sipPySlotType st);
 static PyObject *sip_api_pyslot_extend(sipExportedModuleDef *mod,
@@ -113,6 +111,7 @@ static PyObject *sip_api_convert_from_const_void_ptr_and_size(const void *val,
 static int sip_api_assign_type(void *dst, const void *src, sipTypeDef *td);
 static int sip_api_deprecated(const char *classname, const char *method);
 static int sip_api_register_py_type(PyTypeObject *supertype);
+static PyObject *sip_api_convert_from_enum(int eval, sipTypeDef *td);
 
 
 /*
@@ -142,6 +141,7 @@ static const sipAPIDef sip_api = {
     sip_api_release_type,
     sip_api_convert_from_type,
     sip_api_convert_from_new_type,
+    sip_api_convert_from_enum,
     sip_api_get_state,
     sip_api_disconnect_rx,
     sip_api_emit_signal,
@@ -155,7 +155,6 @@ static const sipAPIDef sip_api = {
     sip_api_transfer_to,
     sip_api_transfer_break,
     sip_api_long_as_unsigned_long,
-    sip_api_convert_from_named_enum,
     sip_api_convert_from_void_ptr,
     sip_api_convert_from_const_void_ptr,
     sip_api_convert_from_void_ptr_and_size,
@@ -164,11 +163,11 @@ static const sipAPIDef sip_api = {
     sip_api_export_symbol,
     sip_api_import_symbol,
     sip_api_find_type,
-    sip_api_find_named_enum,
     sip_api_register_py_type,
     /*
      * The following are deprecated parts of the public API.
      */
+    sip_api_find_named_enum,
     sip_api_find_mapped_type,
     sip_api_find_class,
     sip_api_map_int_to_class,
@@ -207,7 +206,6 @@ static const sipAPIDef sip_api = {
     sip_api_raise_unknown_exception,
     sip_api_raise_type_exception,
     sip_api_add_type_instance,
-    sip_api_add_enum_instance,
     sip_api_bad_operator_arg,
     sip_api_pyslot_extend,
     sip_api_add_delayed_dtor,
@@ -288,21 +286,6 @@ typedef struct _sipPyObject {
  *****************************************************************************/
 
 /*
- * The meta-type of an enum type.
- */
-typedef struct _sipEnumTypeObject {
-    /*
-     * The super-metatype.  This must be first in the structure so that it can
-     * be cast to a PyTypeObject *.
-     */
-    PyHeapTypeObject super;
-
-    /* The generated type information. */
-    sipEnumTypeDef *type;
-} sipEnumTypeObject;
-
-
-/*
  * The type data structure.  We inherit everything from the standard Python
  * metatype and the size of the type object created is increased to accomodate
  * the extra information we associate with a named enum type.
@@ -374,7 +357,7 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, int nrargs,
         PyObject *sipArgs, const char *fmt, va_list va);
 static int getSelfFromArgs(sipTypeDef *td, PyObject *args, int argnr,
         sipSimpleWrapper **selfp);
-static int canConvertToNamedEnum(PyObject *obj, PyTypeObject *et);
+static int canConvertToEnum(PyObject *obj, sipTypeDef *td);
 static PyObject *createEnumMember(sipClassTypeDef *ctd, sipEnumMemberDef *enm);
 static PyObject *handleGetLazyAttr(PyObject *nameobj, sipWrapperType *wt,
         sipSimpleWrapper *sw);
@@ -388,7 +371,7 @@ static void findLazyAttr(sipClassTypeDef *ctd, const char *name,
 static int compareMethodName(const void *key, const void *el);
 static int compareEnumMemberName(const void *key, const void *el);
 static int checkPointer(void *ptr);
-static void *cast_cpp_ptr(void *ptr, sipWrapperType *src_type,
+static void *cast_cpp_ptr(void *ptr, PyTypeObject *src_type,
         sipTypeDef *dst_type);
 static void badArgs(int argsParsed, const char *scope, const char *method);
 static void finalise(void);
@@ -421,9 +404,6 @@ static int addLongLongInstances(PyObject *dict, sipLongLongInstanceDef *lli);
 static int addUnsignedLongLongInstances(PyObject *dict,
         sipUnsignedLongLongInstanceDef *ulli);
 static int addDoubleInstances(PyObject *dict, sipDoubleInstanceDef *di);
-static int addEnumInstances(PyObject *dict, sipEnumInstanceDef *ei);
-static int addSingleEnumInstance(PyObject *dict, const char *name, int value,
-        PyTypeObject *type);
 static int addTypeInstances(PyObject *dict, sipTypeInstanceDef *ti);
 static int addSingleTypeInstance(PyObject *dict, const char *name,
         void *cppPtr, sipTypeDef *td, int initflags);
@@ -1123,7 +1103,7 @@ static int sip_api_init_module(sipExportedModuleDef *client,
     {
         PyObject *mo;
 
-        if ((mo = sip_api_convert_from_named_enum(emd->em_val, sipTypePyTypeObject(client->em_enumtypes[emd->em_enum]))) == NULL)
+        if ((mo = sip_api_convert_from_enum(emd->em_val, client->em_enumtypes[emd->em_enum])) == NULL)
             return -1;
 
         if (PyDict_SetItemString(mod_dict, emd->em_name, mo) < 0)
@@ -1572,10 +1552,23 @@ static PyObject *buildObject(PyObject *obj, const char *fmt, va_list va)
 
         case 'E':
             {
+                /* This is deprecated. */
+
                 int ev = va_arg(va, int);
                 PyTypeObject *et = va_arg(va, PyTypeObject *);
 
-                el = sip_api_convert_from_named_enum(ev, et);
+                el = sip_api_convert_from_enum(ev,
+                        ((sipEnumTypeObject *)et)->type);
+            }
+
+            break;
+
+        case 'F':
+            {
+                int ev = va_arg(va, int);
+                sipTypeDef *td = va_arg(va, sipTypeDef *);
+
+                el = sip_api_convert_from_enum(ev, td);
             }
 
             break;
@@ -1883,10 +1876,25 @@ static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
 
             case 'E':
                 {
+                    /* This is deprecated. */
+
                     PyTypeObject *et = va_arg(va, PyTypeObject *);
                     int *p = va_arg(va, int *);
 
-                    if (canConvertToNamedEnum(arg, et))
+                    if (canConvertToEnum(arg, ((sipEnumTypeObject *)et)->type))
+                        *p = PyInt_AsLong(arg);
+                    else
+                        invalid = TRUE;
+                }
+
+                break;
+
+            case 'F':
+                {
+                    sipTypeDef *td = va_arg(va, sipTypeDef *);
+                    int *p = va_arg(va, int *);
+
+                    if (canConvertToEnum(arg, td))
                         *p = PyInt_AsLong(arg);
                     else
                         invalid = TRUE;
@@ -2841,11 +2849,11 @@ static int parsePass1(sipSimpleWrapper **selfp, int *selfargp,
             {
                 /* Named enum or exact integer. */
 
-                PyTypeObject *et = va_arg(va, PyTypeObject *);
+                sipTypeDef *td = va_arg(va, sipTypeDef *);
 
                 va_arg(va, int *);
 
-                if (!canConvertToNamedEnum(arg, et))
+                if (!canConvertToEnum(arg, td))
                     valid = PARSE_TYPE;
             }
 
@@ -3052,11 +3060,11 @@ static int parsePass1(sipSimpleWrapper **selfp, int *selfargp,
                     {
                         /* Named enum. */
 
-                        PyTypeObject *et = va_arg(va, PyTypeObject *);
+                        sipTypeDef *td = va_arg(va, sipTypeDef *);
 
                         va_arg(va, int *);
 
-                        if (!PyObject_TypeCheck(arg, et))
+                        if (!PyObject_TypeCheck(arg, sipTypePyTypeObject(td)))
                             valid = PARSE_TYPE;
 
                         break;
@@ -3343,7 +3351,7 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, int nrargs,
 
                         int *p;
 
-                        va_arg(va, PyTypeObject *);
+                        va_arg(va, sipTypeDef *);
                         p = va_arg(va, int *);
 
                         *p = PyInt_AsLong(arg);
@@ -3365,7 +3373,7 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, int nrargs,
 
                 int *p;
 
-                va_arg(va, PyTypeObject *);
+                va_arg(va, sipTypeDef *);
                 p = va_arg(va, int *);
 
                 *p = PyInt_AsLong(arg);
@@ -3867,7 +3875,6 @@ static PyObject *unpickle_enum(PyObject *ignore, PyObject *args)
     PyObject *mname_obj, *evalue_obj;
     const char *ename;
     sipExportedModuleDef *em;
-    sipTypeDef *td;
     int i;
 
     if (!PyArg_ParseTuple(args, "SsO:_unpickle_enum", &mname_obj, &ename, &evalue_obj))
@@ -3878,8 +3885,10 @@ static PyObject *unpickle_enum(PyObject *ignore, PyObject *args)
         return NULL;
 
     /* Find the enum type object. */
-    for (td = em->em_enumtypes, i = 0; i < em->em_nrenums; ++i, ++td)
+    for (i = 0; i < em->em_nrenums; ++i)
     {
+        sipTypeDef *td = em->em_enumtypes[i];
+
         if (strcmp(getPyNameOfEnum((sipEnumTypeDef *)td), ename) == 0)
             return PyObject_CallFunctionObjArgs((PyObject *)sipTypePyTypeObject(td), evalue_obj, NULL);
     }
@@ -3895,11 +3904,10 @@ static PyObject *unpickle_enum(PyObject *ignore, PyObject *args)
  */
 static PyObject *pickle_enum(PyObject *obj, PyObject *ignore)
 {
-    sipEnumTypeDef *etd = ((sipEnumTypeObject *)(obj->ob_type))->type;
+    sipTypeDef *td = ((sipEnumTypeObject *)(obj->ob_type))->type;
 
-    return Py_BuildValue("O(Osi)", enum_unpickler,
-            etd->etd_base.td_module->em_nameobj, getPyNameOfEnum(etd),
-            (int)PyInt_AS_LONG(obj));
+    return Py_BuildValue("O(Osi)", enum_unpickler, td->td_module->em_nameobj,
+            getPyNameOfEnum((sipEnumTypeDef *)td), (int)PyInt_AS_LONG(obj));
 }
 
 
@@ -3957,12 +3965,12 @@ static int createEnumType(sipExportedModuleDef *client, sipEnumTypeDef *etd,
 #endif
 
         if (bases == NULL)
-            return NULL;
+            return -1;
     }
 
     /* Create an object corresponding to the type name. */
     if ((name = PyString_FromString(getPyNameOfEnum(etd))) == NULL)
-        return NULL;
+        return -1;
 
     /* Create the type dictionary. */
     if ((typedict = createTypeDict(client->em_nameobj)) == NULL)
@@ -3991,7 +3999,7 @@ static int createEnumType(sipExportedModuleDef *client, sipEnumTypeDef *etd,
      * Set the links between the Python type object and the generated type
      * structure.
      */
-    ((sipEnumTypeObject *)py_type)->type = etd;
+    ((sipEnumTypeObject *)py_type)->type = &etd->etd_base;
     etd->etd_base.u.td_py_type = py_type;
 
     /* Initialise any slots. */
@@ -4080,9 +4088,6 @@ static int addInstances(PyObject *dict, sipInstancesDef *id)
         return -1;
 
     if (id->id_double != NULL && addDoubleInstances(dict,id->id_double) < 0)
-        return -1;
-
-    if (id->id_enum != NULL && addEnumInstances(dict,id->id_enum) < 0)
         return -1;
 
     return 0;
@@ -4246,7 +4251,7 @@ static PyObject *handleGetLazyAttr(PyObject *nameobj, sipWrapperType *wt,
 /*
  * Return TRUE if an unconstrained object can be converted to a named enum.
  */
-static int canConvertToNamedEnum(PyObject *obj, PyTypeObject *et)
+static int canConvertToEnum(PyObject *obj, sipTypeDef *td)
 {
     /*
      * We allow an integer but don't allow another enum (hence the exact
@@ -4255,7 +4260,7 @@ static int canConvertToNamedEnum(PyObject *obj, PyTypeObject *et)
      * application defined sub-type of int.
      * FIXME: The above can now be implemented with the new enum meta-type.
      */
-    return (PyObject_TypeCheck(obj, et) || PyInt_CheckExact(obj));
+    return (PyObject_TypeCheck(obj, sipTypePyTypeObject(td)) || PyInt_CheckExact(obj));
 }
 
 
@@ -4267,17 +4272,20 @@ static PyObject *createEnumMember(sipClassTypeDef *ctd, sipEnumMemberDef *enm)
     if (enm->em_enum < 0)
         return PyInt_FromLong(enm->em_val);
 
-    return sip_api_convert_from_named_enum(enm->em_val,
-            sipTypePyTypeObject(ctd->ctd_base.td_module->em_enumtypes[enm->em_enum]));
+    return sip_api_convert_from_enum(enm->em_val,
+            ctd->ctd_base.td_module->em_enumtypes[enm->em_enum]);
 }
 
 
 /*
  * Create a Python object for a member of a named enum.
  */
-PyObject *sip_api_convert_from_named_enum(int eval, PyTypeObject *et)
+static PyObject *sip_api_convert_from_enum(int eval, sipTypeDef *td)
 {
-    return PyObject_CallFunction((PyObject *)et, "(i)", eval);
+    assert(sipTypeIsEnum(td));
+
+    return PyObject_CallFunction((PyObject *)sipTypePyTypeObject(td), "(i)",
+            eval);
 }
 
 
@@ -5002,59 +5010,13 @@ static int addDoubleInstances(PyObject *dict,sipDoubleInstanceDef *di)
 
 
 /*
- * Wrap a set of enum instances and add them to a dictionary.
- */
-static int addEnumInstances(PyObject *dict, sipEnumInstanceDef *ei)
-{
-    while (ei->ei_name != NULL)
-    {
-        if (addSingleEnumInstance(dict, ei->ei_name, ei->ei_val, *ei->ei_type) < 0)
-            return -1;
-
-        ++ei;
-    }
-
-    return 0;
-}
-
-
-/*
- * Wrap a single enum instance and add it to a dictionary.
- */
-static int addSingleEnumInstance(PyObject *dict, const char *name, int value,
-        PyTypeObject *type)
-{
-    int rc;
-    PyObject *w;
-
-    if ((w = sip_api_convert_from_named_enum(value, type)) == NULL)
-        return -1;
-
-    rc = PyDict_SetItemString(dict, name, w);
-    Py_DECREF(w);
-
-    return rc;
-}
-
-
-/*
- * Wrap an enum instance and add it to a dictionary.
- */
-static int sip_api_add_enum_instance(PyObject *dict, const char *name,
-        int value, PyTypeObject *type)
-{
-    return addSingleEnumInstance(getDictFromObject(dict), name, value, type);
-}
-
-
-/*
  * Wrap a set of type instances and add them to a dictionary.
  */
 static int addTypeInstances(PyObject *dict, sipTypeInstanceDef *ti)
 {
     while (ti->ti_name != NULL)
     {
-        if (addSingleTypeInstance(dict, ti->ti_name, ti->ti_ptr, ti->ti_type, ti->ti_flags) < 0)
+        if (addSingleTypeInstance(dict, ti->ti_name, ti->ti_ptr, *ti->ti_type, ti->ti_flags) < 0)
             return -1;
 
         ++ti;
@@ -5076,6 +5038,10 @@ static int addSingleTypeInstance(PyObject *dict, const char *name,
     if (sipTypeIsClass(td))
     {
         obj = sipWrapSimpleInstance(cppPtr, td, NULL, initflags);
+    }
+    else if (sipTypeIsEnum(td))
+    {
+        obj = sip_api_convert_from_enum(*(int *)cppPtr, td);
     }
     else
     {
@@ -5307,7 +5273,7 @@ void *sip_api_get_cpp_ptr(sipSimpleWrapper *sw, sipTypeDef *td)
         return NULL;
 
     if (td != NULL)
-        ptr = cast_cpp_ptr(ptr, (sipWrapperType *)sw->ob_type, td);
+        ptr = cast_cpp_ptr(ptr, sw->ob_type, td);
 
     return ptr;
 }
@@ -5316,10 +5282,10 @@ void *sip_api_get_cpp_ptr(sipSimpleWrapper *sw, sipTypeDef *td)
 /*
  * Cast a C/C++ pointer from a source type to a destination type.
  */
-static void *cast_cpp_ptr(void *ptr, sipWrapperType *src_type,
+static void *cast_cpp_ptr(void *ptr, PyTypeObject *src_type,
         sipTypeDef *dst_type)
 {
-    sipCastFunc cast = ((sipClassTypeDef *)src_type->type)->ctd_cast;
+    sipCastFunc cast = ((sipClassTypeDef *)((sipWrapperType *)src_type)->type)->ctd_cast;
 
     /* C structures don't have cast functions. */
     if (cast != NULL)
@@ -5336,7 +5302,8 @@ static int checkPointer(void *ptr)
 {
     if (ptr == NULL)
     {
-        PyErr_SetString(PyExc_RuntimeError,"underlying C/C++ object has been deleted");
+        PyErr_SetString(PyExc_RuntimeError,
+                "underlying C/C++ object has been deleted");
         return -1;
     }
 
@@ -5352,6 +5319,8 @@ static int sip_api_can_convert_to_type(PyObject *pyObj, sipTypeDef *td,
 {
     int ok;
 
+    assert(sipTypeIsClass(td) || sipTypeIsMapped(td));
+
     /* None is handled outside the type checkers. */
     if (pyObj == Py_None)
         ok = ((flags & SIP_NOT_NONE) == 0);
@@ -5361,10 +5330,8 @@ static int sip_api_can_convert_to_type(PyObject *pyObj, sipTypeDef *td,
 
         if (sipTypeIsClass(td))
             cto = ((sipClassTypeDef *)td)->ctd_cto;
-        else if (sipTypeIsMapped(td))
-            cto = ((sipMappedTypeDef *)td)->mtd_cto;
         else
-            cto = NULL;
+            cto = ((sipMappedTypeDef *)td)->mtd_cto;
 
         if (cto == NULL || (flags & SIP_NO_CONVERTORS) != 0)
             ok = PyObject_TypeCheck(pyObj, sipTypePyTypeObject(td));
@@ -5512,6 +5479,8 @@ PyObject *sip_api_convert_from_type(void *cpp, sipTypeDef *td,
 {
     PyObject *py;
 
+    assert(sipTypeIsClass(td) || sipTypeIsMapped(td));
+
     /* Handle None. */
     if (cpp == NULL)
     {
@@ -5521,8 +5490,6 @@ PyObject *sip_api_convert_from_type(void *cpp, sipTypeDef *td,
 
     if (sipTypeIsMapped(td))
         return ((sipMappedTypeDef *)td)->mtd_cfrom(cpp, transferObj);
-
-    assert(sipTypeIsClass(td));
 
     /* Apply any sub-class convertor. */
     if (sipTypeHasSCC(td))
@@ -5593,18 +5560,21 @@ int sip_api_get_state(PyObject *transferObj)
 
 /*
  * Return the type structure for a particular type.
- * FIXME: Merge the generated types and mapped types tables (and probably the
- * enum table as well).  The combined table is sorted by C++ name.  When
- * creating types, handle super-classes by recursion rather than going by the
- * order of the table.  Replace sipEncodedClassDef with a pair of ints (the
- * name of the module and the name of the type/class).
+ * FIXME: Merge the generated class, mapped and enum types tables  The combined
+ * table is sorted by C++ name.  When creating types, handle super-classes by
+ * recursion rather than going by the order of the table.  Replace
+ * sipEncodedClassDef with a pair of ints (the name of the module and the name
+ * of the type/class).
  */
 static sipTypeDef *sip_api_find_type(const char *type)
 {
-    sipWrapperType *wt = sip_api_find_class(type);
+    PyTypeObject *py_type;
 
-    if (wt != NULL)
-        return wt->type;
+    if ((py_type = (PyTypeObject *)sip_api_find_class(type)) != NULL)
+        return ((sipWrapperType *)py_type)->type;
+
+    if ((py_type = sip_api_find_named_enum(type)) != NULL)
+        return ((sipEnumTypeObject *)py_type)->type;
 
     return (sipTypeDef *)sip_api_find_mapped_type(type);
 }
@@ -5673,7 +5643,7 @@ static sipWrapperType *sip_api_find_class(const char *type)
 
 
 /*
- * Return the type structure for a particular named enum.
+ * Return the type structure for a particular named enum.  This is deprecated.
  */
 static PyTypeObject *sip_api_find_named_enum(const char *type)
 {
@@ -5931,7 +5901,7 @@ static sipExportedModuleDef *getClassModule(sipEncodedClassDef *enc,
 static sipClassTypeDef *getClassType(sipEncodedClassDef *enc,
         sipExportedModuleDef *em)
 {
-    return (sipTypeDef *)getClassModule(enc, em)->em_classtypes[enc->sc_class];
+    return (sipClassTypeDef *)getClassModule(enc, em)->em_classtypes[enc->sc_class];
 }
 
 
@@ -7006,7 +6976,7 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
      */
     if (owner != NULL)
     {
-        assert(PyObject_IsInstance(self, (PyObject *)&sipWrapper_Type) > 0);
+        assert(PyObject_TypeCheck((PyObject *)self, (PyTypeObject *)&sipWrapper_Type));
         addToParent((sipWrapper *)self, owner);
     }
 
@@ -8099,11 +8069,14 @@ static sipTypeDef *findEnum(sipExportedModuleDef *emd, const char *name,
         size_t len)
 {
     int i;
-    sipTypeDef *td;
 
-    for (td = emd->em_enumtypes, i = 0; i < emd->em_nrenums; ++i, ++td)
+    for (i = 0; i < emd->em_nrenums; ++i)
+    {
+        sipTypeDef *td = emd->em_enumtypes[i];
+
         if (nameEq(getCppNameOfType(td), name, len))
             return td;
+    }
 
     return NULL;
 }

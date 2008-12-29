@@ -218,7 +218,7 @@ typedef struct _sipWrapperType {
      */
     PyHeapTypeObject super;
 
-    /* The additional type information. */
+    /* The generated type structure. */
     struct _sipTypeDef *type;
 
     /* The list of init extenders. */
@@ -277,6 +277,22 @@ typedef struct _sipWrapper {
     /* Owning object. */
     struct _sipWrapper *parent;
 } sipWrapper;
+
+
+/*
+ * The meta-type of an enum type.  (This is exposed only to support the
+ * deprecated sipConvertFromNamedEnum() macro.)
+ */
+typedef struct _sipEnumTypeObject {
+    /*
+     * The super-metatype.  This must be first in the structure so that it can
+     * be cast to a PyTypeObject *.
+     */
+    PyHeapTypeObject super;
+
+    /* The generated type structure. */
+    struct _sipTypeDef *type;
+} sipEnumTypeObject;
 
 
 /*
@@ -363,9 +379,6 @@ typedef struct _sipInstancesDef {
 
     /* The doubles. */
     struct _sipDoubleInstanceDef *id_double;
-
-    /* The enums. */
-    struct _sipEnumInstanceDef *id_enum;
 } sipInstancesDef;
 
 
@@ -982,7 +995,8 @@ typedef struct _sipDoubleInstanceDef {
 
 
 /*
- * The information describing a type instance to be added to a dictionary.
+ * The information describing a class or enum instance to be added to a
+ * dictionary.
  */
 typedef struct _sipTypeInstanceDef {
     /* The type instance name. */
@@ -991,27 +1005,12 @@ typedef struct _sipTypeInstanceDef {
     /* The actual instance. */
     void *ti_ptr;
 
-    /* A pointer to the Python type. */
-    struct _sipTypeDef *ti_type;
+    /* A pointer to the generated type. */
+    struct _sipTypeDef **ti_type;
 
     /* The wrapping flags. */
     int ti_flags;
 } sipTypeInstanceDef;
-
-
-/*
- * The information describing an enum instance to be added to a dictionary.
- */
-typedef struct _sipEnumInstanceDef {
-    /* The enum instance name. */
-    const char *ei_name;
-
-    /* The enum value. */
-    int ei_val;
-
-    /* A pointer to the Python type. */
-    PyTypeObject **ei_type;
-} sipEnumInstanceDef;
 
 
 /*
@@ -1218,6 +1217,7 @@ typedef struct _sipAPIDef {
             PyObject *transferObj);
     PyObject *(*api_convert_from_new_type)(void *cpp, sipTypeDef *td,
             PyObject *transferObj);
+    PyObject *(*api_convert_from_enum)(int eval, sipTypeDef *td);
     int (*api_get_state)(PyObject *transferObj);
     PyObject *(*api_disconnect_rx)(PyObject *txObj, const char *sig,
             PyObject *rxObj, const char *slot);
@@ -1233,7 +1233,6 @@ typedef struct _sipAPIDef {
     void (*api_transfer_to)(PyObject *self, PyObject *owner);
     void (*api_transfer_break)(PyObject *self);
     unsigned long (*api_long_as_unsigned_long)(PyObject *o);
-    PyObject *(*api_convert_from_named_enum)(int eval, PyTypeObject *et);
     PyObject *(*api_convert_from_void_ptr)(void *val);
     PyObject *(*api_convert_from_const_void_ptr)(const void *val);
     PyObject *(*api_convert_from_void_ptr_and_size)(void *val,
@@ -1244,12 +1243,12 @@ typedef struct _sipAPIDef {
     int (*api_export_symbol)(const char *name, void *sym);
     void *(*api_import_symbol)(const char *name);
     sipTypeDef *(*api_find_type)(const char *type);
-    PyTypeObject *(*api_find_named_enum)(const char *type);
     int (*api_register_py_type)(PyTypeObject *type);
 
     /*
      * The following are deprecated parts of the public API.
      */
+    PyTypeObject *(*api_find_named_enum)(const char *type);
     const sipMappedType *(*api_find_mapped_type)(const char *type);
     sipWrapperType *(*api_find_class)(const char *type);
     sipWrapperType *(*api_map_int_to_class)(int typeInt,
@@ -1299,8 +1298,6 @@ typedef struct _sipAPIDef {
     void (*api_raise_type_exception)(sipTypeDef *td, void *ptr);
     int (*api_add_type_instance)(PyObject *dict, const char *name,
             void *cppPtr, sipTypeDef *td);
-    int (*api_add_enum_instance)(PyObject *dict, const char *name, int value,
-            PyTypeObject *type);
     void (*api_bad_operator_arg)(PyObject *self, PyObject *arg,
             sipPySlotType st);
     PyObject *(*api_pyslot_extend)(sipExportedModuleDef *mod, sipPySlotType st,

@@ -223,6 +223,8 @@ The following parts of the API are now deprecated (but still supported).
 
     - `sipConvertFromMappedType()`_
 
+    - `sipConvertFromNamedEnum()`_
+
     - `sipConvertFromNewInstance()`_
 
     - `sipCanConvertToInstance()`_
@@ -241,6 +243,8 @@ The following parts of the API are now deprecated (but still supported).
 
     - `sipFindClass()`_
 
+    - `sipFindNamedEnum()`_
+
     - `sipFindMappedType()`_
 
     - `sipGetWrapper()`_
@@ -251,10 +255,10 @@ The following parts of the API are now deprecated (but still supported).
 
     - `sipWrapper_Check()`_
 
-    - The ``B`` and ``C`` format characters of `sipBuildResult()`_ and
+    - The ``B``, ``C`` and ``E`` format characters of `sipBuildResult()`_ and
       `sipCallMethod()`_.
 
-    - The ``C`` format character of `sipParseResult()`_.
+    - The ``C`` and ``E`` format character of `sipParseResult()`_.
 
 
 SIP v4.7.8
@@ -4236,6 +4240,12 @@ PyObject \*sipBuildResult(int \*iserr, const char \*format, ...)
         Convert a named C/C++ ``enum`` to an instance of the corresponding
         Python named enum type.
 
+        This is deprecated from SIP v4.8.  Instead you should use ``F``.
+
+    ``F`` (wrapped enum) [enum, sipTypeDef \*]
+        Convert a named C/C++ ``enum`` to an instance of the corresponding
+        Python named enum type.
+
     ``G`` (unicode) [wchar_t \*, SIP_SSIZE_T]
         Convert a C/C++ wide character array and its length to a Python unicode
         object.  If the array is ``NULL`` then the length is ignored and the
@@ -4378,6 +4388,16 @@ PyObject \*sipConvertFromConstVoidPtrAndSize(const void \*cpp, SIP_SSIZE_T size)
     object.
 
 
+sipConvertFromEnum()
+--------------------
+
+PyObject \*sipConvertFromEnum(int eval, sipTypeDef \*td)
+    This converts a named C/C++ ``enum`` to an instance of the corresponding
+    generated Python named enum type.  *eval* is the enumerated value to
+    convert.  *td* is the generated Python type structure (see `Generated Type
+    Structures`_).
+
+
 sipConvertFromInstance()
 ------------------------
 
@@ -4426,6 +4446,9 @@ PyObject \*sipConvertFromNamedEnum(int eval, PyTypeObject \*type)
     Python named enum type.  *eval* is the enumerated value to convert.  *type*
     is the generated Python type object (see `Generated Named Enum Type
     Objects`_).
+
+    This is deprecated from SIP v4.8.  Instead you should use
+    `sipConvertFromEnum()`_.
 
 
 sipConvertFromNewInstance()
@@ -4694,6 +4717,8 @@ PyTypeObject \*sipFindNamedEnum(const char \*type)
     enum.  *type* is the C/C++ declaration of the enum.  ``NULL`` is returned
     if the named C/C++ enum doesn't exist.  The value of the pointer will not
     change and may be saved in a static cache.
+
+    This is deprecated from SIP v4.8.  Instead you should use `sipFindType()`_.
 
 
 sipFindType()
@@ -4972,6 +4997,11 @@ int sipParseResult(int \*iserr, PyObject \*method, PyObject \*result, const char
                  not passed if this flag is specified.
 
     ``E`` (wrapped enum) [PyTypeObject \*, enum \*]
+        Convert a Python named enum type to the corresponding C/C++ ``enum``.
+
+        This is deprecated from SIP v4.8.  Instead you should use ``F``.
+
+    ``F`` (wrapped enum) [sipTypeDef \*, enum \*]
         Convert a Python named enum type to the corresponding C/C++ ``enum``.
 
     ``G`` (unicode) [wchar_t \*\*, SIP_SSIZE_T \*]
@@ -5324,9 +5354,8 @@ name to lower case and preceding it with an underscore.  For example:
 Note that the type objects that SIP generates for a wrapped module (see
 `Generated Type Structures`_, `Generated Named Enum Type Objects`_ and
 `Generated Exception Objects`_) cannot be refered to directly and must be
-obtained using the `sipFindType()`_ and `sipFindNamedEnum()`_ functions.  Of
-course, the corresponding modules must already have been imported into the
-interpreter.
+obtained using the `sipFindType()`_ function.  Of course, the corresponding
+modules must already have been imported into the interpreter.
 
 The following code fragment shows how to get a pointer to the ``sipAPIDef``
 data structure::
