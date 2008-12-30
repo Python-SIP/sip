@@ -5165,7 +5165,7 @@ PyTypeObject \*sipTypeAsPyTypeObject(sipTypeDef \*td)
 sipTypeFromPyTypeObject()
 -------------------------
 
-const sipTypeDef \*sipTypeFromPyTypeObject(PyObject \*py_type)
+const sipTypeDef \*sipTypeFromPyTypeObject(PyTypeObject \*py_type)
     This returns a pointer to the SIP generated type structure for a Python
     type.  *py_type* is the Python type object.
 

@@ -1245,7 +1245,7 @@ typedef struct _sipAPIDef {
     void *(*api_import_symbol)(const char *name);
     const sipTypeDef *(*api_find_type)(const char *type);
     int (*api_register_py_type)(PyTypeObject *type);
-    const sipTypeDef *(*api_type_from_py_type_object)(PyObject *py_type);
+    const sipTypeDef *(*api_type_from_py_type_object)(PyTypeObject *py_type);
     const sipTypeDef *(*api_type_scope)(const sipTypeDef *td);
 
     /*

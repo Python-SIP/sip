@@ -115,7 +115,7 @@ static int sip_api_assign_type(void *dst, const void *src,
 static int sip_api_deprecated(const char *classname, const char *method);
 static int sip_api_register_py_type(PyTypeObject *supertype);
 static PyObject *sip_api_convert_from_enum(int eval, const sipTypeDef *td);
-static const sipTypeDef *sip_api_type_from_py_type_object(PyObject *py_type);
+static const sipTypeDef *sip_api_type_from_py_type_object(PyTypeObject *py_type);
 static const sipTypeDef *sip_api_type_scope(const sipTypeDef *td);
 
 
@@ -4252,12 +4252,12 @@ static PyObject *handleGetLazyAttr(PyObject *nameobj, sipWrapperType *wt,
  * Return the generated type structure corresponding to the given Python type
  * object.
  */
-static const sipTypeDef *sip_api_type_from_py_type_object(PyObject *py_type)
+static const sipTypeDef *sip_api_type_from_py_type_object(PyTypeObject *py_type)
 {
-    if (PyObject_TypeCheck(py_type, &sipWrapperType_Type))
+    if (PyObject_TypeCheck((PyObject *)py_type, &sipWrapperType_Type))
         return ((sipWrapperType *)py_type)->type;
 
-    if (PyObject_TypeCheck(py_type, &sipEnumType_Type))
+    if (PyObject_TypeCheck((PyObject *)py_type, &sipEnumType_Type))
         return ((sipEnumTypeObject *)py_type)->type;
 
     return NULL;
