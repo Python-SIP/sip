@@ -67,8 +67,8 @@ sipSignature *sip_api_parse_signature(const char *sig);
  */
 void *sip_api_malloc(size_t nbytes);
 void sip_api_free(void *mem);
-void *sip_api_get_cpp_ptr(sipSimpleWrapper *w, sipTypeDef *td);
-PyObject *sip_api_convert_from_type(void *cppPtr, sipTypeDef *td,
+void *sip_api_get_cpp_ptr(sipSimpleWrapper *w, const sipTypeDef *td);
+PyObject *sip_api_convert_from_type(void *cppPtr, const sipTypeDef *td,
         PyObject *transferObj);
 void sip_api_common_dtor(sipSimpleWrapper *sipSelf);
 void sip_api_start_thread(void);
@@ -87,14 +87,15 @@ void sip_api_parse_type(const char *type, sipSigArg *arg);
 void sipFreeSlotList(sipSlotList *rx);
 void sipSaveMethod(sipPyMethod *pm,PyObject *meth);
 void *sipGetPending(sipWrapper **op, int *fp);
-PyObject *sipWrapSimpleInstance(void *cppPtr, sipTypeDef *td,
+PyObject *sipWrapSimpleInstance(void *cppPtr, const sipTypeDef *td,
         sipWrapper *owner, int initflags);
 void *sipConvertRxEx(sipWrapper *txSelf, const char *sigargs,
         PyObject *rxObj, const char *slot, const char **memberp, int flags);
 
 void sipOMInit(sipObjectMap *om);
 void sipOMFinalise(sipObjectMap *om);
-sipSimpleWrapper *sipOMFindObject(sipObjectMap *om, void *key, sipTypeDef *td);
+sipSimpleWrapper *sipOMFindObject(sipObjectMap *om, void *key,
+        const sipTypeDef *td);
 void sipOMAddObject(sipObjectMap *om, sipSimpleWrapper *val);
 int sipOMRemoveObject(sipObjectMap *om, sipSimpleWrapper *val);
 

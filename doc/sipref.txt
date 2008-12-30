@@ -1853,7 +1853,7 @@ void \*\*sipCppRet
     C++ address of the instance when cast (usually using ``static_cast``)
     from the super-class to the sub-class.
 
-sipTypeDef \*sipType
+const sipTypeDef \*sipType
     The handwritten code must set this to the SIP generated type structure
     that corresponds to the class instance.  (The type structure for class
     ``Klass`` is ``sipType_Klass``.)  If the RTTI of the class instance isn't
@@ -4328,7 +4328,7 @@ int sipCanConvertToMappedType(PyObject \*obj, const sipMappedType \*mt, int flag
 sipCanConvertToType()
 ---------------------
 
-int sipCanConvertToType(PyObject \*obj, sipTypeDef \*td, int flags)
+int sipCanConvertToType(PyObject \*obj, const sipTypeDef \*td, int flags)
     This returns a non-zero value if a Python object can be converted to an
     instance of a C structure, C++ class or mapped type.  *obj* is the Python
     object.  *td* is the generated type structure corresponding to the C/C++
@@ -4391,7 +4391,7 @@ PyObject \*sipConvertFromConstVoidPtrAndSize(const void \*cpp, SIP_SSIZE_T size)
 sipConvertFromEnum()
 --------------------
 
-PyObject \*sipConvertFromEnum(int eval, sipTypeDef \*td)
+PyObject \*sipConvertFromEnum(int eval, const sipTypeDef \*td)
     This converts a named C/C++ ``enum`` to an instance of the corresponding
     generated Python named enum type.  *eval* is the enumerated value to
     convert.  *td* is the generated Python type structure (see `Generated Type
@@ -4470,7 +4470,7 @@ PyObject \*sipConvertFromNewInstance(void \*cpp, sipWrapperType \*type, PyObject
 sipConvertFromNewType()
 -----------------------
 
-PyObject \*sipConvertFromNewType(void \*cpp, sipTypeDef \*td, PyObject \*transferObj)
+PyObject \*sipConvertFromNewType(void \*cpp, const sipTypeDef \*td, PyObject \*transferObj)
     This converts a new C structure, C++ class or mapped type instance to a
     Python object.  *cpp* is the C/C++ instance.  *td* is the generated type
     structure corresponding to the C/C++ type.  *transferObj* controls the
@@ -4503,7 +4503,7 @@ int sipConvertFromSliceObject(PyObject \*slice, SIP_SSIZE_T length, SIP_SSIZE_T 
 sipConvertFromType()
 --------------------
 
-PyObject \*sipConvertFromType(void \*cpp, sipTypeDef \*td, PyObject \*transferObj)
+PyObject \*sipConvertFromType(void \*cpp, const sipTypeDef \*td, PyObject \*transferObj)
     This converts a C structure, a C++ class instance or a mapped type to a
     Python object.  *cpp* is the C/C++ instance.  If the instance has already
     been wrapped then the result is a new reference to the existing object.
@@ -4607,7 +4607,7 @@ void \*sipConvertToMappedType(PyObject \*obj, const sipMappedType \*mt, PyObject
 sipConvertToType()
 ------------------
 
-void \*sipConvertToType(PyObject \*obj, sipTypeDef \*td, PyObject \*transferObj, int flags, int \*state, int \*iserr)
+void \*sipConvertToType(PyObject \*obj, const sipTypeDef \*td, PyObject \*transferObj, int flags, int \*state, int \*iserr)
     This converts a Python object to an instance of a C structure, C++ class or
     mapped type assuming that a previous call to `sipCanConvertToType()`_ has
     been successful.  *obj* is the Python object.  *td* is the generated type
@@ -4724,7 +4724,7 @@ PyTypeObject \*sipFindNamedEnum(const char \*type)
 sipFindType()
 -------------
 
-sipTypeDef \*sipFindType(const char \*type)
+const sipTypeDef \*sipFindType(const char \*type)
     This returns a pointer to the SIP generated type structure corresponding to
     a C/C++ type.  *type* is the C/C++ declaration of the type.  NULL is
     returned if the type doesn't exist.  The value of the pointer will not
@@ -4761,7 +4761,7 @@ void \*sipForceConvertToMappedType(PyObject \*obj, const sipMappedType \*mt, PyO
 sipForceConvertToType()
 -----------------------
 
-void \*sipForceConvertToType(PyObject \*obj, sipTypeDef \*td, PyObject \*transferObj, int flags, int \*state, int \*iserr)
+void \*sipForceConvertToType(PyObject \*obj, const sipTypeDef \*td, PyObject \*transferObj, int flags, int \*state, int \*iserr)
     This converts a Python object to an instance of a C structure, C++ class or
     mapped type by calling `sipCanConvertToType()`_ and, if it is successfull,
     calling `sipConvertToType()`_.  See `sipConvertToType()`_ for a full
@@ -4788,7 +4788,7 @@ const void \*sipGetSender()
 sipGetPyObject()
 ----------------
 
-PyObject \*sipGetPyObject(void \*cppptr, sipTypeDef \*td)
+PyObject \*sipGetPyObject(void \*cppptr, const sipTypeDef \*td)
     This returns a borrowed reference to the Python object for a C structure or
     C++ class instance.  If the structure or class instance hasn't been wrapped
     then ``NULL`` is returned (and no Python exception is raised).  *cppptr* is
@@ -5072,7 +5072,7 @@ void sipReleaseMappedType(void \*cpp, const sipMappedType \*mt, int state)
 sipReleaseType()
 ----------------
 
-void sipReleaseType(void \*cpp, sipTypeDef \*td, int state)
+void sipReleaseType(void \*cpp, const sipTypeDef \*td, int state)
     This destroys a wrapped C/C++ or mapped type instance if it was a temporary
     instance.  It is called after a call to either `sipConvertToType()`_ or
     `sipForceConvertToType()`_.  *cpp* is the wrapped C/C++ instance.  *td* is
@@ -5148,6 +5148,31 @@ void sipTransferTo(PyObject \*obj, PyObject \*owner)
     destructor is always transfered to C++.
 
 
+sipTypeAsPyTypeObject()
+-----------------------
+
+PyTypeObject \*sipTypeAsPyTypeObject(sipTypeDef \*td)
+    This returns a pointer to the Python type object that SIP creates from a
+    generated type structure.  *td* is the type structure.
+
+    If the type structure refers to a C structure or C++ class then it may be
+    safely cast to a `sipWrapperType`_.
+
+    If the type structure refers to a mapped type then ``NULL`` will be
+    returned.
+
+
+sipTypeFromPyTypeObject()
+-------------------------
+
+const sipTypeDef \*sipTypeFromPyTypeObject(PyObject \*py_type)
+    This returns a pointer to the SIP generated type structure for a Python
+    type.  *py_type* is the Python type object.
+
+    If the Python type doesn't correspond to a SIP generated type then ``NULL``
+    will be returned.
+
+
 sipTypeIsClass()
 ----------------
 
@@ -5180,18 +5205,21 @@ int sipTypeIsNamespace(sipTypeDef \*td)
     C++ namespace.  *td* is the type structure.
 
 
-sipTypePyTypeObject()
----------------------
+sipTypeName()
+-------------
 
-PyTypeObject \*sipTypePyTypeObject(sipTypeDef \*td)
-    This returns a pointer to the Python type object that SIP creates from a
-    generated type structure.  *td* is the type structure.
+const char \*sipTypeName(const sipTypeDef \*td)
+    This returns the C/C++ name of a SIP generated type.  *td* is the type
+    structure.
 
-    If the type structure refers to a C structure or C++ class then it may be
-    safely cast to a `sipWrapperType`_.
 
-    If the type structure refers to a mapped type then ``NULL`` will be
-    returned.
+sipTypeScope()
+--------------
+
+const sipTypeDef \*sipTypeScope(const sipTypeDef \*td)
+    This returns the SIP generated type structure of the scope of another
+    SIP generated type structure.  ``NULL`` will be returned if the type has no
+    scope.
 
 
 sipVoidPtr_Type
@@ -5279,7 +5307,7 @@ These objects are named with the structure or class name prefixed by
 
 Using these names is deprecated from SIP v4.8.  Instead use the corresponding
 generated type structure (see `Generated Type Structures`_) and
-`sipTypePyTypeObject()`_.
+`sipTypeAsPyTypeObject()`_.
 
 
 Generated Named Enum Type Objects
@@ -5294,7 +5322,7 @@ enum ``Enum`` defined in class ``Klass`` is ``sipEnum_Klass_Enum``.
 
 Using these names is deprecated from SIP v4.8.  Instead use the corresponding
 generated type structure (see `Generated Type Structures`_) and
-`sipTypePyTypeObject()`_.
+`sipTypeAsPyTypeObject()`_.
 
 
 Generated Derived Classes

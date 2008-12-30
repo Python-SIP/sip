@@ -81,7 +81,7 @@ void *sipGetPending(sipWrapper **op, int *fp)
 /*
  * Convert a new C/C++ pointer to a Python instance.
  */
-PyObject *sipWrapSimpleInstance(void *cppPtr, sipTypeDef *td,
+PyObject *sipWrapSimpleInstance(void *cppPtr, const sipTypeDef *td,
         sipWrapper *owner, int flags)
 {
     static PyObject *nullargs = NULL;
@@ -132,7 +132,7 @@ PyObject *sipWrapSimpleInstance(void *cppPtr, sipTypeDef *td,
     pending.flags = flags;
 #endif
 
-    self = PyObject_Call((PyObject *)sipTypePyTypeObject(td), nullargs, NULL);
+    self = PyObject_Call((PyObject *)sipTypeAsPyTypeObject(td), nullargs, NULL);
 
 #ifdef WITH_THREAD
     if (thread != NULL)

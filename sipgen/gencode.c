@@ -518,8 +518,6 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 
     prcode(fp,
 "\n"
-"#define sipMapStringToClass         sipAPI_%s->api_map_string_to_class\n"
-"#define sipMapIntToClass            sipAPI_%s->api_map_int_to_class\n"
 "#define sipMalloc                   sipAPI_%s->api_malloc\n"
 "#define sipFree                     sipAPI_%s->api_free\n"
 "#define sipBuildResult              sipAPI_%s->api_build_result\n"
@@ -596,10 +594,14 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipWrappedTypeName(wt)      ((wt)->type->td_cname)\n"
 "#define sipDeprecated               sipAPI_%s->api_deprecated\n"
 "#define sipRegisterPyType           sipAPI_%s->api_register_py_type\n"
-"#define sipFindClass                sipAPI_%s->api_find_class\n"
-"#define sipFindMappedType           sipAPI_%s->api_find_mapped_type\n"
+"#define sipTypeFromPyTypeObject     sipAPI_%s->api_type_from_py_type_object\n"
+"#define sipTypeScope                sipAPI_%s->api_type_scope\n"
 "\n"
 "/* These are deprecated. */\n"
+"#define sipMapStringToClass         sipAPI_%s->api_map_string_to_class\n"
+"#define sipMapIntToClass            sipAPI_%s->api_map_int_to_class\n"
+"#define sipFindClass                sipAPI_%s->api_find_class\n"
+"#define sipFindMappedType           sipAPI_%s->api_find_mapped_type\n"
 "#define sipWrapper_Check(w)         PyObject_TypeCheck((w), sipAPI_%s->api_wrapper_type)\n"
 "#define sipGetWrapper(p, wt)        sipGetPyObject((p), (wt)->type)\n"
 "#define sipReleaseInstance(p, wt, s)    sipReleaseType((p), (wt)->type, (s))\n"
@@ -614,6 +616,8 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipConvertFromMappedType    sipConvertFromType\n"
 "#define sipConvertFromNamedEnum(v, pt)  sipConvertFromEnum((v), ((sipEnumTypeObject *)(pt))->type)\n"
 "#define sipConvertFromNewInstance(p, wt, t) sipConvertFromNewType((p), (wt)->type, (t))\n"
+        ,mname
+        ,mname
         ,mname
         ,mname
         ,mname
@@ -1872,7 +1876,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "    sip_%s_qt_metacall = (sip_qt_metacall_func)sipImportSymbol(\"qtcore_qt_metacall\");\n"
 "    sip_%s_qt_metacast = (sip_qt_metacast_func)sipImportSymbol(\"qtcore_qt_metacast\");\n"
 "\n"
-"    typedef void (*sip_qt_register_func)(int,sipTypeDef *);\n"
+"    typedef void (*sip_qt_register_func)(int,const sipTypeDef *);\n"
 "    sip_qt_register_func sip_qt_register = (sip_qt_register_func)sipImportSymbol(\"qtcore_qt_register\");\n"
 "\n"
             , mname
@@ -2089,14 +2093,14 @@ static int generateSubClassConvertors(sipSpec *pt, moduleDef *mod, FILE *fp)
 
         if (!generating_c)
             prcode(fp,
-"extern \"C\" {static sipTypeDef *sipSubClass_%C(void **);}\n"
+"extern \"C\" {static const sipTypeDef *sipSubClass_%C(void **);}\n"
                 , classFQCName(cd));
 
         /* Allow the deprecated use of sipClass rather than sipType. */
         needs_sipClass = usedInCode(cd->convtosubcode, "sipClass");
 
         prcode(fp,
-"static sipTypeDef *sipSubClass_%C(void **sipCppRet)\n"
+"static const sipTypeDef *sipSubClass_%C(void **sipCppRet)\n"
 "{\n"
 "    %S *sipCpp = reinterpret_cast<%S *>(*sipCppRet);\n"
             , classFQCName(cd)
@@ -2109,7 +2113,7 @@ static int generateSubClassConvertors(sipSpec *pt, moduleDef *mod, FILE *fp)
                 );
         else
             prcode(fp,
-"    sipTypeDef *sipType;\n"
+"    const sipTypeDef *sipType;\n"
 "\n"
                 );
 
@@ -2505,7 +2509,7 @@ static void generateTypesInline(sipSpec *pt, moduleDef *mod, FILE *fp)
         if (vd->ecd == NULL)
             prcode(fp, "sipModuleDict");
         else
-            prcode(fp, "(PyObject *)sipTypePyTypeObject(sipType_%C)", classFQCName(vd->ecd));
+            prcode(fp, "(PyObject *)sipTypeAsPyTypeObject(sipType_%C)", classFQCName(vd->ecd));
 
         prcode(fp, ",%N,", vd->pyname);
 
@@ -4621,11 +4625,11 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 
         if (!generating_c)
             prcode(fp,
-"extern \"C\" {static void *cast_%C(void *, sipTypeDef *);}\n"
+"extern \"C\" {static void *cast_%C(void *, const sipTypeDef *);}\n"
                 , classFQCName(cd));
 
         prcode(fp,
-"static void *cast_%C(void *ptr,sipTypeDef *targetType)\n"
+"static void *cast_%C(void *ptr,const sipTypeDef *targetType)\n"
 "{\n"
             ,classFQCName(cd));
 
@@ -4646,7 +4650,7 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 
             prcode(fp,
 "\n"
-"    if ((res = ((sipClassTypeDef *)sipType_%C)->ctd_cast((%S *)(%S *)ptr,targetType)) != NULL)\n"
+"    if ((res = ((const sipClassTypeDef *)sipType_%C)->ctd_cast((%S *)(%S *)ptr,targetType)) != NULL)\n"
 "        return res;\n"
                 ,sname,sname,classFQCName(cd));
         }
