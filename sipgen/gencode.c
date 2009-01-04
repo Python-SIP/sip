@@ -1869,6 +1869,8 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 
     if (pluginPyQt4(pt))
     {
+        int noIntro;
+
         /* Import the helpers. */
         prcode(fp,
 "\n"
@@ -1876,20 +1878,32 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "    sip_%s_qt_metacall = (sip_qt_metacall_func)sipImportSymbol(\"qtcore_qt_metacall\");\n"
 "    sip_%s_qt_metacast = (sip_qt_metacast_func)sipImportSymbol(\"qtcore_qt_metacast\");\n"
 "\n"
-"    typedef void (*sip_qt_register_func)(int,const sipTypeDef *);\n"
-"    sip_qt_register_func sip_qt_register = (sip_qt_register_func)sipImportSymbol(\"qtcore_qt_register\");\n"
-"\n"
             , mname
             , mname
             , mname);
 
         /* Generate any Qt meta-type registration calls. */
+        noIntro = TRUE;
+
         for (cd = pt->classes; cd != NULL; cd = cd->next)
             if (cd->iff->module == mod)
                 if (registerQtMetaType(cd))
+                {
+                    if (noIntro)
+                    {
+                        prcode(fp,
+"    typedef void (*sip_qt_register_func)(int,const sipTypeDef *);\n"
+"    sip_qt_register_func sip_qt_register = (sip_qt_register_func)sipImportSymbol(\"qtcore_qt_register\");\n"
+"\n"
+                            );
+
+                        noIntro = FALSE;
+                    }
+
                     prcode(fp,
 "    sip_qt_register(qRegisterMetaType<%S>(%N), sipType_%C);\n"
                         , classFQCName(cd), cd->iff->name, classFQCName(cd));
+                }
 
         /*
          * FIXME: Generate registration calls for any mapped type that has
