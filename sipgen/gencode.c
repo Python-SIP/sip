@@ -1068,14 +1068,14 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
     if (mod->qobjclass >= 0)
         prcode(fp,
 "\n"
-"#define sipQtIsQtSignal                     0\n"
 "#define sipQtCreateUniversalSignalShortcut  0\n"
 "#define sipQtCreateUniversalSignal          0\n"
-"#define sipQtFindUniversalSignalShortcut    0\n"
 "#define sipQtFindUniversalSignal            0\n"
-"#define sipQtEmitSignalShortcut             0\n"
 "#define sipQtEmitSignal                     0\n"
 "#define sipQtCreateUniversalSlotEx          0\n"
+"#define sipQtGetSender                      0\n"
+"#define sipQtForgetSender                   0\n"
+"#define sipQtSignalsBlocked                 0\n"
             );
 
     /* Define the names. */
@@ -1698,12 +1698,9 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "\n"
 "static sipQtAPI qtAPI = {\n"
 "    &typesTable[%d],\n"
-"    sipQtIsQtSignal,\n"
 "    sipQtCreateUniversalSignalShortcut,\n"
 "    sipQtCreateUniversalSignal,\n"
-"    sipQtFindUniversalSignalShortcut,\n"
 "    sipQtFindUniversalSignal,\n"
-"    sipQtEmitSignalShortcut,\n"
 "    sipQtEmitSignal,\n"
 "    sipQtCreateUniversalSlot,\n"
 "    sipQtDestroyUniversalSlot,\n"

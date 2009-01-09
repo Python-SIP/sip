@@ -1323,14 +1323,8 @@ typedef struct _sipAPIDef {
  */
 typedef struct _sipQtAPI {
     sipTypeDef **qt_qobject;
-    int (*qt_is_qt_signal)(void *, const char *);
-    void *(*qt_create_universal_signal_shortcut)(void *, const char *,
-            const char **);
-    void *(*qt_create_universal_signal)(void *, const struct _sipSignature *);
-    void *(*qt_find_universal_signal_shortcut)(void *, const char *,
-            const char **);
-    void *(*qt_find_universal_signal)(void *, const struct _sipSignature *);
-    int (*qt_emit_signal_shortcut)(void *, const char *, PyObject *);
+    void *(*qt_create_universal_signal)(void *, const char **);
+    void *(*qt_find_universal_signal)(void *, const char **);
     int (*qt_emit_signal)(void *, const struct _sipSignature *, PyObject *);
     void *(*qt_create_universal_slot)(struct _sipWrapper *,
             struct _sipSlotConnection *, const char **);

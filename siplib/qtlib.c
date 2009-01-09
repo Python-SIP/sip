@@ -38,7 +38,7 @@ static void freeSlot(sipSlot *slot);
 
 
 /*
- * Return the most recent signal sender.
+ * Return the most recent signal sender.  This is only used by PyQt3.
  */
 PyObject *sip_api_get_sender()
 {
@@ -372,28 +372,10 @@ void sip_api_parse_type(const char *type, sipSigArg *arg)
  */
 static void *findSignal(void *txrx, const char **sig)
 {
-    sipSignature *psig;
+    if (sipQtSupport->qt_find_universal_signal != NULL)
+        txrx = sipQtSupport->qt_find_universal_signal(txrx, sig);
 
-    /*
-     * Handle the trivial case where the Qt implementation doesn't support
-     * universal signals.
-     */
-    if (sipQtSupport->qt_is_qt_signal == NULL)
-        return txrx;
-
-    /* See if this a shortcircuited Python signal. */
-    if (strchr(*sig, '(') == NULL)
-        return sipQtSupport->qt_find_universal_signal_shortcut(txrx, *sig, sig);
-
-    /* See if the existing object can be used itself. */
-    if (sipQtSupport->qt_is_qt_signal(txrx, *sig))
-        return txrx;
-
-    if ((psig = sip_api_parse_signature(*sig)) == NULL)
-        return NULL;
-
-    /* Find an ordinary universal signal. */
-    return sipQtSupport->qt_find_universal_signal(txrx, psig);
+    return txrx;
 }
 
 
@@ -402,28 +384,12 @@ static void *findSignal(void *txrx, const char **sig)
  */
 static void *newSignal(void *txrx, const char **sig)
 {
-    sipSignature *psig;
+    void *new_txrx = findSignal(txrx, sig);
 
-    /*
-     * Handle the trivial case where the Qt implementation doesn't support
-     * universal signals.
-     */
-    if (sipQtSupport->qt_is_qt_signal == NULL)
-        return txrx;
+    if (new_txrx == NULL && sipQtSupport->qt_create_universal_signal != NULL)
+        new_txrx = sipQtSupport->qt_create_universal_signal(txrx, sig);
 
-    /* See if this a shortcircuited Python signal. */
-    if (strchr(*sig, '(') == NULL)
-        return sipQtSupport->qt_create_universal_signal_shortcut(txrx, *sig, sig);
-
-    /* See if the existing object can be used itself. */
-    if (sipQtSupport->qt_is_qt_signal(txrx, *sig))
-        return txrx;
-
-    if ((psig = sip_api_parse_signature(*sig)) == NULL)
-        return NULL;
-
-    /* Create an ordinary universal signal. */
-    return sipQtSupport->qt_create_universal_signal(txrx, psig);
+    return new_txrx;
 }
 
 
@@ -476,7 +442,7 @@ static void *createUniversalSlot(sipWrapper *txSelf, const char *sig,
 
 
 /*
- * Emit a Python or Qt signal.
+ * Emit a Python or Qt signal.  This is only used by PyQt3.
  */
 int sip_api_emit_signal(PyObject *self,const char *sig,PyObject *sigargs)
 {
@@ -492,25 +458,7 @@ int sip_api_emit_signal(PyObject *self,const char *sig,PyObject *sigargs)
         return 0;
 
     if (isQtSignal(sig))
-    {
-        sipSignature *psig;
-
-        /* Handle Qt implementations that emit using generated code. */
-        if (!sipQtSupport->qt_emit_signal)
-            return emitQtSig((sipSimpleWrapper *)w, sig, sigargs);
-
-        /* See if the signal is a shortcut. */
-        if (strchr(sig, '(') == NULL)
-            return sipQtSupport->qt_emit_signal_shortcut(tx, sig, sigargs);
-
-        if ((psig = sip_api_parse_signature(sig)) == NULL)
-            return -1;
-
-        if (psig->sg_nrargs != PyTuple_GET_SIZE(sigargs))
-            PyErr_Format(PyExc_TypeError, "Signal has %d arguments, but %d given", psig->sg_nrargs, (int)PyTuple_GET_SIZE(sigargs));
-
-        return sipQtSupport->qt_emit_signal(tx, psig, sigargs);
-    }
+        return emitQtSig((sipSimpleWrapper *)w, sig, sigargs);
 
     if ((ps = findPySignal(w,sig)) != NULL)
     {
