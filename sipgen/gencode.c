@@ -1068,7 +1068,6 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
     if (mod->qobjclass >= 0)
         prcode(fp,
 "\n"
-"#define sipQtCreateUniversalSignalShortcut  0\n"
 "#define sipQtCreateUniversalSignal          0\n"
 "#define sipQtFindUniversalSignal            0\n"
 "#define sipQtEmitSignal                     0\n"
@@ -1698,7 +1697,6 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "\n"
 "static sipQtAPI qtAPI = {\n"
 "    &typesTable[%d],\n"
-"    sipQtCreateUniversalSignalShortcut,\n"
 "    sipQtCreateUniversalSignal,\n"
 "    sipQtFindUniversalSignal,\n"
 "    sipQtEmitSignal,\n"
