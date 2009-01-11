@@ -1071,7 +1071,6 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "#define sipQtCreateUniversalSignal          0\n"
 "#define sipQtFindUniversalSignal            0\n"
 "#define sipQtEmitSignal                     0\n"
-"#define sipQtCreateUniversalSlotEx          0\n"
 "#define sipQtGetSender                      0\n"
 "#define sipQtForgetSender                   0\n"
 "#define sipQtSignalsBlocked                 0\n"
@@ -1709,8 +1708,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "    sipQtGetSender,\n"
 "    sipQtForgetSender,\n"
 "    sipQtSameSignalSlotName,\n"
-"    sipQtFindConnection,\n"
-"    sipQtCreateUniversalSlotEx\n"
+"    sipQtFindConnection\n"
 "};\n"
             , mod->qobjclass);
 

@@ -1268,7 +1268,8 @@ typedef struct _sipAPIDef {
     int (*api_same_connection)(sipSlotConnection *conn, void *tx,
             const char *sig, PyObject *rxObj, const char *slot);
     void *(*api_convert_rx)(sipWrapper *txSelf, const char *sigargs,
-            PyObject *rxObj, const char *slot, const char **memberp);
+            PyObject *rxObj, const char *slot, const char **memberp,
+            int flags);
     int (*api_register_int_types)(PyObject *args);
     sipSignature *(*api_parse_signature)(const char *sig);
     PyObject *(*api_invoke_slot)(const sipSlot *slot, PyObject *sigargs);
@@ -1327,7 +1328,7 @@ typedef struct _sipQtAPI {
     void *(*qt_find_universal_signal)(void *, const char **);
     int (*qt_emit_signal)(void *, const struct _sipSignature *, PyObject *);
     void *(*qt_create_universal_slot)(struct _sipWrapper *,
-            struct _sipSlotConnection *, const char **);
+            struct _sipSlotConnection *, const char **, int);
     void (*qt_destroy_universal_slot)(void *);
     void *(*qt_find_slot)(void *, const char *, PyObject *, const char *,
             const char **);
@@ -1338,8 +1339,6 @@ typedef struct _sipQtAPI {
     void (*qt_forget_sender)();
     int (*qt_same_name)(const char *, const char *);
     sipSlotConnection *(*qt_find_connection)(void *, void **);
-    void *(*qt_create_universal_slot_ex)(struct _sipWrapper *,
-            struct _sipSlotConnection *, const char **, int);
 } sipQtAPI;
 
 

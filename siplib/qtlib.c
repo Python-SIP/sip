@@ -418,15 +418,7 @@ static void *createUniversalSlot(sipWrapper *txSelf, const char *sig,
         return 0;
     }
 
-    /*
-     * Use the new API only if it is needed.  This ensures binary
-     * compatibility.
-     */
-    if (flags)
-        us = sipQtSupport->qt_create_universal_slot_ex(txSelf, &conn, member,
-                flags);
-    else
-        us = sipQtSupport->qt_create_universal_slot(txSelf, &conn, member);
+    us = sipQtSupport->qt_create_universal_slot(txSelf, &conn, member, flags);
 
     if (us == NULL)
     {
@@ -904,11 +896,11 @@ void *sipGetRx(sipSimpleWrapper *txSelf, const char *sigargs, PyObject *rxObj,
  * slot) to a Qt receiver.  It is only ever called when the signal is a Qt
  * signal.  Return NULL is there was an error.
  */
-void *sipConvertRxEx(sipWrapper *txSelf,const char *sig,PyObject *rxObj,
-             const char *slot,const char **memberp, int flags)
+void *sip_api_convert_rx(sipWrapper *txSelf, const char *sigargs,
+        PyObject *rxObj, const char *slot, const char **memberp, int flags)
 {
     if (slot == NULL)
-        return createUniversalSlot(txSelf, sig, rxObj, NULL, memberp, flags);
+        return createUniversalSlot(txSelf, sigargs, rxObj, NULL, memberp, flags);
 
     if (isQtSlot(slot) || isQtSignal(slot))
     {
@@ -926,7 +918,7 @@ void *sipConvertRxEx(sipWrapper *txSelf,const char *sig,PyObject *rxObj,
     }
 
     /* The slot is a Python signal so we need a universal slot to catch it. */
-    return createUniversalSlot(txSelf, sig, rxObj, slot, memberp, 0);
+    return createUniversalSlot(txSelf, sigargs, rxObj, slot, memberp, 0);
 }
 
 
@@ -954,7 +946,7 @@ PyObject *sip_api_connect_rx(PyObject *txObj,const char *sig,PyObject *rxObj,
         if ((tx = newSignal(tx, &real_sig)) == NULL)
             return NULL;
 
-        if ((rx = sipConvertRxEx(txSelf, sig, rxObj, slot, &member, 0)) == NULL)
+        if ((rx = sip_api_convert_rx(txSelf, sig, rxObj, slot, &member, 0)) == NULL)
             return NULL;
 
         res = sipQtSupport->qt_connect(tx, real_sig, rx, member, type);

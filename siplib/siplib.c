@@ -58,8 +58,6 @@ static int sip_api_export_module(sipExportedModuleDef *client,
         unsigned api_major, unsigned api_minor, void *unused);
 static int sip_api_init_module(sipExportedModuleDef *client,
         PyObject *mod_dict);
-static void *sip_api_convert_rx(sipWrapper *txSelf, const char *sigargs,
-        PyObject *rxObj, const char *slot, const char **memberp);
 static int sip_api_parse_args(int *argsParsedp, PyObject *sipArgs,
         const char *fmt, ...);
 static int sip_api_parse_pair(int *argsParsedp, PyObject *sipArg0,
@@ -3213,7 +3211,7 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, int nrargs,
                 void **rx = va_arg(va,void **);
                 const char **slot = va_arg(va,const char **);
 
-                if ((*rx = sip_api_convert_rx((sipWrapper *)self, sig, arg, *slot, slot)) == NULL)
+                if ((*rx = sip_api_convert_rx((sipWrapper *)self, sig, arg, *slot, slot, 0)) == NULL)
                     valid = PARSE_RAISED;
 
                 break;
@@ -3239,7 +3237,7 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, int nrargs,
                 void **rx = va_arg(va,void **);
                 const char **slot = va_arg(va,const char **);
 
-                if ((*rx = sipConvertRxEx((sipWrapper *)self, sig, arg, NULL, slot, SIP_SINGLE_SHOT)) == NULL)
+                if ((*rx = sip_api_convert_rx((sipWrapper *)self, sig, arg, NULL, slot, SIP_SINGLE_SHOT)) == NULL)
                     valid = PARSE_RAISED;
 
                 break;
@@ -3253,7 +3251,7 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, int nrargs,
                 void **rx = va_arg(va,void **);
                 const char **slot = va_arg(va,const char **);
 
-                if ((*rx = sip_api_convert_rx((sipWrapper *)self, sig, arg, NULL, slot)) == NULL)
+                if ((*rx = sip_api_convert_rx((sipWrapper *)self, sig, arg, NULL, slot, 0)) == NULL)
                     valid = PARSE_RAISED;
 
                 break;
@@ -3430,17 +3428,6 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, int nrargs,
     }
 
     return valid;
-}
-
-
-/*
- * A wrapper around sipConvertRxEx() that passes an empty set of flags.  This
- * should be replaced with that function in the next major version of the API.
- */
-static void *sip_api_convert_rx(sipWrapper *txSelf, const char *sigargs,
-        PyObject *rxObj, const char *slot, const char **memberp)
-{
-    return sipConvertRxEx(txSelf, sigargs, rxObj, slot, memberp, 0);
 }
 
 
