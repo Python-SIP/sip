@@ -190,6 +190,7 @@ static const sipAPIDef sip_api = {
     sip_api_invoke_slot,
     sip_api_parse_type,
     sip_api_assign_type,
+    sip_api_save_slot,
     /*
      * The following are not part of the public API.
      */
@@ -7491,12 +7492,12 @@ static int sipWrapper_clear(sipWrapper *self)
 
         if (tx != NULL)
         {
-            sipSlotConnection *conn;
+            sipSlot *slot;
             void *context = NULL;
 
-            while ((conn = sipQtSupport->qt_find_connection(tx, &context)) != NULL)
+            while ((slot = sipQtSupport->qt_find_sipslot(tx, &context)) != NULL)
             {
-                clearAnySlotReference(&conn->sc_slot);
+                clearAnySlotReference(slot);
 
                 if (context == NULL)
                     break;
@@ -7588,12 +7589,12 @@ static int sipWrapper_traverse(sipWrapper *self, visitproc visit, void *arg)
 
         if (tx != NULL)
         {
-            sipSlotConnection *conn;
+            sipSlot *slot;
             void *context = NULL;
 
-            while ((conn = sipQtSupport->qt_find_connection(tx, &context)) != NULL)
+            while ((slot = sipQtSupport->qt_find_sipslot(tx, &context)) != NULL)
             {
-                if ((vret = visitSlot(&conn->sc_slot, visit, arg)) != 0)
+                if ((vret = visitSlot(slot, visit, arg)) != 0)
                     return vret;
 
                 if (context == NULL)

@@ -29,7 +29,6 @@ static void removeSlotFromPySigList(sipWrapper *,const char *,PyObject *,const c
 static PyObject *getWeakRef(PyObject *obj);
 static sipPySig *findPySignal(sipWrapper *,const char *);
 static char *sipStrdup(const char *);
-static int saveSlot(sipSlot *sp, PyObject *rxObj, const char *slot);
 static void *createUniversalSlot(sipWrapper *txSelf, const char *sig,
         PyObject *rxObj, const char *slot, const char **member, int flags);
 static void *findSignal(void *txrx, const char **sig);
@@ -398,35 +397,12 @@ static void *newSignal(void *txrx, const char **sig)
  * error.
  */
 static void *createUniversalSlot(sipWrapper *txSelf, const char *sig,
-                 PyObject *rxObj, const char *slot,
-                 const char **member, int flags)
+        PyObject *rxObj, const char *slot, const char **member, int flags)
 {
-    sipSlotConnection conn;
-    void *us;
+    void *us = sipQtSupport->qt_create_universal_slot(txSelf, sig, rxObj, slot,
+            member, flags);
 
-    /* Initialise the connection. */
-    conn.sc_transmitter = (txSelf ? sipGetAddress((sipSimpleWrapper *)txSelf) : 0);
-
-    /* Save the real slot. */
-    if (saveSlot(&conn.sc_slot, rxObj, slot) < 0)
-        return 0;
-
-    /* Parse the signature and create the universal slot. */
-    if ((conn.sc_signature = sip_api_parse_signature(sig)) == NULL)
-    {
-        sip_api_free_connection(&conn);
-        return 0;
-    }
-
-    us = sipQtSupport->qt_create_universal_slot(txSelf, &conn, member, flags);
-
-    if (us == NULL)
-    {
-        sip_api_free_connection(&conn);
-        return 0;
-    }
-
-    if (txSelf)
+    if (us && txSelf)
         sipSetPossibleProxy((sipSimpleWrapper *)txSelf);
 
     return us;
@@ -436,7 +412,7 @@ static void *createUniversalSlot(sipWrapper *txSelf, const char *sig,
 /*
  * Emit a Python or Qt signal.  This is only used by PyQt3.
  */
-int sip_api_emit_signal(PyObject *self,const char *sig,PyObject *sigargs)
+int sip_api_emit_signal(PyObject *self, const char *sig, PyObject *sigargs)
 {
     sipPySig *ps;
     void *tx;
@@ -808,7 +784,7 @@ static int addSlotToPySigList(sipWrapper *txSelf,const char *sig,
     if ((psrx = (sipSlotList *)sip_api_malloc(sizeof (sipSlotList))) == NULL)
         return -1;
 
-    if (saveSlot(&psrx->rx, rxObj, slot) < 0)
+    if (sip_api_save_slot(&psrx->rx, rxObj, slot) < 0)
     {
         sip_api_free(psrx);
         return -1;
@@ -1081,7 +1057,7 @@ static char *sipStrdup(const char *s)
  * Qt signal, then the slot may be a Python signal or a Python slot.  If the
  * signal was a Python signal, then the slot may be anything.
  */
-static int saveSlot(sipSlot *sp, PyObject *rxObj, const char *slot)
+int sip_api_save_slot(sipSlot *sp, PyObject *rxObj, const char *slot)
 {
     sp -> weakSlot = NULL;
 

@@ -81,6 +81,7 @@ PyObject *sip_api_invoke_slot(const sipSlot *slot, PyObject *sigargs);
 void sip_api_parse_type(const char *type, sipSigArg *arg);
 void *sip_api_convert_rx(sipWrapper *txSelf, const char *sigargs,
         PyObject *rxObj, const char *slot, const char **memberp, int flags);
+int sip_api_save_slot(sipSlot *sp, PyObject *rxObj, const char *slot);
 
 
 /*

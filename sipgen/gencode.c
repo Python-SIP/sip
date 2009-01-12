@@ -591,6 +591,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipInvokeSlot               sipAPI_%s->api_invoke_slot\n"
 "#define sipParseType                sipAPI_%s->api_parse_type\n"
 "#define sipAssignType               sipAPI_%s->api_assign_type\n"
+"#define sipSaveSlot                 sipAPI_%s->api_save_slot\n"
 "#define sipWrappedTypeName(wt)      ((wt)->type->td_cname)\n"
 "#define sipDeprecated               sipAPI_%s->api_deprecated\n"
 "#define sipRegisterPyType           sipAPI_%s->api_register_py_type\n"
@@ -616,6 +617,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipConvertFromMappedType    sipConvertFromType\n"
 "#define sipConvertFromNamedEnum(v, pt)  sipConvertFromEnum((v), ((sipEnumTypeObject *)(pt))->type)\n"
 "#define sipConvertFromNewInstance(p, wt, t) sipConvertFromNewType((p), (wt)->type, (t))\n"
+        ,mname
         ,mname
         ,mname
         ,mname
@@ -1070,7 +1072,6 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "\n"
 "#define sipQtCreateUniversalSignal          0\n"
 "#define sipQtFindUniversalSignal            0\n"
-"#define sipQtEmitSignal                     0\n"
 "#define sipQtGetSender                      0\n"
 "#define sipQtForgetSender                   0\n"
 "#define sipQtSignalsBlocked                 0\n"
@@ -1370,7 +1371,9 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "static sipTypeDef *enumTypesTable[] = {\n"
             );
 
-        for (i = 0, ed = pt->enums; ed != NULL; ed = ed->next, ++i)
+        i = 0;
+
+        for (ed = pt->enums; ed != NULL; ed = ed->next)
         {
             if (ed->module != mod || ed->fqcname == NULL)
                 continue;
@@ -1381,6 +1384,8 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
             prcode(fp,
 "    &enumTypes[%d].etd_base,\n"
                 , i);
+
+            ++i;
         }
 
         prcode(fp,
@@ -1698,7 +1703,6 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "    &typesTable[%d],\n"
 "    sipQtCreateUniversalSignal,\n"
 "    sipQtFindUniversalSignal,\n"
-"    sipQtEmitSignal,\n"
 "    sipQtCreateUniversalSlot,\n"
 "    sipQtDestroyUniversalSlot,\n"
 "    sipQtFindSlot,\n"
@@ -1708,7 +1712,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "    sipQtGetSender,\n"
 "    sipQtForgetSender,\n"
 "    sipQtSameSignalSlotName,\n"
-"    sipQtFindConnection\n"
+"    sipQtFindSipslot\n"
 "};\n"
             , mod->qobjclass);
 

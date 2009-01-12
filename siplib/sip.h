@@ -1275,6 +1275,7 @@ typedef struct _sipAPIDef {
     PyObject *(*api_invoke_slot)(const sipSlot *slot, PyObject *sigargs);
     void (*api_parse_type)(const char *type, sipSigArg *arg);
     int (*api_assign_type)(void *dst, const void *src, const sipTypeDef *td);
+    int (*api_save_slot)(sipSlot *sp, PyObject *rxObj, const char *slot);
 
     /*
      * The following are not part of the public API.
@@ -1326,9 +1327,8 @@ typedef struct _sipQtAPI {
     sipTypeDef **qt_qobject;
     void *(*qt_create_universal_signal)(void *, const char **);
     void *(*qt_find_universal_signal)(void *, const char **);
-    int (*qt_emit_signal)(void *, const struct _sipSignature *, PyObject *);
-    void *(*qt_create_universal_slot)(struct _sipWrapper *,
-            struct _sipSlotConnection *, const char **, int);
+    void *(*qt_create_universal_slot)(struct _sipWrapper *, const char *,
+            PyObject *, const char *, const char **, int);
     void (*qt_destroy_universal_slot)(void *);
     void *(*qt_find_slot)(void *, const char *, PyObject *, const char *,
             const char **);
@@ -1338,7 +1338,7 @@ typedef struct _sipQtAPI {
     const void *(*qt_get_sender)();
     void (*qt_forget_sender)();
     int (*qt_same_name)(const char *, const char *);
-    sipSlotConnection *(*qt_find_connection)(void *, void **);
+    sipSlot *(*qt_find_sipslot)(void *, void **);
 } sipQtAPI;
 
 
