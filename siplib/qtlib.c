@@ -33,7 +33,6 @@ static void *createUniversalSlot(sipWrapper *txSelf, const char *sig,
         PyObject *rxObj, const char *slot, const char **member, int flags);
 static void *findSignal(void *txrx, const char **sig);
 static void *newSignal(void *txrx, const char **sig);
-static void freeSlot(sipSlot *slot);
 
 
 /*
@@ -59,15 +58,6 @@ PyObject *sip_api_get_sender()
     }
 
     return sender;
-}
-
-
-/*
- * Release the resources held by a connection.
- */
-void sip_api_free_connection(sipSlotConnection *conn)
-{
-    freeSlot(&conn->sc_slot);
 }
 
 
@@ -1014,9 +1004,9 @@ static void removeSlotFromPySigList(sipWrapper *txSelf,const char *sig,
 
 
 /*
- * Free a sipSlot structure.
+ * Free the resources of a slot.
  */
-static void freeSlot(sipSlot *slot)
+void sip_api_free_sipslot(sipSlot *slot)
 {
     if (slot->name != NULL)
         sip_api_free(slot->name);
@@ -1033,7 +1023,7 @@ static void freeSlot(sipSlot *slot)
  */
 void sipFreeSlotList(sipSlotList *rx)
 {
-    freeSlot(&rx->rx);
+    sip_api_free_sipslot(&rx->rx);
     sip_api_free(rx);
 }
 

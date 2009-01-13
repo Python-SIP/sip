@@ -181,7 +181,7 @@ static const sipAPIDef sip_api = {
      * The following may be used by Qt support code but by no other handwritten
      * code.
      */
-    sip_api_free_connection,
+    sip_api_free_sipslot,
     sip_api_emit_to_slot,
     sip_api_same_connection,
     sip_api_convert_rx,

@@ -56,42 +56,7 @@ extern "C" {
  *
  * History:
  *
- * 4.0  Removed all the previously deprecated parts of the API.
- *      Added the sipSimpleWrapper_Type, sipWrapper_Type, sipWrapperType_Type
- *      and sipVoidPtr_Type type objects.
- *      Added sip_api_register_py_type().
- *      Replaced sip_api_can_convert_to_instance() and
- *      sip_api_can_convert_to_mapped_type() with
- *      sip_api_can_convert_to_type().
- *      Replaced sip_api_convert_to_instance() and
- *      sip_api_convert_to_mapped_type() with sip_api_convert_to_type().
- *      Replaced sip_api_force_convert_to_instance() and
- *      sip_api_force_convert_to_mapped_type() with
- *      sip_api_force_convert_to_type().
- *      Replaced sip_api_convert_from_instance() and
- *      sip_api_convert_from_mapped_type() with sip_api_convert_from_type().
- *      Replaced sip_api_convert_from_new_instance() with
- *      sip_api_convert_from_new_type().
- *      Replaced sip_api_add_class_instance() and
- *      sip_api_add_mapped_type_instance() with sip_api_add_type_instance().
- *      Replaced sip_api_release_instance() and
- *      sip_api_release_mapped_type() with sip_api_release_type().
- *      Replaced sip_api_raise_class_exception() and
- *      sip_api_raise_sub_class_exception() with
- *      sip_api_raise_type_exception().
- *      Replaced sip_api_is_exact_wrapped_type() with a macro.
- *      Replaced sip_api_get_wrapper() with sip_api_get_pyobject().
- *      Deprecated sipWrapper_Check().
- *      Added the 'N' format character of sip_api_build_result() and
- *      sip_api_call_method().
- *      Deprecated the 'B' and 'C' format characters of sip_api_build_result()
- *      and sip_api_call_method().
- *      Deprecated the 'C' format character of sip_api_parse_result().
- *      Removed the 'M' format character of sip_api_parse_args().
- *      The 'J' format character of sip_api_parse_args() now uses sipTypeDef.
- *      Removed sip_api_register_qt_metatype().
- *      Removed qt_register_meta_type() from the Qt support API.
- *      Added sip_api_init_module().
+ * 4.0  Much refactoring.
  *
  * 3.8  Added sip_api_register_qt_metatype() and sip_api_deprecated().
  *      Added qt_register_meta_type() to the Qt support API.
@@ -1263,7 +1228,7 @@ typedef struct _sipAPIDef {
      * The following may be used by Qt support code but no other handwritten
      * code.
      */
-    void (*api_free_connection)(sipSlotConnection *conn);
+    void (*api_free_sipslot)(sipSlot *slot);
     int (*api_emit_to_slot)(const sipSlot *slot, PyObject *sigargs);
     int (*api_same_connection)(sipSlotConnection *conn, void *tx,
             const char *sig, PyObject *rxObj, const char *slot);

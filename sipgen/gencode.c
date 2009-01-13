@@ -561,7 +561,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipBadLengthForSlice        sipAPI_%s->api_bad_length_for_slice\n"
 "#define sipAddTypeInstance          sipAPI_%s->api_add_type_instance\n"
 "#define sipGetAddress               sipAPI_%s->api_get_address\n"
-"#define sipFreeConnection           sipAPI_%s->api_free_connection\n"
+"#define sipFreeSipslot              sipAPI_%s->api_free_sipslot\n"
 "#define sipEmitToSlot               sipAPI_%s->api_emit_to_slot\n"
 "#define sipSameConnection           sipAPI_%s->api_same_connection\n"
 "#define sipPySlotExtend             sipAPI_%s->api_pyslot_extend\n"
