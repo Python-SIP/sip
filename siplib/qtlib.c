@@ -21,7 +21,6 @@
 static PyObject *py_sender = NULL;  /* The last Python signal sender. */
 
 
-static int isSameSlot(sipSlot *,PyObject *,const char *);
 static int emitQtSig(sipSimpleWrapper *sw, const char *sig, PyObject *sigargs);
 static int emitToSlotList(sipSlotList *rxlist, PyObject *sigargs);
 static int addSlotToPySigList(sipWrapper *,const char *,PyObject *,const char *);
@@ -58,18 +57,6 @@ PyObject *sip_api_get_sender()
     }
 
     return sender;
-}
-
-
-/*
- * Compare two connections and return TRUE if they are the same.
- */
-int sip_api_same_connection(sipSlotConnection *conn, void *tx, const char *sig,
-                PyObject *rxObj, const char *slot)
-{
-    return (conn->sc_transmitter == tx &&
-        sipQtSupport->qt_same_name(conn->sc_signature->sg_signature, sig) &&
-        isSameSlot(&conn->sc_slot, rxObj, slot));
 }
 
 
@@ -790,40 +777,40 @@ static int addSlotToPySigList(sipWrapper *txSelf,const char *sig,
 /*
  * Compare two slots to see if they are the same.
  */
-static int isSameSlot(sipSlot *slot1, PyObject *rxobj2, const char *slot2)
+int sip_api_same_slot(const sipSlot *sp, PyObject *rxObj, const char *slot)
 {
     /* See if they are signals or Qt slots, ie. they have a name. */
-    if (slot2 != NULL)
+    if (slot != NULL)
     {
-        if (slot1->name == NULL || slot1->name[0] == '\0')
+        if (sp->name == NULL || sp->name[0] == '\0')
             return 0;
 
-        return (sipQtSupport->qt_same_name(slot1->name, slot2) && slot1->pyobj == rxobj2);
+        return (sipQtSupport->qt_same_name(sp->name, slot) && sp->pyobj == rxObj);
     }
 
     /* See if they are pure Python methods. */
-    if (PyMethod_Check(rxobj2))
+    if (PyMethod_Check(rxObj))
     {
-        if (slot1->pyobj != NULL)
+        if (sp->pyobj != NULL)
             return 0;
 
-        return (slot1->meth.mfunc == PyMethod_GET_FUNCTION(rxobj2) &&
-                slot1->meth.mself == PyMethod_GET_SELF(rxobj2) &&
-                slot1->meth.mclass == PyMethod_GET_CLASS(rxobj2));
+        return (sp->meth.mfunc == PyMethod_GET_FUNCTION(rxObj) &&
+                sp->meth.mself == PyMethod_GET_SELF(rxObj) &&
+                sp->meth.mclass == PyMethod_GET_CLASS(rxObj));
     }
 
     /* See if they are wrapped C++ methods. */
-    if (PyCFunction_Check(rxobj2))
+    if (PyCFunction_Check(rxObj))
     {
-        if (slot1->name == NULL || slot1->name[0] != '\0')
+        if (sp->name == NULL || sp->name[0] != '\0')
             return 0;
 
-        return (slot1->pyobj == PyCFunction_GET_SELF(rxobj2) &&
-                strcmp(&slot1->name[1], ((PyCFunctionObject *)rxobj2)->m_ml->ml_name) == 0);
+        return (sp->pyobj == PyCFunction_GET_SELF(rxObj) &&
+                strcmp(&sp->name[1], ((PyCFunctionObject *)rxObj)->m_ml->ml_name) == 0);
     }
 
     /* The objects must be the same. */
-    return (slot1->pyobj == rxobj2);
+    return (sp->pyobj == rxObj);
 }
 
 
@@ -992,7 +979,7 @@ static void removeSlotFromPySigList(sipWrapper *txSelf,const char *sig,
         {
             sipSlotList *psrx = *psrxp;
 
-            if (isSameSlot(&psrx -> rx,rxObj,slot))
+            if (sip_api_same_slot(&psrx -> rx, rxObj, slot))
             {
                 *psrxp = psrx -> next;
                 sipFreeSlotList(psrx);

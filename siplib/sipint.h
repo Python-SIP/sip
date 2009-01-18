@@ -75,8 +75,7 @@ void sip_api_start_thread(void);
 void sip_api_end_thread(void);
 void sip_api_free_sipslot(sipSlot *slot);
 int sip_api_emit_to_slot(const sipSlot *slot, PyObject *sigargs);
-int sip_api_same_connection(sipSlotConnection *conn, void *tx, const char *sig,
-        PyObject *rxObj, const char *slot);
+int sip_api_same_slot(const sipSlot *sp, PyObject *rxObj, const char *slot);
 PyObject *sip_api_invoke_slot(const sipSlot *slot, PyObject *sigargs);
 void sip_api_parse_type(const char *type, sipSigArg *arg);
 void *sip_api_convert_rx(sipWrapper *txSelf, const char *sigargs,
