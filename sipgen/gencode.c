@@ -698,6 +698,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
         ,mname
         ,mname
         ,mname
+        ,mname
         ,mname);
 
     /* The name strings. */
