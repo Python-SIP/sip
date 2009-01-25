@@ -183,7 +183,7 @@ static const sipAPIDef sip_api = {
      */
     sip_api_free_sipslot,
     sip_api_emit_to_slot,
-    sip_api_same_connection,
+    sip_api_same_slot,
     sip_api_convert_rx,
     sip_api_register_int_types,
     sip_api_parse_signature,
