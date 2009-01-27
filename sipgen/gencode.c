@@ -10639,21 +10639,8 @@ static void deleteTemps(signatureDef *sd, FILE *fp)
         }
         else if (hasConvertToCode(ad))
         {
-            const char *fstr, *sstr;
-
-            if (ad->atype == mapped_type)
-            {
-                if (noRelease(ad->u.mtd))
-                    continue;
-
-                fstr = "MappedType";
-                sstr = "Type";
-            }
-            else
-            {
-                fstr = "Instance";
-                sstr = "Class";
-            }
+            if (ad->atype == mapped_type && noRelease(ad->u.mtd))
+                continue;
 
             if (first)
             {
@@ -10666,12 +10653,12 @@ static void deleteTemps(signatureDef *sd, FILE *fp)
 
             if (generating_c || !isConstArg(ad))
                 prcode(fp,
-"            sipRelease%s(a%d,sip%s_%T,a%dState);\n"
-                    , fstr, a, sstr, ad, a);
+"            sipReleaseType(a%d,sipType_%T,a%dState);\n"
+                    , a, ad, a);
             else
                 prcode(fp,
-"            sipRelease%s(const_cast<%b *>(a%d),sip%s_%T,a%dState);\n"
-                    , fstr, ad, a, sstr, ad, a);
+"            sipReleaseType(const_cast<%b *>(a%d),sipType_%T,a%dState);\n"
+                    , ad, a, ad, a);
         }
     }
 }
