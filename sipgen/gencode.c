@@ -579,7 +579,6 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipExportSymbol             sipAPI_%s->api_export_symbol\n"
 "#define sipImportSymbol             sipAPI_%s->api_import_symbol\n"
 "#define sipRegisterIntTypes         sipAPI_%s->api_register_int_types\n"
-"#define sipParseSignature           sipAPI_%s->api_parse_signature\n"
 "#define sipFindType                 sipAPI_%s->api_find_type\n"
 "#define sipFindNamedEnum            sipAPI_%s->api_find_named_enum\n"
 "#define sipString_AsChar            sipAPI_%s->api_string_as_char\n"
@@ -589,9 +588,9 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipConvertFromVoidPtrAndSize    sipAPI_%s->api_convert_from_void_ptr_and_size\n"
 "#define sipConvertFromConstVoidPtrAndSize   sipAPI_%s->api_convert_from_const_void_ptr_and_size\n"
 "#define sipInvokeSlot               sipAPI_%s->api_invoke_slot\n"
-"#define sipParseType                sipAPI_%s->api_parse_type\n"
 "#define sipAssignType               sipAPI_%s->api_assign_type\n"
 "#define sipSaveSlot                 sipAPI_%s->api_save_slot\n"
+"#define sipFindSigArgType           sipAPI_%s->api_find_sig_arg_type\n"
 "#define sipWrappedTypeName(wt)      ((wt)->type->td_cname)\n"
 "#define sipDeprecated               sipAPI_%s->api_deprecated\n"
 "#define sipRegisterPyType           sipAPI_%s->api_register_py_type\n"
@@ -617,7 +616,6 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipConvertFromMappedType    sipConvertFromType\n"
 "#define sipConvertFromNamedEnum(v, pt)  sipConvertFromEnum((v), ((sipEnumTypeObject *)(pt))->type)\n"
 "#define sipConvertFromNewInstance(p, wt, t) sipConvertFromNewType((p), (wt)->type, (t))\n"
-        ,mname
         ,mname
         ,mname
         ,mname

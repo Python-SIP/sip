@@ -615,7 +615,7 @@ typedef struct _sipClassTypeDef {
     sipDeallocFunc ctd_dealloc;
 
     /* The assignment function. */
-    /* FIXME: Move this to pyqt4ClassTypeDef (if still needed). */
+    /* FIXME: Move this to pyqt4ClassTypeDef. */
     sipAssignFunc ctd_assign;
 
     /* The release function, 0 if a C strict. */
@@ -651,7 +651,7 @@ typedef struct _sipMappedTypeDef {
     sipTypeDef mtd_base;
 
     /* The assignment function. */
-    /* FIXME: Move this to pyqt4ClassTypeDef (if still needed). */
+    /* FIXME: Move this to pyqt4ClassTypeDef. */
     sipAssignFunc mtd_assign;
 
     /* The optional release function. */
@@ -1098,39 +1098,6 @@ typedef struct _sipSigArg {
 
 
 /*
- * A parsed signal signature.
- */
-typedef struct _sipSignature {
-    /* The number of arguments. */
-    int sg_nrargs;
-
-    /* The parsed arguments (heap). */
-    sipSigArg *sg_args;
-
-    /* The unparsed signature (heap). */
-    char *sg_signature;
-
-    /* The next in the list. */
-    struct _sipSignature *sg_next;
-} sipSignature;
-
-
-/*
- * A connection to a universal slot.
- */
-typedef struct _sipSlotConnection {
-    /* The transmitter QObject. */
-    void *sc_transmitter;
-
-    /* The parsed signature. */
-    const sipSignature *sc_signature;
-
-    /* The slot. */
-    sipSlot sc_slot;
-} sipSlotConnection;
-
-
-/*
  * Maps the name of a Qt signal to a wrapper function to emit it.
  */
 typedef struct _sipQtSignal {
@@ -1235,11 +1202,11 @@ typedef struct _sipAPIDef {
             PyObject *rxObj, const char *slot, const char **memberp,
             int flags);
     int (*api_register_int_types)(PyObject *args);
-    sipSignature *(*api_parse_signature)(const char *sig);
     PyObject *(*api_invoke_slot)(const sipSlot *slot, PyObject *sigargs);
-    void (*api_parse_type)(const char *type, sipSigArg *arg);
     int (*api_assign_type)(void *dst, const void *src, const sipTypeDef *td);
     int (*api_save_slot)(sipSlot *sp, PyObject *rxObj, const char *slot);
+    void (*api_find_sig_arg_type)(const char *name, size_t len, sipSigArg *at,
+            int indir);
 
     /*
      * The following are not part of the public API.

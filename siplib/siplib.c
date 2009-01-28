@@ -115,6 +115,8 @@ static int sip_api_register_py_type(PyTypeObject *supertype);
 static PyObject *sip_api_convert_from_enum(int eval, const sipTypeDef *td);
 static const sipTypeDef *sip_api_type_from_py_type_object(PyTypeObject *py_type);
 static const sipTypeDef *sip_api_type_scope(const sipTypeDef *td);
+static void sip_api_find_sig_arg_type(const char *name, size_t len,
+        sipSigArg *at, int indir);
 
 
 /*
@@ -186,11 +188,10 @@ static const sipAPIDef sip_api = {
     sip_api_same_slot,
     sip_api_convert_rx,
     sip_api_register_int_types,
-    sip_api_parse_signature,
     sip_api_invoke_slot,
-    sip_api_parse_type,
     sip_api_assign_type,
     sip_api_save_slot,
+    sip_api_find_sig_arg_type,
     /*
      * The following are not part of the public API.
      */
@@ -8139,8 +8140,10 @@ static int findEnumArg(sipExportedModuleDef *emd, const char *name, size_t len,
 /*
  * Search for a named type and the necessary information to create an instance
  * of it.
+ * FIXME: Move this to PyQt3.
  */
-void sipFindSigArgType(const char *name, size_t len, sipSigArg *at, int indir)
+static void sip_api_find_sig_arg_type(const char *name, size_t len,
+        sipSigArg *at, int indir)
 {
     sipExportedModuleDef *em;
     sipPyObject *po;

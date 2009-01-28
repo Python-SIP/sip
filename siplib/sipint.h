@@ -59,7 +59,6 @@ PyObject *sip_api_connect_rx(PyObject *txObj, const char *sig, PyObject *rxObj,
         const char *slot, int type);
 PyObject *sip_api_disconnect_rx(PyObject *txObj, const char *sig,
         PyObject *rxObj,const char *slot);
-sipSignature *sip_api_parse_signature(const char *sig);
 
 
 /*
@@ -77,7 +76,6 @@ void sip_api_free_sipslot(sipSlot *slot);
 int sip_api_emit_to_slot(const sipSlot *slot, PyObject *sigargs);
 int sip_api_same_slot(const sipSlot *sp, PyObject *rxObj, const char *slot);
 PyObject *sip_api_invoke_slot(const sipSlot *slot, PyObject *sigargs);
-void sip_api_parse_type(const char *type, sipSigArg *arg);
 void *sip_api_convert_rx(sipWrapper *txSelf, const char *sigargs,
         PyObject *rxObj, const char *slot, const char **memberp, int flags);
 int sip_api_save_slot(sipSlot *sp, PyObject *rxObj, const char *slot);
@@ -104,7 +102,6 @@ int sipOMRemoveObject(sipObjectMap *om, sipSimpleWrapper *val);
 void sipSetBool(void *ptr,int val);
 
 void *sipGetAddress(sipSimpleWrapper *w);
-void sipFindSigArgType(const char *name, size_t len, sipSigArg *at, int indir);
 
 
 #ifdef __cplusplus
