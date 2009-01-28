@@ -596,6 +596,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipRegisterPyType           sipAPI_%s->api_register_py_type\n"
 "#define sipTypeFromPyTypeObject     sipAPI_%s->api_type_from_py_type_object\n"
 "#define sipTypeScope                sipAPI_%s->api_type_scope\n"
+"#define sipResolveTypedef(n)        sipAPI_%s->api_resolve_typedef((n), &sipModuleAPI_%s)\n"
 "\n"
 "/* These are deprecated. */\n"
 "#define sipMapStringToClass         sipAPI_%s->api_map_string_to_class\n"
@@ -616,6 +617,8 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipConvertFromMappedType    sipConvertFromType\n"
 "#define sipConvertFromNamedEnum(v, pt)  sipConvertFromEnum((v), ((sipEnumTypeObject *)(pt))->type)\n"
 "#define sipConvertFromNewInstance(p, wt, t) sipConvertFromNewType((p), (wt)->type, (t))\n"
+        ,mname
+        ,mname
         ,mname
         ,mname
         ,mname
@@ -1404,147 +1407,33 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "\n"
 "\n"
 "/*\n"
-" * These define each typedef in this module.  They are only needed in case\n"
-" * they are used as arguments to Qt signals.\n"
+" * These define each typedef in this module.\n"
 " */\n"
-"\n"
 "static sipTypedefDef typedefsTable[] = {\n"
             );
 
         for (td = pt->typedefs; td != NULL; td = td->next)
         {
-            const char *tdmname, *sat;
-            scopedNameDef *fqname;
-            argDef *argtype;
-
             if (td->module != mod)
                 continue;
 
-            fqname = NULL;
-            tdmname = NULL;
-            argtype = NULL;
-            sat = "unknown";
-
-            switch (td->type.atype)
-            {
-            case string_type:
-                sat = (td->type.nrderefs == 0 ? "char" : "string");
-                break;
-
-            case sstring_type:
-                sat = (td->type.nrderefs == 0 ? "schar" : "sstring");
-                break;
-
-            case ustring_type:
-                sat = (td->type.nrderefs == 0 ? "uchar" : "ustring");
-                break;
-
-            case wstring_type:
-                sat = (td->type.nrderefs == 0 ? "wchar" : "wstring");
-                break;
-
-            case short_type:
-                sat = "short";
-                break;
-
-            case ushort_type:
-                sat = "ushort";
-                break;
-
-            case cint_type:
-            case int_type:
-                sat = "int";
-                break;
-
-            case uint_type:
-                sat = "uint";
-                break;
-
-            case long_type:
-                sat = "long";
-                break;
-
-            case ulong_type:
-                sat = "ulong";
-                break;
-
-            case longlong_type:
-                sat = "longlong";
-                break;
-
-            case ulonglong_type:
-                sat = "ulonglong";
-                break;
-
-            case cfloat_type:
-            case float_type:
-                sat = "float";
-                break;
-
-            case cdouble_type:
-            case double_type:
-                sat = "double";
-                break;
-
-            case bool_type:
-            case cbool_type:
-                sat = "bool";
-                break;
-
-            case fake_void_type:
-            case void_type:
-                if (td->type.nrderefs != 0)
-                    sat = "void";
-                break;
-
-            case enum_type:
-                if ((fqname = td->type.u.ed->fqcname) != NULL)
-                {
-                    sat = "enum";
-
-                    if (td->type.u.ed->module != mod)
-                        tdmname = td->type.u.ed->module->fullname->text;
-                }
-                break;
-
-            case class_type:
-                sat = "class";
-                fqname = classFQCName(td->type.u.cd);
-
-                if (td->type.u.cd->iff->module != mod)
-                    tdmname = td->type.u.cd->iff->module->fullname->text;
-                break;
-
-            case mapped_type:
-                sat = "mtype";
-                argtype = &td->type.u.mtd->type;
-
-                if (td->type.u.mtd->iff->module != mod)
-                    tdmname = td->type.u.mtd->iff->module->fullname->text;
-                break;
-            }
-
             prcode(fp,
-"    {\"%S\", %s_sat", td->fqname, sat);
+"    {\"%S\", \"", td->fqname);
 
-            if (argtype != NULL)
-                prcode(fp, ", \"%b\"", argtype);
-            else if (fqname != NULL)
-                prcode(fp, ", \"%S\"", fqname);
+            /* The default behaviour isn't right in a couple of cases. */
+            if (td->type.atype == longlong_type)
+                prcode(fp, "long long");
+            else if (td->type.atype == ulonglong_type)
+                prcode(fp, "unsigned long long");
             else
-                prcode(fp, ", NULL");
+                prcode(fp, "%b", &td->type);
 
-            if (tdmname != NULL)
-                prcode(fp, ", \"%s\"", tdmname);
-            else
-                prcode(fp, ", NULL");
-
-            prcode(fp, "},\n"
+            prcode(fp, "\"},\n"
                 );
         }
 
         prcode(fp,
-"    {NULL, unknown_sat, NULL, NULL}\n"
+"    {NULL, NULL}\n"
 "};\n"
             );
     }

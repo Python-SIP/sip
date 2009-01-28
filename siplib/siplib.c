@@ -115,8 +115,10 @@ static int sip_api_register_py_type(PyTypeObject *supertype);
 static PyObject *sip_api_convert_from_enum(int eval, const sipTypeDef *td);
 static const sipTypeDef *sip_api_type_from_py_type_object(PyTypeObject *py_type);
 static const sipTypeDef *sip_api_type_scope(const sipTypeDef *td);
-static void sip_api_find_sig_arg_type(const char *name, size_t len,
-        sipSigArg *at, int indir);
+static const char *sip_api_resolve_typedef(const char *name,
+        const sipExportedModuleDef *em);
+static void sip_api_find_sig_arg_type(const char *name, sipSigArg *at,
+        int indir);
 
 
 /*
@@ -171,6 +173,7 @@ static const sipAPIDef sip_api = {
     sip_api_register_py_type,
     sip_api_type_from_py_type_object,
     sip_api_type_scope,
+    sip_api_resolve_typedef,
     /*
      * The following are deprecated parts of the public API.
      */
@@ -419,15 +422,13 @@ static PyObject *transferTo(PyObject *self, PyObject *args);
 static void print_object(const char *label, PyObject *obj);
 static void addToParent(sipWrapper *self, sipWrapper *owner);
 static void removeFromParent(sipWrapper *self);
-static sipWrapperType *findClass(sipExportedModuleDef *emd, const char *name,
-        size_t len);
+static sipWrapperType *findClass(sipExportedModuleDef *emd, const char *name);
 static int findClassArg(sipExportedModuleDef *emd, const char *name,
-        size_t len, sipSigArg *at, int indir);
-static int findMtypeArg(sipMappedType **mttab, const char *name, size_t len,
         sipSigArg *at, int indir);
-static sipTypeDef *findEnum(sipExportedModuleDef *emd, const char *name,
-        size_t len);
-static int findEnumArg(sipExportedModuleDef *emd, const char *name, size_t len,
+static int findMtypeArg(sipMappedType **mttab, const char *name, sipSigArg *at,
+        int indir);
+static sipTypeDef *findEnum(sipExportedModuleDef *emd, const char *name);
+static int findEnumArg(sipExportedModuleDef *emd, const char *name,
         sipSigArg *at, int indir);
 static int nameEq(const char *with, const char *name, size_t len);
 static void release(void *addr, const sipTypeDef *td, int state);
@@ -5659,11 +5660,10 @@ static const sipMappedType *sip_api_find_mapped_type(const char *type)
 static sipWrapperType *sip_api_find_class(const char *type)
 {
     sipExportedModuleDef *em;
-    size_t type_len = strlen(type);
 
     for (em = moduleList; em != NULL; em = em->em_next)
     {
-        sipWrapperType *wt = findClass(em, type, type_len);
+        sipWrapperType *wt = findClass(em, type);
 
         if (wt != NULL)
             return wt;
@@ -5679,11 +5679,10 @@ static sipWrapperType *sip_api_find_class(const char *type)
 static PyTypeObject *sip_api_find_named_enum(const char *type)
 {
     sipExportedModuleDef *em;
-    size_t type_len = strlen(type);
 
     for (em = moduleList; em != NULL; em = em->em_next)
     {
-        sipTypeDef *td = findEnum(em, type, type_len);
+        sipTypeDef *td = findEnum(em, type);
 
         if (td != NULL)
             return sipTypeAsPyTypeObject(td);
@@ -8020,8 +8019,7 @@ static void forgetObject(sipSimpleWrapper *sw)
 /*
  * Search for a named class and return the wrapper type.
  */
-static sipWrapperType *findClass(sipExportedModuleDef *emd, const char *name,
-        size_t len)
+static sipWrapperType *findClass(sipExportedModuleDef *emd, const char *name)
 {
     int i;
 
@@ -8032,7 +8030,7 @@ static sipWrapperType *findClass(sipExportedModuleDef *emd, const char *name,
         if (td == NULL)
             continue;
 
-        if (nameEq(sipTypeName(td), name, len))
+        if (strcmp(sipTypeName(td), name) == 0)
             return (sipWrapperType *)sipTypeAsPyTypeObject(td);
     }
 
@@ -8045,9 +8043,9 @@ static sipWrapperType *findClass(sipExportedModuleDef *emd, const char *name,
  * create an instance of it if it was found.
  */
 static int findClassArg(sipExportedModuleDef *emd, const char *name,
-        size_t len, sipSigArg *at, int indir)
+        sipSigArg *at, int indir)
 {
-    sipWrapperType *wt = findClass(emd, name, len);
+    sipWrapperType *wt = findClass(emd, name);
 
     if (wt == NULL)
         return FALSE;
@@ -8069,13 +8067,13 @@ static int findClassArg(sipExportedModuleDef *emd, const char *name,
  * Search for a mapped type and return TRUE and the necessary information to
  * create an instance of it if it was found.
  */
-static int findMtypeArg(sipMappedType **mttab, const char *name, size_t len,
-            sipSigArg *at, int indir)
+static int findMtypeArg(sipMappedType **mttab, const char *name, sipSigArg *at,
+        int indir)
 {
     sipMappedType *mt;
 
     while ((mt = *mttab++) != NULL)
-        if (nameEq(sipTypeName(mt), name, len))
+        if (strcmp(sipTypeName(mt), name) == 0)
         {
             if (indir == 0)
                 at->atype = mtype_sat;
@@ -8097,8 +8095,7 @@ static int findMtypeArg(sipMappedType **mttab, const char *name, size_t len,
  * Search for a named enum in a particular module and return the corresponding
  * type structure.
  */
-static sipTypeDef *findEnum(sipExportedModuleDef *emd, const char *name,
-        size_t len)
+static sipTypeDef *findEnum(sipExportedModuleDef *emd, const char *name)
 {
     int i;
 
@@ -8106,7 +8103,7 @@ static sipTypeDef *findEnum(sipExportedModuleDef *emd, const char *name,
     {
         sipTypeDef *td = emd->em_enumtypes[i];
 
-        if (nameEq(sipTypeName(td), name, len))
+        if (strcmp(sipTypeName(td), name) == 0)
             return td;
     }
 
@@ -8118,10 +8115,10 @@ static sipTypeDef *findEnum(sipExportedModuleDef *emd, const char *name,
  * Search for a named enum and return TRUE and the necessary information to
  * create an instance of it if it was found.
  */
-static int findEnumArg(sipExportedModuleDef *emd, const char *name, size_t len,
+static int findEnumArg(sipExportedModuleDef *emd, const char *name,
         sipSigArg *at, int indir)
 {
-    sipTypeDef *td = findEnum(emd, name, len);
+    sipTypeDef *td = findEnum(emd, name);
 
     if (td == NULL)
         return FALSE;
@@ -8138,12 +8135,50 @@ static int findEnumArg(sipExportedModuleDef *emd, const char *name, size_t len,
 
 
 /*
+ * If the given name is that of a typedef then the corresponding type is
+ * returned.
+ */
+static const char *sip_api_resolve_typedef(const char *name,
+        const sipExportedModuleDef *em)
+{
+    sipTypedefDef *tdd;
+    sipImportedModuleDef *im;
+
+    /* Check this module. */
+    if ((tdd = em->em_typedefs) != NULL)
+        do
+        {
+            /* FIXME: Use a binary search of a sorted table. */
+            if (strcmp(tdd->tdd_name, name) == 0)
+                return tdd->tdd_type_name;
+        }
+        while ((++tdd)->tdd_name != NULL);
+
+    /*
+     * Check parent modules.  We don't check every module because independent
+     * modules could define the same name with different types.
+     */
+    if ((im = em->em_imports) != NULL)
+        do
+        {
+            const char *type_name = sip_api_resolve_typedef(name,
+                    im->im_module);
+
+            if (type_name != NULL)
+                return type_name;
+        }
+        while ((++im)->im_name != NULL);
+
+    return NULL;
+}
+
+/*
  * Search for a named type and the necessary information to create an instance
  * of it.
  * FIXME: Move this to PyQt3.
  */
-static void sip_api_find_sig_arg_type(const char *name, size_t len,
-        sipSigArg *at, int indir)
+static void sip_api_find_sig_arg_type(const char *name, sipSigArg *at,
+        int indir)
 {
     sipExportedModuleDef *em;
     sipPyObject *po;
@@ -8152,69 +8187,16 @@ static void sip_api_find_sig_arg_type(const char *name, size_t len,
 
     for (em = moduleList; em != NULL; em = em->em_next)
     {
-        sipTypedefDef *tdd;
-
-        /* Search for a typedef. */
-        if ((tdd = em->em_typedefs) != NULL)
-            while (tdd->tdd_name != NULL)
-            {
-                if (nameEq(tdd->tdd_name, name, len))
-                {
-                    sipExportedModuleDef *tem;
-                    const char *tn;
-                    size_t tnlen;
-
-                    at->atype = tdd->tdd_type;
-
-                    /* Done with the simple cases. */
-                    if ((tn = tdd->tdd_type_name) == NULL)
-                        return;
-
-                    /*
-                     * Find the module that this class, mapped type or enum is
-                     * defined in.
-                     */
-                    if (tdd->tdd_mod_name == NULL)
-                        tem = em;
-                    else
-                        for (tem = moduleList; tem != NULL; tem = tem->em_next)
-                            if (strcmp(sipNameOfModule(tem), tdd->tdd_mod_name) == 0)
-                                break;
-
-                    tnlen = strlen(tn);
-
-                    switch (tdd->tdd_type)
-                    {
-                    case class_sat:
-                        findClassArg(tem, tn, tnlen, at, indir);
-                        break;
-
-                    case mtype_sat:
-                        findMtypeArg(tem->em_mappedtypes, tn, tnlen, at, indir);
-                        break;
-
-                    case enum_sat:
-                        findEnumArg(tem, tn, tnlen, at, indir);
-                        break;
-                    }
-
-                    /* We should have found it by now. */
-                    return;
-                }
-
-                ++tdd;
-            }
-
         /* Search for a class. */
-        if (em->em_classtypes != NULL && findClassArg(em, name, len, at, indir))
+        if (em->em_classtypes != NULL && findClassArg(em, name, at, indir))
             return;
 
         /* Search for a mapped type. */
-        if (em->em_mappedtypes != NULL && findMtypeArg(em->em_mappedtypes, name, len, at, indir))
+        if (em->em_mappedtypes != NULL && findMtypeArg(em->em_mappedtypes, name, at, indir))
             return;
 
         /* Search for an enum. */
-        if (em->em_enumtypes != NULL && findEnumArg(em, name, len, at, indir))
+        if (em->em_enumtypes != NULL && findEnumArg(em, name, at, indir))
             return;
     }
 
@@ -8230,7 +8212,7 @@ static void sip_api_find_sig_arg_type(const char *name, size_t len,
             if (int_nm == NULL)
                 continue;
 
-            if (nameEq(int_nm, name, len))
+            if (strcmp(int_nm, name) == 0)
             {
                 at->atype = int_sat;
                 return;
@@ -8253,6 +8235,9 @@ static int nameEq(const char *with, const char *name, size_t len)
 /*
  * Register a Python tuple of type names that will be interpreted as ints if
  * they are seen as signal arguments.
+ * FIXME: Should this be generalised to dynamically define a new typedef?  Or
+ * should the functionality be implemented in PyQt4 (as it is only used to
+ * implement Q_FLAGS() and Q_ENUMS())?
  */
 static int sip_api_register_int_types(PyObject *args)
 {

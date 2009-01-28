@@ -5079,6 +5079,14 @@ void sipReleaseType(void \*cpp, const sipTypeDef \*td, int state)
     the generated type structure.  *state* describes the state of the instance.
 
 
+sipResolveTypedef()
+-------------------
+
+const char \*sipResolveTypedef(const char \*name)
+    If *name* refers to a C/C++ typedef then the value of that typedef is
+    returned, otherwise ``NULL`` is returned.
+
+
 sipSimpleWrapper
 ----------------
 

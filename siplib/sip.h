@@ -502,14 +502,8 @@ typedef struct _sipTypedefDef {
     /* The typedef name. */
     const char *tdd_name;
 
-    /* The typedef type. */
-    sipSigArgType tdd_type;
-
-    /* The type name for enum_sat, class_sat and mtype_sat. */
+    /* The typedef value. */
     const char *tdd_type_name;
-
-    /* The defining module, NULL if the current one. */
-    const char *tdd_mod_name;
 } sipTypedefDef;
 
 
@@ -1179,6 +1173,8 @@ typedef struct _sipAPIDef {
     int (*api_register_py_type)(PyTypeObject *type);
     const sipTypeDef *(*api_type_from_py_type_object)(PyTypeObject *py_type);
     const sipTypeDef *(*api_type_scope)(const sipTypeDef *td);
+    const char *(*api_resolve_typedef)(const char *name,
+            const sipExportedModuleDef *em);
 
     /*
      * The following are deprecated parts of the public API.
@@ -1205,8 +1201,7 @@ typedef struct _sipAPIDef {
     PyObject *(*api_invoke_slot)(const sipSlot *slot, PyObject *sigargs);
     int (*api_assign_type)(void *dst, const void *src, const sipTypeDef *td);
     int (*api_save_slot)(sipSlot *sp, PyObject *rxObj, const char *slot);
-    void (*api_find_sig_arg_type)(const char *name, size_t len, sipSigArg *at,
-            int indir);
+    void (*api_find_sig_arg_type)(const char *name, sipSigArg *at, int indir);
 
     /*
      * The following are not part of the public API.
