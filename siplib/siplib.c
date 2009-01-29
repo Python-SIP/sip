@@ -116,8 +116,6 @@ static const sipTypeDef *sip_api_type_from_py_type_object(PyTypeObject *py_type)
 static const sipTypeDef *sip_api_type_scope(const sipTypeDef *td);
 static const char *sip_api_resolve_typedef(const char *name,
         const sipExportedModuleDef *em);
-static void sip_api_find_sig_arg_type(const char *name, sipSigArg *at,
-        int indir);
 
 
 /*
@@ -192,7 +190,6 @@ static const sipAPIDef sip_api = {
     sip_api_invoke_slot,
     sip_api_assign_type,
     sip_api_save_slot,
-    sip_api_find_sig_arg_type,
     /*
      * The following are not part of the public API.
      */
@@ -8096,68 +8093,6 @@ static const char *sip_api_resolve_typedef(const char *name,
         while ((++im)->im_name != NULL);
 
     return NULL;
-}
-
-/*
- * Search for a named type and the necessary information to create an instance
- * of it.
- * FIXME: Move this to PyQt3.
- */
-static void sip_api_find_sig_arg_type(const char *name, sipSigArg *at,
-        int indir)
-{
-    sipExportedModuleDef *em;
-
-    at->atype = unknown_sat;
-
-    for (em = moduleList; em != NULL; em = em->em_next)
-    {
-        sipWrapperType *wt;
-        sipTypeDef *td;
-
-        /* Search for a class. */
-        if ((wt = findClass(em, name)) != NULL)
-        {
-            if (indir == 0)
-                at->atype = class_sat;
-            else if (indir == 1)
-                at->atype = classp_sat;
-            else
-                at->atype = unknown_sat;
-
-            at->u.wt = wt;
-
-            return;
-        }
-
-        /* Search for a mapped type. */
-        if ((td = findMappedType(em, name)) != NULL)
-        {
-            if (indir == 0)
-                at->atype = mtype_sat;
-            else if (indir == 1)
-                at->atype = mtypep_sat;
-            else
-                at->atype = unknown_sat;
-
-            at->u.mt = td;
-
-            return;
-        }
-
-        /* Search for an enum. */
-        if ((td = findEnum(em, name)) != NULL)
-        {
-            if (indir == 0)
-                at->atype = enum_sat;
-            else
-                at->atype = unknown_sat;
-
-            at->u.et = sipTypeAsPyTypeObject(td);
-
-            return;
-        }
-    }
 }
 
 

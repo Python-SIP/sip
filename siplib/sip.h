@@ -460,42 +460,6 @@ typedef struct _sipPySlotExtenderDef {
 
 
 /*
- * This enumerates the different dynamic signal argument types.
- */
-typedef enum {
-    unknown_sat,
-    char_sat,
-    uchar_sat,
-    string_sat,
-    ustring_sat,
-    short_sat,
-    ushort_sat,
-    int_sat,
-    uint_sat,
-    long_sat,
-    ulong_sat,
-    longlong_sat,
-    ulonglong_sat,
-    float_sat,
-    double_sat,
-    enum_sat,
-    bool_sat,
-    void_sat,
-    class_sat,
-    classp_sat,
-    mtype_sat,
-    mtypep_sat,
-    qvariant_sat,
-    qvariantp_sat,
-    pyobject_sat,
-    schar_sat,
-    sstring_sat,
-    wchar_sat,
-    wstring_sat
-} sipSigArgType;
-
-
-/*
  * The information describing a typedef.
  */
 typedef struct _sipTypedefDef {
@@ -1072,26 +1036,6 @@ typedef struct _sipPySig {
 
 
 /*
- * This defines a single dynamic signal argument type.
- */
-typedef struct _sipSigArg {
-    /* The type. */
-    sipSigArgType atype;
-
-    union {
-        /* The Python type for classes. */
-        sipWrapperType *wt;
-
-        /* The data for mapped types. */
-        sipTypeDef *mt;
-
-        /* The Python type for named enums. */
-        PyTypeObject *et;
-    } u;
-} sipSigArg;
-
-
-/*
  * Maps the name of a Qt signal to a wrapper function to emit it.
  */
 typedef struct _sipQtSignal {
@@ -1200,7 +1144,6 @@ typedef struct _sipAPIDef {
     PyObject *(*api_invoke_slot)(const sipSlot *slot, PyObject *sigargs);
     int (*api_assign_type)(void *dst, const void *src, const sipTypeDef *td);
     int (*api_save_slot)(sipSlot *sp, PyObject *rxObj, const char *slot);
-    void (*api_find_sig_arg_type)(const char *name, sipSigArg *at, int indir);
 
     /*
      * The following are not part of the public API.
