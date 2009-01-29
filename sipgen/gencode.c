@@ -578,7 +578,6 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipLong_AsUnsignedLong      sipAPI_%s->api_long_as_unsigned_long\n"
 "#define sipExportSymbol             sipAPI_%s->api_export_symbol\n"
 "#define sipImportSymbol             sipAPI_%s->api_import_symbol\n"
-"#define sipRegisterIntTypes         sipAPI_%s->api_register_int_types\n"
 "#define sipFindType                 sipAPI_%s->api_find_type\n"
 "#define sipFindNamedEnum            sipAPI_%s->api_find_named_enum\n"
 "#define sipString_AsChar            sipAPI_%s->api_string_as_char\n"
@@ -617,7 +616,6 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipConvertFromMappedType    sipConvertFromType\n"
 "#define sipConvertFromNamedEnum(v, pt)  sipConvertFromEnum((v), ((sipEnumTypeObject *)(pt))->type)\n"
 "#define sipConvertFromNewInstance(p, wt, t) sipConvertFromNewType((p), (wt)->type, (t))\n"
-        ,mname
         ,mname
         ,mname
         ,mname
@@ -1284,7 +1282,6 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         }
 
         prcode(fp,
-"    0\n"
 "};\n"
             );
     }

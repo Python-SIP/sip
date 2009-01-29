@@ -1197,7 +1197,6 @@ typedef struct _sipAPIDef {
     void *(*api_convert_rx)(sipWrapper *txSelf, const char *sigargs,
             PyObject *rxObj, const char *slot, const char **memberp,
             int flags);
-    int (*api_register_int_types)(PyObject *args);
     PyObject *(*api_invoke_slot)(const sipSlot *slot, PyObject *sigargs);
     int (*api_assign_type)(void *dst, const void *src, const sipTypeDef *td);
     int (*api_save_slot)(sipSlot *sp, PyObject *rxObj, const char *slot);
