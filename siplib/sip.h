@@ -482,7 +482,7 @@ typedef struct _sipTypeDef {
     /* The next version of this type. */
     struct _sipTypeDef *td_next_version;
 
-    /* The module. */
+    /* The module, 0 if the type hasn't been initialised. */
     struct _sipExportedModuleDef *td_module;
 
     /* Type flags, see the sipType*() macros. */

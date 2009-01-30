@@ -988,16 +988,12 @@ static int sip_api_init_module(sipExportedModuleDef *client,
             if (ctd == NULL)
                 continue;
 
-            /*
-             * Set this up as soon as possible to gain access to the string
-             * pool.
-             */
-            ctd->ctd_base.td_module = client;
-
             /* See if this is a namespace extender. */
             if (ctd->ctd_name < 0)
             {
                 sipClassTypeDef *real_nspace, **last;
+
+                ctd->ctd_base.td_module = client;
 
                 real_nspace = getClassType(&ctd->ctd_scope, client);
 
@@ -1060,28 +1056,25 @@ static int sip_api_init_module(sipExportedModuleDef *client,
     }
 
     /* Create the module's enums. */
-    if (client->em_nrenums != 0)
+    for (i = 0; i < client->em_nrenums; ++i)
     {
-        for (i = 0; i < client->em_nrenums; ++i)
+        sipEnumTypeDef *etd = (sipEnumTypeDef *)client->em_enumtypes[i];
+
+        if (createEnumType(client, etd, mod_dict) < 0)
+            return -1;
+
+        /*
+         * Register the enum pickler for scoped enums (unscoped, ie. those not
+         * nested, don't need special treatment).
+         */
+        if (etd->etd_scope >= 0)
         {
-            sipEnumTypeDef *etd = (sipEnumTypeDef *)client->em_enumtypes[i];
+            static PyMethodDef md = {
+                "_pickle_enum", pickle_enum, METH_NOARGS, NULL
+            };
 
-            if (createEnumType(client, etd, mod_dict) < 0)
+            if (setReduce(sipTypeAsPyTypeObject((sipTypeDef *)etd), &md) < 0)
                 return -1;
-
-            /*
-             * Register the enum pickler for scoped enums (unscoped, ie. those
-             * not nested, don't need special treatment).
-             */
-            if (etd->etd_scope >= 0)
-            {
-                static PyMethodDef md = {
-                    "_pickle_enum", pickle_enum, METH_NOARGS, NULL
-                };
-
-                if (setReduce(sipTypeAsPyTypeObject((sipTypeDef *)etd), &md) < 0)
-                    return -1;
-            }
         }
     }
 
@@ -3577,10 +3570,34 @@ static SIP_SSIZE_T sip_api_convert_from_sequence_index(SIP_SSIZE_T idx,
 static int createClassType(sipExportedModuleDef *client, sipClassTypeDef *ctd,
         PyObject *mod_dict)
 {
-    PyObject *name, *bases, *typedict, *args, *dict;
+    PyObject *name, *bases, *typedict, *args, *scope_dict;
     PyObject *metatype;
     sipEncodedClassDef *sup;
     PyTypeObject *py_type;
+
+    /* Handle the trivial case where we have already been initialised. */
+    if (ctd->ctd_base.td_module != NULL)
+        return 0;
+
+    /* Set this up now to gain access to the string pool. */
+    ctd->ctd_base.td_module = client;
+
+    /* Get the dictionary into which the type will be placed. */
+    if (ctd->ctd_scope.sc_flag)
+        scope_dict = mod_dict;
+    else
+    {
+        sipClassTypeDef *scope_ctd = getClassType(&ctd->ctd_scope, client);
+
+        /*
+         * Initialise the scoping class if necessary.  It will always be in the
+         * same module if it needs doing.
+         */
+        if (createClassType(client, scope_ctd, mod_dict) < 0)
+            return -1;
+
+        scope_dict = (sipTypeAsPyTypeObject((sipTypeDef *)scope_ctd))->tp_dict;
+    }
 
     /* Create an object corresponding to the type name. */
     if ((name = PyString_FromString(sipPyNameOfClass(ctd))) == NULL)
@@ -3642,7 +3659,17 @@ static int createClassType(sipExportedModuleDef *client, sipClassTypeDef *ctd,
 
         for (sup = ctd->ctd_supers, i = 0; i < nrsupers; ++i, ++sup)
         {
-            PyObject *st = (PyObject *)sipTypeAsPyTypeObject((sipTypeDef *)getClassType(sup, client));
+            PyObject *st;
+            sipClassTypeDef *sup_ctd = getClassType(sup, client);
+
+            /*
+             * Initialise the super-class if necessary.  It will always be in
+             * the same module if it needs doing.
+             */
+            if (createClassType(client, sup_ctd, mod_dict) < 0)
+                goto relbases;
+
+            st = (PyObject *)sipTypeAsPyTypeObject((sipTypeDef *)sup_ctd);
 
             Py_INCREF(st);
             PyTuple_SET_ITEM(bases, i, st);
@@ -3683,14 +3710,8 @@ static int createClassType(sipExportedModuleDef *client, sipClassTypeDef *ctd,
     if ((py_type = (PyTypeObject *)PyObject_Call(metatype, args, NULL)) == NULL)
         goto relargs;
 
-    /* Get the dictionary into which the type will be placed. */
-    if (ctd->ctd_scope.sc_flag)
-        dict = mod_dict;
-    else
-        dict = (sipTypeAsPyTypeObject((sipTypeDef *)getClassType(&ctd->ctd_scope, client)))->tp_dict;
-
     /* Add the type to the "parent" dictionary. */
-    if (PyDict_SetItem(dict, name, (PyObject *)py_type) < 0)
+    if (PyDict_SetItem(scope_dict, name, (PyObject *)py_type) < 0)
         goto reltype;
 
     /* Handle the pickle function. */
@@ -3930,7 +3951,15 @@ static int createEnumType(sipExportedModuleDef *client, sipEnumTypeDef *etd,
     if (etd->etd_scope < 0)
         dict = mod_dict;
     else
-        dict = (sipTypeAsPyTypeObject(client->em_classtypes[etd->etd_scope]))->tp_dict;
+    {
+        sipClassTypeDef *scope_ctd = client->em_classtypes[etd->etd_scope];
+
+        /* Make sure the scoping class is initialised. */
+        if (createClassType(client, scope_ctd, mod_dict) < 0)
+            return -1;
+
+        dict = (sipTypeAsPyTypeObject((sipTypeDef *)scope_ctd))->tp_dict;
+    }
 
     /* Create the base type tuple if it hasn't already been done. */
     if (bases == NULL)
