@@ -24,10 +24,8 @@ static void addUniqueModule(moduleDef *mod, moduleDef *imp);
 static void ensureInput(classDef *,overDef *,argDef *);
 static void defaultInput(argDef *);
 static void defaultOutput(argDef *ad);
-static void assignClassNrs(sipSpec *,moduleDef *,nodeDef *);
-static void assignEnumNrs(sipSpec *pt);
-static void positionClass(classDef *);
-static void addNodeToParent(nodeDef *,classDef *);
+static void createSortedNumberedTypesTable(sipSpec *pt, moduleDef *mod);
+static int compareTypes(const void *t1, const void *t2);
 static void addAutoOverload(sipSpec *,classDef *,overDef *);
 static void ifaceFileIsUsed(ifaceFileList **used, argDef *ad);
 static void ifaceFilesAreUsedByOverload(ifaceFileList **used, overDef *od);
@@ -238,32 +236,15 @@ void transform(sipSpec *pt)
             if (!noDefaultCtors(cd) && !isOpaque(cd) && cd->iff->type != namespace_iface)
                 addDefaultCopyCtor(cd);
 
-    /*
-     * Go through each class and add it to it's defining module's tree of
-     * classes.  The tree reflects the namespace hierarchy.
-     */
-    for (cd = pt->classes; cd != NULL; cd = cd->next)
-        addNodeToParent(&cd->iff->module->root, cd);
-
-    for (cd = pt -> classes; cd != NULL; cd = cd -> next)
-        positionClass(cd);
-
-    /* Assign module specific class numbers for all modules. */
+    /* Create the array of numbered types sorted by type name. */
     for (mod = pt->modules; mod != NULL; mod = mod->next)
-        assignClassNrs(pt, mod, &mod->root);
-
-    /* Assign module specific enum numbers for all enums. */
-    assignEnumNrs(pt);
+        createSortedNumberedTypesTable(pt, mod);
 
     /* Add any automatically generated methods. */
     for (cd = pt -> classes; cd != NULL; cd = cd -> next)
         for (od = cd -> overs; od != NULL; od = od -> next)
             if (isAutoGen(od))
                 addAutoOverload(pt,cd,od);
-
-    /* Allocate mapped types numbers. */
-    for (mtd = pt -> mappedtypes; mtd != NULL; mtd = mtd -> next)
-        mtd -> mappednr = mtd -> iff -> module -> nrmappedtypes++;
 
     /*
      * Move casts and slots around to their correct classes (if in the same
@@ -2995,149 +2976,34 @@ static ifaceFileDef *getIfaceFile(argDef *ad)
 
 
 /*
- * Position a class so that it is after all its super-classes.
+ * Create the sorted array of numbered types for a module.
  */
-static void positionClass(classDef *cd)
-{
-    classList *cl;
-
-    /* See if it has already been done. */
-    if (cd -> node -> ordered)
-        return;
-
-    for (cl = cd -> supers; cl != NULL; cl = cl -> next)
-    {
-        nodeDef **ndp, *nd1, *nd2, *rp;
-
-        /* Ignore super-classes from different modules. */
-        if (cl -> cd -> iff -> module != cd -> iff -> module)
-            continue;
-
-        /* Make sure the super-class is positioned. */
-        positionClass(cl -> cd);
-
-        /*
-         * Find ancestors of the two that are siblings (ie. they have a
-         * common parent).
-         */
-        rp = &cd -> iff -> module -> root;
-
-        for (nd1 = cd -> node; nd1 != rp; nd1 = nd1 -> parent)
-        {
-            for (nd2 = cl -> cd -> node; nd2 != rp; nd2 = nd2 -> parent)
-                if (nd1 -> parent == nd2 -> parent)
-                    break;
-
-            if (nd2 != rp)
-                break;
-        }
-
-        /*
-         * The first node must appear after the second in the common
-         * parent's list of children.
-         */
-        for (ndp = &nd1 -> parent -> child; *ndp != NULL; ndp = &(*ndp) -> next)
-        {
-            nodeDef *nd = *ndp;
-
-            if (nd == nd2)
-                break;
-
-            if (nd == nd1)
-            {
-                /* Remove this one from the list. */
-                *ndp = nd -> next;
-
-                /* Find the super-class ancestor. */
-                while (*ndp != nd2)
-                    ndp = &(*ndp) -> next;
-
-                /*
-                 * Put this one back after the super-class
-                 * ancestor.
-                 */
-                nd -> next = (*ndp) -> next;
-                (*ndp) -> next = nd;
-
-                break;
-            }
-        }
-    }
-
-    cd -> node -> ordered = TRUE;
-}
-
-
-/*
- * Make sure a class is in the namespace tree.
- */
-static void addNodeToParent(nodeDef *root,classDef *cd)
-{
-    nodeDef *nd, *parent;
-
-    /* Skip classes already in the tree. */
-    if (cd -> node != NULL)
-        return;
-
-    /* Add this child to the parent. */
-    nd = sipMalloc(sizeof (nodeDef));
-
-    nd -> ordered = FALSE;
-    nd -> cd = cd;
-    nd -> child = NULL;
-
-    /* Get the address of the parent node. */
-    if (cd -> ecd == NULL)
-        parent = root;
-    else
-    {
-        /* Make sure the parent is in the tree. */
-        addNodeToParent(root,cd -> ecd);
-
-        parent = cd -> ecd -> node;
-    }
-
-    nd -> parent = parent;
-
-    /* Insert this at the head of the parent's children. */
-    nd -> next = parent -> child;
-    parent -> child = nd;
-
-    /* Remember where we are in the tree. */
-    cd -> node = nd;
-}
-
-
-/*
- * Assign the module specific class number for a class and all it's children.
- */
-static void assignClassNrs(sipSpec *pt, moduleDef *mod, nodeDef *nd)
+static void createSortedNumberedTypesTable(sipSpec *pt, moduleDef *mod)
 {
     classDef *cd;
-    nodeDef *cnd;
+    mappedTypeDef *mtd;
+    enumDef *ed;
+    argDef *ad;
+    int i;
 
-    /* Assign the class if it's not the root. */
-    if ((cd = nd->cd) != NULL)
+    /* Count the how many types there are. */
+    mod->nrtypes = 0;
+
+    for (cd = pt->classes; cd != NULL; cd = cd->next)
     {
-        cd->classnr = mod->nrclasses++;
+        if (cd->iff->module != mod)
+            continue;
 
-        /* If we find a class called QObject, assume it's Qt. */
-        if (strcmp(classBaseName(cd), "QObject") == 0)
-            mod->qobjclass = cd->classnr;
+        mod->nrtypes++;
     }
 
-    /* Assign all it's children. */
-    for (cnd = nd->child; cnd != NULL; cnd = cnd->next)
-        assignClassNrs(pt, mod, cnd);
-}
+    for (mtd = pt->mappedtypes; mtd != NULL; mtd = mtd->next)
+    {
+        if (mtd->iff->module == mod)
+            continue;
 
-
-/*
- * Assign the module specific enum number for all named enums.
- */
-static void assignEnumNrs(sipSpec *pt)
-{
-    enumDef *ed;
+        mod->nrtypes++;
+    }
 
     for (ed = pt->enums; ed != NULL; ed = ed->next)
     {
@@ -3147,8 +3013,97 @@ static void assignEnumNrs(sipSpec *pt)
         if (ed->ecd != NULL && isTemplateClass(ed->ecd))
             continue;
 
-        ed->enumnr = ed->module->nrenums++;
+        if (ed->module != mod)
+            continue;
+
+        mod->nrtypes++;
     }
+
+    if (mod->nrtypes == 0)
+        return;
+
+    /* Allocate and populate the table. */
+    ad = mod->types = sipCalloc(mod->nrtypes, sizeof (argDef));
+
+    for (cd = pt->classes; cd != NULL; cd = cd->next)
+    {
+        if (cd->iff->module != mod)
+            continue;
+
+        ad->atype = class_type;
+        ad->u.cd = cd;
+        ad->name = cd->iff->name->text;
+
+        ++ad;
+    }
+
+    for (mtd = pt->mappedtypes; mtd != NULL; mtd = mtd->next)
+    {
+        if (mtd->iff->module == mod)
+            continue;
+
+        ad->atype = mapped_type;
+        ad->u.mtd = mtd;
+        ad->name = mtd->cname->text;
+
+        ++ad;
+    }
+
+    for (ed = pt->enums; ed != NULL; ed = ed->next)
+    {
+        if (ed->fqcname == NULL)
+            continue;
+
+        if (ed->ecd != NULL && isTemplateClass(ed->ecd))
+            continue;
+
+        if (ed->module != mod)
+            continue;
+
+        ad->atype = enum_type;
+        ad->u.ed = ed;
+        ad->name = ed->cname->text;
+
+        ++ad;
+    }
+
+    /* Sort the table and assign type numbers. */
+    qsort(mod->types, mod->nrtypes, sizeof (argDef), compareTypes);
+
+    for (ad = mod->types, i = 0; i < mod->nrtypes; ++i, ++ad)
+    {
+        switch (ad->atype)
+        {
+        case class_type:
+            printf("Class: %s\n", ad->name);
+            ad->u.cd->classnr = i;
+
+            /* If we find a class called QObject, assume it's Qt. */
+            if (strcmp(ad->name, "QObject") == 0)
+                mod->qobjclass = i;
+
+            break;
+
+        case mapped_type:
+            printf("Mapped type: %s\n", ad->name);
+            ad->u.mtd->mappednr = i;
+            break;
+
+        case enum_type:
+            printf("Enum: %s\n", ad->name);
+            ad->u.ed->enumnr = i;
+            break;
+        }
+    }
+}
+
+
+/*
+ * The qsort helper to compare two generated type names.
+ */
+static int compareTypes(const void *t1, const void *t2)
+{
+    return strcmp(((argDef *)t1)->name, ((argDef *)t2)->name);
 }
 
 

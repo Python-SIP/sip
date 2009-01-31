@@ -416,9 +416,6 @@ static PyObject *transferTo(PyObject *self, PyObject *args);
 static void print_object(const char *label, PyObject *obj);
 static void addToParent(sipWrapper *self, sipWrapper *owner);
 static void removeFromParent(sipWrapper *self);
-static sipWrapperType *findClass(sipExportedModuleDef *emd, const char *name);
-static sipTypeDef *findMappedType(sipExportedModuleDef *emd, const char *name);
-static sipTypeDef *findEnum(sipExportedModuleDef *emd, const char *name);
 static void release(void *addr, const sipTypeDef *td, int state);
 static void callPyDtor(sipSimpleWrapper *self);
 static int visitSlot(sipSlot *slot, visitproc visit, void *arg);
@@ -978,15 +975,47 @@ static int sip_api_init_module(sipExportedModuleDef *client,
     sipEnumMemberDef *emd;
     int i;
 
-    /* Create the module's classes. */
-    if (client->em_classtypes != NULL)
-        for (i = 0; i < client->em_nrtypes; ++i)
-        {
-            sipClassTypeDef *ctd = (sipClassTypeDef *)client->em_classtypes[i];
+    /* Create the module's types. */
+    for (i = 0; i < client->em_nrtypes; ++i)
+    {
+        sipTypeDef *td = client->em_types[i];
 
-            /* Skip external classes. */
-            if (ctd == NULL)
-                continue;
+        /* Skip external classes. */
+        if (td == NULL)
+             continue;
+
+        /* Skip if already initialised. */
+        if (td->td_module != NULL)
+            continue;
+
+        if (sipTypeIsEnum(td))
+        {
+            sipEnumTypeDef *etd = (sipEnumTypeDef *)td;
+
+            if (createEnumType(client, etd, mod_dict) < 0)
+                return -1;
+
+            /*
+             * Register the enum pickler for scoped enums (unscoped, ie. those
+             * not nested, don't need special treatment).
+             */
+            if (etd->etd_scope >= 0)
+            {
+                static PyMethodDef md = {
+                    "_pickle_enum", pickle_enum, METH_NOARGS, NULL
+                };
+
+                if (setReduce(sipTypeAsPyTypeObject(td), &md) < 0)
+                    return -1;
+            }
+        }
+        else if (sipTypeIsMapped(td))
+        {
+            td->td_module = client;
+        }
+        else
+        {
+            sipClassTypeDef *ctd = (sipClassTypeDef *)td;
 
             /* See if this is a namespace extender. */
             if (ctd->ctd_name < 0)
@@ -1009,15 +1038,12 @@ static int sip_api_init_module(sipExportedModuleDef *client,
                  * Save the real namespace type so that it is the correct scope
                  * for any enums or classes defined in this module.
                  */
-                client->em_classtypes[i] = (sipTypeDef *)real_nspace;
+                client->em_types[i] = (sipTypeDef *)real_nspace;
             }
             else if (createClassType(client, ctd, mod_dict) < 0)
                 return -1;
         }
-
-    /* Complete the initialisation of any mapped types. */
-    for (i = 0; i < client->em_nrmappedtypes; ++i)
-        client->em_mappedtypes[i]->td_module = client;
+    }
 
     /* Set any Qt support API. */
     if (client->em_qt_api != NULL)
@@ -1055,34 +1081,12 @@ static int sip_api_init_module(sipExportedModuleDef *client,
         }
     }
 
-    /* Create the module's enums. */
-    for (i = 0; i < client->em_nrenums; ++i)
-    {
-        sipEnumTypeDef *etd = (sipEnumTypeDef *)client->em_enumtypes[i];
-
-        if (createEnumType(client, etd, mod_dict) < 0)
-            return -1;
-
-        /*
-         * Register the enum pickler for scoped enums (unscoped, ie. those not
-         * nested, don't need special treatment).
-         */
-        if (etd->etd_scope >= 0)
-        {
-            static PyMethodDef md = {
-                "_pickle_enum", pickle_enum, METH_NOARGS, NULL
-            };
-
-            if (setReduce(sipTypeAsPyTypeObject((sipTypeDef *)etd), &md) < 0)
-                return -1;
-        }
-    }
-
+    /* Create the module's enum members. */
     for (emd = client->em_enummembers, i = 0; i < client->em_nrenummembers; ++i, ++emd)
     {
         PyObject *mo;
 
-        if ((mo = sip_api_convert_from_enum(emd->em_val, client->em_enumtypes[emd->em_enum])) == NULL)
+        if ((mo = sip_api_convert_from_enum(emd->em_val, client->em_types[emd->em_enum])) == NULL)
             return -1;
 
         if (PyDict_SetItemString(mod_dict, emd->em_name, mo) < 0)
@@ -1096,14 +1100,14 @@ static int sip_api_init_module(sipExportedModuleDef *client,
      * Add any class static instances.  We need to do this once all types are
      * fully formed because of potential interdependencies.
      */
-    if (client->em_classtypes != NULL)
-        for (i = 0; i < client->em_nrtypes; ++i)
-        {
-            sipTypeDef *td = client->em_classtypes[i];
+    for (i = 0; i < client->em_nrtypes; ++i)
+    {
+        sipTypeDef *td = client->em_types[i];
 
-            if (td != NULL && addInstances((sipTypeAsPyTypeObject(td))->tp_dict, &((sipClassTypeDef *)td)->ctd_instances) < 0)
+        if (td != NULL && sipTypeIsClass(td))
+            if (addInstances((sipTypeAsPyTypeObject(td))->tp_dict, &((sipClassTypeDef *)td)->ctd_instances) < 0)
                 return -1;
-        }
+    }
 
     /* Add any global static instances. */
     if (addInstances(mod_dict, &client->em_instances) < 0)
@@ -1128,18 +1132,16 @@ static int sip_api_init_module(sipExportedModuleDef *client,
 
             for (i = 0; i < client->em_nrtypes; ++i)
             {
-                sipClassTypeDef *ctd = (sipClassTypeDef *)client->em_classtypes[i];
+                sipTypeDef *td = client->em_types[i];
 
-                if (ctd == NULL)
-                    continue;
+                if (td != NULL && sipTypeIsClass(td))
+                    if (strcmp(etd->et_name, sipPyNameOfClass((sipClassTypeDef *)td)) == 0)
+                    {
+                        em->em_types[etd->et_nr] = td;
+                        etd->et_name = NULL;
 
-                if (strcmp(etd->et_name, sipPyNameOfClass(ctd)) == 0)
-                {
-                    em->em_classtypes[etd->et_nr] = (sipTypeDef *)ctd;
-                    etd->et_name = NULL;
-
-                    break;
-                }
+                        break;
+                    }
             }
         }
     }
@@ -1239,7 +1241,7 @@ static void sip_api_add_delayed_dtor(sipSimpleWrapper *sw)
         int i;
 
         for (i = 0; i < em->em_nrtypes; ++i)
-            if (em->em_classtypes[i] == (const sipTypeDef *)ctd)
+            if (em->em_types[i] == (const sipTypeDef *)ctd)
             {
                 sipDelayedDtor *dd;
 
@@ -3801,13 +3803,11 @@ static PyObject *unpickle_type(PyObject *ignore, PyObject *args)
     /* Find the class type object. */
     for (i = 0; i < em->em_nrtypes; ++i)
     {
-        sipClassTypeDef *ctd = (sipClassTypeDef *)em->em_classtypes[i];
+        sipTypeDef *td = em->em_types[i];
 
-        if (ctd == NULL)
-            continue;
-
-        if (strcmp(sipPyNameOfClass(ctd), tname) == 0)
-            return PyObject_CallObject((PyObject *)sipTypeAsPyTypeObject((sipTypeDef *)ctd), init_args);
+        if (td != NULL && sipTypeIsClass(td))
+            if (strcmp(sipPyNameOfClass((sipClassTypeDef *)td), tname) == 0)
+                return PyObject_CallObject((PyObject *)sipTypeAsPyTypeObject(td), init_args);
     }
 
     PyErr_Format(PyExc_SystemError, "unable to find to find type: %s", tname);
@@ -3830,31 +3830,33 @@ static PyObject *pickle_type(PyObject *obj, PyObject *ignore)
 
         for (i = 0; i < em->em_nrtypes; ++i)
         {
-            sipClassTypeDef *ctd = (sipClassTypeDef *)em->em_classtypes[i];
+            sipTypeDef *td = em->em_types[i];
 
-            if (ctd != NULL && sipTypeAsPyTypeObject((sipTypeDef *)ctd) == obj->ob_type)
-            {
-                PyObject *init_args;
-                const char *pyname = sipPyNameOfClass(ctd);
-
-                /*
-                 * Ask the handwritten pickle code for the tuple of arguments
-                 * that will recreate the object.
-                 */
-                init_args = ctd->ctd_pickle(sip_api_get_cpp_ptr((sipSimpleWrapper *)obj, NULL));
-
-                if (!PyTuple_Check(init_args))
+            if (td != NULL && sipTypeIsClass(td))
+                if (sipTypeAsPyTypeObject(td) == obj->ob_type)
                 {
-                    PyErr_Format(PyExc_TypeError,
-                            "%%PickleCode for type %s.%s did not return a tuple",
-                            sipNameOfModule(em), pyname);
+                    PyObject *init_args;
+                    sipClassTypeDef *ctd = (sipClassTypeDef *)td;
+                    const char *pyname = sipPyNameOfClass(ctd);
 
-                    return NULL;
+                    /*
+                     * Ask the handwritten pickle code for the tuple of
+                     * arguments that will recreate the object.
+                     */
+                    init_args = ctd->ctd_pickle(sip_api_get_cpp_ptr((sipSimpleWrapper *)obj, NULL));
+
+                    if (!PyTuple_Check(init_args))
+                    {
+                        PyErr_Format(PyExc_TypeError,
+                                "%%PickleCode for type %s.%s did not return a tuple",
+                                sipNameOfModule(em), pyname);
+
+                        return NULL;
+                    }
+
+                    return Py_BuildValue("O(OsN)", type_unpickler,
+                            em->em_nameobj, pyname, init_args);
                 }
-
-                return Py_BuildValue("O(OsN)", type_unpickler, em->em_nameobj,
-                        pyname, init_args);
-            }
         }
     }
 
@@ -3883,12 +3885,13 @@ static PyObject *unpickle_enum(PyObject *ignore, PyObject *args)
         return NULL;
 
     /* Find the enum type object. */
-    for (i = 0; i < em->em_nrenums; ++i)
+    for (i = 0; i < em->em_nrtypes; ++i)
     {
-        sipTypeDef *td = em->em_enumtypes[i];
+        sipTypeDef *td = em->em_types[i];
 
-        if (strcmp(sipPyNameOfEnum((sipEnumTypeDef *)td), ename) == 0)
-            return PyObject_CallFunctionObjArgs((PyObject *)sipTypeAsPyTypeObject(td), evalue_obj, NULL);
+        if (td != NULL && sipTypeIsEnum(td))
+            if (strcmp(sipPyNameOfEnum((sipEnumTypeDef *)td), ename) == 0)
+                return PyObject_CallFunctionObjArgs((PyObject *)sipTypeAsPyTypeObject(td), evalue_obj, NULL);
     }
 
     PyErr_Format(PyExc_SystemError, "unable to find to find enum: %s", ename);
@@ -3952,7 +3955,7 @@ static int createEnumType(sipExportedModuleDef *client, sipEnumTypeDef *etd,
         dict = mod_dict;
     else
     {
-        sipClassTypeDef *scope_ctd = client->em_classtypes[etd->etd_scope];
+        sipClassTypeDef *scope_ctd = (sipClassTypeDef *)client->em_types[etd->etd_scope];
 
         /* Make sure the scoping class is initialised. */
         if (createClassType(client, scope_ctd, mod_dict) < 0)
@@ -4288,7 +4291,7 @@ static const sipTypeDef *sip_api_type_scope(const sipTypeDef *td)
         const sipEnumTypeDef *etd = (const sipEnumTypeDef *)td;
 
         if (etd->etd_scope >= 0)
-            return td->td_module->em_classtypes[etd->etd_scope];
+            return td->td_module->em_types[etd->etd_scope];
     }
 
     return NULL;
@@ -4320,7 +4323,7 @@ static PyObject *createEnumMember(sipClassTypeDef *ctd, sipEnumMemberDef *enm)
         return PyInt_FromLong(enm->em_val);
 
     return sip_api_convert_from_enum(enm->em_val,
-            ctd->ctd_base.td_module->em_enumtypes[enm->em_enum]);
+            ctd->ctd_base.td_module->em_types[enm->em_enum]);
 }
 
 
@@ -5607,24 +5610,57 @@ int sip_api_get_state(PyObject *transferObj)
 
 
 /*
+ * The bsearch() helper function for searching the types table.
+ */
+static int compareTypeDef(const void *key, const void *el)
+{
+    const char *s1 = (const char *)key;
+    const char *s2 = sipTypeName(*(const sipTypeDef **)el);
+    char ch1, ch2;
+
+    /*
+     * Compare while ignoring spaces so that we don't impose a rigorous naming
+     * standard.  This only really affects template-based mapped types.
+     */
+    do
+    {
+        while ((ch1 = *s1++) == ' ')
+            ;
+
+        while ((ch2 = *s2++) == ' ')
+            ;
+
+        if (ch1 == '\0' && ch2 == '\0')
+            return 0;
+    }
+    while (ch1 == ch2);
+
+    return (ch1 < ch2 ? -1 : 1);
+}
+
+
+/*
  * Return the type structure for a particular type.
- * FIXME: Merge the generated class, mapped and enum types tables  The combined
- * table is sorted by C++ name.  When creating types, handle super-classes by
- * recursion rather than going by the order of the table.  Replace
- * sipEncodedClassDef with a pair of ints (the name of the module and the name
- * of the type/class).
+ * FIXME: Consider replacing sipEncodedClassDef with a pair of ints (the name
+ * of the module and the name of the type/class).
  */
 static const sipTypeDef *sip_api_find_type(const char *type)
 {
-    PyTypeObject *py_type;
+    sipExportedModuleDef *em;
 
-    if ((py_type = (PyTypeObject *)sip_api_find_class(type)) != NULL)
-        return ((sipWrapperType *)py_type)->type;
+    for (em = moduleList; em != NULL; em = em->em_next)
+    {
+        sipTypeDef **tdp;
 
-    if ((py_type = sip_api_find_named_enum(type)) != NULL)
-        return ((sipEnumTypeObject *)py_type)->type;
+        tdp = (sipTypeDef **)bsearch((const void *)type,
+                (const void *)em->em_types, em->em_nrtypes,
+                sizeof (sipTypeDef *), compareTypeDef);
 
-    return (sipTypeDef *)sip_api_find_mapped_type(type);
+        if (tdp != NULL)
+            return *tdp;
+    }
+
+    return NULL;
 }
 
 
@@ -5634,15 +5670,10 @@ static const sipTypeDef *sip_api_find_type(const char *type)
  */
 static const sipMappedType *sip_api_find_mapped_type(const char *type)
 {
-    sipExportedModuleDef *em;
+    const sipTypeDef *td = sip_api_find_type(type);
 
-    for (em = moduleList; em != NULL; em = em->em_next)
-    {
-        const sipTypeDef *td = findMappedType(em, type);
-
-        if (td != NULL)
-            return (const sipMappedType *)td;
-    }
+    if (td != NULL && sipTypeIsMapped(td))
+        return (const sipMappedType *)td;
 
     return NULL;
 }
@@ -5653,15 +5684,10 @@ static const sipMappedType *sip_api_find_mapped_type(const char *type)
  */
 static sipWrapperType *sip_api_find_class(const char *type)
 {
-    sipExportedModuleDef *em;
+    const sipTypeDef *td = sip_api_find_type(type);
 
-    for (em = moduleList; em != NULL; em = em->em_next)
-    {
-        sipWrapperType *wt = findClass(em, type);
-
-        if (wt != NULL)
-            return wt;
-    }
+    if (td != NULL && sipTypeIsClass(td))
+        return (sipWrapperType *)sipTypeAsPyTypeObject(td);
 
     return NULL;
 }
@@ -5672,15 +5698,10 @@ static sipWrapperType *sip_api_find_class(const char *type)
  */
 static PyTypeObject *sip_api_find_named_enum(const char *type)
 {
-    sipExportedModuleDef *em;
+    const sipTypeDef *td = sip_api_find_type(type);
 
-    for (em = moduleList; em != NULL; em = em->em_next)
-    {
-        sipTypeDef *td = findEnum(em, type);
-
-        if (td != NULL)
-            return sipTypeAsPyTypeObject(td);
-    }
+    if (td != NULL && sipTypeIsEnum(td))
+        return sipTypeAsPyTypeObject(td);
 
     return NULL;
 }
@@ -5925,7 +5946,7 @@ static sipExportedModuleDef *getClassModule(sipEncodedClassDef *enc,
 static sipClassTypeDef *getClassType(sipEncodedClassDef *enc,
         sipExportedModuleDef *em)
 {
-    return (sipClassTypeDef *)getClassModule(enc, em)->em_classtypes[enc->sc_class];
+    return (sipClassTypeDef *)getClassModule(enc, em)->em_types[enc->sc_class];
 }
 
 
@@ -8007,82 +8028,6 @@ static void forgetObject(sipSimpleWrapper *sw)
         if (ctd->ctd_dealloc != NULL)
             ctd->ctd_dealloc(sw);
     }
-}
-
-
-/*
- * Search for a named class and return the wrapper type.
- */
-static sipWrapperType *findClass(sipExportedModuleDef *emd, const char *name)
-{
-    int i;
-
-    for (i = 0; i < emd->em_nrtypes; ++i)
-    {
-        sipTypeDef *td = emd->em_classtypes[i];
-
-        if (td == NULL)
-            continue;
-
-        if (strcmp(sipTypeName(td), name) == 0)
-            return (sipWrapperType *)sipTypeAsPyTypeObject(td);
-    }
-
-    return NULL;
-}
-
-
-/*
- * Search for a named class and return the wrapper type.
- */
-static sipTypeDef *findMappedType(sipExportedModuleDef *emd, const char *name)
-{
-    int i;
-
-    for (i = 0; i < emd->em_nrmappedtypes; ++i)
-    {
-        sipTypeDef *td = emd->em_mappedtypes[i];
-        const char *s1 = sipTypeName(td), *s2 = name;
-
-        /*
-         * Compare while ignoring spaces so that we don't impose a rigorous
-         * naming standard.
-         */
-        do
-        {
-            while (*s1 == ' ')
-                ++s1;
-
-            while (*s2 == ' ')
-                ++s2;
-
-            if (*s1 == '\0' && *s2 == '\0')
-                return td;
-        }
-        while (*s1++ == *s2++);
-    }
-
-    return NULL;
-}
-
-
-/*
- * Search for a named enum in a particular module and return the corresponding
- * type structure.
- */
-static sipTypeDef *findEnum(sipExportedModuleDef *emd, const char *name)
-{
-    int i;
-
-    for (i = 0; i < emd->em_nrenums; ++i)
-    {
-        sipTypeDef *td = emd->em_enumtypes[i];
-
-        if (strcmp(sipTypeName(td), name) == 0)
-            return td;
-    }
-
-    return NULL;
 }
 
 

@@ -552,20 +552,6 @@ typedef struct _nameDef {
 } nameDef;
 
 
-/*
- * A node in the tree of classes used to determine the order in which the
- * classes need to be created.
- */
-
-typedef struct _nodeDef {
-    int ordered;                        /* Set if in order. */
-    struct _classDef *cd;               /* The class. */
-    struct _nodeDef *parent;            /* The parent. */
-    struct _nodeDef *child;             /* The first child. */
-    struct _nodeDef *next;              /* The next sibling. */
-} nodeDef;
-
-
 /* A literal code block. */
 
 typedef struct _codeBlock {
@@ -574,55 +560,6 @@ typedef struct _codeBlock {
     int linenr;                         /* The line in the file. */
     struct _codeBlock *next;            /* Next in the list. */
 } codeBlock;
-
-
-/* A module definition. */
-
-typedef struct _moduleDef {
-    nameDef *fullname;                  /* The full module name. */
-    const char *name;                   /* The module base name. */
-    int version;                        /* The module version. */
-    int modflags;                       /* The module flags. */
-    int qobjclass;                      /* QObject class, -1 if none. */
-    struct _memberDef *othfuncs;        /* List of other functions. */
-    struct _overDef *overs;             /* Global overloads. */
-    nameDef *defmetatype;               /* The optional default meta-type. */
-    nameDef *defsupertype;              /* The optional default super-type. */
-    codeBlock *hdrcode;                 /* Header code. */
-    codeBlock *cppcode;                 /* Global C++ code. */
-    codeBlock *copying;                 /* Software license. */
-    codeBlock *preinitcode;             /* Pre-initialisation code. */
-    codeBlock *initcode;                /* Initialisation code. */
-    codeBlock *postinitcode;            /* Post-initialisation code. */
-    codeBlock *unitcode;                /* Compilation unit code. */
-    int parts;                          /* The number of parts generated. */
-    char *file;                         /* The filename. */
-    qualDef *qualifiers;                /* The list of qualifiers. */
-    nodeDef root;                       /* Root of class tree. */
-    int nrtimelines;                    /* The nr. of timelines. */
-    int nrclasses;                      /* The nr. of classes. */
-    int nrexceptions;                   /* The nr. of exceptions. */
-    int nrmappedtypes;                  /* The nr. of mapped types. */
-    int nrenums;                        /* The nr. of named enums. */
-    int nrtypedefs;                     /* The nr. of typedefs. */
-    int nrvirthandlers;                 /* The nr. of virtual handlers. */
-    struct _virtHandlerDef *virthandlers;   /* The virtual handlers. */
-    licenseDef *license;                /* The software license. */
-    struct _classDef *proxies;          /* The list of proxy classes. */
-    struct _moduleDef *container;       /* The container module, if any. */
-    struct _ifaceFileList *used;        /* Interface files used. */
-    struct _moduleListDef *allimports;  /* The list of all imports. */
-    struct _moduleListDef *imports;     /* The list of direct imports. */
-    struct _moduleDef *next;            /* Next in the list. */
-} moduleDef;
-
-
-/* An entry in a linked module list. */
-
-typedef struct _moduleListDef {
-    moduleDef *module;                  /* The module itself. */
-    struct _moduleListDef *next;        /* The next in the list. */
-} moduleListDef;
 
 
 /* The arguments to a throw specifier. */
@@ -701,6 +638,51 @@ typedef struct _fcallDef {
     int nrArgs;                         /* The number of arguments. */
     struct _valueDef *args[MAX_NR_ARGS];    /* The arguments. */
 } fcallDef;
+
+
+/* A module definition. */
+typedef struct _moduleDef {
+    nameDef *fullname;                  /* The full module name. */
+    const char *name;                   /* The module base name. */
+    int version;                        /* The module version. */
+    int modflags;                       /* The module flags. */
+    int qobjclass;                      /* QObject class, -1 if none. */
+    struct _memberDef *othfuncs;        /* List of other functions. */
+    struct _overDef *overs;             /* Global overloads. */
+    nameDef *defmetatype;               /* The optional default meta-type. */
+    nameDef *defsupertype;              /* The optional default super-type. */
+    codeBlock *hdrcode;                 /* Header code. */
+    codeBlock *cppcode;                 /* Global C++ code. */
+    codeBlock *copying;                 /* Software license. */
+    codeBlock *preinitcode;             /* Pre-initialisation code. */
+    codeBlock *initcode;                /* Initialisation code. */
+    codeBlock *postinitcode;            /* Post-initialisation code. */
+    codeBlock *unitcode;                /* Compilation unit code. */
+    int parts;                          /* The number of parts generated. */
+    char *file;                         /* The filename. */
+    qualDef *qualifiers;                /* The list of qualifiers. */
+    argDef *types;                      /* The array of numbered types. */
+    int nrtypes;                        /* The number of numbered types. */
+    int nrtimelines;                    /* The nr. of timelines. */
+    int nrexceptions;                   /* The nr. of exceptions. */
+    int nrtypedefs;                     /* The nr. of typedefs. */
+    int nrvirthandlers;                 /* The nr. of virtual handlers. */
+    struct _virtHandlerDef *virthandlers;   /* The virtual handlers. */
+    licenseDef *license;                /* The software license. */
+    struct _classDef *proxies;          /* The list of proxy classes. */
+    struct _moduleDef *container;       /* The container module, if any. */
+    struct _ifaceFileList *used;        /* Interface files used. */
+    struct _moduleListDef *allimports;  /* The list of all imports. */
+    struct _moduleListDef *imports;     /* The list of direct imports. */
+    struct _moduleDef *next;            /* Next in the list. */
+} moduleDef;
+
+
+/* An entry in a linked module list. */
+typedef struct _moduleListDef {
+    moduleDef *module;                  /* The module itself. */
+    struct _moduleListDef *next;        /* The next in the list. */
+} moduleListDef;
 
 
 /* An interface file definition. */
@@ -853,6 +835,7 @@ typedef struct _enumDef {
     scopedNameDef *fqcname;             /* The C/C++ name (may be NULL). */
     nameDef *cname;                     /* The C/C++ name (may be NULL). */
     int enumnr;                         /* The enum number. */
+    int enum_idx;                       /* The enum index within the module. */
     struct _classDef *ecd;              /* The enclosing class. */
     moduleDef *module;                  /* The owning module. */
     enumMemberDef *members;             /* The list of members. */
@@ -918,7 +901,6 @@ typedef struct _classDef {
     ifaceFileDef *iff;                  /* The interface file. */
     struct _classDef *ecd;              /* The enclosing scope. */
     struct _classDef *real;             /* The real class if this is a proxy or extender. */
-    nodeDef *node;                      /* Position in class tree. */
     classList *supers;                  /* The parent classes. */
     mroDef *mro;                        /* The super-class hierarchy. */
     nameDef *metatype;                  /* The meta-type. */
@@ -1024,7 +1006,8 @@ void warning(char *,...);
 void fatal(char *,...);
 void fatalScopedName(scopedNameDef *);
 int setInputFile(FILE *open_fp, parserContext *pc, int optional);
-void *sipMalloc(size_t);
+void *sipMalloc(size_t n);
+void *sipCalloc(size_t nr, size_t n);
 char *sipStrdup(const char *);
 char *concat(const char *, ...);
 void append(char **, const char *);

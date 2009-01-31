@@ -19,7 +19,6 @@ static void nomem(void);
 /*
  * Wrap malloc() and handle any errors.
  */
-
 void *sipMalloc(size_t n)
 {
 	void *h;
@@ -34,9 +33,22 @@ void *sipMalloc(size_t n)
 
 
 /*
+ * Wrap calloc() and handle any errors.
+ */
+void *sipCalloc(size_t nr, size_t n)
+{
+	void *h;
+
+	if ((h = calloc(nr, n)) == NULL)
+		nomem();
+
+    return h;
+}
+
+
+/*
  * Wrap strdup() and handle any errors.
  */
-
 char *sipStrdup(const char *s)
 {
 	char *h;
@@ -51,7 +63,6 @@ char *sipStrdup(const char *s)
 /*
  * Return a string on the heap which is the concatonation of all the arguments.
  */
-
 char *concat(const char *s, ...)
 {
 	const char *sp;

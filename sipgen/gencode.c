@@ -78,8 +78,6 @@ static void generateMappedTypeAPI(sipSpec *pt, mappedTypeDef *mtd, FILE *fp);
 static void generateClassCpp(classDef *cd, sipSpec *pt, FILE *fp);
 static void generateImportedClassAPI(classDef *cd, sipSpec *pt, moduleDef *mod,
         FILE *fp);
-static void generateClassTableEntries(sipSpec *pt, moduleDef *mod, nodeDef *nd,
-        FILE *fp);
 static void generateClassAPI(classDef *cd, sipSpec *pt, FILE *fp);
 static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
         FILE *fp);
@@ -1016,7 +1014,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 {
     char *cppfile;
     const char *mname = mod->name;
-    int nrSccs = 0, files_in_part, max_per_part, this_part, mod_nr;
+    int nrSccs = 0, files_in_part, max_per_part, this_part, mod_nr, enum_idx;
     int is_inst_class, is_inst_voidp, is_inst_char, is_inst_string;
     int is_inst_int, is_inst_long, is_inst_ulong, is_inst_longlong;
     int is_inst_ulonglong, is_inst_double, nr_enummembers;
@@ -1025,6 +1023,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
     moduleListDef *mld;
     classDef *cd;
     memberDef *md;
+    enumDef *ed;
     ifaceFileDef *iff;
     virtHandlerDef *vhd;
     exceptionDef *xd;
@@ -1197,202 +1196,181 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
     /* Generate the global access functions. */
     generateAccessFunctions(pt, mod, NULL, fp);
 
-    /* Generate the module data structures. */
-    if (mod->nrclasses > 0)
+    /* Generate any sub-class convertors. */
+    nrSccs = generateSubClassConvertors(pt, mod, fp);
+
+    /* Generate the external classes table if needed. */
+    for (cd = pt->classes; cd != NULL; cd = cd->next)
     {
-        nrSccs = generateSubClassConvertors(pt, mod, fp);
+        if (!isExternal(cd))
+            continue;
+
+        if (cd->iff->module != mod)
+            continue;
+
+        if (!hasexternal)
+        {
+            prcode(fp,
+"\n"
+"\n"
+"/* This defines each external type declared in this module, */\n"
+"static sipExternalTypeDef externalTypesTable[] = {\n"
+                );
+
+            hasexternal = TRUE;
+        }
+
+        prcode(fp,
+"    {%d, \"", cd->classnr);
+        prScopedName(fp, classFQCName(cd), ".");
+        prcode(fp,"\"},\n"
+            );
+    }
+
+    if (hasexternal)
+        prcode(fp,
+"    {-1, NULL}\n"
+"};\n"
+            );
+
+    /* Generate any enum slot tables. */
+    for (ed = pt->enums; ed != NULL; ed = ed->next)
+    {
+        memberDef *slot;
+
+        if (ed->module != mod || ed->fqcname == NULL)
+            continue;
+
+        if (ed->slots == NULL)
+            continue;
+
+        for (slot = ed->slots; slot != NULL; slot = slot->next)
+            generateSlot(mod, NULL, ed, slot, fp);
+
+        prcode(fp,
+"\n"
+"static sipPySlotDef slots_%C[] = {\n"
+            , ed->fqcname);
+
+        for (slot = ed->slots; slot != NULL; slot = slot->next)
+        {
+            const char *stype;
+
+            if ((stype = slotName(slot->slot)) != NULL)
+                prcode(fp,
+"    {(void *)slot_%C_%s, %s},\n"
+                    , ed->fqcname, slot->pyname->text, stype);
+        }
+
+        prcode(fp,
+"    {0, (sipPySlotType)0}\n"
+"};\n"
+"\n"
+            );
+    }
+
+    /* Generate the enum type structures. */
+    enum_idx = 0;
+
+    for (ed = pt->enums; ed != NULL; ed = ed->next)
+    {
+        if (ed->module != mod || ed->fqcname == NULL)
+            continue;
+
+        if (ed->ecd != NULL && isTemplateClass(ed->ecd))
+            continue;
+
+        if (enum_idx == 0)
+        {
+            prcode(fp,
+"static sipEnumTypeDef enumTypes[] = {\n"
+                );
+        }
+
+        ed->enum_idx = enum_idx++;
+
+        prcode(fp,
+"    {{-1, 0, 0, SIP_TYPE_ENUM, %n, {0}}, %n, ", ed->cname, ed->pyname);
+
+        if (ed->ecd == NULL)
+            prcode(fp, "-1");
+        else
+            prcode(fp, "%d", ed->ecd->classnr);
+
+        if (ed->slots != NULL)
+            prcode(fp, ", slots_%C", ed->fqcname);
+        else
+            prcode(fp, ", NULL");
+
+        prcode(fp, "},\n"
+            );
+    }
+
+    nr_enummembers = generateEnumMemberTable(pt, mod, NULL, fp);
+
+    /* Generate the types table. */
+    if (mod->nrtypes > 0)
+    {
+        int i;
+        argDef *ad;
 
         prcode(fp,
 "\n"
 "\n"
 "/*\n"
-" * This defines each class in this module.\n"
+" * This defines each type in this module.\n"
 " */\n"
 "static sipTypeDef *typesTable[] = {\n"
             );
 
-        generateClassTableEntries(pt, mod, &mod->root, fp);
-
-        prcode(fp,
-"};\n"
-            );
-
-        /* Generate the external classes table if needed. */
-        for (cd = pt->classes; cd != NULL; cd = cd->next)
+        for (ad = mod->types, i = 0; i < mod->nrtypes; ++i, ++ad)
         {
-            if (!isExternal(cd))
-                continue;
-
-            if (cd->iff->module != mod)
-                continue;
-
-            if (!hasexternal)
+            switch (ad->atype)
             {
-                prcode(fp,
-"\n"
-"\n"
-"/* This defines each external type declared in this module, */\n"
-"static sipExternalTypeDef externalTypesTable[] = {\n"
-                    );
+            case class_type:
+                if (isExternal(ad->u.cd))
+                    prcode(fp,
+"    0,\n"
+                        );
+                else
+                {
+                    const char *type_prefix, *type_suffix;
 
-                hasexternal = TRUE;
-            }
+                    type_suffix = ".super";
 
-            prcode(fp,
-"    {%d, \"", cd->classnr);
-            prScopedName(fp, classFQCName(cd), ".");
-            prcode(fp,"\"},\n"
-                );
-        }
+                    if (pluginPyQt4(pt))
+                        type_prefix = "pyqt4";
+                    else
+                    {
+                        type_prefix = "sip";
+                        type_suffix = "";
+                    }
 
-        if (hasexternal)
-            prcode(fp,
-"    {-1, NULL}\n"
-"};\n"
-                );
-    }
+                    prcode(fp,
+"    &%sType_%s_%C%s.ctd_base,\n"
+                        , type_prefix, mod->name, classFQCName(ad->u.cd), type_suffix);
+                }
 
-    if (mod->nrmappedtypes > 0)
-    {
-        mappedTypeDef *mtd;
-        argDef type;
+                break;
 
-        memset(&type, 0, sizeof (argDef));
-
-        prcode(fp,
-"\n"
-"\n"
-"/* This defines each mapped type in this module. */\n"
-"static sipTypeDef *mappedTypesTable[] = {\n"
-            );
-
-        for (mtd = pt->mappedtypes; mtd != NULL; mtd = mtd->next)
-        {
-            if (mtd->iff->module != mod)
-                continue;
-
-            type.atype = mapped_type;
-            type.u.mtd = mtd;
-
+        case mapped_type:
             prcode(fp,
 "    &sipMappedTypeDef_%T.mtd_base,\n"
-                , &type);
-        }
+                , ad);
+            break;
 
-        prcode(fp,
-"};\n"
-            );
-    }
-
-    if (mod->nrenums > 0)
-    {
-        int i;
-        enumDef *ed;
-
-        prcode(fp,
-"\n"
-"\n"
-"/* Define each named enum in this module. */\n"
-            );
-
-        /* Generate any slot tables. */
-        for (ed = pt->enums; ed != NULL; ed = ed->next)
-        {
-            memberDef *slot;
-
-            if (ed->module != mod || ed->fqcname == NULL)
-                continue;
-
-            if (ed->slots == NULL)
-                continue;
-
-            for (slot = ed->slots; slot != NULL; slot = slot->next)
-                generateSlot(mod, NULL, ed, slot, fp);
-
-            prcode(fp,
-"\n"
-"static sipPySlotDef slots_%C[] = {\n"
-                , ed->fqcname);
-
-            for (slot = ed->slots; slot != NULL; slot = slot->next)
-            {
-                const char *stype;
-
-                if ((stype = slotName(slot->slot)) != NULL)
-                    prcode(fp,
-"    {(void *)slot_%C_%s, %s},\n"
-                        , ed->fqcname, slot->pyname->text, stype);
-            }
-
-            prcode(fp,
-"    {0, (sipPySlotType)0}\n"
-"};\n"
-"\n"
-                );
-        }
-
-        prcode(fp,
-"static sipEnumTypeDef enumTypes[] = {\n"
-            );
-
-        for (ed = pt->enums; ed != NULL; ed = ed->next)
-        {
-            if (ed->module != mod || ed->fqcname == NULL)
-                continue;
-
-            if (ed->ecd != NULL && isTemplateClass(ed->ecd))
-                continue;
-
-            prcode(fp,
-"    {{-1, 0, 0, SIP_TYPE_ENUM, %n, {0}}, %n, ", ed->cname, ed->pyname);
-
-            if (ed->ecd == NULL)
-                prcode(fp, "-1");
-            else
-                prcode(fp, "%d", ed->ecd->classnr);
-
-            if (ed->slots != NULL)
-                prcode(fp, ", slots_%C", ed->fqcname);
-            else
-                prcode(fp, ", NULL");
-
-            prcode(fp, "},\n"
-                );
-        }
-
-        prcode(fp,
-"};\n"
-            );
-
-        prcode(fp,
-"static sipTypeDef *enumTypesTable[] = {\n"
-            );
-
-        i = 0;
-
-        for (ed = pt->enums; ed != NULL; ed = ed->next)
-        {
-            if (ed->module != mod || ed->fqcname == NULL)
-                continue;
-
-            if (ed->ecd != NULL && isTemplateClass(ed->ecd))
-                continue;
-
+        case enum_type:
             prcode(fp,
 "    &enumTypes[%d].etd_base,\n"
-                , i);
-
-            ++i;
+                , ad->u.ed->enum_idx);
+            break;
         }
 
         prcode(fp,
 "};\n"
             );
-
-        nr_enummembers = generateEnumMemberTable(pt, mod, NULL, fp);
+        }
     }
-    else
-        nr_enummembers = 0;
 
     if (mod->nrtypedefs > 0)
     {
@@ -1617,10 +1595,6 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "    %s,\n"
 "    %d,\n"
 "    %s,\n"
-"    %d,\n"
-"    %s,\n"
-"    %d,\n"
-"    %s,\n"
 "    %s,\n"
 "    %s,\n"
 "    %s,\n"
@@ -1638,13 +1612,9 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         , mname
         , mod->allimports != NULL ? "importsTable" : "NULL"
         , mod->qobjclass >= 0 ? "&qtAPI" : "NULL"
-        , mod->nrclasses
-        , mod->nrclasses > 0 ? "typesTable" : "NULL"
+        , mod->nrtypes
+        , mod->nrtypes > 0 ? "typesTable" : "NULL"
         , hasexternal ? "externalTypesTable" : "NULL"
-        , mod->nrmappedtypes
-        , mod->nrmappedtypes > 0 ? "mappedTypesTable" : "NULL"
-        , mod->nrenums
-        , mod->nrenums > 0 ? "enumTypesTable" : "NULL"
         , nr_enummembers
         , nr_enummembers > 0 ? "enummembers" : "NULL"
         , mod->nrtypedefs > 0 ? "typedefsTable" : "NULL"
@@ -2034,47 +2004,6 @@ static int generateSubClassConvertors(sipSpec *pt, moduleDef *mod, FILE *fp)
 
 
 /*
- * Generate an entry for a class in the classes table and all its children.
- */
-static void generateClassTableEntries(sipSpec *pt, moduleDef *mod, nodeDef *nd,
-        FILE *fp)
-{
-    nodeDef *cnd;
-
-    /* Generate the entry if it's not the root. */
-    if (nd->cd != NULL)
-    {
-        if (isExternal(nd->cd))
-            prcode(fp,
-"    0,\n"
-                );
-        else
-        {
-            const char *type_prefix, *type_suffix;
-
-            type_suffix = ".super";
-
-            if (pluginPyQt4(pt))
-                type_prefix = "pyqt4";
-            else
-            {
-                type_prefix = "sip";
-                type_suffix = "";
-            }
-
-            prcode(fp,
-"    &%sType_%s_%C%s.ctd_base,\n"
-                , type_prefix, mod->name, classFQCName(nd->cd), type_suffix);
-        }
-    }
-
-    /* Generate all it's children. */
-    for (cnd = nd->child; cnd != NULL; cnd = cnd->next)
-        generateClassTableEntries(pt, mod, cnd, fp);
-}
-
-
-/*
  * Generate the structure representing an encoded class.
  */
 static void generateEncodedClass(moduleDef *mod, classDef *cd, int last,
@@ -2241,7 +2170,7 @@ static int generateEnumMemberTable(sipSpec *pt, moduleDef *mod, classDef *cd,
 
     /* Create a table so they can be sorted. */
 
-    etab = sipMalloc(sizeof (enumMemberDef *) * nr_members);
+    etab = sipCalloc(nr_members, sizeof (enumMemberDef *));
 
     et = etab;
 
@@ -2309,7 +2238,6 @@ static int generateEnumMemberTable(sipSpec *pt, moduleDef *mod, classDef *cd,
  * The qsort helper to compare two enumMemberDef structures based on the name
  * of the enum member.
  */
-
 static int compareEnumMembers(const void *m1,const void *m2)
 {
     return strcmp((*(enumMemberDef **)m1)->pyname->text,
@@ -3277,7 +3205,7 @@ static sortedMethTab *createFunctionTable(classDef *cd,int *nrp)
 
     /* Create the table of methods. */
 
-    mtab = sipMalloc(sizeof (sortedMethTab) * nr);
+    mtab = sipCalloc(nr, sizeof (sortedMethTab));
 
     /* Initialise the table. */
 
@@ -3350,7 +3278,7 @@ static sortedMethTab *createMethodTable(classDef *cd, int *nrp)
 
     /* Create the table of methods. */
 
-    mtab = sipMalloc(sizeof (sortedMethTab) * nr);
+    mtab = sipCalloc(nr, sizeof (sortedMethTab));
 
     /* Initialise the table. */
 
@@ -6740,7 +6668,7 @@ static void generateImportedMappedTypeAPI(mappedTypeDef *mtd, moduleDef *mod,
 
     prcode(fp,
 "\n"
-"#define sipType_%T      sipModuleAPI_%s_%s->em_mappedtypes[%d]\n"
+"#define sipType_%T      sipModuleAPI_%s_%s->em_types[%d]\n"
         , &type, mname, imname, mtd->mappednr);
 }
 
@@ -6752,7 +6680,7 @@ static void generateMappedTypeAPI(sipSpec *pt, mappedTypeDef *mtd, FILE *fp)
 {
     prcode(fp,
 "\n"
-"#define sipType_%T      sipModuleAPI_%s.em_mappedtypes[%d]\n"
+"#define sipType_%T      sipModuleAPI_%s.em_types[%d]\n"
 "\n"
 "extern sipMappedTypeDef sipMappedTypeDef_%T;\n"
         , &mtd->type, mtd->iff->module->name, mtd->mappednr
@@ -6779,8 +6707,8 @@ static void generateImportedClassAPI(classDef *cd, sipSpec *pt, moduleDef *mod,
             , classFQCName(cd));
 
     prcode(fp,
-"#define sipType_%C              sipModuleAPI_%s_%s->em_classtypes[%d]\n"
-"#define sipClass_%C             sipModuleAPI_%s_%s->em_classtypes[%d]->u.td_wrapper_type\n"
+"#define sipType_%C              sipModuleAPI_%s_%s->em_types[%d]\n"
+"#define sipClass_%C             sipModuleAPI_%s_%s->em_types[%d]->u.td_wrapper_type\n"
         , classFQCName(cd), mname, imname, cd->classnr
         , classFQCName(cd), mname, imname, cd->classnr);
 
@@ -6806,8 +6734,8 @@ static void generateClassAPI(classDef *cd, sipSpec *pt, FILE *fp)
 
     if (cd->real == NULL)
         prcode(fp,
-"#define sipType_%C              sipModuleAPI_%s.em_classtypes[%d]\n"
-"#define sipClass_%C             sipModuleAPI_%s.em_classtypes[%d]->u.td_wrapper_type\n"
+"#define sipType_%C              sipModuleAPI_%s.em_types[%d]\n"
+"#define sipClass_%C             sipModuleAPI_%s.em_types[%d]->u.td_wrapper_type\n"
             , classFQCName(cd), mname, cd->classnr
             , classFQCName(cd), mname, cd->classnr);
 
@@ -6855,14 +6783,14 @@ static void generateEnumMacros(sipSpec *pt, moduleDef *mod, classDef *cd,
 
         if (mod == ed->module)
             prcode(fp,
-"#define sipType_%C              sipModuleAPI_%s.em_enumtypes[%d]\n"
-"#define sipEnum_%C              sipModuleAPI_%s.em_enumtypes[%d]->u.td_py_type\n"
+"#define sipType_%C              sipModuleAPI_%s.em_types[%d]\n"
+"#define sipEnum_%C              sipModuleAPI_%s.em_types[%d]->u.td_py_type\n"
                 , ed->fqcname, mod->name, ed->enumnr
                 , ed->fqcname, mod->name, ed->enumnr);
         else
             prcode(fp,
-"#define sipType_%C              sipModuleAPI_%s_%s->em_enumtypes[%d]\n"
-"#define sipEnum_%C              sipModuleAPI_%s_%s->em_enumtypes[%d]->u.td_py_type\n"
+"#define sipType_%C              sipModuleAPI_%s_%s->em_types[%d]\n"
+"#define sipEnum_%C              sipModuleAPI_%s_%s->em_types[%d]->u.td_py_type\n"
                 , ed->fqcname, mod->name, ed->module->name, ed->enumnr
                 , ed->fqcname, mod->name, ed->module->name, ed->enumnr);
     }

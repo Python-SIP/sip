@@ -724,23 +724,11 @@ typedef struct _sipExportedModuleDef {
     /* The number of types. */
     int em_nrtypes;
 
-    /* The table of class types. */
-    sipTypeDef **em_classtypes;
+    /* The table of types. */
+    sipTypeDef **em_types;
 
     /* The table of external types. */
     sipExternalTypeDef *em_external;
-
-    /* The number of mapped types. */
-    int em_nrmappedtypes;
-
-    /* The table of mapped types. */
-    sipTypeDef **em_mappedtypes;
-
-    /* The number of enums. */
-    int em_nrenums;
-
-    /* The table of enum types. */
-    sipTypeDef **em_enumtypes;
 
     /* The number of members in global enums. */
     int em_nrenummembers;
