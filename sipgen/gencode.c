@@ -10343,17 +10343,12 @@ static int generateArgParser(signatureDef *sd, classDef *cd, ctorDef *ct,
  * Get the format character string for something that has sub-formats.
  */
 
-static char *getSubFormatChar(char fc,argDef *ad)
+static char *getSubFormatChar(char fc, argDef *ad)
 {
     static char fmt[3];
     char flags;
 
-    fmt[0] = fc;
-
     flags = 0;
-
-    if (fc != 'P' && ad->nrderefs == 0)
-        flags |= 0x01;
 
     if (isTransferred(ad))
         flags |= 0x02;
@@ -10361,20 +10356,24 @@ static char *getSubFormatChar(char fc,argDef *ad)
     if (isTransferredBack(ad))
         flags |= 0x04;
 
-    if (fc == 'J')
+    if (ad->atype == class_type || ad->atype == mapped_type)
     {
+        if (ad->nrderefs == 0)
+            flags |= 0x01;
+
         if (isThisTransferred(ad))
             flags |= 0x20;
 
         if (isGetWrapper(ad))
             flags |= 0x08;
 
-        if (ad->u.cd->convtocode == NULL || isConstrained(ad))
-            flags |= 0x10;
+        if (ad->atype == class_type)
+            if (ad->u.cd->convtocode == NULL || isConstrained(ad))
+                flags |= 0x10;
     }
 
+    fmt[0] = fc;
     fmt[1] = '0' + flags;
-
     fmt[2] = '\0';
 
     return fmt;

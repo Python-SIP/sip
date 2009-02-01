@@ -5404,6 +5404,8 @@ static void *sip_api_convert_to_type(PyObject *pyObj, const sipTypeDef *td,
     void *cpp = NULL;
     int state = 0;
 
+    assert(sipTypeIsClass(td) || sipTypeIsMapped(td));
+
     /* Don't convert if there has already been an error. */
     if (!*iserrp)
     {
@@ -5416,10 +5418,8 @@ static void *sip_api_convert_to_type(PyObject *pyObj, const sipTypeDef *td,
 
             if (sipTypeIsClass(td))
                 cto = ((const sipClassTypeDef *)td)->ctd_cto;
-            else if (sipTypeIsMapped(td))
-                cto = ((const sipMappedTypeDef *)td)->mtd_cto;
             else
-                cto = NULL;
+                cto = ((const sipMappedTypeDef *)td)->mtd_cto;
 
             if (cto == NULL || (flags & SIP_NO_CONVERTORS) != 0)
             {
