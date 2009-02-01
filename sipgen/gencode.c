@@ -1069,7 +1069,6 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "\n"
 "#define sipQtCreateUniversalSignal          0\n"
 "#define sipQtFindUniversalSignal            0\n"
-"#define sipQtGetSender                      0\n"
 "#define sipQtForgetSender                   0\n"
 "#define sipQtSignalsBlocked                 0\n"
             );
@@ -1759,11 +1758,6 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "    sip_qt_register(qRegisterMetaType<%S>(%N), sipType_%C);\n"
                         , classFQCName(cd), cd->iff->name, classFQCName(cd));
                 }
-
-        /*
-         * FIXME: Generate registration calls for any mapped type that has
-         * asked for it.
-         */
     }
 
     prcode(fp,

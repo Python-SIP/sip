@@ -35,22 +35,25 @@ static void *newSignal(void *txrx, const char **sig);
 
 
 /*
- * Return the most recent signal sender.  This is only used by PyQt3.
- * FIXME: It is still called by PyQt4 which causes qtdemo.py to segfault.
+ * Return the most recent signal sender.
  */
 PyObject *sip_api_get_sender()
 {
     PyObject *sender;
-    const void *qt_sender;
+    void *qt_sender;
 
     /*
      * If there is a Qt sender then it is more recent than the last Python
      * sender, so use it instead.
      */
     if ((qt_sender = sipQtSupport->qt_get_sender()) != NULL)
-        sender = sip_api_convert_from_type((void *)qt_sender, sipQObjectType, NULL);
+        sender = sip_api_convert_from_type(qt_sender, sipQObjectType, NULL);
     else
     {
+        /*
+         * For PyQt4 there will never be a Pyton sender so this will do the
+         * right thing.
+         */
         if ((sender = py_sender) == NULL)
             sender = Py_None;
 

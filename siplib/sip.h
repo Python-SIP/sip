@@ -1191,7 +1191,7 @@ typedef struct _sipQtAPI {
     int (*qt_connect)(void *, const char *, void *, const char *, int);
     int (*qt_disconnect)(void *, const char *, void *, const char *);
     int (*qt_signals_blocked)(void *);
-    const void *(*qt_get_sender)();
+    void *(*qt_get_sender)();
     void (*qt_forget_sender)();
     int (*qt_same_name)(const char *, const char *);
     sipSlot *(*qt_find_sipslot)(void *, void **);
