@@ -299,7 +299,7 @@
 #define ARG_RESULT_SIZE     0x2000  /* It defines the result size. */
 
 #define isReference(a)      ((a)->argflags & ARG_IS_REF)
-#define setIsReference(a)   ((a)-> argflags |= ARG_IS_REF)
+#define setIsReference(a)   ((a)->argflags |= ARG_IS_REF)
 #define resetIsReference(a) ((a)->argflags &= ~ARG_IS_REF)
 #define isConstArg(a)       ((a)->argflags & ARG_IS_CONST)
 #define setIsConstArg(a)    ((a)->argflags |= ARG_IS_CONST)

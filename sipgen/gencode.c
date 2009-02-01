@@ -1306,6 +1306,11 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
             );
     }
 
+    if (enum_idx != 0)
+        prcode(fp,
+"};\n"
+            );
+
     nr_enummembers = generateEnumMemberTable(pt, mod, NULL, fp);
 
     /* Generate the types table. */
@@ -1353,23 +1358,23 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 
                 break;
 
-        case mapped_type:
-            prcode(fp,
+            case mapped_type:
+                prcode(fp,
 "    &sipMappedTypeDef_%T.mtd_base,\n"
-                , ad);
-            break;
+                    , ad);
+                break;
 
-        case enum_type:
-            prcode(fp,
+            case enum_type:
+                prcode(fp,
 "    &enumTypes[%d].etd_base,\n"
-                , ad->u.ed->enum_idx);
-            break;
+                    , ad->u.ed->enum_idx);
+                break;
+            }
         }
 
         prcode(fp,
 "};\n"
             );
-        }
     }
 
     if (mod->nrtypedefs > 0)

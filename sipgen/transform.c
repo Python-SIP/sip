@@ -53,7 +53,6 @@ static void fatalNoDefinedType(scopedNameDef *);
 static void getBaseType(sipSpec *,moduleDef *,classDef *,argDef *);
 static void searchScope(sipSpec *,classDef *,scopedNameDef *,argDef *);
 static void searchMappedTypes(sipSpec *,scopedNameDef *,argDef *);
-void searchTypedefs(sipSpec *pt, scopedNameDef *snd, argDef *ad);
 static void searchEnums(sipSpec *,scopedNameDef *,argDef *);
 static void searchClasses(sipSpec *,moduleDef *mod,scopedNameDef *,argDef *);
 static void appendToMRO(mroDef *,mroDef ***,classDef *);
@@ -2999,7 +2998,7 @@ static void createSortedNumberedTypesTable(sipSpec *pt, moduleDef *mod)
 
     for (mtd = pt->mappedtypes; mtd != NULL; mtd = mtd->next)
     {
-        if (mtd->iff->module == mod)
+        if (mtd->iff->module != mod)
             continue;
 
         mod->nrtypes++;
@@ -3039,7 +3038,7 @@ static void createSortedNumberedTypesTable(sipSpec *pt, moduleDef *mod)
 
     for (mtd = pt->mappedtypes; mtd != NULL; mtd = mtd->next)
     {
-        if (mtd->iff->module == mod)
+        if (mtd->iff->module != mod)
             continue;
 
         ad->atype = mapped_type;
@@ -3075,7 +3074,6 @@ static void createSortedNumberedTypesTable(sipSpec *pt, moduleDef *mod)
         switch (ad->atype)
         {
         case class_type:
-            printf("Class: %s\n", ad->name);
             ad->u.cd->classnr = i;
 
             /* If we find a class called QObject, assume it's Qt. */
@@ -3085,12 +3083,10 @@ static void createSortedNumberedTypesTable(sipSpec *pt, moduleDef *mod)
             break;
 
         case mapped_type:
-            printf("Mapped type: %s\n", ad->name);
             ad->u.mtd->mappednr = i;
             break;
 
         case enum_type:
-            printf("Enum: %s\n", ad->name);
             ad->u.ed->enumnr = i;
             break;
         }

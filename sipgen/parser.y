@@ -3286,7 +3286,7 @@ mappedTypeDef *allocMappedType(sipSpec *pt, argDef *type)
     mtd->type.argflags = 0;
     mtd->type.nrderefs = 0;
 
-    mtd->cname = cacheName(pt, type2string(type));
+    mtd->cname = cacheName(pt, type2string(&mtd->type));
     mtd->mappednr = -1;
 
     return mtd;
@@ -3419,118 +3419,132 @@ void appendTypeStrings(scopedNameDef *ename, signatureDef *patt, signatureDef *s
 static char *type2string(argDef *ad)
 {
     int i, on_heap = FALSE;
+    int nr_derefs = ad->nrderefs;
+    int is_reference = isReference(ad);
     char *s;
 
-    switch (ad->atype)
+    /* Use the original type if possible. */
+    if (ad->original_type != NULL && !noTypeName(ad->original_type))
     {
-    case template_type:
+        s = scopedNameToString(ad->original_type->fqname);
+        on_heap = TRUE;
+
+        nr_derefs -= ad->original_type->type.nrderefs;
+
+        if (isReference(&ad->original_type->type))
+            is_reference = FALSE;
+    }
+    else
+        switch (ad->atype)
         {
-            templateDef *td = ad->u.td;
-
-            s = scopedNameToString(td->fqname);
-            append(&s, "<");
-
-            for (i = 0; i < td->types.nrArgs; ++i)
+        case template_type:
             {
-                char *sub_type = type2string(&td->types.args[i]);
+                templateDef *td = ad->u.td;
 
-                if (i > 0)
-                    append(&s, ",");
+                s = scopedNameToString(td->fqname);
+                append(&s, "<");
 
-                append(&s, sub_type);
-                free(sub_type);
+                for (i = 0; i < td->types.nrArgs; ++i)
+                {
+                    char *sub_type = type2string(&td->types.args[i]);
+
+                    if (i > 0)
+                        append(&s, ",");
+
+                    append(&s, sub_type);
+                    free(sub_type);
+                }
+
+                if (s[strlen(s) - 1] == '>')
+                    append(&s, " >");
+                else
+                    append(&s, ">");
+
+                on_heap = TRUE;
+                break;
             }
 
-            if (s[strlen(s) - 1] == '>')
-                append(&s, " >");
-            else
-                append(&s, ">");
-
+        case defined_type:
+            s = scopedNameToString(ad->u.snd);
             on_heap = TRUE;
             break;
+
+        case ustring_type:
+            s = "unsigned char";
+            break;
+
+        case string_type:
+            s = "char";
+            break;
+
+        case sstring_type:
+            s = "signed char";
+            break;
+
+        case wstring_type:
+            s = "wchar_t";
+            break;
+
+        case ushort_type:
+            s = "unsigned short";
+            break;
+
+        case short_type:
+            s = "short";
+            break;
+
+        case uint_type:
+            s = "unsigned int";
+            break;
+
+        case int_type:
+        case cint_type:
+            s = "int";
+            break;
+
+        case ulong_type:
+            s = "unsigned long";
+            break;
+
+        case long_type:
+            s = "long";
+            break;
+
+        case ulonglong_type:
+            s = "unsigned long long";
+            break;
+
+        case longlong_type:
+            s = "long long";
+            break;
+
+        case float_type:
+        case cfloat_type:
+            s = "float";
+            break;
+
+        case double_type:
+        case cdouble_type:
+            s = "double";
+            break;
+
+        case bool_type:
+        case cbool_type:
+            s = "bool";
+            break;
+
+        default:
+            fatal("Unsupported type argument to type2string()\n");
         }
-
-    case defined_type:
-        s = scopedNameToString(ad->u.snd);
-        on_heap = TRUE;
-        break;
-
-    case ustring_type:
-        s = "unsigned char";
-        break;
-
-    case string_type:
-        s = "char";
-        break;
-
-    case sstring_type:
-        s = "signed char";
-        break;
-
-    case wstring_type:
-        s = "wchar_t";
-        break;
-
-    case ushort_type:
-        s = "unsigned short";
-        break;
-
-    case short_type:
-        s = "short";
-        break;
-
-    case uint_type:
-        s = "unsigned int";
-        break;
-
-    case int_type:
-    case cint_type:
-        s = "int";
-        break;
-
-    case ulong_type:
-        s = "unsigned long";
-        break;
-
-    case long_type:
-        s = "long";
-        break;
-
-    case ulonglong_type:
-        s = "unsigned long long";
-        break;
-
-    case longlong_type:
-        s = "long long";
-        break;
-
-    case float_type:
-    case cfloat_type:
-        s = "float";
-        break;
-
-    case double_type:
-    case cdouble_type:
-        s = "double";
-        break;
-
-    case bool_type:
-    case cbool_type:
-        s = "bool";
-        break;
-
-    default:
-        fatal("Unsupported type argument to type2string()\n");
-    }
 
     /* Make sure the string is on the heap. */
     if (!on_heap)
         s = sipStrdup(s);
 
-    for (i = 0; i < ad->nrderefs; ++i)
+    while (nr_derefs-- > 0)
         append(&s, "*");
 
-    if (isReference(ad))
+    if (is_reference)
         append(&s, "&");
 
     return s;
