@@ -1069,6 +1069,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "\n"
 "#define sipQtCreateUniversalSignal          0\n"
 "#define sipQtFindUniversalSignal            0\n"
+"#define sipQtGetSender                      0\n"
 "#define sipQtForgetSender                   0\n"
 "#define sipQtSignalsBlocked                 0\n"
             );

@@ -35,7 +35,7 @@ static void *newSignal(void *txrx, const char **sig);
 
 
 /*
- * Return the most recent signal sender.
+ * Return the most recent signal sender.  This is only used by PyQt3.
  */
 PyObject *sip_api_get_sender()
 {
@@ -50,10 +50,6 @@ PyObject *sip_api_get_sender()
         sender = sip_api_convert_from_type(qt_sender, sipQObjectType, NULL);
     else
     {
-        /*
-         * For PyQt4 there will never be a Pyton sender so this will do the
-         * right thing.
-         */
         if ((sender = py_sender) == NULL)
             sender = Py_None;
 
