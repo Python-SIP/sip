@@ -107,8 +107,6 @@ static PyObject *sip_api_convert_from_void_ptr_and_size(void *val,
         SIP_SSIZE_T size);
 static PyObject *sip_api_convert_from_const_void_ptr_and_size(const void *val,
         SIP_SSIZE_T size);
-static int sip_api_assign_type(void *dst, const void *src,
-        const sipTypeDef *td);
 static int sip_api_deprecated(const char *classname, const char *method);
 static int sip_api_register_py_type(PyTypeObject *supertype);
 static PyObject *sip_api_convert_from_enum(int eval, const sipTypeDef *td);
@@ -188,7 +186,6 @@ static const sipAPIDef sip_api = {
     sip_api_same_slot,
     sip_api_convert_rx,
     sip_api_invoke_slot,
-    sip_api_assign_type,
     sip_api_save_slot,
     /*
      * The following are not part of the public API.
@@ -1283,30 +1280,6 @@ void *sip_api_malloc(size_t nbytes)
 void sip_api_free(void *mem)
 {
     PyMem_Free(mem);
-}
-
-
-/*
- * Assign a type if it is supported by the type.
- */
-static int sip_api_assign_type(void *dst, const void *src,
-        const sipTypeDef *td)
-{
-    sipAssignFunc assign;
-
-    if (sipTypeIsClass(td))
-        assign = ((const sipClassTypeDef *)td)->ctd_assign;
-    else if (sipTypeIsMapped(td))
-        assign = ((const sipMappedTypeDef *)td)->mtd_assign;
-    else
-        assign = NULL;
-
-    if (assign == NULL)
-        return FALSE;
-
-    assign(dst, src);
-
-    return TRUE;
 }
 
 

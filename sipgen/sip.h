@@ -79,9 +79,8 @@
 #define CLASS_DTOR_HOLD_GIL 0x00800000  /* The dtor holds the GIL. */
 #define CLASS_QT_META_TYPE  0x01000000  /* Register as a Qt meta type. */
 #define CLASS_NO_QMETAOBJECT    0x02000000  /* It has no QMetaObject. */
-#define CLASS_CAN_ASSIGN    0x04000000  /* It has an assignment operator. */
-#define CLASS_IS_TEMPLATE   0x08000000  /* It is a template class. */
-#define CLASS_IS_DEPRECATED 0x10000000  /* It is deprecated. */
+#define CLASS_IS_TEMPLATE   0x04000000  /* It is a template class. */
+#define CLASS_IS_DEPRECATED 0x08000000  /* It is deprecated. */
 
 #define hasSigSlots(cd)     ((cd)->classflags & CLASS_HAS_SIGSLOTS)
 #define setHasSigSlots(cd)  ((cd)->classflags |= CLASS_HAS_SIGSLOTS)
@@ -121,8 +120,6 @@
 #define setRegisterQtMetaType(c)    ((cd)->classflags |= CLASS_QT_META_TYPE)
 #define noQMetaObject(c)    ((cd)->classflags & CLASS_NO_QMETAOBJECT)
 #define setNoQMetaObject(c) ((cd)->classflags |= CLASS_NO_QMETAOBJECT)
-#define canAssign(c)        ((cd)->classflags & CLASS_CAN_ASSIGN)
-#define setCanAssign(c)     ((cd)->classflags |= CLASS_CAN_ASSIGN)
 #define isTemplateClass(cd) ((cd)->classflags & CLASS_IS_TEMPLATE)
 #define setIsTemplateClass(cd)  ((cd)->classflags |= CLASS_IS_TEMPLATE)
 #define resetIsTemplateClass(cd)    ((cd)->classflags &= ~CLASS_IS_TEMPLATE)
@@ -1040,7 +1037,6 @@ void appendTypeStrings(scopedNameDef *ename, signatureDef *patt, signatureDef *s
 codeBlock *templateCode(sipSpec *pt, ifaceFileList **used, codeBlock *ocb, scopedNameDef *names, scopedNameDef *values);
 ifaceFileDef *findIfaceFile(sipSpec *pt, moduleDef *mod, scopedNameDef *fqname, ifaceFileType iftype, argDef *ad);
 int optNoEmitters(sipSpec *pt);
-int optAssignmentHelpers(sipSpec *pt);
 int pluginPyQt4(sipSpec *pt);
 void yywarning(char *);
 nameDef *cacheName(sipSpec *pt, const char *name);

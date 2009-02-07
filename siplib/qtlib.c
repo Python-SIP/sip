@@ -596,8 +596,8 @@ void *sip_api_convert_rx(sipWrapper *txSelf, const char *sigargs,
  * Connect a Qt signal or a Python signal to a Qt slot, a Qt signal, a Python
  * slot or a Python signal.  This is all possible combinations.
  */
-PyObject *sip_api_connect_rx(PyObject *txObj,const char *sig,PyObject *rxObj,
-                 const char *slot, int type)
+PyObject *sip_api_connect_rx(PyObject *txObj, const char *sig, PyObject *rxObj,
+        const char *slot, int type)
 {
     sipWrapper *txSelf = (sipWrapper *)txObj;
 

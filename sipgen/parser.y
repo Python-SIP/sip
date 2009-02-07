@@ -5493,15 +5493,6 @@ int optNoEmitters(sipSpec *pt)
 
 
 /*
- * Return TRUE if the AssignmentHelpers option was specified.
- */
-int optAssignmentHelpers(sipSpec *pt)
-{
-    return stringFind(pt->options, "AssignmentHelpers");
-}
-
-
-/*
  * Return TRUE if the PyQt4 plugin was specified.
  */
 int pluginPyQt4(sipSpec *pt)

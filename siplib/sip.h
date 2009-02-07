@@ -278,7 +278,6 @@ typedef int (*sipVirtHandlerFunc)(void *, PyObject *, ...);
 typedef int (*sipEmitFunc)(sipSimpleWrapper *, PyObject *);
 typedef void (*sipReleaseFunc)(void *, int);
 typedef PyObject *(*sipPickleFunc)(void *);
-typedef void (*sipAssignFunc)(void *, const void *);
 
 
 /*
@@ -572,12 +571,7 @@ typedef struct _sipClassTypeDef {
     /* The deallocation function. */
     sipDeallocFunc ctd_dealloc;
 
-    /* The assignment function. */
-    /* FIXME: Move this to pyqt4ClassTypeDef. */
-    sipAssignFunc ctd_assign;
-
     /* The release function, 0 if a C strict. */
-    /* FIXME: Possible move this to pyqt4TypeDef (if still needed). */
     sipReleaseFunc ctd_release;
 
     /* The cast function, 0 if a C struct. */
@@ -607,10 +601,6 @@ typedef struct _sipClassTypeDef {
 typedef struct _sipMappedTypeDef {
     /* The base type information. */
     sipTypeDef mtd_base;
-
-    /* The assignment function. */
-    /* FIXME: Move this to pyqt4ClassTypeDef. */
-    sipAssignFunc mtd_assign;
 
     /* The optional release function. */
     sipReleaseFunc mtd_release;
@@ -1130,7 +1120,6 @@ typedef struct _sipAPIDef {
             PyObject *rxObj, const char *slot, const char **memberp,
             int flags);
     PyObject *(*api_invoke_slot)(const sipSlot *slot, PyObject *sigargs);
-    int (*api_assign_type)(void *dst, const void *src, const sipTypeDef *td);
     int (*api_save_slot)(sipSlot *sp, PyObject *rxObj, const char *slot);
 
     /*
@@ -1308,9 +1297,28 @@ typedef struct _pyqt4ClassTypeDef {
      */
     sipClassTypeDef super;
 
+    /* A pointer to the optional assignment helper function. */
+    void (*qt4_assign_func)(void *, const void *);
+
     /* A pointer to the QObject sub-class's staticMetaObject class variable. */
     const void *qt4_static_metaobject;
 } pyqt4ClassTypeDef;
+
+
+/*
+ * This is the PyQt4-specific extension to the generated mapped type structure.
+ * In SIP v5 this will be pushed out to a plugin supplied by PyQt4.
+ */
+typedef struct _pyqt4MappedTypeDef {
+    /*
+     * The super-type structure.  This must be first in the structure so that
+     * it can be cast to sipMappedTypeDef *.
+     */
+    sipMappedTypeDef super;
+
+    /* A pointer to the optional assignment helper function. */
+    void (*qt4_assign_func)(void *, const void *);
+} pyqt4MappedTypeDef;
 
 
 #ifdef __cplusplus

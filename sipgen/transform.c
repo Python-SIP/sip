@@ -83,7 +83,6 @@ void transform(sipSpec *pt)
     classDef *cd, *rev, **tail;
     classList *newl;
     overDef *od;
-    mappedTypeDef *mtd;
 
     /*
      * The class list has the main module's classes at the front and the ones
@@ -1359,10 +1358,6 @@ static void addDefaultCopyCtor(classDef *cd)
  
         *tailp = copyct;
     }
-
-    /* We assume it has an assignment operator if it has a public copy ctor. */
-    if (isPublicCtor(copyct))
-        setCanAssign(cd);
 }
 
 
@@ -2765,17 +2760,17 @@ static void searchMappedTypes(sipSpec *pt,scopedNameDef *snd,argDef *ad)
     /* Patch back to defined types so we can use sameBaseType(). */
     if (snd != NULL)
     {
-        oname = ad -> u.snd;
-        ad -> u.snd = snd;
-        ad -> atype = defined_type;
+        oname = ad->u.snd;
+        ad->u.snd = snd;
+        ad->atype = defined_type;
     }
 
-    for (mtd = pt -> mappedtypes; mtd != NULL; mtd = mtd -> next)
-        if (sameBaseType(ad,&mtd -> type))
+    for (mtd = pt->mappedtypes; mtd != NULL; mtd = mtd->next)
+        if (sameBaseType(ad, &mtd->type))
         {
             /* Copy the type. */
-            ad -> atype = mapped_type;
-            ad -> u.mtd = mtd;
+            ad->atype = mapped_type;
+            ad->u.mtd = mtd;
 
             return;
         }
@@ -2783,8 +2778,8 @@ static void searchMappedTypes(sipSpec *pt,scopedNameDef *snd,argDef *ad)
     /* Restore because we didn't find anything. */
     if (snd != NULL)
     {
-        ad -> u.snd = oname;
-        ad -> atype = no_type;
+        ad->u.snd = oname;
+        ad->atype = no_type;
     }
 }
 
