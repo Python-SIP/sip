@@ -3056,11 +3056,11 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd, optFlags *of)
     if ((flg = findOptFlag(of, "Supertype", dotted_name_flag)) != NULL)
         cd->supertype = cacheName(pt, flg->fvalue.sval);
 
-    if ((flg = findOptFlag(of, "TypeFlags", integer_flag)) != NULL)
-        cd->userflags = flg->fvalue.ival;
+    if ((flg = findOptFlag(of, "PyQt4Flags", integer_flag)) != NULL)
+        cd->pyqt4_flags = flg->fvalue.ival;
 
-    if (findOptFlag(of, "NoQMetaObject", bool_flag) != NULL)
-        setNoQMetaObject(cd);
+    if (findOptFlag(of, "PyQt4NoQMetaObject", bool_flag) != NULL)
+        setPyQt4NoQMetaObject(cd);
 
     if (isOpaque(cd))
     {

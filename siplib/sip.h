@@ -1242,8 +1242,6 @@ typedef struct _sipQtAPI {
 #define SIP_TYPE_ENUM       0x0003  /* If the type is a named enum. */
 #define SIP_TYPE_ABSTRACT   0x0008  /* If the type is abstract. */
 #define SIP_TYPE_SCC        0x0010  /* If the type is subject to sub-class convertors. */
-#define SIP_TYPE_FLAGS_SHIFT    8   /* The user type flags shift. */
-#define SIP_TYPE_FLAGS_MASK 0x0f00  /* The user type flags mask. */
 
 
 /*
@@ -1274,8 +1272,6 @@ typedef struct _sipQtAPI {
  */
 #define sipTypeIsAbstract(td)   ((td)->td_flags & SIP_TYPE_ABSTRACT)
 #define sipTypeHasSCC(td)   ((td)->td_flags & SIP_TYPE_SCC)
-/* FIXME: Decide if this is part of the public API. */
-#define sipTypeFlags(td)    (((td)->td_flags & SIP_TYPE_FLAGS_MASK) >> SIP_TYPE_FLAGS_SHIFT)
 
 /*
  * Get various names from the string pool for various data types.
@@ -1302,6 +1298,12 @@ typedef struct _pyqt4ClassTypeDef {
 
     /* A pointer to the QObject sub-class's staticMetaObject class variable. */
     const void *qt4_static_metaobject;
+
+    /*
+     * A set of flags.  At the moment only bit 0 is used to say if the type is
+     * derived from QFlags.
+     */
+    unsigned qt4_flags;
 } pyqt4ClassTypeDef;
 
 

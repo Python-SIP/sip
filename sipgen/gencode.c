@@ -15,13 +15,6 @@
 #include "sip.h"
 
 
-/*
- * These must match the values of SIP_TYPE_FLAGS_SHIFT and SIP_TYPE_FLAGS_MASK
- * in siplib/sip.h.
- */
-#define TYPE_FLAGS_SHIFT        8
-#define TYPE_FLAGS_MASK         0x0f00
-
 /* Return the base (ie. C/C++) name of a super-type or meta-type. */
 #define smtypeName(sm)          (strrchr((sm)->name->text, '.') + 1)
 
@@ -4984,7 +4977,7 @@ static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
     /* The meta methods if required. */
     if (pluginPyQt4(pt) && isQObjectSubClass(cd))
     {
-        if (!noQMetaObject(cd))
+        if (!noPyQt4QMetaObject(cd))
             prcode(fp,
 "\n"
 "const QMetaObject *sip%C::metaObject() const\n"
@@ -6864,7 +6857,7 @@ static void generateShadowClassDeclaration(sipSpec *pt,classDef *cd,FILE *fp)
 "    void *qt_metacast(const char *);\n"
             );
 
-        if (!noQMetaObject(cd))
+        if (!noPyQt4QMetaObject(cd))
             prcode(fp,
 "    const QMetaObject *metaObject() const;\n"
                 );
@@ -7658,12 +7651,6 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 
     sep = "";
 
-    if (cd->userflags)
-    {
-        prcode(fp, "%s%x", sep, ((cd->userflags << TYPE_FLAGS_SHIFT) & TYPE_FLAGS_MASK));
-        sep = "|";
-    }
-
     if (isAbstractClass(cd))
     {
         prcode(fp, "%sSIP_TYPE_ABSTRACT", sep);
@@ -7974,14 +7961,18 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 "    0,\n"
                 );
 
-        if (isQObjectSubClass(cd) && !noQMetaObject(cd))
+        if (isQObjectSubClass(cd) && !noPyQt4QMetaObject(cd))
             prcode(fp,
-"    &%U::staticMetaObject\n"
+"    &%U::staticMetaObject,\n"
                 , cd);
         else
             prcode(fp,
-"    0\n"
+"    0,\n"
                 );
+
+        prcode(fp,
+"    %u\n"
+            , cd->pyqt4_flags);
     }
 
     prcode(fp,
