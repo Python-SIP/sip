@@ -77,7 +77,7 @@
 #define CLASS_NO_DEFAULT_CTORS  0x00200000  /* Don't create default ctors. */
 #define CLASS_QOBJECT_SUB   0x00400000  /* It is derived from QObject. */
 #define CLASS_DTOR_HOLD_GIL 0x00800000  /* The dtor holds the GIL. */
-#define CLASS_QT_META_TYPE  0x01000000  /* Register as a Qt meta type. */
+#define CLASS_ASSIGN_HELPER 0x01000000  /* Generate an assignment helper. */
 #define CLASS_NO_QMETAOBJECT    0x02000000  /* It has no QMetaObject. */
 #define CLASS_IS_TEMPLATE   0x04000000  /* It is a template class. */
 #define CLASS_IS_DEPRECATED 0x08000000  /* It is deprecated. */
@@ -116,8 +116,8 @@
 #define setIsQObjectSubClass(cd)    ((cd)->classflags |= CLASS_QOBJECT_SUB)
 #define isHoldGILDtor(c)    ((cd)->classflags & CLASS_DTOR_HOLD_GIL)
 #define setIsHoldGILDtor(c) ((cd)->classflags |= CLASS_DTOR_HOLD_GIL)
-#define registerQtMetaType(c)   ((cd)->classflags & CLASS_QT_META_TYPE)
-#define setRegisterQtMetaType(c)    ((cd)->classflags |= CLASS_QT_META_TYPE)
+#define assignmentHelper(c) ((cd)->classflags & CLASS_ASSIGN_HELPER)
+#define setAssignmentHelper(c)      ((cd)->classflags |= CLASS_ASSIGN_HELPER)
 #define noQMetaObject(c)    ((cd)->classflags & CLASS_NO_QMETAOBJECT)
 #define setNoQMetaObject(c) ((cd)->classflags |= CLASS_NO_QMETAOBJECT)
 #define isTemplateClass(cd) ((cd)->classflags & CLASS_IS_TEMPLATE)

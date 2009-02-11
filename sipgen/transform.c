@@ -494,7 +494,7 @@ static void registerMetaType(classDef *cd)
 
     if (pub_def_ctor && pub_copy_ctor)
     {
-        setRegisterQtMetaType(cd);
+        setAssignmentHelper(cd);
         addToUsedList(&cd->iff->module->used, cd->iff);
     }
 }

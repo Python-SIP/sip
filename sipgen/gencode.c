@@ -1723,8 +1723,6 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 
     if (pluginPyQt4(pt))
     {
-        int noIntro;
-
         /* Import the helpers. */
         prcode(fp,
 "\n"
@@ -1735,29 +1733,6 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
             , mname
             , mname
             , mname);
-
-        /* Generate any Qt meta-type registration calls. */
-        noIntro = TRUE;
-
-        for (cd = pt->classes; cd != NULL; cd = cd->next)
-            if (cd->iff->module == mod)
-                if (registerQtMetaType(cd))
-                {
-                    if (noIntro)
-                    {
-                        prcode(fp,
-"    typedef void (*sip_qt_register_func)(int,const sipTypeDef *);\n"
-"    sip_qt_register_func sip_qt_register = (sip_qt_register_func)sipImportSymbol(\"qtcore_qt_register\");\n"
-"\n"
-                            );
-
-                        noIntro = FALSE;
-                    }
-
-                    prcode(fp,
-"    sip_qt_register(qRegisterMetaType<%S>(%N), sipType_%C);\n"
-                        , classFQCName(cd), cd->iff->name, classFQCName(cd));
-                }
     }
 
     prcode(fp,
@@ -4828,7 +4803,7 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
     }
 
     /* The assignment helper. */
-    if (pluginPyQt4(pt) && registerQtMetaType(cd))
+    if (pluginPyQt4(pt) && assignmentHelper(cd))
     {
         prcode(fp,
 "\n"
@@ -7990,7 +7965,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 
     if (pluginPyQt4(pt))
     {
-        if (registerQtMetaType(cd))
+        if (assignmentHelper(cd))
             prcode(fp,
 "    assign_%C,\n"
                 , classFQCName(cd));
