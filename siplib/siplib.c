@@ -4103,8 +4103,6 @@ static int getSelfFromArgs(sipTypeDef *td, PyObject *args, int argnr,
 
 /*
  * Handle the result of a call to the class/instance setattro methods.
- * FIXME: Don't even call this if the type doesn't have wrapped variables and
- * don't search for methods and enums if it does.
  */
 static int handleSetLazyAttr(PyObject *nameobj, PyObject *valobj,
         sipWrapperType *wt, sipSimpleWrapper *sw)
@@ -4277,13 +4275,13 @@ static const sipTypeDef *sip_api_type_scope(const sipTypeDef *td)
 static int canConvertToEnum(PyObject *obj, sipTypeDef *td)
 {
     /*
-     * We allow an integer but don't allow another enum (hence the exact
-     * check).  Consider introducing a base type (sub-typed from int) common to
-     * all named enums so that we can specifically exclude then but allow an
-     * application defined sub-type of int.
-     * FIXME: The above can now be implemented with the new enum meta-type.
+     * If the object is an enum then it must be the right enum.  Otherwise we
+     * allow anything that looks like an int.
      */
-    return (PyObject_TypeCheck(obj, sipTypeAsPyTypeObject(td)) || PyInt_CheckExact(obj));
+    if (PyObject_TypeCheck((PyObject *)obj->ob_type, &sipEnumType_Type))
+        return (PyObject_TypeCheck(obj, sipTypeAsPyTypeObject(td)));
+
+    return PyInt_Check(obj);
 }
 
 
@@ -4364,7 +4362,6 @@ static void findLazyAttr(sipClassTypeDef *ctd, const char *name,
     while (nsx != NULL);
 
     /* Check the base classes. */
-    /* FIXME - isn't this done automatically? */
     if ((sup = ctd->ctd_supers) != NULL)
         do
         {
