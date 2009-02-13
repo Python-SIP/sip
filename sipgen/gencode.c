@@ -1281,7 +1281,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         ed->enum_idx = enum_idx++;
 
         prcode(fp,
-"    {{-1, 0, 0, SIP_TYPE_ENUM, %n, {0}}, %n, ", ed->cname, ed->pyname);
+"    {{0, 0, 0, SIP_TYPE_ENUM, %n, {0}}, %n, ", ed->cname, ed->pyname);
 
         if (ed->ecd == NULL)
             prcode(fp, "-1");
@@ -1401,7 +1401,6 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         }
 
         prcode(fp,
-"    {NULL, NULL}\n"
 "};\n"
             );
     }
@@ -1590,6 +1589,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "    %s,\n"
 "    %d,\n"
 "    %s,\n"
+"    %d,\n"
 "    %s,\n"
 "    %s,\n"
 "    %s,\n"
@@ -1612,6 +1612,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         , hasexternal ? "externalTypesTable" : "NULL"
         , nr_enummembers
         , nr_enummembers > 0 ? "enummembers" : "NULL"
+        , mod->nrtypedefs
         , mod->nrtypedefs > 0 ? "typedefsTable" : "NULL"
         , mod->nrvirthandlers > 0 ? "virtHandlersTable" : "NULL"
         , nrSccs > 0 ? "convertorsTable" : "NULL"
@@ -3061,7 +3062,7 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 "%sMappedTypeDef %sMappedTypeDef_%T = {\n"
 "%s"
 "    {\n"
-"        -1,\n"
+"        0,\n"
 "        0,\n"
 "        0,\n"
 "        SIP_TYPE_MAPPED,\n"
@@ -7642,7 +7643,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 "%sClassTypeDef %sType_%s_%C = {\n"
 "%s"
 "    {\n"
-"        -1,\n"
+"        0,\n"
 "        0,\n"
 "        0,\n"
 "        "

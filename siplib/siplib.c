@@ -359,6 +359,7 @@ static int getNonStaticVariables(sipWrapperType *wt, sipSimpleWrapper *sw,
 static void findLazyAttr(sipClassTypeDef *ctd, const char *name,
         PyMethodDef **pmdp, sipEnumMemberDef **enmp, PyMethodDef **vmdp,
         sipClassTypeDef **in);
+static int compareTypedefName(const void *key, const void *el);
 static int compareMethodName(const void *key, const void *el);
 static int compareEnumMemberName(const void *key, const void *el);
 static int checkPointer(void *ptr);
@@ -8012,14 +8013,10 @@ static const char *sip_api_resolve_typedef(const char *name,
     sipImportedModuleDef *im;
 
     /* Check this module. */
-    if ((tdd = em->em_typedefs) != NULL)
-        do
-        {
-            /* FIXME: Use a binary search of a sorted table. */
-            if (strcmp(tdd->tdd_name, name) == 0)
-                return tdd->tdd_type_name;
-        }
-        while ((++tdd)->tdd_name != NULL);
+    if (em->em_nrtypedefs > 0 && (tdd = (sipTypedefDef *)bsearch(name,
+            em->em_typedefs, em->em_nrtypedefs, sizeof (sipTypedefDef),
+            compareTypedefName)) != NULL)
+        return tdd->tdd_type_name;
 
     /*
      * Check parent modules.  We don't check every module because independent
@@ -8037,6 +8034,15 @@ static const char *sip_api_resolve_typedef(const char *name,
         while ((++im)->im_name != NULL);
 
     return NULL;
+}
+
+
+/*
+ * The bsearch() helper function for searching a sorted typedef table.
+ */
+static int compareTypedefName(const void *key, const void *el)
+{
+    return strcmp((const char *)key, ((const sipTypedefDef *)el)->tdd_name);
 }
 
 

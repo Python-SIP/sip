@@ -475,8 +475,8 @@ typedef struct _sipTypedefDef {
  * namespace, a mapped type or a named enum.
  */
 typedef struct _sipTypeDef {
-    /* The version number, -1 if the type isn't versioned. */
-    int td_version_nr;
+    /* The version number, 0 if the type isn't versioned. */
+    unsigned td_version_nr;
 
     /* The next version of this type. */
     struct _sipTypeDef *td_next_version;
@@ -725,6 +725,9 @@ typedef struct _sipExportedModuleDef {
 
     /* The table of members in global enums. */
     sipEnumMemberDef *em_enummembers;
+
+    /* The number of typedefs. */
+    int em_nrtypedefs;
 
     /* The table of typedefs. */
     sipTypedefDef *em_typedefs;

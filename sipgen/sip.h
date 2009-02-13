@@ -1013,7 +1013,7 @@ int excludedFeature(stringList *,qualDef *);
 int sameSignature(signatureDef *,signatureDef *,int);
 int sameTemplateSignature(signatureDef *tmpl_sd, signatureDef *args_sd,
         int deep);
-int sameScopedName(scopedNameDef *,scopedNameDef *);
+int compareScopedNames(scopedNameDef *snd1, scopedNameDef *snd2);
 int sameBaseType(argDef *,argDef *);
 char *scopedNameTail(scopedNameDef *);
 scopedNameDef *text2scopePart(char *);

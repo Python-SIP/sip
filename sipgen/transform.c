@@ -2319,31 +2319,31 @@ int sameBaseType(argDef *a1, argDef *a2)
          * name.  Hopefully this won't have wider side effects.
          */
         if (a1->atype == class_type && a2->atype == defined_type)
-            return sameScopedName(a1->u.cd->iff->fqcname, a2->u.snd);
+            return compareScopedNames(a1->u.cd->iff->fqcname, a2->u.snd) == 0;
 
         if (a1->atype == defined_type && a2->atype == class_type)
-            return sameScopedName(a1->u.snd, a2->u.cd->iff->fqcname);
+            return compareScopedNames(a1->u.snd, a2->u.cd->iff->fqcname) == 0;
 
         return FALSE;
     }
 
-    switch (a1 -> atype)
+    switch (a1->atype)
     {
     case class_type:
-        if (a1 -> u.cd != a2 -> u.cd)
+        if (a1->u.cd != a2->u.cd)
             return FALSE;
 
         break;
 
     case enum_type:
-        if (a1 -> u.ed != a2 -> u.ed)
+        if (a1->u.ed != a2->u.ed)
             return FALSE;
 
         break;
 
     case slotcon_type:
     case slotdis_type:
-        if (!sameSignature(a1 -> u.sa,a2 -> u.sa,TRUE))
+        if (!sameSignature(a1->u.sa, a2->u.sa, TRUE))
             return FALSE;
 
         break;
@@ -2353,41 +2353,40 @@ int sameBaseType(argDef *a1, argDef *a2)
             int a;
             templateDef *td1, *td2;
 
-            td1 = a1 -> u.td;
-            td2 = a2 -> u.td;
+            td1 = a1->u.td;
+            td2 = a2->u.td;
 
-            if (!sameScopedName(td1 -> fqname,td2 -> fqname) != 0 ||
-                td1 -> types.nrArgs != td2 -> types.nrArgs)
+            if (compareScopedNames(td1->fqname, td2->fqname) != 0 ||
+                td1->types.nrArgs != td2->types.nrArgs)
                 return FALSE;
 
-            for (a = 0; a < td1 -> types.nrArgs; ++a)
-                if (!sameBaseType(&td1 -> types.args[a],&td2 -> types.args[a]))
+            for (a = 0; a < td1->types.nrArgs; ++a)
+                if (!sameBaseType(&td1->types.args[a], &td2->types.args[a]))
                     return FALSE;
 
             break;
         }
 
     case struct_type:
-        if (!sameScopedName(a1 -> u.sname,a2 -> u.sname) != 0)
+        if (compareScopedNames(a1->u.sname, a2->u.sname) != 0)
             return FALSE;
 
         break;
 
     case defined_type:
-        if (!sameScopedName(a1 -> u.snd,a2 -> u.snd))
+        if (compareScopedNames(a1->u.snd, a2->u.snd) != 0)
             return FALSE;
 
         break;
 
     case mapped_type:
-        if (a1 -> u.mtd != a2 -> u.mtd)
+        if (a1->u.mtd != a2->u.mtd)
             return FALSE;
 
         break;
     }
 
     /* Must be the same if we've got this far. */
-
     return TRUE;
 }
 
@@ -2438,18 +2437,25 @@ static int nextSignificantArg(signatureDef *sd, int a)
 
 
 /*
- * Return TRUE if two scoped names are the same.
+ * The equivalent of strcmp() for scoped names.
  */
-
-int sameScopedName(scopedNameDef *snd1,scopedNameDef *snd2)
+int compareScopedNames(scopedNameDef *snd1, scopedNameDef *snd2)
 {
-    while (snd1 != NULL && snd2 != NULL && strcmp(snd1 -> name,snd2 -> name) == 0)
+    while (snd1 != NULL && snd2 != NULL)
     {
-        snd1 = snd1 -> next;
-        snd2 = snd2 -> next;
+        int res = strcmp(snd1->name, snd2->name);
+
+        if (res != 0)
+            return res;
+
+        snd1 = snd1->next;
+        snd2 = snd2->next;
     }
 
-    return (snd1 == NULL && snd2 == NULL);
+    if (snd1 == NULL)
+        return (snd2 == NULL ? 0 : -1);
+
+    return 1;
 }
 
 
@@ -2619,7 +2625,7 @@ static void getBaseType(sipSpec *pt, moduleDef *mod, classDef *defscope, argDef 
             mappedTypeTmplDef *mtt;
 
             for (mtt = pt->mappedtypetemplates; mtt != NULL; mtt = mtt->next)
-                if (sameScopedName(type->u.td->fqname, mtt->mt->type.u.td->fqname) && sameTemplateSignature(&mtt->mt->type.u.td->types, &type->u.td->types, TRUE))
+                if (compareScopedNames(type->u.td->fqname, mtt->mt->type.u.td->fqname) == 0 && sameTemplateSignature(&mtt->mt->type.u.td->types, &type->u.td->types, TRUE))
                 {
                     type->u.mtd = instantiateMappedTypeTemplate(pt, mod, mtt, type);
                     type->atype = mapped_type;
@@ -2652,7 +2658,8 @@ static void resolveInstantiatedClassTemplate(sipSpec *pt, argDef *type)
         resolveInstantiatedClassTemplate(pt, &sd->args[a]);
 
     for (cd = pt->classes; cd != NULL; cd = cd->next)
-        if (cd->td != NULL && sameScopedName(cd->td->fqname, td->fqname) &&
+        if (cd->td != NULL &&
+            compareScopedNames(cd->td->fqname, td->fqname) == 0 &&
             sameSignature(&cd->td->types, sd, TRUE))
         {
             type->atype = class_type;
@@ -2792,10 +2799,12 @@ void searchTypedefs(sipSpec *pt, scopedNameDef *snd, argDef *ad)
     typedefDef *td;
 
     for (td = pt->typedefs; td != NULL; td = td->next)
-        if (sameScopedName(td->fqname, snd))
+    {
+        int res = compareScopedNames(td->fqname, snd);
+
+        if (res == 0)
         {
             /* Copy the type. */
-
             ad->atype = td->type.atype;
             ad->argflags |= td->type.argflags;
             ad->nrderefs += td->type.nrderefs;
@@ -2806,26 +2815,30 @@ void searchTypedefs(sipSpec *pt, scopedNameDef *snd, argDef *ad)
 
             break;
         }
+
+        /* The list is sorted so stop if we have gone too far. */
+        if (res > 0)
+            break;
+    }
 }
 
 
 /*
  * Search the enums for a name and return the type.
  */
-
-static void searchEnums(sipSpec *pt,scopedNameDef *snd,argDef *ad)
+static void searchEnums(sipSpec *pt, scopedNameDef *snd, argDef *ad)
 {
     enumDef *ed;
 
-    for (ed = pt -> enums; ed != NULL; ed = ed -> next)
+    for (ed = pt->enums; ed != NULL; ed = ed->next)
     {
-        if (ed -> fqcname == NULL)
+        if (ed->fqcname == NULL)
             continue;
 
-        if (sameScopedName(ed -> fqcname,snd))
+        if (compareScopedNames(ed->fqcname, snd) == 0)
         {
-            ad -> atype = enum_type;
-            ad -> u.ed = ed;
+            ad->atype = enum_type;
+            ad->u.ed = ed;
 
             break;
         }
@@ -2836,23 +2849,24 @@ static void searchEnums(sipSpec *pt,scopedNameDef *snd,argDef *ad)
 /*
  * Search the classes for one with a particular name and return it as a type.
  */
-static void searchClasses(sipSpec *pt, moduleDef *mod, scopedNameDef *cname, argDef *ad)
+static void searchClasses(sipSpec *pt, moduleDef *mod, scopedNameDef *cname,
+        argDef *ad)
 {
     classDef *cd;
 
-    for (cd = pt -> classes; cd != NULL; cd = cd -> next)
+    for (cd = pt->classes; cd != NULL; cd = cd->next)
     {
         /*
-         * Ignore an external class unless it was declared in the same
-         * context (ie. module) as the name is being used.
+         * Ignore an external class unless it was declared in the same context
+         * (ie. module) as the name is being used.
          */
         if (isExternal(cd) && cd->iff->module != mod)
             continue;
 
-        if (sameScopedName(classFQCName(cd), cname))
+        if (compareScopedNames(classFQCName(cd), cname) == 0)
         {
-            ad -> atype = class_type;
-            ad -> u.cd = cd;
+            ad->atype = class_type;
+            ad->u.cd = cd;
 
             break;
         }

@@ -452,7 +452,7 @@ baseexception:  {
 
             /* See if it is a defined exception. */
             for (xd = currentSpec->exceptions; xd != NULL; xd = xd->next)
-                if (sameScopedName(xd->iff->fqcname, $2))
+                if (compareScopedNames(xd->iff->fqcname, $2) == 0)
                 {
                     $$.base = xd;
                     break;
@@ -554,7 +554,7 @@ mappedtypetmpl: template TK_MAPPEDTYPE basetype {
 
                 /* Check a template hasn't already been provided. */
                 for (mtt = currentSpec->mappedtypetemplates; mtt != NULL; mtt = mtt->next)
-                    if (sameScopedName(mtt->mt->type.u.td->fqname, $3.u.td->fqname) && sameTemplateSignature(&mtt->mt->type.u.td->types, &$3.u.td->types, TRUE))
+                    if (compareScopedNames(mtt->mt->type.u.td->fqname, $3.u.td->fqname) == 0 && sameTemplateSignature(&mtt->mt->type.u.td->types, &$3.u.td->types, TRUE))
                         yyerror("%MappedType template for this type has already been defined");
 
                 $3.nrderefs = 0;
@@ -1848,7 +1848,7 @@ function:   cpptype TK_NAME '(' arglist ')' optconst optexceptions optabstract o
 
                     /* Check it doesn't already exist. */
                     for (al = scope->casts; al != NULL; al = al->next)
-                        if (sameScopedName($2.u.snd, al->arg.u.snd))
+                        if (compareScopedNames($2.u.snd, al->arg.u.snd) == 0)
                             yyerror("This operator cast has already been specified in this class");
 
                     al = sipMalloc(sizeof (argList));
@@ -2755,7 +2755,7 @@ ifaceFileDef *findIfaceFile(sipSpec *pt, moduleDef *mod, scopedNameDef *fqname,
 
     for (iff = pt->ifacefiles; iff != NULL; iff = iff->next)
     {
-        if (!sameScopedName(iff->fqcname, fqname))
+        if (compareScopedNames(iff->fqcname, fqname) != 0)
             continue;
 
         /*
@@ -3023,7 +3023,7 @@ static classDef *newClass(sipSpec *pt,ifaceFileType iftype,
             if (ns->iff->type != namespace_iface)
                 continue;
 
-            if (!sameScopedName(ns->iff->fqcname, fqname))
+            if (compareScopedNames(ns->iff->fqcname, fqname) != 0)
                 continue;
 
             cd->real = ns;
@@ -4229,7 +4229,7 @@ static int foundInScope(scopedNameDef *fq_name, scopedNameDef *rel_name)
         snd = copyScopedName(classFQCName(scope));
         appendScopedName(&snd, copyScopedName(rel_name));
 
-        found = sameScopedName(fq_name, snd);
+        found = (compareScopedNames(fq_name, snd) == 0);
 
         freeScopedName(snd);
 
@@ -4237,7 +4237,7 @@ static int foundInScope(scopedNameDef *fq_name, scopedNameDef *rel_name)
             return TRUE;
     }
 
-    return sameScopedName(fq_name, rel_name);
+    return compareScopedNames(fq_name, rel_name) == 0;
 }
 
 
@@ -4247,7 +4247,7 @@ static int foundInScope(scopedNameDef *fq_name, scopedNameDef *rel_name)
 static void newTypedef(sipSpec *pt, moduleDef *mod, char *name, argDef *type,
         optFlags *optflgs)
 {
-    typedefDef *td;
+    typedefDef *td, **tdp;
     scopedNameDef *fqname;
     classDef *scope;
 
@@ -4271,13 +4271,23 @@ static void newTypedef(sipSpec *pt, moduleDef *mod, char *name, argDef *type,
             }
     }
 
-    /* Check it doesn't already exist. */
-    for (td = pt->typedefs; td != NULL; td = td->next)
-        if (sameScopedName(td->fqname, fqname))
+    /*
+     * Check it doesn't already exist and find the position in the sorted list
+     * where it should be put.
+     */
+    for (tdp = &pt->typedefs; *tdp != NULL; tdp = &(*tdp)->next)
+    {
+        int res = compareScopedNames((*tdp)->fqname, fqname);
+
+        if (res == 0)
         {
             fatalScopedName(fqname);
             fatal(" already defined\n");
         }
+
+        if (res > 0)
+            break;
+    }
 
     td = sipMalloc(sizeof (typedefDef));
 
@@ -4286,14 +4296,14 @@ static void newTypedef(sipSpec *pt, moduleDef *mod, char *name, argDef *type,
     td->ecd = scope;
     td->module = mod;
     td->type = *type;
-    td->next = pt->typedefs;
+
+    td->next = *tdp;
+    *tdp = td;
 
     if (findOptFlag(optflgs, "NoTypeName", bool_flag) != NULL)
         setNoTypeName(td);
 
     mod->nrtypedefs++;
-
-    pt->typedefs = td;
 }
 
 
