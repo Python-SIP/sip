@@ -483,7 +483,7 @@ PyMODINIT_FUNC initsip(void)
 #if PY_VERSION_HEX >= 0x02050000
     sipWrapper_Type.super.ht_type.tp_base = (PyTypeObject *)&sipSimpleWrapper_Type;
 #else
-    sipWrapper_Type.super.ht_type.tp_base = (PyTypeObject *)&sipSimpleWrapper_Type;
+    sipWrapper_Type.super.type.tp_base = (PyTypeObject *)&sipSimpleWrapper_Type;
 #endif
 
     if (PyType_Ready((PyTypeObject *)&sipWrapper_Type) < 0)

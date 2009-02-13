@@ -143,7 +143,7 @@ int sip_api_emit_signal(PyObject *self, const char *sig, PyObject *sigargs)
 
 
 /*
- * Search the Python signal list for a signal.
+ * Search the Python signal list for a signal.  This is only used by PyQt3.
  */
 static sipPySig *findPySignal(sipWrapper *w,const char *sig)
 {
@@ -160,7 +160,7 @@ static sipPySig *findPySignal(sipWrapper *w,const char *sig)
 /*
  * Search a signal table for a signal.  If found, call the emitter function
  * with the signal arguments.  Return 0 if the signal was emitted or <0 if
- * there was an error.
+ * there was an error.  This is only used by PyQt3.
  */
 static int emitQtSig(sipSimpleWrapper *sw, const char *sig, PyObject *sigargs)
 {
@@ -418,7 +418,8 @@ PyObject *sip_api_invoke_slot(const sipSlot *slot, PyObject *sigargs)
 
 
 /*
- * Send a signal to the slots (Qt or Python) in a Python list.
+ * Send a signal to the slots (Qt or Python) in a Python list.  This is only
+ * used by PyQt3.
  */
 static int emitToSlotList(sipSlotList *rxlist,PyObject *sigargs)
 {
@@ -448,7 +449,7 @@ static int emitToSlotList(sipSlotList *rxlist,PyObject *sigargs)
 /*
  * Add a slot to a transmitter's Python signal list.  The signal is a Python
  * signal, the slot may be either a Qt signal, a Qt slot, a Python signal or a
- * Python slot.
+ * Python slot.  This is only used by PyQt3.
  */
 static int addSlotToPySigList(sipWrapper *txSelf,const char *sig,
                   PyObject *rxObj,const char *slot)
@@ -624,7 +625,7 @@ PyObject *sip_api_connect_rx(PyObject *txObj, const char *sig, PyObject *rxObj,
         return PyBool_FromLong(res);
     }
 
-    /* Handle Python signals. */
+    /* Handle Python signals.  Only PyQt3 will get this far. */
     if (addSlotToPySigList(txSelf, sig, rxObj, slot) < 0)
         return NULL;
 
@@ -672,7 +673,7 @@ PyObject *sip_api_disconnect_rx(PyObject *txObj,const char *sig,
         return PyBool_FromLong(res);
     }
 
-    /* Handle Python signals. */
+    /* Handle Python signals.  Only PyQt3 will get this far. */
     removeSlotFromPySigList(txSelf,sig,rxObj,slot);
 
     Py_INCREF(Py_True);
@@ -681,7 +682,8 @@ PyObject *sip_api_disconnect_rx(PyObject *txObj,const char *sig,
 
 
 /*
- * Remove a slot from a transmitter's Python signal list.
+ * Remove a slot from a transmitter's Python signal list.  This is only used by
+ * PyQt3.
  */
 static void removeSlotFromPySigList(sipWrapper *txSelf,const char *sig,
                     PyObject *rxObj,const char *slot)
