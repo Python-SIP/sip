@@ -1473,7 +1473,7 @@ static void getVisibleMembers(sipSpec *pt, classDef *cd)
                         if (!generatingCodeForModule(pt, cd->iff->module))
                             continue;
 
-                        if (isProtected(od) || (isSignal(od) && !optNoEmitters(pt)))
+                        if (isProtected(od) || (isSignal(od) && pluginPyQt3(pt)))
                             setIsUsedName(md->pyname);
                     }
             }

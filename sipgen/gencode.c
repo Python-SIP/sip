@@ -5039,7 +5039,7 @@ static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
     generateProtectedDefinitions(cd,fp);
 
     /* Generate the emitters if needed. */
-    if (!optNoEmitters(pt))
+    if (pluginPyQt3(pt))
         generateEmitters(cd, fp);
 }
 
@@ -6873,7 +6873,7 @@ static void generateShadowClassDeclaration(sipSpec *pt,classDef *cd,FILE *fp)
     generateProtectedDeclarations(cd,fp);
 
     /* The public wrapper around each signal emitter. */
-    if (!optNoEmitters(pt))
+    if (pluginPyQt3(pt))
     {
         visibleList *vl;
 
@@ -7937,7 +7937,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 "    0,\n"
             );
 
-    if (!optNoEmitters(pt) && hasSigSlots(cd))
+    if (pluginPyQt3(pt) && hasSigSlots(cd))
         prcode(fp,
 "    signals_%C,\n"
             , classFQCName(cd));

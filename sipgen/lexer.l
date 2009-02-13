@@ -47,7 +47,6 @@ static void fatallex(char *);
 %%
 
 ^[ \t]*%Plugin              {return TK_PLUGIN;}
-^[ \t]*%SIPOptions          {return TK_OPTIONS;}
 ^[ \t]*%Include             {return TK_INCLUDE;}
 ^[ \t]*%OptionalInclude     {return TK_OPTINCLUDE;}
 ^[ \t]*%Import              {return TK_IMPORT;}

@@ -5612,8 +5612,6 @@ static int compareTypeDef(const void *key, const void *el)
 
 /*
  * Return the type structure for a particular type.
- * FIXME: Consider replacing sipEncodedClassDef with a pair of ints (the name
- * of the module and the name of the type/class).
  */
 static const sipTypeDef *sip_api_find_type(const char *type)
 {

@@ -131,7 +131,6 @@ static void resolveAnyTypedef(sipSpec *pt, argDef *ad);
 }
 
 %token          TK_PLUGIN
-%token          TK_OPTIONS
 %token          TK_DOC
 %token          TK_EXPORTEDDOC
 %token          TK_MAKEFILE
@@ -329,7 +328,6 @@ modstatement:   module
     |   consmodule
     |   compmodule
     |   plugin
-    |   options
     |   copying
     |   include
     |   optinclude
@@ -391,17 +389,6 @@ nsstatement:    ifstart
 
 plugin:     TK_PLUGIN TK_NAME {
             appendString(&currentSpec->plugins, $2);
-        }
-    ;
-
-options:    TK_OPTIONS '(' optionlist ')'
-    ;
-
-optionlist: TK_NAME {
-            appendString(&currentSpec->options, $1);
-        }
-    |   optionlist ',' TK_NAME {
-            appendString(&currentSpec->options, $3);
         }
     ;
 
@@ -2601,7 +2588,6 @@ void parse(sipSpec *spec, FILE *fp, char *filename, stringList *tsl,
     spec->sigslots = FALSE;
     spec->genc = -1;
     spec->plugins = NULL;
-    spec->options = NULL;
 
     currentSpec = spec;
     neededQualifiers = tsl;
@@ -4612,7 +4598,7 @@ static void newFunction(sipSpec *pt,moduleDef *mod,int sflags,int isstatic,
 
     if (isvirt)
     {
-        if (isSignal(od) && !optNoEmitters(pt))
+        if (isSignal(od) && pluginPyQt3(pt))
             yyerror("Virtual signals aren't supported");
 
         setIsVirtual(od);
@@ -5494,11 +5480,11 @@ static int getDeprecated(optFlags *optflgs)
 
 
 /*
- * Return TRUE if the QtNoEmitters option was specified.
+ * Return TRUE if the PyQt3 plugin was specified.
  */
-int optNoEmitters(sipSpec *pt)
+int pluginPyQt3(sipSpec *pt)
 {
-    return stringFind(pt->options, "QtNoEmitters");
+    return stringFind(pt->plugins, "PyQt3");
 }
 
 
