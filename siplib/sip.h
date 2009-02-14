@@ -1074,6 +1074,7 @@ typedef struct _sipAPIDef {
     PyObject *(*api_invoke_slot)(const sipSlot *slot, PyObject *sigargs);
     int (*api_save_slot)(sipSlot *sp, PyObject *rxObj, const char *slot);
     void (*api_clear_any_slot_reference)(sipSlot *slot);
+    int (*api_visit_slot)(sipSlot *slot, visitproc visit, void *arg);
 
     /*
      * The following are not part of the public API.

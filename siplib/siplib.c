@@ -115,6 +115,7 @@ static const sipTypeDef *sip_api_type_scope(const sipTypeDef *td);
 static const char *sip_api_resolve_typedef(const char *name,
         const sipExportedModuleDef *em);
 static void sip_api_clear_any_slot_reference(sipSlot *slot);
+static int sip_api_visit_slot(sipSlot *slot, visitproc visit, void *arg);
 
 
 /*
@@ -186,6 +187,7 @@ static const sipAPIDef sip_api = {
     sip_api_invoke_slot,
     sip_api_save_slot,
     sip_api_clear_any_slot_reference,
+    sip_api_visit_slot,
     /*
      * The following are not part of the public API.
      */
@@ -415,7 +417,6 @@ static void addToParent(sipWrapper *self, sipWrapper *owner);
 static void removeFromParent(sipWrapper *self);
 static void release(void *addr, const sipTypeDef *td, int state);
 static void callPyDtor(sipSimpleWrapper *self);
-static int visitSlot(sipSlot *slot, visitproc visit, void *arg);
 static int parseCharArray(PyObject *obj, const char **ap, SIP_SSIZE_T *aszp);
 static int parseChar(PyObject *obj, char *ap);
 static int parseCharString(PyObject *obj, const char **ap);
@@ -7546,7 +7547,7 @@ static int sipWrapper_traverse(sipWrapper *self, visitproc visit, void *arg)
 
             while ((slot = sipQtSupport->qt_find_sipslot(tx, &context)) != NULL)
             {
-                if ((vret = visitSlot(slot, visit, arg)) != 0)
+                if ((vret = sip_api_visit_slot(slot, visit, arg)) != 0)
                     return vret;
 
                 if (context == NULL)
@@ -8064,9 +8065,10 @@ static void *sip_api_import_symbol(const char *name)
 
 
 /*
- * Visit a slot connected to an object for the cyclic garbage collector.
+ * Visit a slot connected to an object for the cyclic garbage collector.  This
+ * is only called externally by PyQt3.
  */
-static int visitSlot(sipSlot *slot, visitproc visit, void *arg)
+static int sip_api_visit_slot(sipSlot *slot, visitproc visit, void *arg)
 {
     /* See if the slot has an extra reference. */
     if (slot->weakSlot == Py_True && slot->pyobj != Py_None)

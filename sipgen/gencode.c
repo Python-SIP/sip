@@ -577,6 +577,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipInvokeSlot               sipAPI_%s->api_invoke_slot\n"
 "#define sipSaveSlot                 sipAPI_%s->api_save_slot\n"
 "#define sipClearAnySlotReference    sipAPI_%s->api_clear_any_slot_reference\n"
+"#define sipVisitSlot                sipAPI_%s->api_visit_slot\n"
 "#define sipWrappedTypeName(wt)      ((wt)->type->td_cname)\n"
 "#define sipDeprecated               sipAPI_%s->api_deprecated\n"
 "#define sipRegisterPyType           sipAPI_%s->api_register_py_type\n"
@@ -603,6 +604,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipConvertFromMappedType    sipConvertFromType\n"
 "#define sipConvertFromNamedEnum(v, pt)  sipConvertFromEnum((v), ((sipEnumTypeObject *)(pt))->type)\n"
 "#define sipConvertFromNewInstance(p, wt, t) sipConvertFromNewType((p), (wt)->type, (t))\n"
+        ,mname
         ,mname
         ,mname
         ,mname
@@ -1322,6 +1324,11 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
             if (pluginPyQt4(pt))
             {
                 type_prefix = "pyqt4";
+                type_suffix = ".super";
+            }
+            else if (pluginPyQt3(pt) && ad->atype == class_type)
+            {
+                type_prefix = "pyqt3";
                 type_suffix = ".super";
             }
             else
@@ -6711,6 +6718,8 @@ static void generateClassAPI(classDef *cd, sipSpec *pt, FILE *fp)
 
         if (pluginPyQt4(pt))
             type_prefix = "pyqt4";
+        else if (pluginPyQt3(pt))
+            type_prefix = "pyqt3";
         else
             type_prefix = "sip";
 
@@ -7627,6 +7636,11 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
         type_prefix = "pyqt4";
         embedded = TRUE;
     }
+    else if (pluginPyQt3(pt))
+    {
+        type_prefix = "pyqt3";
+        embedded = TRUE;
+    }
     else
     {
         type_prefix = "sip";
@@ -7942,7 +7956,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
     {
         if (hasSigSlots(cd))
             prcode(fp,
-"    signals_%C,\n"
+"    signals_%C\n"
                 , classFQCName(cd));
         else
             prcode(fp,
