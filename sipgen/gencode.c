@@ -1056,6 +1056,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "\n"
 "#define sipQtCreateUniversalSignal          0\n"
 "#define sipQtFindUniversalSignal            0\n"
+"#define sipQtSignalRelay                    0\n"
 "#define sipQtConnectPySignal                0\n"
 "#define sipQtDisconnectPySignal             0\n"
             );
@@ -1560,6 +1561,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "    sipQtDisconnect,\n"
 "    sipQtSameSignalSlotName,\n"
 "    sipQtFindSipslot,\n"
+"    sipQtSignalRelay,\n"
 "    sipQtConnectPySignal,\n"
 "    sipQtDisconnectPySignal\n"
 "};\n"

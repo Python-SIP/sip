@@ -7,6 +7,7 @@
 
 
 #include <Python.h>
+#include <assert.h>
 #include <string.h>
 
 #include "sip.h"
@@ -79,10 +80,12 @@ PyObject *sip_api_invoke_slot(const sipSlot *slot, PyObject *sigargs)
     /* Keep some compilers quiet. */
     oxtype = oxvalue = oxtb = NULL;
 
-    /* Fan out Qt signals. */
+    /* Fan out Qt signals.  (Only PyQt3 will do this.) */
     if (slot->name != NULL && slot->name[0] != '\0')
     {
-        if (sip_api_emit_signal(slot->pyobj, slot->name, sigargs) < 0)
+        assert(sipQtSupport->qt_signal_relay);
+
+        if (sipQtSupport->qt_signal_relay(slot->pyobj, slot->name, sigargs) < 0)
             return NULL;
 
         Py_INCREF(Py_None);
@@ -405,6 +408,8 @@ PyObject *sip_api_connect_rx(PyObject *txObj, const char *sig, PyObject *rxObj,
     }
 
     /* Handle Python signals.  Only PyQt3 will get this far. */
+    assert(sipQtSupport->qt_connect_py_signal);
+
     if (sipQtSupport->qt_connect_py_signal(txObj, sig, rxObj, slot) < 0)
         return NULL;
 
@@ -452,6 +457,8 @@ PyObject *sip_api_disconnect_rx(PyObject *txObj,const char *sig,
     }
 
     /* Handle Python signals.  Only PyQt3 will get this far. */
+    assert(sipQtSupport->qt_disconnect_py_signal);
+
     sipQtSupport->qt_disconnect_py_signal(txObj, sig, rxObj, slot);
 
     Py_INCREF(Py_True);

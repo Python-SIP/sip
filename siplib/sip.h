@@ -1073,6 +1073,7 @@ typedef struct _sipAPIDef {
             int flags);
     PyObject *(*api_invoke_slot)(const sipSlot *slot, PyObject *sigargs);
     int (*api_save_slot)(sipSlot *sp, PyObject *rxObj, const char *slot);
+    void (*api_clear_any_slot_reference)(sipSlot *slot);
 
     /*
      * The following are not part of the public API.
@@ -1133,6 +1134,7 @@ typedef struct _sipQtAPI {
     int (*qt_disconnect)(void *, const char *, void *, const char *);
     int (*qt_same_name)(const char *, const char *);
     sipSlot *(*qt_find_sipslot)(void *, void **);
+    int (*qt_signal_relay)(PyObject *, const char *, PyObject *);
     int (*qt_connect_py_signal)(PyObject *, const char *, PyObject *,
             const char *);
     void (*qt_disconnect_py_signal)(PyObject *, const char *, PyObject *,
