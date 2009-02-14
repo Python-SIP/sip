@@ -53,8 +53,6 @@ extern sipTypeDef *sipQObjectType;  /* The QObject type. */
 
 void *sipGetRx(sipSimpleWrapper *txSelf, const char *sigargs, PyObject *rxObj,
         const char *slot, const char **memberp);
-int sip_api_emit_signal(PyObject *self, const char *sig, PyObject *sigargs);
-PyObject *sip_api_get_sender();
 PyObject *sip_api_connect_rx(PyObject *txObj, const char *sig, PyObject *rxObj,
         const char *slot, int type);
 PyObject *sip_api_disconnect_rx(PyObject *txObj, const char *sig,
@@ -73,7 +71,6 @@ void sip_api_common_dtor(sipSimpleWrapper *sipSelf);
 void sip_api_start_thread(void);
 void sip_api_end_thread(void);
 void sip_api_free_sipslot(sipSlot *slot);
-int sip_api_emit_to_slot(const sipSlot *slot, PyObject *sigargs);
 int sip_api_same_slot(const sipSlot *sp, PyObject *rxObj, const char *slot);
 PyObject *sip_api_invoke_slot(const sipSlot *slot, PyObject *sigargs);
 void *sip_api_convert_rx(sipWrapper *txSelf, const char *sigargs,
@@ -84,7 +81,6 @@ int sip_api_save_slot(sipSlot *sp, PyObject *rxObj, const char *slot);
 /*
  * These are not part of the SIP API but are used within the SIP module.
  */
-void sipFreeSlotList(sipSlotList *rx);
 void sipSaveMethod(sipPyMethod *pm,PyObject *meth);
 void *sipGetPending(sipWrapper **op, int *fp);
 PyObject *sipWrapSimpleInstance(void *cppPtr, const sipTypeDef *td,

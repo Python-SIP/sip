@@ -543,17 +543,14 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipCallHook                 sipAPI_%s->api_call_hook\n"
 "#define sipStartThread              sipAPI_%s->api_start_thread\n"
 "#define sipEndThread                sipAPI_%s->api_end_thread\n"
-"#define sipEmitSignal               sipAPI_%s->api_emit_signal\n"
 "#define sipConnectRx                sipAPI_%s->api_connect_rx\n"
 "#define sipDisconnectRx             sipAPI_%s->api_disconnect_rx\n"
-"#define sipGetSender                sipAPI_%s->api_get_sender\n"
 "#define sipRaiseUnknownException    sipAPI_%s->api_raise_unknown_exception\n"
 "#define sipRaiseTypeException       sipAPI_%s->api_raise_type_exception\n"
 "#define sipBadLengthForSlice        sipAPI_%s->api_bad_length_for_slice\n"
 "#define sipAddTypeInstance          sipAPI_%s->api_add_type_instance\n"
 "#define sipGetAddress               sipAPI_%s->api_get_address\n"
 "#define sipFreeSipslot              sipAPI_%s->api_free_sipslot\n"
-"#define sipEmitToSlot               sipAPI_%s->api_emit_to_slot\n"
 "#define sipSameSlot                 sipAPI_%s->api_same_slot\n"
 "#define sipPySlotExtend             sipAPI_%s->api_pyslot_extend\n"
 "#define sipConvertRx                sipAPI_%s->api_convert_rx\n"
@@ -579,6 +576,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipConvertFromConstVoidPtrAndSize   sipAPI_%s->api_convert_from_const_void_ptr_and_size\n"
 "#define sipInvokeSlot               sipAPI_%s->api_invoke_slot\n"
 "#define sipSaveSlot                 sipAPI_%s->api_save_slot\n"
+"#define sipClearAnySlotReference    sipAPI_%s->api_clear_any_slot_reference\n"
 "#define sipWrappedTypeName(wt)      ((wt)->type->td_cname)\n"
 "#define sipDeprecated               sipAPI_%s->api_deprecated\n"
 "#define sipRegisterPyType           sipAPI_%s->api_register_py_type\n"
@@ -605,8 +603,6 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipConvertFromMappedType    sipConvertFromType\n"
 "#define sipConvertFromNamedEnum(v, pt)  sipConvertFromEnum((v), ((sipEnumTypeObject *)(pt))->type)\n"
 "#define sipConvertFromNewInstance(p, wt, t) sipConvertFromNewType((p), (wt)->type, (t))\n"
-        ,mname
-        ,mname
         ,mname
         ,mname
         ,mname
@@ -1060,9 +1056,8 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "\n"
 "#define sipQtCreateUniversalSignal          0\n"
 "#define sipQtFindUniversalSignal            0\n"
-"#define sipQtGetSender                      0\n"
-"#define sipQtForgetSender                   0\n"
-"#define sipQtSignalsBlocked                 0\n"
+"#define sipQtConnectPySignal                0\n"
+"#define sipQtDisconnectPySignal             0\n"
             );
 
     /* Define the names. */
@@ -1563,11 +1558,10 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "    sipQtFindSlot,\n"
 "    sipQtConnect,\n"
 "    sipQtDisconnect,\n"
-"    sipQtSignalsBlocked,\n"
-"    sipQtGetSender,\n"
-"    sipQtForgetSender,\n"
 "    sipQtSameSignalSlotName,\n"
-"    sipQtFindSipslot\n"
+"    sipQtFindSipslot,\n"
+"    sipQtConnectPySignal,\n"
+"    sipQtDisconnectPySignal\n"
 "};\n"
             , mod->qobjclass);
 
@@ -5081,7 +5075,7 @@ static void generateEmitters(classDef *cd, FILE *fp)
 
                     prcode(fp,
 "\n"
-"static sipQtSignal signals_%C[] = {\n"
+"static pyqt3QtSignal signals_%C[] = {\n"
                         ,classFQCName(cd));
 
                     noIntro = FALSE;
@@ -7930,16 +7924,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 
     if (cd->picklecode != NULL)
         prcode(fp,
-"    pickle_%C,\n"
-            , classFQCName(cd));
-    else
-        prcode(fp,
-"    0,\n"
-            );
-
-    if (pluginPyQt3(pt) && hasSigSlots(cd))
-        prcode(fp,
-"    signals_%C,\n"
+"    pickle_%C\n"
             , classFQCName(cd));
     else
         prcode(fp,
@@ -7950,6 +7935,18 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
         prcode(fp,
 "},\n"
             );
+
+    if (pluginPyQt3(pt))
+    {
+        if (hasSigSlots(cd))
+            prcode(fp,
+"    signals_%C,\n"
+                , classFQCName(cd));
+        else
+            prcode(fp,
+"    0\n"
+                );
+    }
 
     if (pluginPyQt4(pt))
     {

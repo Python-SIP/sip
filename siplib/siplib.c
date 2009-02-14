@@ -114,6 +114,7 @@ static const sipTypeDef *sip_api_type_from_py_type_object(PyTypeObject *py_type)
 static const sipTypeDef *sip_api_type_scope(const sipTypeDef *td);
 static const char *sip_api_resolve_typedef(const char *name,
         const sipExportedModuleDef *em);
+static void sip_api_clear_any_slot_reference(sipSlot *slot);
 
 
 /*
@@ -146,9 +147,7 @@ static const sipAPIDef sip_api = {
     sip_api_convert_from_enum,
     sip_api_get_state,
     sip_api_disconnect_rx,
-    sip_api_emit_signal,
     sip_api_free,
-    sip_api_get_sender,
     sip_api_get_pyobject,
     sip_api_malloc,
     sip_api_parse_result,
@@ -182,11 +181,11 @@ static const sipAPIDef sip_api = {
      * code.
      */
     sip_api_free_sipslot,
-    sip_api_emit_to_slot,
     sip_api_same_slot,
     sip_api_convert_rx,
     sip_api_invoke_slot,
     sip_api_save_slot,
+    sip_api_clear_any_slot_reference,
     /*
      * The following are not part of the public API.
      */
@@ -417,7 +416,6 @@ static void removeFromParent(sipWrapper *self);
 static void release(void *addr, const sipTypeDef *td, int state);
 static void callPyDtor(sipSimpleWrapper *self);
 static int visitSlot(sipSlot *slot, visitproc visit, void *arg);
-static void clearAnySlotReference(sipSlot *slot);
 static int parseCharArray(PyObject *obj, const char **ap, SIP_SSIZE_T *aszp);
 static int parseChar(PyObject *obj, char *ap);
 static int parseCharString(PyObject *obj, const char **ap);
@@ -7465,7 +7463,6 @@ static int sipWrapper_clear(sipWrapper *self)
 {
     int vret;
     sipSimpleWrapper *sw = (sipSimpleWrapper *)self;
-    sipPySig *ps;
 
     vret = sipSimpleWrapper_clear(sw);
 
@@ -7481,21 +7478,12 @@ static int sipWrapper_clear(sipWrapper *self)
 
             while ((slot = sipQtSupport->qt_find_sipslot(tx, &context)) != NULL)
             {
-                clearAnySlotReference(slot);
+                sip_api_clear_any_slot_reference(slot);
 
                 if (context == NULL)
                     break;
             }
         }
-    }
-
-    /* Remove any lambda slots connected to PyQt v3 Python signals. */
-    for (ps = self->pySigList; ps != NULL; ps = ps->next)
-    {
-        sipSlotList *psrx;
-
-        for (psrx = ps->rxlist; psrx != NULL; psrx = psrx->next)
-            clearAnySlotReference(&psrx->rx);
     }
 
     /* Detach children (which will be owned by C/C++). */
@@ -7529,25 +7517,6 @@ static void sipWrapper_dealloc(sipWrapper *self)
 
     sipWrapper_clear(self);
 
-    while (self->pySigList != NULL)
-    {
-        sipPySig *ps;
-        sipSlotList *psrx;
-
-        /* Take this one out of the list. */
-        ps = self->pySigList;
-        self->pySigList = ps->next;
-
-        while ((psrx = ps->rxlist) != NULL)
-        {
-            ps->rxlist = psrx->next;
-            sipFreeSlotList(psrx);
-        }
-
-        sip_api_free(ps->name);
-        sip_api_free(ps);
-    }
-
     /* Skip the super-type's dealloc. */
     PyBaseObject_Type.tp_dealloc((PyObject *)self);
 }
@@ -7561,7 +7530,6 @@ static int sipWrapper_traverse(sipWrapper *self, visitproc visit, void *arg)
     int vret;
     sipSimpleWrapper *sw = (sipSimpleWrapper *)self;
     sipWrapper *w;
-    sipPySig *ps;
 
     if ((vret = sipSimpleWrapper_traverse(sw, visit, arg)) != 0)
         return vret;
@@ -7585,15 +7553,6 @@ static int sipWrapper_traverse(sipWrapper *self, visitproc visit, void *arg)
                     break;
             }
         }
-    }
-
-    for (ps = self->pySigList; ps != NULL; ps = ps->next)
-    {
-        sipSlotList *psrx;
-
-        for (psrx = ps->rxlist; psrx != NULL; psrx = psrx->next)
-            if ((vret = visitSlot(&psrx->rx, visit, arg)) != 0)
-                return vret;
     }
 
     for (w = self->first_child; w != NULL; w = w->sibling_next)
@@ -8118,9 +8077,10 @@ static int visitSlot(sipSlot *slot, visitproc visit, void *arg)
 
 
 /*
- * Clear a slot if it has an extra reference to keep it alive.
+ * Clear a slot if it has an extra reference to keep it alive.  This is only
+ * called externally by PyQt3.
  */
-static void clearAnySlotReference(sipSlot *slot)
+static void sip_api_clear_any_slot_reference(sipSlot *slot)
 {
     if (slot->weakSlot == Py_True)
     {

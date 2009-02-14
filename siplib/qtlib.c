@@ -14,50 +14,16 @@
 
 
 /* This is how Qt "types" signals and slots. */
-#define isQtSlot(s) (*(s) == '1')
+#define isQtSlot(s)     (*(s) == '1')
 #define isQtSignal(s)   (*(s) == '2')
 
 
-static PyObject *py_sender = NULL;  /* The last Python signal sender. */
-
-
-static int emitQtSig(sipSimpleWrapper *sw, const char *sig, PyObject *sigargs);
-static int emitToSlotList(sipSlotList *rxlist, PyObject *sigargs);
-static int addSlotToPySigList(sipWrapper *,const char *,PyObject *,const char *);
-static void removeSlotFromPySigList(sipWrapper *,const char *,PyObject *,const char *);
 static PyObject *getWeakRef(PyObject *obj);
-static sipPySig *findPySignal(sipWrapper *,const char *);
 static char *sipStrdup(const char *);
 static void *createUniversalSlot(sipWrapper *txSelf, const char *sig,
         PyObject *rxObj, const char *slot, const char **member, int flags);
 static void *findSignal(void *txrx, const char **sig);
 static void *newSignal(void *txrx, const char **sig);
-
-
-/*
- * Return the most recent signal sender.  This is only used by PyQt3.
- */
-PyObject *sip_api_get_sender()
-{
-    PyObject *sender;
-    void *qt_sender;
-
-    /*
-     * If there is a Qt sender then it is more recent than the last Python
-     * sender, so use it instead.
-     */
-    if ((qt_sender = sipQtSupport->qt_get_sender()) != NULL)
-        sender = sip_api_convert_from_type(qt_sender, sipQObjectType, NULL);
-    else
-    {
-        if ((sender = py_sender) == NULL)
-            sender = Py_None;
-
-        Py_INCREF(sender);
-    }
-
-    return sender;
-}
 
 
 /*
@@ -100,116 +66,6 @@ static void *createUniversalSlot(sipWrapper *txSelf, const char *sig,
         sipSetPossibleProxy((sipSimpleWrapper *)txSelf);
 
     return us;
-}
-
-
-/*
- * Emit a Python or Qt signal.  This is only used by PyQt3.
- */
-int sip_api_emit_signal(PyObject *self, const char *sig, PyObject *sigargs)
-{
-    sipPySig *ps;
-    void *tx;
-    sipWrapper *w = (sipWrapper *)self;
-
-    /*
-     * Don't do anything if signals are blocked.  Qt signals would be blocked
-     * anyway, but this blocks Python signals as well.
-     */
-    if ((tx = sip_api_get_cpp_ptr((sipSimpleWrapper *)w, sipQObjectType)) == NULL || sipQtSupport->qt_signals_blocked(tx))
-        return 0;
-
-    if (isQtSignal(sig))
-        return emitQtSig((sipSimpleWrapper *)w, sig, sigargs);
-
-    if ((ps = findPySignal(w,sig)) != NULL)
-    {
-        int rc;
-
-        /* Forget the last Qt sender and remember this one. */
-        sipQtSupport->qt_forget_sender();
-        py_sender = self;
-
-        rc = emitToSlotList(ps -> rxlist,sigargs);
-
-        /* Forget this as a sender. */
-        py_sender = NULL;
-
-        return rc;
-    }
-
-    return 0;
-}
-
-
-/*
- * Search the Python signal list for a signal.  This is only used by PyQt3.
- */
-static sipPySig *findPySignal(sipWrapper *w,const char *sig)
-{
-    sipPySig *ps;
-
-    for (ps = w -> pySigList; ps != NULL; ps = ps -> next)
-        if (sipQtSupport->qt_same_name(ps -> name,sig))
-            return ps;
-
-    return NULL;
-}
-
-
-/*
- * Search a signal table for a signal.  If found, call the emitter function
- * with the signal arguments.  Return 0 if the signal was emitted or <0 if
- * there was an error.  This is only used by PyQt3.
- */
-static int emitQtSig(sipSimpleWrapper *sw, const char *sig, PyObject *sigargs)
-{
-    sipQtSignal *tab;
-
-    /* Search the table. */
-    for (tab = ((sipClassTypeDef *)((sipWrapperType *)(((PyObject *)sw)->ob_type))->type)->ctd_emit; tab->st_name != NULL; ++tab)
-    {
-        const char *sp, *tp;
-        int found;
-
-        /* Compare only the base name. */
-        sp = &sig[1];
-        tp = tab -> st_name;
-
-        found = TRUE;
-
-        while (*sp != '\0' && *sp != '(' && *tp != '\0')
-            if (*sp++ != *tp++)
-            {
-                found = FALSE;
-                break;
-            }
-
-        if (found)
-            return (*tab->st_emitfunc)(sw, sigargs);
-    }
-
-    /* It wasn't found if we got this far. */
-    PyErr_Format(PyExc_NameError,"Invalid signal %s",&sig[1]);
-
-    return -1;
-}
-
-
-/*
- * Send a signal to a single slot (Qt or Python).  This is deprecated.
- */
-int sip_api_emit_to_slot(const sipSlot *slot, PyObject *sigargs)
-{
-    PyObject *obj = sip_api_invoke_slot(slot, sigargs);
-
-    if (obj != NULL)
-    {
-        Py_DECREF(obj);
-        return 0;
-    }
-
-    return -1;
 }
 
 
@@ -418,81 +274,6 @@ PyObject *sip_api_invoke_slot(const sipSlot *slot, PyObject *sigargs)
 
 
 /*
- * Send a signal to the slots (Qt or Python) in a Python list.  This is only
- * used by PyQt3.
- */
-static int emitToSlotList(sipSlotList *rxlist,PyObject *sigargs)
-{
-    int rc;
-
-    /* Apply the arguments to each slot method. */
-    rc = 0;
-
-    while (rxlist != NULL && rc >= 0)
-    {
-        sipSlotList *next;
-
-        /*
-         * We get the next in the list before calling the slot in case the list
-         * gets changed by the slot - usually because the slot disconnects
-         * itself.
-         */
-        next = rxlist -> next;
-        rc = sip_api_emit_to_slot(&rxlist -> rx, sigargs);
-        rxlist = next;
-    }
-
-    return rc;
-}
-
-
-/*
- * Add a slot to a transmitter's Python signal list.  The signal is a Python
- * signal, the slot may be either a Qt signal, a Qt slot, a Python signal or a
- * Python slot.  This is only used by PyQt3.
- */
-static int addSlotToPySigList(sipWrapper *txSelf,const char *sig,
-                  PyObject *rxObj,const char *slot)
-{
-    sipPySig *ps;
-    sipSlotList *psrx;
-
-    /* Create a new one if necessary. */
-    if ((ps = findPySignal(txSelf,sig)) == NULL)
-    {
-        if ((ps = (sipPySig *)sip_api_malloc(sizeof (sipPySig))) == NULL)
-            return -1;
-
-        if ((ps -> name = sipStrdup(sig)) == NULL)
-        {
-            sip_api_free(ps);
-            return -1;
-        }
-
-        ps -> rxlist = NULL;
-        ps -> next = txSelf -> pySigList;
-
-        txSelf -> pySigList = ps;
-    }
-
-    /* Create the new receiver. */
-    if ((psrx = (sipSlotList *)sip_api_malloc(sizeof (sipSlotList))) == NULL)
-        return -1;
-
-    if (sip_api_save_slot(&psrx->rx, rxObj, slot) < 0)
-    {
-        sip_api_free(psrx);
-        return -1;
-    }
-
-    psrx -> next = ps -> rxlist;
-    ps -> rxlist = psrx;
-
-    return 0;
-}
-
-
-/*
  * Compare two slots to see if they are the same.
  */
 int sip_api_same_slot(const sipSlot *sp, PyObject *rxObj, const char *slot)
@@ -600,8 +381,6 @@ void *sip_api_convert_rx(sipWrapper *txSelf, const char *sigargs,
 PyObject *sip_api_connect_rx(PyObject *txObj, const char *sig, PyObject *rxObj,
         const char *slot, int type)
 {
-    sipWrapper *txSelf = (sipWrapper *)txObj;
-
     /* Handle Qt signals. */
     if (isQtSignal(sig))
     {
@@ -609,7 +388,7 @@ PyObject *sip_api_connect_rx(PyObject *txObj, const char *sig, PyObject *rxObj,
         const char *member, *real_sig;
         int res;
 
-        if ((tx = sip_api_get_cpp_ptr((sipSimpleWrapper *)txSelf, sipQObjectType)) == NULL)
+        if ((tx = sip_api_get_cpp_ptr((sipSimpleWrapper *)txObj, sipQObjectType)) == NULL)
             return NULL;
 
         real_sig = sig;
@@ -617,7 +396,7 @@ PyObject *sip_api_connect_rx(PyObject *txObj, const char *sig, PyObject *rxObj,
         if ((tx = newSignal(tx, &real_sig)) == NULL)
             return NULL;
 
-        if ((rx = sip_api_convert_rx(txSelf, sig, rxObj, slot, &member, 0)) == NULL)
+        if ((rx = sip_api_convert_rx((sipWrapper *)txObj, sig, rxObj, slot, &member, 0)) == NULL)
             return NULL;
 
         res = sipQtSupport->qt_connect(tx, real_sig, rx, member, type);
@@ -626,7 +405,7 @@ PyObject *sip_api_connect_rx(PyObject *txObj, const char *sig, PyObject *rxObj,
     }
 
     /* Handle Python signals.  Only PyQt3 will get this far. */
-    if (addSlotToPySigList(txSelf, sig, rxObj, slot) < 0)
+    if (sipQtSupport->qt_connect_py_signal(txObj, sig, rxObj, slot) < 0)
         return NULL;
 
     Py_INCREF(Py_True);
@@ -640,19 +419,18 @@ PyObject *sip_api_connect_rx(PyObject *txObj, const char *sig, PyObject *rxObj,
 PyObject *sip_api_disconnect_rx(PyObject *txObj,const char *sig,
                 PyObject *rxObj,const char *slot)
 {
-    sipWrapper *txSelf = (sipWrapper *)txObj;
-
     /* Handle Qt signals. */
     if (isQtSignal(sig))
     {
+        sipSimpleWrapper *txSelf = (sipSimpleWrapper *)txObj;
         void *tx, *rx;
         const char *member;
         int res;
 
-        if ((tx = sip_api_get_cpp_ptr((sipSimpleWrapper *)txSelf, sipQObjectType)) == NULL)
+        if ((tx = sip_api_get_cpp_ptr(txSelf, sipQObjectType)) == NULL)
             return NULL;
 
-        if ((rx = sipGetRx((sipSimpleWrapper *)txSelf, sig, rxObj, slot, &member)) == NULL)
+        if ((rx = sipGetRx(txSelf, sig, rxObj, slot, &member)) == NULL)
         {
             Py_INCREF(Py_False);
             return Py_False;
@@ -674,38 +452,10 @@ PyObject *sip_api_disconnect_rx(PyObject *txObj,const char *sig,
     }
 
     /* Handle Python signals.  Only PyQt3 will get this far. */
-    removeSlotFromPySigList(txSelf,sig,rxObj,slot);
+    sipQtSupport->qt_disconnect_py_signal(txObj, sig, rxObj, slot);
 
     Py_INCREF(Py_True);
     return Py_True;
-}
-
-
-/*
- * Remove a slot from a transmitter's Python signal list.  This is only used by
- * PyQt3.
- */
-static void removeSlotFromPySigList(sipWrapper *txSelf,const char *sig,
-                    PyObject *rxObj,const char *slot)
-{
-    sipPySig *ps;
-
-    if ((ps = findPySignal(txSelf,sig)) != NULL)
-    {
-        sipSlotList **psrxp;
-
-        for (psrxp = &ps -> rxlist; *psrxp != NULL; psrxp = &(*psrxp) -> next)
-        {
-            sipSlotList *psrx = *psrxp;
-
-            if (sip_api_same_slot(&psrx -> rx, rxObj, slot))
-            {
-                *psrxp = psrx -> next;
-                sipFreeSlotList(psrx);
-                break;
-            }
-        }
-    }
 }
 
 
@@ -721,16 +471,6 @@ void sip_api_free_sipslot(sipSlot *slot)
 
     /* Remove any weak reference. */
     Py_XDECREF(slot->weakSlot);
-}
-
-
-/*
- * Free a sipSlotList structure on the heap.
- */
-void sipFreeSlotList(sipSlotList *rx)
-{
-    sip_api_free_sipslot(&rx->rx);
-    sip_api_free(rx);
 }
 
 

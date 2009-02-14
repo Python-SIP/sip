@@ -260,6 +260,16 @@ The following parts of the API are now deprecated (but still supported).
 
     - The ``C`` and ``E`` format character of `sipParseResult()`_.
 
+The following PyQt-specific support functions have been removed.
+
+    - ``sipConnectRx()``
+
+    - ``sipDisconnectRx()``
+
+    - ``sipEmitSlot()``
+
+    - ``sipGetSender()``
+
 
 SIP v4.7.8
 ----------
@@ -4353,22 +4363,6 @@ PyObject \*sipClassName(PyObject \*obj)
         PyString_FromString(obj->ob_type->tp_name)
 
 
-sipConnectRx()
---------------
-
-PyObject \*sipConnectRx(PyObject \*sender, const char \*signal, PyObject \*receiver, const char \*slot, int type)
-    This connects a signal to a signal or slot and returns ``Py_True`` if the
-    signal was connected or ``Py_False`` if not.  If there was some other
-    error then a Python exception is raised and ``NULL`` is returned.  *sender*
-    is the wrapped ``QObject`` derived instance that emits the signal.
-    *signal* is the typed name of the signal.  *receiver* is the wrapped
-    ``QObject`` derived instance or Python callable that the signal is
-    connected to.  *slot* is the typed name of the slot, or ``NULL`` if
-    *receiver* is a Python callable.  *type* is the type of connection and is
-    cast from Qt::ConnectionType.  It is normally only used by PyQt to
-    implement ``QObject.connect()``.
-
-
 sipConvertFromConstVoidPtr()
 ----------------------------
 
@@ -4646,33 +4640,6 @@ void \*sipConvertToVoidPtr(PyObject \*obj)
     was successful.
 
 
-sipDisconnectRx()
------------------
-
-PyObject \*sipDisconnectRx(PyObject \*sender, const char \*signal, PyObject \*receiver, const char \*slot)
-    This disconnects a signal from a signal or slot and returns ``Py_True`` if
-    the signal was disconnected or ``Py_False`` if not.  If there was some
-    other error then a Python exception is raised and ``NULL`` is returned.
-    *sender* is the wrapped ``QObject`` derived instance that emits the signal.
-    *signal* is the typed name of the signal.  *receiver* is the wrapped
-    ``QObject`` derived instance or Python callable that the signal is
-    connected to.  *slot* is the typed name of the slot, or ``NULL`` if
-    *receiver* is a Python callable.  It is normally only used by PyQt to
-    implement ``QObject.disconnect()``.
-
-
-sipEmitSignal()
----------------
-
-int sipEmitSignal(PyObject \*txobj, const char \*signal, PyObject \*args)
-    This emits a signal and returns zero if there was no error.  If there was
-    an error then a Python exception is raised and a negative value is
-    returned.  *txobj* is the wrapped ``QObject`` derived instance that emits
-    the signal.  *signal* is the typed name of the signal.  *args* is a Python
-    tuple of the signal arguments.  It is normally only used by PyQt to
-    implement ``QObject.emit()``.
-
-
 sipExportSymbol()
 -----------------
 
@@ -4774,15 +4741,6 @@ sipFree()
 void sipFree(void \*mem)
     This returns an area of memory allocated by `sipMalloc()`_ to the heap.
     *mem* is a pointer to the area of memory.
-
-
-sipGetSender()
---------------
-
-const void \*sipGetSender()
-    This returns a pointer to the last ``QObject`` instance that emitted a Qt
-    signal.  It is normally only used by PyQt to implement
-    ``QObject.sender()``.
 
 
 sipGetPyObject()

@@ -226,10 +226,6 @@ typedef struct _sipWrapper {
     /* The super-type. */
     sipSimpleWrapper super;
 
-    /* Python signal list (complex). */
-    /* FIXME: Move this to PyQt3. */
-    struct _sipPySig *pySigList;
-
     /* First child object. */
     struct _sipWrapper *first_child;
 
@@ -275,7 +271,6 @@ typedef const struct _sipTypeDef *(*sipSubClassConvertFunc)(void **);
 typedef int (*sipConvertToFunc)(PyObject *, void **, int *, PyObject *);
 typedef PyObject *(*sipConvertFromFunc)(void *, PyObject *);
 typedef int (*sipVirtHandlerFunc)(void *, PyObject *, ...);
-typedef int (*sipEmitFunc)(sipSimpleWrapper *, PyObject *);
 typedef void (*sipReleaseFunc)(void *, int);
 typedef PyObject *(*sipPickleFunc)(void *);
 
@@ -588,10 +583,6 @@ typedef struct _sipClassTypeDef {
 
     /* The pickle function. */
     sipPickleFunc ctd_pickle;
-
-    /* Emit table for Qt signals. */
-    /* FIXME: Move this to pyqt3ClassTypeDef. */
-    struct _sipQtSignal *ctd_emit;
 } sipClassTypeDef;
 
 
@@ -990,45 +981,6 @@ typedef struct _sipSlot {
 
 
 /*
- * An entry in a linked list of slots.
- */
-typedef struct _sipSlotList {
-    /* The receiver. */
-    sipSlot rx;
-
-    /* Next in the list. */
-    struct _sipSlotList *next;
-} sipSlotList;
-
-
-/*
- * A Python signal.
- */
-typedef struct _sipPySig {
-    /* The name of the signal. */
-    char *name;
-
-    /* The list of receivers. */
-    sipSlotList *rxlist;
-
-    /* Next in the list. */
-    struct _sipPySig *next;
-} sipPySig;
-
-
-/*
- * Maps the name of a Qt signal to a wrapper function to emit it.
- */
-typedef struct _sipQtSignal {
-    /* The signal name. */
-    const char *st_name;
-
-    /* The emitter function. */
-    sipEmitFunc st_emitfunc;
-} sipQtSignal;
-
-
-/*
  * The API exported by the SIP module, ie. pointers to all the data and
  * functions that can be used by generated code.
  */
@@ -1073,9 +1025,7 @@ typedef struct _sipAPIDef {
     int (*api_get_state)(PyObject *transferObj);
     PyObject *(*api_disconnect_rx)(PyObject *txObj, const char *sig,
             PyObject *rxObj, const char *slot);
-    int (*api_emit_signal)(PyObject *self, const char *sig, PyObject *sigargs);
     void (*api_free)(void *mem);
-    PyObject *(*api_get_sender)();
     PyObject *(*api_get_pyobject)(void *cppPtr, const sipTypeDef *td);
     void *(*api_malloc)(size_t nbytes);
     int (*api_parse_result)(int *isErr, PyObject *method, PyObject *res,
@@ -1117,7 +1067,6 @@ typedef struct _sipAPIDef {
      * code.
      */
     void (*api_free_sipslot)(sipSlot *slot);
-    int (*api_emit_to_slot)(const sipSlot *slot, PyObject *sigargs);
     int (*api_same_slot)(sipSlot *sp, PyObject *rxObj, const char *slot);
     void *(*api_convert_rx)(sipWrapper *txSelf, const char *sigargs,
             PyObject *rxObj, const char *slot, const char **memberp,
@@ -1182,11 +1131,12 @@ typedef struct _sipQtAPI {
             const char **);
     int (*qt_connect)(void *, const char *, void *, const char *, int);
     int (*qt_disconnect)(void *, const char *, void *, const char *);
-    int (*qt_signals_blocked)(void *);
-    void *(*qt_get_sender)();
-    void (*qt_forget_sender)();
     int (*qt_same_name)(const char *, const char *);
     sipSlot *(*qt_find_sipslot)(void *, void **);
+    int (*qt_connect_py_signal)(PyObject *, const char *, PyObject *,
+            const char *);
+    void (*qt_disconnect_py_signal)(PyObject *, const char *, PyObject *,
+            const char *);
 } sipQtAPI;
 
 
@@ -1286,8 +1236,47 @@ typedef struct _sipQtAPI {
 
 
 /*
+ * The following are PyQt3-specific extensions.  In SIP v5 they will be pushed
+ * out to a plugin supplied by PyQt3.
+ */
+
+typedef int (*pyqt3EmitFunc)(sipSimpleWrapper *, PyObject *);
+
+
+/*
+ * Maps the name of a Qt signal to a wrapper function to emit it.
+ */
+typedef struct _pyqt3QtSignal {
+    /* The signal name. */
+    const char *st_name;
+
+    /* The emitter function. */
+    pyqt3EmitFunc st_emitfunc;
+} pyqt3QtSignal;
+
+
+/*
+ * This is the PyQt3-specific extension to the generated class type structure.
+ */
+typedef struct _pyqt3ClassTypeDef {
+    /*
+     * The super-type structure.  This must be first in the structure so that
+     * it can be cast to sipClassTypeDef *.
+     */
+    sipClassTypeDef super;
+
+    /* The emit table for Qt signals. */
+    pyqt3QtSignal *qt3_emit;
+} pyqt3ClassTypeDef;
+
+
+/*
+ * The following are PyQt4-specific extensions.  In SIP v5 they will be pushed
+ * out to a plugin supplied by PyQt4.
+ */
+
+/*
  * This is the PyQt4-specific extension to the generated class type structure.
- * In SIP v5 this will be pushed out to a plugin supplied by PyQt4.
  */
 typedef struct _pyqt4ClassTypeDef {
     /*
