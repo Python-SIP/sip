@@ -379,9 +379,9 @@ static int setReduce(PyTypeObject *type, PyMethodDef *pickler);
 static int createEnumType(sipExportedModuleDef *client, sipEnumTypeDef *etd,
         PyObject *mod_dict);
 static PyObject *createTypeDict(PyObject *mname);
-static sipExportedModuleDef *getClassModule(sipEncodedClassDef *enc,
+static sipExportedModuleDef *getClassModule(const sipEncodedClassDef *enc,
         sipExportedModuleDef *em);
-static sipClassTypeDef *getClassType(sipEncodedClassDef *enc,
+static sipClassTypeDef *getClassType(const sipEncodedClassDef *enc,
         sipExportedModuleDef *em);
 static const sipTypeDef *convertSubClass(const sipTypeDef *td, void **cppPtr);
 static void *getPtrTypeDef(sipSimpleWrapper *self,
@@ -3485,7 +3485,7 @@ static void addToParent(sipWrapper *self, sipWrapper *owner)
      * The owner holds a real reference so that the cyclic garbage collector
      * works properly.
      */
-    Py_INCREF(self);
+    Py_INCREF((sipSimpleWrapper *)self);
 }
 
 
@@ -3513,7 +3513,7 @@ static void removeFromParent(sipWrapper *self)
          * We must do this last, after all the pointers are correct, because
          * this is used by the clear slot.
          */
-        Py_DECREF(self);
+        Py_DECREF((sipSimpleWrapper *)self);
     }
 }
 
@@ -5898,7 +5898,7 @@ static void sip_api_raise_type_exception(const sipTypeDef *td, void *ptr)
 /*
  * Return the module of an encoded class.
  */
-static sipExportedModuleDef *getClassModule(sipEncodedClassDef *enc,
+static sipExportedModuleDef *getClassModule(const sipEncodedClassDef *enc,
         sipExportedModuleDef *em)
 {
     if (enc->sc_module != 255)
@@ -5911,7 +5911,7 @@ static sipExportedModuleDef *getClassModule(sipEncodedClassDef *enc,
 /*
  * Return the generated type structure of an encoded class.
  */
-static sipClassTypeDef *getClassType(sipEncodedClassDef *enc,
+static sipClassTypeDef *getClassType(const sipEncodedClassDef *enc,
         sipExportedModuleDef *em)
 {
     return (sipClassTypeDef *)getClassModule(enc, em)->em_types[enc->sc_class];
