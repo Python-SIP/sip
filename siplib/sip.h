@@ -1299,6 +1299,12 @@ typedef struct _pyqt4ClassTypeDef {
      * derived from QFlags.
      */
     unsigned qt4_flags;
+
+    /*
+     * The table of signals emitted by the type.  These are grouped by signal
+     * name.
+     */
+    const char **qt4_signals;
 } pyqt4ClassTypeDef;
 
 

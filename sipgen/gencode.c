@@ -7985,8 +7985,13 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
                 );
 
         prcode(fp,
-"    %u\n"
+"    %u,\n"
             , cd->pyqt4_flags);
+
+        /* FIXME: Generate the signal strings. */
+        prcode(fp,
+"    0\n"
+            );
     }
 
     prcode(fp,
