@@ -7549,7 +7549,7 @@ static void generateSimpleFunctionCall(fcallDef *fcd,FILE *fp)
 static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 {
     const char *mname, *sep, *type_prefix;
-    int is_slots, nr_methods, nr_enums, embedded;
+    int is_slots, is_signals, nr_methods, nr_enums, embedded;
     int is_inst_class, is_inst_voidp, is_inst_char, is_inst_string;
     int is_inst_int, is_inst_long, is_inst_ulong, is_inst_longlong;
     int is_inst_ulonglong, is_inst_double;
@@ -7614,6 +7614,50 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 "    {0, (sipPySlotType)0}\n"
 "};\n"
             );
+
+    /* Generate the PyQt4 signals table. */
+    is_signals = FALSE;
+
+    if (pluginPyQt4(pt) && isQObjectSubClass(cd))
+    {
+        /* The signals must be grouped by name. */
+        for (md = cd->members; md != NULL; md = md->next)
+        {
+            overDef *od;
+
+            for (od = cd->overs; od != NULL; od = od->next)
+            {
+                if (od->common != md || !isSignal(od))
+                    continue;
+
+                if (!is_signals)
+                {
+                    is_signals = TRUE;
+
+                    prcode(fp,
+"\n"
+"\n"
+"/* Define this type's PyQt4 signals. */\n"
+"static const char *pyqt4_signals_%C[] = {\n"
+                , classFQCName(cd));
+                }
+
+                prcode(fp,
+"    \"%s(", od->cppname);
+
+                generateCalledArgs(cd, od->cppsig, Declaration, TRUE, fp);
+
+                prcode(fp,")\",\n"
+                    );
+            }
+        }
+
+        if (is_signals)
+            prcode(fp,
+"    0\n"
+"};\n"
+                );
+    }
 
     /* Generate the attributes tables. */
     nr_methods = generateMethodTable(cd,fp);
@@ -7988,10 +8032,14 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 "    %u,\n"
             , cd->pyqt4_flags);
 
-        /* FIXME: Generate the signal strings. */
-        prcode(fp,
+        if (is_signals)
+            prcode(fp,
+"    pyqt4_signals_%C\n"
+                , classFQCName(cd));
+        else
+            prcode(fp,
 "    0\n"
-            );
+                );
     }
 
     prcode(fp,

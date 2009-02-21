@@ -563,6 +563,7 @@ static void xmlFunction(classDef *scope, memberDef *md, overDef *oloads,
         int indent, FILE *fp)
 {
     overDef *od;
+    const char *default_str = "default=\"1\" ";
 
     for (od = oloads; od != NULL; od = od->next)
     {
@@ -578,11 +579,13 @@ static void xmlFunction(classDef *scope, memberDef *md, overDef *oloads,
         if (isSignal(od))
         {
             xmlIndent(indent, fp);
-            fprintf(fp, "<Signal name=\"");
+            fprintf(fp, "<Signal %sname=\"", default_str);
             prScopedPythonName(fp, scope, md->pyname->text);
             fprintf(fp, "\" sig=\"");
             xmlCppSignature(fp, od);
             fprintf(fp, "\"/>\n");
+
+            default_str = "";
 
             continue;
         }
