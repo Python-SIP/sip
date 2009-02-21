@@ -114,6 +114,8 @@ static const sipTypeDef *sip_api_type_from_py_type_object(PyTypeObject *py_type)
 static const sipTypeDef *sip_api_type_scope(const sipTypeDef *td);
 static const char *sip_api_resolve_typedef(const char *name,
         const sipExportedModuleDef *em);
+static int sip_api_register_attribute_getter(const sipTypeDef *td,
+        sipAttrGetterFunc getter);
 static void sip_api_clear_any_slot_reference(sipSlot *slot);
 static int sip_api_visit_slot(sipSlot *slot, visitproc visit, void *arg);
 
@@ -169,6 +171,7 @@ static const sipAPIDef sip_api = {
     sip_api_type_from_py_type_object,
     sip_api_type_scope,
     sip_api_resolve_typedef,
+    sip_api_register_attribute_getter,
     /*
      * The following are deprecated parts of the public API.
      */
@@ -274,6 +277,16 @@ typedef struct _sipPyObject {
 } sipPyObject;
 
 
+/*
+ * An entry in the linked list of attribute getters.
+ */
+typedef struct _sipAttrGetter {
+    PyTypeObject *type;             /* The Python type being handled. */
+    sipAttrGetterFunc getter;       /* The getter. */
+    struct _sipAttrGetter *next;    /* The next in the list. */
+} sipAttrGetter;
+
+
 /*****************************************************************************
  * The structures to support a Python type to hold a named enum.
  *****************************************************************************/
@@ -308,11 +321,8 @@ static PyTypeObject sipEnumType_Type = {
 };
 
 
-PyInterpreterState *sipInterpreter = NULL;
 sipQtAPI *sipQtSupport = NULL;
 sipTypeDef *sipQObjectType;
-sipPyObject *sipRegisteredPyTypes = NULL;
-sipSymbol *sipSymbolList = NULL;
 
 
 /*
@@ -332,6 +342,10 @@ static sipClassTypeDef *currentClassType = NULL;    /* The class type being crea
 
 static PyObject *type_unpickler;        /* The type unpickler function. */
 static PyObject *enum_unpickler;        /* The enum unpickler function. */
+static sipSymbol *sipSymbolList = NULL; /* The list of published symbols. */
+static sipAttrGetter *sipAttrGetters = NULL;  /* The list of attribute getters. */
+static sipPyObject *sipRegisteredPyTypes = NULL;    /* Registered Python types. */
+static PyInterpreterState *sipInterpreter = NULL;   /* The interpreter. */
 
 
 static void addClassSlots(sipWrapperType *wt, sipClassTypeDef *ctd);
@@ -351,15 +365,12 @@ static int getSelfFromArgs(sipTypeDef *td, PyObject *args, int argnr,
         sipSimpleWrapper **selfp);
 static int canConvertToEnum(PyObject *obj, sipTypeDef *td);
 static PyObject *createEnumMember(sipClassTypeDef *ctd, sipEnumMemberDef *enm);
-static PyObject *handleGetLazyAttr(PyObject *nameobj, sipWrapperType *wt,
-        sipSimpleWrapper *sw);
-static int handleSetLazyAttr(PyObject *nameobj, PyObject *valobj,
-        sipWrapperType *wt, sipSimpleWrapper *sw);
+static int get_lazy_attr(sipWrapperType *wt, sipSimpleWrapper *sw,
+        const char *name, PyObject **attr);
+static int set_lazy_attr( sipWrapperType *wt, sipSimpleWrapper *sw,
+        const char *name, PyObject *valobj);
 static int getNonStaticVariables(sipWrapperType *wt, sipSimpleWrapper *sw,
         PyObject **ndict);
-static void findLazyAttr(sipClassTypeDef *ctd, const char *name,
-        PyMethodDef **pmdp, sipEnumMemberDef **enmp, PyMethodDef **vmdp,
-        sipClassTypeDef **in);
 static int compareTypedefName(const void *key, const void *el);
 static int compareMethodName(const void *key, const void *el);
 static int compareEnumMemberName(const void *key, const void *el);
@@ -433,6 +444,10 @@ static PyObject *findPyType(const char *name);
 static int addPyObjectToList(sipPyObject **head, PyObject *object);
 static PyObject *getDictFromObject(PyObject *obj);
 static void forgetObject(sipSimpleWrapper *sw);
+static PyMethodDef *find_lazy_method(sipClassTypeDef *ctd, const char *name);
+static sipEnumMemberDef *find_lazy_enum(sipClassTypeDef *ctd,
+        const char *name);
+static PyMethodDef *find_lazy_variable(sipClassTypeDef *ctd, const char *name);
 
 
 /*
@@ -4104,51 +4119,62 @@ static int getSelfFromArgs(sipTypeDef *td, PyObject *args, int argnr,
 /*
  * Handle the result of a call to the class/instance setattro methods.
  */
-static int handleSetLazyAttr(PyObject *nameobj, PyObject *valobj,
-        sipWrapperType *wt, sipSimpleWrapper *sw)
+static int set_lazy_attr(sipWrapperType *wt, sipSimpleWrapper *sw,
+        const char *name, PyObject *valobj)
 {
-    const char *name;
-    PyMethodDef *pmd, *vmd;
-    sipEnumMemberDef *enm;
+    sipClassTypeDef *ctd, *nsx;
+    sipEncodedClassDef *sup;
 
-    /* See if it was a lazy attribute. */
-    if ((name = PyString_AsString(nameobj)) == NULL)
-        return -1;
+    assert(sipTypeIsClass(wt->type) || sipTypeIsNamespace(wt->type));
 
-    pmd = NULL;
-    enm = NULL;
-    vmd = NULL;
+    /* The base type doesn't have any type information. */
+    if ((ctd = (sipClassTypeDef *)wt->type) == NULL)
+        return 1;
 
-    assert(sipTypeIsClass(wt->type));
-
-    findLazyAttr((sipClassTypeDef *)wt->type, name, &pmd, &enm, &vmd, NULL);
-
-    if (vmd != NULL)
+    /* Search the possible linked list of namespace extenders. */
+    for (nsx = ctd; nsx != NULL; nsx = nsx->ctd_nsextender)
     {
-        PyObject *res;
+        PyMethodDef *vmd;
 
-        if (valobj == NULL)
+        if ((vmd = find_lazy_variable(nsx, name)) != NULL)
         {
-            PyErr_Format(PyExc_ValueError, "%s.%s.%s cannot be deleted",
-                    sipNameOfModule(wt->type->td_module),
-                    sipPyNameOfClass((sipClassTypeDef *)wt->type), name);
+            PyObject *res;
 
-            return -1;
+            if (valobj == NULL)
+            {
+                PyErr_Format(PyExc_ValueError, "%s.%s.%s cannot be deleted",
+                        sipNameOfModule(((sipTypeDef *)ctd)->td_module),
+                        sipPyNameOfClass(ctd), name);
+
+                return -1;
+            }
+
+            if ((vmd->ml_flags & METH_STATIC) != 0)
+                res = (*vmd->ml_meth)((PyObject *)wt, valobj);
+            else
+                res = (*vmd->ml_meth)((PyObject *)sw, valobj);
+
+            if (res == NULL)
+                return -1;
+
+            /* Ignore the result (which should be Py_None). */
+            Py_DECREF(res);
+
+            return 0;
         }
-
-        if ((vmd->ml_flags & METH_STATIC) != 0)
-            res = (*vmd->ml_meth)((PyObject *)wt, valobj);
-        else
-            res = (*vmd->ml_meth)((PyObject *)sw, valobj);
-
-        if (res == NULL)
-            return -1;
-
-        /* Ignore the result (which should be Py_None). */
-        Py_DECREF(res);
-
-        return 0;
     }
+
+    /* Check any immediate super-classes. */
+    if ((sup = ctd->ctd_supers) != NULL)
+        do
+        {
+            int rc = set_lazy_attr(getClassType(sup, ctd->ctd_base.td_module),
+                    sw, name, valobj);
+
+            if (rc <= 0)
+                return rc;
+        }
+        while (!sup++->sc_flag);
 
     /* It isn't a variable. */
     return 1;
@@ -4158,73 +4184,93 @@ static int handleSetLazyAttr(PyObject *nameobj, PyObject *valobj,
 /*
  * Handle the result of a call to the class/instance getattro methods.
  */
-static PyObject *handleGetLazyAttr(PyObject *nameobj, sipWrapperType *wt,
-        sipSimpleWrapper *sw)
+static int get_lazy_attr(sipWrapperType *wt, sipSimpleWrapper *sw,
+        const char *name, PyObject **attr)
 {
-    const char *name;
-    PyMethodDef *pmd, *vmd;
-    sipEnumMemberDef *enm;
-    sipClassTypeDef *in;
-
-    /* If it was an error, propagate it. */
-    if (!PyErr_ExceptionMatches(PyExc_AttributeError))
-        return NULL;
-
-    PyErr_Clear();
-
-    /* See if it was a lazy attribute. */
-    if ((name = PyString_AsString(nameobj)) == NULL)
-        return NULL;
-
-    pmd = NULL;
-    enm = NULL;
-    vmd = NULL;
+    sipClassTypeDef *ctd, *nsx;
+    sipAttrGetter *ag;
+    sipEncodedClassDef *sup;
 
     assert(sipTypeIsClass(wt->type) || sipTypeIsNamespace(wt->type));
 
-    findLazyAttr((sipClassTypeDef *)wt->type, name, &pmd, &enm, &vmd, &in);
-
-    if (pmd != NULL)
-        return PyCFunction_New(pmd, (PyObject *)sw);
-
-    if (enm != NULL)
+    /* The base type doesn't have any type information. */
+    if ((ctd = (sipClassTypeDef *)wt->type) == NULL)
     {
-        PyObject *attr;
+        *attr = NULL;
+        return 0;
+    }
 
+    /* Search the possible linked list of namespace extenders. */
+    for (nsx = ctd; nsx != NULL; nsx = nsx->ctd_nsextender)
+    {
         /*
-         * Convert the value to an object.  Note that we cannot cache it in the
-         * type dictionary because a sub-type might have a lazy attribute of
-         * the same name.  In this case (because we call the standard getattro
-         * code first) this one would be wrongly found in preference to the one
-         * in the sub-class.  The example in PyQt is QScrollView::ResizePolicy
-         * and QListView::WidthMode both having a member called Manual.  One
-         * way around this might be to cache them in a separate dictionary and
-         * search that before doing the binary search through the lazy enum
-         * table.
+         * Note that we cannot cache the object created in the type dictionary
+         * because that gets searched first and might mean that we hide another
+         * lazy attribute of the same name in a more specific sub-class.  A
+         * better solution might be to implement the interpreter's generic
+         * lookup algorithm (rather that delegate to it) and look for lazy
+         * attributes within it.  That would allow us to populate the type
+         * dictionary and might mean that super() works as expected.
          */
-        if ((attr = createEnumMember(in, enm)) == NULL)
-            return NULL;
 
-        return attr;
+        PyMethodDef *pmd;
+        sipEnumMemberDef *enm;
+
+        /* Try the methods. */
+        if ((pmd = find_lazy_method(nsx, name)) != NULL)
+        {
+            *attr = PyCFunction_New(pmd, (PyObject *)sw);
+
+            return (*attr != NULL ? 0 : -1);
+        }
+
+        /* Try the enum members. */
+        if ((enm = find_lazy_enum(nsx, name)) != NULL)
+        {
+            *attr = createEnumMember(nsx, enm);
+
+            return (*attr != NULL ? 0 : -1);
+        }
+
+        /* Try the variables. */
+        if ((pmd = find_lazy_variable(nsx, name)) != NULL)
+        {
+            if ((pmd->ml_flags & METH_STATIC) != 0)
+                *attr = (*pmd->ml_meth)((PyObject *)wt, NULL);
+            else
+                *attr = (*pmd->ml_meth)((PyObject *)sw, NULL);
+
+            return (*attr != NULL ? 0 : -1);
+        }
     }
 
-    if (vmd != NULL)
-    {
-        PyObject *res;
+    /* See if there is a getter for this type. */
+    for (ag = sipAttrGetters; ag != NULL; ag = ag->next)
+        if (PyType_IsSubtype((PyTypeObject *)wt, ag->type))
+        {
+            if (ag->getter(ctd, sw, name, attr) < 0)
+                return -1;
 
-        if ((vmd->ml_flags & METH_STATIC) != 0)
-            res = (*vmd->ml_meth)((PyObject *)wt, NULL);
-        else
-            res = (*vmd->ml_meth)((PyObject *)sw, NULL);
+            if (*attr != NULL)
+                return 0;
+        }
 
-        return res;
-    }
+    /* Check any immediate super-classes. */
+    if ((sup = ctd->ctd_supers) != NULL)
+        do
+        {
+            if (get_lazy_attr(getClassType(sup, ctd->ctd_base.td_module), sw, name, attr) < 0)
+                return -1;
 
-    /* Mimic the corresponding message from the interpreter. */
-    PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%s'",
-            ((PyTypeObject *)wt)->tp_name, name);
+            if (*attr != NULL)
+                return 0;
+        }
+        while (!sup++->sc_flag);
 
-    return NULL;
+    /* There was no explcit error, but we can't find an attribute. */
+    *attr = NULL;
+
+    return 0;
 }
 
 
@@ -4311,67 +4357,69 @@ static PyObject *sip_api_convert_from_enum(int eval, const sipTypeDef *td)
 
 
 /*
- * Find definition for a lazy class attribute.
+ * Register a getter for unknown attributes.
  */
-static void findLazyAttr(sipClassTypeDef *ctd, const char *name,
-        PyMethodDef **pmdp, sipEnumMemberDef **enmp, PyMethodDef **vmdp,
-        sipClassTypeDef **in)
+static int sip_api_register_attribute_getter(const sipTypeDef *td,
+        sipAttrGetterFunc getter)
 {
-    sipClassTypeDef *nsx;
-    sipEncodedClassDef *sup;
+    sipAttrGetter *ag = sip_api_malloc(sizeof (sipAttrGetter));
 
-    /* The base type doesn't have any type information. */
-    if (ctd == NULL)
-        return;
+    if (ag == NULL)
+        return -1;
 
-    /* Search the possible linked list of namespace extenders. */
-    nsx = ctd;
+    ag->type = sipTypeAsPyTypeObject(td);
+    ag->getter = getter;
+    ag->next = sipAttrGetters;
 
-    do
+    sipAttrGetters = ag;
+
+    return 0;
+}
+
+
+/*
+ * Return a lazy method for a type if there is one.
+ */
+static PyMethodDef *find_lazy_method(sipClassTypeDef *ctd, const char *name)
+{
+    if (ctd->ctd_nrmethods == 0)
+        return NULL;
+
+    return (PyMethodDef *)bsearch(name, ctd->ctd_methods, ctd->ctd_nrmethods,
+            sizeof (PyMethodDef), compareMethodName);
+}
+
+
+/*
+ * Return a lazy enum for a type if there is one.
+ */
+static sipEnumMemberDef *find_lazy_enum(sipClassTypeDef *ctd, const char *name)
+{
+    if (ctd->ctd_nrenummembers == 0)
+        return NULL;
+
+    return (sipEnumMemberDef *)bsearch(name, ctd->ctd_enummembers,
+            ctd->ctd_nrenummembers, sizeof (sipEnumMemberDef),
+            compareEnumMemberName);
+}
+
+
+/*
+ * Return a lazy variable for a type if there is one.
+ */
+static PyMethodDef *find_lazy_variable(sipClassTypeDef *ctd, const char *name)
+{
+    if (ctd->ctd_variables != NULL)
     {
-        /* Try the methods. */
-        if (nsx->ctd_nrmethods > 0 &&
-            (*pmdp = (PyMethodDef *)bsearch(name, nsx->ctd_methods, nsx->ctd_nrmethods, sizeof (PyMethodDef), compareMethodName)) != NULL)
-            return;
+        PyMethodDef *md;
 
-        /* Try the enum members. */
-        if (nsx->ctd_nrenummembers > 0 &&
-            (*enmp = (sipEnumMemberDef *)bsearch(name, nsx->ctd_enummembers, nsx->ctd_nrenummembers, sizeof (sipEnumMemberDef), compareEnumMemberName)) != NULL)
-        {
-            if (in != NULL)
-                *in = nsx;
-
-            return;
-        }
-
-        /* Try the variables.  Note, these aren't sorted. */
-        if (nsx->ctd_variables != NULL)
-        {
-            PyMethodDef *md;
-
-            for (md = nsx->ctd_variables; md->ml_name != NULL; ++md)
-                if (strcmp(name, md->ml_name) == 0)
-                {
-                    *vmdp = md;
-                    return;
-                }
-        }
-
-        nsx = nsx->ctd_nsextender;
+        /* These aren't sorted. */
+        for (md = ctd->ctd_variables; md->ml_name != NULL; ++md)
+            if (strcmp(md->ml_name, name) == 0)
+                return md;
     }
-    while (nsx != NULL);
 
-    /* Check the base classes. */
-    if ((sup = ctd->ctd_supers) != NULL)
-        do
-        {
-            findLazyAttr(getClassType(sup, ctd->ctd_base.td_module), name,
-                    pmdp, enmp, vmdp, in);
-
-            if (*pmdp != NULL || *enmp != NULL || *vmdp != NULL)
-                break;
-        }
-        while (!sup++->sc_flag);
+    return NULL;
 }
 
 
@@ -6611,9 +6659,9 @@ static int sipWrapperType_init(sipWrapperType *self, PyObject *args,
 /*
  * The type getattro slot.
  */
-static PyObject *sipWrapperType_getattro(PyObject *obj,PyObject *name)
+static PyObject *sipWrapperType_getattro(PyObject *obj, PyObject *name)
 {
-    char *nm;
+    const char *name_str;
     PyObject *attr;
     sipWrapperType *wt = (sipWrapperType *)obj;
 
@@ -6621,13 +6669,14 @@ static PyObject *sipWrapperType_getattro(PyObject *obj,PyObject *name)
      * If we are getting the type dictionary for a base wrapped type then we
      * don't want the super-metatype to handle it.
      */
-    if ((nm = PyString_AsString(name)) == NULL)
+    if ((name_str = PyString_AsString(name)) == NULL)
         return NULL;
 
-    if (strcmp(nm, "__dict__") == 0)
+    if (strcmp(name_str, "__dict__") == 0)
     {
         int i;
         sipClassTypeDef *ctd;
+        sipAttrGetter *ag;
         sipEnumMemberDef *enm;
         PyObject *dict;
         PyMethodDef *pmd;
@@ -6648,6 +6697,12 @@ static PyObject *sipWrapperType_getattro(PyObject *obj,PyObject *name)
          */
         if ((dict = PyDict_Copy(dict)) == NULL)
             return NULL;
+
+        /* Get any lazy attributes from registered getters. */
+        for (ag = sipAttrGetters; ag != NULL; ag = ag->next)
+            if (PyType_IsSubtype((PyTypeObject *)wt, ag->type))
+                if (ag->getter(ctd, NULL, NULL, &dict) < 0)
+                    return NULL;
 
         /* Search the possible linked list of namespace extenders. */
         do
@@ -6746,24 +6801,43 @@ static PyObject *sipWrapperType_getattro(PyObject *obj,PyObject *name)
     if ((attr = PyType_Type.tp_getattro(obj, name)) != NULL)
         return attr;
 
-    return handleGetLazyAttr(name, wt, NULL);
+    if (!PyErr_ExceptionMatches(PyExc_AttributeError))
+        return NULL;
+
+    PyErr_Clear();
+
+    if (get_lazy_attr(wt, NULL, name_str, &attr) < 0)
+        return NULL;
+
+    if (attr == NULL)
+        /* Mimic the corresponding message from the interpreter. */
+        PyErr_Format(PyExc_AttributeError,
+                "type object '%s' has no attribute '%s'",
+                ((PyTypeObject *)wt)->tp_name, name);
+
+    return attr;
 }
 
 
 /*
  * The type setattro slot.
  */
-static int sipWrapperType_setattro(PyObject *obj,PyObject *name,PyObject *value)
+static int sipWrapperType_setattro(PyObject *obj, PyObject *name,
+        PyObject *value)
 {
+    const char *name_str;
     int rc;
 
-    rc = handleSetLazyAttr(name,value,(sipWrapperType *)obj,NULL);
+    if ((name_str = PyString_AsString(name)) == NULL)
+        return -1;
+
+    rc = set_lazy_attr((sipWrapperType *)obj, NULL, name_str, value);
 
     if (rc <= 0)
         return rc;
 
     /* Try the super-type's method last. */
-    return PyType_Type.tp_setattro(obj,name,value);
+    return PyType_Type.tp_setattro(obj, name, value);
 }
 
 
@@ -7281,7 +7355,7 @@ static PyObject *slot_richcompare(PyObject *self,PyObject *arg,int op)
  */
 static PyObject *sipSimpleWrapper_getattro(PyObject *obj, PyObject *name)
 {
-    const char *nm;
+    const char *name_str;
     PyObject *attr;
     sipWrapperType *wt = (sipWrapperType *)obj->ob_type;
     sipSimpleWrapper *sw = (sipSimpleWrapper *)obj;
@@ -7290,10 +7364,10 @@ static PyObject *sipSimpleWrapper_getattro(PyObject *obj, PyObject *name)
      * If we are getting the instance dictionary of a base wrapper type then we
      * don't want the metatype to handle it.
      */
-    if ((nm = PyString_AsString(name)) == NULL)
+    if ((name_str = PyString_AsString(name)) == NULL)
         return NULL;
 
-    if (strcmp(nm, "__dict__") == 0)
+    if (strcmp(name_str, "__dict__") == 0)
     {
         PyObject *tmpdict = NULL;
 
@@ -7322,7 +7396,20 @@ static PyObject *sipSimpleWrapper_getattro(PyObject *obj, PyObject *name)
     if ((attr = PyBaseObject_Type.tp_getattro(obj, name)) != NULL)
         return attr;
 
-    return handleGetLazyAttr(name, wt, sw);
+    if (!PyErr_ExceptionMatches(PyExc_AttributeError))
+        return NULL;
+
+    PyErr_Clear();
+
+    if (get_lazy_attr(wt, sw, name_str, &attr) < 0)
+        return NULL;
+
+    if (attr == NULL)
+        /* Mimic the corresponding message from the interpreter. */
+        PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%s'",
+                ((PyTypeObject *)wt)->tp_name, name);
+
+    return attr;
 }
 
 
@@ -7379,10 +7466,14 @@ static int getNonStaticVariables(sipWrapperType *wt, sipSimpleWrapper *sw,
 static int sipSimpleWrapper_setattro(PyObject *obj, PyObject *name,
         PyObject *value)
 {
+    const char *name_str;
     int rc;
 
-    rc = handleSetLazyAttr(name, value, (sipWrapperType *)obj->ob_type,
-            (sipSimpleWrapper *)obj);
+    if ((name_str = PyString_AsString(name)) == NULL)
+        return -1;
+
+    rc = set_lazy_attr((sipWrapperType *)obj->ob_type, (sipSimpleWrapper *)obj,
+            name_str, value);
 
     if (rc <= 0)
         return rc;

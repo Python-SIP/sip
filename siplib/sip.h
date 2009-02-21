@@ -273,6 +273,8 @@ typedef PyObject *(*sipConvertFromFunc)(void *, PyObject *);
 typedef int (*sipVirtHandlerFunc)(void *, PyObject *, ...);
 typedef void (*sipReleaseFunc)(void *, int);
 typedef PyObject *(*sipPickleFunc)(void *);
+typedef int (*sipAttrGetterFunc)(const struct _sipTypeDef *,
+        sipSimpleWrapper *, const char *, PyObject **);
 
 
 /*
@@ -1050,6 +1052,8 @@ typedef struct _sipAPIDef {
     const sipTypeDef *(*api_type_scope)(const sipTypeDef *td);
     const char *(*api_resolve_typedef)(const char *name,
             const sipExportedModuleDef *em);
+    int (*api_register_attribute_getter)(const sipTypeDef *td,
+            sipAttrGetterFunc getter);
 
     /*
      * The following are deprecated parts of the public API.

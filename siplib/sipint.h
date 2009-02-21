@@ -44,9 +44,6 @@ typedef struct
 } sipObjectMap;
 
 
-extern PyInterpreterState *sipInterpreter;  /* The interpreter. */
-
-
 extern sipQtAPI *sipQtSupport;  /* The Qt support API. */
 extern sipWrapperType sipSimpleWrapper_Type;    /* The simple wrapper type. */
 extern sipTypeDef *sipQObjectType;  /* The QObject type. */
