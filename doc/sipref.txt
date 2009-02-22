@@ -938,6 +938,22 @@ super-type so that the parent/child relationships of ``QObject`` instances are
 properly maintained.
 
 
+Lazy Type Attributes
+--------------------
+
+Instead of populating a wrapped type's dictionary with its attributes (or
+descriptors for those attributes) SIP only creates objects for those attributes
+when they are actually needed.  This is done to reduce the memory footprint and
+start up time when used to wrap large libraries with hundreds of classes and
+tens of thousands of attributes.
+
+SIP allows you to extend the handling of lazy attributes to your own attribute
+types by allowing you to register an attribute getter handler (using
+`sipRegisterAttributeGetter()`_).  This will be called when SIP has failed to
+find an attribute allowing your code to create a Python object of any type.
+SIP will honour the descriptor protocol if the object supports it.
+
+
 Support for Python's Buffer Interface
 -------------------------------------
 
@@ -4988,13 +5004,47 @@ int sipParseResult(int \*iserr, PyObject \*method, PyObject \*result, const char
         Check that a Python object is ``Py_None``.  No value is returned.
 
 
+sipRegisterAttributeGetter()
+----------------------------
+
+int sipRegisterAttributeGetter(const sipTypeDef \*td, sipAttrGetterFunc getter)
+    This registers a handler that will called whenever SIP fails to find an
+    attribute of a wrapped type.  The handler may then return a Python object
+    that is used as the attribute's value.  (See `Lazy Type Attributes`_.)  -1
+    is returned if there was an error registering the handler, 0 is returned
+    otherwise.
+
+    *td* is an optional generated type definition which means that the handler
+    will only be called for types with that type or sub-classed from it.  If it
+    is ``NULL`` then the handler will be called for all types.
+
+    *getter* is the handler and as well as dealing with the lookup of an
+    attribute it is also responsible for returning the list of all appropriate
+    lazy attributes if requested (usually as a result of ``dir()`` being called
+    on the type).  It has the following signature.
+
+    int handler(const sipTypeDef \*td, const char \*name, PyObject \*\*objp)
+        *td* is the generated type definition of the type being searched.
+        *name* is the name of the attribute.  If this is not ``NULL`` then the
+        value object, if any, should be returned via the *objp* argument.  If
+        *name* is ``NULL`` then *objp* is a pointer to a Python dictionary
+        which should be updated with all of the type's lazy attributes that the
+        handler handles.
+
+        -1 is returned if there is an error handling the attribute, 0 is
+        returned otherwise.  (Note that 0 should be returned if the handler
+        doesn't recognise the name of the attribute.) 
+
+    See the section `Lazy Type Attributes`_ for more details.
+
+
 sipRegisterPyType()
 -------------------
 
 int sipRegisterPyType(PyTypeObject \*type)
     This registers a type object that can be used as the meta-type or
-    super-type of a wrapped C++ type.  *type* is the type.  0 is returned if
-    there is no error.
+    super-type of a wrapped C++ type.  *type* is the type.  -1 is returned if
+    there was an error registering the type, 0 is returned otherwise.
 
     See the section `Types and Meta-types`_ for more details.
 

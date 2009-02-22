@@ -4195,10 +4195,7 @@ static int get_lazy_attr(sipWrapperType *wt, sipSimpleWrapper *sw,
 
     /* The base type doesn't have any type information. */
     if ((ctd = (sipClassTypeDef *)wt->type) == NULL)
-    {
-        *attr = NULL;
         return 0;
-    }
 
     /* Search the possible linked list of namespace extenders. */
     for (nsx = ctd; nsx != NULL; nsx = nsx->ctd_nsextender)
@@ -4246,13 +4243,26 @@ static int get_lazy_attr(sipWrapperType *wt, sipSimpleWrapper *sw,
 
     /* See if there is a getter for this type. */
     for (ag = sipAttrGetters; ag != NULL; ag = ag->next)
-        if (PyType_IsSubtype((PyTypeObject *)wt, ag->type))
+        if (ag->type == NULL || PyType_IsSubtype((PyTypeObject *)wt, ag->type))
         {
-            if (ag->getter(ctd, sw, name, attr) < 0)
+            if (ag->getter((sipTypeDef *)ctd, name, attr) < 0)
                 return -1;
 
             if (*attr != NULL)
+            {
+                descrgetfunc descr_get = (*attr)->ob_type->tp_descr_get;
+
+                // Support the descriptor protocol.
+                if (descr_get)
+                {
+                    *attr = descr_get(*attr, (PyObject *)sw, (PyObject *)wt);
+
+                    if (*attr == NULL)
+                        return -1;
+                }
+
                 return 0;
+            }
         }
 
     /* Check any immediate super-classes. */
@@ -4268,8 +4278,6 @@ static int get_lazy_attr(sipWrapperType *wt, sipSimpleWrapper *sw,
         while (!sup++->sc_flag);
 
     /* There was no explcit error, but we can't find an attribute. */
-    *attr = NULL;
-
     return 0;
 }
 
@@ -6700,8 +6708,8 @@ static PyObject *sipWrapperType_getattro(PyObject *obj, PyObject *name)
 
         /* Get any lazy attributes from registered getters. */
         for (ag = sipAttrGetters; ag != NULL; ag = ag->next)
-            if (PyType_IsSubtype((PyTypeObject *)wt, ag->type))
-                if (ag->getter(ctd, NULL, NULL, &dict) < 0)
+            if (ag->type == NULL || PyType_IsSubtype((PyTypeObject *)wt, ag->type))
+                if (ag->getter((sipTypeDef *)ctd, NULL, &dict) < 0)
                     return NULL;
 
         /* Search the possible linked list of namespace extenders. */
@@ -6813,7 +6821,7 @@ static PyObject *sipWrapperType_getattro(PyObject *obj, PyObject *name)
         /* Mimic the corresponding message from the interpreter. */
         PyErr_Format(PyExc_AttributeError,
                 "type object '%s' has no attribute '%s'",
-                ((PyTypeObject *)wt)->tp_name, name);
+                ((PyTypeObject *)wt)->tp_name, name_str);
 
     return attr;
 }
@@ -7407,7 +7415,7 @@ static PyObject *sipSimpleWrapper_getattro(PyObject *obj, PyObject *name)
     if (attr == NULL)
         /* Mimic the corresponding message from the interpreter. */
         PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%s'",
-                ((PyTypeObject *)wt)->tp_name, name);
+                ((PyTypeObject *)wt)->tp_name, name_str);
 
     return attr;
 }

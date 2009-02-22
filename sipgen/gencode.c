@@ -212,6 +212,7 @@ static int generateSubClassConvertors(sipSpec *pt, moduleDef *mod, FILE *fp);
 static void generateNameCache(sipSpec *pt, FILE *fp);
 static const char *resultOwner(overDef *od);
 static void prCachedName(FILE *fp, nameDef *nd, const char *prefix);
+static void generateSignalTableEntry(classDef *cd, overDef *od, FILE *fp);
 
 
 /*
@@ -7629,6 +7630,8 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 
             for (od = cd->overs; od != NULL; od = od->next)
             {
+                int a, nr_args;
+
                 if (od->common != md || !isSignal(od))
                     continue;
 
@@ -7644,13 +7647,18 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
                 , classFQCName(cd));
                 }
 
-                prcode(fp,
-"    \"%s(", od->cppname);
+                /* Default arguments are handled as multiple signals. */
+                nr_args = od->cppsig->nrArgs;
 
-                generateCalledArgs(cd, od->cppsig, Declaration, TRUE, fp);
+                for (a = 0; a < nr_args; ++a)
+                    if (od->cppsig->args[a].defval != NULL)
+                    {
+                        od->cppsig->nrArgs = a;
+                        generateSignalTableEntry(cd, od, fp);
+                    }
 
-                prcode(fp,")\",\n"
-                    );
+                od->cppsig->nrArgs = nr_args;
+                generateSignalTableEntry(cd, od, fp);
             }
         }
 
@@ -8046,6 +8054,21 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 
     prcode(fp,
 "};\n"
+        );
+}
+
+
+/*
+ * Generate an entry in the PyQt4 signal table.
+ */
+static void generateSignalTableEntry(classDef *cd, overDef *od, FILE *fp)
+{
+    prcode(fp,
+"    \"%s(", od->cppname);
+
+    generateCalledArgs(cd, od->cppsig, Declaration, TRUE, fp);
+
+    prcode(fp,")\",\n"
         );
 }
 
