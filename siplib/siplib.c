@@ -4168,7 +4168,10 @@ static int set_lazy_attr(sipWrapperType *wt, sipSimpleWrapper *sw,
     if ((sup = ctd->ctd_supers) != NULL)
         do
         {
-            int rc = set_lazy_attr(getClassType(sup, ctd->ctd_base.td_module),
+            int rc;
+            sipTypeDef *sup_td = (sipTypeDef *)getClassType(sup, ctd->ctd_base.td_module);
+
+            rc = set_lazy_attr((sipWrapperType *)sipTypeAsPyTypeObject(sup_td),
                     sw, name, valobj);
 
             if (rc <= 0)
@@ -4269,7 +4272,9 @@ static int get_lazy_attr(sipWrapperType *wt, sipSimpleWrapper *sw,
     if ((sup = ctd->ctd_supers) != NULL)
         do
         {
-            if (get_lazy_attr(getClassType(sup, ctd->ctd_base.td_module), sw, name, attr) < 0)
+            sipTypeDef *sup_td = (sipTypeDef *)getClassType(sup, ctd->ctd_base.td_module);
+
+            if (get_lazy_attr((sipWrapperType *)sipTypeAsPyTypeObject(sup_td), sw, name, attr) < 0)
                 return -1;
 
             if (*attr != NULL)
