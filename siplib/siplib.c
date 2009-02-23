@@ -4237,6 +4237,8 @@ static int get_lazy_attr(sipWrapperType *wt, sipSimpleWrapper *sw,
         {
             if ((pmd->ml_flags & METH_STATIC) != 0)
                 *attr = (*pmd->ml_meth)((PyObject *)wt, NULL);
+            else if (sw == NULL)
+                continue;
             else
                 *attr = (*pmd->ml_meth)((PyObject *)sw, NULL);
 
