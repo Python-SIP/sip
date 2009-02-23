@@ -4260,7 +4260,11 @@ static int get_lazy_attr(sipWrapperType *wt, sipSimpleWrapper *sw,
                 // Support the descriptor protocol.
                 if (descr_get)
                 {
-                    *attr = descr_get(*attr, (PyObject *)sw, (PyObject *)wt);
+                    PyObject *old_attr = *attr;
+
+                    *attr = descr_get(old_attr, (PyObject *)sw, (PyObject *)wt);
+
+                    Py_DECREF(old_attr);
 
                     if (*attr == NULL)
                         return -1;
