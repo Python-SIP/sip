@@ -44,6 +44,13 @@ typedef struct
 } sipObjectMap;
 
 
+/*
+ * Support for the descriptors.
+ */
+PyAPI_DATA(PyTypeObject) sipMethodDescr_Type;
+PyObject *sipMethodDescr_New(PyMethodDef *pmd);
+
+
 extern sipQtAPI *sipQtSupport;  /* The Qt support API. */
 extern sipWrapperType sipSimpleWrapper_Type;    /* The simple wrapper type. */
 extern sipTypeDef *sipQObjectType;  /* The QObject type. */

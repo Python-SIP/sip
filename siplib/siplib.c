@@ -448,6 +448,10 @@ static PyMethodDef *find_lazy_method(sipClassTypeDef *ctd, const char *name);
 static sipEnumMemberDef *find_lazy_enum(sipClassTypeDef *ctd,
         const char *name);
 static PyMethodDef *find_lazy_variable(sipClassTypeDef *ctd, const char *name);
+static PyObject *string_attr_name(PyObject *name);
+static int lookup_type(PyTypeObject *type, PyObject *name, PyObject **attrp);
+static int lookup_lazy_attr(sipWrapperType *wt, const char *name,
+        PyObject **attrp);
 
 
 /*
@@ -502,6 +506,9 @@ PyMODINIT_FUNC initsip(void)
 
     if (PyType_Ready((PyTypeObject *)&sipWrapper_Type) < 0)
         Py_FatalError("sip: Failed to initialise sip.wrapper type");
+
+    if (PyType_Ready(&sipMethodDescr_Type) < 0)
+        Py_FatalError("sip: Failed to initialise sip.methoddescriptor type");
 
     sipEnumType_Type.tp_base = &PyType_Type;
 
@@ -4185,53 +4192,142 @@ static int set_lazy_attr(sipWrapperType *wt, sipSimpleWrapper *sw,
 
 
 /*
- * Handle the result of a call to the class/instance getattro methods.
+ * Return a new reference to the given attribute name as a string object.
  */
-static int get_lazy_attr(sipWrapperType *wt, sipSimpleWrapper *sw,
-        const char *name, PyObject **attr)
+static PyObject *string_attr_name(PyObject *name)
+{
+    /* Allow for unicode. */
+    if (PyString_Check(name))
+        Py_INCREF(name);
+#if defined(Py_USING_UNICODE)
+    else if (PyUnicode_Check(name))
+    {
+        name = PyUnicode_AsEncodedString(name, NULL, NULL);
+    }
+#endif
+    else
+    {
+        PyErr_Format(PyExc_TypeError,
+                "attribute name must be string, not '%s'",
+                name->ob_type->tp_name);
+
+        name = NULL;
+    }
+
+    return name;
+}
+
+
+/*
+ * Lookup an attribute in the MRO of a wrapped type.  (Cf. _PyType_Lookup() in
+ * the Python source.)
+ */
+static int lookup_type(PyTypeObject *type, PyObject *name, PyObject **attrp)
+{
+    PyObject *mro;
+    SIP_SSIZE_T i;
+
+    /* Go through each type in the mro. */
+    mro = type->tp_mro;
+    assert(PyTuple_Check(mro));
+
+    for (i = 0; i < PyTuple_GET_SIZE(mro); ++i)
+    {
+        PyObject *base, *dict, *attr;
+
+        base = PyTuple_GET_ITEM(mro, i);
+
+        /* Get the base type's dictionary. */
+        if (PyClass_Check(base))
+            dict = ((PyClassObject *)base)->cl_dict;
+        else
+        {
+            assert(PyType_Check(base));
+            dict = ((PyTypeObject *)base)->tp_dict;
+        }
+
+        assert(dict && PyDict_Check(dict));
+
+        /* See if the attribute is in the dictionary. */
+        if ((attr = PyDict_GetItem(dict, name)) != NULL)
+        {
+            Py_INCREF(attr);
+
+            *attrp = attr;
+            return 0;
+        }
+
+        /* See if the base might have lazy attributes. */
+        if (PyObject_TypeCheck(base, &sipWrapperType_Type))
+        {
+            if (lookup_lazy_attr((sipWrapperType *)base, PyString_AS_STRING(name), &attr) < 0)
+                return -1;
+
+            if (attr != NULL)
+            {
+                /* Save it in the type dictionary. */
+                if (PyDict_SetItem(dict, name, attr) < 0)
+                    return -1;
+
+                *attrp = attr;
+                return 0;
+            }
+        }
+    }
+
+    /* There was no error but nothing was found. */
+    *attrp = NULL;
+    return 0;
+}
+
+
+/*
+ * Get a type's lazy attribute with the given name if there is one.
+ */
+static int lookup_lazy_attr(sipWrapperType *wt, const char *name,
+        PyObject **attrp)
 {
     sipClassTypeDef *ctd, *nsx;
     sipAttrGetter *ag;
-    sipEncodedClassDef *sup;
+    PyObject *attr;
 
-    assert(sipTypeIsClass(wt->type) || sipTypeIsNamespace(wt->type));
-
-    /* The base type doesn't have any type information. */
-    if ((ctd = (sipClassTypeDef *)wt->type) == NULL)
+    /*
+     * Check if all the lazy attributes are already in the type dictionary, or
+     * if it is the base type.
+     */
+    if ((ctd = (sipClassTypeDef *)wt->type) == NULL || !sipIsExactWrappedType(wt) || wt->dict_complete)
+    {
+        *attrp = NULL;
         return 0;
+    }
 
     /* Search the possible linked list of namespace extenders. */
     for (nsx = ctd; nsx != NULL; nsx = nsx->ctd_nsextender)
     {
-        /*
-         * Note that we cannot cache the object created in the type dictionary
-         * because that gets searched first and might mean that we hide another
-         * lazy attribute of the same name in a more specific sub-class.  A
-         * better solution might be to implement the interpreter's generic
-         * lookup algorithm (rather that delegate to it) and look for lazy
-         * attributes within it.  That would allow us to populate the type
-         * dictionary and might mean that super() works as expected.
-         */
-
         PyMethodDef *pmd;
         sipEnumMemberDef *enm;
 
         /* Try the methods. */
         if ((pmd = find_lazy_method(nsx, name)) != NULL)
         {
-            *attr = PyCFunction_New(pmd, (PyObject *)sw);
+            if ((attr = sipMethodDescr_New(pmd)) == NULL)
+                return -1;
 
-            return (*attr != NULL ? 0 : -1);
+            *attrp = attr;
+            return 0;
         }
 
         /* Try the enum members. */
         if ((enm = find_lazy_enum(nsx, name)) != NULL)
         {
-            *attr = createEnumMember(nsx, enm);
+            if ((attr = createEnumMember(nsx, enm)) == NULL)
+                return -1;
 
-            return (*attr != NULL ? 0 : -1);
+            *attrp = attr;
+            return 0;
         }
 
+#if 0
         /* Try the variables. */
         if ((pmd = find_lazy_variable(nsx, name)) != NULL)
         {
@@ -4244,51 +4340,22 @@ static int get_lazy_attr(sipWrapperType *wt, sipSimpleWrapper *sw,
 
             return (*attr != NULL ? 0 : -1);
         }
+#endif
     }
 
     /* See if there is a getter for this type. */
     for (ag = sipAttrGetters; ag != NULL; ag = ag->next)
         if (ag->type == NULL || PyType_IsSubtype((PyTypeObject *)wt, ag->type))
         {
-            if (ag->getter((sipTypeDef *)ctd, name, attr) < 0)
+            if (ag->getter((sipTypeDef *)ctd, name, &attr) < 0)
                 return -1;
 
-            if (*attr != NULL)
-            {
-                descrgetfunc descr_get = (*attr)->ob_type->tp_descr_get;
-
-                // Support the descriptor protocol.
-                if (descr_get)
-                {
-                    PyObject *old_attr = *attr;
-
-                    *attr = descr_get(old_attr, (PyObject *)sw, (PyObject *)wt);
-
-                    Py_DECREF(old_attr);
-
-                    if (*attr == NULL)
-                        return -1;
-                }
-
-                return 0;
-            }
+            *attrp = attr;
+            return 0;
         }
 
-    /* Check any immediate super-classes. */
-    if ((sup = ctd->ctd_supers) != NULL)
-        do
-        {
-            sipTypeDef *sup_td = (sipTypeDef *)getClassType(sup, ctd->ctd_base.td_module);
-
-            if (get_lazy_attr((sipWrapperType *)sipTypeAsPyTypeObject(sup_td), sw, name, attr) < 0)
-                return -1;
-
-            if (*attr != NULL)
-                return 0;
-        }
-        while (!sup++->sc_flag);
-
-    /* There was no explcit error, but we can't find an attribute. */
+    /* There was no error but nothing was found. */
+    *attrp = NULL;
     return 0;
 }
 
@@ -5765,7 +5832,7 @@ static void sip_api_call_hook(const char *hookname)
         return;
  
     /* Get the __builtin__ module. */
-    if ((mod = PyDict_GetItemString(dictofmods,"__builtin__")) == NULL)
+    if ((mod = PyDict_GetItemString(dictofmods, "__builtin__")) == NULL)
         return;
  
     /* Get it's dictionary. */
@@ -5773,11 +5840,11 @@ static void sip_api_call_hook(const char *hookname)
         return;
  
     /* Get the function hook. */
-    if ((hook = PyDict_GetItemString(dict,hookname)) == NULL)
+    if ((hook = PyDict_GetItemString(dict, hookname)) == NULL)
         return;
  
     /* Call the hook and discard any result. */
-    res = PyObject_CallObject(hook,NULL);
+    res = PyObject_CallObject(hook, NULL);
  
     Py_XDECREF(res);
 }
@@ -6678,44 +6745,137 @@ static int sipWrapperType_init(sipWrapperType *self, PyObject *args,
 /*
  * The type getattro slot.
  */
-static PyObject *sipWrapperType_getattro(PyObject *obj, PyObject *name)
+static PyObject *sipWrapperType_getattro(PyObject *self, PyObject *name)
 {
-    const char *name_str;
-    PyObject *attr;
-    sipWrapperType *wt = (sipWrapperType *)obj;
+    PyObject *meta_attr, *attr;
+    descrgetfunc meta_get = NULL;
 
-    /*
-     * If we are getting the type dictionary for a base wrapped type then we
-     * don't want the super-metatype to handle it.
-     */
-    if ((name_str = PyString_AsString(name)) == NULL)
+    if ((name = string_attr_name(name)) == NULL)
         return NULL;
 
-    if (strcmp(name_str, "__dict__") == 0)
+    /* Check the meta-type first. */
+    if (lookup_type(self->ob_type, name, &meta_attr) < 0)
     {
-        int i;
-        sipClassTypeDef *ctd;
-        sipAttrGetter *ag;
-        sipEnumMemberDef *enm;
-        PyObject *dict;
-        PyMethodDef *pmd;
+        Py_DECREF(name);
+        return NULL;
+    }
 
-        dict = ((PyTypeObject *)wt)->tp_dict;
+    /* Handle any data descriptor from the meta-type. */
+    if (meta_attr != NULL && PyType_HasFeature(meta_attr->ob_type, Py_TPFLAGS_HAVE_CLASS))
+    {
+        meta_get = meta_attr->ob_type->tp_descr_get;
 
-        /* The base type doesn't have any type information. */
-        if ((ctd = (sipClassTypeDef *)wt->type) == NULL || !sipIsExactWrappedType(wt))
+        if (meta_get != NULL && PyDescr_IsData(meta_attr))
         {
-            Py_INCREF(dict);
-            return dict;
+            attr = meta_get(meta_attr, self, (PyObject *)self->ob_type);
+
+            Py_DECREF(meta_attr);
+            Py_DECREF(name);
+            return attr;
+        }
+    }
+
+    /* Check the type dictionaries. */
+    if (lookup_type((PyTypeObject *)self, name, &attr) < 0)
+    {
+        Py_XDECREF(meta_attr);
+        Py_DECREF(name);
+        return NULL;
+    }
+
+    if (attr != NULL)
+    {
+        /* Handle any descriptor. */
+        if (PyType_HasFeature(attr->ob_type, Py_TPFLAGS_HAVE_CLASS))
+        {
+            descrgetfunc f = attr->ob_type->tp_descr_get;
+
+            if (f != NULL)
+            {
+                PyObject *descr = attr;
+
+                attr = f(descr, NULL, self);
+                Py_DECREF(descr);
+            }
         }
 
-        /*
-         * We can't cache the methods or variables so we need to make a
-         * temporary copy of the type dictionary and return that (so that it
-         * will get garbage collected immediately afterwards).
-         */
-        if ((dict = PyDict_Copy(dict)) == NULL)
-            return NULL;
+        Py_XDECREF(meta_attr);
+        Py_DECREF(name);
+        return attr;
+    }
+
+    /* Handle any non-data descriptor from the meta-type. */
+    if (meta_get != NULL)
+    {
+        attr = meta_get(meta_attr, self, (PyObject *)self->ob_type);
+
+        Py_DECREF(meta_attr);
+        Py_DECREF(name);
+        return attr;
+    }
+
+    /* If there was a non-descriptor in the meta-type then use that. */
+    if (meta_attr != NULL)
+    {
+        Py_DECREF(name);
+        return meta_attr;
+    }
+
+    /* Mimic the corresponding message from the interpreter. */
+    PyErr_Format(PyExc_AttributeError,
+            "type object '%s' has no attribute '%s'",
+            ((PyTypeObject *)self)->tp_name, PyString_AS_STRING(name));
+
+    Py_DECREF(name);
+    return NULL;
+}
+
+
+/*
+ * The type setattro slot.
+ */
+static int sipWrapperType_setattro(PyObject *obj, PyObject *name,
+        PyObject *value)
+{
+    const char *name_str;
+    int rc;
+
+    if ((name_str = PyString_AsString(name)) == NULL)
+        return -1;
+
+    rc = set_lazy_attr((sipWrapperType *)obj, NULL, name_str, value);
+
+    if (rc <= 0)
+        return rc;
+
+    /* Try the super-type's method last. */
+    return PyType_Type.tp_setattro(obj, name, value);
+}
+
+
+/*
+ * The type getter for __dict__.
+ */
+static PyObject *sipWrapperType_get_dict(PyObject *self, void *context)
+{
+    sipWrapperType *wt = (sipWrapperType *)self;
+    PyObject *dict = ((PyTypeObject *)wt)->tp_dict;
+    sipClassTypeDef *ctd = (sipClassTypeDef *)wt->type;
+
+    if (dict == NULL)
+    {
+        Py_INCREF(Py_None);
+        return Py_None;
+    }
+
+    /*
+     * Populate the dictionary with all lazy attributes if it hasn't already
+     * been done.  This may overwrite some that have already been done, but it
+     * doesn't matter.
+     */
+    if (ctd != NULL && sipIsExactWrappedType(wt) && !wt->dict_complete)
+    {
+        sipAttrGetter *ag;
 
         /* Get any lazy attributes from registered getters. */
         for (ag = sipAttrGetters; ag != NULL; ag = ag->next)
@@ -6726,10 +6886,11 @@ static PyObject *sipWrapperType_getattro(PyObject *obj, PyObject *name)
         /* Search the possible linked list of namespace extenders. */
         do
         {
-            /*
-             * Add the type's lazy enums.  It doesn't matter if they are
-             * already there.
-             */
+            int i;
+            sipEnumMemberDef *enm;
+            PyMethodDef *pmd;
+
+            /* Do the enum members. */
             enm = ctd->ctd_enummembers;
 
             for (i = 0; i < ctd->ctd_nrenummembers; ++i)
@@ -6756,23 +6917,17 @@ static PyObject *sipWrapperType_getattro(PyObject *obj, PyObject *name)
             for (i = 0; i < ctd->ctd_nrmethods; ++i)
             {
                 int rc;
-                PyObject *meth;
+                PyObject *descr;
 
-                if ((meth = PyCFunction_New(pmd, NULL)) == NULL)
-                {
-                    Py_DECREF(dict);
+                if ((descr = sipMethodDescr_New(pmd)) == NULL)
                     return NULL;
-                }
 
-                rc = PyDict_SetItemString(dict, pmd->ml_name, meth);
+                rc = PyDict_SetItemString(dict, pmd->ml_name, descr);
 
-                Py_DECREF(meth);
+                Py_DECREF(descr);
 
                 if (rc < 0)
-                {
-                    Py_DECREF(dict);
                     return NULL;
-                }
 
                 ++pmd;
             }
@@ -6781,6 +6936,7 @@ static PyObject *sipWrapperType_getattro(PyObject *obj, PyObject *name)
              * Do the static variables.  Note that the use of METH_STATIC is
              * historic - METH_CLASS would be more accurate.
              */
+#if 0
             if ((pmd = ctd->ctd_variables) != NULL)
                 while (pmd->ml_name != NULL)
                 {
@@ -6790,74 +6946,38 @@ static PyObject *sipWrapperType_getattro(PyObject *obj, PyObject *name)
                         PyObject *val;
 
                         if ((val = (*pmd->ml_meth)(obj, NULL)) == NULL)
-                        {
-                            Py_DECREF(dict);
                             return NULL;
-                        }
 
                         rc = PyDict_SetItemString(dict, pmd->ml_name, val);
 
                         Py_DECREF(val);
 
                         if (rc < 0)
-                        {
-                            Py_DECREF(dict);
                             return NULL;
-                        }
                     }
 
                     ++pmd;
                 }
+#endif
 
             ctd = ctd->ctd_nsextender;
         }
         while (ctd != NULL);
 
-        return dict;
+        wt->dict_complete = TRUE;
     }
 
-    /* Now try the super-metatype's method. */
-    if ((attr = PyType_Type.tp_getattro(obj, name)) != NULL)
-        return attr;
-
-    if (!PyErr_ExceptionMatches(PyExc_AttributeError))
-        return NULL;
-
-    PyErr_Clear();
-
-    if (get_lazy_attr(wt, NULL, name_str, &attr) < 0)
-        return NULL;
-
-    if (attr == NULL)
-        /* Mimic the corresponding message from the interpreter. */
-        PyErr_Format(PyExc_AttributeError,
-                "type object '%s' has no attribute '%s'",
-                ((PyTypeObject *)wt)->tp_name, name_str);
-
-    return attr;
+    return PyDictProxy_New(dict);
 }
 
 
 /*
- * The type setattro slot.
+ * The type getset table.
  */
-static int sipWrapperType_setattro(PyObject *obj, PyObject *name,
-        PyObject *value)
-{
-    const char *name_str;
-    int rc;
-
-    if ((name_str = PyString_AsString(name)) == NULL)
-        return -1;
-
-    rc = set_lazy_attr((sipWrapperType *)obj, NULL, name_str, value);
-
-    if (rc <= 0)
-        return rc;
-
-    /* Try the super-type's method last. */
-    return PyType_Type.tp_setattro(obj, name, value);
-}
+static PyGetSetDef sipWrapperType_getset[] = {
+    {"__dict__", sipWrapperType_get_dict, NULL, NULL},
+    {NULL}
+};
 
 
 /*
@@ -6897,7 +7017,7 @@ static PyTypeObject sipWrapperType_Type = {
     0,                      /* tp_iternext */
     0,                      /* tp_methods */
     0,                      /* tp_members */
-    0,                      /* tp_getset */
+    sipWrapperType_getset,  /* tp_getset */
     0,                      /* tp_base */
     0,                      /* tp_dict */
     0,                      /* tp_descr_get */
@@ -7372,63 +7492,74 @@ static PyObject *slot_richcompare(PyObject *self,PyObject *arg,int op)
 /*
  * The instance getattro slot.
  */
-static PyObject *sipSimpleWrapper_getattro(PyObject *obj, PyObject *name)
+static PyObject *sipSimpleWrapper_getattro(PyObject *self, PyObject *name)
 {
-    const char *name_str;
-    PyObject *attr;
-    sipWrapperType *wt = (sipWrapperType *)obj->ob_type;
-    sipSimpleWrapper *sw = (sipSimpleWrapper *)obj;
+    PyObject *attr, *descr;
+    descrgetfunc f = NULL;
 
-    /*
-     * If we are getting the instance dictionary of a base wrapper type then we
-     * don't want the metatype to handle it.
-     */
-    if ((name_str = PyString_AsString(name)) == NULL)
+    if ((name = string_attr_name(name)) == NULL)
         return NULL;
 
-    if (strcmp(name_str, "__dict__") == 0)
+    if (lookup_type(self->ob_type, name, &descr) < 0)
     {
-        PyObject *tmpdict = NULL;
-
-        if (sipIsExactWrappedType(wt) && getNonStaticVariables(wt, sw, &tmpdict) < 0)
-        {
-            Py_XDECREF(tmpdict);
-            return NULL;
-        }
-
-        /*
-         * If a copy of the instance dictionary wasn't created then just return
-         * the original.  Note that Python doesn't want a proxy.
-         */
-        if (tmpdict == NULL)
-        {
-            if ((tmpdict = sw->dict) == NULL)
-                tmpdict = PyDict_New();
-            else
-                Py_INCREF(tmpdict);
-        }
-
-        return tmpdict;
+        Py_DECREF(name);
+        return NULL;
     }
 
-    /* Try the super-type's method first. */
-    if ((attr = PyBaseObject_Type.tp_getattro(obj, name)) != NULL)
+    /* Handle any data descriptor. */
+    if (descr != NULL)
+    {
+        if (PyType_HasFeature(descr->ob_type, Py_TPFLAGS_HAVE_CLASS))
+        {
+            f = descr->ob_type->tp_descr_get;
+
+            if (f != NULL && PyDescr_IsData(descr))
+            {
+                attr = f(descr, self, (PyObject *)self->ob_type);
+                Py_DECREF(descr);
+
+                Py_DECREF(name);
+                return attr;
+            }
+        }
+    }
+
+    /* Check the instance dictionary if there is one. */
+    if (((sipSimpleWrapper *)self)->dict != NULL && (attr = PyDict_GetItem(((sipSimpleWrapper *)self)->dict, name)) != NULL)
+    {
+        Py_INCREF(attr);
+
+        Py_XDECREF(descr);
+        Py_DECREF(name);
         return attr;
+    }
 
-    if (!PyErr_ExceptionMatches(PyExc_AttributeError))
-        return NULL;
+    /* Try any non-data descriptor. */
+    if (f != NULL)
+    {
+        attr = f(descr, self, (PyObject *)self->ob_type);
+        Py_DECREF(descr);
 
-    PyErr_Clear();
+        if (attr != NULL)
+        {
+            Py_DECREF(name);
+            return attr;
+        }
+    }
 
-    if (get_lazy_attr(wt, sw, name_str, &attr) < 0)
-        return NULL;
+    /* If the type provided a non-descriptor then use that. */
+    if (descr != NULL)
+    {
+        Py_DECREF(name);
+        return descr;
+    }
 
-    if (attr == NULL)
-        /* Mimic the corresponding message from the interpreter. */
-        PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%s'",
-                ((PyTypeObject *)wt)->tp_name, name_str);
+    /* Mimic the corresponding message from the interpreter. */
+    PyErr_Format(PyExc_AttributeError, "object '%s' has no attribute '%s'",
+            self->ob_type->tp_name, PyString_AS_STRING(name));
 
-    return attr;
+    Py_DECREF(name);
+    return NULL;
 }
 
 

@@ -188,6 +188,9 @@ typedef struct _sipWrapperType {
 
     /* The list of init extenders. */
     struct _sipInitExtenderDef *iextend;
+
+    /* Set if the type's dictionary contains all lazy attributes. */
+    int dict_complete;
 } sipWrapperType;
 
 
