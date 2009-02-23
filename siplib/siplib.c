@@ -4344,14 +4344,19 @@ static int lookup_lazy_attr(sipWrapperType *wt, const char *name,
     }
 
     /* See if there is a getter for this type. */
+    attr = NULL;
+
     for (ag = sipAttrGetters; ag != NULL; ag = ag->next)
         if (ag->type == NULL || PyType_IsSubtype((PyTypeObject *)wt, ag->type))
         {
             if (ag->getter((sipTypeDef *)ctd, name, &attr) < 0)
                 return -1;
 
-            *attrp = attr;
-            return 0;
+            if (attr != NULL)
+            {
+                *attrp = attr;
+                return 0;
+            }
         }
 
     /* There was no error but nothing was found. */
