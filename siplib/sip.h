@@ -544,8 +544,8 @@ typedef struct _sipClassTypeDef {
     /* The table of lazy enum members. */
     sipEnumMemberDef *ctd_enummembers;
 
-    /* The variable table. */
-    PyMethodDef *ctd_variables;
+    /* The table of variables. */
+    PyGetSetDef *ctd_variables;
 
     /* The initialisation function. */
     sipInitFunc ctd_init;

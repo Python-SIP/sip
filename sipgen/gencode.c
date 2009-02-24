@@ -126,9 +126,9 @@ static void generateComparisonSlotCall(classDef *cd, overDef *od,
 static void generateBinarySlotCall(classDef *cd, overDef *od, const char *op,
         int deref, FILE *fp);
 static void generateNumberSlotCall(overDef *od, char *op, FILE *fp);
-static void generateVariableHandler(classDef *, varDef *, FILE *);
+static void generateVariableGetter(classDef *, varDef *, FILE *);
+static void generateVariableSetter(classDef *, varDef *, FILE *);
 static int generateObjToCppConversion(argDef *, FILE *);
-static void generateVarClassConversion(varDef *, int, FILE *);
 static void generateVarMember(varDef *vd, FILE *fp);
 static int generateVoidPointers(sipSpec *pt, moduleDef *mod, classDef *cd,
         FILE *fp);
@@ -3138,22 +3138,25 @@ static void generateClassCpp(classDef *cd, sipSpec *pt, FILE *fp)
     {
         for (vd = pt->vars; vd != NULL; vd = vd->next)
             if (vd->ecd == cd && needsHandler(vd))
-                generateVariableHandler(cd, vd, fp);
+            {
+                generateVariableGetter(cd, vd, fp);
+                generateVariableSetter(cd, vd, fp);
+            }
 
         /* Generate the variable table. */
         prcode(fp,
 "\n"
-"PyMethodDef variables_%C[] = {\n"
+"PyGetSetDef variables_%C[] = {\n"
             ,classFQCName(cd));
 
         for (vd = pt->vars; vd != NULL; vd = vd->next)
             if (vd->ecd == cd && needsHandler(vd))
                 prcode(fp,
-"    {%N, var_%C, %s, NULL},\n"
-                    ,vd->pyname,vd->fqcname,(isStaticVar(vd) ? "METH_STATIC" : "0"));
+"    {(char *)%N, varget_%C, varset_%C, NULL, NULL},\n"
+                    , vd->pyname, vd->fqcname, vd->fqcname);
 
         prcode(fp,
-"    {0, 0, 0, 0}\n"
+"    {NULL, NULL, NULL, NULL, NULL}\n"
 "};\n"
             );
     }
@@ -3461,22 +3464,20 @@ static void generateConvertToDefinitions(mappedTypeDef *mtd,classDef *cd,
 
 
 /*
- * Generate a variable handler.
+ * Generate a variable getter.
  */
-static void generateVariableHandler(classDef *context, varDef *vd, FILE *fp)
+static void generateVariableGetter(classDef *context, varDef *vd, FILE *fp)
 {
     argType atype = vd->type.atype;
-    const char *first_arg;
-    int no_setter;
-
-    no_setter = (vd->type.nrderefs == 0 && isConstArg(&vd->type));
+    const char *first_arg, *last_arg;
+    int needsNew;
 
     if (generating_c || !isStaticVar(vd))
         first_arg = "sipSelf";
-    else if (usedInCode(vd->getcode, "sipPyType") || usedInCode(vd->setcode, "sipPyType"))
-        first_arg = "sipPyType";
     else
         first_arg = "";
+
+    last_arg = (generating_c ? "closure" : "");
 
     prcode(fp,
 "\n"
@@ -3485,15 +3486,21 @@ static void generateVariableHandler(classDef *context, varDef *vd, FILE *fp)
 
     if (!generating_c)
         prcode(fp,
-"extern \"C\" {static PyObject *var_%C(PyObject *, PyObject *);}\n"
+"extern \"C\" {static PyObject *varget_%C(PyObject *, void *);}\n"
             , vd->fqcname);
 
     prcode(fp,
-"static PyObject *var_%C(PyObject *%s,PyObject *sipPy)\n"
+"static PyObject *varget_%C(PyObject *%s, void *%s)\n"
 "{\n"
-        , vd->fqcname, first_arg);
+        , vd->fqcname, first_arg, last_arg);
 
-    if (vd->getcode == NULL || (vd->setcode == NULL && !no_setter))
+    if (vd->getcode != NULL)
+    {
+        prcode(fp,
+"    PyObject *sipPy;\n"
+            );
+    }
+    else
     {
         prcode(fp,
 "    ");
@@ -3508,208 +3515,273 @@ static void generateVariableHandler(classDef *context, varDef *vd, FILE *fp)
     {
         if (generating_c)
             prcode(fp,
-"    %S *sipCpp = (%S *)sipGetCppPtr((sipSimpleWrapper *)sipSelf,sipType_%C);\n"
-                ,classFQCName(vd->ecd),classFQCName(vd->ecd),classFQCName(vd->ecd));
+"    %S *sipCpp = (%S *)sipGetCppPtr((sipSimpleWrapper *)sipSelf, sipType_%C);\n"
+                , classFQCName(vd->ecd), classFQCName(vd->ecd), classFQCName(vd->ecd));
         else
             prcode(fp,
-"    %S *sipCpp = reinterpret_cast<%S *>(sipGetCppPtr((sipSimpleWrapper *)sipSelf,sipType_%C));\n"
-                ,classFQCName(vd->ecd),classFQCName(vd->ecd),classFQCName(vd->ecd));
+"    %S *sipCpp = reinterpret_cast<%S *>(sipGetCppPtr((sipSimpleWrapper *)sipSelf, sipType_%C));\n"
+                , classFQCName(vd->ecd), classFQCName(vd->ecd), classFQCName(vd->ecd));
 
         prcode(fp,
 "\n"
 "    if (!sipCpp)\n"
 "        return NULL;\n"
+"\n"
             );
     }
 
-    prcode(fp,
-"\n"
-"    if (sipPy == NULL)\n"
-"    {\n"
-        );
-
-    /* Generate the get handler part. */
-
+    /* Handle any handwritten getter. */
     if (vd->getcode != NULL)
     {
         generateCppCodeBlock(vd->getcode, fp);
 
         prcode(fp,
 "\n"
-"        return sipPy;\n"
+"    return sipPy;\n"
+"}\n"
             );
+
+        return;
     }
-    else
+
+    needsNew = ((atype == class_type || atype == mapped_type) && vd->type.nrderefs == 0);
+
+    if (needsNew)
     {
-        int pyobj = FALSE, needsNew;
-
-        needsNew = ((atype == class_type || atype == mapped_type) && vd->type.nrderefs == 0);
-
-        if (needsNew)
-        {
-            if (generating_c)
-                prcode(fp,
-"        *sipVal = ");
-            else
-                prcode(fp,
-"        sipVal = new %b(", &vd->type);
-        }
+        if (generating_c)
+            prcode(fp,
+"    *sipVal = ");
         else
             prcode(fp,
-"        sipVal = ");
+"    sipVal = new %b(", &vd->type);
+    }
+    else
+        prcode(fp,
+"    sipVal = ");
 
-        generateVarMember(vd, fp);
+    generateVarMember(vd, fp);
 
-        prcode(fp, "%s;\n"
+    prcode(fp, "%s;\n"
 "\n"
-            , ((needsNew && !generating_c) ? ")" : ""));
+        , ((needsNew && !generating_c) ? ")" : ""));
 
-        switch (atype)
+    switch (atype)
+    {
+    case mapped_type:
+        prcode(fp,
+"    return sipConvertFromType(sipVal, sipType_%T, NULL);\n"
+            , &vd->type);
+
+        break;
+
+    case class_type:
         {
-        case mapped_type:
+            classDef *cd = vd->type.u.cd;
+
             prcode(fp,
-"        sipPy = sipConvertFromType(sipVal,sipType_%T,NULL);\n"
-                ,&vd->type);
+"    return sipConvertFrom%sType(", (needsNew ? "New" : ""));
 
-            break;
-
-        case class_type:
-            generateVarClassConversion(vd, needsNew, fp);
-            break;
-
-        case bool_type:
-        case cbool_type:
-            prcode(fp,
-"        sipPy = PyBool_FromLong(sipVal);\n"
-                );
-
-            break;
-
-        case sstring_type:
-        case ustring_type:
-        case string_type:
-            if (vd->type.nrderefs == 0)
-                prcode(fp,
-"        sipPy = PyString_FromStringAndSize(%s&sipVal,1);\n"
-                    ,(atype != string_type) ? "(char *)" : "");
+            if (isConstArg(&vd->type))
+                prcode(fp, "const_cast<%b *>(sipVal)", &vd->type);
             else
-                prcode(fp,
-"        sipPy = PyString_FromString(%ssipVal);\n"
-                    ,(atype != string_type) ? "(char *)" : "");
+                prcode(fp, "sipVal");
 
-            break;
+            prcode(fp, ",sipType_%C, NULL);\n"
+                , classFQCName(cd));
+        }
 
-        case wstring_type:
-            if (vd->type.nrderefs == 0)
-                prcode(fp,
-"        sipPy = PyUnicode_FromWideChar(&sipVal,1);\n"
-                    );
+        break;
+
+    case bool_type:
+    case cbool_type:
+        prcode(fp,
+"    return PyBool_FromLong(sipVal);\n"
+            );
+
+        break;
+
+    case sstring_type:
+    case ustring_type:
+    case string_type:
+        if (vd->type.nrderefs == 0)
+            prcode(fp,
+"    return PyString_FromStringAndSize(%s&sipVal, 1);\n"
+                , (atype != string_type) ? "(char *)" : "");
             else
-                prcode(fp,
-"        sipPy = PyUnicode_FromWideChar(sipVal,(SIP_SSIZE_T)wcslen(sipVal));\n"
-                    );
-
-            break;
-
-        case float_type:
-        case cfloat_type:
             prcode(fp,
-"        sipPy = PyFloat_FromDouble((double)sipVal);\n"
+"    return PyString_FromString(%ssipVal);\n"
+                ,(atype != string_type) ? "(char *)" : "");
+
+        break;
+
+    case wstring_type:
+        if (vd->type.nrderefs == 0)
+            prcode(fp,
+"    return PyUnicode_FromWideChar(&sipVal, 1);\n"
                 );
-            break;
-
-        case double_type:
-        case cdouble_type:
+        else
             prcode(fp,
-"        sipPy = PyFloat_FromDouble(sipVal);\n"
+"    return PyUnicode_FromWideChar(sipVal, (SIP_SSIZE_T)wcslen(sipVal));\n"
                 );
-            break;
 
-        case enum_type:
-            if (vd->type.u.ed->fqcname != NULL)
-            {
-                prcode(fp,
-"        sipPy = sipConvertFromEnum(sipVal,sipType_%C);\n"
-                    , vd->type.u.ed->fqcname);
+        break;
 
-                break;
-            }
-
-            /* Drop through. */
-
-        case short_type:
-        case cint_type:
-        case int_type:
-            prcode(fp,
-"        sipPy = PyInt_FromLong(sipVal);\n"
+    case float_type:
+    case cfloat_type:
+        prcode(fp,
+"    return PyFloat_FromDouble((double)sipVal);\n"
                 );
-            break;
+        break;
 
-        case long_type:
-            prcode(fp,
-"        sipPy = PyLong_FromLong(sipVal);\n"
-                );
-            break;
+    case double_type:
+    case cdouble_type:
+        prcode(fp,
+"    return PyFloat_FromDouble(sipVal);\n"
+            );
+        break;
 
-        case ushort_type:
-        case uint_type:
-        case ulong_type:
+    case enum_type:
+        if (vd->type.u.ed->fqcname != NULL)
+        {
             prcode(fp,
-"        sipPy = PyLong_FromUnsignedLong(sipVal);\n"
-                );
-            break;
+"    return sipConvertFromEnum(sipVal, sipType_%C);\n"
+                , vd->type.u.ed->fqcname);
 
-        case longlong_type:
-            prcode(fp,
-"        sipPy = PyLong_FromLongLong(sipVal);\n"
-                );
-            break;
-
-        case ulonglong_type:
-            prcode(fp,
-"        sipPy = PyLong_FromUnsignedLongLong(sipVal);\n"
-                );
-            break;
-
-        case struct_type:
-        case void_type:
-            prcode(fp,
-"        sipPy = sipConvertFrom%sVoidPtr(sipVal);\n"
-                , (isConstArg(&vd->type) ? "Const" : ""));
-            break;
-
-        case pyobject_type:
-        case pytuple_type:
-        case pylist_type:
-        case pydict_type:
-        case pycallable_type:
-        case pyslice_type:
-        case pytype_type:
-            prcode(fp,
-"        Py_XINCREF(sipVal);\n"
-                );
-            pyobj = TRUE;
             break;
         }
 
+        /* Drop through. */
+
+    case short_type:
+    case cint_type:
+    case int_type:
         prcode(fp,
-"\n"
-"        return %s;\n"
-            ,(pyobj ? "sipVal" : "sipPy"));
+"    return PyInt_FromLong(sipVal);\n"
+            );
+        break;
+
+    case long_type:
+        prcode(fp,
+"    return PyLong_FromLong(sipVal);\n"
+            );
+        break;
+
+    case ushort_type:
+    case uint_type:
+    case ulong_type:
+        prcode(fp,
+"    return PyLong_FromUnsignedLong(sipVal);\n"
+            );
+        break;
+
+    case longlong_type:
+        prcode(fp,
+"    return PyLong_FromLongLong(sipVal);\n"
+            );
+        break;
+
+    case ulonglong_type:
+        prcode(fp,
+"    return PyLong_FromUnsignedLongLong(sipVal);\n"
+            );
+        break;
+
+    case struct_type:
+    case void_type:
+        prcode(fp,
+"    return sipConvertFrom%sVoidPtr(sipVal);\n"
+            , (isConstArg(&vd->type) ? "Const" : ""));
+        break;
+
+    case pyobject_type:
+    case pytuple_type:
+    case pylist_type:
+    case pydict_type:
+    case pycallable_type:
+    case pyslice_type:
+    case pytype_type:
+        prcode(fp,
+"    Py_XINCREF(sipVal);\n"
+"    return sipVal;\n"
+            );
+        break;
     }
 
     prcode(fp,
-"    }\n"
+"}\n"
+        );
+}
+
+
+/*
+ * Generate a variable setter.
+ */
+static void generateVariableSetter(classDef *context, varDef *vd, FILE *fp)
+{
+    argType atype = vd->type.atype;
+    const char *first_arg, *last_arg;
+    char *deref;
+    int no_setter, might_be_temp;
+
+    no_setter = (vd->type.nrderefs == 0 && isConstArg(&vd->type));
+
+    if (generating_c || !isStaticVar(vd))
+        first_arg = "sipSelf";
+    else
+        first_arg = "";
+
+    last_arg = (generating_c ? "closure" : "");
+
+    prcode(fp,
+"\n"
 "\n"
         );
 
-    /* Generate the set handler part. */
+    if (!generating_c)
+        prcode(fp,
+"extern \"C\" {static int varset_%C(PyObject *, PyObject *, void *);}\n"
+            , vd->fqcname);
 
+    prcode(fp,
+"static int varset_%C(PyObject *%s, PyObject *sipPy, void *%s)\n"
+"{\n"
+        , vd->fqcname, first_arg, last_arg);
+
+    if (vd->setcode == NULL && !no_setter)
+    {
+        prcode(fp,
+"    ");
+
+        generateNamedValueType(context, &vd->type, "sipVal", fp);
+
+        prcode(fp, ";\n"
+            );
+    }
+
+    if (!isStaticVar(vd))
+    {
+        if (generating_c)
+            prcode(fp,
+"    %S *sipCpp = (%S *)sipGetCppPtr((sipSimpleWrapper *)sipSelf, sipType_%C);\n"
+                , classFQCName(vd->ecd), classFQCName(vd->ecd), classFQCName(vd->ecd));
+        else
+            prcode(fp,
+"    %S *sipCpp = reinterpret_cast<%S *>(sipGetCppPtr((sipSimpleWrapper *)sipSelf, sipType_%C));\n"
+                , classFQCName(vd->ecd), classFQCName(vd->ecd), classFQCName(vd->ecd));
+
+        prcode(fp,
+"\n"
+"    if (!sipCpp)\n"
+"        return -1;\n"
+"\n"
+            );
+    }
+
+    /* Handle any handwritten setter. */
     if (vd->setcode != NULL)
     {
         prcode(fp,
-"    {\n"
-"       int sipErr = 0;\n"
+"   int sipErr = 0;\n"
 "\n"
             );
 
@@ -3717,119 +3789,116 @@ static void generateVariableHandler(classDef *context, varDef *vd, FILE *fp)
 
         prcode(fp,
 "\n"
-"        if (sipErr)\n"
-"            return NULL;\n"
-"    }\n"
+"    return (sipErr ? -1 : 0);\n"
+"}\n"
             );
+
+        return;
     }
-    else if (no_setter)
+
+    /* Handle const "variables". */
+    if (no_setter)
     {
         prcode(fp,
-"    sipBadSetType(%N,%N);\n"
-"    return NULL;\n"
+"    sipBadSetType(%N, %N);\n"
+"    return -1;\n"
 "}\n"
             , vd->ecd->pyname, vd->pyname);
 
         return;
     }
-    else
-    {
-        char *deref;
-        int might_be_temp;
 
-        if (vd->type.nrderefs == 0 && (atype == mapped_type || (atype == class_type && vd->type.u.cd->convtocode != NULL)))
-            prcode(fp,
+    if (vd->type.nrderefs == 0 && (atype == mapped_type || (atype == class_type && vd->type.u.cd->convtocode != NULL)))
+        prcode(fp,
 "    int sipValState;\n"
-                );
+            );
 
-        if (atype == class_type || atype == mapped_type)
-            prcode(fp,
+    if (atype == class_type || atype == mapped_type)
+        prcode(fp,
 "    int sipIsErr = 0;\n"
 "\n"
-                );
+            );
 
-        might_be_temp = generateObjToCppConversion(&vd->type,fp);
+    might_be_temp = generateObjToCppConversion(&vd->type, fp);
 
-        deref = "";
+    deref = "";
 
-        if (atype == class_type || atype == mapped_type)
-        {
-            if (vd->type.nrderefs == 0)
-                deref = "*";
+    if (atype == class_type || atype == mapped_type)
+    {
+        if (vd->type.nrderefs == 0)
+            deref = "*";
 
-            prcode(fp,
+        prcode(fp,
 "\n"
 "    if (sipIsErr)\n"
-"        return NULL;\n"
+"        return -1;\n"
 "\n"
+            );
+    }
+    else
+    {
+        if ((atype == sstring_type || atype == ustring_type || atype == string_type || atype == wstring_type) && vd->type.nrderefs != 0)
+        {
+            prcode(fp,
+"\n"
+"    if (sipVal == NULL)\n"
                 );
         }
         else
-        {
-            if ((atype == sstring_type || atype == ustring_type || atype == string_type || atype == wstring_type) && vd->type.nrderefs != 0)
-            {
-                prcode(fp,
-"\n"
-"    if (sipVal == NULL)\n"
-                    );
-            }
-            else
-                prcode(fp,
+            prcode(fp,
 "\n"
 "    if (PyErr_Occurred() != NULL)\n"
-                    );
-
-            prcode(fp,
-"    {\n"
-"        sipBadSetType(%N,%N);\n"
-"        return NULL;\n"
-"    }\n"
-"\n"
-                , vd->ecd->pyname, vd->pyname);
-        }
-
-        if (atype == pyobject_type || atype == pytuple_type ||
-            atype == pylist_type || atype == pydict_type ||
-            atype == pycallable_type || atype == pyslice_type ||
-            atype == pytype_type)
-        {
-            prcode(fp,
-"    Py_XDECREF(");
-
-            generateVarMember(vd, fp);
-
-            prcode(fp, ");\n"
-"    Py_INCREF(sipVal);\n"
-"\n"
                 );
-        }
 
         prcode(fp,
-"    ");
+"    {\n"
+"        sipBadSetType(%N, %N);\n"
+"        return -1;\n"
+"    }\n"
+"\n"
+            , vd->ecd->pyname, vd->pyname);
+    }
+
+    if (atype == pyobject_type || atype == pytuple_type ||
+        atype == pylist_type || atype == pydict_type ||
+        atype == pycallable_type || atype == pyslice_type ||
+        atype == pytype_type)
+    {
+        prcode(fp,
+"    Py_XDECREF(");
 
         generateVarMember(vd, fp);
 
-        prcode(fp, " = %ssipVal;\n"
-            , deref);
-
-        /* Note that wchar_t * leaks here. */
-
-        if (might_be_temp)
-            prcode(fp,
+        prcode(fp, ");\n"
+"    Py_INCREF(sipVal);\n"
 "\n"
-"    sipReleaseType(sipVal,sipType_%C,sipValState);\n"
-                , classFQCName(vd->type.u.cd));
-        else if (vd->type.atype == mapped_type && vd->type.nrderefs == 0 && !noRelease(vd->type.u.mtd))
-            prcode(fp,
-"\n"
-"    sipReleaseType(sipVal,sipType_%T,sipValState);\n"
-                , &vd->type);
+            );
     }
 
     prcode(fp,
+"    ");
+
+    generateVarMember(vd, fp);
+
+    prcode(fp, " = %ssipVal;\n"
+        , deref);
+
+    /* Note that wchar_t * leaks here. */
+
+    if (might_be_temp)
+        prcode(fp,
 "\n"
-"    Py_INCREF(Py_None);\n"
-"    return Py_None;\n"
+"    sipReleaseType(sipVal, sipType_%C, sipValState);\n"
+            , classFQCName(vd->type.u.cd));
+    else if (vd->type.atype == mapped_type && vd->type.nrderefs == 0 && !noRelease(vd->type.u.mtd))
+        prcode(fp,
+"\n"
+"    sipReleaseType(sipVal, sipType_%T, sipValState);\n"
+            , &vd->type);
+
+    prcode(fp,
+"\n"
+"    return 0;\n"
 "}\n"
         );
 }
@@ -3846,26 +3915,6 @@ static void generateVarMember(varDef *vd, FILE *fp)
         prcode(fp,"sipCpp->");
 
     prcode(fp, "%s", scopedNameTail(vd->fqcname));
-}
-
-
-/*
- * Generate an variable class conversion fragment.
- */
-static void generateVarClassConversion(varDef *vd, int is_new, FILE *fp)
-{
-    classDef *cd = vd->type.u.cd;
-
-    prcode(fp,
-"        sipPy = sipConvertFrom%sType(", (is_new ? "New" : ""));
-
-    if (isConstArg(&vd->type))
-        prcode(fp,"const_cast<%b *>(sipVal)",&vd->type);
-    else
-        prcode(fp,"sipVal");
-
-    prcode(fp,",sipType_%C,NULL);\n"
-        ,classFQCName(cd));
 }
 
 

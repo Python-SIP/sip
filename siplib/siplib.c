@@ -369,8 +369,6 @@ static int get_lazy_attr(sipWrapperType *wt, sipSimpleWrapper *sw,
         const char *name, PyObject **attr);
 static int set_lazy_attr( sipWrapperType *wt, sipSimpleWrapper *sw,
         const char *name, PyObject *valobj);
-static int getNonStaticVariables(sipWrapperType *wt, sipSimpleWrapper *sw,
-        PyObject **ndict);
 static int compareTypedefName(const void *key, const void *el);
 static int compareMethodName(const void *key, const void *el);
 static int compareEnumMemberName(const void *key, const void *el);
@@ -447,7 +445,7 @@ static void forgetObject(sipSimpleWrapper *sw);
 static PyMethodDef *find_lazy_method(sipClassTypeDef *ctd, const char *name);
 static sipEnumMemberDef *find_lazy_enum(sipClassTypeDef *ctd,
         const char *name);
-static PyMethodDef *find_lazy_variable(sipClassTypeDef *ctd, const char *name);
+static PyGetSetDef *find_lazy_variable(sipClassTypeDef *ctd, const char *name);
 static PyObject *string_attr_name(PyObject *name);
 static int lookup_type(PyTypeObject *type, PyObject *name, PyObject **attrp);
 static int lookup_lazy_attr(sipWrapperType *wt, const char *name,
@@ -4141,6 +4139,7 @@ static int set_lazy_attr(sipWrapperType *wt, sipSimpleWrapper *sw,
     /* Search the possible linked list of namespace extenders. */
     for (nsx = ctd; nsx != NULL; nsx = nsx->ctd_nsextender)
     {
+#if 0
         PyMethodDef *vmd;
 
         if ((vmd = find_lazy_variable(nsx, name)) != NULL)
@@ -4169,6 +4168,7 @@ static int set_lazy_attr(sipWrapperType *wt, sipSimpleWrapper *sw,
 
             return 0;
         }
+#endif
     }
 
     /* Check any immediate super-classes. */
@@ -4306,6 +4306,7 @@ static int lookup_lazy_attr(sipWrapperType *wt, const char *name,
     {
         PyMethodDef *pmd;
         sipEnumMemberDef *enm;
+        PyGetSetDef *gsd;
 
         /* Try the methods. */
         if ((pmd = find_lazy_method(nsx, name)) != NULL)
@@ -4327,20 +4328,15 @@ static int lookup_lazy_attr(sipWrapperType *wt, const char *name,
             return 0;
         }
 
-#if 0
         /* Try the variables. */
-        if ((pmd = find_lazy_variable(nsx, name)) != NULL)
+        if ((gsd = find_lazy_variable(nsx, name)) != NULL)
         {
-            if ((pmd->ml_flags & METH_STATIC) != 0)
-                *attr = (*pmd->ml_meth)((PyObject *)wt, NULL);
-            else if (sw == NULL)
-                continue;
-            else
-                *attr = (*pmd->ml_meth)((PyObject *)sw, NULL);
+            if ((attr = PyDescr_NewGetSet((PyTypeObject *)wt, gsd)) == NULL)
+                return -1;
 
-            return (*attr != NULL ? 0 : -1);
+            *attrp = attr;
+            return 0;
         }
-#endif
     }
 
     /* See if there is a getter for this type. */
@@ -4498,16 +4494,16 @@ static sipEnumMemberDef *find_lazy_enum(sipClassTypeDef *ctd, const char *name)
 /*
  * Return a lazy variable for a type if there is one.
  */
-static PyMethodDef *find_lazy_variable(sipClassTypeDef *ctd, const char *name)
+static PyGetSetDef *find_lazy_variable(sipClassTypeDef *ctd, const char *name)
 {
     if (ctd->ctd_variables != NULL)
     {
-        PyMethodDef *md;
+        PyGetSetDef *gsd;
 
         /* These aren't sorted. */
-        for (md = ctd->ctd_variables; md->ml_name != NULL; ++md)
-            if (strcmp(md->ml_name, name) == 0)
-                return md;
+        for (gsd = ctd->ctd_variables; gsd->name != NULL; ++gsd)
+            if (strcmp(gsd->name, name) == 0)
+                return gsd;
     }
 
     return NULL;
@@ -6894,6 +6890,7 @@ static PyObject *sipWrapperType_get_dict(PyObject *self, void *context)
             int i;
             sipEnumMemberDef *enm;
             PyMethodDef *pmd;
+            PyGetSetDef *gsd;
 
             /* Do the enum members. */
             enm = ctd->ctd_enummembers;
@@ -6937,33 +6934,25 @@ static PyObject *sipWrapperType_get_dict(PyObject *self, void *context)
                 ++pmd;
             }
 
-            /*
-             * Do the static variables.  Note that the use of METH_STATIC is
-             * historic - METH_CLASS would be more accurate.
-             */
-#if 0
-            if ((pmd = ctd->ctd_variables) != NULL)
-                while (pmd->ml_name != NULL)
+            /* Do the variables. */
+            if ((gsd = ctd->ctd_variables) != NULL)
+                while (gsd->name != NULL)
                 {
-                    if ((pmd->ml_flags & METH_STATIC) != 0)
-                    {
-                        int rc;
-                        PyObject *val;
+                    int rc;
+                    PyObject *descr;
 
-                        if ((val = (*pmd->ml_meth)(obj, NULL)) == NULL)
-                            return NULL;
+                    if ((descr = PyDescr_NewGetSet((PyTypeObject *)wt, gsd)) == NULL)
+                        return NULL;
 
-                        rc = PyDict_SetItemString(dict, pmd->ml_name, val);
+                    rc = PyDict_SetItemString(dict, gsd->name, descr);
 
-                        Py_DECREF(val);
+                    Py_DECREF(descr);
 
-                        if (rc < 0)
-                            return NULL;
-                    }
+                    if (rc < 0)
+                        return NULL;
 
-                    ++pmd;
+                    ++gsd;
                 }
-#endif
 
             ctd = ctd->ctd_nsextender;
         }
@@ -7565,53 +7554,6 @@ static PyObject *sipSimpleWrapper_getattro(PyObject *self, PyObject *name)
 
     Py_DECREF(name);
     return NULL;
-}
-
-
-/*
- * Add the values of all non-static variables to a dictionary (first making a
- * copy of the dictionary if needed).
- */
-static int getNonStaticVariables(sipWrapperType *wt, sipSimpleWrapper *sw,
-        PyObject **ndict)
-{
-    PyMethodDef *pmd;
-
-    if ((pmd = ((sipClassTypeDef *)wt->type)->ctd_variables) != NULL)
-        while (pmd->ml_name != NULL)
-        {
-            if ((pmd->ml_flags & METH_STATIC) == 0)
-            {
-                int rc;
-                PyObject *val, *dict;
-
-                /*
-                 * Create a copy of the original dictionary if it hasn't
-                 * already been done.
-                 */
-                if ((dict = *ndict) == NULL)
-                {
-                    if ((dict = PyDict_Copy(sw->dict)) == NULL)
-                        return -1;
-
-                    *ndict = dict;
-                }
-
-                if ((val = (*pmd->ml_meth)((PyObject *)sw,NULL)) == NULL)
-                    return -1;
-
-                rc = PyDict_SetItemString(dict,pmd->ml_name,val);
-
-                Py_DECREF(val);
-
-                if (rc < 0)
-                    return -1;
-            }
-
-            ++pmd;
-        }
-
-    return 0;
 }
 
 
