@@ -276,8 +276,7 @@ typedef PyObject *(*sipConvertFromFunc)(void *, PyObject *);
 typedef int (*sipVirtHandlerFunc)(void *, PyObject *, ...);
 typedef void (*sipReleaseFunc)(void *, int);
 typedef PyObject *(*sipPickleFunc)(void *);
-typedef int (*sipAttrGetterFunc)(const struct _sipTypeDef *, const char *,
-        PyObject **);
+typedef int (*sipAttrGetterFunc)(const struct _sipTypeDef *, PyObject *);
 typedef PyObject *(*sipVariableGetterFunc)(void *, PyObject *);
 typedef int (*sipVariableSetterFunc)(void *, PyObject *);
 

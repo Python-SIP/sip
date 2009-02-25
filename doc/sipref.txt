@@ -270,6 +270,9 @@ The following PyQt-specific support functions have been removed.
 
     - ``sipGetSender()``
 
+The handling of virtual methods in `%MethodCode`_ has been simplified slightly
+and the ``sipProtectVirt_*()`` functions are no longer generated.
+
 
 SIP v4.7.8
 ----------
@@ -949,9 +952,8 @@ tens of thousands of attributes.
 
 SIP allows you to extend the handling of lazy attributes to your own attribute
 types by allowing you to register an attribute getter handler (using
-`sipRegisterAttributeGetter()`_).  This will be called when SIP has failed to
-find an attribute allowing your code to create a Python object of any type.
-SIP will honour the descriptor protocol if the object supports it.
+`sipRegisterAttributeGetter()`_).  This will be called just before a type's
+dictionary is accessed for the first time.
 
 
 Support for Python's Buffer Interface
@@ -2887,17 +2889,6 @@ PyObject \*sipSelf
     or method then this is the Python object that wraps the the structure or
     class instance, i.e. ``self``.
 
-bool sipSelfWasArg
-    This is only made available for non-abstract, virtual methods.  It is set
-    if ``self`` was explicitly passed as the first argument of the method
-    rather than being bound to the method.  In other words, the call was::
-
-        Klass.foo(self, ...)
-
-    rather than::
-
-        self.foo(...)
-
 If the `NoArgParser`_ annotation has been used then only the following
 variables are made available to the handwritten code:
 
@@ -2922,8 +2913,7 @@ The following is a complete example::
             if (PyArg_ParseTuple(a0, "ii", &iarr[0], &iarr[1]))
             {
                 Py_BEGIN_ALLOW_THREADS
-                sipRes = sipSelfWasArg ? sipCpp -> Klass::foo(iarr)
-                                       : sipCpp -> foo(iarr);
+                sipCpp -> Klass::foo(iarr);
                 Py_END_ALLOW_THREADS
             }
             else
@@ -2934,16 +2924,11 @@ The following is a complete example::
     %End
     };
 
-As the example is a virtual method [#]_, note the use of ``sipSelfWasArg`` to
+As the example is a virtual method [#]_, note the use of an explicit scope to
 determine exactly which implementation of ``foo()`` to call.
 
 If a method is in the ``protected`` section of a C++ class then the call
 should instead be::
-
-    sipRes = sipCpp -> sipProtectVirt_foo(sipSelfWasArg, iarr);
-
-If a method is in the ``protected`` section of a C++ class but is not virtual
-then the call should instead be::
 
     sipRes = sipCpp -> sipProtect_foo(iarr);
 
@@ -5008,32 +4993,25 @@ sipRegisterAttributeGetter()
 ----------------------------
 
 int sipRegisterAttributeGetter(const sipTypeDef \*td, sipAttrGetterFunc getter)
-    This registers a handler that will called whenever SIP fails to find an
-    attribute of a wrapped type.  The handler may then return a Python object
-    that is used as the attribute's value.  (See `Lazy Type Attributes`_.)  -1
-    is returned if there was an error registering the handler, 0 is returned
+    This registers a handler that will called just before SIP needs to get an
+    attribute from a wrapped type's dictionary for the first time.  The handler
+    must then populate the type's dictionary with any lazy attributes.  -1 is
+    returned if there was an error registering the handler, 0 is returned
     otherwise.
 
     *td* is an optional generated type definition which means that the handler
     will only be called for types with that type or sub-classed from it.  If it
     is ``NULL`` then the handler will be called for all types.
 
-    *getter* is the handler and as well as dealing with the lookup of an
-    attribute it is also responsible for returning the list of all appropriate
-    lazy attributes if requested (usually as a result of ``dir()`` being called
-    on the type).  It has the following signature.
+    *getter* is the handler and it has the following signature.
 
-    int handler(const sipTypeDef \*td, const char \*name, PyObject \*\*objp)
-        *td* is the generated type definition of the type being searched.
-        *name* is the name of the attribute.  If this is not ``NULL`` then the
-        value object, if any, should be returned via the *objp* argument.  If
-        *name* is ``NULL`` then *objp* is a pointer to a Python dictionary
-        which should be updated with all of the type's lazy attributes that the
-        handler handles.
+    int handler(const sipTypeDef \*td, PyObject \*dict)
+        *td* is the generated type definition of the type whose dictionary is
+        to be populated.
 
-        -1 is returned if there is an error handling the attribute, 0 is
-        returned otherwise.  (Note that 0 should be returned if the handler
-        doesn't recognise the name of the attribute.) 
+        *dict* is the dictionary to be populated.
+
+        -1 is returned if there is an error, 0 is returned otherwise.
 
     See the section `Lazy Type Attributes`_ for more details.
 
