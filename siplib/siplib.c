@@ -367,8 +367,6 @@ static int canConvertToEnum(PyObject *obj, sipTypeDef *td);
 static PyObject *createEnumMember(sipClassTypeDef *ctd, sipEnumMemberDef *enm);
 static int get_lazy_attr(sipWrapperType *wt, sipSimpleWrapper *sw,
         const char *name, PyObject **attr);
-static int set_lazy_attr( sipWrapperType *wt, sipSimpleWrapper *sw,
-        const char *name, PyObject *valobj);
 static int compareTypedefName(const void *key, const void *el);
 static int compareMethodName(const void *key, const void *el);
 static int compareEnumMemberName(const void *key, const void *el);
@@ -452,6 +450,8 @@ static PyObject *string_attr_name(PyObject *name);
 static int lookup_type(PyTypeObject *type, PyObject *name, PyObject **attrp);
 static int lookup_lazy_attr(sipWrapperType *wt, const char *name,
         PyObject **attrp);
+static int generic_setattro(PyObject *self, PyObject *name, PyObject *value,
+        PyObject **dictp, PyTypeObject *lookup_in);
 
 
 /*
@@ -4124,72 +4124,70 @@ static int getSelfFromArgs(sipTypeDef *td, PyObject *args, int argnr,
 
 
 /*
- * Handle the result of a call to the class/instance setattro methods.
+ * The setattro slot for both sipwrapper and sipwrappertype.
  */
-static int set_lazy_attr(sipWrapperType *wt, sipSimpleWrapper *sw,
-        const char *name, PyObject *valobj)
+static int generic_setattro(PyObject *self, PyObject *name, PyObject *value,
+        PyObject **dictp, PyTypeObject *lookup_in)
 {
-    sipClassTypeDef *ctd, *nsx;
-    sipEncodedClassDef *sup;
+    PyObject *descr, *dict;
+    int rc;
 
-    assert(sipTypeIsClass(wt->type) || sipTypeIsNamespace(wt->type));
+    if ((name = string_attr_name(name)) == NULL)
+        return NULL;
 
-    /* The base type doesn't have any type information. */
-    if ((ctd = (sipClassTypeDef *)wt->type) == NULL)
-        return 1;
-
-    /* Search the possible linked list of namespace extenders. */
-    for (nsx = ctd; nsx != NULL; nsx = nsx->ctd_nsextender)
+    if (lookup_type(lookup_in, name, &descr) < 0)
     {
-#if 0
-        PyMethodDef *vmd;
-
-        if ((vmd = find_lazy_variable(nsx, name)) != NULL)
-        {
-            PyObject *res;
-
-            if (valobj == NULL)
-            {
-                PyErr_Format(PyExc_ValueError, "%s.%s.%s cannot be deleted",
-                        sipNameOfModule(((sipTypeDef *)ctd)->td_module),
-                        sipPyNameOfClass(ctd), name);
-
-                return -1;
-            }
-
-            if ((vmd->ml_flags & METH_STATIC) != 0)
-                res = (*vmd->ml_meth)((PyObject *)wt, valobj);
-            else
-                res = (*vmd->ml_meth)((PyObject *)sw, valobj);
-
-            if (res == NULL)
-                return -1;
-
-            /* Ignore the result (which should be Py_None). */
-            Py_DECREF(res);
-
-            return 0;
-        }
-#endif
+        Py_DECREF(name);
+        return NULL;
     }
 
-    /* Check any immediate super-classes. */
-    if ((sup = ctd->ctd_supers) != NULL)
-        do
+    /* Handle any data descriptor. */
+    if (descr != NULL)
+    {
+        if (PyType_HasFeature(descr->ob_type, Py_TPFLAGS_HAVE_CLASS))
         {
-            int rc;
-            sipTypeDef *sup_td = (sipTypeDef *)getClassType(sup, ctd->ctd_base.td_module);
+            descrsetfunc f = descr->ob_type->tp_descr_set;
 
-            rc = set_lazy_attr((sipWrapperType *)sipTypeAsPyTypeObject(sup_td),
-                    sw, name, valobj);
+            if (f != NULL && PyDescr_IsData(descr))
+            {
+                rc = f(descr, self, value);
+                Py_DECREF(descr);
 
-            if (rc <= 0)
+                Py_DECREF(name);
                 return rc;
+            }
         }
-        while (!sup++->sc_flag);
 
-    /* It isn't a variable. */
-    return 1;
+        Py_DECREF(descr);
+    }
+
+    /* Create the dictionary if there isn't already one. */
+    if ((dict = *dictp) == NULL)
+    {
+        if ((dict = PyDict_New()) == NULL)
+        {
+            Py_DECREF(name);
+            return -1;
+        }
+
+        *dictp = dict;
+    }
+
+    /* Update the dictionary. */
+    Py_INCREF(dict);
+
+    if (value != NULL)
+        rc = PyDict_SetItem(dict, name, value);
+    else
+        rc = PyDict_DelItem(dict, name);
+
+    if (rc < 0 && PyErr_ExceptionMatches(PyExc_KeyError))
+        PyErr_SetObject(PyExc_AttributeError, name);
+
+    Py_DECREF(dict);
+
+    Py_DECREF(name);
+    return rc;
 }
 
 
@@ -4240,12 +4238,12 @@ static int lookup_type(PyTypeObject *type, PyObject *name, PyObject **attrp)
         base = PyTuple_GET_ITEM(mro, i);
 
         /* Get the base type's dictionary. */
-        if (PyClass_Check(base))
-            dict = ((PyClassObject *)base)->cl_dict;
+        if (PyType_Check(base))
+            dict = ((PyTypeObject *)base)->tp_dict;
         else
         {
-            assert(PyType_Check(base));
-            dict = ((PyTypeObject *)base)->tp_dict;
+            assert(PyClass_Check(base));
+            dict = ((PyClassObject *)base)->cl_dict;
         }
 
         assert(dict && PyDict_Check(dict));
@@ -6842,22 +6840,15 @@ static PyObject *sipWrapperType_getattro(PyObject *self, PyObject *name)
 /*
  * The type setattro slot.
  */
-static int sipWrapperType_setattro(PyObject *obj, PyObject *name,
+static int sipWrapperType_setattro(PyObject *self, PyObject *name,
         PyObject *value)
 {
-    const char *name_str;
-    int rc;
-
-    if ((name_str = PyString_AsString(name)) == NULL)
-        return -1;
-
-    rc = set_lazy_attr((sipWrapperType *)obj, NULL, name_str, value);
-
-    if (rc <= 0)
-        return rc;
-
-    /* Try the super-type's method last. */
-    return PyType_Type.tp_setattro(obj, name, value);
+    /*
+     * Note that Python looks for descriptors in this type's type instead of
+     * this type.  I don't understand why.
+     */
+    return generic_setattro(self, name, value,
+            &((PyTypeObject *)self)->tp_dict, (PyTypeObject *)self);
 }
 
 
@@ -7566,23 +7557,11 @@ static PyObject *sipSimpleWrapper_getattro(PyObject *self, PyObject *name)
 /*
  * The instance setattro slot.
  */
-static int sipSimpleWrapper_setattro(PyObject *obj, PyObject *name,
+static int sipSimpleWrapper_setattro(PyObject *self, PyObject *name,
         PyObject *value)
 {
-    const char *name_str;
-    int rc;
-
-    if ((name_str = PyString_AsString(name)) == NULL)
-        return -1;
-
-    rc = set_lazy_attr((sipWrapperType *)obj->ob_type, (sipSimpleWrapper *)obj,
-            name_str, value);
-
-    if (rc <= 0)
-        return rc;
-
-    /* Try the super-type's method last. */
-    return PyBaseObject_Type.tp_setattro(obj, name, value);
+    return generic_setattro(self, name, value,
+            &((sipSimpleWrapper *)self)->dict, self->ob_type);
 }
 
 

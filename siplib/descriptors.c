@@ -112,6 +112,8 @@ static PyObject *sipMethodDescr_descr_get(PyObject *self, PyObject *obj,
 /* Forward declarations of slots. */
 static PyObject *sipVariableDescr_descr_get(PyObject *self, PyObject *obj,
         PyObject *type);
+static int sipVariableDescr_descr_set(PyObject *self, PyObject *obj,
+        PyObject *value);
 
 
 /*
@@ -166,11 +168,13 @@ PyTypeObject sipVariableDescr_Type = {
     0,                      /* tp_base */
     0,                      /* tp_dict */
     sipVariableDescr_descr_get, /* tp_descr_get */
+    sipVariableDescr_descr_set, /* tp_descr_set */
 };
 
 
 /* Forward declarations. */
-static void raise_nonstatic_exception(sipVariableDescr *vd);
+static int get_instance_address(sipVariableDescr *vd, PyObject *obj,
+        void **addrp);
 
 
 /*
@@ -197,36 +201,71 @@ static PyObject *sipVariableDescr_descr_get(PyObject *self, PyObject *obj,
         PyObject *type)
 {
     sipVariableDescr *vd = (sipVariableDescr *)self;
-    void *cpp;
+    void *addr;
+
+    if (get_instance_address(vd, obj, &addr) < 0)
+        return NULL;
+
+    return vd->vd->vd_getter(addr, type);
+}
+
+
+/*
+ * The descriptor's descriptor set slot.
+ */
+static int sipVariableDescr_descr_set(PyObject *self, PyObject *obj,
+        PyObject *value)
+{
+    sipVariableDescr *vd = (sipVariableDescr *)self;
+    void *addr;
+
+    /* Check that the value isn't const. */
+    if (vd->vd->vd_setter == NULL)
+    {
+        PyErr_Format(PyExc_AttributeError,
+                "'%s' object attribute '%s' is read-only",
+                sipPyNameOfClass(vd->ctd), vd->vd->vd_name);
+
+        return -1;
+    }
+
+    if (get_instance_address(vd, obj, &addr) < 0)
+        return -1;
+
+    return vd->vd->vd_setter(addr, value);
+}
+
+
+/*
+ * Return the C/C++ address of any instance.
+ */
+static int get_instance_address(sipVariableDescr *vd, PyObject *obj,
+        void **addrp)
+{
+    void *addr;
 
     if (vd->vd->vd_is_static)
     {
-        cpp = NULL;
+        addr = NULL;
     }
     else
     {
         /* Check that access was via an instance. */
         if (obj == NULL || obj == Py_None)
         {
-            raise_nonstatic_exception(vd);
-            return NULL;
+            PyErr_Format(PyExc_AttributeError,
+                    "'%s' object attribute '%s' is an instance attribute",
+                    sipPyNameOfClass(vd->ctd), vd->vd->vd_name);
+
+            return -1;
         }
 
         /* Get the C++ instance. */
-        if ((cpp = sip_api_get_cpp_ptr((sipSimpleWrapper *)obj, vd->ctd)) == NULL)
-            return NULL;
+        if ((addr = sip_api_get_cpp_ptr((sipSimpleWrapper *)obj, vd->ctd)) == NULL)
+            return -1;
     }
 
-    return vd->vd->vd_getter(cpp);
-}
+    *addrp = addr;
 
-
-/*
- * Raise an exception about accessing a non-static variable.
- */
-static void raise_nonstatic_exception(sipVariableDescr *vd)
-{
-    PyErr_Format(PyExc_AttributeError, "'%s.%s' is an instance variable",
-            sipPyNameOfClass(vd->ctd), vd->vd->vd_name);
-
+    return 0;
 }

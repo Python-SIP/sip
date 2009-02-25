@@ -3443,13 +3443,15 @@ static void generateConvertToDefinitions(mappedTypeDef *mtd,classDef *cd,
 static void generateVariableGetter(classDef *context, varDef *vd, FILE *fp)
 {
     argType atype = vd->type.atype;
-    const char *first_arg;
+    const char *first_arg, *last_arg;
     int needsNew;
 
     if (generating_c || !isStaticVar(vd))
         first_arg = "sipSelf";
     else
         first_arg = "";
+
+    last_arg = (generating_c || usedInCode(vd->getcode, "sipPyType")) ? "sipPyType" : "";
 
     prcode(fp,
 "\n"
@@ -3458,13 +3460,13 @@ static void generateVariableGetter(classDef *context, varDef *vd, FILE *fp)
 
     if (!generating_c)
         prcode(fp,
-"extern \"C\" {static PyObject *varget_%C(void *);}\n"
+"extern \"C\" {static PyObject *varget_%C(void *, PyObject *);}\n"
             , vd->fqcname);
 
     prcode(fp,
-"static PyObject *varget_%C(void *%s)\n"
+"static PyObject *varget_%C(void *%s, PyObject *%s)\n"
 "{\n"
-        , vd->fqcname, first_arg);
+        , vd->fqcname, first_arg, last_arg);
 
     if (vd->getcode != NULL)
     {
