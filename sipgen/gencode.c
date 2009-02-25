@@ -18,6 +18,9 @@
 /* Return the base (ie. C/C++) name of a super-type or meta-type. */
 #define smtypeName(sm)          (strrchr((sm)->name->text, '.') + 1)
 
+/* Return TRUE if a wrapped variable can be set. */
+#define canSetVariable(vd)      ((vd)->type.nrderefs != 0 || !isConstArg(&(vd)->type))
+
 
 /* Control what generateCalledArgs() actually generates. */
 typedef enum {
@@ -3122,7 +3125,6 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
  */
 static void generateClassCpp(classDef *cd, sipSpec *pt, FILE *fp)
 {
-    varDef *vd;
     moduleDef *mod = cd->iff->module;
 
     /* Generate any local class code. */
@@ -3132,34 +3134,6 @@ static void generateClassCpp(classDef *cd, sipSpec *pt, FILE *fp)
     generateClassFunctions(pt, mod, cd, fp);
 
     generateAccessFunctions(pt, mod, cd, fp);
-
-    /* Generate the variable handlers. */
-    if (hasVarHandlers(cd))
-    {
-        for (vd = pt->vars; vd != NULL; vd = vd->next)
-            if (vd->ecd == cd && needsHandler(vd))
-            {
-                generateVariableGetter(cd, vd, fp);
-                generateVariableSetter(cd, vd, fp);
-            }
-
-        /* Generate the variable table. */
-        prcode(fp,
-"\n"
-"PyGetSetDef variables_%C[] = {\n"
-            ,classFQCName(cd));
-
-        for (vd = pt->vars; vd != NULL; vd = vd->next)
-            if (vd->ecd == cd && needsHandler(vd))
-                prcode(fp,
-"    {(char *)%N, varget_%C, varset_%C, NULL, NULL},\n"
-                    , vd->pyname, vd->fqcname, vd->fqcname);
-
-        prcode(fp,
-"    {NULL, NULL, NULL, NULL, NULL}\n"
-"};\n"
-            );
-    }
 
     if (cd->iff->type != namespace_iface)
         generateConvertToDefinitions(NULL,cd,fp);
@@ -3469,15 +3443,13 @@ static void generateConvertToDefinitions(mappedTypeDef *mtd,classDef *cd,
 static void generateVariableGetter(classDef *context, varDef *vd, FILE *fp)
 {
     argType atype = vd->type.atype;
-    const char *first_arg, *last_arg;
+    const char *first_arg;
     int needsNew;
 
     if (generating_c || !isStaticVar(vd))
         first_arg = "sipSelf";
     else
         first_arg = "";
-
-    last_arg = (generating_c ? "closure" : "");
 
     prcode(fp,
 "\n"
@@ -3486,13 +3458,13 @@ static void generateVariableGetter(classDef *context, varDef *vd, FILE *fp)
 
     if (!generating_c)
         prcode(fp,
-"extern \"C\" {static PyObject *varget_%C(PyObject *, void *);}\n"
+"extern \"C\" {static PyObject *varget_%C(void *);}\n"
             , vd->fqcname);
 
     prcode(fp,
-"static PyObject *varget_%C(PyObject *%s, void *%s)\n"
+"static PyObject *varget_%C(void *%s)\n"
 "{\n"
-        , vd->fqcname, first_arg, last_arg);
+        , vd->fqcname, first_arg);
 
     if (vd->getcode != NULL)
     {
@@ -3515,17 +3487,14 @@ static void generateVariableGetter(classDef *context, varDef *vd, FILE *fp)
     {
         if (generating_c)
             prcode(fp,
-"    %S *sipCpp = (%S *)sipGetCppPtr((sipSimpleWrapper *)sipSelf, sipType_%C);\n"
-                , classFQCName(vd->ecd), classFQCName(vd->ecd), classFQCName(vd->ecd));
+"    %S *sipCpp = (%S *)sipSelf;\n"
+                , classFQCName(vd->ecd), classFQCName(vd->ecd));
         else
             prcode(fp,
-"    %S *sipCpp = reinterpret_cast<%S *>(sipGetCppPtr((sipSimpleWrapper *)sipSelf, sipType_%C));\n"
-                , classFQCName(vd->ecd), classFQCName(vd->ecd), classFQCName(vd->ecd));
+"    %S *sipCpp = reinterpret_cast<%S *>(sipSelf);\n"
+                , classFQCName(vd->ecd), classFQCName(vd->ecd));
 
         prcode(fp,
-"\n"
-"    if (!sipCpp)\n"
-"        return NULL;\n"
 "\n"
             );
     }
@@ -3719,18 +3688,14 @@ static void generateVariableGetter(classDef *context, varDef *vd, FILE *fp)
 static void generateVariableSetter(classDef *context, varDef *vd, FILE *fp)
 {
     argType atype = vd->type.atype;
-    const char *first_arg, *last_arg;
+    const char *first_arg;
     char *deref;
-    int no_setter, might_be_temp;
-
-    no_setter = (vd->type.nrderefs == 0 && isConstArg(&vd->type));
+    int might_be_temp;
 
     if (generating_c || !isStaticVar(vd))
         first_arg = "sipSelf";
     else
         first_arg = "";
-
-    last_arg = (generating_c ? "closure" : "");
 
     prcode(fp,
 "\n"
@@ -3739,15 +3704,15 @@ static void generateVariableSetter(classDef *context, varDef *vd, FILE *fp)
 
     if (!generating_c)
         prcode(fp,
-"extern \"C\" {static int varset_%C(PyObject *, PyObject *, void *);}\n"
+"extern \"C\" {static int varset_%C(void *, PyObject *);}\n"
             , vd->fqcname);
 
     prcode(fp,
-"static int varset_%C(PyObject *%s, PyObject *sipPy, void *%s)\n"
+"static int varset_%C(void *%s, PyObject *sipPy)\n"
 "{\n"
-        , vd->fqcname, first_arg, last_arg);
+        , vd->fqcname, first_arg);
 
-    if (vd->setcode == NULL && !no_setter)
+    if (vd->setcode == NULL)
     {
         prcode(fp,
 "    ");
@@ -3762,17 +3727,14 @@ static void generateVariableSetter(classDef *context, varDef *vd, FILE *fp)
     {
         if (generating_c)
             prcode(fp,
-"    %S *sipCpp = (%S *)sipGetCppPtr((sipSimpleWrapper *)sipSelf, sipType_%C);\n"
-                , classFQCName(vd->ecd), classFQCName(vd->ecd), classFQCName(vd->ecd));
+"    %S *sipCpp = (%S *)sipSelf;\n"
+                , classFQCName(vd->ecd), classFQCName(vd->ecd));
         else
             prcode(fp,
-"    %S *sipCpp = reinterpret_cast<%S *>(sipGetCppPtr((sipSimpleWrapper *)sipSelf, sipType_%C));\n"
-                , classFQCName(vd->ecd), classFQCName(vd->ecd), classFQCName(vd->ecd));
+"    %S *sipCpp = reinterpret_cast<%S *>(sipSelf);\n"
+                , classFQCName(vd->ecd), classFQCName(vd->ecd));
 
         prcode(fp,
-"\n"
-"    if (!sipCpp)\n"
-"        return -1;\n"
 "\n"
             );
     }
@@ -3792,18 +3754,6 @@ static void generateVariableSetter(classDef *context, varDef *vd, FILE *fp)
 "    return (sipErr ? -1 : 0);\n"
 "}\n"
             );
-
-        return;
-    }
-
-    /* Handle const "variables". */
-    if (no_setter)
-    {
-        prcode(fp,
-"    sipBadSetType(%N, %N);\n"
-"    return -1;\n"
-"}\n"
-            , vd->ecd->pyname, vd->pyname);
 
         return;
     }
@@ -7601,7 +7551,7 @@ static void generateSimpleFunctionCall(fcallDef *fcd,FILE *fp)
 static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 {
     const char *mname, *sep, *type_prefix;
-    int is_slots, is_signals, nr_methods, nr_enums, embedded;
+    int is_slots, is_signals, nr_methods, nr_enums, nr_vars, embedded;
     int is_inst_class, is_inst_voidp, is_inst_char, is_inst_string;
     int is_inst_int, is_inst_long, is_inst_ulong, is_inst_longlong;
     int is_inst_ulonglong, is_inst_double;
@@ -7721,6 +7671,50 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
     /* Generate the attributes tables. */
     nr_methods = generateMethodTable(cd,fp);
     nr_enums = generateEnumMemberTable(pt, mod, cd, fp);
+
+    /* Generate the variable handlers. */
+    nr_vars = 0;
+
+    if (hasVarHandlers(cd))
+    {
+        varDef *vd;
+
+        for (vd = pt->vars; vd != NULL; vd = vd->next)
+            if (vd->ecd == cd && needsHandler(vd))
+            {
+                ++nr_vars;
+
+                generateVariableGetter(cd, vd, fp);
+
+                if (canSetVariable(vd))
+                    generateVariableSetter(cd, vd, fp);
+            }
+
+        /* Generate the variable table. */
+        prcode(fp,
+"\n"
+"sipVariableDef variables_%C[] = {\n"
+            ,classFQCName(cd));
+
+        for (vd = pt->vars; vd != NULL; vd = vd->next)
+            if (vd->ecd == cd && needsHandler(vd))
+            {
+                prcode(fp,
+"    {%N, varget_%C, ", vd->pyname, vd->fqcname);
+
+                if (canSetVariable(vd))
+                    prcode(fp, "varset_%C", vd->fqcname);
+                else
+                    prcode(fp, "NULL");
+
+                prcode(fp, ", %d},\n"
+                    , (isStaticVar(vd) ? 1 : 0));
+            }
+
+        prcode(fp,
+"};\n"
+            );
+    }
 
     /* Generate each instance table. */
     is_inst_class = generateClasses(pt, mod, cd, fp);
@@ -7875,14 +7869,14 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 "    %d, enummembers_%C,\n"
             , nr_enums, classFQCName(cd));
 
-    if (hasVarHandlers(cd))
+    if (nr_vars == 0)
         prcode(fp,
-"    variables_%C,\n"
-            , classFQCName(cd));
+"    0, 0,\n"
+            );
     else
         prcode(fp,
-"    0,\n"
-            );
+"    %d, variables_%C,\n"
+            , nr_vars, classFQCName(cd));
 
     if (canCreate(cd))
         prcode(fp,

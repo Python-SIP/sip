@@ -278,6 +278,8 @@ typedef void (*sipReleaseFunc)(void *, int);
 typedef PyObject *(*sipPickleFunc)(void *);
 typedef int (*sipAttrGetterFunc)(const struct _sipTypeDef *, const char *,
         PyObject **);
+typedef PyObject *(*sipVariableGetterFunc)(void *);
+typedef int (*sipVariableSetterFunc)(void *, PyObject *);
 
 
 /*
@@ -471,6 +473,24 @@ typedef struct _sipTypedefDef {
 
 
 /*
+ * The information describing a variable.
+ */
+typedef struct _sipVariableDef {
+    /* The variable name. */
+    const char *vd_name;
+
+    /* The variable getter. */
+    sipVariableGetterFunc vd_getter;
+
+    /* The variable setter.  It is NULL if the variable is const. */
+    sipVariableSetterFunc vd_setter;
+
+    /* This is set if the variable is static. */
+    int vd_is_static;
+} sipVariableDef;
+
+
+/*
  * The information describing a type, either a C++ class (or C struct), a C++
  * namespace, a mapped type or a named enum.
  */
@@ -544,8 +564,11 @@ typedef struct _sipClassTypeDef {
     /* The table of lazy enum members. */
     sipEnumMemberDef *ctd_enummembers;
 
+    /* The number of variables. */
+    int ctd_nrvariables;
+
     /* The table of variables. */
-    PyGetSetDef *ctd_variables;
+    sipVariableDef *ctd_variables;
 
     /* The initialisation function. */
     sipInitFunc ctd_init;

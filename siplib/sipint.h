@@ -50,6 +50,9 @@ typedef struct
 PyAPI_DATA(PyTypeObject) sipMethodDescr_Type;
 PyObject *sipMethodDescr_New(PyMethodDef *pmd);
 
+PyAPI_DATA(PyTypeObject) sipVariableDescr_Type;
+PyObject *sipVariableDescr_New(sipVariableDef *vd, sipClassTypeDef *ctd);
+
 
 extern sipQtAPI *sipQtSupport;  /* The Qt support API. */
 extern sipWrapperType sipSimpleWrapper_Type;    /* The simple wrapper type. */

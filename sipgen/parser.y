@@ -107,6 +107,7 @@ static overDef *instantiateTemplateOverloads(sipSpec *pt, overDef *tod,
         templateDef *td, classDef *cd, ifaceFileList **used,
         scopedNameDef *type_names, scopedNameDef *type_values);
 static void resolveAnyTypedef(sipSpec *pt, argDef *ad);
+static void addVariable(sipSpec *pt, varDef *vd);
 %}
 
 %union {
@@ -3919,8 +3920,7 @@ static void instantiateTemplateVars(sipSpec *pt, classTmplDef *tcd,
             vd->getcode = templateCode(pt, used, vd->getcode, type_names, type_values);
             vd->setcode = templateCode(pt, used, vd->setcode, type_names, type_values);
 
-            vd->next = pt->vars;
-            pt->vars = vd;
+            addVariable(pt, vd);
         }
 }
 
@@ -4390,12 +4390,11 @@ static void newVar(sipSpec *pt,moduleDef *mod,char *name,int isstatic,
     var -> accessfunc = acode;
     var -> getcode = gcode;
     var -> setcode = scode;
-    var -> next = pt -> vars;
 
     if (isstatic || (escope != NULL && escope->iff->type == namespace_iface))
         setIsStaticVar(var);
 
-    pt -> vars = var;
+    addVariable(pt, var);
 }
 
 
@@ -5570,4 +5569,24 @@ static classDef *completeClass(scopedNameDef *snd, optFlags *of, int has_def)
         yyerror("External classes/structs can only be declared in the global scope");
 
     return cd;
+}
+
+
+/*
+ * Add a variable to the list so that the list remains sorted.
+ */
+static void addVariable(sipSpec *pt, varDef *vd)
+{
+    varDef **at = &pt->vars;
+
+    while (*at != NULL)
+    {
+        if (strcmp(vd->pyname->text, (*at)->pyname->text) < 0)
+            break;
+
+        at = &(*at)->next;
+    }
+
+    vd->next = *at;
+    *at = vd;
 }

@@ -372,6 +372,7 @@ static int set_lazy_attr( sipWrapperType *wt, sipSimpleWrapper *sw,
 static int compareTypedefName(const void *key, const void *el);
 static int compareMethodName(const void *key, const void *el);
 static int compareEnumMemberName(const void *key, const void *el);
+static int compareVariableName(const void *key, const void *el);
 static int checkPointer(void *ptr);
 static void *cast_cpp_ptr(void *ptr, PyTypeObject *src_type,
         const sipTypeDef *dst_type);
@@ -445,7 +446,8 @@ static void forgetObject(sipSimpleWrapper *sw);
 static PyMethodDef *find_lazy_method(sipClassTypeDef *ctd, const char *name);
 static sipEnumMemberDef *find_lazy_enum(sipClassTypeDef *ctd,
         const char *name);
-static PyGetSetDef *find_lazy_variable(sipClassTypeDef *ctd, const char *name);
+static sipVariableDef *find_lazy_variable(sipClassTypeDef *ctd,
+        const char *name);
 static PyObject *string_attr_name(PyObject *name);
 static int lookup_type(PyTypeObject *type, PyObject *name, PyObject **attrp);
 static int lookup_lazy_attr(sipWrapperType *wt, const char *name,
@@ -4306,7 +4308,7 @@ static int lookup_lazy_attr(sipWrapperType *wt, const char *name,
     {
         PyMethodDef *pmd;
         sipEnumMemberDef *enm;
-        PyGetSetDef *gsd;
+        sipVariableDef *vd;
 
         /* Try the methods. */
         if ((pmd = find_lazy_method(nsx, name)) != NULL)
@@ -4329,9 +4331,9 @@ static int lookup_lazy_attr(sipWrapperType *wt, const char *name,
         }
 
         /* Try the variables. */
-        if ((gsd = find_lazy_variable(nsx, name)) != NULL)
+        if ((vd = find_lazy_variable(nsx, name)) != NULL)
         {
-            if ((attr = PyDescr_NewGetSet((PyTypeObject *)wt, gsd)) == NULL)
+            if ((attr = sipVariableDescr_New(vd, ctd)) == NULL)
                 return -1;
 
             *attrp = attr;
@@ -4478,6 +4480,15 @@ static PyMethodDef *find_lazy_method(sipClassTypeDef *ctd, const char *name)
 
 
 /*
+ * The bsearch() helper function for searching a sorted method table.
+ */
+static int compareMethodName(const void *key, const void *el)
+{
+    return strcmp((const char *)key, ((const PyMethodDef *)el)->ml_name);
+}
+
+
+/*
  * Return a lazy enum for a type if there is one.
  */
 static sipEnumMemberDef *find_lazy_enum(sipClassTypeDef *ctd, const char *name)
@@ -4492,39 +4503,35 @@ static sipEnumMemberDef *find_lazy_enum(sipClassTypeDef *ctd, const char *name)
 
 
 /*
- * Return a lazy variable for a type if there is one.
- */
-static PyGetSetDef *find_lazy_variable(sipClassTypeDef *ctd, const char *name)
-{
-    if (ctd->ctd_variables != NULL)
-    {
-        PyGetSetDef *gsd;
-
-        /* These aren't sorted. */
-        for (gsd = ctd->ctd_variables; gsd->name != NULL; ++gsd)
-            if (strcmp(gsd->name, name) == 0)
-                return gsd;
-    }
-
-    return NULL;
-}
-
-
-/*
- * The bsearch() helper function for searching a sorted method table.
- */
-static int compareMethodName(const void *key,const void *el)
-{
-    return strcmp((const char *)key,((const PyMethodDef *)el)->ml_name);
-}
-
-
-/*
  * The bsearch() helper function for searching a sorted enum member table.
  */
-static int compareEnumMemberName(const void *key,const void *el)
+static int compareEnumMemberName(const void *key, const void *el)
 {
-    return strcmp((const char *)key,((const sipEnumMemberDef *)el)->em_name);
+    return strcmp((const char *)key, ((const sipEnumMemberDef *)el)->em_name);
+}
+
+
+/*
+ * Return a lazy variable for a type if there is one.
+ */
+static sipVariableDef *find_lazy_variable(sipClassTypeDef *ctd,
+        const char *name)
+{
+    if (ctd->ctd_nrvariables == 0)
+        return NULL;
+
+    return (sipVariableDef *)bsearch(name, ctd->ctd_variables,
+            ctd->ctd_nrvariables, sizeof (sipVariableDef),
+            compareVariableName);
+}
+
+
+/*
+ * The bsearch() helper function for searching a sorted variable table.
+ */
+static int compareVariableName(const void *key, const void *el)
+{
+    return strcmp((const char *)key, ((const sipVariableDef *)el)->vd_name);
 }
 
 
@@ -6876,47 +6883,21 @@ static PyObject *sipWrapperType_get_dict(PyObject *self, void *context)
      */
     if (ctd != NULL && sipIsExactWrappedType(wt) && !wt->dict_complete)
     {
+        sipClassTypeDef *nsx;
         sipAttrGetter *ag;
 
-        /* Get any lazy attributes from registered getters. */
-        for (ag = sipAttrGetters; ag != NULL; ag = ag->next)
-            if (ag->type == NULL || PyType_IsSubtype((PyTypeObject *)wt, ag->type))
-                if (ag->getter((sipTypeDef *)ctd, NULL, &dict) < 0)
-                    return NULL;
-
         /* Search the possible linked list of namespace extenders. */
-        do
+        for (nsx = ctd; nsx != NULL; nsx = nsx->ctd_nsextender)
         {
             int i;
-            sipEnumMemberDef *enm;
             PyMethodDef *pmd;
-            PyGetSetDef *gsd;
-
-            /* Do the enum members. */
-            enm = ctd->ctd_enummembers;
-
-            for (i = 0; i < ctd->ctd_nrenummembers; ++i)
-            {
-                int rc;
-                PyObject *val;
-
-                if ((val = createEnumMember(ctd, enm)) == NULL)
-                    return NULL;
-
-                rc = PyDict_SetItemString(dict, enm->em_name, val);
-
-                Py_DECREF(val);
-
-                if (rc < 0)
-                    return NULL;
-
-                ++enm;
-            }
+            sipEnumMemberDef *enm;
+            sipVariableDef *vd;
 
             /* Do the methods. */
-            pmd = ctd->ctd_methods;
+            pmd = nsx->ctd_methods;
 
-            for (i = 0; i < ctd->ctd_nrmethods; ++i)
+            for (i = 0; i < nsx->ctd_nrmethods; ++i)
             {
                 int rc;
                 PyObject *descr;
@@ -6934,29 +6915,54 @@ static PyObject *sipWrapperType_get_dict(PyObject *self, void *context)
                 ++pmd;
             }
 
+            /* Do the enum members. */
+            enm = nsx->ctd_enummembers;
+
+            for (i = 0; i < nsx->ctd_nrenummembers; ++i)
+            {
+                int rc;
+                PyObject *val;
+
+                if ((val = createEnumMember(nsx, enm)) == NULL)
+                    return NULL;
+
+                rc = PyDict_SetItemString(dict, enm->em_name, val);
+
+                Py_DECREF(val);
+
+                if (rc < 0)
+                    return NULL;
+
+                ++enm;
+            }
+
             /* Do the variables. */
-            if ((gsd = ctd->ctd_variables) != NULL)
-                while (gsd->name != NULL)
-                {
-                    int rc;
-                    PyObject *descr;
+            vd = nsx->ctd_variables;
 
-                    if ((descr = PyDescr_NewGetSet((PyTypeObject *)wt, gsd)) == NULL)
-                        return NULL;
+            for (i = 0; i < nsx->ctd_nrvariables; ++i)
+            {
+                int rc;
+                PyObject *descr;
 
-                    rc = PyDict_SetItemString(dict, gsd->name, descr);
+                if ((descr = sipVariableDescr_New(vd, ctd)) == NULL)
+                    return NULL;
 
-                    Py_DECREF(descr);
+                rc = PyDict_SetItemString(dict, vd->vd_name, descr);
 
-                    if (rc < 0)
-                        return NULL;
+                Py_DECREF(descr);
 
-                    ++gsd;
-                }
+                if (rc < 0)
+                    return NULL;
 
-            ctd = ctd->ctd_nsextender;
+                ++vd;
+            }
         }
-        while (ctd != NULL);
+
+        /* Get any lazy attributes from registered getters. */
+        for (ag = sipAttrGetters; ag != NULL; ag = ag->next)
+            if (ag->type == NULL || PyType_IsSubtype((PyTypeObject *)wt, ag->type))
+                if (ag->getter((sipTypeDef *)ctd, NULL, &dict) < 0)
+                    return NULL;
 
         wt->dict_complete = TRUE;
     }
