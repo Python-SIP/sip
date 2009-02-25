@@ -452,6 +452,8 @@ static int lookup_lazy_attr(sipWrapperType *wt, const char *name,
         PyObject **attrp);
 static int generic_setattro(PyObject *self, PyObject *name, PyObject *value,
         PyObject **dictp, PyTypeObject *lookup_in);
+static int add_lazy_attrs(sipClassTypeDef *ctd);
+static int add_all_lazy_attrs(sipClassTypeDef *ctd);
 
 
 /*
@@ -4192,6 +4194,130 @@ static int generic_setattro(PyObject *self, PyObject *name, PyObject *value,
 
 
 /*
+ * Populate a type dictionary with all lazy attributes if it hasn't already
+ * been done.
+ */
+static int add_lazy_attrs(sipClassTypeDef *ctd)
+{
+    sipWrapperType *wt = (sipWrapperType *)sipTypeAsPyTypeObject((sipTypeDef *)ctd);
+    PyObject *dict = ((PyTypeObject *)wt)->tp_dict;
+    sipClassTypeDef *nsx;
+    sipAttrGetter *ag;
+
+    /* Handle the trivial case. */
+    if (wt->dict_complete)
+        return 0;
+
+    /* Search the possible linked list of namespace extenders. */
+    for (nsx = ctd; nsx != NULL; nsx = nsx->ctd_nsextender)
+    {
+        int i;
+        PyMethodDef *pmd;
+        sipEnumMemberDef *enm;
+        sipVariableDef *vd;
+
+        /* Do the methods. */
+        pmd = nsx->ctd_methods;
+
+        for (i = 0; i < nsx->ctd_nrmethods; ++i)
+        {
+            int rc;
+            PyObject *descr;
+
+            if ((descr = sipMethodDescr_New(pmd)) == NULL)
+                return -1;
+
+            rc = PyDict_SetItemString(dict, pmd->ml_name, descr);
+
+            Py_DECREF(descr);
+
+            if (rc < 0)
+                return -1;
+
+            ++pmd;
+        }
+
+        /* Do the enum members. */
+        enm = nsx->ctd_enummembers;
+
+        for (i = 0; i < nsx->ctd_nrenummembers; ++i)
+        {
+            int rc;
+            PyObject *val;
+
+            if ((val = createEnumMember(nsx, enm)) == NULL)
+                return -1;
+
+            rc = PyDict_SetItemString(dict, enm->em_name, val);
+
+            Py_DECREF(val);
+
+            if (rc < 0)
+                return -1;
+
+            ++enm;
+        }
+
+        /* Do the variables. */
+        vd = nsx->ctd_variables;
+
+        for (i = 0; i < nsx->ctd_nrvariables; ++i)
+        {
+            int rc;
+            PyObject *descr;
+
+            if ((descr = sipVariableDescr_New(vd, ctd)) == NULL)
+                return -1;
+
+            rc = PyDict_SetItemString(dict, vd->vd_name, descr);
+
+            Py_DECREF(descr);
+
+            if (rc < 0)
+                return -1;
+
+            ++vd;
+        }
+    }
+
+    /* Get any lazy attributes from registered getters. */
+    for (ag = sipAttrGetters; ag != NULL; ag = ag->next)
+        if (ag->type == NULL || PyType_IsSubtype((PyTypeObject *)wt, ag->type))
+            if (ag->getter((sipTypeDef *)ctd, NULL, &dict) < 0)
+                return -1;
+
+    wt->dict_complete = TRUE;
+
+    return 0;
+}
+
+
+/*
+ * Populate the type dictionary and all its super-types.
+ */
+static int add_all_lazy_attrs(sipClassTypeDef *ctd)
+{
+    sipEncodedClassDef *sup;
+
+    if (add_lazy_attrs(ctd) < 0)
+        return -1;
+
+    if ((sup = ctd->ctd_supers) != NULL)
+        do
+        {
+            sipClassTypeDef *sup_ctd = getClassType(sup,
+                    ctd->ctd_base.td_module);
+
+            if (add_all_lazy_attrs(sup_ctd) < 0)
+                return -1;
+        }
+        while (!sup++->sc_flag);
+
+    return 0;
+}
+
+
+/*
  * Return a new reference to the given attribute name as a string object.
  */
 static PyObject *string_attr_name(PyObject *name)
@@ -6867,96 +6993,8 @@ static PyObject *sipWrapperType_get_dict(PyObject *self, void *context)
         return Py_None;
     }
 
-    /*
-     * Populate the dictionary with all lazy attributes if it hasn't already
-     * been done.  This may overwrite some that have already been done, but it
-     * doesn't matter.
-     */
-    if (ctd != NULL && sipIsExactWrappedType(wt) && !wt->dict_complete)
-    {
-        sipClassTypeDef *nsx;
-        sipAttrGetter *ag;
-
-        /* Search the possible linked list of namespace extenders. */
-        for (nsx = ctd; nsx != NULL; nsx = nsx->ctd_nsextender)
-        {
-            int i;
-            PyMethodDef *pmd;
-            sipEnumMemberDef *enm;
-            sipVariableDef *vd;
-
-            /* Do the methods. */
-            pmd = nsx->ctd_methods;
-
-            for (i = 0; i < nsx->ctd_nrmethods; ++i)
-            {
-                int rc;
-                PyObject *descr;
-
-                if ((descr = sipMethodDescr_New(pmd)) == NULL)
-                    return NULL;
-
-                rc = PyDict_SetItemString(dict, pmd->ml_name, descr);
-
-                Py_DECREF(descr);
-
-                if (rc < 0)
-                    return NULL;
-
-                ++pmd;
-            }
-
-            /* Do the enum members. */
-            enm = nsx->ctd_enummembers;
-
-            for (i = 0; i < nsx->ctd_nrenummembers; ++i)
-            {
-                int rc;
-                PyObject *val;
-
-                if ((val = createEnumMember(nsx, enm)) == NULL)
-                    return NULL;
-
-                rc = PyDict_SetItemString(dict, enm->em_name, val);
-
-                Py_DECREF(val);
-
-                if (rc < 0)
-                    return NULL;
-
-                ++enm;
-            }
-
-            /* Do the variables. */
-            vd = nsx->ctd_variables;
-
-            for (i = 0; i < nsx->ctd_nrvariables; ++i)
-            {
-                int rc;
-                PyObject *descr;
-
-                if ((descr = sipVariableDescr_New(vd, ctd)) == NULL)
-                    return NULL;
-
-                rc = PyDict_SetItemString(dict, vd->vd_name, descr);
-
-                Py_DECREF(descr);
-
-                if (rc < 0)
-                    return NULL;
-
-                ++vd;
-            }
-        }
-
-        /* Get any lazy attributes from registered getters. */
-        for (ag = sipAttrGetters; ag != NULL; ag = ag->next)
-            if (ag->type == NULL || PyType_IsSubtype((PyTypeObject *)wt, ag->type))
-                if (ag->getter((sipTypeDef *)ctd, NULL, &dict) < 0)
-                    return NULL;
-
-        wt->dict_complete = TRUE;
-    }
+    if (ctd != NULL && sipIsExactWrappedType(wt) && add_lazy_attrs(ctd) < 0)
+        return NULL;
 
     return PyDictProxy_New(dict);
 }
@@ -7064,6 +7102,10 @@ static PyObject *sipSimpleWrapper_new(sipWrapperType *wt, PyObject *args,
 
         return NULL;
     }
+
+    /* Make sure the super-types have fully populated dictionaries. */
+    if (add_all_lazy_attrs(ctd) < 0)
+        return NULL;
 
     /*
      * See if the object is being created explicitly rather than being wrapped.
