@@ -6585,37 +6585,6 @@ static int sipWrapperType_setattro(PyObject *self, PyObject *name,
 
 
 /*
- * The type getter for __dict__.
- */
-static PyObject *sipWrapperType_get_dict(PyObject *self, void *context)
-{
-    sipWrapperType *wt = (sipWrapperType *)self;
-    PyObject *dict = ((PyTypeObject *)wt)->tp_dict;
-    sipClassTypeDef *ctd = (sipClassTypeDef *)wt->type;
-
-    if (dict == NULL)
-    {
-        Py_INCREF(Py_None);
-        return Py_None;
-    }
-
-    if (ctd != NULL && sipIsExactWrappedType(wt) && add_lazy_attrs(ctd) < 0)
-        return NULL;
-
-    return PyDictProxy_New(dict);
-}
-
-
-/*
- * The type getset table.
- */
-static PyGetSetDef sipWrapperType_getset[] = {
-    {"__dict__", sipWrapperType_get_dict, NULL, NULL},
-    {NULL}
-};
-
-
-/*
  * The type data structure.  We inherit everything from the standard Python
  * metatype except the init and getattro methods and the size of the type
  * object created is increased to accomodate the extra information we associate
@@ -6652,7 +6621,7 @@ static PyTypeObject sipWrapperType_Type = {
     0,                      /* tp_iternext */
     0,                      /* tp_methods */
     0,                      /* tp_members */
-    sipWrapperType_getset,  /* tp_getset */
+    0,                      /* tp_getset */
     0,                      /* tp_base */
     0,                      /* tp_dict */
     0,                      /* tp_descr_get */

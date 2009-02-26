@@ -47,10 +47,10 @@ typedef struct
 /*
  * Support for the descriptors.
  */
-PyAPI_DATA(PyTypeObject) sipMethodDescr_Type;
+extern PyTypeObject sipMethodDescr_Type;
 PyObject *sipMethodDescr_New(PyMethodDef *pmd);
 
-PyAPI_DATA(PyTypeObject) sipVariableDescr_Type;
+extern PyTypeObject sipVariableDescr_Type;
 PyObject *sipVariableDescr_New(sipVariableDef *vd, sipClassTypeDef *ctd);
 
 
