@@ -40,6 +40,7 @@ static void *sip_api_convert_to_type(PyObject *pyObj, const sipTypeDef *td,
 static void *sip_api_force_convert_to_type(PyObject *pyObj,
         const sipTypeDef *td, PyObject *transferObj, int flags, int *statep,
         int *iserrp);
+static int sip_api_can_convert_to_enum(PyObject *pyObj, const sipTypeDef *td);
 static void sip_api_release_type(void *cpp, const sipTypeDef *td, int state);
 static PyObject *sip_api_convert_from_new_type(void *cpp, const sipTypeDef *td,
         PyObject *transferObj);
@@ -144,6 +145,7 @@ static const sipAPIDef sip_api = {
     sip_api_can_convert_to_type,
     sip_api_convert_to_type,
     sip_api_force_convert_to_type,
+    sip_api_can_convert_to_enum,
     sip_api_release_type,
     sip_api_convert_from_type,
     sip_api_convert_from_new_type,
@@ -363,7 +365,6 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, int nrargs,
         PyObject *sipArgs, const char *fmt, va_list va);
 static int getSelfFromArgs(sipTypeDef *td, PyObject *args, int argnr,
         sipSimpleWrapper **selfp);
-static int canConvertToEnum(PyObject *obj, sipTypeDef *td);
 static PyObject *createEnumMember(sipClassTypeDef *ctd, sipEnumMemberDef *enm);
 static int get_lazy_attr(sipWrapperType *wt, sipSimpleWrapper *sw,
         const char *name, PyObject **attr);
@@ -1847,7 +1848,7 @@ static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
                     PyTypeObject *et = va_arg(va, PyTypeObject *);
                     int *p = va_arg(va, int *);
 
-                    if (canConvertToEnum(arg, ((sipEnumTypeObject *)et)->type))
+                    if (sip_api_can_convert_to_enum(arg, ((sipEnumTypeObject *)et)->type))
                         *p = PyInt_AsLong(arg);
                     else
                         invalid = TRUE;
@@ -1860,7 +1861,7 @@ static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
                     sipTypeDef *td = va_arg(va, sipTypeDef *);
                     int *p = va_arg(va, int *);
 
-                    if (canConvertToEnum(arg, td))
+                    if (sip_api_can_convert_to_enum(arg, td))
                         *p = PyInt_AsLong(arg);
                     else
                         invalid = TRUE;
@@ -2813,13 +2814,13 @@ static int parsePass1(sipSimpleWrapper **selfp, int *selfargp,
 
         case 'E':
             {
-                /* Named enum or exact integer. */
+                /* Named enum or integer. */
 
                 sipTypeDef *td = va_arg(va, sipTypeDef *);
 
                 va_arg(va, int *);
 
-                if (!canConvertToEnum(arg, td))
+                if (!sip_api_can_convert_to_enum(arg, td))
                     valid = PARSE_TYPE;
             }
 
@@ -4283,14 +4284,13 @@ static const sipTypeDef *sip_api_type_scope(const sipTypeDef *td)
 
 
 /*
- * Return TRUE if an unconstrained object can be converted to a named enum.
+ * Return TRUE if an object can be converted to a named enum.
  */
-static int canConvertToEnum(PyObject *obj, sipTypeDef *td)
+static int sip_api_can_convert_to_enum(PyObject *obj, const sipTypeDef *td)
 {
-    /*
-     * If the object is an enum then it must be the right enum.  Otherwise we
-     * allow anything that looks like an int.
-     */
+    assert(sipTypeIsEnum(td));
+
+    /* If the object is an enum then it must be the right enum. */
     if (PyObject_TypeCheck((PyObject *)obj->ob_type, &sipEnumType_Type))
         return (PyObject_TypeCheck(obj, sipTypeAsPyTypeObject(td)));
 

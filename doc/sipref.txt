@@ -4301,6 +4301,15 @@ PyObject \*sipCallMethod(int \*iserr, PyObject \*method, const char \*format, ..
     ``sipMethod``.
 
 
+sipCanConvertToEnum()
+---------------------
+
+int sipCanConvertToEnum(PyObject \*obj, const sipTypeDef \*td)
+    This returns a non-zero value if a Python object can be converted to a
+    named enum.  *obj* is the Python object.  *td* is the generated type
+    structure corresponding to the enum.
+
+
 sipCanConvertToInstance()
 -------------------------
 
