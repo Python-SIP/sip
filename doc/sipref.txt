@@ -2845,10 +2845,9 @@ are made available to the handwritten code:
     Note that handwritten code for destructors never has any arguments.
 
 PyObject \*a0Wrapper
-    This variable is made available only if the corresponding argument wraps a
-    C structure or C++ class instance and the GetWrapper_ annotation is
-    specified.  The variable is a pointer to the Python object that wraps the
-    argument.
+    This variable is made available only if the GetWrapper_ annotation is
+    specified for the corresponding argument.  The variable is a pointer to the
+    Python object that wraps the argument.
 
 *type* \*sipCpp
     If the directive is used in the context of a class constructor then this
@@ -3545,9 +3544,8 @@ GetWrapper
 
 This boolean annotation is only ever used in conjunction with handwritten code
 specified with the `%MethodCode`_ directive.  It causes an extra variable to
-be generated for the corresponding argument (which should be a wrapped C
-structure or C++ class instance) which is a pointer to the Python object that
-wraps the argument.
+be generated for the corresponding argument which is a pointer to the Python
+object that wraps the argument.
 
 See the `%MethodCode`_ directive for more detail.
 
@@ -3566,6 +3564,16 @@ For pointers to other types then this annotation must be explicitly specified
 if required.  The argument will be dereferenced to obtain the actual value.
 
 Both In_ and Out_ may be specified for the same argument.
+
+
+KeepReference
+*************
+
+This boolean annotation is used to specify that a reference to the
+corresponding argument should be kept to ensure that the object is not garbage
+collected.  If the method is called again with a new argument then the
+reference to the previous argument is discarded.  Note that ownership of the
+argument is not changed.
 
 
 Out

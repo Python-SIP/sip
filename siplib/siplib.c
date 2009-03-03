@@ -119,6 +119,7 @@ static int sip_api_register_attribute_getter(const sipTypeDef *td,
         sipAttrGetterFunc getter);
 static void sip_api_clear_any_slot_reference(sipSlot *slot);
 static int sip_api_visit_slot(sipSlot *slot, visitproc visit, void *arg);
+static void sip_api_keep_reference(PyObject *self, int key, PyObject *obj);
 
 
 /*
@@ -220,7 +221,8 @@ static const sipAPIDef sip_api = {
     sip_api_string_as_char,
     sip_api_unicode_as_wchar,
     sip_api_unicode_as_wstring,
-    sip_api_deprecated
+    sip_api_deprecated,
+    sip_api_keep_reference
 };
 
 
@@ -243,9 +245,8 @@ static const sipAPIDef sip_api = {
 #define FORMAT_TRANSFER         0x02    /* Implement /Transfer/. */
 #define FORMAT_NO_STATE         0x04    /* Don't return the C/C++ state. */
 #define FORMAT_TRANSFER_BACK    0x04    /* Implement /TransferBack/. */
-#define FORMAT_GET_WRAPPER      0x08    /* Implement /GetWrapper/. */
-#define FORMAT_NO_CONVERTORS    0x10    /* Suppress any convertors. */
-#define FORMAT_TRANSFER_THIS    0x20    /* Support for /TransferThis/. */
+#define FORMAT_NO_CONVERTORS    0x08    /* Suppress any convertors. */
+#define FORMAT_TRANSFER_THIS    0x10    /* Support for /TransferThis/. */
 
 #define SIP_MC_CHECKED          0x01    /* If we have looked for the reimp. */
 #define SIP_MC_METHOD           0x02    /* The reimp is a method. */
@@ -2472,6 +2473,16 @@ static int parsePass1(sipSimpleWrapper **selfp, int *selfargp,
             /* Ellipsis. */
             break;
 
+        case '@':
+            /* Implement /GetWrapper/. */
+            *va_arg(va, PyObject **) = arg;
+
+            /* Process the same argument next time round. */
+            --argnr;
+            --nrparsed;
+
+            break;
+
         case 's':
             {
                 /* String or None. */
@@ -2585,7 +2596,7 @@ static int parsePass1(sipSimpleWrapper **selfp, int *selfargp,
                     if (flags & FORMAT_DEREF)
                         iflgs |= SIP_NOT_NONE;
 
-                    if (flags & (FORMAT_GET_WRAPPER|FORMAT_TRANSFER_THIS))
+                    if (flags & FORMAT_TRANSFER_THIS)
                         va_arg(va,PyObject **);
 
                     if (flags & FORMAT_NO_CONVERTORS)
@@ -3172,6 +3183,15 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, int nrargs,
          */
         switch (ch)
         {
+        case '@':
+            /* Implement /GetWrapper/. */
+            va_arg(va, PyObject **);
+
+            /* Process the same argument next time round. */
+            --a;
+
+            break;
+
         case 'q':
             {
                 /* Qt receiver to connect. */
@@ -3248,7 +3268,7 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, int nrargs,
                 int iflgs = 0;
                 int iserr = FALSE;
                 int *state;
-                PyObject *xfer, **wrapper;
+                PyObject *xfer, **owner;
 
                 td = va_arg(va, const sipTypeDef *);
                 p = va_arg(va, void **);
@@ -3263,8 +3283,8 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, int nrargs,
                 if (flags & FORMAT_DEREF)
                     iflgs |= SIP_NOT_NONE;
 
-                if (flags & (FORMAT_GET_WRAPPER|FORMAT_TRANSFER_THIS))
-                    wrapper = va_arg(va, PyObject **);
+                if (flags & FORMAT_TRANSFER_THIS)
+                    owner = va_arg(va, PyObject **);
 
                 if (flags & FORMAT_NO_CONVERTORS)
                 {
@@ -3279,10 +3299,8 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, int nrargs,
                 if (iserr)
                     valid = PARSE_RAISED;
 
-                if (flags & FORMAT_GET_WRAPPER)
-                    *wrapper = (*p != NULL ? arg : NULL);
-                else if (flags & FORMAT_TRANSFER_THIS && *p != NULL)
-                    *wrapper = arg;
+                if (flags & FORMAT_TRANSFER_THIS && *p != NULL)
+                    *owner = arg;
 
                 break;
             }
@@ -5283,6 +5301,34 @@ static int checkPointer(void *ptr)
 
 
 /*
+ * Keep an extra reference to an object.
+ */
+static void sip_api_keep_reference(PyObject *self, int key, PyObject *obj)
+{
+    PyObject *dict, *key_obj;
+
+    /* Create the extra references dictionary if needed. */
+    if ((dict = ((sipSimpleWrapper *)self)->extra_refs) == NULL)
+    {
+        if ((dict = PyDict_New()) == NULL)
+            return;
+
+        ((sipSimpleWrapper *)self)->extra_refs = dict;
+    }
+
+    if ((key_obj = PyInt_FromLong(key)) != NULL)
+    {
+        /* This can happen if the argument was optional. */
+        if (obj == NULL)
+            obj = Py_None;
+
+        PyDict_SetItem(dict, key_obj, obj);
+        Py_DECREF(key_obj);
+    }
+}
+
+
+/*
  * Check to see if a Python object can be converted to a type.
  */
 static int sip_api_can_convert_to_type(PyObject *pyObj, const sipTypeDef *td,
@@ -6855,6 +6901,10 @@ static int sipSimpleWrapper_traverse(sipSimpleWrapper *self, visitproc visit,
         if ((vret = visit(self->dict, arg)) != 0)
             return vret;
 
+    if (self->extra_refs != NULL)
+        if ((vret = visit(self->extra_refs, arg)) != 0)
+            return vret;
+
     if (self->user != NULL)
         if ((vret = visit(self->user, arg)) != 0)
             return vret;
@@ -6895,6 +6945,11 @@ static int sipSimpleWrapper_clear(sipSimpleWrapper *self)
     /* Remove the instance dictionary. */
     tmp = self->dict;
     self->dict = NULL;
+    Py_XDECREF(tmp);
+
+    /* Remove any extra references dictionary. */
+    tmp = self->extra_refs;
+    self->extra_refs = NULL;
     Py_XDECREF(tmp);
 
     /* Remove any user object. */

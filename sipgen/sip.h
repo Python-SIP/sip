@@ -607,6 +607,7 @@ typedef struct {
     int argflags;                       /* The argument flags. */
     int nrderefs;                       /* Nr. of dereferences. */
     valueDef *defval;                   /* The default value. */
+    int key;                            /* The optional /KeepReference/ key. */
     struct _typedefDef *original_type;  /* The original type if typedef'd. */
     union {
         struct _signatureDef *sa;       /* If it is a function. */
@@ -664,6 +665,7 @@ typedef struct _moduleDef {
     int nrexceptions;                   /* The nr. of exceptions. */
     int nrtypedefs;                     /* The nr. of typedefs. */
     int nrvirthandlers;                 /* The nr. of virtual handlers. */
+    int next_key;                       /* The next key to allocate. */
     struct _virtHandlerDef *virthandlers;   /* The virtual handlers. */
     licenseDef *license;                /* The software license. */
     struct _classDef *proxies;          /* The list of proxy classes. */

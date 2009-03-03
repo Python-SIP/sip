@@ -211,6 +211,9 @@ typedef struct _sipSimpleWrapper {
     /* Object flags. */
     int flags;
 
+    /* The optional dictionary of extra references keyed by argument number. */
+    PyObject *extra_refs;
+
     /* For the user to use. */
     PyObject *user;
 
@@ -1146,6 +1149,7 @@ typedef struct _sipAPIDef {
     int *(*api_unicode_as_wstring)(PyObject *obj);
 #endif
     int (*api_deprecated)(const char *classname, const char *method);
+    void (*api_keep_reference)(PyObject *self, int key, PyObject *obj);
 } sipAPIDef;
 
 

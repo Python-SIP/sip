@@ -1,5 +1,6 @@
 v4.8 ???
   - Added the %InitialisationCode directive.
+  - Added the /KeepReference/ argument annotation.
   - super() now works as expected.
 
 v4.7.9 17th November 2008

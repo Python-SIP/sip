@@ -2225,6 +2225,13 @@ argtype:    cpptype optname optflags {
             if (findOptFlag(&$3,"TransferBack",bool_flag) != NULL)
                 $$.argflags |= ARG_XFERRED_BACK;
 
+            if (findOptFlag(&$3, "KeepReference", bool_flag) != NULL)
+            {
+                /* The wrapper is needed. */
+                $$.argflags |= ARG_GET_WRAPPER;
+                $$.key = currentModule->next_key++;
+            }
+
             if (findOptFlag(&$3,"In",bool_flag) != NULL)
                 $$.argflags |= ARG_IN;
 
@@ -2700,6 +2707,7 @@ static moduleDef *allocModule()
     newmod->version = -1;
     newmod->qobjclass = -1;
     newmod->nrvirthandlers = -1;
+    newmod->next_key = 1;
 
     /*
      * The consolidated module support needs these to be in order that they
