@@ -83,9 +83,9 @@ PyObject *sip_api_invoke_slot(const sipSlot *slot, PyObject *sigargs)
     /* Fan out Qt signals.  (Only PyQt3 will do this.) */
     if (slot->name != NULL && slot->name[0] != '\0')
     {
-        assert(sipQtSupport->qt_signal_relay);
+        assert(sipQtSupport->qt_emit_signal);
 
-        if (sipQtSupport->qt_signal_relay(slot->pyobj, slot->name, sigargs) < 0)
+        if (sipQtSupport->qt_emit_signal(slot->pyobj, slot->name, sigargs) < 0)
             return NULL;
 
         Py_INCREF(Py_None);

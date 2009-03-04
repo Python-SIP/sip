@@ -63,7 +63,6 @@ static int sip_api_parse_args(int *argsParsedp, PyObject *sipArgs,
         const char *fmt, ...);
 static int sip_api_parse_pair(int *argsParsedp, PyObject *sipArg0,
         PyObject *sipArg1, const char *fmt, ...);
-static void sip_api_common_ctor(sipMethodCache *cache, int nrmeths);
 static void *sip_api_convert_to_void_ptr(PyObject *obj);
 static void sip_api_no_function(int argsParsed, const char *func);
 static void sip_api_no_method(int argsParsed, const char *classname,
@@ -72,9 +71,8 @@ static void sip_api_abstract_method(const char *classname, const char *method);
 static void sip_api_bad_class(const char *classname);
 static void sip_api_bad_set_type(const char *classname, const char *var);
 static void *sip_api_get_complex_cpp_ptr(sipSimpleWrapper *sw);
-static PyObject *sip_api_is_py_method(sip_gilstate_t *gil,
-        sipMethodCache *pymc, sipSimpleWrapper *sipSelf, const char *cname,
-        const char *mname);
+static PyObject *sip_api_is_py_method(sip_gilstate_t *gil, char *pymc,
+        sipSimpleWrapper *sipSelf, const char *cname, const char *mname);
 static void sip_api_call_hook(const char *hookname);
 static void sip_api_raise_unknown_exception(void);
 static void sip_api_raise_type_exception(const sipTypeDef *td, void *ptr);
@@ -199,7 +197,6 @@ static const sipAPIDef sip_api = {
      */
     sip_api_parse_args,
     sip_api_parse_pair,
-    sip_api_common_ctor,
     sip_api_common_dtor,
     sip_api_no_function,
     sip_api_no_method,
@@ -247,18 +244,6 @@ static const sipAPIDef sip_api = {
 #define FORMAT_TRANSFER_BACK    0x04    /* Implement /TransferBack/. */
 #define FORMAT_NO_CONVERTORS    0x08    /* Suppress any convertors. */
 #define FORMAT_TRANSFER_THIS    0x10    /* Support for /TransferThis/. */
-
-#define SIP_MC_CHECKED          0x01    /* If we have looked for the reimp. */
-#define SIP_MC_METHOD           0x02    /* The reimp is a method. */
-#define SIP_MC_CALLABLE         0x04    /* The reimp is another callable. */
-
-#define sipNoReimp(m)           ((m)->mcflags == SIP_MC_CHECKED)
-#define sipCheckedReimp(m)      ((m)->mcflags & SIP_MC_CHECKED)
-#define sipSetCheckedReimp(m)   ((m)->mcflags |= SIP_MC_CHECKED)
-#define sipMethodReimp(m)       ((m)->mcflags & SIP_MC_METHOD)
-#define sipSetMethodReimp(m)    ((m)->mcflags |= SIP_MC_METHOD)
-#define sipCallableReimp(m)     ((m)->mcflags & SIP_MC_CALLABLE)
-#define sipSetCallableReimp(m)  ((m)->mcflags |= SIP_MC_CALLABLE)
 
 
 /*
@@ -3419,17 +3404,6 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, int nrargs,
 
 
 /*
- * Carry out actions common to all ctors.
- */
-static void sip_api_common_ctor(sipMethodCache *cache,int nrmeths)
-{
-    /* This is thread safe. */
-    while (nrmeths-- > 0)
-        cache++->mcflags = 0;
-}
-
-
-/*
  * Carry out actions common to all dtors.
  */
 void sip_api_common_dtor(sipSimpleWrapper *sipSelf)
@@ -3474,11 +3448,9 @@ void sip_api_common_dtor(sipSimpleWrapper *sipSelf)
 static void callPyDtor(sipSimpleWrapper *self)
 {
     sip_gilstate_t sipGILState;
-    sipMethodCache pymc;
+    char pymc = 0;
     PyObject *meth;
 
-    /* No need to cache the method, it will only be called once. */
-    pymc.mcflags = 0;
     meth = sip_api_is_py_method(&sipGILState, &pymc, self, NULL, "__dtor__");
 
     if (meth != NULL)
@@ -5076,15 +5048,16 @@ static PyObject *getDictFromObject(PyObject *obj)
  * Return a Python reimplementation corresponding to a C/C++ virtual function,
  * if any.  If one was found then the Python lock is acquired.
  */
-static PyObject *sip_api_is_py_method(sip_gilstate_t *gil,
-        sipMethodCache *pymc, sipSimpleWrapper *sipSelf, const char *cname,
-        const char *mname)
+static PyObject *sip_api_is_py_method(sip_gilstate_t *gil, char *pymc,
+        sipSimpleWrapper *sipSelf, const char *cname, const char *mname)
 {
+    PyObject *reimp;
+
     /*
      * This is the most common case (where there is no Python reimplementation)
      * so we take a fast shortcut without acquiring the GIL.
      */
-    if (sipNoReimp(pymc))
+    if (*pymc != 0)
         return NULL;
 
     /* We might still have C++ going after the interpreter has gone. */
@@ -5105,85 +5078,21 @@ static PyObject *sip_api_is_py_method(sip_gilstate_t *gil,
     *gil = PyGILState_Ensure();
 #endif
 
-    /* See if we have already looked for a Python reimplementation. */
-    if (!sipCheckedReimp(pymc))
+    /* Get any reimplementation. */
+    if ((reimp = PyObject_GetAttrString((PyObject *)sipSelf, mname)) != NULL)
     {
-        PyObject *reimp = PyObject_GetAttrString((PyObject *)sipSelf, mname);
+        if (PyCallable_Check(reimp))
+            return reimp;
 
-        /*
-         * This should always succeed unless there are bugs in the code
-         * generation.
-         */
-        if (reimp != NULL)
-        {
-            /*
-             * Ignore if it's not a callable, or if it is a method wrapper from
-             * a descriptor (in which case it is the C implementation of a
-             * special method), or if it is a builtin function or method.  The
-             * latter is the most common case as it represents the wrapper
-             * around the generated C++ implementation.  We don't want to use
-             * it because we'd rather handle it faster as a direct call.  Note
-             * that the test for the method wrapper type name is because Python
-             * makes it very difficult to get hold of the type object that is
-             * needed to compare against.
-             */
-            if (PyCFunction_Check(reimp) || !PyCallable_Check(reimp) ||
-                    strcmp(reimp->ob_type->tp_name, "method-wrapper") == 0)
-                Py_DECREF(reimp);
-            else if (PyMethod_Check(reimp))
-            {
-                sipSaveMethod(&pymc->pyMethod, reimp);
-                Py_DECREF(reimp);
-
-                sipSetMethodReimp(pymc);
-            }
-            else
-            {
-                /*
-                 * Note that the callable is never garbage collected.  The main
-                 * reason for this is that it's not possible to get hold of the
-                 * method cache without make incompatible changes to the SIP
-                 * API, particularly to support the cyclic garbage collector.
-                 * It would be a lot easier if the cache was held in the
-                 * Python object rather than the derived C++ class (and this
-                 * function would be passed a cache index instead of a pointer
-                 * to the cache entry).  Dropping the cache completely should
-                 * also be considered which would have the advantage of making
-                 * monkey patching predictable.  With cyclic garbage collector
-                 * support we could also just save a reference to a
-                 * reimplementation that was a method rather than save the
-                 * separate components, which would also allow a borrowed
-                 * reference to the reimplementation to be returned so that the
-                 * virtual handler wouldn't need to decrement its reference
-                 * count.
-                 */
-
-                pymc->pyMethod.mfunc = reimp;
-                sipSetCallableReimp(pymc);
-            }
-        }
-        else
-            PyErr_Clear();
-
-        /* Don't check again. */
-        sipSetCheckedReimp(pymc);
+        Py_DECREF(reimp);
     }
 
-    if (sipMethodReimp(pymc))
-        return PyMethod_New(pymc->pyMethod.mfunc, pymc->pyMethod.mself,
-                pymc->pyMethod.mclass);
-
-    if (sipCallableReimp(pymc))
-    {
-        PyObject *reimp = pymc->pyMethod.mfunc;
-
-        Py_INCREF(reimp);
-        return reimp;
-    }
+    /* Use the fast track in future. */
+    *pymc = 1;
 
     if (cname != NULL)
     {
-        /* Note that this will only be raised once per object/method. */
+        /* Note that this will only be raised once per method. */
         PyErr_Format(PyExc_NotImplementedError,
                 "%s.%s() is abstract and must be overridden", cname, mname);
         PyErr_Print();

@@ -520,7 +520,6 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipParseResult              sipAPI_%s->api_parse_result\n"
 "#define sipParseArgs                sipAPI_%s->api_parse_args\n"
 "#define sipParsePair                sipAPI_%s->api_parse_pair\n"
-"#define sipCommonCtor               sipAPI_%s->api_common_ctor\n"
 "#define sipCommonDtor               sipAPI_%s->api_common_dtor\n"
 "#define sipConvertFromSequenceIndex sipAPI_%s->api_convert_from_sequence_index\n"
 "#define sipConvertFromVoidPtr       sipAPI_%s->api_convert_from_void_ptr\n"
@@ -611,7 +610,6 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipConvertFromMappedType    sipConvertFromType\n"
 "#define sipConvertFromNamedEnum(v, pt)  sipConvertFromEnum((v), ((sipEnumTypeObject *)(pt))->type)\n"
 "#define sipConvertFromNewInstance(p, wt, t) sipConvertFromNewType((p), (wt)->type, (t))\n"
-        ,mname
         ,mname
         ,mname
         ,mname
@@ -1068,7 +1066,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "\n"
 "#define sipQtCreateUniversalSignal          0\n"
 "#define sipQtFindUniversalSignal            0\n"
-"#define sipQtSignalRelay                    0\n"
+"#define sipQtEmitSignal                     0\n"
 "#define sipQtConnectPySignal                0\n"
 "#define sipQtDisconnectPySignal             0\n"
             );
@@ -1578,7 +1576,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "    sipQtDisconnect,\n"
 "    sipQtSameSignalSlotName,\n"
 "    sipQtFindSipslot,\n"
-"    sipQtSignalRelay,\n"
+"    sipQtEmitSignal,\n"
 "    sipQtConnectPySignal,\n"
 "    sipQtDisconnectPySignal\n"
 "};\n"
@@ -4945,10 +4943,14 @@ static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
                 ,ct->exceptions);
         }
 
+        if (nrVirts > 0)
+            prcode(fp,
+"    memset(sipPyMethods, 0, sizeof (sipPyMethods));\n"
+                );
+
         prcode(fp,
-"    sipCommonCtor(%s,%d);\n"
 "}\n"
-            ,(nrVirts > 0 ? "sipPyMethods" : "NULL"),nrVirts);
+            );
     }
 
     /* The destructor. */
@@ -5247,7 +5249,7 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
 "    meth = sipIsPyMethod(&sipGILState,");
 
     if (isConst(od))
-        prcode(fp,"const_cast<sipMethodCache *>(");
+        prcode(fp, "const_cast<char *>(");
 
     prcode(fp,"&sipPyMethods[%d]",virtNr);
 
@@ -6948,7 +6950,7 @@ static void generateShadowClassDeclaration(sipSpec *pt,classDef *cd,FILE *fp)
     if ((nrVirts = countVirtuals(cd)) > 0)
         prcode(fp,
 "\n"
-"    sipMethodCache sipPyMethods[%d];\n"
+"    char sipPyMethods[%d];\n"
             ,nrVirts);
 
     prcode(fp,

@@ -981,18 +981,6 @@ typedef struct _sipPyMethod {
 
 
 /*
- * Cache a reference to a Python member function.
- */
-typedef struct _sipMethodCache {
-    /* Method cache flags. */
-    int mcflags;
-
-    /* The method. */
-    sipPyMethod pyMethod;
-} sipMethodCache;
-
-
-/*
  * A slot (in the Qt, rather than Python, sense).
  */
 typedef struct _sipSlot {
@@ -1116,7 +1104,6 @@ typedef struct _sipAPIDef {
             const char *fmt, ...);
     int (*api_parse_pair)(int *argsParsedp, PyObject *arg0, PyObject *arg1,
             const char *fmt, ...);
-    void (*api_common_ctor)(sipMethodCache *cache, int nrmeths);
     void (*api_common_dtor)(sipSimpleWrapper *sipSelf);
     void (*api_no_function)(int argsParsed, const char *func);
     void (*api_no_method)(int argsParsed, const char *classname,
@@ -1126,7 +1113,7 @@ typedef struct _sipAPIDef {
     void (*api_bad_set_type)(const char *classname, const char *var);
     void *(*api_get_cpp_ptr)(sipSimpleWrapper *w, const sipTypeDef *td);
     void *(*api_get_complex_cpp_ptr)(sipSimpleWrapper *w);
-    PyObject *(*api_is_py_method)(sip_gilstate_t *gil, sipMethodCache *pymc,
+    PyObject *(*api_is_py_method)(sip_gilstate_t *gil, char *pymc,
             sipSimpleWrapper *sipSelf, const char *cname, const char *mname);
     void (*api_call_hook)(const char *hookname);
     void (*api_start_thread)(void);
@@ -1169,7 +1156,7 @@ typedef struct _sipQtAPI {
     int (*qt_disconnect)(void *, const char *, void *, const char *);
     int (*qt_same_name)(const char *, const char *);
     sipSlot *(*qt_find_sipslot)(void *, void **);
-    int (*qt_signal_relay)(PyObject *, const char *, PyObject *);
+    int (*qt_emit_signal)(PyObject *, const char *, PyObject *);
     int (*qt_connect_py_signal)(PyObject *, const char *, PyObject *,
             const char *);
     void (*qt_disconnect_py_signal)(PyObject *, const char *, PyObject *,
