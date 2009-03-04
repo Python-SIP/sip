@@ -5081,7 +5081,8 @@ static PyObject *sip_api_is_py_method(sip_gilstate_t *gil, char *pymc,
     /* Get any reimplementation. */
     if ((reimp = PyObject_GetAttrString((PyObject *)sipSelf, mname)) != NULL)
     {
-        if (PyCallable_Check(reimp))
+        /* Check it is callable but not the wrapped C++ code. */
+        if (PyCallable_Check(reimp) && !PyCFunction_Check(reimp))
             return reimp;
 
         Py_DECREF(reimp);
