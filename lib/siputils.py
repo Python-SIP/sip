@@ -514,6 +514,8 @@ class Makefile:
                         defines.append("QT_OPENGL_LIB")
                     elif mod == "QtScript":
                         defines.append("QT_SCRIPT_LIB")
+                    elif mod == "QtScriptTools":
+                        defines.append("QT_SCRIPTTOOLS_LIB")
                     elif mod == "QtSql":
                         defines.append("QT_SQL_LIB")
                     elif mod == "QtTest":
@@ -552,6 +554,7 @@ class Makefile:
                     "QtNetwork":        ("QtCore", ),
                     "QtOpenGL":         ("QtCore", "QtGui"),
                     "QtScript":         ("QtCore", ),
+                    "QtScriptTools":    ("QtCore", "QtGui", "QtScript"),
                     "QtSql":            ("QtCore", ),
                     "QtSvg":            ("QtCore", "QtGui", "QtXml"),
                     "QtTest":           ("QtCore", "QtGui"),
@@ -723,8 +726,8 @@ class Makefile:
 
         if sys.platform == "win32" and "shared" in string.split(self.config.qt_winconfig):
             if (mname in ("QtCore", "QtDesigner", "QtGui", "QtHelp",
-                          "QtNetwork", "QtOpenGL", "QtScript", "QtSql",
-                          "QtSvg", "QtTest", "QtWebKit", "QtXml",
+                          "QtNetwork", "QtOpenGL", "QtScript", "QtScriptTools",
+                          "QtSql", "QtSvg", "QtTest", "QtWebKit", "QtXml",
                           "QtXmlPatterns", "phonon") or
                 (self.config.qt_version >= 0x040200 and mname == "QtAssistant")):
                 lib = lib + "4"
