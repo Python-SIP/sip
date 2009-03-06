@@ -33,17 +33,18 @@ static void ifaceFilesAreUsedBySignature(ifaceFileList **used,
         signatureDef *sd);
 static void scopeDefaultValue(sipSpec *,classDef *,argDef *);
 static void setHierarchy(sipSpec *,classDef *,classDef *,classList **);
+static void transformModules(sipSpec *pt, moduleDef *mod);
 static void transformCtors(sipSpec *,classDef *);
 static void transformCasts(sipSpec *,classDef *);
 static void addDefaultCopyCtor(classDef *);
 static void transformScopeOverloads(sipSpec *pt, classDef *scope,
         overDef *overs);
-static void transformVariableList(sipSpec *);
-static void transformMappedTypes(sipSpec *);
+static void transformVariableList(sipSpec *pt, moduleDef *mod);
+static void transformMappedTypes(sipSpec *pt, moduleDef *mod);
 static void getVisibleMembers(sipSpec *,classDef *);
 static void getVirtuals(sipSpec *pt,classDef *cd);
 static void getClassVirtuals(classDef *,classDef *);
-static void transformTypedefs(sipSpec *pt);
+static void transformTypedefs(sipSpec *pt, moduleDef *mod);
 static void resolveMappedTypeTypes(sipSpec *,mappedTypeDef *);
 static void resolveCtorTypes(sipSpec *,classDef *,ctorDef *);
 static void resolveFuncTypes(sipSpec *,moduleDef *,classDef *,overDef *);
@@ -205,28 +206,8 @@ void transform(sipSpec *pt)
 
     *tail = NULL;
 
-    /* Transform typedefs, variables and global functions. */
-    transformTypedefs(pt);
-    transformVariableList(pt);
-
-    for (mod = pt->modules; mod != NULL; mod = mod->next)
-        if (generatingCodeForModule(pt, mod))
-            transformScopeOverloads(pt, NULL, mod->overs);
-
-    /* Transform class ctors, functions and casts. */
-    for (cd = pt->classes; cd != NULL; cd = cd->next)
-    {
-        transformCtors(pt, cd);
-
-        if (!pt->genc)
-        {
-            transformScopeOverloads(pt, cd, cd->overs);
-            transformCasts(pt, cd);
-        }
-    }
-
-    /* Transform mapped types based on templates. */
-    transformMappedTypes(pt);
+    /* Transform the various types in the modules. */
+    transformModules(pt, pt->modules);
 
     /* Handle default ctors now that the argument types are resolved. */ 
     if (!pt -> genc)
@@ -306,6 +287,46 @@ void transform(sipSpec *pt)
                 registerMetaType(cd);
 
     setStringPoolOffsets(pt);
+}
+
+
+/*
+ * Transform a module and the modules it imports.
+ */
+static void transformModules(sipSpec *pt, moduleDef *mod)
+{
+    classDef *cd;
+
+    /*
+     * A module is followed by all the modules it imports.  Those must be done
+     * first because they might generate new template-based types and they must
+     * be defined in the right module.
+     */
+    if (mod->next != NULL)
+        transformModules(pt, mod->next);
+
+    /* Transform typedefs, variables and global functions. */
+    transformTypedefs(pt, mod);
+    transformVariableList(pt, mod);
+    transformScopeOverloads(pt, NULL, mod->overs);
+
+    /* Transform class ctors, functions and casts. */
+    for (cd = pt->classes; cd != NULL; cd = cd->next)
+    {
+        if (cd->iff->module == mod)
+        {
+            transformCtors(pt, cd);
+
+            if (!pt->genc)
+            {
+                transformScopeOverloads(pt, cd, cd->overs);
+                transformCasts(pt, cd);
+            }
+        }
+    }
+
+    /* Transform mapped types based on templates. */
+    transformMappedTypes(pt, mod);
 }
 
 
@@ -1205,29 +1226,33 @@ static void appendToMRO(mroDef *head,mroDef ***tailp,classDef *cd)
 
 
 /*
- * Get the base types for all typedefs.
+ * Get the base types for all typedefs of a module.
  */
-static void transformTypedefs(sipSpec *pt)
+static void transformTypedefs(sipSpec *pt, moduleDef *mod)
 {
     typedefDef *td;
 
-    for (td = pt -> typedefs; td != NULL; td = td -> next)
-        getBaseType(pt, td->module, td -> ecd, &td -> type);
+    for (td = pt->typedefs; td != NULL; td = td->next)
+        if (td->module == mod)
+            getBaseType(pt, td->module, td->ecd, &td->type);
 }
 
 
 /*
  * Transform the data types for mapped types based on a template.
  */
-static void transformMappedTypes(sipSpec *pt)
+static void transformMappedTypes(sipSpec *pt, moduleDef *mod)
 {
     mappedTypeDef *mt;
 
     for (mt = pt->mappedtypes; mt != NULL; mt = mt->next)
     {
-        /* Nothing to do if this isn't template based. */
-        if (mt->type.atype == template_type)
-            resolveMappedTypeTypes(pt, mt);
+        if (mt->iff->module == mod)
+        {
+            /* Nothing to do if this isn't template based. */
+            if (mt->type.atype == template_type)
+                resolveMappedTypeTypes(pt, mt);
+        }
     }
 }
 
@@ -1403,15 +1428,16 @@ static void transformScopeOverloads(sipSpec *pt, classDef *scope,
 
 
 /*
- * Transform the data types for the variables.
+ * Transform the data types for the variables of a module.
  */
-static void transformVariableList(sipSpec *pt)
+static void transformVariableList(sipSpec *pt, moduleDef *mod)
 {
     varDef *vd;
 
     for (vd = pt->vars; vd != NULL; vd = vd->next)
-        if (vd->ecd == NULL || !isTemplateClass(vd->ecd))
-            resolveVariableType(pt, vd);
+        if (vd->module == mod)
+            if (vd->ecd == NULL || !isTemplateClass(vd->ecd))
+                resolveVariableType(pt, vd);
 }
 
 
