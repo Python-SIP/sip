@@ -265,7 +265,7 @@ typedef struct _sipEnumTypeObject {
 /*
  * Some convenient function pointers.
  */
-typedef void *(*sipInitFunc)(sipSimpleWrapper *, PyObject *, sipWrapper **,
+typedef void *(*sipInitFunc)(sipSimpleWrapper *, PyObject *, PyObject **,
         int *);
 typedef int (*sipTraverseFunc)(void *, visitproc, void *);
 typedef int (*sipClearFunc)(void *);

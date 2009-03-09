@@ -8347,11 +8347,11 @@ static void generateTypeInit(classDef *cd, FILE *fp)
 
     if (!generating_c)
         prcode(fp,
-"extern \"C\" {static void *init_%C(sipSimpleWrapper *, PyObject *, sipWrapper **, int *);}\n"
+"extern \"C\" {static void *init_%C(sipSimpleWrapper *, PyObject *, PyObject **, int *);}\n"
             , classFQCName(cd));
 
     prcode(fp,
-"static void *init_%C(sipSimpleWrapper *%s,PyObject *sipArgs,sipWrapper **%s,int *sipArgsParsed)\n"
+"static void *init_%C(sipSimpleWrapper *%s, PyObject *sipArgs, PyObject **%s, int *sipArgsParsed)\n"
 "{\n"
         ,classFQCName(cd),(need_self ? "sipSelf" : ""),(need_owner ? "sipOwner" : ""));
 
@@ -8657,7 +8657,7 @@ static void generateConstructorCall(classDef *cd,ctorDef *ct,int error_flag,
         if (isResultTransferredCtor(ct))
             prcode(fp,
 "\n"
-"            *sipOwner = (sipWrapper *)Py_None;\n"
+"            *sipOwner = Py_None;\n"
                 );
     }
 
