@@ -1,7 +1,15 @@
-v4.8 ???
+v4.8 ??? 2009
+  - Added the %DefaultMetatype directive and the /Metatype/ class annotation to
+    allow the meta-type of a wrapped type to be changed.
+  - Added the %DefaultSupertype directive and the /Supertype/ class annotation
+    to allow the super-type of a wrapped type to be changed.
+  - Added the sip.simplewrapper type to be used as a super-type for wrapped
+    types that don't take part in parent/child relationships.
   - Added the %InitialisationCode directive.
   - Added the /KeepReference/ argument annotation.
-  - super() now works as expected.
+  - super() now works as expected with wrapped types.
+  - Many additions and deprecations in the API to eliminate the differences
+    between classes and mapped types.  (See the documentation for the details.)
 
 v4.7.9 17th November 2008
   - A bug fix release.
