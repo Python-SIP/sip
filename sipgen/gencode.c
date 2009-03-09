@@ -698,7 +698,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
     prcode(fp,
 "\n"
 "/* The strings used by this module. */\n"
-"extern const char *sipStrings_%s;\n"
+"extern const char sipStrings_%s[];\n"
         , mname);
 
     /* The unscoped enum macros. */
@@ -989,18 +989,25 @@ static void generateNameCache(sipSpec *pt, FILE *fp)
     prcode(fp,
 "\n"
 "/* Define the strings used by this module. */\n"
-"const char *sipStrings_%s =", pt->module->name);
+"const char sipStrings_%s[] = {\n"
+        , pt->module->name);
 
     for (nd = pt->namecache; nd != NULL; nd = nd->next)
     {
+        const char *cp;
+
         if (!isUsedName(nd) || isSubstring(nd))
             continue;
 
-        prcode(fp, "\n"
-"    \"%s\\0\"", nd->text);
+        prcode(fp, "    ");
+
+        for (cp = nd->text; *cp != '\0'; ++cp)
+            prcode(fp, "'%c', ", *cp);
+
+        prcode(fp, "0,\n");
     }
 
-    prcode(fp, ";\n");
+    prcode(fp, "};\n");
 }
 
 
