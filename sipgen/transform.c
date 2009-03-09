@@ -296,14 +296,19 @@ void transform(sipSpec *pt)
 static void transformModules(sipSpec *pt, moduleDef *mod)
 {
     classDef *cd;
+    moduleListDef *mld;
+
+    /* Handle the trivial case. */
+    if (isTransformed(mod))
+        return;
 
     /*
-     * A module is followed by all the modules it imports.  Those must be done
-     * first because they might generate new template-based types and they must
-     * be defined in the right module.
+     * The modules on which this one depends must be done first because they
+     * might generate new template-based types and they must be defined in the
+     * right module.
      */
-    if (mod->next != NULL)
-        transformModules(pt, mod->next);
+    for (mld = mod->imports; mld != NULL; mld = mld->next)
+        transformModules(pt, mld->module);
 
     /* Transform typedefs, variables and global functions. */
     transformTypedefs(pt, mod);
@@ -327,6 +332,8 @@ static void transformModules(sipSpec *pt, moduleDef *mod)
 
     /* Transform mapped types based on templates. */
     transformMappedTypes(pt, mod);
+
+    setIsTransformed(mod);
 }
 
 

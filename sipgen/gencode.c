@@ -216,6 +216,7 @@ static void generateNameCache(sipSpec *pt, FILE *fp);
 static const char *resultOwner(overDef *od);
 static void prCachedName(FILE *fp, nameDef *nd, const char *prefix);
 static void generateSignalTableEntry(classDef *cd, overDef *od, FILE *fp);
+static void generateTypesTable(sipSpec *pt, moduleDef *mod, FILE *fp);
 
 
 /*
@@ -1312,71 +1313,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 
     /* Generate the types table. */
     if (mod->nrtypes > 0)
-    {
-        int i;
-        argDef *ad;
-
-        prcode(fp,
-"\n"
-"\n"
-"/*\n"
-" * This defines each type in this module.\n"
-" */\n"
-"static sipTypeDef *typesTable[] = {\n"
-            );
-
-        for (ad = mod->types, i = 0; i < mod->nrtypes; ++i, ++ad)
-        {
-            const char *type_prefix, *type_suffix;
-
-            if (pluginPyQt4(pt))
-            {
-                type_prefix = "pyqt4";
-                type_suffix = ".super";
-            }
-            else if (pluginPyQt3(pt) && ad->atype == class_type)
-            {
-                type_prefix = "pyqt3";
-                type_suffix = ".super";
-            }
-            else
-            {
-                type_prefix = "sip";
-                type_suffix = "";
-            }
-
-            switch (ad->atype)
-            {
-            case class_type:
-                if (isExternal(ad->u.cd))
-                    prcode(fp,
-"    0,\n"
-                        );
-                else
-                    prcode(fp,
-"    &%sType_%s_%C%s.ctd_base,\n"
-                        , type_prefix, mod->name, classFQCName(ad->u.cd), type_suffix);
-
-                break;
-
-            case mapped_type:
-                prcode(fp,
-"    &%sMappedTypeDef_%T%s.mtd_base,\n"
-                    , type_prefix, ad, type_suffix);
-                break;
-
-            case enum_type:
-                prcode(fp,
-"    &enumTypes[%d].etd_base,\n"
-                    , ad->u.ed->enum_idx);
-                break;
-            }
-        }
-
-        prcode(fp,
-"};\n"
-            );
-    }
+        generateTypesTable(pt, mod, fp);
 
     if (mod->nrtypedefs > 0)
     {
@@ -1837,6 +1774,77 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
     mod->parts = parts;
 
     generateInternalAPIHeader(pt, mod, codeDir, xsl);
+}
+
+
+/*
+ * Generate the types table for a module.
+ */
+static void generateTypesTable(sipSpec *pt, moduleDef *mod, FILE *fp)
+{
+    int i;
+    argDef *ad;
+
+    prcode(fp,
+"\n"
+"\n"
+"/*\n"
+" * This defines each type in this module.\n"
+" */\n"
+"static sipTypeDef *typesTable[] = {\n"
+        );
+
+    for (ad = mod->types, i = 0; i < mod->nrtypes; ++i, ++ad)
+    {
+        const char *type_prefix, *type_suffix;
+
+        if (pluginPyQt4(pt))
+        {
+            type_prefix = "pyqt4";
+            type_suffix = ".super";
+        }
+        else if (pluginPyQt3(pt) && ad->atype == class_type)
+        {
+            type_prefix = "pyqt3";
+            type_suffix = ".super";
+        }
+        else
+        {
+            type_prefix = "sip";
+                type_suffix = "";
+        }
+
+        switch (ad->atype)
+        {
+        case class_type:
+            if (isExternal(ad->u.cd))
+                prcode(fp,
+"    0,\n"
+                    );
+            else
+                prcode(fp,
+"    &%sType_%s_%C%s.ctd_base,\n"
+                    , type_prefix, mod->name, classFQCName(ad->u.cd), type_suffix);
+
+            break;
+
+        case mapped_type:
+            prcode(fp,
+"    &%sMappedTypeDef_%T%s.mtd_base,\n"
+                , type_prefix, ad, type_suffix);
+            break;
+
+        case enum_type:
+            prcode(fp,
+"    &enumTypes[%d].etd_base,\n"
+                , ad->u.ed->enum_idx);
+            break;
+        }
+    }
+
+    prcode(fp,
+"};\n"
+        );
 }
 
 
