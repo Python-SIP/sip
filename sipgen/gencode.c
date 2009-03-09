@@ -9376,7 +9376,7 @@ static char getBuildResultFormat(argDef *ad)
  * Generate a function call.
  */
 static void generateFunctionCall(classDef *cd,classDef *ocd,overDef *od,
-                 int deref, FILE *fp)
+        int deref, FILE *fp)
 {
     int needsNew, error_flag = FALSE, newline, is_result, result_size, a,
             deltemps;
@@ -9404,15 +9404,17 @@ static void generateFunctionCall(classDef *cd,classDef *ocd,overDef *od,
     orig_res = *res;
 
     /* See if we need to make a copy of the result on the heap. */
-    if ((res->atype == class_type || res->atype == mapped_type) &&
-        !isReference(res) &&
-        res->nrderefs == 0)
+    needsNew = FALSE;
+
+    if ((res->atype == class_type || res->atype == mapped_type) && res->nrderefs == 0)
     {
-        needsNew = TRUE;
-        resetIsConstArg(res);
+        /* Make a copy if it is not a reference or it is a const reference. */
+        if (!isReference(res) || isConstArg(res))
+        {
+            needsNew = TRUE;
+            resetIsConstArg(res);
+        }
     }
-    else
-        needsNew = FALSE;
 
     /* See if sipRes is needed. */
     is_result = (!isInplaceNumberSlot(od->common) &&
@@ -9603,11 +9605,13 @@ static void generateFunctionCall(classDef *cd,classDef *ocd,overDef *od,
                     prcode(fp,"sipRes = new %b(",res);
             }
             else
+            {
                 prcode(fp,"sipRes = ");
 
-            /* See if we need the address of the result. */
-            if ((res->atype == class_type || res->atype == mapped_type) && isReference(res))
-                prcode(fp,"&");
+                /* See if we need the address of the result. */
+                if ((res->atype == class_type || res->atype == mapped_type) && isReference(res))
+                    prcode(fp,"&");
+            }
         }
 
         switch (od->common->slot)
