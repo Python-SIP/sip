@@ -3532,7 +3532,7 @@ static void generateVariableGetter(classDef *context, varDef *vd, FILE *fp)
         return;
     }
 
-    needsNew = ((atype == class_type || atype == mapped_type) && vd->type.nrderefs == 0);
+    needsNew = ((atype == class_type || atype == mapped_type) && vd->type.nrderefs == 0 && isConstArg(&vd->type));
 
     if (needsNew)
     {
@@ -3544,8 +3544,13 @@ static void generateVariableGetter(classDef *context, varDef *vd, FILE *fp)
 "    sipVal = new %b(", &vd->type);
     }
     else
+    {
         prcode(fp,
 "    sipVal = ");
+
+        if ((atype == class_type || atype == mapped_type) && vd->type.nrderefs == 0)
+            prcode(fp, "&");
+    }
 
     generateVarMember(vd, fp);
 
