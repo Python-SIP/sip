@@ -5,9 +5,8 @@
 
 import sys
 import os
-import string
 import glob
-import getopt
+import optparse
 from distutils import sysconfig
 
 import siputils
@@ -24,20 +23,16 @@ plat_py_lib_dir = None
 plat_sip_dir = None
 plat_bin_dir = None
 platform_specs = []
-default_platform = None
 
 # Constants.
 DEFAULT_MACOSX_SDK = 'MacOSX10.5.sdk'
 
 # Command line options.
-opt_platform = None
-opt_sipbindir = None
-opt_sipmoddir = None
-opt_sipincdir = None
-opt_sipsipdir = None
-opt_static = 0
-opt_debug = 0
-opt_universal = None
+default_platform = None
+default_sipbindir = None
+default_sipmoddir = None
+default_sipincdir = None
+default_sipsipdir = None
 
 # The names of build macros extracted from the platform specific configuration
 # files.
@@ -81,63 +76,37 @@ build_macro_names = [
 ]
 
 
-def usage(rcode = 2):
-    """Display a usage message and exit.
-
-    rcode is the return code passed back to the calling process.
+def show_platforms():
+    """Display the different platform/compilers.
     """
-    print "Usage:"
-    print "  python configure.py [-h] [-b dir] [-d dir] [-e dir] [-k] [-n] [-p plat] [-s sdk] [-u] [-v dir] option=value option+=value ..."
-    print "where:"
-    print "  -h       display this help message"
-    print "  -b dir   where the SIP code generator will be installed [default %s]" % opt_sipbindir
-    print "  -d dir   where the SIP module will be installed [default %s]" % opt_sipmoddir
-    print "  -e dir   where the SIP header file will be installed [default %s]" % opt_sipincdir
-    print "  -k       build the SIP module as a static library"
-    print "  -n       build the SIP code generator and module as universal binaries on MacOS/X"
-    print "  -p plat  the platform/compiler configuration [default %s]" % default_platform
-    print "  -s sdk   the name of the MacOS/X SDK used when building universal binaries [default %s]" % DEFAULT_MACOSX_SDK
-    print "  -u       build with debugging symbols"
-    print "  -v dir   where .sip files are normally installed [default %s]" % opt_sipsipdir
+    sys.stdout.write("""
+The following platform/compiler configurations are supported:
 
-    # Display the different platform/compilers.
-    print
-    print "The following platform/compiler configurations are supported:"
-    print
+""")
 
     platform_specs.sort()
+    sys.stdout.write(siputils.format(", ".join(platform_specs), leftmargin=2))
+    sys.stdout.write("\n\n")
 
-    ss = ""
-    sep = ""
-    for s in platform_specs:
-        ss = ss + sep + s
-        sep = ", "
 
-    print siputils.format(ss, 2)
+def show_macros():
+    """Display the different build macros.
+    """
+    sys.stdout.write("""
+The following options may be used to adjust the compiler configuration:
 
-    # Display the different build macros.
-    print
-    print "The following options may be used to adjust the compiler configuration:"
-    print
+""")
 
     build_macro_names.sort()
-
-    ss = ""
-    sep = ""
-    for s in build_macro_names:
-        ss = ss + sep + s
-        sep = " "
-
-    print siputils.format(ss, 2)
-
-    sys.exit(rcode)
+    sys.stdout.write(siputils.format(", ".join(build_macro_names), leftmargin=2))
+    sys.stdout.write("\n\n")
 
 
 def set_defaults():
     """Set up the defaults for values that can be set on the command line.
     """
-    global default_platform
-    global opt_sipbindir, opt_sipmoddir, opt_sipincdir, opt_sipsipdir
+    global default_platform, default_sipbindir, default_sipmoddir
+    global default_sipincdir, default_sipsipdir
 
     # Set the platform specific default specification.
     platdefaults = {
@@ -176,28 +145,28 @@ def set_defaults():
         else:
             default_platform = "win32-msvc"
     else:
-        for pd in platdefaults.keys():
+        for pd in list(platdefaults.keys()):
             if sys.platform[:len(pd)] == pd:
                 default_platform = platdefaults[pd]
                 break
 
-    opt_sipbindir = plat_bin_dir
-    opt_sipmoddir = plat_py_site_dir
-    opt_sipincdir = plat_py_inc_dir
-    opt_sipsipdir = plat_sip_dir
+    default_sipbindir = plat_bin_dir
+    default_sipmoddir = plat_py_site_dir
+    default_sipincdir = plat_py_inc_dir
+    default_sipsipdir = plat_sip_dir
 
 
 def inform_user():
     """Tell the user the option values that are going to be used.
     """
-    siputils.inform("The SIP code generator will be installed in %s." % opt_sipbindir)
-    siputils.inform("The SIP module will be installed in %s." % opt_sipmoddir)
-    siputils.inform("The SIP header file will be installed in %s." % opt_sipincdir)
-    siputils.inform("The default directory to install .sip files in is %s." % opt_sipsipdir)
-    siputils.inform("The platform/compiler configuration is %s." % opt_platform)
+    siputils.inform("The SIP code generator will be installed in %s." % opts.sipbindir)
+    siputils.inform("The SIP module will be installed in %s." % opts.sipmoddir)
+    siputils.inform("The SIP header file will be installed in %s." % opts.sipincdir)
+    siputils.inform("The default directory to install .sip files in is %s." % opts.sipsipdir)
+    siputils.inform("The platform/compiler configuration is %s." % opts.platform)
 
-    if opt_universal:
-        siputils.inform("MacOS/X universal binaries will be created using %s." % opt_universal)
+    if opts.universal:
+        siputils.inform("MacOS/X universal binaries will be created using %s." % opts.universal)
 
 
 def set_platform_directories():
@@ -238,18 +207,18 @@ def create_config(module, template, macros):
         "sip_config_args":  sys.argv[1:],
         "sip_version":      sip_version,
         "sip_version_str":  sip_version_str,
-        "platform":         opt_platform,
-        "sip_bin":          os.path.join(opt_sipbindir, "sip"),
-        "sip_inc_dir":      opt_sipincdir,
-        "sip_mod_dir":      opt_sipmoddir,
+        "platform":         opts.platform,
+        "sip_bin":          os.path.join(opts.sipbindir, "sip"),
+        "sip_inc_dir":      opts.sipincdir,
+        "sip_mod_dir":      opts.sipmoddir,
         "default_bin_dir":  plat_bin_dir,
         "default_mod_dir":  plat_py_site_dir,
-        "default_sip_dir":  opt_sipsipdir,
+        "default_sip_dir":  opts.sipsipdir,
         "py_version":       py_version,
         "py_inc_dir":       plat_py_inc_dir,
         "py_conf_inc_dir":  plat_py_conf_inc_dir,
         "py_lib_dir":       plat_py_lib_dir,
-        "universal":        opt_universal
+        "universal":        opts.universal
     }
 
     siputils.create_config_module(module, template, content, macros)
@@ -284,7 +253,7 @@ def create_makefiles(macros):
         install_dir=os.path.dirname(cfg.sip_bin),
         console=1,
         warnings=0,
-        universal=opt_universal
+        universal=opts.universal
     ).generate()
 
     sipconfig.inform("Creating sip module Makefile...")
@@ -297,12 +266,72 @@ def create_makefiles(macros):
         installs=(["sip.h"], cfg.sip_inc_dir),
         console=1,
         warnings=0,
-        static=opt_static,
-        debug=opt_debug,
-        universal=opt_universal
+        static=opts.static,
+        debug=opts.debug,
+        universal=opts.universal
     )
 
     makefile.generate()
+
+
+def create_optparser():
+    """Create the parser for the command line.
+    """
+    def store_abspath(option, opt_str, value, parser):
+        setattr(parser.values, option.dest, os.path.abspath(value))
+
+    p = optparse.OptionParser(usage="python %prog [opts] [macro=value] "
+            "[macro+=value]", version=sip_version_str)
+
+    # Note: we don't use %default to be compatible with Python 2.3.
+    p.add_option("-k", "--static", action="store_true", default=False,
+            dest="static", help="build the SIP module as a static library")
+    p.add_option("-n", "--universal", action="store_true", default=False,
+            dest="universal", help="build the SIP code generator and module "
+            "as universal binaries on MacOS/X")
+    p.add_option("-p", "--platform", action="store",
+            default=default_platform, type="string", metavar="PLATFORM",
+            dest="platform", help="the platform/compiler configuration "
+            "[default: %s]" % default_platform)
+    p.add_option("-s", "--sdk", action="store",
+            default=DEFAULT_MACOSX_SDK, type="string", metavar="SDK",
+            dest="sdk", help="the name of the MacOS/X SDK used when building "
+            "universal binaries [default: %s]" % DEFAULT_MACOSX_SDK)
+    p.add_option("-u", "--debug", action="store_true", default=False,
+            help="build with debugging symbols")
+
+    # Querying.
+    g = optparse.OptionGroup(p, title="Query")
+    g.add_option("--show-platforms", action="store_true", default=False,
+            dest="show_platforms", help="show the list of supported "
+            "platform/compiler configurations")
+    g.add_option("--show-build-macros", action="store_true", default=False,
+            dest="show_build_macros", help="show the list of supported build "
+            "macros")
+    p.add_option_group(g)
+
+    # Installation.
+    g = optparse.OptionGroup(p, title="Installation")
+    g.add_option("-b", "--bindir", action="callback",
+            default=default_sipbindir, type="string", metavar="DIR",
+            dest="sipbindir", callback=store_abspath, help="where the SIP "
+            "code generator will be installed [default: %s]" %
+            default_sipbindir)
+    g.add_option("-d", "--destdir", action="callback",
+            default=default_sipmoddir, type="string", metavar="DIR",
+            dest="sipmoddir", callback=store_abspath, help="where the SIP "
+            "module will be installed [default: %s]" % default_sipmoddir)
+    g.add_option("-e", "--incdir", action="callback",
+            default=default_sipincdir, type="string", metavar="DIR",
+            dest="sipincdir", callback=store_abspath, help="where the SIP "
+            "header file will be installed [default: %s]" % default_sipincdir)
+    g.add_option("-v", "--sipdir", action="callback",
+            default=default_sipsipdir, type="string", metavar="DIR",
+            dest="sipsipdir", callback=store_abspath, help="where .sip files "
+            "are normally installed [default: %s]" % default_sipsipdir)
+    p.add_option_group(g)
+
+    return p
 
 
 def main(argv):
@@ -310,7 +339,7 @@ def main(argv):
 
     argv is the list of command line arguments.
     """
-    siputils.inform("This is SIP %s for Python %s on %s." % (sip_version_str, string.split(sys.version)[0], sys.platform))
+    siputils.inform("This is SIP %s for Python %s on %s." % (sip_version_str, sys.version.split()[0], sys.platform))
 
     if py_version < 0x020300:
         siputils.error("This version of SIP requires Python v2.3 or later.")
@@ -322,61 +351,39 @@ def main(argv):
     for s in os.listdir("specs"):
         platform_specs.append(s)
 
-    # Handle the command line.
+    # Parse the command line.
+    global opts
+
     set_defaults()
+    p = create_optparser()
+    opts, args = p.parse_args()
 
-    try:
-        optlist, args = getopt.getopt(argv[1:], "hb:d:e:knp:s:uv:")
-    except getopt.GetoptError:
-        usage()
+    # Handle the query options.
+    if opts.show_platforms or opts.show_build_macros:
+        if opts.show_platforms:
+            show_platforms()
 
-    global opt_sipbindir, opt_sipmoddir, opt_sipincdir, opt_sipsipdir
-    global opt_platform, opt_static, opt_debug, opt_universal
+        if opts.show_build_macros:
+            show_macros()
 
-    sdk = DEFAULT_MACOSX_SDK
+        sys.exit()
 
-    for opt, arg in optlist:
-        if opt == "-h":
-            usage(0)
-        elif opt == "-b":
-            opt_sipbindir = os.path.abspath(arg)
-        elif opt == "-d":
-            opt_sipmoddir = os.path.abspath(arg)
-        elif opt == "-e":
-            opt_sipincdir = os.path.abspath(arg)
-        elif opt == "-k":
-            opt_static = 1
-        elif opt == "-n":
-            opt_universal = ''
-        elif opt == "-p":
-            if arg not in platform_specs:
-                usage()
-            
-            opt_platform = arg
-        elif opt == "-s":
-            sdk = arg
-        elif opt == "-u":
-            opt_debug = 1
-        elif opt == "-v":
-            opt_sipsipdir = os.path.abspath(arg)
-
-    if opt_platform is None:
-        opt_platform = default_platform
-
-    if opt_universal is not None:
-        if '/' in sdk:
-            opt_universal = os.path.abspath(sdk)
+    if opts.universal:
+        if '/' in opts.sdk:
+            opts.universal = os.path.abspath(opts.sdk)
         else:
-            opt_universal = '/Developer/SDKs/' + sdk
+            opts.universal = '/Developer/SDKs/' + opts.sdk
 
-        if not os.path.isdir(opt_universal):
-            siputils.error("Unable to find the SDK directory %s. Use the -s flag to specify the name of the SDK (e.g. %s) or its full path." % (opt_universal, DEFAULT_MACOSX_SDK))
+        if not os.path.isdir(opts.universal):
+            siputils.error("Unable to find the SDK directory %s. Use the -s flag to specify the name of the SDK (e.g. %s) or its full path." % (opts.universal, DEFAULT_MACOSX_SDK))
 
     # Get the platform specific macros for building.
-    macros = siputils.parse_build_macros(os.path.join("specs", opt_platform), build_macro_names, args)
+    macros = siputils.parse_build_macros(os.path.join("specs", opts.platform),
+            build_macro_names, args)
 
     if macros is None:
-        usage()
+        p.print_help()
+        sys.exit(2)
 
     # Tell the user what's been found.
     inform_user()
@@ -398,8 +405,8 @@ if __name__ == "__main__":
     except SystemExit:
         raise
     except:
-        print \
+        sys.stderr.write(
 """An internal error occured.  Please report all the output from the program,
 including the following traceback, to support@riverbankcomputing.com.
-"""
+""")
         raise

@@ -7,9 +7,8 @@
 
 import sys
 import os
-import string
-import types
 import stat
+import string
 import re
 
 
@@ -65,7 +64,7 @@ class Configuration(object):
             except KeyError:
                 pass
 
-        raise AttributeError, "\"%s\" is not a valid configuration value or user option" % name
+        raise AttributeError("\"%s\" is not a valid configuration value or user option" % name)
 
     def build_macros(self):
         """Return the dictionary of platform specific build macros.
@@ -147,7 +146,7 @@ class _Macro:
         if isinstance(value, _UniqueList):
             value = value.as_list()
 
-        if type(value) == types.ListType:
+        if type(value) == list:
             self.extend(value)
         else:
             self.append(value)
@@ -224,7 +223,7 @@ class Makefile:
             # configuration).  Also allow a list of Qt v4 modules to be
             # specified.
             if configuration.qt_version >= 0x040000:
-                if type(qt) != types.ListType:
+                if type(qt) != list:
                     qt = ["QtCore", "QtGui"]
 
             self._threaded = configuration.qt_threaded
@@ -251,7 +250,7 @@ class Makefile:
         # Copy the macros and convert them all to instance lists.
         macros = configuration.build_macros()
 
-        for m in macros.keys():
+        for m in list(macros.keys()):
             # Allow the user to override the default.
             try:
                 val = getattr(configuration, m)
@@ -262,12 +261,12 @@ class Makefile:
             # space separated values rather than a single value that might
             # contain spaces.
             if m in ("DEFINES", "CONFIG") or m[:6] in ("INCDIR", "LIBDIR"):
-                val = string.split(val)
+                val = val.split()
 
             # We also want to treat lists of libraries in the same way so that
             # duplicates get eliminated.
             if m[:4] == "LIBS":
-                val = string.split(val)
+                val = val.split()
 
             self.__dict__[m] = _Macro(m, val)
 
@@ -313,7 +312,7 @@ class Makefile:
         # time and nobody complained.  For the moment we'll leave the code in
         # but it will never be used.
         if self._qt:
-            wcfg = string.split(self.config.qt_winconfig)
+            wcfg = self.config.qt_winconfig.split()
             win_shared = ("shared" in wcfg)
             win_exceptions = ("exceptions" in wcfg)
             win_rtti = ("rtti" in wcfg)
@@ -595,17 +594,17 @@ class Makefile:
                         # be anywhere.
                         deps = _UniqueList()
 
-                        if mod in wdepmap.keys():
+                        if mod in list(wdepmap.keys()):
                             deps.extend(self.optional_list(wdepmap[mod]))
 
-                        if mod in qdepmap.keys():
+                        if mod in list(qdepmap.keys()):
                             for qdep in qdepmap[mod]:
                                 # Ignore the dependency if it is explicitly
                                 # linked.
                                 if qdep not in self._qt:
                                     libs.append(self.platform_lib(self._qt4_module_to_lib(qdep)))
 
-                                    if qdep in wdepmap.keys():
+                                    if qdep in list(wdepmap.keys()):
                                         deps.extend(self.optional_list(wdepmap[qdep]))
 
                         libs.extend(deps.as_list())
@@ -616,7 +615,7 @@ class Makefile:
                 qt_lib = self.config.qt_lib
 
                 if self.generator in ("MSVC", "MSVC.NET", "BMAKE") and win_shared:
-                    qt_lib = qt_lib + string.replace(version_to_string(self.config.qt_version), ".", "")
+                    qt_lib = qt_lib + version_to_string(self.config.qt_version).replace(".", "")
 
                     if self.config.qt_edition == "non-commercial":
                         qt_lib = qt_lib + "nc"
@@ -724,7 +723,7 @@ class Makefile:
             elif self.config.qt_version < 0x040200 or sys.platform == "darwin":
                 lib = lib + "_debug"
 
-        if sys.platform == "win32" and "shared" in string.split(self.config.qt_winconfig):
+        if sys.platform == "win32" and "shared" in self.config.qt_winconfig.split():
             if (mname in ("QtCore", "QtDesigner", "QtGui", "QtHelp",
                           "QtNetwork", "QtOpenGL", "QtScript", "QtScriptTools",
                           "QtSql", "QtSvg", "QtTest", "QtWebKit", "QtXml",
@@ -747,7 +746,7 @@ class Makefile:
         name is the name of the macro.
         default is the default value
         """
-        s = string.join(self.optional_list(name))
+        s = ' '.join(self.optional_list(name))
 
         if not s:
             s = default
@@ -762,7 +761,7 @@ class Makefile:
         s = self.optional_string(name)
 
         if not s:
-            raise ValueError, "\"%s\" must have a non-empty value" % name
+            raise ValueError("\"%s\" must have a non-empty value" % name)
 
         return s
 
@@ -814,16 +813,16 @@ class Makefile:
         if os.access(prl_name, os.F_OK):
             try:
                 f = open(prl_name, "r")
-            except IOError, detail:
-                error("Unable to open \"%s\": %s" % (prl_name, detail))
+            except IOError:
+                error("Unable to open \"%s\"" % prl_name)
 
             line = f.readline()
             while line:
-                line = string.strip(line)
+                line = line.strip()
                 if line and line[0] != "#":
-                    eq = string.find(line, "=")
-                    if eq > 0 and string.strip(line[:eq]) == "QMAKE_PRL_LIBS":
-                        prl_libs = string.split(line[eq + 1:])
+                    eq = line.find("=")
+                    if eq > 0 and line[:eq].strip() == "QMAKE_PRL_LIBS":
+                        prl_libs = line[eq + 1:].split()
                         break
 
                 line = f.readline()
@@ -840,35 +839,35 @@ class Makefile:
         filename is the name of the build file.  If it is a dictionary instead
         then its contents are validated.
         """
-        if type(filename) is types.DictType:
+        if type(filename) == dict:
             bfname = "dictionary"
-            dict = filename
+            bdict = filename
         else:
             if self._dir:
                 bfname = os.path.join(self._dir, filename)
             else:
                 bfname = filename
 
-            dict = {}
+            bdict = {}
 
             try:
                 f = open(bfname, "r")
-            except IOError, detail:
-                error("Unable to open \"%s\": %s" % (bfname, detail))
+            except IOError:
+                error("Unable to open \"%s\"" % bfname)
 
             line_nr = 1
             line = f.readline()
 
             while line:
-                line = string.strip(line)
+                line = line.strip()
 
                 if line and line[0] != "#":
-                    eq = string.find(line, "=")
+                    eq = line.find("=")
 
                     if eq <= 0:
                         error("\"%s\" line %d: Line must be in the form 'name = value value...'." % (bfname, line_nr))
 
-                    dict[string.strip(line[:eq])] = string.strip(line[eq + 1:])
+                    bdict[line[:eq].strip()] = line[eq + 1:].strip()
 
                 line_nr = line_nr + 1
                 line = f.readline()
@@ -878,16 +877,16 @@ class Makefile:
         # Check the compulsory values.
         for i in ("target", "sources"):
             try:
-                dict[i]
+                bdict[i]
             except KeyError:
                 error("\"%s\" is missing from \"%s\"." % (i, bfname))
 
         # Get the optional values.
         for i in ("headers", "moc_headers"):
             try:
-                dict[i]
+                bdict[i]
             except KeyError:
-                dict[i] = ""
+                bdict[i] = ""
 
         # Generate the list of objects.
         if self.generator in ("MSVC", "MSVC.NET", "BMAKE"):
@@ -897,20 +896,20 @@ class Makefile:
 
         olist = []
 
-        for f in string.split(dict["sources"]):
+        for f in bdict["sources"].split():
             root, discard = os.path.splitext(f)
             olist.append(root + ext)
 
-        for f in string.split(dict["moc_headers"]):
+        for f in bdict["moc_headers"].split():
             if not self._qt:
                 error("\"%s\" defines \"moc_headers\" for a non-Qt module." % bfname)
 
             root, discard = os.path.splitext(f)
             olist.append("moc_" + root + ext)
 
-        dict["objects"] = string.join(olist)
+        bdict["objects"] = ' '.join(olist)
 
-        return dict
+        return bdict
 
     def clean_build_file_objects(self, mfile, build):
         """Generate the clean target.
@@ -920,10 +919,10 @@ class Makefile:
         """
         mfile.write("\t-%s $(TARGET)\n" % self.rm)
 
-        for f in string.split(build["objects"]):
+        for f in build["objects"].split():
             mfile.write("\t-%s %s\n" % (self.rm, f))
 
-        for f in string.split(build["moc_headers"]):
+        for f in build["moc_headers"].split():
             root, discard = os.path.splitext(f)
             mfile.write("\t-%s moc_%s.cpp\n" % (self.rm, root))
 
@@ -945,15 +944,15 @@ class Makefile:
 
         try:
             mfile = open(mfname, "w")
-        except IOError, detail:
-            error("Unable to create \"%s\": %s" % (mfname, detail))
+        except IOError:
+            error("Unable to create \"%s\"" % mfname)
 
         self.generate_macros_and_rules(mfile)
         self.generate_target_default(mfile)
         self.generate_target_install(mfile)
 
         if self._installs:
-            if type(self._installs) != types.ListType:
+            if type(self._installs) != list:
                 self._installs = [self._installs]
 
             for src, dst in self._installs:
@@ -1000,13 +999,13 @@ class Makefile:
 
         libs.extend(self.optional_list("LIBS"))
 
-        mfile.write("CPPFLAGS = %s\n" % string.join(cppflags))
+        mfile.write("CPPFLAGS = %s\n" % ' '.join(cppflags))
 
         mfile.write("CFLAGS = %s\n" % self.optional_string("CFLAGS"))
         mfile.write("CXXFLAGS = %s\n" % self.optional_string("CXXFLAGS"))
         mfile.write("LFLAGS = %s\n" % self.optional_string("LFLAGS"))
 
-        mfile.write("LIBS = %s\n" % string.join(libs))
+        mfile.write("LIBS = %s\n" % ' '.join(libs))
 
         if self._qt:
             mfile.write("MOC = %s\n" % _quote(self.required_string("MOC")))
@@ -1122,7 +1121,7 @@ class Makefile:
 
         mfile.write("%s %s\n" % (self.mkdir, _quote(dst)))
 
-        if type(src) != types.ListType:
+        if type(src) != list:
             src = [src]
 
         # Get the strip command if needed.
@@ -1366,7 +1365,7 @@ class ModuleMakefile(Makefile):
         self.LFLAGS.extend(self.optional_list(lflags_console))
 
         if sys.platform == "darwin":
-            dl = string.split(sys.exec_prefix, os.sep)
+            dl = sys.exec_prefix.split(os.sep)
             if "Python.framework" not in dl:
                 error("SIP requires Python to be built as a framework")
 
@@ -1433,7 +1432,7 @@ class ModuleMakefile(Makefile):
 
         mname is the name of the module.
         """
-        raise ValueError, "module_as_lib() can only be used with SIP v3.x"
+        raise ValueError("module_as_lib() can only be used with SIP v3.x")
 
     def generate_macros_and_rules(self, mfile):
         """Generate the macros and rules generation.
@@ -1502,7 +1501,7 @@ class ModuleMakefile(Makefile):
                 mfile.write("\t-%s $(TARGET)\n" % (self.rm))
                 mfile.write("\t$(LIB) $(TARGET) @&&|\n")
 
-                for of in string.split(self._build["objects"]):
+                for of in self._build["objects"].split():
                     mfile.write("+%s \\\n" % (of))
 
                 mfile.write("|\n")
@@ -1519,8 +1518,8 @@ class ModuleMakefile(Makefile):
 
                 try:
                     dfile = open(defname, "w")
-                except IOError, detail:
-                    error("Unable to create \"%s\": %s" % (defname, detail))
+                except IOError:
+                    error("Unable to create \"%s\"" % defname)
 
                 dfile.write("EXPORTS\n")
                 dfile.write("init%s=_init%s\n" % (self._target, self._target))
@@ -1549,7 +1548,7 @@ class ModuleMakefile(Makefile):
 
         mfile.write("\n$(OFILES): $(HFILES)\n")
 
-        for mf in string.split(self._build["moc_headers"]):
+        for mf in self._build["moc_headers"].split():
             root, discard = os.path.splitext(mf)
             cpp = "moc_" + root + ".cpp"
 
@@ -1680,7 +1679,7 @@ class ProgramMakefile(Makefile):
             blflags = []
 
             for lf in lflags:
-                for f in string.split(lf):
+                for f in lf.split():
                     # Tell the compiler to pass the flags to the linker.
                     if f[-1] == "-":
                         f = "-l-" + f[1:-1]
@@ -1690,7 +1689,7 @@ class ProgramMakefile(Makefile):
                     # Remove any explicit object files otherwise the compiler
                     # will complain that they can't be found, but they don't
                     # seem to be needed.
-                    if string.lower(f[-4:]) != ".obj":
+                    if f[-4:].lower() != ".obj":
                         blflags.append(f)
 
             lflags = blflags
@@ -1702,7 +1701,7 @@ class ProgramMakefile(Makefile):
         if self.generator == "BMAKE":
             build.append(source)
 
-        return (exe, string.join(build))
+        return (exe, ' '.join(build))
 
     def finalise(self):
         """Finalise the macros for a program Makefile.
@@ -1728,7 +1727,7 @@ class ProgramMakefile(Makefile):
         mfile is the file object.
         """
         if not self._build:
-            raise ValueError, "pass a filename as build_file when generating a Makefile"
+            raise ValueError("pass a filename as build_file when generating a Makefile")
 
         target = self._build["target"]
 
@@ -1765,7 +1764,7 @@ class ProgramMakefile(Makefile):
 
         mfile.write("\n$(OFILES): $(HFILES)\n")
 
-        for mf in string.split(self._build["moc_headers"]):
+        for mf in self._build["moc_headers"].split():
             root, discard = os.path.splitext(mf)
             cpp = "moc_" + root + ".cpp"
 
@@ -1800,7 +1799,7 @@ def _quote(s):
 
     s is the string.
     """
-    if string.find(s, " ") >= 0:
+    if s.find(" ") >= 0:
         s = '"' + s + '"'
 
     return s
@@ -1837,13 +1836,13 @@ def read_version(filename, description, numdefine=None, strdefine=None):
     l = f.readline()
 
     while l and (need_num or need_str):
-        wl = string.split(l)
+        wl = l.split()
         if len(wl) >= 3 and wl[0] == "#define":
             if need_num and wl[1] == numdefine:
                 v = wl[2]
 
                 if v[0:2] == "0x":
-                    vers = string.atoi(v,16)
+                    vers = int(v, 16)
                 else:
                     dec = int(v)
                     maj = dec / 100
@@ -1855,7 +1854,7 @@ def read_version(filename, description, numdefine=None, strdefine=None):
 
             if need_str and wl[1] == strdefine:
                 # Take account of embedded spaces.
-                versstr = string.join(wl[2:])[1:-1]
+                versstr = ' '.join(wl[2:])[1:-1]
                 need_str = 0
 
         l = f.readline()
@@ -1868,7 +1867,7 @@ def read_version(filename, description, numdefine=None, strdefine=None):
     return (vers, versstr)
 
 
-def create_content(dict, macros=None):
+def create_content(cdict, macros=None):
     """Convert a dictionary to a string (typically to use as the content to a
     call to create_config_module()).  Dictionary values that are strings are
     quoted.  Dictionary values that are lists are converted to quoted strings.
@@ -1878,7 +1877,7 @@ def create_content(dict, macros=None):
     """
     content = "_pkg_config = {\n"
 
-    keys = dict.keys()
+    keys = list(cdict.keys())
     keys.sort()
 
     # Format it nicely.
@@ -1891,17 +1890,17 @@ def create_content(dict, macros=None):
             width = klen
 
     for k in keys:
-        val = dict[k]
+        val = cdict[k]
         vtype = type(val)
         delim = None
 
         if val is None:
             val = "None"
-        elif vtype == types.ListType:
-            val = string.join(val)
+        elif vtype == list:
+            val = ' '.join(val)
             delim = "'"
-        elif vtype == types.IntType:
-            if string.find(k, "version") >= 0:
+        elif vtype == int:
+            if k.find("version") >= 0:
                 # Assume it's a hexadecimal version number.  It doesn't matter
                 # if it isn't, we are just trying to make it look pretty.
                 val = "0x%06x" % val
@@ -1917,7 +1916,7 @@ def create_content(dict, macros=None):
 
             val = delim + val + delim
 
-        content = content + "    '" + k + "':" + (" " * (width - len(k) + 2)) + string.replace(val, "\\", "\\\\")
+        content = content + "    '" + k + "':" + (" " * (width - len(k) + 2)) + val.replace("\\", "\\\\")
 
         if k != keys[-1]:
             content = content + ","
@@ -1932,7 +1931,7 @@ def create_content(dict, macros=None):
     if macros:
         content = content + "{\n"
 
-        names = macros.keys()
+        names = list(macros.keys())
         names.sort()
 
         width = 0
@@ -1954,7 +1953,7 @@ def create_content(dict, macros=None):
                 delim = "'"
 
             k = "'" + c + "':"
-            content = content + "    %-*s  %s%s%s%s\n" % (1 + width + 2, k, delim, string.replace(val, "\\", "\\\\"), delim, sep)
+            content = content + "    %-*s  %s%s%s%s\n" % (1 + width + 2, k, delim, val.replace("\\", "\\\\"), delim, sep)
 
         content = content + "}\n"
     else:
@@ -1975,7 +1974,7 @@ def create_config_module(module, template, content, macros=None):
     macros is an optional dictionary of platform specific build macros.  It is
     only used if create_content() is called to convert the content to a string.
     """
-    if type(content) == types.DictType:
+    if type(content) == dict:
         content = create_content(content, macros)
 
     # Allow this file to used as a template.
@@ -1986,7 +1985,7 @@ def create_config_module(module, template, content, macros=None):
 
     line = sf.readline()
     while line:
-        if string.find(line, key) >= 0:
+        if line.find(key) >= 0:
             line = content
 
         df.write(line)
@@ -2007,7 +2006,7 @@ def version_to_sip_tag(version, tags, description):
 
     Returns the corresponding tag.
     """
-    vl = tags.keys()
+    vl = list(tags.keys())
     vl.sort()
 
     # For a snapshot use the latest tag.
@@ -2053,7 +2052,7 @@ def format(msg, leftmargin=0, rightmargin=78):
     curs = leftmargin
     fmsg = " " * leftmargin
 
-    for w in string.split(msg):
+    for w in msg.split():
         l = len(w)
         if curs != leftmargin and curs + l > rightmargin:
             fmsg = fmsg + "\n" + (" " * leftmargin)
@@ -2089,13 +2088,13 @@ def parse_build_macros(filename, names, overrides=None, properties=None):
     if overrides is not None:
         for oride in overrides:
             prefix = ""
-            name_end = string.find(oride, "+=")
+            name_end = oride.find("+=")
 
             if name_end >= 0:
                 prefix = "+"
                 val_start = name_end + 2
             else:
-                name_end = string.find(oride, "=")
+                name_end = oride.find("=")
 
                 if name_end >= 0:
                     val_start = name_end + 1
@@ -2123,12 +2122,12 @@ def parse_build_macros(filename, names, overrides=None, properties=None):
         def _openfile(self, filename):
             try:
                 f = open(filename, 'r')
-            except IOError, detail:
+            except IOError:
                 # If this file is conditional then don't raise an error.
                 if self.cond_fname == filename:
                     return
 
-                error("Unable to open %s: %s" % (filename, detail))
+                error("Unable to open %s" % filename)
 
             if self.currentfile:
                 self.filestack.append(self.currentfile)
@@ -2215,20 +2214,20 @@ def parse_build_macros(filename, names, overrides=None, properties=None):
             else:
                 break
 
-        line = string.strip(line)
+        line = line.strip()
 
         # Ignore comments.
         if line and line[0] != "#":
-            assstart = string.find(line, "+")
+            assstart = line.find("+")
             if assstart > 0 and line[assstart + 1] == '=':
                 assend = assstart + 1
             else:
-                assstart = string.find(line, "=")
+                assstart = line.find("=")
                 assend = assstart
 
             if assstart > 0:
-                lhs = string.strip(line[:assstart])
-                rhs = string.strip(line[assend + 1:])
+                lhs = line[:assstart].strip()
+                rhs = line[assend + 1:].strip()
 
                 # Remove the escapes for any quotes.
                 rhs = rhs.replace(r'\"', '"').replace(r"\'", "'")
@@ -2247,9 +2246,9 @@ def parse_build_macros(filename, names, overrides=None, properties=None):
 
     macro_prefix = "QMAKE_"
 
-    for lhs in raw.keys():
+    for lhs in list(raw.keys()):
         # Strip any prefix.
-        if string.find(lhs, macro_prefix) == 0:
+        if lhs.find(macro_prefix) == 0:
             reflhs = lhs[len(macro_prefix):]
         else:
             reflhs = lhs
@@ -2261,8 +2260,8 @@ def parse_build_macros(filename, names, overrides=None, properties=None):
         rhs = raw[lhs]
 
         # Resolve any references.
-        estart = string.find(rhs, "$$(")
-        mstart = string.find(rhs, "$$")
+        estart = rhs.find("$$(")
+        mstart = rhs.find("$$")
 
         while mstart >= 0 and mstart != estart:
             rstart = mstart + 2
@@ -2285,7 +2284,7 @@ def parse_build_macros(filename, names, overrides=None, properties=None):
                 mend = mend + 1
 
             if term == "]":
-                if properties is None or lhs not in properties.keys():
+                if properties is None or lhs not in list(properties.keys()):
                     error("%s: property '%s' is not defined." % (filename, lhs))
 
                 value = properties[lhs]
@@ -2299,14 +2298,14 @@ def parse_build_macros(filename, names, overrides=None, properties=None):
                     value = ""
 
             rhs = rhs[:mstart] + value + rhs[mend:]
-            estart = string.find(rhs, "$$(")
-            mstart = string.find(rhs, "$$")
+            estart = rhs.find("$$(")
+            mstart = rhs.find("$$")
 
         # Expand any POSIX style environment variables.
         pleadin = ["$$(", "$("]
 
         for pl in pleadin:
-            estart = string.find(rhs, pl)
+            estart = rhs.find(pl)
 
             if estart >= 0:
                 nstart = estart + len(pl)
@@ -2315,7 +2314,7 @@ def parse_build_macros(filename, names, overrides=None, properties=None):
             estart = -1
 
         while estart >= 0:
-            eend = string.find(rhs[nstart:], ")")
+            eend = rhs[nstart:].find(")")
 
             if eend < 0:
                 break
@@ -2332,7 +2331,7 @@ def parse_build_macros(filename, names, overrides=None, properties=None):
             rhs = rhs[:estart] + env + rhs[eend + 1:]
 
             for pl in pleadin:
-                estart = string.find(rhs, pl)
+                estart = rhs.find(pl)
 
                 if estart >= 0:
                     nstart = estart + len(pl)
@@ -2341,10 +2340,10 @@ def parse_build_macros(filename, names, overrides=None, properties=None):
                 estart = -1
 
         # Expand any Windows style environment variables.
-        estart = string.find(rhs, "%")
+        estart = rhs.find("%")
 
         while estart >= 0:
-            eend = string.find(rhs[estart + 1:], "%")
+            eend = rhs[estart + 1:].find("%")
 
             if eend < 0:
                 break
@@ -2360,16 +2359,16 @@ def parse_build_macros(filename, names, overrides=None, properties=None):
 
             rhs = rhs[:estart] + env + rhs[eend + 1:]
 
-            estart = string.find(rhs, "%")
+            estart = rhs.find("%")
 
         refined[reflhs] = rhs
 
     # Handle the user overrides.
-    for lhs in orides.keys():
+    for lhs in list(orides.keys()):
         rhs = refined[lhs]
         oride = orides[lhs]
 
-        if string.find(oride, "+") == 0:
+        if oride.find("+") == 0:
             if rhs:
                 rhs = rhs + " " + oride[1:]
             else:
