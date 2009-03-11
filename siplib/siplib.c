@@ -7084,6 +7084,63 @@ static int sipSimpleWrapper_setattro(PyObject *self, PyObject *name,
 
 
 /*
+ * The __dict__ getter.
+ */
+static PyObject *sipSimpleWrapper_get_dict(PyObject *self, void *closure)
+{
+    sipSimpleWrapper *sw = (sipSimpleWrapper *)self;
+
+    /* Create the dictionary if needed. */
+    if (sw->dict == NULL)
+    {
+        sw->dict = PyDict_New();
+
+        if (sw->dict == NULL)
+            return NULL;
+    }
+
+    Py_INCREF(sw->dict);
+    return sw->dict;
+}
+
+
+/*
+ * The __dict__ setter.
+ */
+static int sipSimpleWrapper_set_dict(PyObject *self, PyObject *value,
+        void *closure)
+{
+    sipSimpleWrapper *sw = (sipSimpleWrapper *)self;
+
+    /* Check that any new value really is a dictionary. */
+    if (value != NULL && !PyDict_Check(value))
+    {
+        PyErr_Format(PyExc_TypeError,
+                "__dict__ must be set to a dictionary, not a '%s'",
+                value->ob_type->tp_name);
+        return -1;
+    }
+
+    Py_XDECREF(sw->dict);
+    
+    Py_XINCREF(value);
+    sw->dict = value;
+
+    return 0;
+}
+
+
+/*
+ * The table of getters and setters.
+ */
+static PyGetSetDef sipSimpleWrapper_getset[] = {
+    {(char *)"__dict__", sipSimpleWrapper_get_dict, sipSimpleWrapper_set_dict,
+            NULL, NULL},
+    {NULL, NULL, NULL, NULL, NULL}
+};
+
+
+/*
  * The type data structure.  Note that we pretend to be a mapping object and a
  * sequence object at the same time.  Python will choose one over another,
  * depending on the context, but we implement as much as we can and don't make
@@ -7124,7 +7181,7 @@ sipWrapperType sipSimpleWrapper_Type = {
             0,              /* tp_iternext */
             0,              /* tp_methods */
             0,              /* tp_members */
-            0,              /* tp_getset */
+            sipSimpleWrapper_getset,    /* tp_getset */
             0,              /* tp_base */
             0,              /* tp_dict */
             0,              /* tp_descr_get */
