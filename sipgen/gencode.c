@@ -924,7 +924,7 @@ static void generateConsolidatedCpp(sipSpec *pt, const char *codeDir,
 
     prcode(fp,
 "    static PyMethodDef sip_methods[] = {\n"
-"        {\"init\", sip_init, METH_O, NULL},\n"
+"        {SIP_PYMETHODDEF_CAST(\"init\"), sip_init, METH_O, NULL},\n"
 "        {NULL, NULL, 0, NULL}\n"
 "    };\n"
 "\n"
@@ -1631,11 +1631,11 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         {
             if (noArgParser(md))
                 prcode(fp,
-"        {%N, (PyCFunction)func_%s, METH_KEYWORDS, NULL},\n"
+"        {SIP_PYMETHODDEF_CAST(%N), (PyCFunction)func_%s, METH_KEYWORDS, NULL},\n"
                     , md->pyname, md->pyname->text);
             else
                 prcode(fp,
-"        {%N, func_%s, METH_VARARGS, NULL},\n"
+"        {SIP_PYMETHODDEF_CAST(%N), func_%s, METH_VARARGS, NULL},\n"
                     , md->pyname, md->pyname->text);
         }
 
@@ -3355,7 +3355,7 @@ static int generateMethodTable(classDef *cd,FILE *fp)
             mtab[i].is_static = FALSE;
 
             prcode(fp,
-"    {%N, meth_%C_%s, METH_VARARGS%s, NULL}%s\n"
+"    {SIP_PYMETHODDEF_CAST(%N), meth_%C_%s, METH_VARARGS%s, NULL}%s\n"
                 ,md->pyname,classFQCName(cd),md->pyname->text,(mtab[i].is_static ? "|METH_STATIC" : ""),((i + 1) < nr) ? "," : "");
         }
 
