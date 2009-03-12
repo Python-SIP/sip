@@ -296,6 +296,16 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
     return TK_CLEARCODE;
 }
 
+^%BIGetBufferCode {     /* The start of a get buffer code block. */
+    codeIdx = 0;
+    return TK_GETBUFFERCODE;
+}
+
+^%BIReleaseBufferCode {     /* The start of a release buffer code block. */
+    codeIdx = 0;
+    return TK_RELEASEBUFFERCODE;
+}
+
 ^%BIGetReadBufferCode {     /* The start of a read buffer code block. */
     codeIdx = 0;
     return TK_READBUFFERCODE;

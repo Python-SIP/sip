@@ -924,10 +924,12 @@ typedef struct _classDef {
     codeBlock *convtocode;              /* Convert to C++ code. */
     codeBlock *travcode;                /* Traverse code. */
     codeBlock *clearcode;               /* Clear code. */
-    codeBlock *readbufcode;             /* Read buffer code. */
-    codeBlock *writebufcode;            /* Write buffer code. */
-    codeBlock *segcountcode;            /* Segment count code. */
-    codeBlock *charbufcode;             /* Character buffer code. */
+    codeBlock *getbufcode;              /* Get buffer code (Python v3). */
+    codeBlock *releasebufcode;          /* Release buffer code (Python v3). */
+    codeBlock *readbufcode;             /* Read buffer code (Python v2). */
+    codeBlock *writebufcode;            /* Write buffer code (Python v2). */
+    codeBlock *segcountcode;            /* Segment count code (Python v2). */
+    codeBlock *charbufcode;             /* Character buffer code (Python v2). */
     codeBlock *picklecode;              /* Pickle code. */
     struct _classDef *next;             /* Next in the list. */
 } classDef;

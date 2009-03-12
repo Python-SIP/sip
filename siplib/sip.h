@@ -147,6 +147,18 @@ extern "C" {
 #define SIP_PYMETHODDEF_CAST(s) ((char *)(s))
 #endif
 
+#if !defined(Py_REFCNT)
+#define Py_REFCNT(ob)       (((PyObject*)(ob))->ob_refcnt)
+#endif
+
+#if !defined(Py_TYPE)
+#define Py_TYPE(ob)       (((PyObject*)(ob))->ob_type)
+#endif
+
+#if !defined(PyVarObject_HEAD_INIT)
+#define PyVarObject_HEAD_INIT(type, size)   PyObject_HEAD_INIT(type) size,
+#endif
+
 
 /*
  * The mask that can be passed to sipTrace().
@@ -271,8 +283,13 @@ typedef void *(*sipInitFunc)(sipSimpleWrapper *, PyObject *, PyObject **,
         int *);
 typedef int (*sipTraverseFunc)(void *, visitproc, void *);
 typedef int (*sipClearFunc)(void *);
+#if PY_MAJOR_VERSION >= 3
+typedef int (*sipGetBufferFunc)(PyObject *, void *, Py_buffer *, int);
+typedef void (*sipReleaseBufferFunc)(PyObject *, void *, Py_buffer *);
+#else
 typedef SIP_SSIZE_T (*sipBufferFunc)(PyObject *, void *, SIP_SSIZE_T, void **);
 typedef SIP_SSIZE_T (*sipSegCountFunc)(PyObject *, void *, SIP_SSIZE_T *);
+#endif
 typedef void (*sipDeallocFunc)(sipSimpleWrapper *);
 typedef void *(*sipCastFunc)(void *, const struct _sipTypeDef *);
 typedef const struct _sipTypeDef *(*sipSubClassConvertFunc)(void **);
@@ -583,6 +600,13 @@ typedef struct _sipClassTypeDef {
     /* The clear function. */
     sipClearFunc ctd_clear;
 
+#if PY_MAJOR_VERSION >= 3
+    /* The get buffer function. */
+    sipGetBufferFunc ctd_getbuffer;
+
+    /* The release buffer function. */
+    sipReleaseBufferFunc ctd_releasebuffer;
+#else
     /* The read buffer function. */
     sipBufferFunc ctd_readbuffer;
 
@@ -594,6 +618,7 @@ typedef struct _sipClassTypeDef {
 
     /* The char buffer function. */
     sipBufferFunc ctd_charbuffer;
+#endif
 
     /* The deallocation function. */
     sipDeallocFunc ctd_dealloc;
@@ -1243,7 +1268,7 @@ typedef struct _sipQtAPI {
 /*
  * The following are deprecated parts of the public API.
  */
-#define sipClassName(w)     PyString_FromString((w)->ob_type->tp_name)
+#define sipClassName(w)     PyString_FromString(Py_TYPE(w)->tp_name)
 
 
 /*

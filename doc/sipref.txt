@@ -1185,9 +1185,10 @@ file.
 
     *super-classes* ::= *name* [``,`` *super-classes*]
 
-    *class-line* ::= [*class-statement* | `%BIGetReadBufferCode`_ |
-            `%BIGetWriteBufferCode`_ | `%BIGetSegCountCode`_ |
-            `%BIGetCharBufferCode`_ | `%ConvertToSubClassCode`_ |
+    *class-line* ::= [*class-statement* | `%BIGetBufferCode`_ |
+            `%BIGetReadBufferCode`_ | `%BIGetWriteBufferCode`_ |
+            `%BIGetSegCountCode`_ | `%BIGetCharBufferCode`_ |
+            `%BIReleaseBufferCode` | `%ConvertToSubClassCode`_ |
             `%ConvertToTypeCode`_ | `%GCClearCode`_ | `%GCTraverseCode`_ |
             `%PickleCode`_ | `%TypeCode`_ | `%TypeHeaderCode`_ |
             *constructor* | *destructor* | *method* | *static-method* |
@@ -1577,6 +1578,42 @@ For example::
     %End
 
 
+%BIGetBufferCode
+----------------
+
+.. parsed-literal::
+
+    %BIGetBufferCode
+        *code*
+    %End
+
+This directive (along with `%BIReleaseBufferCode`_) is used to specify code
+that implements the buffer interface of Python v3.  If Python v2 is being used
+then this is ignored.
+
+The following variables are made available to the handwritten code:
+
+Py_buffer \*sipBuffer
+    This is a pointer to the Python buffer structure that the handwritten code
+    must populate.
+
+*type* \*sipCpp
+    This is a pointer to the structure or class instance.  Its *type* is a
+    pointer to the structure or class.
+
+int sipFlags
+    These are the flags that specify what elements of the ``sipBuffer``
+    structure must be populated.
+
+int sipRes
+    The handwritten code should set this to 0 if there was no error or -1 if
+    there was an error.
+
+PyObject \*sipSelf
+    This is the Python object that wraps the the structure or class instance,
+    i.e. ``self``.
+
+
 %BIGetCharBufferCode
 --------------------
 
@@ -1587,10 +1624,8 @@ For example::
     %End
 
 This directive (along with `%BIGetReadBufferCode`_, `%BIGetSegCountCode`_ and
-`%BIGetWriteBufferCode`_) is used to specify code that implements Python's
-buffer interface.  See the section `Buffer Object Structures
-<http://www.python.org/dev/doc/devel/api/buffer-structs.html>`__ for the
-details.
+`%BIGetWriteBufferCode`_) is used to specify code that implements the buffer
+interface of Python v2.  If Python v3 is being used then this is ignored.
 
 The following variables are made available to the handwritten code:
 
@@ -1623,8 +1658,8 @@ PyObject \*sipSelf
     %End
 
 This directive (along with `%BIGetCharBufferCode`_, `%BIGetSegCountCode`_ and
-`%BIGetWriteBufferCode`_) is used to specify code that implements Python's
-buffer interface.
+`%BIGetWriteBufferCode`_) is used to specify code that implements the buffer
+interface of Python v2.  If Python v3 is being used then this is ignored.
 
 The following variables are made available to the handwritten code:
 
@@ -1657,8 +1692,8 @@ PyObject \*sipSelf
     %End
 
 This directive (along with `%BIGetCharBufferCode`_, `%BIGetReadBufferCode`_ and
-`%BIGetWriteBufferCode`_) is used to specify code that implements Python's
-buffer interface.
+`%BIGetWriteBufferCode`_) is used to specify code that implements the buffer
+interface of Python v2.  If Python v3 is being used then this is ignored.
 
 The following variables are made available to the handwritten code:
 
@@ -1689,8 +1724,8 @@ PyObject \*sipSelf
     %End
 
 This directive (along with `%BIGetCharBufferCode`_, `%BIGetReadBufferCode`_
-and `%BIGetSegCountCode`_ is used to specify code that implements Python's
-buffer interface.
+and `%BIGetSegCountCode`_ is used to specify code that implements the buffer
+interface of Python v2.  If Python v3 is being used then this is ignored.
 
 The following variables are made available to the handwritten code:
 
@@ -1707,6 +1742,33 @@ SIP_SSIZE_T sipRes
 
 SIP_SSIZE_T sipSegment
     This is the number of the segment of the write buffer.
+
+PyObject \*sipSelf
+    This is the Python object that wraps the the structure or class instance,
+    i.e. ``self``.
+
+
+%BIReleaseBufferCode
+--------------------
+
+.. parsed-literal::
+
+    %BIReleaseBufferCode
+        *code*
+    %End
+
+This directive (along with `%BIGetBufferCode`_) is used to specify code that
+implements the buffer interface of Python v3.  If Python v2 is being used then
+this is ignored.
+
+The following variables are made available to the handwritten code:
+
+Py_buffer \*sipBuffer
+    This is a pointer to the Python buffer structure.
+
+*type* \*sipCpp
+    This is a pointer to the structure or class instance.  Its *type* is a
+    pointer to the structure or class.
 
 PyObject \*sipSelf
     This is the Python object that wraps the the structure or class instance,

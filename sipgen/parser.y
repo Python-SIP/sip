@@ -156,6 +156,8 @@ static void addVariable(sipSpec *pt, varDef *vd);
 %token          TK_VIRTUALCATCHERCODE
 %token          TK_TRAVERSECODE
 %token          TK_CLEARCODE
+%token          TK_GETBUFFERCODE
+%token          TK_RELEASEBUFFERCODE
 %token          TK_READBUFFERCODE
 %token          TK_WRITEBUFFERCODE
 %token          TK_SEGCOUNTCODE
@@ -268,6 +270,8 @@ static void addVariable(sipSpec *pt, varDef *vd);
 %type <codeb>           opttypehdrcode
 %type <codeb>           travcode
 %type <codeb>           clearcode
+%type <codeb>           getbufcode
+%type <codeb>           releasebufcode
 %type <codeb>           readbufcode
 %type <codeb>           writebufcode
 %type <codeb>           segcountcode
@@ -971,6 +975,16 @@ clearcode:  TK_CLEARCODE codeblock {
         }
     ;
 
+getbufcode: TK_GETBUFFERCODE codeblock {
+            $$ = $2;
+        }
+    ;
+
+releasebufcode: TK_RELEASEBUFFERCODE codeblock {
+            $$ = $2;
+        }
+    ;
+
 readbufcode:    TK_READBUFFERCODE codeblock {
             $$ = $2;
         }
@@ -1506,6 +1520,28 @@ classline:  ifstart
                     yyerror("%GCClearCode already given for class");
 
                 scope->clearcode = $1;
+            }
+        }
+    |   getbufcode {
+            if (notSkipping())
+            {
+                classDef *scope = currentScope();
+
+                if (scope->getbufcode != NULL)
+                    yyerror("%BIGetBufferCode already given for class");
+
+                scope->getbufcode = $1;
+            }
+        }
+    |   releasebufcode {
+            if (notSkipping())
+            {
+                classDef *scope = currentScope();
+
+                if (scope->releasebufcode != NULL)
+                    yyerror("%BIReleaseBufferCode already given for class");
+
+                scope->releasebufcode = $1;
             }
         }
     |   readbufcode {
@@ -3704,6 +3740,8 @@ static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod,
     cd->convtocode = templateCode(pt, used, cd->convtocode, type_names, type_values);
     cd->travcode = templateCode(pt, used, cd->travcode, type_names, type_values);
     cd->clearcode = templateCode(pt, used, cd->clearcode, type_names, type_values);
+    cd->getbufcode = templateCode(pt, used, cd->getbufcode, type_names, type_values);
+    cd->releasebufcode = templateCode(pt, used, cd->releasebufcode, type_names, type_values);
     cd->readbufcode = templateCode(pt, used, cd->readbufcode, type_names, type_values);
     cd->writebufcode = templateCode(pt, used, cd->writebufcode, type_names, type_values);
     cd->segcountcode = templateCode(pt, used, cd->segcountcode, type_names, type_values);

@@ -4638,11 +4638,82 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
     }
 
     /* The buffer interface functions. */
+    if (cd->getbufcode != NULL)
+    {
+        prcode(fp,
+"\n"
+"\n"
+"#if PY_MAJOR_VERSION >= 3\n"
+            );
+
+        if (!generating_c)
+            prcode(fp,
+"extern \"C\" {static int getbuffer_%C(PyObject *, void *, Py_buffer *, int);}\n"
+                , classFQCName(cd));
+
+        prcode(fp,
+"static int getbuffer_%C(PyObject *%s, void *sipCppV, Py_buffer *sipBuffer, int %s)\n"
+"{\n"
+"    ", classFQCName(cd)
+     , argName("sipSelf", cd->getbufcode)
+     , argName("sipFlags", cd->getbufcode));
+
+        generateClassFromVoid(cd, "sipCpp", "sipCppV", fp);
+
+        prcode(fp, ";\n"
+"    int sipRes;\n"
+"\n"
+            );
+
+        generateCppCodeBlock(cd->getbufcode, fp);
+
+        prcode(fp,
+"\n"
+"    return sipRes;\n"
+"}\n"
+"#endif\n"
+            );
+    }
+
+    if (cd->releasebufcode != NULL)
+    {
+        prcode(fp,
+"\n"
+"\n"
+"#if PY_MAJOR_VERSION >= 3\n"
+            );
+
+        if (!generating_c)
+            prcode(fp,
+"extern \"C\" {static void releasebuffer_%C(PyObject *, void *, Py_buffer *);}\n"
+                , classFQCName(cd));
+
+        prcode(fp,
+"static void releasebuffer_%C(PyObject *%s, void *sipCppV, Py_buffer *)\n"
+"{\n"
+"    ", classFQCName(cd)
+     , argName("sipSelf", cd->releasebufcode));
+
+        generateClassFromVoid(cd, "sipCpp", "sipCppV", fp);
+
+        prcode(fp, ";\n"
+"\n"
+            );
+
+        generateCppCodeBlock(cd->releasebufcode, fp);
+
+        prcode(fp,
+"}\n"
+"#endif\n"
+            );
+    }
+
     if (cd->readbufcode != NULL)
     {
         prcode(fp,
 "\n"
 "\n"
+"#if PY_MAJOR_VERSION < 3\n"
             );
 
         if (!generating_c)
@@ -4671,6 +4742,7 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 "\n"
 "    return sipRes;\n"
 "}\n"
+"#endif\n"
             );
     }
 
@@ -4679,6 +4751,7 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
         prcode(fp,
 "\n"
 "\n"
+"#if PY_MAJOR_VERSION < 3\n"
             );
 
         if (!generating_c)
@@ -4707,6 +4780,7 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 "\n"
 "    return sipRes;\n"
 "}\n"
+"#endif\n"
             );
     }
 
@@ -4715,6 +4789,7 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
         prcode(fp,
 "\n"
 "\n"
+"#if PY_MAJOR_VERSION < 3\n"
             );
 
         if (!generating_c)
@@ -4742,6 +4817,7 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 "\n"
 "    return sipRes;\n"
 "}\n"
+"#endif\n"
             );
     }
 
@@ -4750,6 +4826,7 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
         prcode(fp,
 "\n"
 "\n"
+"#if PY_MAJOR_VERSION < 3\n"
             );
 
         if (!generating_c)
@@ -4778,6 +4855,7 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 "\n"
 "    return sipRes;\n"
 "}\n"
+"#endif\n"
             );
     }
 
@@ -7897,6 +7975,32 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 "    0,\n"
             );
 
+    prcode(fp,
+"#if PY_MAJOR_VERSION >= 3\n"
+        );
+
+    if (cd->getbufcode != NULL)
+        prcode(fp,
+"    getbuffer_%C,\n"
+            , classFQCName(cd));
+    else
+        prcode(fp,
+"    0,\n"
+            );
+
+    if (cd->releasebufcode != NULL)
+        prcode(fp,
+"    releasebuffer_%C,\n"
+            , classFQCName(cd));
+    else
+        prcode(fp,
+"    0,\n"
+            );
+
+    prcode(fp,
+"#else\n"
+        );
+
     if (cd->readbufcode != NULL)
         prcode(fp,
 "    getreadbuffer_%C,\n"
@@ -7932,6 +8036,10 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
         prcode(fp,
 "    0,\n"
             );
+
+    prcode(fp,
+"#endif\n"
+        );
 
     if (needDealloc(cd))
         prcode(fp,
