@@ -405,7 +405,9 @@ typedef struct _sipSubClassConvertorDef {
 typedef enum {
     str_slot,           /* __str__ */
     int_slot,           /* __int__ */
+#if PY_MAJOR_VERSION < 3
     long_slot,          /* __long__ */
+#endif
     float_slot,         /* __float__ */
     len_slot,           /* __len__ */
     contains_slot,      /* __contains__ */
@@ -444,7 +446,9 @@ typedef enum {
     ne_slot,            /* __ne__ */
     gt_slot,            /* __gt__ */
     ge_slot,            /* __ge__ */
+#if PY_MAJOR_VERSION < 3
     cmp_slot,           /* __cmp__ */
+#endif
     nonzero_slot,       /* __nonzero__ */
     neg_slot,           /* __neg__ */
     repr_slot,          /* __repr__ */
@@ -1002,8 +1006,10 @@ typedef struct _sipPyMethod {
     /* Self if it is a bound method. */
     PyObject *mself;
 
+#if PY_MAJOR_VERSION < 3
     /* The class. */
     PyObject *mclass;
+#endif
 } sipPyMethod;
 
 

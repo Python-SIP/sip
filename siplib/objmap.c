@@ -109,7 +109,7 @@ sipSimpleWrapper *sipOMFindObject(sipObjectMap *om, void *key,
          * code is being re-entered (and there are guards in place to prevent
          * this).
          */
-        if (sw->ob_refcnt == 0)
+        if (Py_REFCNT(sw) == 0)
             continue;
 
         /*

@@ -1316,6 +1316,12 @@ class ModuleMakefile(Makefile):
         # Save the target name for later.
         self._target = self._build["target"]
 
+        # The name of the module entry point is Python version specific.
+        if self.config.py_version >= 0x030000:
+            self._entry_point = "PyInit_%s" % self._target
+        else:
+            self._entry_point = "init%s" % self._target
+
         if sys.platform != "win32" and static:
             self._target = "lib" + self._target
 
@@ -1410,10 +1416,10 @@ class ModuleMakefile(Makefile):
                         else:
                             self.LFLAGS.extend(['-z' 'noversion', '-M', '%s.exp' % self._target])
                     elif sys.platform[:5] == 'hp-ux':
-                        self.LFLAGS.extend(['-Wl,+e,init%s' % self._target])
+                        self.LFLAGS.extend(['-Wl,+e,%s' % self._entry_point])
                     elif sys.platform[:5] == 'irix' and self.required_string('LINK') != 'g++':
                         # Doesn't work when g++ is used for linking on IRIX.
-                        self.LFLAGS.extend(['-Wl,-exported_symbol,init%s' % self._target])
+                        self.LFLAGS.extend(['-Wl,-exported_symbol,%s' % self._entry_point])
 
                 # Force the shared linker if there is one.
                 link_shlib = self.optional_list("LINK_SHLIB")
@@ -1522,7 +1528,7 @@ class ModuleMakefile(Makefile):
                     error("Unable to create \"%s\"" % defname)
 
                 dfile.write("EXPORTS\n")
-                dfile.write("init%s=_init%s\n" % (self._target, self._target))
+                dfile.write("%s=_%s\n" % (self._entry_point, self._entry_point))
 
                 dfile.close()
 
@@ -1537,12 +1543,12 @@ class ModuleMakefile(Makefile):
                 if self._limit_exports:
                     # Create an export file for AIX, Linux and Solaris.
                     if sys.platform[:5] == 'linux':
-                        mfile.write("\t@echo '{ global: init%s; local: *; };' > %s.exp\n" % (self._target, self._target))
+                        mfile.write("\t@echo '{ global: %s; local: *; };' > %s.exp\n" % (self._entry_point, self._target))
                     elif sys.platform[:5] == 'sunos':
-                        mfile.write("\t@echo '{ global: init%s; local: *; };' > %s.exp\n" % (self._target, self._target))
+                        mfile.write("\t@echo '{ global: %s; local: *; };' > %s.exp\n" % (self._entry_point, self._target))
                     elif sys.platform[:3] == 'aix':
                         mfile.write("\t@echo '#!' >%s.exp" % self._target)
-                        mfile.write("; \\\n\t echo 'init%s' >>%s.exp\n" % (self._target, self._target))
+                        mfile.write("; \\\n\t echo '%s' >>%s.exp\n" % (self._entry_point, self._target))
 
                 mfile.write("\t$(LINK) $(LFLAGS) -o $(TARGET) $(OFILES) $(LIBS)\n")
 

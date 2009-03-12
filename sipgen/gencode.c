@@ -217,6 +217,7 @@ static const char *resultOwner(overDef *od);
 static void prCachedName(FILE *fp, nameDef *nd, const char *prefix);
 static void generateSignalTableEntry(classDef *cd, overDef *od, FILE *fp);
 static void generateTypesTable(sipSpec *pt, moduleDef *mod, FILE *fp);
+static int py2SlotOnly(slotType st);
 
 
 /*
@@ -1172,9 +1173,19 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
             for (od = mod->overs; od != NULL; od = od->next)
                 if (od->common == md)
                 {
+                    if (py2SlotOnly(md->slot))
+                        prcode(fp,
+"#if PY_MAJOR_VERSION < 3\n"
+                            );
+
                     prcode(fp,
 "    {(void *)slot_%s, %s, {0, 0, 0}},\n"
                         , md->pyname->text, slotName(md->slot));
+
+                    if (py2SlotOnly(md->slot))
+                        prcode(fp,
+"#endif\n"
+                            );
 
                     break;
                 }
@@ -1183,6 +1194,11 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         for (cd = mod->proxies; cd != NULL; cd = cd->next)
             for (md = cd->members; md != NULL; md = md->next)
             {
+                if (py2SlotOnly(md->slot))
+                    prcode(fp,
+"#if PY_MAJOR_VERSION < 3\n"
+                        );
+
                 prcode(fp,
 "    {(void *)slot_%C_%s, %s, ", classFQCName(cd), md->pyname->text, slotName(md->slot));
 
@@ -1190,6 +1206,11 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 
                 prcode(fp, "},\n"
                       );
+
+                if (py2SlotOnly(md->slot))
+                    prcode(fp,
+"#endif\n"
+                        );
             }
 
         prcode(fp,
@@ -1262,9 +1283,21 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
             const char *stype;
 
             if ((stype = slotName(slot->slot)) != NULL)
+            {
+                if (py2SlotOnly(slot->slot))
+                    prcode(fp,
+"#if PY_MAJOR_VERSION < 3\n"
+                        );
+
                 prcode(fp,
 "    {(void *)slot_%C_%s, %s},\n"
                     , ed->fqcname, slot->pyname->text, stype);
+
+                if (py2SlotOnly(slot->slot))
+                    prcode(fp,
+"#endif\n"
+                        );
+            }
         }
 
         prcode(fp,
@@ -4273,6 +4306,11 @@ static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
 "\n"
         );
 
+    if (py2SlotOnly(md->slot))
+        prcode(fp,
+"#if PY_MAJOR_VERSION < 3\n"
+            );
+
     if (!generating_c)
     {
         prcode(fp,
@@ -4398,6 +4436,11 @@ static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
     prcode(fp,
 "}\n"
         );
+
+    if (py2SlotOnly(md->slot))
+        prcode(fp,
+"#endif\n"
+            );
 }
 
 
@@ -7676,9 +7719,21 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
         }
 
         if ((stype = slotName(md->slot)) != NULL)
+        {
+            if (py2SlotOnly(md->slot))
+                prcode(fp,
+"#if PY_MAJOR_VERSION < 3\n"
+                    );
+
             prcode(fp,
 "    {(void *)slot_%C_%s, %s},\n"
                 , classFQCName(cd), md->pyname->text, stype);
+
+            if (py2SlotOnly(md->slot))
+                prcode(fp,
+"#endif\n"
+                    );
+        }
     }
 
     if (is_slots)
@@ -8213,6 +8268,15 @@ static void generateSignalTableEntry(classDef *cd, overDef *od, FILE *fp)
 
     prcode(fp,")\",\n"
         );
+}
+
+
+/*
+ * Return TRUE if the slot is specific to Python v2.
+ */
+static int py2SlotOnly(slotType st)
+{
+    return (st == long_slot || st == cmp_slot);
 }
 
 

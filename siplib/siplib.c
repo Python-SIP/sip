@@ -294,7 +294,7 @@ static PyTypeObject sipEnumType_Type = {
     0,                      /* tp_print */
     0,                      /* tp_getattr */
     0,                      /* tp_setattr */
-    0,                      /* tp_compare */
+    0,                      /* tp_reserved (Python v3), tp_compare (Python v2) */
     0,                      /* tp_repr */
     0,                      /* tp_as_number */
     0,                      /* tp_as_sequence */
@@ -5638,7 +5638,9 @@ void sipSaveMethod(sipPyMethod *pm, PyObject *meth)
 {
     pm->mfunc = PyMethod_GET_FUNCTION(meth);
     pm->mself = PyMethod_GET_SELF(meth);
+#if PY_MAJOR_VERSION < 3
     pm->mclass = PyMethod_GET_CLASS(meth);
+#endif
 }
 
 
@@ -6234,6 +6236,7 @@ static PyObject *sipVoidPtr_int(sipVoidPtrObject *v)
 }
 
 
+#if PY_MAJOR_VERSION < 3
 /*
  * Implement hex() for the type.
  */
@@ -6241,10 +6244,12 @@ static PyObject *sipVoidPtr_hex(sipVoidPtrObject *v)
 {
     char buf[2 + 16 + 1];
 
-    PyOS_snprintf(buf, sizeof (buf), "0x%.*lx", (int)(sizeof (void *) * 2), (unsigned long)v->voidptr);
+    PyOS_snprintf(buf, sizeof (buf), "0x%.*lx", (int)(sizeof (void *) * 2),
+            (unsigned long)v->voidptr);
 
     return PyString_FromString(buf);
 }
+#endif
 
 
 /*
@@ -6370,26 +6375,50 @@ static PyNumberMethods sipVoidPtr_NumberMethods = {
     0,                      /* nb_add */
     0,                      /* nb_subtract */
     0,                      /* nb_multiply */
+#if PY_MAJOR_VERSION < 3
     0,                      /* nb_divide */
+#endif
     0,                      /* nb_remainder */
     0,                      /* nb_divmod */
     0,                      /* nb_power */
     0,                      /* nb_negative */
     0,                      /* nb_positive */
     0,                      /* nb_absolute */
-    0,                      /* nb_nonzero */
+    0,                      /* nb_bool (Python v3), nb_nonzero (Python v2) */
     0,                      /* nb_invert */
     0,                      /* nb_lshift */
     0,                      /* nb_rshift */
     0,                      /* nb_and */
     0,                      /* nb_xor */
     0,                      /* nb_or */
+#if PY_MAJOR_VERSION < 3
     0,                      /* nb_coerce */
+#endif
     (unaryfunc)sipVoidPtr_int,  /* nb_int */
-    0,                      /* nb_long */
+    0,                      /* nb_reserved (Python v3), nb_long (Python v2) */
     0,                      /* nb_float */
+#if PY_MAJOR_VERSION < 3
     0,                      /* nb_oct */
     (unaryfunc)sipVoidPtr_hex,  /* nb_hex */
+#endif
+    0,                      /* nb_inplace_add */
+    0,                      /* nb_inplace_subtract */
+    0,                      /* nb_inplace_multiply */
+#if PY_MAJOR_VERSION < 3
+    0,                      /* nb_inplace_divide */
+#endif
+    0,                      /* nb_inplace_remainder */
+    0,                      /* nb_inplace_power */
+    0,                      /* nb_inplace_lshift */
+    0,                      /* nb_inplace_rshift */
+    0,                      /* nb_inplace_and */
+    0,                      /* nb_inplace_xor */
+    0,                      /* nb_inplace_or */
+    0,                      /* nb_floor_divide */
+    0,                      /* nb_true_divide */
+    0,                      /* nb_inplace_floor_divide */
+    0,                      /* nb_inplace_true_divide */
+    0                       /* nb_index */
 };
 
 
@@ -6420,7 +6449,7 @@ static PyTypeObject sipVoidPtr_Type = {
     0,                      /* tp_print */
     0,                      /* tp_getattr */
     0,                      /* tp_setattr */
-    0,                      /* tp_compare */
+    0,                      /* tp_reserved (Python v3), tp_compare (Python v2) */
     0,                      /* tp_repr */
     &sipVoidPtr_NumberMethods,  /* tp_as_number */
     0,                      /* tp_as_sequence */
@@ -6660,7 +6689,7 @@ static PyTypeObject sipWrapperType_Type = {
     0,                      /* tp_print */
     0,                      /* tp_getattr */
     0,                      /* tp_setattr */
-    0,                      /* tp_compare */
+    0,                      /* tp_reserved (Python v3), tp_compare (Python v2) */
     0,                      /* tp_repr */
     0,                      /* tp_as_number */
     0,                      /* tp_as_sequence */
@@ -7308,7 +7337,7 @@ sipWrapperType sipSimpleWrapper_Type = {
             0,              /* tp_print */
             0,              /* tp_getattr */
             0,              /* tp_setattr */
-            0,              /* tp_compare */
+            0,              /* tp_reserved (Python v3), tp_compare (Python v2) */
             0,              /* tp_repr */
             0,              /* tp_as_number */
             0,              /* tp_as_sequence */
@@ -7486,7 +7515,7 @@ static sipWrapperType sipWrapper_Type = {
             0,              /* tp_print */
             0,              /* tp_getattr */
             0,              /* tp_setattr */
-            0,              /* tp_compare */
+            0,              /* tp_reserved (Python v3), tp_compare (Python v2) */
             0,              /* tp_repr */
             0,              /* tp_as_number */
             0,              /* tp_as_sequence */
@@ -7596,10 +7625,12 @@ static void addTypeSlots(PyTypeObject *to, PyNumberMethods *nb,
                 nb->nb_int = (unaryfunc)f;
             break;
 
+#if PY_MAJOR_VERSION < 3
         case long_slot:
             if (nb != NULL)
                 nb->nb_long = (unaryfunc)f;
             break;
+#endif
 
         case float_slot:
             if (nb != NULL)
@@ -7658,7 +7689,9 @@ static void addTypeSlots(PyTypeObject *to, PyNumberMethods *nb,
         case div_slot:
             if (nb != NULL)
             {
+#if PY_MAJOR_VERSION < 3
                 nb->nb_divide = (binaryfunc)f;
+#endif
                 nb->nb_true_divide = (binaryfunc)f;
             }
             break;
@@ -7725,7 +7758,9 @@ static void addTypeSlots(PyTypeObject *to, PyNumberMethods *nb,
         case idiv_slot:
             if (nb != NULL)
             {
+#if PY_MAJOR_VERSION < 3
                 nb->nb_inplace_divide = (binaryfunc)f;
+#endif
                 nb->nb_inplace_true_divide = (binaryfunc)f;
             }
             break;
@@ -7793,13 +7828,19 @@ static void addTypeSlots(PyTypeObject *to, PyNumberMethods *nb,
             to->tp_richcompare = slot_richcompare;
             break;
 
+#if PY_MAJOR_VERSION < 3
         case cmp_slot:
             to->tp_compare = (cmpfunc)f;
             break;
+#endif
 
         case nonzero_slot:
             if (nb != NULL)
+#if PY_MAJOR_VERSION >= 3
+                nb->nb_bool = (inquiry)f;
+#else
                 nb->nb_nonzero = (inquiry)f;
+#endif
             break;
 
         case neg_slot:
