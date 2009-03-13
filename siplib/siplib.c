@@ -427,6 +427,7 @@ static PyObject *getDictFromObject(PyObject *obj);
 static void forgetObject(sipSimpleWrapper *sw);
 static int add_lazy_attrs(sipClassTypeDef *ctd);
 static int add_all_lazy_attrs(sipClassTypeDef *ctd);
+static int objectify(const char *s, PyObject **objp);
 
 
 /*
@@ -565,7 +566,13 @@ PyMODINIT_FUNC SIP_MODULE_ENTRY(void)
         Py_DECREF(obj);
     }
 
-    if ((obj = PyString_FromString(SIP_VERSION_STR)) != NULL)
+#if PY_MAJOR_VERSION >= 3
+    obj = PyUnicode_FromString(SIP_VERSION_STR);
+#else
+    obj = PyString_FromString(SIP_VERSION_STR);
+#endif
+
+    if (obj != NULL)
     {
         PyDict_SetItemString(mod_dict, "SIP_VERSION_STR", obj);
         Py_DECREF(obj);
@@ -995,7 +1002,13 @@ static int sip_api_export_module(sipExportedModuleDef *client,
     }
 
     /* Convert the module name to an object. */
-    if ((client->em_nameobj = PyString_FromString(full_name)) == NULL)
+#if PY_MAJOR_VERSION >= 3
+    client->em_nameobj = PyUnicode_FromString(full_name);
+#else
+    client->em_nameobj = PyString_FromString(full_name);
+#endif
+
+    if (client->em_nameobj == NULL)
         return -1;
 
     /* Add it to the list of client modules. */
@@ -1491,7 +1504,11 @@ static PyObject *buildObject(PyObject *obj, const char *fmt, va_list va)
                 l = va_arg(va, SIP_SSIZE_T);
 
                 if (s != NULL)
+#if PY_MAJOR_VERSION >= 3
+                    el = PyBytes_FromStringAndSize(s, l);
+#else
                     el = PyString_FromStringAndSize(s, l);
+#endif
                 else
                 {
                     Py_INCREF(Py_None);
@@ -1533,7 +1550,11 @@ static PyObject *buildObject(PyObject *obj, const char *fmt, va_list va)
             {
                 char c = va_arg(va, int);
 
-                el = PyString_FromStringAndSize(&c,1);
+#if PY_MAJOR_VERSION >= 0
+                el = PyBytes_FromStringAndSize(&c, 1);
+#else
+                el = PyString_FromStringAndSize(&c, 1);
+#endif
             }
 
             break;
@@ -1619,7 +1640,11 @@ static PyObject *buildObject(PyObject *obj, const char *fmt, va_list va)
                 char *s = va_arg(va, char *);
 
                 if (s != NULL)
+#if PY_MAJOR_VERSION >= 3
+                    el = PyBytes_FromString(s);
+#else
                     el = PyString_FromString(s);
+#endif
                 else
                 {
                     Py_INCREF(Py_None);
@@ -2581,9 +2606,17 @@ static int parsePass1(sipSimpleWrapper **selfp, int *selfargp,
                 *sname = NULL;
                 *scall = NULL;
 
+#if PY_MAJOR_VERSION >= 3
+                if (PyBytes_Check(arg))
+#else
                 if (PyString_Check(arg))
+#endif
                 {
+#if PY_MAJOR_VERSION >= 3
+                    char *s = PyBytes_AS_STRING(arg);
+#else
                     char *s = PyString_AS_STRING(arg);
+#endif
 
                     if (*s == '1' || *s == '2' || *s == '9')
                         *sname = s;
@@ -2602,9 +2635,17 @@ static int parsePass1(sipSimpleWrapper **selfp, int *selfargp,
             {
                 /* Slot name, return the name. */
 
+#if PY_MAJOR_VERSION >= 3
+                if (PyBytes_Check(arg))
+#else
                 if (PyString_Check(arg))
+#endif
                 {
+#if PY_MAJOR_VERSION >= 3
+                    char *s = PyBytes_AS_STRING(arg);
+#else
                     char *s = PyString_AS_STRING(arg);
+#endif
 
                     if (*s == '1' || *s == '2' || *s == '9')
                         *va_arg(va,char **) = s;
@@ -2621,9 +2662,17 @@ static int parsePass1(sipSimpleWrapper **selfp, int *selfargp,
             {
                 /* Signal name, return the name. */
 
+#if PY_MAJOR_VERSION >= 3
+                if (PyBytes_Check(arg))
+#else
                 if (PyString_Check(arg))
+#endif
                 {
+#if PY_MAJOR_VERSION >= 3
+                    char *s = PyBytes_AS_STRING(arg);
+#else
                     char *s = PyString_AS_STRING(arg);
+#endif
 
                     if (*s == '2' || *s == '9')
                         *va_arg(va,char **) = s;
@@ -3674,7 +3723,13 @@ static int createClassType(sipExportedModuleDef *client, sipClassTypeDef *ctd,
     }
 
     /* Create an object corresponding to the type name. */
-    if ((name = PyString_FromString(sipPyNameOfClass(ctd))) == NULL)
+#if PY_MAJOR_VERSION >= 3
+    name = PyUnicode_FromString(sipPyNameOfClass(ctd));
+#else
+    name = PyString_FromString(sipPyNameOfClass(ctd));
+#endif
+
+    if (name == NULL)
         goto reterr;
 
     /* Create the tuple of super-types. */
@@ -3843,13 +3898,25 @@ static sipExportedModuleDef *getModule(PyObject *mname_obj)
 
     /* Find the module definition. */
     for (em = moduleList; em != NULL; em = em->em_next)
-        if (strcmp(sipNameOfModule(em), PyString_AS_STRING(mname_obj)) == 0)
+#if PY_MAJOR_VERSION >= 3
+        if (PyUnicode_Compare(mname_obj, em->em_nameobj) == 0)
+#else
+        if (strcmp(PyString_AS_STRING(mname_obj), sipNameOfModule(em)) == 0)
+#endif
             break;
 
     Py_DECREF(mod);
 
     if (em == NULL)
-        PyErr_Format(PyExc_SystemError, "unable to find to find module: %s", PyString_AS_STRING(mname_obj));
+    {
+#if PY_MAJOR_VERSION >= 3
+        PyErr_Format(PyExc_SystemError, "unable to find to find module: %U",
+                mname_obj);
+#else
+        PyErr_Format(PyExc_SystemError, "unable to find to find module: %s",
+                PyString_AS_STRING(mname_obj));
+#endif
+    }
 
     return em;
 }
@@ -4000,9 +4067,8 @@ static int setReduce(PyTypeObject *type, PyMethodDef *pickler)
     PyObject *descr;
     int rc;
 
-    if (rstr == NULL)
-        if ((rstr = PyString_FromString("__reduce__")) == NULL)
-            return -1;
+    if (objectify("__reduce__", &rstr) < 0)
+        return -1;
 
     /* Create the method descripter. */
     if ((descr = PyDescr_NewMethod(type, pickler)) == NULL)
@@ -4062,7 +4128,13 @@ static int createEnumType(sipExportedModuleDef *client, sipEnumTypeDef *etd,
     }
 
     /* Create an object corresponding to the type name. */
-    if ((name = PyString_FromString(sipPyNameOfEnum(etd))) == NULL)
+#if PY_MAJOR_VERSION >= 3
+    name = PyUnicode_FromString(sipPyNameOfEnum(etd));
+#else
+    name = PyString_FromString(sipPyNameOfEnum(etd));
+#endif
+
+    if (name == NULL)
         return -1;
 
     /* Create the type dictionary. */
@@ -4129,8 +4201,7 @@ static PyObject *createTypeDict(PyObject *mname)
     static PyObject *mstr = NULL;
     PyObject *dict;
 
-    /* Create an object for "__module__". */
-    if (mstr == NULL && (mstr = PyString_FromString("__module__")) == NULL)
+    if (objectify("__module__", &mstr) < 0)
         return NULL;
 
     /* Create the dictionary. */
@@ -4145,6 +4216,27 @@ static PyObject *createTypeDict(PyObject *mname)
     }
 
     return dict;
+}
+
+
+/*
+ * Convert an ASCII string to a Python object if it hasn't already been done.
+ */
+static int objectify(const char *s, PyObject **objp)
+{
+    if (*objp == NULL)
+    {
+#if PY_MAJOR_VERSION >= 3
+        *objp = PyUnicode_FromString(s);
+#else
+        *objp = PyString_FromString(s);
+#endif
+
+        if (*objp == NULL)
+            return -1;
+    }
+
+    return 0;
 }
 
 
@@ -4641,7 +4733,7 @@ static void sip_api_bad_set_type(const char *classname,const char *var)
  */
 static void sip_api_bad_catcher_result(PyObject *method)
 {
-    char *mname;
+    PyObject *mname;
 
     /*
      * This is part of the public API so we make no assumptions about the
@@ -4657,13 +4749,16 @@ static void sip_api_bad_catcher_result(PyObject *method)
         return;
     }
 
-    mname = PyString_AsString(((PyFunctionObject *)PyMethod_GET_FUNCTION(method))->func_name);
+    mname = ((PyFunctionObject *)PyMethod_GET_FUNCTION(method))->func_name;
 
-    if (mname == NULL)
-        return;
-
-    PyErr_Format(PyExc_TypeError, "invalid result type from %s.%s()",
+#if PY_MAJOR_VERSION >= 3
+    PyErr_Format(PyExc_TypeError, "invalid result type from %s.%U()",
             Py_TYPE(PyMethod_GET_SELF(method))->tp_name, mname);
+#else
+    PyErr_Format(PyExc_TypeError, "invalid result type from %s.%s()",
+            Py_TYPE(PyMethod_GET_SELF(method))->tp_name,
+            PyString_AsString(mname));
+#endif
 }
 
 
@@ -4763,19 +4858,19 @@ static int addLicense(PyObject *dict,sipLicenseDef *lc)
 
     /* Convert the strings we use to objects if not already done. */
 
-    if (licenseName == NULL && (licenseName = PyString_FromString("__license__")) == NULL)
+    if (objectify("__license__", &licenseName) < 0)
         return -1;
 
-    if (licenseeName == NULL && (licenseeName = PyString_FromString("Licensee")) == NULL)
+    if (objectify("Licensee", &licenseeName) < 0)
         return -1;
 
-    if (typeName == NULL && (typeName = PyString_FromString("Type")) == NULL)
+    if (objectify("Type", &typeName) < 0)
         return -1;
 
-    if (timestampName == NULL && (timestampName = PyString_FromString("Timestamp")) == NULL)
+    if (objectify("Timestamp", &timestampName) < 0)
         return -1;
 
-    if (signatureName == NULL && (signatureName = PyString_FromString("Signature")) == NULL)
+    if (objectify("Signature", &signatureName) < 0)
         return -1;
 
     /* We use a dictionary to hold the license information. */
@@ -4783,7 +4878,16 @@ static int addLicense(PyObject *dict,sipLicenseDef *lc)
         return -1;
 
     /* The license type is compulsory, the rest are optional. */
-    if (lc->lc_type == NULL || (o = PyString_FromString(lc->lc_type)) == NULL)
+    if (lc->lc_type == NULL)
+        goto deldict;
+
+#if PY_MAJOR_VERSION >= 3
+    o = PyUnicode_FromString(lc->lc_type);
+#else
+    o = PyString_FromString(lc->lc_type);
+#endif
+
+    if (o == NULL)
         goto deldict;
 
     rc = PyDict_SetItem(ldict,typeName,o);
@@ -4794,7 +4898,13 @@ static int addLicense(PyObject *dict,sipLicenseDef *lc)
 
     if (lc->lc_licensee != NULL)
     {
-        if ((o = PyString_FromString(lc->lc_licensee)) == NULL)
+#if PY_MAJOR_VERSION >= 3
+        o = PyUnicode_FromString(lc->lc_licensee);
+#else
+        o = PyString_FromString(lc->lc_licensee);
+#endif
+
+        if (o == NULL)
             goto deldict;
 
         rc = PyDict_SetItem(ldict,licenseeName,o);
@@ -4806,7 +4916,13 @@ static int addLicense(PyObject *dict,sipLicenseDef *lc)
 
     if (lc->lc_timestamp != NULL)
     {
-        if ((o = PyString_FromString(lc->lc_timestamp)) == NULL)
+#if PY_MAJOR_VERSION >= 3
+        o = PyUnicode_FromString(lc->lc_timestamp);
+#else
+        o = PyString_FromString(lc->lc_timestamp);
+#endif
+
+        if (o == NULL)
             goto deldict;
 
         rc = PyDict_SetItem(ldict,timestampName,o);
@@ -4818,7 +4934,13 @@ static int addLicense(PyObject *dict,sipLicenseDef *lc)
 
     if (lc->lc_signature != NULL)
     {
-        if ((o = PyString_FromString(lc->lc_signature)) == NULL)
+#if PY_MAJOR_VERSION >= 3
+        o = PyUnicode_FromString(lc->lc_signature);
+#else
+        o = PyString_FromString(lc->lc_signature);
+#endif
+
+        if (o == NULL)
             goto deldict;
 
         rc = PyDict_SetItem(ldict,signatureName,o);
@@ -4834,7 +4956,7 @@ static int addLicense(PyObject *dict,sipLicenseDef *lc)
 
     Py_DECREF(ldict);
 
-    rc = PyDict_SetItem(dict,licenseName,proxy);
+    rc = PyDict_SetItem(dict, licenseName, proxy);
     Py_DECREF(proxy);
 
     return rc;
@@ -4875,17 +4997,23 @@ static int addVoidPtrInstances(PyObject *dict,sipVoidPtrInstanceDef *vi)
 /*
  * Add the char instances to a dictionary.
  */
-static int addCharInstances(PyObject *dict,sipCharInstanceDef *ci)
+static int addCharInstances(PyObject *dict, sipCharInstanceDef *ci)
 {
     while (ci->ci_name != NULL)
     {
         int rc;
         PyObject *w;
 
-        if ((w = PyString_FromStringAndSize(&ci->ci_val,1)) == NULL)
+#if PY_MAJOR_VERSION >= 3
+        w = PyBytes_FromStringAndSize(&ci->ci_val, 1);
+#else
+        w = PyString_FromStringAndSize(&ci->ci_val, 1);
+#endif
+
+        if (w == NULL)
             return -1;
 
-        rc = PyDict_SetItemString(dict,ci->ci_name,w);
+        rc = PyDict_SetItemString(dict, ci->ci_name, w);
         Py_DECREF(w);
 
         if (rc < 0)
@@ -4901,17 +5029,23 @@ static int addCharInstances(PyObject *dict,sipCharInstanceDef *ci)
 /*
  * Add the string instances to a dictionary.
  */
-static int addStringInstances(PyObject *dict,sipStringInstanceDef *si)
+static int addStringInstances(PyObject *dict, sipStringInstanceDef *si)
 {
     while (si->si_name != NULL)
     {
         int rc;
         PyObject *w;
 
-        if ((w = PyString_FromString(si->si_val)) == NULL)
+#if PY_MAJOR_VERSION >= 3
+        w = PyBytes_FromString(si->si_val);
+#else
+        w = PyString_FromString(si->si_val);
+#endif
+
+        if (w == NULL)
             return -1;
 
-        rc = PyDict_SetItemString(dict,si->si_name,w);
+        rc = PyDict_SetItemString(dict, si->si_name, w);
         Py_DECREF(w);
 
         if (rc < 0)
@@ -5903,8 +6037,7 @@ static void sip_api_raise_unknown_exception(void)
 
     SIP_BLOCK_THREADS
 
-    if (mobj == NULL)
-        mobj = PyString_FromString("unknown");
+    objectify("unknown", &mobj);
 
     PyErr_SetObject(PyExc_Exception, mobj);
 
@@ -6377,7 +6510,11 @@ static PyObject *sipVoidPtr_asstring(sipVoidPtrObject *v, PyObject *args,
         return NULL;
     }
 
+#if PY_MAJOR_VERSION >= 3
+    return PyBytes_FromStringAndSize(v->voidptr, size);
+#else
     return PyString_FromStringAndSize(v->voidptr, size);
+#endif
 }
 
 
@@ -8176,11 +8313,19 @@ static int parseCharArray(PyObject *obj, const char **ap, SIP_SSIZE_T *aszp)
         *ap = NULL;
         *aszp = 0;
     }
+#if PY_MAJOR_VERSION >= 3
+    else if (PyBytes_Check(obj))
+    {
+        *ap = PyBytes_AS_STRING(obj);
+        *aszp = PyBytes_GET_SIZE(obj);
+    }
+#else
     else if (PyString_Check(obj))
     {
         *ap = PyString_AS_STRING(obj);
         *aszp = PyString_GET_SIZE(obj);
     }
+#endif
     else if (PyObject_AsCharBuffer(obj, ap, aszp) < 0)
         return -1;
 
@@ -8196,11 +8341,19 @@ static int parseChar(PyObject *obj, char *ap)
     const char *chp;
     SIP_SSIZE_T sz;
 
+#if PY_MAJOR_VERSION >= 3
+    if (PyBytes_Check(obj))
+    {
+        chp = PyBytes_AS_STRING(obj);
+        sz = PyBytes_GET_SIZE(obj);
+    }
+#else
     if (PyString_Check(obj))
     {
         chp = PyString_AS_STRING(obj);
         sz = PyString_GET_SIZE(obj);
     }
+#endif
     else if (PyObject_AsCharBuffer(obj, &chp, &sz) < 0)
         return -1;
 

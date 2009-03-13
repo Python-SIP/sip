@@ -4251,8 +4251,9 @@ PyObject \*sipBuildResult(int \*iserr, const char \*format, ...)
     ``b`` (boolean) [int]
         Convert a C/C++ ``int`` to a Python boolean.
 
-    ``c`` (string) [char]
-        Convert a C/C++ ``char`` to a Python string.
+    ``c`` (string/bytes) [char]
+        Convert a C/C++ ``char`` to a Python v2 string object or a Python v3
+        bytes object.
 
     ``d`` (float) [double]
         Convert a C/C++ ``double`` to a Python floating point number.
@@ -4263,10 +4264,10 @@ PyObject \*sipBuildResult(int \*iserr, const char \*format, ...)
     ``f`` (float) [float]
         Convert a C/C++ ``float`` to a Python floating point number.
 
-    ``g`` (string) [char \*, SIP_SSIZE_T]
-        Convert a C/C++ character array and its length to a Python string.  If
-        the array is ``NULL`` then the length is ignored and the result is
-        ``Py_None``.
+    ``g`` (string/bytes) [char \*, SIP_SSIZE_T]
+        Convert a C/C++ character array and its length to a Python v2 string
+        object or a Python v3 bytes object.  If the array is ``NULL`` then the
+        length is ignored and the result is ``Py_None``.
 
     ``h`` (integer) [short]
         Convert a C/C++ ``short`` to a Python integer.
@@ -4286,9 +4287,10 @@ PyObject \*sipBuildResult(int \*iserr, const char \*format, ...)
     ``o`` (long) [unsigned long long]
         Convert a C/C++ ``unsigned long long`` to a Python long.
 
-    ``s`` (string) [char \*]
-        Convert a C/C++ ``'\0'`` terminated string to a Python string.  If the
-        string pointer is ``NULL`` then the result is ``Py_None``.
+    ``s`` (string/bytes) [char \*]
+        Convert a C/C++ ``'\0'`` terminated string to a Python v2 string object
+        or a Python v3 bytes object.  If the string pointer is ``NULL`` then
+        the result is ``Py_None``.
 
     ``t`` (long) [unsigned short]
         Convert a C/C++ ``unsigned short`` to a Python long.
@@ -4979,8 +4981,9 @@ int sipParseResult(int \*iserr, PyObject \*method, PyObject \*result, const char
     ``b`` (integer) [bool \*]
         Convert a Python integer to a C/C++ ``bool``.
 
-    ``c`` (string) [char \*]
-        Convert a Python string of length 1 to a C/C++ ``char``.
+    ``c`` (string/bytes) [char \*]
+        Convert a Python v2 string object or a Python v3 bytes object of length
+        1 to a C/C++ ``char``.
 
     ``d`` (float) [double \*]
         Convert a Python floating point number to a C/C++ ``double``.
@@ -4991,10 +4994,11 @@ int sipParseResult(int \*iserr, PyObject \*method, PyObject \*result, const char
     ``f`` (float) [float \*]
         Convert a Python floating point number to a C/C++ ``float``.
 
-    ``g`` (string) [const char \*\*, SIP_SSIZE_T \*]
-        Convert a Python string to a C/C++ character array and its length.  If
-        the Python object is ``Py_None`` then the array and length are ``NULL``
-        and zero respectively.
+    ``g`` (string/bytes) [const char \*\*, SIP_SSIZE_T \*]
+        Convert a Python v2 string object or a Python v3 bytes object to a
+        C/C++ character array and its length.  If the Python object is
+        ``Py_None`` then the array and length are ``NULL`` and zero
+        respectively.
 
     ``h`` (integer) [short \*]
         Convert a Python integer to a C/C++ ``short``.
@@ -5014,9 +5018,10 @@ int sipParseResult(int \*iserr, PyObject \*method, PyObject \*result, const char
     ``o`` (long) [unsigned long long \*]
         Convert a Python long to a C/C++ ``unsigned long long``.
 
-    ``s`` (string) [const char \*\*]
-        Convert a Python string to a C/C++ ``'\0'`` terminated string.  If the
-        Python object is ``Py_None`` then the string is ``NULL``.
+    ``s`` (string/bytes) [const char \*\*]
+        Convert a Python v2 string object or a Python v3 bytes object to a
+        C/C++ ``'\0'`` terminated string.  If the Python object is ``Py_None``
+        then the string is ``NULL``.
 
     ``t`` (long) [unsigned short \*]
         Convert a Python long to a C/C++ ``unsigned short``.
@@ -5616,11 +5621,11 @@ voidptr
         This returns the address as a Python CObject.
 
     asstring(self, size=-1)
-        This returns a copy of the block of memory as a Python string.  If
-        ``size`` is given then it specifies the number of bytes to copy.  If
-        it is not given (or is negative) then the size associated with the
-        address is used.  If there is no associated size then an exception is
-        raised.
+        This returns a copy of the block of memory as a Python v2 string object
+        or a Python v3 bytes object.  If ``size`` is given then it specifies
+        the number of bytes to copy.  If it is not given (or is negative) then
+        the size associated with the address is used.  If there is no
+        associated size then an exception is raised.
 
     getsize(self)
         This returns the size associated with the address.  It will be
