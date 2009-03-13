@@ -65,6 +65,8 @@ static void generateComponentCpp(sipSpec *pt, const char *codeDir,
 static void generateSipImport(moduleDef *mod, FILE *fp);
 static void generateSipImportVariables(FILE *fp);
 static void generateModInitStart(moduleDef *mod, int gen_c, FILE *fp);
+static void generateModDefinition(moduleDef *mod, const char *methods,
+        FILE *fp);
 static void generateIfaceCpp(sipSpec *, ifaceFileDef *, const char *,
         const char *, FILE *);
 static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp);
@@ -807,11 +809,20 @@ static void generateCompositeCpp(sipSpec *pt, const char *codeDir)
         );
 
     generateModInitStart(pt->module, TRUE, fp);
+    generateModDefinition(pt->module, "0", fp);
 
     prcode(fp,
 "    PyObject *sipModule, *sipModuleDict;\n"
 "\n"
+"#if PY_MAJOR_VERSION >= 3\n"
+"    sipModule = PyModuleCreate(&sip_module_def);\n"
+"#else\n"
 "    sipModule = Py_InitModule(\"%s\", 0);\n"
+"#endif\n"
+"\n"
+"    if (sipModule == NULL)\n"
+"        SIP_MODULE_RETURN(NULL);\n"
+"\n"
 "    sipModuleDict = PyModule_GetDict(sipModule);\n"
 "\n"
         , pt->module->fullname->text);
@@ -825,6 +836,8 @@ static void generateCompositeCpp(sipSpec *pt, const char *codeDir)
     prcode(fp,
 "\n"
 "    PyErr_Clear();\n"
+"\n"
+"    SIP_MODULE_RETURN(sipModule);\n"
 "}\n"
         );
 
@@ -928,8 +941,17 @@ static void generateConsolidatedCpp(sipSpec *pt, const char *codeDir,
 "        {SIP_PYMETHODDEF_CAST(\"init\"), sip_init, METH_O, NULL},\n"
 "        {NULL, NULL, 0, NULL}\n"
 "    };\n"
+        );
+
+    generateModDefinition(pt->module, "sip_methods", fp);
+
+    prcode(fp,
 "\n"
+"#if PY_MAJOR_VERSION >= 3\n"
+"    return PyModule_Create(&sip_module_def);\n"
+"#else\n"
 "    Py_InitModule(\"%s\", sip_methods);\n"
+"#endif\n"
 "}\n"
         , mname);
 
@@ -956,6 +978,7 @@ static void generateComponentCpp(sipSpec *pt, const char *codeDir,
         );
 
     generateModInitStart(pt->module, TRUE, fp);
+    generateModDefinition(pt->module, "0", fp);
 
     prcode(fp,
 "    PyObject *sip_mod, *sip_result;\n"
@@ -968,6 +991,7 @@ static void generateComponentCpp(sipSpec *pt, const char *codeDir,
 
     prcode(fp,
 "    /* Ask the consolidated module to do the initialistion. */\n"
+"/* FIXME: make sure the init handles Python v3 */\n"
 "    sip_result = PyObject_CallMethod(sip_mod, \"init\", \"s\", \"%s\");\n"
 "\n"
 "    Py_XDECREF(sip_result);\n"
@@ -1675,6 +1699,11 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
     prcode(fp,
 "        {0, 0, 0, 0}\n"
 "    };\n"
+        );
+
+    generateModDefinition(pt->module, "sip_methods", fp);
+
+    prcode(fp,
 "\n"
 "    PyObject *sipModule, *sipModuleDict;\n"
         );
@@ -1686,7 +1715,15 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 
     prcode(fp,
 "    /* Initialise the module and get it's dictionary. */\n"
-"    sipModule = Py_InitModule((char *)%N,sip_methods);\n"
+"#if PY_MAJOR_VERSION >= 3\n"
+"    sipModule = PyModule_Create(&sip_module_def);\n"
+"#else\n"
+"    sipModule = Py_InitModule((char *)%N, sip_methods);\n"
+"#endif\n"
+"\n"
+"    if (sipModule == NULL)\n"
+"        SIP_MODULE_RETURN(NULL);\n"
+"\n"
 "    sipModuleDict = PyModule_GetDict(sipModule);\n"
 "\n"
         , mod->fullname);
@@ -1699,7 +1736,11 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
     prcode(fp,
 "    /* Export the module and publish it's API. */\n"
 "    if (sipAPI_%s->api_export_module(&sipModuleAPI_%s,SIP_API_MAJOR_NR,SIP_API_MINOR_NR,0) < 0)\n"
-"       return;\n"
+"    {\n"
+"        Py_DECREF(sip_sipmod);\n"
+"        Py_DECREF(sipModule);\n"
+"        SIP_MODULE_RETURN(0);\n"
+"    }\n"
         , mname
         , mname);
 
@@ -1720,7 +1761,11 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
     prcode(fp,
 "    /* Initialise the module now all its dependencies have been set up. */\n"
 "    if (sipAPI_%s->api_init_module(&sipModuleAPI_%s,sipModuleDict) < 0)\n"
-"       return;\n"
+"    {\n"
+"        Py_DECREF(sip_sipmod);\n"
+"        Py_DECREF(sipModule);\n"
+"        SIP_MODULE_RETURN(0);\n"
+"    }\n"
         , mname
         , mname);
 
@@ -1768,6 +1813,11 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 
         prcode(fp, ",NULL)) == NULL || PyDict_SetItemString(sipModuleDict,\"%s\",exceptionsTable[%d]) < 0)\n"
 "        return;\n"
+"        {\n"
+"            Py_DECREF(sip_sipmod);\n"
+"            Py_DECREF(sipModule);\n"
+"            SIP_MODULE_RETURN(0);\n"
+"        }\n"
             , xd->pyname, xd->exceptionnr);
     }
 
@@ -1775,6 +1825,8 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
     generateCppCodeBlock(mod->postinitcode, fp);
 
     prcode(fp,
+"\n"
+"    SIP_MODULE_RETURN(sipModule);\n"
 "}\n"
         );
 
@@ -1902,12 +1954,19 @@ static void generateSipImport(moduleDef *mod, FILE *fp)
 "#endif\n"
 "\n"
 "    if (sip_sipmod == NULL)\n"
-"        return;\n"
+"    {\n"
+"        Py_DECREF(sipModule);\n"
+"        SIP_MODULE_RETURN(NULL);\n"
+"    }\n"
 "\n"
 "    sip_capiobj = PyDict_GetItemString(PyModule_GetDict(sip_sipmod), \"_C_API\");\n"
 "\n"
 "    if (sip_capiobj == NULL || !PyCObject_Check(sip_capiobj))\n"
-"        return;\n"
+"    {\n"
+"        Py_DECREF(sip_sipmod);\n"
+"        Py_DECREF(sipModule);\n"
+"        SIP_MODULE_RETURN(NULL);\n"
+"    }\n"
 "\n"
         );
 
@@ -1947,14 +2006,49 @@ static void generateModInitStart(moduleDef *mod, int gen_c, FILE *fp)
 "\n"
 "\n"
 "/* The Python module initialisation function. */\n"
-"#if defined(SIP_STATIC_MODULE)\n"
-"%svoid init%s()\n"
+"#if PY_MAJOR_VERSION >= 3\n"
+"#define SIP_MODULE_ENTRY        PyInit_%s\n"
+"#define SIP_MODULE_RETURN(r)    return (r)\n"
 "#else\n"
-"PyMODINIT_FUNC init%s()\n"
+"#define SIP_MODULE_ENTRY        init%s\n"
+"#define SIP_MODULE_RETURN(r)    return\n"
+"#endif\n"
+"\n"
+"#if defined(SIP_STATIC_MODULE)\n"
+"%svoid SIP_MODULE_ENTRY()\n"
+"#else\n"
+"PyMODINIT_FUNC SIP_MODULE_ENTRY()\n"
 "#endif\n"
 "{\n"
-        , (gen_c ? "" : "extern \"C\" "), mod->name
-        , mod->name);
+        , mod->name
+        , mod->name
+        , (gen_c ? "" : "extern \"C\" "));
+}
+
+
+/*
+ * Generate the Python v3 module definition structure.
+ */
+static void generateModDefinition(moduleDef *mod, const char *methods,
+        FILE *fp)
+{
+    prcode(fp,
+"\n"
+"#if PY_MAJOR_VERSION >= 3\n"
+"    static PyModuleDef sip_module_def = {\n"
+"        PyModuleDef_HEAD_INIT,\n"
+"        \"%s\",\n"
+"        0,\n"
+"        -1,\n"
+"        %s,\n"
+"        0,\n"
+"        0,\n"
+"        0,\n"
+"        0\n"
+"    };\n"
+"#endif\n"
+        , mod->name
+        , methods);
 }
 
 
