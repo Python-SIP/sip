@@ -3682,7 +3682,7 @@ static void generateVariableGetter(classDef *context, varDef *vd, FILE *fp)
     case cint_type:
     case int_type:
         prcode(fp,
-"    return PyInt_FromLong(sipVal);\n"
+"    return SIP_FromLong(sipVal);\n"
             );
         break;
 
@@ -3995,7 +3995,7 @@ static int generateObjToCppConversion(argDef *ad,FILE *fp)
         break;
 
     case enum_type:
-        prcode(fp, "(%E)PyInt_AsLong(sipPy);\n"
+        prcode(fp, "(%E)SIP_AsLong(sipPy);\n"
             , ad->u.ed);
         break;
 
@@ -4039,7 +4039,7 @@ static int generateObjToCppConversion(argDef *ad,FILE *fp)
 
     case bool_type:
     case cbool_type:
-        rhs = "(bool)PyInt_AsLong(sipPy)";
+        rhs = "(bool)SIP_AsLong(sipPy)";
         break;
 
     case ushort_type:
@@ -4047,7 +4047,7 @@ static int generateObjToCppConversion(argDef *ad,FILE *fp)
         break;
 
     case short_type:
-        rhs = "(short)PyInt_AsLong(sipPy)";
+        rhs = "(short)SIP_AsLong(sipPy)";
         break;
 
     case uint_type:
@@ -4056,7 +4056,7 @@ static int generateObjToCppConversion(argDef *ad,FILE *fp)
 
     case int_type:
     case cint_type:
-        rhs = "(int)PyInt_AsLong(sipPy)";
+        rhs = "(int)SIP_AsLong(sipPy)";
         break;
 
     case ulong_type:
@@ -4356,7 +4356,7 @@ static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
                 , (md->slot == cmp_slot ? "-2" : (ret_int ? "-1" : "0")));
         else
             prcode(fp,
-"    %S sipCpp = static_cast<%S>(PyInt_AsLong(sipSelf));\n"
+"    %S sipCpp = static_cast<%S>(SIP_AsLong(sipSelf));\n"
 "\n"
                 , fqcname, fqcname);
     }
@@ -9368,7 +9368,7 @@ static void generateHandleResult(overDef *od, int isNew, int result_size,
     case int_type:
     case cint_type:
         prcode(fp,
-"            %s PyInt_FromLong(%s);\n"
+"            %s SIP_FromLong(%s);\n"
             ,prefix,vname);
 
         break;

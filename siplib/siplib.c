@@ -553,7 +553,13 @@ PyMODINIT_FUNC SIP_MODULE_ENTRY(void)
     }
 
     /* Add the SIP version number, but don't worry about errors. */
-    if ((obj = PyInt_FromLong(SIP_VERSION)) != NULL)
+#if PY_MAJOR_VERSION >= 3
+    obj = PyLong_FromLong(SIP_VERSION);
+#else
+    obj = PyInt_FromLong(SIP_VERSION);
+#endif
+
+    if (obj != NULL)
     {
         PyDict_SetItemString(mod_dict, "SIP_VERSION", obj);
         Py_DECREF(obj);
@@ -1577,11 +1583,15 @@ static PyObject *buildObject(PyObject *obj, const char *fmt, va_list va)
         case 'e':
         case 'h':
         case 'i':
-            el = PyInt_FromLong(va_arg(va,int));
+#if PY_MAJOR_VERSION >= 3
+            el = PyLong_FromLong(va_arg(va, int));
+#else
+            el = PyInt_FromLong(va_arg(va, int));
+#endif
             break;
 
         case 'l':
-            el = PyLong_FromLong(va_arg(va,long));
+            el = PyLong_FromLong(va_arg(va, long));
             break;
 
         case 'm':
@@ -1823,12 +1833,16 @@ static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
 
             case 'b':
                 {
+#if PY_MAJOR_VERSION >= 3
+                    int v = PyLong_AsLong(arg);
+#else
                     int v = PyInt_AsLong(arg);
+#endif
 
                     if (PyErr_Occurred())
                         invalid = TRUE;
                     else
-                        sipSetBool(va_arg(va,void *),v);
+                        sipSetBool(va_arg(va, void *), v);
                 }
 
                 break;
@@ -1878,7 +1892,11 @@ static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
                     int *p = va_arg(va, int *);
 
                     if (sip_api_can_convert_to_enum(arg, ((sipEnumTypeObject *)et)->type))
+#if PY_MAJOR_VERSION >= 3
+                        *p = PyLong_AsLong(arg);
+#else
                         *p = PyInt_AsLong(arg);
+#endif
                     else
                         invalid = TRUE;
                 }
@@ -1891,7 +1909,11 @@ static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
                     int *p = va_arg(va, int *);
 
                     if (sip_api_can_convert_to_enum(arg, td))
+#if PY_MAJOR_VERSION >= 3
+                        *p = PyLong_AsLong(arg);
+#else
                         *p = PyInt_AsLong(arg);
+#endif
                     else
                         invalid = TRUE;
                 }
@@ -1912,12 +1934,16 @@ static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
 
             case 'h':
                 {
+#if PY_MAJOR_VERSION >= 3
+                    short v = PyLong_AsLong(arg);
+#else
                     short v = PyInt_AsLong(arg);
+#endif
 
                     if (PyErr_Occurred())
                         invalid = TRUE;
                     else
-                        *va_arg(va,short *) = v;
+                        *va_arg(va, short *) = v;
                 }
 
                 break;
@@ -1937,12 +1963,16 @@ static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
             case 'e':
             case 'i':
                 {
+#if PY_MAJOR_VERSION >= 3
+                    int v = PyLong_AsLong(arg);
+#else
                     int v = PyInt_AsLong(arg);
+#endif
 
                     if (PyErr_Occurred())
                         invalid = TRUE;
                     else
-                        *va_arg(va,int *) = v;
+                        *va_arg(va, int *) = v;
                 }
 
                 break;
@@ -2841,12 +2871,16 @@ static int parsePass1(sipSimpleWrapper **selfp, int *selfargp,
             {
                 /* Bool. */
 
+#if PY_MAJOR_VERSION >= 3
+                int v = PyLong_AsLong(arg);
+#else
                 int v = PyInt_AsLong(arg);
+#endif
 
                 if (PyErr_Occurred())
                     valid = PARSE_TYPE;
                 else
-                    sipSetBool(va_arg(va,void *),v);
+                    sipSetBool(va_arg(va, void *), v);
 
                 break;
             }
@@ -2870,12 +2904,16 @@ static int parsePass1(sipSimpleWrapper **selfp, int *selfargp,
             {
                 /* Integer or anonymous enum. */
 
+#if PY_MAJOR_VERSION >= 3
+                int v = PyLong_AsLong(arg);
+#else
                 int v = PyInt_AsLong(arg);
+#endif
 
                 if (PyErr_Occurred())
                     valid = PARSE_TYPE;
                 else
-                    *va_arg(va,int *) = v;
+                    *va_arg(va, int *) = v;
 
                 break;
             }
@@ -2898,12 +2936,16 @@ static int parsePass1(sipSimpleWrapper **selfp, int *selfargp,
             {
                 /* Short integer. */
 
+#if PY_MAJOR_VERSION >= 3
+                short v = PyLong_AsLong(arg);
+#else
                 short v = PyInt_AsLong(arg);
+#endif
 
                 if (PyErr_Occurred())
                     valid = PARSE_TYPE;
                 else
-                    *va_arg(va,short *) = v;
+                    *va_arg(va, short *) = v;
 
                 break;
             }
@@ -3054,8 +3096,13 @@ static int parsePass1(sipSimpleWrapper **selfp, int *selfargp,
                     {
                         /* Integer. */
 
+#if PY_MAJOR_VERSION >= 3
+                        if (PyLong_Check(arg))
+                            *va_arg(va, int *) = PyLong_AS_LONG(arg);
+#else
                         if (PyInt_Check(arg))
-                            *va_arg(va,int *) = PyInt_AS_LONG(arg);
+                            *va_arg(va, int *) = PyInt_AS_LONG(arg);
+#endif
                         else
                             valid = PARSE_TYPE;
 
@@ -3367,7 +3414,11 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, int nrargs,
                         va_arg(va, sipTypeDef *);
                         p = va_arg(va, int *);
 
+#if PY_MAJOR_VERSION >= 3
+                        *p = PyLong_AsLong(arg);
+#else
                         *p = PyInt_AsLong(arg);
+#endif
 
                         break;
                     }
@@ -3389,7 +3440,11 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, int nrargs,
                 va_arg(va, sipTypeDef *);
                 p = va_arg(va, int *);
 
+#if PY_MAJOR_VERSION >= 3
+                *p = PyLong_AsLong(arg);
+#else
                 *p = PyInt_AsLong(arg);
+#endif
 
                 break;
             }
@@ -3926,7 +3981,13 @@ static PyObject *pickle_enum(PyObject *obj, PyObject *ignore)
     sipTypeDef *td = ((sipEnumTypeObject *)Py_TYPE(obj))->type;
 
     return Py_BuildValue("O(Osi)", enum_unpickler, td->td_module->em_nameobj,
-            sipPyNameOfEnum((sipEnumTypeDef *)td), (int)PyInt_AS_LONG(obj));
+            sipPyNameOfEnum((sipEnumTypeDef *)td),
+#if PY_MAJOR_VERSION >= 3
+            (int)PyLong_AS_LONG(obj)
+#else
+            (int)PyInt_AS_LONG(obj)
+#endif
+            );
 }
 
 
@@ -4330,7 +4391,11 @@ static int sip_api_can_convert_to_enum(PyObject *obj, const sipTypeDef *td)
     if (PyObject_TypeCheck((PyObject *)Py_TYPE(obj), &sipEnumType_Type))
         return (PyObject_TypeCheck(obj, sipTypeAsPyTypeObject(td)));
 
+#if PY_MAJOR_VERSION >= 3
+    return PyLong_Check(obj);
+#else
     return PyInt_Check(obj);
+#endif
 }
 
 
@@ -4340,7 +4405,11 @@ static int sip_api_can_convert_to_enum(PyObject *obj, const sipTypeDef *td)
 static PyObject *createEnumMember(sipClassTypeDef *ctd, sipEnumMemberDef *enm)
 {
     if (enm->em_enum < 0)
+#if PY_MAJOR_VERSION >= 3
+        return PyLong_FromLong(enm->em_val);
+#else
         return PyInt_FromLong(enm->em_val);
+#endif
 
     return sip_api_convert_from_enum(enm->em_val,
             ctd->ctd_base.td_module->em_types[enm->em_enum]);
@@ -4865,7 +4934,13 @@ static int addIntInstances(PyObject *dict, sipIntInstanceDef *ii)
         int rc;
         PyObject *w;
 
-        if ((w = PyInt_FromLong(ii->ii_val)) == NULL)
+#if PY_MAJOR_VERSION >= 3
+        w = PyLong_FromLong(ii->ii_val);
+#else
+        w = PyInt_FromLong(ii->ii_val);
+#endif
+
+        if (w == NULL)
             return -1;
 
         rc = PyDict_SetItemString(dict, ii->ii_name, w);
@@ -5275,7 +5350,13 @@ static void sip_api_keep_reference(PyObject *self, int key, PyObject *obj)
         ((sipSimpleWrapper *)self)->extra_refs = dict;
     }
 
-    if ((key_obj = PyInt_FromLong(key)) != NULL)
+#if PY_MAJOR_VERSION >= 3
+    key_obj = PyLong_FromLong(key);
+#else
+    key_obj = PyInt_FromLong(key);
+#endif
+
+    if (key_obj != NULL)
     {
         /* This can happen if the argument was optional. */
         if (obj == NULL)
@@ -5995,7 +6076,9 @@ static int ssizeobjargprocSlot(PyObject *self, SIP_SSIZE_T arg1,
      * optional.
      */
     if (arg2 == NULL)
-#if PY_VERSION_HEX >= 0x02050000
+#if PY_MAJOR_VERSION >= 3
+        args = PyLong_FromSsize_t(arg1);
+#elif PY_VERSION_HEX >= 0x02050000
         args = PyInt_FromSsize_t(arg1);
 #else
         args = PyInt_FromLong(arg1);
@@ -6063,7 +6146,11 @@ static int vp_convertor(PyObject *arg, struct vp_values *vp)
     }
     else
     {
+#if PY_MAJOR_VERSION >= 3
+        ptr = PyLong_AsVoidPtr(arg);
+#else
         ptr = (void *)PyInt_AsLong(arg);
+#endif
 
         if (PyErr_Occurred())
         {
@@ -6299,7 +6386,9 @@ static PyObject *sipVoidPtr_asstring(sipVoidPtrObject *v, PyObject *args,
  */
 static PyObject *sipVoidPtr_getsize(sipVoidPtrObject *v, PyObject *arg)
 {
-#if PY_VERSION_HEX >= 0x02050000
+#if PY_MAJOR_VERSION >= 3
+    return PyLong_FromSsize_t(v->size);
+#elif PY_VERSION_HEX >= 0x02050000
     return PyInt_FromSsize_t(v->size);
 #else
     return PyInt_FromLong(v->size);
@@ -6314,7 +6403,9 @@ static PyObject *sipVoidPtr_setsize(sipVoidPtrObject *v, PyObject *arg)
 {
     SIP_SSIZE_T size;
 
-#if PY_VERSION_HEX >= 0x02050000
+#if PY_MAJOR_VERSION >= 3
+    size = PyLong_AsSsize_t(arg);
+#elif PY_VERSION_HEX >= 0x02050000
     size = PyInt_AsSsize_t(arg);
 #else
     size = (int)PyInt_AsLong(arg);
@@ -6346,7 +6437,11 @@ static PyObject *sipVoidPtr_setwriteable(sipVoidPtrObject *v, PyObject *arg)
 {
     int rw;
 
+#if PY_MAJOR_VERSION >= 3
+    rw = (int)PyLong_AsLong(arg);
+#else
     rw = (int)PyInt_AsLong(arg);
+#endif
 
     if (PyErr_Occurred())
         return NULL;
@@ -6502,7 +6597,11 @@ static void *sip_api_convert_to_void_ptr(PyObject *obj)
     if (PyCObject_Check(obj))
         return PyCObject_AsVoidPtr(obj);
 
+#if PY_MAJOR_VERSION >= 3
+    return PyLong_AsVoidPtr(obj);
+#else
     return (void *)PyInt_AsLong(obj);
+#endif
 }
 
 
@@ -7152,11 +7251,15 @@ static PyObject *slot_sq_item(PyObject *self, SIP_SSIZE_T n)
     PyObject *(*f)(PyObject *,PyObject *);
     PyObject *arg, *res;
 
-#if PY_VERSION_HEX >= 0x02050000
-    if ((arg = PyInt_FromSsize_t(n)) == NULL)
+#if PY_MAJOR_VERSION >= 3
+    arg = PyLong_FromSsize_t(n);
+#elif PY_VERSION_HEX >= 0x02050000
+    arg = PyInt_FromSsize_t(n);
 #else
-    if ((arg = PyInt_FromLong(n)) == NULL)
+    arg = PyInt_FromLong(n);
 #endif
+
+    if (arg == NULL)
         return NULL;
 
     f = (PyObject *(*)(PyObject *,PyObject *))findSlot(self,getitem_slot);

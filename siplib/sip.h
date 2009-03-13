@@ -147,12 +147,20 @@ extern "C" {
 #define SIP_PYMETHODDEF_CAST(s) ((char *)(s))
 #endif
 
+#if PY_MAJOR_VERSION >= 3
+#define SIP_FromLong(v)     PyLong_FromLong(v)
+#define SIP_AsLong(o)       PyLong_AsLong(o)
+#else
+#define SIP_FromLong(v)     PyInt_FromLong(v)
+#define SIP_AsLong(o)       PyInt_AsLong(o)
+#endif
+
 #if !defined(Py_REFCNT)
 #define Py_REFCNT(ob)       (((PyObject*)(ob))->ob_refcnt)
 #endif
 
 #if !defined(Py_TYPE)
-#define Py_TYPE(ob)       (((PyObject*)(ob))->ob_type)
+#define Py_TYPE(ob)         (((PyObject*)(ob))->ob_type)
 #endif
 
 #if !defined(PyVarObject_HEAD_INIT)
