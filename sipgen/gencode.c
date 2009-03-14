@@ -2047,7 +2047,7 @@ static void generateModDefinition(moduleDef *mod, const char *methods,
 "        0\n"
 "    };\n"
 "#endif\n"
-        , mod->name
+        , mod->fullname->text
         , methods);
 }
 
@@ -3723,14 +3723,18 @@ static void generateVariableGetter(classDef *context, varDef *vd, FILE *fp)
     case sstring_type:
     case ustring_type:
     case string_type:
-        if (vd->type.nrderefs == 0)
-            prcode(fp,
-"    return PyString_FromStringAndSize(%s&sipVal, 1);\n"
-                , (atype != string_type) ? "(char *)" : "");
+        {
+            const char *cast = ((atype != string_type) ? "(char *)" : "");
+
+            if (vd->type.nrderefs == 0)
+                prcode(fp,
+"    return SIPBytes_FromStringAndSize(%s&sipVal, 1);\n"
+                    , cast);
             else
-            prcode(fp,
-"    return PyString_FromString(%ssipVal);\n"
-                ,(atype != string_type) ? "(char *)" : "");
+                prcode(fp,
+"    return SIPBytes_FromString(%ssipVal);\n"
+                    , cast);
+        }
 
         break;
 
@@ -3776,7 +3780,7 @@ static void generateVariableGetter(classDef *context, varDef *vd, FILE *fp)
     case cint_type:
     case int_type:
         prcode(fp,
-"    return SIP_FromLong(sipVal);\n"
+"    return SIPLong_FromLong(sipVal);\n"
             );
         break;
 
@@ -4089,7 +4093,7 @@ static int generateObjToCppConversion(argDef *ad,FILE *fp)
         break;
 
     case enum_type:
-        prcode(fp, "(%E)SIP_AsLong(sipPy);\n"
+        prcode(fp, "(%E)SIPLong_AsLong(sipPy);\n"
             , ad->u.ed);
         break;
 
@@ -4097,21 +4101,21 @@ static int generateObjToCppConversion(argDef *ad,FILE *fp)
         if (ad->nrderefs == 0)
             rhs = "(signed char)sipString_AsChar(sipPy)";
         else
-            rhs = "(signed char *)PyString_AsString(sipPy)";
+            rhs = "(signed char *)SIPBytes_AsString(sipPy)";
         break;
 
     case ustring_type:
         if (ad->nrderefs == 0)
             rhs = "(unsigned char)sipString_AsChar(sipPy)";
         else
-            rhs = "(unsigned char *)PyString_AsString(sipPy)";
+            rhs = "(unsigned char *)SIPBytes_AsString(sipPy)";
         break;
 
     case string_type:
         if (ad->nrderefs == 0)
             rhs = "sipString_AsChar(sipPy)";
         else
-            rhs = "PyString_AsString(sipPy)";
+            rhs = "SIPBytes_AsString(sipPy)";
         break;
 
     case wstring_type:
@@ -4133,7 +4137,7 @@ static int generateObjToCppConversion(argDef *ad,FILE *fp)
 
     case bool_type:
     case cbool_type:
-        rhs = "(bool)SIP_AsLong(sipPy)";
+        rhs = "(bool)SIPLong_AsLong(sipPy)";
         break;
 
     case ushort_type:
@@ -4141,7 +4145,7 @@ static int generateObjToCppConversion(argDef *ad,FILE *fp)
         break;
 
     case short_type:
-        rhs = "(short)SIP_AsLong(sipPy)";
+        rhs = "(short)SIPLong_AsLong(sipPy)";
         break;
 
     case uint_type:
@@ -4150,7 +4154,7 @@ static int generateObjToCppConversion(argDef *ad,FILE *fp)
 
     case int_type:
     case cint_type:
-        rhs = "(int)SIP_AsLong(sipPy)";
+        rhs = "(int)SIPLong_AsLong(sipPy)";
         break;
 
     case ulong_type:
@@ -4450,7 +4454,7 @@ static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
                 , (md->slot == cmp_slot ? "-2" : (ret_int ? "-1" : "0")));
         else
             prcode(fp,
-"    %S sipCpp = static_cast<%S>(SIP_AsLong(sipSelf));\n"
+"    %S sipCpp = static_cast<%S>(SIPLong_AsLong(sipSelf));\n"
 "\n"
                 , fqcname, fqcname);
     }
@@ -9411,7 +9415,7 @@ static void generateHandleResult(overDef *od, int isNew, int result_size,
     case string_type:
         if (ad->nrderefs == 0)
             prcode(fp,
-"            %s PyString_FromStringAndSize(%s&%s,1);\n"
+"            %s SIPBytes_FromStringAndSize(%s&%s,1);\n"
                 ,prefix,(ad->atype != string_type) ? "(char *)" : "",vname);
         else
             prcode(fp,
@@ -9421,7 +9425,7 @@ static void generateHandleResult(overDef *od, int isNew, int result_size,
 "                return Py_None;\n"
 "            }\n"
 "\n"
-"            %s PyString_FromString(%s%s);\n"
+"            %s SIPBytes_FromString(%s%s);\n"
             ,vname
             ,prefix,(ad->atype != string_type) ? "(char *)" : "",vname);
 
@@ -9462,7 +9466,7 @@ static void generateHandleResult(overDef *od, int isNew, int result_size,
     case int_type:
     case cint_type:
         prcode(fp,
-"            %s SIP_FromLong(%s);\n"
+"            %s SIPLong_FromLong(%s);\n"
             ,prefix,vname);
 
         break;

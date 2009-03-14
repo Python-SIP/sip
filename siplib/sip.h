@@ -148,11 +148,23 @@ extern "C" {
 #endif
 
 #if PY_MAJOR_VERSION >= 3
-#define SIP_FromLong(v)     PyLong_FromLong(v)
-#define SIP_AsLong(o)       PyLong_AsLong(o)
+
+#define SIPLong_FromLong(v) PyLong_FromLong(v)
+#define SIPLong_AsLong(o)   PyLong_AsLong(o)
+
+#define SIPBytes_FromString(v)  PyBytes_FromString(v)
+#define SIPBytes_FromStringAndSize(v, s)    PyBytes_FromStringAndSize((v), (s))
+#define SIPBytes_AsString(o)    PyBytes_AsString(o)
+
 #else
-#define SIP_FromLong(v)     PyInt_FromLong(v)
-#define SIP_AsLong(o)       PyInt_AsLong(o)
+
+#define SIPLong_FromLong(v) PyInt_FromLong(v)
+#define SIPLong_AsLong(o)   PyInt_AsLong(o)
+
+#define SIPBytes_FromString(v)  PyString_FromString(v)
+#define SIPBytes_FromStringAndSize(v, s)    PyString_FromStringAndSize((v), (s))
+#define SIPBytes_AsString(o)    PyString_AsString(o)
+
 #endif
 
 #if !defined(Py_REFCNT)
