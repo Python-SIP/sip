@@ -1247,32 +1247,23 @@ class PythonModuleMakefile(Makefile):
         """
         Makefile.generate_target_install(self, mfile)
 
-        os.path.walk(self._moddir, self._visit, mfile)
-
-    def _visit(self, mfile, dirname, names):
-        """Install the files from a particular directory.
-
-        mfile is the file object.
-        dirname is the sub-directory.
-        names is the list of files to install from the sub-directory.
-        """
-        tail = dirname[len(self._moddir):]
-
-        flist = []
-        for f in list(names):
-            # Ignore certain files.
-            if f in ("Makefile", ):
-                continue
-
+        for root, dirs, files in os.walk(self._moddir):
             # Do not recurse into certain directories.
-            if f in (".svn", "CVS"):
-                names.remove(f)
-                continue
+            for skip in (".svn", "CVS"):
+                if skip in dirs:
+                    dirs.remove(skip)
 
-            if os.path.isfile(os.path.join(dirname, f)):
-                flist.append(os.path.join(self._srcdir + tail, f))
+            tail = root[len(self._moddir):]
+            flist = []
 
-        self.install_file(mfile, flist, self._dstdir + tail)
+            for f in files:
+                if f == "Makefile":
+                    continue
+
+                if os.path.isfile(os.path.join(root, f)):
+                    flist.append(os.path.join(self._srcdir + tail, f))
+
+            self.install_file(mfile, flist, self._dstdir + tail)
 
 
 class ModuleMakefile(Makefile):
