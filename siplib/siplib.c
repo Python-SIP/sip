@@ -7568,8 +7568,7 @@ sipWrapperType sipSimpleWrapper_Type = {
     {
 #endif
         {
-            PyObject_HEAD_INIT(&sipWrapperType_Type)
-            0,              /* ob_size */
+            PyVarObject_HEAD_INIT(&sipWrapperType_Type, 0)
             "sip.simplewrapper",    /* tp_name */
             sizeof (sipSimpleWrapper),  /* tp_basicsize */
             0,              /* tp_itemsize */
@@ -7746,8 +7745,7 @@ static sipWrapperType sipWrapper_Type = {
     {
 #endif
         {
-            PyObject_HEAD_INIT(&sipWrapperType_Type)
-            0,              /* ob_size */
+            PyVarObject_HEAD_INIT(&sipWrapperType_Type, 0)
             "sip.wrapper",  /* tp_name */
             sizeof (sipWrapper),    /* tp_basicsize */
             0,              /* tp_itemsize */
