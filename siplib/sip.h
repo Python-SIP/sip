@@ -155,6 +155,7 @@ extern "C" {
 #define SIPBytes_FromString(v)  PyBytes_FromString(v)
 #define SIPBytes_FromStringAndSize(v, s)    PyBytes_FromStringAndSize((v), (s))
 #define SIPBytes_AsString(o)    PyBytes_AsString(o)
+#define SIPBytes_AS_STRING(o)   PyBytes_AS_STRING(o)
 
 #else
 
@@ -164,6 +165,7 @@ extern "C" {
 #define SIPBytes_FromString(v)  PyString_FromString(v)
 #define SIPBytes_FromStringAndSize(v, s)    PyString_FromStringAndSize((v), (s))
 #define SIPBytes_AsString(o)    PyString_AsString(o)
+#define SIPBytes_AS_STRING(o)   PyString_AS_STRING(o)
 
 #endif
 
