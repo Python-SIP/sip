@@ -368,6 +368,7 @@ def main(argv):
 
         sys.exit()
 
+    # Convert the boolean 'universal' option to a string.
     if opts.universal:
         if '/' in opts.sdk:
             opts.universal = os.path.abspath(opts.sdk)
@@ -376,6 +377,8 @@ def main(argv):
 
         if not os.path.isdir(opts.universal):
             siputils.error("Unable to find the SDK directory %s. Use the -s flag to specify the name of the SDK (e.g. %s) or its full path." % (opts.universal, DEFAULT_MACOSX_SDK))
+    else:
+        opts.universal = ''
 
     # Get the platform specific macros for building.
     macros = siputils.parse_build_macros(os.path.join("specs", opts.platform),
