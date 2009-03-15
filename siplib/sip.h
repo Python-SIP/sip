@@ -149,27 +149,27 @@ extern "C" {
 
 #if PY_MAJOR_VERSION >= 3
 
-#define SIPLong_FromLong(v) PyLong_FromLong(v)
-#define SIPLong_AsLong(o)   PyLong_AsLong(o)
+#define SIPLong_FromLong    PyLong_FromLong
+#define SIPLong_AsLong      PyLong_AsLong
 
-#define SIPBytes_Check(o)   PyBytes_Check(o)
-#define SIPBytes_FromString(v)  PyBytes_FromString(v)
-#define SIPBytes_FromStringAndSize(v, s)    PyBytes_FromStringAndSize((v), (s))
-#define SIPBytes_AsString(o)    PyBytes_AsString(o)
-#define SIPBytes_AS_STRING(o)   PyBytes_AS_STRING(o)
-#define SIPBytes_GET_SIZE(o)    PyBytes_GET_SIZE(o)
+#define SIPBytes_Check      PyBytes_Check
+#define SIPBytes_FromString PyBytes_FromString
+#define SIPBytes_FromStringAndSize  PyBytes_FromStringAndSize
+#define SIPBytes_AsString   PyBytes_AsString
+#define SIPBytes_AS_STRING  PyBytes_AS_STRING
+#define SIPBytes_GET_SIZE   PyBytes_GET_SIZE
 
 #else
 
-#define SIPLong_FromLong(v) PyInt_FromLong(v)
-#define SIPLong_AsLong(o)   PyInt_AsLong(o)
+#define SIPLong_FromLong    PyInt_FromLong
+#define SIPLong_AsLong      PyInt_AsLong
 
-#define SIPBytes_Check(o)   PyString_Check(o)
-#define SIPBytes_FromString(v)  PyString_FromString(v)
-#define SIPBytes_FromStringAndSize(v, s)    PyString_FromStringAndSize((v), (s))
-#define SIPBytes_AsString(o)    PyString_AsString(o)
-#define SIPBytes_AS_STRING(o)   PyString_AS_STRING(o)
-#define SIPBytes_GET_SIZE(o)    PyString_GET_SIZE(o)
+#define SIPBytes_Check      PyString_Check
+#define SIPBytes_FromString PyString_FromString
+#define SIPBytes_FromStringAndSize  PyString_FromStringAndSize
+#define SIPBytes_AsString   PyString_AsString
+#define SIPBytes_AS_STRING  PyString_AS_STRING
+#define SIPBytes_GET_SIZE   PyString_GET_SIZE
 
 #endif
 
