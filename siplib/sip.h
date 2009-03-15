@@ -152,20 +152,24 @@ extern "C" {
 #define SIPLong_FromLong(v) PyLong_FromLong(v)
 #define SIPLong_AsLong(o)   PyLong_AsLong(o)
 
+#define SIPBytes_Check(o)   PyBytes_Check(o)
 #define SIPBytes_FromString(v)  PyBytes_FromString(v)
 #define SIPBytes_FromStringAndSize(v, s)    PyBytes_FromStringAndSize((v), (s))
 #define SIPBytes_AsString(o)    PyBytes_AsString(o)
 #define SIPBytes_AS_STRING(o)   PyBytes_AS_STRING(o)
+#define SIPBytes_GET_SIZE(o)    PyBytes_GET_SIZE(o)
 
 #else
 
 #define SIPLong_FromLong(v) PyInt_FromLong(v)
 #define SIPLong_AsLong(o)   PyInt_AsLong(o)
 
+#define SIPBytes_Check(o)   PyString_Check(o)
 #define SIPBytes_FromString(v)  PyString_FromString(v)
 #define SIPBytes_FromStringAndSize(v, s)    PyString_FromStringAndSize((v), (s))
 #define SIPBytes_AsString(o)    PyString_AsString(o)
 #define SIPBytes_AS_STRING(o)   PyString_AS_STRING(o)
+#define SIPBytes_GET_SIZE(o)    PyString_GET_SIZE(o)
 
 #endif
 
