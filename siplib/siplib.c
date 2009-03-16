@@ -1550,7 +1550,7 @@ static PyObject *buildObject(PyObject *obj, const char *fmt, va_list va)
             {
                 char c = va_arg(va, int);
 
-#if PY_MAJOR_VERSION >= 0
+#if PY_MAJOR_VERSION >= 3
                 el = PyBytes_FromStringAndSize(&c, 1);
 #else
                 el = PyString_FromStringAndSize(&c, 1);
