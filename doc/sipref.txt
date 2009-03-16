@@ -2696,7 +2696,7 @@ For example::
 
 This directive is used to specify handwritten code that is embedded in-line
 in the generated module initialisation code after the SIP module has been
-imported but before the module itself has been intialised.
+imported but before the module itself has been initialised.
 
 It is typically used to call `sipRegisterPyType()`_.
 

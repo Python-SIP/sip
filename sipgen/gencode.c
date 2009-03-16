@@ -812,10 +812,11 @@ static void generateCompositeCpp(sipSpec *pt, const char *codeDir)
     generateModDefinition(pt->module, "0", fp);
 
     prcode(fp,
+"\n"
 "    PyObject *sipModule, *sipModuleDict;\n"
 "\n"
 "#if PY_MAJOR_VERSION >= 3\n"
-"    sipModule = PyModuleCreate(&sip_module_def);\n"
+"    sipModule = PyModule_Create(&sip_module_def);\n"
 "#else\n"
 "    sipModule = Py_InitModule(\"%s\", 0);\n"
 "#endif\n"
@@ -2038,13 +2039,13 @@ static void generateModDefinition(moduleDef *mod, const char *methods,
 "    static PyModuleDef sip_module_def = {\n"
 "        PyModuleDef_HEAD_INIT,\n"
 "        \"%s\",\n"
-"        0,\n"
+"        NULL,\n"
 "        -1,\n"
 "        %s,\n"
-"        0,\n"
-"        0,\n"
-"        0,\n"
-"        0\n"
+"        NULL,\n"
+"        NULL,\n"
+"        NULL,\n"
+"        NULL\n"
 "    };\n"
 "#endif\n"
         , mod->fullname->text
