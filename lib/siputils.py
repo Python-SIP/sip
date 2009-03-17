@@ -1479,6 +1479,18 @@ class ModuleMakefile(Makefile):
 
         mfile is the file object.
         """
+        # Do these first so that it's safe for a sub-class to append additional
+        # commands to the real target, but make sure the default is correct.
+        mfile.write("\nall: $(TARGET)\n")
+        mfile.write("\n$(OFILES): $(HFILES)\n")
+
+        for mf in self._build["moc_headers"].split():
+            root, discard = os.path.splitext(mf)
+            cpp = "moc_" + root + ".cpp"
+
+            mfile.write("\n%s: %s\n" % (cpp, mf))
+            mfile.write("\t$(MOC) -o %s %s\n" % (cpp, mf))
+
         mfile.write("\n$(TARGET): $(OFILES)\n")
 
         if self.generator in ("MSVC", "MSVC.NET"):
@@ -1542,15 +1554,6 @@ class ModuleMakefile(Makefile):
                         mfile.write("; \\\n\t echo '%s' >>%s.exp\n" % (self._entry_point, self._target))
 
                 mfile.write("\t$(LINK) $(LFLAGS) -o $(TARGET) $(OFILES) $(LIBS)\n")
-
-        mfile.write("\n$(OFILES): $(HFILES)\n")
-
-        for mf in self._build["moc_headers"].split():
-            root, discard = os.path.splitext(mf)
-            cpp = "moc_" + root + ".cpp"
-
-            mfile.write("\n%s: %s\n" % (cpp, mf))
-            mfile.write("\t$(MOC) -o %s %s\n" % (cpp, mf))
 
     def generate_target_install(self, mfile):
         """Generate the install target.
@@ -1743,6 +1746,18 @@ class ProgramMakefile(Makefile):
 
         mfile is the file object.
         """
+        # Do these first so that it's safe for a sub-class to append additional
+        # commands to the real target, but make sure the default is correct.
+        mfile.write("\nall: $(TARGET)\n")
+        mfile.write("\n$(OFILES): $(HFILES)\n")
+
+        for mf in self._build["moc_headers"].split():
+            root, discard = os.path.splitext(mf)
+            cpp = "moc_" + root + ".cpp"
+
+            mfile.write("\n%s: %s\n" % (cpp, mf))
+            mfile.write("\t$(MOC) -o %s %s\n" % (cpp, mf))
+
         mfile.write("\n$(TARGET): $(OFILES)\n")
 
         if self.generator in ("MSVC", "MSVC.NET"):
@@ -1758,15 +1773,6 @@ class ProgramMakefile(Makefile):
 
         if self._manifest:
             mfile.write("\tmt -nologo -manifest $(TARGET).manifest -outputresource:$(TARGET);1\n")
-
-        mfile.write("\n$(OFILES): $(HFILES)\n")
-
-        for mf in self._build["moc_headers"].split():
-            root, discard = os.path.splitext(mf)
-            cpp = "moc_" + root + ".cpp"
-
-            mfile.write("\n%s: %s\n" % (cpp, mf))
-            mfile.write("\t$(MOC) -o %s %s\n" % (cpp, mf))
 
     def generate_target_install(self, mfile):
         """Generate the install target.
