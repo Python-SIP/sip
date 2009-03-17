@@ -512,7 +512,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define %n %d\n"
 "#define %N &sipStrings_%s[%d]\n"
             , nd, (int)nd->offset
-            , nd, mname, (int)nd->offset);
+            , nd, pt->module->name, (int)nd->offset);
     }
 
     prcode(fp,
@@ -702,7 +702,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "\n"
 "/* The strings used by this module. */\n"
 "extern const char sipStrings_%s[];\n"
-        , mname);
+        , pt->module->name);
 
     /* The unscoped enum macros. */
     generateEnumMacros(pt, mod, NULL, fp);
@@ -809,7 +809,7 @@ static void generateCompositeCpp(sipSpec *pt, const char *codeDir)
         );
 
     generateModInitStart(pt->module, TRUE, fp);
-    generateModDefinition(pt->module, "0", fp);
+    generateModDefinition(pt->module, "NULL", fp);
 
     prcode(fp,
 "\n"
@@ -865,6 +865,7 @@ static void generateConsolidatedCpp(sipSpec *pt, const char *codeDir,
 "\n"
 "#include <Python.h>\n"
 "#include <string.h>\n"
+"#include <sip.h>\n"
         );
 
     generateNameCache(pt, fp);
@@ -879,7 +880,12 @@ static void generateConsolidatedCpp(sipSpec *pt, const char *codeDir,
     for (mod = pt->modules; mod != NULL; mod = mod->next)
         if (mod->container == pt->module)
             prcode(fp,
+"#if PY_MAJOR_VERSION >= 3\n"
+"extern PyObject *sip_init_%s(void);\n"
+"#else\n"
 "extern void sip_init_%s(void);\n"
+"#endif\n"
+                , mod->name
                 , mod->name);
 
     /* Generate the init function. */
@@ -898,7 +904,11 @@ static void generateConsolidatedCpp(sipSpec *pt, const char *codeDir,
 "{\n"
 "    struct component {\n"
 "        const char *name;\n"
+"#if PY_MAJOR_VERSION >= 3\n"
+"        PyObject *(*init)(void);\n"
+"#else\n"
 "        void (*init)(void);\n"
+"#endif\n"
 "    };\n"
 "\n"
 "    static struct component components[] = {\n"
@@ -907,8 +917,8 @@ static void generateConsolidatedCpp(sipSpec *pt, const char *codeDir,
     for (mod = pt->modules; mod != NULL; mod = mod->next)
         if (mod->container == pt->module)
             prcode(fp,
-"        {%N, sip_init_%s},\n"
-                , mod->fullname, mod->name);
+"        {\"%s\", sip_init_%s},\n"
+                , mod->fullname->text, mod->name);
 
     prcode(fp,
 "        {NULL, NULL}\n"
@@ -917,17 +927,27 @@ static void generateConsolidatedCpp(sipSpec *pt, const char *codeDir,
 "    char *name;\n"
 "    struct component *scd;\n"
 "\n"
-"    if ((name = PyString_AsString(arg)) == NULL)\n"
+"#if PY_MAJOR_VERSION >= 3\n"
+"    name = PyBytes_AsString(arg);\n"
+"#else\n"
+"    name = PyString_AsString(arg);\n"
+"#endif\n"
+"\n"
+"    if (name == NULL)\n"
 "        return NULL;\n"
 "\n"
 "    for (scd = components; scd->name != NULL; ++scd)\n"
 "        if (strcmp(scd->name, name) == 0)\n"
+"#if PY_MAJOR_VERSION >= 3\n"
+"            return (*scd->init)();\n"
+"#else\n"
 "        {\n"
 "            (*scd->init)();\n"
 "\n"
-"            Py_INCREF(Py_True);\n"
-"            return Py_True;\n"
+"            Py_INCREF(Py_None);\n"
+"            return Py_None;\n"
 "        }\n"
+"#endif\n"
 "\n"
 "    PyErr_Format(PyExc_ImportError, \"unknown component module %%s\", name);\n"
 "\n"
@@ -979,25 +999,33 @@ static void generateComponentCpp(sipSpec *pt, const char *codeDir,
         );
 
     generateModInitStart(pt->module, TRUE, fp);
-    generateModDefinition(pt->module, "0", fp);
+    generateModDefinition(pt->module, "NULL", fp);
 
     prcode(fp,
 "    PyObject *sip_mod, *sip_result;\n"
 "\n"
 "    /* Import the consolidated module. */\n"
 "    if ((sip_mod = PyImport_ImportModule(\"%s\")) == NULL)\n"
-"        return;\n"
+"        SIP_MODULE_RETURN(NULL);\n"
 "\n"
         , consModule);
 
     prcode(fp,
 "    /* Ask the consolidated module to do the initialistion. */\n"
-"/* FIXME: make sure the init handles Python v3 */\n"
+"#if PY_MAJOR_VERSION >= 3\n"
+"    sip_result = PyObject_CallMethod(sip_mod, \"init\", \"y\", \"%s\");\n"
+"#else\n"
 "    sip_result = PyObject_CallMethod(sip_mod, \"init\", \"s\", \"%s\");\n"
-"\n"
-"    Py_XDECREF(sip_result);\n"
+"#endif\n"
 "    Py_DECREF(sip_mod);\n"
+"\n"
+"#if PY_MAJOR_VERSION >= 3\n"
+"    return sip_result;\n"
+"#else\n"
+"    Py_XDECREF(sip_result);\n"
+"#endif\n"
 "}\n"
+        , pt->module->fullname->text
         , pt->module->fullname->text);
 
     closeFile(fp);
@@ -1015,6 +1043,14 @@ static void generateNameCache(sipSpec *pt, FILE *fp)
     prcode(fp,
 "\n"
 "/* Define the strings used by this module. */\n"
+        );
+
+    if (isConsolidated(pt->module))
+        prcode(fp,
+"extern const char sipStrings_%s[];\n"
+            , pt->module->name);
+
+    prcode(fp,
 "const char sipStrings_%s[] = {\n"
         , pt->module->name);
 
@@ -1617,7 +1653,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         , mname
         , mod->fullname
         , mod->version
-        , mname
+        , pt->module->name
         , mod->allimports != NULL ? "importsTable" : "NULL"
         , mod->qobjclass >= 0 ? "&qtAPI" : "NULL"
         , mod->nrtypes
@@ -1672,8 +1708,16 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 
     if (mod->container == pt->module)
         prcode(fp,
+"\n"
+"#if PY_MAJOR_VERSION >= 3\n"
+"#define SIP_MODULE_RETURN(r)    return (r)\n"
+"PyObject *sip_init_%s()\n"
+"#else\n"
+"#define SIP_MODULE_RETURN(r)    return\n"
 "void sip_init_%s()\n"
+"#endif\n"
 "{\n"
+            , mname
             , mname);
     else
         generateModInitStart(pt->module, generating_c, fp);
@@ -1702,7 +1746,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "    };\n"
         );
 
-    generateModDefinition(pt->module, "sip_methods", fp);
+    generateModDefinition(mod, "sip_methods", fp);
 
     prcode(fp,
 "\n"
@@ -4339,14 +4383,14 @@ static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
 
     if (ed != NULL)
     {
-        prefix = "Enum";
+        prefix = "Type";
         pyname = ed->pyname;
         fqcname = ed->fqcname;
         overs = ed->overs;
     }
     else if (cd != NULL)
     {
-        prefix = "Class";
+        prefix = "Type";
         pyname = cd->pyname;
         fqcname = classFQCName(cd);
         overs = cd->overs;
@@ -4434,7 +4478,7 @@ static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
 
     if (isInplaceNumberSlot(md))
         prcode(fp,
-"    if (!PyObject_TypeCheck(sipSelf,(PyTypeObject *)sip%s_%C))\n"
+"    if (!PyObject_TypeCheck(sipSelf, sipTypeAsPyTypeObject(sip%s_%C)))\n"
 "    {\n"
 "        Py_INCREF(Py_NotImplemented);\n"
 "        return Py_NotImplemented;\n"

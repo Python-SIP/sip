@@ -88,9 +88,8 @@ void transform(sipSpec *pt)
     /*
      * The class list has the main module's classes at the front and the ones
      * from the module at the most nested %Import at the end.  This affects
-     * some of the following algorithms, eg. when assigning class numbers.  We
-     * have to have consistency whenever a module is used.  To achieve this we
-     * reverse the order of the classes.
+     * some of the following algorithms.  We have to have consistency whenever
+     * a module is used.  To achieve this we reverse the order of the classes.
      */
     rev = NULL;
     cd = pt -> classes;
@@ -207,7 +206,16 @@ void transform(sipSpec *pt)
     *tail = NULL;
 
     /* Transform the various types in the modules. */
-    transformModules(pt, pt->modules);
+    if (isConsolidated(pt->module))
+    {
+        /* Transform the modules included by the consolidated module. */
+        for (mod = pt->modules->next; mod != NULL; mod = mod->next)
+            transformModules(pt, mod);
+    }
+    else
+    {
+        transformModules(pt, pt->modules);
+    }
 
     /* Handle default ctors now that the argument types are resolved. */ 
     if (!pt -> genc)
