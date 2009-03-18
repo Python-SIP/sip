@@ -2820,6 +2820,16 @@ ifaceFileDef *findIfaceFile(sipSpec *pt, moduleDef *mod, scopedNameDef *fqname,
         {
             mappedTypeDef *mtd;
 
+            /*
+             * This is a bit of a cheat.  With consolidated modules it's
+             * possible to have two implementations of a mapped type in
+             * different branches of the module hierarchy.  We assume that, if
+             * there really are multiple implementations in the same branch,
+             * then it will be picked up in a non-consolidated build.
+             */
+            if (isConsolidated(pt->module))
+                continue;
+
             for (mtd = pt->mappedtypes; mtd != NULL; mtd = mtd->next)
             {
                 if (mtd->iff != iff)

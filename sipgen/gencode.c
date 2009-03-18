@@ -1967,8 +1967,8 @@ static void generateTypesTable(sipSpec *pt, moduleDef *mod, FILE *fp)
 
         case mapped_type:
             prcode(fp,
-"    &%sMappedTypeDef_%T%s.mtd_base,\n"
-                , type_prefix, ad, type_suffix);
+"    &%sMappedTypeDef_%s_%T%s.mtd_base,\n"
+                , type_prefix, mod->name, ad, type_suffix);
             break;
 
         case enum_type:
@@ -3257,7 +3257,7 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 "}\n"
 "\n"
 "\n"
-"%sMappedTypeDef %sMappedTypeDef_%T = {\n"
+"%sMappedTypeDef %sMappedTypeDef_%s_%T = {\n"
 "%s"
 "    {\n"
 "        0,\n"
@@ -3267,7 +3267,7 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 "        %n,\n"
 "        {0}\n"
 "    },\n"
-        , type_prefix, type_prefix, &mtd->type
+        , type_prefix, type_prefix, mtd->iff->module->name, &mtd->type
         , (embedded ? "{\n" : "")
         , mtd->cname);
 
@@ -6909,9 +6909,9 @@ static void generateMappedTypeAPI(sipSpec *pt, mappedTypeDef *mtd, FILE *fp)
 "\n"
 "#define sipType_%T      sipModuleAPI_%s.em_types[%d]\n"
 "\n"
-"extern %sMappedTypeDef %sMappedTypeDef_%T;\n"
+"extern %sMappedTypeDef %sMappedTypeDef_%s_%T;\n"
         , &mtd->type, mtd->iff->module->name, mtd->mappednr
-        , type_prefix, type_prefix, &mtd->type);
+        , type_prefix, type_prefix, mtd->iff->module->name, &mtd->type);
 }
 
 
