@@ -1733,7 +1733,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         {
             if (noArgParser(md))
                 prcode(fp,
-"        {SIP_PYMETHODDEF_CAST(%N), (PyCFunction)func_%s, METH_KEYWORDS, NULL},\n"
+"        {SIP_PYMETHODDEF_CAST(%N), (PyCFunction)func_%s, METH_VARARGS|METH_KEYWORDS, NULL},\n"
                     , md->pyname, md->pyname->text);
             else
                 prcode(fp,
