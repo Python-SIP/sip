@@ -155,7 +155,6 @@ extern "C" {
 #define SIPBytes_Check      PyBytes_Check
 #define SIPBytes_FromString PyBytes_FromString
 #define SIPBytes_FromStringAndSize  PyBytes_FromStringAndSize
-#define SIPBytes_AsString   PyBytes_AsString
 #define SIPBytes_AS_STRING  PyBytes_AS_STRING
 #define SIPBytes_GET_SIZE   PyBytes_GET_SIZE
 
@@ -167,7 +166,6 @@ extern "C" {
 #define SIPBytes_Check      PyString_Check
 #define SIPBytes_FromString PyString_FromString
 #define SIPBytes_FromStringAndSize  PyString_FromStringAndSize
-#define SIPBytes_AsString   PyString_AsString
 #define SIPBytes_AS_STRING  PyString_AS_STRING
 #define SIPBytes_GET_SIZE   PyString_GET_SIZE
 
@@ -326,7 +324,7 @@ typedef void (*sipReleaseFunc)(void *, int);
 typedef PyObject *(*sipPickleFunc)(void *);
 typedef int (*sipAttrGetterFunc)(const struct _sipTypeDef *, PyObject *);
 typedef PyObject *(*sipVariableGetterFunc)(void *, PyObject *);
-typedef int (*sipVariableSetterFunc)(void *, PyObject *);
+typedef int (*sipVariableSetterFunc)(void *, PyObject *, PyObject *);
 
 
 /*
@@ -879,6 +877,11 @@ typedef struct _sipCharInstanceDef {
 
     /* The char value. */
     char ci_val;
+
+#if PY_MAJOR_VERSION >= 3
+    /* Set if the value is encoded. */
+    char ci_encoded;
+#endif
 } sipCharInstanceDef;
 
 
@@ -891,6 +894,11 @@ typedef struct _sipStringInstanceDef {
 
     /* The string value. */
     const char *si_val;
+
+#if PY_MAJOR_VERSION >= 3
+    /* Set if the value is encoded. */
+    char si_encoded;
+#endif
 } sipStringInstanceDef;
 
 
@@ -1169,7 +1177,6 @@ typedef struct _sipAPIDef {
             const char *method);
     void (*api_abstract_method)(const char *classname, const char *method);
     void (*api_bad_class)(const char *classname);
-    void (*api_bad_set_type)(const char *classname, const char *var);
     void *(*api_get_cpp_ptr)(sipSimpleWrapper *w, const sipTypeDef *td);
     void *(*api_get_complex_cpp_ptr)(sipSimpleWrapper *w);
     PyObject *(*api_is_py_method)(sip_gilstate_t *gil, char *pymc,
@@ -1186,7 +1193,10 @@ typedef struct _sipAPIDef {
     PyObject *(*api_pyslot_extend)(sipExportedModuleDef *mod, sipPySlotType st,
             const sipTypeDef *type, PyObject *arg0, PyObject *arg1);
     void (*api_add_delayed_dtor)(sipSimpleWrapper *w);
+    char (*api_bytes_as_char)(PyObject *obj);
+    char *(*api_bytes_as_string)(PyObject *obj);
     char (*api_string_as_char)(PyObject *obj);
+    char *(*api_string_as_string)(PyObject **obj);
 #if defined(HAVE_WCHAR_H)
     wchar_t (*api_unicode_as_wchar)(PyObject *obj);
     wchar_t *(*api_unicode_as_wstring)(PyObject *obj);

@@ -1864,6 +1864,7 @@ static void resolveVariableType(sipSpec *pt, varDef *vd)
             bad = FALSE;
         break;
 
+    case estring_type:
     case sstring_type:
     case ustring_type:
     case string_type:
@@ -1969,6 +1970,7 @@ static int supportedType(classDef *cd,overDef *od,argDef *ad,int outputs)
         ensureInput(cd,od,ad);
         return TRUE;
 
+    case estring_type:
     case sstring_type:
     case ustring_type:
     case string_type:
@@ -2274,7 +2276,7 @@ int sameSignature(signatureDef *sd1,signatureDef *sd2,int strict)
 
 
 #define pyAsString(t)   ((t) == ustring_type || (t) == sstring_type || \
-            (t) == string_type)
+            (t) == string_type || (t) == estring_type)
 #define pyAsFloat(t)    ((t) == cfloat_type || (t) == float_type || \
             (t) == cdouble_type || (t) == double_type)
 #define pyAsInt(t)  ((t) == bool_type || \

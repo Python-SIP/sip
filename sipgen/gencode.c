@@ -198,7 +198,7 @@ static int needNewInstance(argDef *ad);
 static int needDealloc(classDef *cd);
 static char getBuildResultFormat(argDef *ad);
 static const char *getParseResultFormat(argDef *ad, int isres, int xfervh);
-static void generateParseResultExtraArgs(argDef *ad, int isres, FILE *fp);
+static void generateParseResultExtraArgs(argDef *ad, int argnr, FILE *fp);
 static char *makePartName(const char *codeDir, const char *mname, int part,
         const char *srcSuffix);
 static void fakeProtectedArgs(signatureDef *sd);
@@ -220,6 +220,7 @@ static void prCachedName(FILE *fp, nameDef *nd, const char *prefix);
 static void generateSignalTableEntry(classDef *cd, overDef *od, FILE *fp);
 static void generateTypesTable(sipSpec *pt, moduleDef *mod, FILE *fp);
 static int py2SlotOnly(slotType st);
+static int keepPyReference(argDef *ad);
 
 
 /*
@@ -532,7 +533,6 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipNoMethod                 sipAPI_%s->api_no_method\n"
 "#define sipAbstractMethod           sipAPI_%s->api_abstract_method\n"
 "#define sipBadClass                 sipAPI_%s->api_bad_class\n"
-"#define sipBadSetType               sipAPI_%s->api_bad_set_type\n"
 "#define sipBadCatcherResult         sipAPI_%s->api_bad_catcher_result\n"
 "#define sipBadOperatorArg           sipAPI_%s->api_bad_operator_arg\n"
 "#define sipTrace                    sipAPI_%s->api_trace\n"
@@ -576,7 +576,10 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipImportSymbol             sipAPI_%s->api_import_symbol\n"
 "#define sipFindType                 sipAPI_%s->api_find_type\n"
 "#define sipFindNamedEnum            sipAPI_%s->api_find_named_enum\n"
+"#define sipBytes_AsChar             sipAPI_%s->api_bytes_as_char\n"
+"#define sipBytes_AsString           sipAPI_%s->api_bytes_as_string\n"
 "#define sipString_AsChar            sipAPI_%s->api_string_as_char\n"
+"#define sipString_AsString          sipAPI_%s->api_string_as_string\n"
 "#define sipUnicode_AsWChar          sipAPI_%s->api_unicode_as_wchar\n"
 "#define sipUnicode_AsWString        sipAPI_%s->api_unicode_as_wstring\n"
 "#define sipConvertFromConstVoidPtr  sipAPI_%s->api_convert_from_const_void_ptr\n"
@@ -614,6 +617,8 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipConvertFromMappedType    sipConvertFromType\n"
 "#define sipConvertFromNamedEnum(v, pt)  sipConvertFromEnum((v), ((sipEnumTypeObject *)(pt))->type)\n"
 "#define sipConvertFromNewInstance(p, wt, t) sipConvertFromNewType((p), (wt)->type, (t))\n"
+        ,mname
+        ,mname
         ,mname
         ,mname
         ,mname
@@ -2695,7 +2700,7 @@ static int generateChars(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
         if (vd->ecd != cd || vd->module != mod)
             continue;
 
-        if (!((vtype == sstring_type || vtype == ustring_type || vtype == string_type || vtype == wstring_type) && vd->type.nrderefs == 0))
+        if (!((vtype == estring_type || vtype == sstring_type || vtype == ustring_type || vtype == string_type || vtype == wstring_type) && vd->type.nrderefs == 0))
             continue;
 
         if (needsHandler(vd))
@@ -2722,13 +2727,22 @@ static int generateChars(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
         }
 
         prcode(fp,
+"#if PY_MAJOR_VERSION >= 3\n"
+"    {%N, %S, %s},\n"
+"#else\n"
 "    {%N, %S},\n"
+"#endif\n"
+            , vd->pyname, vd->fqcname, (vtype == estring_type ? "1" : "0")
             , vd->pyname, vd->fqcname);
     }
 
     if (!noIntro)
         prcode(fp,
+"#if PY_MAJOR_VERSION >= 3\n"
+"    {0, 0, 0}\n"
+"#else\n"
 "    {0, 0}\n"
+"#endif\n"
 "};\n"
             );
 
@@ -2754,7 +2768,7 @@ static int generateStrings(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
         if (vd->ecd != cd || vd->module != mod)
             continue;
 
-        if (!((vtype == sstring_type || vtype == ustring_type || vtype == string_type || vtype == wstring_type) && vd->type.nrderefs != 0))
+        if (!((vtype == estring_type || vtype == sstring_type || vtype == ustring_type || vtype == string_type || vtype == wstring_type) && vd->type.nrderefs != 0))
             continue;
 
         if (needsHandler(vd))
@@ -2781,13 +2795,22 @@ static int generateStrings(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
         }
 
         prcode(fp,
+"#if PY_MAJOR_VERSION >= 3\n"
+"    {%N, %S, %s},\n"
+"#else\n"
 "    {%N, %S},\n"
+"#endif\n"
+            , vd->pyname, vd->fqcname, (vtype == estring_type ? "1" : "0")
             , vd->pyname, vd->fqcname);
     }
 
     if (!noIntro)
         prcode(fp,
+"#if PY_MAJOR_VERSION >= 3\n"
+"    {0, 0, 0}\n"
+"#else\n"
 "    {0, 0}\n"
+"#endif\n"
 "};\n"
             );
 
@@ -3765,6 +3788,32 @@ static void generateVariableGetter(classDef *context, varDef *vd, FILE *fp)
 
         break;
 
+    case estring_type:
+        if (vd->type.nrderefs == 0)
+            prcode(fp,
+"#if PY_MAJOR_VERSION >= 3\n"
+"    return PyUnicode_FromStringAndSize(&sipVal, 1);\n"
+"#else\n"
+"    return PyString_FromStringAndSize(&sipVal, 1);\n"
+"#endif\n"
+                );
+        else
+            prcode(fp,
+"    if (sipVal == NULL)\n"
+"    {\n"
+"        Py_INCREF(Py_None);\n"
+"        return Py_None;\n"
+"    }\n"
+"\n"
+"#if PY_MAJOR_VERSION >= 3\n"
+"    return PyUnicode_FromString(sipVal);\n"
+"#else\n"
+"    return PyString_FromString(sipVal);\n"
+"#endif\n"
+                );
+
+        break;
+
     case sstring_type:
     case ustring_type:
     case string_type:
@@ -3777,6 +3826,12 @@ static void generateVariableGetter(classDef *context, varDef *vd, FILE *fp)
                     , cast);
             else
                 prcode(fp,
+"    if (sipVal == NULL)\n"
+"    {\n"
+"        Py_INCREF(Py_None);\n"
+"        return Py_None;\n"
+"    }\n"
+"\n"
 "    return SIPBytes_FromString(%ssipVal);\n"
                     , cast);
         }
@@ -3790,6 +3845,12 @@ static void generateVariableGetter(classDef *context, varDef *vd, FILE *fp)
                 );
         else
             prcode(fp,
+"    if (sipVal == NULL)\n"
+"    {\n"
+"        Py_INCREF(Py_None);\n"
+"        return Py_None;\n"
+"    }\n"
+"\n"
 "    return PyUnicode_FromWideChar(sipVal, (SIP_SSIZE_T)wcslen(sipVal));\n"
                 );
 
@@ -3888,14 +3949,21 @@ static void generateVariableGetter(classDef *context, varDef *vd, FILE *fp)
 static void generateVariableSetter(classDef *context, varDef *vd, FILE *fp)
 {
     argType atype = vd->type.atype;
-    const char *first_arg;
+    const char *first_arg, *last_arg;
     char *deref;
-    int might_be_temp;
+    int might_be_temp, keep;
+
+    keep = keepPyReference(&vd->type);
 
     if (generating_c || !isStaticVar(vd))
         first_arg = "sipSelf";
     else
         first_arg = "";
+
+    if (generating_c || (!isStaticVar(vd) && keep))
+        last_arg = "sipPySelf";
+    else
+        last_arg = "";
 
     prcode(fp,
 "\n"
@@ -3904,13 +3972,13 @@ static void generateVariableSetter(classDef *context, varDef *vd, FILE *fp)
 
     if (!generating_c)
         prcode(fp,
-"extern \"C\" {static int varset_%C(void *, PyObject *);}\n"
+"extern \"C\" {static int varset_%C(void *, PyObject *, PyObject *);}\n"
             , vd->fqcname);
 
     prcode(fp,
-"static int varset_%C(void *%s, PyObject *sipPy)\n"
+"static int varset_%C(void *%s, PyObject *sipPy, PyObject *%s)\n"
 "{\n"
-        , vd->fqcname, first_arg);
+        , vd->fqcname, first_arg, last_arg);
 
     if (vd->setcode == NULL)
     {
@@ -3987,26 +4055,12 @@ static void generateVariableSetter(classDef *context, varDef *vd, FILE *fp)
     }
     else
     {
-        if ((atype == sstring_type || atype == ustring_type || atype == string_type || atype == wstring_type) && vd->type.nrderefs != 0)
-        {
-            prcode(fp,
-"\n"
-"    if (sipVal == NULL)\n"
-                );
-        }
-        else
-            prcode(fp,
+        prcode(fp,
 "\n"
 "    if (PyErr_Occurred() != NULL)\n"
-                );
-
-        prcode(fp,
-"    {\n"
-"        sipBadSetType(%N, %N);\n"
 "        return -1;\n"
-"    }\n"
 "\n"
-            , vd->ecd->pyname, vd->pyname);
+        );
     }
 
     if (atype == pyobject_type || atype == pytuple_type ||
@@ -4045,6 +4099,31 @@ static void generateVariableSetter(classDef *context, varDef *vd, FILE *fp)
 "\n"
 "    sipReleaseType(sipVal, sipType_%T, sipValState);\n"
             , &vd->type);
+
+    /* Generate the code to keep the object alive while er use its data. */
+    if (keep)
+    {
+        if (isStaticVar(vd))
+        {
+            prcode(fp,
+"\n"
+"    static PyObject *sipKeep = 0;\n"
+"\n"
+"    Py_XDECREF(sipKeep);\n"
+"    sipKeep = sipPy;\n"
+"    Py_INCREF(sipKeep);\n"
+                );
+        }
+        else
+        {
+            vd->type.key = context->iff->module->next_key++;
+
+            prcode(fp,
+"\n"
+"    sipKeepReference(sipPySelf, %d, sipPy);\n"
+                , vd->type.key);
+        }
+    }
 
     prcode(fp,
 "\n"
@@ -4144,23 +4223,30 @@ static int generateObjToCppConversion(argDef *ad,FILE *fp)
 
     case sstring_type:
         if (ad->nrderefs == 0)
-            rhs = "(signed char)sipString_AsChar(sipPy)";
+            rhs = "(signed char)sipBytes_AsChar(sipPy)";
         else
-            rhs = "(signed char *)SIPBytes_AsString(sipPy)";
+            rhs = "(signed char *)sipBytes_AsString(sipPy)";
         break;
 
     case ustring_type:
         if (ad->nrderefs == 0)
-            rhs = "(unsigned char)sipString_AsChar(sipPy)";
+            rhs = "(unsigned char)sipBytes_AsChar(sipPy)";
         else
-            rhs = "(unsigned char *)SIPBytes_AsString(sipPy)";
+            rhs = "(unsigned char *)sipBytes_AsString(sipPy)";
+        break;
+
+    case estring_type:
+        if (ad->nrderefs == 0)
+            rhs = "sipString_AsChar(sipPy)";
+        else
+            rhs = "sipString_AsString(&sipPy)";
         break;
 
     case string_type:
         if (ad->nrderefs == 0)
-            rhs = "sipString_AsChar(sipPy)";
+            rhs = "sipBytes_AsChar(sipPy)";
         else
-            rhs = "SIPBytes_AsString(sipPy)";
+            rhs = "sipBytes_AsString(sipPy)";
         break;
 
     case wstring_type:
@@ -5451,7 +5537,7 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
     virtHandlerDef *vhd = od->virthandler;
     argDef *res, *ad;
     signatureDef saved;
-    int a;
+    int a, args_keep = FALSE, result_keep = FALSE;
 
     normaliseArgs(od->cppsig);
 
@@ -5514,10 +5600,29 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
         generateCalledArgs(cd, vhd->cppsig, Declaration, FALSE, fp);
     }
 
+    *vhd->cppsig = saved;
+
+    /* Add extra arguments for all the references we need to keep. */
+    if (res != NULL && keepPyReference(res))
+    {
+        result_keep = TRUE;
+        res->key = mod->next_key++;
+        prcode(fp, ",int");
+    }
+
+    for (ad = od->cppsig->args, a = 0; a < od->cppsig->nrArgs; ++a, ++ad)
+        if (isOutArg(ad) && keepPyReference(ad))
+        {
+            args_keep = TRUE;
+            ad->key = mod->next_key++;
+            prcode(fp, ",int");
+        }
+
+    if (result_keep || args_keep)
+        prcode(fp, ",sipSimpleWrapper *");
+
     prcode(fp,");\n"
         );
-
-    *vhd->cppsig = saved;
 
     if (isNewThread(od))
         prcode(fp,
@@ -5592,12 +5697,10 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
                     );
         }
 
-        prcode(fp,
-"\n"
-"    ");
-
         if (res != NULL)
-            prcode(fp,"return ");
+            prcode(fp,
+"\n"
+"    return ");
     }
 
     if (vhd->module == mod)
@@ -5607,9 +5710,7 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
 
     prcode(fp,"(sipGILState,meth");
 
-    ad = od->cppsig->args;
-
-    for (a = 0; a < od->cppsig->nrArgs; ++a)
+    for (ad = od->cppsig->args, a = 0; a < od->cppsig->nrArgs; ++a, ++ad)
     {
         if (ad->atype == class_type && isProtectedClass(ad->u.cd))
             prcode(fp, ",%sa%d", ((isReference(ad) || ad->nrderefs == 0) ? "&" : ""), a);
@@ -5617,9 +5718,19 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
             prcode(fp, ",(%E)a%d", ad->u.ed, a);
         else
             prcode(fp,",a%d",a);
-
-        ++ad;
     }
+
+    /* Pass the keys to maintain the kept references. */
+    if (result_keep)
+        prcode(fp, ",%d", res->key);
+
+    if (args_keep)
+        for (ad = od->cppsig->args, a = 0; a < od->cppsig->nrArgs; ++a, ++ad)
+            if (isOutArg(ad) && keepPyReference(ad))
+                prcode(fp, ",%d", ad->key);
+
+    if (result_keep || args_keep)
+        prcode(fp, ",sipPySelf");
  
     prcode(fp,");\n"
         );
@@ -5815,7 +5926,7 @@ static void generateCallDefaultCtor(ctorDef *ct, FILE *fp)
             prcode(fp, "0L");
         else if (ad->atype == ulong_type || ad->atype == ulonglong_type)
             prcode(fp, "0UL");
-        else if ((ad->atype == ustring_type || ad->atype == sstring_type || ad->atype == string_type) && ad->nrderefs == 0)
+        else if ((ad->atype == estring_type || ad->atype == ustring_type || ad->atype == sstring_type || ad->atype == string_type) && ad->nrderefs == 0)
             prcode(fp, "'\\0'");
         else if (ad->atype == wstring_type && ad->nrderefs == 0)
             prcode(fp, "L'\\0'");
@@ -6081,8 +6192,8 @@ static void generateProtectedCallArgs(overDef *od, FILE *fp)
  */
 static void generateVirtualHandler(virtHandlerDef *vhd, FILE *fp)
 {
-    int a, nrvals, copy, isref;
-    argDef *res, res_noconstref;
+    int a, nrvals, copy, isref, need_self;
+    argDef *res, res_noconstref, *ad;
     signatureDef saved;
 
     res = &vhd->cppsig->result;
@@ -6128,11 +6239,29 @@ static void generateVirtualHandler(virtHandlerDef *vhd, FILE *fp)
     if (vhd->cppsig->nrArgs > 0)
     {
         prcode(fp,",");
-
         generateCalledArgs(NULL, vhd->cppsig, Definition, FALSE, fp);
     }
 
     *vhd->cppsig = saved;
+
+    /* Declare the extra arguments for kept references. */
+    need_self = FALSE;
+
+    if (res != NULL && keepPyReference(res))
+    {
+        need_self = TRUE;
+        prcode(fp, ",int sipResKey");
+    }
+
+    for (ad = vhd->cppsig->args, a = 0; a < vhd->cppsig->nrArgs; ++a, ++ad)
+        if (isOutArg(ad) && keepPyReference(ad))
+        {
+            need_self = TRUE;
+            prcode(fp, ",int a%dKey", a);
+        }
+
+    if (need_self)
+        prcode(fp, ",sipSimpleWrapper *sipPySelf");
 
     prcode(fp,")\n"
 "{\n"
@@ -6147,7 +6276,10 @@ static void generateVirtualHandler(virtHandlerDef *vhd, FILE *fp)
          * leaks we keep the last result around until we have a new one.  This
          * means that ownership of the return value stays with the function
          * returning it - which is consistent with how other types work, even
-         * thought it may not be what's required in all cases.
+         * thought it may not be what's required in all cases.  Note that we
+         * should do this in the code that calls the handler instead of here
+         * (as we do with strings) so that it doesn't get shared between all
+         * callers.
          */
         if (res->atype == wstring_type && res->nrderefs == 1)
             prcode(fp, "static ");
@@ -6255,7 +6387,7 @@ static void generateVirtualHandler(virtHandlerDef *vhd, FILE *fp)
 
     /* Call the method. */
     prcode(fp,
-"    PyObject *sipResObj = sipCallMethod(0,sipMethod,");
+"    PyObject *resObj = sipCallMethod(0,sipMethod,");
 
     saved = *vhd->pysig;
     fakeProtectedArgs(vhd->pysig);
@@ -6264,9 +6396,12 @@ static void generateVirtualHandler(virtHandlerDef *vhd, FILE *fp)
 
     prcode(fp,");\n"
 "\n"
-"    %s (!sipResObj || sipParseResult(0,sipMethod,sipResObj,\"",(isref ? "int sipIsErr =" : "if"));
+"    %s (!resObj || sipParseResult(0,sipMethod,resObj,\"",(isref ? "int sipIsErr =" : "if"));
 
     /* Build the format string. */
+    if (need_self)
+        prcode(fp, "S");
+
     if (nrvals == 0)
         prcode(fp,"Z");
     else
@@ -6291,10 +6426,13 @@ static void generateVirtualHandler(virtHandlerDef *vhd, FILE *fp)
 
     prcode(fp,"\"");
 
+    if (need_self)
+        prcode(fp, ",sipPySelf");
+
     /* Pass the destination pointers. */
     if (res != NULL)
     {
-        generateParseResultExtraArgs(res, TRUE, fp);
+        generateParseResultExtraArgs(res, -1, fp);
         prcode(fp,",&sipRes%s",(copy ? "Orig" : ""));
     }
 
@@ -6304,7 +6442,7 @@ static void generateVirtualHandler(virtHandlerDef *vhd, FILE *fp)
 
         if (isOutArg(ad))
         {
-            generateParseResultExtraArgs(ad, FALSE, fp);
+            generateParseResultExtraArgs(ad, a, fp);
             prcode(fp,",%sa%d",(isReference(ad) ? "&" : ""),a);
         }
     }
@@ -6347,7 +6485,7 @@ static void generateVirtualHandler(virtHandlerDef *vhd, FILE *fp)
 
     prcode(fp,
 "\n"
-"    Py_XDECREF(sipResObj);\n"
+"    Py_XDECREF(resObj);\n"
 "    Py_DECREF(sipMethod);\n"
 "\n"
 "    SIP_RELEASE_GIL(sipGILState)\n"
@@ -6381,7 +6519,7 @@ static void generateVirtualHandler(virtHandlerDef *vhd, FILE *fp)
  * Generate the extra arguments needed by sipParseResult() for a particular
  * type.
  */
-static void generateParseResultExtraArgs(argDef *ad, int isres, FILE *fp)
+static void generateParseResultExtraArgs(argDef *ad, int argnr, FILE *fp)
 {
     switch (ad->atype)
     {
@@ -6392,7 +6530,7 @@ static void generateParseResultExtraArgs(argDef *ad, int isres, FILE *fp)
     case class_type:
         prcode(fp, ",sipType_%C", classFQCName(ad->u.cd));
 
-        if (isres && ad->nrderefs == 0 && ad->u.cd->convtocode != NULL && !isReference(ad))
+        if (argnr < 0 && ad->nrderefs == 0 && ad->u.cd->convtocode != NULL && !isReference(ad))
             prcode(fp, ",&sipResState");
 
         break;
@@ -6421,6 +6559,13 @@ static void generateParseResultExtraArgs(argDef *ad, int isres, FILE *fp)
         if (ad->u.ed->fqcname != NULL)
             prcode(fp, ",sipType_%C", ad->u.ed->fqcname);
         break;
+
+    default:
+        if (keepPyReference(ad))
+            if (argnr < 0)
+                prcode(fp, ",sipResKey");
+            else
+                prcode(fp, ",a%dKey", argnr);
     }
 }
 
@@ -6488,10 +6633,13 @@ static const char *getParseResultFormat(argDef *ad, int isres, int xfervh)
     case cbool_type:
         return "b";
 
+    case estring_type:
+        return ((ad->nrderefs == 0) ? "a" : "A");
+
     case sstring_type:
     case ustring_type:
     case string_type:
-        return ((ad->nrderefs == 0) ? "c" : "s");
+        return ((ad->nrderefs == 0) ? "c" : "B");
 
     case wstring_type:
         return ((ad->nrderefs == 0) ? "w" : "x");
@@ -6571,6 +6719,14 @@ static void generateTupleBuilder(signatureDef *sd,FILE *fp)
 
         switch (ad->atype)
         {
+        case estring_type:
+            if (ad->nrderefs == 0 || (ad->nrderefs == 1 && isOutArg(ad)))
+                fmt = "a";
+            else
+                fmt = "A";
+
+            break;
+
         case sstring_type:
         case ustring_type:
         case string_type:
@@ -6729,6 +6885,7 @@ static void generateTupleBuilder(signatureDef *sd,FILE *fp)
 
         switch (ad->atype)
         {
+        case estring_type:
         case sstring_type:
         case ustring_type:
         case string_type:
@@ -7325,6 +7482,7 @@ static void generateCallArgs(classDef *context, signatureDef *sd,
         /* See if the argument needs dereferencing or it's address taking. */
         switch (ad->atype)
         {
+        case estring_type:
         case sstring_type:
         case ustring_type:
         case string_type:
@@ -7492,6 +7650,7 @@ static void generateNamedBaseType(classDef *context, argDef *ad, char *name,
 
             /* Drop through. */
 
+        case estring_type:
         case string_type:
             prcode(fp, "char");
             break;
@@ -7676,6 +7835,7 @@ static void generateVariable(classDef *context, argDef *ad, int argnr,
 
     switch (atype)
     {
+    case estring_type:
     case sstring_type:
     case ustring_type:
     case string_type:
@@ -7730,6 +7890,10 @@ static void generateVariable(classDef *context, argDef *ad, int argnr,
             prcode(fp,
 "        PyObject *a%dWrapper%s;\n"
                 , argnr, (ad->defval != NULL ? " = 0" : ""));
+        else if (keepReference(ad))
+            prcode(fp,
+"        PyObject *a%dKeep%s;\n"
+                , argnr, (ad->defval != NULL ? " = 0" : ""));
 
         switch (atype)
         {
@@ -7746,6 +7910,14 @@ static void generateVariable(classDef *context, argDef *ad, int argnr,
                 prcode(fp,
 "        int a%dState = 0;\n"
                     ,argnr);
+
+            break;
+
+        case estring_type:
+            if (!keepReference(ad) && ad->nrderefs == 1)
+                prcode(fp,
+"        PyObject *a%dKeep%s;\n"
+                    , argnr, (ad->defval != NULL ? " = 0" : ""));
 
             break;
 
@@ -9455,6 +9627,35 @@ static void generateHandleResult(overDef *od, int isNew, int result_size,
 
         break;
 
+    case estring_type:
+        if (ad->nrderefs == 0)
+            prcode(fp,
+"#if PY_MAJOR_VERSION >= 3\n"
+"            %s PyUnicode_FromStringAndSize(&%s, 1);\n"
+"#else\n"
+"            %s PyString_FromStringAndSize(&%s, 1);\n"
+"#endif\n"
+                , prefix, vname
+                , prefix, vname);
+        else
+            prcode(fp,
+"            if (%s == NULL)\n"
+"            {\n"
+"                Py_INCREF(Py_None);\n"
+"                return Py_None;\n"
+"            }\n"
+"\n"
+"#if PY_MAJOR_VERSION >= 3\n"
+"            %s PyUnicode_FromString(%s);\n"
+"#else\n"
+"            %s PyString_FromString(%s);\n"
+"#endif\n"
+            , vname
+            , prefix, vname
+            , prefix, vname);
+
+        break;
+
     case sstring_type:
     case ustring_type:
     case string_type:
@@ -9635,6 +9836,9 @@ static char getBuildResultFormat(argDef *ad)
     case bool_type:
     case cbool_type:
         return 'b';
+
+    case estring_type:
+        return (ad->nrderefs > (isOutArg(ad) ? 1 : 0)) ? 'A' : 'a';
 
     case sstring_type:
     case ustring_type:
@@ -10128,12 +10332,12 @@ static void generateFunctionCall(classDef *cd,classDef *ocd,overDef *od,
                 continue;
 
             /* Handle any /KeepReference/ arguments. */
-            if (ad->key > 0)
+            if (keepReference(ad))
             {
                 prcode(fp,
 "\n"
-"            sipKeepReference(sipSelf, %d, a%dWrapper);\n"
-                    , ad->key, a);
+"            sipKeepReference(sipSelf, %d, a%d%s);\n"
+                    , ad->key, a, ((ad->atype == estring_type && ad->nrderefs == 1) || !isGetWrapper(ad) ? "Keep" : "Wrapper"));
             }
 
             /* Handle /TransferThis/ for non-factory methods. */
@@ -10443,6 +10647,14 @@ static int generateArgParser(signatureDef *sd, classDef *cd, ctorDef *ct,
 
         switch (ad->atype)
         {
+        case estring_type:
+            if (ad->nrderefs == 0 || (isOutArg(ad) && ad->nrderefs == 1))
+                fmt = "a";
+            else
+                fmt = "A";
+
+            break;
+
         case sstring_type:
         case ustring_type:
         case string_type:
@@ -10610,7 +10822,12 @@ static int generateArgParser(signatureDef *sd, classDef *cd, ctorDef *ct,
             break;
         }
 
-        if (isGetWrapper(ad))
+        /*
+         * Get the wrapper if explicitly asked for or we are going to keep a
+         * reference to.  However if it is an encoded string then we will get
+         * the actual wrapper from the format character.
+         */
+        if (isGetWrapper(ad) || (keepReference(ad) && ad->atype != estring_type) || (keepReference(ad) && ad->nrderefs != 1))
             prcode(fp, "@");
 
         prcode(fp,fmt);
@@ -10632,8 +10849,11 @@ static int generateArgParser(signatureDef *sd, classDef *cd, ctorDef *ct,
         if (!isInArg(ad))
             continue;
 
+        /* Use the wrapper name if it was explicitly asked for. */
         if (isGetWrapper(ad))
             prcode(fp, ",&a%dWrapper", a);
+        else if (keepReference(ad))
+            prcode(fp, ",&a%dKeep", a);
 
         switch (ad->atype)
         {
@@ -10654,6 +10874,13 @@ static int generateArgParser(signatureDef *sd, classDef *cd, ctorDef *ct,
             if (ad->u.cd->convtocode != NULL && !isConstrained(ad))
                 prcode(fp, ",&a%dState", a);
 
+            break;
+
+        case estring_type:
+            if (!keepReference(ad) && ad->nrderefs == 1)
+                prcode(fp, ",&a%dKeep", a);
+
+            prcode(fp, ",&a%d", a);
             break;
 
         case rxcon_type:
@@ -10830,7 +11057,13 @@ static void deleteTemps(signatureDef *sd, FILE *fp)
         if (!isInArg(ad))
             continue;
 
-        if (ad->atype == wstring_type && ad->nrderefs == 1)
+        if (ad->atype == estring_type && ad->nrderefs == 1)
+        {
+            prcode(fp,
+"            Py_%sDECREF(a%dKeep);\n"
+                , (ad->defval != NULL ? "X" : ""), a);
+        }
+        else if (ad->atype == wstring_type && ad->nrderefs == 1)
         {
             if (generating_c || !isConstArg(ad))
                 prcode(fp,
@@ -11711,4 +11944,21 @@ static void generateMappedTypeFromVoid(mappedTypeDef *mtd, const char *cname,
         prcode(fp, "%b *%s = (%b *)%s", &mtd->type, cname, &mtd->type, vname);
     else
         prcode(fp, "%b *%s = reinterpret_cast<%b *>(%s)", &mtd->type, cname, &mtd->type, vname);
+}
+
+
+/*
+ * Returns TRUE if the argument has a type that requires an extra reference to
+ * the originating object to be kept.
+ */
+static int keepPyReference(argDef *ad)
+{
+    if (ad->atype == estring_type || ad->atype == ustring_type ||
+            ad->atype == sstring_type || ad->atype == string_type)
+    {
+        if (!isReference(ad) && ad->nrderefs > 0)
+            return TRUE;
+    }
+
+    return FALSE;
 }

@@ -258,7 +258,7 @@ The following parts of the API are now deprecated (but still supported).
     - The ``B``, ``C`` and ``E`` format characters of `sipBuildResult()`_ and
       `sipCallMethod()`_.
 
-    - The ``C`` and ``E`` format character of `sipParseResult()`_.
+    - The ``s``, ``C`` and ``E`` format character of `sipParseResult()`_.
 
 The following PyQt-specific support functions have been removed.
 
@@ -3467,6 +3467,13 @@ context of a method:
     ``a1``, etc.  The *type* of the variable is the same as the type defined in
     the specification.
 
+int a0Key
+    There is a variable for each argument of the C++ signature that has a type
+    where it is important to ensure that the corresponding Python object is not
+    garbage collected too soon.  This only applies to output arguments that
+    return ``'\0'`` terminated strings.  The variable would normally be passed
+    to `sipParseResult()`_ using either the ``A`` or ``B`` format characters.
+
 int sipIsErr
     The handwritten code should set this to a non-zero value, and raise an
     appropriate Python exception, if an error is detected.
@@ -3479,6 +3486,19 @@ PyObject \*sipMethod
     The handwritten code should set this to the result to be returned.  The
     *type* of the variable is the same as the type defined in the C++ signature
     in the specification.
+
+int sipResKey
+    This variable is only made available if the result has a type where it is
+    important to ensure that the corresponding Python object is not garbage
+    collected too soon.  This only applies to ``'\0'`` terminated strings.  The
+    variable would normally be passed to `sipParseResult()`_ using either the
+    ``A`` or ``B`` format characters.
+
+sipSimpleWrapper \*sipPySelf
+    This variableis only made available if either the ``a0Key`` or
+    ``sipResKey`` are made available.  It defines the context within which keys
+    are unique.  The variable would normally be passed to `sipParseResult()`_
+    using the ``S`` format character.
 
 No variables are made available in the context of a destructor.
 
@@ -3587,6 +3607,8 @@ rather than a ``'\0'`` terminated string.  There must be a corresponding
 argument with the ArraySize_ annotation specified.  The annotation may only be
 specified once in a list of arguments.
 
+The annotation also implies the Byte_ annotation.
+
 
 ArraySize
 *********
@@ -3596,6 +3618,18 @@ should be either ``short``, ``unsigned short``, ``int``, ``unsigned``,
 ``long`` or ``unsigned long``) refers to the size of an array.  There must be
 a corresponding argument with the Array_ annotation specified.  The annotation
 may only be specified once in a list of arguments.
+
+
+Byte
+****
+
+This boolean annotation specifies that the corresponding argument (which should
+be either ``char``, ``const char``, ``char *`` or ``const char *``) refers to
+an unencoded byte or byte array rather than an encoded character or ``'\0'``
+terminated encoded string.  Python v3 will use the ``bytes`` type rather than
+the ``str`` type to represent the argument.  Python v2 ignores the annotation.
+
+The annotation can also be used as a function, typedef or variable annotation.
 
 
 Constrained
@@ -4248,6 +4282,9 @@ PyObject \*sipBuildResult(int \*iserr, const char \*format, ...)
     will create, and the entry in brackets are the types of the C/C++ values
     to be passed. 
 
+    ``a`` (string) [char]
+        Convert a C/C++ ``char`` to a Python v2 or v3 string object.
+
     ``b`` (boolean) [int]
         Convert a C/C++ ``int`` to a Python boolean.
 
@@ -4298,12 +4335,18 @@ PyObject \*sipBuildResult(int \*iserr, const char \*format, ...)
     ``u`` (long) [unsigned int]
         Convert a C/C++ ``unsigned int`` to a Python long.
 
-    ``w`` (unicode) [wchar_t]
-        Convert a C/C++ wide character to a Python unicode object.
+    ``w`` (unicode/string) [wchar_t]
+        Convert a C/C++ wide character to a Python v2 unicode object or a
+        Python v3 string object.
 
-    ``x`` (unicode) [wchar_t \*]
+    ``x`` (unicode/string) [wchar_t \*]
         Convert a C/C++ ``L'\0'`` terminated wide character string to a Python
-        unicode object.  If the string pointer is ``NULL`` then the result is
+        v2 unicode object or a Python v3 string object.  If the string pointer
+        is ``NULL`` then the result is ``Py_None``.
+
+    ``A`` (string) [char \*]
+        Convert a C/C++ ``'\0'`` terminated string to a Python v2 or v3 string
+        object.  If the string pointer is ``NULL`` then the result is
         ``Py_None``.
 
     ``B`` (wrapped instance) [*type* \*, sipWrapperType \*, PyObject \*]
@@ -4978,6 +5021,10 @@ int sipParseResult(int \*iserr, PyObject \*method, PyObject \*result, const char
     will convert, and the entry in brackets are the types of the C/C++ values
     to be passed. 
 
+    ``a`` (string) [char \*]
+        Convert a Python v2 string object or a Python V3 Latin-1 string object
+        of length 1 to a C/C++ ``char``.
+
     ``b`` (integer) [bool \*]
         Convert a Python integer to a C/C++ ``bool``.
 
@@ -5023,19 +5070,38 @@ int sipParseResult(int \*iserr, PyObject \*method, PyObject \*result, const char
         C/C++ ``'\0'`` terminated string.  If the Python object is ``Py_None``
         then the string is ``NULL``.
 
+        This is deprecated from SIP v4.8.  Instead you should use ``B``.
+
     ``t`` (long) [unsigned short \*]
         Convert a Python long to a C/C++ ``unsigned short``.
 
     ``u`` (long) [unsigned int \*]
         Convert a Python long to a C/C++ ``unsigned int``.
 
-    ``w`` (unicode) [wchar_t \*]
-        Convert a Python unicode object of length 1 to a C/C++ wide character.
+    ``w`` (unicode/string) [wchar_t \*]
+        Convert a Python v2 unicode object or a Python v3 string object of
+        length 1 to a C/C++ wide character.
 
-    ``x`` (unicode) [wchar_t \*\*]
-        Convert a Python unicode object to a C/C++ ``L'\0'`` terminated wide
-        character string.  If the Python object is ``Py_None`` then the string
-        is ``NULL``.
+    ``x`` (unicode/string) [wchar_t \*\*]
+        Convert a Python v2 unicode object or a Python v3 string object to a
+        C/C++ ``L'\0'`` terminated wide character string.  If the Python object
+        is ``Py_None`` then the string is ``NULL``.
+
+    ``A`` (string) [int, const char \*\*]
+        Convert a Python v2 string object or a Python v3 Latin-1 string object
+        to a C/C++ ``'\0'`` terminated string.  If the Python object is
+        ``Py_None`` then the string is ``NULL``.  The integer uniquely
+        identifies the object in the context defined by the ``S`` format
+        character and allows an extra reference to the object to be kept to
+        ensure that the string remains valid.
+
+    ``B`` (string/bytes) [int, const char \*\*]
+        Convert a Python v2 string object or a Python v3 bytes object to a
+        C/C++ ``'\0'`` terminated string.  If the Python object is ``Py_None``
+        then the string is ``NULL``.  The integer uniquely identifies the
+        object in the context defined by the ``S`` format character and allows
+        an extra reference to the object to be kept to ensure that the string
+        remains valid.
 
     ``Cf`` (wrapped class) [sipWrapperType \*, int \*, void \*\*]
         Convert a Python object to a C structure or a C++ class instance and
@@ -5088,6 +5154,11 @@ int sipParseResult(int \*iserr, PyObject \*method, PyObject \*result, const char
     ``O`` (object) [PyObject \*\*]
         A Python object is returned without any conversions.  The reference
         count is incremented.
+
+    ``S`` [sipSimpleWrapper \*]
+        This format character, if used, must be the first.  It is used with
+        other format characters to define a context and doesn't itself convert
+        an argument.
 
     ``T`` (object) [PyTypeObject \*, PyObject \*\*]
         A Python object is checked to see if it is a certain type and then

@@ -108,6 +108,7 @@ static overDef *instantiateTemplateOverloads(sipSpec *pt, overDef *tod,
         scopedNameDef *type_names, scopedNameDef *type_values);
 static void resolveAnyTypedef(sipSpec *pt, argDef *ad);
 static void addVariable(sipSpec *pt, varDef *vd);
+static void applyTypeFlags(argDef *ad, optFlags *flags);
 %}
 
 %union {
@@ -1333,13 +1334,18 @@ exprlist:   {
 
 typedef:    TK_TYPEDEF cpptype TK_NAME optflags ';' {
             if (notSkipping())
+            {
+                applyTypeFlags(&$2, &$4);
                 newTypedef(currentSpec, currentModule, $3, &$2, &$4);
+            }
         }
     |   TK_TYPEDEF cpptype '(' deref TK_NAME ')' '(' cpptypelist ')' optflags ';' {
             if (notSkipping())
             {
                 signatureDef *sig;
                 argDef ftype;
+
+                applyTypeFlags(&$2, &$10);
 
                 memset(&ftype, 0, sizeof (argDef));
 
@@ -1776,6 +1782,8 @@ function:   cpptype TK_NAME '(' arglist ')' optconst optexceptions optabstract o
                 if (sectionFlags != 0 && (sectionFlags & (SECT_IS_PUBLIC | SECT_IS_PROT | SECT_IS_PRIVATE | SECT_IS_SLOT | SECT_IS_SIGNAL)) == 0)
                     yyerror("Class function must be in the public, private, protected, slot or signal sections");
 
+                applyTypeFlags(&$1, &$9);
+
                 $4.result = $1;
 
                 newFunction(currentSpec,currentModule,
@@ -1791,6 +1799,8 @@ function:   cpptype TK_NAME '(' arglist ')' optconst optexceptions optabstract o
             if (notSkipping())
             {
                 classDef *cd = currentScope();
+
+                applyTypeFlags(&$1, &$10);
 
                 /* Handle the unary '+' and '-' operators. */
                 if ((cd != NULL && $5.nrArgs == 0) || (cd == NULL && $5.nrArgs == 1))
@@ -1820,6 +1830,8 @@ function:   cpptype TK_NAME '(' arglist ')' optconst optexceptions optabstract o
 
                 if (scope == NULL || $4.nrArgs != 0)
                     yyerror("Operator casts must be specified in a class and have no arguments");
+
+                applyTypeFlags(&$2, &$9);
 
                 switch ($2.atype)
                 {
@@ -2206,6 +2218,8 @@ variable:   cpptype TK_NAME optflags ';' optaccesscode optgetcode optsetcode {
                 if (currentIsStatic && currentSpec -> genc)
                     yyerror("Cannot have static members in a C structure");
 
+                applyTypeFlags(&$1, &$3);
+
                 if ($6 != NULL || $7 != NULL)
                 {
                     if ($5 != NULL)
@@ -2263,8 +2277,7 @@ argtype:    cpptype optname optflags {
 
             if (findOptFlag(&$3, "KeepReference", bool_flag) != NULL)
             {
-                /* The wrapper is needed. */
-                $$.argflags |= ARG_GET_WRAPPER;
+                $$.argflags |= ARG_KEEP_REF;
                 $$.key = currentModule->next_key++;
             }
 
@@ -2300,6 +2313,8 @@ argtype:    cpptype optname optflags {
                     break;
                 }
             }
+
+            applyTypeFlags(&$$, &$3);
         }
     ;
 
@@ -3514,6 +3529,7 @@ static char *type2string(argDef *ad)
             s = "unsigned char";
             break;
 
+        case estring_type:
         case string_type:
             s = "char";
             break;
@@ -5645,4 +5661,16 @@ static void addVariable(sipSpec *pt, varDef *vd)
 
     vd->next = *at;
     *at = vd;
+}
+
+
+/*
+ * Update a type according to optional flags.
+ */
+static void applyTypeFlags(argDef *ad, optFlags *flags)
+{
+    /* Apply the absence of the "Byte" annotation. */
+    if (findOptFlag(flags, "Byte", bool_flag) == NULL &&
+            ad->atype == string_type && !isArray(ad) && !isReference(ad))
+        ad->atype = estring_type;
 }

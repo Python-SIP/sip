@@ -70,7 +70,6 @@ static void sip_api_no_method(int argsParsed, const char *classname,
         const char *method);
 static void sip_api_abstract_method(const char *classname, const char *method);
 static void sip_api_bad_class(const char *classname);
-static void sip_api_bad_set_type(const char *classname, const char *var);
 static void *sip_api_get_complex_cpp_ptr(sipSimpleWrapper *sw);
 static PyObject *sip_api_is_py_method(sip_gilstate_t *gil, char *pymc,
         sipSimpleWrapper *sipSelf, const char *cname, const char *mname);
@@ -92,7 +91,10 @@ static const sipTypeDef *sip_api_find_type(const char *type);
 static sipWrapperType *sip_api_find_class(const char *type);
 static const sipMappedType *sip_api_find_mapped_type(const char *type);
 static PyTypeObject *sip_api_find_named_enum(const char *type);
+static char sip_api_bytes_as_char(PyObject *obj);
+static char *sip_api_bytes_as_string(PyObject *obj);
 static char sip_api_string_as_char(PyObject *obj);
+static char *sip_api_string_as_string(PyObject **obj);
 #if defined(HAVE_WCHAR_H)
 static wchar_t sip_api_unicode_as_wchar(PyObject *obj);
 static wchar_t *sip_api_unicode_as_wstring(PyObject *obj);
@@ -203,7 +205,6 @@ static const sipAPIDef sip_api = {
     sip_api_no_method,
     sip_api_abstract_method,
     sip_api_bad_class,
-    sip_api_bad_set_type,
     sip_api_get_cpp_ptr,
     sip_api_get_complex_cpp_ptr,
     sip_api_is_py_method,
@@ -216,7 +217,10 @@ static const sipAPIDef sip_api = {
     sip_api_bad_operator_arg,
     sip_api_pyslot_extend,
     sip_api_add_delayed_dtor,
+    sip_api_bytes_as_char,
+    sip_api_bytes_as_string,
     sip_api_string_as_char,
+    sip_api_string_as_string,
     sip_api_unicode_as_wchar,
     sip_api_unicode_as_wstring,
     sip_api_deprecated,
@@ -409,9 +413,12 @@ static void addToParent(sipWrapper *self, sipWrapper *owner);
 static void removeFromParent(sipWrapper *self);
 static void release(void *addr, const sipTypeDef *td, int state);
 static void callPyDtor(sipSimpleWrapper *self);
-static int parseCharArray(PyObject *obj, const char **ap, SIP_SSIZE_T *aszp);
-static int parseChar(PyObject *obj, char *ap);
-static int parseCharString(PyObject *obj, const char **ap);
+static int parseBytes_AsCharArray(PyObject *obj, const char **ap,
+        SIP_SSIZE_T *aszp);
+static int parseBytes_AsChar(PyObject *obj, char *ap);
+static int parseBytes_AsString(PyObject *obj, const char **ap);
+static int parseString_AsChar(PyObject *obj, char *ap);
+static PyObject *parseString_AsString(PyObject *obj, char **ap);
 #if defined(HAVE_WCHAR_H)
 static int parseWCharArray(PyObject *obj, wchar_t **ap, SIP_SSIZE_T *aszp);
 static int parseWChar(PyObject *obj, wchar_t *ap);
@@ -1559,6 +1566,19 @@ static PyObject *buildObject(PyObject *obj, const char *fmt, va_list va)
 
             break;
 
+        case 'a':
+            {
+                char c = va_arg(va, int);
+
+#if PY_MAJOR_VERSION >= 3
+                el = PyUnicode_FromStringAndSize(&c, 1);
+#else
+                el = PyString_FromStringAndSize(&c, 1);
+#endif
+            }
+
+            break;
+
         case 'w':
 #if defined(HAVE_WCHAR_H)
             {
@@ -1642,6 +1662,25 @@ static PyObject *buildObject(PyObject *obj, const char *fmt, va_list va)
                 if (s != NULL)
 #if PY_MAJOR_VERSION >= 3
                     el = PyBytes_FromString(s);
+#else
+                    el = PyString_FromString(s);
+#endif
+                else
+                {
+                    Py_INCREF(Py_None);
+                    el = Py_None;
+                }
+            }
+
+            break;
+
+        case 'A':
+            {
+                char *s = va_arg(va, char *);
+
+                if (s != NULL)
+#if PY_MAJOR_VERSION >= 3
+                    el = PyUnicode_FromString(s);
 #else
                     el = PyString_FromString(s);
 #endif
@@ -1769,9 +1808,17 @@ static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
         const char *fmt, ...)
 {
     int tupsz, rc = 0;
+    sipSimpleWrapper *self = NULL;
     va_list va;
 
     va_start(va,fmt);
+
+    /* Get self if it is provided. */
+    if (*fmt == 'S')
+    {
+        self = va_arg(va, sipSimpleWrapper *);
+        ++fmt;
+    }
 
     /* Basic validation of the format string. */
     if (*fmt == '(')
@@ -1834,7 +1881,7 @@ static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
                     const char **p = va_arg(va, const char **);
                     SIP_SSIZE_T *szp = va_arg(va, SIP_SSIZE_T *);
 
-                    if (parseCharArray(arg, p, szp) < 0)
+                    if (parseBytes_AsCharArray(arg, p, szp) < 0)
                         invalid = TRUE;
                 }
 
@@ -1876,7 +1923,17 @@ static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
                 {
                     char *p = va_arg(va, char *);
 
-                    if (parseChar(arg, p) < 0)
+                    if (parseBytes_AsChar(arg, p) < 0)
+                        invalid = TRUE;
+                }
+
+                break;
+
+            case 'a':
+                {
+                    char *p = va_arg(va, char *);
+
+                    if (parseString_AsChar(arg, p) < 0)
                         invalid = TRUE;
                 }
 
@@ -2080,10 +2137,42 @@ static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
 
             case 's':
                 {
+                    /* This is deprecated. */
+
                     const char **p = va_arg(va, const char **);
 
-                    if (parseCharString(arg, p) < 0)
+                    if (parseBytes_AsString(arg, p) < 0)
                         invalid = TRUE;
+                }
+
+                break;
+
+            case 'A':
+                {
+                    int key = va_arg(va, int);
+                    const char **p = va_arg(va, const char **);
+                    PyObject *keep = parseString_AsString(arg, p);
+
+                    if (keep == NULL)
+                        invalid = TRUE;
+                    else
+                        sip_api_keep_reference((PyObject *)self, key, keep);
+                }
+
+                break;
+
+            case 'B':
+                {
+                    int key = va_arg(va, int);
+                    const char **p = va_arg(va, const char **);
+
+                    if (parseBytes_AsString(arg, p) < 0)
+                        invalid = TRUE;
+                    else
+                    {
+                        Py_INCREF(arg);
+                        sip_api_keep_reference((PyObject *)self, key, arg);
+                    }
                 }
 
                 break;
@@ -2568,11 +2657,24 @@ static int parsePass1(sipSimpleWrapper **selfp, int *selfargp,
 
         case 's':
             {
-                /* String or None. */
+                /* String from a Python bytes or None. */
 
                 const char **p = va_arg(va, const char **);
 
-                if (parseCharString(arg, p) < 0)
+                if (parseBytes_AsString(arg, p) < 0)
+                    valid = PARSE_TYPE;
+
+                break;
+            }
+
+        case 'A':
+            {
+                /* String from a Python string or None. */
+
+                PyObject **keep = va_arg(va, PyObject **);
+                const char **p = va_arg(va, const char **);
+
+                if ((*keep = parseString_AsString(arg, p)) == NULL)
                     valid = PARSE_TYPE;
 
                 break;
@@ -2861,7 +2963,7 @@ static int parsePass1(sipSimpleWrapper **selfp, int *selfargp,
                 const char **p = va_arg(va, const char **);
                 SIP_SSIZE_T *szp = va_arg(va, SIP_SSIZE_T *);
 
-                if (parseCharArray(arg, p, szp) < 0)
+                if (parseBytes_AsCharArray(arg, p, szp) < 0)
                     valid = PARSE_TYPE;
 
                 break;
@@ -2888,11 +2990,23 @@ static int parsePass1(sipSimpleWrapper **selfp, int *selfargp,
 
         case 'c':
             {
-                /* Character. */
+                /* Character from a Python bytes. */
 
                 char *p = va_arg(va, char *);
 
-                if (parseChar(arg, p) < 0)
+                if (parseBytes_AsChar(arg, p) < 0)
+                    valid = PARSE_TYPE;
+
+                break;
+            }
+
+        case 'a':
+            {
+                /* Character from a Python string. */
+
+                char *p = va_arg(va, char *);
+
+                if (parseString_AsChar(arg, p) < 0)
                     valid = PARSE_TYPE;
 
                 break;
@@ -3504,7 +3618,6 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, int nrargs,
          */
         case 'N':
         case 'T':
-        case 'a':
         case 'k':
         case 'A':
         case 'K':
@@ -4720,15 +4833,6 @@ static void sip_api_bad_class(const char *classname)
 
 
 /*
- * Report a Python class variable with an unexpected type.
- */
-static void sip_api_bad_set_type(const char *classname,const char *var)
-{
-    PyErr_Format(PyExc_TypeError,"invalid type for variable %s.%s",classname,var);
-}
-
-
-/*
  * Report a Python member function with an unexpected return type.
  */
 static void sip_api_bad_catcher_result(PyObject *method)
@@ -5005,7 +5109,10 @@ static int addCharInstances(PyObject *dict, sipCharInstanceDef *ci)
         PyObject *w;
 
 #if PY_MAJOR_VERSION >= 3
-        w = PyBytes_FromStringAndSize(&ci->ci_val, 1);
+        if (ci->ci_encoded)
+            w = PyUnicode_FromStringAndSize(&ci->ci_val, 1);
+        else
+            w = PyBytes_FromStringAndSize(&ci->ci_val, 1);
 #else
         w = PyString_FromStringAndSize(&ci->ci_val, 1);
 #endif
@@ -5037,7 +5144,10 @@ static int addStringInstances(PyObject *dict, sipStringInstanceDef *si)
         PyObject *w;
 
 #if PY_MAJOR_VERSION >= 3
-        w = PyBytes_FromString(si->si_val);
+        if (si->si_encoded)
+            w = PyUnicode_FromString(si->si_val);
+        else
+            w = PyBytes_FromString(si->si_val);
 #else
         w = PyString_FromString(si->si_val);
 #endif
@@ -5474,6 +5584,18 @@ static int checkPointer(void *ptr)
 static void sip_api_keep_reference(PyObject *self, int key, PyObject *obj)
 {
     PyObject *dict, *key_obj;
+
+    /*
+     * If there isn't a "self" to keep the extra reference for later garbage
+     * collection then just take a reference and let it leak.  This could
+     * happen, for example, if virtuals were still being called while Python
+     * was shutting down.
+     */
+    if (self == NULL)
+    {
+        Py_XINCREF(obj);
+        return;
+    }
 
     /* Create the extra references dictionary if needed. */
     if ((dict = ((sipSimpleWrapper *)self)->extra_refs) == NULL)
@@ -8284,15 +8406,22 @@ static void sip_api_clear_any_slot_reference(sipSlot *slot)
 
 
 /*
- * Convert a Python object to a character.
+ * Convert a Python object to a character and raise an exception if there was
+ * an error.
  */
-static char sip_api_string_as_char(PyObject *obj)
+static char sip_api_bytes_as_char(PyObject *obj)
 {
     char ch;
 
-    if (parseChar(obj, &ch) < 0)
+    if (parseBytes_AsChar(obj, &ch) < 0)
     {
-        PyErr_SetString(PyExc_ValueError, "string of length 1 expected");
+        PyErr_Format(PyExc_TypeError,
+#if PY_MAJOR_VERSION >= 3
+                "bytes of length 1 expected not '%s'",
+#else
+                "string of length 1 expected not '%s'",
+#endif
+                Py_TYPE(obj)->tp_name);
 
         return '\0';
     }
@@ -8302,9 +8431,128 @@ static char sip_api_string_as_char(PyObject *obj)
 
 
 /*
+ * Convert a Python object to a string and raise an exception if there was
+ * an error.
+ */
+static char *sip_api_bytes_as_string(PyObject *obj)
+{
+    char *a;
+
+    if (parseBytes_AsString(obj, &a) < 0)
+    {
+        PyErr_Format(PyExc_TypeError,
+#if PY_MAJOR_VERSION >= 3
+                "bytes expected not '%s'",
+#else
+                "string expected not '%s'",
+#endif
+                Py_TYPE(obj)->tp_name);
+
+        return NULL;
+    }
+
+    return a;
+}
+
+
+/*
+ * Convert a Python string object to a character and raise an exception if
+ * there was an error.
+ */
+static char sip_api_string_as_char(PyObject *obj)
+{
+    char ch;
+
+    if (parseString_AsChar(obj, &ch) < 0)
+    {
+        PyErr_Format(PyExc_TypeError, "string of length 1 expected not '%s'",
+                Py_TYPE(obj)->tp_name);
+
+        return '\0';
+    }
+
+    return ch;
+}
+
+
+/*
+ * Parse a character and return it.
+ */
+static int parseString_AsChar(PyObject *obj, char *ap)
+{
+#if PY_MAJOR_VERSION >= 3
+    PyObject *bytes = PyUnicode_AsLatin1String(obj);
+
+    if (bytes == NULL)
+        return -1;
+
+    if (PyBytes_GET_SIZE(bytes) != 1)
+    {
+        Py_DECREF(bytes);
+        return -1;
+    }
+
+    *ap = *PyBytes_AS_STRING(bytes);
+    Py_DECREF(bytes);
+
+    return 0;
+#else
+    return parseBytes_AsChar(obj, ap);
+#endif
+}
+
+
+/*
+ * Convert a Python string object to a string and raise an exception if there
+ * was an error.  The object is updated with the one that owns the string.
+ */
+static char *sip_api_string_as_string(PyObject **obj)
+{
+    char *a;
+
+    if ((*obj = parseString_AsString(*obj, &a)) == NULL)
+    {
+        PyErr_Format(PyExc_TypeError, "string expected not '%s'",
+                Py_TYPE(obj)->tp_name);
+
+        return NULL;
+    }
+
+    return a;
+}
+
+
+/*
+ * Parse a character string and return it and a new reference to the object
+ * that owns the string.
+ */
+static PyObject *parseString_AsString(PyObject *obj, char **ap)
+{
+#if PY_MAJOR_VERSION >= 3
+    PyObject *bytes = PyUnicode_AsLatin1String(obj);
+
+    if (bytes == NULL)
+        return NULL;
+
+    *ap = PyBytes_AS_STRING(bytes);
+
+    return bytes;
+#else
+    if (parseBytes_AsString(obj, ap) < 0)
+        return NULL;
+
+    Py_INCREF(obj);
+
+    return obj;
+#endif
+}
+
+
+/*
  * Parse a character array and return it's address and length.
  */
-static int parseCharArray(PyObject *obj, const char **ap, SIP_SSIZE_T *aszp)
+static int parseBytes_AsCharArray(PyObject *obj, const char **ap,
+        SIP_SSIZE_T *aszp)
 {
     if (obj == Py_None)
     {
@@ -8334,7 +8582,7 @@ static int parseCharArray(PyObject *obj, const char **ap, SIP_SSIZE_T *aszp)
 /*
  * Parse a character and return it.
  */
-static int parseChar(PyObject *obj, char *ap)
+static int parseBytes_AsChar(PyObject *obj, char *ap)
 {
     const char *chp;
     SIP_SSIZE_T sz;
@@ -8367,11 +8615,11 @@ static int parseChar(PyObject *obj, char *ap)
 /*
  * Parse a character string and return it.
  */
-static int parseCharString(PyObject *obj, const char **ap)
+static int parseBytes_AsString(PyObject *obj, const char **ap)
 {
     SIP_SSIZE_T sz;
 
-    return parseCharArray(obj, ap, &sz);
+    return parseBytes_AsCharArray(obj, ap, &sz);
 }
 
 
@@ -8464,7 +8712,7 @@ static int parseWChar(PyObject *obj, wchar_t *ap)
 
 
 /*
- * Parse a wide character string and return it.
+ * Parse a wide character string and return a copy on the heap.
  */
 static int parseWCharString(PyObject *obj, wchar_t **ap)
 {
