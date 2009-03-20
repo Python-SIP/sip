@@ -8465,7 +8465,12 @@ static char sip_api_string_as_char(PyObject *obj)
 
     if (parseString_AsChar(obj, &ch) < 0)
     {
-        PyErr_Format(PyExc_TypeError, "string of length 1 expected not '%s'",
+        PyErr_Format(PyExc_TypeError,
+#if PY_MAJOR_VERSION >= 3
+                "string or bytes of length 1 expected not '%s'",
+#else
+                "string of length 1 expected not '%s'",
+#endif
                 Py_TYPE(obj)->tp_name);
 
         return '\0';
@@ -8483,22 +8488,22 @@ static int parseString_AsChar(PyObject *obj, char *ap)
 #if PY_MAJOR_VERSION >= 3
     PyObject *bytes = PyUnicode_AsLatin1String(obj);
 
-    if (bytes == NULL)
-        return -1;
-
-    if (PyBytes_GET_SIZE(bytes) != 1)
+    if (bytes != NULL)
     {
+        if (PyBytes_GET_SIZE(bytes) != 1)
+        {
+            Py_DECREF(bytes);
+            return -1;
+        }
+
+        *ap = *PyBytes_AS_STRING(bytes);
         Py_DECREF(bytes);
-        return -1;
+
+        return 0;
     }
-
-    *ap = *PyBytes_AS_STRING(bytes);
-    Py_DECREF(bytes);
-
-    return 0;
-#else
-    return parseBytes_AsChar(obj, ap);
 #endif
+
+    return parseBytes_AsChar(obj, ap);
 }
 
 
@@ -8512,7 +8517,12 @@ static char *sip_api_string_as_string(PyObject **obj)
 
     if ((*obj = parseString_AsString(*obj, &a)) == NULL)
     {
-        PyErr_Format(PyExc_TypeError, "string expected not '%s'",
+        PyErr_Format(PyExc_TypeError,
+#if PY_MAJOR_VERSION >= 3
+                "string or bytes expected not '%s'",
+#else
+                "string expected not '%s'",
+#endif
                 Py_TYPE(obj)->tp_name);
 
         return NULL;
@@ -8531,20 +8541,20 @@ static PyObject *parseString_AsString(PyObject *obj, char **ap)
 #if PY_MAJOR_VERSION >= 3
     PyObject *bytes = PyUnicode_AsLatin1String(obj);
 
-    if (bytes == NULL)
-        return NULL;
+    if (bytes != NULL)
+    {
+        *ap = PyBytes_AS_STRING(bytes);
 
-    *ap = PyBytes_AS_STRING(bytes);
+        return bytes;
+    }
+#endif
 
-    return bytes;
-#else
     if (parseBytes_AsString(obj, ap) < 0)
         return NULL;
 
     Py_INCREF(obj);
 
     return obj;
-#endif
 }
 
 
