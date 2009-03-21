@@ -221,6 +221,7 @@ static void generateSignalTableEntry(classDef *cd, overDef *od, FILE *fp);
 static void generateTypesTable(sipSpec *pt, moduleDef *mod, FILE *fp);
 static int py2SlotOnly(slotType st);
 static int keepPyReference(argDef *ad);
+static int isDuplicateProtected(classDef *cd, overDef *target);
 
 
 /*
@@ -5697,10 +5698,9 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
                     );
         }
 
-        if (res != NULL)
-            prcode(fp,
+        prcode(fp,
 "\n"
-"    return ");
+"    %s", (res != NULL ? "return " : ""));
     }
 
     if (vhd->module == mod)
@@ -6054,6 +6054,13 @@ static void generateProtectedDeclarations(classDef *cd,FILE *fp)
             if (od->common != vl->m || !isProtected(od))
                 continue;
 
+            /*
+             * Check we haven't already handled this signature (eg. if we have
+             * specified the same method with different Python names.
+             */
+            if (isDuplicateProtected(cd, od))
+                continue;
+
             if (noIntro)
             {
                 prcode(fp,
@@ -6106,6 +6113,13 @@ static void generateProtectedDefinitions(classDef *cd,FILE *fp)
             argDef *res;
 
             if (od->common != vl->m || !isProtected(od))
+                continue;
+
+            /*
+             * Check we haven't already handled this signature (eg. if we have
+             * specified the same method with different Python names.
+             */
+            if (isDuplicateProtected(cd, od))
                 continue;
 
             prcode(fp,
@@ -6161,6 +6175,38 @@ static void generateProtectedDefinitions(classDef *cd,FILE *fp)
                 );
         }
     }
+}
+
+
+/*
+ * Return TRUE if a protected method is a duplicate.
+ */
+static int isDuplicateProtected(classDef *cd, overDef *target)
+{
+    visibleList *vl;
+
+    for (vl = cd->visible; vl != NULL; vl = vl->next)
+    {
+        overDef *od;
+
+        if (vl->m->slot != no_slot)
+            continue;
+
+        for (od = vl->cd->overs; od != NULL; od = od->next)
+        {
+            if (od->common != vl->m || !isProtected(od))
+                continue;
+
+            if (od == target)
+                return FALSE;
+
+            if (strcmp(od->cppname, target->cppname) == 0 && sameSignature(od->cppsig, target->cppsig, TRUE))
+                return TRUE;
+        }
+    }
+
+    /* We should never actually get here. */
+    return FALSE;
 }
 
 
