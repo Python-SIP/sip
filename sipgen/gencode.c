@@ -4597,6 +4597,16 @@ static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
             );
 
     for (od = overs; od != NULL; od = od->next)
+        if (od->common == md && isAbstract(od))
+        {
+            prcode(fp,
+"    bool sipSelfWasArg = (!sipSelf || sipIsDerived((sipSimpleWrapper *)sipSelf));\n"
+                );
+
+            break;
+        }
+
+    for (od = overs; od != NULL; od = od->next)
         if (od->common == md)
             generateFunctionBody(od, cd, cd, (ed == NULL && !dontDerefSelf(od)), fp);
 
@@ -6034,7 +6044,6 @@ static void generateEmitter(classDef *cd, visibleList *vl, FILE *fp)
 /*
  * Generate the declarations of the protected wrapper functions for a class.
  */
-
 static void generateProtectedDeclarations(classDef *cd,FILE *fp)
 {
     int noIntro;
@@ -6082,7 +6091,15 @@ static void generateProtectedDeclarations(classDef *cd,FILE *fp)
 
             generateBaseType(cd, &od->cppsig->result, TRUE, fp);
 
-            prcode(fp, " sipProtect_%s(", od->cppname);
+            if (!isStatic(od) && !isAbstract(od) && (isVirtual(od) || isVirtualReimp(od)))
+            {
+                prcode(fp, " sipProtectVirt_%s(bool", od->cppname);
+
+                if (od->cppsig->nrArgs > 0)
+                    prcode(fp, ",");
+            }
+            else
+                prcode(fp, " sipProtect_%s(", od->cppname);
 
             generateCalledArgs(cd, od->cppsig, Declaration, TRUE, fp);
             prcode(fp,")%s;\n"
@@ -6128,7 +6145,15 @@ static void generateProtectedDefinitions(classDef *cd,FILE *fp)
 
             generateBaseType(cd, &od->cppsig->result, TRUE, fp);
 
-            prcode(fp, " sip%C::sipProtect_%s(", classFQCName(cd), mname);
+            if (!isStatic(od) && !isAbstract(od) && (isVirtual(od) || isVirtualReimp(od)))
+            {
+                prcode(fp, " sip%C::sipProtectVirt_%s(bool sipSelfWasArg", classFQCName(cd), mname);
+
+                if (od->cppsig->nrArgs > 0)
+                    prcode(fp, ",");
+            }
+            else
+                prcode(fp, " sip%C::sipProtect_%s(", classFQCName(cd), mname);
 
             generateCalledArgs(cd, od->cppsig, Definition, TRUE, fp);
             prcode(fp,")%s\n"
@@ -6161,7 +6186,19 @@ static void generateProtectedDefinitions(classDef *cd,FILE *fp)
             }
 
             if (!isAbstract(od))
-                prcode(fp, "%S::", classFQCName(vl->cd));
+            {
+                if (isVirtual(od) || isVirtualReimp(od))
+                {
+                    prcode(fp, "(sipSelfWasArg ? %S::%s(", classFQCName(vl->cd), mname);
+
+                    generateProtectedCallArgs(od, fp);
+
+                    prcode(fp, ") : ");
+                    ++parens;
+                }
+                else
+                    prcode(fp, "%S::", classFQCName(vl->cd));
+            }
 
             prcode(fp,"%s(",mname);
 
@@ -9266,14 +9303,15 @@ static void generateFunction(memberDef *md, overDef *overs, classDef *cd,
         classDef *ocd, FILE *fp)
 {
     overDef *od;
-    int need_method, need_self, need_args;
+    int need_method, need_self, need_args, need_selfarg;
 
     /*
      * Check that there is at least one overload that needs to be handled.
      * See if we can avoid naming the "self" argument (and suppress a
-     * compiler warning).
+     * compiler warning).  Finally see if we need to remember if "self" was
+     * explicitly passed as an argument.
      */
-    need_method = need_self = need_args = FALSE;
+    need_method = need_self = need_args = need_selfarg = FALSE;
 
     for (od = overs; od != NULL; od = od->next)
     {
@@ -9293,7 +9331,12 @@ static void generateFunction(memberDef *md, overDef *overs, classDef *cd,
                 need_args = TRUE;
 
                 if (!isStatic(od))
+                {
                     need_self = TRUE;
+
+                    if (isAbstract(od) || isVirtual(od) || isVirtualReimp(od) || usedInCode(od->methodcode, "sipSelfWasArg"))
+                        need_selfarg = TRUE;
+                }
             }
         }
     }
@@ -9327,6 +9370,27 @@ static void generateFunction(memberDef *md, overDef *overs, classDef *cd,
             prcode(fp,
 "    int sipArgsParsed = 0;\n"
                 );
+
+        if (need_selfarg)
+        {
+            /*
+             * This determines if we call the explicitly scoped version or the
+             * unscoped version (which will then go via the vtable).
+             *
+             * - If the call was unbound and self was passed as the first
+             *   argument (ie. Foo.meth(self)) then we always want to call the
+             *   explicitly scoped version.
+             *
+             * - If the call was bound then we only call the unscoped version
+             *   if there might be a C++ reimplementation that Python knows
+             *   nothing about.  Otherwise, if the call was invoked by super()
+             *   within a Python reimplementation then the Python
+             *   reimplementation would be called recursively.
+             */
+            prcode(fp,
+"    bool sipSelfWasArg = (!sipSelf || sipIsDerived((sipSimpleWrapper *)sipSelf));\n"
+                );
+        }
 
         for (od = overs; od != NULL; od = od->next)
         {
@@ -10097,16 +10161,10 @@ static void generateFunctionCall(classDef *cd,classDef *ocd,overDef *od,
 "\n"
             );
 
-    /*
-     * If it is abstract then there can't be a Python implementation otherwise
-     * it would have been called instead of this.  If this is not a derived
-     * class (ie. the instance was created by C++) then it must have a C++
-     * implementation we can call.  Therefore raise an exception if the
-     * instance was created by Python.
-     */
+    /* If it is abstract make sure that self was bound. */
     if (isAbstract(od))
         prcode(fp,
-"            if (sipIsDerived((sipSimpleWrapper *)sipSelf))\n"
+"            if (sipSelfWasArg)\n"
 "            {\n"
 "                sipAbstractMethod(%N, %N);\n"
 "                return NULL;\n"
@@ -10475,8 +10533,13 @@ static void generateCppFunctionCall(classDef *cd, classDef *ocd, overDef *od,
         FILE *fp)
 {
     char *mname = od->cppname;
+    int parens = 1;
 
-    /* If the function is protected then call the public wrapper. */
+    /*
+     * If the function is protected then call the public wrapper.  If it is
+     * virtual then call the explicit scoped function if "self" was passed as
+     * the first argument.
+     */
 
     if (cd == NULL)
         prcode(fp, "%s(", mname);
@@ -10491,16 +10554,30 @@ static void generateCppFunctionCall(classDef *cd, classDef *ocd, overDef *od,
     }
     else if (isProtected(od))
     {
-        prcode(fp, "sipCpp->sipProtect_%s(", mname);
+        if (!isAbstract(od) && (isVirtual(od) || isVirtualReimp(od)))
+        {
+            prcode(fp, "sipCpp->sipProtectVirt_%s(sipSelfWasArg", mname);
+
+            if (od->cppsig->nrArgs > 0)
+                prcode(fp, ",");
+        }
+        else
+            prcode(fp, "sipCpp->sipProtect_%s(", mname);
     }
     else if (!isAbstract(od) && (isVirtual(od) || isVirtualReimp(od)))
-        prcode(fp, "sipCpp->%U::%s(", ocd, mname);
+    {
+        prcode(fp, "(sipSelfWasArg ? sipCpp->%U::%s(", ocd, mname);
+        generateCallArgs(cd, od->cppsig, &od->pysig, fp);
+        prcode(fp, ") : sipCpp->%s(", mname);
+        ++parens;
+    }
     else
         prcode(fp, "sipCpp->%s(", mname);
 
     generateCallArgs(cd, od->cppsig, &od->pysig, fp);
 
-    prcode(fp, ")");
+    while (parens--)
+        prcode(fp, ")");
 }
 
 
