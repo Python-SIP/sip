@@ -8169,18 +8169,24 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
                 , classFQCName(cd));
                 }
 
-                /* Default arguments are handled as multiple signals. */
+                /*
+                 * Default arguments are handled as multiple signals.  We make
+                 * sure the largest is first and the smallest last.
+                 */
+                generateSignalTableEntry(cd, od, fp);
+
                 nr_args = od->cppsig->nrArgs;
 
-                for (a = 0; a < nr_args; ++a)
-                    if (od->cppsig->args[a].defval != NULL)
-                    {
-                        od->cppsig->nrArgs = a;
-                        generateSignalTableEntry(cd, od, fp);
-                    }
+                for (a = nr_args - 1; a >= 0; --a)
+                {
+                    if (od->cppsig->args[a].defval == NULL)
+                        break;
+
+                    od->cppsig->nrArgs = a;
+                    generateSignalTableEntry(cd, od, fp);
+                }
 
                 od->cppsig->nrArgs = nr_args;
-                generateSignalTableEntry(cd, od, fp);
             }
         }
 
