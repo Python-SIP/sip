@@ -1162,14 +1162,14 @@ file.
     *module-statement* ::= [*module-directive* | *statement*]
 
     *module-directive* ::= [`%CModule`_ | `%CompositeModule`_ |
-            `%ConsolidatedModule`_ | `%Copying`_ | `%DefaultMetatype`_ |
-            `%DefaultSupertype`_ | `%Doc`_ | `%ExportedDoc`_ |
-            `%ExportedHeaderCode`_ | `%Feature`_ | `%Import`_ | `%Include`_ |
-            `%InitialisationCode`_ | `%License`_ | `%MappedType`_ |
-            *mapped-type-template* | `%Module`_ | `%ModuleCode`_ |
-            `%ModuleHeaderCode`_ | `%OptionalInclude`_ | `%Platforms`_ |
-            `%PreInitialisationCode`_ | `%PostInitialisationCode`_ |
-            `%Timeline`_ | `%UnitCode`_]
+            `%ConsolidatedModule`_ | `%Copying`_ | `%DefaultEncoding`_ |
+            `%DefaultMetatype`_ | `%DefaultSupertype`_ | `%Doc`_ |
+            `%ExportedDoc`_ | `%ExportedHeaderCode`_ | `%Feature`_ |
+            `%Import`_ | `%Include`_ | `%InitialisationCode`_ | `%License`_ |
+            `%MappedType`_ | *mapped-type-template* | `%Module`_ |
+            `%ModuleCode`_ | `%ModuleHeaderCode`_ | `%OptionalInclude`_ |
+            `%Platforms`_ | `%PreInitialisationCode`_ |
+            `%PostInitialisationCode`_ | `%Timeline`_ | `%UnitCode`_]
 
     *statement* :: [*class-statement* | *function* | *variable*]
 
@@ -2182,6 +2182,25 @@ For example::
     %End
 
 
+%DefaultEncoding
+----------------
+
+.. parsed-literal::
+
+    %DefaultEncoding *string*
+
+This directory is used to specify the default encoding used for for ``char``,
+``const char``, ``char *`` or ``const char *`` values.  The encoding can be
+either ``"ASCII"``, ``"Latin-1"``, ``"UTF-8"`` or ``"None"``.  An encoding of
+``"None"`` means that the value is unencoded.  The default can be overridden
+for a particular value using the Encoding_ annotation.  If the directive is not
+specified then ``"None"`` is used.
+
+For example::
+
+    %DefaultEncoding "Latin-1"
+
+
 %DefaultMetatype
 ----------------
 
@@ -2615,6 +2634,9 @@ following parts of a specification are affected by it:
     - `%ConvertToSubClassCode`_
     - `%ConvertToTypeCode`_
     - ``enum``
+    - `%DefaultEncoding`_
+    - `%DefaultMetatype`_
+    - `%DefaultSupertype`_
     - `%ExportedHeaderCode`_
     - functions
     - `%GCClearCode`_
@@ -3621,7 +3643,8 @@ rather than a ``'\0'`` terminated string.  There must be a corresponding
 argument with the ArraySize_ annotation specified.  The annotation may only be
 specified once in a list of arguments.
 
-The annotation also implies the Byte_ annotation.
+The annotation also implies the Encoding_ annotation with an encoding of
+``"None"``.
 
 
 ArraySize
@@ -3632,18 +3655,6 @@ should be either ``short``, ``unsigned short``, ``int``, ``unsigned``,
 ``long`` or ``unsigned long``) refers to the size of an array.  There must be
 a corresponding argument with the Array_ annotation specified.  The annotation
 may only be specified once in a list of arguments.
-
-
-Byte
-****
-
-This boolean annotation specifies that the corresponding argument (which should
-be either ``char``, ``const char``, ``char *`` or ``const char *``) refers to
-an unencoded byte or byte array rather than an encoded character or ``'\0'``
-terminated encoded string.  Python v3 will use the ``bytes`` type rather than
-the ``str`` type to represent the argument.  Python v2 ignores the annotation.
-
-The annotation can also be used as a function, typedef or variable annotation.
 
 
 Constrained
@@ -3675,6 +3686,28 @@ The following example gets around the above problem::
     // The wrapper for this function will be used for anything that Python can
     // convert to an integer, except for floating point numbers.
     void foo(int);
+
+
+Encoding
+********
+
+This string annotation specifies that the corresponding argument (which should
+be either ``char``, ``const char``, ``char *`` or ``const char *``) refers to
+an encoded character or ``'\0'`` terminated encoded string with the specified
+encoding.  The encoding can be either ``"ASCII"``, ``"Latin-1"``, ``"UTF-8"``
+or ``"None"``.  An encoding of ``"None"`` means that the corresponding argument
+refers to an unencoded character or string.
+
+The default encoding is specified by the `%DefaultEncoding`_ directive.  If the
+directive is not specified then ``None`` is used.
+
+Python v3 will use the ``bytes`` type to represent the argument if the
+encoding is ``"None"`` and the ``str`` type otherwise.
+
+Python v2 will use the ``str`` type to represent the argument if the
+encoding is ``"None"`` and the ``unicode`` type otherwise.
+
+The annotation can also be used as a function, typedef or variable annotation.
 
 
 GetWrapper
@@ -5035,9 +5068,13 @@ int sipParseResult(int \*iserr, PyObject \*method, PyObject \*result, const char
     will convert, and the entry in brackets are the types of the C/C++ values
     to be passed. 
 
-    ``a`` (string) [char \*]
-        Convert a Python v2 string object or a Python V3 Latin-1 string object
-        of length 1 to a C/C++ ``char``.
+    ``ae`` (object) [char \*]
+        Convert a Python string-like object of length 1 to a C/C++ ``char``
+        according to the encoding ``e``.  ``e`` can either be ``A`` for ASCII,
+        ``L`` for Latin-1, or ``8`` for UTF-8.  For Python v2 the object may be
+        either a string or a unicode object that can be encoded.  For Python v3
+        the object may either be a bytes object or a string object that can be
+        encoded.  An object that supports the buffer protocol may also be used.
 
     ``b`` (integer) [bool \*]
         Convert a Python integer to a C/C++ ``bool``.
@@ -5101,13 +5138,17 @@ int sipParseResult(int \*iserr, PyObject \*method, PyObject \*result, const char
         C/C++ ``L'\0'`` terminated wide character string.  If the Python object
         is ``Py_None`` then the string is ``NULL``.
 
-    ``A`` (string) [int, const char \*\*]
-        Convert a Python v2 string object or a Python v3 Latin-1 string object
-        to a C/C++ ``'\0'`` terminated string.  If the Python object is
+    ``Ae`` (object) [int, const char \*\*]
+        Convert a Python string-like object to a C/C++ ``'\0'`` terminated
+        string according to the encoding ``e``.  ``e`` can either be ``A`` for
+        ASCII, ``L`` for Latin-1, or ``8`` for UTF-8.  If the Python object is
         ``Py_None`` then the string is ``NULL``.  The integer uniquely
         identifies the object in the context defined by the ``S`` format
         character and allows an extra reference to the object to be kept to
-        ensure that the string remains valid.
+        ensure that the string remains valid.  For Python v2 the object may be
+        either a string or a unicode object that can be encoded.  For Python v3
+        the object may either be a bytes object or a string object that can be
+        encoded.  An object that supports the buffer protocol may also be used.
 
     ``B`` (string/bytes) [int, const char \*\*]
         Convert a Python v2 string object or a Python v3 bytes object to a

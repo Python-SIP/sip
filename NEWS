@@ -10,7 +10,7 @@ v4.8 ??? 2009
     types that don't take part in parent/child relationships.
   - Added the %InitialisationCode directive.
   - Added the /KeepReference/ argument annotation.
-  - Added the /Byte/ argument annotation.
+  - Added the /Encoding/ argument, function, typedef and variable annotation.
   - super() now works as expected with wrapped types.
   - Many additions and deprecations in the API to eliminate the differences
     between classes and mapped types.  (See the documentation for the details.)

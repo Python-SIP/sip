@@ -480,7 +480,9 @@ typedef enum {
     wstring_type,
     fake_void_type,
     ssize_type,
-    estring_type
+    ascii_string_type,
+    latin1_string_type,
+    utf8_string_type
 } argType;
 
 
@@ -654,6 +656,7 @@ typedef struct _moduleDef {
     int qobjclass;                      /* QObject class, -1 if none. */
     struct _memberDef *othfuncs;        /* List of other functions. */
     struct _overDef *overs;             /* Global overloads. */
+    argType encoding;                   /* The default string encoding. */
     nameDef *defmetatype;               /* The optional default meta-type. */
     nameDef *defsupertype;              /* The optional default super-type. */
     codeBlock *hdrcode;                 /* Header code. */

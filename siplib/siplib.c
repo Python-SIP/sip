@@ -93,8 +93,12 @@ static const sipMappedType *sip_api_find_mapped_type(const char *type);
 static PyTypeObject *sip_api_find_named_enum(const char *type);
 static char sip_api_bytes_as_char(PyObject *obj);
 static char *sip_api_bytes_as_string(PyObject *obj);
-static char sip_api_string_as_char(PyObject *obj);
-static char *sip_api_string_as_string(PyObject **obj);
+static char sip_api_string_as_ascii_char(PyObject *obj);
+static char *sip_api_string_as_ascii_string(PyObject **obj);
+static char sip_api_string_as_latin1_char(PyObject *obj);
+static char *sip_api_string_as_latin1_string(PyObject **obj);
+static char sip_api_string_as_utf8_char(PyObject *obj);
+static char *sip_api_string_as_utf8_string(PyObject **obj);
 #if defined(HAVE_WCHAR_H)
 static wchar_t sip_api_unicode_as_wchar(PyObject *obj);
 static wchar_t *sip_api_unicode_as_wstring(PyObject *obj);
@@ -219,8 +223,12 @@ static const sipAPIDef sip_api = {
     sip_api_add_delayed_dtor,
     sip_api_bytes_as_char,
     sip_api_bytes_as_string,
-    sip_api_string_as_char,
-    sip_api_string_as_string,
+    sip_api_string_as_ascii_char,
+    sip_api_string_as_ascii_string,
+    sip_api_string_as_latin1_char,
+    sip_api_string_as_latin1_string,
+    sip_api_string_as_utf8_char,
+    sip_api_string_as_utf8_string,
     sip_api_unicode_as_wchar,
     sip_api_unicode_as_wstring,
     sip_api_deprecated,
@@ -417,8 +425,15 @@ static int parseBytes_AsCharArray(PyObject *obj, const char **ap,
         SIP_SSIZE_T *aszp);
 static int parseBytes_AsChar(PyObject *obj, char *ap);
 static int parseBytes_AsString(PyObject *obj, const char **ap);
-static int parseString_AsChar(PyObject *obj, char *ap);
-static PyObject *parseString_AsString(PyObject *obj, char **ap);
+static int parseString_AsASCIIChar(PyObject *obj, char *ap);
+static PyObject *parseString_AsASCIIString(PyObject *obj, char **ap);
+static int parseString_AsLatin1Char(PyObject *obj, char *ap);
+static PyObject *parseString_AsLatin1String(PyObject *obj, char **ap);
+static int parseString_AsUTF8Char(PyObject *obj, char *ap);
+static PyObject *parseString_AsUTF8String(PyObject *obj, char **ap);
+static int parseString_AsEncodedChar(PyObject *bytes, PyObject *obj, char *ap);
+static PyObject *parseString_AsEncodedString(PyObject *bytes, PyObject *obj,
+        char **ap);
 #if defined(HAVE_WCHAR_H)
 static int parseWCharArray(PyObject *obj, wchar_t **ap, SIP_SSIZE_T *aszp);
 static int parseWChar(PyObject *obj, wchar_t *ap);
@@ -1932,8 +1947,27 @@ static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
             case 'a':
                 {
                     char *p = va_arg(va, char *);
+                    int enc;
 
-                    if (parseString_AsChar(arg, p) < 0)
+                    switch (*fmt++)
+                    {
+                    case 'A':
+                        enc = parseString_AsASCIIChar(arg, p);
+                        break;
+
+                    case 'L':
+                        enc = parseString_AsLatin1Char(arg, p);
+                        break;
+
+                    case '8':
+                        enc = parseString_AsUTF8Char(arg, p);
+                        break;
+
+                    default:
+                        enc = -1;
+                    }
+
+                    if (enc < 0)
                         invalid = TRUE;
                 }
 
@@ -2151,7 +2185,25 @@ static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
                 {
                     int key = va_arg(va, int);
                     const char **p = va_arg(va, const char **);
-                    PyObject *keep = parseString_AsString(arg, p);
+                    PyObject *keep;
+
+                    switch (*fmt++)
+                    {
+                    case 'A':
+                        keep = parseString_AsASCIIString(arg, p);
+                        break;
+
+                    case 'L':
+                        keep = parseString_AsLatin1String(arg, p);
+                        break;
+
+                    case '8':
+                        keep = parseString_AsUTF8String(arg, p);
+                        break;
+
+                    default:
+                        keep = NULL;
+                    }
 
                     if (keep == NULL)
                         invalid = TRUE;
@@ -2673,9 +2725,33 @@ static int parsePass1(sipSimpleWrapper **selfp, int *selfargp,
 
                 PyObject **keep = va_arg(va, PyObject **);
                 const char **p = va_arg(va, const char **);
+                PyObject *s;
+                int enc = 0;
 
-                if ((*keep = parseString_AsString(arg, p)) == NULL)
+                switch (*fmt++)
+                {
+                case 'A':
+                    s = parseString_AsASCIIString(arg, p);
+                    break;
+
+                case 'L':
+                    s = parseString_AsLatin1String(arg, p);
+                    break;
+
+                case '8':
+                    s = parseString_AsUTF8String(arg, p);
+                    break;
+
+                default:
+                    enc = -1;
+                }
+
+                if (enc < 0)
+                    valid = PARSE_FORMAT;
+                else if (s == NULL)
                     valid = PARSE_TYPE;
+                else
+                    *keep = s;
 
                 break;
             }
@@ -3005,8 +3081,28 @@ static int parsePass1(sipSimpleWrapper **selfp, int *selfargp,
                 /* Character from a Python string. */
 
                 char *p = va_arg(va, char *);
+                int enc;
 
-                if (parseString_AsChar(arg, p) < 0)
+                switch (*fmt++)
+                {
+                case 'A':
+                    enc = parseString_AsASCIIChar(arg, p);
+                    break;
+
+                case 'L':
+                    enc = parseString_AsLatin1Char(arg, p);
+                    break;
+
+                case '8':
+                    enc = parseString_AsUTF8Char(arg, p);
+                    break;
+
+                default:
+                    valid = PARSE_FORMAT;
+                    enc = 0;
+                }
+
+                if (enc < 0)
                     valid = PARSE_TYPE;
 
                 break;
@@ -3613,13 +3709,26 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, int nrargs,
             }
 
         /*
+         * These need special handling because they have a sub-format
+         * character.
+         */
+        case 'A':
+            va_arg(va, void *);
+
+            /* Drop through. */
+
+        case 'a':
+            va_arg(va, void *);
+            fmt++;
+            break;
+
+        /*
          * Every other argument is a pointer and only differ in how many there
          * are.
          */
         case 'N':
         case 'T':
         case 'k':
-        case 'A':
         case 'K':
             va_arg(va,void *);
 
@@ -5108,14 +5217,31 @@ static int addCharInstances(PyObject *dict, sipCharInstanceDef *ci)
         int rc;
         PyObject *w;
 
+        switch (ci->ci_encoding)
+        {
+        case 'A':
+            w = PyUnicode_DecodeASCII(&ci->ci_val, 1, NULL);
+            break;
+
+        case 'L':
+            w = PyUnicode_DecodeLatin1(&ci->ci_val, 1, NULL);
+            break;
+
+        case '8':
 #if PY_MAJOR_VERSION >= 3
-        if (ci->ci_encoded)
             w = PyUnicode_FromStringAndSize(&ci->ci_val, 1);
-        else
+#else
+            w = PyUnicode_DecodeUTF8(&ci->ci_val, 1, NULL);
+#endif
+            break;
+
+        default:
+#if PY_MAJOR_VERSION >= 3
             w = PyBytes_FromStringAndSize(&ci->ci_val, 1);
 #else
-        w = PyString_FromStringAndSize(&ci->ci_val, 1);
+            w = PyString_FromStringAndSize(&ci->ci_val, 1);
 #endif
+        }
 
         if (w == NULL)
             return -1;
@@ -5143,14 +5269,31 @@ static int addStringInstances(PyObject *dict, sipStringInstanceDef *si)
         int rc;
         PyObject *w;
 
+        switch (si->si_encoding)
+        {
+        case 'A':
+            w = PyUnicode_DecodeASCII(si->si_val, strlen(si->si_val), NULL);
+            break;
+
+        case 'L':
+            w = PyUnicode_DecodeLatin1(si->si_val, strlen(si->si_val), NULL);
+            break;
+
+        case '8':
 #if PY_MAJOR_VERSION >= 3
-        if (si->si_encoded)
             w = PyUnicode_FromString(si->si_val);
-        else
+#else
+            w = PyUnicode_DecodeUTF8(si->si_val, strlen(si->si_val), NULL);
+#endif
+            break;
+
+        default:
+#if PY_MAJOR_VERSION >= 3
             w = PyBytes_FromString(si->si_val);
 #else
-        w = PyString_FromString(si->si_val);
+            w = PyString_FromString(si->si_val);
 #endif
+        }
 
         if (w == NULL)
             return -1;
@@ -8456,22 +8599,24 @@ static char *sip_api_bytes_as_string(PyObject *obj)
 
 
 /*
- * Convert a Python string object to a character and raise an exception if
- * there was an error.
+ * Convert a Python ASCII string object to a character and raise an exception
+ * if there was an error.
  */
-static char sip_api_string_as_char(PyObject *obj)
+static char sip_api_string_as_ascii_char(PyObject *obj)
 {
     char ch;
 
-    if (parseString_AsChar(obj, &ch) < 0)
+    if (parseString_AsASCIIChar(obj, &ch) < 0)
     {
-        PyErr_Format(PyExc_TypeError,
+        /* Use the exception set if it was an encoding error. */
+        if (!PyUnicode_Check(obj) || PyUnicode_GET_SIZE(obj) != 1)
+            PyErr_Format(PyExc_TypeError,
 #if PY_MAJOR_VERSION >= 3
-                "string or bytes of length 1 expected not '%s'",
+                    "bytes or ASCII string of length 1 expected not '%s'",
 #else
-                "string of length 1 expected not '%s'",
+                    "string or ASCII unicode of length 1 expected not '%s'",
 #endif
-                Py_TYPE(obj)->tp_name);
+                    Py_TYPE(obj)->tp_name);
 
         return '\0';
     }
@@ -8481,49 +8626,141 @@ static char sip_api_string_as_char(PyObject *obj)
 
 
 /*
- * Parse a character and return it.
+ * Parse an ASCII character and return it.
  */
-static int parseString_AsChar(PyObject *obj, char *ap)
+static int parseString_AsASCIIChar(PyObject *obj, char *ap)
 {
-#if PY_MAJOR_VERSION >= 3
-    PyObject *bytes = PyUnicode_AsLatin1String(obj);
-
-    if (bytes != NULL)
-    {
-        if (PyBytes_GET_SIZE(bytes) != 1)
-        {
-            Py_DECREF(bytes);
-            return -1;
-        }
-
-        *ap = *PyBytes_AS_STRING(bytes);
-        Py_DECREF(bytes);
-
-        return 0;
-    }
-#endif
-
-    return parseBytes_AsChar(obj, ap);
+    return parseString_AsEncodedChar(PyUnicode_AsASCIIString(obj), obj, ap);
 }
 
 
 /*
- * Convert a Python string object to a string and raise an exception if there
- * was an error.  The object is updated with the one that owns the string.
+ * Convert a Python Latin-1 string object to a character and raise an exception
+ * if there was an error.
  */
-static char *sip_api_string_as_string(PyObject **obj)
+static char sip_api_string_as_latin1_char(PyObject *obj)
 {
+    char ch;
+
+    if (parseString_AsLatin1Char(obj, &ch) < 0)
+    {
+        /* Use the exception set if it was an encoding error. */
+        if (!PyUnicode_Check(obj) || PyUnicode_GET_SIZE(obj) != 1)
+            PyErr_Format(PyExc_TypeError,
+#if PY_MAJOR_VERSION >= 3
+                    "bytes or Latin-1 string of length 1 expected not '%s'",
+#else
+                    "string or Latin-1 unicode of length 1 expected not '%s'",
+#endif
+                    Py_TYPE(obj)->tp_name);
+
+        return '\0';
+    }
+
+    return ch;
+}
+
+
+/*
+ * Parse a Latin-1 character and return it.
+ */
+static int parseString_AsLatin1Char(PyObject *obj, char *ap)
+{
+    return parseString_AsEncodedChar(PyUnicode_AsLatin1String(obj), obj, ap);
+}
+
+
+/*
+ * Convert a Python UTF-8 string object to a character and raise an exception
+ * if there was an error.
+ */
+static char sip_api_string_as_utf8_char(PyObject *obj)
+{
+    char ch;
+
+    if (parseString_AsUTF8Char(obj, &ch) < 0)
+    {
+        /* Use the exception set if it was an encoding error. */
+        if (!PyUnicode_Check(obj) || PyUnicode_GET_SIZE(obj) != 1)
+            PyErr_Format(PyExc_TypeError,
+#if PY_MAJOR_VERSION >= 3
+                    "bytes or UTF-8 string of length 1 expected not '%s'",
+#else
+                    "string or UTF-8 unicode of length 1 expected not '%s'",
+#endif
+                    Py_TYPE(obj)->tp_name);
+
+        return '\0';
+    }
+
+    return ch;
+}
+
+
+/*
+ * Parse a UTF-8 character and return it.
+ */
+static int parseString_AsUTF8Char(PyObject *obj, char *ap)
+{
+    return parseString_AsEncodedChar(PyUnicode_AsUTF8String(obj), obj, ap);
+}
+
+
+/*
+ * Parse an encoded character and return it.
+ */
+static int parseString_AsEncodedChar(PyObject *bytes, PyObject *obj, char *ap)
+{
+    SIP_SSIZE_T size;
+
+    if (bytes == NULL)
+        return parseBytes_AsChar(obj, ap);
+
+#if PY_MAJOR_VERSION >= 3
+    size = PyBytes_GET_SIZE(bytes);
+#else
+    size = PyString_GET_SIZE(bytes);
+#endif
+
+    if (size != 1)
+    {
+        Py_DECREF(bytes);
+        return -1;
+    }
+
+#if PY_MAJOR_VERSION >= 3
+    *ap = *PyBytes_AS_STRING(bytes);
+#else
+    *ap = *PyString_AS_STRING(bytes);
+#endif
+
+    Py_DECREF(bytes);
+
+    return 0;
+}
+
+
+/*
+ * Convert a Python ASCII string object to a string and raise an exception if
+ * there was an error.  The object is updated with the one that owns the
+ * string.  Note that None is considered an error.
+ */
+static char *sip_api_string_as_ascii_string(PyObject **obj)
+{
+    PyObject *s = *obj;
     char *a;
 
-    if ((*obj = parseString_AsString(*obj, &a)) == NULL)
+    if (s == Py_None || (*obj = parseString_AsASCIIString(s, &a)) == NULL)
     {
-        PyErr_Format(PyExc_TypeError,
+        /* Use the exception set if it was an encoding error. */
+        if (!PyUnicode_Check(s))
+            PyErr_Format(PyExc_TypeError,
 #if PY_MAJOR_VERSION >= 3
-                "string or bytes expected not '%s'",
+                    "bytes or ASCII string expected not '%s'",
 #else
-                "string expected not '%s'",
+                    "string or ASCII unicode expected not '%s'",
 #endif
-                Py_TYPE(obj)->tp_name);
+                    Py_TYPE(s)->tp_name);
 
         return NULL;
     }
@@ -8533,21 +8770,110 @@ static char *sip_api_string_as_string(PyObject **obj)
 
 
 /*
- * Parse a character string and return it and a new reference to the object
- * that owns the string.
+ * Parse an ASCII string and return it and a new reference to the object that
+ * owns the string.
  */
-static PyObject *parseString_AsString(PyObject *obj, char **ap)
+static PyObject *parseString_AsASCIIString(PyObject *obj, char **ap)
 {
-#if PY_MAJOR_VERSION >= 3
-    PyObject *bytes = PyUnicode_AsLatin1String(obj);
+    return parseString_AsEncodedString(PyUnicode_AsASCIIString(obj), obj, ap);
+}
 
+
+/*
+ * Convert a Python Latin-1 string object to a string and raise an exception if
+ * there was an error.  The object is updated with the one that owns the
+ * string.  Note that None is considered an error.
+ */
+static char *sip_api_string_as_latin1_string(PyObject **obj)
+{
+    PyObject *s = *obj;
+    char *a;
+
+    if (s == Py_None || (*obj = parseString_AsLatin1String(s, &a)) == NULL)
+    {
+        /* Use the exception set if it was an encoding error. */
+        if (!PyUnicode_Check(s))
+            PyErr_Format(PyExc_TypeError,
+#if PY_MAJOR_VERSION >= 3
+                    "bytes or Latin-1 string expected not '%s'",
+#else
+                    "string or Latin-1 unicode expected not '%s'",
+#endif
+                    Py_TYPE(s)->tp_name);
+
+        return NULL;
+    }
+
+    return a;
+}
+
+
+/*
+ * Parse a Latin-1 string and return it and a new reference to the object that
+ * owns the string.
+ */
+static PyObject *parseString_AsLatin1String(PyObject *obj, char **ap)
+{
+    return parseString_AsEncodedString(PyUnicode_AsLatin1String(obj), obj, ap);
+}
+
+
+/*
+ * Convert a Python UTF-8 string object to a string and raise an exception if
+ * there was an error.  The object is updated with the one that owns the
+ * string.  Note that None is considered an error.
+ */
+static char *sip_api_string_as_utf8_string(PyObject **obj)
+{
+    PyObject *s = *obj;
+    char *a;
+
+    if (s == Py_None || (*obj = parseString_AsUTF8String(s, &a)) == NULL)
+    {
+        /* Use the exception set if it was an encoding error. */
+        if (!PyUnicode_Check(s))
+            PyErr_Format(PyExc_TypeError,
+#if PY_MAJOR_VERSION >= 3
+                    "bytes or UTF-8 string expected not '%s'",
+#else
+                    "string or UTF-8 unicode expected not '%s'",
+#endif
+                    Py_TYPE(s)->tp_name);
+
+        return NULL;
+    }
+
+    return a;
+}
+
+
+/*
+ * Parse a UTF-8 string and return it and a new reference to the object that
+ * owns the string.
+ */
+static PyObject *parseString_AsUTF8String(PyObject *obj, char **ap)
+{
+    return parseString_AsEncodedString(PyUnicode_AsUTF8String(obj), obj, ap);
+}
+
+
+/*
+ * Parse an encoded string and return it and a new reference to the object that
+ * owns the string.
+ */
+static PyObject *parseString_AsEncodedString(PyObject *bytes, PyObject *obj,
+        char **ap)
+{
     if (bytes != NULL)
     {
+#if PY_MAJOR_VERSION >= 3
         *ap = PyBytes_AS_STRING(bytes);
+#else
+        *ap = PyString_AS_STRING(bytes);
+#endif
 
         return bytes;
     }
-#endif
 
     if (parseBytes_AsString(obj, ap) < 0)
         return NULL;

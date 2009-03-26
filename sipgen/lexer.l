@@ -46,6 +46,7 @@ static void fatallex(char *);
 
 %%
 
+^[ \t]*%DefaultEncoding     {return TK_DEFENCODING;}
 ^[ \t]*%Plugin              {return TK_PLUGIN;}
 ^[ \t]*%Include             {return TK_INCLUDE;}
 ^[ \t]*%OptionalInclude     {return TK_OPTINCLUDE;}

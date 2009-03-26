@@ -196,7 +196,7 @@ static int isInplaceSequenceSlot(memberDef *md);
 static int needErrorFlag(codeBlock *cb);
 static int needNewInstance(argDef *ad);
 static int needDealloc(classDef *cd);
-static char getBuildResultFormat(argDef *ad);
+static const char *getBuildResultFormat(argDef *ad);
 static const char *getParseResultFormat(argDef *ad, int isres, int xfervh);
 static void generateParseResultExtraArgs(argDef *ad, int argnr, FILE *fp);
 static char *makePartName(const char *codeDir, const char *mname, int part,
@@ -222,6 +222,7 @@ static void generateTypesTable(sipSpec *pt, moduleDef *mod, FILE *fp);
 static int py2SlotOnly(slotType st);
 static int keepPyReference(argDef *ad);
 static int isDuplicateProtected(classDef *cd, overDef *target);
+static char getEncoding(argType atype);
 
 
 /*
@@ -579,8 +580,12 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipFindNamedEnum            sipAPI_%s->api_find_named_enum\n"
 "#define sipBytes_AsChar             sipAPI_%s->api_bytes_as_char\n"
 "#define sipBytes_AsString           sipAPI_%s->api_bytes_as_string\n"
-"#define sipString_AsChar            sipAPI_%s->api_string_as_char\n"
-"#define sipString_AsString          sipAPI_%s->api_string_as_string\n"
+"#define sipString_AsASCIIChar       sipAPI_%s->api_string_as_ascii_char\n"
+"#define sipString_AsASCIIString     sipAPI_%s->api_string_as_ascii_string\n"
+"#define sipString_AsLatin1Char      sipAPI_%s->api_string_as_latin1_char\n"
+"#define sipString_AsLatin1String    sipAPI_%s->api_string_as_latin1_string\n"
+"#define sipString_AsUTF8Char        sipAPI_%s->api_string_as_utf8_char\n"
+"#define sipString_AsUTF8String      sipAPI_%s->api_string_as_utf8_string\n"
 "#define sipUnicode_AsWChar          sipAPI_%s->api_unicode_as_wchar\n"
 "#define sipUnicode_AsWString        sipAPI_%s->api_unicode_as_wstring\n"
 "#define sipConvertFromConstVoidPtr  sipAPI_%s->api_convert_from_const_void_ptr\n"
@@ -618,6 +623,10 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipConvertFromMappedType    sipConvertFromType\n"
 "#define sipConvertFromNamedEnum(v, pt)  sipConvertFromEnum((v), ((sipEnumTypeObject *)(pt))->type)\n"
 "#define sipConvertFromNewInstance(p, wt, t) sipConvertFromNewType((p), (wt)->type, (t))\n"
+        ,mname
+        ,mname
+        ,mname
+        ,mname
         ,mname
         ,mname
         ,mname
@@ -2701,7 +2710,7 @@ static int generateChars(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
         if (vd->ecd != cd || vd->module != mod)
             continue;
 
-        if (!((vtype == estring_type || vtype == sstring_type || vtype == ustring_type || vtype == string_type || vtype == wstring_type) && vd->type.nrderefs == 0))
+        if (!((vtype == ascii_string_type || vtype == latin1_string_type || vtype == utf8_string_type || vtype == sstring_type || vtype == ustring_type || vtype == string_type || vtype == wstring_type) && vd->type.nrderefs == 0))
             continue;
 
         if (needsHandler(vd))
@@ -2728,22 +2737,13 @@ static int generateChars(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
         }
 
         prcode(fp,
-"#if PY_MAJOR_VERSION >= 3\n"
-"    {%N, %S, %s},\n"
-"#else\n"
-"    {%N, %S},\n"
-"#endif\n"
-            , vd->pyname, vd->fqcname, (vtype == estring_type ? "1" : "0")
-            , vd->pyname, vd->fqcname);
+"    {%N, %S, '%c'},\n"
+            , vd->pyname, vd->fqcname, getEncoding(vtype));
     }
 
     if (!noIntro)
         prcode(fp,
-"#if PY_MAJOR_VERSION >= 3\n"
 "    {0, 0, 0}\n"
-"#else\n"
-"    {0, 0}\n"
-"#endif\n"
 "};\n"
             );
 
@@ -2769,7 +2769,7 @@ static int generateStrings(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
         if (vd->ecd != cd || vd->module != mod)
             continue;
 
-        if (!((vtype == estring_type || vtype == sstring_type || vtype == ustring_type || vtype == string_type || vtype == wstring_type) && vd->type.nrderefs != 0))
+        if (!((vtype == ascii_string_type || vtype == latin1_string_type || vtype == utf8_string_type || vtype == sstring_type || vtype == ustring_type || vtype == string_type || vtype == wstring_type) && vd->type.nrderefs != 0))
             continue;
 
         if (needsHandler(vd))
@@ -2796,22 +2796,13 @@ static int generateStrings(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
         }
 
         prcode(fp,
-"#if PY_MAJOR_VERSION >= 3\n"
-"    {%N, %S, %s},\n"
-"#else\n"
-"    {%N, %S},\n"
-"#endif\n"
-            , vd->pyname, vd->fqcname, (vtype == estring_type ? "1" : "0")
-            , vd->pyname, vd->fqcname);
+"    {%N, %S, '%c'},\n"
+            , vd->pyname, vd->fqcname, getEncoding(vtype));
     }
 
     if (!noIntro)
         prcode(fp,
-"#if PY_MAJOR_VERSION >= 3\n"
 "    {0, 0, 0}\n"
-"#else\n"
-"    {0, 0}\n"
-"#endif\n"
 "};\n"
             );
 
@@ -3789,13 +3780,49 @@ static void generateVariableGetter(classDef *context, varDef *vd, FILE *fp)
 
         break;
 
-    case estring_type:
+    case ascii_string_type:
+        if (vd->type.nrderefs == 0)
+            prcode(fp,
+"    return PyUnicode_DecodeASCII(&sipVal, 1, NULL);\n"
+                );
+        else
+            prcode(fp,
+"    if (sipVal == NULL)\n"
+"    {\n"
+"        Py_INCREF(Py_None);\n"
+"        return Py_None;\n"
+"    }\n"
+"\n"
+"    return PyUnicode_DecodeASCII(sipVal, strlen(sipVal), NULL);\n"
+                );
+
+        break;
+
+    case latin1_string_type:
+        if (vd->type.nrderefs == 0)
+            prcode(fp,
+"    return PyUnicode_DecodeLatin1(&sipVal, 1, NULL);\n"
+                );
+        else
+            prcode(fp,
+"    if (sipVal == NULL)\n"
+"    {\n"
+"        Py_INCREF(Py_None);\n"
+"        return Py_None;\n"
+"    }\n"
+"\n"
+"    return PyUnicode_DecodeLatin1(sipVal, strlen(sipVal), NULL);\n"
+                );
+
+        break;
+
+    case utf8_string_type:
         if (vd->type.nrderefs == 0)
             prcode(fp,
 "#if PY_MAJOR_VERSION >= 3\n"
 "    return PyUnicode_FromStringAndSize(&sipVal, 1);\n"
 "#else\n"
-"    return PyString_FromStringAndSize(&sipVal, 1);\n"
+"    return PyUnicode_DecodeUTF8(&sipVal, 1, NULL);\n"
 "#endif\n"
                 );
         else
@@ -3809,7 +3836,7 @@ static void generateVariableGetter(classDef *context, varDef *vd, FILE *fp)
 "#if PY_MAJOR_VERSION >= 3\n"
 "    return PyUnicode_FromString(sipVal);\n"
 "#else\n"
-"    return PyString_FromString(sipVal);\n"
+"    return PyUnicode_DecodeUTF8(sipVal, strlen(sipVal), NULL);\n"
 "#endif\n"
                 );
 
@@ -4236,11 +4263,25 @@ static int generateObjToCppConversion(argDef *ad,FILE *fp)
             rhs = "(unsigned char *)sipBytes_AsString(sipPy)";
         break;
 
-    case estring_type:
+    case ascii_string_type:
         if (ad->nrderefs == 0)
-            rhs = "sipString_AsChar(sipPy)";
+            rhs = "sipString_AsASCIIChar(sipPy)";
         else
-            rhs = "sipString_AsString(&sipPy)";
+            rhs = "sipString_AsASCIIString(&sipPy)";
+        break;
+
+    case latin1_string_type:
+        if (ad->nrderefs == 0)
+            rhs = "sipString_AsLatin1Char(sipPy)";
+        else
+            rhs = "sipString_AsLatin1String(&sipPy)";
+        break;
+
+    case utf8_string_type:
+        if (ad->nrderefs == 0)
+            rhs = "sipString_AsUTF8Char(sipPy)";
+        else
+            rhs = "sipString_AsUTF8String(&sipPy)";
         break;
 
     case string_type:
@@ -5912,6 +5953,7 @@ static void generateCallDefaultCtor(ctorDef *ct, FILE *fp)
     for (a = 0; a < ct->cppsig->nrArgs; ++a)
     {
         argDef *ad = &ct->cppsig->args[a];
+        argType atype = ad->atype;
 
         if (ad->defval != NULL)
             break;
@@ -5919,26 +5961,24 @@ static void generateCallDefaultCtor(ctorDef *ct, FILE *fp)
         if (a > 0)
             prcode(fp, ",");
 
-        /*
-         * Do what we can to provide type information to the compiler.
-         */
-        if (ad->atype == class_type && ad->nrderefs > 0 && !isReference(ad))
+        /* Do what we can to provide type information to the compiler. */
+        if (atype == class_type && ad->nrderefs > 0 && !isReference(ad))
             prcode(fp, "static_cast<%B>(0)", ad);
-        else if (ad->atype == enum_type)
+        else if (atype == enum_type)
             prcode(fp, "static_cast<%E>(0)", ad->u.ed);
-        else if (ad->atype == float_type || ad->atype == cfloat_type)
+        else if (atype == float_type || atype == cfloat_type)
             prcode(fp, "0.0F");
-        else if (ad->atype == double_type || ad->atype == cdouble_type)
+        else if (atype == double_type || atype == cdouble_type)
             prcode(fp, "0.0");
-        else if (ad->atype == uint_type)
+        else if (atype == uint_type)
             prcode(fp, "0U");
-        else if (ad->atype == long_type || ad->atype == longlong_type)
+        else if (atype == long_type || atype == longlong_type)
             prcode(fp, "0L");
-        else if (ad->atype == ulong_type || ad->atype == ulonglong_type)
+        else if (atype == ulong_type || atype == ulonglong_type)
             prcode(fp, "0UL");
-        else if ((ad->atype == estring_type || ad->atype == ustring_type || ad->atype == sstring_type || ad->atype == string_type) && ad->nrderefs == 0)
+        else if ((atype == ascii_string_type || atype == latin1_string_type || atype == utf8_string_type || atype == ustring_type || atype == sstring_type || atype == string_type) && ad->nrderefs == 0)
             prcode(fp, "'\\0'");
-        else if (ad->atype == wstring_type && ad->nrderefs == 0)
+        else if (atype == wstring_type && ad->nrderefs == 0)
             prcode(fp, "L'\\0'");
         else
             prcode(fp, "0");
@@ -6716,8 +6756,14 @@ static const char *getParseResultFormat(argDef *ad, int isres, int xfervh)
     case cbool_type:
         return "b";
 
-    case estring_type:
-        return ((ad->nrderefs == 0) ? "a" : "A");
+    case ascii_string_type:
+        return ((ad->nrderefs == 0) ? "aA" : "AA");
+
+    case latin1_string_type:
+        return ((ad->nrderefs == 0) ? "aL" : "AL");
+
+    case utf8_string_type:
+        return ((ad->nrderefs == 0) ? "a8" : "A8");
 
     case sstring_type:
     case ustring_type:
@@ -6802,11 +6848,27 @@ static void generateTupleBuilder(signatureDef *sd,FILE *fp)
 
         switch (ad->atype)
         {
-        case estring_type:
+        case ascii_string_type:
             if (ad->nrderefs == 0 || (ad->nrderefs == 1 && isOutArg(ad)))
-                fmt = "a";
+                fmt = "aA";
             else
-                fmt = "A";
+                fmt = "AA";
+
+            break;
+
+        case latin1_string_type:
+            if (ad->nrderefs == 0 || (ad->nrderefs == 1 && isOutArg(ad)))
+                fmt = "aL";
+            else
+                fmt = "AL";
+
+            break;
+
+        case utf8_string_type:
+            if (ad->nrderefs == 0 || (ad->nrderefs == 1 && isOutArg(ad)))
+                fmt = "a8";
+            else
+                fmt = "A8";
 
             break;
 
@@ -6968,7 +7030,9 @@ static void generateTupleBuilder(signatureDef *sd,FILE *fp)
 
         switch (ad->atype)
         {
-        case estring_type:
+        case ascii_string_type:
+        case latin1_string_type:
+        case utf8_string_type:
         case sstring_type:
         case ustring_type:
         case string_type:
@@ -7565,7 +7629,9 @@ static void generateCallArgs(classDef *context, signatureDef *sd,
         /* See if the argument needs dereferencing or it's address taking. */
         switch (ad->atype)
         {
-        case estring_type:
+        case ascii_string_type:
+        case latin1_string_type:
+        case utf8_string_type:
         case sstring_type:
         case ustring_type:
         case string_type:
@@ -7733,7 +7799,9 @@ static void generateNamedBaseType(classDef *context, argDef *ad, char *name,
 
             /* Drop through. */
 
-        case estring_type:
+        case ascii_string_type:
+        case latin1_string_type:
+        case utf8_string_type:
         case string_type:
             prcode(fp, "char");
             break;
@@ -7918,7 +7986,9 @@ static void generateVariable(classDef *context, argDef *ad, int argnr,
 
     switch (atype)
     {
-    case estring_type:
+    case ascii_string_type:
+    case latin1_string_type:
+    case utf8_string_type:
     case sstring_type:
     case ustring_type:
     case string_type:
@@ -7996,7 +8066,9 @@ static void generateVariable(classDef *context, argDef *ad, int argnr,
 
             break;
 
-        case estring_type:
+        case ascii_string_type:
+        case latin1_string_type:
+        case utf8_string_type:
             if (!keepReference(ad) && ad->nrderefs == 1)
                 prcode(fp,
 "        PyObject *a%dKeep%s;\n"
@@ -9627,14 +9699,14 @@ static void generateHandleResult(overDef *od, int isNew, int result_size,
 
         /* Build the format string. */
         if (res != NULL)
-            prcode(fp,"%c",((res->atype == mapped_type || res->atype == class_type) ? 'R' : getBuildResultFormat(res)));
+            prcode(fp, "%s", ((res->atype == mapped_type || res->atype == class_type) ? "R" : getBuildResultFormat(res)));
 
         for (a = 0; a < od->pysig.nrArgs; ++a)
         {
             argDef *ad = &od->pysig.args[a];
 
             if (isOutArg(ad))
-                prcode(fp,"%c",getBuildResultFormat(ad));
+                prcode(fp, "%s", getBuildResultFormat(ad));
         }
 
         prcode(fp,")\"");
@@ -9743,13 +9815,51 @@ static void generateHandleResult(overDef *od, int isNew, int result_size,
 
         break;
 
-    case estring_type:
+    case ascii_string_type:
+        if (ad->nrderefs == 0)
+            prcode(fp,
+"            %s PyUnicode_DecodeASCII(&%s, 1, NULL);\n"
+                , prefix, vname);
+        else
+            prcode(fp,
+"            if (%s == NULL)\n"
+"            {\n"
+"                Py_INCREF(Py_None);\n"
+"                return Py_None;\n"
+"            }\n"
+"\n"
+"            %s PyUnicode_DecodeASCII(%s, strlen(%s), NULL);\n"
+            , vname
+            , prefix, vname, vname);
+
+        break;
+
+    case latin1_string_type:
+        if (ad->nrderefs == 0)
+            prcode(fp,
+"            %s PyUnicode_DecodeLatin1(&%s, 1, NULL);\n"
+                , prefix, vname);
+        else
+            prcode(fp,
+"            if (%s == NULL)\n"
+"            {\n"
+"                Py_INCREF(Py_None);\n"
+"                return Py_None;\n"
+"            }\n"
+"\n"
+"            %s PyUnicode_DecodeLatin1(%s, strlen(%s), NULL);\n"
+            , vname
+            , prefix, vname, vname);
+
+        break;
+
+    case utf8_string_type:
         if (ad->nrderefs == 0)
             prcode(fp,
 "#if PY_MAJOR_VERSION >= 3\n"
 "            %s PyUnicode_FromStringAndSize(&%s, 1);\n"
 "#else\n"
-"            %s PyString_FromStringAndSize(&%s, 1);\n"
+"            %s PyUnicode_DecodeUTF8(&%s, 1, NULL);\n"
 "#endif\n"
                 , prefix, vname
                 , prefix, vname);
@@ -9764,11 +9874,11 @@ static void generateHandleResult(overDef *od, int isNew, int result_size,
 "#if PY_MAJOR_VERSION >= 3\n"
 "            %s PyUnicode_FromString(%s);\n"
 "#else\n"
-"            %s PyString_FromString(%s);\n"
+"            %s PyUnicode_DecodeUTF8(%s, strlen(%s), NULL);\n"
 "#endif\n"
             , vname
             , prefix, vname
-            , prefix, vname);
+            , prefix, vname, vname);
 
         break;
 
@@ -9933,76 +10043,82 @@ static const char *resultOwner(overDef *od)
 
 
 /*
- * Return the format character used by sipBuildResult() for a particular type.
+ * Return the format string used by sipBuildResult() for a particular type.
  */
-static char getBuildResultFormat(argDef *ad)
+static const char *getBuildResultFormat(argDef *ad)
 {
     switch (ad->atype)
     {
     case mapped_type:
-        return 'D';
+        return "D";
 
     case fake_void_type:
     case class_type:
         if (needNewInstance(ad))
-            return 'N';
+            return "N";
 
-        return 'D';
+        return "D";
 
     case bool_type:
     case cbool_type:
-        return 'b';
+        return "b";
 
-    case estring_type:
-        return (ad->nrderefs > (isOutArg(ad) ? 1 : 0)) ? 'A' : 'a';
+    case ascii_string_type:
+        return (ad->nrderefs > (isOutArg(ad) ? 1 : 0)) ? "AA" : "aA";
+
+    case latin1_string_type:
+        return (ad->nrderefs > (isOutArg(ad) ? 1 : 0)) ? "AL" : "aL";
+
+    case utf8_string_type:
+        return (ad->nrderefs > (isOutArg(ad) ? 1 : 0)) ? "A8" : "a8";
 
     case sstring_type:
     case ustring_type:
     case string_type:
-        return (ad->nrderefs > (isOutArg(ad) ? 1 : 0)) ? 's' : 'c';
+        return (ad->nrderefs > (isOutArg(ad) ? 1 : 0)) ? "s" : "c";
 
     case wstring_type:
-        return (ad->nrderefs > (isOutArg(ad) ? 1 : 0)) ? 'x' : 'w';
+        return (ad->nrderefs > (isOutArg(ad) ? 1 : 0)) ? "x" : "w";
 
     case enum_type:
-        return (ad->u.ed->fqcname != NULL) ? 'F' : 'e';
+        return (ad->u.ed->fqcname != NULL) ? "F" : "e";
 
     case short_type:
-        return 'h';
+        return "h";
 
     case ushort_type:
-        return 't';
+        return "t";
 
     case int_type:
     case cint_type:
-        return 'i';
+        return "i";
 
     case uint_type:
-        return 'u';
+        return "u";
 
     case long_type:
-        return 'l';
+        return "l";
 
     case ulong_type:
-        return 'm';
+        return "m";
 
     case longlong_type:
-        return 'n';
+        return "n";
 
     case ulonglong_type:
-        return 'o';
+        return "o";
 
     case void_type:
     case struct_type:
-        return 'V';
+        return "V";
 
     case float_type:
     case cfloat_type:
-        return 'f';
+        return "f";
 
     case double_type:
     case cdouble_type:
-        return 'd';
+        return "d";
 
     case pyobject_type:
     case pytuple_type:
@@ -10011,11 +10127,11 @@ static char getBuildResultFormat(argDef *ad)
     case pycallable_type:
     case pyslice_type:
     case pytype_type:
-        return 'R';
+        return "R";
     }
 
     /* We should never get here. */
-    return ' ';
+    return "";
 }
 
 
@@ -10447,7 +10563,7 @@ static void generateFunctionCall(classDef *cd,classDef *ocd,overDef *od,
                 prcode(fp,
 "\n"
 "            sipKeepReference(sipSelf, %d, a%d%s);\n"
-                    , ad->key, a, ((ad->atype == estring_type && ad->nrderefs == 1) || !isGetWrapper(ad) ? "Keep" : "Wrapper"));
+                    , ad->key, a, (((ad->atype == ascii_string_type || ad->atype == latin1_string_type || ad->atype == utf8_string_type) && ad->nrderefs == 1) || !isGetWrapper(ad) ? "Keep" : "Wrapper"));
             }
 
             /* Handle /TransferThis/ for non-factory methods. */
@@ -10776,11 +10892,27 @@ static int generateArgParser(signatureDef *sd, classDef *cd, ctorDef *ct,
 
         switch (ad->atype)
         {
-        case estring_type:
+        case ascii_string_type:
             if (ad->nrderefs == 0 || (isOutArg(ad) && ad->nrderefs == 1))
-                fmt = "a";
+                fmt = "aA";
             else
-                fmt = "A";
+                fmt = "AA";
+
+            break;
+
+        case latin1_string_type:
+            if (ad->nrderefs == 0 || (isOutArg(ad) && ad->nrderefs == 1))
+                fmt = "aL";
+            else
+                fmt = "AL";
+
+            break;
+
+        case utf8_string_type:
+            if (ad->nrderefs == 0 || (isOutArg(ad) && ad->nrderefs == 1))
+                fmt = "a8";
+            else
+                fmt = "A8";
 
             break;
 
@@ -10956,7 +11088,7 @@ static int generateArgParser(signatureDef *sd, classDef *cd, ctorDef *ct,
          * reference to.  However if it is an encoded string then we will get
          * the actual wrapper from the format character.
          */
-        if (isGetWrapper(ad) || (keepReference(ad) && ad->atype != estring_type) || (keepReference(ad) && ad->nrderefs != 1))
+        if (isGetWrapper(ad) || (keepReference(ad) && ad->atype != ascii_string_type && ad->atype != latin1_string_type && ad->atype != utf8_string_type) || (keepReference(ad) && ad->nrderefs != 1))
             prcode(fp, "@");
 
         prcode(fp,fmt);
@@ -11005,7 +11137,21 @@ static int generateArgParser(signatureDef *sd, classDef *cd, ctorDef *ct,
 
             break;
 
-        case estring_type:
+        case ascii_string_type:
+            if (!keepReference(ad) && ad->nrderefs == 1)
+                prcode(fp, ",&a%dKeep", a);
+
+            prcode(fp, ",&a%d", a);
+            break;
+
+        case latin1_string_type:
+            if (!keepReference(ad) && ad->nrderefs == 1)
+                prcode(fp, ",&a%dKeep", a);
+
+            prcode(fp, ",&a%d", a);
+            break;
+
+        case utf8_string_type:
             if (!keepReference(ad) && ad->nrderefs == 1)
                 prcode(fp, ",&a%dKeep", a);
 
@@ -11186,7 +11332,7 @@ static void deleteTemps(signatureDef *sd, FILE *fp)
         if (!isInArg(ad))
             continue;
 
-        if (ad->atype == estring_type && ad->nrderefs == 1)
+        if ((ad->atype == ascii_string_type || ad->atype == latin1_string_type || ad->atype == utf8_string_type) && ad->nrderefs == 1)
         {
             prcode(fp,
 "            Py_%sDECREF(a%dKeep);\n"
@@ -12082,7 +12228,8 @@ static void generateMappedTypeFromVoid(mappedTypeDef *mtd, const char *cname,
  */
 static int keepPyReference(argDef *ad)
 {
-    if (ad->atype == estring_type || ad->atype == ustring_type ||
+    if (ad->atype == ascii_string_type || ad->atype == latin1_string_type ||
+            ad->atype == utf8_string_type || ad->atype == ustring_type ||
             ad->atype == sstring_type || ad->atype == string_type)
     {
         if (!isReference(ad) && ad->nrderefs > 0)
@@ -12090,4 +12237,33 @@ static int keepPyReference(argDef *ad)
     }
 
     return FALSE;
+}
+
+
+/*
+ * Return the encoding character for the given type.
+ */
+static char getEncoding(argType atype)
+{
+    char encoding;
+
+    switch (atype)
+    {
+    case ascii_string_type:
+        encoding = 'A';
+        break;
+
+    case latin1_string_type:
+        encoding = 'L';
+        break;
+
+    case utf8_string_type:
+        encoding = '8';
+        break;
+
+    default:
+        encoding = 'N';
+    }
+
+    return encoding;
 }
