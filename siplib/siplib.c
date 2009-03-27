@@ -8714,7 +8714,11 @@ static int parseString_AsEncodedChar(PyObject *bytes, PyObject *obj, char *ap)
     SIP_SSIZE_T size;
 
     if (bytes == NULL)
+    {
+        PyErr_Clear();
+
         return parseBytes_AsChar(obj, ap);
+    }
 
 #if PY_MAJOR_VERSION >= 3
     size = PyBytes_GET_SIZE(bytes);
@@ -8874,6 +8878,8 @@ static PyObject *parseString_AsEncodedString(PyObject *bytes, PyObject *obj,
 
         return bytes;
     }
+
+    PyErr_Clear();
 
     if (parseBytes_AsString(obj, ap) < 0)
         return NULL;
