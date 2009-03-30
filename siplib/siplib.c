@@ -457,14 +457,16 @@ static int objectify(const char *s, PyObject **objp);
  */
 #if PY_MAJOR_VERSION >= 3
 #define SIP_MODULE_ENTRY    PyInit_sip
+#define SIP_MODULE_TYPE     PyObject *
 #define SIP_FATAL(s)        return NULL
 #else
 #define SIP_MODULE_ENTRY    initsip
+#define SIP_MODULE_TYPE     void
 #define SIP_FATAL(s)        Py_FatalError(s)
 #endif
 
 #if defined(SIP_STATIC_MODULE)
-void SIP_MODULE_ENTRY(void)
+SIP_MODULE_TYPE SIP_MODULE_ENTRY(void)
 #else
 PyMODINIT_FUNC SIP_MODULE_ENTRY(void)
 #endif
