@@ -4966,6 +4966,8 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
     /* The buffer interface functions. */
     if (cd->getbufcode != NULL)
     {
+        int need_cpp = usedInCode(cd->getbufcode, "sipCpp");
+
         prcode(fp,
 "\n"
 "\n"
@@ -4978,15 +4980,19 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
                 , classFQCName(cd));
 
         prcode(fp,
-"static int getbuffer_%C(PyObject *%s, void *sipCppV, Py_buffer *sipBuffer, int %s)\n"
+"static int getbuffer_%C(PyObject *%s, void *%s, Py_buffer *sipBuffer, int %s)\n"
 "{\n"
-"    ", classFQCName(cd)
-     , argName("sipSelf", cd->getbufcode)
-     , argName("sipFlags", cd->getbufcode));
+            , classFQCName(cd), argName("sipSelf", cd->getbufcode), (generating_c || need_cpp ? "sipCppV" : ""), argName("sipFlags", cd->getbufcode));
 
-        generateClassFromVoid(cd, "sipCpp", "sipCppV", fp);
+        if (need_cpp)
+        {
+            prcode(fp, "    ");
+            generateClassFromVoid(cd, "sipCpp", "sipCppV", fp);
+            prcode(fp, ";\n"
+                );
+        }
 
-        prcode(fp, ";\n"
+        prcode(fp,
 "    int sipRes;\n"
 "\n"
             );
