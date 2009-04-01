@@ -1369,6 +1369,21 @@ typedef struct _pyqt3ClassTypeDef {
  */
 
 /*
+ * The description of a Qt signal for PyQt4.
+ */
+typedef struct _pyqt4QtSignal {
+    /* The C++ name and signature of the signal. */
+    const char *signature;
+
+    /*
+     * If the signal is an overload of regular methods then this points to the
+     * code that implements those methods.
+     */
+    PyMethodDef *non_signals;
+} pyqt4QtSignal;
+
+
+/*
  * This is the PyQt4-specific extension to the generated class type structure.
  */
 typedef struct _pyqt4ClassTypeDef {
@@ -1394,7 +1409,7 @@ typedef struct _pyqt4ClassTypeDef {
      * The table of signals emitted by the type.  These are grouped by signal
      * name.
      */
-    const char **qt4_signals;
+    const pyqt4QtSignal *qt4_signals;
 } pyqt4ClassTypeDef;
 
 

@@ -32,7 +32,6 @@ typedef enum {
 /* An entry in the sorted array of methods. */
 typedef struct {
     memberDef *md;                      /* The method. */
-    int is_static;                      /* Set if all overloads are static. */
 } sortedMethTab;
 
 
@@ -217,7 +216,8 @@ static int generateSubClassConvertors(sipSpec *pt, moduleDef *mod, FILE *fp);
 static void generateNameCache(sipSpec *pt, FILE *fp);
 static const char *resultOwner(overDef *od);
 static void prCachedName(FILE *fp, nameDef *nd, const char *prefix);
-static void generateSignalTableEntry(classDef *cd, overDef *od, FILE *fp);
+static void generateSignalTableEntry(classDef *cd, overDef *sig, int membernr,
+        FILE *fp);
 static void generateTypesTable(sipSpec *pt, moduleDef *mod, FILE *fp);
 static int py2SlotOnly(slotType st);
 static int keepPyReference(argDef *ad);
@@ -3380,8 +3380,6 @@ static sortedMethTab *createFunctionTable(classDef *cd,int *nrp)
     for (md = cd->members; md != NULL; md = md->next)
     {
         mt->md = md;
-        mt->is_static = TRUE;
-
         ++mt;
     }
 
@@ -3452,14 +3450,13 @@ static sortedMethTab *createMethodTable(classDef *cd, int *nrp)
 
     for (vl = cd->visible; vl != NULL; vl = vl->next)
     {
-        int need_method, is_static;
+        int need_method;
         overDef *od;
 
         if (vl->m->slot != no_slot)
             continue;
 
         need_method = FALSE;
-        is_static = TRUE;
 
         for (od = vl->cd->overs; od != NULL; od = od->next)
         {
@@ -3471,19 +3468,12 @@ static sortedMethTab *createMethodTable(classDef *cd, int *nrp)
                 continue;
 
             if (!skipOverload(od,vl->m,cd,vl->cd,TRUE))
-            {
                 need_method = TRUE;
-
-                if (!isPrivate(od) && !isStatic(od))
-                    is_static = FALSE;
-            }
         }
 
         if (need_method)
         {
             mt->md = vl->m;
-            mt->is_static = is_static;
-
             ++mt;
         }
     }
@@ -3534,18 +3524,12 @@ static int generateMethodTable(classDef *cd,FILE *fp)
         {
             memberDef *md = mtab[i].md;
 
-            /*
-             * For the moment we are suppressing the generation of
-             * METH_STATIC until we understand descriptors better.
-             * It could be that they will simplify the handling of
-             * lazy attributes and allow things to be cached in the
-             * type dictionary.
-             */
-            mtab[i].is_static = FALSE;
+            /* Save the index in the table. */
+            md->membernr = i;
 
             prcode(fp,
-"    {SIP_PYMETHODDEF_CAST(%N), meth_%C_%s, METH_VARARGS%s, NULL}%s\n"
-                ,md->pyname,classFQCName(cd),md->pyname->text,(mtab[i].is_static ? "|METH_STATIC" : ""),((i + 1) < nr) ? "," : "");
+"    {SIP_PYMETHODDEF_CAST(%N), meth_%C_%s, METH_VARARGS, NULL}%s\n"
+                , md->pyname, classFQCName(cd), md->pyname->text, ((i + 1) < nr) ? "," : "");
         }
 
         free(mtab);
@@ -8220,6 +8204,10 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 "};\n"
             );
 
+    /* Generate the attributes tables. */
+    nr_methods = generateMethodTable(cd,fp);
+    nr_enums = generateEnumMemberTable(pt, mod, cd, fp);
+
     /* Generate the PyQt4 signals table. */
     is_signals = FALSE;
 
@@ -8229,6 +8217,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
         for (md = cd->members; md != NULL; md = md->next)
         {
             overDef *od;
+            int membernr = md->membernr;
 
             for (od = cd->overs; od != NULL; od = od->next)
             {
@@ -8236,6 +8225,20 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 
                 if (od->common != md || !isSignal(od))
                     continue;
+
+                if (membernr >= 0)
+                {
+                    /* See if there is a non-signal overload. */
+
+                    overDef *nsig;
+
+                    for (nsig = cd->overs; nsig != NULL; nsig = nsig->next)
+                        if (nsig != od && nsig->common == md && !isSignal(nsig))
+                            break;
+
+                    if (nsig == NULL)
+                        membernr = -1;
+                }
 
                 if (!is_signals)
                 {
@@ -8245,15 +8248,16 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 "\n"
 "\n"
 "/* Define this type's PyQt4 signals. */\n"
-"static const char *pyqt4_signals_%C[] = {\n"
-                , classFQCName(cd));
+"static const pyqt4QtSignal pyqt4_signals_%C[] = {\n"
+                        , classFQCName(cd));
                 }
 
                 /*
                  * Default arguments are handled as multiple signals.  We make
                  * sure the largest is first and the smallest last.
                  */
-                generateSignalTableEntry(cd, od, fp);
+                generateSignalTableEntry(cd, od, membernr, fp);
+                membernr = -1;
 
                 nr_args = od->cppsig->nrArgs;
 
@@ -8263,7 +8267,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
                         break;
 
                     od->cppsig->nrArgs = a;
-                    generateSignalTableEntry(cd, od, fp);
+                    generateSignalTableEntry(cd, od, -1, fp);
                 }
 
                 od->cppsig->nrArgs = nr_args;
@@ -8272,14 +8276,10 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 
         if (is_signals)
             prcode(fp,
-"    0\n"
+"    {0, 0}\n"
 "};\n"
                 );
     }
-
-    /* Generate the attributes tables. */
-    nr_methods = generateMethodTable(cd,fp);
-    nr_enums = generateEnumMemberTable(pt, mod, cd, fp);
 
     /* Generate the variable handlers. */
     nr_vars = 0;
@@ -8743,14 +8743,22 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 /*
  * Generate an entry in the PyQt4 signal table.
  */
-static void generateSignalTableEntry(classDef *cd, overDef *od, FILE *fp)
+static void generateSignalTableEntry(classDef *cd, overDef *sig, int membernr,
+        FILE *fp)
 {
     prcode(fp,
-"    \"%s(", od->cppname);
+"    {\"%s(", sig->cppname);
 
-    generateCalledArgs(cd, od->cppsig, Declaration, TRUE, fp);
+    generateCalledArgs(cd, sig->cppsig, Declaration, TRUE, fp);
 
-    prcode(fp,")\",\n"
+    prcode(fp,")\", ");
+
+    if (membernr >= 0)
+        prcode(fp, "&methods_%C[%d]", classFQCName(cd), membernr);
+    else
+        prcode(fp, "0");
+
+    prcode(fp,"},\n"
         );
 }
 

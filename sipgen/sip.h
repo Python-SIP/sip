@@ -859,6 +859,7 @@ typedef struct _enumDef {
 typedef struct _memberDef {
     nameDef *pyname;                    /* The Python name. */
     int memberflags;                    /* The member flags. */
+    int membernr;                       /* The index in the method table. */
     slotType slot;                      /* The slot type. */
     moduleDef *module;                  /* The owning module. */
     struct _memberDef *next;            /* Next in the list. */

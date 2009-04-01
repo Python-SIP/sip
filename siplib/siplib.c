@@ -4615,7 +4615,10 @@ static int add_lazy_attrs(sipClassTypeDef *ctd)
         }
     }
 
-    /* Get any lazy attributes from registered getters. */
+    /*
+     * Get any lazy attributes from registered getters.  This must be done last
+     * to allow any existing attributes to be replaced.
+     */
     for (ag = sipAttrGetters; ag != NULL; ag = ag->next)
         if (ag->type == NULL || PyType_IsSubtype((PyTypeObject *)wt, ag->type))
             if (ag->getter((sipTypeDef *)ctd, dict) < 0)
