@@ -3833,6 +3833,10 @@ static void callPyDtor(sipSimpleWrapper *self)
         /* Discard any result. */
         Py_XDECREF(res);
 
+        /* Handle any error the best we can. */
+        if (PyErr_Occurred())
+            PyErr_Print();
+
         SIP_RELEASE_GIL(sipGILState);
     }
 }
