@@ -6411,10 +6411,10 @@ static void *getPtrTypeDef(sipSimpleWrapper *self, const sipClassTypeDef **ctd)
 /*
  * Handle an objobjargproc slot.
  */
-static int objobjargprocSlot(PyObject *self,PyObject *arg1,PyObject *arg2,
+static int objobjargprocSlot(PyObject *self, PyObject *arg1, PyObject *arg2,
         sipPySlotType st)
 {
-    int (*f)(PyObject *,PyObject *);
+    int (*f)(PyObject *, PyObject *);
     PyObject *args;
     int res;
 
@@ -6423,25 +6423,9 @@ static int objobjargprocSlot(PyObject *self,PyObject *arg1,PyObject *arg2,
      * optional.
      */
     if (arg2 == NULL)
-        args = arg1;
-    else if (PyTuple_Check(arg1))
     {
-        int i;
-
-        /* It's already a tuple so we need to copy it and append the value. */
-        if ((args = PyTuple_New(PyTuple_GET_SIZE(arg1) + 1)) == NULL)
-            return -1;
-
-        for (i = 0; i < PyTuple_GET_SIZE(arg1); ++i)
-        {
-            PyObject *o = PyTuple_GET_ITEM(arg1,i);
-
-            PyTuple_SET_ITEM(args,i,o);
-            Py_INCREF(o);
-        }
-
-        PyTuple_SET_ITEM(args,i,arg2);
-        Py_INCREF(arg2);
+        args = arg1;
+        Py_INCREF(args);
     }
     else
     {
@@ -6455,14 +6439,10 @@ static int objobjargprocSlot(PyObject *self,PyObject *arg1,PyObject *arg2,
             return -1;
     }
 
-    f = (int (*)(PyObject *,PyObject *))findSlot(self, st);
+    f = (int (*)(PyObject *, PyObject *))findSlot(self, st);
 
-    res = f(self,args);
-
-    if (arg2 != NULL)
-    {
-        Py_DECREF(args);
-    }
+    res = f(self, args);
+    Py_DECREF(args);
 
     return res;
 }
@@ -6474,7 +6454,7 @@ static int objobjargprocSlot(PyObject *self,PyObject *arg1,PyObject *arg2,
 static int ssizeobjargprocSlot(PyObject *self, SIP_SSIZE_T arg1,
         PyObject *arg2, sipPySlotType st)
 {
-    int (*f)(PyObject *,PyObject *);
+    int (*f)(PyObject *, PyObject *);
     PyObject *args;
     int res;
 
@@ -6500,10 +6480,9 @@ static int ssizeobjargprocSlot(PyObject *self, SIP_SSIZE_T arg1,
     if (args == NULL)
         return -1;
 
-    f = (int (*)(PyObject *,PyObject *))findSlot(self,st);
+    f = (int (*)(PyObject *, PyObject *))findSlot(self, st);
 
-    res = f(self,args);
-
+    res = f(self, args);
     Py_DECREF(args);
 
     return res;
