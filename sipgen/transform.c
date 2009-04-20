@@ -218,8 +218,8 @@ void transform(sipSpec *pt)
     }
 
     /* Handle default ctors now that the argument types are resolved. */ 
-    if (!pt -> genc)
-        for (cd = pt -> classes; cd != NULL; cd = cd -> next)
+    if (!pt->genc)
+        for (cd = pt->classes; cd != NULL; cd = cd->next)
             if (!noDefaultCtors(cd) && !isOpaque(cd) && cd->iff->type != namespace_iface)
                 addDefaultCopyCtor(cd);
 
@@ -1323,81 +1323,79 @@ static void transformCasts(sipSpec *pt, classDef *cd)
 
 
 /*
- * Add a default copy ctor is required.
+ * Add a default copy ctor if required.
  */
 static void addDefaultCopyCtor(classDef *cd)
 {
-    ctorDef *copyct;
+    ctorDef *copyct, **tailp;
     mroDef *mro;
 
     /* See if there is a private copy ctor in the hierarchy. */
- 
-    copyct = NULL;
- 
-    for (mro = cd -> mro; mro != NULL; mro = mro -> next)
+    for (mro = cd->mro; mro != NULL; mro = mro->next)
     {
         ctorDef *ct;
 
         if (isDuplicateSuper(mro))
             continue;
 
-        for (ct = mro -> cd -> ctors; ct != NULL; ct = ct -> next)
+        for (ct = mro->cd->ctors; ct != NULL; ct = ct->next)
         {
             argDef *ad = &ct -> pysig.args[0];
  
             /* See if is a copy ctor. */
-            if (ct -> pysig.nrArgs != 1 || ad -> nrderefs != 0 ||
-                !isReference(ad) || ad -> atype != class_type ||
-                ad -> u.cd != mro -> cd)
-                continue;
+            if (ct->pysig.nrArgs == 1 && ad->nrderefs == 0 &&
+                isReference(ad) && ad->atype == class_type &&
+                ad->u.cd == mro->cd)
+                break;
+        }
 
-            /* Stop now if the copy ctor is private. */
+        if (ct != NULL)
+        {
+            /* If the copy ctor is private then the class can't be copied. */
             if (isPrivateCtor(ct))
+            {
+                setCannotCopy(cd);
+                return;
+            }
+
+            /*
+             * If the ctor is in the class itself then there is nothing to do.
+             */
+            if (mro == cd->mro)
                 return;
  
-            /*
-             * Remember if it's in the class we are dealing with.
-             */
-            if (mro == cd -> mro)
-                copyct = ct;
- 
+            /* Otherwise we need to create a default. */
             break;
         }
     }
  
-    if (copyct == NULL)
-    {
-        ctorDef **tailp;
+    /* Create a default public copy ctor. */
+    copyct = sipMalloc(sizeof (ctorDef));
  
-        /* Create a default public copy ctor. */
+    copyct->ctorflags = SECT_IS_PUBLIC;
+    copyct->pysig.nrArgs = 1;
+    copyct->pysig.args[0].name = "other";
+    copyct->pysig.args[0].atype = class_type;
+    copyct->pysig.args[0].u.cd = cd;
+    copyct->pysig.args[0].argflags = (ARG_IS_REF | ARG_IS_CONST | ARG_IN);
+    copyct->pysig.args[0].nrderefs = 0;
+    copyct->pysig.args[0].defval = NULL;
  
-        copyct = sipMalloc(sizeof (ctorDef));
+    copyct->cppsig = &copyct->pysig;
+    copyct->exceptions = NULL;
+    copyct->methodcode = NULL;
+    copyct->prehook = NULL;
+    copyct->posthook = NULL;
+    copyct->next = NULL;
  
-        copyct -> ctorflags = SECT_IS_PUBLIC;
-        copyct -> pysig.nrArgs = 1;
-        copyct -> pysig.args[0].name = "other";
-        copyct -> pysig.args[0].atype = class_type;
-        copyct -> pysig.args[0].u.cd = cd;
-        copyct -> pysig.args[0].argflags = (ARG_IS_REF | ARG_IS_CONST | ARG_IN);
-        copyct -> pysig.args[0].nrderefs = 0;
-        copyct -> pysig.args[0].defval = NULL;
- 
-        copyct -> cppsig = &copyct -> pysig;
-        copyct -> exceptions = NULL;
-        copyct -> methodcode = NULL;
-        copyct -> prehook = NULL;
-        copyct -> posthook = NULL;
-        copyct -> next = NULL;
- 
-        if (isDeprecatedClass(cd))
-            setIsDeprecatedCtor(copyct);
+    if (isDeprecatedClass(cd))
+        setIsDeprecatedCtor(copyct);
 
-        /* Append it to the list. */
-        for (tailp = &cd -> ctors; *tailp != NULL; tailp = &(*tailp) -> next)
-            ;
+    /* Append it to the list. */
+    for (tailp = &cd->ctors; *tailp != NULL; tailp = &(*tailp)->next)
+        ;
  
-        *tailp = copyct;
-    }
+    *tailp = copyct;
 }
 
 

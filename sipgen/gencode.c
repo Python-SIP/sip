@@ -10190,8 +10190,12 @@ static void generateFunctionCall(classDef *cd,classDef *ocd,overDef *od,
         /* Make a copy if it is not a reference or it is a const reference. */
         if (!isReference(res) || isConstArg(res))
         {
-            needsNew = TRUE;
-            resetIsConstArg(res);
+            /* If it is a class then we must be able to copy it. */
+            if (res->atype != class_type || !cannotCopy(res->u.cd))
+            {
+                needsNew = TRUE;
+                resetIsConstArg(res);
+            }
         }
     }
 
