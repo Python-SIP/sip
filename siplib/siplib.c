@@ -352,6 +352,7 @@ static void addClassSlots(sipWrapperType *wt, sipClassTypeDef *ctd);
 static void addTypeSlots(PyTypeObject *to, PyNumberMethods *nb,
         PySequenceMethods *sq, PyMappingMethods *mp, sipPySlotDef *slots);
 static void *findSlot(PyObject *self, sipPySlotType st);
+static void *findSlotInType(sipPySlotDef *psd, sipPySlotType st);
 static int objobjargprocSlot(PyObject *self, PyObject *arg1, PyObject *arg2,
         sipPySlotType st);
 static int ssizeobjargprocSlot(PyObject *self, SIP_SSIZE_T arg1,
@@ -6369,21 +6370,64 @@ static sipClassTypeDef *getClassType(const sipEncodedClassDef *enc,
  */
 static void *findSlot(PyObject *self, sipPySlotType st)
 {
-    sipPySlotDef *psd;
+    void *slot;
     PyTypeObject *py_type = Py_TYPE(self);
 
-    /* If it is not a wrapper then it must be an enum. */
+    /* See if it is a wrapper. */
     if (PyObject_TypeCheck((PyObject *)py_type, &sipWrapperType_Type))
-        psd = ((sipClassTypeDef *)((sipWrapperType *)(py_type))->type)->ctd_pyslots;
+    {
+        sipClassTypeDef *ctd;
+
+        ctd = (sipClassTypeDef *)((sipWrapperType *)(py_type))->type;
+
+        if (ctd->ctd_pyslots != NULL)
+            slot = findSlotInType(ctd->ctd_pyslots, st);
+        else
+            slot = NULL;
+
+        if (slot == NULL)
+        {
+            sipEncodedClassDef *sup;
+
+            /* Search any super-types. */
+            if ((sup = ctd->ctd_supers) != NULL)
+            {
+                sipClassTypeDef *sup_ctd;
+
+                do
+                {
+                    sup_ctd = getClassType(sup, ctd->ctd_base.td_module);
+
+                    if (sup_ctd->ctd_pyslots != NULL)
+                        slot = findSlotInType(sup_ctd->ctd_pyslots, st);
+                }
+                while (slot == NULL && !sup++->sc_flag);
+            }
+        }
+    }
     else
     {
+        sipEnumTypeDef *etd;
+
+        /* If it is not a wrapper then it must be an enum. */
         assert(PyObject_TypeCheck((PyObject *)py_type, &sipEnumType_Type));
 
-        psd = ((sipEnumTypeDef *)((sipEnumTypeObject *)(py_type))->type)->etd_pyslots;
+        etd = (sipEnumTypeDef *)((sipEnumTypeObject *)(py_type))->type;
+
+        assert(etd->etd_pyslots != NULL);
+
+        slot = findSlotInType(etd->etd_pyslots, st);
     }
 
-    assert(psd != NULL);
+    return slot;
+}
 
+
+/*
+ * Find a particular slot function in a particular type.
+ */
+static void *findSlotInType(sipPySlotDef *psd, sipPySlotType st)
+{
     while (psd->psd_func != NULL)
     {
         if (psd->psd_type == st)
@@ -6392,7 +6436,6 @@ static void *findSlot(PyObject *self, sipPySlotType st)
         ++psd;
     }
 
-    /* This should never happen. */
     return NULL;
 }
 
@@ -6415,34 +6458,43 @@ static int objobjargprocSlot(PyObject *self, PyObject *arg1, PyObject *arg2,
         sipPySlotType st)
 {
     int (*f)(PyObject *, PyObject *);
-    PyObject *args;
     int res;
-
-    /*
-     * Slot handlers require a single PyObject *.  The second argument is
-     * optional.
-     */
-    if (arg2 == NULL)
-    {
-        args = arg1;
-        Py_INCREF(args);
-    }
-    else
-    {
-#if PY_VERSION_HEX >= 0x02040000
-        args = PyTuple_Pack(2, arg1, arg2);
-#else
-        args = Py_BuildValue("(OO)", arg1, arg2);
-#endif
-
-        if (args == NULL)
-            return -1;
-    }
 
     f = (int (*)(PyObject *, PyObject *))findSlot(self, st);
 
-    res = f(self, args);
-    Py_DECREF(args);
+    if (f != NULL)
+    {
+        PyObject *args;
+
+        /*
+         * Slot handlers require a single PyObject *.  The second argument is
+         * optional.
+         */
+        if (arg2 == NULL)
+        {
+            args = arg1;
+            Py_INCREF(args);
+        }
+        else
+        {
+#if PY_VERSION_HEX >= 0x02040000
+            args = PyTuple_Pack(2, arg1, arg2);
+#else
+            args = Py_BuildValue("(OO)", arg1, arg2);
+#endif
+
+            if (args == NULL)
+                return -1;
+        }
+
+        res = f(self, args);
+        Py_DECREF(args);
+    }
+    else
+    {
+        PyErr_SetNone(PyExc_NotImplementedError);
+        res = -1;
+    }
 
     return res;
 }
@@ -6455,35 +6507,44 @@ static int ssizeobjargprocSlot(PyObject *self, SIP_SSIZE_T arg1,
         PyObject *arg2, sipPySlotType st)
 {
     int (*f)(PyObject *, PyObject *);
-    PyObject *args;
     int res;
-
-    /*
-     * Slot handlers require a single PyObject *.  The second argument is
-     * optional.
-     */
-    if (arg2 == NULL)
-#if PY_MAJOR_VERSION >= 3
-        args = PyLong_FromSsize_t(arg1);
-#elif PY_VERSION_HEX >= 0x02050000
-        args = PyInt_FromSsize_t(arg1);
-#else
-        args = PyInt_FromLong(arg1);
-#endif
-    else
-#if PY_VERSION_HEX >= 0x02050000
-        args = Py_BuildValue("(nO)", arg1, arg2);
-#else
-        args = Py_BuildValue("(iO)", arg1, arg2);
-#endif
-
-    if (args == NULL)
-        return -1;
 
     f = (int (*)(PyObject *, PyObject *))findSlot(self, st);
 
-    res = f(self, args);
-    Py_DECREF(args);
+    if (f != NULL)
+    {
+        PyObject *args;
+
+        /*
+         * Slot handlers require a single PyObject *.  The second argument is
+         * optional.
+         */
+        if (arg2 == NULL)
+#if PY_MAJOR_VERSION >= 3
+            args = PyLong_FromSsize_t(arg1);
+#elif PY_VERSION_HEX >= 0x02050000
+            args = PyInt_FromSsize_t(arg1);
+#else
+            args = PyInt_FromLong(arg1);
+#endif
+    else
+#if PY_VERSION_HEX >= 0x02050000
+            args = Py_BuildValue("(nO)", arg1, arg2);
+#else
+            args = Py_BuildValue("(iO)", arg1, arg2);
+#endif
+
+        if (args == NULL)
+            return -1;
+
+        res = f(self, args);
+        Py_DECREF(args);
+    }
+    else
+    {
+        PyErr_SetNone(PyExc_NotImplementedError);
+        res = -1;
+    }
 
     return res;
 }
@@ -7627,7 +7688,9 @@ static PyObject *slot_call(PyObject *self,PyObject *args,PyObject *kw)
 {
     PyObject *(*f)(PyObject *,PyObject *);
 
-    f = (PyObject *(*)(PyObject *,PyObject *))findSlot(self,call_slot);
+    f = (PyObject *(*)(PyObject *,PyObject *))findSlot(self, call_slot);
+
+    assert(f != NULL);
 
     return f(self,args);
 }
@@ -7652,7 +7715,9 @@ static PyObject *slot_sq_item(PyObject *self, SIP_SSIZE_T n)
     if (arg == NULL)
         return NULL;
 
-    f = (PyObject *(*)(PyObject *,PyObject *))findSlot(self,getitem_slot);
+    f = (PyObject *(*)(PyObject *,PyObject *))findSlot(self, getitem_slot);
+
+    assert(f != NULL);
 
     res = f(self,arg);
 
@@ -7665,10 +7730,11 @@ static PyObject *slot_sq_item(PyObject *self, SIP_SSIZE_T n)
 /*
  * The mapping type assign subscript slot.
  */
-static int slot_mp_ass_subscript(PyObject *self,PyObject *key,
+static int slot_mp_ass_subscript(PyObject *self, PyObject *key,
         PyObject *value)
 {
-    return objobjargprocSlot(self,key,value,(value != NULL ? setitem_slot : delitem_slot));
+    return objobjargprocSlot(self, key, value,
+            (value != NULL ? setitem_slot : delitem_slot));
 }
 
 
@@ -7677,14 +7743,15 @@ static int slot_mp_ass_subscript(PyObject *self,PyObject *key,
  */
 static int slot_sq_ass_item(PyObject *self, SIP_SSIZE_T i, PyObject *o)
 {
-    return ssizeobjargprocSlot(self, i, o, (o != NULL ? setitem_slot : delitem_slot));
+    return ssizeobjargprocSlot(self, i, o,
+            (o != NULL ? setitem_slot : delitem_slot));
 }
 
 
 /*
  * The type rich compare slot.
  */
-static PyObject *slot_richcompare(PyObject *self,PyObject *arg,int op)
+static PyObject *slot_richcompare(PyObject *self, PyObject *arg, int op)
 {
     PyObject *(*f)(PyObject *,PyObject *);
     sipPySlotType st;
@@ -7718,13 +7785,13 @@ static PyObject *slot_richcompare(PyObject *self,PyObject *arg,int op)
     }
 
     /* It might not exist if not all the above have been implemented. */
-    if ((f = (PyObject *(*)(PyObject *,PyObject *))findSlot(self,st)) == NULL)
+    if ((f = (PyObject *(*)(PyObject *,PyObject *))findSlot(self, st)) == NULL)
     {
         Py_INCREF(Py_NotImplemented);
         return Py_NotImplemented;
     }
 
-    return f(self,arg);
+    return f(self, arg);
 }
 
 
