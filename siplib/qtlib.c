@@ -75,7 +75,7 @@ static void *createUniversalSlot(sipWrapper *txSelf, const char *sig,
  */
 PyObject *sip_api_invoke_slot(const sipSlot *slot, PyObject *sigargs)
 {
-    PyObject *sa, *oxtype, *oxvalue, *oxtb, *sfunc, *newmeth, *sref;
+    PyObject *sa, *oxtype, *oxvalue, *oxtb, *sfunc, *sref;
 
     /* Keep some compilers quiet. */
     oxtype = oxvalue = oxtb = NULL;
@@ -137,9 +137,6 @@ PyObject *sip_api_invoke_slot(const sipSlot *slot, PyObject *sigargs)
             Py_XDECREF(sref);
             return NULL;
         }
-
-        /* Make sure we garbage collect the new method. */
-        newmeth = sfunc;
     }
     else if (slot -> name != NULL)
     {
@@ -154,17 +151,15 @@ PyObject *sip_api_invoke_slot(const sipSlot *slot, PyObject *sigargs)
              */
             PyErr_Format(PyExc_NameError,"Invalid slot %s",mname);
 
+            Py_XDECREF(sfunc);
             Py_XDECREF(sref);
             return NULL;
         }
-
-        /* Make sure we garbage collect the new method. */
-        newmeth = sfunc;
     }
     else
     {
-        sfunc = slot -> pyobj;
-        newmeth = NULL;
+        sfunc = slot->pyobj;
+        Py_INCREF(sfunc);
     }
 
     /*
@@ -180,9 +175,9 @@ PyObject *sip_api_invoke_slot(const sipSlot *slot, PyObject *sigargs)
     {
         PyObject *nsa, *xtype, *xvalue, *xtb, *resobj;
 
-        if ((resobj = PyEval_CallObject(sfunc,sa)) != NULL)
+        if ((resobj = PyEval_CallObject(sfunc, sa)) != NULL)
         {
-            Py_XDECREF(newmeth);
+            Py_DECREF(sfunc);
             Py_XDECREF(sref);
 
             /* Remove any previous exception. */
@@ -273,7 +268,7 @@ PyObject *sip_api_invoke_slot(const sipSlot *slot, PyObject *sigargs)
         sa = nsa;
     }
 
-    Py_XDECREF(newmeth);
+    Py_DECREF(sfunc);
     Py_XDECREF(sref);
 
     Py_DECREF(sa);

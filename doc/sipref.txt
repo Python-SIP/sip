@@ -950,7 +950,8 @@ SIP allows a class's meta-type and super-type to be explicitly specified using
 the `Metatype`_ and `Supertype`_ class annotations.
 
 SIP also allows the default meta-type and super-type to be changed for a module
-using the `%DefaultMetatype`_ and `%DefaultSupertype`_ directives.
+using the `%DefaultMetatype`_ and `%DefaultSupertype`_ directives.  Unlike the
+default super-type, the default meta-type is inherited by importing modules.
 
 If you want to use your own meta-type or super-type then they must be
 sub-classed from one of the SIP provided types.  Your types must be registered
@@ -2209,7 +2210,8 @@ For example::
     %DefaultMetatype *dotted-name*
 
 This directive is used to specify the Python type that should be used as the
-meta-type for any C/C++ data type that doesn't have an explicit super-type.
+meta-type for any C/C++ data type defined in the same module, and by importing
+modules, that doesn't have an explicit super-type.
 
 If this is not specified then ``sip.wrappertype`` is used.
 
@@ -2231,7 +2233,8 @@ For example::
     %DefaultSupertype *dotted-name*
 
 This directive is used to specify the Python type that should be used as the
-super-type for any C/C++ data type that doesn't have an explicit super-type.
+super-type for any C/C++ data type defined in the same module that doesn't have
+an explicit super-type.
 
 If this is not specified then ``sip.wrapper`` is used.
 

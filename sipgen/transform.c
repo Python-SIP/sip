@@ -148,29 +148,6 @@ void transform(sipSpec *pt)
         }
     }
 
-    /*
-     * Set the default super-type for the main module if it doesn't have one
-     * explicitly set.
-     */
-    if (pt->module->defsupertype == NULL)
-    {
-        moduleListDef *mld;
-
-        for (mld = pt->module->allimports; mld != NULL; mld = mld->next)
-        {
-            if (mld->module->defsupertype == NULL)
-                continue;
-
-            if (pt->module->defsupertype == NULL)
-                pt->module->defsupertype = mld->module->defsupertype;
-            else if (pt->module->defsupertype != mld->module->defsupertype)
-                fatal("The %s module has imported different default super-types %s and %s\n",
-                        pt->module->fullname->text,
-                        pt->module->defsupertype->text,
-                        mld->module->defsupertype->text);
-        }
-    }
-
     /* Check each class has been defined. */
     for (cd = pt -> classes; cd != NULL; cd = cd -> next)
         if (cd -> iff -> module == NULL)
