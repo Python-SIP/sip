@@ -20,6 +20,7 @@
 /* Forward declarations of slots. */
 static PyObject *sipMethodDescr_descr_get(PyObject *self, PyObject *obj,
         PyObject *type);
+static PyObject *sipMethodDescr_repr(PyObject *self);
 
 
 /*
@@ -46,7 +47,7 @@ PyTypeObject sipMethodDescr_Type = {
     0,                      /* tp_getattr */
     0,                      /* tp_setattr */
     0,                      /* tp_compare */
-    0,                      /* tp_repr */
+    sipMethodDescr_repr,    /* tp_repr */
     0,                      /* tp_as_number */
     0,                      /* tp_as_sequence */
     0,                      /* tp_as_mapping */
@@ -99,6 +100,18 @@ static PyObject *sipMethodDescr_descr_get(PyObject *self, PyObject *obj,
         obj = NULL;
 
     return PyCFunction_New(md->pmd, obj);
+}
+
+
+/*
+ * The descriptor's repr slot.  This is for the benefit of cProfile which seems
+ * to determine attribute names differently to the rest of Python.
+ */
+static PyObject *sipMethodDescr_repr(PyObject *self)
+{
+    sipMethodDescr *md = (sipMethodDescr *)self;
+
+    return PyString_FromFormat("<built-in method %s>", md->pmd->ml_name);
 }
 
 
@@ -178,7 +191,7 @@ static int get_instance_address(sipVariableDescr *vd, PyObject *obj,
 /*
  * Return a new method descriptor for the given getter/setter.
  */
-PyObject *sipVariableDescr_New(sipVariableDef *vd, sipClassTypeDef *ctd)
+PyObject *sipVariableDescr_New(sipVariableDef *vd, const sipClassTypeDef *ctd)
 {
     PyObject *descr = PyType_GenericAlloc(&sipVariableDescr_Type, 0);
 
