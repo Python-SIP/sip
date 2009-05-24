@@ -13,6 +13,12 @@
 
 #define XML_VERSION_NR  0       /* The schema version number. */
 
+/* Icon numbers.  The values are those used by the eric IDE. */
+#define CLASS_ID        1
+#define METHOD_ID       4
+#define VARIABLE_ID     7
+#define ENUM_ID         10
+
 
 static void apiEnums(sipSpec *pt, moduleDef *mod, classDef *scope, FILE *fp);
 static void apiVars(sipSpec *pt, moduleDef *mod, classDef *scope, FILE *fp);
@@ -120,7 +126,7 @@ static int apiCtor(moduleDef *mod, classDef *scope, ctorDef *ct, int sec,
     /* Do the callable type form. */
     fprintf(fp, "%s.", mod->name);
     prScopedPythonName(fp, scope->ecd, scope->pyname->text);
-    fprintf(fp, "(");
+    fprintf(fp, "?%d(", CLASS_ID);
 
     need_comma = FALSE;
 
@@ -139,7 +145,7 @@ static int apiCtor(moduleDef *mod, classDef *scope, ctorDef *ct, int sec,
     /* Do the call __init__ form. */
     fprintf(fp, "%s.", mod->name);
     prScopedPythonName(fp, scope->ecd, scope->pyname->text);
-    fprintf(fp, ".__init__(self");
+    fprintf(fp, ".__init__?%d(self", CLASS_ID);
 
     for (a = 0; a < ct->pysig.nrArgs; ++a)
         apiArgument(&ct->pysig.args[a], FALSE, TRUE, sec, fp);
@@ -171,14 +177,14 @@ static void apiEnums(sipSpec *pt, moduleDef *mod, classDef *scope, FILE *fp)
         {
             fprintf(fp, "%s.", mod->name);
             prScopedPythonName(fp, ed->ecd, ed->pyname->text);
-            fprintf(fp, "\n");
+            fprintf(fp, "?%d\n", ENUM_ID);
         }
 
         for (emd = ed->members; emd != NULL; emd = emd->next)
         {
             fprintf(fp, "%s.", mod->name);
             prScopedPythonName(fp, ed->ecd, emd->pyname->text);
-            fprintf(fp, "\n");
+            fprintf(fp, "?%d\n", ENUM_ID);
         }
     }
 }
@@ -201,7 +207,7 @@ static void apiVars(sipSpec *pt, moduleDef *mod, classDef *scope, FILE *fp)
 
         fprintf(fp, "%s.", mod->name);
         prScopedPythonName(fp, vd->ecd, vd->pyname->text);
-        fprintf(fp, "\n");
+        fprintf(fp, "?%d\n", VARIABLE_ID);
     }
 }
 
@@ -216,7 +222,7 @@ static int apiOverload(moduleDef *mod, classDef *scope, overDef *od, int sec,
 
     fprintf(fp, "%s.", mod->name);
     prScopedPythonName(fp, scope, od->common->pyname->text);
-    fprintf(fp, "(");
+    fprintf(fp, "?%d(", METHOD_ID);
 
     nr_out = 0;
 
