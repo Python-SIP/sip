@@ -8244,19 +8244,26 @@ static void addTypeSlots(PyTypeObject *to, PyNumberMethods *nb,
 #endif
             break;
 
+#if PY_MAJOR_VERSION < 3
         case div_slot:
             if (nb != NULL)
-            {
-#if PY_MAJOR_VERSION < 3
                 nb->nb_divide = (binaryfunc)f;
-#endif
-                nb->nb_true_divide = (binaryfunc)f;
-            }
             break;
+#endif
 
         case mod_slot:
             if (nb != NULL)
                 nb->nb_remainder = (binaryfunc)f;
+            break;
+
+        case floordiv_slot:
+            if (nb != NULL)
+                nb->nb_floor_divide = (binaryfunc)f;
+            break;
+
+        case truediv_slot:
+            if (nb != NULL)
+                nb->nb_true_divide = (binaryfunc)f;
             break;
 
         case and_slot:
@@ -8313,19 +8320,26 @@ static void addTypeSlots(PyTypeObject *to, PyNumberMethods *nb,
 #endif
             break;
 
+#if PY_MAJOR_VERSION < 3
         case idiv_slot:
             if (nb != NULL)
-            {
-#if PY_MAJOR_VERSION < 3
                 nb->nb_inplace_divide = (binaryfunc)f;
-#endif
-                nb->nb_inplace_true_divide = (binaryfunc)f;
-            }
             break;
+#endif
 
         case imod_slot:
             if (nb != NULL)
                 nb->nb_inplace_remainder = (binaryfunc)f;
+            break;
+
+        case ifloordiv_slot:
+            if (nb != NULL)
+                nb->nb_inplace_floor_divide = (binaryfunc)f;
+            break;
+
+        case itruediv_slot:
+            if (nb != NULL)
+                nb->nb_inplace_true_divide = (binaryfunc)f;
             break;
 
         case iand_slot:
@@ -8392,7 +8406,7 @@ static void addTypeSlots(PyTypeObject *to, PyNumberMethods *nb,
             break;
 #endif
 
-        case nonzero_slot:
+        case bool_slot:
             if (nb != NULL)
 #if PY_MAJOR_VERSION >= 3
                 nb->nb_bool = (inquiry)f;
@@ -8423,6 +8437,13 @@ static void addTypeSlots(PyTypeObject *to, PyNumberMethods *nb,
             if (nb != NULL)
                 nb->nb_absolute = (unaryfunc)f;
             break;
+
+#if PY_VERSION_HEX >= 0x02050000
+        case index_slot:
+            if (nb != NULL)
+                nb->nb_index = (unaryfunc)f;
+            break;
+#endif
         }
 }
 

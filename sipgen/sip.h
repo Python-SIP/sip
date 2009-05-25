@@ -393,6 +393,8 @@ typedef enum {
     repeat_slot,
     div_slot,
     mod_slot,
+    floordiv_slot,
+    truediv_slot,
     and_slot,
     or_slot,
     xor_slot,
@@ -405,6 +407,8 @@ typedef enum {
     irepeat_slot,
     idiv_slot,
     imod_slot,
+    ifloordiv_slot,
+    itruediv_slot,
     iand_slot,
     ior_slot,
     ixor_slot,
@@ -422,12 +426,13 @@ typedef enum {
     gt_slot,
     ge_slot,
     cmp_slot,
-    nonzero_slot,
+    bool_slot,
     neg_slot,
     pos_slot,
     abs_slot,
     repr_slot,
     hash_slot,
+    index_slot,
     no_slot
 } slotType;
 

@@ -12,6 +12,9 @@ v4.8 ??? 2009
   - Added the /KeepReference/ argument annotation.
   - Added the /Encoding/ argument, function, typedef and variable annotation.
   - super() now works as expected with wrapped types.
+  - Added support for __floordiv__, __ifloordiv__, __truediv__, __itruediv__
+    and __index__.
+  - __bool__ is a synonym for __nonzero__.
   - Many additions and deprecations in the API to eliminate the differences
     between classes and mapped types.  (See the documentation for the details.)
 

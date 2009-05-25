@@ -440,8 +440,12 @@ typedef enum {
     sub_slot,           /* __sub__ */
     mul_slot,           /* __mul__ for number types */
     repeat_slot,        /* __mul__ for sequence types */
+#if PY_MAJOR_VERSION < 3
     div_slot,           /* __div__ */
+#endif
     mod_slot,           /* __mod__ */
+    floordiv_slot,      /* __floordiv__ */
+    truediv_slot,       /* __truediv__ */
     and_slot,           /* __and__ */
     or_slot,            /* __or__ */
     xor_slot,           /* __xor__ */
@@ -452,8 +456,12 @@ typedef enum {
     isub_slot,          /* __isub__ */
     imul_slot,          /* __imul__ for number types */
     irepeat_slot,       /* __imul__ for sequence types */
+#if PY_MAJOR_VERSION < 3
     idiv_slot,          /* __idiv__ */
+#endif
     imod_slot,          /* __imod__ */
+    ifloordiv_slot,     /* __ifloordiv__ */
+    itruediv_slot,      /* __itruediv__ */
     iand_slot,          /* __iand__ */
     ior_slot,           /* __ior__ */
     ixor_slot,          /* __ixor__ */
@@ -473,12 +481,15 @@ typedef enum {
 #if PY_MAJOR_VERSION < 3
     cmp_slot,           /* __cmp__ */
 #endif
-    nonzero_slot,       /* __nonzero__ */
+    bool_slot,          /* __bool__, __nonzero__ */
     neg_slot,           /* __neg__ */
     repr_slot,          /* __repr__ */
     hash_slot,          /* __hash__ */
     pos_slot,           /* __pos__ */
-    abs_slot            /* __abs__ */
+    abs_slot,           /* __abs__ */
+#if PY_VERSION_HEX >= 0x02050000
+    index_slot,         /* __index__ */
+#endif
 } sipPySlotType;
 
 

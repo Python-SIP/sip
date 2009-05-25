@@ -182,6 +182,10 @@ Potential Incompatibilities with Earlier Versions
 SIP v4.8
 --------
 
+Prior to this version the ``__div__`` special method implicitly defined the
+``__truediv__`` special method.  From this version the ``__truediv__`` special
+method must be explicitly defined.
+
 Prior to this version the `sipWrapper`_ structure had a member called ``user``
 which is available for handwritten code to use.  From this version ``user`` is
 a member of the `sipSimpleWrapper`_ structure.  `sipWrapper`_ pointers can be
@@ -1222,17 +1226,18 @@ file.
             [`%MethodCode`_]
 
     *special-method-name* ::= [ ``__abs__`` | ``__add__`` | ``__and__`` |
-            ``__call__`` | ``__cmp__`` | ``__contains__`` | ``__delitem__`` |
-            ``__div__`` | ``__eq__`` | ``__float__`` | ``__ge__`` |
-            ``__getitem__`` | ``__gt__`` | ``__hash__`` | ``__iadd__`` |
-            ``__iand__`` | ``__idiv__`` | ``__ilshift__`` | ``__imod__`` |
-            ``__imul__`` | ``__int__`` | ``__invert__`` | ``__ior__`` |
-            ``__irshift__`` | ``__isub__`` | ``__ixor__`` | ``__le__`` |
-            ``__len__`` | ``__long__`` | ``__lshift__`` | ``__lt__`` |
-            ``__mod__`` | ``__mul__`` | ``__ne__`` | ``__neg__`` |
+            ``__bool__`` | ``__call__`` | ``__cmp__`` | ``__contains__`` |
+            ``__delitem__`` | ``__div__`` | ``__eq__`` | ``__float__`` |
+            ``__floordiv__`` | ``__ge__`` | ``__getitem__`` | ``__gt__`` |
+            ``__hash__`` | ``__iadd__`` | ``__iand__`` | ``__idiv__`` |
+            ``__ifloordiv__`` | ``__ilshift__`` | ``__imod__`` | ``__imul__`` |
+            ``__index__`` | ``__int__`` | ``__invert__`` | ``__ior__`` |
+            ``__irshift__`` | ``__isub__`` | ``__itruediv__`` | ``__ixor__`` |
+            ``__le__`` | ``__len__`` | ``__long__`` | ``__lshift__`` |
+            ``__lt__`` | ``__mod__`` | ``__mul__`` | ``__ne__`` | ``__neg__`` |
             ``__nonzero__`` | ``__or__`` | ``__pos__`` | ``__repr__`` |
             ``__rshift__`` | ``__setitem__`` | ``__str__`` | ``__sub__`` |
-            ``__xor__``]
+            ``__truediv__`` | ``__xor__``]
 
     *operator* ::= *operator-type*
             ``(`` [*argument-list*] ``)`` [``const``] [*exceptions*]
