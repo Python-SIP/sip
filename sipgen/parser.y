@@ -4396,14 +4396,20 @@ static void newTypedef(sipSpec *pt, moduleDef *mod, char *name, argDef *type,
  */
 static void resolveAnyTypedef(sipSpec *pt, argDef *ad)
 {
+    argDef orig = *ad;
+
     while (ad->atype == defined_type)
     {
         ad->atype = no_type;
         searchTypedefs(pt, ad->u.snd, ad);
 
-        if (ad->atype == no_type)
+        /*
+         * Don't resolve to a template type as it may be superceded later on
+         * by a more specific mapped type.
+         */
+        if (ad->atype == no_type || ad->atype == template_type)
         {
-            ad->atype = defined_type;
+            *ad = orig;
             break;
         }
     }
