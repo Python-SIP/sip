@@ -533,6 +533,9 @@ PyMODINIT_FUNC SIP_MODULE_ENTRY(void)
     if (PyType_Ready(&sipMethodDescr_Type) < 0)
         SIP_FATAL("sip: Failed to initialise sip.methoddescriptor type");
 
+    if (PyType_Ready(&sipVariableDescr_Type) < 0)
+        SIP_FATAL("sip: Failed to initialise sip.variabledescriptor type");
+
     sipEnumType_Type.tp_base = &PyType_Type;
 
     if (PyType_Ready(&sipEnumType_Type) < 0)
