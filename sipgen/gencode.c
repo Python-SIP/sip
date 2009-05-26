@@ -10805,8 +10805,14 @@ static void generateComparisonSlotCall(classDef *cd, overDef *od,
     }
 
     if (!isGlobal(od))
-        prcode(fp, "sipCpp%s%S::operator%s(", (deref ? "->" : "."),
-                classFQCName(cd), op);
+    {
+        const char *deref_s = (deref ? "->" : ".");
+
+        if (isAbstract(od))
+            prcode(fp, "sipCpp%soperator%s(", deref_s, op);
+        else
+            prcode(fp, "sipCpp%s%S::operator%s(", deref_s, classFQCName(cd), op);
+    }
     else if (deref)
         prcode(fp, "operator%s((*sipCpp), ", op);
     else
