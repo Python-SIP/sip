@@ -10243,7 +10243,7 @@ static void generateFunctionCall(classDef *cd,classDef *ocd,overDef *od,
         if (!isReference(res) || isConstArg(res))
         {
             /* If it is a class then we must be able to copy it. */
-            if (res->atype != class_type || !cannotCopy(res->u.cd))
+            if (res->atype != class_type || !(cannotCopy(res->u.cd) || isAbstractClass(res->u.cd)))
             {
                 needsNew = TRUE;
                 resetIsConstArg(res);
