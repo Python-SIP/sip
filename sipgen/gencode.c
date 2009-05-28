@@ -787,7 +787,7 @@ static char *makePartName(const char *codeDir, const char *mname, int part,
 
 
 /*
- * Generate the C/C++ code for a composite module.
+ * Generate the C code for a composite module.
  */
 static void generateCompositeCpp(sipSpec *pt, const char *codeDir)
 {
@@ -1790,8 +1790,21 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "    /* Initialise the module and get it's dictionary. */\n"
 "#if PY_MAJOR_VERSION >= 3\n"
 "    sipModule = PyModule_Create(&sip_module_def);\n"
+"#elif PY_VERSION_HEX >= 0x02050000\n"
+"    sipModule = Py_InitModule(%N, sip_methods);\n"
 "#else\n"
+        , mod->fullname);
+
+    if (generating_c)
+        prcode(fp,
 "    sipModule = Py_InitModule((char *)%N, sip_methods);\n"
+            , mod->fullname);
+    else
+        prcode(fp,
+"    sipModule = Py_InitModule(const_cast<char *>(%N), sip_methods);\n"
+            , mod->fullname);
+
+    prcode(fp,
 "#endif\n"
 "\n"
 "    if (sipModule == NULL)\n"
@@ -1799,7 +1812,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "\n"
 "    sipModuleDict = PyModule_GetDict(sipModule);\n"
 "\n"
-        , mod->fullname);
+        );
 
     generateSipImport(mod, fp);
 
@@ -2020,11 +2033,7 @@ static void generateSipImport(moduleDef *mod, FILE *fp)
 {
     prcode(fp,
 "    /* Import the SIP module and get it's API. */\n"
-"#if PY_VERSION_HEX >= 0x02050000\n"
 "    sip_sipmod = PyImport_ImportModule(\"sip\");\n"
-"#else\n"
-"    sip_sipmod = PyImport_ImportModule((char *)\"sip\");\n"
-"#endif\n"
 "\n"
 "    if (sip_sipmod == NULL)\n"
 "    {\n"
