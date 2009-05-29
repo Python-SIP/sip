@@ -12,6 +12,7 @@
 #include "sip.h"
 
 
+static argType toBaseType(argDef *ad);
 static int samePythonSignature(signatureDef *sd1, signatureDef *sd2);
 static int nextSignificantArg(signatureDef *sd, int a);
 static int sameArgType(argDef *a1, argDef *a2, int strict);
@@ -2332,28 +2333,50 @@ static int sameArgType(argDef *a1, argDef *a2, int strict)
 
 
 /*
+ * Return the base type of an argument type.
+ */
+static argType toBaseType(argDef *ad)
+{
+    argType atype = ad->atype;
+
+    /*
+     * At the moment we only have to worry about the different char encodings.
+     */
+    if (atype == ascii_string_type || atype == latin1_string_type || atype == utf8_string_type)
+        atype = string_type;
+
+    return atype;
+}
+
+
+/*
  * Compare two basic types and return TRUE if they are the same.
  */
 int sameBaseType(argDef *a1, argDef *a2)
 {
+    argType a1_type, a2_type;
+
+    a1_type = toBaseType(a1);
+    a2_type = toBaseType(a2);
+
     /* The types must be the same. */
-    if (a1->atype != a2->atype)
+    if (a1_type != a2_type)
     {
         /*
          * If we are comparing a template with those that have already been
          * used to instantiate a class then we need to compare with the class
          * name.  Hopefully this won't have wider side effects.
          */
-        if (a1->atype == class_type && a2->atype == defined_type)
+        if (a1_type == class_type && a2_type == defined_type)
             return compareScopedNames(a1->u.cd->iff->fqcname, a2->u.snd) == 0;
 
-        if (a1->atype == defined_type && a2->atype == class_type)
+        if (a1_type == defined_type && a2_type == class_type)
             return compareScopedNames(a1->u.snd, a2->u.cd->iff->fqcname) == 0;
 
         return FALSE;
     }
 
-    switch (a1->atype)
+    switch (a1_type)
     {
     case class_type:
         if (a1->u.cd != a2->u.cd)
@@ -2383,7 +2406,7 @@ int sameBaseType(argDef *a1, argDef *a2)
             td2 = a2->u.td;
 
             if (compareScopedNames(td1->fqname, td2->fqname) != 0 ||
-                td1->types.nrArgs != td2->types.nrArgs)
+                    td1->types.nrArgs != td2->types.nrArgs)
                 return FALSE;
 
             for (a = 0; a < td1->types.nrArgs; ++a)
