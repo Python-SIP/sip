@@ -476,9 +476,13 @@ PyObject *sip_api_disconnect_rx(PyObject *txObj,const char *sig,
 void sip_api_free_sipslot(sipSlot *slot)
 {
     if (slot->name != NULL)
+    {
         sip_api_free(slot->name);
+    }
     else if (slot->weakSlot == Py_True)
+    {
         Py_DECREF(slot->pyobj);
+    }
 
     /* Remove any weak reference. */
     Py_XDECREF(slot->weakSlot);

@@ -272,7 +272,7 @@ static int get_instance_address(sipVariableDescr *vd, PyObject *obj,
         }
 
         /* Get the C++ instance. */
-        if ((addr = sip_api_get_cpp_ptr((sipSimpleWrapper *)obj, vd->ctd)) == NULL)
+        if ((addr = sip_api_get_cpp_ptr((sipSimpleWrapper *)obj, &vd->ctd->ctd_base)) == NULL)
             return -1;
     }
 

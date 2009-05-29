@@ -2997,10 +2997,12 @@ static exceptionDef *findException(sipSpec *pt, scopedNameDef *fqname, int new)
      * as a (as yet undefined) class.
      */
     if (new)
+    {
         if (iff->type == exception_iface)
             cd = NULL;
         else
             yyerror("There is already a class with the same name or the exception has been used before being defined");
+    }
     else
     {
         if (iff->type == exception_iface)

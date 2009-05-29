@@ -940,7 +940,7 @@ static void generateConsolidatedCpp(sipSpec *pt, const char *codeDir,
 "        {NULL, NULL}\n"
 "    };\n"
 "\n"
-"    char *name;\n"
+"    const char *name;\n"
 "    struct component *scd;\n"
 "\n"
 "#if PY_MAJOR_VERSION >= 3\n"
@@ -4151,7 +4151,7 @@ static void generateVariableSetter(classDef *context, varDef *vd, FILE *fp)
 "    sipReleaseType(sipVal, sipType_%T, sipValState);\n"
             , &vd->type);
 
-    /* Generate the code to keep the object alive while er use its data. */
+    /* Generate the code to keep the object alive while we use its data. */
     if (keep)
     {
         if (isStaticVar(vd))
@@ -4275,6 +4275,8 @@ static int generateObjToCppConversion(argDef *ad,FILE *fp)
     case sstring_type:
         if (ad->nrderefs == 0)
             rhs = "(signed char)sipBytes_AsChar(sipPy)";
+        else if (isConstArg(ad))
+            rhs = "(const signed char *)sipBytes_AsString(sipPy)";
         else
             rhs = "(signed char *)sipBytes_AsString(sipPy)";
         break;
@@ -4282,6 +4284,8 @@ static int generateObjToCppConversion(argDef *ad,FILE *fp)
     case ustring_type:
         if (ad->nrderefs == 0)
             rhs = "(unsigned char)sipBytes_AsChar(sipPy)";
+        else if (isConstArg(ad))
+            rhs = "(const unsigned char *)sipBytes_AsString(sipPy)";
         else
             rhs = "(unsigned char *)sipBytes_AsString(sipPy)";
         break;
@@ -4289,29 +4293,37 @@ static int generateObjToCppConversion(argDef *ad,FILE *fp)
     case ascii_string_type:
         if (ad->nrderefs == 0)
             rhs = "sipString_AsASCIIChar(sipPy)";
-        else
+        else if (isConstArg(ad))
             rhs = "sipString_AsASCIIString(&sipPy)";
+        else
+            rhs = "(char *)sipString_AsASCIIString(&sipPy)";
         break;
 
     case latin1_string_type:
         if (ad->nrderefs == 0)
             rhs = "sipString_AsLatin1Char(sipPy)";
-        else
+        else if (isConstArg(ad))
             rhs = "sipString_AsLatin1String(&sipPy)";
+        else
+            rhs = "(char *)sipString_AsLatin1String(&sipPy)";
         break;
 
     case utf8_string_type:
         if (ad->nrderefs == 0)
             rhs = "sipString_AsUTF8Char(sipPy)";
-        else
+        else if (isConstArg(ad))
             rhs = "sipString_AsUTF8String(&sipPy)";
+        else
+            rhs = "(char *)sipString_AsUTF8String(&sipPy)";
         break;
 
     case string_type:
         if (ad->nrderefs == 0)
             rhs = "sipBytes_AsChar(sipPy)";
-        else
+        else if (isConstArg(ad))
             rhs = "sipBytes_AsString(sipPy)";
+        else
+            rhs = "(const *)sipBytes_AsString(sipPy)";
         break;
 
     case wstring_type:
@@ -6719,10 +6731,12 @@ static void generateParseResultExtraArgs(argDef *ad, int argnr, FILE *fp)
 
     default:
         if (keepPyReference(ad))
+        {
             if (argnr < 0)
                 prcode(fp, ",sipResKey");
             else
                 prcode(fp, ",a%dKey", argnr);
+        }
     }
 }
 

@@ -1211,13 +1211,13 @@ typedef struct _sipAPIDef {
             const sipTypeDef *type, PyObject *arg0, PyObject *arg1);
     void (*api_add_delayed_dtor)(sipSimpleWrapper *w);
     char (*api_bytes_as_char)(PyObject *obj);
-    char *(*api_bytes_as_string)(PyObject *obj);
+    const char *(*api_bytes_as_string)(PyObject *obj);
     char (*api_string_as_ascii_char)(PyObject *obj);
-    char *(*api_string_as_ascii_string)(PyObject **obj);
+    const char *(*api_string_as_ascii_string)(PyObject **obj);
     char (*api_string_as_latin1_char)(PyObject *obj);
-    char *(*api_string_as_latin1_string)(PyObject **obj);
+    const char *(*api_string_as_latin1_string)(PyObject **obj);
     char (*api_string_as_utf8_char)(PyObject *obj);
-    char *(*api_string_as_utf8_string)(PyObject **obj);
+    const char *(*api_string_as_utf8_string)(PyObject **obj);
 #if defined(HAVE_WCHAR_H)
     wchar_t (*api_unicode_as_wchar)(PyObject *obj);
     wchar_t *(*api_unicode_as_wstring)(PyObject *obj);

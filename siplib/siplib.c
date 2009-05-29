@@ -92,13 +92,13 @@ static sipWrapperType *sip_api_find_class(const char *type);
 static const sipMappedType *sip_api_find_mapped_type(const char *type);
 static PyTypeObject *sip_api_find_named_enum(const char *type);
 static char sip_api_bytes_as_char(PyObject *obj);
-static char *sip_api_bytes_as_string(PyObject *obj);
+static const char *sip_api_bytes_as_string(PyObject *obj);
 static char sip_api_string_as_ascii_char(PyObject *obj);
-static char *sip_api_string_as_ascii_string(PyObject **obj);
+static const char *sip_api_string_as_ascii_string(PyObject **obj);
 static char sip_api_string_as_latin1_char(PyObject *obj);
-static char *sip_api_string_as_latin1_string(PyObject **obj);
+static const char *sip_api_string_as_latin1_string(PyObject **obj);
 static char sip_api_string_as_utf8_char(PyObject *obj);
-static char *sip_api_string_as_utf8_string(PyObject **obj);
+static const char *sip_api_string_as_utf8_string(PyObject **obj);
 #if defined(HAVE_WCHAR_H)
 static wchar_t sip_api_unicode_as_wchar(PyObject *obj);
 static wchar_t *sip_api_unicode_as_wstring(PyObject *obj);
@@ -365,8 +365,6 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, int nrargs,
 static int getSelfFromArgs(sipTypeDef *td, PyObject *args, int argnr,
         sipSimpleWrapper **selfp);
 static PyObject *createEnumMember(sipClassTypeDef *ctd, sipEnumMemberDef *enm);
-static int get_lazy_attr(sipWrapperType *wt, sipSimpleWrapper *sw,
-        const char *name, PyObject **attr);
 static int compareTypedefName(const void *key, const void *el);
 static int checkPointer(void *ptr);
 static void *cast_cpp_ptr(void *ptr, PyTypeObject *src_type,
@@ -427,14 +425,14 @@ static int parseBytes_AsCharArray(PyObject *obj, const char **ap,
 static int parseBytes_AsChar(PyObject *obj, char *ap);
 static int parseBytes_AsString(PyObject *obj, const char **ap);
 static int parseString_AsASCIIChar(PyObject *obj, char *ap);
-static PyObject *parseString_AsASCIIString(PyObject *obj, char **ap);
+static PyObject *parseString_AsASCIIString(PyObject *obj, const char **ap);
 static int parseString_AsLatin1Char(PyObject *obj, char *ap);
-static PyObject *parseString_AsLatin1String(PyObject *obj, char **ap);
+static PyObject *parseString_AsLatin1String(PyObject *obj, const char **ap);
 static int parseString_AsUTF8Char(PyObject *obj, char *ap);
-static PyObject *parseString_AsUTF8String(PyObject *obj, char **ap);
+static PyObject *parseString_AsUTF8String(PyObject *obj, const char **ap);
 static int parseString_AsEncodedChar(PyObject *bytes, PyObject *obj, char *ap);
 static PyObject *parseString_AsEncodedString(PyObject *bytes, PyObject *obj,
-        char **ap);
+        const char **ap);
 #if defined(HAVE_WCHAR_H)
 static int parseWCharArray(PyObject *obj, wchar_t **ap, SIP_SSIZE_T *aszp);
 static int parseWChar(PyObject *obj, wchar_t *ap);
@@ -8656,9 +8654,9 @@ static char sip_api_bytes_as_char(PyObject *obj)
  * Convert a Python object to a string and raise an exception if there was
  * an error.
  */
-static char *sip_api_bytes_as_string(PyObject *obj)
+static const char *sip_api_bytes_as_string(PyObject *obj)
 {
-    char *a;
+    const char *a;
 
     if (parseBytes_AsString(obj, &a) < 0)
     {
@@ -8828,10 +8826,10 @@ static int parseString_AsEncodedChar(PyObject *bytes, PyObject *obj, char *ap)
  * there was an error.  The object is updated with the one that owns the
  * string.  Note that None is considered an error.
  */
-static char *sip_api_string_as_ascii_string(PyObject **obj)
+static const char *sip_api_string_as_ascii_string(PyObject **obj)
 {
     PyObject *s = *obj;
-    char *a;
+    const char *a;
 
     if (s == Py_None || (*obj = parseString_AsASCIIString(s, &a)) == NULL)
     {
@@ -8856,7 +8854,7 @@ static char *sip_api_string_as_ascii_string(PyObject **obj)
  * Parse an ASCII string and return it and a new reference to the object that
  * owns the string.
  */
-static PyObject *parseString_AsASCIIString(PyObject *obj, char **ap)
+static PyObject *parseString_AsASCIIString(PyObject *obj, const char **ap)
 {
     return parseString_AsEncodedString(PyUnicode_AsASCIIString(obj), obj, ap);
 }
@@ -8867,10 +8865,10 @@ static PyObject *parseString_AsASCIIString(PyObject *obj, char **ap)
  * there was an error.  The object is updated with the one that owns the
  * string.  Note that None is considered an error.
  */
-static char *sip_api_string_as_latin1_string(PyObject **obj)
+static const char *sip_api_string_as_latin1_string(PyObject **obj)
 {
     PyObject *s = *obj;
-    char *a;
+    const char *a;
 
     if (s == Py_None || (*obj = parseString_AsLatin1String(s, &a)) == NULL)
     {
@@ -8895,7 +8893,7 @@ static char *sip_api_string_as_latin1_string(PyObject **obj)
  * Parse a Latin-1 string and return it and a new reference to the object that
  * owns the string.
  */
-static PyObject *parseString_AsLatin1String(PyObject *obj, char **ap)
+static PyObject *parseString_AsLatin1String(PyObject *obj, const char **ap)
 {
     return parseString_AsEncodedString(PyUnicode_AsLatin1String(obj), obj, ap);
 }
@@ -8906,10 +8904,10 @@ static PyObject *parseString_AsLatin1String(PyObject *obj, char **ap)
  * there was an error.  The object is updated with the one that owns the
  * string.  Note that None is considered an error.
  */
-static char *sip_api_string_as_utf8_string(PyObject **obj)
+static const char *sip_api_string_as_utf8_string(PyObject **obj)
 {
     PyObject *s = *obj;
-    char *a;
+    const char *a;
 
     if (s == Py_None || (*obj = parseString_AsUTF8String(s, &a)) == NULL)
     {
@@ -8934,7 +8932,7 @@ static char *sip_api_string_as_utf8_string(PyObject **obj)
  * Parse a UTF-8 string and return it and a new reference to the object that
  * owns the string.
  */
-static PyObject *parseString_AsUTF8String(PyObject *obj, char **ap)
+static PyObject *parseString_AsUTF8String(PyObject *obj, const char **ap)
 {
     return parseString_AsEncodedString(PyUnicode_AsUTF8String(obj), obj, ap);
 }
@@ -8945,7 +8943,7 @@ static PyObject *parseString_AsUTF8String(PyObject *obj, char **ap)
  * owns the string.
  */
 static PyObject *parseString_AsEncodedString(PyObject *bytes, PyObject *obj,
-        char **ap)
+        const char **ap)
 {
     if (bytes != NULL)
     {
