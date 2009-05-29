@@ -975,7 +975,7 @@ static void generateConsolidatedCpp(sipSpec *pt, const char *codeDir,
 
     prcode(fp,
 "    static PyMethodDef sip_methods[] = {\n"
-"        {SIP_PYMETHODDEF_CAST(\"init\"), sip_init, METH_O, NULL},\n"
+"        {SIP_MLNAME_CAST(\"init\"), sip_init, METH_O, NULL},\n"
 "        {NULL, NULL, 0, NULL}\n"
 "    };\n"
         );
@@ -1761,11 +1761,11 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         {
             if (noArgParser(md))
                 prcode(fp,
-"        {SIP_PYMETHODDEF_CAST(%N), (PyCFunction)func_%s, METH_VARARGS|METH_KEYWORDS, NULL},\n"
+"        {SIP_MLNAME_CAST(%N), (PyCFunction)func_%s, METH_VARARGS|METH_KEYWORDS, NULL},\n"
                     , md->pyname, md->pyname->text);
             else
                 prcode(fp,
-"        {SIP_PYMETHODDEF_CAST(%N), func_%s, METH_VARARGS, NULL},\n"
+"        {SIP_MLNAME_CAST(%N), func_%s, METH_VARARGS, NULL},\n"
                     , md->pyname, md->pyname->text);
         }
 
@@ -2033,7 +2033,22 @@ static void generateSipImport(moduleDef *mod, FILE *fp)
 {
     prcode(fp,
 "    /* Import the SIP module and get it's API. */\n"
+"#if PY_VERSION_HEX >= 0x02050000\n"
 "    sip_sipmod = PyImport_ImportModule(\"sip\");\n"
+"#else\n"
+        );
+
+    if (generating_c)
+        prcode(fp,
+"    sip_sipmod = PyImport_ImportModule((char *)\"sip\");\n"
+            );
+    else
+        prcode(fp,
+"    sip_sipmod = PyImport_ImportModule(const_cast<char *>(\"sip\"));\n"
+            );
+
+    prcode(fp,
+"#endif\n"
 "\n"
 "    if (sip_sipmod == NULL)\n"
 "    {\n"
@@ -3550,7 +3565,7 @@ static int generateMethodTable(classDef *cd,FILE *fp)
             md->membernr = i;
 
             prcode(fp,
-"    {SIP_PYMETHODDEF_CAST(%N), meth_%C_%s, METH_VARARGS, NULL}%s\n"
+"    {SIP_MLNAME_CAST(%N), meth_%C_%s, METH_VARARGS, NULL}%s\n"
                 , md->pyname, classFQCName(cd), md->pyname->text, ((i + 1) < nr) ? "," : "");
         }
 

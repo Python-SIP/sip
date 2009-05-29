@@ -140,11 +140,21 @@ extern "C" {
 
 /* Some Python compatibility stuff. */
 #if PY_VERSION_HEX >= 0x02050000
+
 #define SIP_SSIZE_T         Py_ssize_t
-#define SIP_PYMETHODDEF_CAST(s) (s)
+
+#define SIP_MLNAME_CAST(s)  (s)
+#define SIP_MLDOC_CAST(s)   (s)
+#define SIP_TPNAME_CAST(s)  (s)
+
 #else
+
 #define SIP_SSIZE_T         int
-#define SIP_PYMETHODDEF_CAST(s) ((char *)(s))
+
+#define SIP_MLNAME_CAST(s)  ((char *)(s))
+#define SIP_MLDOC_CAST(s)   ((char *)(s))
+#define SIP_TPNAME_CAST(s)  ((char *)(s))
+
 #endif
 
 #if PY_MAJOR_VERSION >= 3
