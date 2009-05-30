@@ -3947,7 +3947,7 @@ static int createClassType(sipExportedModuleDef *client, sipClassTypeDef *ctd,
          * same module if it needs doing.
          */
         if (createClassType(client, scope_ctd, mod_dict) < 0)
-            return -1;
+            goto reterr;
 
         scope_dict = (sipTypeAsPyTypeObject((sipTypeDef *)scope_ctd))->tp_dict;
     }
@@ -4110,6 +4110,7 @@ relname:
     Py_DECREF(name);
 
 reterr:
+    ctd->ctd_base.td_module = NULL;
     return -1;
 }
 

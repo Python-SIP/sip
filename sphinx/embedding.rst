@@ -1,0 +1,62 @@
+Using the SIP API when Embedding
+================================
+
+The SIP API described in the previous section is intended to be called from
+handwritten code in SIP generated modules.  However it is also often necessary
+to call it from C or C++ applications that embed the Python interpreter and
+need to pass C or C++ instances between the application and the interpreter.
+
+The API is exported by the SIP module as a ``sipAPIDef`` data structure
+containing a set of function pointers.  The data structure is defined in the
+SIP header file ``sip.h``.  The data structure is wrapped as a Python
+``PyCObject`` object and is referenced by the name ``_C_API`` in the SIP
+module dictionary.
+
+Each member of the data structure is a pointer to one of the functions of the
+SIP API.  The name of the member can be derived from the function name by
+replacing the ``sip`` prefix with ``api`` and converting each word in the
+name to lower case and preceding it with an underscore.  For example:
+
+    ``sipExportSymbol`` becomes ``api_export_symbol``
+
+    ``sipWrapperCheck`` becomes ``api_wrapper_check``
+
+Note that the type objects that SIP generates for a wrapped module (see
+`Generated Type Structures`_, `Generated Named Enum Type Objects`_ and
+`Generated Exception Objects`_) cannot be refered to directly and must be
+obtained using the `sipFindType()`_ function.  Of course, the corresponding
+modules must already have been imported into the interpreter.
+
+The following code fragment shows how to get a pointer to the ``sipAPIDef``
+data structure::
+
+    #include <sip.h>
+
+    const sipAPIDef *get_sip_api()
+    {
+        PyObject *sip_module;
+        PyObject *sip_module_dict;
+        PyObject *c_api;
+
+        /* Import the SIP module. */
+        sip_module = PyImport_ImportModule("sip");
+
+        if (sip_module == NULL)
+            return NULL;
+
+        /* Get the module's dictionary. */
+        sip_module_dict = PyModule_GetDict(sip_module);
+
+        /* Get the "_C_API" attribute. */
+        c_api = PyDict_GetItemString(sip_module_dict, "_C_API");
+
+        if (c_api == NULL)
+            return NULL;
+
+        /* Sanity check that it is the right type. */
+        if (!PyCObject_Check(c_api))
+            return NULL;
+
+        /* Get the actual pointer from the object. */
+        return (const sipAPIDef *)PyCObject_AsVoidPtr(c_api);
+    }

@@ -24,7 +24,8 @@ C++ libraries.  SIP was originally developed in 1998 for
 bindings for the Qt GUI toolkit - but is suitable for generating bindings for
 any C or C++ library.
 
-This version of SIP generates bindings for Python v2.3 or later.
+This version of SIP generates bindings for Python v2.3 or later, including
+Python v3.
 
 There are many other similar tools available.  One of the original such tools
 is `SWIG <http://www.swig.org>`__ and, in fact, SIP is so called because it
