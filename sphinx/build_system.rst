@@ -1,3 +1,5 @@
+.. _ref-build-system:
+
 The SIP Build System
 ====================
 

@@ -1,3 +1,5 @@
+.. _ref-distutils:
+
 Building Your Extension with distutils
 ======================================
 

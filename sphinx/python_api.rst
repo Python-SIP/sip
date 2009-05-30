@@ -1,3 +1,5 @@
+.. _ref-python-api:
+
 Using the SIP Module in Applications
 ====================================
 

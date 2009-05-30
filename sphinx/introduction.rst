@@ -32,87 +32,86 @@ restrictions on the license you may apply to the bindings you create.
 Features
 --------
 
-SIP, and the bindings it produces, have the following features.
+SIP, and the bindings it produces, have the following features:
 
-    - bindings are fast to load and minimise memory consumption especially when
-      only a small sub-set of a large library is being used
+- bindings are fast to load and minimise memory consumption especially when
+  only a small sub-set of a large library is being used
 
-    - automatic conversion between standard Python and C/C++ data types
+- automatic conversion between standard Python and C/C++ data types
 
-    - overloading of functions and methods with different argument signatures
+- overloading of functions and methods with different argument signatures
 
-    - access to a C++ class's protected methods
+- access to a C++ class's protected methods
 
-    - the ability to define a Python class that is a sub-class of a C++ class,
-      including abstract C++ classes
+- the ability to define a Python class that is a sub-class of a C++ class,
+  including abstract C++ classes
 
-    - Python sub-classes can implement the ``__dtor__(self)`` method which
-      will be called from the C++ class's virtual destructor
+- Python sub-classes can implement the :meth:`__dtor__` method which will be
+  called from the C++ class's virtual destructor
 
-    - support for ordinary C++ functions, class methods, static class methods,
-      virtual class methods and abstract class methods
+- support for ordinary C++ functions, class methods, static class methods,
+  virtual class methods and abstract class methods
 
-    - the ability to re-implement C++ virtual and abstract methods in Python
+- the ability to re-implement C++ virtual and abstract methods in Python
 
-    - support for global and class variables
+- support for global and class variables
 
-    - support for global and class operators
+- support for global and class operators
 
-    - support for C++ namespaces
+- support for C++ namespaces
 
-    - support for C++ templates
+- support for C++ templates
 
-    - support for C++ exceptions and wrapping them as Python exceptions
+- support for C++ exceptions and wrapping them as Python exceptions
 
-    - the automatic generation of complementary rich comparison slots
+- the automatic generation of complementary rich comparison slots
 
-    - support for deprecation warnings
+- support for deprecation warnings
 
-    - the ability to define mappings between C++ classes and similar Python
-      data types that are automatically invoked
+- the ability to define mappings between C++ classes and similar Python data
+  types that are automatically invoked
 
-    - the ability to automatically exploit any available run time type
-      information to ensure that the class of a Python instance object matches
-      the class of the corresponding C++ instance
+- the ability to automatically exploit any available run time type information
+  to ensure that the class of a Python instance object matches the class of the
+  corresponding C++ instance
 
-    - the ability to change the type and meta-type of the Python object used to
-      wrap a C/C++ data type
+- the ability to change the type and meta-type of the Python object used to
+  wrap a C/C++ data type
 
-    - full support of the Python global interpreter lock, including the ability
-      to specify that a C++ function of method may block, therefore allowing
-      the lock to be released and other Python threads to run
+- full support of the Python global interpreter lock, including the ability to
+  specify that a C++ function of method may block, therefore allowing the lock
+  to be released and other Python threads to run
 
-    - support for consolidated modules where the generated wrapper code for a
-      number of related modules may be included in a single, possibly private,
-      module
+- support for consolidated modules where the generated wrapper code for a
+  number of related modules may be included in a single, possibly private,
+  module
 
-    - support for the concept of ownership of a C++ instance (i.e. what part of
-      the code is responsible for calling the instance's destructor) and how
-      the ownership may change during the execution of an application
+- support for the concept of ownership of a C++ instance (i.e. what part of the
+  code is responsible for calling the instance's destructor) and how the
+  ownership may change during the execution of an application
 
-    - the ability to generate bindings for a C++ class library that itself is
-      built on another C++ class library which also has had bindings generated
-      so that the different bindings integrate and share code properly
+- the ability to generate bindings for a C++ class library that itself is built
+  on another C++ class library which also has had bindings generated so that
+  the different bindings integrate and share code properly
 
-    - a sophisticated versioning system that allows the full lifetime of a C++
-      class library, including any platform specific or optional features, to
-      be described in a single set of specification files 
+- a sophisticated versioning system that allows the full lifetime of a C++
+  class library, including any platform specific or optional features, to be
+  described in a single set of specification files 
 
-    - the ability to include documentation in the specification files which can
-      be extracted and subsequently processed by external tools
+- the ability to include documentation in the specification files which can be
+  extracted and subsequently processed by external tools
 
-    - the ability to include copyright notices and licensing information in the
-      specification files that is automatically included in all generated
-      source code
+- the ability to include copyright notices and licensing information in the
+  specification files that is automatically included in all generated source
+  code
 
-    - a build system, written in Python, that you can extend to configure,
-      compile and install your own bindings without worrying about platform
-      specific issues
+- a build system, written in Python, that you can extend to configure, compile
+  and install your own bindings without worrying about platform specific issues
 
-    - support for building your extensions using distutils
+- support for building your extensions using distutils
 
-    - SIP, and the bindings it produces, runs under UNIX, Linux, Windows and
-      MacOS/X
+- SIP, and the bindings it produces, runs under UNIX, Linux, Windows and
+  MacOS/X
 
 
 SIP Components
@@ -120,38 +119,37 @@ SIP Components
 
 SIP comprises a number of different components.
 
-    - The SIP code generator (``sip`` or ``sip.exe``).  This processes ``.sip``
-      specification files and generates C or C++ bindings.  It is covered in
-      detail in `Using SIP`_.
+- The SIP code generator (:program:`sip`).  This processes :file:`.sip`
+  specification files and generates C or C++ bindings.  It is covered in detail
+  in :ref:`ref-using`.
 
-    - The SIP header file (``sip.h``).  This contains definitions and data
-      structures needed by the generated C and C++ code.
+- The SIP header file (:file:`sip.h`).  This contains definitions and data
+  structures needed by the generated C and C++ code.
 
-    - The SIP module (``sip.so`` or ``sip.pyd``).  This is a Python extension
-      module that is imported automatically by SIP generated bindings and
-      provides them with some common utility functions.  See also `Using the
-      SIP Module in Applications`_.
+- The SIP module (:file:`sip.so` or :file:`sip.pyd`).  This is a Python
+  extension module that is imported automatically by SIP generated bindings and
+  provides them with some common utility functions.  See also
+  :ref:`ref-python-api`.
 
-    - The SIP build system (``sipconfig.py``).  This is a pure Python module
-      that is created when SIP is configured and encapsulates all the necessary
-      information about your system including relevant directory names,
-      compiler and linker flags, and version numbers.  It also includes several
-      Python classes and functions which help you write configuration scripts
-      for your own bindings.  It is covered in detail in `The SIP Build
-      System`_.
+- The SIP build system (:file:`sipconfig.py`).  This is a pure Python module
+  that is created when SIP is configured and encapsulates all the necessary
+  information about your system including relevant directory names, compiler
+  and linker flags, and version numbers.  It also includes several Python
+  classes and functions which help you write configuration scripts for your own
+  bindings.  It is covered in detail in :ref:`ref-build-system`.
 
-    - The SIP distutils extension (``sipdistutils.py``).  This is a distutils
-      extension that can be used to build your extension modules using
-      distutils and is an alternative to writing configuration scripts with the
-      SIP build system.  This can be as simple as adding your .sip files to the
-      list of files needed to build the extension module.  It is covered in
-      detail in `Building Your Extension with distutils`_.
+- The SIP distutils extension (:file:`sipdistutils.py`).  This is a distutils
+  extension that can be used to build your extension modules using distutils
+  and is an alternative to writing configuration scripts with the SIP build
+  system.  This can be as simple as adding your .sip files to the list of files
+  needed to build the extension module.  It is covered in detail in
+  :ref:`ref-distutils`.
 
 
 Qt Support
 ----------
 
-SIP has specific support for the creation of bindings based on Trolltech's Qt
+SIP has specific support for the creation of bindings based on Nokia's Qt
 toolkit.
 
 The SIP code generator understands the signal/slot type safe callback mechanism

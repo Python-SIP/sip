@@ -1,3 +1,5 @@
+.. _ref-using:
+
 Using SIP
 =========
 
