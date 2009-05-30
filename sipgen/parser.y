@@ -2752,17 +2752,9 @@ void appendToClassList(classList **clp,classDef *cd)
  */
 static void newModule(FILE *fp, char *filename)
 {
-    moduleDef *importing_module = currentModule;
-
     parseFile(fp, filename, currentModule, FALSE);
     currentModule = allocModule();
     currentModule->file = filename;
-
-    /* Inherit from any importing module. */
-    if (importing_module != NULL)
-    {
-        currentModule->encoding = importing_module->encoding;
-    }
 }
 
 
@@ -2776,7 +2768,7 @@ static moduleDef *allocModule()
     newmod = sipMalloc(sizeof (moduleDef));
 
     newmod->version = -1;
-    newmod->encoding = string_type;
+    newmod->encoding = no_type;
     newmod->qobjclass = -1;
     newmod->nrvirthandlers = -1;
     newmod->next_key = 1;
@@ -5160,14 +5152,19 @@ static void handleEOF()
  */
 static void handleEOM()
 {
-    /* Check it has been named. */
+    moduleDef *imported_module = currentModule;
 
-    if (currentModule -> name == NULL)
-        fatal("No %%Module has been specified for module defined in %s\n",previousFile);
+    /* Check it has been named. */
+    if (currentModule->name == NULL)
+        fatal("No %%Module has been specified for module defined in %s\n",
+                previousFile);
 
     /* The previous module is now current. */
-
     currentModule = currentContext.prevmod;
+
+    /* Import any defaults from the parsed module. */
+    if (currentModule != NULL && currentModule->encoding == no_type)
+        currentModule->encoding = imported_module->encoding;
 }
 
 
@@ -5715,7 +5712,12 @@ static void applyTypeFlags(moduleDef *mod, argDef *ad, optFlags *flags)
         optFlag *of;
 
         if ((of = findOptFlag(flags, "Encoding", string_flag)) == NULL)
-            ad->atype = mod->encoding;
+        {
+            if (mod->encoding != no_type)
+                ad->atype = mod->encoding;
+            else
+                ad->atype = string_type;
+        }
         else if ((ad->atype = convertEncoding(of->fvalue.sval)) == no_type)
             yyerror("The value of the /Encoding/ annotation must be one of \"ASCII\", \"Latin-1\", \"UTF-8\" or \"None\"");
     }
