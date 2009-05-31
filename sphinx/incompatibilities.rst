@@ -1,18 +1,30 @@
 Potential Incompatibilities with Earlier Versions
 =================================================
 
+This section describes incompatibilities introduced by particular versions of
+SIP.  Normally these are the removal of previously deprecated features.
+
+
 SIP v4.8
 --------
 
-Prior to this version the ``__div__`` special method implicitly defined the
-``__truediv__`` special method.  From this version the ``__truediv__`` special
-method must be explicitly defined.
+__truediv__
+***********
 
-Prior to this version the `sipWrapper`_ structure had a member called ``user``
-which is available for handwritten code to use.  From this version ``user`` is
-a member of the `sipSimpleWrapper`_ structure.  `sipWrapper`_ pointers can be
-safely cast to `sipSimpleWrapper`_ pointers, so if your code does something
-like::
+Prior to this version the :meth:`__div__` special method implicitly defined the
+:meth:`__truediv__` special method.  From this version the :meth:`__truediv__`
+special method must be explicitly defined.
+
+
+sipWrapper user Member
+**********************
+
+Prior to this version the :ctype:`sipWrapper` structure had a member called
+:ctype:`user` which is available for handwritten code to use.  From this
+version :ctype:`user` is a member of the :ctype:`sipSimpleWrapper` structure.
+
+:ctype:`sipWrapper` pointers can be safely cast to :ctype:`sipSimpleWrapper`
+pointers, so if your code does something like::
 
     ((sipWrapper *)obj)->user = an_object_reference;
 
@@ -20,91 +32,110 @@ then you just need to change it to::
 
     ((sipSimpleWrapper *)obj)->user = an_object_reference;
 
-The generated class names are now ``const char *`` rather than ``char *``.
 
-The following deprecated parts of the API have been removed.
+Removal of Previously Deprecated Features
+*****************************************
 
-    - The ``a``, ``A``, ``M``, ``N``, ``O``, ``P`` and ``T`` format characters
-      from `sipBuildResult()`_ and `sipCallMethod()`_.
+The following parts of the :ref:`C API <ref-c-api>` have been removed.
 
-    - The ``a``, ``A``, ``L`` and ``M`` format characters from
-      `sipParseResult()`_.
+- The ``a``, ``A``, ``M``, ``N``, ``O``, ``P`` and ``T`` format characters
+  from :cfunc:`sipBuildResult()` and :cfunc:`sipCallMethod()`.
 
-    - ``sipConvertToCpp()``, ``sipIsSubClassInstance()`` and ``sipTransfer()``.
+- The ``a``, ``A``, ``L`` and ``M`` format characters from
+  :cfunc:`sipParseResult()`.
 
-    - The old-style generated type convertors.
+- :cfunc:`sipConvertToCpp()`
 
-    - The ``transfer()`` function of the ``sip`` module.
+- :cfunc:`sipIsSubClassInstance()`
 
-In addition the deprecated ``-a`` command line option to ``configure.py`` has
+- :cfunc:`sipTransfer()`
+
+- The :func:`transfer` function of the :mod:`sip` module.
+
+- The old-style generated type convertors.
+
+In addition the :option:`-a` command line option to :file:`configure.py` has
 been removed.
 
-The following parts of the API are now deprecated (but still supported).
 
-    - The `Generated Type Objects`_.
-
-    - The `Generated Named Enum Type Objects`_.
-
-    - `sipConvertFromInstance()`_
-
-    - `sipConvertFromMappedType()`_
-
-    - `sipConvertFromNamedEnum()`_
-
-    - `sipConvertFromNewInstance()`_
-
-    - `sipCanConvertToInstance()`_
-
-    - `sipCanConvertToMappedType()`_
-
-    - `sipConvertToInstance()`_
-
-    - `sipConvertToMappedType()`_
-
-    - `sipForceConvertToInstance()`_
-
-    - `sipForceConvertToMappedType()`_
-
-    - `sipClassName()`_
-
-    - `sipFindClass()`_
-
-    - `sipFindNamedEnum()`_
-
-    - `sipFindMappedType()`_
-
-    - `sipGetWrapper()`_
-
-    - `sipReleaseInstance()`_
-
-    - `sipReleaseMappedType()`_
-
-    - `sipWrapper_Check()`_
-
-    - The ``B``, ``C`` and ``E`` format characters of `sipBuildResult()`_ and
-      `sipCallMethod()`_.
-
-    - The ``s``, ``C`` and ``E`` format character of `sipParseResult()`_.
+Removal of PyQt-specific Features
+*********************************
 
 The following PyQt-specific support functions have been removed.
 
-    - ``sipConnectRx()``
+- :cfunc:`sipConnectRx()`
 
-    - ``sipDisconnectRx()``
+- :cfunc:`sipDisconnectRx()`
 
-    - ``sipEmitSlot()``
+- :cfunc:`sipEmitSlot()`
 
-    - ``sipGetSender()``
+- :cfunc:`sipGetSender()`
+
+
+Newly Deprecated Features
+*************************
+
+The following parts of the :ref:`C API <ref-c-api>` are now deprecated (but
+still supported).
+
+- The :ref:`ref-type-objects`.
+
+- The :ref:`ref-enum-type-objects`.
+
+- :cfunc:`sipConvertFromInstance()`
+
+- :cfunc:`sipConvertFromMappedType()`
+
+- :cfunc:`sipConvertFromNamedEnum()`
+
+- :cfunc:`sipConvertFromNewInstance()`
+
+- :cfunc:`sipCanConvertToInstance()`
+
+- :cfunc:`sipCanConvertToMappedType()`
+
+- :cfunc:`sipConvertToInstance()`
+
+- :cfunc:`sipConvertToMappedType()`
+
+- :cfunc:`sipForceConvertToInstance()`
+
+- :cfunc:`sipForceConvertToMappedType()`
+
+- :cfunc:`sipClassName()`
+
+- :cfunc:`sipFindClass()`
+
+- :cfunc:`sipFindNamedEnum()`
+
+- :cfunc:`sipFindMappedType()`
+
+- :cfunc:`sipGetWrapper()`
+
+- :cfunc:`sipReleaseInstance()`
+
+- :cfunc:`sipReleaseMappedType()`
+
+- :cfunc:`sipWrapper_Check()`
+
+- The ``B``, ``C`` and ``E`` format characters of :cfunc:`sipBuildResult()` and
+  :cfunc:`sipCallMethod()`.
+
+- The ``s``, ``C`` and ``E`` format character of :cfunc:`sipParseResult()`.
 
 
 SIP v4.7.8
 ----------
 
-This version allows a Python int object to be passed whenever an enum is
+Automatic int to Enum Conversions
+*********************************
+
+This version allows a Python ``int`` object to be passed whenever an enum is
 expected.  This can mean that two signatures that were different with prior
-versions are now the same as far as Python is concerned.  The `Constrained`_
-annotation can now be applied to an enum argument to revert to the earlier
-behaviour.
+versions are now the same as far as Python is concerned.
+
+The :aanno:`Constrained` argument annotation can now be applied to an enum
+argument to revert to the earlier behaviour.
 
 
 SIP v4.7.3

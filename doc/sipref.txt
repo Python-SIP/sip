@@ -199,8 +199,6 @@ then you just need to change it to::
 
     ((sipSimpleWrapper *)obj)->user = an_object_reference;
 
-The generated class names are now ``const char *`` rather than ``char *``.
-
 The following deprecated parts of the API have been removed.
 
     - The ``a``, ``A``, ``M``, ``N``, ``O``, ``P`` and ``T`` format characters

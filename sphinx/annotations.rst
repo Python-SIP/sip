@@ -1,13 +1,16 @@
-SIP Annotations
-===============
+Annotations
+===========
 
 In this section we describe each of the annotations that can be used in
 specification files.
 
-Annotations can either be argument annotations, class annotations, mapped type
-annotations, enum annotations, exception annotations, function annotations,
-license annotations, typedef annotations or variable annotations depending on
-the context in which they can be used.
+Annotations can either be :ref:`argument annotations <ref-arg-annos>`,
+:ref:`class annotations <ref-class-annos>`, :ref:`mapped type annotations
+<ref-mapped-type-annos>`, :ref:`enum annotations <ref-enum-annos>`,
+:ref:`exception annotations <ref-exception-annos>`, :ref:`function annotations
+<ref-function-annos>`, :ref:`license annotations <ref-license-annos>`,
+:ref:`typedef annotations <ref-typedef-annos>` or :ref:`variable annotations
+<ref-variable-annos>` depending on the context in which they can be used.
 
 Annotations are placed between forward slashes (``/``).  Multiple annotations
 are comma separated within the slashes.
@@ -18,18 +21,18 @@ format of the value.  The name of an annotation and its value are separated by
 
 Annotations can have one of the following types:
 
-boolean
+*boolean*
     This type of annotation has no value and is implicitly true.
 
-name
+*name*
     The value is a name that is compatible with a C/C++ identifier.  In some
     cases the value is optional.
 
-dotted name
+*dotted name*
     The value is a name that is compatible with an identifier preceded by a
     Python scope.
 
-string
+*string*
     The value is a double quoted string.
 
 The following example shows argument and function annotations::
@@ -40,42 +43,40 @@ Note that the current version of SIP does not complain about unknown
 annotations, or annotations used out of their correct context.
 
 
+.. _ref-arg-annos:
+
 Argument Annotations
 --------------------
 
-AllowNone
-*********
+.. argument-annotation:: AllowNone
 
 This boolean annotation specifies that the value of the corresponding argument
 (which should be either SIP_PYCALLABLE_, SIP_PYDICT_, SIP_PYLIST_,
 SIP_PYSLICE_, SIP_PYTUPLE_ or SIP_PYTYPE_) may be ``None``.
 
 
-Array
-*****
+.. argument-annotation:: Array
 
 This boolean annotation specifies that the corresponding argument (which
 should be either ``char *`` or ``unsigned char *``) refers to an array
 rather than a ``'\0'`` terminated string.  There must be a corresponding
-argument with the ArraySize_ annotation specified.  The annotation may only be
-specified once in a list of arguments.
+argument with the :aanno:`ArraySize` annotation specified.  The annotation may
+only be specified once in a list of arguments.
 
-The annotation also implies the Encoding_ annotation with an encoding of
-``"None"``.
+The annotation also implies the :aanno:`Encoding` annotation with an encoding
+of ``"None"``.
 
 
-ArraySize
-*********
+.. argument-annotation:: ArraySize
 
 This boolean annotation specifies that the corresponding argument (which
 should be either ``short``, ``unsigned short``, ``int``, ``unsigned``,
 ``long`` or ``unsigned long``) refers to the size of an array.  There must be
-a corresponding argument with the Array_ annotation specified.  The annotation
-may only be specified once in a list of arguments.
+a corresponding argument with the :aanno:`Array` annotation specified.  The
+annotation may only be specified once in a list of arguments.
 
 
-Constrained
-***********
+.. argument-annotation:: Constrained
 
 Python will automatically convert between certain compatible types.  For
 example, if a floating pointer number is expected and an integer supplied,
@@ -105,8 +106,7 @@ The following example gets around the above problem::
     void foo(int);
 
 
-Encoding
-********
+.. argument-annotation:: Encoding
 
 This string annotation specifies that the corresponding argument (which should
 be either ``char``, ``const char``, ``char *`` or ``const char *``) refers to
@@ -127,8 +127,7 @@ encoding is ``"None"`` and the ``unicode`` type otherwise.
 The annotation can also be used as a function, typedef or variable annotation.
 
 
-GetWrapper
-**********
+.. argument-annotation:: GetWrapper
 
 This boolean annotation is only ever used in conjunction with handwritten code
 specified with the `%MethodCode`_ directive.  It causes an extra variable to
@@ -138,24 +137,22 @@ object that wraps the argument.
 See the `%MethodCode`_ directive for more detail.
 
 
-In
-**
+.. argument-annotation:: In
 
 This boolean annotation is used to specify that the corresponding argument
 (which should be a pointer type) is used to pass a value to the function.
 
 For pointers to wrapped C structures or C++ class instances, ``char *`` and
-``unsigned char *`` then this annotation is assumed unless the Out_ annotation
-is specified.
+``unsigned char *`` then this annotation is assumed unless the :aanno:`Out`
+annotation is specified.
 
 For pointers to other types then this annotation must be explicitly specified
 if required.  The argument will be dereferenced to obtain the actual value.
 
-Both In_ and Out_ may be specified for the same argument.
+Both :aanno:`In` and :aanno:`Out` may be specified for the same argument.
 
 
-KeepReference
-*************
+.. argument-annotation:: KeepReference
 
 This boolean annotation is used to specify that a reference to the
 corresponding argument should be kept to ensure that the object is not garbage
@@ -164,8 +161,7 @@ reference to the previous argument is discarded.  Note that ownership of the
 argument is not changed.
 
 
-Out
-***
+.. argument-annotation:: Out
 
 This boolean annotation is used to specify that the corresponding argument
 (which should be a pointer type) is used by the function to return a value as
@@ -175,14 +171,13 @@ For pointers to wrapped C structures or C++ class instances, ``char *`` and
 ``unsigned char *`` then this annotation must be explicitly specified if
 required.
 
-For pointers to other types then this annotation is assumed unless the In_
-annotation is specified.
+For pointers to other types then this annotation is assumed unless the
+:aanno:`In` annotation is specified.
 
-Both In_ and Out_ may be specified for the same argument.
+Both :aanno:`In` and :aanno:`Out` may be specified for the same argument.
 
 
-ResultSize
-**********
+.. argument-annotation:: ResultSize
 
 This boolean annotation is used with functions or methods that return a
 ``void *`` or ``const void *``.  It identifies an argument that defines the
@@ -192,16 +187,14 @@ protocol and allows the memory to be read and updated when wrapped by the
 Python ``buffer()`` builtin.
 
 
-SingleShot
-**********
+.. argument-annotation:: SingleShot
 
 This boolean annotation is used only with arguments of type SIP_RXOBJ_CON_ to
 specify that the signal connected to the slot will only ever be emitted once.
 This prevents a certain class of memory leaks.
 
 
-Transfer
-********
+.. argument-annotation:: Transfer
 
 This boolean annotation is used to specify that ownership of the corresponding
 argument (which should be a wrapped C structure or C++ class instance) is
@@ -209,13 +202,10 @@ transferred from Python to C++.  In addition, if the argument is of a class
 method, then it is associated with the class instance with regard to the
 cyclic garbage collector.
 
-Note that this can also be used as a function annotation.
-
-See `Ownership of Objects`_ for more detail.
+See :ref:`ref-object-ownership` for more detail.
 
 
-TransferBack
-************
+.. argument-annotation:: TransferBack
 
 This boolean annotation is used to specify that ownership of the corresponding
 argument (which should be a wrapped C structure or C++ class instance) is
@@ -223,13 +213,10 @@ transferred back to Python from C++.  In addition, any association of the
 argument with regard to the cyclic garbage collector with another instance is
 removed.
 
-Note that this can also be used as a function annotation.
-
-See `Ownership of Objects`_ for more detail.
+See :ref:`ref-object-ownership` for more detail.
 
 
-TransferThis
-************
+.. argument-annotation:: TransferThis
 
 This boolean annotation is only used in C++ constructors or methods.  In the
 context of a constructor or factory method it specifies that ownership of the
@@ -245,24 +232,22 @@ is transferred from Python to C++ if the corresponding argument is not
 The annotation may be used more that once, in which case ownership is
 transferred to last instance that is not ``None``.
 
-Note that this can also be used as a function annotation.
+See :ref:`ref-object-ownership` for more detail.
 
-See `Ownership of Objects`_ for more detail.
 
+.. _ref-class-annos:
 
 Class Annotations
 -----------------
 
-Abstract
-********
+.. class-annotation:: Abstract
 
 This boolean annotation is used to specify that the class has additional pure
 virtual methods that have not been specified and so it cannot be instantiated
 or sub-classed from Python.
 
 
-DelayDtor
-*********
+.. class-annotation:: DelayDtor
 
 This boolean annotation is used to specify that the class's destructor should
 not be called until the Python interpreter exits.  It would normally only be
@@ -273,75 +258,75 @@ garbage collected is unpredictable.  However, the underlying C or C++ instances
 may need to be destroyed in a certain order.  If this annotation is specified
 then when the wrapped instance is garbage collected the C or C++ instance is
 not destroyed but instead added to a list of delayed instances.  When the
-interpreter exits then the function ``sipDelayedDtors`` is called with the
-list of delayed instances.  ``sipDelayedDtors`` can then choose to call (or
-ignore) the destructors in any desired order.
+interpreter exits then the function :cfunc:`sipDelayedDtors()` is called with
+the list of delayed instances.  :cfunc:`sipDelayedDtors()` can then choose to
+call (or ignore) the destructors in any desired order.
 
-The ``sipDelayedDtors`` function must be specified using the `%ModuleCode`_
-directive.  It's signature is as follows::
+The :cfunc:`sipDelayedDtors()` function must be specified using the
+`%ModuleCode`_ directive.
 
-    static void sipDelayedDtors(const sipDelayedDtor *dd_list);
+.. cfunction:: void sipDelayedDtors(const sipDelayedDtor *dd_list)
 
-``dd_list`` is the linked list of delayed instances.  The following fields are
-defined.
+    :param dd_list: the linked list of delayed instances.
 
-const char \*dd_name
-    This is the name of the class excluding any package or module name.
+.. ctype:: sipDelayedDtor
 
-void \*dd_ptr
-    This is the address of the C or C++ instance to be destroyed.  It's exact
-    type depends on the value of ``dd_isderived``.
+    This structure describes a particular delayed destructor.
 
-int dd_isderived
-    This is non-zero if the type of ``dd_ptr`` is actually the generated
-    derived class.  This allows the correct destructor to be called.  See
-    `Generated Derived Classes`_.
+    .. cmember:: const char *dd_name
 
-sipDelayedDtor \*dd_next
-    This is the address of the next entry in the list or zero if this is the
-    last one.
+        This is the name of the class excluding any package or module name.
+
+    .. cmember:: void *dd_ptr
+
+        This is the address of the C or C++ instance to be destroyed.  It's
+        exact type depends on the value of :cmember:`dd_isderived`.
+
+    .. cmember:: int dd_isderived
+
+        This is non-zero if the type of :cmember:`dd_ptr` is actually the
+        generated derived class.  This allows the correct destructor to be
+        called.  See :ref:`ref-derived-classes`.
+
+    .. cmember:: sipDelayedDtor *dd_next
+
+        This is the address of the next entry in the list or zero if this is
+        the last one.
 
 Note that the above applies only to C and C++ instances that are owned by
 Python.
 
 
-Deprecated
-**********
+.. class-annotation:: Deprecated
 
 This boolean annotation is used to specify that the class is deprecated.  It is
 the equivalent of annotating all the class's constructors, function and methods
 as being deprecated.
 
-Note that this can also be used as a function annotation.
 
-
-External
-********
+.. class-annotation:: External
 
 This boolean annotation is used to specify that the class is defined in another
 module.  Declarations of external classes are private to the module in which
 they appear.
 
 
-Metatype
-********
+.. class-annotation:: Metatype
 
 This dotted name annotation specifies the name of the Python type object (i.e.
 the value of the ``tp_name`` field) used as the meta-type used when creating
 the type object for this C structure or C++ type.
 
-See the section `Types and Meta-types`_ for more details.
+See the section :ref:`ref-types-metatypes` for more details.
 
 
-NoDefaultCtors
-**************
+.. class-annotation:: NoDefaultCtors
 
 This boolean annotation is used to suppress the automatic generation of default
 constructors for the class.
 
 
-PyName
-******
+.. class-annotation:: PyName
 
 This name annotation specifies an alternative name for the class being wrapped
 which is used when it is referred to from Python.  It is required when a class
@@ -350,21 +335,21 @@ clashes with other objects (e.g. enums, exceptions, functions) that have the
 same name in the same C++ scope.
 
 
-Supertype
-*********
+.. class-annotation:: Supertype
 
 This dotted name annotation specifies the name of the Python type object (i.e.
 the value of the ``tp_name`` field) used as the super-type used when creating
 the type object for this C structure or C++ type.
 
-See the section `Types and Meta-types`_ for more details.
+See the section :ref:`ref-types-metatypes` for more details.
 
+
+.. _ref-mapped-type-annos:
 
 Mapped Type Annotations
 -----------------------
 
-NoRelease
-*********
+.. mapped-type-annotation:: NoRelease
 
 This boolean annotation is used to specify that the mapped type does not
 support the `sipReleaseType()`_ function.  Any `%ConvertToTypeCode`_ should not
@@ -372,11 +357,12 @@ create temporary instances of the mapped type, i.e. it should not return
 ``SIP_TEMPORARY``.
 
 
+.. _ref-enum-annos:
+
 Enum Annotations
 ----------------
 
-PyName
-******
+.. enum-annotation:: PyName
 
 This name annotation specifies an alternative name for the enum or enum member
 being wrapped which is used when it is referred to from Python.  It is required
@@ -385,11 +371,12 @@ be used to avoid name clashes with other objects (e.g. classes, exceptions,
 functions) that have the same name in the same C++ scope.
 
 
+.. _ref-exception-annos:
+
 Exception Annotations
 ---------------------
 
-PyName
-******
+.. exception-annotation:: PyName
 
 This name annotation specifies an alternative name for the exception being
 defined which is used when it is referred to from Python.  It is required when
@@ -398,11 +385,12 @@ avoid name clashes with other objects (e.g. classes, enums, functions) that
 have the same name.
 
 
+.. _ref-function-annos:
+
 Function Annotations
 --------------------
 
-AutoGen
-*******
+.. function-annotation:: AutoGen
 
 This optional name annotation is used with class methods to specify that the
 method be automatically included in all sub-classes.  The value is the name of
@@ -410,8 +398,7 @@ a feature (specified using the `%Feature`_ directive) which must be enabled
 for the method to be generated.
 
 
-Default
-*******
+.. function-annotation:: Default
 
 This boolean annotation is only used with C++ constructors.  Sometimes SIP
 needs to create a class instance.  By default it uses a constructor with no
@@ -421,60 +408,52 @@ annotation is used to explicitly specify which constructor to use.  Zero is
 passed as the value of any arguments to the constructor.
 
 
-Deprecated
-**********
+.. function-annotation:: Deprecated
 
 This boolean annotation is used to specify that the constructor or function is
 deprecated.  A deprecation warning is issued whenever the constructor or
 function is called.
 
-Note that this can also be used as a class annotation.
 
-
-Factory
-*******
+.. function-annotation:: Factory
 
 This boolean annotation specifies that the value returned by the function
 (which should be a wrapped C structure or C++ class instance) is a newly
 created instance and is owned by Python.
 
-See `Ownership of Objects`_ for more detail.
+See :ref:`ref-object-ownership` for more detail.
 
 
-HoldGIL
-*******
+.. function-annotation:: HoldGIL
 
 This boolean annotation specifies that the Python Global Interpreter Lock (GIL)
 is not released before the call to the underlying C or C++ function.  See
-`The Python Global Interpreter Lock`_ and the ReleaseGIL_ annotation.
+:ref:`ref-gil` and the :fanno:`ReleaseGIL` annotation.
 
 
-NewThread
-*********
+.. function-annotation:: NewThread
 
 This boolean annotation specifies that the function will create a new thread.
 
 
-NoArgParser
-***********
+.. function-annotation:: NoArgParser
 
 This boolean annotation is used with global functions to specify that the
 supplied `%MethodCode`_ will handle the parsing of the arguments.
 
 
-NoDerived
-*********
+.. function-annotation:: NoDerived
 
 This boolean annotation is only used with C++ constructors.  In many cases SIP
-generates a derived class for each class being wrapped (see `Generated Derived
-Classes`_).  This derived class contains constructors with the same C++
-signatures as the class being wrapped.  Sometimes you may want to define a
-Python constructor that has no corresponding C++ constructor.  This annotation
-is used to suppress the generation of the constructor in the derived class.
+generates a derived class for each class being wrapped (see
+:ref:`ref-derived-classes`).  This derived class contains constructors with the
+same C++ signatures as the class being wrapped.  Sometimes you may want to
+define a Python constructor that has no corresponding C++ constructor.  This
+annotation is used to suppress the generation of the constructor in the derived
+class.
 
 
-Numeric
-*******
+.. function-annotation:: Numeric
 
 This boolean annotation specifies that the operator should be interpreted as a
 numeric operator rather than a sequence operator.  Python uses the ``+``
@@ -483,14 +462,13 @@ for multiplying numbers and repeating sequences.  SIP tries to work out which
 is meant by looking at other operators that have been defined for the type.
 If it finds either ``-``, ``-=``, ``/``, ``/=``, ``%`` or ``%=`` defined then
 it assumes that ``+``, ``+=``, ``*`` and ``*=`` should be numeric operators.
-Otherwise, if it finds either ``[]``, ``__getitem__()``, ``__setitem__()`` or
-``__delitem__()`` defined then it assumes that they should be sequence
+Otherwise, if it finds either ``[]``, :meth:`__getitem__`, :meth:`__setitem__`
+or :meth:`__delitem__` defined then it assumes that they should be sequence
 operators.  This annotation is used to force SIP to treat the operator as
 numeric.
 
 
-PostHook
-********
+.. function-annotation:: PostHook
 
 This name annotation is used to specify the name of a Python builtin that is
 called immediately after the call to the underlying C or C++ function or any
@@ -498,8 +476,7 @@ handwritten code.  The builtin is not called if an error occurred.  It is
 primarily used to integrate with debuggers.
 
 
-PreHook
-*******
+.. function-annotation:: PreHook
 
 This name annotation is used to specify the name of a Python builtin that is
 called immediately after the function's arguments have been successfully
@@ -507,8 +484,7 @@ parsed and before the call to the underlying C or C++ function or any
 handwritten code.  It is primarily used to integrate with debuggers.
 
 
-PyName
-******
+.. function-annotation:: PyName
 
 This name annotation specifies an alternative name for the function being
 wrapped which is used when it is referred to from Python.  It is required when
@@ -517,18 +493,16 @@ to avoid name clashes with other objects (e.g. classes, enums, exceptions) that
 have the same name in the same C++ scope.
 
 
-ReleaseGIL
-**********
+.. function-annotation:: ReleaseGIL
 
 This boolean annotation specifies that the Python Global Interpreter Lock (GIL)
 is released before the call to the underlying C or C++ function and reacquired
 afterwards.  It should be used for functions that might block or take a
-significant amount of time to execute.  See `The Python Global Interpreter
-Lock`_ and the HoldGIL_ annotation.
+significant amount of time to execute.  See :ref:`ref-gil` and the
+:fanno:`HoldGIL` annotation.
 
 
-Transfer
-********
+.. function-annotation:: Transfer
 
 This boolean annotation specifies that ownership of the value returned by the
 function (which should be a wrapped C structure or C++ class instance) is
@@ -540,13 +514,10 @@ already wrapped values) are normally owned by C++ anyway.  However, in
 addition, an association between the returned value and the instance containing
 the method is created with regard to the cyclic garbage collector.
 
-Note that this can also be used as an argument annotation.
-
-See `Ownership of Objects`_ for more detail.
+See :ref:`ref-object-ownership` for more detail.
 
 
-TransferBack
-************
+.. function-annotation:: TransferBack
 
 This boolean annotation specifies that ownership of the value returned by the
 function (which should be a wrapped C structure or C++ class instance) is
@@ -555,27 +526,23 @@ new references to already wrapped values) are owned by C++.  In addition, any
 association of the returned value with regard to the cyclic garbage collector
 with another instance is removed.
 
-Note that this can also be used as an argument annotation.
-
-See `Ownership of Objects`_ for more detail.
+See :ref:`ref-object-ownership` for more detail.
 
 
-TransferThis
-************
+.. function-annotation:: TransferThis
 
 This boolean annotation specifies that ownership of ``this`` is transferred
 from Python to C++.
 
-Note that this can also be used as an argument annotation.
+See :ref:`ref-object-ownership` for more detail.
 
-See `Ownership of Objects`_ for more detail.
 
+.. _ref-license-annos:
 
 License Annotations
 -------------------
 
-Licensee
-********
+.. license-annotation:: Licensee
 
 This optional string annotation specifies the license's licensee.  No
 restrictions are placed on the contents of the string.
@@ -583,8 +550,7 @@ restrictions are placed on the contents of the string.
 See the `%License`_ directive.
 
 
-Signature
-*********
+.. license-annotation:: Signature
 
 This optional string annotation specifies the license's signature.  No
 restrictions are placed on the contents of the string.
@@ -592,8 +558,7 @@ restrictions are placed on the contents of the string.
 See the `%License`_ directive.
 
 
-Timestamp
-*********
+.. license-annotation:: Timestamp
 
 This optional string annotation specifies the license's timestamp.  No
 restrictions are placed on the contents of the string.
@@ -601,8 +566,7 @@ restrictions are placed on the contents of the string.
 See the `%License`_ directive.
 
 
-Type
-****
+.. license-annotation:: Type
 
 This string annotation specifies the license's type.  No restrictions are
 placed on the contents of the string.
@@ -610,11 +574,12 @@ placed on the contents of the string.
 See the `%License`_ directive.
 
 
+.. _ref-typedef-annos:
+
 Typedef Annotations
 -------------------
 
-NoTypeName
-**********
+.. typedef-annotation:: NoTypeName
 
 This boolean annotation specifies that the definition of the type rather than
 the name of the type being defined should be used in the generated code.
@@ -629,11 +594,12 @@ Specifying the annotation means that ``bool`` will be used in the generated
 code instead.
 
 
+.. _ref-variable-annos:
+
 Variable Annotations
 --------------------
 
-PyName
-******
+.. variable-annotation:: PyName
 
 This name annotation specifies an alternative name for the variable being
 wrapped which is used when it is referred to from Python.  It is required when

@@ -432,6 +432,8 @@ Again, we hope that the scripts are self documenting.
        not mutually exclusive, i.e. any number may be valid at a time.
 
 
+.. _ref-object-ownership:
+
 Ownership of Objects
 --------------------
 
@@ -462,6 +464,8 @@ heap using the ``free()`` function.
 
 See also `sipTransferTo()`_, `sipTransferBack()`_ and `sipTransferBreak()`_.
 
+
+.. _ref-types-metatypes:
 
 Types and Meta-types
 --------------------
@@ -557,6 +561,8 @@ where this is an issue.
     - When an assignment is made to a wide string or array instance variable
       then SIP does not first free the instance's current string or array.
 
+
+.. _ref-gil:
 
 The Python Global Interpreter Lock
 ----------------------------------

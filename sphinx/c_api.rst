@@ -1,3 +1,5 @@
+.. _ref-c-api:
+
 SIP API for Handwritten Code
 ============================
 
@@ -1300,6 +1302,8 @@ pointer to a structure for a mapped type is to use `sipFindType()`_.
 The type structures of all imported types are available to handwritten code.
 
 
+.. _ref-type-objects:
+
 Generated Type Objects
 ----------------------
 
@@ -1315,6 +1319,8 @@ generated type structure (see `Generated Type Structures`_) and
 `sipTypeAsPyTypeObject()`_.
 
 
+.. _ref-enum-type-objects:
+
 Generated Named Enum Type Objects
 ---------------------------------
 
@@ -1329,6 +1335,8 @@ Using these names is deprecated from SIP v4.8.  Instead use the corresponding
 generated type structure (see `Generated Type Structures`_) and
 `sipTypeAsPyTypeObject()`_.
 
+
+.. _ref-derived-classes:
 
 Generated Derived Classes
 -------------------------
