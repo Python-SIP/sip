@@ -27,3 +27,6 @@ def setup(app):
 
     app.add_description_unit('variable-annotation', 'vanno',
             indextemplate='single: %s (variable annotation)')
+
+    app.add_description_unit('directive', 'directive',
+            indextemplate='single: %s (directive)')

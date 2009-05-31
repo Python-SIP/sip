@@ -1,3 +1,5 @@
+.. _ref-builtin:
+
 Builtin Modules and Custom Interpreters
 =======================================
 

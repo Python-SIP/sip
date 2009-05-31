@@ -141,6 +141,9 @@ argument to revert to the earlier behaviour.
 SIP v4.7.3
 ----------
 
+Complementary Comparison Operators
+**********************************
+
 Prior to this version SIP did not automatically generate missing complementary
 comparison operators.  Typically this was worked around by adding them
 explicitly to the .sip files, even though they weren't implemented in C++ and
@@ -156,13 +159,28 @@ them or make them dependent on the particular version of SIP.
 SIP v4.4
 --------
 
-    - The ``SIP_BUILD`` C preprocessor symbol has been removed.
+%ConvertFromTypeCode and %ConvertToTypeCode
+*******************************************
 
-    - ``sipConvertToCpp()``, ``sipIsSubClassInstance()`` and the old-style
-      generated type convertors have been deprecated.  The functions
-      `sipCanConvertToType()`_, `sipConvertToType()`_,
-      `sipForceConvertToType()`_, `sipConvertFromType()`_ and
-      `sipConvertFromNewType()`_ should be used instead.  Handwritten
-      `%ConvertFromTypeCode`_ and `%ConvertToTypeCode`_ now has the
-      responsibility for using these to implement the ``Transfer`` and
-      ``TransferBack`` annotations.
+Handwritten :directive:`%ConvertFromTypeCode` and
+:directive:`%ConvertToTypeCode` now have the responsibility for implementing
+the :aanno:`Transfer` and :aanno:`TransferBack` annotations.
+
+
+SIP_BUILD
+*********
+
+The :cmacro:`SIP_BUILD` C preprocessor symbol has been removed.
+
+
+Newly Deprecated Features
+*************************
+
+The following parts of the :ref:`C API <ref-c-api>` are now deprecated (but
+still supported).
+
+- The old-style generated type convertors.
+
+- :cfunc:`sipConvertToCpp()`
+
+- :cfunc:`sipIsSubClassInstance()`

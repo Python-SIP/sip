@@ -1,7 +1,7 @@
 .. _ref-c-api:
 
-SIP API for Handwritten Code
-============================
+C API for Handwritten Code
+==========================
 
 In this section we describe the API that can be used by handwritten code in
 specification files.

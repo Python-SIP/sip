@@ -93,8 +93,8 @@ when wrapping C or C++ functions with similar signatures.  For example::
 This boolean annotation specifies that the corresponding argument (which
 should be either ``bool``, ``int``, ``float``, ``double``, ``enum`` or a
 wrapped class) must match the type without any automatic conversions.  In the
-context of a wrapped class the invocation of any `%ConvertToTypeCode`_ is
-suppressed.
+context of a wrapped class the invocation of any
+:directive:`%ConvertToTypeCode` is suppressed.
 
 The following example gets around the above problem::
 
@@ -115,8 +115,8 @@ encoding.  The encoding can be either ``"ASCII"``, ``"Latin-1"``, ``"UTF-8"``
 or ``"None"``.  An encoding of ``"None"`` means that the corresponding argument
 refers to an unencoded character or string.
 
-The default encoding is specified by the `%DefaultEncoding`_ directive.  If the
-directive is not specified then ``None`` is used.
+The default encoding is specified by the :directive:`%DefaultEncoding`
+directive.  If the directive is not specified then ``None`` is used.
 
 Python v3 will use the ``bytes`` type to represent the argument if the
 encoding is ``"None"`` and the ``str`` type otherwise.
@@ -130,11 +130,11 @@ The annotation can also be used as a function, typedef or variable annotation.
 .. argument-annotation:: GetWrapper
 
 This boolean annotation is only ever used in conjunction with handwritten code
-specified with the `%MethodCode`_ directive.  It causes an extra variable to
-be generated for the corresponding argument which is a pointer to the Python
-object that wraps the argument.
+specified with the :directive:`%MethodCode` directive.  It causes an extra
+variable to be generated for the corresponding argument which is a pointer to
+the Python object that wraps the argument.
 
-See the `%MethodCode`_ directive for more detail.
+See the :directive:`%MethodCode` directive for more detail.
 
 
 .. argument-annotation:: In
@@ -263,7 +263,7 @@ the list of delayed instances.  :cfunc:`sipDelayedDtors()` can then choose to
 call (or ignore) the destructors in any desired order.
 
 The :cfunc:`sipDelayedDtors()` function must be specified using the
-`%ModuleCode`_ directive.
+:directive:`%ModuleCode` directive.
 
 .. cfunction:: void sipDelayedDtors(const sipDelayedDtor *dd_list)
 
@@ -352,9 +352,9 @@ Mapped Type Annotations
 .. mapped-type-annotation:: NoRelease
 
 This boolean annotation is used to specify that the mapped type does not
-support the `sipReleaseType()`_ function.  Any `%ConvertToTypeCode`_ should not
-create temporary instances of the mapped type, i.e. it should not return
-``SIP_TEMPORARY``.
+support the `sipReleaseType()`_ function.  Any :directive:`%ConvertToTypeCode`
+should not create temporary instances of the mapped type, i.e. it should not
+return :cmacro:`SIP_TEMPORARY`.
 
 
 .. _ref-enum-annos:
@@ -394,8 +394,8 @@ Function Annotations
 
 This optional name annotation is used with class methods to specify that the
 method be automatically included in all sub-classes.  The value is the name of
-a feature (specified using the `%Feature`_ directive) which must be enabled
-for the method to be generated.
+a feature (specified using the :directive:`%Feature` directive) which must be
+enabled for the method to be generated.
 
 
 .. function-annotation:: Default
@@ -439,7 +439,7 @@ This boolean annotation specifies that the function will create a new thread.
 .. function-annotation:: NoArgParser
 
 This boolean annotation is used with global functions to specify that the
-supplied `%MethodCode`_ will handle the parsing of the arguments.
+supplied :directive:`%MethodCode` will handle the parsing of the arguments.
 
 
 .. function-annotation:: NoDerived
@@ -547,7 +547,7 @@ License Annotations
 This optional string annotation specifies the license's licensee.  No
 restrictions are placed on the contents of the string.
 
-See the `%License`_ directive.
+See the :directive:`%License` directive.
 
 
 .. license-annotation:: Signature
@@ -555,7 +555,7 @@ See the `%License`_ directive.
 This optional string annotation specifies the license's signature.  No
 restrictions are placed on the contents of the string.
 
-See the `%License`_ directive.
+See the :directive:`%License` directive.
 
 
 .. license-annotation:: Timestamp
@@ -563,7 +563,7 @@ See the `%License`_ directive.
 This optional string annotation specifies the license's timestamp.  No
 restrictions are placed on the contents of the string.
 
-See the `%License`_ directive.
+See the :directive:`%License` directive.
 
 
 .. license-annotation:: Type
@@ -571,7 +571,7 @@ See the `%License`_ directive.
 This string annotation specifies the license's type.  No restrictions are
 placed on the contents of the string.
 
-See the `%License`_ directive.
+See the :directive:`%License` directive.
 
 
 .. _ref-typedef-annos:

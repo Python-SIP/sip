@@ -1,5 +1,5 @@
-SIP Directives
-==============
+Directives
+==========
 
 In this section we describe each of the directives that can be used in
 specification files.  All directives begin with ``%`` as the first
@@ -13,8 +13,7 @@ Some directives are used to specify handwritten code.  Handwritten code must
 not define names that start with the prefix ``sip``.
 
 
-%AccessCode
------------
+.. directive:: %AccessCode
 
 .. parsed-literal::
 
@@ -43,8 +42,7 @@ For example::
     %End
 
 
-%BIGetBufferCode
-----------------
+.. directive:: %BIGetBufferCode
 
 .. parsed-literal::
 
@@ -52,9 +50,9 @@ For example::
         *code*
     %End
 
-This directive (along with `%BIReleaseBufferCode`_) is used to specify code
-that implements the buffer interface of Python v3.  If Python v2 is being used
-then this is ignored.
+This directive (along with :directive:`%BIReleaseBufferCode`) is used to
+specify code that implements the buffer interface of Python v3.  If Python v2
+is being used then this is ignored.
 
 The following variables are made available to the handwritten code:
 
@@ -79,8 +77,7 @@ PyObject \*sipSelf
     i.e. ``self``.
 
 
-%BIGetCharBufferCode
---------------------
+.. directive:: %BIGetCharBufferCode
 
 .. parsed-literal::
 
@@ -88,9 +85,10 @@ PyObject \*sipSelf
         *code*
     %End
 
-This directive (along with `%BIGetReadBufferCode`_, `%BIGetSegCountCode`_ and
-`%BIGetWriteBufferCode`_) is used to specify code that implements the buffer
-interface of Python v2.  If Python v3 is being used then this is ignored.
+This directive (along with :directive:`%BIGetReadBufferCode`,
+:directive:`%BIGetSegCountCode` and :directive:`%BIGetWriteBufferCode`) is used
+to specify code that implements the buffer interface of Python v2.  If Python
+v3 is being used then this is ignored.
 
 The following variables are made available to the handwritten code:
 
@@ -113,8 +111,7 @@ PyObject \*sipSelf
     i.e. ``self``.
 
 
-%BIGetReadBufferCode
---------------------
+.. directive:: %BIGetReadBufferCode
 
 .. parsed-literal::
 
@@ -122,9 +119,10 @@ PyObject \*sipSelf
         *code*
     %End
 
-This directive (along with `%BIGetCharBufferCode`_, `%BIGetSegCountCode`_ and
-`%BIGetWriteBufferCode`_) is used to specify code that implements the buffer
-interface of Python v2.  If Python v3 is being used then this is ignored.
+This directive (along with :directive:`%BIGetCharBufferCode`,
+:directive:`%BIGetSegCountCode` and :directive:`%BIGetWriteBufferCode`) is used
+to specify code that implements the buffer interface of Python v2.  If
+Python v3 is being used then this is ignored.
 
 The following variables are made available to the handwritten code:
 
@@ -147,8 +145,7 @@ PyObject \*sipSelf
     i.e. ``self``.
 
 
-%BIGetSegCountCode
-------------------
+.. directive:: %BIGetSegCountCode
 
 .. parsed-literal::
 
@@ -156,9 +153,10 @@ PyObject \*sipSelf
         *code*
     %End
 
-This directive (along with `%BIGetCharBufferCode`_, `%BIGetReadBufferCode`_ and
-`%BIGetWriteBufferCode`_) is used to specify code that implements the buffer
-interface of Python v2.  If Python v3 is being used then this is ignored.
+This directive (along with :directive:`%BIGetCharBufferCode`,
+:directive:`%BIGetReadBufferCode` and :directive:`%BIGetWriteBufferCode`) is
+used to specify code that implements the buffer interface of Python v2.  If
+Python v3 is being used then this is ignored.
 
 The following variables are made available to the handwritten code:
 
@@ -179,8 +177,7 @@ PyObject \*sipSelf
     i.e. ``self``.
 
 
-%BIGetWriteBufferCode
----------------------
+.. directive:: %BIGetWriteBufferCode
 
 .. parsed-literal::
 
@@ -188,9 +185,10 @@ PyObject \*sipSelf
         *code*
     %End
 
-This directive (along with `%BIGetCharBufferCode`_, `%BIGetReadBufferCode`_
-and `%BIGetSegCountCode`_ is used to specify code that implements the buffer
-interface of Python v2.  If Python v3 is being used then this is ignored.
+This directive (along with :directive:`%BIGetCharBufferCode`,
+:directive:`%BIGetReadBufferCode` and :directive:`%BIGetSegCountCode` is used
+to specify code that implements the buffer interface of Python v2.  If Python
+v3 is being used then this is ignored.
 
 The following variables are made available to the handwritten code:
 
@@ -213,8 +211,7 @@ PyObject \*sipSelf
     i.e. ``self``.
 
 
-%BIReleaseBufferCode
---------------------
+.. directive:: %BIReleaseBufferCode
 
 .. parsed-literal::
 
@@ -222,9 +219,9 @@ PyObject \*sipSelf
         *code*
     %End
 
-This directive (along with `%BIGetBufferCode`_) is used to specify code that
-implements the buffer interface of Python v3.  If Python v2 is being used then
-this is ignored.
+This directive (along with :directive:`%BIGetBufferCode`) is used to specify
+code that implements the buffer interface of Python v3.  If Python v2 is being
+used then this is ignored.
 
 The following variables are made available to the handwritten code:
 
@@ -240,8 +237,7 @@ PyObject \*sipSelf
     i.e. ``self``.
 
 
-%CModule
---------
+.. directive:: %CModule
 
 .. parsed-literal::
 
@@ -250,15 +246,15 @@ PyObject \*sipSelf
 This directive is used to identify that the library being wrapped is a C
 library and to define the name of the module and it's optional version number.
 
-See the `%Module`_ directive for an explanation of the version number.
+See the :directive:`%Module` directive for an explanation of the version
+number.
 
 For example::
 
     %CModule dbus 1
 
 
-%CompositeModule
-----------------
+.. directive:: %CompositeModule
 
 .. parsed-literal::
 
@@ -276,8 +272,8 @@ Clearly the individual modules should not define module-level objects with the
 same name.
 
 This directive is used to specify the name of a composite module.  Any
-subsequent `%CModule`_ or `%Module`_ directive is interpreted as defining a
-component module.
+subsequent :directive:`%CModule` or :directive:`%Module` directive is
+interpreted as defining a component module.
 
 For example::
 
@@ -289,8 +285,7 @@ The main purpose of a composite module is as a programmer convenience as they
 don't have to remember which which individual module an object is defined in.
 
 
-%ConsolidatedModule
--------------------
+.. directive:: %ConsolidatedModule
 
 .. parsed-literal::
 
@@ -300,8 +295,8 @@ A consolidated module is one that consolidates the wrapper code of a number of
 SIP generated modules (refered to as component modules in this context).
 
 This directive is used to specify the name of a consolidated module.  Any
-subsequent `%CModule`_ or `%Module`_ directive is interpreted as defining a
-component module.
+subsequent :directive:`%CModule` or :directive:`%Module` directive is
+interpreted as defining a component module.
 
 For example::
 
@@ -325,8 +320,7 @@ building as a component the ``-p`` command line option should be used to
 specify the name of the consolidated module.
 
 
-%ConvertFromTypeCode
---------------------
+.. directive:: %ConvertFromTypeCode
 
 .. parsed-literal::
 
@@ -334,9 +328,9 @@ specify the name of the consolidated module.
         *code*
     %End
 
-This directive is used as part of the `%MappedType`_ directive to specify the
-handwritten code that converts an instance of a mapped type to a Python
-object.
+This directive is used as part of the :directive:`%MappedType` directive to
+specify the handwritten code that converts an instance of a mapped type to a
+Python object.
 
 The following variables are made available to the handwritten code:
 
@@ -393,8 +387,7 @@ list of ``QWidget`` instances::
     %End
 
 
-%ConvertToSubClassCode
-----------------------
+.. directive:: %ConvertToSubClassCode
 
 .. parsed-literal::
 
@@ -487,8 +480,7 @@ class hierarchy in PyQt::
     };
 
 
-%ConvertToTypeCode
-------------------
+.. directive:: %ConvertToTypeCode
 
 .. parsed-literal::
 
@@ -498,7 +490,7 @@ class hierarchy in PyQt::
 
 This directive is used to specify the handwritten code that converts a Python
 object to a mapped type instance and to handle any ownership transfers.  It is
-used as part of the `%MappedType`_ directive and as part of a class
+used as part of the :directive:`%MappedType` directive and as part of a class
 specification.  The code is also called to determine if the Python object is of
 the correct type prior to conversion.
 
@@ -541,12 +533,12 @@ returned.
 If ``sipIsErr`` is not ``NULL`` then a combination of the following flags is
 returned.
 
-        - ``SIP_TEMPORARY`` is set to indicate that the returned instance is a
-          temporary and should be released to avoid a memory leak.
+        - :cmacro:`SIP_TEMPORARY` is set to indicate that the returned instance
+          is a temporary and should be released to avoid a memory leak.
 
-        - ``SIP_DERIVED_CLASS`` is set to indicate that the type of the
-          returned instance is a derived class.  See `Generated Derived
-          Classes`_.
+        - :cmacro:`SIP_DERIVED_CLASS` is set to indicate that the type of the
+          returned instance is a derived class.  See
+          :ref:`ref-derived-classes`.
 
 The following example converts a Python list of ``QPoint`` instances to a
 ``QList<QPoint>`` instance::
@@ -625,13 +617,13 @@ When used in a class specification the handwritten code replaces the code that
 would normally be automatically generated.  This means that the handwritten
 code must also handle instances of the class itself and not just the additional
 types that are being supported.  This should be done by making calls to
-`sipCanConvertToType()`_ to check the object type and `sipConvertToType()`_ to
-convert the object.  The ``SIP_NO_CONVERTORS`` flag *must* be passed to both
-these functions to prevent recursive calls to the handwritten code.
+:cfunc:`sipCanConvertToType()` to check the object type and
+:cfunc:`sipConvertToType()` to convert the object.  The
+:cmacro:`SIP_NO_CONVERTORS` flag *must* be passed to both these functions to
+prevent recursive calls to the handwritten code.
 
 
-%Copying
---------
+.. directive:: %Copying
 
 .. parsed-literal::
 
@@ -646,12 +638,11 @@ include copyright and licensing terms.
 For example::
 
     %Copying
-    Copyright (c) 2008 Riverbank Computing Limited
+    Copyright (c) 2009 Riverbank Computing Limited
     %End
 
 
-%DefaultEncoding
-----------------
+.. directive:: %DefaultEncoding
 
 .. parsed-literal::
 
@@ -661,16 +652,15 @@ This directory is used to specify the default encoding used for for ``char``,
 ``const char``, ``char *`` or ``const char *`` values.  The encoding can be
 either ``"ASCII"``, ``"Latin-1"``, ``"UTF-8"`` or ``"None"``.  An encoding of
 ``"None"`` means that the value is unencoded.  The default can be overridden
-for a particular value using the Encoding_ annotation.  If the directive is not
-specified then ``"None"`` is used.
+for a particular value using the :aanno:`Encoding` annotation.  If the
+directive is not specified then ``"None"`` is used.
 
 For example::
 
     %DefaultEncoding "Latin-1"
 
 
-%DefaultMetatype
-----------------
+.. directive:: %DefaultMetatype
 
 .. parsed-literal::
 
@@ -682,18 +672,17 @@ modules, that doesn't have an explicit super-type.
 
 If this is not specified then ``sip.wrappertype`` is used.
 
-You can also use the `Metatype`_ class annotation to specify the meta-type
-used by a particular C/C++ type.
+You can also use the :canno:`Metatype` class annotation to specify the
+meta-type used by a particular C/C++ type.
 
-See the section `Types and Meta-types`_ for more details.
+See the section :ref:`ref-types-metatypes` for more details.
 
 For example::
 
     %DefaultMetatype PyQt4.QtCore.pyqtWrapperType
 
 
-%DefaultSupertype
------------------
+.. directive:: %DefaultSupertype
 
 .. parsed-literal::
 
@@ -705,18 +694,17 @@ an explicit super-type.
 
 If this is not specified then ``sip.wrapper`` is used.
 
-You can also use the `Supertype`_ class annotation to specify the super-type
-used by a particular C/C++ type.
+You can also use the :canno:`Supertype` class annotation to specify the
+super-type used by a particular C/C++ type.
 
-See the section `Types and Meta-types`_ for more details.
+See the section :ref:`ref-types-metatypes` for more details.
 
 For example::
 
     %DefaultSupertype sip.simplewrapper
 
 
-%Doc
-----
+.. directive:: %Doc
 
 .. parsed-literal::
 
@@ -730,9 +718,9 @@ specified any number of times and SIP will concatenate all the separate pieces
 of text in the order that it sees them.
 
 Documentation that is specified using this directive is local to the module in
-which it appears.  It is ignored by modules that `%Import`_ it.  Use the
-`%ExportedDoc`_ directive for documentation that should be included by all
-modules that `%Import`_ this one.
+which it appears.  It is ignored by modules that :directive:`%Import` it.  Use
+the :directive:`%ExportedDoc` directive for documentation that should be
+included by all modules that :directive:`%Import` this one.
 
 For example::
 
@@ -745,15 +733,13 @@ For example::
     %End
 
 
-%End
-----
+.. directive:: %End
 
 This isn't a directive in itself, but is used to terminate a number of
 directives that allow a block of handwritten code or text to be specified.
 
 
-%Exception
-----------
+.. directive:: %Exception
 
 .. parsed-literal::
 
@@ -772,14 +758,14 @@ names of Python exceptions defined by this directive.
 *name* is the name of the exception.
 
 *base-exception* is the optional base exception.  This may be either one of
-the standard Python exceptions or one defined with a previous `%Exception`_
-directive.
+the standard Python exceptions or one defined with a previous
+:directive:`%Exception` directive.
 
-*header-code* is the optional `%TypeHeaderCode`_ used to specify any external
-interface to the exception being defined.
+*header-code* is the optional :directive:`%TypeHeaderCode` used to specify any
+external interface to the exception being defined.
 
-*raise-code* is the `%RaiseCode`_ used to specify the handwritten code that
-converts a reference to the C++ exception to the Python exception.
+*raise-code* is the :directive:`%RaiseCode` used to specify the handwritten
+code that converts a reference to the C++ exception to the Python exception.
 
 For example::
 
@@ -802,8 +788,7 @@ The new exception is called ``StdException`` and is derived from the standard
 Python exception ``Exception``.
 
 
-%ExportedDoc
-------------
+.. directive:: %ExportedDoc
 
 .. parsed-literal::
 
@@ -817,7 +802,7 @@ specified any number of times and SIP will concatenate all the separate pieces
 of text in the order that it sees them.
 
 Documentation that is specified using this directive will also be included by
-modules that `%Import`_ it.
+modules that :directive:`%Import` it.
 
 For example::
 
@@ -831,8 +816,7 @@ For example::
     %End
 
 
-%ExportedHeaderCode
--------------------
+.. directive:: %ExportedHeaderCode
 
 .. parsed-literal::
 
@@ -845,19 +829,19 @@ of types, that is placed in a header file that is included by all generated
 code for all modules.  It should not include function declarations because
 Python modules should not explicitly call functions in another Python module.
 
-See also `%ModuleCode`_ and `%ModuleHeaderCode`_.
+See also :directive:`%ModuleCode` and :directive:`%ModuleHeaderCode`.
 
 
-%Feature
---------
+.. directive:: %Feature
 
 .. parsed-literal::
 
     %Feature *name*
 
 This directive is used to declare a feature.  Features (along with
-`%Platforms`_ and `%Timeline`_) are used by the `%If`_ directive to control
-whether or not parts of a specification are processed or ignored.
+:directive:`%Platforms` and :directive:`%Timeline`) are used by the
+:directive:`%If` directive to control whether or not parts of a specification
+are processed or ignored.
 
 Features are mutually independent of each other - any combination of features
 may be enabled or disable.  By default all features are enabled.  The SIP
@@ -876,8 +860,7 @@ For example::
     %End
 
 
-%GCClearCode
-------------
+.. directive:: %GCClearCode
 
 .. parsed-literal::
 
@@ -896,8 +879,8 @@ Extending the Python Interpreter <http://www.python.org/dev/doc/devel/ext/>`__
 for the details.
 
 This directive is used to specify the code that clears any embedded references.
-(See `%GCTraverseCode`_ for specifying the code that traverses any embedded
-references.)
+(See :directive:`%GCTraverseCode` for specifying the code that traverses any
+embedded references.)
 
 The following variables are made available to the handwritten code:
 
@@ -929,8 +912,7 @@ always a Python object and so should be handled by the garbage collector::
     %End
 
 
-%GCTraverseCode
----------------
+.. directive:: %GCTraverseCode
 
 .. parsed-literal::
 
@@ -939,8 +921,8 @@ always a Python object and so should be handled by the garbage collector::
     %End
 
 This directive is used to specify the code that traverses any embedded
-references for Python's cyclic garbage collector.  (See `%GCClearCode`_ for a
-full explanation.)
+references for Python's cyclic garbage collector.  (See
+:directive:`%GCClearCode` for a full explanation.)
 
 The following variables are made available to the handwritten code:
 
@@ -974,8 +956,7 @@ The following simplified example is taken from PyQt's ``QCustomEvent`` class::
     %End
 
 
-%GetCode
---------
+.. directive:: %GetCode
 
 .. parsed-literal::
 
@@ -1039,8 +1020,7 @@ For example::
     }
 
 
-%If
----
+.. directive:: %If
 
 .. parsed-literal::
 
@@ -1060,9 +1040,10 @@ where
 
     *range* ::= [*version*] ``-`` [*version*]
 
-This directive is used in conjunction with features (see `%Feature`_),
-platforms (see `%Platforms`_) and versions (see `%Timeline`_) to control
-whether or not parts of a specification are processed or not.
+This directive is used in conjunction with features (see
+:directive:`%Feature`), platforms (see :directive:`%Platforms`) and versions
+(see :directive:`%Timeline`) to control whether or not parts of a specification
+are processed or not.
 
 A *range* of versions means all versions starting with the lower bound up to
 but excluding the upper bound.  If the lower bound is omitted then it is
@@ -1100,40 +1081,39 @@ Note that this directive is not implemented as a preprocessor.  Only the
 following parts of a specification are affected by it:
 
     - ``class``
-    - `%ConvertFromTypeCode`_
-    - `%ConvertToSubClassCode`_
-    - `%ConvertToTypeCode`_
+    - :directive:`%ConvertFromTypeCode`
+    - :directive:`%ConvertToSubClassCode`
+    - :directive:`%ConvertToTypeCode`
     - ``enum``
-    - `%DefaultEncoding`_
-    - `%DefaultMetatype`_
-    - `%DefaultSupertype`_
-    - `%ExportedHeaderCode`_
+    - :directive:`%DefaultEncoding`
+    - :directive:`%DefaultMetatype`
+    - :directive:`%DefaultSupertype`
+    - :directive:`%ExportedHeaderCode`
     - functions
-    - `%GCClearCode`_
-    - `%GCTraverseCode`_
-    - `%If`_
-    - `%InitialisationCode`_
-    - `%MappedType`_
-    - `%MethodCode`_
-    - `%ModuleCode`_
-    - `%ModuleHeaderCode`_
+    - :directive:`%GCClearCode`
+    - :directive:`%GCTraverseCode`
+    - :directive:`%If`
+    - :directive:`%InitialisationCode`
+    - :directive:`%MappedType`
+    - :directive:`%MethodCode`
+    - :directive:`%ModuleCode`
+    - :directive:`%ModuleHeaderCode`
     - ``namespace``
-    - `%PostInitialisationCode`_
-    - `%PreInitialisationCode`_
+    - :directive:`%PostInitialisationCode`
+    - :directive:`%PreInitialisationCode`
     - ``struct``
     - ``typedef``
-    - `%TypeCode`_
-    - `%TypeHeaderCode`_
-    - `%UnitCode`_
+    - :directive:`%TypeCode`
+    - :directive:`%TypeHeaderCode`
+    - :directive:`%UnitCode`
     - variables
-    - `%VirtualCatcherCode`_
+    - :directive:`%VirtualCatcherCode`
 
 Also note that the only way to specify the logical and of qualifiers is to use
-nested `%If`_ directives.
+nested :directive:`%If` directives.
 
 
-%Import
--------
+.. directive:: %Import
 
 .. parsed-literal::
 
@@ -1145,17 +1125,16 @@ module, e.g. as an argument to a function, or to sub-class.
 
 If *filename* cannot be opened then SIP prepends *filename* with the name of
 the directory containing the current specification file (i.e. the one
-containing the `%Import`_ directive) and tries again.  If this also fails then
-SIP prepends *filename* with each of the directories, in turn, specified by
-the ``-I`` command line option.
+containing the :directive:`%Import` directive) and tries again.  If this also
+fails then SIP prepends *filename* with each of the directories, in turn,
+specified by the ``-I`` command line option.
 
 For example::
 
     %Import qt/qtmod.sip
 
 
-%Include
---------
+.. directive:: %Include
 
 .. parsed-literal::
 
@@ -1166,16 +1145,15 @@ specification of the current module.  It is the equivalent of the C
 preprocessor's ``#include`` directive and is used to structure a large module
 specification into manageable pieces.
 
-`%Include`_ follows the same search process as `%Import`_ when trying to open
-*filename*.
+:directive:`%Include` follows the same search process as :directive:`%Import`
+when trying to open *filename*.
 
 For example::
 
     %Include qwidget.sip
 
 
-%InitialisationCode
--------------------
+.. directive:: %InitialisationCode
 
 .. parsed-literal::
 
@@ -1187,7 +1165,7 @@ This directive is used to specify handwritten code that is embedded in-line
 in the generated module initialisation code after the SIP module has been
 imported but before the module itself has been initialised.
 
-It is typically used to call `sipRegisterPyType()`_.
+It is typically used to call :cfunc:`sipRegisterPyType()`.
 
 For example::
 
@@ -1198,18 +1176,17 @@ For example::
     %End
 
 
-%License
---------
+.. directive:: %License
 
 .. parsed-literal::
 
     %License /*license-annotations*/
 
 This directive is used to specify the contents of an optional license
-dictionary.  The license dictionary is called ``__license__`` and is stored in
-the module dictionary.  The elements of the dictionary are specified using the
-Licensee_, Signature_, Timestamp_ and Type_ annotations.  Only the Type_
-annotation is compulsory.
+dictionary.  The license dictionary is called :data:`__license__` and is stored
+in the module dictionary.  The elements of the dictionary are specified using
+the :lanno:`Licensee`, :lanno:`Signature`, :lanno:`Timestamp` and :lanno:`Type`
+annotations.  Only the :lanno:`Type` annotation is compulsory.
 
 Note that this directive isn't an attempt to impose any licensing restrictions
 on a module.  It is simply a method for easily embedding licensing information
@@ -1220,8 +1197,7 @@ For example::
     %License /Type="GPL"/
 
 
-%MappedType
------------
+.. directive:: %MappedType
 
 .. parsed-literal::
 
@@ -1254,14 +1230,15 @@ Any explicit mapped type will be used in preference to any template that maps
 the same type, ie. a template will not be automatically instantiated if there
 is an explicit mapped type.
 
-*header-code* is the `%TypeHeaderCode`_ used to specify the library interface
-to the type being mapped.
+*header-code* is the :directive:`%TypeHeaderCode` used to specify the library
+interface to the type being mapped.
 
-*convert-to-code* is the `%ConvertToTypeCode`_ used to specify the handwritten
-code that converts a Python object to an instance of the mapped type.
+*convert-to-code* is the :directive:`%ConvertToTypeCode` used to specify the
+handwritten code that converts a Python object to an instance of the mapped
+type.
 
-*convert-from-code* is the `%ConvertFromTypeCode`_ used to specify the
-handwritten code that converts an instance of the mapped type to a Python
+*convert-from-code* is the :directive:`%ConvertFromTypeCode` used to specify
+the handwritten code that converts an instance of the mapped type to a Python
 object.
 
 For example::
@@ -1361,8 +1338,7 @@ generated code will automatically map this to and from a Python list of QObject
 instances when appropriate.
 
 
-%MethodCode
------------
+.. directive:: %MethodCode
 
 .. parsed-literal::
 
@@ -1381,9 +1357,9 @@ have been successfully converted from Python objects to their C or C++
 equivalents.  In this case the specified code must not include any ``return``
 statements.
 
-However if the `NoArgParser`_ annotation has been used then the specified code
-is also responsible for parsing the arguments.  No other code is generated by
-SIP and the specified code must include a ``return`` statement.
+However if the :fanno:`NoArgParser` annotation has been used then the specified
+code is also responsible for parsing the arguments.  No other code is generated
+by SIP and the specified code must include a ``return`` statement.
 
 In the context of a destructor the specified code is embedded in-line in the
 Python type's deallocation function.  Unlike other contexts it supplements
@@ -1402,11 +1378,11 @@ in this example fragment::
 
 If compatibility with SIP v3.x is not required then this is optional but
 should be done if the C++ function might block the current thread or take a
-significant amount of time to execute.  (See `The Python Global Interpreter
-Lock`_ and the ReleaseGIL_ and HoldGIL_ annotations.)
+significant amount of time to execute.  (See :ref:`ref-gil` and the
+:fanno:`ReleaseGIL` and :fanno:`HoldGIL` annotations.)
 
-If the `NoArgParser`_ annotation has not been used then the following variables
-are made available to the handwritten code:
+If the :fanno:`NoArgParser` annotation has not been used then the following
+variables are made available to the handwritten code:
 
 *type* a0
     There is a variable for each argument of the Python signature (excluding
@@ -1415,7 +1391,7 @@ are made available to the handwritten code:
     following exceptions:
 
     - if the argument is only used to return a value (e.g. it is an ``int *``
-      without an In_ annotation) then the type has one less level of
+      without an :aanno:`In` annotation) then the type has one less level of
       indirection (e.g. it will be an ``int``)
     - if the argument is a structure or class (or a reference or a pointer to a
       structure or class) then *type* will always be a pointer to the structure
@@ -1424,9 +1400,9 @@ are made available to the handwritten code:
     Note that handwritten code for destructors never has any arguments.
 
 PyObject \*a0Wrapper
-    This variable is made available only if the GetWrapper_ annotation is
-    specified for the corresponding argument.  The variable is a pointer to the
-    Python object that wraps the argument.
+    This variable is made available only if the :aanno:`GetWrapper` annotation
+    is specified for the corresponding argument.  The variable is a pointer to
+    the Python object that wraps the argument.
 
 *type* \*sipCpp
     If the directive is used in the context of a class constructor then this
@@ -1435,8 +1411,8 @@ PyObject \*a0Wrapper
     try other Python signatures.
     
     If the directive is used in the context of a method (but not the standard
-    binary operator methods, e.g. ``__add__``) or a destructor then this is a
-    pointer to the C structure or C++ class instance.
+    binary operator methods, e.g. :meth:`__add__`) or a destructor then this is
+    a pointer to the C structure or C++ class instance.
     
     Its *type* is a pointer to the structure or class.
     
@@ -1459,7 +1435,7 @@ int sipIsErr
       or class.
 
     ``sipRes`` is not provided for inplace operators (e.g. ``+=`` or
-    ``__imul__``) as their results are handled automatically, nor for class
+    :meth:`__imul__`) as their results are handled automatically, nor for class
     constructors or destructors.
 
 PyObject \*sipSelf
@@ -1478,7 +1454,7 @@ bool sipSelfWasArg
 
         self.foo(...)
 
-If the `NoArgParser`_ annotation has been used then only the following
+If the :fanno:`NoArgParser` annotation has been used then only the following
 variables are made available to the handwritten code:
 
 PyObject \*sipArgs
@@ -1527,12 +1503,12 @@ then the call should instead be::
 
     sipRes = sipCpp -> sipProtect_foo(iarr);
 
-.. [#] See `%VirtualCatcherCode`_ for a description of how SIP generated code
-       handles the reimplementation of C++ virtual methods in Python.
+.. [#] See :directive:`%VirtualCatcherCode` for a description of how SIP
+       generated code handles the reimplementation of C++ virtual methods in
+       Python.
 
 
-%Module
--------
+.. directive:: %Module
 
 .. parsed-literal::
 
@@ -1545,13 +1521,14 @@ The name may contain periods to specify that the module is part of a Python
 package.
 
 The optional version number is useful if you (or others) might create other
-modules that build on this module, i.e. if another module might `%Import`_
-this module.  Under the covers, a module exports an API that is used by modules
-that `%Import`_ it and the API is given a version number.  A module built on
-that module knows the version number of the API that it is expecting.  If,
-when the modules are imported at run-time, the version numbers do not match
-then a Python exception is raised.  The dependent module must then be re-built
-using the correct specification files for the base module.
+modules that build on this module, i.e. if another module might
+:directive:`%Import` this module.  Under the covers, a module exports an API
+that is used by modules that :directive:`%Import` it and the API is given a
+version number.  A module built on that module knows the version number of the
+API that it is expecting.  If, when the modules are imported at run-time, the
+version numbers do not match then a Python exception is raised.  The dependent
+module must then be re-built using the correct specification files for the base
+module.
 
 The version number should be incremented whenever a module is changed.  Some
 changes don't affect the exported API, but it is good practice to change the
@@ -1562,8 +1539,7 @@ For example::
     %Module qt 5
 
 
-%ModuleCode
------------
+.. directive:: %ModuleCode
 
 .. parsed-literal::
 
@@ -1586,11 +1562,10 @@ For example::
     }
     %End
 
-See also `%ExportedHeaderCode`_ and `%ModuleHeaderCode`_.
+See also :directive:`%ExportedHeaderCode` and :directive:`%ModuleHeaderCode`.
 
 
-%ModuleHeaderCode
------------------
+.. directive:: %ModuleHeaderCode
 
 .. parsed-literal::
 
@@ -1608,26 +1583,24 @@ For example::
     void dump_object(PyObject *o);
     %End
 
-See also `%ExportedHeaderCode`_ and `%ModuleCode`_.
+See also :directive:`%ExportedHeaderCode` and :directive:`%ModuleCode`.
 
 
-%OptionalInclude
-----------------
+.. directive:: %OptionalInclude
 
 .. parsed-literal::
 
     %OptionalInclude *filename*
 
-This directive is identical to the `%Include`_ directive except that SIP
-silently continues processing if *filename* could not be opened.
+This directive is identical to the :directive:`%Include` directive except that
+SIP silently continues processing if *filename* could not be opened.
 
 For example::
 
     %OptionalInclude license.sip
 
 
-%PickleCode
------------
+.. directive:: %PickleCode
 
 .. parsed-literal::
 
@@ -1671,16 +1644,16 @@ Both named and unnamed enums can be pickled automatically without providing any
 handwritten code.
 
 
-%Platforms
-----------
+.. directive:: %Platforms
 
 .. parsed-literal::
 
     %Platforms {*name* *name* ...}
 
 This directive is used to declare a set of platforms.  Platforms (along with
-`%Feature`_ and `%Timeline`_) are used by the `%If`_ directive to control
-whether or not parts of a specification are processed or ignored.
+:directive:`%Feature` and :directive:`%Timeline`) are used by the
+:directive:`%If` directive to control whether or not parts of a specification
+are processed or ignored.
 
 Platforms are mutually exclusive - only one platform can be enabled at a time.
 By default all platforms are disabled.  The SIP ``-t`` command line option is
@@ -1699,8 +1672,7 @@ For example::
     %End
 
 
-%PostInitialisationCode
------------------------
+.. directive:: %PostInitialisationCode
 
 .. parsed-literal::
 
@@ -1727,8 +1699,7 @@ For example::
     %End
 
 
-%PreInitialisationCode
-----------------------
+.. directive:: %PreInitialisationCode
 
 .. parsed-literal::
 
@@ -1747,8 +1718,7 @@ For example::
     %End
 
 
-%RaiseCode
-----------
+.. directive:: %RaiseCode
 
 .. parsed-literal::
 
@@ -1757,9 +1727,9 @@ For example::
     %End
 
 This directive is used as part of the definition of an exception using the
-`%Exception`_ directive to specify handwritten code that raises a Python
-exception when a C++ exception has been caught.  The code is embedded in-line
-as the body of a C++ ``catch ()`` clause.
+:directive:`%Exception` directive to specify handwritten code that raises a
+Python exception when a C++ exception has been caught.  The code is embedded
+in-line as the body of a C++ ``catch ()`` clause.
 
 The specified code must handle the Python Global Interpreter Lock (GIL) if
 necessary.  The GIL must be acquired before any calls to the Python API and
@@ -1777,11 +1747,10 @@ The following variable is made available to the handwritten code:
     This is a reference to the caught C++ exception.  The *type* of the
     reference is the same as the type defined in the ``throw ()`` specifier.
 
-See the `%Exception`_ directive for an example.
+See the :directive:`%Exception` directive for an example.
 
 
-%SetCode
---------
+.. directive:: %SetCode
 
 .. parsed-literal::
 
@@ -1815,20 +1784,19 @@ PyObject \*sipPyType
     (*not* the class in which it is defined).  It may be safely cast to a
     PyTypeObject \* or a sipWrapperType \*.
 
-See the `%GetCode`_ directive for an example.
+See the :directive:`%GetCode` directive for an example.
 
 
-%Timeline
----------
+.. directive:: %Timeline
 
 .. parsed-literal::
 
     %Timeline {*name* *name* ...}
 
 This directive is used to declare a set of versions released over a period of
-time.  Versions (along with `%Feature`_ and `%Platforms`_) are used by the
-`%If`_ directive to control whether or not parts of a specification are
-processed or ignored.
+time.  Versions (along with :directive:`%Feature` and :directive:`%Platforms`)
+are used by the :directive:`%If` directive to control whether or not parts of a
+specification are processed or ignored.
 
 Versions are mutually exclusive - only one version can be enabled at a time.
 By default all versions are disabled.  The SIP ``-t`` command line option is
@@ -1846,12 +1814,11 @@ For example::
     void foo(int = 0);
     %End
 
-`%Timeline`_ can be used any number of times in a module to allow multiple
-libraries to be wrapped in the same module.
+:directive:`%Timeline` can be used any number of times in a module to allow
+multiple libraries to be wrapped in the same module.
 
 
-%TypeCode
----------
+.. directive:: %TypeCode
 
 .. parsed-literal::
 
@@ -1887,8 +1854,7 @@ clashes of function names within a module in case the SIP ``-j`` command line
 option is used.
 
 
-%TypeHeaderCode
----------------
+.. directive:: %TypeHeaderCode
 
 .. parsed-literal::
 
@@ -1898,7 +1864,7 @@ option is used.
 
 This directive is used to specify handwritten code that defines the interface
 to a C or C++ type being wrapped, either a structure, a class, or a template.
-It is used within a class definition or a `%MappedType`_ directive.
+It is used within a class definition or a :directive:`%MappedType` directive.
 
 Normally *code* will be a pre-processor ``#include`` statement.
 
@@ -1915,8 +1881,7 @@ For example::
     };
 
 
-%UnitCode
----------
+.. directive:: %UnitCode
 
 .. parsed-literal::
 
@@ -1929,8 +1894,7 @@ start of a generated compilation unit (ie. C or C++ source file).  It is
 typically used to ``#include`` a C++ precompiled header file.
 
 
-%VirtualCatcherCode
--------------------
+.. directive:: %VirtualCatcherCode
 
 .. parsed-literal::
 
@@ -1938,11 +1902,11 @@ typically used to ``#include`` a C++ precompiled header file.
         *code*
     %End
 
-For most classes there are corresponding `generated derived classes`_ that
-contain reimplementations of the class's virtual methods.  These methods (which
-SIP calls catchers) determine if there is a corresponding Python
-reimplementation and call it if so.  If there is no Python reimplementation
-then the method in the original class is called instead.
+For most classes there are corresponding :ref:`generated derived classes
+<ref-derived-classes>` that contain reimplementations of the class's virtual
+methods.  These methods (which SIP calls catchers) determine if there is a
+corresponding Python reimplementation and call it if so.  If there is no Python
+reimplementation then the method in the original class is called instead.
 
 This directive is used to specify handwritten code that replaces the normally
 generated call to the Python reimplementation and the handling of any returned
@@ -1978,7 +1942,8 @@ int a0Key
     where it is important to ensure that the corresponding Python object is not
     garbage collected too soon.  This only applies to output arguments that
     return ``'\0'`` terminated strings.  The variable would normally be passed
-    to `sipParseResult()`_ using either the ``A`` or ``B`` format characters.
+    to :cfunc:`sipParseResult()` using either the ``A`` or ``B`` format
+    characters.
 
 int sipIsErr
     The handwritten code should set this to a non-zero value, and raise an
@@ -1986,7 +1951,7 @@ int sipIsErr
 
 PyObject \*sipMethod
     This object is the Python reimplementation of the virtual C++ method.  It
-    is normally passed to `sipCallMethod()`_.
+    is normally passed to :cfunc:`sipCallMethod()`.
 
 *type* sipRes
     The handwritten code should set this to the result to be returned.  The
@@ -1997,14 +1962,14 @@ int sipResKey
     This variable is only made available if the result has a type where it is
     important to ensure that the corresponding Python object is not garbage
     collected too soon.  This only applies to ``'\0'`` terminated strings.  The
-    variable would normally be passed to `sipParseResult()`_ using either the
-    ``A`` or ``B`` format characters.
+    variable would normally be passed to :cfunc:`sipParseResult()` using either
+    the ``A`` or ``B`` format characters.
 
 sipSimpleWrapper \*sipPySelf
-    This variableis only made available if either the ``a0Key`` or
+    This variable is only made available if either the ``a0Key`` or
     ``sipResKey`` are made available.  It defines the context within which keys
-    are unique.  The variable would normally be passed to `sipParseResult()`_
-    using the ``S`` format character.
+    are unique.  The variable would normally be passed to
+    :cfunc:`sipParseResult()` using the ``S`` format character.
 
 No variables are made available in the context of a destructor.
 
