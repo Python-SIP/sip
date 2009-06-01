@@ -53,15 +53,16 @@ Obviously a SIP specification file looks very much like a C++ (or C) header
 file, but SIP does not include a full C++ parser.  Let's look at the
 differences between the two files.
 
-    - The `%Module`_ directive has been added [#]_.  This is used to name the
-      Python module that is being created and to give it a *generation* number.
-      In this example these are ``word`` and ``0`` respectively.  The
-      generation number is effectively the version number of the module.
+    - The :directive:`%Module` directive has been added [#]_.  This is used to
+      name the Python module that is being created and to give it a
+      *generation* number.  In this example these are ``word`` and ``0``
+      respectively.  The generation number is effectively the version number of
+      the module.
 
-    - The `%TypeHeaderCode`_ directive has been added.  The text between this
-      and the following `%End`_ directive is included literally in the code
-      that SIP generates.  Normally it is used, as in this case, to
-      ``#include`` the corresponding C++ (or C) header file [#]_.
+    - The :directive:`%TypeHeaderCode` directive has been added.  The text
+      between this and the following :directive:`%End` directive is included
+      literally in the code that SIP generates.  Normally it is used, as in
+      this case, to ``#include`` the corresponding C++ (or C) header file [#]_.
 
     - The declaration of the private variable ``this_word`` has been removed.
       SIP does not support access to either private or protected instance
@@ -74,7 +75,7 @@ running the following command::
 
 However, that still leaves us with the task of compiling the generated code and
 linking it against all the necessary libraries.  It's much easier to use the
-SIP build system to do the whole thing.
+:ref:`SIP build system <ref-build-system>` to do the whole thing.
 
 Using the SIP build system is simply a matter of writing a small Python script.
 In this simple example we will assume that the ``word`` library we are wrapping
@@ -127,8 +128,8 @@ commands [#]_::
 
 That's all there is to it.
 
-See `Building Your Extension with distutils`_ for an example of how to build
-this example using distutils.
+See :ref:`ref-distutils` for an example of how to build this example using
+distutils.
 
 .. [#] All SIP directives start with a ``%`` as the first non-whitespace
        character of a line.
@@ -171,15 +172,16 @@ The corresponding SIP specification file would then look something like this::
 
 Again, let's look at the differences between the two files.
 
-    - The `%CModule`_ directive has been added.  This has the same syntax as
-      the `%Module`_ directive used in the previous example but tells SIP that
-      the library being wrapped is implemented in C rather than C++.
+    - The :directive:`%CModule` directive has been added.  This has the same
+      syntax as the :directive:`%Module` directive used in the previous example
+      but tells SIP that the library being wrapped is implemented in C rather
+      than C++.
 
-    - The `%TypeHeaderCode`_ directive has been added.
+    - The :directive:`%TypeHeaderCode` directive has been added.
 
-    - The Factory_ annotation has been added to the ``create_word()`` function.
-      This tells SIP that a newly created structure is being returned and it is
-      owned by Python.
+    - The :fanno:`Factory` annotation has been added to the ``create_word()``
+      function.  This tells SIP that a newly created structure is being
+      returned and it is owned by Python.
 
 The ``configure.py`` build system script described in the previous example can
 be used for this example without change.
@@ -257,25 +259,25 @@ The corresponding SIP specification file would then look something like this::
 Again we look at the differences, but we'll skip those that we've looked at in
 previous examples.
 
-    - The `%Import`_ directive has been added to specify that we are extending
-      the class hierarchy defined in the file ``QtCore/QtCoremod.sip``.  This
-      file is part of PyQt.  The build system will take care of finding the
-      file's exact location.
+    - The :directive:`%Import` directive has been added to specify that we are
+      extending the class hierarchy defined in the file
+      ``QtCore/QtCoremod.sip``.  This file is part of PyQt.  The build system
+      will take care of finding the file's exact location.
 
-    - The `%If`_ directive has been added to specify that everything [#]_ up to
-      the matching `%End`_ directive only applies to Qt v4.2 and later.
-      ``Qt_4_2_0`` is a *tag* defined in ``QtCoremod.sip`` [#]_ using the
-      `%Timeline`_ directive.  `%Timeline`_ is used to define a tag for each
-      version of a library's API you are wrapping allowing you to maintain all
-      the different versions in a single SIP specification.  The build system
-      provides support to ``configure.py`` scripts for working out the correct
-      tags to use according to which version of the library is actually
-      installed.
+    - The :directive:`%If` directive has been added to specify that everything
+      [#]_ up to the matching :directive:`%End` directive only applies to Qt
+      v4.2 and later.  ``Qt_4_2_0`` is a *tag* defined in ``QtCoremod.sip``
+      [#]_ using the :directive:`%Timeline` directive.  :directive:`%Timeline`
+      is used to define a tag for each version of a library's API you are
+      wrapping allowing you to maintain all the different versions in a single
+      SIP specification.  The build system provides support to ``configure.py``
+      scripts for working out the correct tags to use according to which
+      version of the library is actually installed.
 
     - The ``public`` keyword used in defining the super-classes has been
       removed.  This is not supported by SIP.
 
-    - The TransferThis annotation has been added to the first argument
+    - The :aanno:`TransferThis` annotation has been added to the first argument
       of the constructor.  It specifies that if the argument is not 0 (i.e. the
       ``Hello`` instance being constructed has a parent) then ownership of the
       instance is transferred from Python to C++.  It is needed because Qt
@@ -283,7 +285,7 @@ previous examples.
       a hierachy.  When an object is destroyed all of its children are also
       automatically destroyed.  It is important, therefore, that the Python
       garbage collector doesn't also try and destroy them.  This is covered in
-      more detail in `Ownership of Objects`_.  SIP provides many other
+      more detail in :ref:`ref-object-ownership`.  SIP provides many other
       annotations that can be applied to arguments, functions and classes.
       Multiple annotations are separated by commas.  Annotations may have
       values.
@@ -291,11 +293,12 @@ previous examples.
     - The ``=`` operator has been removed.  This operator is not supported by
       SIP.
 
-    - The `%If`_ directive has been added to specify that everything up to the
-      matching `%End`_ directive does not apply to Windows.  ``WS_WIN`` is
-      another tag defined by PyQt, this time using the `%Platforms`_ directive.
-      Tags defined by the `%Platforms`_ directive are mutually exclusive, i.e.
-      only one may be valid at a time [#]_.
+    - The :directive:`%If` directive has been added to specify that everything
+      up to the matching :directive:`%End` directive does not apply to Windows.
+      ``WS_WIN`` is another tag defined by PyQt, this time using the
+      :directive:`%Platforms` directive.  Tags defined by the
+      :directive:`%Platforms` directive are mutually exclusive, i.e. only one
+      may be valid at a time [#]_.
 
 One question you might have at this point is why bother to define the private
 copy constructor when it can never be called from Python?  The answer is to
@@ -425,11 +428,11 @@ Next we have the ``helloconfig.py.in`` template script::
 Again, we hope that the scripts are self documenting.
 
 .. [#] Some parts of a SIP specification aren't subject to version control.
-.. [#] Actually in ``versions.sip``.  PyQt uses the `%Include`_ directive to
-       split the SIP specification for Qt across a large number of separate
-       ``.sip`` files.
-.. [#] Tags can also be defined by the `%Feature`_ directive.  These tags are
-       not mutually exclusive, i.e. any number may be valid at a time.
+.. [#] Actually in ``versions.sip``.  PyQt uses the :directive:`%Include`
+       directive to split the SIP specification for Qt across a large number of
+       separate ``.sip`` files.
+.. [#] Tags can also be defined by the :directive:`%Feature` directive.  These
+       tags are not mutually exclusive, i.e. any number may be valid at a time.
 
 
 .. _ref-object-ownership:
@@ -462,7 +465,8 @@ C++ call the destructor).
 This applies equally to C structures where the structure is returned to the
 heap using the ``free()`` function.
 
-See also `sipTransferTo()`_, `sipTransferBack()`_ and `sipTransferBreak()`_.
+See also :cfunc:`sipTransferTo()`, :cfunc:`sipTransferBack()` and
+:cfunc:`sipTransferBreak()`.
 
 
 .. _ref-types-metatypes:
@@ -470,46 +474,48 @@ See also `sipTransferTo()`_, `sipTransferBack()`_ and `sipTransferBreak()`_.
 Types and Meta-types
 --------------------
 
-Every Python object (with the exception of the ``object`` object itself) has a
-meta-type and at least one super-type.  By default an object's meta-type is the
-meta-type of its first super-type.
+Every Python object (with the exception of the :class:`object` object itself)
+has a meta-type and at least one super-type.  By default an object's meta-type
+is the meta-type of its first super-type.
 
-SIP implements two super-types, ``sip.simplewrapper`` and ``sip.wrapper``, and
-a meta-type, ``sip.wrappertype``.
+SIP implements two super-types, :class:`sip.simplewrapper` and
+:class:`sip.wrapper`, and a meta-type, :class:`sip.wrappertype`.
 
-``sip.simplewrapper`` is the super-type of ``sip.wrapper``.  The super-type of
-``sip.simplewrapper`` is ``object``.
+:class:`sip.simplewrapper` is the super-type of :class:`sip.wrapper`.  The
+super-type of :class:`sip.simplewrapper` is :class:`object`.
 
-``sip.wrappertype`` is the meta-type of both ``sip.simplewrapper`` and
-``sip.wrapper``.  The super-type of ``sip.wrappertype`` is ``type``.
+:class:`sip.wrappertype` is the meta-type of both :class:`sip.simplewrapper`
+and :class:`sip.wrapper`.  The super-type of :class:`sip.wrappertype` is
+:class:`type`.
 
-``sip.wrapper`` supports the concept of object ownership described in
-`Ownership of Objects`_ and, by default, is the super-type of all the types
+:class:`sip.wrapper` supports the concept of object ownership described in
+:ref:`ref-object-ownership` and, by default, is the super-type of all the types
 that SIP generates.
 
-``sip.simplewrapper`` does not support the concept of object ownership but SIP
-generated types that are sub-classed from it have Python objects that take less
-memory.
+:class:`sip.simplewrapper` does not support the concept of object ownership but
+SIP generated types that are sub-classed from it have Python objects that take
+less memory.
 
 SIP allows a class's meta-type and super-type to be explicitly specified using
-the `Metatype`_ and `Supertype`_ class annotations.
+the :canno:`Metatype` and :canno:`Supertype` class annotations.
 
 SIP also allows the default meta-type and super-type to be changed for a module
-using the `%DefaultMetatype`_ and `%DefaultSupertype`_ directives.  Unlike the
-default super-type, the default meta-type is inherited by importing modules.
+using the :directive:`%DefaultMetatype` and :directive:`%DefaultSupertype`
+directives.  Unlike the default super-type, the default meta-type is inherited
+by importing modules.
 
 If you want to use your own meta-type or super-type then they must be
 sub-classed from one of the SIP provided types.  Your types must be registered
-using `sipRegisterPyType()`_.  This is normally done in code specified using
-the `%InitialisationCode`_ directive.
+using :cfunc:`sipRegisterPyType()`.  This is normally done in code specified
+using the :directive:`%InitialisationCode` directive.
 
-As an example, PyQt4 uses `%DefaultMetatype`_ to specify a new meta-type that
-handles the interaction with Qt's own meta-type system.  It also uses
-`%DefaultSupertype`_ to specify that the smaller ``sip.simplewrapper``
-super-type is normally used.  Finally it uses `Supertype`_ as an annotation of
-the ``QObject`` class to override the default and use ``sip.wrapper`` as the
-super-type so that the parent/child relationships of ``QObject`` instances are
-properly maintained.
+As an example, PyQt4 uses :directive:`%DefaultMetatype` to specify a new
+meta-type that handles the interaction with Qt's own meta-type system.  It also
+uses :directive:`%DefaultSupertype` to specify that the smaller
+:class:`sip.simplewrapper` super-type is normally used.  Finally it uses
+:canno:`Supertype` as an annotation of the ``QObject`` class to override the
+default and use :class:`sip.wrapper` as the super-type so that the parent/child
+relationships of ``QObject`` instances are properly maintained.
 
 
 Lazy Type Attributes
@@ -523,8 +529,8 @@ tens of thousands of attributes.
 
 SIP allows you to extend the handling of lazy attributes to your own attribute
 types by allowing you to register an attribute getter handler (using
-`sipRegisterAttributeGetter()`_).  This will be called just before a type's
-dictionary is accessed for the first time.
+:cfunc:`sipRegisterAttributeGetter()`).  This will be called just before a
+type's dictionary is accessed for the first time.
 
 
 Support for Python's Buffer Interface
@@ -545,14 +551,14 @@ SIP v4.6 introduced support for wide characters (i.e. the ``wchar_t`` type).
 Python's C API includes support for converting between unicode objects and wide
 character strings and arrays.  When converting from a unicode object to wide
 characters SIP creates the string or array on the heap (using memory allocated
-using `sipMalloc()`_).  This then raises the problem of how this memory is
-subsequently freed.
+using :cfunc:`sipMalloc()`).  This then raises the problem of how this memory
+is subsequently freed.
 
 The following describes how SIP handles this memory in the different situations
 where this is an issue.
 
     - When a wide string or array is passed to a function or method then the
-      memory is freed (using `sipFree()`_) after than function or method
+      memory is freed (using :cfunc:`sipFree()`) after than function or method
       returns.
 
     - When a wide string or array is returned from a virtual method then SIP
@@ -577,10 +583,10 @@ ensure that locking problems can be avoided.
 
 SIP always ensures that the GIL is acquired before making calls to the Python
 API.  By default SIP does not release the GIL when making calls to the C/C++
-library being wrapped.  The ReleaseGIL_ annotation can be used to override
-this behaviour when required.
+library being wrapped.  The :fanno:`ReleaseGIL` annotation can be used to
+override this behaviour when required.
 
-If SIP is given the ``-g`` command line option then the default behaviour is
-changed and SIP releases the GIL every time is makes calls to the C/C++
-library being wrapped.  The HoldGIL_ annotation can be used to override this
-behaviour when required.
+If SIP is given the :option:`-g <sip -g>` command line option then the default
+behaviour is changed and SIP releases the GIL every time is makes calls to the
+C/C++ library being wrapped.  The :fanno:`HoldGIL` annotation can be used to
+override this behaviour when required.

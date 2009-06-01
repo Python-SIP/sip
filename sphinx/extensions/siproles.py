@@ -30,3 +30,6 @@ def setup(app):
 
     app.add_description_unit('directive', 'directive',
             indextemplate='single: %s (directive)')
+
+    app.add_description_unit('sip-type', 'stype',
+            indextemplate='single: %s (SIP type)')
