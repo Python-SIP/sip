@@ -115,7 +115,6 @@ def mkdistdir(lfile):
     os.mkdir(Package)
 
     shutil.copy("NEWS",Package)
-    shutil.copy("TODO",Package)
     shutil.copy("ChangeLog",Package)
     shutil.copy("lib/README",Package)
     shutil.copy("lib/sipdistutils.py",Package)
