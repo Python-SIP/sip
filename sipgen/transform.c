@@ -1656,7 +1656,13 @@ static void resolveMappedTypeTypes(sipSpec *pt, mappedTypeDef *mt)
     signatureDef *sd = &mt->type.u.td->types;
 
     for (a = 0; a < sd->nrArgs; ++a)
-        getBaseType(pt, mt->iff->module, NULL, &sd->args[a]);
+    {
+        argDef *ad = &sd->args[a];
+
+        /* Leave templates as they are. */
+        if (ad->atype != template_type)
+            getBaseType(pt, mt->iff->module, NULL, ad);
+    }
 
     /* Make sure that the signature result won't cause problems. */
     sd->result.atype = no_type;
