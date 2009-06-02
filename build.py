@@ -90,17 +90,15 @@ def lcopydir(lfile,src,dst):
             lcopy(lfile,sf,df)
 
 
-def copydir(dir):
+def copydir(dir, dst_dir=None):
     """Copy a source directory to the package directory without any changes.
 
     dir is the name of the directory.
     """
-    ddir = os.path.join(Package, dir)
-    os.mkdir(ddir)
+    if not dst_dir:
+        dst_dir = os.path.join(Package, dir)
 
-    for f in os.listdir(dir):
-        if f != ".svn":
-            shutil.copy(os.path.join(dir, f), os.path.join(ddir, f))
+    shutil.copytree(dir, dst_dir, ignore=shutil.ignore_patterns('.svn'))
 
 
 def mkdistdir(lfile):
@@ -110,7 +108,7 @@ def mkdistdir(lfile):
     """
     print "Creating the distribution directory"
 
-    global Package
+    root_dir = os.getcwd()
 
     os.mkdir(Package)
 
@@ -134,7 +132,6 @@ def mkdistdir(lfile):
 
     lcopydir(lfile,"sipgen",Package + "/sipgen")
     os.system("srepo release <%s/sipgen/main.c >%s/sipgen/main.c.new" % (Package,Package))
-    old = os.getcwd()
     os.chdir(Package + "/sipgen")
     os.rename("main.c.new","main.c")
 
@@ -148,17 +145,34 @@ def mkdistdir(lfile):
     os.remove("lexer.c.tmp")
     os.system("bison -y -d -o parser.c parser.y")
 
-    os.chdir(old)
+    os.chdir(root_dir)
 
     lcopydir(lfile,"siplib",Package + "/siplib")
     os.system("srepo release <%s/siplib/sip.h >%s/siplib/sip.h.new" % (Package,Package))
     os.rename(Package + "/siplib/sip.h.new",Package + "/siplib/sip.h")
 
+
+def mkdocs():
     print "Installing the documentation"
-    doc = os.path.join(Package, "doc")
-    os.mkdir(doc)
-    os.system("srepo release <doc/sipref.txt >%s/sipref.txt" % doc)
-    os.system("rst2html %s/sipref.txt %s/sipref.html" % (doc, doc))
+
+    root_dir = os.getcwd()
+
+    doc_dir = os.path.join(os.path.abspath(Package), 'doc', 'html')
+
+    copydir("sphinx")
+    sphinx = os.path.join(Package, "sphinx")
+    os.system("srepo release <sphinx/conf.py >%s/conf.py" % sphinx)
+
+    os.chdir(sphinx)
+    os.system("make html")
+
+    os.chdir("build")
+    copydir("html", dst_dir=doc_dir)
+
+    os.chdir('..')
+    os.system("make clean")
+
+    os.chdir(root_dir)
 
 
 def tgzdist(root):
@@ -209,6 +223,8 @@ mkdistdir("lib/LICENSE")
 
 
 if PkgFormat:
+    mkdocs()
+
     p = os.popen("srepo query")
     vers = p.readline().strip()
     p.close()
