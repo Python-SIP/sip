@@ -1,10 +1,10 @@
-Using the SIP API when Embedding
-================================
+Using the C API when Embedding
+==============================
 
-The SIP API described in the previous section is intended to be called from
-handwritten code in SIP generated modules.  However it is also often necessary
-to call it from C or C++ applications that embed the Python interpreter and
-need to pass C or C++ instances between the application and the interpreter.
+The :ref:`C API <ref-c-api>` is intended to be called from handwritten code in
+SIP generated modules.  However it is also often necessary to call it from C or
+C++ applications that embed the Python interpreter and need to pass C or C++
+instances between the application and the interpreter.
 
 The API is exported by the SIP module as a ``sipAPIDef`` data structure
 containing a set of function pointers.  The data structure is defined in the
@@ -22,10 +22,10 @@ name to lower case and preceding it with an underscore.  For example:
     ``sipWrapperCheck`` becomes ``api_wrapper_check``
 
 Note that the type objects that SIP generates for a wrapped module (see
-`Generated Type Structures`_, `Generated Named Enum Type Objects`_ and
-`Generated Exception Objects`_) cannot be refered to directly and must be
-obtained using the `sipFindType()`_ function.  Of course, the corresponding
-modules must already have been imported into the interpreter.
+:ref:`ref-type-structures`, :ref:`ref-enum-type-objects` and
+:ref:`ref-exception-objects`) cannot be refered to directly and must be
+obtained using the :cfunc:`sipFindType()` function.  Of course, the
+corresponding modules must already have been imported into the interpreter.
 
 The following code fragment shows how to get a pointer to the ``sipAPIDef``
 data structure::

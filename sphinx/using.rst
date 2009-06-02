@@ -518,6 +518,8 @@ default and use :class:`sip.wrapper` as the super-type so that the parent/child
 relationships of ``QObject`` instances are properly maintained.
 
 
+.. _ref-lazy-type-attributes:
+
 Lazy Type Attributes
 --------------------
 

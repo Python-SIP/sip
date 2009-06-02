@@ -1,7 +1,7 @@
 .. _ref-python-api:
 
-Using the SIP Module in Applications
-====================================
+Python API for Applications
+===========================
 
 The main purpose of the SIP module is to provide functionality common to all
 SIP generated bindings.  It is loaded automatically and most of the time you
