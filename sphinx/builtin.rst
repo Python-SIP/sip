@@ -15,9 +15,10 @@ be able to import it.)
 
 To build a module you have created for your own library you must modify your
 own configuration script to pass a non-zero value as the ``static`` argument
-of the ``__init__()`` method of the ``ModuleMakefile`` class (or any derived
-class you have created).  Normally you would make this configurable using a
-command line option in the same way that SIP's ``configure.py`` handles it.
+of the ``__init__()`` method of the :class:`sipconfig.ModuleMakefile` class (or
+any derived class you have created).  Normally you would make this configurable
+using a command line option in the same way that SIP's ``configure.py`` handles
+it.
 
 The next stage is to create a custom stub and a Makefile.  The SIP distribution
 contains a directory called ``custom`` which contains example stubs and a

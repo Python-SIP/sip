@@ -3,7 +3,7 @@
 Building Your Extension with distutils
 ======================================
 
-To build the example in `A Simple C++ Example`_ using distutils, it is
+To build the example in :ref:`ref-simple-c++-example` using distutils, it is
 sufficient to create a standard ``setup.py``, listing ``word.sip`` among the
 files to build, and hook-up SIP into distutils::
 

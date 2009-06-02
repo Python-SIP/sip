@@ -10,6 +10,8 @@ the form of a *directive* or an *annotation*) and code so that the bindings
 generated can be finely tuned.
 
 
+.. _ref-simple-c++-example:
+
 A Simple C++ Example
 --------------------
 
