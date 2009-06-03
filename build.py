@@ -98,7 +98,7 @@ def copydir(dir, dst_dir=None):
     if not dst_dir:
         dst_dir = os.path.join(Package, dir)
 
-    shutil.copytree(dir, dst_dir, ignore=shutil.ignore_patterns('.svn'))
+    shutil.copytree(dir, dst_dir, ignore=lambda src, names: ['.svn'])
 
 
 def mkdistdir(lfile):
@@ -173,6 +173,8 @@ def mkdocs():
     os.system("make clean")
 
     os.chdir(root_dir)
+
+    os.remove(os.path.join(doc_dir, '.buildinfo'))
 
 
 def tgzdist(root):

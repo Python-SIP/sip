@@ -111,7 +111,13 @@ static PyObject *sipMethodDescr_repr(PyObject *self)
 {
     sipMethodDescr *md = (sipMethodDescr *)self;
 
-    return PyString_FromFormat("<built-in method %s>", md->pmd->ml_name);
+    return
+#if PY_MAJOR_VERSION >= 3
+            PyUnicode_FromFormat
+#else
+            PyString_FromFormat
+#endif
+                    ("<built-in method %s>", md->pmd->ml_name);
 }
 
 
