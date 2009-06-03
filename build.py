@@ -90,15 +90,30 @@ def lcopydir(lfile,src,dst):
             lcopy(lfile,sf,df)
 
 
-def copydir(dir, dst_dir=None):
+def copydir(src, dst=None):
     """Copy a source directory to the package directory without any changes.
 
-    dir is the name of the directory.
+    src is the name of the directory.
     """
-    if not dst_dir:
-        dst_dir = os.path.join(Package, dir)
+    if not dst:
+        dst = os.path.join(Package, src)
 
-    shutil.copytree(dir, dst_dir, ignore=lambda src, names: ['.svn'])
+    slen = len(src.split(os.path.sep))
+
+    for sroot, sdirs, sfiles in os.walk(src):
+        if ".svn" in sdirs:
+            sdirs.remove(".svn")
+
+        droot = dst
+        for p in sroot.split(os.path.sep)[slen:]:
+            droot = os.path.join(droot, p)
+
+        os.mkdir(droot)
+
+        for sf in sfiles:
+            sfname = os.path.join(sroot, sf)
+            dfname = os.path.join(droot, sf)
+            shutil.copy(sfname, dfname)
 
 
 def mkdistdir(lfile):
@@ -157,24 +172,23 @@ def mkdocs():
 
     root_dir = os.getcwd()
 
-    doc_dir = os.path.join(os.path.abspath(Package), 'doc', 'html')
-
     copydir("sphinx")
     sphinx = os.path.join(Package, "sphinx")
     os.system("srepo release <sphinx/conf.py >%s/conf.py" % sphinx)
 
     os.chdir(sphinx)
     os.system("make html")
-
-    os.chdir("build")
-    copydir("html", dst_dir=doc_dir)
-
-    os.chdir('..')
-    os.system("make clean")
-
     os.chdir(root_dir)
 
-    os.remove(os.path.join(doc_dir, '.buildinfo'))
+    doc_dir = os.path.join(Package, 'doc')
+    os.mkdir(doc_dir)
+    html_dir = os.path.join(doc_dir, 'html')
+    copydir(os.path.join(sphinx, 'build', 'html'), html_dir)
+    os.remove(os.path.join(html_dir, '.buildinfo'))
+
+    os.chdir(sphinx)
+    os.system("make clean")
+    os.chdir(root_dir)
 
 
 def tgzdist(root):
