@@ -118,8 +118,7 @@ static int sip_api_register_py_type(PyTypeObject *supertype);
 static PyObject *sip_api_convert_from_enum(int eval, const sipTypeDef *td);
 static const sipTypeDef *sip_api_type_from_py_type_object(PyTypeObject *py_type);
 static const sipTypeDef *sip_api_type_scope(const sipTypeDef *td);
-static const char *sip_api_resolve_typedef(const char *name,
-        const sipExportedModuleDef *em);
+static const char *sip_api_resolve_typedef(const char *name);
 static int sip_api_register_attribute_getter(const sipTypeDef *td,
         sipAttrGetterFunc getter);
 static void sip_api_clear_any_slot_reference(sipSlot *slot);
@@ -8490,32 +8489,29 @@ static void forgetObject(sipSimpleWrapper *sw)
  * If the given name is that of a typedef then the corresponding type is
  * returned.
  */
-static const char *sip_api_resolve_typedef(const char *name,
-        const sipExportedModuleDef *em)
+static const char *sip_api_resolve_typedef(const char *name)
 {
-    sipTypedefDef *tdd;
-    sipImportedModuleDef *im;
-
-    /* Check this module. */
-    if (em->em_nrtypedefs > 0 && (tdd = (sipTypedefDef *)bsearch(name,
-            em->em_typedefs, em->em_nrtypedefs, sizeof (sipTypedefDef),
-            compareTypedefName)) != NULL)
-        return tdd->tdd_type_name;
+    const sipExportedModuleDef *em;
 
     /*
-     * Check parent modules.  We don't check every module because independent
-     * modules could define the same name with different types.
+     * Note that if the same name is defined as more than one type (which is
+     * possible if more than one completely independent modules are being
+     * used) then we might pick the wrong one.
      */
-    if ((im = em->em_imports) != NULL)
-        do
+    for (em = moduleList; em != NULL; em = em->em_next)
+    {
+        if (em->em_nrtypedefs > 0)
         {
-            const char *type_name = sip_api_resolve_typedef(name,
-                    im->im_module);
+            sipTypedefDef *tdd;
 
-            if (type_name != NULL)
-                return type_name;
+            tdd = (sipTypedefDef *)bsearch(name, em->em_typedefs,
+                    em->em_nrtypedefs, sizeof (sipTypedefDef),
+                    compareTypedefName);
+
+            if (tdd != NULL)
+                return tdd->tdd_type_name;
         }
-        while ((++im)->im_name != NULL);
+    }
 
     return NULL;
 }

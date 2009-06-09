@@ -1151,8 +1151,7 @@ typedef struct _sipAPIDef {
     int (*api_register_py_type)(PyTypeObject *type);
     const sipTypeDef *(*api_type_from_py_type_object)(PyTypeObject *py_type);
     const sipTypeDef *(*api_type_scope)(const sipTypeDef *td);
-    const char *(*api_resolve_typedef)(const char *name,
-            const sipExportedModuleDef *em);
+    const char *(*api_resolve_typedef)(const char *name);
     int (*api_register_attribute_getter)(const sipTypeDef *td,
             sipAttrGetterFunc getter);
 
