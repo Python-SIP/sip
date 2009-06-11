@@ -7783,7 +7783,7 @@ static void generateNamedBaseType(classDef *context, argDef *ad, char *name,
     int nr_derefs = ad->nrderefs;
     int is_reference = isReference(ad);
 
-    if (use_typename && td != NULL && !noTypeName(td))
+    if (use_typename && td != NULL && !noTypeName(td) && !isArraySize(ad))
     {
         if (isConstArg(ad) && !isConstArg(&td->type))
             prcode(fp, "const ");
