@@ -121,6 +121,7 @@ static const sipTypeDef *sip_api_type_scope(const sipTypeDef *td);
 static const char *sip_api_resolve_typedef(const char *name);
 static int sip_api_register_attribute_getter(const sipTypeDef *td,
         sipAttrGetterFunc getter);
+static int sip_api_is_api_enabled(const char *name, int from, int to);
 static void sip_api_clear_any_slot_reference(sipSlot *slot);
 static int sip_api_visit_slot(sipSlot *slot, visitproc visit, void *arg);
 static void sip_api_keep_reference(PyObject *self, int key, PyObject *obj);
@@ -140,7 +141,6 @@ static const sipAPIDef sip_api = {
     &sipWrapperType_Type,
     &sipVoidPtr_Type,
 
-    sip_api_init_module,
     sip_api_bad_catcher_result,
     sip_api_bad_length_for_slice,
     sip_api_build_result,
@@ -179,6 +179,7 @@ static const sipAPIDef sip_api = {
     sip_api_type_scope,
     sip_api_resolve_typedef,
     sip_api_register_attribute_getter,
+    sip_api_is_api_enabled,
     /*
      * The following are deprecated parts of the public API.
      */
@@ -201,6 +202,7 @@ static const sipAPIDef sip_api = {
     /*
      * The following are not part of the public API.
      */
+    sip_api_init_module,
     sip_api_parse_args,
     sip_api_parse_pair,
     sip_api_common_dtor,
@@ -4771,6 +4773,15 @@ static int sip_api_register_attribute_getter(const sipTypeDef *td,
     sipAttrGetters = ag;
 
     return 0;
+}
+
+/*
+ * See if a range of versions of a particular API is enabled.
+ */
+static int sip_api_is_api_enabled(const char *name, int from, int to)
+{
+    /* Not yet implemented. */
+    return FALSE;
 }
 
 

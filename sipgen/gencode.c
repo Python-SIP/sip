@@ -604,6 +604,9 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipTypeScope                sipAPI_%s->api_type_scope\n"
 "#define sipResolveTypedef           sipAPI_%s->api_resolve_typedef\n"
 "#define sipRegisterAttributeGetter  sipAPI_%s->api_register_attribute_getter\n"
+"#define sipIsAPIEnabled             sipAPI_%s->api_is_api_enabled\n"
+"#define sipExportModule             sipAPI_%s->api_export_module\n"
+"#define sipInitModule               sipAPI_%s->api_init_module\n"
 "\n"
 "/* These are deprecated. */\n"
 "#define sipMapStringToClass         sipAPI_%s->api_map_string_to_class\n"
@@ -624,6 +627,9 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipConvertFromMappedType    sipConvertFromType\n"
 "#define sipConvertFromNamedEnum(v, pt)  sipConvertFromEnum((v), ((sipEnumTypeObject *)(pt))->type)\n"
 "#define sipConvertFromNewInstance(p, wt, t) sipConvertFromNewType((p), (wt)->type, (t))\n"
+        ,mname
+        ,mname
+        ,mname
         ,mname
         ,mname
         ,mname
@@ -1416,7 +1422,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         ed->enum_idx = enum_idx++;
 
         prcode(fp,
-"    {{0, 0, 0, SIP_TYPE_ENUM, %n, {0}}, %n, ", ed->cname, ed->pyname);
+"    {{-1, 0, 0, SIP_TYPE_ENUM, %n, {0}}, %n, ", ed->cname, ed->pyname);
 
         if (ed->ecd == NULL)
             prcode(fp, "-1");
@@ -1675,6 +1681,8 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "    %s,\n"
 "    %s,\n"
 "    %s,\n"
+"    0,\n"
+"    0,\n"
 "    0\n"
 "};\n"
         , mname
@@ -1820,13 +1828,12 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 
     prcode(fp,
 "    /* Export the module and publish it's API. */\n"
-"    if (sipAPI_%s->api_export_module(&sipModuleAPI_%s,SIP_API_MAJOR_NR,SIP_API_MINOR_NR,0) < 0)\n"
+"    if (sipExportModule(&sipModuleAPI_%s,SIP_API_MAJOR_NR,SIP_API_MINOR_NR,0) < 0)\n"
 "    {\n"
 "        Py_DECREF(sip_sipmod);\n"
 "        Py_DECREF(sipModule);\n"
 "        SIP_MODULE_RETURN(0);\n"
 "    }\n"
-        , mname
         , mname);
 
     if (pluginPyQt4(pt))
@@ -1845,13 +1852,12 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 
     prcode(fp,
 "    /* Initialise the module now all its dependencies have been set up. */\n"
-"    if (sipAPI_%s->api_init_module(&sipModuleAPI_%s,sipModuleDict) < 0)\n"
+"    if (sipInitModule(&sipModuleAPI_%s,sipModuleDict) < 0)\n"
 "    {\n"
 "        Py_DECREF(sip_sipmod);\n"
 "        Py_DECREF(sipModule);\n"
 "        SIP_MODULE_RETURN(0);\n"
 "    }\n"
-        , mname
         , mname);
 
     mod_nr = 0;
@@ -3313,7 +3319,7 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 "%sMappedTypeDef %sMappedTypeDef_%s_%T = {\n"
 "%s"
 "    {\n"
-"        0,\n"
+"        -1,\n"
 "        0,\n"
 "        0,\n"
 "        SIP_TYPE_MAPPED,\n"
@@ -8418,7 +8424,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 "%sClassTypeDef %sType_%s_%C = {\n"
 "%s"
 "    {\n"
-"        0,\n"
+"        -1,\n"
 "        0,\n"
 "        0,\n"
 "        "
