@@ -480,10 +480,14 @@ static void registerMetaType(classDef *cd)
     ctorDef *ct;
 
     /*
-     * We register types with Qt if the class is not abstract, has a public
-     * default ctor, a public copy ctor and a public dtor.
+     * We register types with Qt if the class is not abstract, doesn't have a
+     * private assignment operator, has a public default ctor, a public copy
+     * ctor and a public dtor.
      */
     if (isAbstractClass(cd))
+        return;
+
+    if (cannotAssign(cd))
         return;
 
     if (!isPublicDtor(cd))
@@ -1105,6 +1109,13 @@ static void setHierarchy(sipSpec *pt, classDef *base, classDef *cd,
                  */
                 if (isQObjectSubClass(mro->cd))
                     setIsQObjectSubClass(cd);
+
+                /*
+                 * If the super-class can't be assigned to then this one
+                 * cannot either.
+                 */
+                if (cannotAssign(mro->cd))
+                    setCannotAssign(cd);
 
                 /*
                  * If the super-class has a shadow then this one should have

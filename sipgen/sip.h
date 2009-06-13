@@ -85,6 +85,7 @@
 #define CLASS_IS_TEMPLATE   0x04000000  /* It is a template class. */
 #define CLASS_IS_DEPRECATED 0x08000000  /* It is deprecated. */
 #define CLASS_CANNOT_COPY   0x10000000  /* It cannot be copied. */
+#define CLASS_CANNOT_ASSIGN 0x20000000  /* It cannot be assigned. */
 
 #define hasSigSlots(cd)     ((cd)->classflags & CLASS_HAS_SIGSLOTS)
 #define setHasSigSlots(cd)  ((cd)->classflags |= CLASS_HAS_SIGSLOTS)
@@ -131,6 +132,8 @@
 #define setIsDeprecatedClass(cd)    ((cd)->classflags |= CLASS_IS_DEPRECATED)
 #define cannotCopy(cd)      ((cd)->classflags & CLASS_CANNOT_COPY)
 #define setCannotCopy(cd)   ((cd)->classflags |= CLASS_CANNOT_COPY)
+#define cannotAssign(cd)    ((cd)->classflags & CLASS_CANNOT_ASSIGN)
+#define setCannotAssign(cd) ((cd)->classflags |= CLASS_CANNOT_ASSIGN)
 
 #define isPublicDtor(cd)    ((cd)->classflags & SECT_IS_PUBLIC)
 #define setIsPublicDtor(cd) ((cd)->classflags |= SECT_IS_PUBLIC)
