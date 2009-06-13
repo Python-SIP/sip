@@ -1893,7 +1893,16 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 
         prcode(fp,
 "\n"
-"    if ((exceptionsTable[%d] = PyErr_NewException((char *)\"%s.%s\",", xd->exceptionnr, xd->iff->module->name, xd->pyname);
+"    if ((exceptionsTable[%d] = PyErr_NewException(\n"
+"#if PY_MAJOR_VERSION >= 3\n"
+"            \"%s.%s\",\n"
+"#else\n"
+"            const_cast<char *>(\"%s.%s\"),\n"
+"#endif\n"
+"            "
+            , xd->exceptionnr
+            , xd->iff->module->name, xd->pyname
+            , xd->iff->module->name, xd->pyname);
 
         if (xd->bibase != NULL)
             prcode(fp, "PyExc_%s", xd->bibase);
@@ -1903,12 +1912,11 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
             prcode(fp, "sipException_%C", xd->base->iff->fqcname);
 
         prcode(fp, ",NULL)) == NULL || PyDict_SetItemString(sipModuleDict,\"%s\",exceptionsTable[%d]) < 0)\n"
-"        return;\n"
-"        {\n"
-"            Py_DECREF(sip_sipmod);\n"
-"            Py_DECREF(sipModule);\n"
-"            SIP_MODULE_RETURN(0);\n"
-"        }\n"
+"    {\n"
+"        Py_DECREF(sip_sipmod);\n"
+"        Py_DECREF(sipModule);\n"
+"        SIP_MODULE_RETURN(0);\n"
+"    }\n"
             , xd->pyname, xd->exceptionnr);
     }
 
