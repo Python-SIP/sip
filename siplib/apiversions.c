@@ -9,6 +9,7 @@
 
 #include <string.h>
 
+#include "sip.h"
 #include "sipint.h"
 
 
@@ -49,7 +50,7 @@ static apiVersionDef *find_api(const char *api);
 PyObject *sipGetAPI(PyObject *self, PyObject *args)
 {
     const char *api;
-    const apiVersionDef *avd
+    const apiVersionDef *avd;
 
     if (!PyArg_ParseTuple(args, "s:getapi", &api))
         return NULL;
@@ -75,7 +76,7 @@ PyObject *sipSetAPI(PyObject *self, PyObject *args)
 {
     const char *api;
     int version_nr;
-    const apiVersionDef *avd
+    const apiVersionDef *avd;
 
     if (!PyArg_ParseTuple(args, "si:setapi", &api, &version_nr))
         return NULL;
