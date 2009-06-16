@@ -456,13 +456,17 @@ static int objectify(const char *s, PyObject **objp);
  * The Python module initialisation function.
  */
 #if PY_MAJOR_VERSION >= 3
-#define SIP_MODULE_ENTRY    PyInit_sip
-#define SIP_MODULE_TYPE     PyObject *
-#define SIP_FATAL(s)        return NULL
+#define SIP_MODULE_ENTRY        PyInit_sip
+#define SIP_MODULE_TYPE         PyObject *
+#define SIP_MODULE_DISCARD(m)   Py_DECREF(m)
+#define SIP_FATAL(s)            return NULL
+#define SIP_MODULE_RETURN(m)    return (m)
 #else
-#define SIP_MODULE_ENTRY    initsip
-#define SIP_MODULE_TYPE     void
-#define SIP_FATAL(s)        Py_FatalError(s)
+#define SIP_MODULE_ENTRY        initsip
+#define SIP_MODULE_TYPE         void
+#define SIP_MODULE_DISCARD(m)
+#define SIP_FATAL(s)            Py_FatalError(s)
+#define SIP_MODULE_RETURN(m)
 #endif
 
 #if defined(SIP_STATIC_MODULE)
@@ -475,7 +479,9 @@ PyMODINIT_FUNC SIP_MODULE_ENTRY(void)
         {"cast", cast, METH_VARARGS, NULL},
         {"delete", callDtor, METH_VARARGS, NULL},
         {"dump", dumpWrapper, METH_VARARGS, NULL},
+        {"getapi", sipGetAPI, METH_VARARGS, NULL},
         {"isdeleted", isDeleted, METH_VARARGS, NULL},
+        {"setapi", sipSetAPI, METH_VARARGS, NULL},
         {"setdeleted", setDeleted, METH_VARARGS, NULL},
         {"settracemask", setTraceMask, METH_VARARGS, NULL},
         {"transferback", transferBack, METH_VARARGS, NULL},
@@ -560,14 +566,14 @@ PyMODINIT_FUNC SIP_MODULE_ENTRY(void)
 
     if (type_unpickler == NULL || enum_unpickler == NULL)
     {
-        Py_DECREF(mod);
+        SIP_MODULE_DISCARD(mod);
         SIP_FATAL("sip: Failed to get pickle helpers");
     }
 
     /* Publish the SIP API. */
     if ((obj = PyCObject_FromVoidPtr((void *)&sip_api, NULL)) == NULL)
     {
-        Py_DECREF(mod);
+        SIP_MODULE_DISCARD(mod);
         SIP_FATAL("sip: Failed to create _C_API object");
     }
 
@@ -576,7 +582,7 @@ PyMODINIT_FUNC SIP_MODULE_ENTRY(void)
 
     if (rc < 0)
     {
-        Py_DECREF(mod);
+        SIP_MODULE_DISCARD(mod);
         SIP_FATAL("sip: Failed to add _C_API object to module dictionary");
     }
 
@@ -630,9 +636,7 @@ PyMODINIT_FUNC SIP_MODULE_ENTRY(void)
         sipInterpreter = PyThreadState_Get()->interp;
     }
 
-#if PY_MAJOR_VERSION >= 3
-    return mod;
-#endif
+    SIP_MODULE_RETURN(mod);
 }
 
 
@@ -4959,7 +4963,8 @@ static void sip_api_bad_length_for_slice(SIP_SSIZE_T seqlen,
  */
 static void sip_api_bad_class(const char *classname)
 {
-    PyErr_Format(PyExc_TypeError,"cannot convert Python object to an instance of %s",classname);
+    PyErr_Format(PyExc_TypeError,
+            "cannot convert Python object to an instance of %s", classname);
 }
 
 

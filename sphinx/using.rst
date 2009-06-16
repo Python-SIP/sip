@@ -594,3 +594,11 @@ If SIP is given the :option:`-g <sip -g>` command line option then the default
 behaviour is changed and SIP releases the GIL every time is makes calls to the
 C/C++ library being wrapped.  The :fanno:`HoldGIL` annotation can be used to
 override this behaviour when required.
+
+
+.. _ref-incompat-apis:
+
+Managing Incompatible APIs
+--------------------------
+
+TODO: Provide an overview when all the detail has been implemented.

@@ -43,6 +43,21 @@ can be used by applications.
         the Python object.
 
 
+.. function:: getapi(name) -> version
+
+    .. versionadded:: 4.9
+
+    This returns the version number that has been set for an API.  The version
+    number is either set explicitly by a call to :func:`sip.setapi` or
+    implicitly by importing the module that defines it.
+
+    :param name:
+        the name of the API.
+    :return:
+        The version number that has been set for the API.  An exception will
+        be raised if the API is unknown.
+
+
 .. function:: isdeleted(obj) -> bool
 
     This checks if the C++ instance or C structure has been deleted and
@@ -52,6 +67,21 @@ can be used by applications.
         the Python object.
     :return:
         ``True`` if the C/C++ instance has been deleted.
+
+
+.. function:: setapi(name, version)
+
+    .. versionadded:: 4.9
+
+    This sets the version number of an API.  An exception is raised if a
+    different version number has already been set, either explicitly by a
+    previous call, or implicitly by importing the module that defines it.
+
+    :param name:
+        the name of the API.
+    :param version:
+        The version number to set for the API.  Version numbers must be
+        greater than or equal to 1.
 
 
 .. function:: setdeleted(obj)

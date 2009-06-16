@@ -3,5 +3,5 @@
 # @BS_LICENSE@
 
 target = sip
-sources = siplib.c descriptors.c qtlib.c threads.c objmap.c bool.cpp
+sources = siplib.c apiversions.c descriptors.c qtlib.c threads.c objmap.c bool.cpp
 headers = sip.h sipint.h

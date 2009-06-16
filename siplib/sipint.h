@@ -54,6 +54,13 @@ extern PyTypeObject sipVariableDescr_Type;
 PyObject *sipVariableDescr_New(sipVariableDef *vd, const sipClassTypeDef *ctd);
 
 
+/*
+ * Support for setting API versions.
+ */
+PyObject *sipGetAPI(PyObject *self, PyObject *args);
+PyObject *sipSetAPI(PyObject *self, PyObject *args);
+
+
 extern sipQtAPI *sipQtSupport;  /* The Qt support API. */
 extern sipWrapperType sipSimpleWrapper_Type;    /* The simple wrapper type. */
 extern sipTypeDef *sipQObjectType;  /* The QObject type. */
