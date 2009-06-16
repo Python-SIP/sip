@@ -1807,6 +1807,24 @@ function:   cpptype TK_NAME '(' arglist ')' optconst optexceptions optabstract o
             currentIsStatic = FALSE;
             currentOverIsVirt = FALSE;
         }
+    |   cpptype TK_OPERATOR '=' '(' cpptype ')' ';' {
+            /*
+             * It looks like an assignment operator (though we don't bother to
+             * check the types) so make sure it is private.
+             */
+            if (notSkipping())
+            {
+                classDef *cd = currentScope();
+
+                if (cd == NULL || !(sectionFlags & SECT_IS_PRIVATE))
+                    yyerror("Assignment operators may only be defined as private");
+
+                setCannotAssign(cd);
+            }
+
+            currentIsStatic = FALSE;
+            currentOverIsVirt = FALSE;
+        }
     |   cpptype TK_OPERATOR operatorname '(' arglist ')' optconst optexceptions optabstract optflags optsig ';' methodcode virtualcatchercode {
             if (notSkipping())
             {

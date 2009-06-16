@@ -1,3 +1,7 @@
+v4.8.1 16th June 2009
+  - Added support for defining a private assignment operator to suppress the
+    possible generation of an assignment helper.
+
 v4.8 5th June 2009
   - Added support for Python v3.
   - Added the %BIGetBufferCode and %BIReleaseBufferCode to support the buffer

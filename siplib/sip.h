@@ -56,6 +56,12 @@ extern "C" {
  *
  * History:
  *
+ * 5.0  Added sip_api_is_api_enabled().
+ *      Renamed the td_version_nr member of sipTypeDef to be int and where -1
+ *      indicates it is not versioned.
+ *      Added the em_versions member to sipExportedModuleDef.
+ *      Added the em_versioned_functions member to sipExportedModuleDef.
+ *
  * 4.0  Much refactoring.
  *
  * 3.8  Added sip_api_register_qt_metatype() and sip_api_deprecated().
@@ -128,7 +134,7 @@ extern "C" {
  *
  * 0.0  Original version.
  */
-#define SIP_API_MAJOR_NR    4
+#define SIP_API_MAJOR_NR    5
 #define SIP_API_MINOR_NR    0
 
 
@@ -565,8 +571,8 @@ typedef struct _sipVariableDef {
  * namespace, a mapped type or a named enum.
  */
 typedef struct _sipTypeDef {
-    /* The version number, 0 if the type isn't versioned. */
-    unsigned td_version_nr;
+    /* The version number, -1 if the type isn't versioned. */
+    int td_version;
 
     /* The next version of this type. */
     struct _sipTypeDef *td_next_version;
@@ -855,6 +861,15 @@ typedef struct _sipExportedModuleDef {
 
     /* The list of delayed dtors. */
     sipDelayedDtor *em_ddlist;
+
+    /*
+     * The array of API version definitions.  Each definition takes up 3
+     * elements.
+     */
+    int *em_versions;
+
+    /* The optional table of versioned functions. */
+    void *em_versioned_functions;
 } sipExportedModuleDef;
 
 
@@ -1102,7 +1117,6 @@ typedef struct _sipAPIDef {
     PyTypeObject *api_wrappertype_type;
     PyTypeObject *api_voidptr_type;
 
-    int (*api_init_module)(sipExportedModuleDef *client, PyObject *mod_dict);
     void (*api_bad_catcher_result)(PyObject *method);
     void (*api_bad_length_for_slice)(SIP_SSIZE_T seqlen, SIP_SSIZE_T slicelen);
     PyObject *(*api_build_result)(int *isErr, const char *fmt, ...);
@@ -1151,10 +1165,10 @@ typedef struct _sipAPIDef {
     int (*api_register_py_type)(PyTypeObject *type);
     const sipTypeDef *(*api_type_from_py_type_object)(PyTypeObject *py_type);
     const sipTypeDef *(*api_type_scope)(const sipTypeDef *td);
-    const char *(*api_resolve_typedef)(const char *name,
-            const sipExportedModuleDef *em);
+    const char *(*api_resolve_typedef)(const char *name);
     int (*api_register_attribute_getter)(const sipTypeDef *td,
             sipAttrGetterFunc getter);
+    int (*api_is_api_enabled)(const char *name, int from, int to);
 
     /*
      * The following are deprecated parts of the public API.
@@ -1184,6 +1198,7 @@ typedef struct _sipAPIDef {
     /*
      * The following are not part of the public API.
      */
+    int (*api_init_module)(sipExportedModuleDef *client, PyObject *mod_dict);
     int (*api_parse_args)(int *argsParsedp, PyObject *sipArgs,
             const char *fmt, ...);
     int (*api_parse_pair)(int *argsParsedp, PyObject *arg0, PyObject *arg1,
