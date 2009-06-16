@@ -121,7 +121,6 @@ static const sipTypeDef *sip_api_type_scope(const sipTypeDef *td);
 static const char *sip_api_resolve_typedef(const char *name);
 static int sip_api_register_attribute_getter(const sipTypeDef *td,
         sipAttrGetterFunc getter);
-static int sip_api_is_api_enabled(const char *name, int from, int to);
 static void sip_api_clear_any_slot_reference(sipSlot *slot);
 static int sip_api_visit_slot(sipSlot *slot, visitproc visit, void *arg);
 static void sip_api_keep_reference(PyObject *self, int key, PyObject *obj);
@@ -4777,15 +4776,6 @@ static int sip_api_register_attribute_getter(const sipTypeDef *td,
     sipAttrGetters = ag;
 
     return 0;
-}
-
-/*
- * See if a range of versions of a particular API is enabled.
- */
-static int sip_api_is_api_enabled(const char *name, int from, int to)
-{
-    /* Not yet implemented. */
-    return FALSE;
 }
 
 

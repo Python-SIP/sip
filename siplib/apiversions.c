@@ -45,6 +45,26 @@ static apiVersionDef *find_api(const char *api);
 
 
 /*
+ * See if a range of versions of a particular API is enabled.
+ */
+int sip_api_is_api_enabled(const char *name, int from, int to)
+{
+    const apiVersionDef *avd;
+
+    if ((avd = find_api(name)) == NULL)
+        return FALSE;
+
+    if (from > 0 && avd->version_nr < from)
+        return FALSE;
+
+    if (to > 0 && avd->version_nr >= to)
+        return FALSE;
+
+    return TRUE;
+}
+
+
+/*
  * Get the version number for an API.
  */
 PyObject *sipGetAPI(PyObject *self, PyObject *args)

@@ -957,6 +957,27 @@ specification files.
         This is deprecated from SIP v4.8.
 
 
+.. cfunction:: int sipIsAPIEnabled(const char *name, int from, int to)
+
+    .. versionadded:: 4.9
+
+    This checks to see if the current version number of an API falls within a
+    given range.  See :ref:`ref-incompat-apis`.
+
+    :param name:
+        the name of the API.
+    :param from:
+        the lower bound of the range.  For the API to be enabled its version
+        number must be greater than or equal to *from*.  If *from* is 0 then
+        this check isn't made.
+    :param to:
+        the upper bound of the range.  For the API to be enabled its version
+        number must be less than *to*.  If *to* is 0 then this check isn't
+        made.
+    :return:
+        a non-zero value if the API is enabled.
+
+
 .. cfunction:: unsigned long sipLong_AsUnsignedLong(PyObject *obj)
 
     This function is a thin wrapper around :cfunc:`PyLong_AsUnsignedLong()`
