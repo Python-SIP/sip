@@ -864,7 +864,8 @@ typedef struct _sipExportedModuleDef {
 
     /*
      * The array of API version definitions.  Each definition takes up 3
-     * elements.
+     * elements.  The first 3 elements are reserved for defining an optional
+     * API name and default version number.
      */
     int *em_versions;
 

@@ -663,6 +663,8 @@ typedef struct _moduleDef {
     nameDef *fullname;                  /* The full module name. */
     const char *name;                   /* The module base name. */
     int version;                        /* The module version. */
+    nameDef *api_name;                  /* The optional API name. */
+    int api_version;                    /* The API version number. */
     int modflags;                       /* The module flags. */
     int qobjclass;                      /* QObject class, -1 if none. */
     struct _memberDef *othfuncs;        /* List of other functions. */

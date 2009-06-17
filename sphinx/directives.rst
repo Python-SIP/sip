@@ -42,6 +42,25 @@ For example::
     %End
 
 
+.. directive:: %API
+
+.. versionadded:: 4.9
+
+.. parsed-literal::
+
+    %API *name* *version*
+
+This directive is used to define an API and set its default version number.  A
+version number must be greater than or equal to 1.  It can only be specified
+once in a module.
+
+See :ref:`ref-incompat-apis` for an overview of the support for APIs.
+
+For example::
+
+    %API PyQt4 1
+
+
 .. directive:: %BIGetBufferCode
 
 .. parsed-literal::
@@ -1034,11 +1053,11 @@ where
 
     *expression* ::= [*ored-qualifiers* | *range*]
 
-    *ored-qualifiers* ::= [*qualifier* | *qualifier* ``||`` *ored-qualifiers*]
+    *ored-qualifiers* ::= [*qualifier* | *qualifier* **||** *ored-qualifiers*]
 
-    *qualifier* ::= [``!``] [*feature* | *platform*]
+    *qualifier* ::= [**!**] [*feature* | *platform*]
 
-    *range* ::= [*version*] ``-`` [*version*]
+    *range* ::= [*version*] **-** [*version*]
 
 This directive is used in conjunction with features (see
 :directive:`%Feature`), platforms (see :directive:`%Platforms`) and versions
@@ -1080,6 +1099,7 @@ For example::
 Note that this directive is not implemented as a preprocessor.  Only the
 following parts of a specification are affected by it:
 
+    - :directive:`%API`
     - ``class``
     - :directive:`%ConvertFromTypeCode`
     - :directive:`%ConvertToSubClassCode`

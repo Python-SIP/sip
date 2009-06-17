@@ -1105,7 +1105,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
     int nrSccs = 0, files_in_part, max_per_part, this_part, mod_nr, enum_idx;
     int is_inst_class, is_inst_voidp, is_inst_char, is_inst_string;
     int is_inst_int, is_inst_long, is_inst_ulong, is_inst_longlong;
-    int is_inst_ulonglong, is_inst_double, nr_enummembers;
+    int is_inst_ulonglong, is_inst_double, nr_enummembers, is_api_versions;
     int hasexternal = FALSE, slot_extenders = FALSE, ctor_extenders = FALSE;
     FILE *fp;
     moduleListDef *mld;
@@ -1623,11 +1623,25 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 
     /* Generate any exceptions table. */
     if (mod->nrexceptions > 0)
-           prcode(fp,
+        prcode(fp,
 "\n"
 "\n"
 "static PyObject *exceptionsTable[%d];\n"
             , mod->nrexceptions);
+
+    /* Generate any API versions table. */
+    if (mod->api_name != NULL)
+    {
+        is_api_versions = TRUE;
+
+        prcode(fp,
+"\n"
+"\n"
+"static int apiVersions[] = {%n, %d, -1};\n"
+            , mod->api_name, mod->api_version);
+    }
+    else
+        is_api_versions = FALSE;
 
     /* Generate any Qt support API. */
     if (mod->qobjclass >= 0)
@@ -1681,9 +1695,9 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "    %s,\n"
 "    %s,\n"
 "    %s,\n"
-"    0,\n"
-"    0,\n"
-"    0\n"
+"    NULL,\n"
+"    %s,\n"
+"    NULL\n"
 "};\n"
         , mname
         , mod->fullname
@@ -1714,7 +1728,8 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         , mod->nrexceptions > 0 ? "exceptionsTable" : "NULL"
         , slot_extenders ? "slotExtenders" : "NULL"
         , ctor_extenders ? "initExtenders" : "NULL"
-        , hasDelayedDtors(mod) ? "sipDelayedDtors" : "NULL");
+        , hasDelayedDtors(mod) ? "sipDelayedDtors" : "NULL"
+        , is_api_versions ? "apiVersions" : "NULL");
 
     /* Generate the storage for the external API pointers. */
     prcode(fp,

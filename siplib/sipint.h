@@ -55,11 +55,12 @@ PyObject *sipVariableDescr_New(sipVariableDef *vd, const sipClassTypeDef *ctd);
 
 
 /*
- * Support for setting API versions.
+ * Support for API versions.
  */
 PyObject *sipGetAPI(PyObject *self, PyObject *args);
 PyObject *sipSetAPI(PyObject *self, PyObject *args);
 int sip_api_is_api_enabled(const char *name, int from, int to);
+int sipInitAPI(sipExportedModuleDef *em);
 
 
 extern sipQtAPI *sipQtSupport;  /* The Qt support API. */

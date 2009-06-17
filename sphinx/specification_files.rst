@@ -56,6 +56,7 @@ file.
     *module-statement* ::= [*module-directive* | *statement*]
 
     *module-directive* ::= [
+            :directive:`%API` |
             :directive:`%CModule` |
             :directive:`%CompositeModule` |
             :directive:`%ConsolidatedModule` |

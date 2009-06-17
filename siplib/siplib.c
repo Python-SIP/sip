@@ -1061,6 +1061,10 @@ static int sip_api_init_module(sipExportedModuleDef *client,
     sipEnumMemberDef *emd;
     int i;
 
+    /* Handle any API. */
+    if (sipInitAPI(client) < 0)
+        return -1;
+
     /* Create the module's types. */
     for (i = 0; i < client->em_nrtypes; ++i)
     {

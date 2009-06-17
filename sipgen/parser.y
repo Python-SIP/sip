@@ -133,6 +133,7 @@ static argType convertEncoding(const char *encoding);
     classDef        *klass;
 }
 
+%token          TK_API
 %token          TK_DEFENCODING
 %token          TK_PLUGIN
 %token          TK_DOC
@@ -340,6 +341,7 @@ modstatement:   module
     |   include
     |   optinclude
     |   import
+    |   api
     |   timeline
     |   platforms
     |   feature
@@ -407,6 +409,24 @@ defencoding:    TK_DEFENCODING TK_STRING {
 
 plugin:     TK_PLUGIN TK_NAME {
             appendString(&currentSpec->plugins, $2);
+        }
+    ;
+
+api:    TK_API TK_NAME TK_NUMBER {
+            if (notSkipping())
+            {
+                if (currentModule->api_name != NULL)
+                    yyerror("%API has already been specified for this module");
+
+                if ($3 < 1)
+                    yyerror("The version number in the %API directive must be greater than or equal to 1");
+
+                currentModule->api_name = cacheName(currentSpec, $2);
+                currentModule->api_version = $3;
+
+                if (inMainModule())
+                    setIsUsedName(currentModule->api_name);
+            }
         }
     ;
 
@@ -2786,6 +2806,7 @@ static moduleDef *allocModule()
     newmod = sipMalloc(sizeof (moduleDef));
 
     newmod->version = -1;
+    newmod->api_version = -1;
     newmod->encoding = no_type;
     newmod->qobjclass = -1;
     newmod->nrvirthandlers = -1;

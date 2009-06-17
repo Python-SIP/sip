@@ -65,6 +65,31 @@ int sip_api_is_api_enabled(const char *name, int from, int to)
 
 
 /*
+ * Initialise the the API for a module and return a negative value on error.
+ */
+int sipInitAPI(sipExportedModuleDef *em)
+{
+    /* See if the module defines an API. */
+    if (em->em_versions != NULL && em->em_versions[0] >= 0)
+    {
+        const char *api_name;
+        const apiVersionDef *avd;
+
+        api_name = sipNameFromPool(em, em->em_versions[0]);
+
+        /* Use the default version if not already set explicitly. */
+        if ((avd = find_api(api_name)) == NULL)
+            if (add_api(api_name, em->em_versions[1]) < 0)
+                return -1;
+    }
+
+    /* TODO: Update the types table according to any version information. */
+
+    return 0;
+}
+
+
+/*
  * Get the version number for an API.
  */
 PyObject *sipGetAPI(PyObject *self, PyObject *args)
