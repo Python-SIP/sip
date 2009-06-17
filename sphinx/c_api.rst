@@ -962,7 +962,7 @@ specification files.
     .. versionadded:: 4.9
 
     This checks to see if the current version number of an API falls within a
-    given range.  See :ref:`ref-incompat-apis`.
+    given range.  See :ref:`ref-incompat-apis` for more detail.
 
     :param name:
         the name of the API.

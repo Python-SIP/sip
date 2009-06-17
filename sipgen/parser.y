@@ -67,6 +67,7 @@ static void parseFile(FILE *fp, char *name, moduleDef *prevmod, int optional);
 static void handleEOF(void);
 static void handleEOM(void);
 static qualDef *findQualifier(char *);
+static nameDef *findAPI(sipSpec *pt, const char *name);
 static scopedNameDef *text2scopedName(classDef *scope, char *text);
 static scopedNameDef *scopeScopedName(classDef *scope, scopedNameDef *name);
 static void pushScope(classDef *);
@@ -110,6 +111,8 @@ static void resolveAnyTypedef(sipSpec *pt, argDef *ad);
 static void addVariable(sipSpec *pt, varDef *vd);
 static void applyTypeFlags(moduleDef *mod, argDef *ad, optFlags *flags);
 static argType convertEncoding(const char *encoding);
+static int getAPIRange(optFlags *optflgs);
+static int convertAPIRange(sipSpec *pt, nameDef *name, int from, int to);
 %}
 
 %union {
@@ -415,17 +418,25 @@ plugin:     TK_PLUGIN TK_NAME {
 api:    TK_API TK_NAME TK_NUMBER {
             if (notSkipping())
             {
-                if (currentModule->api_name != NULL)
-                    yyerror("%API has already been specified for this module");
+                apiVersionRangeDef *avd;
+
+                if (findAPI(currentSpec, $2) != NULL)
+                    yyerror("The API name in the %API directive has already been defined");
 
                 if ($3 < 1)
                     yyerror("The version number in the %API directive must be greater than or equal to 1");
 
-                currentModule->api_name = cacheName(currentSpec, $2);
-                currentModule->api_version = $3;
+                avd = sipMalloc(sizeof (apiVersionRangeDef));
+
+                avd->api_name = cacheName(currentSpec, $2);
+                avd->from = $3;
+                avd->to = -1;
+
+                avd->next = currentModule->api_versions;
+                currentModule->api_versions = avd;
 
                 if (inMainModule())
-                    setIsUsedName(currentModule->api_name);
+                    setIsUsedName(avd->api_name);
             }
         }
     ;
@@ -2025,7 +2036,7 @@ flaglist:   flag {
         }
     ;
 
-flag:       TK_NAME {
+flag:   TK_NAME {
             $$.ftype = bool_flag;
             $$.fname = $1;
         }
@@ -2038,6 +2049,32 @@ flag:       TK_NAME {
 flagvalue:  dottedname {
             $$.ftype = (strchr($1, '.') != NULL) ? dotted_name_flag : name_flag;
             $$.fvalue.sval = $1;
+        }
+    |   TK_NAME ':' optnumber '-' optnumber {
+            $$.ftype = api_range_flag;
+
+            if (inMainModule())
+            {
+                nameDef *name;
+                int from, to;
+
+                /* Check that the API is known. */
+                if ((name = findAPI(currentSpec, $1)) == NULL)
+                    yyerror("unknown API name in API annotation");
+
+                setIsUsedName(name);
+
+                /* Unbounded values are represented by 0. */
+                if ((from = $3) < 0)
+                    from = 0;
+
+                if ((to = $5) < 0)
+                    to = 0;
+
+                $$.fvalue.ival = convertAPIRange(currentSpec, name, from, to);
+            }
+            else
+                $$.fvalue.ival = -1;
         }
     |   TK_STRING {
             $$.ftype = string_flag;
@@ -2697,6 +2734,7 @@ void parse(sipSpec *spec, FILE *fp, char *filename, stringList *tsl,
     spec->sigslots = FALSE;
     spec->genc = -1;
     spec->plugins = NULL;
+    spec->api_versions = NULL;
 
     currentSpec = spec;
     neededQualifiers = tsl;
@@ -2806,7 +2844,6 @@ static moduleDef *allocModule()
     newmod = sipMalloc(sizeof (moduleDef));
 
     newmod->version = -1;
-    newmod->api_version = -1;
     newmod->encoding = no_type;
     newmod->qobjclass = -1;
     newmod->nrvirthandlers = -1;
@@ -2964,12 +3001,13 @@ static classDef *findClassWithInterface(sipSpec *pt, ifaceFileDef *iff)
     /* Create a new one. */
     cd = sipMalloc(sizeof (classDef));
 
-    cd -> iff = iff;
-    cd -> pyname = cacheName(pt, classBaseName(cd));
-    cd -> classnr = -1;
-    cd -> next = pt -> classes;
+    cd->iff = iff;
+    cd->pyname = cacheName(pt, classBaseName(cd));
+    cd->classnr = -1;
+    cd->api_range = -1;
+    cd->next = pt->classes;
 
-    pt -> classes = cd;
+    pt->classes = cd;
 
     return cd;
 }
@@ -3171,6 +3209,8 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd, optFlags *of)
 
     if (findOptFlag(of, "PyQt4NoQMetaObject", bool_flag) != NULL)
         setPyQt4NoQMetaObject(cd);
+
+    cd->api_range = getAPIRange(of);
 
     if (isOpaque(cd))
     {
@@ -3375,6 +3415,8 @@ static mappedTypeDef *newMappedType(sipSpec *pt, argDef *ad, optFlags *of)
     if (findOptFlag(of, "NoRelease", bool_flag) != NULL)
         setNoRelease(mtd);
 
+    mtd->api_range = getAPIRange(of);
+
     mtd->iff = iff;
     mtd->next = pt->mappedtypes;
 
@@ -3402,6 +3444,7 @@ mappedTypeDef *allocMappedType(sipSpec *pt, argDef *type)
 
     mtd->cname = cacheName(pt, type2string(&mtd->type));
     mtd->mappednr = -1;
+    mtd->api_range = -1;
 
     return mtd;
 }
@@ -5214,13 +5257,33 @@ static qualDef *findQualifier(char *name)
 {
     moduleDef *mod;
 
-    for (mod = currentSpec -> modules; mod != NULL; mod = mod -> next)
+    for (mod = currentSpec->modules; mod != NULL; mod = mod->next)
     {
         qualDef *qd;
 
-        for (qd = mod -> qualifiers; qd != NULL; qd = qd -> next)
-            if (strcmp(qd -> name,name) == 0)
+        for (qd = mod->qualifiers; qd != NULL; qd = qd->next)
+            if (strcmp(qd->name, name) == 0)
                 return qd;
+    }
+
+    return NULL;
+}
+
+
+/*
+ * Find an existing API.
+ */
+static nameDef *findAPI(sipSpec *pt, const char *name)
+{
+    moduleDef *mod;
+
+    for (mod = pt->modules; mod != NULL; mod = mod->next)
+    {
+        apiVersionRangeDef *avd;
+
+        for (avd = mod->api_versions; avd != NULL; avd = avd->next)
+            if (strcmp(avd->api_name->text, name) == 0)
+                return avd->api_name;
     }
 
     return NULL;
@@ -5782,4 +5845,52 @@ static argType convertEncoding(const char *encoding)
         return string_type;
 
     return no_type;
+}
+
+
+/*
+ * Get the /API/ option flag.
+ */
+static int getAPIRange(optFlags *optflgs)
+{
+    optFlag *of;
+
+    if ((of = findOptFlag(optflgs, "API", api_range_flag)) == NULL);
+        return -1;
+
+    return of->fvalue.ival;
+}
+
+
+/*
+ * Return the version number corresponding to the given API range.
+ */
+static int convertAPIRange(sipSpec *pt, nameDef *name, int from, int to)
+{
+    int version;
+    apiVersionRangeDef *avd, **avdp;
+
+    /* Handle the trivial case. */
+    if (from == 0 && to == 0)
+        return -1;
+
+    for (version = 0, avdp = &pt->api_versions; (*avdp) != NULL; avdp = &(*avdp)->next, ++version)
+    {
+        avd = *avdp;
+
+        if (avd->api_name->text == name && avd->from == from && avd->to == to)
+            return version;
+    }
+
+    /* The new one must be appended so that version numbers remain valid. */
+    avd = sipMalloc(sizeof (apiVersionRangeDef));
+
+    avd->api_name = cacheName(pt, name);
+    avd->from = from;
+    avd->to = to;
+
+    avd->next = NULL;
+    *avdp = avd;
+
+    return version;
 }

@@ -658,13 +658,21 @@ typedef struct _fcallDef {
 } fcallDef;
 
 
+/* An API version range definition. */
+typedef struct _apiVersionRangeDef {
+    nameDef *api_name;                  /* The API name. */
+    int from;                           /* The lower bound. */
+    int to;                             /* The upper bound. */
+    struct _apiVersionRangeDef *next;   /* The next in the list. */
+} apiVersionRangeDef;
+
+
 /* A module definition. */
 typedef struct _moduleDef {
     nameDef *fullname;                  /* The full module name. */
     const char *name;                   /* The module base name. */
     int version;                        /* The module version. */
-    nameDef *api_name;                  /* The optional API name. */
-    int api_version;                    /* The API version number. */
+    apiVersionRangeDef *api_versions;   /* The defined APIs. */
     int modflags;                       /* The module flags. */
     int qobjclass;                      /* QObject class, -1 if none. */
     struct _memberDef *othfuncs;        /* List of other functions. */
@@ -735,6 +743,7 @@ typedef struct _mappedTypeDef {
     argDef type;                        /* The type being mapped. */
     nameDef *cname;                     /* The C/C++ name. */
     int mappednr;                       /* The mapped type number. */
+    int api_range;                      /* The optional API version range. */
     ifaceFileDef *iff;                  /* The interface file. */
     codeBlock *convfromcode;            /* Convert from C++ code. */
     codeBlock *convtocode;              /* Convert to C++ code. */
@@ -920,6 +929,7 @@ typedef struct _classDef {
     int classflags;                     /* The class flags. */
     int pyqt4_flags;                    /* The PyQt4 specific flags. */
     int classnr;                        /* The class number. */
+    int api_range;                      /* The optional API version range. */
     nameDef *pyname;                    /* The Python name. */
     ifaceFileDef *iff;                  /* The interface file. */
     struct _classDef *ecd;              /* The enclosing scope. */
@@ -994,6 +1004,7 @@ typedef struct {
     int sigslots;                       /* Set if signals or slots are used. */
     int genc;                           /* Set if we are generating C code. */
     struct _stringList *plugins;        /* The list of plugins. */
+    apiVersionRangeDef *api_versions;   /* The list of API version ranges. */
 } sipSpec;
 
 
@@ -1081,7 +1092,8 @@ typedef enum {
     name_flag,
     opt_name_flag,
     dotted_name_flag,
-    integer_flag
+    integer_flag,
+    api_range_flag
 } flagType;
 
 typedef struct {
@@ -1089,7 +1101,7 @@ typedef struct {
     flagType ftype;                     /* The flag type. */
     union {                             /* The flag value. */
         char *sval;                     /* A string value. */
-        long ival;                      /* An integer value. */
+        long ival;                      /* An integer or API range value. */
     } fvalue;
 } optFlag;
 

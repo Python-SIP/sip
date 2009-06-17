@@ -51,10 +51,9 @@ For example::
     %API *name* *version*
 
 This directive is used to define an API and set its default version number.  A
-version number must be greater than or equal to 1.  It can only be specified
-once in a module.
+version number must be greater than or equal to 1.
 
-See :ref:`ref-incompat-apis` for an overview of the support for APIs.
+See :ref:`ref-incompat-apis` for more detail.
 
 For example::
 

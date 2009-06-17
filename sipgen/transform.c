@@ -857,6 +857,7 @@ static classDef *getProxy(moduleDef *mod, classDef *cd)
     pcd = sipMalloc(sizeof (classDef));
 
     pcd->classnr = -1;
+    pcd->api_range = -1;
     pcd->pyname = cd->pyname;
     pcd->iff = cd->iff;
     pcd->ecd = cd->ecd;

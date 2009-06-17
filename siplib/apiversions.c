@@ -69,18 +69,32 @@ int sip_api_is_api_enabled(const char *name, int from, int to)
  */
 int sipInitAPI(sipExportedModuleDef *em)
 {
-    /* See if the module defines an API. */
-    if (em->em_versions != NULL && em->em_versions[0] >= 0)
+    int *apis;
+
+    /* See if the module defines any APIs. */
+    if ((apis = em->em_versions) != NULL)
     {
-        const char *api_name;
-        const apiVersionDef *avd;
+        while (apis[0] >= 0)
+        {
+            /*
+             * See if it is an API definition rather than a range
+             * definition.
+             */
+            if (apis[2] < 0)
+            {
+                const char *api_name;
+                const apiVersionDef *avd;
 
-        api_name = sipNameFromPool(em, em->em_versions[0]);
+                api_name = sipNameFromPool(em, apis[0]);
 
-        /* Use the default version if not already set explicitly. */
-        if ((avd = find_api(api_name)) == NULL)
-            if (add_api(api_name, em->em_versions[1]) < 0)
-                return -1;
+                /* Use the default version if not already set explicitly. */
+                if ((avd = find_api(api_name)) == NULL)
+                    if (add_api(api_name, apis[1]) < 0)
+                        return -1;
+            }
+
+            apis += 3;
+        }
     }
 
     /* TODO: Update the types table according to any version information. */

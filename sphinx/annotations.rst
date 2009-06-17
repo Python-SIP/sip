@@ -35,6 +35,24 @@ Annotations can have one of the following types:
 *string*
     The value is a double quoted string.
 
+*API range*
+    The value is the name of an API (defined using the :directive:`%API`
+    directive) separated by a range of version numbers with a colon.
+
+    The range of version numbers is a pair of numbers separated by a hyphen
+    specifying the lower and upper bounds of the range.  A version number is
+    within the range if it is greater or equal to the lower bound and less
+    than the upper bound.  Each bound can be omitted meaning that the range is
+    unbounded in that direction.
+
+    For example::
+
+        # This is part of the PyQt4 API up to but excluding v2.
+        void hex() /API=PyQt4:-2/
+
+        # This is part of the PyQt4 API starting from v2.
+        void hex() /PyName=hex_, API=PyQt4:2-/
+
 The following example shows argument and function annotations::
 
     void exec(QWidget * /Transfer/) /ReleaseGIL, PyName=call_exec/;
@@ -249,6 +267,16 @@ Class Annotations
     instantiated or sub-classed from Python.
 
 
+.. class-annotation:: API
+
+    .. versionadded:: 4.9
+
+    This API range annotation is used to specify an API and corresponding
+    range of version numbers that the class is enabled for.
+
+    See :ref:`ref-incompat-apis` for more detail.
+
+
 .. class-annotation:: DelayDtor
 
     This boolean annotation is used to specify that the class's destructor
@@ -353,6 +381,16 @@ Class Annotations
 Mapped Type Annotations
 -----------------------
 
+.. mapped-type-annotation:: API
+
+    .. versionadded:: 4.9
+
+    This API range annotation is used to specify an API and corresponding
+    range of version numbers that the mapped type is enabled for.
+
+    See :ref:`ref-incompat-apis` for more detail.
+
+
 .. mapped-type-annotation:: NoRelease
 
     This boolean annotation is used to specify that the mapped type does not
@@ -394,6 +432,16 @@ Exception Annotations
 
 Function Annotations
 --------------------
+
+.. function-annotation:: API
+
+    .. versionadded:: 4.9
+
+    This API range annotation is used to specify an API and corresponding
+    range of version numbers that the function is enabled for.
+
+    See :ref:`ref-incompat-apis` for more detail.
+
 
 .. function-annotation:: AutoGen
 

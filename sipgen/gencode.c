@@ -1630,15 +1630,26 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
             , mod->nrexceptions);
 
     /* Generate any API versions table. */
-    if (mod->api_name != NULL)
+    if (pt->api_versions != NULL || mod->api_versions != NULL)
     {
+        apiVersionRangeDef *avd;
+
         is_api_versions = TRUE;
 
         prcode(fp,
 "\n"
 "\n"
-"static int apiVersions[] = {%n, %d, -1};\n"
-            , mod->api_name, mod->api_version);
+"/* This defines the API versions and ranges in use. */\n"
+"static int apiVersions[] = {");
+        
+        for (avd = pt->api_versions; avd != NULL; avd = avd->next)
+            prcode(fp, "%n, %d, %d, ", avd->api_name, avd->from, avd->to);
+
+        for (avd = mod->api_versions; avd != NULL; avd = avd->next)
+            prcode(fp, "%n, %d, -1, ", avd->api_name, avd->from);
+
+        prcode(fp, "-1};\n"
+            );
     }
     else
         is_api_versions = FALSE;

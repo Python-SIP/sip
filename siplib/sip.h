@@ -864,8 +864,10 @@ typedef struct _sipExportedModuleDef {
 
     /*
      * The array of API version definitions.  Each definition takes up 3
-     * elements.  The first 3 elements are reserved for defining an optional
-     * API name and default version number.
+     * elements.  If the third element of a 3-tuple is negative then the first
+     * two elements define an API and its default version.  All such
+     * definitions will appear at the end of the array.  If the first element
+     * of a 3-tuple is negative then that is the last element of the array.
      */
     int *em_versions;
 
