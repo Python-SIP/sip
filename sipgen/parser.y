@@ -111,7 +111,7 @@ static void resolveAnyTypedef(sipSpec *pt, argDef *ad);
 static void addVariable(sipSpec *pt, varDef *vd);
 static void applyTypeFlags(moduleDef *mod, argDef *ad, optFlags *flags);
 static argType convertEncoding(const char *encoding);
-static int getAPIRange(optFlags *optflgs);
+static int getAPIRangeIndex(optFlags *optflgs);
 static int convertAPIRange(sipSpec *pt, nameDef *name, int from, int to);
 %}
 
@@ -3210,7 +3210,7 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd, optFlags *of)
     if (findOptFlag(of, "PyQt4NoQMetaObject", bool_flag) != NULL)
         setPyQt4NoQMetaObject(cd);
 
-    cd->api_range = getAPIRange(of);
+    cd->api_range = getAPIRangeIndex(of);
 
     if (isOpaque(cd))
     {
@@ -3415,7 +3415,7 @@ static mappedTypeDef *newMappedType(sipSpec *pt, argDef *ad, optFlags *of)
     if (findOptFlag(of, "NoRelease", bool_flag) != NULL)
         setNoRelease(mtd);
 
-    mtd->api_range = getAPIRange(of);
+    mtd->api_range = getAPIRangeIndex(of);
 
     mtd->iff = iff;
     mtd->next = pt->mappedtypes;
@@ -4836,6 +4836,13 @@ static void newFunction(sipSpec *pt,moduleDef *mod,int sflags,int isstatic,
     od->common = findFunction(pt, mod, cd, getPythonName(optflgs, name),
             (methodcode != NULL), sig->nrArgs, no_arg_parser);
 
+    od->api_range = getAPIRangeIndex(optflgs);
+
+    if (od->api_range < 0)
+        setNotVersioned(od->common);
+    else if (cd != NULL)
+        yyerror("/API/ may only be specified for global functions");
+
     if (findOptFlag(optflgs,"Numeric",bool_flag) != NULL)
         setIsNumeric(od -> common);
 
@@ -5851,11 +5858,11 @@ static argType convertEncoding(const char *encoding)
 /*
  * Get the /API/ option flag.
  */
-static int getAPIRange(optFlags *optflgs)
+static int getAPIRangeIndex(optFlags *optflgs)
 {
     optFlag *of;
 
-    if ((of = findOptFlag(optflgs, "API", api_range_flag)) == NULL);
+    if ((of = findOptFlag(optflgs, "API", api_range_flag)) == NULL)
         return -1;
 
     return of->fvalue.ival;
@@ -5885,7 +5892,7 @@ static int convertAPIRange(sipSpec *pt, nameDef *name, int from, int to)
     /* The new one must be appended so that version numbers remain valid. */
     avd = sipMalloc(sizeof (apiVersionRangeDef));
 
-    avd->api_name = cacheName(pt, name);
+    avd->api_name = name;
     avd->from = from;
     avd->to = to;
 

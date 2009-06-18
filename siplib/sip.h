@@ -772,6 +772,26 @@ typedef struct _sipDelayedDtor {
 
 
 /*
+ * Defines an entry in the table of global functions all of whose overloads
+ * are versioned (so their names can't be automatically added to the module
+ * dictionary).
+ */
+typedef struct _sipVersionedFunctionDef {
+    /* The name, -1 marks the end of the table. */
+    int vf_name;
+
+    /* The function itself. */
+    PyCFunction vf_function;
+
+    /* The METH_* flags. */
+    int vf_flags;
+
+    /* The API version range index. */
+    int vf_api_range;
+} sipVersionedFunctionDef;
+
+
+/*
  * The information describing an imported module.
  */
 typedef struct _sipImportedModuleDef {
@@ -872,7 +892,7 @@ typedef struct _sipExportedModuleDef {
     int *em_versions;
 
     /* The optional table of versioned functions. */
-    void *em_versioned_functions;
+    sipVersionedFunctionDef *em_versioned_functions;
 } sipExportedModuleDef;
 
 

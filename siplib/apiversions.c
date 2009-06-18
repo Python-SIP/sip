@@ -42,6 +42,7 @@ static apiVersionDef *api_versions = NULL;
  */
 static int add_api(const char *api, int version_nr);
 static apiVersionDef *find_api(const char *api);
+static int is_range_enabled(sipExportedModuleDef *em, int range_index);
 
 
 /*
@@ -67,9 +68,10 @@ int sip_api_is_api_enabled(const char *name, int from, int to)
 /*
  * Initialise the the API for a module and return a negative value on error.
  */
-int sipInitAPI(sipExportedModuleDef *em)
+int sipInitAPI(sipExportedModuleDef *em, PyObject *mod_dict)
 {
     int *apis;
+    sipVersionedFunctionDef *vf;
 
     /* See if the module defines any APIs. */
     if ((apis = em->em_versions) != NULL)
@@ -94,6 +96,41 @@ int sipInitAPI(sipExportedModuleDef *em)
             }
 
             apis += 3;
+        }
+    }
+
+    /* Add any versioned global functions to the module dictionary. */
+    if ((vf = em->em_versioned_functions) != NULL)
+    {
+        while (vf->vf_name >= 0)
+        {
+            if (is_range_enabled(em, vf->vf_api_range))
+            {
+                const char *func_name = sipNameFromPool(em, vf->vf_name);
+                PyMethodDef *pmd;
+                PyObject *py_func;
+
+                if ((pmd = sip_api_malloc(sizeof (PyMethodDef))) == NULL)
+                    return -1;
+
+                pmd->ml_name = SIP_MLNAME_CAST(func_name);
+                pmd->ml_meth = vf->vf_function;
+                pmd->ml_flags = vf->vf_flags;
+                pmd->ml_doc = NULL;
+
+                if ((py_func = PyCFunction_New(pmd, NULL)) == NULL)
+                    return -1;
+
+                if (PyDict_SetItemString(mod_dict, func_name, py_func) < 0)
+                {
+                    Py_DECREF(py_func);
+                    return -1;
+                }
+
+                Py_DECREF(py_func);
+            }
+
+            ++vf;
         }
     }
 
@@ -206,4 +243,16 @@ static apiVersionDef *find_api(const char *api)
             break;
 
     return avd;
+}
+
+
+/*
+ * Return TRUE if a range defined by a range index is enabled.
+ */
+static int is_range_enabled(sipExportedModuleDef *em, int range_index)
+{
+    int *range = &em->em_versions[range_index * 3];
+    const char *api_name = sipNameFromPool(em, range[0]);
+
+    return sip_api_is_api_enabled(api_name, range[1], range[2]);
 }

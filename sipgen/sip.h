@@ -176,11 +176,14 @@
 
 #define MEMBR_NUMERIC       0x0001      /* It is a numeric slot. */
 #define MEMBR_NO_ARG_PARSER 0x0002      /* Don't generate an argument parser. */
+#define MEMBR_NOT_VERSIONED 0x0004      /* There is an unversioned overload. */
 
 #define isNumeric(m)        ((m)->memberflags & MEMBR_NUMERIC)
 #define setIsNumeric(m)     ((m)->memberflags |= MEMBR_NUMERIC)
 #define noArgParser(m)      ((m)->memberflags & MEMBR_NO_ARG_PARSER)
 #define setNoArgParser(m)   ((m)->memberflags |= MEMBR_NO_ARG_PARSER)
+#define notVersioned(m)     ((m)->memberflags & MEMBR_NOT_VERSIONED)
+#define setNotVersioned(m)  ((m)->memberflags |= MEMBR_NOT_VERSIONED)
 
 
 /* Handle enum flags.  These are combined with the section flags. */
@@ -823,6 +826,7 @@ typedef struct _overDef {
     char *cppname;                      /* The C++ name. */
     int overflags;                      /* The overload flags. */
     struct _memberDef *common;          /* Common parts. */
+    int api_range;                      /* The optional API version range. */
     signatureDef pysig;                 /* The Python signature. */
     signatureDef *cppsig;               /* The C++ signature. */
     throwArgs *exceptions;              /* The exceptions. */

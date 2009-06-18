@@ -438,7 +438,8 @@ Function Annotations
     .. versionadded:: 4.9
 
     This API range annotation is used to specify an API and corresponding
-    range of version numbers that the function is enabled for.
+    range of version numbers that the function is enabled for.  It can only be
+    applied to global (i.e. module level) functions.
 
     See :ref:`ref-incompat-apis` for more detail.
 

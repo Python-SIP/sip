@@ -1062,7 +1062,7 @@ static int sip_api_init_module(sipExportedModuleDef *client,
     int i;
 
     /* Handle any API. */
-    if (sipInitAPI(client) < 0)
+    if (sipInitAPI(client, mod_dict) < 0)
         return -1;
 
     /* Create the module's types. */

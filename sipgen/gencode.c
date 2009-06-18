@@ -1106,6 +1106,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
     int is_inst_class, is_inst_voidp, is_inst_char, is_inst_string;
     int is_inst_int, is_inst_long, is_inst_ulong, is_inst_longlong;
     int is_inst_ulonglong, is_inst_double, nr_enummembers, is_api_versions;
+    int is_versioned_functions;
     int hasexternal = FALSE, slot_extenders = FALSE, ctor_extenders = FALSE;
     FILE *fp;
     moduleListDef *mld;
@@ -1654,6 +1655,54 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
     else
         is_api_versions = FALSE;
 
+    /* Generate any versioned global functions. */
+    is_versioned_functions = FALSE;
+
+    for (md = mod->othfuncs; md != NULL; md = md->next)
+        if (md->slot == no_slot)
+        {
+            overDef *od;
+
+            if (notVersioned(md))
+                continue;
+
+            if (!is_versioned_functions)
+            {
+                prcode(fp,
+"\n"
+"\n"
+"/* This defines the global functions where all overloads are versioned. */\n"
+"static sipVersionedFunctionDef versionedFunctions[] = {\n"
+                    );
+
+                is_versioned_functions = TRUE;
+            }
+
+            /*
+             * Every overload has an entry to capture all the version ranges.
+             */
+            for (od = mod->overs; od != NULL; od = od->next)
+            {
+                if (od->common != md)
+                    continue;
+
+                if (noArgParser(md))
+                    prcode(fp,
+"    {%n, (PyCFunction)func_%s, METH_VARARGS|METH_KEYWORDS, %d},\n"
+                        , md->pyname, md->pyname->text, od->api_range);
+                else
+                    prcode(fp,
+"    {%n, func_%s, METH_VARARGS, %d},\n"
+                        , md->pyname, md->pyname->text, od->api_range);
+            }
+        }
+
+    if (is_versioned_functions)
+        prcode(fp,
+"    {-1, 0, 0, -1}\n"
+"};\n"
+            );
+
     /* Generate any Qt support API. */
     if (mod->qobjclass >= 0)
         prcode(fp,
@@ -1708,7 +1757,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "    %s,\n"
 "    NULL,\n"
 "    %s,\n"
-"    NULL\n"
+"    %s\n"
 "};\n"
         , mname
         , mod->fullname
@@ -1740,7 +1789,8 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         , slot_extenders ? "slotExtenders" : "NULL"
         , ctor_extenders ? "initExtenders" : "NULL"
         , hasDelayedDtors(mod) ? "sipDelayedDtors" : "NULL"
-        , is_api_versions ? "apiVersions" : "NULL");
+        , is_api_versions ? "apiVersions" : "NULL"
+        , is_versioned_functions ? "versionedFunctions" : "NULL");
 
     /* Generate the storage for the external API pointers. */
     prcode(fp,
@@ -1794,6 +1844,9 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
     for (md = mod->othfuncs; md != NULL; md = md->next)
         if (md->slot == no_slot)
         {
+            if (!notVersioned(md))
+                continue;
+
             if (noArgParser(md))
                 prcode(fp,
 "        {SIP_MLNAME_CAST(%N), (PyCFunction)func_%s, METH_VARARGS|METH_KEYWORDS, NULL},\n"
