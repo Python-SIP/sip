@@ -722,6 +722,7 @@ typedef struct _moduleListDef {
 
 typedef struct _ifaceFileDef {
     nameDef *name;                      /* The name. */
+    int api_range;                      /* The optional API version range. */
     ifaceFileType type;                 /* Interface file type. */
     scopedNameDef *fqcname;             /* The fully qualified C++ name. */
     moduleDef *module;                  /* The owning module. */
@@ -746,7 +747,6 @@ typedef struct _mappedTypeDef {
     argDef type;                        /* The type being mapped. */
     nameDef *cname;                     /* The C/C++ name. */
     int mappednr;                       /* The mapped type number. */
-    int api_range;                      /* The optional API version range. */
     ifaceFileDef *iff;                  /* The interface file. */
     codeBlock *convfromcode;            /* Convert from C++ code. */
     codeBlock *convtocode;              /* Convert to C++ code. */
@@ -933,7 +933,6 @@ typedef struct _classDef {
     int classflags;                     /* The class flags. */
     int pyqt4_flags;                    /* The PyQt4 specific flags. */
     int classnr;                        /* The class number. */
-    int api_range;                      /* The optional API version range. */
     nameDef *pyname;                    /* The Python name. */
     ifaceFileDef *iff;                  /* The interface file. */
     struct _classDef *ecd;              /* The enclosing scope. */
@@ -1077,7 +1076,9 @@ mappedTypeDef *allocMappedType(sipSpec *pt, argDef *type);
 void appendString(stringList **headp, const char *s);
 void appendTypeStrings(scopedNameDef *ename, signatureDef *patt, signatureDef *src, signatureDef *known, scopedNameDef **names, scopedNameDef **values);
 codeBlock *templateCode(sipSpec *pt, ifaceFileList **used, codeBlock *ocb, scopedNameDef *names, scopedNameDef *values);
-ifaceFileDef *findIfaceFile(sipSpec *pt, moduleDef *mod, scopedNameDef *fqname, ifaceFileType iftype, argDef *ad);
+ifaceFileDef *findIfaceFile(sipSpec *pt, moduleDef *mod,
+        scopedNameDef *fqname, ifaceFileType iftype, int api_range,
+        argDef *ad);
 int pluginPyQt3(sipSpec *pt);
 int pluginPyQt4(sipSpec *pt);
 void yywarning(char *);

@@ -37,12 +37,15 @@ static classDef *scopeStack[MAX_NESTED_SCOPE];  /* The scope stack. */
 static int sectFlagsStack[MAX_NESTED_SCOPE];    /* The section flags stack. */
 static int currentScopeIdx;             /* The scope stack index. */
 static int currentTimelineOrder;        /* The current timeline order. */
+static classList *currentSupers;        /* The current super-class list. */
 
 
 static const char *getPythonName(optFlags *optflgs, const char *cname);
-static classDef *findClass(sipSpec *,ifaceFileType,scopedNameDef *);
+static classDef *findClass(sipSpec *pt, ifaceFileType iftype, int api_range,
+        scopedNameDef *fqname);
 static classDef *findClassWithInterface(sipSpec *pt, ifaceFileDef *iff);
-static classDef *newClass(sipSpec *,ifaceFileType,scopedNameDef *);
+static classDef *newClass(sipSpec *pt, ifaceFileType iftype, int api_range,
+        scopedNameDef *snd);
 static void finishClass(sipSpec *,moduleDef *,classDef *,optFlags *);
 static exceptionDef *findException(sipSpec *pt, scopedNameDef *fqname, int new);
 static mappedTypeDef *newMappedType(sipSpec *,argDef *, optFlags *);
@@ -94,7 +97,7 @@ static int sameName(scopedNameDef *snd, const char *sname);
 static int stringFind(stringList *sl, const char *s);
 static void setModuleName(sipSpec *pt, moduleDef *mod, const char *fullname);
 static int foundInScope(scopedNameDef *fq_name, scopedNameDef *rel_name);
-static void defineClass(scopedNameDef *snd);
+static void defineClass(scopedNameDef *snd, classList *supers, optFlags *of);
 static classDef *completeClass(scopedNameDef *snd, optFlags *of, int has_def);
 static memberDef *instantiateTemplateMethods(memberDef *tmd, moduleDef *mod);
 static void instantiateTemplateEnums(sipSpec *pt, classTmplDef *tcd,
@@ -664,7 +667,7 @@ namespace:  TK_NAMESPACE TK_NAME {
             {
                 classDef *ns;
 
-                ns = newClass(currentSpec, namespace_iface,
+                ns = newClass(currentSpec, namespace_iface, -1,
                         text2scopedName(currentScope(), $2));
 
                 pushScope(ns);
@@ -1413,17 +1416,20 @@ struct:     TK_STRUCT scopedname {
 
             if (notSkipping())
             {
-                defineClass($2);
+                currentSupers = NULL;
                 sectionFlags = SECT_IS_PUBLIC;
             }
-        } superclasses optflags optclassbody ';' {
+        } superclasses optflags {
             if (notSkipping())
             {
-                classDef *cd = completeClass($2, &$5, $6);
-
-                if (currentSpec -> genc && cd->supers != NULL)
+                if (currentSpec->genc && currentSupers != NULL)
                     yyerror("Super-classes not allowed in a C module struct");
+
+                defineClass($2, currentSupers, &$5);
             }
+        } optclassbody ';' {
+            if (notSkipping())
+                completeClass($2, &$5, $7);
         }
     ;
 
@@ -1459,18 +1465,21 @@ template:   TK_TEMPLATE '<' cpptypelist '>' {
         }
     ;
 
-class:      TK_CLASS scopedname {
-            if (currentSpec -> genc)
+class:  TK_CLASS scopedname {
+            if (currentSpec->genc)
                 yyerror("Class definition not allowed in a C module");
 
             if (notSkipping())
             {
-                defineClass($2);
+                currentSupers = NULL;
                 sectionFlags = SECT_IS_PRIVATE;
             }
-        } superclasses optflags optclassbody ';' {
+        } superclasses optflags {
             if (notSkipping())
-                $$ = completeClass($2, &$5, $6);
+                defineClass($2, currentSupers, &$5);
+        } optclassbody ';' {
+            if (notSkipping())
+                $$ = completeClass($2, &$5, $7);
         }
     ;
 
@@ -1515,8 +1524,8 @@ superclass: scopedname {
                 if (ad.atype != no_type)
                     yyerror("Super-class list contains an invalid type");
 
-                super = findClass(currentSpec, class_iface, snd);
-                appendToClassList(&currentScope()->supers, super);
+                super = findClass(currentSpec, class_iface, -1, snd);
+                appendToClassList(&currentSupers, super);
             }
         }
     ;
@@ -2882,7 +2891,7 @@ static void parseFile(FILE *fp, char *name, moduleDef *prevmod, int optional)
  * Find an interface file, or create a new one.
  */
 ifaceFileDef *findIfaceFile(sipSpec *pt, moduleDef *mod, scopedNameDef *fqname,
-        ifaceFileType iftype, argDef *ad)
+        ifaceFileType iftype, int api_range, argDef *ad)
 {
     ifaceFileDef *iff;
 
@@ -2964,6 +2973,7 @@ ifaceFileDef *findIfaceFile(sipSpec *pt, moduleDef *mod, scopedNameDef *fqname,
     iff = sipMalloc(sizeof (ifaceFileDef));
 
     iff->name = cacheName(pt, scopedNameToString(fqname));
+    iff->api_range = api_range;
     iff->type = iftype;
     iff->fqcname = fqname;
     iff->module = NULL;
@@ -2980,10 +2990,10 @@ ifaceFileDef *findIfaceFile(sipSpec *pt, moduleDef *mod, scopedNameDef *fqname,
 /*
  * Find a class definition in a parse tree.
  */
-static classDef *findClass(sipSpec *pt,ifaceFileType iftype,
-               scopedNameDef *fqname)
+static classDef *findClass(sipSpec *pt, ifaceFileType iftype, int api_range,
+        scopedNameDef *fqname)
 {
-    return findClassWithInterface(pt, findIfaceFile(pt, currentModule, fqname, iftype, NULL));
+    return findClassWithInterface(pt, findIfaceFile(pt, currentModule, fqname, iftype, api_range, NULL));
 }
 
 
@@ -3004,7 +3014,6 @@ static classDef *findClassWithInterface(sipSpec *pt, ifaceFileDef *iff)
     cd->iff = iff;
     cd->pyname = cacheName(pt, classBaseName(cd));
     cd->classnr = -1;
-    cd->api_range = -1;
     cd->next = pt->classes;
 
     pt->classes = cd;
@@ -3051,7 +3060,7 @@ static exceptionDef *findException(sipSpec *pt, scopedNameDef *fqname, int new)
     ifaceFileDef *iff;
     classDef *cd;
 
-    iff = findIfaceFile(pt, currentModule, fqname, exception_iface, NULL);
+    iff = findIfaceFile(pt, currentModule, fqname, exception_iface, -1, NULL);
 
     /* See if it is an existing one. */
     for (xd = pt->exceptions; xd != NULL; xd = xd->next)
@@ -3105,8 +3114,8 @@ static exceptionDef *findException(sipSpec *pt, scopedNameDef *fqname, int new)
 /*
  * Find an undefined (or create a new) class definition in a parse tree.
  */
-static classDef *newClass(sipSpec *pt,ifaceFileType iftype,
-              scopedNameDef *fqname)
+static classDef *newClass(sipSpec *pt, ifaceFileType iftype, int api_range,
+        scopedNameDef *fqname)
 {
     int flags;
     classDef *cd, *scope;
@@ -3142,7 +3151,7 @@ static classDef *newClass(sipSpec *pt,ifaceFileType iftype,
         scope = NULL;
     }
 
-    cd = findClass(pt, iftype, fqname);
+    cd = findClass(pt, iftype, api_range, fqname);
 
     /* Check it hasn't already been defined. */
     if (iftype != namespace_iface && cd->iff->module != NULL)
@@ -3209,8 +3218,6 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd, optFlags *of)
 
     if (findOptFlag(of, "PyQt4NoQMetaObject", bool_flag) != NULL)
         setPyQt4NoQMetaObject(cd);
-
-    cd->api_range = getAPIRangeIndex(of);
 
     if (isOpaque(cd))
     {
@@ -3392,7 +3399,8 @@ static mappedTypeDef *newMappedType(sipSpec *pt, argDef *ad, optFlags *of)
         yyerror("Invalid type for %MappedType");
     }
 
-    iff = findIfaceFile(pt, currentModule, snd, mappedtype_iface, ad);
+    iff = findIfaceFile(pt, currentModule, snd, mappedtype_iface,
+            getAPIRangeIndex(of), ad);
 
     /* Check it hasn't already been defined. */
     for (mtd = pt->mappedtypes; mtd != NULL; mtd = mtd->next)
@@ -3414,8 +3422,6 @@ static mappedTypeDef *newMappedType(sipSpec *pt, argDef *ad, optFlags *of)
 
     if (findOptFlag(of, "NoRelease", bool_flag) != NULL)
         setNoRelease(mtd);
-
-    mtd->api_range = getAPIRangeIndex(of);
 
     mtd->iff = iff;
     mtd->next = pt->mappedtypes;
@@ -3444,7 +3450,6 @@ mappedTypeDef *allocMappedType(sipSpec *pt, argDef *type)
 
     mtd->cname = cacheName(pt, type2string(&mtd->type));
     mtd->mappednr = -1;
-    mtd->api_range = -1;
 
     return mtd;
 }
@@ -3790,7 +3795,7 @@ static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod,
     cd->td = td;
 
     /* Handle the interface file. */
-    cd->iff = findIfaceFile(pt, mod, fqname, class_iface, NULL);
+    cd->iff = findIfaceFile(pt, mod, fqname, class_iface, -1, NULL);
     cd->iff->module = mod;
 
     /* Make a copy of the used list and add the enclosing scope. */
@@ -5752,10 +5757,15 @@ static void setModuleName(sipSpec *pt, moduleDef *mod, const char *fullname)
 /*
  * Define a new class and set its name.
  */
-static void defineClass(scopedNameDef *snd)
+static void defineClass(scopedNameDef *snd, classList *supers, optFlags *of)
 {
-    pushScope(newClass(currentSpec, class_iface,
-            scopeScopedName(currentScope(), snd)));
+    classDef *cd;
+
+    cd = newClass(currentSpec, class_iface, getAPIRangeIndex(of),
+            scopeScopedName(currentScope(), snd));
+    cd->supers = supers;
+
+    pushScope(cd);
 }
 
 

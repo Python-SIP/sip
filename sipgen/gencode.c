@@ -1123,7 +1123,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         int nr_files = 1;
 
         for (iff = pt->ifacefiles; iff != NULL; iff = iff->next)
-            if (iff->module == mod)
+            if (iff->module == mod && iff->type != exception_iface)
                 ++nr_files;
 
         max_per_part = (nr_files + parts - 1) / parts;

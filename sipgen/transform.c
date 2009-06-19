@@ -857,7 +857,6 @@ static classDef *getProxy(moduleDef *mod, classDef *cd)
     pcd = sipMalloc(sizeof (classDef));
 
     pcd->classnr = -1;
-    pcd->api_range = -1;
     pcd->pyname = cd->pyname;
     pcd->iff = cd->iff;
     pcd->ecd = cd->ecd;
@@ -2730,7 +2729,8 @@ static mappedTypeDef *instantiateMappedTypeTemplate(sipSpec *pt, moduleDef *mod,
     if (generatingCodeForModule(pt, mod))
         setIsUsedName(mtd->cname);
 
-    mtd->iff = findIfaceFile(pt, mod, type->u.td->fqname, mappedtype_iface, type);
+    mtd->iff = findIfaceFile(pt, mod, type->u.td->fqname, mappedtype_iface,
+            -1, type);
     mtd->iff->module = mod;
 
     appendCodeBlock(&mtd->iff->hdrcode, templateCode(pt, &mtd->iff->used, mtt->mt->iff->hdrcode, type_names, type_values));
