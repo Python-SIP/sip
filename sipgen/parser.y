@@ -1415,10 +1415,7 @@ struct:     TK_STRUCT scopedname {
                 yyerror("Namespaces not allowed in a C module");
 
             if (notSkipping())
-            {
                 currentSupers = NULL;
-                sectionFlags = SECT_IS_PUBLIC;
-            }
         } superclasses optflags {
             if (notSkipping())
             {
@@ -1426,6 +1423,7 @@ struct:     TK_STRUCT scopedname {
                     yyerror("Super-classes not allowed in a C module struct");
 
                 defineClass($2, currentSupers, &$5);
+                sectionFlags = SECT_IS_PUBLIC;
             }
         } optclassbody ';' {
             if (notSkipping())
@@ -1470,13 +1468,11 @@ class:  TK_CLASS scopedname {
                 yyerror("Class definition not allowed in a C module");
 
             if (notSkipping())
-            {
                 currentSupers = NULL;
-                sectionFlags = SECT_IS_PRIVATE;
-            }
         } superclasses optflags {
             if (notSkipping())
                 defineClass($2, currentSupers, &$5);
+                sectionFlags = SECT_IS_PRIVATE;
         } optclassbody ';' {
             if (notSkipping())
                 $$ = completeClass($2, &$5, $7);
@@ -2893,7 +2889,7 @@ static void parseFile(FILE *fp, char *name, moduleDef *prevmod, int optional)
 ifaceFileDef *findIfaceFile(sipSpec *pt, moduleDef *mod, scopedNameDef *fqname,
         ifaceFileType iftype, int api_range, argDef *ad)
 {
-    ifaceFileDef *iff;
+    ifaceFileDef *iff, *alt_api = NULL;
 
     /* See if the name is already used. */
 
@@ -2903,9 +2899,22 @@ ifaceFileDef *findIfaceFile(sipSpec *pt, moduleDef *mod, scopedNameDef *fqname,
             continue;
 
         /*
-         * They must be the same type except that we allow a class if if we
-         * want an exception.  This is because we allow classes to be used
-         * before they are defined.
+         * If they are both versioned then assume the user knows what they are
+         * doing.
+         */
+        if (iff->api_range >= 0 && api_range >= 0 && iff->module == mod)
+        {
+            /* Remember the first of the alternate APIs. */
+            if ((alt_api = iff->alt_api) == NULL)
+                alt_api = iff;
+
+            break;
+        }
+
+        /*
+         * They must be the same type except that we allow a class if we want
+         * an exception.  This is because we allow classes to be used before
+         * they are defined.
          */
         if (iff->type != iftype)
             if (iftype != exception_iface || iff->type != class_iface)
@@ -2974,6 +2983,7 @@ ifaceFileDef *findIfaceFile(sipSpec *pt, moduleDef *mod, scopedNameDef *fqname,
 
     iff->name = cacheName(pt, scopedNameToString(fqname));
     iff->api_range = api_range;
+    iff->alt_api = alt_api;
     iff->type = iftype;
     iff->fqcname = fqname;
     iff->module = NULL;
@@ -3122,7 +3132,7 @@ static classDef *newClass(sipSpec *pt, ifaceFileType iftype, int api_range,
     codeBlock *hdrcode;
 
     if (sectionFlags & SECT_IS_PRIVATE)
-        yyerror("Classes, structs and namespaces must be in the public or or protected sections");
+        yyerror("Classes, structs and namespaces must be in the public or protected sections");
 
     flags = 0;
 

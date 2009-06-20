@@ -723,6 +723,7 @@ typedef struct _moduleListDef {
 typedef struct _ifaceFileDef {
     nameDef *name;                      /* The name. */
     int api_range;                      /* The optional API version range. */
+    struct _ifaceFileDef *alt_api;      /* The optional alternate API. */
     ifaceFileType type;                 /* Interface file type. */
     scopedNameDef *fqcname;             /* The fully qualified C++ name. */
     moduleDef *module;                  /* The owning module. */

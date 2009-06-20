@@ -3065,12 +3065,18 @@ static void createSortedNumberedTypesTable(sipSpec *pt, moduleDef *mod)
         if (cd->iff->module != mod)
             continue;
 
+        if (cd->iff->api_range >= 0 && cd->iff->alt_api != NULL)
+            continue;
+
         mod->nrtypes++;
     }
 
     for (mtd = pt->mappedtypes; mtd != NULL; mtd = mtd->next)
     {
         if (mtd->iff->module != mod)
+            continue;
+
+        if (mtd->iff->api_range >= 0 && mtd->iff->alt_api != NULL)
             continue;
 
         mod->nrtypes++;
@@ -3101,6 +3107,9 @@ static void createSortedNumberedTypesTable(sipSpec *pt, moduleDef *mod)
         if (cd->iff->module != mod)
             continue;
 
+        if (cd->iff->api_range >= 0 && cd->iff->alt_api != NULL)
+            continue;
+
         ad->atype = class_type;
         ad->u.cd = cd;
         ad->name = cd->iff->name->text;
@@ -3111,6 +3120,9 @@ static void createSortedNumberedTypesTable(sipSpec *pt, moduleDef *mod)
     for (mtd = pt->mappedtypes; mtd != NULL; mtd = mtd->next)
     {
         if (mtd->iff->module != mod)
+            continue;
+
+        if (mtd->iff->api_range >= 0 && mtd->iff->alt_api != NULL)
             continue;
 
         ad->atype = mapped_type;
