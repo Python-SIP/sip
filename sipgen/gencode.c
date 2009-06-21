@@ -224,6 +224,8 @@ static int py2_5LaterSlot(slotType st);
 static int keepPyReference(argDef *ad);
 static int isDuplicateProtected(classDef *cd, overDef *target);
 static char getEncoding(argType atype);
+static void generateTypeDefName(ifaceFileDef *iff, FILE *fp);
+static void generateTypeDefLink(ifaceFileDef *iff, int embedded, FILE *fp);
 
 
 /*
@@ -2071,23 +2073,14 @@ static void generateTypesTable(sipSpec *pt, moduleDef *mod, FILE *fp)
 
     for (ad = mod->types, i = 0; i < mod->nrtypes; ++i, ++ad)
     {
-        const char *type_prefix, *type_suffix;
+        const char *type_suffix;
 
         if (pluginPyQt4(pt))
-        {
-            type_prefix = "pyqt4";
             type_suffix = ".super";
-        }
         else if (pluginPyQt3(pt) && ad->atype == class_type)
-        {
-            type_prefix = "pyqt3";
             type_suffix = ".super";
-        }
         else
-        {
-            type_prefix = "sip";
-                type_suffix = "";
-        }
+            type_suffix = "";
 
         switch (ad->atype)
         {
@@ -2098,15 +2091,15 @@ static void generateTypesTable(sipSpec *pt, moduleDef *mod, FILE *fp)
                     );
             else
                 prcode(fp,
-"    &%sType_%s_%L%s.ctd_base,\n"
-                    , type_prefix, mod->name, ad->u.cd->iff, type_suffix);
+"    &sipTypeDef_%s_%L%s.ctd_base,\n"
+                    , mod->name, ad->u.cd->iff, type_suffix);
 
             break;
 
         case mapped_type:
             prcode(fp,
-"    &%sMappedTypeDef_%s_%L%s.mtd_base,\n"
-                , type_prefix, mod->name, ad->u.mtd->iff, type_suffix);
+"    &sipTypeDef_%s_%L%s.mtd_base,\n"
+                , mod->name, ad->u.mtd->iff, type_suffix);
             break;
 
         case enum_type:
@@ -3418,19 +3411,26 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 "}\n"
 "\n"
 "\n"
-"%sMappedTypeDef %sMappedTypeDef_%s_%L = {\n"
+"%sMappedTypeDef ", type_prefix);
+
+    generateTypeDefName(mtd->iff, fp);
+
+    prcode(fp, " = {\n"
 "%s"
 "    {\n"
 "        %d,\n"
-"        0,\n"
+"        "
+        , (embedded ? "{\n" : "")
+        , mtd->iff->api_range);
+
+    generateTypeDefLink(mtd->iff, embedded, fp);
+
+    prcode(fp, ",\n"
 "        0,\n"
 "        SIP_TYPE_MAPPED,\n"
 "        %n,\n"
 "        {0}\n"
 "    },\n"
-        , type_prefix, type_prefix, mtd->iff->module->name, mtd->iff
-        , (embedded ? "{\n" : "")
-        , mtd->iff->api_range
         , mtd->cname);
 
     if (noRelease(mtd))
@@ -3468,6 +3468,32 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
     prcode(fp,
 "};\n"
         );
+}
+
+
+/*
+ * Generate the name of the type structure for a class or mapped type.
+ */
+static void generateTypeDefName(ifaceFileDef *iff, FILE *fp)
+{
+    prcode(fp, "sipTypeDef_%s_%L", iff->module->name, iff);
+}
+
+
+/*
+ * Generate the link to a type structure implementing an alternate API.
+ */
+static void generateTypeDefLink(ifaceFileDef *iff, int embedded, FILE *fp)
+{
+    if (iff->next_alt != NULL)
+    {
+        prcode(fp, "&");
+        generateTypeDefName(iff->next_alt, fp);
+        prcode(fp, "%s.%s", (embedded ? ".super" : ""),
+                (iff->next_alt->type == mappedtype_iface ? "mtd_base" : "ctd_base"));
+    }
+    else
+        prcode(fp, "0");
 }
 
 
@@ -7381,8 +7407,8 @@ static void generateMappedTypeAPI(sipSpec *pt, mappedTypeDef *mtd, FILE *fp)
 
     prcode(fp,
 "\n"
-"extern %sMappedTypeDef %sMappedTypeDef_%s_%L;\n"
-        , type_prefix, type_prefix, mtd->iff->module->name, mtd->iff);
+"extern %sMappedTypeDef sipTypeDef_%s_%L;\n"
+        , type_prefix, mtd->iff->module->name, mtd->iff);
 }
 
 
@@ -7452,8 +7478,8 @@ static void generateClassAPI(classDef *cd, sipSpec *pt, FILE *fp)
 
         prcode(fp,
 "\n"
-"extern %sClassTypeDef %sType_%s_%L;\n"
-            , type_prefix, type_prefix, mname, cd->iff);
+"extern %sClassTypeDef sipTypeDef_%s_%L;\n"
+            , type_prefix, mname, cd->iff);
     }
 }
 
@@ -8535,16 +8561,23 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
     prcode(fp,
 "\n"
 "\n"
-"%sClassTypeDef %sType_%s_%L = {\n"
+"%sClassTypeDef ", type_prefix);
+
+    generateTypeDefName(cd->iff, fp);
+
+    prcode(fp, " = {\n"
 "%s"
 "    {\n"
 "        %d,\n"
-"        0,\n"
-"        0,\n"
 "        "
-        , type_prefix, type_prefix, mname, cd->iff
         , (embedded ? "{\n" : "")
         , cd->iff->api_range);
+
+    generateTypeDefLink(cd->iff, embedded, fp);
+
+    prcode(fp, ",\n"
+"        0,\n"
+"        ");
 
     sep = "";
 
