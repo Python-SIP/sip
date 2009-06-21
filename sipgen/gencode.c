@@ -4741,7 +4741,9 @@ static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
         prcode(fp,
 "extern \"C\" {static %sslot_", ret_type);
 
-        if (fqcname != NULL)
+        if (cd != NULL)
+            prcode(fp, "%L_", cd);
+        else if (fqcname != NULL)
             prcode(fp, "%C_", fqcname);
 
         prcode(fp, "%s(%s);}\n"
@@ -4751,7 +4753,9 @@ static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
     prcode(fp,
 "static %sslot_", ret_type);
 
-    if (fqcname != NULL)
+    if (cd != NULL)
+        prcode(fp, "%L_", cd);
+    else if (fqcname != NULL)
         prcode(fp, "%C_", fqcname);
 
     prcode(fp, "%s(%s)\n"
