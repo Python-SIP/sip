@@ -116,6 +116,7 @@ static void applyTypeFlags(moduleDef *mod, argDef *ad, optFlags *flags);
 static argType convertEncoding(const char *encoding);
 static int getAPIRangeIndex(optFlags *optflgs);
 static int convertAPIRange(sipSpec *pt, nameDef *name, int from, int to);
+static scopedNameDef *text2scopePart(char *text);
 %}
 
 %union {
@@ -2889,7 +2890,7 @@ static void parseFile(FILE *fp, char *name, moduleDef *prevmod, int optional)
 ifaceFileDef *findIfaceFile(sipSpec *pt, moduleDef *mod, scopedNameDef *fqname,
         ifaceFileType iftype, int api_range, argDef *ad)
 {
-    ifaceFileDef *iff, *alt_api = NULL;
+    ifaceFileDef *iff, *first_alt = NULL;
 
     /* See if the name is already used. */
 
@@ -2905,8 +2906,8 @@ ifaceFileDef *findIfaceFile(sipSpec *pt, moduleDef *mod, scopedNameDef *fqname,
         if (iff->api_range >= 0 && api_range >= 0 && iff->module == mod)
         {
             /* Remember the first of the alternate APIs. */
-            if ((alt_api = iff->alt_api) == NULL)
-                alt_api = iff;
+            if ((first_alt = iff->first_alt) == NULL)
+                first_alt = iff;
 
             break;
         }
@@ -2983,7 +2984,15 @@ ifaceFileDef *findIfaceFile(sipSpec *pt, moduleDef *mod, scopedNameDef *fqname,
 
     iff->name = cacheName(pt, scopedNameToString(fqname));
     iff->api_range = api_range;
-    iff->alt_api = alt_api;
+
+    if (first_alt != NULL)
+    {
+        iff->first_alt = first_alt;
+        iff->next_alt = first_alt->next_alt;
+
+        first_alt->next_alt = iff;
+    }
+
     iff->type = iftype;
     iff->fqcname = fqname;
     iff->module = NULL;
@@ -3382,6 +3391,69 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd, optFlags *of)
 
 
 /*
+ * Return the encoded name of a template (ie. including its argument types) as
+ * a scoped name.
+ */
+scopedNameDef *encodedTemplateName(templateDef *td)
+{
+    int a;
+    scopedNameDef *snd;
+
+    snd = copyScopedName(td->fqname);
+
+    for (a = 0; a < td->types.nrArgs; ++a)
+    {
+        char buf[50];
+        int flgs;
+        scopedNameDef *arg_snd;
+        argDef *ad = &td->types.args[a];
+
+        flgs = 0;
+
+        if (isConstArg(ad))
+            flgs += 1;
+
+        if (isReference(ad))
+            flgs += 2;
+
+        /* We use numbers so they don't conflict with names. */
+        sprintf(buf, "%02d%d%d", ad->atype, flgs, ad->nrderefs);
+
+        switch (ad->atype)
+        {
+        case defined_type:
+            arg_snd = copyScopedName(ad->u.snd);
+            break;
+
+        case template_type:
+            arg_snd = encodedTemplateName(ad->u.td);
+            break;
+
+        case struct_type:
+            arg_snd = copyScopedName(ad->u.sname);
+            break;
+
+        default:
+            arg_snd = NULL;
+        }
+
+        /*
+         * Replace the first element of the argument name with a copy with the
+         * encoding prepended.
+         */
+        if (arg_snd != NULL)
+            arg_snd->name = concat(buf, arg_snd->name, NULL);
+        else
+            arg_snd = text2scopePart(sipStrdup(buf));
+
+        appendScopedName(&snd, arg_snd);
+    }
+
+    return snd;
+}
+
+
+/*
  * Create a new mapped type.
  */
 static mappedTypeDef *newMappedType(sipSpec *pt, argDef *ad, optFlags *of)
@@ -3398,7 +3470,7 @@ static mappedTypeDef *newMappedType(sipSpec *pt, argDef *ad, optFlags *of)
         break;
 
     case template_type:
-        snd = ad->u.td->fqname;
+        snd = encodedTemplateName(ad->u.td);
         break;
 
     case struct_type:
@@ -3417,8 +3489,8 @@ static mappedTypeDef *newMappedType(sipSpec *pt, argDef *ad, optFlags *of)
         if (mtd->iff == iff)
         {
             /*
-             * We allow types based on the same template but with
-             * different arguments.
+             * We allow types based on the same template but with different
+             * arguments.
              */
             if (ad->atype != template_type || sameBaseType(ad, &mtd->type))
                 yyerror("Mapped type has already been defined in this module");
@@ -3744,7 +3816,13 @@ static char *scopedNameToString(scopedNameDef *name)
         len += strlen(snd->name);
 
         if (snd->next != NULL)
+        {
+            /* Ignore the encoded part of template names. */
+            if (isdigit(snd->next->name[0]))
+                break;
+
             len += strlen(scope_string);
+        }
     }
 
     /* Allocate and populate the buffer. */
@@ -3757,6 +3835,10 @@ static char *scopedNameToString(scopedNameDef *name)
 
         if (snd->next != NULL)
         {
+            /* Ignore the encoded part of template names. */
+            if (isdigit(snd->next->name[0]))
+                break;
+
             strcpy(dp, scope_string);
             dp += strlen(scope_string);
         }
@@ -5362,14 +5444,14 @@ void freeScopedName(scopedNameDef *snd)
 /*
  * Convert a text string to a scope part structure.
  */
-scopedNameDef *text2scopePart(char *text)
+static scopedNameDef *text2scopePart(char *text)
 {
     scopedNameDef *snd;
 
     snd = sipMalloc(sizeof (scopedNameDef));
 
-    snd -> name = text;
-    snd -> next = NULL;
+    snd->name = text;
+    snd->next = NULL;
 
     return snd;
 }

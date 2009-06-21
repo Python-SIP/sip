@@ -723,7 +723,8 @@ typedef struct _moduleListDef {
 typedef struct _ifaceFileDef {
     nameDef *name;                      /* The name. */
     int api_range;                      /* The optional API version range. */
-    struct _ifaceFileDef *alt_api;      /* The optional alternate API. */
+    struct _ifaceFileDef *first_alt;    /* The first alternate API. */
+    struct _ifaceFileDef *next_alt;     /* The next alternate API. */
     ifaceFileType type;                 /* Interface file type. */
     scopedNameDef *fqcname;             /* The fully qualified C++ name. */
     moduleDef *module;                  /* The owning module. */
@@ -1058,7 +1059,6 @@ int sameTemplateSignature(signatureDef *tmpl_sd, signatureDef *args_sd,
 int compareScopedNames(scopedNameDef *snd1, scopedNameDef *snd2);
 int sameBaseType(argDef *,argDef *);
 char *scopedNameTail(scopedNameDef *);
-scopedNameDef *text2scopePart(char *);
 scopedNameDef *copyScopedName(scopedNameDef *);
 void appendScopedName(scopedNameDef **,scopedNameDef *);
 void freeScopedName(scopedNameDef *);
@@ -1084,6 +1084,7 @@ int pluginPyQt3(sipSpec *pt);
 int pluginPyQt4(sipSpec *pt);
 void yywarning(char *);
 nameDef *cacheName(sipSpec *pt, const char *name);
+scopedNameDef *encodedTemplateName(templateDef *td);
 
 
 /* These are only here because bison publically references them. */

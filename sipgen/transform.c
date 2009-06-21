@@ -2729,8 +2729,8 @@ static mappedTypeDef *instantiateMappedTypeTemplate(sipSpec *pt, moduleDef *mod,
     if (generatingCodeForModule(pt, mod))
         setIsUsedName(mtd->cname);
 
-    mtd->iff = findIfaceFile(pt, mod, type->u.td->fqname, mappedtype_iface,
-            -1, type);
+    mtd->iff = findIfaceFile(pt, mod, encodedTemplateName(type->u.td),
+            mappedtype_iface, -1, type);
     mtd->iff->module = mod;
 
     appendCodeBlock(&mtd->iff->hdrcode, templateCode(pt, &mtd->iff->used, mtt->mt->iff->hdrcode, type_names, type_values));
@@ -3065,7 +3065,7 @@ static void createSortedNumberedTypesTable(sipSpec *pt, moduleDef *mod)
         if (cd->iff->module != mod)
             continue;
 
-        if (cd->iff->api_range >= 0 && cd->iff->alt_api != NULL)
+        if (cd->iff->api_range >= 0 && cd->iff->first_alt != NULL)
             continue;
 
         mod->nrtypes++;
@@ -3076,7 +3076,7 @@ static void createSortedNumberedTypesTable(sipSpec *pt, moduleDef *mod)
         if (mtd->iff->module != mod)
             continue;
 
-        if (mtd->iff->api_range >= 0 && mtd->iff->alt_api != NULL)
+        if (mtd->iff->api_range >= 0 && mtd->iff->first_alt != NULL)
             continue;
 
         mod->nrtypes++;
@@ -3107,7 +3107,7 @@ static void createSortedNumberedTypesTable(sipSpec *pt, moduleDef *mod)
         if (cd->iff->module != mod)
             continue;
 
-        if (cd->iff->api_range >= 0 && cd->iff->alt_api != NULL)
+        if (cd->iff->api_range >= 0 && cd->iff->first_alt != NULL)
             continue;
 
         ad->atype = class_type;
@@ -3122,7 +3122,7 @@ static void createSortedNumberedTypesTable(sipSpec *pt, moduleDef *mod)
         if (mtd->iff->module != mod)
             continue;
 
-        if (mtd->iff->api_range >= 0 && mtd->iff->alt_api != NULL)
+        if (mtd->iff->api_range >= 0 && mtd->iff->first_alt != NULL)
             continue;
 
         ad->atype = mapped_type;
