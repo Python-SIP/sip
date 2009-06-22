@@ -70,8 +70,9 @@ int sip_api_is_api_enabled(const char *name, int from, int to)
  */
 int sipInitAPI(sipExportedModuleDef *em, PyObject *mod_dict)
 {
-    int *apis;
+    int *apis, i;
     sipVersionedFunctionDef *vf;
+    sipTypeDef **tdp;
 
     /* See if the module defines any APIs. */
     if ((apis = em->em_versions) != NULL)
@@ -134,7 +135,21 @@ int sipInitAPI(sipExportedModuleDef *em, PyObject *mod_dict)
         }
     }
 
-    /* TODO: Update the types table according to any version information. */
+    /* Update the types table according to any version information. */
+    for (tdp = em->em_types, i = 0; i < em->em_nrtypes; ++i, ++tdp)
+    {
+        sipTypeDef *td;
+
+        if ((td = *tdp) != NULL && td->td_version >= 0)
+        {
+            do
+                if (is_range_enabled(em, td->td_version))
+                    break;
+            while ((td = td->td_next_version) != NULL);
+
+            *tdp = td;
+        }
+    }
 
     return 0;
 }

@@ -274,6 +274,9 @@ Class Annotations
     This API range annotation is used to specify an API and corresponding
     range of version numbers that the class is enabled for.
 
+    If a class or mapped type has different implementations enabled for
+    different ranges of version numbers then those ranges must not overlap.
+
     See :ref:`ref-incompat-apis` for more detail.
 
 
@@ -387,6 +390,9 @@ Mapped Type Annotations
 
     This API range annotation is used to specify an API and corresponding
     range of version numbers that the mapped type is enabled for.
+
+    If a class or mapped type has different implementations enabled for
+    different ranges of version numbers then those ranges must not overlap.
 
     See :ref:`ref-incompat-apis` for more detail.
 
