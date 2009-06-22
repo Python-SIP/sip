@@ -676,6 +676,7 @@ typedef struct _moduleDef {
     const char *name;                   /* The module base name. */
     int version;                        /* The module version. */
     apiVersionRangeDef *api_versions;   /* The defined APIs. */
+    apiVersionRangeDef *api_ranges;     /* The list of API version ranges. */
     int modflags;                       /* The module flags. */
     int qobjclass;                      /* QObject class, -1 if none. */
     struct _memberDef *othfuncs;        /* List of other functions. */
@@ -1009,7 +1010,6 @@ typedef struct {
     int sigslots;                       /* Set if signals or slots are used. */
     int genc;                           /* Set if we are generating C code. */
     struct _stringList *plugins;        /* The list of plugins. */
-    apiVersionRangeDef *api_versions;   /* The list of API version ranges. */
 } sipSpec;
 
 

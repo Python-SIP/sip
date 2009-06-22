@@ -1636,7 +1636,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
             , mod->nrexceptions);
 
     /* Generate any API versions table. */
-    if (pt->api_versions != NULL || mod->api_versions != NULL)
+    if (mod->api_ranges != NULL || mod->api_versions != NULL)
     {
         apiVersionRangeDef *avd;
 
@@ -1648,7 +1648,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "/* This defines the API versions and ranges in use. */\n"
 "static int apiVersions[] = {");
         
-        for (avd = pt->api_versions; avd != NULL; avd = avd->next)
+        for (avd = mod->api_ranges; avd != NULL; avd = avd->next)
             prcode(fp, "%n, %d, %d, ", avd->api_name, avd->from, avd->to);
 
         for (avd = mod->api_versions; avd != NULL; avd = avd->next)
@@ -7365,19 +7365,23 @@ static void generateImportedModuleAPI(sipSpec *pt, moduleDef *mod,
 static void generateImportedMappedTypeAPI(mappedTypeDef *mtd, moduleDef *mod,
         FILE *fp)
 {
-    const char *mname = mod->name;
-    const char *imname = mtd->iff->module->name;
-    argDef type;
+    /* Ignore alternate API implementations. */
+    if (mtd->mappednr >= 0)
+    {
+        const char *mname = mod->name;
+        const char *imname = mtd->iff->module->name;
+        argDef type;
 
-    memset(&type, 0, sizeof (argDef));
+        memset(&type, 0, sizeof (argDef));
 
-    type.atype = mapped_type;
-    type.u.mtd = mtd;
+        type.atype = mapped_type;
+        type.u.mtd = mtd;
 
-    prcode(fp,
+        prcode(fp,
 "\n"
 "#define sipType_%T      sipModuleAPI_%s_%s->em_types[%d]\n"
-        , &type, mname, imname, mtd->mappednr);
+            , &type, mname, imname, mtd->mappednr);
+    }
 }
 
 
@@ -7418,28 +7422,32 @@ static void generateMappedTypeAPI(sipSpec *pt, mappedTypeDef *mtd, FILE *fp)
 static void generateImportedClassAPI(classDef *cd, sipSpec *pt, moduleDef *mod,
         FILE *fp)
 {
-    const char *mname = mod->name;
-    const char *imname = cd->iff->module->name;
-
     prcode(fp,
 "\n"
         );
 
-    if (cd->iff->type == namespace_iface)
-        prcode(fp,
-"#if !defined(sipType_%L)\n"
-            , cd->iff);
+    /* Ignore alternate API implementations. */
+    if (cd->classnr >= 0)
+    {
+        const char *mname = mod->name;
+        const char *imname = cd->iff->module->name;
 
-    prcode(fp,
+        if (cd->iff->type == namespace_iface)
+            prcode(fp,
+"#if !defined(sipType_%L)\n"
+                , cd->iff);
+
+        prcode(fp,
 "#define sipType_%C              sipModuleAPI_%s_%s->em_types[%d]\n"
 "#define sipClass_%C             sipModuleAPI_%s_%s->em_types[%d]->u.td_wrapper_type\n"
-        , classFQCName(cd), mname, imname, cd->classnr
-        , classFQCName(cd), mname, imname, cd->classnr);
+            , classFQCName(cd), mname, imname, cd->classnr
+            , classFQCName(cd), mname, imname, cd->classnr);
 
-    if (cd->iff->type == namespace_iface)
-        prcode(fp,
+        if (cd->iff->type == namespace_iface)
+            prcode(fp,
 "#endif\n"
-            );
+                );
+    }
 
     generateEnumMacros(pt, mod, cd, fp);
 }

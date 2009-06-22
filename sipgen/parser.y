@@ -115,7 +115,7 @@ static void addVariable(sipSpec *pt, varDef *vd);
 static void applyTypeFlags(moduleDef *mod, argDef *ad, optFlags *flags);
 static argType convertEncoding(const char *encoding);
 static int getAPIRangeIndex(optFlags *optflgs);
-static int convertAPIRange(sipSpec *pt, nameDef *name, int from, int to);
+static int convertAPIRange(moduleDef *mod, nameDef *name, int from, int to);
 static scopedNameDef *text2scopePart(char *text);
 %}
 
@@ -1441,8 +1441,7 @@ classtmpl:  template {currentIsTemplate = TRUE;} class {
                 classTmplDef *tcd;
 
                 /*
-                 * Make sure there is room for the extra class
-                 * name argument.
+                 * Make sure there is room for the extra class name argument.
                  */
                 if ($1.nrArgs == MAX_NR_ARGS)
                     yyerror("Internal error - increase the value of MAX_NR_ARGS");
@@ -1472,8 +1471,10 @@ class:  TK_CLASS scopedname {
                 currentSupers = NULL;
         } superclasses optflags {
             if (notSkipping())
+            {
                 defineClass($2, currentSupers, &$5);
                 sectionFlags = SECT_IS_PRIVATE;
+            }
         } optclassbody ';' {
             if (notSkipping())
                 $$ = completeClass($2, &$5, $7);
@@ -2057,30 +2058,26 @@ flagvalue:  dottedname {
             $$.fvalue.sval = $1;
         }
     |   TK_NAME ':' optnumber '-' optnumber {
+            nameDef *name;
+            int from, to;
+
             $$.ftype = api_range_flag;
 
+            /* Check that the API is known. */
+            if ((name = findAPI(currentSpec, $1)) == NULL)
+                yyerror("unknown API name in API annotation");
+
             if (inMainModule())
-            {
-                nameDef *name;
-                int from, to;
-
-                /* Check that the API is known. */
-                if ((name = findAPI(currentSpec, $1)) == NULL)
-                    yyerror("unknown API name in API annotation");
-
                 setIsUsedName(name);
 
-                /* Unbounded values are represented by 0. */
-                if ((from = $3) < 0)
-                    from = 0;
+            /* Unbounded values are represented by 0. */
+            if ((from = $3) < 0)
+                from = 0;
 
-                if ((to = $5) < 0)
-                    to = 0;
+            if ((to = $5) < 0)
+                to = 0;
 
-                $$.fvalue.ival = convertAPIRange(currentSpec, name, from, to);
-            }
-            else
-                $$.fvalue.ival = -1;
+            $$.fvalue.ival = convertAPIRange(currentModule, name, from, to);
         }
     |   TK_STRING {
             $$.ftype = string_flag;
@@ -2740,7 +2737,6 @@ void parse(sipSpec *spec, FILE *fp, char *filename, stringList *tsl,
     spec->sigslots = FALSE;
     spec->genc = -1;
     spec->plugins = NULL;
-    spec->api_versions = NULL;
 
     currentSpec = spec;
     neededQualifiers = tsl;
@@ -5974,7 +5970,7 @@ static int getAPIRangeIndex(optFlags *optflgs)
 /*
  * Return the version number corresponding to the given API range.
  */
-static int convertAPIRange(sipSpec *pt, nameDef *name, int from, int to)
+static int convertAPIRange(moduleDef *mod, nameDef *name, int from, int to)
 {
     int version;
     apiVersionRangeDef *avd, **avdp;
@@ -5983,7 +5979,7 @@ static int convertAPIRange(sipSpec *pt, nameDef *name, int from, int to)
     if (from == 0 && to == 0)
         return -1;
 
-    for (version = 0, avdp = &pt->api_versions; (*avdp) != NULL; avdp = &(*avdp)->next, ++version)
+    for (version = 0, avdp = &mod->api_ranges; (*avdp) != NULL; avdp = &(*avdp)->next, ++version)
     {
         avd = *avdp;
 
