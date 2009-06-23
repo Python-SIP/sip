@@ -6008,7 +6008,24 @@ static PyObject *sip_api_convert_from_new_type(void *cpp, const sipTypeDef *td,
     }
 
     if (sipTypeIsMapped(td))
-        return ((const sipMappedTypeDef *)td)->mtd_cfrom(cpp, transferObj);
+    {
+        PyObject *res = ((const sipMappedTypeDef *)td)->mtd_cfrom(cpp,
+                transferObj);
+
+        if (res != NULL)
+        {
+            /*
+             * We no longer need the C/C++ instance so we release it (unless
+             * its ownership is transferred).  This means this call is
+             * semantically equivalent to the case where the type is a wrapped
+             * class.
+             */
+            if (transferObj == NULL || transferObj == Py_None)
+                release(cpp, td, 0);
+        }
+
+        return res;
+    }
 
     assert(sipTypeIsClass(td));
 
@@ -6017,10 +6034,10 @@ static PyObject *sip_api_convert_from_new_type(void *cpp, const sipTypeDef *td,
         td = convertSubClass(td, &cpp);
 
     /* Handle any ownership transfer. */
-    if (transferObj != NULL && transferObj != Py_None)
-        owner = (sipWrapper *)transferObj;
-    else
+    if (transferObj == NULL || transferObj == Py_None)
         owner = NULL;
+    else
+        owner = (sipWrapper *)transferObj;
 
     return sipWrapSimpleInstance(cpp, td, owner, (owner == NULL ? SIP_PY_OWNED : 0));
 }

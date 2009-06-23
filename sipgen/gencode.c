@@ -3903,15 +3903,14 @@ static void generateVariableGetter(classDef *context, varDef *vd, FILE *fp)
     switch (atype)
     {
     case mapped_type:
-        prcode(fp,
-"    return sipConvertFromType(sipVal, sipType_%T, NULL);\n"
-            , &vd->type);
-
-        break;
-
     case class_type:
         {
-            classDef *cd = vd->type.u.cd;
+            ifaceFileDef *iff;
+
+            if (atype == mapped_type)
+                iff = vd->type.u.mtd->iff;
+            else
+                iff = vd->type.u.cd->iff;
 
             prcode(fp,
 "    return sipConvertFrom%sType(", (needsNew ? "New" : ""));
@@ -3922,7 +3921,7 @@ static void generateVariableGetter(classDef *context, varDef *vd, FILE *fp)
                 prcode(fp, "sipVal");
 
             prcode(fp, ",sipType_%C, NULL);\n"
-                , classFQCName(cd));
+                , iff->fqcname);
         }
 
         break;
@@ -9884,39 +9883,17 @@ static void generateHandleResult(overDef *od, int isNew, int result_size,
     /* Handle results that are classes or mapped types separately. */
     if (res != NULL)
     {
+        ifaceFileDef *iff;
+
         if (res->atype == mapped_type)
-        {
-            prcode(fp,
-"            PyObject *sipResObj = sipConvertFromType(");
-
-            if (isConstArg(res))
-                prcode(fp,"const_cast<%b *>(sipRes)",res);
-            else
-                prcode(fp,"sipRes");
-
-            prcode(fp,",sipType_%T,%s);\n"
-                , res, resultOwner(od));
-
-            if (isNew)
-                prcode(fp,
-"            delete sipRes;\n"
-                    );
-
-            /* Shortcut if this is the only value returned. */
-            if (nrvals == 1)
-            {
-                prcode(fp,
-"\n"
-"            %s sipResObj;\n"
-                    ,prefix);
-
-                return;
-            }
-        }
+            iff = res->u.mtd->iff;
         else if (res->atype == class_type)
-        {
-            classDef *cd = res->u.cd;
+            iff = res->u.cd->iff;
+        else
+            iff = NULL;
 
+        if (iff != NULL)
+        {
             if (isNew || isFactory(od))
             {
                 prcode(fp,
@@ -9928,7 +9905,7 @@ static void generateHandleResult(overDef *od, int isNew, int result_size,
                     prcode(fp,"sipRes");
 
                 prcode(fp,",sipType_%C,%s);\n"
-                    ,classFQCName(cd),((has_owner && isFactory(od)) ? "(PyObject *)sipOwner" : "NULL"));
+                    , iff->fqcname, ((has_owner && isFactory(od)) ? "(PyObject *)sipOwner" : "NULL"));
 
                 /*
                  * Shortcut if this is the only value returned.
@@ -9947,7 +9924,7 @@ static void generateHandleResult(overDef *od, int isNew, int result_size,
                     prcode(fp,"sipRes");
 
                 prcode(fp, ",sipType_%C,%s);\n"
-                    , classFQCName(cd), resultOwner(od));
+                    , iff->fqcname, resultOwner(od));
 
                 /*
                  * Shortcut if this is the only value returned.
@@ -10030,46 +10007,30 @@ static void generateHandleResult(overDef *od, int isNew, int result_size,
     switch (ad->atype)
     {
     case mapped_type:
-        prcode(fp,
-"            %s sipConvertFromType(", prefix);
-
-        if (isConstArg(ad))
-            prcode(fp,"const_cast<%b *>(%s)",ad,vname);
-        else
-            prcode(fp,"%s",vname);
-
-        prcode(fp,",sipType_%T,%s);\n"
-            , ad, (isTransferredBack(ad) ? "Py_None" : "NULL"));
-
-        break;
-
     case class_type:
         {
-            classDef *cd = ad->u.cd;
             int needNew = needNewInstance(ad);
+            ifaceFileDef *iff;
 
-            if (needNew)
-                prcode(fp,
-"            %s sipConvertFromNewType(", prefix);
+            if (ad->atype == mapped_type)
+                iff = ad->atype->u.mtd->iff;
             else
-                prcode(fp,
-"            %s sipConvertFromType(", prefix);
+                iff = ad->atype->u.cd->iff;
+
+            prcode(fp,
+"            %s sipConvertFrom%sType(", prefix, (needNew ? "New" : ""));
 
             if (isConstArg(ad))
                 prcode(fp,"const_cast<%b *>(%s)",ad,vname);
             else
                 prcode(fp,"%s",vname);
 
-            prcode(fp,",sipType_%C,",classFQCName(cd));
+            prcode(fp, ",sipType_%C,", iff->fqcname);
 
-            if (needNew)
-                prcode(fp,"NULL");
+            if (needNew || !isTransferredBack(ad))
+                prcode(fp, "NULL);\n");
             else
-                prcode(fp,"%s\n"
-                    , (isTransferredBack(ad) ? "Py_None" : "NULL"));
-
-            prcode(fp,");\n"
-                );
+                prcode(fp, "Py_None);\n");
         }
 
         break;
