@@ -435,8 +435,11 @@ static PyObject *parseString_AsEncodedString(PyObject *bytes, PyObject *obj,
         const char **ap);
 #if defined(HAVE_WCHAR_H)
 static int parseWCharArray(PyObject *obj, wchar_t **ap, SIP_SSIZE_T *aszp);
+static int convertToWCharArray(PyObject *obj, wchar_t **ap, SIP_SSIZE_T *aszp);
 static int parseWChar(PyObject *obj, wchar_t *ap);
+static int convertToWChar(PyObject *obj, wchar_t *ap);
 static int parseWCharString(PyObject *obj, wchar_t **ap);
+static int convertToWCharString(PyObject *obj, wchar_t **ap);
 #else
 static void raiseNoWChar();
 #endif
@@ -2411,7 +2414,7 @@ static unsigned long sip_api_long_as_unsigned_long(PyObject *o)
         if (v < 0)
         {
             PyErr_SetString(PyExc_OverflowError,
-            "can't convert negative value to unsigned long");
+                    "can't convert negative value to unsigned long");
 
             return (unsigned long)-1;
         }
@@ -6848,7 +6851,8 @@ static PyObject *sipVoidPtr_asstring(sipVoidPtrObject *v, PyObject *args,
 
     if (size < 0)
     {
-        PyErr_SetString(PyExc_ValueError, "a size must be given or the sip.voidptr must have a size");
+        PyErr_SetString(PyExc_ValueError,
+                "a size must be given or the sip.voidptr must have a size");
         return NULL;
     }
 
@@ -9076,7 +9080,14 @@ static wchar_t sip_api_unicode_as_wchar(PyObject *obj)
 
     if (parseWChar(obj, &ch) < 0)
     {
-        PyErr_SetString(PyExc_ValueError, "unicode string of length 1 expected");
+        PyErr_Format(PyExc_ValueError,
+#if PY_MAJOR_VERSION >= 3
+                "string"
+#else
+                "unicode string"
+#endif
+                " of length 1 expected, not %s", Py_TYPE(obj)->tp_name);
+
         return L'\0';
     }
 
@@ -9093,7 +9104,14 @@ static wchar_t *sip_api_unicode_as_wstring(PyObject *obj)
 
     if (parseWCharString(obj, &p) < 0)
     {
-        PyErr_SetString(PyExc_ValueError, "unicode string expected");
+        PyErr_Format(PyExc_ValueError,
+#if PY_MAJOR_VERSION >= 3
+                "string"
+#else
+                "unicode string"
+#endif
+                " expected, not %s", Py_TYPE(obj)->tp_name);
+
         return NULL;
     }
 
@@ -9110,30 +9128,60 @@ static int parseWCharArray(PyObject *obj, wchar_t **ap, SIP_SSIZE_T *aszp)
     {
         *ap = NULL;
         *aszp = 0;
+
+        return 0;
     }
-    else if (PyUnicode_Check(obj))
+
+    if (PyUnicode_Check(obj))
+        return convertToWCharArray(obj, ap, aszp);
+
+#if PY_MAJOR_VERSION < 3
+    if (PyString_Check(obj))
     {
-        SIP_SSIZE_T ulen;
-        wchar_t *wc;
+        int rc;
+        PyObject *uobj;
 
-        ulen = PyUnicode_GET_SIZE(obj);
+        uobj = PyUnicode_FromStringAndSize(PyString_AS_STRING(obj),
+                PyString_GET_SIZE(obj));
 
-        if ((wc = sip_api_malloc(ulen * sizeof (wchar_t))) == NULL)
+        if (uobj == NULL)
             return -1;
 
-        ulen = PyUnicode_AsWideChar((PyUnicodeObject *)obj, wc, ulen);
+        rc = convertToWCharArray(uobj, ap, aszp);
+        Py_DECREF(uobj);
 
-        if (ulen < 0)
-        {
-            sip_api_free(wc);
-            return -1;
-        }
-
-        *ap = wc;
-        *aszp = ulen;
+        return rc;
     }
-    else
+#endif
+
+    return -1;
+}
+
+
+/*
+ * Convert a Unicode object to a wide character array and return it's address
+ * and length.
+ */
+static int convertToWCharArray(PyObject *obj, wchar_t **ap, SIP_SSIZE_T *aszp)
+{
+    SIP_SSIZE_T ulen;
+    wchar_t *wc;
+
+    ulen = PyUnicode_GET_SIZE(obj);
+
+    if ((wc = sip_api_malloc(ulen * sizeof (wchar_t))) == NULL)
         return -1;
+
+    ulen = PyUnicode_AsWideChar((PyUnicodeObject *)obj, wc, ulen);
+
+    if (ulen < 0)
+    {
+        sip_api_free(wc);
+        return -1;
+    }
+
+    *ap = wc;
+    *aszp = ulen;
 
     return 0;
 }
@@ -9144,7 +9192,38 @@ static int parseWCharArray(PyObject *obj, wchar_t **ap, SIP_SSIZE_T *aszp)
  */
 static int parseWChar(PyObject *obj, wchar_t *ap)
 {
-    if (!PyUnicode_Check(obj) || PyUnicode_GET_SIZE(obj) != 1)
+    if (PyUnicode_Check(obj))
+        return convertToWChar(obj, ap);
+
+#if PY_MAJOR_VERSION < 3
+    if (PyString_Check(obj))
+    {
+        int rc;
+        PyObject *uobj;
+
+        uobj = PyUnicode_FromStringAndSize(PyString_AS_STRING(obj),
+                PyString_GET_SIZE(obj));
+
+        if (uobj == NULL)
+            return -1;
+
+        rc = convertToWChar(uobj, ap);
+        Py_DECREF(uobj);
+
+        return rc;
+    }
+#endif
+
+    return -1;
+}
+
+
+/*
+ * Convert a Unicode object to a wide character and return it.
+ */
+static int convertToWChar(PyObject *obj, wchar_t *ap)
+{
+    if (PyUnicode_GET_SIZE(obj) != 1)
         return -1;
 
     if (PyUnicode_AsWideChar((PyUnicodeObject *)obj, ap, 1) != 1)
@@ -9160,31 +9239,63 @@ static int parseWChar(PyObject *obj, wchar_t *ap)
 static int parseWCharString(PyObject *obj, wchar_t **ap)
 {
     if (obj == Py_None)
-        *ap = NULL;
-    else if (PyUnicode_Check(obj))
     {
-        SIP_SSIZE_T ulen;
-        wchar_t *wc;
+        *ap = NULL;
 
-        ulen = PyUnicode_GET_SIZE(obj);
-
-        if ((wc = sip_api_malloc((ulen + 1) * sizeof (wchar_t))) == NULL)
-            return -1;
-
-        ulen = PyUnicode_AsWideChar((PyUnicodeObject *)obj, wc, ulen);
-
-        if (ulen < 0)
-        {
-            sip_api_free(wc);
-            return -1;
-        }
-
-        wc[ulen] = L'\0';
-
-        *ap = wc;
+        return 0;
     }
-    else
+
+    if (PyUnicode_Check(obj))
+        return convertToWCharString(obj, ap);
+
+#if PY_MAJOR_VERSION < 3
+    if (PyString_Check(obj))
+    {
+        int rc;
+        PyObject *uobj;
+
+        uobj = PyUnicode_FromStringAndSize(PyString_AS_STRING(obj),
+                PyString_GET_SIZE(obj));
+
+        if (uobj == NULL)
+            return -1;
+
+        rc = convertToWCharString(uobj, ap);
+        Py_DECREF(uobj);
+
+        return rc;
+    }
+#endif
+
+    return -1;
+}
+
+
+/*
+ * Convert a Unicode object to a wide character string and return a copy on
+ * the heap.
+ */
+static int convertToWCharString(PyObject *obj, wchar_t **ap)
+{
+    SIP_SSIZE_T ulen;
+    wchar_t *wc;
+
+    ulen = PyUnicode_GET_SIZE(obj);
+
+    if ((wc = sip_api_malloc((ulen + 1) * sizeof (wchar_t))) == NULL)
         return -1;
+
+    ulen = PyUnicode_AsWideChar((PyUnicodeObject *)obj, wc, ulen);
+
+    if (ulen < 0)
+    {
+        sip_api_free(wc);
+        return -1;
+    }
+
+    wc[ulen] = L'\0';
+
+    *ap = wc;
 
     return 0;
 }

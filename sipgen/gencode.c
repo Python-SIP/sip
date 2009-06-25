@@ -10013,9 +10013,9 @@ static void generateHandleResult(overDef *od, int isNew, int result_size,
             ifaceFileDef *iff;
 
             if (ad->atype == mapped_type)
-                iff = ad->atype->u.mtd->iff;
+                iff = ad->u.mtd->iff;
             else
-                iff = ad->atype->u.cd->iff;
+                iff = ad->u.cd->iff;
 
             prcode(fp,
 "            %s sipConvertFrom%sType(", prefix, (needNew ? "New" : ""));
