@@ -1362,7 +1362,9 @@ class ModuleMakefile(Makefile):
         self.LFLAGS.extend(self.optional_list(lflags_console))
 
         if sys.platform == "darwin":
-            dl = sys.exec_prefix.split(os.sep)
+            # 'real_prefix' exists if virtualenv is being used.
+            dl = getattr(sys, 'real_prefix', sys.exec_prefix).split(os.sep)
+
             if "Python.framework" not in dl:
                 error("SIP requires Python to be built as a framework")
 
