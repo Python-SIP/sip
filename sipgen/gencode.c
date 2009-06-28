@@ -144,7 +144,7 @@ static int generateMethodTable(classDef *, FILE *);
 static void generateEnumMacros(sipSpec *pt, moduleDef *mod, classDef *cd,
         FILE *fp);
 static int generateEnumMemberTable(sipSpec *pt, moduleDef *mod, classDef *cd,
-        FILE *fp);
+        mappedTypeDef *mtd, FILE *fp);
 static int generateInts(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp);
 static int generateLongs(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp);
 static int generateUnsignedLongs(sipSpec *pt, moduleDef *mod, classDef *cd,
@@ -1425,6 +1425,11 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
             type_nr = ed->ecd->iff->first_alt->ifacenr;
             api_range = ed->ecd->iff->api_range;
         }
+        else if (ed->emtd != NULL)
+        {
+            type_nr = ed->emtd->iff->first_alt->ifacenr;
+            api_range = ed->emtd->iff->api_range;
+        }
 
         if (enum_idx == 0)
         {
@@ -1452,7 +1457,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "};\n"
             );
 
-    nr_enummembers = generateEnumMemberTable(pt, mod, NULL, fp);
+    nr_enummembers = generateEnumMemberTable(pt, mod, NULL, NULL, fp);
 
     /* Generate the types table. */
     if (mod->nrtypes > 0)
@@ -2456,7 +2461,7 @@ static void generateOrdinaryFunction(moduleDef *mod, classDef *cd,
  * Generate the table of enum members for a scope.  Return the number of them.
  */
 static int generateEnumMemberTable(sipSpec *pt, moduleDef *mod, classDef *cd,
-        FILE *fp)
+        mappedTypeDef *mtd, FILE *fp)
 {
     int i, nr_members;
     enumDef *ed;
@@ -2470,11 +2475,23 @@ static int generateEnumMemberTable(sipSpec *pt, moduleDef *mod, classDef *cd,
     {
         enumMemberDef *emd;
 
-        if (ed->ecd != cd || ed->module != mod)
+        if (ed->module != mod)
             continue;
 
-        if (cd == NULL && ed->fqcname == NULL)
+        if (cd != NULL)
+        {
+            if (ed->ecd != cd)
+                continue;
+        }
+        else if (mtd != NULL)
+        {
+            if (ed->emtd != mtd)
+                continue;
+        }
+        else if (ed->ecd != NULL || ed->emtd != NULL || ed->fqcname == NULL)
+        {
             continue;
+        }
 
         for (emd = ed->members; emd != NULL; emd = emd->next)
             ++nr_members;
@@ -2493,11 +2510,23 @@ static int generateEnumMemberTable(sipSpec *pt, moduleDef *mod, classDef *cd,
     {
         enumMemberDef *emd;
 
-        if (ed->ecd != cd || ed->module != mod)
+        if (ed->module != mod)
             continue;
 
-        if (cd == NULL && ed->fqcname == NULL)
+        if (cd != NULL)
+        {
+            if (ed->ecd != cd)
+                continue;
+        }
+        else if (mtd != NULL)
+        {
+            if (ed->emtd != mtd)
+                continue;
+        }
+        else if (ed->ecd != NULL || ed->emtd != NULL || ed->fqcname == NULL)
+        {
             continue;
+        }
 
         for (emd = ed->members; emd != NULL; emd = emd->next)
             *et++ = emd;
@@ -2507,17 +2536,23 @@ static int generateEnumMemberTable(sipSpec *pt, moduleDef *mod, classDef *cd,
 
     /* Now generate the table. */
 
-    if (cd != NULL)
-        prcode(fp,
-"\n"
-"static sipEnumMemberDef enummembers_%L[] = {\n"
-            , cd->iff);
-    else
+    if (cd == NULL && mtd == NULL)
+    {
         prcode(fp,
 "\n"
 "/* These are the enum members of all global enums. */\n"
 "static sipEnumMemberDef enummembers[] = {\n"
         );
+    }
+    else
+    {
+        ifaceFileDef *iff = (cd != NULL ? cd->iff : mtd->iff);
+
+        prcode(fp,
+"\n"
+"static sipEnumMemberDef enummembers_%L[] = {\n"
+            , iff);
+    }
 
     for (i = 0; i < nr_members; ++i)
     {
@@ -2536,6 +2571,10 @@ static int generateEnumMemberTable(sipSpec *pt, moduleDef *mod, classDef *cd,
                 prcode(fp, "%U::", cd);
             else
                 prcode(fp, "%S::", classFQCName(cd));
+        }
+        else if (mtd != NULL)
+        {
+            prcode(fp, "%S::", mtd->iff->fqcname);
         }
 
         prcode(fp, "%s, %d},\n", emd->cname, emd->ed->enumnr);
@@ -3309,7 +3348,7 @@ static char *createIfaceFileName(const char *codeDir, ifaceFileDef *iff,
  */
 static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 {
-    int need_xfer, embedded;
+    int need_xfer, embedded, nr_enums;
     const char *type_prefix;
 
     if (pluginPyQt4(pt) && !noRelease(mtd))
@@ -3399,6 +3438,12 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 
     generateCppCodeBlock(mtd->convfromcode,fp);
 
+    prcode(fp,
+"}\n"
+        );
+
+    nr_enums = generateEnumMemberTable(pt, mtd->iff->module, NULL, mtd, fp);
+
     if (pluginPyQt4(pt))
     {
         type_prefix = "pyqt4";
@@ -3411,7 +3456,6 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
     }
 
     prcode(fp,
-"}\n"
 "\n"
 "\n"
 "%sMappedTypeDef ", type_prefix);
@@ -3437,11 +3481,22 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 "    {\n"
 "        {0, 0, 1},\n"
 "        0, 0,\n"
+        , mtd->cname);
+
+    if (nr_enums == 0)
+        prcode(fp,
 "        0, 0,\n"
+            );
+    else
+        prcode(fp,
+"        %d, enummembers_%L,\n"
+            , nr_enums, mtd->iff);
+
+    prcode(fp,
 "        0, 0,\n"
 "        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}\n"
 "    },\n"
-        , mtd->cname);
+        );
 
     if (noRelease(mtd))
         prcode(fp,
@@ -8428,7 +8483,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 
     /* Generate the attributes tables. */
     nr_methods = generateMethodTable(cd,fp);
-    nr_enums = generateEnumMemberTable(pt, mod, cd, fp);
+    nr_enums = generateEnumMemberTable(pt, mod, cd, NULL, fp);
 
     /* Generate the PyQt4 signals table. */
     is_signals = FALSE;

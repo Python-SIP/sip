@@ -49,7 +49,8 @@ static classDef *newClass(sipSpec *pt, ifaceFileType iftype, int api_range,
 static void finishClass(sipSpec *,moduleDef *,classDef *,optFlags *);
 static exceptionDef *findException(sipSpec *pt, scopedNameDef *fqname, int new);
 static mappedTypeDef *newMappedType(sipSpec *,argDef *, optFlags *);
-static enumDef *newEnum(sipSpec *,moduleDef *,char *,optFlags *,int);
+static enumDef *newEnum(sipSpec *pt, moduleDef *mod, mappedTypeDef *mt_scope,
+        char *name, optFlags *of, int flags);
 static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod, classDef *scope, scopedNameDef *fqname, classTmplDef *tcd, templateDef *td);
 static void newTypedef(sipSpec *, moduleDef *, char *, argDef *, optFlags *);
 static void newVar(sipSpec *, moduleDef *, char *, int, argDef *, optFlags *,
@@ -62,8 +63,8 @@ static void newFunction(sipSpec *, moduleDef *, int, int, int, char *,
 static optFlag *findOptFlag(optFlags *,char *,flagType);
 static memberDef *findFunction(sipSpec *, moduleDef *, classDef *,
         const char *, int, int, int);
-static void checkAttributes(sipSpec *, moduleDef *, classDef *, const char *,
-        int);
+static void checkAttributes(sipSpec *, moduleDef *, classDef *,
+        mappedTypeDef *, const char *, int);
 static void newModule(FILE *fp, char *filename);
 static moduleDef *allocModule();
 static void parseFile(FILE *fp, char *name, moduleDef *prevmod, int optional);
@@ -71,8 +72,9 @@ static void handleEOF(void);
 static void handleEOM(void);
 static qualDef *findQualifier(char *);
 static nameDef *findAPI(sipSpec *pt, const char *name);
-static scopedNameDef *text2scopedName(classDef *scope, char *text);
-static scopedNameDef *scopeScopedName(classDef *scope, scopedNameDef *name);
+static scopedNameDef *text2scopedName(ifaceFileDef *scope, char *text);
+static scopedNameDef *scopeScopedName(ifaceFileDef *scope,
+        scopedNameDef *name);
 static void pushScope(classDef *);
 static void popScope(void);
 static classDef *currentScope(void);
@@ -456,7 +458,8 @@ exception:  TK_EXCEPTION scopedname baseexception optflags '{' opttypehdrcode ra
 
                 pyname = getPythonName(&$4, scopedNameTail($2));
 
-                checkAttributes(currentSpec, currentModule, NULL, pyname, FALSE);
+                checkAttributes(currentSpec, currentModule, NULL, NULL,
+                        pyname, FALSE);
 
                 xd = findException(currentSpec, $2, TRUE);
 
@@ -658,6 +661,7 @@ mtline:     typehdrcode {
                 currentMappedType -> convtocode = $2;
             }
         }
+    |   enum
     ;
 
 namespace:  TK_NAMESPACE TK_NAME {
@@ -666,10 +670,16 @@ namespace:  TK_NAMESPACE TK_NAME {
 
             if (notSkipping())
             {
-                classDef *ns;
+                classDef *ns, *c_scope;
+                ifaceFileDef *scope;
+
+                if ((c_scope = currentScope()) != NULL)
+                    scope = c_scope->iff;
+                else
+                    scope = NULL;
 
                 ns = newClass(currentSpec, namespace_iface, -1,
-                        text2scopedName(currentScope(), $2));
+                        text2scopedName(scope, $2));
 
                 pushScope(ns);
 
@@ -1139,7 +1149,8 @@ enum:       TK_ENUM optname optflags {
                 if (sectionFlags != 0 && (sectionFlags & ~(SECT_IS_PUBLIC | SECT_IS_PROT)) != 0)
                     yyerror("Class enums must be in the public or protected sections");
 
-                currentEnum = newEnum(currentSpec,currentModule,$2,&$3,sectionFlags);
+                currentEnum = newEnum(currentSpec, currentModule,
+                        currentMappedType, $2, &$3, sectionFlags);
             }
         } '{' optenumbody '}' ';'
     ;
@@ -1183,7 +1194,8 @@ enumline:   ifstart
                 emd -> ed = currentEnum;
                 emd -> next = NULL;
 
-                checkAttributes(currentSpec, currentModule, emd->ed->ecd, emd->pyname->text, FALSE);
+                checkAttributes(currentSpec, currentModule, emd->ed->ecd,
+                        emd->ed->emtd, emd->pyname->text, FALSE);
 
                 /* Append to preserve the order. */
                 for (tail = &currentEnum->members; *tail != NULL; tail = &(*tail)->next)
@@ -3224,7 +3236,7 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd, optFlags *of)
     pyname = getPythonName(of, classBaseName(cd));
 
     cd->pyname = NULL;
-    checkAttributes(pt, mod, cd->ecd, pyname, FALSE);
+    checkAttributes(pt, mod, cd->ecd, NULL, pyname, FALSE);
     cd->pyname = cacheName(pt, pyname);
 
     if ((flg = findOptFlag(of, "Metatype", dotted_name_flag)) != NULL)
@@ -3540,20 +3552,34 @@ mappedTypeDef *allocMappedType(sipSpec *pt, argDef *type)
 /*
  * Create a new enum.
  */
-static enumDef *newEnum(sipSpec *pt, moduleDef *mod, char *name, optFlags *of,
-        int flags)
+static enumDef *newEnum(sipSpec *pt, moduleDef *mod, mappedTypeDef *mt_scope,
+        char *name, optFlags *of, int flags)
 {
     enumDef *ed;
-    classDef *escope = currentScope();
+    classDef *c_scope;
+    ifaceFileDef *scope;
+
+    if (mt_scope != NULL)
+    {
+        scope = mt_scope->iff;
+        c_scope = NULL;
+    }
+    else
+    {
+        if ((c_scope = currentScope()) != NULL)
+            scope = c_scope->iff;
+        else
+            scope = NULL;
+    }
 
     ed = sipMalloc(sizeof (enumDef));
 
     if (name != NULL)
     {
         ed->pyname = cacheName(pt, getPythonName(of, name));
-        checkAttributes(pt, mod, escope, ed->pyname->text, FALSE);
+        checkAttributes(pt, mod, c_scope, mt_scope, ed->pyname->text, FALSE);
 
-        ed->fqcname = text2scopedName(escope, name);
+        ed->fqcname = text2scopedName(scope, name);
         ed->cname = cacheName(pt, scopedNameToString(ed->fqcname));
 
         if (inMainModule())
@@ -3569,16 +3595,17 @@ static enumDef *newEnum(sipSpec *pt, moduleDef *mod, char *name, optFlags *of,
         ed->cname = NULL;
     }
 
-    ed -> enumflags = flags;
-    ed -> enumnr = -1;
-    ed -> ecd = escope;
-    ed -> module = mod;
-    ed -> members = NULL;
-    ed -> slots = NULL;
-    ed -> overs = NULL;
-    ed -> next = pt -> enums;
+    ed->enumflags = flags;
+    ed->enumnr = -1;
+    ed->ecd = c_scope;
+    ed->emtd = mt_scope;
+    ed->module = mod;
+    ed->members = NULL;
+    ed->slots = NULL;
+    ed->overs = NULL;
+    ed->next = pt -> enums;
 
-    pt -> enums = ed;
+    pt->enums = ed;
 
     return ed;
 }
@@ -4118,7 +4145,8 @@ static void instantiateTemplateEnums(sipSpec *pt, classTmplDef *tcd,
 
             if (ed->fqcname != NULL)
             {
-                ed->fqcname = text2scopedName(cd, scopedNameTail(ed->fqcname));
+                ed->fqcname = text2scopedName(cd->iff,
+                        scopedNameTail(ed->fqcname));
                 ed->cname = cacheName(pt, scopedNameToString(ed->fqcname));
             }
 
@@ -4182,7 +4210,8 @@ static void instantiateTemplateVars(sipSpec *pt, classTmplDef *tcd,
             if (inMainModule())
                 setIsUsedName(vd->pyname);
 
-            vd->fqcname = text2scopedName(cd, scopedNameTail(vd->fqcname));
+            vd->fqcname = text2scopedName(cd->iff,
+                    scopedNameTail(vd->fqcname));
             vd->ecd = cd;
             vd->module = cd->iff->module;
 
@@ -4510,7 +4539,7 @@ static void newTypedef(sipSpec *pt, moduleDef *mod, char *name, argDef *type,
     classDef *scope;
 
     scope = currentScope();
-    fqname = text2scopedName(scope, name);
+    fqname = text2scopedName((scope != NULL ? scope->iff : NULL), name);
 
     /* See if we are instantiating a template class. */
     if (type->atype == template_type)
@@ -4655,19 +4684,20 @@ static void newVar(sipSpec *pt,moduleDef *mod,char *name,int isstatic,
     if (inMainModule())
         setIsUsedName(nd);
 
-    checkAttributes(pt, mod, escope, nd->text, FALSE);
+    checkAttributes(pt, mod, escope, NULL, nd->text, FALSE);
 
     var = sipMalloc(sizeof (varDef));
 
-    var -> pyname = nd;
-    var -> fqcname = text2scopedName(escope, name);
-    var -> ecd = escope;
-    var -> module = mod;
-    var -> varflags = 0;
-    var -> type = *type;
-    var -> accessfunc = acode;
-    var -> getcode = gcode;
-    var -> setcode = scode;
+    var->pyname = nd;
+    var->fqcname = text2scopedName((escope != NULL ? escope->iff : NULL),
+            name);
+    var->ecd = escope;
+    var->module = mod;
+    var->varflags = 0;
+    var->type = *type;
+    var->accessfunc = acode;
+    var->getcode = gcode;
+    var->setcode = scode;
 
     if (isstatic || (escope != NULL && escope->iff->type == namespace_iface))
         setIsStaticVar(var);
@@ -5129,7 +5159,7 @@ static memberDef *findFunction(sipSpec *pt, moduleDef *mod, classDef *cd,
         }
 
     /* Check there is no name clash. */
-    checkAttributes(pt, mod, cd, pname, TRUE);
+    checkAttributes(pt, mod, cd, NULL, pname, TRUE);
 
     /* See if it already exists. */
     flist = (cd != NULL ? &cd->members : &mod->othfuncs);
@@ -5212,8 +5242,8 @@ static optFlag *findOptFlag(optFlags *flgs,char *name,flagType ft)
  * (ie. a Python dictionary), so check against what we already know is going in
  * the same scope in case there is a clash.
  */
-static void checkAttributes(sipSpec *pt, moduleDef *mod, classDef *pyscope,
-        const char *attr, int isfunc)
+static void checkAttributes(sipSpec *pt, moduleDef *mod, classDef *py_c_scope,
+        mappedTypeDef *py_mt_scope, const char *attr, int isfunc)
 {
     enumDef *ed;
     varDef *vd;
@@ -5221,28 +5251,48 @@ static void checkAttributes(sipSpec *pt, moduleDef *mod, classDef *pyscope,
 
     /* Check the enums. */
 
-    for (ed = pt -> enums; ed != NULL; ed = ed -> next)
+    for (ed = pt->enums; ed != NULL; ed = ed->next)
     {
         enumMemberDef *emd;
 
-        if (ed -> ecd != pyscope || ed -> pyname == NULL)
+        if (ed->pyname == NULL)
             continue;
+
+        if (py_c_scope != NULL)
+        {
+            if (ed->ecd != py_c_scope)
+                continue;
+        }
+        else if (py_mt_scope != NULL)
+        {
+            if (ed->emtd != py_mt_scope)
+                continue;
+        }
+        else if (ed->ecd != NULL || ed->emtd != NULL)
+        {
+            continue;
+        }
 
         if (strcmp(ed->pyname->text, attr) == 0)
             yyerror("There is already an enum in scope with the same Python name");
 
-        for (emd = ed -> members; emd != NULL; emd = emd -> next)
-            if (strcmp(emd -> pyname -> text, attr) == 0)
+        for (emd = ed->members; emd != NULL; emd = emd->next)
+            if (strcmp(emd->pyname->text, attr) == 0)
                 yyerror("There is already an enum member in scope with the same Python name");
     }
+
+    /* If the scope was a mapped type then that's all we have to check. */
+    if (py_mt_scope != NULL)
+        return;
 
     /* Check the variables. */
 
     for (vd = pt -> vars; vd != NULL; vd = vd -> next)
     {
-        if (vd -> ecd != pyscope)
+        if (vd -> ecd != py_c_scope)
             continue;
 
+        if (strcmp(vd -> pyname -> text, attr) == 0)
         if (strcmp(vd -> pyname -> text, attr) == 0)
             yyerror("There is already a variable in scope with the same Python name");
     }
@@ -5255,7 +5305,7 @@ static void checkAttributes(sipSpec *pt, moduleDef *mod, classDef *pyscope,
     {
         memberDef *md, *membs;
 
-        membs = (pyscope != NULL ? pyscope->members : mod->othfuncs);
+        membs = (py_c_scope != NULL ? py_c_scope->members : mod->othfuncs);
 
         for (md = membs; md != NULL; md = md -> next)
         {
@@ -5266,7 +5316,7 @@ static void checkAttributes(sipSpec *pt, moduleDef *mod, classDef *pyscope,
 
             /* Check for a conflict with all overloads. */
 
-            overs = (pyscope != NULL ? pyscope->overs : mod->overs);
+            overs = (py_c_scope != NULL ? py_c_scope->overs : mod->overs);
 
             for (od = overs; od != NULL; od = od -> next)
             {
@@ -5282,7 +5332,7 @@ static void checkAttributes(sipSpec *pt, moduleDef *mod, classDef *pyscope,
 
     for (cd = pt -> classes; cd != NULL; cd = cd -> next)
     {
-        if (cd -> ecd != pyscope || cd -> pyname == NULL)
+        if (cd -> ecd != py_c_scope || cd -> pyname == NULL)
             continue;
 
         if (strcmp(cd->pyname->text, attr) == 0 && !isExternal(cd))
@@ -5291,7 +5341,7 @@ static void checkAttributes(sipSpec *pt, moduleDef *mod, classDef *pyscope,
 
     /* Check the exceptions. */
 
-    if (pyscope == NULL)
+    if (py_c_scope == NULL)
     {
         exceptionDef *xd;
 
@@ -5460,7 +5510,7 @@ static scopedNameDef *text2scopePart(char *text)
 /*
  * Convert a text string to a fully scoped name.
  */
-static scopedNameDef *text2scopedName(classDef *scope, char *text)
+static scopedNameDef *text2scopedName(ifaceFileDef *scope, char *text)
 {
     return scopeScopedName(scope, text2scopePart(text));
 }
@@ -5469,11 +5519,11 @@ static scopedNameDef *text2scopedName(classDef *scope, char *text)
 /*
  * Prepend any current scope to a scoped name.
  */
-static scopedNameDef *scopeScopedName(classDef *scope, scopedNameDef *name)
+static scopedNameDef *scopeScopedName(ifaceFileDef *scope, scopedNameDef *name)
 {
     scopedNameDef *snd;
 
-    snd = (scope != NULL ? copyScopedName(scope->iff->fqcname) : NULL);
+    snd = (scope != NULL ? copyScopedName(scope->fqcname) : NULL);
 
     appendScopedName(&snd, name);
 
@@ -5851,10 +5901,10 @@ static void setModuleName(sipSpec *pt, moduleDef *mod, const char *fullname)
  */
 static void defineClass(scopedNameDef *snd, classList *supers, optFlags *of)
 {
-    classDef *cd;
+    classDef *cd, *c_scope = currentScope();
 
     cd = newClass(currentSpec, class_iface, getAPIRangeIndex(of),
-            scopeScopedName(currentScope(), snd));
+            scopeScopedName((c_scope != NULL ? c_scope->iff : NULL), snd));
     cd->supers = supers;
 
     pushScope(cd);

@@ -874,7 +874,8 @@ typedef struct _enumDef {
     nameDef *cname;                     /* The C/C++ name (may be NULL). */
     int enumnr;                         /* The enum number. */
     int enum_idx;                       /* The enum index within the module. */
-    struct _classDef *ecd;              /* The enclosing class. */
+    struct _classDef *ecd;              /* The enclosing class, if any. */
+    struct _mappedTypeDef *emtd;        /* The enclosing mapped type, if any. */
     moduleDef *module;                  /* The owning module. */
     enumMemberDef *members;             /* The list of members. */
     struct _memberDef *slots;           /* The list of slots. */

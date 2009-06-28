@@ -3035,10 +3035,19 @@ static ifaceFileDef *getIfaceFile(argDef *ad)
         break;
 
     case enum_type:
-        if (ad->u.ed->fqcname != NULL && ad->u.ed->ecd != NULL)
+        if (ad->u.ed->fqcname != NULL)
         {
-            iff = ad->u.ed->ecd->iff;
-            break;
+            if (ad->u.ed->ecd != NULL)
+            {
+                iff = ad->u.ed->ecd->iff;
+                break;
+            }
+
+            if (ad->u.ed->emtd != NULL)
+            {
+                iff = ad->u.ed->emtd->iff;
+                break;
+            }
         }
 
         /* Drop through. */
