@@ -60,6 +60,7 @@ PyObject *sipVariableDescr_New(sipVariableDef *vd, const sipClassTypeDef *ctd);
 PyObject *sipGetAPI(PyObject *self, PyObject *args);
 PyObject *sipSetAPI(PyObject *self, PyObject *args);
 int sip_api_is_api_enabled(const char *name, int from, int to);
+int sipIsRangeEnabled(sipExportedModuleDef *em, int range_index);
 int sipInitAPI(sipExportedModuleDef *em, PyObject *mod_dict);
 
 

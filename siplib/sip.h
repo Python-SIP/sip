@@ -571,7 +571,7 @@ typedef struct _sipVariableDef {
  * namespace, a mapped type or a named enum.
  */
 typedef struct _sipTypeDef {
-    /* The version number, -1 if the type isn't versioned. */
+    /* The version range index, -1 if the type isn't versioned. */
     int td_version;
 
     /* The next version of this type. */

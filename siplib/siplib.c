@@ -1085,8 +1085,9 @@ static int sip_api_init_module(sipExportedModuleDef *client,
         {
             sipEnumTypeDef *etd = (sipEnumTypeDef *)td;
 
-            if (createEnumType(client, etd, mod_dict) < 0)
-                return -1;
+            if (td->td_version < 0 || sipIsRangeEnabled(client, td->td_version))
+                if (createEnumType(client, etd, mod_dict) < 0)
+                    return -1;
 
             /*
              * Register the enum pickler for scoped enums (unscoped, ie. those

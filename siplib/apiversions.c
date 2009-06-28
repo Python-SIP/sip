@@ -42,7 +42,6 @@ static apiVersionDef *api_versions = NULL;
  */
 static int add_api(const char *api, int version_nr);
 static apiVersionDef *find_api(const char *api);
-static int is_range_enabled(sipExportedModuleDef *em, int range_index);
 
 
 /*
@@ -105,7 +104,7 @@ int sipInitAPI(sipExportedModuleDef *em, PyObject *mod_dict)
     {
         while (vf->vf_name >= 0)
         {
-            if (is_range_enabled(em, vf->vf_api_range))
+            if (sipIsRangeEnabled(em, vf->vf_api_range))
             {
                 const char *func_name = sipNameFromPool(em, vf->vf_name);
                 PyMethodDef *pmd;
@@ -143,7 +142,7 @@ int sipInitAPI(sipExportedModuleDef *em, PyObject *mod_dict)
         if ((td = *tdp) != NULL && td->td_version >= 0)
         {
             do
-                if (is_range_enabled(em, td->td_version))
+                if (sipIsRangeEnabled(em, td->td_version))
                     break;
             while ((td = td->td_next_version) != NULL);
 
@@ -264,7 +263,7 @@ static apiVersionDef *find_api(const char *api)
 /*
  * Return TRUE if a range defined by a range index is enabled.
  */
-static int is_range_enabled(sipExportedModuleDef *em, int range_index)
+int sipIsRangeEnabled(sipExportedModuleDef *em, int range_index)
 {
     int *range = &em->em_versions[range_index * 3];
     const char *api_name = sipNameFromPool(em, range[0]);

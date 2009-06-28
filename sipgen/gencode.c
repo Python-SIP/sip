@@ -1343,7 +1343,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         }
 
         prcode(fp,
-"    {%d, \"", cd->classnr);
+"    {%d, \"", cd->iff->ifacenr);
         prScopedName(fp, classFQCName(cd), ".");
         prcode(fp,"\"},\n"
             );
@@ -1412,11 +1412,19 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 
     for (ed = pt->enums; ed != NULL; ed = ed->next)
     {
+        int type_nr = -1, api_range = -1;
+
         if (ed->module != mod || ed->fqcname == NULL)
             continue;
 
-        if (ed->ecd != NULL && isTemplateClass(ed->ecd))
-            continue;
+        if (ed->ecd != NULL)
+        {
+            if (isTemplateClass(ed->ecd))
+                continue;
+
+            type_nr = ed->ecd->iff->first_alt->ifacenr;
+            api_range = ed->ecd->iff->api_range;
+        }
 
         if (enum_idx == 0)
         {
@@ -1428,17 +1436,12 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         ed->enum_idx = enum_idx++;
 
         prcode(fp,
-"    {{-1, 0, 0, SIP_TYPE_ENUM, %n, {0}}, %n, ", ed->cname, ed->pyname);
-
-        if (ed->ecd == NULL)
-            prcode(fp, "-1");
-        else
-            prcode(fp, "%d", ed->ecd->classnr);
+"    {{%d, 0, 0, SIP_TYPE_ENUM, %n, {0}}, %n, %d, ", api_range, ed->cname, ed->pyname, type_nr);
 
         if (ed->slots != NULL)
-            prcode(fp, ", slots_%C", ed->fqcname);
+            prcode(fp, "slots_%C", ed->fqcname);
         else
-            prcode(fp, ", NULL");
+            prcode(fp, "NULL");
 
         prcode(fp, "},\n"
             );
@@ -2323,7 +2326,7 @@ static void generateEncodedClass(moduleDef *mod, classDef *cd, int last,
 {
     moduleDef *cmod = cd->iff->module;
 
-    prcode(fp, "{%u, ", cd->classnr);
+    prcode(fp, "{%u, ", cd->iff->first_alt->ifacenr);
 
     if (cmod == mod)
         prcode(fp, "255");
@@ -7365,7 +7368,7 @@ static void generateImportedMappedTypeAPI(mappedTypeDef *mtd, moduleDef *mod,
         FILE *fp)
 {
     /* Ignore alternate API implementations. */
-    if (mtd->mappednr >= 0)
+    if (mtd->iff->first_alt == mtd->iff)
     {
         const char *mname = mod->name;
         const char *imname = mtd->iff->module->name;
@@ -7379,7 +7382,7 @@ static void generateImportedMappedTypeAPI(mappedTypeDef *mtd, moduleDef *mod,
         prcode(fp,
 "\n"
 "#define sipType_%T      sipModuleAPI_%s_%s->em_types[%d]\n"
-            , &type, mname, imname, mtd->mappednr);
+            , &type, mname, imname, mtd->iff->ifacenr);
     }
 }
 
@@ -7402,11 +7405,11 @@ static void generateMappedTypeAPI(sipSpec *pt, mappedTypeDef *mtd, FILE *fp)
     else
         type_prefix = "sip";
 
-    if (mtd->iff->first_alt == NULL)
+    if (mtd->iff->first_alt == mtd->iff)
         prcode(fp,
 "\n"
 "#define sipType_%T      sipModuleAPI_%s.em_types[%d]\n"
-            , &type, mtd->iff->module->name, mtd->mappednr);
+            , &type, mtd->iff->module->name, mtd->iff->ifacenr);
 
     prcode(fp,
 "\n"
@@ -7426,7 +7429,7 @@ static void generateImportedClassAPI(classDef *cd, sipSpec *pt, moduleDef *mod,
         );
 
     /* Ignore alternate API implementations. */
-    if (cd->classnr >= 0)
+    if (cd->iff->first_alt == cd->iff)
     {
         const char *mname = mod->name;
         const char *imname = cd->iff->module->name;
@@ -7439,8 +7442,8 @@ static void generateImportedClassAPI(classDef *cd, sipSpec *pt, moduleDef *mod,
         prcode(fp,
 "#define sipType_%C              sipModuleAPI_%s_%s->em_types[%d]\n"
 "#define sipClass_%C             sipModuleAPI_%s_%s->em_types[%d]->u.td_wrapper_type\n"
-            , classFQCName(cd), mname, imname, cd->classnr
-            , classFQCName(cd), mname, imname, cd->classnr);
+            , classFQCName(cd), mname, imname, cd->iff->ifacenr
+            , classFQCName(cd), mname, imname, cd->iff->ifacenr);
 
         if (cd->iff->type == namespace_iface)
             prcode(fp,
@@ -7463,12 +7466,12 @@ static void generateClassAPI(classDef *cd, sipSpec *pt, FILE *fp)
 "\n"
             );
 
-    if (cd->real == NULL && cd->iff->first_alt == NULL)
+    if (cd->real == NULL && cd->iff->first_alt == cd->iff)
         prcode(fp,
 "#define sipType_%C              sipModuleAPI_%s.em_types[%d]\n"
 "#define sipClass_%C             sipModuleAPI_%s.em_types[%d]->u.td_wrapper_type\n"
-            , classFQCName(cd), mname, cd->classnr
-            , classFQCName(cd), mname, cd->classnr);
+            , classFQCName(cd), mname, cd->iff->ifacenr
+            , classFQCName(cd), mname, cd->iff->ifacenr);
 
     generateEnumMacros(pt, cd->iff->module, cd, fp);
 

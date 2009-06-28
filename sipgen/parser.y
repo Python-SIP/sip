@@ -2988,8 +2988,14 @@ ifaceFileDef *findIfaceFile(sipSpec *pt, moduleDef *mod, scopedNameDef *fqname,
 
         first_alt->next_alt = iff;
     }
+    else
+    {
+        /* This is the first alternate so point to itself. */
+        iff->first_alt = iff;
+    }
 
     iff->type = iftype;
+    iff->ifacenr = -1;
     iff->fqcname = fqname;
     iff->module = NULL;
     iff->hdrcode = NULL;
@@ -3028,7 +3034,6 @@ static classDef *findClassWithInterface(sipSpec *pt, ifaceFileDef *iff)
 
     cd->iff = iff;
     cd->pyname = cacheName(pt, classBaseName(cd));
-    cd->classnr = -1;
     cd->next = pt->classes;
 
     pt->classes = cd;
@@ -3527,7 +3532,6 @@ mappedTypeDef *allocMappedType(sipSpec *pt, argDef *type)
     mtd->type.nrderefs = 0;
 
     mtd->cname = cacheName(pt, type2string(&mtd->type));
-    mtd->mappednr = -1;
 
     return mtd;
 }

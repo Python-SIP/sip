@@ -727,6 +727,7 @@ typedef struct _ifaceFileDef {
     struct _ifaceFileDef *first_alt;    /* The first alternate API. */
     struct _ifaceFileDef *next_alt;     /* The next alternate API. */
     ifaceFileType type;                 /* Interface file type. */
+    int ifacenr;                        /* The index into the types table. */
     scopedNameDef *fqcname;             /* The fully qualified C++ name. */
     moduleDef *module;                  /* The owning module. */
     codeBlock *hdrcode;                 /* Header code. */
@@ -749,7 +750,6 @@ typedef struct _mappedTypeDef {
     int mtflags;                        /* The mapped type flags. */
     argDef type;                        /* The type being mapped. */
     nameDef *cname;                     /* The C/C++ name. */
-    int mappednr;                       /* The mapped type number. */
     ifaceFileDef *iff;                  /* The interface file. */
     codeBlock *convfromcode;            /* Convert from C++ code. */
     codeBlock *convtocode;              /* Convert to C++ code. */
@@ -935,7 +935,6 @@ typedef struct _mroDef {
 typedef struct _classDef {
     int classflags;                     /* The class flags. */
     int pyqt4_flags;                    /* The PyQt4 specific flags. */
-    int classnr;                        /* The class number. */
     nameDef *pyname;                    /* The Python name. */
     ifaceFileDef *iff;                  /* The interface file. */
     struct _classDef *ecd;              /* The enclosing scope. */

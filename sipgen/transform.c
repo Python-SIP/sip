@@ -262,7 +262,7 @@ void transform(sipSpec *pt)
 
         /* Update proxies with some information from the real classes. */
         for (cd = mod->proxies; cd != NULL; cd = cd->next)
-            cd->classnr = cd->real->classnr;
+            cd->iff->ifacenr = cd->real->iff->ifacenr;
     }
 
     /* Mark classes that should be registered as Qt meta types. */
@@ -856,7 +856,6 @@ static classDef *getProxy(moduleDef *mod, classDef *cd)
 
     pcd = sipMalloc(sizeof (classDef));
 
-    pcd->classnr = -1;
     pcd->pyname = cd->pyname;
     pcd->iff = cd->iff;
     pcd->ecd = cd->ecd;
@@ -3071,7 +3070,7 @@ static void createSortedNumberedTypesTable(sipSpec *pt, moduleDef *mod)
         if (cd->iff->module != mod)
             continue;
 
-        if (cd->iff->api_range >= 0 && cd->iff->first_alt != NULL)
+        if (cd->iff->first_alt != cd->iff)
             continue;
 
         mod->nrtypes++;
@@ -3082,7 +3081,7 @@ static void createSortedNumberedTypesTable(sipSpec *pt, moduleDef *mod)
         if (mtd->iff->module != mod)
             continue;
 
-        if (mtd->iff->api_range >= 0 && mtd->iff->first_alt != NULL)
+        if (mtd->iff->first_alt != mtd->iff)
             continue;
 
         mod->nrtypes++;
@@ -3113,7 +3112,7 @@ static void createSortedNumberedTypesTable(sipSpec *pt, moduleDef *mod)
         if (cd->iff->module != mod)
             continue;
 
-        if (cd->iff->api_range >= 0 && cd->iff->first_alt != NULL)
+        if (cd->iff->first_alt != cd->iff)
             continue;
 
         ad->atype = class_type;
@@ -3128,7 +3127,7 @@ static void createSortedNumberedTypesTable(sipSpec *pt, moduleDef *mod)
         if (mtd->iff->module != mod)
             continue;
 
-        if (mtd->iff->api_range >= 0 && mtd->iff->first_alt != NULL)
+        if (mtd->iff->first_alt != mtd->iff)
             continue;
 
         ad->atype = mapped_type;
@@ -3164,7 +3163,7 @@ static void createSortedNumberedTypesTable(sipSpec *pt, moduleDef *mod)
         switch (ad->atype)
         {
         case class_type:
-            ad->u.cd->classnr = i;
+            ad->u.cd->iff->ifacenr = i;
 
             /* If we find a class called QObject, assume it's Qt. */
             if (strcmp(ad->name, "QObject") == 0)
@@ -3173,7 +3172,7 @@ static void createSortedNumberedTypesTable(sipSpec *pt, moduleDef *mod)
             break;
 
         case mapped_type:
-            ad->u.mtd->mappednr = i;
+            ad->u.mtd->iff->ifacenr = i;
             break;
 
         case enum_type:
