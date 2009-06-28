@@ -382,9 +382,9 @@ static int setReduce(PyTypeObject *type, PyMethodDef *pickler);
 static int createEnumType(sipExportedModuleDef *client, sipEnumTypeDef *etd,
         PyObject *mod_dict);
 static PyObject *createTypeDict(PyObject *mname);
-static sipExportedModuleDef *getClassModule(const sipEncodedClassDef *enc,
+static sipExportedModuleDef *getTypeModule(const sipEncodedTypeDef *enc,
         sipExportedModuleDef *em);
-static sipClassTypeDef *getClassType(const sipEncodedClassDef *enc,
+static sipClassTypeDef *getClassType(const sipEncodedTypeDef *enc,
         sipExportedModuleDef *em);
 static const sipTypeDef *convertSubClass(const sipTypeDef *td, void **cppPtr);
 static void *getPtrTypeDef(sipSimpleWrapper *self,
@@ -1118,7 +1118,8 @@ static int sip_api_init_module(sipExportedModuleDef *client,
 
                 ctd->ctd_base.td_module = client;
 
-                real_nspace = getClassType(&ctd->ctd_scope, client);
+                real_nspace = getClassType(&ctd->ctd_container.cod_scope,
+                        client);
 
                 /* Append this type to the real one. */
                 last = &real_nspace->ctd_nsextender;
@@ -1199,7 +1200,7 @@ static int sip_api_init_module(sipExportedModuleDef *client,
         sipTypeDef *td = client->em_types[i];
 
         if (td != NULL && sipTypeIsClass(td))
-            if (addInstances((sipTypeAsPyTypeObject(td))->tp_dict, &((sipClassTypeDef *)td)->ctd_instances) < 0)
+            if (addInstances((sipTypeAsPyTypeObject(td))->tp_dict, &((sipClassTypeDef *)td)->ctd_container.cod_instances) < 0)
                 return -1;
     }
 
@@ -3937,7 +3938,7 @@ static int createClassType(sipExportedModuleDef *client, sipClassTypeDef *ctd,
 {
     PyObject *name, *bases, *typedict, *args, *scope_dict;
     PyObject *metatype;
-    sipEncodedClassDef *sup;
+    sipEncodedTypeDef *sup;
     PyTypeObject *py_type;
 
     /* Handle the trivial case where we have already been initialised. */
@@ -3948,11 +3949,11 @@ static int createClassType(sipExportedModuleDef *client, sipClassTypeDef *ctd,
     ctd->ctd_base.td_module = client;
 
     /* Get the dictionary into which the type will be placed. */
-    if (ctd->ctd_scope.sc_flag)
+    if (ctd->ctd_container.cod_scope.sc_flag)
         scope_dict = mod_dict;
     else
     {
-        sipClassTypeDef *scope_ctd = getClassType(&ctd->ctd_scope, client);
+        sipClassTypeDef *scope_ctd = getClassType(&ctd->ctd_container.cod_scope, client);
 
         /*
          * Initialise the scoping class if necessary.  It will always be in the
@@ -4571,9 +4572,9 @@ static int add_lazy_attrs(sipClassTypeDef *ctd)
         sipVariableDef *vd;
 
         /* Do the methods. */
-        pmd = nsx->ctd_methods;
+        pmd = nsx->ctd_container.cod_methods;
 
-        for (i = 0; i < nsx->ctd_nrmethods; ++i)
+        for (i = 0; i < nsx->ctd_container.cod_nrmethods; ++i)
         {
             int rc;
             PyObject *descr;
@@ -4592,9 +4593,9 @@ static int add_lazy_attrs(sipClassTypeDef *ctd)
         }
 
         /* Do the enum members. */
-        enm = nsx->ctd_enummembers;
+        enm = nsx->ctd_container.cod_enummembers;
 
-        for (i = 0; i < nsx->ctd_nrenummembers; ++i)
+        for (i = 0; i < nsx->ctd_container.cod_nrenummembers; ++i)
         {
             int rc;
             PyObject *val;
@@ -4613,9 +4614,9 @@ static int add_lazy_attrs(sipClassTypeDef *ctd)
         }
 
         /* Do the variables. */
-        vd = nsx->ctd_variables;
+        vd = nsx->ctd_container.cod_variables;
 
-        for (i = 0; i < nsx->ctd_nrvariables; ++i)
+        for (i = 0; i < nsx->ctd_container.cod_nrvariables; ++i)
         {
             int rc;
             PyObject *descr;
@@ -4654,7 +4655,7 @@ static int add_lazy_attrs(sipClassTypeDef *ctd)
  */
 static int add_all_lazy_attrs(sipClassTypeDef *ctd)
 {
-    sipEncodedClassDef *sup;
+    sipEncodedTypeDef *sup;
 
     if (ctd == NULL)
         return 0;
@@ -4703,8 +4704,9 @@ static const sipTypeDef *sip_api_type_scope(const sipTypeDef *td)
     {
         const sipClassTypeDef *ctd = (const sipClassTypeDef *)td;
 
-        if (!ctd->ctd_scope.sc_flag)
-            return (sipTypeDef *)getClassType(&ctd->ctd_scope, td->td_module);
+        if (!ctd->ctd_container.cod_scope.sc_flag)
+            return (sipTypeDef *)getClassType(&ctd->ctd_container.cod_scope,
+                    td->td_module);
     }
     else if (sipTypeIsEnum(td))
     {
@@ -6375,9 +6377,9 @@ static void sip_api_raise_type_exception(const sipTypeDef *td, void *ptr)
 
 
 /*
- * Return the module of an encoded class.
+ * Return the module of an encoded type.
  */
-static sipExportedModuleDef *getClassModule(const sipEncodedClassDef *enc,
+static sipExportedModuleDef *getTypeModule(const sipEncodedTypeDef *enc,
         sipExportedModuleDef *em)
 {
     if (enc->sc_module != 255)
@@ -6390,10 +6392,10 @@ static sipExportedModuleDef *getClassModule(const sipEncodedClassDef *enc,
 /*
  * Return the generated type structure of an encoded class.
  */
-static sipClassTypeDef *getClassType(const sipEncodedClassDef *enc,
+static sipClassTypeDef *getClassType(const sipEncodedTypeDef *enc,
         sipExportedModuleDef *em)
 {
-    return (sipClassTypeDef *)getClassModule(enc, em)->em_types[enc->sc_class];
+    return (sipClassTypeDef *)getTypeModule(enc, em)->em_types[enc->sc_type];
 }
 
 
@@ -6419,7 +6421,7 @@ static void *findSlot(PyObject *self, sipPySlotType st)
 
         if (slot == NULL)
         {
-            sipEncodedClassDef *sup;
+            sipEncodedTypeDef *sup;
 
             /* Search any super-types. */
             if ((sup = ctd->ctd_supers) != NULL)
@@ -7510,7 +7512,7 @@ static int sipSimpleWrapper_traverse(sipSimpleWrapper *self, visitproc visit,
 
         if (ctd->ctd_traverse == NULL)
         {
-            sipEncodedClassDef *sup;
+            sipEncodedTypeDef *sup;
 
             if ((sup = ctd->ctd_supers) != NULL)
                 do
@@ -7556,7 +7558,7 @@ static int sipSimpleWrapper_clear(sipSimpleWrapper *self)
 
         if (ctd->ctd_clear == NULL)
         {
-            sipEncodedClassDef *sup;
+            sipEncodedTypeDef *sup;
 
             if ((sup = ctd->ctd_supers) != NULL)
                 do

@@ -162,7 +162,7 @@ static void generateTypesInline(sipSpec *pt, moduleDef *mod, FILE *fp);
 static void generateAccessFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
         FILE *fp);
 static void generateConvertToDefinitions(mappedTypeDef *, classDef *, FILE *);
-static void generateEncodedClass(moduleDef *mod, classDef *cd, int last,
+static void generateEncodedType(moduleDef *mod, classDef *cd, int last,
         FILE *fp);
 static int generateArgParser(signatureDef *, classDef *, ctorDef *, overDef *,
         int, FILE *);
@@ -1231,7 +1231,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
                 prcode(fp,
 "    {init_%L, ", cd->iff);
 
-                generateEncodedClass(mod, cd, 0, fp);
+                generateEncodedType(mod, cd, 0, fp);
 
                 prcode(fp, ", NULL},\n"
                     );
@@ -1298,7 +1298,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
                 prcode(fp,
 "    {(void *)slot_%L_%s, %s, ", cd->iff, md->pyname->text, slotName(md->slot));
 
-                generateEncodedClass(mod, cd, 0, fp);
+                generateEncodedType(mod, cd, 0, fp);
 
                 prcode(fp, "},\n"
                       );
@@ -1559,7 +1559,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
             prcode(fp,
 "    {sipSubClass_%C, ",classFQCName(cd));
 
-            generateEncodedClass(mod, cd->subbase, 0, fp);
+            generateEncodedType(mod, cd->subbase, 0, fp);
 
             prcode(fp,", NULL},\n");
         }
@@ -2319,9 +2319,9 @@ static int generateSubClassConvertors(sipSpec *pt, moduleDef *mod, FILE *fp)
 
 
 /*
- * Generate the structure representing an encoded class.
+ * Generate the structure representing an encoded type.
  */
-static void generateEncodedClass(moduleDef *mod, classDef *cd, int last,
+static void generateEncodedType(moduleDef *mod, classDef *cd, int last,
         FILE *fp)
 {
     moduleDef *cmod = cd->iff->module;
@@ -3433,6 +3433,13 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 "        SIP_TYPE_MAPPED,\n"
 "        %n,\n"
 "        {0}\n"
+"    },\n"
+"    {\n"
+"        {0, 0, 1},\n"
+"        0, 0,\n"
+"        0, 0,\n"
+"        0, 0,\n"
+"        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}\n"
 "    },\n"
         , mtd->cname);
 
@@ -8355,14 +8362,14 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 "\n"
 "\n"
 "/* Define this type's super-types. */\n"
-"static sipEncodedClassDef supers_%C[] = {", classFQCName(cd));
+"static sipEncodedTypeDef supers_%C[] = {", classFQCName(cd));
 
         for (cl = cd->supers; cl != NULL; cl = cl->next)
         {
             if (cl != cd->supers)
                 prcode(fp, ", ");
 
-            generateEncodedClass(mod, cl->cd, (cl->next == NULL), fp);
+            generateEncodedType(mod, cl->cd, (cl->next == NULL), fp);
         }
 
         prcode(fp,"};\n"
@@ -8623,7 +8630,102 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 "        %n,\n"
 "        {0}\n"
 "    },\n"
-        , cd->iff->name);
+"    {\n"
+"        ", cd->iff->name);
+
+    if (cd->real != NULL)
+        generateEncodedType(mod, cd->real, 0, fp);
+    else if (cd->ecd != NULL)
+        generateEncodedType(mod, cd->ecd, 0, fp);
+    else
+        prcode(fp, "{0, 0, 1}");
+
+    prcode(fp, ",\n"
+        );
+
+    if (nr_methods == 0)
+        prcode(fp,
+"        0, 0,\n"
+            );
+    else
+        prcode(fp,
+"        %d, methods_%L,\n"
+            , nr_methods, cd->iff);
+
+    if (nr_enums == 0)
+        prcode(fp,
+"        0, 0,\n"
+            );
+    else
+        prcode(fp,
+"        %d, enummembers_%L,\n"
+            , nr_enums, cd->iff);
+
+    if (nr_vars == 0)
+        prcode(fp,
+"        0, 0,\n"
+            );
+    else
+        prcode(fp,
+"        %d, variables_%L,\n"
+            , nr_vars, cd->iff);
+
+    prcode(fp,
+"        {");
+
+    if (is_inst_class)
+        prcode(fp, "typeInstances_%C, ", classFQCName(cd));
+    else
+        prcode(fp, "0, ");
+
+    if (is_inst_voidp)
+        prcode(fp, "voidPtrInstances_%C, ", classFQCName(cd));
+    else
+        prcode(fp, "0, ");
+
+    if (is_inst_char)
+        prcode(fp, "charInstances_%C, ", classFQCName(cd));
+    else
+        prcode(fp, "0, ");
+
+    if (is_inst_string)
+        prcode(fp, "stringInstances_%C, ", classFQCName(cd));
+    else
+        prcode(fp, "0, ");
+
+    if (is_inst_int)
+        prcode(fp, "intInstances_%C, ", classFQCName(cd));
+    else
+        prcode(fp, "0, ");
+
+    if (is_inst_long)
+        prcode(fp, "longInstances_%C, ", classFQCName(cd));
+    else
+        prcode(fp, "0, ");
+
+    if (is_inst_ulong)
+        prcode(fp, "unsignedLongInstances_%C, ", classFQCName(cd));
+    else
+        prcode(fp, "0, ");
+
+    if (is_inst_longlong)
+        prcode(fp, "longLongInstances_%C, ", classFQCName(cd));
+    else
+        prcode(fp,"0, ");
+
+    if (is_inst_ulonglong)
+        prcode(fp, "unsignedLongLongInstances_%C, ", classFQCName(cd));
+    else
+        prcode(fp, "0, ");
+
+    if (is_inst_double)
+        prcode(fp, "doubleInstances_%C", classFQCName(cd));
+    else
+        prcode(fp, "0");
+
+    prcode(fp,"},\n"
+"    },\n"
+        );
 
     if (cd->real == NULL)
         prcode(fp,
@@ -8652,19 +8754,6 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 "    -1,\n"
             );
 
-    prcode(fp,
-"    ");
-
-    if (cd->real != NULL)
-        generateEncodedClass(mod, cd->real, 0, fp);
-    else if (cd->ecd != NULL)
-        generateEncodedClass(mod, cd->ecd, 0, fp);
-    else
-        prcode(fp, "{0, 0, 1}");
-
-    prcode(fp, ",\n"
-        );
-
     if (cd->supers != NULL)
         prcode(fp,
 "    supers_%C,\n"
@@ -8682,33 +8771,6 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
         prcode(fp,
 "    0,\n"
             );
-
-    if (nr_methods == 0)
-        prcode(fp,
-"    0, 0,\n"
-            );
-    else
-        prcode(fp,
-"    %d, methods_%L,\n"
-            , nr_methods, cd->iff);
-
-    if (nr_enums == 0)
-        prcode(fp,
-"    0, 0,\n"
-            );
-    else
-        prcode(fp,
-"    %d, enummembers_%L,\n"
-            , nr_enums, cd->iff);
-
-    if (nr_vars == 0)
-        prcode(fp,
-"    0, 0,\n"
-            );
-    else
-        prcode(fp,
-"    %d, variables_%L,\n"
-            , nr_vars, cd->iff);
 
     if (canCreate(cd))
         prcode(fp,
@@ -8841,59 +8903,6 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
     }
 
     prcode(fp,
-"    {");
-
-    if (is_inst_class)
-        prcode(fp, "typeInstances_%C, ", classFQCName(cd));
-    else
-        prcode(fp, "0, ");
-
-    if (is_inst_voidp)
-        prcode(fp, "voidPtrInstances_%C, ", classFQCName(cd));
-    else
-        prcode(fp, "0, ");
-
-    if (is_inst_char)
-        prcode(fp, "charInstances_%C, ", classFQCName(cd));
-    else
-        prcode(fp, "0, ");
-
-    if (is_inst_string)
-        prcode(fp, "stringInstances_%C, ", classFQCName(cd));
-    else
-        prcode(fp, "0, ");
-
-    if (is_inst_int)
-        prcode(fp, "intInstances_%C, ", classFQCName(cd));
-    else
-        prcode(fp, "0, ");
-
-    if (is_inst_long)
-        prcode(fp, "longInstances_%C, ", classFQCName(cd));
-    else
-        prcode(fp, "0, ");
-
-    if (is_inst_ulong)
-        prcode(fp, "unsignedLongInstances_%C, ", classFQCName(cd));
-    else
-        prcode(fp, "0, ");
-
-    if (is_inst_longlong)
-        prcode(fp, "longLongInstances_%C, ", classFQCName(cd));
-    else
-        prcode(fp,"0, ");
-
-    if (is_inst_ulonglong)
-        prcode(fp, "unsignedLongLongInstances_%C, ", classFQCName(cd));
-    else
-        prcode(fp, "0, ");
-
-    if (is_inst_double)
-        prcode(fp, "doubleInstances_%C", classFQCName(cd));
-    else
-        prcode(fp, "0");
-
-    prcode(fp,"},\n"
 "    0,\n"
         );
 

@@ -5987,7 +5987,7 @@ static int convertAPIRange(moduleDef *mod, nameDef *name, int from, int to)
     {
         avd = *avdp;
 
-        if (avd->api_name->text == name && avd->from == from && avd->to == to)
+        if (avd->api_name == name && avd->from == from && avd->to == to)
             return version;
     }
 

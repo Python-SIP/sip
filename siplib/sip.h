@@ -56,6 +56,10 @@ extern "C" {
  *
  * History:
  *
+ * 6.0  Added the sipContainerDef structure to define the contents of a class
+ *      or mapped type.  Restructured sipClassDef and sipMappedTypeDef
+ *      accordingly.
+ *
  * 5.0  Added sip_api_is_api_enabled().
  *      Renamed the td_version_nr member of sipTypeDef to be int and where -1
  *      indicates it is not versioned.
@@ -134,7 +138,7 @@ extern "C" {
  *
  * 0.0  Original version.
  */
-#define SIP_API_MAJOR_NR    5
+#define SIP_API_MAJOR_NR    6
 #define SIP_API_MINOR_NR    0
 
 
@@ -344,18 +348,18 @@ typedef int (*sipVariableSetterFunc)(void *, PyObject *, PyObject *);
 
 
 /*
- * The information describing an encoded class ID.
+ * The information describing an encoded type ID.
  */
-typedef struct _sipEncodedClassDef {
-    /* The class number. */
-    unsigned sc_class:16;
+typedef struct _sipEncodedTypeDef {
+    /* The type number. */
+    unsigned sc_type:16;
 
     /* The module number (255 for this one). */
     unsigned sc_module:8;
 
     /* A context specific flag. */
     unsigned sc_flag:1;
-} sipEncodedClassDef;
+} sipEncodedTypeDef;
 
 
 /*
@@ -417,7 +421,7 @@ typedef struct _sipInitExtenderDef {
     sipInitFunc ie_extender;
 
     /* The class being extended. */
-    sipEncodedClassDef ie_class;
+    sipEncodedTypeDef ie_class;
 
     /* The next extender for this class. */
     struct _sipInitExtenderDef *ie_next;
@@ -432,7 +436,7 @@ typedef struct _sipSubClassConvertorDef {
     sipSubClassConvertFunc scc_convertor;
 
     /* The encoded base type. */
-    sipEncodedClassDef scc_base;
+    sipEncodedTypeDef scc_base;
 
     /* The base type. */
     struct _sipTypeDef *scc_basetype;
@@ -532,7 +536,7 @@ typedef struct _sipPySlotExtenderDef {
     sipPySlotType pse_type;
 
     /* The encoded class. */
-    sipEncodedClassDef pse_class;
+    sipEncodedTypeDef pse_class;
 } sipPySlotExtenderDef;
 
 
@@ -598,11 +602,48 @@ typedef struct _sipTypeDef {
 
 
 /*
+ * The information describing a container (ie. a class, namespace or a mapped
+ * type).
+ */
+typedef struct _sipContainerDef {
+    /*
+     * The scoping type or the namespace this is extending if it is a namespace
+     * extender.
+     */
+    sipEncodedTypeDef cod_scope;
+
+    /* The number of lazy methods. */
+    int cod_nrmethods;
+
+    /* The table of lazy methods. */
+    PyMethodDef *cod_methods;
+
+    /* The number of lazy enum members. */
+    int cod_nrenummembers;
+
+    /* The table of lazy enum members. */
+    sipEnumMemberDef *cod_enummembers;
+
+    /* The number of variables. */
+    int cod_nrvariables;
+
+    /* The table of variables. */
+    sipVariableDef *cod_variables;
+
+    /* The static instances. */
+    sipInstancesDef cod_instances;
+} sipContainerDef;
+
+
+/*
  * The information describing a C++ class (or C struct) or a C++ namespace.
  */
 typedef struct _sipClassTypeDef {
     /* The base type information. */
     sipTypeDef ctd_base;
+
+    /* The container information. */
+    sipContainerDef ctd_container;
 
     /* The Python name of the type, -1 if this is a namespace extender. */
     int ctd_name;
@@ -616,35 +657,11 @@ typedef struct _sipClassTypeDef {
     /* The super-type name, -1 to use sipWrapper. */
     int ctd_supertype;
 
-    /*
-     * The scoping type or the namespace this is extending if it is a namespace
-     * extender.
-     */
-    sipEncodedClassDef ctd_scope;
-
     /* The super-types. */
-    sipEncodedClassDef *ctd_supers;
+    sipEncodedTypeDef *ctd_supers;
 
     /* The table of Python slots. */
     sipPySlotDef *ctd_pyslots;
-
-    /* The number of lazy methods. */
-    int ctd_nrmethods;
-
-    /* The table of lazy methods. */
-    PyMethodDef *ctd_methods;
-
-    /* The number of lazy enum members. */
-    int ctd_nrenummembers;
-
-    /* The table of lazy enum members. */
-    sipEnumMemberDef *ctd_enummembers;
-
-    /* The number of variables. */
-    int ctd_nrvariables;
-
-    /* The table of variables. */
-    sipVariableDef *ctd_variables;
 
     /* The initialisation function. */
     sipInitFunc ctd_init;
@@ -687,9 +704,6 @@ typedef struct _sipClassTypeDef {
     /* The optional convert to function. */
     sipConvertToFunc ctd_cto;
 
-    /* The static instances. */
-    sipInstancesDef ctd_instances;
-
     /* The next namespace extender. */
     struct _sipClassTypeDef *ctd_nsextender;
 
@@ -704,6 +718,13 @@ typedef struct _sipClassTypeDef {
 typedef struct _sipMappedTypeDef {
     /* The base type information. */
     sipTypeDef mtd_base;
+
+    /*
+     * The container information.  (At the moment only the enum information is
+     * used but mapped types should be able to contain any static methods,
+     * variables, instances etc.
+     */
+    sipContainerDef mtd_container;
 
     /* The optional release function. */
     sipReleaseFunc mtd_release;
