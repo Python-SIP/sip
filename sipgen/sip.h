@@ -872,6 +872,8 @@ typedef struct _enumDef {
     nameDef *pyname;                    /* The Python name (may be NULL). */
     scopedNameDef *fqcname;             /* The C/C++ name (may be NULL). */
     nameDef *cname;                     /* The C/C++ name (may be NULL). */
+    struct _enumDef *first_alt;         /* The first alternate API. */
+    struct _enumDef *next_alt;          /* The next alternate API. */
     int enumnr;                         /* The enum number. */
     int enum_idx;                       /* The enum index within the module. */
     struct _classDef *ecd;              /* The enclosing class, if any. */

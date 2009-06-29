@@ -69,8 +69,8 @@ static void generateModDefinition(moduleDef *mod, const char *methods,
 static void generateIfaceCpp(sipSpec *, ifaceFileDef *, const char *,
         const char *, FILE *);
 static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp);
-static void generateImportedMappedTypeAPI(mappedTypeDef *mtd, moduleDef *mod,
-        FILE *fp);
+static void generateImportedMappedTypeAPI(mappedTypeDef *mtd, sipSpec *pt,
+        moduleDef *mod, FILE *fp);
 static void generateMappedTypeAPI(sipSpec *pt, mappedTypeDef *mtd, FILE *fp);
 static void generateClassCpp(classDef *cd, sipSpec *pt, FILE *fp);
 static void generateImportedClassAPI(classDef *cd, sipSpec *pt, moduleDef *mod,
@@ -142,7 +142,7 @@ static sortedMethTab *createFunctionTable(classDef *, int *);
 static sortedMethTab *createMethodTable(classDef *, int *);
 static int generateMethodTable(classDef *, FILE *);
 static void generateEnumMacros(sipSpec *pt, moduleDef *mod, classDef *cd,
-        FILE *fp);
+        mappedTypeDef *mtd, FILE *fp);
 static int generateEnumMemberTable(sipSpec *pt, moduleDef *mod, classDef *cd,
         mappedTypeDef *mtd, FILE *fp);
 static int generateInts(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp);
@@ -731,7 +731,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
         , pt->module->name);
 
     /* The unscoped enum macros. */
-    generateEnumMacros(pt, mod, NULL, fp);
+    generateEnumMacros(pt, mod, NULL, NULL, fp);
 
     generateModuleAPI(pt, mod, fp);
 
@@ -1441,7 +1441,14 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         ed->enum_idx = enum_idx++;
 
         prcode(fp,
-"    {{%d, 0, 0, SIP_TYPE_ENUM, %n, {0}}, %n, %d, ", api_range, ed->cname, ed->pyname, type_nr);
+"    {{%d, ", api_range);
+
+        if (ed->next_alt != NULL)
+            prcode(fp, "&enumTypes[%d].etd_base", ed->next_alt->enum_idx);
+        else
+            prcode(fp, "0");
+
+        prcode(fp, ", 0, SIP_TYPE_ENUM, %n, {0}}, %n, %d, ", ed->cname, ed->pyname, type_nr);
 
         if (ed->slots != NULL)
             prcode(fp, "slots_%C", ed->fqcname);
@@ -2577,7 +2584,7 @@ static int generateEnumMemberTable(sipSpec *pt, moduleDef *mod, classDef *cd,
             prcode(fp, "%S::", mtd->iff->fqcname);
         }
 
-        prcode(fp, "%s, %d},\n", emd->cname, emd->ed->enumnr);
+        prcode(fp, "%s, %d},\n", emd->cname, emd->ed->first_alt->enumnr);
     }
 
     prcode(fp,
@@ -7412,7 +7419,7 @@ static void generateImportedModuleAPI(sipSpec *pt, moduleDef *mod,
 
     for (mtd = pt->mappedtypes; mtd != NULL; mtd = mtd->next)
         if (mtd->iff->module == immod)
-            generateImportedMappedTypeAPI(mtd, mod, fp);
+            generateImportedMappedTypeAPI(mtd, pt, mod, fp);
 
     for (xd = pt->exceptions; xd != NULL; xd = xd->next)
         if (xd->iff->module == immod && xd->exceptionnr >= 0)
@@ -7426,8 +7433,8 @@ static void generateImportedModuleAPI(sipSpec *pt, moduleDef *mod,
 /*
  * Generate the API details for an imported mapped type.
  */
-static void generateImportedMappedTypeAPI(mappedTypeDef *mtd, moduleDef *mod,
-        FILE *fp)
+static void generateImportedMappedTypeAPI(mappedTypeDef *mtd, sipSpec *pt,
+        moduleDef *mod, FILE *fp)
 {
     /* Ignore alternate API implementations. */
     if (mtd->iff->first_alt == mtd->iff)
@@ -7446,6 +7453,8 @@ static void generateImportedMappedTypeAPI(mappedTypeDef *mtd, moduleDef *mod,
 "#define sipType_%T      sipModuleAPI_%s_%s->em_types[%d]\n"
             , &type, mname, imname, mtd->iff->ifacenr);
     }
+
+    generateEnumMacros(pt, mod, NULL, mtd, fp);
 }
 
 
@@ -7477,6 +7486,8 @@ static void generateMappedTypeAPI(sipSpec *pt, mappedTypeDef *mtd, FILE *fp)
 "\n"
 "extern %sMappedTypeDef sipTypeDef_%s_%L;\n"
         , type_prefix, mtd->iff->module->name, mtd->iff);
+
+    generateEnumMacros(pt, mtd->iff->module, NULL, mtd, fp);
 }
 
 
@@ -7513,7 +7524,7 @@ static void generateImportedClassAPI(classDef *cd, sipSpec *pt, moduleDef *mod,
                 );
     }
 
-    generateEnumMacros(pt, mod, cd, fp);
+    generateEnumMacros(pt, mod, cd, NULL, fp);
 }
 
 
@@ -7535,7 +7546,7 @@ static void generateClassAPI(classDef *cd, sipSpec *pt, FILE *fp)
             , classFQCName(cd), mname, cd->iff->ifacenr
             , classFQCName(cd), mname, cd->iff->ifacenr);
 
-    generateEnumMacros(pt, cd->iff->module, cd, fp);
+    generateEnumMacros(pt, cd->iff->module, cd, NULL, fp);
 
     if (!isExternal(cd))
     {
@@ -7560,15 +7571,33 @@ static void generateClassAPI(classDef *cd, sipSpec *pt, FILE *fp)
  * Generate the sipEnum_* macros.
  */
 static void generateEnumMacros(sipSpec *pt, moduleDef *mod, classDef *cd,
-        FILE *fp)
+        mappedTypeDef *mtd, FILE *fp)
 {
     enumDef *ed;
     int noIntro = TRUE;
 
     for (ed = pt->enums; ed != NULL; ed = ed->next)
     {
-        if (ed->fqcname == NULL || ed->ecd != cd)
+        if (ed->fqcname == NULL)
             continue;
+
+        if (ed->first_alt != ed)
+            continue;
+
+        if (cd != NULL)
+        {
+            if (ed->ecd != cd)
+                continue;
+        }
+        else if (mtd != NULL)
+        {
+            if (ed->emtd != mtd)
+                continue;
+        }
+        else if (ed->ecd != NULL || ed->emtd != NULL)
+        {
+            continue;
+        }
 
         if (noIntro)
         {

@@ -3098,13 +3098,16 @@ static void createSortedNumberedTypesTable(sipSpec *pt, moduleDef *mod)
 
     for (ed = pt->enums; ed != NULL; ed = ed->next)
     {
+        if (ed->module != mod)
+            continue;
+
         if (ed->fqcname == NULL)
             continue;
 
         if (ed->ecd != NULL && isTemplateClass(ed->ecd))
             continue;
 
-        if (ed->module != mod)
+        if (ed->first_alt != ed)
             continue;
 
         mod->nrtypes++;
@@ -3148,13 +3151,16 @@ static void createSortedNumberedTypesTable(sipSpec *pt, moduleDef *mod)
 
     for (ed = pt->enums; ed != NULL; ed = ed->next)
     {
+        if (ed->module != mod)
+            continue;
+
         if (ed->fqcname == NULL)
             continue;
 
         if (ed->ecd != NULL && isTemplateClass(ed->ecd))
             continue;
 
-        if (ed->module != mod)
+        if (ed->first_alt != ed)
             continue;
 
         ad->atype = enum_type;

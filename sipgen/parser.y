@@ -3555,7 +3555,7 @@ mappedTypeDef *allocMappedType(sipSpec *pt, argDef *type)
 static enumDef *newEnum(sipSpec *pt, moduleDef *mod, mappedTypeDef *mt_scope,
         char *name, optFlags *of, int flags)
 {
-    enumDef *ed;
+    enumDef *ed, *first_alt, *next_alt;
     classDef *c_scope;
     ifaceFileDef *scope;
 
@@ -3574,6 +3574,10 @@ static enumDef *newEnum(sipSpec *pt, moduleDef *mod, mappedTypeDef *mt_scope,
 
     ed = sipMalloc(sizeof (enumDef));
 
+    /* Assume the enum isn't versioned. */
+    first_alt = ed;
+    next_alt = NULL;
+
     if (name != NULL)
     {
         ed->pyname = cacheName(pt, getPythonName(of, name));
@@ -3587,6 +3591,27 @@ static enumDef *newEnum(sipSpec *pt, moduleDef *mod, mappedTypeDef *mt_scope,
             setIsUsedName(ed->pyname);
             setIsUsedName(ed->cname);
         }
+
+        /* If the scope is versioned then look for any alternate. */
+        if (scope != NULL && scope->api_range >= 0)
+        {
+            enumDef *alt;
+
+            for (alt = pt->enums; alt != NULL; alt = alt->next)
+            {
+                if (alt->module != mod || alt->fqcname == NULL)
+                    continue;
+
+                if (compareScopedNames(alt->fqcname, ed->fqcname) == 0)
+                {
+                    first_alt = alt->first_alt;
+                    next_alt = first_alt->next_alt;
+                    first_alt->next_alt = ed;
+
+                    break;
+                }
+            }
+        }
     }
     else
     {
@@ -3599,6 +3624,8 @@ static enumDef *newEnum(sipSpec *pt, moduleDef *mod, mappedTypeDef *mt_scope,
     ed->enumnr = -1;
     ed->ecd = c_scope;
     ed->emtd = mt_scope;
+    ed->first_alt = first_alt;
+    ed->next_alt = next_alt;
     ed->module = mod;
     ed->members = NULL;
     ed->slots = NULL;
@@ -4160,6 +4187,7 @@ static void instantiateTemplateEnums(sipSpec *pt, classTmplDef *tcd,
             }
 
             ed->ecd = cd;
+            ed->first_alt = ed;
             ed->module = mod;
             ed->members = NULL;
 
