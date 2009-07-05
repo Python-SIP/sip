@@ -144,7 +144,10 @@ typedef struct _sipVariableDescr {
     sipVariableDef *vd;
 
     /* The generated type definition. */
-    const sipClassTypeDef *ctd;
+    const sipTypeDef *td;
+
+    /* The generated container definition. */
+    const sipContainerDef *cod;
 } sipVariableDescr;
 
 
@@ -197,14 +200,16 @@ static int get_instance_address(sipVariableDescr *vd, PyObject *obj,
 /*
  * Return a new method descriptor for the given getter/setter.
  */
-PyObject *sipVariableDescr_New(sipVariableDef *vd, const sipClassTypeDef *ctd)
+PyObject *sipVariableDescr_New(sipVariableDef *vd, const sipTypeDef *td,
+        const sipContainerDef *cod)
 {
     PyObject *descr = PyType_GenericAlloc(&sipVariableDescr_Type, 0);
 
     if (descr != NULL)
     {
         ((sipVariableDescr *)descr)->vd = vd;
-        ((sipVariableDescr *)descr)->ctd = ctd;
+        ((sipVariableDescr *)descr)->td = td;
+        ((sipVariableDescr *)descr)->cod = cod;
     }
 
     return descr;
@@ -241,7 +246,7 @@ static int sipVariableDescr_descr_set(PyObject *self, PyObject *obj,
     {
         PyErr_Format(PyExc_AttributeError,
                 "'%s' object attribute '%s' is read-only",
-                sipPyNameOfClass(vd->ctd), vd->vd->vd_name);
+                sipPyNameOfContainer(vd->cod, vd->td), vd->vd->vd_name);
 
         return -1;
     }
@@ -272,13 +277,13 @@ static int get_instance_address(sipVariableDescr *vd, PyObject *obj,
         {
             PyErr_Format(PyExc_AttributeError,
                     "'%s' object attribute '%s' is an instance attribute",
-                    sipPyNameOfClass(vd->ctd), vd->vd->vd_name);
+                    sipPyNameOfContainer(vd->cod, vd->td), vd->vd->vd_name);
 
             return -1;
         }
 
         /* Get the C++ instance. */
-        if ((addr = sip_api_get_cpp_ptr((sipSimpleWrapper *)obj, &vd->ctd->ctd_base)) == NULL)
+        if ((addr = sip_api_get_cpp_ptr((sipSimpleWrapper *)obj, vd->td)) == NULL)
             return -1;
     }
 

@@ -749,6 +749,7 @@ typedef struct _ifaceFileList {
 typedef struct _mappedTypeDef {
     int mtflags;                        /* The mapped type flags. */
     argDef type;                        /* The type being mapped. */
+    nameDef *pyname;                    /* The Python name. */
     nameDef *cname;                     /* The C/C++ name. */
     ifaceFileDef *iff;                  /* The interface file. */
     codeBlock *convfromcode;            /* Convert from C++ code. */

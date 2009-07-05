@@ -3486,9 +3486,21 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 "        {0}\n"
 "    },\n"
 "    {\n"
+        , mtd->cname);
+
+    if (nr_enums == 0)
+        prcode(fp,
+"        -1,\n"
+            );
+    else
+        prcode(fp,
+"        %n,\n"
+            , mtd->pyname);
+
+    prcode(fp,
 "        {0, 0, 1},\n"
 "        0, 0,\n"
-        , mtd->cname);
+        );
 
     if (nr_enums == 0)
         prcode(fp,
@@ -8717,6 +8729,15 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 "    {\n"
 "        ", cd->iff->name);
 
+    if (cd->real == NULL)
+        prcode(fp,
+"        %n,\n"
+            , cd->pyname);
+    else
+        prcode(fp,
+"        -1,\n"
+            );
+
     if (cd->real != NULL)
         generateEncodedType(mod, cd->real, 0, fp);
     else if (cd->ecd != NULL)
@@ -8810,15 +8831,6 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
     prcode(fp,"},\n"
 "    },\n"
         );
-
-    if (cd->real == NULL)
-        prcode(fp,
-"    %n,\n"
-            , cd->pyname);
-    else
-        prcode(fp,
-"    -1,\n"
-            );
 
     if (cd->metatype != NULL)
         prcode(fp,

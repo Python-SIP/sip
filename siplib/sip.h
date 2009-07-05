@@ -607,6 +607,12 @@ typedef struct _sipTypeDef {
  */
 typedef struct _sipContainerDef {
     /*
+     * The Python name of the type, -1 if this is a namespace extender (in the
+     * context of a class) or doesn't require a namespace (in the context of a
+     * mapped type). */
+    int cod_name;
+
+    /*
      * The scoping type or the namespace this is extending if it is a namespace
      * extender.
      */
@@ -644,9 +650,6 @@ typedef struct _sipClassTypeDef {
 
     /* The container information. */
     sipContainerDef ctd_container;
-
-    /* The Python name of the type, -1 if this is a namespace extender. */
-    int ctd_name;
 
     /*
      * The meta-type name, -1 to use the meta-type of the first super-type
@@ -1404,7 +1407,7 @@ typedef struct _sipQtAPI {
  */
 #define sipNameFromPool(em, mr) (&((em)->em_strings)[(mr)])
 #define sipNameOfModule(em)     sipNameFromPool((em), (em)->em_name)
-#define sipPyNameOfClass(ctd)   sipNameFromPool((ctd)->ctd_base.td_module, (ctd)->ctd_name)
+#define sipPyNameOfContainer(cod, td)   sipNameFromPool((td)->td_module, (cod)->cod_name)
 #define sipPyNameOfEnum(etd)    sipNameFromPool((etd)->etd_base.td_module, (etd)->etd_name)
 
 

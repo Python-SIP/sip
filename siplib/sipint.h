@@ -51,7 +51,8 @@ extern PyTypeObject sipMethodDescr_Type;
 PyObject *sipMethodDescr_New(PyMethodDef *pmd);
 
 extern PyTypeObject sipVariableDescr_Type;
-PyObject *sipVariableDescr_New(sipVariableDef *vd, const sipClassTypeDef *ctd);
+PyObject *sipVariableDescr_New(sipVariableDef *vd, const sipTypeDef *td,
+    const sipContainerDef *cod);
 
 
 /*

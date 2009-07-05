@@ -3474,20 +3474,24 @@ static mappedTypeDef *newMappedType(sipSpec *pt, argDef *ad, optFlags *of)
     mappedTypeDef *mtd;
     scopedNameDef *snd;
     ifaceFileDef *iff;
+    const char *cname;
 
     /* Check that the type is one we want to map. */
     switch (ad->atype)
     {
     case defined_type:
         snd = ad->u.snd;
+        cname = scopedNameTail(snd);
         break;
 
     case template_type:
         snd = encodedTemplateName(ad->u.td);
+        cname = NULL;
         break;
 
     case struct_type:
         snd = ad->u.sname;
+        cname = scopedNameTail(snd);
         break;
 
     default:
@@ -3515,6 +3519,9 @@ static mappedTypeDef *newMappedType(sipSpec *pt, argDef *ad, optFlags *of)
     /* Create a new mapped type. */
     mtd = allocMappedType(pt, ad);
 
+    if (cname != NULL)
+        mtd->pyname = cacheName(pt, getPythonName(of, cname));
+
     if (findOptFlag(of, "NoRelease", bool_flag) != NULL)
         setNoRelease(mtd);
 
@@ -3524,7 +3531,12 @@ static mappedTypeDef *newMappedType(sipSpec *pt, argDef *ad, optFlags *of)
     pt->mappedtypes = mtd;
 
     if (inMainModule())
+    {
         setIsUsedName(mtd->cname);
+
+        if (mtd->pyname)
+            setIsUsedName(mtd->pyname);
+    }
 
     return mtd;
 }
