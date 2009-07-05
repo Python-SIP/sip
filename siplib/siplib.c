@@ -338,7 +338,7 @@ static sipObjectMap cppPyMap;           /* The C/C++ to Python map. */
 static sipExportedModuleDef *moduleList = NULL; /* List of registered modules. */
 static unsigned traceMask = 0;          /* The current trace mask. */
 
-static sipClassTypeDef *currentClassType = NULL;    /* The class type being created. */
+static sipTypeDef *currentType = NULL;  /* The type being created. */
 
 static PyObject *type_unpickler;        /* The type unpickler function. */
 static PyObject *enum_unpickler;        /* The enum unpickler function. */
@@ -372,6 +372,8 @@ static void *cast_cpp_ptr(void *ptr, PyTypeObject *src_type,
 static void badArgs(int argsParsed, const char *scope, const char *method);
 static void finalise(void);
 static PyObject *getDefaultBases(void);
+static PyObject *getScopeDict(sipTypeDef *td, PyObject *mod_dict,
+        sipExportedModuleDef *client);
 static PyObject *createContainerType(sipContainerDef *cod, sipTypeDef *td,
         PyObject *bases, PyObject *metatype, PyObject *mod_dict,
         sipExportedModuleDef *client);
@@ -4022,7 +4024,7 @@ static PyObject *createContainerType(sipContainerDef *cod, sipTypeDef *td,
     {
         scope_dict = mod_dict;
     }
-    else if ((scope_dict = getScopedDict(getGeneratedType(&cod->cod_scope, client), mod_dict, client)) == NULL)
+    else if ((scope_dict = getScopeDict(getGeneratedType(&cod->cod_scope, client), mod_dict, client)) == NULL)
         goto reterr;
 
     /* Create the type dictionary. */
@@ -4037,7 +4039,7 @@ static PyObject *createContainerType(sipContainerDef *cod, sipTypeDef *td,
 #endif
 
     if (name == NULL)
-        goto reterr;
+        goto reldict;
 
     /* Create the type by calling the metatype. */
 #if PY_VERSION_HEX >= 0x02040000
@@ -4048,6 +4050,9 @@ static PyObject *createContainerType(sipContainerDef *cod, sipTypeDef *td,
 
     if (args == NULL)
         goto relname;
+
+    /* Pass the type via the back door. */
+    currentType = td;
 
     if ((py_type = PyObject_Call(metatype, args, NULL)) == NULL)
         goto relargs;
@@ -4073,10 +4078,11 @@ relargs:
 relname:
     Py_DECREF(name);
 
-relduct:
+reldict:
     Py_DECREF(typedict);
 
 reterr:
+    currentType = NULL;
     return NULL;
 }
 
@@ -4167,9 +4173,6 @@ static int createClassType(sipExportedModuleDef *client, sipClassTypeDef *ctd,
     else
         metatype = (PyObject *)Py_TYPE(PyTuple_GET_ITEM(bases, 0));
 
-    /* Pass the type via the back door. */
-    currentClassType = ctd;
-
     if ((py_type = createContainerType(&ctd->ctd_container, (sipTypeDef *)ctd, bases, metatype, mod_dict, client)) == NULL)
         goto relbases;
 
@@ -4180,7 +4183,7 @@ static int createClassType(sipExportedModuleDef *client, sipClassTypeDef *ctd,
             "_pickle_type", pickle_type, METH_NOARGS, NULL
         };
 
-        if (setReduce(py_type, &md) < 0)
+        if (setReduce((PyTypeObject *)py_type, &md) < 0)
             goto reltype;
     }
 
@@ -4198,7 +4201,6 @@ relbases:
     Py_DECREF(bases);
 
 reterr:
-    currentClassType = NULL;
     ctd->ctd_base.td_module = NULL;
     return -1;
 }
@@ -4464,7 +4466,7 @@ static int createEnumType(sipExportedModuleDef *client, sipEnumTypeDef *etd,
     /* Get the dictionary into which the type will be placed. */
     if (etd->etd_scope < 0)
         dict = mod_dict;
-    else if ((dict = getScopedDict(client->em_types[etd->etd_scope], mod_dict, client)) == NULL)
+    else if ((dict = getScopeDict(client->em_types[etd->etd_scope], mod_dict, client)) == NULL)
         goto reterr;
 
     /* Create the base type tuple if it hasn't already been done. */
@@ -7319,11 +7321,14 @@ static PyObject *sipWrapperType_alloc(PyTypeObject *self, SIP_SSIZE_T nitems)
      * function because it is the only place we can break out of the default
      * new() function before PyType_Ready() is called.
      */
-    if (currentClassType != NULL)
+    if (currentType != NULL)
     {
-        ((sipWrapperType *)o)->type = (sipTypeDef *)currentClassType;
-        addClassSlots((sipWrapperType *)o, currentClassType);
-        currentClassType = NULL;
+        ((sipWrapperType *)o)->type = currentType;
+
+        if (sipTypeIsClass(currentType))
+            addClassSlots((sipWrapperType *)o, (sipClassTypeDef *)currentType);
+
+        currentType = NULL;
     }
 
     return o;
