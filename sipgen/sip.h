@@ -369,9 +369,12 @@
 /* Handle mapped type flags. */
 
 #define MT_NO_RELEASE       0x01    /* Do not generate a release function. */
+#define MT_ALLOW_NONE       0x02    /* The mapped type will handle None. */
 
 #define noRelease(mt)       ((mt)->mtflags & MT_NO_RELEASE)
 #define setNoRelease(mt)    ((mt)->mtflags |= MT_NO_RELEASE)
+#define handlesNone(mt)     ((mt)->mtflags & MT_ALLOW_NONE)
+#define setHandlesNone(mt)  ((mt)->mtflags |= MT_ALLOW_NONE)
 
 
 /* Handle typedef flags. */

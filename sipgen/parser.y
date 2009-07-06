@@ -3525,6 +3525,9 @@ static mappedTypeDef *newMappedType(sipSpec *pt, argDef *ad, optFlags *of)
     if (findOptFlag(of, "NoRelease", bool_flag) != NULL)
         setNoRelease(mtd);
 
+    if (findOptFlag(of, "AllowNone", bool_flag) != NULL)
+        setHandlesNone(mtd);
+
     mtd->iff = iff;
     mtd->next = pt->mappedtypes;
 

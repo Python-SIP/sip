@@ -3482,11 +3482,12 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 
     prcode(fp, ",\n"
 "        0,\n"
-"        SIP_TYPE_MAPPED,\n"
+"        %sSIP_TYPE_MAPPED,\n"
 "        %n,\n"
 "        {0}\n"
 "    },\n"
 "    {\n"
+        , (handlesNone(mtd) ? "SIP_TYPE_ALLOW_NONE|" : "")
         , mtd->cname);
 
     if (nr_enums == 0)

@@ -5951,7 +5951,13 @@ static int sip_api_can_convert_to_type(PyObject *pyObj, const sipTypeDef *td,
 
     /* None is handled outside the type checkers. */
     if (pyObj == Py_None)
-        ok = ((flags & SIP_NOT_NONE) == 0);
+    {
+        /* If the type explicitly handles None then ignore the flags. */
+        if (sipTypeAllowNone(td))
+            ok = TRUE;
+        else
+            ok = ((flags & SIP_NOT_NONE) == 0);
+    }
     else
     {
         sipConvertToFunc cto;
@@ -5993,7 +5999,7 @@ static void *sip_api_convert_to_type(PyObject *pyObj, const sipTypeDef *td,
     if (!*iserrp)
     {
         /* Do the conversion. */
-        if (pyObj == Py_None)
+        if (pyObj == Py_None && !sipTypeAllowNone(td))
             cpp = NULL;
         else
         {

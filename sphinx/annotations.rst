@@ -384,6 +384,15 @@ Class Annotations
 Mapped Type Annotations
 -----------------------
 
+.. mapped-type-annotation:: AllowNone
+
+    Normally when a Python object is converted to a C/C++ instance ``None``
+    is handled automatically before the mapped type's
+    :directive:`%ConvertToTypeCode` is called.  This boolean annotation
+    specifies that the handling of ``None`` will be left to the
+    :directive:`%ConvertToTypeCode`.
+
+
 .. mapped-type-annotation:: API
 
     .. versionadded:: 4.9
