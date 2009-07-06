@@ -5962,7 +5962,12 @@ static int sip_api_can_convert_to_type(PyObject *pyObj, const sipTypeDef *td,
             cto = ((const sipMappedTypeDef *)td)->mtd_cto;
 
         if (cto == NULL || (flags & SIP_NO_CONVERTORS) != 0)
-            ok = PyObject_TypeCheck(pyObj, sipTypeAsPyTypeObject(td));
+        {
+            if (sipTypeIsMapped(td))
+                ok = FALSE;
+            else
+                ok = PyObject_TypeCheck(pyObj, sipTypeAsPyTypeObject(td));
+        }
         else
             ok = cto(pyObj, NULL, NULL, NULL);
     }

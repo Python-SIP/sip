@@ -8365,7 +8365,7 @@ static void generateVariable(classDef *context, argDef *ad, int argnr,
             break;
 
         case mapped_type:
-            if (!noRelease(ad->u.mtd))
+            if (!noRelease(ad->u.mtd) && !isConstrained(ad))
                 prcode(fp,
 "        int a%dState = 0;\n"
                     ,argnr);
@@ -11467,10 +11467,15 @@ static int generateArgParser(signatureDef *sd, classDef *cd, ctorDef *ct,
         switch (ad->atype)
         {
         case mapped_type:
-            if (noRelease(ad->u.mtd))
-                prcode(fp, ",sipType_%T,&a%d,NULL", ad, a);
-            else
-                prcode(fp, ",sipType_%T,&a%d,&a%dState", ad, a, a);
+            prcode(fp, ",sipType_%T,&a%d", ad, a);
+
+            if (!isConstrained(ad))
+            {
+                if (noRelease(ad->u.mtd))
+                    prcode(fp, ",NULL");
+                else
+                    prcode(fp, ",&a%dState", a);
+            }
 
             break;
 
@@ -11613,9 +11618,8 @@ static char *getSubFormatChar(char fc, argDef *ad)
         if (isThisTransferred(ad))
             flags |= 0x10;
 
-        if (ad->atype == class_type)
-            if (ad->u.cd->convtocode == NULL || isConstrained(ad))
-                flags |= 0x08;
+        if (isConstrained(ad) || (ad->atype == class_type && ad->u.cd->convtocode == NULL))
+            flags |= 0x08;
     }
 
     fmt[0] = fc;
@@ -11635,7 +11639,7 @@ static int hasConvertToCode(argDef *ad)
 
     if (ad->atype == class_type && !isConstrained(ad))
         convtocode = ad->u.cd->convtocode;
-    else if (ad->atype == mapped_type)
+    else if (ad->atype == mapped_type && !isConstrained(ad))
         convtocode = ad->u.mtd->convtocode;
     else
         convtocode = NULL;
