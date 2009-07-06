@@ -197,7 +197,8 @@ static int needNewInstance(argDef *ad);
 static int needDealloc(classDef *cd);
 static const char *getBuildResultFormat(argDef *ad);
 static const char *getParseResultFormat(argDef *ad, int isres, int xfervh);
-static void generateParseResultExtraArgs(argDef *ad, int argnr, FILE *fp);
+static void generateParseResultExtraArgs(argDef *ad, int argnr,
+        int need_state, FILE *fp);
 static char *makePartName(const char *codeDir, const char *mname, int part,
         const char *srcSuffix);
 static void fakeProtectedArgs(signatureDef *sd);
@@ -6580,13 +6581,13 @@ static void generateProtectedCallArgs(overDef *od, FILE *fp)
  */
 static void generateVirtualHandler(virtHandlerDef *vhd, FILE *fp)
 {
-    int a, nrvals, copy, isref, need_self;
+    int a, nrvals, copy, isref, need_self, need_state;
     argDef *res, res_noconstref, *ad;
     signatureDef saved;
 
     res = &vhd->cppsig->result;
 
-    copy = isref = FALSE;
+    copy = isref = need_state = FALSE;
 
     if (res->atype == void_type && res->nrderefs == 0)
         res = NULL;
@@ -6766,12 +6767,27 @@ static void generateVirtualHandler(virtHandlerDef *vhd, FILE *fp)
         generateBaseType(NULL, &res_noconstref, FALSE, fp);
 
         prcode(fp," *sipResOrig;\n");
-
-        if (res->atype == class_type && res->u.cd->convtocode != NULL)
-            prcode(fp,
-"    int sipResState;\n"
-                );
     }
+
+    /* See if format character is expecting to return the state. */
+    if (res != NULL)
+    {
+        if (res->atype == mapped_type)
+        {
+            if (res->u.mtd->iff->api_range >= 0)
+                need_state = TRUE;
+        }
+        else if (res->atype == class_type)
+        {
+            if (res->u.cd->iff->api_range >= 0 || res->u.cd->convtocode != NULL)
+                need_state = TRUE;
+        }
+    }
+
+    if (need_state)
+        prcode(fp,
+"    int sipResState;\n"
+            );
 
     /* Call the method. */
     prcode(fp,
@@ -6820,7 +6836,7 @@ static void generateVirtualHandler(virtHandlerDef *vhd, FILE *fp)
     /* Pass the destination pointers. */
     if (res != NULL)
     {
-        generateParseResultExtraArgs(res, -1, fp);
+        generateParseResultExtraArgs(res, -1, need_state, fp);
         prcode(fp,",&sipRes%s",(copy ? "Orig" : ""));
     }
 
@@ -6830,7 +6846,7 @@ static void generateVirtualHandler(virtHandlerDef *vhd, FILE *fp)
 
         if (isOutArg(ad))
         {
-            generateParseResultExtraArgs(ad, a, fp);
+            generateParseResultExtraArgs(ad, a, FALSE, fp);
             prcode(fp,",%sa%d",(isReference(ad) ? "&" : ""),a);
         }
     }
@@ -6858,13 +6874,22 @@ static void generateVirtualHandler(virtHandlerDef *vhd, FILE *fp)
             );
 
         if (res->atype == mapped_type)
-            prcode(fp,
+        {
+            if (need_state)
+                prcode(fp,
+"        sipReleaseType(sipResOrig,sipType_%T,sipResState);\n"
+                    , res);
+            else
+                prcode(fp,
 "        delete sipResOrig;\n"
-                );
-        else if (res->atype == class_type && res->u.cd->convtocode != NULL)
+                    );
+        }
+        else if (res->atype == class_type && need_state)
+        {
             prcode(fp,
 "        sipReleaseType(sipResOrig,sipType_%C,sipResState);\n"
                 , classFQCName(res->u.cd));
+        }
 
         prcode(fp,
 "    }\n"
@@ -6907,18 +6932,23 @@ static void generateVirtualHandler(virtHandlerDef *vhd, FILE *fp)
  * Generate the extra arguments needed by sipParseResult() for a particular
  * type.
  */
-static void generateParseResultExtraArgs(argDef *ad, int argnr, FILE *fp)
+static void generateParseResultExtraArgs(argDef *ad, int argnr, int need_state,
+        FILE *fp)
 {
     switch (ad->atype)
     {
     case mapped_type:
         prcode(fp, ",sipType_%T", ad);
+
+        if (need_state)
+            prcode(fp, ",&sipResState");
+
         break;
 
     case class_type:
         prcode(fp, ",sipType_%C", classFQCName(ad->u.cd));
 
-        if (argnr < 0 && ad->nrderefs == 0 && ad->u.cd->convtocode != NULL && !isReference(ad))
+        if (need_state)
             prcode(fp, ",&sipResState");
 
         break;
@@ -6965,58 +6995,56 @@ static void generateParseResultExtraArgs(argDef *ad, int argnr, FILE *fp)
  */
 static const char *getParseResultFormat(argDef *ad, int isres, int xfervh)
 {
+    static const char *type_formats[] = {
+        "D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7"
+    };
+
     switch (ad->atype)
     {
     case mapped_type:
         {
-            static const char *s[] = {
-                "D0", "D1", "D2", "D3",
-                "D4", "D5", "D6", "D7"
-            };
-
             int f = 0x04;
 
-            if (isres && ad->nrderefs == 0)
-                f |= 0x01;
+            if (isres)
+            {
+                /*
+                 * Get the state if there might be a class API that needs it.
+                 */
+                if (ad->u.mtd->iff->api_range >= 0)
+                    f &= ~0x04;
 
-            if (isres && xfervh)
-                f |= 0x02;
+                if (ad->nrderefs == 0)
+                    f |= 0x01;
 
-            return s[f];
+                if (xfervh)
+                    f |= 0x02;
+            }
+
+            return type_formats[f];
         }
 
     case fake_void_type:
     case class_type:
         {
-            static char s[] = "D?";
-
             int f = 0x04;
 
-            if (isres && ad->nrderefs == 0)
+            if (isres)
             {
-                f |= 0x01;
-
-                if (ad->u.cd->convtocode != NULL)
-                {
+                /*
+                 * Get the state if this class needs it or if there might be
+                 * another class API that does.
+                 */
+                if (ad->u.cd->convtocode != NULL || ad->u.cd->iff->api_range >= 0)
                     f &= ~0x04;
 
-                    /*
-                     * If it is a reference then we are going to return the
-                     * dereference.  To make sure it remains valid we can
-                     * either leak the temporary from the %ConvertToCode or we
-                     * can suppress the %ConvertToCode.  We choose the latter.
-                     */
-                    if (isReference(ad))
-                        f |= 0x10;
-                }
+                if (ad->nrderefs == 0)
+                    f |= 0x01;
+
+                if (xfervh)
+                    f |= 0x02;
             }
 
-            if (isres && xfervh)
-                f |= 0x02;
-
-            s[1] = '0' + f;
-
-            return s;
+            return type_formats[f];
         }
 
     case bool_type:
