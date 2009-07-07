@@ -37,8 +37,8 @@ static void transformModules(sipSpec *pt, moduleDef *mod);
 static void transformCtors(sipSpec *,classDef *);
 static void transformCasts(sipSpec *,classDef *);
 static void addDefaultCopyCtor(classDef *);
-static void transformScopeOverloads(sipSpec *pt, classDef *scope,
-        overDef *overs);
+static void transformScopeOverloads(sipSpec *pt, classDef *c_scope,
+        mappedTypeDef *mt_scope, overDef *overs);
 static void transformVariableList(sipSpec *pt, moduleDef *mod);
 static void transformMappedTypes(sipSpec *pt, moduleDef *mod);
 static void getVisibleMembers(sipSpec *,classDef *);
@@ -47,12 +47,13 @@ static void getClassVirtuals(classDef *,classDef *);
 static void transformTypedefs(sipSpec *pt, moduleDef *mod);
 static void resolveMappedTypeTypes(sipSpec *,mappedTypeDef *);
 static void resolveCtorTypes(sipSpec *,classDef *,ctorDef *);
-static void resolveFuncTypes(sipSpec *,moduleDef *,classDef *,overDef *);
+static void resolveFuncTypes(sipSpec *pt, moduleDef *mod, classDef *c_scope,
+        mappedTypeDef *mt_scope, overDef *od);
 static void resolvePySigTypes(sipSpec *,moduleDef *,classDef *,overDef *,signatureDef *,int);
 static void resolveVariableType(sipSpec *,varDef *);
 static void fatalNoDefinedType(scopedNameDef *);
 static void getBaseType(sipSpec *,moduleDef *,classDef *,argDef *);
-static void searchScope(sipSpec *,classDef *,scopedNameDef *,argDef *);
+static void searchClassScope(sipSpec *,classDef *,scopedNameDef *,argDef *);
 static void searchMappedTypes(sipSpec *,moduleDef *,scopedNameDef *,argDef *);
 static void searchEnums(sipSpec *,scopedNameDef *,argDef *);
 static void searchClasses(sipSpec *,moduleDef *mod,scopedNameDef *,argDef *);
@@ -298,7 +299,7 @@ static void transformModules(sipSpec *pt, moduleDef *mod)
     /* Transform typedefs, variables and global functions. */
     transformTypedefs(pt, mod);
     transformVariableList(pt, mod);
-    transformScopeOverloads(pt, NULL, mod->overs);
+    transformScopeOverloads(pt, NULL, NULL, mod->overs);
 
     /* Transform class ctors, functions and casts. */
     for (cd = pt->classes; cd != NULL; cd = cd->next)
@@ -309,7 +310,7 @@ static void transformModules(sipSpec *pt, moduleDef *mod)
 
             if (!pt->genc)
             {
-                transformScopeOverloads(pt, cd, cd->overs);
+                transformScopeOverloads(pt, cd, NULL, cd->overs);
                 transformCasts(pt, cd);
             }
         }
@@ -1254,9 +1255,10 @@ static void transformMappedTypes(sipSpec *pt, moduleDef *mod)
     {
         if (mt->iff->module == mod)
         {
-            /* Nothing to do if this isn't template based. */
             if (mt->type.atype == template_type)
                 resolveMappedTypeTypes(pt, mt);
+            else
+                transformScopeOverloads(pt, NULL, mt, mt->overs);
         }
     }
 }
@@ -1392,16 +1394,16 @@ static void addDefaultCopyCtor(classDef *cd)
 /*
  * Transform the data types for a list of overloads.
  */
-static void transformScopeOverloads(sipSpec *pt, classDef *scope,
-        overDef *overs)
+static void transformScopeOverloads(sipSpec *pt, classDef *c_scope,
+        mappedTypeDef *mt_scope, overDef *overs)
 {
     overDef *od;
 
-    for (od = overs; od != NULL; od = od -> next)
+    for (od = overs; od != NULL; od = od->next)
     {
         overDef *prev;
 
-        resolveFuncTypes(pt, od->common->module, scope, od);
+        resolveFuncTypes(pt, od->common->module, c_scope, mt_scope, od);
 
         /*
          * Now check that the Python signature doesn't conflict with an earlier
@@ -1414,9 +1416,18 @@ static void transformScopeOverloads(sipSpec *pt, classDef *scope,
 
             if (samePythonSignature(&prev->pysig, &od->pysig))
             {
-                if (scope != NULL)
+                ifaceFileDef *iff;
+
+                if (mt_scope != NULL)
+                    iff = mt_scope->iff;
+                else if (c_scope != NULL)
+                    iff = c_scope->iff;
+                else
+                    iff = NULL;
+
+                if (iff != NULL)
                 {
-                    fatalScopedName(classFQCName(scope));
+                    fatalScopedName(iff->fqcname);
                     fatal("::");
                 }
 
@@ -1424,7 +1435,7 @@ static void transformScopeOverloads(sipSpec *pt, classDef *scope,
             }
         }
 
-        if (scope != NULL && isDeprecatedClass(scope))
+        if (c_scope != NULL && isDeprecatedClass(c_scope))
             setIsDeprecated(od);
     }
 }
@@ -1715,37 +1726,38 @@ static void resolveCtorTypes(sipSpec *pt,classDef *scope,ctorDef *ct)
 /*
  * Resolve the types of a function.
  */
-static void resolveFuncTypes(sipSpec *pt, moduleDef *mod, classDef *scope, overDef *od)
+static void resolveFuncTypes(sipSpec *pt, moduleDef *mod, classDef *c_scope,
+        mappedTypeDef *mt_scope, overDef *od)
 {
     argDef *res;
 
     /* Handle any C++ signature. */
-    if (od -> cppsig != &od -> pysig)
+    if (od->cppsig != &od->pysig)
     {
         int a;
 
-        getBaseType(pt,mod, scope, &od->cppsig->result);
+        getBaseType(pt,mod, c_scope, &od->cppsig->result);
 
-        for (a = 0; a < od -> cppsig -> nrArgs; ++a)
-            getBaseType(pt, mod, scope, &od->cppsig->args[a]);
+        for (a = 0; a < od->cppsig->nrArgs; ++a)
+            getBaseType(pt, mod, c_scope, &od->cppsig->args[a]);
     }
  
     /* Handle the Python signature. */
-    resolvePySigTypes(pt, mod, scope, od, &od->pysig,isSignal(od));
+    resolvePySigTypes(pt, mod, c_scope, od, &od->pysig, isSignal(od));
 
     /* These slots must return int. */
-    res = &od -> pysig.result;
+    res = &od->pysig.result;
 
     if (isIntReturnSlot(od->common))
-        if (res -> atype != int_type || res -> nrderefs != 0 ||
+        if (res->atype != int_type || res->nrderefs != 0 ||
             isReference(res) || isConstArg(res))
-            fatal("%s slots must return int\n",od -> common -> pyname -> text);
+            fatal("%s slots must return int\n", od->common->pyname->text);
 
     /* These slots must return void. */
-    if (isVoidReturnSlot(od -> common))
-        if (res -> atype != void_type || res -> nrderefs != 0 ||
+    if (isVoidReturnSlot(od->common))
+        if (res->atype != void_type || res->nrderefs != 0 ||
             isReference(res) || isConstArg(res))
-            fatal("%s slots must return void\n",od -> common -> pyname -> text);
+            fatal("%s slots must return void\n", od->common->pyname->text);
 
     /* These slots must return long. */
     if (isLongReturnSlot(od->common))
@@ -2619,48 +2631,49 @@ static void scopeDefaultValue(sipSpec *pt,classDef *cd,argDef *ad)
 /*
  * Make sure a type is a base type.
  */
-static void getBaseType(sipSpec *pt, moduleDef *mod, classDef *defscope, argDef *type)
+static void getBaseType(sipSpec *pt, moduleDef *mod, classDef *c_scope,
+        argDef *type)
 {
     /* Loop until we've got to a base type. */
-    while (type -> atype == defined_type)
+    while (type->atype == defined_type)
     {
-        scopedNameDef *snd = type -> u.snd;
+        scopedNameDef *snd = type->u.snd;
 
-        type -> atype = no_type;
+        type->atype = no_type;
 
-        if (defscope != NULL)
-            searchScope(pt,defscope,snd,type);
+        if (c_scope != NULL)
+            searchClassScope(pt, c_scope, snd,type);
 
-        if (type -> atype == no_type)
+        if (type->atype == no_type)
             searchMappedTypes(pt, mod, snd, type);
 
-        if (type -> atype == no_type)
-            searchTypedefs(pt,snd,type);
+        if (type->atype == no_type)
+            searchTypedefs(pt, snd, type);
 
-        if (type -> atype == no_type)
-            searchEnums(pt,snd,type);
+        if (type->atype == no_type)
+            searchEnums(pt, snd, type);
 
-        if (type -> atype == no_type)
+        if (type->atype == no_type)
             searchClasses(pt, mod, snd, type);
 
-        if (type -> atype == no_type)
+        if (type->atype == no_type)
             fatalNoDefinedType(snd);
     }
 
     /* Get the base type of any slot arguments. */
-    if (type -> atype == slotcon_type || type -> atype == slotdis_type)
+    if (type->atype == slotcon_type || type->atype == slotdis_type)
     {
         int sa;
 
-        for (sa = 0; sa < type -> u.sa -> nrArgs; ++sa)
-            getBaseType(pt, mod, defscope, &type->u.sa->args[sa]);
+        for (sa = 0; sa < type->u.sa->nrArgs; ++sa)
+            getBaseType(pt, mod, c_scope, &type->u.sa->args[sa]);
     }
 
     /* See if the type refers to an instantiated template. */
     resolveInstantiatedClassTemplate(pt, type);
 
     /* Replace the base type if it has been mapped. */
-    if (type -> atype == struct_type || type -> atype == template_type)
+    if (type->atype == struct_type || type->atype == template_type)
     {
         searchMappedTypes(pt, mod, NULL, type);
 
@@ -2758,41 +2771,39 @@ static mappedTypeDef *instantiateMappedTypeTemplate(sipSpec *pt, moduleDef *mod,
 /*
  * Search for a name in a scope and return the corresponding type.
  */
-
-static void searchScope(sipSpec *pt,classDef *scope,scopedNameDef *snd,
-            argDef *ad)
+static void searchClassScope(sipSpec *pt, classDef *c_scope,
+        scopedNameDef *snd, argDef *ad)
 {
     scopedNameDef *tmpsnd = NULL;
     mroDef *mro;
 
-    for (mro = scope -> mro; mro != NULL; mro = mro -> next)
+    for (mro = c_scope->mro; mro != NULL; mro = mro->next)
     {
         if (isDuplicateSuper(mro))
             continue;
 
         /* Append the name to the scope and see if it exists. */
-
-        tmpsnd = copyScopedName(classFQCName(mro -> cd));
-        appendScopedName(&tmpsnd,copyScopedName(snd));
+        tmpsnd = copyScopedName(classFQCName(mro->cd));
+        appendScopedName(&tmpsnd, copyScopedName(snd));
 
         searchMappedTypes(pt, mro->cd->iff->module, tmpsnd, ad);
 
-        if (ad -> atype != no_type)
+        if (ad->atype != no_type)
             break;
 
-        searchTypedefs(pt,tmpsnd,ad);
+        searchTypedefs(pt, tmpsnd, ad);
 
-        if (ad -> atype != no_type)
+        if (ad->atype != no_type)
             break;
 
-        searchEnums(pt,tmpsnd,ad);
+        searchEnums(pt, tmpsnd, ad);
 
-        if (ad -> atype != no_type)
+        if (ad->atype != no_type)
             break;
 
         searchClasses(pt, mro->cd->iff->module, tmpsnd, ad);
 
-        if (ad -> atype != no_type)
+        if (ad->atype != no_type)
             break;
 
         freeScopedName(tmpsnd);

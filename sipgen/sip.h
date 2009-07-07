@@ -758,6 +758,8 @@ typedef struct _mappedTypeDef {
     nameDef *pyname;                    /* The Python name. */
     nameDef *cname;                     /* The C/C++ name. */
     ifaceFileDef *iff;                  /* The interface file. */
+    struct _memberDef *members;         /* The static member functions. */
+    struct _overDef *overs;             /* The static overloads. */
     codeBlock *convfromcode;            /* Convert from C++ code. */
     codeBlock *convtocode;              /* Convert to C++ code. */
     struct _mappedTypeDef *next;        /* Next in the list. */
@@ -1075,7 +1077,7 @@ void appendToClassList(classList **,classDef *);
 void appendCodeBlock(codeBlock **headp, codeBlock *new);
 void prcode(FILE *fp, const char *fmt, ...);
 void prOverloadName(FILE *fp, overDef *od);
-void prOverloadDecl(FILE *fp, classDef *context, overDef *od, int defval);
+void prOverloadDecl(FILE *fp, ifaceFileDef *scope, overDef *od, int defval);
 void searchTypedefs(sipSpec *pt, scopedNameDef *snd, argDef *ad);
 int isIntReturnSlot(memberDef *md);
 int isLongReturnSlot(memberDef *md);

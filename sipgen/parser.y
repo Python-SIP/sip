@@ -57,12 +57,12 @@ static void newVar(sipSpec *, moduleDef *, char *, int, argDef *, optFlags *,
         codeBlock *, codeBlock *, codeBlock *);
 static void newCtor(char *, int, signatureDef *, optFlags *, codeBlock *,
         throwArgs *, signatureDef *, int);
-static void newFunction(sipSpec *, moduleDef *, int, int, int, char *,
-        signatureDef *, int, int, optFlags *, codeBlock *, codeBlock *,
-        throwArgs *, signatureDef *);
+static void newFunction(sipSpec *, moduleDef *, classDef *, mappedTypeDef *,
+        int, int, int, char *, signatureDef *, int, int, optFlags *,
+        codeBlock *, codeBlock *, throwArgs *, signatureDef *);
 static optFlag *findOptFlag(optFlags *,char *,flagType);
 static memberDef *findFunction(sipSpec *, moduleDef *, classDef *,
-        const char *, int, int, int);
+        mappedTypeDef *, const char *, int, int, int);
 static void checkAttributes(sipSpec *, moduleDef *, classDef *,
         mappedTypeDef *, const char *, int);
 static void newModule(FILE *fp, char *filename);
@@ -663,6 +663,21 @@ mtline:     typehdrcode {
             }
         }
     |   enum
+    |   mtfunction
+    ;
+
+mtfunction: TK_STATIC cpptype TK_NAME '(' arglist ')' optconst optexceptions optflags optsig ';' methodcode {
+            if (notSkipping())
+            {
+                applyTypeFlags(currentModule, &$2, &$9);
+
+                $5.result = $2;
+
+                newFunction(currentSpec, currentModule, NULL,
+                        currentMappedType, 0, TRUE, FALSE, $3, &$5, $7, FALSE,
+                        &$9, $12, NULL, $8, $10);
+            }
+        }
     ;
 
 namespace:  TK_NAMESPACE TK_NAME {
@@ -1842,17 +1857,13 @@ optvirtual: {
 function:   cpptype TK_NAME '(' arglist ')' optconst optexceptions optabstract optflags optsig ';' methodcode virtualcatchercode {
             if (notSkipping())
             {
-                if (sectionFlags != 0 && (sectionFlags & (SECT_IS_PUBLIC | SECT_IS_PROT | SECT_IS_PRIVATE | SECT_IS_SLOT | SECT_IS_SIGNAL)) == 0)
-                    yyerror("Class function must be in the public, private, protected, slot or signal sections");
-
                 applyTypeFlags(currentModule, &$1, &$9);
 
                 $4.result = $1;
 
-                newFunction(currentSpec,currentModule,
-                        sectionFlags,currentIsStatic,
-                        currentOverIsVirt,
-                        $2,&$4,$6,$8,&$9,$12,$13,$7,$10);
+                newFunction(currentSpec, currentModule, currentScope(), NULL,
+                        sectionFlags, currentIsStatic, currentOverIsVirt, $2,
+                        &$4, $6, $8, &$9, $12, $13, $7, $10);
             }
 
             currentIsStatic = FALSE;
@@ -1894,10 +1905,9 @@ function:   cpptype TK_NAME '(' arglist ')' optconst optexceptions optabstract o
 
                 $5.result = $1;
 
-                newFunction(currentSpec,currentModule,
-                        sectionFlags,currentIsStatic,
-                        currentOverIsVirt,
-                        $3,&$5,$7,$9,&$10,$13,$14,$8,$11);
+                newFunction(currentSpec, currentModule, cd, NULL,
+                        sectionFlags, currentIsStatic, currentOverIsVirt, $3,
+                        &$5, $7, $9, &$10, $13, $14, $8, $11);
             }
 
             currentIsStatic = FALSE;
@@ -1952,12 +1962,9 @@ function:   cpptype TK_NAME '(' arglist ')' optconst optexceptions optabstract o
                 {
                     $4.result = $2;
 
-                    newFunction(currentSpec, currentModule,
-                            sectionFlags,
-                            currentIsStatic,
-                            currentOverIsVirt, sname,
-                            &$4, $6, $8, &$9, $12, $13,
-                            $7, $10);
+                    newFunction(currentSpec, currentModule, scope, NULL,
+                            sectionFlags, currentIsStatic, currentOverIsVirt,
+                            sname, &$4, $6, $8, &$9, $12, $13, $7, $10);
                 }
                 else
                 {
@@ -4829,22 +4836,21 @@ static void newCtor(char *name,int sectFlags,signatureDef *args,
 /*
  * Create a new function.
  */
-static void newFunction(sipSpec *pt,moduleDef *mod,int sflags,int isstatic,
-            int isvirt,char *name,signatureDef *sig,int isconst,
-            int isabstract,optFlags *optflgs,codeBlock *methodcode,
-            codeBlock *vcode,throwArgs *exceptions,
-            signatureDef *cppsig)
+static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
+        mappedTypeDef *mt_scope, int sflags, int isstatic, int isvirt,
+        char *name, signatureDef *sig, int isconst, int isabstract,
+        optFlags *optflgs, codeBlock *methodcode, codeBlock *vcode,
+        throwArgs *exceptions, signatureDef *cppsig)
 {
-    classDef *cd = currentScope();
     int factory, xferback, no_arg_parser;
     overDef *od, **odp, **headp;
     optFlag *of;
     virtHandlerDef *vhd;
 
     /* Extra checks for a C module. */
-    if (pt -> genc)
+    if (pt->genc)
     {
-        if (cd != NULL)
+        if (c_scope != NULL)
             yyerror("Function declaration not allowed in a struct in a C module");
 
         if (isstatic)
@@ -4854,10 +4860,15 @@ static void newFunction(sipSpec *pt,moduleDef *mod,int sflags,int isstatic,
             yyerror("Exceptions not allowed in a C module");
     }
 
-    headp = (cd != NULL ?  &cd->overs : &mod->overs);
+    if (mt_scope != NULL)
+        headp = &mt_scope->overs;
+    else if (c_scope != NULL)
+        headp = &c_scope->overs;
+    else
+        headp = &mod->overs;
 
     /* See if it is a factory method. */
-    if (findOptFlag(optflgs,"Factory",bool_flag) != NULL)
+    if (findOptFlag(optflgs, "Factory", bool_flag) != NULL)
         factory = TRUE;
     else
     {
@@ -4866,14 +4877,14 @@ static void newFunction(sipSpec *pt,moduleDef *mod,int sflags,int isstatic,
         factory = FALSE;
 
         /* Check /TransferThis/ wasn't specified. */
-        if (cd == NULL || isstatic)
-            for (a = 0; a < sig -> nrArgs; ++a)
-                if (isThisTransferred(&sig -> args[a]))
+        if (c_scope == NULL || isstatic)
+            for (a = 0; a < sig->nrArgs; ++a)
+                if (isThisTransferred(&sig->args[a]))
                     yyerror("/TransferThis/ may only be specified in constructors and class methods");
     }
 
     /* See if the result is to be returned to Python ownership. */
-    xferback = (findOptFlag(optflgs,"TransferBack",bool_flag) != NULL);
+    xferback = (findOptFlag(optflgs, "TransferBack", bool_flag) != NULL);
 
     if (factory && xferback)
         yyerror("/TransferBack/ and /Factory/ cannot both be specified");
@@ -4899,14 +4910,14 @@ static void newFunction(sipSpec *pt,moduleDef *mod,int sflags,int isstatic,
         setIsThisTransferredMeth(od);
 
     if (isProtected(od))
-        setHasShadow(cd);
+        setHasShadow(c_scope);
 
     if ((isSlot(od) || isSignal(od)) && !isPrivate(od))
     {
         if (isSignal(od))
-            setHasShadow(cd);
+            setHasShadow(c_scope);
 
-        pt -> sigslots = TRUE;
+        pt->sigslots = TRUE;
     }
 
     if (isSignal(od) && (methodcode != NULL || vcode != NULL))
@@ -4934,18 +4945,18 @@ static void newFunction(sipSpec *pt,moduleDef *mod,int sflags,int isstatic,
         setIsAbstract(od);
     }
 
-    if ((of = findOptFlag(optflgs,"AutoGen",opt_name_flag)) != NULL)
+    if ((of = findOptFlag(optflgs, "AutoGen", opt_name_flag)) != NULL)
     {
         setIsAutoGen(od);
 
-        if (of -> fvalue.sval != NULL)
+        if (of->fvalue.sval != NULL)
         {
             qualDef *qd;
 
-            if ((qd = findQualifier(of -> fvalue.sval)) == NULL || qd -> qtype != feature_qualifier)
+            if ((qd = findQualifier(of->fvalue.sval)) == NULL || qd->qtype != feature_qualifier)
                 yyerror("No such feature");
 
-            if (excludedFeature(excludedQualifiers,qd))
+            if (excludedFeature(excludedQualifiers, qd))
                 resetIsAutoGen(od);
         }
     }
@@ -4956,7 +4967,7 @@ static void newFunction(sipSpec *pt,moduleDef *mod,int sflags,int isstatic,
             yyerror("Virtual signals aren't supported");
 
         setIsVirtual(od);
-        setHasShadow(cd);
+        setHasShadow(c_scope);
 
         vhd = sipMalloc(sizeof (virtHandlerDef));
 
@@ -4975,10 +4986,10 @@ static void newFunction(sipSpec *pt,moduleDef *mod,int sflags,int isstatic,
          */
         if (!currentIsTemplate)
         {
-            vhd->module = currentModule;
+            vhd->module = mod;
 
-            vhd->next = currentModule->virthandlers;
-            currentModule->virthandlers = vhd;
+            vhd->next = mod->virthandlers;
+            mod->virthandlers = vhd;
         }
     }
     else
@@ -5000,28 +5011,29 @@ static void newFunction(sipSpec *pt,moduleDef *mod,int sflags,int isstatic,
 
     if (no_arg_parser)
     {
-        if (cd != NULL)
+        if (mt_scope != NULL || c_scope != NULL)
             yyerror("/NoArgParser/ may only be specified for global functions");
 
         if (methodcode == NULL)
             yyerror("%MethodCode must be supplied if /NoArgParser/ is specified");
     }
 
-    od->common = findFunction(pt, mod, cd, getPythonName(optflgs, name),
-            (methodcode != NULL), sig->nrArgs, no_arg_parser);
+    od->common = findFunction(pt, mod, c_scope, mt_scope,
+            getPythonName(optflgs, name), (methodcode != NULL), sig->nrArgs,
+            no_arg_parser);
 
     od->api_range = getAPIRangeIndex(optflgs);
 
     if (od->api_range < 0)
         setNotVersioned(od->common);
-    else if (cd != NULL)
+    else if (mt_scope != NULL || c_scope != NULL)
         yyerror("/API/ may only be specified for global functions");
 
-    if (findOptFlag(optflgs,"Numeric",bool_flag) != NULL)
-        setIsNumeric(od -> common);
+    if (findOptFlag(optflgs, "Numeric", bool_flag) != NULL)
+        setIsNumeric(od->common);
 
     /* Methods that run in new threads must be virtual. */
-    if (findOptFlag(optflgs,"NewThread",bool_flag) != NULL)
+    if (findOptFlag(optflgs, "NewThread", bool_flag) != NULL)
     {
         argDef *res;
 
@@ -5029,18 +5041,18 @@ static void newFunction(sipSpec *pt,moduleDef *mod,int sflags,int isstatic,
             yyerror("/NewThread/ may only be specified for virtual functions");
 
         /*
-         * This is an arbitary limitation to make the code generator
-         * slightly easier - laziness on my part.
+         * This is an arbitary limitation to make the code generator slightly
+         * easier - laziness on my part.
          */
-        res = &od -> cppsig -> result;
+        res = &od->cppsig->result;
 
-        if (res -> atype != void_type || res -> nrderefs != 0)
+        if (res->atype != void_type || res->nrderefs != 0)
             yyerror("/NewThread/ may only be specified for void functions");
 
         setIsNewThread(od);
     }
 
-    getHooks(optflgs,&od -> prehook,&od -> posthook);
+    getHooks(optflgs, &od->prehook, &od->posthook);
 
     if (getReleaseGIL(optflgs))
         setIsReleaseGIL(od);
@@ -5112,8 +5124,9 @@ nameDef *cacheName(sipSpec *pt, const char *name)
 /*
  * Find (or create) an overloaded function name.
  */
-static memberDef *findFunction(sipSpec *pt, moduleDef *mod, classDef *cd,
-        const char *pname, int hwcode, int nrargs, int no_arg_parser)
+static memberDef *findFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
+        mappedTypeDef *mt_scope, const char *pname, int hwcode, int nrargs,
+        int no_arg_parser)
 {
     static struct slot_map {
         const char *name;   /* The slot name. */
@@ -5190,7 +5203,7 @@ static memberDef *findFunction(sipSpec *pt, moduleDef *mod, classDef *cd,
 
             if (sm->nrargs >= 0)
             {
-                if (cd == NULL)
+                if (mt_scope == NULL && c_scope == NULL)
                 {
                     /* Global operators need one extra argument. */
                     if (sm -> nrargs + 1 != nrargs)
@@ -5206,10 +5219,15 @@ static memberDef *findFunction(sipSpec *pt, moduleDef *mod, classDef *cd,
         }
 
     /* Check there is no name clash. */
-    checkAttributes(pt, mod, cd, NULL, pname, TRUE);
+    checkAttributes(pt, mod, c_scope, mt_scope, pname, TRUE);
 
     /* See if it already exists. */
-    flist = (cd != NULL ? &cd->members : &mod->othfuncs);
+    if (mt_scope != NULL)
+        flist = &mt_scope->members;
+    else if (c_scope != NULL)
+        flist = &c_scope->members;
+    else
+        flist = &mod->othfuncs;
 
     for (md = *flist; md != NULL; md = md->next)
         if (strcmp(md->pyname->text, pname) == 0 && md->module == mod)
@@ -5238,7 +5256,7 @@ static memberDef *findFunction(sipSpec *pt, moduleDef *mod, classDef *cd,
         yyerror("Another overload has already been defined that is annotated as /NoArgParser/");
 
     /* Global operators are a subset. */
-    if (cd == NULL && st != no_slot && st != neg_slot && st != pos_slot && !isNumberSlot(md) && !isRichCompareSlot(md))
+    if (mt_scope == NULL && c_scope == NULL && st != no_slot && st != neg_slot && st != pos_slot && !isNumberSlot(md) && !isRichCompareSlot(md))
         yyerror("Global operators must be either numeric or comparison operators");
 
     return md;
@@ -5328,22 +5346,6 @@ static void checkAttributes(sipSpec *pt, moduleDef *mod, classDef *py_c_scope,
                 yyerror("There is already an enum member in scope with the same Python name");
     }
 
-    /* If the scope was a mapped type then that's all we have to check. */
-    if (py_mt_scope != NULL)
-        return;
-
-    /* Check the variables. */
-
-    for (vd = pt -> vars; vd != NULL; vd = vd -> next)
-    {
-        if (vd -> ecd != py_c_scope)
-            continue;
-
-        if (strcmp(vd -> pyname -> text, attr) == 0)
-        if (strcmp(vd -> pyname -> text, attr) == 0)
-            yyerror("There is already a variable in scope with the same Python name");
-    }
-
     /*
      * Only check the members if this attribute isn't a member because we
      * can handle members with the same name in the same scope.
@@ -5351,23 +5353,35 @@ static void checkAttributes(sipSpec *pt, moduleDef *mod, classDef *py_c_scope,
     if (!isfunc)
     {
         memberDef *md, *membs;
+        overDef *overs;
 
-        membs = (py_c_scope != NULL ? py_c_scope->members : mod->othfuncs);
-
-        for (md = membs; md != NULL; md = md -> next)
+        if (py_mt_scope != NULL)
         {
-            overDef *od, *overs;
+            membs = py_mt_scope->members;
+            overs = py_mt_scope->overs;
+        }
+        else if (py_c_scope != NULL)
+        {
+            membs = py_c_scope->members;
+            overs = py_c_scope->overs;
+        }
+        else
+        {
+            membs = mod->othfuncs;
+            overs = mod->overs;
+        }
 
-            if (strcmp(md -> pyname -> text, attr) != 0)
+        for (md = membs; md != NULL; md = md->next)
+        {
+            overDef *od;
+
+            if (strcmp(md->pyname->text, attr) != 0)
                 continue;
 
             /* Check for a conflict with all overloads. */
-
-            overs = (py_c_scope != NULL ? py_c_scope->overs : mod->overs);
-
-            for (od = overs; od != NULL; od = od -> next)
+            for (od = overs; od != NULL; od = od->next)
             {
-                if (od -> common != md)
+                if (od->common != md)
                     continue;
 
                 yyerror("There is already a function in scope with the same Python name");
@@ -5375,11 +5389,24 @@ static void checkAttributes(sipSpec *pt, moduleDef *mod, classDef *py_c_scope,
         }
     }
 
-    /* Check the classes. */
+    /* If the scope was a mapped type then that's all we have to check. */
+    if (py_mt_scope != NULL)
+        return;
 
-    for (cd = pt -> classes; cd != NULL; cd = cd -> next)
+    /* Check the variables. */
+    for (vd = pt->vars; vd != NULL; vd = vd->next)
     {
-        if (cd -> ecd != py_c_scope || cd -> pyname == NULL)
+        if (vd->ecd != py_c_scope)
+            continue;
+
+        if (strcmp(vd->pyname->text,attr) == 0)
+            yyerror("There is already a variable in scope with the same Python name");
+    }
+
+    /* Check the classes. */
+    for (cd = pt->classes; cd != NULL; cd = cd->next)
+    {
+        if (cd->ecd != py_c_scope || cd->pyname == NULL)
             continue;
 
         if (strcmp(cd->pyname->text, attr) == 0 && !isExternal(cd))
@@ -5387,7 +5414,6 @@ static void checkAttributes(sipSpec *pt, moduleDef *mod, classDef *py_c_scope,
     }
 
     /* Check the exceptions. */
-
     if (py_c_scope == NULL)
     {
         exceptionDef *xd;
