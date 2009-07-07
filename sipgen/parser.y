@@ -85,10 +85,11 @@ static int platOrFeature(char *,int);
 static int isNeeded(qualDef *);
 static int notSkipping(void);
 static void getHooks(optFlags *,char **,char **);
-static int getTransfer(optFlags *);
-static int getReleaseGIL(optFlags *);
-static int getHoldGIL(optFlags *);
-static int getDeprecated(optFlags *);
+static int getTransfer(optFlags *optflgs);
+static int getReleaseGIL(optFlags *optflgs);
+static int getHoldGIL(optFlags *optflgs);
+static int getDeprecated(optFlags *optflgs);
+static int getAllowNone(optFlags *optflgs);
 static void templateSignature(signatureDef *sd, int result, classTmplDef *tcd, templateDef *td, classDef *ncd);
 static void templateType(argDef *ad, classTmplDef *tcd, templateDef *td, classDef *ncd);
 static int search_back(const char *end, const char *start, const char *target);
@@ -2356,7 +2357,7 @@ argtype:    cpptype optname optflags {
             $$ = $1;
             $$.name = $2;
 
-            if (findOptFlag(&$3,"AllowNone",bool_flag) != NULL)
+            if (getAllowNone(&$3))
                 $$.argflags |= ARG_ALLOW_NONE;
 
             if (findOptFlag(&$3,"GetWrapper",bool_flag) != NULL)
@@ -3313,6 +3314,9 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd, optFlags *of)
         if (getDeprecated(of))
             setIsDeprecatedClass(cd);
 
+        if (cd->convtocode != NULL && getAllowNone(of))
+            setClassHandlesNone(cd);
+
         if (findOptFlag(of,"Abstract",bool_flag) != NULL)
         {
             setIsAbstractClass(cd);
@@ -3525,7 +3529,7 @@ static mappedTypeDef *newMappedType(sipSpec *pt, argDef *ad, optFlags *of)
     if (findOptFlag(of, "NoRelease", bool_flag) != NULL)
         setNoRelease(mtd);
 
-    if (findOptFlag(of, "AllowNone", bool_flag) != NULL)
+    if (getAllowNone(of))
         setHandlesNone(mtd);
 
     mtd->iff = iff;
@@ -5884,6 +5888,15 @@ static int getHoldGIL(optFlags *optflgs)
 static int getDeprecated(optFlags *optflgs)
 {
     return (findOptFlag(optflgs, "Deprecated", bool_flag) != NULL);
+}
+
+
+/*
+ * Get the /AllowNone/ option flag.
+ */
+static int getAllowNone(optFlags *optflgs)
+{
+    return (findOptFlag(optflgs, "AllowNone", bool_flag) != NULL);
 }
 
 
