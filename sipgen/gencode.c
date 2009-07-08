@@ -121,9 +121,9 @@ static void generateOrdinaryFunction(moduleDef *mod, classDef *c_scope,
         mappedTypeDef *mt_scope, memberDef *md, FILE *fp);
 static void generateSimpleFunctionCall(fcallDef *, FILE *);
 static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
-        classDef *ocd, overDef *od, int deref, FILE *fp);
-static void generateCppFunctionCall(ifaceFileDef *scope, classDef *ocd,
-        overDef *od, FILE *fp);
+        ifaceFileDef *o_scope, overDef *od, int deref, FILE *fp);
+static void generateCppFunctionCall(ifaceFileDef *scope,
+        ifaceFileDef *o_scope, overDef *od, FILE *fp);
 static void generateSlotArg(signatureDef *sd, int argnr, FILE *fp);
 static void generateComparisonSlotCall(ifaceFileDef *scope, overDef *od,
         const char *op, const char *cop, int deref, FILE *fp);
@@ -138,9 +138,12 @@ static int generateVoidPointers(sipSpec *pt, moduleDef *mod, classDef *cd,
         FILE *fp);
 static int generateChars(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp);
 static int generateStrings(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp);
-static sortedMethTab *createFunctionTable(classDef *, int *);
+static sortedMethTab *createFunctionTable(memberDef *, int *);
 static sortedMethTab *createMethodTable(classDef *, int *);
-static int generateMethodTable(classDef *, FILE *);
+static int generateMappedTypeMethodTable(mappedTypeDef *mtd, FILE *fp);
+static int generateClassMethodTable(classDef *cd, FILE *fp);
+static void prMethodTable(sortedMethTab *mtable, int nr, ifaceFileDef *iff,
+        FILE *fp);
 static void generateEnumMacros(sipSpec *pt, moduleDef *mod, classDef *cd,
         mappedTypeDef *mtd, FILE *fp);
 static int generateEnumMemberTable(sipSpec *pt, moduleDef *mod, classDef *cd,
@@ -3369,8 +3372,9 @@ static char *createIfaceFileName(const char *codeDir, ifaceFileDef *iff,
  */
 static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 {
-    int need_xfer, embedded, nr_enums;
+    int need_xfer, embedded, nr_methods, nr_enums;
     const char *type_prefix;
+    memberDef *md;
 
     if (pluginPyQt4(pt) && !noRelease(mtd))
     {
@@ -3463,6 +3467,12 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 "}\n"
         );
 
+    /* Generate the static methods. */
+    for (md = mtd->members; md != NULL; md = md->next)
+        generateOrdinaryFunction(mtd->iff->module, NULL, mtd, md, fp);
+
+    nr_methods = generateMappedTypeMethodTable(mtd, fp);
+
     nr_enums = generateEnumMemberTable(pt, mtd->iff->module, NULL, mtd, fp);
 
     if (pluginPyQt4(pt))
@@ -3514,8 +3524,16 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 
     prcode(fp,
 "        {0, 0, 1},\n"
-"        0, 0,\n"
         );
+
+    if (nr_methods == 0)
+        prcode(fp,
+"        0, 0,\n"
+            );
+    else
+        prcode(fp,
+"        %d, methods_%L,\n"
+            , nr_methods, mtd->iff);
 
     if (nr_enums == 0)
         prcode(fp,
@@ -3623,38 +3641,34 @@ static void generateClassCpp(classDef *cd, sipSpec *pt, FILE *fp)
  * Return a sorted array of relevant functions for a namespace.
  */
 
-static sortedMethTab *createFunctionTable(classDef *cd,int *nrp)
+static sortedMethTab *createFunctionTable(memberDef *members, int *nrp)
 {
     int nr;
     sortedMethTab *mtab, *mt;
     memberDef *md;
 
     /* First we need to count the number of applicable functions. */
-
     nr = 0;
 
-    for (md = cd->members; md != NULL; md = md->next)
+    for (md = members; md != NULL; md = md->next)
         ++nr;
 
     if ((*nrp = nr) == 0)
         return NULL;
 
     /* Create the table of methods. */
-
     mtab = sipCalloc(nr, sizeof (sortedMethTab));
 
     /* Initialise the table. */
-
     mt = mtab;
 
-    for (md = cd->members; md != NULL; md = md->next)
+    for (md = members; md != NULL; md = md->next)
     {
         mt->md = md;
         ++mt;
     }
 
-    /* Finally sort the table. */
-
+    /* Finally, sort the table. */
     qsort(mtab,nr,sizeof (sortedMethTab),compareMethTab);
 
     return mtab;
@@ -3769,47 +3783,78 @@ static int compareMethTab(const void *m1,const void *m2)
 
 
 /*
- * Generate the sorted table of methods and return the number of entries.
+ * Generate the sorted table of static methods for a mapped type and return
+ * the number of entries.
  */
-static int generateMethodTable(classDef *cd,FILE *fp)
+static int generateMappedTypeMethodTable(mappedTypeDef *mtd, FILE *fp)
+{
+    int nr;
+    sortedMethTab *mtab;
+
+    mtab = createFunctionTable(mtd->members, &nr);
+
+    if (mtab != NULL)
+    {
+        prMethodTable(mtab, nr, mtd->iff, fp);
+        free(mtab);
+    }
+
+    return nr;
+}
+
+
+/*
+ * Generate the sorted table of methods for a class and return the number of
+ * entries.
+ */
+static int generateClassMethodTable(classDef *cd, FILE *fp)
 {
     int nr;
     sortedMethTab *mtab;
 
     mtab = (cd->iff->type == namespace_iface) ?
-        createFunctionTable(cd,&nr) :
-        createMethodTable(cd,&nr);
+            createFunctionTable(cd->members, &nr) :
+            createMethodTable(cd, &nr);
 
     if (mtab != NULL)
     {
-        int i;
-
-        prcode(fp,
-"\n"
-"\n"
-"static PyMethodDef methods_%L[] = {\n"
-            , cd->iff);
-
-        for (i = 0; i < nr; ++i)
-        {
-            memberDef *md = mtab[i].md;
-
-            /* Save the index in the table. */
-            md->membernr = i;
-
-            prcode(fp,
-"    {SIP_MLNAME_CAST(%N), meth_%L_%s, METH_VARARGS, NULL}%s\n"
-                , md->pyname, cd->iff, md->pyname->text, ((i + 1) < nr) ? "," : "");
-        }
-
+        prMethodTable(mtab, nr, cd->iff, fp);
         free(mtab);
-
-        prcode(fp,
-"};\n"
-            );
     }
 
     return nr;
+}
+
+
+/*
+ * Generate a method table for a class or mapped type.
+ */
+static void prMethodTable(sortedMethTab *mtable, int nr, ifaceFileDef *iff,
+        FILE *fp)
+{
+    int i;
+
+    prcode(fp,
+"\n"
+"\n"
+"static PyMethodDef methods_%L[] = {\n"
+        , iff);
+
+    for (i = 0; i < nr; ++i)
+    {
+        memberDef *md = mtable[i].md;
+
+        /* Save the index in the table. */
+        md->membernr = i;
+
+        prcode(fp,
+"    {SIP_MLNAME_CAST(%N), meth_%L_%s, METH_VARARGS, NULL}%s\n"
+            , md->pyname, iff, md->pyname->text, ((i + 1) < nr) ? "," : "");
+    }
+
+    prcode(fp,
+"};\n"
+        );
 }
 
 
@@ -8564,7 +8609,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
             );
 
     /* Generate the attributes tables. */
-    nr_methods = generateMethodTable(cd,fp);
+    nr_methods = generateClassMethodTable(cd, fp);
     nr_enums = generateEnumMemberTable(pt, mod, cd, NULL, fp);
 
     /* Generate the PyQt4 signals table. */
@@ -9893,11 +9938,8 @@ static void generateFunction(memberDef *md, overDef *overs, classDef *cd,
 
         for (od = overs; od != NULL; od = od->next)
         {
-            /*
-             * If we are handling one variant then we must handle
-             * them all.
-             */
-            if (skipOverload(od,md,cd,ocd,FALSE))
+            /* If we are handling one variant then we must handle them all. */
+            if (skipOverload(od, md, cd, ocd, FALSE))
                 continue;
 
             if (isPrivate(od))
@@ -9926,6 +9968,14 @@ static void generateFunctionBody(overDef *od, classDef *c_scope,
 {
     int needSecCall;
     signatureDef saved;
+    ifaceFileDef *o_scope;
+
+    if (mt_scope != NULL)
+        o_scope = mt_scope->iff;
+    else if (ocd != NULL)
+        o_scope = ocd->iff;
+    else
+        o_scope = NULL;
 
     prcode(fp,
 "\n"
@@ -9964,7 +10014,7 @@ static void generateFunctionBody(overDef *od, classDef *c_scope,
     else
         needSecCall = generateArgParser(&od->pysig, c_scope, mt_scope, NULL, od, FALSE, fp);
 
-    generateFunctionCall(c_scope, mt_scope, ocd, od, deref, fp);
+    generateFunctionCall(c_scope, mt_scope, o_scope, od, deref, fp);
 
     if (needSecCall)
     {
@@ -9975,7 +10025,7 @@ static void generateFunctionBody(overDef *od, classDef *c_scope,
             );
 
         generateArgParser(&od->pysig, c_scope, mt_scope, NULL, od, TRUE, fp);
-        generateFunctionCall(c_scope, mt_scope, ocd, od, deref, fp);
+        generateFunctionCall(c_scope, mt_scope, o_scope, od, deref, fp);
     }
 
     prcode(fp,
@@ -10522,7 +10572,7 @@ static const char *getBuildResultFormat(argDef *ad)
  * Generate a function call.
  */
 static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
-        classDef *ocd, overDef *od, int deref, FILE *fp)
+        ifaceFileDef *o_scope, overDef *od, int deref, FILE *fp)
 {
     int needsNew, error_flag = FALSE, newline, is_result, result_size, a,
             deltemps;
@@ -10779,7 +10829,7 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
         switch (od->common->slot)
         {
         case no_slot:
-            generateCppFunctionCall(scope, ocd, od, fp);
+            generateCppFunctionCall(scope, o_scope, od, fp);
             break;
 
         case getitem_slot:
@@ -11058,8 +11108,8 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
 /*
  * Generate a call to a C++ function.
  */
-static void generateCppFunctionCall(ifaceFileDef *scope, classDef *ocd,
-        overDef *od, FILE *fp)
+static void generateCppFunctionCall(ifaceFileDef *scope,
+        ifaceFileDef *o_scope, overDef *od, FILE *fp)
 {
     char *mname = od->cppname;
     int parens = 1;
@@ -11079,7 +11129,7 @@ static void generateCppFunctionCall(ifaceFileDef *scope, classDef *ocd,
         if (isProtected(od))
             prcode(fp, "sip%C::sipProtect_%s(", scope->fqcname, mname);
         else
-            prcode(fp, "%S::%s(", classFQCName(ocd), mname);
+            prcode(fp, "%S::%s(", o_scope->fqcname, mname);
     }
     else if (isProtected(od))
     {
@@ -11095,7 +11145,7 @@ static void generateCppFunctionCall(ifaceFileDef *scope, classDef *ocd,
     }
     else if (!isAbstract(od) && (isVirtual(od) || isVirtualReimp(od)))
     {
-        prcode(fp, "(sipSelfWasArg ? sipCpp->%U::%s(", ocd, mname);
+        prcode(fp, "(sipSelfWasArg ? sipCpp->%S::%s(", o_scope->fqcname, mname);
         generateCallArgs(od->cppsig, &od->pysig, fp);
         prcode(fp, ") : sipCpp->%s(", mname);
         ++parens;
