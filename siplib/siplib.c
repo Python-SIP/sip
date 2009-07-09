@@ -7365,19 +7365,14 @@ static int sipWrapperType_init(sipWrapperType *self, PyObject *args,
         PyTypeObject *sc = ((PyTypeObject *)self)->tp_base;
 
         /*
-         * Make sure that the type is derived from sip.simplewrapper.  It might
-         * not if the type specifies sip.wrappertype as the __metaclass__.
+         * We allow the class to use this as a meta-type without being
+         * derived from a class that uses it.  This allows mixin classes that
+         * need their own meta-type to work so long as their meta-type is
+         * derived from this meta-type.  This condition is indicated by the
+         * pointer to the generated type structure being NULL.
          */
-        if (sc == NULL || !PyObject_TypeCheck((PyObject *)sc, (PyTypeObject *)&sipWrapperType_Type))
-        {
-            PyErr_Format(PyExc_TypeError,
-                    "type %s must be derived from sip.simplewrapper",
-                    ((PyTypeObject *)self)->tp_name);
-
-            return -1;
-        }
-
-        self->type = ((sipWrapperType *)sc)->type;
+        if (sc != NULL && PyObject_TypeCheck((PyObject *)sc, (PyTypeObject *)&sipWrapperType_Type))
+            self->type = ((sipWrapperType *)sc)->type;
     }
     else
     {
@@ -7576,7 +7571,7 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
     int sipFlags;
     sipWrapper *owner;
 
-    if (kwds != NULL)
+    if (kwds != NULL && PyDict_Check(kwds) && PyDict_Size(kwds) != 0)
     {
         PyErr_SetString(PyExc_TypeError,"keyword arguments are not supported");
         return -1;
