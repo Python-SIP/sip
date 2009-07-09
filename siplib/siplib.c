@@ -7156,7 +7156,9 @@ static PyNumberMethods sipVoidPtr_NumberMethods = {
     0,                      /* nb_true_divide */
     0,                      /* nb_inplace_floor_divide */
     0,                      /* nb_inplace_true_divide */
+#if PY_VERSION_HEX >= 0x02050000
     0                       /* nb_index */
+#endif
 };
 
 
