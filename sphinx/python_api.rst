@@ -17,7 +17,7 @@ can be used by applications.
     sub or super-class types.
 
     :param obj:
-        the Python object
+        the Python object.
     :param type:
         the type.
     :return:

@@ -1839,9 +1839,9 @@ static void resolvePySigTypes(sipSpec *pt, moduleDef *mod, classDef *scope,
             }
 
             if (isVirtual(od))
-                fatal("%s() unsupported function argument type - provide %%Method code, a valid %%VirtualCatcherCode and a valid C++ signature\n",od -> cppname);
+                fatal("%s() unsupported function argument type - provide %%MethodCode, a valid %%VirtualCatcherCode and a valid C++ signature\n",od -> cppname);
 
-            fatal("%s() unsupported function argument type - provide %%Method code and a valid %s signature\n",od -> cppname,(pt -> genc ? "C" : "C++"));
+            fatal("%s() unsupported function argument type - provide %%MethodCode and a valid %s signature\n",od -> cppname,(pt -> genc ? "C" : "C++"));
         }
 
         if (scope != NULL)
