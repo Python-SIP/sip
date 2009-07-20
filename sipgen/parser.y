@@ -83,6 +83,7 @@ static int getTransfer(optFlags *);
 static int getReleaseGIL(optFlags *);
 static int getHoldGIL(optFlags *);
 static int getDeprecated(optFlags *);
+static int getAllowNone(optFlags *);
 static void templateSignature(signatureDef *sd, int result, classTmplDef *tcd, templateDef *td, classDef *ncd);
 static void templateType(argDef *ad, classTmplDef *tcd, templateDef *td, classDef *ncd);
 static int search_back(const char *end, const char *start, const char *target);
@@ -3213,6 +3214,9 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd, optFlags *of)
         if (getDeprecated(of))
             setIsDeprecatedClass(cd);
 
+        if (cd->convtocode != NULL && getAllowNone(of))
+            setClassHandlesNone(cd);
+
         if (findOptFlag(of,"Abstract",bool_flag) != NULL)
         {
             setIsAbstractClass(cd);
@@ -5603,6 +5607,15 @@ static int getHoldGIL(optFlags *optflgs)
 static int getDeprecated(optFlags *optflgs)
 {
     return (findOptFlag(optflgs, "Deprecated", bool_flag) != NULL);
+}
+
+
+/*
+ * Get the /AllowNone/ option flag.
+ */
+static int getAllowNone(optFlags *optflgs)
+{
+    return (findOptFlag(optflgs, "AllowNone", bool_flag) != NULL);
 }
 
 

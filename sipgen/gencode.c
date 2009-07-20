@@ -8457,6 +8457,12 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
         sep = "|";
     }
 
+    if (classHandlesNone(cd))
+    {
+        prcode(fp, "%sSIP_TYPE_ALLOW_NONE", sep);
+        sep = "|";
+    }
+
     if (cd->iff->type == namespace_iface)
     {
         prcode(fp, "%sSIP_TYPE_NAMESPACE", sep);

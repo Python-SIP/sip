@@ -249,6 +249,18 @@ Class Annotations
     instantiated or sub-classed from Python.
 
 
+.. class-annotation:: AllowNone
+
+    .. versionadded:: 4.8.2
+
+    Normally when a Python object is converted to a C/C++ instance ``None``
+    is handled automatically before the class's
+    :directive:`%ConvertToTypeCode` is called.  This boolean annotation
+    specifies that the handling of ``None`` will be left to the
+    :directive:`%ConvertToTypeCode`.  The annotation is ignored if the class
+    does not have any :directive:`%ConvertToTypeCode`.
+
+
 .. class-annotation:: DelayDtor
 
     This boolean annotation is used to specify that the class's destructor

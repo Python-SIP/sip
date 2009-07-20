@@ -1324,6 +1324,7 @@ typedef struct _sipQtAPI {
 #define SIP_TYPE_ENUM       0x0003  /* If the type is a named enum. */
 #define SIP_TYPE_ABSTRACT   0x0008  /* If the type is abstract. */
 #define SIP_TYPE_SCC        0x0010  /* If the type is subject to sub-class convertors. */
+#define SIP_TYPE_ALLOW_NONE 0x0020  /* If the type can handle None. */
 
 
 /*
@@ -1354,6 +1355,7 @@ typedef struct _sipQtAPI {
  */
 #define sipTypeIsAbstract(td)   ((td)->td_flags & SIP_TYPE_ABSTRACT)
 #define sipTypeHasSCC(td)   ((td)->td_flags & SIP_TYPE_SCC)
+#define sipTypeAllowNone(td)    ((td)->td_flags & SIP_TYPE_ALLOW_NONE)
 
 /*
  * Get various names from the string pool for various data types.
