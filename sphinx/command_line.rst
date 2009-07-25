@@ -68,7 +68,7 @@ The full set of command line options is:
 
 .. cmdoption:: -j <NUMBER>
 
-    The generated code is split into the given number of files.  This make it
+    The generated code is split into the given number of files.  This makes it
     easier to use the parallel build facility of most modern implementations of
     ``make``.  By default 1 file is generated for each C structure or C++
     class.

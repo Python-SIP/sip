@@ -269,6 +269,8 @@ Class Annotations
 
 .. class-annotation:: AllowNone
 
+    .. versionadded:: 4.8.2
+
     Normally when a Python object is converted to a C/C++ instance ``None``
     is handled automatically before the class's
     :directive:`%ConvertToTypeCode` is called.  This boolean annotation
