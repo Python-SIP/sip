@@ -8262,12 +8262,15 @@ static void addTypeSlots(PyTypeObject *to, PyNumberMethods *nb,
 #endif
             break;
 
-#if PY_MAJOR_VERSION < 3
         case div_slot:
             if (nb != NULL)
+            {
+                nb->nb_true_divide = (binaryfunc)f;
+#if PY_MAJOR_VERSION < 3
                 nb->nb_divide = (binaryfunc)f;
-            break;
 #endif
+            }
+            break;
 
         case mod_slot:
             if (nb != NULL)
@@ -8338,12 +8341,15 @@ static void addTypeSlots(PyTypeObject *to, PyNumberMethods *nb,
 #endif
             break;
 
-#if PY_MAJOR_VERSION < 3
         case idiv_slot:
             if (nb != NULL)
+            {
+                nb->nb_inplace_true_divide = (binaryfunc)f;
+#if PY_MAJOR_VERSION < 3
                 nb->nb_inplace_divide = (binaryfunc)f;
-            break;
 #endif
+            }
+            break;
 
         case imod_slot:
             if (nb != NULL)

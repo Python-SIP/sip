@@ -471,3 +471,19 @@ This is a ``const char *`` that is used as the type of the member instead of
 ``const char *`` in functions that implement the disconnection of an
 internally generated signal to a slot.  The type includes a comma separated
 list of types that is the C++ signature of of the signal.
+
+
+Classic Division and True Division
+----------------------------------
+
+SIP supports the ``__div__`` and ``__truediv__`` special methods (and the
+corresponding inplace versions) for both Python v2 and v3.
+
+For Python v2 the ``__div__`` method will be used for both classic and true
+division if a ``__truediv__`` method is not defined.
+
+For Python v3 the ``__div__`` method will be used for true division if a
+``__truediv__`` method is not defined.
+
+For all versions of Python, if both methods are defined then ``__div__``
+should be defined first.

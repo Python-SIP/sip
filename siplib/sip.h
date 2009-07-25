@@ -456,9 +456,7 @@ typedef enum {
     sub_slot,           /* __sub__ */
     mul_slot,           /* __mul__ for number types */
     repeat_slot,        /* __mul__ for sequence types */
-#if PY_MAJOR_VERSION < 3
     div_slot,           /* __div__ */
-#endif
     mod_slot,           /* __mod__ */
     floordiv_slot,      /* __floordiv__ */
     truediv_slot,       /* __truediv__ */
@@ -472,9 +470,7 @@ typedef enum {
     isub_slot,          /* __isub__ */
     imul_slot,          /* __imul__ for number types */
     irepeat_slot,       /* __imul__ for sequence types */
-#if PY_MAJOR_VERSION < 3
     idiv_slot,          /* __idiv__ */
-#endif
     imod_slot,          /* __imod__ */
     ifloordiv_slot,     /* __ifloordiv__ */
     itruediv_slot,      /* __itruediv__ */

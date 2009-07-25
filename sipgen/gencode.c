@@ -8851,8 +8851,11 @@ static void generateSignalTableEntry(classDef *cd, overDef *sig, int membernr,
  */
 static int py2OnlySlot(slotType st)
 {
-    return (st == long_slot || st == cmp_slot || st == div_slot ||
-            st == idiv_slot);
+   /*
+    * Note that we place interpretations on div_slot and idiv_slot for Python
+    * v3 so they are not included.
+    */
+    return (st == long_slot || st == cmp_slot);
 }
 
 
