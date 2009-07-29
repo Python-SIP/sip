@@ -6216,13 +6216,48 @@ int sip_api_get_state(PyObject *transferObj)
 
 
 /*
+ * This is set by sip_api_find_type() before calling bsearch() on the types
+ * table for the module.  This is a hack that works around the problem of
+ * unresolved externally defined types.
+ */
+static sipExportedModuleDef *module_searched;
+
+
+/*
  * The bsearch() helper function for searching the types table.
  */
 static int compareTypeDef(const void *key, const void *el)
 {
     const char *s1 = (const char *)key;
-    const char *s2 = sipTypeName(*(const sipTypeDef **)el);
+    const char *s2 = NULL;
+    const sipTypeDef *td;
     char ch1, ch2;
+
+    /* Allow for unresolved externally defined types. */
+    td = *(const sipTypeDef **)el;
+
+    if (td != NULL)
+        s2 = sipTypeName(td);
+    else
+    {
+        sipExternalTypeDef *etd = module_searched->em_external;
+
+        assert(etd != NULL);
+
+        /* Find which external type it is. */
+        while (etd->et_nr >= 0)
+        {
+            const sipTypeDef **tdp = &module_searched->em_types[etd->et_nr];
+
+            if (tdp == (const sipTypeDef **)el)
+            {
+                s2 = etd->et_name;
+                break;
+            }
+        }
+
+        assert(s2 != NULL);
+    }
 
     /*
      * Compare while ignoring spaces so that we don't impose a rigorous naming
@@ -6256,12 +6291,21 @@ static const sipTypeDef *sip_api_find_type(const char *type)
     {
         sipTypeDef **tdp;
 
+        /* The backdoor to the comparison helper. */
+        module_searched = em;
+
         tdp = (sipTypeDef **)bsearch((const void *)type,
                 (const void *)em->em_types, em->em_nrtypes,
                 sizeof (sipTypeDef *), compareTypeDef);
 
         if (tdp != NULL)
+        {
+            /*
+             * Note that this will be NULL for unresolved externally defined
+             * types.
+             */
             return *tdp;
+        }
     }
 
     return NULL;
