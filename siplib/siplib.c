@@ -6856,41 +6856,7 @@ static int sipVoidPtr_getbuffer(PyObject *self, Py_buffer *buf, int flags)
 {
     sipVoidPtrObject *v = (sipVoidPtrObject *)self;
 
-    /* Check the data is writeable. */
-    if ((flags & PyBUF_WRITABLE) && !v->rw)
-    {
-        PyErr_SetString(PyExc_TypeError, "the sip.voidptr is not writeable");
-        return -1;
-    }
-
-    /* We only support simple buffers. */
-    if (flags & PyBUF_ND)
-    {
-        PyErr_SetString(PyExc_TypeError,
-                "sip.voidptr does not support shape information");
-        return -1;
-    }
-
-    if (flags & PyBUF_STRIDES)
-    {
-        PyErr_SetString(PyExc_TypeError,
-                "sip.voidptr does not support strides information");
-        return -1;
-    }
-
-    buf->buf = v->voidptr;
-    buf->len = v->size;
-    buf->readonly = !v->rw;
-
-    buf->format = NULL;
-    buf->ndim = 0;
-    buf->shape = NULL;
-    buf->strides = NULL;
-    buf->suboffsets = NULL;
-    buf->itemsize = 1;
-    buf->internal = NULL;
-
-    return 0;
+    return PyBuffer_FillInfo(buf, self, v->voidptr, v->size, !v->rw, flags);
 }
 #endif
 
