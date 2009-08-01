@@ -3892,14 +3892,16 @@ static void generateConvertToDefinitions(mappedTypeDef *mtd,classDef *cd,
 
     if (convtocode != NULL)
     {
-        int need_ptr, need_xfer;
+        int need_py, need_ptr, need_iserr, need_xfer;
 
         /*
          * Sometimes type convertors are just stubs that set the error
          * flag, so check if we actually need everything so that we
          * can avoid compiler warnings.
          */
+        need_py = (generating_c || usedInCode(convtocode, "sipPy"));
         need_ptr = (generating_c || usedInCode(convtocode, "sipCppPtr"));
+        need_iserr = (generating_c || usedInCode(convtocode, "sipIsErr"));
         need_xfer = (generating_c || usedInCode(convtocode, "sipTransferObj"));
 
         prcode(fp,
@@ -3913,9 +3915,9 @@ static void generateConvertToDefinitions(mappedTypeDef *mtd,classDef *cd,
                 , iff);
 
         prcode(fp,
-"static int convertTo_%L(PyObject *sipPy,void **%s,int *sipIsErr,PyObject *%s)\n"
+"static int convertTo_%L(PyObject *%s,void **%s,int *%s,PyObject *%s)\n"
 "{\n"
-            , iff, (need_ptr ? "sipCppPtrV" : ""), (need_xfer ? "sipTransferObj" : ""));
+            , iff, (need_py ? "sipPy" : ""), (need_ptr ? "sipCppPtrV" : ""), (need_iserr ? "sipIsErr" : ""), (need_xfer ? "sipTransferObj" : ""));
 
         if (need_ptr)
         {

@@ -59,8 +59,9 @@ static void searchEnums(sipSpec *,scopedNameDef *,argDef *);
 static void searchClasses(sipSpec *,moduleDef *mod,scopedNameDef *,argDef *);
 static void appendToMRO(mroDef *,mroDef ***,classDef *);
 static void moveMainModuleCastsSlots(sipSpec *pt, moduleDef *mod);
-static void moveClassCasts(moduleDef *mod, classDef *cd);
-static void moveGlobalSlot(moduleDef *mod, memberDef *gmd);
+static void moveClassCasts(sipSpec *pt, moduleDef *mod, classDef *cd);
+static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd);
+static classDef *findAltClassImplementation(sipSpec *pt, mappedTypeDef *mtd);
 static void filterMainModuleVirtualHandlers(moduleDef *mod);
 static void filterModuleVirtualHandlers(moduleDef *mod);
 static ifaceFileDef *getIfaceFile(argDef *ad);
@@ -586,18 +587,18 @@ static void moveMainModuleCastsSlots(sipSpec *pt, moduleDef *mod)
 
     for (cd = pt->classes; cd != NULL; cd = cd->next)
         if (cd->iff->module == mod)
-            moveClassCasts(mod, cd);
+            moveClassCasts(pt, mod, cd);
 
     for (md = mod->othfuncs; md != NULL; md = md->next)
         if (md->slot != no_slot && md->module == mod)
-            moveGlobalSlot(mod, md);
+            moveGlobalSlot(pt, mod, md);
 }
 
 
 /*
  * Move any class casts to its correct class, or publish as a ctor extender.
  */
-static void moveClassCasts(moduleDef *mod, classDef *cd)
+static void moveClassCasts(sipSpec *pt, moduleDef *mod, classDef *cd)
 {
     argList *al;
 
@@ -606,6 +607,12 @@ static void moveClassCasts(moduleDef *mod, classDef *cd)
         classDef *dcd = al->arg.u.cd;
         ctorDef *ct, **ctp;
         argDef *ad;
+
+        if (al->arg.atype == class_type)
+            dcd = al->arg.u.cd;
+        else
+            /* Previous error checking means this will always work. */
+            dcd = findAltClassImplementation(pt, al->arg.u.mtd);
 
         /*
          * If the destination class is in a different module then use
@@ -660,7 +667,7 @@ static void moveClassCasts(moduleDef *mod, classDef *cd)
 /*
  * If possible, move a global slot to its correct class.
  */
-static void moveGlobalSlot(moduleDef *mod, memberDef *gmd)
+static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd)
 {
     overDef **odp = &mod->overs, *od;
 
@@ -688,6 +695,7 @@ static void moveGlobalSlot(moduleDef *mod, memberDef *gmd)
         arg0 = &od->pysig.args[0];
         arg1 = &od->pysig.args[1];
 
+        mdhead = NULL;
         second = FALSE;
         nd = NULL;
 
@@ -696,6 +704,17 @@ static void moveGlobalSlot(moduleDef *mod, memberDef *gmd)
             mdhead = &arg0->u.cd->members;
             odhead = &arg0->u.cd->overs;
             mod = arg0->u.cd->iff->module;
+        }
+        else if (arg0->atype == mapped_type)
+        {
+            classDef *cd = findAltClassImplementation(pt, arg0->u.mtd);
+
+            if (cd != NULL)
+            {
+                mdhead = &cd->members;
+                odhead = &cd->overs;
+                mod = cd->iff->module;
+            }
         }
         else if (arg0->atype == enum_type)
         {
@@ -711,6 +730,18 @@ static void moveGlobalSlot(moduleDef *mod, memberDef *gmd)
             mod = arg1->u.cd->iff->module;
             second = TRUE;
         }
+        else if (arg1->atype == mapped_type)
+        {
+            classDef *cd = findAltClassImplementation(pt, arg1->u.mtd);
+
+            if (cd != NULL)
+            {
+                mdhead = &cd->members;
+                odhead = &cd->overs;
+                mod = cd->iff->module;
+                second = TRUE;
+            }
+        }
         else if (arg1->atype == enum_type)
         {
             mdhead = &arg1->u.ed->slots;
@@ -719,7 +750,8 @@ static void moveGlobalSlot(moduleDef *mod, memberDef *gmd)
             nd = arg1->u.ed->pyname;
             second = TRUE;
         }
-        else
+
+        if (mdhead == NULL)
         {
             fatal("One of the arguments of ");
             prOverloadName(stderr, od);
@@ -840,6 +872,33 @@ static void moveGlobalSlot(moduleDef *mod, memberDef *gmd)
             od->pysig.nrArgs = 1;
         }
     }
+}
+
+
+/*
+ * Return an alternative class implementation of a mapped type if there is
+ * one.  Note that we cheat as we assume there is one going to be one (as
+ * there will be in PyQt at the moment).
+ */
+static classDef *findAltClassImplementation(sipSpec *pt, mappedTypeDef *mtd)
+{
+    ifaceFileDef *iff = mtd->iff->first_alt;
+
+    while (iff != NULL)
+    {
+        if (iff->type == class_iface)
+        {
+            classDef *cd;
+
+            for (cd = pt->classes; cd != NULL; cd = cd->next)
+                if (cd->iff == iff)
+                    return cd;
+        }
+
+        iff = iff->next_alt;
+    }
+
+    return NULL;
 }
 
 
@@ -1303,9 +1362,18 @@ static void transformCasts(sipSpec *pt, classDef *cd)
 
     for (al = cd->casts; al != NULL; al = al->next)
     {
+        classDef *dcd;
+
         getBaseType(pt, cd->iff->module, cd, &al->arg);
 
-        if (al->arg.atype != class_type)
+        if (al->arg.atype == class_type)
+            dcd = al->arg.u.cd;
+        else if (al->arg.atype == mapped_type)
+            dcd = findAltClassImplementation(pt, al->arg.u.mtd);
+        else
+            dcd = NULL;
+
+        if (dcd == NULL)
         {
             fatalScopedName(classFQCName(cd));
             fatal(" operator cast must be to a class\n");
