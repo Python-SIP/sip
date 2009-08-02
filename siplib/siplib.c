@@ -3999,6 +3999,9 @@ static PyObject *getScopeDict(sipTypeDef *td, PyObject *mod_dict,
     {
         if (createMappedType(client, (sipMappedTypeDef *)td, mod_dict) < 0)
             return NULL;
+
+        /* Check that the mapped type can act as a container. */
+        assert(sipTypeAsPyTypeObject(td) != NULL);
     }
     else
     {

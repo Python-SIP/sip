@@ -8821,7 +8821,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 "        {0}\n"
 "    },\n"
 "    {\n"
-"        ", cd->iff->name);
+        , cd->iff->name);
 
     if (cd->real == NULL)
         prcode(fp,
@@ -8831,6 +8831,8 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
         prcode(fp,
 "        -1,\n"
             );
+
+    prcode(fp, "        ");
 
     if (cd->real != NULL)
         generateEncodedType(mod, cd->real, 0, fp);
