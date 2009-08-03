@@ -16,7 +16,7 @@ static int samePythonSignature(signatureDef *sd1, signatureDef *sd2);
 static int nextSignificantArg(signatureDef *sd, int a);
 static int sameArgType(argDef *a1, argDef *a2, int strict);
 static int supportedType(classDef *,overDef *,argDef *,int);
-static int sameOverload(overDef *od1,overDef *od2);
+static int sameOverload(overDef *od1, overDef *od2);
 static int sameVirtualHandler(virtHandlerDef *vhd1,virtHandlerDef *vhd2);
 static int isSubClass(classDef *cc,classDef *pc);
 static void setAllImports(moduleDef *mod);
@@ -1644,11 +1644,11 @@ static void getVirtuals(sipSpec *pt, classDef *cd)
 /*
  * Get the list of visible virtual functions for a class.
  */
-static void getClassVirtuals(classDef *base,classDef *cd)
+static void getClassVirtuals(classDef *base, classDef *cd)
 {
     overDef *od;
 
-    for (od = cd -> overs; od != NULL; od = od -> next)
+    for (od = cd->overs; od != NULL; od = od->next)
     {
         virtOverDef **tailp, *vod;
 
@@ -1656,40 +1656,39 @@ static void getClassVirtuals(classDef *base,classDef *cd)
             continue;
 
         /*
-         * See if a virtual of this name and signature is already in
-         * the list.
+         * See if a virtual of this name and signature is already in the list.
          */
-        for (tailp = &base -> vmembers; (vod = *tailp) != NULL; tailp = &vod -> next)
-            if (strcmp(vod -> o.cppname,od -> cppname) == 0 && sameOverload(&vod -> o,od))
+        for (tailp = &base->vmembers; (vod = *tailp) != NULL; tailp = &vod->next)
+            if (strcmp(vod->o.cppname, od->cppname) == 0 && sameOverload(&vod->o, od))
                 break;
  
         if (vod == NULL)
         {
             /*
-             * See if there is a non-virtual reimplementation
-             * nearer in the class hierarchy.
+             * See if there is a non-virtual reimplementation nearer in the
+             * class hierarchy.
              */
 
             mroDef *mro;
             classDef *scope = NULL;
             overDef *eod;
 
-            for (mro = base -> mro; mro -> cd != cd; mro = mro -> next)
+            for (mro = base->mro; mro->cd != cd; mro = mro->next)
             {
                 if (isDuplicateSuper(mro))
                     continue;
 
                 /*
-                 * Ignore classes that are on a different
-                 * branch of the class hierarchy.
+                 * Ignore classes that are on a different branch of the class
+                 * hierarchy.
                  */
-                if (!isSubClass(mro -> cd,cd))
+                if (!isSubClass(mro->cd, cd))
                     continue;
 
-                for (eod = mro -> cd -> overs; eod != NULL; eod = eod -> next)
-                    if (strcmp(eod -> cppname,od -> cppname) == 0 && sameSignature(eod -> cppsig,od -> cppsig,TRUE) && isConst(eod) == isConst(od) && !isAbstract(eod))
+                for (eod = mro->cd->overs; eod != NULL; eod = eod->next)
+                    if (strcmp(eod->cppname, od->cppname) == 0 && sameSignature(eod->cppsig, od->cppsig, TRUE) && isConst(eod) == isConst(od) && !isAbstract(eod))
                     {
-                        scope = mro -> cd;
+                        scope = mro->cd;
                         break;
                     }
 
@@ -1699,20 +1698,20 @@ static void getClassVirtuals(classDef *base,classDef *cd)
 
             vod = sipMalloc(sizeof (virtOverDef));
  
-            vod -> o = *od;
-            vod -> scope = (scope != NULL ? scope : cd);
-            vod -> next = NULL;
+            vod->o = *od;
+            vod->scope = (scope != NULL ? scope : cd);
+            vod->next = NULL;
  
             *tailp = vod;
 
             /*
-             * If there was a nearer reimplementation then we use
-             * its protection and abstract flags.
+             * If there was a nearer reimplementation then we use its
+             * protection and abstract flags.
              */
             if (scope != NULL)
             {
-                vod -> o.overflags &= ~(SECT_MASK | OVER_IS_ABSTRACT);
-                vod -> o.overflags |= (SECT_MASK | OVER_IS_ABSTRACT) & eod -> overflags;
+                vod->o.overflags &= ~(SECT_MASK | OVER_IS_ABSTRACT);
+                vod->o.overflags |= (SECT_MASK | OVER_IS_ABSTRACT) & eod->overflags;
             }
         }
     }
@@ -2264,13 +2263,17 @@ void fatalScopedName(scopedNameDef *snd)
 /*
  * Compare two overloads and return TRUE if they are the same.
  */
-static int sameOverload(overDef *od1,overDef *od2)
+static int sameOverload(overDef *od1, overDef *od2)
 {
+    /* They must both be enabled for the same API. */
+    if (od1->api_range != od2->api_range)
+        return FALSE;
+
     /* They must both be const, or both not. */
     if (isConst(od1) != isConst(od2))
         return FALSE;
 
-    return sameSignature(&od1 -> pysig,&od2 -> pysig,TRUE);
+    return sameSignature(&od1->pysig, &od2->pysig, TRUE);
 }
 
 
@@ -2279,6 +2282,8 @@ static int sameOverload(overDef *od1,overDef *od2)
  */
 static int sameVirtualHandler(virtHandlerDef *vhd1,virtHandlerDef *vhd2)
 {
+    int a;
+
     if (isTransferVH(vhd1) != isTransferVH(vhd2))
         return FALSE;
 
@@ -2287,6 +2292,16 @@ static int sameVirtualHandler(virtHandlerDef *vhd1,virtHandlerDef *vhd2)
 
     if (!sameSignature(vhd1->pysig, vhd2->pysig, TRUE))
         return FALSE;
+
+    /* Take into account the argument directions in the Python signatures. */
+    for (a = 0; a < vhd1->pysig->nrArgs; ++a)
+    {
+        int dir1 = (vhd1->pysig->args[a].argflags & (ARG_IN | ARG_OUT));
+        int dir2 = (vhd2->pysig->args[a].argflags & (ARG_IN | ARG_OUT));
+
+        if (dir1 != dir2)
+            return FALSE;
+    }
 
     if (vhd1->pysig == vhd1->cppsig && vhd2->pysig == vhd2->cppsig)
         return TRUE;

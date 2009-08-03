@@ -107,9 +107,12 @@ static void generateTupleBuilder(signatureDef *, FILE *);
 static void generateEmitters(classDef *cd, FILE *fp);
 static void generateEmitter(classDef *, visibleList *, FILE *);
 static void generateVirtualHandler(virtHandlerDef *vhd, FILE *fp);
-static void generateVirtHandlerErrorReturn(argDef *res, FILE *fp);
+static void generateVirtHandlerErrorReturn(argDef *res, const char *indent,
+        FILE *fp);
 static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
         virtOverDef *vod, FILE *fp);
+static void generateVirtHandlerCall(moduleDef *mod, classDef *cd,
+        virtOverDef *vod, argDef *res, const char *indent, FILE *fp);
 static void generateUnambiguousClass(classDef *cd, classDef *scope, FILE *fp);
 static void generateProtectedEnums(sipSpec *, classDef *, FILE *);
 static void generateProtectedDeclarations(classDef *, FILE *);
@@ -5777,15 +5780,18 @@ static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
         if (isPrivate(od))
             continue;
 
-        /* Check we haven't already handled this C++ signature. */
+        /*
+         * Check we haven't already handled this C++ signature.  The same C++
+         * signature should only appear more than once for overloads that are
+         * enabled for different APIs and that differ in their /In/ and/or
+         * /Out/ annotations.
+         */
         for (dvod = cd->vmembers; dvod != vod; dvod = dvod->next)
-            if (strcmp(dvod->o.cppname,od->cppname) == 0 && sameSignature(dvod->o.cppsig,od->cppsig,TRUE))
+            if (strcmp(dvod->o.cppname, od->cppname) == 0 && sameSignature(dvod->o.cppsig, od->cppsig, TRUE))
                 break;
 
-        if (dvod != vod)
-            continue;
-
-        generateVirtualCatcher(mod, cd, virtNr++, vod, fp);
+        if (dvod == vod)
+            generateVirtualCatcher(mod, cd, virtNr++, vod, fp);
     }
 
     /* Generate the wrapper around each protected member function. */
@@ -5916,9 +5922,9 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
 {
     overDef *od = &vod->o;
     virtHandlerDef *vhd = od->virthandler;
-    argDef *res, *ad;
-    signatureDef saved;
-    int a, args_keep = FALSE, result_keep = FALSE;
+    argDef *res;
+    apiVersionRangeDef *avr;
+    const char *indent;
 
     normaliseArgs(od->cppsig);
 
@@ -5953,66 +5959,13 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
 
     restoreArgs(od->cppsig);
 
-    saved = *vhd->cppsig;
-    fakeProtectedArgs(vhd->cppsig);
-
-    if (vhd->module == mod)
-    {
-        prcode(fp,
-"    extern ");
-
-        generateBaseType(cd->iff, &od->cppsig->result, FALSE, fp);
-
-        prcode(fp," sipVH_%s_%d(sip_gilstate_t,PyObject *",vhd->module->name,vhd->virthandlernr);
-    }
-    else
-    {
-        prcode(fp,
-"    typedef ");
-
-        generateBaseType(cd->iff, &od->cppsig->result, FALSE, fp);
-
-        prcode(fp," (*sipVH_%s_%d)(sip_gilstate_t,PyObject *",vhd->module->name,vhd->virthandlernr);
-    }
-
-    if (vhd->cppsig->nrArgs > 0)
-    {
-        prcode(fp,",");
-        generateCalledArgs(cd->iff, vhd->cppsig, Declaration, FALSE, fp);
-    }
-
-    *vhd->cppsig = saved;
-
-    /* Add extra arguments for all the references we need to keep. */
-    if (res != NULL && keepPyReference(res))
-    {
-        result_keep = TRUE;
-        res->key = mod->next_key++;
-        prcode(fp, ",int");
-    }
-
-    for (ad = od->cppsig->args, a = 0; a < od->cppsig->nrArgs; ++a, ++ad)
-        if (isOutArg(ad) && keepPyReference(ad))
-        {
-            args_keep = TRUE;
-            ad->key = mod->next_key++;
-            prcode(fp, ",int");
-        }
-
-    if (result_keep || args_keep)
-        prcode(fp, ",sipSimpleWrapper *");
-
-    prcode(fp,");\n"
-        );
-
     if (isNewThread(od))
         prcode(fp,
-"\n"
 "    SIP_BLOCK_THREADS\n"
+"\n"
             );
 
     prcode(fp,
-"\n"
 "    sip_gilstate_t sipGILState;\n"
 "    PyObject *meth;\n"
 "\n"
@@ -6038,21 +5991,29 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
         ,od->common->pyname);
 
     if (isNewThread(od))
+    {
+        indent = "        ";
+
         prcode(fp,
 "    if (meth)\n"
 "    {\n"
 "        sipStartThread();\n"
-"        ");
+            );
+    }
     else
     {
+        indent = "    ";
+
         prcode(fp,
 "    if (!meth)\n"
             );
 
         if (isAbstract(od))
-            generateVirtHandlerErrorReturn(res,fp);
+            generateVirtHandlerErrorReturn(res, "        ", fp);
         else
         {
+            int a;
+
             if (res == NULL)
                 prcode(fp,
 "    {\n"
@@ -6077,16 +6038,178 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
 "    }\n"
                     );
         }
+    }
+
+    /*
+     * If this overload doesn't have an API version assume that there are none
+     * that do.
+     */
+    avr = getAPIRange(mod, od->api_range);
+
+    if (avr == NULL)
+    {
+        prcode(fp,
+"\n"
+            );
+
+        generateVirtHandlerCall(mod, cd, vod, res, indent, fp);
+    }
+    else
+    {
+        virtOverDef *versioned_vod = vod;
+
+        do
+        {
+            prcode(fp,
+"\n"
+"    if (sipIsAPIEnabled(%N, %d, %d))\n"
+"    {\n"
+                , avr->api_name, avr->from, avr->to);
+
+            generateVirtHandlerCall(mod, cd, versioned_vod, res, "        ", fp);
+
+            if (res == NULL)
+                prcode(fp,
+"        return;\n"
+                    );
+
+            prcode(fp,
+"    }\n"
+                );
+
+            /* Find the next overload. */
+            while ((versioned_vod = versioned_vod->next) != NULL)
+            {
+                if (strcmp(versioned_vod->o.cppname, od->cppname) == 0 && sameSignature(versioned_vod->o.cppsig, od->cppsig, TRUE))
+                {
+                    avr = getAPIRange(mod, versioned_vod->o.api_range);
+
+                    /* Check that it has an API specified. */
+                    if (avr == NULL)
+                    {
+                        fatalScopedName(classFQCName(cd));
+                        fatal("::");
+                        prOverloadName(stderr, od);
+                        fatal(" has versioned and unversioned overloads\n");
+                    }
+
+                    break;
+                }
+            }
+        }
+        while (versioned_vod != NULL);
 
         prcode(fp,
 "\n"
-"    %s", (res != NULL ? "return " : ""));
+            );
+
+        if (isAbstract(od))
+            generateVirtHandlerErrorReturn(res, "    ", fp);
+        else
+        {
+            int a;
+
+            prcode(fp, "    %s", (res != NULL ? "return " : ""));
+
+            generateUnambiguousClass(cd, vod->scope, fp);
+
+            prcode(fp, "::%O(", od);
+ 
+            for (a = 0; a < od->cppsig->nrArgs; ++a)
+                prcode(fp, "%sa%d", (a == 0 ? "" : ","), a);
+ 
+            prcode(fp,");\n"
+                );
+        }
     }
 
+    if (isNewThread(od))
+        prcode(fp,
+"\n"
+"        sipEndThread();\n"
+"    }\n"
+"\n"
+"    SIP_UNBLOCK_THREADS\n"
+            );
+
+    prcode(fp,
+"}\n"
+        );
+}
+
+
+/*
+ * Generate a call to a single virtual handler.
+ */
+static void generateVirtHandlerCall(moduleDef *mod, classDef *cd,
+        virtOverDef *vod, argDef *res, const char *indent, FILE *fp)
+{
+    overDef *od = &vod->o;
+    virtHandlerDef *vhd = od->virthandler;
+    signatureDef saved;
+    argDef *ad;
+    int a, args_keep = FALSE, result_keep = FALSE;
+
+    saved = *vhd->cppsig;
+    fakeProtectedArgs(vhd->cppsig);
+
     if (vhd->module == mod)
-        prcode(fp,"sipVH_%s_%d",vhd->module->name,vhd->virthandlernr);
+    {
+        prcode(fp,
+"%sextern ", indent);
+
+        generateBaseType(cd->iff, &od->cppsig->result, FALSE, fp);
+
+        prcode(fp, " sipVH_%s_%d(sip_gilstate_t,PyObject *", vhd->module->name, vhd->virthandlernr);
+    }
     else
-        prcode(fp,"((sipVH_%s_%d)(sipModuleAPI_%s_%s->em_virthandlers[%d]))",vhd->module->name,vhd->virthandlernr,mod->name,vhd->module->name,vhd->virthandlernr);
+    {
+        prcode(fp,
+"%stypedef ", indent);
+
+        generateBaseType(cd->iff, &od->cppsig->result, FALSE, fp);
+
+        prcode(fp, " (*sipVH_%s_%d)(sip_gilstate_t,PyObject *", vhd->module->name, vhd->virthandlernr);
+    }
+
+    if (vhd->cppsig->nrArgs > 0)
+    {
+        prcode(fp, ",");
+        generateCalledArgs(cd->iff, vhd->cppsig, Declaration, FALSE, fp);
+    }
+
+    *vhd->cppsig = saved;
+
+    /* Add extra arguments for all the references we need to keep. */
+    if (res != NULL && keepPyReference(res))
+    {
+        result_keep = TRUE;
+        res->key = mod->next_key++;
+        prcode(fp, ",int");
+    }
+
+    for (ad = od->cppsig->args, a = 0; a < od->cppsig->nrArgs; ++a, ++ad)
+        if (isOutArg(ad) && keepPyReference(ad))
+        {
+            args_keep = TRUE;
+            ad->key = mod->next_key++;
+            prcode(fp, ",int");
+        }
+
+    if (result_keep || args_keep)
+        prcode(fp, ",sipSimpleWrapper *");
+
+    prcode(fp,");\n"
+"\n"
+"%s", indent);
+
+    if (!isNewThread(od) && res != NULL)
+        prcode(fp, "return ");
+
+    if (vhd->module == mod)
+        prcode(fp, "sipVH_%s_%d", vhd->module->name,vhd->virthandlernr);
+    else
+        prcode(fp, "((sipVH_%s_%d)(sipModuleAPI_%s_%s->em_virthandlers[%d]))", vhd->module->name, vhd->virthandlernr, mod->name, vhd->module->name, vhd->virthandlernr);
 
     prcode(fp,"(sipGILState,meth");
 
@@ -6113,18 +6236,6 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
         prcode(fp, ",sipPySelf");
  
     prcode(fp,");\n"
-        );
-
-    if (isNewThread(od))
-        prcode(fp,
-"        sipEndThread();\n"
-"    }\n"
-"\n"
-"    SIP_UNBLOCK_THREADS\n"
-            );
-
-    prcode(fp,
-"}\n"
         );
 }
 
@@ -6198,10 +6309,11 @@ static void generateCastZero(argDef *ad,FILE *fp)
  * Generate the return statement for a virtual handler when there has been an
  * error (ie. there is nothing sensible to return).
  */
-static void generateVirtHandlerErrorReturn(argDef *res,FILE *fp)
+static void generateVirtHandlerErrorReturn(argDef *res, const char *indent,
+        FILE *fp)
 {
     prcode(fp,
-"        return");
+"%sreturn", indent);
 
     if (res == NULL)
     {
@@ -6976,7 +7088,7 @@ static void generateVirtualHandler(virtHandlerDef *vhd, FILE *fp)
 "    if (sipIsErr)\n"
                 );
 
-            generateVirtHandlerErrorReturn(res,fp);
+            generateVirtHandlerErrorReturn(res, "        ", fp);
         }
 
         prcode(fp,
