@@ -170,7 +170,7 @@ static void generateEncodedType(moduleDef *mod, classDef *cd, int last,
 static apiVersionRangeDef *getAPIRange(moduleDef *mod, int api_range);
 static int generateArgParser(signatureDef *sd, classDef *c_scope,
         mappedTypeDef *mt_scope, ctorDef *ct, overDef *od, int secCall,
-        apiVersionRangeDef *avr, FILE *fp);
+        FILE *fp);
 static void generateTry(throwArgs *, FILE *);
 static void generateCatch(throwArgs *ta, signatureDef *sd, FILE *fp);
 static void generateThrowSpecifier(throwArgs *, FILE *);
@@ -6348,7 +6348,7 @@ static void generateEmitter(classDef *cd, visibleList *vl, FILE *fp)
 "    {\n"
             );
 
-        generateArgParser(&od->pysig, cd, NULL, NULL, NULL, FALSE, NULL, fp);
+        generateArgParser(&od->pysig, cd, NULL, NULL, NULL, FALSE, fp);
 
         prcode(fp,
 "        {\n"
@@ -9540,7 +9540,7 @@ static void generateTypeInit(classDef *cd, FILE *fp)
         }
 
         needSecCall = generateArgParser(&ct->pysig, cd, NULL, ct, NULL, FALSE,
-                NULL, fp);
+                fp);
         generateConstructorCall(cd,ct,error_flag,fp);
 
         if (needSecCall)
@@ -9557,7 +9557,7 @@ static void generateTypeInit(classDef *cd, FILE *fp)
 "        int sipIsErr = 0;\n"
                     );
 
-            generateArgParser(&ct->pysig, cd, NULL, ct, NULL, TRUE, NULL, fp);
+            generateArgParser(&ct->pysig, cd, NULL, ct, NULL, TRUE, fp);
             generateConstructorCall(cd,ct,error_flag,fp);
         }
 
@@ -9987,6 +9987,7 @@ static void generateFunctionBody(overDef *od, classDef *c_scope,
     int needSecCall;
     signatureDef saved;
     ifaceFileDef *o_scope;
+    apiVersionRangeDef *avr;
 
     if (mt_scope != NULL)
         o_scope = mt_scope->iff;
@@ -9995,10 +9996,22 @@ static void generateFunctionBody(overDef *od, classDef *c_scope,
     else
         o_scope = NULL;
 
-    prcode(fp,
+    if (o_scope != NULL)
+        avr = getAPIRange(o_scope->module, od->api_range);
+    else
+        avr = NULL;
+
+    if (avr != NULL)
+        prcode(fp,
+"\n"
+"    if (sipIsAPIEnabled(%N, %d, %d))\n"
+"    {\n"
+            , avr->api_name, avr->from, avr->to);
+    else
+        prcode(fp,
 "\n"
 "    {\n"
-        );
+            );
 
     /* In case we have to fiddle with it. */
     saved = od->pysig;
@@ -10024,13 +10037,13 @@ static void generateFunctionBody(overDef *od, classDef *c_scope,
             od->pysig.args[0].u.cd = ocd;
         }
 
-        generateArgParser(&od->pysig, c_scope, mt_scope, NULL, od, FALSE, NULL, fp);
+        generateArgParser(&od->pysig, c_scope, mt_scope, NULL, od, FALSE, fp);
         needSecCall = FALSE;
     }
     else if (isIntArgSlot(od->common) || isZeroArgSlot(od->common))
         needSecCall = FALSE;
     else
-        needSecCall = generateArgParser(&od->pysig, c_scope, mt_scope, NULL, od, FALSE, NULL, fp);
+        needSecCall = generateArgParser(&od->pysig, c_scope, mt_scope, NULL, od, FALSE, fp);
 
     generateFunctionCall(c_scope, mt_scope, o_scope, od, deref, fp);
 
@@ -10042,7 +10055,7 @@ static void generateFunctionBody(overDef *od, classDef *c_scope,
 "    {\n"
             );
 
-        generateArgParser(&od->pysig, c_scope, mt_scope, NULL, od, TRUE, NULL, fp);
+        generateArgParser(&od->pysig, c_scope, mt_scope, NULL, od, TRUE, fp);
         generateFunctionCall(c_scope, mt_scope, o_scope, od, deref, fp);
     }
 
@@ -11252,7 +11265,7 @@ static void generateNumberSlotCall(overDef *od, char *op, FILE *fp)
  */
 static int generateArgParser(signatureDef *sd, classDef *c_scope,
         mappedTypeDef *mt_scope, ctorDef *ct, overDef *od, int secCall,
-        apiVersionRangeDef *avr, FILE *fp)
+        FILE *fp)
 {
     int a, isQtSlot, optargs, arraylenarg, sigarg, handle_self, single_arg;
     int slotconarg, slotdisarg, need_owner;
@@ -11345,23 +11358,19 @@ static int generateArgParser(signatureDef *sd, classDef *c_scope,
             );
 
     /* Generate the call to the parser function. */
-    prcode(fp,
-"        if (");
-
-    if (avr != NULL)
-        prcode(fp, "sipIsAPIEnabled(%N, %d, %d) &&", avr->api_name, avr->from, avr->to);
-
     if (od != NULL && isNumberSlot(od->common))
     {
         single_arg = FALSE;
 
-        prcode(fp, "sipParsePair(%ssipArgsParsed,sipArg0,sipArg1,\"", (ct != NULL ? "" : "&"));
+        prcode(fp,
+"        if (sipParsePair(%ssipArgsParsed,sipArg0,sipArg1,\"", (ct != NULL ? "" : "&"));
     }
     else
     {
         single_arg = (od != NULL && od->common->slot != no_slot && !isMultiArgSlot(od->common));
 
-        prcode(fp, "sipParseArgs(%ssipArgsParsed,sipArg%s,\"", (ct != NULL ? "" : "&"), (single_arg ? "" : "s"));
+        prcode(fp,
+"        if (sipParseArgs(%ssipArgsParsed,sipArg%s,\"", (ct != NULL ? "" : "&"), (single_arg ? "" : "s"));
     }
 
     /* Generate the format string. */

@@ -5029,8 +5029,6 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
 
     if (od->api_range < 0)
         setNotVersioned(od->common);
-    else if (mt_scope != NULL || c_scope != NULL)
-        yyerror("/API/ may only be specified for global functions");
 
     if (findOptFlag(optflgs, "Numeric", bool_flag) != NULL)
         setIsNumeric(od->common);
