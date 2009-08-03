@@ -167,8 +167,10 @@ static void generateAccessFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 static void generateConvertToDefinitions(mappedTypeDef *, classDef *, FILE *);
 static void generateEncodedType(moduleDef *mod, classDef *cd, int last,
         FILE *fp);
-static int generateArgParser(signatureDef *, classDef *, mappedTypeDef *,
-        ctorDef *, overDef *, int, FILE *);
+static apiVersionRangeDef *getAPIRange(moduleDef *mod, int api_range);
+static int generateArgParser(signatureDef *sd, classDef *c_scope,
+        mappedTypeDef *mt_scope, ctorDef *ct, overDef *od, int secCall,
+        apiVersionRangeDef *avr, FILE *fp);
 static void generateTry(throwArgs *, FILE *);
 static void generateCatch(throwArgs *ta, signatureDef *sd, FILE *fp);
 static void generateThrowSpecifier(throwArgs *, FILE *);
@@ -6346,7 +6348,7 @@ static void generateEmitter(classDef *cd, visibleList *vl, FILE *fp)
 "    {\n"
             );
 
-        generateArgParser(&od->pysig, cd, NULL, NULL, NULL, FALSE, fp);
+        generateArgParser(&od->pysig, cd, NULL, NULL, NULL, FALSE, NULL, fp);
 
         prcode(fp,
 "        {\n"
@@ -9510,13 +9512,21 @@ static void generateTypeInit(classDef *cd, FILE *fp)
     for (ct = cd->ctors; ct != NULL; ct = ct->next)
     {
         int needSecCall, error_flag = FALSE;
+        apiVersionRangeDef *avr;
 
         if (isPrivateCtor(ct))
             continue;
 
+        avr = getAPIRange(cd->iff->module, ct->api_range);
+
         prcode(fp,
 "\n"
-"    if (!sipCpp)\n"
+"    if (!sipCpp");
+
+        if (avr != NULL)
+            prcode(fp, " && sipIsAPIEnabled(%N, %d, %d)", avr->api_name, avr->from, avr->to);
+
+        prcode(fp, ")\n"
 "    {\n"
             );
 
@@ -9529,7 +9539,8 @@ static void generateTypeInit(classDef *cd, FILE *fp)
             error_flag = TRUE;
         }
 
-        needSecCall = generateArgParser(&ct->pysig, cd, NULL, ct, NULL, FALSE, fp);
+        needSecCall = generateArgParser(&ct->pysig, cd, NULL, ct, NULL, FALSE,
+                NULL, fp);
         generateConstructorCall(cd,ct,error_flag,fp);
 
         if (needSecCall)
@@ -9546,7 +9557,7 @@ static void generateTypeInit(classDef *cd, FILE *fp)
 "        int sipIsErr = 0;\n"
                     );
 
-            generateArgParser(&ct->pysig, cd, NULL, ct, NULL, TRUE, fp);
+            generateArgParser(&ct->pysig, cd, NULL, ct, NULL, TRUE, NULL, fp);
             generateConstructorCall(cd,ct,error_flag,fp);
         }
 
@@ -10013,13 +10024,13 @@ static void generateFunctionBody(overDef *od, classDef *c_scope,
             od->pysig.args[0].u.cd = ocd;
         }
 
-        generateArgParser(&od->pysig, c_scope, mt_scope, NULL, od, FALSE, fp);
+        generateArgParser(&od->pysig, c_scope, mt_scope, NULL, od, FALSE, NULL, fp);
         needSecCall = FALSE;
     }
     else if (isIntArgSlot(od->common) || isZeroArgSlot(od->common))
         needSecCall = FALSE;
     else
-        needSecCall = generateArgParser(&od->pysig, c_scope, mt_scope, NULL, od, FALSE, fp);
+        needSecCall = generateArgParser(&od->pysig, c_scope, mt_scope, NULL, od, FALSE, NULL, fp);
 
     generateFunctionCall(c_scope, mt_scope, o_scope, od, deref, fp);
 
@@ -10031,7 +10042,7 @@ static void generateFunctionBody(overDef *od, classDef *c_scope,
 "    {\n"
             );
 
-        generateArgParser(&od->pysig, c_scope, mt_scope, NULL, od, TRUE, fp);
+        generateArgParser(&od->pysig, c_scope, mt_scope, NULL, od, TRUE, NULL, fp);
         generateFunctionCall(c_scope, mt_scope, o_scope, od, deref, fp);
     }
 
@@ -11241,7 +11252,7 @@ static void generateNumberSlotCall(overDef *od, char *op, FILE *fp)
  */
 static int generateArgParser(signatureDef *sd, classDef *c_scope,
         mappedTypeDef *mt_scope, ctorDef *ct, overDef *od, int secCall,
-        FILE *fp)
+        apiVersionRangeDef *avr, FILE *fp)
 {
     int a, isQtSlot, optargs, arraylenarg, sigarg, handle_self, single_arg;
     int slotconarg, slotdisarg, need_owner;
@@ -11334,19 +11345,23 @@ static int generateArgParser(signatureDef *sd, classDef *c_scope,
             );
 
     /* Generate the call to the parser function. */
+    prcode(fp,
+"        if (");
+
+    if (avr != NULL)
+        prcode(fp, "sipIsAPIEnabled(%N, %d, %d) &&", avr->api_name, avr->from, avr->to);
+
     if (od != NULL && isNumberSlot(od->common))
     {
         single_arg = FALSE;
 
-        prcode(fp,
-"        if (sipParsePair(%ssipArgsParsed,sipArg0,sipArg1,\"", (ct != NULL ? "" : "&"));
+        prcode(fp, "sipParsePair(%ssipArgsParsed,sipArg0,sipArg1,\"", (ct != NULL ? "" : "&"));
     }
     else
     {
         single_arg = (od != NULL && od->common->slot != no_slot && !isMultiArgSlot(od->common));
 
-        prcode(fp,
-"        if (sipParseArgs(%ssipArgsParsed,sipArg%s,\"", (ct != NULL ? "" : "&"), (single_arg ? "" : "s"));
+        prcode(fp, "sipParseArgs(%ssipArgsParsed,sipArg%s,\"", (ct != NULL ? "" : "&"), (single_arg ? "" : "s"));
     }
 
     /* Generate the format string. */
@@ -12740,4 +12755,24 @@ static char getEncoding(argType atype)
     }
 
     return encoding;
+}
+
+
+/*
+ * Get the definition of an API version range.
+ */
+static apiVersionRangeDef *getAPIRange(moduleDef *mod, int api_range)
+{
+    apiVersionRangeDef *avr;
+
+    if (api_range >= 0)
+    {
+        /* Find the correct API definition. */
+        for (avr = mod->api_ranges; api_range-- != 0; avr = avr->next)
+            ;
+    }
+    else
+        avr = NULL;
+
+    return avr;
 }

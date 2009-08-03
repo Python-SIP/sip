@@ -3281,6 +3281,7 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd, optFlags *of)
                 cd->ctors = sipMalloc(sizeof (ctorDef));
  
                 cd->ctors->ctorflags = SECT_IS_PUBLIC;
+                cd->ctors->api_range = -1;
                 cd->ctors->pysig.nrArgs = 0;
                 cd->ctors->cppsig = &cd -> ctors -> pysig;
                 cd->ctors->exceptions = NULL;
@@ -4764,26 +4765,27 @@ static void newVar(sipSpec *pt,moduleDef *mod,char *name,int isstatic,
 /*
  * Create a new ctor.
  */
-static void newCtor(char *name,int sectFlags,signatureDef *args,
-            optFlags *optflgs,codeBlock *methodcode,
-            throwArgs *exceptions,signatureDef *cppsig,int explicit)
+static void newCtor(char *name, int sectFlags, signatureDef *args,
+        optFlags *optflgs, codeBlock *methodcode, throwArgs *exceptions,
+        signatureDef *cppsig, int explicit)
 {
     ctorDef *ct, **ctp;
     classDef *cd = currentScope();
 
     /* Check the name of the constructor. */
-    if (strcmp(classBaseName(cd),name) != 0)
+    if (strcmp(classBaseName(cd), name) != 0)
         yyerror("Constructor doesn't have the same name as its class");
 
     /* Add to the list of constructors. */
     ct = sipMalloc(sizeof (ctorDef));
 
-    ct -> ctorflags = sectFlags;
-    ct -> pysig = *args;
-    ct -> cppsig = (cppsig != NULL ? cppsig : &ct -> pysig);
-    ct -> exceptions = exceptions;
-    ct -> methodcode = methodcode;
-    ct -> next = NULL;
+    ct->ctorflags = sectFlags;
+    ct->api_range = getAPIRangeIndex(optflgs);
+    ct->pysig = *args;
+    ct->cppsig = (cppsig != NULL ? cppsig : &ct->pysig);
+    ct->exceptions = exceptions;
+    ct->methodcode = methodcode;
+    ct->next = NULL;
 
     if (!isPrivateCtor(ct))
         setCanCreate(cd);
@@ -4794,7 +4796,7 @@ static void newCtor(char *name,int sectFlags,signatureDef *args,
     if (explicit)
         setIsExplicitCtor(ct);
 
-    getHooks(optflgs,&ct -> prehook,&ct -> posthook);
+    getHooks(optflgs, &ct->prehook, &ct->posthook);
 
     if (getReleaseGIL(optflgs))
         setIsReleaseGILCtor(ct);
@@ -4807,7 +4809,7 @@ static void newCtor(char *name,int sectFlags,signatureDef *args,
     if (getDeprecated(optflgs))
         setIsDeprecatedCtor(ct);
 
-    if (findOptFlag(optflgs,"NoDerived",bool_flag) != NULL)
+    if (findOptFlag(optflgs, "NoDerived", bool_flag) != NULL)
     {
         if (cppsig != NULL)
             yyerror("The /NoDerived/ annotation cannot be used with a C++ signature");
@@ -4818,12 +4820,12 @@ static void newCtor(char *name,int sectFlags,signatureDef *args,
         ct->cppsig = NULL;
     }
 
-    if (findOptFlag(optflgs,"Default",bool_flag) != NULL)
+    if (findOptFlag(optflgs, "Default", bool_flag) != NULL)
     {
-        if (cd -> defctor != NULL)
+        if (cd->defctor != NULL)
             yyerror("A constructor with the /Default/ annotation has already been defined");
 
-        cd -> defctor = ct;
+        cd->defctor = ct;
     }
 
     /* Append to the list. */

@@ -625,6 +625,7 @@ static void moveClassCasts(sipSpec *pt, moduleDef *mod, classDef *cd)
         ct = sipMalloc(sizeof (ctorDef));
 
         ct->ctorflags = SECT_IS_PUBLIC | CTOR_CAST;
+        ct->api_range = -1;
         ct->cppsig = &ct->pysig;
         ct->exceptions = NULL;
         ct->methodcode = NULL;
@@ -1433,6 +1434,7 @@ static void addDefaultCopyCtor(classDef *cd)
     copyct = sipMalloc(sizeof (ctorDef));
  
     copyct->ctorflags = SECT_IS_PUBLIC;
+    copyct->api_range = -1;
     copyct->pysig.nrArgs = 1;
     copyct->pysig.args[0].name = "other";
     copyct->pysig.args[0].atype = class_type;

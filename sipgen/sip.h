@@ -854,6 +854,7 @@ typedef struct _overDef {
 
 typedef struct _ctorDef {
     int ctorflags;                      /* The ctor flags. */
+    int api_range;                      /* The optional API version range. */
     signatureDef pysig;                 /* The Python signature. */
     signatureDef *cppsig;               /* The C++ signature, NULL if /NoDerived/. */
     throwArgs *exceptions;              /* The exceptions. */
