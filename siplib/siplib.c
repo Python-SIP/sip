@@ -1176,10 +1176,21 @@ static int sip_api_init_module(sipExportedModuleDef *client,
 
         while (ie->ie_extender != NULL)
         {
-            sipWrapperType *wt = (sipWrapperType *)sipTypeAsPyTypeObject(getGeneratedType(&ie->ie_class, client));
+            sipTypeDef *td = getGeneratedType(&ie->ie_class, client);
+            int enabled;
 
-            ie->ie_next = wt->iextend;
-            wt->iextend = ie;
+            if (ie->ie_api_range < 0)
+                enabled = TRUE;
+            else
+                enabled = sipIsRangeEnabled(td->td_module, ie->ie_api_range);
+
+            if (enabled)
+            {
+                sipWrapperType *wt = (sipWrapperType *)sipTypeAsPyTypeObject(td);
+
+                ie->ie_next = wt->iextend;
+                wt->iextend = ie;
+            }
 
             ++ie;
         }

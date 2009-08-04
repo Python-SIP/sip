@@ -417,6 +417,9 @@ typedef struct _sipInstancesDef {
  * The information describing a type initialiser extender.
  */
 typedef struct _sipInitExtenderDef {
+    /* The API version range index. */
+    int ie_api_range;
+
     /* The extender function. */
     sipInitFunc ie_extender;
 

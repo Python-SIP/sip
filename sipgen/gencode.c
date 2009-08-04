@@ -1238,7 +1238,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
             if (cd->ctors != NULL)
             {
                 prcode(fp,
-"    {init_%L, ", cd->iff);
+"    {%d, init_%L, ", cd->iff->api_range, cd->iff);
 
                 generateEncodedType(mod, cd, 0, fp);
 
@@ -1247,7 +1247,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
             }
 
         prcode(fp,
-"    {NULL, {0, 0, 0}, NULL}\n"
+"    {-1, NULL, {0, 0, 0}, NULL}\n"
 "};\n"
             );
     }
