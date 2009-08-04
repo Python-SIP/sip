@@ -1484,6 +1484,10 @@ static void transformScopeOverloads(sipSpec *pt, classDef *c_scope,
             if (prev->common != od->common)
                 continue;
 
+            /* They can only conflict if one is unversioned. */
+            if (prev->api_range >= 0 && od->api_range >= 0)
+                continue;
+
             if (samePythonSignature(&prev->pysig, &od->pysig))
             {
                 ifaceFileDef *iff;
