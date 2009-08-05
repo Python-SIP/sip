@@ -1091,6 +1091,13 @@ static int sip_api_init_module(sipExportedModuleDef *client,
         if (td->td_module != NULL)
             continue;
 
+        /* If it is a stub then just set the module so we can get its name. */
+        if (sipTypeIsStub(td))
+        {
+            td->td_module = client;
+            continue;
+        }
+
         if (sipTypeIsEnum(td))
         {
             sipEnumTypeDef *etd = (sipEnumTypeDef *)td;
@@ -1232,7 +1239,7 @@ static int sip_api_init_module(sipExportedModuleDef *client,
     {
         sipTypeDef *td = client->em_types[i];
 
-        if (td != NULL && sipTypeIsClass(td))
+        if (td != NULL && !sipTypeIsStub(td) && sipTypeIsClass(td))
             if (addInstances((sipTypeAsPyTypeObject(td))->tp_dict, &((sipClassTypeDef *)td)->ctd_container.cod_instances) < 0)
                 return -1;
     }
@@ -1262,7 +1269,7 @@ static int sip_api_init_module(sipExportedModuleDef *client,
             {
                 sipTypeDef *td = client->em_types[i];
 
-                if (td != NULL && sipTypeIsClass(td))
+                if (td != NULL && !sipTypeIsStub(td) && sipTypeIsClass(td))
                 {
                     const char *pyname = sipPyNameOfContainer(
                             &((sipClassTypeDef *)td)->ctd_container, td);
@@ -4318,7 +4325,7 @@ static PyObject *unpickle_type(PyObject *ignore, PyObject *args)
     {
         sipTypeDef *td = em->em_types[i];
 
-        if (td != NULL && sipTypeIsClass(td))
+        if (td != NULL && !sipTypeIsStub(td) && sipTypeIsClass(td))
         {
             const char *pyname = sipPyNameOfContainer(
                     &((sipClassTypeDef *)td)->ctd_container, td);
@@ -4350,7 +4357,7 @@ static PyObject *pickle_type(PyObject *obj, PyObject *ignore)
         {
             sipTypeDef *td = em->em_types[i];
 
-            if (td != NULL && sipTypeIsClass(td))
+            if (td != NULL && !sipTypeIsStub(td) && sipTypeIsClass(td))
                 if (sipTypeAsPyTypeObject(td) == Py_TYPE(obj))
                 {
                     PyObject *init_args;
@@ -4408,7 +4415,7 @@ static PyObject *unpickle_enum(PyObject *ignore, PyObject *args)
     {
         sipTypeDef *td = em->em_types[i];
 
-        if (td != NULL && sipTypeIsEnum(td))
+        if (td != NULL && !sipTypeIsStub(td) && sipTypeIsEnum(td))
             if (strcmp(sipPyNameOfEnum((sipEnumTypeDef *)td), ename) == 0)
                 return PyObject_CallFunctionObjArgs((PyObject *)sipTypeAsPyTypeObject(td), evalue_obj, NULL);
     }
@@ -6268,6 +6275,8 @@ static int compareTypeDef(const void *key, const void *el)
                 s2 = etd->et_name;
                 break;
             }
+
+            ++etd;
         }
 
         assert(s2 != NULL);

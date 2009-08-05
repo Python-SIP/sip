@@ -142,11 +142,22 @@ int sipInitAPI(sipExportedModuleDef *em, PyObject *mod_dict)
         if ((td = *tdp) != NULL && td->td_version >= 0)
         {
             do
+            {
                 if (sipIsRangeEnabled(em, td->td_version))
+                {
+                    /* Update the type with the enabled version. */
+                    *tdp = td;
                     break;
+                }
+            }
             while ((td = td->td_next_version) != NULL);
 
-            *tdp = td;
+            /*
+             * If there is no enabled version then stub the disabled version
+             * so that we don't lose the name from the (sorted) types table.
+             */
+            if (td == NULL)
+                sipTypeSetStub(*tdp);
         }
     }
 

@@ -1371,6 +1371,7 @@ typedef struct _sipQtAPI {
 #define SIP_TYPE_ABSTRACT   0x0008  /* If the type is abstract. */
 #define SIP_TYPE_SCC        0x0010  /* If the type is subject to sub-class convertors. */
 #define SIP_TYPE_ALLOW_NONE 0x0020  /* If the type can handle None. */
+#define SIP_TYPE_STUB       0x0040  /* If the type is a stub. */
 
 
 /*
@@ -1402,6 +1403,8 @@ typedef struct _sipQtAPI {
 #define sipTypeIsAbstract(td)   ((td)->td_flags & SIP_TYPE_ABSTRACT)
 #define sipTypeHasSCC(td)   ((td)->td_flags & SIP_TYPE_SCC)
 #define sipTypeAllowNone(td)    ((td)->td_flags & SIP_TYPE_ALLOW_NONE)
+#define sipTypeIsStub(td)   ((td)->td_flags & SIP_TYPE_STUB)
+#define sipTypeSetStub(td)  ((td)->td_flags |= SIP_TYPE_STUB)
 
 /*
  * Get various names from the string pool for various data types.
