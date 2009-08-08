@@ -6294,7 +6294,8 @@ static int compareTypeDef(const void *key, const void *el)
         while ((ch2 = *s2++) == ' ')
             ;
 
-        if (ch1 == '\0' && ch2 == '\0')
+        /* We might be looking for a pointer. */
+        if ((ch1 == '*' || ch1 == '\0') && ch2 == '\0')
             return 0;
     }
     while (ch1 == ch2);
