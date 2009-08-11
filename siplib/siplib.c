@@ -9359,10 +9359,7 @@ static int parseWCharArray(PyObject *obj, wchar_t **ap, SIP_SSIZE_T *aszp)
         int rc;
         PyObject *uobj;
 
-        uobj = PyUnicode_FromStringAndSize(PyString_AS_STRING(obj),
-                PyString_GET_SIZE(obj));
-
-        if (uobj == NULL)
+        if ((uobj = PyUnicode_FromObject(obj)) == NULL)
             return -1;
 
         rc = convertToWCharArray(uobj, ap, aszp);
@@ -9419,10 +9416,7 @@ static int parseWChar(PyObject *obj, wchar_t *ap)
         int rc;
         PyObject *uobj;
 
-        uobj = PyUnicode_FromStringAndSize(PyString_AS_STRING(obj),
-                PyString_GET_SIZE(obj));
-
-        if (uobj == NULL)
+        if ((uobj = PyUnicode_FromObject(obj)) == NULL)
             return -1;
 
         rc = convertToWChar(uobj, ap);
@@ -9472,10 +9466,7 @@ static int parseWCharString(PyObject *obj, wchar_t **ap)
         int rc;
         PyObject *uobj;
 
-        uobj = PyUnicode_FromStringAndSize(PyString_AS_STRING(obj),
-                PyString_GET_SIZE(obj));
-
-        if (uobj == NULL)
+        if ((uobj = PyUnicode_FromObject(obj)) == NULL)
             return -1;
 
         rc = convertToWCharString(uobj, ap);
