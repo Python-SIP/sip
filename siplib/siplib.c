@@ -5755,7 +5755,8 @@ static PyObject *getDictFromObject(PyObject *obj)
 static PyObject *sip_api_is_py_method(sip_gilstate_t *gil, char *pymc,
         sipSimpleWrapper *sipSelf, const char *cname, const char *mname)
 {
-    PyObject *reimp;
+    SIP_SSIZE_T i;
+    PyObject *mname_obj, *mro, *reimp, *meth;
 
     /*
      * This is the most common case (where there is no Python reimplementation)
@@ -5778,36 +5779,76 @@ static PyObject *sip_api_is_py_method(sip_gilstate_t *gil, char *pymc,
     if (sipSelf == NULL)
         return NULL;
 
+    /* Get any reimplementation. */
+
+#if PY_MAJOR_VERSION >= 3
+    mname_obj = PyUnicode_FromString(mname);
+#else
+    mname_obj = PyString_FromString(mname);
+#endif
+
+    if (mname_obj == NULL)
+        return NULL;
+
 #ifdef WITH_THREAD
     *gil = PyGILState_Ensure();
 #endif
 
-    /* Get any reimplementation. */
-    if ((reimp = PyObject_GetAttrString((PyObject *)sipSelf, mname)) != NULL)
+    /*
+     * We don't use PyObject_GetAttr() because that might find the generated
+     * C function before a reimplementation defined in a mixin (ie. later in
+     * the MRO).
+     */
+    mro = Py_TYPE(sipSelf)->tp_mro;
+    assert(PyTuple_Check(mro));
+
+    meth = NULL;
+
+    for (i = 0; i < PyTuple_GET_SIZE(mro); ++i)
     {
-        /* Check it is callable but not the wrapped C++ code. */
-        if (PyCallable_Check(reimp) && !PyCFunction_Check(reimp))
-            return reimp;
+        PyObject *cls = PyTuple_GET_ITEM(mro, i);
+        PyObject *dict = ((PyTypeObject *)cls)->tp_dict;
 
-        Py_DECREF(reimp);
-    }
+        if (dict != NULL)
+        {
+            reimp = PyDict_GetItem(dict, mname_obj);
 
-    /* Use the fast track in future. */
-    *pymc = 1;
-
-    if (cname != NULL)
-    {
-        /* Note that this will only be raised once per method. */
-        PyErr_Format(PyExc_NotImplementedError,
-                "%s.%s() is abstract and must be overridden", cname, mname);
-        PyErr_Print();
-    }
-
-#ifdef WITH_THREAD
-    PyGILState_Release(*gil);
+            /* Check any reimplementation is Python code. */
+            if (reimp != NULL && Py_TYPE(reimp) == &PyFunction_Type)
+            {
+#if PY_MAJOR_VERSION >= 3
+                meth = PyMethod_New(reimp, (PyObject *)sipSelf);
+#else
+                meth = PyMethod_New(reimp, (PyObject *)sipSelf, cls);
 #endif
 
-    return NULL;
+                break;
+            }
+        }
+    }
+
+    Py_DECREF(mname_obj);
+
+    if (meth == NULL)
+    {
+        /* Use the fast track in future. */
+        *pymc = 1;
+
+        if (cname != NULL)
+        {
+            /* Note that this will only be raised once per method. */
+            PyErr_Format(PyExc_NotImplementedError,
+                    "%s.%s() is abstract and must be overridden", cname,
+                    mname);
+            PyErr_Print();
+        }
+
+#ifdef WITH_THREAD
+        PyGILState_Release(*gil);
+#endif
+    }
+
+    return meth;
 }
 
 
