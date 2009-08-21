@@ -1148,9 +1148,20 @@ static void setHierarchy(sipSpec *pt, classDef *base, classDef *cd,
             cd->subbase = cd;
 
         /* Now do it's superclasses. */
+        setHierBeingSet(cd->mro);
+
         for (cl = cd->supers; cl != NULL; cl = cl->next)
         {
             mroDef *mro;
+
+            if (cl->cd->mro != NULL && hierBeingSet(cl->cd->mro))
+            {
+                fatal("Recursive class hierarchy detected: ");
+                fatalScopedName(classFQCName(cd));
+                fatal(" and ");
+                fatalScopedName(classFQCName(cl->cd));
+                fatal("\n");
+            }
 
             /* Make sure the super-class's hierarchy has been done. */
             setHierarchy(pt, base, cl->cd, head);
@@ -1192,6 +1203,8 @@ static void setHierarchy(sipSpec *pt, classDef *base, classDef *cd,
                     cd->subbase = mro->cd->subbase;
             }
         }
+
+        resetHierBeingSet(cd->mro);
 
         /*
          * If the class doesn't have an explicit meta-type then inherit from

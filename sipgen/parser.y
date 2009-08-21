@@ -3789,6 +3789,11 @@ static char *type2string(argDef *ad)
                 break;
             }
 
+        case struct_type:
+            s = scopedNameToString(ad->u.sname);
+            on_heap = TRUE;
+            break;
+
         case defined_type:
             s = scopedNameToString(ad->u.snd);
             on_heap = TRUE;
@@ -3862,7 +3867,7 @@ static char *type2string(argDef *ad)
             break;
 
         default:
-            fatal("Unsupported type argument to type2string()\n");
+            fatal("Unsupported type argument to type2string(): %d\n", ad->atype);
         }
 
     /* Make sure the string is on the heap. */

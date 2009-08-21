@@ -206,11 +206,15 @@
 
 #define HIER_IS_DUPLICATE   0x0001      /* It is a super class duplicate. */
 #define HIER_HAS_DUPLICATE  0x0002      /* It has a super class duplicate. */
+#define HIER_BEING_SET      0x0004      /* The MRO is being set. */
 
 #define isDuplicateSuper(m) ((m)->mroflags & HIER_IS_DUPLICATE)
 #define setIsDuplicateSuper(m)  ((m)->mroflags |= HIER_IS_DUPLICATE)
 #define hasDuplicateSuper(m)    ((m)->mroflags & HIER_HAS_DUPLICATE)
 #define setHasDuplicateSuper(m) ((m)->mroflags |= HIER_HAS_DUPLICATE)
+#define hierBeingSet(m)     ((m)->mroflags & HIER_BEING_SET)
+#define setHierBeingSet(m)  ((m)->mroflags |= HIER_BEING_SET)
+#define resetHierBeingSet(m)    ((m)->mroflags &= ~HIER_BEING_SET)
 
 
 /* Handle overload flags.  These are combined with the section flags. */
