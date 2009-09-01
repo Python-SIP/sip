@@ -25,8 +25,10 @@ and the latest version of this documentation.
 License
 -------
 
-SIP is licensed under similar terms as Python itself.  SIP places no
-restrictions on the license you may apply to the bindings you create.
+SIP is licensed under similar terms as Python itself.  SIP is also licensed
+under the GPL (both v2 and v3).  It is your choice as to which license you
+use.  If you choose the GPL then any bindings you create must be distributed
+under the terms of the GPL.
 
 
 Features

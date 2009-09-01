@@ -131,6 +131,8 @@ def mkdistdir(lfile):
     shutil.copy("ChangeLog",Package)
     shutil.copy("lib/README",Package)
     shutil.copy("lib/sipdistutils.py",Package)
+    shutil.copy("lib/LICENSE-GPL2.txt",Package)
+    shutil.copy("lib/LICENSE-GPL3.txt",Package)
     os.system("srepo release <%s >%s/LICENSE" % (lfile, Package))
 
     lcopy(lfile,"lib/configure.py","configure.py.in")

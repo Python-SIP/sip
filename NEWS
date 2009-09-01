@@ -6,6 +6,7 @@ v4.9 ??? September 2009
   - Added sipIsAPIEnabled() to the C API.
   - Added sip.getapi() and sip.setapi() to the Python API.
   - Mapped types can now act as a namespace for enums and static methods.
+  - SIP is now also licensed under the GPL v2 and v3.
 
 v4.8.1 16th June 2009
   - Added support for defining a private assignment operator to suppress the
