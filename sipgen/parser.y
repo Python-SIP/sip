@@ -5191,6 +5191,8 @@ static memberDef *findFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         {"__repr__", repr_slot, TRUE, 0},
         {"__hash__", hash_slot, TRUE, 0},
         {"__index__", index_slot, TRUE, 0},
+        {"__iter__", iter_slot, TRUE, 0},
+        {"__next__", next_slot, TRUE, 0},
         {NULL}
     };
 

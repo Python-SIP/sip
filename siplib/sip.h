@@ -509,6 +509,8 @@ typedef enum {
 #if PY_VERSION_HEX >= 0x02050000
     index_slot,         /* __index__ */
 #endif
+    iter_slot,          /* __iter__ */
+    next_slot,          /* __next__ */
 } sipPySlotType;
 
 

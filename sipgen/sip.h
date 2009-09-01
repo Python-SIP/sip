@@ -449,6 +449,8 @@ typedef enum {
     repr_slot,
     hash_slot,
     index_slot,
+    iter_slot,
+    next_slot,
     no_slot
 } slotType;
 

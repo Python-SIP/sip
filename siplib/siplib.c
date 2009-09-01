@@ -8735,6 +8735,14 @@ static void addTypeSlots(PyTypeObject *to, PyNumberMethods *nb,
                 nb->nb_index = (unaryfunc)f;
             break;
 #endif
+
+        case iter_slot:
+            to->tp_iter = (getiterfunc)f;
+            break;
+
+        case next_slot:
+            to->tp_iternext = (iternextfunc)f;
+            break;
         }
 }
 

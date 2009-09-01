@@ -1,3 +1,12 @@
+v4.9 ??? September 2009
+  - Added support for __iter__ and __next__.  (__next__ is used for Python v2
+    as well as v3.)
+  - Added the %API directive.
+  - Added the /API/ annotation.
+  - Added sipIsAPIEnabled() to the C API.
+  - Added sip.getapi() and sip.setapi() to the Python API.
+  - Mapped types can now act as a namespace for enums and static methods.
+
 v4.8.1 16th June 2009
   - Added support for defining a private assignment operator to suppress the
     possible generation of an assignment helper.
