@@ -234,7 +234,7 @@ static int keepPyReference(argDef *ad);
 static int isDuplicateProtected(classDef *cd, overDef *target);
 static char getEncoding(argType atype);
 static void generateTypeDefName(ifaceFileDef *iff, FILE *fp);
-static void generateTypeDefLink(ifaceFileDef *iff, int embedded, FILE *fp);
+static void generateTypeDefLink(sipSpec *pt, ifaceFileDef *iff, FILE *fp);
 
 
 /*
@@ -2085,6 +2085,9 @@ static void generateTypesTable(sipSpec *pt, moduleDef *mod, FILE *fp)
 {
     int i;
     argDef *ad;
+    const char *type_suffix;
+
+    type_suffix = (pluginPyQt4(pt) || pluginPyQt3(pt)) ?  ".super" : "";
 
     prcode(fp,
 "\n"
@@ -2097,15 +2100,6 @@ static void generateTypesTable(sipSpec *pt, moduleDef *mod, FILE *fp)
 
     for (ad = mod->types, i = 0; i < mod->nrtypes; ++i, ++ad)
     {
-        const char *type_suffix;
-
-        if (pluginPyQt4(pt))
-            type_suffix = ".super";
-        else if (pluginPyQt3(pt) && ad->atype == class_type)
-            type_suffix = ".super";
-        else
-            type_suffix = "";
-
         switch (ad->atype)
         {
         case class_type:
@@ -2122,8 +2116,8 @@ static void generateTypesTable(sipSpec *pt, moduleDef *mod, FILE *fp)
 
         case mapped_type:
             prcode(fp,
-"    &sipTypeDef_%s_%L%s.mtd_base,\n"
-                , mod->name, ad->u.mtd->iff, type_suffix);
+"    &sipTypeDef_%s_%L.mtd_base,\n"
+                , mod->name, ad->u.mtd->iff);
             break;
 
         case enum_type:
@@ -3377,27 +3371,69 @@ static char *createIfaceFileName(const char *codeDir, ifaceFileDef *iff,
  */
 static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 {
-    int need_xfer, embedded, nr_methods, nr_enums;
-    const char *type_prefix;
+    int need_xfer, nr_methods, nr_enums;
     memberDef *md;
-
-    if (pluginPyQt4(pt) && !noRelease(mtd))
-    {
-        prcode(fp,
-"\n"
-"\n"
-"extern \"C\" {static void assign_%L(void *, const void*);}\n"
-"static void assign_%L(void *sipDst, const void *sipSrc)\n"
-"{\n"
-"    *reinterpret_cast<%b *>(sipDst) = *reinterpret_cast<const %b *>(sipSrc);\n"
-"}\n"
-            , mtd->iff
-            , mtd->iff
-            , &mtd->type, &mtd->type);
-    }
 
     if (!noRelease(mtd))
     {
+        /* Generate the assignment helper. */
+        prcode(fp,
+"\n"
+"\n"
+            );
+
+        if (!generating_c)
+            prcode(fp,
+"extern \"C\" {static void assign_%L(void *, SIP_SSIZE_T, const void *);}\n"
+                , mtd->iff);
+
+        prcode(fp,
+"static void assign_%L(void *sipDst, SIP_SSIZE_T sipDstIdx, const void *sipSrc)\n"
+"{\n"
+            , mtd->iff);
+
+        if (generating_c)
+            prcode(fp,
+"    ((%b *)sipDst)[sipDstIdx] = *((const %b *)sipSrc);\n"
+                , &mtd->type, &mtd->type);
+        else
+            prcode(fp,
+"    reinterpret_cast<%b *>(sipDst)[sipDstIdx] = *reinterpret_cast<const %b *>(sipSrc);\n"
+                , &mtd->type, &mtd->type);
+
+        prcode(fp,
+"}\n"
+            );
+
+        /* Generate the array allocation helper. */
+        prcode(fp,
+"\n"
+"\n"
+            );
+
+        if (!generating_c)
+            prcode(fp,
+"extern \"C\" {static void *array_%L(SIP_SSIZE_T);}\n"
+                , mtd->iff);
+
+        prcode(fp,
+"static void *array_%L(SIP_SSIZE_T sipNrElem)\n"
+"{\n"
+            , mtd->iff);
+
+        if (generating_c)
+            prcode(fp,
+"    return sipMalloc(sizeof (%b) * sipNrElem);\n"
+                , &mtd->type);
+        else
+            prcode(fp,
+"    return new %b[sipNrElem];\n"
+                , &mtd->type);
+
+        prcode(fp,
+"}\n"
+            );
+
         prcode(fp,
 "\n"
 "\n"
@@ -3480,33 +3516,20 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 
     nr_enums = generateEnumMemberTable(pt, mtd->iff->module, NULL, mtd, fp);
 
-    if (pluginPyQt4(pt))
-    {
-        type_prefix = "pyqt4";
-        embedded = TRUE;
-    }
-    else
-    {
-        type_prefix = "sip";
-        embedded = FALSE;
-    }
-
     prcode(fp,
 "\n"
 "\n"
-"%sMappedTypeDef ", type_prefix);
+"sipMappedTypeDef ");
 
     generateTypeDefName(mtd->iff, fp);
 
     prcode(fp, " = {\n"
-"%s"
 "    {\n"
 "        %d,\n"
 "        "
-        , (embedded ? "{\n" : "")
         , mtd->iff->api_range);
 
-    generateTypeDefLink(mtd->iff, embedded, fp);
+    generateTypeDefLink(pt, mtd->iff, fp);
 
     prcode(fp, ",\n"
 "        0,\n"
@@ -3558,10 +3581,16 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
     if (noRelease(mtd))
         prcode(fp,
 "    0,\n"
+"    0,\n"
+"    0,\n"
             );
     else
         prcode(fp,
+"    assign_%L,\n"
+"    array_%L,\n"
 "    release_%L,\n"
+            , mtd->iff
+            , mtd->iff
             , mtd->iff);
 
     prcode(fp,
@@ -3569,23 +3598,6 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 "    convertFrom_%L\n"
         , mtd->iff
         , mtd->iff);
-
-    if (embedded)
-        prcode(fp,
-"},\n"
-            );
-
-    if (pluginPyQt4(pt))
-    {
-        if (!noRelease(mtd))
-            prcode(fp,
-"    assign_%L\n"
-                , mtd->iff);
-        else
-            prcode(fp,
-"    0\n"
-                );
-    }
 
     prcode(fp,
 "};\n"
@@ -3605,14 +3617,19 @@ static void generateTypeDefName(ifaceFileDef *iff, FILE *fp)
 /*
  * Generate the link to a type structure implementing an alternate API.
  */
-static void generateTypeDefLink(ifaceFileDef *iff, int embedded, FILE *fp)
+static void generateTypeDefLink(sipSpec *pt, ifaceFileDef *iff, FILE *fp)
 {
     if (iff->next_alt != NULL)
     {
         prcode(fp, "&");
         generateTypeDefName(iff->next_alt, fp);
-        prcode(fp, "%s.%s", (embedded ? ".super" : ""),
-                (iff->next_alt->type == mappedtype_iface ? "mtd_base" : "ctd_base"));
+
+        if (iff->next_alt->type == mappedtype_iface)
+            prcode(fp, ".mtd_base");
+        else if (pluginPyQt3(pt) || pluginPyQt4(pt))
+            prcode(fp, ".super.ctd_base");
+        else
+            prcode(fp, ".ctd_base");
     }
     else
         prcode(fp, "0");
@@ -5089,16 +5106,10 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 "\n"
 "\n"
 "/* Cast a pointer to a type somewhere in its superclass hierarchy. */\n"
-            );
-
-        if (!generating_c)
-            prcode(fp,
 "extern \"C\" {static void *cast_%L(void *, const sipTypeDef *);}\n"
-                , cd->iff);
-
-        prcode(fp,
 "static void *cast_%L(void *ptr, const sipTypeDef *targetType)\n"
 "{\n"
+            , cd->iff
             , cd->iff);
 
         if (cd->supers != NULL)
@@ -5549,20 +5560,65 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
             );
     }
 
-    /* The assignment helper. */
-    if (pluginPyQt4(pt) && assignmentHelper(cd))
+    if (generating_c || assignmentHelper(cd))
     {
+        /* The assignment helper. */
         prcode(fp,
 "\n"
 "\n"
-"extern \"C\" {static void assign_%L(void *, const void*);}\n"
-"static void assign_%L(void *sipDst, const void *sipSrc)\n"
+            );
+
+        if (!generating_c)
+            prcode(fp,
+"extern \"C\" {static void assign_%L(void *, SIP_SSIZE_T, const void *);}\n"
+                , cd->iff);
+
+        prcode(fp,
+"static void assign_%L(void *sipDst, SIP_SSIZE_T sipDstIdx, const void *sipSrc)\n"
 "{\n"
-"    *reinterpret_cast<%S *>(sipDst) = *reinterpret_cast<const %S *>(sipSrc);\n"
+            , cd->iff);
+
+        if (generating_c)
+            prcode(fp,
+"    ((%S *)sipDst)[sipDstIdx] = *((const %S *)sipSrc);\n"
+                , classFQCName(cd), classFQCName(cd));
+        else
+            prcode(fp,
+"    reinterpret_cast<%S *>(sipDst)[sipDstIdx] = *reinterpret_cast<const %S *>(sipSrc);\n"
+                , classFQCName(cd), classFQCName(cd));
+
+        prcode(fp,
 "}\n"
-            , cd->iff
-            , cd->iff
-            , classFQCName(cd), classFQCName(cd));
+            );
+
+        /* The array allocation helper. */
+        prcode(fp,
+"\n"
+"\n"
+            );
+
+        if (!generating_c)
+            prcode(fp,
+"extern \"C\" {static void *array_%L(SIP_SSIZE_T);}\n"
+                , cd->iff);
+
+        prcode(fp,
+"static void *array_%L(SIP_SSIZE_T sipNrElem)\n"
+"{\n"
+            , cd->iff);
+
+        if (generating_c)
+            prcode(fp,
+"    return sipMalloc(sizeof * (%S) * sipNrElem);\n"
+                , classFQCName(cd));
+        else
+            prcode(fp,
+"    return new %S[sipNrElem];\n"
+                , classFQCName(cd));
+
+        prcode(fp,
+"}\n"
+            );
     }
 
     /* The dealloc function. */
@@ -7678,18 +7734,12 @@ static void generateImportedMappedTypeAPI(mappedTypeDef *mtd, sipSpec *pt,
  */
 static void generateMappedTypeAPI(sipSpec *pt, mappedTypeDef *mtd, FILE *fp)
 {
-    const char *type_prefix;
     argDef type;
 
     memset(&type, 0, sizeof (argDef));
 
     type.atype = mapped_type;
     type.u.mtd = mtd;
-
-    if (pluginPyQt4(pt))
-        type_prefix = "pyqt4";
-    else
-        type_prefix = "sip";
 
     if (mtd->iff->first_alt == mtd->iff)
         prcode(fp,
@@ -7699,8 +7749,8 @@ static void generateMappedTypeAPI(sipSpec *pt, mappedTypeDef *mtd, FILE *fp)
 
     prcode(fp,
 "\n"
-"extern %sMappedTypeDef sipTypeDef_%s_%L;\n"
-        , type_prefix, mtd->iff->module->name, mtd->iff);
+"extern sipMappedTypeDef sipTypeDef_%s_%L;\n"
+        , mtd->iff->module->name, mtd->iff);
 
     generateEnumMacros(pt, mtd->iff->module, NULL, mtd, fp);
 }
@@ -8888,7 +8938,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
         , (embedded ? "{\n" : "")
         , cd->iff->api_range);
 
-    generateTypeDefLink(cd->iff, embedded, fp);
+    generateTypeDefLink(pt, cd->iff, fp);
 
     prcode(fp, ",\n"
 "        0,\n"
@@ -9180,6 +9230,18 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 "    0,\n"
             );
 
+    if (generating_c || assignmentHelper(cd))
+        prcode(fp,
+"    assign_%L,\n"
+"    array_%L,\n"
+            , cd->iff
+            , cd->iff);
+    else
+        prcode(fp,
+"    0,\n"
+"    0,\n"
+            );
+
     if (cd->iff->type == namespace_iface || generating_c)
         prcode(fp,
 "    0,\n"
@@ -9240,15 +9302,6 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 
     if (pluginPyQt4(pt))
     {
-        if (assignmentHelper(cd))
-            prcode(fp,
-"    assign_%L,\n"
-                , cd->iff);
-        else
-            prcode(fp,
-"    0,\n"
-                );
-
         if (isQObjectSubClass(cd) && !noPyQt4QMetaObject(cd))
             prcode(fp,
 "    &%U::staticMetaObject,\n"

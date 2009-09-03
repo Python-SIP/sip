@@ -59,6 +59,7 @@ extern "C" {
  * 6.0  Added the sipContainerDef structure to define the contents of a class
  *      or mapped type.  Restructured sipClassDef and sipMappedTypeDef
  *      accordingly.
+ *      Added the assignment and array allocation helpers.
  *
  * 5.0  Added sip_api_is_api_enabled().
  *      Renamed the td_version_nr member of sipTypeDef to be int and where -1
@@ -340,6 +341,8 @@ typedef const struct _sipTypeDef *(*sipSubClassConvertFunc)(void **);
 typedef int (*sipConvertToFunc)(PyObject *, void **, int *, PyObject *);
 typedef PyObject *(*sipConvertFromFunc)(void *, PyObject *);
 typedef int (*sipVirtHandlerFunc)(void *, PyObject *, ...);
+typedef void (*sipAssignFunc)(void *, SIP_SSIZE_T, const void *);
+typedef void *(*sipArrayFunc)(SIP_SSIZE_T);
 typedef void (*sipReleaseFunc)(void *, int);
 typedef PyObject *(*sipPickleFunc)(void *);
 typedef int (*sipAttrGetterFunc)(const struct _sipTypeDef *, PyObject *);
@@ -699,6 +702,12 @@ typedef struct _sipClassTypeDef {
     /* The deallocation function. */
     sipDeallocFunc ctd_dealloc;
 
+    /* The optional assignment function. */
+    sipAssignFunc ctd_assign;
+
+    /* The optional array allocation function. */
+    sipArrayFunc ctd_array;
+
     /* The release function, 0 if a C strict. */
     sipReleaseFunc ctd_release;
 
@@ -726,9 +735,15 @@ typedef struct _sipMappedTypeDef {
     /*
      * The container information.  (At the moment only the enum information is
      * used but mapped types should be able to contain any static methods,
-     * variables, instances etc.
+     * variables, instances etc.)
      */
     sipContainerDef mtd_container;
+
+    /* The optional assignment function. */
+    sipAssignFunc mtd_assign;
+
+    /* The optional array allocation function. */
+    sipArrayFunc mtd_array;
 
     /* The optional release function. */
     sipReleaseFunc mtd_release;
@@ -1482,9 +1497,6 @@ typedef struct _pyqt4ClassTypeDef {
      */
     sipClassTypeDef super;
 
-    /* A pointer to the optional assignment helper function. */
-    void (*qt4_assign_func)(void *, const void *);
-
     /* A pointer to the QObject sub-class's staticMetaObject class variable. */
     const void *qt4_static_metaobject;
 
@@ -1500,22 +1512,6 @@ typedef struct _pyqt4ClassTypeDef {
      */
     const pyqt4QtSignal *qt4_signals;
 } pyqt4ClassTypeDef;
-
-
-/*
- * This is the PyQt4-specific extension to the generated mapped type structure.
- * In SIP v5 this will be pushed out to a plugin supplied by PyQt4.
- */
-typedef struct _pyqt4MappedTypeDef {
-    /*
-     * The super-type structure.  This must be first in the structure so that
-     * it can be cast to sipMappedTypeDef *.
-     */
-    sipMappedTypeDef super;
-
-    /* A pointer to the optional assignment helper function. */
-    void (*qt4_assign_func)(void *, const void *);
-} pyqt4MappedTypeDef;
 
 
 #ifdef __cplusplus
