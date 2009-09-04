@@ -362,6 +362,9 @@ static int parsePass1(sipSimpleWrapper **selfp, int *selfargp,
         int *argsParsedp, PyObject *sipArgs, const char *fmt, va_list va);
 static int parsePass2(sipSimpleWrapper *self, int selfarg, int nrargs,
         PyObject *sipArgs, const char *fmt, va_list va);
+static int canConvertSequence(PyObject *seq, const sipTypeDef *td);
+static int convertSequence(PyObject *seq, const sipTypeDef *td, void **array,
+        SIP_SSIZE_T *nr_elem);
 static int getSelfFromArgs(sipTypeDef *td, PyObject *args, int argnr,
         sipSimpleWrapper **selfp);
 static PyObject *createEnumMember(sipTypeDef *td, sipEnumMemberDef *enm);
@@ -2926,6 +2929,22 @@ static int parsePass1(sipSimpleWrapper **selfp, int *selfargp,
                 break;
             }
 
+        case 'r':
+            {
+                /* Sequence of class or mapped type instances. */
+
+                const sipTypeDef *td;
+
+                td = va_arg(va, const sipTypeDef *);
+                va_arg(va, void **);
+                va_arg(va, SIP_SSIZE_T *);
+
+                if (!canConvertSequence(arg, td))
+                    valid = PARSE_TYPE;
+
+                break;
+            }
+
         case 'J':
             {
                 /* Class or mapped type instance. */
@@ -3655,6 +3674,24 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, int nrargs,
                 break;
             }
 
+        case 'r':
+            {
+                /* Sequence of class or mapped type instances. */
+
+                const sipTypeDef *td;
+                void **array;
+                SIP_SSIZE_T *nr_elem;
+
+                td = va_arg(va, const sipTypeDef *);
+                array = va_arg(va, void **);
+                nr_elem = va_arg(va, SIP_SSIZE_T *);
+
+                if (!convertSequence(arg, td, array, nr_elem))
+                    valid = PARSE_RAISED;
+
+                break;
+            }
+
         case 'J':
             {
                 /* Class or mapped type instance. */
@@ -3832,6 +3869,97 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, int nrargs,
     }
 
     return valid;
+}
+
+
+/*
+ * See if a Python object is a sequence of a particular type.
+ */
+static int canConvertSequence(PyObject *seq, const sipTypeDef *td)
+{
+    SIP_SSIZE_T i, size = PySequence_Size(seq);
+
+    if (size < 0)
+        return FALSE;
+
+    for (i = 0; i < size; ++i)
+    {
+        int ok;
+        PyObject *val_obj;
+
+        if ((val_obj = PySequence_GetItem(seq, i)) == NULL)
+            return FALSE;
+
+        ok = sip_api_can_convert_to_type(val_obj, td,
+                SIP_NO_CONVERTORS|SIP_NOT_NONE);
+
+        Py_DECREF(val_obj);
+
+        if (!ok)
+            return FALSE;
+    }
+
+    return TRUE;
+}
+
+
+/*
+ * Convert a Python sequence to an array that has already "passed"
+ * canConvertSequence().  Return TRUE if the conversion was successful.
+ */
+static int convertSequence(PyObject *seq, const sipTypeDef *td, void **array,
+        SIP_SSIZE_T *nr_elem)
+{
+    int iserr = 0;
+    SIP_SSIZE_T i, size = PySequence_Size(seq);
+    sipArrayFunc array_helper;
+    sipAssignFunc assign_helper;
+    void *array_mem;
+
+    /* Get the type's helpers. */
+    if (sipTypeIsMapped(td))
+    {
+        array_helper = ((const sipMappedTypeDef *)td)->mtd_array;
+        assign_helper = ((const sipMappedTypeDef *)td)->mtd_assign;
+    }
+    else
+    {
+        array_helper = ((const sipClassTypeDef *)td)->ctd_array;
+        assign_helper = ((const sipClassTypeDef *)td)->ctd_assign;
+    }
+
+    assert(array_helper != NULL);
+    assert(assign_helper != NULL);
+
+    /*
+     * Create the memory for the array of values.  Note that this will leak if
+     * there is an error.
+     */
+    array_mem = array_helper(size);
+
+    for (i = 0; i < size; ++i)
+    {
+        PyObject *val_obj;
+        void *val;
+
+        if ((val_obj = PySequence_GetItem(seq, i)) == NULL)
+            return FALSE;
+
+        val = sip_api_convert_to_type(val_obj, td, NULL,
+                SIP_NO_CONVERTORS|SIP_NOT_NONE, NULL, &iserr);
+
+        Py_DECREF(val_obj);
+
+        if (iserr)
+            return FALSE;
+
+        assign_helper(array_mem, i, val);
+    }
+
+    *array = array_mem;
+    *nr_elem = size;
+
+    return TRUE;
 }
 
 

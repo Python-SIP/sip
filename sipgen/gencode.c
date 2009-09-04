@@ -11736,7 +11736,27 @@ static int generateArgParser(signatureDef *sd, classDef *c_scope,
 
         case mapped_type:
         case class_type:
-            fmt = getSubFormatChar('J', ad);
+            if (isArray(ad))
+            {
+                if (ad->nrderefs != 1 || !isInArg(ad) || isReference(ad))
+                    fatal("Mapped type or class with /Array/ is not a pointer\n");
+
+                if (ad->atype == mapped_type && noRelease(ad->u.mtd))
+                    fatal("Mapped type does not support /Array/\n");
+
+                if (ad->atype == class_type && !(generating_c || assignmentHelper(ad->u.cd)))
+                {
+                    fatalScopedName(classFQCName(ad->u.cd));
+                    fatal(" does not support /Array/\n");
+                }
+
+                fmt = "r";
+            }
+            else
+            {
+                fmt = getSubFormatChar('J', ad);
+            }
+
             break;
 
         case pyobject_type:
@@ -11802,7 +11822,11 @@ static int generateArgParser(signatureDef *sd, classDef *c_scope,
         case mapped_type:
             prcode(fp, ",sipType_%T,&a%d", ad, a);
 
-            if (!isConstrained(ad))
+            if (isArray(ad))
+            {
+                prcode(fp,",&a%d",arraylenarg);
+            }
+            else if (!isConstrained(ad))
             {
                 if (noRelease(ad->u.mtd))
                     prcode(fp, ",NULL");
@@ -11815,11 +11839,18 @@ static int generateArgParser(signatureDef *sd, classDef *c_scope,
         case class_type:
             prcode(fp, ",sipType_%T,&a%d", ad, a);
 
-            if (isThisTransferred(ad))
-                prcode(fp, ",%ssipOwner", (ct != NULL ? "" : "&"));
+            if (isArray(ad))
+            {
+                prcode(fp,",&a%d",arraylenarg);
+            }
+            else
+            {
+                if (isThisTransferred(ad))
+                    prcode(fp, ",%ssipOwner", (ct != NULL ? "" : "&"));
 
-            if (ad->u.cd->convtocode != NULL && !isConstrained(ad))
-                prcode(fp, ",&a%dState", a);
+                if (ad->u.cd->convtocode != NULL && !isConstrained(ad))
+                    prcode(fp, ",&a%dState", a);
+            }
 
             break;
 
@@ -12004,6 +12035,20 @@ static void deleteTemps(signatureDef *sd, FILE *fp)
     for (a = 0; a < sd->nrArgs; ++a)
     {
         argDef *ad = &sd->args[a];
+
+        if (isArray(ad) && (ad->atype == mapped_type || ad->atype == class_type))
+        {
+            if (generating_c)
+                prcode(fp,
+"            sipFree(a%d);\n"
+                    , a);
+            else
+                prcode(fp,
+"            delete[] a%d;\n"
+                    , a);
+
+            continue;
+        }
 
         if (ad->atype == mapped_type && needNewInstance(ad))
         {
