@@ -76,14 +76,17 @@ Argument Annotations
 
 .. argument-annotation:: Array
 
-    This boolean annotation specifies that the corresponding argument (which
-    should be either ``char *`` or ``unsigned char *``) refers to an array
-    rather than a ``'\0'`` terminated string.  There must be a corresponding
-    argument with the :aanno:`ArraySize` annotation specified.  The annotation
-    may only be specified once in a list of arguments.
+    This boolean annotation specifies that the corresponding argument refers
+    to an array.
+    
+    The argument should be either a pointer to a wrapped type, a ``char *`` or
+    a ``unsigned char *``.  If the argument is a character array then the
+    annotation also implies the :aanno:`Encoding` annotation with an encoding
+    of ``"None"``.
 
-    The annotation also implies the :aanno:`Encoding` annotation with an
-    encoding of ``"None"``.
+    There must be a corresponding argument with the :aanno:`ArraySize`
+    annotation specified.  The annotation may only be specified once in a list
+    of arguments.
 
 
 .. argument-annotation:: ArraySize

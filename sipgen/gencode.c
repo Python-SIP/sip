@@ -3434,6 +3434,39 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 "}\n"
             );
 
+        /* Generate the copy helper. */
+        prcode(fp,
+"\n"
+"\n"
+            );
+
+        if (!generating_c)
+            prcode(fp,
+"extern \"C\" {static void *copy_%L(const void *, SIP_SSIZE_T);}\n"
+                , mtd->iff);
+
+        prcode(fp,
+"static void *copy_%L(const void *sipSrc, SIP_SSIZE_T sipSrcIdx)\n"
+"{\n"
+            , mtd->iff);
+
+        if (generating_c)
+            prcode(fp,
+"    %b *sipPtr = sipMalloc(sizeof (%b));\n"
+"    *sipPtr = ((const %b *)sipSrc)[sipSrcIdx];\n"
+"\n"
+"    return sipPtr;\n"
+                , &mtd->type, &mtd->type
+                , &mtd->type);
+        else
+            prcode(fp,
+"    return new %b(reinterpret_cast<const %b *>(sipSrc)[sipSrcIdx]);\n"
+                , &mtd->type, &mtd->type);
+
+        prcode(fp,
+"}\n"
+            );
+
         prcode(fp,
 "\n"
 "\n"
@@ -3583,12 +3616,15 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 "    0,\n"
 "    0,\n"
 "    0,\n"
+"    0,\n"
             );
     else
         prcode(fp,
 "    assign_%L,\n"
 "    array_%L,\n"
+"    copy_%L,\n"
 "    release_%L,\n"
+            , mtd->iff
             , mtd->iff
             , mtd->iff
             , mtd->iff);
@@ -5619,6 +5655,39 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
         prcode(fp,
 "}\n"
             );
+
+        /* The copy helper. */
+        prcode(fp,
+"\n"
+"\n"
+            );
+
+        if (!generating_c)
+            prcode(fp,
+"extern \"C\" {static void *copy_%L(const void *, SIP_SSIZE_T);}\n"
+                , cd->iff);
+
+        prcode(fp,
+"static void *copy_%L(const void *sipSrc, SIP_SSIZE_T sipSrcIdx)\n"
+"{\n"
+            , cd->iff);
+
+        if (generating_c)
+            prcode(fp,
+"    %S *sipPtr = sipMalloc(sizeof (%S));\n"
+"    *sipPtr = ((const %S *)sipSrc)[sipSrcIdx];\n"
+"\n"
+"    return sipPtr;\n"
+                , classFQCName(cd), classFQCName(cd)
+                , classFQCName(cd));
+        else
+            prcode(fp,
+"    return new %S(reinterpret_cast<const %S *>(sipSrc)[sipSrcIdx]);\n"
+                , classFQCName(cd), classFQCName(cd));
+
+        prcode(fp,
+"}\n"
+            );
     }
 
     /* The dealloc function. */
@@ -7520,8 +7589,16 @@ static void generateTupleBuilder(signatureDef *sd,FILE *fp)
             break;
 
         case mapped_type:
-        case fake_void_type:
         case class_type:
+            if (isArray(ad))
+            {
+                fmt = "r";
+                break;
+            }
+
+            /* Drop through. */
+
+        case fake_void_type:
         case rxcon_type:
         case rxdis_type:
         case qobject_type:
@@ -7602,12 +7679,18 @@ static void generateTupleBuilder(signatureDef *sd,FILE *fp)
             if (isConstArg(ad))
                 prcode(fp,")");
 
+            if (isArray(ad))
+                prcode(fp, ",(SIP_SSIZE_T)a%d", arraylenarg);
+
             if (ad->atype == mapped_type)
-                prcode(fp, ",sipType_%T,NULL", ad);
+                prcode(fp, ",sipType_%T", ad);
             else if (ad->atype == fake_void_type || ad->atype == class_type)
-                prcode(fp, ",sipType_%C,NULL", classFQCName(ad->u.cd));
+                prcode(fp, ",sipType_%C", classFQCName(ad->u.cd));
             else
-                prcode(fp,",sipType_QObject,NULL");
+                prcode(fp,",sipType_QObject");
+
+            if (!isArray(ad))
+                prcode(fp, ",NULL");
         }
         else
         {
@@ -9234,10 +9317,13 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
         prcode(fp,
 "    assign_%L,\n"
 "    array_%L,\n"
+"    copy_%L,\n"
+            , cd->iff
             , cd->iff
             , cd->iff);
     else
         prcode(fp,
+"    0,\n"
 "    0,\n"
 "    0,\n"
             );

@@ -59,7 +59,10 @@ extern "C" {
  * 6.0  Added the sipContainerDef structure to define the contents of a class
  *      or mapped type.  Restructured sipClassDef and sipMappedTypeDef
  *      accordingly.
- *      Added the assignment and array allocation helpers.
+ *      Added the 'r' format character to sip_api_parse_args().
+ *      Added the 'r' format character to sip_api_call_method() and
+ *      sip_api_build_result().
+ *      Added the assignment, array and copy allocation helpers.
  *
  * 5.0  Added sip_api_is_api_enabled().
  *      Renamed the td_version_nr member of sipTypeDef to be int and where -1
@@ -343,6 +346,7 @@ typedef PyObject *(*sipConvertFromFunc)(void *, PyObject *);
 typedef int (*sipVirtHandlerFunc)(void *, PyObject *, ...);
 typedef void (*sipAssignFunc)(void *, SIP_SSIZE_T, const void *);
 typedef void *(*sipArrayFunc)(SIP_SSIZE_T);
+typedef void *(*sipCopyFunc)(const void *, SIP_SSIZE_T);
 typedef void (*sipReleaseFunc)(void *, int);
 typedef PyObject *(*sipPickleFunc)(void *);
 typedef int (*sipAttrGetterFunc)(const struct _sipTypeDef *, PyObject *);
@@ -708,6 +712,9 @@ typedef struct _sipClassTypeDef {
     /* The optional array allocation function. */
     sipArrayFunc ctd_array;
 
+    /* The optional copy function. */
+    sipCopyFunc ctd_copy;
+
     /* The release function, 0 if a C strict. */
     sipReleaseFunc ctd_release;
 
@@ -744,6 +751,9 @@ typedef struct _sipMappedTypeDef {
 
     /* The optional array allocation function. */
     sipArrayFunc mtd_array;
+
+    /* The optional copy function. */
+    sipCopyFunc mtd_copy;
 
     /* The optional release function. */
     sipReleaseFunc mtd_release;

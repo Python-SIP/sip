@@ -157,6 +157,10 @@ specification files.
     ``o`` (long) [unsigned long long]
         Convert a C/C++ ``unsigned long long`` to a Python long.
 
+    ``r`` (wrapped instance) [*type* \*, :cmacro:`SIP_SSIZE_T`, const :ctype:`sipTypeDef` \*]
+        Convert an array of C structures, C++ classes or mapped type instances
+        to a Python tuple.  Note that copies of the array elements are made.
+
     ``s`` (string/bytes) [char \*]
         Convert a C/C++ ``'\0'`` terminated string to a Python v2 string object
         or a Python v3 bytes object.  If the string pointer is ``NULL`` then

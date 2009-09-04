@@ -362,9 +362,11 @@ static int parsePass1(sipSimpleWrapper **selfp, int *selfargp,
         int *argsParsedp, PyObject *sipArgs, const char *fmt, va_list va);
 static int parsePass2(sipSimpleWrapper *self, int selfarg, int nrargs,
         PyObject *sipArgs, const char *fmt, va_list va);
-static int canConvertSequence(PyObject *seq, const sipTypeDef *td);
-static int convertSequence(PyObject *seq, const sipTypeDef *td, void **array,
-        SIP_SSIZE_T *nr_elem);
+static int canConvertFromSequence(PyObject *seq, const sipTypeDef *td);
+static int convertFromSequence(PyObject *seq, const sipTypeDef *td,
+        void **array, SIP_SSIZE_T *nr_elem);
+static PyObject *convertToSequence(void *array, SIP_SSIZE_T nr_elem,
+        const sipTypeDef *td);
 static int getSelfFromArgs(sipTypeDef *td, PyObject *args, int argnr,
         sipSimpleWrapper **selfp);
 static PyObject *createEnumMember(sipTypeDef *td, sipEnumMemberDef *enm);
@@ -1847,6 +1849,17 @@ static PyObject *buildObject(PyObject *obj, const char *fmt, va_list va)
 
             break;
 
+        case 'r':
+            {
+                void *p = va_arg(va, void *);
+                SIP_SSIZE_T l = va_arg(va, SIP_SSIZE_T);
+                const sipTypeDef *td = va_arg(va, const sipTypeDef *);
+
+                el = convertToSequence(p, l, td);
+            }
+
+            break;
+
         case 'R':
             el = va_arg(va,PyObject *);
             break;
@@ -2939,7 +2952,7 @@ static int parsePass1(sipSimpleWrapper **selfp, int *selfargp,
                 va_arg(va, void **);
                 va_arg(va, SIP_SSIZE_T *);
 
-                if (!canConvertSequence(arg, td))
+                if (!canConvertFromSequence(arg, td))
                     valid = PARSE_TYPE;
 
                 break;
@@ -3686,7 +3699,7 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, int nrargs,
                 array = va_arg(va, void **);
                 nr_elem = va_arg(va, SIP_SSIZE_T *);
 
-                if (!convertSequence(arg, td, array, nr_elem))
+                if (!convertFromSequence(arg, td, array, nr_elem))
                     valid = PARSE_RAISED;
 
                 break;
@@ -3875,7 +3888,7 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, int nrargs,
 /*
  * See if a Python object is a sequence of a particular type.
  */
-static int canConvertSequence(PyObject *seq, const sipTypeDef *td)
+static int canConvertFromSequence(PyObject *seq, const sipTypeDef *td)
 {
     SIP_SSIZE_T i, size = PySequence_Size(seq);
 
@@ -3905,10 +3918,10 @@ static int canConvertSequence(PyObject *seq, const sipTypeDef *td)
 
 /*
  * Convert a Python sequence to an array that has already "passed"
- * canConvertSequence().  Return TRUE if the conversion was successful.
+ * canConvertFromSequence().  Return TRUE if the conversion was successful.
  */
-static int convertSequence(PyObject *seq, const sipTypeDef *td, void **array,
-        SIP_SSIZE_T *nr_elem)
+static int convertFromSequence(PyObject *seq, const sipTypeDef *td,
+        void **array, SIP_SSIZE_T *nr_elem)
 {
     int iserr = 0;
     SIP_SSIZE_T i, size = PySequence_Size(seq);
@@ -3960,6 +3973,45 @@ static int convertSequence(PyObject *seq, const sipTypeDef *td, void **array,
     *nr_elem = size;
 
     return TRUE;
+}
+
+
+/*
+ * Convert an array of a type to a Python sequence.
+ */
+static PyObject *convertToSequence(void *array, SIP_SSIZE_T nr_elem,
+        const sipTypeDef *td)
+{
+    SIP_SSIZE_T i;
+    PyObject *seq;
+    sipCopyFunc copy_helper;
+
+    /* Get the type's copy helper. */
+    if (sipTypeIsMapped(td))
+        copy_helper = ((const sipMappedTypeDef *)td)->mtd_copy;
+    else
+        copy_helper = ((const sipClassTypeDef *)td)->ctd_copy;
+
+    assert(copy_helper != NULL);
+
+    if ((seq = PyTuple_New(nr_elem)) == NULL)
+        return NULL;
+
+    for (i = 0; i < nr_elem; ++i)
+    {
+        void *el = copy_helper(array, i);
+        PyObject *el_obj = sip_api_convert_from_new_type(el, td, NULL);
+
+        if (el_obj == NULL)
+        {
+            release(el, td, 0);
+            Py_DECREF(seq);
+        }
+
+        PyTuple_SET_ITEM(seq, i, el_obj);
+    }
+
+    return seq;
 }
 
 
