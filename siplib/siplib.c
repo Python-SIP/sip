@@ -362,6 +362,7 @@ static int parsePass1(sipSimpleWrapper **selfp, int *selfargp,
         int *argsParsedp, PyObject *sipArgs, const char *fmt, va_list va);
 static int parsePass2(sipSimpleWrapper *self, int selfarg, int nrargs,
         PyObject *sipArgs, const char *fmt, va_list va);
+static int isQObject(PyObject *obj);
 static int canConvertFromSequence(PyObject *seq, const sipTypeDef *td);
 static int convertFromSequence(PyObject *seq, const sipTypeDef *td,
         void **array, SIP_SSIZE_T *nr_elem);
@@ -3038,10 +3039,10 @@ static int parsePass1(sipSimpleWrapper **selfp, int *selfargp,
             {
                 /* Sub-class of QObject. */
 
-                if (sipQtSupport == NULL || !PyObject_TypeCheck(arg, sipTypeAsPyTypeObject(sipQObjectType)))
-                    valid = PARSE_TYPE;
-                else
+                if (isQObject(arg))
                     *va_arg(va,PyObject **) = arg;
+                else
+                    valid = PARSE_TYPE;
 
                 break;
             }
@@ -3078,7 +3079,7 @@ static int parsePass1(sipSimpleWrapper **selfp, int *selfargp,
                 va_arg(va,void **);
                 va_arg(va,const char **);
 
-                if (sipQtSupport == NULL || !PyObject_TypeCheck(arg, sipTypeAsPyTypeObject(sipQObjectType)))
+                if (!isQObject(arg))
                     valid = PARSE_TYPE;
 
                 break;
@@ -3092,7 +3093,7 @@ static int parsePass1(sipSimpleWrapper **selfp, int *selfargp,
                 va_arg(va,void **);
                 va_arg(va,const char **);
 
-                if (sipQtSupport == NULL || !PyObject_TypeCheck(arg, sipTypeAsPyTypeObject(sipQObjectType)))
+                if (!isQObject(arg))
                     valid = PARSE_TYPE;
 
                 break;
@@ -3882,6 +3883,15 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, int nrargs,
     }
 
     return valid;
+}
+
+
+/*
+ * Return TRUE if an object is a QObject.
+ */
+static int isQObject(PyObject *obj)
+{
+    return (sipQtSupport != NULL && PyObject_TypeCheck(obj, sipTypeAsPyTypeObject(sipQObjectType)));
 }
 
 
@@ -7827,20 +7837,14 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
     void *sipNew;
     int sipFlags;
     sipWrapper *owner;
-
-    if (kwds != NULL && PyDict_Check(kwds) && PyDict_Size(kwds) != 0)
-    {
-        PyErr_SetString(PyExc_TypeError,"keyword arguments are not supported");
-        return -1;
-    }
+    sipWrapperType *wt = (sipWrapperType *)Py_TYPE(self);
+    sipTypeDef *td = wt->type;
+    sipClassTypeDef *ctd = (sipClassTypeDef *)td;
 
     /* Check there is no existing C++ instance waiting to be wrapped. */
     if ((sipNew = sipGetPending(&owner, &sipFlags)) == NULL)
     {
         int argsparsed = 0;
-        sipWrapperType *wt = (sipWrapperType *)Py_TYPE(self);
-        sipTypeDef *td = wt->type;
-        sipClassTypeDef *ctd = (sipClassTypeDef *)td;
 
         /* Call the C++ ctor. */
         owner = NULL;
@@ -7920,6 +7924,33 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
 
     if (!sipNotInMap(self))
         sipOMAddObject(&cppPyMap,self);
+
+    if (kwds != NULL && PyDict_Check(kwds) && PyDict_Size(kwds) != 0)
+    {
+        static int got_kw_handler = FALSE;
+        static int (*kw_handler)(PyObject *, void *, PyObject *);
+
+        // Get the keyword handler if necessary.  Note that the C/C++
+        // instance will leak if there is any error.
+        if (!got_kw_handler)
+        {
+            kw_handler = sip_api_import_symbol("pyqt_kw_handler");
+            got_kw_handler = TRUE;
+        }
+
+        if (kw_handler == NULL || !isQObject(self))
+        {
+            PyErr_Format(PyExc_TypeError,
+                    "%s.%s does not support keyword arguments",
+                    sipNameOfModule(td->td_module),
+                    sipPyNameOfContainer(&ctd->ctd_container, td));
+
+            return -1;
+        }
+
+        if (!kw_handler(self, sipNew, kwds))
+            return -1;
+    }
 
     return 0;
 }
