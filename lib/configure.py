@@ -288,25 +288,30 @@ def create_optparser():
             "[macro+=value]", version=sip_version_str)
 
     # Note: we don't use %default to be compatible with Python 2.3.
-    p.add_option("--arch", action="append", dest="arch",
-            choices=["i386", "x86_64", "ppc"], help="the architectures to "
-            "include in the MacOS/X universal binary "
-            "[default: %s]" % DEFAULT_MACOSX_ARCH)
     p.add_option("-k", "--static", action="store_true", default=False,
             dest="static", help="build the SIP module as a static library")
-    p.add_option("-n", "--universal", action="store_true", default=False,
-            dest="universal", help="build the SIP code generator and module "
-            "as universal binaries on MacOS/X")
     p.add_option("-p", "--platform", action="store",
             default=default_platform, type="string", metavar="PLATFORM",
             dest="platform", help="the platform/compiler configuration "
             "[default: %s]" % default_platform)
-    p.add_option("-s", "--sdk", action="store",
-            default=DEFAULT_MACOSX_SDK, type="string", metavar="SDK",
-            dest="sdk", help="the name of the MacOS/X SDK used when building "
-            "universal binaries [default: %s]" % DEFAULT_MACOSX_SDK)
     p.add_option("-u", "--debug", action="store_true", default=False,
             help="build with debugging symbols")
+
+    if sys.platform == 'darwin':
+        g = optparse.OptionGroup(p, title="MacOS X Configuration")
+        g.add_option("-n", "--universal", action="store_true", default=False,
+                dest="universal",
+                help="build the SIP code generator and module as universal "
+                        "binaries")
+        g.add_option("--arch", action="append", dest="arch",
+                choices=["i386", "x86_64", "ppc"],
+                help="the architectures to include in universal binaries "
+                        "[default: %s]" % DEFAULT_MACOSX_ARCH)
+        g.add_option("-s", "--sdk", action="store", default=DEFAULT_MACOSX_SDK,
+                type="string", metavar="SDK", dest="sdk",
+                help="the name of the SDK used when building universal "
+                        "binaries [default: %s]" % DEFAULT_MACOSX_SDK)
+        p.add_option_group(g)
 
     # Querying.
     g = optparse.OptionGroup(p, title="Query")
@@ -365,6 +370,9 @@ def main(argv):
     set_defaults()
     p = create_optparser()
     opts, args = p.parse_args()
+
+    # Make sure MacOS specific options get initialised.
+    opts.universal = opts.arch = opts.sdk = ''
 
     # Handle the query options.
     if opts.show_platforms or opts.show_build_macros:
