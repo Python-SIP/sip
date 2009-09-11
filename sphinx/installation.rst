@@ -43,7 +43,7 @@ The full set of command line options is:
 
     Display a help message.
 
-.. cmdoption:: -a <ARCH>, --arch <ARCH>
+.. cmdoption:: --arch <ARCH>
 
     The architecture ``<ARCH>`` will be included in the MacOS/X universal
     binary.  This option should be given once for each architecture to be

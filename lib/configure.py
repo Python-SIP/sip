@@ -288,7 +288,7 @@ def create_optparser():
             "[macro+=value]", version=sip_version_str)
 
     # Note: we don't use %default to be compatible with Python 2.3.
-    p.add_option("-a", "--arch", action="append", dest="arch",
+    p.add_option("--arch", action="append", dest="arch",
             choices=["i386", "x86_64", "ppc"], help="the architectures to "
             "include in the MacOS/X universal binary "
             "[default: %s]" % DEFAULT_MACOSX_ARCH)
