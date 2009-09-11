@@ -272,6 +272,10 @@ work of creating these additional configuration modules.
 
         The name of the MacOS/X SDK used when creating universal binaries.
 
+    .. attribute:: arch
+
+        The space separated architectures to include in a universal binary.
+
     .. method:: __init__([sub_cfg=None])
 
         :param sub_cfg:
@@ -371,7 +375,7 @@ work of creating these additional configuration modules.
 
         A string that will remove a file.
 
-    .. method:: __init__(configuration[, console=0[, qt=0[, opengl=0[, python=0[, threaded=0[, warnings=None[, debug=0[, dir=None[, makefile="Makefile"[, installs=None[, universal='']]]]]]]]]]])
+    .. method:: __init__(configuration[, console=0[, qt=0[, opengl=0[, python=0[, threaded=0[, warnings=None[, debug=0[, dir=None[, makefile="Makefile"[, installs=None[, universal=''[, arch='i386 ppc']]]]]]]]]]]])
 
         :param configuration:
             the current configuration and is an instance of the
@@ -410,6 +414,9 @@ work of creating these additional configuration modules.
         :param universal:
             the name of the SDK if universal binaries are to be created under
             MacOS/X.
+        :param arch:
+            the space separated architectures to include in a universal
+            binary.
 
     .. method:: clean_build_file_objects(mfile, build)
 
@@ -547,7 +554,7 @@ work of creating these additional configuration modules.
     This class encapsulates a Makefile to build a generic Python extension
     module.
 
-    .. method:: __init__(self, configuration, build_file[, install_dir=None[, static=0[, console=0[, opengl=0[, threaded=0[, warnings=None[, debug=0[, dir=None[, makefile="Makefile"[, installs=None[, strip=1[, export_all=0[, universal='']]]]]]]]]]]]])
+    .. method:: __init__(self, configuration, build_file[, install_dir=None[, static=0[, console=0[, opengl=0[, threaded=0[, warnings=None[, debug=0[, dir=None[, makefile="Makefile"[, installs=None[, strip=1[, export_all=0[, universal=''[, arch='i386 ppc']]]]]]]]]]]]]])
 
         :param configuration:
             see :meth:`sipconfig.Makefile.__init__`.
@@ -590,6 +597,8 @@ work of creating these additional configuration modules.
             All symbols are exported if either *debug* or *static* is set, or
             if the platform doesn't support it.
         :param universal:
+            see :meth:`sipconfig.Makefile.__init__`.
+        :param arch:
             see :meth:`sipconfig.Makefile.__init__`.
 
     .. method:: finalise()
@@ -674,7 +683,7 @@ work of creating these additional configuration modules.
 
     This class encapsulates a Makefile to build an executable program.
 
-    .. method:: __init__(configuration[, build_file=None[, install_dir=None[, console=0[, qt=0[, opengl=0[, python=0[, threaded=0[, warnings=None[, debug=0[, dir=None[, makefile="Makefile"[, installs=None[, universal='']]]]]]]]]]]]])
+    .. method:: __init__(configuration[, build_file=None[, install_dir=None[, console=0[, qt=0[, opengl=0[, python=0[, threaded=0[, warnings=None[, debug=0[, dir=None[, makefile="Makefile"[, installs=None[, universal=''[, arch='i386 ppc']]]]]]]]]]]]]])
 
         :param configuration:
             see :meth:`sipconfig.Makefile.__init__`.
@@ -705,6 +714,8 @@ work of creating these additional configuration modules.
         :param installs:
             see :meth:`sipconfig.Makefile.__init__`.
         :param universal:
+            see :meth:`sipconfig.Makefile.__init__`.
+        :param arch:
             see :meth:`sipconfig.Makefile.__init__`.
 
     .. method:: build_command(source) -> string, string

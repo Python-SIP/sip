@@ -43,6 +43,13 @@ The full set of command line options is:
 
     Display a help message.
 
+.. cmdoption:: -a <ARCH>, --arch <ARCH>
+
+    The architecture ``<ARCH>`` will be included in the MacOS/X universal
+    binary.  This option should be given once for each architecture to be
+    included.  By default the ``i386`` and ``ppc`` architectures will be
+    included.
+
 .. cmdoption:: -b <DIR>, --bindir <DIR>
 
     The SIP code generator will be installed in the directory ``<DIR>``.
@@ -62,8 +69,8 @@ The full set of command line options is:
 
 .. cmdoption:: -n, --universal
 
-    The SIP code generator and module will be built as universal binaries under
-    MacOS/X.
+    The SIP code generator and module will be built as universal binaries
+    under MacOS/X.
 
 .. cmdoption:: -p <PLATFORM>, --platform <PLATFORM>
 

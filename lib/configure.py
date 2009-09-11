@@ -25,6 +25,7 @@ plat_bin_dir = None
 platform_specs = []
 
 # Constants.
+DEFAULT_MACOSX_ARCH = 'i386 ppc'
 DEFAULT_MACOSX_SDK = 'MacOSX10.5.sdk'
 
 # Command line options.
@@ -166,7 +167,7 @@ def inform_user():
     siputils.inform("The platform/compiler configuration is %s." % opts.platform)
 
     if opts.universal:
-        siputils.inform("MacOS/X universal binaries will be created using %s." % opts.universal)
+        siputils.inform("MacOS/X universal binaries will be created for %s using %s." % (", ".join(opts.arch.split()), opts.universal))
 
 
 def set_platform_directories():
@@ -218,7 +219,8 @@ def create_config(module, template, macros):
         "py_inc_dir":       plat_py_inc_dir,
         "py_conf_inc_dir":  plat_py_conf_inc_dir,
         "py_lib_dir":       plat_py_lib_dir,
-        "universal":        opts.universal
+        "universal":        opts.universal,
+        "arch":             opts.arch
     }
 
     siputils.create_config_module(module, template, content, macros)
@@ -253,7 +255,8 @@ def create_makefiles(macros):
         install_dir=os.path.dirname(cfg.sip_bin),
         console=1,
         warnings=0,
-        universal=opts.universal
+        universal=opts.universal,
+        arch=opts.arch
     ).generate()
 
     sipconfig.inform("Creating sip module Makefile...")
@@ -268,7 +271,8 @@ def create_makefiles(macros):
         warnings=0,
         static=opts.static,
         debug=opts.debug,
-        universal=opts.universal
+        universal=opts.universal,
+        arch=opts.arch
     )
 
     makefile.generate()
@@ -284,6 +288,10 @@ def create_optparser():
             "[macro+=value]", version=sip_version_str)
 
     # Note: we don't use %default to be compatible with Python 2.3.
+    p.add_option("-a", "--arch", action="append", dest="arch",
+            choices=["i386", "x86_64", "ppc"], help="the architectures to "
+            "include in the MacOS/X universal binary "
+            "[default: %s]" % DEFAULT_MACOSX_ARCH)
     p.add_option("-k", "--static", action="store_true", default=False,
             dest="static", help="build the SIP module as a static library")
     p.add_option("-n", "--universal", action="store_true", default=False,
@@ -379,6 +387,15 @@ def main(argv):
             siputils.error("Unable to find the SDK directory %s. Use the -s flag to specify the name of the SDK (e.g. %s) or its full path." % (opts.universal, DEFAULT_MACOSX_SDK))
     else:
         opts.universal = ''
+
+    # Convert the list 'arch' option to a string.
+    if opts.arch:
+        if opts.universal == '':
+            siputils.error("The --arch flag may only be used with the --universal flag")
+
+        opts.arch = ' '.join(opts.arch)
+    else:
+        opts.arch = ''
 
     # Get the platform specific macros for building.
     macros = siputils.parse_build_macros(os.path.join("specs", opts.platform),
