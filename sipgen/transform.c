@@ -623,13 +623,7 @@ static void moveClassCasts(sipSpec *pt, moduleDef *mod, classDef *cd)
         ct = sipMalloc(sizeof (ctorDef));
 
         ct->ctorflags = SECT_IS_PUBLIC | CTOR_CAST;
-        ct->api_range = -1;
         ct->cppsig = &ct->pysig;
-        ct->exceptions = NULL;
-        ct->methodcode = NULL;
-        ct->prehook = NULL;
-        ct->posthook = NULL;
-        ct->next = NULL;
 
         /* Add the source class as the only argument. */
         ad = &ct->pysig.args[0];
@@ -1445,7 +1439,6 @@ static void addDefaultCopyCtor(classDef *cd)
     copyct = sipMalloc(sizeof (ctorDef));
  
     copyct->ctorflags = SECT_IS_PUBLIC;
-    copyct->api_range = -1;
     copyct->pysig.nrArgs = 1;
     copyct->pysig.args[0].name = "other";
     copyct->pysig.args[0].atype = class_type;
@@ -1455,11 +1448,6 @@ static void addDefaultCopyCtor(classDef *cd)
     copyct->pysig.args[0].defval = NULL;
  
     copyct->cppsig = &copyct->pysig;
-    copyct->exceptions = NULL;
-    copyct->methodcode = NULL;
-    copyct->prehook = NULL;
-    copyct->posthook = NULL;
-    copyct->next = NULL;
  
     if (isDeprecatedClass(cd))
         setIsDeprecatedCtor(copyct);
@@ -1496,7 +1484,7 @@ static void transformScopeOverloads(sipSpec *pt, classDef *c_scope,
                 continue;
 
             /* They can only conflict if one is unversioned. */
-            if (prev->api_range >= 0 && od->api_range >= 0)
+            if (prev->api_range != NULL && od->api_range != NULL)
                 continue;
 
             if (samePythonSignature(&prev->pysig, &od->pysig))
@@ -1600,6 +1588,10 @@ static void getVisibleMembers(sipSpec *pt, classDef *cd)
 
                         if (isProtected(od) || (isSignal(od) && pluginPyQt3(pt)))
                             setIsUsedName(md->pyname);
+
+                        /* Make we have any API name. */
+                        if (od->api_range != NULL)
+                            setIsUsedName(od->api_range->api_name);
                     }
             }
         }
@@ -2848,7 +2840,7 @@ static mappedTypeDef *instantiateMappedTypeTemplate(sipSpec *pt, moduleDef *mod,
         setIsUsedName(mtd->cname);
 
     mtd->iff = findIfaceFile(pt, mod, encodedTemplateName(type->u.td),
-            mappedtype_iface, -1, type);
+            mappedtype_iface, NULL, type);
     mtd->iff->module = mod;
 
     appendCodeBlock(&mtd->iff->hdrcode, templateCode(pt, &mtd->iff->used, mtt->mt->iff->hdrcode, type_names, type_values));

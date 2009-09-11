@@ -607,7 +607,7 @@ typedef struct _throwArgs {
 typedef struct _exceptionDef {
     int exceptionnr;                    /* The exception number. */
     struct _ifaceFileDef *iff;          /* The interface file. */
-    char *pyname;                       /* The exception Python name. */
+    const char *pyname;                 /* The exception Python name. */
     struct _classDef *cd;               /* The exception class. */
     char *bibase;                       /* The builtin base exception. */
     struct _exceptionDef *base;         /* The defined base exception. */
@@ -678,6 +678,7 @@ typedef struct _apiVersionRangeDef {
     nameDef *api_name;                  /* The API name. */
     int from;                           /* The lower bound. */
     int to;                             /* The upper bound. */
+    int index;                          /* The range index. */
     struct _apiVersionRangeDef *next;   /* The next in the list. */
 } apiVersionRangeDef;
 
@@ -735,7 +736,7 @@ typedef struct _moduleListDef {
 
 typedef struct _ifaceFileDef {
     nameDef *name;                      /* The name. */
-    int api_range;                      /* The optional API version range. */
+    apiVersionRangeDef *api_range;      /* The optional API version range. */
     struct _ifaceFileDef *first_alt;    /* The first alternate API. */
     struct _ifaceFileDef *next_alt;     /* The next alternate API. */
     ifaceFileType type;                 /* Interface file type. */
@@ -844,7 +845,7 @@ typedef struct _overDef {
     char *cppname;                      /* The C++ name. */
     int overflags;                      /* The overload flags. */
     struct _memberDef *common;          /* Common parts. */
-    int api_range;                      /* The optional API version range. */
+    apiVersionRangeDef *api_range;      /* The optional API version range. */
     signatureDef pysig;                 /* The Python signature. */
     signatureDef *cppsig;               /* The C++ signature. */
     throwArgs *exceptions;              /* The exceptions. */
@@ -860,7 +861,7 @@ typedef struct _overDef {
 
 typedef struct _ctorDef {
     int ctorflags;                      /* The ctor flags. */
-    int api_range;                      /* The optional API version range. */
+    apiVersionRangeDef *api_range;      /* The optional API version range. */
     signatureDef pysig;                 /* The Python signature. */
     signatureDef *cppsig;               /* The C++ signature, NULL if /NoDerived/. */
     throwArgs *exceptions;              /* The exceptions. */
@@ -1096,8 +1097,8 @@ void appendString(stringList **headp, const char *s);
 void appendTypeStrings(scopedNameDef *ename, signatureDef *patt, signatureDef *src, signatureDef *known, scopedNameDef **names, scopedNameDef **values);
 codeBlock *templateCode(sipSpec *pt, ifaceFileList **used, codeBlock *ocb, scopedNameDef *names, scopedNameDef *values);
 ifaceFileDef *findIfaceFile(sipSpec *pt, moduleDef *mod,
-        scopedNameDef *fqname, ifaceFileType iftype, int api_range,
-        argDef *ad);
+        scopedNameDef *fqname, ifaceFileType iftype,
+        apiVersionRangeDef *api_range, argDef *ad);
 int pluginPyQt3(sipSpec *pt);
 int pluginPyQt4(sipSpec *pt);
 void yywarning(char *);
@@ -1126,7 +1127,8 @@ typedef struct {
     flagType ftype;                     /* The flag type. */
     union {                             /* The flag value. */
         char *sval;                     /* A string value. */
-        long ival;                      /* An integer or API range value. */
+        long ival;                      /* An integer value. */
+        apiVersionRangeDef *aval;       /* An API range value. */
     } fvalue;
 } optFlag;
 

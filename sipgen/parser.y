@@ -41,11 +41,11 @@ static classList *currentSupers;        /* The current super-class list. */
 
 
 static const char *getPythonName(optFlags *optflgs, const char *cname);
-static classDef *findClass(sipSpec *pt, ifaceFileType iftype, int api_range,
-        scopedNameDef *fqname);
+static classDef *findClass(sipSpec *pt, ifaceFileType iftype,
+        apiVersionRangeDef *api_range, scopedNameDef *fqname);
 static classDef *findClassWithInterface(sipSpec *pt, ifaceFileDef *iff);
-static classDef *newClass(sipSpec *pt, ifaceFileType iftype, int api_range,
-        scopedNameDef *snd);
+static classDef *newClass(sipSpec *pt, ifaceFileType iftype,
+        apiVersionRangeDef *api_range, scopedNameDef *snd);
 static void finishClass(sipSpec *,moduleDef *,classDef *,optFlags *);
 static exceptionDef *findException(sipSpec *pt, scopedNameDef *fqname, int new);
 static mappedTypeDef *newMappedType(sipSpec *,argDef *, optFlags *);
@@ -117,8 +117,9 @@ static void resolveAnyTypedef(sipSpec *pt, argDef *ad);
 static void addVariable(sipSpec *pt, varDef *vd);
 static void applyTypeFlags(moduleDef *mod, argDef *ad, optFlags *flags);
 static argType convertEncoding(const char *encoding);
-static int getAPIRangeIndex(optFlags *optflgs);
-static int convertAPIRange(moduleDef *mod, nameDef *name, int from, int to);
+static apiVersionRangeDef *getAPIRange(optFlags *optflgs);
+static apiVersionRangeDef *convertAPIRange(moduleDef *mod, nameDef *name,
+        int from, int to);
 static scopedNameDef *text2scopePart(char *text);
 %}
 
@@ -452,7 +453,7 @@ exception:  TK_EXCEPTION scopedname baseexception optflags '{' opttypehdrcode ra
             if (notSkipping())
             {
                 exceptionDef *xd;
-                char *pyname;
+                const char *pyname;
 
                 if (currentSpec->genc)
                     yyerror("%Exception not allowed in a C module");
@@ -694,7 +695,7 @@ namespace:  TK_NAMESPACE TK_NAME {
                 else
                     scope = NULL;
 
-                ns = newClass(currentSpec, namespace_iface, -1,
+                ns = newClass(currentSpec, namespace_iface, NULL,
                         text2scopedName(scope, $2));
 
                 pushScope(ns);
@@ -1550,7 +1551,7 @@ superclass: scopedname {
                 if (ad.atype != no_type)
                     yyerror("Super-class list contains an invalid type");
 
-                super = findClass(currentSpec, class_iface, -1, snd);
+                super = findClass(currentSpec, class_iface, NULL, snd);
                 appendToClassList(&currentSupers, super);
             }
         }
@@ -2097,7 +2098,7 @@ flagvalue:  dottedname {
             if ((to = $5) < 0)
                 to = 0;
 
-            $$.fvalue.ival = convertAPIRange(currentModule, name, from, to);
+            $$.fvalue.aval = convertAPIRange(currentModule, name, from, to);
         }
     |   TK_STRING {
             $$.ftype = string_flag;
@@ -2904,7 +2905,7 @@ static void parseFile(FILE *fp, char *name, moduleDef *prevmod, int optional)
  * Find an interface file, or create a new one.
  */
 ifaceFileDef *findIfaceFile(sipSpec *pt, moduleDef *mod, scopedNameDef *fqname,
-        ifaceFileType iftype, int api_range, argDef *ad)
+        ifaceFileType iftype, apiVersionRangeDef *api_range, argDef *ad)
 {
     ifaceFileDef *iff, *first_alt = NULL;
 
@@ -2919,7 +2920,7 @@ ifaceFileDef *findIfaceFile(sipSpec *pt, moduleDef *mod, scopedNameDef *fqname,
          * If they are both versioned then assume the user knows what they are
          * doing.
          */
-        if (iff->api_range >= 0 && api_range >= 0 && iff->module == mod)
+        if (iff->api_range != NULL && api_range != NULL && iff->module == mod)
         {
             /* Remember the first of the alternate APIs. */
             if ((first_alt = iff->first_alt) == NULL)
@@ -3031,8 +3032,8 @@ ifaceFileDef *findIfaceFile(sipSpec *pt, moduleDef *mod, scopedNameDef *fqname,
 /*
  * Find a class definition in a parse tree.
  */
-static classDef *findClass(sipSpec *pt, ifaceFileType iftype, int api_range,
-        scopedNameDef *fqname)
+static classDef *findClass(sipSpec *pt, ifaceFileType iftype,
+        apiVersionRangeDef *api_range, scopedNameDef *fqname)
 {
     return findClassWithInterface(pt, findIfaceFile(pt, currentModule, fqname, iftype, api_range, NULL));
 }
@@ -3100,7 +3101,7 @@ static exceptionDef *findException(sipSpec *pt, scopedNameDef *fqname, int new)
     ifaceFileDef *iff;
     classDef *cd;
 
-    iff = findIfaceFile(pt, currentModule, fqname, exception_iface, -1, NULL);
+    iff = findIfaceFile(pt, currentModule, fqname, exception_iface, NULL, NULL);
 
     /* See if it is an existing one. */
     for (xd = pt->exceptions; xd != NULL; xd = xd->next)
@@ -3154,8 +3155,8 @@ static exceptionDef *findException(sipSpec *pt, scopedNameDef *fqname, int new)
 /*
  * Find an undefined (or create a new) class definition in a parse tree.
  */
-static classDef *newClass(sipSpec *pt, ifaceFileType iftype, int api_range,
-        scopedNameDef *fqname)
+static classDef *newClass(sipSpec *pt, ifaceFileType iftype,
+        apiVersionRangeDef *api_range, scopedNameDef *fqname)
 {
     int flags;
     classDef *cd, *scope;
@@ -3281,14 +3282,8 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd, optFlags *of)
                 cd->ctors = sipMalloc(sizeof (ctorDef));
  
                 cd->ctors->ctorflags = SECT_IS_PUBLIC;
-                cd->ctors->api_range = -1;
                 cd->ctors->pysig.nrArgs = 0;
                 cd->ctors->cppsig = &cd -> ctors -> pysig;
-                cd->ctors->exceptions = NULL;
-                cd->ctors->methodcode = NULL;
-                cd->ctors->prehook = NULL;
-                cd->ctors->posthook = NULL;
-                cd->ctors->next = NULL;
 
                 cd->defctor = cd->ctors;
 
@@ -3511,7 +3506,7 @@ static mappedTypeDef *newMappedType(sipSpec *pt, argDef *ad, optFlags *of)
     }
 
     iff = findIfaceFile(pt, currentModule, snd, mappedtype_iface,
-            getAPIRangeIndex(of), ad);
+            getAPIRange(of), ad);
 
     /* Check it hasn't already been defined. */
     for (mtd = pt->mappedtypes; mtd != NULL; mtd = mtd->next)
@@ -3620,7 +3615,7 @@ static enumDef *newEnum(sipSpec *pt, moduleDef *mod, mappedTypeDef *mt_scope,
         }
 
         /* If the scope is versioned then look for any alternate. */
-        if (scope != NULL && scope->api_range >= 0)
+        if (scope != NULL && scope->api_range != NULL)
         {
             enumDef *alt;
 
@@ -4785,12 +4780,11 @@ static void newCtor(char *name, int sectFlags, signatureDef *args,
     ct = sipMalloc(sizeof (ctorDef));
 
     ct->ctorflags = sectFlags;
-    ct->api_range = getAPIRangeIndex(optflgs);
+    ct->api_range = getAPIRange(optflgs);
     ct->pysig = *args;
     ct->cppsig = (cppsig != NULL ? cppsig : &ct->pysig);
     ct->exceptions = exceptions;
     ct->methodcode = methodcode;
-    ct->next = NULL;
 
     if (!isPrivateCtor(ct))
         setCanCreate(cd);
@@ -5030,9 +5024,9 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
             getPythonName(optflgs, name), (methodcode != NULL), sig->nrArgs,
             no_arg_parser);
 
-    od->api_range = getAPIRangeIndex(optflgs);
+    od->api_range = getAPIRange(optflgs);
 
-    if (od->api_range < 0)
+    if (od->api_range == NULL)
         setNotVersioned(od->common);
 
     if (findOptFlag(optflgs, "Numeric", bool_flag) != NULL)
@@ -5993,7 +5987,7 @@ static void defineClass(scopedNameDef *snd, classList *supers, optFlags *of)
 {
     classDef *cd, *c_scope = currentScope();
 
-    cd = newClass(currentSpec, class_iface, getAPIRangeIndex(of),
+    cd = newClass(currentSpec, class_iface, getAPIRange(of),
             scopeScopedName((c_scope != NULL ? c_scope->iff : NULL), snd));
     cd->supers = supers;
 
@@ -6100,35 +6094,37 @@ static argType convertEncoding(const char *encoding)
 /*
  * Get the /API/ option flag.
  */
-static int getAPIRangeIndex(optFlags *optflgs)
+static apiVersionRangeDef *getAPIRange(optFlags *optflgs)
 {
     optFlag *of;
 
     if ((of = findOptFlag(optflgs, "API", api_range_flag)) == NULL)
-        return -1;
+        return NULL;
 
-    return of->fvalue.ival;
+    return of->fvalue.aval;
 }
 
 
 /*
- * Return the version number corresponding to the given API range.
+ * Return the API range structure and version number corresponding to the
+ * given API range.
  */
-static int convertAPIRange(moduleDef *mod, nameDef *name, int from, int to)
+static apiVersionRangeDef *convertAPIRange(moduleDef *mod, nameDef *name,
+        int from, int to)
 {
-    int version;
+    int index;
     apiVersionRangeDef *avd, **avdp;
 
     /* Handle the trivial case. */
     if (from == 0 && to == 0)
-        return -1;
+        return NULL;
 
-    for (version = 0, avdp = &mod->api_ranges; (*avdp) != NULL; avdp = &(*avdp)->next, ++version)
+    for (index = 0, avdp = &mod->api_ranges; (*avdp) != NULL; avdp = &(*avdp)->next, ++index)
     {
         avd = *avdp;
 
         if (avd->api_name == name && avd->from == from && avd->to == to)
-            return version;
+            return avd;
     }
 
     /* The new one must be appended so that version numbers remain valid. */
@@ -6137,9 +6133,10 @@ static int convertAPIRange(moduleDef *mod, nameDef *name, int from, int to)
     avd->api_name = name;
     avd->from = from;
     avd->to = to;
+    avd->index = index;
 
     avd->next = NULL;
     *avdp = avd;
 
-    return version;
+    return avd;
 }

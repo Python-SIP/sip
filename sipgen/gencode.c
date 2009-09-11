@@ -170,7 +170,6 @@ static void generateAccessFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 static void generateConvertToDefinitions(mappedTypeDef *, classDef *, FILE *);
 static void generateEncodedType(moduleDef *mod, classDef *cd, int last,
         FILE *fp);
-static apiVersionRangeDef *getAPIRange(moduleDef *mod, int api_range);
 static int generateArgParser(signatureDef *sd, classDef *c_scope,
         mappedTypeDef *mt_scope, ctorDef *ct, overDef *od, int secCall,
         FILE *fp);
@@ -378,10 +377,10 @@ static void generateBuildFileSources(sipSpec *pt, moduleDef *mod,
             if (iff->type == exception_iface)
                 continue;
 
-            if (iff->api_range < 0)
-                prcode(fp, " sip%s%F%s", mname, iff->fqcname, srcSuffix);
+            if (iff->api_range != NULL)
+                prcode(fp, " sip%s%F_%d%s", mname, iff->fqcname, iff->api_range->index, srcSuffix);
             else
-                prcode(fp, " sip%s%F_%d%s", mname, iff->fqcname, iff->api_range, srcSuffix);
+                prcode(fp, " sip%s%F%s", mname, iff->fqcname, srcSuffix);
         }
     }
 }
@@ -1238,7 +1237,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
             if (cd->ctors != NULL)
             {
                 prcode(fp,
-"    {%d, init_%L, ", cd->iff->api_range, cd->iff);
+"    {%P, init_%L, ", cd->iff->api_range, cd->iff);
 
                 generateEncodedType(mod, cd, 0, fp);
 
@@ -1421,7 +1420,8 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 
     for (ed = pt->enums; ed != NULL; ed = ed->next)
     {
-        int type_nr = -1, api_range = -1;
+        int type_nr = -1;
+        apiVersionRangeDef *avr = NULL;
 
         if (ed->module != mod || ed->fqcname == NULL)
             continue;
@@ -1432,12 +1432,12 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
                 continue;
 
             type_nr = ed->ecd->iff->first_alt->ifacenr;
-            api_range = ed->ecd->iff->api_range;
+            avr = ed->ecd->iff->api_range;
         }
         else if (ed->emtd != NULL)
         {
             type_nr = ed->emtd->iff->first_alt->ifacenr;
-            api_range = ed->emtd->iff->api_range;
+            avr = ed->emtd->iff->api_range;
         }
 
         if (enum_idx == 0)
@@ -1450,7 +1450,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         ed->enum_idx = enum_idx++;
 
         prcode(fp,
-"    {{%d, ", api_range);
+"    {{%P, ", avr);
 
         if (ed->next_alt != NULL)
             prcode(fp, "&enumTypes[%d].etd_base", ed->next_alt->enum_idx);
@@ -1662,7 +1662,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
     /* Generate any API versions table. */
     if (mod->api_ranges != NULL || mod->api_versions != NULL)
     {
-        apiVersionRangeDef *avd;
+        apiVersionRangeDef *avr;
 
         is_api_versions = TRUE;
 
@@ -1672,11 +1672,11 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "/* This defines the API versions and ranges in use. */\n"
 "static int apiVersions[] = {");
         
-        for (avd = mod->api_ranges; avd != NULL; avd = avd->next)
-            prcode(fp, "%n, %d, %d, ", avd->api_name, avd->from, avd->to);
+        for (avr = mod->api_ranges; avr != NULL; avr = avr->next)
+            prcode(fp, "%n, %d, %d, ", avr->api_name, avr->from, avr->to);
 
-        for (avd = mod->api_versions; avd != NULL; avd = avd->next)
-            prcode(fp, "%n, %d, -1, ", avd->api_name, avd->from);
+        for (avr = mod->api_versions; avr != NULL; avr = avr->next)
+            prcode(fp, "%n, %d, -1, ", avr->api_name, avr->from);
 
         prcode(fp, "-1};\n"
             );
@@ -1717,11 +1717,11 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 
                 if (noArgParser(md))
                     prcode(fp,
-"    {%n, (PyCFunction)func_%s, METH_VARARGS|METH_KEYWORDS, %d},\n"
+"    {%n, (PyCFunction)func_%s, METH_VARARGS|METH_KEYWORDS, %P},\n"
                         , md->pyname, md->pyname->text, od->api_range);
                 else
                     prcode(fp,
-"    {%n, func_%s, METH_VARARGS, %d},\n"
+"    {%n, func_%s, METH_VARARGS, %P},\n"
                         , md->pyname, md->pyname->text, od->api_range);
             }
         }
@@ -3352,11 +3352,11 @@ static char *createIfaceFileName(const char *codeDir, ifaceFileDef *iff,
     for (snd = iff->fqcname; snd != NULL; snd = snd->next)
         append(&fn,snd->name);
 
-    if (iff->api_range >= 0)
+    if (iff->api_range != NULL)
     {
         char buf[50];
 
-        sprintf(buf, "_%d", iff->api_range);
+        sprintf(buf, "_%d", iff->api_range->index);
         append(&fn, buf);
     }
 
@@ -3558,7 +3558,7 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 
     prcode(fp, " = {\n"
 "    {\n"
-"        %d,\n"
+"        %P,\n"
 "        "
         , mtd->iff->api_range);
 
@@ -6046,7 +6046,6 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
         virtOverDef *vod, FILE *fp)
 {
     overDef *od = &vod->o;
-    virtHandlerDef *vhd = od->virthandler;
     argDef *res;
     apiVersionRangeDef *avr;
     const char *indent;
@@ -6169,7 +6168,7 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
      * If this overload doesn't have an API version assume that there are none
      * that do.
      */
-    avr = getAPIRange(mod, od->api_range);
+    avr = od->api_range;
 
     if (avr == NULL)
     {
@@ -6207,7 +6206,7 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
             {
                 if (strcmp(versioned_vod->o.cppname, od->cppname) == 0 && sameSignature(versioned_vod->o.cppsig, od->cppsig, TRUE))
                 {
-                    avr = getAPIRange(mod, versioned_vod->o.api_range);
+                    avr = versioned_vod->o.api_range;
 
                     /* Check that it has an API specified. */
                     if (avr == NULL)
@@ -7074,12 +7073,12 @@ static void generateVirtualHandler(virtHandlerDef *vhd, FILE *fp)
     {
         if (res->atype == mapped_type)
         {
-            if (res->u.mtd->iff->api_range >= 0)
+            if (res->u.mtd->iff->api_range != NULL)
                 need_state = TRUE;
         }
         else if (res->atype == class_type)
         {
-            if (res->u.cd->iff->api_range >= 0 || res->u.cd->convtocode != NULL)
+            if (res->u.cd->iff->api_range != NULL || res->u.cd->convtocode != NULL)
                 need_state = TRUE;
         }
     }
@@ -7310,7 +7309,7 @@ static const char *getParseResultFormat(argDef *ad, int isres, int xfervh)
                 /*
                  * Get the state if there might be a class API that needs it.
                  */
-                if (ad->u.mtd->iff->api_range >= 0)
+                if (ad->u.mtd->iff->api_range != NULL)
                     f &= ~0x04;
 
                 if (ad->nrderefs == 0)
@@ -7334,7 +7333,7 @@ static const char *getParseResultFormat(argDef *ad, int isres, int xfervh)
                  * Get the state if this class needs it or if there might be
                  * another class API that does.
                  */
-                if (ad->u.cd->convtocode != NULL || ad->u.cd->iff->api_range >= 0)
+                if (ad->u.cd->convtocode != NULL || ad->u.cd->iff->api_range != NULL)
                     f &= ~0x04;
 
                 if (ad->nrderefs == 0)
@@ -9016,7 +9015,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
     prcode(fp, " = {\n"
 "%s"
 "    {\n"
-"        %d,\n"
+"        %P,\n"
 "        "
         , (embedded ? "{\n" : "")
         , cd->iff->api_range);
@@ -9426,7 +9425,7 @@ static void generateSignalTableEntry(classDef *cd, overDef *sig, int membernr,
     prcode(fp,
 "    {\"%s(", sig->cppname);
 
-    generateCalledArgs(cd, sig->cppsig, Declaration, TRUE, fp);
+    generateCalledArgs(cd->iff, sig->cppsig, Declaration, TRUE, fp);
 
     prcode(fp,")\", ");
 
@@ -9776,7 +9775,7 @@ static void generateTypeInit(classDef *cd, FILE *fp)
         if (isPrivateCtor(ct))
             continue;
 
-        avr = getAPIRange(cd->iff->module, ct->api_range);
+        avr = ct->api_range;
 
         prcode(fp,
 "\n"
@@ -10256,7 +10255,7 @@ static void generateFunctionBody(overDef *od, classDef *c_scope,
         o_scope = NULL;
 
     if (o_scope != NULL)
-        avr = getAPIRange(o_scope->module, od->api_range);
+        avr = od->api_range;
     else
         avr = NULL;
 
@@ -12517,8 +12516,17 @@ void prcode(FILE *fp, const char *fmt, ...)
 
                     prScopedName(fp, iff->fqcname, "_");
 
-                    if (iff->api_range >= 0)
-                        fprintf(fp, "_%d", iff->api_range);
+                    if (iff->api_range != NULL)
+                        fprintf(fp, "_%d", iff->api_range->index);
+
+                    break;
+                }
+
+            case 'P':
+                {
+                    apiVersionRangeDef *avr = va_arg(ap, apiVersionRangeDef *);
+
+                    fprintf(fp, "%d", (avr != NULL ? avr->index : -1));
 
                     break;
                 }
@@ -13068,24 +13076,4 @@ static char getEncoding(argType atype)
     }
 
     return encoding;
-}
-
-
-/*
- * Get the definition of an API version range.
- */
-static apiVersionRangeDef *getAPIRange(moduleDef *mod, int api_range)
-{
-    apiVersionRangeDef *avr;
-
-    if (api_range >= 0)
-    {
-        /* Find the correct API definition. */
-        for (avr = mod->api_ranges; api_range-- != 0; avr = avr->next)
-            ;
-    }
-    else
-        avr = NULL;
-
-    return avr;
 }
