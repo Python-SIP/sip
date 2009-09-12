@@ -26,7 +26,7 @@ platform_specs = []
 
 # Constants.
 DEFAULT_MACOSX_ARCH = 'i386 ppc'
-DEFAULT_MACOSX_SDK = 'MacOSX10.5.sdk'
+MACOSX_SDK_DIR = '/Developer/SDKs'
 
 # Command line options.
 default_platform = None
@@ -298,6 +298,14 @@ def create_optparser():
             help="build with debugging symbols")
 
     if sys.platform == 'darwin':
+        # Get the latest SDK to use as the default.
+        sdks = glob.glob(MACOSX_SDK_DIR + '/MacOSX*.sdk')
+        if len(sdks) > 0:
+            sdks.sort()
+            _, default_sdk = os.path.split(sdks[-1])
+        else:
+            default_sdk = 'MacOSX10.4u.sdk'
+
         g = optparse.OptionGroup(p, title="MacOS X Configuration")
         g.add_option("-n", "--universal", action="store_true", default=False,
                 dest="universal",
@@ -307,10 +315,10 @@ def create_optparser():
                 choices=["i386", "x86_64", "ppc"],
                 help="the architectures to include in universal binaries "
                         "[default: %s]" % DEFAULT_MACOSX_ARCH)
-        g.add_option("-s", "--sdk", action="store", default=DEFAULT_MACOSX_SDK,
+        g.add_option("-s", "--sdk", action="store", default=default_sdk,
                 type="string", metavar="SDK", dest="sdk",
                 help="the name of the SDK used when building universal "
-                        "binaries [default: %s]" % DEFAULT_MACOSX_SDK)
+                        "binaries [default: %s]" % default_sdk)
         p.add_option_group(g)
 
     # Querying.
@@ -372,7 +380,8 @@ def main(argv):
     opts, args = p.parse_args()
 
     # Make sure MacOS specific options get initialised.
-    opts.universal = opts.arch = opts.sdk = ''
+    if sys.platform != 'darwin':
+        opts.universal = opts.arch = opts.sdk = ''
 
     # Handle the query options.
     if opts.show_platforms or opts.show_build_macros:
@@ -389,10 +398,10 @@ def main(argv):
         if '/' in opts.sdk:
             opts.universal = os.path.abspath(opts.sdk)
         else:
-            opts.universal = '/Developer/SDKs/' + opts.sdk
+            opts.universal = MACOSX_SDK_DIR + '/' + opts.sdk
 
         if not os.path.isdir(opts.universal):
-            siputils.error("Unable to find the SDK directory %s. Use the -s flag to specify the name of the SDK (e.g. %s) or its full path." % (opts.universal, DEFAULT_MACOSX_SDK))
+            siputils.error("Unable to find the SDK directory %s. Use the --sdk flag to specify the name of the SDK or its full path." % opts.universal)
     else:
         opts.universal = ''
 

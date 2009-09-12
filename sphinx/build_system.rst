@@ -65,7 +65,7 @@ work of creating these additional configuration modules.
         the string representation of the dictionary.
 
 
-.. function:: create_wrapper(script, wrapper[, gui=0]) -> string
+.. function:: create_wrapper(script, wrapper[, gui=0[, use_arch='']]) -> string
 
     This creates a platform dependent executable wrapper around a Python
     script.
@@ -78,6 +78,8 @@ work of creating these additional configuration modules.
     :param gui:
         is non-zero if a GUI enabled version of the interpreter should be used
         on platforms that require it.
+    :param use_arch:
+        is the MacOS/X architecture to invoke python with.
     :return:
         the platform specific name of the wrapper.
 

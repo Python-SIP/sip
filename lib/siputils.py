@@ -2394,12 +2394,13 @@ def parse_build_macros(filename, names, overrides=None, properties=None):
     return refined
 
 
-def create_wrapper(script, wrapper, gui=0):
+def create_wrapper(script, wrapper, gui=0, use_arch=''):
     """Create a platform dependent executable wrapper around a Python script.
 
     script is the full pathname of the script.
     wrapper is the name of the wrapper file to create.
     gui is non-zero if a GUI enabled version of the interpreter should be used.
+    use_arch is the MacOS/X architecture to invoke python with.
 
     Returns the platform specific name of the wrapper.
     """
@@ -2416,14 +2417,30 @@ def create_wrapper(script, wrapper, gui=0):
 
         wf.write("@\"%s\" \"%s\" %%1 %%2 %%3 %%4 %%5 %%6 %%7 %%8 %%9\n" % (exe, script))
     elif sys.platform == "darwin":
-        # python, pythonw and sys.executable are all different images.  We
-        # would prefer to use the latter (because it includes the version
-        # number) but that would mean being unable to support the "gui"
-        # argument.
+        # The installation of MacOS's python is a mess that changes from
+        # version to version.
+        exe = sys.executable
+
         if gui:
-            exe = "pythonw"
-        else:
-            exe = "python"
+            # Append a "w" after the "python".
+            head, tail = os.path.split(exe)
+            if tail.startswith("python"):
+                tail = tail[:6] + "w" + tail[6:]
+                exe = os.path.join(head, tail)
+
+                if not os.path.exists(exe):
+                    exe = None
+            else:
+                exe = None
+
+            if exe is None:
+                # Fallback to a guess.
+                exe = "pythonw"
+
+        if use_arch:
+            # Note that this may not work with the "standard" interpreter but
+            # should with the "pythonX.Y" version.
+            exe = "arch -%s %s" % (use_arch, exe)
 
         wf.write("#!/bin/sh\n")
         wf.write("exec %s %s ${1+\"$@\"}\n" % (exe, script))
