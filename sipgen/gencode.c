@@ -11110,7 +11110,7 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
                 prcode(fp,"sipRes = ");
 
                 /* See if we need the address of the result. */
-                if ((res->atype == class_type || res->atype == mapped_type) && isReference(res))
+                if ((res->atype == class_type || res->atype == mapped_type) && (res->nrderefs == 0 || isReference(res)))
                     prcode(fp,"&");
             }
         }
