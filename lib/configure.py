@@ -166,8 +166,11 @@ def inform_user():
     siputils.inform("The default directory to install .sip files in is %s." % opts.sipsipdir)
     siputils.inform("The platform/compiler configuration is %s." % opts.platform)
 
+    if opts.arch:
+        siputils.inform("MacOS/X binaries will be created for %s." % (", ".join(opts.arch.split())))
+
     if opts.universal:
-        siputils.inform("MacOS/X universal binaries will be created for %s using %s." % (", ".join(opts.arch.split()), opts.universal))
+        siputils.inform("MacOS/X universal binaries will be created using %s." % opts.universal)
 
 
 def set_platform_directories():
@@ -307,14 +310,13 @@ def create_optparser():
             default_sdk = 'MacOSX10.4u.sdk'
 
         g = optparse.OptionGroup(p, title="MacOS X Configuration")
+        g.add_option("--arch", action="append", dest="arch",
+                choices=["i386", "x86_64", "ppc"],
+                help="build for architecture ARCH")
         g.add_option("-n", "--universal", action="store_true", default=False,
                 dest="universal",
                 help="build the SIP code generator and module as universal "
                         "binaries")
-        g.add_option("--arch", action="append", dest="arch",
-                choices=["i386", "x86_64", "ppc"],
-                help="the architectures to include in universal binaries "
-                        "[default: %s]" % DEFAULT_MACOSX_ARCH)
         g.add_option("-s", "--sdk", action="store", default=default_sdk,
                 type="string", metavar="SDK", dest="sdk",
                 help="the name of the SDK used when building universal "
@@ -381,7 +383,9 @@ def main(argv):
 
     # Make sure MacOS specific options get initialised.
     if sys.platform != 'darwin':
-        opts.universal = opts.arch = opts.sdk = ''
+        opts.universal = ''
+        opts.arch = []
+        opts.sdk = ''
 
     # Handle the query options.
     if opts.show_platforms or opts.show_build_macros:
@@ -393,6 +397,13 @@ def main(argv):
 
         sys.exit()
 
+    # Convert the list 'arch' option to a string.  Multiple architectures
+    # imply a universal binary.
+    if len(opts.arch) > 1:
+        opts.universal = True
+
+    opts.arch = ' '.join(opts.arch)
+
     # Convert the boolean 'universal' option to a string.
     if opts.universal:
         if '/' in opts.sdk:
@@ -402,17 +413,11 @@ def main(argv):
 
         if not os.path.isdir(opts.universal):
             siputils.error("Unable to find the SDK directory %s. Use the --sdk flag to specify the name of the SDK or its full path." % opts.universal)
+
+        if opts.arch == '':
+            opts.arch = DEFAULT_MACOSX_ARCH
     else:
         opts.universal = ''
-
-    # Convert the list 'arch' option to a string.
-    if opts.arch:
-        if opts.universal == '':
-            siputils.error("The --arch flag may only be used with the --universal flag")
-
-        opts.arch = ' '.join(opts.arch)
-    else:
-        opts.arch = ''
 
     # Get the platform specific macros for building.
     macros = siputils.parse_build_macros(os.path.join("specs", opts.platform),

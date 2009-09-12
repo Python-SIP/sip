@@ -276,7 +276,7 @@ work of creating these additional configuration modules.
 
     .. attribute:: arch
 
-        The space separated architectures to include in a universal binary.
+        The space separated MacOS/X architectures to build.
 
     .. method:: __init__([sub_cfg=None])
 
@@ -417,8 +417,7 @@ work of creating these additional configuration modules.
             the name of the SDK if universal binaries are to be created under
             MacOS/X.
         :param arch:
-            the space separated architectures to include in a universal
-            binary.
+            the space separated MacOS/X architectures to build.
 
     .. method:: clean_build_file_objects(mfile, build)
 

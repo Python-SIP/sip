@@ -214,8 +214,7 @@ class Makefile:
         files and the destination is a directory.
         universal is the name of the SDK if the target is a MacOS/X universal
         binary.
-        arch is the space separated architectures to include in a universal
-        binary.
+        arch is the space separated MacOS/X architectures to build.
         """
         if qt:
             if not hasattr(configuration, "qt_version"):
@@ -352,18 +351,23 @@ class Makefile:
         libdir.extend(self.extra_lib_dirs)
         libdir.extend(self.optional_list("LIBDIR"))
 
-        # Handle MacOS/X universal binaries.
-        if self._universal:
-            arch_flags = []
+        # Handle MacOS/X specific configuration.
+        if sys.platform == 'darwin':
+            mac_cflags = []
+            mac_lflags = []
+
             for a in self._arch.split():
-                arch_flags.append('-arch ' + a)
+                aflag = '-arch ' + a
+                mac_cflags.append(aflag)
+                mac_lflags.append(aflag)
 
-            unicflags = arch_flags + ('-isysroot %s' % self._universal).split()
-            unilflags = arch_flags + ('-Wl,-syslibroot,%s' % self._universal).split()
+            if self._universal:
+                mac_cflags.append('-isysroot %s' % self._universal)
+                mac_lflags.append('-Wl,-syslibroot,%s' % self._universal)
 
-            cflags.lextend(unicflags)
-            cxxflags.lextend(unicflags)
-            lflags.lextend(unilflags)
+            cflags.lextend(mac_cflags)
+            cxxflags.lextend(mac_cflags)
+            lflags.lextend(mac_lflags)
 
         # Don't use a unique list as libraries may need to be searched more
         # than once.  Also MacOS/X uses the form "-framework lib" so we don't

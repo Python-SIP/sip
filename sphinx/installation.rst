@@ -45,10 +45,9 @@ The full set of command line options is:
 
 .. cmdoption:: --arch <ARCH>
 
-    The architecture ``<ARCH>`` will be included in the MacOS/X universal
-    binary.  This option should be given once for each architecture to be
-    included.  By default the ``i386`` and ``ppc`` architectures will be
-    included.
+    Binaries for the MacOS/X architecture ``<ARCH>`` will be built.  This
+    option should be given once for each architecture to be built.  Specifying
+    more than one architecture will cause a universal binary to be created.
 
 .. cmdoption:: -b <DIR>, --bindir <DIR>
 
@@ -70,7 +69,9 @@ The full set of command line options is:
 .. cmdoption:: -n, --universal
 
     The SIP code generator and module will be built as universal binaries
-    under MacOS/X.
+    under MacOS/X.  If the :option:`--arch <configure.py --arch>` option has
+    not been specified then the universal binary will include the ``i386`` and
+    ``ppc`` architectures.
 
 .. cmdoption:: -p <PLATFORM>, --platform <PLATFORM>
 
