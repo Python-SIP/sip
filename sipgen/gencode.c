@@ -2375,6 +2375,7 @@ static void generateOrdinaryFunction(moduleDef *mod, classDef *c_scope,
     overDef *od;
     int need_intro;
     ifaceFileDef *scope;
+    const char *kw_fw_decl, *kw_decl;
 
     if (mt_scope != NULL)
     {
@@ -2397,41 +2398,40 @@ static void generateOrdinaryFunction(moduleDef *mod, classDef *c_scope,
 "\n"
         );
 
+    if (noArgParser(md))
+    {
+        kw_fw_decl = ", PyObject *";
+        kw_decl = ", PyObject *sipKwds";
+    }
+    else
+    {
+        kw_fw_decl = "";
+        kw_decl = "";
+    }
+
     if (scope != NULL)
     {
         if (!generating_c)
             prcode(fp,
-"extern \"C\" {static PyObject *meth_%L_%s(PyObject *, PyObject *);}\n"
-                , scope, md->pyname->text);
+"extern \"C\" {static PyObject *meth_%L_%s(PyObject *, PyObject *%s);}\n"
+                , scope, md->pyname->text, kw_fw_decl);
 
         prcode(fp,
-"static PyObject *meth_%L_%s(PyObject *, PyObject *sipArgs)\n"
-            , scope, md->pyname->text);
+"static PyObject *meth_%L_%s(PyObject *, PyObject *sipArgs%s)\n"
+            , scope, md->pyname->text, kw_decl);
     }
     else
     {
         const char *self = (generating_c ? "sipSelf" : "");
 
         if (!generating_c)
-        {
-            if (noArgParser(md))
-                prcode(fp,
-"extern \"C\" {static PyObject *func_%s(PyObject *,PyObject *,PyObject *);}\n"
-                    , md->pyname->text);
-            else
-                prcode(fp,
-"extern \"C\" {static PyObject *func_%s(PyObject *,PyObject *);}\n"
-                    , md->pyname->text);
-        }
+            prcode(fp,
+"extern \"C\" {static PyObject *func_%s(PyObject *,PyObject *%s);}\n"
+                , md->pyname->text, kw_fw_decl);
 
-        if (noArgParser(md))
-            prcode(fp,
-"static PyObject *func_%s(PyObject *%s,PyObject *sipArgs,PyObject *sipKwds)\n"
-                , md->pyname->text, self);
-        else
-            prcode(fp,
-"static PyObject *func_%s(PyObject *%s,PyObject *sipArgs)\n"
-                , md->pyname->text, self);
+        prcode(fp,
+"static PyObject *func_%s(PyObject *%s,PyObject *sipArgs%s)\n"
+            , md->pyname->text, self, kw_decl);
     }
 
     prcode(fp,
@@ -3901,13 +3901,25 @@ static void prMethodTable(sortedMethTab *mtable, int nr, ifaceFileDef *iff,
     for (i = 0; i < nr; ++i)
     {
         memberDef *md = mtable[i].md;
+        const char *cast, *flags;
+
+        if (noArgParser(md))
+        {
+            cast = "(PyCFunction)";
+            flags = "|METH_KEYWORDS";
+        }
+        else
+        {
+            cast = "";
+            flags = "";
+        }
 
         /* Save the index in the table. */
         md->membernr = i;
 
         prcode(fp,
-"    {SIP_MLNAME_CAST(%N), meth_%L_%s, METH_VARARGS, NULL}%s\n"
-            , md->pyname, iff, md->pyname->text, ((i + 1) < nr) ? "," : "");
+"    {SIP_MLNAME_CAST(%N), %smeth_%L_%s, METH_VARARGS%s, NULL}%s\n"
+            , md->pyname, cast, iff, md->pyname->text, flags, ((i + 1) < nr) ? "," : "");
     }
 
     prcode(fp,
@@ -10172,13 +10184,13 @@ static void generateFunction(memberDef *md, overDef *overs, classDef *cd,
 
         if (!generating_c)
             prcode(fp,
-"extern \"C\" {static PyObject *meth_%L_%s(PyObject *, PyObject *);}\n"
-            , cd->iff, pname);
+"extern \"C\" {static PyObject *meth_%L_%s(PyObject *, PyObject *%s);}\n"
+            , cd->iff, pname, (noArgParser(md) ? ", PyObject *" : ""));
 
         prcode(fp,
-"static PyObject *meth_%L_%s(PyObject *%s, PyObject *%s)\n"
+"static PyObject *meth_%L_%s(PyObject *%s, PyObject *%s%s)\n"
 "{\n"
-            , cd->iff, pname, (need_self ? "sipSelf" : ""), (need_args ? "sipArgs" : ""));
+            , cd->iff, pname, (need_self ? "sipSelf" : ""), (need_args ? "sipArgs" : ""), (noArgParser(md) ? ", PyObject *sipKwds" : ""));
 
         if (tracing)
             prcode(fp,
@@ -10186,30 +10198,34 @@ static void generateFunction(memberDef *md, overDef *overs, classDef *cd,
 "\n"
                 , cd->iff, pname);
 
-        if (need_args)
-            prcode(fp,
-"    int sipArgsParsed = 0;\n"
-                );
-
-        if (need_selfarg)
+        if (!noArgParser(md))
         {
-            /*
-             * This determines if we call the explicitly scoped version or the
-             * unscoped version (which will then go via the vtable).
-             *
-             * - If the call was unbound and self was passed as the first
-             *   argument (ie. Foo.meth(self)) then we always want to call the
-             *   explicitly scoped version.
-             *
-             * - If the call was bound then we only call the unscoped version
-             *   if there might be a C++ reimplementation that Python knows
-             *   nothing about.  Otherwise, if the call was invoked by super()
-             *   within a Python reimplementation then the Python
-             *   reimplementation would be called recursively.
-             */
-            prcode(fp,
+            if (need_args)
+                prcode(fp,
+"    int sipArgsParsed = 0;\n"
+                    );
+
+            if (need_selfarg)
+            {
+                /*
+                 * This determines if we call the explicitly scoped version or
+                 * the unscoped version (which will then go via the vtable).
+                 *
+                 * - If the call was unbound and self was passed as the first
+                 *   argument (ie. Foo.meth(self)) then we always want to call
+                 *   the explicitly scoped version.
+                 *
+                 * - If the call was bound then we only call the unscoped
+                 *   version
+                 *   if there might be a C++ reimplementation that Python
+                 *   knows nothing about.  Otherwise, if the call was invoked
+                 *   by super() within a Python reimplementation then the
+                 *   Python reimplementation would be called recursively.
+                 */
+                prcode(fp,
 "    bool sipSelfWasArg = (!sipSelf || sipIsDerived((sipSimpleWrapper *)sipSelf));\n"
-                );
+                    );
+            }
         }
 
         for (od = overs; od != NULL; od = od->next)
@@ -10221,17 +10237,27 @@ static void generateFunction(memberDef *md, overDef *overs, classDef *cd,
             if (isPrivate(od))
                 continue;
 
+            if (noArgParser(md))
+            {
+                generateCppCodeBlock(od->methodcode, fp);
+                break;
+            }
+
             generateFunctionBody(od, cd, NULL, ocd, TRUE, fp);
         }
 
-        prcode(fp,
+        if (!noArgParser(md))
+            prcode(fp,
 "\n"
 "    /* Raise an exception if the arguments couldn't be parsed. */\n"
 "    sipNoMethod(%s,%N,%N);\n"
 "\n"
 "    return NULL;\n"
+                , (need_args ? "sipArgsParsed" : "0"), cd->pyname, md->pyname);
+
+        prcode(fp,
 "}\n"
-            ,(need_args ? "sipArgsParsed" : "0"),cd->pyname,md->pyname);
+            );
     }
 }
 

@@ -5013,9 +5013,6 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
 
     if (no_arg_parser)
     {
-        if (mt_scope != NULL || c_scope != NULL)
-            yyerror("/NoArgParser/ may only be specified for global functions");
-
         if (methodcode == NULL)
             yyerror("%MethodCode must be supplied if /NoArgParser/ is specified");
     }

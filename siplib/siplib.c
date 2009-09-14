@@ -7948,7 +7948,7 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
             return -1;
         }
 
-        if (!kw_handler(self, sipNew, kwds))
+        if (kw_handler(self, sipNew, kwds) < 0)
             return -1;
     }
 

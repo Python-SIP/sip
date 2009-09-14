@@ -522,8 +522,9 @@ Function Annotations
 
 .. function-annotation:: NoArgParser
 
-    This boolean annotation is used with global functions to specify that the
-    supplied :directive:`%MethodCode` will handle the parsing of the arguments.
+    This boolean annotation is used with methods and global functions to
+    specify that the supplied :directive:`%MethodCode` will handle the parsing
+    of the arguments.
 
 
 .. function-annotation:: NoDerived
