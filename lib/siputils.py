@@ -1653,10 +1653,10 @@ class ProgramMakefile(Makefile):
         # The command line.
         build = []
 
+        build.append(self.required_string("CXX"))
+
         for a in self._arch.split():
             build.append('-arch ' + a)
-
-        build.append(self.required_string("CXX"))
 
         for f in self.optional_list("DEFINES"):
             build.append("-D" + f)
