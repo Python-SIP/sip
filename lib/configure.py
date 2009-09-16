@@ -310,7 +310,7 @@ def create_optparser():
             default_sdk = 'MacOSX10.4u.sdk'
 
         g = optparse.OptionGroup(p, title="MacOS X Configuration")
-        g.add_option("--arch", action="append", dest="arch",
+        g.add_option("--arch", action="append", default=[], dest="arch",
                 choices=["i386", "x86_64", "ppc"],
                 help="build for architecture ARCH")
         g.add_option("-n", "--universal", action="store_true", default=False,
