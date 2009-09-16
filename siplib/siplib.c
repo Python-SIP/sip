@@ -423,6 +423,7 @@ static PyObject *cast(PyObject *self, PyObject *args);
 static PyObject *callDtor(PyObject *self, PyObject *args);
 static PyObject *dumpWrapper(PyObject *self, PyObject *args);
 static PyObject *isDeleted(PyObject *self, PyObject *args);
+static PyObject *isPyOwned(PyObject *self, PyObject *args);
 static PyObject *setDeleted(PyObject *self, PyObject *args);
 static PyObject *setTraceMask(PyObject *self, PyObject *args);
 static PyObject *wrapInstance(PyObject *self, PyObject *args);
@@ -499,6 +500,7 @@ PyMODINIT_FUNC SIP_MODULE_ENTRY(void)
         {"dump", dumpWrapper, METH_VARARGS, NULL},
         {"getapi", sipGetAPI, METH_VARARGS, NULL},
         {"isdeleted", isDeleted, METH_VARARGS, NULL},
+        {"ispyowned", isPyOwned, METH_VARARGS, NULL},
         {"setapi", sipSetAPI, METH_VARARGS, NULL},
         {"setdeleted", setDeleted, METH_VARARGS, NULL},
         {"settracemask", setTraceMask, METH_VARARGS, NULL},
@@ -880,6 +882,24 @@ static PyObject *isDeleted(PyObject *self, PyObject *args)
         return NULL;
 
     res = (sipGetAddress(sw) == NULL ? Py_True : Py_False);
+
+    Py_INCREF(res);
+    return res;
+}
+
+
+/*
+ * Check if an instance is owned by Python or C/C++.
+ */
+static PyObject *isPyOwned(PyObject *self, PyObject *args)
+{
+    sipSimpleWrapper *sw;
+    PyObject *res;
+
+    if (!PyArg_ParseTuple(args, "O!:ispyowned", &sipSimpleWrapper_Type, &sw))
+        return NULL;
+
+    res = (sipIsPyOwned(sw) ? Py_True : Py_False);
 
     Py_INCREF(res);
     return res;

@@ -69,6 +69,16 @@ can be used by applications.
         ``True`` if the C/C++ instance has been deleted.
 
 
+.. function:: ispyowned(obj) -> bool
+
+    This checks if the C++ instance or C structure is owned by Python.
+
+    :param obj:
+        the Python object.
+    :return:
+        ``True`` if the C/C++ instance is owned by Python.
+
+
 .. function:: setapi(name, version)
 
     .. versionadded:: 4.9
