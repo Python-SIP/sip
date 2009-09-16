@@ -377,7 +377,7 @@ work of creating these additional configuration modules.
 
         A string that will remove a file.
 
-    .. method:: __init__(configuration[, console=0[, qt=0[, opengl=0[, python=0[, threaded=0[, warnings=None[, debug=0[, dir=None[, makefile="Makefile"[, installs=None[, universal=''[, arch='i386 ppc']]]]]]]]]]]])
+    .. method:: __init__(configuration[, console=0[, qt=0[, opengl=0[, python=0[, threaded=0[, warnings=None[, debug=0[, dir=None[, makefile="Makefile"[, installs=None[, universal=None[, arch=None]]]]]]]]]]]])
 
         :param configuration:
             the current configuration and is an instance of the
@@ -415,9 +415,11 @@ work of creating these additional configuration modules.
             source files and the destination is a directory.
         :param universal:
             the name of the SDK if universal binaries are to be created under
-            MacOS/X.
+            MacOS/X.  If it is ``None`` then the value is taken from the
+            configuration.
         :param arch:
-            the space separated MacOS/X architectures to build.
+            the space separated MacOS/X architectures to build.  If it is
+            ``None`` then the value is taken from the configuration.
 
     .. method:: clean_build_file_objects(mfile, build)
 
@@ -555,7 +557,7 @@ work of creating these additional configuration modules.
     This class encapsulates a Makefile to build a generic Python extension
     module.
 
-    .. method:: __init__(self, configuration, build_file[, install_dir=None[, static=0[, console=0[, opengl=0[, threaded=0[, warnings=None[, debug=0[, dir=None[, makefile="Makefile"[, installs=None[, strip=1[, export_all=0[, universal=''[, arch='i386 ppc']]]]]]]]]]]]]])
+    .. method:: __init__(self, configuration, build_file[, install_dir=None[, static=0[, console=0[, opengl=0[, threaded=0[, warnings=None[, debug=0[, dir=None[, makefile="Makefile"[, installs=None[, strip=1[, export_all=0[, universal=None[, arch=None]]]]]]]]]]]]]])
 
         :param configuration:
             see :meth:`sipconfig.Makefile.__init__`.
@@ -684,7 +686,7 @@ work of creating these additional configuration modules.
 
     This class encapsulates a Makefile to build an executable program.
 
-    .. method:: __init__(configuration[, build_file=None[, install_dir=None[, console=0[, qt=0[, opengl=0[, python=0[, threaded=0[, warnings=None[, debug=0[, dir=None[, makefile="Makefile"[, installs=None[, universal=''[, arch='i386 ppc']]]]]]]]]]]]]])
+    .. method:: __init__(configuration[, build_file=None[, install_dir=None[, console=0[, qt=0[, opengl=0[, python=0[, threaded=0[, warnings=None[, debug=0[, dir=None[, makefile="Makefile"[, installs=None[, universal=None[, arch=None]]]]]]]]]]]]]])
 
         :param configuration:
             see :meth:`sipconfig.Makefile.__init__`.

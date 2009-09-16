@@ -189,8 +189,8 @@ class Makefile:
     """
     def __init__(self, configuration, console=0, qt=0, opengl=0, python=0,
                  threaded=0, warnings=1, debug=0, dir=None,
-                 makefile="Makefile", installs=None, universal='',
-                 arch='i386 ppc'):
+                 makefile="Makefile", installs=None, universal=None,
+                 arch=None):
         """Initialise an instance of the target.  All the macros are left
         unchanged allowing scripts to manipulate them at will.
 
@@ -213,8 +213,9 @@ class Makefile:
         destination.  If the source is another list then it is a set of source
         files and the destination is a directory.
         universal is the name of the SDK if the target is a MacOS/X universal
-        binary.
-        arch is the space separated MacOS/X architectures to build.
+        binary.  If it is None then the value is taken from the configuration.
+        arch is the space separated MacOS/X architectures to build.  If it is
+        None then it is taken from the configuration.
         """
         if qt:
             if not hasattr(configuration, "qt_version"):
@@ -232,9 +233,6 @@ class Makefile:
         else:
             self._threaded = threaded
 
-        if sys.platform != "darwin":
-            universal = ''
-
         self.config = configuration
         self.console = console
         self._qt = qt
@@ -245,8 +243,16 @@ class Makefile:
         self._dir = dir
         self._makefile = makefile
         self._installs = installs
-        self._universal = universal
-        self._arch = arch
+
+        if universal is None:
+            self._universal = configuration.universal
+        else:
+            self._universal = universal
+
+        if arch is None:
+            self._arch = configuration.arch
+        else:
+            self._arch = arch
 
         self._finalised = 0
 
@@ -1284,7 +1290,7 @@ class ModuleMakefile(Makefile):
     def __init__(self, configuration, build_file, install_dir=None, static=0,
                  console=0, qt=0, opengl=0, threaded=0, warnings=1, debug=0,
                  dir=None, makefile="Makefile", installs=None, strip=1,
-                 export_all=0, universal='', arch='i386 ppc'):
+                 export_all=0, universal=None, arch=None):
         """Initialise an instance of a module Makefile.
 
         build_file is the file containing the target specific information.  If
@@ -1615,7 +1621,7 @@ class ProgramMakefile(Makefile):
     def __init__(self, configuration, build_file=None, install_dir=None,
                  console=0, qt=0, opengl=0, python=0, threaded=0, warnings=1,
                  debug=0, dir=None, makefile="Makefile", installs=None,
-                 universal='', arch='i386 ppc'):
+                 universal=None, arch=None):
         """Initialise an instance of a program Makefile.
 
         build_file is the file containing the target specific information.  If
