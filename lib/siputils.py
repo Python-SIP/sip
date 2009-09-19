@@ -565,22 +565,22 @@ class Makefile:
 
                 # For Windows: the dependencies between Qt libraries.
                 qdepmap = {
-                    "QtAssistant":      ("QtCore", "QtGui", "QtNetwork"),
+                    "QtAssistant":      ("QtNetwork", "QtGui", "QtCore"),
                     "QtGui":            ("QtCore", ),
-                    "QtHelp":           ("QtCore", "QtGui", "QtSql"),
+                    "QtHelp":           ("QtSql", "QtGui", "QtCore"),
                     "QtNetwork":        ("QtCore", ),
-                    "QtOpenGL":         ("QtCore", "QtGui"),
+                    "QtOpenGL":         ("QtGui", "QtCore"),
                     "QtScript":         ("QtCore", ),
-                    "QtScriptTools":    ("QtCore", "QtGui", "QtScript"),
+                    "QtScriptTools":    ("QtScript", "QtGui", "QtCore"),
                     "QtSql":            ("QtCore", ),
-                    "QtSvg":            ("QtCore", "QtGui", "QtXml"),
-                    "QtTest":           ("QtCore", "QtGui"),
-                    "QtWebKit":         ("QtCore", "QtGui", "QtNetwork"),
+                    "QtSvg":            ("QtXml", "QtGui", "QtCore"),
+                    "QtTest":           ("QtGui", "QtCore"),
+                    "QtWebKit":         ("QtNetwork", "QtGui", "QtCore"),
                     "QtXml":            ("QtCore", ),
-                    "QtXmlPatterns":    ("QtCore", "QtNetwork"),
-                    "phonon":           ("QtCore", "QtGui"),
-                    "QtDesigner":       ("QtCore", "QtGui"),
-                    "QAxContainer":     ("QtCore", "QtGui")
+                    "QtXmlPatterns":    ("QtNetwork", "QtCore"),
+                    "phonon":           ("QtGui", "QtCore"),
+                    "QtDesigner":       ("QtGui", "QtCore"),
+                    "QAxContainer":     ("QtGui", "QtCore")
                 }
 
                 # The QtSql .prl file doesn't include QtGui as a dependency (at
