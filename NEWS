@@ -1,4 +1,4 @@
-v4.9 ??? September 2009
+v4.9 26th September 2009
   - Added support for __iter__ and __next__.  (__next__ is used for Python v2
     as well as v3.)
   - Added the %API directive.
@@ -8,9 +8,10 @@ v4.9 ??? September 2009
   - Added sip.ispyowned() to the Python API.
   - Mapped types can now act as a namespace for enums and static methods.
   - The /Array/ annotation can now be applied to classes and mapped types.
-  - The /NoArgParser/ annotation can now be applied to class methods.
-  - Added the --arch flag to configure.py to specify which architectures are
-    included in MacOS/X universal binaries.
+  - The /NoArgParser/ annotation can now be applied to methods as well as
+    functions.
+  - Added the --arch flag to configure.py to specify which MacOS/X
+    architectures are built.
   - SIP is now also licensed under the GPL v2 and v3.
 
 v4.8.1 16th June 2009
