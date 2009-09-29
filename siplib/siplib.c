@@ -5965,8 +5965,7 @@ static PyObject *getDictFromObject(PyObject *obj)
 static PyObject *sip_api_is_py_method(sip_gilstate_t *gil, char *pymc,
         sipSimpleWrapper *sipSelf, const char *cname, const char *mname)
 {
-    SIP_SSIZE_T i;
-    PyObject *mname_obj, *mro, *reimp, *meth;
+    PyObject *mname_obj, *reimp, *meth;
 
     /*
      * This is the most common case (where there is no Python reimplementation)
@@ -6009,35 +6008,51 @@ static PyObject *sip_api_is_py_method(sip_gilstate_t *gil, char *pymc,
      * C function before a reimplementation defined in a mixin (ie. later in
      * the MRO).
      */
-    mro = Py_TYPE(sipSelf)->tp_mro;
-    assert(PyTuple_Check(mro));
 
-    meth = NULL;
+    if (sipSelf->dict != NULL)
+        /* Check the instance dictionary in case it has been monkey patched. */
+        reimp = PyDict_GetItem(sipSelf->dict, mname_obj);
+    else
+        reimp = NULL;
 
-    for (i = 0; i < PyTuple_GET_SIZE(mro); ++i)
+    if (reimp == NULL)
     {
-        PyObject *cls = PyTuple_GET_ITEM(mro, i);
-        PyObject *dict = ((PyTypeObject *)cls)->tp_dict;
+        SIP_SSIZE_T i;
+        PyObject *mro;
 
-        if (dict != NULL)
+        mro = Py_TYPE(sipSelf)->tp_mro;
+        assert(PyTuple_Check(mro));
+
+        for (i = 0; i < PyTuple_GET_SIZE(mro); ++i)
         {
-            reimp = PyDict_GetItem(dict, mname_obj);
+            PyObject *cls = PyTuple_GET_ITEM(mro, i);
+            PyObject *dict = ((PyTypeObject *)cls)->tp_dict;
 
-            /* Check any reimplementation is Python code. */
-            if (reimp != NULL && Py_TYPE(reimp) == &PyFunction_Type)
+            if (dict != NULL)
             {
-#if PY_MAJOR_VERSION >= 3
-                meth = PyMethod_New(reimp, (PyObject *)sipSelf);
-#else
-                meth = PyMethod_New(reimp, (PyObject *)sipSelf, cls);
-#endif
+                reimp = PyDict_GetItem(dict, mname_obj);
 
-                break;
+                if (reimp != NULL)
+                    break;
             }
         }
     }
 
     Py_DECREF(mname_obj);
+
+    /* Check any reimplementation is Python code. */
+    if (reimp != NULL && Py_TYPE(reimp) == &PyFunction_Type)
+    {
+#if PY_MAJOR_VERSION >= 3
+        meth = PyMethod_New(reimp, (PyObject *)sipSelf);
+#else
+        meth = PyMethod_New(reimp, (PyObject *)sipSelf, cls);
+#endif
+    }
+    else
+    {
+        meth = NULL;
+    }
 
     if (meth == NULL)
     {
