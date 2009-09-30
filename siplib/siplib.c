@@ -5966,6 +5966,7 @@ static PyObject *sip_api_is_py_method(sip_gilstate_t *gil, char *pymc,
         sipSimpleWrapper *sipSelf, const char *cname, const char *mname)
 {
     PyObject *mname_obj, *reimp, *meth;
+    PyTypeObject *cls;
 
     /*
      * This is the most common case (where there is no Python reimplementation)
@@ -6015,22 +6016,23 @@ static PyObject *sip_api_is_py_method(sip_gilstate_t *gil, char *pymc,
     else
         reimp = NULL;
 
+    cls = Py_TYPE(sipSelf);
+
     if (reimp == NULL)
     {
         SIP_SSIZE_T i;
         PyObject *mro;
 
-        mro = Py_TYPE(sipSelf)->tp_mro;
+        mro = cls->tp_mro;
         assert(PyTuple_Check(mro));
 
         for (i = 0; i < PyTuple_GET_SIZE(mro); ++i)
         {
-            PyObject *cls = PyTuple_GET_ITEM(mro, i);
-            PyObject *dict = ((PyTypeObject *)cls)->tp_dict;
+            cls = (PyTypeObject *)PyTuple_GET_ITEM(mro, i);
 
-            if (dict != NULL)
+            if (cls->tp_dict != NULL)
             {
-                reimp = PyDict_GetItem(dict, mname_obj);
+                reimp = PyDict_GetItem(cls->tp_dict, mname_obj);
 
                 if (reimp != NULL)
                     break;
@@ -6046,7 +6048,7 @@ static PyObject *sip_api_is_py_method(sip_gilstate_t *gil, char *pymc,
 #if PY_MAJOR_VERSION >= 3
         meth = PyMethod_New(reimp, (PyObject *)sipSelf);
 #else
-        meth = PyMethod_New(reimp, (PyObject *)sipSelf, cls);
+        meth = PyMethod_New(reimp, (PyObject *)sipSelf, (PyObject *)cls);
 #endif
     }
     else
