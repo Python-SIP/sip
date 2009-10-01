@@ -6034,7 +6034,11 @@ static PyObject *sip_api_is_py_method(sip_gilstate_t *gil, char *pymc,
             {
                 reimp = PyDict_GetItem(cls->tp_dict, mname_obj);
 
-                if (reimp != NULL)
+                /*
+                 * Check any reimplementation is Python code and is not the
+                 * wrapped C++ method.
+                 */
+                if (reimp != NULL && Py_TYPE(reimp) == &PyFunction_Type)
                     break;
             }
         }
@@ -6042,19 +6046,14 @@ static PyObject *sip_api_is_py_method(sip_gilstate_t *gil, char *pymc,
 
     Py_DECREF(mname_obj);
 
-    /* Check any reimplementation is Python code. */
-    if (reimp != NULL && Py_TYPE(reimp) == &PyFunction_Type)
-    {
+    if (reimp != NULL)
 #if PY_MAJOR_VERSION >= 3
         meth = PyMethod_New(reimp, (PyObject *)sipSelf);
 #else
         meth = PyMethod_New(reimp, (PyObject *)sipSelf, (PyObject *)cls);
 #endif
-    }
     else
-    {
         meth = NULL;
-    }
 
     if (meth == NULL)
     {
