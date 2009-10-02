@@ -5991,6 +5991,10 @@ static PyObject *sip_api_is_py_method(sip_gilstate_t *gil, char *pymc,
 
     /* Get any reimplementation. */
 
+#ifdef WITH_THREAD
+    *gil = PyGILState_Ensure();
+#endif
+
 #if PY_MAJOR_VERSION >= 3
     mname_obj = PyUnicode_FromString(mname);
 #else
@@ -5998,11 +6002,12 @@ static PyObject *sip_api_is_py_method(sip_gilstate_t *gil, char *pymc,
 #endif
 
     if (mname_obj == NULL)
-        return NULL;
-
+    {
 #ifdef WITH_THREAD
-    *gil = PyGILState_Ensure();
+        PyGILState_Release(*gil);
 #endif
+        return NULL;
+    }
 
     /*
      * We don't use PyObject_GetAttr() because that might find the generated
