@@ -6032,14 +6032,17 @@ static PyObject *sip_api_is_py_method(sip_gilstate_t *gil, char *pymc,
 
             if (cls->tp_dict != NULL)
             {
-                reimp = PyDict_GetItem(cls->tp_dict, mname_obj);
+                PyObject *this_reimp = PyDict_GetItem(cls->tp_dict, mname_obj);
 
                 /*
                  * Check any reimplementation is Python code and is not the
                  * wrapped C++ method.
                  */
-                if (reimp != NULL && Py_TYPE(reimp) == &PyFunction_Type)
+                if (this_reimp != NULL && Py_TYPE(this_reimp) == &PyFunction_Type)
+                {
+                    reimp = this_reimp;
                     break;
+                }
             }
         }
     }
