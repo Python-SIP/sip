@@ -5032,7 +5032,7 @@ static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
         if (od->common == md && isAbstract(od))
         {
             prcode(fp,
-"    bool sipSelfWasArg = (!sipSelf || sipIsDerived((sipSimpleWrapper *)sipSelf));\n"
+"    PyObject *sipOrigSelf = sipSelf;\n"
                 );
 
             break;
@@ -10135,7 +10135,7 @@ static void generateFunction(memberDef *md, overDef *overs, classDef *cd,
         classDef *ocd, FILE *fp)
 {
     overDef *od;
-    int need_method, need_self, need_args, need_selfarg;
+    int need_method, need_self, need_args, need_selfarg, need_orig_self;
 
     /*
      * Check that there is at least one overload that needs to be handled.
@@ -10143,7 +10143,7 @@ static void generateFunction(memberDef *md, overDef *overs, classDef *cd,
      * compiler warning).  Finally see if we need to remember if "self" was
      * explicitly passed as an argument.
      */
-    need_method = need_self = need_args = need_selfarg = FALSE;
+    need_method = need_self = need_args = need_selfarg = need_orig_self = FALSE;
 
     for (od = overs; od != NULL; od = od->next)
     {
@@ -10166,7 +10166,9 @@ static void generateFunction(memberDef *md, overDef *overs, classDef *cd,
                 {
                     need_self = TRUE;
 
-                    if (isAbstract(od) || isVirtual(od) || isVirtualReimp(od) || usedInCode(od->methodcode, "sipSelfWasArg"))
+                    if (isAbstract(od))
+                        need_orig_self = TRUE;
+                    else if (isVirtual(od) || isVirtualReimp(od) || usedInCode(od->methodcode, "sipSelfWasArg"))
                         need_selfarg = TRUE;
                 }
             }
@@ -10216,14 +10218,26 @@ static void generateFunction(memberDef *md, overDef *overs, classDef *cd,
                  *   the explicitly scoped version.
                  *
                  * - If the call was bound then we only call the unscoped
-                 *   version
-                 *   if there might be a C++ reimplementation that Python
-                 *   knows nothing about.  Otherwise, if the call was invoked
-                 *   by super() within a Python reimplementation then the
-                 *   Python reimplementation would be called recursively.
+                 *   version in case there is a C++ reimplementation that
+                 *   Python knows nothing about.  Otherwise, if the call was
+                 *   invoked by super() within a Python reimplementation then
+                 *   the Python reimplementation would be called recursively.
                  */
                 prcode(fp,
 "    bool sipSelfWasArg = (!sipSelf || sipIsDerived((sipSimpleWrapper *)sipSelf));\n"
+                    );
+            }
+
+            if (need_orig_self)
+            {
+                /*
+                 * This is similar to the above but for abstract methods.  We
+                 * allow the (potential) recursion because it means that the
+                 * concrete implementation can be put in a mixin and it will
+                 * all work.
+                 */
+                prcode(fp,
+"    PyObject *sipOrigSelf = sipSelf;\n"
                     );
             }
         }
@@ -11056,7 +11070,7 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
     /* If it is abstract make sure that self was bound. */
     if (isAbstract(od))
         prcode(fp,
-"            if (sipSelfWasArg)\n"
+"            if (!sipOrigSelf)\n"
 "            {\n"
 "                sipAbstractMethod(%N, %N);\n"
 "                return NULL;\n"
