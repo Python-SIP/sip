@@ -5147,7 +5147,7 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
     if (cd->iff->type != namespace_iface && !generating_c)
     {
         classList *cl;
-        int need_ptr, need_state;
+        int need_ptr, need_cast_ptr, need_state;
 
         /* The cast function. */
         prcode(fp,
@@ -5189,11 +5189,12 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
             );
 
         /* Generate the release function without compiler warnings. */
-        need_ptr = need_state = FALSE;
+        need_ptr = need_cast_ptr = need_state = FALSE;
 
         if (cd->dealloccode != NULL)
-            need_ptr = usedInCode(cd->dealloccode, "sipCpp");
-        else if (canCreate(cd) || isPublicDtor(cd))
+            need_ptr = need_cast_ptr = usedInCode(cd->dealloccode, "sipCpp");
+
+        if (canCreate(cd) || isPublicDtor(cd))
         {
             if (hasShadow(cd))
                 need_ptr = need_state = TRUE;
@@ -5219,7 +5220,7 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 
         if (cd->dealloccode != NULL)
         {
-            if (need_ptr)
+            if (need_cast_ptr)
             {
                 prcode(fp,
 "    ");
@@ -5227,12 +5228,18 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
                 generateClassFromVoid(cd, "sipCpp", "sipCppV", fp);
 
                 prcode(fp, ";\n"
+"\n"
                     );
             }
 
             generateCppCodeBlock(cd->dealloccode, fp);
+
+            prcode(fp,
+"\n"
+                );
         }
-        else if (canCreate(cd) || isPublicDtor(cd))
+
+        if (canCreate(cd) || isPublicDtor(cd))
         {
             int rgil = ((release_gil || isReleaseGILDtor(cd)) && !isHoldGILDtor(cd));
 
