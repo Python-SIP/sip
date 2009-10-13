@@ -5965,8 +5965,7 @@ static PyObject *getDictFromObject(PyObject *obj)
 static PyObject *sip_api_is_py_method(sip_gilstate_t *gil, char *pymc,
         sipSimpleWrapper *sipSelf, const char *cname, const char *mname)
 {
-    PyObject *mname_obj, *reimp, *meth;
-    PyTypeObject *cls;
+    PyObject *mname_obj, *reimp, *meth, *cls;
 
     /*
      * This is the most common case (where there is no Python reimplementation)
@@ -6021,23 +6020,35 @@ static PyObject *sip_api_is_py_method(sip_gilstate_t *gil, char *pymc,
     else
         reimp = NULL;
 
-    cls = Py_TYPE(sipSelf);
+    cls = (PyObject *)Py_TYPE(sipSelf);
 
     if (reimp == NULL)
     {
         SIP_SSIZE_T i;
         PyObject *mro;
 
-        mro = cls->tp_mro;
+        mro = ((PyTypeObject *)cls)->tp_mro;
         assert(PyTuple_Check(mro));
 
         for (i = 0; i < PyTuple_GET_SIZE(mro); ++i)
         {
-            cls = (PyTypeObject *)PyTuple_GET_ITEM(mro, i);
+            PyObject *cls_dict;
 
-            if (cls->tp_dict != NULL)
+            cls = PyTuple_GET_ITEM(mro, i);
+
+#if PY_MAJOR_VERSION >= 3
+            cls_dict = ((PyTypeObject *)cls)->tp_dict;
+#else
+            // Allow for classic classes as mixins.
+            if (PyClass_Check(cls))
+                cls_dict = ((PyClassObject *)cls)->cl_dict;
+            else
+                cls_dict = ((PyTypeObject *)cls)->tp_dict;
+#endif
+
+            if (cls_dict != NULL)
             {
-                PyObject *this_reimp = PyDict_GetItem(cls->tp_dict, mname_obj);
+                PyObject *this_reimp = PyDict_GetItem(cls_dict, mname_obj);
 
                 /*
                  * Check any reimplementation is Python code and is not the
@@ -6058,7 +6069,7 @@ static PyObject *sip_api_is_py_method(sip_gilstate_t *gil, char *pymc,
 #if PY_MAJOR_VERSION >= 3
         meth = PyMethod_New(reimp, (PyObject *)sipSelf);
 #else
-        meth = PyMethod_New(reimp, (PyObject *)sipSelf, (PyObject *)cls);
+        meth = PyMethod_New(reimp, (PyObject *)sipSelf, cls);
 #endif
     else
         meth = NULL;
