@@ -6066,13 +6066,26 @@ static PyObject *sip_api_is_py_method(sip_gilstate_t *gil, char *pymc,
     Py_DECREF(mname_obj);
 
     if (reimp != NULL)
+    {
+        if (PyMethod_Check(reimp))
+        {
+            /* It's already a method. */
+            meth = reimp;
+            Py_INCREF(meth);
+        }
+        else
+        {
 #if PY_MAJOR_VERSION >= 3
-        meth = PyMethod_New(reimp, (PyObject *)sipSelf);
+            meth = PyMethod_New(reimp, (PyObject *)sipSelf);
 #else
-        meth = PyMethod_New(reimp, (PyObject *)sipSelf, cls);
+            meth = PyMethod_New(reimp, (PyObject *)sipSelf, cls);
 #endif
+        }
+    }
     else
+    {
         meth = NULL;
+    }
 
     if (meth == NULL)
     {
