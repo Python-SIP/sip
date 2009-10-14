@@ -6270,19 +6270,19 @@ static int sip_api_can_convert_to_type(PyObject *pyObj, const sipTypeDef *td,
         sipConvertToFunc cto;
 
         if (sipTypeIsClass(td))
-            cto = ((const sipClassTypeDef *)td)->ctd_cto;
-        else
-            cto = ((const sipMappedTypeDef *)td)->mtd_cto;
-
-        if (cto == NULL || (flags & SIP_NO_CONVERTORS) != 0)
         {
-            if (sipTypeIsMapped(td))
-                ok = FALSE;
-            else
+            cto = ((const sipClassTypeDef *)td)->ctd_cto;
+
+            if (cto == NULL || (flags & SIP_NO_CONVERTORS) != 0)
                 ok = PyObject_TypeCheck(pyObj, sipTypeAsPyTypeObject(td));
+            else
+                ok = cto(pyObj, NULL, NULL, NULL);
         }
         else
+        {
+            cto = ((const sipMappedTypeDef *)td)->mtd_cto;
             ok = cto(pyObj, NULL, NULL, NULL);
+        }
     }
 
     return ok;
@@ -6313,24 +6313,31 @@ static void *sip_api_convert_to_type(PyObject *pyObj, const sipTypeDef *td,
             sipConvertToFunc cto;
 
             if (sipTypeIsClass(td))
-                cto = ((const sipClassTypeDef *)td)->ctd_cto;
-            else
-                cto = ((const sipMappedTypeDef *)td)->mtd_cto;
-
-            if (cto == NULL || (flags & SIP_NO_CONVERTORS) != 0)
             {
-                if ((cpp = sip_api_get_cpp_ptr((sipSimpleWrapper *)pyObj, td)) == NULL)
-                    *iserrp = TRUE;
-                else if (transferObj != NULL)
+                cto = ((const sipClassTypeDef *)td)->ctd_cto;
+
+                if (cto == NULL || (flags & SIP_NO_CONVERTORS) != 0)
                 {
-                    if (transferObj == Py_None)
-                        sip_api_transfer_back(pyObj);
-                    else
-                        sip_api_transfer_to(pyObj, transferObj);
+                    if ((cpp = sip_api_get_cpp_ptr((sipSimpleWrapper *)pyObj, td)) == NULL)
+                        *iserrp = TRUE;
+                    else if (transferObj != NULL)
+                    {
+                        if (transferObj == Py_None)
+                            sip_api_transfer_back(pyObj);
+                        else
+                            sip_api_transfer_to(pyObj, transferObj);
+                    }
+                }
+                else
+                {
+                    state = cto(pyObj, &cpp, iserrp, transferObj);
                 }
             }
             else
+            {
+                cto = ((const sipMappedTypeDef *)td)->mtd_cto;
                 state = cto(pyObj, &cpp, iserrp, transferObj);
+            }
         }
     }
 
