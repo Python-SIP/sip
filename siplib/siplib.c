@@ -6050,11 +6050,14 @@ static PyObject *sip_api_is_py_method(sip_gilstate_t *gil, char *pymc,
             {
                 PyObject *this_reimp = PyDict_GetItem(cls_dict, mname_obj);
 
+                if (this_reimp == NULL)
+                    continue;
+
                 /*
                  * Check any reimplementation is Python code and is not the
                  * wrapped C++ method.
                  */
-                if (this_reimp != NULL && Py_TYPE(this_reimp) == &PyFunction_Type)
+                if (PyFunction_Check(this_reimp) || PyMethod_Check(this_reimp))
                 {
                     reimp = this_reimp;
                     break;
@@ -6069,9 +6072,22 @@ static PyObject *sip_api_is_py_method(sip_gilstate_t *gil, char *pymc,
     {
         if (PyMethod_Check(reimp))
         {
-            /* It's already a method. */
-            meth = reimp;
-            Py_INCREF(meth);
+            /* It's already a method but make sure it is bound. */
+            if (PyMethod_GET_SELF(reimp) != NULL)
+            {
+                meth = reimp;
+                Py_INCREF(meth);
+            }
+            else
+            {
+#if PY_MAJOR_VERSION >= 3
+                meth = PyMethod_New(PyMethod_GET_FUNCTION(reimp),
+                        (PyObject *)sipSelf);
+#else
+                meth = PyMethod_New(PyMethod_GET_FUNCTION(reimp),
+                        (PyObject *)sipSelf, PyMethod_GET_CLASS(reimp));
+#endif
+            }
         }
         else
         {
