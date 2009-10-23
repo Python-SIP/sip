@@ -1,3 +1,6 @@
+v4.9.1 23rd October 2009
+  - A bug fix release.
+
 v4.9 26th September 2009
   - Added support for __iter__ and __next__.  (__next__ is used for Python v2
     as well as v3.)
