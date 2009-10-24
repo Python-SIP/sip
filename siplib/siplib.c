@@ -5965,8 +5965,7 @@ static PyObject *getDictFromObject(PyObject *obj)
 static PyObject *sip_api_is_py_method(sip_gilstate_t *gil, char *pymc,
         sipSimpleWrapper *sipSelf, const char *cname, const char *mname)
 {
-    SIP_SSIZE_T i;
-    PyObject *mname_obj, *mro, *reimp, *meth;
+    PyObject *mname_obj, *reimp, *meth, *cls;
 
     /*
      * This is the most common case (where there is no Python reimplementation)
@@ -5991,6 +5990,10 @@ static PyObject *sip_api_is_py_method(sip_gilstate_t *gil, char *pymc,
 
     /* Get any reimplementation. */
 
+#ifdef WITH_THREAD
+    *gil = PyGILState_Ensure();
+#endif
+
 #if PY_MAJOR_VERSION >= 3
     mname_obj = PyUnicode_FromString(mname);
 #else
@@ -5998,46 +6001,107 @@ static PyObject *sip_api_is_py_method(sip_gilstate_t *gil, char *pymc,
 #endif
 
     if (mname_obj == NULL)
-        return NULL;
-
+    {
 #ifdef WITH_THREAD
-    *gil = PyGILState_Ensure();
+        PyGILState_Release(*gil);
 #endif
+        return NULL;
+    }
 
     /*
      * We don't use PyObject_GetAttr() because that might find the generated
      * C function before a reimplementation defined in a mixin (ie. later in
      * the MRO).
      */
-    mro = Py_TYPE(sipSelf)->tp_mro;
-    assert(PyTuple_Check(mro));
 
-    meth = NULL;
+    if (sipSelf->dict != NULL)
+        /* Check the instance dictionary in case it has been monkey patched. */
+        reimp = PyDict_GetItem(sipSelf->dict, mname_obj);
+    else
+        reimp = NULL;
 
-    for (i = 0; i < PyTuple_GET_SIZE(mro); ++i)
+    cls = (PyObject *)Py_TYPE(sipSelf);
+
+    if (reimp == NULL)
     {
-        PyObject *cls = PyTuple_GET_ITEM(mro, i);
-        PyObject *dict = ((PyTypeObject *)cls)->tp_dict;
+        SIP_SSIZE_T i;
+        PyObject *mro;
 
-        if (dict != NULL)
+        mro = ((PyTypeObject *)cls)->tp_mro;
+        assert(PyTuple_Check(mro));
+
+        for (i = 0; i < PyTuple_GET_SIZE(mro); ++i)
         {
-            reimp = PyDict_GetItem(dict, mname_obj);
+            PyObject *cls_dict;
 
-            /* Check any reimplementation is Python code. */
-            if (reimp != NULL && Py_TYPE(reimp) == &PyFunction_Type)
-            {
+            cls = PyTuple_GET_ITEM(mro, i);
+
 #if PY_MAJOR_VERSION >= 3
-                meth = PyMethod_New(reimp, (PyObject *)sipSelf);
+            cls_dict = ((PyTypeObject *)cls)->tp_dict;
 #else
-                meth = PyMethod_New(reimp, (PyObject *)sipSelf, cls);
+            // Allow for classic classes as mixins.
+            if (PyClass_Check(cls))
+                cls_dict = ((PyClassObject *)cls)->cl_dict;
+            else
+                cls_dict = ((PyTypeObject *)cls)->tp_dict;
 #endif
 
-                break;
+            if (cls_dict != NULL)
+            {
+                PyObject *this_reimp = PyDict_GetItem(cls_dict, mname_obj);
+
+                if (this_reimp == NULL)
+                    continue;
+
+                /*
+                 * Check any reimplementation is Python code and is not the
+                 * wrapped C++ method.
+                 */
+                if (PyFunction_Check(this_reimp) || PyMethod_Check(this_reimp))
+                {
+                    reimp = this_reimp;
+                    break;
+                }
             }
         }
     }
 
     Py_DECREF(mname_obj);
+
+    if (reimp != NULL)
+    {
+        if (PyMethod_Check(reimp))
+        {
+            /* It's already a method but make sure it is bound. */
+            if (PyMethod_GET_SELF(reimp) != NULL)
+            {
+                meth = reimp;
+                Py_INCREF(meth);
+            }
+            else
+            {
+#if PY_MAJOR_VERSION >= 3
+                meth = PyMethod_New(PyMethod_GET_FUNCTION(reimp),
+                        (PyObject *)sipSelf);
+#else
+                meth = PyMethod_New(PyMethod_GET_FUNCTION(reimp),
+                        (PyObject *)sipSelf, PyMethod_GET_CLASS(reimp));
+#endif
+            }
+        }
+        else
+        {
+#if PY_MAJOR_VERSION >= 3
+            meth = PyMethod_New(reimp, (PyObject *)sipSelf);
+#else
+            meth = PyMethod_New(reimp, (PyObject *)sipSelf, cls);
+#endif
+        }
+    }
+    else
+    {
+        meth = NULL;
+    }
 
     if (meth == NULL)
     {
@@ -6235,19 +6299,19 @@ static int sip_api_can_convert_to_type(PyObject *pyObj, const sipTypeDef *td,
         sipConvertToFunc cto;
 
         if (sipTypeIsClass(td))
-            cto = ((const sipClassTypeDef *)td)->ctd_cto;
-        else
-            cto = ((const sipMappedTypeDef *)td)->mtd_cto;
-
-        if (cto == NULL || (flags & SIP_NO_CONVERTORS) != 0)
         {
-            if (sipTypeIsMapped(td))
-                ok = FALSE;
-            else
+            cto = ((const sipClassTypeDef *)td)->ctd_cto;
+
+            if (cto == NULL || (flags & SIP_NO_CONVERTORS) != 0)
                 ok = PyObject_TypeCheck(pyObj, sipTypeAsPyTypeObject(td));
+            else
+                ok = cto(pyObj, NULL, NULL, NULL);
         }
         else
+        {
+            cto = ((const sipMappedTypeDef *)td)->mtd_cto;
             ok = cto(pyObj, NULL, NULL, NULL);
+        }
     }
 
     return ok;
@@ -6278,24 +6342,31 @@ static void *sip_api_convert_to_type(PyObject *pyObj, const sipTypeDef *td,
             sipConvertToFunc cto;
 
             if (sipTypeIsClass(td))
-                cto = ((const sipClassTypeDef *)td)->ctd_cto;
-            else
-                cto = ((const sipMappedTypeDef *)td)->mtd_cto;
-
-            if (cto == NULL || (flags & SIP_NO_CONVERTORS) != 0)
             {
-                if ((cpp = sip_api_get_cpp_ptr((sipSimpleWrapper *)pyObj, td)) == NULL)
-                    *iserrp = TRUE;
-                else if (transferObj != NULL)
+                cto = ((const sipClassTypeDef *)td)->ctd_cto;
+
+                if (cto == NULL || (flags & SIP_NO_CONVERTORS) != 0)
                 {
-                    if (transferObj == Py_None)
-                        sip_api_transfer_back(pyObj);
-                    else
-                        sip_api_transfer_to(pyObj, transferObj);
+                    if ((cpp = sip_api_get_cpp_ptr((sipSimpleWrapper *)pyObj, td)) == NULL)
+                        *iserrp = TRUE;
+                    else if (transferObj != NULL)
+                    {
+                        if (transferObj == Py_None)
+                            sip_api_transfer_back(pyObj);
+                        else
+                            sip_api_transfer_to(pyObj, transferObj);
+                    }
+                }
+                else
+                {
+                    state = cto(pyObj, &cpp, iserrp, transferObj);
                 }
             }
             else
+            {
+                cto = ((const sipMappedTypeDef *)td)->mtd_cto;
                 state = cto(pyObj, &cpp, iserrp, transferObj);
+            }
         }
     }
 
