@@ -154,6 +154,7 @@
 #define CTOR_HOLD_GIL       0x00000800  /* The ctor holds the GIL. */
 #define CTOR_XFERRED        0x00001000  /* Ownership is transferred. */
 #define CTOR_IS_DEPRECATED  0x00002000  /* The ctor is deprecated. */
+#define CTOR_KEYWORD_ARGS   0x00004000  /* The ctor allows keyword arguments. */
 
 #define isPublicCtor(c)     ((c)->ctorflags & SECT_IS_PUBLIC)
 #define setIsPublicCtor(c)  ((c)->ctorflags |= SECT_IS_PUBLIC)
@@ -173,6 +174,8 @@
 #define setIsResultTransferredCtor(c)   ((c)->ctorflags |= CTOR_XFERRED)
 #define isDeprecatedCtor(c) ((c)->ctorflags & CTOR_IS_DEPRECATED)
 #define setIsDeprecatedCtor(c)  ((c)->ctorflags |= CTOR_IS_DEPRECATED)
+#define useKeywordArgsCtor(c)   ((c)->ctorflags & CTOR_KEYWORD_ARGS)
+#define setUseKeywordArgsCtor(c)    ((c)->ctorflags |= CTOR_KEYWORD_ARGS)
 
 
 /* Handle member flags. */
@@ -236,6 +239,7 @@
 #define OVER_IS_GLOBAL      0x00400000  /* It is a global operator. */
 #define OVER_IS_COMPLEMENTARY   0x00800000  /* It is a complementary operator. */
 #define OVER_IS_DEPRECATED  0x01000000  /* It is deprecated. */
+#define OVER_KEYWORD_ARGS   0x02000000  /* It allows keyword arguments. */
 
 #define isPublic(o)         ((o)->overflags & SECT_IS_PUBLIC)
 #define setIsPublic(o)      ((o)->overflags |= SECT_IS_PUBLIC)
@@ -284,6 +288,8 @@
 #define setIsComplementary(o)   ((o)->overflags |= OVER_IS_COMPLEMENTARY)
 #define isDeprecated(o)     ((o)->overflags & OVER_IS_DEPRECATED)
 #define setIsDeprecated(o)  ((o)->overflags |= OVER_IS_DEPRECATED)
+#define useKeywordArgs(o)   ((o)->overflags & OVER_KEYWORD_ARGS)
+#define setUseKeywordArgs(o)    ((o)->overflags |= OVER_KEYWORD_ARGS)
 
 
 /* Handle variable flags. */
@@ -638,7 +644,7 @@ typedef struct _valueDef {
 
 typedef struct {
     argType atype;                      /* The type. */
-    char *name;                         /* The name. */
+    nameDef *name;                      /* The name. */
     int argflags;                       /* The argument flags. */
     int nrderefs;                       /* Nr. of dereferences. */
     valueDef *defval;                   /* The default value. */
@@ -1053,7 +1059,7 @@ extern char *sipVersion;                /* The version of SIP. */
 extern stringList *includeDirList;      /* The include directory list for SIP files. */
 
 
-void parse(sipSpec *,FILE *,char *,stringList *,stringList *);
+void parse(sipSpec *, FILE *, char *, stringList *, stringList *, int);
 void parserEOF(char *,parserContext *);
 void transform(sipSpec *);
 void generateCode(sipSpec *, char *, char *, char *, const char *, int, int,

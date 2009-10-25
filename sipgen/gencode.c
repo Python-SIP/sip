@@ -146,7 +146,7 @@ static sortedMethTab *createMethodTable(classDef *, int *);
 static int generateMappedTypeMethodTable(mappedTypeDef *mtd, FILE *fp);
 static int generateClassMethodTable(classDef *cd, FILE *fp);
 static void prMethodTable(sortedMethTab *mtable, int nr, ifaceFileDef *iff,
-        FILE *fp);
+        classDef *cd, FILE *fp);
 static void generateEnumMacros(sipSpec *pt, moduleDef *mod, classDef *cd,
         mappedTypeDef *mtd, FILE *fp);
 static int generateEnumMemberTable(sipSpec *pt, moduleDef *mod, classDef *cd,
@@ -234,6 +234,7 @@ static int isDuplicateProtected(classDef *cd, overDef *target);
 static char getEncoding(argType atype);
 static void generateTypeDefName(ifaceFileDef *iff, FILE *fp);
 static void generateTypeDefLink(sipSpec *pt, ifaceFileDef *iff, FILE *fp);
+static int functionNeedsKwds(moduleDef *mod, classDef *cd, memberDef *md);
 
 
 /*
@@ -540,6 +541,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipCallMethod               sipAPI_%s->api_call_method\n"
 "#define sipParseResult              sipAPI_%s->api_parse_result\n"
 "#define sipParseArgs                sipAPI_%s->api_parse_args\n"
+"#define sipParseKwdArgs             sipAPI_%s->api_parse_kwd_args\n"
 "#define sipParsePair                sipAPI_%s->api_parse_pair\n"
 "#define sipCommonDtor               sipAPI_%s->api_common_dtor\n"
 "#define sipConvertFromSequenceIndex sipAPI_%s->api_convert_from_sequence_index\n"
@@ -640,6 +642,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipConvertFromMappedType    sipConvertFromType\n"
 "#define sipConvertFromNamedEnum(v, pt)  sipConvertFromEnum((v), ((sipEnumTypeObject *)(pt))->type)\n"
 "#define sipConvertFromNewInstance(p, wt, t) sipConvertFromNewType((p), (wt)->type, (t))\n"
+        ,mname
         ,mname
         ,mname
         ,mname
@@ -1715,7 +1718,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
                 if (od->common != md)
                     continue;
 
-                if (noArgParser(md))
+                if (noArgParser(md) || functionNeedsKwds(mod, NULL, md))
                     prcode(fp,
 "    {%n, (PyCFunction)func_%s, METH_VARARGS|METH_KEYWORDS, %P},\n"
                         , md->pyname, md->pyname->text, od->api_range);
@@ -1876,7 +1879,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
             if (!notVersioned(md))
                 continue;
 
-            if (noArgParser(md))
+            if (noArgParser(md) || functionNeedsKwds(mod, NULL, md))
                 prcode(fp,
 "        {SIP_MLNAME_CAST(%N), (PyCFunction)func_%s, METH_VARARGS|METH_KEYWORDS, NULL},\n"
                     , md->pyname, md->pyname->text);
@@ -2398,7 +2401,7 @@ static void generateOrdinaryFunction(moduleDef *mod, classDef *c_scope,
 "\n"
         );
 
-    if (noArgParser(md))
+    if (noArgParser(md) || functionNeedsKwds(mod, c_scope, md))
     {
         kw_fw_decl = ", PyObject *";
         kw_decl = ", PyObject *sipKwds";
@@ -3853,7 +3856,7 @@ static int generateMappedTypeMethodTable(mappedTypeDef *mtd, FILE *fp)
 
     if (mtab != NULL)
     {
-        prMethodTable(mtab, nr, mtd->iff, fp);
+        prMethodTable(mtab, nr, mtd->iff, NULL, fp);
         free(mtab);
     }
 
@@ -3876,7 +3879,7 @@ static int generateClassMethodTable(classDef *cd, FILE *fp)
 
     if (mtab != NULL)
     {
-        prMethodTable(mtab, nr, cd->iff, fp);
+        prMethodTable(mtab, nr, cd->iff, cd, fp);
         free(mtab);
     }
 
@@ -3888,7 +3891,7 @@ static int generateClassMethodTable(classDef *cd, FILE *fp)
  * Generate a method table for a class or mapped type.
  */
 static void prMethodTable(sortedMethTab *mtable, int nr, ifaceFileDef *iff,
-        FILE *fp)
+        classDef *cd, FILE *fp)
 {
     int i;
 
@@ -3903,7 +3906,7 @@ static void prMethodTable(sortedMethTab *mtable, int nr, ifaceFileDef *iff,
         memberDef *md = mtable[i].md;
         const char *cast, *flags;
 
-        if (noArgParser(md))
+        if (noArgParser(md) || functionNeedsKwds(NULL, cd, md))
         {
             cast = "(PyCFunction)";
             flags = "|METH_KEYWORDS";
@@ -9723,7 +9726,7 @@ static const char *slotName(slotType st)
 static void generateTypeInit(classDef *cd, FILE *fp)
 {
     ctorDef *ct;
-    int need_self, need_owner;
+    int need_self, need_owner, need_kwds;
 
     /*
      * See if we need to name the self and owner arguments so that we can
@@ -9731,6 +9734,7 @@ static void generateTypeInit(classDef *cd, FILE *fp)
      */
     need_self = (generating_c || hasShadow(cd));
     need_owner = generating_c;
+    need_kwds = FALSE;
 
     for (ct = cd->ctors; ct != NULL; ct = ct->next)
     {
@@ -9750,6 +9754,9 @@ static void generateTypeInit(classDef *cd, FILE *fp)
                     break;
                 }
         }
+
+        if (useKeywordArgsCtor(ct))
+            need_kwds = TRUE;
     }
 
     prcode(fp,
@@ -9759,13 +9766,13 @@ static void generateTypeInit(classDef *cd, FILE *fp)
 
     if (!generating_c)
         prcode(fp,
-"extern \"C\" {static void *init_%L(sipSimpleWrapper *, PyObject *, PyObject **, int *);}\n"
+"extern \"C\" {static void *init_%L(sipSimpleWrapper *, PyObject *, PyObject *, PyObject **, PyObject **, int *);}\n"
             , cd->iff);
 
     prcode(fp,
-"static void *init_%L(sipSimpleWrapper *%s, PyObject *sipArgs, PyObject **%s, int *sipArgsParsed)\n"
+"static void *init_%L(sipSimpleWrapper *%s, PyObject *sipArgs, PyObject *%s, PyObject **%s, PyObject **%s, int *sipArgsParsed)\n"
 "{\n"
-        , cd->iff, (need_self ? "sipSelf" : ""), (need_owner ? "sipOwner" : ""));
+        , cd->iff, (need_self ? "sipSelf" : ""), (need_kwds ? "sipKwds" : ""), (need_kwds ? "sipUnused" : ""), (need_owner ? "sipOwner" : ""));
 
     if (hasShadow(cd))
         prcode(fp,
@@ -10142,15 +10149,15 @@ static void generateFunction(memberDef *md, overDef *overs, classDef *cd,
         classDef *ocd, FILE *fp)
 {
     overDef *od;
-    int need_method, need_self, need_args, need_selfarg, need_orig_self;
+    int need_method, need_self, need_args, need_selfarg, need_orig_self, need_kwds;
 
     /*
      * Check that there is at least one overload that needs to be handled.
      * See if we can avoid naming the "self" argument (and suppress a
-     * compiler warning).  Finally see if we need to remember if "self" was
-     * explicitly passed as an argument.
+     * compiler warning).  See if we need to remember if "self" was explicitly
+     * passed as an argument.  See if we need to handle keyword arguments.
      */
-    need_method = need_self = need_args = need_selfarg = need_orig_self = FALSE;
+    need_method = need_self = need_args = need_selfarg = need_orig_self = need_kwds = FALSE;
 
     for (od = overs; od != NULL; od = od->next)
     {
@@ -10178,6 +10185,9 @@ static void generateFunction(memberDef *md, overDef *overs, classDef *cd,
                     else if (isVirtual(od) || isVirtualReimp(od) || usedInCode(od->methodcode, "sipSelfWasArg"))
                         need_selfarg = TRUE;
                 }
+
+                if (useKeywordArgs(od))
+                    need_kwds = TRUE;
             }
         }
     }
@@ -10194,12 +10204,12 @@ static void generateFunction(memberDef *md, overDef *overs, classDef *cd,
         if (!generating_c)
             prcode(fp,
 "extern \"C\" {static PyObject *meth_%L_%s(PyObject *, PyObject *%s);}\n"
-            , cd->iff, pname, (noArgParser(md) ? ", PyObject *" : ""));
+            , cd->iff, pname, (noArgParser(md) || need_kwds ? ", PyObject *" : ""));
 
         prcode(fp,
 "static PyObject *meth_%L_%s(PyObject *%s, PyObject *%s%s)\n"
 "{\n"
-            , cd->iff, pname, (need_self ? "sipSelf" : ""), (need_args ? "sipArgs" : ""), (noArgParser(md) ? ", PyObject *sipKwds" : ""));
+            , cd->iff, pname, (need_self ? "sipSelf" : ""), (need_args ? "sipArgs" : ""), (noArgParser(md) || need_kwds ? ", PyObject *sipKwds" : ""));
 
         if (tracing)
             prcode(fp,
@@ -11670,6 +11680,33 @@ static int generateArgParser(signatureDef *sd, classDef *c_scope,
         prcode(fp,
 "        if (sipParsePair(%ssipArgsParsed,sipArg0,sipArg1,\"", (ct != NULL ? "" : "&"));
     }
+    else if ((od != NULL && useKeywordArgs(od)) || (ct != NULL && useKeywordArgsCtor(ct)))
+    {
+        int a;
+
+        prcode(fp,
+"        static const char *sipKwdList[] = {\n"
+            );
+
+        for (a = 0; a < sd->nrArgs; ++a)
+        {
+            nameDef *nd = sd->args[a].name;
+
+            if (nd != NULL)
+                prcode(fp,
+"            %N,\n"
+                    , nd);
+            else
+                prcode(fp,
+"            NULL,\n"
+                    );
+        }
+
+        prcode(fp,
+"        };\n"
+"\n"
+"        if (sipParseKwdArgs(%ssipArgsParsed,sipArgs,sipKwds,sipKwdList,%s,\"", (ct != NULL ? "" : "&"), (ct != NULL ? "sipUnused" : "NULL"));
+    }
     else
     {
         single_arg = (od != NULL && od->common->slot != no_slot && !isMultiArgSlot(od->common));
@@ -13123,4 +13160,28 @@ static char getEncoding(argType atype)
     }
 
     return encoding;
+}
+
+
+/*
+ * Look at the overloads of a function to see if any need keyword arguments.
+ */
+static int functionNeedsKwds(moduleDef *mod, classDef *cd, memberDef *md)
+{
+    overDef *od;
+
+    if (cd != NULL)
+        od = cd->overs;
+    else
+        od = mod->overs;
+
+    while (od != NULL)
+    {
+        if (od->common == md && useKeywordArgs(od))
+            return TRUE;
+
+        od = od->next;
+    }
+
+    return FALSE;
 }

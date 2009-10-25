@@ -62,6 +62,9 @@ static int sip_api_init_module(sipExportedModuleDef *client,
         PyObject *mod_dict);
 static int sip_api_parse_args(int *argsParsedp, PyObject *sipArgs,
         const char *fmt, ...);
+static int sip_api_parse_kwd_args(int *argsParsedp, PyObject *sipArgs,
+        PyObject *sipKwdArgs, const **kwdlist, PyObject **unused,
+        const char *fmt, ...);
 static int sip_api_parse_pair(int *argsParsedp, PyObject *sipArg0,
         PyObject *sipArg1, const char *fmt, ...);
 static void *sip_api_convert_to_void_ptr(PyObject *obj);
@@ -232,7 +235,8 @@ static const sipAPIDef sip_api = {
     sip_api_unicode_as_wchar,
     sip_api_unicode_as_wstring,
     sip_api_deprecated,
-    sip_api_keep_reference
+    sip_api_keep_reference,
+    sip_api_parse_kwd_args
 };
 
 
@@ -358,10 +362,15 @@ static int objobjargprocSlot(PyObject *self, PyObject *arg1, PyObject *arg2,
 static int ssizeobjargprocSlot(PyObject *self, SIP_SSIZE_T arg1,
         PyObject *arg2, sipPySlotType st);
 static PyObject *buildObject(PyObject *tup, const char *fmt, va_list va);
+static int parseKwdArgs(int *argsParsedp, PyObject *sipArgs,
+        PyObject *sipKwdArgs, const **kwdlist, PyObject **unused,
+        const char *fmt, va_list va);
 static int parsePass1(sipSimpleWrapper **selfp, int *selfargp,
-        int *argsParsedp, PyObject *sipArgs, const char *fmt, va_list va);
-static int parsePass2(sipSimpleWrapper *self, int selfarg, int nrargs,
-        PyObject *sipArgs, const char *fmt, va_list va);
+        int *argsParsedp, PyObject *sipArgs, PyObject *sipKwdArgs,
+        const char **kwdlist, PyObject **unused, const char *fmt, va_list va);
+static int parsePass2(sipSimpleWrapper *self, int selfarg, PyObject *sipArgs,
+        PyObject *sipKwdArgs, const char **kwdlist, const char *fmt,
+        va_list va);
 static int isQObject(PyObject *obj);
 static int canConvertFromSequence(PyObject *seq, const sipTypeDef *td);
 static int convertFromSequence(PyObject *seq, const sipTypeDef *td,
@@ -2518,10 +2527,54 @@ static unsigned long sip_api_long_as_unsigned_long(PyObject *o)
 static int sip_api_parse_args(int *argsParsedp, PyObject *sipArgs,
         const char *fmt, ...)
 {
+    int valid;
+    va_list va;
+
+    va_start(va, fmt);
+    valid = parseKwdArgs(argsParsedp, sipArgs, NULL, NULL, NULL, fmt, va);
+    va_end(va);
+
+    return valid;
+}
+
+
+/*
+ * Parse the positional and/or keyword arguments to a C/C++ function without
+ * any side effects.
+ */
+static int sip_api_parse_kwd_args(int *argsParsedp, PyObject *sipArgs,
+        PyObject *sipKwdArgs, const **kwdlist, PyObject **unused,
+        const char *fmt, ...)
+{
+    int valid;
+    va_list va;
+
+    /* Initialise the return of any unused keyword arguments. */
+    if (unused != NULL)
+        *unused = NULL;
+
+    va_start(va, fmt);
+    valid = parseKwdArgs(argsParsedp, sipArgs, sipKwdArgs, kwdlist, unused, fmt, va);
+    va_end(va);
+
+    /* Release any unused arguments if the parse failed. */
+    if (!valid && unused != NULL)
+        Py_XDECREF(*unused);
+
+    return valid;
+}
+
+
+/*
+ * Parse the arguments to a C/C++ function without any side effects.
+ */
+static int parseKwdArgs(int *argsParsedp, PyObject *sipArgs,
+        PyObject *sipKwdArgs, const **kwdlist, PyObject **unused,
+        const char *fmt, va_list va)
+{
     int no_tmp_tuple, valid, nrargs, selfarg;
     sipSimpleWrapper *self;
     PyObject *single_arg;
-    va_list va;
 
     /* Previous sticky errors stop subsequent parses. */
     if (*argsParsedp & PARSE_STICKY)
@@ -2543,7 +2596,6 @@ static int sip_api_parse_args(int *argsParsedp, PyObject *sipArgs,
     if (no_tmp_tuple)
     {
         Py_INCREF(sipArgs);
-        nrargs = PyTuple_GET_SIZE(sipArgs);
     }
     else if ((single_arg = PyTuple_New(1)) != NULL)
     {
@@ -2551,7 +2603,6 @@ static int sip_api_parse_args(int *argsParsedp, PyObject *sipArgs,
         PyTuple_SET_ITEM(single_arg,0,sipArgs);
 
         sipArgs = single_arg;
-        nrargs = 1;
     }
     else
         return 0;
@@ -2560,9 +2611,7 @@ static int sip_api_parse_args(int *argsParsedp, PyObject *sipArgs,
      * The first pass checks all the types and does conversions that are cheap
      * and have no side effects.
      */
-    va_start(va,fmt);
-    valid = parsePass1(&self,&selfarg,&nrargs,sipArgs,fmt,va);
-    va_end(va);
+    valid = parsePass1(&self, &selfarg, &nrargs, sipArgs, sipKwdArgs, kwdlist, unused, fmt, va);
 
     if (valid != PARSE_OK)
     {
@@ -2589,9 +2638,7 @@ static int sip_api_parse_args(int *argsParsedp, PyObject *sipArgs,
      * The second pass does any remaining conversions now that we know we have
      * the right signature.
      */
-    va_start(va,fmt);
-    valid = parsePass2(self,selfarg,nrargs,sipArgs,fmt,va);
-    va_end(va);
+    valid = parsePass2(self, selfarg, sipArgs, sipKwdArgs, kwdlist, fmt, va);
 
     if (valid != PARSE_OK)
     {
@@ -2634,14 +2681,12 @@ static int sip_api_parse_pair(int *argsParsedp, PyObject *sipArg0,
     Py_INCREF(sipArg1);
     PyTuple_SET_ITEM(args, 1, sipArg1);
 
-    nrargs = 2;
-
     /*
      * The first pass checks all the types and does conversions that are cheap
      * and have no side effects.
      */
     va_start(va,fmt);
-    valid = parsePass1(&self,&selfarg,&nrargs,args,fmt,va);
+    valid = parsePass1(&self, &selfarg, &nrargs, args, NULL, NULL, NULL, fmt, va);
     va_end(va);
 
     if (valid != PARSE_OK)
@@ -2670,7 +2715,7 @@ static int sip_api_parse_pair(int *argsParsedp, PyObject *sipArg0,
      * the right signature.
      */
     va_start(va,fmt);
-    valid = parsePass2(self,selfarg,nrargs,args,fmt,va);
+    valid = parsePass2(self, selfarg, args, NULL, NULL, fmt, va);
     va_end(va);
 
     if (valid != PARSE_OK)
@@ -2695,15 +2740,26 @@ static int sip_api_parse_pair(int *argsParsedp, PyObject *sipArg0,
  * without any side effects.  Return PARSE_OK if the arguments matched.
  */
 static int parsePass1(sipSimpleWrapper **selfp, int *selfargp,
-        int *argsParsedp, PyObject *sipArgs, const char *fmt, va_list va)
+        int *argsParsedp, PyObject *sipArgs, PyObject *sipKwdArgs,
+        const char **kwdlist, PyObject **unused, const char *fmt, va_list va)
 {
-    int valid, compulsory, nrargs, argnr, nrparsed;
+    int valid, compulsory, argnr, nrparsed, nr_args;
+    SIP_SSIZE_T nr_pos_args, nr_kwd_args, nr_kwd_args_used;
 
     valid = PARSE_OK;
-    nrargs = *argsParsedp;
     nrparsed = 0;
     compulsory = TRUE;
     argnr = 0;
+    nr_args = 0;
+    nr_pos_args = PyTuple_GET_SIZE(sipArgs);
+    nr_kwd_args = nr_kwd_args_used = 0;
+
+    if (sipKwdArgs != NULL)
+    {
+        assert(PyDict_Check(sipKwdArgs));
+
+        nr_kwd_args = PyDict_Size(sipKwdArgs);
+    }
 
     /*
      * Handle those format characters that deal with the "self" argument.  They
@@ -2766,30 +2822,161 @@ static int parsePass1(sipSimpleWrapper **selfp, int *selfargp,
 
         if (ch == '\0')
         {
-            /* Invalid if there are still arguments. */
-            if (argnr < nrargs)
+            if (argnr < nr_pos_args)
+            {
+                /* There are still positional arguments. */
                 valid = PARSE_MANY;
+            }
+            else if (nr_kwd_args_used != nr_kwd_args)
+            {
+                /*
+                 * Take a shortcut if no keyword arguments were used and we are
+                 * interested in them.
+                 */
+                if (nr_kwd_args_used == 0 && unused != NULL)
+                {
+                    Py_INCREF(sipKwdArgs);
+                    *unused = sipKwdArgs;
+                }
+                else
+                {
+                    PyObject *key, *value, *unused_dict = NULL;
+                    SIP_SSIZE_T pos = 0;
 
-            break;
-        }
+                    /*
+                     * Go through the keyword arguments to find any that were
+                     * duplicates of positional arguments.  For the remaining
+                     * ones remember the unused ones if we are interested.
+                     */
+                    while (PyDict_Next(sipKwdArgs, &pos, &key, &value))
+                    {
+                        int arg_idx = -1;
 
-        /* See if we have run out of arguments. */
+#if PY_MAJOR_VERSION >= 3
+                        if (PyUnicode_Check(key))
+#else
+                        if (PyString_Check(key))
+#endif
+                        {
+                            int a;
 
-        if (argnr == nrargs)
-        {
-            /*
-             * It is an error if we are still expecting compulsory arguments
-             * unless the current argument is an ellipsis.
-             */
-            if (ch != 'W' && ch != '\0' && compulsory)
-                valid = PARSE_FEW;
+                            /* Get the argument's index if it is one. */
+                            for (a = 0; a < nr_args; ++a)
+                            {
+                                const char *name = kwdlist[a];
+
+                                if (name == NULL)
+                                    continue;
+
+#if PY_MAJOR_VERSION >= 3
+                                if (PyUnicode_CompareWithASCIIString(key, name) == 0)
+#else
+                                if (strcmp(PyString_AS_STRING(key), name) == 0)
+#endif
+                                {
+                                    arg_idx = a;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (arg_idx < 0)
+                        {
+                            /*
+                             * The name doesn't correspond to a keyword
+                             * argument.
+                             */
+                            if (unused == NULL)
+                            {
+                                /*
+                                 * It may correspond to a keyword argument of a
+                                 * different overload.
+                                 */
+                                valid = PARSE_MANY;
+                            }
+                            else
+                            {
+                                /*
+                                 * Add it to the dictionary of unused arguments
+                                 * creating it if necessary.  Note that if the
+                                 * unused arguments are actually used by a
+                                 * later overload then the parse will
+                                 * incorrectly succeed.  This should be picked
+                                 * up (perhaps with a misleading exception) so
+                                 * long as the code that handles the unused
+                                 * arguments checks that it can handle them
+                                 * all.
+                                 */
+                                if (unused_dict == NULL && (*unused = unused_dict = PyDict_New()) == NULL)
+                                    valid = PARSE_RAISED;
+                                else if (PyDict_SetItem(unused_dict, key, value) < 0)
+                                    valid = PARSE_RAISED;
+                            }
+                        }
+                        else if (arg_idx < nr_pos_args)
+                        {
+                            /*
+                             * The argument has been given positionally and as
+                             * a keyword.  However we can't assume it is an
+                             * error because it might be correct for a
+                             * different overload.
+                             */
+                            valid = PARSE_MANY;
+                        }
+
+                        if (valid != PARSE_OK)
+                            break;
+                    }
+                }
+            }
 
             break;
         }
 
         /* Get the next argument. */
-        arg = PyTuple_GET_ITEM(sipArgs,argnr);
+        arg = NULL;
+
+        if (argnr < nr_pos_args)
+        {
+            arg = PyTuple_GET_ITEM(sipArgs, argnr);
+        }
+        else if (sipKwdArgs != NULL)
+        {
+            const char *name = kwdlist[argnr];
+
+            if (name != NULL)
+            {
+                arg = PyDict_GetItemString(sipKwdArgs, name);
+
+                if (arg != NULL)
+                    ++nr_kwd_args_used;
+            }
+        }
+
         ++argnr;
+        ++nr_args;
+
+        if (arg == NULL)
+        {
+            if (ch == 'W')
+            {
+                /*
+                 * A variable number of arguments was allowed but none were
+                 * given.
+                 */
+                break;
+            }
+
+            if (compulsory)
+            {
+                /* An argument was required. */
+                valid = PARSE_FEW;
+                break;
+            }
+
+            /* Go round again looking for the next keyword argument. */
+            continue;
+        }
 
         switch (ch)
         {
@@ -2803,6 +2990,7 @@ static int parsePass1(sipSimpleWrapper **selfp, int *selfargp,
 
             /* Process the same argument next time round. */
             --argnr;
+            --nr_args;
             --nrparsed;
 
             break;
@@ -3542,7 +3730,7 @@ static int parsePass1(sipSimpleWrapper **selfp, int *selfargp,
             if (ch == 'W')
             {
                 /* An ellipsis matches everything and ends the parse. */
-                nrparsed = nrargs;
+                nrparsed = nr_pos_args;
                 break;
             }
 
@@ -3560,10 +3748,12 @@ static int parsePass1(sipSimpleWrapper **selfp, int *selfargp,
  * Second pass of the argument parse, converting the remaining ones that might
  * have side effects.  Return PARSE_OK if there was no error.
  */
-static int parsePass2(sipSimpleWrapper *self, int selfarg, int nrargs,
-        PyObject *sipArgs, const char *fmt, va_list va)
+static int parsePass2(sipSimpleWrapper *self, int selfarg, PyObject *sipArgs,
+        PyObject *sipKwdArgs, const char **kwdlist, const char *fmt,
+        va_list va)
 {
     int a, valid;
+    SIP_SSIZE_T nr_pos_args = PyTuple_GET_SIZE(sipArgs);
 
     valid = PARSE_OK;
 
@@ -3618,14 +3808,36 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, int nrargs,
         --fmt;
     }
 
-    for (a = (selfarg ? 1 : 0); a < nrargs && *fmt != 'W' && valid == PARSE_OK; ++a)
+    for (a = (selfarg ? 1 : 0); *fmt != '\0' && *fmt != 'W' && valid == PARSE_OK; ++a)
     {
         char ch;
-        PyObject *arg = PyTuple_GET_ITEM(sipArgs,a);
+        PyObject *arg;
 
         /* Skip the optional character. */
         if ((ch = *fmt++) == '|')
             ch = *fmt++;
+
+        /* Get the next argument. */
+        arg = NULL;
+
+        if (a < nr_pos_args)
+        {
+            arg = PyTuple_GET_ITEM(sipArgs, a);
+        }
+        else if (sipKwdArgs != NULL)
+        {
+            const char *name = kwdlist[a];
+
+            if (name != NULL)
+                arg = PyDict_GetItemString(sipKwdArgs, name);
+        }
+
+        /*
+         * If there is no argument then it must be a missing optional argument
+         * (otherwise we wouldn't have got this far).
+         */
+        if (arg == NULL)
+            continue;
 
         /*
          * Do the outstanding conversions.  For most types it has already been
@@ -3879,13 +4091,13 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, int nrargs,
         PyObject *al;
 
         /* Create a tuple for any remaining arguments. */
-        if ((al = PyTuple_New(nrargs - a)) != NULL)
+        if ((al = PyTuple_New(nr_pos_args - a)) != NULL)
         {
             int da = 0;
 
-            while (a < nrargs)
+            while (a < nr_pos_args)
             {
-                PyObject *arg = PyTuple_GET_ITEM(sipArgs,a);
+                PyObject *arg = PyTuple_GET_ITEM(sipArgs, a);
 
                 /* Add the remaining argument to the tuple. */
                 Py_INCREF(arg);
@@ -7931,6 +8143,27 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
     sipWrapperType *wt = (sipWrapperType *)Py_TYPE(self);
     sipTypeDef *td = wt->type;
     sipClassTypeDef *ctd = (sipClassTypeDef *)td;
+    PyObject *unused, **unused_p;
+
+    static int got_kw_handler = FALSE;
+    static int (*kw_handler)(PyObject *, void *, PyObject *);
+
+    /*
+     * Get any keyword handler if necessary.  In SIP v5 this will be
+     * generalised and not PyQt specific.
+     */
+    if (!got_kw_handler)
+    {
+        kw_handler = sip_api_import_symbol("pyqt_kw_handler");
+        got_kw_handler = TRUE;
+    }
+
+    /*
+     * We are intersted in unused keyword arguments if we are creating a
+     * QObject and we have a handler.
+     */
+    unused_p = (kw_handler != NULL && isQObject(self)) ? &unused : NULL;
+    unused = NULL;
 
     /* Check there is no existing C++ instance waiting to be wrapped. */
     if ((sipNew = sipGetPending(&owner, &sipFlags)) == NULL)
@@ -7940,8 +8173,29 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
         /* Call the C++ ctor. */
         owner = NULL;
 
-        if ((sipNew = ctd->ctd_init(self, args, (PyObject **)&owner, &argsparsed)) != NULL)
+        /* The signature of ctd_init() changed in API v6.1. */
+        if (td->td_module->em_api_minor >= 1)
+        {
+            sipNew = ctd->ctd_init(self, args, kwds, unused_p,
+                    (PyObject **)&owner, &argsparsed);
+        }
+        else
+        {
+            sipInitFunc_6_0 init = (sipInitFunc_6_0)ctd->ctd_init;
+
+            sipNew = init(self, args, (PyObject **)&owner, &argsparsed);
+
+            if (sipNew != NULL && unused_p != NULL)
+            {
+                unused = kwds;
+                Py_XINCREF(unused);
+            }
+        }
+
+        if (sipNew != NULL)
+        {
             sipFlags = SIP_DERIVED_CLASS;
+        }
         else
         {
             int pstate = argsparsed & PARSE_MASK;
@@ -7964,7 +8218,27 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
             {
                 argsparsed = 0;
 
-                if ((sipNew = ie->ie_extender(self, args, (PyObject **)&owner, &argsparsed)) != NULL)
+                /* The signature of ie_extender() changed in API v6.1. */
+                if (td->td_module->em_api_minor >= 1)
+                {
+                    sipNew = ie->ie_extender(self, args, kwds, unused_p,
+                            (PyObject **)&owner, &argsparsed);
+                }
+                else
+                {
+                    sipInitFunc_6_0 extender = (sipInitFunc_6_0)ie->ie_extender;
+
+                    sipNew = extender(self, args, (PyObject **)&owner,
+                            &argsparsed);
+
+                    if (sipNew != NULL && unused_p != NULL)
+                    {
+                        unused = kwds;
+                        Py_XINCREF(unused);
+                    }
+                }
+
+                if (sipNew != NULL)
                     break;
 
                 pstate = argsparsed & PARSE_MASK;
@@ -7983,6 +8257,7 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
 
                 badArgs(argsparsed, sipNameOfModule(td->td_module),
                         sipPyNameOfContainer(&ctd->ctd_container, td));
+
                 return -1;
             }
 
@@ -8016,30 +8291,15 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
     if (!sipNotInMap(self))
         sipOMAddObject(&cppPyMap,self);
 
-    if (kwds != NULL && PyDict_Check(kwds) && PyDict_Size(kwds) != 0)
+    /* If we have unused keyword arguments then we know how to handle them. */
+    if (unused != NULL)
     {
-        static int got_kw_handler = FALSE;
-        static int (*kw_handler)(PyObject *, void *, PyObject *);
+        int rc;
 
-        // Get the keyword handler if necessary.  Note that the C/C++
-        // instance will leak if there is any error.
-        if (!got_kw_handler)
-        {
-            kw_handler = sip_api_import_symbol("pyqt_kw_handler");
-            got_kw_handler = TRUE;
-        }
+        rc = kw_handler(self, sipNew, unused);
+        Py_DECREF(unused);
 
-        if (kw_handler == NULL || !isQObject(self))
-        {
-            PyErr_Format(PyExc_TypeError,
-                    "%s.%s does not support keyword arguments",
-                    sipNameOfModule(td->td_module),
-                    sipPyNameOfContainer(&ctd->ctd_container, td));
-
-            return -1;
-        }
-
-        if (kw_handler(self, sipNew, kwds) < 0)
+        if (rc < 0)
             return -1;
     }
 

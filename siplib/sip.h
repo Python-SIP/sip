@@ -56,6 +56,10 @@ extern "C" {
  *
  * History:
  *
+ * 6.1  Added sip_api_parse_kwd_args().
+ *      The type initialisation function is now passed a dictionary of keyword
+ *      arguments.
+ *
  * 6.0  Added the sipContainerDef structure to define the contents of a class
  *      or mapped type.  Restructured sipClassDef and sipMappedTypeDef
  *      accordingly.
@@ -143,7 +147,7 @@ extern "C" {
  * 0.0  Original version.
  */
 #define SIP_API_MAJOR_NR    6
-#define SIP_API_MINOR_NR    0
+#define SIP_API_MINOR_NR    1
 
 
 /* Some compatibility stuff to help with handwritten code for SIP v3. */
@@ -327,7 +331,9 @@ typedef struct _sipEnumTypeObject {
 /*
  * Some convenient function pointers.
  */
-typedef void *(*sipInitFunc)(sipSimpleWrapper *, PyObject *, PyObject **,
+typedef void *(*sipInitFunc)(sipSimpleWrapper *, PyObject *, PyObject *,
+        PyObject **, PyObject **, int *);
+typedef void *(*sipInitFunc_6_0)(sipSimpleWrapper *, PyObject *, PyObject **,
         int *);
 typedef int (*sipTraverseFunc)(void *, visitproc, void *);
 typedef int (*sipClearFunc)(void *);
@@ -1315,6 +1321,9 @@ typedef struct _sipAPIDef {
 #endif
     int (*api_deprecated)(const char *classname, const char *method);
     void (*api_keep_reference)(PyObject *self, int key, PyObject *obj);
+    int (*api_parse_kwd_args)(int *argsParsedp, PyObject *sipArgs,
+            PyObject *sipKwdArgs, const char **kwdlist, PyObject **unused,
+            const char *fmt, ...);
 } sipAPIDef;
 
 

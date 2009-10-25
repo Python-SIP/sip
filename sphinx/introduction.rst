@@ -43,6 +43,8 @@ SIP, and the bindings it produces, have the following features:
 
 - overloading of functions and methods with different argument signatures
 
+- support for Python's keyword argument syntax
+
 - access to a C++ class's protected methods
 
 - the ability to define a Python class that is a sub-class of a C++ class,

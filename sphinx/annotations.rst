@@ -514,6 +514,17 @@ Function Annotations
     See :ref:`ref-gil` and the :fanno:`ReleaseGIL` annotation.
 
 
+.. function-annotation:: KeywordArgs
+
+    .. versionadded:: 4.10
+
+    This boolean annotation specifies that the argument parser generated for
+    this function will support passing the parameters using Python's keyword
+    argument syntax.  Keyword arguments cannot be used for functions that have
+    unnamed arguments or use an ellipsis to designate that the function has a
+    variable number of arguments.
+
+
 .. function-annotation:: NewThread
 
     This boolean annotation specifies that the function will create a new
@@ -536,6 +547,19 @@ Function Annotations
     to define a Python constructor that has no corresponding C++ constructor.
     This annotation is used to suppress the generation of the constructor in
     the derived class.
+
+
+.. function-annotation:: NoKeywordArgs
+
+    .. versionadded:: 4.10
+
+    This boolean annotation specifies that the argument parser generated for
+    this function will not support passing the parameters using Python's
+    keyword argument syntax.  In other words, the argument parser will only
+    support only normal positional arguments.  This annotation is useful when
+    the default setting of allowing keyword arguments has been changed via the
+    command line, but you would still like certain functions to only support
+    positional arguments.
 
 
 .. function-annotation:: Numeric

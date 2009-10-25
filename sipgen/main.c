@@ -40,7 +40,7 @@ int main(int argc, char **argv)
 {
     char *filename, *docFile, *codeDir, *srcSuffix, *flagFile, *consModule;
     char arg, *optarg, *buildFile, *apiFile, *xmlFile;
-    int optnr, exceptions, tracing, releaseGIL, parts;
+    int optnr, exceptions, tracing, releaseGIL, parts, kwdArgs;
     FILE *file;
     sipSpec spec;
     stringList *versions, *xfeatures;
@@ -62,11 +62,12 @@ int main(int argc, char **argv)
     tracing = FALSE;
     releaseGIL = FALSE;
     parts = 0;
+    kwdArgs = FALSE;
 
     /* Parse the command line. */
     optnr = 1;
 
-    while ((arg = parseopt(argc, argv, "hVa:b:ec:d:gI:j:m:p:rs:t:wx:z:", &flagFile, &optnr, &optarg)) != '\0')
+    while ((arg = parseopt(argc, argv, "hVa:b:ec:d:gI:j:km:p:rs:t:wx:z:", &flagFile, &optnr, &optarg)) != '\0')
         switch (arg)
         {
         case 'p':
@@ -152,6 +153,11 @@ int main(int argc, char **argv)
             warnings = TRUE;
             break;
 
+        case 'k':
+            /* Allow keyword arguments in functions and methods. */
+            kwdArgs = TRUE;
+            break;
+
         case 'h':
             /* Help message. */
             help();
@@ -181,7 +187,7 @@ int main(int argc, char **argv)
     }
 
     /* Parse the input file. */
-    parse(&spec, file, filename, versions, xfeatures);
+    parse(&spec, file, filename, versions, xfeatures, kwdArgs);
 
     /* Verify and transform the parse tree. */
     transform(&spec);
@@ -446,7 +452,7 @@ static void help(void)
 {
     printf(
 "Usage:\n"
-"    %s [-h] [-V] [-a file] [-c dir] [-d file] [-e] [-g] [-I dir] [-j #] [-m file] [-p module] [-r] [-s suffix] [-t tag] [-w] [-x feature] [-z file] [file]\n"
+"    %s [-h] [-V] [-a file] [-c dir] [-d file] [-e] [-g] [-I dir] [-j #] [-k] [-m file] [-p module] [-r] [-s suffix] [-t tag] [-w] [-x feature] [-z file] [file]\n"
 "where:\n"
 "    -h          display this help message\n"
 "    -V          display the %s version number\n"
@@ -458,6 +464,7 @@ static void help(void)
 "    -g          always release and reacquire the GIL [default only when specified]\n"
 "    -I dir      look in this directory when including files\n"
 "    -j #        split the generated code into # files [default 1 per class]\n"
+"    -k          support keyword arguments in functions and methods\n"
 "    -m file     the name of the XML export file [default not generated]\n"
 "    -p module   the name of the consoldated module that this is a component of\n"
 "    -r          generate code with tracing enabled [default disabled]\n"

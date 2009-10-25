@@ -73,6 +73,11 @@ The full set of command line options is:
     ``make``.  By default 1 file is generated for each C structure or C++
     class.
 
+.. cmdoption:: -k
+
+    By default all functions and methods will support passing parameters using
+    the Python keyword argument syntax.
+
 .. cmdoption:: -p <MODULE>
 
     The name of the :directive:`%ConsolidatedModule` which will contain the

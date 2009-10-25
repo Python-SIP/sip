@@ -38,6 +38,7 @@ static int sectFlagsStack[MAX_NESTED_SCOPE];    /* The section flags stack. */
 static int currentScopeIdx;             /* The scope stack index. */
 static int currentTimelineOrder;        /* The current timeline order. */
 static classList *currentSupers;        /* The current super-class list. */
+static int defaultKwdArgs;              /* Support keyword arguments by default. */
 
 
 static const char *getPythonName(optFlags *optflgs, const char *cname);
@@ -121,6 +122,7 @@ static apiVersionRangeDef *getAPIRange(optFlags *optflgs);
 static apiVersionRangeDef *convertAPIRange(moduleDef *mod, nameDef *name,
         int from, int to);
 static scopedNameDef *text2scopePart(char *text);
+static int usesKeywordArgs(optFlags *optflgs, signatureDef *sd);
 %}
 
 %union {
@@ -2216,7 +2218,7 @@ argvalue:   TK_SIPSIGNAL optname optflags optassign {
             $$.atype = signal_type;
             $$.argflags = ARG_IS_CONST;
             $$.nrderefs = 0;
-            $$.name = $2;
+            $$.name = cacheName(currentSpec, $2);
             $$.defval = $4;
 
             currentSpec -> sigslots = TRUE;
@@ -2225,7 +2227,7 @@ argvalue:   TK_SIPSIGNAL optname optflags optassign {
             $$.atype = slot_type;
             $$.argflags = ARG_IS_CONST;
             $$.nrderefs = 0;
-            $$.name = $2;
+            $$.name = cacheName(currentSpec, $2);
             $$.defval = $4;
 
             currentSpec -> sigslots = TRUE;
@@ -2234,7 +2236,7 @@ argvalue:   TK_SIPSIGNAL optname optflags optassign {
             $$.atype = anyslot_type;
             $$.argflags = ARG_IS_CONST;
             $$.nrderefs = 0;
-            $$.name = $2;
+            $$.name = cacheName(currentSpec, $2);
             $$.defval = $4;
 
             currentSpec -> sigslots = TRUE;
@@ -2243,7 +2245,7 @@ argvalue:   TK_SIPSIGNAL optname optflags optassign {
             $$.atype = rxcon_type;
             $$.argflags = 0;
             $$.nrderefs = 0;
-            $$.name = $2;
+            $$.name = cacheName(currentSpec, $2);
 
             if (findOptFlag(&$3, "SingleShot", bool_flag) != NULL)
                 $$.argflags |= ARG_SINGLE_SHOT;
@@ -2254,7 +2256,7 @@ argvalue:   TK_SIPSIGNAL optname optflags optassign {
             $$.atype = rxdis_type;
             $$.argflags = 0;
             $$.nrderefs = 0;
-            $$.name = $2;
+            $$.name = cacheName(currentSpec, $2);
 
             currentSpec -> sigslots = TRUE;
         }
@@ -2262,7 +2264,7 @@ argvalue:   TK_SIPSIGNAL optname optflags optassign {
             $$.atype = slotcon_type;
             $$.argflags = ARG_IS_CONST;
             $$.nrderefs = 0;
-            $$.name = $5;
+            $$.name = cacheName(currentSpec, $5);
 
             $3.result.atype = void_type;
             $3.result.argflags = 0;
@@ -2277,7 +2279,7 @@ argvalue:   TK_SIPSIGNAL optname optflags optassign {
             $$.atype = slotdis_type;
             $$.argflags = ARG_IS_CONST;
             $$.nrderefs = 0;
-            $$.name = $5;
+            $$.name = cacheName(currentSpec, $5);
 
             $3.result.atype = void_type;
             $3.result.argflags = 0;
@@ -2292,7 +2294,7 @@ argvalue:   TK_SIPSIGNAL optname optflags optassign {
             $$.atype = qobject_type;
             $$.argflags = 0;
             $$.nrderefs = 0;
-            $$.name = $2;
+            $$.name = cacheName(currentSpec, $2);
         }
     |   argtype optassign {
             $$ = $1;
@@ -2363,7 +2365,7 @@ cpptype:    TK_CONST basetype deref optref {
 
 argtype:    cpptype optname optflags {
             $$ = $1;
-            $$.name = $2;
+            $$.name = cacheName(currentSpec, $2);
 
             if (getAllowNone(&$3))
                 $$.argflags |= ARG_ALLOW_NONE;
@@ -2736,7 +2738,7 @@ exceptionlist:  {
  * Parse the specification.
  */
 void parse(sipSpec *spec, FILE *fp, char *filename, stringList *tsl,
-        stringList *xfl)
+        stringList *xfl, int kwdArgs)
 {
     classTmplDef *tcd;
 
@@ -2772,6 +2774,7 @@ void parse(sipSpec *spec, FILE *fp, char *filename, stringList *tsl,
     skipStackPtr = 0;
     currentScopeIdx = 0;
     sectionFlags = 0;
+    defaultKwdArgs = kwdArgs;
 
     newModule(fp, filename);
     spec->module = currentModule;
@@ -4808,6 +4811,9 @@ static void newCtor(char *name, int sectFlags, signatureDef *args,
     if (getDeprecated(optflgs))
         setIsDeprecatedCtor(ct);
 
+    if (usesKeywordArgs(optflgs, &ct->pysig))
+        setUseKeywordArgsCtor(ct);
+
     if (findOptFlag(optflgs, "NoDerived", bool_flag) != NULL)
     {
         if (cppsig != NULL)
@@ -5059,6 +5065,9 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
     if (getDeprecated(optflgs))
         setIsDeprecated(od);
 
+    if (usesKeywordArgs(optflgs, &od->pysig))
+        setUseKeywordArgs(od);
+
     od -> next = NULL;
 
     /* Append to the list. */
@@ -5092,10 +5101,17 @@ static const char *getPythonName(optFlags *optflgs, const char *cname)
  */
 nameDef *cacheName(sipSpec *pt, const char *name)
 {
-    nameDef *nd, **ndp = &pt->namecache;
-    size_t len = strlen(name);
+    nameDef *nd, **ndp;
+    size_t len;
+
+    /* Allow callers to be lazy about checking if there is really a name. */
+    if (name == NULL)
+        return NULL;
 
     /* Skip entries that are too large. */
+    ndp = &pt->namecache;
+    len = strlen(name);
+
     while (*ndp != NULL && (*ndp)->len > len)
         ndp = &(*ndp)->next;
 
@@ -6136,4 +6152,46 @@ static apiVersionRangeDef *convertAPIRange(moduleDef *mod, nameDef *name,
     *avdp = avd;
 
     return avd;
+}
+
+
+/*
+ * Return TRUE if a signature with annotations uses keyword arguments.
+ */
+static int usesKeywordArgs(optFlags *optflgs, signatureDef *sd)
+{
+    int kwd_args_anno, no_kwd_args_anno;
+
+    kwd_args_anno = (findOptFlag(optflgs, "KeywordArgs", bool_flag) != NULL);
+    no_kwd_args_anno = (findOptFlag(optflgs, "NoKeywordArgs", bool_flag) != NULL);
+
+    /*
+     * An ellipsis cannot be used with keyword arguments.  Only complain if it
+     * has been explicitly requested.
+     */
+    if (kwd_args_anno && sd->nrArgs > 0 && sd->args[sd->nrArgs - 1].atype == ellipsis_type)
+        yyerror("/KeywordArgs/ cannot be specified for calls with a variable number of arguments");
+
+    if ((defaultKwdArgs || kwd_args_anno) && !no_kwd_args_anno)
+    {
+        int a, is_name = FALSE;
+
+        /*
+         * Mark argument names as being used and check there is at least one.
+         */
+        for (a = 0; a < sd->nrArgs; ++a)
+        {
+            nameDef *nd = sd->args[a].name;
+
+            if (sd->args[a].name != NULL)
+            {
+                setIsUsedName(nd);
+                is_name = TRUE;
+            }
+        }
+
+        return is_name;
+    }
+
+    return FALSE;
 }
