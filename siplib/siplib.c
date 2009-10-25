@@ -364,7 +364,7 @@ static int ssizeobjargprocSlot(PyObject *self, SIP_SSIZE_T arg1,
 static PyObject *buildObject(PyObject *tup, const char *fmt, va_list va);
 static int parseKwdArgs(int *argsParsedp, PyObject *sipArgs,
         PyObject *sipKwdArgs, const **kwdlist, PyObject **unused,
-        const char *fmt, va_list va);
+        const char *fmt, va_list va_orig);
 static int parsePass1(sipSimpleWrapper **selfp, int *selfargp,
         int *argsParsedp, PyObject *sipArgs, PyObject *sipKwdArgs,
         const char **kwdlist, PyObject **unused, const char *fmt, va_list va);
@@ -2570,11 +2570,12 @@ static int sip_api_parse_kwd_args(int *argsParsedp, PyObject *sipArgs,
  */
 static int parseKwdArgs(int *argsParsedp, PyObject *sipArgs,
         PyObject *sipKwdArgs, const **kwdlist, PyObject **unused,
-        const char *fmt, va_list va)
+        const char *fmt, va_list va_orig)
 {
     int no_tmp_tuple, valid, nrargs, selfarg;
     sipSimpleWrapper *self;
     PyObject *single_arg;
+    va_list va;
 
     /* Previous sticky errors stop subsequent parses. */
     if (*argsParsedp & PARSE_STICKY)
@@ -2611,7 +2612,9 @@ static int parseKwdArgs(int *argsParsedp, PyObject *sipArgs,
      * The first pass checks all the types and does conversions that are cheap
      * and have no side effects.
      */
+    va_copy(va, va_orig);
     valid = parsePass1(&self, &selfarg, &nrargs, sipArgs, sipKwdArgs, kwdlist, unused, fmt, va);
+    va_end(va);
 
     if (valid != PARSE_OK)
     {
@@ -2638,7 +2641,9 @@ static int parseKwdArgs(int *argsParsedp, PyObject *sipArgs,
      * The second pass does any remaining conversions now that we know we have
      * the right signature.
      */
+    va_copy(va, va_orig);
     valid = parsePass2(self, selfarg, sipArgs, sipKwdArgs, kwdlist, fmt, va);
+    va_end(va);
 
     if (valid != PARSE_OK)
     {
