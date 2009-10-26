@@ -234,7 +234,6 @@ static int isDuplicateProtected(classDef *cd, overDef *target);
 static char getEncoding(argType atype);
 static void generateTypeDefName(ifaceFileDef *iff, FILE *fp);
 static void generateTypeDefLink(sipSpec *pt, ifaceFileDef *iff, FILE *fp);
-static int functionNeedsKwds(overDef *od, memberDef *md);
 
 
 /*
@@ -1718,7 +1717,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
                 if (od->common != md)
                     continue;
 
-                if (noArgParser(md) || functionNeedsKwds(mod->overs, md))
+                if (noArgParser(md) || useKeywordArgsFunction(md))
                     prcode(fp,
 "    {%n, (PyCFunction)func_%s, METH_VARARGS|METH_KEYWORDS, %P},\n"
                         , md->pyname, md->pyname->text, od->api_range);
@@ -1879,7 +1878,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
             if (!notVersioned(md))
                 continue;
 
-            if (noArgParser(md) || functionNeedsKwds(mod->overs, md))
+            if (noArgParser(md) || useKeywordArgsFunction(md))
                 prcode(fp,
 "        {SIP_MLNAME_CAST(%N), (PyCFunction)func_%s, METH_VARARGS|METH_KEYWORDS, NULL},\n"
                     , md->pyname, md->pyname->text);
@@ -2401,7 +2400,7 @@ static void generateOrdinaryFunction(moduleDef *mod, classDef *c_scope,
 "\n"
         );
 
-    if (noArgParser(md) || functionNeedsKwds(od, md))
+    if (noArgParser(md) || useKeywordArgsFunction(md))
     {
         kw_fw_decl = ", PyObject *";
         kw_decl = ", PyObject *sipKwds";
@@ -3906,7 +3905,7 @@ static void prMethodTable(sortedMethTab *mtable, int nr, ifaceFileDef *iff,
         memberDef *md = mtable[i].md;
         const char *cast, *flags;
 
-        if (noArgParser(md) || functionNeedsKwds(od, md))
+        if (noArgParser(md) || useKeywordArgsFunction(md))
         {
             cast = "(PyCFunction)";
             flags = "|METH_KEYWORDS";
@@ -11673,10 +11672,10 @@ static int generateArgParser(signatureDef *sd, classDef *c_scope,
             );
 
     /* Generate the call to the parser function. */
+    single_arg = FALSE;
+
     if (od != NULL && isNumberSlot(od->common))
     {
-        single_arg = FALSE;
-
         prcode(fp,
 "        if (sipParsePair(%ssipArgsParsed,sipArg0,sipArg1,\"", (ct != NULL ? "" : "&"));
     }
@@ -13160,21 +13159,4 @@ static char getEncoding(argType atype)
     }
 
     return encoding;
-}
-
-
-/*
- * Look at the overloads of a function to see if any need keyword arguments.
- */
-static int functionNeedsKwds(overDef *od, memberDef *md)
-{
-    while (od != NULL)
-    {
-        if (od->common == md && useKeywordArgs(od))
-            return TRUE;
-
-        od = od->next;
-    }
-
-    return FALSE;
 }

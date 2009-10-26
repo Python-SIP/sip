@@ -183,6 +183,7 @@
 #define MEMBR_NUMERIC       0x0001      /* It is a numeric slot. */
 #define MEMBR_NO_ARG_PARSER 0x0002      /* Don't generate an argument parser. */
 #define MEMBR_NOT_VERSIONED 0x0004      /* There is an unversioned overload. */
+#define MEMBR_KEYWORD_ARGS  0x0008      /* It allows keyword arguments. */
 
 #define isNumeric(m)        ((m)->memberflags & MEMBR_NUMERIC)
 #define setIsNumeric(m)     ((m)->memberflags |= MEMBR_NUMERIC)
@@ -190,6 +191,8 @@
 #define setNoArgParser(m)   ((m)->memberflags |= MEMBR_NO_ARG_PARSER)
 #define notVersioned(m)     ((m)->memberflags & MEMBR_NOT_VERSIONED)
 #define setNotVersioned(m)  ((m)->memberflags |= MEMBR_NOT_VERSIONED)
+#define useKeywordArgsFunction(m)   ((m)->memberflags & MEMBR_KEYWORD_ARGS)
+#define setUseKeywordArgsFunction(m)    ((m)->memberflags |= MEMBR_KEYWORD_ARGS)
 
 
 /* Handle enum flags.  These are combined with the section flags. */

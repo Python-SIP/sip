@@ -4811,7 +4811,7 @@ static void newCtor(char *name, int sectFlags, signatureDef *args,
     if (getDeprecated(optflgs))
         setIsDeprecatedCtor(ct);
 
-    if (usesKeywordArgs(optflgs, &ct->pysig))
+    if (!isPrivateCtor(ct) && usesKeywordArgs(optflgs, &ct->pysig))
         setUseKeywordArgsCtor(ct);
 
     if (findOptFlag(optflgs, "NoDerived", bool_flag) != NULL)
@@ -5065,8 +5065,11 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
     if (getDeprecated(optflgs))
         setIsDeprecated(od);
 
-    if (usesKeywordArgs(optflgs, &od->pysig))
+    if (!isPrivate(od) && od->common->slot == no_slot && usesKeywordArgs(optflgs, &od->pysig))
+    {
         setUseKeywordArgs(od);
+        setUseKeywordArgsFunction(od->common);
+    }
 
     od -> next = NULL;
 
