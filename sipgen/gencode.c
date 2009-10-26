@@ -146,7 +146,7 @@ static sortedMethTab *createMethodTable(classDef *, int *);
 static int generateMappedTypeMethodTable(mappedTypeDef *mtd, FILE *fp);
 static int generateClassMethodTable(classDef *cd, FILE *fp);
 static void prMethodTable(sortedMethTab *mtable, int nr, ifaceFileDef *iff,
-        classDef *cd, FILE *fp);
+        overDef *od, FILE *fp);
 static void generateEnumMacros(sipSpec *pt, moduleDef *mod, classDef *cd,
         mappedTypeDef *mtd, FILE *fp);
 static int generateEnumMemberTable(sipSpec *pt, moduleDef *mod, classDef *cd,
@@ -234,7 +234,7 @@ static int isDuplicateProtected(classDef *cd, overDef *target);
 static char getEncoding(argType atype);
 static void generateTypeDefName(ifaceFileDef *iff, FILE *fp);
 static void generateTypeDefLink(sipSpec *pt, ifaceFileDef *iff, FILE *fp);
-static int functionNeedsKwds(moduleDef *mod, classDef *cd, memberDef *md);
+static int functionNeedsKwds(overDef *od, memberDef *md);
 
 
 /*
@@ -1718,7 +1718,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
                 if (od->common != md)
                     continue;
 
-                if (noArgParser(md) || functionNeedsKwds(mod, NULL, md))
+                if (noArgParser(md) || functionNeedsKwds(mod->overs, md))
                     prcode(fp,
 "    {%n, (PyCFunction)func_%s, METH_VARARGS|METH_KEYWORDS, %P},\n"
                         , md->pyname, md->pyname->text, od->api_range);
@@ -1879,7 +1879,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
             if (!notVersioned(md))
                 continue;
 
-            if (noArgParser(md) || functionNeedsKwds(mod, NULL, md))
+            if (noArgParser(md) || functionNeedsKwds(mod->overs, md))
                 prcode(fp,
 "        {SIP_MLNAME_CAST(%N), (PyCFunction)func_%s, METH_VARARGS|METH_KEYWORDS, NULL},\n"
                     , md->pyname, md->pyname->text);
@@ -2401,7 +2401,7 @@ static void generateOrdinaryFunction(moduleDef *mod, classDef *c_scope,
 "\n"
         );
 
-    if (noArgParser(md) || functionNeedsKwds(mod, c_scope, md))
+    if (noArgParser(md) || functionNeedsKwds(od, md))
     {
         kw_fw_decl = ", PyObject *";
         kw_decl = ", PyObject *sipKwds";
@@ -3856,7 +3856,7 @@ static int generateMappedTypeMethodTable(mappedTypeDef *mtd, FILE *fp)
 
     if (mtab != NULL)
     {
-        prMethodTable(mtab, nr, mtd->iff, NULL, fp);
+        prMethodTable(mtab, nr, mtd->iff, mtd->overs, fp);
         free(mtab);
     }
 
@@ -3879,7 +3879,7 @@ static int generateClassMethodTable(classDef *cd, FILE *fp)
 
     if (mtab != NULL)
     {
-        prMethodTable(mtab, nr, cd->iff, cd, fp);
+        prMethodTable(mtab, nr, cd->iff, cd->overs, fp);
         free(mtab);
     }
 
@@ -3891,7 +3891,7 @@ static int generateClassMethodTable(classDef *cd, FILE *fp)
  * Generate a method table for a class or mapped type.
  */
 static void prMethodTable(sortedMethTab *mtable, int nr, ifaceFileDef *iff,
-        classDef *cd, FILE *fp)
+        overDef *od, FILE *fp)
 {
     int i;
 
@@ -3906,7 +3906,7 @@ static void prMethodTable(sortedMethTab *mtable, int nr, ifaceFileDef *iff,
         memberDef *md = mtable[i].md;
         const char *cast, *flags;
 
-        if (noArgParser(md) || functionNeedsKwds(NULL, cd, md))
+        if (noArgParser(md) || functionNeedsKwds(od, md))
         {
             cast = "(PyCFunction)";
             flags = "|METH_KEYWORDS";
@@ -13166,15 +13166,8 @@ static char getEncoding(argType atype)
 /*
  * Look at the overloads of a function to see if any need keyword arguments.
  */
-static int functionNeedsKwds(moduleDef *mod, classDef *cd, memberDef *md)
+static int functionNeedsKwds(overDef *od, memberDef *md)
 {
-    overDef *od;
-
-    if (cd != NULL)
-        od = cd->overs;
-    else
-        od = mod->overs;
-
     while (od != NULL)
     {
         if (od->common == md && useKeywordArgs(od))
