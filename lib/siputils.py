@@ -1607,9 +1607,31 @@ class ModuleMakefile(Makefile):
 class SIPModuleMakefile(ModuleMakefile):
     """The class that represents a SIP generated module Makefile.
     """
+    def __init__(self, configuration, build_file, install_dir=None, static=0,
+                 console=0, qt=0, opengl=0, threaded=0, warnings=1, debug=0,
+                 dir=None, makefile="Makefile", installs=None, strip=1,
+                 export_all=0, universal=None, arch=None, prot_is_public=0):
+        """Initialise an instance of a SIP generated module Makefile.
+
+        prot_is_public is set if "protected" is to be redefined as "public".
+        If the platform's C++ ABI allows it this can significantly reduce the
+        size of the generated code.
+
+        For all other arguments see ModuleMakefile.
+        """
+        ModuleMakefile.__init__(self, configuration, build_file, install_dir,
+                static, console, qt, opengl, threaded, warnings, debug, dir,
+                makefile, installs, strip, export_all, universal, arch)
+
+        self._prot_is_public = prot_is_public
+
     def finalise(self):
         """Finalise the macros for a SIP generated module Makefile.
         """
+        if self._prot_is_public:
+            self.DEFINES.append('SIP_PROTECTED_IS_PUBLIC')
+            self.DEFINES.append('protected=public')
+
         self.INCDIR.append(self.config.sip_inc_dir)
 
         ModuleMakefile.finalise(self)

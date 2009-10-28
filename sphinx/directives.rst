@@ -377,14 +377,14 @@ list of ``QWidget`` instances::
         PyObject *l;
 
         // Create the Python list of the correct length.
-        if ((l = PyList_New(sipCpp -> size())) == NULL)
+        if ((l = PyList_New(sipCpp->size())) == NULL)
             return NULL;
 
         // Go through each element in the C++ instance and convert it to a
         // wrapped QWidget.
-        for (int i = 0; i < sipCpp -> size(); ++i)
+        for (int i = 0; i < sipCpp->size(); ++i)
         {
-            QWidget *w = sipCpp -> at(i);
+            QWidget *w = sipCpp->at(i);
             PyObject *wobj;
 
             // Get the Python wrapper for the QWidget instance, creating a new
@@ -612,7 +612,7 @@ The following example converts a Python list of ``QPoint`` instances to a
                 return 0;
             }
 
-            ql -> append(*qp);
+            ql->append(*qp);
 
             // A copy of the QPoint was appended to the list so we no longer
             // need it.  It may be a temporary instance that should be
@@ -917,10 +917,10 @@ always a Python object and so should be handled by the garbage collector::
         PyObject *obj;
 
         // Get the object.
-        obj = reinterpret_cast<PyObject *>(sipCpp -> data());
+        obj = reinterpret_cast<PyObject *>(sipCpp->data());
 
         // Clear the pointer.
-        sipCpp -> setData(0);
+        sipCpp->setData(0);
 
         // Clear the reference.
         Py_XDECREF(obj);
@@ -964,7 +964,7 @@ The following simplified example is taken from PyQt's ``QCustomEvent`` class::
         PyObject *obj;
 
         // Get the object.
-        obj = reinterpret_cast<PyObject *>(sipCpp -> data());
+        obj = reinterpret_cast<PyObject *>(sipCpp->data());
 
         // Call the visit function if there was an object.
         if (obj)
@@ -1015,7 +1015,7 @@ For example::
          */
         char *buffer;
     %GetCode
-            sipPy = PyString_FromStringAndSize(sipCpp -> buffer, 100);
+            sipPy = PyString_FromStringAndSize(sipCpp->buffer, 100);
     %End
     %SetCode
             char *ptr;
@@ -1033,7 +1033,7 @@ For example::
                 sipErr = 1;
             }
             else
-                memcpy(sipCpp -> buffer, ptr, 100);
+                memcpy(sipCpp->buffer, ptr, 100);
     %End
     }
 
@@ -1312,7 +1312,7 @@ For example::
             }
 
             // Add the pointer to the C++ instance.
-            ql -> append(t);
+            ql->append(t);
         }
 
         // Return the instance on the heap.
@@ -1326,14 +1326,14 @@ For example::
         PyObject *l;
 
         // Create the Python list of the correct length.
-        if ((l = PyList_New(sipCpp -> size())) == NULL)
+        if ((l = PyList_New(sipCpp->size())) == NULL)
             return NULL;
 
         // Go through each element in the C++ instance and convert it to the
         // corresponding Python object.
-        for (int i = 0; i < sipCpp -> size(); ++i)
+        for (int i = 0; i < sipCpp->size(); ++i)
         {
-            Type *t = sipCpp -> at(i);
+            Type *t = sipCpp->at(i);
             PyObject *tobj;
 
             if ((tobj = sipConvertFromType(t, sipType_Type, sipTransferObj)) == NULL)
@@ -1392,7 +1392,7 @@ immediately before the C++ call and reacquired immediately afterwards as shown
 in this example fragment::
 
     Py_BEGIN_ALLOW_THREADS
-    sipCpp -> foo();
+    sipCpp->foo();
     Py_END_ALLOW_THREADS
 
 If compatibility with SIP v3.x is not required then this is optional but
@@ -1497,8 +1497,8 @@ The following is a complete example::
             if (PyArg_ParseTuple(a0, "ii", &iarr[0], &iarr[1]))
             {
                 Py_BEGIN_ALLOW_THREADS
-                sipRes = sipSelfWasArg ? sipCpp -> Klass::foo(iarr)
-                                       : sipCpp -> foo(iarr);
+                sipRes = sipSelfWasArg ? sipCpp->Klass::foo(iarr)
+                                       : sipCpp->foo(iarr);
                 Py_END_ALLOW_THREADS
             }
             else
@@ -1512,15 +1512,27 @@ The following is a complete example::
 As the example is a virtual method [#]_, note the use of ``sipSelfWasArg`` to
 determine exactly which implementation of ``foo()`` to call.
 
-If a method is in the ``protected`` section of a C++ class then the call
-should instead be::
+If a method is in the ``protected`` section of a C++ class then SIP generates
+helpers that provide access to method.  However, these are not available if
+the Python module is being built with ``protected`` redefined as ``public``.
 
-    sipRes = sipCpp -> sipProtectVirt_foo(sipSelfWasArg, iarr);
+The following pattern should be used to cover all possibilities::
+
+    #if defined(SIP_PROTECTED_IS_PUBLIC)
+        sipRes = sipSelfWasArg ? sipCpp->Klass::foo(iarr)
+                               : sipCpp->foo(iarr);
+    #else
+        sipRes = sipCpp->sipProtectVirt_foo(sipSelfWasArg, iarr);
+    #endif
 
 If a method is in the ``protected`` section of a C++ class but is not virtual
-then the call should instead be::
+then the pattern should instead be::
 
-    sipRes = sipCpp -> sipProtect_foo(iarr);
+    #if defined(SIP_PROTECTED_IS_PUBLIC)
+        sipRes = sipCpp->foo(iarr);
+    #else
+        sipRes = sipCpp->sipProtect_foo(iarr);
+    #endif
 
 .. [#] See :directive:`%VirtualCatcherCode` for a description of how SIP
        generated code handles the reimplementation of C++ virtual methods in
@@ -1858,7 +1870,7 @@ For example::
     // Print an instance on stderr for debugging purposes.
     static void dump_klass(const Klass *k)
     {
-        fprintf(stderr,"Klass %s at %p\n", k -> name(), k);
+        fprintf(stderr,"Klass %s at %p\n", k->name(), k);
     }
     %End
 
@@ -2007,7 +2019,7 @@ For example::
             if (PyArg_ParseTuple(a0, "ii", &iarr[0], &iarr[1]))
             {
                 Py_BEGIN_ALLOW_THREADS
-                sipRes = sipCpp -> Klass::foo(iarr);
+                sipRes = sipCpp->Klass::foo(iarr);
                 Py_END_ALLOW_THREADS
             }
             else

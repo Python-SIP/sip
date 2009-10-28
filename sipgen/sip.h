@@ -243,6 +243,7 @@
 #define OVER_IS_COMPLEMENTARY   0x00800000  /* It is a complementary operator. */
 #define OVER_IS_DEPRECATED  0x01000000  /* It is deprecated. */
 #define OVER_KEYWORD_ARGS   0x02000000  /* It allows keyword arguments. */
+#define OVER_REALLY_PROT    0x04000000  /* It really is protected. */
 
 #define isPublic(o)         ((o)->overflags & SECT_IS_PUBLIC)
 #define setIsPublic(o)      ((o)->overflags |= SECT_IS_PUBLIC)
@@ -293,6 +294,8 @@
 #define setIsDeprecated(o)  ((o)->overflags |= OVER_IS_DEPRECATED)
 #define useKeywordArgs(o)   ((o)->overflags & OVER_KEYWORD_ARGS)
 #define setUseKeywordArgs(o)    ((o)->overflags |= OVER_KEYWORD_ARGS)
+#define isReallyProtected(o)    ((o)->overflags & OVER_REALLY_PROT)
+#define setIsReallyProtected(o) ((o)->overflags |= OVER_REALLY_PROT)
 
 
 /* Handle variable flags. */
@@ -1062,7 +1065,7 @@ extern char *sipVersion;                /* The version of SIP. */
 extern stringList *includeDirList;      /* The include directory list for SIP files. */
 
 
-void parse(sipSpec *, FILE *, char *, stringList *, stringList *, int);
+void parse(sipSpec *, FILE *, char *, stringList *, stringList *, int, int);
 void parserEOF(char *,parserContext *);
 void transform(sipSpec *);
 void generateCode(sipSpec *, char *, char *, char *, const char *, int, int,

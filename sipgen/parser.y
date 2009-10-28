@@ -39,6 +39,7 @@ static int currentScopeIdx;             /* The scope stack index. */
 static int currentTimelineOrder;        /* The current timeline order. */
 static classList *currentSupers;        /* The current super-class list. */
 static int defaultKwdArgs;              /* Support keyword arguments by default. */
+static int makeProtPublic;              /* Treat protected items as public. */
 
 
 static const char *getPythonName(optFlags *optflgs, const char *cname);
@@ -1768,7 +1769,12 @@ dtor:       optvirtual '~' TK_NAME '(' ')' optexceptions optabstract optflags ';
                 cd -> dealloccode = $10;
                 cd -> dtorcode = $11;
                 cd -> dtorexceptions = $6;
-                cd -> classflags |= sectionFlags;
+
+                /*
+                 * Note that we don't apply the protected/public hack to dtors
+                 * as it (I think) may change the behaviour of the wrapped API.
+                 */
+                cd->classflags |= sectionFlags;
 
                 if ($7)
                 {
@@ -2738,7 +2744,7 @@ exceptionlist:  {
  * Parse the specification.
  */
 void parse(sipSpec *spec, FILE *fp, char *filename, stringList *tsl,
-        stringList *xfl, int kwdArgs)
+        stringList *xfl, int kwdArgs, int protHack)
 {
     classTmplDef *tcd;
 
@@ -2775,6 +2781,7 @@ void parse(sipSpec *spec, FILE *fp, char *filename, stringList *tsl,
     currentScopeIdx = 0;
     sectionFlags = 0;
     defaultKwdArgs = kwdArgs;
+    makeProtPublic = protHack;
 
     newModule(fp, filename);
     spec->module = currentModule;
@@ -3172,7 +3179,7 @@ static classDef *newClass(sipSpec *pt, ifaceFileType iftype,
 
     if ((scope = currentScope()) != NULL)
     {
-        if (sectionFlags & SECT_IS_PROT)
+        if (sectionFlags & SECT_IS_PROT && !makeProtPublic)
         {
             flags = CLASS_IS_PROTECTED;
 
@@ -3643,6 +3650,12 @@ static enumDef *newEnum(sipSpec *pt, moduleDef *mod, mappedTypeDef *mt_scope,
         ed->pyname = NULL;
         ed->fqcname = NULL;
         ed->cname = NULL;
+    }
+
+    if (flags & SECT_IS_PROT && makeProtPublic)
+    {
+        flags &= ~SECT_IS_PROT;
+        flags |= SECT_IS_PUBLIC;
     }
 
     ed->enumflags = flags;
@@ -4782,6 +4795,12 @@ static void newCtor(char *name, int sectFlags, signatureDef *args,
     /* Add to the list of constructors. */
     ct = sipMalloc(sizeof (ctorDef));
 
+    if (sectFlags & SECT_IS_PROT && makeProtPublic)
+    {
+        sectFlags &= ~SECT_IS_PROT;
+        sectFlags |= SECT_IS_PUBLIC;
+    }
+
     ct->ctorflags = sectFlags;
     ct->api_range = getAPIRange(optflgs);
     ct->pysig = *args;
@@ -4902,6 +4921,12 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
     od = sipMalloc(sizeof (overDef));
 
     /* Set the overload flags. */
+
+    if (sflags & SECT_IS_PROT && makeProtPublic)
+    {
+        sflags &= ~SECT_IS_PROT;
+        sflags |= SECT_IS_PUBLIC | OVER_REALLY_PROT;
+    }
 
     od -> overflags = sflags;
 

@@ -11721,7 +11721,7 @@ static int generateArgParser(signatureDef *sd, classDef *c_scope,
         prcode(fp, "1");
 
     if (handle_self)
-        prcode(fp,"%c",(isProtected(od) ? 'p' : 'B'));
+        prcode(fp,"%c",(isReallyProtected(od) ? 'p' : 'B'));
     else if (isQtSlot && od == NULL)
         prcode(fp,"C");
 

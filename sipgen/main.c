@@ -40,7 +40,7 @@ int main(int argc, char **argv)
 {
     char *filename, *docFile, *codeDir, *srcSuffix, *flagFile, *consModule;
     char arg, *optarg, *buildFile, *apiFile, *xmlFile;
-    int optnr, exceptions, tracing, releaseGIL, parts, kwdArgs;
+    int optnr, exceptions, tracing, releaseGIL, parts, kwdArgs, protHack;
     FILE *file;
     sipSpec spec;
     stringList *versions, *xfeatures;
@@ -63,16 +63,22 @@ int main(int argc, char **argv)
     releaseGIL = FALSE;
     parts = 0;
     kwdArgs = FALSE;
+    protHack = FALSE;
 
     /* Parse the command line. */
     optnr = 1;
 
-    while ((arg = parseopt(argc, argv, "hVa:b:ec:d:gI:j:km:p:rs:t:wx:z:", &flagFile, &optnr, &optarg)) != '\0')
+    while ((arg = parseopt(argc, argv, "hVa:b:ec:d:gI:j:km:p:Prs:t:wx:z:", &flagFile, &optnr, &optarg)) != '\0')
         switch (arg)
         {
         case 'p':
             /* The name of the consolidated module. */
             consModule = optarg;
+            break;
+
+        case 'P':
+            /* Enable the protected/public hack. */
+            protHack = TRUE;
             break;
 
         case 'a':
@@ -187,7 +193,7 @@ int main(int argc, char **argv)
     }
 
     /* Parse the input file. */
-    parse(&spec, file, filename, versions, xfeatures, kwdArgs);
+    parse(&spec, file, filename, versions, xfeatures, kwdArgs, protHack);
 
     /* Verify and transform the parse tree. */
     transform(&spec);
@@ -452,7 +458,7 @@ static void help(void)
 {
     printf(
 "Usage:\n"
-"    %s [-h] [-V] [-a file] [-c dir] [-d file] [-e] [-g] [-I dir] [-j #] [-k] [-m file] [-p module] [-r] [-s suffix] [-t tag] [-w] [-x feature] [-z file] [file]\n"
+"    %s [-h] [-V] [-a file] [-c dir] [-d file] [-e] [-g] [-I dir] [-j #] [-k] [-m file] [-p module] [-P] [-r] [-s suffix] [-t tag] [-w] [-x feature] [-z file] [file]\n"
 "where:\n"
 "    -h          display this help message\n"
 "    -V          display the %s version number\n"
@@ -466,7 +472,8 @@ static void help(void)
 "    -j #        split the generated code into # files [default 1 per class]\n"
 "    -k          support keyword arguments in functions and methods\n"
 "    -m file     the name of the XML export file [default not generated]\n"
-"    -p module   the name of the consoldated module that this is a component of\n"
+"    -p module   the name of the consolidated module that this is a component of\n"
+"    -P          enable the protected/public hack\n"
 "    -r          generate code with tracing enabled [default disabled]\n"
 "    -s suffix   the suffix to use for C or C++ source files [default \".c\" or \".cpp\"]\n"
 "    -t tag      the version/platform to generate code for\n"

@@ -41,6 +41,17 @@ specification files.
     to fail if the Python object being converted is ``Py_None``.
 
 
+.. cmacro:: SIP_PROTECTED_IS_PUBLIC
+
+    .. versionadded:: 4.10
+
+    This is a C preprocessor macro that is set automatically by the build
+    system to specify that the generated code is being compiled with
+    ``protected`` redefined as ``public``.  This allows handwritten code to
+    determine if the generated helper functions for accessing protected C++
+    functions are available (see :directive:`%MethodCode`).
+
+
 .. cmacro:: SIP_SSIZE_T
 
     This is a C preprocessor macro that is defined as ``Py_ssize_t`` for Python
