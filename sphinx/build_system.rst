@@ -403,9 +403,9 @@ work of creating these additional configuration modules.
         :param debug:
             is set if debugging symbols should be generated.
         :param dir:
-            the name of the directory where build files are read from and
-            Makefiles are written to.  The default of ``None`` means the
-            current directory is used.
+            the name of the directory where build files are read from (if they
+            are not absolute file names) and Makefiles are written to.  The
+            default of ``None`` means the current directory is used.
         :param makefile:
             the name of the generated Makefile.
         :param installs:

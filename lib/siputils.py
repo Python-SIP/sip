@@ -240,9 +240,17 @@ class Makefile:
         self._python = python
         self._warnings = warnings
         self._debug = debug
-        self._dir = dir
         self._makefile = makefile
         self._installs = installs
+
+        # Make sure the destination directory is an absolute path.
+        if dir:
+            self.dir = os.path.abspath(dir)
+        else:
+            self.dir = os.path.curdir
+
+        # Assume we are building in the source tree.
+        self._src_dir = self.dir
 
         if universal is None:
             self._universal = configuration.universal
@@ -861,10 +869,12 @@ class Makefile:
             bfname = "dictionary"
             bdict = filename
         else:
-            if self._dir:
-                bfname = os.path.join(self._dir, filename)
-            else:
+            if os.path.isabs(filename):
+                # We appear to be building out of the source tree.
+                self._src_dir = os.path.dirname(filename)
                 bfname = filename
+            else:
+                bfname = os.path.join(self.dir, filename)
 
             bdict = {}
 
@@ -955,10 +965,13 @@ class Makefile:
         """
         self.ready()
 
-        if self._dir:
-            mfname = os.path.join(self._dir, self._makefile)
-        else:
-            mfname = self._makefile
+        # Make sure the destination directory exists.
+        try:
+            os.makedirs(self.dir)
+        except:
+            pass
+
+        mfname = os.path.join(self.dir, self._makefile)
 
         try:
             mfile = open(mfname, "w")
@@ -1027,6 +1040,9 @@ class Makefile:
 
         if self._qt:
             mfile.write("MOC = %s\n" % _quote(self.required_string("MOC")))
+
+        if self._src_dir != self.dir:
+            mfile.write("VPATH = %s\n\n" % self._src_dir)
 
         # These probably don't matter.
         if self.generator == "MINGW":
@@ -1308,7 +1324,6 @@ class ModuleMakefile(Makefile):
 
         self._build = self.parse_build_file(build_file)
         self._install_dir = install_dir
-        self._dir = dir
         self.static = static
 
         self._manifest = ("embed_manifest_dll" in self.optional_list("CONFIG"))
@@ -1540,10 +1555,7 @@ class ModuleMakefile(Makefile):
                 mfile.write("|\n")
 
                 # Create the .def file that renames the entry point.
-                defname = self._target + ".def"
-
-                if self._dir:
-                    defname = os.path.join(self._dir, defname)
+                defname = os.path.join(self.dir, self._target + ".def")
 
                 try:
                     dfile = open(defname, "w")
@@ -1797,8 +1809,11 @@ class ProgramMakefile(Makefile):
         mfile.write("\n$(OFILES): $(HFILES)\n")
 
         for mf in self._build["moc_headers"].split():
-            root, discard = os.path.splitext(mf)
+            root, _ = os.path.splitext(mf)
             cpp = "moc_" + root + ".cpp"
+
+            if self._src_dir != self.dir:
+                mf = os.path.join(self._src_dir, mf)
 
             mfile.write("\n%s: %s\n" % (cpp, mf))
             mfile.write("\t$(MOC) -o %s %s\n" % (cpp, mf))
