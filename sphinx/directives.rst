@@ -686,7 +686,7 @@ For example::
 
 This directive is used to specify the Python type that should be used as the
 meta-type for any C/C++ data type defined in the same module, and by importing
-modules, that doesn't have an explicit super-type.
+modules, that doesn't have an explicit meta-type.
 
 If this is not specified then ``sip.wrappertype`` is used.
 
