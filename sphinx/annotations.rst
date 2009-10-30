@@ -449,6 +449,12 @@ Enum Annotations
 Exception Annotations
 ---------------------
 
+.. exception-annotation:: Default
+
+    This boolean annotation specifies that the exception being defined will be
+    used as the default exception to be caught if a function or constructor
+    does not have a ``throw`` clause.
+
 .. exception-annotation:: PyName
 
     This name annotation specifies an alternative name for the exception being

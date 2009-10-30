@@ -81,11 +81,11 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
         FILE *fp);
 static void generateFunction(memberDef *, overDef *, classDef *, classDef *,
-        FILE *);
+        moduleDef *, FILE *);
 static void generateFunctionBody(overDef *, classDef *, mappedTypeDef *,
-        classDef *, int deref, FILE *);
+        classDef *, int deref, moduleDef *, FILE *);
 static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp);
-static void generateTypeInit(classDef *, FILE *);
+static void generateTypeInit(classDef *, moduleDef *, FILE *);
 static void generateCppCodeBlock(codeBlock *, FILE *);
 static void generateUsedIncludes(ifaceFileList *iffl, FILE *fp);
 static void generateModuleAPI(sipSpec *pt, moduleDef *mod, FILE *fp);
@@ -118,13 +118,15 @@ static void generateProtectedEnums(sipSpec *, classDef *, FILE *);
 static void generateProtectedDeclarations(classDef *, FILE *);
 static void generateProtectedDefinitions(classDef *, FILE *);
 static void generateProtectedCallArgs(overDef *od, FILE *fp);
-static void generateConstructorCall(classDef *, ctorDef *, int, FILE *);
+static void generateConstructorCall(classDef *, ctorDef *, int, moduleDef *,
+        FILE *);
 static void generateHandleResult(overDef *, int, int, char *, FILE *);
 static void generateOrdinaryFunction(moduleDef *mod, classDef *c_scope,
         mappedTypeDef *mt_scope, memberDef *md, FILE *fp);
 static void generateSimpleFunctionCall(fcallDef *, FILE *);
 static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
-        ifaceFileDef *o_scope, overDef *od, int deref, FILE *fp);
+        ifaceFileDef *o_scope, overDef *od, int deref, moduleDef *mod,
+        FILE *fp);
 static void generateCppFunctionCall(ifaceFileDef *scope,
         ifaceFileDef *o_scope, overDef *od, FILE *fp);
 static void generateSlotArg(signatureDef *sd, int argnr, FILE *fp);
@@ -174,7 +176,9 @@ static int generateArgParser(signatureDef *sd, classDef *c_scope,
         mappedTypeDef *mt_scope, ctorDef *ct, overDef *od, int secCall,
         FILE *fp);
 static void generateTry(throwArgs *, FILE *);
-static void generateCatch(throwArgs *ta, signatureDef *sd, FILE *fp);
+static void generateCatch(throwArgs *ta, signatureDef *sd, moduleDef *mod,
+        FILE *fp);
+static void generateCatchBlock(exceptionDef *xd, signatureDef *sd, FILE *fp);
 static void generateThrowSpecifier(throwArgs *, FILE *);
 static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
         memberDef *md, FILE *fp);
@@ -1216,7 +1220,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
     {
         if (cd->ctors != NULL)
         {
-            generateTypeInit(cd, fp);
+            generateTypeInit(cd, mod, fp);
             ctor_extenders = TRUE;
         }
 
@@ -2461,7 +2465,7 @@ static void generateOrdinaryFunction(moduleDef *mod, classDef *c_scope,
                 need_intro = FALSE;
             }
 
-            generateFunctionBody(od, c_scope, mt_scope, c_scope, TRUE, fp);
+            generateFunctionBody(od, c_scope, mt_scope, c_scope, TRUE, mod, fp);
         }
 
         od = od->next;
@@ -5042,7 +5046,7 @@ static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
 
     for (od = overs; od != NULL; od = od->next)
         if (od->common == md)
-            generateFunctionBody(od, cd, NULL, cd, (ed == NULL && !dontDerefSelf(od)), fp);
+            generateFunctionBody(od, cd, NULL, cd, (ed == NULL && !dontDerefSelf(od)), mod, fp);
 
     if (nr_args > 0)
         switch (md->slot)
@@ -5137,7 +5141,7 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
     /* The member functions. */
     for (vl = cd->visible; vl != NULL; vl = vl->next)
         if (vl->m->slot == no_slot)
-            generateFunction(vl->m, vl->cd->overs, cd, vl->cd, fp);
+            generateFunction(vl->m, vl->cd->overs, cd, vl->cd, mod, fp);
 
     /* The slot functions. */
     for (md = cd->members; md != NULL; md = md->next)
@@ -5775,7 +5779,7 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 
     /* The type initialisation function. */
     if (canCreate(cd))
-        generateTypeInit(cd, fp);
+        generateTypeInit(cd, mod, fp);
 }
 
 
@@ -9722,7 +9726,7 @@ static const char *slotName(slotType st)
 /*
  * Generate the initialisation function or cast operators for the type.
  */
-static void generateTypeInit(classDef *cd, FILE *fp)
+static void generateTypeInit(classDef *cd, moduleDef *mod, FILE *fp)
 {
     ctorDef *ct;
     int need_self, need_owner, need_kwds;
@@ -9824,7 +9828,7 @@ static void generateTypeInit(classDef *cd, FILE *fp)
 
         needSecCall = generateArgParser(&ct->pysig, cd, NULL, ct, NULL, FALSE,
                 fp);
-        generateConstructorCall(cd,ct,error_flag,fp);
+        generateConstructorCall(cd, ct, error_flag, mod, fp);
 
         if (needSecCall)
         {
@@ -9841,7 +9845,7 @@ static void generateTypeInit(classDef *cd, FILE *fp)
                     );
 
             generateArgParser(&ct->pysig, cd, NULL, ct, NULL, TRUE, fp);
-            generateConstructorCall(cd,ct,error_flag,fp);
+            generateConstructorCall(cd, ct, error_flag, mod, fp);
         }
 
         prcode(fp,
@@ -9900,9 +9904,10 @@ static void generateTry(throwArgs *ta,FILE *fp)
 
 
 /*
- * Generate the catch block for a call.
+ * Generate the catch blocks for a call.
  */
-static void generateCatch(throwArgs *ta, signatureDef *sd, FILE *fp)
+static void generateCatch(throwArgs *ta, signatureDef *sd, moduleDef *mod,
+        FILE *fp)
 {
     /*
      * Generate the block if there was no throw specifier, or a non-empty
@@ -9914,69 +9919,77 @@ static void generateCatch(throwArgs *ta, signatureDef *sd, FILE *fp)
 "            }\n"
             );
 
-        if (ta == NULL)
-        {
-            prcode(fp,
-"            catch (...)\n"
-"            {\n"
-                );
-
-            if (release_gil)
-                prcode(fp,
-"                Py_BLOCK_THREADS\n"
-"\n"
-                    );
-
-            deleteTemps(sd, fp);
-
-            prcode(fp,
-"                sipRaiseUnknownException();\n"
-"                return NULL;\n"
-"            }\n"
-                );
-        }
-        else
+        if (ta != NULL)
         {
             int a;
 
             for (a = 0; a < ta->nrArgs; ++a)
-            {
-                exceptionDef *xd = ta->args[a];
-                scopedNameDef *ename = xd->iff->fqcname;
+                generateCatchBlock(ta->args[a], sd, fp);
+        }
+        else if (mod->defexception != NULL)
+        {
+            generateCatchBlock(mod->defexception, sd, fp);
+        }
 
-                prcode(fp,
+        prcode(fp,
+"            catch (...)\n"
+"            {\n"
+            );
+
+        if (release_gil)
+            prcode(fp,
+"                Py_BLOCK_THREADS\n"
+"\n"
+                );
+
+        deleteTemps(sd, fp);
+
+        prcode(fp,
+"                sipRaiseUnknownException();\n"
+"                return NULL;\n"
+"            }\n"
+            );
+    }
+}
+
+
+/*
+ * Generate a single catch block.
+ */
+static void generateCatchBlock(exceptionDef *xd, signatureDef *sd, FILE *fp)
+{
+    scopedNameDef *ename = xd->iff->fqcname;
+
+    prcode(fp,
 "            catch (%S &%s)\n"
 "            {\n"
-                    ,ename,(xd->cd != NULL || usedInCode(xd->raisecode, "sipExceptionRef")) ? "sipExceptionRef" : "");
+        ,ename,(xd->cd != NULL || usedInCode(xd->raisecode, "sipExceptionRef")) ? "sipExceptionRef" : "");
 
-                if (release_gil)
-                    prcode(fp,
+    if (release_gil)
+        prcode(fp,
 "\n"
 "                Py_BLOCK_THREADS\n"
-                        );
+            );
 
-                deleteTemps(sd, fp);
+    deleteTemps(sd, fp);
 
-                /* See if the exception is a wrapped class. */
-                if (xd->cd != NULL)
-                    prcode(fp,
+    /* See if the exception is a wrapped class. */
+    if (xd->cd != NULL)
+        prcode(fp,
 "                /* Hope that there is a valid copy ctor. */\n"
 "                %S *sipExceptionCopy = new %S(sipExceptionRef);\n"
 "\n"
 "                sipRaiseTypeException(sipType_%C,sipExceptionCopy);\n"
-                        , ename, ename
-                        , ename);
-                else
-                    generateCppCodeBlock(xd->raisecode,fp);
+            , ename, ename
+            , ename);
+    else
+        generateCppCodeBlock(xd->raisecode, fp);
 
-                prcode(fp,
+    prcode(fp,
 "\n"
 "                return NULL;\n"
 "            }\n"
-                    );
-            }
-        }
-    }
+        );
 }
 
 
@@ -10007,8 +10020,8 @@ static void generateThrowSpecifier(throwArgs *ta,FILE *fp)
 /*
  * Generate a single constructor call.
  */
-static void generateConstructorCall(classDef *cd,ctorDef *ct,int error_flag,
-                                    FILE *fp)
+static void generateConstructorCall(classDef *cd, ctorDef *ct, int error_flag,
+        moduleDef *mod, FILE *fp)
 {
     prcode(fp,
 "        {\n"
@@ -10069,7 +10082,7 @@ static void generateConstructorCall(classDef *cd,ctorDef *ct,int error_flag,
         prcode(fp,");\n"
             );
 
-        generateCatch(ct->exceptions, &ct->pysig, fp);
+        generateCatch(ct->exceptions, &ct->pysig, mod, fp);
 
         if (rgil)
             prcode(fp,
@@ -10145,7 +10158,7 @@ static int skipOverload(overDef *od,memberDef *md,classDef *cd,classDef *ccd,
  * Generate a class member function.
  */
 static void generateFunction(memberDef *md, overDef *overs, classDef *cd,
-        classDef *ocd, FILE *fp)
+        classDef *ocd, moduleDef *mod, FILE *fp)
 {
     overDef *od;
     int need_method, need_self, need_args, need_selfarg, need_orig_self, need_kwds;
@@ -10273,7 +10286,7 @@ static void generateFunction(memberDef *md, overDef *overs, classDef *cd,
                 break;
             }
 
-            generateFunctionBody(od, cd, NULL, ocd, TRUE, fp);
+            generateFunctionBody(od, cd, NULL, ocd, TRUE, mod, fp);
         }
 
         if (!noArgParser(md))
@@ -10296,7 +10309,8 @@ static void generateFunction(memberDef *md, overDef *overs, classDef *cd,
  * Generate the function calls for a particular overload.
  */
 static void generateFunctionBody(overDef *od, classDef *c_scope,
-        mappedTypeDef *mt_scope, classDef *ocd, int deref, FILE *fp)
+        mappedTypeDef *mt_scope, classDef *ocd, int deref, moduleDef *mod,
+        FILE *fp)
 {
     int needSecCall;
     signatureDef saved;
@@ -10359,7 +10373,7 @@ static void generateFunctionBody(overDef *od, classDef *c_scope,
     else
         needSecCall = generateArgParser(&od->pysig, c_scope, mt_scope, NULL, od, FALSE, fp);
 
-    generateFunctionCall(c_scope, mt_scope, o_scope, od, deref, fp);
+    generateFunctionCall(c_scope, mt_scope, o_scope, od, deref, mod, fp);
 
     if (needSecCall)
     {
@@ -10370,7 +10384,7 @@ static void generateFunctionBody(overDef *od, classDef *c_scope,
             );
 
         generateArgParser(&od->pysig, c_scope, mt_scope, NULL, od, TRUE, fp);
-        generateFunctionCall(c_scope, mt_scope, o_scope, od, deref, fp);
+        generateFunctionCall(c_scope, mt_scope, o_scope, od, deref, mod, fp);
     }
 
     prcode(fp,
@@ -10915,7 +10929,8 @@ static const char *getBuildResultFormat(argDef *ad)
  * Generate a function call.
  */
 static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
-        ifaceFileDef *o_scope, overDef *od, int deref, FILE *fp)
+        ifaceFileDef *o_scope, overDef *od, int deref, moduleDef *mod,
+        FILE *fp)
 {
     int needsNew, error_flag = FALSE, newline, is_result, result_size, a,
             deltemps;
@@ -11329,7 +11344,7 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
         prcode(fp,";\n"
             );
 
-        generateCatch(od->exceptions, &od->pysig, fp);
+        generateCatch(od->exceptions, &od->pysig, mod, fp);
 
         if (rgil)
             prcode(fp,

@@ -805,6 +805,9 @@ In this example we map the standard C++ exception to a new Python exception.
 The new exception is called ``StdException`` and is derived from the standard
 Python exception ``Exception``.
 
+An exception may be annotated with :exception-annotation:`Default` to specify
+that it should be caught by default if there is no ``throw`` clause.
+
 
 .. directive:: %ExportedDoc
 

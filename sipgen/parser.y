@@ -482,6 +482,9 @@ exception:  TK_EXCEPTION scopedname baseexception optflags '{' opttypehdrcode ra
                 xd->base = $3.base;
                 xd->raisecode = $7;
 
+                if (findOptFlag(&$4, "Default", bool_flag) != NULL)
+                    currentModule->defexception = xd;
+
                 if (xd->bibase != NULL || xd->base != NULL)
                     xd->exceptionnr = currentModule->nrexceptions++;
             }
@@ -2861,9 +2864,17 @@ void appendToClassList(classList **clp,classDef *cd)
  */
 static void newModule(FILE *fp, char *filename)
 {
+    moduleDef *mod;
+
     parseFile(fp, filename, currentModule, FALSE);
-    currentModule = allocModule();
-    currentModule->file = filename;
+
+    mod = allocModule();
+    mod->file = filename;
+
+    if (currentModule != NULL)
+        mod->defexception = currentModule->defexception;
+
+    currentModule = mod;
 }
 
 

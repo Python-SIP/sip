@@ -709,6 +709,7 @@ typedef struct _moduleDef {
     argType encoding;                   /* The default string encoding. */
     nameDef *defmetatype;               /* The optional default meta-type. */
     nameDef *defsupertype;              /* The optional default super-type. */
+    struct _exceptionDef *defexception; /* The default exception. */
     codeBlock *hdrcode;                 /* Header code. */
     codeBlock *cppcode;                 /* Global C++ code. */
     codeBlock *copying;                 /* Software license. */
