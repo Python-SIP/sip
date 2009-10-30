@@ -666,7 +666,7 @@ For example::
 
     %DefaultEncoding *string*
 
-This directive is used to specify the default encoding used for for ``char``,
+This directive is used to specify the default encoding used for ``char``,
 ``const char``, ``char *`` or ``const char *`` values.  The encoding can be
 either ``"ASCII"``, ``"Latin-1"``, ``"UTF-8"`` or ``"None"``.  An encoding of
 ``"None"`` means that the value is unencoded.  The default can be overridden
