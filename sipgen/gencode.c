@@ -10827,10 +10827,8 @@ static const char *getBuildResultFormat(argDef *ad)
 {
     switch (ad->atype)
     {
-    case mapped_type:
-        return "D";
-
     case fake_void_type:
+    case mapped_type:
     case class_type:
         if (needNewInstance(ad))
             return "N";
@@ -11043,19 +11041,6 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
          */
         if (needNewInstance(ad))
         {
-            /*
-             * If it's a mapped type then we will need to destroy the instance
-             * after it has been converted.
-             */
-            if (ad->atype == mapped_type && deltemps)
-            {
-                deltemps = FALSE;
-
-                prcode(fp,
-"            PyObject *sipResult;\n"
-                    );
-            }
-
             prcode(fp,
 "            a%d = new %b();\n"
                 ,a,ad);
@@ -12214,15 +12199,6 @@ static void deleteTemps(signatureDef *sd, FILE *fp)
                 prcode(fp,
 "            delete[] a%d;\n"
                     , a);
-
-            continue;
-        }
-
-        if (ad->atype == mapped_type && needNewInstance(ad))
-        {
-            prcode(fp,
-"            delete a%d;\n"
-                , a);
 
             continue;
         }
