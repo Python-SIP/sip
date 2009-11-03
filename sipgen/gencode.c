@@ -2459,7 +2459,7 @@ static void generateOrdinaryFunction(moduleDef *mod, classDef *c_scope,
             if (need_intro)
             {
                 prcode(fp,
-"    int sipArgsParsed = 0;\n"
+"    PyObject *sipParseErr = NULL;\n"
                     );
 
                 need_intro = FALSE;
@@ -2475,7 +2475,7 @@ static void generateOrdinaryFunction(moduleDef *mod, classDef *c_scope,
         prcode(fp,
 "\n"
 "    /* Raise an exception if the arguments couldn't be parsed. */\n"
-"    sipNoFunction(sipArgsParsed,%N);\n"
+"    sipNoFunction(sipParseErr, %N);\n"
 "\n"
 "    return NULL;\n"
             ,md->pyname);
@@ -5031,7 +5031,7 @@ static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
 
     if (nr_args > 0)
         prcode(fp,
-"    int sipArgsParsed = 0;\n"
+"    PyObject *sipParseErr = NULL;\n"
             );
 
     for (od = overs; od != NULL; od = od->next)
@@ -5104,7 +5104,7 @@ static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
                 prcode(fp,
 "\n"
 "    /* Raise an exception if the arguments couldn't be parsed. */\n"
-"    sipNoMethod(sipArgsParsed,%N,%N);\n"
+"    sipNoMethod(sipParseErr, %N, %N);\n"
 "\n"
 "    return %s;\n"
                     , pyname, md->pyname
@@ -6590,7 +6590,7 @@ static void generateEmitter(classDef *cd, visibleList *vl, FILE *fp)
 "\n"
 "int sip%C::sipEmit_%s(PyObject *sipArgs)\n"
 "{\n"
-"    int sipArgsParsed = 0;\n"
+"    PyObject *sipParseErr = NULL;\n"
         ,classFQCName(cd),pname);
 
     for (od = vl->cd->overs; od != NULL; od = od->next)
@@ -6646,7 +6646,7 @@ static void generateEmitter(classDef *cd, visibleList *vl, FILE *fp)
 
     prcode(fp,
 "\n"
-"    sipNoMethod(sipArgsParsed,%N,%N);\n"
+"    sipNoMethod(sipParseErr, %N, %N);\n"
 "\n"
 "    return -1;\n"
 "}\n"
@@ -9769,11 +9769,11 @@ static void generateTypeInit(classDef *cd, moduleDef *mod, FILE *fp)
 
     if (!generating_c)
         prcode(fp,
-"extern \"C\" {static void *init_%L(sipSimpleWrapper *, PyObject *, PyObject *, PyObject **, PyObject **, int *);}\n"
+"extern \"C\" {static void *init_%L(sipSimpleWrapper *, PyObject *, PyObject *, PyObject **, PyObject **, PyObject **);}\n"
             , cd->iff);
 
     prcode(fp,
-"static void *init_%L(sipSimpleWrapper *%s, PyObject *sipArgs, PyObject *%s, PyObject **%s, PyObject **%s, int *sipArgsParsed)\n"
+"static void *init_%L(sipSimpleWrapper *%s, PyObject *sipArgs, PyObject *%s, PyObject **%s, PyObject **%s, PyObject **sipParseErr)\n"
 "{\n"
         , cd->iff, (need_self ? "sipSelf" : ""), (need_kwds ? "sipKwds" : ""), (need_kwds ? "sipUnused" : ""), (need_owner ? "sipOwner" : ""));
 
@@ -10233,7 +10233,7 @@ static void generateFunction(memberDef *md, overDef *overs, classDef *cd,
         {
             if (need_args)
                 prcode(fp,
-"    int sipArgsParsed = 0;\n"
+"    PyObject *sipParseErr = NULL;\n"
                     );
 
             if (need_selfarg)
@@ -10293,10 +10293,10 @@ static void generateFunction(memberDef *md, overDef *overs, classDef *cd,
             prcode(fp,
 "\n"
 "    /* Raise an exception if the arguments couldn't be parsed. */\n"
-"    sipNoMethod(%s,%N,%N);\n"
+"    sipNoMethod(%s, %N, %N);\n"
 "\n"
 "    return NULL;\n"
-                , (need_args ? "sipArgsParsed" : "0"), cd->pyname, md->pyname);
+                , (need_args ? "sipParseErr" : "NULL"), cd->pyname, md->pyname);
 
         prcode(fp,
 "}\n"
@@ -11677,7 +11677,7 @@ static int generateArgParser(signatureDef *sd, classDef *c_scope,
     if (od != NULL && isNumberSlot(od->common))
     {
         prcode(fp,
-"        if (sipParsePair(%ssipArgsParsed,sipArg0,sipArg1,\"", (ct != NULL ? "" : "&"));
+"        if (sipParsePair(%ssipParseErr, sipArg0, sipArg1, \"", (ct != NULL ? "" : "&"));
     }
     else if ((od != NULL && useKeywordArgs(od)) || (ct != NULL && useKeywordArgsCtor(ct)))
     {
@@ -11704,14 +11704,14 @@ static int generateArgParser(signatureDef *sd, classDef *c_scope,
         prcode(fp,
 "        };\n"
 "\n"
-"        if (sipParseKwdArgs(%ssipArgsParsed,sipArgs,sipKwds,sipKwdList,%s,\"", (ct != NULL ? "" : "&"), (ct != NULL ? "sipUnused" : "NULL"));
+"        if (sipParseKwdArgs(%ssipParseErr, sipArgs, sipKwds, sipKwdList, %s, \"", (ct != NULL ? "" : "&"), (ct != NULL ? "sipUnused" : "NULL"));
     }
     else
     {
         single_arg = (od != NULL && od->common->slot != no_slot && !isMultiArgSlot(od->common));
 
         prcode(fp,
-"        if (sipParseArgs(%ssipArgsParsed,sipArg%s,\"", (ct != NULL ? "" : "&"), (single_arg ? "" : "s"));
+"        if (sipParseArgs(%ssipParseErr, sipArg%s, \"", (ct != NULL ? "" : "&"), (single_arg ? "" : "s"));
     }
 
     /* Generate the format string. */
@@ -11968,9 +11968,9 @@ static int generateArgParser(signatureDef *sd, classDef *c_scope,
     /* Generate the parameters corresponding to the format string. */
 
     if (handle_self)
-        prcode(fp,",&sipSelf,sipType_%C,&sipCpp",classFQCName(c_scope));
+        prcode(fp,", &sipSelf, sipType_%C, &sipCpp",classFQCName(c_scope));
     else if (isQtSlot && od == NULL)
-        prcode(fp,",sipSelf");
+        prcode(fp,", sipSelf");
 
     for (a = 0; a < sd->nrArgs; ++a)
     {
@@ -11981,93 +11981,93 @@ static int generateArgParser(signatureDef *sd, classDef *c_scope,
 
         /* Use the wrapper name if it was explicitly asked for. */
         if (isGetWrapper(ad))
-            prcode(fp, ",&a%dWrapper", a);
+            prcode(fp, ", &a%dWrapper", a);
         else if (keepReference(ad))
-            prcode(fp, ",&a%dKeep", a);
+            prcode(fp, ", &a%dKeep", a);
 
         switch (ad->atype)
         {
         case mapped_type:
-            prcode(fp, ",sipType_%T,&a%d", ad, a);
+            prcode(fp, ", sipType_%T,&a%d", ad, a);
 
             if (isArray(ad))
             {
-                prcode(fp,",&a%d",arraylenarg);
+                prcode(fp,", &a%d",arraylenarg);
             }
             else if (!isConstrained(ad))
             {
                 if (noRelease(ad->u.mtd))
                     prcode(fp, ",NULL");
                 else
-                    prcode(fp, ",&a%dState", a);
+                    prcode(fp, ", &a%dState", a);
             }
 
             break;
 
         case class_type:
-            prcode(fp, ",sipType_%T,&a%d", ad, a);
+            prcode(fp, ", sipType_%T, &a%d", ad, a);
 
             if (isArray(ad))
             {
-                prcode(fp,",&a%d",arraylenarg);
+                prcode(fp,", &a%d",arraylenarg);
             }
             else
             {
                 if (isThisTransferred(ad))
-                    prcode(fp, ",%ssipOwner", (ct != NULL ? "" : "&"));
+                    prcode(fp, ", %ssipOwner", (ct != NULL ? "" : "&"));
 
                 if (ad->u.cd->convtocode != NULL && !isConstrained(ad))
-                    prcode(fp, ",&a%dState", a);
+                    prcode(fp, ", &a%dState", a);
             }
 
             break;
 
         case ascii_string_type:
             if (!keepReference(ad) && ad->nrderefs == 1)
-                prcode(fp, ",&a%dKeep", a);
+                prcode(fp, ", &a%dKeep", a);
 
-            prcode(fp, ",&a%d", a);
+            prcode(fp, ", &a%d", a);
             break;
 
         case latin1_string_type:
             if (!keepReference(ad) && ad->nrderefs == 1)
-                prcode(fp, ",&a%dKeep", a);
+                prcode(fp, ", &a%dKeep", a);
 
-            prcode(fp, ",&a%d", a);
+            prcode(fp, ", &a%d", a);
             break;
 
         case utf8_string_type:
             if (!keepReference(ad) && ad->nrderefs == 1)
-                prcode(fp, ",&a%dKeep", a);
+                prcode(fp, ", &a%dKeep", a);
 
-            prcode(fp, ",&a%d", a);
+            prcode(fp, ", &a%d", a);
             break;
 
         case rxcon_type:
             {
                 if (sigarg > 0)
-                    prcode(fp,",a%d",sigarg);
+                    prcode(fp,", a%d",sigarg);
                 else
                 {
-                    prcode(fp,",\"(");
+                    prcode(fp,", \"(");
 
                     generateCalledArgs(scope, sd->args[slotconarg].u.sa, Declaration, TRUE, fp);
 
                     prcode(fp,")\"");
                 }
 
-                prcode(fp,",&a%d,&a%d",a,slotconarg);
+                prcode(fp,", &a%d, &a%d",a,slotconarg);
 
                 break;
             }
 
         case rxdis_type:
             {
-                prcode(fp,",\"(");
+                prcode(fp,", \"(");
 
                 generateCalledArgs(scope, sd->args[slotdisarg].u.sa, Declaration, TRUE, fp);
 
-                prcode(fp,")\",&a%d,&a%d",a,slotdisarg);
+                prcode(fp,")\", &a%d, &a%d",a,slotdisarg);
 
                 break;
             }
@@ -12075,47 +12075,47 @@ static int generateArgParser(signatureDef *sd, classDef *c_scope,
         case slotcon_type:
         case slotdis_type:
             if (!secCall)
-                prcode(fp,",&a%d",a);
+                prcode(fp,", &a%d",a);
 
             break;
 
         case anyslot_type:
-            prcode(fp, ",&a%dName,&a%dCallable", a, a);
+            prcode(fp, ", &a%dName, &a%dCallable", a, a);
             break;
 
         case pytuple_type:
-            prcode(fp,",&PyTuple_Type,&a%d",a);
+            prcode(fp,", &PyTuple_Type, &a%d",a);
             break;
 
         case pylist_type:
-            prcode(fp,",&PyList_Type,&a%d",a);
+            prcode(fp,", &PyList_Type, &a%d",a);
             break;
 
         case pydict_type:
-            prcode(fp,",&PyDict_Type,&a%d",a);
+            prcode(fp,", &PyDict_Type, &a%d",a);
             break;
 
         case pyslice_type:
-            prcode(fp,",&PySlice_Type,&a%d",a);
+            prcode(fp,", &PySlice_Type, &a%d",a);
             break;
 
         case pytype_type:
-            prcode(fp,",&PyType_Type,&a%d",a);
+            prcode(fp,", &PyType_Type, &a%d",a);
             break;
 
         case enum_type:
             if (ad->u.ed->fqcname != NULL)
-                prcode(fp, ",sipType_%C", ad->u.ed->fqcname);
+                prcode(fp, ", sipType_%C", ad->u.ed->fqcname);
 
-            prcode(fp,",&a%d",a);
+            prcode(fp,", &a%d",a);
             break;
 
         default:
             if (!isArraySize(ad))
-                prcode(fp,",&a%d",a);
+                prcode(fp,", &a%d",a);
 
             if (isArray(ad))
-                prcode(fp,",&a%d",arraylenarg);
+                prcode(fp,", &a%d",arraylenarg);
         }
     }
 

@@ -56,9 +56,11 @@ extern "C" {
  *
  * History:
  *
- * 6.1  Added sip_api_parse_kwd_args().
+ * 7.0  Added sip_api_parse_kwd_args().
  *      The type initialisation function is now passed a dictionary of keyword
  *      arguments.
+ *      All argument parsers now update a set of error messages rather than an
+ *      argument count.
  *
  * 6.0  Added the sipContainerDef structure to define the contents of a class
  *      or mapped type.  Restructured sipClassDef and sipMappedTypeDef
@@ -146,8 +148,8 @@ extern "C" {
  *
  * 0.0  Original version.
  */
-#define SIP_API_MAJOR_NR    6
-#define SIP_API_MINOR_NR    1
+#define SIP_API_MAJOR_NR    7
+#define SIP_API_MINOR_NR    0
 
 
 /* Some compatibility stuff to help with handwritten code for SIP v3. */
@@ -181,6 +183,8 @@ extern "C" {
 #define SIPLong_AsLong      PyLong_AsLong
 
 #define SIPBytes_Check      PyBytes_Check
+#define SIPBytes_ConcatAndDel   PyBytes_ConcatAndDel
+#define SIPBytes_FromFormat PyBytes_FromFormat
 #define SIPBytes_FromString PyBytes_FromString
 #define SIPBytes_FromStringAndSize  PyBytes_FromStringAndSize
 #define SIPBytes_AS_STRING  PyBytes_AS_STRING
@@ -192,6 +196,8 @@ extern "C" {
 #define SIPLong_AsLong      PyInt_AsLong
 
 #define SIPBytes_Check      PyString_Check
+#define SIPBytes_ConcatAndDel   PyString_ConcatAndDel
+#define SIPBytes_FromFormat PyString_FromFormat
 #define SIPBytes_FromString PyString_FromString
 #define SIPBytes_FromStringAndSize  PyString_FromStringAndSize
 #define SIPBytes_AS_STRING  PyString_AS_STRING
@@ -332,9 +338,7 @@ typedef struct _sipEnumTypeObject {
  * Some convenient function pointers.
  */
 typedef void *(*sipInitFunc)(sipSimpleWrapper *, PyObject *, PyObject *,
-        PyObject **, PyObject **, int *);
-typedef void *(*sipInitFunc_6_0)(sipSimpleWrapper *, PyObject *, PyObject **,
-        int *);
+        PyObject **, PyObject **, PyObject **);
 typedef int (*sipTraverseFunc)(void *, visitproc, void *);
 typedef int (*sipClearFunc)(void *);
 #if PY_MAJOR_VERSION >= 3
@@ -1278,13 +1282,13 @@ typedef struct _sipAPIDef {
      * The following are not part of the public API.
      */
     int (*api_init_module)(sipExportedModuleDef *client, PyObject *mod_dict);
-    int (*api_parse_args)(int *argsParsedp, PyObject *sipArgs,
+    int (*api_parse_args)(PyObject **parseErrp, PyObject *sipArgs,
             const char *fmt, ...);
-    int (*api_parse_pair)(int *argsParsedp, PyObject *arg0, PyObject *arg1,
+    int (*api_parse_pair)(PyObject **parseErrp, PyObject *arg0, PyObject *arg1,
             const char *fmt, ...);
     void (*api_common_dtor)(sipSimpleWrapper *sipSelf);
-    void (*api_no_function)(int argsParsed, const char *func);
-    void (*api_no_method)(int argsParsed, const char *classname,
+    void (*api_no_function)(PyObject *parseErr, const char *func);
+    void (*api_no_method)(PyObject *parseErr, const char *scope,
             const char *method);
     void (*api_abstract_method)(const char *classname, const char *method);
     void (*api_bad_class)(const char *classname);
@@ -1321,7 +1325,7 @@ typedef struct _sipAPIDef {
 #endif
     int (*api_deprecated)(const char *classname, const char *method);
     void (*api_keep_reference)(PyObject *self, int key, PyObject *obj);
-    int (*api_parse_kwd_args)(int *argsParsedp, PyObject *sipArgs,
+    int (*api_parse_kwd_args)(PyObject **parseErrp, PyObject *sipArgs,
             PyObject *sipKwdArgs, const char **kwdlist, PyObject **unused,
             const char *fmt, ...);
 } sipAPIDef;
