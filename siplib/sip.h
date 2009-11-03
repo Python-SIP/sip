@@ -183,6 +183,7 @@ extern "C" {
 #define SIPLong_AsLong      PyLong_AsLong
 
 #define SIPBytes_Check      PyBytes_Check
+#define SIPBytes_Concat     PyBytes_Concat
 #define SIPBytes_ConcatAndDel   PyBytes_ConcatAndDel
 #define SIPBytes_FromFormat PyBytes_FromFormat
 #define SIPBytes_FromString PyBytes_FromString
@@ -196,6 +197,7 @@ extern "C" {
 #define SIPLong_AsLong      PyInt_AsLong
 
 #define SIPBytes_Check      PyString_Check
+#define SIPBytes_Concat     PyString_Concat
 #define SIPBytes_ConcatAndDel   PyString_ConcatAndDel
 #define SIPBytes_FromFormat PyString_FromFormat
 #define SIPBytes_FromString PyString_FromString

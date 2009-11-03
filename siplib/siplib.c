@@ -254,6 +254,24 @@ static const sipAPIDef sip_api = {
 
 
 /*
+ * The different reasons for failing to parse an overload.  These include
+ * internal (i.e. non-user) errors.
+ */
+typedef enum {
+    Ok, Unbound, TooFew, TooMany, UnknownKeyword, Duplicate, WrongType, Raised,
+    BadFormat
+} sipParseFailureReason;
+
+
+/*
+ * The description of a failure to parse an overload because of a user error.
+ */
+typedef struct _sipParseFailure {
+    sipParseFailureReason reason;       /* The reason for the failure. */
+} sipParseFailure;
+
+
+/*
  * An entry in a linked list of name/symbol pairs.
  */
 typedef struct _sipSymbol {
@@ -361,6 +379,8 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
 static int parsePass2(sipSimpleWrapper *self, int selfarg, PyObject *sipArgs,
         PyObject *sipKwdArgs, const char **kwdlist, const char *fmt,
         va_list va);
+static PyObject *bytes_FromFailure(const char *scope, const char *sep,
+        const char *method, PyObject *failure_obj);
 static int isQObject(PyObject *obj);
 static int canConvertFromSequence(PyObject *seq, const sipTypeDef *td);
 static int convertFromSequence(PyObject *seq, const sipTypeDef *td,
@@ -2684,16 +2704,11 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
         int *selfargp, PyObject *sipArgs, PyObject *sipKwdArgs,
         const char **kwdlist, PyObject **unused, const char *fmt, va_list va)
 {
-    typedef enum {
-        Ok, Unbound, TooFew, TooMany, UnknownKeyword, Duplicate, WrongType,
-        Raised, BadFormat
-    } ParseStatus;
-
     int compulsory, argnr, nrparsed, nr_args;
     SIP_SSIZE_T nr_pos_args, nr_kwd_args, nr_kwd_args_used;
-    ParseStatus status;
+    sipParseFailure failure;
 
-    status = Ok;
+    failure.reason = Ok;
     nrparsed = 0;
     compulsory = TRUE;
     argnr = 0;
@@ -2731,7 +2746,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
             {
                 if (!getSelfFromArgs(td, sipArgs, argnr, selfp))
                 {
-                    status = Unbound;
+                    failure.reason = Unbound;
                     break;
                 }
 
@@ -2754,7 +2769,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
     }
 
     /* Now handle the remaining arguments. */
-    while (status == Ok)
+    while (failure.reason == Ok)
     {
         char ch;
         PyObject *arg;
@@ -2775,7 +2790,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
             if (argnr < nr_pos_args)
             {
                 /* There are still positional arguments. */
-                status = TooMany;
+                failure.reason = TooMany;
             }
             else if (nr_kwd_args_used != nr_kwd_args)
             {
@@ -2842,7 +2857,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                                  * It may correspond to a keyword argument of a
                                  * different overload.
                                  */
-                                status = UnknownKeyword;
+                                failure.reason = UnknownKeyword;
                             }
                             else
                             {
@@ -2858,9 +2873,9 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                                  * all.
                                  */
                                 if (unused_dict == NULL && (*unused = unused_dict = PyDict_New()) == NULL)
-                                    status = Raised;
+                                    failure.reason = Raised;
                                 else if (PyDict_SetItem(unused_dict, key, value) < 0)
-                                    status = Raised;
+                                    failure.reason = Raised;
                             }
                         }
                         else if (arg_idx < nr_pos_args)
@@ -2869,10 +2884,10 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                              * The argument has been given positionally and as
                              * a keyword.
                              */
-                            status = Duplicate;
+                            failure.reason = Duplicate;
                         }
 
-                        if (status != Ok)
+                        if (failure.reason != Ok)
                             break;
                     }
                 }
@@ -2918,7 +2933,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
             if (compulsory)
             {
                 /* An argument was required. */
-                status = TooFew;
+                failure.reason = TooFew;
                 break;
             }
 
@@ -2950,7 +2965,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 const char **p = va_arg(va, const char **);
 
                 if (parseBytes_AsString(arg, p) < 0)
-                    status = WrongType;
+                    failure.reason = WrongType;
 
                 break;
             }
@@ -2983,9 +2998,9 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 }
 
                 if (enc < 0)
-                    status = BadFormat;
+                    failure.reason = BadFormat;
                 else if (s == NULL)
-                    status = WrongType;
+                    failure.reason = WrongType;
                 else
                     *keep = s;
 
@@ -3000,13 +3015,13 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 wchar_t **p = va_arg(va, wchar_t **);
 
                 if (parseWCharString(arg, p) < 0)
-                    status = WrongType;
+                    failure.reason = WrongType;
 
                 break;
             }
 #else
             raiseNoWChar();
-            status = Raised;
+            failure.reason = Raised;
             break;
 #endif
 
@@ -3027,12 +3042,12 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                     if (*s == '1' || *s == '2' || *s == '9')
                         *sname = s;
                     else
-                        status = WrongType;
+                        failure.reason = WrongType;
                 }
                 else if (PyCallable_Check(arg))
                     *scall = arg;
                 else if (arg != Py_None)
-                    status = WrongType;
+                    failure.reason = WrongType;
 
                 break;
             }
@@ -3048,10 +3063,10 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                     if (*s == '1' || *s == '2' || *s == '9')
                         *va_arg(va,char **) = s;
                     else
-                        status = WrongType;
+                        failure.reason = WrongType;
                 }
                 else
-                    status = WrongType;
+                    failure.reason = WrongType;
 
                 break;
             }
@@ -3067,10 +3082,10 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                     if (*s == '2' || *s == '9')
                         *va_arg(va,char **) = s;
                     else
-                        status = WrongType;
+                        failure.reason = WrongType;
                 }
                 else
-                    status = WrongType;
+                    failure.reason = WrongType;
 
                 break;
             }
@@ -3086,7 +3101,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 va_arg(va, SIP_SSIZE_T *);
 
                 if (!canConvertFromSequence(arg, td))
-                    status = WrongType;
+                    failure.reason = WrongType;
 
                 break;
             }
@@ -3097,7 +3112,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
 
                 if (*fmt == '\0')
                 {
-                    status = BadFormat;
+                    failure.reason = BadFormat;
                 }
                 else
                 {
@@ -3120,7 +3135,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                         va_arg(va, int *);
 
                     if (!sip_api_can_convert_to_type(arg, td, iflgs))
-                        status = WrongType;
+                        failure.reason = WrongType;
                 }
 
                 break;
@@ -3136,7 +3151,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 if (arg == Py_None || PyObject_TypeCheck(arg,type))
                     *p = arg;
                 else
-                    status = WrongType;
+                    failure.reason = WrongType;
 
                 break;
             }
@@ -3149,7 +3164,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
 
                 /* Skip the sub-format. */
                 if (*fmt++ == '\0')
-                    status = BadFormat;
+                    failure.reason = BadFormat;
 
                 break;
             }
@@ -3164,7 +3179,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 if (PyObject_TypeCheck(arg,type))
                     *p = arg;
                 else
-                    status = WrongType;
+                    failure.reason = WrongType;
 
                 break;
             }
@@ -3176,7 +3191,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 if (isQObject(arg))
                     *va_arg(va,PyObject **) = arg;
                 else
-                    status = WrongType;
+                    failure.reason = WrongType;
 
                 break;
             }
@@ -3188,7 +3203,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 if (PyCallable_Check(arg))
                     *va_arg(va,PyObject **) = arg;
                 else
-                    status = WrongType;
+                    failure.reason = WrongType;
  
                 break;
             }
@@ -3200,7 +3215,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 if (arg == Py_None || PyCallable_Check(arg))
                     *va_arg(va,PyObject **) = arg;
                 else
-                    status = WrongType;
+                    failure.reason = WrongType;
  
                 break;
             }
@@ -3214,7 +3229,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 va_arg(va,const char **);
 
                 if (!isQObject(arg))
-                    status = WrongType;
+                    failure.reason = WrongType;
 
                 break;
             }
@@ -3228,7 +3243,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 va_arg(va,const char **);
 
                 if (!isQObject(arg))
-                    status = WrongType;
+                    failure.reason = WrongType;
 
                 break;
             }
@@ -3243,7 +3258,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 va_arg(va,const char **);
 
                 if (sipQtSupport == NULL || !PyCallable_Check(arg))
-                    status = WrongType;
+                    failure.reason = WrongType;
 
                 break;
             }
@@ -3257,7 +3272,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 va_arg(va,const char **);
 
                 if (sipQtSupport == NULL || !PyCallable_Check(arg))
-                    status = WrongType;
+                    failure.reason = WrongType;
 
                 break;
             }
@@ -3270,7 +3285,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 SIP_SSIZE_T *szp = va_arg(va, SIP_SSIZE_T *);
 
                 if (parseBytes_AsCharArray(arg, p, szp) < 0)
-                    status = WrongType;
+                    failure.reason = WrongType;
 
                 break;
             }
@@ -3284,13 +3299,13 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 SIP_SSIZE_T *szp = va_arg(va, SIP_SSIZE_T *);
 
                 if (parseWCharArray(arg, p, szp) < 0)
-                    status = WrongType;
+                    failure.reason = WrongType;
 
                 break;
             }
 #else
             raiseNoWChar();
-            status = Raised;
+            failure.reason = Raised;
             break
 #endif
 
@@ -3301,7 +3316,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 char *p = va_arg(va, char *);
 
                 if (parseBytes_AsChar(arg, p) < 0)
-                    status = WrongType;
+                    failure.reason = WrongType;
 
                 break;
             }
@@ -3328,12 +3343,12 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                     break;
 
                 default:
-                    status = BadFormat;
+                    failure.reason = BadFormat;
                     enc = 0;
                 }
 
                 if (enc < 0)
-                    status = WrongType;
+                    failure.reason = WrongType;
 
                 break;
             }
@@ -3346,13 +3361,13 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 wchar_t *p = va_arg(va, wchar_t *);
 
                 if (parseWChar(arg, p) < 0)
-                    status = WrongType;
+                    failure.reason = WrongType;
 
                 break;
             }
 #else
             raiseNoWChar();
-            status = Raised;
+            failure.reason = Raised;
             break
 #endif
 
@@ -3363,7 +3378,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 int v = SIPLong_AsLong(arg);
 
                 if (PyErr_Occurred())
-                    status = WrongType;
+                    failure.reason = WrongType;
                 else
                     sipSetBool(va_arg(va, void *), v);
 
@@ -3379,7 +3394,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 va_arg(va, int *);
 
                 if (!sip_api_can_convert_to_enum(arg, td))
-                    status = WrongType;
+                    failure.reason = WrongType;
             }
 
             break;
@@ -3392,7 +3407,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 int v = SIPLong_AsLong(arg);
 
                 if (PyErr_Occurred())
-                    status = WrongType;
+                    failure.reason = WrongType;
                 else
                     *va_arg(va, int *) = v;
 
@@ -3406,7 +3421,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 unsigned v = sip_api_long_as_unsigned_long(arg);
 
                 if (PyErr_Occurred())
-                    status = WrongType;
+                    failure.reason = WrongType;
                 else
                     *va_arg(va, unsigned *) = v;
 
@@ -3420,7 +3435,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 short v = SIPLong_AsLong(arg);
 
                 if (PyErr_Occurred())
-                    status = WrongType;
+                    failure.reason = WrongType;
                 else
                     *va_arg(va, short *) = v;
 
@@ -3434,7 +3449,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 unsigned short v = sip_api_long_as_unsigned_long(arg);
 
                 if (PyErr_Occurred())
-                    status = WrongType;
+                    failure.reason = WrongType;
                 else
                     *va_arg(va, unsigned short *) = v;
 
@@ -3448,7 +3463,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 long v = PyLong_AsLong(arg);
 
                 if (PyErr_Occurred())
-                    status = WrongType;
+                    failure.reason = WrongType;
                 else
                     *va_arg(va,long *) = v;
 
@@ -3462,7 +3477,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 unsigned long v = sip_api_long_as_unsigned_long(arg);
 
                 if (PyErr_Occurred())
-                    status = WrongType;
+                    failure.reason = WrongType;
                 else
                     *va_arg(va, unsigned long *) = v;
 
@@ -3480,7 +3495,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
 #endif
 
                 if (PyErr_Occurred())
-                    status = WrongType;
+                    failure.reason = WrongType;
                 else
 #if defined(HAVE_LONG_LONG)
                     *va_arg(va, PY_LONG_LONG *) = v;
@@ -3502,7 +3517,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
 #endif
 
                 if (PyErr_Occurred())
-                    status = WrongType;
+                    failure.reason = WrongType;
                 else
 #if defined(HAVE_LONG_LONG)
                     *va_arg(va, unsigned PY_LONG_LONG *) = v;
@@ -3520,7 +3535,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 double v = PyFloat_AsDouble(arg);
 
                 if (PyErr_Occurred())
-                    status = WrongType;
+                    failure.reason = WrongType;
                 else
                     *va_arg(va,float *) = (float)v;
 
@@ -3540,7 +3555,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                         if (PyBool_Check(arg))
                             sipSetBool(va_arg(va,void *),(arg == Py_True));
                         else
-                            status = WrongType;
+                            failure.reason = WrongType;
 
                         break;
                     }
@@ -3552,7 +3567,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                         if (PyFloat_Check(arg))
                             *va_arg(va,double *) = PyFloat_AS_DOUBLE(arg);
                         else
-                            status = WrongType;
+                            failure.reason = WrongType;
 
                         break;
                     }
@@ -3564,7 +3579,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                         if (PyFloat_Check(arg))
                             *va_arg(va,float *) = (float)PyFloat_AS_DOUBLE(arg);
                         else
-                            status = WrongType;
+                            failure.reason = WrongType;
 
                         break;
                     }
@@ -3581,7 +3596,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                             *va_arg(va, int *) = PyInt_AS_LONG(arg);
 #endif
                         else
-                            status = WrongType;
+                            failure.reason = WrongType;
 
                         break;
                     }
@@ -3595,13 +3610,13 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                         va_arg(va, int *);
 
                         if (!PyObject_TypeCheck(arg, sipTypeAsPyTypeObject(td)))
-                            status = WrongType;
+                            failure.reason = WrongType;
 
                         break;
                     }
 
                 default:
-                    status = BadFormat;
+                    failure.reason = BadFormat;
                 }
 
                 break;
@@ -3614,7 +3629,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 double v = PyFloat_AsDouble(arg);
 
                 if (PyErr_Occurred())
-                    status = WrongType;
+                    failure.reason = WrongType;
                 else
                     *va_arg(va,double *) = v;
 
@@ -3628,7 +3643,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 void *v = sip_api_convert_to_void_ptr(arg);
 
                 if (PyErr_Occurred())
-                    status = WrongType;
+                    failure.reason = WrongType;
                 else
                     *va_arg(va,void **) = v;
 
@@ -3636,10 +3651,10 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
             }
 
         default:
-            status = BadFormat;
+            failure.reason = BadFormat;
         }
 
-        if (status == Ok)
+        if (failure.reason == Ok)
         {
             if (ch == 'W')
             {
@@ -3654,15 +3669,15 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
 
     /* Handle parse failures appropriately. */
 
-    if (status == BadFormat)
+    if (failure.reason == BadFormat)
     {
         /* This is a code generation error. */
         PyErr_SetString(PyExc_ValueError,
                 "invalid format given to argument parser");
 
-        status = Raised;
+        failure.reason = Raised;
     }
-    else if (status != Ok && status != Raised)
+    else if (failure.reason != Ok && failure.reason != Raised)
     {
         /*
          * It's a user error so add to the list, creating the list if
@@ -3671,29 +3686,45 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
         if (*parseErrp == NULL)
         {
             if ((*parseErrp = PyList_New(0)) == NULL)
-                status = Raised;
+                failure.reason = Raised;
         }
 
-        if (status != Raised)
+        if (failure.reason != Raised)
         {
-            /* Build the error message. */
-            PyObject *msg = SIPBytes_FromFormat("(FIXME): FIXME");
+            /*
+             * Make a copy of the failure, convert it to a Python object and
+             * add it to the list.  We do it this way to make it as lightweight
+             * as possible.
+             */
+            sipParseFailure *failure_copy;
 
-            if (msg != NULL)
+            if ((failure_copy = sip_api_malloc(sizeof (sipParseFailure))) == NULL)
             {
-                if (PyList_Append(*parseErrp, msg) < 0)
-                    status = Raised;
-
-                Py_DECREF(msg);
+                failure.reason = Raised;
             }
             else
             {
-                status = Raised;
+                PyObject *failure_obj;
+
+                *failure_copy = failure;
+
+                if ((failure_obj = PyCObject_FromVoidPtr(failure_copy, sip_api_free)) == NULL)
+                {
+                    sip_api_free(failure_copy);
+                    failure.reason = Raised;
+                }
+                else
+                {
+                    if (PyList_Append(*parseErrp, failure_obj) < 0)
+                        failure.reason = Raised;
+
+                    Py_DECREF(failure_obj);
+                }
             }
         }
     }
 
-    if (status == Raised)
+    if (failure.reason == Raised)
     {
         /*
          * The error isn't a user error so don't bother with the detail of the
@@ -3704,7 +3735,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
         Py_INCREF(Py_None);
     }
 
-    return (status == Ok);
+    return (failure.reason == Ok);
 }
 
 
@@ -5358,7 +5389,20 @@ static void sip_api_no_function(PyObject *parseErr, const char *func)
 static void sip_api_no_method(PyObject *parseErr, const char *scope,
         const char *method)
 {
+    static PyObject *newline = NULL;
     const char *sep = ".";
+
+    if (newline == NULL)
+    {
+        newline = SIPBytes_FromString("\n");
+
+        if (newline == NULL)
+        {
+            Py_XDECREF(parseErr);
+            parseErr = Py_None;
+            Py_INCREF(Py_None);
+        }
+    }
 
     if (scope == NULL)
         scope = ++sep;
@@ -5377,49 +5421,43 @@ static void sip_api_no_method(PyObject *parseErr, const char *scope,
         /* There is an entry for each overload that was tried. */
         if (PyList_GET_SIZE(parseErr) == 1)
         {
-            PyObject *msg = PyList_GET_ITEM(parseErr, 0);
+            PyObject *failure = bytes_FromFailure(scope, sep, method,
+                    PyList_GET_ITEM(parseErr, 0));
 
-            assert(SIPBytes_Check(msg));
-
-            PyErr_Format(PyExc_TypeError, "%s%s%s%s", scope, sep, method,
-                    SIPBytes_AS_STRING(msg));
+            if (failure != NULL)
+            {
+                PyErr_SetString(PyExc_TypeError, SIPBytes_AS_STRING(failure));
+                Py_DECREF(failure);
+            }
         }
         else
         {
-            PyObject *exc = SIPBytes_FromString(
+            PyObject *exc;
+            SIP_SSIZE_T i;
+
+            exc = SIPBytes_FromString(
                     "arguments did not match any overloaded call:");
-            
+
+            for (i = 0; i < PyList_GET_SIZE(parseErr); ++i)
+            {
+                PyObject *failure = bytes_FromFailure(scope, sep, method,
+                        PyList_GET_ITEM(parseErr, i));
+
+                if (failure == NULL)
+                {
+                    Py_XDECREF(exc);
+                    exc = NULL;
+                    break;
+                }
+
+                SIPBytes_Concat(&exc, newline);
+                SIPBytes_ConcatAndDel(&exc, failure);
+            }
+
             if (exc != NULL)
             {
-                SIP_SSIZE_T i;
-
-                for (i = 0; i < PyList_GET_SIZE(parseErr); ++i)
-                {
-                    PyObject *msg_line, *msg = PyList_GET_ITEM(parseErr, i);
-
-                    assert(SIPBytes_Check(msg));
-
-                    msg_line = SIPBytes_FromFormat("\n%s%s%s%s", scope, sep,
-                            method, SIPBytes_AS_STRING(msg));
-
-                    if (msg_line == NULL)
-                    {
-                        Py_DECREF(exc);
-                        exc = NULL;
-                        break;
-                    }
-
-                    SIPBytes_ConcatAndDel(&exc, msg_line);
-
-                    if (exc == NULL)
-                        break;
-                }
-
-                if (exc != NULL)
-                {
-                    PyErr_SetString(PyExc_TypeError, SIPBytes_AS_STRING(exc));
-                    Py_DECREF(exc);
-                }
+                PyErr_SetString(PyExc_TypeError, SIPBytes_AS_STRING(exc));
+                Py_DECREF(exc);
             }
         }
     }
@@ -5435,6 +5473,18 @@ static void sip_api_no_method(PyObject *parseErr, const char *scope,
     }
 
     Py_XDECREF(parseErr);
+}
+
+
+/*
+ * Return a string/bytes object that describes the given failure.
+ */
+static PyObject *bytes_FromFailure(const char *scope, const char *sep,
+        const char *method, PyObject *failure_obj)
+{
+    sipParseFailure *failure = (sipParseFailure *)PyCObject_AsVoidPtr(failure_obj);
+
+    return SIPBytes_FromFormat("%s%s%s(FIXME): FIXME", scope, sep, method);
 }
 
 
