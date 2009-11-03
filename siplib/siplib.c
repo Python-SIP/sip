@@ -5482,9 +5482,29 @@ static void sip_api_no_method(PyObject *parseErr, const char *scope,
 static PyObject *bytes_FromFailure(const char *scope, const char *sep,
         const char *method, PyObject *failure_obj)
 {
-    sipParseFailure *failure = (sipParseFailure *)PyCObject_AsVoidPtr(failure_obj);
+    sipParseFailure *failure;
+    char detail[200];
 
-    return SIPBytes_FromFormat("%s%s%s(FIXME): FIXME", scope, sep, method);
+    failure = (sipParseFailure *)PyCObject_AsVoidPtr(failure_obj);
+
+    switch (failure->reason)
+    {
+    case Unbound:
+        PyOS_snprintf(detail, sizeof (detail),
+                "first argument of unbound method must be a %s instance",
+                scope);
+        break;
+
+    case TooFew:
+    case TooMany:
+    case UnknownKeyword:
+    case Duplicate:
+    case WrongType:
+    default:
+        strcpy(detail, "unexpected reason");
+    }
+
+    return SIPBytes_FromFormat("%s%s%s(FIXME): %s", scope, sep, method, detail);
 }
 
 
@@ -8206,7 +8226,7 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
 
             if (sipNew == NULL)
             {
-                sip_api_no_method(parseErr, sipNameOfModule(td->td_module),
+                sip_api_no_function(parseErr,
                         sipPyNameOfContainer(&ctd->ctd_container, td));
 
                 return -1;
