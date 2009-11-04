@@ -2900,6 +2900,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                              * a keyword.
                              */
                             failure.reason = Duplicate;
+                            failure.detail_obj = key;
                             break;
                         }
                     }
@@ -2947,6 +2948,65 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
             {
                 /* An argument was required. */
                 failure.reason = TooFew;
+
+                /*
+                 * Check if there were any unused keyword arguments so that we
+                 * give a (possibly) more accurate diagnostic in the case that
+                 * a keyword argument has been mis-spelled.
+                 */
+                if (unused == NULL && sipKwdArgs != NULL && nr_kwd_args_used != nr_kwd_args)
+                {
+                    PyObject *key, *value;
+                    SIP_SSIZE_T pos = 0;
+
+                    while (PyDict_Next(sipKwdArgs, &pos, &key, &value))
+                    {
+                        int a;
+
+#if PY_MAJOR_VERSION >= 3
+                        if (!PyUnicode_Check(key))
+#else
+                        if (!PyString_Check(key))
+#endif
+                        {
+                            failure.reason = KeywordNotString;
+                            failure.detail_obj = key;
+                            break;
+                        }
+
+                        if (kwdlist != NULL)
+                        {
+                            /* Get the argument's index if it is one. */
+                            for (a = 0; a < nr_args; ++a)
+                            {
+                                const char *name = kwdlist[a];
+
+                                if (name == NULL)
+                                    continue;
+
+#if PY_MAJOR_VERSION >= 3
+                                if (PyUnicode_CompareWithASCIIString(key, name) == 0)
+#else
+                                if (strcmp(PyString_AS_STRING(key), name) == 0)
+#endif
+                                    break;
+                            }
+                        }
+                        else
+                        {
+                            a = nr_args;
+                        }
+
+                        if (a == nr_args)
+                        {
+                            failure.reason = UnknownKeyword;
+                            failure.detail_obj = key;
+
+                            break;
+                        }
+                    }
+                }
+
                 break;
             }
 
@@ -5617,6 +5677,17 @@ static PyObject *detail_FromFailure(PyObject *failure_obj)
         break;
 
     case Duplicate:
+#if PY_MAJOR_VERSION >= 3
+        detail = PyUnicode_FromFormat(
+                "'%U' has already been given as a positional argument",
+                failure->detail_obj);
+#else
+        detail = PyString_FromFormat(
+                "'%s' has already been given as a positional argument",
+                PyString_AS_STRING(failure->detail_obj));
+#endif
+        break;
+
     case WrongType:
     default:
 #if PY_MAJOR_VERSION >= 3
