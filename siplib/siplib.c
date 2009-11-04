@@ -5527,7 +5527,7 @@ static void sip_api_no_method(PyObject *parseErr, const char *scope,
 
             if (doc != NULL)
             {
-#if PY_VERSION_HEX >= 3
+#if PY_MAJOR_VERSION >= 3
                 exc = PyUnicode_FromString(summary);
 #else
                 exc = PyString_FromString(summary);
@@ -5535,7 +5535,7 @@ static void sip_api_no_method(PyObject *parseErr, const char *scope,
             }
             else
             {
-#if PY_VERSION_HEX >= 3
+#if PY_MAJOR_VERSION >= 3
                 exc = PyUnicode_FromFormat("%s%s%s(): %s", scope, sep, method,
                         summary);
 #else
@@ -5554,7 +5554,7 @@ static void sip_api_no_method(PyObject *parseErr, const char *scope,
                 {
                     if (doc != NULL)
                     {
-#if PY_VERSION_HEX >= 3
+#if PY_MAJOR_VERSION >= 3
                         failure = PyUnicode_FromFormat("\nFIXME: %U", detail);
 #else
                         failure = PyString_FromFormat("\nFIXME: %s",
@@ -5563,7 +5563,7 @@ static void sip_api_no_method(PyObject *parseErr, const char *scope,
                     }
                     else
                     {
-#if PY_VERSION_HEX >= 3
+#if PY_MAJOR_VERSION >= 3
                         failure = PyUnicode_FromFormat("\noverload %d: %U",
                             i + 1, detail);
 #else
@@ -5574,7 +5574,7 @@ static void sip_api_no_method(PyObject *parseErr, const char *scope,
 
                     Py_DECREF(detail);
 
-#if PY_VERSION_HEX >= 3
+#if PY_MAJOR_VERSION >= 3
                     PyUnicode_AppendAndDel(&exc, failure);
 #else
                     PyString_ConcatAndDel(&exc, failure);
