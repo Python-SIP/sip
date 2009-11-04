@@ -68,9 +68,10 @@ static int sip_api_parse_kwd_args(PyObject **parseErrp, PyObject *sipArgs,
 static int sip_api_parse_pair(PyObject **parseErrp, PyObject *sipArg0,
         PyObject *sipArg1, const char *fmt, ...);
 static void *sip_api_convert_to_void_ptr(PyObject *obj);
-static void sip_api_no_function(PyObject *parseErr, const char *func);
+static void sip_api_no_function(PyObject *parseErr, const char *func,
+        const char *doc);
 static void sip_api_no_method(PyObject *parseErr, const char *scope,
-        const char *method);
+        const char *method, const char *doc);
 static void sip_api_abstract_method(const char *classname, const char *method);
 static void sip_api_bad_class(const char *classname);
 static void *sip_api_get_complex_cpp_ptr(sipSimpleWrapper *sw);
@@ -259,7 +260,7 @@ static const sipAPIDef sip_api = {
  */
 typedef enum {
     Ok, Unbound, TooFew, TooMany, UnknownKeyword, Duplicate, WrongType, Raised,
-    BadFormat
+    BadFormat, KeywordNotString
 } sipParseFailureReason;
 
 
@@ -267,7 +268,9 @@ typedef enum {
  * The description of a failure to parse an overload because of a user error.
  */
 typedef struct _sipParseFailure {
-    sipParseFailureReason reason;       /* The reason for the failure. */
+    sipParseFailureReason reason;   /* The reason for the failure. */
+    const char *detail_str;         /* The detail if a string. */
+    PyObject *detail_obj;           /* The detail if a Python object. */
 } sipParseFailure;
 
 
@@ -379,8 +382,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
 static int parsePass2(sipSimpleWrapper *self, int selfarg, PyObject *sipArgs,
         PyObject *sipKwdArgs, const char **kwdlist, const char *fmt,
         va_list va);
-static PyObject *bytes_FromFailure(const char *scope, const char *sep,
-        const char *method, PyObject *failure_obj);
+static PyObject *detail_FromFailure(PyObject *failure_obj);
 static int isQObject(PyObject *obj);
 static int canConvertFromSequence(PyObject *seq, const sipTypeDef *td);
 static int convertFromSequence(PyObject *seq, const sipTypeDef *td,
@@ -2704,12 +2706,11 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
         int *selfargp, PyObject *sipArgs, PyObject *sipKwdArgs,
         const char **kwdlist, PyObject **unused, const char *fmt, va_list va)
 {
-    int compulsory, argnr, nrparsed, nr_args;
+    int compulsory, argnr, nr_args;
     SIP_SSIZE_T nr_pos_args, nr_kwd_args, nr_kwd_args_used;
     sipParseFailure failure;
 
     failure.reason = Ok;
-    nrparsed = 0;
     compulsory = TRUE;
     argnr = 0;
     nr_args = 0;
@@ -2747,11 +2748,12 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 if (!getSelfFromArgs(td, sipArgs, argnr, selfp))
                 {
                     failure.reason = Unbound;
+                    failure.detail_str = sipPyNameOfContainer(
+                            &((sipClassTypeDef *)td)->ctd_container, td);
                     break;
                 }
 
                 *selfargp = TRUE;
-                ++nrparsed;
                 ++argnr;
             }
             else
@@ -2815,16 +2817,21 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                      */
                     while (PyDict_Next(sipKwdArgs, &pos, &key, &value))
                     {
-                        int arg_idx = -1;
+                        int a;
 
 #if PY_MAJOR_VERSION >= 3
-                        if (PyUnicode_Check(key))
+                        if (!PyUnicode_Check(key))
 #else
-                        if (PyString_Check(key))
+                        if (!PyString_Check(key))
 #endif
                         {
-                            int a;
+                            failure.reason = KeywordNotString;
+                            failure.detail_obj = key;
+                            break;
+                        }
 
+                        if (kwdlist != NULL)
+                        {
                             /* Get the argument's index if it is one. */
                             for (a = 0; a < nr_args; ++a)
                             {
@@ -2838,14 +2845,15 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
 #else
                                 if (strcmp(PyString_AS_STRING(key), name) == 0)
 #endif
-                                {
-                                    arg_idx = a;
                                     break;
-                                }
                             }
                         }
+                        else
+                        {
+                            a = nr_args;
+                        }
 
-                        if (arg_idx < 0)
+                        if (a == nr_args)
                         {
                             /*
                              * The name doesn't correspond to a keyword
@@ -2858,37 +2866,42 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                                  * different overload.
                                  */
                                 failure.reason = UnknownKeyword;
+                                failure.detail_obj = key;
+
+                                break;
                             }
-                            else
+
+                            /*
+                             * Add it to the dictionary of unused arguments
+                             * creating it if necessary.  Note that if the
+                             * unused arguments are actually used by a later
+                             * overload then the parse will incorrectly
+                             * succeed.  This should be picked up (perhaps with
+                             * a misleading exception) so long as the code that
+                             * handles the unused arguments checks that it can
+                             * handle them all.
+                             */
+                            if (unused_dict == NULL && (*unused = unused_dict = PyDict_New()) == NULL)
                             {
-                                /*
-                                 * Add it to the dictionary of unused arguments
-                                 * creating it if necessary.  Note that if the
-                                 * unused arguments are actually used by a
-                                 * later overload then the parse will
-                                 * incorrectly succeed.  This should be picked
-                                 * up (perhaps with a misleading exception) so
-                                 * long as the code that handles the unused
-                                 * arguments checks that it can handle them
-                                 * all.
-                                 */
-                                if (unused_dict == NULL && (*unused = unused_dict = PyDict_New()) == NULL)
-                                    failure.reason = Raised;
-                                else if (PyDict_SetItem(unused_dict, key, value) < 0)
-                                    failure.reason = Raised;
+                                failure.reason = Raised;
+                                break;
+                            }
+
+                            if (PyDict_SetItem(unused_dict, key, value) < 0)
+                            {
+                                failure.reason = Raised;
+                                break;
                             }
                         }
-                        else if (arg_idx < nr_pos_args)
+                        else if (a < nr_pos_args)
                         {
                             /*
                              * The argument has been given positionally and as
                              * a keyword.
                              */
                             failure.reason = Duplicate;
-                        }
-
-                        if (failure.reason != Ok)
                             break;
+                        }
                     }
                 }
             }
@@ -2903,7 +2916,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
         {
             arg = PyTuple_GET_ITEM(sipArgs, argnr);
         }
-        else if (sipKwdArgs != NULL)
+        else if (sipKwdArgs != NULL && kwdlist != NULL)
         {
             const char *name = kwdlist[argnr];
 
@@ -2954,7 +2967,6 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
             /* Process the same argument next time round. */
             --argnr;
             --nr_args;
-            --nrparsed;
 
             break;
 
@@ -3654,16 +3666,10 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
             failure.reason = BadFormat;
         }
 
-        if (failure.reason == Ok)
+        if (failure.reason == Ok && ch == 'W')
         {
-            if (ch == 'W')
-            {
-                /* An ellipsis matches everything and ends the parse. */
-                nrparsed = nr_pos_args;
-                break;
-            }
-
-            ++nrparsed;
+            /* An ellipsis matches everything and ends the parse. */
+            break;
         }
     }
 
@@ -5377,9 +5383,10 @@ static int sip_api_register_attribute_getter(const sipTypeDef *td,
 /*
  * Report a function with invalid argument types.
  */
-static void sip_api_no_function(PyObject *parseErr, const char *func)
+static void sip_api_no_function(PyObject *parseErr, const char *func,
+        const char *doc)
 {
-    sip_api_no_method(parseErr, NULL, func);
+    sip_api_no_method(parseErr, NULL, func, doc);
 }
 
 
@@ -5387,22 +5394,9 @@ static void sip_api_no_function(PyObject *parseErr, const char *func)
  * Report a method/function/signal with invalid argument types.
  */
 static void sip_api_no_method(PyObject *parseErr, const char *scope,
-        const char *method)
+        const char *method, const char *doc)
 {
-    static PyObject *newline = NULL;
     const char *sep = ".";
-
-    if (newline == NULL)
-    {
-        newline = SIPBytes_FromString("\n");
-
-        if (newline == NULL)
-        {
-            Py_XDECREF(parseErr);
-            parseErr = Py_None;
-            Py_INCREF(Py_None);
-        }
-    }
 
     if (scope == NULL)
         scope = ++sep;
@@ -5418,47 +5412,118 @@ static void sip_api_no_method(PyObject *parseErr, const char *scope,
     }
     else if (PyList_Check(parseErr))
     {
+        PyObject *exc;
+
         /* There is an entry for each overload that was tried. */
         if (PyList_GET_SIZE(parseErr) == 1)
         {
-            PyObject *failure = bytes_FromFailure(scope, sep, method,
+            PyObject *detail = detail_FromFailure(
                     PyList_GET_ITEM(parseErr, 0));
 
-            if (failure != NULL)
+            if (detail != NULL)
             {
-                PyErr_SetString(PyExc_TypeError, SIPBytes_AS_STRING(failure));
-                Py_DECREF(failure);
+                if (doc != NULL)
+                {
+#if PY_MAJOR_VERSION >= 3
+                    exc = PyUnicode_FromFormat("%s%s%s(FIXME): %U", scope, sep,
+                            method, detail);
+#else
+                    exc = PyString_FromFormat("%s%s%s(FIXME): %s", scope, sep,
+                            method, PyString_AS_STRING(detail));
+#endif
+                }
+                else
+                {
+#if PY_MAJOR_VERSION >= 3
+                    exc = PyUnicode_FromFormat("%s%s%s(): %U", scope, sep,
+                            method, detail);
+#else
+                    exc = PyString_FromFormat("%s%s%s(): %s", scope, sep,
+                            method, PyString_AS_STRING(detail));
+#endif
+                }
+
+                Py_DECREF(detail);
+            }
+            else
+            {
+                exc = NULL;
             }
         }
         else
         {
-            PyObject *exc;
+            static const char *summary = "arguments did not match any overloaded call:";
+
             SIP_SSIZE_T i;
 
-            exc = SIPBytes_FromString(
-                    "arguments did not match any overloaded call:");
+            if (doc != NULL)
+            {
+#if PY_VERSION_HEX >= 3
+                exc = PyUnicode_FromString(summary);
+#else
+                exc = PyString_FromString(summary);
+#endif
+            }
+            else
+            {
+#if PY_VERSION_HEX >= 3
+                exc = PyUnicode_FromFormat("%s%s%s(): %s", scope, sep, method,
+                        summary);
+#else
+                exc = PyString_FromFormat("%s%s%s(): %s", scope, sep, method,
+                        summary);
+#endif
+            }
 
             for (i = 0; i < PyList_GET_SIZE(parseErr); ++i)
             {
-                PyObject *failure = bytes_FromFailure(scope, sep, method,
+                PyObject *failure;
+                PyObject *detail = detail_FromFailure(
                         PyList_GET_ITEM(parseErr, i));
 
-                if (failure == NULL)
+                if (detail != NULL)
+                {
+                    if (doc != NULL)
+                    {
+#if PY_VERSION_HEX >= 3
+                        failure = PyUnicode_FromFormat("\nFIXME: %U", detail);
+#else
+                        failure = PyString_FromFormat("\nFIXME: %s",
+                                PyString_AS_STRING(detail));
+#endif
+                    }
+                    else
+                    {
+#if PY_VERSION_HEX >= 3
+                        failure = PyUnicode_FromFormat("\noverload %d: %U",
+                            i + 1, detail);
+#else
+                        failure = PyString_FromFormat("\noverload %d: %s",
+                            i + 1, PyString_AS_STRING(detail));
+#endif
+                    }
+
+                    Py_DECREF(detail);
+
+#if PY_VERSION_HEX >= 3
+                    PyUnicode_AppendAndDel(&exc, failure);
+#else
+                    PyString_ConcatAndDel(&exc, failure);
+#endif
+                }
+                else
                 {
                     Py_XDECREF(exc);
                     exc = NULL;
                     break;
                 }
-
-                SIPBytes_Concat(&exc, newline);
-                SIPBytes_ConcatAndDel(&exc, failure);
             }
+        }
 
-            if (exc != NULL)
-            {
-                PyErr_SetString(PyExc_TypeError, SIPBytes_AS_STRING(exc));
-                Py_DECREF(exc);
-            }
+        if (exc != NULL)
+        {
+            PyErr_SetObject(PyExc_TypeError, exc);
+            Py_DECREF(exc);
         }
     }
     else
@@ -5477,34 +5542,91 @@ static void sip_api_no_method(PyObject *parseErr, const char *scope,
 
 
 /*
- * Return a string/bytes object that describes the given failure.
+ * Return a string/unicode object that describes the given failure.
  */
-static PyObject *bytes_FromFailure(const char *scope, const char *sep,
-        const char *method, PyObject *failure_obj)
+static PyObject *detail_FromFailure(PyObject *failure_obj)
 {
     sipParseFailure *failure;
-    char detail[200];
+    PyObject *detail;
 
     failure = (sipParseFailure *)PyCObject_AsVoidPtr(failure_obj);
 
     switch (failure->reason)
     {
     case Unbound:
-        PyOS_snprintf(detail, sizeof (detail),
+#if PY_MAJOR_VERSION >= 3
+        detail = PyUnicode_FromFormat(
                 "first argument of unbound method must be a %s instance",
-                scope);
+                failure->detail_str);
+#else
+        detail = PyString_FromFormat(
+                "first argument of unbound method must be a %s instance",
+                failure->detail_str);
+#endif
         break;
 
     case TooFew:
+#if PY_MAJOR_VERSION >= 3
+        detail = PyUnicode_FromString("not enough arguments");
+#else
+        detail = PyString_FromString("not enough arguments");
+#endif
+        break;
+
     case TooMany:
+#if PY_MAJOR_VERSION >= 3
+        detail = PyUnicode_FromString("too many arguments");
+#else
+        detail = PyString_FromString("too many arguments");
+#endif
+        break;
+
+    case KeywordNotString:
+#if PY_MAJOR_VERSION >= 3
+        detail = PyUnicode_FromFormat(
+                "%S keyword argument name is not a string",
+                failure->detail_obj);
+#else
+        {
+            PyObject *str = PyObject_Str(failure->detail_obj);
+
+            if (str != NULL)
+            {
+                detail = PyString_FromFormat(
+                        "%s keyword argument name is not a string",
+                        PyString_AsString(str));
+
+                Py_DECREF(str);
+            }
+            else
+            {
+                detail = NULL;
+            }
+        }
+#endif
+        break;
+
     case UnknownKeyword:
+#if PY_MAJOR_VERSION >= 3
+        detail = PyUnicode_FromFormat("'%U' is not a valid keyword argument",
+                failure->detail_obj);
+#else
+        detail = PyString_FromFormat("'%s' is not a valid keyword argument",
+                PyString_AS_STRING(failure->detail_obj));
+#endif
+        break;
+
     case Duplicate:
     case WrongType:
     default:
-        strcpy(detail, "unexpected reason");
+#if PY_MAJOR_VERSION >= 3
+        detail = PyUnicode_FromString("unexpected reason");
+#else
+        detail = PyString_FromString("unexpected reason");
+#endif
     }
 
-    return SIPBytes_FromFormat("%s%s%s(FIXME): %s", scope, sep, method, detail);
+    return detail;
 }
 
 
@@ -8227,7 +8349,7 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
             if (sipNew == NULL)
             {
                 sip_api_no_function(parseErr,
-                        sipPyNameOfContainer(&ctd->ctd_container, td));
+                        sipPyNameOfContainer(&ctd->ctd_container, td), NULL);
 
                 return -1;
             }

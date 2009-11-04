@@ -61,6 +61,8 @@ extern "C" {
  *      arguments.
  *      All argument parsers now update a set of error messages rather than an
  *      argument count.
+ *      The signatures of sip_api_no_function() and sip_api_no_method() have
+ *      changed.
  *
  * 6.0  Added the sipContainerDef structure to define the contents of a class
  *      or mapped type.  Restructured sipClassDef and sipMappedTypeDef
@@ -183,9 +185,6 @@ extern "C" {
 #define SIPLong_AsLong      PyLong_AsLong
 
 #define SIPBytes_Check      PyBytes_Check
-#define SIPBytes_Concat     PyBytes_Concat
-#define SIPBytes_ConcatAndDel   PyBytes_ConcatAndDel
-#define SIPBytes_FromFormat PyBytes_FromFormat
 #define SIPBytes_FromString PyBytes_FromString
 #define SIPBytes_FromStringAndSize  PyBytes_FromStringAndSize
 #define SIPBytes_AS_STRING  PyBytes_AS_STRING
@@ -197,9 +196,6 @@ extern "C" {
 #define SIPLong_AsLong      PyInt_AsLong
 
 #define SIPBytes_Check      PyString_Check
-#define SIPBytes_Concat     PyString_Concat
-#define SIPBytes_ConcatAndDel   PyString_ConcatAndDel
-#define SIPBytes_FromFormat PyString_FromFormat
 #define SIPBytes_FromString PyString_FromString
 #define SIPBytes_FromStringAndSize  PyString_FromStringAndSize
 #define SIPBytes_AS_STRING  PyString_AS_STRING
@@ -1289,9 +1285,10 @@ typedef struct _sipAPIDef {
     int (*api_parse_pair)(PyObject **parseErrp, PyObject *arg0, PyObject *arg1,
             const char *fmt, ...);
     void (*api_common_dtor)(sipSimpleWrapper *sipSelf);
-    void (*api_no_function)(PyObject *parseErr, const char *func);
+    void (*api_no_function)(PyObject *parseErr, const char *func,
+            const char *doc);
     void (*api_no_method)(PyObject *parseErr, const char *scope,
-            const char *method);
+            const char *method, const char *doc);
     void (*api_abstract_method)(const char *classname, const char *method);
     void (*api_bad_class)(const char *classname);
     void *(*api_get_cpp_ptr)(sipSimpleWrapper *w, const sipTypeDef *td);

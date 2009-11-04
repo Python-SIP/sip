@@ -2475,7 +2475,7 @@ static void generateOrdinaryFunction(moduleDef *mod, classDef *c_scope,
         prcode(fp,
 "\n"
 "    /* Raise an exception if the arguments couldn't be parsed. */\n"
-"    sipNoFunction(sipParseErr, %N);\n"
+"    sipNoFunction(sipParseErr, %N, NULL);\n"
 "\n"
 "    return NULL;\n"
             ,md->pyname);
@@ -5104,7 +5104,7 @@ static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
                 prcode(fp,
 "\n"
 "    /* Raise an exception if the arguments couldn't be parsed. */\n"
-"    sipNoMethod(sipParseErr, %N, %N);\n"
+"    sipNoMethod(sipParseErr, %N, %N, NULL);\n"
 "\n"
 "    return %s;\n"
                     , pyname, md->pyname
@@ -6646,7 +6646,7 @@ static void generateEmitter(classDef *cd, visibleList *vl, FILE *fp)
 
     prcode(fp,
 "\n"
-"    sipNoMethod(sipParseErr, %N, %N);\n"
+"    sipNoMethod(sipParseErr, %N, %N, NULL);\n"
 "\n"
 "    return -1;\n"
 "}\n"
@@ -9729,7 +9729,7 @@ static const char *slotName(slotType st)
 static void generateTypeInit(classDef *cd, moduleDef *mod, FILE *fp)
 {
     ctorDef *ct;
-    int need_self, need_owner, need_kwds;
+    int need_self, need_owner;
 
     /*
      * See if we need to name the self and owner arguments so that we can
@@ -9737,7 +9737,6 @@ static void generateTypeInit(classDef *cd, moduleDef *mod, FILE *fp)
      */
     need_self = (generating_c || hasShadow(cd));
     need_owner = generating_c;
-    need_kwds = FALSE;
 
     for (ct = cd->ctors; ct != NULL; ct = ct->next)
     {
@@ -9757,9 +9756,6 @@ static void generateTypeInit(classDef *cd, moduleDef *mod, FILE *fp)
                     break;
                 }
         }
-
-        if (useKeywordArgsCtor(ct))
-            need_kwds = TRUE;
     }
 
     prcode(fp,
@@ -9773,9 +9769,9 @@ static void generateTypeInit(classDef *cd, moduleDef *mod, FILE *fp)
             , cd->iff);
 
     prcode(fp,
-"static void *init_%L(sipSimpleWrapper *%s, PyObject *sipArgs, PyObject *%s, PyObject **%s, PyObject **%s, PyObject **sipParseErr)\n"
+"static void *init_%L(sipSimpleWrapper *%s, PyObject *sipArgs, PyObject *sipKwds, PyObject **sipUnused, PyObject **%s, PyObject **sipParseErr)\n"
 "{\n"
-        , cd->iff, (need_self ? "sipSelf" : ""), (need_kwds ? "sipKwds" : ""), (need_kwds ? "sipUnused" : ""), (need_owner ? "sipOwner" : ""));
+        , cd->iff, (need_self ? "sipSelf" : ""), (need_owner ? "sipOwner" : ""));
 
     if (hasShadow(cd))
         prcode(fp,
@@ -10293,7 +10289,7 @@ static void generateFunction(memberDef *md, overDef *overs, classDef *cd,
             prcode(fp,
 "\n"
 "    /* Raise an exception if the arguments couldn't be parsed. */\n"
-"    sipNoMethod(%s, %N, %N);\n"
+"    sipNoMethod(%s, %N, %N, NULL);\n"
 "\n"
 "    return NULL;\n"
                 , (need_args ? "sipParseErr" : "NULL"), cd->pyname, md->pyname);
@@ -11679,32 +11675,47 @@ static int generateArgParser(signatureDef *sd, classDef *c_scope,
         prcode(fp,
 "        if (sipParsePair(%ssipParseErr, sipArg0, sipArg1, \"", (ct != NULL ? "" : "&"));
     }
-    else if ((od != NULL && useKeywordArgs(od)) || (ct != NULL && useKeywordArgsCtor(ct)))
+    else if ((od != NULL && useKeywordArgsFunction(od->common)) || ct != NULL)
     {
-        int a;
+        int this_uses_kwds;
 
-        prcode(fp,
-"        static const char *sipKwdList[] = {\n"
-            );
+        /*
+         * We handle keywords if we might have been passed some (because one of
+         * the overloads uses them or we are a ctor).  However this particular
+         * overload might not have any.
+         */
+        this_uses_kwds = ((od != NULL && useKeywordArgs(od)) || (ct != NULL && useKeywordArgsCtor(ct)));
 
-        for (a = 0; a < sd->nrArgs; ++a)
+        if (this_uses_kwds)
         {
-            nameDef *nd = sd->args[a].name;
+            int a;
 
-            if (nd != NULL)
-                prcode(fp,
+            prcode(fp,
+"        static const char *sipKwdList[] = {\n"
+                );
+
+            for (a = 0; a < sd->nrArgs; ++a)
+            {
+                nameDef *nd = sd->args[a].name;
+
+                if (nd != NULL)
+                    prcode(fp,
 "            %N,\n"
-                    , nd);
-            else
-                prcode(fp,
+                        , nd);
+                else
+                    prcode(fp,
 "            NULL,\n"
-                    );
+                        );
+            }
+
+            prcode(fp,
+    "        };\n"
+    "\n"
+                );
         }
 
         prcode(fp,
-"        };\n"
-"\n"
-"        if (sipParseKwdArgs(%ssipParseErr, sipArgs, sipKwds, sipKwdList, %s, \"", (ct != NULL ? "" : "&"), (ct != NULL ? "sipUnused" : "NULL"));
+"        if (sipParseKwdArgs(%ssipParseErr, sipArgs, sipKwds, %s, %s, \"", (ct != NULL ? "" : "&"), (this_uses_kwds ? "sipKwdList" : "NULL"), (ct != NULL ? "sipUnused" : "NULL"));
     }
     else
     {
