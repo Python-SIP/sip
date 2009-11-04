@@ -93,6 +93,7 @@ static void generateImportedModuleAPI(sipSpec *pt, moduleDef *mod,
         moduleDef *immod, FILE *fp);
 static void generateShadowClassDeclaration(sipSpec *, classDef *, FILE *);
 static int hasConvertToCode(argDef *ad);
+static void deleteOuts(signatureDef *sd, FILE *fp);
 static void deleteTemps(signatureDef *sd, FILE *fp);
 static void gc_ellipsis(signatureDef *sd, FILE *fp);
 static void generateCallArgs(signatureDef *, signatureDef *, FILE *);
@@ -9938,6 +9939,7 @@ static void generateCatch(throwArgs *ta, signatureDef *sd, moduleDef *mod,
 "\n"
                 );
 
+        deleteOuts(sd, fp);
         deleteTemps(sd, fp);
 
         prcode(fp,
@@ -9967,6 +9969,7 @@ static void generateCatchBlock(exceptionDef *xd, signatureDef *sd, FILE *fp)
 "                Py_BLOCK_THREADS\n"
             );
 
+    deleteOuts(sd, fp);
     deleteTemps(sd, fp);
 
     /* See if the exception is a wrapped class. */
@@ -12205,11 +12208,31 @@ static void gc_ellipsis(signatureDef *sd, FILE *fp)
 
 
 /*
+ * Delete any instances created to hold /Out/ arguments.
+ */
+static void deleteOuts(signatureDef *sd, FILE *fp)
+{
+    int a;
+
+    for (a = 0; a < sd->nrArgs; ++a)
+    {
+        argDef *ad = &sd->args[a];
+
+        if (needNewInstance(ad))
+            prcode(fp,
+"                delete a%d;\n"
+                , a);
+    }
+}
+
+
+
+/*
  * Delete any temporary variables on the heap created by type convertors.
  */
 static void deleteTemps(signatureDef *sd, FILE *fp)
 {
-    int a, first = TRUE;
+    int a;
 
     for (a = 0; a < sd->nrArgs; ++a)
     {
@@ -12253,15 +12276,6 @@ static void deleteTemps(signatureDef *sd, FILE *fp)
         {
             if (ad->atype == mapped_type && noRelease(ad->u.mtd))
                 continue;
-
-            if (first)
-            {
-                prcode(fp,
-"\n"
-                    );
-
-                first = FALSE;
-            }
 
             if (generating_c || !isConstArg(ad))
                 prcode(fp,
