@@ -271,6 +271,8 @@ typedef struct _sipParseFailure {
     sipParseFailureReason reason;   /* The reason for the failure. */
     const char *detail_str;         /* The detail if a string. */
     PyObject *detail_obj;           /* The detail if a Python object. */
+    int arg_nr;                     /* The wrong positional argument. */
+    const char *arg_name;           /* The wrong keyword argument. */
 } sipParseFailure;
 
 
@@ -2912,10 +2914,13 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
 
         /* Get the next argument. */
         arg = NULL;
+        failure.arg_nr = -1;
+        failure.arg_name = NULL;
 
         if (argnr < nr_pos_args)
         {
             arg = PyTuple_GET_ITEM(sipArgs, argnr);
+            failure.arg_nr = argnr + 1;
         }
         else if (sipKwdArgs != NULL && kwdlist != NULL)
         {
@@ -2927,8 +2932,12 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
 
                 if (arg != NULL)
                     ++nr_kwd_args_used;
+
+                failure.arg_name = name;
             }
         }
+
+        failure.detail_obj = arg;
 
         ++argnr;
         ++nr_args;
@@ -5616,11 +5625,11 @@ static PyObject *detail_FromFailure(PyObject *failure_obj)
     case Unbound:
 #if PY_MAJOR_VERSION >= 3
         detail = PyUnicode_FromFormat(
-                "first argument of unbound method must be a %s instance",
+                "first argument of unbound method must have type '%s'",
                 failure->detail_str);
 #else
         detail = PyString_FromFormat(
-                "first argument of unbound method must be a %s instance",
+                "first argument of unbound method must have type '%s'",
                 failure->detail_str);
 #endif
         break;
@@ -5689,6 +5698,33 @@ static PyObject *detail_FromFailure(PyObject *failure_obj)
         break;
 
     case WrongType:
+        if (failure->arg_nr >= 0)
+        {
+#if PY_MAJOR_VERSION >= 3
+            detail = PyUnicode_FromFormat(
+                    "argument %d has unexpected type '%s'", failure->arg_nr,
+                    Py_TYPE(failure->detail_obj)->tp_name);
+#else
+            detail = PyString_FromFormat(
+                    "argument %d has unexpected type '%s'", failure->arg_nr,
+                    Py_TYPE(failure->detail_obj)->tp_name);
+#endif
+        }
+        else
+        {
+#if PY_MAJOR_VERSION >= 3
+            detail = PyUnicode_FromFormat(
+                    "keyword argument '%s' has unexpected type '%s'",
+                    failure->arg_name, Py_TYPE(failure->detail_obj)->tp_name);
+#else
+            detail = PyString_FromFormat(
+                    "keyword argument '%s' has unexpected type '%s'",
+                    failure->arg_name, Py_TYPE(failure->detail_obj)->tp_name);
+#endif
+        }
+
+        break;
+
     default:
 #if PY_MAJOR_VERSION >= 3
         detail = PyUnicode_FromString("unexpected reason");
