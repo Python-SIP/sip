@@ -63,6 +63,7 @@ extern "C" {
  *      argument count.
  *      The signatures of sip_api_no_function() and sip_api_no_method() have
  *      changed.
+ *      Added vf_docstring to sipVersionedFunctionDef.
  *
  * 6.0  Added the sipContainerDef structure to define the contents of a class
  *      or mapped type.  Restructured sipClassDef and sipMappedTypeDef
@@ -843,6 +844,9 @@ typedef struct _sipVersionedFunctionDef {
 
     /* The METH_* flags. */
     int vf_flags;
+
+    /* The docstring. */
+    const char *vf_docstring;
 
     /* The API version range index. */
     int vf_api_range;

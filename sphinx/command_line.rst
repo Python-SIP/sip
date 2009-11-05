@@ -77,8 +77,15 @@ The full set of command line options is:
 
     .. versionadded:: 4.10
 
-    By default all functions and methods will support passing parameters using
-    the Python keyword argument syntax.
+    All functions and methods will, by default, support passing parameters
+    using the Python keyword argument syntax.
+
+.. cmdoption:: -o
+
+    .. versionadded:: 4.10
+
+    Docstrings will be automatically generated that describe the signature of
+    all functions, methods and constructors.
 
 .. cmdoption:: -p <MODULE>
 

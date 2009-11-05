@@ -45,6 +45,7 @@ static int generating_c;                /* Set if generating C. */
 static int release_gil;                 /* Set if always releasing the GIL. */
 static const char *prcode_last = NULL;  /* The last prcode format string. */
 static int prcode_xml = FALSE;          /* Set if prcode is XML aware. */
+static int docstrings;                  /* Set if generating docstrings. */
 
 
 static void generateDocumentation(sipSpec *pt, const char *docFile);
@@ -239,6 +240,8 @@ static int isDuplicateProtected(classDef *cd, overDef *target);
 static char getEncoding(argType atype);
 static void generateTypeDefName(ifaceFileDef *iff, FILE *fp);
 static void generateTypeDefLink(sipSpec *pt, ifaceFileDef *iff, FILE *fp);
+static void generateDocstring(overDef *overs, memberDef *md, FILE *fp);
+static void generateDocstringSignature(signatureDef *sd, FILE *fp);
 
 
 /*
@@ -246,12 +249,13 @@ static void generateTypeDefLink(sipSpec *pt, ifaceFileDef *iff, FILE *fp);
  */
 void generateCode(sipSpec *pt, char *codeDir, char *buildfile, char *docFile,
         const char *srcSuffix, int except, int trace, int releaseGIL,
-        int parts, stringList *xsl, const char *consModule)
+        int parts, stringList *xsl, const char *consModule, int docs)
 {
     exceptions = except;
     tracing = trace;
     release_gil = releaseGIL;
     generating_c = pt->genc;
+    docstrings = docs;
 
     if (srcSuffix == NULL)
         srcSuffix = (generating_c ? ".c" : ".cpp");
@@ -1195,6 +1199,26 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         if (!isDuplicateVH(vhd))
             generateVirtualHandler(vhd, fp);
 
+    /* Generate the docstrings for any global functions. */
+    if (docstrings)
+    {
+        prcode(fp,
+"\n"
+            );
+
+        for (md = mod->othfuncs; md != NULL; md = md->next)
+            if (md->slot == no_slot)
+            {
+                prcode(fp,
+"static const char doc_%s[] = ", md->pyname->text);
+
+                generateDocstring(mod->overs, md, fp);
+
+                prcode(fp, ";\n"
+                    );
+            }
+    }
+
     /* Generate the global functions. */
     for (md = mod->othfuncs; md != NULL; md = md->next)
         if (md->slot == no_slot)
@@ -1722,20 +1746,27 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
                 if (od->common != md)
                     continue;
 
+                prcode(fp,
+"    {%n, ", md->pyname);
+
                 if (noArgParser(md) || useKeywordArgsFunction(md))
-                    prcode(fp,
-"    {%n, (PyCFunction)func_%s, METH_VARARGS|METH_KEYWORDS, %P},\n"
-                        , md->pyname, md->pyname->text, od->api_range);
+                    prcode(fp, "(PyCFunction)func_%s, METH_VARARGS|METH_KEYWORDS", md->pyname->text);
                 else
-                    prcode(fp,
-"    {%n, func_%s, METH_VARARGS, %P},\n"
-                        , md->pyname, md->pyname->text, od->api_range);
+                    prcode(fp, "func_%s, METH_VARARGS", md->pyname->text);
+
+                if (docstrings)
+                    prcode(fp, ", doc_%s", md->pyname->text);
+                else
+                    prcode(fp, ", NULL");
+
+                prcode(fp, ", %P},\n"
+                        , od->api_range);
             }
         }
 
     if (is_versioned_functions)
         prcode(fp,
-"    {-1, 0, 0, -1}\n"
+"    {-1, 0, 0, 0, -1}\n"
 "};\n"
             );
 
@@ -1883,14 +1914,20 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
             if (!notVersioned(md))
                 continue;
 
+            prcode(fp,
+"        {SIP_MLNAME_CAST(%N), ", md->pyname);
+
             if (noArgParser(md) || useKeywordArgsFunction(md))
-                prcode(fp,
-"        {SIP_MLNAME_CAST(%N), (PyCFunction)func_%s, METH_VARARGS|METH_KEYWORDS, NULL},\n"
-                    , md->pyname, md->pyname->text);
+                prcode(fp, "(PyCFunction)func_%s, METH_VARARGS|METH_KEYWORDS", md->pyname->text);
             else
-                prcode(fp,
-"        {SIP_MLNAME_CAST(%N), func_%s, METH_VARARGS, NULL},\n"
-                    , md->pyname, md->pyname->text);
+                prcode(fp, "func_%s, METH_VARARGS", md->pyname->text);
+
+            if (docstrings)
+                prcode(fp, ", doc_%s},\n"
+                    , md->pyname->text);
+            else
+                prcode(fp, ", NULL},\n"
+                    );
         }
 
     prcode(fp,
@@ -2473,13 +2510,23 @@ static void generateOrdinaryFunction(moduleDef *mod, classDef *c_scope,
     }
 
     if (!need_intro)
+    {
         prcode(fp,
 "\n"
 "    /* Raise an exception if the arguments couldn't be parsed. */\n"
-"    sipNoFunction(sipParseErr, %N, NULL);\n"
+"    sipNoFunction(sipParseErr, %N, ", md->pyname);
+
+        /* FIXME */
+        if (docstrings && scope == NULL)
+            prcode(fp, "doc_%s", md->pyname->text);
+        else
+            prcode(fp, "NULL");
+
+        prcode(fp, ");\n"
 "\n"
 "    return NULL;\n"
-            ,md->pyname);
+            );
+    }
 
     prcode(fp,
 "}\n"
@@ -13175,4 +13222,34 @@ static char getEncoding(argType atype)
     }
 
     return encoding;
+}
+
+
+/*
+ * Generate the docstring for a function or method.
+ */
+static void generateDocstring(overDef *overs, memberDef *md, FILE *fp)
+{
+    const char *sep = "";
+    overDef *od;
+
+    for (od = overs; od != NULL; od = od->next)
+        if (od->common == md)
+        {
+            prcode(fp, "%s\n\"%s", sep, md->pyname->text);
+            sep = "\\n\"";
+
+            generateDocstringSignature(&od->pysig, fp);
+        }
+
+    prcode(fp, "\"");
+}
+
+
+/*
+ * Generate the signature part of a docstring.
+ */
+static void generateDocstringSignature(signatureDef *sd, FILE *fp)
+{
+    prcode(fp, "(FIXME)");
 }

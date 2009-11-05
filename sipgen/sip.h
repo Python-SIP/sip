@@ -1070,7 +1070,7 @@ void parse(sipSpec *, FILE *, char *, stringList *, stringList *, int, int);
 void parserEOF(char *,parserContext *);
 void transform(sipSpec *);
 void generateCode(sipSpec *, char *, char *, char *, const char *, int, int,
-        int, int, stringList *, const char *);
+        int, int, stringList *, const char *, int);
 void generateAPI(sipSpec *pt, moduleDef *mod, const char *apiFile);
 void generateXML(sipSpec *pt, moduleDef *mod, const char *xmlFile);
 void generateExpression(valueDef *vd, FILE *fp);

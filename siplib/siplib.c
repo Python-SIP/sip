@@ -384,6 +384,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
 static int parsePass2(sipSimpleWrapper *self, int selfarg, PyObject *sipArgs,
         PyObject *sipKwdArgs, const char **kwdlist, const char *fmt,
         va_list va);
+static PyObject *signature_FromDocstring(const char *doc, SIP_SSIZE_T line);
 static PyObject *detail_FromFailure(PyObject *failure_obj);
 static int isQObject(PyObject *obj);
 static int canConvertFromSequence(PyObject *seq, const sipTypeDef *td);
@@ -5493,13 +5494,24 @@ static void sip_api_no_method(PyObject *parseErr, const char *scope,
             {
                 if (doc != NULL)
                 {
+                    PyObject *doc_obj = signature_FromDocstring(doc, 0);
+
+                    if (doc_obj != NULL)
+                    {
 #if PY_MAJOR_VERSION >= 3
-                    exc = PyUnicode_FromFormat("%s%s%s(FIXME): %U", scope, sep,
-                            method, detail);
+                        exc = PyUnicode_FromFormat("%U: %U", doc_obj, detail);
 #else
-                    exc = PyString_FromFormat("%s%s%s(FIXME): %s", scope, sep,
-                            method, PyString_AS_STRING(detail));
+                        exc = PyString_FromFormat("%s: %s",
+                                PyString_AS_STRING(doc_obj),
+                                PyString_AS_STRING(detail));
 #endif
+
+                        Py_DECREF(doc_obj);
+                    }
+                    else
+                    {
+                        exc = NULL;
+                    }
                 }
                 else
                 {
@@ -5554,12 +5566,27 @@ static void sip_api_no_method(PyObject *parseErr, const char *scope,
                 {
                     if (doc != NULL)
                     {
+                        PyObject *doc_obj = signature_FromDocstring(doc, i);
+
+                        if (doc_obj != NULL)
+                        {
 #if PY_MAJOR_VERSION >= 3
-                        failure = PyUnicode_FromFormat("\nFIXME: %U", detail);
+                            failure = PyUnicode_FromFormat("\n%U: %U", doc_obj,
+                                    detail);
 #else
-                        failure = PyString_FromFormat("\nFIXME: %s",
+                            failure = PyString_FromFormat("\n%s: %s",
+                                PyString_AS_STRING(doc_obj),
                                 PyString_AS_STRING(detail));
 #endif
+
+                            Py_DECREF(doc_obj);
+                        }
+                        else
+                        {
+                            Py_XDECREF(exc);
+                            exc = NULL;
+                            break;
+                        }
                     }
                     else
                     {
@@ -5607,6 +5634,41 @@ static void sip_api_no_method(PyObject *parseErr, const char *scope,
     }
 
     Py_XDECREF(parseErr);
+}
+
+
+/*
+ * Return a string/unicode object extracted from a particular line of a
+ * docstring.
+ */
+static PyObject *signature_FromDocstring(const char *doc, SIP_SSIZE_T line)
+{
+    PyObject *sig;
+    const char *eol;
+
+    /* Find the start of the line. */
+    while (line-- > 0)
+        doc = strchr(doc, '\n') + 1;
+
+    /* Find the end of the line. */
+    if ((eol = strchr(doc, '\n')) != NULL)
+    {
+#if PY_MAJOR_VERSION >= 3
+        sig = PyUnicode_FromStringAndSize(doc, eol - doc);
+#else
+        sig = PyString_FromStringAndSize(doc, eol - doc);
+#endif
+    }
+    else
+    {
+#if PY_MAJOR_VERSION >= 3
+        sig = PyUnicode_FromString(doc);
+#else
+        sig = PyString_FromString(doc);
+#endif
+    }
+
+    return sig;
 }
 
 

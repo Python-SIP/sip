@@ -116,7 +116,7 @@ int sipInitAPI(sipExportedModuleDef *em, PyObject *mod_dict)
                 pmd->ml_name = SIP_MLNAME_CAST(func_name);
                 pmd->ml_meth = vf->vf_function;
                 pmd->ml_flags = vf->vf_flags;
-                pmd->ml_doc = NULL;
+                pmd->ml_doc = vf->vf_docstring;
 
                 if ((py_func = PyCFunction_New(pmd, NULL)) == NULL)
                     return -1;

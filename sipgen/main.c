@@ -40,7 +40,7 @@ int main(int argc, char **argv)
 {
     char *filename, *docFile, *codeDir, *srcSuffix, *flagFile, *consModule;
     char arg, *optarg, *buildFile, *apiFile, *xmlFile;
-    int optnr, exceptions, tracing, releaseGIL, parts, kwdArgs, protHack;
+    int optnr, exceptions, tracing, releaseGIL, parts, kwdArgs, protHack, docs;
     FILE *file;
     sipSpec spec;
     stringList *versions, *xfeatures;
@@ -64,13 +64,19 @@ int main(int argc, char **argv)
     parts = 0;
     kwdArgs = FALSE;
     protHack = FALSE;
+    docs = FALSE;
 
     /* Parse the command line. */
     optnr = 1;
 
-    while ((arg = parseopt(argc, argv, "hVa:b:ec:d:gI:j:km:p:Prs:t:wx:z:", &flagFile, &optnr, &optarg)) != '\0')
+    while ((arg = parseopt(argc, argv, "hVa:b:ec:d:gI:j:km:op:Prs:t:wx:z:", &flagFile, &optnr, &optarg)) != '\0')
         switch (arg)
         {
+        case 'o':
+            /* Generate docstrings. */
+            docs = TRUE;
+            break;
+
         case 'p':
             /* The name of the consolidated module. */
             consModule = optarg;
@@ -200,7 +206,7 @@ int main(int argc, char **argv)
 
     /* Generate code. */
     generateCode(&spec, codeDir, buildFile, docFile, srcSuffix, exceptions,
-            tracing, releaseGIL, parts, xfeatures, consModule);
+            tracing, releaseGIL, parts, xfeatures, consModule, docs);
 
     /* Generate the API file. */
     if (apiFile != NULL)
