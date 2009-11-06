@@ -240,10 +240,9 @@ static int isDuplicateProtected(classDef *cd, overDef *target);
 static char getEncoding(argType atype);
 static void generateTypeDefName(ifaceFileDef *iff, FILE *fp);
 static void generateTypeDefLink(sipSpec *pt, ifaceFileDef *iff, FILE *fp);
-static void generateDocstring(overDef *overs, memberDef *md, const char *scope,
-        FILE *fp);
+static void generateDocstring(overDef *overs, memberDef *md,
+        const char *scope_name, classDef *scope_scope, FILE *fp);
 static void generateClassDocstring(classDef *cd, FILE *fp);
-static void generateDocstringSignature(signatureDef *sd, FILE *fp);
 
 
 /*
@@ -2401,24 +2400,28 @@ static void generateOrdinaryFunction(moduleDef *mod, classDef *c_scope,
     overDef *od;
     int need_intro;
     ifaceFileDef *scope;
-    const char *scope_pyname, *kw_fw_decl, *kw_decl;
+    classDef *scope_scope;
+    const char *scope_name, *kw_fw_decl, *kw_decl;
 
     if (mt_scope != NULL)
     {
         scope = mt_scope->iff;
-        scope_pyname = mt_scope->pyname->text;
+        scope_name = mt_scope->pyname->text;
+        scope_scope = NULL;
         od = mt_scope->overs;
     }
     else if (c_scope != NULL)
     {
         scope = c_scope->iff;
-        scope_pyname = c_scope->pyname->text;
+        scope_name = c_scope->pyname->text;
+        scope_scope = NULL;
         od = c_scope->overs;
     }
     else
     {
         scope = NULL;
-        scope_pyname = NULL;
+        scope_name = NULL;
+        scope_scope = NULL;
         od = mod->overs;
     }
 
@@ -2432,14 +2435,16 @@ static void generateOrdinaryFunction(moduleDef *mod, classDef *c_scope,
     {
         if (scope != NULL)
             prcode(fp,
-"static const char doc_%L_%s[] = ", scope, md->pyname->text);
+"static const char doc_%L_%s[] =\n"
+                , scope, md->pyname->text);
         else
             prcode(fp,
-"static const char doc_%s[] = ", md->pyname->text);
+"static const char doc_%s[] =\n"
+                , md->pyname->text);
 
-        generateDocstring(od, md, scope_pyname, fp);
+        generateDocstring(od, md, scope_name, scope_scope, fp);
 
-        prcode(fp, ";\n"
+        prcode(fp,
 "\n"
             );
     }
@@ -9078,16 +9083,13 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
     is_inst_double = generateDoubles(pt, mod, cd, fp);
 
     /* Generate the docstrings. */
-    if (docstrings && cd->ctors != NULL)
+    if (docstrings && canCreate(cd))
     {
         prcode(fp,
 "\n"
-"static const char doc_%L[] = ", cd->iff);
+"static const char doc_%L[] =\n", cd->iff);
 
         generateClassDocstring(cd, fp);
-
-        prcode(fp, ";\n"
-            );
     }
 
     if (pluginPyQt4(pt))
@@ -9275,7 +9277,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 "    },\n"
         );
 
-    if (docstrings && cd->ctors != NULL)
+    if (docstrings && canCreate(cd))
         prcode(fp,
 "    doc_%L,\n"
             , cd->iff);
@@ -10300,11 +10302,12 @@ static void generateFunction(memberDef *md, overDef *overs, classDef *cd,
         if (!noArgParser(md) && docstrings)
         {
             prcode(fp,
-"static const char doc_%L_%s[] = ", cd->iff, pname);
+"static const char doc_%L_%s[] =\n"
+                , cd->iff, pname);
 
-            generateDocstring(overs, md, cd->pyname->text, fp);
+            generateDocstring(overs, md, cd->pyname->text, cd->ecd, fp);
 
-            prcode(fp, ";\n"
+            prcode(fp,
 "\n"
                 );
         }
@@ -13287,27 +13290,47 @@ static char getEncoding(argType atype)
 /*
  * Generate the docstring for a function or method.
  */
-static void generateDocstring(overDef *overs, memberDef *md, const char *scope,
-        FILE *fp)
+static void generateDocstring(overDef *overs, memberDef *md,
+        const char *scope_name, classDef *scope_scope, FILE *fp)
 {
-    const char *sep = "";
+    const char *sep = NULL;
     overDef *od;
 
     for (od = overs; od != NULL; od = od->next)
-        if (od->common == md)
+    {
+        int need_sec;
+
+        if (od->common != md)
+            continue;
+
+        if (sep == NULL)
         {
-            prcode(fp, "%s\n\"", sep);
-            sep = "\\n\"";
-
-            if (scope != NULL)
-                prcode(fp, "%s.", scope);
-
-            prcode(fp, "%s", md->pyname->text);
-
-            generateDocstringSignature(&od->pysig, fp);
+            fprintf(fp, "    \"");
+            sep = "\\n\"\n    \"";
+        }
+        else
+        {
+            fprintf(fp, "%s", sep);
         }
 
-    prcode(fp, "\"");
+        prScopedPythonName(fp, scope_scope, scope_name);
+        fprintf(fp, ".%s", md->pyname->text);
+        need_sec = prPythonSignature(fp, &od->pysig, FALSE);
+        ++currentLineNr;
+
+        if (need_sec)
+        {
+            fprintf(fp, "%s", sep);
+
+            prScopedPythonName(fp, scope_scope, scope_name);
+            fprintf(fp, ".%s", md->pyname->text);
+            prPythonSignature(fp, &od->pysig, TRUE);
+            ++currentLineNr;
+        }
+    }
+
+    if (sep != NULL)
+        fprintf(fp, "\";\n");
 }
 
 
@@ -13316,32 +13339,40 @@ static void generateDocstring(overDef *overs, memberDef *md, const char *scope,
  */
 static void generateClassDocstring(classDef *cd, FILE *fp)
 {
-    const char *sep = "";
+    const char *sep = NULL;
     ctorDef *ct;
 
     for (ct = cd->ctors; ct != NULL; ct = ct->next)
     {
-        classDef *scope;
+        int need_sec;
 
-        prcode(fp, "%s\n\"", sep);
-        sep = "\\n\"";
+        if (isPrivateCtor(ct))
+            continue;
 
-        for (scope = cd->ecd; scope != NULL; scope = scope->ecd)
-            prcode(fp, "%s.", scope->pyname->text);
+        if (sep == NULL)
+        {
+            fprintf(fp, "    \"");
+            sep = "\\n\"\n    \"";
+        }
+        else
+        {
+            fprintf(fp, "%s", sep);
+        }
 
-        prcode(fp, "%s", cd->pyname->text);
+        prScopedPythonName(fp, cd->ecd, cd->pyname->text);
+        need_sec = prPythonSignature(fp, &ct->pysig, FALSE);
+        ++currentLineNr;
 
-        generateDocstringSignature(&ct->pysig, fp);
+        if (need_sec)
+        {
+            fprintf(fp, "%s", sep);
+
+            prScopedPythonName(fp, cd->ecd, cd->pyname->text);
+            prPythonSignature(fp, &ct->pysig, TRUE);
+            ++currentLineNr;
+        }
     }
 
-    prcode(fp, "\"");
-}
-
-
-/*
- * Generate the signature part of a docstring.
- */
-static void generateDocstringSignature(signatureDef *sd, FILE *fp)
-{
-    prcode(fp, "(FIXME)");
+    if (sep != NULL)
+        fprintf(fp, "\";\n");
 }

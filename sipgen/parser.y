@@ -2275,9 +2275,8 @@ argvalue:   TK_SIPSIGNAL optname optflags optassign {
             $$.nrderefs = 0;
             $$.name = cacheName(currentSpec, $5);
 
+            memset(&$3.result, 0, sizeof (argDef));
             $3.result.atype = void_type;
-            $3.result.argflags = 0;
-            $3.result.nrderefs = 0;
 
             $$.u.sa = sipMalloc(sizeof (signatureDef));
             *$$.u.sa = $3;
@@ -2290,9 +2289,8 @@ argvalue:   TK_SIPSIGNAL optname optflags optassign {
             $$.nrderefs = 0;
             $$.name = cacheName(currentSpec, $5);
 
+            memset(&$3.result, 0, sizeof (argDef));
             $3.result.atype = void_type;
-            $3.result.argflags = 0;
-            $3.result.nrderefs = 0;
 
             $$.u.sa = sipMalloc(sizeof (signatureDef));
             *$$.u.sa = $3;
@@ -2362,13 +2360,11 @@ cpptype:    TK_CONST basetype deref optref {
             $$ = $2;
             $$.nrderefs += $3;
             $$.argflags |= ARG_IS_CONST | $4;
-            $$.name = NULL;
         }
     |   basetype deref optref {
             $$ = $1;
             $$.nrderefs += $2;
             $$.argflags |= $3;
-            $$.name = NULL;
         }
     ;
 
@@ -2460,10 +2456,7 @@ deref:      {
     ;
 
 basetype:   scopedname {
-            $$.nrderefs = 0;
-            $$.argflags = 0;
-            $$.original_type = NULL;
-
+            memset(&$$, 0, sizeof (argDef));
             $$.atype = defined_type;
             $$.u.snd = $1;
 
@@ -2477,17 +2470,12 @@ basetype:   scopedname {
             td->fqname = $1;
             td->types = $3;
 
-            $$.nrderefs = 0;
-            $$.argflags = 0;
-            $$.original_type = NULL;
-
+            memset(&$$, 0, sizeof (argDef));
             $$.atype = template_type;
             $$.u.td = td;
         }
     |   TK_STRUCT scopedname {
-            $$.nrderefs = 0;
-            $$.argflags = 0;
-            $$.original_type = NULL;
+            memset(&$$, 0, sizeof (argDef));
 
             /* In a C module all structures must be defined. */
             if (currentSpec -> genc)
@@ -2502,178 +2490,103 @@ basetype:   scopedname {
             }
         }
     |   TK_UNSIGNED TK_SHORT {
-            $$.nrderefs = 0;
-            $$.argflags = 0;
-            $$.original_type = NULL;
-
+            memset(&$$, 0, sizeof (argDef));
             $$.atype = ushort_type;
         }
     |   TK_SHORT {
-            $$.nrderefs = 0;
-            $$.argflags = 0;
-            $$.original_type = NULL;
-
+            memset(&$$, 0, sizeof (argDef));
             $$.atype = short_type;
         }
     |   TK_UNSIGNED {
-            $$.nrderefs = 0;
-            $$.argflags = 0;
-            $$.original_type = NULL;
-
+            memset(&$$, 0, sizeof (argDef));
             $$.atype = uint_type;
         }
     |   TK_UNSIGNED TK_INT {
-            $$.nrderefs = 0;
-            $$.argflags = 0;
-            $$.original_type = NULL;
-
+            memset(&$$, 0, sizeof (argDef));
             $$.atype = uint_type;
         }
     |   TK_INT {
-            $$.nrderefs = 0;
-            $$.argflags = 0;
-            $$.original_type = NULL;
-
+            memset(&$$, 0, sizeof (argDef));
             $$.atype = int_type;
         }
     |   TK_LONG {
-            $$.nrderefs = 0;
-            $$.argflags = 0;
-            $$.original_type = NULL;
-
+            memset(&$$, 0, sizeof (argDef));
             $$.atype = long_type;
         }
     |   TK_UNSIGNED TK_LONG {
-            $$.nrderefs = 0;
-            $$.argflags = 0;
-            $$.original_type = NULL;
-
+            memset(&$$, 0, sizeof (argDef));
             $$.atype = ulong_type;
         }
     |   TK_LONG TK_LONG {
-            $$.nrderefs = 0;
-            $$.argflags = 0;
-            $$.original_type = NULL;
-
+            memset(&$$, 0, sizeof (argDef));
             $$.atype = longlong_type;
         }
     |   TK_UNSIGNED TK_LONG TK_LONG {
-            $$.nrderefs = 0;
-            $$.argflags = 0;
-            $$.original_type = NULL;
-
+            memset(&$$, 0, sizeof (argDef));
             $$.atype = ulonglong_type;
         }
     |   TK_FLOAT {
-            $$.nrderefs = 0;
-            $$.argflags = 0;
-            $$.original_type = NULL;
-
+            memset(&$$, 0, sizeof (argDef));
             $$.atype = float_type;
         }
     |   TK_DOUBLE {
-            $$.nrderefs = 0;
-            $$.argflags = 0;
-            $$.original_type = NULL;
-
+            memset(&$$, 0, sizeof (argDef));
             $$.atype = double_type;
         }
     |   TK_BOOL {
-            $$.nrderefs = 0;
-            $$.argflags = 0;
-            $$.original_type = NULL;
-
+            memset(&$$, 0, sizeof (argDef));
             $$.atype = bool_type;
         }
     |   TK_SIGNED TK_CHAR {
-            $$.nrderefs = 0;
-            $$.argflags = 0;
-            $$.original_type = NULL;
-
+            memset(&$$, 0, sizeof (argDef));
             $$.atype = sstring_type;
         }
     |   TK_UNSIGNED TK_CHAR {
-            $$.nrderefs = 0;
-            $$.argflags = 0;
-            $$.original_type = NULL;
-
+            memset(&$$, 0, sizeof (argDef));
             $$.atype = ustring_type;
         }
     |   TK_CHAR {
-            $$.nrderefs = 0;
-            $$.argflags = 0;
-            $$.original_type = NULL;
-
+            memset(&$$, 0, sizeof (argDef));
             $$.atype = string_type;
         }
     |   TK_WCHAR_T {
-            $$.nrderefs = 0;
-            $$.argflags = 0;
-            $$.original_type = NULL;
-
+            memset(&$$, 0, sizeof (argDef));
             $$.atype = wstring_type;
         }
     |   TK_VOID {
-            $$.nrderefs = 0;
-            $$.argflags = 0;
-            $$.original_type = NULL;
-
+            memset(&$$, 0, sizeof (argDef));
             $$.atype = void_type;
         }
     |   TK_PYOBJECT {
-            $$.nrderefs = 0;
-            $$.argflags = 0;
-            $$.original_type = NULL;
-
+            memset(&$$, 0, sizeof (argDef));
             $$.atype = pyobject_type;
         }
     |   TK_PYTUPLE {
-            $$.nrderefs = 0;
-            $$.argflags = 0;
-            $$.original_type = NULL;
-
+            memset(&$$, 0, sizeof (argDef));
             $$.atype = pytuple_type;
         }
     |   TK_PYLIST {
-            $$.nrderefs = 0;
-            $$.argflags = 0;
-            $$.original_type = NULL;
-
+            memset(&$$, 0, sizeof (argDef));
             $$.atype = pylist_type;
         }
     |   TK_PYDICT {
-            $$.nrderefs = 0;
-            $$.argflags = 0;
-            $$.original_type = NULL;
-
+            memset(&$$, 0, sizeof (argDef));
             $$.atype = pydict_type;
         }
     |   TK_PYCALLABLE {
-            $$.nrderefs = 0;
-            $$.argflags = 0;
-            $$.original_type = NULL;
-
+            memset(&$$, 0, sizeof (argDef));
             $$.atype = pycallable_type;
         }
     |   TK_PYSLICE {
-            $$.nrderefs = 0;
-            $$.argflags = 0;
-            $$.original_type = NULL;
-
+            memset(&$$, 0, sizeof (argDef));
             $$.atype = pyslice_type;
         }
     |   TK_PYTYPE {
-            $$.nrderefs = 0;
-            $$.argflags = 0;
-            $$.original_type = NULL;
-
+            memset(&$$, 0, sizeof (argDef));
             $$.atype = pytype_type;
         }
     |   TK_ELLIPSIS {
-            $$.nrderefs = 0;
-            $$.argflags = 0;
-            $$.original_type = NULL;
-
+            memset(&$$, 0, sizeof (argDef));
             $$.atype = ellipsis_type;
         }
     ;
@@ -4811,6 +4724,10 @@ static void newCtor(char *name, int sectFlags, signatureDef *args,
         sectFlags &= ~SECT_IS_PROT;
         sectFlags |= SECT_IS_PUBLIC;
     }
+
+    /* Allow the signature to be used like an function signature. */
+    memset(&args->result, 0, sizeof (argDef));
+    args->result.atype = void_type;
 
     ct->ctorflags = sectFlags;
     ct->api_range = getAPIRange(optflgs);

@@ -1099,6 +1099,8 @@ void appendCodeBlock(codeBlock **headp, codeBlock *new);
 void prcode(FILE *fp, const char *fmt, ...);
 void prOverloadName(FILE *fp, overDef *od);
 void prOverloadDecl(FILE *fp, ifaceFileDef *scope, overDef *od, int defval);
+void prScopedPythonName(FILE *fp, classDef *scope, const char *pyname);
+int prPythonSignature(FILE *fp, signatureDef *sd, int sec);
 void searchTypedefs(sipSpec *pt, scopedNameDef *snd, argDef *ad);
 int isIntReturnSlot(memberDef *md);
 int isLongReturnSlot(memberDef *md);

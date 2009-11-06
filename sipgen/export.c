@@ -45,7 +45,6 @@ static void xmlIndent(int indent, FILE *fp);
 static const char *dirAttribute(argDef *ad);
 static void exportDefaultValue(argDef *ad, FILE *fp);
 static const char *pyType(argDef *ad, int sec, classDef **scope);
-static void prScopedPythonName(FILE *fp, classDef *scope, const char *pyname);
 
 
 /*
@@ -218,59 +217,13 @@ static void apiVars(sipSpec *pt, moduleDef *mod, classDef *scope, FILE *fp)
 static int apiOverload(moduleDef *mod, classDef *scope, overDef *od, int sec,
         FILE *fp)
 {
-    int need_sec = FALSE, need_comma = FALSE, is_res, nr_out, a;
+    int need_sec;
 
     fprintf(fp, "%s.", mod->name);
     prScopedPythonName(fp, scope, od->common->pyname->text);
-    fprintf(fp, "?%d(", METHOD_ID);
+    fprintf(fp, "?%d", METHOD_ID);
 
-    nr_out = 0;
-
-    for (a = 0; a < od->pysig.nrArgs; ++a)
-    {
-        argDef *ad = &od->pysig.args[a];
-
-        if (isOutArg(ad))
-            ++nr_out;
-
-        if (!isInArg(ad))
-            continue;
-
-        need_comma = apiArgument(ad, FALSE, need_comma, sec, fp);
-
-        if (ad->atype == rxcon_type || ad->atype == rxdis_type)
-            need_sec = TRUE;
-    }
-
-    fprintf(fp, ")");
-
-    is_res = (od->pysig.result.atype != void_type || od->pysig.result.nrderefs != 0);
-
-    if (is_res || nr_out > 0)
-    {
-        fprintf(fp, " -> ");
-
-        if ((is_res && nr_out > 0) || nr_out > 1)
-            fprintf(fp, "(");
-
-        if (is_res)
-            need_comma = apiArgument(&od->pysig.result, TRUE, FALSE, sec, fp);
-        else
-            need_comma = FALSE;
-
-        for (a = 0; a < od->pysig.nrArgs; ++a)
-        {
-            argDef *ad = &od->pysig.args[a];
-
-            if (!isOutArg(ad))
-                continue;
-
-            need_comma = apiArgument(ad, TRUE, need_comma, sec, fp);
-        }
-
-        if ((is_res && nr_out > 0) || nr_out > 1)
-            fprintf(fp, ")");
-    }
+    need_sec = prPythonSignature(fp, &od->pysig, sec);
 
     fprintf(fp, "\n");
 
@@ -301,7 +254,7 @@ static int apiArgument(argDef *ad, int out, int need_comma, int sec, FILE *fp)
     prScopedPythonName(fp, tscope, tname);
 
     if (ad->name != NULL)
-        fprintf(fp, " %s", ad->name);
+        fprintf(fp, " %s", ad->name->text);
 
     /*
      * Handle the default value, but ignore it if it is an output only
@@ -999,7 +952,7 @@ static const char *pyType(argDef *ad, int sec, classDef **scope)
 /*
  * Generate a scoped Python name.
  */
-static void prScopedPythonName(FILE *fp, classDef *scope, const char *pyname)
+void prScopedPythonName(FILE *fp, classDef *scope, const char *pyname)
 {
     if (scope != NULL)
     {
@@ -1009,4 +962,65 @@ static void prScopedPythonName(FILE *fp, classDef *scope, const char *pyname)
 
     if (pyname != NULL)
         fprintf(fp, "%s", pyname);
+}
+
+
+/*
+ * Generate a Python signature.
+ */
+int prPythonSignature(FILE *fp, signatureDef *sd, int sec)
+{
+    int need_sec = FALSE, need_comma = FALSE, is_res, nr_out, a;
+
+    fprintf(fp, "(");
+
+    nr_out = 0;
+
+    for (a = 0; a < sd->nrArgs; ++a)
+    {
+        argDef *ad = &sd->args[a];
+
+        if (isOutArg(ad))
+            ++nr_out;
+
+        if (!isInArg(ad))
+            continue;
+
+        need_comma = apiArgument(ad, FALSE, need_comma, sec, fp);
+
+        if (ad->atype == rxcon_type || ad->atype == rxdis_type)
+            need_sec = TRUE;
+    }
+
+    fprintf(fp, ")");
+
+    is_res = (sd->result.atype != void_type || sd->result.nrderefs != 0);
+
+    if (is_res || nr_out > 0)
+    {
+        fprintf(fp, " -> ");
+
+        if ((is_res && nr_out > 0) || nr_out > 1)
+            fprintf(fp, "(");
+
+        if (is_res)
+            need_comma = apiArgument(&sd->result, TRUE, FALSE, sec, fp);
+        else
+            need_comma = FALSE;
+
+        for (a = 0; a < sd->nrArgs; ++a)
+        {
+            argDef *ad = &sd->args[a];
+
+            if (!isOutArg(ad))
+                continue;
+
+            need_comma = apiArgument(ad, TRUE, need_comma, sec, fp);
+        }
+
+        if ((is_res && nr_out > 0) || nr_out > 1)
+            fprintf(fp, ")");
+    }
+
+    return need_sec;
 }

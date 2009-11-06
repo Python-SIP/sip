@@ -1440,7 +1440,7 @@ static void addDefaultCopyCtor(classDef *cd)
  
     copyct->ctorflags = SECT_IS_PUBLIC;
     copyct->pysig.nrArgs = 1;
-    copyct->pysig.args[0].name = "other";
+    copyct->pysig.result.atype = void_type;
     copyct->pysig.args[0].atype = class_type;
     copyct->pysig.args[0].u.cd = cd;
     copyct->pysig.args[0].argflags = (ARG_IS_REF | ARG_IS_CONST | ARG_IN);
