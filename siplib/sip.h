@@ -63,6 +63,7 @@ extern "C" {
  *      argument count.
  *      The signatures of sip_api_no_function() and sip_api_no_method() have
  *      changed.
+ *      Added ctd_docstring to sipClassTypeDef.
  *      Added vf_docstring to sipVersionedFunctionDef.
  *
  * 6.0  Added the sipContainerDef structure to define the contents of a class
@@ -667,6 +668,9 @@ typedef struct _sipClassTypeDef {
 
     /* The container information. */
     sipContainerDef ctd_container;
+
+    /* The docstring. */
+    const char *ctd_docstring;
 
     /*
      * The meta-type name, -1 to use the meta-type of the first super-type

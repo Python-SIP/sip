@@ -5571,10 +5571,10 @@ static void sip_api_no_method(PyObject *parseErr, const char *scope,
                         if (doc_obj != NULL)
                         {
 #if PY_MAJOR_VERSION >= 3
-                            failure = PyUnicode_FromFormat("\n%U: %U", doc_obj,
-                                    detail);
+                            failure = PyUnicode_FromFormat("\n    %U: %U",
+                                    doc_obj, detail);
 #else
-                            failure = PyString_FromFormat("\n%s: %s",
+                            failure = PyString_FromFormat("\n    %s: %s",
                                 PyString_AS_STRING(doc_obj),
                                 PyString_AS_STRING(detail));
 #endif
@@ -5591,10 +5591,10 @@ static void sip_api_no_method(PyObject *parseErr, const char *scope,
                     else
                     {
 #if PY_MAJOR_VERSION >= 3
-                        failure = PyUnicode_FromFormat("\noverload %d: %U",
+                        failure = PyUnicode_FromFormat("\n    overload %d: %U",
                             i + 1, detail);
 #else
-                        failure = PyString_FromFormat("\noverload %d: %s",
+                        failure = PyString_FromFormat("\n    overload %d: %s",
                             i + 1, PyString_AS_STRING(detail));
 #endif
                     }
@@ -5643,32 +5643,23 @@ static void sip_api_no_method(PyObject *parseErr, const char *scope,
  */
 static PyObject *signature_FromDocstring(const char *doc, SIP_SSIZE_T line)
 {
-    PyObject *sig;
     const char *eol;
+    SIP_SSIZE_T size = 0;
 
     /* Find the start of the line. */
     while (line-- > 0)
         doc = strchr(doc, '\n') + 1;
 
-    /* Find the end of the line. */
-    if ((eol = strchr(doc, '\n')) != NULL)
-    {
-#if PY_MAJOR_VERSION >= 3
-        sig = PyUnicode_FromStringAndSize(doc, eol - doc);
-#else
-        sig = PyString_FromStringAndSize(doc, eol - doc);
-#endif
-    }
-    else
-    {
-#if PY_MAJOR_VERSION >= 3
-        sig = PyUnicode_FromString(doc);
-#else
-        sig = PyString_FromString(doc);
-#endif
-    }
+    /* Find the last closing parenthesis. */
+    for (eol = doc; *eol != '\n' && *eol != '\0'; ++eol)
+        if (*eol == ')')
+            size = eol - doc + 1;
 
-    return sig;
+#if PY_MAJOR_VERSION >= 3
+    return PyUnicode_FromStringAndSize(doc, size);
+#else
+    return PyString_FromStringAndSize(doc, size);
+#endif
 }
 
 
@@ -8223,7 +8214,11 @@ static PyObject *sipWrapperType_alloc(PyTypeObject *self, SIP_SSIZE_T nitems)
         ((sipWrapperType *)o)->type = currentType;
 
         if (sipTypeIsClass(currentType))
+        {
+            ((PyTypeObject *)o)->tp_doc = ((sipClassTypeDef *)currentType)->ctd_docstring;
+
             addClassSlots((sipWrapperType *)o, (sipClassTypeDef *)currentType);
+        }
 
         currentType = NULL;
     }
@@ -8475,7 +8470,7 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
     }
 
     /*
-     * We are intersted in unused keyword arguments if we are creating a
+     * We are interested in unused keyword arguments if we are creating a
      * QObject and we have a handler.
      */
     unused_p = (kw_handler != NULL && isQObject(self)) ? &unused : NULL;
@@ -8518,7 +8513,8 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
             if (sipNew == NULL)
             {
                 sip_api_no_function(parseErr,
-                        sipPyNameOfContainer(&ctd->ctd_container, td), NULL);
+                        sipPyNameOfContainer(&ctd->ctd_container, td),
+                        ctd->ctd_docstring);
 
                 return -1;
             }
