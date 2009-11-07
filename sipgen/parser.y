@@ -73,7 +73,6 @@ static void parseFile(FILE *fp, char *name, moduleDef *prevmod, int optional);
 static void handleEOF(void);
 static void handleEOM(void);
 static qualDef *findQualifier(char *);
-static nameDef *findAPI(sipSpec *pt, const char *name);
 static scopedNameDef *text2scopedName(ifaceFileDef *scope, char *text);
 static scopedNameDef *scopeScopedName(ifaceFileDef *scope,
         scopedNameDef *name);
@@ -92,6 +91,7 @@ static int getReleaseGIL(optFlags *optflgs);
 static int getHoldGIL(optFlags *optflgs);
 static int getDeprecated(optFlags *optflgs);
 static int getAllowNone(optFlags *optflgs);
+static const char *getDocType(optFlags *optflgs);
 static void templateSignature(signatureDef *sd, int result, classTmplDef *tcd, templateDef *td, classDef *ncd);
 static void templateType(argDef *ad, classTmplDef *tcd, templateDef *td, classDef *ncd);
 static int search_back(const char *end, const char *start, const char *target);
@@ -2090,17 +2090,17 @@ flagvalue:  dottedname {
             $$.fvalue.sval = $1;
         }
     |   TK_NAME ':' optnumber '-' optnumber {
-            nameDef *name;
+            apiVersionRangeDef *avd;
             int from, to;
 
             $$.ftype = api_range_flag;
 
             /* Check that the API is known. */
-            if ((name = findAPI(currentSpec, $1)) == NULL)
+            if ((avd = findAPI(currentSpec, $1)) == NULL)
                 yyerror("unknown API name in API annotation");
 
             if (inMainModule())
-                setIsUsedName(name);
+                setIsUsedName(avd->api_name);
 
             /* Unbounded values are represented by 0. */
             if ((from = $3) < 0)
@@ -2109,7 +2109,8 @@ flagvalue:  dottedname {
             if ((to = $5) < 0)
                 to = 0;
 
-            $$.fvalue.aval = convertAPIRange(currentModule, name, from, to);
+            $$.fvalue.aval = convertAPIRange(currentModule, avd->api_name,
+                    from, to);
         }
     |   TK_STRING {
             $$.ftype = string_flag;
@@ -3468,6 +3469,8 @@ static mappedTypeDef *newMappedType(sipSpec *pt, argDef *ad, optFlags *of)
 
     if (getAllowNone(of))
         setHandlesNone(mtd);
+
+    mtd->doctype = getDocType(of);
 
     mtd->iff = iff;
     mtd->next = pt->mappedtypes;
@@ -5471,7 +5474,7 @@ static qualDef *findQualifier(char *name)
 /*
  * Find an existing API.
  */
-static nameDef *findAPI(sipSpec *pt, const char *name)
+apiVersionRangeDef *findAPI(sipSpec *pt, const char *name)
 {
     moduleDef *mod;
 
@@ -5481,7 +5484,7 @@ static nameDef *findAPI(sipSpec *pt, const char *name)
 
         for (avd = mod->api_versions; avd != NULL; avd = avd->next)
             if (strcmp(avd->api_name->text, name) == 0)
-                return avd->api_name;
+                return avd;
     }
 
     return NULL;
@@ -5898,6 +5901,20 @@ static int getAllowNone(optFlags *optflgs)
 
 
 /*
+ * Get the /DocType/ option flag.
+ */
+static const char *getDocType(optFlags *optflgs)
+{
+    optFlag *of = findOptFlag(optflgs, "DocType", string_flag);
+
+    if (of == NULL)
+        return NULL;
+
+    return of->fvalue.sval;
+}
+
+
+/*
  * Return TRUE if the PyQt3 plugin was specified.
  */
 int pluginPyQt3(sipSpec *pt)
@@ -6021,6 +6038,8 @@ static void addVariable(sipSpec *pt, varDef *vd)
  */
 static void applyTypeFlags(moduleDef *mod, argDef *ad, optFlags *flags)
 {
+    ad->doctype = getDocType(flags);
+
     if (ad->atype == string_type && !isArray(ad) && !isReference(ad))
     {
         optFlag *of;

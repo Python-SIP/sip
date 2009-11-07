@@ -464,7 +464,7 @@ static void help(void)
 {
     printf(
 "Usage:\n"
-"    %s [-h] [-V] [-a file] [-c dir] [-d file] [-e] [-g] [-I dir] [-j #] [-k] [-m file] [-p module] [-P] [-r] [-s suffix] [-t tag] [-w] [-x feature] [-z file] [file]\n"
+"    %s [-h] [-V] [-a file] [-c dir] [-d file] [-e] [-g] [-I dir] [-j #] [-k] [-m file] [-o] [-p module] [-P] [-r] [-s suffix] [-t tag] [-w] [-x feature] [-z file] [file]\n"
 "where:\n"
 "    -h          display this help message\n"
 "    -V          display the %s version number\n"
@@ -478,6 +478,7 @@ static void help(void)
 "    -j #        split the generated code into # files [default 1 per class]\n"
 "    -k          support keyword arguments in functions and methods\n"
 "    -m file     the name of the XML export file [default not generated]\n"
+"    -o          enable the automatic generation of docstrings [default disabled]\n"
 "    -p module   the name of the consolidated module that this is a component of\n"
 "    -P          enable the protected/public hack\n"
 "    -r          generate code with tracing enabled [default disabled]\n"
@@ -498,5 +499,5 @@ static void help(void)
  */
 static void usage(void)
 {
-    fatal("Usage: %s [-h] [-V] [-a file] [-c dir] [-d file] [-e] [-g] [-I dir] [-j #] [-m file] [-p module] [-r] [-s suffix] [-t tag] [-w] [-x feature] [-z file] [file]\n", sipPackage);
+    fatal("Usage: %s [-h] [-V] [-a file] [-c dir] [-d file] [-e] [-g] [-I dir] [-j #] [-k] [-m file] [-o] [-p module] [-r] [-s suffix] [-t tag] [-w] [-x feature] [-z file] [file]\n", sipPackage);
 }

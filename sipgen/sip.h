@@ -651,6 +651,7 @@ typedef struct _valueDef {
 typedef struct {
     argType atype;                      /* The type. */
     nameDef *name;                      /* The name. */
+    const char *doctype;                /* The documented type. */
     int argflags;                       /* The argument flags. */
     int nrderefs;                       /* Nr. of dereferences. */
     valueDef *defval;                   /* The default value. */
@@ -777,6 +778,7 @@ typedef struct _mappedTypeDef {
     argDef type;                        /* The type being mapped. */
     nameDef *pyname;                    /* The Python name. */
     nameDef *cname;                     /* The C/C++ name. */
+    const char *doctype;                /* The documented type. */
     ifaceFileDef *iff;                  /* The interface file. */
     struct _memberDef *members;         /* The static member functions. */
     struct _overDef *overs;             /* The static overloads. */
@@ -1100,7 +1102,7 @@ void prcode(FILE *fp, const char *fmt, ...);
 void prOverloadName(FILE *fp, overDef *od);
 void prOverloadDecl(FILE *fp, ifaceFileDef *scope, overDef *od, int defval);
 void prScopedPythonName(FILE *fp, classDef *scope, const char *pyname);
-int prPythonSignature(FILE *fp, signatureDef *sd, int sec);
+int prPythonSignature(sipSpec *pt, FILE *fp, signatureDef *sd, int sec);
 void searchTypedefs(sipSpec *pt, scopedNameDef *snd, argDef *ad);
 int isIntReturnSlot(memberDef *md);
 int isLongReturnSlot(memberDef *md);
@@ -1119,6 +1121,7 @@ int pluginPyQt4(sipSpec *pt);
 void yywarning(char *);
 nameDef *cacheName(sipSpec *pt, const char *name);
 scopedNameDef *encodedTemplateName(templateDef *td);
+apiVersionRangeDef *findAPI(sipSpec *pt, const char *name);
 
 
 /* These are only here because bison publically references them. */

@@ -129,6 +129,15 @@ Argument Annotations
         void foo(int);
 
 
+.. argument-annotation:: DocType
+
+    .. versionadded:: 4.10
+
+    This string annotation specifies the type of the argument as it will appear
+    in any generated docstrings.  It is usually used with arguments of type
+    :stype:`SIP_PYOBJECT` to provide a more specific type.
+
+
 .. argument-annotation:: Encoding
 
     This string annotation specifies that the corresponding argument (which
@@ -419,6 +428,14 @@ Mapped Type Annotations
     different ranges of version numbers then those ranges must not overlap.
 
     See :ref:`ref-incompat-apis` for more detail.
+
+
+.. mapped-type-annotation:: DocType
+
+    .. versionadded:: 4.10
+
+    This string annotation specifies the name of the type as it will appear in
+    any generated docstrings.
 
 
 .. mapped-type-annotation:: NoRelease

@@ -752,11 +752,7 @@ typedef struct _sipMappedTypeDef {
     /* The base type information. */
     sipTypeDef mtd_base;
 
-    /*
-     * The container information.  (At the moment only the enum information is
-     * used but mapped types should be able to contain any static methods,
-     * variables, instances etc.)
-     */
+    /* The container information. */
     sipContainerDef mtd_container;
 
     /* The optional assignment function. */

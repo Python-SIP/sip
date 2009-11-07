@@ -81,8 +81,8 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
         FILE *fp);
 static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
         FILE *fp);
-static void generateFunction(memberDef *, overDef *, classDef *, classDef *,
-        moduleDef *, FILE *);
+static void generateFunction(sipSpec *, memberDef *, overDef *, classDef *,
+        classDef *, moduleDef *, FILE *);
 static void generateFunctionBody(overDef *, classDef *, mappedTypeDef *,
         classDef *, int deref, moduleDef *, FILE *);
 static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp);
@@ -123,8 +123,8 @@ static void generateProtectedCallArgs(overDef *od, FILE *fp);
 static void generateConstructorCall(classDef *, ctorDef *, int, moduleDef *,
         FILE *);
 static void generateHandleResult(overDef *, int, int, char *, FILE *);
-static void generateOrdinaryFunction(moduleDef *mod, classDef *c_scope,
-        mappedTypeDef *mt_scope, memberDef *md, FILE *fp);
+static void generateOrdinaryFunction(sipSpec *pt, moduleDef *mod,
+        classDef *c_scope, mappedTypeDef *mt_scope, memberDef *md, FILE *fp);
 static void generateSimpleFunctionCall(fcallDef *, FILE *);
 static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
         ifaceFileDef *o_scope, overDef *od, int deref, moduleDef *mod,
@@ -240,9 +240,9 @@ static int isDuplicateProtected(classDef *cd, overDef *target);
 static char getEncoding(argType atype);
 static void generateTypeDefName(ifaceFileDef *iff, FILE *fp);
 static void generateTypeDefLink(sipSpec *pt, ifaceFileDef *iff, FILE *fp);
-static void generateDocstring(overDef *overs, memberDef *md,
+static void generateDocstring(sipSpec *pt, overDef *overs, memberDef *md,
         const char *scope_name, classDef *scope_scope, FILE *fp);
-static void generateClassDocstring(classDef *cd, FILE *fp);
+static void generateClassDocstring(sipSpec *pt, classDef *cd, FILE *fp);
 
 
 /*
@@ -1203,7 +1203,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
     /* Generate the global functions. */
     for (md = mod->othfuncs; md != NULL; md = md->next)
         if (md->slot == no_slot)
-            generateOrdinaryFunction(mod, NULL, NULL, md, fp);
+            generateOrdinaryFunction(pt, mod, NULL, NULL, md, fp);
         else
         {
             overDef *od;
@@ -2394,8 +2394,8 @@ static void generateEncodedType(moduleDef *mod, classDef *cd, int last,
 /*
  * Generate an ordinary function.
  */
-static void generateOrdinaryFunction(moduleDef *mod, classDef *c_scope,
-        mappedTypeDef *mt_scope, memberDef *md, FILE *fp)
+static void generateOrdinaryFunction(sipSpec *pt, moduleDef *mod,
+        classDef *c_scope, mappedTypeDef *mt_scope, memberDef *md, FILE *fp)
 {
     overDef *od;
     int need_intro;
@@ -2442,7 +2442,7 @@ static void generateOrdinaryFunction(moduleDef *mod, classDef *c_scope,
 "static const char doc_%s[] =\n"
                 , md->pyname->text);
 
-        generateDocstring(od, md, scope_name, scope_scope, fp);
+        generateDocstring(pt, od, md, scope_name, scope_scope, fp);
 
         prcode(fp,
 "\n"
@@ -3610,7 +3610,7 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 
     /* Generate the static methods. */
     for (md = mtd->members; md != NULL; md = md->next)
-        generateOrdinaryFunction(mtd->iff->module, NULL, mtd, md, fp);
+        generateOrdinaryFunction(pt, mtd->iff->module, NULL, mtd, md, fp);
 
     nr_methods = generateMappedTypeMethodTable(mtd, fp);
 
@@ -5209,12 +5209,12 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
     /* The member functions. */
     for (vl = cd->visible; vl != NULL; vl = vl->next)
         if (vl->m->slot == no_slot)
-            generateFunction(vl->m, vl->cd->overs, cd, vl->cd, mod, fp);
+            generateFunction(pt, vl->m, vl->cd->overs, cd, vl->cd, mod, fp);
 
     /* The slot functions. */
     for (md = cd->members; md != NULL; md = md->next)
         if (cd->iff->type == namespace_iface)
-            generateOrdinaryFunction(mod, cd, NULL, md, fp);
+            generateOrdinaryFunction(pt, mod, cd, NULL, md, fp);
         else if (md->slot != no_slot && md->slot != unicode_slot)
             generateSlot(mod, cd, NULL, md, fp);
 
@@ -9089,7 +9089,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 "\n"
 "static const char doc_%L[] =\n", cd->iff);
 
-        generateClassDocstring(cd, fp);
+        generateClassDocstring(pt, cd, fp);
     }
 
     if (pluginPyQt4(pt))
@@ -10242,8 +10242,8 @@ static int skipOverload(overDef *od,memberDef *md,classDef *cd,classDef *ccd,
 /*
  * Generate a class member function.
  */
-static void generateFunction(memberDef *md, overDef *overs, classDef *cd,
-        classDef *ocd, moduleDef *mod, FILE *fp)
+static void generateFunction(sipSpec *pt, memberDef *md, overDef *overs,
+        classDef *cd, classDef *ocd, moduleDef *mod, FILE *fp)
 {
     overDef *od;
     int need_method, need_self, need_args, need_selfarg, need_orig_self, need_kwds;
@@ -10305,7 +10305,7 @@ static void generateFunction(memberDef *md, overDef *overs, classDef *cd,
 "static const char doc_%L_%s[] =\n"
                 , cd->iff, pname);
 
-            generateDocstring(overs, md, cd->pyname->text, cd->ecd, fp);
+            generateDocstring(pt, overs, md, cd->pyname->text, cd->ecd, fp);
 
             prcode(fp,
 "\n"
@@ -13290,7 +13290,7 @@ static char getEncoding(argType atype)
 /*
  * Generate the docstring for a function or method.
  */
-static void generateDocstring(overDef *overs, memberDef *md,
+static void generateDocstring(sipSpec *pt, overDef *overs, memberDef *md,
         const char *scope_name, classDef *scope_scope, FILE *fp)
 {
     const char *sep = NULL;
@@ -13315,7 +13315,7 @@ static void generateDocstring(overDef *overs, memberDef *md,
 
         prScopedPythonName(fp, scope_scope, scope_name);
         fprintf(fp, ".%s", md->pyname->text);
-        need_sec = prPythonSignature(fp, &od->pysig, FALSE);
+        need_sec = prPythonSignature(pt, fp, &od->pysig, FALSE);
         ++currentLineNr;
 
         if (need_sec)
@@ -13324,7 +13324,7 @@ static void generateDocstring(overDef *overs, memberDef *md,
 
             prScopedPythonName(fp, scope_scope, scope_name);
             fprintf(fp, ".%s", md->pyname->text);
-            prPythonSignature(fp, &od->pysig, TRUE);
+            prPythonSignature(pt, fp, &od->pysig, TRUE);
             ++currentLineNr;
         }
     }
@@ -13337,7 +13337,7 @@ static void generateDocstring(overDef *overs, memberDef *md,
 /*
  * Generate the docstring for a function or method.
  */
-static void generateClassDocstring(classDef *cd, FILE *fp)
+static void generateClassDocstring(sipSpec *pt, classDef *cd, FILE *fp)
 {
     const char *sep = NULL;
     ctorDef *ct;
@@ -13360,7 +13360,7 @@ static void generateClassDocstring(classDef *cd, FILE *fp)
         }
 
         prScopedPythonName(fp, cd->ecd, cd->pyname->text);
-        need_sec = prPythonSignature(fp, &ct->pysig, FALSE);
+        need_sec = prPythonSignature(pt, fp, &ct->pysig, FALSE);
         ++currentLineNr;
 
         if (need_sec)
@@ -13368,7 +13368,7 @@ static void generateClassDocstring(classDef *cd, FILE *fp)
             fprintf(fp, "%s", sep);
 
             prScopedPythonName(fp, cd->ecd, cd->pyname->text);
-            prPythonSignature(fp, &ct->pysig, TRUE);
+            prPythonSignature(pt, fp, &ct->pysig, TRUE);
             ++currentLineNr;
         }
     }
