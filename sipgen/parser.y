@@ -5043,7 +5043,7 @@ static const char *getPythonName(optFlags *optflgs, const char *cname)
     optFlag *of;
 
     if ((of = findOptFlag(optflgs, "PyName", name_flag)) != NULL)
-        pname = of -> fvalue.sval;
+        pname = of->fvalue.sval;
     else
         pname = cname;
 

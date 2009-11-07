@@ -626,6 +626,7 @@ static void moveClassCasts(sipSpec *pt, moduleDef *mod, classDef *cd)
         ct->cppsig = &ct->pysig;
 
         /* Add the source class as the only argument. */
+        ct->pysig.result.atype = void_type;
         ad = &ct->pysig.args[0];
 
         ad->atype = class_type;
@@ -1409,10 +1410,25 @@ static void addDefaultCopyCtor(classDef *cd)
             argDef *ad = &ct -> pysig.args[0];
  
             /* See if is a copy ctor. */
-            if (ct->pysig.nrArgs == 1 && ad->nrderefs == 0 &&
-                isReference(ad) && ad->atype == class_type &&
-                ad->u.cd == mro->cd)
-                break;
+            if (ct->pysig.nrArgs == 1 && ad->nrderefs == 0 && isReference(ad))
+            {
+                ifaceFileDef *iff;
+
+                /* To check the type we have to look at all versions. */
+                if (ad->atype == class_type)
+                    iff = ad->u.cd->iff;
+                else if (ad->atype == mapped_type)
+                    iff = ad->u.mtd->iff;
+                else
+                    continue;
+
+                for (iff = iff->first_alt; iff != NULL; iff = iff->next_alt)
+                    if (mro->cd->iff == iff)
+                        break;
+
+                if (iff != NULL)
+                    break;
+            }
         }
 
         if (ct != NULL)

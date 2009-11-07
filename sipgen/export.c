@@ -827,6 +827,13 @@ static const char *pyType(argDef *ad, int sec, classDef **scope)
         *scope = ad->u.cd->ecd;
         break;
 
+    case mapped_type:
+        if (ad->u.mtd->pyname != NULL)
+            type_name = ad->u.mtd->pyname->text;
+        else
+            type_name = "unknown";
+        break;
+
     case struct_type:
     case void_type:
         type_name = "sip.voidptr";
