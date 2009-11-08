@@ -521,6 +521,15 @@ Function Annotations
     function is called.
 
 
+.. function-annotation:: DocType
+
+    .. versionadded:: 4.10
+
+    This string annotation specifies the name of the type of the returned value
+    as it will appear in any generated docstrings.  It is usually used with
+    values of type :stype:`SIP_PYOBJECT` to provide a more specific type.
+
+
 .. function-annotation:: Factory
 
     This boolean annotation specifies that the value returned by the function
@@ -732,6 +741,15 @@ Typedef Annotations
 
 Variable Annotations
 --------------------
+
+.. variable-annotation:: DocType
+
+    .. versionadded:: 4.10
+
+    This string annotation specifies the name of the type of the variable as it
+    will appear in any generated docstrings.  It is usually used with variables
+    of type :stype:`SIP_PYOBJECT` to provide a more specific type.
+
 
 .. variable-annotation:: PyName
 
