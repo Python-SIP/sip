@@ -959,29 +959,19 @@ static const char *pyType(sipSpec *pt, argDef *ad, int sec, classDef **scope)
     case string_type:
     case sstring_type:
     case wstring_type:
-        if (ad->nrderefs > 0)
-            type_name = "str";
-        else
-            type_name = "char";
-
-        break;
-
-    case short_type:
-    case int_type:
-    case cint_type:
-        type_name = "int";
+        type_name = "str";
         break;
 
     case ushort_type:
     case uint_type:
-    case ulong_type:
-    case ulonglong_type:
-        type_name = "unsigned long";
-        break;
-
     case long_type:
     case longlong_type:
-        type_name = "long";
+    case ulong_type:
+    case ulonglong_type:
+    case short_type:
+    case int_type:
+    case cint_type:
+        type_name = "int";
         break;
 
     case float_type:
