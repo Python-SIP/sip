@@ -959,6 +959,9 @@ static const char *pyType(sipSpec *pt, argDef *ad, int sec, classDef **scope)
     case string_type:
     case sstring_type:
     case wstring_type:
+    case ascii_string_type:
+    case latin1_string_type:
+    case utf8_string_type:
         type_name = "str";
         break;
 
@@ -1018,8 +1021,8 @@ static const char *pyType(sipSpec *pt, argDef *ad, int sec, classDef **scope)
         type_name = "...";
         break;
 
+    case slotcon_type:
     case anyslot_type:
-        /* Need to check if this is enough. */
         type_name = "SLOT()";
         break;
 
@@ -1076,7 +1079,8 @@ int prPythonSignature(sipSpec *pt, FILE *fp, signatureDef *sd, int sec)
 
     fprintf(fp, ")");
 
-    is_res = (sd->result.atype != void_type || sd->result.nrderefs != 0);
+    is_res = !((sd->result.atype == void_type && sd->result.nrderefs == 0) ||
+            (sd->result.doctype != NULL && sd->result.doctype[0] == '\0'));
 
     if (is_res || nr_out > 0)
     {

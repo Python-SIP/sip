@@ -13314,7 +13314,11 @@ static void generateDocstring(sipSpec *pt, overDef *overs, memberDef *md,
         }
 
         prScopedPythonName(fp, scope_scope, scope_name);
-        fprintf(fp, ".%s", md->pyname->text);
+
+        if (scope_name != NULL)
+            fprintf(fp, ".");
+
+        fprintf(fp, "%s", md->pyname->text);
         need_sec = prPythonSignature(pt, fp, &od->pysig, FALSE);
         ++currentLineNr;
 
@@ -13323,7 +13327,11 @@ static void generateDocstring(sipSpec *pt, overDef *overs, memberDef *md,
             fprintf(fp, "%s", sep);
 
             prScopedPythonName(fp, scope_scope, scope_name);
-            fprintf(fp, ".%s", md->pyname->text);
+
+            if (scope_name != NULL)
+                fprintf(fp, ".");
+
+            fprintf(fp, "%s", md->pyname->text);
             prPythonSignature(pt, fp, &od->pysig, TRUE);
             ++currentLineNr;
         }

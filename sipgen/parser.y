@@ -3217,8 +3217,8 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd, optFlags *of)
                 cd->ctors = sipMalloc(sizeof (ctorDef));
  
                 cd->ctors->ctorflags = SECT_IS_PUBLIC;
-                cd->ctors->pysig.nrArgs = 0;
-                cd->ctors->cppsig = &cd -> ctors -> pysig;
+                cd->ctors->pysig.result.atype = void_type;
+                cd->ctors->cppsig = &cd->ctors->pysig;
 
                 cd->defctor = cd->ctors;
 

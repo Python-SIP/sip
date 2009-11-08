@@ -2,9 +2,12 @@ v4.10 ???
   - Added the -P command line option to build modules with "protected"
     redefined to "public" if supported by the platform.  This can result in
     significantly smaller modules.
+  - Added the -o command line option to automatically generate docstrings.
   - Added the -k command line option and /KeywordArgs/ and /NoKeywordArgs/
     function annotations to support keyword arguments.
   - Added the /Default/ exception annotation.
+  - Added the /DocType/ argument, function, mapped type and variable
+    annotation.
   - Added support for configuring and building outside of the source tree.
 
 v4.9.1 23rd October 2009
