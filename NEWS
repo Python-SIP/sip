@@ -10,6 +10,9 @@ v4.10 ???
     annotation.
   - Added support for configuring and building outside of the source tree.
 
+v4.9.2 ??? November 2009
+  - A bug fix release.
+
 v4.9.1 23rd October 2009
   - A bug fix release.
 

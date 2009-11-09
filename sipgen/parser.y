@@ -72,7 +72,7 @@ static moduleDef *allocModule();
 static void parseFile(FILE *fp, char *name, moduleDef *prevmod, int optional);
 static void handleEOF(void);
 static void handleEOM(void);
-static qualDef *findQualifier(char *);
+static qualDef *findQualifier(const char *name);
 static scopedNameDef *text2scopedName(ifaceFileDef *scope, char *text);
 static scopedNameDef *scopeScopedName(ifaceFileDef *scope,
         scopedNameDef *name);
@@ -122,8 +122,11 @@ static argType convertEncoding(const char *encoding);
 static apiVersionRangeDef *getAPIRange(optFlags *optflgs);
 static apiVersionRangeDef *convertAPIRange(moduleDef *mod, nameDef *name,
         int from, int to);
+static char *convertFeaturedString(char *fs);
 static scopedNameDef *text2scopePart(char *text);
 static int usesKeywordArgs(optFlags *optflgs, signatureDef *sd);
+static char *strip(char *s);
+static int isEnabledFeature(const char *name);
 %}
 
 %union {
@@ -2114,7 +2117,7 @@ flagvalue:  dottedname {
         }
     |   TK_STRING {
             $$.ftype = string_flag;
-            $$.fvalue.sval = $1;
+            $$.fvalue.sval = convertFeaturedString($1);
         }
     |   TK_NUMBER {
             $$.ftype = integer_flag;
@@ -4911,18 +4914,8 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
 
     if ((of = findOptFlag(optflgs, "AutoGen", opt_name_flag)) != NULL)
     {
-        setIsAutoGen(od);
-
-        if (of->fvalue.sval != NULL)
-        {
-            qualDef *qd;
-
-            if ((qd = findQualifier(of->fvalue.sval)) == NULL || qd->qtype != feature_qualifier)
-                yyerror("No such feature");
-
-            if (excludedFeature(excludedQualifiers, qd))
-                resetIsAutoGen(od);
-        }
+        if (of->fvalue.sval == NULL || isEnabledFeature(of->fvalue.sval))
+            setIsAutoGen(od);
     }
 
     if (isvirt)
@@ -5454,7 +5447,7 @@ static void handleEOM()
 /*
  * Find an existing qualifier.
  */
-static qualDef *findQualifier(char *name)
+static qualDef *findQualifier(const char *name)
 {
     moduleDef *mod;
 
@@ -6169,4 +6162,72 @@ static int usesKeywordArgs(optFlags *optflgs, signatureDef *sd)
     }
 
     return FALSE;
+}
+
+
+/*
+ * Extract the version of a string value optionally associated with a
+ * particular feature.
+ */
+static char *convertFeaturedString(char *fs)
+{
+    while (fs != NULL)
+    {
+        char *next, *value;
+
+        /* Individual values are ';' separated. */
+        if ((next = strchr(fs, ';')) != NULL)
+            *next++ = '\0';
+
+        /* Features and values are ':' separated. */
+        if ((value = strchr(fs, ':')) == NULL)
+        {
+            /* This is an unconditional value so just return it. */
+            return strip(fs);
+        }
+
+        *value++ = '\0';
+
+        if (isEnabledFeature(strip(fs)))
+            return strip(value);
+
+        fs = next;
+    }
+
+    /* No value was enabled. */
+    return NULL;
+}
+
+
+/*
+ * Return the stripped version of a string.
+ */
+static char *strip(char *s)
+{
+    while (*s == ' ')
+        ++s;
+
+    if (*s != '\0')
+    {
+        char *cp = &s[strlen(s) - 1];
+
+        while (*cp == ' ')
+            *cp-- = '\0';
+    }
+
+    return s;
+}
+
+
+/*
+ * Return TRUE if the given feature is enabled.
+ */
+static int isEnabledFeature(const char *name)
+{
+    qualDef *qd;
+
+    if ((qd = findQualifier(name)) == NULL || qd->qtype != feature_qualifier)
+        yyerror("No such feature");
+
+    return !excludedFeature(excludedQualifiers, qd);
 }
