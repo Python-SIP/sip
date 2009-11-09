@@ -438,7 +438,7 @@ void generateExpression(valueDef *vd, FILE *fp)
         }
  
         if (vd->vbinop != '\0')
-            prcode(fp," %c ",vd->vbinop);
+            prcode(fp,"%c",vd->vbinop);
  
         vd = vd->next;
     }
@@ -8603,9 +8603,12 @@ static void generateNamedBaseType(ifaceFileDef *scope, argDef *ad, char *name,
         case defined_type:
             /*
              * The only defined types still remaining are arguments to
-             * templates.
+             * templates and default values.
              */
-            prcode(fp, "%S", ad->u.snd);
+            if (prcode_xml)
+                prScopedName(fp, ad->u.snd, ".");
+            else
+                prcode(fp, "%S", ad->u.snd);
             break;
 
         case rxcon_type:

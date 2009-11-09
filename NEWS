@@ -8,6 +8,7 @@ v4.10 ???
   - Added the /Default/ exception annotation.
   - Added the /DocType/ argument, function, mapped type and variable
     annotation.
+  - Added the /DocValue/ argument annotation.
   - Added support for configuring and building outside of the source tree.
 
 v4.9.2 ??? November 2009
