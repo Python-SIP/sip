@@ -796,6 +796,13 @@ static void xmlIndent(int indent, FILE *fp)
  */
 static void exportDefaultValue(argDef *ad, FILE *fp)
 {
+    /* Use any explicitly provided documentation. */
+    if (ad->docval != NULL)
+    {
+        prcode(fp, "%s", ad->docval);
+        return;
+    }
+
     /* Translate some special cases. */
     if (ad->defval->next == NULL && ad->defval->vtype == numeric_value)
     {

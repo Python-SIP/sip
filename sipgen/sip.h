@@ -655,6 +655,7 @@ typedef struct {
     int argflags;                       /* The argument flags. */
     int nrderefs;                       /* Nr. of dereferences. */
     valueDef *defval;                   /* The default value. */
+    const char *docval;                 /* The documented value. */
     int key;                            /* The optional /KeepReference/ key. */
     struct _typedefDef *original_type;  /* The original type if typedef'd. */
     union {

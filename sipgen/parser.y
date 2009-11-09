@@ -92,6 +92,7 @@ static int getHoldGIL(optFlags *optflgs);
 static int getDeprecated(optFlags *optflgs);
 static int getAllowNone(optFlags *optflgs);
 static const char *getDocType(optFlags *optflgs);
+static const char *getDocValue(optFlags *optflgs);
 static void templateSignature(signatureDef *sd, int result, classTmplDef *tcd, templateDef *td, classDef *ncd);
 static void templateType(argDef *ad, classTmplDef *tcd, templateDef *td, classDef *ncd);
 static int search_back(const char *end, const char *start, const char *target);
@@ -2437,6 +2438,7 @@ argtype:    cpptype optname optflags {
             }
 
             applyTypeFlags(currentModule, &$$, &$3);
+            $$.docval = getDocValue(&$3);
         }
     ;
 
@@ -5899,6 +5901,20 @@ static int getAllowNone(optFlags *optflgs)
 static const char *getDocType(optFlags *optflgs)
 {
     optFlag *of = findOptFlag(optflgs, "DocType", string_flag);
+
+    if (of == NULL)
+        return NULL;
+
+    return of->fvalue.sval;
+}
+
+
+/*
+ * Get the /DocValue/ option flag.
+ */
+static const char *getDocValue(optFlags *optflgs)
+{
+    optFlag *of = findOptFlag(optflgs, "DocValue", string_flag);
 
     if (of == NULL)
         return NULL;

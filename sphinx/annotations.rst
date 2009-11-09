@@ -138,6 +138,14 @@ Argument Annotations
     :stype:`SIP_PYOBJECT` to provide a more specific type.
 
 
+.. argument-annotation:: DocValue
+
+    .. versionadded:: 4.10
+
+    This string annotation specifies the default value of the argument as it
+    will appear in any generated docstrings.
+
+
 .. argument-annotation:: Encoding
 
     This string annotation specifies that the corresponding argument (which
