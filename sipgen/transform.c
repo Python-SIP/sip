@@ -3248,7 +3248,7 @@ static void createSortedNumberedTypesTable(sipSpec *pt, moduleDef *mod)
 
         ad->atype = class_type;
         ad->u.cd = cd;
-        ad->name = cd->iff->name->text;
+        ad->name = cd->iff->name;
 
         ++ad;
     }
@@ -3263,7 +3263,7 @@ static void createSortedNumberedTypesTable(sipSpec *pt, moduleDef *mod)
 
         ad->atype = mapped_type;
         ad->u.mtd = mtd;
-        ad->name = mtd->cname->text;
+        ad->name = mtd->cname;
 
         ++ad;
     }
@@ -3284,7 +3284,7 @@ static void createSortedNumberedTypesTable(sipSpec *pt, moduleDef *mod)
 
         ad->atype = enum_type;
         ad->u.ed = ed;
-        ad->name = ed->cname->text;
+        ad->name = ed->cname;
 
         ++ad;
     }
@@ -3300,7 +3300,7 @@ static void createSortedNumberedTypesTable(sipSpec *pt, moduleDef *mod)
             ad->u.cd->iff->ifacenr = i;
 
             /* If we find a class called QObject, assume it's Qt. */
-            if (strcmp(ad->name, "QObject") == 0)
+            if (strcmp(ad->name->text, "QObject") == 0)
                 mod->qobjclass = i;
 
             break;
@@ -3322,7 +3322,7 @@ static void createSortedNumberedTypesTable(sipSpec *pt, moduleDef *mod)
  */
 static int compareTypes(const void *t1, const void *t2)
 {
-    return strcmp(((argDef *)t1)->name, ((argDef *)t2)->name);
+    return strcmp(((argDef *)t1)->name->text, ((argDef *)t2)->name->text);
 }
 
 

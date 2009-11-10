@@ -5646,9 +5646,20 @@ static PyObject *signature_FromDocstring(const char *doc, SIP_SSIZE_T line)
     const char *eol;
     SIP_SSIZE_T size = 0;
 
-    /* Find the start of the line. */
+    /*
+     * Find the start of the line.  If there is a non-default versioned
+     * overload that has been enabled then it won't have an entry in the
+     * docstring.  This means that the returned signature may be incorrect.
+     */
     while (line-- > 0)
-        doc = strchr(doc, '\n') + 1;
+    {
+        const char *next = strchr(doc, '\n');
+
+        if (next == NULL)
+            break;
+
+        doc = next + 1;
+    }
 
     /* Find the last closing parenthesis. */
     for (eol = doc; *eol != '\n' && *eol != '\0'; ++eol)

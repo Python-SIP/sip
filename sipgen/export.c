@@ -777,7 +777,7 @@ static void xmlType(sipSpec *pt, argDef *ad, int sec, FILE *fp)
         fprintf(fp, " typetype=\"%s\"", type_type);
 
     if (ad->name != NULL)
-        fprintf(fp, " name=\"%s\"", ad->name);
+        fprintf(fp, " name=\"%s\"", ad->name->text);
 }
 
 
@@ -1104,11 +1104,16 @@ int prPythonSignature(sipSpec *pt, FILE *fp, signatureDef *sd, int sec)
         for (a = 0; a < sd->nrArgs; ++a)
         {
             argDef *ad = &sd->args[a];
+            nameDef *nd;
 
             if (!isOutArg(ad))
                 continue;
 
+            /* We don't want the name in the result tuple. */
+            nd = ad->name;
+            ad->name = NULL;
             need_comma = apiArgument(pt, ad, TRUE, need_comma, sec, fp);
+            ad->name = nd;
         }
 
         if ((is_res && nr_out > 0) || nr_out > 1)

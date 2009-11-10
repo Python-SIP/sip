@@ -147,10 +147,11 @@ static int generateChars(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp);
 static int generateStrings(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp);
 static sortedMethTab *createFunctionTable(memberDef *, int *);
 static sortedMethTab *createMethodTable(classDef *, int *);
-static int generateMappedTypeMethodTable(mappedTypeDef *mtd, FILE *fp);
-static int generateClassMethodTable(classDef *cd, FILE *fp);
-static void prMethodTable(sortedMethTab *mtable, int nr, ifaceFileDef *iff,
-        overDef *od, FILE *fp);
+static int generateMappedTypeMethodTable(sipSpec *pt, mappedTypeDef *mtd,
+        FILE *fp);
+static int generateClassMethodTable(sipSpec *pt, classDef *cd, FILE *fp);
+static void prMethodTable(sipSpec *pt, sortedMethTab *mtable, int nr,
+        ifaceFileDef *iff, overDef *overs, FILE *fp);
 static void generateEnumMacros(sipSpec *pt, moduleDef *mod, classDef *cd,
         mappedTypeDef *mtd, FILE *fp);
 static int generateEnumMemberTable(sipSpec *pt, moduleDef *mod, classDef *cd,
@@ -240,9 +241,14 @@ static int isDuplicateProtected(classDef *cd, overDef *target);
 static char getEncoding(argType atype);
 static void generateTypeDefName(ifaceFileDef *iff, FILE *fp);
 static void generateTypeDefLink(sipSpec *pt, ifaceFileDef *iff, FILE *fp);
+static int overloadHasDocstring(sipSpec *pt, overDef *od, memberDef *md);
+static int hasDocstring(sipSpec *pt, overDef *od, memberDef *md);
 static void generateDocstring(sipSpec *pt, overDef *overs, memberDef *md,
         const char *scope_name, classDef *scope_scope, FILE *fp);
+static int overloadHasClassDocstring(sipSpec *pt, ctorDef *ct);
+static int hasClassDocstring(sipSpec *pt, classDef *cd);
 static void generateClassDocstring(sipSpec *pt, classDef *cd, FILE *fp);
+static int isDefaultAPI(sipSpec *pt, apiVersionRangeDef *avd);
 
 
 /*
@@ -1703,6 +1709,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         if (md->slot == no_slot)
         {
             overDef *od;
+            int auto_docstring;
 
             if (notVersioned(md))
                 continue;
@@ -1718,6 +1725,11 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 
                 is_versioned_functions = TRUE;
             }
+
+            auto_docstring = FALSE;
+
+            if (docstrings && hasDocstring(pt, mod->overs, md))
+                auto_docstring = TRUE;
 
             /*
              * Every overload has an entry to capture all the version ranges.
@@ -1735,7 +1747,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
                 else
                     prcode(fp, "func_%s, METH_VARARGS", md->pyname->text);
 
-                if (!noArgParser(md) && docstrings)
+                if (auto_docstring)
                     prcode(fp, ", doc_%s", md->pyname->text);
                 else
                     prcode(fp, ", NULL");
@@ -1892,8 +1904,15 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
     for (md = mod->othfuncs; md != NULL; md = md->next)
         if (md->slot == no_slot)
         {
+            int auto_docstring;
+
             if (!notVersioned(md))
                 continue;
+
+            auto_docstring = FALSE;
+
+            if (docstrings && hasDocstring(pt, mod->overs, md))
+                auto_docstring = TRUE;
 
             prcode(fp,
 "        {SIP_MLNAME_CAST(%N), ", md->pyname);
@@ -1903,7 +1922,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
             else
                 prcode(fp, "func_%s, METH_VARARGS", md->pyname->text);
 
-            if (!noArgParser(md) && docstrings)
+            if (auto_docstring)
                 prcode(fp, ", doc_%s},\n"
                     , md->pyname->text);
             else
@@ -2398,7 +2417,7 @@ static void generateOrdinaryFunction(sipSpec *pt, moduleDef *mod,
         classDef *c_scope, mappedTypeDef *mt_scope, memberDef *md, FILE *fp)
 {
     overDef *od;
-    int need_intro;
+    int need_intro, auto_docstring;
     ifaceFileDef *scope;
     classDef *scope_scope;
     const char *scope_name, *kw_fw_decl, *kw_decl;
@@ -2431,8 +2450,12 @@ static void generateOrdinaryFunction(sipSpec *pt, moduleDef *mod,
         );
 
     /* Generate the docstrings. */
-    if (!noArgParser(md) && docstrings)
+    auto_docstring = FALSE;
+
+    if (docstrings && hasDocstring(pt, od, md))
     {
+        auto_docstring = TRUE;
+
         if (scope != NULL)
             prcode(fp,
 "static const char doc_%L_%s[] =\n"
@@ -2523,7 +2546,7 @@ static void generateOrdinaryFunction(sipSpec *pt, moduleDef *mod,
 "    /* Raise an exception if the arguments couldn't be parsed. */\n"
 "    sipNoFunction(sipParseErr, %N, ", md->pyname);
 
-        if (docstrings)
+        if (auto_docstring)
         {
             if (scope != NULL)
                 prcode(fp, "doc_%L_%s", scope, md->pyname->text);
@@ -3612,7 +3635,7 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
     for (md = mtd->members; md != NULL; md = md->next)
         generateOrdinaryFunction(pt, mtd->iff->module, NULL, mtd, md, fp);
 
-    nr_methods = generateMappedTypeMethodTable(mtd, fp);
+    nr_methods = generateMappedTypeMethodTable(pt, mtd, fp);
 
     nr_enums = generateEnumMemberTable(pt, mtd->iff->module, NULL, mtd, fp);
 
@@ -3911,7 +3934,8 @@ static int compareMethTab(const void *m1,const void *m2)
  * Generate the sorted table of static methods for a mapped type and return
  * the number of entries.
  */
-static int generateMappedTypeMethodTable(mappedTypeDef *mtd, FILE *fp)
+static int generateMappedTypeMethodTable(sipSpec *pt, mappedTypeDef *mtd,
+        FILE *fp)
 {
     int nr;
     sortedMethTab *mtab;
@@ -3920,7 +3944,7 @@ static int generateMappedTypeMethodTable(mappedTypeDef *mtd, FILE *fp)
 
     if (mtab != NULL)
     {
-        prMethodTable(mtab, nr, mtd->iff, mtd->overs, fp);
+        prMethodTable(pt, mtab, nr, mtd->iff, mtd->overs, fp);
         free(mtab);
     }
 
@@ -3932,7 +3956,7 @@ static int generateMappedTypeMethodTable(mappedTypeDef *mtd, FILE *fp)
  * Generate the sorted table of methods for a class and return the number of
  * entries.
  */
-static int generateClassMethodTable(classDef *cd, FILE *fp)
+static int generateClassMethodTable(sipSpec *pt, classDef *cd, FILE *fp)
 {
     int nr;
     sortedMethTab *mtab;
@@ -3943,7 +3967,7 @@ static int generateClassMethodTable(classDef *cd, FILE *fp)
 
     if (mtab != NULL)
     {
-        prMethodTable(mtab, nr, cd->iff, cd->overs, fp);
+        prMethodTable(pt, mtab, nr, cd->iff, cd->overs, fp);
         free(mtab);
     }
 
@@ -3954,8 +3978,8 @@ static int generateClassMethodTable(classDef *cd, FILE *fp)
 /*
  * Generate a method table for a class or mapped type.
  */
-static void prMethodTable(sortedMethTab *mtable, int nr, ifaceFileDef *iff,
-        overDef *od, FILE *fp)
+static void prMethodTable(sipSpec *pt, sortedMethTab *mtable, int nr,
+        ifaceFileDef *iff, overDef *overs, FILE *fp)
 {
     int i;
 
@@ -3969,6 +3993,7 @@ static void prMethodTable(sortedMethTab *mtable, int nr, ifaceFileDef *iff,
     {
         memberDef *md = mtable[i].md;
         const char *cast, *flags;
+        int auto_docstring;
 
         if (noArgParser(md) || useKeywordArgsFunction(md))
         {
@@ -3984,10 +4009,15 @@ static void prMethodTable(sortedMethTab *mtable, int nr, ifaceFileDef *iff,
         /* Save the index in the table. */
         md->membernr = i;
 
+        auto_docstring = FALSE;
+
+        if (docstrings && hasDocstring(pt, overs, md))
+            auto_docstring = TRUE;
+
         prcode(fp,
 "    {SIP_MLNAME_CAST(%N), %smeth_%L_%s, METH_VARARGS%s, ", md->pyname, cast, iff, md->pyname->text, flags);
 
-        if (!noArgParser(md) && docstrings)
+        if (auto_docstring)
             prcode(fp, "doc_%L_%s", iff, md->pyname->text);
         else
             prcode(fp, "NULL");
@@ -8873,7 +8903,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
     int is_slots, is_signals, nr_methods, nr_enums, nr_vars, embedded;
     int is_inst_class, is_inst_voidp, is_inst_char, is_inst_string;
     int is_inst_int, is_inst_long, is_inst_ulong, is_inst_longlong;
-    int is_inst_ulonglong, is_inst_double;
+    int is_inst_ulonglong, is_inst_double, auto_docstring;
     memberDef *md;
     moduleDef *mod;
 
@@ -8953,7 +8983,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
             );
 
     /* Generate the attributes tables. */
-    nr_methods = generateClassMethodTable(cd, fp);
+    nr_methods = generateClassMethodTable(pt, cd, fp);
     nr_enums = generateEnumMemberTable(pt, mod, cd, NULL, fp);
 
     /* Generate the PyQt4 signals table. */
@@ -9086,8 +9116,12 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
     is_inst_double = generateDoubles(pt, mod, cd, fp);
 
     /* Generate the docstrings. */
-    if (docstrings && canCreate(cd))
+    auto_docstring = FALSE;
+
+    if (docstrings && hasClassDocstring(pt, cd))
     {
+        auto_docstring = TRUE;
+
         prcode(fp,
 "\n"
 "static const char doc_%L[] =\n", cd->iff);
@@ -9280,7 +9314,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 "    },\n"
         );
 
-    if (docstrings && canCreate(cd))
+    if (auto_docstring)
         prcode(fp,
 "    doc_%L,\n"
             , cd->iff);
@@ -10295,6 +10329,7 @@ static void generateFunction(sipSpec *pt, memberDef *md, overDef *overs,
     if (need_method)
     {
         const char *pname = md->pyname->text;
+        int auto_docstring;
 
         prcode(fp,
 "\n"
@@ -10302,8 +10337,12 @@ static void generateFunction(sipSpec *pt, memberDef *md, overDef *overs,
             );
 
         /* Generate the docstrings. */
-        if (!noArgParser(md) && docstrings)
+        auto_docstring = FALSE;
+
+        if (docstrings && hasDocstring(pt, overs, md))
         {
+            auto_docstring = TRUE;
+
             prcode(fp,
 "static const char doc_%L_%s[] =\n"
                 , cd->iff, pname);
@@ -10398,7 +10437,7 @@ static void generateFunction(sipSpec *pt, memberDef *md, overDef *overs,
 "    /* Raise an exception if the arguments couldn't be parsed. */\n"
 "    sipNoMethod(%s, %N, %N, ", (need_args ? "sipParseErr" : "NULL"), cd->pyname, md->pyname);
 
-            if (docstrings)
+            if (auto_docstring)
                 prcode(fp, "doc_%L_%s", cd->iff, pname);
             else
                 prcode(fp, "NULL");
@@ -13291,6 +13330,41 @@ static char getEncoding(argType atype)
 
 
 /*
+ * Return TRUE if a docstring can be automatically generated for a function
+ * overload.
+ */
+static int overloadHasDocstring(sipSpec *pt, overDef *od, memberDef *md)
+{
+    if (isPrivate(od))
+        return FALSE;
+
+    if (od->common != md)
+        return FALSE;
+
+    /* If it is versioned then make sure it is the default API. */
+    return isDefaultAPI(pt, od->api_range);
+}
+
+
+/*
+ * Return TRUE if a docstring can be automatically generated for a function.
+ */
+static int hasDocstring(sipSpec *pt, overDef *overs, memberDef *md)
+{
+    overDef *od;
+
+    if (noArgParser(md))
+        return FALSE;
+
+    for (od = overs; od != NULL; od = od->next)
+        if (overloadHasDocstring(pt, od, md))
+            return TRUE;
+
+    return FALSE;
+}
+
+
+/*
  * Generate the docstring for a function or method.
  */
 static void generateDocstring(sipSpec *pt, overDef *overs, memberDef *md,
@@ -13303,7 +13377,7 @@ static void generateDocstring(sipSpec *pt, overDef *overs, memberDef *md,
     {
         int need_sec;
 
-        if (od->common != md)
+        if (!overloadHasDocstring(pt, od, md))
             continue;
 
         if (sep == NULL)
@@ -13346,7 +13420,39 @@ static void generateDocstring(sipSpec *pt, overDef *overs, memberDef *md,
 
 
 /*
- * Generate the docstring for a function or method.
+ * Return TRUE if a docstring can be automatically generated for a class
+ * overload.
+ */
+static int overloadHasClassDocstring(sipSpec *pt, ctorDef *ct)
+{
+    if (isPrivateCtor(ct))
+        return FALSE;
+
+    /* If it is versioned then make sure it is the default API. */
+    return isDefaultAPI(pt, ct->api_range);
+}
+
+
+/*
+ * Return TRUE if a docstring can be automatically generated for a class.
+ */
+static int hasClassDocstring(sipSpec *pt, classDef *cd)
+{
+    ctorDef *ct;
+
+    if (!canCreate(cd))
+        return FALSE;
+
+    for (ct = cd->ctors; ct != NULL; ct = ct->next)
+        if (overloadHasClassDocstring(pt, ct))
+            return TRUE;
+
+    return FALSE;
+}
+
+
+/*
+ * Generate the docstring for a class.
  */
 static void generateClassDocstring(sipSpec *pt, classDef *cd, FILE *fp)
 {
@@ -13357,7 +13463,7 @@ static void generateClassDocstring(sipSpec *pt, classDef *cd, FILE *fp)
     {
         int need_sec;
 
-        if (isPrivateCtor(ct))
+        if (!overloadHasClassDocstring(pt, ct))
             continue;
 
         if (sep == NULL)
@@ -13386,4 +13492,27 @@ static void generateClassDocstring(sipSpec *pt, classDef *cd, FILE *fp)
 
     if (sep != NULL)
         fprintf(fp, "\";\n");
+}
+
+
+/*
+ * Returns TRUE if the given API version corresponds to the default.
+ */
+static int isDefaultAPI(sipSpec *pt, apiVersionRangeDef *avd)
+{
+    int def_api;
+
+    /* Handle the trivial case. */
+    if (avd == NULL)
+        return TRUE;
+
+    def_api = findAPI(pt, avd->api_name->text)->from;
+
+    if (avd->from > 0 && avd->from > def_api)
+        return FALSE;
+
+    if (avd->to > 0 && avd->to <= def_api)
+        return FALSE;
+
+    return TRUE;
 }
