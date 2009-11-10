@@ -751,6 +751,47 @@ For example::
     %End
 
 
+.. directive:: %Docstring
+
+.. parsed-literal::
+
+    %Docstring
+        *text*
+    %End
+
+.. versionadded:: 4.10
+
+This directive is used to specify explicit docstrings for classes, functions
+and methods.
+
+The docstring of a class is made up of the docstring specified for the class
+itself, with the docstrings specified for each contructor appended.
+
+The docstring of a function or method is made up of the concatenated docstrings
+specified for each of the overloads.
+
+Specifying an explicit docstring will prevent SIP from generating an automatic
+docstring that describes the Python signature of a function or method overload.
+This means that SIP will generate less informative exceptions (i.e. without a
+full signature) when it fails to match a set of arguments to any function or
+method overload.
+
+For example::
+
+    class Klass
+    {
+    %Docstring
+    This will be at the start of the class's docstring.
+    %End
+
+    public:
+        Klass();
+    %Docstring
+    This will be appended to the class's docstring.
+    %End
+    };
+
+
 .. directive:: %End
 
 This isn't a directive in itself, but is used to terminate a number of

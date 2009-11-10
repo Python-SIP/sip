@@ -343,6 +343,11 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
     return TK_RAISECODE;
 }
 
+^%Docstring {           /* The start of a docstring block. */
+    codeIdx = 0;
+    return TK_DOCSTRING;
+}
+
 ^%Doc {             /* The start of a documentation block. */
     codeIdx = 0;
     return TK_DOC;

@@ -48,7 +48,7 @@ static classDef *findClass(sipSpec *pt, ifaceFileType iftype,
 static classDef *findClassWithInterface(sipSpec *pt, ifaceFileDef *iff);
 static classDef *newClass(sipSpec *pt, ifaceFileType iftype,
         apiVersionRangeDef *api_range, scopedNameDef *snd);
-static void finishClass(sipSpec *,moduleDef *,classDef *,optFlags *);
+static void finishClass(sipSpec *, moduleDef *, classDef *, optFlags *);
 static exceptionDef *findException(sipSpec *pt, scopedNameDef *fqname, int new);
 static mappedTypeDef *newMappedType(sipSpec *,argDef *, optFlags *);
 static enumDef *newEnum(sipSpec *pt, moduleDef *mod, mappedTypeDef *mt_scope,
@@ -58,10 +58,10 @@ static void newTypedef(sipSpec *, moduleDef *, char *, argDef *, optFlags *);
 static void newVar(sipSpec *, moduleDef *, char *, int, argDef *, optFlags *,
         codeBlock *, codeBlock *, codeBlock *);
 static void newCtor(char *, int, signatureDef *, optFlags *, codeBlock *,
-        throwArgs *, signatureDef *, int);
+        throwArgs *, signatureDef *, int, codeBlock *);
 static void newFunction(sipSpec *, moduleDef *, classDef *, mappedTypeDef *,
         int, int, int, char *, signatureDef *, int, int, optFlags *,
-        codeBlock *, codeBlock *, throwArgs *, signatureDef *);
+        codeBlock *, codeBlock *, throwArgs *, signatureDef *, codeBlock *);
 static optFlag *findOptFlag(optFlags *,char *,flagType);
 static memberDef *findFunction(sipSpec *, moduleDef *, classDef *,
         mappedTypeDef *, const char *, int, int, int);
@@ -154,6 +154,7 @@ static int isEnabledFeature(const char *name);
 %token          TK_API
 %token          TK_DEFENCODING
 %token          TK_PLUGIN
+%token          TK_DOCSTRING
 %token          TK_DOC
 %token          TK_EXPORTEDDOC
 %token          TK_MAKEFILE
@@ -306,6 +307,8 @@ static int isEnabledFeature(const char *name);
 %type <codeb>           virtualcatchercode
 %type <codeb>           methodcode
 %type <codeb>           raisecode
+%type <codeb>           docstring
+%type <codeb>           optdocstring
 %type <text>            operatorname
 %type <text>            optfilename
 %type <text>            optname
@@ -677,7 +680,7 @@ mtline:     typehdrcode {
     |   mtfunction
     ;
 
-mtfunction: TK_STATIC cpptype TK_NAME '(' arglist ')' optconst optexceptions optflags optsig ';' methodcode {
+mtfunction: TK_STATIC cpptype TK_NAME '(' arglist ')' optconst optexceptions optflags optsig ';' optdocstring methodcode {
             if (notSkipping())
             {
                 applyTypeFlags(currentModule, &$2, &$9);
@@ -686,7 +689,7 @@ mtfunction: TK_STATIC cpptype TK_NAME '(' arglist ')' optconst optexceptions opt
 
                 newFunction(currentSpec, currentModule, NULL,
                         currentMappedType, 0, TRUE, FALSE, $3, &$5, $7, FALSE,
-                        &$9, $12, NULL, $8, $10);
+                        &$9, $13, NULL, $8, $10, $12);
             }
         }
     ;
@@ -1587,6 +1590,16 @@ classline:  ifstart
     |   exception
     |   typedef
     |   enum
+    |   docstring {
+            if (notSkipping())
+            {
+                classDef *scope = currentScope();
+
+                /* Make sure this is before any ctor docstrings. */
+                $1->next = scope->docstring;
+                scope->docstring = $1;
+            }
+        }
     |   typecode {
             if (notSkipping())
                 appendCodeBlock(&currentScope()->cppcode, $1);
@@ -1815,14 +1828,14 @@ ctor:       TK_EXPLICIT {currentCtorIsExplicit = TRUE;} simplector
     |   simplector
     ;
 
-simplector: TK_NAME '(' arglist ')' optexceptions optflags optctorsig ';' methodcode {
+simplector: TK_NAME '(' arglist ')' optexceptions optflags optctorsig ';' optdocstring methodcode {
             /* Note that we allow ctors in C modules. */
 
             if (notSkipping())
             {
                 if (currentSpec -> genc)
                 {
-                    if ($9 == NULL && $3.nrArgs != 0)
+                    if ($10 == NULL && $3.nrArgs != 0)
                         yyerror("Constructors with arguments in C modules must include %MethodCode");
 
                     if (currentCtorIsExplicit)
@@ -1832,7 +1845,8 @@ simplector: TK_NAME '(' arglist ')' optexceptions optflags optctorsig ';' method
                 if ((sectionFlags & (SECT_IS_PUBLIC | SECT_IS_PROT | SECT_IS_PRIVATE)) == 0)
                     yyerror("Constructor must be in the public, private or protected sections");
 
-                newCtor($1,sectionFlags,&$3,&$6,$9,$5,$7,currentCtorIsExplicit);
+                newCtor($1, sectionFlags, &$3, &$6, $10, $5, $7,
+                        currentCtorIsExplicit, $9);
             }
 
             free($1);
@@ -1870,7 +1884,7 @@ optvirtual: {
         }
     ;
 
-function:   cpptype TK_NAME '(' arglist ')' optconst optexceptions optabstract optflags optsig ';' methodcode virtualcatchercode {
+function:   cpptype TK_NAME '(' arglist ')' optconst optexceptions optabstract optflags optsig ';' optdocstring methodcode virtualcatchercode {
             if (notSkipping())
             {
                 applyTypeFlags(currentModule, &$1, &$9);
@@ -1879,7 +1893,7 @@ function:   cpptype TK_NAME '(' arglist ')' optconst optexceptions optabstract o
 
                 newFunction(currentSpec, currentModule, currentScope(), NULL,
                         sectionFlags, currentIsStatic, currentOverIsVirt, $2,
-                        &$4, $6, $8, &$9, $12, $13, $7, $10);
+                        &$4, $6, $8, &$9, $13, $14, $7, $10, $12);
             }
 
             currentIsStatic = FALSE;
@@ -1923,7 +1937,7 @@ function:   cpptype TK_NAME '(' arglist ')' optconst optexceptions optabstract o
 
                 newFunction(currentSpec, currentModule, cd, NULL,
                         sectionFlags, currentIsStatic, currentOverIsVirt, $3,
-                        &$5, $7, $9, &$10, $13, $14, $8, $11);
+                        &$5, $7, $9, &$10, $13, $14, $8, $11, NULL);
             }
 
             currentIsStatic = FALSE;
@@ -1980,7 +1994,7 @@ function:   cpptype TK_NAME '(' arglist ')' optconst optexceptions optabstract o
 
                     newFunction(currentSpec, currentModule, scope, NULL,
                             sectionFlags, currentIsStatic, currentOverIsVirt,
-                            sname, &$4, $6, $8, &$9, $12, $13, $7, $10);
+                            sname, &$4, $6, $8, &$9, $12, $13, $7, $10, NULL);
                 }
                 else
                 {
@@ -2124,6 +2138,17 @@ flagvalue:  dottedname {
             $$.ftype = integer_flag;
             $$.fvalue.ival = $1;
         }
+    ;
+
+docstring:  TK_DOCSTRING codeblock {
+            $$ = $2;
+        }
+    ;
+
+optdocstring: {
+            $$ = NULL;
+        }
+    |   docstring
     ;
 
 methodcode: {
@@ -3176,7 +3201,8 @@ static classDef *newClass(sipSpec *pt, ifaceFileType iftype,
 /*
  * Tidy up after finishing a class definition.
  */
-static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd, optFlags *of)
+static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd,
+        optFlags *of)
 {
     const char *pyname;
     optFlag *flg;
@@ -4715,7 +4741,7 @@ static void newVar(sipSpec *pt,moduleDef *mod,char *name,int isstatic,
  */
 static void newCtor(char *name, int sectFlags, signatureDef *args,
         optFlags *optflgs, codeBlock *methodcode, throwArgs *exceptions,
-        signatureDef *cppsig, int explicit)
+        signatureDef *cppsig, int explicit, codeBlock *docstring)
 {
     ctorDef *ct, **ctp;
     classDef *cd = currentScope();
@@ -4723,6 +4749,9 @@ static void newCtor(char *name, int sectFlags, signatureDef *args,
     /* Check the name of the constructor. */
     if (strcmp(classBaseName(cd), name) != 0)
         yyerror("Constructor doesn't have the same name as its class");
+
+    if (docstring != NULL)
+        appendCodeBlock(&cd->docstring, docstring);
 
     /* Add to the list of constructors. */
     ct = sipMalloc(sizeof (ctorDef));
@@ -4803,7 +4832,7 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         mappedTypeDef *mt_scope, int sflags, int isstatic, int isvirt,
         char *name, signatureDef *sig, int isconst, int isabstract,
         optFlags *optflgs, codeBlock *methodcode, codeBlock *vcode,
-        throwArgs *exceptions, signatureDef *cppsig)
+        throwArgs *exceptions, signatureDef *cppsig, codeBlock *docstring)
 {
     int factory, xferback, no_arg_parser;
     overDef *od, **odp, **headp;
@@ -4977,6 +5006,9 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
     od->common = findFunction(pt, mod, c_scope, mt_scope,
             getPythonName(optflgs, name), (methodcode != NULL), sig->nrArgs,
             no_arg_parser);
+
+    if (docstring != NULL)
+        appendCodeBlock(&od->common->docstring, docstring);
 
     od->api_range = getAPIRange(optflgs);
 

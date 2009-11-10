@@ -927,6 +927,7 @@ typedef struct _memberDef {
     int membernr;                       /* The index in the method table. */
     slotType slot;                      /* The slot type. */
     moduleDef *module;                  /* The owning module. */
+    codeBlock *docstring;               /* The overloads docstrings. */
     struct _memberDef *next;            /* Next in the list. */
 } memberDef;
 
@@ -993,6 +994,7 @@ typedef struct _classDef {
     codeBlock *cppcode;                 /* Class C++ code. */
     codeBlock *convtosubcode;           /* Convert to sub C++ code. */
     struct _classDef *subbase;          /* Sub-class base class. */
+    codeBlock *docstring;               /* Ctor docstrings. */
     codeBlock *convtocode;              /* Convert to C++ code. */
     codeBlock *travcode;                /* Traverse code. */
     codeBlock *clearcode;               /* Clear code. */

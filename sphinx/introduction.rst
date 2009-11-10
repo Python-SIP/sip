@@ -45,7 +45,7 @@ SIP, and the bindings it produces, have the following features:
 
 - support for Python's keyword argument syntax
 
-- the automatic, optional generation of docstrings
+- support for both explicitly specified and automatically generated docstrings
 
 - access to a C++ class's protected methods
 

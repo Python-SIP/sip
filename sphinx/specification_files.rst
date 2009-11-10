@@ -113,6 +113,7 @@ file.
             :directive:`%BIReleaseBufferCode` |
             :directive:`%ConvertToSubClassCode` |
             :directive:`%ConvertToTypeCode` |
+            :directive:`%Docstring` |
             :directive:`%GCClearCode` |
             :directive:`%GCTraverseCode` |
             :directive:`%PickleCode` |
@@ -137,7 +138,8 @@ file.
 
     *constructor* ::= [**explicit**] *name* **(** [*argument-list*] **)**
             [*exceptions*] [*function-annotations*]
-            [*c++-constructor-signature*] **;** [:directive:`%MethodCode`]
+            [*c++-constructor-signature*] **;** [:directive:`%Docstring`]
+            [:directive:`%MethodCode`]
 
     *c++-constructor-signature* ::= **[(** [*argument-list*] **)]**
 
@@ -147,7 +149,7 @@ file.
 
     *method* ::= *type* *name* **(** [*argument-list*] **)** [**const**]
             [*exceptions*] [**= 0**] [*function-annotations*] [*c++-signature*]
-            **;** [:directive:`%MethodCode`]
+            **;** [:directive:`%Docstring`] [:directive:`%MethodCode`]
 
     *c++-signature* ::= **[** *type* **(** [*argument-list*] **)]**
 
@@ -210,7 +212,8 @@ file.
     *enum-line* ::= [:directive:`%If` | *name* [*enum-annotations*] **,**
 
     *function* ::= *type* *name* **(** [*argument-list*] **)** [*exceptions*]
-            [*function-annotations*] **;** [:directive:`%MethodCode`]
+            [*function-annotations*] **;** [:directive:`%Docstring`]
+            [:directive:`%MethodCode`]
 
     *namespace* ::= **namespace** *name* **{** {*namespace-line*} **};**
 

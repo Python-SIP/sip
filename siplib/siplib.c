@@ -241,6 +241,9 @@ static const sipAPIDef sip_api = {
 };
 
 
+#define AUTO_DOCSTRING          '\1'    /* Marks an auto class docstring. */
+
+
 /*
  * Note that some of the following flags safely share values because they
  * cannot be used at the same time.
@@ -8226,7 +8229,16 @@ static PyObject *sipWrapperType_alloc(PyTypeObject *self, SIP_SSIZE_T nitems)
 
         if (sipTypeIsClass(currentType))
         {
-            ((PyTypeObject *)o)->tp_doc = ((sipClassTypeDef *)currentType)->ctd_docstring;
+            const char *docstring = ((sipClassTypeDef *)currentType)->ctd_docstring;
+
+            /*
+             * Skip the marker that identifies the docstring as being
+             * automatically generated.
+             */
+            if (docstring != NULL && *docstring == AUTO_DOCSTRING)
+                ++docstring;
+
+            ((PyTypeObject *)o)->tp_doc = docstring;
 
             addClassSlots((sipWrapperType *)o, (sipClassTypeDef *)currentType);
         }
@@ -8523,9 +8535,21 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
 
             if (sipNew == NULL)
             {
+                const char *docstring = ctd->ctd_docstring;
+
+                /*
+                 * Use the docstring for errors if it was automatically
+                 * generated.
+                 */
+                if (docstring != NULL)
+                    if (*docstring == AUTO_DOCSTRING)
+                        ++docstring;
+                    else
+                        docstring = NULL;
+
                 sip_api_no_function(parseErr,
                         sipPyNameOfContainer(&ctd->ctd_container, td),
-                        ctd->ctd_docstring);
+                        docstring);
 
                 return -1;
             }
