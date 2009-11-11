@@ -242,7 +242,8 @@ static char getEncoding(argType atype);
 static void generateTypeDefName(ifaceFileDef *iff, FILE *fp);
 static void generateTypeDefLink(sipSpec *pt, ifaceFileDef *iff, FILE *fp);
 static int overloadHasDocstring(sipSpec *pt, overDef *od, memberDef *md);
-static int hasDocstring(sipSpec *pt, overDef *od, memberDef *md);
+static int hasDocstring(sipSpec *pt, overDef *od, memberDef *md,
+        ifaceFileDef *scope);
 static void generateDocstring(sipSpec *pt, overDef *overs, memberDef *md,
         const char *scope_name, classDef *scope_scope, FILE *fp);
 static int overloadHasClassDocstring(sipSpec *pt, ctorDef *ct);
@@ -1729,7 +1730,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 
             has_docstring = FALSE;
 
-            if (md->docstring != NULL || (docstrings && hasDocstring(pt, mod->overs, md)))
+            if (md->docstring != NULL || (docstrings && hasDocstring(pt, mod->overs, md, NULL)))
                 has_docstring = TRUE;
 
             /*
@@ -1912,7 +1913,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 
             has_docstring = FALSE;
 
-            if (md->docstring != NULL || (docstrings && hasDocstring(pt, mod->overs, md)))
+            if (md->docstring != NULL || (docstrings && hasDocstring(pt, mod->overs, md, NULL)))
                 has_docstring = TRUE;
 
             prcode(fp,
@@ -2453,7 +2454,7 @@ static void generateOrdinaryFunction(sipSpec *pt, moduleDef *mod,
     /* Generate the docstrings. */
     has_auto_docstring = FALSE;
 
-    if (md->docstring != NULL || (docstrings && hasDocstring(pt, od, md)))
+    if (md->docstring != NULL || (docstrings && hasDocstring(pt, od, md, scope)))
     {
         if (scope != NULL)
             prcode(fp,
@@ -4018,7 +4019,7 @@ static void prMethodTable(sipSpec *pt, sortedMethTab *mtable, int nr,
 
         has_docstring = FALSE;
 
-        if (md->docstring != NULL || (docstrings && hasDocstring(pt, overs, md)))
+        if (md->docstring != NULL || (docstrings && hasDocstring(pt, overs, md, iff)))
             has_docstring = TRUE;
 
         prcode(fp,
@@ -10349,7 +10350,7 @@ static void generateFunction(sipSpec *pt, memberDef *md, overDef *overs,
         /* Generate the docstrings. */
         has_auto_docstring = FALSE;
 
-        if (md->docstring != NULL || (docstrings && hasDocstring(pt, overs, md)))
+        if (md->docstring != NULL || (docstrings && hasDocstring(pt, overs, md, cd->iff)))
         {
             prcode(fp,
 "static const char doc_%L_%s[] =\n"
@@ -13365,11 +13366,15 @@ static int overloadHasDocstring(sipSpec *pt, overDef *od, memberDef *md)
 /*
  * Return TRUE if a docstring can be automatically generated for a function.
  */
-static int hasDocstring(sipSpec *pt, overDef *overs, memberDef *md)
+static int hasDocstring(sipSpec *pt, overDef *overs, memberDef *md,
+        ifaceFileDef *scope)
 {
     overDef *od;
 
     if (noArgParser(md))
+        return FALSE;
+
+    if (scope != NULL && !isDefaultAPI(pt, scope->api_range))
         return FALSE;
 
     for (od = overs; od != NULL; od = od->next)
@@ -13457,6 +13462,9 @@ static int hasClassDocstring(sipSpec *pt, classDef *cd)
     ctorDef *ct;
 
     if (!canCreate(cd))
+        return FALSE;
+
+    if (!isDefaultAPI(pt, cd->iff->api_range))
         return FALSE;
 
     for (ct = cd->ctors; ct != NULL; ct = ct->next)
