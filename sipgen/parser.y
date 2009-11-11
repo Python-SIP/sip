@@ -587,7 +587,7 @@ mappedtype: TK_MAPPEDTYPE basetype optflags {
         } mtdefinition
     ;
 
-mappedtypetmpl: template TK_MAPPEDTYPE basetype {
+mappedtypetmpl: template TK_MAPPEDTYPE basetype optflags {
             int a;
 
             if (currentSpec->genc)
@@ -622,6 +622,7 @@ mappedtypetmpl: template TK_MAPPEDTYPE basetype {
 
                 mtt->sig = $1;
                 mtt->mt = allocMappedType(currentSpec, &$3);
+                mtt->mt->doctype = getDocType(&$4);
                 mtt->next = currentSpec->mappedtypetemplates;
 
                 currentSpec->mappedtypetemplates = mtt;

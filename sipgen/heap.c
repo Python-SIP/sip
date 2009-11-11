@@ -61,7 +61,7 @@ char *sipStrdup(const char *s)
 
 
 /*
- * Return a string on the heap which is the concatonation of all the arguments.
+ * Return a string on the heap which is the concatenation of all the arguments.
  */
 char *concat(const char *s, ...)
 {

@@ -74,6 +74,8 @@ static void addComplementarySlot(sipSpec *pt, classDef *cd, memberDef *md,
         slotType cslot, const char *cslot_name);
 static void resolveInstantiatedClassTemplate(sipSpec *pt, argDef *type);
 static void setStringPoolOffsets(sipSpec *pt);
+static const char *templateString(const char *src, scopedNameDef *names,
+        scopedNameDef *values);
 
 
 /*
@@ -2859,6 +2861,8 @@ static mappedTypeDef *instantiateMappedTypeTemplate(sipSpec *pt, moduleDef *mod,
             mappedtype_iface, NULL, type);
     mtd->iff->module = mod;
 
+    mtd->doctype = templateString(mtt->mt->doctype, type_names, type_values);
+
     appendCodeBlock(&mtd->iff->hdrcode, templateCode(pt, &mtd->iff->used, mtt->mt->iff->hdrcode, type_names, type_values));
     mtd->convfromcode = templateCode(pt, &mtd->iff->used, mtt->mt->convfromcode, type_names, type_values);
     mtd->convtocode = templateCode(pt, &mtd->iff->used, mtt->mt->convtocode, type_names, type_values);
@@ -2873,6 +2877,47 @@ static mappedTypeDef *instantiateMappedTypeTemplate(sipSpec *pt, moduleDef *mod,
         freeScopedName(type_values);
 
     return mtd;
+}
+
+
+/*
+ * Return a string based on an original with names replaced by corresponding
+ * values.
+ */
+static const char *templateString(const char *src, scopedNameDef *names,
+        scopedNameDef *values)
+{
+    char *dst;
+
+    /* Handle the trivial case. */
+    if (src == NULL)
+        return NULL;
+
+    dst = sipStrdup(src);
+
+    while (names != NULL && values != NULL)
+    {
+        char *cp;
+        size_t name_len = strlen(names->name);
+        size_t value_len = strlen(values->name);
+
+        while ((cp = strstr(dst, names->name)) != NULL)
+        {
+            char *new_dst = sipMalloc(strlen(dst) - name_len + value_len + 1);
+
+            memcpy(new_dst, dst, cp - dst);
+            memcpy(new_dst + (cp - dst), values->name, value_len);
+            strcpy(new_dst + (cp - dst) + value_len, cp + name_len);
+
+            free(dst);
+            dst = new_dst;
+        }
+
+        names = names->next;
+        values = values->next;
+    }
+
+    return dst;
 }
 
 
