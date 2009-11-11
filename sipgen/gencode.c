@@ -1925,7 +1925,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
                 prcode(fp, "func_%s, METH_VARARGS", md->pyname->text);
 
             if (has_docstring)
-                prcode(fp, ", doc_%s},\n"
+                prcode(fp, ", SIP_MLDOC_CAST(doc_%s)},\n"
                     , md->pyname->text);
             else
                 prcode(fp, ", NULL},\n"
@@ -2458,12 +2458,10 @@ static void generateOrdinaryFunction(sipSpec *pt, moduleDef *mod,
     {
         if (scope != NULL)
             prcode(fp,
-"static const char doc_%L_%s[] =\n"
-                , scope, md->pyname->text);
+"PyDoc_STRVAR(doc_%L_%s, ", scope, md->pyname->text);
         else
             prcode(fp,
-"static const char doc_%s[] =\n"
-                , md->pyname->text);
+"PyDoc_STRVAR(doc_%s, " , md->pyname->text);
 
         if (md->docstring != NULL)
         {
@@ -2475,7 +2473,7 @@ static void generateOrdinaryFunction(sipSpec *pt, moduleDef *mod,
             has_auto_docstring = TRUE;
         }
 
-        prcode(fp,
+        prcode(fp, ");\n"
 "\n"
             );
     }
@@ -4026,7 +4024,7 @@ static void prMethodTable(sipSpec *pt, sortedMethTab *mtable, int nr,
 "    {SIP_MLNAME_CAST(%N), %smeth_%L_%s, METH_VARARGS%s, ", md->pyname, cast, iff, md->pyname->text, flags);
 
         if (has_docstring)
-            prcode(fp, "doc_%L_%s", iff, md->pyname->text);
+            prcode(fp, "SIP_MLDOC_CAST(doc_%L_%s)", iff, md->pyname->text);
         else
             prcode(fp, "NULL");
 
@@ -9130,12 +9128,15 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
     {
         prcode(fp,
 "\n"
-"static const char doc_%L[] =\n", cd->iff);
+"PyDoc_STRVAR(doc_%L, ", cd->iff);
 
         if (cd->docstring != NULL)
             generateExplicitDocstring(cd->docstring, fp);
         else
             generateClassDocstring(pt, cd, fp);
+
+        prcode(fp, ");\n"
+            );
 
         has_docstring = TRUE;
     }
@@ -10353,8 +10354,7 @@ static void generateFunction(sipSpec *pt, memberDef *md, overDef *overs,
         if (md->docstring != NULL || (docstrings && hasDocstring(pt, overs, md, cd->iff)))
         {
             prcode(fp,
-"static const char doc_%L_%s[] =\n"
-                , cd->iff, pname);
+"PyDoc_STRVAR(doc_%L_%s, " , cd->iff, pname);
 
             if (md->docstring != NULL)
             {
@@ -10366,7 +10366,7 @@ static void generateFunction(sipSpec *pt, memberDef *md, overDef *overs,
                 has_auto_docstring = TRUE;
             }
 
-            prcode(fp,
+            prcode(fp, ");\n"
 "\n"
                 );
         }
@@ -13403,7 +13403,7 @@ static void generateDocstring(sipSpec *pt, overDef *overs, memberDef *md,
 
         if (sep == NULL)
         {
-            fprintf(fp, "    \"");
+            fprintf(fp, "\"");
             sep = "\\n\"\n    \"";
         }
         else
@@ -13436,7 +13436,7 @@ static void generateDocstring(sipSpec *pt, overDef *overs, memberDef *md,
     }
 
     if (sep != NULL)
-        fprintf(fp, "\";\n");
+        fprintf(fp, "\"");
 }
 
 
@@ -13492,7 +13492,7 @@ static void generateClassDocstring(sipSpec *pt, classDef *cd, FILE *fp)
 
         if (sep == NULL)
         {
-            fprintf(fp, "    \"\\1");
+            fprintf(fp, "\"\\1");
             sep = "\\n\"\n    \"";
         }
         else
@@ -13515,7 +13515,7 @@ static void generateClassDocstring(sipSpec *pt, classDef *cd, FILE *fp)
     }
 
     if (sep != NULL)
-        fprintf(fp, "\";\n");
+        fprintf(fp, "\"");
 }
 
 
@@ -13556,7 +13556,7 @@ static void generateExplicitDocstring(codeBlock *docstring, FILE *fp)
 
         if (sep == NULL)
         {
-            prcode(fp, "    \"");
+            prcode(fp, "\"");
             sep = "\\n\"\n    \"";
         }
         else
@@ -13564,7 +13564,7 @@ static void generateExplicitDocstring(codeBlock *docstring, FILE *fp)
             prcode(fp, "%s", sep);
         }
 
-        for (cp = cb->frag; *cp != NULL; ++cp)
+        for (cp = cb->frag; *cp != '\0'; ++cp)
         {
             if (*cp == '\n')
             {
@@ -13582,5 +13582,6 @@ static void generateExplicitDocstring(codeBlock *docstring, FILE *fp)
         }
     }
 
-    prcode(fp, "\";\n");
+    if (sep != NULL)
+        prcode(fp, "\"");
 }
