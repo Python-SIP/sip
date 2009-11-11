@@ -3040,6 +3040,7 @@ void searchTypedefs(sipSpec *pt, scopedNameDef *snd, argDef *ad)
             ad->atype = td->type.atype;
             ad->argflags |= td->type.argflags;
             ad->nrderefs += td->type.nrderefs;
+            ad->doctype = td->type.doctype;
             ad->u = td->type.u;
 
             if (ad->original_type == NULL)
