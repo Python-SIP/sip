@@ -231,8 +231,8 @@ static int generateSubClassConvertors(sipSpec *pt, moduleDef *mod, FILE *fp);
 static void generateNameCache(sipSpec *pt, FILE *fp);
 static const char *resultOwner(overDef *od);
 static void prCachedName(FILE *fp, nameDef *nd, const char *prefix);
-static void generateSignalTableEntry(classDef *cd, overDef *sig, int membernr,
-        FILE *fp);
+static void generateSignalTableEntry(sipSpec *pt, classDef *cd, overDef *sig,
+        memberDef *md, int membernr, FILE *fp);
 static void generateTypesTable(sipSpec *pt, moduleDef *mod, FILE *fp);
 static int py2OnlySlot(slotType st);
 static int py2_5LaterSlot(slotType st);
@@ -9040,7 +9040,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
                  * Default arguments are handled as multiple signals.  We make
                  * sure the largest is first and the smallest last.
                  */
-                generateSignalTableEntry(cd, od, membernr, fp);
+                generateSignalTableEntry(pt, cd, od, md, membernr, fp);
                 membernr = -1;
 
                 nr_args = od->cppsig->nrArgs;
@@ -9051,7 +9051,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
                         break;
 
                     od->cppsig->nrArgs = a;
-                    generateSignalTableEntry(cd, od, -1, fp);
+                    generateSignalTableEntry(pt, cd, od, md, -1, fp);
                 }
 
                 od->cppsig->nrArgs = nr_args;
@@ -9060,7 +9060,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 
         if (is_signals)
             prcode(fp,
-"    {0, 0}\n"
+"    {0, 0, 0}\n"
 "};\n"
                 );
     }
@@ -9580,8 +9580,8 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 /*
  * Generate an entry in the PyQt4 signal table.
  */
-static void generateSignalTableEntry(classDef *cd, overDef *sig, int membernr,
-        FILE *fp)
+static void generateSignalTableEntry(sipSpec *pt, classDef *cd, overDef *sig,
+        memberDef *md, int membernr, FILE *fp)
 {
     prcode(fp,
 "    {\"%s(", sig->cppname);
@@ -9589,6 +9589,19 @@ static void generateSignalTableEntry(classDef *cd, overDef *sig, int membernr,
     generateCalledArgs(cd->iff, sig->cppsig, Declaration, TRUE, fp);
 
     prcode(fp,")\", ");
+
+    if (docstrings)
+    {
+        fprintf(fp, "\"\\1");
+        prScopedPythonName(fp, cd->ecd, cd->pyname->text);
+        fprintf(fp, ".%s", md->pyname->text);
+        prPythonSignature(pt, fp, &sig->pysig, FALSE, FALSE);
+        fprintf(fp, "\", ");
+    }
+    else
+    {
+        prcode(fp, "0, ");
+    }
 
     if (membernr >= 0)
         prcode(fp, "&methods_%L[%d]", cd->iff, membernr);
@@ -13352,7 +13365,7 @@ static char getEncoding(argType atype)
  */
 static int overloadHasDocstring(sipSpec *pt, overDef *od, memberDef *md)
 {
-    if (isPrivate(od))
+    if (isPrivate(od) || isSignal(od))
         return FALSE;
 
     if (od->common != md)
@@ -13417,7 +13430,7 @@ static void generateDocstring(sipSpec *pt, overDef *overs, memberDef *md,
             fprintf(fp, ".");
 
         fprintf(fp, "%s", md->pyname->text);
-        need_sec = prPythonSignature(pt, fp, &od->pysig, FALSE);
+        need_sec = prPythonSignature(pt, fp, &od->pysig, FALSE, TRUE);
         ++currentLineNr;
 
         if (need_sec)
@@ -13430,7 +13443,7 @@ static void generateDocstring(sipSpec *pt, overDef *overs, memberDef *md,
                 fprintf(fp, ".");
 
             fprintf(fp, "%s", md->pyname->text);
-            prPythonSignature(pt, fp, &od->pysig, TRUE);
+            prPythonSignature(pt, fp, &od->pysig, TRUE, TRUE);
             ++currentLineNr;
         }
     }
@@ -13501,7 +13514,7 @@ static void generateClassDocstring(sipSpec *pt, classDef *cd, FILE *fp)
         }
 
         prScopedPythonName(fp, cd->ecd, cd->pyname->text);
-        need_sec = prPythonSignature(pt, fp, &ct->pysig, FALSE);
+        need_sec = prPythonSignature(pt, fp, &ct->pysig, FALSE, TRUE);
         ++currentLineNr;
 
         if (need_sec)
@@ -13509,7 +13522,7 @@ static void generateClassDocstring(sipSpec *pt, classDef *cd, FILE *fp)
             fprintf(fp, "%s", sep);
 
             prScopedPythonName(fp, cd->ecd, cd->pyname->text);
-            prPythonSignature(pt, fp, &ct->pysig, TRUE);
+            prPythonSignature(pt, fp, &ct->pysig, TRUE, TRUE);
             ++currentLineNr;
         }
     }

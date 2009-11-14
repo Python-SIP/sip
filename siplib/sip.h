@@ -1505,6 +1505,9 @@ typedef struct _pyqt4QtSignal {
     /* The C++ name and signature of the signal. */
     const char *signature;
 
+    /* The optional docstring. */
+    const char *docstring;
+
     /*
      * If the signal is an overload of regular methods then this points to the
      * code that implements those methods.

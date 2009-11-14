@@ -35,6 +35,9 @@ v4.9 26th September 2009
     architectures are built.
   - SIP is now also licensed under the GPL v2 and v3.
 
+v4.8.2 27th July 2009
+  - Added the /AllowNone/ class annotation.
+
 v4.8.1 16th June 2009
   - Added support for defining a private assignment operator to suppress the
     possible generation of an assignment helper.

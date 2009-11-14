@@ -1105,7 +1105,8 @@ void prcode(FILE *fp, const char *fmt, ...);
 void prOverloadName(FILE *fp, overDef *od);
 void prOverloadDecl(FILE *fp, ifaceFileDef *scope, overDef *od, int defval);
 void prScopedPythonName(FILE *fp, classDef *scope, const char *pyname);
-int prPythonSignature(sipSpec *pt, FILE *fp, signatureDef *sd, int sec);
+int prPythonSignature(sipSpec *pt, FILE *fp, signatureDef *sd, int sec,
+        int names);
 void searchTypedefs(sipSpec *pt, scopedNameDef *snd, argDef *ad);
 int isIntReturnSlot(memberDef *md);
 int isLongReturnSlot(memberDef *md);
