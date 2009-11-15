@@ -1,3 +1,5 @@
+.. _ref-command-line:
+
 The SIP Command Line
 ====================
 
