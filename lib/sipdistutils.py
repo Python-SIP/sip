@@ -8,13 +8,34 @@ import distutils.command.build_ext
 from distutils.dep_util import newer, newer_group
 import os
 import sys
+from hashlib import sha1
+
+build_ext_base = distutils.command.build_ext.build_ext
 
 def replace_suffix(path, new_suffix):
     return os.path.splitext(path)[0] + new_suffix
 
-class build_ext (distutils.command.build_ext.build_ext):
+class build_ext (build_ext_base):
 
     description = "Compiler SIP descriptions, then build C/C++ extensions (compile/link to build directory)"
+
+    user_options = build_ext_base.user_options[:]
+    user_options = [opt for opt in user_options if not opt[0].startswith("swig")]
+    user_options += [
+        ('sip-opts=', None,
+         "list of sip command line options"),
+    ]
+
+    def initialize_options (self):
+        build_ext_base.initialize_options(self)
+        self.sip_opts = None
+
+    def finalize_options (self):
+        build_ext_base.finalize_options(self)
+        if self.sip_opts is None:
+            self.sip_opts = []
+        else:
+            self.sip_opts = self.sip_opts.split(' ')
 
     def _get_sip_output_list(self, sbf):
         """
@@ -34,12 +55,46 @@ class build_ext (distutils.command.build_ext.build_ext):
     def _find_sip(self):
         import sipconfig
         cfg = sipconfig.Configuration()
+        if os.name == "nt":
+            if not os.path.splitext(os.path.basename(cfg.sip_bin))[1]:
+                return cfg.sip_bin + ".exe"
         return cfg.sip_bin
 
     def _sip_inc_dir(self):
         import sipconfig
         cfg = sipconfig.Configuration()
         return cfg.sip_inc_dir
+
+    def _sip_sipfiles_dir(self):
+        import sipconfig
+        cfg = sipconfig.Configuration()
+        return cfg.default_sip_dir
+
+    def _sip_calc_signature(self):
+        sip_bin = self._find_sip()
+        return sha1(open(sip_bin, "rb").read()).hexdigest()
+
+    def _sip_signature_file(self):
+        return os.path.join(self.build_temp, "sip.signature")
+
+    def build_extension (self, ext):
+        oldforce = self.force
+
+        if not self.force:
+            sip_sources = [source for source in ext.sources if source.endswith('.sip')]
+            if sip_sources:
+                sigfile = self._sip_signature_file()
+                if not os.path.isfile(sigfile):
+                    self.force = True
+                else:
+                    old_sig = open(sigfile).read()
+                    new_sig = self._sip_calc_signature()
+                    if old_sig != new_sig:
+                        self.force = True
+
+        build_ext_base.build_extension(self, ext)
+
+        self.force = oldforce
 
     def swig_sources (self, sources, extension=None):
         if not self.extensions:
@@ -78,13 +133,16 @@ class build_ext (distutils.command.build_ext.build_ext):
             sbf = os.path.join(self.build_temp, replace_suffix(sipbasename, ".sbf"))
             if newer_group([sip]+depends, sbf) or self.force:
                 self._sip_compile(sip_bin, sip, sbf)
+                open(self._sip_signature_file(), "w").write(self._sip_calc_signature())
             out = self._get_sip_output_list(sbf)
             generated_sources.extend(out)
 
         return generated_sources + other_sources
 
     def _sip_compile(self, sip_bin, source, sbf):
-        self.spawn([sip_bin,
-                    "-c", self.build_temp,
+        self.spawn([sip_bin] + self.sip_opts +
+                    ["-c", self.build_temp,
                     "-b", sbf,
+                    "-I", self._sip_sipfiles_dir(),
                     source])
+
