@@ -9092,7 +9092,7 @@ static int sipWrapper_clear(sipWrapper *self)
     vret = sipSimpleWrapper_clear(sw);
 
     /* Remove any slots connected via a proxy. */
-    if (sipQtSupport != NULL && sipIsPyOwned(sw) && sipPossibleProxy(sw))
+    if (sipQtSupport != NULL && sipPossibleProxy(sw))
     {
         void *tx = sipGetAddress(sw);
 
@@ -9160,7 +9160,7 @@ static int sipWrapper_traverse(sipWrapper *self, visitproc visit, void *arg)
         return vret;
 
     /* This should be handwritten code in PyQt. */
-    if (sipQtSupport != NULL && sipIsPyOwned(sw))
+    if (sipQtSupport != NULL)
     {
         void *tx = sipGetAddress(sw);
 
