@@ -68,7 +68,7 @@ static ifaceFileDef *getIfaceFile(argDef *ad);
 static mappedTypeDef *instantiateMappedTypeTemplate(sipSpec *pt, moduleDef *mod, mappedTypeTmplDef *mtt, argDef *type);
 static classDef *getProxy(moduleDef *mod, classDef *cd);
 static int generatingCodeForModule(sipSpec *pt, moduleDef *mod);
-static void checkAssignmentHelper(classDef *cd);
+static void checkAssignmentHelper(sipSpec *pt, classDef *cd);
 static void addComplementarySlots(sipSpec *pt, classDef *cd);
 static void addComplementarySlot(sipSpec *pt, classDef *cd, memberDef *md,
         slotType cslot, const char *cslot_name);
@@ -269,7 +269,7 @@ void transform(sipSpec *pt)
 
     /* Mark classes that can have an assignment helper. */
     for (cd = pt->classes; cd != NULL; cd = cd->next)
-        checkAssignmentHelper(cd);
+        checkAssignmentHelper(pt, cd);
 
     setStringPoolOffsets(pt);
 }
@@ -474,7 +474,7 @@ static void addComplementarySlot(sipSpec *pt, classDef *cd, memberDef *md,
 /*
  * See if a class supports an assignment helper.
  */
-static void checkAssignmentHelper(classDef *cd)
+static void checkAssignmentHelper(sipSpec *pt, classDef *cd)
 {
     int pub_def_ctor, pub_copy_ctor;
     ctorDef *ct;
@@ -505,9 +505,17 @@ static void checkAssignmentHelper(classDef *cd)
         else if (ct->cppsig->nrArgs == 1)
         {
             argDef *ad = &ct->cppsig->args[0];
+            classDef *arg_cd;
 
-            if (ad->atype == class_type && ad->u.cd == cd && isReference(ad) &&
-                isConstArg(ad) && ad->nrderefs == 0 && ad->defval == NULL)
+            if (ad->atype == class_type)
+                arg_cd = ad->u.cd;
+            else if (ad->atype == mapped_type)
+                arg_cd = findAltClassImplementation(pt, ad->u.mtd);
+            else
+                arg_cd = NULL;
+
+            if (arg_cd == cd && isReference(ad) && isConstArg(ad) &&
+                ad->nrderefs == 0 && ad->defval == NULL)
                 pub_copy_ctor = TRUE;
         }
     }
