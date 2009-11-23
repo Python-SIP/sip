@@ -13,7 +13,10 @@ v4.10 ???
     functions and methods.
   - Added support for configuring and building outside of the source tree.
 
-v4.9.2 ??? November 2009
+v4.9.3 23rd November 2009
+  - A bug fix release.
+
+v4.9.2 20th November 2009
   - A bug fix release.
 
 v4.9.1 23rd October 2009
