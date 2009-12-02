@@ -175,7 +175,7 @@ can be used by applications.
 
         :param address:
             the address, either another :class:`sip.voidptr`, ``None``, a
-            Python CObject, or an integer.
+            Python Capsule, a Python CObject, or an integer.
         :param size:
             the optional associated size of the block of memory and is negative
             if the size is not known.
@@ -198,12 +198,23 @@ can be used by applications.
         :return:
             the hexadecimal string address.
 
-    .. method:: ascobject() -> cObject
+    .. method:: ascapsule() -> capsule
 
-        This returns the address as a Python CObject.
+        .. versionadded:: 4.10
+
+        This returns the address as an unnamed Python Capsule.  This requires
+        Python v3.1 or later.
 
         :return:
-            the CObject address.
+            the Capsule.
+
+    .. method:: ascobject() -> cObject
+
+        This returns the address as a Python CObject.  This is deprecated with
+        Python v3.1 or later.
+
+        :return:
+            the CObject.
 
     .. method:: asstring([size=-1]) -> string/bytes
 

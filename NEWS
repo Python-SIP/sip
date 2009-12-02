@@ -1,4 +1,5 @@
 v4.10 ???
+  - Added the sip.voidptr.ascapsule() method.
   - Added the -P command line option to build modules with "protected"
     redefined to "public" if supported by the platform.  This can result in
     significantly smaller modules.

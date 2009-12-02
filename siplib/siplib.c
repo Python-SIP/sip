@@ -617,7 +617,13 @@ PyMODINIT_FUNC SIP_MODULE_ENTRY(void)
     }
 
     /* Publish the SIP API. */
-    if ((obj = PyCObject_FromVoidPtr((void *)&sip_api, NULL)) == NULL)
+#if PY_VERSION_HEX >= 0x03010000
+    obj = PyCapsule_New((void *)&sip_api, "sip._C_API", NULL);
+#else
+    obj = PyCObject_FromVoidPtr((void *)&sip_api, NULL);
+#endif
+
+    if (obj == NULL)
     {
         SIP_MODULE_DISCARD(mod);
         SIP_FATAL("sip: Failed to create _C_API object");
@@ -2704,6 +2710,17 @@ static int sip_api_parse_pair(PyObject **parseErrp, PyObject *sipArg0,
 }
 
 
+#if PY_VERSION_HEX >= 0x03010000
+/*
+ * The dtor for an unnamed capsule containing memory allocated on the heap.
+ */
+static void capsule_dtor(PyObject *capsule)
+{
+    sip_api_free(PyCapsule_GetPointer(capsule, NULL));
+}
+#endif
+
+
 /*
  * First pass of the argument parse, converting those that can be done so
  * without any side effects.  Return TRUE if the arguments matched.
@@ -3787,7 +3804,13 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
 
                 *failure_copy = failure;
 
-                if ((failure_obj = PyCObject_FromVoidPtr(failure_copy, sip_api_free)) == NULL)
+#if PY_VERSION_HEX >= 0x03010000
+                failure_obj = PyCapsule_New(failure_copy, NULL, capsule_dtor);
+#else
+                failure_obj = PyCObject_FromVoidPtr(failure_copy, sip_api_free);
+#endif
+
+                if (failure_obj == NULL)
                 {
                     sip_api_free(failure_copy);
                     failure.reason = Raised;
@@ -5685,7 +5708,11 @@ static PyObject *detail_FromFailure(PyObject *failure_obj)
     sipParseFailure *failure;
     PyObject *detail;
 
+#if PY_VERSION_HEX >= 0x03010000
+    failure = (sipParseFailure *)PyCapsule_GetPointer(failure_obj, NULL);
+#else
     failure = (sipParseFailure *)PyCObject_AsVoidPtr(failure_obj);
+#endif
 
     switch (failure->reason)
     {
@@ -7705,6 +7732,10 @@ static int vp_convertor(PyObject *arg, struct vp_values *vp)
 
     if (arg == Py_None)
         ptr = NULL;
+#if PY_VERSION_HEX >= 0x03010000
+    else if (PyCapsule_CheckExact(arg))
+        ptr = PyCapsule_GetPointer(arg, NULL);
+#endif
     else if (PyCObject_Check(arg))
         ptr = PyCObject_AsVoidPtr(arg);
     else if (PyObject_TypeCheck(arg, &sipVoidPtr_Type))
@@ -7874,6 +7905,17 @@ static PyObject *sipVoidPtr_hex(sipVoidPtrObject *v)
 #endif
 
 
+#if PY_VERSION_HEX >= 0x03010000
+/*
+ * Implement ascapsule() for the type.
+ */
+static PyObject *sipVoidPtr_ascapsule(sipVoidPtrObject *v, PyObject *arg)
+{
+    return PyCapsule_New(v->voidptr, NULL, NULL);
+}
+#endif
+
+
 /*
  * Implement ascobject() for the type.
  */
@@ -7987,6 +8029,9 @@ static PyObject *sipVoidPtr_setwriteable(sipVoidPtrObject *v, PyObject *arg)
 
 /* The methods data structure. */
 static PyMethodDef sipVoidPtr_Methods[] = {
+#if PY_VERSION_HEX >= 0x03010000
+    {"ascapsule", (PyCFunction)sipVoidPtr_ascapsule, METH_NOARGS, NULL},
+#endif
     {"ascobject", (PyCFunction)sipVoidPtr_ascobject, METH_NOARGS, NULL},
     {"asstring", (PyCFunction)sipVoidPtr_asstring, METH_KEYWORDS, NULL},
     {"getsize", (PyCFunction)sipVoidPtr_getsize, METH_NOARGS, NULL},
@@ -8127,6 +8172,11 @@ static void *sip_api_convert_to_void_ptr(PyObject *obj)
 
     if (PyObject_TypeCheck(obj, &sipVoidPtr_Type))
         return ((sipVoidPtrObject *)obj)->voidptr;
+
+#if PY_VERSION_HEX >= 0x03010000
+    if (PyCapsule_CheckExact(obj))
+        return PyCapsule_GetPointer(obj, NULL);
+#endif
 
     if (PyCObject_Check(obj))
         return PyCObject_AsVoidPtr(obj);
