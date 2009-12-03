@@ -312,6 +312,8 @@ typedef struct _sipAttrGetter {
  * The structures to support a Python type to hold a named enum.
  *****************************************************************************/
 
+static PyObject *sipEnumType_alloc(PyTypeObject *self, SIP_SSIZE_T nitems);
+
 /*
  * The type data structure.  We inherit everything from the standard Python
  * metatype and the size of the type object created is increased to accomodate
@@ -338,6 +340,25 @@ static PyTypeObject sipEnumType_Type = {
     0,                      /* tp_setattro */
     0,                      /* tp_as_buffer */
     Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,   /* tp_flags */
+    0,                      /* tp_doc */
+    0,                      /* tp_traverse */
+    0,                      /* tp_clear */
+    0,                      /* tp_richcompare */
+    0,                      /* tp_weaklistoffset */
+    0,                      /* tp_iter */
+    0,                      /* tp_iternext */
+    0,                      /* tp_methods */
+    0,                      /* tp_members */
+    0,                      /* tp_getset */
+    0,                      /* tp_base */
+    0,                      /* tp_dict */
+    0,                      /* tp_descr_get */
+    0,                      /* tp_descr_set */
+    0,                      /* tp_dictoffset */
+    0,                      /* tp_init */
+    sipEnumType_alloc,      /* tp_alloc */
+    0,                      /* tp_new */
+    0,                      /* tp_free */
 };
 
 
@@ -369,8 +390,7 @@ static PyInterpreterState *sipInterpreter = NULL;   /* The interpreter. */
 
 
 static void addClassSlots(sipWrapperType *wt, sipClassTypeDef *ctd);
-static void addTypeSlots(PyTypeObject *to, PyNumberMethods *nb,
-        PySequenceMethods *sq, PyMappingMethods *mp, sipPySlotDef *slots);
+static void addTypeSlots(PyHeapTypeObject *heap_to, sipPySlotDef *slots);
 static void *findSlot(PyObject *self, sipPySlotType st);
 static void *findSlotInType(sipPySlotDef *psd, sipPySlotType st);
 static int objobjargprocSlot(PyObject *self, PyObject *arg1, PyObject *arg2,
@@ -5052,24 +5072,15 @@ static int createEnumType(sipExportedModuleDef *client, sipEnumTypeDef *etd,
     if (args == NULL)
         goto relname;
 
+    /* Pass the type via the back door. */
+    currentType = &etd->etd_base;
+
     py_type = (PyTypeObject *)PyObject_Call((PyObject *)&sipEnumType_Type, args, NULL);
 
     Py_DECREF(args);
 
     if (py_type == NULL)
         goto relname;
-
-    /*
-     * Set the links between the Python type object and the generated type
-     * structure.
-     */
-    ((sipEnumTypeObject *)py_type)->type = &etd->etd_base;
-    etd->etd_base.u.td_py_type = py_type;
-
-    /* Initialise any slots. */
-    if (etd->etd_pyslots != NULL)
-        addTypeSlots(py_type, py_type->tp_as_number, py_type->tp_as_sequence,
-                py_type->tp_as_mapping, etd->etd_pyslots);
 
     /* Add the type to the "parent" dictionary. */
     if (PyDict_SetItem(dict, name, (PyObject *)py_type) < 0)
@@ -9347,19 +9358,25 @@ static void addClassSlots(sipWrapperType *wt, sipClassTypeDef *ctd)
 
     /* Add the slots for this type. */
     if (ctd->ctd_pyslots != NULL)
-        addTypeSlots((PyTypeObject *)wt, &wt->super.as_number,
-                &wt->super.as_sequence, &wt->super.as_mapping,
-                ctd->ctd_pyslots);
+        addTypeSlots(&wt->super, ctd->ctd_pyslots);
 }
 
 
 /*
  * Add the slot handler for each slot present in the type.
  */
-static void addTypeSlots(PyTypeObject *to, PyNumberMethods *nb,
-        PySequenceMethods *sq, PyMappingMethods *mp, sipPySlotDef *slots)
+static void addTypeSlots(PyHeapTypeObject *heap_to, sipPySlotDef *slots)
 {
+    PyTypeObject *to;
+    PyNumberMethods *nb;
+    PySequenceMethods *sq;
+    PyMappingMethods *mp;
     void *f;
+
+    to = (PyTypeObject *)heap_to;
+    nb = &heap_to->as_number;
+    sq = &heap_to->as_sequence;
+    mp = &heap_to->as_mapping;
 
     while ((f = slots->psd_func) != NULL)
         switch (slots++->psd_type)
@@ -10468,3 +10485,37 @@ static void raiseNoWChar()
 }
 
 #endif
+
+
+/*
+ * The enum type alloc slot.
+ */
+static PyObject *sipEnumType_alloc(PyTypeObject *self, SIP_SSIZE_T nitems)
+{
+    sipEnumTypeObject *py_type;
+    sipPySlotDef *psd;
+
+    assert(currentType != NULL);
+
+    /* Call the standard super-metatype alloc. */
+    if ((py_type = (sipEnumTypeObject *)PyType_Type.tp_alloc(self, nitems)) == NULL)
+        return NULL;
+
+    /*
+     * Set the links between the Python type object and the generated type
+     * structure.  Strictly speaking this doesn't need to be done here.
+     */
+    py_type->type = currentType;
+    currentType->u.td_py_type = (PyTypeObject *)py_type;
+
+    /*
+     * Initialise any slots.  This must be done here, after the type is
+     * allocated but before PyType_Ready() is called.
+     */
+    if ((psd = ((sipEnumTypeDef *)currentType)->etd_pyslots) != NULL)
+        addTypeSlots(&py_type->super, psd);
+
+    currentType = NULL;
+
+    return (PyObject *)py_type;
+}
