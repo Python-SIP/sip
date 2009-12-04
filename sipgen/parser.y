@@ -5463,13 +5463,20 @@ static void handleEOF()
  */
 static void handleEOM()
 {
+    moduleDef *from;
+
     /* Check it has been named. */
     if (currentModule->name == NULL)
         fatal("No %%Module has been specified for module defined in %s\n",
                 previousFile);
 
+    from = currentContext.prevmod;
+
+    if (from != NULL && from->encoding == no_type)
+        from->encoding = currentModule->encoding;
+
     /* The previous module is now current. */
-    currentModule = currentContext.prevmod;
+    currentModule = from;
 }
 
 
@@ -5844,13 +5851,11 @@ static void newImport(char *filename)
         newModule(NULL, filename);
         mod = currentModule;
     }
-
-    /*
-     * Import any defaults from the parsed module.  Note that we need to do
-     * this even if the module had already been imported.
-     */
-    if (from != NULL && mod->encoding == no_type)
-        mod->encoding = from->encoding;
+    else if (from->encoding == no_type)
+    {
+        /* Import any defaults from the already parsed module. */
+        from->encoding = mod->encoding;
+    }
 
     /* Add the new import unless it has already been imported. */
     for (mld = from->imports; mld != NULL; mld = mld->next)
