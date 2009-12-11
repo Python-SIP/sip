@@ -5807,7 +5807,7 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 
         if (generating_c)
             prcode(fp,
-"    return sipMalloc(sizeof * (%S) * sipNrElem);\n"
+"    return sipMalloc(sizeof (%S) * sipNrElem);\n"
                 , classFQCName(cd));
         else
             prcode(fp,
