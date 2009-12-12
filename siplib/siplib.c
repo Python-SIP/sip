@@ -6770,7 +6770,14 @@ void *sip_api_get_cpp_ptr(sipSimpleWrapper *sw, const sipTypeDef *td)
         return NULL;
 
     if (td != NULL)
+    {
         ptr = cast_cpp_ptr(ptr, Py_TYPE(sw), td);
+
+        if (ptr == NULL)
+            PyErr_Format(PyExc_TypeError, "could not convert '%s' to '%s'",
+                    Py_TYPE(sw)->tp_name,
+                    sipPyNameOfContainer(&((const sipClassTypeDef *)td)->ctd_container, td));
+    }
 
     return ptr;
 }
@@ -8327,17 +8334,40 @@ static int sipWrapperType_init(sipWrapperType *self, PyObject *args,
      */
     if (self->type == NULL)
     {
-        PyTypeObject *sc = ((PyTypeObject *)self)->tp_base;
+        PyObject *bases = ((PyTypeObject *)self)->tp_bases;
 
-        /*
-         * We allow the class to use this as a meta-type without being
-         * derived from a class that uses it.  This allows mixin classes that
-         * need their own meta-type to work so long as their meta-type is
-         * derived from this meta-type.  This condition is indicated by the
-         * pointer to the generated type structure being NULL.
-         */
-        if (sc != NULL && PyObject_TypeCheck((PyObject *)sc, (PyTypeObject *)&sipWrapperType_Type))
-            self->type = ((sipWrapperType *)sc)->type;
+        if (bases != NULL && PyTuple_Check(bases) > 0)
+        {
+            SIP_SSIZE_T i, nr_wrapped = 0;
+
+            for (i = 0; i < PyTuple_GET_SIZE(bases); ++i)
+            {
+                PyObject *base = PyTuple_GET_ITEM(bases, i);
+
+                if (PyObject_TypeCheck(base, (PyTypeObject *)&sipWrapperType_Type))
+                {
+                    ++nr_wrapped;
+
+                    /*
+                     * We allow the class to use this as a meta-type without
+                     * being derived from a class that uses it.  This allows
+                     * mixin classes that need their own meta-type to work so
+                     * long as their meta-type is derived from this meta-type.
+                     * This condition is indicated by the pointer to the
+                     * generated type structure being NULL.
+                     */
+                    if (i == 0)
+                        self->type = ((sipWrapperType *)base)->type;
+                }
+            }
+
+            if (nr_wrapped > 1)
+            {
+                PyErr_SetString(PyExc_TypeError,
+                        "cannot inherit from more than one wrapped type");
+                return -1;
+            }
+        }
     }
     else
     {
