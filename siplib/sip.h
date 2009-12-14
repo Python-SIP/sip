@@ -57,6 +57,7 @@ extern "C" {
  * History:
  *
  * 7.0  Added sip_api_parse_kwd_args().
+ *      Added sipErrorState, sip_api_add_exception().
  *      The type initialisation function is now passed a dictionary of keyword
  *      arguments.
  *      All argument parsers now update a set of error messages rather than an
@@ -461,6 +462,16 @@ typedef struct _sipSubClassConvertorDef {
     /* The base type. */
     struct _sipTypeDef *scc_basetype;
 } sipSubClassConvertorDef;
+
+
+/*
+ * The different error states of handwritten code.
+ */
+typedef enum {
+    sipErrorNone,       /* There is no error. */
+    sipErrorFail,       /* The error is a failure. */
+    sipErrorContinue    /* It may not apply if a later operation succeeds. */
+} sipErrorState;
 
 
 /*
@@ -1331,6 +1342,8 @@ typedef struct _sipAPIDef {
     int (*api_parse_kwd_args)(PyObject **parseErrp, PyObject *sipArgs,
             PyObject *sipKwdArgs, const char **kwdlist, PyObject **unused,
             const char *fmt, ...);
+    void (*api_add_exception)(sipErrorState es, PyObject **parseErrp,
+            PyObject **unused);
 } sipAPIDef;
 
 

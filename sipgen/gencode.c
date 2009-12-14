@@ -120,8 +120,8 @@ static void generateProtectedEnums(sipSpec *, classDef *, FILE *);
 static void generateProtectedDeclarations(classDef *, FILE *);
 static void generateProtectedDefinitions(classDef *, FILE *);
 static void generateProtectedCallArgs(overDef *od, FILE *fp);
-static void generateConstructorCall(classDef *, ctorDef *, int, moduleDef *,
-        FILE *);
+static void generateConstructorCall(classDef *, ctorDef *, int, int,
+        moduleDef *, FILE *);
 static void generateHandleResult(overDef *, int, int, char *, FILE *);
 static void generateOrdinaryFunction(sipSpec *pt, moduleDef *mod,
         classDef *c_scope, mappedTypeDef *mt_scope, memberDef *md, FILE *fp);
@@ -207,6 +207,7 @@ static int isIntArgSlot(memberDef *md);
 static int isInplaceNumberSlot(memberDef *md);
 static int isInplaceSequenceSlot(memberDef *md);
 static int needErrorFlag(codeBlock *cb);
+static int needOldErrorFlag(codeBlock *cb);
 static int needNewInstance(argDef *ad);
 static int needDealloc(classDef *cd);
 static const char *getBuildResultFormat(argDef *ad);
@@ -564,6 +565,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipConvertFromSequenceIndex sipAPI_%s->api_convert_from_sequence_index\n"
 "#define sipConvertFromVoidPtr       sipAPI_%s->api_convert_from_void_ptr\n"
 "#define sipConvertToVoidPtr         sipAPI_%s->api_convert_to_void_ptr\n"
+"#define sipAddException             sipAPI_%s->api_add_exception\n"
 "#define sipNoFunction               sipAPI_%s->api_no_function\n"
 "#define sipNoMethod                 sipAPI_%s->api_no_method\n"
 "#define sipAbstractMethod           sipAPI_%s->api_abstract_method\n"
@@ -659,6 +661,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipConvertFromMappedType    sipConvertFromType\n"
 "#define sipConvertFromNamedEnum(v, pt)  sipConvertFromEnum((v), ((sipEnumTypeObject *)(pt))->type)\n"
 "#define sipConvertFromNewInstance(p, wt, t) sipConvertFromNewType((p), (wt)->type, (t))\n"
+        ,mname
         ,mname
         ,mname
         ,mname
@@ -7174,8 +7177,13 @@ static void generateVirtualHandler(virtHandlerDef *vhd, FILE *fp)
     if (vhd->virtcode != NULL)
     {
         int error_flag = needErrorFlag(vhd->virtcode);
+        int old_error_flag = needOldErrorFlag(vhd->virtcode);
 
         if (error_flag)
+            prcode(fp,
+"    sipErrorState sipError = sipErrorNone;\n"
+                );
+        else if (old_error_flag)
             prcode(fp,
 "    int sipIsErr = 0;\n"
                 );
@@ -7186,12 +7194,12 @@ static void generateVirtualHandler(virtHandlerDef *vhd, FILE *fp)
 
         generateCppCodeBlock(vhd->virtcode,fp);
 
-        if (error_flag)
+        if (error_flag || old_error_flag)
             prcode(fp,
 "\n"
-"    if (sipIsErr)\n"
+"    if (%s)\n"
 "        PyErr_Print();\n"
-                );
+                , (error_flag ? "sipError != sipErrorNone" : "sipIsErr"));
 
         prcode(fp,
 "\n"
@@ -9976,7 +9984,7 @@ static void generateTypeInit(classDef *cd, moduleDef *mod, FILE *fp)
      */
     for (ct = cd->ctors; ct != NULL; ct = ct->next)
     {
-        int needSecCall, error_flag = FALSE;
+        int needSecCall, error_flag, old_error_flag;
         apiVersionRangeDef *avr;
 
         if (isPrivateCtor(ct))
@@ -9986,44 +9994,50 @@ static void generateTypeInit(classDef *cd, moduleDef *mod, FILE *fp)
 
         prcode(fp,
 "\n"
-"    if (!sipCpp");
+            );
 
         if (avr != NULL)
-            prcode(fp, " && sipIsAPIEnabled(%N, %d, %d)", avr->api_name, avr->from, avr->to);
+            prcode(fp,
+"    if (sipIsAPIEnabled(%N, %d, %d))\n"
+                , avr->api_name, avr->from, avr->to);
 
-        prcode(fp, ")\n"
+        prcode(fp,
 "    {\n"
             );
 
-        if (ct->methodcode != NULL && needErrorFlag(ct->methodcode))
+        if (ct->methodcode != NULL)
         {
-            prcode(fp,
-"        int sipIsErr = 0;\n"
-                );
-
-            error_flag = TRUE;
+            error_flag = needErrorFlag(ct->methodcode);
+            old_error_flag = needOldErrorFlag(ct->methodcode);
+        }
+        else
+        {
+            error_flag = old_error_flag = FALSE;
         }
 
         needSecCall = generateArgParser(&ct->pysig, cd, NULL, ct, NULL, FALSE,
                 fp);
-        generateConstructorCall(cd, ct, error_flag, mod, fp);
+        generateConstructorCall(cd, ct, error_flag, old_error_flag, mod, fp);
 
         if (needSecCall)
         {
-                prcode(fp,
+            prcode(fp,
 "    }\n"
 "\n"
-"    if (!sipCpp)\n"
+                );
+
+            if (avr != NULL)
+                prcode(fp,
+"    if (sipIsAPIEnabled(%N, %d, %d))\n"
+                    , avr->api_name, avr->from, avr->to);
+
+            prcode(fp,
 "    {\n"
                 );
 
-            if (error_flag)
-                prcode(fp,
-"        int sipIsErr = 0;\n"
-                    );
-
             generateArgParser(&ct->pysig, cd, NULL, ct, NULL, TRUE, fp);
-            generateConstructorCall(cd, ct, error_flag, mod, fp);
+            generateConstructorCall(cd, ct, error_flag, old_error_flag, mod,
+                    fp);
         }
 
         prcode(fp,
@@ -10031,16 +10045,9 @@ static void generateTypeInit(classDef *cd, moduleDef *mod, FILE *fp)
             );
     }
 
-    if (hasShadow(cd))
-        prcode(fp,
-"\n"
-"    if (sipCpp)\n"
-"        sipCpp->sipPySelf = sipSelf;\n"
-            );
-
     prcode(fp,
 "\n"
-"    return sipCpp;\n"
+"    return NULL;\n"
 "}\n"
         );
 }
@@ -10201,11 +10208,22 @@ static void generateThrowSpecifier(throwArgs *ta,FILE *fp)
  * Generate a single constructor call.
  */
 static void generateConstructorCall(classDef *cd, ctorDef *ct, int error_flag,
-        moduleDef *mod, FILE *fp)
+        int old_error_flag, moduleDef *mod, FILE *fp)
 {
     prcode(fp,
 "        {\n"
         );
+
+    if (error_flag)
+        prcode(fp,
+"            sipErrorState sipError = sipErrorNone;\n"
+"\n"
+            );
+    else if (old_error_flag)
+        prcode(fp,
+"            int sipIsErr = 0;\n"
+"\n"
+            );
 
     if (isDeprecatedCtor(ct))
         /* Note that any temporaries will leak if an exception is raised. */
@@ -10285,19 +10303,82 @@ static void generateConstructorCall(classDef *cd, ctorDef *ct, int error_flag,
 
     deleteTemps(&ct->pysig, fp);
 
-    if (error_flag)
-        prcode(fp,
+    prcode(fp,
 "\n"
-"            if (sipIsErr)\n"
-"                return 0;\n"
+        );
+
+    if (error_flag)
+    {
+        prcode(fp,
+"            if (sipError == sipErrorNone)\n"
             );
 
-    /* Call any post-hook. */
-    if (ct->posthook != NULL)
+        if (hasShadow(cd) || ct->posthook != NULL)
+            prcode(fp,
+"            {\n"
+                );
+
+        if (hasShadow(cd))
+            prcode(fp,
+"                sipCpp->sipPySelf = sipSelf;\n"
+"\n"
+                );
+
+        /* Call any post-hook. */
+        if (ct->posthook != NULL)
+            prcode(fp,
+"            sipCallHook(\"%s\");\n"
+"\n"
+                , ct->posthook);
+
+        prcode(fp,
+"                return sipCpp;\n"
+            );
+
+        if (hasShadow(cd) || ct->posthook != NULL)
+            prcode(fp,
+"            }\n"
+                );
+
         prcode(fp,
 "\n"
+"            sipAddException(sipError, sipParseErr, sipUnused);\n"
+"\n"
+"            if (sipError == sipErrorFail)\n"
+"                return NULL;\n"
+            );
+    }
+    else
+    {
+        if (old_error_flag)
+        {
+            prcode(fp,
+"            if (sipIsErr)\n"
+"            {\n"
+"                sipAddException(sipErrorFail, sipParseErr, sipUnused);\n"
+"                return NULL;\n"
+"            }\n"
+"\n"
+                );
+        }
+
+        if (hasShadow(cd))
+            prcode(fp,
+"            sipCpp->sipPySelf = sipSelf;\n"
+"\n"
+                );
+
+        /* Call any post-hook. */
+        if (ct->posthook != NULL)
+            prcode(fp,
 "            sipCallHook(\"%s\");\n"
-            ,ct->posthook);
+"\n"
+                , ct->posthook);
+
+        prcode(fp,
+"            return sipCpp;\n"
+            );
+    }
 
     prcode(fp,
 "        }\n"
@@ -11145,8 +11226,9 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
         ifaceFileDef *o_scope, overDef *od, int deref, moduleDef *mod,
         FILE *fp)
 {
-    int needsNew, error_flag = FALSE, newline, is_result, result_size, a,
-            deltemps;
+    int needsNew, error_flag, old_error_flag, newline, is_result, result_size,
+            a, deltemps;
+    const char *error_value;
     argDef *res = &od->pysig.result, orig_res;
     ifaceFileDef *scope;
     nameDef *pyname;
@@ -11277,17 +11359,28 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
         }
     }
 
+    error_flag = old_error_flag = FALSE;
+
     if (od->methodcode != NULL)
     {
         /* See if the handwritten code seems to be using the error flag. */
         if (needErrorFlag(od->methodcode))
         {
             prcode(fp,
-"            int sipIsErr = 0;\n"
+"            sipErrorState sipError = sipErrorNone;\n"
                 );
 
             newline = TRUE;
             error_flag = TRUE;
+        }
+        else if (needOldErrorFlag(od->methodcode))
+        {
+            prcode(fp,
+"            int sipIsErr = 0;\n"
+                );
+
+            newline = TRUE;
+            old_error_flag = TRUE;
         }
     }
 
@@ -11609,13 +11702,27 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
 "\n"
         );
 
-    /* Handle sipIsErr if it was used. */
+    /* Handle the error flag if it was used. */
+    error_value = ((isVoidReturnSlot(od->common) || isIntReturnSlot(od->common) || isLongReturnSlot(od->common)) ? "-1" : "0");
+
     if (error_flag)
+    {
+        prcode(fp,
+"            if (sipError == sipErrorFail)\n"
+"                return %s;\n"
+"\n"
+"            if (sipError == sipErrorNone)\n"
+"            {\n"
+            , error_value);
+    }
+    else if (old_error_flag)
+    {
         prcode(fp,
 "            if (sipIsErr)\n"
 "                return %s;\n"
 "\n"
-            ,((isVoidReturnSlot(od->common) || isIntReturnSlot(od->common) || isLongReturnSlot(od->common)) ? "-1" : "0"));
+            , error_value);
+    }
 
     /* Call any post-hook. */
     if (od->posthook != NULL)
@@ -11653,6 +11760,13 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
                 );
         }
     }
+
+    if (error_flag)
+        prcode(fp,
+"            }\n"
+"\n"
+"            sipAddException(sipError, &sipParseErr, NULL);\n"
+            );
 
     prcode(fp,
 "        }\n"
@@ -13154,6 +13268,15 @@ static void prTypeName(FILE *fp, argDef *ad)
  * Return TRUE if handwritten code uses the error flag.
  */
 static int needErrorFlag(codeBlock *cb)
+{
+    return usedInCode(cb, "sipError");
+}
+
+
+/*
+ * Return TRUE if handwritten code uses the deprecated error flag.
+ */
+static int needOldErrorFlag(codeBlock *cb)
 {
     return usedInCode(cb, "sipIsErr");
 }

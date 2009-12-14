@@ -91,8 +91,8 @@ int sipRes
     there was an error.
 
 PyObject \*sipSelf
-    This is the Python object that wraps the the structure or class instance,
-    i.e. ``self``.
+    This is the Python object that wraps the structure or class instance, i.e.
+    ``self``.
 
 
 .. directive:: %BIGetCharBufferCode
@@ -125,8 +125,8 @@ void \*\*sipPtrPtr
     This is the number of the segment of the character buffer.
 
 PyObject \*sipSelf
-    This is the Python object that wraps the the structure or class instance,
-    i.e. ``self``.
+    This is the Python object that wraps the structure or class instance, i.e.
+    ``self``.
 
 
 .. directive:: %BIGetReadBufferCode
@@ -159,8 +159,8 @@ void \*\*sipPtrPtr
     This is the number of the segment of the read buffer.
 
 PyObject \*sipSelf
-    This is the Python object that wraps the the structure or class instance,
-    i.e. ``self``.
+    This is the Python object that wraps the structure or class instance, i.e.
+    ``self``.
 
 
 .. directive:: %BIGetSegCountCode
@@ -191,8 +191,8 @@ The following variables are made available to the handwritten code:
     up the buffer.
 
 PyObject \*sipSelf
-    This is the Python object that wraps the the structure or class instance,
-    i.e. ``self``.
+    This is the Python object that wraps the structure or class instance, i.e.
+    ``self``.
 
 
 .. directive:: %BIGetWriteBufferCode
@@ -225,8 +225,8 @@ void \*\*sipPtrPtr
     This is the number of the segment of the write buffer.
 
 PyObject \*sipSelf
-    This is the Python object that wraps the the structure or class instance,
-    i.e. ``self``.
+    This is the Python object that wraps the structure or class instance, i.e.
+    ``self``.
 
 
 .. directive:: %BIReleaseBufferCode
@@ -251,8 +251,8 @@ Py_buffer \*sipBuffer
     pointer to the structure or class.
 
 PyObject \*sipSelf
-    This is the Python object that wraps the the structure or class instance,
-    i.e. ``self``.
+    This is the Python object that wraps the structure or class instance, i.e.
+    ``self``.
 
 
 .. directive:: %CModule
@@ -1482,9 +1482,27 @@ PyObject \*a0Wrapper
     Standard binary operator methods follow the same convention as global
     functions and instead define two arguments called ``a0`` and ``a1``.
 
+sipErrorState sipError
+    The handwritten code should set this to either ``sipErrorContinue`` or
+    ``sipErrorFail``, and raise an appropriate Python exception, if an error
+    is detected.  Its initial value will be ``sipErrorNone``.
+
+    When ``sipErrorContinue`` is used, SIP will remember the exception as the
+    reason why the particular overloaded callable could not be invoked.  It
+    will then continue to try the next overloaded callable.  It is typically
+    used by code that needs to do additional type checking of the callable's
+    arguments.
+
+    When ``sipErrorFail1`` is used, SIP will report the exception immediately
+    and will not attempt to invoke other overloaded callables.
+
+    ``sipError`` is not provided for destructors.
+
 int sipIsErr
     The handwritten code should set this to a non-zero value, and raise an
-    appropriate Python exception, if an error is detected.
+    appropriate Python exception, if an error is detected.  This is the
+    equivalent of setting ``sipError`` to ``sipErrorFail``.  Its initial value
+    will be ``0``.
 
     ``sipIsErr`` is not provided for destructors.
 
@@ -1503,8 +1521,8 @@ int sipIsErr
 
 PyObject \*sipSelf
     If the directive is used in the context of a class constructor, destructor
-    or method then this is the Python object that wraps the the structure or
-    class instance, i.e. ``self``.
+    or method then this is the Python object that wraps the structure or class
+    instance, i.e. ``self``.
 
 bool sipSelfWasArg
     This is only made available for non-abstract, virtual methods.  It is set

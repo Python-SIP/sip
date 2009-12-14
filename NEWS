@@ -12,6 +12,8 @@ v4.10 ???
   - Added the /DocValue/ argument annotation.
   - Added the %Docstring directive to specify explicit docstrings for classes,
     functions and methods.
+  - Added sipError to %MethodCode to allow user errors to be distinguished from
+    interpreter errors.
   - Added support for configuring and building outside of the source tree.
 
 v4.9.3 23rd November 2009
