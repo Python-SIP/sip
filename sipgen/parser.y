@@ -3944,7 +3944,7 @@ static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod,
 
     /* Handle the interface file. */
     cd->iff = findIfaceFile(pt, mod, fqname, class_iface,
-            scope->iff->api_range, NULL);
+            (scope != NULL ? scope->iff->api_range : NULL), NULL);
     cd->iff->module = mod;
 
     /* Make a copy of the used list and add the enclosing scope. */
