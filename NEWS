@@ -14,6 +14,7 @@ v4.10 ???
     functions and methods.
   - Added sipError to %MethodCode to allow user errors to be distinguished from
     interpreter errors.
+  - Added sipBadCallableArg() to the C API.
   - Added support for configuring and building outside of the source tree.
 
 v4.9.3 23rd November 2009

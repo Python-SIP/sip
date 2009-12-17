@@ -571,6 +571,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipAbstractMethod           sipAPI_%s->api_abstract_method\n"
 "#define sipBadClass                 sipAPI_%s->api_bad_class\n"
 "#define sipBadCatcherResult         sipAPI_%s->api_bad_catcher_result\n"
+"#define sipBadCallableArg           sipAPI_%s->api_bad_callable_arg\n"
 "#define sipBadOperatorArg           sipAPI_%s->api_bad_operator_arg\n"
 "#define sipTrace                    sipAPI_%s->api_trace\n"
 "#define sipTransferBack             sipAPI_%s->api_transfer_back\n"
@@ -661,6 +662,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipConvertFromMappedType    sipConvertFromType\n"
 "#define sipConvertFromNamedEnum(v, pt)  sipConvertFromEnum((v), ((sipEnumTypeObject *)(pt))->type)\n"
 "#define sipConvertFromNewInstance(p, wt, t) sipConvertFromNewType((p), (wt)->type, (t))\n"
+        ,mname
         ,mname
         ,mname
         ,mname

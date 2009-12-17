@@ -82,6 +82,7 @@ static void sip_api_raise_unknown_exception(void);
 static void sip_api_raise_type_exception(const sipTypeDef *td, void *ptr);
 static int sip_api_add_type_instance(PyObject *dict, const char *name,
         void *cppPtr, const sipTypeDef *td);
+static sipErrorState sip_api_bad_callable_arg(int arg_nr, PyObject *arg);
 static void sip_api_bad_operator_arg(PyObject *self, PyObject *arg,
         sipPySlotType st);
 static PyObject *sip_api_pyslot_extend(sipExportedModuleDef *mod,
@@ -185,6 +186,7 @@ static const sipAPIDef sip_api = {
     sip_api_resolve_typedef,
     sip_api_register_attribute_getter,
     sip_api_is_api_enabled,
+    sip_api_bad_callable_arg,
     /*
      * The following are deprecated parts of the public API.
      */
@@ -519,6 +521,7 @@ static int add_lazy_attrs(sipTypeDef *td);
 static int add_all_lazy_attrs(sipTypeDef *td);
 static int objectify(const char *s, PyObject **objp);
 static void add_failure(PyObject **parseErrp, sipParseFailure *failure);
+static PyObject *bad_type_str(int arg_nr, PyObject *arg);
 
 
 /*
@@ -2666,6 +2669,40 @@ static int parseKwdArgs(PyObject **parseErrp, PyObject *sipArgs,
     Py_DECREF(sipArgs);
 
     return ok;
+}
+
+
+/*
+ * Return a string as a Python object that describes an argument with an
+ * unexpected type.
+ */
+static PyObject *bad_type_str(int arg_nr, PyObject *arg)
+{
+#if PY_MAJOR_VERSION >= 3
+    return PyUnicode_FromFormat("argument %d has unexpected type '%s'", arg_nr,
+            Py_TYPE(arg)->tp_name);
+#else
+    return PyString_FromFormat("argument %d has unexpected type '%s'", arg_nr,
+            Py_TYPE(arg)->tp_name);
+#endif
+}
+
+
+/*
+ * Adds a failure about an argument with an incorrect type to the current list
+ * of exceptions.
+ */
+static sipErrorState sip_api_bad_callable_arg(int arg_nr, PyObject *arg)
+{
+    PyObject *detail = bad_type_str(arg_nr + 1, arg);
+
+    if (detail == NULL)
+        return sipErrorFail;
+
+    PyErr_SetObject(PyExc_TypeError, detail);
+    Py_DECREF(detail);
+
+    return sipErrorContinue;
 }
 
 
@@ -5902,10 +5939,10 @@ static void sip_api_no_method(PyObject *parseErr, const char *scope,
                         if (doc_obj != NULL)
                         {
 #if PY_MAJOR_VERSION >= 3
-                            failure = PyUnicode_FromFormat("\n    %U: %U",
+                            failure = PyUnicode_FromFormat("\n  %U: %U",
                                     doc_obj, detail);
 #else
-                            failure = PyString_FromFormat("\n    %s: %s",
+                            failure = PyString_FromFormat("\n  %s: %s",
                                 PyString_AS_STRING(doc_obj),
                                 PyString_AS_STRING(detail));
 #endif
@@ -5922,10 +5959,10 @@ static void sip_api_no_method(PyObject *parseErr, const char *scope,
                     else
                     {
 #if PY_MAJOR_VERSION >= 3
-                        failure = PyUnicode_FromFormat("\n    overload %d: %U",
+                        failure = PyUnicode_FromFormat("\n  overload %d: %U",
                             i + 1, detail);
 #else
-                        failure = PyString_FromFormat("\n    overload %d: %s",
+                        failure = PyString_FromFormat("\n  overload %d: %s",
                             i + 1, PyString_AS_STRING(detail));
 #endif
                     }
@@ -6099,15 +6136,7 @@ static PyObject *detail_FromFailure(PyObject *failure_obj)
     case WrongType:
         if (failure->arg_nr >= 0)
         {
-#if PY_MAJOR_VERSION >= 3
-            detail = PyUnicode_FromFormat(
-                    "argument %d has unexpected type '%s'", failure->arg_nr,
-                    Py_TYPE(failure->detail_obj)->tp_name);
-#else
-            detail = PyString_FromFormat(
-                    "argument %d has unexpected type '%s'", failure->arg_nr,
-                    Py_TYPE(failure->detail_obj)->tp_name);
-#endif
+            detail = bad_type_str(failure->arg_nr, failure->detail_obj);
         }
         else
         {

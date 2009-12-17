@@ -1265,6 +1265,7 @@ typedef struct _sipAPIDef {
     int (*api_register_attribute_getter)(const sipTypeDef *td,
             sipAttrGetterFunc getter);
     int (*api_is_api_enabled)(const char *name, int from, int to);
+    sipErrorState (*api_bad_callable_arg)(int arg_nr, PyObject *arg);
 
     /*
      * The following are deprecated parts of the public API.
