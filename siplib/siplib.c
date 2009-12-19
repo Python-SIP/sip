@@ -129,8 +129,7 @@ static int sip_api_register_attribute_getter(const sipTypeDef *td,
 static void sip_api_clear_any_slot_reference(sipSlot *slot);
 static int sip_api_visit_slot(sipSlot *slot, visitproc visit, void *arg);
 static void sip_api_keep_reference(PyObject *self, int key, PyObject *obj);
-static void sip_api_add_exception(sipErrorState es, PyObject **parseErrp,
-        PyObject **unused);
+static void sip_api_add_exception(sipErrorState es, PyObject **parseErrp);
 
 
 /*
@@ -2657,10 +2656,16 @@ static int parseKwdArgs(PyObject **parseErrp, PyObject *sipArgs,
         ok = parsePass2(self, selfarg, sipArgs, sipKwdArgs, kwdlist, fmt, va);
         va_end(va);
 
-        if (!ok)
+        /* Remove any previous failed parses. */
+        Py_XDECREF(*parseErrp);
+
+        if (ok)
+        {
+            *parseErrp = NULL;
+        }
+        else
         {
             /* Indicate that an exception has been raised. */
-            Py_XDECREF(*parseErrp);
             *parseErrp = Py_None;
             Py_INCREF(Py_None);
         }
@@ -2710,12 +2715,9 @@ static sipErrorState sip_api_bad_callable_arg(int arg_nr, PyObject *arg)
  * Adds the current exception to the current list of exceptions (if it is a
  * user exception) or replace the current list of exceptions.
  */
-static void sip_api_add_exception(sipErrorState es, PyObject **parseErrp,
-        PyObject **unused)
+static void sip_api_add_exception(sipErrorState es, PyObject **parseErrp)
 {
-    /* Release any unused arguments. */
-    if (unused != NULL)
-        Py_XDECREF(*unused);
+    assert(*parseErrp == NULL);
 
     if (es == sipErrorContinue)
     {
@@ -2820,6 +2822,8 @@ static void add_failure(PyObject **parseErrp, sipParseFailure *failure)
         failure->reason = Raised;
         return;
     }
+
+    Py_DECREF(failure_obj);
 }
 
 
@@ -2873,10 +2877,16 @@ static int sip_api_parse_pair(PyObject **parseErrp, PyObject *sipArg0,
         ok = parsePass2(self, selfarg, args, NULL, NULL, fmt, va);
         va_end(va);
 
-        if (!ok)
+        /* Remove any previous failed parses. */
+        Py_XDECREF(*parseErrp);
+
+        if (ok)
+        {
+            *parseErrp = NULL;
+        }
+        else
         {
             /* Indicate that an exception has been raised. */
-            Py_XDECREF(*parseErrp);
             *parseErrp = Py_None;
             Py_INCREF(Py_None);
         }
@@ -4162,6 +4172,9 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
 
     /* Handle parse failures appropriately. */
 
+    if (failure.reason == Ok)
+        return TRUE;
+
     if (failure.reason == BadFormat)
     {
         /* This is a code generation error. */
@@ -4170,7 +4183,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
 
         failure.reason = Raised;
     }
-    else if (failure.reason != Ok && failure.reason != Raised)
+    else if (failure.reason != Raised)
     {
         add_failure(parseErrp, &failure);
     }
@@ -4188,7 +4201,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
         Py_INCREF(Py_None);
     }
 
-    return (failure.reason == Ok);
+    return FALSE;
 }
 
 

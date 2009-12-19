@@ -1343,8 +1343,7 @@ typedef struct _sipAPIDef {
     int (*api_parse_kwd_args)(PyObject **parseErrp, PyObject *sipArgs,
             PyObject *sipKwdArgs, const char **kwdlist, PyObject **unused,
             const char *fmt, ...);
-    void (*api_add_exception)(sipErrorState es, PyObject **parseErrp,
-            PyObject **unused);
+    void (*api_add_exception)(sipErrorState es, PyObject **parseErrp);
 } sipAPIDef;
 
 
