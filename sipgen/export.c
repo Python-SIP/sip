@@ -27,7 +27,7 @@ static int apiCtor(sipSpec *pt, moduleDef *mod, classDef *scope, ctorDef *ct,
 static int apiOverload(sipSpec *pt, moduleDef *mod, classDef *scope,
         overDef *od, int sec, FILE *fp);
 static int apiArgument(sipSpec *pt, argDef *ad, int out, int need_comma,
-        int sec, int names, int defaults, FILE *fp);
+        int sec, int names, int defaults, int in_str, FILE *fp);
 static void xmlClass(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp);
 static void xmlEnums(sipSpec *pt, moduleDef *mod, classDef *scope, int indent,
         FILE *fp);
@@ -45,7 +45,7 @@ static void xmlArgument(sipSpec *pt, argDef *ad, const char *dir, int res_xfer,
 static void xmlType(sipSpec *pt, argDef *ad, int sec, FILE *fp);
 static void xmlIndent(int indent, FILE *fp);
 static const char *dirAttribute(argDef *ad);
-static void exportDefaultValue(argDef *ad, FILE *fp);
+static void exportDefaultValue(argDef *ad, int in_str, FILE *fp);
 static const char *pyType(sipSpec *pt, argDef *ad, int sec, classDef **scope);
 
 
@@ -136,7 +136,7 @@ static int apiCtor(sipSpec *pt, moduleDef *mod, classDef *scope, ctorDef *ct,
         argDef *ad = &ct->pysig.args[a];
 
         need_comma = apiArgument(pt, ad, FALSE, need_comma, sec, TRUE, TRUE,
-                fp);
+                FALSE, fp);
 
         if (ad->atype == rxcon_type || ad->atype == rxdis_type)
             need_sec = TRUE;
@@ -150,7 +150,8 @@ static int apiCtor(sipSpec *pt, moduleDef *mod, classDef *scope, ctorDef *ct,
     fprintf(fp, ".__init__?%d(self", CLASS_ID);
 
     for (a = 0; a < ct->pysig.nrArgs; ++a)
-        apiArgument(pt, &ct->pysig.args[a], FALSE, TRUE, sec, TRUE, TRUE, fp);
+        apiArgument(pt, &ct->pysig.args[a], FALSE, TRUE, sec, TRUE, TRUE,
+                FALSE, fp);
 
     fprintf(fp, ")\n");
 
@@ -226,7 +227,7 @@ static int apiOverload(sipSpec *pt, moduleDef *mod, classDef *scope,
     prScopedPythonName(fp, scope, od->common->pyname->text);
     fprintf(fp, "?%d", METHOD_ID);
 
-    need_sec = prPythonSignature(pt, fp, &od->pysig, sec, TRUE, TRUE);
+    need_sec = prPythonSignature(pt, fp, &od->pysig, sec, TRUE, TRUE, FALSE);
 
     fprintf(fp, "\n");
 
@@ -238,7 +239,7 @@ static int apiOverload(sipSpec *pt, moduleDef *mod, classDef *scope,
  * Generate the API for an argument.
  */
 static int apiArgument(sipSpec *pt, argDef *ad, int out, int need_comma,
-        int sec, int names, int defaults, FILE *fp)
+        int sec, int names, int defaults, int in_str, FILE *fp)
 {
     const char *tname;
     classDef *tscope;
@@ -268,7 +269,7 @@ static int apiArgument(sipSpec *pt, argDef *ad, int out, int need_comma,
     {
         fprintf(fp, "=");
         prcode(fp, "%M");
-        exportDefaultValue(ad, fp);
+        exportDefaultValue(ad, in_str, fp);
         prcode(fp, "%M");
     }
 
@@ -704,7 +705,7 @@ static void xmlArgument(sipSpec *pt, argDef *ad, const char *dir, int res_xfer,
     if (ad->defval && (dir == NULL || strcmp(dir, "out") != 0))
     {
         prcode(fp, " default=\"%M");
-        exportDefaultValue(ad, fp);
+        exportDefaultValue(ad, FALSE, fp);
         prcode(fp, "%M\"");
     }
 
@@ -795,7 +796,7 @@ static void xmlIndent(int indent, FILE *fp)
 /*
  * Export the default value of an argument.
  */
-static void exportDefaultValue(argDef *ad, FILE *fp)
+static void exportDefaultValue(argDef *ad, int in_str, FILE *fp)
 {
     /* Use any explicitly provided documentation. */
     if (ad->docval != NULL)
@@ -820,7 +821,7 @@ static void exportDefaultValue(argDef *ad, FILE *fp)
         }
     }
 
-    generateExpression(ad->defval, fp);
+    generateExpression(ad->defval, in_str, fp);
 }
 
 
@@ -1062,7 +1063,7 @@ void prScopedPythonName(FILE *fp, classDef *scope, const char *pyname)
  * Generate a Python signature.
  */
 int prPythonSignature(sipSpec *pt, FILE *fp, signatureDef *sd, int sec,
-        int names, int defaults)
+        int names, int defaults, int in_str)
 {
     int need_sec = FALSE, need_comma = FALSE, is_res, nr_out, a;
 
@@ -1081,7 +1082,7 @@ int prPythonSignature(sipSpec *pt, FILE *fp, signatureDef *sd, int sec,
             continue;
 
         need_comma = apiArgument(pt, ad, FALSE, need_comma, sec, names,
-                defaults, fp);
+                defaults, in_str, fp);
 
         if (ad->atype == rxcon_type || ad->atype == rxdis_type)
             need_sec = TRUE;
@@ -1101,7 +1102,7 @@ int prPythonSignature(sipSpec *pt, FILE *fp, signatureDef *sd, int sec,
 
         if (is_res)
             need_comma = apiArgument(pt, &sd->result, TRUE, FALSE, sec, FALSE,
-                    FALSE, fp);
+                    FALSE, in_str, fp);
         else
             need_comma = FALSE;
 
@@ -1112,7 +1113,7 @@ int prPythonSignature(sipSpec *pt, FILE *fp, signatureDef *sd, int sec,
             if (isOutArg(ad))
                 /* We don't want the name in the result tuple. */
                 need_comma = apiArgument(pt, ad, TRUE, need_comma, sec, FALSE,
-                        FALSE, fp);
+                        FALSE, in_str, fp);
         }
 
         if ((is_res && nr_out > 0) || nr_out > 1)

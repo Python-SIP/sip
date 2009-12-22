@@ -408,7 +408,7 @@ static void generateBuildFileSources(sipSpec *pt, moduleDef *mod,
 /*
  * Generate an expression in C++.
  */
-void generateExpression(valueDef *vd, FILE *fp)
+void generateExpression(valueDef *vd, int in_str, FILE *fp)
 {
     while (vd != NULL)
     {
@@ -422,7 +422,12 @@ void generateExpression(valueDef *vd, FILE *fp)
             break;
 
         case string_value:
-            prcode(fp,"\"%s\"",vd->u.vstr);
+            {
+                const char *quote = (in_str ? "\\\"" : "\"");
+
+                prcode(fp,"%s%s%s", quote, vd->u.vstr, quote);
+            }
+
             break;
 
         case numeric_value:
@@ -8385,7 +8390,7 @@ void prOverloadDecl(FILE *fp, ifaceFileDef *scope, overDef *od, int defval)
         if (defval && ad->defval != NULL)
         {
             prcode(fp, " = ");
-            generateExpression(ad->defval, fp);
+            generateExpression(ad->defval, FALSE, fp);
         }
     }
  
@@ -8789,7 +8794,7 @@ static void generateVariable(ifaceFileDef *scope, argDef *ad, int argnr,
         prcode(fp,
 "        %A a%ddef = ", scope, ad, argnr);
 
-        generateExpression(ad->defval,fp);
+        generateExpression(ad->defval, FALSE, fp);
 
         prcode(fp,";\n"
             );
@@ -8916,7 +8921,7 @@ static void generateDefaultValue(argDef *ad, int argnr, FILE *fp)
                 (ad->nrderefs == 0 || isReference(ad)))
             prcode(fp, "&a%ddef", argnr);
         else
-            generateExpression(ad->defval,fp);
+            generateExpression(ad->defval, FALSE, fp);
     }
 }
 
@@ -8935,7 +8940,7 @@ static void generateSimpleFunctionCall(fcallDef *fcd,FILE *fp)
         if (i > 0)
             prcode(fp,",");
 
-        generateExpression(fcd->args[i],fp);
+        generateExpression(fcd->args[i], FALSE, fp);
     }
 
     prcode(fp,")");
@@ -9638,7 +9643,7 @@ static void generateSignalTableEntry(sipSpec *pt, classDef *cd, overDef *sig,
         fprintf(fp, "\"\\1");
         prScopedPythonName(fp, cd->ecd, cd->pyname->text);
         fprintf(fp, ".%s", md->pyname->text);
-        prPythonSignature(pt, fp, &sig->pysig, FALSE, FALSE, FALSE);
+        prPythonSignature(pt, fp, &sig->pysig, FALSE, FALSE, FALSE, FALSE);
         fprintf(fp, "\", ");
     }
     else
@@ -13590,7 +13595,8 @@ static void generateDocstring(sipSpec *pt, overDef *overs, memberDef *md,
             fprintf(fp, ".");
 
         fprintf(fp, "%s", md->pyname->text);
-        need_sec = prPythonSignature(pt, fp, &od->pysig, FALSE, TRUE, TRUE);
+        need_sec = prPythonSignature(pt, fp, &od->pysig, FALSE, TRUE, TRUE,
+                TRUE);
         ++currentLineNr;
 
         if (need_sec)
@@ -13603,7 +13609,7 @@ static void generateDocstring(sipSpec *pt, overDef *overs, memberDef *md,
                 fprintf(fp, ".");
 
             fprintf(fp, "%s", md->pyname->text);
-            prPythonSignature(pt, fp, &od->pysig, TRUE, TRUE, TRUE);
+            prPythonSignature(pt, fp, &od->pysig, TRUE, TRUE, TRUE, TRUE);
             ++currentLineNr;
         }
     }
@@ -13674,7 +13680,8 @@ static void generateClassDocstring(sipSpec *pt, classDef *cd, FILE *fp)
         }
 
         prScopedPythonName(fp, cd->ecd, cd->pyname->text);
-        need_sec = prPythonSignature(pt, fp, &ct->pysig, FALSE, TRUE, TRUE);
+        need_sec = prPythonSignature(pt, fp, &ct->pysig, FALSE, TRUE, TRUE,
+                TRUE);
         ++currentLineNr;
 
         if (need_sec)
@@ -13682,7 +13689,7 @@ static void generateClassDocstring(sipSpec *pt, classDef *cd, FILE *fp)
             fprintf(fp, "%s", sep);
 
             prScopedPythonName(fp, cd->ecd, cd->pyname->text);
-            prPythonSignature(pt, fp, &ct->pysig, TRUE, TRUE, TRUE);
+            prPythonSignature(pt, fp, &ct->pysig, TRUE, TRUE, TRUE, TRUE);
             ++currentLineNr;
         }
     }

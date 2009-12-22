@@ -1078,7 +1078,7 @@ void generateCode(sipSpec *, char *, char *, char *, const char *, int, int,
         int, int, stringList *, const char *, int);
 void generateAPI(sipSpec *pt, moduleDef *mod, const char *apiFile);
 void generateXML(sipSpec *pt, moduleDef *mod, const char *xmlFile);
-void generateExpression(valueDef *vd, FILE *fp);
+void generateExpression(valueDef *vd, int in_str, FILE *fp);
 void warning(char *,...);
 void fatal(char *,...);
 void fatalScopedName(scopedNameDef *);
@@ -1106,7 +1106,7 @@ void prOverloadName(FILE *fp, overDef *od);
 void prOverloadDecl(FILE *fp, ifaceFileDef *scope, overDef *od, int defval);
 void prScopedPythonName(FILE *fp, classDef *scope, const char *pyname);
 int prPythonSignature(sipSpec *pt, FILE *fp, signatureDef *sd, int sec,
-        int names, int defaults);
+        int names, int defaults, int in_str);
 void searchTypedefs(sipSpec *pt, scopedNameDef *snd, argDef *ad);
 int isIntReturnSlot(memberDef *md);
 int isLongReturnSlot(memberDef *md);
