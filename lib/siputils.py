@@ -2468,24 +2468,15 @@ def create_wrapper(script, wrapper, gui=0, use_arch=''):
         wf.write("@\"%s\" \"%s\" %%1 %%2 %%3 %%4 %%5 %%6 %%7 %%8 %%9\n" % (exe, script))
     elif sys.platform == "darwin":
         # The installation of MacOS's python is a mess that changes from
-        # version to version.
-        exe = sys.executable
+        # version to version and where sys.executable is useless.
 
         if gui:
-            # Append a "w" after the "python".
-            head, tail = os.path.split(exe)
-            if tail.startswith("python"):
-                tail = tail[:6] + "w" + tail[6:]
-                exe = os.path.join(head, tail)
+            exe = "pythonw"
+        else:
+            exe = "python"
 
-                if not os.path.exists(exe):
-                    exe = None
-            else:
-                exe = None
-
-            if exe is None:
-                # Fallback to a guess.
-                exe = "pythonw"
+        version = sys.version_info
+        exe = "%s%d.%d" % (exe, version[0], version[1])
 
         if use_arch:
             # Note that this may not work with the "standard" interpreter but
