@@ -17,6 +17,12 @@
 #include "sipint.h"
 
 
+/* There doesn't seem to be a standard way of checking for C99 support. */
+#if !defined(va_copy)
+#define va_copy(d, s)   ((d) = (s))
+#endif
+
+
 /*
  * Forward declarations for the objects and functions that make up the public
  * and private SIP API.
