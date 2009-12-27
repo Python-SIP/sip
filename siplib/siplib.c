@@ -7117,6 +7117,8 @@ static PyObject *sip_api_is_py_method(sip_gilstate_t *gil, char *pymc,
 
                 break;
             }
+
+            reimp = NULL;
         }
     }
 
