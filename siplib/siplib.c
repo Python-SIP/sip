@@ -4100,7 +4100,6 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
             {
                 /* Constrained types. */
 
-                void *p = va_arg(va, void *);
                 char sub_fmt = *fmt++;
 
                 if (sub_fmt == 'E')
@@ -4118,87 +4117,92 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                         Py_INCREF(arg);
                     }
                 }
-                else if (arg != NULL)
+                else
                 {
-                    switch (sub_fmt)
+                    void *p = va_arg(va, void *);
+
+                    if (arg != NULL)
                     {
-                    case 'b':
+                        switch (sub_fmt)
                         {
-                            /* Boolean. */
-
-                            if (PyBool_Check(arg))
+                        case 'b':
                             {
-                                sipSetBool(p, (arg == Py_True));
-                            }
-                            else
-                            {
-                                failure.reason = WrongType;
-                                failure.detail_obj = arg;
-                                Py_INCREF(arg);
-                            }
+                                /* Boolean. */
 
-                            break;
-                        }
+                                if (PyBool_Check(arg))
+                                {
+                                    sipSetBool(p, (arg == Py_True));
+                                }
+                                else
+                                {
+                                    failure.reason = WrongType;
+                                    failure.detail_obj = arg;
+                                    Py_INCREF(arg);
+                                }
 
-                    case 'd':
-                        {
-                            /* Double float. */
-
-                            if (PyFloat_Check(arg))
-                            {
-                                *(double *)p = PyFloat_AS_DOUBLE(arg);
-                            }
-                            else
-                            {
-                                failure.reason = WrongType;
-                                failure.detail_obj = arg;
-                                Py_INCREF(arg);
+                                break;
                             }
 
-                            break;
-                        }
-
-                    case 'f':
-                        {
-                            /* Float. */
-
-                            if (PyFloat_Check(arg))
+                        case 'd':
                             {
-                                *(float *)p = (float)PyFloat_AS_DOUBLE(arg);
+                                /* Double float. */
+
+                                if (PyFloat_Check(arg))
+                                {
+                                    *(double *)p = PyFloat_AS_DOUBLE(arg);
+                                }
+                                else
+                                {
+                                    failure.reason = WrongType;
+                                    failure.detail_obj = arg;
+                                    Py_INCREF(arg);
+                                }
+
+                                break;
                             }
-                            else
+
+                        case 'f':
                             {
-                                failure.reason = WrongType;
-                                failure.detail_obj = arg;
-                                Py_INCREF(arg);
+                                /* Float. */
+
+                                if (PyFloat_Check(arg))
+                                {
+                                    *(float *)p = (float)PyFloat_AS_DOUBLE(arg);
+                                }
+                                else
+                                {
+                                    failure.reason = WrongType;
+                                    failure.detail_obj = arg;
+                                    Py_INCREF(arg);
+                                }
+
+                                break;
                             }
 
-                            break;
-                        }
-
-                    case 'i':
-                        {
-                            /* Integer. */
+                        case 'i':
+                            {
+                                /* Integer. */
 
 #if PY_MAJOR_VERSION >= 3
-                            if (PyLong_Check(arg))
-                            {
-                                *(int *)p = PyLong_AS_LONG(arg);
-                            }
+                                if (PyLong_Check(arg))
+                                {
+                                    *(int *)p = PyLong_AS_LONG(arg);
+                                }
 #else
-                            if (PyInt_Check(arg))
-                            {
-                                *(int *)p = PyInt_AS_LONG(arg);
-                            }
+                                if (PyInt_Check(arg))
+                                {
+                                    *(int *)p = PyInt_AS_LONG(arg);
+                                }
 #endif
-                            else
-                            {
-                                failure.reason = WrongType;
-                                failure.detail_obj = arg;
-                                Py_INCREF(arg);
-                            }
+                                else
+                                {
+                                    failure.reason = WrongType;
+                                    failure.detail_obj = arg;
+                                    Py_INCREF(arg);
+                                }
 
-                            break;
+                                break;
+                            }
                         }
                     }
                 }
