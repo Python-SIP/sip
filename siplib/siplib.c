@@ -604,7 +604,9 @@ PyMODINIT_FUNC SIP_MODULE_ENTRY(void)
     if (sip_api_register_py_type((PyTypeObject *)&sipSimpleWrapper_Type) < 0)
         SIP_FATAL("sip: Failed to register sip.simplewrapper type");
 
-#if PY_VERSION_HEX >= 0x02050000
+#if defined(STACKLESS)
+    sipWrapper_Type.super.tp_base = (PyTypeObject *)&sipSimpleWrapper_Type;
+#elif PY_VERSION_HEX >= 0x02050000
     sipWrapper_Type.super.ht_type.tp_base = (PyTypeObject *)&sipSimpleWrapper_Type;
 #else
     sipWrapper_Type.super.type.tp_base = (PyTypeObject *)&sipSimpleWrapper_Type;
