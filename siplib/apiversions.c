@@ -215,7 +215,7 @@ PyObject *sipSetAPI(PyObject *self, PyObject *args)
         char *api_copy;
 
         /* Make a deep copy of the name. */
-        if ((api_copy = sip_api_malloc(strlen(api))) == NULL)
+        if ((api_copy = sip_api_malloc(strlen(api) + 1)) == NULL)
             return NULL;
 
         strcpy(api_copy, api);
