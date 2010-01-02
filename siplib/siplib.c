@@ -8897,6 +8897,16 @@ static PyObject *sipSimpleWrapper_new(sipWrapperType *wt, PyObject *args,
     sipTypeDef *td = wt->type;
     sipContainerDef *cod;
 
+    /* Check the base types are not being used directly. */
+    if (wt == &sipSimpleWrapper_Type || wt == &sipWrapper_Type)
+    {
+        PyErr_Format(PyExc_TypeError,
+                "the %s type cannot be instantiated or sub-classed",
+                ((PyTypeObject *)wt)->tp_name);
+
+        return NULL;
+    }
+
     if (sipTypeIsMapped(td))
         cod = &((sipMappedTypeDef *)td)->mtd_container;
     else
@@ -8909,17 +8919,6 @@ static PyObject *sipSimpleWrapper_new(sipWrapperType *wt, PyObject *args,
 
         if (noargs == NULL)
             return NULL;
-    }
-
-    /* Check the base types are not being used directly. */
-    if (wt == &sipSimpleWrapper_Type || wt == &sipWrapper_Type)
-    {
-        PyErr_Format(PyExc_TypeError,
-                "the %s.%s type cannot be instantiated or sub-classed",
-                sipNameOfModule(td->td_module),
-                sipPyNameOfContainer(cod, td));
-
-        return NULL;
     }
 
     /* See if it is a mapped type. */
