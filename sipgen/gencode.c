@@ -7110,7 +7110,10 @@ static void generateVirtualHandler(virtHandlerDef *vhd, FILE *fp)
     if (res != NULL && keepPyReference(res))
     {
         need_self = TRUE;
-        prcode(fp, ",int sipResKey");
+        prcode(fp, ",int");
+
+        if (vhd->virtcode == NULL || usedInCode(vhd->virtcode, "sipResKey"))
+            prcode(fp, " sipResKey");
     }
 
     for (ad = vhd->cppsig->args, a = 0; a < vhd->cppsig->nrArgs; ++a, ++ad)
@@ -7121,7 +7124,12 @@ static void generateVirtualHandler(virtHandlerDef *vhd, FILE *fp)
         }
 
     if (need_self)
-        prcode(fp, ",sipSimpleWrapper *sipPySelf");
+    {
+        prcode(fp, ",sipSimpleWrapper *");
+
+        if (vhd->virtcode == NULL || usedInCode(vhd->virtcode, "sipPySelf"))
+            prcode(fp, "sipPySelf");
+    }
 
     prcode(fp,")\n"
 "{\n"

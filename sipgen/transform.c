@@ -2905,21 +2905,43 @@ static const char *templateString(const char *src, scopedNameDef *names,
 
     while (names != NULL && values != NULL)
     {
-        char *cp;
-        size_t name_len = strlen(names->name);
-        size_t value_len = strlen(values->name);
+        char *cp, *vname = values->name;
+        size_t name_len, value_len;
+
+        name_len = strlen(names->name);
+        value_len = strlen(vname);
+
+        /* Translate any C++ scoping to Python. */
+        while ((cp = strstr(vname, "::")) != NULL)
+        {
+            char *new_vname = sipMalloc(value_len);
+            size_t pos = cp - vname;
+
+            memcpy(new_vname, vname, pos);
+            new_vname[pos] = '.';
+            strcpy(new_vname + pos + 1, cp + 2);
+
+            if (vname != values->name)
+                free(vname);
+
+            vname = new_vname;
+            --value_len;
+        }
 
         while ((cp = strstr(dst, names->name)) != NULL)
         {
             char *new_dst = sipMalloc(strlen(dst) - name_len + value_len + 1);
 
             memcpy(new_dst, dst, cp - dst);
-            memcpy(new_dst + (cp - dst), values->name, value_len);
+            memcpy(new_dst + (cp - dst), vname, value_len);
             strcpy(new_dst + (cp - dst) + value_len, cp + name_len);
 
             free(dst);
             dst = new_dst;
         }
+
+        if (vname != values->name)
+            free(vname);
 
         names = names->next;
         values = values->next;

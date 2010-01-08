@@ -533,6 +533,8 @@ class Makefile:
                         defines.append("QT_CORE_LIB")
                     elif mod == "QtGui":
                         defines.append("QT_GUI_LIB")
+                    elif mod == "QtMultimedia":
+                        defines.append("QT_MULTIMEDIA_LIB")
                     elif mod == "QtNetwork":
                         defines.append("QT_NETWORK_LIB")
                     elif mod == "QtOpenGL":
@@ -576,6 +578,7 @@ class Makefile:
                     "QtAssistant":      ("QtNetwork", "QtGui", "QtCore"),
                     "QtGui":            ("QtCore", ),
                     "QtHelp":           ("QtSql", "QtGui", "QtCore"),
+                    "QtMultimedia":     ("QtGui", "QtCore"),
                     "QtNetwork":        ("QtCore", ),
                     "QtOpenGL":         ("QtGui", "QtCore"),
                     "QtScript":         ("QtCore", ),
@@ -751,9 +754,9 @@ class Makefile:
 
         if sys.platform == "win32" and "shared" in self.config.qt_winconfig.split():
             if (mname in ("QtCore", "QtDesigner", "QtGui", "QtHelp",
-                          "QtNetwork", "QtOpenGL", "QtScript", "QtScriptTools",
-                          "QtSql", "QtSvg", "QtTest", "QtWebKit", "QtXml",
-                          "QtXmlPatterns", "phonon") or
+                          "QtMultimedia", "QtNetwork", "QtOpenGL", "QtScript",
+                          "QtScriptTools", "QtSql", "QtSvg", "QtTest",
+                          "QtWebKit", "QtXml", "QtXmlPatterns", "phonon") or
                 (self.config.qt_version >= 0x040200 and mname == "QtAssistant")):
                 lib = lib + "4"
 

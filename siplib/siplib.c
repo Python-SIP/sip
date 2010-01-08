@@ -8220,7 +8220,11 @@ static int vp_convertor(PyObject *arg, struct vp_values *vp)
 
         if (PyErr_Occurred())
         {
+#if PY_VERSION_HEX >= 0x03010000
             PyErr_SetString(PyExc_TypeError, "a single integer, CObject, None or another voidptr is required");
+#else
+            PyErr_SetString(PyExc_TypeError, "a single integer, Capsule, CObject, None or another voidptr is required");
+#endif
             return 0;
         }
     }
