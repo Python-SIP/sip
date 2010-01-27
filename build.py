@@ -1,262 +1,463 @@
 #!/usr/bin/env python
 
-# Copyright (c) 2004
-#	Riverbank Computing Limited <info@riverbankcomputing.co.uk>
+# Copyright (c) 2010 Riverbank Computing Limited <info@riverbankcomputing.com>
 #
-# This script does all the work of building the SIP distribution.
+# This file is part of SIP.
+#
+# This copy of SIP is licensed for use under the terms of the SIP License
+# Agreement.  See the file LICENSE for more details.
+#
+# This copy of SIP may also used under the terms of the GNU General Public
+# License v2 or v3 as published by the Free Software Foundation which can be
+# found in the files LICENSE-GPL2 and LICENSE-GPL3 included in this package.
+#
+# SIP is supplied WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 
-import sys
+"""This script prepares a repository copy of SIP for building and does all the
+work of creating a packaged release.  It should be run from a Mercurial
+repository or a Mercurial archive.  It is not part of a packaged release.
+"""
+
+
 import os
 import shutil
-import stat
-import time
+import sys
+import tarfile
+import zipfile
 
 
-Package = "sip"
+# The files that need to be patched with the version number.
+_PatchedFiles = (
+    ('configure.py', ),
+    ('sipgen', 'main.c'),
+    ('siplib', 'sip.h'),
+    ('sphinx', 'conf.py'), ('sphinx', 'introduction.rst'))
+
+# Specific files that are auto-generated and need to be cleaned.
+_GeneratedFiles = (
+    ('Makefile', ), ('sipconfig.py', ),
+    ('sipgen', 'Makefile'), ('sipgen', 'lexer.c'), ('sipgen', 'parser.c'),
+    ('sipgen', 'parser.h'), ('sipgen', 'sip'),
+    ('siplib', 'Makefile'))
+
+# File types that are auto-generated and need to be cleaned.
+_GeneratedFileTypes = ('.pyc', '.o', '.obj', '.so', '.pyd', '.exp', '.exe',
+        '.gz', '.zip')
+
+# Directories that are auto-generated and need to be cleaned.
+_GeneratedDirs = (
+    ('doc', ),
+    ('sphinx', 'static'))
+
+# Files in a release.
+_ReleasedFiles = ('configure.py.in', 'LICENSE', 'LICENSE-GPL2', 'LICENSE-GPL3',
+        'NEWS', 'README', 'sipdistutils.py', 'siputils.py')
+
+# Directories in a release.
+_ReleasedDirs = ('custom', 'sipgen', 'siplib', 'specs', 'sphinx')
 
 
-def clean():
-    """Clean the build environment.
+def _get_release():
+    """ Get the release of the package.
+
+    :return:
+        A tuple of the full version number and as a three part number.
     """
-    global Package
+
+    # Get the name of the directory containing this file.  It should contain
+    # dot files that tell us what sort of package we are.
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+
+    numeric_version = '99.99.99'
+
+    if os.path.exists(os.path.join(base_dir, '.hg')):
+        # Handle a Mercurial repository.
+
+        from mercurial import hg, ui
+
+        # Get the repository.
+        repo = hg.repository(ui.ui(), '.')
+
+        # The changeset we want is the "parent" of the working directory.
+        ctx = repo[None].parents()[0]
+
+        for tag in ctx.tags():
+            if tag != 'tip':
+                version = numeric_version = tag
+                break
+        else:
+            changeset = str(ctx)
+            branch = ctx.branch()
+
+            if branch != 'default':
+                numeric_version = '%s.99' % branch
+
+            version = 'snapshot-%s-%s' % (numeric_version, changeset)
+    else:
+        # Handle a Mercurial archive.
+
+        name = os.path.basename(base_dir)
+        changeset = "unknown"
+
+        parts = name.split('-')
+        if len(parts) > 1:
+            name = parts[-1]
+
+            if len(name) == 12:
+                # This is the best we can do without access to the repository.
+                changeset = name
+
+        version = 'snapshot-%s-%s' % (numeric_version, changeset)
+
+    return version, numeric_version
+
+
+def _progress(message, quiet):
+    """ Show a progress message to the user.
+
+    :param message:
+        The text of the message (without a newline).
+    :param quiet:
+        Set if progress messages should be suppressed.
+    """
+
+    if not quiet:
+        sys.stdout.write(message)
+        sys.stdout.write("\n")
+
+
+def _rooted_name(root, *path):
+    """ Convert a sequence of path components to a name below a root directory.
+
+    :param root:
+        The name of the root directory.
+    :param \*path:
+        The sequence of path components.
+    :return:
+        The name.
+    """
+
+    name = os.path.join(*path)
+    name = os.path.join(root, name)
+
+    return name
+
+
+def _remove_file(name, quiet):
+    """ Remove a file, ignoring any errors.
+
+    :param name:
+        The name of the file.
+    :param quiet:
+        Set if progress messages should be suppressed.
+    """
+
+    _progress("Removing %s" % name, quiet)
 
     try:
-        shutil.rmtree(Package,1)
+        os.remove(name)
     except:
         pass
 
 
-def lcopy(lfile,src,dst):
-    """Copy a file from source to destination inserting a license if required.
+def _create_directory(name, quiet):
+    """ Create a directory.
 
-    lfile is the name of the license file.
-    src  is the name of the source file.
-    dst is the name of the destination file.
+    :param name:
+        The name of the directory.
+    :param quiet:
+        Set if progress messages should be suppressed.
     """
-    # Use the short version of the license if there is one.
-    if os.access(lfile + ".short",os.F_OK):
-        lfile += ".short"
 
-    sf = open(src,"r")
-    df = open(dst,"w")
+    _progress("Creating directory %s" % name, quiet)
 
-    line = sf.readline()
-
-    while line:
-        lpos = line.find("@BS_LICENSE@")
-
-        if lpos >= 0:
-            print "Licensing", dst
-
-            prefix = line[:lpos]
-
-            lf = open(lfile)
-
-            lline = lf.readline()
-
-            while lline:
-                df.write(prefix + lline)
-                lline = lf.readline()
-
-            lf.close()
-        else:
-            df.write(line)
-
-        line = sf.readline()
-
-    sf.close()
-    df.close()
-
-    shutil.copymode(src,dst)
+    try:
+        os.mkdir(name)
+    except:
+        pass
 
 
-def lcopydir(lfile,src,dst):
-    """Copy the files from a source directory to a destination directory
-    inserting a license if required.
+def _remove_directory(name, quiet):
+    """ Remove a directory, ignoring any errors.
 
-    lfile is the name of the license file.
-    src is the name of the source directory.
-    dst is the name of the destination directory which is created
-    automatically.
+    :param name:
+        The name of the directory.
+    :param quiet:
+        Set if progress messages should be suppressed.
     """
-    os.mkdir(dst)
 
-    for f in os.listdir(src):
-        sf = src + "/" + f
-        df = dst + "/" + f
-
-        if not stat.S_ISDIR(os.stat(sf).st_mode):
-            lcopy(lfile,sf,df)
+    _progress("Removing directory %s" % name, quiet)
+    shutil.rmtree(name, ignore_errors=True)
 
 
-def copydir(src, dst=None):
-    """Copy a source directory to the package directory without any changes.
+def _patch_files(root, quiet, clean_patches):
+    """ Patch the required files to contain the correct version information.
 
-    src is the name of the directory.
+    :param root:
+        The name of the root directory.
+    :param quiet:
+        Set if progress messages should be suppressed.
+    :param clean_patches:
+        Set if the original files should be removed after creating the patched
+        version.
     """
-    if not dst:
-        dst = os.path.join(Package, src)
 
-    slen = len(src.split(os.path.sep))
+    release, numeric_version = _get_release()
 
-    for sroot, sdirs, sfiles in os.walk(src):
-        if ".svn" in sdirs:
-            sdirs.remove(".svn")
+    hex_version = ''
+    for part in numeric_version.split('.'):
+        hex_version = '%s%02x' % (hex_version, int(part))
 
-        droot = dst
-        for p in sroot.split(os.path.sep)[slen:]:
-            droot = os.path.join(droot, p)
+    for f in _PatchedFiles:
+        dst_fn = _rooted_name(root, *f)
+        src_fn = dst_fn + '.in'
 
-        os.mkdir(droot)
+        _progress("Creating %s from %s" % (dst_fn, src_fn), quiet)
 
-        for sf in sfiles:
-            sfname = os.path.join(sroot, sf)
-            dfname = os.path.join(droot, sf)
-            shutil.copy(sfname, dfname)
+        dst = open(dst_fn, 'w')
+        src = open(src_fn)
+
+        for line in src:
+            line = line.replace('@RM_RELEASE@', release)
+            line = line.replace('@RM_VERSION@', numeric_version)
+            line = line.replace('@RM_HEXVERSION@', hex_version)
+
+            dst.write(line)
+
+        dst.close()
+        src.close()
+
+        if clean_patches:
+            _remove_file(src_fn, quiet)
 
 
-def mkdistdir(lfile):
-    """Create the distribution directory and copy in all the required files.
+def _misc_prepare(root, quiet):
+    """ Perform any additional location dependent preparation.
 
-    lfile is the license file to use.
+    :param root:
+        The name of the root directory.
+    :param quiet:
+        Set if progress messages should be suppressed.
     """
-    print "Creating the distribution directory"
 
-    root_dir = os.getcwd()
-
-    os.mkdir(Package)
-
-    shutil.copy("NEWS",Package)
-    shutil.copy("ChangeLog",Package)
-    shutil.copy("lib/README",Package)
-    shutil.copy("lib/sipdistutils.py",Package)
-    shutil.copy("lib/LICENSE-GPL2.txt",Package)
-    shutil.copy("lib/LICENSE-GPL3.txt",Package)
-    os.system("srepo release <%s >%s/LICENSE" % (lfile, Package))
-
-    lcopy(lfile,"lib/configure.py","configure.py.in")
-    os.system("srepo release <configure.py.in >%s/configure.py" % Package)
-    os.remove("configure.py.in")
-
-    lcopy(lfile,"lib/siputils.py",Package + "/siputils.py")
-
-    print "Installing qmake configuration files"
-    copydir("specs")
-
-    print "Installing custom interpreter skeleton"
-    copydir("custom")
-
-    lcopydir(lfile,"sipgen",Package + "/sipgen")
-    os.system("srepo release <%s/sipgen/main.c >%s/sipgen/main.c.new" % (Package,Package))
-    os.chdir(Package + "/sipgen")
-    os.rename("main.c.new","main.c")
-
-    # Some makes (HP-UX seems to be one) seem to consider a file is out of date
-    # if it has the same modification time.  Therefore we wait a while to make
-    # sure the generated files have later timestamps.
-    time.sleep(2)
-
-    os.system("flex -olexer.c.tmp lexer.l")
-    os.system("sed -e 's/#include <unistd.h>//' <lexer.c.tmp >lexer.c")
-    os.remove("lexer.c.tmp")
-    os.system("bison -y -d -o parser.c parser.y")
-
-    os.chdir(root_dir)
-
-    lcopydir(lfile,"siplib",Package + "/siplib")
-    os.system("srepo release <%s/siplib/sip.h >%s/siplib/sip.h.new" % (Package,Package))
-    os.rename(Package + "/siplib/sip.h.new",Package + "/siplib/sip.h")
+    # Sphinx will warn if there is no 'static' directory event though it is
+    # unused and empty.
+    _create_directory(_rooted_name(root, 'sphinx', 'static'), quiet)
 
 
-def mkdocs():
-    print "Installing the documentation"
+def _run_tools(root, quiet):
+    """ Run flex and bison.  This should really be done from make but the SIP
+    build system doesn't support it - and it will be gone in SIP v5 anyway.
 
-    root_dir = os.getcwd()
-
-    copydir("sphinx")
-    sphinx = os.path.join(Package, "sphinx")
-    os.system("srepo release <sphinx/conf.py >%s/conf.py" % sphinx)
-
-    os.chdir(sphinx)
-    os.system("make html")
-    os.chdir(root_dir)
-
-    doc_dir = os.path.join(Package, 'doc')
-    os.mkdir(doc_dir)
-    html_dir = os.path.join(doc_dir, 'html')
-    copydir(os.path.join(sphinx, 'build', 'html'), html_dir)
-    os.remove(os.path.join(html_dir, '.buildinfo'))
-
-    os.chdir(sphinx)
-    os.system("make clean")
-    os.chdir(root_dir)
-
-
-def tgzdist(root):
-    """Create a tarball distribution.
-
-    root is the root directory of the distribution.
+    :param root:
+        The name of the root directory.
+    :param quiet:
+        Set if progress messages should be suppressed.
     """
-    print "Creating .tar.gz file"
 
-    os.system("tar zcf %s.tar.gz %s" % (root,root))
+    sipgen = _rooted_name(root, 'sipgen')
+
+    lexer = os.path.join(sipgen, 'lexer')
+    _progress("Running flex to create %s.c" % lexer, quiet)
+    os.system('flex -o%s.c %s.l' % (lexer, lexer))
+
+    parser = os.path.join(sipgen, 'parser')
+    _progress("Running bison to create %s.c" % parser, quiet)
+    os.system('bison -y -d -o %s.c %s.y' % (parser, parser))
 
 
-def zipdist(root):
-    """Create a zip distribution.
+def _run_sphinx(root='.', quiet=True, clean=False):
+    """ Run Sphinx to create the HTML documentation.
 
-    root is the root directory of the distribution.
+    :param root:
+        The name of the root directory.
+    :param quiet:
+        Set if progress messages should be suppressed.
+    :param clean:
+        Set if the .buildinfo file and .doctrees directory should be removed.
     """
-    print "Creating .zip file"
 
-    os.system("zip -r -9 %s.zip %s" % (root,root))
+    sphinx = _rooted_name(root, 'sphinx')
+    doc = _rooted_name(root, 'doc')
 
+    html = os.path.join(doc, 'html')
 
-# Parse the command line.
-
-import getopt
-
-PkgFormat = None
-
-try:
-    optlist, args = getopt.getopt(sys.argv[1:],"p:")
-except getopt.GetoptError:
-    print "Invalid option"
-    sys.exit(1)
-
-for opt, arg in optlist:
-    if opt == "-p":
-        if arg not in ("zip", "tgz"):
-            print "Invalid package format"
-            sys.exit(1)
-
-        PkgFormat = arg
-
-
-# Do the build.
-
-clean()
-mkdistdir("lib/LICENSE")
-
-
-if PkgFormat:
-    mkdocs()
-
-    p = os.popen("srepo query")
-    vers = p.readline().strip()
-    p.close()
-
-    pkgroot = Package + "-" + vers
-
-    os.rename(Package,pkgroot)
-
-    if PkgFormat == "zip":
-        zipdist(pkgroot)
+    if quiet:
+        qflag = ' -q'
     else:
-        tgzdist(pkgroot)
+        qflag = ''
 
-    os.rename(pkgroot,Package)
+    _progress("Creating HTML documentation in %s" % html, quiet)
+    os.system('sphinx-build%s -b html %s %s' % (qflag, sphinx, html))
+
+    if clean:
+        _remove_file(os.path.join(html, '.buildinfo'), quiet)
+        _remove_directory(os.path.join(html, '.doctrees'), quiet)
 
 
-sys.exit(0)
+def _prepare_root(root='.', quiet=True, clean_patches=False):
+    """ Prepare a root directory.
+
+    :param root:
+        The name of the root directory.
+    :param quiet:
+        Set if progress messages should be suppressed.
+    :param clean_patches:
+        Set if the original files should be removed after creating the patched
+        version.
+    """
+
+    _patch_files(root, quiet, clean_patches)
+    _run_tools(root, quiet)
+    _misc_prepare(root, quiet)
+
+
+def _clean_root(root='.', quiet=True):
+    """ Clean up a root directory.
+
+    :param root:
+        The name of the root directory.
+    :param quiet:
+        Set if progress messages should be suppressed.
+    """
+
+    for f in _PatchedFiles:
+        _remove_file(_rooted_name(root, *f), quiet)
+
+    for f in _GeneratedFiles:
+        _remove_file(_rooted_name(root, *f), quiet)
+
+    for dirpath, dirnames, filenames in os.walk(root):
+        try:
+            dirnames.remove('.hg')
+        except ValueError:
+            pass
+
+        for f in filenames:
+            for ext in _GeneratedFileTypes:
+                if f.endswith(ext):
+                    name = os.path.join(dirpath, f)
+                    _remove_file(name, quiet)
+
+    for d in _GeneratedDirs:
+        _remove_directory(_rooted_name(root, *d), quiet)
+
+
+def clean(quiet=True):
+    """remove all files not stored in the repository"""
+
+    _clean_root(quiet=quiet)
+
+    release, _ = _get_release()
+    package = 'sip-' + release
+    _remove_directory(package, quiet)
+
+
+def doc(quiet=True):
+    """create the documentation"""
+
+    _run_sphinx(quiet=quiet)
+
+
+def prepare(quiet=True):
+    """prepare for configuration and building"""
+
+    _prepare_root(quiet=quiet)
+
+
+def release(quiet=True):
+    """generate a release package"""
+
+    release, _ = _get_release()
+
+    package = 'sip-' + release
+    _remove_directory(package, quiet)
+    _create_directory(package, quiet)
+
+    for f in _ReleasedFiles:
+        _progress("Adding file %s to release" % f, quiet)
+        shutil.copy2(f, package)
+
+    for d in _ReleasedDirs:
+        _progress("Adding directory %s to release" % d, quiet)
+        shutil.copytree(d, os.path.join(package, d))
+
+    _clean_root(root=package, quiet=quiet)
+    _prepare_root(root=package, quiet=quiet, clean_patches=True)
+    _run_sphinx(root=package, quiet=quiet, clean=True)
+
+    tar_package = package + '.tar.gz'
+    _progress("Creating package %s" % tar_package, quiet)
+    tf = tarfile.open(tar_package, 'w:gz')
+    tf.add(package)
+    tf.close()
+
+    zip_package = package + '.zip'
+    _progress("Creating package %s" % zip_package, quiet)
+    zf = zipfile.ZipFile(zip_package, 'w', zipfile.ZIP_DEFLATED)
+
+    for dirpath, dirnames, filenames in os.walk(package):
+        for f in filenames:
+            zf.write(os.path.join(dirpath, f))
+
+    zf.close()
+
+
+def version(quiet=True):
+    """query the version of the package"""
+
+    release, _ = _get_release()
+
+    sys.stdout.write(release + "\n")
+
+
+if __name__ == '__main__':
+
+    import optparse
+
+    actions = (clean, doc, prepare, release, version)
+
+    class MyParser(optparse.OptionParser):
+
+        def get_usage(self):
+            """ Reimplemented to add the description of the actions.  We don't
+            use the description because the default formatter strips newlines.
+            """
+
+            usage = optparse.OptionParser.get_usage(self)
+
+            usage += "\n" + __doc__ + "\nActions:\n"
+
+            for action in actions:
+                usage += "  %-7s  %s\n" % (action.func_name, action.func_doc)
+
+            return usage
+
+    action_names = [action.func_name for action in actions]
+
+    release, _ = _get_release()
+
+    parser = MyParser(
+            usage="%%prog [options] %s" % '|'.join(action_names),
+            version=release)
+
+    parser.add_option("-q", "--quiet", action='store_true', default=False,
+            dest='quiet', help="suppress progress messages")
+
+    options, args = parser.parse_args()
+
+    if len(args) != 1:
+        parser.print_help()
+        sys.exit(1)
+
+    for action in actions:
+        if action.func_name == args[0]:
+            action(quiet=options.quiet)
+            break
+    else:
+        parser.print_help()
+        sys.exit(1)
+
+    sys.exit()
