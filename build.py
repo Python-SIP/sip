@@ -90,12 +90,30 @@ def _release_tag(ctx):
     return None
 
 
+def _format_changelog(ctx):
+    """ Format the log message for a changeset.
+
+    :param ctx:
+        The Mercurial change context containing the tags.
+    :return:
+        The formatted change log.
+    """
+
+    from mercurial.util import datestr
+
+    date = datestr(ctx.date(), '%a, %d %b %Y %H:%M:%S %1%2')
+
+    log = "Changeset %s at %s\n%s" % (str(ctx), date, ctx.description())
+
+    return log
+
+
 def _get_release():
     """ Get the release of the package.
 
     :return:
-        A tuple of the full release name, the version number and the
-        hexadecimal version number (all as strings).
+        A tuple of the full release name, the version number, the hexadecimal
+        version number and a list of changelog entries (all as strings).
     """
 
     # The root directory should contain dot files that tell us what sort of
@@ -122,7 +140,7 @@ def _get_release():
         else:
             release_suffix = '-' + str(ctx)
 
-        # FIXME: Get the change log entry.
+        changelog = [_format_changelog(ctx)]
 
         # Go back through the line of the first parent to find the last
         # release.
@@ -132,7 +150,7 @@ def _get_release():
         while len(parents) != 0:
             parent_ctx = parents[0]
 
-            # FIXME: Get the change log entry.
+            changelog.append(_format_changelog(parent_ctx))
 
             parent_version = _release_tag(parent_ctx)
             if parent_version is not None:
@@ -157,6 +175,7 @@ def _get_release():
     else:
         # Handle a Mercurial archive.
 
+        changelog = None
         name = os.path.basename(_RootDir)
 
         release_suffix = "-unknown"
@@ -184,7 +203,7 @@ def _get_release():
     release = '%s%s%s' % (release_prefix, version, release_suffix)
     hex_version = '%02x%02x%02x' % (major, minor, micro)
 
-    return release, version, hex_version
+    return release, version, hex_version, changelog
 
 
 def _progress(message, quiet):
@@ -282,7 +301,7 @@ def _patch_files(package, quiet, clean_patches):
         version.
     """
 
-    release, version, hex_version = _get_release()
+    release, version, hex_version, _ = _get_release()
 
     for f in _PatchedFiles:
         dst_fn = _rooted_name(package, *f)
@@ -423,12 +442,27 @@ def _clean_root(package=None, quiet=True):
         _remove_directory(_rooted_name(package, *d), quiet)
 
 
+def changelog(quiet=True, out_file=None):
+    """get the relevant changelog entries"""
+
+    _, _, _, changelog = _get_release()
+
+    if changelog is None:
+        sys.stderr.write("Unable to produce a changelog without a repository\n")
+        sys.exit(2)
+
+    if out_file is None:
+        out_file = sys.stdout
+
+    out_file.write("\n\n".join(changelog) + "\n")
+
+
 def clean(quiet=True):
     """remove all files not stored in the repository"""
 
     _clean_root(quiet=quiet)
 
-    release, _, _ = _get_release()
+    release, _, _, _ = _get_release()
     package = 'sip-' + release
     _remove_directory(package, quiet)
 
@@ -448,7 +482,7 @@ def prepare(quiet=True):
 def release(quiet=True):
     """generate a release package"""
 
-    release, _, _ = _get_release()
+    release, _, _, _ = _get_release()
 
     package = 'sip-' + release
     _remove_directory(package, quiet)
@@ -486,7 +520,7 @@ def release(quiet=True):
 def version(quiet=True):
     """query the version of the package"""
 
-    release, _, _ = _get_release()
+    release, _, _, _ = _get_release()
 
     sys.stdout.write(release + "\n")
 
@@ -495,7 +529,7 @@ if __name__ == '__main__':
 
     import optparse
 
-    actions = (clean, doc, prepare, release, version)
+    actions = (changelog, clean, doc, prepare, release, version)
 
     class MyParser(optparse.OptionParser):
 
@@ -515,7 +549,7 @@ if __name__ == '__main__':
 
     action_names = [action.func_name for action in actions]
 
-    release, _, _ = _get_release()
+    release, _, _, _ = _get_release()
 
     parser = MyParser(
             usage="%%prog [options] %s" % '|'.join(action_names),
