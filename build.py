@@ -58,6 +58,9 @@ _ReleasedFiles = ('configure.py.in', 'LICENSE', 'LICENSE-GPL2', 'LICENSE-GPL3',
 # Directories in a release.
 _ReleasedDirs = ('custom', 'sipgen', 'siplib', 'specs', 'sphinx')
 
+# The root directory, i.e. the one containing this script.
+_RootDir = os.path.dirname(os.path.abspath(__file__))
+
 
 def _get_release():
     """ Get the release of the package.
@@ -66,19 +69,18 @@ def _get_release():
         A tuple of the full version number and as a three part number.
     """
 
-    # Get the name of the directory containing this file.  It should contain
-    # dot files that tell us what sort of package we are.
-    base_dir = os.path.dirname(os.path.abspath(__file__))
+    # The root directory should contain dot files that tell us what sort of
+    # package we are.
 
     numeric_version = '99.99.99'
 
-    if os.path.exists(os.path.join(base_dir, '.hg')):
+    if os.path.exists(os.path.join(_RootDir, '.hg')):
         # Handle a Mercurial repository.
 
         from mercurial import hg, ui
 
         # Get the repository.
-        repo = hg.repository(ui.ui(), '.')
+        repo = hg.repository(ui.ui(), _RootDir)
 
         # The changeset we want is the "parent" of the working directory.
         ctx = repo[None].parents()[0]
@@ -92,13 +94,13 @@ def _get_release():
             branch = ctx.branch()
 
             if branch != 'default':
-                numeric_version = '%s.99' % branch
+                numeric_version = '%s.99' % branch.split('-')[0]
 
             version = 'snapshot-%s-%s' % (numeric_version, changeset)
     else:
         # Handle a Mercurial archive.
 
-        name = os.path.basename(base_dir)
+        name = os.path.basename(_RootDir)
         changeset = "unknown"
 
         parts = name.split('-')
@@ -128,11 +130,12 @@ def _progress(message, quiet):
         sys.stdout.write("\n")
 
 
-def _rooted_name(root, *path):
-    """ Convert a sequence of path components to a name below a root directory.
+def _rooted_name(package, *path):
+    """ Convert a sequence of path components to a name below the root
+    directory.
 
-    :param root:
-        The name of the root directory.
+    :param package:
+        The name of the optional package directory.
     :param \*path:
         The sequence of path components.
     :return:
@@ -140,7 +143,11 @@ def _rooted_name(root, *path):
     """
 
     name = os.path.join(*path)
-    name = os.path.join(root, name)
+
+    if package is not None:
+        name = os.path.join(package, name)
+
+    name = os.path.join(_RootDir, name)
 
     return name
 
@@ -192,11 +199,11 @@ def _remove_directory(name, quiet):
     shutil.rmtree(name, ignore_errors=True)
 
 
-def _patch_files(root, quiet, clean_patches):
+def _patch_files(package, quiet, clean_patches):
     """ Patch the required files to contain the correct version information.
 
-    :param root:
-        The name of the root directory.
+    :param package:
+        The name of the optional package directory.
     :param quiet:
         Set if progress messages should be suppressed.
     :param clean_patches:
@@ -211,10 +218,10 @@ def _patch_files(root, quiet, clean_patches):
         hex_version = '%s%02x' % (hex_version, int(part))
 
     for f in _PatchedFiles:
-        dst_fn = _rooted_name(root, *f)
+        dst_fn = _rooted_name(package, *f)
         src_fn = dst_fn + '.in'
 
-        _progress("Creating %s from %s" % (dst_fn, src_fn), quiet)
+        _progress("Patching %s" % dst_fn, quiet)
 
         dst = open(dst_fn, 'w')
         src = open(src_fn)
@@ -233,31 +240,31 @@ def _patch_files(root, quiet, clean_patches):
             _remove_file(src_fn, quiet)
 
 
-def _misc_prepare(root, quiet):
+def _misc_prepare(package, quiet):
     """ Perform any additional location dependent preparation.
 
-    :param root:
-        The name of the root directory.
+    :param package:
+        The name of the optional package directory.
     :param quiet:
         Set if progress messages should be suppressed.
     """
 
     # Sphinx will warn if there is no 'static' directory event though it is
     # unused and empty.
-    _create_directory(_rooted_name(root, 'sphinx', 'static'), quiet)
+    _create_directory(_rooted_name(package, 'sphinx', 'static'), quiet)
 
 
-def _run_tools(root, quiet):
+def _run_tools(package, quiet):
     """ Run flex and bison.  This should really be done from make but the SIP
     build system doesn't support it - and it will be gone in SIP v5 anyway.
 
-    :param root:
-        The name of the root directory.
+    :param package:
+        The name of the optional package directory.
     :param quiet:
         Set if progress messages should be suppressed.
     """
 
-    sipgen = _rooted_name(root, 'sipgen')
+    sipgen = _rooted_name(package, 'sipgen')
 
     lexer = os.path.join(sipgen, 'lexer')
     _progress("Running flex to create %s.c" % lexer, quiet)
@@ -268,19 +275,19 @@ def _run_tools(root, quiet):
     os.system('bison -y -d -o %s.c %s.y' % (parser, parser))
 
 
-def _run_sphinx(root='.', quiet=True, clean=False):
+def _run_sphinx(package=None, quiet=True, clean=False):
     """ Run Sphinx to create the HTML documentation.
 
-    :param root:
-        The name of the root directory.
+    :param package:
+        The name of the optional package directory.
     :param quiet:
         Set if progress messages should be suppressed.
     :param clean:
         Set if the .buildinfo file and .doctrees directory should be removed.
     """
 
-    sphinx = _rooted_name(root, 'sphinx')
-    doc = _rooted_name(root, 'doc')
+    sphinx = _rooted_name(package, 'sphinx')
+    doc = _rooted_name(package, 'doc')
 
     html = os.path.join(doc, 'html')
 
@@ -297,7 +304,7 @@ def _run_sphinx(root='.', quiet=True, clean=False):
         _remove_directory(os.path.join(html, '.doctrees'), quiet)
 
 
-def _prepare_root(root='.', quiet=True, clean_patches=False):
+def _prepare_root(root=None, quiet=True, clean_patches=False):
     """ Prepare a root directory.
 
     :param root:
@@ -314,20 +321,24 @@ def _prepare_root(root='.', quiet=True, clean_patches=False):
     _misc_prepare(root, quiet)
 
 
-def _clean_root(root='.', quiet=True):
-    """ Clean up a root directory.
+def _clean_root(package=None, quiet=True):
+    """ Clean up the directory.
 
-    :param root:
-        The name of the root directory.
+    :param package:
+        The name of the optional package directory.
     :param quiet:
         Set if progress messages should be suppressed.
     """
 
     for f in _PatchedFiles:
-        _remove_file(_rooted_name(root, *f), quiet)
+        _remove_file(_rooted_name(package, *f), quiet)
 
     for f in _GeneratedFiles:
-        _remove_file(_rooted_name(root, *f), quiet)
+        _remove_file(_rooted_name(package, *f), quiet)
+
+    root = _RootDir
+    if package is not None:
+        root = os.path.join(root, package)
 
     for dirpath, dirnames, filenames in os.walk(root):
         try:
@@ -342,7 +353,7 @@ def _clean_root(root='.', quiet=True):
                     _remove_file(name, quiet)
 
     for d in _GeneratedDirs:
-        _remove_directory(_rooted_name(root, *d), quiet)
+        _remove_directory(_rooted_name(package, *d), quiet)
 
 
 def clean(quiet=True):
