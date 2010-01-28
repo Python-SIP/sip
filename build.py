@@ -388,11 +388,11 @@ def _run_sphinx(package=None, quiet=True, clean=False):
         _remove_directory(os.path.join(html, '.doctrees'), quiet)
 
 
-def _prepare_root(root=None, quiet=True, clean_patches=False):
-    """ Prepare a root directory.
+def _prepare_root(package=None, quiet=True, clean_patches=False):
+    """ Prepare a directory.
 
-    :param root:
-        The name of the root directory.
+    :param package:
+        The name of the optional package directory.
     :param quiet:
         Set if progress messages should be suppressed.
     :param clean_patches:
@@ -400,13 +400,13 @@ def _prepare_root(root=None, quiet=True, clean_patches=False):
         version.
     """
 
-    _patch_files(root, quiet, clean_patches)
-    _run_tools(root, quiet)
-    _misc_prepare(root, quiet)
+    _patch_files(package, quiet, clean_patches)
+    _run_tools(package, quiet)
+    _misc_prepare(package, quiet)
 
 
 def _clean_root(package=None, quiet=True):
-    """ Clean up the directory.
+    """ Clean up a directory.
 
     :param package:
         The name of the optional package directory.
@@ -494,9 +494,9 @@ def release(quiet=True):
         _progress("Adding directory %s to release" % d, quiet)
         shutil.copytree(d, os.path.join(package, d))
 
-    _clean_root(root=package, quiet=quiet)
-    _prepare_root(root=package, quiet=quiet, clean_patches=True)
-    _run_sphinx(root=package, quiet=quiet, clean=True)
+    _clean_root(package=package, quiet=quiet)
+    _prepare_root(package=package, quiet=quiet, clean_patches=True)
+    _run_sphinx(package=package, quiet=quiet, clean=True)
 
     tar_package = package + '.tar.gz'
     _progress("Creating package %s" % tar_package, quiet)
