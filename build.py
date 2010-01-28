@@ -101,9 +101,7 @@ def _format_changelog(ctx):
 
     from mercurial.util import datestr
 
-    date = datestr(ctx.date(), '%a, %d %b %Y %H:%M:%S %1%2')
-
-    log = "Changeset %s at %s\n%s" % (str(ctx), date, ctx.description())
+    log = "changeset:   %s\ndate:        %s\n%s" % (str(ctx), datestr(ctx.date()), ctx.description())
 
     return log
 
