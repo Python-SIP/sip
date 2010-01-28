@@ -62,17 +62,47 @@ _ReleasedDirs = ('custom', 'sipgen', 'siplib', 'specs', 'sphinx')
 _RootDir = os.path.dirname(os.path.abspath(__file__))
 
 
+def _release_tag(ctx):
+    """ Get the release tag (i.e. a tag of the form x.y[.z]) converted to a
+    3-tuple of integers if there is one.
+
+    :param ctx:
+        The Mercurial change context containing the tags.
+    :return:
+        The 3-tuple of integers or None if there was no release tag.
+    """
+
+    for tag in ctx.tags():
+        if tag != 'tip':
+            parts = tag.split('.')
+
+            if len(parts) == 2:
+                parts.append('0')
+
+            if len(parts) == 3:
+                major, minor, micro = parts
+
+                try:
+                    return (int(major), int(minor), int(micro))
+                except ValueError:
+                    pass
+
+    return None
+
+
 def _get_release():
     """ Get the release of the package.
 
     :return:
-        A tuple of the full version number and as a three part number.
+        A tuple of the full release name, the version number and the
+        hexadecimal version number (all as strings).
     """
 
     # The root directory should contain dot files that tell us what sort of
     # package we are.
 
-    numeric_version = '99.99.99'
+    release_prefix = 'snapshot-'
+    release_suffix = ''
 
     if os.path.exists(os.path.join(_RootDir, '.hg')):
         # Handle a Mercurial repository.
@@ -85,23 +115,52 @@ def _get_release():
         # The changeset we want is the "parent" of the working directory.
         ctx = repo[None].parents()[0]
 
-        for tag in ctx.tags():
-            if tag != 'tip':
-                version = numeric_version = tag
-                break
+        version = _release_tag(ctx)
+
+        if version is not None:
+            release_prefix = ''
         else:
-            changeset = str(ctx)
-            branch = ctx.branch()
+            release_suffix = '-' + str(ctx)
 
-            if branch != 'default':
-                numeric_version = '%s.99' % branch.split('-')[0]
+        # FIXME: Get the change log entry.
 
-            version = 'snapshot-%s-%s' % (numeric_version, changeset)
+        # Go back through the line of the first parent to find the last
+        # release.
+        parent_version = None
+
+        parents = ctx.parents()
+        while len(parents) != 0:
+            parent_ctx = parents[0]
+
+            # FIXME: Get the change log entry.
+
+            parent_version = _release_tag(parent_ctx)
+            if parent_version is not None:
+                break
+
+            parents = parent_ctx.parents()
+
+        if version is None and parent_version is not None:
+            # This is a snapshot so work out what the next version will be
+            # based on the previous version.
+            major, minor, micro = parent_version
+
+            if ctx.branch() == 'default':
+                minor += 1
+
+                # This should be 0 anyway.
+                micro = 0
+            else:
+                micro += 1
+
+            version = (major, minor, micro)
     else:
         # Handle a Mercurial archive.
 
         name = os.path.basename(_RootDir)
-        changeset = "unknown"
+
+        release_suffix = "-unknown"
+        version = None
 
         parts = name.split('-')
         if len(parts) > 1:
@@ -109,11 +168,23 @@ def _get_release():
 
             if len(name) == 12:
                 # This is the best we can do without access to the repository.
-                changeset = name
+                release_suffix = '-' + name
 
-        version = 'snapshot-%s-%s' % (numeric_version, changeset)
+    # Format the results.
+    if version is None:
+        version = (99, 99, 99)
 
-    return version, numeric_version
+    major, minor, micro = version
+
+    if micro == 0:
+        version = '%d.%d' % (major, minor)
+    else:
+        version = '%d.%d.%d' % (major, minor, micro)
+
+    release = '%s%s%s' % (release_prefix, version, release_suffix)
+    hex_version = '%02x%02x%02x' % (major, minor, micro)
+
+    return release, version, hex_version
 
 
 def _progress(message, quiet):
@@ -211,11 +282,7 @@ def _patch_files(package, quiet, clean_patches):
         version.
     """
 
-    release, numeric_version = _get_release()
-
-    hex_version = ''
-    for part in numeric_version.split('.'):
-        hex_version = '%s%02x' % (hex_version, int(part))
+    release, version, hex_version = _get_release()
 
     for f in _PatchedFiles:
         dst_fn = _rooted_name(package, *f)
@@ -228,7 +295,7 @@ def _patch_files(package, quiet, clean_patches):
 
         for line in src:
             line = line.replace('@RM_RELEASE@', release)
-            line = line.replace('@RM_VERSION@', numeric_version)
+            line = line.replace('@RM_VERSION@', version)
             line = line.replace('@RM_HEXVERSION@', hex_version)
 
             dst.write(line)
@@ -361,7 +428,7 @@ def clean(quiet=True):
 
     _clean_root(quiet=quiet)
 
-    release, _ = _get_release()
+    release, _, _ = _get_release()
     package = 'sip-' + release
     _remove_directory(package, quiet)
 
@@ -381,7 +448,7 @@ def prepare(quiet=True):
 def release(quiet=True):
     """generate a release package"""
 
-    release, _ = _get_release()
+    release, _, _ = _get_release()
 
     package = 'sip-' + release
     _remove_directory(package, quiet)
@@ -419,7 +486,7 @@ def release(quiet=True):
 def version(quiet=True):
     """query the version of the package"""
 
-    release, _ = _get_release()
+    release, _, _ = _get_release()
 
     sys.stdout.write(release + "\n")
 
@@ -448,7 +515,7 @@ if __name__ == '__main__':
 
     action_names = [action.func_name for action in actions]
 
-    release, _ = _get_release()
+    release, _, _ = _get_release()
 
     parser = MyParser(
             usage="%%prog [options] %s" % '|'.join(action_names),
