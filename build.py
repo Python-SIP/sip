@@ -440,23 +440,36 @@ def _clean_root(package=None, quiet=True):
         _remove_directory(_rooted_name(package, *d), quiet)
 
 
-def changelog(quiet=True, out_file=None):
-    """get the relevant changelog entries"""
+def changelog(output, quiet=True):
+    """ The description of each change set going back to the last release are
+    written to a file object.
+
+    :param output:
+        The file object that the log is written to.
+    :param quiet:
+        Set if progress messages should be suppressed.
+    :return:
+        True if the log was written or False if the information wasn't
+        available (because this is a Mercurial archive).
+    """
 
     _, _, _, changelog = _get_release()
 
     if changelog is None:
-        sys.stderr.write("Unable to produce a changelog without a repository\n")
-        sys.exit(2)
+        return False
 
-    if out_file is None:
-        out_file = sys.stdout
+    output.write("\n\n".join(changelog) + "\n")
 
-    out_file.write("\n\n".join(changelog) + "\n")
+    return True
 
 
 def clean(quiet=True):
-    """remove all files not stored in the repository"""
+    """ Clean by removing all files and directories not stored in the
+    repository.
+
+    :param quiet:
+        Set if progress messages should be suppressed.
+    """
 
     _clean_root(quiet=quiet)
 
@@ -466,19 +479,32 @@ def clean(quiet=True):
 
 
 def doc(quiet=True):
-    """create the documentation"""
+    """ Create the documentation.
+
+    :param quiet:
+        Set if progress messages should be suppressed.
+    """
 
     _run_sphinx(quiet=quiet)
 
 
 def prepare(quiet=True):
-    """prepare for configuration and building"""
+    """ Prepare for configuration and building by creating all the required
+    additional files.
+
+    :param quiet:
+        Set if progress messages should be suppressed.
+    """
 
     _prepare_root(quiet=quiet)
 
 
 def release(quiet=True):
-    """generate a release package"""
+    """ Generate a set of release packages.
+
+    :param quiet:
+        Set if progress messages should be suppressed.
+    """
 
     release, _, _, _ = _get_release()
 
@@ -516,18 +542,67 @@ def release(quiet=True):
 
 
 def version(quiet=True):
-    """query the version of the package"""
+    """ Get the full version name of the package.  If it is a release then it
+    will be of the form x.y[.z].  If it is a snapshot then it will be of the
+    form snapshot-x.y[.z]-changeset where x.y[.z] is the version number of the
+    next release (not the previous one).  If this is a Mercurial archive
+    (rather than a repository) then it does the best it can (based on the name
+    of the directory) with the limited information available.
+
+    :param quiet:
+        Set if progress messages should be suppressed.
+    :return:
+        The full version name.
+    """
 
     release, _, _, _ = _get_release()
 
-    sys.stdout.write(release + "\n")
+    return release
 
 
 if __name__ == '__main__':
 
-    import optparse
+    def _changelog(options):
+        """get the changelog entries since the last release"""
 
-    actions = (changelog, clean, doc, prepare, release, version)
+        if not changelog(sys.stdout, quiet=options.quiet):
+            sys.stderr.write("Unable to produce a changelog without a repository\n")
+            sys.exit(2)
+
+
+    def _clean(options):
+        """remove all files not stored in the repository"""
+
+        clean(quiet=options.quiet)
+
+
+    def _doc(options):
+        """create the documentation"""
+
+        doc(quiet=options.quiet)
+
+
+    def _prepare(options):
+        """prepare for configuration and building"""
+
+        prepare(quiet=options.quiet)
+
+
+    def _release(options):
+        """generate release packages"""
+
+        release(quiet=options.quiet)
+
+
+    def _version(options):
+        """query the version of the package"""
+
+        sys.stdout.write(version(quiet=options.quiet) + "\n")
+
+
+    actions = (_changelog, _clean, _doc, _prepare, _release, _version)
+
+    import optparse
 
     class MyParser(optparse.OptionParser):
 
@@ -541,11 +616,12 @@ if __name__ == '__main__':
             usage += "\n" + __doc__ + "\nActions:\n"
 
             for action in actions:
-                usage += "  %-7s  %s\n" % (action.func_name, action.func_doc)
+                usage += "  %-9s  %s\n" % (action.func_name[1:], action.func_doc)
 
             return usage
 
-    action_names = [action.func_name for action in actions]
+
+    action_names = [action.func_name[1:] for action in actions]
 
     release, _, _, _ = _get_release()
 
@@ -563,8 +639,8 @@ if __name__ == '__main__':
         sys.exit(1)
 
     for action in actions:
-        if action.func_name == args[0]:
-            action(quiet=options.quiet)
+        if action.func_name[1:] == args[0]:
+            action(options)
             break
     else:
         parser.print_help()
