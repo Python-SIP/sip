@@ -15,5 +15,5 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 target = sip
-sources = siplib.c apiversions.c descriptors.c qtlib.c threads.c objmap.c bool.cpp
+sources = siplib.c apiversions.c descriptors.c qtlib.c threads.c objmap.c voidptr.c bool.cpp
 headers = sip.h sipint.h

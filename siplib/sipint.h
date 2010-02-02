@@ -77,6 +77,18 @@ int sipIsRangeEnabled(sipExportedModuleDef *em, int range_index);
 int sipInitAPI(sipExportedModuleDef *em, PyObject *mod_dict);
 
 
+/*
+ * Support for void pointers.
+ */
+extern PyTypeObject sipVoidPtr_Type;
+void *sip_api_convert_to_void_ptr(PyObject *obj);
+PyObject *sip_api_convert_from_void_ptr(void *val);
+PyObject *sip_api_convert_from_const_void_ptr(const void *val);
+PyObject *sip_api_convert_from_void_ptr_and_size(void *val, SIP_SSIZE_T size);
+PyObject *sip_api_convert_from_const_void_ptr_and_size(const void *val,
+        SIP_SSIZE_T size);
+
+
 extern sipQtAPI *sipQtSupport;  /* The Qt support API. */
 extern sipWrapperType sipSimpleWrapper_Type;    /* The simple wrapper type. */
 extern sipTypeDef *sipQObjectType;  /* The QObject type. */
