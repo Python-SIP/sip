@@ -777,7 +777,6 @@ static void xmlType(sipSpec *pt, argDef *ad, int sec, FILE *fp)
         break;
 
     case mapped_type:
-        prcode(fp, "%M%B%M", &ad->u.mtd->type);
         type_type = "mappedtype";
         break;
     }
