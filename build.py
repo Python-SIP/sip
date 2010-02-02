@@ -623,11 +623,10 @@ if __name__ == '__main__':
 
     action_names = [action.func_name[1:] for action in actions]
 
-    release, _, _, _ = _get_release()
+    rel, _, _, _ = _get_release()
 
     parser = MyParser(
-            usage="%%prog [options] %s" % '|'.join(action_names),
-            version=release)
+            usage="%%prog [options] %s" % '|'.join(action_names), version=rel)
 
     parser.add_option("-q", "--quiet", action='store_true', default=False,
             dest='quiet', help="suppress progress messages")
