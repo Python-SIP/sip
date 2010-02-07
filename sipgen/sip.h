@@ -338,6 +338,7 @@
 #define ARG_SINGLE_SHOT     0x1000  /* The slot is only ever fired once. */
 #define ARG_RESULT_SIZE     0x2000  /* It defines the result size. */
 #define ARG_KEEP_REF        0x4000  /* Keep a reference. */
+#define ARG_NO_COPY         0x8000  /* Disable copying of const references. */
 
 #define isReference(a)      ((a)->argflags & ARG_IS_REF)
 #define setIsReference(a)   ((a)->argflags |= ARG_IS_REF)
@@ -371,6 +372,8 @@
 #define setResultSize(a)    ((a)->argflags |= ARG_RESULT_SIZE)
 #define keepReference(a)    ((a)->argflags & ARG_KEEP_REF)
 #define setKeepReference(a) ((a)->argflags |= ARG_KEEP_REF)
+#define noCopy(a)           ((a)->argflags & ARG_NO_COPY)
+#define setNoCopy(a)        ((a)->argflags |= ARG_NO_COPY)
 
 
 /* Handle name flags. */

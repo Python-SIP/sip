@@ -2451,6 +2451,9 @@ argtype:    cpptype optname optflags {
             if (findOptFlag(&$3, "ResultSize", bool_flag) != NULL)
                 $$.argflags |= ARG_RESULT_SIZE;
 
+            if (findOptFlag(&$3, "NoCopy", bool_flag) != NULL)
+                $$.argflags |= ARG_NO_COPY;
+
             if (findOptFlag(&$3,"Constrained",bool_flag) != NULL)
             {
                 $$.argflags |= ARG_CONSTRAINED;
@@ -5015,6 +5018,9 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         if (methodcode == NULL)
             yyerror("%MethodCode must be supplied if /NoArgParser/ is specified");
     }
+
+    if (findOptFlag(optflgs, "NoCopy", bool_flag) != NULL)
+        setNoCopy(&od->pysig.result);
 
     od->common = findFunction(pt, mod, c_scope, mt_scope,
             getPythonName(optflgs, name), (methodcode != NULL), sig->nrArgs,

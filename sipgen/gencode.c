@@ -264,6 +264,7 @@ static int hasClassDocstring(sipSpec *pt, classDef *cd);
 static void generateClassDocstring(sipSpec *pt, classDef *cd, FILE *fp);
 static int isDefaultAPI(sipSpec *pt, apiVersionRangeDef *avd);
 static void generateExplicitDocstring(codeBlock *docstring, FILE *fp);
+static int copyConstRefArg(argDef *ad);
 
 
 /*
@@ -7792,6 +7793,12 @@ static void generateTupleBuilder(signatureDef *sd,FILE *fp)
                 break;
             }
 
+            if (copyConstRefArg(ad))
+            {
+                fmt = "N";
+                break;
+            }
+
             /* Drop through. */
 
         case fake_void_type:
@@ -7859,20 +7866,29 @@ static void generateTupleBuilder(signatureDef *sd,FILE *fp)
             ad->atype == rxcon_type || ad->atype == rxdis_type ||
             ad->atype == qobject_type || ad->atype == fake_void_type)
         {
+            int copy = copyConstRefArg(ad);
+
             prcode(fp,",");
 
-            if (isConstArg(ad))
-                prcode(fp,"const_cast<%b *>(",ad);
-
-            if (ad->nrderefs == 0)
-                prcode(fp,"&");
+            if (copy)
+            {
+                prcode(fp,"new %b(",ad);
+            }
             else
-                while (derefs-- != 0)
-                    prcode(fp,"*");
+            {
+                if (isConstArg(ad))
+                    prcode(fp,"const_cast<%b *>(",ad);
+
+                if (ad->nrderefs == 0)
+                    prcode(fp,"&");
+                else
+                    while (derefs-- != 0)
+                        prcode(fp,"*");
+            }
 
             prcode(fp,"a%d",a);
 
-            if (isConstArg(ad))
+            if (copy || isConstArg(ad))
                 prcode(fp,")");
 
             if (isArray(ad))
@@ -11249,6 +11265,29 @@ static const char *getBuildResultFormat(argDef *ad)
 
 
 /*
+ * Return TRUE if an argument (or result) should be copied because it is a
+ * const reference to a type.
+ */
+static int copyConstRefArg(argDef *ad)
+{
+    if (!noCopy(ad) && (ad->atype == class_type || ad->atype == mapped_type) && ad->nrderefs == 0)
+    {
+        /* Make a copy if it is not a reference or it is a const reference. */
+        if (!isReference(ad) || isConstArg(ad))
+        {
+            /* If it is a class then we must be able to copy it. */
+            if (ad->atype != class_type || !(cannotCopy(ad->u.cd) || isAbstractClass(ad->u.cd)))
+            {
+                return TRUE;
+            }
+        }
+    }
+
+    return FALSE;
+}
+
+
+/*
  * Generate a function call.
  */
 static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
@@ -11300,21 +11339,10 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
     orig_res = *res;
 
     /* See if we need to make a copy of the result on the heap. */
-    needsNew = FALSE;
+    needsNew = copyConstRefArg(res);
 
-    if ((res->atype == class_type || res->atype == mapped_type) && res->nrderefs == 0)
-    {
-        /* Make a copy if it is not a reference or it is a const reference. */
-        if (!isReference(res) || isConstArg(res))
-        {
-            /* If it is a class then we must be able to copy it. */
-            if (res->atype != class_type || !(cannotCopy(res->u.cd) || isAbstractClass(res->u.cd)))
-            {
-                needsNew = TRUE;
-                resetIsConstArg(res);
-            }
-        }
-    }
+    if (needsNew)
+        resetIsConstArg(res);
 
     /* See if sipRes is needed. */
     is_result = (!isInplaceNumberSlot(od->common) &&
