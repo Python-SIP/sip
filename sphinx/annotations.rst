@@ -200,7 +200,7 @@ Argument Annotations
     of the argument is not changed.
 
 
-.. function-annotation:: NoCopy
+.. argument-annotation:: NoCopy
 
     .. versionadded:: 4.10.1
 
