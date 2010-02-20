@@ -1219,14 +1219,15 @@ specification files.
 
             0x01 disallows the conversion of ``Py_None`` to ``NULL``
 
-            0x02 implements the :fanno:`Factory` annotation
+            0x02 implements the :fanno:`Factory` and :fanno:`TransferBack`
+                 annotations
 
             0x04 suppresses the return of the state of the returned C/C++
                  instance.  Note that the ``int *`` used to return the state is
                  not passed if this flag is specified.
 
         .. note::
-            This is deprecated from SIP v4.8.  Instead you should use ``Df``.
+            This is deprecated from SIP v4.8.  Instead you should use ``Hf``.
 
     ``Df`` (wrapped instance) [const :ctype:`sipTypeDef` \*, int \*, void \*\*]
         Convert a Python object to a C structure, C++ class or mapped type
@@ -1237,11 +1238,16 @@ specification files.
 
             0x01 disallows the conversion of ``Py_None`` to ``NULL``
 
-            0x02 implements the :fanno:`Factory` annotation
+            0x02 implements the :fanno:`Factory` and :fanno:`TransferBack`
+                 annotations
 
             0x04 suppresses the return of the state of the returned C/C++
                  instance.  Note that the ``int *`` used to return the state is
                  not passed if this flag is specified.
+
+        .. note::
+            This is deprecated from SIP v4.10.1.  Instead you should use
+            ``Hf``.
 
     ``E`` (wrapped enum) [PyTypeObject \*, enum \*]
         Convert a Python named enum type to the corresponding C/C++ ``enum``.
@@ -1257,6 +1263,19 @@ specification files.
         object to a C/C++ wide character array and its length.  If the Python
         object is ``Py_None`` then the array and length are ``NULL`` and zero
         respectively.
+
+    ``Hf`` (wrapped instance) [const :ctype:`sipTypeDef` \*, int \*, void \*\*]
+        Convert a Python object to a C structure, C++ class or mapped type
+        instance as described in :cfunc:`sipConvertToType()`.  ``f`` is a
+        combination of the following flags encoded as an ASCII character by
+        adding ``0`` to the combined value:
+
+            0x01 disallows the conversion of ``Py_None`` to ``NULL``
+
+            0x02 implements the :fanno:`Factory` and :fanno:`TransferBack`
+                 annotations
+
+            0x04 returns a copy of the C/C++ instance.
 
     ``N`` (object) [PyTypeObject \*, :PyObject \*\*]
         A Python object is checked to see if it is a certain type and then

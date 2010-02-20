@@ -223,9 +223,8 @@ static int needOldErrorFlag(codeBlock *cb);
 static int needNewInstance(argDef *ad);
 static int needDealloc(classDef *cd);
 static const char *getBuildResultFormat(argDef *ad);
-static const char *getParseResultFormat(argDef *ad, int isres, int xfervh);
-static void generateParseResultExtraArgs(argDef *ad, int argnr,
-        int need_state, FILE *fp);
+static const char *getParseResultFormat(argDef *ad, int res_isref, int xfervh);
+static void generateParseResultExtraArgs(argDef *ad, int argnr, FILE *fp);
 static char *makePartName(const char *codeDir, const char *mname, int part,
         const char *srcSuffix);
 static void fakeProtectedArgs(signatureDef *sd);
@@ -7065,13 +7064,13 @@ static void generateProtectedCallArgs(overDef *od, FILE *fp)
  */
 static void generateVirtualHandler(virtHandlerDef *vhd, FILE *fp)
 {
-    int a, nrvals, copy, isref, need_self, need_state;
+    int a, nrvals, res_isref, need_self;
     argDef *res, res_noconstref, *ad;
     signatureDef saved;
 
     res = &vhd->cppsig->result;
 
-    copy = isref = need_state = FALSE;
+    res_isref = FALSE;
 
     if (res->atype == void_type && res->nrderefs == 0)
         res = NULL;
@@ -7079,17 +7078,12 @@ static void generateVirtualHandler(virtHandlerDef *vhd, FILE *fp)
     {
         /*
          * If we are returning a reference to an instance then we take care to
-         * handle Python errors but still return a valid C++ instance.  If we
-         * are returning an instance then we take care to make a local copy of
-         * the instance returned from Python before the Python object is
-         * garbage collected and the C++ instance (possibly) destroyed.
+         * handle Python errors but still return a valid C++ instance.
          */
         if ((res->atype == class_type || res->atype == mapped_type) && res->nrderefs == 0)
         {
             if (isReference(res))
-                isref = TRUE;
-            else
-                copy = TRUE;
+                res_isref = TRUE;
         }
 
         res_noconstref = *res;
@@ -7167,16 +7161,19 @@ static void generateVirtualHandler(virtHandlerDef *vhd, FILE *fp)
 
         generateBaseType(NULL, &res_noconstref, FALSE, fp);
 
-        prcode(fp," %ssipRes",(isref ? "*" : ""));
+        prcode(fp," %ssipRes",(res_isref ? "*" : ""));
 
-        if (copy && res->atype == class_type && res->nrderefs == 0)
+        if ((res->atype == class_type || res->atype == mapped_type) && res->nrderefs == 0)
         {
-            ctorDef *ct = res->u.cd->defctor;
+            if (res->atype == class_type)
+            {
+                ctorDef *ct = res->u.cd->defctor;
 
-            if (ct != NULL && isPublicCtor(ct) && ct->cppsig != NULL && ct->cppsig->nrArgs > 0 && ct->cppsig->args[0].defval == NULL)
-                generateCallDefaultCtor(ct,fp);
+                if (ct != NULL && isPublicCtor(ct) && ct->cppsig != NULL && ct->cppsig->nrArgs > 0 && ct->cppsig->args[0].defval == NULL)
+                    generateCallDefaultCtor(ct,fp);
+            }
         }
-        else if (!copy)
+        else
         {
             /*
              * We initialise the result to try and suppress a
@@ -7256,36 +7253,6 @@ static void generateVirtualHandler(virtHandlerDef *vhd, FILE *fp)
         if (isOutArg(&vhd->pysig->args[a]))
             ++nrvals;
 
-    if (copy)
-    {
-        prcode(fp,
-"    ");
-
-        generateBaseType(NULL, &res_noconstref, FALSE, fp);
-
-        prcode(fp," *sipResOrig;\n");
-    }
-
-    /* See if format character is expecting to return the state. */
-    if (res != NULL)
-    {
-        if (res->atype == mapped_type)
-        {
-            if (res->u.mtd->iff->api_range != NULL)
-                need_state = TRUE;
-        }
-        else if (res->atype == class_type)
-        {
-            if (res->u.cd->iff->api_range != NULL || res->u.cd->convtocode != NULL)
-                need_state = TRUE;
-        }
-    }
-
-    if (need_state)
-        prcode(fp,
-"    int sipResState;\n"
-            );
-
     /* Call the method. */
     prcode(fp,
 "    PyObject *resObj = sipCallMethod(0,sipMethod,");
@@ -7297,7 +7264,7 @@ static void generateVirtualHandler(virtHandlerDef *vhd, FILE *fp)
 
     prcode(fp,");\n"
 "\n"
-"    %s (!resObj || sipParseResult(0,sipMethod,resObj,\"",(isref ? "int sipIsErr =" : "if"));
+"    %s (!resObj || sipParseResult(0,sipMethod,resObj,\"",(res_isref ? "int sipIsErr =" : "if"));
 
     /* Build the format string. */
     if (need_self)
@@ -7311,7 +7278,7 @@ static void generateVirtualHandler(virtHandlerDef *vhd, FILE *fp)
             prcode(fp,"(");
 
         if (res != NULL)
-            prcode(fp, "%s", getParseResultFormat(res, TRUE, isTransferVH(vhd)));
+            prcode(fp, "%s", getParseResultFormat(res, res_isref, isTransferVH(vhd)));
 
         for (a = 0; a < vhd->pysig->nrArgs; ++a)
         {
@@ -7333,8 +7300,8 @@ static void generateVirtualHandler(virtHandlerDef *vhd, FILE *fp)
     /* Pass the destination pointers. */
     if (res != NULL)
     {
-        generateParseResultExtraArgs(res, -1, need_state, fp);
-        prcode(fp,",&sipRes%s",(copy ? "Orig" : ""));
+        generateParseResultExtraArgs(res, -1, fp);
+        prcode(fp, ",&sipRes");
     }
 
     for (a = 0; a < vhd->pysig->nrArgs; ++a)
@@ -7343,12 +7310,12 @@ static void generateVirtualHandler(virtHandlerDef *vhd, FILE *fp)
 
         if (isOutArg(ad))
         {
-            generateParseResultExtraArgs(ad, a, FALSE, fp);
+            generateParseResultExtraArgs(ad, a, fp);
             prcode(fp,",%sa%d",(isReference(ad) ? "&" : ""),a);
         }
     }
 
-    if (isref)
+    if (res_isref)
         prcode(fp,") < 0);\n"
 "\n"
 "    if (sipIsErr)\n"
@@ -7361,38 +7328,6 @@ static void generateVirtualHandler(virtHandlerDef *vhd, FILE *fp)
 "        PyErr_Print();\n"
         );
 
-    /* Make a copy if needed. */
-    if (copy)
-    {
-        prcode(fp,
-"    else\n"
-"    {\n"
-"        sipRes = *sipResOrig;\n"
-            );
-
-        if (res->atype == mapped_type)
-        {
-            if (need_state)
-                prcode(fp,
-"        sipReleaseType(sipResOrig,sipType_%T,sipResState);\n"
-                    , res);
-            else
-                prcode(fp,
-"        delete sipResOrig;\n"
-                    );
-        }
-        else if (res->atype == class_type && need_state)
-        {
-            prcode(fp,
-"        sipReleaseType(sipResOrig,sipType_%C,sipResState);\n"
-                , classFQCName(res->u.cd));
-        }
-
-        prcode(fp,
-"    }\n"
-            );
-    }
-
     prcode(fp,
 "\n"
 "    Py_XDECREF(resObj);\n"
@@ -7403,7 +7338,7 @@ static void generateVirtualHandler(virtHandlerDef *vhd, FILE *fp)
 
     if (res != NULL)
     {
-        if (isref)
+        if (res_isref)
         {
             prcode(fp,
 "\n"
@@ -7416,7 +7351,7 @@ static void generateVirtualHandler(virtHandlerDef *vhd, FILE *fp)
         prcode(fp,
 "\n"
 "    return %ssipRes;\n"
-            ,(isref ? "*" : ""));
+            ,(res_isref ? "*" : ""));
     }
 
     prcode(fp,
@@ -7429,25 +7364,16 @@ static void generateVirtualHandler(virtHandlerDef *vhd, FILE *fp)
  * Generate the extra arguments needed by sipParseResult() for a particular
  * type.
  */
-static void generateParseResultExtraArgs(argDef *ad, int argnr, int need_state,
-        FILE *fp)
+static void generateParseResultExtraArgs(argDef *ad, int argnr, FILE *fp)
 {
     switch (ad->atype)
     {
     case mapped_type:
         prcode(fp, ",sipType_%T", ad);
-
-        if (need_state)
-            prcode(fp, ",&sipResState");
-
         break;
 
     case class_type:
         prcode(fp, ",sipType_%C", classFQCName(ad->u.cd));
-
-        if (need_state)
-            prcode(fp, ",&sipResState");
-
         break;
 
     case pytuple_type:
@@ -7490,56 +7416,30 @@ static void generateParseResultExtraArgs(argDef *ad, int argnr, int need_state,
 /*
  * Return the format characters used by sipParseResult() for a particular type.
  */
-static const char *getParseResultFormat(argDef *ad, int isres, int xfervh)
+static const char *getParseResultFormat(argDef *ad, int res_isref, int xfervh)
 {
-    static const char *type_formats[] = {
-        "D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7"
-    };
-
     switch (ad->atype)
     {
     case mapped_type:
-        {
-            int f = 0x04;
-
-            if (isres)
-            {
-                /*
-                 * Get the state if there might be a class API that needs it.
-                 */
-                if (ad->u.mtd->iff->api_range != NULL)
-                    f &= ~0x04;
-
-                if (ad->nrderefs == 0)
-                    f |= 0x01;
-
-                if (xfervh)
-                    f |= 0x02;
-            }
-
-            return type_formats[f];
-        }
-
     case fake_void_type:
     case class_type:
         {
-            int f = 0x04;
+            static const char *type_formats[] = {
+                "H0", "H1", "H2", "H3", "H4", "H5", "H6", "H7"
+            };
 
-            if (isres)
+            int f = 0x00;
+
+            if (ad->nrderefs == 0)
             {
-                /*
-                 * Get the state if this class needs it or if there might be
-                 * another class API that does.
-                 */
-                if (ad->u.cd->convtocode != NULL || ad->u.cd->iff->api_range != NULL)
-                    f &= ~0x04;
+                f |= 0x01;
 
-                if (ad->nrderefs == 0)
-                    f |= 0x01;
-
-                if (xfervh)
-                    f |= 0x02;
+                if (!res_isref)
+                    f |= 0x04;
             }
+
+            if (xfervh)
+                f |= 0x02;
 
             return type_formats[f];
         }

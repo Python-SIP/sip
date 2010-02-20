@@ -370,16 +370,23 @@ static const sipAPIDef sip_api = {
 
 
 /*
- * Note that some of the following flags safely share values because they
- * cannot be used at the same time.
+ * These are the format flags supported by argument parsers.
  */
-#define FORMAT_DEREF            0x01    /* The pointer will be dereferenced. */
-#define FORMAT_FACTORY          0x02    /* Implement /Factory/ in a VH. */
-#define FORMAT_TRANSFER         0x02    /* Implement /Transfer/. */
-#define FORMAT_NO_STATE         0x04    /* Don't return the C/C++ state. */
-#define FORMAT_TRANSFER_BACK    0x04    /* Implement /TransferBack/. */
-#define FORMAT_NO_CONVERTORS    0x08    /* Suppress any convertors. */
-#define FORMAT_TRANSFER_THIS    0x10    /* Support for /TransferThis/. */
+#define FMT_AP_DEREF            0x01    /* The pointer will be dereferenced. */
+#define FMT_AP_TRANSFER         0x02    /* Implement /Transfer/. */
+#define FMT_AP_TRANSFER_BACK    0x04    /* Implement /TransferBack/. */
+#define FMT_AP_NO_CONVERTORS    0x08    /* Suppress any convertors. */
+#define FMT_AP_TRANSFER_THIS    0x10    /* Support for /TransferThis/. */
+
+
+/*
+ * These are the format flags supported by result parsers.  Deprecated values
+ * have a _DEPR suffix.
+ */
+#define FMT_RP_DEREF            0x01    /* The pointer will be dereferenced. */
+#define FMT_RP_FACTORY          0x02    /* /Factory/ or /TransferBack/. */
+#define FMT_RP_MAKE_COPY        0x04    /* Return a copy of the value. */
+#define FMT_RP_NO_STATE_DEPR    0x04    /* Don't return the C/C++ state. */
 
 
 /*
@@ -2129,7 +2136,7 @@ static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
              * Some format characters have a sub-format so skip the character
              * and count the sub-format character next time round.
              */
-            if (strchr("CD", ch) == NULL)
+            if (strchr("HDC", ch) == NULL)
                 ++tupsz;
         }
 
@@ -2512,14 +2519,14 @@ static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
 
                         type = va_arg(va, sipWrapperType *);
 
-                        if (flags & FORMAT_NO_STATE)
+                        if (flags & FMT_RP_NO_STATE_DEPR)
                             state = NULL;
                         else
                             state = va_arg(va, int *);
 
                         cpp = va_arg(va, void **);
 
-                        *cpp = sip_api_force_convert_to_type(arg, type->type, (flags & FORMAT_FACTORY ? arg : NULL), (flags & FORMAT_DEREF ? SIP_NOT_NONE : 0), state, &iserr);
+                        *cpp = sip_api_force_convert_to_type(arg, type->type, (flags & FMT_RP_FACTORY ? arg : NULL), (flags & FMT_RP_DEREF ? SIP_NOT_NONE : 0), state, &iserr);
 
                         if (iserr)
                             invalid = TRUE;
@@ -2530,6 +2537,8 @@ static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
 
             case 'D':
                 {
+                    /* This is deprecated. */
+
                     if (*fmt == '\0')
                         invalid = TRUE;
                     else
@@ -2542,17 +2551,60 @@ static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
 
                         td = va_arg(va, const sipTypeDef *);
 
-                        if (flags & FORMAT_NO_STATE)
+                        if (flags & FMT_RP_NO_STATE_DEPR)
                             state = NULL;
                         else
                             state = va_arg(va, int *);
 
                         cpp = va_arg(va, void **);
 
-                        *cpp = sip_api_force_convert_to_type(arg, td, (flags & FORMAT_FACTORY ? arg : NULL), (flags & FORMAT_DEREF ? SIP_NOT_NONE : 0), state, &iserr);
+                        *cpp = sip_api_force_convert_to_type(arg, td, (flags & FMT_RP_FACTORY ? arg : NULL), (flags & FMT_RP_DEREF ? SIP_NOT_NONE : 0), state, &iserr);
 
                         if (iserr)
                             invalid = TRUE;
+                    }
+                }
+
+                break;
+
+            case 'H':
+                {
+                    if (*fmt == '\0')
+                        invalid = TRUE;
+                    else
+                    {
+                        int flags = *fmt++ - '0';
+                        int iserr = FALSE, state;
+                        const sipTypeDef *td;
+                        void *cpp, *val;
+
+                        td = va_arg(va, const sipTypeDef *);
+                        cpp = va_arg(va, void **);
+
+                        val = sip_api_force_convert_to_type(arg, td, (flags & FMT_RP_FACTORY ? arg : NULL), (flags & FMT_RP_DEREF ? SIP_NOT_NONE : 0), &state, &iserr);
+
+                        if (iserr)
+                        {
+                            invalid = TRUE;
+                        }
+                        else if (flags & FMT_RP_MAKE_COPY)
+                        {
+                            sipAssignFunc assign_helper;
+
+                            if (sipTypeIsMapped(td))
+                                assign_helper = ((const sipMappedTypeDef *)td)->mtd_assign;
+                            else
+                                assign_helper = ((const sipClassTypeDef *)td)->ctd_assign;
+
+                            assert(assign_helper != NULL);
+
+                            assign_helper(cpp, 0, val);
+                            sip_api_release_type(val, td, state);
+                        }
+                        else
+                        {
+                            *(void **)cpp = val;
+                        }
                     }
                 }
 
@@ -3591,13 +3643,13 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 td = va_arg(va, const sipTypeDef *);
                 va_arg(va, void **);
 
-                if (flags & FORMAT_DEREF)
+                if (flags & FMT_AP_DEREF)
                     iflgs |= SIP_NOT_NONE;
 
-                if (flags & FORMAT_TRANSFER_THIS)
+                if (flags & FMT_AP_TRANSFER_THIS)
                     va_arg(va, PyObject **);
 
-                if (flags & FORMAT_NO_CONVERTORS)
+                if (flags & FMT_AP_NO_CONVERTORS)
                     iflgs |= SIP_NO_CONVERTORS;
                 else
                     va_arg(va, int *);
@@ -4637,20 +4689,20 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, PyObject *sipArgs,
                 td = va_arg(va, const sipTypeDef *);
                 p = va_arg(va, void **);
 
-                if (flags & FORMAT_TRANSFER)
+                if (flags & FMT_AP_TRANSFER)
                     xfer = (self ? (PyObject *)self : arg);
-                else if (flags & FORMAT_TRANSFER_BACK)
+                else if (flags & FMT_AP_TRANSFER_BACK)
                     xfer = Py_None;
                 else
                     xfer = NULL;
 
-                if (flags & FORMAT_DEREF)
+                if (flags & FMT_AP_DEREF)
                     iflgs |= SIP_NOT_NONE;
 
-                if (flags & FORMAT_TRANSFER_THIS)
+                if (flags & FMT_AP_TRANSFER_THIS)
                     owner = va_arg(va, PyObject **);
 
-                if (flags & FORMAT_NO_CONVERTORS)
+                if (flags & FMT_AP_NO_CONVERTORS)
                 {
                     iflgs |= SIP_NO_CONVERTORS;
                     state = NULL;
@@ -4670,7 +4722,7 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, PyObject *sipArgs,
                     if (iserr)
                         return FALSE;
 
-                    if (flags & FORMAT_TRANSFER_THIS && *p != NULL)
+                    if (flags & FMT_AP_TRANSFER_THIS && *p != NULL)
                         *owner = arg;
                 }
 
@@ -4686,11 +4738,11 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, PyObject *sipArgs,
 
                 if (arg != NULL)
                 {
-                    if (flags & FORMAT_TRANSFER)
+                    if (flags & FMT_AP_TRANSFER)
                     {
                         Py_XINCREF(arg);
                     }
-                    else if (flags & FORMAT_TRANSFER_BACK)
+                    else if (flags & FMT_AP_TRANSFER_BACK)
                     {
                         Py_XDECREF(arg);
                     }

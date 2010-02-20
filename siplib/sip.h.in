@@ -68,6 +68,9 @@ extern "C" {
  *
  * History:
  *
+ * 7.1  Added the 'H' format character to sip_api_parse_result().
+ *      Deprecated the 'D' format character of sip_api_parse_result().
+ *
  * 7.0  Added sip_api_parse_kwd_args().
  *      Added sipErrorState, sip_api_add_exception().
  *      The type initialisation function is now passed a dictionary of keyword
@@ -166,7 +169,7 @@ extern "C" {
  * 0.0  Original version.
  */
 #define SIP_API_MAJOR_NR    7
-#define SIP_API_MINOR_NR    0
+#define SIP_API_MINOR_NR    1
 
 
 /* Some compatibility stuff to help with handwritten code for SIP v3. */
