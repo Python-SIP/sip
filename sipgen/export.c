@@ -270,15 +270,15 @@ static int apiArgument(sipSpec *pt, argDef *ad, int out, int need_comma,
 
     prScopedPythonName(fp, tscope, tname);
 
-    if (names && ad->name != NULL)
-        fprintf(fp, " %s", ad->name->text);
-
     /*
      * Handle the default value is required, but ignore it if it is an output
      * only argument.
      */
     if (defaults && ad->defval && !out)
     {
+        if (names && ad->name != NULL)
+            fprintf(fp, " %s", ad->name->text);
+
         fprintf(fp, "=");
         prcode(fp, "%M");
         exportDefaultValue(ad, in_str, fp);
