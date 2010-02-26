@@ -5231,6 +5231,15 @@ static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
             break;
 
         default:
+            if (nr_args > 0)
+                prcode(fp,
+"\n"
+"    Py_XDECREF(sipParseErr);\n"
+"\n"
+"    if (sipParseErr == Py_None)\n"
+"        return NULL;\n"
+                    );
+
             if (isNumberSlot(md) || isRichCompareSlot(md))
             {
                 /* We can't extend enum slots. */
