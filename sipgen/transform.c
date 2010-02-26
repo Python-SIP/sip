@@ -869,11 +869,14 @@ static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd)
             *mdhead = md;
         }
 
-        /* Move the overload. */
+        /* Move the overload to the end of the destination list. */
         setIsPublic(od);
         setIsGlobal(od);
         od->common = md;
-        od->next = *odhead;
+        od->next = NULL;
+
+        while (*odhead != NULL)
+            odhead = &(*odhead)->next;
 
         *odhead = od;
 
