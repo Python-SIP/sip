@@ -1,3 +1,6 @@
+v4.10.1 ??? March 2010
+  - Added the /NoCopy/ function and argument annotations.
+
 v4.10 14th January 2010
   - Added the sip.voidptr.ascapsule() method.
   - Added the -P command line option to build modules with "protected"
