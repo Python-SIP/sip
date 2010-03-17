@@ -128,13 +128,18 @@ def _get_release():
         # Get the repository.
         repo = hg.repository(ui.ui(), _RootDir)
 
-        # The changeset we want is the "parent" of the working directory.
+        # The last changeset is the "parent" of the working directory.
         ctx = repo[None].parents()[0]
 
-        version = _release_tag(ctx)
+        # If the one before the last changeset has a release tag then the last
+        # changeset refers to the tagging and not a genuine change.
+        before = ctx.parents()[0]
+
+        version = _release_tag(before)
 
         if version is not None:
             release_prefix = ''
+            ctx = before
         else:
             release_suffix = '-' + str(ctx)
 
