@@ -992,7 +992,7 @@ static PyObject *transferBack(PyObject *self, PyObject *args)
 static PyObject *cast(PyObject *self, PyObject *args)
 {
     sipSimpleWrapper *sw;
-    sipWrapperType *wt, *type;
+    sipWrapperType *wt;
     const sipTypeDef *td;
     void *addr;
     PyTypeObject *ft, *tt;
