@@ -993,6 +993,7 @@ static PyObject *cast(PyObject *self, PyObject *args)
 {
     sipSimpleWrapper *sw;
     sipWrapperType *wt, *type;
+    const sipTypeDef *td;
     void *addr;
     PyTypeObject *ft, *tt;
 
@@ -1003,16 +1004,16 @@ static PyObject *cast(PyObject *self, PyObject *args)
     tt = (PyTypeObject *)wt;
 
     if (ft == tt || PyType_IsSubtype(tt, ft))
-        type = NULL;
+        td = NULL;
     else if (PyType_IsSubtype(ft, tt))
-        type = wt;
+        td = wt->type;
     else
     {
         PyErr_SetString(PyExc_TypeError, "argument 1 of sip.cast() must be an instance of a sub or super-type of argument 2");
         return NULL;
     }
 
-    if ((addr = sip_api_get_cpp_ptr(sw, type->type)) == NULL)
+    if ((addr = sip_api_get_cpp_ptr(sw, td)) == NULL)
         return NULL;
 
     /*
