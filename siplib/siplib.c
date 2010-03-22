@@ -5466,7 +5466,13 @@ static PyObject *unpickle_type(PyObject *ignore, PyObject *args)
     sipExportedModuleDef *em;
     int i;
 
-    if (!PyArg_ParseTuple(args, "SsO!:_unpickle_type", &mname_obj, &tname, &PyTuple_Type, &init_args))
+    if (!PyArg_ParseTuple(args,
+#if PY_MAJOR_VERSION >= 3
+            "UsO!:_unpickle_type",
+#else
+            "SsO!:_unpickle_type",
+#endif
+            &mname_obj, &tname, &PyTuple_Type, &init_args))
         return NULL;
 
     /* Get the module definition. */
@@ -5556,7 +5562,13 @@ static PyObject *unpickle_enum(PyObject *ignore, PyObject *args)
     sipExportedModuleDef *em;
     int i;
 
-    if (!PyArg_ParseTuple(args, "SsO:_unpickle_enum", &mname_obj, &ename, &evalue_obj))
+    if (!PyArg_ParseTuple(args,
+#if PY_MAJOR_VERSION >= 3
+                "UsO:_unpickle_enum",
+#else
+                "SsO:_unpickle_enum",
+#endif
+                &mname_obj, &ename, &evalue_obj))
         return NULL;
 
     /* Get the module definition. */
