@@ -8604,6 +8604,14 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
         {
             sipFlags = SIP_DERIVED_CLASS;
         }
+        else if (parseErr == NULL)
+        {
+            /*
+             * The C++ ctor must have raised an exception which has been
+             * translated to a Python exception.
+             */
+            return -1;
+        }
         else
         {
             sipInitExtenderDef *ie = wt->iextend;
