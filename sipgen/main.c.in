@@ -511,5 +511,5 @@ static void help(void)
  */
 static void usage(void)
 {
-    fatal("Usage: %s [-h] [-V] [-a file] [-b file] [-c dir] [-d file] [-e] [-g] [-I dir] [-j #] [-k] [-m file] [-o] [-p module] [-r] [-s suffix] [-t tag] [-w] [-x feature] [-z file] [file]\n", sipPackage);
+    fatal("Usage: %s [-h] [-V] [-a file] [-b file] [-c dir] [-d file] [-e] [-g] [-I dir] [-j #] [-k] [-m file] [-o] [-p module] [-P] [-r] [-s suffix] [-t tag] [-w] [-x feature] [-z file] [file]\n", sipPackage);
 }
