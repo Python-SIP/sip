@@ -131,7 +131,7 @@ static void generateUnambiguousClass(classDef *cd, classDef *scope, FILE *fp);
 static void generateProtectedEnums(sipSpec *, classDef *, FILE *);
 static void generateProtectedDeclarations(classDef *, FILE *);
 static void generateProtectedDefinitions(classDef *, FILE *);
-static void generateProtectedCallArgs(overDef *od, FILE *fp);
+static void generateProtectedCallArgs(signatureDef *sd, FILE *fp);
 static void generateConstructorCall(classDef *, ctorDef *, int, int,
         moduleDef *, FILE *);
 static void generateHandleResult(overDef *, int, int, char *, FILE *);
@@ -5967,8 +5967,6 @@ static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
 
     for (ct = cd->ctors; ct != NULL; ct = ct->next)
     {
-        char *prefix;
-        int a;
         ctorDef *dct;
 
         if (isPrivateCtor(ct))
@@ -5993,13 +5991,7 @@ static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
 
         prcode(fp,")%X: %S(",ct->exceptions,classFQCName(cd));
 
-        prefix = "";
-
-        for (a = 0; a < ct->cppsig->nrArgs; ++a)
-        {
-            prcode(fp,"%sa%d",prefix,a);
-            prefix = ",";
-        }
+        generateProtectedCallArgs(ct->cppsig, fp);
 
         prcode(fp,"), sipPySelf(0)\n"
 "{\n"
@@ -6989,7 +6981,7 @@ static void generateProtectedDefinitions(classDef *cd,FILE *fp)
                 {
                     prcode(fp, "(sipSelfWasArg ? %S::%s(", classFQCName(vl->cd), mname);
 
-                    generateProtectedCallArgs(od, fp);
+                    generateProtectedCallArgs(od->cppsig, fp);
 
                     prcode(fp, ") : ");
                     ++parens;
@@ -7000,7 +6992,7 @@ static void generateProtectedDefinitions(classDef *cd,FILE *fp)
 
             prcode(fp,"%s(",mname);
 
-            generateProtectedCallArgs(od, fp);
+            generateProtectedCallArgs(od->cppsig, fp);
 
             while (parens--)
                 prcode(fp,")");
@@ -7048,13 +7040,13 @@ static int isDuplicateProtected(classDef *cd, overDef *target)
 /*
  * Generate the arguments for a call to a protected method.
  */
-static void generateProtectedCallArgs(overDef *od, FILE *fp)
+static void generateProtectedCallArgs(signatureDef *sd, FILE *fp)
 {
     int a;
 
-    for (a = 0; a < od->cppsig->nrArgs; ++a)
+    for (a = 0; a < sd->nrArgs; ++a)
     {
-        argDef *ad = &od->cppsig->args[a];
+        argDef *ad = &sd->args[a];
 
         if (a > 0)
             prcode(fp, ",");
