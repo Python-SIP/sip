@@ -1944,7 +1944,7 @@ static void resolvePySigTypes(sipSpec *pt, moduleDef *mod, classDef *scope,
                     fatal("::");
                 }
 
-                fatal("%s() unsupported signal argument type\n");
+                fatal("%s() unsupported signal argument type\n", od->cppname);
             }
         }
         else if (!supportedType(scope,od,ad,TRUE) && (od -> cppsig == &od -> pysig || od -> methodcode == NULL || (isVirtual(od) && od -> virthandler -> virtcode == NULL)))
