@@ -582,7 +582,8 @@ class Makefile:
                     "QtCore":       "LIBS_CORE",
                     "QtGui":        "LIBS_GUI",
                     "QtNetwork":    "LIBS_NETWORK",
-                    "QtOpenGL":     "LIBS_OPENGL"
+                    "QtOpenGL":     "LIBS_OPENGL",
+                    "QtWebKit":     "LIBS_WEBKIT"
                 }
 
                 # For Windows: the dependencies between Qt libraries.
