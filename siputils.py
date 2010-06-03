@@ -2300,8 +2300,10 @@ def parse_build_macros(filename, names, overrides=None, properties=None):
         if line and line[0] != "#":
             assstart = line.find("+")
             if assstart > 0 and line[assstart + 1] == '=':
+                adding = True
                 assend = assstart + 1
             else:
+                adding = False
                 assstart = line.find("=")
                 assend = assstart
 
@@ -2311,6 +2313,11 @@ def parse_build_macros(filename, names, overrides=None, properties=None):
 
                 # Remove the escapes for any quotes.
                 rhs = rhs.replace(r'\"', '"').replace(r"\'", "'")
+
+                if adding:
+                    orig_rhs = raw.get(lhs)
+                    if orig_rhs is not None:
+                        rhs = orig_rhs + " " + rhs
 
                 raw[lhs] = rhs
 
