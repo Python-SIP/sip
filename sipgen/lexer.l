@@ -85,7 +85,9 @@ public                      {return TK_PUBLIC;}
 protected                   {return TK_PROTECTED;}
 private                     {return TK_PRIVATE;}
 signals                     {return TK_SIGNALS;}
+Q_SIGNALS                   {return TK_SIGNALS;}
 slots                       {return TK_SLOTS;}
+Q_SLOTS                     {return TK_SLOTS;}
 char                        {return TK_CHAR;}
 wchar_t                     {return TK_WCHAR_T;}
 bool                        {return TK_BOOL;}
