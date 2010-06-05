@@ -703,7 +703,7 @@ class Makefile:
             libs.extend(self.optional_list("LIBS_OPENGL"))
 
         if self._qt or self._opengl:
-            if self.config.qt_version < 0x040000 or "QtGui" in self._qt:
+            if self.config.qt_version < 0x040000 or self._opengl or "QtGui" in self._qt:
                 incdir.extend(self.optional_list("INCDIR_X11"))
                 libdir.extend(self.optional_list("LIBDIR_X11"))
                 libs.extend(self.optional_list("LIBS_X11"))
