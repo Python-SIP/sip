@@ -265,8 +265,10 @@
 #define setIsPrivate(o)     ((o)->overflags |= SECT_IS_PRIVATE)
 #define isSlot(o)           ((o)->overflags & SECT_IS_SLOT)
 #define setIsSlot(o)        ((o)->overflags |= SECT_IS_SLOT)
+#define resetIsSlot(o)      ((o)->overflags &= ~SECT_IS_SLOT)
 #define isSignal(o)         ((o)->overflags & SECT_IS_SIGNAL)
 #define setIsSignal(o)      ((o)->overflags |= SECT_IS_SIGNAL)
+#define resetIsSignal(o)    ((o)->overflags &= ~SECT_IS_SIGNAL)
 
 #define isVirtual(o)        ((o)->overflags & OVER_IS_VIRTUAL)
 #define setIsVirtual(o)     ((o)->overflags |= OVER_IS_VIRTUAL)

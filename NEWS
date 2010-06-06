@@ -1,3 +1,6 @@
+v4.10.3 ???
+  - Added support for Q_SLOT, Q_SLOTS, Q_SIGNAL and Q_SIGNALS.
+
 v4.10.2 16th April 2010
   - A bug fix release.
 
