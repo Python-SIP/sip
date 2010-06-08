@@ -10286,7 +10286,9 @@ static void generateConstructorCall(classDef *cd, ctorDef *ct, int error_flag,
 
         prcode(fp,
 "\n"
-"            Py_XDECREF(*sipUnused);\n"
+"            if (sipUnused)\n"
+"                Py_XDECREF(*sipUnused);\n"
+"\n"
 "            sipAddException(sipError, sipParseErr);\n"
 "\n"
 "            if (sipError == sipErrorFail)\n"
@@ -10300,7 +10302,9 @@ static void generateConstructorCall(classDef *cd, ctorDef *ct, int error_flag,
             prcode(fp,
 "            if (sipIsErr)\n"
 "            {\n"
-"                Py_XDECREF(*sipUnused);\n"
+"                if (sipUnused)\n"
+"                    Py_XDECREF(*sipUnused);\n"
+"\n"
 "                sipAddException(sipErrorFail, sipParseErr);\n"
 "                return NULL;\n"
 "            }\n"
