@@ -5208,6 +5208,7 @@ static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
             generateFunctionBody(od, cd, NULL, cd, (ed == NULL && !dontDerefSelf(od)), mod, fp);
 
     if (nr_args > 0)
+    {
         switch (md->slot)
         {
         case cmp_slot:
@@ -5231,7 +5232,8 @@ static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
             break;
 
         default:
-            if (nr_args > 0)
+            if (isNumberSlot(md) || isRichCompareSlot(md) || isInplaceNumberSlot(md))
+            {
                 prcode(fp,
 "\n"
 "    Py_XDECREF(sipParseErr);\n"
@@ -5239,6 +5241,7 @@ static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
 "    if (sipParseErr == Py_None)\n"
 "        return NULL;\n"
                     );
+            }
 
             if (isNumberSlot(md) || isRichCompareSlot(md))
             {
@@ -5261,6 +5264,7 @@ static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
                         , mod->name, slotName(md->slot), fqcname);
             }
             else if (isInplaceNumberSlot(md))
+            {
                 prcode(fp,
 "\n"
 "    PyErr_Clear();\n"
@@ -5268,7 +5272,9 @@ static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
 "    Py_INCREF(Py_NotImplemented);\n"
 "    return Py_NotImplemented;\n"
                     );
+            }
             else
+            {
                 prcode(fp,
 "\n"
 "    /* Raise an exception if the arguments couldn't be parsed. */\n"
@@ -5277,7 +5283,9 @@ static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
 "    return %s;\n"
                     , pyname, md->pyname
                     ,ret_int ? "-1" : "0");
+            }
         }
+    }
 
     prcode(fp,
 "}\n"
