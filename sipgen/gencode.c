@@ -6241,7 +6241,6 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
     overDef *od = &vod->o;
     argDef *res;
     apiVersionRangeDef *avr;
-    const char *indent;
 
     normaliseArgs(od->cppsig);
 
@@ -6276,12 +6275,6 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
 
     restoreArgs(od->cppsig);
 
-    if (isNewThread(od))
-        prcode(fp,
-"    SIP_BLOCK_THREADS\n"
-"\n"
-            );
-
     prcode(fp,
 "    sip_gilstate_t sipGILState;\n"
 "    PyObject *meth;\n"
@@ -6307,54 +6300,39 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
 "\n"
         ,od->common->pyname);
 
-    if (isNewThread(od))
-    {
-        indent = "        ";
+    prcode(fp,
+"    if (!meth)\n"
+        );
 
-        prcode(fp,
-"    if (meth)\n"
-"    {\n"
-"        sipStartThread();\n"
-            );
-    }
+    if (isAbstract(od))
+        generateVirtHandlerErrorReturn(res, "        ", fp);
     else
     {
-        indent = "    ";
+        int a;
 
-        prcode(fp,
-"    if (!meth)\n"
-            );
-
-        if (isAbstract(od))
-            generateVirtHandlerErrorReturn(res, "        ", fp);
-        else
-        {
-            int a;
-
-            if (res == NULL)
-                prcode(fp,
+        if (res == NULL)
+            prcode(fp,
 "    {\n"
 "        ");
-            else
-                prcode(fp,
+        else
+            prcode(fp,
 "        return ");
 
-            generateUnambiguousClass(cd,vod->scope,fp);
+        generateUnambiguousClass(cd,vod->scope,fp);
 
-            prcode(fp,"::%O(",od);
+        prcode(fp,"::%O(",od);
  
-            for (a = 0; a < od->cppsig->nrArgs; ++a)
-                prcode(fp,"%sa%d",(a == 0 ? "" : ","),a);
+        for (a = 0; a < od->cppsig->nrArgs; ++a)
+            prcode(fp,"%sa%d",(a == 0 ? "" : ","),a);
  
-            prcode(fp,");\n"
-                );
+        prcode(fp,");\n"
+            );
 
-            if (res == NULL)
-                prcode(fp,
+        if (res == NULL)
+            prcode(fp,
 "        return;\n"
 "    }\n"
-                    );
-        }
+                );
     }
 
     /*
@@ -6369,7 +6347,7 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
 "\n"
             );
 
-        generateVirtHandlerCall(mod, cd, vod, res, indent, fp);
+        generateVirtHandlerCall(mod, cd, vod, res, "    ", fp);
     }
     else
     {
@@ -6440,15 +6418,6 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
         }
     }
 
-    if (isNewThread(od))
-        prcode(fp,
-"\n"
-"        sipEndThread();\n"
-"    }\n"
-"\n"
-"    SIP_UNBLOCK_THREADS\n"
-            );
-
     prcode(fp,
 "}\n"
         );
@@ -6466,6 +6435,12 @@ static void generateVirtHandlerCall(moduleDef *mod, classDef *cd,
     signatureDef saved;
     argDef *ad;
     int a, args_keep = FALSE, result_keep = FALSE;
+
+    if (isNewThread(od))
+        prcode(fp,
+"%ssipStartThread();\n"
+"\n"
+            , indent);
 
     saved = *vhd->cppsig;
     fakeProtectedArgs(vhd->cppsig);
@@ -6554,6 +6529,17 @@ static void generateVirtHandlerCall(moduleDef *mod, classDef *cd,
  
     prcode(fp,");\n"
         );
+
+    if (isNewThread(od))
+        prcode(fp,
+"\n"
+"%sSIP_BLOCK_THREADS\n"
+"%ssipEndThread();\n"
+"%sSIP_UNBLOCK_THREADS\n"
+            , indent
+            , indent
+            , indent);
+
 }
 
 
