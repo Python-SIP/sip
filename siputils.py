@@ -2314,7 +2314,7 @@ def parse_build_macros(filename, names, overrides=None, properties=None):
                 # Remove the escapes for any quotes.
                 rhs = rhs.replace(r'\"', '"').replace(r"\'", "'")
 
-                if adding:
+                if adding and rhs != "":
                     orig_rhs = raw.get(lhs)
                     if orig_rhs is not None:
                         rhs = orig_rhs + " " + rhs
