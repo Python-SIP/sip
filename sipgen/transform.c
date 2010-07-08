@@ -514,8 +514,13 @@ static void checkAssignmentHelper(sipSpec *pt, classDef *cd)
         if (ct->cppsig == NULL || !isPublicCtor(ct))
             continue;
 
-        if (ct->cppsig->nrArgs == 0)
+        if (ct->cppsig->nrArgs == 0 || ct->cppsig->args[0].defval != NULL)
+        {
+            /*
+             * The ctor either has no arguments or all arguments have defaults.
+             */
             pub_def_ctor = TRUE;
+        }
         else if (ct->cppsig->nrArgs == 1)
         {
             argDef *ad = &ct->cppsig->args[0];
