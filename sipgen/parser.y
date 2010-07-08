@@ -5111,7 +5111,48 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         setUseKeywordArgsFunction(od->common);
     }
 
-    od -> next = NULL;
+    /* See if we want to auto-generate a __len__() method. */
+    if (findOptFlag(optflgs, "__len__", bool_flag) != NULL)
+    {
+        overDef *len;
+
+        len = sipMalloc(sizeof (overDef));
+
+        len->cppname = "__len__";
+        len->overflags = SECT_IS_PUBLIC;
+        len->pysig.result.atype = ssize_type;
+        len->pysig.nrArgs = 0;
+        len->cppsig = &len->pysig;
+
+        len->common = findFunction(pt, mod, c_scope, mt_scope, len->cppname,
+                TRUE, 0, FALSE);
+
+        if ((len->methodcode = od->methodcode) == NULL)
+        {
+            char *buf = sipStrdup("            sipRes = (SIP_SSIZE_T)sipCpp->");
+            codeBlock *code;
+
+            append(&buf, od->cppname);
+            append(&buf, "();\n");
+
+            code = sipMalloc(sizeof (codeBlock));
+
+            code->frag = buf;
+            code->filename = "Auto-generated";
+            code->linenr = 0;
+            code->next = NULL;
+
+            len->methodcode = code;
+        }
+
+        len->next = NULL;
+
+        od->next = len;
+    }
+    else
+    {
+        od->next = NULL;
+    }
 
     /* Append to the list. */
     for (odp = headp; *odp != NULL; odp = &(*odp)->next)

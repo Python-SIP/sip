@@ -580,6 +580,15 @@ Function Annotations
     variable number of arguments.
 
 
+.. function-annotation:: __len__
+
+    .. versionadded:: 4.10.3
+
+    This boolean annotation specifies that a ``__len__()`` method should be
+    automatically generated that will use the method being annotated to compute
+    the value that the ``__len__()`` method will return.
+
+
 .. function-annotation:: NewThread
 
     This boolean annotation specifies that the function will create a new

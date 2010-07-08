@@ -4967,8 +4967,18 @@ int isIntReturnSlot(memberDef *md)
 {
     slotType st = md->slot;
 
-    return (st == len_slot || st == bool_slot || st == contains_slot ||
-        st == cmp_slot);
+    return (st == bool_slot || st == contains_slot || st == cmp_slot);
+}
+
+
+/*
+ * Returns TRUE if the given method is a slot that returns SIP_SSIZE_T.
+ */
+int isSSizeReturnSlot(memberDef *md)
+{
+    slotType st = md->slot;
+
+    return (st == len_slot);
 }
 
 
@@ -5088,7 +5098,9 @@ static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
     {
         ret_int = FALSE;
 
-        if (isLongReturnSlot(md))
+        if (isSSizeReturnSlot(md))
+            ret_type = "SIP_SSIZE_T ";
+        else if (isLongReturnSlot(md))
             ret_type = "long ";
         else
             ret_type = "PyObject *";
@@ -11376,7 +11388,7 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
         prcode(fp,
 "                return %s;\n"
 "\n"
-            , ((isVoidReturnSlot(od->common) || isIntReturnSlot(od->common) || isLongReturnSlot(od->common)) ? "-1" : "NULL"));
+            , ((isVoidReturnSlot(od->common) || isIntReturnSlot(od->common) || isSSizeReturnSlot(od->common) || isLongReturnSlot(od->common)) ? "-1" : "NULL"));
     }
 
     /* Call any pre-hook. */
@@ -11664,7 +11676,7 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
         );
 
     /* Handle the error flag if it was used. */
-    error_value = ((isVoidReturnSlot(od->common) || isIntReturnSlot(od->common) || isLongReturnSlot(od->common)) ? "-1" : "0");
+    error_value = ((isVoidReturnSlot(od->common) || isIntReturnSlot(od->common) || isSSizeReturnSlot(od->common) || isLongReturnSlot(od->common)) ? "-1" : "0");
 
     if (error_flag)
     {
@@ -11701,7 +11713,7 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
 "            Py_INCREF(sipSelf);\n"
 "            return sipSelf;\n"
             );
-    else if (isIntReturnSlot(od->common) || isLongReturnSlot(od->common))
+    else if (isIntReturnSlot(od->common) || isSSizeReturnSlot(od->common) || isLongReturnSlot(od->common))
         prcode(fp,
 "            return sipRes;\n"
             );
