@@ -1,6 +1,6 @@
-v4.10.3 ??? July 2010
+v4.10.3 12th July 2010
   - Added support for Q_SLOT, Q_SLOTS, Q_SIGNAL and Q_SIGNALS.
-  - Added the __len__ function annotation.
+  - Added the /__len__/ function annotation.
 
 v4.10.2 16th April 2010
   - A bug fix release.
