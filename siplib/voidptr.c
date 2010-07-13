@@ -184,7 +184,7 @@ static PyObject *sipVoidPtr_hex(sipVoidPtrObject *v)
 #endif
 
 
-#if PY_VERSION_HEX >= 0x03010000
+#if defined(SIP_USE_PYCAPSULE)
 /*
  * Implement ascapsule() for the type.
  */
@@ -452,7 +452,7 @@ void *sip_api_convert_to_void_ptr(PyObject *obj)
     if (PyObject_TypeCheck(obj, &sipVoidPtr_Type))
         return ((sipVoidPtrObject *)obj)->voidptr;
 
-#if PY_VERSION_HEX >= 0x03010000
+#if defined(SIP_USE_PYCAPSULE)
     if (PyCapsule_CheckExact(obj))
         return PyCapsule_GetPointer(obj, NULL);
 #endif
@@ -540,7 +540,7 @@ static int vp_convertor(PyObject *arg, struct vp_values *vp)
 
     if (arg == Py_None)
         ptr = NULL;
-#if PY_VERSION_HEX >= 0x03010000
+#if defined(SIP_USE_PYCAPSULE)
     else if (PyCapsule_CheckExact(arg))
         ptr = PyCapsule_GetPointer(arg, NULL);
 #endif

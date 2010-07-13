@@ -772,7 +772,7 @@ PyMODINIT_FUNC SIP_MODULE_ENTRY(void)
     }
 
     /* Publish the SIP API. */
-#if PY_VERSION_HEX >= 0x03010000
+#if defined(SIP_USE_PYCAPSULE)
     obj = PyCapsule_New((void *)&sip_api, "sip._C_API", NULL);
 #else
     obj = PyCObject_FromVoidPtr((void *)&sip_api, NULL);
@@ -2929,7 +2929,7 @@ static void sip_api_add_exception(sipErrorState es, PyObject **parseErrp)
 /*
  * The dtor for parse failure wrapped in a Python object.
  */
-#if PY_VERSION_HEX >= 0x03010000
+#if defined(SIP_USE_PYCAPSULE)
 static void failure_dtor(PyObject *capsule)
 {
     sipParseFailure *failure = (sipParseFailure *)PyCapsule_GetPointer(capsule, NULL);
@@ -2977,7 +2977,7 @@ static void add_failure(PyObject **parseErrp, sipParseFailure *failure)
 
     *failure_copy = *failure;
 
-#if PY_VERSION_HEX >= 0x03010000
+#if defined(SIP_USE_PYCAPSULE)
     failure_obj = PyCapsule_New(failure_copy, NULL, failure_dtor);
 #else
     failure_obj = PyCObject_FromVoidPtr(failure_copy, failure_dtor);
@@ -6346,7 +6346,7 @@ static PyObject *detail_FromFailure(PyObject *failure_obj)
     sipParseFailure *failure;
     PyObject *detail;
 
-#if PY_VERSION_HEX >= 0x03010000
+#if defined(SIP_USE_PYCAPSULE)
     failure = (sipParseFailure *)PyCapsule_GetPointer(failure_obj, NULL);
 #else
     failure = (sipParseFailure *)PyCObject_AsVoidPtr(failure_obj);

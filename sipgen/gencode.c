@@ -2008,7 +2008,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "    /* Export the module and publish it's API. */\n"
 "    if (sipExportModule(&sipModuleAPI_%s,SIP_API_MAJOR_NR,SIP_API_MINOR_NR,0) < 0)\n"
 "    {\n"
-"#if PY_VERSION_HEX < 0x03010000\n"
+"#if !defined(SIP_USE_PYCAPSULE)\n"
 "        Py_DECREF(sip_sipmod);\n"
 "#endif\n"
 "        SIP_MODULE_DISCARD(sipModule);\n"
@@ -2034,7 +2034,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "    /* Initialise the module now all its dependencies have been set up. */\n"
 "    if (sipInitModule(&sipModuleAPI_%s,sipModuleDict) < 0)\n"
 "    {\n"
-"#if PY_VERSION_HEX < 0x03010000\n"
+"#if !defined(SIP_USE_PYCAPSULE)\n"
 "        Py_DECREF(sip_sipmod);\n"
 "#endif\n"
 "        SIP_MODULE_DISCARD(sipModule);\n"
@@ -2095,7 +2095,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 
         prcode(fp, ",NULL)) == NULL || PyDict_SetItemString(sipModuleDict,\"%s\",exceptionsTable[%d]) < 0)\n"
 "    {\n"
-"#if PY_VERSION_HEX < 0x03010000\n"
+"#if !defined(SIP_USE_PYCAPSULE)\n"
 "        Py_DECREF(sip_sipmod);\n"
 "#endif\n"
 "        SIP_MODULE_DISCARD(sipModule);\n"
@@ -2215,7 +2215,7 @@ static void generateSipImport(moduleDef *mod, FILE *fp)
 {
     prcode(fp,
 "    /* Get the SIP module's API. */\n"
-"#if PY_VERSION_HEX >= 0x03010000\n"
+"#if defined(SIP_USE_PYCAPSULE)\n"
 "\n"
         );
 
@@ -2295,7 +2295,7 @@ static void generateSipImport(moduleDef *mod, FILE *fp)
 static void generateSipImportVariables(FILE *fp)
 {
     prcode(fp,
-"#if PY_VERSION_HEX < 0x03010000\n"
+"#if !defined(SIP_USE_PYCAPSULE)\n"
 "    PyObject *sip_sipmod, *sip_capiobj;\n"
 "#endif\n"
 "\n"

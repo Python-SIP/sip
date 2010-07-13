@@ -1,3 +1,7 @@
+v4.10.4 ??? July 2010
+  - Use capsules when being built for Python v2.7 to work around an apparent
+    bug in the support for PyCObject.
+
 v4.10.3 12th July 2010
   - Added support for Q_SLOT, Q_SLOTS, Q_SIGNAL and Q_SIGNALS.
   - Added the /__len__/ function annotation.
