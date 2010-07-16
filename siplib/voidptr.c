@@ -308,7 +308,7 @@ static PyObject *sipVoidPtr_setwriteable(sipVoidPtrObject *v, PyObject *arg)
 
 /* The methods data structure. */
 static PyMethodDef sipVoidPtr_Methods[] = {
-#if PY_VERSION_HEX >= 0x03010000
+#if defined(SIP_USE_PYCAPSULE)
     {"ascapsule", (PyCFunction)sipVoidPtr_ascapsule, METH_NOARGS, NULL},
 #endif
     {"ascobject", (PyCFunction)sipVoidPtr_ascobject, METH_NOARGS, NULL},

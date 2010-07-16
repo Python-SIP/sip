@@ -1,3 +1,6 @@
+v4.10.5 16th July 2010
+  - A bug fix release for Python v3 and Python v2.7.
+
 v4.10.4 15th July 2010
   - Use capsules when being built for Python v2.7 to work around an apparent
     bug in the support for PyCObject.

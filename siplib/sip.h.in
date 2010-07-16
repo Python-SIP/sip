@@ -208,6 +208,10 @@ extern "C" {
 #define SIPBytes_AS_STRING  PyBytes_AS_STRING
 #define SIPBytes_GET_SIZE   PyBytes_GET_SIZE
 
+#if PY_MINOR_VERSION >= 1
+#define SIP_USE_PYCAPSULE
+#endif
+
 #else
 
 #define SIPLong_FromLong    PyInt_FromLong
@@ -218,6 +222,10 @@ extern "C" {
 #define SIPBytes_FromStringAndSize  PyString_FromStringAndSize
 #define SIPBytes_AS_STRING  PyString_AS_STRING
 #define SIPBytes_GET_SIZE   PyString_GET_SIZE
+
+#if PY_MINOR_VERSION >= 7
+#define SIP_USE_PYCAPSULE
+#endif
 
 #endif
 
