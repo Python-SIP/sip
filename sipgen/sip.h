@@ -99,6 +99,7 @@
 #define CLASS_CANNOT_COPY   0x10000000  /* It cannot be copied. */
 #define CLASS_CANNOT_ASSIGN 0x20000000  /* It cannot be assigned. */
 #define CLASS_ALLOW_NONE    0x40000000  /* The class will handle None. */
+#define CLASS_REMOVED_NS    0x80000000  /* It is a removed namespace. */
 
 #define hasSigSlots(cd)     ((cd)->classflags & CLASS_HAS_SIGSLOTS)
 #define setHasSigSlots(cd)  ((cd)->classflags |= CLASS_HAS_SIGSLOTS)
@@ -149,6 +150,8 @@
 #define setCannotAssign(cd) ((cd)->classflags |= CLASS_CANNOT_ASSIGN)
 #define classHandlesNone(cd)    ((cd)->classflags & CLASS_ALLOW_NONE)
 #define setClassHandlesNone(cd) ((cd)->classflags |= CLASS_ALLOW_NONE)
+#define isRemovedNamespace(cd)  ((cd)->classflags & CLASS_REMOVED_NS)
+#define setIsRemovedNamespace(cd)   ((cd)->classflags |= CLASS_REMOVED_NS)
 
 #define isPublicDtor(cd)    ((cd)->classflags & SECT_IS_PUBLIC)
 #define setIsPublicDtor(cd) ((cd)->classflags |= SECT_IS_PUBLIC)
@@ -602,6 +605,14 @@ typedef struct _scopedNameDef {
 } scopedNameDef;
 
 
+/* A list of scoped names. */
+
+typedef struct _scopedNameListDef {
+    scopedNameDef *snd;                 /* The scoped name. */
+    struct _scopedNameListDef *next;    /* The next in the scoped name list. */
+} scopedNameListDef;
+
+
 /* A name. */
 
 typedef struct _nameDef {
@@ -987,7 +998,7 @@ typedef struct _mroDef {
 /* A class definition. */
 
 typedef struct _classDef {
-    int classflags;                     /* The class flags. */
+    unsigned classflags;                /* The class flags. */
     int pyqt4_flags;                    /* The PyQt4 specific flags. */
     nameDef *pyname;                    /* The Python name. */
     ifaceFileDef *iff;                  /* The interface file. */
@@ -1064,6 +1075,7 @@ typedef struct {
     int sigslots;                       /* Set if signals or slots are used. */
     int genc;                           /* Set if we are generating C code. */
     struct _stringList *plugins;        /* The list of plugins. */
+    scopedNameListDef *removedns;       /* The list of removed namespaces. */
 } sipSpec;
 
 

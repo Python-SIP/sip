@@ -3457,6 +3457,9 @@ static void generateIfaceCpp(sipSpec *pt, ifaceFileDef *iff,
 
     for (cd = pt->classes; cd != NULL; cd = cd->next)
     {
+        if (isRemovedNamespace(cd))
+            continue;
+
         /*
          * Protected classes must be generated in the interface file of the
          * enclosing scope.
@@ -9224,11 +9227,22 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
     prcode(fp, "        ");
 
     if (cd->real != NULL)
+    {
         generateEncodedType(mod, cd->real, 0, fp);
-    else if (cd->ecd != NULL)
-        generateEncodedType(mod, cd->ecd, 0, fp);
+    }
     else
-        prcode(fp, "{0, 0, 1}");
+    {
+        classDef *ecd;
+
+        for (ecd = cd->ecd; ecd != NULL; ecd = ecd->ecd)
+            if (!isRemovedNamespace(ecd))
+                break;
+
+        if (ecd != NULL)
+            generateEncodedType(mod, ecd, 0, fp);
+        else
+            prcode(fp, "{0, 0, 1}");
+    }
 
     prcode(fp, ",\n"
         );

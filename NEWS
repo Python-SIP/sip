@@ -1,3 +1,6 @@
+v4.11 ??? ??? 2010
+  - Added the %RemoveNamespace directive.
+
 v4.10.5 16th July 2010
   - A bug fix release for Python v3 and Python v2.7.
 
