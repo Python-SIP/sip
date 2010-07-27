@@ -1,7 +1,19 @@
 /*
  * The SIP module interface.
  *
- * @BS_LICENSE@
+ * Copyright (c) 2010 Riverbank Computing Limited <info@riverbankcomputing.com>
+ *
+ * This file is part of SIP.
+ *
+ * This copy of SIP is licensed for use under the terms of the SIP License
+ * Agreement.  See the file LICENSE for more details.
+ *
+ * This copy of SIP may also used under the terms of the GNU General Public
+ * License v2 or v3 as published by the Free Software Foundation which can be
+ * found in the files LICENSE-GPL2 and LICENSE-GPL3 included in this package.
+ *
+ * SIP is supplied WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
 
@@ -43,7 +55,7 @@ extern "C" {
  * Define the SIP version number.
  */
 #define SIP_VERSION         0x@RM_HEXVERSION@
-#define SIP_VERSION_STR     "@RM_LATEST@"
+#define SIP_VERSION_STR     "@RM_RELEASE@"
 
 
 /*
@@ -55,6 +67,9 @@ extern "C" {
  * to 0.
  *
  * History:
+ *
+ * 7.1  Added the 'H' format character to sip_api_parse_result().
+ *      Deprecated the 'D' format character of sip_api_parse_result().
  *
  * 7.0  Added sip_api_parse_kwd_args().
  *      Added sipErrorState, sip_api_add_exception().
@@ -154,7 +169,7 @@ extern "C" {
  * 0.0  Original version.
  */
 #define SIP_API_MAJOR_NR    7
-#define SIP_API_MINOR_NR    0
+#define SIP_API_MINOR_NR    1
 
 
 /* Some compatibility stuff to help with handwritten code for SIP v3. */
@@ -193,6 +208,10 @@ extern "C" {
 #define SIPBytes_AS_STRING  PyBytes_AS_STRING
 #define SIPBytes_GET_SIZE   PyBytes_GET_SIZE
 
+#if PY_MINOR_VERSION >= 1
+#define SIP_USE_PYCAPSULE
+#endif
+
 #else
 
 #define SIPLong_FromLong    PyInt_FromLong
@@ -203,6 +222,10 @@ extern "C" {
 #define SIPBytes_FromStringAndSize  PyString_FromStringAndSize
 #define SIPBytes_AS_STRING  PyString_AS_STRING
 #define SIPBytes_GET_SIZE   PyString_GET_SIZE
+
+#if PY_MINOR_VERSION >= 7
+#define SIP_USE_PYCAPSULE
+#endif
 
 #endif
 

@@ -2,7 +2,19 @@
  * The SIP library code that implements the interface to the optional module
  * supplied Qt support.
  *
- * @BS_LICENSE@
+ * Copyright (c) 2010 Riverbank Computing Limited <info@riverbankcomputing.com>
+ *
+ * This file is part of SIP.
+ *
+ * This copy of SIP is licensed for use under the terms of the SIP License
+ * Agreement.  See the file LICENSE for more details.
+ *
+ * This copy of SIP may also used under the terms of the GNU General Public
+ * License v2 or v3 as published by the Free Software Foundation which can be
+ * found in the files LICENSE-GPL2 and LICENSE-GPL3 included in this package.
+ *
+ * SIP is supplied WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
 
@@ -125,6 +137,19 @@ PyObject *sip_api_invoke_slot(const sipSlot *slot, PyObject *sigargs)
     if (slot -> pyobj == NULL)
     {
         PyObject *self = (sref != NULL ? sref : slot->meth.mself);
+
+        /*
+         * If the receiver wraps a C++ object then ignore the call if it no
+         * longer exists.
+         */
+        if (PyObject_TypeCheck(self, (PyTypeObject *)&sipSimpleWrapper_Type) &&
+            sipGetAddress(self) == NULL)
+        {
+            Py_XDECREF(sref);
+
+            Py_INCREF(Py_None);
+            return Py_None;
+        }
 
 #if PY_MAJOR_VERSION >= 3
         sfunc = PyMethod_New(slot->meth.mfunc, self);

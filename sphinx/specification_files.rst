@@ -129,11 +129,15 @@ file.
             *virtual-operator* |
             *class-variable* |
             **public:** |
+            **public Q_SLOTS:** |
             **public slots:** |
             **protected:** |
+            **protected Q_SLOTS:** |
             **protected slots:** |
             **private:** |
+            **private Q_SLOTS:** |
             **private slots:** |
+            **Q_SIGNALS:** |
             **signals:**]
 
     *constructor* ::= [**explicit**] *name* **(** [*argument-list*] **)**
@@ -147,18 +151,19 @@ file.
             [*function-annotations*] **;** [:directive:`%MethodCode`]
             [:directive:`%VirtualCatcherCode`]
 
-    *method* ::= *type* *name* **(** [*argument-list*] **)** [**const**]
-            [*exceptions*] [**= 0**] [*function-annotations*] [*c++-signature*]
-            **;** [:directive:`%Docstring`] [:directive:`%MethodCode`]
+    *method* ::= [**Q_SIGNAL**] [**Q_SLOT**] *type* *name* **(**
+            [*argument-list*] **)** [**const**] [*exceptions*] [**= 0**]
+            [*function-annotations*] [*c++-signature*] **;**
+            [:directive:`%Docstring`] [:directive:`%MethodCode`]
 
     *c++-signature* ::= **[** *type* **(** [*argument-list*] **)]**
 
     *static-method* ::= **static** *function*
 
-    *virtual-method* ::= **virtual** *type* *name* **(** [*argument-list*] **)**
-            [**const**] [*exceptions*] [**= 0**] [*function-annotations*]
-            [*c++-signature*] **;** [:directive:`%MethodCode`]
-            [:directive:`%VirtualCatcherCode`]
+    *virtual-method* ::= [**Q_SIGNAL**] [**Q_SLOT**] **virtual** *type* *name*
+            **(** [*argument-list*] **)** [**const**] [*exceptions*] [**= 0**]
+            [*function-annotations*] [*c++-signature*] **;**
+            [:directive:`%MethodCode`] [:directive:`%VirtualCatcherCode`]
 
     *special-method* ::= *type* *special-method-name*
             **(** [*argument-list*] **)** [*function-annotations*] **;**

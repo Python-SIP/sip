@@ -1,6 +1,18 @@
 # This script handles the SIP configuration and generates the Makefiles.
 #
-# @BS_LICENSE@
+# Copyright (c) 2010 Riverbank Computing Limited <info@riverbankcomputing.com>
+#
+# This file is part of SIP.
+#
+# This copy of SIP is licensed for use under the terms of the SIP License
+# Agreement.  See the file LICENSE for more details.
+#
+# This copy of SIP may also used under the terms of the GNU General Public
+# License v2 or v3 as published by the Free Software Foundation which can be
+# found in the files LICENSE-GPL2 and LICENSE-GPL3 included in this package.
+#
+# SIP is supplied WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 
 import sys
@@ -14,7 +26,7 @@ import siputils
 
 # Initialise the globals.
 sip_version = 0x@RM_HEXVERSION@
-sip_version_str = "@RM_LATEST@"
+sip_version_str = "@RM_RELEASE@"
 py_version = sys.hexversion >> 8
 plat_py_site_dir = None
 plat_py_inc_dir = None
@@ -62,14 +74,14 @@ build_macro_names = [
     "DEL_FILE",
     "EXTENSION_SHLIB", "EXTENSION_PLUGIN",
     "INCDIR", "INCDIR_X11", "INCDIR_OPENGL",
-    "LIBS_CORE", "LIBS_GUI", "LIBS_NETWORK", "LIBS_OPENGL",
+    "LIBS_CORE", "LIBS_GUI", "LIBS_NETWORK", "LIBS_OPENGL", "LIBS_WEBKIT",
     "LINK", "LINK_SHLIB", "AIX_SHLIB", "LINK_SHLIB_CMD",
     "LFLAGS", "LFLAGS_CONSOLE", "LFLAGS_CONSOLE_DLL", "LFLAGS_DEBUG",
     "LFLAGS_DLL",
     "LFLAGS_PLUGIN", "LFLAGS_RELEASE", "LFLAGS_SHLIB", "LFLAGS_SONAME",
     "LFLAGS_THREAD", "LFLAGS_WINDOWS", "LFLAGS_WINDOWS_DLL", "LFLAGS_OPENGL",
     "LIBDIR", "LIBDIR_X11", "LIBDIR_OPENGL",
-    "LIBS", "LIBS_CONSOLE", "LIBS_OPENGL", "LIBS_OPENGL", "LIBS_RT",
+    "LIBS", "LIBS_CONSOLE", "LIBS_RT",
     "LIBS_RTMT", "LIBS_THREAD", "LIBS_WINDOWS", "LIBS_X11",
     "MAKEFILE_GENERATOR",
     "MKDIR",

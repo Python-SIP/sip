@@ -1,7 +1,19 @@
 /*
  * The main header file for SIP.
  *
- * @BS_LICENSE@
+ * Copyright (c) 2010 Riverbank Computing Limited <info@riverbankcomputing.com>
+ *
+ * This file is part of SIP.
+ *
+ * This copy of SIP is licensed for use under the terms of the SIP License
+ * Agreement.  See the file LICENSE for more details.
+ *
+ * This copy of SIP may also used under the terms of the GNU General Public
+ * License v2 or v3 as published by the Free Software Foundation which can be
+ * found in the files LICENSE-GPL2 and LICENSE-GPL3 included in this package.
+ *
+ * SIP is supplied WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
 
@@ -253,8 +265,10 @@
 #define setIsPrivate(o)     ((o)->overflags |= SECT_IS_PRIVATE)
 #define isSlot(o)           ((o)->overflags & SECT_IS_SLOT)
 #define setIsSlot(o)        ((o)->overflags |= SECT_IS_SLOT)
+#define resetIsSlot(o)      ((o)->overflags &= ~SECT_IS_SLOT)
 #define isSignal(o)         ((o)->overflags & SECT_IS_SIGNAL)
 #define setIsSignal(o)      ((o)->overflags |= SECT_IS_SIGNAL)
+#define resetIsSignal(o)    ((o)->overflags &= ~SECT_IS_SIGNAL)
 
 #define isVirtual(o)        ((o)->overflags & OVER_IS_VIRTUAL)
 #define setIsVirtual(o)     ((o)->overflags |= OVER_IS_VIRTUAL)
@@ -326,6 +340,7 @@
 #define ARG_SINGLE_SHOT     0x1000  /* The slot is only ever fired once. */
 #define ARG_RESULT_SIZE     0x2000  /* It defines the result size. */
 #define ARG_KEEP_REF        0x4000  /* Keep a reference. */
+#define ARG_NO_COPY         0x8000  /* Disable copying of const references. */
 
 #define isReference(a)      ((a)->argflags & ARG_IS_REF)
 #define setIsReference(a)   ((a)->argflags |= ARG_IS_REF)
@@ -359,6 +374,8 @@
 #define setResultSize(a)    ((a)->argflags |= ARG_RESULT_SIZE)
 #define keepReference(a)    ((a)->argflags & ARG_KEEP_REF)
 #define setKeepReference(a) ((a)->argflags |= ARG_KEEP_REF)
+#define noCopy(a)           ((a)->argflags & ARG_NO_COPY)
+#define setNoCopy(a)        ((a)->argflags |= ARG_NO_COPY)
 
 
 /* Handle name flags. */
@@ -1106,9 +1123,10 @@ void prOverloadName(FILE *fp, overDef *od);
 void prOverloadDecl(FILE *fp, ifaceFileDef *scope, overDef *od, int defval);
 void prScopedPythonName(FILE *fp, classDef *scope, const char *pyname);
 int prPythonSignature(sipSpec *pt, FILE *fp, signatureDef *sd, int sec,
-        int names, int defaults, int in_str);
+        int names, int defaults, int in_str, int is_signal);
 void searchTypedefs(sipSpec *pt, scopedNameDef *snd, argDef *ad);
 int isIntReturnSlot(memberDef *md);
+int isSSizeReturnSlot(memberDef *md);
 int isLongReturnSlot(memberDef *md);
 int isVoidReturnSlot(memberDef *md);
 int isNumberSlot(memberDef *md);

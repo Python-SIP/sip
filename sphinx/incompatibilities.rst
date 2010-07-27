@@ -5,6 +5,18 @@ This section describes incompatibilities introduced by particular versions of
 SIP.  Normally these are the removal of previously deprecated features.
 
 
+SIP v4.10.1
+-----------
+
+Newly Deprecated Features
+*************************
+
+The following parts of the :ref:`C API <ref-c-api>` are now deprecated (but
+still supported).
+
+- The ``D`` format character of :cfunc:`sipParseResult()`.
+
+
 SIP v4.8
 --------
 
@@ -121,7 +133,7 @@ still supported).
 - The ``B``, ``C`` and ``E`` format characters of :cfunc:`sipBuildResult()` and
   :cfunc:`sipCallMethod()`.
 
-- The ``s``, ``C`` and ``E`` format character of :cfunc:`sipParseResult()`.
+- The ``s``, ``C`` and ``E`` format characters of :cfunc:`sipParseResult()`.
 
 
 SIP v4.7.8

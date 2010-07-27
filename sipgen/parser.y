@@ -1,7 +1,19 @@
 /*
  * The SIP parser.
  *
- * @BS_LICENSE@
+ * Copyright (c) 2010 Riverbank Computing Limited <info@riverbankcomputing.com>
+ *
+ * This file is part of SIP.
+ *
+ * This copy of SIP is licensed for use under the terms of the SIP License
+ * Agreement.  See the file LICENSE for more details.
+ *
+ * This copy of SIP may also used under the terms of the GNU General Public
+ * License v2 or v3 as published by the Free Software Foundation which can be
+ * found in the files LICENSE-GPL2 and LICENSE-GPL3 included in this package.
+ *
+ * SIP is supplied WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
 %{
@@ -28,6 +40,8 @@ static int sectionFlags;                /* The current section flags. */
 static int currentOverIsVirt;           /* Set if the overload is virtual. */
 static int currentCtorIsExplicit;       /* Set if the ctor is explicit. */
 static int currentIsStatic;             /* Set if the current is static. */
+static int currentIsSignal;             /* Set if the current is Q_SIGNAL. */
+static int currentIsSlot;               /* Set if the current is Q_SLOT. */
 static int currentIsTemplate;           /* Set if the current is a template. */
 static char *previousFile;              /* The file just parsed. */
 static parserContext currentContext;    /* The current context. */
@@ -60,7 +74,7 @@ static void newVar(sipSpec *, moduleDef *, char *, int, argDef *, optFlags *,
 static void newCtor(char *, int, signatureDef *, optFlags *, codeBlock *,
         throwArgs *, signatureDef *, int, codeBlock *);
 static void newFunction(sipSpec *, moduleDef *, classDef *, mappedTypeDef *,
-        int, int, int, char *, signatureDef *, int, int, optFlags *,
+        int, int, int, int, int, char *, signatureDef *, int, int, optFlags *,
         codeBlock *, codeBlock *, throwArgs *, signatureDef *, codeBlock *);
 static optFlag *findOptFlag(optFlags *,char *,flagType);
 static memberDef *findFunction(sipSpec *, moduleDef *, classDef *,
@@ -206,7 +220,9 @@ static int isEnabledFeature(const char *name);
 %token          TK_PROTECTED
 %token          TK_PRIVATE
 %token          TK_SIGNALS
+%token          TK_SIGNAL_METHOD
 %token          TK_SLOTS
+%token          TK_SLOT_METHOD
 %token          TK_BOOL
 %token          TK_SHORT
 %token          TK_INT
@@ -689,8 +705,8 @@ mtfunction: TK_STATIC cpptype TK_NAME '(' arglist ')' optconst optexceptions opt
                 $5.result = $2;
 
                 newFunction(currentSpec, currentModule, NULL,
-                        currentMappedType, 0, TRUE, FALSE, $3, &$5, $7, FALSE,
-                        &$9, $13, NULL, $8, $10, $12);
+                        currentMappedType, 0, TRUE, FALSE, FALSE, FALSE, $3,
+                        &$5, $7, FALSE, &$9, $13, NULL, $8, $10, $12);
             }
         }
     ;
@@ -1893,11 +1909,14 @@ function:   cpptype TK_NAME '(' arglist ')' optconst optexceptions optabstract o
                 $4.result = $1;
 
                 newFunction(currentSpec, currentModule, currentScope(), NULL,
-                        sectionFlags, currentIsStatic, currentOverIsVirt, $2,
-                        &$4, $6, $8, &$9, $13, $14, $7, $10, $12);
+                        sectionFlags, currentIsStatic, currentIsSignal,
+                        currentIsSlot, currentOverIsVirt, $2, &$4, $6, $8, &$9,
+                        $13, $14, $7, $10, $12);
             }
 
             currentIsStatic = FALSE;
+            currentIsSignal = FALSE;
+            currentIsSlot = FALSE;
             currentOverIsVirt = FALSE;
         }
     |   cpptype TK_OPERATOR '=' '(' cpptype ')' ';' {
@@ -1916,6 +1935,8 @@ function:   cpptype TK_NAME '(' arglist ')' optconst optexceptions optabstract o
             }
 
             currentIsStatic = FALSE;
+            currentIsSignal = FALSE;
+            currentIsSlot = FALSE;
             currentOverIsVirt = FALSE;
         }
     |   cpptype TK_OPERATOR operatorname '(' arglist ')' optconst optexceptions optabstract optflags optsig ';' methodcode virtualcatchercode {
@@ -1937,11 +1958,14 @@ function:   cpptype TK_NAME '(' arglist ')' optconst optexceptions optabstract o
                 $5.result = $1;
 
                 newFunction(currentSpec, currentModule, cd, NULL,
-                        sectionFlags, currentIsStatic, currentOverIsVirt, $3,
-                        &$5, $7, $9, &$10, $13, $14, $8, $11, NULL);
+                        sectionFlags, currentIsStatic, currentIsSignal,
+                        currentIsSlot, currentOverIsVirt, $3, &$5, $7, $9,
+                        &$10, $13, $14, $8, $11, NULL);
             }
 
             currentIsStatic = FALSE;
+            currentIsSignal = FALSE;
+            currentIsSlot = FALSE;
             currentOverIsVirt = FALSE;
         }
     |   TK_OPERATOR cpptype '(' arglist ')' optconst optexceptions optabstract optflags optsig ';' methodcode virtualcatchercode {
@@ -1994,8 +2018,9 @@ function:   cpptype TK_NAME '(' arglist ')' optconst optexceptions optabstract o
                     $4.result = $2;
 
                     newFunction(currentSpec, currentModule, scope, NULL,
-                            sectionFlags, currentIsStatic, currentOverIsVirt,
-                            sname, &$4, $6, $8, &$9, $12, $13, $7, $10, NULL);
+                            sectionFlags, currentIsStatic, currentIsSignal,
+                            currentIsSlot, currentOverIsVirt, sname, &$4, $6,
+                            $8, &$9, $12, $13, $7, $10, NULL);
                 }
                 else
                 {
@@ -2015,6 +2040,8 @@ function:   cpptype TK_NAME '(' arglist ')' optconst optexceptions optabstract o
             }
 
             currentIsStatic = FALSE;
+            currentIsSignal = FALSE;
+            currentIsSlot = FALSE;
             currentOverIsVirt = FALSE;
         }
     ;
@@ -2340,15 +2367,24 @@ argvalue:   TK_SIPSIGNAL optname optflags optassign {
         }
     ;
 
-varmember:  TK_STATIC {currentIsStatic = TRUE;} varmem
+varmember:
+        TK_SIGNAL_METHOD {currentIsSignal = TRUE;} simple_varmem
+    |   TK_SLOT_METHOD {currentIsSlot = TRUE;} simple_varmem
+    |   simple_varmem
+    ;
+
+simple_varmem:
+        TK_STATIC {currentIsStatic = TRUE;} varmem
     |   varmem
     ;
 
-varmem:     member
+varmem:
+        member
     |   variable
     ;
 
-member:     TK_VIRTUAL {currentOverIsVirt = TRUE;} function
+member:
+        TK_VIRTUAL {currentOverIsVirt = TRUE;} function
     |   function
     ;
 
@@ -2438,6 +2474,9 @@ argtype:    cpptype optname optflags {
 
             if (findOptFlag(&$3, "ResultSize", bool_flag) != NULL)
                 $$.argflags |= ARG_RESULT_SIZE;
+
+            if (findOptFlag(&$3, "NoCopy", bool_flag) != NULL)
+                $$.argflags |= ARG_NO_COPY;
 
             if (findOptFlag(&$3,"Constrained",bool_flag) != NULL)
             {
@@ -2723,6 +2762,8 @@ void parse(sipSpec *spec, FILE *fp, char *filename, stringList *tsl,
     currentOverIsVirt = FALSE;
     currentCtorIsExplicit = FALSE;
     currentIsStatic = FALSE;
+    currentIsSignal = FALSE;
+    currentIsSlot = FALSE;
     currentIsTemplate = FALSE;
     previousFile = NULL;
     skipStackPtr = 0;
@@ -4830,10 +4871,11 @@ static void newCtor(char *name, int sectFlags, signatureDef *args,
  * Create a new function.
  */
 static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
-        mappedTypeDef *mt_scope, int sflags, int isstatic, int isvirt,
-        char *name, signatureDef *sig, int isconst, int isabstract,
-        optFlags *optflgs, codeBlock *methodcode, codeBlock *vcode,
-        throwArgs *exceptions, signatureDef *cppsig, codeBlock *docstring)
+        mappedTypeDef *mt_scope, int sflags, int isstatic, int issignal,
+        int isslot, int isvirt, char *name, signatureDef *sig, int isconst,
+        int isabstract, optFlags *optflgs, codeBlock *methodcode,
+        codeBlock *vcode, throwArgs *exceptions, signatureDef *cppsig,
+        codeBlock *docstring)
 {
     int factory, xferback, no_arg_parser;
     overDef *od, **odp, **headp;
@@ -4888,13 +4930,24 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
 
     /* Set the overload flags. */
 
-    if (sflags & SECT_IS_PROT && makeProtPublic)
+    if ((sflags & SECT_IS_PROT) && makeProtPublic)
     {
         sflags &= ~SECT_IS_PROT;
         sflags |= SECT_IS_PUBLIC | OVER_REALLY_PROT;
     }
 
-    od -> overflags = sflags;
+    od->overflags = sflags;
+
+    if (issignal)
+    {
+        resetIsSlot(od);
+        setIsSignal(od);
+    }
+    else if (isslot)
+    {
+        resetIsSignal(od);
+        setIsSlot(od);
+    }
 
     if (factory)
         setIsFactory(od);
@@ -5004,6 +5057,9 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
             yyerror("%MethodCode must be supplied if /NoArgParser/ is specified");
     }
 
+    if (findOptFlag(optflgs, "NoCopy", bool_flag) != NULL)
+        setNoCopy(&od->pysig.result);
+
     od->common = findFunction(pt, mod, c_scope, mt_scope,
             getPythonName(optflgs, name), (methodcode != NULL), sig->nrArgs,
             no_arg_parser);
@@ -5055,7 +5111,48 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         setUseKeywordArgsFunction(od->common);
     }
 
-    od -> next = NULL;
+    /* See if we want to auto-generate a __len__() method. */
+    if (findOptFlag(optflgs, "__len__", bool_flag) != NULL)
+    {
+        overDef *len;
+
+        len = sipMalloc(sizeof (overDef));
+
+        len->cppname = "__len__";
+        len->overflags = SECT_IS_PUBLIC;
+        len->pysig.result.atype = ssize_type;
+        len->pysig.nrArgs = 0;
+        len->cppsig = &len->pysig;
+
+        len->common = findFunction(pt, mod, c_scope, mt_scope, len->cppname,
+                TRUE, 0, FALSE);
+
+        if ((len->methodcode = od->methodcode) == NULL)
+        {
+            char *buf = sipStrdup("            sipRes = (SIP_SSIZE_T)sipCpp->");
+            codeBlock *code;
+
+            append(&buf, od->cppname);
+            append(&buf, "();\n");
+
+            code = sipMalloc(sizeof (codeBlock));
+
+            code->frag = buf;
+            code->filename = "Auto-generated";
+            code->linenr = 0;
+            code->next = NULL;
+
+            len->methodcode = code;
+        }
+
+        len->next = NULL;
+
+        od->next = len;
+    }
+    else
+    {
+        od->next = NULL;
+    }
 
     /* Append to the list. */
     for (odp = headp; *odp != NULL; odp = &(*odp)->next)

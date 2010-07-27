@@ -1,7 +1,19 @@
 /*
  * The parse tree transformation module for SIP.
  *
- * @BS_LICENSE@
+ * Copyright (c) 2010 Riverbank Computing Limited <info@riverbankcomputing.com>
+ *
+ * This file is part of SIP.
+ *
+ * This copy of SIP is licensed for use under the terms of the SIP License
+ * Agreement.  See the file LICENSE for more details.
+ *
+ * This copy of SIP may also used under the terms of the GNU General Public
+ * License v2 or v3 as published by the Free Software Foundation which can be
+ * found in the files LICENSE-GPL2 and LICENSE-GPL3 included in this package.
+ *
+ * SIP is supplied WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
 
@@ -502,8 +514,13 @@ static void checkAssignmentHelper(sipSpec *pt, classDef *cd)
         if (ct->cppsig == NULL || !isPublicCtor(ct))
             continue;
 
-        if (ct->cppsig->nrArgs == 0)
+        if (ct->cppsig->nrArgs == 0 || ct->cppsig->args[0].defval != NULL)
+        {
+            /*
+             * The ctor either has no arguments or all arguments have defaults.
+             */
             pub_def_ctor = TRUE;
+        }
         else if (ct->cppsig->nrArgs == 1)
         {
             argDef *ad = &ct->cppsig->args[0];
@@ -857,11 +874,14 @@ static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd)
             *mdhead = md;
         }
 
-        /* Move the overload. */
+        /* Move the overload to the end of the destination list. */
         setIsPublic(od);
         setIsGlobal(od);
         od->common = md;
-        od->next = *odhead;
+        od->next = NULL;
+
+        while (*odhead != NULL)
+            odhead = &(*odhead)->next;
 
         *odhead = od;
 
@@ -1847,9 +1867,16 @@ static void resolveFuncTypes(sipSpec *pt, moduleDef *mod, classDef *c_scope,
     /* Handle the Python signature. */
     resolvePySigTypes(pt, mod, c_scope, od, &od->pysig, isSignal(od));
 
-    /* These slots must return int. */
     res = &od->pysig.result;
 
+    /* These slots must return SIP_SSIZE_T (or int - deprecated). */
+    if (isSSizeReturnSlot(od->common))
+        if ((res->atype != ssize_type && res->atype != int_type) || res->nrderefs != 0 ||
+            isReference(res) || isConstArg(res))
+            fatal("%s slots must return SIP_SSIZE_T\n",
+                    od->common->pyname->text);
+
+    /* These slots must return int. */
     if (isIntReturnSlot(od->common))
         if (res->atype != int_type || res->nrderefs != 0 ||
             isReference(res) || isConstArg(res))
@@ -1929,7 +1956,7 @@ static void resolvePySigTypes(sipSpec *pt, moduleDef *mod, classDef *scope,
                     fatal("::");
                 }
 
-                fatal("%s() unsupported signal argument type\n");
+                fatal("%s() unsupported signal argument type\n", od->cppname);
             }
         }
         else if (!supportedType(scope,od,ad,TRUE) && (od -> cppsig == &od -> pysig || od -> methodcode == NULL || (isVirtual(od) && od -> virthandler -> virtcode == NULL)))
@@ -2004,6 +2031,7 @@ static void resolveVariableType(sipSpec *pt, varDef *vd)
     case long_type:
     case ulonglong_type:
     case longlong_type:
+    case ssize_type:
     case pyobject_type:
     case pytuple_type:
     case pylist_type:
@@ -2133,6 +2161,7 @@ static int supportedType(classDef *cd,overDef *od,argDef *ad,int outputs)
     case long_type:
     case ulonglong_type:
     case longlong_type:
+    case ssize_type:
     case pyobject_type:
     case pytuple_type:
     case pylist_type:
@@ -2408,7 +2437,7 @@ int sameSignature(signatureDef *sd1,signatureDef *sd2,int strict)
             (t) == latin1_string_type || (t) == utf8_string_type)
 #define pyAsFloat(t)    ((t) == cfloat_type || (t) == float_type || \
             (t) == cdouble_type || (t) == double_type)
-#define pyAsInt(t)  ((t) == bool_type || \
+#define pyAsInt(t)  ((t) == bool_type || (t) == ssize_type || \
             (t) == short_type || (t) == ushort_type || \
             (t) == cint_type || (t) == int_type || (t) == uint_type)
 #define pyAsLong(t) ((t) == long_type || (t) == longlong_type)

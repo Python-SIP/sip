@@ -200,6 +200,21 @@ Argument Annotations
     of the argument is not changed.
 
 
+.. argument-annotation:: NoCopy
+
+    .. versionadded:: 4.10.1
+
+    This boolean annotation is used with arguments of virtual methods that are
+    a ``const`` reference to a class.  Normally, if the class defines a copy
+    constructor then a copy of the returned reference is automatically created
+    and wrapped before being passed to a Python reimplementation of the method.
+    The copy will be owned by Python.  This means that the reimplementation may
+    take a reference to the argument without having to make an explicit copy.
+    
+    If the annotation is specified then the copy is not made and the original
+    reference is wrapped instead and will be owned by C++.
+
+
 .. argument-annotation:: Out
 
     This boolean annotation is used to specify that the corresponding argument
@@ -565,6 +580,15 @@ Function Annotations
     variable number of arguments.
 
 
+.. function-annotation:: __len__
+
+    .. versionadded:: 4.10.3
+
+    This boolean annotation specifies that a ``__len__()`` method should be
+    automatically generated that will use the method being annotated to compute
+    the value that the ``__len__()`` method will return.
+
+
 .. function-annotation:: NewThread
 
     This boolean annotation specifies that the function will create a new
@@ -576,6 +600,19 @@ Function Annotations
     This boolean annotation is used with methods and global functions to
     specify that the supplied :directive:`%MethodCode` will handle the parsing
     of the arguments.
+
+
+.. function-annotation:: NoCopy
+
+    .. versionadded:: 4.10.1
+
+    This boolean annotation is used with methods and global functions that
+    return a ``const`` reference to a class.  Normally, if the class defines a
+    copy constructor then a copy of the returned reference is automatically
+    created and wrapped.  The copy will be owned by Python.
+    
+    If the annotation is specified then the copy is not made and the original
+    reference is wrapped instead and will be owned by C++.
 
 
 .. function-annotation:: NoDerived

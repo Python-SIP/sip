@@ -2,7 +2,19 @@
 # extension modules created with SIP.  It provides information about file
 # locations, version numbers etc., and provides some classes and functions.
 #
-# @BS_LICENSE@
+# Copyright (c) 2010 Riverbank Computing Limited <info@riverbankcomputing.com>
+#
+# This file is part of SIP.
+#
+# This copy of SIP is licensed for use under the terms of the SIP License
+# Agreement.  See the file LICENSE for more details.
+#
+# This copy of SIP may also used under the terms of the GNU General Public
+# License v2 or v3 as published by the Free Software Foundation which can be
+# found in the files LICENSE-GPL2 and LICENSE-GPL3 included in this package.
+#
+# SIP is supplied WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 
 import sys
@@ -570,7 +582,8 @@ class Makefile:
                     "QtCore":       "LIBS_CORE",
                     "QtGui":        "LIBS_GUI",
                     "QtNetwork":    "LIBS_NETWORK",
-                    "QtOpenGL":     "LIBS_OPENGL"
+                    "QtOpenGL":     "LIBS_OPENGL",
+                    "QtWebKit":     "LIBS_WEBKIT"
                 }
 
                 # For Windows: the dependencies between Qt libraries.
@@ -690,9 +703,10 @@ class Makefile:
             libs.extend(self.optional_list("LIBS_OPENGL"))
 
         if self._qt or self._opengl:
-            incdir.extend(self.optional_list("INCDIR_X11"))
-            libdir.extend(self.optional_list("LIBDIR_X11"))
-            libs.extend(self.optional_list("LIBS_X11"))
+            if self.config.qt_version < 0x040000 or self._opengl or "QtGui" in self._qt:
+                incdir.extend(self.optional_list("INCDIR_X11"))
+                libdir.extend(self.optional_list("LIBDIR_X11"))
+                libs.extend(self.optional_list("LIBS_X11"))
 
         if self._threaded:
             libs.extend(self.optional_list("LIBS_THREAD"))
@@ -2286,8 +2300,10 @@ def parse_build_macros(filename, names, overrides=None, properties=None):
         if line and line[0] != "#":
             assstart = line.find("+")
             if assstart > 0 and line[assstart + 1] == '=':
+                adding = True
                 assend = assstart + 1
             else:
+                adding = False
                 assstart = line.find("=")
                 assend = assstart
 
@@ -2297,6 +2313,11 @@ def parse_build_macros(filename, names, overrides=None, properties=None):
 
                 # Remove the escapes for any quotes.
                 rhs = rhs.replace(r'\"', '"').replace(r"\'", "'")
+
+                if adding and rhs != "":
+                    orig_rhs = raw.get(lhs)
+                    if orig_rhs is not None:
+                        rhs = orig_rhs + " " + rhs
 
                 raw[lhs] = rhs
 

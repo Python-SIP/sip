@@ -1,7 +1,19 @@
 /*
  * The XML and API file generator module for SIP.
  *
- * @BS_LICENSE@
+ * Copyright (c) 2010 Riverbank Computing Limited <info@riverbankcomputing.com>
+ *
+ * This file is part of SIP.
+ *
+ * This copy of SIP is licensed for use under the terms of the SIP License
+ * Agreement.  See the file LICENSE for more details.
+ *
+ * This copy of SIP may also used under the terms of the GNU General Public
+ * License v2 or v3 as published by the Free Software Foundation which can be
+ * found in the files LICENSE-GPL2 and LICENSE-GPL3 included in this package.
+ *
+ * SIP is supplied WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
 
@@ -227,7 +239,8 @@ static int apiOverload(sipSpec *pt, moduleDef *mod, classDef *scope,
     prScopedPythonName(fp, scope, od->common->pyname->text);
     fprintf(fp, "?%d", METHOD_ID);
 
-    need_sec = prPythonSignature(pt, fp, &od->pysig, sec, TRUE, TRUE, FALSE);
+    need_sec = prPythonSignature(pt, fp, &od->pysig, sec, TRUE, TRUE, FALSE,
+            FALSE);
 
     fprintf(fp, "\n");
 
@@ -258,15 +271,15 @@ static int apiArgument(sipSpec *pt, argDef *ad, int out, int need_comma,
 
     prScopedPythonName(fp, tscope, tname);
 
-    if (names && ad->name != NULL)
-        fprintf(fp, " %s", ad->name->text);
-
     /*
      * Handle the default value is required, but ignore it if it is an output
      * only argument.
      */
     if (defaults && ad->defval && !out)
     {
+        if (names && ad->name != NULL)
+            fprintf(fp, " %s", ad->name->text);
+
         fprintf(fp, "=");
         prcode(fp, "%M");
         exportDefaultValue(ad, in_str, fp);
@@ -765,7 +778,6 @@ static void xmlType(sipSpec *pt, argDef *ad, int sec, FILE *fp)
         break;
 
     case mapped_type:
-        prcode(fp, "%M%B%M", &ad->u.mtd->type);
         type_type = "mappedtype";
         break;
     }
@@ -1063,11 +1075,11 @@ void prScopedPythonName(FILE *fp, classDef *scope, const char *pyname)
  * Generate a Python signature.
  */
 int prPythonSignature(sipSpec *pt, FILE *fp, signatureDef *sd, int sec,
-        int names, int defaults, int in_str)
+        int names, int defaults, int in_str, int is_signal)
 {
     int need_sec = FALSE, need_comma = FALSE, is_res, nr_out, a;
 
-    fprintf(fp, "(");
+    fprintf(fp, "%c", (is_signal ? '[' : '('));
 
     nr_out = 0;
 
@@ -1088,7 +1100,7 @@ int prPythonSignature(sipSpec *pt, FILE *fp, signatureDef *sd, int sec,
             need_sec = TRUE;
     }
 
-    fprintf(fp, ")");
+    fprintf(fp, "%c", (is_signal ? ']' : ')'));
 
     is_res = !((sd->result.atype == void_type && sd->result.nrderefs == 0) ||
             (sd->result.doctype != NULL && sd->result.doctype[0] == '\0'));

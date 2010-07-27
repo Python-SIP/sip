@@ -1,7 +1,19 @@
 /*
  * The SIP lexer.
  *
- * @BS_LICENSE@
+ * Copyright (c) 2010 Riverbank Computing Limited <info@riverbankcomputing.com>
+ *
+ * This file is part of SIP.
+ *
+ * This copy of SIP is licensed for use under the terms of the SIP License
+ * Agreement.  See the file LICENSE for more details.
+ *
+ * This copy of SIP may also used under the terms of the GNU General Public
+ * License v2 or v3 as published by the Free Software Foundation which can be
+ * found in the files LICENSE-GPL2 and LICENSE-GPL3 included in this package.
+ *
+ * SIP is supplied WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
 %{
@@ -19,6 +31,7 @@
 #endif
 
 
+#define YY_NO_UNISTD_H
 #define YY_FATAL_ERROR(s)       fatallex(s)
 
 #define MAX_INCLUDE_DEPTH       10
@@ -72,7 +85,11 @@ public                      {return TK_PUBLIC;}
 protected                   {return TK_PROTECTED;}
 private                     {return TK_PRIVATE;}
 signals                     {return TK_SIGNALS;}
+Q_SIGNALS                   {return TK_SIGNALS;}
+Q_SIGNAL                    {return TK_SIGNAL_METHOD;}
 slots                       {return TK_SLOTS;}
+Q_SLOTS                     {return TK_SLOTS;}
+Q_SLOT                      {return TK_SLOT_METHOD;}
 char                        {return TK_CHAR;}
 wchar_t                     {return TK_WCHAR_T;}
 bool                        {return TK_BOOL;}

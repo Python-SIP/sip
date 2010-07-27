@@ -1,7 +1,19 @@
 /*
  * This file defines the SIP library internal interfaces.
  *
- * @BS_LICENSE@
+ * Copyright (c) 2010 Riverbank Computing Limited <info@riverbankcomputing.com>
+ *
+ * This file is part of SIP.
+ *
+ * This copy of SIP is licensed for use under the terms of the SIP License
+ * Agreement.  See the file LICENSE for more details.
+ *
+ * This copy of SIP may also used under the terms of the GNU General Public
+ * License v2 or v3 as published by the Free Software Foundation which can be
+ * found in the files LICENSE-GPL2 and LICENSE-GPL3 included in this package.
+ *
+ * SIP is supplied WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
 
@@ -63,6 +75,18 @@ PyObject *sipSetAPI(PyObject *self, PyObject *args);
 int sip_api_is_api_enabled(const char *name, int from, int to);
 int sipIsRangeEnabled(sipExportedModuleDef *em, int range_index);
 int sipInitAPI(sipExportedModuleDef *em, PyObject *mod_dict);
+
+
+/*
+ * Support for void pointers.
+ */
+extern PyTypeObject sipVoidPtr_Type;
+void *sip_api_convert_to_void_ptr(PyObject *obj);
+PyObject *sip_api_convert_from_void_ptr(void *val);
+PyObject *sip_api_convert_from_const_void_ptr(const void *val);
+PyObject *sip_api_convert_from_void_ptr_and_size(void *val, SIP_SSIZE_T size);
+PyObject *sip_api_convert_from_const_void_ptr_and_size(const void *val,
+        SIP_SSIZE_T size);
 
 
 extern sipQtAPI *sipQtSupport;  /* The Qt support API. */
