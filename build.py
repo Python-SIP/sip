@@ -117,7 +117,6 @@ def _get_release():
     # The root directory should contain dot files that tell us what sort of
     # package we are.
 
-    release_prefix = 'snapshot-'
     release_suffix = ''
 
     if os.path.exists(os.path.join(_RootDir, '.hg')):
@@ -138,10 +137,9 @@ def _get_release():
         version = _release_tag(before)
 
         if version is not None:
-            release_prefix = ''
             ctx = before
         else:
-            release_suffix = '-' + str(ctx)
+            release_suffix = '-snapshot-' + str(ctx)
 
         changelog = [_format_changelog(ctx)]
 
@@ -194,7 +192,7 @@ def _get_release():
 
     # Format the results.
     if version is None:
-        version = (99, 99, 99)
+        version = (0, 1, 0)
 
     major, minor, micro = version
 
@@ -203,7 +201,7 @@ def _get_release():
     else:
         version = '%d.%d.%d' % (major, minor, micro)
 
-    release = '%s%s%s' % (release_prefix, version, release_suffix)
+    release = '%s%s' % (version, release_suffix)
     hex_version = '%02x%02x%02x' % (major, minor, micro)
 
     return release, version, hex_version, changelog
