@@ -5327,7 +5327,7 @@ static memberDef *findFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
 
             if (sm->nrargs >= 0)
             {
-                if (mt_scope == NULL && c_scope == NULL)
+                if (mt_scope == NULL && (c_scope == NULL || c_scope->iff->type == namespace_iface))
                 {
                     /* Global operators need one extra argument. */
                     if (sm -> nrargs + 1 != nrargs)
