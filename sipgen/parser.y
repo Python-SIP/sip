@@ -1968,6 +1968,13 @@ function:   cpptype TK_NAME '(' arglist ')' optconst optexceptions optabstract o
             {
                 classDef *cd = currentScope();
 
+                /*
+                 * If the scope is a namespace then make sure the operator is
+                 * handled as a global.
+                 */
+                if (cd != NULL && cd->iff->type == namespace_iface)
+                    cd = NULL;
+
                 applyTypeFlags(currentModule, &$1, &$10);
 
                 /* Handle the unary '+' and '-' operators. */
@@ -5327,7 +5334,7 @@ static memberDef *findFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
 
             if (sm->nrargs >= 0)
             {
-                if (mt_scope == NULL && (c_scope == NULL || c_scope->iff->type == namespace_iface))
+                if (mt_scope == NULL && c_scope == NULL)
                 {
                     /* Global operators need one extra argument. */
                     if (sm -> nrargs + 1 != nrargs)
