@@ -2171,6 +2171,12 @@ static int supportedType(classDef *cd,overDef *od,argDef *ad,int outputs)
     case pytype_type:
         if (isReference(ad))
         {
+            if (isConstArg(ad))
+            {
+                ensureInput(cd, od, ad);
+                return TRUE;
+            }
+
             if (ad -> nrderefs == 0 && outputs)
             {
                 defaultOutput(ad);
