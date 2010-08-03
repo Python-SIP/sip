@@ -1063,9 +1063,7 @@ void prScopedPythonName(FILE *fp, classDef *scope, const char *pyname)
     if (scope != NULL)
     {
         prScopedPythonName(fp, scope->ecd, NULL);
-
-        if (!isRemovedNamespace(scope))
-            fprintf(fp, "%s.", scope->pyname->text);
+        fprintf(fp, "%s.", scope->pyname->text);
     }
 
     if (pyname != NULL)

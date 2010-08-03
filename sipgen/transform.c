@@ -3355,9 +3355,6 @@ static void createSortedNumberedTypesTable(sipSpec *pt, moduleDef *mod)
 
     for (cd = pt->classes; cd != NULL; cd = cd->next)
     {
-        if (isRemovedNamespace(cd))
-            continue;
-
         if (cd->iff->module != mod)
             continue;
 
@@ -3403,9 +3400,6 @@ static void createSortedNumberedTypesTable(sipSpec *pt, moduleDef *mod)
 
     for (cd = pt->classes; cd != NULL; cd = cd->next)
     {
-        if (isRemovedNamespace(cd))
-            continue;
-
         if (cd->iff->module != mod)
             continue;
 

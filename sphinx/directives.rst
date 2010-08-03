@@ -1164,7 +1164,6 @@ following parts of a specification are affected by it:
     - ``namespace``
     - :directive:`%PostInitialisationCode`
     - :directive:`%PreInitialisationCode`
-    - :directive:`%RemoveNamespace`
     - ``struct``
     - ``typedef``
     - :directive:`%TypeCode`
@@ -1842,29 +1841,6 @@ The following variable is made available to the handwritten code:
     reference is the same as the type defined in the ``throw ()`` specifier.
 
 See the :directive:`%Exception` directive for an example.
-
-
-.. directive:: %RemoveNamespace
-
-.. versionadded:: 4.11
-
-.. parsed-literal::
-
-    %RemoveNamespace *name*
-
-Normally a C++ namespace is implemented in Python as a class that cannot be
-instantiated.  The contents of the namespace are implemented as attributes of
-that class.
-
-This behaviour is appropriate if the C++ library contains a number of
-namespaces or if it contains objects that are not part of the main namespace.
-However, if the library contains a single namespace and every object is a part
-of that namespace then it is normally better to use the Python module to define
-the namespace.  Each object is then an attribute of the module rather than,
-what would otherwise be, the only module level class in the module.
-
-This directive is used to specify the name of a C++ namespace that should be
-removed from the attribute hierachy of the generated module.
 
 
 .. directive:: %SetCode

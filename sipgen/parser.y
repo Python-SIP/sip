@@ -276,7 +276,6 @@ static int isEnabledFeature(const char *name);
 %token          TK_ELLIPSIS
 %token          TK_DEFMETATYPE
 %token          TK_DEFSUPERTYPE
-%token          TK_REMOVENAMESPACE
 
 %type <memArg>          argvalue
 %type <memArg>          argtype
@@ -387,7 +386,6 @@ modstatement:   module
     |   defencoding
     |   defmetatype
     |   defsupertype
-    |   removens
     |   exphdrcode {
             if (notSkipping())
                 appendCodeBlock(&currentSpec->exphdrcode, $1);
@@ -721,7 +719,6 @@ namespace:  TK_NAMESPACE TK_NAME {
             {
                 classDef *ns, *c_scope;
                 ifaceFileDef *scope;
-                scopedNameListDef *snld;
 
                 if ((c_scope = currentScope()) != NULL)
                     scope = c_scope->iff;
@@ -730,11 +727,6 @@ namespace:  TK_NAMESPACE TK_NAME {
 
                 ns = newClass(currentSpec, namespace_iface, NULL,
                         text2scopedName(scope, $2));
-
-                /* See if the is a namespace to be removed. */
-                for (snld = currentSpec->removedns; snld != NULL; snld = snld->next)
-                    if (compareScopedNames(ns->iff->fqcname, snld->snd) == 0)
-                        setIsRemovedNamespace(ns);
 
                 pushScope(ns);
 
@@ -747,11 +739,8 @@ namespace:  TK_NAMESPACE TK_NAME {
                 {
                     classDef *ns = currentScope();
 
-                    if (!isRemovedNamespace(ns))
-                    {
-                        setIsUsedName(ns->iff->name);
-                        setIsUsedName(ns->pyname);
-                    }
+                    setIsUsedName(ns->iff->name);
+                    setIsUsedName(ns->pyname);
                 }
 
                 popScope();
@@ -922,19 +911,6 @@ defsupertype:   TK_DEFSUPERTYPE dottedname {
                     yyerror("%DefaultSupertype has already been defined for this module");
 
                 currentModule->defsupertype = cacheName(currentSpec, $2);
-            }
-        }
-    ;
-
-removens:   TK_REMOVENAMESPACE scopedname {
-            if (notSkipping())
-            {
-                scopedNameListDef *snld = sipMalloc(sizeof (scopedNameListDef));
-
-                snld->snd = $2;
-                snld->next = currentSpec->removedns;
-
-                currentSpec->removedns = snld;
             }
         }
     ;
@@ -2784,7 +2760,6 @@ void parse(sipSpec *spec, FILE *fp, char *filename, stringList *tsl,
     spec->sigslots = FALSE;
     spec->genc = -1;
     spec->plugins = NULL;
-    spec->removedns = NULL;
 
     currentSpec = spec;
     neededQualifiers = tsl;
