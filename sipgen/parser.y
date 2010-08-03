@@ -3870,7 +3870,7 @@ static char *type2string(argDef *ad)
             break;
 
         case uint_type:
-            s = "unsigned int";
+            s = "uint";
             break;
 
         case int_type:

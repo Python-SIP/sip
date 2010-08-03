@@ -4872,7 +4872,7 @@ static int generateObjToCppConversion(argDef *ad,FILE *fp)
         break;
 
     case uint_type:
-        rhs = "(unsigned)sipLong_AsUnsignedLong(sipPy)";
+        rhs = "(uint)sipLong_AsUnsignedLong(sipPy)";
         break;
 
     case int_type:
@@ -8578,7 +8578,7 @@ static void generateNamedBaseType(ifaceFileDef *scope, argDef *ad, char *name,
             break;
 
         case uint_type:
-            prcode(fp, "unsigned");
+            prcode(fp, "uint");
             break;
 
         case int_type:
