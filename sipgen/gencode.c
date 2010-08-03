@@ -9588,10 +9588,24 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 static void generateSignalTableEntry(sipSpec *pt, classDef *cd, overDef *sig,
         memberDef *md, int membernr, FILE *fp)
 {
+    int a;
+
     prcode(fp,
 "    {\"%s(", sig->cppname);
 
-    generateCalledArgs(cd->iff, sig->cppsig, Declaration, TRUE, fp);
+    for (a = 0; a < sig->cppsig->nrArgs; ++a)
+    {
+        argDef arg = sig->cppsig->args[a];
+
+        if (a > 0)
+            prcode(fp,",");
+
+        /* Do some normalisation so that Qt doesn't have to. */
+        resetIsReference(&arg);
+        resetIsConstArg(&arg);
+
+        generateNamedBaseType(cd->iff, &arg, "", TRUE, fp);
+    }
 
     prcode(fp,")\", ");
 
