@@ -79,7 +79,7 @@ static void generateSipImportVariables(FILE *fp);
 static void generateModInitStart(moduleDef *mod, int gen_c, FILE *fp);
 static void generateModDefinition(moduleDef *mod, const char *methods,
         FILE *fp);
-static void generateIfaceCpp(sipSpec *, ifaceFileDef *, const char *,
+static void generateIfaceCpp(sipSpec *, ifaceFileDef *, int, const char *,
         const char *, FILE *);
 static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp);
 static void generateImportedMappedTypeAPI(mappedTypeDef *mtd, sipSpec *pt,
@@ -2119,6 +2119,8 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
     for (iff = pt->ifacefiles; iff != NULL; iff = iff->next)
         if (iff->module == mod && iff->type != exception_iface)
         {
+            int need_postinc;
+
             if (parts && files_in_part++ == max_per_part)
             {
                 /* Close the old part. */
@@ -2137,10 +2139,15 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "#include \"sipAPI%s.h\"\n"
                     , mname);
 
-                generateCppCodeBlock(mod->unitpostinccode, fp);
+                need_postinc = TRUE;
+            }
+            else
+            {
+                need_postinc = FALSE;
             }
 
-            generateIfaceCpp(pt, iff, codeDir, srcSuffix, (parts ? fp : NULL));
+            generateIfaceCpp(pt, iff, need_postinc, codeDir, srcSuffix,
+                    (parts ? fp : NULL));
         }
 
     closeFile(fp);
@@ -3430,7 +3437,7 @@ static int generateDoubles(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
 /*
  * Generate the C/C++ code for an interface.
  */
-static void generateIfaceCpp(sipSpec *pt, ifaceFileDef *iff,
+static void generateIfaceCpp(sipSpec *pt, ifaceFileDef *iff, int need_postinc,
         const char *codeDir, const char *srcSuffix, FILE *master)
 {
     char *cppfile;
@@ -3449,7 +3456,7 @@ static void generateIfaceCpp(sipSpec *pt, ifaceFileDef *iff,
 "#include \"sipAPI%s.h\"\n"
             , cmname);
 
-        generateCppCodeBlock(iff->module->unitpostinccode, fp);
+        need_postinc = TRUE;
     }
     else
         fp = master;
@@ -3460,6 +3467,9 @@ static void generateIfaceCpp(sipSpec *pt, ifaceFileDef *iff,
 
     generateCppCodeBlock(iff->hdrcode, fp);
     generateUsedIncludes(iff->used, fp);
+
+    if (need_postinc)
+        generateCppCodeBlock(iff->module->unitpostinccode, fp);
 
     for (cd = pt->classes; cd != NULL; cd = cd->next)
     {
