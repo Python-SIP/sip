@@ -1548,7 +1548,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
             else if (td->type.atype == ulonglong_type)
                 prcode(fp, "unsigned long long");
             else
-                prcode(fp, "%b", &td->type);
+                generateBaseType(NULL, &td->type, FALSE, fp);
 
             prcode(fp, "\"},\n"
                 );
