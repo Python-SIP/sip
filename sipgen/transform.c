@@ -88,6 +88,7 @@ static void resolveInstantiatedClassTemplate(sipSpec *pt, argDef *type);
 static void setStringPoolOffsets(sipSpec *pt);
 static const char *templateString(const char *src, scopedNameDef *names,
         scopedNameDef *values);
+static mappedTypeDef *copyTemplateType(mappedTypeDef *mtd, argDef *ad);
 
 
 /*
@@ -2919,6 +2920,8 @@ static mappedTypeDef *instantiateMappedTypeTemplate(sipSpec *pt, moduleDef *mod,
     if (type_values != NULL)
         freeScopedName(type_values);
 
+    mtd = copyTemplateType(mtd, type);
+
     return mtd;
 }
 
@@ -3072,6 +3075,8 @@ static void searchMappedTypes(sipSpec *pt, moduleDef *context,
                     continue;
             }
 
+            mtd = copyTemplateType(mtd, ad);
+
             /* Copy the type. */
             ad->atype = mapped_type;
             ad->u.mtd = mtd;
@@ -3085,6 +3090,35 @@ static void searchMappedTypes(sipSpec *pt, moduleDef *context,
         ad->u.snd = oname;
         ad->atype = no_type;
     }
+}
+
+
+/*
+ * If a mapped type is based on a template then create a copy that keeps the
+ * orignal types of the template arguments.
+ */
+static mappedTypeDef *copyTemplateType(mappedTypeDef *mtd, argDef *ad)
+{
+    int a;
+    signatureDef *src, *dst;
+    mappedTypeDef *mtd_copy;
+
+    /* There is no need to do anything for non-template types. */
+    if (mtd->type.atype != template_type)
+        return mtd;
+
+    /* Create the copy. */
+    mtd_copy = sipMalloc(sizeof (mappedTypeDef));
+    *mtd_copy = *mtd;
+
+    /* Copy the original types. */
+    src = &ad->u.td->types;
+    dst = &mtd_copy->type.u.td->types;
+
+    for (a = 0; a < dst->nrArgs; ++a)
+        dst->args[a].original_type = src->args[a].original_type;
+
+    return mtd_copy;
 }
 
 
