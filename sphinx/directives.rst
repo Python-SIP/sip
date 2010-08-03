@@ -1169,6 +1169,7 @@ following parts of a specification are affected by it:
     - :directive:`%TypeCode`
     - :directive:`%TypeHeaderCode`
     - :directive:`%UnitCode`
+    - :directive:`%UnitPostIncludeCode`
     - variables
     - :directive:`%VirtualCatcherCode`
 
@@ -1982,9 +1983,24 @@ For example::
         *code*
     %End
 
-This directive is used to specify handwritten code that it included at the very
+This directive is used to specify handwritten code that is included at the very
 start of a generated compilation unit (ie. C or C++ source file).  It is
 typically used to ``#include`` a C++ precompiled header file.
+
+
+.. directive:: %UnitPostIncludeCode
+
+.. parsed-literal::
+
+    %UnitPostIncludeCode
+        *code*
+    %End
+
+.. versionadded:: 4.11
+
+This directive is used to specify handwritten code that is included following
+the ``#include`` of all header files in a generated compilation unit (ie. C or
+C++ source file).
 
 
 .. directive:: %VirtualCatcherCode

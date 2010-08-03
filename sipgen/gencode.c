@@ -1203,6 +1203,8 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
      */
     generateUsedIncludes(mod->used, fp);
 
+    generateCppCodeBlock(mod->unitpostinccode, fp);
+
     /*
      * If there should be a Qt support API then generate stubs values for the
      * optional parts.  These should be undefined in %ModuleCode if a C++
@@ -2134,6 +2136,8 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "\n"
 "#include \"sipAPI%s.h\"\n"
                     , mname);
+
+                generateCppCodeBlock(mod->unitpostinccode, fp);
             }
 
             generateIfaceCpp(pt, iff, codeDir, srcSuffix, (parts ? fp : NULL));
@@ -3444,6 +3448,8 @@ static void generateIfaceCpp(sipSpec *pt, ifaceFileDef *iff,
 "\n"
 "#include \"sipAPI%s.h\"\n"
             , cmname);
+
+        generateCppCodeBlock(iff->module->unitpostinccode, fp);
     }
     else
         fp = master;

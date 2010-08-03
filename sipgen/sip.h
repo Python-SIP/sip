@@ -736,6 +736,7 @@ typedef struct _moduleDef {
     codeBlock *initcode;                /* Initialisation code. */
     codeBlock *postinitcode;            /* Post-initialisation code. */
     codeBlock *unitcode;                /* Compilation unit code. */
+    codeBlock *unitpostinccode;         /* Compilation unit post-include code. */
     int parts;                          /* The number of parts generated. */
     char *file;                         /* The filename. */
     qualDef *qualifiers;                /* The list of qualifiers. */

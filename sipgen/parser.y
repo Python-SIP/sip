@@ -179,6 +179,7 @@ static int isEnabledFeature(const char *name);
 %token          TK_INITCODE
 %token          TK_POSTINITCODE
 %token          TK_UNITCODE
+%token          TK_UNITPOSTINCLUDECODE
 %token          TK_MODCODE
 %token          TK_TYPECODE
 %token          TK_PREPYCODE
@@ -402,6 +403,7 @@ modstatement:   module
     |   initcode
     |   postinitcode
     |   unitcode
+    |   unitpostinccode
     |   prepycode
     |   doc
     |   exporteddoc
@@ -1146,6 +1148,12 @@ postinitcode:   TK_POSTINITCODE codeblock {
 unitcode:   TK_UNITCODE codeblock {
             if (notSkipping())
                 appendCodeBlock(&currentModule->unitcode, $2);
+        }
+    ;
+
+unitpostinccode:    TK_UNITPOSTINCLUDECODE codeblock {
+            if (notSkipping())
+                appendCodeBlock(&currentModule->unitpostinccode, $2);
         }
     ;
 

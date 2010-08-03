@@ -285,6 +285,11 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
     return TK_UNITCODE;
 }
 
+^%UnitPostIncludeCode { /* The start of a unit post-include code block. */
+    codeIdx = 0;
+    return TK_UNITPOSTINCLUDECODE;
+}
+
 ^%ModuleCode {          /* The start of a module code block. */
     codeIdx = 0;
     return TK_MODCODE;
