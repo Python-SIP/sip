@@ -3095,7 +3095,7 @@ static void searchMappedTypes(sipSpec *pt, moduleDef *context,
 
 /*
  * If a mapped type is based on a template then create a copy that keeps the
- * orignal types of the template arguments.
+ * original types of the template arguments.
  */
 static mappedTypeDef *copyTemplateType(mappedTypeDef *mtd, argDef *ad)
 {
@@ -3107,16 +3107,31 @@ static mappedTypeDef *copyTemplateType(mappedTypeDef *mtd, argDef *ad)
     if (mtd->type.atype != template_type)
         return mtd;
 
-    /* Create the copy. */
-    mtd_copy = sipMalloc(sizeof (mappedTypeDef));
-    *mtd_copy = *mtd;
-
-    /* Copy the original types. */
+    /* Retain the original types if there are any. */
+    mtd_copy = mtd;
     src = &ad->u.td->types;
-    dst = &mtd_copy->type.u.td->types;
 
-    for (a = 0; a < dst->nrArgs; ++a)
-        dst->args[a].original_type = src->args[a].original_type;
+    for (a = 0; a < src->nrArgs; ++a)
+    {
+        typedefDef *tdd = src->args[a].original_type;
+
+        if (tdd != NULL)
+        {
+            /*
+             * Create the copy now that we know it is needed and if it hasn't
+             * already been done.
+             */
+            if (mtd_copy == mtd)
+            {
+                mtd_copy = sipMalloc(sizeof (mappedTypeDef));
+                *mtd_copy = *mtd;
+
+                dst = &mtd_copy->type.u.td->types;
+            }
+
+            dst->args[a].original_type = tdd;
+        }
+    }
 
     return mtd_copy;
 }
