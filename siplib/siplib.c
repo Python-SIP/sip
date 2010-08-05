@@ -5226,9 +5226,12 @@ static PyObject *createContainerType(sipContainerDef *cod, sipTypeDef *td,
         goto relname;
 
     /* Pass the type via the back door. */
+    assert(currentType == NULL);
     currentType = td;
+    py_type = PyObject_Call(metatype, args, NULL);
+    currentType = NULL;
 
-    if ((py_type = PyObject_Call(metatype, args, NULL)) == NULL)
+    if (py_type == NULL)
         goto relargs;
 
     /* Add the type to the "parent" dictionary. */
@@ -5256,7 +5259,6 @@ reldict:
     Py_DECREF(typedict);
 
 reterr:
-    currentType = NULL;
     return NULL;
 }
 
@@ -5697,9 +5699,11 @@ static int createEnumType(sipExportedModuleDef *client, sipEnumTypeDef *etd,
         goto relname;
 
     /* Pass the type via the back door. */
+    assert(currentType == NULL);
     currentType = &etd->etd_base;
-
-    py_type = (PyTypeObject *)PyObject_Call((PyObject *)&sipEnumType_Type, args, NULL);
+    py_type = (PyTypeObject *)PyObject_Call((PyObject *)&sipEnumType_Type,
+            args, NULL);
+    currentType = NULL;
 
     Py_DECREF(args);
 
@@ -8369,6 +8373,8 @@ static PyObject *sipWrapperType_alloc(PyTypeObject *self, SIP_SSIZE_T nitems)
      */
     if (currentType != NULL)
     {
+        assert(!sipTypeIsEnum(currentType));
+
         ((sipWrapperType *)o)->type = currentType;
 
         if (sipTypeIsClass(currentType))
@@ -8386,8 +8392,6 @@ static PyObject *sipWrapperType_alloc(PyTypeObject *self, SIP_SSIZE_T nitems)
 
             addClassSlots((sipWrapperType *)o, (sipClassTypeDef *)currentType);
         }
-
-        currentType = NULL;
     }
 
     return o;
@@ -10476,6 +10480,7 @@ static PyObject *sipEnumType_alloc(PyTypeObject *self, SIP_SSIZE_T nitems)
     sipPySlotDef *psd;
 
     assert(currentType != NULL);
+    assert(sipTypeIsEnum(currentType));
 
     /* Call the standard super-metatype alloc. */
     if ((py_type = (sipEnumTypeObject *)PyType_Type.tp_alloc(self, nitems)) == NULL)
@@ -10494,8 +10499,6 @@ static PyObject *sipEnumType_alloc(PyTypeObject *self, SIP_SSIZE_T nitems)
      */
     if ((psd = ((sipEnumTypeDef *)currentType)->etd_pyslots) != NULL)
         addTypeSlots(&py_type->super, psd);
-
-    currentType = NULL;
 
     return (PyObject *)py_type;
 }
