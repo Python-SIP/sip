@@ -11433,6 +11433,7 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
     else
     {
         int rgil = ((release_gil || isReleaseGIL(od)) && !isHoldGIL(od));
+        int closing_paren = FALSE;
 
         if (needsNew && generating_c)
         {
@@ -11466,9 +11467,14 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
             if (needsNew)
             {
                 if (generating_c)
+                {
                     prcode(fp,"*sipRes = ");
+                }
                 else
+                {
                     prcode(fp,"sipRes = new %b(",res);
+                    closing_paren = TRUE;
+                }
             }
             else
             {
@@ -11647,7 +11653,7 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
             break;
         }
 
-        if (needsNew && !generating_c)
+        if (closing_paren)
             prcode(fp,")");
 
         prcode(fp,";\n"
