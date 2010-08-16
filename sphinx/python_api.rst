@@ -211,7 +211,7 @@ can be used by applications.
     .. method:: ascobject() -> cObject
 
         This returns the address as a Python CObject.  This is deprecated with
-        Python v3.1 or later.
+        Python v3.1 and is not supported with Python v3.2 and later.
 
         :return:
             the CObject.

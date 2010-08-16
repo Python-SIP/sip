@@ -45,7 +45,7 @@ specification files.
 
     .. versionadded:: 4.10
 
-    This is a C preprocessor macro that is set automatically by the build
+    This is a C preprocessor macro that is defined automatically by the build
     system to specify that the generated code is being compiled with
     ``protected`` redefined as ``public``.  This allows handwritten code to
     determine if the generated helper functions for accessing protected C++
@@ -64,6 +64,14 @@ specification files.
     This is a C preprocessor macro that will restore the Python Global
     Interpreter Lock (GIL) to the state it was prior to the corresponding
     :cmacro:`SIP_BLOCK_THREADS`.
+
+
+.. cmacro:: SIP_USE_PYCAPSULE
+
+    .. versionadded:: 4.11
+
+    This is a C preprocess macro that is defined when ``PyCapsule`` objects are
+    being used rather than the (now deprecated) ``PyCObject`` objects.
 
 
 .. cmacro:: SIP_VERSION

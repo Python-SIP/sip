@@ -195,6 +195,7 @@ static PyObject *sipVoidPtr_ascapsule(sipVoidPtrObject *v, PyObject *arg)
 #endif
 
 
+#if defined(SIP_SUPPORT_PYCOBJECT)
 /*
  * Implement ascobject() for the type.
  */
@@ -202,6 +203,7 @@ static PyObject *sipVoidPtr_ascobject(sipVoidPtrObject *v, PyObject *arg)
 {
     return PyCObject_FromVoidPtr(v->voidptr, NULL);
 }
+#endif
 
 
 /*
@@ -311,7 +313,9 @@ static PyMethodDef sipVoidPtr_Methods[] = {
 #if defined(SIP_USE_PYCAPSULE)
     {"ascapsule", (PyCFunction)sipVoidPtr_ascapsule, METH_NOARGS, NULL},
 #endif
+#if defined(SIP_SUPPORT_PYCOBJECT)
     {"ascobject", (PyCFunction)sipVoidPtr_ascobject, METH_NOARGS, NULL},
+#endif
     {"asstring", (PyCFunction)sipVoidPtr_asstring, METH_KEYWORDS, NULL},
     {"getsize", (PyCFunction)sipVoidPtr_getsize, METH_NOARGS, NULL},
     {"setsize", (PyCFunction)sipVoidPtr_setsize, METH_O, NULL},
@@ -457,8 +461,10 @@ void *sip_api_convert_to_void_ptr(PyObject *obj)
         return PyCapsule_GetPointer(obj, NULL);
 #endif
 
+#if defined(SIP_SUPPORT_PYCOBJECT)
     if (PyCObject_Check(obj))
         return PyCObject_AsVoidPtr(obj);
+#endif
 
 #if PY_MAJOR_VERSION >= 3
     return PyLong_AsVoidPtr(obj);
@@ -544,8 +550,10 @@ static int vp_convertor(PyObject *arg, struct vp_values *vp)
     else if (PyCapsule_CheckExact(arg))
         ptr = PyCapsule_GetPointer(arg, NULL);
 #endif
+#if defined(SIP_SUPPORT_PYCOBJECT)
     else if (PyCObject_Check(arg))
         ptr = PyCObject_AsVoidPtr(arg);
+#endif
     else if (PyObject_TypeCheck(arg, &sipVoidPtr_Type))
     {
         ptr = ((sipVoidPtrObject *)arg)->voidptr;
