@@ -5154,7 +5154,7 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
 
             code->frag = buf;
             code->filename = "Auto-generated";
-            code->linenr = 0;
+            code->linenr = 1;
             code->next = NULL;
 
             len->methodcode = code;
