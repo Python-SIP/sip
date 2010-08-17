@@ -599,6 +599,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipWrapperType_Type         sipAPI_%s->api_wrappertype_type\n"
 "#define sipVoidPtr_Type             sipAPI_%s->api_voidptr_type\n"
 "#define sipGetPyObject              sipAPI_%s->api_get_pyobject\n"
+"#define sipGetAddress               sipAPI_%s->api_get_address\n"
 "#define sipGetCppPtr                sipAPI_%s->api_get_cpp_ptr\n"
 "#define sipGetComplexCppPtr         sipAPI_%s->api_get_complex_cpp_ptr\n"
 "#define sipIsPyMethod               sipAPI_%s->api_is_py_method\n"
@@ -611,7 +612,6 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipRaiseTypeException       sipAPI_%s->api_raise_type_exception\n"
 "#define sipBadLengthForSlice        sipAPI_%s->api_bad_length_for_slice\n"
 "#define sipAddTypeInstance          sipAPI_%s->api_add_type_instance\n"
-"#define sipGetAddress               sipAPI_%s->api_get_address\n"
 "#define sipFreeSipslot              sipAPI_%s->api_free_sipslot\n"
 "#define sipSameSlot                 sipAPI_%s->api_same_slot\n"
 "#define sipPySlotExtend             sipAPI_%s->api_pyslot_extend\n"
@@ -5947,7 +5947,7 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
         if (hasShadow(cd))
             prcode(fp,
 "    if (sipIsDerived(sipSelf))\n"
-"        reinterpret_cast<sip%C *>(sipSelf->u.cppPtr)->sipPySelf = NULL;\n"
+"        reinterpret_cast<sip%C *>(sipGetAddress(sipSelf))->sipPySelf = NULL;\n"
 "\n"
                 ,classFQCName(cd));
 
@@ -5964,11 +5964,11 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
                     );
             else if (generating_c)
                 prcode(fp,
-"        sipFree(sipSelf->u.cppPtr);\n"
+"        sipFree(sipGetAddress(sipSelf));\n"
                     );
             else
                 prcode(fp,
-"        release_%L(sipSelf->u.cppPtr,%s);\n"
+"        release_%L(sipGetAddress(sipSelf),%s);\n"
                     , cd->iff, (hasShadow(cd) ? "sipSelf->flags" : "0"));
 
             prcode(fp,

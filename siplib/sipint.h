@@ -106,6 +106,7 @@ PyObject *sip_api_disconnect_rx(PyObject *txObj, const char *sig,
  */
 void *sip_api_malloc(size_t nbytes);
 void sip_api_free(void *mem);
+void *sip_api_get_address(sipSimpleWrapper *w);
 void *sip_api_get_cpp_ptr(sipSimpleWrapper *w, const sipTypeDef *td);
 PyObject *sip_api_convert_from_type(void *cppPtr, const sipTypeDef *td,
         PyObject *transferObj);
@@ -138,8 +139,6 @@ void sipOMAddObject(sipObjectMap *om, sipSimpleWrapper *val);
 int sipOMRemoveObject(sipObjectMap *om, sipSimpleWrapper *val);
 
 void sipSetBool(void *ptr,int val);
-
-void *sipGetAddress(sipSimpleWrapper *w);
 
 
 #ifdef __cplusplus

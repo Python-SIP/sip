@@ -141,7 +141,7 @@ sipSimpleWrapper *sipOMFindObject(sipObjectMap *om, void *key,
  */
 void sipOMAddObject(sipObjectMap *om, sipSimpleWrapper *val)
 {
-    sipHashEntry *he = findHashEntry(om, val->u.cppPtr);
+    sipHashEntry *he = findHashEntry(om, sip_api_get_address(val));
 
     /*
      * If the bucket is in use then we appear to have several objects at the
@@ -191,7 +191,7 @@ void sipOMAddObject(sipObjectMap *om, sipSimpleWrapper *val)
     /* See if the bucket was unused or stale. */
     if (he->key == NULL)
     {
-        he->key = val -> u.cppPtr;
+        he->key = sip_api_get_address(val);
         om->unused--;
     }
     else
@@ -256,7 +256,7 @@ static void reorganiseMap(sipObjectMap *om)
  */
 int sipOMRemoveObject(sipObjectMap *om, sipSimpleWrapper *val)
 {
-    sipHashEntry *he = findHashEntry(om, val->u.cppPtr);
+    sipHashEntry *he = findHashEntry(om, sip_api_get_address(val));
     sipSimpleWrapper **swp;
 
     for (swp = &he->first; *swp != NULL; swp = &(*swp)->next)

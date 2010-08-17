@@ -362,7 +362,8 @@ static const sipAPIDef sip_api = {
     sip_api_deprecated,
     sip_api_keep_reference,
     sip_api_parse_kwd_args,
-    sip_api_add_exception
+    sip_api_add_exception,
+    sip_api_get_address
 };
 
 
@@ -648,6 +649,8 @@ static int add_all_lazy_attrs(sipTypeDef *td);
 static int objectify(const char *s, PyObject **objp);
 static void add_failure(PyObject **parseErrp, sipParseFailure *failure);
 static PyObject *bad_type_str(int arg_nr, PyObject *arg);
+static void *explicit_access_func(sipSimpleWrapper *sw);
+static void *indirect_access_func(sipSimpleWrapper *sw);
 
 
 /*
@@ -899,7 +902,7 @@ static PyObject *dumpWrapper(PyObject *self, PyObject *args)
 #else
         printf("    Reference count: %d\n", Py_REFCNT(sw));
 #endif
-        printf("    Address of wrapped object: %p\n", sipGetAddress(sw));
+        printf("    Address of wrapped object: %p\n", sip_api_get_address(sw));
         printf("    To be destroyed by: %s\n", (sipIsPyOwned(sw) ? "Python" : "C/C++"));
         printf("    Derived class?: %s\n", (sipIsDerived(sw) ? "yes" : "no"));
 
@@ -1069,7 +1072,7 @@ static PyObject *isDeleted(PyObject *self, PyObject *args)
     if (!PyArg_ParseTuple(args, "O!:isdeleted", &sipSimpleWrapper_Type, &sw))
         return NULL;
 
-    res = (sipGetAddress(sw) == NULL ? Py_True : Py_False);
+    res = (sip_api_get_address(sw) == NULL ? Py_True : Py_False);
 
     Py_INCREF(res);
     return res;
@@ -1114,7 +1117,8 @@ static PyObject *setDeleted(PyObject *self, PyObject *args)
         sipResetPyOwned(sw);
     }
 
-    sw->u.cppPtr = NULL;
+    sw->data = NULL;
+    sw->access_func = NULL;
 
     Py_INCREF(Py_None);
     return Py_None;
@@ -5008,7 +5012,8 @@ void sip_api_common_dtor(sipSimpleWrapper *sipSelf)
             sipOMRemoveObject(&cppPyMap, sipSelf);
 
         /* This no longer points to anything useful. */
-        sipSelf->u.cppPtr = NULL;
+        sipSelf->data = NULL;
+        sipSelf->access_func = NULL;
 
         /*
          * If C/C++ has a reference (and therefore no parent) then remove it.
@@ -7351,17 +7356,35 @@ static PyObject *sip_api_get_pyobject(void *cppPtr, const sipTypeDef *td)
 
 
 /*
- * Return the C/C++ pointer from a wrapper without any checks.
+ * The default access function.
  */
-void *sipGetAddress(sipSimpleWrapper *sw)
+void *sip_api_get_address(sipSimpleWrapper *w)
 {
-    if (sipIsAccessFunc(sw))
-        return (*sw->u.afPtr)();
+    return (w->access_func != NULL) ? w->access_func(w) : w->data;
+}
 
-    if (sipIsIndirect(sw))
-        return *((void **)sw->u.cppPtr);
 
-    return sw->u.cppPtr;
+/*
+ * The access function for handwritten access functions.
+ */
+static void *explicit_access_func(sipSimpleWrapper *sw)
+{
+    assert(sw->data != NULL);
+
+    typedef void *(*explicitAccessFunc)(void);
+
+    return ((explicitAccessFunc)(sw->data))();
+}
+
+
+/*
+ * The access function for indirect access.
+ */
+static void *indirect_access_func(sipSimpleWrapper *sw)
+{
+    assert(sw->data != NULL);
+
+    return *((void **)sw->data);
 }
 
 
@@ -7400,7 +7423,7 @@ static void *getComplexCppPtr(sipSimpleWrapper *sw, const sipTypeDef *td)
  */
 void *sip_api_get_cpp_ptr(sipSimpleWrapper *sw, const sipTypeDef *td)
 {
-    void *ptr = sipGetAddress(sw);
+    void *ptr = sip_api_get_address(sw);
 
     if (checkPointer(ptr) < 0)
         return NULL;
@@ -8250,7 +8273,7 @@ static void *getPtrTypeDef(sipSimpleWrapper *self, const sipClassTypeDef **ctd)
 {
     *ctd = (const sipClassTypeDef *)((sipWrapperType *)Py_TYPE(self))->type;
 
-    return (sipNotInMap(self) ? NULL : self->u.cppPtr);
+    return (sipNotInMap(self) ? NULL : sip_api_get_address(self));
 }
 
 
@@ -8684,8 +8707,22 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
         addToParent((sipWrapper *)self, (sipWrapper *)owner);
     }
 
-    self->u.cppPtr = sipNew;
+    self->data = sipNew;
     self->flags = sipFlags;
+
+    /* Set the access function. */
+    if (sipIsAccessFunc(self))
+    {
+        self->access_func = explicit_access_func;
+    }
+    else if (sipIsIndirect(self))
+    {
+        self->access_func = indirect_access_func;
+    }
+    else
+    {
+        /* ZZZ - check any registered finalisers. */
+    }
 
     if (!sipNotInMap(self))
         sipOMAddObject(&cppPyMap, self);
@@ -9195,7 +9232,7 @@ static int sipWrapper_clear(sipWrapper *self)
     /* Remove any slots connected via a proxy. */
     if (sipQtSupport != NULL && sipPossibleProxy(sw))
     {
-        void *tx = sipGetAddress(sw);
+        void *tx = sip_api_get_address(sw);
 
         if (tx != NULL)
         {
@@ -9263,7 +9300,7 @@ static int sipWrapper_traverse(sipWrapper *self, visitproc visit, void *arg)
     /* This should be handwritten code in PyQt. */
     if (sipQtSupport != NULL)
     {
-        void *tx = sipGetAddress(sw);
+        void *tx = sip_api_get_address(sw);
 
         if (tx != NULL)
         {

@@ -143,7 +143,7 @@ PyObject *sip_api_invoke_slot(const sipSlot *slot, PyObject *sigargs)
          * longer exists.
          */
         if (PyObject_TypeCheck(self, (PyTypeObject *)&sipSimpleWrapper_Type) &&
-            sipGetAddress(self) == NULL)
+            sip_api_get_address((sipSimpleWrapper *)self) == NULL)
         {
             Py_XDECREF(sref);
 
@@ -371,7 +371,7 @@ void *sipGetRx(sipSimpleWrapper *txSelf, const char *sigargs, PyObject *rxObj,
      * The slot was either a Python callable or PyQt3 Python signal so there
      * should be a universal slot.
      */
-    return sipQtSupport->qt_find_slot(sipGetAddress(txSelf), sigargs, rxObj, slot, memberp);
+    return sipQtSupport->qt_find_slot(sip_api_get_address(txSelf), sigargs, rxObj, slot, memberp);
 }
 
 
