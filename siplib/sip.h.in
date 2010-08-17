@@ -70,7 +70,6 @@ extern "C" {
  *
  * 8.0  Changed the size of the sipSimpleWrapper structure.
  *      Added sip_api_get_address().
- *      Added sip_api_register_object_finaliser().
  *
  * 7.1  Added the 'H' format character to sip_api_parse_result().
  *      Deprecated the 'D' format character of sip_api_parse_result().
@@ -302,7 +301,6 @@ typedef PyObject *(*sipPickleFunc)(void *);
 typedef int (*sipAttrGetterFunc)(const struct _sipTypeDef *, PyObject *);
 typedef PyObject *(*sipVariableGetterFunc)(void *, PyObject *);
 typedef int (*sipVariableSetterFunc)(void *, PyObject *, PyObject *);
-typedef void (*sipObjectFinaliserFunc)(struct _sipSimpleWrapper *);
 
 
 /*
@@ -340,9 +338,6 @@ typedef struct _sipSimpleWrapper {
 
     /* The optional access function. */
     sipAccessFunc access_func;
-
-    /* The optional object deallocation function. */
-    sipDeallocFunc dealloc_func;
 
     /* Object flags. */
     int flags;
@@ -1299,7 +1294,6 @@ typedef struct _sipAPIDef {
             sipAttrGetterFunc getter);
     int (*api_is_api_enabled)(const char *name, int from, int to);
     sipErrorState (*api_bad_callable_arg)(int arg_nr, PyObject *arg);
-    int (*api_register_object_finaliser)(sipObjectFinaliserFunc func);
 
     /*
      * The following are deprecated parts of the public API.

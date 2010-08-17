@@ -251,7 +251,6 @@ static void sip_api_clear_any_slot_reference(sipSlot *slot);
 static int sip_api_visit_slot(sipSlot *slot, visitproc visit, void *arg);
 static void sip_api_keep_reference(PyObject *self, int key, PyObject *obj);
 static void sip_api_add_exception(sipErrorState es, PyObject **parseErrp);
-static int sip_api_register_object_finaliser(sipObjectFinaliserFunc func);
 
 
 /*
@@ -308,7 +307,6 @@ static const sipAPIDef sip_api = {
     sip_api_register_attribute_getter,
     sip_api_is_api_enabled,
     sip_api_bad_callable_arg,
-    sip_api_register_object_finaliser,
     /*
      * The following are deprecated parts of the public API.
      */
@@ -443,15 +441,6 @@ typedef struct _sipAttrGetter {
 } sipAttrGetter;
 
 
-/*
- * An entry in a linked list of object finalisers.
- */
-typedef struct _sipObjectFinaliser {
-    sipObjectFinaliserFunc func;        /* The object finaliser. */
-    struct _sipObjectFinaliser *next;   /* The next in the list. */
-} sipObjectFinaliser;
-
-
 /*****************************************************************************
  * The structures to support a Python type to hold a named enum.
  *****************************************************************************/
@@ -529,7 +518,6 @@ static PyObject *type_unpickler;        /* The type unpickler function. */
 static PyObject *enum_unpickler;        /* The enum unpickler function. */
 static sipSymbol *sipSymbolList = NULL; /* The list of published symbols. */
 static sipAttrGetter *sipAttrGetters = NULL;  /* The list of attribute getters. */
-static sipObjectFinaliser *sipObjectFinalisers = NULL;  /* Registered object finalisers. */
 static sipPyObject *sipRegisteredPyTypes = NULL;    /* Registered Python types. */
 static PyInterpreterState *sipInterpreter = NULL;   /* The interpreter. */
 
@@ -5049,13 +5037,6 @@ void sip_api_common_dtor(sipSimpleWrapper *sipSelf)
  */
 static void clear_access_func(sipSimpleWrapper *sw)
 {
-    /* Call any object dealloc function. */
-    if (sw->dealloc_func != NULL)
-    {
-        sw->dealloc_func(sw);
-        sw->dealloc_func = NULL;
-    }
-
     sw->data = NULL;
     sw->access_func = NULL;
 }
@@ -8741,21 +8722,11 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
 
     /* Set the access function. */
     if (sipIsAccessFunc(self))
-    {
         self->access_func = explicit_access_func;
-    }
     else if (sipIsIndirect(self))
-    {
         self->access_func = indirect_access_func;
-    }
     else
-    {
-        sipObjectFinaliser *of;
-
-        /* Pass the object to each registered finaliser. */
-        for (of = sipObjectFinalisers; of != NULL; of = of->next)
-            of->func(self);
-    }
+        self->access_func = NULL;
 
     if (!sipNotInMap(self))
         sipOMAddObject(&cppPyMap, self);
@@ -9815,25 +9786,6 @@ static int addPyObjectToList(sipPyObject **head, PyObject *object)
     po->next = *head;
 
     *head = po;
-
-    return 0;
-}
-
-
-/*
- * Register an object finaliser.
- */
-static int sip_api_register_object_finaliser(sipObjectFinaliserFunc func)
-{
-    sipObjectFinaliser *of;
-
-    if ((of = sip_api_malloc(sizeof (sipObjectFinaliser))) == NULL)
-        return -1;
-
-    of->func = func;
-    of->next = sipObjectFinalisers;
-
-    sipObjectFinalisers = of;
 
     return 0;
 }

@@ -1422,6 +1422,21 @@ specification files.
     is :class:`sip.simplewrapper`.  It is an extension of the ``PyObject``
     structure and so may be safely cast to it.
 
+    .. cmember:: void *data
+
+        This is initialised to the address of the C/C++ instance.  If an access
+        function is subsequently provided then it may be used for any purpose
+        by the access function.
+
+    .. cmember:: sipAccessFunc access_func
+
+        This is the address of an optional access function that is called, with
+        a pointer to this structure as its only argument, to return the address
+        of the C/C++ instance.  If it is ``NULL`` then the
+        :cmember:`sipSimpleWrapper.data` is used.  Typically a custom meta-type
+        is used to set an access method after the Python object has been
+        created.
+
     .. cmember:: PyObject *user
 
         This can be used for any purpose by handwritten code and will
