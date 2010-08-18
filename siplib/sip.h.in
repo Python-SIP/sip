@@ -277,7 +277,7 @@ typedef int sip_gilstate_t;
  */
 typedef void *(*sipInitFunc)(struct _sipSimpleWrapper *, PyObject *,
         PyObject *, PyObject **, PyObject **, PyObject **);
-typedef void *(*sipAccessFunc)(struct _sipSimpleWrapper *);
+typedef void *(*sipAccessFunc)(struct _sipSimpleWrapper *, int);
 typedef int (*sipTraverseFunc)(void *, visitproc, void *);
 typedef int (*sipClearFunc)(void *);
 #if PY_MAJOR_VERSION >= 3

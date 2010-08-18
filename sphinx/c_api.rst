@@ -1431,11 +1431,14 @@ specification files.
     .. cmember:: sipAccessFunc access_func
 
         This is the address of an optional access function that is called, with
-        a pointer to this structure as its only argument, to return the address
-        of the C/C++ instance.  If it is ``NULL`` then the
-        :cmember:`sipSimpleWrapper.data` is used.  Typically a custom meta-type
-        is used to set an access method after the Python object has been
-        created.
+        a pointer to this structure as its first argument.  If its ``int``
+        second argument is zero then it returns the address of the C/C++
+        instance.  If the second argument is non-zero then the structure is
+        being deallocated and any dynamic resources used by the access function
+        should be released.  If there is no access function then the
+        :cmember:`sipSimpleWrapper.data` is used as the address of the C/C++
+        instance.  Typically a custom meta-type is used to set an access method
+        after the Python object has been created.
 
     .. cmember:: PyObject *user
 

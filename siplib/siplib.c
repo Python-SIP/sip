@@ -649,8 +649,8 @@ static int add_all_lazy_attrs(sipTypeDef *td);
 static int objectify(const char *s, PyObject **objp);
 static void add_failure(PyObject **parseErrp, sipParseFailure *failure);
 static PyObject *bad_type_str(int arg_nr, PyObject *arg);
-static void *explicit_access_func(sipSimpleWrapper *sw);
-static void *indirect_access_func(sipSimpleWrapper *sw);
+static void *explicit_access_func(sipSimpleWrapper *sw, int release);
+static void *indirect_access_func(sipSimpleWrapper *sw, int release);
 static void clear_access_func(sipSimpleWrapper *sw);
 
 
@@ -5037,8 +5037,13 @@ void sip_api_common_dtor(sipSimpleWrapper *sipSelf)
  */
 static void clear_access_func(sipSimpleWrapper *sw)
 {
+    if (sw->access_func != NULL)
+    {
+        sw->access_func(sw, TRUE);
+        sw->access_func = NULL;
+    }
+
     sw->data = NULL;
-    sw->access_func = NULL;
 }
 
 
@@ -7370,17 +7375,15 @@ static PyObject *sip_api_get_pyobject(void *cppPtr, const sipTypeDef *td)
  */
 void *sip_api_get_address(sipSimpleWrapper *w)
 {
-    return (w->access_func != NULL) ? w->access_func(w) : w->data;
+    return (w->access_func != NULL) ? w->access_func(w, FALSE) : w->data;
 }
 
 
 /*
  * The access function for handwritten access functions.
  */
-static void *explicit_access_func(sipSimpleWrapper *sw)
+static void *explicit_access_func(sipSimpleWrapper *sw, int release)
 {
-    assert(sw->data != NULL);
-
     typedef void *(*explicitAccessFunc)(void);
 
     return ((explicitAccessFunc)(sw->data))();
@@ -7390,9 +7393,10 @@ static void *explicit_access_func(sipSimpleWrapper *sw)
 /*
  * The access function for indirect access.
  */
-static void *indirect_access_func(sipSimpleWrapper *sw)
+static void *indirect_access_func(sipSimpleWrapper *sw, int release)
 {
-    assert(sw->data != NULL);
+    if (release)
+        return NULL;
 
     return *((void **)sw->data);
 }
@@ -9726,6 +9730,8 @@ static void forgetObject(sipSimpleWrapper *sw)
         /* Call the C++ dtor if there is one. */
         if (ctd->ctd_dealloc != NULL)
             ctd->ctd_dealloc(sw);
+
+        clear_access_func(sw);
     }
 }
 
