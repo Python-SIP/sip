@@ -24,6 +24,10 @@ Annotations can have one of the following types:
 *boolean*
     This type of annotation has no value and is implicitly true.
 
+*integer*
+    This type of annotation is an integer.  In some cases the value is
+    optional.
+
 *name*
     The value is a name that is compatible with a C/C++ identifier.  In some
     cases the value is optional.
@@ -193,11 +197,15 @@ Argument Annotations
 
 .. argument-annotation:: KeepReference
 
-    This boolean annotation is used to specify that a reference to the
+    This optional integer annotation is used to specify that a reference to the
     corresponding argument should be kept to ensure that the object is not
     garbage collected.  If the method is called again with a new argument then
     the reference to the previous argument is discarded.  Note that ownership
     of the argument is not changed.
+
+    If a value is specified then it defines the argument's key.  Arguments of
+    different constructors or methods that have the same key are assumed to
+    refer to the same value.
 
 
 .. argument-annotation:: NoCopy

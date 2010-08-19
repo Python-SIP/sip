@@ -4695,7 +4695,7 @@ static void generateVariableSetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
         }
         else
         {
-            vd->type.key = scope->module->next_key++;
+            vd->type.key = scope->module->next_key--;
 
             prcode(fp,
 "\n"
@@ -6526,7 +6526,7 @@ static void generateVirtHandlerCall(moduleDef *mod, classDef *cd,
     if (res != NULL && keepPyReference(res))
     {
         result_keep = TRUE;
-        res->key = mod->next_key++;
+        res->key = mod->next_key--;
         prcode(fp, ",int");
     }
 
@@ -6534,7 +6534,7 @@ static void generateVirtHandlerCall(moduleDef *mod, classDef *cd,
         if (isOutArg(ad) && keepPyReference(ad))
         {
             args_keep = TRUE;
-            ad->key = mod->next_key++;
+            ad->key = mod->next_key--;
             prcode(fp, ",int");
         }
 

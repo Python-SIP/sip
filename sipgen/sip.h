@@ -1160,6 +1160,7 @@ typedef enum {
     opt_name_flag,
     dotted_name_flag,
     integer_flag,
+    opt_integer_flag,
     api_range_flag
 } flagType;
 

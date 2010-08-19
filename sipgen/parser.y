@@ -2451,6 +2451,8 @@ cpptype:    TK_CONST basetype deref optref {
     ;
 
 argtype:    cpptype optname optflags {
+            optFlag *of;
+
             $$ = $1;
             $$.name = cacheName(currentSpec, $2);
 
@@ -2475,10 +2477,16 @@ argtype:    cpptype optname optflags {
             if (findOptFlag(&$3,"TransferBack",bool_flag) != NULL)
                 $$.argflags |= ARG_XFERRED_BACK;
 
-            if (findOptFlag(&$3, "KeepReference", bool_flag) != NULL)
+            if ((of = findOptFlag(&$3, "KeepReference", opt_integer_flag)) != NULL)
             {
                 $$.argflags |= ARG_KEEP_REF;
-                $$.key = currentModule->next_key++;
+
+                if (($$.key = of->fvalue.ival) < -1)
+                    yyerror("/KeepReference/ key cannot be negative");
+
+                /* If there was no explicit key then auto-allocate one. */
+                if ($$.key == -1)
+                    $$.key = currentModule->next_key--;
             }
 
             if (findOptFlag(&$3,"In",bool_flag) != NULL)
@@ -2892,7 +2900,7 @@ static moduleDef *allocModule()
     newmod->encoding = no_type;
     newmod->qobjclass = -1;
     newmod->nrvirthandlers = -1;
-    newmod->next_key = 1;
+    newmod->next_key = -2;
 
     /*
      * The consolidated module support needs these to be in order that they
@@ -5380,32 +5388,45 @@ static memberDef *findFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
 /*
  * Search a set of flags for a particular one and check its type.
  */
-static optFlag *findOptFlag(optFlags *flgs,char *name,flagType ft)
+static optFlag *findOptFlag(optFlags *flgs, char *name, flagType ft)
 {
     int f;
 
-    for (f = 0; f < flgs -> nrFlags; ++f)
+    for (f = 0; f < flgs->nrFlags; ++f)
     {
-        optFlag *of = &flgs -> flags[f];
+        optFlag *of = &flgs->flags[f];
 
-        if (strcmp(of -> fname,name) == 0)
+        if (strcmp(of->fname, name) == 0)
         {
-            /*
-             * An optional name can look like a boolean or a name.
-             */
-
+            /* An optional name can look like a boolean or a name. */
             if (ft == opt_name_flag)
             {
-                if (of -> ftype == bool_flag)
+                if (of->ftype == bool_flag)
                 {
-                    of -> ftype = opt_name_flag;
-                    of -> fvalue.sval = NULL;
+                    of->ftype = opt_name_flag;
+                    of->fvalue.sval = NULL;
                 }
-                else if (of -> ftype == name_flag)
-                    of -> ftype = opt_name_flag;
+                else if (of->ftype == name_flag)
+                {
+                    of->ftype = opt_name_flag;
+                }
             }
 
-            if (ft != of -> ftype)
+            /* An optional integer can look like a boolean or an integer. */
+            if (ft == opt_integer_flag)
+            {
+                if (of->ftype == bool_flag)
+                {
+                    of->ftype = opt_integer_flag;
+                    of->fvalue.ival = -1;
+                }
+                else if (of->ftype == integer_flag)
+                {
+                    of->ftype = opt_integer_flag;
+                }
+            }
+
+            if (ft != of->ftype)
                 yyerror("Optional flag has a value of the wrong type");
 
             return of;
