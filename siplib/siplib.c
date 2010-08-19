@@ -8973,17 +8973,17 @@ static void sipSimpleWrapper_dealloc(sipSimpleWrapper *self)
 
 
 /*
- * The type call slot.  Note that keyword arguments aren't supported.
+ * The type call slot.
  */
-static PyObject *slot_call(PyObject *self,PyObject *args,PyObject *kw)
+static PyObject *slot_call(PyObject *self, PyObject *args, PyObject *kw)
 {
-    PyObject *(*f)(PyObject *,PyObject *);
+    PyObject *(*f)(PyObject *, PyObject *, PyObject *);
 
-    f = (PyObject *(*)(PyObject *,PyObject *))findSlot(self, call_slot);
+    f = (PyObject *(*)(PyObject *, PyObject *, PyObject *))findSlot(self, call_slot);
 
     assert(f != NULL);
 
-    return f(self,args);
+    return f(self, args, kw);
 }
 
 

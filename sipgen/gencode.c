@@ -5077,8 +5077,8 @@ int isRichCompareSlot(memberDef *md)
 static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
         memberDef *md, FILE *fp)
 {
-    char *arg_str, *prefix, *ret_type;
-    int ret_int, nr_args;
+    char *arg_str, *decl_arg_str, *prefix, *ret_type;
+    int ret_int, has_args;
     overDef *od, *overs;
     scopedNameDef *fqcname;
     nameDef *pyname;
@@ -5122,30 +5122,43 @@ static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
             ret_type = "PyObject *";
     }
 
+    has_args = TRUE;
+
     if (isIntArgSlot(md))
     {
-        nr_args = 0;
+        has_args = FALSE;
         arg_str = "PyObject *sipSelf,int a0";
+        decl_arg_str = "PyObject *,int";
+    }
+    else if (md->slot == call_slot)
+    {
+        if (generating_c || useKeywordArgsFunction(md) || noArgParser(md))
+            arg_str = "PyObject *sipSelf,PyObject *sipArgs,PyObject *sipKwds";
+        else
+            arg_str = "PyObject *sipSelf,PyObject *sipArgs,PyObject *";
+
+        decl_arg_str = "PyObject *,PyObject *,PyObject *";
     }
     else if (isMultiArgSlot(md))
     {
-        nr_args = 2;
         arg_str = "PyObject *sipSelf,PyObject *sipArgs";
+        decl_arg_str = "PyObject *,PyObject *";
     }
     else if (isZeroArgSlot(md))
     {
-        nr_args = 0;
+        has_args = FALSE;
         arg_str = "PyObject *sipSelf";
+        decl_arg_str = "PyObject *";
     }
     else if (isNumberSlot(md))
     {
-        nr_args = 2;
         arg_str = "PyObject *sipArg0,PyObject *sipArg1";
+        decl_arg_str = "PyObject *,PyObject *";
     }
     else
     {
-        nr_args = 1;
         arg_str = "PyObject *sipSelf,PyObject *sipArg";
+        decl_arg_str = "PyObject *,PyObject *";
     }
 
     prcode(fp,
@@ -5173,7 +5186,7 @@ static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
             prcode(fp, "%C_", fqcname);
 
         prcode(fp, "%s(%s);}\n"
-            , md->pyname->text, arg_str);
+            , md->pyname->text, decl_arg_str);
     }
 
     prcode(fp,
@@ -5188,129 +5201,138 @@ static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
 "{\n"
         , md->pyname->text, arg_str);
 
-    if (isInplaceNumberSlot(md))
-        prcode(fp,
+    if (md->slot == call_slot && noArgParser(md))
+    {
+        for (od = overs; od != NULL; od = od->next)
+            if (od->common == md)
+                generateCppCodeBlock(od->methodcode, fp);
+    }
+    else
+    {
+        if (isInplaceNumberSlot(md))
+            prcode(fp,
 "    if (!PyObject_TypeCheck(sipSelf, sipTypeAsPyTypeObject(sip%s_%C)))\n"
 "    {\n"
 "        Py_INCREF(Py_NotImplemented);\n"
 "        return Py_NotImplemented;\n"
 "    }\n"
 "\n"
-            , prefix, fqcname);
+                , prefix, fqcname);
 
-    if (!isNumberSlot(md))
-    {
-        if (cd != NULL)
-            prcode(fp,
+        if (!isNumberSlot(md))
+        {
+            if (cd != NULL)
+                prcode(fp,
 "    %S *sipCpp = reinterpret_cast<%S *>(sipGetCppPtr((sipSimpleWrapper *)sipSelf,sipType_%C));\n"
 "\n"
 "    if (!sipCpp)\n"
 "        return %s;\n"
 "\n"
-                , fqcname, fqcname, fqcname
-                , (md->slot == cmp_slot ? "-2" : (ret_int ? "-1" : "0")));
-        else
-            prcode(fp,
+                    , fqcname, fqcname, fqcname
+                    , (md->slot == cmp_slot ? "-2" : (ret_int ? "-1" : "0")));
+            else
+                prcode(fp,
 "    %S sipCpp = static_cast<%S>(SIPLong_AsLong(sipSelf));\n"
 "\n"
-                , fqcname, fqcname);
-    }
-
-    if (nr_args > 0)
-        prcode(fp,
-"    PyObject *sipParseErr = NULL;\n"
-            );
-
-    for (od = overs; od != NULL; od = od->next)
-        if (od->common == md && isAbstract(od))
-        {
-            prcode(fp,
-"    PyObject *sipOrigSelf = sipSelf;\n"
-                );
-
-            break;
+                    , fqcname, fqcname);
         }
 
-    for (od = overs; od != NULL; od = od->next)
-        if (od->common == md)
-            generateFunctionBody(od, cd, NULL, cd, (ed == NULL && !dontDerefSelf(od)), mod, fp);
-
-    if (nr_args > 0)
-    {
-        switch (md->slot)
-        {
-        case cmp_slot:
+        if (has_args)
             prcode(fp,
+"    PyObject *sipParseErr = NULL;\n"
+                );
+
+        for (od = overs; od != NULL; od = od->next)
+            if (od->common == md && isAbstract(od))
+            {
+                prcode(fp,
+"    PyObject *sipOrigSelf = sipSelf;\n"
+                    );
+
+                break;
+            }
+
+        for (od = overs; od != NULL; od = od->next)
+            if (od->common == md)
+                generateFunctionBody(od, cd, NULL, cd, (ed == NULL && !dontDerefSelf(od)), mod, fp);
+
+        if (has_args)
+        {
+            switch (md->slot)
+            {
+            case cmp_slot:
+                prcode(fp,
 "\n"
 "    return 2;\n"
-                );
-            break;
+                    );
+                break;
 
-        case concat_slot:
-        case iconcat_slot:
-        case repeat_slot:
-        case irepeat_slot:
-            prcode(fp,
+            case concat_slot:
+            case iconcat_slot:
+            case repeat_slot:
+            case irepeat_slot:
+                prcode(fp,
 "\n"
 "    /* Raise an exception if the argument couldn't be parsed. */\n"
 "    sipBadOperatorArg(sipSelf,sipArg,%s);\n"
 "\n"
 "    return NULL;\n"
-                ,slotName(md->slot));
-            break;
+                    ,slotName(md->slot));
+                break;
 
-        default:
-            if (isNumberSlot(md) || isRichCompareSlot(md) || isInplaceNumberSlot(md))
-            {
-                prcode(fp,
+            default:
+                if (isNumberSlot(md) || isRichCompareSlot(md) || isInplaceNumberSlot(md))
+                {
+                    prcode(fp,
 "\n"
 "    Py_XDECREF(sipParseErr);\n"
 "\n"
 "    if (sipParseErr == Py_None)\n"
 "        return NULL;\n"
-                    );
-            }
+                        );
+                }
 
-            if (isNumberSlot(md) || isRichCompareSlot(md))
-            {
-                /* We can't extend enum slots. */
-                if (cd == NULL)
-                    prcode(fp,
+                if (isNumberSlot(md) || isRichCompareSlot(md))
+                {
+                    /* We can't extend enum slots. */
+                    if (cd == NULL)
+                        prcode(fp,
 "\n"
 "    Py_INCREF(Py_NotImplemented);\n"
 "    return Py_NotImplemented;\n"
-                        );
-                else if (isNumberSlot(md))
-                    prcode(fp,
+                            );
+                    else if (isNumberSlot(md))
+                        prcode(fp,
 "\n"
 "    return sipPySlotExtend(&sipModuleAPI_%s,%s,NULL,sipArg0,sipArg1);\n"
-                        , mod->name, slotName(md->slot));
-                else
-                    prcode(fp,
+                            , mod->name, slotName(md->slot));
+                    else
+                        prcode(fp,
 "\n"
 "    return sipPySlotExtend(&sipModuleAPI_%s,%s,sipType_%C,sipSelf,sipArg);\n"
-                        , mod->name, slotName(md->slot), fqcname);
-            }
-            else if (isInplaceNumberSlot(md))
-            {
-                prcode(fp,
+                            , mod->name, slotName(md->slot), fqcname);
+                }
+                else if (isInplaceNumberSlot(md))
+                {
+                    prcode(fp,
 "\n"
 "    PyErr_Clear();\n"
 "\n"
 "    Py_INCREF(Py_NotImplemented);\n"
 "    return Py_NotImplemented;\n"
-                    );
-            }
-            else
-            {
-                prcode(fp,
+                        );
+                }
+                else
+                {
+                    prcode(fp,
 "\n"
 "    /* Raise an exception if the arguments couldn't be parsed. */\n"
 "    sipNoMethod(sipParseErr, %N, %N, NULL);\n"
 "\n"
 "    return %s;\n"
-                    , pyname, md->pyname
-                    ,ret_int ? "-1" : "0");
+                        , pyname, md->pyname
+                        ,ret_int ? "-1" : "0");
+                }
             }
         }
     }

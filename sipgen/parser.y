@@ -5120,7 +5120,7 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
     if (getDeprecated(optflgs))
         setIsDeprecated(od);
 
-    if (!isPrivate(od) && !isSignal(od) && od->common->slot == no_slot && usesKeywordArgs(optflgs, &od->pysig))
+    if (!isPrivate(od) && !isSignal(od) && (od->common->slot == no_slot || od->common->slot == call_slot) && usesKeywordArgs(optflgs, &od->pysig))
     {
         setUseKeywordArgs(od);
         setUseKeywordArgsFunction(od->common);
