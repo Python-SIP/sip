@@ -652,6 +652,7 @@ static PyObject *bad_type_str(int arg_nr, PyObject *arg);
 static void *explicit_access_func(sipSimpleWrapper *sw, int release);
 static void *indirect_access_func(sipSimpleWrapper *sw, int release);
 static void clear_access_func(sipSimpleWrapper *sw);
+static int check_encoded_string(PyObject *obj);
 
 
 /*
@@ -3446,39 +3447,32 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
             {
                 /* String from a Python string or None. */
 
-                PyObject **keep = va_arg(va, PyObject **);
-                const char **p = va_arg(va, const char **);
-                char sub_fmt = *fmt++;
+                va_arg(va, PyObject **);
+                va_arg(va, const char **);
+                fmt++;
 
-                if (arg != NULL)
+                if (arg != NULL && check_encoded_string(arg) < 0)
                 {
-                    PyObject *s;
+                    failure.reason = WrongType;
+                    failure.detail_obj = arg;
+                    Py_INCREF(arg);
+                }
 
-                    switch (sub_fmt)
-                    {
-                    case 'A':
-                        s = parseString_AsASCIIString(arg, p);
-                        break;
+                break;
+            }
 
-                    case 'L':
-                        s = parseString_AsLatin1String(arg, p);
-                        break;
+        case 'a':
+            {
+                /* Character from a Python string. */
 
-                    case '8':
-                        s = parseString_AsUTF8String(arg, p);
-                        break;
-                    }
+                va_arg(va, char *);
+                fmt++;
 
-                    if (s == NULL)
-                    {
-                        failure.reason = WrongType;
-                        failure.detail_obj = arg;
-                        Py_INCREF(arg);
-                    }
-                    else
-                    {
-                        *keep = s;
-                    }
+                if (arg != NULL && check_encoded_string(arg) < 0)
+                {
+                    failure.reason = WrongType;
+                    failure.detail_obj = arg;
+                    Py_INCREF(arg);
                 }
 
                 break;
@@ -3922,43 +3916,6 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                     failure.reason = WrongType;
                     failure.detail_obj = arg;
                     Py_INCREF(arg);
-                }
-
-                break;
-            }
-
-        case 'a':
-            {
-                /* Character from a Python string. */
-
-                char *p = va_arg(va, char *);
-                char sub_fmt = *fmt++;
-
-                if (arg != NULL)
-                {
-                    int enc;
-
-                    switch (sub_fmt)
-                    {
-                    case 'A':
-                        enc = parseString_AsASCIIChar(arg, p);
-                        break;
-
-                    case 'L':
-                        enc = parseString_AsLatin1Char(arg, p);
-                        break;
-
-                    case '8':
-                        enc = parseString_AsUTF8Char(arg, p);
-                        break;
-                    }
-
-                    if (enc < 0)
-                    {
-                        failure.reason = WrongType;
-                        failure.detail_obj = arg;
-                        Py_INCREF(arg);
-                    }
                 }
 
                 break;
@@ -4792,19 +4749,74 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, PyObject *sipArgs,
                 break;
             }
 
-        /*
-         * These need special handling because they have a sub-format
-         * character.
-         */
         case 'A':
-            va_arg(va, void *);
+            {
+                /* String from a Python string or None. */
 
-            /* Drop through. */
+                PyObject **keep = va_arg(va, PyObject **);
+                const char **p = va_arg(va, const char **);
+                char sub_fmt = *fmt++;
+
+                if (arg != NULL)
+                {
+                    PyObject *s;
+
+                    switch (sub_fmt)
+                    {
+                    case 'A':
+                        s = parseString_AsASCIIString(arg, p);
+                        break;
+
+                    case 'L':
+                        s = parseString_AsLatin1String(arg, p);
+                        break;
+
+                    case '8':
+                        s = parseString_AsUTF8String(arg, p);
+                        break;
+                    }
+
+                    if (s == NULL)
+                        return FALSE;
+
+                    *keep = s;
+                }
+
+                break;
+            }
 
         case 'a':
-            va_arg(va, void *);
-            fmt++;
-            break;
+            {
+                /* Character from a Python string. */
+
+                char *p = va_arg(va, char *);
+                char sub_fmt = *fmt++;
+
+                if (arg != NULL)
+                {
+                    int enc;
+
+                    switch (sub_fmt)
+                    {
+                    case 'A':
+                        enc = parseString_AsASCIIChar(arg, p);
+                        break;
+
+                    case 'L':
+                        enc = parseString_AsLatin1Char(arg, p);
+                        break;
+
+                    case '8':
+                        enc = parseString_AsUTF8Char(arg, p);
+                        break;
+                    }
+
+                    if (enc < 0)
+                        return FALSE;
+                }
+
+                break;
+            }
 
         /*
          * Every other argument is a pointer and only differ in how many there
@@ -10192,6 +10204,10 @@ static PyObject *parseString_AsEncodedString(PyObject *bytes, PyObject *obj,
         return bytes;
     }
 
+    /* Don't try anything else if there was an encoding error. */
+    if (PyUnicode_Check(obj))
+        return NULL;
+
     PyErr_Clear();
 
     if (parseBytes_AsString(obj, ap) < 0)
@@ -10548,4 +10564,25 @@ static PyObject *sipEnumType_alloc(PyTypeObject *self, SIP_SSIZE_T nitems)
         addTypeSlots(&py_type->super, psd);
 
     return (PyObject *)py_type;
+}
+
+
+/*
+ * Check if an object is of the right type to convert to an encoded string.
+ */
+static int check_encoded_string(PyObject *obj)
+{
+    if (obj == Py_None)
+        return 0;
+
+    if (PyUnicode_Check(obj))
+        return 0;
+
+    if (SIPBytes_Check(obj))
+        return 0;
+
+    if (PyObject_CheckReadBuffer(obj))
+        return 0;
+
+    return -1;
 }
