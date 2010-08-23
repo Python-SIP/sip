@@ -1431,10 +1431,13 @@ specification files.
     .. cmember:: sipAccessFunc access_func
 
         This is the address of an optional access function that is called, with
-        a pointer to this structure as its first argument.  If its ``int``
-        second argument is zero then it returns the address of the C/C++
-        instance.  If the second argument is non-zero then the structure is
-        being deallocated and any dynamic resources used by the access function
+        a pointer to this structure as its first argument.  If its second
+        argument is ``UnguardedPointer`` then it returns the address of the
+        C/C++ instance, even if it is known that its value is no longer valid.
+        If the second argument is ``GuardedPointer`` then it returns the
+        address of the C++ instance or ``0`` if it is known to be invalid.  If
+        the second argument is ``ReleaseGuard`` then the structure is being
+        deallocated and any dynamic resources used by the access function
         should be released.  If there is no access function then the
         :cmember:`sipSimpleWrapper.data` is used as the address of the C/C++
         instance.  Typically a custom meta-type is used to set an access method

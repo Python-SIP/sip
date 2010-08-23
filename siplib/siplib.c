@@ -649,8 +649,8 @@ static int add_all_lazy_attrs(sipTypeDef *td);
 static int objectify(const char *s, PyObject **objp);
 static void add_failure(PyObject **parseErrp, sipParseFailure *failure);
 static PyObject *bad_type_str(int arg_nr, PyObject *arg);
-static void *explicit_access_func(sipSimpleWrapper *sw, int release);
-static void *indirect_access_func(sipSimpleWrapper *sw, int release);
+static void *explicit_access_func(sipSimpleWrapper *sw, AccessFuncOp op);
+static void *indirect_access_func(sipSimpleWrapper *sw, AccessFuncOp op);
 static void clear_access_func(sipSimpleWrapper *sw);
 static int check_encoded_string(PyObject *obj);
 
@@ -5020,8 +5020,7 @@ void sip_api_common_dtor(sipSimpleWrapper *sipSelf)
         callPyDtor(sipSelf);
         PyErr_Restore(xtype, xvalue, xtb);
 
-        if (!sipNotInMap(sipSelf))
-            sipOMRemoveObject(&cppPyMap, sipSelf);
+        sipOMRemoveObject(&cppPyMap, sipSelf);
 
         /* This no longer points to anything useful. */
         clear_access_func(sipSelf);
@@ -5051,7 +5050,7 @@ static void clear_access_func(sipSimpleWrapper *sw)
 {
     if (sw->access_func != NULL)
     {
-        sw->access_func(sw, TRUE);
+        sw->access_func(sw, ReleaseGuard);
         sw->access_func = NULL;
     }
 
@@ -7387,16 +7386,19 @@ static PyObject *sip_api_get_pyobject(void *cppPtr, const sipTypeDef *td)
  */
 void *sip_api_get_address(sipSimpleWrapper *w)
 {
-    return (w->access_func != NULL) ? w->access_func(w, FALSE) : w->data;
+    return (w->access_func != NULL) ? w->access_func(w, GuardedPointer) : w->data;
 }
 
 
 /*
  * The access function for handwritten access functions.
  */
-static void *explicit_access_func(sipSimpleWrapper *sw, int release)
+static void *explicit_access_func(sipSimpleWrapper *sw, AccessFuncOp op)
 {
     typedef void *(*explicitAccessFunc)(void);
+
+    if (op == ReleaseGuard)
+        return NULL;
 
     return ((explicitAccessFunc)(sw->data))();
 }
@@ -7405,9 +7407,9 @@ static void *explicit_access_func(sipSimpleWrapper *sw, int release)
 /*
  * The access function for indirect access.
  */
-static void *indirect_access_func(sipSimpleWrapper *sw, int release)
+static void *indirect_access_func(sipSimpleWrapper *sw, AccessFuncOp op)
 {
-    if (release)
+    if (op == ReleaseGuard)
         return NULL;
 
     return *((void **)sw->data);
@@ -9725,26 +9727,26 @@ static void forgetObject(sipSimpleWrapper *sw)
      */
     PyObject_GC_UnTrack((PyObject *)sw);
 
+    /*
+     * Remove the object from the map before calling the class specific dealloc
+     * code.  This code calls the C++ dtor and may result in further calls that
+     * pass the instance as an argument.  If this is still in the map then it's
+     * reference count would be increased (to one) and bad things happen when
+     * it drops back to zero again.  (An example is PyQt events generated
+     * during the dtor call being passed to an event filter implemented in
+     * Python.)  By removing it from the map first we ensure that a new Python
+     * object is created.
+     */
+    sipOMRemoveObject(&cppPyMap, sw);
+
     if (getPtrTypeDef(sw, &ctd) != NULL)
     {
-        /*
-         * Remove the object from the map before calling the class specific
-         * dealloc code.  This code calls the C++ dtor and may result in
-         * further calls that pass the instance as an argument.  If this is
-         * still in the map then it's reference count would be increased (to
-         * one) and bad things happen when it drops back to zero again.  (An
-         * example is PyQt events generated during the dtor call being passed
-         * to an event filter implemented in Python.)  By removing it from the
-         * map first we ensure that a new Python object is created.
-         */
-        sipOMRemoveObject(&cppPyMap, sw);
-
         /* Call the C++ dtor if there is one. */
         if (ctd->ctd_dealloc != NULL)
             ctd->ctd_dealloc(sw);
-
-        clear_access_func(sw);
     }
+
+    clear_access_func(sw);
 }
 
 

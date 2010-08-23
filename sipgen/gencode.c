@@ -2953,7 +2953,7 @@ static int generateClasses(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
 
             if (vd->accessfunc != NULL)
             {
-                prcode(fp, "(void *)access_%C, &sipType_%C, SIP_ACCFUNC", vd->fqcname, vcname);
+                prcode(fp, "(void *)access_%C, &sipType_%C, SIP_ACCFUNC|SIP_NOT_IN_MAP", vd->fqcname, vcname);
             }
             else if (vd->type.nrderefs != 0)
             {
