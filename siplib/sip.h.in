@@ -175,6 +175,16 @@ extern "C" {
 #define SIP_API_MINOR_NR    0
 
 
+/*
+ * Qt includes this typedef and its meta-object system explicitly converts
+ * types to uint.  If these correspond to signal arguments then that conversion
+ * is exposed.  Therefore SIP generates code that uses it.  This definition is
+ * for the cases that SIP is generating non-Qt related bindings with compilers
+ * that don't include it themselves (i.e. MSVC).
+ */
+typedef unsigned int uint;
+
+
 /* Some compatibility stuff to help with handwritten code for SIP v3. */
 #if !defined(ANY)
 #define ANY     void
