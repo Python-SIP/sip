@@ -816,7 +816,11 @@ class Makefile:
         flags = []
         prefix = self.optional_string("RPATH")
 
-        if prefix:
+        if prefix == "":
+            # This was renamed in Qt v4.7.
+            prefix = self.optional_string("LFLAGS_RPATH")
+
+        if prefix != "":
             for r in rpaths:
                 flags.append(_quote(prefix + r))
 
