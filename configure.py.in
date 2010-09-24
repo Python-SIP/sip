@@ -85,7 +85,7 @@ build_macro_names = [
     "LIBS_RTMT", "LIBS_THREAD", "LIBS_WINDOWS", "LIBS_X11",
     "MAKEFILE_GENERATOR",
     "MKDIR",
-    "RPATH",
+    "RPATH", "LFLAGS_RPATH",
     "AR", "RANLIB", "LIB", "STRIP"
 ]
 
