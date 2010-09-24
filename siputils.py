@@ -543,6 +543,8 @@ class Makefile:
                     # Note that qmake doesn't define anything for QtHelp.
                     if mod == "QtCore":
                         defines.append("QT_CORE_LIB")
+                    elif mod == "QtDeclarative":
+                        defines.append("QT_DECLARATIVE_LIB")
                     elif mod == "QtGui":
                         defines.append("QT_GUI_LIB")
                     elif mod == "QtMultimedia":
@@ -589,6 +591,7 @@ class Makefile:
                 # For Windows: the dependencies between Qt libraries.
                 qdepmap = {
                     "QtAssistant":      ("QtNetwork", "QtGui", "QtCore"),
+                    "QtDeclarative":    ("QtNetwork", "QtGui", "QtCore"),
                     "QtGui":            ("QtCore", ),
                     "QtHelp":           ("QtSql", "QtGui", "QtCore"),
                     "QtMultimedia":     ("QtGui", "QtCore"),
@@ -767,10 +770,11 @@ class Makefile:
                 lib = lib + "_debug"
 
         if sys.platform == "win32" and "shared" in self.config.qt_winconfig.split():
-            if (mname in ("QtCore", "QtDesigner", "QtGui", "QtHelp",
-                          "QtMultimedia", "QtNetwork", "QtOpenGL", "QtScript",
-                          "QtScriptTools", "QtSql", "QtSvg", "QtTest",
-                          "QtWebKit", "QtXml", "QtXmlPatterns", "phonon") or
+            if (mname in ("QtCore", "QtDeclarative", "QtDesigner", "QtGui",
+                          "QtHelp", "QtMultimedia", "QtNetwork", "QtOpenGL",
+                          "QtScript", "QtScriptTools", "QtSql", "QtSvg",
+                          "QtTest", "QtWebKit", "QtXml", "QtXmlPatterns",
+                          "phonon") or
                 (self.config.qt_version >= 0x040200 and mname == "QtAssistant")):
                 lib = lib + "4"
 
