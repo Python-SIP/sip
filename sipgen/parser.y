@@ -3675,10 +3675,17 @@ static enumDef *newEnum(sipSpec *pt, moduleDef *mod, mappedTypeDef *mt_scope,
         ed->cname = NULL;
     }
 
-    if (flags & SECT_IS_PROT && makeProtPublic)
+    if (flags & SECT_IS_PROT)
     {
-        flags &= ~SECT_IS_PROT;
-        flags |= SECT_IS_PUBLIC;
+        if (makeProtPublic)
+        {
+            flags &= ~SECT_IS_PROT;
+            flags |= SECT_IS_PUBLIC;
+        }
+        else if (c_scope != NULL)
+        {
+            setHasShadow(c_scope);
+        }
     }
 
     ed->enumflags = flags;
