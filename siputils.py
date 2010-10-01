@@ -449,7 +449,7 @@ class Makefile:
 
                 libs.append(self.platform_lib(py_lib))
 
-        if self.generator in ("MSVC", "MSVC.NET", "BMAKE"):
+        if self.generator in ("MSVC", "MSVC.NET", "MSBUILD", "BMAKE"):
             if win_exceptions:
                 cflags_exceptions = "CFLAGS_EXCEPTIONS_ON"
                 cxxflags_exceptions = "CXXFLAGS_EXCEPTIONS_ON"
@@ -503,7 +503,7 @@ class Makefile:
             cxxflags_debug = "CXXFLAGS_RELEASE"
             lflags_debug = "LFLAGS_RELEASE"
 
-        if self.generator in ("MSVC", "MSVC.NET", "BMAKE"):
+        if self.generator in ("MSVC", "MSVC.NET", "MSBUILD", "BMAKE"):
             if self._threaded:
                 cflags.extend(self.optional_list(cflags_mt))
                 cxxflags.extend(self.optional_list(cxxflags_mt))
@@ -659,7 +659,7 @@ class Makefile:
                 # Windows needs the version number appended if Qt is a DLL.
                 qt_lib = self.config.qt_lib
 
-                if self.generator in ("MSVC", "MSVC.NET", "BMAKE") and win_shared:
+                if self.generator in ("MSVC", "MSVC.NET", "MSBUILD", "BMAKE") and win_shared:
                     qt_lib = qt_lib + version_to_string(self.config.qt_version).replace(".", "")
 
                     if self.config.qt_edition == "non-commercial":
@@ -836,7 +836,7 @@ class Makefile:
         clib is the library name in cannonical form.
         framework is set of the library is implemented as a MacOS framework.
         """
-        if self.generator in ("MSVC", "MSVC.NET", "BMAKE"):
+        if self.generator in ("MSVC", "MSVC.NET", "MSBUILD", "BMAKE"):
             plib = clib + ".lib"
         elif sys.platform == "darwin" and framework:
             plib = "-framework " + clib
@@ -854,7 +854,7 @@ class Makefile:
         """
         prl_libs = []
 
-        if self.generator in ("MSVC", "MSVC.NET", "BMAKE"):
+        if self.generator in ("MSVC", "MSVC.NET", "MSBUILD", "BMAKE"):
             prl_name = os.path.join(self.config.qt_lib_dir, clib + ".prl")
         elif sys.platform == "darwin" and framework:
             prl_name = os.path.join(self.config.qt_lib_dir, clib + ".framework", clib + ".prl")
@@ -942,7 +942,7 @@ class Makefile:
                 bdict[i] = ""
 
         # Generate the list of objects.
-        if self.generator in ("MSVC", "MSVC.NET", "BMAKE"):
+        if self.generator in ("MSVC", "MSVC.NET", "MSBUILD", "BMAKE"):
             ext = ".obj"
         else:
             ext = ".o"
@@ -1040,7 +1040,7 @@ class Makefile:
 
         libs = []
 
-        if self.generator in ("MSVC", "MSVC.NET"):
+        if self.generator in ("MSVC", "MSVC.NET", "MSBUILD"):
             libdir_prefix = "/LIBPATH:"
         else:
             libdir_prefix = "-L"
@@ -1077,7 +1077,7 @@ class Makefile:
         else:
             mfile.write(".SUFFIXES: .c .cpp .cc .cxx .C\n\n")
 
-        if self.generator in ("MSVC", "MSVC.NET"):
+        if self.generator in ("MSVC", "MSVC.NET", "MSBUILD"):
             mfile.write("""
 {.}.cpp{}.obj::
 \t$(CXX) -c $(CXXFLAGS) $(CPPFLAGS) -Fo @<<
@@ -1519,7 +1519,7 @@ class ModuleMakefile(Makefile):
         mfile.write("\n")
 
         if self.static:
-            if self.generator in ("MSVC", "MSVC.NET", "BMAKE"):
+            if self.generator in ("MSVC", "MSVC.NET", "MSBUILD", "BMAKE"):
                 mfile.write("LIB = %s\n" % self.required_string("LIB"))
             elif self.generator == "MINGW":
                 mfile.write("AR = %s\n" % self.required_string("LIB"))
@@ -1553,7 +1553,7 @@ class ModuleMakefile(Makefile):
 
         mfile.write("\n$(TARGET): $(OFILES)\n")
 
-        if self.generator in ("MSVC", "MSVC.NET"):
+        if self.generator in ("MSVC", "MSVC.NET", "MSBUILD"):
             if self.static:
                 mfile.write("\t$(LIB) /OUT:$(TARGET) @<<\n")
                 mfile.write("\t  $(OFILES)\n")
@@ -1735,7 +1735,7 @@ class ProgramMakefile(Makefile):
         if self.generator != "BMAKE":
             build.append(source)
 
-        if self.generator in ("MSVC", "MSVC.NET"):
+        if self.generator in ("MSVC", "MSVC.NET", "MSBUILD"):
             build.append("-Fe")
             build.append("/link")
             libdir_prefix = "/LIBPATH:"
@@ -1788,7 +1788,7 @@ class ProgramMakefile(Makefile):
     def finalise(self):
         """Finalise the macros for a program Makefile.
         """
-        if self.generator in ("MSVC", "MSVC.NET"):
+        if self.generator in ("MSVC", "MSVC.NET", "MSBUILD"):
             self.LFLAGS.append("/INCREMENTAL:NO")
 
         if self._manifest:
@@ -1845,7 +1845,7 @@ class ProgramMakefile(Makefile):
 
         mfile.write("\n$(TARGET): $(OFILES)\n")
 
-        if self.generator in ("MSVC", "MSVC.NET"):
+        if self.generator in ("MSVC", "MSVC.NET", "MSBUILD"):
             mfile.write("\t$(LINK) $(LFLAGS) /OUT:$(TARGET) @<<\n")
             mfile.write("\t  $(OFILES) $(LIBS)\n")
             mfile.write("<<\n")
