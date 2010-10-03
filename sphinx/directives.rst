@@ -1920,10 +1920,10 @@ multiple libraries to be wrapped in the same module.
         *code*
     %End
 
-This directive is used as part of the specification of a C structure or a C++
-class to specify handwritten code, typically the implementations of utility
-functions, that can be called by other handwritten code in the structure or
-class.
+This directive is used as part of the specification of a C structure, a C++
+class or a :directive:`%MappedType` directive to specify handwritten code,
+typically the implementations of utility functions, that can be called by other
+handwritten code in the structure or class.
 
 For example::
 

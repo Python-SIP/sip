@@ -801,6 +801,7 @@ typedef struct _mappedTypeDef {
     ifaceFileDef *iff;                  /* The interface file. */
     struct _memberDef *members;         /* The static member functions. */
     struct _overDef *overs;             /* The static overloads. */
+    codeBlock *typecode;                /* Type code. */
     codeBlock *convfromcode;            /* Convert from C++ code. */
     codeBlock *convtocode;              /* Convert to C++ code. */
     struct _mappedTypeDef *next;        /* Next in the list. */

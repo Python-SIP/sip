@@ -677,6 +677,10 @@ mtline:     typehdrcode {
             if (notSkipping())
                 appendCodeBlock(&currentMappedType->iff->hdrcode, $1);
         }
+    |   typecode {
+            if (notSkipping())
+                appendCodeBlock(&currentMappedType->typecode, $1);
+        }
     |   TK_FROMTYPE codeblock {
             if (notSkipping())
             {

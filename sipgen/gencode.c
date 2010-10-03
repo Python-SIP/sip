@@ -3541,6 +3541,8 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
     int need_xfer, nr_methods, nr_enums;
     memberDef *md;
 
+    generateCppCodeBlock(mtd->typecode, fp);
+
     if (!noRelease(mtd))
     {
         /* Generate the assignment helper. */
