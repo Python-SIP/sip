@@ -65,6 +65,7 @@ static void resolvePySigTypes(sipSpec *,moduleDef *,classDef *,overDef *,signatu
 static void resolveVariableType(sipSpec *,varDef *);
 static void fatalNoDefinedType(scopedNameDef *);
 static void getBaseType(sipSpec *,moduleDef *,classDef *,argDef *);
+static void resolveType(sipSpec *,moduleDef *,classDef *,argDef *, int);
 static void searchClassScope(sipSpec *,classDef *,scopedNameDef *,argDef *);
 static void searchMappedTypes(sipSpec *,moduleDef *,scopedNameDef *,argDef *);
 static void searchEnums(sipSpec *,scopedNameDef *,argDef *);
@@ -1805,7 +1806,7 @@ static void resolveMappedTypeTypes(sipSpec *pt, mappedTypeDef *mt)
 
         /* Leave templates as they are. */
         if (ad->atype != template_type)
-            getBaseType(pt, mt->iff->module, NULL, ad);
+            resolveType(pt, mt->iff->module, NULL, ad, TRUE);
     }
 
     /* Make sure that the signature result won't cause problems. */
@@ -2788,6 +2789,16 @@ static void scopeDefaultValue(sipSpec *pt,classDef *cd,argDef *ad)
 static void getBaseType(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         argDef *type)
 {
+    resolveType(pt, mod, c_scope, type, FALSE);
+}
+
+
+/*
+ * Resolve a type if possible.
+ */
+static void resolveType(sipSpec *pt, moduleDef *mod, classDef *c_scope,
+        argDef *type, int allow_defined)
+{
     /* Loop until we've got to a base type. */
     while (type->atype == defined_type)
     {
@@ -2811,7 +2822,15 @@ static void getBaseType(sipSpec *pt, moduleDef *mod, classDef *c_scope,
             searchClasses(pt, mod, snd, type);
 
         if (type->atype == no_type)
+        {
+            if (allow_defined)
+            {
+                type->atype = defined_type;
+                return;
+            }
+
             fatalNoDefinedType(snd);
+        }
     }
 
     /* Get the base type of any slot arguments. */
