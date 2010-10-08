@@ -11703,8 +11703,8 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
             {
                 prcode(fp,
 "\n"
-"            sipKeepReference(sipSelf, %d, a%d%s);\n"
-                    , ad->key, a, (((ad->atype == ascii_string_type || ad->atype == latin1_string_type || ad->atype == utf8_string_type) && ad->nrderefs == 1) || !isGetWrapper(ad) ? "Keep" : "Wrapper"));
+"            sipKeepReference(%s, %d, a%d%s);\n"
+                    , (isStatic(od) ? "NULL" : "sipSelf"), ad->key, a, (((ad->atype == ascii_string_type || ad->atype == latin1_string_type || ad->atype == utf8_string_type) && ad->nrderefs == 1) || !isGetWrapper(ad) ? "Keep" : "Wrapper"));
             }
 
             /* Handle /TransferThis/ for non-factory methods. */

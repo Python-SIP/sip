@@ -7511,9 +7511,7 @@ static void sip_api_keep_reference(PyObject *self, int key, PyObject *obj)
 
     /*
      * If there isn't a "self" to keep the extra reference for later garbage
-     * collection then just take a reference and let it leak.  This could
-     * happen, for example, if virtuals were still being called while Python
-     * was shutting down.
+     * collection then just take a reference and let it leak.
      */
     if (self == NULL)
     {
