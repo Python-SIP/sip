@@ -7409,10 +7409,24 @@ static void *explicit_access_func(sipSimpleWrapper *sw, AccessFuncOp op)
  */
 static void *indirect_access_func(sipSimpleWrapper *sw, AccessFuncOp op)
 {
-    if (op == ReleaseGuard)
-        return NULL;
+    void *addr;
 
-    return *((void **)sw->data);
+    switch (op)
+    {
+    case UnguardedPointer:
+        addr = sw->data;
+        break;
+
+    case GuardedPointer:
+        addr = *((void **)sw->data);
+        break;
+
+    case ReleaseGuard:
+        addr = NULL;
+        break;
+    }
+
+    return addr;
 }
 
 
