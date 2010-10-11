@@ -1,5 +1,9 @@
-v4.11.2 ??? ??? 2010
-  - Build system changes required by PyQt v4.8.
+v4.11.2 ??? October 2010
+  - /KeepReference/ can now be applied to global functions and static methods.
+  - %TypeCode can now be specified in a %MappedType directive.
+  - Mapped types for templates no longer require the template arguments to be
+    fully defined.
+  - Build system changes required by PyQt v4.8 and Qt v4.7.
 
 v4.11.1 6th September 2010
   - A bug fix release.
