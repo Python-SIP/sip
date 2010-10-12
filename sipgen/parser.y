@@ -4936,6 +4936,17 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
     else
         headp = &mod->overs;
 
+    /*
+     * See if the function has a non-lazy method.  These are methods that
+     * Python expects to see defined in the type before any instance of the
+     * type is created.
+     */
+    if (c_scope != NULL)
+    {
+        if (strcmp(name, "__enter__") == 0 || strcmp(name, "__exit__") == 0)
+            setHasNonlazyMethod(c_scope);
+    }
+
     /* See if it is a factory method. */
     if (findOptFlag(optflgs, "Factory", bool_flag) != NULL)
         factory = TRUE;

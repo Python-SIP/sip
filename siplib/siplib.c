@@ -653,6 +653,8 @@ static void *explicit_access_func(sipSimpleWrapper *sw, AccessFuncOp op);
 static void *indirect_access_func(sipSimpleWrapper *sw, AccessFuncOp op);
 static void clear_access_func(sipSimpleWrapper *sw);
 static int check_encoded_string(PyObject *obj);
+static int isNonlazyMethod(PyMethodDef *pmd);
+static int addMethod(PyObject *dict, PyMethodDef *pmd);
 
 
 /*
@@ -5302,6 +5304,7 @@ static int createClassType(sipExportedModuleDef *client, sipClassTypeDef *ctd,
 {
     PyObject *bases, *metatype, *py_type;
     sipEncodedTypeDef *sup;
+    int i;
 
     /* Handle the trivial case where we have already been initialised. */
     if (ctd->ctd_base.td_module != NULL)
@@ -5338,7 +5341,7 @@ static int createClassType(sipExportedModuleDef *client, sipClassTypeDef *ctd,
     }
     else
     {
-        int i, nrsupers = 0;
+        int nrsupers = 0;
 
         do
             ++nrsupers;
@@ -5392,6 +5395,21 @@ static int createClassType(sipExportedModuleDef *client, sipClassTypeDef *ctd,
 
         if (setReduce((PyTypeObject *)py_type, &md) < 0)
             goto reltype;
+    }
+
+    /* Handle any non-lazy methods if the type has one. */
+    if (sipTypeHasNonlazyMethod(&ctd->ctd_base))
+    {
+        PyMethodDef *pmd = ctd->ctd_container.cod_methods;
+        PyObject *dict = ((PyTypeObject *)py_type)->tp_dict;
+
+        for (i = 0; i < ctd->ctd_container.cod_nrmethods; ++i)
+        {
+            if (isNonlazyMethod(pmd) && addMethod(dict, pmd) < 0)
+                goto reltype;
+
+            ++pmd;
+        }
     }
 
     /* We can now release our references. */
@@ -5877,6 +5895,36 @@ static int getSelfFromArgs(sipTypeDef *td, PyObject *args, int argnr,
 
 
 /*
+ * Return non-zero if a method is non-lazy, ie. it must be added to the type
+ * when it is created.
+ */
+static int isNonlazyMethod(PyMethodDef *pmd)
+{
+    return (strcmp(pmd->ml_name, "__enter__") == 0 ||
+            strcmp(pmd->ml_name, "__exit__") == 0);
+}
+
+
+/*
+ * Add a method to a dictionary.
+ */
+static int addMethod(PyObject *dict, PyMethodDef *pmd)
+{
+    int rc;
+    PyObject *descr;
+
+    if ((descr = sipMethodDescr_New(pmd)) == NULL)
+        return -1;
+
+    rc = PyDict_SetItemString(dict, pmd->ml_name, descr);
+
+    Py_DECREF(descr);
+
+    return rc;
+}
+
+
+/*
  * Populate a container's type dictionary.
  */
 static int add_lazy_container_attrs(sipTypeDef *td, sipContainerDef *cod,
@@ -5892,18 +5940,12 @@ static int add_lazy_container_attrs(sipTypeDef *td, sipContainerDef *cod,
 
     for (i = 0; i < cod->cod_nrmethods; ++i)
     {
-        int rc;
-        PyObject *descr;
-
-        if ((descr = sipMethodDescr_New(pmd)) == NULL)
-            return -1;
-
-        rc = PyDict_SetItemString(dict, pmd->ml_name, descr);
-
-        Py_DECREF(descr);
-
-        if (rc < 0)
-            return -1;
+        /* Non-lazy methods will already have been handled. */
+        if (!sipTypeHasNonlazyMethod(td) || !isNonlazyMethod(pmd))
+        {
+            if (addMethod(dict, pmd) < 0)
+                return -1;
+        }
 
         ++pmd;
     }
@@ -5995,6 +6037,10 @@ static int add_lazy_attrs(sipTypeDef *td)
                 return -1;
 
     wt->dict_complete = TRUE;
+
+#if PY_VERSION_HEX >= 0x02060000
+    PyType_Modified((PyTypeObject *)wt);
+#endif
 
     return 0;
 }

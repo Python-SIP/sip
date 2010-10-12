@@ -9229,6 +9229,12 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
         sep = "|";
     }
 
+    if (hasNonlazyMethod(cd))
+    {
+        prcode(fp, "%sSIP_TYPE_NONLAZY", sep);
+        sep = "|";
+    }
+
     if (cd->iff->type == namespace_iface)
     {
         prcode(fp, "%sSIP_TYPE_NAMESPACE", sep);
