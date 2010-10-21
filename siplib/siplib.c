@@ -7261,14 +7261,13 @@ static PyObject *getDictFromObject(PyObject *obj)
 
 /*
  * Return a Python reimplementation corresponding to a C/C++ virtual function,
- * if any.  If one was found then the Python lock is acquired.
+ * if any.  If one was found then the GIL is acquired.
  */
 static PyObject *sip_api_is_py_method(sip_gilstate_t *gil, char *pymc,
         sipSimpleWrapper *sipSelf, const char *cname, const char *mname)
 {
     PyObject *mname_obj, *reimp, *mro, *cls;
     SIP_SSIZE_T i;
-
 
     /*
      * This is the most common case (where there is no Python reimplementation)
@@ -7314,8 +7313,16 @@ static PyObject *sip_api_is_py_method(sip_gilstate_t *gil, char *pymc,
     /*
      * We don't use PyObject_GetAttr() because that might find the generated
      * C function before a reimplementation defined in a mixin (ie. later in
-     * the MRO).
+     * the MRO).  However that means we must explicitly check that the class
+     * hierarchy is fully initialised.
      */
+    if (add_all_lazy_attrs(((sipWrapperType *)Py_TYPE(sipSelf))->type) < 0)
+    {
+#ifdef WITH_THREAD
+        PyGILState_Release(*gil);
+#endif
+        return NULL;
+    }
 
     if (sipSelf->dict != NULL)
     {
