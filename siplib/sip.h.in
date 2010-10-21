@@ -225,6 +225,10 @@ typedef unsigned int uint;
 #define SIP_USE_PYCAPSULE
 #endif
 
+#if PY_MINOR_VERSION < 2
+#define SIP_SUPPORT_PYCOBJECT
+#endif
+
 #else
 
 #define SIPLong_FromLong    PyInt_FromLong
@@ -239,6 +243,8 @@ typedef unsigned int uint;
 #if PY_MINOR_VERSION >= 7
 #define SIP_USE_PYCAPSULE
 #endif
+
+#define SIP_SUPPORT_PYCOBJECT
 
 #endif
 
