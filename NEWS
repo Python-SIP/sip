@@ -1,4 +1,4 @@
-v4.11.2 ??? October 2010
+v4.11.2 22nd October 2010
   - /KeepReference/ can now be applied to global functions and static methods.
   - %TypeCode can now be specified in a %MappedType directive.
   - Mapped types for templates no longer require the template arguments to be
