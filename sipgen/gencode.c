@@ -5983,17 +5983,26 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
                 );
 
             if (isDelayedDtor(cd))
+            {
                 prcode(fp,
 "        sipAddDelayedDtor(sipSelf);\n"
                     );
+            }
             else if (generating_c)
+            {
+                if (cd->dealloccode != NULL)
+                    generateCppCodeBlock(cd->dealloccode, fp);
+
                 prcode(fp,
 "        sipFree(sipGetAddress(sipSelf));\n"
                     );
+            }
             else
+            {
                 prcode(fp,
 "        release_%L(sipGetAddress(sipSelf),%s);\n"
                     , cd->iff, (hasShadow(cd) ? "sipSelf->flags" : "0"));
+            }
 
             prcode(fp,
 "    }\n"
