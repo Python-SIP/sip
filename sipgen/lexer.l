@@ -134,11 +134,13 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
 \.\.\.                      {return TK_ELLIPSIS;}
 
 
-[ \t\r] {           /* Ignore whitespace. */
+[ \t\r] {
+    /* Ignore whitespace. */
     ;
 }
 
-\n {                /* Maintain the line number. */
+\n {
+    /* Maintain the line number. */
     ++inputFileStack[currentFile].lineno;
 
     if (codeIdx == 0)
@@ -147,42 +149,49 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
     }
 }
 
-\/\/.* {            /* Ignore C++ style comments. */
+\/\/.* {
+    /* Ignore C++ style comments. */
     ;
 }
 
 
--?[0-9]+ {          /* A signed decimal number. */
+-?[0-9]+ {
+    /* A signed decimal number. */
     yylval.number = strtol(yytext,NULL,0);
     return TK_NUMBER;
 }
 
 
--?(([0-9]+)|([0-9]*\.[0-9]*)([eE][-+]?[0-9]+)?)[fF]? {/* A floating point number. */
+-?(([0-9]+)|([0-9]*\.[0-9]*)([eE][-+]?[0-9]+)?)[fF]? {
+    /* A floating point number. */
     yylval.real = strtod(yytext,NULL);
     return TK_REAL;
 }
 
 
-0x[0-9a-fA-F]+ {        /* An unsigned hexadecimal number. */
+0x[0-9a-fA-F]+ {
+    /* An unsigned hexadecimal number. */
     yylval.number = strtol(yytext,NULL,16);
     return TK_NUMBER;
 }
 
 
-[_A-Za-z][_A-Za-z0-9]* {    /* An identifier name. */
+[_A-Za-z][_A-Za-z0-9]* {
+    /* An identifier name. */
     yylval.text = sipStrdup(yytext);
     return TK_NAME;
 }
 
 
-[._A-Za-z][._/A-Za-z0-9\-]*[._A-Za-z0-9] {  /* A relative pathname. */
+[._A-Za-z][._/A-Za-z0-9\-]*[._A-Za-z0-9] {
+    /* A relative pathname. */
     yylval.text = sipStrdup(yytext);
     return TK_PATHNAME;
 }
 
 
-\"[^"\n]*["\n] {        /* A double-quoted string. */
+\"[^"\n]*["\n] {
+    /* A double-quoted string. */
     char *dp, *sp;
 
     /* Copy the string without the quotes. */
@@ -206,7 +215,8 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
 }
 
 
-\'[^'\n]*['\n] {        /* A single-quoted character. */
+\'[^'\n]*['\n] {
+    /* A single-quoted character. */
     if (strlen(yytext) != 3)
         fatallex("Exactly one character expected between single quotes");
 
@@ -216,7 +226,8 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
 }
 
 
-\/\* {              /* Ignore C-style comments. */
+\/\* {
+    /* Ignore C-style comments. */
     BEGIN ccomment;
 }
 <ccomment>\n {
@@ -230,183 +241,219 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
 }
 
 
-^%Copying {         /* The software license. */
+^[ \t]*%Copying {
+    /* The software license. */
     codeIdx = 0;
     return TK_COPYING;
 }
 
-^%ConvertFromTypeCode {     /* The start of a from-type code block. */
+^[ \t]*%ConvertFromTypeCode {
+    /* The start of a from-type code block. */
     codeIdx = 0;
     return TK_FROMTYPE;
 }
 
-^%ConvertToTypeCode {       /* The start of a to-type code block. */
+^[ \t]*%ConvertToTypeCode {
+    /* The start of a to-type code block. */
     codeIdx = 0;
     return TK_TOTYPE;
 }
 
-^%ConvertToSubClassCode {   /* The start of a to-sub-class code block. */
+^[ \t]*%ConvertToSubClassCode {
+    /* The start of a to-sub-class code block. */
     codeIdx = 0;
     return TK_TOSUBCLASS;
 }
 
-^%ExportedHeaderCode {      /* The start of an exported header code block. */
+^[ \t]*%ExportedHeaderCode {
+    /* The start of an exported header code block. */
     codeIdx = 0;
     return TK_EXPHEADERCODE;
 }
 
-^%ModuleHeaderCode {        /* The start of a module header code block. */
+^[ \t]*%ModuleHeaderCode {
+    /* The start of a module header code block. */
     codeIdx = 0;
     return TK_MODHEADERCODE;
 }
 
-^%TypeHeaderCode {      /* The start of a type header code block. */
+^[ \t]*%TypeHeaderCode {
+    /* The start of a type header code block. */
     codeIdx = 0;
     return TK_TYPEHEADERCODE;
 }
 
-^%PreInitialisationCode {   /* The start of a pre-initialisation code block. */
+^[ \t]*%PreInitialisationCode {
+    /* The start of a pre-initialisation code block. */
     codeIdx = 0;
     return TK_PREINITCODE;
 }
 
-^%InitialisationCode {      /* The start of an initialisation code block. */
+^[ \t]*%InitialisationCode {
+    /* The start of an initialisation code block. */
     codeIdx = 0;
     return TK_INITCODE;
 }
 
-^%PostInitialisationCode {  /* The start of a post-initialisation code block. */
+^[ \t]*%PostInitialisationCode {
+    /* The start of a post-initialisation code block. */
     codeIdx = 0;
     return TK_POSTINITCODE;
 }
 
-^%UnitCode {            /* The start of a unit code block. */
+^[ \t]*%UnitCode {
+    /* The start of a unit code block. */
     codeIdx = 0;
     return TK_UNITCODE;
 }
 
-^%UnitPostIncludeCode { /* The start of a unit post-include code block. */
+^[ \t]*%UnitPostIncludeCode {
+    /* The start of a unit post-include code block. */
     codeIdx = 0;
     return TK_UNITPOSTINCLUDECODE;
 }
 
-^%ModuleCode {          /* The start of a module code block. */
+^[ \t]*%ModuleCode {
+    /* The start of a module code block. */
     codeIdx = 0;
     return TK_MODCODE;
 }
 
-^%TypeCode {            /* The start of a type code block. */
+^[ \t]*%TypeCode {
+    /* The start of a type code block. */
     codeIdx = 0;
     return TK_TYPECODE;
 }
 
-^%MethodCode {          /* The start of a C++ method code block. */
+^[ \t]*%MethodCode {
+    /* The start of a C++ method code block. */
     codeIdx = 0;
     return TK_METHODCODE;
 }
 
-^%VirtualCatcherCode {      /* The start of a C++ virtual code block. */
+^[ \t]*%VirtualCatcherCode {
+    /* The start of a C++ virtual code block. */
     codeIdx = 0;
     return TK_VIRTUALCATCHERCODE;
 }
 
-^%GCTraverseCode {      /* The start of a traverse code block. */
+^[ \t]*%GCTraverseCode {
+    /* The start of a traverse code block. */
     codeIdx = 0;
     return TK_TRAVERSECODE;
 }
 
-^%GCClearCode {         /* The start of a clear code block. */
+^[ \t]*%GCClearCode {
+    /* The start of a clear code block. */
     codeIdx = 0;
     return TK_CLEARCODE;
 }
 
-^%BIGetBufferCode {     /* The start of a get buffer code block. */
+^[ \t]*%BIGetBufferCode {
+    /* The start of a get buffer code block. */
     codeIdx = 0;
     return TK_GETBUFFERCODE;
 }
 
-^%BIReleaseBufferCode {     /* The start of a release buffer code block. */
+^[ \t]*%BIReleaseBufferCode {
+    /* The start of a release buffer code block. */
     codeIdx = 0;
     return TK_RELEASEBUFFERCODE;
 }
 
-^%BIGetReadBufferCode {     /* The start of a read buffer code block. */
+^[ \t]*%BIGetReadBufferCode {
+    /* The start of a read buffer code block. */
     codeIdx = 0;
     return TK_READBUFFERCODE;
 }
 
-^%BIGetWriteBufferCode {    /* The start of a write buffer code block. */
+^[ \t]*%BIGetWriteBufferCode {
+    /* The start of a write buffer code block. */
     codeIdx = 0;
     return TK_WRITEBUFFERCODE;
 }
 
-^%BIGetSegCountCode {       /* The start of a segment count code block. */
+^[ \t]*%BIGetSegCountCode {
+    /* The start of a segment count code block. */
     codeIdx = 0;
     return TK_SEGCOUNTCODE;
 }
 
-^%BIGetCharBufferCode {     /* The start of a char buffer code block. */
+^[ \t]*%BIGetCharBufferCode {
+    /* The start of a char buffer code block. */
     codeIdx = 0;
     return TK_CHARBUFFERCODE;
 }
 
-^%PickleCode {         /* The start of a pickle code block. */
+^[ \t]*%PickleCode {
+    /* The start of a pickle code block. */
     codeIdx = 0;
     return TK_PICKLECODE;
 }
 
-^%PrePythonCode {       /* The start of a pre-Python code block. */
+^[ \t]*%PrePythonCode {
+    /* The start of a pre-Python code block. */
     codeIdx = 0;
     return TK_PREPYCODE;
 }
 
-^%RaiseCode {           /* The start of a raise exception code block. */
+^[ \t]*%RaiseCode {
+    /* The start of a raise exception code block. */
     codeIdx = 0;
     return TK_RAISECODE;
 }
 
-^%Docstring {           /* The start of a docstring block. */
+^[ \t]*%Docstring {
+    /* The start of a docstring block. */
     codeIdx = 0;
     return TK_DOCSTRING;
 }
 
-^%Doc {             /* The start of a documentation block. */
+^[ \t]*%Doc {
+    /* The start of a documentation block. */
     codeIdx = 0;
     return TK_DOC;
 }
 
-^%ExportedDoc {         /* The start of an exported documentation block. */
+^[ \t]*%ExportedDoc {
+    /* The start of an exported documentation block. */
     codeIdx = 0;
     return TK_EXPORTEDDOC;
 }
 
-^%Makefile {            /* The start of a Makefile code block. */
+^[ \t]*%Makefile {
+    /* The start of a Makefile code block. */
     codeIdx = 0;
     return TK_MAKEFILE;
 }
 
-^%AccessCode {          /* The start of an access code block. */
+^[ \t]*%AccessCode {
+    /* The start of an access code block. */
     codeIdx = 0;
     return TK_ACCESSCODE;
 }
 
-^%GetCode {         /* The start of a get code block. */
+^[ \t]*%GetCode {
+    /* The start of a get code block. */
     codeIdx = 0;
     return TK_GETCODE;
 }
 
-^%SetCode {         /* The start of a set code block. */
+^[ \t]*%SetCode {
+    /* The start of a set code block. */
     codeIdx = 0;
     return TK_SETCODE;
 }
 
-<code>^%End {           /* The end of a code block. */
+<code>^[ \t]*%End {
+    /* The end of a code block. */
     BEGIN INITIAL;
     codeIdx = -1;
     return TK_END;
 }
 
-<code>\n {          /* The end of a code line . */
+<code>\n {
+    /* The end of a code line . */
     struct inputFile *ifp;
 
     codeLine[codeIdx] = '\n';
@@ -425,14 +472,16 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
     return TK_CODELINE;
 }
 
-<code>. {           /* The contents of a code line. */
+<code>. {
+    /* The contents of a code line. */
     if (codeIdx == MAX_CODE_LINE_LENGTH)
         fatallex("Line is too long");
 
     codeLine[codeIdx++] = yytext[0];
 }
 
-. {             /* Anything else is returned as is. */
+. {
+    /* Anything else is returned as is. */
     return yytext[0];
 }
 
