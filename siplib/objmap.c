@@ -125,6 +125,10 @@ sipSimpleWrapper *sipOMFindObject(sipObjectMap *om, void *key,
         if (Py_REFCNT(sw) == 0)
             continue;
 
+        /* Ignore it if the C/C++ address is no longer valid. */
+        if (sip_api_get_address(sw) == NULL)
+            continue;
+
         /*
          * If this wrapped object is of the given type, or a sub-type of it,
          * then we assume it is the same C++ object.

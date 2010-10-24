@@ -677,6 +677,10 @@ mtline:     typehdrcode {
             if (notSkipping())
                 appendCodeBlock(&currentMappedType->iff->hdrcode, $1);
         }
+    |   typecode {
+            if (notSkipping())
+                appendCodeBlock(&currentMappedType->typecode, $1);
+        }
     |   TK_FROMTYPE codeblock {
             if (notSkipping())
             {
@@ -3675,10 +3679,17 @@ static enumDef *newEnum(sipSpec *pt, moduleDef *mod, mappedTypeDef *mt_scope,
         ed->cname = NULL;
     }
 
-    if (flags & SECT_IS_PROT && makeProtPublic)
+    if (flags & SECT_IS_PROT)
     {
-        flags &= ~SECT_IS_PROT;
-        flags |= SECT_IS_PUBLIC;
+        if (makeProtPublic)
+        {
+            flags &= ~SECT_IS_PROT;
+            flags |= SECT_IS_PUBLIC;
+        }
+        else if (c_scope != NULL)
+        {
+            setHasShadow(c_scope);
+        }
     }
 
     ed->enumflags = flags;
@@ -4924,6 +4935,17 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         headp = &c_scope->overs;
     else
         headp = &mod->overs;
+
+    /*
+     * See if the function has a non-lazy method.  These are methods that
+     * Python expects to see defined in the type before any instance of the
+     * type is created.
+     */
+    if (c_scope != NULL)
+    {
+        if (strcmp(name, "__enter__") == 0 || strcmp(name, "__exit__") == 0)
+            setHasNonlazyMethod(c_scope);
+    }
 
     /* See if it is a factory method. */
     if (findOptFlag(optflgs, "Factory", bool_flag) != NULL)

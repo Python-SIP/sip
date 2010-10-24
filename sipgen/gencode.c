@@ -3541,6 +3541,8 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
     int need_xfer, nr_methods, nr_enums;
     memberDef *md;
 
+    generateCppCodeBlock(mtd->typecode, fp);
+
     if (!noRelease(mtd))
     {
         /* Generate the assignment helper. */
@@ -5981,17 +5983,26 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
                 );
 
             if (isDelayedDtor(cd))
+            {
                 prcode(fp,
 "        sipAddDelayedDtor(sipSelf);\n"
                     );
+            }
             else if (generating_c)
+            {
+                if (cd->dealloccode != NULL)
+                    generateCppCodeBlock(cd->dealloccode, fp);
+
                 prcode(fp,
 "        sipFree(sipGetAddress(sipSelf));\n"
                     );
+            }
             else
+            {
                 prcode(fp,
 "        release_%L(sipGetAddress(sipSelf),%s);\n"
                     , cd->iff, (hasShadow(cd) ? "sipSelf->flags" : "0"));
+            }
 
             prcode(fp,
 "    }\n"
@@ -9227,6 +9238,12 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
         sep = "|";
     }
 
+    if (hasNonlazyMethod(cd))
+    {
+        prcode(fp, "%sSIP_TYPE_NONLAZY", sep);
+        sep = "|";
+    }
+
     if (cd->iff->type == namespace_iface)
     {
         prcode(fp, "%sSIP_TYPE_NAMESPACE", sep);
@@ -11701,8 +11718,8 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
             {
                 prcode(fp,
 "\n"
-"            sipKeepReference(sipSelf, %d, a%d%s);\n"
-                    , ad->key, a, (((ad->atype == ascii_string_type || ad->atype == latin1_string_type || ad->atype == utf8_string_type) && ad->nrderefs == 1) || !isGetWrapper(ad) ? "Keep" : "Wrapper"));
+"            sipKeepReference(%s, %d, a%d%s);\n"
+                    , (scope == NULL || isStatic(od) ? "NULL" : "sipSelf"), ad->key, a, (((ad->atype == ascii_string_type || ad->atype == latin1_string_type || ad->atype == utf8_string_type) && ad->nrderefs == 1) || !isGetWrapper(ad) ? "Keep" : "Wrapper"));
             }
 
             /* Handle /TransferThis/ for non-factory methods. */
