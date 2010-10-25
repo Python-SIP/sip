@@ -78,6 +78,7 @@ static void fatallex(char *);
 ^[ \t]*%If                  {return TK_IF;}
 ^[ \t]*%DefaultMetatype     {return TK_DEFMETATYPE;}
 ^[ \t]*%DefaultSupertype    {return TK_DEFSUPERTYPE;}
+^[ \t]*%RealArgNames        {return TK_REALARGNAMES;}
 <INITIAL>^[ \t]*%End        {return TK_END;}
 class                       {return TK_CLASS;}
 struct                      {return TK_STRUCT;}

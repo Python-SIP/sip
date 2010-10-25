@@ -80,6 +80,7 @@ file.
             :directive:`%Platforms` |
             :directive:`%PreInitialisationCode` |
             :directive:`%PostInitialisationCode` |
+            :directive:`%RealArgNames` |
             :directive:`%Timeline` |
             :directive:`%UnitCode` |
             *mapped-type-template*]

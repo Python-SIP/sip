@@ -1450,9 +1450,11 @@ variables are made available to the handwritten code:
 
 *type* a0
     There is a variable for each argument of the Python signature (excluding
-    any ``self`` argument) named ``a0``, ``a1``, etc.  The *type* of the
-    variable is the same as the type defined in the specification with the
-    following exceptions:
+    any ``self`` argument) named ``a0``, ``a1``, etc.  If the
+    :directive:`RealArgNames` directive has been specified for the module then
+    the name of the argument is the real name.  The *type* of the variable is
+    the same as the type defined in the specification with the following
+    exceptions:
 
     - if the argument is only used to return a value (e.g. it is an ``int *``
       without an :aanno:`In` annotation) then the type has one less level of
@@ -1467,6 +1469,10 @@ PyObject \*a0Wrapper
     This variable is made available only if the :aanno:`GetWrapper` annotation
     is specified for the corresponding argument.  The variable is a pointer to
     the Python object that wraps the argument.
+
+    If the :directive:`RealArgNames` directive has been specified for the
+    module then the name of the variable is the real name of the argument with
+    ``Wrapper`` appended.
 
 *type* \*sipCpp
     If the directive is used in the context of a class constructor then this
@@ -1844,6 +1850,26 @@ The following variable is made available to the handwritten code:
 See the :directive:`%Exception` directive for an example.
 
 
+.. directive:: %RealArgNames
+
+.. versionadded:: 4.12
+
+.. parsed-literal::
+
+    %RealArgNames
+
+When providing handwritten code as part of either the :directive:`MethodCode`
+or :directive:`VirtualCatcherCode` directives the names of the arguments of the
+function or method are based on the number of the argument, i.e. the first
+argument is named ``a0``, the second ``a1`` and so on.
+
+This directive is used to specify that the real name of the argument, if any,
+should be used instead.  It also affects the name of the variable created when
+the :aanno:`GetWrapper` argument annotation is used.
+
+The directive only affects the module it is specified in.
+
+
 .. directive:: %SetCode
 
 .. parsed-literal::
@@ -2043,8 +2069,9 @@ context of a method:
 
 *type* a0
     There is a variable for each argument of the C++ signature named ``a0``,
-    ``a1``, etc.  The *type* of the variable is the same as the type defined in
-    the specification.
+    ``a1``, etc.  If the :directive:`RealArgNames` directive has been specified
+    for the module then the name of the argument is the real name.  The *type*
+    of the variable is the same as the type defined in the specification.
 
 int a0Key
     There is a variable for each argument of the C++ signature that has a type
@@ -2053,6 +2080,10 @@ int a0Key
     return ``'\0'`` terminated strings.  The variable would normally be passed
     to :cfunc:`sipParseResult()` using either the ``A`` or ``B`` format
     characters.
+
+    If the :directive:`RealArgNames` directive has been specified for the
+    module then the name of the variable is the real name of the argument with
+    ``Key`` appended.
 
 int sipIsErr
     The handwritten code should set this to a non-zero value, and raise an

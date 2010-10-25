@@ -277,6 +277,7 @@ static int isEnabledFeature(const char *name);
 %token          TK_ELLIPSIS
 %token          TK_DEFMETATYPE
 %token          TK_DEFSUPERTYPE
+%token          TK_REALARGNAMES
 
 %type <memArg>          argvalue
 %type <memArg>          argtype
@@ -387,6 +388,7 @@ modstatement:   module
     |   defencoding
     |   defmetatype
     |   defsupertype
+    |   realargnames
     |   exphdrcode {
             if (notSkipping())
                 appendCodeBlock(&currentSpec->exphdrcode, $1);
@@ -918,6 +920,11 @@ defsupertype:   TK_DEFSUPERTYPE dottedname {
 
                 currentModule->defsupertype = cacheName(currentSpec, $2);
             }
+        }
+    ;
+
+realargnames: TK_REALARGNAMES {
+            setRealArgNames(currentModule);
         }
     ;
 

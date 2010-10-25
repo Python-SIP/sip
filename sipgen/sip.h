@@ -53,6 +53,7 @@
 #define MOD_IS_CONSOLIDATED     0x0002  /* It is a consolidated module. */
 #define MOD_IS_COMPOSITE        0x0004  /* It is a composite module. */
 #define MOD_IS_TRANSFORMED      0x0008  /* It's types have been transformed. */
+#define MOD_REAL_ARG_NAMES      0x0010  /* Use real argument names. */
 
 #define hasDelayedDtors(m)  ((m)->modflags & MOD_HAS_DELAYED_DTORS)
 #define setHasDelayedDtors(m)   ((m)->modflags |= MOD_HAS_DELAYED_DTORS)
@@ -63,6 +64,8 @@
 #define isContainer(m)      ((m)->modflags & (MOD_IS_CONSOLIDATED | MOD_IS_COMPOSITE))
 #define setIsTransformed(m) ((m)->modflags |= MOD_IS_TRANSFORMED)
 #define isTransformed(m)    ((m)->modflags & MOD_IS_TRANSFORMED)
+#define setRealArgNames(m)  ((m)->modflags |= MOD_REAL_ARG_NAMES)
+#define useRealArgNames(m)  ((m)->modflags & MOD_REAL_ARG_NAMES)
 
 
 /* Handle section flags. */
