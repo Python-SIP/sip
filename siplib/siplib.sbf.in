@@ -14,6 +14,6 @@
 # SIP is supplied WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
-target = sip
+target = @CFG_MODULE_BASENAME@
 sources = siplib.c apiversions.c descriptors.c qtlib.c threads.c objmap.c voidptr.c bool.cpp
 headers = sip.h sipint.h

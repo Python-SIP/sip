@@ -36,6 +36,7 @@ plat_sip_dir = None
 plat_bin_dir = None
 platform_specs = []
 src_dir = os.path.dirname(os.path.abspath(__file__))
+sip_module_base = None
 
 # Constants.
 DEFAULT_MACOSX_ARCH = 'i386 ppc'
@@ -174,8 +175,8 @@ def inform_user():
     """Tell the user the option values that are going to be used.
     """
     siputils.inform("The SIP code generator will be installed in %s." % opts.sipbindir)
-    siputils.inform("The SIP module will be installed in %s." % opts.sipmoddir)
-    siputils.inform("The SIP header file will be installed in %s." % opts.sipincdir)
+    siputils.inform("The %s module will be installed in %s." % (sip_module_base, opts.sipmoddir))
+    siputils.inform("The sip.h header file will be installed in %s." % opts.sipincdir)
     siputils.inform("The default directory to install .sip files in is %s." % opts.sipsipdir)
     siputils.inform("The platform/compiler configuration is %s." % opts.platform)
 
@@ -208,6 +209,34 @@ def set_platform_directories():
         plat_py_lib_dir = lib_dir + "/config"
         plat_bin_dir = sys.exec_prefix + "/bin"
         plat_sip_dir = sys.prefix + "/share/sip"
+
+
+def patch_files():
+    """Patch any files that need it."""
+
+    patched = (
+        ("siplib", "sip.h"),
+        ("siplib", "siplib.c"),
+        ("siplib", "siplib.sbf")
+    )
+
+    for f in patched:
+        dst_fn = os.path.join(*f)
+        src_fn = os.path.join(src_dir, dst_fn + ".in")
+
+        siputils.inform("Creating %s..." % dst_fn)
+
+        dst = open(dst_fn, "w")
+        src = open(src_fn)
+
+        for line in src:
+            line = line.replace("@CFG_MODULE_NAME@", opts.sip_module)
+            line = line.replace("@CFG_MODULE_BASENAME@", sip_module_base)
+
+            dst.write(line)
+
+        dst.close()
+        src.close()
 
 
 def create_config(module, template, macros):
@@ -314,6 +343,9 @@ def create_optparser():
             "[default: %s]" % default_platform)
     p.add_option("-u", "--debug", action="store_true", default=False,
             help="build with debugging symbols")
+    p.add_option("--sip-module", action="store", default="sip", type="string",
+            metavar="NAME", dest="sip_module", help="the package.module name "
+            "of the sip module [default: sip]")
 
     if sys.platform == 'darwin':
         # Get the latest SDK to use as the default.
@@ -443,8 +475,22 @@ def main(argv):
         p.print_help()
         sys.exit(2)
 
+    # Fix the name of the sip module.
+    global sip_module_base
+
+    module_path = opts.sip_module.split(".")
+    sip_module_base = module_path[-1]
+
+    if len(module_path) > 1:
+        del module_path[-1]
+        module_path.insert(0, opts.sipmoddir)
+        opts.sipmoddir = os.path.join(*module_path)
+
     # Tell the user what's been found.
     inform_user()
+
+    # Patch any files that need it.
+    patch_files()
 
     # Install the configuration module.
     create_config("sipconfig.py", os.path.join(src_dir, "siputils.py"),

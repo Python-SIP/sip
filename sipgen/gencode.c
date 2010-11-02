@@ -2020,9 +2020,6 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "    /* Export the module and publish it's API. */\n"
 "    if (sipExportModule(&sipModuleAPI_%s,SIP_API_MAJOR_NR,SIP_API_MINOR_NR,0) < 0)\n"
 "    {\n"
-"#if !defined(SIP_USE_PYCAPSULE)\n"
-"        Py_DECREF(sip_sipmod);\n"
-"#endif\n"
 "        SIP_MODULE_DISCARD(sipModule);\n"
 "        SIP_MODULE_RETURN(0);\n"
 "    }\n"
@@ -2046,9 +2043,6 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "    /* Initialise the module now all its dependencies have been set up. */\n"
 "    if (sipInitModule(&sipModuleAPI_%s,sipModuleDict) < 0)\n"
 "    {\n"
-"#if !defined(SIP_USE_PYCAPSULE)\n"
-"        Py_DECREF(sip_sipmod);\n"
-"#endif\n"
 "        SIP_MODULE_DISCARD(sipModule);\n"
 "        SIP_MODULE_RETURN(0);\n"
 "    }\n"
@@ -2107,9 +2101,6 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 
         prcode(fp, ",NULL)) == NULL || PyDict_SetItemString(sipModuleDict,\"%s\",exceptionsTable[%d]) < 0)\n"
 "    {\n"
-"#if !defined(SIP_USE_PYCAPSULE)\n"
-"        Py_DECREF(sip_sipmod);\n"
-"#endif\n"
 "        SIP_MODULE_DISCARD(sipModule);\n"
 "        SIP_MODULE_RETURN(0);\n"
 "    }\n"
@@ -2234,43 +2225,25 @@ static void generateTypesTable(sipSpec *pt, moduleDef *mod, FILE *fp)
  */
 static void generateSipImport(moduleDef *mod, FILE *fp)
 {
+    /*
+     * Note that we don't use PyCapsule_Import() because it doesn't handle
+     * package.module.attribute.
+     */
+
     prcode(fp,
 "    /* Get the SIP module's API. */\n"
-"#if defined(SIP_USE_PYCAPSULE)\n"
-"\n"
+"#if PY_VERSION_HEX >= 0x02050000\n"
+"    sip_sipmod = PyImport_ImportModule(SIP_MODULE_NAME);\n"
+"#else\n"
         );
 
     if (generating_c)
         prcode(fp,
-"    sipAPI_%s = (const sipAPIDef *)PyCapsule_Import(\"sip._C_API\", 0);\n"
-        , mod->name);
-    else
-        prcode(fp,
-"    sipAPI_%s = reinterpret_cast<const sipAPIDef *>(PyCapsule_Import(\"sip._C_API\", 0));\n"
-        , mod->name);
-
-    prcode(fp,
-"\n"
-"    if (sipAPI_%s == NULL)\n"
-"    {\n"
-"        SIP_MODULE_DISCARD(sipModule);\n"
-"        SIP_MODULE_RETURN(NULL);\n"
-"    }\n"
-"\n"
-"#else\n"
-"\n"
-"#if PY_VERSION_HEX >= 0x02050000\n"
-"    sip_sipmod = PyImport_ImportModule(\"sip\");\n"
-"#else\n"
-        , mod->name);
-
-    if (generating_c)
-        prcode(fp,
-"    sip_sipmod = PyImport_ImportModule((char *)\"sip\");\n"
+"    sip_sipmod = PyImport_ImportModule((char *)SIP_MODULE_NAME);\n"
             );
     else
         prcode(fp,
-"    sip_sipmod = PyImport_ImportModule(const_cast<char *>(\"sip\"));\n"
+"    sip_sipmod = PyImport_ImportModule(const_cast<char *>(SIP_MODULE_NAME));\n"
             );
 
     prcode(fp,
@@ -2283,10 +2256,14 @@ static void generateSipImport(moduleDef *mod, FILE *fp)
 "    }\n"
 "\n"
 "    sip_capiobj = PyDict_GetItemString(PyModule_GetDict(sip_sipmod), \"_C_API\");\n"
+"    Py_DECREF(sip_sipmod);\n"
 "\n"
+"#if defined(SIP_USE_PYCAPSULE)\n"
+"    if (sip_capiobj == NULL || !PyCapsule_CheckExact(sip_capiobj))\n"
+"#else\n"
 "    if (sip_capiobj == NULL || !PyCObject_Check(sip_capiobj))\n"
+"#endif\n"
 "    {\n"
-"        Py_DECREF(sip_sipmod);\n"
 "        SIP_MODULE_DISCARD(sipModule);\n"
 "        SIP_MODULE_RETURN(NULL);\n"
 "    }\n"
@@ -2295,18 +2272,34 @@ static void generateSipImport(moduleDef *mod, FILE *fp)
 
     if (generating_c)
         prcode(fp,
+"#if defined(SIP_USE_PYCAPSULE)\n"
+"    sipAPI_%s = (const sipAPIDef *)PyCapsule_GetPointer(sip_capiobj, SIP_MODULE_NAME \"._C_API\");\n"
+"#else\n"
 "    sipAPI_%s = (const sipAPIDef *)PyCObject_AsVoidPtr(sip_capiobj);\n"
+"#endif\n"
+        , mod->name
         , mod->name);
     else
         prcode(fp,
+"#if defined(SIP_USE_PYCAPSULE)\n"
+"    sipAPI_%s = reinterpret_cast<const sipAPIDef *>(PyCapsule_GetPointer(sip_capiobj, SIP_MODULE_NAME \"._C_API\"));\n"
+"#else\n"
 "    sipAPI_%s = reinterpret_cast<const sipAPIDef *>(PyCObject_AsVoidPtr(sip_capiobj));\n"
+"#endif\n"
+"\n"
+        , mod->name
         , mod->name);
 
     prcode(fp,
-"\n"
+"#if defined(SIP_USE_PYCAPSULE)\n"
+"    if (sipAPI_%s == NULL)\n"
+"    {\n"
+"        SIP_MODULE_DISCARD(sipModule);\n"
+"        SIP_MODULE_RETURN(NULL);\n"
+"    }\n"
 "#endif\n"
 "\n"
-        );
+        , mod->name);
 }
 
 
@@ -2316,9 +2309,7 @@ static void generateSipImport(moduleDef *mod, FILE *fp)
 static void generateSipImportVariables(FILE *fp)
 {
     prcode(fp,
-"#if !defined(SIP_USE_PYCAPSULE)\n"
 "    PyObject *sip_sipmod, *sip_capiobj;\n"
-"#endif\n"
 "\n"
         );
 }

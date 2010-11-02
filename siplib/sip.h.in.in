@@ -175,6 +175,10 @@ extern "C" {
 #define SIP_API_MINOR_NR    0
 
 
+/* The name of the sip module. */
+#define SIP_MODULE_NAME     "@CFG_MODULE_NAME@"
+
+
 /*
  * Qt includes this typedef and its meta-object system explicitly converts
  * types to uint.  If these correspond to signal arguments then that conversion

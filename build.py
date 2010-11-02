@@ -32,7 +32,7 @@ import zipfile
 _PatchedFiles = (
     ('configure.py', ),
     ('sipgen', 'main.c'),
-    ('siplib', 'sip.h'),
+    ('siplib', 'sip.h.in'),
     ('sphinx', 'conf.py'), ('sphinx', 'introduction.rst'))
 
 # Specific files that are auto-generated and need to be cleaned.
@@ -40,7 +40,8 @@ _GeneratedFiles = (
     ('Makefile', ), ('sipconfig.py', ),
     ('sipgen', 'Makefile'), ('sipgen', 'lexer.c'), ('sipgen', 'parser.c'),
     ('sipgen', 'parser.h'), ('sipgen', 'sip'),
-    ('siplib', 'Makefile'))
+    ('siplib', 'Makefile'), ('siplib', 'sip.h'), ('siplib', 'siplib.c'),
+    ('siplib', 'siplib.sbf'))
 
 # File types that are auto-generated and need to be cleaned.
 _GeneratedFileTypes = ('.pyc', '.o', '.obj', '.so', '.pyd', '.exp', '.exe',

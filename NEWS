@@ -1,3 +1,9 @@
+v4.12 ??? ??? 2010
+  - Added the %RealArgNames directive to provide the real names of arguments to
+    handwritten code.
+  - Added the --sip-module flag to configure.py to allow the name and
+    containing package of the sip module to be specified.
+
 v4.11.2 22nd October 2010
   - /KeepReference/ can now be applied to global functions and static methods.
   - %TypeCode can now be specified in a %MappedType directive.

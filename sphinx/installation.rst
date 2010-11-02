@@ -26,7 +26,7 @@ example::
 This assumes that the Python interpreter is on your path.  Something like the
 following may be appropriate on Windows::
 
-    c:\python26\python configure.py
+    c:\python32\python configure.py
 
 If you have multiple versions of Python installed then make sure you use the
 interpreter for which you wish SIP to generate bindings for.
@@ -102,6 +102,13 @@ The full set of command line options is:
 
     The list of all available build macros will be displayed.
 
+.. cmdoption:: --sip-module <NAME>
+
+    The SIP module will be created with the name ``<NAME>`` rather than the
+    default ``sip``.  ``<NAME>`` may be of the form
+    ``package.sub-package.module``.  See :ref:`ref-private-sip` for how to
+    use this to create a private copy of the SIP module.
+
 The ``configure.py`` script takes many other options that allows the build
 system to be finely tuned.  These are of the form ``name=value`` or
 ``name+=value``.  The :option:`--show-build-macros <configure.py
@@ -132,7 +139,7 @@ SIP, and the modules it generates, can be built with MinGW, the Windows port of
 GCC.  You must use the :option:`--platform <configure.py -p>` command line
 option to specify the correct platform.  For example::
 
-    c:\python26\python configure.py --platform win32-g++
+    c:\python32\python configure.py --platform win32-g++
 
 
 Configuring for the Borland C++ Compiler
@@ -142,14 +149,14 @@ SIP, and the modules it generates, can be built with the free Borland C++
 compiler.  You must use the :option:`--platform <configure.py -p>` command line
 option to specify the correct platform.  For example::
 
-    c:\python26\python configure.py --platform win32-borland
+    c:\python32\python configure.py --platform win32-borland
 
 You must also make sure you have a Borland-compatible version of the Python
 library.  If you are using the standard Python distribution (built using the
 Microsoft compiler) then you must convert the format of the Python library.
 For example::
 
-    coff2omf python26.lib python26_bcpp.lib
+    coff2omf python32.lib python32_bcpp.lib
 
 
 Building
