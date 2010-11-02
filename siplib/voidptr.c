@@ -44,6 +44,18 @@ struct vp_values {
 
 
 static int check_size(PyObject *self);
+static int check_rw(PyObject *self);
+static int check_index(PyObject *self, SIP_SSIZE_T idx);
+#if PY_VERSION_HEX < 0x02060000
+static SIP_SSIZE_T get_value_data(PyObject *value, void **value_ptr);
+#endif
+#if PY_VERSION_HEX < 0x02050000
+static void fix_bounds(int size, int *left, int *right);
+#endif
+#if PY_VERSION_HEX >= 0x02050000
+static void bad_key(PyObject *key);
+#endif
+static int check_slice_size(SIP_SSIZE_T size, SIP_SSIZE_T value_size);
 static PyObject *make_voidptr(void *voidptr, SIP_SSIZE_T size, int rw);
 static int vp_convertor(PyObject *arg, struct vp_values *vp);
 
@@ -285,14 +297,8 @@ static SIP_SSIZE_T sipVoidPtr_length(PyObject *self)
  */
 static PyObject *sipVoidPtr_item(PyObject *self, SIP_SSIZE_T idx)
 {
-    if (check_size(self) < 0)
+    if (check_size(self) < 0 || check_index(self, idx) < 0)
         return NULL;
-
-    if (idx < 0 || idx >= ((sipVoidPtrObject *)self)->size)
-    {
-        PyErr_SetString(PyExc_IndexError, "index out of bounds");
-        return NULL;
-    }
 
     return SIPBytes_FromStringAndSize(
             (char *)((sipVoidPtrObject *)self)->voidptr + idx, 1);
@@ -312,21 +318,69 @@ static PyObject *sipVoidPtr_slice(PyObject *self, int left, int right)
 
     v = (sipVoidPtrObject *)self;
 
-    /* Allow for bounds relative to the end of the data. */
-    if (left < 0)
-        left += v->size;
+    fix_bounds(v->size, &left, &right);
 
-    if (right < 0)
-        right += v->size;
-
-    /*
-     * If the bounds aren't valid then make sure we return a zero length
-     * pointer.
-     */
-    if (left < 0 || right < 0 || left >= right || left >= v->size || right >= v->size)
+    if (left == right)
         left = right = 0;
 
     return make_voidptr(v->voidptr + left, right - left, v->rw);
+}
+
+
+/*
+ * Implement sequence assignment item sub-script for the type.
+ */
+static int sipVoidPtr_ass_item(PyObject *self, int idx, PyObject *value)
+{
+    int value_size;
+    void *value_ptr;
+
+    if (check_rw(self) < 0 || check_size(self) < 0 || check_index(self, idx) < 0)
+        return -1;
+
+    if ((value_size = get_value_data(value, &value_ptr)) < 0)
+        return -1;
+
+    if (value_size != 1)
+    {
+        PyErr_SetString(PyExc_TypeError,
+                "right operand must be a single byte");
+
+        return -1;
+    }
+
+    ((char *)((sipVoidPtrObject *)self)->voidptr)[idx] = *(char *)value_ptr;
+
+    return 0;
+}
+
+
+/*
+ * Implement sequence assignment slice sub-script for the type.
+ */
+static int sipVoidPtr_ass_slice(PyObject *self, int left, int right,
+        PyObject *value)
+{
+    sipVoidPtrObject *v;
+    int value_size;
+    void *value_ptr;
+
+    if (check_rw(self) < 0 || check_size(self) < 0)
+        return -1;
+
+    if ((value_size = get_value_data(value, &value_ptr)) < 0)
+        return -1;
+
+    v = (sipVoidPtrObject *)self;
+
+    fix_bounds(v->size, &left, &right);
+
+    if (check_slice_size(right - left, value_size) < 0)
+        return -1;
+
+    memmove(v->voidptr + left, value_ptr, right - left);
+
+    return 0;
 }
 #endif
 
@@ -339,6 +393,8 @@ static PySequenceMethods sipVoidPtr_SequenceMethods = {
     sipVoidPtr_item,        /* sq_item */
 #if PY_VERSION_HEX < 0x02050000
     sipVoidPtr_slice,       /* sq_slice */
+    sipVoidPtr_ass_item,    /* sq_ass_item */
+    sipVoidPtr_ass_slice,   /* sq_ass_slice */
 #endif
 };
 
@@ -385,9 +441,7 @@ static PyObject *sipVoidPtr_subscript(PyObject *self, PyObject *key)
         return make_voidptr(v->voidptr + start, slicelength, v->rw);
     }
 
-    PyErr_Format(PyExc_TypeError,
-            "cannot index a sip.voidptr object using '%s'",
-            Py_TYPE(key)->tp_name);
+    bad_key(key);
 
     return NULL;
 }
@@ -404,22 +458,14 @@ static int sipVoidPtr_ass_subscript(PyObject *self, PyObject *key,
 #if PY_HEX_VERSION >= 0x02060000
     Py_buffer value_view;
 #else
-    PyBufferProcs *bf;
     Py_ssize_t value_size;
     void *value_ptr;
 #endif
 
+    if (check_rw(self) < 0 || check_size(self) < 0)
+        return -1;
+
     v = (sipVoidPtrObject *)self;
-
-    if (!v->rw)
-    {
-        PyErr_SetString(PyExc_TypeError,
-                "cannot modify a read-only sip.voidptr object");
-        return -1;
-    }
-
-    if (check_size(self) < 0)
-        return -1;
 
     if (PyIndex_Check(key))
     {
@@ -431,11 +477,8 @@ static int sipVoidPtr_ass_subscript(PyObject *self, PyObject *key,
         if (start < 0)
             start += v->size;
 
-        if (start < 0 || start >= v->size)
-        {
-            PyErr_SetString(PyExc_IndexError, "index out of bounds");
+        if (check_index(self, start) < 0)
             return -1;
-        }
 
         size = 1;
     }
@@ -454,9 +497,7 @@ static int sipVoidPtr_ass_subscript(PyObject *self, PyObject *key,
     }
     else
     {
-        PyErr_Format(PyExc_TypeError,
-                "cannot index a sip.voidptr object using '%s'",
-                Py_TYPE(key)->tp_name);
+        bad_key(key);
 
         return -1;
     }
@@ -475,11 +516,8 @@ static int sipVoidPtr_ass_subscript(PyObject *self, PyObject *key,
         return -1;
     }
 
-    if (value_view.len != size)
+    if (check_slice_size(size, value_view.len) < 0)
     {
-        PyErr_SetString(PyExc_ValueError,
-                "cannot modify the size of a sip.voidptr object");
-
         PyBuffer_Release(&value_view);
         return -1;
     }
@@ -488,35 +526,11 @@ static int sipVoidPtr_ass_subscript(PyObject *self, PyObject *key,
 
     PyBuffer_Release(&value_view);
 #else
-    bf = Py_TYPE(value)->tp_as_buffer;
-
-    if (bf == NULL || bf->bf_getreadbuffer == NULL || bf->bf_getsegcount == NULL)
-    {
-        PyErr_Format(PyExc_TypeError,
-                "'%s' does not support the buffer interface",
-                Py_TYPE(value)->tp_name);
-
-        return -1;
-    }
-
-    if ((*bf->bf_getsegcount)(value, NULL) != 1)
-    {
-        PyErr_SetString(PyExc_TypeError,
-                "single-segment buffer object expected");
-
-        return -1;
-    }
-
-    if ((value_size = (*bf->bf_getreadbuffer)(value, 0, &value_ptr)) < 0)
+    if ((value_size = get_value_data(value, &value_ptr)) < 0)
         return -1;
 
-    if (value_size != size)
-    {
-        PyErr_SetString(PyExc_ValueError,
-                "cannot modify the size of a sip.voidptr object");
-
+    if (check_slice_size(size, value_size) < 0)
         return -1;
-    }
 
     memmove(v->voidptr + start, value_ptr, size);
 #endif
@@ -813,6 +827,115 @@ static int check_size(PyObject *self)
 
     PyErr_SetString(PyExc_IndexError,
             "sip.voidptr object has an unknown size");
+
+    return -1;
+}
+
+
+/*
+ * Check that a void pointer is writable.
+ */
+static int check_rw(PyObject *self)
+{
+    if (((sipVoidPtrObject *)self)->rw)
+        return 0;
+
+    PyErr_SetString(PyExc_TypeError,
+            "cannot modify a read-only sip.voidptr object");
+
+    return -1;
+}
+
+
+/*
+ * Check that an index is valid for a void pointer.
+ */
+static int check_index(PyObject *self, SIP_SSIZE_T idx)
+{
+    if (idx >= 0 && idx < ((sipVoidPtrObject *)self)->size)
+        return 0;
+
+    PyErr_SetString(PyExc_IndexError, "index out of bounds");
+
+    return -1;
+}
+
+
+#if PY_VERSION_HEX < 0x02060000
+/*
+ * Get the address and size of the data from a value that supports the buffer
+ * interface.
+ */
+static SIP_SSIZE_T get_value_data(PyObject *value, void **value_ptr)
+{
+    PyBufferProcs *bf = Py_TYPE(value)->tp_as_buffer;
+
+    if (bf == NULL || bf->bf_getreadbuffer == NULL || bf->bf_getsegcount == NULL)
+    {
+        PyErr_Format(PyExc_TypeError,
+                "'%s' does not support the buffer interface",
+                Py_TYPE(value)->tp_name);
+
+        return -1;
+    }
+
+    if ((*bf->bf_getsegcount)(value, NULL) != 1)
+    {
+        PyErr_SetString(PyExc_TypeError,
+                "single-segment buffer object expected");
+
+        return -1;
+    }
+
+    return (*bf->bf_getreadbuffer)(value, 0, &value_ptr);
+}
+#endif
+
+
+#if PY_VERSION_HEX < 0x02050000
+/*
+ * Fix the bounds of a slice in the same way that the Python buffer object
+ * does.
+ */
+static void fix_bounds(int size, int *left, int *right)
+{
+    if (*left < 0)
+        *left = 0;
+    else if (*left > size)
+        *left = size;
+
+    if (*right < *left)
+        *right = *left;
+    else if (*right > size)
+        *right = size;
+}
+#endif
+
+
+#if PY_VERSION_HEX >= 0x02050000
+/*
+ * Raise an exception about a bad sub-script key.
+ */
+static void bad_key(PyObject *key)
+{
+    PyErr_Format(PyExc_TypeError,
+            "cannot index a sip.voidptr object using '%s'",
+            Py_TYPE(key)->tp_name);
+}
+#endif
+
+
+/*
+ * Check that the size of a value is the same as the size of the slice it is
+ * replacing.
+ */
+static int check_slice_size(SIP_SSIZE_T size, SIP_SSIZE_T value_size)
+{
+    if (value_size == size)
+        return 0;
+
+    PyErr_SetString(PyExc_ValueError,
+            "cannot modify the size of a sip.voidptr object");
 
     return -1;
 }
