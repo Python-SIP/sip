@@ -455,7 +455,7 @@ static int sipVoidPtr_ass_subscript(PyObject *self, PyObject *key,
 {
     sipVoidPtrObject *v;
     Py_ssize_t start, size;
-#if PY_HEX_VERSION >= 0x02060000
+#if PY_VERSION_HEX >= 0x02060000
     Py_buffer value_view;
 #else
     Py_ssize_t value_size;
@@ -502,7 +502,7 @@ static int sipVoidPtr_ass_subscript(PyObject *self, PyObject *key,
         return -1;
     }
 
-#if PY_HEX_VERSION >= 0x02060000
+#if PY_VERSION_HEX >= 0x02060000
     if (PyObject_GetBuffer(value, &value_view, PyBUF_CONTIG_RO) < 0)
         return -1;
 
