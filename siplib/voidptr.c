@@ -89,9 +89,9 @@ static PyObject *sipVoidPtr_new(PyTypeObject *subtype, PyObject *args,
 }
 
 
-#if PY_MAJOR_VERSION >= 3
+#if PY_VERSION_HEX >= 0x02060000
 /*
- * The read buffer implementation for Python v3.
+ * The buffer implementation for Python v2.6 and later.
  */
 static int sipVoidPtr_getbuffer(PyObject *self, Py_buffer *buf, int flags)
 {
@@ -106,7 +106,7 @@ static int sipVoidPtr_getbuffer(PyObject *self, Py_buffer *buf, int flags)
 /*
  * The read buffer implementation for Python v2.
  */
-static SIP_SSIZE_T sipVoidPtr_getbuffer(PyObject *self, SIP_SSIZE_T seg,
+static SIP_SSIZE_T sipVoidPtr_getreadbuffer(PyObject *self, SIP_SSIZE_T seg,
         void **ptr)
 {
     SIP_SSIZE_T size = ((sipVoidPtrObject *)self)->size;
@@ -132,7 +132,7 @@ static SIP_SSIZE_T sipVoidPtr_getwritebuffer(PyObject *self, SIP_SSIZE_T seg,
         void **ptr)
 {
     if (((sipVoidPtrObject *)self)->rw)
-        return sipVoidPtr_getbuffer(self, seg, ptr);
+        return sipVoidPtr_getreadbuffer(self, seg, ptr);
 
     PyErr_SetString(PyExc_TypeError, "the sip.voidptr is not writeable");
     return -1;
@@ -381,16 +381,21 @@ static PyNumberMethods sipVoidPtr_NumberMethods = {
 
 /* The buffer methods data structure. */
 static PyBufferProcs sipVoidPtr_BufferProcs = {
-    sipVoidPtr_getbuffer,
 #if PY_MAJOR_VERSION >= 3
-    NULL,
+    sipVoidPtr_getbuffer,   /* bf_getbuffer */
+    NULL                    /* bf_releasebuffer */
 #else
-    sipVoidPtr_getwritebuffer,
-    sipVoidPtr_getsegcount,
+    sipVoidPtr_getreadbuffer,   /* bf_getreadbuffer */
+    sipVoidPtr_getwritebuffer,  /* bf_getwritebuffer */
+    sipVoidPtr_getsegcount, /* bf_getsegcount */
 #if PY_VERSION_HEX >= 0x02050000
-    (charbufferproc)sipVoidPtr_getbuffer
+    (charbufferproc)sipVoidPtr_getreadbuffer,   /* bf_getcharbuffer */
+#if PY_VERSION_HEX >= 0x02060000
+    sipVoidPtr_getbuffer,   /* bf_getbuffer */
+    NULL                    /* bf_releasebuffer */
+#endif
 #else
-    (getcharbufferproc)sipVoidPtr_getbuffer
+    (getcharbufferproc)sipVoidPtr_getreadbuffer,    /* bf_getcharbuffer */
 #endif
 #endif
 };
@@ -417,7 +422,11 @@ PyTypeObject sipVoidPtr_Type = {
     0,                      /* tp_getattro */
     0,                      /* tp_setattro */
     &sipVoidPtr_BufferProcs,    /* tp_as_buffer */
+#if defined(Py_TPFLAGS_HAVE_NEWBUFFER)
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_HAVE_NEWBUFFER,   /* tp_flags */
+#else
     Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,   /* tp_flags */
+#endif
     0,                      /* tp_doc */
     0,                      /* tp_traverse */
     0,                      /* tp_clear */
