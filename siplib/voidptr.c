@@ -386,7 +386,7 @@ static PyObject *sipVoidPtr_subscript(PyObject *self, PyObject *key)
     }
 
     PyErr_Format(PyExc_TypeError,
-            "cannot index a sip.voidptr object using \"%s\"",
+            "cannot index a sip.voidptr object using '%s'",
             Py_TYPE(key)->tp_name);
 
     return NULL;
@@ -401,7 +401,13 @@ static int sipVoidPtr_ass_subscript(PyObject *self, PyObject *key,
 {
     sipVoidPtrObject *v;
     Py_ssize_t start, size;
+#if PY_HEX_VERSION >= 0x02060000
     Py_buffer value_view;
+#else
+    PyBufferProcs *bf;
+    Py_ssize_t value_size;
+    void *value_ptr;
+#endif
 
     v = (sipVoidPtrObject *)self;
 
@@ -449,22 +455,21 @@ static int sipVoidPtr_ass_subscript(PyObject *self, PyObject *key,
     else
     {
         PyErr_Format(PyExc_TypeError,
-                "cannot index a sip.voidptr object using \"%s\"",
+                "cannot index a sip.voidptr object using '%s'",
                 Py_TYPE(key)->tp_name);
 
         return -1;
     }
 
-    /* ZZZ - Python 2.5??? */
-
+#if PY_HEX_VERSION >= 0x02060000
     if (PyObject_GetBuffer(value, &value_view, PyBUF_CONTIG_RO) < 0)
         return -1;
 
     /* We could allow any item size... */
     if (value_view.itemsize != 1)
     {
-        PyErr_Format(PyExc_TypeError, "\"%s\" must have an item size of 1",
-                value_view.obj->ob_type->tp_name);
+        PyErr_Format(PyExc_TypeError, "'%s' must have an item size of 1",
+                Py_TYPE(value_view.obj)->tp_name);
 
         PyBuffer_Release(&value_view);
         return -1;
@@ -482,6 +487,40 @@ static int sipVoidPtr_ass_subscript(PyObject *self, PyObject *key,
     memmove(v->voidptr + start, value_view.buf, size);
 
     PyBuffer_Release(&value_view);
+#else
+    bf = Py_TYPE(value)->tp_as_buffer;
+
+    if (bf == NULL || bf->bf_getreadbuffer == NULL || bf->bf_getsegcount == NULL)
+    {
+        PyErr_Format(PyExc_TypeError,
+                "'%s' does not support the buffer interface",
+                Py_TYPE(value)->tp_name);
+
+        return -1;
+    }
+
+    if ((*bf->bf_getsegcount)(value, NULL) != 1)
+    {
+        PyErr_SetString(PyExc_TypeError,
+                "single-segment buffer object expected");
+
+        return -1;
+    }
+
+    if ((value_size = (*bf->bf_getreadbuffer)(value, 0, &value_ptr)) < 0)
+        return -1;
+
+    if (value_size != size)
+    {
+        PyErr_SetString(PyExc_ValueError,
+                "cannot modify the size of a sip.voidptr object");
+
+        return -1;
+    }
+
+    memmove(v->voidptr + start, value_ptr, size);
+#endif
+
     return 0;
 }
 
