@@ -887,7 +887,7 @@ static SIP_SSIZE_T get_value_data(PyObject *value, void **value_ptr)
         return -1;
     }
 
-    return (*bf->bf_getreadbuffer)(value, 0, &value_ptr);
+    return (*bf->bf_getreadbuffer)(value, 0, value_ptr);
 }
 #endif
 
