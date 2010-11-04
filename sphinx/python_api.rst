@@ -167,9 +167,8 @@ can be used by applications.
 
     This is the type object for the type SIP uses to represent a C/C++
     ``void *``.  It may have a size associated with the address in which case
-    the Python buffer protocol is supported.  This means that the memory can
-    be treated as a mutable array of bytes when wrapped with the ``buffer()``
-    builtin.  The type has the following methods.
+    the Python buffer interface is supported.  The type has the following
+    methods.
 
     .. method:: __init__(address[, size=-1[, writeable=True]])
 
@@ -191,12 +190,55 @@ can be used by applications.
         :return:
             the integer address.
 
+    .. method:: __getitem__(idx) -> item
+
+        .. versionadded:: 4.12
+
+        This returns the item at a given index.  An exception will be raised if
+        the address does not have an associated size.  It behaves like a Python
+        ``memoryview`` object.
+
+        :param idx:
+            is the index which may either be an integer, an object that
+            implements ``__index__()`` or a slice object.
+        :return:
+            the item.  If the index is an integer then the item will be a
+            Python v2 string object or a Python v3 bytes object containing the
+            single byte at that index.  If the index is a slice object then the
+            item will be a new :class:`voidptr` object defining the subset of
+            the memory corresponding to the slice.
+
     .. method:: __hex__() -> string
 
         This returns the address as a hexadecimal string.
 
         :return:
             the hexadecimal string address.
+
+    .. method:: __len__() -> integer
+
+        .. versionadded:: 4.12
+
+        This returns the size associated with the address.
+        
+        :return:
+            the associated size.  An exception will be raised if there is none.
+
+    .. method:: __setitem__(idx, item)
+
+        .. versionadded:: 4.12
+
+        This updates the memory at a given index.  An exception will be raised
+        if the address does not have an associated size or is not writable.  It
+        behaves like a Python ``memoryview`` object.
+
+        :param idx:
+            is the index which may either be an integer, an object that
+            implements ``__index__()`` or a slice object.
+        ;param item:
+            is the data that will update the memory defined by the index.  It
+            must implement the buffer interface and be the same size as the
+            data that is being updated.
 
     .. method:: ascapsule() -> capsule
 
