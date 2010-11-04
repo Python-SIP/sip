@@ -1169,11 +1169,7 @@ unitpostinccode:    TK_UNITPOSTINCLUDECODE codeblock {
     ;
 
 prepycode:  TK_PREPYCODE codeblock {
-            /*
-             * This is a no-op and is retained for compatibility
-             * until the last use of it (by SIP v3) can be removed
-             * from PyQt.
-             */
+            /* Deprecated. */
         }
     ;
 
@@ -1189,8 +1185,7 @@ exporteddoc:    TK_EXPORTEDDOC codeblock {
     ;
 
 makefile:   TK_MAKEFILE TK_PATHNAME optfilename codeblock {
-            if (inMainModule())
-                yywarning("%Makefile is ignored, please use the -b flag instead");
+            /* Deprecated. */
         }
     ;
 

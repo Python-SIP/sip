@@ -156,6 +156,25 @@ SIP comprises a number of different components.
   :ref:`ref-distutils`.
 
 
+Preparing for SIP v5
+--------------------
+
+The syntax of a SIP specification file will change in SIP v5.  The command line
+options to the SIP code generator will also change.  In order to help users
+manage the transition the following approach will be adopted.
+
+- Where possible, all incompatible changes will be first implemented in SIP v4.
+
+- When an incompatible change is implemented, the old syntax will be deprecated
+  (with a warning message) but will be supported for the lifetime of v4.
+
+- Deprecation warning messages are currently suppressed by default.  The
+  :option:`-w <sip -w>` command line option can be used to display them.
+
+- At some point in the future the deprecation warning messages will be
+  displayed by default and it will not be possible to suppress them.
+
+
 Qt Support
 ----------
 

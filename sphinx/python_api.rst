@@ -235,7 +235,7 @@ can be used by applications.
         :param idx:
             is the index which may either be an integer, an object that
             implements ``__index__()`` or a slice object.
-        ;param item:
+        :param item:
             is the data that will update the memory defined by the index.  It
             must implement the buffer interface and be the same size as the
             data that is being updated.

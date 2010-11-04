@@ -44,6 +44,8 @@ The full set of command line options is:
 
 .. cmdoption:: -d <FILE>
 
+    .. deprecated:: 4.12
+
     The name of the documentation file to generate.  Documentation is included
     in specification files using the :directive:`%Doc` and
     :directive:`%ExportedDoc` directives.  By default the file is not

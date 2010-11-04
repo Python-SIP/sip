@@ -144,6 +144,8 @@ int main(int argc, char **argv)
 
         case 'd':
             /* Where to generate the documentation. */
+            warning(DeprecationWarning, "the -d flag is deprecated\n");
+
             docFile = optarg;
             break;
 
@@ -410,26 +412,40 @@ void appendString(stringList **headp, const char *s)
 /*
  * Display a warning message.
  */
-void warning(char *fmt,...)
+void warning(Warning w, const char *fmt, ...)
 {
     static int start = TRUE;
 
     va_list ap;
 
+    /* At some point deprecation warnings will not be suppressed. */
     if (!warnings)
         return;
 
     if (start)
     {
-        fprintf(stderr,"%s: Warning: ",sipPackage);
+        const char *wstr;
+
+        switch (w)
+        {
+        case ParserWarning:
+            wstr = "Parser warning";
+            break;
+
+        case DeprecationWarning:
+            wstr = "Deprecation warning";
+            break;
+        }
+
+        fprintf(stderr, "%s: %s: ", sipPackage, wstr);
         start = FALSE;
     }
 
-    va_start(ap,fmt);
-    vfprintf(stderr,fmt,ap);
+    va_start(ap, fmt);
+    vfprintf(stderr, fmt, ap);
     va_end(ap);
 
-    if (strchr(fmt,'\n') != NULL)
+    if (strchr(fmt, '\n') != NULL)
         start = TRUE;
 }
 
@@ -483,7 +499,7 @@ static void help(void)
 "    -a file     the name of the QScintilla API file [default not generated]\n"
 "    -b file     the name of the build file [default none generated]\n"
 "    -c dir      the name of the code directory [default not generated]\n"
-"    -d file     the name of the documentation file [default not generated]\n"
+"    -d file     the name of the documentation file (deprecated) [default not generated]\n"
 "    -e          enable support for exceptions [default disabled]\n"
 "    -g          always release and reacquire the GIL [default only when specified]\n"
 "    -I dir      look in this directory when including files\n"

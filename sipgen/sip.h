@@ -427,6 +427,13 @@
 #define setNoTypeName(td)   ((td)->tdflags |= TD_NO_TYPE_NAME)
 
 
+/* Warning categories. */
+typedef enum {
+    ParserWarning,
+    DeprecationWarning
+} Warning;
+
+
 /* Slot types. */
 
 typedef enum {
@@ -1104,7 +1111,7 @@ void generateCode(sipSpec *, char *, char *, char *, const char *, int, int,
 void generateAPI(sipSpec *pt, moduleDef *mod, const char *apiFile);
 void generateXML(sipSpec *pt, moduleDef *mod, const char *xmlFile);
 void generateExpression(valueDef *vd, int in_str, FILE *fp);
-void warning(char *,...);
+void warning(Warning w, const char *fmt, ...);
 void fatal(char *,...);
 void fatalScopedName(scopedNameDef *);
 int setInputFile(FILE *open_fp, parserContext *pc, int optional);

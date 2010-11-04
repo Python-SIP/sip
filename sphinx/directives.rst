@@ -456,14 +456,15 @@ const sipTypeDef \*sipType
     it can.
 
 sipWrapperType \*sipClass
+    .. deprecated:: 4.8
+        Use ``sipType`` instead.
+
     The handwritten code must set this to the SIP generated Python type object
     that corresponds to the class instance.  (The type object for class
     ``Klass`` is ``sipClass_Klass``.)  If the RTTI of the class instance isn't
     recognised then ``sipClass`` must be set to ``NULL``.  The code doesn't
     have to recognise the exact class, only the most specific sub-class that
     it can.
-
-    This is deprecated from SIP v4.8.  Instead you should use ``sipType``.
 
 The handwritten code must not explicitly return.
 
@@ -724,6 +725,8 @@ For example::
 
 .. directive:: %Doc
 
+.. deprecated:: 4.12
+
 .. parsed-literal::
 
     %Doc
@@ -753,13 +756,13 @@ For example::
 
 .. directive:: %Docstring
 
+.. versionadded:: 4.10
+
 .. parsed-literal::
 
     %Docstring
         *text*
     %End
-
-.. versionadded:: 4.10
 
 This directive is used to specify explicit docstrings for classes, functions
 and methods.
@@ -851,6 +854,8 @@ be caught by default if there is no ``throw`` clause.
 
 
 .. directive:: %ExportedDoc
+
+.. deprecated:: 4.12
 
 .. parsed-literal::
 
@@ -2016,13 +2021,13 @@ typically used to ``#include`` a C++ precompiled header file.
 
 .. directive:: %UnitPostIncludeCode
 
+.. versionadded:: 4.11
+
 .. parsed-literal::
 
     %UnitPostIncludeCode
         *code*
     %End
-
-.. versionadded:: 4.11
 
 This directive is used to specify handwritten code that is included following
 the ``#include`` of all header files in a generated compilation unit (ie. C or

@@ -394,6 +394,8 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
 
 ^[ \t]*%PrePythonCode {
     /* The start of a pre-Python code block. */
+    deprecated("%PrePythonCode is deprecated");
+
     codeIdx = 0;
     return TK_PREPYCODE;
 }
@@ -412,18 +414,24 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
 
 ^[ \t]*%Doc {
     /* The start of a documentation block. */
+    deprecated("%Doc is deprecated");
+
     codeIdx = 0;
     return TK_DOC;
 }
 
 ^[ \t]*%ExportedDoc {
     /* The start of an exported documentation block. */
+    deprecated("%ExportedDoc is deprecated");
+
     codeIdx = 0;
     return TK_EXPORTEDDOC;
 }
 
 ^[ \t]*%Makefile {
     /* The start of a Makefile code block. */
+    deprecated("%Makefile is deprecated");
+
     codeIdx = 0;
     return TK_MAKEFILE;
 }
@@ -664,10 +672,19 @@ void yyerror(char *s)
  */
 void yywarning(char *s)
 {
-    warning("%s:%d: %s\n",
-        inputFileStack[currentFile].name,
-        inputFileStack[currentFile].lineno,
-        s);
+    warning(ParserWarning, "%s:%d: %s\n", inputFileStack[currentFile].name,
+            inputFileStack[currentFile].lineno, s);
+}
+
+
+/*
+ * Handle deprecation warnings.
+ */
+void deprecated(const char *s)
+{
+    warning(DeprecationWarning, "%s:%d: %s\n",
+            inputFileStack[currentFile].name,
+            inputFileStack[currentFile].lineno, s);
 }
 
 
