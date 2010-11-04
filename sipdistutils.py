@@ -17,7 +17,7 @@ def replace_suffix(path, new_suffix):
 
 class build_ext (build_ext_base):
 
-    description = "Compiler SIP descriptions, then build C/C++ extensions (compile/link to build directory)"
+    description = "Compile SIP descriptions, then build C/C++ extensions (compile/link to build directory)"
 
     user_options = build_ext_base.user_options[:]
     user_options = [opt for opt in user_options if not opt[0].startswith("swig")]
@@ -47,7 +47,7 @@ class build_ext (build_ext_base):
             if key.strip() == "sources":
                 out = []
                 for o in value.split():
-                    out.append(os.path.join(self.build_temp, o))
+                    out.append(os.path.join(self._sip_output_dir(), o))
                 return out
 
         raise RuntimeError("cannot parse SIP-generated '%s'" % sbf)
@@ -75,8 +75,11 @@ class build_ext (build_ext_base):
         return sha1(open(sip_bin, "rb").read()).hexdigest()
 
     def _sip_signature_file(self):
-        return os.path.join(self.build_temp, "sip.signature")
+        return os.path.join(self._sip_output_dir(), "sip.signature")
 
+    def _sip_output_dir(self):
+        return self.build_temp
+    
     def build_extension (self, ext):
         oldforce = self.force
 
@@ -116,8 +119,8 @@ class build_ext (build_ext_base):
         depends = [f for f in depends if os.path.splitext(f)[1] == ".sip"]
 
         # Create the temporary directory if it does not exist already
-        if not os.path.isdir(self.build_temp):
-            os.makedirs(self.build_temp)
+        if not os.path.isdir(self._sip_output_dir()):
+            os.makedirs(self._sip_output_dir())
 
         # Collect the names of the source (.sip) files
         sip_sources = []
@@ -130,7 +133,7 @@ class build_ext (build_ext_base):
         for sip in sip_sources:
             # Use the sbf file as dependency check
             sipbasename = os.path.basename(sip)
-            sbf = os.path.join(self.build_temp, replace_suffix(sipbasename, ".sbf"))
+            sbf = os.path.join(self._sip_output_dir(), replace_suffix(sipbasename, ".sbf"))
             if newer_group([sip]+depends, sbf) or self.force:
                 self._sip_compile(sip_bin, sip, sbf)
                 open(self._sip_signature_file(), "w").write(self._sip_calc_signature())
@@ -141,7 +144,7 @@ class build_ext (build_ext_base):
 
     def _sip_compile(self, sip_bin, source, sbf):
         self.spawn([sip_bin] + self.sip_opts +
-                    ["-c", self.build_temp,
+                    ["-c", self._sip_output_dir(),
                     "-b", sbf,
                     "-I", self._sip_sipfiles_dir(),
                     source])
