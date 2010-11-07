@@ -143,7 +143,7 @@ static int usesKeywordArgs(optFlags *optflgs, signatureDef *sd);
 static char *strip(char *s);
 static int isEnabledFeature(const char *name);
 static void addProperty(sipSpec *pt, moduleDef *mod, classDef *cd,
-        const char *name, const char *getter, const char *setter,
+        const char *name, const char *get, const char *set,
         codeBlock *docstring);
 %}
 
@@ -286,11 +286,11 @@ static void addProperty(sipSpec *pt, moduleDef *mod, classDef *cd,
 %token          TK_REALARGNAMES
 %token          TK_PROPERTY
 
-%token          TK_GETTER
+%token          TK_GET
 %token          TK_ID
 %token          TK_NAME
 %token          TK_ORDER
-%token          TK_SETTER
+%token          TK_SET
 
 %type <memArg>          argvalue
 %type <memArg>          argtype
@@ -1870,12 +1870,12 @@ property:   TK_PROPERTY property_args property_body optgoon {
             if ($2.name == NULL)
                 yyerror("A %Property directive must have a 'name' argument");
 
-            if ($2.getter == NULL)
-                yyerror("A %Property directive must have a 'getter' argument");
+            if ($2.get == NULL)
+                yyerror("A %Property directive must have a 'get' argument");
 
             if (notSkipping())
                 addProperty(currentSpec, currentModule, currentScope(),
-                        $2.name, $2.getter, $2.setter, $3.docstring);
+                        $2.name, $2.get, $2.set, $3.docstring);
         }
     ;
 
@@ -1890,33 +1890,33 @@ property_arg_list:  property_arg
 
             switch ($3.token)
             {
-            case TK_GETTER: $$.getter = $3.getter; break;
+            case TK_GET: $$.get = $3.get; break;
             case TK_NAME: $$.name = $3.name; break;
-            case TK_SETTER: $$.setter = $3.setter; break;
+            case TK_SET: $$.set = $3.set; break;
             }
         }
     ;
 
-property_arg:   TK_GETTER '=' TK_NAME_VALUE {
-            $$.token = TK_GETTER;
+property_arg:   TK_GET '=' TK_NAME_VALUE {
+            $$.token = TK_GET;
 
-            $$.getter = $3;
+            $$.get = $3;
             $$.name = NULL;
-            $$.setter = NULL;
+            $$.set = NULL;
         }
     |   TK_NAME '=' TK_NAME_VALUE {
             $$.token = TK_NAME;
 
-            $$.getter = NULL;
+            $$.get = NULL;
             $$.name = $3;
-            $$.setter = NULL;
+            $$.set = NULL;
         }
-    |   TK_SETTER '=' TK_NAME_VALUE {
-            $$.token = TK_SETTER;
+    |   TK_SET '=' TK_NAME_VALUE {
+            $$.token = TK_SET;
 
-            $$.getter = NULL;
+            $$.get = NULL;
             $$.name = NULL;
-            $$.setter = $3;
+            $$.set = $3;
         }
     ;
 
@@ -6613,7 +6613,7 @@ static int isEnabledFeature(const char *name)
  * Add a property definition to a class.
  */
 static void addProperty(sipSpec *pt, moduleDef *mod, classDef *cd,
-        const char *name, const char *getter, const char *setter,
+        const char *name, const char *get, const char *set,
         codeBlock *docstring)
 {
     propertyDef *pd;
@@ -6623,8 +6623,8 @@ static void addProperty(sipSpec *pt, moduleDef *mod, classDef *cd,
     pd = sipMalloc(sizeof (propertyDef));
 
     pd->name = cacheName(pt, name);
-    pd->getter = getter;
-    pd->setter = setter;
+    pd->get = get;
+    pd->set = set;
     pd->docstring = docstring;
     pd->next = cd->properties;
 

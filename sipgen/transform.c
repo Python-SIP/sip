@@ -3533,13 +3533,13 @@ static void checkProperties(classDef *cd)
 
     for (pd = cd->properties; pd != NULL; pd = pd->next)
     {
-        if (findMethod(cd, pd->getter) == NULL)
-            fatal("Property %s.%s has no getter %s()\n", cd->pyname->text,
-                    pd->name->text, pd->getter);
+        if (findMethod(cd, pd->get) == NULL)
+            fatal("Property %s.%s has no get method %s()\n", cd->pyname->text,
+                    pd->name->text, pd->get);
 
-        if (pd->setter != NULL && findMethod(cd, pd->setter) == NULL)
-            fatal("Property %s.%s has no setter %s()\n", cd->pyname->text,
-                    pd->name->text, pd->setter);
+        if (pd->set != NULL && findMethod(cd, pd->set) == NULL)
+            fatal("Property %s.%s has no set method %s()\n", cd->pyname->text,
+                    pd->name->text, pd->set);
     }
 }
 

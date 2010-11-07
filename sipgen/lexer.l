@@ -136,11 +136,11 @@ SIP_SLOT_DIS                {return TK_SIPSLOTDIS;}
 SIP_QOBJECT                 {return TK_QOBJECT;}
 \.\.\.                      {return TK_ELLIPSIS;}
 
-getter                      {return TK_GETTER;}
+get                         {return TK_GET;}
 id                          {return TK_ID;}
 name                        {return TK_NAME;}
 order                       {return TK_ORDER;}
-setter                      {return TK_SETTER;}
+set                         {return TK_SET;}
 
 
 [ \t\r] {

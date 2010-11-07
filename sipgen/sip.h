@@ -891,8 +891,8 @@ typedef struct _varDef {
 
 typedef struct _propertyDef {
     nameDef *name;                      /* The property name. */
-    const char *getter;                 /* The name of the getter method. */
-    const char *setter;                 /* The name of the setter method. */
+    const char *get;                    /* The name of the getter method. */
+    const char *set;                    /* The name of the setter method. */
     const char *docstring;              /* The docstring. */
     struct _propertyDef *next;          /* Next in the list. */
 } propertyDef;
@@ -1239,9 +1239,9 @@ typedef struct _extractCfg {
 /* %Property */
 typedef struct _propertyCfg {
     int token;
-    const char *getter;
+    const char *get;
     const char *name;
-    const char *setter;
+    const char *set;
     codeBlock *docstring;
 } propertyCfg;
 
