@@ -80,6 +80,7 @@ static void fatallex(char *);
 ^[ \t]*%DefaultMetatype     {return TK_DEFMETATYPE;}
 ^[ \t]*%DefaultSupertype    {return TK_DEFSUPERTYPE;}
 ^[ \t]*%RealArgNames        {return TK_REALARGNAMES;}
+^[ \t]*%Property            {return TK_PROPERTY;}
 <INITIAL>^[ \t]*%End        {return TK_END;}
 class                       {return TK_CLASS;}
 struct                      {return TK_STRUCT;}
@@ -107,9 +108,9 @@ signed                      {return TK_SIGNED;}
 unsigned                    {return TK_UNSIGNED;}
 const                       {return TK_CONST;}
 static                      {return TK_STATIC;}
-true                        {return TK_TRUE;}
-false                       {return TK_FALSE;}
-NULL                        {return TK_NULL;}
+true                        {return TK_TRUE_VALUE;}
+false                       {return TK_FALSE_VALUE;}
+NULL                        {return TK_NULL_VALUE;}
 typedef                     {return TK_TYPEDEF;}
 namespace                   {return TK_NAMESPACE;}
 operator                    {return TK_OPERATOR;}
@@ -135,8 +136,11 @@ SIP_SLOT_DIS                {return TK_SIPSLOTDIS;}
 SIP_QOBJECT                 {return TK_QOBJECT;}
 \.\.\.                      {return TK_ELLIPSIS;}
 
+getter                      {return TK_GETTER;}
 id                          {return TK_ID;}
+name                        {return TK_NAME;}
 order                       {return TK_ORDER;}
+setter                      {return TK_SETTER;}
 
 
 [ \t\r] {
@@ -177,35 +181,35 @@ order                       {return TK_ORDER;}
 -?[0-9]+ {
     /* A signed decimal number. */
     yylval.number = strtol(yytext,NULL,0);
-    return TK_NUMBER;
+    return TK_NUMBER_VALUE;
 }
 
 
 -?(([0-9]+)|([0-9]*\.[0-9]*)([eE][-+]?[0-9]+)?)[fF]? {
     /* A floating point number. */
     yylval.real = strtod(yytext,NULL);
-    return TK_REAL;
+    return TK_REAL_VALUE;
 }
 
 
 0x[0-9a-fA-F]+ {
     /* An unsigned hexadecimal number. */
     yylval.number = strtol(yytext,NULL,16);
-    return TK_NUMBER;
+    return TK_NUMBER_VALUE;
 }
 
 
 [_A-Za-z][_A-Za-z0-9]* {
     /* An identifier name. */
     yylval.text = sipStrdup(yytext);
-    return TK_NAME;
+    return TK_NAME_VALUE;
 }
 
 
 [._A-Za-z][._/A-Za-z0-9\-]*[._A-Za-z0-9] {
     /* A relative pathname. */
     yylval.text = sipStrdup(yytext);
-    return TK_PATHNAME;
+    return TK_PATH_VALUE;
 }
 
 
@@ -230,7 +234,7 @@ order                       {return TK_ORDER;}
 
     *dp = '\0';
 
-    return TK_STRING;
+    return TK_STRING_VALUE;
 }
 
 
@@ -241,7 +245,7 @@ order                       {return TK_ORDER;}
 
     yylval.qchar = yytext[1];
 
-    return TK_QCHAR;
+    return TK_QCHAR_VALUE;
 }
 
 

@@ -142,6 +142,9 @@ static scopedNameDef *text2scopePart(char *text);
 static int usesKeywordArgs(optFlags *optflgs, signatureDef *sd);
 static char *strip(char *s);
 static int isEnabledFeature(const char *name);
+static void addProperty(sipSpec *pt, moduleDef *mod, classDef *cd,
+        const char *name, const char *getter, const char *setter,
+        codeBlock *docstring);
 %}
 
 %union {
@@ -163,7 +166,8 @@ static int isEnabledFeature(const char *name);
     int             boolean;
     exceptionDef    exceptionbase;
     classDef        *klass;
-    extractArgs     extract;
+    extractCfg      extract;
+    propertyCfg     property;
 }
 
 %token          TK_API
@@ -190,9 +194,9 @@ static int isEnabledFeature(const char *name);
 %token <codeb>  TK_CODELINE
 %token          TK_IF
 %token          TK_END
-%token <text>   TK_NAME
-%token <text>   TK_PATHNAME
-%token <text>   TK_STRING
+%token <text>   TK_NAME_VALUE
+%token <text>   TK_PATH_VALUE
+%token <text>   TK_STRING_VALUE
 %token          TK_VIRTUALCATCHERCODE
 %token          TK_TRAVERSECODE
 %token          TK_CLEARCODE
@@ -257,18 +261,18 @@ static int isEnabledFeature(const char *name);
 %token          TK_SIPRXDIS
 %token          TK_SIPSLOTCON
 %token          TK_SIPSLOTDIS
-%token <number> TK_NUMBER
-%token <real>   TK_REAL
+%token <number> TK_NUMBER_VALUE
+%token <real>   TK_REAL_VALUE
 %token          TK_TYPEDEF
 %token          TK_NAMESPACE
 %token          TK_TIMELINE
 %token          TK_PLATFORMS
 %token          TK_FEATURE
 %token          TK_LICENSE
-%token <qchar>  TK_QCHAR
-%token          TK_TRUE
-%token          TK_FALSE
-%token          TK_NULL
+%token <qchar>  TK_QCHAR_VALUE
+%token          TK_TRUE_VALUE
+%token          TK_FALSE_VALUE
+%token          TK_NULL_VALUE
 %token          TK_OPERATOR
 %token          TK_THROW
 %token          TK_QOBJECT
@@ -280,9 +284,13 @@ static int isEnabledFeature(const char *name);
 %token          TK_DEFMETATYPE
 %token          TK_DEFSUPERTYPE
 %token          TK_REALARGNAMES
+%token          TK_PROPERTY
 
+%token          TK_GETTER
 %token          TK_ID
+%token          TK_NAME
 %token          TK_ORDER
+%token          TK_SETTER
 
 %type <memArg>          argvalue
 %type <memArg>          argtype
@@ -351,9 +359,17 @@ static int isEnabledFeature(const char *name);
 %type <boolean>         optclassbody
 %type <exceptionbase>   baseexception
 %type <klass>           class
+
 %type <extract>         extract_args
 %type <extract>         extract_arg_list
 %type <extract>         extract_arg
+
+%type <property>        property_args
+%type <property>        property_arg_list
+%type <property>        property_arg
+%type <property>        property_body
+%type <property>        property_body_directives
+%type <property>        property_body_directive
 
 %%
 
@@ -448,7 +464,7 @@ nsstatement:    ifstart
         }
     ;
 
-defencoding:    TK_DEFENCODING TK_STRING {
+defencoding:    TK_DEFENCODING TK_STRING_VALUE {
             if (notSkipping())
             {
                 if ((currentModule->encoding = convertEncoding($2)) == no_type)
@@ -457,12 +473,12 @@ defencoding:    TK_DEFENCODING TK_STRING {
         }
     ;
 
-plugin:     TK_PLUGIN TK_NAME {
+plugin:     TK_PLUGIN TK_NAME_VALUE {
             appendString(&currentSpec->plugins, $2);
         }
     ;
 
-api:    TK_API TK_NAME TK_NUMBER {
+api:    TK_API TK_NAME_VALUE TK_NUMBER_VALUE {
             if (notSkipping())
             {
                 apiVersionRangeDef *avd;
@@ -666,7 +682,11 @@ mappedtypetmpl: template TK_MAPPEDTYPE basetype optflags {
         } mtdefinition
     ;
 
-mtdefinition:   '{' mtbody '}' ';' {
+optgoon:
+    |   ';'
+    ;
+
+mtdefinition:   '{' mtbody '}' optgoon {
             if (notSkipping())
             {
                 if (currentMappedType->convfromcode == NULL)
@@ -714,7 +734,7 @@ mtline:     typehdrcode {
     |   mtfunction
     ;
 
-mtfunction: TK_STATIC cpptype TK_NAME '(' arglist ')' optconst optexceptions optflags optsig ';' optdocstring methodcode {
+mtfunction: TK_STATIC cpptype TK_NAME_VALUE '(' arglist ')' optconst optexceptions optflags optsig ';' optdocstring methodcode {
             if (notSkipping())
             {
                 applyTypeFlags(currentModule, &$2, &$9);
@@ -728,7 +748,7 @@ mtfunction: TK_STATIC cpptype TK_NAME '(' arglist ')' optconst optexceptions opt
         }
     ;
 
-namespace:  TK_NAMESPACE TK_NAME {
+namespace:  TK_NAMESPACE TK_NAME_VALUE {
             if (currentSpec -> genc)
                 yyerror("namespace definition not allowed in a C module");
 
@@ -800,12 +820,12 @@ platformlist:   platform
     |   platformlist platform
     ;
 
-platform:   TK_NAME {
+platform:   TK_NAME_VALUE {
             newQualifier(currentModule,-1,-1,$1,platform_qualifier);
         }
     ;
 
-feature:    TK_FEATURE TK_NAME {
+feature:    TK_FEATURE TK_NAME_VALUE {
             newQualifier(currentModule,-1,-1,$2,feature_qualifier);
         }
     ;
@@ -839,7 +859,7 @@ qualifierlist:  qualifiername
     |   qualifierlist qualifiername
     ;
 
-qualifiername:  TK_NAME {
+qualifiername:  TK_NAME_VALUE {
             newQualifier(currentModule,currentModule -> nrtimelines,currentTimelineOrder++,$1,time_qualifier);
         }
     ;
@@ -857,16 +877,16 @@ ifstart:    TK_IF '(' qualifiers ')' {
         }
     ;
 
-oredqualifiers: TK_NAME {
+oredqualifiers: TK_NAME_VALUE {
             $$ = platOrFeature($1,FALSE);
         }
-    |   '!' TK_NAME {
+    |   '!' TK_NAME_VALUE {
             $$ = platOrFeature($2,TRUE);
         }
-    |   oredqualifiers TK_LOGICAL_OR TK_NAME {
+    |   oredqualifiers TK_LOGICAL_OR TK_NAME_VALUE {
             $$ = (platOrFeature($3,FALSE) || $1);
         }
-    |   oredqualifiers TK_LOGICAL_OR '!' TK_NAME {
+    |   oredqualifiers TK_LOGICAL_OR '!' TK_NAME_VALUE {
             $$ = (platOrFeature($4,TRUE) || $1);
         }
     ;
@@ -1004,8 +1024,8 @@ modlang:    TK_MODULE {
         }
     ;
 
-dottedname: TK_NAME
-    |   TK_PATHNAME {
+dottedname: TK_NAME_VALUE
+    |   TK_PATH_VALUE {
             /*
              * The grammar design is a bit broken and this is the easiest way
              * to allow periods in names.
@@ -1024,20 +1044,20 @@ dottedname: TK_NAME
 optnumber:  {
             $$ = -1;
         }
-    |   TK_NUMBER
+    |   TK_NUMBER_VALUE
     ;
 
-include:    TK_INCLUDE TK_PATHNAME {
+include:    TK_INCLUDE TK_PATH_VALUE {
             parseFile(NULL, $2, NULL, FALSE);
         }
     ;
 
-optinclude: TK_OPTINCLUDE TK_PATHNAME {
+optinclude: TK_OPTINCLUDE TK_PATH_VALUE {
             parseFile(NULL, $2, NULL, TRUE);
         }
     ;
 
-import:     TK_IMPORT TK_PATHNAME {
+import:     TK_IMPORT TK_PATH_VALUE {
             newImport($2);
         }
     ;
@@ -1211,7 +1231,7 @@ extract_arg_list:   extract_arg
     |   extract_arg_list ',' extract_arg {
             $$ = $1;
 
-            switch ($3.arg_token)
+            switch ($3.token)
             {
             case TK_ID: $$.id = $3.id; break;
             case TK_ORDER: $$.order = $3.order; break;
@@ -1219,14 +1239,14 @@ extract_arg_list:   extract_arg
         }
     ;
 
-extract_arg:    TK_ID '=' TK_STRING {
-            $$.arg_token = TK_ID;
+extract_arg:    TK_ID '=' TK_STRING_VALUE {
+            $$.token = TK_ID;
 
             $$.id = $3;
             $$.order = -1;
         }
-    |   TK_ORDER '=' TK_NUMBER {
-            $$.arg_token = TK_ORDER;
+    |   TK_ORDER '=' TK_NUMBER_VALUE {
+            $$.token = TK_ORDER;
 
             if ($3 < 0)
                 yyerror("The 'order' of an %Extract directive must not be negative");
@@ -1236,7 +1256,7 @@ extract_arg:    TK_ID '=' TK_STRING {
         }
     ;
 
-makefile:   TK_MAKEFILE TK_PATHNAME optfilename codeblock {
+makefile:   TK_MAKEFILE TK_PATH_VALUE optfilename codeblock {
             /* Deprecated. */
         }
     ;
@@ -1271,7 +1291,7 @@ enum:       TK_ENUM optname optflags {
 optfilename:    {
             $$ = NULL;
         }
-    |   TK_PATHNAME {
+    |   TK_PATH_VALUE {
             $$ = $1;
         }
     ;
@@ -1279,7 +1299,7 @@ optfilename:    {
 optname:    {
             $$ = NULL;
         }
-    |   TK_NAME {
+    |   TK_NAME_VALUE {
             $$ = $1;
         }
     ;
@@ -1294,7 +1314,7 @@ enumbody:   enumline
 
 enumline:   ifstart
     |   ifend
-    |   TK_NAME optenumassign optflags optcomma {
+    |   TK_NAME_VALUE optenumassign optflags optcomma {
             if (notSkipping())
             {
                 enumMemberDef *emd, **tail;
@@ -1421,7 +1441,7 @@ scopedname: scopepart
         }
     ;
 
-scopepart:  TK_NAME {
+scopepart:  TK_NAME_VALUE {
             $$ = text2scopePart($1);
         }
     ;
@@ -1445,31 +1465,31 @@ simplevalue:    scopedname {
             $$.vtype = fcall_value;
             $$.u.fcd = fcd;
         }
-    |   TK_REAL {
+    |   TK_REAL_VALUE {
             $$.vtype = real_value;
             $$.u.vreal = $1;
         }
-    |   TK_NUMBER {
+    |   TK_NUMBER_VALUE {
             $$.vtype = numeric_value;
             $$.u.vnum = $1;
         }
-    |   TK_TRUE {
+    |   TK_TRUE_VALUE {
             $$.vtype = numeric_value;
             $$.u.vnum = 1;
         }
-    |   TK_FALSE {
+    |   TK_FALSE_VALUE {
             $$.vtype = numeric_value;
             $$.u.vnum = 0;
         }
-    |   TK_NULL {
+    |   TK_NULL_VALUE {
             $$.vtype = numeric_value;
             $$.u.vnum = 0;
         }
-    |   TK_STRING {
+    |   TK_STRING_VALUE {
             $$.vtype = string_value;
             $$.u.vstr = $1;
         }
-    |   TK_QCHAR {
+    |   TK_QCHAR_VALUE {
             $$.vtype = qchar_value;
             $$.u.vqchar = $1;
         }
@@ -1504,14 +1524,14 @@ exprlist:   {
         }
     ;
 
-typedef:    TK_TYPEDEF cpptype TK_NAME optflags ';' {
+typedef:    TK_TYPEDEF cpptype TK_NAME_VALUE optflags ';' {
             if (notSkipping())
             {
                 applyTypeFlags(currentModule, &$2, &$4);
                 newTypedef(currentSpec, currentModule, $3, &$2, &$4);
             }
         }
-    |   TK_TYPEDEF cpptype '(' deref TK_NAME ')' '(' cpptypelist ')' optflags ';' {
+    |   TK_TYPEDEF cpptype '(' deref TK_NAME_VALUE ')' '(' cpptypelist ')' optflags ';' {
             if (notSkipping())
             {
                 signatureDef *sig;
@@ -1673,6 +1693,7 @@ classline:  ifstart
     |   exception
     |   typedef
     |   enum
+    |   property
     |   docstring {
             if (notSkipping())
             {
@@ -1845,6 +1866,86 @@ classline:  ifstart
         }
     ;
 
+property:   TK_PROPERTY property_args property_body optgoon {
+            if ($2.name == NULL)
+                yyerror("A %Property directive must have a 'name' argument");
+
+            if ($2.getter == NULL)
+                yyerror("A %Property directive must have a 'getter' argument");
+
+            if (notSkipping())
+                addProperty(currentSpec, currentModule, currentScope(),
+                        $2.name, $2.getter, $2.setter, $3.docstring);
+        }
+    ;
+
+property_args:  '(' property_arg_list ')' {
+            $$ = $2;
+        }
+    ;
+
+property_arg_list:  property_arg
+    |   property_arg_list ',' property_arg {
+            $$ = $1;
+
+            switch ($3.token)
+            {
+            case TK_GETTER: $$.getter = $3.getter; break;
+            case TK_NAME: $$.name = $3.name; break;
+            case TK_SETTER: $$.setter = $3.setter; break;
+            }
+        }
+    ;
+
+property_arg:   TK_GETTER '=' TK_NAME_VALUE {
+            $$.token = TK_GETTER;
+
+            $$.getter = $3;
+            $$.name = NULL;
+            $$.setter = NULL;
+        }
+    |   TK_NAME '=' TK_NAME_VALUE {
+            $$.token = TK_NAME;
+
+            $$.getter = NULL;
+            $$.name = $3;
+            $$.setter = NULL;
+        }
+    |   TK_SETTER '=' TK_NAME_VALUE {
+            $$.token = TK_SETTER;
+
+            $$.getter = NULL;
+            $$.name = NULL;
+            $$.setter = $3;
+        }
+    ;
+
+property_body:  {
+            $$.token = 0;
+            $$.docstring = NULL;
+        }
+    |   '{' property_body_directives '}' {
+            $$ = $2;
+        }
+    ;
+
+property_body_directives:   property_body_directive
+    |   property_body_directives property_body_directive {
+            $$ = $1;
+
+            switch ($2.token)
+            {
+            case TK_DOCSTRING: $$.docstring = $2.docstring; break;
+            }
+        }
+    ;
+
+property_body_directive: docstring {
+            $$.token = TK_DOCSTRING;
+            $$.docstring = $1;
+        }
+    ;
+
 optslot:    {
             $$ = 0;
         }
@@ -1853,7 +1954,7 @@ optslot:    {
         }
     ;
 
-dtor:       optvirtual '~' TK_NAME '(' ')' optexceptions optabstract optflags ';' methodcode virtualcatchercode {
+dtor:       optvirtual '~' TK_NAME_VALUE '(' ')' optexceptions optabstract optflags ';' methodcode virtualcatchercode {
             /* Note that we allow non-virtual dtors in C modules. */
 
             if (notSkipping())
@@ -1911,7 +2012,7 @@ ctor:       TK_EXPLICIT {currentCtorIsExplicit = TRUE;} simplector
     |   simplector
     ;
 
-simplector: TK_NAME '(' arglist ')' optexceptions optflags optctorsig ';' optdocstring methodcode {
+simplector: TK_NAME_VALUE '(' arglist ')' optexceptions optflags optctorsig ';' optdocstring methodcode {
             /* Note that we allow ctors in C modules. */
 
             if (notSkipping())
@@ -1967,7 +2068,7 @@ optvirtual: {
         }
     ;
 
-function:   cpptype TK_NAME '(' arglist ')' optconst optexceptions optabstract optflags optsig ';' optdocstring methodcode virtualcatchercode {
+function:   cpptype TK_NAME_VALUE '(' arglist ')' optconst optexceptions optabstract optflags optsig ';' optdocstring methodcode virtualcatchercode {
             if (notSkipping())
             {
                 applyTypeFlags(currentModule, &$1, &$9);
@@ -2161,7 +2262,7 @@ optconst:   {
 optabstract:    {
             $$ = 0;
         }
-    |   '=' TK_NUMBER {
+    |   '=' TK_NUMBER_VALUE {
             if ($2 != 0)
                 yyerror("Abstract virtual function '= 0' expected");
 
@@ -2194,11 +2295,11 @@ flaglist:   flag {
         }
     ;
 
-flag:   TK_NAME {
+flag:   TK_NAME_VALUE {
             $$.ftype = bool_flag;
             $$.fname = $1;
         }
-    |   TK_NAME '=' flagvalue {
+    |   TK_NAME_VALUE '=' flagvalue {
             $$ = $3;
             $$.fname = $1;
         }
@@ -2208,7 +2309,7 @@ flagvalue:  dottedname {
             $$.ftype = (strchr($1, '.') != NULL) ? dotted_name_flag : name_flag;
             $$.fvalue.sval = $1;
         }
-    |   TK_NAME ':' optnumber '-' optnumber {
+    |   TK_NAME_VALUE ':' optnumber '-' optnumber {
             apiVersionRangeDef *avd;
             int from, to;
 
@@ -2231,11 +2332,11 @@ flagvalue:  dottedname {
             $$.fvalue.aval = convertAPIRange(currentModule, avd->api_name,
                     from, to);
         }
-    |   TK_STRING {
+    |   TK_STRING_VALUE {
             $$.ftype = string_flag;
             $$.fvalue.sval = convertFeaturedString($1);
         }
-    |   TK_NUMBER {
+    |   TK_NUMBER_VALUE {
             $$.ftype = integer_flag;
             $$.fvalue.ival = $1;
         }
@@ -2461,7 +2562,7 @@ member:
     |   function
     ;
 
-variable:   cpptype TK_NAME optflags ';' optaccesscode optgetcode optsetcode {
+variable:   cpptype TK_NAME_VALUE optflags ';' optaccesscode optgetcode optsetcode {
             if (notSkipping())
             {
                 /* Check the section. */
@@ -5634,6 +5735,16 @@ static void checkAttributes(sipSpec *pt, moduleDef *mod, classDef *py_c_scope,
             if (xd->pyname != NULL && strcmp(xd->pyname, attr) == 0)
                 yyerror("There is already an exception with the same Python name");
     }
+
+    /* Check the properties. */
+    if (py_c_scope != NULL)
+    {
+        propertyDef *pd;
+
+        for (pd = py_c_scope->properties; pd != NULL; pd = pd->next)
+            if (strcmp(pd->name->text, attr) == 0)
+                yyerror("There is already a property with the same name");
+    }
 }
 
 
@@ -6495,4 +6606,27 @@ static int isEnabledFeature(const char *name)
         yyerror("No such feature");
 
     return !excludedFeature(excludedQualifiers, qd);
+}
+
+
+/*
+ * Add a property definition to a class.
+ */
+static void addProperty(sipSpec *pt, moduleDef *mod, classDef *cd,
+        const char *name, const char *getter, const char *setter,
+        codeBlock *docstring)
+{
+    propertyDef *pd;
+
+    checkAttributes(pt, mod, cd, NULL, name, FALSE);
+
+    pd = sipMalloc(sizeof (propertyDef));
+
+    pd->name = cacheName(pt, name);
+    pd->getter = getter;
+    pd->setter = setter;
+    pd->docstring = docstring;
+    pd->next = cd->properties;
+
+    cd->properties = pd;
 }

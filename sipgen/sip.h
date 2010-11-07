@@ -887,6 +887,17 @@ typedef struct _varDef {
 } varDef;
 
 
+/* A property definition. */
+
+typedef struct _propertyDef {
+    nameDef *name;                      /* The property name. */
+    const char *getter;                 /* The name of the getter method. */
+    const char *setter;                 /* The name of the setter method. */
+    const char *docstring;              /* The docstring. */
+    struct _propertyDef *next;          /* Next in the list. */
+} propertyDef;
+
+
 /* An overloaded member function definition. */
 
 typedef struct _overDef {
@@ -1037,6 +1048,7 @@ typedef struct _classDef {
     codeBlock *segcountcode;            /* Segment count code (Python v2). */
     codeBlock *charbufcode;             /* Character buffer code (Python v2). */
     codeBlock *picklecode;              /* Pickle code. */
+    propertyDef *properties;            /* The properties. */
     struct _classDef *next;             /* Next in the list. */
 } classDef;
 
@@ -1215,13 +1227,22 @@ typedef struct {
 } optFlags;
 
 
-/* These represent the arguments to different directives. */
+/* These represent the configuration of different directives. */
 
 /* %Extract */
-typedef struct _extractArgs {
-    int arg_token;
+typedef struct _extractCfg {
+    int token;
     const char *id;
     int order;
-} extractArgs;
+} extractCfg;
+
+/* %Property */
+typedef struct _propertyCfg {
+    int token;
+    const char *getter;
+    const char *name;
+    const char *setter;
+    codeBlock *docstring;
+} propertyCfg;
 
 #endif
