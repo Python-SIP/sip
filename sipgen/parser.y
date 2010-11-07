@@ -6629,4 +6629,7 @@ static void addProperty(sipSpec *pt, moduleDef *mod, classDef *cd,
     pd->next = cd->properties;
 
     cd->properties = pd;
+
+    if (inMainModule())
+        setIsUsedName(pd->name);
 }

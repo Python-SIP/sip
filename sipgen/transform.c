@@ -90,6 +90,8 @@ static void setStringPoolOffsets(sipSpec *pt);
 static const char *templateString(const char *src, scopedNameDef *names,
         scopedNameDef *values);
 static mappedTypeDef *copyTemplateType(mappedTypeDef *mtd, argDef *ad);
+static void checkProperties(classDef *cd);
+static memberDef *findMethod(classDef *cd, const char *name);
 
 
 /*
@@ -283,9 +285,12 @@ void transform(sipSpec *pt)
             cd->iff->ifacenr = cd->real->iff->ifacenr;
     }
 
-    /* Mark classes that can have an assignment helper. */
+    /* Additional class specific checks. */
     for (cd = pt->classes; cd != NULL; cd = cd->next)
+    {
         checkAssignmentHelper(pt, cd);
+        checkProperties(cd);
+    }
 
     setStringPoolOffsets(pt);
 }
@@ -3516,4 +3521,39 @@ static int generatingCodeForModule(sipSpec *pt, moduleDef *mod)
         return (pt->module == mod->container);
 
     return (pt->module == mod);
+}
+
+
+/*
+ * Check that any properties are valid.
+ */
+static void checkProperties(classDef *cd)
+{
+    propertyDef *pd;
+
+    for (pd = cd->properties; pd != NULL; pd = pd->next)
+    {
+        if (findMethod(cd, pd->getter) == NULL)
+            fatal("Property %s.%s has no getter %s()\n", cd->pyname->text,
+                    pd->name->text, pd->getter);
+
+        if (pd->setter != NULL && findMethod(cd, pd->setter) == NULL)
+            fatal("Property %s.%s has no setter %s()\n", cd->pyname->text,
+                    pd->name->text, pd->setter);
+    }
+}
+
+
+/*
+ * Return the method of a class with a given name.
+ */
+static memberDef *findMethod(classDef *cd, const char *name)
+{
+    memberDef *md;
+
+    for (md = cd->members; md != NULL; md = md->next)
+        if (strcmp(md->pyname->text, name) == 0)
+            break;
+
+    return md;
 }
