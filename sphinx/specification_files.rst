@@ -67,6 +67,7 @@ file.
             :directive:`%Doc` |
             :directive:`%ExportedDoc` |
             :directive:`%ExportedHeaderCode` |
+            :directive:`%Extract` |
             :directive:`%Feature` |
             :directive:`%Import` |
             :directive:`%Include` |

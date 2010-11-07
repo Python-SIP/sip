@@ -1059,6 +1059,24 @@ typedef struct _mappedTypeTmplDef {
 } mappedTypeTmplDef;
 
 
+/* The extracts for an identifier. */
+
+typedef struct _extractDef {
+    const char *id;                     /* The identifier. */
+    struct _extractPartDef *parts;      /* The ordered list of parts. */
+    struct _extractDef *next;           /* The next in the list. */
+} extractDef;
+
+
+/* Part of an extract for an identifier. */
+
+typedef struct _extractPartDef {
+    int order;                          /* The order of the part. */
+    codeBlock *part;                    /* The part itself. */
+    struct _extractPartDef *next;       /* The next in the list. */
+} extractPartDef;
+
+
 /* The parse tree corresponding to the specification file. */
 
 typedef struct {
@@ -1079,6 +1097,7 @@ typedef struct {
     int sigslots;                       /* Set if signals or slots are used. */
     int genc;                           /* Set if we are generating C code. */
     struct _stringList *plugins;        /* The list of plugins. */
+    struct _extractDef *extracts;       /* The list of extracts. */
 } sipSpec;
 
 
@@ -1108,6 +1127,8 @@ void parserEOF(char *,parserContext *);
 void transform(sipSpec *);
 void generateCode(sipSpec *, char *, char *, char *, const char *, int, int,
         int, int, stringList *, const char *, int);
+void generateExtracts(sipSpec *pt, const stringList *extracts);
+void addExtractPart(sipSpec *pt, const char *id, int order, codeBlock *part);
 void generateAPI(sipSpec *pt, moduleDef *mod, const char *apiFile);
 void generateXML(sipSpec *pt, moduleDef *mod, const char *xmlFile);
 void generateExpression(valueDef *vd, int in_str, FILE *fp);
@@ -1192,5 +1213,15 @@ typedef struct {
     int nrFlags;                        /* The number of flags. */
     optFlag flags[MAX_NR_FLAGS];        /* Each flag. */
 } optFlags;
+
+
+/* These represent the arguments to different directives. */
+
+/* %Extract */
+typedef struct _extractArgs {
+    int arg_token;
+    const char *id;
+    int order;
+} extractArgs;
 
 #endif

@@ -15,5 +15,5 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 target = sip
-sources = main.c transform.c gencode.c export.c heap.c parser.c lexer.c 
+sources = main.c transform.c gencode.c extracts.c export.c heap.c parser.c lexer.c 
 headers = sip.h parser.h

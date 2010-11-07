@@ -45,6 +45,7 @@ The full set of command line options is:
 .. cmdoption:: -d <FILE>
 
     .. deprecated:: 4.12
+        Use the :option:`-X <sip -X>` option instead.
 
     The name of the documentation file to generate.  Documentation is included
     in specification files using the :directive:`%Doc` and
@@ -133,6 +134,13 @@ The full set of command line options is:
 
     The feature (declared using the :directive:`%Feature` directive) is
     disabled.
+
+.. cmdoption:: -X <ID:FILE>
+
+    .. versionadded:: 4.12
+
+    The extract (defined with the :directive:`%Extract` directive) with the
+    identifier ``ID`` is written to the file ``FILE``.
 
 .. cmdoption:: -z <FILE>
 

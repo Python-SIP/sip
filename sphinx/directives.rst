@@ -726,6 +726,7 @@ For example::
 .. directive:: %Doc
 
 .. deprecated:: 4.12
+    Use the :directive:`%Extract` directive instead.
 
 .. parsed-literal::
 
@@ -856,6 +857,7 @@ be caught by default if there is no ``throw`` clause.
 .. directive:: %ExportedDoc
 
 .. deprecated:: 4.12
+    Use the :directive:`%Extract` directive instead.
 
 .. parsed-literal::
 
@@ -897,6 +899,44 @@ code for all modules.  It should not include function declarations because
 Python modules should not explicitly call functions in another Python module.
 
 See also :directive:`%ModuleCode` and :directive:`%ModuleHeaderCode`.
+
+
+.. directive:: %Extract
+
+.. versionadded:: 4.12
+
+.. parsed-literal::
+
+    %Extract(id=*identifier* [, order=*order*])
+        *text*
+    %End
+
+This directive is use to specify part of an extract.  An extract is a
+collection of arbitrary text specified as one or more parts each having the
+same double-quoted string *identifier*.  SIP places no interpretation on an
+identifier, or on the contents of the extract.  Extracts may be used for any
+purpose, e.g. documentation, tests etc.
+
+The part's optional integer *order* determines its position relative to the
+extract's other parts.  If the order is not specified then the part is appended
+to the extract.
+
+An extract is written to a file using the :option:`-X <sip -X>` command line
+option.
+
+For example::
+
+    %Extract(id="example")
+    This will be the last line because there is no explicit order.
+    %End
+
+    %Extract(id="example", order=20)
+    This will be the second line.
+    %End
+
+    %Extract(id="example", order=10)
+    This will be the first line.
+    %End
 
 
 .. directive:: %Feature
@@ -1157,6 +1197,7 @@ following parts of a specification are affected by it:
     - :directive:`%DefaultMetatype`
     - :directive:`%DefaultSupertype`
     - :directive:`%ExportedHeaderCode`
+    - :directive:`%Extract`
     - functions
     - :directive:`%GCClearCode`
     - :directive:`%GCTraverseCode`

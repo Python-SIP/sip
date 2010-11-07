@@ -55,7 +55,7 @@ int main(int argc, char **argv)
     int optnr, exceptions, tracing, releaseGIL, parts, kwdArgs, protHack, docs;
     FILE *file;
     sipSpec spec;
-    stringList *versions, *xfeatures;
+    stringList *versions, *xfeatures, *extracts;
 
     /* Initialise. */
     sipVersion = VERSION;
@@ -70,6 +70,7 @@ int main(int argc, char **argv)
     apiFile = NULL;
     xmlFile = NULL;
     consModule = NULL;
+    extracts = NULL;
     exceptions = FALSE;
     tracing = FALSE;
     releaseGIL = FALSE;
@@ -81,7 +82,7 @@ int main(int argc, char **argv)
     /* Parse the command line. */
     optnr = 1;
 
-    while ((arg = parseopt(argc, argv, "hVa:b:ec:d:gI:j:km:op:Prs:t:wx:z:", &flagFile, &optnr, &optarg)) != '\0')
+    while ((arg = parseopt(argc, argv, "hVa:b:ec:d:gI:j:km:op:Prs:t:wx:X:z:", &flagFile, &optnr, &optarg)) != '\0')
         switch (arg)
         {
         case 'o':
@@ -159,6 +160,11 @@ int main(int argc, char **argv)
             appendString(&xfeatures,optarg);
             break;
 
+        case 'X':
+            /* Which extracts are to be created. */
+            appendString(&extracts, optarg);
+            break;
+
         case 'I':
             /* Where to get included files from. */
             appendString(&includeDirList,optarg);
@@ -221,6 +227,9 @@ int main(int argc, char **argv)
     /* Generate code. */
     generateCode(&spec, codeDir, buildFile, docFile, srcSuffix, exceptions,
             tracing, releaseGIL, parts, xfeatures, consModule, docs);
+
+    /* Generate any extracts. */
+    generateExtracts(&spec, extracts);
 
     /* Generate the API file. */
     if (apiFile != NULL)
@@ -492,7 +501,7 @@ static void help(void)
 {
     printf(
 "Usage:\n"
-"    %s [-h] [-V] [-a file] [-b file] [-c dir] [-d file] [-e] [-g] [-I dir] [-j #] [-k] [-m file] [-o] [-p module] [-P] [-r] [-s suffix] [-t tag] [-w] [-x feature] [-z file] [file]\n"
+"    %s [-h] [-V] [-a file] [-b file] [-c dir] [-d file] [-e] [-g] [-I dir] [-j #] [-k] [-m file] [-o] [-p module] [-P] [-r] [-s suffix] [-t tag] [-w] [-x feature] [-X id:file] [-z file] [file]\n"
 "where:\n"
 "    -h          display this help message\n"
 "    -V          display the %s version number\n"
@@ -514,6 +523,7 @@ static void help(void)
 "    -t tag      the version/platform to generate code for\n"
 "    -w          enable warning messages\n"
 "    -x feature  this feature is disabled\n"
+"    -X id:file  create the extracts for an id in a file\n"
 "    -z file     the name of a file containing more command line flags\n"
 "    file        the name of the specification file [default stdin]\n"
         , sipPackage, sipPackage);
@@ -527,5 +537,5 @@ static void help(void)
  */
 static void usage(void)
 {
-    fatal("Usage: %s [-h] [-V] [-a file] [-b file] [-c dir] [-d file] [-e] [-g] [-I dir] [-j #] [-k] [-m file] [-o] [-p module] [-P] [-r] [-s suffix] [-t tag] [-w] [-x feature] [-z file] [file]\n", sipPackage);
+    fatal("Usage: %s [-h] [-V] [-a file] [-b file] [-c dir] [-d file] [-e] [-g] [-I dir] [-j #] [-k] [-m file] [-o] [-p module] [-P] [-r] [-s suffix] [-t tag] [-w] [-x feature] [-X id:file] [-z file] [file]\n", sipPackage);
 }

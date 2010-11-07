@@ -49,6 +49,7 @@ static struct inputFile {
 static int currentFile = -1;            /* Index of the current input file. */
 static char codeLine[MAX_CODE_LINE_LENGTH + 2]; /* The current code line. */
 static int codeIdx = -1;                /* Index of next code character. */
+static int parenDepth = 0;              /* The current depth of (...). */
 
 static FILE *openFile(const char *);
 static void fatallex(char *);
@@ -134,17 +135,34 @@ SIP_SLOT_DIS                {return TK_SIPSLOTDIS;}
 SIP_QOBJECT                 {return TK_QOBJECT;}
 \.\.\.                      {return TK_ELLIPSIS;}
 
+id                          {return TK_ID;}
+order                       {return TK_ORDER;}
+
 
 [ \t\r] {
     /* Ignore whitespace. */
     ;
 }
 
+\( {
+    /* Maintain the parenthesis depth. */
+    ++parenDepth;
+
+    return '(';
+}
+
+\) {
+    /* Maintain the parenthesis depth. */
+    --parenDepth;
+
+    return ')';
+}
+
 \n {
     /* Maintain the line number. */
     ++inputFileStack[currentFile].lineno;
 
-    if (codeIdx == 0)
+    if (codeIdx == 0 && parenDepth == 0)
     {
         BEGIN code;
     }
@@ -270,6 +288,12 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
     /* The start of an exported header code block. */
     codeIdx = 0;
     return TK_EXPHEADERCODE;
+}
+
+^[ \t]*%Extract {
+    /* The start of part of an extract. */
+    codeIdx = 0;
+    return TK_EXTRACT;
 }
 
 ^[ \t]*%ModuleHeaderCode {
@@ -414,7 +438,7 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
 
 ^[ \t]*%Doc {
     /* The start of a documentation block. */
-    deprecated("%Doc is deprecated");
+    deprecated("%Doc is deprecated, use %Extract instead");
 
     codeIdx = 0;
     return TK_DOC;
@@ -422,7 +446,7 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
 
 ^[ \t]*%ExportedDoc {
     /* The start of an exported documentation block. */
-    deprecated("%ExportedDoc is deprecated");
+    deprecated("%ExportedDoc is deprecated, use %Extract instead");
 
     codeIdx = 0;
     return TK_EXPORTEDDOC;

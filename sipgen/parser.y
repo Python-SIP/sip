@@ -163,6 +163,7 @@ static int isEnabledFeature(const char *name);
     int             boolean;
     exceptionDef    exceptionbase;
     classDef        *klass;
+    extractArgs     extract;
 }
 
 %token          TK_API
@@ -171,6 +172,7 @@ static int isEnabledFeature(const char *name);
 %token          TK_DOCSTRING
 %token          TK_DOC
 %token          TK_EXPORTEDDOC
+%token          TK_EXTRACT
 %token          TK_MAKEFILE
 %token          TK_ACCESSCODE
 %token          TK_GETCODE
@@ -279,6 +281,9 @@ static int isEnabledFeature(const char *name);
 %token          TK_DEFSUPERTYPE
 %token          TK_REALARGNAMES
 
+%token          TK_ID
+%token          TK_ORDER
+
 %type <memArg>          argvalue
 %type <memArg>          argtype
 %type <memArg>          cpptype
@@ -346,6 +351,9 @@ static int isEnabledFeature(const char *name);
 %type <boolean>         optclassbody
 %type <exceptionbase>   baseexception
 %type <klass>           class
+%type <extract>         extract_args
+%type <extract>         extract_arg_list
+%type <extract>         extract_arg
 
 %%
 
@@ -409,6 +417,7 @@ modstatement:   module
     |   prepycode
     |   doc
     |   exporteddoc
+    |   extract
     |   makefile
     |   mappedtype
     |   mappedtypetmpl
@@ -1181,6 +1190,49 @@ doc:        TK_DOC codeblock {
 
 exporteddoc:    TK_EXPORTEDDOC codeblock {
             appendCodeBlock(&currentSpec -> docs,$2);
+        }
+    ;
+
+extract:    TK_EXTRACT extract_args codeblock {
+            if ($2.id == NULL)
+                yyerror("An %Extract directive must have an 'id' argument");
+
+            if (notSkipping())
+                addExtractPart(currentSpec, $2.id, $2.order, $3);
+        }
+    ;
+
+extract_args:   '(' extract_arg_list ')' {
+            $$ = $2;
+        }
+    ;
+
+extract_arg_list:   extract_arg
+    |   extract_arg_list ',' extract_arg {
+            $$ = $1;
+
+            switch ($3.arg_token)
+            {
+            case TK_ID: $$.id = $3.id; break;
+            case TK_ORDER: $$.order = $3.order; break;
+            }
+        }
+    ;
+
+extract_arg:    TK_ID '=' TK_STRING {
+            $$.arg_token = TK_ID;
+
+            $$.id = $3;
+            $$.order = -1;
+        }
+    |   TK_ORDER '=' TK_NUMBER {
+            $$.arg_token = TK_ORDER;
+
+            if ($3 < 0)
+                yyerror("The 'order' of an %Extract directive must not be negative");
+
+            $$.id = NULL;
+            $$.order = $3;
         }
     ;
 
@@ -2782,6 +2834,7 @@ void parse(sipSpec *spec, FILE *fp, char *filename, stringList *tsl,
     spec->sigslots = FALSE;
     spec->genc = -1;
     spec->plugins = NULL;
+    spec->extracts = NULL;
 
     currentSpec = spec;
     neededQualifiers = tsl;
