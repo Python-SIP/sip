@@ -57,6 +57,7 @@ static void fatallex(char *);
 
 %x code
 %x ccomment
+%s directive
 
 %%
 
@@ -80,7 +81,7 @@ static void fatallex(char *);
 ^[ \t]*%DefaultMetatype     {return TK_DEFMETATYPE;}
 ^[ \t]*%DefaultSupertype    {return TK_DEFSUPERTYPE;}
 ^[ \t]*%RealArgNames        {return TK_REALARGNAMES;}
-^[ \t]*%Property            {return TK_PROPERTY;}
+^[ \t]*%Property            {BEGIN directive; return TK_PROPERTY;}
 <INITIAL>^[ \t]*%End        {return TK_END;}
 class                       {return TK_CLASS;}
 struct                      {return TK_STRUCT;}
@@ -136,11 +137,11 @@ SIP_SLOT_DIS                {return TK_SIPSLOTDIS;}
 SIP_QOBJECT                 {return TK_QOBJECT;}
 \.\.\.                      {return TK_ELLIPSIS;}
 
-get                         {return TK_GET;}
-id                          {return TK_ID;}
-name                        {return TK_NAME;}
-order                       {return TK_ORDER;}
-set                         {return TK_SET;}
+<directive>get              {return TK_GET;}
+<directive>id               {return TK_ID;}
+<directive>name             {return TK_NAME;}
+<directive>order            {return TK_ORDER;}
+<directive>set              {return TK_SET;}
 
 
 [ \t\r] {
@@ -148,16 +149,18 @@ set                         {return TK_SET;}
     ;
 }
 
-\( {
+<directive>\( {
     /* Maintain the parenthesis depth. */
     ++parenDepth;
 
     return '(';
 }
 
-\) {
+<directive>\) {
     /* Maintain the parenthesis depth. */
     --parenDepth;
+
+    BEGIN INITIAL;
 
     return ')';
 }
@@ -297,6 +300,9 @@ set                         {return TK_SET;}
 ^[ \t]*%Extract {
     /* The start of part of an extract. */
     codeIdx = 0;
+
+    BEGIN directive;
+
     return TK_EXTRACT;
 }
 
