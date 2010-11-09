@@ -9128,8 +9128,29 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
                 );
     }
 
-    /* Generate the variable handlers. */
+    /* Generate the property and variable handlers. */
     nr_vars = 0;
+
+    if (hasVarHandlers(cd))
+    {
+        varDef *vd;
+
+        for (vd = pt->vars; vd != NULL; vd = vd->next)
+            if (vd->ecd == cd && needsHandler(vd))
+            {
+                generateVariableGetter(cd->iff, vd, fp);
+
+                if (canSetVariable(vd))
+                    generateVariableSetter(cd->iff, vd, fp);
+            }
+    }
+
+    /* Generate the variables table. */
+    if (cd->properties != NULL || hasVarHandlers(cd))
+        prcode(fp,
+"\n"
+"sipVariableDef variables_%L[] = {\n"
+            , cd->iff);
 
     if (hasVarHandlers(cd))
     {
@@ -9140,37 +9161,23 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
             {
                 ++nr_vars;
 
-                generateVariableGetter(cd->iff, vd, fp);
-
-                if (canSetVariable(vd))
-                    generateVariableSetter(cd->iff, vd, fp);
-            }
-
-        /* Generate the variable table. */
-        prcode(fp,
-"\n"
-"sipVariableDef variables_%L[] = {\n"
-            , cd->iff);
-
-        for (vd = pt->vars; vd != NULL; vd = vd->next)
-            if (vd->ecd == cd && needsHandler(vd))
-            {
                 prcode(fp,
-"    {%N, varget_%C, ", vd->pyname, vd->fqcname);
+"    {%s, %N, (PyCFunction)varget_%C, ", (isStaticVar(vd) ? "ClassVariable" : "InstanceVariable"), vd->pyname, vd->fqcname);
 
                 if (canSetVariable(vd))
-                    prcode(fp, "varset_%C", vd->fqcname);
+                    prcode(fp, "(PyCFunction)varset_%C", vd->fqcname);
                 else
                     prcode(fp, "NULL");
 
-                prcode(fp, ", %d},\n"
-                    , (isStaticVar(vd) ? 1 : 0));
+                prcode(fp, ", NULL, NULL},\n"
+                    );
             }
+    }
 
+    if (nr_vars > 0);
         prcode(fp,
 "};\n"
             );
-    }
 
     /* Generate each instance table. */
     is_inst_class = generateClasses(pt, mod, cd, fp);

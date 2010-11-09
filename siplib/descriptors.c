@@ -240,7 +240,7 @@ static PyObject *sipVariableDescr_descr_get(PyObject *self, PyObject *obj,
     if (get_instance_address(vd, obj, &addr) < 0)
         return NULL;
 
-    return vd->vd->vd_getter(addr, type);
+    return ((sipVariableGetterFunc)vd->vd->vd_getter)(addr, type);
 }
 
 
@@ -266,7 +266,7 @@ static int sipVariableDescr_descr_set(PyObject *self, PyObject *obj,
     if (get_instance_address(vd, obj, &addr) < 0)
         return -1;
 
-    return vd->vd->vd_setter(addr, value, obj);
+    return ((sipVariableSetterFunc)vd->vd->vd_setter)(addr, value, obj);
 }
 
 
@@ -278,7 +278,7 @@ static int get_instance_address(sipVariableDescr *vd, PyObject *obj,
 {
     void *addr;
 
-    if (vd->vd->vd_is_static)
+    if (vd->vd->vd_type == ClassVariable)
     {
         addr = NULL;
     }

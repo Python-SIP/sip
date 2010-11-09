@@ -68,6 +68,8 @@ extern "C" {
  *
  * History:
  *
+ * 8.1  Revised the sipVariableDef structure.
+ *
  * 8.0  Changed the size of the sipSimpleWrapper structure.
  *      Added sip_api_get_address().
  *
@@ -172,7 +174,7 @@ extern "C" {
  * 0.0  Original version.
  */
 #define SIP_API_MAJOR_NR    8
-#define SIP_API_MINOR_NR    0
+#define SIP_API_MINOR_NR    1
 
 
 /* The name of the sip module. */
@@ -641,9 +643,49 @@ typedef struct _sipTypedefDef {
 
 
 /*
- * The information describing a variable.
+ * The information describing a variable or property.
  */
+
+typedef enum
+{
+    PropertyVariable,       /* A property. */
+    InstanceVariable,       /* An instance variable. */
+    ClassVariable           /* A class (i.e. static) variable. */
+} sipVariableType;
+
 typedef struct _sipVariableDef {
+    /* The type of variable. */
+    sipVariableType vd_type;
+
+    /* The name. */
+    const char *vd_name;
+
+    /*
+     * The getter.  If this is a variable (rather than a property) then the
+     * actual type is sipVariableGetterFunc.
+     */
+    PyCFunction vd_getter;
+
+    /*
+     * The setter.  If this is a variable (rather than a property) then the
+     * actual type is sipVariableSetterFunc.  It is NULL if the property cannot
+     * be set or the variable is const.
+     */
+    PyCFunction vd_setter;
+
+    /* The property deleter. */
+    PyCFunction vd_deleter;
+
+    /* The docstring. */
+    const char *vd_docstring;
+} sipVariableDef;
+
+
+/*
+ * The information describing a variable.  This is deprecated from v8.1 of the
+ * API and should be removed in v9.0.
+ */
+typedef struct _sipVariableDef_8 {
     /* The variable name. */
     const char *vd_name;
 
@@ -655,7 +697,7 @@ typedef struct _sipVariableDef {
 
     /* This is set if the variable is static. */
     int vd_is_static;
-} sipVariableDef;
+} sipVariableDef_8;
 
 
 /*
