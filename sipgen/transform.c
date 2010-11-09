@@ -901,6 +901,10 @@ static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd)
             *arg0 = *arg1;
             od->pysig.nrArgs = 1;
         }
+
+        /* Remove the only argument of unary operators. */
+        if (isZeroArgSlot(md))
+            od->pysig.nrArgs = 0;
     }
 }
 

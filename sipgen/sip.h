@@ -1173,6 +1173,7 @@ void prScopedPythonName(FILE *fp, classDef *scope, const char *pyname);
 int prPythonSignature(sipSpec *pt, FILE *fp, signatureDef *sd, int sec,
         int names, int defaults, int in_str, int is_signal);
 void searchTypedefs(sipSpec *pt, scopedNameDef *snd, argDef *ad);
+int isZeroArgSlot(memberDef *md);
 int isIntReturnSlot(memberDef *md);
 int isSSizeReturnSlot(memberDef *md);
 int isLongReturnSlot(memberDef *md);

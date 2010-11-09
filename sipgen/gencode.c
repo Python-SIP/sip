@@ -221,7 +221,6 @@ static void closeFile(FILE *);
 static void prScopedName(FILE *fp, scopedNameDef *snd, char *sep);
 static void prTypeName(FILE *fp, argDef *ad);
 static void prScopedClassName(FILE *fp, ifaceFileDef *scope, classDef *cd);
-static int isZeroArgSlot(memberDef *md);
 static int isMultiArgSlot(memberDef *md);
 static int isIntArgSlot(memberDef *md);
 static int isInplaceNumberSlot(memberDef *md);
@@ -4943,7 +4942,7 @@ static int generateObjToCppConversion(argDef *ad,FILE *fp)
 /*
  * Returns TRUE if the given method is a slot that takes zero arguments.
  */
-static int isZeroArgSlot(memberDef *md)
+int isZeroArgSlot(memberDef *md)
 {
     slotType st = md->slot;
 
