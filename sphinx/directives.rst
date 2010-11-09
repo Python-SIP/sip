@@ -31,7 +31,7 @@ The revised syntax is:
 
 .. parsed-literal::
 
-    %Directive(arg=value, ...)
+    %Directive(arg = value, ...)
     {
         %Sub-directive
         ...
@@ -814,8 +814,8 @@ For example::
         *text*
     %End
 
-This directive is used to specify explicit docstrings for classes, functions
-and methods.
+This directive is used to specify explicit docstrings for classes, functions,
+methods and properties.
 
 The docstring of a class is made up of the docstring specified for the class
 itself, with the docstrings specified for each contructor appended.
@@ -956,7 +956,7 @@ See also :directive:`%ModuleCode` and :directive:`%ModuleHeaderCode`.
 
 .. parsed-literal::
 
-    %Extract(id=*identifier* [, order=*order*])
+    %Extract(id = *identifier* [, order = *order*])
         *text*
     %End
 
@@ -1259,6 +1259,7 @@ following parts of a specification are affected by it:
     - ``namespace``
     - :directive:`%PostInitialisationCode`
     - :directive:`%PreInitialisationCode`
+    - :directive:`%Property`
     - ``struct``
     - ``typedef``
     - :directive:`%TypeCode`
@@ -1913,6 +1914,34 @@ For example::
     %End
 
 
+.. directive:: %Property
+
+.. versionadded:: 4.12
+
+.. parsed-literal::
+
+    %Property(name = *name*, get = *getter* [, set = *setter*])
+    {
+        [:directive:`%Docstring`]
+    }
+
+This directive is use to define a Python property.  *name* is the name of the
+property.  *getter* is the Python name of the getter method and must refer to
+a method in the same class.  *setter* is the Python name of the optional setter
+method and must refer to a method in the same class.
+
+For example::
+
+    class Klass
+    {
+    public:
+        int get_count() const;
+        void set_count();
+
+        %Property(name=count, get=get_count, set=set_count)
+    };
+
+
 .. directive:: %RaiseCode
 
 .. parsed-literal::
@@ -1953,9 +1982,9 @@ See the :directive:`%Exception` directive for an example.
 
     %RealArgNames
 
-When providing handwritten code as part of either the :directive:`MethodCode`
-or :directive:`VirtualCatcherCode` directives the names of the arguments of the
-function or method are based on the number of the argument, i.e. the first
+When providing handwritten code as part of either the :directive:`%MethodCode`
+or :directive:`%VirtualCatcherCode` directives the names of the arguments of
+the function or method are based on the number of the argument, i.e. the first
 argument is named ``a0``, the second ``a1`` and so on.
 
 This directive is used to specify that the real name of the argument, if any,
