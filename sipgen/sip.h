@@ -893,7 +893,7 @@ typedef struct _propertyDef {
     nameDef *name;                      /* The property name. */
     const char *get;                    /* The name of the getter method. */
     const char *set;                    /* The name of the setter method. */
-    const char *docstring;              /* The docstring. */
+    codeBlock *docstring;               /* The docstring. */
     struct _propertyDef *next;          /* Next in the list. */
 } propertyDef;
 

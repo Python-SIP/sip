@@ -8975,6 +8975,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
     int is_inst_ulonglong, is_inst_double, has_docstring;
     memberDef *md;
     moduleDef *mod;
+    propertyDef *pd;
 
     mod = cd->iff->module;
     mname = mod->name;
@@ -9145,12 +9146,50 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
             }
     }
 
+    /* Generate any docstrings. */
+    for (pd = cd->properties; pd != NULL; pd = pd->next)
+        if (pd->docstring != NULL)
+        {
+            prcode(fp,
+"\n"
+"PyDoc_STRVAR(doc_%L_%s, " , cd->iff, pd->name->text);
+
+            generateExplicitDocstring(pd->docstring, fp);
+
+            prcode(fp, ");\n"
+                );
+        }
+
     /* Generate the variables table. */
     if (cd->properties != NULL || hasVarHandlers(cd))
         prcode(fp,
 "\n"
 "sipVariableDef variables_%L[] = {\n"
             , cd->iff);
+
+    for (pd = cd->properties; pd != NULL; pd = pd->next)
+    {
+        ++nr_vars;
+
+        prcode(fp,
+"    {PropertyVariable, %N, meth_%L_%s, ", pd->name, cd->iff, pd->get);
+
+        if (pd->set != NULL)
+            prcode(fp, "meth_%L_%s, ", cd->iff, pd->set);
+        else
+            prcode(fp, "NULL, ");
+
+        /* We don't support a deleter yet. */
+        prcode(fp, "NULL, ");
+
+        if (pd->docstring != NULL)
+            prcode(fp, "doc_%L_%s", cd->iff, pd->name->text);
+        else
+            prcode(fp, "NULL");
+
+        prcode(fp, "},\n"
+            );
+    }
 
     if (hasVarHandlers(cd))
     {
