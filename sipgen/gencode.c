@@ -9138,6 +9138,8 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
         for (vd = pt->vars; vd != NULL; vd = vd->next)
             if (vd->ecd == cd && needsHandler(vd))
             {
+                ++nr_vars;
+
                 generateVariableGetter(cd->iff, vd, fp);
 
                 if (canSetVariable(vd))
@@ -9147,6 +9149,9 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 
     /* Generate any docstrings. */
     for (pd = cd->properties; pd != NULL; pd = pd->next)
+    {
+        ++nr_vars;
+
         if (pd->docstring != NULL)
         {
             prcode(fp,
@@ -9158,9 +9163,10 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
             prcode(fp, ");\n"
                 );
         }
+    }
 
     /* Generate the variables table. */
-    if (cd->properties != NULL || hasVarHandlers(cd))
+    if (nr_vars > 0)
         prcode(fp,
 "\n"
 "sipVariableDef variables_%L[] = {\n"
@@ -9168,8 +9174,6 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 
     for (pd = cd->properties; pd != NULL; pd = pd->next)
     {
-        ++nr_vars;
-
         prcode(fp,
 "    {PropertyVariable, %N, &methods_%L[%d], ", pd->name, cd->iff, findMethod(cd, pd->get)->membernr);
 
@@ -9197,8 +9201,6 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
         for (vd = pt->vars; vd != NULL; vd = vd->next)
             if (vd->ecd == cd && needsHandler(vd))
             {
-                ++nr_vars;
-
                 prcode(fp,
 "    {%s, %N, (PyMethodDef *)varget_%C, ", (isStaticVar(vd) ? "ClassVariable" : "InstanceVariable"), vd->pyname, vd->fqcname);
 
@@ -9212,7 +9214,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
             }
     }
 
-    if (nr_vars > 0);
+    if (nr_vars > 0)
         prcode(fp,
 "};\n"
             );
