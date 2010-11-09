@@ -1222,7 +1222,11 @@ extract:    TK_EXTRACT extract_args codeblock {
         }
     ;
 
-extract_args:   '(' extract_arg_list ')' {
+extract_args:   TK_NAME_VALUE {
+            $$.id = $1;
+            $$.order = -1;
+        }
+    |   '(' extract_arg_list ')' {
             $$ = $2;
         }
     ;
@@ -1239,7 +1243,7 @@ extract_arg_list:   extract_arg
         }
     ;
 
-extract_arg:    TK_ID '=' TK_STRING_VALUE {
+extract_arg:    TK_ID '=' TK_NAME_VALUE {
             $$.token = TK_ID;
 
             $$.id = $3;

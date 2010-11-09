@@ -13,6 +13,55 @@ Some directives are used to specify handwritten code.  Handwritten code must
 not define names that start with the prefix ``sip``.
 
 
+Revised Directive Syntax
+------------------------
+
+The directive syntax used in the current version has some problems:
+
+- it is inconsistent in places
+
+- it can be problematic to parse
+
+- it is inflexible.
+
+SIP v5 will use a revised directive syntax that addresses these problems.  The
+current version of SIP will, over time, implement the revised syntax for
+existing directives.  At the same time the older syntax will be deprecated.
+The revised syntax is:
+
+.. parsed-literal::
+
+    %Directive(arg=value, ...)
+    {
+        %Sub-directive
+        ...
+    };
+
+A directive may have a number of arguments enclosed in parentheses followed by
+a number of sub-directives enclosed in braces.  Individual arguments and
+sub-directives may be optional.  The final semi-colon is optional.
+
+Arguments may be specified in any order.  If no arguments are specified then
+the parentheses can be omitted.  If a directive has only one compulsory
+argument then its value may be specified after the directive name and instead
+of the parentheses.
+
+Sub-directives may be specified in any order.  If no sub-directives are
+specified then the braces can be omitted.
+
+If a directive is used to specify handwritten code then it may not have
+sub-directives.  In this case the syntax is:
+
+.. parsed-literal::
+
+    %Directive(arg=value, ...)
+        *code*
+    %End
+
+
+List of Directives
+------------------
+
 .. directive:: %AccessCode
 
 .. parsed-literal::
@@ -913,9 +962,9 @@ See also :directive:`%ModuleCode` and :directive:`%ModuleHeaderCode`.
 
 This directive is use to specify part of an extract.  An extract is a
 collection of arbitrary text specified as one or more parts each having the
-same double-quoted string *identifier*.  SIP places no interpretation on an
-identifier, or on the contents of the extract.  Extracts may be used for any
-purpose, e.g. documentation, tests etc.
+same *identifier*.  SIP places no interpretation on an identifier, or on the
+contents of the extract.  Extracts may be used for any purpose, e.g.
+documentation, tests etc.
 
 The part's optional integer *order* determines its position relative to the
 extract's other parts.  If the order is not specified then the part is appended
@@ -926,15 +975,15 @@ option.
 
 For example::
 
-    %Extract(id="example")
+    %Extract example
     This will be the last line because there is no explicit order.
     %End
 
-    %Extract(id="example", order=20)
+    %Extract(id=example, order=20)
     This will be the second line.
     %End
 
-    %Extract(id="example", order=10)
+    %Extract(id=example, order=10)
     This will be the first line.
     %End
 
