@@ -91,7 +91,6 @@ static const char *templateString(const char *src, scopedNameDef *names,
         scopedNameDef *values);
 static mappedTypeDef *copyTemplateType(mappedTypeDef *mtd, argDef *ad);
 static void checkProperties(classDef *cd);
-static memberDef *findMethod(classDef *cd, const char *name);
 
 
 /*
@@ -3547,7 +3546,7 @@ static void checkProperties(classDef *cd)
 /*
  * Return the method of a class with a given name.
  */
-static memberDef *findMethod(classDef *cd, const char *name)
+memberDef *findMethod(classDef *cd, const char *name)
 {
     memberDef *md;
 

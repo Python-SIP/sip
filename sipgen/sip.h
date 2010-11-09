@@ -1192,6 +1192,7 @@ void yywarning(char *);
 nameDef *cacheName(sipSpec *pt, const char *name);
 scopedNameDef *encodedTemplateName(templateDef *td);
 apiVersionRangeDef *findAPI(sipSpec *pt, const char *name);
+memberDef *findMethod(classDef *cd, const char *name);
 
 
 /* These are only here because bison publically references them. */

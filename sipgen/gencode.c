@@ -9172,10 +9172,10 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
         ++nr_vars;
 
         prcode(fp,
-"    {PropertyVariable, %N, meth_%L_%s, ", pd->name, cd->iff, pd->get);
+"    {PropertyVariable, %N, &methods_%L[%d], ", pd->name, cd->iff, findMethod(cd, pd->get)->membernr);
 
         if (pd->set != NULL)
-            prcode(fp, "meth_%L_%s, ", cd->iff, pd->set);
+            prcode(fp, "&methods_%L[%d], ", cd->iff, findMethod(cd, pd->set)->membernr);
         else
             prcode(fp, "NULL, ");
 
@@ -9201,10 +9201,10 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
                 ++nr_vars;
 
                 prcode(fp,
-"    {%s, %N, (PyCFunction)varget_%C, ", (isStaticVar(vd) ? "ClassVariable" : "InstanceVariable"), vd->pyname, vd->fqcname);
+"    {%s, %N, (PyMethodDef *)varget_%C, ", (isStaticVar(vd) ? "ClassVariable" : "InstanceVariable"), vd->pyname, vd->fqcname);
 
                 if (canSetVariable(vd))
-                    prcode(fp, "(PyCFunction)varset_%C", vd->fqcname);
+                    prcode(fp, "(PyMethodDef *)varset_%C", vd->fqcname);
                 else
                     prcode(fp, "NULL");
 

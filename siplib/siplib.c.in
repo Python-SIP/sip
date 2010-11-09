@@ -655,6 +655,8 @@ static void clear_access_func(sipSimpleWrapper *sw);
 static int check_encoded_string(PyObject *obj);
 static int isNonlazyMethod(PyMethodDef *pmd);
 static int addMethod(PyObject *dict, PyMethodDef *pmd);
+static PyObject *create_property(sipVariableDef *vd);
+static PyObject *create_function(PyMethodDef *ml);
 
 
 /*
@@ -5981,10 +5983,12 @@ static int add_lazy_container_attrs(sipTypeDef *td, sipContainerDef *cod,
             int rc;
             PyObject *descr;
 
-            /* ZZZ */
-            assert(vd->vd_type != PropertyVariable);
+            if (vd->vd_type == PropertyVariable)
+                descr = create_property(vd);
+            else
+                descr = sipVariableDescr_New(vd, td, cod);
 
-            if ((descr = sipVariableDescr_New(vd, td, cod)) == NULL)
+            if (descr == NULL)
                 return -1;
 
             rc = PyDict_SetItemString(dict, vd->vd_name, descr);
@@ -6038,6 +6042,60 @@ static int add_lazy_container_attrs(sipTypeDef *td, sipContainerDef *cod,
     }
 
     return 0;
+}
+
+
+/*
+ * Create a Python property object from the SIP generated structure.
+ */
+static PyObject *create_property(sipVariableDef *vd)
+{
+    PyObject *descr, *fget, *fset, *fdel, *doc;
+
+    descr = fget = fset = fdel = doc = NULL;
+
+    if ((fget = create_function(vd->vd_getter)) == NULL)
+        goto done;
+
+    if ((fset = create_function(vd->vd_setter)) == NULL)
+        goto done;
+
+    if ((fdel = create_function(vd->vd_deleter)) == NULL)
+        goto done;
+
+    if (vd->vd_docstring == NULL)
+    {
+        doc = Py_None;
+        Py_INCREF(doc);
+    }
+    else if ((doc = PyString_FromString(vd->vd_docstring)) == NULL)
+    {
+        goto done;
+    }
+
+    descr = PyObject_CallFunctionObjArgs(&PyProperty_Type, fget, fset, fdel,
+            doc, NULL);
+
+done:
+    Py_XDECREF(fget);
+    Py_XDECREF(fset);
+    Py_XDECREF(fdel);
+    Py_XDECREF(doc);
+
+    return descr;
+}
+
+
+/*
+ * Return a PyCFunction as an object or Py_None if there isn't one.
+ */
+static PyObject *create_function(PyMethodDef *ml)
+{
+    if (ml != NULL)
+        return PyCFunction_New(ml, NULL);
+
+    Py_INCREF(Py_None);
+    return Py_None;
 }
 
 

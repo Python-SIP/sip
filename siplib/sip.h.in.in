@@ -664,17 +664,17 @@ typedef struct _sipVariableDef {
      * The getter.  If this is a variable (rather than a property) then the
      * actual type is sipVariableGetterFunc.
      */
-    PyCFunction vd_getter;
+    PyMethodDef *vd_getter;
 
     /*
      * The setter.  If this is a variable (rather than a property) then the
      * actual type is sipVariableSetterFunc.  It is NULL if the property cannot
      * be set or the variable is const.
      */
-    PyCFunction vd_setter;
+    PyMethodDef *vd_setter;
 
     /* The property deleter. */
-    PyCFunction vd_deleter;
+    PyMethodDef *vd_deleter;
 
     /* The docstring. */
     const char *vd_docstring;
