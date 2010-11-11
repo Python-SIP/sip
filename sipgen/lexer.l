@@ -80,7 +80,6 @@ static void fatallex(char *);
 ^[ \t]*%If                  {return TK_IF;}
 ^[ \t]*%DefaultMetatype     {return TK_DEFMETATYPE;}
 ^[ \t]*%DefaultSupertype    {return TK_DEFSUPERTYPE;}
-^[ \t]*%RealArgNames        {return TK_REALARGNAMES;}
 ^[ \t]*%Property            {BEGIN directive; return TK_PROPERTY;}
 <INITIAL>^[ \t]*%End        {return TK_END;}
 class                       {return TK_CLASS;}
@@ -143,7 +142,11 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
 <directive>name             {return TK_NAME;}
 <directive>order            {return TK_ORDER;}
 <directive>set              {return TK_SET;}
+<directive>use_argument_names   {return TK_USEARGNAMES;}
 <directive>version          {return TK_VERSION;}
+
+<directive>True             {return TK_TRUE_VALUE;}
+<directive>False            {return TK_FALSE_VALUE;}
 
 
 [ \t\r] {

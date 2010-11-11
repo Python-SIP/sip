@@ -960,19 +960,19 @@ See also :directive:`%ModuleCode` and :directive:`%ModuleHeaderCode`.
 
 .. parsed-literal::
 
-    %Extract(id = *identifier* [, order = *order*])
+    %Extract(id = *name* [, order = *integer*])
         *text*
     %End
 
 This directive is use to specify part of an extract.  An extract is a
 collection of arbitrary text specified as one or more parts each having the
-same *identifier*.  SIP places no interpretation on an identifier, or on the
+same ``id``.  SIP places no interpretation on an identifier, or on the
 contents of the extract.  Extracts may be used for any purpose, e.g.
 documentation, tests etc.
 
-The part's optional integer *order* determines its position relative to the
-extract's other parts.  If the order is not specified then the part is appended
-to the extract.
+The part's optional ``order`` determines its position relative to the extract's
+other parts.  If the order is not specified then the part is appended to the
+extract.
 
 An extract is written to a file using the :option:`-X <sip -X>` command line
 option.
@@ -1551,10 +1551,10 @@ variables are made available to the handwritten code:
 
 *type* a0
     There is a variable for each argument of the Python signature (excluding
-    any ``self`` argument) named ``a0``, ``a1``, etc.  If the
-    :directive:`RealArgNames` directive has been specified for the module then
-    the name of the argument is the real name.  The *type* of the variable is
-    the same as the type defined in the specification with the following
+    any ``self`` argument) named ``a0``, ``a1``, etc.  If
+    ``use_argument_names`` has been set in the :directive:`%Module` directive
+    then the name of the argument is the real name.  The *type* of the variable
+    is the same as the type defined in the specification with the following
     exceptions:
 
     - if the argument is only used to return a value (e.g. it is an ``int *``
@@ -1571,9 +1571,9 @@ PyObject \*a0Wrapper
     is specified for the corresponding argument.  The variable is a pointer to
     the Python object that wraps the argument.
 
-    If the :directive:`RealArgNames` directive has been specified for the
-    module then the name of the variable is the real name of the argument with
-    ``Wrapper`` appended.
+    If ``use_argument_names`` has been set in the :directive:`%Module`
+    directive then the name of the variable is the real name of the argument
+    with ``Wrapper`` appended.
 
 *type* \*sipCpp
     If the directive is used in the context of a class constructor then this
@@ -1715,27 +1715,35 @@ then the pattern should instead be::
 
 .. parsed-literal::
 
-    %Module(name = *name* [, version = *version*] [, language = *language*])
+    %Module(name = *dotted-name* [, language = *string*] [, use_argument_names = *bool*] [, version = *integer*])
     {
         [:directive:`%Docstring`]
     }
 
 This directive is used to specify the name of a module and a number of other
-attributes.  *name* may contain periods to specify that the module is part of a
-Python package.
+attributes.  ``name`` may contain periods to specify that the module is part of
+a Python package.
 
-*version* is an optional version number that is useful if you (or others) might
-create other modules that build on this module, i.e. if another module might
-:directive:`%Import` this module.  Under the covers, a module exports an API
-that is used by modules that :directive:`%Import` it and the API is given a
+``language`` specifies the implementation language of the library being
+wrapped.  Its value is either ``"C++"`` (the default) or ``"C"``.
+
+When providing handwritten code as part of either the :directive:`%MethodCode`
+or :directive:`%VirtualCatcherCode` directives the names of the arguments of
+the function or method are based on the number of the argument, i.e. the first
+argument is named ``a0``, the second ``a1`` and so on.  ``use_argument_names``
+is set to specify that the real name of the argument, if any, should be used
+instead.  It also affects the name of the variable created when the
+:aanno:`GetWrapper` argument annotation is used.
+
+``version`` is an optional version number that is useful if you (or others)
+might create other modules that build on this module, i.e. if another module
+might :directive:`%Import` this module.  Under the covers, a module exports an
+API that is used by modules that :directive:`%Import` it and the API is given a
 version number.  A module built on that module knows the version number of the
 API that it is expecting.  If, when the modules are imported at run-time, the
 version numbers do not match then a Python exception is raised.  The dependent
 module must then be re-built using the correct specification files for the base
 module.
-
-*language* specifies the implementation language of the library being wrapped.
-Its value is either ``"C++"`` (the default) or ``"C"``.
 
 The :directive:`%Docstring` directive is used to specify the module's optional
 docstring.
@@ -1936,15 +1944,19 @@ For example::
 
 .. parsed-literal::
 
-    %Property(name = *name*, get = *getter* [, set = *setter*])
+    %Property(name = *name*, get = *name* [, set = *name*])
     {
         [:directive:`%Docstring`]
     }
 
-This directive is use to define a Python property.  *name* is the name of the
-property.  *getter* is the Python name of the getter method and must refer to
-a method in the same class.  *setter* is the Python name of the optional setter
-method and must refer to a method in the same class.
+This directive is use to define a Python property.  ``name`` is the name of the
+property.
+
+``get`` is the Python name of the getter method and must refer to a method in
+the same class.
+
+``set`` is the Python name of the optional setter method and must refer to a
+method in the same class.
 
 The :directive:`%Docstring` directive is used to specify the property's
 optional docstring.
@@ -1991,26 +2003,6 @@ The following variable is made available to the handwritten code:
     reference is the same as the type defined in the ``throw ()`` specifier.
 
 See the :directive:`%Exception` directive for an example.
-
-
-.. directive:: %RealArgNames
-
-.. versionadded:: 4.12
-
-.. parsed-literal::
-
-    %RealArgNames
-
-When providing handwritten code as part of either the :directive:`%MethodCode`
-or :directive:`%VirtualCatcherCode` directives the names of the arguments of
-the function or method are based on the number of the argument, i.e. the first
-argument is named ``a0``, the second ``a1`` and so on.
-
-This directive is used to specify that the real name of the argument, if any,
-should be used instead.  It also affects the name of the variable created when
-the :aanno:`GetWrapper` argument annotation is used.
-
-The directive only affects the module it is specified in.
 
 
 .. directive:: %SetCode
@@ -2212,9 +2204,10 @@ context of a method:
 
 *type* a0
     There is a variable for each argument of the C++ signature named ``a0``,
-    ``a1``, etc.  If the :directive:`RealArgNames` directive has been specified
-    for the module then the name of the argument is the real name.  The *type*
-    of the variable is the same as the type defined in the specification.
+    ``a1``, etc.  If ``use_argument_names`` has been set in the
+    :directive:`%Module` directive then the name of the argument is the real
+    name.  The *type* of the variable is the same as the type defined in the
+    specification.
 
 int a0Key
     There is a variable for each argument of the C++ signature that has a type
@@ -2224,9 +2217,9 @@ int a0Key
     to :cfunc:`sipParseResult()` using either the ``A`` or ``B`` format
     characters.
 
-    If the :directive:`RealArgNames` directive has been specified for the
-    module then the name of the variable is the real name of the argument with
-    ``Key`` appended.
+    If ``use_argument_names`` has been set in the :directive:`%Module`
+    directive then the name of the variable is the real name of the argument
+    with ``Key`` appended.
 
 int sipIsErr
     The handwritten code should set this to a non-zero value, and raise an

@@ -8470,7 +8470,7 @@ static void generateCalledArgs(moduleDef *mod, ifaceFileDef *scope,
 
         if (ftype == Definition)
         {
-            if (mod != NULL && useRealArgNames(mod) && ad->name != NULL)
+            if (mod != NULL && useArgNames(mod) && ad->name != NULL)
                 name = ad->name->text;
             else
                 sprintf(buf, "a%d", a);
@@ -11009,7 +11009,7 @@ static void generateHandleResult(moduleDef *mod, overDef *od, int isNew,
     {
         ad = &od->pysig.args[only];
 
-        if (useRealArgNames(mod) && ad->name != NULL)
+        if (useArgNames(mod) && ad->name != NULL)
         {
             vname = ad->name->text;
         }
@@ -13074,7 +13074,7 @@ void prcode(FILE *fp, const char *fmt, ...)
                     argDef *ad = va_arg(ap, argDef *);
                     int argnr = va_arg(ap, int);
 
-                    if (useRealArgNames(mod) && ad->name != NULL)
+                    if (useArgNames(mod) && ad->name != NULL)
                         fprintf(fp, "%s", ad->name->text);
                     else
                         fprintf(fp, "a%d", argnr);

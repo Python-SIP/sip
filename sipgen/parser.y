@@ -147,7 +147,7 @@ static void addProperty(sipSpec *pt, moduleDef *mod, classDef *cd,
         codeBlock *docstring);
 static moduleDef *configureModule(sipSpec *pt, moduleDef *module,
         const char *filename, const char *name, int version, int c_module,
-        codeBlock *docstring);
+        int use_arg_names, codeBlock *docstring);
 %}
 
 %union {
@@ -287,7 +287,6 @@ static moduleDef *configureModule(sipSpec *pt, moduleDef *module,
 %token          TK_ELLIPSIS
 %token          TK_DEFMETATYPE
 %token          TK_DEFSUPERTYPE
-%token          TK_REALARGNAMES
 %token          TK_PROPERTY
 
 %token          TK_GET
@@ -296,6 +295,7 @@ static moduleDef *configureModule(sipSpec *pt, moduleDef *module,
 %token          TK_NAME
 %token          TK_ORDER
 %token          TK_SET
+%token          TK_USEARGNAMES
 %token          TK_VERSION
 
 %type <memArg>          argvalue
@@ -362,6 +362,7 @@ static moduleDef *configureModule(sipSpec *pt, moduleDef *module,
 %type <boolean>         qualifiers
 %type <boolean>         oredqualifiers
 %type <boolean>         optclassbody
+%type <boolean>         bool_value
 %type <exceptionbase>   baseexception
 %type <klass>           class
 
@@ -424,7 +425,6 @@ modstatement:   module
     |   defencoding
     |   defmetatype
     |   defsupertype
-    |   realargnames
     |   exphdrcode {
             if (notSkipping())
                 appendCodeBlock(&currentSpec->exphdrcode, $1);
@@ -964,11 +964,6 @@ defsupertype:   TK_DEFSUPERTYPE dottedname {
         }
     ;
 
-realargnames: TK_REALARGNAMES {
-            setRealArgNames(currentModule);
-        }
-    ;
-
 consmodule: TK_CONSMODULE dottedname {
             /* Make sure this is the first mention of a module. */
             if (currentSpec->module != currentModule)
@@ -1002,13 +997,13 @@ module: TK_MODULE module_args module_body optgoon {
             if (notSkipping())
                 currentModule = configureModule(currentSpec, currentModule,
                         currentContext.filename, $2.name, $2.version,
-                        $2.c_module, $3.docstring);
+                        $2.c_module, $2.use_arg_names, $3.docstring);
         }
     |   TK_CMODULE dottedname optnumber {
             deprecated("%CModule is deprecated, use %Module and the 'language' argument instead");
 
             currentModule = configureModule(currentSpec, currentModule,
-                    currentContext.filename, $2, $3, TRUE, NULL);
+                    currentContext.filename, $2, $3, TRUE, FALSE, NULL);
         }
     ;
 
@@ -1033,6 +1028,7 @@ module_arg_list:    module_arg
             {
             case TK_LANGUAGE: $$.c_module = $3.c_module; break;
             case TK_NAME: $$.name = $3.name; break;
+            case TK_USEARGNAMES: $$.use_arg_names = $3.use_arg_names; break;
             case TK_VERSION: $$.version = $3.version; break;
             }
         }
@@ -1049,6 +1045,7 @@ module_arg: TK_LANGUAGE '=' TK_STRING_VALUE {
                 yyerror("%Module 'language' argument must be either \"C++\" or \"C\"");
 
             $$.name = NULL;
+            $$.use_arg_names = FALSE;
             $$.version = -1;
         }
     |   TK_NAME '=' dottedname {
@@ -1056,6 +1053,15 @@ module_arg: TK_LANGUAGE '=' TK_STRING_VALUE {
 
             $$.c_module = FALSE;
             $$.name = $3;
+            $$.use_arg_names = FALSE;
+            $$.version = -1;
+        }
+    |   TK_USEARGNAMES '=' bool_value {
+            $$.token = TK_USEARGNAMES;
+
+            $$.c_module = FALSE;
+            $$.name = NULL;
+            $$.use_arg_names = $3;
             $$.version = -1;
         }
     |   TK_VERSION '=' TK_NUMBER_VALUE {
@@ -1066,6 +1072,7 @@ module_arg: TK_LANGUAGE '=' TK_STRING_VALUE {
 
             $$.c_module = FALSE;
             $$.name = NULL;
+            $$.use_arg_names = FALSE;
             $$.version = $3;
         }
     ;
@@ -1522,6 +1529,14 @@ scopepart:  TK_NAME_VALUE {
         }
     ;
 
+bool_value: TK_TRUE_VALUE {
+            $$ = TRUE;
+        }
+    |   TK_FALSE_VALUE {
+            $$ = FALSE;
+        }
+    ;
+
 simplevalue:    scopedname {
             /*
              * We let the C++ compiler decide if the value is a valid one - no
@@ -1549,13 +1564,9 @@ simplevalue:    scopedname {
             $$.vtype = numeric_value;
             $$.u.vnum = $1;
         }
-    |   TK_TRUE_VALUE {
+    |   bool_value {
             $$.vtype = numeric_value;
-            $$.u.vnum = 1;
-        }
-    |   TK_FALSE_VALUE {
-            $$.vtype = numeric_value;
-            $$.u.vnum = 0;
+            $$.u.vnum = $1;
         }
     |   TK_NULL_VALUE {
             $$.vtype = numeric_value;
@@ -6716,7 +6727,7 @@ static void addProperty(sipSpec *pt, moduleDef *mod, classDef *cd,
  */
 static moduleDef *configureModule(sipSpec *pt, moduleDef *module,
         const char *filename, const char *name, int version, int c_module,
-        codeBlock *docstring)
+        int use_arg_names, codeBlock *docstring)
 {
     moduleDef *mod;
 
@@ -6742,6 +6753,9 @@ static moduleDef *configureModule(sipSpec *pt, moduleDef *module,
     setModuleName(pt, module, name);
     module->version = version;
     module->docstring = docstring;
+
+    if (use_arg_names)
+        setUseArgNames(module);
 
     if (pt->genc < 0)
         pt->genc = c_module;
