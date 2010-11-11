@@ -750,6 +750,7 @@ typedef struct _moduleDef {
     codeBlock *postinitcode;            /* Post-initialisation code. */
     codeBlock *unitcode;                /* Compilation unit code. */
     codeBlock *unitpostinccode;         /* Compilation unit post-include code. */
+    codeBlock *docstring;               /* The docstring. */
     int parts;                          /* The number of parts generated. */
     char *file;                         /* The filename. */
     qualDef *qualifiers;                /* The list of qualifiers. */
@@ -1237,6 +1238,15 @@ typedef struct _extractCfg {
     const char *id;
     int order;
 } extractCfg;
+
+/* %Module */
+typedef struct _moduleCfg {
+    int token;
+    const char *name;
+    int version;
+    int c_module;
+    codeBlock *docstring;
+} moduleCfg;
 
 /* %Property */
 typedef struct _propertyCfg {

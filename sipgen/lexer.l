@@ -67,7 +67,7 @@ static void fatallex(char *);
 ^[ \t]*%Include             {return TK_INCLUDE;}
 ^[ \t]*%OptionalInclude     {return TK_OPTINCLUDE;}
 ^[ \t]*%Import              {return TK_IMPORT;}
-^[ \t]*%Module              {return TK_MODULE;}
+^[ \t]*%Module              {BEGIN directive; return TK_MODULE;}
 ^[ \t]*%CModule             {return TK_CMODULE;}
 ^[ \t]*%ConsolidatedModule  {return TK_CONSMODULE;}
 ^[ \t]*%CompositeModule     {return TK_COMPOMODULE;}
@@ -139,9 +139,11 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
 
 <directive>get              {return TK_GET;}
 <directive>id               {return TK_ID;}
+<directive>language         {return TK_LANGUAGE;}
 <directive>name             {return TK_NAME;}
 <directive>order            {return TK_ORDER;}
 <directive>set              {return TK_SET;}
+<directive>version          {return TK_VERSION;}
 
 
 [ \t\r] {

@@ -1887,6 +1887,18 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         , is_api_versions ? "apiVersions" : "NULL"
         , is_versioned_functions ? "versionedFunctions" : "NULL");
 
+    if (mod->docstring != NULL)
+    {
+        prcode(fp,
+"\n"
+"PyDoc_STRVAR(doc_mod_%s, ", mname);
+
+        generateExplicitDocstring(mod->docstring, fp);
+
+        prcode(fp, ");\n"
+            );
+    }
+
     /* Generate the storage for the external API pointers. */
     prcode(fp,
 "\n"
@@ -1987,18 +1999,43 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "#if PY_MAJOR_VERSION >= 3\n"
 "    sipModule = PyModule_Create(&sip_module_def);\n"
 "#elif PY_VERSION_HEX >= 0x02050000\n"
-"    sipModule = Py_InitModule(%N, sip_methods);\n"
-"#else\n"
-        , mod->fullname);
+        );
 
-    if (generating_c)
+    if (mod->docstring == NULL)
         prcode(fp,
-"    sipModule = Py_InitModule((char *)%N, sip_methods);\n"
+"    sipModule = Py_InitModule(%N, sip_methods);\n"
             , mod->fullname);
     else
         prcode(fp,
+"    sipModule = Py_InitModule3(%N, sip_methods, doc_mod_%s);\n"
+            , mod->fullname, mname);
+
+    prcode(fp,
+"#else\n"
+        );
+
+    if (generating_c)
+    {
+        if (mod->docstring == NULL)
+            prcode(fp,
+"    sipModule = Py_InitModule((char *)%N, sip_methods);\n"
+                , mod->fullname);
+        else
+            prcode(fp,
+"    sipModule = Py_InitModule3((char *)%N, sip_methods, doc_mod_%s);\n"
+                , mod->fullname, mname);
+    }
+    else
+    {
+        if (mod->docstring == NULL)
+            prcode(fp,
 "    sipModule = Py_InitModule(const_cast<char *>(%N), sip_methods);\n"
-            , mod->fullname);
+                , mod->fullname);
+        else
+            prcode(fp,
+"    sipModule = Py_InitModule3(const_cast<char *>(%N), sip_methods, doc_mod_%s);\n"
+                , mod->fullname, mname);
+    }
 
     prcode(fp,
 "#endif\n"
@@ -2359,7 +2396,18 @@ static void generateModDefinition(moduleDef *mod, const char *methods,
 "    static PyModuleDef sip_module_def = {\n"
 "        PyModuleDef_HEAD_INIT,\n"
 "        \"%s\",\n"
+        , mod->fullname->text);
+
+    if (mod->docstring == NULL)
+        prcode(fp,
 "        NULL,\n"
+            );
+    else
+        prcode(fp,
+"        doc_mod_%s,\n"
+            , mod->name);
+
+    prcode(fp,
 "        -1,\n"
 "        %s,\n"
 "        NULL,\n"
@@ -2368,7 +2416,6 @@ static void generateModDefinition(moduleDef *mod, const char *methods,
 "        NULL\n"
 "    };\n"
 "#endif\n"
-        , mod->fullname->text
         , methods);
 }
 

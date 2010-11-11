@@ -145,6 +145,9 @@ static int isEnabledFeature(const char *name);
 static void addProperty(sipSpec *pt, moduleDef *mod, classDef *cd,
         const char *name, const char *get, const char *set,
         codeBlock *docstring);
+static moduleDef *configureModule(sipSpec *pt, moduleDef *module,
+        const char *filename, const char *name, int version, int c_module,
+        codeBlock *docstring);
 %}
 
 %union {
@@ -167,6 +170,7 @@ static void addProperty(sipSpec *pt, moduleDef *mod, classDef *cd,
     exceptionDef    exceptionbase;
     classDef        *klass;
     extractCfg      extract;
+    moduleCfg       module;
     propertyCfg     property;
 }
 
@@ -288,9 +292,11 @@ static void addProperty(sipSpec *pt, moduleDef *mod, classDef *cd,
 
 %token          TK_GET
 %token          TK_ID
+%token          TK_LANGUAGE
 %token          TK_NAME
 %token          TK_ORDER
 %token          TK_SET
+%token          TK_VERSION
 
 %type <memArg>          argvalue
 %type <memArg>          argtype
@@ -355,7 +361,6 @@ static void addProperty(sipSpec *pt, moduleDef *mod, classDef *cd,
 %type <fcall>           exprlist
 %type <boolean>         qualifiers
 %type <boolean>         oredqualifiers
-%type <boolean>         modlang
 %type <boolean>         optclassbody
 %type <exceptionbase>   baseexception
 %type <klass>           class
@@ -363,6 +368,13 @@ static void addProperty(sipSpec *pt, moduleDef *mod, classDef *cd,
 %type <extract>         extract_args
 %type <extract>         extract_arg_list
 %type <extract>         extract_arg
+
+%type <module>          module_args
+%type <module>          module_arg_list
+%type <module>          module_arg
+%type <module>          module_body
+%type <module>          module_body_directives
+%type <module>          module_body_directive
 
 %type <property>        property_args
 %type <property>        property_arg_list
@@ -983,44 +995,103 @@ compmodule: TK_COMPOMODULE dottedname {
         }
     ;
 
-module:     modlang dottedname optnumber {
-            /* Check the module hasn't already been defined. */
+module: TK_MODULE module_args module_body optgoon {
+            if ($2.name == NULL)
+                yyerror("%Module must have a 'name' argument");
 
-            moduleDef *mod;
+            currentModule = configureModule(currentSpec, currentModule,
+                    currentContext.filename, $2.name, $2.version, $2.c_module,
+                    $3.docstring);
+        }
+    |   TK_CMODULE dottedname optnumber {
+            deprecated("%CModule is deprecated, use %Module and the 'language' argument instead");
 
-            for (mod = currentSpec->modules; mod != NULL; mod = mod->next)
-                if (mod->fullname != NULL && strcmp(mod->fullname->text, $2) == 0)
-                    yyerror("Module is already defined");
-
-            /*
-             * If we are in a container module then create a component module
-             * and make it current.
-             */
-            if (isContainer(currentModule) || currentModule->container != NULL)
-            {
-                mod = allocModule();
-
-                mod->file = currentContext.filename;
-                mod->container = (isContainer(currentModule) ? currentModule : currentModule->container);
-
-                currentModule = mod;
-            }
-
-            setModuleName(currentSpec, currentModule, $2);
-            currentModule->version = $3;
-
-            if (currentSpec->genc < 0)
-                currentSpec->genc = $1;
-            else if (currentSpec->genc != $1)
-                yyerror("Cannot mix C and C++ modules");
+            currentModule = configureModule(currentSpec, currentModule,
+                    currentContext.filename, $2, $3, TRUE, NULL);
         }
     ;
 
-modlang:    TK_MODULE {
-            $$ = FALSE;
+module_args:    dottedname optnumber {
+            if ($2 >= 0)
+                deprecated("%Module version number should be specified using the 'version' argument");
+
+            $$.c_module = FALSE;
+            $$.name = $1;
+            $$.version = $2;
         }
-    |   TK_CMODULE {
-            $$ = TRUE;
+    |   '(' module_arg_list ')' {
+            $$ = $2;
+        }
+    ;
+
+module_arg_list:    module_arg
+    |   module_arg_list ',' module_arg {
+            $$ = $1;
+
+            switch ($3.token)
+            {
+            case TK_LANGUAGE: $$.c_module = $3.c_module; break;
+            case TK_NAME: $$.name = $3.name; break;
+            case TK_VERSION: $$.version = $3.version; break;
+            }
+        }
+    ;
+
+module_arg: TK_LANGUAGE '=' TK_STRING_VALUE {
+            $$.token = TK_LANGUAGE;
+
+            if (strcmp($3, "C++") == 0)
+                $$.c_module = FALSE;
+            else if (strcmp($3, "C") == 0)
+                $$.c_module = TRUE;
+            else
+                yyerror("%Module 'language' argument must be either \"C++\" or \"C\"");
+
+            $$.name = NULL;
+            $$.version = -1;
+        }
+    |   TK_NAME '=' dottedname {
+            $$.token = TK_NAME;
+
+            $$.c_module = FALSE;
+            $$.name = $3;
+            $$.version = -1;
+        }
+    |   TK_VERSION '=' TK_NUMBER_VALUE {
+            if ($3 < 0)
+                yyerror("%Module 'version' argument cannot be negative");
+
+            $$.token = TK_VERSION;
+
+            $$.c_module = FALSE;
+            $$.name = NULL;
+            $$.version = $3;
+        }
+    ;
+
+module_body:    {
+            $$.token = 0;
+            $$.docstring = NULL;
+        }
+    |   '{' module_body_directives '}' {
+            $$ = $2;
+        }
+    ;
+
+module_body_directives: module_body_directive
+    |   module_body_directives module_body_directive {
+            $$ = $1;
+
+            switch ($2.token)
+            {
+            case TK_DOCSTRING: $$.docstring = $2.docstring; break;
+            }
+        }
+    ;
+
+module_body_directive:  docstring {
+            $$.token = TK_DOCSTRING;
+            $$.docstring = $1;
         }
     ;
 
@@ -1215,7 +1286,7 @@ exporteddoc:    TK_EXPORTEDDOC codeblock {
 
 extract:    TK_EXTRACT extract_args codeblock {
             if ($2.id == NULL)
-                yyerror("An %Extract directive must have an 'id' argument");
+                yyerror("%Extract must have an 'id' argument");
 
             if (notSkipping())
                 addExtractPart(currentSpec, $2.id, $2.order, $3);
@@ -6636,4 +6707,45 @@ static void addProperty(sipSpec *pt, moduleDef *mod, classDef *cd,
 
     if (inMainModule())
         setIsUsedName(pd->name);
+}
+
+
+/*
+ * Configure a module and return the (possibly new) current module.
+ */
+static moduleDef *configureModule(sipSpec *pt, moduleDef *module,
+        const char *filename, const char *name, int version, int c_module,
+        codeBlock *docstring)
+{
+    moduleDef *mod;
+
+    /* Check the module hasn't already been defined. */
+    for (mod = pt->modules; mod != NULL; mod = mod->next)
+        if (mod->fullname != NULL && strcmp(mod->fullname->text, name) == 0)
+            yyerror("Module is already defined");
+
+    /*
+     * If we are in a container module then create a component module and make
+     * it current.
+     */
+    if (isContainer(module) || module->container != NULL)
+    {
+        mod = allocModule();
+
+        mod->file = filename;
+        mod->container = (isContainer(module) ? module : module->container);
+
+        module = mod;
+    }
+
+    setModuleName(pt, module, name);
+    module->version = version;
+    module->docstring = docstring;
+
+    if (pt->genc < 0)
+        pt->genc = c_module;
+    else if (pt->genc != c_module)
+        yyerror("Cannot mix C and C++ modules");
+
+    return module;
 }
