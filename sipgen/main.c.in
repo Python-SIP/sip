@@ -53,6 +53,7 @@ int main(int argc, char **argv)
     char *filename, *docFile, *codeDir, *srcSuffix, *flagFile, *consModule;
     char arg, *optarg, *buildFile, *apiFile, *xmlFile;
     int optnr, exceptions, tracing, releaseGIL, parts, kwdArgs, protHack, docs;
+    int timestamp;
     FILE *file;
     sipSpec spec;
     stringList *versions, *xfeatures, *extracts;
@@ -78,11 +79,12 @@ int main(int argc, char **argv)
     kwdArgs = FALSE;
     protHack = FALSE;
     docs = FALSE;
+    timestamp = TRUE;
 
     /* Parse the command line. */
     optnr = 1;
 
-    while ((arg = parseopt(argc, argv, "hVa:b:ec:d:gI:j:km:op:Prs:t:wx:X:z:", &flagFile, &optnr, &optarg)) != '\0')
+    while ((arg = parseopt(argc, argv, "hVa:b:ec:d:gI:j:km:op:Prs:t:Twx:X:z:", &flagFile, &optnr, &optarg)) != '\0')
         switch (arg)
         {
         case 'o':
@@ -153,6 +155,11 @@ int main(int argc, char **argv)
         case 't':
             /* Which platform or version to generate code for. */
             appendString(&versions,optarg);
+            break;
+
+        case 'T':
+            /* Disable the timestamp in the header of generated files. */
+            timestamp = FALSE;
             break;
 
         case 'x':
@@ -226,7 +233,8 @@ int main(int argc, char **argv)
 
     /* Generate code. */
     generateCode(&spec, codeDir, buildFile, docFile, srcSuffix, exceptions,
-            tracing, releaseGIL, parts, xfeatures, consModule, docs);
+            tracing, releaseGIL, parts, xfeatures, consModule, docs,
+            timestamp);
 
     /* Generate any extracts. */
     generateExtracts(&spec, extracts);
@@ -501,7 +509,7 @@ static void help(void)
 {
     printf(
 "Usage:\n"
-"    %s [-h] [-V] [-a file] [-b file] [-c dir] [-d file] [-e] [-g] [-I dir] [-j #] [-k] [-m file] [-o] [-p module] [-P] [-r] [-s suffix] [-t tag] [-w] [-x feature] [-X id:file] [-z file] [file]\n"
+"    %s [-h] [-V] [-a file] [-b file] [-c dir] [-d file] [-e] [-g] [-I dir] [-j #] [-k] [-m file] [-o] [-p module] [-P] [-r] [-s suffix] [-t tag] [-T] [-w] [-x feature] [-X id:file] [-z file] [file]\n"
 "where:\n"
 "    -h          display this help message\n"
 "    -V          display the %s version number\n"
@@ -521,6 +529,7 @@ static void help(void)
 "    -r          generate code with tracing enabled [default disabled]\n"
 "    -s suffix   the suffix to use for C or C++ source files [default \".c\" or \".cpp\"]\n"
 "    -t tag      the version/platform to generate code for\n"
+"    -T          disable the timestamp in the header of generated files\n"
 "    -w          enable warning messages\n"
 "    -x feature  this feature is disabled\n"
 "    -X id:file  create the extracts for an id in a file\n"
@@ -537,5 +546,5 @@ static void help(void)
  */
 static void usage(void)
 {
-    fatal("Usage: %s [-h] [-V] [-a file] [-b file] [-c dir] [-d file] [-e] [-g] [-I dir] [-j #] [-k] [-m file] [-o] [-p module] [-P] [-r] [-s suffix] [-t tag] [-w] [-x feature] [-X id:file] [-z file] [file]\n", sipPackage);
+    fatal("Usage: %s [-h] [-V] [-a file] [-b file] [-c dir] [-d file] [-e] [-g] [-I dir] [-j #] [-k] [-m file] [-o] [-p module] [-P] [-r] [-s suffix] [-t tag] [-T] [-w] [-x feature] [-X id:file] [-z file] [file]\n", sipPackage);
 }

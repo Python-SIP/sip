@@ -66,21 +66,22 @@ static void generateBuildFile(sipSpec *pt, const char *buildFile,
 static void generateBuildFileSources(sipSpec *pt, moduleDef *mod,
         const char *srcSuffix, FILE *fp);
 static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
-        const char *codeDir, stringList *xsl);
+        const char *codeDir, stringList *xsl, int timestamp);
 static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
-        const char *srcSuffix, int parts, stringList *xsl);
-static void generateCompositeCpp(sipSpec *pt, const char *codeDir);
+        const char *srcSuffix, int parts, stringList *xsl, int timestamp);
+static void generateCompositeCpp(sipSpec *pt, const char *codeDir,
+        int timestamp);
 static void generateConsolidatedCpp(sipSpec *pt, const char *codeDir,
-        const char *srcSuffix);
+        const char *srcSuffix, int timestamp);
 static void generateComponentCpp(sipSpec *pt, const char *codeDir,
-        const char *consModule);
+        const char *consModule, int timestamp);
 static void generateSipImport(moduleDef *mod, FILE *fp);
 static void generateSipImportVariables(FILE *fp);
 static void generateModInitStart(moduleDef *mod, int gen_c, FILE *fp);
 static void generateModDefinition(moduleDef *mod, const char *methods,
         FILE *fp);
 static void generateIfaceCpp(sipSpec *, ifaceFileDef *, int, const char *,
-        const char *, FILE *);
+        const char *, FILE *, int);
 static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp);
 static void generateImportedMappedTypeAPI(mappedTypeDef *mtd, sipSpec *pt,
         moduleDef *mod, FILE *fp);
@@ -214,9 +215,9 @@ static int compareEnumMembers(const void *, const void *);
 static char *getSubFormatChar(char, argDef *);
 static char *createIfaceFileName(const char *, ifaceFileDef *, const char *);
 static FILE *createCompilationUnit(moduleDef *mod, const char *fname,
-        const char *description);
+        const char *description, int timestamp);
 static FILE *createFile(moduleDef *mod, const char *fname,
-        const char *description);
+        const char *description, int timestamp);
 static void closeFile(FILE *);
 static void prScopedName(FILE *fp, scopedNameDef *snd, char *sep);
 static void prTypeName(FILE *fp, argDef *ad);
@@ -280,7 +281,8 @@ static int copyConstRefArg(argDef *ad);
  */
 void generateCode(sipSpec *pt, char *codeDir, char *buildfile, char *docFile,
         const char *srcSuffix, int except, int trace, int releaseGIL,
-        int parts, stringList *xsl, const char *consModule, int docs)
+        int parts, stringList *xsl, const char *consModule, int docs,
+        int timestamp)
 {
     exceptions = except;
     tracing = trace;
@@ -299,21 +301,23 @@ void generateCode(sipSpec *pt, char *codeDir, char *buildfile, char *docFile,
     if (codeDir != NULL)
     {
         if (isComposite(pt->module))
-            generateCompositeCpp(pt, codeDir);
+            generateCompositeCpp(pt, codeDir, timestamp);
         else if (isConsolidated(pt->module))
         {
             moduleDef *mod;
 
             for (mod = pt->modules; mod != NULL; mod = mod->next)
                 if (mod->container == pt->module)
-                    generateCpp(pt, mod, codeDir, srcSuffix, parts, xsl);
+                    generateCpp(pt, mod, codeDir, srcSuffix, parts, xsl,
+                            timestamp);
 
-            generateConsolidatedCpp(pt, codeDir, srcSuffix);
+            generateConsolidatedCpp(pt, codeDir, srcSuffix, timestamp);
         }
         else if (consModule != NULL)
-            generateComponentCpp(pt, codeDir, consModule);
+            generateComponentCpp(pt, codeDir, consModule, timestamp);
         else
-            generateCpp(pt, pt->module, codeDir, srcSuffix, parts, xsl);
+            generateCpp(pt, pt->module, codeDir, srcSuffix, parts, xsl,
+                    timestamp);
     }
 
     /* Generate the build file. */
@@ -330,7 +334,7 @@ static void generateDocumentation(sipSpec *pt, const char *docFile)
     FILE *fp;
     codeBlock *cb;
 
-    fp = createFile(pt->module, docFile, NULL);
+    fp = createFile(pt->module, docFile, NULL, FALSE);
 
     for (cb = pt->docs; cb != NULL; cb = cb->next)
         fputs(cb->frag, fp);
@@ -348,7 +352,7 @@ static void generateBuildFile(sipSpec *pt, const char *buildFile,
     const char *mname = pt->module->name;
     FILE *fp;
 
-    fp = createFile(pt->module, buildFile, NULL);
+    fp = createFile(pt->module, buildFile, NULL, FALSE);
 
     prcode(fp, "target = %s\nsources =", mname);
 
@@ -484,7 +488,7 @@ void generateExpression(valueDef *vd, int in_str, FILE *fp)
  * Generate the C++ internal module API header file.
  */
 static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
-        const char *codeDir, stringList *xsl)
+        const char *codeDir, stringList *xsl, int timestamp)
 {
     char *hfile;
     const char *mname = mod->name;
@@ -495,7 +499,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
     moduleListDef *mld;
 
     hfile = concat(codeDir, "/sipAPI", mname, ".h",NULL);
-    fp = createFile(mod, hfile, "Internal module API header file.");
+    fp = createFile(mod, hfile, "Internal module API header file.", timestamp);
 
     /* Include files. */
 
@@ -858,14 +862,16 @@ static char *makePartName(const char *codeDir, const char *mname, int part,
 /*
  * Generate the C code for a composite module.
  */
-static void generateCompositeCpp(sipSpec *pt, const char *codeDir)
+static void generateCompositeCpp(sipSpec *pt, const char *codeDir,
+        int timestamp)
 {
     char *cppfile;
     moduleDef *mod;
     FILE *fp;
 
     cppfile = concat(codeDir, "/sip", pt->module->name, "cmodule.c", NULL);
-    fp = createCompilationUnit(pt->module, cppfile, "Composite module code.");
+    fp = createCompilationUnit(pt->module, cppfile, "Composite module code.",
+            timestamp);
 
     prcode(fp,
 "\n"
@@ -936,7 +942,7 @@ static void generateCompositeCpp(sipSpec *pt, const char *codeDir)
  * Generate the C/C++ code for a consolidated module.
  */
 static void generateConsolidatedCpp(sipSpec *pt, const char *codeDir,
-        const char *srcSuffix)
+        const char *srcSuffix, int timestamp)
 {
     char *cppfile;
     const char *mname = pt->module->name;
@@ -944,7 +950,8 @@ static void generateConsolidatedCpp(sipSpec *pt, const char *codeDir,
     FILE *fp;
 
     cppfile = concat(codeDir, "/sip", mname, "cmodule", srcSuffix, NULL);
-    fp = createCompilationUnit(pt->module, cppfile, "Consolidated module code.");
+    fp = createCompilationUnit(pt->module, cppfile,
+            "Consolidated module code.", timestamp);
 
     prcode(fp,
 "\n"
@@ -1070,13 +1077,14 @@ static void generateConsolidatedCpp(sipSpec *pt, const char *codeDir,
  * Generate the C/C++ code for a component module.
  */
 static void generateComponentCpp(sipSpec *pt, const char *codeDir,
-        const char *consModule)
+        const char *consModule, int timestamp)
 {
     char *cppfile;
     FILE *fp;
 
     cppfile = concat(codeDir, "/sip", pt->module->name, "cmodule.c", NULL);
-    fp = createCompilationUnit(pt->module, cppfile, "Component module code.");
+    fp = createCompilationUnit(pt->module, cppfile, "Component module code.",
+            timestamp);
 
     prcode(fp,
 "\n"
@@ -1162,7 +1170,7 @@ static void generateNameCache(sipSpec *pt, FILE *fp)
  * Generate the C/C++ code.
  */
 static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
-        const char *srcSuffix, int parts, stringList *xsl)
+        const char *srcSuffix, int parts, stringList *xsl, int timestamp)
 {
     char *cppfile;
     const char *mname = mod->name;
@@ -1199,7 +1207,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
     else
         cppfile = concat(codeDir, "/sip", mname, "cmodule", srcSuffix, NULL);
 
-    fp = createCompilationUnit(mod, cppfile, "Module code.");
+    fp = createCompilationUnit(mod, cppfile, "Module code.", timestamp);
 
     prcode(fp,
 "\n"
@@ -2169,7 +2177,8 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
                 ++this_part;
 
                 cppfile = makePartName(codeDir, mname, this_part, srcSuffix);
-                fp = createCompilationUnit(mod, cppfile, "Module code.");
+                fp = createCompilationUnit(mod, cppfile, "Module code.",
+                        timestamp);
 
                 prcode(fp,
 "\n"
@@ -2184,7 +2193,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
             }
 
             generateIfaceCpp(pt, iff, need_postinc, codeDir, srcSuffix,
-                    (parts ? fp : NULL));
+                    (parts ? fp : NULL), timestamp);
         }
 
     closeFile(fp);
@@ -2196,7 +2205,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 
     mod->parts = parts;
 
-    generateInternalAPIHeader(pt, mod, codeDir, xsl);
+    generateInternalAPIHeader(pt, mod, codeDir, xsl, timestamp);
 }
 
 
@@ -3485,7 +3494,8 @@ static int generateDoubles(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
  * Generate the C/C++ code for an interface.
  */
 static void generateIfaceCpp(sipSpec *pt, ifaceFileDef *iff, int need_postinc,
-        const char *codeDir, const char *srcSuffix, FILE *master)
+        const char *codeDir, const char *srcSuffix, FILE *master,
+        int timestamp)
 {
     char *cppfile;
     const char *cmname = iff->module->name;
@@ -3496,7 +3506,8 @@ static void generateIfaceCpp(sipSpec *pt, ifaceFileDef *iff, int need_postinc,
     if (master == NULL)
     {
         cppfile = createIfaceFileName(codeDir,iff,srcSuffix);
-        fp = createCompilationUnit(iff->module, cppfile, "Interface wrapper code.");
+        fp = createCompilationUnit(iff->module, cppfile,
+                "Interface wrapper code.", timestamp);
 
         prcode(fp,
 "\n"
@@ -12881,9 +12892,9 @@ static void generateCppCodeBlock(codeBlock *code, FILE *fp)
  * Create a source file.
  */
 static FILE *createCompilationUnit(moduleDef *mod, const char *fname,
-        const char *description)
+        const char *description, int timestamp)
 {
-    FILE *fp = createFile(mod, fname, description);
+    FILE *fp = createFile(mod, fname, description, timestamp);
 
     if (fp != NULL)
         generateCppCodeBlock(mod->unitcode, fp);
@@ -12896,7 +12907,7 @@ static FILE *createCompilationUnit(moduleDef *mod, const char *fname,
  * Create a file with an optional standard header.
  */
 static FILE *createFile(moduleDef *mod, const char *fname,
-        const char *description)
+        const char *description, int timestamp)
 {
     FILE *fp;
 
@@ -12914,18 +12925,27 @@ static FILE *createFile(moduleDef *mod, const char *fname,
     {
         int needComment;
         codeBlock *cb;
-        time_t now;
 
         /* Write the header. */
-        now = time(NULL);
-
         prcode(fp,
 "/*\n"
 " * %s\n"
 " *\n"
-" * Generated by SIP %s on %s"
-            ,description
-            ,sipVersion,ctime(&now));
+" * Generated by SIP %s"
+            , description
+            , sipVersion);
+
+        if (timestamp)
+        {
+            time_t now = time(NULL);
+
+            prcode(fp, " on %s", ctime(&now));
+        }
+        else
+        {
+            prcode(fp, "\n"
+                );
+        }
 
         if (mod->copying != NULL)
             prcode(fp,

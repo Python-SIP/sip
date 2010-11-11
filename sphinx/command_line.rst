@@ -125,6 +125,13 @@ The full set of command line options is:
     to generate code for.  This option may be given any number of times so long
     as the tags do not conflict.
 
+.. cmdoption:: -T
+
+    By default the generated C and C++ source and header files include a
+    timestamp specifying when they were generated.  This option disables the
+    timestamp so that the contents of the generated files remain constant for a
+    particular version of SIP.
+
 .. cmdoption:: -w
 
     The display of warning messages is enabled.  By default warning messages
