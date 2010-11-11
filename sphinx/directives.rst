@@ -306,6 +306,10 @@ PyObject \*sipSelf
 
 .. directive:: %CModule
 
+.. deprecated:: 4.12
+    Use the :directive:`%Module` directive with the ``language`` argument set
+    to ``"C"`` instead.
+
 .. parsed-literal::
 
     %CModule *name* [*version*]
@@ -339,8 +343,8 @@ Clearly the individual modules should not define module-level objects with the
 same name.
 
 This directive is used to specify the name of a composite module.  Any
-subsequent :directive:`%CModule` or :directive:`%Module` directive is
-interpreted as defining a component module.
+subsequent :directive:`%Module` directive is interpreted as defining a
+component module.
 
 For example::
 
@@ -362,8 +366,8 @@ A consolidated module is one that consolidates the wrapper code of a number of
 SIP generated modules (refered to as component modules in this context).
 
 This directive is used to specify the name of a consolidated module.  Any
-subsequent :directive:`%CModule` or :directive:`%Module` directive is
-interpreted as defining a component module.
+subsequent :directive:`%Module` directive is interpreted as defining a
+component module.
 
 For example::
 
@@ -814,8 +818,8 @@ For example::
         *text*
     %End
 
-This directive is used to specify explicit docstrings for classes, functions,
-methods and properties.
+This directive is used to specify explicit docstrings for modules, classes,
+functions, methods and properties.
 
 The docstring of a class is made up of the docstring specified for the class
 itself, with the docstrings specified for each contructor appended.
@@ -1706,18 +1710,21 @@ then the pattern should instead be::
 
 .. directive:: %Module
 
+.. versionadded:: 4.12
+
 .. parsed-literal::
 
-    %Module *name* [*version*]
+    %Module(name = *name* [, version = *version*] [, language = *language*])
+    {
+        [:directive:`%Docstring`]
+    }
 
-This directive is used to identify that the library being wrapped is a C++
-library and to define the name of the module and it's optional version number.
+This directive is used to specify the name of a module and a number of other
+attributes.  *name* may contain periods to specify that the module is part of a
+Python package.
 
-The name may contain periods to specify that the module is part of a Python
-package.
-
-The optional version number is useful if you (or others) might create other
-modules that build on this module, i.e. if another module might
+*version* is an optional version number that is useful if you (or others) might
+create other modules that build on this module, i.e. if another module might
 :directive:`%Import` this module.  Under the covers, a module exports an API
 that is used by modules that :directive:`%Import` it and the API is given a
 version number.  A module built on that module knows the version number of the
@@ -1726,13 +1733,21 @@ version numbers do not match then a Python exception is raised.  The dependent
 module must then be re-built using the correct specification files for the base
 module.
 
-The version number should be incremented whenever a module is changed.  Some
-changes don't affect the exported API, but it is good practice to change the
-version number anyway.
+*language* specifies the implementation language of the library being wrapped.
+Its value is either ``"C++"`` (the default) or ``"C"``.
+
+The :directive:`%Docstring` directive is used to specify the module's optional
+docstring.
 
 For example::
 
-    %Module qt 5
+    %Module(name=PyQt4.QtCore, version=5)
+
+Note that the syntax shown below is deprecated from v4.12.
+
+.. parsed-literal::
+
+    %Module *name* [*version*]
 
 
 .. directive:: %ModuleCode
@@ -1929,6 +1944,9 @@ This directive is use to define a Python property.  *name* is the name of the
 property.  *getter* is the Python name of the getter method and must refer to
 a method in the same class.  *setter* is the Python name of the optional setter
 method and must refer to a method in the same class.
+
+The :directive:`%Docstring` directive is used to specify the property's
+optional docstring.
 
 For example::
 
