@@ -1258,6 +1258,7 @@ following parts of a specification are affected by it:
     - :directive:`%InitialisationCode`
     - :directive:`%MappedType`
     - :directive:`%MethodCode`
+    - :directive:`%Module`
     - :directive:`%ModuleCode`
     - :directive:`%ModuleHeaderCode`
     - ``namespace``

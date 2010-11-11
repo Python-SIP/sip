@@ -999,9 +999,10 @@ module: TK_MODULE module_args module_body optgoon {
             if ($2.name == NULL)
                 yyerror("%Module must have a 'name' argument");
 
-            currentModule = configureModule(currentSpec, currentModule,
-                    currentContext.filename, $2.name, $2.version, $2.c_module,
-                    $3.docstring);
+            if (notSkipping())
+                currentModule = configureModule(currentSpec, currentModule,
+                        currentContext.filename, $2.name, $2.version,
+                        $2.c_module, $3.docstring);
         }
     |   TK_CMODULE dottedname optnumber {
             deprecated("%CModule is deprecated, use %Module and the 'language' argument instead");
