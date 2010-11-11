@@ -12193,7 +12193,7 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
     }
     else if ((od != NULL && useKeywordArgsFunction(od->common)) || ct != NULL)
     {
-        int this_uses_kwds;
+        int this_uses_kwds, this_really_uses_kwds;
 
         /*
          * We handle keywords if we might have been passed some (because one of
@@ -12202,36 +12202,53 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
          */
         this_uses_kwds = ((od != NULL && useKeywordArgs(od)) || (ct != NULL && useKeywordArgsCtor(ct)));
 
+        /*
+         * The above test isn't good enough because when the flags were set in
+         * the parser we couldn't know for sure if an argument was an output
+         * pointer.  Therefore we check here.  The only drawback is that we may
+         * generate the name string for the argument but never use it.
+         */
+        this_really_uses_kwds = FALSE;
+
         if (this_uses_kwds)
         {
             int a;
 
-            prcode(fp,
-"        static const char *sipKwdList[] = {\n"
-                );
-
             for (a = 0; a < sd->nrArgs; ++a)
             {
-                nameDef *nd = sd->args[a].name;
+                argDef *ad = &sd->args[a];
 
-                if (nd != NULL)
-                    prcode(fp,
+                if (isInArg(ad))
+                {
+                    if (!this_really_uses_kwds)
+                    {
+                        prcode(fp,
+"        static const char *sipKwdList[] = {\n"
+                            );
+
+                        this_really_uses_kwds = TRUE;
+                    }
+
+                    if (ad->name != NULL)
+                        prcode(fp,
 "            %N,\n"
-                        , nd);
-                else
-                    prcode(fp,
+                            , ad->name);
+                    else
+                        prcode(fp,
 "            NULL,\n"
-                        );
+                            );
+                }
             }
 
-            prcode(fp,
+            if (this_really_uses_kwds)
+                prcode(fp,
     "        };\n"
     "\n"
-                );
+                    );
         }
 
         prcode(fp,
-"        if (sipParseKwdArgs(%ssipParseErr, sipArgs, sipKwds, %s, %s, \"", (ct != NULL ? "" : "&"), (this_uses_kwds ? "sipKwdList" : "NULL"), (ct != NULL ? "sipUnused" : "NULL"));
+"        if (sipParseKwdArgs(%ssipParseErr, sipArgs, sipKwds, %s, %s, \"", (ct != NULL ? "" : "&"), (this_really_uses_kwds ? "sipKwdList" : "NULL"), (ct != NULL ? "sipUnused" : "NULL"));
     }
     else
     {
