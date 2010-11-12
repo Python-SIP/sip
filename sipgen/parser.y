@@ -1107,7 +1107,13 @@ module_body_directives: module_body_directive
         }
     ;
 
-module_body_directive:  autopyname {
+module_body_directive:  ifstart {
+            $$.token = TK_IF;
+        }
+    |   ifend {
+            $$.token = TK_END;
+        }
+    |   autopyname {
             $$.token = TK_AUTOPYNAME;
         }
     |   docstring {
@@ -2070,7 +2076,13 @@ property_body_directives:   property_body_directive
         }
     ;
 
-property_body_directive: docstring {
+property_body_directive:    ifstart {
+            $$.token = TK_IF;
+        }
+    |   ifend {
+            $$.token = TK_END;
+        }
+    |   docstring {
             $$.token = TK_DOCSTRING;
             $$.docstring = $1;
         }
