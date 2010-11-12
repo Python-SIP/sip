@@ -109,6 +109,31 @@ For example::
     %API PyQt4 1
 
 
+.. directive:: %AutoPyName
+
+.. versionadded:: 4.12
+
+.. parsed-literal::
+
+    %AutoPyName(remove_leading = *string*)
+
+This directive, a sub-directive of the :directive:`%Module` directive, is used
+to specify a rule for automatically providing Python names for classes, enums,
+functions, methods, variables and exceptions.  The directive may be specified
+any number of times and each rule will be applied in turn.  Rules will not be
+applied if an item has been given an explicit Python name.
+
+``remove_leading`` is a string that will be removed from the beginning of any
+C++ or C name.
+
+For example::
+
+    %Module PyQt4.QtCore
+    {
+        %AutoPyName(remove_leading="Q")
+    }
+
+
 .. directive:: %BIGetBufferCode
 
 .. parsed-literal::
@@ -964,7 +989,7 @@ See also :directive:`%ModuleCode` and :directive:`%ModuleHeaderCode`.
         *text*
     %End
 
-This directive is use to specify part of an extract.  An extract is a
+This directive is used to specify part of an extract.  An extract is a
 collection of arbitrary text specified as one or more parts each having the
 same ``id``.  SIP places no interpretation on an identifier, or on the
 contents of the extract.  Extracts may be used for any purpose, e.g.
@@ -1241,6 +1266,7 @@ Note that this directive is not implemented as a preprocessor.  Only the
 following parts of a specification are affected by it:
 
     - :directive:`%API`
+    - :directive:`%AutoPyName`
     - ``class``
     - :directive:`%ConvertFromTypeCode`
     - :directive:`%ConvertToSubClassCode`
@@ -1717,6 +1743,7 @@ then the pattern should instead be::
 
     %Module(name = *dotted-name* [, language = *string*] [, use_argument_names = *bool*] [, version = *integer*])
     {
+        [:directive:`%AutoPyName`]
         [:directive:`%Docstring`]
     }
 
@@ -1744,6 +1771,9 @@ API that it is expecting.  If, when the modules are imported at run-time, the
 version numbers do not match then a Python exception is raised.  The dependent
 module must then be re-built using the correct specification files for the base
 module.
+
+The :directive:`%AutoPyName` directive is used to specify a rule for
+automatically providing Python names.
 
 The :directive:`%Docstring` directive is used to specify the module's optional
 docstring.
@@ -1949,8 +1979,8 @@ For example::
         [:directive:`%Docstring`]
     }
 
-This directive is use to define a Python property.  ``name`` is the name of the
-property.
+This directive is used to define a Python property.  ``name`` is the name of
+the property.
 
 ``get`` is the Python name of the getter method and must refer to a method in
 the same class.

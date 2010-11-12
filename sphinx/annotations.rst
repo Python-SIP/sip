@@ -424,6 +424,8 @@ Class Annotations
     avoid name clashes with other objects (e.g. enums, exceptions, functions)
     that have the same name in the same C++ scope.
 
+    .. seealso:: :directive:`%AutoPyName`
+
 
 .. class-annotation:: Supertype
 
@@ -491,6 +493,8 @@ Enum Annotations
     (e.g. classes, exceptions, functions) that have the same name in the same
     C++ scope.
 
+    .. seealso:: :directive:`%AutoPyName`
+
 
 .. _ref-exception-annos:
 
@@ -510,6 +514,8 @@ Exception Annotations
     when an exception name is the same as a Python keyword.  It may also be
     used to avoid name clashes with other objects (e.g. classes, enums,
     functions) that have the same name.
+
+    .. seealso:: :directive:`%AutoPyName`
 
 
 .. _ref-function-annos:
@@ -686,6 +692,8 @@ Function Annotations
     also be used to avoid name clashes with other objects (e.g. classes, enums,
     exceptions) that have the same name in the same C++ scope.
 
+    .. seealso:: :directive:`%AutoPyName`
+
 
 .. function-annotation:: ReleaseGIL
 
@@ -811,3 +819,5 @@ Variable Annotations
     when a variable name is the same as a Python keyword.  It may also be used
     to avoid name clashes with other objects (e.g. classes, functions) that
     have the same name in the same C++ scope.
+
+    .. seealso:: :directive:`%AutoPyName`
