@@ -56,7 +56,8 @@ static int defaultKwdArgs;              /* Support keyword arguments by default.
 static int makeProtPublic;              /* Treat protected items as public. */
 
 
-static const char *getPythonName(optFlags *optflgs, const char *cname);
+static const char *getPythonName(moduleDef *mod, optFlags *optflgs,
+        const char *cname);
 static classDef *findClass(sipSpec *pt, ifaceFileType iftype,
         apiVersionRangeDef *api_range, scopedNameDef *fqname);
 static classDef *findClassWithInterface(sipSpec *pt, ifaceFileDef *iff);
@@ -148,6 +149,7 @@ static void addProperty(sipSpec *pt, moduleDef *mod, classDef *cd,
 static moduleDef *configureModule(sipSpec *pt, moduleDef *module,
         const char *filename, const char *name, int version, int c_module,
         int use_arg_names, codeBlock *docstring);
+static void addAutoPyName(moduleDef *mod, const char *remove_leading);
 %}
 
 %union {
@@ -169,12 +171,14 @@ static moduleDef *configureModule(sipSpec *pt, moduleDef *module,
     int             boolean;
     exceptionDef    exceptionbase;
     classDef        *klass;
+    autoPyNameCfg   autopyname;
     extractCfg      extract;
     moduleCfg       module;
     propertyCfg     property;
 }
 
 %token          TK_API
+%token          TK_AUTOPYNAME
 %token          TK_DEFENCODING
 %token          TK_PLUGIN
 %token          TK_DOCSTRING
@@ -294,6 +298,7 @@ static moduleDef *configureModule(sipSpec *pt, moduleDef *module,
 %token          TK_LANGUAGE
 %token          TK_NAME
 %token          TK_ORDER
+%token          TK_REMOVELEADING
 %token          TK_SET
 %token          TK_USEARGNAMES
 %token          TK_VERSION
@@ -365,6 +370,10 @@ static moduleDef *configureModule(sipSpec *pt, moduleDef *module,
 %type <boolean>         bool_value
 %type <exceptionbase>   baseexception
 %type <klass>           class
+
+%type <autopyname>      autopyname_args
+%type <autopyname>      autopyname_arg_list
+%type <autopyname>      autopyname_arg
 
 %type <extract>         extract_args
 %type <extract>         extract_arg_list
@@ -525,7 +534,7 @@ exception:  TK_EXCEPTION scopedname baseexception optflags '{' opttypehdrcode ra
                 if (currentSpec->genc)
                     yyerror("%Exception not allowed in a C module");
 
-                pyname = getPythonName(&$4, scopedNameTail($2));
+                pyname = getPythonName(currentModule, &$4, scopedNameTail($2));
 
                 checkAttributes(currentSpec, currentModule, NULL, NULL,
                         pyname, FALSE);
@@ -1092,12 +1101,16 @@ module_body_directives: module_body_directive
 
             switch ($2.token)
             {
+            case TK_AUTOPYNAME: break;
             case TK_DOCSTRING: $$.docstring = $2.docstring; break;
             }
         }
     ;
 
-module_body_directive:  docstring {
+module_body_directive:  autopyname {
+            $$.token = TK_AUTOPYNAME;
+        }
+    |   docstring {
             $$.token = TK_DOCSTRING;
             $$.docstring = $1;
         }
@@ -1292,6 +1305,35 @@ exporteddoc:    TK_EXPORTEDDOC codeblock {
         }
     ;
 
+autopyname: TK_AUTOPYNAME autopyname_args {
+            if (notSkipping())
+                addAutoPyName(currentModule, $2.remove_leading);
+        }
+    ;
+
+autopyname_args:    '(' autopyname_arg_list ')' {
+            $$ = $2;
+        }
+    ;
+
+autopyname_arg_list:    autopyname_arg
+    |   autopyname_arg_list ',' autopyname_arg {
+            $$ = $1;
+
+            switch ($3.token)
+            {
+            case TK_REMOVELEADING: $$.remove_leading = $3.remove_leading; break;
+            }
+        }
+    ;
+
+autopyname_arg: TK_REMOVELEADING '=' TK_STRING_VALUE {
+            $$.token = TK_REMOVELEADING;
+
+            $$.remove_leading = $3;
+        }
+    ;
+
 extract:    TK_EXTRACT extract_args codeblock {
             if ($2.id == NULL)
                 yyerror("%Extract must have an 'id' argument");
@@ -1405,7 +1447,8 @@ enumline:   ifstart
                 /* Note that we don't use the assigned value. */
                 emd = sipMalloc(sizeof (enumMemberDef));
 
-                emd -> pyname = cacheName(currentSpec, getPythonName(&$3, $1));
+                emd -> pyname = cacheName(currentSpec,
+                        getPythonName(currentModule, &$3, $1));
                 emd -> cname = $1;
                 emd -> ed = currentEnum;
                 emd -> next = NULL;
@@ -3520,7 +3563,7 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd,
     optFlag *flg;
 
     /* Get the Python name and see if it is different to the C++ name. */
-    pyname = getPythonName(of, classBaseName(cd));
+    pyname = getPythonName(mod, of, classBaseName(cd));
 
     cd->pyname = NULL;
     checkAttributes(pt, mod, cd->ecd, NULL, pyname, FALSE);
@@ -3805,7 +3848,7 @@ static mappedTypeDef *newMappedType(sipSpec *pt, argDef *ad, optFlags *of)
     mtd = allocMappedType(pt, ad);
 
     if (cname != NULL)
-        mtd->pyname = cacheName(pt, getPythonName(of, cname));
+        mtd->pyname = cacheName(pt, getPythonName(currentModule, of, cname));
 
     if (findOptFlag(of, "NoRelease", bool_flag) != NULL)
         setNoRelease(mtd);
@@ -3882,7 +3925,7 @@ static enumDef *newEnum(sipSpec *pt, moduleDef *mod, mappedTypeDef *mt_scope,
 
     if (name != NULL)
     {
-        ed->pyname = cacheName(pt, getPythonName(of, name));
+        ed->pyname = cacheName(pt, getPythonName(mod, of, name));
         checkAttributes(pt, mod, c_scope, mt_scope, ed->pyname->text, FALSE);
 
         ed->fqcname = text2scopedName(scope, name);
@@ -5028,7 +5071,7 @@ static void newVar(sipSpec *pt,moduleDef *mod,char *name,int isstatic,
 {
     varDef *var;
     classDef *escope = currentScope();
-    nameDef *nd = cacheName(pt,getPythonName(of,name));
+    nameDef *nd = cacheName(pt, getPythonName(mod, of, name));
 
     if (inMainModule())
         setIsUsedName(nd);
@@ -5349,8 +5392,8 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         setNoCopy(&od->pysig.result);
 
     od->common = findFunction(pt, mod, c_scope, mt_scope,
-            getPythonName(optflgs, name), (methodcode != NULL), sig->nrArgs,
-            no_arg_parser);
+            getPythonName(mod, optflgs, name), (methodcode != NULL),
+            sig->nrArgs, no_arg_parser);
 
     if (docstring != NULL)
         appendCodeBlock(&od->common->docstring, docstring);
@@ -5453,15 +5496,27 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
 /*
  * Return the Python name based on the C/C++ name and any /PyName/ annotation.
  */
-static const char *getPythonName(optFlags *optflgs, const char *cname)
+static const char *getPythonName(moduleDef *mod, optFlags *optflgs,
+        const char *cname)
 {
     const char *pname;
     optFlag *of;
+    autoPyNameDef *apnd;
 
+    /* Use the explicit name if given. */
     if ((of = findOptFlag(optflgs, "PyName", name_flag)) != NULL)
-        pname = of->fvalue.sval;
-    else
-        pname = cname;
+        return of->fvalue.sval;
+
+    /* Apply any automatic naming rules. */
+    pname = cname;
+
+    for (apnd = mod->autopyname; apnd != NULL; apnd = apnd->next)
+    {
+        size_t len = strlen(apnd->remove_leading);
+
+        if (strncmp(pname, apnd->remove_leading, len) == 0)
+            pname += len;
+    }
 
     return pname;
 }
@@ -6763,4 +6818,22 @@ static moduleDef *configureModule(sipSpec *pt, moduleDef *module,
         yyerror("Cannot mix C and C++ modules");
 
     return module;
+}
+
+
+/*
+ * Add a Python naming rule to a module.
+ */
+static void addAutoPyName(moduleDef *mod, const char *remove_leading)
+{
+    autoPyNameDef *apnd, **apndp;
+
+    for (apndp = &mod->autopyname; *apndp != NULL; apndp = &(*apndp)->next)
+        ;
+
+    apnd = sipMalloc(sizeof (autoPyNameDef));
+    apnd->remove_leading = remove_leading;
+    apnd->next = *apndp;
+
+    *apndp = apnd;
 }

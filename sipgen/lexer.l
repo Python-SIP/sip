@@ -62,6 +62,7 @@ static void fatallex(char *);
 %%
 
 ^[ \t]*%API                 {return TK_API;}
+^[ \t]*%AutoPyName          {BEGIN directive; return TK_AUTOPYNAME;}
 ^[ \t]*%DefaultEncoding     {return TK_DEFENCODING;}
 ^[ \t]*%Plugin              {return TK_PLUGIN;}
 ^[ \t]*%Include             {return TK_INCLUDE;}
@@ -141,6 +142,7 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
 <directive>language         {return TK_LANGUAGE;}
 <directive>name             {return TK_NAME;}
 <directive>order            {return TK_ORDER;}
+<directive>remove_leading   {return TK_REMOVELEADING;}
 <directive>set              {return TK_SET;}
 <directive>use_argument_names   {return TK_USEARGNAMES;}
 <directive>version          {return TK_VERSION;}

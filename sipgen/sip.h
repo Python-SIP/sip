@@ -768,6 +768,7 @@ typedef struct _moduleDef {
     struct _ifaceFileList *used;        /* Interface files used. */
     struct _moduleListDef *allimports;  /* The list of all imports. */
     struct _moduleListDef *imports;     /* The list of direct imports. */
+    struct _autoPyNameDef *autopyname;  /* The Python naming rules. */
     struct _moduleDef *next;            /* Next in the list. */
 } moduleDef;
 
@@ -1090,6 +1091,14 @@ typedef struct _extractPartDef {
 } extractPartDef;
 
 
+/* A rule for automatic Python naming. */
+
+typedef struct _autoPyNameDef {
+    const char *remove_leading;         /* Leading string to remove. */
+    struct _autoPyNameDef *next;        /* The next in the list. */
+} autoPyNameDef;
+
+
 /* The parse tree corresponding to the specification file. */
 
 typedef struct {
@@ -1231,6 +1240,12 @@ typedef struct {
 
 
 /* These represent the configuration of different directives. */
+
+/* %AutoPyName */
+typedef struct _autoPyNameCfg {
+    int token;
+    const char *remove_leading;
+} autoPyNameCfg;
 
 /* %Extract */
 typedef struct _extractCfg {
