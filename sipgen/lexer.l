@@ -721,11 +721,11 @@ void yywarning(char *s)
 /*
  * Handle deprecation warnings.
  */
-void deprecated(const char *s)
+void deprecated(const char *msg)
 {
     warning(DeprecationWarning, "%s:%d: %s\n",
             inputFileStack[currentFile].name,
-            inputFileStack[currentFile].lineno, s);
+            inputFileStack[currentFile].lineno, msg);
 }
 
 

@@ -147,7 +147,7 @@ static void addProperty(sipSpec *pt, moduleDef *mod, classDef *cd,
         const char *name, const char *get, const char *set,
         codeBlock *docstring);
 static moduleDef *configureModule(sipSpec *pt, moduleDef *module,
-        const char *filename, const char *name, int version, int c_module,
+        char *filename, const char *name, int version, int c_module,
         int use_arg_names, codeBlock *docstring);
 static void addAutoPyName(moduleDef *mod, const char *remove_leading);
 %}
@@ -6793,7 +6793,7 @@ static void addProperty(sipSpec *pt, moduleDef *mod, classDef *cd,
  * Configure a module and return the (possibly new) current module.
  */
 static moduleDef *configureModule(sipSpec *pt, moduleDef *module,
-        const char *filename, const char *name, int version, int c_module,
+        char *filename, const char *name, int version, int c_module,
         int use_arg_names, codeBlock *docstring)
 {
     moduleDef *mod;
