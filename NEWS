@@ -3,6 +3,7 @@ v4.12 ??? ??? 2010
   - Deprecated %CModule, use %Module instead.
   - Added the use_argument_names argument to %Module to provide the real names
     of arguments to handwritten code.
+  - Module docstrings are now supported.
   - Added %AutoPyName to automatically provide Python names.
   - Added %Property to implement Python properties based on C/C++ getters and
     setters.
