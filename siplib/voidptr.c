@@ -438,7 +438,7 @@ static PyObject *sipVoidPtr_subscript(PyObject *self, PyObject *key)
             return NULL;
         }
 
-        return make_voidptr(v->voidptr + start, slicelength, v->rw);
+        return make_voidptr((char *)v->voidptr + start, slicelength, v->rw);
     }
 
     bad_key(key);
@@ -522,7 +522,7 @@ static int sipVoidPtr_ass_subscript(PyObject *self, PyObject *key,
         return -1;
     }
 
-    memmove(v->voidptr + start, value_view.buf, size);
+    memmove((char *)v->voidptr + start, value_view.buf, size);
 
     PyBuffer_Release(&value_view);
 #else
@@ -532,7 +532,7 @@ static int sipVoidPtr_ass_subscript(PyObject *self, PyObject *key,
     if (check_slice_size(size, value_size) < 0)
         return -1;
 
-    memmove(v->voidptr + start, value_ptr, size);
+    memmove((char *)v->voidptr + start, value_ptr, size);
 #endif
 
     return 0;

@@ -6068,7 +6068,11 @@ static PyObject *create_property(sipVariableDef *vd)
         doc = Py_None;
         Py_INCREF(doc);
     }
+#if PY_MAJOR_VERSION >= 3
+    else if ((doc = PyUnicode_FromString(vd->vd_docstring)) == NULL)
+#else
     else if ((doc = PyString_FromString(vd->vd_docstring)) == NULL)
+#endif
     {
         goto done;
     }
