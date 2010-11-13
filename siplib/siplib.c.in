@@ -6077,8 +6077,8 @@ static PyObject *create_property(sipVariableDef *vd)
         goto done;
     }
 
-    descr = PyObject_CallFunctionObjArgs(&PyProperty_Type, fget, fset, fdel,
-            doc, NULL);
+    descr = PyObject_CallFunctionObjArgs((PyObject *)&PyProperty_Type, fget,
+            fset, fdel, doc, NULL);
 
 done:
     Py_XDECREF(fget);
@@ -8035,9 +8035,9 @@ static int compareTypeDef(const void *key, const void *el)
         /* Find which external type it is. */
         while (etd->et_nr >= 0)
         {
-            const sipTypeDef **tdp = &module_searched->em_types[etd->et_nr];
+            const void *tdp = &module_searched->em_types[etd->et_nr];
 
-            if (tdp == (const sipTypeDef **)el)
+            if (tdp == el)
             {
                 s2 = etd->et_name;
                 break;

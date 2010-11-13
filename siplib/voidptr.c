@@ -638,7 +638,7 @@ static PyBufferProcs sipVoidPtr_BufferProcs = {
     sipVoidPtr_getwritebuffer,  /* bf_getwritebuffer */
     sipVoidPtr_getsegcount, /* bf_getsegcount */
 #if PY_VERSION_HEX >= 0x02050000
-    sipVoidPtr_getreadbuffer,   /* bf_getcharbuffer */
+    (charbufferproc)sipVoidPtr_getreadbuffer,   /* bf_getcharbuffer */
 #if PY_VERSION_HEX >= 0x02060000
     sipVoidPtr_getbuffer,   /* bf_getbuffer */
     0                       /* bf_releasebuffer */
