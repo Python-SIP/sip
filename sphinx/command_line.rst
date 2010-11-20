@@ -68,8 +68,8 @@ The full set of command line options is:
 
     The directory is added to the list of directories searched when looking for
     a specification file given in an :directive:`%Include` or
-    :directive:`%Import` directive.  This option may be given any number of
-    times.
+    :directive:`%Import` directive.  Directory separators must always be ``/``.
+    This option may be given any number of times.
 
 .. cmdoption:: -j <NUMBER>
 

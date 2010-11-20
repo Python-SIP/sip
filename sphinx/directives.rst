@@ -1320,6 +1320,8 @@ containing the :directive:`%Import` directive) and tries again.  If this also
 fails then SIP prepends *filename* with each of the directories, in turn,
 specified by the ``-I`` command line option.
 
+Directory separators must always be ``/``.
+
 For example::
 
     %Import qt/qtmod.sip
@@ -1338,6 +1340,8 @@ specification into manageable pieces.
 
 :directive:`%Include` follows the same search process as :directive:`%Import`
 when trying to open *filename*.
+
+Directory separators must always be ``/``.
 
 For example::
 

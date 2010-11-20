@@ -245,8 +245,7 @@ Argument Annotations
     ``void *`` or ``const void *``.  It identifies an argument that defines the
     size of the block of memory whose address is being returned.  This allows
     the ``sip.voidptr`` object that wraps the address to support the Python
-    buffer protocol and allows the memory to be read and updated when wrapped
-    by the Python ``buffer()`` builtin.
+    buffer protocol.
 
 
 .. argument-annotation:: SingleShot
