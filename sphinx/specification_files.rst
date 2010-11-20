@@ -222,7 +222,7 @@ file.
             [*function-annotations*] **;** [:directive:`%Docstring`]
             [:directive:`%MethodCode`]
 
-    *namespace* ::= **namespace** *name* **{** {*namespace-line*} **};**
+    *namespace* ::= **namespace** *name* [**{** {*namespace-line*} **}**] **;**
 
     *namespace-line* ::= [:directive:`%TypeHeaderCode` | *statement*]
 
@@ -499,3 +499,70 @@ For Python v3 the ``__div__`` method will be used for true division if a
 
 For all versions of Python, if both methods are defined then ``__div__``
 should be defined first.
+
+
+Namespaces
+----------
+
+SIP implements C++ namespaces as a Python class which cannot be instantiated.
+The contents of the namespace, including nested namespaces, are implemented as
+attributes of the class.
+
+The namespace class is created in the module that SIP is parsing when it first
+sees the namespace defined.  If a function (for example) is defined in a
+namespace that is first defined in another module then the function is added to
+the namespace class in that other module.
+
+Say that we have a file ``a.sip`` that defines a module ``a_module`` as
+follows::
+
+    %Module a_module
+
+    namespace N
+    {
+        void hello();
+    };
+
+We also have a file ``b.sip`` that defines a module ``b_module`` as follows::
+
+    %Module b_module
+
+    %Import a.sip
+
+    namespace N
+    {
+        void bye();
+    };
+
+When SIP parses ``b.sip`` it first sees the ``N`` namespace defined in module
+``a_module``.  Therefore it places the ``bye()`` function in the ``N`` Python
+class in the ``a_module``.  It does not create an ``N`` Python class in the
+``b_module``.  Consequently the following code will call the ``bye()``
+function::
+
+    import a_module
+    import b_module
+    a_module.N.bye()
+
+While this reflects the C++ usage it may not be obvious to the Python
+programmer who might expect to call the ``bye()`` function using::
+
+    import b_module
+    b_module.N.bye()
+
+In order to achieve this behavior make sure that the ``N`` namespace is first
+defined in the ``b_module``.  The following version of ``b.sip`` does this::
+
+    %Module b_module
+
+    namespace N;
+
+    %Import a.sip
+
+    namespace N
+    {
+        void bye();
+    };
+
+Alternatively you could just move the :directive:`%Import` directive so that it
+is at the end of the file.

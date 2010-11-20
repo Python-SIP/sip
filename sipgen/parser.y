@@ -790,7 +790,7 @@ namespace:  TK_NAMESPACE TK_NAME_VALUE {
 
                 sectionFlags = 0;
             }
-        } '{' nsbody '}' ';' {
+        } optnsbody ';' {
             if (notSkipping())
             {
                 if (inMainModule())
@@ -804,6 +804,10 @@ namespace:  TK_NAMESPACE TK_NAME_VALUE {
                 popScope();
             }
         }
+    ;
+
+optnsbody:
+    |   '{' nsbody '}'
     ;
 
 nsbody:     nsstatement
