@@ -13808,42 +13808,40 @@ static void generateDocstring(sipSpec *pt, overDef *overs, memberDef *md,
 
         if (sep == NULL)
         {
-            fprintf(fp, "\"");
+            prcode(fp, "\"");
             sep = "\\n\"\n    \"";
         }
         else
         {
-            fprintf(fp, "%s", sep);
+            prcode(fp, "%s", sep);
         }
 
         prScopedPythonName(fp, scope_scope, scope_name);
 
         if (scope_name != NULL)
-            fprintf(fp, ".");
+            prcode(fp, ".");
 
-        fprintf(fp, "%s", md->pyname->text);
+        prcode(fp, "%s", md->pyname->text);
         need_sec = prPythonSignature(pt, fp, &od->pysig, FALSE, TRUE, TRUE,
                 TRUE, FALSE);
-        ++currentLineNr;
 
         if (need_sec)
         {
-            fprintf(fp, "%s", sep);
+            prcode(fp, "%s", sep);
 
             prScopedPythonName(fp, scope_scope, scope_name);
 
             if (scope_name != NULL)
-                fprintf(fp, ".");
+                prcode(fp, ".");
 
-            fprintf(fp, "%s", md->pyname->text);
+            prcode(fp, "%s", md->pyname->text);
             prPythonSignature(pt, fp, &od->pysig, TRUE, TRUE, TRUE, TRUE,
                     FALSE);
-            ++currentLineNr;
         }
     }
 
     if (sep != NULL)
-        fprintf(fp, "\"");
+        prcode(fp, "\"");
 }
 
 
