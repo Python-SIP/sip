@@ -986,6 +986,9 @@ static const char *pyType(sipSpec *pt, argDef *ad, int sec, classDef **scope)
         type_name = "str";
         break;
 
+    case byte_type:
+    case sbyte_type:
+    case ubyte_type:
     case ushort_type:
     case uint_type:
     case long_type:

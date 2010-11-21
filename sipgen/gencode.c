@@ -3243,9 +3243,10 @@ static int generateInts(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
         if (vd->ecd != cd || vd->module != mod)
             continue;
 
-        if (!(vtype == enum_type || vtype == ushort_type ||
-              vtype == short_type || vtype == uint_type ||
-              vtype == cint_type || vtype == int_type ||
+        if (!(vtype == enum_type || vtype == byte_type ||
+              vtype == sbyte_type || vtype == ubyte_type ||
+              vtype == ushort_type || vtype == short_type ||
+              vtype == uint_type || vtype == cint_type || vtype == int_type ||
               vtype == bool_type || vtype == cbool_type))
             continue;
 
@@ -4521,6 +4522,8 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
 
         /* Drop through. */
 
+    case byte_type:
+    case sbyte_type:
     case short_type:
     case cint_type:
     case int_type:
@@ -4535,6 +4538,7 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
             );
         break;
 
+    case ubyte_type:
     case ushort_type:
     case uint_type:
     case ulong_type:
@@ -4934,6 +4938,18 @@ static int generateObjToCppConversion(argDef *ad,FILE *fp)
     case bool_type:
     case cbool_type:
         rhs = "(bool)SIPLong_AsLong(sipPy)";
+        break;
+
+    case byte_type:
+        rhs = "(char)SIPLong_AsLong(sipPy)";
+        break;
+
+    case sbyte_type:
+        rhs = "(signed char)SIPLong_AsLong(sipPy)";
+        break;
+
+    case ubyte_type:
+        rhs = "(unsigned char)sipLong_AsUnsignedLong(sipPy)";
         break;
 
     case ushort_type:
@@ -7593,6 +7609,13 @@ static const char *getParseResultFormat(argDef *ad, int res_isref, int xfervh)
     case enum_type:
         return ((ad->u.ed->fqcname != NULL) ? "F" : "e");
 
+    case byte_type:
+    case sbyte_type:
+        return "L";
+
+    case ubyte_type:
+        return "M";
+
     case ushort_type:
         return "t";
 
@@ -7737,6 +7760,23 @@ static void generateTupleBuilder(moduleDef *mod, signatureDef *sd,FILE *fp)
                 arraylenarg = a;
             else
                 fmt = "i";
+
+            break;
+
+        case byte_type:
+        case sbyte_type:
+            if (isArraySize(ad))
+                arraylenarg = a;
+            else
+                fmt = "L";
+
+            break;
+
+        case ubyte_type:
+            if (isArraySize(ad))
+                arraylenarg = a;
+            else
+                fmt = "M";
 
             break;
 
@@ -8666,10 +8706,12 @@ static void generateNamedBaseType(ifaceFileDef *scope, argDef *ad, char *name,
 
         switch (ad->atype)
         {
+        case sbyte_type:
         case sstring_type:
             prcode(fp, "signed char");
             break;
 
+        case ubyte_type:
         case ustring_type:
             prcode(fp, "unsigned char");
             break;
@@ -8687,6 +8729,7 @@ static void generateNamedBaseType(ifaceFileDef *scope, argDef *ad, char *name,
 
             /* Drop through. */
 
+        case byte_type:
         case ascii_string_type:
         case latin1_string_type:
         case utf8_string_type:
@@ -11189,6 +11232,8 @@ static void generateHandleResult(moduleDef *mod, overDef *od, int isNew,
 
         /* Drop through. */
 
+    case byte_type:
+    case sbyte_type:
     case short_type:
     case int_type:
     case cint_type:
@@ -11205,6 +11250,7 @@ static void generateHandleResult(moduleDef *mod, overDef *od, int isNew,
 
         break;
 
+    case ubyte_type:
     case ushort_type:
     case uint_type:
     case ulong_type:
@@ -11335,6 +11381,13 @@ static const char *getBuildResultFormat(argDef *ad)
 
     case enum_type:
         return (ad->u.ed->fqcname != NULL) ? "F" : "e";
+
+    case byte_type:
+    case sbyte_type:
+        return "L";
+
+    case ubyte_type:
+        return "M";
 
     case short_type:
         return "h";
@@ -12373,6 +12426,19 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
 
         case cint_type:
             fmt = "Xi";
+            break;
+
+        case byte_type:
+        case sbyte_type:
+            if (!isArraySize(ad))
+                fmt = "L";
+
+            break;
+
+        case ubyte_type:
+            if (!isArraySize(ad))
+                fmt = "M";
+
             break;
 
         case short_type:

@@ -550,7 +550,10 @@ typedef enum {
     ssize_type,
     ascii_string_type,
     latin1_string_type,
-    utf8_string_type
+    utf8_string_type,
+    byte_type,
+    sbyte_type,
+    ubyte_type
 } argType;
 
 

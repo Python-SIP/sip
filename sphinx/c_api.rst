@@ -285,6 +285,16 @@ specification files.
         object.  If the array is ``NULL`` then the length is ignored and the
         result is ``Py_None``.
 
+    ``L`` (integer) [char]
+        .. versionadded:: 4.12
+
+        Convert a C/C++ ``char`` to a Python integer.
+
+    ``M`` (long) [unsigned char]
+        .. versionadded:: 4.12
+
+        Convert a C/C++ ``unsigned char`` to a Python long.
+
     ``N`` (wrapped instance) [*type* \*, :ctype:`sipTypeDef` \*, PyObject \*]
         Convert a new C structure, C++ class or mapped type instance to a
         Python object.  Ownership of the instance is determined by the
@@ -1265,6 +1275,16 @@ specification files.
                  annotations
 
             0x04 returns a copy of the C/C++ instance.
+
+    ``L`` (integer) [signed char \*]
+        .. versionadded:: 4.12
+
+        Convert a Python integer to a C/C++ ``signed char``.
+
+    ``M`` (long) [unsigned char \*]
+        .. versionadded:: 4.12
+
+        Convert a Python long to a C/C++ ``unsigned char``.
 
     ``N`` (object) [PyTypeObject \*, :PyObject \*\*]
         A Python object is checked to see if it is a certain type and then

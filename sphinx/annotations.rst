@@ -239,6 +239,17 @@ Argument Annotations
     Both :aanno:`In` and :aanno:`Out` may be specified for the same argument.
 
 
+.. argument-annotation:: PyInt
+
+    .. versionadded:: 4.12
+
+    This boolean annotation is used with ``char``, ``signed char`` and
+    ``unsigned char`` arguments to specify that they should be interpreted as
+    integers rather than strings of one character.
+
+    .. seealso:: :fanno:`PyInt`
+
+
 .. argument-annotation:: ResultSize
 
     This boolean annotation is used with functions or methods that return a
@@ -692,6 +703,17 @@ Function Annotations
     exceptions) that have the same name in the same C++ scope.
 
     .. seealso:: :directive:`%AutoPyName`
+
+
+.. function-annotation:: PyInt
+
+    .. versionadded:: 4.12
+
+    This boolean annotation is used with functions that return a ``char``,
+    ``signed char`` or ``unsigned char`` value to specify that it should be
+    interpreted as an integer rather than a string of one character.
+
+    .. seealso:: :aanno:`PyInt`
 
 
 .. function-annotation:: ReleaseGIL

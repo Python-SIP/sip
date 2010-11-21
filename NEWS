@@ -12,6 +12,10 @@ v4.12 ??? ??? 2010
   - Deprecated %Doc and %ExportedDoc, use %Extract instead.
   - Added the -X flag to sip to extract text defined with %Extract.
   - Deprecated the -d flag to sip, use -X instead.
+  - Added /PyInt/ as an argument and function annotation to force char types to
+    be handled as Python integers rather that single character strings.
+  - Added the L and M format characters to sipBuildResult(), sipCallMethod()
+    and sipParseResult().
   - Added the -T flag to sip to suppress the timestamp in the header comments
     of generated files.
   - sip.voidptr now behaves like a Python memoryview object and supports

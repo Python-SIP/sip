@@ -2032,6 +2032,9 @@ static void resolveVariableType(sipSpec *pt, varDef *vd)
     case enum_type:
     case bool_type:
     case cbool_type:
+    case byte_type:
+    case sbyte_type:
+    case ubyte_type:
     case ushort_type:
     case short_type:
     case uint_type:
@@ -2162,6 +2165,9 @@ static int supportedType(classDef *cd,overDef *od,argDef *ad,int outputs)
     case enum_type:
     case bool_type:
     case cbool_type:
+    case byte_type:
+    case sbyte_type:
+    case ubyte_type:
     case ushort_type:
     case short_type:
     case uint_type:
@@ -2454,11 +2460,13 @@ int sameSignature(signatureDef *sd1,signatureDef *sd2,int strict)
 #define pyAsFloat(t)    ((t) == cfloat_type || (t) == float_type || \
             (t) == cdouble_type || (t) == double_type)
 #define pyAsInt(t)  ((t) == bool_type || (t) == ssize_type || \
+            (t) == byte_type || (t) == sbyte_type || (t) == ubyte_type || \
             (t) == short_type || (t) == ushort_type || \
             (t) == cint_type || (t) == int_type || (t) == uint_type)
 #define pyAsLong(t) ((t) == long_type || (t) == longlong_type)
 #define pyAsULong(t)    ((t) == ulong_type || (t) == ulonglong_type)
 #define pyAsAuto(t) ((t) == bool_type || \
+            (t) == byte_type || (t) == sbyte_type || (t) == ubyte_type || \
             (t) == short_type || (t) == ushort_type || \
             (t) == int_type || (t) == uint_type || \
             (t) == float_type || (t) == double_type)

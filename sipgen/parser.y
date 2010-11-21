@@ -2307,6 +2307,9 @@ function:   cpptype TK_NAME_VALUE '(' arglist ')' optconst optexceptions optabst
 
                 case bool_type:
                 case cbool_type:
+                case byte_type:
+                case sbyte_type:
+                case ubyte_type:
                 case short_type:
                 case ushort_type:
                 case int_type:
@@ -4146,10 +4149,12 @@ static char *type2string(argDef *ad)
             on_heap = TRUE;
             break;
 
+        case ubyte_type:
         case ustring_type:
             s = "unsigned char";
             break;
 
+        case byte_type:
         case ascii_string_type:
         case latin1_string_type:
         case utf8_string_type:
@@ -4157,6 +4162,7 @@ static char *type2string(argDef *ad)
             s = "char";
             break;
 
+        case sbyte_type:
         case sstring_type:
             s = "signed char";
             break;
@@ -6566,6 +6572,16 @@ static void addVariable(sipSpec *pt, varDef *vd)
 static void applyTypeFlags(moduleDef *mod, argDef *ad, optFlags *flags)
 {
     ad->doctype = getDocType(flags);
+
+    if (findOptFlag(flags, "PyInt", bool_flag) != NULL && ad->nrderefs == 0)
+    {
+        if (ad->atype == string_type)
+            ad->atype = byte_type;
+        else if (ad->atype == sstring_type)
+            ad->atype = sbyte_type;
+        else if (ad->atype == ustring_type)
+            ad->atype = ubyte_type;
+    }
 
     if (ad->atype == string_type && !isArray(ad) && !isReference(ad))
     {
