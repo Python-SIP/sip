@@ -6573,7 +6573,7 @@ static void applyTypeFlags(moduleDef *mod, argDef *ad, optFlags *flags)
 {
     ad->doctype = getDocType(flags);
 
-    if (findOptFlag(flags, "PyInt", bool_flag) != NULL && ad->nrderefs == 0)
+    if (findOptFlag(flags, "PyInt", bool_flag) != NULL)
     {
         if (ad->atype == string_type)
             ad->atype = byte_type;
