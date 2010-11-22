@@ -70,8 +70,9 @@ static enumDef *newEnum(sipSpec *pt, moduleDef *mod, mappedTypeDef *mt_scope,
         char *name, optFlags *of, int flags);
 static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod, classDef *scope, scopedNameDef *fqname, classTmplDef *tcd, templateDef *td);
 static void newTypedef(sipSpec *, moduleDef *, char *, argDef *, optFlags *);
-static void newVar(sipSpec *, moduleDef *, char *, int, argDef *, optFlags *,
-        codeBlock *, codeBlock *, codeBlock *);
+static void newVar(sipSpec *pt, moduleDef *mod, char *name, int isstatic,
+        argDef *type, optFlags *of, codeBlock *acode, codeBlock *gcode,
+        codeBlock *scode, int section);
 static void newCtor(char *, int, signatureDef *, optFlags *, codeBlock *,
         throwArgs *, signatureDef *, int, codeBlock *);
 static void newFunction(sipSpec *, moduleDef *, classDef *, mappedTypeDef *,
@@ -175,6 +176,7 @@ static void addAutoPyName(moduleDef *mod, const char *remove_leading);
     extractCfg      extract;
     moduleCfg       module;
     propertyCfg     property;
+    variableCfg     variable;
 }
 
 %token          TK_API
@@ -392,6 +394,10 @@ static void addAutoPyName(moduleDef *mod, const char *remove_leading);
 %type <property>        property_body
 %type <property>        property_body_directives
 %type <property>        property_body_directive
+
+%type <variable>        variable_body
+%type <variable>        variable_body_directives
+%type <variable>        variable_body_directive
 
 %%
 
@@ -1118,11 +1124,22 @@ module_body_directive:  ifstart {
             $$.token = TK_END;
         }
     |   autopyname {
-            $$.token = TK_AUTOPYNAME;
+            if (notSkipping())
+                $$.token = TK_AUTOPYNAME;
+            else
+                $$.token = 0;
         }
     |   docstring {
-            $$.token = TK_DOCSTRING;
-            $$.docstring = $1;
+            if (notSkipping())
+            {
+                $$.token = TK_DOCSTRING;
+                $$.docstring = $1;
+            }
+            else
+            {
+                $$.token = 0;
+                $$.docstring = NULL;
+            }
         }
     ;
 
@@ -2087,8 +2104,16 @@ property_body_directive:    ifstart {
             $$.token = TK_END;
         }
     |   docstring {
-            $$.token = TK_DOCSTRING;
-            $$.docstring = $1;
+            if (notSkipping())
+            {
+                $$.token = TK_DOCSTRING;
+                $$.docstring = $1;
+            }
+            else
+            {
+                $$.token = 0;
+                $$.docstring = NULL;
+            }
         }
     ;
 
@@ -2711,38 +2736,117 @@ member:
     |   function
     ;
 
-variable:   cpptype TK_NAME_VALUE optflags ';' optaccesscode optgetcode optsetcode {
-            if (notSkipping())
+variable:   cpptype TK_NAME_VALUE optflags variable_body ';' optaccesscode optgetcode optsetcode {
+            if ($6 != NULL)
             {
-                /* Check the section. */
+                if ($4.access_code != NULL)
+                    yyerror("%AccessCode already defined");
 
-                if (sectionFlags != 0)
-                {
-                    if ((sectionFlags & SECT_IS_PUBLIC) == 0)
-                        yyerror("Class variables must be in the public section");
+                $4.access_code = $6;
 
-                    if (!currentIsStatic && $5 != NULL)
-                        yyerror("%AccessCode cannot be specified for non-static class variables");
-                }
-
-                if (currentIsStatic && currentSpec -> genc)
-                    yyerror("Cannot have static members in a C structure");
-
-                applyTypeFlags(currentModule, &$1, &$3);
-
-                if ($6 != NULL || $7 != NULL)
-                {
-                    if ($5 != NULL)
-                        yyerror("Cannot mix %AccessCode and %GetCode or %SetCode");
-
-                    if (currentScope() == NULL)
-                        yyerror("Cannot specify %GetCode or %SetCode for global variables");
-                }
-
-                newVar(currentSpec,currentModule,$2,currentIsStatic,&$1,&$3,$5,$6,$7);
+                deprecated("%AccessCode should be used a sub-directive");
             }
 
+            if ($7 != NULL)
+            {
+                if ($4.get_code != NULL)
+                    yyerror("%GetCode already defined");
+
+                $4.get_code = $7;
+
+                deprecated("%GetCode should be used a sub-directive");
+            }
+
+            if ($8 != NULL)
+            {
+                if ($4.set_code != NULL)
+                    yyerror("%SetCode already defined");
+
+                $4.set_code = $8;
+
+                deprecated("%SetCode should be used a sub-directive");
+            }
+
+            if (notSkipping())
+                newVar(currentSpec, currentModule, $2, currentIsStatic, &$1,
+                        &$3, $4.access_code, $4.get_code, $4.set_code,
+                        sectionFlags);
+
             currentIsStatic = FALSE;
+        }
+    ;
+
+variable_body:  {
+            $$.token = 0;
+            $$.access_code = NULL;
+            $$.get_code = NULL;
+            $$.set_code = NULL;
+        }
+    |   '{' variable_body_directives '}' {
+            $$ = $2;
+        }
+    ;
+
+variable_body_directives:   variable_body_directive
+    |   variable_body_directives variable_body_directive {
+            $$ = $1;
+
+            switch ($2.token)
+            {
+            case TK_ACCESSCODE: $$.access_code = $2.access_code; break;
+            case TK_GETCODE: $$.get_code = $2.get_code; break;
+            case TK_SETCODE: $$.set_code = $2.set_code; break;
+            }
+        }
+    ;
+
+variable_body_directive:    ifstart {
+            $$.token = TK_IF;
+        }
+    |   ifend {
+            $$.token = TK_END;
+        }
+    |   TK_ACCESSCODE codeblock {
+            if (notSkipping())
+            {
+                $$.token = TK_ACCESSCODE;
+                $$.access_code = $2;
+            }
+            else
+            {
+                $$.token = 0;
+                $$.access_code = NULL;
+                $$.get_code = NULL;
+                $$.set_code = NULL;
+            }
+        }
+    |   TK_GETCODE codeblock {
+            if (notSkipping())
+            {
+                $$.token = TK_GETCODE;
+                $$.get_code = $2;
+            }
+            else
+            {
+                $$.token = 0;
+                $$.access_code = NULL;
+                $$.get_code = NULL;
+                $$.set_code = NULL;
+            }
+        }
+    |   TK_SETCODE codeblock {
+            if (notSkipping())
+            {
+                $$.token = TK_SETCODE;
+                $$.set_code = $2;
+            }
+            else
+            {
+                $$.token = 0;
+                $$.access_code = NULL;
+                $$.get_code = NULL;
+                $$.set_code = NULL;
+            }
         }
     ;
 
@@ -5087,13 +5191,39 @@ int sameTemplateSignature(signatureDef *tmpl_sd, signatureDef *args_sd,
 /*
  * Create a new variable.
  */
-static void newVar(sipSpec *pt,moduleDef *mod,char *name,int isstatic,
-           argDef *type,optFlags *of,codeBlock *acode,codeBlock *gcode,
-           codeBlock *scode)
+static void newVar(sipSpec *pt, moduleDef *mod, char *name, int isstatic,
+        argDef *type, optFlags *of, codeBlock *acode, codeBlock *gcode,
+        codeBlock *scode, int section)
 {
     varDef *var;
     classDef *escope = currentScope();
-    nameDef *nd = cacheName(pt, getPythonName(mod, of, name));
+    nameDef *nd;
+
+    /* Check the section. */
+    if (section != 0)
+    {
+        if ((section & SECT_IS_PUBLIC) == 0)
+            yyerror("Class variables must be in the public section");
+
+        if (!isstatic && acode != NULL)
+            yyerror("%AccessCode cannot be specified for non-static class variables");
+    }
+
+    if (isstatic && pt->genc)
+        yyerror("Cannot have static members in a C structure");
+
+    if (gcode != NULL || scode != NULL)
+    {
+        if (acode != NULL)
+            yyerror("Cannot mix %AccessCode and %GetCode or %SetCode");
+
+        if (escope == NULL)
+            yyerror("Cannot specify %GetCode or %SetCode for global variables");
+    }
+
+    applyTypeFlags(mod, type, of);
+
+    nd = cacheName(pt, getPythonName(mod, of, name));
 
     if (inMainModule())
         setIsUsedName(nd);

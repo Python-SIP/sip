@@ -58,6 +58,9 @@ sub-directives.  In this case the syntax is:
         *code*
     %End
 
+Ordinary C/C++ statements may also have sub-directives.  These will also be
+enclosed in braces.
+
 
 List of Directives
 ------------------
@@ -70,25 +73,29 @@ List of Directives
         *code*
     %End
 
-This directive is used immediately after the declaration of an instance of a
-wrapped class or structure, or a pointer to such an instance.  You use it to
-provide handwritten code that overrides the default behaviour.
+This sub-directive is used in the declaration of an instance of a wrapped class
+or structure, or a pointer to such an instance.  You use it to provide
+handwritten code that overrides the default behaviour.
 
 For example::
 
     class Klass;
 
-    Klass *klassInstance;
-    %AccessCode
-        // In this contrived example the C++ library we are wrapping defines
-        // klassInstance as Klass ** (which SIP doesn't support) so we
-        // explicitly dereference it.
-        if (klassInstance && *klassInstance)
-            return *klassInstance;
+    Klass *klassInstance
+    {
+        %AccessCode
+            // In this contrived example the C++ library we are wrapping
+            // defines klassInstance as Klass ** (which SIP doesn't support) so
+            // we explicitly dereference it.
+            if (klassInstance && *klassInstance)
+                return *klassInstance;
 
-        // This will get converted to None.
-        return 0;
-    %End
+            // This will get converted to None.
+            return 0;
+        %End
+    };
+
+.. seealso:: :directive:`%GetCode`, :directive:`%SetCode`
 
 
 .. directive:: %API
@@ -1149,7 +1156,7 @@ The following simplified example is taken from PyQt's ``QCustomEvent`` class::
         *code*
     %End
 
-This directive is used after the declaration of a C++ class variable or C
+This sub-directive is used in the declaration of a C++ class variable or C
 structure member to specify handwritten code to convert it to a Python object.
 It is usually used to handle types that SIP cannot deal with automatically.
 
@@ -1180,29 +1187,40 @@ For example::
          * defines this as char buffer[100] which SIP cannot handle
          * automatically.
          */
-        char *buffer;
-    %GetCode
-            sipPy = PyString_FromStringAndSize(sipCpp->buffer, 100);
-    %End
-    %SetCode
-            char *ptr;
-            int length;
+        char *buffer
+        {
+            %GetCode
+                sipPy = PyString_FromStringAndSize(sipCpp->buffer, 100);
+            %End
 
-            if (PyString_AsStringAndSize(sipPy, &ptr, &length) == -1)
-                sipErr = 1;
-            else if (length != 100)
-            {
-                /*
-                 * Raise an exception because the length isn't exactly right.
-                 */
+            %SetCode
+                char *ptr;
+                int length;
 
-                PyErr_SetString(PyExc_ValueError, "an Entity.buffer must be exactly 100 bytes");
-                sipErr = 1;
-            }
-            else
-                memcpy(sipCpp->buffer, ptr, 100);
-    %End
+                if (PyString_AsStringAndSize(sipPy, &ptr, &length) == -1)
+                {
+                    sipErr = 1;
+                }
+                else if (length != 100)
+                {
+                    /*
+                     * Raise an exception because the length isn't exactly
+                     * right.
+                     */
+
+                    PyErr_SetString(PyExc_ValueError,
+                            "an Entity.buffer must be exactly 100 bytes");
+                    sipErr = 1;
+                }
+                else
+                {
+                    memcpy(sipCpp->buffer, ptr, 100);
+                }
+            %End
+        };
     }
+
+.. seealso:: :directive:`%AccessCode`, :directive:`%SetCode`
 
 
 .. directive:: %If
@@ -1262,43 +1280,21 @@ For example::
         // Always process this.
     %End
 
-Note that this directive is not implemented as a preprocessor.  Only the
-following parts of a specification are affected by it:
+Note that the following directives ignore any :directive:`%If` directive.
 
-    - :directive:`%API`
-    - :directive:`%AutoPyName`
-    - ``class``
-    - :directive:`%ConvertFromTypeCode`
-    - :directive:`%ConvertToSubClassCode`
-    - :directive:`%ConvertToTypeCode`
-    - ``enum``
-    - :directive:`%DefaultEncoding`
-    - :directive:`%DefaultMetatype`
-    - :directive:`%DefaultSupertype`
-    - :directive:`%ExportedHeaderCode`
-    - :directive:`%Extract`
-    - functions
-    - :directive:`%GCClearCode`
-    - :directive:`%GCTraverseCode`
-    - :directive:`%If`
-    - :directive:`%InitialisationCode`
-    - :directive:`%MappedType`
-    - :directive:`%MethodCode`
-    - :directive:`%Module`
-    - :directive:`%ModuleCode`
-    - :directive:`%ModuleHeaderCode`
-    - ``namespace``
-    - :directive:`%PostInitialisationCode`
-    - :directive:`%PreInitialisationCode`
-    - :directive:`%Property`
-    - ``struct``
-    - ``typedef``
-    - :directive:`%TypeCode`
-    - :directive:`%TypeHeaderCode`
-    - :directive:`%UnitCode`
-    - :directive:`%UnitPostIncludeCode`
-    - variables
-    - :directive:`%VirtualCatcherCode`
+    - :directive:`%CModule`
+    - :directive:`%CompositeModule`
+    - :directive:`%ConsolidatedModule`
+    - :directive:`%Copying`
+    - :directive:`%Doc`
+    - :directive:`%ExportedDoc`
+    - :directive:`%Feature`
+    - :directive:`%Import`
+    - :directive:`%Include`
+    - :directive:`%License`
+    - :directive:`%OptionalInclude`
+    - :directive:`%Platforms`
+    - :directive:`%Timeline`
 
 Also note that the only way to specify the logical and of qualifiers is to use
 nested :directive:`%If` directives.
@@ -2047,7 +2043,7 @@ See the :directive:`%Exception` directive for an example.
         *code*
     %End
 
-This directive is used after the declaration of a C++ class variable or C
+This sub-directive is used in the declaration of a C++ class variable or C
 structure member to specify handwritten code to convert it from a Python
 object.  It is usually used to handle types that SIP cannot deal with
 automatically.
@@ -2073,7 +2069,7 @@ PyObject \*sipPyType
     (*not* the class in which it is defined).  It may be safely cast to a
     PyTypeObject \* or a sipWrapperType \*.
 
-See the :directive:`%GetCode` directive for an example.
+.. seealso:: :directive:`%AccessCode`, :directive:`%GetCode`
 
 
 .. directive:: %Timeline

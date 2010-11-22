@@ -1277,4 +1277,12 @@ typedef struct _propertyCfg {
     codeBlock *docstring;
 } propertyCfg;
 
+/* Variable sub-directives. */
+typedef struct _variableCfg {
+    int token;
+    codeBlock *access_code;
+    codeBlock *get_code;
+    codeBlock *set_code;
+} variableCfg;
+
 #endif
