@@ -12938,19 +12938,9 @@ static void generateCppCodeBlock(codeBlock *code, FILE *fp)
     }
 
     if (reset_line)
-    {
-        const char *bn;
-
-        /* Just use the base name. */
-        if ((bn = strrchr(currentFileName, '/')) != NULL)
-            ++bn;
-        else
-            bn = currentFileName;
-
         prcode(fp,
 "#line %d \"%s\"\n"
-            , currentLineNr + 1, bn);
-    }
+            , currentLineNr + 1, currentFileName);
 }
 
 
