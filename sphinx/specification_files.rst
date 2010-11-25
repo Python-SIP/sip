@@ -57,15 +57,11 @@ file.
 
     *module-directive* ::= [
             :directive:`%API` |
-            :directive:`%CModule` |
             :directive:`%CompositeModule` |
             :directive:`%ConsolidatedModule` |
-            :directive:`%Copying` |
             :directive:`%DefaultEncoding` |
             :directive:`%DefaultMetatype` |
             :directive:`%DefaultSupertype` |
-            :directive:`%Doc` |
-            :directive:`%ExportedDoc` |
             :directive:`%ExportedHeaderCode` |
             :directive:`%Extract` |
             :directive:`%Feature` |
@@ -81,7 +77,6 @@ file.
             :directive:`%Platforms` |
             :directive:`%PreInitialisationCode` |
             :directive:`%PostInitialisationCode` |
-            :directive:`%RealArgNames` |
             :directive:`%Timeline` |
             :directive:`%UnitCode` |
             *mapped-type-template*]

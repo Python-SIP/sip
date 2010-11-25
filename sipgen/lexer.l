@@ -55,23 +55,26 @@ static FILE *openFile(const char *);
 static void fatallex(char *);
 %}
 
+%option stack
+
 %x code
 %x ccomment
 %s directive
+%s directive_start
 
 %%
 
-^[ \t]*%API                 {return TK_API;}
-^[ \t]*%AutoPyName          {BEGIN directive; return TK_AUTOPYNAME;}
+^[ \t]*%API                 {BEGIN directive_start; return TK_API;}
+^[ \t]*%AutoPyName          {BEGIN directive_start; return TK_AUTOPYNAME;}
 ^[ \t]*%DefaultEncoding     {return TK_DEFENCODING;}
 ^[ \t]*%Plugin              {return TK_PLUGIN;}
 ^[ \t]*%Include             {return TK_INCLUDE;}
 ^[ \t]*%OptionalInclude     {return TK_OPTINCLUDE;}
 ^[ \t]*%Import              {return TK_IMPORT;}
-^[ \t]*%Module              {BEGIN directive; return TK_MODULE;}
+^[ \t]*%Module              {BEGIN directive_start; return TK_MODULE;}
 ^[ \t]*%CModule             {return TK_CMODULE;}
-^[ \t]*%ConsolidatedModule  {return TK_CONSMODULE;}
-^[ \t]*%CompositeModule     {return TK_COMPOMODULE;}
+^[ \t]*%ConsolidatedModule  {BEGIN directive_start; return TK_CONSMODULE;}
+^[ \t]*%CompositeModule     {BEGIN directive_start; return TK_COMPOMODULE;}
 ^[ \t]*%Timeline            {return TK_TIMELINE;}
 ^[ \t]*%Platforms           {return TK_PLATFORMS;}
 ^[ \t]*%Feature             {return TK_FEATURE;}
@@ -81,8 +84,10 @@ static void fatallex(char *);
 ^[ \t]*%If                  {return TK_IF;}
 ^[ \t]*%DefaultMetatype     {return TK_DEFMETATYPE;}
 ^[ \t]*%DefaultSupertype    {return TK_DEFSUPERTYPE;}
-^[ \t]*%Property            {BEGIN directive; return TK_PROPERTY;}
+^[ \t]*%Property            {BEGIN directive_start; return TK_PROPERTY;}
 <INITIAL>^[ \t]*%End        {return TK_END;}
+<directive_start>^[ \t]*%End    {BEGIN INITIAL; return TK_END;}
+
 class                       {return TK_CLASS;}
 struct                      {return TK_STRUCT;}
 public                      {return TK_PUBLIC;}
@@ -156,9 +161,33 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
     ;
 }
 
-<directive>\( {
-    /* Maintain the parenthesis depth. */
+<directive_start>; {
+    /*
+     * The parsing is complicated because we are using it to handle directive
+     * arguments whose names might be seen as values in a different context.
+     * This means we have to parse the arguments when in a different lexer
+     * state which recognises the argument names as tokens (but doesn't in the
+     * normal state).  We can't enter the new state ('directive') until we know
+     * we really have arguments (i.e. we see the opening '(') but we have to
+     * know that we might be about to - hence the need for the
+     * 'directive_start' state.  The remaining problem is that there may not be
+     * any argument list so we use the (admittedly optional) ';' to reset the
+     * state.
+     */
+
+    BEGIN INITIAL;
+
+    return ';';
+}
+
+<directive_start>\( {
+    /*
+     * Maintain the parenthesis depth so that we don't enter the 'code' state
+     * until any arguments have been parsed.
+     */
     ++parenDepth;
+
+    BEGIN directive;
 
     return '(';
 }
@@ -261,13 +290,13 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
 
 \/\* {
     /* Ignore C-style comments. */
-    BEGIN ccomment;
+    yy_push_state(ccomment);
 }
 <ccomment>\n {
     ++inputFileStack[currentFile].lineno;
 }
 <ccomment>\*\/ {
-    BEGIN INITIAL;
+    yy_pop_state();
 }
 <ccomment>. {
     ;

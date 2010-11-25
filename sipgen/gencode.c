@@ -80,6 +80,7 @@ static void generateSipImportVariables(FILE *fp);
 static void generateModInitStart(moduleDef *mod, int gen_c, FILE *fp);
 static void generateModDefinition(moduleDef *mod, const char *methods,
         FILE *fp);
+static void generateModDocstring(moduleDef *mod, FILE *fp);
 static void generateIfaceCpp(sipSpec *, ifaceFileDef *, int, const char *,
         const char *, FILE *, int);
 static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp);
@@ -118,7 +119,7 @@ static void generateVariable(moduleDef *, ifaceFileDef *, argDef *, int,
         FILE *);
 static void generateNamedValueType(ifaceFileDef *, argDef *, char *, FILE *);
 static void generateBaseType(ifaceFileDef *, argDef *, int, FILE *);
-static void generateNamedBaseType(ifaceFileDef *, argDef *, char *, int,
+static void generateNamedBaseType(ifaceFileDef *, argDef *, const char *, int,
         FILE *);
 static void generateTupleBuilder(moduleDef *, signatureDef *, FILE *);
 static void generateEmitters(moduleDef *mod, classDef *cd, FILE *fp);
@@ -866,6 +867,7 @@ static void generateCompositeCpp(sipSpec *pt, const char *codeDir,
         int timestamp)
 {
     char *cppfile;
+    const char *fullname = pt->module->fullname->text;
     moduleDef *mod;
     FILE *fp;
 
@@ -899,6 +901,7 @@ static void generateCompositeCpp(sipSpec *pt, const char *codeDir,
 "}\n"
         );
 
+    generateModDocstring(pt->module, fp);
     generateModInitStart(pt->module, TRUE, fp);
     generateModDefinition(pt->module, "NULL", fp);
 
@@ -908,8 +911,25 @@ static void generateCompositeCpp(sipSpec *pt, const char *codeDir,
 "\n"
 "#if PY_MAJOR_VERSION >= 3\n"
 "    sipModule = PyModule_Create(&sip_module_def);\n"
+"#elif PY_VERSION_HEX >= 0x02050000\n"
+            );
+
+    if (pt->module->docstring == NULL)
+        prcode(fp,
+"    sipModule = Py_InitModule(\"%s\", NULL);\n"
 "#else\n"
-"    sipModule = Py_InitModule(\"%s\", 0);\n"
+"    Py_InitModule((char *)\"%s\", sip_methods);\n"
+            , fullname
+            , fullname);
+    else
+        prcode(fp,
+"    sipModule = Py_InitModule3(\"%s\", NULL, doc_mod_%s);\n"
+"#else\n"
+"    Py_InitModule3((char *)\"%s\", sip_methods, doc_mod_%s);\n"
+            , fullname, pt->module->name
+            , fullname, pt->module->name);
+
+    prcode(fp,
 "#endif\n"
 "\n"
 "    if (sipModule == NULL)\n"
@@ -917,7 +937,7 @@ static void generateCompositeCpp(sipSpec *pt, const char *codeDir,
 "\n"
 "    sipModuleDict = PyModule_GetDict(sipModule);\n"
 "\n"
-        , pt->module->fullname->text);
+        );
 
     for (mod = pt->modules; mod != NULL; mod = mod->next)
         if (mod->container == pt->module)
@@ -946,6 +966,7 @@ static void generateConsolidatedCpp(sipSpec *pt, const char *codeDir,
 {
     char *cppfile;
     const char *mname = pt->module->name;
+    const char *fullname = pt->module->fullname->text;
     moduleDef *mod;
     FILE *fp;
 
@@ -1047,6 +1068,7 @@ static void generateConsolidatedCpp(sipSpec *pt, const char *codeDir,
 "}\n"
         );
 
+    generateModDocstring(pt->module, fp);
     generateModInitStart(pt->module, generating_c, fp);
 
     prcode(fp,
@@ -1062,11 +1084,49 @@ static void generateConsolidatedCpp(sipSpec *pt, const char *codeDir,
 "\n"
 "#if PY_MAJOR_VERSION >= 3\n"
 "    return PyModule_Create(&sip_module_def);\n"
-"#else\n"
+"#elif PY_VERSION_HEX >= 0x02050000\n"
+        );
+
+    if (pt->module->docstring == NULL)
+        prcode(fp,
 "    Py_InitModule(\"%s\", sip_methods);\n"
+            , fullname);
+    else
+        prcode(fp,
+"    Py_InitModule3(\"%s\", sip_methods, doc_mod_%s);\n"
+            , fullname, mname);
+
+    prcode(fp,
+"#else\n"
+        );
+
+    if (generating_c)
+    {
+        if (pt->module->docstring == NULL)
+            prcode(fp,
+"    Py_InitModule((char *)\"%s\", sip_methods);\n"
+                , fullname);
+        else
+            prcode(fp,
+"    Py_InitModule3((char *)\"%s\", sip_methods, doc_mod_%s);\n"
+                , fullname, mname);
+    }
+    else
+    {
+        if (pt->module->docstring == NULL)
+            prcode(fp,
+"    Py_InitModule(const_cast<char *>(\"%s\"), sip_methods);\n"
+                , fullname);
+        else
+            prcode(fp,
+"    Py_InitModule3(const_cast<char *>(\"%s\"), sip_methods, doc_mod_%s);\n"
+                , fullname, mname);
+    }
+
+    prcode(fp,
 "#endif\n"
 "}\n"
-        , mname);
+        );
 
     closeFile(fp);
     free(cppfile);
@@ -1895,17 +1955,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         , is_api_versions ? "apiVersions" : "NULL"
         , is_versioned_functions ? "versionedFunctions" : "NULL");
 
-    if (mod->docstring != NULL)
-    {
-        prcode(fp,
-"\n"
-"PyDoc_STRVAR(doc_mod_%s, ", mname);
-
-        generateExplicitDocstring(mod->docstring, fp);
-
-        prcode(fp, ");\n"
-            );
-    }
+    generateModDocstring(mod, fp);
 
     /* Generate the storage for the external API pointers. */
     prcode(fp,
@@ -8507,7 +8557,8 @@ void prOverloadDecl(FILE *fp, ifaceFileDef *scope, overDef *od, int defval)
 static void generateCalledArgs(moduleDef *mod, ifaceFileDef *scope,
         signatureDef *sd, funcArgType ftype, int use_typename, FILE *fp)
 {
-    char buf[50], *name;
+    const char *name;
+    char buf[50];
     int a;
 
     for (a = 0; a < sd->nrArgs; ++a)
@@ -8657,8 +8708,8 @@ static void generateBaseType(ifaceFileDef *scope, argDef *ad,
 /*
  * Generate a C++ type and name.
  */
-static void generateNamedBaseType(ifaceFileDef *scope, argDef *ad, char *name,
-        int use_typename, FILE *fp)
+static void generateNamedBaseType(ifaceFileDef *scope, argDef *ad,
+        const char *name, int use_typename, FILE *fp)
 {
     typedefDef *td = ad->original_type;
     int nr_derefs = ad->nrderefs;
@@ -10900,7 +10951,8 @@ static void generateFunctionBody(overDef *od, classDef *c_scope,
 static void generateHandleResult(moduleDef *mod, overDef *od, int isNew,
         int result_size, char *prefix, FILE *fp)
 {
-    char *vname, vnamebuf[50];
+    const char *vname;
+    char vnamebuf[50];
     int a, nrvals, only, has_owner;
     argDef *res, *ad;
 
@@ -14047,4 +14099,23 @@ static void generateExplicitDocstring(codeBlock *docstring, FILE *fp)
 
     if (sep != NULL)
         prcode(fp, "\"");
+}
+
+
+/*
+ * Generate the definition of a module's optional docstring.
+ */
+static void generateModDocstring(moduleDef *mod, FILE *fp)
+{
+    if (mod->docstring != NULL)
+    {
+        prcode(fp,
+"\n"
+"PyDoc_STRVAR(doc_mod_%s, ", mod->name);
+
+        generateExplicitDocstring(mod->docstring, fp);
+
+        prcode(fp, ");\n"
+            );
+    }
 }

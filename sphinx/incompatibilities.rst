@@ -5,6 +5,14 @@ This section describes incompatibilities introduced by particular versions of
 SIP.  Normally these are the removal of previously deprecated features.
 
 
+SIP v4.12
+---------
+
+Prior to this version several directives ignored any enclosing :directive:`%If`
+directive.  Starting with this version all directives are affected by the
+:directive:`%If` directive.
+
+
 SIP v4.10.1
 -----------
 

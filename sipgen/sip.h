@@ -755,7 +755,7 @@ typedef struct _moduleDef {
     codeBlock *unitpostinccode;         /* Compilation unit post-include code. */
     codeBlock *docstring;               /* The docstring. */
     int parts;                          /* The number of parts generated. */
-    char *file;                         /* The filename. */
+    const char *file;                   /* The filename. */
     qualDef *qualifiers;                /* The list of qualifiers. */
     argDef *types;                      /* The array of numbered types. */
     int nrtypes;                        /* The number of numbered types. */
@@ -1262,12 +1262,14 @@ typedef struct _autoPyNameCfg {
 typedef struct _compModuleCfg {
     int token;
     const char *name;
+    codeBlock *docstring;
 } compModuleCfg;
 
 /* %ConsolidatedModule */
 typedef struct _consModuleCfg {
     int token;
     const char *name;
+    codeBlock *docstring;
 } consModuleCfg;
 
 /* %Extract */

@@ -148,7 +148,7 @@ static void addProperty(sipSpec *pt, moduleDef *mod, classDef *cd,
         const char *name, const char *get, const char *set,
         codeBlock *docstring);
 static moduleDef *configureModule(sipSpec *pt, moduleDef *module,
-        char *filename, const char *name, int version, int c_module,
+        const char *filename, const char *name, int version, int c_module,
         int use_arg_names, codeBlock *docstring);
 static void addAutoPyName(moduleDef *mod, const char *remove_leading);
 %}
@@ -387,10 +387,16 @@ static void addAutoPyName(moduleDef *mod, const char *remove_leading);
 %type <compmodule>      compmodule_args
 %type <compmodule>      compmodule_arg_list
 %type <compmodule>      compmodule_arg
+%type <compmodule>      compmodule_body
+%type <compmodule>      compmodule_body_directives
+%type <compmodule>      compmodule_body_directive
 
 %type <consmodule>      consmodule_args
 %type <consmodule>      consmodule_arg_list
 %type <consmodule>      consmodule_arg
+%type <consmodule>      consmodule_body
+%type <consmodule>      consmodule_body_directives
+%type <consmodule>      consmodule_body_directive
 
 %type <extract>         extract_args
 %type <extract>         extract_arg_list
@@ -443,7 +449,9 @@ modstatement:   module
     |   consmodule
     |   compmodule
     |   plugin
-    |   copying
+    |   copying {
+            deprecated("%Copying should be used a sub-directive");
+        }
     |   include
     |   optinclude
     |   import
@@ -1035,7 +1043,7 @@ defsupertype:   TK_DEFSUPERTYPE dottedname {
         }
     ;
 
-consmodule: TK_CONSMODULE consmodule_args optgoon {
+consmodule: TK_CONSMODULE consmodule_args consmodule_body optgoon {
             if (notSkipping())
             {
                 /* Make sure this is the first mention of a module. */
@@ -1046,6 +1054,8 @@ consmodule: TK_CONSMODULE consmodule_args optgoon {
                     yyerror("%ConsolidatedModule must appear before any %Module or %CModule directive");
 
                 setModuleName(currentSpec, currentModule, $2.name);
+                currentModule->docstring = $3.docstring;
+
                 setIsConsolidated(currentModule);
             }
         }
@@ -1077,7 +1087,50 @@ consmodule_arg: TK_NAME '=' dottedname {
         }
     ;
 
-compmodule: TK_COMPOMODULE compmodule_args optgoon {
+consmodule_body:    {
+            $$.token = 0;
+            $$.docstring = NULL;
+        }
+    |   '{' consmodule_body_directives '}' {
+            $$ = $2;
+        }
+    ;
+
+consmodule_body_directives: consmodule_body_directive
+    |   consmodule_body_directives consmodule_body_directive {
+            $$ = $1;
+
+            switch ($2.token)
+            {
+            case TK_DOCSTRING: $$.docstring = $2.docstring; break;
+            }
+        }
+    ;
+
+consmodule_body_directive:  ifstart {
+            $$.token = TK_IF;
+        }
+    |   ifend {
+            $$.token = TK_END;
+        }
+    |   copying {
+            $$.token = TK_COPYING;
+        }
+    |   docstring {
+            if (notSkipping())
+            {
+                $$.token = TK_DOCSTRING;
+                $$.docstring = $1;
+            }
+            else
+            {
+                $$.token = 0;
+                $$.docstring = NULL;
+            }
+        }
+    ;
+
+compmodule: TK_COMPOMODULE compmodule_args compmodule_body optgoon {
             if (notSkipping())
             {
                 /* Make sure this is the first mention of a module. */
@@ -1088,6 +1141,8 @@ compmodule: TK_COMPOMODULE compmodule_args optgoon {
                     yyerror("%CompositeModule must appear before any %Module directive");
 
                 setModuleName(currentSpec, currentModule, $2.name);
+                currentModule->docstring = $3.docstring;
+
                 setIsComposite(currentModule);
             }
         }
@@ -1119,6 +1174,49 @@ compmodule_arg: TK_NAME '=' dottedname {
         }
     ;
 
+compmodule_body:    {
+            $$.token = 0;
+            $$.docstring = NULL;
+        }
+    |   '{' compmodule_body_directives '}' {
+            $$ = $2;
+        }
+    ;
+
+compmodule_body_directives: compmodule_body_directive
+    |   compmodule_body_directives compmodule_body_directive {
+            $$ = $1;
+
+            switch ($2.token)
+            {
+            case TK_DOCSTRING: $$.docstring = $2.docstring; break;
+            }
+        }
+    ;
+
+compmodule_body_directive:  ifstart {
+            $$.token = TK_IF;
+        }
+    |   ifend {
+            $$.token = TK_END;
+        }
+    |   copying {
+            $$.token = TK_COPYING;
+        }
+    |   docstring {
+            if (notSkipping())
+            {
+                $$.token = TK_DOCSTRING;
+                $$.docstring = $1;
+            }
+            else
+            {
+                $$.token = 0;
+                $$.docstring = NULL;
+            }
+        }
+    ;
+
 module: TK_MODULE module_args module_body optgoon {
             if ($2.name == NULL)
                 yyerror("%Module must have a 'name' argument");
@@ -1131,8 +1229,9 @@ module: TK_MODULE module_args module_body optgoon {
     |   TK_CMODULE dottedname optnumber {
             deprecated("%CModule is deprecated, use %Module and the 'language' argument instead");
 
-            currentModule = configureModule(currentSpec, currentModule,
-                    currentContext.filename, $2, $3, TRUE, FALSE, NULL);
+            if (notSkipping())
+                currentModule = configureModule(currentSpec, currentModule,
+                        currentContext.filename, $2, $3, TRUE, FALSE, NULL);
         }
     ;
 
@@ -1221,7 +1320,6 @@ module_body_directives: module_body_directive
 
             switch ($2.token)
             {
-            case TK_AUTOPYNAME: break;
             case TK_DOCSTRING: $$.docstring = $2.docstring; break;
             }
         }
@@ -1234,10 +1332,10 @@ module_body_directive:  ifstart {
             $$.token = TK_END;
         }
     |   autopyname {
-            if (notSkipping())
-                $$.token = TK_AUTOPYNAME;
-            else
-                $$.token = 0;
+            $$.token = TK_AUTOPYNAME;
+        }
+    |   copying {
+            $$.token = TK_COPYING;
         }
     |   docstring {
             if (notSkipping())
@@ -1316,7 +1414,8 @@ optsetcode: {
     ;
 
 copying:    TK_COPYING codeblock {
-            appendCodeBlock(&currentModule->copying, $2);
+            if (notSkipping())
+                appendCodeBlock(&currentModule->copying, $2);
         }
     ;
 
@@ -7053,7 +7152,7 @@ static void addProperty(sipSpec *pt, moduleDef *mod, classDef *cd,
  * Configure a module and return the (possibly new) current module.
  */
 static moduleDef *configureModule(sipSpec *pt, moduleDef *module,
-        char *filename, const char *name, int version, int c_module,
+        const char *filename, const char *name, int version, int c_module,
         int use_arg_names, codeBlock *docstring)
 {
     moduleDef *mod;
