@@ -174,6 +174,8 @@ static void addAutoPyName(moduleDef *mod, const char *remove_leading);
     classDef        *klass;
     apiCfg          api;
     autoPyNameCfg   autopyname;
+    compModuleCfg   compmodule;
+    consModuleCfg   consmodule;
     extractCfg      extract;
     moduleCfg       module;
     propertyCfg     property;
@@ -381,6 +383,14 @@ static void addAutoPyName(moduleDef *mod, const char *remove_leading);
 %type <autopyname>      autopyname_args
 %type <autopyname>      autopyname_arg_list
 %type <autopyname>      autopyname_arg
+
+%type <compmodule>      compmodule_args
+%type <compmodule>      compmodule_arg_list
+%type <compmodule>      compmodule_arg
+
+%type <consmodule>      consmodule_args
+%type <consmodule>      consmodule_arg_list
+%type <consmodule>      consmodule_arg
 
 %type <extract>         extract_args
 %type <extract>         extract_arg_list
@@ -1025,29 +1035,87 @@ defsupertype:   TK_DEFSUPERTYPE dottedname {
         }
     ;
 
-consmodule: TK_CONSMODULE dottedname {
-            /* Make sure this is the first mention of a module. */
-            if (currentSpec->module != currentModule)
-                yyerror("A %ConsolidatedModule cannot be %Imported");
+consmodule: TK_CONSMODULE consmodule_args optgoon {
+            if (notSkipping())
+            {
+                /* Make sure this is the first mention of a module. */
+                if (currentSpec->module != currentModule)
+                    yyerror("A %ConsolidatedModule cannot be %Imported");
 
-            if (currentModule->fullname != NULL)
-                yyerror("%ConsolidatedModule must appear before any %Module or %CModule directive");
+                if (currentModule->fullname != NULL)
+                    yyerror("%ConsolidatedModule must appear before any %Module or %CModule directive");
 
-            setModuleName(currentSpec, currentModule, $2);
-            setIsConsolidated(currentModule);
+                setModuleName(currentSpec, currentModule, $2.name);
+                setIsConsolidated(currentModule);
+            }
         }
     ;
 
-compmodule: TK_COMPOMODULE dottedname {
-            /* Make sure this is the first mention of a module. */
-            if (currentSpec->module != currentModule)
-                yyerror("A %CompositeModule cannot be %Imported");
+consmodule_args:    dottedname {
+            $$.name = $1;
+        }
+    |   '(' consmodule_arg_list ')' {
+            $$ = $2;
+        }
+    ;
 
-            if (currentModule->fullname != NULL)
-                yyerror("%CompositeModule must appear before any %Module or %CModule directive");
+consmodule_arg_list:    consmodule_arg
+    |   consmodule_arg_list ',' consmodule_arg {
+            $$ = $1;
 
-            setModuleName(currentSpec, currentModule, $2);
-            setIsComposite(currentModule);
+            switch ($3.token)
+            {
+            case TK_NAME: $$.name = $3.name; break;
+            }
+        }
+    ;
+
+consmodule_arg: TK_NAME '=' dottedname {
+            $$.token = TK_NAME;
+
+            $$.name = $3;
+        }
+    ;
+
+compmodule: TK_COMPOMODULE compmodule_args optgoon {
+            if (notSkipping())
+            {
+                /* Make sure this is the first mention of a module. */
+                if (currentSpec->module != currentModule)
+                    yyerror("A %CompositeModule cannot be %Imported");
+
+                if (currentModule->fullname != NULL)
+                    yyerror("%CompositeModule must appear before any %Module directive");
+
+                setModuleName(currentSpec, currentModule, $2.name);
+                setIsComposite(currentModule);
+            }
+        }
+    ;
+
+compmodule_args:    dottedname {
+            $$.name = $1;
+        }
+    |   '(' compmodule_arg_list ')' {
+            $$ = $2;
+        }
+    ;
+
+compmodule_arg_list:    compmodule_arg
+    |   compmodule_arg_list ',' compmodule_arg {
+            $$ = $1;
+
+            switch ($3.token)
+            {
+            case TK_NAME: $$.name = $3.name; break;
+            }
+        }
+    ;
+
+compmodule_arg: TK_NAME '=' dottedname {
+            $$.token = TK_NAME;
+
+            $$.name = $3;
         }
     ;
 
@@ -1374,7 +1442,7 @@ exporteddoc:    TK_EXPORTEDDOC codeblock {
         }
     ;
 
-autopyname: TK_AUTOPYNAME autopyname_args {
+autopyname: TK_AUTOPYNAME autopyname_args optgoon {
             if (notSkipping())
                 addAutoPyName(currentModule, $2.remove_leading);
         }

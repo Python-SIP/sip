@@ -368,7 +368,7 @@ For example::
 
 .. parsed-literal::
 
-    %CompositeModule *name*
+    %CompositeModule(name = *dotted-name*)
 
 A composite module is one that merges a number of related SIP generated
 modules.  For example, a module that merges the modules ``a_mod``, ``b_mod``
@@ -399,7 +399,7 @@ don't have to remember which which individual module an object is defined in.
 
 .. parsed-literal::
 
-    %ConsolidatedModule *name*
+    %ConsolidatedModule(name = *dotted-name*)
 
 A consolidated module is one that consolidates the wrapper code of a number of
 SIP generated modules (refered to as component modules in this context).
@@ -1290,8 +1290,6 @@ For example::
 Note that the following directives ignore any :directive:`%If` directive.
 
     - :directive:`%CModule`
-    - :directive:`%CompositeModule`
-    - :directive:`%ConsolidatedModule`
     - :directive:`%Copying`
     - :directive:`%Doc`
     - :directive:`%ExportedDoc`

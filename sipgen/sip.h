@@ -1258,6 +1258,18 @@ typedef struct _autoPyNameCfg {
     const char *remove_leading;
 } autoPyNameCfg;
 
+/* %CompositeModule */
+typedef struct _compModuleCfg {
+    int token;
+    const char *name;
+} compModuleCfg;
+
+/* %ConsolidatedModule */
+typedef struct _consModuleCfg {
+    int token;
+    const char *name;
+} consModuleCfg;
+
 /* %Extract */
 typedef struct _extractCfg {
     int token;
