@@ -638,7 +638,7 @@ that has multiple implementations is imported for the first time.
 Note this mechanism is not intended as a way or providing equally valid
 alternative APIs.  For example::
 
-    %API MyAPI 1
+    %API(name=MyAPI, version=1)
 
     class Foo
     {

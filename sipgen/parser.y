@@ -172,6 +172,7 @@ static void addAutoPyName(moduleDef *mod, const char *remove_leading);
     int             boolean;
     exceptionDef    exceptionbase;
     classDef        *klass;
+    apiCfg          api;
     autoPyNameCfg   autopyname;
     extractCfg      extract;
     moduleCfg       module;
@@ -373,6 +374,10 @@ static void addAutoPyName(moduleDef *mod, const char *remove_leading);
 %type <exceptionbase>   baseexception
 %type <klass>           class
 
+%type <api>             api_args
+%type <api>             api_arg_list
+%type <api>             api_arg
+
 %type <autopyname>      autopyname_args
 %type <autopyname>      autopyname_arg_list
 %type <autopyname>      autopyname_arg
@@ -505,21 +510,21 @@ plugin:     TK_PLUGIN TK_NAME_VALUE {
         }
     ;
 
-api:    TK_API TK_NAME_VALUE TK_NUMBER_VALUE {
+api:    TK_API api_args optgoon {
             if (notSkipping())
             {
                 apiVersionRangeDef *avd;
 
-                if (findAPI(currentSpec, $2) != NULL)
+                if (findAPI(currentSpec, $2.name) != NULL)
                     yyerror("The API name in the %API directive has already been defined");
 
-                if ($3 < 1)
+                if ($2.version < 1)
                     yyerror("The version number in the %API directive must be greater than or equal to 1");
 
                 avd = sipMalloc(sizeof (apiVersionRangeDef));
 
-                avd->api_name = cacheName(currentSpec, $2);
-                avd->from = $3;
+                avd->api_name = cacheName(currentSpec, $2.name);
+                avd->from = $2.version;
                 avd->to = -1;
 
                 avd->next = currentModule->api_versions;
@@ -528,6 +533,43 @@ api:    TK_API TK_NAME_VALUE TK_NUMBER_VALUE {
                 if (inMainModule())
                     setIsUsedName(avd->api_name);
             }
+        }
+    ;
+
+api_args:   TK_NAME_VALUE TK_NUMBER_VALUE {
+            deprecated("%API name and version number should be specified using the 'name' and 'version' arguments");
+
+            $$.name = $1;
+            $$.version = $2;
+        }
+    |   '(' api_arg_list ')' {
+            $$ = $2;
+        }
+    ;
+
+api_arg_list:   api_arg
+    |   api_arg_list ',' api_arg {
+            $$ = $1;
+
+            switch ($3.token)
+            {
+            case TK_NAME: $$.name = $3.name; break;
+            case TK_VERSION: $$.version = $3.version; break;
+            }
+        }
+    ;
+
+api_arg:    TK_NAME '=' TK_NAME_VALUE {
+            $$.token = TK_NAME;
+
+            $$.name = $3;
+            $$.version = 0;
+        }
+    |   TK_VERSION '=' TK_NUMBER_VALUE {
+            $$.token = TK_VERSION;
+
+            $$.name = NULL;
+            $$.version = $3;
         }
     ;
 

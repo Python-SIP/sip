@@ -16,6 +16,8 @@ not define names that start with the prefix ``sip``.
 Revised Directive Syntax
 ------------------------
 
+.. versionadded:: 4.12
+
 The directive syntax used in the current version has some problems:
 
 - it is inconsistent in places
@@ -24,9 +26,10 @@ The directive syntax used in the current version has some problems:
 
 - it is inflexible.
 
-SIP v5 will use a revised directive syntax that addresses these problems.  The
-current version of SIP will, over time, implement the revised syntax for
-existing directives.  At the same time the older syntax will be deprecated.
+SIP v4.12 introduced a revised directive syntax that addresses these problems
+and deprecates the old syntax.  Support for the old syntax will be removed in
+SIP v5.
+
 The revised syntax is:
 
 .. parsed-literal::
@@ -54,12 +57,16 @@ sub-directives.  In this case the syntax is:
 
 .. parsed-literal::
 
-    %Directive(arg=value, ...)
+    %Directive(arg = value, ...)
         *code*
     %End
 
 Ordinary C/C++ statements may also have sub-directives.  These will also be
 enclosed in braces.
+
+The documentation for each directive describes the revised syntax.  The older
+syntax should be used if compatibility with versions of SIP prior to v4.12 is
+required.
 
 
 List of Directives
@@ -104,7 +111,7 @@ For example::
 
 .. parsed-literal::
 
-    %API *name* *version*
+    %API(name = *name*, version = *integer*)
 
 This directive is used to define an API and set its default version number.  A
 version number must be greater than or equal to 1.
@@ -113,7 +120,7 @@ See :ref:`ref-incompat-apis` for more detail.
 
 For example::
 
-    %API PyQt4 1
+    %API(name=PyQt4, version=1)
 
 
 .. directive:: %AutoPyName
@@ -124,11 +131,11 @@ For example::
 
     %AutoPyName(remove_leading = *string*)
 
-This directive, a sub-directive of the :directive:`%Module` directive, is used
-to specify a rule for automatically providing Python names for classes, enums,
-functions, methods, variables and exceptions.  The directive may be specified
-any number of times and each rule will be applied in turn.  Rules will not be
-applied if an item has been given an explicit Python name.
+This is a sub-directive of the :directive:`%Module` directive used to specify a
+rule for automatically providing Python names for classes, enums, functions,
+methods, variables and exceptions.  The directive may be specified any number
+of times and each rule will be applied in turn.  Rules will not be applied if
+an item has been given an explicit Python name.
 
 ``remove_leading`` is a string that will be removed from the beginning of any
 C++ or C name.

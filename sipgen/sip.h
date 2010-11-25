@@ -1245,6 +1245,13 @@ typedef struct {
 
 /* These represent the configuration of different directives. */
 
+/* %API */
+typedef struct _apiCfg {
+    int token;
+    const char *name;
+    int version;
+} apiCfg;
+
 /* %AutoPyName */
 typedef struct _autoPyNameCfg {
     int token;
