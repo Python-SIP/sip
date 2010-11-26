@@ -455,9 +455,7 @@ modstatement:   module
     |   consmodule
     |   compmodule
     |   plugin
-    |   copying {
-            deprecated("%Copying should be used a sub-directive");
-        }
+    |   copying
     |   include
     |   optinclude
     |   import
@@ -1145,9 +1143,6 @@ consmodule_body_directive:  ifstart {
     |   ifend {
             $$.token = TK_END;
         }
-    |   copying {
-            $$.token = TK_COPYING;
-        }
     |   docstring {
             if (notSkipping())
             {
@@ -1231,9 +1226,6 @@ compmodule_body_directive:  ifstart {
         }
     |   ifend {
             $$.token = TK_END;
-        }
-    |   copying {
-            $$.token = TK_COPYING;
         }
     |   docstring {
             if (notSkipping())
@@ -1365,9 +1357,6 @@ module_body_directive:  ifstart {
         }
     |   autopyname {
             $$.token = TK_AUTOPYNAME;
-        }
-    |   copying {
-            $$.token = TK_COPYING;
         }
     |   docstring {
             if (notSkipping())
