@@ -181,6 +181,7 @@ static void addAutoPyName(moduleDef *mod, const char *remove_leading);
     defSupertypeCfg defsupertype;
     exceptionCfg    exception;
     extractCfg      extract;
+    featureCfg      feature;
     moduleCfg       module;
     propertyCfg     property;
     variableCfg     variable;
@@ -421,6 +422,10 @@ static void addAutoPyName(moduleDef *mod, const char *remove_leading);
 %type <extract>         extract_args
 %type <extract>         extract_arg_list
 %type <extract>         extract_arg
+
+%type <feature>         feature_args
+%type <feature>         feature_arg_list
+%type <feature>         feature_arg
 
 %type <module>          module_args
 %type <module>          module_arg_list
@@ -1012,8 +1017,36 @@ platform:   TK_NAME_VALUE {
         }
     ;
 
-feature:    TK_FEATURE TK_NAME_VALUE {
-            newQualifier(currentModule,-1,-1,$2,feature_qualifier);
+feature:    TK_FEATURE feature_args optgoon {
+            if (notSkipping())
+                newQualifier(currentModule, -1, -1, $2.name,
+                        feature_qualifier);
+        }
+    ;
+
+feature_args:   TK_NAME_VALUE {
+            $$.name = $1;
+        }
+    |   '(' feature_arg_list ')' {
+            $$ = $2;
+        }
+    ;
+
+feature_arg_list:   feature_arg
+    |   feature_arg_list ',' feature_arg {
+            $$ = $1;
+
+            switch ($3.token)
+            {
+            case TK_NAME: $$.name = $3.name; break;
+            }
+        }
+    ;
+
+feature_arg:    TK_NAME '=' TK_NAME_VALUE {
+            $$.token = TK_NAME;
+
+            $$.name = $3;
         }
     ;
 
@@ -1123,14 +1156,13 @@ defmetatype:    TK_DEFMETATYPE defmetatype_args optgoon {
                 if (currentModule->defmetatype != NULL)
                     yyerror("%DefaultMetatype has already been defined for this module");
 
-                currentModule->defmetatype = cacheName(currentSpec,
-                        $2.metatype);
+                currentModule->defmetatype = cacheName(currentSpec, $2.name);
             }
         }
     ;
 
 defmetatype_args:   dottedname {
-            $$.metatype = $1;
+            $$.name = $1;
         }
     |   '(' defmetatype_arg_list ')' {
             $$ = $2;
@@ -1143,7 +1175,7 @@ defmetatype_arg_list:   defmetatype_arg
 
             switch ($3.token)
             {
-            case TK_NAME: $$.metatype = $3.metatype; break;
+            case TK_NAME: $$.name = $3.name; break;
             }
         }
     ;
@@ -1151,7 +1183,7 @@ defmetatype_arg_list:   defmetatype_arg
 defmetatype_arg:    TK_NAME '=' dottedname {
             $$.token = TK_NAME;
 
-            $$.metatype = $3;
+            $$.name = $3;
         }
     ;
 
@@ -1161,14 +1193,13 @@ defsupertype:   TK_DEFSUPERTYPE defsupertype_args optgoon {
                 if (currentModule->defsupertype != NULL)
                     yyerror("%DefaultSupertype has already been defined for this module");
 
-                currentModule->defsupertype = cacheName(currentSpec,
-                        $2.supertype);
+                currentModule->defsupertype = cacheName(currentSpec, $2.name);
             }
         }
     ;
 
 defsupertype_args:  dottedname {
-            $$.supertype = $1;
+            $$.name = $1;
         }
     |   '(' defsupertype_arg_list ')' {
             $$ = $2;
@@ -1181,7 +1212,7 @@ defsupertype_arg_list:  defsupertype_arg
 
             switch ($3.token)
             {
-            case TK_NAME: $$.supertype = $3.supertype; break;
+            case TK_NAME: $$.name = $3.name; break;
             }
         }
     ;
@@ -1189,7 +1220,7 @@ defsupertype_arg_list:  defsupertype_arg
 defsupertype_arg:   TK_NAME '=' dottedname {
             $$.token = TK_NAME;
 
-            $$.supertype = $3;
+            $$.name = $3;
         }
     ;
 

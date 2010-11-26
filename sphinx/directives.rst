@@ -1048,7 +1048,7 @@ For example::
 
 .. parsed-literal::
 
-    %Feature *name*
+    %Feature(name = *name*)
 
 This directive is used to declare a feature.  Features (along with
 :directive:`%Platforms` and :directive:`%Timeline`) are used by the
@@ -1056,8 +1056,8 @@ This directive is used to declare a feature.  Features (along with
 are processed or ignored.
 
 Features are mutually independent of each other - any combination of features
-may be enabled or disable.  By default all features are enabled.  The SIP
-``-x`` command line option is used to disable a feature.
+may be enabled or disable.  By default all features are enabled.  The
+:option:`-x <sip -x>` command line option is used to disable a feature.
 
 If a feature is enabled then SIP will automatically generate a corresponding C
 preprocessor symbol for use by handwritten code.  The symbol is the name of
@@ -1304,7 +1304,6 @@ Note that the following directives ignore any :directive:`%If` directive.
 
     - :directive:`%Doc`
     - :directive:`%ExportedDoc`
-    - :directive:`%Feature`
     - :directive:`%Import`
     - :directive:`%Include`
     - :directive:`%License`

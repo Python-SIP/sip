@@ -72,6 +72,7 @@ static void fatallex(char *);
 ^[ \t]*%DefaultEncoding     {BEGIN directive_start; return TK_DEFENCODING;}
 ^[ \t]*%DefaultMetatype     {BEGIN directive_start; return TK_DEFMETATYPE;}
 ^[ \t]*%DefaultSupertype    {BEGIN directive_start; return TK_DEFSUPERTYPE;}
+^[ \t]*%Feature             {BEGIN directive_start; return TK_FEATURE;}
 ^[ \t]*%Module              {BEGIN directive_start; return TK_MODULE;}
 ^[ \t]*%Property            {BEGIN directive_start; return TK_PROPERTY;}
 
@@ -81,7 +82,6 @@ static void fatallex(char *);
 ^[ \t]*%Import              {return TK_IMPORT;}
 ^[ \t]*%Timeline            {return TK_TIMELINE;}
 ^[ \t]*%Platforms           {return TK_PLATFORMS;}
-^[ \t]*%Feature             {return TK_FEATURE;}
 ^[ \t]*%License             {return TK_LICENSE;}
 ^[ \t]*%MappedType          {return TK_MAPPEDTYPE;}
 ^[ \t]*%Exception           {return TK_EXCEPTION;}

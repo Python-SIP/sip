@@ -1281,13 +1281,13 @@ typedef struct _defEncodingCfg {
 /* %DefaultMetatype */
 typedef struct _defMetatypeCfg {
     int token;
-    const char *metatype;
+    const char *name;
 } defMetatypeCfg;
 
 /* %DefaultSupertype */
 typedef struct _defSupertypeCfg {
     int token;
-    const char *supertype;
+    const char *name;
 } defSupertypeCfg;
 
 /* %Exception */
@@ -1303,6 +1303,12 @@ typedef struct _extractCfg {
     const char *id;
     int order;
 } extractCfg;
+
+/* %Feature */
+typedef struct _featureCfg {
+    int token;
+    const char *name;
+} featureCfg;
 
 /* %Module */
 typedef struct _moduleCfg {
