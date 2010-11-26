@@ -177,6 +177,9 @@ static void addAutoPyName(moduleDef *mod, const char *remove_leading);
     compModuleCfg   compmodule;
     consModuleCfg   consmodule;
     defEncodingCfg  defencoding;
+    defMetatypeCfg  defmetatype;
+    defSupertypeCfg defsupertype;
+    exceptionCfg    exception;
     extractCfg      extract;
     moduleCfg       module;
     propertyCfg     property;
@@ -339,7 +342,6 @@ static void addAutoPyName(moduleDef *mod, const char *remove_leading);
 %type <codeb>           exphdrcode
 %type <codeb>           modhdrcode
 %type <codeb>           typehdrcode
-%type <codeb>           opttypehdrcode
 %type <codeb>           travcode
 %type <codeb>           clearcode
 %type <codeb>           getbufcode
@@ -403,6 +405,18 @@ static void addAutoPyName(moduleDef *mod, const char *remove_leading);
 %type <defencoding>     defencoding_args
 %type <defencoding>     defencoding_arg_list
 %type <defencoding>     defencoding_arg
+
+%type <defmetatype>     defmetatype_args
+%type <defmetatype>     defmetatype_arg_list
+%type <defmetatype>     defmetatype_arg
+
+%type <defsupertype>    defsupertype_args
+%type <defsupertype>    defsupertype_arg_list
+%type <defsupertype>    defsupertype_arg
+
+%type <exception>       exception_body
+%type <exception>       exception_body_directives
+%type <exception>       exception_body_directive
 
 %type <extract>         extract_args
 %type <extract>         extract_arg_list
@@ -621,7 +635,7 @@ api_arg:    TK_NAME '=' TK_NAME_VALUE {
         }
     ;
 
-exception:  TK_EXCEPTION scopedname baseexception optflags '{' opttypehdrcode raisecode '}' ';' {
+exception:  TK_EXCEPTION scopedname baseexception optflags exception_body optgoon {
             if (notSkipping())
             {
                 exceptionDef *xd;
@@ -629,6 +643,9 @@ exception:  TK_EXCEPTION scopedname baseexception optflags '{' opttypehdrcode ra
 
                 if (currentSpec->genc)
                     yyerror("%Exception not allowed in a C module");
+
+                if ($5.raise_code == NULL)
+                    yyerror("%Exception must have a %RaiseCode sub-directive");
 
                 pyname = getPythonName(currentModule, &$4, scopedNameTail($2));
 
@@ -645,11 +662,11 @@ exception:  TK_EXCEPTION scopedname baseexception optflags '{' opttypehdrcode ra
 
                 /* Complete the definition. */
                 xd->iff->module = currentModule;
-                xd->iff->hdrcode = $6;
+                xd->iff->hdrcode = $5.type_header_code;
                 xd->pyname = pyname;
                 xd->bibase = $3.bibase;
                 xd->base = $3.base;
-                xd->raisecode = $7;
+                xd->raisecode = $5.raise_code;
 
                 if (findOptFlag(&$4, "Default", bool_flag) != NULL)
                     currentModule->defexception = xd;
@@ -735,6 +752,55 @@ baseexception:  {
 
             if ($$.bibase == NULL && $$.base == NULL)
                 yyerror("Unknown exception base type");
+        }
+    ;
+
+exception_body: '{' exception_body_directives '}' {
+            $$ = $2;
+        }
+    ;
+
+exception_body_directives:  exception_body_directive
+    |   exception_body_directives exception_body_directive {
+            $$ = $1;
+
+            switch ($2.token)
+            {
+            case TK_RAISECODE: $$.raise_code = $2.raise_code; break;
+            case TK_TYPEHEADERCODE: $$.type_header_code = $2.type_header_code; break;
+            }
+        }
+    ;
+
+exception_body_directive:  ifstart {
+            $$.token = TK_IF;
+        }
+    |   ifend {
+            $$.token = TK_END;
+        }
+    |   raisecode {
+            if (notSkipping())
+            {
+                $$.token = TK_RAISECODE;
+                $$.raise_code = $1;
+            }
+            else
+            {
+                $$.token = 0;
+                $$.raise_code = NULL;
+            }
+        }
+    |   typehdrcode {
+            if (notSkipping())
+            {
+                $$.token = TK_TYPEHEADERCODE;
+                $$.type_header_code = $1;
+            }
+            else
+            {
+                $$.token = 0;
+                $$.type_header_code = NULL;
+            }
         }
     ;
 
@@ -1051,25 +1117,79 @@ license:    TK_LICENSE optflags {
         }
     ;
 
-defmetatype:TK_DEFMETATYPE dottedname {
+defmetatype:    TK_DEFMETATYPE defmetatype_args optgoon {
             if (notSkipping())
             {
                 if (currentModule->defmetatype != NULL)
                     yyerror("%DefaultMetatype has already been defined for this module");
 
-                currentModule->defmetatype = cacheName(currentSpec, $2);
+                currentModule->defmetatype = cacheName(currentSpec,
+                        $2.metatype);
             }
         }
     ;
 
-defsupertype:   TK_DEFSUPERTYPE dottedname {
+defmetatype_args:   dottedname {
+            $$.metatype = $1;
+        }
+    |   '(' defmetatype_arg_list ')' {
+            $$ = $2;
+        }
+    ;
+
+defmetatype_arg_list:   defmetatype_arg
+    |   defmetatype_arg_list ',' defmetatype_arg {
+            $$ = $1;
+
+            switch ($3.token)
+            {
+            case TK_NAME: $$.metatype = $3.metatype; break;
+            }
+        }
+    ;
+
+defmetatype_arg:    TK_NAME '=' dottedname {
+            $$.token = TK_NAME;
+
+            $$.metatype = $3;
+        }
+    ;
+
+defsupertype:   TK_DEFSUPERTYPE defsupertype_args optgoon {
             if (notSkipping())
             {
                 if (currentModule->defsupertype != NULL)
                     yyerror("%DefaultSupertype has already been defined for this module");
 
-                currentModule->defsupertype = cacheName(currentSpec, $2);
+                currentModule->defsupertype = cacheName(currentSpec,
+                        $2.supertype);
             }
+        }
+    ;
+
+defsupertype_args:  dottedname {
+            $$.supertype = $1;
+        }
+    |   '(' defsupertype_arg_list ')' {
+            $$ = $2;
+        }
+    ;
+
+defsupertype_arg_list:  defsupertype_arg
+    |   defsupertype_arg_list ',' defsupertype_arg {
+            $$ = $1;
+
+            switch ($3.token)
+            {
+            case TK_NAME: $$.supertype = $3.supertype; break;
+            }
+        }
+    ;
+
+defsupertype_arg:   TK_NAME '=' dottedname {
+            $$.token = TK_NAME;
+
+            $$.supertype = $3;
         }
     ;
 
@@ -1453,12 +1573,6 @@ modhdrcode: TK_MODHEADERCODE codeblock {
 typehdrcode:    TK_TYPEHEADERCODE codeblock {
             $$ = $2;
         }
-    ;
-
-opttypehdrcode: {
-            $$ = NULL;
-        }
-    |   typehdrcode
     ;
 
 travcode:   TK_TRAVERSECODE codeblock {

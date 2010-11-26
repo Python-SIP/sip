@@ -59,6 +59,7 @@ file.
             :directive:`%API` |
             :directive:`%CompositeModule` |
             :directive:`%ConsolidatedModule` |
+            :directive:`%Copying` |
             :directive:`%DefaultEncoding` |
             :directive:`%DefaultMetatype` |
             :directive:`%DefaultSupertype` |

@@ -1278,6 +1278,25 @@ typedef struct _defEncodingCfg {
     const char *encoding;
 } defEncodingCfg;
 
+/* %DefaultMetatype */
+typedef struct _defMetatypeCfg {
+    int token;
+    const char *metatype;
+} defMetatypeCfg;
+
+/* %DefaultSupertype */
+typedef struct _defSupertypeCfg {
+    int token;
+    const char *supertype;
+} defSupertypeCfg;
+
+/* %Exception */
+typedef struct _exceptionCfg {
+    int token;
+    codeBlock *type_header_code;
+    codeBlock *raise_code;
+} exceptionCfg;
+
 /* %Extract */
 typedef struct _extractCfg {
     int token;

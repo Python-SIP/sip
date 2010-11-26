@@ -388,8 +388,8 @@ This directive is used to specify the name of a composite module.  Any
 subsequent :directive:`%Module` directive is interpreted as defining a
 component module.
 
-The :directive:`%Docstring` directive is used to specify the module's optional
-docstring.
+The optional :directive:`%Docstring` sub-directive is used to specify the
+module's docstring.
 
 For example::
 
@@ -417,8 +417,8 @@ This directive is used to specify the name of a consolidated module.  Any
 subsequent :directive:`%Module` directive is interpreted as defining a
 component module.
 
-The :directive:`%Docstring` directive is used to specify the module's optional
-docstring.
+The optional :directive:`%Docstring` sub-directive is used to specify the
+module's docstring.
 
 For example::
 
@@ -788,7 +788,7 @@ For example::
 
 .. parsed-literal::
 
-    %DefaultMetatype *dotted-name*
+    %DefaultMetatype(name = *dotted-name*)
 
 This directive is used to specify the Python type that should be used as the
 meta-type for any C/C++ data type defined in the same module, and by importing
@@ -810,7 +810,7 @@ For example::
 
 .. parsed-literal::
 
-    %DefaultSupertype *dotted-name*
+    %DefaultSupertype(name = *dotted-name*)
 
 This directive is used to specify the Python type that should be used as the
 super-type for any C/C++ data type defined in the same module that doesn't have
@@ -911,11 +911,11 @@ directives that allow a block of handwritten code or text to be specified.
 
 .. parsed-literal::
 
-    %Exception *name* [(*base-exception)]
+    %Exception *name* [(*base-exception*)]
     {
-        [*header-code*]
-        *raise-code*
-    };
+        [:directive:`%TypeHeaderCode`]
+        :directive:`%RaiseCode`
+    }
 
 This directive is used to define new Python exceptions, or to provide a stub
 for existing Python exceptions.  It allows handwritten code to be provided
@@ -929,10 +929,10 @@ names of Python exceptions defined by this directive.
 the standard Python exceptions or one defined with a previous
 :directive:`%Exception` directive.
 
-*header-code* is the optional :directive:`%TypeHeaderCode` used to specify any
+The optional :directive:`%TypeHeaderCode` sub-directive is used to specify any
 external interface to the exception being defined.
 
-*raise-code* is the :directive:`%RaiseCode` used to specify the handwritten
+The :directive:`%RaiseCode` sub-directive is used to specify the handwritten
 code that converts a reference to the C++ exception to the Python exception.
 
 For example::
@@ -943,13 +943,13 @@ For example::
     #include <exception>
     %End
     %RaiseCode
-            const char *detail = sipExceptionRef.what();
+        const char *detail = sipExceptionRef.what();
 
-            SIP_BLOCK_THREADS
-            PyErr_SetString(sipException_std_exception, detail);
-            SIP_UNBLOCK_THREADS
+        SIP_BLOCK_THREADS
+        PyErr_SetString(sipException_std_exception, detail);
+        SIP_UNBLOCK_THREADS
     %End
-    };
+    }
 
 In this example we map the standard C++ exception to a new Python exception.
 The new exception is called ``StdException`` and is derived from the standard
@@ -1788,11 +1788,11 @@ version numbers do not match then a Python exception is raised.  The dependent
 module must then be re-built using the correct specification files for the base
 module.
 
-The :directive:`%AutoPyName` directive is used to specify a rule for
-automatically providing Python names.
+The optional :directive:`%AutoPyName` sub-directive is used to specify a rule
+for automatically providing Python names.
 
-The :directive:`%Docstring` directive is used to specify the module's optional
-docstring.
+The optional :directive:`%Docstring` sub-directive is used to specify the
+module's docstring.
 
 For example::
 
@@ -2004,8 +2004,8 @@ the same class.
 ``set`` is the Python name of the optional setter method and must refer to a
 method in the same class.
 
-The :directive:`%Docstring` directive is used to specify the property's
-optional docstring.
+The optional :directive:`%Docstring` sub-directive is used to specify the
+property's docstring.
 
 For example::
 

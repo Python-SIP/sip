@@ -70,6 +70,8 @@ static void fatallex(char *);
 ^[ \t]*%CompositeModule     {BEGIN directive_start; return TK_COMPOMODULE;}
 ^[ \t]*%ConsolidatedModule  {BEGIN directive_start; return TK_CONSMODULE;}
 ^[ \t]*%DefaultEncoding     {BEGIN directive_start; return TK_DEFENCODING;}
+^[ \t]*%DefaultMetatype     {BEGIN directive_start; return TK_DEFMETATYPE;}
+^[ \t]*%DefaultSupertype    {BEGIN directive_start; return TK_DEFSUPERTYPE;}
 ^[ \t]*%Module              {BEGIN directive_start; return TK_MODULE;}
 ^[ \t]*%Property            {BEGIN directive_start; return TK_PROPERTY;}
 
@@ -84,8 +86,6 @@ static void fatallex(char *);
 ^[ \t]*%MappedType          {return TK_MAPPEDTYPE;}
 ^[ \t]*%Exception           {return TK_EXCEPTION;}
 ^[ \t]*%If                  {return TK_IF;}
-^[ \t]*%DefaultMetatype     {return TK_DEFMETATYPE;}
-^[ \t]*%DefaultSupertype    {return TK_DEFSUPERTYPE;}
 <INITIAL>^[ \t]*%End        {return TK_END;}
 <directive_start>^[ \t]*%End    {BEGIN INITIAL; return TK_END;}
 
