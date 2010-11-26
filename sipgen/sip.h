@@ -1272,6 +1272,12 @@ typedef struct _consModuleCfg {
     codeBlock *docstring;
 } consModuleCfg;
 
+/* %DefaultEncoding */
+typedef struct _defEncodingCfg {
+    int token;
+    const char *encoding;
+} defEncodingCfg;
+
 /* %Extract */
 typedef struct _extractCfg {
     int token;

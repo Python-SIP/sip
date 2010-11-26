@@ -176,6 +176,7 @@ static void addAutoPyName(moduleDef *mod, const char *remove_leading);
     autoPyNameCfg   autopyname;
     compModuleCfg   compmodule;
     consModuleCfg   consmodule;
+    defEncodingCfg  defencoding;
     extractCfg      extract;
     moduleCfg       module;
     propertyCfg     property;
@@ -298,6 +299,7 @@ static void addAutoPyName(moduleDef *mod, const char *remove_leading);
 %token          TK_DEFSUPERTYPE
 %token          TK_PROPERTY
 
+%token          TK_ENCODING
 %token          TK_GET
 %token          TK_ID
 %token          TK_LANGUAGE
@@ -397,6 +399,10 @@ static void addAutoPyName(moduleDef *mod, const char *remove_leading);
 %type <consmodule>      consmodule_body
 %type <consmodule>      consmodule_body_directives
 %type <consmodule>      consmodule_body_directive
+
+%type <defencoding>     defencoding_args
+%type <defencoding>     defencoding_arg_list
+%type <defencoding>     defencoding_arg
 
 %type <extract>         extract_args
 %type <extract>         extract_arg_list
@@ -514,12 +520,38 @@ nsstatement:    ifstart
         }
     ;
 
-defencoding:    TK_DEFENCODING TK_STRING_VALUE {
+defencoding:    TK_DEFENCODING defencoding_args optgoon {
             if (notSkipping())
             {
-                if ((currentModule->encoding = convertEncoding($2)) == no_type)
+                if ((currentModule->encoding = convertEncoding($2.encoding)) == no_type)
                     yyerror("The value of %DefaultEncoding must be one of \"ASCII\", \"Latin-1\", \"UTF-8\" or \"None\"");
             }
+        }
+    ;
+
+defencoding_args:   TK_STRING_VALUE {
+            $$.encoding = $1;
+        }
+    |   '(' defencoding_arg_list ')' {
+            $$ = $2;
+        }
+    ;
+
+defencoding_arg_list:   defencoding_arg
+    |   defencoding_arg_list ',' defencoding_arg {
+            $$ = $1;
+
+            switch ($3.token)
+            {
+            case TK_ENCODING: $$.encoding = $3.encoding; break;
+            }
+        }
+    ;
+
+defencoding_arg:    TK_ENCODING '=' TK_STRING_VALUE {
+            $$.token = TK_ENCODING;
+
+            $$.encoding = $3;
         }
     ;
 

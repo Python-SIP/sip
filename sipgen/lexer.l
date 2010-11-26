@@ -66,15 +66,17 @@ static void fatallex(char *);
 
 ^[ \t]*%API                 {BEGIN directive_start; return TK_API;}
 ^[ \t]*%AutoPyName          {BEGIN directive_start; return TK_AUTOPYNAME;}
-^[ \t]*%DefaultEncoding     {return TK_DEFENCODING;}
+^[ \t]*%CModule             {return TK_CMODULE;}
+^[ \t]*%CompositeModule     {BEGIN directive_start; return TK_COMPOMODULE;}
+^[ \t]*%ConsolidatedModule  {BEGIN directive_start; return TK_CONSMODULE;}
+^[ \t]*%DefaultEncoding     {BEGIN directive_start; return TK_DEFENCODING;}
+^[ \t]*%Module              {BEGIN directive_start; return TK_MODULE;}
+^[ \t]*%Property            {BEGIN directive_start; return TK_PROPERTY;}
+
 ^[ \t]*%Plugin              {return TK_PLUGIN;}
 ^[ \t]*%Include             {return TK_INCLUDE;}
 ^[ \t]*%OptionalInclude     {return TK_OPTINCLUDE;}
 ^[ \t]*%Import              {return TK_IMPORT;}
-^[ \t]*%Module              {BEGIN directive_start; return TK_MODULE;}
-^[ \t]*%CModule             {return TK_CMODULE;}
-^[ \t]*%ConsolidatedModule  {BEGIN directive_start; return TK_CONSMODULE;}
-^[ \t]*%CompositeModule     {BEGIN directive_start; return TK_COMPOMODULE;}
 ^[ \t]*%Timeline            {return TK_TIMELINE;}
 ^[ \t]*%Platforms           {return TK_PLATFORMS;}
 ^[ \t]*%Feature             {return TK_FEATURE;}
@@ -84,7 +86,6 @@ static void fatallex(char *);
 ^[ \t]*%If                  {return TK_IF;}
 ^[ \t]*%DefaultMetatype     {return TK_DEFMETATYPE;}
 ^[ \t]*%DefaultSupertype    {return TK_DEFSUPERTYPE;}
-^[ \t]*%Property            {BEGIN directive_start; return TK_PROPERTY;}
 <INITIAL>^[ \t]*%End        {return TK_END;}
 <directive_start>^[ \t]*%End    {BEGIN INITIAL; return TK_END;}
 
@@ -142,6 +143,7 @@ SIP_SLOT_DIS                {return TK_SIPSLOTDIS;}
 SIP_QOBJECT                 {return TK_QOBJECT;}
 \.\.\.                      {return TK_ELLIPSIS;}
 
+<directive>encoding         {return TK_ENCODING;}
 <directive>get              {return TK_GET;}
 <directive>id               {return TK_ID;}
 <directive>language         {return TK_LANGUAGE;}
