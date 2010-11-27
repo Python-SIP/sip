@@ -907,11 +907,13 @@ mtdefinition:   '{' mtbody '}' optgoon {
         }
     ;
 
-mtbody:     mtline
+mtbody: mtline
     |   mtbody mtline
     ;
 
-mtline:     typehdrcode {
+mtline: ifstart
+    |   ifend
+    |   typehdrcode {
             if (notSkipping())
                 appendCodeBlock(&currentMappedType->iff->hdrcode, $1);
         }

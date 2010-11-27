@@ -1423,17 +1423,17 @@ For example::
     template<*type-list*>
     %MappedType *type*
     {
-        [*header-code*]
-        [*convert-to-code*]
-        [*convert-from-code*]
-    };
+        [:directive:`%TypeHeaderCode`]
+        [:directive:`%ConvertToTypeCode`]
+        [:directive:`%ConvertFromTypeCode`]
+    }
 
     %MappedType *type*
     {
-        [*header-code*]
-        [*convert-to-code*]
-        [*convert-from-code*]
-    };
+        [:directive:`%TypeHeaderCode`]
+        [:directive:`%ConvertToTypeCode`]
+        [:directive:`%ConvertFromTypeCode`]
+    }
 
 This directive is used to define an automatic mapping between a C or C++ type
 and a Python type.  It can be used as part of a template, or to map a specific
@@ -1449,14 +1449,14 @@ Any explicit mapped type will be used in preference to any template that maps
 the same type, ie. a template will not be automatically instantiated if there
 is an explicit mapped type.
 
-*header-code* is the :directive:`%TypeHeaderCode` used to specify the library
-interface to the type being mapped.
+The optional :directive:`%TypeHeaderCode` sub-directive is used to specify the
+library interface to the type being mapped.
 
-*convert-to-code* is the :directive:`%ConvertToTypeCode` used to specify the
-handwritten code that converts a Python object to an instance of the mapped
+The optional :directive:`%ConvertToTypeCode` sub-directive is used to specify
+the handwritten code that converts a Python object to an instance of the mapped
 type.
 
-*convert-from-code* is the :directive:`%ConvertFromTypeCode` used to specify
+The optional :directive:`%ConvertFromTypeCode` sub-directive is used to specify
 the handwritten code that converts an instance of the mapped type to a Python
 object.
 
