@@ -1862,13 +1862,14 @@ prepycode:  TK_PREPYCODE codeblock {
     ;
 
 doc:        TK_DOC codeblock {
-            if (inMainModule())
-                appendCodeBlock(&currentSpec -> docs,$2);
+            if (notSkipping() && inMainModule())
+                appendCodeBlock(&currentSpec->docs, $2);
         }
     ;
 
 exporteddoc:    TK_EXPORTEDDOC codeblock {
-            appendCodeBlock(&currentSpec -> docs,$2);
+            if (notSkipping())
+                appendCodeBlock(&currentSpec->docs, $2);
         }
     ;
 

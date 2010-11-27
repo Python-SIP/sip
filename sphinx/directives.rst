@@ -1300,13 +1300,6 @@ For example::
         // Always process this.
     %End
 
-Note that the following directives ignore any :directive:`%If` directive.
-
-    - :directive:`%Doc`
-    - :directive:`%ExportedDoc`
-    - :directive:`%Platforms`
-    - :directive:`%Timeline`
-
 Also note that the only way to specify the logical and of qualifiers is to use
 nested :directive:`%If` directives.
 
@@ -1898,7 +1891,7 @@ The following variables are made available to the handwritten code:
 
 PyObject \*sipRes
     The handwritten code must set this to a tuple of the arguments that will
-    be passed to the type's __init__() method when the structure or class
+    be passed to the type's ``__init__()`` method when the structure or class
     instance is unpickled.  If there is an error then the code must raise an
     exception and set this to ``NULL``.
 
