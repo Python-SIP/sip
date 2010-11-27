@@ -2106,8 +2106,8 @@ are used by the :directive:`%If` directive to control whether or not parts of a
 specification are processed or ignored.
 
 Versions are mutually exclusive - only one version can be enabled at a time.
-By default all versions are disabled.  The SIP ``-t`` command line option is
-used to enable a version.
+By default all versions are disabled.  The SIP :option:`-t <sip -t>` command
+line option is used to enable a version.
 
 For example::
 
@@ -2121,8 +2121,8 @@ For example::
     void foo(int = 0);
     %End
 
-:directive:`%Timeline` can be used any number of times in a module to allow
-multiple libraries to be wrapped in the same module.
+The :directive:`%Timeline` directive can be used any number of times in a
+module to allow multiple libraries to be wrapped in the same module.
 
 
 .. directive:: %TypeCode

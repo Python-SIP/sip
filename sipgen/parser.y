@@ -1076,25 +1076,26 @@ feature_arg:    TK_NAME '=' TK_NAME_VALUE {
 timeline:   TK_TIMELINE {
             currentTimelineOrder = 0;
         }
-        '{' qualifierlist '}' {
-            qualDef *qd;
-            int nrneeded;
+        '{' qualifierlist '}' optgoon {
+            if (notSkipping())
+            {
+                qualDef *qd;
+                int nrneeded;
 
-            /*
-             * Check that exactly one time slot in the set was
-             * requested.
-             */
+                /*
+                 * Check that exactly one time slot in the set was requested.
+                 */
+                nrneeded = 0;
 
-            nrneeded = 0;
+                for (qd = currentModule->qualifiers; qd != NULL; qd = qd->next)
+                    if (qd->qtype == time_qualifier && isNeeded(qd))
+                        ++nrneeded;
 
-            for (qd = currentModule -> qualifiers; qd != NULL; qd = qd -> next)
-                if (qd -> qtype == time_qualifier && isNeeded(qd))
-                    ++nrneeded;
+                if (nrneeded > 1)
+                    yyerror("At most one of this %Timeline must be specified with the -t flag");
 
-            if (nrneeded > 1)
-                yyerror("At most one of this %Timeline must be specified with the -t flag");
-
-            currentModule -> nrtimelines++;
+                currentModule->nrtimelines++;
+            }
         }
     ;
 
