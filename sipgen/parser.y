@@ -182,6 +182,7 @@ static void addAutoPyName(moduleDef *mod, const char *remove_leading);
     exceptionCfg    exception;
     extractCfg      extract;
     featureCfg      feature;
+    licenseCfg      license;
     importCfg       import;
     includeCfg      include;
     moduleCfg       module;
@@ -308,11 +309,15 @@ static void addAutoPyName(moduleDef *mod, const char *remove_leading);
 %token          TK_GET
 %token          TK_ID
 %token          TK_LANGUAGE
+%token          TK_LICENSEE
 %token          TK_NAME
 %token          TK_OPTIONAL
 %token          TK_ORDER
 %token          TK_REMOVELEADING
 %token          TK_SET
+%token          TK_SIGNATURE
+%token          TK_TIMESTAMP
+%token          TK_TYPE
 %token          TK_USEARGNAMES
 %token          TK_VERSION
 
@@ -436,6 +441,10 @@ static void addAutoPyName(moduleDef *mod, const char *remove_leading);
 %type <include>         include_args
 %type <include>         include_arg_list
 %type <include>         include_arg
+
+%type <license>         license_args
+%type <license>         license_arg_list
+%type <license>         license_arg
 
 %type <module>          module_args
 %type <module>          module_arg_list
@@ -1133,30 +1142,105 @@ ifend:      TK_END {
         }
     ;
 
-license:    TK_LICENSE optflags {
+license:    TK_LICENSE license_args optflags optgoon {
             optFlag *of;
 
-            if ($2.nrFlags == 0)
-                yyerror("%License details not specified");
+            if ($3.nrFlags != 0)
+                deprecated("%License annotations are deprecated, use arguments instead");
 
-            if ((of = findOptFlag(&$2,"Type",string_flag)) == NULL)
-                yyerror("%License type not specified");
+            if ($2.type == NULL)
+                if ((of = findOptFlag(&$3, "Type", string_flag)) != NULL)
+                    $2.type = of->fvalue.sval;
 
-            currentModule -> license = sipMalloc(sizeof (licenseDef));
+            if ($2.licensee == NULL)
+                if ((of = findOptFlag(&$3, "Licensee", string_flag)) != NULL)
+                    $2.licensee = of->fvalue.sval;
 
-            currentModule -> license -> type = of -> fvalue.sval;
+            if ($2.signature == NULL)
+                if ((of = findOptFlag(&$3, "Signature", string_flag)) != NULL)
+                    $2.signature = of->fvalue.sval;
 
-            currentModule -> license -> licensee = 
-                ((of = findOptFlag(&$2,"Licensee",string_flag)) != NULL)
-                    ? of -> fvalue.sval : NULL;
+            if ($2.timestamp == NULL)
+                if ((of = findOptFlag(&$3, "Timestamp", string_flag)) != NULL)
+                    $2.timestamp = of->fvalue.sval;
 
-            currentModule -> license -> timestamp = 
-                ((of = findOptFlag(&$2,"Timestamp",string_flag)) != NULL)
-                    ? of -> fvalue.sval : NULL;
+            if ($2.type == NULL)
+                yyerror("%License must have a 'type' argument");
 
-            currentModule -> license -> sig = 
-                ((of = findOptFlag(&$2,"Signature",string_flag)) != NULL)
-                    ? of -> fvalue.sval : NULL;
+            if (notSkipping())
+            {
+                currentModule->license = sipMalloc(sizeof (licenseDef));
+
+                currentModule->license->type = $2.type;
+                currentModule->license->licensee = $2.licensee;
+                currentModule->license->sig = $2.signature;
+                currentModule->license->timestamp = $2.timestamp;
+            }
+        }
+    ;
+
+license_args:   {
+            $$.type = NULL;
+            $$.licensee = NULL;
+            $$.signature = NULL;
+            $$.timestamp = NULL;
+        }
+    |   TK_STRING_VALUE {
+            $$.type = $1;
+            $$.licensee = NULL;
+            $$.signature = NULL;
+            $$.timestamp = NULL;
+        }
+    |   '(' license_arg_list ')' {
+            $$ = $2;
+        }
+    ;
+
+license_arg_list:   license_arg
+    |   license_arg_list ',' license_arg {
+            $$ = $1;
+
+            switch ($3.token)
+            {
+            case TK_TYPE: $$.type = $3.type; break;
+            case TK_LICENSEE: $$.licensee = $3.licensee; break;
+            case TK_SIGNATURE: $$.signature = $3.signature; break;
+            case TK_TIMESTAMP: $$.timestamp = $3.timestamp; break;
+            }
+        }
+    ;
+
+license_arg:    TK_TYPE '=' TK_STRING_VALUE {
+            $$.token = TK_NAME;
+
+            $$.type = $3;
+            $$.licensee = NULL;
+            $$.signature = NULL;
+            $$.timestamp = NULL;
+        }
+    |   TK_LICENSEE '=' TK_STRING_VALUE {
+            $$.token = TK_LICENSEE;
+
+            $$.type = NULL;
+            $$.licensee = $3;
+            $$.signature = NULL;
+            $$.timestamp = NULL;
+        }
+    |   TK_SIGNATURE '=' TK_STRING_VALUE {
+            $$.token = TK_SIGNATURE;
+
+            $$.type = NULL;
+            $$.licensee = NULL;
+            $$.signature = $3;
+            $$.timestamp = NULL;
+        }
+    |   TK_TIMESTAMP '=' TK_STRING_VALUE {
+            $$.token = TK_TIMESTAMP;
+
+            $$.type = NULL;
+            $$.licensee = NULL;
+            $$.signature = NULL;
+            $$.timestamp = $3;
         }
     ;
 

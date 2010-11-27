@@ -8,9 +8,9 @@ Annotations can either be :ref:`argument annotations <ref-arg-annos>`,
 :ref:`class annotations <ref-class-annos>`, :ref:`mapped type annotations
 <ref-mapped-type-annos>`, :ref:`enum annotations <ref-enum-annos>`,
 :ref:`exception annotations <ref-exception-annos>`, :ref:`function annotations
-<ref-function-annos>`, :ref:`license annotations <ref-license-annos>`,
-:ref:`typedef annotations <ref-typedef-annos>` or :ref:`variable annotations
-<ref-variable-annos>` depending on the context in which they can be used.
+<ref-function-annos>`, :ref:`typedef annotations <ref-typedef-annos>` or
+:ref:`variable annotations <ref-variable-annos>` depending on the context in
+which they can be used.
 
 Annotations are placed between forward slashes (``/``).  Multiple annotations
 are comma separated within the slashes.
@@ -759,43 +759,6 @@ Function Annotations
     from Python to C++.
 
     See :ref:`ref-object-ownership` for more detail.
-
-
-.. _ref-license-annos:
-
-License Annotations
--------------------
-
-.. license-annotation:: Licensee
-
-    This optional string annotation specifies the license's licensee.  No
-    restrictions are placed on the contents of the string.
-
-    See the :directive:`%License` directive.
-
-
-.. license-annotation:: Signature
-
-    This optional string annotation specifies the license's signature.  No
-    restrictions are placed on the contents of the string.
-
-    See the :directive:`%License` directive.
-
-
-.. license-annotation:: Timestamp
-
-    This optional string annotation specifies the license's timestamp.  No
-    restrictions are placed on the contents of the string.
-
-    See the :directive:`%License` directive.
-
-
-.. license-annotation:: Type
-
-    This string annotation specifies the license's type.  No restrictions are
-    placed on the contents of the string.
-
-    See the :directive:`%License` directive.
 
 
 .. _ref-typedef-annos:

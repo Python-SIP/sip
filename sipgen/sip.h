@@ -1323,6 +1323,15 @@ typedef struct _includeCfg {
     int optional;
 } includeCfg;
 
+/* %License */
+typedef struct _licenseCfg {
+    int token;
+    const char *type;
+    const char *licensee;
+    const char *signature;
+    const char *timestamp;
+} licenseCfg;
+
 /* %Module */
 typedef struct _moduleCfg {
     int token;

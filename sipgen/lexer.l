@@ -79,6 +79,7 @@ static void fatallex(char *);
 ^[ \t]*%If                  {return TK_IF;}
 ^[ \t]*%Import              {BEGIN directive_start; return TK_IMPORT;}
 ^[ \t]*%Include             {BEGIN directive_start; return TK_INCLUDE;}
+^[ \t]*%License             {BEGIN directive_start; return TK_LICENSE;}
 ^[ \t]*%Module              {BEGIN directive_start; return TK_MODULE;}
 ^[ \t]*%Property            {BEGIN directive_start; return TK_PROPERTY;}
 
@@ -86,7 +87,6 @@ static void fatallex(char *);
 ^[ \t]*%OptionalInclude     {return TK_OPTINCLUDE;}
 ^[ \t]*%Timeline            {return TK_TIMELINE;}
 ^[ \t]*%Platforms           {return TK_PLATFORMS;}
-^[ \t]*%License             {return TK_LICENSE;}
 ^[ \t]*%MappedType          {return TK_MAPPEDTYPE;}
 
 class                       {return TK_CLASS;}
@@ -146,11 +146,15 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
 <directive>get              {return TK_GET;}
 <directive>id               {return TK_ID;}
 <directive>language         {return TK_LANGUAGE;}
+<directive>licensee         {return TK_LICENSEE;}
 <directive>name             {return TK_NAME;}
 <directive>optional         {return TK_OPTIONAL;}
 <directive>order            {return TK_ORDER;}
 <directive>remove_leading   {return TK_REMOVELEADING;}
 <directive>set              {return TK_SET;}
+<directive>signature        {return TK_SIGNATURE;}
+<directive>timestamp        {return TK_TIMESTAMP;}
+<directive>type             {return TK_TYPE;}
 <directive>use_argument_names   {return TK_USEARGNAMES;}
 <directive>version          {return TK_VERSION;}
 

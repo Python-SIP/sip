@@ -1304,7 +1304,6 @@ Note that the following directives ignore any :directive:`%If` directive.
 
     - :directive:`%Doc`
     - :directive:`%ExportedDoc`
-    - :directive:`%License`
     - :directive:`%OptionalInclude`
     - :directive:`%Platforms`
     - :directive:`%Timeline`
@@ -1387,13 +1386,26 @@ For example::
 
 .. parsed-literal::
 
-    %License /*license-annotations*/
+    %License(type = *string* [, licensee = *string*] [, signature = *string*] [, timestamp = *string*])
 
 This directive is used to specify the contents of an optional license
 dictionary.  The license dictionary is called :data:`__license__` and is stored
-in the module dictionary.  The elements of the dictionary are specified using
-the :lanno:`Licensee`, :lanno:`Signature`, :lanno:`Timestamp` and :lanno:`Type`
-annotations.  Only the :lanno:`Type` annotation is compulsory.
+in the module dictionary.
+
+``type`` is the type of the license and its value in the license dictionary is
+accessed using the ``"Type"`` key.  No restrictions are placed on the value.
+
+``licensee`` is the optional name of the licensee and its value in the license
+dictionary is accessed using the ``"Licensee"`` key.  No restrictions are
+placed on the value.
+
+``signature`` is the license's optional signature and its value in the license
+dictionary is accessed using the ``"Signature"`` key.  No restrictions are
+placed on the value.
+
+``timestamp`` is the license's optional timestamp and its value in the license
+dictionary is accessed using the ``"Timestamp"`` key.  No restrictions are
+placed on the value.
 
 Note that this directive isn't an attempt to impose any licensing restrictions
 on a module.  It is simply a method for easily embedding licensing information
@@ -1401,7 +1413,7 @@ in a module so that it is accessible to Python scripts.
 
 For example::
 
-    %License /Type="GPL"/
+    %License "GPL"
 
 
 .. directive:: %MappedType

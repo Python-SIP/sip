@@ -212,9 +212,6 @@ def setup(app):
     app.add_description_unit('function-annotation', 'fanno',
             indextemplate='single: %s (function annotation)')
 
-    app.add_description_unit('license-annotation', 'lanno',
-            indextemplate='single: %s (license annotation)')
-
     app.add_description_unit('mapped-type-annotation', 'manno',
             indextemplate='single: %s (mapped type annotation)')
 
