@@ -1687,7 +1687,10 @@ include_arg:    TK_NAME '=' TK_PATH_VALUE {
     ;
 
 optinclude: TK_OPTINCLUDE TK_PATH_VALUE {
-            parseFile(NULL, $2, NULL, TRUE);
+            deprecated("%OptionalInclude is deprecated, use %Include and the 'optional' argument instead");
+
+            if (notSkipping)
+                parseFile(NULL, $2, NULL, TRUE);
         }
     ;
 

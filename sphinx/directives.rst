@@ -1003,7 +1003,7 @@ of types, that is placed in a header file that is included by all generated
 code for all modules.  It should not include function declarations because
 Python modules should not explicitly call functions in another Python module.
 
-See also :directive:`%ModuleCode` and :directive:`%ModuleHeaderCode`.
+.. seealso:: :directive:`%ModuleCode`, :directive:`%ModuleHeaderCode`
 
 
 .. directive:: %Extract
@@ -1304,7 +1304,6 @@ Note that the following directives ignore any :directive:`%If` directive.
 
     - :directive:`%Doc`
     - :directive:`%ExportedDoc`
-    - :directive:`%OptionalInclude`
     - :directive:`%Platforms`
     - :directive:`%Timeline`
 
@@ -1838,7 +1837,7 @@ For example::
     }
     %End
 
-See also :directive:`%ExportedHeaderCode` and :directive:`%ModuleHeaderCode`.
+.. seealso:: :directive:`%ExportedHeaderCode`, :directive:`%ModuleHeaderCode`
 
 
 .. directive:: %ModuleHeaderCode
@@ -1859,7 +1858,7 @@ For example::
     void dump_object(PyObject *o);
     %End
 
-See also :directive:`%ExportedHeaderCode` and :directive:`%ModuleCode`.
+.. seealso:: :directive:`%ExportedHeaderCode`, :directive:`%ModuleCode`
 
 
 .. directive:: %OptionalInclude
@@ -1867,6 +1866,10 @@ See also :directive:`%ExportedHeaderCode` and :directive:`%ModuleCode`.
 .. parsed-literal::
 
     %OptionalInclude *filename*
+
+.. deprecated:: 4.12
+    Use the :directive:`%Include` directive with the ``optional`` argument set
+    to ``True`` instead.
 
 This directive is identical to the :directive:`%Include` directive except that
 SIP silently continues processing if *filename* could not be opened.

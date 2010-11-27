@@ -80,14 +80,14 @@ static void fatallex(char *);
 ^[ \t]*%Import              {BEGIN directive_start; return TK_IMPORT;}
 ^[ \t]*%Include             {BEGIN directive_start; return TK_INCLUDE;}
 ^[ \t]*%License             {BEGIN directive_start; return TK_LICENSE;}
+^[ \t]*%MappedType          {return TK_MAPPEDTYPE;}
 ^[ \t]*%Module              {BEGIN directive_start; return TK_MODULE;}
+^[ \t]*%OptionalInclude     {return TK_OPTINCLUDE;}
 ^[ \t]*%Property            {BEGIN directive_start; return TK_PROPERTY;}
 
 ^[ \t]*%Plugin              {return TK_PLUGIN;}
-^[ \t]*%OptionalInclude     {return TK_OPTINCLUDE;}
 ^[ \t]*%Timeline            {return TK_TIMELINE;}
 ^[ \t]*%Platforms           {return TK_PLATFORMS;}
-^[ \t]*%MappedType          {return TK_MAPPEDTYPE;}
 
 class                       {return TK_CLASS;}
 struct                      {return TK_STRUCT;}
