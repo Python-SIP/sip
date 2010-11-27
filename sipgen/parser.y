@@ -348,8 +348,6 @@ static void addAutoPyName(moduleDef *mod, const char *remove_leading);
 %type <codeb>           optaccesscode
 %type <codeb>           optgetcode
 %type <codeb>           optsetcode
-%type <codeb>           exphdrcode
-%type <codeb>           modhdrcode
 %type <codeb>           typehdrcode
 %type <codeb>           travcode
 %type <codeb>           clearcode
@@ -360,7 +358,6 @@ static void addAutoPyName(moduleDef *mod, const char *remove_leading);
 %type <codeb>           segcountcode
 %type <codeb>           charbufcode
 %type <codeb>           picklecode
-%type <codeb>           modcode
 %type <codeb>           typecode
 %type <codeb>           codeblock
 %type <codeb>           codelines
@@ -510,18 +507,9 @@ modstatement:   module
     |   defencoding
     |   defmetatype
     |   defsupertype
-    |   exphdrcode {
-            if (notSkipping())
-                appendCodeBlock(&currentSpec->exphdrcode, $1);
-        }
-    |   modhdrcode {
-            if (notSkipping())
-                appendCodeBlock(&currentModule->hdrcode, $1);
-        }
-    |   modcode {
-            if (notSkipping())
-                appendCodeBlock(&currentModule->cppcode, $1);
-        }
+    |   exphdrcode
+    |   modhdrcode
+    |   modcode
     |   preinitcode
     |   initcode
     |   postinitcode
@@ -1794,12 +1782,14 @@ copying:    TK_COPYING codeblock {
     ;
 
 exphdrcode: TK_EXPHEADERCODE codeblock {
-            $$ = $2;
+            if (notSkipping())
+                appendCodeBlock(&currentSpec->exphdrcode, $2);
         }
     ;
 
 modhdrcode: TK_MODHEADERCODE codeblock {
-            $$ = $2;
+            if (notSkipping())
+                appendCodeBlock(&currentModule->hdrcode, $2);
         }
     ;
 
@@ -1854,7 +1844,8 @@ picklecode: TK_PICKLECODE codeblock {
     ;
 
 modcode:    TK_MODCODE codeblock {
-            $$ = $2;
+            if (notSkipping())
+                appendCodeBlock(&currentModule->cppcode, $2);
         }
     ;
 
