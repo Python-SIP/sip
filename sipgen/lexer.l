@@ -84,7 +84,7 @@ static void fatallex(char *);
 ^[ \t]*%Module              {BEGIN directive_start; return TK_MODULE;}
 ^[ \t]*%OptionalInclude     {return TK_OPTINCLUDE;}
 ^[ \t]*%Platforms           {return TK_PLATFORMS;}
-^[ \t]*%Plugin              {return TK_PLUGIN;}
+^[ \t]*%Plugin              {BEGIN directive_start; return TK_PLUGIN;}
 ^[ \t]*%Property            {BEGIN directive_start; return TK_PROPERTY;}
 ^[ \t]*%Timeline            {return TK_TIMELINE;}
 

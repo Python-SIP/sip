@@ -1342,6 +1342,12 @@ typedef struct _moduleCfg {
     codeBlock *docstring;
 } moduleCfg;
 
+/* %Plugin */
+typedef struct _pluginCfg {
+    int token;
+    const char *name;
+} pluginCfg;
+
 /* %Property */
 typedef struct _propertyCfg {
     int token;

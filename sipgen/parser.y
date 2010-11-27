@@ -186,6 +186,7 @@ static void addAutoPyName(moduleDef *mod, const char *remove_leading);
     importCfg       import;
     includeCfg      include;
     moduleCfg       module;
+    pluginCfg       plugin;
     propertyCfg     property;
     variableCfg     variable;
 }
@@ -453,6 +454,10 @@ static void addAutoPyName(moduleDef *mod, const char *remove_leading);
 %type <module>          module_body_directives
 %type <module>          module_body_directive
 
+%type <plugin>          plugin_args
+%type <plugin>          plugin_arg_list
+%type <plugin>          plugin_arg
+
 %type <property>        property_args
 %type <property>        property_arg_list
 %type <property>        property_arg
@@ -591,8 +596,37 @@ defencoding_arg:    TK_NAME '=' TK_STRING_VALUE {
         }
     ;
 
-plugin:     TK_PLUGIN TK_NAME_VALUE {
-            appendString(&currentSpec->plugins, $2);
+plugin:     TK_PLUGIN plugin_args optgoon {
+            /* Note that %Plugin is internal in SIP v4. */
+
+            if (notSkipping())
+                appendString(&currentSpec->plugins, $2.name);
+        }
+    ;
+
+plugin_args:    TK_NAME_VALUE {
+            $$.name = $1;
+        }
+    |   '(' plugin_arg_list ')' {
+            $$ = $2;
+        }
+    ;
+
+plugin_arg_list:    plugin_arg
+    |   plugin_arg_list ',' plugin_arg {
+            $$ = $1;
+
+            switch ($3.token)
+            {
+            case TK_NAME: $$.name = $3.name; break;
+            }
+        }
+    ;
+
+plugin_arg: TK_NAME '=' TK_NAME_VALUE {
+            $$.token = TK_NAME;
+
+            $$.name = $3;
         }
     ;
 
