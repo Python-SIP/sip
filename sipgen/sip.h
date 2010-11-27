@@ -1275,7 +1275,7 @@ typedef struct _consModuleCfg {
 /* %DefaultEncoding */
 typedef struct _defEncodingCfg {
     int token;
-    const char *encoding;
+    const char *name;
 } defEncodingCfg;
 
 /* %DefaultMetatype */

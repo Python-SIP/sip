@@ -143,7 +143,6 @@ SIP_SLOT_DIS                {return TK_SIPSLOTDIS;}
 SIP_QOBJECT                 {return TK_QOBJECT;}
 \.\.\.                      {return TK_ELLIPSIS;}
 
-<directive>encoding         {return TK_ENCODING;}
 <directive>get              {return TK_GET;}
 <directive>id               {return TK_ID;}
 <directive>language         {return TK_LANGUAGE;}

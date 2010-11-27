@@ -303,7 +303,6 @@ static void addAutoPyName(moduleDef *mod, const char *remove_leading);
 %token          TK_DEFSUPERTYPE
 %token          TK_PROPERTY
 
-%token          TK_ENCODING
 %token          TK_GET
 %token          TK_ID
 %token          TK_LANGUAGE
@@ -540,14 +539,14 @@ nsstatement:    ifstart
 defencoding:    TK_DEFENCODING defencoding_args optgoon {
             if (notSkipping())
             {
-                if ((currentModule->encoding = convertEncoding($2.encoding)) == no_type)
-                    yyerror("The value of %DefaultEncoding must be one of \"ASCII\", \"Latin-1\", \"UTF-8\" or \"None\"");
+                if ((currentModule->encoding = convertEncoding($2.name)) == no_type)
+                    yyerror("The %DefaultEncoding name must be one of \"ASCII\", \"Latin-1\", \"UTF-8\" or \"None\"");
             }
         }
     ;
 
 defencoding_args:   TK_STRING_VALUE {
-            $$.encoding = $1;
+            $$.name = $1;
         }
     |   '(' defencoding_arg_list ')' {
             $$ = $2;
@@ -560,15 +559,15 @@ defencoding_arg_list:   defencoding_arg
 
             switch ($3.token)
             {
-            case TK_ENCODING: $$.encoding = $3.encoding; break;
+            case TK_NAME: $$.name = $3.name; break;
             }
         }
     ;
 
-defencoding_arg:    TK_ENCODING '=' TK_STRING_VALUE {
-            $$.token = TK_ENCODING;
+defencoding_arg:    TK_NAME '=' TK_STRING_VALUE {
+            $$.token = TK_NAME;
 
-            $$.encoding = $3;
+            $$.name = $3;
         }
     ;
 

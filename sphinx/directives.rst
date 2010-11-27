@@ -769,7 +769,7 @@ For example::
 
 .. parsed-literal::
 
-    %DefaultEncoding(encoding = ["ASCII" | "Latin-1" | "UTF-8" | "None"])
+    %DefaultEncoding(name = ["ASCII" | "Latin-1" | "UTF-8" | "None"])
 
 This directive is used to specify the default encoding used for ``char``,
 ``const char``, ``char *`` or ``const char *`` values.  An encoding of
@@ -1751,8 +1751,6 @@ then the pattern should instead be::
 
 
 .. directive:: %Module
-
-.. versionadded:: 4.12
 
 .. parsed-literal::
 
