@@ -1003,29 +1003,31 @@ nsbody:     nsstatement
     ;
 
 platforms:  TK_PLATFORMS {
-            qualDef *qd;
+            if (notSkipping())
+            {
+                qualDef *qd;
 
-            for (qd = currentModule -> qualifiers; qd != NULL; qd = qd -> next)
-                if (qd -> qtype == platform_qualifier)
-                    yyerror("%Platforms has already been defined for this module");
+                for (qd = currentModule->qualifiers; qd != NULL; qd = qd->next)
+                    if (qd->qtype == platform_qualifier)
+                        yyerror("%Platforms has already been defined for this module");
+            }
         }
-        '{' platformlist '}' {
-            qualDef *qd;
-            int nrneeded;
+        '{' platformlist '}' optgoon {
+            if (notSkipping())
+            {
+                qualDef *qd;
+                int nrneeded;
 
-            /*
-             * Check that exactly one platform in the set was
-             * requested.
-             */
+                /* Check that exactly one platform in the set was requested. */
+                nrneeded = 0;
 
-            nrneeded = 0;
+                for (qd = currentModule->qualifiers; qd != NULL; qd = qd->next)
+                    if (qd->qtype == platform_qualifier && isNeeded(qd))
+                        ++nrneeded;
 
-            for (qd = currentModule -> qualifiers; qd != NULL; qd = qd -> next)
-                if (qd -> qtype == platform_qualifier && isNeeded(qd))
-                    ++nrneeded;
-
-            if (nrneeded > 1)
-                yyerror("No more than one of these %Platforms must be specified with the -t flag");
+                if (nrneeded > 1)
+                    yyerror("No more than one of these %Platforms must be specified with the -t flag");
+            }
         }
     ;
 

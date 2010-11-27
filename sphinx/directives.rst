@@ -1928,8 +1928,8 @@ This directive is used to declare a set of platforms.  Platforms (along with
 are processed or ignored.
 
 Platforms are mutually exclusive - only one platform can be enabled at a time.
-By default all platforms are disabled.  The SIP ``-t`` command line option is
-used to enable a platform.
+By default all platforms are disabled.  The SIP :option:`-t <sip -t>` command
+line option is used to enable a platform.
 
 For example::
 
