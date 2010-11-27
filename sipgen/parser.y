@@ -549,7 +549,7 @@ nsstatement:    ifstart
         }
     ;
 
-defencoding:    TK_DEFENCODING defencoding_args optgoon {
+defencoding:    TK_DEFENCODING defencoding_args {
             if (notSkipping())
             {
                 if ((currentModule->encoding = convertEncoding($2.name)) == no_type)
@@ -584,7 +584,7 @@ defencoding_arg:    TK_NAME '=' TK_STRING_VALUE {
         }
     ;
 
-plugin:     TK_PLUGIN plugin_args optgoon {
+plugin:     TK_PLUGIN plugin_args {
             /* Note that %Plugin is internal in SIP v4. */
 
             if (notSkipping())
@@ -618,7 +618,7 @@ plugin_arg: TK_NAME '=' TK_NAME_VALUE {
         }
     ;
 
-api:    TK_API api_args optgoon {
+api:    TK_API api_args {
             if (notSkipping())
             {
                 apiVersionRangeDef *avd;
@@ -681,7 +681,7 @@ api_arg:    TK_NAME '=' TK_NAME_VALUE {
         }
     ;
 
-exception:  TK_EXCEPTION scopedname baseexception optflags exception_body optgoon {
+exception:  TK_EXCEPTION scopedname baseexception optflags exception_body {
             if (notSkipping())
             {
                 exceptionDef *xd;
@@ -801,7 +801,7 @@ baseexception:  {
         }
     ;
 
-exception_body: '{' exception_body_directives '}' {
+exception_body: '{' exception_body_directives '}' ';' {
             $$ = $2;
         }
     ;
@@ -911,11 +911,7 @@ mappedtypetmpl: template TK_MAPPEDTYPE basetype optflags {
         } mtdefinition
     ;
 
-optgoon:
-    |   ';'
-    ;
-
-mtdefinition:   '{' mtbody '}' optgoon {
+mtdefinition:   '{' mtbody '}' ';' {
             if (notSkipping())
             {
                 if (currentMappedType->convfromcode == NULL)
@@ -1034,7 +1030,7 @@ platforms:  TK_PLATFORMS {
                         yyerror("%Platforms has already been defined for this module");
             }
         }
-        '{' platformlist '}' optgoon {
+        '{' platformlist '}' {
             if (notSkipping())
             {
                 qualDef *qd;
@@ -1062,7 +1058,7 @@ platform:   TK_NAME_VALUE {
         }
     ;
 
-feature:    TK_FEATURE feature_args optgoon {
+feature:    TK_FEATURE feature_args {
             if (notSkipping())
                 newQualifier(currentModule, -1, -1, $2.name,
                         feature_qualifier);
@@ -1098,7 +1094,7 @@ feature_arg:    TK_NAME '=' TK_NAME_VALUE {
 timeline:   TK_TIMELINE {
             currentTimelineOrder = 0;
         }
-        '{' qualifierlist '}' optgoon {
+        '{' qualifierlist '}' {
             if (notSkipping())
             {
                 qualDef *qd;
@@ -1169,7 +1165,7 @@ ifend:      TK_END {
         }
     ;
 
-license:    TK_LICENSE license_args optflags optgoon {
+license:    TK_LICENSE license_args optflags {
             optFlag *of;
 
             if ($3.nrFlags != 0)
@@ -1271,7 +1267,7 @@ license_arg:    TK_TYPE '=' TK_STRING_VALUE {
         }
     ;
 
-defmetatype:    TK_DEFMETATYPE defmetatype_args optgoon {
+defmetatype:    TK_DEFMETATYPE defmetatype_args {
             if (notSkipping())
             {
                 if (currentModule->defmetatype != NULL)
@@ -1308,7 +1304,7 @@ defmetatype_arg:    TK_NAME '=' dottedname {
         }
     ;
 
-defsupertype:   TK_DEFSUPERTYPE defsupertype_args optgoon {
+defsupertype:   TK_DEFSUPERTYPE defsupertype_args {
             if (notSkipping())
             {
                 if (currentModule->defsupertype != NULL)
@@ -1345,7 +1341,7 @@ defsupertype_arg:   TK_NAME '=' dottedname {
         }
     ;
 
-consmodule: TK_CONSMODULE consmodule_args consmodule_body optgoon {
+consmodule: TK_CONSMODULE consmodule_args consmodule_body {
             if (notSkipping())
             {
                 /* Make sure this is the first mention of a module. */
@@ -1393,7 +1389,7 @@ consmodule_body:    {
             $$.token = 0;
             $$.docstring = NULL;
         }
-    |   '{' consmodule_body_directives '}' {
+    |   '{' consmodule_body_directives '}' ';' {
             $$ = $2;
         }
     ;
@@ -1429,7 +1425,7 @@ consmodule_body_directive:  ifstart {
         }
     ;
 
-compmodule: TK_COMPOMODULE compmodule_args compmodule_body optgoon {
+compmodule: TK_COMPOMODULE compmodule_args compmodule_body {
             if (notSkipping())
             {
                 /* Make sure this is the first mention of a module. */
@@ -1477,7 +1473,7 @@ compmodule_body:    {
             $$.token = 0;
             $$.docstring = NULL;
         }
-    |   '{' compmodule_body_directives '}' {
+    |   '{' compmodule_body_directives '}' ';' {
             $$ = $2;
         }
     ;
@@ -1513,7 +1509,7 @@ compmodule_body_directive:  ifstart {
         }
     ;
 
-module: TK_MODULE module_args module_body optgoon {
+module: TK_MODULE module_args module_body {
             if ($2.name == NULL)
                 yyerror("%Module must have a 'name' argument");
 
@@ -1605,7 +1601,7 @@ module_body:    {
             $$.token = 0;
             $$.docstring = NULL;
         }
-    |   '{' module_body_directives '}' {
+    |   '{' module_body_directives '}' ';' {
             $$ = $2;
         }
     ;
@@ -1667,7 +1663,7 @@ optnumber:  {
     |   TK_NUMBER_VALUE
     ;
 
-include:    TK_INCLUDE include_args optgoon {
+include:    TK_INCLUDE include_args {
             if ($2.name == NULL)
                 yyerror("%Include must have a 'name' argument");
 
@@ -1719,7 +1715,7 @@ optinclude: TK_OPTINCLUDE TK_PATH_VALUE {
         }
     ;
 
-import:     TK_IMPORT import_args optgoon {
+import:     TK_IMPORT import_args {
             if (notSkipping())
                 newImport($2.name);
         }
@@ -1901,7 +1897,7 @@ exporteddoc:    TK_EXPORTEDDOC codeblock {
         }
     ;
 
-autopyname: TK_AUTOPYNAME autopyname_args optgoon {
+autopyname: TK_AUTOPYNAME autopyname_args {
             if (notSkipping())
                 addAutoPyName(currentModule, $2.remove_leading);
         }
@@ -2592,7 +2588,7 @@ classline:  ifstart
         }
     ;
 
-property:   TK_PROPERTY property_args property_body optgoon {
+property:   TK_PROPERTY property_args property_body {
             if ($2.name == NULL)
                 yyerror("A %Property directive must have a 'name' argument");
 
@@ -2650,7 +2646,7 @@ property_body:  {
             $$.token = 0;
             $$.docstring = NULL;
         }
-    |   '{' property_body_directives '}' {
+    |   '{' property_body_directives '}' ';' {
             $$ = $2;
         }
     ;

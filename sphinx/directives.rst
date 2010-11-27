@@ -42,7 +42,7 @@ The revised syntax is:
 
 A directive may have a number of arguments enclosed in parentheses followed by
 a number of sub-directives enclosed in braces.  Individual arguments and
-sub-directives may be optional.  The final semi-colon is optional.
+sub-directives may be optional.
 
 Arguments may be specified in any order.  If no arguments are specified then
 the parentheses can be omitted.  If a directive has only one compulsory
@@ -371,7 +371,7 @@ For example::
     %CompositeModule(name = *dotted-name*)
     {
         [:directive:`%Docstring`]
-    }
+    };
 
 A composite module is one that merges a number of related SIP generated
 modules.  For example, a module that merges the modules ``a_mod``, ``b_mod``
@@ -408,7 +408,7 @@ don't have to remember which which individual module an object is defined in.
     %ConsolidatedModule(name = *dotted-name*)
     {
         [:directive:`%Docstring`]
-    }
+    };
 
 A consolidated module is one that consolidates the wrapper code of a number of
 SIP generated modules (refered to as component modules in this context).
@@ -915,7 +915,7 @@ directives that allow a block of handwritten code or text to be specified.
     {
         [:directive:`%TypeHeaderCode`]
         :directive:`%RaiseCode`
-    }
+    };
 
 This directive is used to define new Python exceptions, or to provide a stub
 for existing Python exceptions.  It allows handwritten code to be provided
@@ -949,7 +949,7 @@ For example::
         PyErr_SetString(sipException_std_exception, detail);
         SIP_UNBLOCK_THREADS
     %End
-    }
+    };
 
 In this example we map the standard C++ exception to a new Python exception.
 The new exception is called ``StdException`` and is derived from the standard
@@ -1418,14 +1418,14 @@ For example::
         [:directive:`%TypeHeaderCode`]
         [:directive:`%ConvertToTypeCode`]
         [:directive:`%ConvertFromTypeCode`]
-    }
+    };
 
     %MappedType *type*
     {
         [:directive:`%TypeHeaderCode`]
         [:directive:`%ConvertToTypeCode`]
         [:directive:`%ConvertFromTypeCode`]
-    }
+    };
 
 This directive is used to define an automatic mapping between a C or C++ type
 and a Python type.  It can be used as part of a template, or to map a specific
@@ -1541,7 +1541,7 @@ For example::
         // Return the Python list.
         return l;
     %End
-    }
+    };
 
 Using this we can use, for example, ``QList<QObject *>`` throughout the
 module's specification files (and in any module that imports this one).  The
@@ -1763,7 +1763,7 @@ then the pattern should instead be::
     {
         [:directive:`%AutoPyName`]
         [:directive:`%Docstring`]
-    }
+    };
 
 This directive is used to specify the name of a module and a number of other
 attributes.  ``name`` may contain periods to specify that the module is part of
@@ -1799,12 +1799,6 @@ module's docstring.
 For example::
 
     %Module(name=PyQt4.QtCore, version=5)
-
-Note that the syntax shown below is deprecated from v4.12.
-
-.. parsed-literal::
-
-    %Module *name* [*version*]
 
 
 .. directive:: %ModuleCode
@@ -1999,7 +1993,7 @@ For example::
     %Property(name = *name*, get = *name* [, set = *name*])
     {
         [:directive:`%Docstring`]
-    }
+    };
 
 This directive is used to define a Python property.  ``name`` is the name of
 the property.
