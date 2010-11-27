@@ -78,11 +78,11 @@ static void fatallex(char *);
 ^[ \t]*%Feature             {BEGIN directive_start; return TK_FEATURE;}
 ^[ \t]*%If                  {return TK_IF;}
 ^[ \t]*%Import              {BEGIN directive_start; return TK_IMPORT;}
+^[ \t]*%Include             {BEGIN directive_start; return TK_INCLUDE;}
 ^[ \t]*%Module              {BEGIN directive_start; return TK_MODULE;}
 ^[ \t]*%Property            {BEGIN directive_start; return TK_PROPERTY;}
 
 ^[ \t]*%Plugin              {return TK_PLUGIN;}
-^[ \t]*%Include             {return TK_INCLUDE;}
 ^[ \t]*%OptionalInclude     {return TK_OPTINCLUDE;}
 ^[ \t]*%Timeline            {return TK_TIMELINE;}
 ^[ \t]*%Platforms           {return TK_PLATFORMS;}
@@ -147,6 +147,7 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
 <directive>id               {return TK_ID;}
 <directive>language         {return TK_LANGUAGE;}
 <directive>name             {return TK_NAME;}
+<directive>optional         {return TK_OPTIONAL;}
 <directive>order            {return TK_ORDER;}
 <directive>remove_leading   {return TK_REMOVELEADING;}
 <directive>set              {return TK_SET;}

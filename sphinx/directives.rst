@@ -1304,7 +1304,6 @@ Note that the following directives ignore any :directive:`%If` directive.
 
     - :directive:`%Doc`
     - :directive:`%ExportedDoc`
-    - :directive:`%Include`
     - :directive:`%License`
     - :directive:`%OptionalInclude`
     - :directive:`%Platforms`
@@ -1341,15 +1340,18 @@ For example::
 
 .. parsed-literal::
 
-    %Include *filename*
+    %Include(name = *filename* [, optional = *bool*])
 
 This directive is used to include contents of another file as part of the
 specification of the current module.  It is the equivalent of the C
 preprocessor's ``#include`` directive and is used to structure a large module
 specification into manageable pieces.
 
-:directive:`%Include` follows the same search process as :directive:`%Import`
-when trying to open *filename*.
+:directive:`%Include` follows the same search process as the
+:directive:`%Import` directive when trying to open ``name``.
+
+if ``optional`` is set then SIP will silently continue processing if the file
+could not be opened.
 
 Directory separators must always be ``/``.
 

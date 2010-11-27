@@ -1316,6 +1316,13 @@ typedef struct _importCfg {
     const char *name;
 } importCfg;
 
+/* %Include */
+typedef struct _includeCfg {
+    int token;
+    const char *name;
+    int optional;
+} includeCfg;
+
 /* %Module */
 typedef struct _moduleCfg {
     int token;

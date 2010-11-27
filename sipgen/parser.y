@@ -183,6 +183,7 @@ static void addAutoPyName(moduleDef *mod, const char *remove_leading);
     extractCfg      extract;
     featureCfg      feature;
     importCfg       import;
+    includeCfg      include;
     moduleCfg       module;
     propertyCfg     property;
     variableCfg     variable;
@@ -308,6 +309,7 @@ static void addAutoPyName(moduleDef *mod, const char *remove_leading);
 %token          TK_ID
 %token          TK_LANGUAGE
 %token          TK_NAME
+%token          TK_OPTIONAL
 %token          TK_ORDER
 %token          TK_REMOVELEADING
 %token          TK_SET
@@ -430,6 +432,10 @@ static void addAutoPyName(moduleDef *mod, const char *remove_leading);
 %type <import>          import_args
 %type <import>          import_arg_list
 %type <import>          import_arg
+
+%type <include>         include_args
+%type <include>         include_arg_list
+%type <include>         include_arg
 
 %type <module>          module_args
 %type <module>          module_arg_list
@@ -1550,8 +1556,47 @@ optnumber:  {
     |   TK_NUMBER_VALUE
     ;
 
-include:    TK_INCLUDE TK_PATH_VALUE {
-            parseFile(NULL, $2, NULL, FALSE);
+include:    TK_INCLUDE include_args optgoon {
+            if ($2.name == NULL)
+                yyerror("%Include must have a 'name' argument");
+
+            if (notSkipping())
+                parseFile(NULL, $2.name, NULL, $2.optional);
+        }
+    ;
+
+include_args:   TK_PATH_VALUE {
+            $$.name = $1;
+            $$.optional = FALSE;
+        }
+    |   '(' include_arg_list ')' {
+            $$ = $2;
+        }
+    ;
+
+include_arg_list:   include_arg
+    |   include_arg_list ',' include_arg {
+            $$ = $1;
+
+            switch ($3.token)
+            {
+            case TK_NAME: $$.name = $3.name; break;
+            case TK_OPTIONAL: $$.optional = $3.optional; break;
+            }
+        }
+    ;
+
+include_arg:    TK_NAME '=' TK_PATH_VALUE {
+            $$.token = TK_NAME;
+
+            $$.name = $3;
+            $$.optional = FALSE;
+        }
+    |   TK_OPTIONAL '=' bool_value {
+            $$.token = TK_OPTIONAL;
+
+            $$.name = NULL;
+            $$.optional = $3;
         }
     ;
 
