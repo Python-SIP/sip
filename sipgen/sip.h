@@ -1310,6 +1310,12 @@ typedef struct _featureCfg {
     const char *name;
 } featureCfg;
 
+/* %Import */
+typedef struct _importCfg {
+    int token;
+    const char *name;
+} importCfg;
+
 /* %Module */
 typedef struct _moduleCfg {
     int token;

@@ -72,22 +72,22 @@ static void fatallex(char *);
 ^[ \t]*%DefaultEncoding     {BEGIN directive_start; return TK_DEFENCODING;}
 ^[ \t]*%DefaultMetatype     {BEGIN directive_start; return TK_DEFMETATYPE;}
 ^[ \t]*%DefaultSupertype    {BEGIN directive_start; return TK_DEFSUPERTYPE;}
+<INITIAL>^[ \t]*%End        {return TK_END;}
+<directive_start>^[ \t]*%End    {BEGIN INITIAL; return TK_END;}
+^[ \t]*%Exception           {return TK_EXCEPTION;}
 ^[ \t]*%Feature             {BEGIN directive_start; return TK_FEATURE;}
+^[ \t]*%If                  {return TK_IF;}
+^[ \t]*%Import              {BEGIN directive_start; return TK_IMPORT;}
 ^[ \t]*%Module              {BEGIN directive_start; return TK_MODULE;}
 ^[ \t]*%Property            {BEGIN directive_start; return TK_PROPERTY;}
 
 ^[ \t]*%Plugin              {return TK_PLUGIN;}
 ^[ \t]*%Include             {return TK_INCLUDE;}
 ^[ \t]*%OptionalInclude     {return TK_OPTINCLUDE;}
-^[ \t]*%Import              {return TK_IMPORT;}
 ^[ \t]*%Timeline            {return TK_TIMELINE;}
 ^[ \t]*%Platforms           {return TK_PLATFORMS;}
 ^[ \t]*%License             {return TK_LICENSE;}
 ^[ \t]*%MappedType          {return TK_MAPPEDTYPE;}
-^[ \t]*%Exception           {return TK_EXCEPTION;}
-^[ \t]*%If                  {return TK_IF;}
-<INITIAL>^[ \t]*%End        {return TK_END;}
-<directive_start>^[ \t]*%End    {BEGIN INITIAL; return TK_END;}
 
 class                       {return TK_CLASS;}
 struct                      {return TK_STRUCT;}

@@ -182,6 +182,7 @@ static void addAutoPyName(moduleDef *mod, const char *remove_leading);
     exceptionCfg    exception;
     extractCfg      extract;
     featureCfg      feature;
+    importCfg       import;
     moduleCfg       module;
     propertyCfg     property;
     variableCfg     variable;
@@ -425,6 +426,10 @@ static void addAutoPyName(moduleDef *mod, const char *remove_leading);
 %type <feature>         feature_args
 %type <feature>         feature_arg_list
 %type <feature>         feature_arg
+
+%type <import>          import_args
+%type <import>          import_arg_list
+%type <import>          import_arg
 
 %type <module>          module_args
 %type <module>          module_arg_list
@@ -1555,8 +1560,35 @@ optinclude: TK_OPTINCLUDE TK_PATH_VALUE {
         }
     ;
 
-import:     TK_IMPORT TK_PATH_VALUE {
-            newImport($2);
+import:     TK_IMPORT import_args optgoon {
+            if (notSkipping())
+                newImport($2.name);
+        }
+    ;
+
+import_args:    TK_PATH_VALUE {
+            $$.name = $1;
+        }
+    |   '(' import_arg_list ')' {
+            $$ = $2;
+        }
+    ;
+
+import_arg_list:    import_arg
+    |   import_arg_list ',' import_arg {
+            $$ = $1;
+
+            switch ($3.token)
+            {
+            case TK_NAME: $$.name = $3.name; break;
+            }
+        }
+    ;
+
+import_arg: TK_NAME '=' TK_PATH_VALUE {
+            $$.token = TK_NAME;
+
+            $$.name = $3;
         }
     ;
 

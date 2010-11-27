@@ -1304,7 +1304,6 @@ Note that the following directives ignore any :directive:`%If` directive.
 
     - :directive:`%Doc`
     - :directive:`%ExportedDoc`
-    - :directive:`%Import`
     - :directive:`%Include`
     - :directive:`%License`
     - :directive:`%OptionalInclude`
@@ -1319,17 +1318,17 @@ nested :directive:`%If` directives.
 
 .. parsed-literal::
 
-    %Import *filename*
+    %Import(name = *filename*)
 
 This directive is used to import the specification of another module.  This is
 needed if the current module makes use of any types defined in the imported
 module, e.g. as an argument to a function, or to sub-class.
 
-If *filename* cannot be opened then SIP prepends *filename* with the name of
-the directory containing the current specification file (i.e. the one
-containing the :directive:`%Import` directive) and tries again.  If this also
-fails then SIP prepends *filename* with each of the directories, in turn,
-specified by the ``-I`` command line option.
+If ``name`` cannot be opened then SIP prepends ``name`` with the name of the
+directory containing the current specification file (i.e. the one containing
+the :directive:`%Import` directive) and tries again.  If this also fails then
+SIP prepends ``name`` with each of the directories, in turn, specified by the
+:option:`-I <sip -I>` command line option.
 
 Directory separators must always be ``/``.
 
