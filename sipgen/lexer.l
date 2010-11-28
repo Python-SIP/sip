@@ -166,25 +166,6 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
     ;
 }
 
-<directive_start>; {
-    /*
-     * The parsing is complicated because we are using it to handle directive
-     * arguments whose names might be seen as values in a different context.
-     * This means we have to parse the arguments when in a different lexer
-     * state which recognises the argument names as tokens (but doesn't in the
-     * normal state).  We can't enter the new state ('directive') until we know
-     * we really have arguments (i.e. we see the opening '(') but we have to
-     * know that we might be about to - hence the need for the
-     * 'directive_start' state.  The remaining problem is that there may not be
-     * any argument list so we use the (admittedly optional) ';' to reset the
-     * state.
-     */
-
-    BEGIN INITIAL;
-
-    return ';';
-}
-
 <directive_start>\( {
     /*
      * Maintain the parenthesis depth so that we don't enter the 'code' state
@@ -772,4 +753,15 @@ static void fatallex(char *s)
         inputFileStack[currentFile].name,
         inputFileStack[currentFile].lineno,
         s);
+}
+
+
+/*
+ * Reset the lexer state to INITIAL.  This is used by directives that allow an
+ * argument to be given without parentheses to get out of the 'directive_start'
+ * state before an opening parenthesis is seen in another context.
+ */
+void resetLexerState()
+{
+    BEGIN INITIAL;
 }

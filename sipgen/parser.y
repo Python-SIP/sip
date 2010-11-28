@@ -559,6 +559,8 @@ defencoding:    TK_DEFENCODING defencoding_args {
     ;
 
 defencoding_args:   TK_STRING_VALUE {
+            resetLexerState();
+
             $$.name = $1;
         }
     |   '(' defencoding_arg_list ')' {
@@ -593,6 +595,8 @@ plugin:     TK_PLUGIN plugin_args {
     ;
 
 plugin_args:    TK_NAME_VALUE {
+            resetLexerState();
+
             $$.name = $1;
         }
     |   '(' plugin_arg_list ')' {
@@ -645,6 +649,8 @@ api:    TK_API api_args {
     ;
 
 api_args:   TK_NAME_VALUE TK_NUMBER_VALUE {
+            resetLexerState();
+
             deprecated("%API name and version number should be specified using the 'name' and 'version' arguments");
 
             $$.name = $1;
@@ -1066,6 +1072,8 @@ feature:    TK_FEATURE feature_args {
     ;
 
 feature_args:   TK_NAME_VALUE {
+            resetLexerState();
+
             $$.name = $1;
         }
     |   '(' feature_arg_list ')' {
@@ -1203,6 +1211,8 @@ license:    TK_LICENSE license_args optflags {
     ;
 
 license_args:   {
+            resetLexerState();
+
             $$.type = NULL;
             $$.licensee = NULL;
             $$.signature = NULL;
@@ -1279,6 +1289,8 @@ defmetatype:    TK_DEFMETATYPE defmetatype_args {
     ;
 
 defmetatype_args:   dottedname {
+            resetLexerState();
+
             $$.name = $1;
         }
     |   '(' defmetatype_arg_list ')' {
@@ -1316,6 +1328,8 @@ defsupertype:   TK_DEFSUPERTYPE defsupertype_args {
     ;
 
 defsupertype_args:  dottedname {
+            resetLexerState();
+
             $$.name = $1;
         }
     |   '(' defsupertype_arg_list ')' {
@@ -1360,6 +1374,8 @@ consmodule: TK_CONSMODULE consmodule_args consmodule_body {
     ;
 
 consmodule_args:    dottedname {
+            resetLexerState();
+
             $$.name = $1;
         }
     |   '(' consmodule_arg_list ')' {
@@ -1444,6 +1460,8 @@ compmodule: TK_COMPOMODULE compmodule_args compmodule_body {
     ;
 
 compmodule_args:    dottedname {
+            resetLexerState();
+
             $$.name = $1;
         }
     |   '(' compmodule_arg_list ')' {
@@ -1528,6 +1546,8 @@ module: TK_MODULE module_args module_body {
     ;
 
 module_args:    dottedname optnumber {
+            resetLexerState();
+
             if ($2 >= 0)
                 deprecated("%Module version number should be specified using the 'version' argument");
 
@@ -1673,6 +1693,8 @@ include:    TK_INCLUDE include_args {
     ;
 
 include_args:   TK_PATH_VALUE {
+            resetLexerState();
+
             $$.name = $1;
             $$.optional = FALSE;
         }
@@ -1722,6 +1744,8 @@ import:     TK_IMPORT import_args {
     ;
 
 import_args:    TK_PATH_VALUE {
+            resetLexerState();
+
             $$.name = $1;
         }
     |   '(' import_arg_list ')' {
@@ -1936,6 +1960,8 @@ extract:    TK_EXTRACT extract_args codeblock {
     ;
 
 extract_args:   TK_NAME_VALUE {
+            resetLexerState();
+
             $$.id = $1;
             $$.order = -1;
         }

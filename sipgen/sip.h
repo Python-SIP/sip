@@ -1162,6 +1162,7 @@ void deprecated(const char *msg);
 void fatal(char *,...);
 void fatalScopedName(scopedNameDef *);
 int setInputFile(FILE *open_fp, parserContext *pc, int optional);
+void resetLexerState();
 void *sipMalloc(size_t n);
 void *sipCalloc(size_t nr, size_t n);
 char *sipStrdup(const char *);
