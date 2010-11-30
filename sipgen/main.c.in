@@ -148,8 +148,6 @@ int main(int argc, char **argv)
 
         case 'd':
             /* Where to generate the documentation. */
-            warning(DeprecationWarning, "the -d flag is deprecated\n");
-
             docFile = optarg;
             break;
 
@@ -195,8 +193,6 @@ int main(int argc, char **argv)
 
         case 'k':
             /* Allow keyword arguments in functions and methods. */
-            warning(DeprecationWarning, "the -k flag is deprecated\n");
-
             kwArgs = AllKwArgs;
             break;
 
@@ -227,6 +223,13 @@ int main(int argc, char **argv)
         file = stdin;
         filename = "stdin";
     }
+
+    /* Issue warnings after they (might) have been enabled. */
+    if (docFile != NULL)
+        warning(DeprecationWarning, "the -d flag is deprecated\n");
+
+    if (kwArgs != NoKwArgs)
+        warning(DeprecationWarning, "the -k flag is deprecated\n");
 
     /* Parse the input file. */
     parse(&spec, file, filename, versions, xfeatures, kwArgs, protHack);

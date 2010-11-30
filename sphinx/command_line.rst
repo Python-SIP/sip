@@ -139,7 +139,7 @@ The full set of command line options is:
 .. cmdoption:: -w
 
     The display of warning messages is enabled.  By default warning messages
-    are disabled.  Note that this option should be specified first.
+    are disabled.
 
 .. cmdoption:: -x <FEATURE>
 
