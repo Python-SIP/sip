@@ -82,6 +82,10 @@ The full set of command line options is:
 
     .. versionadded:: 4.10
 
+    .. deprecated:: 4.12
+        Use the ``keyword_arguments="All"`` :directive:`%Module` directive
+        argument instead.
+
     All functions and methods will, by default, support passing parameters
     using the Python keyword argument syntax.
 
@@ -135,7 +139,7 @@ The full set of command line options is:
 .. cmdoption:: -w
 
     The display of warning messages is enabled.  By default warning messages
-    are disabled.
+    are disabled.  Note that this option should be specified first.
 
 .. cmdoption:: -x <FEATURE>
 

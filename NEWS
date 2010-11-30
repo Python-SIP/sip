@@ -1,6 +1,13 @@
 v4.12 ??? ??? 2010
   - Implemented the revised directive syntax for %Module.
   - Deprecated %CModule, use %Module instead.
+  - Added the keyword_arguments argument to %Module to specify the level of
+    support for Python keyword arguments.
+  - Deprecated the -k flag to sip, use the keyword_arguments argument to
+    %Module instead.
+  - Changed the behavior of the /KeywordArgs/ annotation to specify the level
+    of support for Python keyword arguments.
+  - Deprecated the /NoKeywordArgs/ annotation, use /KeywordArgs="All"/ instead.
   - Added the use_argument_names argument to %Module to provide the real names
     of arguments to handwritten code.
   - Module docstrings are now supported.
@@ -21,7 +28,8 @@ v4.12 ??? ??? 2010
   - sip.voidptr now behaves like a Python memoryview object and supports
     sub-script assignment.
   - Added the --sip-module flag to configure.py to allow the name and
-    containing package of the sip module to be specified.
+    containing package of the sip module to be specified thereby allowing
+    packages to include a local copy of the sip module.
 
 v4.11.2 22nd October 2010
   - /KeepReference/ can now be applied to global functions and static methods.

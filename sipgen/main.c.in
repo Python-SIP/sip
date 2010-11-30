@@ -52,8 +52,9 @@ int main(int argc, char **argv)
 {
     char *filename, *docFile, *codeDir, *srcSuffix, *flagFile, *consModule;
     char arg, *optarg, *buildFile, *apiFile, *xmlFile;
-    int optnr, exceptions, tracing, releaseGIL, parts, kwdArgs, protHack, docs;
+    int optnr, exceptions, tracing, releaseGIL, parts, protHack, docs;
     int timestamp;
+    KwArgs kwArgs;
     FILE *file;
     sipSpec spec;
     stringList *versions, *xfeatures, *extracts;
@@ -76,7 +77,7 @@ int main(int argc, char **argv)
     tracing = FALSE;
     releaseGIL = FALSE;
     parts = 0;
-    kwdArgs = FALSE;
+    kwArgs = NoKwArgs;
     protHack = FALSE;
     docs = FALSE;
     timestamp = TRUE;
@@ -194,7 +195,9 @@ int main(int argc, char **argv)
 
         case 'k':
             /* Allow keyword arguments in functions and methods. */
-            kwdArgs = TRUE;
+            warning(DeprecationWarning, "the -k flag is deprecated\n");
+
+            kwArgs = AllKwArgs;
             break;
 
         case 'h':
@@ -226,7 +229,7 @@ int main(int argc, char **argv)
     }
 
     /* Parse the input file. */
-    parse(&spec, file, filename, versions, xfeatures, kwdArgs, protHack);
+    parse(&spec, file, filename, versions, xfeatures, kwArgs, protHack);
 
     /* Verify and transform the parse tree. */
     transform(&spec);

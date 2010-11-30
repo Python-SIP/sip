@@ -144,6 +144,7 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
 
 <directive>get              {return TK_GET;}
 <directive>id               {return TK_ID;}
+<directive>keyword_arguments    {return TK_KWARGS;}
 <directive>language         {return TK_LANGUAGE;}
 <directive>licensee         {return TK_LICENSEE;}
 <directive>name             {return TK_NAME;}

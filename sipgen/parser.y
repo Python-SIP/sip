@@ -52,7 +52,7 @@ static int sectFlagsStack[MAX_NESTED_SCOPE];    /* The section flags stack. */
 static int currentScopeIdx;             /* The scope stack index. */
 static int currentTimelineOrder;        /* The current timeline order. */
 static classList *currentSupers;        /* The current super-class list. */
-static int defaultKwdArgs;              /* Support keyword arguments by default. */
+static KwArgs defaultKwArgs;            /* The default keyword arguments support. */
 static int makeProtPublic;              /* Treat protected items as public. */
 
 
@@ -73,12 +73,13 @@ static void newTypedef(sipSpec *, moduleDef *, char *, argDef *, optFlags *);
 static void newVar(sipSpec *pt, moduleDef *mod, char *name, int isstatic,
         argDef *type, optFlags *of, codeBlock *acode, codeBlock *gcode,
         codeBlock *scode, int section);
-static void newCtor(char *, int, signatureDef *, optFlags *, codeBlock *,
-        throwArgs *, signatureDef *, int, codeBlock *);
+static void newCtor(moduleDef *, char *, int, signatureDef *, optFlags *,
+        codeBlock *, throwArgs *, signatureDef *, int, codeBlock *);
 static void newFunction(sipSpec *, moduleDef *, classDef *, mappedTypeDef *,
         int, int, int, int, int, char *, signatureDef *, int, int, optFlags *,
         codeBlock *, codeBlock *, throwArgs *, signatureDef *, codeBlock *);
-static optFlag *findOptFlag(optFlags *,char *,flagType);
+static optFlag *findOptFlag(optFlags *flgs, const char *name);
+static optFlag *getOptFlag(optFlags *flgs, const char *name, flagType ft);
 static memberDef *findFunction(sipSpec *, moduleDef *, classDef *,
         mappedTypeDef *, const char *, int, int, int);
 static void checkAttributes(sipSpec *, moduleDef *, classDef *,
@@ -141,7 +142,7 @@ static apiVersionRangeDef *convertAPIRange(moduleDef *mod, nameDef *name,
         int from, int to);
 static char *convertFeaturedString(char *fs);
 static scopedNameDef *text2scopePart(char *text);
-static int usesKeywordArgs(optFlags *optflgs, signatureDef *sd);
+static KwArgs keywordArgs(moduleDef *mod, optFlags *optflgs, signatureDef *sd);
 static char *strip(char *s);
 static int isEnabledFeature(const char *name);
 static void addProperty(sipSpec *pt, moduleDef *mod, classDef *cd,
@@ -149,8 +150,9 @@ static void addProperty(sipSpec *pt, moduleDef *mod, classDef *cd,
         codeBlock *docstring);
 static moduleDef *configureModule(sipSpec *pt, moduleDef *module,
         const char *filename, const char *name, int version, int c_module,
-        int use_arg_names, codeBlock *docstring);
+        KwArgs kwargs, int use_arg_names, codeBlock *docstring);
 static void addAutoPyName(moduleDef *mod, const char *remove_leading);
+static KwArgs convertKwArgs(const char *kwargs);
 %}
 
 %union {
@@ -309,6 +311,7 @@ static void addAutoPyName(moduleDef *mod, const char *remove_leading);
 
 %token          TK_GET
 %token          TK_ID
+%token          TK_KWARGS
 %token          TK_LANGUAGE
 %token          TK_LICENSEE
 %token          TK_NAME
@@ -720,7 +723,7 @@ exception:  TK_EXCEPTION scopedname baseexception optflags exception_body {
                 xd->base = $3.base;
                 xd->raisecode = $5.raise_code;
 
-                if (findOptFlag(&$4, "Default", bool_flag) != NULL)
+                if (getOptFlag(&$4, "Default", bool_flag) != NULL)
                     currentModule->defexception = xd;
 
                 if (xd->bibase != NULL || xd->base != NULL)
@@ -1180,19 +1183,19 @@ license:    TK_LICENSE license_args optflags {
                 deprecated("%License annotations are deprecated, use arguments instead");
 
             if ($2.type == NULL)
-                if ((of = findOptFlag(&$3, "Type", string_flag)) != NULL)
+                if ((of = getOptFlag(&$3, "Type", string_flag)) != NULL)
                     $2.type = of->fvalue.sval;
 
             if ($2.licensee == NULL)
-                if ((of = findOptFlag(&$3, "Licensee", string_flag)) != NULL)
+                if ((of = getOptFlag(&$3, "Licensee", string_flag)) != NULL)
                     $2.licensee = of->fvalue.sval;
 
             if ($2.signature == NULL)
-                if ((of = findOptFlag(&$3, "Signature", string_flag)) != NULL)
+                if ((of = getOptFlag(&$3, "Signature", string_flag)) != NULL)
                     $2.signature = of->fvalue.sval;
 
             if ($2.timestamp == NULL)
-                if ((of = findOptFlag(&$3, "Timestamp", string_flag)) != NULL)
+                if ((of = getOptFlag(&$3, "Timestamp", string_flag)) != NULL)
                     $2.timestamp = of->fvalue.sval;
 
             if ($2.type == NULL)
@@ -1534,14 +1537,16 @@ module: TK_MODULE module_args module_body {
             if (notSkipping())
                 currentModule = configureModule(currentSpec, currentModule,
                         currentContext.filename, $2.name, $2.version,
-                        $2.c_module, $2.use_arg_names, $3.docstring);
+                        $2.c_module, $2.kwargs, $2.use_arg_names,
+                        $3.docstring);
         }
     |   TK_CMODULE dottedname optnumber {
             deprecated("%CModule is deprecated, use %Module and the 'language' argument instead");
 
             if (notSkipping())
                 currentModule = configureModule(currentSpec, currentModule,
-                        currentContext.filename, $2, $3, TRUE, FALSE, NULL);
+                        currentContext.filename, $2, $3, TRUE, defaultKwArgs,
+                        FALSE, NULL);
         }
     ;
 
@@ -1552,7 +1557,9 @@ module_args:    dottedname optnumber {
                 deprecated("%Module version number should be specified using the 'version' argument");
 
             $$.c_module = FALSE;
+            $$.kwargs = defaultKwArgs;
             $$.name = $1;
+            $$.use_arg_names = FALSE;
             $$.version = $2;
         }
     |   '(' module_arg_list ')' {
@@ -1566,6 +1573,7 @@ module_arg_list:    module_arg
 
             switch ($3.token)
             {
+            case TK_KWARGS: $$.kwargs = $3.kwargs; break;
             case TK_LANGUAGE: $$.c_module = $3.c_module; break;
             case TK_NAME: $$.name = $3.name; break;
             case TK_USEARGNAMES: $$.use_arg_names = $3.use_arg_names; break;
@@ -1574,7 +1582,16 @@ module_arg_list:    module_arg
         }
     ;
 
-module_arg: TK_LANGUAGE '=' TK_STRING_VALUE {
+module_arg: TK_KWARGS '=' TK_STRING_VALUE {
+            $$.token = TK_KWARGS;
+
+            $$.c_module = FALSE;
+            $$.kwargs = convertKwArgs($3);
+            $$.name = NULL;
+            $$.use_arg_names = FALSE;
+            $$.version = -1;
+        }
+    |   TK_LANGUAGE '=' TK_STRING_VALUE {
             $$.token = TK_LANGUAGE;
 
             if (strcmp($3, "C++") == 0)
@@ -1584,6 +1601,7 @@ module_arg: TK_LANGUAGE '=' TK_STRING_VALUE {
             else
                 yyerror("%Module 'language' argument must be either \"C++\" or \"C\"");
 
+            $$.kwargs = defaultKwArgs;
             $$.name = NULL;
             $$.use_arg_names = FALSE;
             $$.version = -1;
@@ -1592,6 +1610,7 @@ module_arg: TK_LANGUAGE '=' TK_STRING_VALUE {
             $$.token = TK_NAME;
 
             $$.c_module = FALSE;
+            $$.kwargs = defaultKwArgs;
             $$.name = $3;
             $$.use_arg_names = FALSE;
             $$.version = -1;
@@ -1600,6 +1619,7 @@ module_arg: TK_LANGUAGE '=' TK_STRING_VALUE {
             $$.token = TK_USEARGNAMES;
 
             $$.c_module = FALSE;
+            $$.kwargs = defaultKwArgs;
             $$.name = NULL;
             $$.use_arg_names = $3;
             $$.version = -1;
@@ -1611,6 +1631,7 @@ module_arg: TK_LANGUAGE '=' TK_STRING_VALUE {
             $$.token = TK_VERSION;
 
             $$.c_module = FALSE;
+            $$.kwargs = defaultKwArgs;
             $$.name = NULL;
             $$.use_arg_names = FALSE;
             $$.version = $3;
@@ -2791,7 +2812,7 @@ simplector: TK_NAME_VALUE '(' arglist ')' optexceptions optflags optctorsig ';' 
                 if ((sectionFlags & (SECT_IS_PUBLIC | SECT_IS_PROT | SECT_IS_PRIVATE)) == 0)
                     yyerror("Constructor must be in the public, private or protected sections");
 
-                newCtor($1, sectionFlags, &$3, &$6, $10, $5, $7,
+                newCtor(currentModule, $1, sectionFlags, &$3, &$6, $10, $5, $7,
                         currentCtorIsExplicit, $9);
             }
 
@@ -3253,7 +3274,7 @@ argvalue:   TK_SIPSIGNAL optname optflags optassign {
             $$.nrderefs = 0;
             $$.name = cacheName(currentSpec, $2);
 
-            if (findOptFlag(&$3, "SingleShot", bool_flag) != NULL)
+            if (getOptFlag(&$3, "SingleShot", bool_flag) != NULL)
                 $$.argflags |= ARG_SINGLE_SHOT;
 
             currentSpec -> sigslots = TRUE;
@@ -3462,25 +3483,25 @@ argtype:    cpptype optname optflags {
             if (getAllowNone(&$3))
                 $$.argflags |= ARG_ALLOW_NONE;
 
-            if (findOptFlag(&$3,"GetWrapper",bool_flag) != NULL)
+            if (getOptFlag(&$3,"GetWrapper",bool_flag) != NULL)
                 $$.argflags |= ARG_GET_WRAPPER;
 
-            if (findOptFlag(&$3,"Array",bool_flag) != NULL)
+            if (getOptFlag(&$3,"Array",bool_flag) != NULL)
                 $$.argflags |= ARG_ARRAY;
 
-            if (findOptFlag(&$3,"ArraySize",bool_flag) != NULL)
+            if (getOptFlag(&$3,"ArraySize",bool_flag) != NULL)
                 $$.argflags |= ARG_ARRAY_SIZE;
 
             if (getTransfer(&$3))
                 $$.argflags |= ARG_XFERRED;
 
-            if (findOptFlag(&$3,"TransferThis",bool_flag) != NULL)
+            if (getOptFlag(&$3,"TransferThis",bool_flag) != NULL)
                 $$.argflags |= ARG_THIS_XFERRED;
 
-            if (findOptFlag(&$3,"TransferBack",bool_flag) != NULL)
+            if (getOptFlag(&$3,"TransferBack",bool_flag) != NULL)
                 $$.argflags |= ARG_XFERRED_BACK;
 
-            if ((of = findOptFlag(&$3, "KeepReference", opt_integer_flag)) != NULL)
+            if ((of = getOptFlag(&$3, "KeepReference", opt_integer_flag)) != NULL)
             {
                 $$.argflags |= ARG_KEEP_REF;
 
@@ -3492,19 +3513,19 @@ argtype:    cpptype optname optflags {
                     $$.key = currentModule->next_key--;
             }
 
-            if (findOptFlag(&$3,"In",bool_flag) != NULL)
+            if (getOptFlag(&$3,"In",bool_flag) != NULL)
                 $$.argflags |= ARG_IN;
 
-            if (findOptFlag(&$3,"Out",bool_flag) != NULL)
+            if (getOptFlag(&$3,"Out",bool_flag) != NULL)
                 $$.argflags |= ARG_OUT;
 
-            if (findOptFlag(&$3, "ResultSize", bool_flag) != NULL)
+            if (getOptFlag(&$3, "ResultSize", bool_flag) != NULL)
                 $$.argflags |= ARG_RESULT_SIZE;
 
-            if (findOptFlag(&$3, "NoCopy", bool_flag) != NULL)
+            if (getOptFlag(&$3, "NoCopy", bool_flag) != NULL)
                 $$.argflags |= ARG_NO_COPY;
 
-            if (findOptFlag(&$3,"Constrained",bool_flag) != NULL)
+            if (getOptFlag(&$3,"Constrained",bool_flag) != NULL)
             {
                 $$.argflags |= ARG_CONSTRAINED;
 
@@ -3757,7 +3778,7 @@ exceptionlist:  {
  * Parse the specification.
  */
 void parse(sipSpec *spec, FILE *fp, char *filename, stringList *tsl,
-        stringList *xfl, int kwdArgs, int protHack)
+        stringList *xfl, KwArgs kwArgs, int protHack)
 {
     classTmplDef *tcd;
 
@@ -3796,7 +3817,7 @@ void parse(sipSpec *spec, FILE *fp, char *filename, stringList *tsl,
     skipStackPtr = 0;
     currentScopeIdx = 0;
     sectionFlags = 0;
-    defaultKwdArgs = kwdArgs;
+    defaultKwArgs = kwArgs;
     makeProtPublic = protHack;
 
     newModule(fp, filename);
@@ -4283,21 +4304,21 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd,
     checkAttributes(pt, mod, cd->ecd, NULL, pyname, FALSE);
     cd->pyname = cacheName(pt, pyname);
 
-    if ((flg = findOptFlag(of, "Metatype", dotted_name_flag)) != NULL)
+    if ((flg = getOptFlag(of, "Metatype", dotted_name_flag)) != NULL)
         cd->metatype = cacheName(pt, flg->fvalue.sval);
 
-    if ((flg = findOptFlag(of, "Supertype", dotted_name_flag)) != NULL)
+    if ((flg = getOptFlag(of, "Supertype", dotted_name_flag)) != NULL)
         cd->supertype = cacheName(pt, flg->fvalue.sval);
 
-    if ((flg = findOptFlag(of, "PyQt4Flags", integer_flag)) != NULL)
+    if ((flg = getOptFlag(of, "PyQt4Flags", integer_flag)) != NULL)
         cd->pyqt4_flags = flg->fvalue.ival;
 
-    if (findOptFlag(of, "PyQt4NoQMetaObject", bool_flag) != NULL)
+    if (getOptFlag(of, "PyQt4NoQMetaObject", bool_flag) != NULL)
         setPyQt4NoQMetaObject(cd);
 
     if (isOpaque(cd))
     {
-        if (findOptFlag(of, "External", bool_flag) != NULL)
+        if (getOptFlag(of, "External", bool_flag) != NULL)
             setIsExternal(cd);
     }
     else
@@ -4305,7 +4326,7 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd,
         int seq_might, seq_not;
         memberDef *md;
 
-        if (findOptFlag(of, "NoDefaultCtors", bool_flag) != NULL)
+        if (getOptFlag(of, "NoDefaultCtors", bool_flag) != NULL)
             setNoDefaultCtors(cd);
 
         if (cd -> ctors == NULL)
@@ -4355,7 +4376,7 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd,
         if (cd->convtocode != NULL && getAllowNone(of))
             setClassHandlesNone(cd);
 
-        if (findOptFlag(of,"Abstract",bool_flag) != NULL)
+        if (getOptFlag(of,"Abstract",bool_flag) != NULL)
         {
             setIsAbstractClass(cd);
             setIsIncomplete(cd);
@@ -4366,7 +4387,7 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd,
         if (!isDtor(cd))
             setIsPublicDtor(cd);
 
-        if (findOptFlag(of, "DelayDtor", bool_flag) != NULL)
+        if (getOptFlag(of, "DelayDtor", bool_flag) != NULL)
         {
             setIsDelayedDtor(cd);
             setHasDelayedDtors(mod);
@@ -4564,7 +4585,7 @@ static mappedTypeDef *newMappedType(sipSpec *pt, argDef *ad, optFlags *of)
     if (cname != NULL)
         mtd->pyname = cacheName(pt, getPythonName(currentModule, of, cname));
 
-    if (findOptFlag(of, "NoRelease", bool_flag) != NULL)
+    if (getOptFlag(of, "NoRelease", bool_flag) != NULL)
         setNoRelease(mtd);
 
     if (getAllowNone(of))
@@ -5696,7 +5717,7 @@ static void newTypedef(sipSpec *pt, moduleDef *mod, char *name, argDef *type,
     td->next = *tdp;
     *tdp = td;
 
-    if (findOptFlag(optflgs, "NoTypeName", bool_flag) != NULL)
+    if (getOptFlag(optflgs, "NoTypeName", bool_flag) != NULL)
         setNoTypeName(td);
 
     mod->nrtypedefs++;
@@ -5844,9 +5865,10 @@ static void newVar(sipSpec *pt, moduleDef *mod, char *name, int isstatic,
 /*
  * Create a new ctor.
  */
-static void newCtor(char *name, int sectFlags, signatureDef *args,
-        optFlags *optflgs, codeBlock *methodcode, throwArgs *exceptions,
-        signatureDef *cppsig, int explicit, codeBlock *docstring)
+static void newCtor(moduleDef *mod, char *name, int sectFlags,
+        signatureDef *args, optFlags *optflgs, codeBlock *methodcode,
+        throwArgs *exceptions, signatureDef *cppsig, int explicit,
+        codeBlock *docstring)
 {
     ctorDef *ct, **ctp;
     classDef *cd = currentScope();
@@ -5900,10 +5922,10 @@ static void newCtor(char *name, int sectFlags, signatureDef *args,
     if (getDeprecated(optflgs))
         setIsDeprecatedCtor(ct);
 
-    if (!isPrivateCtor(ct) && usesKeywordArgs(optflgs, &ct->pysig))
-        setUseKeywordArgsCtor(ct);
+    if (!isPrivateCtor(ct))
+        ct->kwargs = keywordArgs(mod, optflgs, &ct->pysig);
 
-    if (findOptFlag(optflgs, "NoDerived", bool_flag) != NULL)
+    if (getOptFlag(optflgs, "NoDerived", bool_flag) != NULL)
     {
         if (cppsig != NULL)
             yyerror("The /NoDerived/ annotation cannot be used with a C++ signature");
@@ -5914,7 +5936,7 @@ static void newCtor(char *name, int sectFlags, signatureDef *args,
         ct->cppsig = NULL;
     }
 
-    if (findOptFlag(optflgs, "Default", bool_flag) != NULL)
+    if (getOptFlag(optflgs, "Default", bool_flag) != NULL)
     {
         if (cd->defctor != NULL)
             yyerror("A constructor with the /Default/ annotation has already been defined");
@@ -5977,7 +5999,7 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
     }
 
     /* See if it is a factory method. */
-    if (findOptFlag(optflgs, "Factory", bool_flag) != NULL)
+    if (getOptFlag(optflgs, "Factory", bool_flag) != NULL)
         factory = TRUE;
     else
     {
@@ -5993,7 +6015,7 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
     }
 
     /* See if the result is to be returned to Python ownership. */
-    xferback = (findOptFlag(optflgs, "TransferBack", bool_flag) != NULL);
+    xferback = (getOptFlag(optflgs, "TransferBack", bool_flag) != NULL);
 
     if (factory && xferback)
         yyerror("/TransferBack/ and /Factory/ cannot both be specified");
@@ -6032,7 +6054,7 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
     if (getTransfer(optflgs))
         setIsResultTransferred(od);
 
-    if (findOptFlag(optflgs, "TransferThis", bool_flag) != NULL)
+    if (getOptFlag(optflgs, "TransferThis", bool_flag) != NULL)
         setIsThisTransferredMeth(od);
 
     if (isProtected(od))
@@ -6071,7 +6093,7 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         setIsAbstract(od);
     }
 
-    if ((of = findOptFlag(optflgs, "AutoGen", opt_name_flag)) != NULL)
+    if ((of = getOptFlag(optflgs, "AutoGen", opt_name_flag)) != NULL)
     {
         if (of->fvalue.sval == NULL || isEnabledFeature(of->fvalue.sval))
             setIsAutoGen(od);
@@ -6123,7 +6145,7 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
     od->methodcode = methodcode;
     od->virthandler = vhd;
 
-    no_arg_parser = (findOptFlag(optflgs, "NoArgParser", bool_flag) != NULL);
+    no_arg_parser = (getOptFlag(optflgs, "NoArgParser", bool_flag) != NULL);
 
     if (no_arg_parser)
     {
@@ -6131,7 +6153,7 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
             yyerror("%MethodCode must be supplied if /NoArgParser/ is specified");
     }
 
-    if (findOptFlag(optflgs, "NoCopy", bool_flag) != NULL)
+    if (getOptFlag(optflgs, "NoCopy", bool_flag) != NULL)
         setNoCopy(&od->pysig.result);
 
     od->common = findFunction(pt, mod, c_scope, mt_scope,
@@ -6146,11 +6168,11 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
     if (od->api_range == NULL)
         setNotVersioned(od->common);
 
-    if (findOptFlag(optflgs, "Numeric", bool_flag) != NULL)
+    if (getOptFlag(optflgs, "Numeric", bool_flag) != NULL)
         setIsNumeric(od->common);
 
     /* Methods that run in new threads must be virtual. */
-    if (findOptFlag(optflgs, "NewThread", bool_flag) != NULL)
+    if (getOptFlag(optflgs, "NewThread", bool_flag) != NULL)
     {
         argDef *res;
 
@@ -6179,14 +6201,16 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
     if (getDeprecated(optflgs))
         setIsDeprecated(od);
 
-    if (!isPrivate(od) && !isSignal(od) && (od->common->slot == no_slot || od->common->slot == call_slot) && usesKeywordArgs(optflgs, &od->pysig))
+    if (!isPrivate(od) && !isSignal(od) && (od->common->slot == no_slot || od->common->slot == call_slot))
     {
-        setUseKeywordArgs(od);
-        setUseKeywordArgsFunction(od->common);
+        od->kwargs = keywordArgs(mod, optflgs, &od->pysig);
+
+        if (od->kwargs != NoKwArgs)
+            setUseKeywordArgs(od->common);
     }
 
     /* See if we want to auto-generate a __len__() method. */
-    if (findOptFlag(optflgs, "__len__", bool_flag) != NULL)
+    if (getOptFlag(optflgs, "__len__", bool_flag) != NULL)
     {
         overDef *len;
 
@@ -6247,7 +6271,7 @@ static const char *getPythonName(moduleDef *mod, optFlags *optflgs,
     autoPyNameDef *apnd;
 
     /* Use the explicit name if given. */
-    if ((of = findOptFlag(optflgs, "PyName", name_flag)) != NULL)
+    if ((of = getOptFlag(optflgs, "PyName", name_flag)) != NULL)
         return of->fvalue.sval;
 
     /* Apply any automatic naming rules. */
@@ -6449,9 +6473,9 @@ static memberDef *findFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
 
 
 /*
- * Search a set of flags for a particular one and check its type.
+ * Search a set of flags for a particular one.
  */
-static optFlag *findOptFlag(optFlags *flgs, char *name, flagType ft)
+static optFlag *findOptFlag(optFlags *flgs, const char *name)
 {
     int f;
 
@@ -6460,43 +6484,55 @@ static optFlag *findOptFlag(optFlags *flgs, char *name, flagType ft)
         optFlag *of = &flgs->flags[f];
 
         if (strcmp(of->fname, name) == 0)
-        {
-            /* An optional name can look like a boolean or a name. */
-            if (ft == opt_name_flag)
-            {
-                if (of->ftype == bool_flag)
-                {
-                    of->ftype = opt_name_flag;
-                    of->fvalue.sval = NULL;
-                }
-                else if (of->ftype == name_flag)
-                {
-                    of->ftype = opt_name_flag;
-                }
-            }
-
-            /* An optional integer can look like a boolean or an integer. */
-            if (ft == opt_integer_flag)
-            {
-                if (of->ftype == bool_flag)
-                {
-                    of->ftype = opt_integer_flag;
-                    of->fvalue.ival = -1;
-                }
-                else if (of->ftype == integer_flag)
-                {
-                    of->ftype = opt_integer_flag;
-                }
-            }
-
-            if (ft != of->ftype)
-                yyerror("Optional flag has a value of the wrong type");
-
             return of;
-        }
     }
 
     return NULL;
+}
+
+
+/*
+ * Search a set of flags for a particular one and check its type.
+ */
+static optFlag *getOptFlag(optFlags *flgs, const char *name, flagType ft)
+{
+    optFlag *of = findOptFlag(flgs, name);
+
+    if (of != NULL)
+    {
+        /* An optional name can look like a boolean or a name. */
+        if (ft == opt_name_flag)
+        {
+            if (of->ftype == bool_flag)
+            {
+                of->ftype = opt_name_flag;
+                of->fvalue.sval = NULL;
+            }
+            else if (of->ftype == name_flag)
+            {
+                of->ftype = opt_name_flag;
+            }
+        }
+
+        /* An optional integer can look like a boolean or an integer. */
+        if (ft == opt_integer_flag)
+        {
+            if (of->ftype == bool_flag)
+            {
+                of->ftype = opt_integer_flag;
+                of->fvalue.ival = -1;
+            }
+            else if (of->ftype == integer_flag)
+            {
+                of->ftype = opt_integer_flag;
+            }
+        }
+
+        if (ft != of->ftype)
+            yyerror("Annotation has a value of the wrong type");
+    }
+
+    return of;
 }
 
 
@@ -7083,12 +7119,12 @@ static void getHooks(optFlags *optflgs,char **pre,char **post)
 {
     optFlag *of;
 
-    if ((of = findOptFlag(optflgs,"PreHook",name_flag)) != NULL)
+    if ((of = getOptFlag(optflgs,"PreHook",name_flag)) != NULL)
         *pre = of -> fvalue.sval;
     else
         *pre = NULL;
 
-    if ((of = findOptFlag(optflgs,"PostHook",name_flag)) != NULL)
+    if ((of = getOptFlag(optflgs,"PostHook",name_flag)) != NULL)
         *post = of -> fvalue.sval;
     else
         *post = NULL;
@@ -7100,7 +7136,7 @@ static void getHooks(optFlags *optflgs,char **pre,char **post)
  */
 static int getTransfer(optFlags *optflgs)
 {
-    return (findOptFlag(optflgs, "Transfer", bool_flag) != NULL);
+    return (getOptFlag(optflgs, "Transfer", bool_flag) != NULL);
 }
 
 
@@ -7109,7 +7145,7 @@ static int getTransfer(optFlags *optflgs)
  */
 static int getReleaseGIL(optFlags *optflgs)
 {
-    return (findOptFlag(optflgs, "ReleaseGIL", bool_flag) != NULL);
+    return (getOptFlag(optflgs, "ReleaseGIL", bool_flag) != NULL);
 }
 
 
@@ -7118,7 +7154,7 @@ static int getReleaseGIL(optFlags *optflgs)
  */
 static int getHoldGIL(optFlags *optflgs)
 {
-    return (findOptFlag(optflgs, "HoldGIL", bool_flag) != NULL);
+    return (getOptFlag(optflgs, "HoldGIL", bool_flag) != NULL);
 }
 
 
@@ -7127,7 +7163,7 @@ static int getHoldGIL(optFlags *optflgs)
  */
 static int getDeprecated(optFlags *optflgs)
 {
-    return (findOptFlag(optflgs, "Deprecated", bool_flag) != NULL);
+    return (getOptFlag(optflgs, "Deprecated", bool_flag) != NULL);
 }
 
 
@@ -7136,7 +7172,7 @@ static int getDeprecated(optFlags *optflgs)
  */
 static int getAllowNone(optFlags *optflgs)
 {
-    return (findOptFlag(optflgs, "AllowNone", bool_flag) != NULL);
+    return (getOptFlag(optflgs, "AllowNone", bool_flag) != NULL);
 }
 
 
@@ -7145,7 +7181,7 @@ static int getAllowNone(optFlags *optflgs)
  */
 static const char *getDocType(optFlags *optflgs)
 {
-    optFlag *of = findOptFlag(optflgs, "DocType", string_flag);
+    optFlag *of = getOptFlag(optflgs, "DocType", string_flag);
 
     if (of == NULL)
         return NULL;
@@ -7159,7 +7195,7 @@ static const char *getDocType(optFlags *optflgs)
  */
 static const char *getDocValue(optFlags *optflgs)
 {
-    optFlag *of = findOptFlag(optflgs, "DocValue", string_flag);
+    optFlag *of = getOptFlag(optflgs, "DocValue", string_flag);
 
     if (of == NULL)
         return NULL;
@@ -7294,7 +7330,7 @@ static void applyTypeFlags(moduleDef *mod, argDef *ad, optFlags *flags)
 {
     ad->doctype = getDocType(flags);
 
-    if (findOptFlag(flags, "PyInt", bool_flag) != NULL)
+    if (getOptFlag(flags, "PyInt", bool_flag) != NULL)
     {
         if (ad->atype == string_type)
             ad->atype = byte_type;
@@ -7308,7 +7344,7 @@ static void applyTypeFlags(moduleDef *mod, argDef *ad, optFlags *flags)
     {
         optFlag *of;
 
-        if ((of = findOptFlag(flags, "Encoding", string_flag)) == NULL)
+        if ((of = getOptFlag(flags, "Encoding", string_flag)) == NULL)
         {
             if (mod->encoding != no_type)
                 ad->atype = mod->encoding;
@@ -7318,6 +7354,24 @@ static void applyTypeFlags(moduleDef *mod, argDef *ad, optFlags *flags)
         else if ((ad->atype = convertEncoding(of->fvalue.sval)) == no_type)
             yyerror("The value of the /Encoding/ annotation must be one of \"ASCII\", \"Latin-1\", \"UTF-8\" or \"None\"");
     }
+}
+
+
+/*
+ * Return the keyword argument support converted from a string.
+ */
+static KwArgs convertKwArgs(const char *kwargs)
+{
+    if (strcmp(kwargs, "None") == 0)
+        return NoKwArgs;
+
+    if (strcmp(kwargs, "All") == 0)
+        return AllKwArgs;
+
+    if (strcmp(kwargs, "Optional") == 0)
+        return OptionalKwArgs;
+
+    yyerror("The style of keyword argument support must be one of \"All\", \"Optional\" or \"None\"");
 }
 
 
@@ -7350,7 +7404,7 @@ static apiVersionRangeDef *getAPIRange(optFlags *optflgs)
 {
     optFlag *of;
 
-    if ((of = findOptFlag(optflgs, "API", api_range_flag)) == NULL)
+    if ((of = getOptFlag(optflgs, "API", api_range_flag)) == NULL)
         return NULL;
 
     return of->fvalue.aval;
@@ -7395,23 +7449,53 @@ static apiVersionRangeDef *convertAPIRange(moduleDef *mod, nameDef *name,
 
 
 /*
- * Return TRUE if a signature with annotations uses keyword arguments.
+ * Return the style of keyword argument support for a signature.
  */
-static int usesKeywordArgs(optFlags *optflgs, signatureDef *sd)
+static KwArgs keywordArgs(moduleDef *mod, optFlags *optflgs, signatureDef *sd)
 {
-    int kwd_args_anno, no_kwd_args_anno;
+    KwArgs kwargs;
+    optFlag *ka_anno, *no_ka_anno;
 
-    kwd_args_anno = (findOptFlag(optflgs, "KeywordArgs", bool_flag) != NULL);
-    no_kwd_args_anno = (findOptFlag(optflgs, "NoKeywordArgs", bool_flag) != NULL);
+    /* Get the default. */
+    kwargs = mod->kwargs;
 
     /*
-     * An ellipsis cannot be used with keyword arguments.  Only complain if it
-     * has been explicitly requested.
+     * Get the possible annotations allowing /KeywordArgs/ to have different
+     * types of values.
      */
-    if (kwd_args_anno && sd->nrArgs > 0 && sd->args[sd->nrArgs - 1].atype == ellipsis_type)
-        yyerror("/KeywordArgs/ cannot be specified for calls with a variable number of arguments");
+    ka_anno = findOptFlag(optflgs, "KeywordArgs");
+    no_ka_anno = getOptFlag(optflgs, "NoKeywordArgs", bool_flag);
 
-    if ((defaultKwdArgs || kwd_args_anno) && !no_kwd_args_anno)
+    if (no_ka_anno != NULL)
+    {
+        if (ka_anno != NULL)
+            yyerror("/KeywordArgs/ and /NoKeywordArgs/ cannot both be specified");
+
+        deprecated("/NoKeywordArgs/ is deprecated, use /KeywordArgs=\"None\" instead");
+
+        kwargs = NoKwArgs;
+    }
+    else if (ka_anno != NULL)
+    {
+        /* A string value is the non-deprecated type. */
+        if (ka_anno->ftype == string_flag)
+        {
+            kwargs = convertKwArgs(ka_anno->fvalue.sval);
+        }
+        else
+        {
+            deprecated("/KeywordArgs/ is deprecated, use /KeywordArgs=\"All\" instead");
+
+            /* Get it again to check the type. */
+            ka_anno = getOptFlag(optflgs, "KeywordArgs", bool_flag);
+        }
+    }
+
+    /* An ellipsis cannot be used with keyword arguments. */
+    if (sd->nrArgs > 0 && sd->args[sd->nrArgs - 1].atype == ellipsis_type)
+        kwargs = NoKwArgs;
+
+    if (kwargs != NoKwArgs)
     {
         int a, is_name = FALSE;
 
@@ -7420,19 +7504,23 @@ static int usesKeywordArgs(optFlags *optflgs, signatureDef *sd)
          */
         for (a = 0; a < sd->nrArgs; ++a)
         {
-            nameDef *nd = sd->args[a].name;
+            argDef *ad = &sd->args[a];
 
-            if (sd->args[a].name != NULL)
+            if (kwargs == OptionalKwArgs && ad->defval == NULL)
+                continue;
+
+            if (ad->name != NULL)
             {
-                setIsUsedName(nd);
+                setIsUsedName(ad->name);
                 is_name = TRUE;
             }
         }
 
-        return is_name;
+        if (!is_name)
+            kwargs = NoKwArgs;
     }
 
-    return FALSE;
+    return kwargs;
 }
 
 
@@ -7535,7 +7623,7 @@ static void addProperty(sipSpec *pt, moduleDef *mod, classDef *cd,
  */
 static moduleDef *configureModule(sipSpec *pt, moduleDef *module,
         const char *filename, const char *name, int version, int c_module,
-        int use_arg_names, codeBlock *docstring)
+        KwArgs kwargs, int use_arg_names, codeBlock *docstring)
 {
     moduleDef *mod;
 
@@ -7559,6 +7647,7 @@ static moduleDef *configureModule(sipSpec *pt, moduleDef *module,
     }
 
     setModuleName(pt, module, name);
+    module->kwargs = kwargs;
     module->version = version;
     module->docstring = docstring;
 

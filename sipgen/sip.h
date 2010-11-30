@@ -172,7 +172,6 @@
 #define CTOR_HOLD_GIL       0x00000800  /* The ctor holds the GIL. */
 #define CTOR_XFERRED        0x00001000  /* Ownership is transferred. */
 #define CTOR_IS_DEPRECATED  0x00002000  /* The ctor is deprecated. */
-#define CTOR_KEYWORD_ARGS   0x00004000  /* The ctor allows keyword arguments. */
 
 #define isPublicCtor(c)     ((c)->ctorflags & SECT_IS_PUBLIC)
 #define setIsPublicCtor(c)  ((c)->ctorflags |= SECT_IS_PUBLIC)
@@ -192,8 +191,6 @@
 #define setIsResultTransferredCtor(c)   ((c)->ctorflags |= CTOR_XFERRED)
 #define isDeprecatedCtor(c) ((c)->ctorflags & CTOR_IS_DEPRECATED)
 #define setIsDeprecatedCtor(c)  ((c)->ctorflags |= CTOR_IS_DEPRECATED)
-#define useKeywordArgsCtor(c)   ((c)->ctorflags & CTOR_KEYWORD_ARGS)
-#define setUseKeywordArgsCtor(c)    ((c)->ctorflags |= CTOR_KEYWORD_ARGS)
 
 
 /* Handle member flags. */
@@ -209,8 +206,8 @@
 #define setNoArgParser(m)   ((m)->memberflags |= MEMBR_NO_ARG_PARSER)
 #define notVersioned(m)     ((m)->memberflags & MEMBR_NOT_VERSIONED)
 #define setNotVersioned(m)  ((m)->memberflags |= MEMBR_NOT_VERSIONED)
-#define useKeywordArgsFunction(m)   ((m)->memberflags & MEMBR_KEYWORD_ARGS)
-#define setUseKeywordArgsFunction(m)    ((m)->memberflags |= MEMBR_KEYWORD_ARGS)
+#define useKeywordArgs(m)   ((m)->memberflags & MEMBR_KEYWORD_ARGS)
+#define setUseKeywordArgs(m)    ((m)->memberflags |= MEMBR_KEYWORD_ARGS)
 
 
 /* Handle enum flags.  These are combined with the section flags. */
@@ -260,8 +257,7 @@
 #define OVER_IS_GLOBAL      0x00400000  /* It is a global operator. */
 #define OVER_IS_COMPLEMENTARY   0x00800000  /* It is a complementary operator. */
 #define OVER_IS_DEPRECATED  0x01000000  /* It is deprecated. */
-#define OVER_KEYWORD_ARGS   0x02000000  /* It allows keyword arguments. */
-#define OVER_REALLY_PROT    0x04000000  /* It really is protected. */
+#define OVER_REALLY_PROT    0x02000000  /* It really is protected. */
 
 #define isPublic(o)         ((o)->overflags & SECT_IS_PUBLIC)
 #define setIsPublic(o)      ((o)->overflags |= SECT_IS_PUBLIC)
@@ -312,8 +308,6 @@
 #define setIsComplementary(o)   ((o)->overflags |= OVER_IS_COMPLEMENTARY)
 #define isDeprecated(o)     ((o)->overflags & OVER_IS_DEPRECATED)
 #define setIsDeprecated(o)  ((o)->overflags |= OVER_IS_DEPRECATED)
-#define useKeywordArgs(o)   ((o)->overflags & OVER_KEYWORD_ARGS)
-#define setUseKeywordArgs(o)    ((o)->overflags |= OVER_KEYWORD_ARGS)
 #define isReallyProtected(o)    ((o)->overflags & OVER_REALLY_PROT)
 #define setIsReallyProtected(o) ((o)->overflags |= OVER_REALLY_PROT)
 
@@ -434,8 +428,15 @@ typedef enum {
 } Warning;
 
 
-/* Slot types. */
+/* Levels of keyword argument support. */
+typedef enum {
+    NoKwArgs = 0,
+    AllKwArgs,
+    OptionalKwArgs
+} KwArgs;
 
+
+/* Slot types. */
 typedef enum {
     str_slot,
     unicode_slot,
@@ -738,6 +739,7 @@ typedef struct _moduleDef {
     apiVersionRangeDef *api_versions;   /* The defined APIs. */
     apiVersionRangeDef *api_ranges;     /* The list of API version ranges. */
     int modflags;                       /* The module flags. */
+    KwArgs kwargs;                      /* The styleof keyword argument support. */
     int qobjclass;                      /* QObject class, -1 if none. */
     struct _memberDef *othfuncs;        /* List of other functions. */
     struct _overDef *overs;             /* Global overloads. */
@@ -908,6 +910,7 @@ typedef struct _propertyDef {
 typedef struct _overDef {
     char *cppname;                      /* The C++ name. */
     int overflags;                      /* The overload flags. */
+    KwArgs kwargs;                      /* The keyword argument support. */
     struct _memberDef *common;          /* Common parts. */
     apiVersionRangeDef *api_range;      /* The optional API version range. */
     signatureDef pysig;                 /* The Python signature. */
@@ -925,6 +928,7 @@ typedef struct _overDef {
 
 typedef struct _ctorDef {
     int ctorflags;                      /* The ctor flags. */
+    KwArgs kwargs;                      /* The keyword argument support. */
     apiVersionRangeDef *api_range;      /* The optional API version range. */
     signatureDef pysig;                 /* The Python signature. */
     signatureDef *cppsig;               /* The C++ signature, NULL if /NoDerived/. */
@@ -1147,7 +1151,7 @@ extern char *sipVersion;                /* The version of SIP. */
 extern stringList *includeDirList;      /* The include directory list for SIP files. */
 
 
-void parse(sipSpec *, FILE *, char *, stringList *, stringList *, int, int);
+void parse(sipSpec *, FILE *, char *, stringList *, stringList *, KwArgs, int);
 void parserEOF(char *,parserContext *);
 void transform(sipSpec *);
 void generateCode(sipSpec *, char *, char *, char *, const char *, int, int,
@@ -1337,6 +1341,7 @@ typedef struct _licenseCfg {
 typedef struct _moduleCfg {
     int token;
     int c_module;
+    KwArgs kwargs;
     const char *name;
     int use_arg_names;
     int version;

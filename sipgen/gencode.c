@@ -1845,7 +1845,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
                 prcode(fp,
 "    {%n, ", md->pyname);
 
-                if (noArgParser(md) || useKeywordArgsFunction(md))
+                if (noArgParser(md) || useKeywordArgs(md))
                     prcode(fp, "(PyCFunction)func_%s, METH_VARARGS|METH_KEYWORDS", md->pyname->text);
                 else
                     prcode(fp, "func_%s, METH_VARARGS", md->pyname->text);
@@ -2022,7 +2022,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
             prcode(fp,
 "        {SIP_MLNAME_CAST(%N), ", md->pyname);
 
-            if (noArgParser(md) || useKeywordArgsFunction(md))
+            if (noArgParser(md) || useKeywordArgs(md))
                 prcode(fp, "(PyCFunction)func_%s, METH_VARARGS|METH_KEYWORDS", md->pyname->text);
             else
                 prcode(fp, "func_%s, METH_VARARGS", md->pyname->text);
@@ -2650,7 +2650,7 @@ static void generateOrdinaryFunction(sipSpec *pt, moduleDef *mod,
             );
     }
 
-    if (noArgParser(md) || useKeywordArgsFunction(md))
+    if (noArgParser(md) || useKeywordArgs(md))
     {
         kw_fw_decl = ", PyObject *";
         kw_decl = ", PyObject *sipKwds";
@@ -4183,7 +4183,7 @@ static void prMethodTable(sipSpec *pt, sortedMethTab *mtable, int nr,
         const char *cast, *flags;
         int has_docstring;
 
-        if (noArgParser(md) || useKeywordArgsFunction(md))
+        if (noArgParser(md) || useKeywordArgs(md))
         {
             cast = "(PyCFunction)";
             flags = "|METH_KEYWORDS";
@@ -5258,7 +5258,7 @@ static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
     }
     else if (md->slot == call_slot)
     {
-        if (generating_c || useKeywordArgsFunction(md) || noArgParser(md))
+        if (generating_c || useKeywordArgs(md) || noArgParser(md))
             arg_str = "PyObject *sipSelf,PyObject *sipArgs,PyObject *sipKwds";
         else
             arg_str = "PyObject *sipSelf,PyObject *sipArgs,PyObject *";
@@ -10712,7 +10712,7 @@ static void generateFunction(sipSpec *pt, memberDef *md, overDef *overs,
                         need_selfarg = TRUE;
                 }
 
-                if (useKeywordArgs(od))
+                if (od->kwargs != NoKwArgs)
                     need_kwds = TRUE;
             }
         }
@@ -12307,26 +12307,34 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
         prcode(fp,
 "        if (sipParsePair(%ssipParseErr, sipArg0, sipArg1, \"", (ct != NULL ? "" : "&"));
     }
-    else if ((od != NULL && useKeywordArgsFunction(od->common)) || ct != NULL)
+    else if ((od != NULL && useKeywordArgs(od->common)) || ct != NULL)
     {
-        int this_uses_kwds, this_really_uses_kwds;
+        KwArgs kwargs;
+        int is_ka_list;
 
         /*
          * We handle keywords if we might have been passed some (because one of
          * the overloads uses them or we are a ctor).  However this particular
          * overload might not have any.
          */
-        this_uses_kwds = ((od != NULL && useKeywordArgs(od)) || (ct != NULL && useKeywordArgsCtor(ct)));
+        if (od != NULL)
+            kwargs = od->kwargs;
+        else if (ct != NULL)
+            kwargs = ct->kwargs;
+        else
+            kwargs = NoKwArgs;
 
         /*
          * The above test isn't good enough because when the flags were set in
          * the parser we couldn't know for sure if an argument was an output
-         * pointer.  Therefore we check here.  The only drawback is that we may
-         * generate the name string for the argument but never use it.
+         * pointer.  Therefore we check here.  The drawback is that we may
+         * generate the name string for the argument but never use it, or we
+         * might have an empty keyword name array or one that contains only
+         * NULLs.
          */
-        this_really_uses_kwds = FALSE;
+        is_ka_list = FALSE;
 
-        if (this_uses_kwds)
+        if (kwargs != NoKwArgs)
         {
             int a;
 
@@ -12336,16 +12344,16 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
 
                 if (isInArg(ad))
                 {
-                    if (!this_really_uses_kwds)
+                    if (!is_ka_list)
                     {
                         prcode(fp,
 "        static const char *sipKwdList[] = {\n"
                             );
 
-                        this_really_uses_kwds = TRUE;
+                        is_ka_list = TRUE;
                     }
 
-                    if (ad->name != NULL)
+                    if (ad->name != NULL && (kwargs == AllKwArgs || ad->defval != NULL))
                         prcode(fp,
 "            %N,\n"
                             , ad->name);
@@ -12356,7 +12364,7 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
                 }
             }
 
-            if (this_really_uses_kwds)
+            if (is_ka_list)
                 prcode(fp,
     "        };\n"
     "\n"
@@ -12364,7 +12372,7 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
         }
 
         prcode(fp,
-"        if (sipParseKwdArgs(%ssipParseErr, sipArgs, sipKwds, %s, %s, \"", (ct != NULL ? "" : "&"), (this_really_uses_kwds ? "sipKwdList" : "NULL"), (ct != NULL ? "sipUnused" : "NULL"));
+"        if (sipParseKwdArgs(%ssipParseErr, sipArgs, sipKwds, %s, %s, \"", (ct != NULL ? "" : "&"), (is_ka_list ? "sipKwdList" : "NULL"), (ct != NULL ? "sipUnused" : "NULL"));
     }
     else
     {

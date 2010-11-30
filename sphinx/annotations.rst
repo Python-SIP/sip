@@ -597,11 +597,24 @@ Function Annotations
 
     .. versionadded:: 4.10
 
-    This boolean annotation specifies that the argument parser generated for
-    this function will support passing the parameters using Python's keyword
-    argument syntax.  Keyword arguments cannot be used for functions that have
-    unnamed arguments or use an ellipsis to designate that the function has a
-    variable number of arguments.
+    This string annotation specifies the level of support the argument parser
+    generated for this function will provide for passing the parameters using
+    Python's keyword argument syntax.  The value of the annotation can be
+    either ``"None"`` meaning that keyword arguments are not supported,
+    ``"All"`` meaning that all named arguments can be passed as keyword
+    arguments, or ``"Optional"`` meaning that all named optional arguments
+    (i.e. those with a default value) can be passed as keyword arguments.
+
+    If the annotation is not used then the value specified by the
+    ``keyword_arguments`` argument of the :directive:`%Module` directive is
+    used.
+
+    Keyword arguments cannot be used for functions that use an ellipsis to
+    designate that the function has a variable number of arguments.
+
+    .. deprecated:: 4.12
+        It can also be used as a boolean annotation which is the equivalent of
+        specifiying a value of ``"All"``.
 
 
 .. function-annotation:: __len__
@@ -654,13 +667,16 @@ Function Annotations
 
     .. versionadded:: 4.10
 
+    .. deprecated:: 4.12
+        Use the :fanno:`KeywordArgs` annotation with a value of ``"None"``.
+
     This boolean annotation specifies that the argument parser generated for
     this function will not support passing the parameters using Python's
     keyword argument syntax.  In other words, the argument parser will only
-    support only normal positional arguments.  This annotation is useful when
-    the default setting of allowing keyword arguments has been changed via the
-    command line, but you would still like certain functions to only support
-    positional arguments.
+    support normal positional arguments.  This annotation is useful when the
+    default setting of allowing keyword arguments has been changed via the
+    command line or the :directive:`%Module` directive, but you would still
+    like certain functions to only support positional arguments.
 
 
 .. function-annotation:: Numeric

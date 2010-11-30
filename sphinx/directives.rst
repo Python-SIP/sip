@@ -1378,7 +1378,10 @@ For example::
 
 .. parsed-literal::
 
-    %License(type = *string* [, licensee = *string*] [, signature = *string*] [, timestamp = *string*])
+    %License(type = *string*
+            [, licensee = *string*]
+            [, signature = *string*]
+            [, timestamp = *string*])
 
 This directive is used to specify the contents of an optional license
 dictionary.  The license dictionary is called :data:`__license__` and is stored
@@ -1759,7 +1762,11 @@ then the pattern should instead be::
 
 .. parsed-literal::
 
-    %Module(name = *dotted-name* [, language = *string*] [, use_argument_names = *bool*] [, version = *integer*])
+    %Module(name = *dotted-name*
+            [, keyword_arguments = ["None" | "All" | "Optional"]]
+            [, language = *string*]
+            [, use_argument_names = *bool*]
+            [, version = *integer*])
     {
         [:directive:`%AutoPyName`]
         [:directive:`%Docstring`]
@@ -1768,6 +1775,11 @@ then the pattern should instead be::
 This directive is used to specify the name of a module and a number of other
 attributes.  ``name`` may contain periods to specify that the module is part of
 a Python package.
+
+``keyword_arguments`` specifies the default level of support for Python keyword
+arguments.  See the :fanno:`KeywordArgs` annotation for an explaination of the
+possible values and their effect.  If it is not specified then the value
+implied by the (deprecated) :option:`-k <sip -k>` command line option is used.
 
 ``language`` specifies the implementation language of the library being
 wrapped.  Its value is either ``"C++"`` (the default) or ``"C"``.
