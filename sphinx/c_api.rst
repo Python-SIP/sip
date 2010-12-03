@@ -929,6 +929,19 @@ specification files.
         the memory address.
 
 
+.. cfunction:: void *sipGetAddress(sipSimpleWrapper *obj)
+
+    .. versionadded:: 4.12
+
+    This returns the address of the C structure or C++ class instance wrapped
+    by a Python object.
+
+    :param obj:
+        the Python object.
+    :return:
+        the address of the C/C++ instance
+
+
 .. cfunction:: PyObject *sipGetPyObject(void *cppptr, const sipTypeDef *td)
 
     This returns a borrowed reference to the Python object for a C structure or
