@@ -31,7 +31,7 @@ import zipfile
 # The files that need to be patched with the version number.
 _PatchedFiles = (
     ('configure.py', ),
-    ('sipgen', 'main.c'),
+    ('sipgen', 'sip.h'),
     ('siplib', 'sip.h.in'),
     ('sphinx', 'conf.py'), ('sphinx', 'introduction.rst'))
 

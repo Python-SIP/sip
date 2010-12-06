@@ -1296,6 +1296,10 @@ For example::
         // Process this if either V2_0 or V3_0 is enabled.
     %End
 
+    %If (SIP_4_13 - )
+        // SIP v4.13 and later will process this.
+    %End
+
     %If ( - )
         // Always process this.
     %End
@@ -2115,6 +2119,16 @@ Versions are mutually exclusive - only one version can be enabled at a time.
 By default all versions are disabled.  The SIP :option:`-t <sip -t>` command
 line option is used to enable a version.
 
+The :directive:`%Timeline` directive can be used any number of times in a
+module to allow multiple libraries to be wrapped in the same module.
+
+.. versionadded:: 4.12
+
+SIP automatically defines a timeline containing all versions of SIP since
+v4.12.  The name of the version is ``SIP_`` followed by the individual parts of
+the version number separated by an underscore.  SIP v4.12 is therefore
+``SIP_4_12`` and SIP v4.13.2 is ``SIP_4_13_2``.
+
 For example::
 
     %Timeline {V1_0 V1_1 V2_0 V3_0}
@@ -2127,8 +2141,9 @@ For example::
     void foo(int = 0);
     %End
 
-The :directive:`%Timeline` directive can be used any number of times in a
-module to allow multiple libraries to be wrapped in the same module.
+    %If (- SIP_4_13)
+    void bar();
+    %End
 
 
 .. directive:: %TypeCode

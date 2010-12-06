@@ -30,8 +30,6 @@
 #define PACKAGE "sip"
 #endif
 
-#define VERSION "@RM_RELEASE@"
-
 
 /* Global variables - see sip.h for their meaning. */
 char *sipVersion;
@@ -60,7 +58,7 @@ int main(int argc, char **argv)
     stringList *versions, *xfeatures, *extracts;
 
     /* Initialise. */
-    sipVersion = VERSION;
+    sipVersion = SIP_VERSION_STR;
     includeDirList = NULL;
     versions = NULL;
     xfeatures = NULL;

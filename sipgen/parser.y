@@ -90,15 +90,17 @@ static void parseFile(FILE *fp, char *name, moduleDef *prevmod, int optional);
 static void handleEOF(void);
 static void handleEOM(void);
 static qualDef *findQualifier(const char *name);
+static const char *getInt(const char *cp, int *ip);
 static scopedNameDef *text2scopedName(ifaceFileDef *scope, char *text);
 static scopedNameDef *scopeScopedName(ifaceFileDef *scope,
         scopedNameDef *name);
 static void pushScope(classDef *);
 static void popScope(void);
 static classDef *currentScope(void);
-static void newQualifier(moduleDef *,int,int,char *,qualType);
+static void newQualifier(moduleDef *, int, int, const char *, qualType);
+static qualDef *allocQualifier(moduleDef *, int, int, const char *, qualType);
 static void newImport(char *filename);
-static int timePeriod(char *,char *);
+static int timePeriod(const char *lname, const char *uname);
 static int platOrFeature(char *,int);
 static int isNeeded(qualDef *);
 static int notSkipping(void);
@@ -1133,7 +1135,8 @@ qualifierlist:  qualifiername
     ;
 
 qualifiername:  TK_NAME_VALUE {
-            newQualifier(currentModule,currentModule -> nrtimelines,currentTimelineOrder++,$1,time_qualifier);
+            newQualifier(currentModule, currentModule->nrtimelines,
+                    currentTimelineOrder++, $1, time_qualifier);
         }
     ;
 
@@ -1166,7 +1169,7 @@ oredqualifiers: TK_NAME_VALUE {
 
 qualifiers: oredqualifiers
     |   optname '-' optname {
-            $$ = timePeriod($1,$3);
+            $$ = timePeriod($1, $3);
         }
     ;
 
@@ -6738,7 +6741,50 @@ static qualDef *findQualifier(const char *name)
                 return qd;
     }
 
+    /* Qualifiers corresponding to the SIP version are created on the fly. */
+    if (name[0] == 'S' && name[1] == 'I' && name[2] == 'P' && name[3] == '_')
+    {
+        const char *cp = &name[3];
+        int major, minor, patch;
+
+        cp = getInt(cp, &major);
+        cp = getInt(cp, &minor);
+        cp = getInt(cp, &patch);
+
+        if (*cp != '\0')
+            yyerror("Unexpected character after SIP version number");
+
+        return allocQualifier(currentModule, -1,
+                (major << 16) | (minor << 8) | patch, name, time_qualifier);
+    }
+
     return NULL;
+}
+
+
+/*
+ * Get an integer from string.
+ */
+static const char *getInt(const char *cp, int *ip)
+{
+    /* Handle the default value. */
+    *ip = 0;
+
+    if (*cp == '\0')
+        return cp;
+
+    /* There must be a leading underscore. */
+    if (*cp++ != '_')
+        yyerror("An underscore must separate the parts of a SIP version number");
+
+    while (isdigit(*cp))
+    {
+        *ip *= 10;
+        *ip += *cp - '0';
+        ++cp;
+    }
+
+    return cp;
 }
 
 
@@ -6902,7 +6948,7 @@ static int notSkipping()
 /*
  * Return the value of an expression involving a time period.
  */
-static int timePeriod(char *lname,char *uname)
+static int timePeriod(const char *lname, const char *uname)
 {
     int this, line;
     qualDef *qd, *lower, *upper;
@@ -6910,62 +6956,71 @@ static int timePeriod(char *lname,char *uname)
 
     if (lname == NULL)
         lower = NULL;
-    else if ((lower = findQualifier(lname)) == NULL || lower -> qtype != time_qualifier)
+    else if ((lower = findQualifier(lname)) == NULL || lower->qtype != time_qualifier)
         yyerror("Lower bound is not a time version");
 
     if (uname == NULL)
         upper = NULL;
-    else if ((upper = findQualifier(uname)) == NULL || upper -> qtype != time_qualifier)
+    else if ((upper = findQualifier(uname)) == NULL || upper->qtype != time_qualifier)
         yyerror("Upper bound is not a time version");
 
     /* Sanity checks on the bounds. */
-
     if (lower == NULL && upper == NULL)
         yyerror("Lower and upper bounds cannot both be omitted");
 
     if (lower != NULL && upper != NULL)
     {
-        if (lower -> module != upper -> module || lower -> line != upper -> line)
+        if (lower->module != upper->module || lower->line != upper->line)
             yyerror("Lower and upper bounds are from different timelines");
 
         if (lower == upper)
             yyerror("Lower and upper bounds must be different");
 
-        if (lower -> order > upper -> order)
+        if (lower->order > upper->order)
             yyerror("Later version specified as lower bound");
     }
 
     /* Go through each slot in the relevant timeline. */
-
     if (lower != NULL)
     {
-        mod = lower -> module;
-        line = lower -> line;
+        mod = lower->module;
+        line = lower->line;
     }
     else
     {
-        mod = upper -> module;
-        line = upper -> line;
+        mod = upper->module;
+        line = upper->line;
+    }
+
+    /* Handle the SIP version number pseudo-timeline. */
+    if (line < 0)
+    {
+        if (lower != NULL && lower->order > SIP_VERSION)
+            return FALSE;
+
+        if (upper != NULL && upper->order <= SIP_VERSION)
+            return FALSE;
+
+        return TRUE;
     }
 
     this = FALSE;
 
-    for (qd = mod -> qualifiers; qd != NULL; qd = qd -> next)
+    for (qd = mod->qualifiers; qd != NULL; qd = qd->next)
     {
-        if (qd -> qtype != time_qualifier || qd -> line != line)
+        if (qd->qtype != time_qualifier || qd->line != line)
             continue;
 
-        if (lower != NULL && qd -> order < lower -> order)
+        if (lower != NULL && qd->order < lower->order)
             continue;
 
-        if (upper != NULL && qd -> order >= upper -> order)
+        if (upper != NULL && qd->order >= upper->order)
             continue;
 
         /*
-         * This is within the required range so if it is also needed
-         * then the expression is true.
+         * This is within the required range so if it is also needed then the
+         * expression is true.
          */
-
         if (isNeeded(qd))
         {
             this = TRUE;
@@ -7052,24 +7107,37 @@ static classDef *currentScope(void)
 /*
  * Create a new qualifier.
  */
-static void newQualifier(moduleDef *mod, int line, int order, char *name,
+static void newQualifier(moduleDef *mod, int line, int order, const char *name,
         qualType qt)
 {
-    qualDef *qd;
-
     /* Check it doesn't already exist. */
-
     if (findQualifier(name) != NULL)
         yyerror("Version is already defined");
 
+    allocQualifier(mod, line, order, name, qt);
+}
+
+
+/*
+ * Allocate a new qualifier.
+ */
+static qualDef *allocQualifier(moduleDef *mod, int line, int order,
+        const char *name, qualType qt)
+{
+    qualDef *qd;
+
     qd = sipMalloc(sizeof (qualDef));
+
     qd->name = name;
     qd->qtype = qt;
     qd->module = mod;
     qd->line = line;
     qd->order = order;
-    qd->next = mod -> qualifiers;
+    qd->next = mod->qualifiers;
+
     mod->qualifiers = qd;
+
+    return qd;
 }
 
 

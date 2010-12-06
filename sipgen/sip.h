@@ -24,6 +24,13 @@
 #include <sys/types.h>
 
 
+/*
+ * Define the SIP version number.
+ */
+#define SIP_VERSION         0x040c00
+#define SIP_VERSION_STR     "4.12-snapshot-0d8a873e3d30"
+
+
 #ifdef TRUE
 #undef TRUE
 #endif
@@ -602,7 +609,7 @@ typedef struct {
 /* A version qualifier. */
 
 typedef struct _qualDef {
-    char *name;                         /* The qualifier name. */
+    const char *name;                   /* The qualifier name. */
     qualType qtype;                     /* The qualifier type. */
     struct _moduleDef *module;          /* The defining module. */
     int line;                           /* Timeline if it is a time. */

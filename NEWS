@@ -1,10 +1,12 @@
-v4.12 ??? ??? 2010
+v4.12 ??? December 2010
   - Implemented the revised directive syntax for %Module.
   - Deprecated %CModule, use %Module instead.
   - Added the keyword_arguments argument to %Module to specify the level of
     support for Python keyword arguments.
   - Deprecated the -k flag to sip, use the keyword_arguments argument to
     %Module instead.
+  - Added an automatic pseudo-%Timeline to allow the SIP version number to be
+    used in the %If directive.
   - Changed the behavior of the /KeywordArgs/ annotation to specify the level
     of support for Python keyword arguments.
   - Deprecated the /NoKeywordArgs/ annotation, use /KeywordArgs="All"/ instead.
