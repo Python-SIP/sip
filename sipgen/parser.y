@@ -155,6 +155,8 @@ static moduleDef *configureModule(sipSpec *pt, moduleDef *module,
         KwArgs kwargs, int use_arg_names, codeBlock *docstring);
 static void addAutoPyName(moduleDef *mod, const char *remove_leading);
 static KwArgs convertKwArgs(const char *kwargs);
+static void checkAnnos(optFlags *annos, const char *valid[]);
+static void checkNoAnnos(optFlags *annos, const char *msg);
 %}
 
 %union {
@@ -695,8 +697,16 @@ api_arg:    TK_NAME '=' TK_NAME_VALUE {
 exception:  TK_EXCEPTION scopedname baseexception optflags exception_body {
             if (notSkipping())
             {
+                static const char *annos[] = {
+                    "Default",
+                    "PyName",
+                    NULL
+                };
+
                 exceptionDef *xd;
                 const char *pyname;
+
+                checkAnnos(&$4, annos);
 
                 if (currentSpec->genc)
                     yyerror("%Exception not allowed in a C module");
@@ -868,32 +878,54 @@ raisecode:  TK_RAISECODE codeblock {
 
 mappedtype: TK_MAPPEDTYPE basetype optflags {
             if (notSkipping())
+            {
+                static const char *annos[] = {
+                    "AllowNone",
+                    "API",
+                    "DocType",
+                    "NoRelease",
+                    "PyName",
+                    NULL
+                };
+
+                checkAnnos(&$3, annos);
+
                 currentMappedType = newMappedType(currentSpec, &$2, &$3);
+            }
         } mtdefinition
     ;
 
 mappedtypetmpl: template TK_MAPPEDTYPE basetype optflags {
-            int a;
-
-            if (currentSpec->genc)
-                yyerror("%MappedType templates not allowed in a C module");
-
-            /* Check the template arguments are basic types or simple names. */
-            for (a = 0; a < $1.nrArgs; ++a)
-            {
-                argDef *ad = &$1.args[a];
-
-                if (ad->atype == defined_type && ad->u.snd->next != NULL)
-                    yyerror("%MappedType template arguments must be simple names");
-            }
-
-            if ($3.atype != template_type)
-                yyerror("%MappedType template must map a template type");
-
             if (notSkipping())
             {
+                static const char *annos[] = {
+                    "DocType",
+                    NULL
+                };
+
+                int a;
                 mappedTypeTmplDef *mtt;
                 ifaceFileDef *iff;
+
+                checkAnnos(&$4, annos);
+
+                if (currentSpec->genc)
+                    yyerror("%MappedType templates not allowed in a C module");
+
+                /*
+                 * Check the template arguments are basic types or simple
+                 * names.
+                 */
+                for (a = 0; a < $1.nrArgs; ++a)
+                {
+                    argDef *ad = &$1.args[a];
+
+                    if (ad->atype == defined_type && ad->u.snd->next != NULL)
+                        yyerror("%MappedType template arguments must be simple names");
+                }
+
+                if ($3.atype != template_type)
+                    yyerror("%MappedType template must map a template type");
 
                 /* Check a template hasn't already been provided. */
                 for (mtt = currentSpec->mappedtypetemplates; mtt != NULL; mtt = mtt->next)
@@ -2046,6 +2078,13 @@ codelines:  TK_CODELINE
 enum:       TK_ENUM optname optflags {
             if (notSkipping())
             {
+                const char *annos[] = {
+                    "PyName",
+                    NULL
+                };
+
+                checkAnnos(&$3, annos);
+
                 if (sectionFlags != 0 && (sectionFlags & ~(SECT_IS_PUBLIC | SECT_IS_PROT)) != 0)
                     yyerror("Class enums must be in the public or protected sections");
 
@@ -2084,7 +2123,14 @@ enumline:   ifstart
     |   TK_NAME_VALUE optenumassign optflags optcomma {
             if (notSkipping())
             {
+                const char *annos[] = {
+                    "PyName",
+                    NULL
+                };
+
                 enumMemberDef *emd, **tail;
+
+                checkAnnos(&$3, annos);
 
                 /* Note that we don't use the assigned value. */
                 emd = sipMalloc(sizeof (enumMemberDef));
@@ -2299,6 +2345,16 @@ exprlist:   {
 typedef:    TK_TYPEDEF cpptype TK_NAME_VALUE optflags ';' {
             if (notSkipping())
             {
+                const char *annos[] = {
+                    "DocType",
+                    "Encoding",
+                    "NoTypeName",
+                    "PyInt",
+                    NULL
+                };
+
+                checkAnnos(&$4, annos);
+
                 applyTypeFlags(currentModule, &$2, &$4);
                 newTypedef(currentSpec, currentModule, $3, &$2, &$4);
             }
@@ -2306,8 +2362,18 @@ typedef:    TK_TYPEDEF cpptype TK_NAME_VALUE optflags ';' {
     |   TK_TYPEDEF cpptype '(' deref TK_NAME_VALUE ')' '(' cpptypelist ')' optflags ';' {
             if (notSkipping())
             {
+                const char *annos[] = {
+                    "DocType",
+                    "Encoding",
+                    "NoTypeName",
+                    "PyInt",
+                    NULL
+                };
+
                 signatureDef *sig;
                 argDef ftype;
+
+                checkAnnos(&$10, annos);
 
                 applyTypeFlags(currentModule, &$2, &$10);
 
@@ -2337,6 +2403,23 @@ struct:     TK_STRUCT scopedname {
         } superclasses optflags {
             if (notSkipping())
             {
+                const char *annos[] = {
+                    "Abstract",
+                    "API",
+                    "DelayDtor",
+                    "Deprecated",
+                    "External",
+                    "Metatype",
+                    "NoDefaultCtors",
+                    "PyName",
+                    "PyQt4Flags",
+                    "PyQt4NoQMetaObject",
+                    "Supertype",
+                    NULL
+                };
+
+                checkAnnos(&$5, annos);
+
                 if (currentSpec->genc && currentSupers != NULL)
                     yyerror("Super-classes not allowed in a C module struct");
 
@@ -2389,6 +2472,23 @@ class:  TK_CLASS scopedname {
         } superclasses optflags {
             if (notSkipping())
             {
+                const char *annos[] = {
+                    "Abstract",
+                    "API",
+                    "DelayDtor",
+                    "Deprecated",
+                    "External",
+                    "Metatype",
+                    "NoDefaultCtors",
+                    "PyName",
+                    "PyQt4Flags",
+                    "PyQt4NoQMetaObject",
+                    "Supertype",
+                    NULL
+                };
+
+                checkAnnos(&$5, annos);
+
                 defineClass($2, currentSupers, &$5);
                 sectionFlags = SECT_IS_PRIVATE;
             }
@@ -2745,7 +2845,15 @@ dtor:       optvirtual '~' TK_NAME_VALUE '(' ')' optexceptions optabstract optfl
 
             if (notSkipping())
             {
+                const char *annos[] = {
+                    "HoldGIL",
+                    "ReleaseGIL",
+                    NULL
+                };
+
                 classDef *cd = currentScope();
+
+                checkAnnos(&$8, annos);
 
                 if (strcmp(classBaseName(cd),$3) != 0)
                     yyerror("Destructor doesn't have the same name as its class");
@@ -2803,6 +2911,22 @@ simplector: TK_NAME_VALUE '(' arglist ')' optexceptions optflags optctorsig ';' 
 
             if (notSkipping())
             {
+                const char *annos[] = {
+                    "API",
+                    "Default",
+                    "Deprecated",
+                    "HoldGIL",
+                    "KeywordArgs",
+                    "NoDerived",
+                    "PostHook",
+                    "PreHook",
+                    "ReleaseGIL",
+                    "Transfer",
+                    NULL
+                };
+
+                checkAnnos(&$6, annos);
+
                 if (currentSpec -> genc)
                 {
                     if ($10 == NULL && $3.nrArgs != 0)
@@ -3245,6 +3369,8 @@ rawarglist: {
     ;
 
 argvalue:   TK_SIPSIGNAL optname optflags optassign {
+            checkNoAnnos(&$3, "SIP_SIGNAL has no annotations");
+
             $$.atype = signal_type;
             $$.argflags = ARG_IS_CONST;
             $$.nrderefs = 0;
@@ -3254,6 +3380,8 @@ argvalue:   TK_SIPSIGNAL optname optflags optassign {
             currentSpec -> sigslots = TRUE;
         }
     |   TK_SIPSLOT optname optflags optassign {
+            checkNoAnnos(&$3, "SIP_SLOT has no annotations");
+
             $$.atype = slot_type;
             $$.argflags = ARG_IS_CONST;
             $$.nrderefs = 0;
@@ -3263,6 +3391,8 @@ argvalue:   TK_SIPSIGNAL optname optflags optassign {
             currentSpec -> sigslots = TRUE;
         }
     |   TK_SIPANYSLOT optname optflags optassign {
+            checkNoAnnos(&$3, "SIP_ANYSLOT has no annotations");
+
             $$.atype = anyslot_type;
             $$.argflags = ARG_IS_CONST;
             $$.nrderefs = 0;
@@ -3272,6 +3402,13 @@ argvalue:   TK_SIPSIGNAL optname optflags optassign {
             currentSpec -> sigslots = TRUE;
         }
     |   TK_SIPRXCON optname optflags {
+            const char *annos[] = {
+                "SingleShot",
+                NULL
+            };
+
+            checkAnnos(&$3, annos);
+
             $$.atype = rxcon_type;
             $$.argflags = 0;
             $$.nrderefs = 0;
@@ -3283,6 +3420,8 @@ argvalue:   TK_SIPSIGNAL optname optflags optassign {
             currentSpec -> sigslots = TRUE;
         }
     |   TK_SIPRXDIS optname optflags {
+            checkNoAnnos(&$3, "SIP_RXOBJ_DIS has no annotations");
+
             $$.atype = rxdis_type;
             $$.argflags = 0;
             $$.nrderefs = 0;
@@ -3291,6 +3430,8 @@ argvalue:   TK_SIPSIGNAL optname optflags optassign {
             currentSpec -> sigslots = TRUE;
         }
     |   TK_SIPSLOTCON '(' arglist ')' optname optflags {
+            checkNoAnnos(&$6, "SIP_SLOT_CON has no annotations");
+
             $$.atype = slotcon_type;
             $$.argflags = ARG_IS_CONST;
             $$.nrderefs = 0;
@@ -3305,6 +3446,8 @@ argvalue:   TK_SIPSIGNAL optname optflags optassign {
             currentSpec -> sigslots = TRUE;
         }
     |   TK_SIPSLOTDIS '(' arglist ')' optname optflags {
+            checkNoAnnos(&$6, "SIP_SLOT_DIS has no annotations");
+
             $$.atype = slotdis_type;
             $$.argflags = ARG_IS_CONST;
             $$.nrderefs = 0;
@@ -3319,6 +3462,8 @@ argvalue:   TK_SIPSIGNAL optname optflags optassign {
             currentSpec -> sigslots = TRUE;
         }
     |   TK_QOBJECT optname optflags {
+            checkNoAnnos(&$3, "SIP_QOBJECT has no annotations");
+
             $$.atype = qobject_type;
             $$.argflags = 0;
             $$.nrderefs = 0;
@@ -3352,40 +3497,52 @@ member:
     ;
 
 variable:   cpptype TK_NAME_VALUE optflags variable_body ';' optaccesscode optgetcode optsetcode {
-            if ($6 != NULL)
-            {
-                if ($4.access_code != NULL)
-                    yyerror("%AccessCode already defined");
-
-                $4.access_code = $6;
-
-                deprecated("%AccessCode should be used a sub-directive");
-            }
-
-            if ($7 != NULL)
-            {
-                if ($4.get_code != NULL)
-                    yyerror("%GetCode already defined");
-
-                $4.get_code = $7;
-
-                deprecated("%GetCode should be used a sub-directive");
-            }
-
-            if ($8 != NULL)
-            {
-                if ($4.set_code != NULL)
-                    yyerror("%SetCode already defined");
-
-                $4.set_code = $8;
-
-                deprecated("%SetCode should be used a sub-directive");
-            }
-
             if (notSkipping())
+            {
+                const char *annos[] = {
+                    "DocType",
+                    "Encoding",
+                    "PyInt",
+                    "PyName",
+                    NULL
+                };
+
+                checkAnnos(&$3, annos);
+
+                if ($6 != NULL)
+                {
+                    if ($4.access_code != NULL)
+                        yyerror("%AccessCode already defined");
+
+                    $4.access_code = $6;
+
+                    deprecated("%AccessCode should be used a sub-directive");
+                }
+
+                if ($7 != NULL)
+                {
+                    if ($4.get_code != NULL)
+                        yyerror("%GetCode already defined");
+
+                    $4.get_code = $7;
+
+                    deprecated("%GetCode should be used a sub-directive");
+                }
+
+                if ($8 != NULL)
+                {
+                    if ($4.set_code != NULL)
+                        yyerror("%SetCode already defined");
+
+                    $4.set_code = $8;
+
+                    deprecated("%SetCode should be used a sub-directive");
+                }
+
                 newVar(currentSpec, currentModule, $2, currentIsStatic, &$1,
                         &$3, $4.access_code, $4.get_code, $4.set_code,
                         sectionFlags);
+            }
 
             currentIsStatic = FALSE;
         }
@@ -3478,7 +3635,30 @@ cpptype:    TK_CONST basetype deref optref {
     ;
 
 argtype:    cpptype optname optflags {
+            const char *annos[] = {
+                "AllowNone",
+                "Array",
+                "ArraySize",
+                "Constrained",
+                "DocType",
+                "DocValue",
+                "Encoding",
+                "GetWrapper",
+                "In",
+                "KeepReference",
+                "NoCopy",
+                "Out",
+                "PyInt",
+                "ResultSize",
+                "Transfer",
+                "TransferBack",
+                "TransferThis",
+                NULL
+            };
+
             optFlag *of;
+
+            checkAnnos(&$3, annos);
 
             $$ = $1;
             $$.name = cacheName(currentSpec, $2);
@@ -5965,10 +6145,37 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         codeBlock *vcode, throwArgs *exceptions, signatureDef *cppsig,
         codeBlock *docstring)
 {
+    static const char *annos[] = {
+        "__len__",
+        "API",
+        "AutoGen",
+        "Deprecated",
+        "DocType",
+        "Encoding",
+        "Factory",
+        "HoldGIL",
+        "KeywordArgs",
+        "NewThread",
+        "NoArgParser",
+        "NoCopy",
+        "Numeric",
+        "PostHook",
+        "PreHook",
+        "PyInt",
+        "PyName",
+        "ReleaseGIL",
+        "Transfer",
+        "TransferBack",
+        "TransferThis",
+        NULL
+    };
+
     int factory, xferback, no_arg_parser;
     overDef *od, **odp, **headp;
     optFlag *of;
     virtHandlerDef *vhd;
+
+    checkAnnos(optflgs, annos);
 
     /* Extra checks for a C module. */
     if (pt->genc)
@@ -7746,4 +7953,35 @@ static void addAutoPyName(moduleDef *mod, const char *remove_leading)
     apnd->next = *apndp;
 
     *apndp = apnd;
+}
+
+
+/*
+ * Check that no invalid or unknown annotations are given.
+ */
+static void checkAnnos(optFlags *annos, const char *valid[])
+{
+    int i;
+
+    for (i = 0; i < annos->nrFlags; i++)
+    {
+        const char **name;
+
+        for (name = valid; *name != NULL; ++name)
+            if (strcmp(*name, annos->flags[i].fname) == 0)
+                break;
+
+        if (*name == NULL)
+            deprecated("Annotation is invalid");
+    }
+}
+
+
+/*
+ * Check that no annotations were given.
+ */
+static void checkNoAnnos(optFlags *annos, const char *msg)
+{
+    if (annos->nrFlags != 0)
+        deprecated(msg);
 }

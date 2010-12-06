@@ -247,8 +247,6 @@ Argument Annotations
     ``unsigned char`` arguments to specify that they should be interpreted as
     integers rather than strings of one character.
 
-    .. seealso:: :fanno:`PyInt`, :tanno:`PyInt`
-
 
 .. argument-annotation:: ResultSize
 
@@ -477,8 +475,8 @@ Mapped Type Annotations
 
     .. versionadded:: 4.10
 
-    This string annotation specifies the name of the type as it will appear in
-    any generated docstrings.
+    This string annotation serves the same purpose as the :aanno:`DocType`
+    argument annotation when applied to the mapped type being defined.
 
 
 .. mapped-type-annotation:: NoRelease
@@ -572,9 +570,16 @@ Function Annotations
 
     .. versionadded:: 4.10
 
-    This string annotation specifies the name of the type of the returned value
-    as it will appear in any generated docstrings.  It is usually used with
-    values of type :stype:`SIP_PYOBJECT` to provide a more specific type.
+    This string annotation serves the same purpose as the :aanno:`DocType`
+    argument annotation when applied to the type of the value returned by the
+    function.
+
+
+.. function-annotation:: Encoding
+
+    This string annotation serves the same purpose as the :aanno:`Encoding`
+    argument annotation when applied to the type of the value returned by the
+    function.
 
 
 .. function-annotation:: Factory
@@ -725,11 +730,9 @@ Function Annotations
 
     .. versionadded:: 4.12
 
-    This boolean annotation is used with functions that return a ``char``,
-    ``signed char`` or ``unsigned char`` value to specify that it should be
-    interpreted as an integer rather than a string of one character.
-
-    .. seealso:: :aanno:`PyInt`, :tanno:`PyInt`
+    This boolean annotation serves the same purpose as the :aanno:`PyInt`
+    argument annotation when applied to the type of the value returned by the
+    function.
 
 
 .. function-annotation:: ReleaseGIL
@@ -782,6 +785,20 @@ Function Annotations
 Typedef Annotations
 -------------------
 
+.. typedef-annotation:: DocType
+
+    .. versionadded:: 4.10
+
+    This string annotation serves the same purpose as the :aanno:`DocType`
+    argument annotation when applied to the mapped type being defined.
+
+
+.. typedef-annotation:: Encoding
+
+    This string annotation serves the same purpose as the :aanno:`Encoding`
+    argument annotation when applied to the mapped type being defined.
+
+
 .. typedef-annotation:: NoTypeName
 
     This boolean annotation specifies that the definition of the type rather
@@ -802,11 +819,8 @@ Typedef Annotations
 
     .. versionadded:: 4.12
 
-    This boolean annotation is used with ``char``, ``signed char`` and
-    ``unsigned char`` type definitions to specify that they should be
-    interpreted as integers rather than strings of one character.
-
-    .. seealso:: :aanno:`PyInt`, :fanno:`PyInt`
+    This boolean annotation serves the same purpose as the :aanno:`PyInt`
+    argument annotation when applied to the type being defined.
 
 
 .. _ref-variable-annos:
@@ -818,9 +832,22 @@ Variable Annotations
 
     .. versionadded:: 4.10
 
-    This string annotation specifies the name of the type of the variable as it
-    will appear in any generated docstrings.  It is usually used with variables
-    of type :stype:`SIP_PYOBJECT` to provide a more specific type.
+    This string annotation serves the same purpose as the :aanno:`DocType`
+    argument annotation when applied to the type of the variable being defined.
+
+
+.. variable-annotation:: Encoding
+
+    This string annotation serves the same purpose as the :aanno:`Encoding`
+    argument annotation when applied to the type of the variable being defined.
+
+
+.. variable-annotation:: PyInt
+
+    .. versionadded:: 4.12
+
+    This boolean annotation serves the same purpose as the :aanno:`PyInt`
+    argument annotation when applied to the type of the variable being defined.
 
 
 .. variable-annotation:: PyName

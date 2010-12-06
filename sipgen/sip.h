@@ -28,7 +28,7 @@
  * Define the SIP version number.
  */
 #define SIP_VERSION         0x040c00
-#define SIP_VERSION_STR     "4.12-snapshot-0d8a873e3d30"
+#define SIP_VERSION_STR     "4.12-snapshot-50fc306bfb6d"
 
 
 #ifdef TRUE
@@ -1240,7 +1240,7 @@ typedef enum {
 } flagType;
 
 typedef struct {
-    char *fname;                        /* The flag name. */
+    const char *fname;                  /* The flag name. */
     flagType ftype;                     /* The flag type. */
     union {                             /* The flag value. */
         char *sval;                     /* A string value. */
