@@ -247,7 +247,7 @@ Argument Annotations
     ``unsigned char`` arguments to specify that they should be interpreted as
     integers rather than strings of one character.
 
-    .. seealso:: :fanno:`PyInt`
+    .. seealso:: :fanno:`PyInt`, :tanno:`PyInt`
 
 
 .. argument-annotation:: ResultSize
@@ -729,7 +729,7 @@ Function Annotations
     ``signed char`` or ``unsigned char`` value to specify that it should be
     interpreted as an integer rather than a string of one character.
 
-    .. seealso:: :aanno:`PyInt`
+    .. seealso:: :aanno:`PyInt`, :tanno:`PyInt`
 
 
 .. function-annotation:: ReleaseGIL
@@ -796,6 +796,17 @@ Typedef Annotations
 
     Specifying the annotation means that ``bool`` will be used in the generated
     code instead.
+
+
+.. typedef-annotation:: PyInt
+
+    .. versionadded:: 4.12
+
+    This boolean annotation is used with ``char``, ``signed char`` and
+    ``unsigned char`` type definitions to specify that they should be
+    interpreted as integers rather than strings of one character.
+
+    .. seealso:: :aanno:`PyInt`, :fanno:`PyInt`
 
 
 .. _ref-variable-annos:
