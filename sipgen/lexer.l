@@ -324,7 +324,7 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
     /* The start of part of an extract. */
     codeIdx = 0;
 
-    BEGIN directive;
+    BEGIN directive_start;
 
     return TK_EXTRACT;
 }
