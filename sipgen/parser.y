@@ -54,6 +54,7 @@ static int currentTimelineOrder;        /* The current timeline order. */
 static classList *currentSupers;        /* The current super-class list. */
 static KwArgs defaultKwArgs;            /* The default keyword arguments support. */
 static int makeProtPublic;              /* Treat protected items as public. */
+static int parsingCSignature;           /* An explicit C/C++ signature is being parsed. */
 
 
 static const char *getPythonName(moduleDef *mod, optFlags *optflgs,
@@ -2954,21 +2955,29 @@ simplector: TK_NAME_VALUE '(' arglist ')' optexceptions optflags optctorsig ';' 
 optctorsig: {
             $$ = NULL;
         }
-    |   '[' '(' arglist ')' ']' {
+    |   '[' {
+            parsingCSignature = TRUE;
+        } '(' arglist ')' ']' {
             $$ = sipMalloc(sizeof (signatureDef));
 
-            *$$ = $3;
+            *$$ = $4;
+
+            parsingCSignature = FALSE;
         }
     ;
 
 optsig: {
             $$ = NULL;
         }
-    |   '[' cpptype '(' arglist ')' ']' {
+    |   '[' {
+            parsingCSignature = TRUE;
+        } cpptype '(' arglist ')' ']' {
             $$ = sipMalloc(sizeof (signatureDef));
 
-            *$$ = $4;
-            $$ -> result = $2;
+            *$$ = $5;
+            $$->result = $3;
+
+            parsingCSignature = FALSE;
         }
     ;
 
@@ -7963,18 +7972,25 @@ static void addAutoPyName(moduleDef *mod, const char *remove_leading)
  */
 static void checkAnnos(optFlags *annos, const char *valid[])
 {
-    int i;
-
-    for (i = 0; i < annos->nrFlags; i++)
+    if (parsingCSignature && annos->nrFlags != 0)
     {
-        const char **name;
+        deprecated("Annotations should not be used in explicit C/C++ signatures");
+    }
+    else
+    {
+        int i;
 
-        for (name = valid; *name != NULL; ++name)
-            if (strcmp(*name, annos->flags[i].fname) == 0)
-                break;
+        for (i = 0; i < annos->nrFlags; i++)
+        {
+            const char **name;
 
-        if (*name == NULL)
-            deprecated("Annotation is invalid");
+            for (name = valid; *name != NULL; ++name)
+                if (strcmp(*name, annos->flags[i].fname) == 0)
+                    break;
+
+            if (*name == NULL)
+                deprecated("Annotation is invalid");
+        }
     }
 }
 
