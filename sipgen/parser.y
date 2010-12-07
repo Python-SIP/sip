@@ -2405,6 +2405,7 @@ struct:     TK_STRUCT scopedname {
             {
                 const char *annos[] = {
                     "Abstract",
+                    "AllowNone",
                     "API",
                     "DelayDtor",
                     "Deprecated",
@@ -2474,6 +2475,7 @@ class:  TK_CLASS scopedname {
             {
                 const char *annos[] = {
                     "Abstract",
+                    "AllowNone",
                     "API",
                     "DelayDtor",
                     "Deprecated",

@@ -1335,7 +1335,7 @@ For example::
 
 .. parsed-literal::
 
-    %Include(name = *filename* [, optional = *bool*])
+    %Include(name = *filename* [, optional = [True | False]])
 
 This directive is used to include contents of another file as part of the
 specification of the current module.  It is the equivalent of the C
@@ -1769,7 +1769,7 @@ then the pattern should instead be::
     %Module(name = *dotted-name*
             [, keyword_arguments = ["None" | "All" | "Optional"]]
             [, language = *string*]
-            [, use_argument_names = *bool*]
+            [, use_argument_names = [True | False]]
             [, version = *integer*])
     {
         [:directive:`%AutoPyName`]
