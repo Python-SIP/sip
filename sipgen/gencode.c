@@ -275,6 +275,7 @@ static void generateClassDocstring(sipSpec *pt, classDef *cd, FILE *fp);
 static int isDefaultAPI(sipSpec *pt, apiVersionRangeDef *avd);
 static void generateExplicitDocstring(codeBlock *docstring, FILE *fp);
 static int copyConstRefArg(argDef *ad);
+static void generatePreprocLine(int linenr, const char *fname, FILE *fp);
 
 
 /*
@@ -12967,40 +12968,44 @@ static void generateCppCodeBlock(codeBlock *code, FILE *fp)
 
     for (cb = code; cb != NULL; cb = cb->next)
     {
-        const char *cp;
-
         /*
          * Fragmented fragments (possibly created when applying template types)
          * don't have a filename.
          */
-        if ((cp = cb->filename) != NULL)
+        if (cb->filename != NULL)
         {
+            generatePreprocLine(cb->linenr, cb->filename, fp);
             reset_line = TRUE;
-
-            prcode(fp,
-"#line %d \"", cb->linenr);
-
-            while (*cp != '\0')
-            {
-                prcode(fp, "%c", *cp);
-
-                if (*cp == '\\')
-                    prcode(fp, "\\");
-
-                ++cp;
-            }
-
-            prcode(fp, "\"\n"
-                );
         }
 
         prcode(fp, "%s", cb->frag);
     }
 
     if (reset_line)
-        prcode(fp,
-"#line %d \"%s\"\n"
-            , currentLineNr + 1, currentFileName);
+        generatePreprocLine(currentLineNr + 1, currentFileName, fp);
+}
+
+
+/*
+ * Generate a #line preprocessor directive.
+ */
+static void generatePreprocLine(int linenr, const char *fname, FILE *fp)
+{
+    prcode(fp,
+"#line %d \"", linenr);
+
+    while (*fname != '\0')
+    {
+        prcode(fp, "%c", *fname);
+
+        if (*fname == '\\')
+            prcode(fp, "\\");
+
+        ++fname;
+    }
+
+    prcode(fp, "\"\n"
+        );
 }
 
 
