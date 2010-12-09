@@ -54,9 +54,6 @@ planned for the ``sip`` extension module.
 - Support for optionally detecting overflows when converting from Python
   integers to C/C++ types will be investigated.
 
-- Types will have to be declared in advance of being used.  In SIP v4 the names
-  of types are resolved after all of the specification files have been parsed.
-
 - Invalid annotations will trigger an error message rather than being silently
   ignored.
 
