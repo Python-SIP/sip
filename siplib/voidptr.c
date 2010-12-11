@@ -771,11 +771,7 @@ void *sip_api_convert_to_void_ptr(PyObject *obj)
         return PyCObject_AsVoidPtr(obj);
 #endif
 
-#if PY_MAJOR_VERSION >= 3
     return PyLong_AsVoidPtr(obj);
-#else
-    return (void *)PyInt_AsLong(obj);
-#endif
 }
 
 
@@ -992,11 +988,7 @@ static int vp_convertor(PyObject *arg, struct vp_values *vp)
     }
     else
     {
-#if PY_MAJOR_VERSION >= 3
         ptr = PyLong_AsVoidPtr(arg);
-#else
-        ptr = (void *)PyInt_AsLong(arg);
-#endif
 
         if (PyErr_Occurred())
         {
