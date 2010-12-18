@@ -645,13 +645,6 @@ static void moveClassCasts(sipSpec *pt, moduleDef *mod, classDef *cd)
             /* Previous error checking means this will always work. */
             dcd = findAltClassImplementation(pt, al->arg.u.mtd);
 
-        /*
-         * If the destination class is in a different module then use
-         * a proxy.
-         */
-        if (dcd->iff->module != mod)
-            dcd = getProxy(mod, dcd);
-
         /* Create the new ctor. */
         ct = sipMalloc(sizeof (ctorDef));
 
@@ -668,6 +661,16 @@ static void moveClassCasts(sipSpec *pt, moduleDef *mod, classDef *cd)
         ad->nrderefs = al->arg.nrderefs;
         ad->defval = NULL;
         ad->u.cd = cd;
+
+        /*
+         * If the destination class is in a different module then use
+         * a proxy.
+         */
+        if (dcd->iff->module != mod)
+        {
+            ifaceFileIsUsed(&mod->used, ad);
+            dcd = getProxy(mod, dcd);
+        }
 
         ifaceFileIsUsed(&dcd->iff->used, ad);
 
