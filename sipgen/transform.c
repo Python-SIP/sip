@@ -2558,6 +2558,12 @@ int sameBaseType(argDef *a1, argDef *a2)
         if (a1->atype == defined_type && a2->atype == mapped_type)
             return compareScopedNames(a1->u.snd, a2->u.mtd->iff->fqcname) == 0;
 
+        if (a1->atype == enum_type && a2->atype == defined_type)
+            return compareScopedNames(a1->u.ed->fqcname, a2->u.snd) == 0;
+
+        if (a1->atype == defined_type && a2->atype == enum_type)
+            return compareScopedNames(a1->u.snd, a2->u.ed->fqcname) == 0;
+
         return FALSE;
     }
 

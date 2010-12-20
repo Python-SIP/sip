@@ -4805,7 +4805,7 @@ static mappedTypeDef *newMappedType(sipSpec *pt, argDef *ad, optFlags *of)
 
 
 /*
- * Allocate, intialise and return a mapped type structure.
+ * Allocate, initialise and return a mapped type structure.
  */
 mappedTypeDef *allocMappedType(sipSpec *pt, argDef *type)
 {
