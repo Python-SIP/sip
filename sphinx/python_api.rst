@@ -128,6 +128,14 @@ can be used by applications.
     disabled.
 
 
+.. class:: simplewrapper
+
+    This is an alternative type object than can be used as the base type of an
+    instance wrapped by SIP.  Objects using this are smaller than those that
+    use the default :class:`sip.wrapper` type but do not support the concept of
+    object ownership.
+
+
 .. data:: SIP_VERSION
 
     This is a Python integer object that represents the SIP version number as
@@ -316,7 +324,9 @@ can be used by applications.
 
 .. class:: wrapper
 
-    This is the type object of the base type of all instances wrapped by SIP.
+    This is the type object of the default base type of all instances wrapped
+    by SIP.  The :canno:`Supertype` class annotation can be used to specify a
+    different base type for a class.
 
 
 .. class:: wrappertype
