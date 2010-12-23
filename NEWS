@@ -1,4 +1,4 @@
-v4.12 ??? December 2010
+v4.12 23rd December 2010
   - Implemented the revised directive syntax for %Module.
   - Deprecated %CModule, use %Module instead.
   - Added the keyword_arguments argument to %Module to specify the level of
