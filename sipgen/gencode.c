@@ -919,7 +919,7 @@ static void generateCompositeCpp(sipSpec *pt, const char *codeDir,
         prcode(fp,
 "    sipModule = Py_InitModule(\"%s\", NULL);\n"
 "#else\n"
-"    Py_InitModule((char *)\"%s\", NULL);\n"
+"    sipModule = Py_InitModule((char *)\"%s\", NULL);\n"
             , fullname
             , fullname);
     else
