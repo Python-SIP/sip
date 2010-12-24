@@ -9,7 +9,8 @@ v4.12 23rd December 2010
     used in the %If directive.
   - Changed the behavior of the /KeywordArgs/ annotation to specify the level
     of support for Python keyword arguments.
-  - Deprecated the /NoKeywordArgs/ annotation, use /KeywordArgs="All"/ instead.
+  - Deprecated the /NoKeywordArgs/ annotation, use /KeywordArgs="None"/
+    instead.
   - Added the use_argument_names argument to %Module to provide the real names
     of arguments to handwritten code.
   - Module docstrings are now supported.
@@ -22,7 +23,7 @@ v4.12 23rd December 2010
   - Added the -X flag to sip to extract text defined with %Extract.
   - Deprecated the -d flag to sip, use -X instead.
   - Added /PyInt/ as an argument, function and typedef annotation to force
-    char types to be handled as Python integers rather that single character
+    char types to be handled as Python integers rather than single character
     strings.
   - Added the L and M format characters to sipBuildResult(), sipCallMethod()
     and sipParseResult().
