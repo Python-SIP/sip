@@ -604,6 +604,7 @@ typedef enum {
 #endif
     iter_slot,          /* __iter__ */
     next_slot,          /* __next__ */
+    setattr_slot,       /* __setattr__, __delattr__ */
 } sipPySlotType;
 
 

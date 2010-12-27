@@ -3050,7 +3050,8 @@ static void add_failure(PyObject **parseErrp, sipParseFailure *failure)
 
 
 /*
- * Parse a pair of arguments to a C/C++ function without any side effects.
+ * Parse one or a pair of arguments to a C/C++ function without any side
+ * effects.
  */
 static int sip_api_parse_pair(PyObject **parseErrp, PyObject *sipArg0,
         PyObject *sipArg1, const char *fmt, ...)
@@ -3064,7 +3065,7 @@ static int sip_api_parse_pair(PyObject **parseErrp, PyObject *sipArg0,
     if (*parseErrp != NULL && !PyList_Check(*parseErrp))
         return FALSE;
 
-    if ((args = PyTuple_New(2)) == NULL)
+    if ((args = PyTuple_New(sipArg1 != NULL ? 2 : 1)) == NULL)
     {
         /* Stop all parsing and indicate an exception has been raised. */
         Py_XDECREF(*parseErrp);
@@ -3077,8 +3078,11 @@ static int sip_api_parse_pair(PyObject **parseErrp, PyObject *sipArg0,
     Py_INCREF(sipArg0);
     PyTuple_SET_ITEM(args, 0, sipArg0);
 
-    Py_INCREF(sipArg1);
-    PyTuple_SET_ITEM(args, 1, sipArg1);
+    if (sipArg1 != NULL)
+    {
+        Py_INCREF(sipArg1);
+        PyTuple_SET_ITEM(args, 1, sipArg1);
+    }
 
     /*
      * The first pass checks all the types and does conversions that are cheap
@@ -9943,6 +9947,10 @@ static void addTypeSlots(PyHeapTypeObject *heap_to, sipPySlotDef *slots)
 
         case next_slot:
             to->tp_iternext = (iternextfunc)f;
+            break;
+
+        case setattr_slot:
+            to->tp_setattro = (setattrofunc)f;
             break;
         }
 }

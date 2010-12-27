@@ -5099,7 +5099,7 @@ int isVoidReturnSlot(memberDef *md)
 {
     slotType st = md->slot;
 
-    return (st == setitem_slot || st == delitem_slot);
+    return (st == setitem_slot || st == delitem_slot || st == setattr_slot);
 }
 
 
@@ -5282,6 +5282,11 @@ static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
         arg_str = "PyObject *sipArg0,PyObject *sipArg1";
         decl_arg_str = "PyObject *,PyObject *";
     }
+    else if (md->slot == setattr_slot)
+    {
+        arg_str = "PyObject *sipSelf,PyObject *sipName,PyObject *sipValue";
+        decl_arg_str = "PyObject *,PyObject *,PyObject *";
+    }
     else
     {
         arg_str = "PyObject *sipSelf,PyObject *sipArg";
@@ -5454,10 +5459,16 @@ static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
                     prcode(fp,
 "\n"
 "    /* Raise an exception if the arguments couldn't be parsed. */\n"
-"    sipNoMethod(sipParseErr, %N, %N, NULL);\n"
+"    sipNoMethod(sipParseErr, %N, ", pyname);
+
+                    if (md->slot == setattr_slot)
+                        prcode(fp, "(sipValue != NULL ? sipName___setattr__ : sipName___delattr__)");
+                    else
+                        prcode(fp, "%N", md->pyname);
+
+                    prcode(fp, ", NULL);\n"
 "\n"
 "    return %s;\n"
-                        , pyname, md->pyname
                         ,ret_int ? "-1" : "0");
                 }
             }
@@ -10148,6 +10159,10 @@ static const char *slotName(slotType st)
         sn = "next_slot";
         break;
 
+    case setattr_slot:
+        sn = "setattr_slot";
+        break;
+
     default:
         sn = NULL;
     }
@@ -12306,7 +12321,17 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
     if (od != NULL && isNumberSlot(od->common))
     {
         prcode(fp,
-"        if (sipParsePair(%ssipParseErr, sipArg0, sipArg1, \"", (ct != NULL ? "" : "&"));
+"        if (sipParsePair(&sipParseErr, sipArg0, sipArg1, \"");
+    }
+    else if (od != NULL && od->common->slot == setattr_slot)
+    {
+        /*
+         * We don't even try to invoke the parser if there is a value and there
+         * shouldn't be (or vice versa) so that the list of errors doesn't get
+         * poluted with signatures that can never apply.
+         */
+        prcode(fp,
+"        if (sipValue %s NULL && sipParsePair(&sipParseErr, sipName, %s, \"", (isDelattr(od) ? "==" : "!="), (isDelattr(od) ? "NULL" : "sipValue"));
     }
     else if ((od != NULL && useKeywordArgs(od->common)) || ct != NULL)
     {

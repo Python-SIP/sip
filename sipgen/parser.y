@@ -6181,6 +6181,7 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         NULL
     };
 
+    const char *pyname;
     int factory, xferback, no_arg_parser;
     overDef *od, **odp, **headp;
     optFlag *of;
@@ -6377,9 +6378,13 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
     if (getOptFlag(optflgs, "NoCopy", bool_flag) != NULL)
         setNoCopy(&od->pysig.result);
 
-    od->common = findFunction(pt, mod, c_scope, mt_scope,
-            getPythonName(mod, optflgs, name), (methodcode != NULL),
-            sig->nrArgs, no_arg_parser);
+    pyname = getPythonName(mod, optflgs, name);
+
+    od->common = findFunction(pt, mod, c_scope, mt_scope, pyname,
+            (methodcode != NULL), sig->nrArgs, no_arg_parser);
+    
+    if (strcmp(pyname, "__delattr__") == 0)
+        setIsDelattr(od);
 
     if (docstring != NULL)
         appendCodeBlock(&od->common->docstring, docstring);
@@ -6615,6 +6620,8 @@ static memberDef *findFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         {"__index__", index_slot, TRUE, 0},
         {"__iter__", iter_slot, TRUE, 0},
         {"__next__", next_slot, TRUE, 0},
+        {"__setattr__", setattr_slot, TRUE, 2},
+        {"__delattr__", delattr_slot, TRUE, 1},
         {NULL}
     };
 
@@ -6658,6 +6665,16 @@ static memberDef *findFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         flist = &c_scope->members;
     else
         flist = &mod->othfuncs;
+
+    /* __delattr__ is implemented as __setattr__. */
+    if (st == delattr_slot)
+    {
+        if (inMainModule())
+            setIsUsedName(cacheName(pt, pname));
+
+        st = setattr_slot;
+        pname = "__setattr__";
+    }
 
     for (md = *flist; md != NULL; md = md->next)
         if (strcmp(md->pyname->text, pname) == 0 && md->module == mod)
