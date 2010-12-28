@@ -6216,8 +6216,22 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
      */
     if (c_scope != NULL)
     {
-        if (strcmp(name, "__enter__") == 0 || strcmp(name, "__exit__") == 0)
-            setHasNonlazyMethod(c_scope);
+        static const char *lazy[] = {
+            "__getattribute__",
+            "__getattr__",
+            "__enter__",
+            "__exit__",
+            NULL
+        };
+
+        const char **l;
+
+        for (l = lazy; *l != NULL; ++l)
+            if (strcmp(name, *l) == 0)
+            {
+                setHasNonlazyMethod(c_scope);
+                break;
+            }
     }
 
     /* See if it is a factory method. */

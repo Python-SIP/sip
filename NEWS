@@ -1,5 +1,6 @@
 v4.12.1 ??? 2011
-  - Added support for __setattr__ and __delattr__ methods.
+  - Added support for the __getattribute__, __getattr__, __setattr__ and
+    __delattr__ methods.
 
 v4.12 23rd December 2010
   - Implemented the revised directive syntax for %Module.
