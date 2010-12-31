@@ -290,6 +290,7 @@ static void checkNoAnnos(optFlags *annos, const char *msg);
 %token          TK_SIPRXDIS
 %token          TK_SIPSLOTCON
 %token          TK_SIPSLOTDIS
+%token          TK_SIPSSIZET
 %token <number> TK_NUMBER_VALUE
 %token <real>   TK_REAL_VALUE
 %token          TK_TYPEDEF
@@ -3903,6 +3904,10 @@ basetype:   scopedname {
     |   TK_PYTYPE {
             memset(&$$, 0, sizeof (argDef));
             $$.atype = pytype_type;
+        }
+    |   TK_SIPSSIZET {
+            memset(&$$, 0, sizeof (argDef));
+            $$.atype = ssize_type;
         }
     |   TK_ELLIPSIS {
             memset(&$$, 0, sizeof (argDef));
