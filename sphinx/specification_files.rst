@@ -334,6 +334,7 @@ file.
             **float** | **double** |
             **bool** |
             **void** |
+            **PyObject** |
             :stype:`SIP_PYCALLABLE` |
             :stype:`SIP_PYDICT` |
             :stype:`SIP_PYLIST` |
@@ -403,7 +404,8 @@ This is a ``PyObject *`` that is a Python list object.
 
 .. sip-type:: SIP_PYOBJECT
 
-This is a ``PyObject *`` of any Python type.
+This is a ``PyObject *`` of any Python type.  The type ``PyObject *`` can also
+be used.
 
 
 .. sip-type:: SIP_PYSLICE

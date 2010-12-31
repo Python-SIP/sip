@@ -3642,6 +3642,13 @@ cpptype:    TK_CONST basetype deref optref {
             $$ = $1;
             $$.nrderefs += $2;
             $$.argflags |= $3;
+
+            /* PyObject * is a synonym for SIP_PYOBJECT. */
+            if ($1.atype == defined_type && strcmp($1.u.snd->name, "PyObject") == 0 && $1.u.snd->next == NULL && $2 == 1 && $3 == 0)
+            {
+                $$.atype = pyobject_type;
+                $$.nrderefs = 0;
+            }
         }
     ;
 
