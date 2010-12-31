@@ -69,6 +69,19 @@ can be used by applications.
         ``True`` if the C/C++ instance has been deleted.
 
 
+.. function:: ispycreated(obj) -> bool
+
+    .. versionadded:: 4.12.1
+
+    This checks if the C++ instance or C structure was created by Python.  If
+    it was then it is possible to call a C++ instance's protected methods.
+
+    :param obj:
+        the Python object.
+    :return:
+        ``True`` if the C/C++ instance was created by Python.
+
+
 .. function:: ispyowned(obj) -> bool
 
     This checks if the C++ instance or C structure is owned by Python.
