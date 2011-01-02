@@ -5473,6 +5473,13 @@ static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
                 }
             }
         }
+        else
+        {
+            prcode(fp,
+"\n"
+"    return 0;\n"
+                );
+        }
     }
 
     prcode(fp,
@@ -12015,13 +12022,17 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
 
     if (error_flag)
     {
-        prcode(fp,
+        if (!isZeroArgSlot(od->common))
+            prcode(fp,
 "            if (sipError == sipErrorFail)\n"
 "                return %s;\n"
 "\n"
+                , error_value);
+
+        prcode(fp,
 "            if (sipError == sipErrorNone)\n"
 "            {\n"
-            , error_value);
+            );
     }
     else if (old_error_flag)
     {
@@ -12070,11 +12081,17 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
     }
 
     if (error_flag)
+    {
         prcode(fp,
 "            }\n"
+            );
+
+        if (!isZeroArgSlot(od->common))
+            prcode(fp,
 "\n"
 "            sipAddException(sipError, &sipParseErr);\n"
-            );
+                );
+    }
 
     prcode(fp,
 "        }\n"
