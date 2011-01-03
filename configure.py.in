@@ -186,6 +186,9 @@ def inform_user():
     if opts.universal:
         siputils.inform("MacOS/X universal binaries will be created using %s." % opts.universal)
 
+    if opts.deployment_target:
+        siputils.inform("MacOS/X deployment target is %s." % opts.deployment_target)
+
 
 def set_platform_directories():
     """Initialise the global variables relating to platform specific
@@ -265,7 +268,8 @@ def create_config(module, template, macros):
         "py_conf_inc_dir":  plat_py_conf_inc_dir,
         "py_lib_dir":       plat_py_lib_dir,
         "universal":        opts.universal,
-        "arch":             opts.arch
+        "arch":             opts.arch,
+        "deployment_target":    opts.deployment_target
     }
 
     siputils.create_config_module(module, template, content, macros)
@@ -303,7 +307,8 @@ def create_makefiles(macros):
         console=1,
         warnings=0,
         universal=opts.universal,
-        arch=opts.arch
+        arch=opts.arch,
+        deployment_target=opts.deployment_target
     ).generate()
 
     sipconfig.inform("Creating sip module Makefile...")
@@ -319,7 +324,8 @@ def create_makefiles(macros):
         static=opts.static,
         debug=opts.debug,
         universal=opts.universal,
-        arch=opts.arch
+        arch=opts.arch,
+        deployment_target=opts.deployment_target
     )
 
     makefile.generate()
@@ -360,6 +366,10 @@ def create_optparser():
         g.add_option("--arch", action="append", default=[], dest="arch",
                 choices=["i386", "x86_64", "ppc"],
                 help="build for architecture ARCH")
+        g.add_option("--deployment-target", action="store", default='',
+                metavar="VERSION", dest="deployment_target",
+                help="set the value of the MACOSX_DEPLOYMENT_TARGET "
+                        "environment variable in generated Makefiles")
         g.add_option("-n", "--universal", action="store_true", default=False,
                 dest="universal",
                 help="build the SIP code generator and module as universal "
@@ -433,6 +443,7 @@ def main(argv):
         opts.universal = ''
         opts.arch = []
         opts.sdk = ''
+        opts.deployment_target = ''
 
     # Handle the query options.
     if opts.show_platforms or opts.show_build_macros:

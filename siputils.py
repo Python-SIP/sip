@@ -202,7 +202,7 @@ class Makefile:
     def __init__(self, configuration, console=0, qt=0, opengl=0, python=0,
                  threaded=0, warnings=1, debug=0, dir=None,
                  makefile="Makefile", installs=None, universal=None,
-                 arch=None):
+                 arch=None, deployment_target=None):
         """Initialise an instance of the target.  All the macros are left
         unchanged allowing scripts to manipulate them at will.
 
@@ -228,6 +228,8 @@ class Makefile:
         binary.  If it is None then the value is taken from the configuration.
         arch is the space separated MacOS/X architectures to build.  If it is
         None then it is taken from the configuration.
+        deployment_target MacOS/X deployment target.  If it is None then it is
+        taken from the configuration.
         """
         if qt:
             if not hasattr(configuration, "qt_version"):
@@ -273,6 +275,11 @@ class Makefile:
             self._arch = configuration.arch
         else:
             self._arch = arch
+
+        if deployment_target is None:
+            self._deployment_target = configuration.deployment_target
+        else:
+            self._deployment_target = deployment_target
 
         self._finalised = 0
 
@@ -1023,6 +1030,9 @@ class Makefile:
 
         mfile is the file object.
         """
+        if self._deployment_target:
+            mfile.write("export MACOSX_DEPLOYMENT_TARGET = %s\n" % self._deployment_target)
+
         mfile.write("CC = %s\n" % self.required_string("CC"))
         mfile.write("CXX = %s\n" % self.required_string("CXX"))
         mfile.write("LINK = %s\n" % self.required_string("LINK"))
@@ -1331,7 +1341,8 @@ class ModuleMakefile(Makefile):
     def __init__(self, configuration, build_file, install_dir=None, static=0,
                  console=0, qt=0, opengl=0, threaded=0, warnings=1, debug=0,
                  dir=None, makefile="Makefile", installs=None, strip=1,
-                 export_all=0, universal=None, arch=None):
+                 export_all=0, universal=None, arch=None,
+                 deployment_target=None):
         """Initialise an instance of a module Makefile.
 
         build_file is the file containing the target specific information.  If
@@ -1345,7 +1356,7 @@ class ModuleMakefile(Makefile):
         increases the size of the module and slows down module load times but
         may avoid problems with modules that use exceptions.  The default is 0.
         """
-        Makefile.__init__(self, configuration, console, qt, opengl, 1, threaded, warnings, debug, dir, makefile, installs, universal, arch)
+        Makefile.__init__(self, configuration, console, qt, opengl, 1, threaded, warnings, debug, dir, makefile, installs, universal, arch, deployment_target)
 
         self._build = self.parse_build_file(build_file)
         self._install_dir = install_dir
@@ -1647,7 +1658,8 @@ class SIPModuleMakefile(ModuleMakefile):
     def __init__(self, configuration, build_file, install_dir=None, static=0,
                  console=0, qt=0, opengl=0, threaded=0, warnings=1, debug=0,
                  dir=None, makefile="Makefile", installs=None, strip=1,
-                 export_all=0, universal=None, arch=None, prot_is_public=0):
+                 export_all=0, universal=None, arch=None, prot_is_public=0,
+                 deployment_target=None):
         """Initialise an instance of a SIP generated module Makefile.
 
         prot_is_public is set if "protected" is to be redefined as "public".
@@ -1658,7 +1670,8 @@ class SIPModuleMakefile(ModuleMakefile):
         """
         ModuleMakefile.__init__(self, configuration, build_file, install_dir,
                 static, console, qt, opengl, threaded, warnings, debug, dir,
-                makefile, installs, strip, export_all, universal, arch)
+                makefile, installs, strip, export_all, universal, arch,
+                deployment_target)
 
         self._prot_is_public = prot_is_public
 
@@ -1680,14 +1693,14 @@ class ProgramMakefile(Makefile):
     def __init__(self, configuration, build_file=None, install_dir=None,
                  console=0, qt=0, opengl=0, python=0, threaded=0, warnings=1,
                  debug=0, dir=None, makefile="Makefile", installs=None,
-                 universal=None, arch=None):
+                 universal=None, arch=None, deployment_target=None):
         """Initialise an instance of a program Makefile.
 
         build_file is the file containing the target specific information.  If
         it is a dictionary instead then its contents are validated.
         install_dir is the directory the target will be installed in.
         """
-        Makefile.__init__(self, configuration, console, qt, opengl, python, threaded, warnings, debug, dir, makefile, installs, universal, arch)
+        Makefile.__init__(self, configuration, console, qt, opengl, python, threaded, warnings, debug, dir, makefile, installs, universal, arch, deployment_target)
 
         self._install_dir = install_dir
 
