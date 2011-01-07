@@ -398,7 +398,7 @@ For example::
     %Include QtGui/QtGuimod.sip
 
 The main purpose of a composite module is as a programmer convenience as they
-don't have to remember which which individual module an object is defined in.
+don't have to remember which individual module an object is defined in.
 
 
 .. directive:: %ConsolidatedModule
