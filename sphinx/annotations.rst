@@ -735,6 +735,16 @@ Function Annotations
     function.
 
 
+.. function-annotation:: RaisesPyException
+
+    .. versionadded:: 4.12.1
+
+    This boolean annotation specifies that the function raises a Python
+    exception to indicate that an error occurred.  Any current exception is
+    cleared before the function is called.  It is ignored if the
+    :directive:`%MethodCode` directive is used.
+
+
 .. function-annotation:: ReleaseGIL
 
     This boolean annotation specifies that the Python Global Interpreter Lock

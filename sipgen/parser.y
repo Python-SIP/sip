@@ -6186,6 +6186,7 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         "PreHook",
         "PyInt",
         "PyName",
+        "RaisesPyException",
         "ReleaseGIL",
         "Transfer",
         "TransferBack",
@@ -6304,6 +6305,9 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
 
     if (getOptFlag(optflgs, "TransferThis", bool_flag) != NULL)
         setIsThisTransferredMeth(od);
+
+    if (methodcode == NULL && getOptFlag(optflgs, "RaisesPyException", bool_flag) != NULL)
+        setRaisesPyException(od);
 
     if (isProtected(od))
         setHasShadow(c_scope);

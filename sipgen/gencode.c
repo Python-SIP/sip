@@ -11757,6 +11757,12 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
                 );
         }
 
+        if (raisesPyException(od))
+            prcode(fp,
+"            PyErr_Clear();\n"
+"\n"
+                );
+
         if (rgil)
             prcode(fp,
 "            Py_BEGIN_ALLOW_THREADS\n"
@@ -11973,34 +11979,34 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
                 );
     }
 
-        for (a = 0; a < od->pysig.nrArgs; ++a)
+    for (a = 0; a < od->pysig.nrArgs; ++a)
+    {
+        argDef *ad = &od->pysig.args[a];
+
+        if (!isInArg(ad))
+            continue;
+
+        /* Handle any /KeepReference/ arguments. */
+        if (keepReference(ad))
         {
-            argDef *ad = &od->pysig.args[a];
-
-            if (!isInArg(ad))
-                continue;
-
-            /* Handle any /KeepReference/ arguments. */
-            if (keepReference(ad))
-            {
-                prcode(fp,
+            prcode(fp,
 "\n"
 "            sipKeepReference(%s, %d, %a%s);\n"
-                    , (scope == NULL || isStatic(od) ? "NULL" : "sipSelf"), ad->key, mod, ad, a, (((ad->atype == ascii_string_type || ad->atype == latin1_string_type || ad->atype == utf8_string_type) && ad->nrderefs == 1) || !isGetWrapper(ad) ? "Keep" : "Wrapper"));
-            }
+                , (scope == NULL || isStatic(od) ? "NULL" : "sipSelf"), ad->key, mod, ad, a, (((ad->atype == ascii_string_type || ad->atype == latin1_string_type || ad->atype == utf8_string_type) && ad->nrderefs == 1) || !isGetWrapper(ad) ? "Keep" : "Wrapper"));
+        }
 
-            /* Handle /TransferThis/ for non-factory methods. */
-            if (!isFactory(od) && isThisTransferred(ad))
-            {
-                prcode(fp,
+        /* Handle /TransferThis/ for non-factory methods. */
+        if (!isFactory(od) && isThisTransferred(ad))
+        {
+            prcode(fp,
 "\n"
 "            if (sipOwner)\n"
 "                sipTransferTo(sipSelf, (PyObject *)sipOwner);\n"
 "            else\n"
 "                sipTransferBack(sipSelf);\n"
-                        );
-            }
+                    );
         }
+    }
 
     if (isThisTransferredMeth(od))
         prcode(fp,
@@ -12020,7 +12026,15 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
     /* Handle the error flag if it was used. */
     error_value = ((isVoidReturnSlot(od->common) || isIntReturnSlot(od->common) || isSSizeReturnSlot(od->common) || isLongReturnSlot(od->common)) ? "-1" : "0");
 
-    if (error_flag)
+    if (raisesPyException(od))
+    {
+        prcode(fp,
+"            if (PyErr_Occurred())\n"
+"                return %s;\n"
+"\n"
+                , error_value);
+    }
+    else if (error_flag)
     {
         if (!isZeroArgSlot(od->common))
             prcode(fp,

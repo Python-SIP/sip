@@ -266,6 +266,7 @@
 #define OVER_IS_DEPRECATED  0x01000000  /* It is deprecated. */
 #define OVER_REALLY_PROT    0x02000000  /* It really is protected. */
 #define OVER_IS_DELATTR     0x04000000  /* It is __delattr__. */
+#define OVER_RAISES_PY_EXC  0x08000000  /* It raises a Python exception. */
 
 #define isPublic(o)         ((o)->overflags & SECT_IS_PUBLIC)
 #define setIsPublic(o)      ((o)->overflags |= SECT_IS_PUBLIC)
@@ -320,6 +321,8 @@
 #define setIsReallyProtected(o) ((o)->overflags |= OVER_REALLY_PROT)
 #define isDelattr(o)        ((o)->overflags & OVER_IS_DELATTR)
 #define setIsDelattr(o)     ((o)->overflags |= OVER_IS_DELATTR)
+#define raisesPyException(o)    ((o)->overflags & OVER_RAISES_PY_EXC)
+#define setRaisesPyException(o) ((o)->overflags |= OVER_RAISES_PY_EXC)
 
 
 /* Handle variable flags. */
