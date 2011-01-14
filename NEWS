@@ -1,7 +1,11 @@
-v4.12.1 ??? 2011
+v4.12.1 ??? January 2011
   - Added support for the __getattribute__, __getattr__, __setattr__ and
     __delattr__ methods.
   - Added the /RaisesPyException/ function annotation.
+  - Added SIP_SSIZE_T as a predefined type.
+  - PyObject * can now be used as a synonym for SIP_PYOBJECT.
+  - Added sip.ispycreated() to the sip module.
+  - Added the --deployment-target flag to configure.py for MacOS/X.
 
 v4.12 23rd December 2010
   - Implemented the revised directive syntax for %Module.
