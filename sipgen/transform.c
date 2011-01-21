@@ -1388,14 +1388,23 @@ static void transformCtors(sipSpec *pt, classDef *cd)
 
         /*
          * Now check that the Python signature doesn't conflict with an
-         * earlier one.
+         * earlier one.  If there is %MethodCode then assume that it will
+         * handle any potential conflicts.
          */
-        for (prev = cd->ctors; prev != ct; prev = prev->next)
-            if (samePythonSignature(&prev->pysig, &ct->pysig))
+        if (ct->methodcode == NULL)
+        {
+            for (prev = cd->ctors; prev != ct; prev = prev->next)
             {
-                fatalScopedName(classFQCName(cd));
-                fatal(" has ctors with the same Python signature\n");
+                if (prev->methodcode != NULL)
+                    continue;
+
+                if (samePythonSignature(&prev->pysig, &ct->pysig))
+                {
+                    fatalScopedName(classFQCName(cd));
+                    fatal(" has ctors with the same Python signature\n");
+                }
             }
+        }
 
         if (isDeprecatedClass(cd))
             setIsDeprecatedCtor(ct);
@@ -1535,35 +1544,42 @@ static void transformScopeOverloads(sipSpec *pt, classDef *c_scope,
 
         /*
          * Now check that the Python signature doesn't conflict with an earlier
-         * one.
+         * one.  If there is %MethodCode then assume that it will handle any
+         * potential conflicts.
          */
-        for (prev = overs; prev != od; prev = prev->next)
+        if (od->methodcode == NULL)
         {
-            if (prev->common != od->common)
-                continue;
-
-            /* They can only conflict if one is unversioned. */
-            if (prev->api_range != NULL && od->api_range != NULL)
-                continue;
-
-            if (samePythonSignature(&prev->pysig, &od->pysig))
+            for (prev = overs; prev != od; prev = prev->next)
             {
-                ifaceFileDef *iff;
+                if (prev->common != od->common)
+                    continue;
 
-                if (mt_scope != NULL)
-                    iff = mt_scope->iff;
-                else if (c_scope != NULL)
-                    iff = c_scope->iff;
-                else
-                    iff = NULL;
+                if (prev->methodcode != NULL)
+                    continue;
 
-                if (iff != NULL)
+                /* They can only conflict if one is unversioned. */
+                if (prev->api_range != NULL && od->api_range != NULL)
+                    continue;
+
+                if (samePythonSignature(&prev->pysig, &od->pysig))
                 {
-                    fatalScopedName(iff->fqcname);
-                    fatal("::");
-                }
+                    ifaceFileDef *iff;
 
-                fatal("%s() has overloaded functions with the same Python signature\n", od->common->pyname->text);
+                    if (mt_scope != NULL)
+                        iff = mt_scope->iff;
+                    else if (c_scope != NULL)
+                        iff = c_scope->iff;
+                    else
+                        iff = NULL;
+
+                    if (iff != NULL)
+                    {
+                        fatalScopedName(iff->fqcname);
+                        fatal("::");
+                    }
+
+                    fatal("%s() has overloaded functions with the same Python signature\n", od->common->pyname->text);
+                }
             }
         }
 
@@ -2653,7 +2669,6 @@ static int samePythonSignature(signatureDef *sd1, signatureDef *sd2)
     }
 
     return (a1 < 0 && a2 < 0);
-
 }
 
 
