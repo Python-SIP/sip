@@ -6755,11 +6755,11 @@ static PyObject *detail_FromFailure(PyObject *failure_obj)
         {
 #if PY_MAJOR_VERSION >= 3
             detail = PyUnicode_FromFormat(
-                    "keyword argument '%s' has unexpected type '%s'",
+                    "argument '%s' has unexpected type '%s'",
                     failure->arg_name, Py_TYPE(failure->detail_obj)->tp_name);
 #else
             detail = PyString_FromFormat(
-                    "keyword argument '%s' has unexpected type '%s'",
+                    "argument '%s' has unexpected type '%s'",
                     failure->arg_name, Py_TYPE(failure->detail_obj)->tp_name);
 #endif
         }
