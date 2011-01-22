@@ -1,4 +1,4 @@
-v4.12.1 ??? January 2011
+v4.12.1 22nd January 2011
   - Added support for the __getattribute__, __getattr__, __setattr__ and
     __delattr__ methods.
   - Added the /RaisesPyException/ function annotation.

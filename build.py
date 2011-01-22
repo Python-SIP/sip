@@ -49,7 +49,7 @@ _GeneratedFileTypes = ('.pyc', '.o', '.obj', '.so', '.pyd', '.exp', '.exe',
 
 # Directories that are auto-generated and need to be cleaned.
 _GeneratedDirs = (
-    ('doc', ))
+    ('doc', ), )
 
 # Files in a release.
 _ReleasedFiles = ('configure.py.in', 'LICENSE', 'LICENSE-GPL2', 'LICENSE-GPL3',
