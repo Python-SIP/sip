@@ -10205,11 +10205,18 @@ static void generateTypeInit(classDef *cd, moduleDef *mod, FILE *fp)
             int a;
 
             for (a = 0; a < ct->pysig.nrArgs; ++a)
-                if (isThisTransferred(&ct->pysig.args[a]))
-                {
+            {
+                argDef *ad = &ct->pysig.args[a];
+
+                if (!isInArg(ad))
+                    continue;
+
+                if (keepReference(ad))
+                    need_self = TRUE;
+
+                if (isThisTransferred(ad))
                     need_owner = TRUE;
-                    break;
-                }
+            }
         }
     }
 
@@ -10514,6 +10521,7 @@ static void generateConstructorCall(classDef *cd, ctorDef *ct, int error_flag,
             ,classFQCName(cd));
     else
     {
+        int a;
         int rgil = ((release_gil || isReleaseGILCtor(ct)) && !isHoldGILCtor(ct));
 
         if (rgil)
@@ -10552,6 +10560,23 @@ static void generateConstructorCall(classDef *cd, ctorDef *ct, int error_flag,
             prcode(fp,
 "            Py_END_ALLOW_THREADS\n"
                 );
+
+        /* Handle any /KeepReference/ arguments. */
+        for (a = 0; a < ct->pysig.nrArgs; ++a)
+        {
+            argDef *ad = &ct->pysig.args[a];
+
+            if (!isInArg(ad))
+                continue;
+
+            if (keepReference(ad))
+            {
+                prcode(fp,
+"\n"
+"            sipKeepReference((PyObject *)sipSelf, %d, %a%s);\n"
+                    , ad->key, mod, ad, a, (((ad->atype == ascii_string_type || ad->atype == latin1_string_type || ad->atype == utf8_string_type) && ad->nrderefs == 1) || !isGetWrapper(ad) ? "Keep" : "Wrapper"));
+            }
+        }
 
         /*
          * This is a bit of a hack to say we want the result transferred.  We
