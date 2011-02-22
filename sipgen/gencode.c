@@ -9893,12 +9893,21 @@ static void generateSignalTableEntry(sipSpec *pt, classDef *cd, overDef *sig,
 
     if (docstrings)
     {
-        fprintf(fp, "\"\\1");
-        prScopedPythonName(fp, cd->ecd, cd->pyname->text);
-        fprintf(fp, ".%s", md->pyname->text);
-        prPythonSignature(pt, fp, &sig->pysig, FALSE, FALSE, FALSE, FALSE,
-                TRUE);
-        fprintf(fp, "\", ");
+        if (md->docstring != NULL)
+        {
+            generateExplicitDocstring(md->docstring, fp);
+        }
+        else
+        {
+            fprintf(fp, "\"\\1");
+            prScopedPythonName(fp, cd->ecd, cd->pyname->text);
+            fprintf(fp, ".%s", md->pyname->text);
+            prPythonSignature(pt, fp, &sig->pysig, FALSE, FALSE, FALSE, FALSE,
+                    TRUE);
+            fprintf(fp, "\"");
+        }
+
+        fprintf(fp, ", ");
     }
     else
     {
