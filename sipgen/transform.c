@@ -2617,8 +2617,16 @@ int sameBaseType(argDef *a1, argDef *a2)
                 return FALSE;
 
             for (a = 0; a < td1->types.nrArgs; ++a)
-                if (!sameBaseType(&td1->types.args[a], &td2->types.args[a]))
+            {
+                argDef *td1ad = &td1->types.args[a];
+                argDef *td2ad = &td2->types.args[a];
+
+                if (td1ad->nrderefs != td2ad->nrderefs)
                     return FALSE;
+
+                if (!sameBaseType(td1ad, td2ad))
+                    return FALSE;
+            }
 
             break;
         }
