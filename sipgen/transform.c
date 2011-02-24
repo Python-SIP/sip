@@ -1349,7 +1349,8 @@ static void transformTypedefs(sipSpec *pt, moduleDef *mod)
 
     for (td = pt->typedefs; td != NULL; td = td->next)
         if (td->module == mod)
-            getBaseType(pt, td->module, td->ecd, &td->type);
+            if (td->ecd == NULL || !isTemplateClass(td->ecd))
+                getBaseType(pt, td->module, td->ecd, &td->type);
 }
 
 

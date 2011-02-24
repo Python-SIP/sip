@@ -132,11 +132,14 @@ static void instantiateTemplateEnums(sipSpec *pt, classTmplDef *tcd,
 static void instantiateTemplateVars(sipSpec *pt, classTmplDef *tcd,
         templateDef *td, classDef *cd, ifaceFileList **used,
         scopedNameDef *type_names, scopedNameDef *type_values);
+static void instantiateTemplateTypedefs(sipSpec *pt, classTmplDef *tcd,
+        templateDef *td, classDef *cd);
 static overDef *instantiateTemplateOverloads(sipSpec *pt, overDef *tod,
         memberDef *tmethods, memberDef *methods, classTmplDef *tcd,
         templateDef *td, classDef *cd, ifaceFileList **used,
         scopedNameDef *type_names, scopedNameDef *type_values);
 static void resolveAnyTypedef(sipSpec *pt, argDef *ad);
+static void addTypedef(sipSpec *pt, typedefDef *tdd);
 static void addVariable(sipSpec *pt, varDef *vd);
 static void applyTypeFlags(moduleDef *mod, argDef *ad, optFlags *flags);
 static argType convertEncoding(const char *encoding);
@@ -5276,6 +5279,9 @@ static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod,
     /* Handle the variables. */
     instantiateTemplateVars(pt, tcd, td, cd, used, type_names, type_values);
 
+    /* Handle the typedefs. */
+    instantiateTemplateTypedefs(pt, tcd, td, cd);
+
     /* Handle the ctors. */
     cd->ctors = NULL;
     cttail = &cd->ctors;
@@ -5559,6 +5565,38 @@ static void instantiateTemplateVars(sipSpec *pt, classTmplDef *tcd,
 
             addVariable(pt, vd);
         }
+}
+
+
+/*
+ * Instantiate the typedefs of a template class.
+ */
+static void instantiateTemplateTypedefs(sipSpec *pt, classTmplDef *tcd,
+        templateDef *td, classDef *cd)
+{
+    typedefDef *tdd;
+
+    for (tdd = pt->typedefs; tdd != NULL; tdd = tdd->next)
+    {
+        typedefDef *new_tdd;
+
+        if (tdd->ecd != tcd->cd)
+            continue;
+
+        new_tdd = sipMalloc(sizeof (typedefDef));
+
+        /* Start with a shallow copy. */
+        *new_tdd = *tdd;
+
+        new_tdd->fqname = text2scopedName(cd->iff,
+                scopedNameTail(new_tdd->fqname));
+        new_tdd->ecd = cd;
+        new_tdd->module = cd->iff->module;
+
+        templateType(&new_tdd->type, tcd, td, cd);
+
+        addTypedef(pt, new_tdd);
+    }
 }
 
 
@@ -5870,7 +5908,7 @@ static int foundInScope(scopedNameDef *fq_name, scopedNameDef *rel_name)
 static void newTypedef(sipSpec *pt, moduleDef *mod, char *name, argDef *type,
         optFlags *optflgs)
 {
-    typedefDef *td, **tdp;
+    typedefDef *td;
     scopedNameDef *fqname;
     classDef *scope;
 
@@ -5894,24 +5932,6 @@ static void newTypedef(sipSpec *pt, moduleDef *mod, char *name, argDef *type,
             }
     }
 
-    /*
-     * Check it doesn't already exist and find the position in the sorted list
-     * where it should be put.
-     */
-    for (tdp = &pt->typedefs; *tdp != NULL; tdp = &(*tdp)->next)
-    {
-        int res = compareScopedNames((*tdp)->fqname, fqname);
-
-        if (res == 0)
-        {
-            fatalScopedName(fqname);
-            fatal(" already defined\n");
-        }
-
-        if (res > 0)
-            break;
-    }
-
     td = sipMalloc(sizeof (typedefDef));
 
     td->tdflags = 0;
@@ -5920,13 +5940,42 @@ static void newTypedef(sipSpec *pt, moduleDef *mod, char *name, argDef *type,
     td->module = mod;
     td->type = *type;
 
-    td->next = *tdp;
-    *tdp = td;
-
     if (getOptFlag(optflgs, "NoTypeName", bool_flag) != NULL)
         setNoTypeName(td);
 
-    mod->nrtypedefs++;
+    addTypedef(pt, td);
+}
+
+
+/*
+ * Add a typedef to the list so that the list remains sorted.
+ */
+static void addTypedef(sipSpec *pt, typedefDef *tdd)
+{
+    typedefDef **tdp;
+
+    /*
+     * Check it doesn't already exist and find the position in the sorted list
+     * where it should be put.
+     */
+    for (tdp = &pt->typedefs; *tdp != NULL; tdp = &(*tdp)->next)
+    {
+        int res = compareScopedNames((*tdp)->fqname, tdd->fqname);
+
+        if (res == 0)
+        {
+            fatalScopedName(tdd->fqname);
+            fatal(" already defined\n");
+        }
+
+        if (res > 0)
+            break;
+    }
+
+    tdd->next = *tdp;
+    *tdp = tdd;
+
+    tdd->module->nrtypedefs++;
 }
 
 
