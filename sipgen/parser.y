@@ -85,9 +85,10 @@ static memberDef *findFunction(sipSpec *, moduleDef *, classDef *,
         mappedTypeDef *, const char *, int, int, int);
 static void checkAttributes(sipSpec *, moduleDef *, classDef *,
         mappedTypeDef *, const char *, int);
-static void newModule(FILE *fp, char *filename);
+static void newModule(FILE *fp, const char *filename);
 static moduleDef *allocModule();
-static void parseFile(FILE *fp, char *name, moduleDef *prevmod, int optional);
+static void parseFile(FILE *fp, const char *name, moduleDef *prevmod,
+        int optional);
 static void handleEOF(void);
 static void handleEOM(void);
 static qualDef *findQualifier(const char *name);
@@ -100,7 +101,7 @@ static void popScope(void);
 static classDef *currentScope(void);
 static void newQualifier(moduleDef *, int, int, const char *, qualType);
 static qualDef *allocQualifier(moduleDef *, int, int, const char *, qualType);
-static void newImport(char *filename);
+static void newImport(const char *filename);
 static int timePeriod(const char *lname, const char *uname);
 static int platOrFeature(char *,int);
 static int isNeeded(qualDef *);
@@ -161,6 +162,7 @@ static void addAutoPyName(moduleDef *mod, const char *remove_leading);
 static KwArgs convertKwArgs(const char *kwargs);
 static void checkAnnos(optFlags *annos, const char *valid[]);
 static void checkNoAnnos(optFlags *annos, const char *msg);
+static void appendCodeBlock(codeBlockList **headp, codeBlock *cb);
 %}
 
 %union {
@@ -734,11 +736,11 @@ exception:  TK_EXCEPTION scopedname baseexception optflags exception_body {
 
                 /* Complete the definition. */
                 xd->iff->module = currentModule;
-                xd->iff->hdrcode = $5.type_header_code;
+                appendCodeBlock(&xd->iff->hdrcode, $5.type_header_code);
                 xd->pyname = pyname;
                 xd->bibase = $3.bibase;
                 xd->base = $3.base;
-                xd->raisecode = $5.raise_code;
+                appendCodeBlock(&xd->raisecode, $5.raise_code);
 
                 if (getOptFlag(&$4, "Default", bool_flag) != NULL)
                     currentModule->defexception = xd;
@@ -990,19 +992,19 @@ mtline: ifstart
     |   TK_FROMTYPE codeblock {
             if (notSkipping())
             {
-                if (currentMappedType -> convfromcode != NULL)
+                if (currentMappedType->convfromcode != NULL)
                     yyerror("%MappedType has more than one %ConvertFromTypeCode directive");
 
-                currentMappedType -> convfromcode = $2;
+                appendCodeBlock(&currentMappedType->convfromcode, $2);
             }
         }
     |   TK_TOTYPE codeblock {
             if (notSkipping())
             {
-                if (currentMappedType -> convtocode != NULL)
+                if (currentMappedType->convtocode != NULL)
                     yyerror("%MappedType has more than one %ConvertToTypeCode directive");
 
-                currentMappedType -> convtocode = $2;
+                appendCodeBlock(&currentMappedType->convtocode, $2);
             }
         }
     |   enum
@@ -1409,7 +1411,7 @@ consmodule: TK_CONSMODULE consmodule_args consmodule_body {
                     yyerror("%ConsolidatedModule must appear before any %Module or %CModule directive");
 
                 setModuleName(currentSpec, currentModule, $2.name);
-                currentModule->docstring = $3.docstring;
+                appendCodeBlock(&currentModule->docstring, $3.docstring);
 
                 setIsConsolidated(currentModule);
             }
@@ -1495,7 +1497,7 @@ compmodule: TK_COMPOMODULE compmodule_args compmodule_body {
                     yyerror("%CompositeModule must appear before any %Module directive");
 
                 setModuleName(currentSpec, currentModule, $2.name);
-                currentModule->docstring = $3.docstring;
+                appendCodeBlock(&currentModule->docstring, $3.docstring);
 
                 setIsComposite(currentModule);
             }
@@ -1793,7 +1795,7 @@ include_arg:    TK_NAME '=' TK_PATH_VALUE {
 optinclude: TK_OPTINCLUDE TK_PATH_VALUE {
             deprecated("%OptionalInclude is deprecated, use %Include and the 'optional' argument instead");
 
-            if (notSkipping)
+            if (notSkipping())
                 parseFile(NULL, $2, NULL, TRUE);
         }
     ;
@@ -2575,13 +2577,7 @@ classline:  ifstart
     |   property
     |   docstring {
             if (notSkipping())
-            {
-                classDef *scope = currentScope();
-
-                /* Make sure this is before any ctor docstrings. */
-                $1->next = scope->docstring;
-                scope->docstring = $1;
-            }
+                appendCodeBlock(&currentScope()->docstring, $1);
         }
     |   typecode {
             if (notSkipping())
@@ -2599,7 +2595,7 @@ classline:  ifstart
                 if (scope->travcode != NULL)
                     yyerror("%GCTraverseCode already given for class");
 
-                scope->travcode = $1;
+                appendCodeBlock(&scope->travcode, $1);
             }
         }
     |   clearcode {
@@ -2610,7 +2606,7 @@ classline:  ifstart
                 if (scope->clearcode != NULL)
                     yyerror("%GCClearCode already given for class");
 
-                scope->clearcode = $1;
+                appendCodeBlock(&scope->clearcode, $1);
             }
         }
     |   getbufcode {
@@ -2621,7 +2617,7 @@ classline:  ifstart
                 if (scope->getbufcode != NULL)
                     yyerror("%BIGetBufferCode already given for class");
 
-                scope->getbufcode = $1;
+                appendCodeBlock(&scope->getbufcode, $1);
             }
         }
     |   releasebufcode {
@@ -2632,7 +2628,7 @@ classline:  ifstart
                 if (scope->releasebufcode != NULL)
                     yyerror("%BIReleaseBufferCode already given for class");
 
-                scope->releasebufcode = $1;
+                appendCodeBlock(&scope->releasebufcode, $1);
             }
         }
     |   readbufcode {
@@ -2643,7 +2639,7 @@ classline:  ifstart
                 if (scope->readbufcode != NULL)
                     yyerror("%BIGetReadBufferCode already given for class");
 
-                scope->readbufcode = $1;
+                appendCodeBlock(&scope->readbufcode, $1);
             }
         }
     |   writebufcode {
@@ -2654,7 +2650,7 @@ classline:  ifstart
                 if (scope->writebufcode != NULL)
                     yyerror("%BIGetWriteBufferCode already given for class");
 
-                scope->writebufcode = $1;
+                appendCodeBlock(&scope->writebufcode, $1);
             }
         }
     |   segcountcode {
@@ -2665,7 +2661,7 @@ classline:  ifstart
                 if (scope->segcountcode != NULL)
                     yyerror("%BIGetSegCountCode already given for class");
 
-                scope->segcountcode = $1;
+                appendCodeBlock(&scope->segcountcode, $1);
             }
         }
     |   charbufcode {
@@ -2676,7 +2672,7 @@ classline:  ifstart
                 if (scope->charbufcode != NULL)
                     yyerror("%BIGetCharBufferCode already given for class");
 
-                scope->charbufcode = $1;
+                appendCodeBlock(&scope->charbufcode, $1);
             }
         }
     |   picklecode {
@@ -2687,7 +2683,7 @@ classline:  ifstart
                 if (scope->picklecode != NULL)
                     yyerror("%PickleCode already given for class");
 
-                scope->picklecode = $1;
+                appendCodeBlock(&scope->picklecode, $1);
             }
         }
     |   ctor
@@ -2701,7 +2697,7 @@ classline:  ifstart
                 if (scope->convtosubcode != NULL)
                     yyerror("Class has more than one %ConvertToSubClassCode directive");
 
-                scope->convtosubcode = $2;
+                appendCodeBlock(&scope->convtosubcode, $2);
             }
         }
     |   TK_TOTYPE codeblock {
@@ -2712,7 +2708,7 @@ classline:  ifstart
                 if (scope->convtocode != NULL)
                     yyerror("Class has more than one %ConvertToTypeCode directive");
 
-                scope->convtocode = $2;
+                appendCodeBlock(&scope->convtocode, $2);
             }
         }
     |   TK_PUBLIC optslot ':' {
@@ -2871,8 +2867,8 @@ dtor:       optvirtual '~' TK_NAME_VALUE '(' ')' optexceptions optabstract optfl
                 if (currentSpec -> genc && $10 == NULL)
                     yyerror("Destructor in C modules must include %MethodCode");
 
-                cd -> dealloccode = $10;
-                cd -> dtorcode = $11;
+                appendCodeBlock(&cd->dealloccode, $10);
+                appendCodeBlock(&cd->dtorcode, $11);
                 cd -> dtorexceptions = $6;
 
                 /*
@@ -4105,7 +4101,7 @@ void appendToClassList(classList **clp,classDef *cd)
 /*
  * Create a new module for the current specification and make it current.
  */
-static void newModule(FILE *fp, char *filename)
+static void newModule(FILE *fp, const char *filename)
 {
     moduleDef *mod;
 
@@ -4152,7 +4148,8 @@ static moduleDef *allocModule()
 /*
  * Switch to parsing a new file.
  */
-static void parseFile(FILE *fp, char *name, moduleDef *prevmod, int optional)
+static void parseFile(FILE *fp, const char *name, moduleDef *prevmod,
+        int optional)
 {
     parserContext pc;
 
@@ -4424,7 +4421,7 @@ static classDef *newClass(sipSpec *pt, ifaceFileType iftype,
 {
     int flags;
     classDef *cd, *scope;
-    codeBlock *hdrcode;
+    codeBlockList *hdrcode;
 
     if (sectionFlags & SECT_IS_PRIVATE)
         yyerror("Classes, structs and namespaces must be in the public or protected sections");
@@ -4470,7 +4467,7 @@ static classDef *newClass(sipSpec *pt, ifaceFileType iftype,
     if (currentIsTemplate)
         setIsTemplateClass(cd);
 
-    appendCodeBlock(&cd->iff->hdrcode, hdrcode);
+    appendCodeBlockList(&cd->iff->hdrcode, hdrcode);
 
     /* See if it is a namespace extender. */
     if (iftype == namespace_iface)
@@ -5255,6 +5252,8 @@ static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod,
             (scope != NULL ? scope->iff->api_range : NULL), NULL);
     cd->iff->module = mod;
 
+    appendCodeBlockList(&cd->iff->hdrcode, tcd->cd->iff->hdrcode);
+
     /* Make a copy of the used list and add the enclosing scope. */
     used = &cd->iff->used;
 
@@ -5263,7 +5262,7 @@ static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod,
 
     /* Include any scope header code. */
     if (scope != NULL)
-        appendCodeBlock(&cd->iff->hdrcode, scope->iff->hdrcode);
+        appendCodeBlockList(&cd->iff->hdrcode, scope->iff->hdrcode);
 
     if (inMainModule())
     {
@@ -5674,14 +5673,14 @@ static void templateType(argDef *ad, classTmplDef *tcd, templateDef *td, classDe
 /*
  * Replace any template arguments in a literal code block.
  */
-codeBlock *templateCode(sipSpec *pt, ifaceFileList **used, codeBlock *ocb,
-        scopedNameDef *names, scopedNameDef *values)
+codeBlockList *templateCode(sipSpec *pt, ifaceFileList **used,
+        codeBlockList *ocbl, scopedNameDef *names, scopedNameDef *values)
 {
-    codeBlock *ncb = NULL, **tail = &ncb;
+    codeBlockList *ncbl = NULL;
 
-    while (ocb != NULL)
+    while (ocbl != NULL)
     {
-        char *at = ocb->frag;
+        char *at = ocbl->block->frag;
 
         do
         {
@@ -5715,17 +5714,15 @@ codeBlock *templateCode(sipSpec *pt, ifaceFileList **used, codeBlock *ocb,
             /* Create the new fragment. */
             cb = sipMalloc(sizeof (codeBlock));
 
-            if (at == ocb->frag)
+            if (at == ocbl->block->frag)
             {
-                cb->filename = ocb->filename;
-                cb->linenr = ocb->linenr;
+                cb->filename = ocbl->block->filename;
+                cb->linenr = ocbl->block->linenr;
             }
             else
                 cb->filename = NULL;
 
-            cb->next = NULL;
-            *tail = cb;
-            tail = &cb->next;
+            appendCodeBlock(&ncbl, cb);
 
             /* See if anything was found. */
             if (first == NULL)
@@ -5793,10 +5790,10 @@ codeBlock *templateCode(sipSpec *pt, ifaceFileList **used, codeBlock *ocb,
         }
         while (at != NULL && *at != '\0');
 
-        ocb = ocb->next;
+        ocbl = ocbl->next;
     }
 
-    return ncb;
+    return ncbl;
 }
 
 
@@ -6106,9 +6103,9 @@ static void newVar(sipSpec *pt, moduleDef *mod, char *name, int isstatic,
     var->module = mod;
     var->varflags = 0;
     var->type = *type;
-    var->accessfunc = acode;
-    var->getcode = gcode;
-    var->setcode = scode;
+    appendCodeBlock(&var->accessfunc, acode);
+    appendCodeBlock(&var->getcode, gcode);
+    appendCodeBlock(&var->setcode, scode);
 
     if (isstatic || (escope != NULL && escope->iff->type == namespace_iface))
         setIsStaticVar(var);
@@ -6153,7 +6150,7 @@ static void newCtor(moduleDef *mod, char *name, int sectFlags,
     ct->pysig = *args;
     ct->cppsig = (cppsig != NULL ? cppsig : &ct->pysig);
     ct->exceptions = exceptions;
-    ct->methodcode = methodcode;
+    appendCodeBlock(&ct->methodcode, methodcode);
 
     if (!isPrivateCtor(ct))
         setCanCreate(cd);
@@ -6414,7 +6411,7 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         vhd->vhflags = 0;
         vhd->pysig = &od->pysig;
         vhd->cppsig = (cppsig != NULL ? cppsig : &od->pysig);
-        vhd->virtcode = vcode;
+        appendCodeBlock(&vhd->virtcode, vcode);
 
         if (factory || xferback)
             setIsTransferVH(vhd);
@@ -6443,7 +6440,7 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
     od->pysig = *sig;
     od->cppsig = (cppsig != NULL ? cppsig : &od->pysig);
     od->exceptions = exceptions;
-    od->methodcode = methodcode;
+    appendCodeBlock(&od->methodcode, methodcode);
     od->virthandler = vhd;
 
     no_arg_parser = (getOptFlag(optflgs, "NoArgParser", bool_flag) != NULL);
@@ -6543,9 +6540,8 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
             code->frag = buf;
             code->filename = "Auto-generated";
             code->linenr = 1;
-            code->next = NULL;
 
-            len->methodcode = code;
+            appendCodeBlock(&len->methodcode, code);
         }
 
         len->next = NULL;
@@ -6987,15 +6983,43 @@ static void checkAttributes(sipSpec *pt, moduleDef *mod, classDef *py_c_scope,
 
 
 /*
- * Append a code block to a list of them.  Append is needed to give the
- * specifier easy control over the order of the documentation.
+ * Append a code block to a list of them.
  */
-void appendCodeBlock(codeBlock **headp, codeBlock *new)
+static void appendCodeBlock(codeBlockList **headp, codeBlock *cb)
 {
-    while (*headp != NULL)
-        headp = &(*headp)->next;
+    codeBlockList *cbl;
 
-    *headp = new;
+    /* Handle the trivial case. */
+    if (cb == NULL)
+        return;
+
+    /* Find the end of the list. */
+    while (*headp != NULL)
+    {
+        /* Ignore if the block is already in the list. */
+        if ((*headp)->block == cb)
+            return;
+
+        headp = &(*headp)->next;
+    }
+
+    cbl = sipMalloc(sizeof (codeBlockList));
+    cbl->block = cb;
+
+    *headp = cbl;
+}
+
+
+/*
+ * Append a code block list to an existing list.
+ */
+void appendCodeBlockList(codeBlockList **headp, codeBlockList *cbl)
+{
+    while (cbl != NULL)
+    {
+        appendCodeBlock(headp, cbl->block);
+        cbl = cbl->next;
+    }
 }
 
 
@@ -7458,7 +7482,7 @@ static qualDef *allocQualifier(moduleDef *mod, int line, int order,
 /*
  * Create a new imported module.
  */
-static void newImport(char *filename)
+static void newImport(const char *filename)
 {
     moduleDef *from, *mod;
     moduleListDef *mld;
@@ -7990,7 +8014,7 @@ static void addProperty(sipSpec *pt, moduleDef *mod, classDef *cd,
     pd->name = cacheName(pt, name);
     pd->get = get;
     pd->set = set;
-    pd->docstring = docstring;
+    appendCodeBlock(&pd->docstring, docstring);
     pd->next = cd->properties;
 
     cd->properties = pd;
@@ -8031,7 +8055,7 @@ static moduleDef *configureModule(sipSpec *pt, moduleDef *module,
     setModuleName(pt, module, name);
     module->kwargs = kwargs;
     module->version = version;
-    module->docstring = docstring;
+    appendCodeBlock(&module->docstring, docstring);
 
     if (use_arg_names)
         setUseArgNames(module);

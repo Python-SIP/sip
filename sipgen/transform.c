@@ -2975,9 +2975,14 @@ static mappedTypeDef *instantiateMappedTypeTemplate(sipSpec *pt, moduleDef *mod,
 
     mtd->doctype = templateString(mtt->mt->doctype, type_names, type_values);
 
-    appendCodeBlock(&mtd->iff->hdrcode, templateCode(pt, &mtd->iff->used, mtt->mt->iff->hdrcode, type_names, type_values));
-    mtd->convfromcode = templateCode(pt, &mtd->iff->used, mtt->mt->convfromcode, type_names, type_values);
-    mtd->convtocode = templateCode(pt, &mtd->iff->used, mtt->mt->convtocode, type_names, type_values);
+    appendCodeBlockList(&mtd->iff->hdrcode,
+            templateCode(pt, &mtd->iff->used, mtt->mt->iff->hdrcode,
+                    type_names, type_values));
+
+    mtd->convfromcode = templateCode(pt, &mtd->iff->used,
+            mtt->mt->convfromcode, type_names, type_values);
+    mtd->convtocode = templateCode(pt, &mtd->iff->used, mtt->mt->convtocode,
+            type_names, type_values);
 
     mtd->next = pt->mappedtypes;
     pt->mappedtypes = mtd;

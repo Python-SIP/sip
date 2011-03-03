@@ -531,10 +531,9 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
 
     yylval.codeb = sipMalloc(sizeof (codeBlock));
 
-    yylval.codeb -> frag = sipStrdup(codeLine);
-    yylval.codeb -> linenr = ifp -> lineno++;
-    yylval.codeb -> filename = sipStrdup(ifp -> name);
-    yylval.codeb -> next = NULL;
+    yylval.codeb->frag = sipStrdup(codeLine);
+    yylval.codeb->linenr = ifp->lineno++;
+    yylval.codeb->filename = sipStrdup(ifp->name);
 
     return TK_CODELINE;
 }

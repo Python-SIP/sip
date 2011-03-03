@@ -101,7 +101,7 @@ static void generateFunctionBody(overDef *, classDef *, mappedTypeDef *,
         classDef *, int deref, moduleDef *, FILE *);
 static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp);
 static void generateTypeInit(classDef *, moduleDef *, FILE *);
-static void generateCppCodeBlock(codeBlock *, FILE *);
+static void generateCppCodeBlock(codeBlockList *cbl, FILE *fp);
 static void generateUsedIncludes(ifaceFileList *iffl, FILE *fp);
 static void generateModuleAPI(sipSpec *pt, moduleDef *mod, FILE *fp);
 static void generateImportedModuleAPI(sipSpec *pt, moduleDef *mod,
@@ -227,8 +227,8 @@ static int isMultiArgSlot(memberDef *md);
 static int isIntArgSlot(memberDef *md);
 static int isInplaceNumberSlot(memberDef *md);
 static int isInplaceSequenceSlot(memberDef *md);
-static int needErrorFlag(codeBlock *cb);
-static int needOldErrorFlag(codeBlock *cb);
+static int needErrorFlag(codeBlockList *cbl);
+static int needOldErrorFlag(codeBlockList *cbl);
 static int needNewInstance(argDef *ad);
 static int needDealloc(classDef *cd);
 static const char *getBuildResultFormat(argDef *ad);
@@ -242,8 +242,8 @@ static void normaliseArgs(signatureDef *);
 static void restoreArgs(signatureDef *);
 static const char *slotName(slotType st);
 static void ints_intro(classDef *cd, FILE *fp);
-static const char *argName(const char *name, codeBlock *cb);
-static int usedInCode(codeBlock *code, const char *str);
+static const char *argName(const char *name, codeBlockList *cbl);
+static int usedInCode(codeBlockList *cbl, const char *str);
 static void generateDefaultValue(moduleDef *mod, argDef *ad, int argnr,
         FILE *fp);
 static void generateClassFromVoid(classDef *cd, const char *cname,
@@ -273,7 +273,7 @@ static int overloadHasClassDocstring(sipSpec *pt, ctorDef *ct);
 static int hasClassDocstring(sipSpec *pt, classDef *cd);
 static void generateClassDocstring(sipSpec *pt, classDef *cd, FILE *fp);
 static int isDefaultAPI(sipSpec *pt, apiVersionRangeDef *avd);
-static void generateExplicitDocstring(codeBlock *docstring, FILE *fp);
+static void generateExplicitDocstring(codeBlockList *cbl, FILE *fp);
 static int copyConstRefArg(argDef *ad);
 static void generatePreprocLine(int linenr, const char *fname, FILE *fp);
 
@@ -334,12 +334,12 @@ void generateCode(sipSpec *pt, char *codeDir, char *buildfile, char *docFile,
 static void generateDocumentation(sipSpec *pt, const char *docFile)
 {
     FILE *fp;
-    codeBlock *cb;
+    codeBlockList *cbl;
 
     fp = createFile(pt->module, docFile, NULL, FALSE);
 
-    for (cb = pt->docs; cb != NULL; cb = cb->next)
-        fputs(cb->frag, fp);
+    for (cbl = pt->docs; cbl != NULL; cbl = cbl->next)
+        fputs(cbl->block->frag, fp);
 
     closeFile(fp);
 }
@@ -4228,7 +4228,7 @@ static void prMethodTable(sipSpec *pt, sortedMethTab *mtable, int nr,
 static void generateConvertToDefinitions(mappedTypeDef *mtd,classDef *cd,
                      FILE *fp)
 {
-    codeBlock *convtocode;
+    codeBlockList *convtocode;
     ifaceFileDef *iff;
     argDef type;
 
@@ -12939,7 +12939,7 @@ static char *getSubFormatChar(char fc, argDef *ad)
  */
 static int hasConvertToCode(argDef *ad)
 {
-    codeBlock *convtocode;
+    codeBlockList *convtocode;
 
     if (ad->atype == class_type && !isConstrained(ad))
         convtocode = ad->u.cd->convtocode;
@@ -13049,15 +13049,16 @@ static void deleteTemps(moduleDef *mod, signatureDef *sd, FILE *fp)
 
 
 /*
- * Generate a C++ code block.
+ * Generate a list of C++ code blocks.
  */
-static void generateCppCodeBlock(codeBlock *code, FILE *fp)
+static void generateCppCodeBlock(codeBlockList *cbl, FILE *fp)
 {
     int reset_line = FALSE;
-    codeBlock *cb;
 
-    for (cb = code; cb != NULL; cb = cb->next)
+    while (cbl != NULL)
     {
+        codeBlock *cb = cbl->block;
+
         /*
          * Fragmented fragments (possibly created when applying template types)
          * don't have a filename.
@@ -13069,6 +13070,8 @@ static void generateCppCodeBlock(codeBlock *code, FILE *fp)
         }
 
         prcode(fp, "%s", cb->frag);
+
+        cbl = cbl->next;
     }
 
     if (reset_line)
@@ -13135,7 +13138,7 @@ static FILE *createFile(moduleDef *mod, const char *fname,
     if (description != NULL)
     {
         int needComment;
-        codeBlock *cb;
+        codeBlockList *cbl;
 
         /* Write the header. */
         prcode(fp,
@@ -13165,11 +13168,11 @@ static FILE *createFile(moduleDef *mod, const char *fname,
 
         needComment = TRUE;
 
-        for (cb = mod->copying; cb != NULL; cb = cb->next)
+        for (cbl = mod->copying; cbl != NULL; cbl = cbl->next)
         {
             const char *cp;
 
-            for (cp = cb->frag; *cp != '\0'; ++cp)
+            for (cp = cbl->block->frag; *cp != '\0'; ++cp)
             {
                 if (needComment)
                 {
@@ -13714,18 +13717,18 @@ static void prTypeName(FILE *fp, argDef *ad)
 /*
  * Return TRUE if handwritten code uses the error flag.
  */
-static int needErrorFlag(codeBlock *cb)
+static int needErrorFlag(codeBlockList *cbl)
 {
-    return usedInCode(cb, "sipError");
+    return usedInCode(cbl, "sipError");
 }
 
 
 /*
  * Return TRUE if handwritten code uses the deprecated error flag.
  */
-static int needOldErrorFlag(codeBlock *cb)
+static int needOldErrorFlag(codeBlockList *cbl)
 {
-    return usedInCode(cb, "sipIsErr");
+    return usedInCode(cbl, "sipIsErr");
 }
 
 
@@ -13853,7 +13856,7 @@ static int needDealloc(classDef *cd)
  * Return the argument name to use in a function definition for handwritten
  * code.
  */
-static const char *argName(const char *name, codeBlock *cb)
+static const char *argName(const char *name, codeBlockList *cbl)
 {
     static const char noname[] = "";
 
@@ -13862,7 +13865,7 @@ static const char *argName(const char *name, codeBlock *cb)
         return name;
 
     /* Use the name if it is used in the handwritten code. */
-    if (usedInCode(cb, name))
+    if (usedInCode(cbl, name))
         return name;
 
     /* Don't use the name and avoid a compiler warning. */
@@ -13871,16 +13874,16 @@ static const char *argName(const char *name, codeBlock *cb)
 
 
 /*
- * Returns TRUE if a string is used in a code block.
+ * Returns TRUE if a string is used in code.
  */
-static int usedInCode(codeBlock *code, const char *str)
+static int usedInCode(codeBlockList *cbl, const char *str)
 {
-    while (code != NULL)
+    while (cbl != NULL)
     {
-        if (strstr(code->frag, str) != NULL)
+        if (strstr(cbl->block->frag, str) != NULL)
             return TRUE;
 
-        code = code->next;
+        cbl = cbl->next;
     }
 
     return FALSE;
@@ -14163,12 +14166,11 @@ static int isDefaultAPI(sipSpec *pt, apiVersionRangeDef *avd)
 /*
  * Generate an explicit docstring.
  */
-static void generateExplicitDocstring(codeBlock *docstring, FILE *fp)
+static void generateExplicitDocstring(codeBlockList *cbl, FILE *fp)
 {
     const char *sep = NULL;
-    codeBlock *cb;
 
-    for (cb = docstring; cb != NULL; cb = cb->next)
+    while (cbl != NULL)
     {
         const char *cp;
 
@@ -14182,7 +14184,7 @@ static void generateExplicitDocstring(codeBlock *docstring, FILE *fp)
             prcode(fp, "%s", sep);
         }
 
-        for (cp = cb->frag; *cp != '\0'; ++cp)
+        for (cp = cbl->block->frag; *cp != '\0'; ++cp)
         {
             if (*cp == '\n')
             {
@@ -14198,6 +14200,8 @@ static void generateExplicitDocstring(codeBlock *docstring, FILE *fp)
                 prcode(fp, "%c", *cp);
             }
         }
+
+        cbl = cbl->next;
     }
 
     if (sep != NULL)
