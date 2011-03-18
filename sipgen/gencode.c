@@ -12136,8 +12136,7 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
         if (keepReference(res))
             prcode(fp,
 "\n"
-"            if (!sipIsPyOwned((sipSimpleWrapper *)sipResult))\n"
-"                sipKeepReference(sipSelf, %d, sipResult);\n"
+"            sipKeepReference(sipSelf, %d, sipResult);\n"
                 , res->key);
 
         if (post_process)
