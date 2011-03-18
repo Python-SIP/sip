@@ -223,6 +223,13 @@ def patch_files():
         ("siplib", "siplib.sbf")
     )
 
+    # The siplib directory may not exist if we are building away from the
+    # source directory.
+    try:
+        os.mkdir("siplib")
+    except OSError:
+        pass
+
     for f in patched:
         dst_fn = os.path.join(*f)
         src_fn = os.path.join(src_dir, dst_fn + ".in")
