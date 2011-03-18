@@ -598,6 +598,15 @@ Function Annotations
     See :ref:`ref-gil` and the :fanno:`ReleaseGIL` annotation.
 
 
+.. function-annotation:: KeepReference
+
+    .. versionadded:: 4.12.2
+
+    This optional integer annotation serves the same purpose as the
+    :aanno:`KeepReference` argument annotation when applied to the type of the
+    value returned by the function.
+
+
 .. function-annotation:: KeywordArgs
 
     .. versionadded:: 4.10

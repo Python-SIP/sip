@@ -1888,7 +1888,7 @@ static void resolveFuncTypes(sipSpec *pt, moduleDef *mod, classDef *c_scope,
     {
         int a;
 
-        getBaseType(pt,mod, c_scope, &od->cppsig->result);
+        getBaseType(pt, mod, c_scope, &od->cppsig->result);
 
         for (a = 0; a < od->cppsig->nrArgs; ++a)
             getBaseType(pt, mod, c_scope, &od->cppsig->args[a]);

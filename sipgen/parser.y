@@ -163,6 +163,7 @@ static KwArgs convertKwArgs(const char *kwargs);
 static void checkAnnos(optFlags *annos, const char *valid[]);
 static void checkNoAnnos(optFlags *annos, const char *msg);
 static void appendCodeBlock(codeBlockList **headp, codeBlock *cb);
+static void handleKeepReference(optFlags *optflgs, argDef *ad, moduleDef *mod);
 %}
 
 %union {
@@ -3681,6 +3682,8 @@ argtype:    cpptype optname optflags {
             $$ = $1;
             $$.name = cacheName(currentSpec, $2);
 
+            handleKeepReference(&$3, &$$, currentModule);
+
             if (getAllowNone(&$3))
                 $$.argflags |= ARG_ALLOW_NONE;
 
@@ -3701,18 +3704,6 @@ argtype:    cpptype optname optflags {
 
             if (getOptFlag(&$3,"TransferBack",bool_flag) != NULL)
                 $$.argflags |= ARG_XFERRED_BACK;
-
-            if ((of = getOptFlag(&$3, "KeepReference", opt_integer_flag)) != NULL)
-            {
-                $$.argflags |= ARG_KEEP_REF;
-
-                if (($$.key = of->fvalue.ival) < -1)
-                    yyerror("/KeepReference/ key cannot be negative");
-
-                /* If there was no explicit key then auto-allocate one. */
-                if ($$.key == -1)
-                    $$.key = currentModule->next_key--;
-            }
 
             if (getOptFlag(&$3,"In",bool_flag) != NULL)
                 $$.argflags |= ARG_IN;
@@ -6224,6 +6215,7 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         "Factory",
         "HoldGIL",
         "KeywordArgs",
+        "KeepReference",
         "NewThread",
         "NoArgParser",
         "NoCopy",
@@ -6453,6 +6445,8 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
 
     if (getOptFlag(optflgs, "NoCopy", bool_flag) != NULL)
         setNoCopy(&od->pysig.result);
+
+    handleKeepReference(optflgs, &od->pysig.result, mod);
 
     pyname = getPythonName(mod, optflgs, name);
 
@@ -8122,4 +8116,25 @@ static void checkNoAnnos(optFlags *annos, const char *msg)
 {
     if (annos->nrFlags != 0)
         deprecated(msg);
+}
+
+
+/*
+ * Handle any /KeepReference/ annotation for a type.
+ */
+static void handleKeepReference(optFlags *optflgs, argDef *ad, moduleDef *mod)
+{
+    optFlag *of;
+
+    if ((of = getOptFlag(optflgs, "KeepReference", opt_integer_flag)) != NULL)
+    {
+        setKeepReference(ad);
+
+        if ((ad->key = of->fvalue.ival) < -1)
+            yyerror("/KeepReference/ key cannot be negative");
+
+        /* If there was no explicit key then auto-allocate one. */
+        if (ad->key == -1)
+            ad->key = mod->next_key--;
+    }
 }

@@ -11581,7 +11581,7 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
         FILE *fp)
 {
     int needsNew, error_flag, old_error_flag, newline, is_result, result_size,
-            a, deltemps;
+            a, deltemps, post_process;
     const char *error_value;
     argDef *res = &od->pysig.result, orig_res;
     ifaceFileDef *scope;
@@ -11664,6 +11664,11 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
 
     result_size = -1;
     deltemps = TRUE;
+    post_process = FALSE;
+
+    /* See if we want to keep a reference to the result. */
+    if (keepReference(res))
+        post_process = TRUE;
 
     for (a = 0; a < od->pysig.nrArgs; ++a)
     {
@@ -11677,15 +11682,10 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
          * the destruction of any temporary variables until after we have
          * converted the outputs.
          */
-        if (isInArg(ad) && isOutArg(ad) && hasConvertToCode(ad) && deltemps)
+        if (isInArg(ad) && isOutArg(ad) && hasConvertToCode(ad))
         {
             deltemps = FALSE;
-
-            prcode(fp,
-"            PyObject *sipResult;\n"
-                );
-
-            newline = TRUE;
+            post_process = TRUE;
         }
 
         /*
@@ -11700,6 +11700,15 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
 
             newline = TRUE;
         }
+    }
+
+    if (post_process)
+    {
+        prcode(fp,
+"            PyObject *sipResult;\n"
+                );
+
+        newline = TRUE;
     }
 
     error_flag = old_error_flag = FALSE;
@@ -12114,18 +12123,28 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
     else
     {
         generateHandleResult(mod, od, needsNew, result_size,
-                (deltemps ? "return" : "sipResult ="), fp);
+                (post_process ? "sipResult =" : "return"), fp);
 
         /* Delete the temporaries now if we haven't already done so. */
         if (!deltemps)
-        {
             deleteTemps(mod, &od->pysig, fp);
 
+        /*
+         * Keep a reference to a pointer to a class if it isn't owned by
+         * Python.
+         */
+        if (keepReference(res))
+            prcode(fp,
+"\n"
+"            if (!sipIsPyOwned((sipSimpleWrapper *)sipResult))\n"
+"                sipKeepReference(sipSelf, %d, sipResult);\n"
+                , res->key);
+
+        if (post_process)
             prcode(fp,
 "\n"
 "            return sipResult;\n"
                 );
-        }
     }
 
     if (error_flag)
