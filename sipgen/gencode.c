@@ -2772,7 +2772,7 @@ static int generateEnumMemberTable(sipSpec *pt, moduleDef *mod, classDef *cd,
 
         if (cd != NULL)
         {
-            if (ed->ecd != cd || !hasShadow(cd))
+            if (ed->ecd != cd || (cd->iff->type == class_iface && !hasShadow(cd)))
                 continue;
         }
         else if (mtd != NULL)
