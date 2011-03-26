@@ -4986,6 +4986,17 @@ void appendTypeStrings(scopedNameDef *ename, signatureDef *patt, signatureDef *s
             else
                 val = type2string(sad);
 
+            /* We do want const. */
+            if (isConstArg(sad))
+            {
+                char *const_val = sipStrdup("const ");
+
+                append(&const_val, val);
+                free(val);
+
+                val = const_val;
+            }
+
             appendScopedName(values, text2scopePart(val));
         }
         else if (pad->atype == template_type)
@@ -5739,7 +5750,8 @@ codeBlockList *templateCode(sipSpec *pt, ifaceFileList **used,
 
                 /*
                  * If the context in which the text is used is in the name of a
-                 * SIP generated object then translate any "::" scoping to "_".
+                 * SIP generated object then translate any "::" scoping to "_"
+                 * and remove any const.
                  */
                 for (gn = gen_names; *gn != NULL; ++gn)
                     if (search_back(first, at, *gn))
@@ -5760,6 +5772,9 @@ codeBlockList *templateCode(sipSpec *pt, ifaceFileList **used,
                 if (genname)
                 {
                     char gch;
+
+                    if (strlen(sp) > 6 && strncmp(sp, "const ", 6) == 0)
+                        sp += 6;
 
                     while ((gch = *sp++) != '\0')
                         if (gch == ':' && *sp == ':')
