@@ -7926,7 +7926,9 @@ static KwArgs keywordArgs(moduleDef *mod, optFlags *optflgs, signatureDef *sd)
 
             if (ad->name != NULL)
             {
-                setIsUsedName(ad->name);
+                if (inMainModule())
+                    setIsUsedName(ad->name);
+
                 is_name = TRUE;
             }
         }
