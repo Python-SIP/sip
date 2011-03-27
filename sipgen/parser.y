@@ -149,7 +149,8 @@ static apiVersionRangeDef *convertAPIRange(moduleDef *mod, nameDef *name,
         int from, int to);
 static char *convertFeaturedString(char *fs);
 static scopedNameDef *text2scopePart(char *text);
-static KwArgs keywordArgs(moduleDef *mod, optFlags *optflgs, signatureDef *sd);
+static KwArgs keywordArgs(moduleDef *mod, optFlags *optflgs, signatureDef *sd,
+        int need_name);
 static char *strip(char *s);
 static int isEnabledFeature(const char *name);
 static void addProperty(sipSpec *pt, moduleDef *mod, classDef *cd,
@@ -6181,7 +6182,7 @@ static void newCtor(moduleDef *mod, char *name, int sectFlags,
         setIsDeprecatedCtor(ct);
 
     if (!isPrivateCtor(ct))
-        ct->kwargs = keywordArgs(mod, optflgs, &ct->pysig);
+        ct->kwargs = keywordArgs(mod, optflgs, &ct->pysig, FALSE);
 
     if (getOptFlag(optflgs, "NoDerived", bool_flag) != NULL)
     {
@@ -6514,7 +6515,7 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
 
     if (!isPrivate(od) && !isSignal(od) && (od->common->slot == no_slot || od->common->slot == call_slot))
     {
-        od->kwargs = keywordArgs(mod, optflgs, &od->pysig);
+        od->kwargs = keywordArgs(mod, optflgs, &od->pysig, isProtected(od));
 
         if (od->kwargs != NoKwArgs)
             setUseKeywordArgs(od->common);
@@ -7866,7 +7867,8 @@ static apiVersionRangeDef *convertAPIRange(moduleDef *mod, nameDef *name,
 /*
  * Return the style of keyword argument support for a signature.
  */
-static KwArgs keywordArgs(moduleDef *mod, optFlags *optflgs, signatureDef *sd)
+static KwArgs keywordArgs(moduleDef *mod, optFlags *optflgs, signatureDef *sd,
+        int need_name)
 {
     KwArgs kwargs;
     optFlag *ka_anno, *no_ka_anno;
@@ -7926,7 +7928,7 @@ static KwArgs keywordArgs(moduleDef *mod, optFlags *optflgs, signatureDef *sd)
 
             if (ad->name != NULL)
             {
-                if (inMainModule())
+                if (need_name || inMainModule())
                     setIsUsedName(ad->name);
 
                 is_name = TRUE;
