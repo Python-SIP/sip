@@ -1,3 +1,7 @@
+v4.12.2 ??? April 2011
+  - /KeepReference/ is now supported as a function annotation.
+  - Bug fixes.
+
 v4.12.1 22nd January 2011
   - Added support for the __getattribute__, __getattr__, __setattr__ and
     __delattr__ methods.
