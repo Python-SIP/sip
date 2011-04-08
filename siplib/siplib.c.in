@@ -2811,17 +2811,18 @@ static int sip_api_parse_kwd_args(PyObject **parseErrp, PyObject *sipArgs,
     int ok;
     va_list va;
 
-    /* __init__ methods avoid the normal Python checks. */
-    if (sipKwdArgs != NULL && kwdlist == NULL)
+    if (unused != NULL)
     {
+        /* Initialise the return of any unused keyword arguments. */
+        *unused = NULL;
+    }
+    else if (sipKwdArgs != NULL && kwdlist == NULL)
+    {
+        /* __init__ methods avoid the normal Python checks. */
         PyErr_SetString(PyExc_TypeError,
                 "keyword arguments are not supported");
         return FALSE;
     }
-
-    /* Initialise the return of any unused keyword arguments. */
-    if (unused != NULL)
-        *unused = NULL;
 
     va_start(va, fmt);
     ok = parseKwdArgs(parseErrp, sipArgs, sipKwdArgs, kwdlist, unused, fmt,
