@@ -5684,12 +5684,37 @@ codeBlockList *templateCode(sipSpec *pt, ifaceFileList **used,
     while (ocbl != NULL)
     {
         char *at = ocbl->block->frag;
+        int start_of_line = TRUE;
 
         do
         {
-            char *first = NULL;
+            char *from = at, *first = NULL;
             codeBlock *cb;
             scopedNameDef *nam, *val, *nam_first, *val_first;
+
+            /*
+             * Don't do any substitution in lines that appear to be
+             * preprocessor directives.  This prevents #include'd file names
+             * being broken.
+             */
+            if (start_of_line)
+            {
+                /* Strip leading whitespace. */
+                while (isspace(*from))
+                    ++from;
+
+                if (*from == '#')
+                {
+                    /* Skip to the end of the line. */
+                    do
+                        ++from;
+                    while (*from != '\n' && *from != '\0');
+                }
+                else
+                {
+                    start_of_line = FALSE;
+                }
+            }
 
             /*
              * Go through the rest of this fragment looking for each of the
@@ -5702,7 +5727,7 @@ codeBlockList *templateCode(sipSpec *pt, ifaceFileList **used,
             {
                 char *cp;
 
-                if ((cp = strstr(at, nam->name)) != NULL)
+                if ((cp = strstr(from, nam->name)) != NULL)
                     if (first == NULL || first > cp)
                     {
                         nam_first = nam;
@@ -5793,6 +5818,9 @@ codeBlockList *templateCode(sipSpec *pt, ifaceFileList **used,
 
                 /* Move past the replaced text. */
                 at = first + strlen(nam_first->name);
+
+                if (*at == '\n')
+                    start_of_line = TRUE;
             }
         }
         while (at != NULL && *at != '\0');
