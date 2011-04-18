@@ -3601,9 +3601,10 @@ variable_body_directive:    ifstart {
             {
                 $$.token = 0;
                 $$.access_code = NULL;
-                $$.get_code = NULL;
-                $$.set_code = NULL;
             }
+
+            $$.get_code = NULL;
+            $$.set_code = NULL;
         }
     |   TK_GETCODE codeblock {
             if (notSkipping())
@@ -3614,10 +3615,11 @@ variable_body_directive:    ifstart {
             else
             {
                 $$.token = 0;
-                $$.access_code = NULL;
                 $$.get_code = NULL;
-                $$.set_code = NULL;
             }
+
+            $$.access_code = NULL;
+            $$.set_code = NULL;
         }
     |   TK_SETCODE codeblock {
             if (notSkipping())
@@ -3628,10 +3630,11 @@ variable_body_directive:    ifstart {
             else
             {
                 $$.token = 0;
-                $$.access_code = NULL;
-                $$.get_code = NULL;
                 $$.set_code = NULL;
             }
+
+            $$.access_code = NULL;
+            $$.get_code = NULL;
         }
     ;
 
