@@ -6819,7 +6819,7 @@ static memberDef *findFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         yyerror("Another overload has already been defined that is annotated as /NoArgParser/");
 
     /* Global operators are a subset. */
-    if (mt_scope == NULL && c_scope == NULL && st != no_slot && st != neg_slot && st != pos_slot && !isNumberSlot(md) && !isRichCompareSlot(md))
+    if (mt_scope == NULL && c_scope == NULL && st != no_slot && st != neg_slot && st != pos_slot && !isNumberSlot(md) && !isInplaceNumberSlot(md) && !isRichCompareSlot(md))
         yyerror("Global operators must be either numeric or comparison operators");
 
     return md;

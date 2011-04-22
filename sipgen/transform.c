@@ -894,8 +894,11 @@ static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd)
 
         *odhead = od;
 
-        /* Remove the first argument of comparison operators. */
-        if (isRichCompareSlot(md))
+        /*
+         * Remove the first argument of inplace numeric operators and
+         * comparison operators.
+         */
+        if (isInplaceNumberSlot(md) || isRichCompareSlot(md))
         {
             /* Remember if the argument was a pointer. */
             if (arg0->nrderefs > 0)

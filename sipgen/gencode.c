@@ -225,7 +225,6 @@ static void prTypeName(FILE *fp, argDef *ad);
 static void prScopedClassName(FILE *fp, ifaceFileDef *scope, classDef *cd);
 static int isMultiArgSlot(memberDef *md);
 static int isIntArgSlot(memberDef *md);
-static int isInplaceNumberSlot(memberDef *md);
 static int isInplaceSequenceSlot(memberDef *md);
 static int needErrorFlag(codeBlockList *cbl);
 static int needOldErrorFlag(codeBlockList *cbl);
@@ -5150,7 +5149,7 @@ static int isIntArgSlot(memberDef *md)
 /*
  * Returns TRUE if the given method is an inplace number slot.
  */
-static int isInplaceNumberSlot(memberDef *md)
+int isInplaceNumberSlot(memberDef *md)
 {
     slotType st = md->slot;
 
