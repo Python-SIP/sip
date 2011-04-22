@@ -1,8 +1,21 @@
-# Subclasses disutils.command.build_ext,
-# replacing it with a SIP version that compiles .sip -> .cpp
-# before calling the original build_ext command.
-# Written by Giovanni Bajo <rasky at develer dot com>
+# Subclasses disutils.command.build_ext, replacing it with a SIP version that
+# compiles .sip -> .cpp before calling the original build_ext command.
 # Based on Pyrex.Distutils, written by Graham Fawcett and Darrel Gallion.
+#
+# Copyright (c) 2011 Develer Srl.
+#
+# This file is part of SIP.
+#
+# This copy of SIP is licensed for use under the terms of the SIP License
+# Agreement.  See the file LICENSE for more details.
+#
+# This copy of SIP may also used under the terms of the GNU General Public
+# License v2 or v3 as published by the Free Software Foundation which can be
+# found in the files LICENSE-GPL2 and LICENSE-GPL3 included in this package.
+#
+# SIP is supplied WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
 
 import distutils.command.build_ext
 from distutils.dep_util import newer, newer_group
