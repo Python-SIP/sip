@@ -1,7 +1,8 @@
-v4.12.2 ??? April 2011
+v4.12.2 30th April 2011
   - /KeepReference/ is now supported as a function annotation.
   - Handwritten code in class templates no longer have the types substituted in
     lines that appear to contain C preprocessor directives.
+  - Added support for global inplace numeric operators.
 
 v4.12.1 22nd January 2011
   - Added support for the __getattribute__, __getattr__, __setattr__ and
