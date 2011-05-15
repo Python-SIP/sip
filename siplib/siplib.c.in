@@ -7589,65 +7589,74 @@ static PyObject *sip_api_is_py_method(sip_gilstate_t *gil, char *pymc,
 
     for (i = 0; i < PyTuple_GET_SIZE(mro); ++i)
     {
-        PyObject *cls_dict;
+        PyObject *cls_dict, *cls_attr;
 
         cls = PyTuple_GET_ITEM(mro, i);
 
 #if PY_MAJOR_VERSION >= 3
         cls_dict = ((PyTypeObject *)cls)->tp_dict;
 #else
-        // Allow for classic classes as mixins.
+        /* Allow for classic classes as mixins. */
         if (PyClass_Check(cls))
             cls_dict = ((PyClassObject *)cls)->cl_dict;
         else
             cls_dict = ((PyTypeObject *)cls)->tp_dict;
 #endif
 
-        if (cls_dict != NULL && (reimp = PyDict_GetItem(cls_dict, mname_obj)) != NULL)
+        /*
+         * Check any possible reimplementation is not the wrapped C++ method.
+         */
+        if (cls_dict != NULL && (cls_attr = PyDict_GetItem(cls_dict, mname_obj)) != NULL && Py_TYPE(cls_attr) != &sipMethodDescr_Type)
         {
-            /*
-             * Check any reimplementation is Python code and is not the wrapped
-             * C++ method.
-             */
-            if (PyMethod_Check(reimp))
-            {
-                /* It's already a method but make sure it is bound. */
-                if (PyMethod_GET_SELF(reimp) != NULL)
-                {
-                    Py_INCREF(reimp);
-                }
-                else
-                {
-#if PY_MAJOR_VERSION >= 3
-                    reimp = PyMethod_New(PyMethod_GET_FUNCTION(reimp),
-                            (PyObject *)sipSelf);
-#else
-                    reimp = PyMethod_New(PyMethod_GET_FUNCTION(reimp),
-                            (PyObject *)sipSelf, PyMethod_GET_CLASS(reimp));
-#endif
-                }
-
-                break;
-            }
-
-            if (PyFunction_Check(reimp))
-            {
-#if PY_MAJOR_VERSION >= 3
-                reimp = PyMethod_New(reimp, (PyObject *)sipSelf);
-#else
-                reimp = PyMethod_New(reimp, (PyObject *)sipSelf, cls);
-#endif
-
-                break;
-            }
-
-            reimp = NULL;
+            reimp = cls_attr;
+            break;
         }
     }
 
     Py_DECREF(mname_obj);
 
-    if (reimp == NULL)
+    if (reimp != NULL)
+    {
+        /*
+         * Emulate the behaviour of a descriptor to make sure we return a bound
+         * method.
+         */
+        if (PyMethod_Check(reimp))
+        {
+            /* It's already a method but make sure it is bound. */
+            if (PyMethod_GET_SELF(reimp) != NULL)
+            {
+                Py_INCREF(reimp);
+            }
+            else
+            {
+#if PY_MAJOR_VERSION >= 3
+                reimp = PyMethod_New(PyMethod_GET_FUNCTION(reimp),
+                        (PyObject *)sipSelf);
+#else
+                reimp = PyMethod_New(PyMethod_GET_FUNCTION(reimp),
+                        (PyObject *)sipSelf, PyMethod_GET_CLASS(reimp));
+#endif
+            }
+        }
+        else if (PyFunction_Check(reimp))
+        {
+#if PY_MAJOR_VERSION >= 3
+            reimp = PyMethod_New(reimp, (PyObject *)sipSelf);
+#else
+            reimp = PyMethod_New(reimp, (PyObject *)sipSelf, cls);
+#endif
+        }
+        else
+        {
+            /*
+             * We don't know what it is so just return and assume that an
+             * appropriate exception will be raised later on.
+             */
+            Py_INCREF(reimp);
+        }
+    }
+    else
     {
         /* Use the fast track in future. */
         *pymc = 1;
