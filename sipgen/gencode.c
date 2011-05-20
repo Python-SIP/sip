@@ -9882,8 +9882,11 @@ static void generateSignalTableEntry(sipSpec *pt, classDef *cd, overDef *sig,
             prcode(fp,",");
 
         /* Do some normalisation so that Qt doesn't have to. */
-        resetIsReference(&arg);
-        resetIsConstArg(&arg);
+        if (isConstArg(&arg))
+        {
+            resetIsConstArg(&arg);
+            resetIsReference(&arg);
+        }
 
         generateNamedBaseType(cd->iff, &arg, "", TRUE, fp);
     }
