@@ -8317,9 +8317,15 @@ static void sip_api_call_hook(const char *hookname)
     if ((dictofmods = PyImport_GetModuleDict()) == NULL)
         return;
  
+#if PY_MAJOR_VERSION >= 3
+    /* Get the builtins module. */
+    if ((mod = PyDict_GetItemString(dictofmods, "builtins")) == NULL)
+        return;
+#else
     /* Get the __builtin__ module. */
     if ((mod = PyDict_GetItemString(dictofmods, "__builtin__")) == NULL)
         return;
+#endif
  
     /* Get it's dictionary. */
     if ((dict = PyModule_GetDict(mod)) == NULL)
