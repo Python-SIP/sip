@@ -1,3 +1,6 @@
+v4.12.3 22nd May 2011
+  - A bug fix release.
+
 v4.12.2 30th April 2011
   - /KeepReference/ is now supported as a function annotation.
   - Handwritten code in class templates no longer have the types substituted in
