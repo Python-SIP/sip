@@ -1553,9 +1553,13 @@ typedef struct _sipQtAPI {
 
 #define sipIsExactWrappedType(wt)   (sipTypeAsPyTypeObject((wt)->type) == (PyTypeObject *)(wt))
 
-#define sipConvertFromSliceObject(o,len,start,stop,step,slen) \
+#if PY_VERSION_HEX >= 0x03020000
+#define sipConvertFromSliceObject   PySlice_GetIndicesEx
+#else
+#define sipConvertFromSliceObject(o, len, start, stop, step, slen) \
         PySlice_GetIndicesEx((PySliceObject *)(o), (len), (start), (stop), \
                 (step), (slen))
+#endif
 
 
 /*
