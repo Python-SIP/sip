@@ -554,6 +554,12 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
     generateCppCodeBlock(pt->exphdrcode, fp);
     generateCppCodeBlock(mod->hdrcode, fp);
 
+    /*
+     * Make sure any header code needed by the default exception is included.
+     */
+    if (mod->defexception != NULL)
+        generateCppCodeBlock(mod->defexception->iff->hdrcode, fp);
+
     /* Shortcuts that hide the messy detail of the APIs. */
     noIntro = TRUE;
 
