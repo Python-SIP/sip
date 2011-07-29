@@ -1,3 +1,8 @@
+v4.12.4 ??? 2011
+  - PyLong_AsUnsignedLongMask() (and PyLong_AsUnsignedLongLongMask()) are now
+    used in preference to PyLong_AsUnsignedLong() (and
+    PyLong_AsUnsignedLongLong()).
+
 v4.12.3 22nd May 2011
   - A bug fix release.
 

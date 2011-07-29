@@ -2478,9 +2478,9 @@ static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
             case 'o':
                 {
 #if defined(HAVE_LONG_LONG)
-                    unsigned PY_LONG_LONG v = PyLong_AsUnsignedLongLong(arg);
+                    unsigned PY_LONG_LONG v = PyLong_AsUnsignedLongLongMask(arg);
 #else
-                    unsigned long v = PyLong_AsUnsignedLong(arg);
+                    unsigned long v = PyLong_AsUnsignedLongMask(arg);
 #endif
 
                     if (PyErr_Occurred())
@@ -2767,6 +2767,12 @@ static unsigned long sip_api_long_as_unsigned_long(PyObject *o)
     {
         long v = PyInt_AsLong(o);
 
+        /*
+         * Strictly speaking this should be changed to be consistent with the
+         * use of PyLong_AsUnsignedLongMask().  However as it's such an old
+         * version of Python we choose to leave it as it is.
+         */
+
         if (v < 0)
         {
             PyErr_SetString(PyExc_OverflowError,
@@ -2779,7 +2785,13 @@ static unsigned long sip_api_long_as_unsigned_long(PyObject *o)
     }
 #endif
 
-    return PyLong_AsUnsignedLong(o);
+    /*
+     * Note that we now ignore any overflow so that (for example) a negative
+     * integer will be converted to an unsigned as C/C++ would do.  We don't
+     * bother to check for overflow when converting to small C/C++ types (short
+     * etc.) so at least this is consistent.
+     */
+    return PyLong_AsUnsignedLongMask(o);
 }
 
 
@@ -4307,9 +4319,9 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 if (arg != NULL)
                 {
 #if defined(HAVE_LONG_LONG)
-                    unsigned PY_LONG_LONG v = PyLong_AsUnsignedLongLong(arg);
+                    unsigned PY_LONG_LONG v = PyLong_AsUnsignedLongLongMask(arg);
 #else
-                    unsigned long v = PyLong_AsUnsignedLong(arg);
+                    unsigned long v = PyLong_AsUnsignedLongMask(arg);
 #endif
 
                     if (PyErr_Occurred())

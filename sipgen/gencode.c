@@ -5034,7 +5034,7 @@ static int generateObjToCppConversion(argDef *ad,FILE *fp)
         break;
 
     case ulonglong_type:
-        rhs = "PyLong_AsUnsignedLongLong(sipPy)";
+        rhs = "PyLong_AsUnsignedLongLongMask(sipPy)";
         break;
 
     case longlong_type:
