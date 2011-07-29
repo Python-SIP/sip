@@ -256,6 +256,7 @@ class Makefile:
         self._debug = debug
         self._makefile = makefile
         self._installs = installs
+        self._infix = ""
 
         # Make sure the destination directory is an absolute path.
         if dir:
@@ -539,6 +540,14 @@ class Makefile:
             lflags.extend(self.optional_list("LFLAGS_THREAD"))
 
         if self._qt:
+            # Get the name of the mkspecs directory.
+            try:
+                specd_base = self.config.qt_data_dir
+            except AttributeError:
+                specd_base = self.config.qt_dir
+
+            mkspecs = os.path.join(specd_base, "mkspecs")
+
             if self.generator != "UNIX" and win_shared:
                 defines.append("QT_DLL")
 
@@ -585,6 +594,10 @@ class Makefile:
             rpaths.extend(libdir_qt)
 
             if self.config.qt_version >= 0x040000:
+                # Try and read QT_LIBINFIX from qconfig.pri.
+                qconfig = os.path.join(mkspecs, "qconfig.pri")
+                self._infix = self._extract_value(qconfig, "QT_LIBINFIX")
+
                 # For Windows: the macros that define the dependencies on
                 # Windows libraries.
                 wdepmap = {
@@ -676,15 +689,10 @@ class Makefile:
                 libs.extend(self._dependent_libs(self.config.qt_lib))
 
             # Handle header directories.
-            try:
-                specd_base = self.config.qt_data_dir
-            except AttributeError:
-                specd_base = self.config.qt_dir
-
-            specd = os.path.join(specd_base, "mkspecs", "default")
+            specd = os.path.join(mkspecs, "default")
 
             if not os.access(specd, os.F_OK):
-                specd = os.path.join(specd_base, "mkspecs", self.config.platform)
+                specd = os.path.join(mkspecs, self.config.platform)
 
             incdir.append(specd)
 
@@ -769,6 +777,8 @@ class Makefile:
                 lib = "QtAssistantClient"
         else:
             lib = mname
+
+        lib += self._infix
 
         if self._debug:
             if sys.platform == "win32":
@@ -859,8 +869,6 @@ class Makefile:
         clib is the library name in cannonical form.
         framework is set of the library is implemented as a MacOS framework.
         """
-        prl_libs = []
-
         if self.generator in ("MSVC", "MSVC.NET", "MSBUILD", "BMAKE"):
             prl_name = os.path.join(self.config.qt_lib_dir, clib + ".prl")
         elif sys.platform == "darwin" and framework:
@@ -868,27 +876,36 @@ class Makefile:
         else:
             prl_name = os.path.join(self.config.qt_lib_dir, "lib" + clib + ".prl")
 
-        if os.access(prl_name, os.F_OK):
+        return self._extract_value(prl_name, "QMAKE_PRL_LIBS").split()
+
+    def _extract_value(self, fname, vname):
+        """Return the stripped value from a name=value line in a file.
+
+        fname is the name of the file.
+        vname is the name of the value.
+        """
+        value = ""
+
+        if os.access(fname, os.F_OK):
             try:
-                f = open(prl_name, "r")
+                f = open(fname, "r")
             except IOError:
-                error("Unable to open \"%s\"" % prl_name)
+                error("Unable to open \"%s\"" % fname)
 
             line = f.readline()
             while line:
                 line = line.strip()
                 if line and line[0] != "#":
                     eq = line.find("=")
-                    if eq > 0 and line[:eq].strip() == "QMAKE_PRL_LIBS":
-                        prl_libs = line[eq + 1:].split()
+                    if eq > 0 and line[:eq].strip() == vname:
+                        value = line[eq + 1:].strip()
                         break
 
                 line = f.readline()
 
             f.close()
 
-        return prl_libs
-
+        return value
 
     def parse_build_file(self, filename):
         """
