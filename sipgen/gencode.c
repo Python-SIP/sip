@@ -518,6 +518,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
         prcode(fp,
 "\n"
 "#include <QMetaType>\n"
+"#include <QThread>\n"
             );
 
     /* Define the enabled features. */
@@ -5578,7 +5579,9 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 
         if (canCreate(cd) || isPublicDtor(cd))
         {
-            if (hasShadow(cd))
+            if (pluginPyQt4(pt) && isQObjectSubClass(cd) && isPublicDtor(cd))
+                need_ptr = TRUE;
+            else if (hasShadow(cd))
                 need_ptr = need_state = TRUE;
             else if (isPublicDtor(cd))
                 need_ptr = TRUE;
@@ -5637,7 +5640,22 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 "\n"
                     );
 
-            if (hasShadow(cd))
+            if (pluginPyQt4(pt) && isQObjectSubClass(cd) && isPublicDtor(cd))
+            {
+                /*
+                 * QObjects should only be deleted in the threads that they
+                 * belong to.
+                 */
+                prcode(fp,
+"    %U *sipCpp = reinterpret_cast<%U *>(sipCppV);\n"
+"\n"
+"    if (QThread::currentThread() == sipCpp->thread())\n"
+"        delete sipCpp;\n"
+"    else\n"
+"        sipCpp->deleteLater();\n"
+                        , cd, cd);
+            }
+            else if (hasShadow(cd))
             {
                 prcode(fp,
 "    if (sipState & SIP_DERIVED_CLASS)\n"
