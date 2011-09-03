@@ -10758,7 +10758,7 @@ static void generateFunction(sipSpec *pt, memberDef *md, overDef *overs,
         classDef *cd, classDef *ocd, moduleDef *mod, FILE *fp)
 {
     overDef *od;
-    int need_method, need_self, need_args, need_selfarg, need_orig_self, need_kwds;
+    int need_method, need_self, need_args, need_selfarg, need_orig_self;
 
     /*
      * Check that there is at least one overload that needs to be handled.
@@ -10766,7 +10766,7 @@ static void generateFunction(sipSpec *pt, memberDef *md, overDef *overs,
      * compiler warning).  See if we need to remember if "self" was explicitly
      * passed as an argument.  See if we need to handle keyword arguments.
      */
-    need_method = need_self = need_args = need_selfarg = need_orig_self = need_kwds = FALSE;
+    need_method = need_self = need_args = need_selfarg = need_orig_self = FALSE;
 
     for (od = overs; od != NULL; od = od->next)
     {
@@ -10794,9 +10794,6 @@ static void generateFunction(sipSpec *pt, memberDef *md, overDef *overs,
                     else if (isVirtual(od) || isVirtualReimp(od) || usedInCode(od->methodcode, "sipSelfWasArg"))
                         need_selfarg = TRUE;
                 }
-
-                if (od->kwargs != NoKwArgs)
-                    need_kwds = TRUE;
             }
         }
     }
@@ -10837,12 +10834,12 @@ static void generateFunction(sipSpec *pt, memberDef *md, overDef *overs,
         if (!generating_c)
             prcode(fp,
 "extern \"C\" {static PyObject *meth_%L_%s(PyObject *, PyObject *%s);}\n"
-            , cd->iff, pname, (noArgParser(md) || need_kwds ? ", PyObject *" : ""));
+            , cd->iff, pname, (noArgParser(md) || useKeywordArgs(md) ? ", PyObject *" : ""));
 
         prcode(fp,
 "static PyObject *meth_%L_%s(PyObject *%s, PyObject *%s%s)\n"
 "{\n"
-            , cd->iff, pname, (need_self ? "sipSelf" : ""), (need_args ? "sipArgs" : ""), (noArgParser(md) || need_kwds ? ", PyObject *sipKwds" : ""));
+            , cd->iff, pname, (need_self ? "sipSelf" : ""), (need_args ? "sipArgs" : ""), (noArgParser(md) || useKeywordArgs(md) ? ", PyObject *sipKwds" : ""));
 
         if (tracing)
             prcode(fp,
