@@ -7571,7 +7571,12 @@ static PyObject *sip_api_is_py_method(sip_gilstate_t *gil, char *pymc,
      * process of being garbage collected.
      */
     if ((sipSelf = *sipSelfp) == NULL)
+    {
+#ifdef WITH_THREAD
+        PyGILState_Release(*gil);
+#endif
         return NULL;
+    }
 
     /* Get any reimplementation. */
 
