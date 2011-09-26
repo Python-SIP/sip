@@ -765,6 +765,26 @@ For example::
     %End
 
 
+.. directive:: %DefaultDocstringFormat
+
+.. versionadded:: 4.13
+
+.. parsed-literal::
+
+    %DefaultDocstringFormat(name = ["raw" | "deindented"])
+
+This directive is used to specify the default formatting of docstrings, i.e.
+when the :directive:`%Docstring` directive does not specify an explicit format.
+
+See the :directive:`%Docstring` directive for an explanation of the different
+formats.  If the directive is not specified then the default format used is
+``"raw"``.
+
+For example::
+
+    %DefaultDocstringFormat "deindented"
+
+
 .. directive:: %DefaultEncoding
 
 .. parsed-literal::
@@ -866,7 +886,7 @@ For example::
 
 .. parsed-literal::
 
-    %Docstring
+    %Docstring(format = ["raw" | "deindented"])
         *text*
     %End
 
@@ -885,6 +905,18 @@ This means that SIP will generate less informative exceptions (i.e. without a
 full signature) when it fails to match a set of arguments to any function or
 method overload.
 
+.. versionadded:: 4.13
+
+The format may either be ``"raw"`` or ``"deindented"``.  If it is not specified
+then the value specified by any :directive:`%DefaultDocstringFormat` directive
+is used.
+
+If the format is ``"raw"`` then the docstring is used as it appears in the
+specification file.
+
+If the format is ``"deindented"`` then any leading spaces common to all
+non-blank lines of the docstring are removed.
+
 For example::
 
     class Klass
@@ -895,8 +927,10 @@ For example::
 
     public:
         Klass();
-    %Docstring
-    This will be appended to the class's docstring.
+    %Docstring deindented
+        This will be appended to the class's docstring and will not be indented.
+
+            This will be indented by four spaces.
     %End
     };
 

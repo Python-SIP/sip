@@ -143,6 +143,7 @@ static void resolveAnyTypedef(sipSpec *pt, argDef *ad);
 static void addTypedef(sipSpec *pt, typedefDef *tdd);
 static void addVariable(sipSpec *pt, varDef *vd);
 static void applyTypeFlags(moduleDef *mod, argDef *ad, optFlags *flags);
+static Format convertFormat(const char *format);
 static argType convertEncoding(const char *encoding);
 static apiVersionRangeDef *getAPIRange(optFlags *optflgs);
 static apiVersionRangeDef *convertAPIRange(moduleDef *mod, nameDef *name,
@@ -190,10 +191,12 @@ static void handleKeepReference(optFlags *optflgs, argDef *ad, moduleDef *mod);
     autoPyNameCfg   autopyname;
     compModuleCfg   compmodule;
     consModuleCfg   consmodule;
+    defDocstringCfg defdocstring;
     defEncodingCfg  defencoding;
     defMetatypeCfg  defmetatype;
     defSupertypeCfg defsupertype;
     exceptionCfg    exception;
+    docstringCfg    docstring;
     extractCfg      extract;
     featureCfg      feature;
     licenseCfg      license;
@@ -207,6 +210,7 @@ static void handleKeepReference(optFlags *optflgs, argDef *ad, moduleDef *mod);
 
 %token          TK_API
 %token          TK_AUTOPYNAME
+%token          TK_DEFDOCSTRING
 %token          TK_DEFENCODING
 %token          TK_PLUGIN
 %token          TK_DOCSTRING
@@ -322,6 +326,7 @@ static void handleKeepReference(optFlags *optflgs, argDef *ad, moduleDef *mod);
 %token          TK_DEFSUPERTYPE
 %token          TK_PROPERTY
 
+%token          TK_FORMAT
 %token          TK_GET
 %token          TK_ID
 %token          TK_KWARGS
@@ -424,6 +429,10 @@ static void handleKeepReference(optFlags *optflgs, argDef *ad, moduleDef *mod);
 %type <consmodule>      consmodule_body_directives
 %type <consmodule>      consmodule_body_directive
 
+%type <defdocstring>    defdocstring_args
+%type <defdocstring>    defdocstring_arg_list
+%type <defdocstring>    defdocstring_arg
+
 %type <defencoding>     defencoding_args
 %type <defencoding>     defencoding_arg_list
 %type <defencoding>     defencoding_arg
@@ -439,6 +448,10 @@ static void handleKeepReference(optFlags *optflgs, argDef *ad, moduleDef *mod);
 %type <exception>       exception_body
 %type <exception>       exception_body_directives
 %type <exception>       exception_body_directive
+
+%type <docstring>       docstring_args
+%type <docstring>       docstring_arg_list
+%type <docstring>       docstring_arg
 
 %type <extract>         extract_args
 %type <extract>         extract_arg_list
@@ -520,6 +533,7 @@ modstatement:   module
     |   platforms
     |   feature
     |   license
+    |   defdocstring
     |   defencoding
     |   defmetatype
     |   defsupertype
@@ -562,6 +576,40 @@ nsstatement:    ifstart
 
                 appendCodeBlock(&scope->iff->hdrcode, $1);
             }
+        }
+    ;
+
+defdocstring:    TK_DEFDOCSTRING defdocstring_args {
+            if (notSkipping())
+                currentModule->defdocstring = convertFormat($2.name);
+        }
+    ;
+
+defdocstring_args:   TK_STRING_VALUE {
+            resetLexerState();
+
+            $$.name = $1;
+        }
+    |   '(' defdocstring_arg_list ')' {
+            $$ = $2;
+        }
+    ;
+
+defdocstring_arg_list:   defdocstring_arg
+    |   defdocstring_arg_list ',' defdocstring_arg {
+            $$ = $1;
+
+            switch ($3.token)
+            {
+            case TK_NAME: $$.name = $3.name; break;
+            }
+        }
+    ;
+
+defdocstring_arg:    TK_NAME '=' TK_STRING_VALUE {
+            $$.token = TK_NAME;
+
+            $$.name = $3;
         }
     ;
 
@@ -2015,6 +2063,123 @@ autopyname_arg: TK_REMOVELEADING '=' TK_STRING_VALUE {
         }
     ;
 
+docstring:  TK_DOCSTRING docstring_args codeblock {
+            $$ = $3;
+
+            /* Format the docstring. */
+            if ($2.format == deindented)
+            {
+                const char *cp;
+                char *dp;
+                int min_indent, indent, skipping;
+
+                /* Find the common indent. */
+                min_indent = -1;
+                indent = 0;
+                skipping = FALSE;
+
+                for (cp = $$->frag; *cp != '\0'; ++cp)
+                {
+                    if (skipping)
+                    {
+                        /*
+                         * We have handled the indent and are just looking for
+                         * the end of the line.
+                         */
+                        if (*cp == '\n')
+                            skipping = FALSE;
+                    }
+                    else
+                    {
+                        if (*cp == ' ')
+                        {
+                            ++indent;
+                        }
+                        else if (*cp != '\n')
+                        {
+                            if (min_indent < 0 || min_indent > indent)
+                                min_indent = indent;
+
+                            /* Ignore the remaining characters of the line. */
+                            skipping = TRUE;
+                        }
+                    }
+                }
+
+                /* In case the last line doesn't have a trailing newline. */
+                if (min_indent < 0 || min_indent > indent)
+                    min_indent = indent;
+
+                /*
+                 * Go through the text again removing the common indentation.
+                 */
+                dp = cp = $$->frag;
+
+                while (*cp != '\0')
+                {
+                    const char *start = cp;
+                    int non_blank = FALSE;
+
+                    /* Find the end of the line. */
+                    while (*cp != '\n' && *cp != '\0')
+                        if (*cp++ != ' ')
+                            non_blank = TRUE;
+
+                    /* Find where we are copying from. */
+                    if (non_blank)
+                    {
+                        start += min_indent;
+
+                        while (*start != '\n' && *start != '\0')
+                            *dp++ = *start++;
+                    }
+
+                    if (*cp == '\n')
+                        *dp++ = *cp++;
+                }
+
+                *dp = '\0';
+            }
+        }
+    ;
+
+docstring_args: {
+            $$.format = currentModule->defdocstring;
+        }
+    |   TK_STRING_VALUE {
+            resetLexerState();
+
+            $$.format = convertFormat($1);
+        }
+    |   '(' docstring_arg_list ')' {
+            $$ = $2;
+        }
+    ;
+
+docstring_arg_list: docstring_arg
+    |   docstring_arg_list ',' docstring_arg {
+            $$ = $1;
+
+            switch ($3.token)
+            {
+            case TK_FORMAT: $$.format = $3.format; break;
+            }
+        }
+    ;
+
+docstring_arg:  TK_FORMAT '=' TK_STRING_VALUE {
+            $$.token = TK_FORMAT;
+
+            $$.format = convertFormat($3);
+        }
+    ;
+
+optdocstring: {
+            $$ = NULL;
+        }
+    |   docstring
+    ;
+
 extract:    TK_EXTRACT extract_args codeblock {
             if ($2.id == NULL)
                 yyerror("%Extract must have an 'id' argument");
@@ -3268,17 +3433,6 @@ flagvalue:  dottedname {
         }
     ;
 
-docstring:  TK_DOCSTRING codeblock {
-            $$ = $2;
-        }
-    ;
-
-optdocstring: {
-            $$ = NULL;
-        }
-    |   docstring
-    ;
-
 methodcode: {
             $$ = NULL;
         }
@@ -4122,6 +4276,7 @@ static moduleDef *allocModule()
     newmod = sipMalloc(sizeof (moduleDef));
 
     newmod->version = -1;
+    newmod->defdocstring = raw;
     newmod->encoding = no_type;
     newmod->qobjclass = -1;
     newmod->nrvirthandlers = -1;
@@ -7819,6 +7974,21 @@ static KwArgs convertKwArgs(const char *kwargs)
         return OptionalKwArgs;
 
     yyerror("The style of keyword argument support must be one of \"All\", \"Optional\" or \"None\"");
+}
+
+
+/*
+ * Return the Format for a string.
+ */
+static Format convertFormat(const char *format)
+{
+    if (strcmp(format, "raw") == 0)
+        return raw;
+
+    if (strcmp(format, "deindented") == 0)
+        return deindented;
+
+    yyerror("The docstring format must be either \"raw\" or \"deindented\"");
 }
 
 
