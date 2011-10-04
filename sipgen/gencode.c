@@ -6515,7 +6515,7 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
     if (isConst(od))
         prcode(fp,")");
 
-    prcode(fp,",&sipPySelf,");
+    prcode(fp,",sipPySelf,");
 
     if (isAbstract(od))
         prcode(fp, "%N", cd->pyname);
