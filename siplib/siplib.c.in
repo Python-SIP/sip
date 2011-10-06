@@ -7555,6 +7555,18 @@ static PyObject *sip_api_is_py_method(sip_gilstate_t *gil, char *pymc,
     if (sipSelf == NULL)
         return NULL;
 
+    /*
+     * It's possible that the object's type's tp_mro is NULL.  A possible
+     * circumstance is when a type has been created dynamically and the only
+     * reference to it is the single instance of the type which is in the
+     * process of being garbage collected.
+     */
+    cls = (PyObject *)Py_TYPE(sipSelf);
+    mro = ((PyTypeObject *)cls)->tp_mro;
+
+    if (mro == NULL)
+        return NULL;
+
     /* Get any reimplementation. */
 
 #ifdef WITH_THREAD
@@ -7603,8 +7615,6 @@ static PyObject *sip_api_is_py_method(sip_gilstate_t *gil, char *pymc,
         }
     }
 
-    cls = (PyObject *)Py_TYPE(sipSelf);
-    mro = ((PyTypeObject *)cls)->tp_mro;
     assert(PyTuple_Check(mro));
 
     reimp = NULL;
