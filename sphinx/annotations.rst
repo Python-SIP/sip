@@ -273,6 +273,10 @@ Argument Annotations
     is of a class method, then it is associated with the class instance with
     regard to the cyclic garbage collector.
 
+    If the annotation is used with the :aanno:`Array` annotation then the
+    array of pointers to the sequence of C structures or C++ class instances
+    that is created on the heap is not automatically freed.
+
     See :ref:`ref-object-ownership` for more detail.
 
 
