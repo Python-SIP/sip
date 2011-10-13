@@ -306,7 +306,7 @@ file.
 
     *character-value* ::= **'** *character* **'**
 
-    *unary-operator* ::= [**!** | **~** | **-** | **+**]
+    *unary-operator* ::= [**!** | **~** | **-** | **+** | **\*** | **&**]
 
     *binary-operator* ::= [**-** | **+** | ***** | **/** | **&** | **|**]
 

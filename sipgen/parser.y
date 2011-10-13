@@ -2346,7 +2346,7 @@ optassign:  {
         }
     ;
 
-expr:       value
+expr:   value
     |   expr binop value {
             valueDef *vd;
  
@@ -2365,7 +2365,7 @@ expr:       value
         }
     ;
 
-binop:      '-' {
+binop:  '-' {
             $$ = '-';
         }
     |   '+' {
@@ -2400,23 +2400,25 @@ optunop:    {
     |   '+' {
             $$ = '+';
         }
+    |   '*' {
+            $$ = '*';
+        }
+    |   '&' {
+            $$ = '&';
+        }
     ;
 
 value:      optunop simplevalue {
             if ($1 != '\0' && $2.vtype == string_value)
                 yyerror("Invalid unary operator for string");
  
-            /*
-             * Convert the value to a simple expression on the
-             * heap.
-             */
- 
+            /* Convert the value to a simple expression on the heap. */
             $$ = sipMalloc(sizeof (valueDef));
  
             *$$ = $2;
-            $$ -> vunop = $1;
-            $$ -> vbinop = '\0';
-            $$ -> next = NULL;
+            $$->vunop = $1;
+            $$->vbinop = '\0';
+            $$->next = NULL;
         }
     ;
 
