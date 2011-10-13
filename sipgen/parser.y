@@ -6654,7 +6654,10 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
 
     od->common = findFunction(pt, mod, c_scope, mt_scope, pyname,
             (methodcode != NULL), sig->nrArgs, no_arg_parser);
-    
+
+    if (isProtected(od))
+        setHasProtected(od->common);
+
     if (strcmp(pyname, "__delattr__") == 0)
         setIsDelattr(od);
 
@@ -6701,10 +6704,37 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
 
     if (!isPrivate(od) && !isSignal(od) && (od->common->slot == no_slot || od->common->slot == call_slot))
     {
-        od->kwargs = keywordArgs(mod, optflgs, &od->pysig, isProtected(od));
+        od->kwargs = keywordArgs(mod, optflgs, &od->pysig, hasProtected(od->common));
 
         if (od->kwargs != NoKwArgs)
             setUseKeywordArgs(od->common);
+
+        /*
+         * If the overload is protected and defined in an imported module then
+         * we need to make sure that any other overloads' keyword argument
+         * names are marked as used.
+         */
+        if (isProtected(od) && !inMainModule())
+        {
+            overDef *kwod;
+
+            for (kwod = c_scope->overs; kwod != NULL; kwod = kwod->next)
+                if (kwod->common == od->common && kwod->kwargs != NoKwArgs)
+                {
+                    int a;
+
+                    for (a = 0; a < kwod->pysig.nrArgs; ++a)
+                    {
+                        argDef *ad = &kwod->pysig.args[a];
+
+                        if (kwod->kwargs == OptionalKwArgs && ad->defval == NULL)
+                            continue;
+
+                        if (ad->name != NULL)
+                            setIsUsedName(ad->name);
+                    }
+                }
+        }
     }
 
     /* See if we want to auto-generate a __len__() method. */
