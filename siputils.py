@@ -2,7 +2,7 @@
 # extension modules created with SIP.  It provides information about file
 # locations, version numbers etc., and provides some classes and functions.
 #
-# Copyright (c) 2010 Riverbank Computing Limited <info@riverbankcomputing.com>
+# Copyright (c) 2011 Riverbank Computing Limited <info@riverbankcomputing.com>
 #
 # This file is part of SIP.
 #
@@ -202,7 +202,7 @@ class Makefile:
     def __init__(self, configuration, console=0, qt=0, opengl=0, python=0,
                  threaded=0, warnings=1, debug=0, dir=None,
                  makefile="Makefile", installs=None, universal=None,
-                 arch=None):
+                 arch=None, deployment_target=None):
         """Initialise an instance of the target.  All the macros are left
         unchanged allowing scripts to manipulate them at will.
 
@@ -228,6 +228,8 @@ class Makefile:
         binary.  If it is None then the value is taken from the configuration.
         arch is the space separated MacOS/X architectures to build.  If it is
         None then it is taken from the configuration.
+        deployment_target MacOS/X deployment target.  If it is None then it is
+        taken from the configuration.
         """
         if qt:
             if not hasattr(configuration, "qt_version"):
@@ -254,6 +256,7 @@ class Makefile:
         self._debug = debug
         self._makefile = makefile
         self._installs = installs
+        self._infix = ""
 
         # Make sure the destination directory is an absolute path.
         if dir:
@@ -273,6 +276,11 @@ class Makefile:
             self._arch = configuration.arch
         else:
             self._arch = arch
+
+        if deployment_target is None:
+            self._deployment_target = configuration.deployment_target
+        else:
+            self._deployment_target = deployment_target
 
         self._finalised = 0
 
@@ -532,6 +540,14 @@ class Makefile:
             lflags.extend(self.optional_list("LFLAGS_THREAD"))
 
         if self._qt:
+            # Get the name of the mkspecs directory.
+            try:
+                specd_base = self.config.qt_data_dir
+            except AttributeError:
+                specd_base = self.config.qt_dir
+
+            mkspecs = os.path.join(specd_base, "mkspecs")
+
             if self.generator != "UNIX" and win_shared:
                 defines.append("QT_DLL")
 
@@ -578,6 +594,10 @@ class Makefile:
             rpaths.extend(libdir_qt)
 
             if self.config.qt_version >= 0x040000:
+                # Try and read QT_LIBINFIX from qconfig.pri.
+                qconfig = os.path.join(mkspecs, "qconfig.pri")
+                self._infix = self._extract_value(qconfig, "QT_LIBINFIX")
+
                 # For Windows: the macros that define the dependencies on
                 # Windows libraries.
                 wdepmap = {
@@ -669,15 +689,10 @@ class Makefile:
                 libs.extend(self._dependent_libs(self.config.qt_lib))
 
             # Handle header directories.
-            try:
-                specd_base = self.config.qt_data_dir
-            except AttributeError:
-                specd_base = self.config.qt_dir
-
-            specd = os.path.join(specd_base, "mkspecs", "default")
+            specd = os.path.join(mkspecs, "default")
 
             if not os.access(specd, os.F_OK):
-                specd = os.path.join(specd_base, "mkspecs", self.config.platform)
+                specd = os.path.join(mkspecs, self.config.platform)
 
             incdir.append(specd)
 
@@ -762,6 +777,8 @@ class Makefile:
                 lib = "QtAssistantClient"
         else:
             lib = mname
+
+        lib += self._infix
 
         if self._debug:
             if sys.platform == "win32":
@@ -852,8 +869,6 @@ class Makefile:
         clib is the library name in cannonical form.
         framework is set of the library is implemented as a MacOS framework.
         """
-        prl_libs = []
-
         if self.generator in ("MSVC", "MSVC.NET", "MSBUILD", "BMAKE"):
             prl_name = os.path.join(self.config.qt_lib_dir, clib + ".prl")
         elif sys.platform == "darwin" and framework:
@@ -861,27 +876,36 @@ class Makefile:
         else:
             prl_name = os.path.join(self.config.qt_lib_dir, "lib" + clib + ".prl")
 
-        if os.access(prl_name, os.F_OK):
+        return self._extract_value(prl_name, "QMAKE_PRL_LIBS").split()
+
+    def _extract_value(self, fname, vname):
+        """Return the stripped value from a name=value line in a file.
+
+        fname is the name of the file.
+        vname is the name of the value.
+        """
+        value = ""
+
+        if os.access(fname, os.F_OK):
             try:
-                f = open(prl_name, "r")
+                f = open(fname, "r")
             except IOError:
-                error("Unable to open \"%s\"" % prl_name)
+                error("Unable to open \"%s\"" % fname)
 
             line = f.readline()
             while line:
                 line = line.strip()
                 if line and line[0] != "#":
                     eq = line.find("=")
-                    if eq > 0 and line[:eq].strip() == "QMAKE_PRL_LIBS":
-                        prl_libs = line[eq + 1:].split()
+                    if eq > 0 and line[:eq].strip() == vname:
+                        value = line[eq + 1:].strip()
                         break
 
                 line = f.readline()
 
             f.close()
 
-        return prl_libs
-
+        return value
 
     def parse_build_file(self, filename):
         """
@@ -1023,6 +1047,9 @@ class Makefile:
 
         mfile is the file object.
         """
+        if self._deployment_target:
+            mfile.write("export MACOSX_DEPLOYMENT_TARGET = %s\n" % self._deployment_target)
+
         mfile.write("CC = %s\n" % self.required_string("CC"))
         mfile.write("CXX = %s\n" % self.required_string("CXX"))
         mfile.write("LINK = %s\n" % self.required_string("LINK"))
@@ -1331,7 +1358,8 @@ class ModuleMakefile(Makefile):
     def __init__(self, configuration, build_file, install_dir=None, static=0,
                  console=0, qt=0, opengl=0, threaded=0, warnings=1, debug=0,
                  dir=None, makefile="Makefile", installs=None, strip=1,
-                 export_all=0, universal=None, arch=None):
+                 export_all=0, universal=None, arch=None,
+                 deployment_target=None):
         """Initialise an instance of a module Makefile.
 
         build_file is the file containing the target specific information.  If
@@ -1345,7 +1373,7 @@ class ModuleMakefile(Makefile):
         increases the size of the module and slows down module load times but
         may avoid problems with modules that use exceptions.  The default is 0.
         """
-        Makefile.__init__(self, configuration, console, qt, opengl, 1, threaded, warnings, debug, dir, makefile, installs, universal, arch)
+        Makefile.__init__(self, configuration, console, qt, opengl, 1, threaded, warnings, debug, dir, makefile, installs, universal, arch, deployment_target)
 
         self._build = self.parse_build_file(build_file)
         self._install_dir = install_dir
@@ -1647,7 +1675,8 @@ class SIPModuleMakefile(ModuleMakefile):
     def __init__(self, configuration, build_file, install_dir=None, static=0,
                  console=0, qt=0, opengl=0, threaded=0, warnings=1, debug=0,
                  dir=None, makefile="Makefile", installs=None, strip=1,
-                 export_all=0, universal=None, arch=None, prot_is_public=0):
+                 export_all=0, universal=None, arch=None, prot_is_public=0,
+                 deployment_target=None):
         """Initialise an instance of a SIP generated module Makefile.
 
         prot_is_public is set if "protected" is to be redefined as "public".
@@ -1658,7 +1687,8 @@ class SIPModuleMakefile(ModuleMakefile):
         """
         ModuleMakefile.__init__(self, configuration, build_file, install_dir,
                 static, console, qt, opengl, threaded, warnings, debug, dir,
-                makefile, installs, strip, export_all, universal, arch)
+                makefile, installs, strip, export_all, universal, arch,
+                deployment_target)
 
         self._prot_is_public = prot_is_public
 
@@ -1680,14 +1710,14 @@ class ProgramMakefile(Makefile):
     def __init__(self, configuration, build_file=None, install_dir=None,
                  console=0, qt=0, opengl=0, python=0, threaded=0, warnings=1,
                  debug=0, dir=None, makefile="Makefile", installs=None,
-                 universal=None, arch=None):
+                 universal=None, arch=None, deployment_target=None):
         """Initialise an instance of a program Makefile.
 
         build_file is the file containing the target specific information.  If
         it is a dictionary instead then its contents are validated.
         install_dir is the directory the target will be installed in.
         """
-        Makefile.__init__(self, configuration, console, qt, opengl, python, threaded, warnings, debug, dir, makefile, installs, universal, arch)
+        Makefile.__init__(self, configuration, console, qt, opengl, python, threaded, warnings, debug, dir, makefile, installs, universal, arch, deployment_target)
 
         self._install_dir = install_dir
 

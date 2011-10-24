@@ -1,7 +1,7 @@
 /*
  * The parse tree transformation module for SIP.
  *
- * Copyright (c) 2010 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2011 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -894,8 +894,11 @@ static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd)
 
         *odhead = od;
 
-        /* Remove the first argument of comparison operators. */
-        if (isRichCompareSlot(md))
+        /*
+         * Remove the first argument of inplace numeric operators and
+         * comparison operators.
+         */
+        if (isInplaceNumberSlot(md) || isRichCompareSlot(md))
         {
             /* Remember if the argument was a pointer. */
             if (arg0->nrderefs > 0)
@@ -1349,7 +1352,8 @@ static void transformTypedefs(sipSpec *pt, moduleDef *mod)
 
     for (td = pt->typedefs; td != NULL; td = td->next)
         if (td->module == mod)
-            getBaseType(pt, td->module, td->ecd, &td->type);
+            if (td->ecd == NULL || !isTemplateClass(td->ecd))
+                getBaseType(pt, td->module, td->ecd, &td->type);
 }
 
 
@@ -1388,14 +1392,23 @@ static void transformCtors(sipSpec *pt, classDef *cd)
 
         /*
          * Now check that the Python signature doesn't conflict with an
-         * earlier one.
+         * earlier one.  If there is %MethodCode then assume that it will
+         * handle any potential conflicts.
          */
-        for (prev = cd->ctors; prev != ct; prev = prev->next)
-            if (samePythonSignature(&prev->pysig, &ct->pysig))
+        if (ct->methodcode == NULL)
+        {
+            for (prev = cd->ctors; prev != ct; prev = prev->next)
             {
-                fatalScopedName(classFQCName(cd));
-                fatal(" has ctors with the same Python signature\n");
+                if (prev->methodcode != NULL)
+                    continue;
+
+                if (samePythonSignature(&prev->pysig, &ct->pysig))
+                {
+                    fatalScopedName(classFQCName(cd));
+                    fatal(" has ctors with the same Python signature\n");
+                }
             }
+        }
 
         if (isDeprecatedClass(cd))
             setIsDeprecatedCtor(ct);
@@ -1535,35 +1548,42 @@ static void transformScopeOverloads(sipSpec *pt, classDef *c_scope,
 
         /*
          * Now check that the Python signature doesn't conflict with an earlier
-         * one.
+         * one.  If there is %MethodCode then assume that it will handle any
+         * potential conflicts.
          */
-        for (prev = overs; prev != od; prev = prev->next)
+        if (od->methodcode == NULL)
         {
-            if (prev->common != od->common)
-                continue;
-
-            /* They can only conflict if one is unversioned. */
-            if (prev->api_range != NULL && od->api_range != NULL)
-                continue;
-
-            if (samePythonSignature(&prev->pysig, &od->pysig))
+            for (prev = overs; prev != od; prev = prev->next)
             {
-                ifaceFileDef *iff;
+                if (prev->common != od->common)
+                    continue;
 
-                if (mt_scope != NULL)
-                    iff = mt_scope->iff;
-                else if (c_scope != NULL)
-                    iff = c_scope->iff;
-                else
-                    iff = NULL;
+                if (prev->methodcode != NULL)
+                    continue;
 
-                if (iff != NULL)
+                /* They can only conflict if one is unversioned. */
+                if (prev->api_range != NULL && od->api_range != NULL)
+                    continue;
+
+                if (samePythonSignature(&prev->pysig, &od->pysig))
                 {
-                    fatalScopedName(iff->fqcname);
-                    fatal("::");
-                }
+                    ifaceFileDef *iff;
 
-                fatal("%s() has overloaded functions with the same Python signature\n", od->common->pyname->text);
+                    if (mt_scope != NULL)
+                        iff = mt_scope->iff;
+                    else if (c_scope != NULL)
+                        iff = c_scope->iff;
+                    else
+                        iff = NULL;
+
+                    if (iff != NULL)
+                    {
+                        fatalScopedName(iff->fqcname);
+                        fatal("::");
+                    }
+
+                    fatal("%s() has overloaded functions with the same Python signature\n", od->common->pyname->text);
+                }
             }
         }
 
@@ -1871,7 +1891,7 @@ static void resolveFuncTypes(sipSpec *pt, moduleDef *mod, classDef *c_scope,
     {
         int a;
 
-        getBaseType(pt,mod, c_scope, &od->cppsig->result);
+        getBaseType(pt, mod, c_scope, &od->cppsig->result);
 
         for (a = 0; a < od->cppsig->nrArgs; ++a)
             getBaseType(pt, mod, c_scope, &od->cppsig->args[a]);
@@ -2601,8 +2621,16 @@ int sameBaseType(argDef *a1, argDef *a2)
                 return FALSE;
 
             for (a = 0; a < td1->types.nrArgs; ++a)
-                if (!sameBaseType(&td1->types.args[a], &td2->types.args[a]))
+            {
+                argDef *td1ad = &td1->types.args[a];
+                argDef *td2ad = &td2->types.args[a];
+
+                if (td1ad->nrderefs != td2ad->nrderefs)
                     return FALSE;
+
+                if (!sameBaseType(td1ad, td2ad))
+                    return FALSE;
+            }
 
             break;
         }
@@ -2653,7 +2681,6 @@ static int samePythonSignature(signatureDef *sd1, signatureDef *sd2)
     }
 
     return (a1 < 0 && a2 < 0);
-
 }
 
 
@@ -2951,9 +2978,14 @@ static mappedTypeDef *instantiateMappedTypeTemplate(sipSpec *pt, moduleDef *mod,
 
     mtd->doctype = templateString(mtt->mt->doctype, type_names, type_values);
 
-    appendCodeBlock(&mtd->iff->hdrcode, templateCode(pt, &mtd->iff->used, mtt->mt->iff->hdrcode, type_names, type_values));
-    mtd->convfromcode = templateCode(pt, &mtd->iff->used, mtt->mt->convfromcode, type_names, type_values);
-    mtd->convtocode = templateCode(pt, &mtd->iff->used, mtt->mt->convtocode, type_names, type_values);
+    appendCodeBlockList(&mtd->iff->hdrcode,
+            templateCode(pt, &mtd->iff->used, mtt->mt->iff->hdrcode,
+                    type_names, type_values));
+
+    mtd->convfromcode = templateCode(pt, &mtd->iff->used,
+            mtt->mt->convfromcode, type_names, type_values);
+    mtd->convtocode = templateCode(pt, &mtd->iff->used, mtt->mt->convtocode,
+            type_names, type_values);
 
     mtd->next = pt->mappedtypes;
     pt->mappedtypes = mtd;

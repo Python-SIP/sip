@@ -1,6 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 
-# Copyright (c) 2010 Riverbank Computing Limited <info@riverbankcomputing.com>
+# Copyright (c) 2011 Riverbank Computing Limited <info@riverbankcomputing.com>
 #
 # This file is part of SIP.
 #
@@ -28,6 +28,12 @@ import tarfile
 import zipfile
 
 
+# MacHg is not on sys.path, so put it there if we find it.
+MacHgPath = '/Applications/MacHg.app/Contents/Plugins/LocalMercurial'
+if os.path.isdir(MacHgPath):
+    sys.path.append(MacHgPath)
+
+
 # The files that need to be patched with the version number.
 _PatchedFiles = (
     ('configure.py', ),
@@ -49,8 +55,7 @@ _GeneratedFileTypes = ('.pyc', '.o', '.obj', '.so', '.pyd', '.exp', '.exe',
 
 # Directories that are auto-generated and need to be cleaned.
 _GeneratedDirs = (
-    ('doc', ),
-    ('sphinx', 'static'))
+    ('doc', ), )
 
 # Files in a release.
 _ReleasedFiles = ('configure.py.in', 'LICENSE', 'LICENSE-GPL2', 'LICENSE-GPL3',
@@ -328,20 +333,6 @@ def _patch_files(package, quiet, clean_patches):
             _remove_file(src_fn, quiet)
 
 
-def _misc_prepare(package, quiet):
-    """ Perform any additional location dependent preparation.
-
-    :param package:
-        The name of the optional package directory.
-    :param quiet:
-        Set if progress messages should be suppressed.
-    """
-
-    # Sphinx will warn if there is no 'static' directory event though it is
-    # unused and empty.
-    _create_directory(_rooted_name(package, 'sphinx', 'static'), quiet)
-
-
 def _run_tools(package, quiet):
     """ Run flex and bison.  This should really be done from make but the SIP
     build system doesn't support it - and it will be gone in SIP v5 anyway.
@@ -406,7 +397,6 @@ def _prepare_root(package=None, quiet=True, clean_patches=False):
 
     _patch_files(package, quiet, clean_patches)
     _run_tools(package, quiet)
-    _misc_prepare(package, quiet)
 
 
 def _clean_root(package=None, quiet=True):

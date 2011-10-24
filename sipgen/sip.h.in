@@ -1,7 +1,7 @@
 /*
  * The main header file for SIP.
  *
- * Copyright (c) 2010 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2011 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -206,6 +206,7 @@
 #define MEMBR_NO_ARG_PARSER 0x0002      /* Don't generate an argument parser. */
 #define MEMBR_NOT_VERSIONED 0x0004      /* There is an unversioned overload. */
 #define MEMBR_KEYWORD_ARGS  0x0008      /* It allows keyword arguments. */
+#define MEMBR_HAS_PROTECTED 0x0010      /* It has a protected overload. */
 
 #define isNumeric(m)        ((m)->memberflags & MEMBR_NUMERIC)
 #define setIsNumeric(m)     ((m)->memberflags |= MEMBR_NUMERIC)
@@ -215,6 +216,8 @@
 #define setNotVersioned(m)  ((m)->memberflags |= MEMBR_NOT_VERSIONED)
 #define useKeywordArgs(m)   ((m)->memberflags & MEMBR_KEYWORD_ARGS)
 #define setUseKeywordArgs(m)    ((m)->memberflags |= MEMBR_KEYWORD_ARGS)
+#define hasProtected(m)     ((m)->memberflags & MEMBR_HAS_PROTECTED)
+#define setHasProtected(m)  ((m)->memberflags |= MEMBR_HAS_PROTECTED)
 
 
 /* Handle enum flags.  These are combined with the section flags. */
@@ -265,6 +268,8 @@
 #define OVER_IS_COMPLEMENTARY   0x00800000  /* It is a complementary operator. */
 #define OVER_IS_DEPRECATED  0x01000000  /* It is deprecated. */
 #define OVER_REALLY_PROT    0x02000000  /* It really is protected. */
+#define OVER_IS_DELATTR     0x04000000  /* It is __delattr__. */
+#define OVER_RAISES_PY_EXC  0x08000000  /* It raises a Python exception. */
 
 #define isPublic(o)         ((o)->overflags & SECT_IS_PUBLIC)
 #define setIsPublic(o)      ((o)->overflags |= SECT_IS_PUBLIC)
@@ -317,6 +322,10 @@
 #define setIsDeprecated(o)  ((o)->overflags |= OVER_IS_DEPRECATED)
 #define isReallyProtected(o)    ((o)->overflags & OVER_REALLY_PROT)
 #define setIsReallyProtected(o) ((o)->overflags |= OVER_REALLY_PROT)
+#define isDelattr(o)        ((o)->overflags & OVER_IS_DELATTR)
+#define setIsDelattr(o)     ((o)->overflags |= OVER_IS_DELATTR)
+#define raisesPyException(o)    ((o)->overflags & OVER_RAISES_PY_EXC)
+#define setRaisesPyException(o) ((o)->overflags |= OVER_RAISES_PY_EXC)
 
 
 /* Handle variable flags. */
@@ -435,6 +444,13 @@ typedef enum {
 } Warning;
 
 
+/* Docstring formatting. */
+typedef enum {
+    raw,
+    deindented
+} Format;
+
+
 /* Levels of keyword argument support. */
 typedef enum {
     NoKwArgs = 0,
@@ -501,6 +517,8 @@ typedef enum {
     index_slot,
     iter_slot,
     next_slot,
+    setattr_slot,
+    delattr_slot,       /* This is local to the parser. */
     no_slot
 } slotType;
 
@@ -599,10 +617,10 @@ typedef enum {
 /* A software license. */
 
 typedef struct {
-    char *type;                         /* The license type. */
-    char *licensee;                     /* The licensee. */
-    char *timestamp;                    /* The timestamp. */
-    char *sig;                          /* The signature. */
+    const char *type;                   /* The license type. */
+    const char *licensee;               /* The licensee. */
+    const char *timestamp;              /* The timestamp. */
+    const char *sig;                    /* The signature. */
 } licenseDef;
 
 
@@ -643,8 +661,15 @@ typedef struct _codeBlock {
     char *frag;                         /* The code itself. */
     const char *filename;               /* The original file. */
     int linenr;                         /* The line in the file. */
-    struct _codeBlock *next;            /* Next in the list. */
 } codeBlock;
+
+
+/* A list of literal code blocks. */
+
+typedef struct _codeBlockList {
+    codeBlock *block;                   /* The code block. */
+    struct _codeBlockList *next;        /* The next in the list. */
+} codeBlockList;
 
 
 /* The arguments to a throw specifier. */
@@ -664,7 +689,7 @@ typedef struct _exceptionDef {
     struct _classDef *cd;               /* The exception class. */
     char *bibase;                       /* The builtin base exception. */
     struct _exceptionDef *base;         /* The defined base exception. */
-    codeBlock *raisecode;               /* Raise exception code. */
+    codeBlockList *raisecode;           /* Raise exception code. */
     struct _exceptionDef *next;         /* The next in the list. */
 } exceptionDef;
 
@@ -750,19 +775,20 @@ typedef struct _moduleDef {
     int qobjclass;                      /* QObject class, -1 if none. */
     struct _memberDef *othfuncs;        /* List of other functions. */
     struct _overDef *overs;             /* Global overloads. */
+    Format defdocstring;                /* The default docstring format. */
     argType encoding;                   /* The default string encoding. */
     nameDef *defmetatype;               /* The optional default meta-type. */
     nameDef *defsupertype;              /* The optional default super-type. */
     struct _exceptionDef *defexception; /* The default exception. */
-    codeBlock *hdrcode;                 /* Header code. */
-    codeBlock *cppcode;                 /* Global C++ code. */
-    codeBlock *copying;                 /* Software license. */
-    codeBlock *preinitcode;             /* Pre-initialisation code. */
-    codeBlock *initcode;                /* Initialisation code. */
-    codeBlock *postinitcode;            /* Post-initialisation code. */
-    codeBlock *unitcode;                /* Compilation unit code. */
-    codeBlock *unitpostinccode;         /* Compilation unit post-include code. */
-    codeBlock *docstring;               /* The docstring. */
+    codeBlockList *hdrcode;             /* Header code. */
+    codeBlockList *cppcode;             /* Global C++ code. */
+    codeBlockList *copying;             /* Software license. */
+    codeBlockList *preinitcode;         /* Pre-initialisation code. */
+    codeBlockList *initcode;            /* Initialisation code. */
+    codeBlockList *postinitcode;        /* Post-initialisation code. */
+    codeBlockList *unitcode;            /* Compilation unit code. */
+    codeBlockList *unitpostinccode;     /* Compilation unit post-include code. */
+    codeBlockList *docstring;           /* The docstring. */
     int parts;                          /* The number of parts generated. */
     const char *file;                   /* The filename. */
     qualDef *qualifiers;                /* The list of qualifiers. */
@@ -803,7 +829,7 @@ typedef struct _ifaceFileDef {
     int ifacenr;                        /* The index into the types table. */
     scopedNameDef *fqcname;             /* The fully qualified C++ name. */
     moduleDef *module;                  /* The owning module. */
-    codeBlock *hdrcode;                 /* Header code. */
+    codeBlockList *hdrcode;             /* Header code. */
     struct _ifaceFileList *used;        /* Interface files used. */
     struct _ifaceFileDef *next;         /* Next in the list. */
 } ifaceFileDef;
@@ -828,9 +854,9 @@ typedef struct _mappedTypeDef {
     ifaceFileDef *iff;                  /* The interface file. */
     struct _memberDef *members;         /* The static member functions. */
     struct _overDef *overs;             /* The static overloads. */
-    codeBlock *typecode;                /* Type code. */
-    codeBlock *convfromcode;            /* Convert from C++ code. */
-    codeBlock *convtocode;              /* Convert to C++ code. */
+    codeBlockList *typecode;            /* Type code. */
+    codeBlockList *convfromcode;        /* Convert from C++ code. */
+    codeBlockList *convtocode;          /* Convert to C++ code. */
     struct _mappedTypeDef *next;        /* Next in the list. */
 } mappedTypeDef;
 
@@ -868,7 +894,7 @@ typedef struct _virtHandlerDef {
     signatureDef *pysig;                /* The Python signature. */
     signatureDef *cppsig;               /* The C++ signature. */
     struct _moduleDef *module;          /* The defining module. */
-    codeBlock *virtcode;                /* Virtual handler code. */
+    codeBlockList *virtcode;            /* Virtual handler code. */
     struct _virtHandlerDef *next;       /* Next in the list. */
 } virtHandlerDef;
 
@@ -894,9 +920,9 @@ typedef struct _varDef {
     moduleDef *module;                  /* The owning module. */
     int varflags;                       /* The variable flags. */
     argDef type;                        /* The actual type. */
-    codeBlock *accessfunc;              /* The access function. */
-    codeBlock *getcode;                 /* The get code. */
-    codeBlock *setcode;                 /* The set code. */
+    codeBlockList *accessfunc;          /* The access function. */
+    codeBlockList *getcode;             /* The get code. */
+    codeBlockList *setcode;             /* The set code. */
     struct _varDef *next;               /* Next in the list. */
 } varDef;
 
@@ -907,7 +933,7 @@ typedef struct _propertyDef {
     nameDef *name;                      /* The property name. */
     const char *get;                    /* The name of the getter method. */
     const char *set;                    /* The name of the setter method. */
-    codeBlock *docstring;               /* The docstring. */
+    codeBlockList *docstring;           /* The docstring. */
     struct _propertyDef *next;          /* Next in the list. */
 } propertyDef;
 
@@ -923,7 +949,7 @@ typedef struct _overDef {
     signatureDef pysig;                 /* The Python signature. */
     signatureDef *cppsig;               /* The C++ signature. */
     throwArgs *exceptions;              /* The exceptions. */
-    codeBlock *methodcode;              /* Method code. */
+    codeBlockList *methodcode;          /* Method code. */
     virtHandlerDef *virthandler;        /* The virtual handler. */
     char *prehook;                      /* The pre-hook name. */
     char *posthook;                     /* The post-hook name. */
@@ -940,7 +966,7 @@ typedef struct _ctorDef {
     signatureDef pysig;                 /* The Python signature. */
     signatureDef *cppsig;               /* The C++ signature, NULL if /NoDerived/. */
     throwArgs *exceptions;              /* The exceptions. */
-    codeBlock *methodcode;              /* Method code. */
+    codeBlockList *methodcode;          /* Method code. */
     char *prehook;                      /* The pre-hook name. */
     char *posthook;                     /* The post-hook name. */
     struct _ctorDef *next;              /* Next in the list. */
@@ -986,7 +1012,7 @@ typedef struct _memberDef {
     int membernr;                       /* The index in the method table. */
     slotType slot;                      /* The slot type. */
     moduleDef *module;                  /* The owning module. */
-    codeBlock *docstring;               /* The overloads docstrings. */
+    codeBlockList *docstring;           /* The overloads docstrings. */
     struct _memberDef *next;            /* Next in the list. */
 } memberDef;
 
@@ -1042,28 +1068,28 @@ typedef struct _classDef {
     templateDef *td;                    /* The instantiated template. */
     ctorDef *ctors;                     /* The constructors. */
     ctorDef *defctor;                   /* The default ctor. */
-    codeBlock *dealloccode;             /* Handwritten dealloc code. */
-    codeBlock *dtorcode;                /* Handwritten dtor code. */
+    codeBlockList *dealloccode;         /* Handwritten dealloc code. */
+    codeBlockList *dtorcode;            /* Handwritten dtor code. */
     throwArgs *dtorexceptions;          /* The dtor exceptions. */
     memberDef *members;                 /* The member functions. */
     overDef *overs;                     /* The overloads. */
     argList *casts;                     /* The operator casts. */
     virtOverDef *vmembers;              /* The virtual members. */
     visibleList *visible;               /* The visible members. */
-    codeBlock *cppcode;                 /* Class C++ code. */
-    codeBlock *convtosubcode;           /* Convert to sub C++ code. */
+    codeBlockList *cppcode;             /* Class C++ code. */
+    codeBlockList *convtosubcode;       /* Convert to sub C++ code. */
     struct _classDef *subbase;          /* Sub-class base class. */
-    codeBlock *docstring;               /* Ctor docstrings. */
-    codeBlock *convtocode;              /* Convert to C++ code. */
-    codeBlock *travcode;                /* Traverse code. */
-    codeBlock *clearcode;               /* Clear code. */
-    codeBlock *getbufcode;              /* Get buffer code (Python v3). */
-    codeBlock *releasebufcode;          /* Release buffer code (Python v3). */
-    codeBlock *readbufcode;             /* Read buffer code (Python v2). */
-    codeBlock *writebufcode;            /* Write buffer code (Python v2). */
-    codeBlock *segcountcode;            /* Segment count code (Python v2). */
-    codeBlock *charbufcode;             /* Character buffer code (Python v2). */
-    codeBlock *picklecode;              /* Pickle code. */
+    codeBlockList *docstring;           /* Class and ctor docstrings. */
+    codeBlockList *convtocode;          /* Convert to C++ code. */
+    codeBlockList *travcode;            /* Traverse code. */
+    codeBlockList *clearcode;           /* Clear code. */
+    codeBlockList *getbufcode;          /* Get buffer code (Python v3). */
+    codeBlockList *releasebufcode;      /* Release buffer code (Python v3). */
+    codeBlockList *readbufcode;         /* Read buffer code (Python v2). */
+    codeBlockList *writebufcode;        /* Write buffer code (Python v2). */
+    codeBlockList *segcountcode;        /* Segment count code (Python v2). */
+    codeBlockList *charbufcode;         /* Character buffer code (Python v2). */
+    codeBlockList *picklecode;          /* Pickle code. */
     propertyDef *properties;            /* The properties. */
     struct _classDef *next;             /* Next in the list. */
 } classDef;
@@ -1128,8 +1154,8 @@ typedef struct {
     enumDef *enums;                     /* List of enums. */
     varDef *vars;                       /* List of variables. */
     typedefDef *typedefs;               /* List of typedefs. */
-    codeBlock *exphdrcode;              /* Exported header code. */
-    codeBlock *docs;                    /* Documentation. */
+    codeBlockList *exphdrcode;          /* Exported header code. */
+    codeBlockList *docs;                /* Documentation. */
     int sigslots;                       /* Set if signals or slots are used. */
     int genc;                           /* Set if we are generating C code. */
     struct _stringList *plugins;        /* The list of plugins. */
@@ -1191,7 +1217,7 @@ scopedNameDef *copyScopedName(scopedNameDef *);
 void appendScopedName(scopedNameDef **,scopedNameDef *);
 void freeScopedName(scopedNameDef *);
 void appendToClassList(classList **,classDef *);
-void appendCodeBlock(codeBlock **headp, codeBlock *new);
+void appendCodeBlockList(codeBlockList **headp, codeBlockList *cbl);
 void prcode(FILE *fp, const char *fmt, ...);
 void prOverloadName(FILE *fp, overDef *od);
 void prOverloadDecl(FILE *fp, ifaceFileDef *scope, overDef *od, int defval);
@@ -1209,7 +1235,8 @@ int isRichCompareSlot(memberDef *md);
 mappedTypeDef *allocMappedType(sipSpec *pt, argDef *type);
 void appendString(stringList **headp, const char *s);
 void appendTypeStrings(scopedNameDef *ename, signatureDef *patt, signatureDef *src, signatureDef *known, scopedNameDef **names, scopedNameDef **values);
-codeBlock *templateCode(sipSpec *pt, ifaceFileList **used, codeBlock *ocb, scopedNameDef *names, scopedNameDef *values);
+codeBlockList *templateCode(sipSpec *pt, ifaceFileList **used,
+        codeBlockList *ocbl, scopedNameDef *names, scopedNameDef *values);
 ifaceFileDef *findIfaceFile(sipSpec *pt, moduleDef *mod,
         scopedNameDef *fqname, ifaceFileType iftype,
         apiVersionRangeDef *api_range, argDef *ad);
@@ -1284,6 +1311,12 @@ typedef struct _consModuleCfg {
     codeBlock *docstring;
 } consModuleCfg;
 
+/* %DefaultDocstringFormat */
+typedef struct _defDocstringCfg {
+    int token;
+    const char *name;
+} defDocstringCfg;
+
 /* %DefaultEncoding */
 typedef struct _defEncodingCfg {
     int token;
@@ -1301,6 +1334,12 @@ typedef struct _defSupertypeCfg {
     int token;
     const char *name;
 } defSupertypeCfg;
+
+/* %Docstring */
+typedef struct _docstringCfg {
+    int token;
+    Format format;
+} docstringCfg;
 
 /* %Exception */
 typedef struct _exceptionCfg {

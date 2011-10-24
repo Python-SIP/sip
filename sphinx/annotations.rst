@@ -273,6 +273,10 @@ Argument Annotations
     is of a class method, then it is associated with the class instance with
     regard to the cyclic garbage collector.
 
+    If the annotation is used with the :aanno:`Array` annotation then the
+    array of pointers to the sequence of C structures or C++ class instances
+    that is created on the heap is not automatically freed.
+
     See :ref:`ref-object-ownership` for more detail.
 
 
@@ -598,6 +602,15 @@ Function Annotations
     See :ref:`ref-gil` and the :fanno:`ReleaseGIL` annotation.
 
 
+.. function-annotation:: KeepReference
+
+    .. versionadded:: 4.12.2
+
+    This optional integer annotation serves the same purpose as the
+    :aanno:`KeepReference` argument annotation when applied to the type of the
+    value returned by the function.
+
+
 .. function-annotation:: KeywordArgs
 
     .. versionadded:: 4.10
@@ -733,6 +746,16 @@ Function Annotations
     This boolean annotation serves the same purpose as the :aanno:`PyInt`
     argument annotation when applied to the type of the value returned by the
     function.
+
+
+.. function-annotation:: RaisesPyException
+
+    .. versionadded:: 4.12.1
+
+    This boolean annotation specifies that the function raises a Python
+    exception to indicate that an error occurred.  Any current exception is
+    cleared before the function is called.  It is ignored if the
+    :directive:`%MethodCode` directive is used.
 
 
 .. function-annotation:: ReleaseGIL

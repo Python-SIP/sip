@@ -57,6 +57,15 @@ The full set of command line options is:
 
     The SIP module will be installed in the directory ``<DIR>``.
 
+.. cmdoption:: --deployment-target <VERSION>
+
+    .. versionadded:: 4.12.1
+
+    Each generated Makefile will set the :envvar:`MACOSX_DEPLOYMENT_TARGET`
+    environment variable to ``<VERSION>``.  In order to work around bugs in
+    some versions of Python, this should be used instead of setting the
+    environment variable in the shell.
+
 .. cmdoption:: -e <DIR>, --incdir <DIR>
 
     The SIP header file will be installed in the directory ``<DIR>``.

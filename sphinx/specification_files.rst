@@ -169,8 +169,9 @@ file.
 
     *special-method-name* ::= [**__abs__** | **__add__** | **__and__** |
             **__bool__** | **__call__** | **__cmp__** | **__contains__** |
-            **__delitem__** | **__div__** | **__eq__** | **__float__** |
-            **__floordiv__** | **__ge__** | **__getitem__** | **__gt__** |
+            **__delattr__** | **__delitem__** | **__div__** | **__eq__** |
+            **__float__** | **__floordiv__** | **__ge__** | **__getattr__** |
+            **__getattribute__** | **__getitem__** | **__gt__** |
             **__hash__** | **__iadd__** | **__iand__** | **__idiv__** |
             **__ifloordiv__** | **__ilshift__** | **__imod__** | **__imul__** |
             **__index__** | **__int__** | **__invert__** | **__ior__** |
@@ -179,8 +180,8 @@ file.
             **__lshift__** | **__lt__** | **__mod__** | **__mul__** |
             **__ne__** | **__neg__** | **__next__** | **__nonzero__** |
             **__or__** | **__pos__** | **__repr__** | **__rshift__** |
-            **__setitem__** | **__str__** | **__sub__** | **__truediv__** |
-            **__xor__**]
+            **__setattr__** | **__setitem__** | **__str__** | **__sub__** |
+            **__truediv__** | **__xor__**]
 
     *operator* ::= *operator-type*
             **(** [*argument-list*] **)** [**const**] [*exceptions*]
@@ -272,7 +273,8 @@ file.
             :stype:`SIP_SIGNAL` [*default-value*] |
             :stype:`SIP_SLOT` [*default-value*] |
             :stype:`SIP_SLOT_CON` |
-            :stype:`SIP_SLOT_DIS`]
+            :stype:`SIP_SLOT_DIS` |
+            :stype:`SIP_SSIZE_T`]
 
     *default-value* ::= **=** *expression*
 
@@ -304,7 +306,7 @@ file.
 
     *character-value* ::= **'** *character* **'**
 
-    *unary-operator* ::= [**!** | **~** | **-** | **+**]
+    *unary-operator* ::= [**!** | **~** | **-** | **+** | **\*** | **&**]
 
     *binary-operator* ::= [**-** | **+** | ***** | **/** | **&** | **|**]
 
@@ -333,6 +335,7 @@ file.
             **float** | **double** |
             **bool** |
             **void** |
+            **PyObject** |
             :stype:`SIP_PYCALLABLE` |
             :stype:`SIP_PYDICT` |
             :stype:`SIP_PYLIST` |
@@ -402,7 +405,8 @@ This is a ``PyObject *`` that is a Python list object.
 
 .. sip-type:: SIP_PYOBJECT
 
-This is a ``PyObject *`` of any Python type.
+This is a ``PyObject *`` of any Python type.  The type ``PyObject *`` can also
+be used.
 
 
 .. sip-type:: SIP_PYSLICE
@@ -479,6 +483,12 @@ This is a ``const char *`` that is used as the type of the member instead of
 ``const char *`` in functions that implement the disconnection of an
 internally generated signal to a slot.  The type includes a comma separated
 list of types that is the C++ signature of of the signal.
+
+
+.. sip-type:: SIP_SSIZE_T
+
+This is a ``Py_ssize_t`` in Python v2.5 and later and ``int`` in earlier
+versions of Python.
 
 
 Classic Division and True Division

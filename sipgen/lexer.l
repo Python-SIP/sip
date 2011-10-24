@@ -1,7 +1,7 @@
 /*
  * The SIP lexer.
  *
- * Copyright (c) 2010 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2011 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -69,6 +69,7 @@ static void fatallex(char *);
 ^[ \t]*%CModule             {return TK_CMODULE;}
 ^[ \t]*%CompositeModule     {BEGIN directive_start; return TK_COMPOMODULE;}
 ^[ \t]*%ConsolidatedModule  {BEGIN directive_start; return TK_CONSMODULE;}
+^[ \t]*%DefaultDocstringFormat  {BEGIN directive_start; return TK_DEFDOCSTRING;}
 ^[ \t]*%DefaultEncoding     {BEGIN directive_start; return TK_DEFENCODING;}
 ^[ \t]*%DefaultMetatype     {BEGIN directive_start; return TK_DEFMETATYPE;}
 ^[ \t]*%DefaultSupertype    {BEGIN directive_start; return TK_DEFSUPERTYPE;}
@@ -139,9 +140,11 @@ SIP_RXOBJ_CON               {return TK_SIPRXCON;}
 SIP_RXOBJ_DIS               {return TK_SIPRXDIS;}
 SIP_SLOT_CON                {return TK_SIPSLOTCON;}
 SIP_SLOT_DIS                {return TK_SIPSLOTDIS;}
+SIP_SSIZE_T                 {return TK_SIPSSIZET;}
 SIP_QOBJECT                 {return TK_QOBJECT;}
 \.\.\.                      {return TK_ELLIPSIS;}
 
+<directive>format           {return TK_FORMAT;}
 <directive>get              {return TK_GET;}
 <directive>id               {return TK_ID;}
 <directive>keyword_arguments    {return TK_KWARGS;}
@@ -530,10 +533,9 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
 
     yylval.codeb = sipMalloc(sizeof (codeBlock));
 
-    yylval.codeb -> frag = sipStrdup(codeLine);
-    yylval.codeb -> linenr = ifp -> lineno++;
-    yylval.codeb -> filename = sipStrdup(ifp -> name);
-    yylval.codeb -> next = NULL;
+    yylval.codeb->frag = sipStrdup(codeLine);
+    yylval.codeb->linenr = ifp->lineno++;
+    yylval.codeb->filename = sipStrdup(ifp->name);
 
     return TK_CODELINE;
 }

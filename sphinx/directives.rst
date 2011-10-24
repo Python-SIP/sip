@@ -398,7 +398,7 @@ For example::
     %Include QtGui/QtGuimod.sip
 
 The main purpose of a composite module is as a programmer convenience as they
-don't have to remember which which individual module an object is defined in.
+don't have to remember which individual module an object is defined in.
 
 
 .. directive:: %ConsolidatedModule
@@ -558,6 +558,13 @@ const sipTypeDef \*sipType
     recognised then ``sipType`` must be set to ``NULL``.  The code doesn't
     have to recognise the exact class, only the most specific sub-class that
     it can.
+
+    The code may also set the value to a type that is apparently unrelated to
+    the requested type.  If this happens then the whole conversion process is
+    started again using the new type as the requested type.  This is typically
+    used to deal with classes that have more than one super-class that are
+    subject to this conversion process.  It allows the code for one super-class
+    to switch to the code for another (more appropriate) super-class.
 
 sipWrapperType \*sipClass
     .. deprecated:: 4.8
@@ -761,8 +768,28 @@ copyright and licensing terms.
 For example::
 
     %Copying
-    Copyright (c) 2010 Riverbank Computing Limited
+    Copyright (c) 2011 Riverbank Computing Limited
     %End
+
+
+.. directive:: %DefaultDocstringFormat
+
+.. versionadded:: 4.13
+
+.. parsed-literal::
+
+    %DefaultDocstringFormat(name = ["raw" | "deindented"])
+
+This directive is used to specify the default formatting of docstrings, i.e.
+when the :directive:`%Docstring` directive does not specify an explicit format.
+
+See the :directive:`%Docstring` directive for an explanation of the different
+formats.  If the directive is not specified then the default format used is
+``"raw"``.
+
+For example::
+
+    %DefaultDocstringFormat "deindented"
 
 
 .. directive:: %DefaultEncoding
@@ -866,7 +893,7 @@ For example::
 
 .. parsed-literal::
 
-    %Docstring
+    %Docstring(format = ["raw" | "deindented"])
         *text*
     %End
 
@@ -885,6 +912,18 @@ This means that SIP will generate less informative exceptions (i.e. without a
 full signature) when it fails to match a set of arguments to any function or
 method overload.
 
+.. versionadded:: 4.13
+
+The format may either be ``"raw"`` or ``"deindented"``.  If it is not specified
+then the value specified by any :directive:`%DefaultDocstringFormat` directive
+is used.
+
+If the format is ``"raw"`` then the docstring is used as it appears in the
+specification file.
+
+If the format is ``"deindented"`` then any leading spaces common to all
+non-blank lines of the docstring are removed.
+
 For example::
 
     class Klass
@@ -895,8 +934,10 @@ For example::
 
     public:
         Klass();
-    %Docstring
-    This will be appended to the class's docstring.
+    %Docstring deindented
+        This will be appended to the class's docstring and will not be indented.
+
+            This will be indented by four spaces.
     %End
     };
 
