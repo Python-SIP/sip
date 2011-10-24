@@ -1,4 +1,4 @@
-v4.13 24th October 2011
+v4.13 25th October 2011
   - Added the %DefaultDocstringFormat directive.
   - Added the format argument to the %Docstring directive.
   - %ConvertToSubClassCode can now cause a restart of the conversion process
