@@ -5304,6 +5304,10 @@ static char *type2string(argDef *ad)
             s = "bool";
             break;
 
+        case void_type:
+            s = "void";
+            break;
+
         default:
             fatal("Unsupported type argument to type2string(): %d\n", ad->atype);
         }
