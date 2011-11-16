@@ -419,10 +419,18 @@ class Makefile:
         rpaths = _UniqueList()
 
         for l in self.extra_lib_dirs:
+            l_dir = os.path.dirname(l)
+
+            # This is a hack to ignore PyQt's internal support libraries.
+            if '/qpy/' in l_dir:
+                continue
+
             # Ignore relative directories.  This is really a hack to handle
             # SIP v3 inter-module linking.
-            if os.path.dirname(l) not in ("", ".", ".."):
-                rpaths.append(l)
+            if l_dir in ("", ".", ".."):
+                continue
+
+            rpaths.append(l)
 
         if self._python:
             incdir.append(self.config.py_inc_dir)
