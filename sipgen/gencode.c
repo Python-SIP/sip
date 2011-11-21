@@ -6547,6 +6547,7 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
         generateUnambiguousClass(cd,vod->scope,fp);
 
         prcode(fp,"::%O(",od);
+        //prcode(fp, "%C::%O(", classFQCName(cd), od);
  
         for (a = 0; a < od->cppsig->nrArgs; ++a)
         {
@@ -10865,10 +10866,14 @@ static void generateFunction(sipSpec *pt, memberDef *md, overDef *overs,
                  *   the explicitly scoped version.
                  *
                  * - If the call was bound then we only call the unscoped
-                 *   version in case there is a C++ reimplementation that
-                 *   Python knows nothing about.  Otherwise, if the call was
-                 *   invoked by super() within a Python reimplementation then
-                 *   the Python reimplementation would be called recursively.
+                 *   version in case there is a C++ sub-class reimplementation
+                 *   that Python knows nothing about.  Otherwise, if the call
+                 *   was invoked by super() within a Python reimplementation
+                 *   then the Python reimplementation would be called
+                 *   recursively.
+                 *
+                 * Note that we would like to rename 'sipSelfWasArg' to
+                 * 'sipExplicitScope' but it is part of the public API.
                  */
                 prcode(fp,
 "    bool sipSelfWasArg = (!sipSelf || sipIsDerived((sipSimpleWrapper *)sipSelf));\n"
