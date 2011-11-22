@@ -6543,7 +6543,7 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
             prcode(fp,
 "        return ");
 
-        prcode(fp, "%C::%O(", classFQCName(cd), od);
+        prcode(fp, "%S::%O(", classFQCName(cd), od);
  
         for (a = 0; a < od->cppsig->nrArgs; ++a)
         {
@@ -6634,7 +6634,7 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
 
             prcode(fp, "    %s", (res != NULL ? "return " : ""));
 
-            prcode(fp, "%C::%O(", classFQCName(cd), od);
+            prcode(fp, "%S::%O(", classFQCName(cd), od);
  
             for (a = 0; a < od->cppsig->nrArgs; ++a)
             {
