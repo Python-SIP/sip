@@ -18,7 +18,7 @@ Revised Directive Syntax
 
 .. versionadded:: 4.12
 
-The directive syntax used in the current version has some problems:
+The directive syntax used in older versions has some problems:
 
 - it is inconsistent in places
 

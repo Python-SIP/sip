@@ -96,8 +96,8 @@ file.
             *typedef* |
             *exception*]
 
-    *class* ::= **class** *name* [**:** *super-classes*] [*class-annotations*]
-            **{** {*class-line*} **};**
+    *class* ::= **class** *name* [**:** [**public**]  *super-classes*]
+            [*class-annotations*] **{** {*class-line*} **};**
 
     *super-classes* ::= *name* [**,** *super-classes*]
 

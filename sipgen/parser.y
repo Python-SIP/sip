@@ -2696,7 +2696,11 @@ class:  TK_CLASS scopedname {
     ;
 
 superclasses:
-    |   ':' superlist
+    |   ':' optpublic superlist
+    ;
+
+optpublic:
+    |   TK_PUBLIC
     ;
 
 superlist:  superclass

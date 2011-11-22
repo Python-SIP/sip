@@ -61,9 +61,6 @@ The following example shows argument and function annotations::
 
     void exec(QWidget * /Transfer/) /ReleaseGIL, PyName=call_exec/;
 
-Note that the current version of SIP does not complain about unknown
-annotations, or annotations used out of their correct context.
-
 
 .. _ref-arg-annos:
 
