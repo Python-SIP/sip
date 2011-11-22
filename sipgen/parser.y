@@ -159,7 +159,8 @@ static void addProperty(sipSpec *pt, moduleDef *mod, classDef *cd,
         codeBlock *docstring);
 static moduleDef *configureModule(sipSpec *pt, moduleDef *module,
         const char *filename, const char *name, int version, int c_module,
-        KwArgs kwargs, int use_arg_names, codeBlock *docstring);
+        KwArgs kwargs, int use_arg_names, int all_raise_py_exc,
+        codeBlock *docstring);
 static void addAutoPyName(moduleDef *mod, const char *remove_leading);
 static KwArgs convertKwArgs(const char *kwargs);
 static void checkAnnos(optFlags *annos, const char *valid[]);
@@ -341,6 +342,7 @@ static void handleKeepReference(optFlags *optflgs, argDef *ad, moduleDef *mod);
 %token          TK_TIMESTAMP
 %token          TK_TYPE
 %token          TK_USEARGNAMES
+%token          TK_ALLRAISEPYEXC
 %token          TK_VERSION
 
 %type <memArg>          argvalue
@@ -1630,7 +1632,7 @@ module: TK_MODULE module_args module_body {
                 currentModule = configureModule(currentSpec, currentModule,
                         currentContext.filename, $2.name, $2.version,
                         $2.c_module, $2.kwargs, $2.use_arg_names,
-                        $3.docstring);
+                        $2.all_raise_py_exc, $3.docstring);
         }
     |   TK_CMODULE dottedname optnumber {
             deprecated("%CModule is deprecated, use %Module and the 'language' argument instead");
@@ -1638,7 +1640,7 @@ module: TK_MODULE module_args module_body {
             if (notSkipping())
                 currentModule = configureModule(currentSpec, currentModule,
                         currentContext.filename, $2, $3, TRUE, defaultKwArgs,
-                        FALSE, NULL);
+                        FALSE, FALSE, NULL);
         }
     ;
 
@@ -1652,6 +1654,7 @@ module_args:    dottedname optnumber {
             $$.kwargs = defaultKwArgs;
             $$.name = $1;
             $$.use_arg_names = FALSE;
+            $$.all_raise_py_exc = FALSE;
             $$.version = $2;
         }
     |   '(' module_arg_list ')' {
@@ -1669,6 +1672,7 @@ module_arg_list:    module_arg
             case TK_LANGUAGE: $$.c_module = $3.c_module; break;
             case TK_NAME: $$.name = $3.name; break;
             case TK_USEARGNAMES: $$.use_arg_names = $3.use_arg_names; break;
+            case TK_ALLRAISEPYEXC: $$.all_raise_py_exc = $3.all_raise_py_exc; break;
             case TK_VERSION: $$.version = $3.version; break;
             }
         }
@@ -1681,6 +1685,7 @@ module_arg: TK_KWARGS '=' TK_STRING_VALUE {
             $$.kwargs = convertKwArgs($3);
             $$.name = NULL;
             $$.use_arg_names = FALSE;
+            $$.all_raise_py_exc = FALSE;
             $$.version = -1;
         }
     |   TK_LANGUAGE '=' TK_STRING_VALUE {
@@ -1696,6 +1701,7 @@ module_arg: TK_KWARGS '=' TK_STRING_VALUE {
             $$.kwargs = defaultKwArgs;
             $$.name = NULL;
             $$.use_arg_names = FALSE;
+            $$.all_raise_py_exc = FALSE;
             $$.version = -1;
         }
     |   TK_NAME '=' dottedname {
@@ -1705,6 +1711,7 @@ module_arg: TK_KWARGS '=' TK_STRING_VALUE {
             $$.kwargs = defaultKwArgs;
             $$.name = $3;
             $$.use_arg_names = FALSE;
+            $$.all_raise_py_exc = FALSE;
             $$.version = -1;
         }
     |   TK_USEARGNAMES '=' bool_value {
@@ -1714,6 +1721,17 @@ module_arg: TK_KWARGS '=' TK_STRING_VALUE {
             $$.kwargs = defaultKwArgs;
             $$.name = NULL;
             $$.use_arg_names = $3;
+            $$.all_raise_py_exc = FALSE;
+            $$.version = -1;
+        }
+    |   TK_ALLRAISEPYEXC '=' bool_value {
+            $$.token = TK_ALLRAISEPYEXC;
+
+            $$.c_module = FALSE;
+            $$.kwargs = defaultKwArgs;
+            $$.name = NULL;
+            $$.use_arg_names = FALSE;
+            $$.all_raise_py_exc = $3;
             $$.version = -1;
         }
     |   TK_VERSION '=' TK_NUMBER_VALUE {
@@ -1726,6 +1744,7 @@ module_arg: TK_KWARGS '=' TK_STRING_VALUE {
             $$.kwargs = defaultKwArgs;
             $$.name = NULL;
             $$.use_arg_names = FALSE;
+            $$.all_raise_py_exc = FALSE;
             $$.version = $3;
         }
     ;
@@ -6427,6 +6446,7 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         "NewThread",
         "NoArgParser",
         "NoCopy",
+        "NoRaisesPyException",
         "Numeric",
         "PostHook",
         "PreHook",
@@ -6552,8 +6572,11 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
     if (getOptFlag(optflgs, "TransferThis", bool_flag) != NULL)
         setIsThisTransferredMeth(od);
 
-    if (methodcode == NULL && getOptFlag(optflgs, "RaisesPyException", bool_flag) != NULL)
-        setRaisesPyException(od);
+    if (methodcode == NULL && getOptFlag(optflgs, "NoRaisesPyException", bool_flag) == NULL)
+    {
+        if (allRaisePyException(mod) || getOptFlag(optflgs, "RaisesPyException", bool_flag) != NULL)
+            setRaisesPyException(od);
+    }
 
     if (isProtected(od))
         setHasShadow(c_scope);
@@ -8279,7 +8302,8 @@ static void addProperty(sipSpec *pt, moduleDef *mod, classDef *cd,
  */
 static moduleDef *configureModule(sipSpec *pt, moduleDef *module,
         const char *filename, const char *name, int version, int c_module,
-        KwArgs kwargs, int use_arg_names, codeBlock *docstring)
+        KwArgs kwargs, int use_arg_names, int all_raise_py_exc,
+        codeBlock *docstring)
 {
     moduleDef *mod;
 
@@ -8306,6 +8330,9 @@ static moduleDef *configureModule(sipSpec *pt, moduleDef *module,
     module->kwargs = kwargs;
     module->version = version;
     appendCodeBlock(&module->docstring, docstring);
+
+    if (all_raise_py_exc)
+        setAllRaisePyException(module);
 
     if (use_arg_names)
         setUseArgNames(module);

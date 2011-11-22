@@ -697,6 +697,16 @@ Function Annotations
     like certain functions to only support positional arguments.
 
 
+.. function-annotation:: NoRaisesPyException
+
+    .. versionadded:: 4.13.1
+
+    This boolean annotation specifies that the function does not raise a Python
+    exception to indicate that an error occurred.
+
+    .. seealso:: :fanno:`RaisesPyException`
+
+
 .. function-annotation:: Numeric
 
     This boolean annotation specifies that the operator should be interpreted
@@ -756,6 +766,8 @@ Function Annotations
     exception to indicate that an error occurred.  Any current exception is
     cleared before the function is called.  It is ignored if the
     :directive:`%MethodCode` directive is used.
+
+    .. seealso:: :fanno:`NoRaisesPyException`
 
 
 .. function-annotation:: ReleaseGIL

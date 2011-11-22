@@ -1808,6 +1808,7 @@ then the pattern should instead be::
 .. parsed-literal::
 
     %Module(name = *dotted-name*
+            [, all_raise_py_exception = [True | False]]
             [, keyword_arguments = ["None" | "All" | "Optional"]]
             [, language = *string*]
             [, use_argument_names = [True | False]]
@@ -1820,6 +1821,11 @@ then the pattern should instead be::
 This directive is used to specify the name of a module and a number of other
 attributes.  ``name`` may contain periods to specify that the module is part of
 a Python package.
+
+``all_raise_py_exception`` specifies that all functions and methods defined in
+in the module raise a Python exception to indicate that an error occurred.  It
+is the equivalent of using the :fanno:`RaisesPyException` function annotation
+on every function and method.
 
 ``keyword_arguments`` specifies the default level of support for Python keyword
 arguments.  See the :fanno:`KeywordArgs` annotation for an explaination of the

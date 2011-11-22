@@ -159,6 +159,7 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
 <directive>timestamp        {return TK_TIMESTAMP;}
 <directive>type             {return TK_TYPE;}
 <directive>use_argument_names   {return TK_USEARGNAMES;}
+<directive>all_raise_py_exception   {return TK_ALLRAISEPYEXC;}
 <directive>version          {return TK_VERSION;}
 
 <directive>True             {return TK_TRUE_VALUE;}
