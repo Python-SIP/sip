@@ -2696,23 +2696,19 @@ class:  TK_CLASS scopedname {
     ;
 
 superclasses:
-    |   ':' optpublic superlist
-    ;
-
-optpublic:
-    |   TK_PUBLIC
+    |   ':' superlist
     ;
 
 superlist:  superclass
     |   superlist ',' superclass 
     ;
 
-superclass: scopedname {
+superclass: optpublic scopedname {
             if (notSkipping())
             {
                 argDef ad;
                 classDef *super;
-                scopedNameDef *snd = $1;
+                scopedNameDef *snd = $2;
 
                 /*
                  * This is a hack to allow typedef'ed classes to be used before
@@ -2744,6 +2740,10 @@ superclass: scopedname {
                 appendToClassList(&currentSupers, super);
             }
         }
+    ;
+
+optpublic:
+    |   TK_PUBLIC
     ;
 
 optclassbody:   {

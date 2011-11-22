@@ -1,6 +1,8 @@
 v4.13.1 ??? ??? ???
   - Added the all_raise_py_exception argument to the %Module directive.
   - Added the /NoRaisesPyException/ function annotation.
+  - Added support for 'public' preceding the name of a class in a super-class
+    list.
 
 v4.13 25th October 2011
   - Added the %DefaultDocstringFormat directive.
