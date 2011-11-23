@@ -5411,6 +5411,7 @@ static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod,
     ctorDef *oct, **cttail;
     argDef *ad;
     ifaceFileList *iffl, **used;
+    classList *cl;
 
     type_names = type_values = NULL;
     appendTypeStrings(classFQCName(tcd->cd), &tcd->sig, &td->types, NULL, &type_names, &type_values);
@@ -5461,6 +5462,40 @@ static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod,
     }
 
     cd->ecd = currentScope();
+
+    /* Handle the super-classes. */
+    for (cl = cd->supers; cl != NULL; cl = cl->next)
+    {
+        const char *name;
+        int a;
+
+        /* Ignore defined or scoped classes. */
+        if (cl->cd->iff->module != NULL || cl->cd->iff->fqcname->next != NULL)
+            continue;
+
+        name = cl->cd->iff->fqcname->name;
+
+        for (a = 0; a < tcd->sig.nrArgs - 1; ++a)
+            if (strcmp(name, scopedNameTail(tcd->sig.args[a].u.snd)) == 0)
+            {
+                argDef *tad = &td->types.args[a];
+                classDef *icd;
+
+                if (tad->atype == defined_type)
+                    icd = findClass(pt, class_iface, NULL, tad->u.snd);
+                else if (tad->atype == class_type)
+                    icd = tad->u.cd;
+                else
+                    fatal("Template argument %s must expand to a class\n", name);
+
+                /*
+                 * Don't complain about the template argument being undefined.
+                 */
+                setTemplateArg(cl->cd);
+
+                cl->cd = icd;
+            }
+    }
 
     /* Handle the enums. */
     instantiateTemplateEnums(pt, tcd, td, cd, used, type_names, type_values);

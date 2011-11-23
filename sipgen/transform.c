@@ -115,7 +115,20 @@ void transform(sipSpec *pt)
 
     while (cd != NULL)
     {
-        classDef *next = cd -> next;
+        classDef *next;
+
+        /*
+         * Take the opportunity to strip any classes that are only template
+         * arguments.
+         */
+        while (isTemplateArg(cd))
+            if ((cd = cd->next) == NULL)
+                break;
+
+        if (cd == NULL)
+            break;
+
+        next = cd -> next;
 
         cd -> next = rev;
         rev = cd;
