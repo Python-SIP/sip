@@ -791,7 +791,10 @@ class Makefile:
         if self._debug:
             if sys.platform == "win32":
                 lib = lib + "d"
-            elif self.config.qt_version < 0x040200 or sys.platform == "darwin":
+            elif sys.platform == "darwin":
+                if not self._is_framework(mname):
+                    lib = lib + "_debug"
+            elif self.config.qt_version < 0x040200:
                 lib = lib + "_debug"
 
         if sys.platform == "win32" and "shared" in self.config.qt_winconfig.split():
