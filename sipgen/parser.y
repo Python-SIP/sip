@@ -69,7 +69,9 @@ static exceptionDef *findException(sipSpec *pt, scopedNameDef *fqname, int new);
 static mappedTypeDef *newMappedType(sipSpec *,argDef *, optFlags *);
 static enumDef *newEnum(sipSpec *pt, moduleDef *mod, mappedTypeDef *mt_scope,
         char *name, optFlags *of, int flags);
-static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod, classDef *scope, scopedNameDef *fqname, classTmplDef *tcd, templateDef *td);
+static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod,
+        classDef *scope, scopedNameDef *fqname, classTmplDef *tcd,
+        templateDef *td, const char *pyname);
 static void newTypedef(sipSpec *, moduleDef *, char *, argDef *, optFlags *);
 static void newVar(sipSpec *pt, moduleDef *mod, char *name, int isstatic,
         argDef *type, optFlags *of, codeBlock *acode, codeBlock *gcode,
@@ -2545,6 +2547,7 @@ typedef:    TK_TYPEDEF cpptype TK_NAME_VALUE optflags ';' {
                     "Encoding",
                     "NoTypeName",
                     "PyInt",
+                    "PyName",
                     NULL
                 };
 
@@ -2562,6 +2565,7 @@ typedef:    TK_TYPEDEF cpptype TK_NAME_VALUE optflags ';' {
                     "Encoding",
                     "NoTypeName",
                     "PyInt",
+                    "PyName",
                     NULL
                 };
 
@@ -5404,7 +5408,7 @@ static char *scopedNameToString(scopedNameDef *name)
  */
 static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod,
         classDef *scope, scopedNameDef *fqname, classTmplDef *tcd,
-        templateDef *td)
+        templateDef *td, const char *pyname)
 {
     scopedNameDef *type_names, *type_values;
     classDef *cd;
@@ -5435,7 +5439,7 @@ static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod,
     *cd = *tcd->cd;
 
     resetIsTemplateClass(cd);
-    cd->pyname = cacheName(pt, scopedNameTail(fqname));
+    cd->pyname = cacheName(pt, pyname);
     cd->td = td;
 
     /* Handle the interface file. */
@@ -6179,7 +6183,8 @@ static void newTypedef(sipSpec *pt, moduleDef *mod, char *name, argDef *type,
             if (foundInScope(tcd->cd->iff->fqcname, td->fqname) &&
                 sameTemplateSignature(&tcd->sig, &td->types, FALSE))
             {
-                instantiateClassTemplate(pt, mod, scope, fqname, tcd, td);
+                instantiateClassTemplate(pt, mod, scope, fqname, tcd, td,
+                        getPythonName(mod, optflgs, name));
 
                 /* All done. */
                 return;

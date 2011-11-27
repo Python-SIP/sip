@@ -855,6 +855,20 @@ Typedef Annotations
     argument annotation when applied to the type being defined.
 
 
+.. typedef-annotation:: PyName
+
+    .. versionadded:: 4.13.1
+
+    This name annotation only applies when the typedef is being used to create
+    the wrapping for a class defined using a template and specifies an
+    alternative name for the class when it is referred to from Python.  It is
+    required when a class name is the same as a Python keyword.  It may also
+    be used to avoid name clashes with other objects (e.g. enums, exceptions,
+    functions) that have the same name in the same C++ scope.
+
+    .. seealso:: :directive:`%AutoPyName`
+
+
 .. _ref-variable-annos:
 
 Variable Annotations
