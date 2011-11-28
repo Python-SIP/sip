@@ -12350,14 +12350,16 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
 
     if (handle_self)
     {
+        const char *const_str = (isConst(od) ? "const " : "");
+
         if (isProtected(od) && hasShadow(c_scope))
             prcode(fp,
-"        sip%C *sipCpp;\n"
-                , classFQCName(c_scope));
+"        %ssip%C *sipCpp;\n"
+                , const_str, classFQCName(c_scope));
         else
             prcode(fp,
-"        %U *sipCpp;\n"
-                , c_scope);
+"        %s%U *sipCpp;\n"
+                , const_str, c_scope);
 
         prcode(fp,
 "\n"
