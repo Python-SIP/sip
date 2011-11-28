@@ -6,6 +6,8 @@ v4.13.1 ??? ??? ???
     arguments.
   - Added support for 'public' preceding the name of a class in a super-class
     list.
+  - Added support for 'protected' and 'private' preceding the name of a class
+    in a super-class list.  Any such super-class will be ignored.
 
 v4.13 25th October 2011
   - Added the %DefaultDocstringFormat directive.

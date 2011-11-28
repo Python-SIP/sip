@@ -209,6 +209,7 @@ static void handleKeepReference(optFlags *optflgs, argDef *ad, moduleDef *mod);
     pluginCfg       plugin;
     propertyCfg     property;
     variableCfg     variable;
+    int             token;
 }
 
 %token          TK_API
@@ -410,6 +411,7 @@ static void handleKeepReference(optFlags *optflgs, argDef *ad, moduleDef *mod);
 %type <boolean>         bool_value
 %type <exceptionbase>   baseexception
 %type <klass>           class
+%type <token>           class_access
 
 %type <api>             api_args
 %type <api>             api_arg_list
@@ -2707,8 +2709,8 @@ superlist:  superclass
     |   superlist ',' superclass 
     ;
 
-superclass: optpublic scopedname {
-            if (notSkipping())
+superclass: class_access scopedname {
+            if (notSkipping() && $1 == TK_PUBLIC)
             {
                 argDef ad;
                 classDef *super;
@@ -2746,8 +2748,18 @@ superclass: optpublic scopedname {
         }
     ;
 
-optpublic:
-    |   TK_PUBLIC
+class_access:   {
+        $$ = TK_PUBLIC;
+        }
+    |   TK_PUBLIC {
+        $$ = TK_PUBLIC;
+        }
+    |   TK_PROTECTED {
+        $$ = TK_PROTECTED;
+        }
+    |   TK_PRIVATE {
+        $$ = TK_PRIVATE;
+        }
     ;
 
 optclassbody:   {
