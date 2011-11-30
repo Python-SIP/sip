@@ -2368,7 +2368,7 @@ def parse_build_macros(filename, names, overrides=None, properties=None):
                     if orig_rhs is not None:
                         rhs = orig_rhs + " " + rhs
 
-                raw[lhs] = rhs
+                raw[lhs] = _expand_macro_value(raw, rhs, properties)
 
         line = f.readline()
 
@@ -2384,7 +2384,7 @@ def parse_build_macros(filename, names, overrides=None, properties=None):
 
     for lhs in list(raw.keys()):
         # Strip any prefix.
-        if lhs.find(macro_prefix) == 0:
+        if lhs.startswith(macro_prefix):
             reflhs = lhs[len(macro_prefix):]
         else:
             reflhs = lhs
@@ -2394,48 +2394,6 @@ def parse_build_macros(filename, names, overrides=None, properties=None):
             continue
 
         rhs = raw[lhs]
-
-        # Resolve any references.
-        estart = rhs.find("$$(")
-        mstart = rhs.find("$$")
-
-        while mstart >= 0 and mstart != estart:
-            rstart = mstart + 2
-            if rstart < len(rhs) and rhs[rstart] == "{":
-                rstart = rstart + 1
-                term = "}"
-            elif rstart < len(rhs) and rhs[rstart] == "[":
-                rstart = rstart + 1
-                term = "]"
-            else:
-                term = string.whitespace
-
-            mend = rstart
-            while mend < len(rhs) and rhs[mend] not in term:
-                mend = mend + 1
-
-            lhs = rhs[rstart:mend]
-
-            if term in "}]":
-                mend = mend + 1
-
-            if term == "]":
-                if properties is None or lhs not in list(properties.keys()):
-                    error("%s: property '%s' is not defined." % (filename, lhs))
-
-                value = properties[lhs]
-            else:
-                try:
-                    value = raw[lhs]
-                except KeyError:
-                    # We used to treat this as an error, but Qt v4.3.0 has at
-                    # least one case that refers to an undefined macro.  If
-                    # qmake handles it then this must be the correct behaviour.
-                    value = ""
-
-            rhs = rhs[:mstart] + value + rhs[mend:]
-            estart = rhs.find("$$(")
-            mstart = rhs.find("$$")
 
         # Expand any POSIX style environment variables.
         pleadin = ["$$(", "$("]
@@ -2515,6 +2473,50 @@ def parse_build_macros(filename, names, overrides=None, properties=None):
         refined[lhs] = rhs
 
     return refined
+
+
+def _expand_macro_value(macros, rhs, properties):
+    """Expand the value of a macro based on ones seen so far."""
+    estart = rhs.find("$$(")
+    mstart = rhs.find("$$")
+
+    while mstart >= 0 and mstart != estart:
+        rstart = mstart + 2
+        if rstart < len(rhs) and rhs[rstart] == "{":
+            rstart = rstart + 1
+            term = "}"
+        elif rstart < len(rhs) and rhs[rstart] == "[":
+            rstart = rstart + 1
+            term = "]"
+        else:
+            term = string.whitespace
+
+        mend = rstart
+        while mend < len(rhs) and rhs[mend] not in term:
+            mend = mend + 1
+
+        lhs = rhs[rstart:mend]
+
+        if term in "}]":
+            mend = mend + 1
+
+        if term == "]":
+            # Assume a missing property expands to an empty string.
+            if properties is None:
+                value = ""
+            else:
+                value = properties.get(lhs, "")
+        else:
+            # We used to treat a missing value as an error, but Qt v4.3.0 has
+            # at least one case that refers to an undefined macro.  If qmake
+            # handles it then this must be the correct behaviour.
+            value = macros.get(lhs, "")
+
+        rhs = rhs[:mstart] + value + rhs[mend:]
+        estart = rhs.find("$$(")
+        mstart = rhs.find("$$")
+
+    return rhs
 
 
 def create_wrapper(script, wrapper, gui=0, use_arch=''):
