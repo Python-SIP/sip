@@ -5676,16 +5676,8 @@ static overDef *instantiateTemplateOverloads(sipSpec *pt, overDef *tod,
             /* Start with a shallow copy. */
             *nod->virthandler = *od->virthandler;
 
-            if (od->virthandler->cppsig == &od->pysig)
-                nod->virthandler->cppsig = &nod->pysig;
-            else
-            {
-                nod->virthandler->cppsig = sipMalloc(sizeof (signatureDef));
-
-                *nod->virthandler->cppsig = *od->virthandler->cppsig;
-
-                templateSignature(nod->virthandler->cppsig, TRUE, tcd, td, cd);
-            }
+            nod->virthandler->pysig = &nod->pysig;
+            nod->virthandler->cppsig = nod->cppsig;
 
             nod->virthandler->module = mod;
             nod->virthandler->virtcode = templateCode(pt, used, nod->virthandler->virtcode, type_names, type_values);
