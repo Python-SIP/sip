@@ -1798,6 +1798,7 @@ static void getClassVirtuals(classDef *base, classDef *cd)
             vod = sipMalloc(sizeof (virtOverDef));
  
             vod->o = *od;
+            vod->scope = (scope != NULL ? scope : cd);
             vod->next = NULL;
  
             *tailp = vod;

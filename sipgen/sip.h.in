@@ -1044,12 +1044,11 @@ typedef struct _classList {
 } classList;
 
 
-/*
- * A virtual overload definition.  Note that it might now be possible to
- * replace this by overDef.
- */
+/* A virtual overload definition. */
+
 typedef struct _virtOverDef {
     overDef o;                          /* The overload. */
+    struct _classDef *scope;            /* The overload scope. */
     struct _virtOverDef *next;          /* Next in the list. */
 } virtOverDef;
 
