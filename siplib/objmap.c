@@ -40,8 +40,11 @@ static unsigned long hash_primes[] = {
 
 static sipHashEntry *newHashTable(unsigned long);
 static sipHashEntry *findHashEntry(sipObjectMap *,void *);
-static void add(sipObjectMap *om, void *addr, sipSimpleWrapper *val);
+static void add_object(sipObjectMap *om, void *addr, sipSimpleWrapper *val);
 static void add_aliases(sipObjectMap *om, void *addr, sipSimpleWrapper *val,
+        const sipClassTypeDef *base_ctd, const sipClassTypeDef *ctd);
+static int remove_object(sipObjectMap *om, void *addr, sipSimpleWrapper *val);
+static void remove_aliases(sipObjectMap *om, void *addr, sipSimpleWrapper *val,
         const sipClassTypeDef *base_ctd, const sipClassTypeDef *ctd);
 static void reorganiseMap(sipObjectMap *om);
 static void *getUnguardedPointer(sipSimpleWrapper *w);
@@ -154,13 +157,13 @@ sipSimpleWrapper *sipOMFindObject(sipObjectMap *om, void *key,
 void sipOMAddObject(sipObjectMap *om, sipSimpleWrapper *val)
 {
     void *addr = getUnguardedPointer(val);
-    const sipClassTypeDef *base_ctd =
-            (const sipClassTypeDef *)((sipWrapperType *)Py_TYPE(val))->type;
+    const sipClassTypeDef *base_ctd;
 
     /* Add the object. */
-    add(om, addr, val);
+    add_object(om, addr, val);
 
     /* Add any aliases. */
+    base_ctd = (const sipClassTypeDef *)((sipWrapperType *)Py_TYPE(val))->type;
     add_aliases(om, addr, val, base_ctd, base_ctd);
 }
 
@@ -215,7 +218,7 @@ static void add_aliases(sipObjectMap *om, void *addr, sipSimpleWrapper *val,
                     alias->data = val;
                     alias->next = NULL;
 
-                    add(om, sup_addr, alias);
+                    add_object(om, sup_addr, alias);
                 }
             }
         }
@@ -226,7 +229,7 @@ static void add_aliases(sipObjectMap *om, void *addr, sipSimpleWrapper *val,
 /*
  * Add a wrapper (which may be an alias) to the map.
  */
-static void add(sipObjectMap *om, void *addr, sipSimpleWrapper *val)
+static void add_object(sipObjectMap *om, void *addr, sipSimpleWrapper *val)
 {
     sipHashEntry *he = findHashEntry(om, addr);
 
@@ -345,9 +348,8 @@ static void reorganiseMap(sipObjectMap *om)
  */
 int sipOMRemoveObject(sipObjectMap *om, sipSimpleWrapper *val)
 {
-    sipHashEntry *he;
-    sipSimpleWrapper **swp;
     void *addr;
+    const sipClassTypeDef *base_ctd;
 
     /* Handle the trivial case. */
     if (sipNotInMap(val))
@@ -356,12 +358,89 @@ int sipOMRemoveObject(sipObjectMap *om, sipSimpleWrapper *val)
     if ((addr = getUnguardedPointer(val)) == NULL)
         return 0;
 
-    he = findHashEntry(om, addr);
+    /* Remove any aliases. */
+    base_ctd = (const sipClassTypeDef *)((sipWrapperType *)Py_TYPE(val))->type;
+    remove_aliases(om, addr, val, base_ctd, base_ctd);
+
+    /* Remove the object. */
+    return remove_object(om, addr, val);
+}
+
+
+/*
+ * Remove an alias for any address that is different when cast to a super-type.
+ */
+static void remove_aliases(sipObjectMap *om, void *addr, sipSimpleWrapper *val,
+        const sipClassTypeDef *base_ctd, const sipClassTypeDef *ctd)
+{
+    const sipEncodedTypeDef *sup;
+
+    /* See if there are any super-classes. */
+    if ((sup = ctd->ctd_supers) != NULL)
+    {
+        sipClassTypeDef *sup_ctd = sipGetGeneratedClassType(sup, ctd);
+
+        /* Recurse up the hierachy for the first super-class. */
+        remove_aliases(om, addr, val, base_ctd, sup_ctd);
+
+        /*
+         * We only check for aliases for subsequent super-classes because the
+         * first one can never need one.
+         */
+        while (!sup++->sc_flag)
+        {
+            void *sup_addr;
+
+            sup_ctd = sipGetGeneratedClassType(sup, ctd);
+
+            /* Recurse up the hierachy for the remaining super-classes. */
+            remove_aliases(om, addr, val, base_ctd, sup_ctd);
+
+            sup_addr = (*base_ctd->ctd_cast)(addr, sup_ctd);
+
+            if (sup_addr != addr)
+                remove_object(om, sup_addr, val);
+        }
+    }
+}
+
+
+/*
+ * Remove a wrapper from the map.
+ */
+static int remove_object(sipObjectMap *om, void *addr, sipSimpleWrapper *val)
+{
+    sipHashEntry *he = findHashEntry(om, addr);
+    sipSimpleWrapper **swp;
 
     for (swp = &he->first; *swp != NULL; swp = &(*swp)->next)
-        if (*swp == val)
+    {
+        sipSimpleWrapper *sw, *next;
+        int do_remove;
+
+        sw = *swp;
+        next = sw->next;
+
+        if (sipIsAlias(sw))
         {
-            *swp = val->next;
+            if (sw->data == val)
+            {
+                sip_api_free(sw);
+                do_remove = TRUE;
+            }
+            else
+            {
+                do_remove = FALSE;
+            }
+        }
+        else
+        {
+            do_remove = (sw == val);
+        }
+
+        if (do_remove)
+        {
+            *swp = next;
 
             /*
              * If the bucket is now empty then count it as stale.  Note that we
@@ -376,6 +455,7 @@ int sipOMRemoveObject(sipObjectMap *om, sipSimpleWrapper *val)
 
             return 0;
         }
+    }
 
     return -1;
 }
