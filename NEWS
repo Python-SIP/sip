@@ -1,4 +1,4 @@
-v4.13.1 ??? ??? ???
+v4.13.1 ??? December 2011
   - Added the all_raise_py_exception argument to the %Module directive.
   - Added the /NoRaisesPyException/ function annotation.
   - Added the /PyName/ typedef annotation.

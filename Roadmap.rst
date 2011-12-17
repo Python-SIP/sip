@@ -3,7 +3,7 @@ SIP v5 Roadmap
 
 The next major release of SIP will be v5 and is currently being planned.  While
 we make no committments to release dates, we expect that the development will
-be done during 2011.
+be done during 2012.
 
 The major focus of v5 will be to:
 
