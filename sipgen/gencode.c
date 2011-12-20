@@ -9906,7 +9906,7 @@ static void generateSignalTableEntry(sipSpec *pt, classDef *cd, overDef *sig,
             prcode(fp,",");
 
         /* Do some normalisation so that Qt doesn't have to. */
-        if (isConstArg(&arg))
+        if (isConstArg(&arg) && isReference(&arg))
         {
             resetIsConstArg(&arg);
             resetIsReference(&arg);
