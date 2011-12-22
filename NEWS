@@ -1,4 +1,5 @@
-v4.13.1 ??? December 2011
+v4.13.1 22nd December 2011
+  - Deprecation warnings can no longer be disabled.
   - Added the all_raise_py_exception argument to the %Module directive.
   - Added the /NoRaisesPyException/ function annotation.
   - Added the /PyName/ typedef annotation.
