@@ -1,7 +1,7 @@
 /*
  * The SIP parser.
  *
- * Copyright (c) 2011 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2012 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -919,6 +919,8 @@ exception_body_directive:  ifstart {
                 $$.token = 0;
                 $$.raise_code = NULL;
             }
+
+            $$.type_header_code = NULL;
         }
     |   typehdrcode {
             if (notSkipping())
@@ -931,6 +933,8 @@ exception_body_directive:  ifstart {
                 $$.token = 0;
                 $$.type_header_code = NULL;
             }
+
+            $$.raise_code = NULL;
         }
     ;
 
