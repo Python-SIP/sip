@@ -1,3 +1,6 @@
+v4.13.2 10th February 2012
+  - A bug fix release.
+
 v4.13.1 22nd December 2011
   - Deprecation warnings can no longer be disabled.
   - Added the all_raise_py_exception argument to the %Module directive.
