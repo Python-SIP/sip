@@ -7684,6 +7684,12 @@ static PyObject *sip_api_is_py_method(sip_gilstate_t *gil, char *pymc,
             reimp = PyMethod_New(reimp, (PyObject *)sipSelf, cls);
 #endif
         }
+        else if (Py_TYPE(reimp)->tp_descr_get)
+        {
+            /* It is a descriptor, so assume it will do the right thing. */
+            reimp = Py_TYPE(reimp)->tp_descr_get(reimp, (PyObject *)sipSelf,
+                    cls);
+        }
         else
         {
             /*
