@@ -686,6 +686,7 @@ typedef struct _sipVariableDef {
 } sipVariableDef;
 
 
+#if SIP_API_MAJOR_NR == 8
 /*
  * The information describing a variable.  This is deprecated from v8.1 of the
  * API and should be removed in v9.0.
@@ -703,6 +704,14 @@ typedef struct _sipVariableDef_8 {
     /* This is set if the variable is static. */
     int vd_is_static;
 } sipVariableDef_8;
+#else
+/*
+ * In addition, change the getter signature so that it is also passed the self
+ * Python object so that the getter doesn't need to reverse map it from the
+ * C++ pointer.
+ */
+#error "Remove v8 support for sipVariableDef"
+#endif
 
 
 /*

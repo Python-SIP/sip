@@ -4325,6 +4325,8 @@ static moduleDef *allocModule()
     newmod->encoding = no_type;
     newmod->qobjclass = -1;
     newmod->nrvirthandlers = -1;
+
+    /* -1 is reserved for variable getters. */
     newmod->next_key = -2;
 
     /*

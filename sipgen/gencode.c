@@ -4318,7 +4318,7 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
 {
     argType atype = vd->type.atype;
     const char *first_arg, *last_arg;
-    int needsNew;
+    int needsNew, keepRef;
 
     if (generating_c || !isStaticVar(vd))
         first_arg = "sipSelf";
@@ -4326,6 +4326,9 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
         first_arg = "";
 
     last_arg = (generating_c || usedInCode(vd->getcode, "sipPyType")) ? "sipPyType" : "";
+
+    needsNew = ((atype == class_type || atype == mapped_type) && vd->type.nrderefs == 0 && isConstArg(&vd->type));
+    keepRef = (atype == class_type && vd->type.nrderefs == 0 && !isConstArg(&vd->type));
 
     prcode(fp,
 "\n"
@@ -4342,13 +4345,14 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
 "{\n"
         , vd->fqcname, first_arg, last_arg);
 
-    if (vd->getcode != NULL)
+    if (vd->getcode != NULL || keepRef)
     {
         prcode(fp,
 "    PyObject *sipPy;\n"
             );
     }
-    else
+
+    if (vd->getcode == NULL)
     {
         prcode(fp,
 "    ");
@@ -4389,8 +4393,6 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
         return;
     }
 
-    needsNew = ((atype == class_type || atype == mapped_type) && vd->type.nrderefs == 0 && isConstArg(&vd->type));
-
     if (needsNew)
     {
         if (generating_c)
@@ -4428,15 +4430,28 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
                 iff = vd->type.u.cd->iff;
 
             prcode(fp,
-"    return sipConvertFrom%sType(", (needsNew ? "New" : ""));
+"    %s sipConvertFrom%sType(", (keepRef ? "sipPy =" : "return"), (needsNew ? "New" : ""));
 
             if (isConstArg(&vd->type))
                 prcode(fp, "const_cast<%b *>(sipVal)", &vd->type);
             else
                 prcode(fp, "sipVal");
 
-            prcode(fp, ",sipType_%C, NULL);\n"
+            prcode(fp, ", sipType_%C, NULL);\n"
                 , iff->fqcname);
+
+            if (keepRef)
+            {
+                /*
+                 * When the SIP API goes to v9 the self Python object should be
+                 * passed in rather than having to reverse map it.
+                 */
+                prcode(fp,
+"    sipKeepReference(sipPy, -1, sipConvertFromType(sipSelf, sipType_%C, NULL));\n"
+"\n"
+"    return sipPy;\n"
+                    , classFQCName(vd->ecd));
+            }
         }
 
         break;
