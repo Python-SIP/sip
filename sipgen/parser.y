@@ -396,6 +396,7 @@ static void handleKeepReference(optFlags *optflgs, argDef *ad, moduleDef *mod);
 %type <text>            optfilename
 %type <text>            optname
 %type <text>            dottedname
+%type <text>            name_or_string
 %type <optflags>        optflags
 %type <optflags>        flaglist
 %type <flag>            flag
@@ -743,7 +744,7 @@ api_arg_list:   api_arg
         }
     ;
 
-api_arg:    TK_NAME '=' TK_NAME_VALUE {
+api_arg:    TK_NAME '=' name_or_string {
             $$.token = TK_NAME;
 
             $$.name = $3;
@@ -1196,7 +1197,7 @@ feature_arg_list:   feature_arg
         }
     ;
 
-feature_arg:    TK_NAME '=' TK_NAME_VALUE {
+feature_arg:    TK_NAME '=' name_or_string {
             $$.token = TK_NAME;
 
             $$.name = $3;
@@ -2991,7 +2992,7 @@ property_arg:   TK_GET '=' TK_NAME_VALUE {
             $$.name = NULL;
             $$.set = NULL;
         }
-    |   TK_NAME '=' TK_NAME_VALUE {
+    |   TK_NAME '=' name_or_string {
             $$.token = TK_NAME;
 
             $$.get = NULL;
@@ -3045,6 +3046,10 @@ property_body_directive:    ifstart {
                 $$.docstring = NULL;
             }
         }
+    ;
+
+name_or_string: TK_NAME_VALUE
+    |   TK_STRING_VALUE
     ;
 
 optslot:    {
