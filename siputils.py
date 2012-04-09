@@ -354,11 +354,15 @@ class Makefile:
             win_exceptions = ("exceptions" in wcfg)
             win_rtti = ("rtti" in wcfg)
             win_stl = ("stl" in wcfg)
+
+            qt_version = self.config.qt_version
         else:
             win_shared = 1
             win_exceptions = 0
             win_rtti = 0
             win_stl = 0
+
+            qt_version = 0
 
         # Get what we are going to transform.
         cflags = _UniqueList()
@@ -562,7 +566,7 @@ class Makefile:
             if not self._debug:
                 defines.append("QT_NO_DEBUG")
 
-            if self.config.qt_version >= 0x040000:
+            if qt_version >= 0x040000:
                 for mod in self._qt:
                     # Note that qmake doesn't define anything for QtHelp.
                     if mod == "QtCore":
@@ -601,7 +605,7 @@ class Makefile:
             libdir.extend(libdir_qt)
             rpaths.extend(libdir_qt)
 
-            if self.config.qt_version >= 0x040000:
+            if qt_version >= 0x040000:
                 # Try and read QT_LIBINFIX from qconfig.pri.
                 qconfig = os.path.join(mkspecs, "qconfig.pri")
                 self._infix = self._extract_value(qconfig, "QT_LIBINFIX")
@@ -650,7 +654,7 @@ class Makefile:
                 # include QtGui and QtNetwork as a dependency any longer.  This
                 # seems to be a bug in Qt v4.2.0.  We explicitly set the
                 # dependencies here.
-                if self.config.qt_version >= 0x040200 and "QtAssistant" in self._qt:
+                if qt_version >= 0x040200 and "QtAssistant" in self._qt:
                     if "QtGui" not in self._qt:
                         self._qt.append("QtGui")
                     if "QtNetwork" not in self._qt:
@@ -688,7 +692,7 @@ class Makefile:
                 qt_lib = self.config.qt_lib
 
                 if self.generator in ("MSVC", "MSVC.NET", "MSBUILD", "BMAKE") and win_shared:
-                    qt_lib = qt_lib + version_to_string(self.config.qt_version).replace(".", "")
+                    qt_lib = qt_lib + version_to_string(qt_version).replace(".", "")
 
                     if self.config.qt_edition == "non-commercial":
                         qt_lib = qt_lib + "nc"
@@ -707,17 +711,30 @@ class Makefile:
             qtincdir = self.optional_list("INCDIR_QT")
 
             if qtincdir:
-                if self.config.qt_version >= 0x040000:
+                if qt_version >= 0x040000:
                     for mod in self._qt:
                         if mod == "QAxContainer":
                             incdir.append(os.path.join(qtincdir[0], "ActiveQt"))
                         elif self._is_framework(mod):
-                            if mod == "QtAssistant" and self.config.qt_version < 0x040202:
+                            if mod == "QtAssistant" and qt_version < 0x040202:
                                 mod = "QtAssistantClient"
 
-                            incdir.append(os.path.join(libdir_qt[0], mod + ".framework", "Headers"))
+                            incdir.append(os.path.join(libdir_qt[0],
+                                    mod + ".framework", "Headers"))
+
+                            if qt_version >= 0x050000 and mod == "QtGui":
+                                incdir.append(os.path.join(libdir_qt[0],
+                                        "QtWidgets.framework", "Headers"))
+                                incdir.append(os.path.join(libdir_qt[0],
+                                        "QtPrintSupport.framework", "Headers"))
                         else:
                             incdir.append(os.path.join(qtincdir[0], mod))
+
+                            if qt_version >= 0x050000 and mod == "QtGui":
+                                incdir.append(os.path.join(qtincdir[0],
+                                        "QtWidgets"))
+                                incdir.append(os.path.join(qtincdir[0],
+                                        "QtPrintSupport"))
 
                 # This must go after the module include directories.
                 incdir.extend(qtincdir)
@@ -729,7 +746,7 @@ class Makefile:
             libs.extend(self.optional_list("LIBS_OPENGL"))
 
         if self._qt or self._opengl:
-            if self.config.qt_version < 0x040000 or self._opengl or "QtGui" in self._qt:
+            if qt_version < 0x040000 or self._opengl or "QtGui" in self._qt:
                 incdir.extend(self.optional_list("INCDIR_X11"))
                 libdir.extend(self.optional_list("LIBDIR_X11"))
                 libs.extend(self.optional_list("LIBS_X11"))
@@ -887,7 +904,13 @@ class Makefile:
         else:
             prl_name = os.path.join(self.config.qt_lib_dir, "lib" + clib + ".prl")
 
-        return self._extract_value(prl_name, "QMAKE_PRL_LIBS").split()
+        libs = self._extract_value(prl_name, "QMAKE_PRL_LIBS").split()
+
+        if self.config.qt_version >= 0x050000 and clib == "QtGui":
+            for xtra in ("QtWidgets", "QtPrintSupport"):
+                libs.extend(self.platform_lib(xtra, framework).split())
+
+        return libs
 
     def _extract_value(self, fname, vname):
         """Return the stripped value from a name=value line in a file.
