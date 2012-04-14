@@ -1,7 +1,7 @@
 /*
  * The SIP module interface.
  *
- * Copyright (c) 2011 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2012 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -1523,6 +1523,7 @@ typedef struct _sipQtAPI {
 #define SIP_CPP_HAS_REF     0x0080  /* If C/C++ has a reference. */
 #define SIP_POSSIBLE_PROXY  0x0100  /* If there might be a proxy slot. */
 #define SIP_ALIAS           0x0200  /* If it is an alias. */
+#define SIP_CREATED         0x0400  /* If the C/C++ object has been created. */
 
 #define sipIsPyOwned(w)     ((w)->flags & SIP_PY_OWNED)
 #define sipSetPyOwned(w)    ((w)->flags |= SIP_PY_OWNED)
@@ -1538,6 +1539,7 @@ typedef struct _sipQtAPI {
 #define sipPossibleProxy(w) ((w)->flags & SIP_POSSIBLE_PROXY)
 #define sipSetPossibleProxy(w)  ((w)->flags |= SIP_POSSIBLE_PROXY)
 #define sipIsAlias(w)       ((w)->flags & SIP_ALIAS)
+#define sipWasCreated(w)    ((w)->flags & SIP_CREATED)
 
 
 #define SIP_TYPE_TYPE_MASK  0x0007  /* The type type mask. */

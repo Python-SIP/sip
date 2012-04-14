@@ -1,7 +1,7 @@
 /*
  * SIP library code.
  *
- * Copyright (c) 2011 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2012 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -555,7 +555,7 @@ static int getSelfFromArgs(sipTypeDef *td, PyObject *args, int argnr,
         sipSimpleWrapper **selfp);
 static PyObject *createEnumMember(sipTypeDef *td, sipEnumMemberDef *enm);
 static int compareTypedefName(const void *key, const void *el);
-static int checkPointer(void *ptr);
+static int checkPointer(void *ptr, sipSimpleWrapper *sw);
 static void *cast_cpp_ptr(void *ptr, PyTypeObject *src_type,
         const sipTypeDef *dst_type);
 static void finalise(void);
@@ -1058,7 +1058,7 @@ static PyObject *callDtor(PyObject *self, PyObject *args)
 
     addr = getPtrTypeDef(sw, &ctd);
 
-    if (checkPointer(addr) < 0)
+    if (checkPointer(addr, sw) < 0)
         return NULL;
 
     if (PyObject_TypeCheck((PyObject *)sw, (PyTypeObject *)&sipWrapper_Type))
@@ -7817,7 +7817,7 @@ void *sip_api_get_cpp_ptr(sipSimpleWrapper *sw, const sipTypeDef *td)
 {
     void *ptr = sip_api_get_address(sw);
 
-    if (checkPointer(ptr) < 0)
+    if (checkPointer(ptr, sw) < 0)
         return NULL;
 
     if (td != NULL)
@@ -7853,12 +7853,14 @@ static void *cast_cpp_ptr(void *ptr, PyTypeObject *src_type,
 /*
  * Check that a pointer is non-NULL.
  */
-static int checkPointer(void *ptr)
+static int checkPointer(void *ptr, sipSimpleWrapper *sw)
 {
     if (ptr == NULL)
     {
-        PyErr_SetString(PyExc_RuntimeError,
-                "underlying C/C++ object has been deleted");
+        PyErr_Format(PyExc_RuntimeError, (sipWasCreated(sw) ?
+                        "wrapped C/C++ object of %S has been deleted" :
+                        "super-class __init__() of %S was never called"),
+                (PyObject *)sw);
         return -1;
     }
 
@@ -9141,7 +9143,7 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
     }
 
     self->data = sipNew;
-    self->flags = sipFlags;
+    self->flags = sipFlags | SIP_CREATED;
 
     /* Set the access function. */
     if (sipIsAccessFunc(self))
