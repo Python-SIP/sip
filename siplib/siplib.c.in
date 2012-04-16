@@ -7549,6 +7549,10 @@ static PyObject *sip_api_is_py_method(sip_gilstate_t *gil, char *pymc,
     if (sipInterpreter == NULL)
         return NULL;
 
+#ifdef WITH_THREAD
+    *gil = PyGILState_Ensure();
+#endif
+
     /*
      * It's possible that the Python object has been deleted but the underlying
      * C++ instance is still working and trying to handle virtual functions.
@@ -7557,7 +7561,7 @@ static PyObject *sip_api_is_py_method(sip_gilstate_t *gil, char *pymc,
      * reimplementation.
      */
     if (sipSelf == NULL)
-        return NULL;
+        goto release_gil;
 
     /*
      * It's possible that the object's type's tp_mro is NULL.  A possible
@@ -7569,13 +7573,9 @@ static PyObject *sip_api_is_py_method(sip_gilstate_t *gil, char *pymc,
     mro = ((PyTypeObject *)cls)->tp_mro;
 
     if (mro == NULL)
-        return NULL;
+        goto release_gil;
 
     /* Get any reimplementation. */
-
-#ifdef WITH_THREAD
-    *gil = PyGILState_Ensure();
-#endif
 
 #if PY_MAJOR_VERSION >= 3
     mname_obj = PyUnicode_FromString(mname);
@@ -7584,12 +7584,7 @@ static PyObject *sip_api_is_py_method(sip_gilstate_t *gil, char *pymc,
 #endif
 
     if (mname_obj == NULL)
-    {
-#ifdef WITH_THREAD
-        PyGILState_Release(*gil);
-#endif
-        return NULL;
-    }
+        goto release_gil;
 
     /*
      * We don't use PyObject_GetAttr() because that might find the generated
@@ -7600,11 +7595,7 @@ static PyObject *sip_api_is_py_method(sip_gilstate_t *gil, char *pymc,
     if (add_all_lazy_attrs(((sipWrapperType *)Py_TYPE(sipSelf))->type) < 0)
     {
         Py_DECREF(mname_obj);
-
-#ifdef WITH_THREAD
-        PyGILState_Release(*gil);
-#endif
-        return NULL;
+        goto release_gil;
     }
 
     if (sipSelf->dict != NULL)
@@ -7719,6 +7710,12 @@ static PyObject *sip_api_is_py_method(sip_gilstate_t *gil, char *pymc,
     }
 
     return reimp;
+
+release_gil:
+#ifdef WITH_THREAD
+    PyGILState_Release(*gil);
+#endif
+    return NULL;
 }
 
 
