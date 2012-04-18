@@ -4447,7 +4447,13 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
                  * passed in rather than having to reverse map it.
                  */
                 prcode(fp,
-"    sipKeepReference(sipPy, -1, sipConvertFromType(sipSelf, sipType_%C, NULL));\n"
+"\n"
+"    {\n"
+"        PyObject *sipPySelf = sipConvertFromType(sipSelf, sipType_%C, NULL);\n"
+"\n"
+"        sipKeepReference(sipPy, -1, sipPySelf);\n"
+"        Py_DECREF(sipPySelf);\n"
+"    }\n"
 "\n"
 "    return sipPy;\n"
                     , classFQCName(vd->ecd));
