@@ -624,6 +624,13 @@ typedef enum {
 } ifaceFileType;
 
 
+/* A location in a .sip source file. */
+typedef struct {
+    int linenr;                         /* The line number. */
+    const char *name;                   /* The filename. */
+} sourceLocation;
+
+
 /* A software license. */
 
 typedef struct {
@@ -951,6 +958,7 @@ typedef struct _propertyDef {
 /* An overloaded member function definition. */
 
 typedef struct _overDef {
+    sourceLocation sloc;                /* The source location. */
     char *cppname;                      /* The C++ name. */
     int overflags;                      /* The overload flags. */
     KwArgs kwargs;                      /* The keyword argument support. */
@@ -1209,6 +1217,7 @@ void warning(Warning w, const char *fmt, ...);
 void deprecated(const char *msg);
 void fatal(char *,...);
 void fatalScopedName(scopedNameDef *);
+void getSourceLocation(sourceLocation *slp);
 int setInputFile(FILE *open_fp, parserContext *pc, int optional);
 void resetLexerState();
 void *sipMalloc(size_t n);

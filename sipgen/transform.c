@@ -796,7 +796,8 @@ static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd)
 
         if (mdhead == NULL)
         {
-            fatal("One of the arguments of ");
+            fatal("%s:%d: One of the arguments of ", od->sloc.name,
+                    od->sloc.linenr);
             prOverloadName(stderr, od);
             fatal(" must be a class or enum\n");
         }
@@ -811,14 +812,16 @@ static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd)
         {
             if (second)
             {
-                fatal("The first argument of ");
+                fatal("%s:%d: The first argument of ", od->sloc.name,
+                        od->sloc.linenr);
                 prOverloadName(stderr, od);
                 fatal(" must be a class or enum\n");
             }
 
             if (mod != gmd->module && arg0->atype == enum_type)
             {
-                fatal("The first argument of ");
+                fatal("%s:%d: The first argument of ", od->sloc.name,
+                        od->sloc.linenr);
                 prOverloadName(stderr, od);
                 fatal(" must be a class\n");
             }
@@ -1582,6 +1585,8 @@ static void transformScopeOverloads(sipSpec *pt, classDef *c_scope,
                 {
                     ifaceFileDef *iff;
 
+                    fatal("%s:%d: ", od->sloc.name, od->sloc.linenr);
+
                     if (mt_scope != NULL)
                         iff = mt_scope->iff;
                     else if (c_scope != NULL)
@@ -1919,26 +1924,29 @@ static void resolveFuncTypes(sipSpec *pt, moduleDef *mod, classDef *c_scope,
     if (isSSizeReturnSlot(od->common))
         if ((res->atype != ssize_type && res->atype != int_type) || res->nrderefs != 0 ||
             isReference(res) || isConstArg(res))
-            fatal("%s slots must return SIP_SSIZE_T\n",
-                    od->common->pyname->text);
+            fatal("%s:%d: %s slots must return SIP_SSIZE_T\n", od->sloc.name,
+                    od->sloc.linenr, od->common->pyname->text);
 
     /* These slots must return int. */
     if (isIntReturnSlot(od->common))
         if (res->atype != int_type || res->nrderefs != 0 ||
             isReference(res) || isConstArg(res))
-            fatal("%s slots must return int\n", od->common->pyname->text);
+            fatal("%s:%d: %s slots must return int\n", od->sloc.name,
+                    od->sloc.linenr, od->common->pyname->text);
 
     /* These slots must return void. */
     if (isVoidReturnSlot(od->common))
         if (res->atype != void_type || res->nrderefs != 0 ||
             isReference(res) || isConstArg(res))
-            fatal("%s slots must return void\n", od->common->pyname->text);
+            fatal("%s:%d: %s slots must return void\n", od->sloc.name,
+                    od->sloc.linenr, od->common->pyname->text);
 
     /* These slots must return long. */
     if (isLongReturnSlot(od->common))
         if (res->atype != long_type || res->nrderefs != 0 ||
             isReference(res) || isConstArg(res))
-            fatal("%s slots must return long\n", od->common->pyname->text);
+            fatal("%s:%d: %s slots must return long\n", od->sloc.name,
+                    od->sloc.linenr, od->common->pyname->text);
 }
 
 
@@ -1955,13 +1963,15 @@ static void resolvePySigTypes(sipSpec *pt, moduleDef *mod, classDef *scope,
     {
         if (issignal)
         {
+            fatal("%s:%d: ", od->sloc.name, od->sloc.linenr);
+
             if (scope != NULL)
             {
                 fatalScopedName(classFQCName(scope));
                 fatal("::");
             }
 
-            fatal("%s() signals must return void\n",od -> cppname);
+            fatal("%s() signals must return void\n", od->cppname);
         }
 
         getBaseType(pt, mod, scope, res);
@@ -1969,13 +1979,15 @@ static void resolvePySigTypes(sipSpec *pt, moduleDef *mod, classDef *scope,
         /* Results must be simple. */
         if (!supportedType(scope,od,res,FALSE) && (od -> cppsig == &od -> pysig || od -> methodcode == NULL))
         {
+            fatal("%s:%d: ", od->sloc.name, od->sloc.linenr);
+
             if (scope != NULL)
             {
                 fatalScopedName(classFQCName(scope));
                 fatal("::");
             }
 
-            fatal("%s() unsupported function return type - provide %%MethodCode and a %s signature\n",od -> cppname,(pt -> genc ? "C" : "C++"));
+            fatal("%s() unsupported function return type - provide %%MethodCode and a %s signature\n", od->cppname, (pt->genc ? "C" : "C++"));
         }
     }
 
@@ -1996,6 +2008,8 @@ static void resolvePySigTypes(sipSpec *pt, moduleDef *mod, classDef *scope,
         {
             if (!supportedType(scope,od,ad,FALSE))
             {
+                fatal("%s:%d: ", od->sloc.name, od->sloc.linenr);
+
                 if (scope != NULL)
                 {
                     fatalScopedName(classFQCName(scope));
@@ -2007,6 +2021,8 @@ static void resolvePySigTypes(sipSpec *pt, moduleDef *mod, classDef *scope,
         }
         else if (!supportedType(scope,od,ad,TRUE) && (od -> cppsig == &od -> pysig || od -> methodcode == NULL || (isVirtual(od) && od -> virthandler -> virtcode == NULL)))
         {
+            fatal("%s:%d: ", od->sloc.name, od->sloc.linenr);
+
             if (scope != NULL)
             {
                 fatalScopedName(classFQCName(scope));
@@ -2014,9 +2030,9 @@ static void resolvePySigTypes(sipSpec *pt, moduleDef *mod, classDef *scope,
             }
 
             if (isVirtual(od))
-                fatal("%s() unsupported function argument type - provide %%MethodCode, a valid %%VirtualCatcherCode and a valid C++ signature\n",od -> cppname);
+                fatal("%s() unsupported function argument type - provide %%MethodCode, a valid %%VirtualCatcherCode and a valid C++ signature\n", od->cppname);
 
-            fatal("%s() unsupported function argument type - provide %%MethodCode and a valid %s signature\n",od -> cppname,(pt -> genc ? "C" : "C++"));
+            fatal("%s() unsupported function argument type - provide %%MethodCode and a valid %s signature\n", od->cppname, (pt->genc ? "C" : "C++"));
         }
 
         if (scope != NULL)

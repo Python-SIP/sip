@@ -6598,6 +6598,8 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
 
     od = sipMalloc(sizeof (overDef));
 
+    getSourceLocation(&od->sloc);
+
     /* Set the overload flags. */
 
     if ((sflags & SECT_IS_PROT) && makeProtPublic)
