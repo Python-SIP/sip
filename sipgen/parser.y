@@ -2272,7 +2272,6 @@ codelines:  TK_CODELINE
             append(&$$->frag, $2->frag);
 
             free($2->frag);
-            free((char *)$2->filename);
             free($2);
         }
     ;
