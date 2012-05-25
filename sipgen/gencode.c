@@ -10580,6 +10580,12 @@ static void generateConstructorCall(classDef *cd, ctorDef *ct, int error_flag,
         int a;
         int rgil = ((release_gil || isReleaseGILCtor(ct)) && !isHoldGILCtor(ct));
 
+        if (raisesPyExceptionCtor(ct))
+            prcode(fp,
+"            PyErr_Clear();\n"
+"\n"
+                );
+
         if (rgil)
             prcode(fp,
 "            Py_BEGIN_ALLOW_THREADS\n"
@@ -10653,6 +10659,18 @@ static void generateConstructorCall(classDef *cd, ctorDef *ct, int error_flag,
     prcode(fp,
 "\n"
         );
+
+    if (raisesPyExceptionCtor(ct))
+    {
+        prcode(fp,
+"            if (PyErr_Occurred())\n"
+"            {\n"
+"                delete sipCpp;\n"
+"                return NULL;\n"
+"            }\n"
+"\n"
+                );
+    }
 
     if (error_flag)
     {

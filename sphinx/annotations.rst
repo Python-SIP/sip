@@ -698,8 +698,8 @@ Function Annotations
 
     .. versionadded:: 4.13.1
 
-    This boolean annotation specifies that the function does not raise a Python
-    exception to indicate that an error occurred.
+    This boolean annotation specifies that the function or constructor does not
+    raise a Python exception to indicate that an error occurred.
 
     .. seealso:: :fanno:`RaisesPyException`
 
@@ -759,10 +759,10 @@ Function Annotations
 
     .. versionadded:: 4.12.1
 
-    This boolean annotation specifies that the function raises a Python
-    exception to indicate that an error occurred.  Any current exception is
-    cleared before the function is called.  It is ignored if the
-    :directive:`%MethodCode` directive is used.
+    This boolean annotation specifies that the function or constructor raises a
+    Python exception to indicate that an error occurred.  Any current exception
+    is cleared before the function or constructor is called.  It is ignored if
+    the :directive:`%MethodCode` directive is used.
 
     .. seealso:: :fanno:`NoRaisesPyException`
 

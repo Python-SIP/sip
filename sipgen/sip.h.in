@@ -189,6 +189,7 @@
 #define CTOR_HOLD_GIL       0x00000800  /* The ctor holds the GIL. */
 #define CTOR_XFERRED        0x00001000  /* Ownership is transferred. */
 #define CTOR_IS_DEPRECATED  0x00002000  /* The ctor is deprecated. */
+#define CTOR_RAISES_PY_EXC  0x00004000  /* It raises a Python exception. */
 
 #define isPublicCtor(c)     ((c)->ctorflags & SECT_IS_PUBLIC)
 #define setIsPublicCtor(c)  ((c)->ctorflags |= SECT_IS_PUBLIC)
@@ -208,6 +209,8 @@
 #define setIsResultTransferredCtor(c)   ((c)->ctorflags |= CTOR_XFERRED)
 #define isDeprecatedCtor(c) ((c)->ctorflags & CTOR_IS_DEPRECATED)
 #define setIsDeprecatedCtor(c)  ((c)->ctorflags |= CTOR_IS_DEPRECATED)
+#define raisesPyExceptionCtor(c)    ((c)->ctorflags & CTOR_RAISES_PY_EXC)
+#define setRaisesPyExceptionCtor(c) ((c)->ctorflags |= CTOR_RAISES_PY_EXC)
 
 
 /* Handle member flags. */

@@ -3137,8 +3137,10 @@ simplector: TK_NAME_VALUE '(' arglist ')' optexceptions optflags optctorsig ';' 
                     "HoldGIL",
                     "KeywordArgs",
                     "NoDerived",
+                    "NoRaisesPyException",
                     "PostHook",
                     "PreHook",
+                    "RaisesPyException",
                     "ReleaseGIL",
                     "Transfer",
                     NULL
@@ -6452,6 +6454,12 @@ static void newCtor(moduleDef *mod, char *name, int sectFlags,
 
     if (!isPrivateCtor(ct))
         ct->kwargs = keywordArgs(mod, optflgs, &ct->pysig, FALSE);
+
+    if (methodcode == NULL && getOptFlag(optflgs, "NoRaisesPyException", bool_flag) == NULL)
+    {
+        if (allRaisePyException(mod) || getOptFlag(optflgs, "RaisesPyException", bool_flag) != NULL)
+            setRaisesPyExceptionCtor(ct);
+    }
 
     if (getOptFlag(optflgs, "NoDerived", bool_flag) != NULL)
     {

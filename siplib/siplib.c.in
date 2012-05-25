@@ -9075,8 +9075,6 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
         {
             sipInitExtenderDef *ie = wt->iextend;
 
-            assert(parseErr != NULL);
-
             /*
              * If we have not found an appropriate overload then try any
              * extenders.
