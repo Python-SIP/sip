@@ -209,6 +209,7 @@ static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
         memberDef *md, FILE *fp);
 static void generateCastZero(argDef *ad, FILE *fp);
 static void generateCallDefaultCtor(ctorDef *ct, FILE *fp);
+static void generateVoidPtrCast(argDef *ad, FILE *fp);
 static int countVirtuals(classDef *);
 static int skipOverload(overDef *, memberDef *, classDef *, classDef *, int);
 static int compareMethTab(const void *, const void *);
@@ -4640,8 +4641,9 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
     case struct_type:
     case void_type:
         prcode(fp,
-"    return sipConvertFrom%sVoidPtr(sipVal);\n"
-            , (isConstArg(&vd->type) ? "Const" : ""));
+"    return sipConvertFrom%sVoidPtr(", (isConstArg(&vd->type) ? "Const" : ""));
+        generateVoidPtrCast(&vd->type, fp);
+        prcode(fp, "sipVal);\n");
         break;
 
     case pyobject_type:
@@ -11451,16 +11453,24 @@ static void generateHandleResult(moduleDef *mod, overDef *od, int isNew,
 
     case void_type:
         {
-            const char *cnst = (isConstArg(ad) ? "Const" : "");
+            prcode(fp,
+"            %s sipConvertFrom%sVoidPtr", prefix, (isConstArg(ad) ? "Const" : ""));
 
             if (result_size < 0)
-                prcode(fp,
-"            %s sipConvertFrom%sVoidPtr(%s);\n"
-                    , prefix, cnst, vname);
+            {
+                prcode(fp, "(");
+                generateVoidPtrCast(ad, fp);
+                prcode(fp, "%s", vname);
+            }
             else
-                prcode(fp,
-"            %s sipConvertFrom%sVoidPtrAndSize(%s,%a);\n"
-                    , prefix, cnst, vname, mod, &od->pysig.args[result_size], result_size);
+            {
+                prcode(fp, "AndSize(");
+                generateVoidPtrCast(ad, fp);
+                prcode(fp, "%s,%a", vname, mod, &od->pysig.args[result_size], result_size);
+            }
+
+            prcode(fp, ");\n"
+                    );
         }
 
         break;
@@ -14311,4 +14321,19 @@ static void generateModDocstring(moduleDef *mod, FILE *fp)
         prcode(fp, ");\n"
             );
     }
+}
+
+
+/*
+ * Generate a void* cast for an argument if needed.
+ */
+static void generateVoidPtrCast(argDef *ad, FILE *fp)
+{
+    /*
+     * Generate a cast if the argument's type was a typedef.  This allows us to
+     * use typedef's to void* to hide something more complex that we don't
+     * handle.
+     */
+    if (ad->original_type != NULL)
+        prcode(fp, "(%svoid *)", (isConstArg(ad) ? "const " : ""));
 }
