@@ -3373,7 +3373,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                                 break;
                             }
                         }
-                        else if (a < nr_pos_args)
+                        else if (a < nr_pos_args - *selfargp)
                         {
                             /*
                              * The argument has been given positionally and as
@@ -3403,7 +3403,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
         }
         else if (sipKwdArgs != NULL && kwdlist != NULL)
         {
-            const char *name = kwdlist[argnr];
+            const char *name = kwdlist[argnr - *selfargp];
 
             if (name != NULL)
             {
