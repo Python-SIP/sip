@@ -1,4 +1,4 @@
-v4.13.3 ??? ??? 2012
+v4.13.3 ??? June 2012
   - The /NoRaisesPyException/ and /RaisesPyException/ function annotations can
     now be applied to constructors.
   - Added support for the Python v3.3 handling of Unicode.

@@ -4655,7 +4655,7 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, PyObject *sipArgs,
         }
         else if (sipKwdArgs != NULL)
         {
-            const char *name = kwdlist[a];
+            const char *name = kwdlist[a - selfarg];
 
             if (name != NULL)
                 arg = PyDict_GetItemString(sipKwdArgs, name);
