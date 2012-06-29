@@ -833,7 +833,7 @@ specification files.
         Use :cfunc:`sipFindType()` instead.
 
     This returns a pointer to the :ref:`generated type object
-    <ref-type-objects` corresponding to a C/C++ type.
+    <ref-type-objects>` corresponding to a C/C++ type.
 
     :param type:
         the C/C++ declaration of the type.
