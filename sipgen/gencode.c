@@ -4265,9 +4265,9 @@ static void generateConvertToDefinitions(mappedTypeDef *mtd,classDef *cd,
         int need_py, need_ptr, need_iserr, need_xfer;
 
         /*
-         * Sometimes type convertors are just stubs that set the error
-         * flag, so check if we actually need everything so that we
-         * can avoid compiler warnings.
+         * Sometimes type convertors are just stubs that set the error flag, so
+         * check if we actually need everything so that we can avoid compiler
+         * warnings.
          */
         need_py = (generating_c || usedInCode(convtocode, "sipPy"));
         need_ptr = (generating_c || usedInCode(convtocode, "sipCppPtr"));
@@ -6890,8 +6890,8 @@ static void generateVirtHandlerErrorReturn(argDef *res, const char *indent,
         argDef res_noconstref;
 
         /*
-         * We don't know anything about the mapped type so we just hope
-         * is has a default ctor.
+         * We don't know anything about the mapped type so we just hope is has
+         * a default ctor.
          */
 
         if (isReference(res))
@@ -6907,16 +6907,16 @@ static void generateVirtHandlerErrorReturn(argDef *res, const char *indent,
         ctorDef *ct = res->u.cd->defctor;
 
         /*
-         * If we don't have a suitable ctor then the generated code
-         * will issue an error message.
+         * If we don't have a suitable ctor then the generated code will issue
+         * an error message.
          */
         if (ct != NULL && isPublicCtor(ct) && ct->cppsig != NULL)
         {
             argDef res_noconstref;
 
             /*
-             * If this is a badly designed class.  We can only
-             * generate correct code by leaking memory.
+             * If this is a badly designed class.  We can only generate correct
+             * code by leaking memory.
              */
             if (isReference(res))
                 prcode(fp,"*new ");
@@ -7431,8 +7431,7 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
         else
         {
             /*
-             * We initialise the result to try and suppress a
-             * compiler warning.
+             * We initialise the result to try and suppress a compiler warning.
              */
             prcode(fp," = ");
             generateCastZero(res,fp);
@@ -10245,8 +10244,8 @@ static void generateTypeInit(classDef *cd, moduleDef *mod, FILE *fp)
     int need_self, need_owner;
 
     /*
-     * See if we need to name the self and owner arguments so that we can
-     * avoid a compiler warning about an unused argument.
+     * See if we need to name the self and owner arguments so that we can avoid
+     * a compiler warning about an unused argument.
      */
     need_self = (generating_c || hasShadow(cd));
     need_owner = generating_c;
@@ -10782,8 +10781,8 @@ static int skipOverload(overDef *od,memberDef *md,classDef *cd,classDef *ccd,
         return TRUE;
 
     /*
-     * If we are disallowing them, skip if it's not in the current class
-     * unless it is protected.
+     * If we are disallowing them, skip if it's not in the current class unless
+     * it is protected.
      */
     if (want_local && !isProtected(od) && ccd != cd)
         return TRUE;
@@ -10802,19 +10801,16 @@ static void generateFunction(sipSpec *pt, memberDef *md, overDef *overs,
     int need_method, need_self, need_args, need_selfarg, need_orig_self;
 
     /*
-     * Check that there is at least one overload that needs to be handled.
-     * See if we can avoid naming the "self" argument (and suppress a
-     * compiler warning).  See if we need to remember if "self" was explicitly
-     * passed as an argument.  See if we need to handle keyword arguments.
+     * Check that there is at least one overload that needs to be handled.  See
+     * if we can avoid naming the "self" argument (and suppress a compiler
+     * warning).  See if we need to remember if "self" was explicitly passed as
+     * an argument.  See if we need to handle keyword arguments.
      */
     need_method = need_self = need_args = need_selfarg = need_orig_self = FALSE;
 
     for (od = overs; od != NULL; od = od->next)
     {
-        /*
-         * Skip protected methods if we don't have the means to handle
-         * them.
-         */
+        /* Skip protected methods if we don't have the means to handle them. */
         if (isProtected(od) && !hasShadow(cd))
             continue;
 
@@ -11684,8 +11680,7 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
         );
 
     /*
-     * If there is no shadow class then protected methods can never be
-     * called.
+     * If there is no shadow class then protected methods can never be called.
      */
     if (isProtected(od) && !hasShadow(c_scope))
     {
@@ -11721,9 +11716,8 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
         generateNamedValueType(scope, res, "sipRes", fp);
 
         /*
-         * The typical %MethodCode usually causes a compiler warning,
-         * so we initialise the result in that case to try and suppress
-         * it.
+         * The typical %MethodCode usually causes a compiler warning, so we
+         * initialise the result in that case to try and suppress it.
          */
         if (od->methodcode != NULL)
         {
