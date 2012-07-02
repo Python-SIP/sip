@@ -38,7 +38,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'SIP'
-copyright = u'2011 Riverbank Computing Limited'
+copyright = u'2012 Riverbank Computing Limited'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
