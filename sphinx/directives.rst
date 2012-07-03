@@ -1419,6 +1419,32 @@ For example::
     %End
 
 
+.. directive:: %InstanceCode
+
+.. versionadded:: 4.14
+
+.. parsed-literal::
+
+    %InstanceCode
+        *code*
+    %End
+
+There are a number of circumstances where SIP needs to create an instance of a
+C++ class but may not be able to do so.  For example the C++ class may be
+abstract or may not have an argumentless public constructor.  This directive is
+used in the definition of a class or mapped type to specify handwritten code to
+create an instance of the C++ class.  For example, if the C++ class is
+abstract, then the handwritten code may return an instance of a concrete
+sub-class.
+
+The following variable is made available to the handwritten code:
+
+*type* \*sipCpp
+    This must be set by the handwritten code to the address of an instance of
+    the C++ class.  It doesn't matter if the instance is on the heap or not as
+    it will never be explicitly destroyed.
+
+
 .. directive:: %License
 
 .. parsed-literal::

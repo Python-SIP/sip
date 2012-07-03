@@ -557,7 +557,8 @@ Function Annotations
     compulsory arguments if one is specified.  (SIP will automatically generate
     a constructor with no arguments if no constructors are specified.)  This
     annotation is used to explicitly specify which constructor to use.  Zero is
-    passed as the value of any arguments to the constructor.
+    passed as the value of any arguments to the constructor.  This annotation
+    is ignored if the class defines :directive:`%InstanceCode`.
 
 
 .. function-annotation:: Deprecated

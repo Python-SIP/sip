@@ -446,6 +446,12 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
     return TK_CHARBUFFERCODE;
 }
 
+^[ \t]*%InstanceCode {
+    /* The start of a create instance code block. */
+    codeIdx = 0;
+    return TK_INSTANCECODE;
+}
+
 ^[ \t]*%PickleCode {
     /* The start of a pickle code block. */
     codeIdx = 0;

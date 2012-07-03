@@ -252,6 +252,7 @@ static void handleKeepReference(optFlags *optflgs, argDef *ad, moduleDef *mod);
 %token          TK_CHARBUFFERCODE
 %token          TK_PICKLECODE
 %token          TK_METHODCODE
+%token          TK_INSTANCECODE
 %token          TK_FROMTYPE
 %token          TK_TOTYPE
 %token          TK_TOSUBCLASS
@@ -389,6 +390,7 @@ static void handleKeepReference(optFlags *optflgs, argDef *ad, moduleDef *mod);
 %type <codeb>           codelines
 %type <codeb>           virtualcatchercode
 %type <codeb>           methodcode
+%type <codeb>           instancecode
 %type <codeb>           raisecode
 %type <codeb>           docstring
 %type <codeb>           optdocstring
@@ -1066,6 +1068,15 @@ mtline: ifstart
                     yyerror("%MappedType has more than one %ConvertToTypeCode directive");
 
                 appendCodeBlock(&currentMappedType->convtocode, $2);
+            }
+        }
+    |   instancecode {
+            if (notSkipping())
+            {
+                if (currentMappedType->instancecode != NULL)
+                    yyerror("%MappedType has more than one %InstanceCode directive");
+
+                appendCodeBlock(&currentMappedType->instancecode, $1);
             }
         }
     |   enum
@@ -1999,6 +2010,11 @@ charbufcode:    TK_CHARBUFFERCODE codeblock {
         }
     ;
 
+instancecode:   TK_INSTANCECODE codeblock {
+            $$ = $2;
+        }
+    ;
+
 picklecode: TK_PICKLECODE codeblock {
             $$ = $2;
         }
@@ -2885,6 +2901,17 @@ classline:  ifstart
                     yyerror("%BIGetCharBufferCode already given for class");
 
                 appendCodeBlock(&scope->charbufcode, $1);
+            }
+        }
+    |   instancecode {
+            if (notSkipping())
+            {
+                classDef *scope = currentScope();
+
+                if (scope->instancecode != NULL)
+                    yyerror("%InstanceCode already given for class");
+
+                appendCodeBlock(&scope->instancecode, $1);
             }
         }
     |   picklecode {
@@ -5592,6 +5619,7 @@ static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod,
     cd->writebufcode = templateCode(pt, used, cd->writebufcode, type_names, type_values);
     cd->segcountcode = templateCode(pt, used, cd->segcountcode, type_names, type_values);
     cd->charbufcode = templateCode(pt, used, cd->charbufcode, type_names, type_values);
+    cd->instancecode = templateCode(pt, used, cd->instancecode, type_names, type_values);
     cd->picklecode = templateCode(pt, used, cd->picklecode, type_names, type_values);
     cd->next = pt->classes;
 

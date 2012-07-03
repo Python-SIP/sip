@@ -115,6 +115,7 @@ file.
             :directive:`%Docstring` |
             :directive:`%GCClearCode` |
             :directive:`%GCTraverseCode` |
+            :directive:`%InstanceCode` |
             :directive:`%PickleCode` |
             :directive:`%TypeCode` |
             :directive:`%TypeHeaderCode` |

@@ -126,7 +126,7 @@ static void generateEmitters(moduleDef *mod, classDef *cd, FILE *fp);
 static void generateEmitter(moduleDef *, classDef *, visibleList *, FILE *);
 static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
         FILE *fp);
-static void generateVirtHandlerErrorReturn(argDef *res, const char *indent,
+static void generateDefaultInstanceReturn(argDef *res, const char *indent,
         FILE *fp);
 static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
         virtOverDef *vod, FILE *fp);
@@ -6554,7 +6554,7 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
         );
 
     if (isAbstract(od))
-        generateVirtHandlerErrorReturn(res, "        ", fp);
+        generateDefaultInstanceReturn(res, "    ", fp);
     else
     {
         int a;
@@ -6653,7 +6653,7 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
 
         /* Generate a default result in case no API is enabled. */
         if (isAbstract(od))
-            generateVirtHandlerErrorReturn(res, "    ", fp);
+            generateDefaultInstanceReturn(res, "", fp);
         else
         {
             int a;
@@ -6866,24 +6866,68 @@ static void generateCastZero(argDef *ad,FILE *fp)
 
 
 /*
- * Generate the return statement for a virtual handler when there has been an
- * error (ie. there is nothing sensible to return).
+ * Generate a statement to return the default instance of a type typically on
+ * error (ie. when there is nothing sensible to return).
  */
-static void generateVirtHandlerErrorReturn(argDef *res, const char *indent,
+static void generateDefaultInstanceReturn(argDef *res, const char *indent,
         FILE *fp)
 {
-    prcode(fp,
-"%sreturn", indent);
+    codeBlockList *instance_code;
 
+    /* Handle the trivial case. */
     if (res == NULL)
     {
-        prcode(fp,";\n"
-            );
+        prcode(fp,
+"%s    return;\n"
+            , indent);
 
         return;
     }
 
-    prcode(fp," ");
+    /* Handle any %InstanceCode. */
+    instance_code = NULL;
+
+    if (res->nrderefs == 0)
+        if (res->atype == mapped_type)
+            instance_code = res->u.mtd->instancecode;
+        else if (res->atype == class_type)
+            instance_code = res->u.cd->instancecode;
+
+    if (instance_code != NULL)
+    {
+        argDef res_noconstref;
+
+        res_noconstref = *res;
+        resetIsConstArg(&res_noconstref);
+        resetIsReference(&res_noconstref);
+
+        prcode(fp,
+"%s{\n"
+"%s    static %B *sipCpp = 0;\n"
+"\n"
+"%s    if (!sipCpp)\n"
+"%s    {\n"
+            , indent
+            , indent, &res_noconstref
+            , indent
+            , indent);
+
+        generateCppCodeBlock(instance_code, fp);
+
+        prcode(fp,
+"%s    }\n"
+"\n"
+"%s    return *sipCpp;\n"
+"%s}\n"
+            , indent
+            , indent
+            , indent);
+
+        return;
+    }
+
+    prcode(fp,
+"%s    return ", indent);
 
     if (res->atype == mapped_type && res->nrderefs == 0)
     {
@@ -7599,7 +7643,7 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
 "    if (sipIsErr)\n"
                 );
 
-            generateVirtHandlerErrorReturn(res, "        ", fp);
+            generateDefaultInstanceReturn(res, "    ", fp);
         }
 
         prcode(fp,
