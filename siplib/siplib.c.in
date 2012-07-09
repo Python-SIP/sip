@@ -7855,9 +7855,9 @@ static int checkPointer(void *ptr, sipSimpleWrapper *sw)
     if (ptr == NULL)
     {
         PyErr_Format(PyExc_RuntimeError, (sipWasCreated(sw) ?
-                        "wrapped C/C++ object of %S has been deleted" :
-                        "super-class __init__() of %S was never called"),
-                (PyObject *)sw);
+                        "wrapped C/C++ object of type %s has been deleted" :
+                        "super-class __init__() of type %s was never called"),
+                Py_TYPE(sw)->tp_name);
         return -1;
     }
 
