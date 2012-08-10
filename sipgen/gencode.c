@@ -4619,6 +4619,15 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
 
     case ubyte_type:
     case ushort_type:
+        prcode(fp,
+"#if PY_MAJOR_VERSION >= 3\n"
+"    return PyLong_FromUnsignedLong(sipVal);\n"
+"#else\n"
+"    return PyInt_FromLong(sipVal);\n"
+"#endif\n"
+            );
+        break;
+
     case uint_type:
     case ulong_type:
         prcode(fp,
@@ -11469,11 +11478,22 @@ static void generateHandleResult(moduleDef *mod, overDef *od, int isNew,
 
     case ubyte_type:
     case ushort_type:
+        prcode(fp,
+"#if PY_MAJOR_VERSION >= 3\n"
+"            %s PyLong_FromUnsignedLong(%s);\n"
+"#else\n"
+"            %s PyInt_FromLong(%s);\n"
+"#endif\n"
+            , prefix, vname
+            , prefix, vname);
+
+        break;
+
     case uint_type:
     case ulong_type:
         prcode(fp,
 "            %s PyLong_FromUnsignedLong(%s);\n"
-            ,prefix,vname);
+            , prefix, vname);
 
         break;
 
