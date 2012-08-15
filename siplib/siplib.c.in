@@ -969,8 +969,14 @@ static PyObject *transferTo(PyObject *self, PyObject *args)
     if (PyArg_ParseTuple(args, "O!O:transferto", &sipWrapper_Type, &w, &owner))
     {
         if (owner == Py_None)
+        {
+            /*
+             * Note that the Python API is different to the C API when the
+             * owner is None.
+             */
             owner = NULL;
-        else if (PyObject_TypeCheck(owner, (PyTypeObject *)&sipWrapper_Type))
+        }
+        else if (!PyObject_TypeCheck(owner, (PyTypeObject *)&sipWrapper_Type))
         {
             PyErr_Format(PyExc_TypeError, "transferto() argument 2 must be sip.wrapper, not %s", Py_TYPE(owner)->tp_name);
             return NULL;
@@ -6979,7 +6985,8 @@ static void sip_api_transfer_back(PyObject *self)
 
 
 /*
- * Break the association of a C++ owned Python object with any parent.
+ * Break the association of a C++ owned Python object with any parent.  This is
+ * deprecated because it is the equivalent of sip_api_transfer_to(self, NULL).
  */
 static void sip_api_transfer_break(PyObject *self)
 {
@@ -7011,33 +7018,68 @@ static void sip_api_transfer_to(PyObject *self, PyObject *owner)
      * handwritten code that converts a regular Python type - so we can't
      * assume that we can simply cast to sipWrapper.
      */
-    if (self != NULL &&
-            PyObject_TypeCheck(self, (PyTypeObject *)&sipWrapper_Type) &&
-            (owner == NULL ||
-                    PyObject_TypeCheck(owner, (PyTypeObject *)&sipWrapper_Type)))
+    if (self != NULL && PyObject_TypeCheck(self, (PyTypeObject *)&sipWrapper_Type))
     {
         sipSimpleWrapper *sw = (sipSimpleWrapper *)self;
 
-        /*
-         * Keep the object alive while we do the transfer.  If C++ has a
-         * reference then there is no need to increment it, just reset the flag
-         * and the following decrement will bring everything back to the way it
-         * should be.
-         */
-        if (sipCppHasRef(sw))
-            sipResetCppHasRef(sw);
-        else
+        if (owner == NULL)
         {
-            Py_INCREF(sw);
-            removeFromParent((sipWrapper *)sw);
-        }
+            /* There is no owner. */
 
-        if (owner != NULL)
+            if (sipCppHasRef(sw))
+            {
+                sipResetCppHasRef(sw);
+            }
+            else
+            {
+                Py_INCREF(sw);
+                removeFromParent((sipWrapper *)sw);
+                sipResetPyOwned(sw);
+            }
+
+            Py_DECREF(sw);
+        }
+        else if (owner == Py_None)
+        {
+            /*
+             * The owner is a C++ instance and not a Python object (ie. there
+             * is no parent) so there is an explicit extra reference to keep
+             * this Python object alive.  Note that there is no way to
+             * specify this from a .sip file - it is useful when embedding in
+             * C/C++ applications.
+             */
+
+            if (!sipCppHasRef(sw))
+            {
+                Py_INCREF(sw);
+                removeFromParent((sipWrapper *)sw);
+                sipResetPyOwned(sw);
+
+                sipSetCppHasRef(sw);
+            }
+        }
+        else if (PyObject_TypeCheck(owner, (PyTypeObject *)&sipWrapper_Type))
+        {
+            /*
+             * The owner is a Python object (ie. the C++ instance that the
+             * Python object wraps).
+             */
+
+            if (sipCppHasRef(sw))
+            {
+                sipResetCppHasRef(sw);
+            }
+            else
+            {
+                Py_INCREF(sw);
+                removeFromParent((sipWrapper *)sw);
+                sipResetPyOwned(sw);
+            }
+
             addToParent((sipWrapper *)sw, (sipWrapper *)owner);
 
-        Py_DECREF(sw);
-
-        sipResetPyOwned(sw);
+            Py_DECREF(sw);
+        }
     }
 }
 

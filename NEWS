@@ -1,3 +1,9 @@
+v4.14 ???
+  - Added the %InstanceCode directive.
+  - Deprecated sipTransferBreak().
+  - For Python v2.x unsigned short and unsigned char (when used as a byte) are
+    no converted to int, rather than long, objects.
+
 v4.13.3 20th June 2012
   - The /NoRaisesPyException/ and /RaisesPyException/ function annotations can
     now be applied to constructors.

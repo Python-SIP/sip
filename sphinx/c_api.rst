@@ -1506,6 +1506,11 @@ specification files.
     :param obj:
         the wrapped instance.
 
+    .. deprecated:: 4.14
+        Use the following instead:
+
+            sipTransferTo(obj, NULL);
+
 
 .. cfunction:: void sipTransferTo(PyObject *obj, PyObject *owner)
 
@@ -1517,9 +1522,11 @@ specification files.
     :param owner:
         an optional wrapped instance that *obj* becomes associated with with
         regard to the cyclic garbage collector.  If *owner* is ``NULL`` then no
-        such association is made.  If *owner* is the same value as *obj* then
-        any reference cycles involving *obj* can never be detected or broken by
-        the cyclic garbage collector.  Responsibility for calling the C++
+        such association is made.  If *owner* is ``Py_None`` then *obj* is
+        given an extra reference which is removed when the C++ instance's
+        destructor is called.  If *owner* is the same value as *obj* then any
+        reference cycles involving *obj* can never be detected or broken by the
+        cyclic garbage collector.  Responsibility for calling the C++
         instance's destructor is always transfered to C++.
 
 
