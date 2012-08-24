@@ -1872,11 +1872,6 @@ static void resolveCtorTypes(sipSpec *pt,classDef *scope,ctorDef *ct)
 {
     int a;
 
-    /* Handle any C++ signature. */
-    if (ct->cppsig != NULL && ct->cppsig != &ct->pysig)
-        for (a = 0; a < ct -> cppsig -> nrArgs; ++a)
-            getBaseType(pt, scope->iff->module, scope, &ct->cppsig->args[a]);
- 
     /* Handle the Python signature. */
     for (a = 0; a < ct -> pysig.nrArgs; ++a)
     {
@@ -1904,17 +1899,6 @@ static void resolveFuncTypes(sipSpec *pt, moduleDef *mod, classDef *c_scope,
 {
     argDef *res;
 
-    /* Handle any C++ signature. */
-    if (od->cppsig != &od->pysig)
-    {
-        int a;
-
-        getBaseType(pt, mod, c_scope, &od->cppsig->result);
-
-        for (a = 0; a < od->cppsig->nrArgs; ++a)
-            getBaseType(pt, mod, c_scope, &od->cppsig->args[a]);
-    }
- 
     /* Handle the Python signature. */
     resolvePySigTypes(pt, mod, c_scope, od, &od->pysig, isSignal(od));
 
