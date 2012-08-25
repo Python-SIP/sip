@@ -1835,6 +1835,7 @@ then the pattern should instead be::
 
     %Module(name = *dotted-name*
             [, all_raise_py_exception = [True | False]]
+            [, all_throw_cpp_exception = [True | False]]
             [, keyword_arguments = ["None" | "All" | "Optional"]]
             [, language = *string*]
             [, use_argument_names = [True | False]]
@@ -1849,9 +1850,16 @@ attributes.  ``name`` may contain periods to specify that the module is part of
 a Python package.
 
 ``all_raise_py_exception`` specifies that all constructors, functions and
-methods defined in in the module raise a Python exception to indicate that an
+methods defined in the module raise a Python exception to indicate that an
 error occurred.  It is the equivalent of using the :fanno:`RaisesPyException`
 function annotation on every constructor, function and method.
+
+``all_throw_cpp_exception`` specifies that all virtual methods defined in the
+module throw the ``SIPPyException`` C++ exception to indicate that a Python
+exception was raised when executing a Python reimplementation of the method.
+By default the ``PyErr_Print()`` function is called.  It is the equivalent of
+using the :fanno:`ThrowsCppException` function annotation on every virtual
+method.
 
 ``keyword_arguments`` specifies the default level of support for Python keyword
 arguments.  See the :fanno:`KeywordArgs` annotation for an explaination of the

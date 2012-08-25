@@ -7530,8 +7530,9 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
             prcode(fp,
 "\n"
 "    if (%s)\n"
-"        PyErr_Print();\n"
-                , (error_flag ? "sipError != sipErrorNone" : "sipIsErr"));
+"        %s;\n"
+                , (error_flag ? "sipError != sipErrorNone" : "sipIsErr")
+                , (throwsCppException(vhd) ? "throw SIPPyException()" : "PyErr_Print()"));
 
         prcode(fp,
 "\n"
@@ -7631,9 +7632,14 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
         prcode(fp,") < 0)\n"
             );
 
-    prcode(fp,
+    if (throwsCppException(vhd))
+        prcode(fp,
+"        throw SIPPyException();\n"
+            );
+    else
+        prcode(fp,
 "        PyErr_Print();\n"
-        );
+            );
 
     prcode(fp,
 "\n"

@@ -705,6 +705,18 @@ Function Annotations
     .. seealso:: :fanno:`RaisesPyException`
 
 
+.. function-annotation:: NoThrowsCppException
+
+    .. versionadded:: 4.14
+
+    This boolean annotation specifies that the virtual method does not throw
+    the ``SIPPyException`` C++ exception to indicate that a Python exception
+    was raised when executing a Python reimplementation of the method.  Instead
+    the ``PyErr_Print()`` function is called.
+
+    .. seealso:: :fanno:`ThrowsCppException`
+
+
 .. function-annotation:: Numeric
 
     This boolean annotation specifies that the operator should be interpreted
@@ -775,6 +787,18 @@ Function Annotations
     reacquired afterwards.  It should be used for functions that might block or
     take a significant amount of time to execute.  See :ref:`ref-gil` and the
     :fanno:`HoldGIL` annotation.
+
+
+.. function-annotation:: ThrowsCppException
+
+    .. versionadded:: 4.14
+
+    This boolean annotation specifies that the virtual method throws the
+    ``SIPPyException`` C++ exception to indicate that a Python exception was
+    raised when executing a Python reimplementation of the method.  By default
+    the ``PyErr_Print()`` function is called.
+
+    .. seealso:: :fanno:`NoThrowsCppException`
 
 
 .. function-annotation:: Transfer

@@ -341,6 +341,13 @@ typedef int (*sipVariableSetterFunc)(void *, PyObject *, PyObject *);
 
 
 /*
+ * The exception that is raised by virtual handlers when a Python exception has
+ * been raised.
+ */
+struct SIPPyException {};
+
+
+/*
  * The meta-type of a wrapper type.
  */
 typedef struct _sipWrapperType {

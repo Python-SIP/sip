@@ -62,6 +62,7 @@
 #define MOD_IS_TRANSFORMED      0x0008  /* It's types have been transformed. */
 #define MOD_USE_ARG_NAMES       0x0010  /* Use real argument names. */
 #define MOD_ALL_RAISE_PY_EXC    0x0020  /* All callable raise a Python exception. */
+#define MOD_ALL_THROW_CPP_EXC   0x0040  /* All virtual handlers throw a C++ exception. */
 
 #define hasDelayedDtors(m)  ((m)->modflags & MOD_HAS_DELAYED_DTORS)
 #define setHasDelayedDtors(m)   ((m)->modflags |= MOD_HAS_DELAYED_DTORS)
@@ -76,6 +77,8 @@
 #define useArgNames(m)      ((m)->modflags & MOD_USE_ARG_NAMES)
 #define setAllRaisePyException(m)   ((m)->modflags |= MOD_ALL_RAISE_PY_EXC)
 #define allRaisePyException(m)  ((m)->modflags & MOD_ALL_RAISE_PY_EXC)
+#define setAllThrowCppException(m)  ((m)->modflags |= MOD_ALL_THROW_CPP_EXC)
+#define allThrowCppException(m) ((m)->modflags & MOD_ALL_THROW_CPP_EXC)
 
 
 /* Handle section flags. */
@@ -423,12 +426,15 @@
 
 #define VH_IS_DUPLICATE     0x01    /* It is a duplicate. */
 #define VH_TRANSFERS        0x02    /* It transfers ownership of the result. */
+#define VH_THROWS_CPP_EXC   0x04    /* It throws a C++ exception. */
 
 #define isDuplicateVH(vh)   ((vh)->vhflags & VH_IS_DUPLICATE)
 #define setIsDuplicateVH(vh)    ((vh)->vhflags |= VH_IS_DUPLICATE)
 #define resetIsDuplicateVH(vh)  ((vh)->vhflags &= ~VH_IS_DUPLICATE)
 #define isTransferVH(vh)    ((vh)->vhflags & VH_TRANSFERS)
 #define setIsTransferVH(vh) ((vh)->vhflags |= VH_TRANSFERS)
+#define throwsCppException(vh)  ((vh)->vhflags & VH_THROWS_CPP_EXC)
+#define setThrowsCppException(vh)   ((vh)->vhflags |= VH_THROWS_CPP_EXC)
 
 
 /* Handle mapped type flags. */
@@ -1416,6 +1422,7 @@ typedef struct _moduleCfg {
     const char *name;
     int use_arg_names;
     int all_raise_py_exc;
+    int all_throw_cpp_exc;
     int version;
     codeBlock *docstring;
 } moduleCfg;
