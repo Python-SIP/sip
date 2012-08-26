@@ -7526,13 +7526,12 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
 
         generateCppCodeBlock(vhd->virtcode,fp);
 
-        if (error_flag || old_error_flag)
+        if (!throwsCppException(vhd) && (error_flag || old_error_flag))
             prcode(fp,
 "\n"
 "    if (%s)\n"
-"        %s;\n"
-                , (error_flag ? "sipError != sipErrorNone" : "sipIsErr")
-                , (throwsCppException(vhd) ? "throw SIPPyException()" : "PyErr_Print()"));
+"        PyErr_Print();\n"
+                , (error_flag ? "sipError != sipErrorNone" : "sipIsErr"));
 
         prcode(fp,
 "\n"
@@ -7540,6 +7539,13 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
 "\n"
 "    SIP_RELEASE_GIL(sipGILState)\n"
             );
+
+        if (throwsCppException(vhd) && (error_flag || old_error_flag))
+            prcode(fp,
+"\n"
+"    if (%s)\n"
+"        throw SIPPyException();\n"
+                , (error_flag ? "sipError != sipErrorNone" : "sipIsErr"));
 
         if (res != NULL)
             prcode(fp,
@@ -7570,9 +7576,9 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
     generateTupleBuilder(mod, vhd->pysig, fp);
     *vhd->pysig = saved;
 
-    prcode(fp,");\n"
+    prcode(fp, ");\n"
 "\n"
-"    %s (!resObj || sipParseResult(0,sipMethod,resObj,\"",(res_isref ? "int sipIsErr =" : "if"));
+"    %s (!resObj || sipParseResult(0,sipMethod,resObj,\"", (throwsCppException(vhd) || res_isref) ? "bool sipIsErr =" : "if");
 
     /* Build the format string. */
     if (need_self)
@@ -7623,7 +7629,10 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
         }
     }
 
-    if (res_isref)
+    if (throwsCppException(vhd))
+        prcode(fp, ") < 0);\n"
+            );
+    else if (res_isref)
         prcode(fp,") < 0);\n"
 "\n"
 "    if (sipIsErr)\n"
@@ -7632,11 +7641,7 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
         prcode(fp,") < 0)\n"
             );
 
-    if (throwsCppException(vhd))
-        prcode(fp,
-"        throw SIPPyException();\n"
-            );
-    else
+    if (!throwsCppException(vhd))
         prcode(fp,
 "        PyErr_Print();\n"
             );
@@ -7649,9 +7654,16 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
 "    SIP_RELEASE_GIL(sipGILState)\n"
         );
 
+    if (throwsCppException(vhd))
+        prcode(fp,
+"\n"
+"    if (sipIsErr)\n"
+"        throw SIPPyException();\n"
+            );
+
     if (res != NULL)
     {
-        if (res_isref)
+        if (!throwsCppException(vhd) && res_isref)
         {
             prcode(fp,
 "\n"
@@ -7664,7 +7676,7 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
         prcode(fp,
 "\n"
 "    return %ssipRes;\n"
-            ,(res_isref ? "*" : ""));
+            , (res_isref ? "*" : ""));
     }
 
     prcode(fp,
