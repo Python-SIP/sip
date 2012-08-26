@@ -64,7 +64,6 @@ static void resolveFuncTypes(sipSpec *pt, moduleDef *mod, classDef *c_scope,
 static void resolvePySigTypes(sipSpec *,moduleDef *,classDef *,overDef *,signatureDef *,int);
 static void resolveVariableType(sipSpec *,varDef *);
 static void fatalNoDefinedType(scopedNameDef *);
-static void getBaseType(sipSpec *,moduleDef *,classDef *,argDef *,int);
 static void resolveType(sipSpec *,moduleDef *,classDef *,argDef *,int);
 static void searchClassScope(sipSpec *,classDef *,scopedNameDef *,argDef *);
 static void searchMappedTypes(sipSpec *,moduleDef *,scopedNameDef *,argDef *);
@@ -1369,7 +1368,7 @@ static void transformTypedefs(sipSpec *pt, moduleDef *mod)
     for (td = pt->typedefs; td != NULL; td = td->next)
         if (td->module == mod)
             if (td->ecd == NULL || !isTemplateClass(td->ecd))
-                getBaseType(pt, td->module, td->ecd, &td->type, FALSE);
+                resolveType(pt, td->module, td->ecd, &td->type, FALSE);
 }
 
 
@@ -1443,7 +1442,7 @@ static void transformCasts(sipSpec *pt, classDef *cd)
     {
         classDef *dcd;
 
-        getBaseType(pt, cd->iff->module, cd, &al->arg, FALSE);
+        resolveType(pt, cd->iff->module, cd, &al->arg, FALSE);
 
         if (al->arg.atype == class_type)
             dcd = al->arg.u.cd;
@@ -1875,7 +1874,7 @@ static void resolveCtorTypes(sipSpec *pt,classDef *scope,ctorDef *ct)
     /* Handle any C++ signature. */
     if (ct->cppsig != NULL && ct->cppsig != &ct->pysig)
         for (a = 0; a < ct -> cppsig -> nrArgs; ++a)
-            getBaseType(pt, scope->iff->module, scope, &ct->cppsig->args[a],
+            resolveType(pt, scope->iff->module, scope, &ct->cppsig->args[a],
                     TRUE);
  
     /* Handle the Python signature. */
@@ -1883,7 +1882,7 @@ static void resolveCtorTypes(sipSpec *pt,classDef *scope,ctorDef *ct)
     {
         argDef *ad = &ct -> pysig.args[a];
 
-        getBaseType(pt, scope->iff->module, scope, ad, FALSE);
+        resolveType(pt, scope->iff->module, scope, ad, FALSE);
 
         if (!supportedType(scope,NULL,ad,FALSE) && (ct -> cppsig == &ct -> pysig || ct -> methodcode == NULL))
         {
@@ -1910,10 +1909,10 @@ static void resolveFuncTypes(sipSpec *pt, moduleDef *mod, classDef *c_scope,
     {
         int a;
 
-        getBaseType(pt, mod, c_scope, &od->cppsig->result, TRUE);
+        resolveType(pt, mod, c_scope, &od->cppsig->result, TRUE);
 
         for (a = 0; a < od->cppsig->nrArgs; ++a)
-            getBaseType(pt, mod, c_scope, &od->cppsig->args[a], TRUE);
+            resolveType(pt, mod, c_scope, &od->cppsig->args[a], TRUE);
     }
  
     /* Handle the Python signature. */
@@ -1975,7 +1974,7 @@ static void resolvePySigTypes(sipSpec *pt, moduleDef *mod, classDef *scope,
             fatal("%s() signals must return void\n", od->cppname);
         }
 
-        getBaseType(pt, mod, scope, res, FALSE);
+        resolveType(pt, mod, scope, res, FALSE);
 
         /* Results must be simple. */
         if (!supportedType(scope,od,res,FALSE) && (od -> cppsig == &od -> pysig || od -> methodcode == NULL))
@@ -1996,7 +1995,7 @@ static void resolvePySigTypes(sipSpec *pt, moduleDef *mod, classDef *scope,
     {
         argDef *ad = &pysig -> args[a];
 
-        getBaseType(pt, mod, scope, ad, FALSE);
+        resolveType(pt, mod, scope, ad, FALSE);
 
         if (ad -> atype == slotcon_type)
             resolvePySigTypes(pt, mod, scope, od, ad->u.sa, TRUE);
@@ -2050,7 +2049,7 @@ static void resolveVariableType(sipSpec *pt, varDef *vd)
     int bad = TRUE;
     argDef *vtype = &vd->type;
 
-    getBaseType(pt, vd->module, vd->ecd, vtype, FALSE);
+    resolveType(pt, vd->module, vd->ecd, vtype, FALSE);
 
     switch (vtype->atype)
     {
@@ -2869,16 +2868,6 @@ static void scopeDefaultValue(sipSpec *pt,classDef *cd,argDef *ad)
 
 
 /*
- * Make sure a type is a base type.
- */
-static void getBaseType(sipSpec *pt, moduleDef *mod, classDef *c_scope,
-        argDef *type, int allow_defined)
-{
-    resolveType(pt, mod, c_scope, type, allow_defined);
-}
-
-
-/*
  * Resolve a type if possible.
  */
 static void resolveType(sipSpec *pt, moduleDef *mod, classDef *c_scope,
@@ -2924,7 +2913,7 @@ static void resolveType(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         int sa;
 
         for (sa = 0; sa < type->u.sa->nrArgs; ++sa)
-            getBaseType(pt, mod, c_scope, &type->u.sa->args[sa], FALSE);
+            resolveType(pt, mod, c_scope, &type->u.sa->args[sa], FALSE);
     }
 
     /* See if the type refers to an instantiated template. */
