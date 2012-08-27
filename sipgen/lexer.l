@@ -159,7 +159,7 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
 <directive>type             {return TK_TYPE;}
 <directive>use_argument_names   {return TK_USEARGNAMES;}
 <directive>all_raise_py_exception   {return TK_ALLRAISEPYEXC;}
-<directive>all_throw_cpp_exception  {return TK_ALLTHROWCPPEXC;}
+<directive>all_use_VirtualErrorCode {return TK_ALLVIRTERRORCODE;}
 <directive>version          {return TK_VERSION;}
 
 <directive>True             {return TK_TRUE_VALUE;}
@@ -468,9 +468,15 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
 }
 
 ^[ \t]*%RaiseCode {
-    /* The start of a raise exception code block. */
+    /* The start of a raise Python exception code block. */
     codeIdx = 0;
     return TK_RAISECODE;
+}
+
+^[ \t]*%VirtualErrorCode {
+    /* The start of virtual error code block. */
+    codeIdx = 0;
+    return TK_VIRTERRORCODE;
 }
 
 ^[ \t]*%Docstring {

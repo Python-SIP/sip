@@ -162,7 +162,8 @@ static void addProperty(sipSpec *pt, moduleDef *mod, classDef *cd,
 static moduleDef *configureModule(sipSpec *pt, moduleDef *module,
         const char *filename, const char *name, int version, int c_module,
         KwArgs kwargs, int use_arg_names, int all_raise_py_exc,
-        int all_throw_cpp_exc, codeBlock *docstring);
+        int all_virt_error_code, codeBlock *docstring,
+        codeBlock *virt_error_code);
 static void addAutoPyName(moduleDef *mod, const char *remove_leading);
 static KwArgs convertKwArgs(const char *kwargs);
 static void checkAnnos(optFlags *annos, const char *valid[]);
@@ -324,6 +325,7 @@ static void handleKeepReference(optFlags *optflgs, argDef *ad, moduleDef *mod);
 %token          TK_QOBJECT
 %token          TK_EXCEPTION
 %token          TK_RAISECODE
+%token          TK_VIRTERRORCODE
 %token          TK_EXPLICIT
 %token          TK_TEMPLATE
 %token          TK_ELLIPSIS
@@ -347,7 +349,7 @@ static void handleKeepReference(optFlags *optflgs, argDef *ad, moduleDef *mod);
 %token          TK_TYPE
 %token          TK_USEARGNAMES
 %token          TK_ALLRAISEPYEXC
-%token          TK_ALLTHROWCPPEXC
+%token          TK_ALLVIRTERRORCODE
 %token          TK_VERSION
 
 %type <memArg>          argvalue
@@ -393,6 +395,7 @@ static void handleKeepReference(optFlags *optflgs, argDef *ad, moduleDef *mod);
 %type <codeb>           methodcode
 %type <codeb>           instancecode
 %type <codeb>           raisecode
+%type <codeb>           throwcode
 %type <codeb>           docstring
 %type <codeb>           optdocstring
 %type <text>            operatorname
@@ -943,6 +946,11 @@ exception_body_directive:  ifstart {
     ;
 
 raisecode:  TK_RAISECODE codeblock {
+            $$ = $2;
+        }
+    ;
+
+throwcode:  TK_VIRTERRORCODE codeblock {
             $$ = $2;
         }
     ;
@@ -1653,8 +1661,8 @@ module: TK_MODULE module_args module_body {
                 currentModule = configureModule(currentSpec, currentModule,
                         currentContext.filename, $2.name, $2.version,
                         $2.c_module, $2.kwargs, $2.use_arg_names,
-                        $2.all_raise_py_exc, $2.all_throw_cpp_exc,
-                        $3.docstring);
+                        $2.all_raise_py_exc, $2.all_virt_error_code,
+                        $3.docstring, $3.virt_error_code);
         }
     |   TK_CMODULE dottedname optnumber {
             deprecated("%CModule is deprecated, use %Module and the 'language' argument instead");
@@ -1662,7 +1670,7 @@ module: TK_MODULE module_args module_body {
             if (notSkipping())
                 currentModule = configureModule(currentSpec, currentModule,
                         currentContext.filename, $2, $3, TRUE, defaultKwArgs,
-                        FALSE, FALSE, FALSE, NULL);
+                        FALSE, FALSE, FALSE, NULL, NULL);
         }
     ;
 
@@ -1677,7 +1685,7 @@ module_args:    dottedname optnumber {
             $$.name = $1;
             $$.use_arg_names = FALSE;
             $$.all_raise_py_exc = FALSE;
-            $$.all_throw_cpp_exc = FALSE;
+            $$.all_virt_error_code = FALSE;
             $$.version = $2;
         }
     |   '(' module_arg_list ')' {
@@ -1696,7 +1704,7 @@ module_arg_list:    module_arg
             case TK_NAME: $$.name = $3.name; break;
             case TK_USEARGNAMES: $$.use_arg_names = $3.use_arg_names; break;
             case TK_ALLRAISEPYEXC: $$.all_raise_py_exc = $3.all_raise_py_exc; break;
-            case TK_ALLTHROWCPPEXC: $$.all_throw_cpp_exc = $3.all_throw_cpp_exc; break;
+            case TK_ALLVIRTERRORCODE: $$.all_virt_error_code = $3.all_virt_error_code; break;
             case TK_VERSION: $$.version = $3.version; break;
             }
         }
@@ -1710,7 +1718,7 @@ module_arg: TK_KWARGS '=' TK_STRING_VALUE {
             $$.name = NULL;
             $$.use_arg_names = FALSE;
             $$.all_raise_py_exc = FALSE;
-            $$.all_throw_cpp_exc = FALSE;
+            $$.all_virt_error_code = FALSE;
             $$.version = -1;
         }
     |   TK_LANGUAGE '=' TK_STRING_VALUE {
@@ -1727,7 +1735,7 @@ module_arg: TK_KWARGS '=' TK_STRING_VALUE {
             $$.name = NULL;
             $$.use_arg_names = FALSE;
             $$.all_raise_py_exc = FALSE;
-            $$.all_throw_cpp_exc = FALSE;
+            $$.all_virt_error_code = FALSE;
             $$.version = -1;
         }
     |   TK_NAME '=' dottedname {
@@ -1738,7 +1746,7 @@ module_arg: TK_KWARGS '=' TK_STRING_VALUE {
             $$.name = $3;
             $$.use_arg_names = FALSE;
             $$.all_raise_py_exc = FALSE;
-            $$.all_throw_cpp_exc = FALSE;
+            $$.all_virt_error_code = FALSE;
             $$.version = -1;
         }
     |   TK_USEARGNAMES '=' bool_value {
@@ -1749,7 +1757,7 @@ module_arg: TK_KWARGS '=' TK_STRING_VALUE {
             $$.name = NULL;
             $$.use_arg_names = $3;
             $$.all_raise_py_exc = FALSE;
-            $$.all_throw_cpp_exc = FALSE;
+            $$.all_virt_error_code = FALSE;
             $$.version = -1;
         }
     |   TK_ALLRAISEPYEXC '=' bool_value {
@@ -1760,18 +1768,18 @@ module_arg: TK_KWARGS '=' TK_STRING_VALUE {
             $$.name = NULL;
             $$.use_arg_names = FALSE;
             $$.all_raise_py_exc = $3;
-            $$.all_throw_cpp_exc = FALSE;
+            $$.all_virt_error_code = FALSE;
             $$.version = -1;
         }
-    |   TK_ALLTHROWCPPEXC '=' bool_value {
-            $$.token = TK_ALLTHROWCPPEXC;
+    |   TK_ALLVIRTERRORCODE '=' bool_value {
+            $$.token = TK_ALLVIRTERRORCODE;
 
             $$.c_module = FALSE;
             $$.kwargs = defaultKwArgs;
             $$.name = NULL;
             $$.use_arg_names = FALSE;
             $$.all_raise_py_exc = FALSE;
-            $$.all_throw_cpp_exc = $3;
+            $$.all_virt_error_code = $3;
             $$.version = -1;
         }
     |   TK_VERSION '=' TK_NUMBER_VALUE {
@@ -1785,7 +1793,7 @@ module_arg: TK_KWARGS '=' TK_STRING_VALUE {
             $$.name = NULL;
             $$.use_arg_names = FALSE;
             $$.all_raise_py_exc = FALSE;
-            $$.all_throw_cpp_exc = FALSE;
+            $$.all_virt_error_code = FALSE;
             $$.version = $3;
         }
     ;
@@ -1793,6 +1801,7 @@ module_arg: TK_KWARGS '=' TK_STRING_VALUE {
 module_body:    {
             $$.token = 0;
             $$.docstring = NULL;
+            $$.virt_error_code = NULL;
         }
     |   '{' module_body_directives '}' ';' {
             $$ = $2;
@@ -1806,6 +1815,7 @@ module_body_directives: module_body_directive
             switch ($2.token)
             {
             case TK_DOCSTRING: $$.docstring = $2.docstring; break;
+            case TK_VIRTERRORCODE: $$.virt_error_code = $2.virt_error_code; break;
             }
         }
     ;
@@ -1829,6 +1839,18 @@ module_body_directive:  ifstart {
             {
                 $$.token = 0;
                 $$.docstring = NULL;
+            }
+        }
+    |   throwcode {
+            if (notSkipping())
+            {
+                $$.token = TK_VIRTERRORCODE;
+                $$.virt_error_code = $1;
+            }
+            else
+            {
+                $$.token = 0;
+                $$.virt_error_code = NULL;
             }
         }
     ;
@@ -6562,7 +6584,7 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         "NoArgParser",
         "NoCopy",
         "NoRaisesPyException",
-        "NoThrowsCppException",
+        "NoUsesVirtualErrorCode",
         "Numeric",
         "PostHook",
         "PreHook",
@@ -6570,7 +6592,7 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         "PyName",
         "RaisesPyException",
         "ReleaseGIL",
-        "ThrowsCppException",
+        "UsesVirtualErrorCode",
         "Transfer",
         "TransferBack",
         "TransferThis",
@@ -6758,10 +6780,10 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         if (factory || xferback)
             setIsTransferVH(vhd);
 
-        if (getOptFlag(optflgs, "NoThrowsCppException", bool_flag) == NULL)
+        if (getOptFlag(optflgs, "NoUsesVirtualErrorCode", bool_flag) == NULL)
         {
-            if (allThrowCppException(mod) || getOptFlag(optflgs, "ThrowsCppException", bool_flag) != NULL)
-                setThrowsCppException(vhd);
+            if (allVirtErrorCode(mod) || getOptFlag(optflgs, "UsesVirtualErrorCode", bool_flag) != NULL)
+                setVirtErrorCode(vhd);
         }
 
         /*
@@ -8428,7 +8450,8 @@ static void addProperty(sipSpec *pt, moduleDef *mod, classDef *cd,
 static moduleDef *configureModule(sipSpec *pt, moduleDef *module,
         const char *filename, const char *name, int version, int c_module,
         KwArgs kwargs, int use_arg_names, int all_raise_py_exc,
-        int all_throw_cpp_exc, codeBlock *docstring)
+        int all_virt_error_code, codeBlock *docstring,
+        codeBlock *virt_error_code)
 {
     moduleDef *mod;
 
@@ -8455,12 +8478,13 @@ static moduleDef *configureModule(sipSpec *pt, moduleDef *module,
     module->kwargs = kwargs;
     module->version = version;
     appendCodeBlock(&module->docstring, docstring);
+    appendCodeBlock(&module->virt_error_code, virt_error_code);
 
     if (all_raise_py_exc)
         setAllRaisePyException(module);
 
-    if (all_throw_cpp_exc)
-        setAllThrowCppException(module);
+    if (all_virt_error_code)
+        setAllVirtErrorCode(module);
 
     if (use_arg_names)
         setUseArgNames(module);

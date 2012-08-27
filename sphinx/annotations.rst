@@ -705,16 +705,16 @@ Function Annotations
     .. seealso:: :fanno:`RaisesPyException`
 
 
-.. function-annotation:: NoThrowsCppException
+.. function-annotation:: NoUsesVirtualErrorCode
 
     .. versionadded:: 4.14
 
-    This boolean annotation specifies that the virtual method does not throw
-    the ``SIPPyException`` C++ exception to indicate that a Python exception
-    was raised when executing a Python reimplementation of the method.  Instead
-    the ``PyErr_Print()`` function is called.
+    This boolean annotation specifies that the virtual method does not use any
+    code specified with the :directive:`%VirtualErrorCode` directive when a
+    Python exception was raised when executing a Python reimplementation of the
+    method.  Instead the ``PyErr_Print()`` function is called.
 
-    .. seealso:: :fanno:`ThrowsCppException`
+    .. seealso:: :fanno:`UsesVirtualErrorCode`, :directive:`%VirtualErrorCode`
 
 
 .. function-annotation:: Numeric
@@ -789,18 +789,6 @@ Function Annotations
     :fanno:`HoldGIL` annotation.
 
 
-.. function-annotation:: ThrowsCppException
-
-    .. versionadded:: 4.14
-
-    This boolean annotation specifies that the virtual method throws the
-    ``SIPPyException`` C++ exception to indicate that a Python exception was
-    raised when executing a Python reimplementation of the method.  By default
-    the ``PyErr_Print()`` function is called.
-
-    .. seealso:: :fanno:`NoThrowsCppException`
-
-
 .. function-annotation:: Transfer
 
     This boolean annotation specifies that ownership of the value returned by
@@ -835,6 +823,18 @@ Function Annotations
     from Python to C++.
 
     See :ref:`ref-object-ownership` for more detail.
+
+
+.. function-annotation:: UsesVirtualErrorCode
+
+    .. versionadded:: 4.14
+
+    This boolean annotation specifies that the virtual method will use any code
+    specified with the :directive:`%VirtualErrorCode` directive when a Python
+    exception was raised when executing a Python reimplementation of the
+    method.  By default the ``PyErr_Print()`` function is called.
+
+    .. seealso:: :fanno:`NoUsesVirtualErrorCode`, :directive:`%VirtualErrorCode`
 
 
 .. _ref-typedef-annos:

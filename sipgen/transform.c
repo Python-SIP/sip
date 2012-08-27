@@ -2423,7 +2423,7 @@ static int sameVirtualHandler(virtHandlerDef *vhd1,virtHandlerDef *vhd2)
     if (isTransferVH(vhd1) != isTransferVH(vhd2))
         return FALSE;
 
-    if (throwsCppException(vhd1) != throwsCppException(vhd2))
+    if (virtErrorCode(vhd1) != virtErrorCode(vhd2))
         return FALSE;
 
     if (!sameArgType(&vhd1->pysig->result, &vhd2->pysig->result, TRUE))

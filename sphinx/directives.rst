@@ -1835,7 +1835,7 @@ then the pattern should instead be::
 
     %Module(name = *dotted-name*
             [, all_raise_py_exception = [True | False]]
-            [, all_throw_cpp_exception = [True | False]]
+            [, all_use_VirtualErrorCode = [True | False]]
             [, keyword_arguments = ["None" | "All" | "Optional"]]
             [, language = *string*]
             [, use_argument_names = [True | False]]
@@ -1843,6 +1843,7 @@ then the pattern should instead be::
     {
         [:directive:`%AutoPyName`]
         [:directive:`%Docstring`]
+        [:directive:`%VirtualErrorCode`]
     };
 
 This directive is used to specify the name of a module and a number of other
@@ -1854,12 +1855,12 @@ methods defined in the module raise a Python exception to indicate that an
 error occurred.  It is the equivalent of using the :fanno:`RaisesPyException`
 function annotation on every constructor, function and method.
 
-``all_throw_cpp_exception`` specifies that all virtual methods defined in the
-module throw the ``SIPPyException`` C++ exception to indicate that a Python
-exception was raised when executing a Python reimplementation of the method.
-By default the ``PyErr_Print()`` function is called.  It is the equivalent of
-using the :fanno:`ThrowsCppException` function annotation on every virtual
-method.
+``all_use_VirtualErrorCode`` specifies that all virtual methods defined in the
+module use the code defined by the :directive:`%VirtualErrorCode` directive to
+indicate that a Python exception was raised when executing a Python
+reimplementation of the method.  By default the ``PyErr_Print()`` function is
+called.  It is the equivalent of using the :fanno:`UsesVirtualErrorCode`
+function annotation on every virtual method.
 
 ``keyword_arguments`` specifies the default level of support for Python keyword
 arguments.  See the :fanno:`KeywordArgs` annotation for an explaination of the
@@ -2444,3 +2445,31 @@ For example::
             }
     %End
     };
+
+
+.. directive:: %VirtualErrorCode
+
+.. versionadded:: 4.14
+
+.. parsed-literal::
+
+    %VirtualErrorCode
+        *code*
+    %End
+
+This sub-directive of the :directive:`%Module` directive is used to specify
+code that is executed when a Python exception was raised when executing a
+Python reimplementation of a virtual method.  By default the ``PyErr_Print()``
+function is called.
+
+The code is called after all tidying up has been completed and after the Python
+Global Interpreter Lock (GIL) has been released.  Therefore the code may change
+the execution path by, for example, throwing a C++ exception.
+
+For example::
+
+    %VirtualErrorCode
+        throw MyException();
+    %End
+
+.. seealso:: :fanno:`UsesVirtualErrorCode`, :fanno:`NoUsesVirtualErrorCode``
