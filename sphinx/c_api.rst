@@ -785,6 +785,9 @@ specification files.
     Otherwise ownership is transferred to C/C++ and *obj* associated with
     *transferObj* via a call to :cfunc:`sipTransferTo()`.
 
+    Note that *obj* can also be managed by the C/C++ instance itself, but this
+    can only be achieved by using :cfunc:`sipTransferTo()`.
+
     If *state* is not ``NULL`` then the location it points to is set to
     describe the state of the returned C/C++ instance and is the value returned
     by any :directive:`%ConvertToTypeCode`.  The calling code must then release
