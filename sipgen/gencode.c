@@ -4318,7 +4318,7 @@ static void generateConvertToDefinitions(mappedTypeDef *mtd,classDef *cd,
 static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
 {
     argType atype = vd->type.atype;
-    const char *first_arg, *last_arg;
+    const char *first_arg, *second_arg, *last_arg;
     int needsNew, keepRef;
 
     if (generating_c || !isStaticVar(vd))
@@ -4331,6 +4331,8 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
     needsNew = ((atype == class_type || atype == mapped_type) && vd->type.nrderefs == 0 && isConstArg(&vd->type));
     keepRef = (atype == class_type && vd->type.nrderefs == 0 && !isConstArg(&vd->type));
 
+    second_arg = (generating_c || keepRef) ? "sipPySelf" : "";
+
     prcode(fp,
 "\n"
 "\n"
@@ -4338,13 +4340,13 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
 
     if (!generating_c)
         prcode(fp,
-"extern \"C\" {static PyObject *varget_%C(void *, PyObject *);}\n"
+"extern \"C\" {static PyObject *varget_%C(void *, PyObject *, PyObject *);}\n"
             , vd->fqcname);
 
     prcode(fp,
-"static PyObject *varget_%C(void *%s, PyObject *%s)\n"
+"static PyObject *varget_%C(void *%s, PyObject *%s, PyObject *%s)\n"
 "{\n"
-        , vd->fqcname, first_arg, last_arg);
+        , vd->fqcname, first_arg, second_arg, last_arg);
 
     if (vd->getcode != NULL || keepRef)
     {
@@ -4443,21 +4445,11 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
 
             if (keepRef)
             {
-                /*
-                 * When the SIP API goes to v9 the self Python object should be
-                 * passed in rather than having to reverse map it.
-                 */
                 prcode(fp,
-"\n"
-"    {\n"
-"        PyObject *sipPySelf = sipConvertFromType(sipSelf, sipType_%C, NULL);\n"
-"\n"
-"        sipKeepReference(sipPy, -1, sipPySelf);\n"
-"        Py_DECREF(sipPySelf);\n"
-"    }\n"
+"    sipKeepReference(sipPy, -1, sipPySelf);\n"
 "\n"
 "    return sipPy;\n"
-                    , classFQCName(vd->ecd));
+                    );
             }
         }
 

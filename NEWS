@@ -1,4 +1,6 @@
 v4.14 ???
+  - The internal API version is increased to 9.0 requiring the regeneration of
+    all modules.
   - Added the %InstanceCode directive.
   - Added the all_use_VirtualErrorCode argument and %VirtualErrorCode
     sub-directive to the %Module directive.

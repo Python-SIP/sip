@@ -6142,71 +6142,29 @@ static int add_lazy_container_attrs(sipTypeDef *td, sipContainerDef *cod,
     }
 
     /* Do the variables. */
-    if (td->td_module->em_api_minor >= 1)
+    vd = cod->cod_variables;
+
+    for (i = 0; i < cod->cod_nrvariables; ++i)
     {
-        vd = cod->cod_variables;
+        int rc;
+        PyObject *descr;
 
-        for (i = 0; i < cod->cod_nrvariables; ++i)
-        {
-            int rc;
-            PyObject *descr;
+        if (vd->vd_type == PropertyVariable)
+            descr = create_property(vd);
+        else
+            descr = sipVariableDescr_New(vd, td, cod);
 
-            if (vd->vd_type == PropertyVariable)
-                descr = create_property(vd);
-            else
-                descr = sipVariableDescr_New(vd, td, cod);
+        if (descr == NULL)
+            return -1;
 
-            if (descr == NULL)
-                return -1;
+        rc = PyDict_SetItemString(dict, vd->vd_name, descr);
 
-            rc = PyDict_SetItemString(dict, vd->vd_name, descr);
+        Py_DECREF(descr);
 
-            Py_DECREF(descr);
+        if (rc < 0)
+            return -1;
 
-            if (rc < 0)
-                return -1;
-
-            ++vd;
-        }
-    }
-    else
-    {
-        sipVariableDef_8 *vd_8 = (sipVariableDef_8 *)cod->cod_variables;
-
-        for (i = 0; i < cod->cod_nrvariables; ++i)
-        {
-            int rc;
-            PyObject *descr;
-
-            /* Create a new-style structure from the old. */
-            if ((vd = sip_api_malloc(sizeof (sipVariableDef))) == NULL)
-                return -1;
-
-            vd->vd_type = (vd_8->vd_is_static ? ClassVariable : InstanceVariable);
-            vd->vd_name = vd_8->vd_name;
-            vd->vd_getter = (PyMethodDef *)vd_8->vd_getter;
-            vd->vd_setter = (PyMethodDef *)vd_8->vd_setter;
-            vd->vd_deleter = NULL;
-            vd->vd_docstring = NULL;
-
-            if ((descr = sipVariableDescr_New(vd, td, cod)) == NULL)
-            {
-                sip_api_free(vd);
-                return -1;
-            }
-
-            rc = PyDict_SetItemString(dict, vd->vd_name, descr);
-
-            Py_DECREF(descr);
-
-            if (rc < 0)
-            {
-                sip_api_free(vd);
-                return -1;
-            }
-
-            ++vd_8;
-        }
+        ++vd;
     }
 
     return 0;
