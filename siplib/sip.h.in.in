@@ -1439,7 +1439,8 @@ typedef struct _sipAPIDef {
             PyObject *sipKwdArgs, const char **kwdlist, PyObject **unused,
             const char *fmt, ...);
     void (*api_add_exception)(sipErrorState es, PyObject **parseErrp);
-    int (*api_parse_result_ex)(int *isErr, PyObject *method, PyObject *res,
+    int (*api_parse_result_ex)(sip_gilstate_t, sipVirtErrorHandlerFunc,
+            sipSimpleWrapper *, PyObject *method, PyObject *res,
             const char *fmt, ...);
 } sipAPIDef;
 

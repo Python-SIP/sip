@@ -7360,7 +7360,7 @@ static void generateProtectedCallArgs(moduleDef *mod, signatureDef *sd,
 static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
         FILE *fp)
 {
-    int a, nrvals, res_isref, need_self;
+    int a, nrvals, res_isref;
     argDef *res, res_noconstref, *ad;
     signatureDef saved;
 
@@ -7408,11 +7408,8 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
     *vhd->cppsig = saved;
 
     /* Declare the extra arguments for kept references. */
-    need_self = FALSE;
-
     if (res != NULL && keepPyReference(res))
     {
-        need_self = TRUE;
         prcode(fp, ", int");
 
         if (vhd->virtcode == NULL || usedInCode(vhd->virtcode, "sipResKey"))
@@ -7421,10 +7418,7 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
 
     for (ad = vhd->cppsig->args, a = 0; a < vhd->cppsig->nrArgs; ++a, ++ad)
         if (isOutArg(ad) && keepPyReference(ad))
-        {
-            need_self = TRUE;
             prcode(fp, ", int %aKey", mod, ad, a);
-        }
 
     prcode(fp,")\n"
 "{\n"
@@ -7548,28 +7542,18 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
 
     /* Call the method. */
     prcode(fp,
-"    PyObject *resObj = sipCallMethod(0,sipMethod,");
+"    PyObject *sipResObj = sipCallMethod(0, sipMethod, ");
 
     saved = *vhd->pysig;
     fakeProtectedArgs(vhd->pysig);
     generateTupleBuilder(mod, vhd->pysig, fp);
     *vhd->pysig = saved;
 
-    /*
-     * ZZZ - sipParseResultEx() that will handle resObj and sipMethod ref
-     * counts. Could also handle the GIL state - only worth while if there is
-     * always an error handler that handles the GIL, ie. sip provides a default
-     * that calls PyErr_Print().  It can also handle the error handler, and
-     * do the right thing if there isn't one.
-     */
     prcode(fp, ");\n"
 "\n"
-"    bool sipIsErr = (!resObj || sipParseResultEx(0, sipMethod, resObj, \"");
+"    %ssipParseResultEx(sipGILState, sipErrorHandler, sipPySelf, sipMethod, sipResObj, \"", (res_isref ? "int sipRc = " : ""));
 
     /* Build the format string. */
-    if (need_self)
-        prcode(fp, "S");
-
     if (nrvals == 0)
         prcode(fp,"Z");
     else
@@ -7594,9 +7578,6 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
 
     prcode(fp,"\"");
 
-    if (need_self)
-        prcode(fp, ", sipPySelf");
-
     /* Pass the destination pointers. */
     if (res != NULL)
     {
@@ -7615,18 +7596,7 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
         }
     }
 
-    prcode(fp, ") < 0);\n"
-"\n"
-"    Py_XDECREF(resObj);\n"
-"    Py_DECREF(sipMethod);\n"
-"\n"
-"    if (sipIsErr)\n"
-"        if (sipErrorHandler)\n"
-"            sipErrorHandler(sipGILState, sipPySelf);\n"
-"        else\n"
-"            PyErr_Print();\n"
-"\n"
-"    SIP_RELEASE_GIL(sipGILState)\n"
+    prcode(fp, ");\n"
         );
 
     if (res != NULL)
@@ -7635,7 +7605,7 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
         {
             prcode(fp,
 "\n"
-"    if (sipIsErr)\n"
+"    if (sipRc < 0)\n"
                 );
 
             generateDefaultInstanceReturn(res, "    ", fp);

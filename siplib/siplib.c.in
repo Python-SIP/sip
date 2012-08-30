@@ -179,8 +179,9 @@ static sipWrapperType *sip_api_map_int_to_class(int typeInt,
         const sipIntTypeClassMap *map, int maplen);
 static sipWrapperType *sip_api_map_string_to_class(const char *typeString,
         const sipStringTypeClassMap *map, int maplen);
-static int sip_api_parse_result_ex(int *isErr, PyObject *method, PyObject *res,
-        const char *fmt, ...);
+static int sip_api_parse_result_ex(sip_gilstate_t gil_state,
+        sipVirtErrorHandlerFunc error_handler, sipSimpleWrapper *py_self,
+        PyObject *method, PyObject *res, const char *fmt, ...);
 static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
         const char *fmt, ...);
 static void sip_api_trace(unsigned mask,const char *fmt,...);
@@ -543,8 +544,8 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
 static int parsePass2(sipSimpleWrapper *self, int selfarg, PyObject *sipArgs,
         PyObject *sipKwdArgs, const char **kwdlist, const char *fmt,
         va_list va);
-static int parseResult(int *isErr, PyObject *method, PyObject *res,
-        const char *fmt, va_list va);
+static int parseResult(PyObject *method, PyObject *res,
+        sipSimpleWrapper *py_self, const char *fmt, va_list va);
 static PyObject *signature_FromDocstring(const char *doc, SIP_SSIZE_T line);
 static PyObject *detail_FromFailure(PyObject *failure_obj);
 static int isQObject(PyObject *obj);
@@ -2159,8 +2160,11 @@ static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
     va_list va;
 
     va_start(va, fmt);
-    rc = parseResult(isErr, method, res, fmt, va);
+    rc = parseResult(method, res, NULL, fmt, va);
     va_end(va);
+
+    if (isErr != NULL && rc < 0)
+        *isErr = TRUE;
 
     return rc;
 }
@@ -2169,15 +2173,36 @@ static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
 /*
  * Parse a result object based on a format string.
  */
-static int sip_api_parse_result_ex(int *isErr, PyObject *method, PyObject *res,
-        const char *fmt, ...)
+static int sip_api_parse_result_ex(sip_gilstate_t gil_state,
+        sipVirtErrorHandlerFunc error_handler, sipSimpleWrapper *py_self,
+        PyObject *method, PyObject *res, const char *fmt, ...)
 {
     int rc;
-    va_list va;
 
-    va_start(va, fmt);
-    rc = parseResult(isErr, method, res, fmt, va);
-    va_end(va);
+    if (res != NULL)
+    {
+        va_list va;
+
+        va_start(va, fmt);
+        rc = parseResult(method, res, py_self, fmt, va);
+        va_end(va);
+
+        Py_DECREF(res);
+    }
+    else
+    {
+        rc = -1;
+    }
+
+    Py_DECREF(method);
+
+    if (rc < 0)
+        if (error_handler != NULL)
+            error_handler(gil_state, py_self);
+        else
+            PyErr_Print();
+
+    SIP_RELEASE_GIL(gil_state);
 
     return rc;
 }
@@ -2186,16 +2211,15 @@ static int sip_api_parse_result_ex(int *isErr, PyObject *method, PyObject *res,
 /*
  * Do the main work of parsing a result object based on a format string.
  */
-static int parseResult(int *isErr, PyObject *method, PyObject *res,
-        const char *fmt, va_list va)
+static int parseResult(PyObject *method, PyObject *res,
+        sipSimpleWrapper *py_self, const char *fmt, va_list va)
 {
     int tupsz, rc = 0;
-    sipSimpleWrapper *self = NULL;
 
-    /* Get self if it is provided. */
+    /* Get self if it is provided as an argument. */
     if (*fmt == 'S')
     {
-        self = va_arg(va, sipSimpleWrapper *);
+        py_self = va_arg(va, sipSimpleWrapper *);
         ++fmt;
     }
 
@@ -2583,7 +2607,7 @@ static int parseResult(int *isErr, PyObject *method, PyObject *res,
                     if (keep == NULL)
                         invalid = TRUE;
                     else
-                        sip_api_keep_reference((PyObject *)self, key, keep);
+                        sip_api_keep_reference((PyObject *)py_self, key, keep);
                 }
 
                 break;
@@ -2598,7 +2622,7 @@ static int parseResult(int *isErr, PyObject *method, PyObject *res,
                     else
                     {
                         Py_INCREF(arg);
-                        sip_api_keep_reference((PyObject *)self, key, arg);
+                        sip_api_keep_reference((PyObject *)py_self, key, arg);
                     }
                 }
 
@@ -2794,9 +2818,6 @@ static int parseResult(int *isErr, PyObject *method, PyObject *res,
             }
         }
     }
-
-    if (isErr != NULL && rc < 0)
-        *isErr = TRUE;
 
     return rc;
 }
