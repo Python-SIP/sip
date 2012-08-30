@@ -6711,7 +6711,7 @@ static void generateVirtHandlerCall(moduleDef *mod, classDef *cd,
 
         generateBaseType(cd->iff, &od->cppsig->result, FALSE, fp);
 
-        prcode(fp, " sipVH_%s_%d(sip_gilstate_t,PyObject *", vhd->module->name, vhd->virthandlernr);
+        prcode(fp, " sipVH_%s_%d(sip_gilstate_t, sipVirtErrorHandlerFunc, sipSimpleWrapper *, PyObject *", vhd->module->name, vhd->virthandlernr);
     }
     else
     {
@@ -6720,12 +6720,12 @@ static void generateVirtHandlerCall(moduleDef *mod, classDef *cd,
 
         generateBaseType(cd->iff, &od->cppsig->result, FALSE, fp);
 
-        prcode(fp, " (*sipVH_%s_%d)(sip_gilstate_t,PyObject *", vhd->module->name, vhd->virthandlernr);
+        prcode(fp, " (*sipVH_%s_%d)(sip_gilstate_t, sipVirtErrorHandlerFunc, sipSimpleWrapper *, PyObject *", vhd->module->name, vhd->virthandlernr);
     }
 
     if (vhd->cppsig->nrArgs > 0)
     {
-        prcode(fp, ",");
+        prcode(fp, ", ");
         generateCalledArgs(NULL, cd->iff, vhd->cppsig, Declaration, FALSE, fp);
     }
 
@@ -6736,7 +6736,7 @@ static void generateVirtHandlerCall(moduleDef *mod, classDef *cd,
     {
         result_keep = TRUE;
         res->key = mod->next_key--;
-        prcode(fp, ",int");
+        prcode(fp, ", int");
     }
 
     for (ad = od->cppsig->args, a = 0; a < od->cppsig->nrArgs; ++a, ++ad)
@@ -6744,11 +6744,8 @@ static void generateVirtHandlerCall(moduleDef *mod, classDef *cd,
         {
             args_keep = TRUE;
             ad->key = mod->next_key--;
-            prcode(fp, ",int");
+            prcode(fp, ", int");
         }
-
-    if (result_keep || args_keep)
-        prcode(fp, ",sipSimpleWrapper *");
 
     prcode(fp,");\n"
 "\n"
@@ -6762,30 +6759,27 @@ static void generateVirtHandlerCall(moduleDef *mod, classDef *cd,
     else
         prcode(fp, "((sipVH_%s_%d)(sipModuleAPI_%s_%s->em_virthandlers[%d]))", vhd->module->name, vhd->virthandlernr, mod->name, vhd->module->name, vhd->virthandlernr);
 
-    prcode(fp,"(sipGILState,sipMeth");
+    prcode(fp,"(sipGILState, %s, sipPySelf, sipMeth", od->virt_error_handler);
 
     for (ad = od->cppsig->args, a = 0; a < od->cppsig->nrArgs; ++a, ++ad)
     {
         if (ad->atype == class_type && isProtectedClass(ad->u.cd))
-            prcode(fp, ",%s%a", ((isReference(ad) || ad->nrderefs == 0) ? "&" : ""), mod, ad, a);
+            prcode(fp, ", %s%a", ((isReference(ad) || ad->nrderefs == 0) ? "&" : ""), mod, ad, a);
         else if (ad->atype == enum_type && isProtectedEnum(ad->u.ed))
-            prcode(fp, ",(%E)%a", ad->u.ed, mod, ad, a);
+            prcode(fp, ", (%E)%a", ad->u.ed, mod, ad, a);
         else
-            prcode(fp, ",%a", mod, ad, a);
+            prcode(fp, ", %a", mod, ad, a);
     }
 
     /* Pass the keys to maintain the kept references. */
     if (result_keep)
-        prcode(fp, ",%d", res->key);
+        prcode(fp, ", %d", res->key);
 
     if (args_keep)
         for (ad = od->cppsig->args, a = 0; a < od->cppsig->nrArgs; ++a, ++ad)
             if (isOutArg(ad) && keepPyReference(ad))
-                prcode(fp, ",%d", ad->key);
+                prcode(fp, ", %d", ad->key);
 
-    if (result_keep || args_keep)
-        prcode(fp, ",sipPySelf");
- 
     prcode(fp,");\n"
         );
 
@@ -7400,12 +7394,12 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
 
     generateBaseType(NULL, &vhd->cppsig->result, FALSE, fp);
 
-    prcode(fp," sipVH_%s_%d(sip_gilstate_t sipGILState,PyObject *sipMethod"
+    prcode(fp," sipVH_%s_%d(sip_gilstate_t sipGILState, sipVirtErrorHandlerFunc sipErrorHandler, sipSimpleWrapper *sipPySelf, PyObject *sipMethod"
         , vhd->module->name, vhd->virthandlernr);
 
     if (vhd->cppsig->nrArgs > 0)
     {
-        prcode(fp,",");
+        prcode(fp,", ");
         generateCalledArgs(mod, NULL, vhd->cppsig, Definition, FALSE, fp);
     }
 
@@ -7417,7 +7411,7 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
     if (res != NULL && keepPyReference(res))
     {
         need_self = TRUE;
-        prcode(fp, ",int");
+        prcode(fp, ", int");
 
         if (vhd->virtcode == NULL || usedInCode(vhd->virtcode, "sipResKey"))
             prcode(fp, " sipResKey");
@@ -7427,16 +7421,8 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
         if (isOutArg(ad) && keepPyReference(ad))
         {
             need_self = TRUE;
-            prcode(fp, ",int %aKey", mod, ad, a);
+            prcode(fp, ", int %aKey", mod, ad, a);
         }
-
-    if (need_self)
-    {
-        prcode(fp, ",sipSimpleWrapper *");
-
-        if (vhd->virtcode == NULL || usedInCode(vhd->virtcode, "sipPySelf"))
-            prcode(fp, "sipPySelf");
-    }
 
     prcode(fp,")\n"
 "{\n"
@@ -7518,34 +7504,25 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
 
         generateCppCodeBlock(vhd->virtcode,fp);
 
-        if ((!virtErrorCode(vhd) || mod->virt_error_code == NULL) && (error_flag || old_error_flag))
+        prcode(fp,
+"\n"
+"    Py_DECREF(sipMethod);\n"
+            );
+
+        if (error_flag || old_error_flag)
             prcode(fp,
 "\n"
 "    if (%s)\n"
-"        PyErr_Print();\n"
+"        if (sipErrorHandler)\n"
+"            sipErrorHandler(sipGILState, sipPySelf);\n"
+"        else\n"
+"            PyErr_Print();\n"
                 , (error_flag ? "sipError != sipErrorNone" : "sipIsErr"));
 
         prcode(fp,
 "\n"
-"    Py_DECREF(sipMethod);\n"
-"\n"
 "    SIP_RELEASE_GIL(sipGILState)\n"
             );
-
-        if (virtErrorCode(vhd) && mod->virt_error_code != NULL && (error_flag || old_error_flag))
-        {
-            prcode(fp,
-"\n"
-"    if (%s)\n"
-"    {\n"
-                , (error_flag ? "sipError != sipErrorNone" : "sipIsErr"));
-
-            generateCppCodeBlock(mod->virt_error_code, fp);
-
-            prcode(fp,
-"    }\n"
-                );
-        }
 
         if (res != NULL)
             prcode(fp,
@@ -7576,9 +7553,16 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
     generateTupleBuilder(mod, vhd->pysig, fp);
     *vhd->pysig = saved;
 
+    /*
+     * ZZZ - sipParseResultEx() that will handle resObj and sipMethod ref
+     * counts. Could also handle the GIL state - only worth while if there is
+     * always an error handler that handles the GIL, ie. sip provides a default
+     * that calls PyErr_Print().  It can also handle the error handler, and
+     * do the right thing if there isn't one.
+     */
     prcode(fp, ");\n"
 "\n"
-"    %s (!resObj || sipParseResult(0,sipMethod,resObj,\"", ((virtErrorCode(vhd) && mod->virt_error_code != NULL) || res_isref) ? "bool sipIsErr =" : "if");
+"    bool sipIsErr = (!resObj || sipParseResult(0, sipMethod, resObj, \"");
 
     /* Build the format string. */
     if (need_self)
@@ -7609,13 +7593,13 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
     prcode(fp,"\"");
 
     if (need_self)
-        prcode(fp, ",sipPySelf");
+        prcode(fp, ", sipPySelf");
 
     /* Pass the destination pointers. */
     if (res != NULL)
     {
         generateParseResultExtraArgs(NULL, res, -1, fp);
-        prcode(fp, ",&sipRes");
+        prcode(fp, ", &sipRes");
     }
 
     for (a = 0; a < vhd->pysig->nrArgs; ++a)
@@ -7625,53 +7609,27 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
         if (isOutArg(ad))
         {
             generateParseResultExtraArgs(mod, ad, a, fp);
-            prcode(fp, ",%s%a", (isReference(ad) ? "&" : ""), mod, ad, a);
+            prcode(fp, ", %s%a", (isReference(ad) ? "&" : ""), mod, ad, a);
         }
     }
 
-    if (virtErrorCode(vhd) && mod->virt_error_code != NULL)
-        prcode(fp, ") < 0);\n"
-            );
-    else if (res_isref)
-        prcode(fp,") < 0);\n"
-"\n"
-"    if (sipIsErr)\n"
-            );
-    else
-        prcode(fp,") < 0)\n"
-            );
-
-    if (!virtErrorCode(vhd) || mod->virt_error_code == NULL)
-        prcode(fp,
-"        PyErr_Print();\n"
-            );
-
-    prcode(fp,
+    prcode(fp, ") < 0);\n"
 "\n"
 "    Py_XDECREF(resObj);\n"
 "    Py_DECREF(sipMethod);\n"
 "\n"
+"    if (sipIsErr)\n"
+"        if (sipErrorHandler)\n"
+"            sipErrorHandler(sipGILState, sipPySelf);\n"
+"        else\n"
+"            PyErr_Print();\n"
+"\n"
 "    SIP_RELEASE_GIL(sipGILState)\n"
         );
 
-    if (virtErrorCode(vhd) && mod->virt_error_code != NULL)
-    {
-        prcode(fp,
-"\n"
-"    if (sipIsErr)\n"
-"    {\n"
-                );
-
-        generateCppCodeBlock(mod->virt_error_code, fp);
-
-        prcode(fp,
-"    }\n"
-            );
-    }
-
     if (res != NULL)
     {
-        if ((!virtErrorCode(vhd) || mod->virt_error_code == NULL) && res_isref)
+        if (res_isref)
         {
             prcode(fp,
 "\n"
@@ -7703,45 +7661,45 @@ static void generateParseResultExtraArgs(moduleDef *mod, argDef *ad, int argnr,
     switch (ad->atype)
     {
     case mapped_type:
-        prcode(fp, ",sipType_%T", ad);
+        prcode(fp, ", sipType_%T", ad);
         break;
 
     case class_type:
-        prcode(fp, ",sipType_%C", classFQCName(ad->u.cd));
+        prcode(fp, ", sipType_%C", classFQCName(ad->u.cd));
         break;
 
     case pytuple_type:
-        prcode(fp,",&PyTuple_Type");
+        prcode(fp,", &PyTuple_Type");
         break;
 
     case pylist_type:
-        prcode(fp,",&PyList_Type");
+        prcode(fp,", &PyList_Type");
         break;
 
     case pydict_type:
-        prcode(fp,",&PyDict_Type");
+        prcode(fp,", &PyDict_Type");
         break;
 
     case pyslice_type:
-        prcode(fp,",&PySlice_Type");
+        prcode(fp,", &PySlice_Type");
         break;
 
     case pytype_type:
-        prcode(fp,",&PyType_Type");
+        prcode(fp,", &PyType_Type");
         break;
 
     case enum_type:
         if (ad->u.ed->fqcname != NULL)
-            prcode(fp, ",sipType_%C", ad->u.ed->fqcname);
+            prcode(fp, ", sipType_%C", ad->u.ed->fqcname);
         break;
 
     default:
         if (keepPyReference(ad))
         {
             if (argnr < 0)
-                prcode(fp, ",sipResKey");
+                prcode(fp, ", sipResKey");
             else
-                prcode(fp, ",%aKey", mod, ad, argnr);
+                prcode(fp, ", %aKey", mod, ad, argnr);
         }
     }
 }

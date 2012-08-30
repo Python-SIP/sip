@@ -62,7 +62,6 @@
 #define MOD_IS_TRANSFORMED      0x0008  /* It's types have been transformed. */
 #define MOD_USE_ARG_NAMES       0x0010  /* Use real argument names. */
 #define MOD_ALL_RAISE_PY_EXC    0x0020  /* All callable raise a Python exception. */
-#define MOD_ALL_VIRT_ERROR_CODE 0x0040  /* All virtual handlers use the virtual error code. */
 
 #define hasDelayedDtors(m)  ((m)->modflags & MOD_HAS_DELAYED_DTORS)
 #define setHasDelayedDtors(m)   ((m)->modflags |= MOD_HAS_DELAYED_DTORS)
@@ -77,8 +76,6 @@
 #define useArgNames(m)      ((m)->modflags & MOD_USE_ARG_NAMES)
 #define setAllRaisePyException(m)   ((m)->modflags |= MOD_ALL_RAISE_PY_EXC)
 #define allRaisePyException(m)  ((m)->modflags & MOD_ALL_RAISE_PY_EXC)
-#define setAllVirtErrorCode(m)  ((m)->modflags |= MOD_ALL_VIRT_ERROR_CODE)
-#define allVirtErrorCode(m) ((m)->modflags & MOD_ALL_VIRT_ERROR_CODE)
 
 
 /* Handle section flags. */
@@ -426,15 +423,12 @@
 
 #define VH_IS_DUPLICATE     0x01    /* It is a duplicate. */
 #define VH_TRANSFERS        0x02    /* It transfers ownership of the result. */
-#define VH_VIRT_ERROR_CODE  0x04    /* It uses the virtual error code. */
 
 #define isDuplicateVH(vh)   ((vh)->vhflags & VH_IS_DUPLICATE)
 #define setIsDuplicateVH(vh)    ((vh)->vhflags |= VH_IS_DUPLICATE)
 #define resetIsDuplicateVH(vh)  ((vh)->vhflags &= ~VH_IS_DUPLICATE)
 #define isTransferVH(vh)    ((vh)->vhflags & VH_TRANSFERS)
 #define setIsTransferVH(vh) ((vh)->vhflags |= VH_TRANSFERS)
-#define virtErrorCode(vh)   ((vh)->vhflags & VH_VIRT_ERROR_CODE)
-#define setVirtErrorCode(vh)    ((vh)->vhflags |= VH_VIRT_ERROR_CODE)
 
 
 /* Handle mapped type flags. */
@@ -815,7 +809,7 @@ typedef struct _moduleDef {
     codeBlockList *unitcode;            /* Compilation unit code. */
     codeBlockList *unitpostinccode;     /* Compilation unit post-include code. */
     codeBlockList *docstring;           /* The docstring. */
-    codeBlockList *virt_error_code;     /* The virtual error code. */
+    const char *virt_error_handler;     /* The virtual error handler. */
     int parts;                          /* The number of parts generated. */
     const char *file;                   /* The filename. */
     qualDef *qualifiers;                /* The list of qualifiers. */
@@ -982,6 +976,7 @@ typedef struct _overDef {
     virtHandlerDef *virthandler;        /* The virtual handler. */
     char *prehook;                      /* The pre-hook name. */
     char *posthook;                     /* The post-hook name. */
+    const char *virt_error_handler;     /* The virtual error handler. */
     struct _overDef *next;              /* Next in the list. */
 } overDef;
 
@@ -1122,6 +1117,7 @@ typedef struct _classDef {
     codeBlockList *charbufcode;         /* Character buffer code (Python v2). */
     codeBlockList *picklecode;          /* Pickle code. */
     propertyDef *properties;            /* The properties. */
+    const char *virt_error_handler;     /* The virtual error handler. */
     struct _classDef *next;             /* Next in the list. */
 } classDef;
 
@@ -1415,7 +1411,7 @@ typedef struct _licenseCfg {
     const char *timestamp;
 } licenseCfg;
 
-/* %Module */
+/* %Module and its sub-directives. */
 typedef struct _moduleCfg {
     int token;
     int c_module;
@@ -1423,10 +1419,8 @@ typedef struct _moduleCfg {
     const char *name;
     int use_arg_names;
     int all_raise_py_exc;
-    int all_virt_error_code;
     int version;
     codeBlock *docstring;
-    codeBlock *virt_error_code;
 } moduleCfg;
 
 /* %Plugin */
@@ -1451,5 +1445,11 @@ typedef struct _variableCfg {
     codeBlock *get_code;
     codeBlock *set_code;
 } variableCfg;
+
+/* %VirtualErrorHandler */
+typedef struct _vehCfg {
+    int token;
+    const char *name;
+} vehCfg;
 
 #endif

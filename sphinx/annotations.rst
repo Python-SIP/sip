@@ -356,38 +356,38 @@ Class Annotations
     is specified then when the wrapped instance is garbage collected the C or
     C++ instance is not destroyed but instead added to a list of delayed
     instances.  When the interpreter exits then the function
-    :cfunc:`sipDelayedDtors()` is called with the list of delayed instances.
-    :cfunc:`sipDelayedDtors()` can then choose to call (or ignore) the
+    :c:func:`sipDelayedDtors()` is called with the list of delayed instances.
+    :c:func:`sipDelayedDtors()` can then choose to call (or ignore) the
     destructors in any desired order.
 
-    The :cfunc:`sipDelayedDtors()` function must be specified using the
+    The :c:func:`sipDelayedDtors()` function must be specified using the
     :directive:`%ModuleCode` directive.
 
-.. cfunction:: void sipDelayedDtors(const sipDelayedDtor *dd_list)
+.. c:function:: void sipDelayedDtors(const sipDelayedDtor *dd_list)
 
     :param dd_list:
         the linked list of delayed instances.
 
-.. ctype:: sipDelayedDtor
+.. c:type:: sipDelayedDtor
 
     This structure describes a particular delayed destructor.
 
-    .. cmember:: const char *dd_name
+    .. c:member:: const char* dd_name
 
         This is the name of the class excluding any package or module name.
 
-    .. cmember:: void *dd_ptr
+    .. c:member:: void* dd_ptr
 
         This is the address of the C or C++ instance to be destroyed.  It's
-        exact type depends on the value of :cmember:`dd_isderived`.
+        exact type depends on the value of :c:member:`dd_isderived`.
 
-    .. cmember:: int dd_isderived
+    .. c:member:: int dd_isderived
 
-        This is non-zero if the type of :cmember:`dd_ptr` is actually the
+        This is non-zero if the type of :c:member:`dd_ptr` is actually the
         generated derived class.  This allows the correct destructor to be
         called.  See :ref:`ref-derived-classes`.
 
-    .. cmember:: sipDelayedDtor *dd_next
+    .. c:member:: sipDelayedDtor* dd_next
 
         This is the address of the next entry in the list or zero if this is
         the last one.
@@ -445,6 +445,20 @@ Class Annotations
     See the section :ref:`ref-types-metatypes` for more details.
 
 
+.. class-annotation:: VirtualErrorHandler
+
+    .. versionadded:: 4.14
+
+    This name annotation specifies the name of a C/C++ function that is called
+    when a Python re-implementation of any of the class's virtual C++ functions
+    raises a Python exception.  If not specified then the handler specified by
+    the :directive:`DefaultVirtualErrorHandler` directive is used.  The
+    :directive:`%DefaultVirtualErrorHandler` directive describes how the
+    handler is called.
+
+    .. seealso:: :fanno:`NoVirtualErrorHandler`, :fanno:`VirtualErrorHandler`, :directive:`%VirtualErrorHandler`
+
+
 .. _ref-mapped-type-annos:
 
 Mapped Type Annotations
@@ -483,9 +497,9 @@ Mapped Type Annotations
 .. mapped-type-annotation:: NoRelease
 
     This boolean annotation is used to specify that the mapped type does not
-    support the :cfunc:`sipReleaseType()` function.  Any
+    support the :c:func:`sipReleaseType()` function.  Any
     :directive:`%ConvertToTypeCode` should not create temporary instances of
-    the mapped type, i.e. it should not return :cmacro:`SIP_TEMPORARY`.
+    the mapped type, i.e. it should not return :c:macro:`SIP_TEMPORARY`.
 
 
 .. _ref-enum-annos:
@@ -705,16 +719,18 @@ Function Annotations
     .. seealso:: :fanno:`RaisesPyException`
 
 
-.. function-annotation:: NoUsesVirtualErrorCode
+.. function-annotation:: NoVirtualErrorHandler
 
     .. versionadded:: 4.14
 
-    This boolean annotation specifies that the virtual method does not use any
-    code specified with the :directive:`%VirtualErrorCode` directive when a
-    Python exception was raised when executing a Python reimplementation of the
-    method.  Instead the ``PyErr_Print()`` function is called.
+    This boolean annotation specifies that when a Python re-implementation of a
+    virtual C++ function raises a Python exception then ``PyErr_Print()`` is
+    always called.  Any error handler specified by either the
+    :fanno:`VirtualErrorHandler` function annotation, the
+    :canno:`VirtualErrorHandler` class annotation or the
+    :directive:`%DefaultVirtualErrorHandler` directive is ignored.
 
-    .. seealso:: :fanno:`UsesVirtualErrorCode`, :directive:`%VirtualErrorCode`
+    .. seealso:: :fanno:`VirtualErrorHandler`, :canno:`VirtualErrorHandler`, :directive:`%DefaultVirtualErrorHandler`
 
 
 .. function-annotation:: Numeric
@@ -825,16 +841,18 @@ Function Annotations
     See :ref:`ref-object-ownership` for more detail.
 
 
-.. function-annotation:: UsesVirtualErrorCode
+.. function-annotation:: VirtualErrorHandler
 
     .. versionadded:: 4.14
 
-    This boolean annotation specifies that the virtual method will use any code
-    specified with the :directive:`%VirtualErrorCode` directive when a Python
-    exception was raised when executing a Python reimplementation of the
-    method.  By default the ``PyErr_Print()`` function is called.
+    This name annotation specifies the name of a C/C++ function that is called
+    when a Python re-implementation of the virtual C++ function raises a
+    Python exception.  If not specified then the handler specified by the
+    class's :canno:`VirtualErrorHandler` annotation is used.  The
+    :directive:`%DefaultVirtualErrorHandler` directive describes how the
+    handler is called.
 
-    .. seealso:: :fanno:`NoUsesVirtualErrorCode`, :directive:`%VirtualErrorCode`
+    .. seealso:: :fanno:`NoVirtualErrorHandler`, :canno:`VirtualErrorHandler`, :directive:`%VirtualErrorHandler`
 
 
 .. _ref-typedef-annos:

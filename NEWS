@@ -2,13 +2,13 @@ v4.14 ???
   - The internal API version is increased to 9.0 requiring the regeneration of
     all modules.
   - Added the %InstanceCode directive.
-  - Added the all_use_VirtualErrorCode argument and %VirtualErrorCode
-    sub-directive to the %Module directive.
-  - Added the /NoUsesVirtualErrorCode/ and /UsesVirtualErrorCode/ function
+  - Added the %DefaultVirtualErrorHandler directive.
+  - Added the /VirtualErrorHandler/ class annotation.
+  - Added the /NoVirtualErrorHandler/ and /VirtualErrorHandler/ function
     annotations.
   - Deprecated sipTransferBreak().
   - For Python v2.x unsigned short and unsigned char (when used as a byte) are
-    no converted to int, rather than long, objects.
+    now converted to int, rather than long, objects.
 
 v4.13.3 20th June 2012
   - The /NoRaisesPyException/ and /RaisesPyException/ function annotations can
