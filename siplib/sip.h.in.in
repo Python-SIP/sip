@@ -69,6 +69,8 @@ extern "C" {
  * History:
  *
  * 9.0  Changed the sipVariableGetterFunc signature.
+ *      Added sip_api_parse_result_ex() to the private API.
+ *      Re-ordered the API functions.
  *
  * 8.1  Revised the sipVariableDef structure.
  *      sip_api_get_address() is now part of the public API.
@@ -1358,6 +1360,7 @@ typedef struct _sipAPIDef {
             sipAttrGetterFunc getter);
     int (*api_is_api_enabled)(const char *name, int from, int to);
     sipErrorState (*api_bad_callable_arg)(int arg_nr, PyObject *arg);
+    void *(*api_get_address)(struct _sipSimpleWrapper *w);
 
     /*
      * The following are deprecated parts of the public API.
@@ -1436,10 +1439,8 @@ typedef struct _sipAPIDef {
             PyObject *sipKwdArgs, const char **kwdlist, PyObject **unused,
             const char *fmt, ...);
     void (*api_add_exception)(sipErrorState es, PyObject **parseErrp);
-    /*
-     * The following are part of the public API.
-     */
-    void *(*api_get_address)(struct _sipSimpleWrapper *w);
+    int (*api_parse_result_ex)(int *isErr, PyObject *method, PyObject *res,
+            const char *fmt, ...);
 } sipAPIDef;
 
 

@@ -596,6 +596,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipFree                     sipAPI_%s->api_free\n"
 "#define sipBuildResult              sipAPI_%s->api_build_result\n"
 "#define sipCallMethod               sipAPI_%s->api_call_method\n"
+"#define sipParseResultEx            sipAPI_%s->api_parse_result_ex\n"
 "#define sipParseResult              sipAPI_%s->api_parse_result\n"
 "#define sipParseArgs                sipAPI_%s->api_parse_args\n"
 "#define sipParseKwdArgs             sipAPI_%s->api_parse_kwd_args\n"
@@ -701,6 +702,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipConvertFromMappedType    sipConvertFromType\n"
 "#define sipConvertFromNamedEnum(v, pt)  sipConvertFromEnum((v), ((sipEnumTypeObject *)(pt))->type)\n"
 "#define sipConvertFromNewInstance(p, wt, t) sipConvertFromNewType((p), (wt)->type, (t))\n"
+        ,mname
         ,mname
         ,mname
         ,mname
@@ -7562,7 +7564,7 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
      */
     prcode(fp, ");\n"
 "\n"
-"    bool sipIsErr = (!resObj || sipParseResult(0, sipMethod, resObj, \"");
+"    bool sipIsErr = (!resObj || sipParseResultEx(0, sipMethod, resObj, \"");
 
     /* Build the format string. */
     if (need_self)
@@ -7652,7 +7654,7 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
 
 
 /*
- * Generate the extra arguments needed by sipParseResult() for a particular
+ * Generate the extra arguments needed by sipParseResultEx() for a particular
  * type.
  */
 static void generateParseResultExtraArgs(moduleDef *mod, argDef *ad, int argnr,
@@ -7706,7 +7708,8 @@ static void generateParseResultExtraArgs(moduleDef *mod, argDef *ad, int argnr,
 
 
 /*
- * Return the format characters used by sipParseResult() for a particular type.
+ * Return the format characters used by sipParseResultEx() for a particular
+ * type.
  */
 static const char *getParseResultFormat(argDef *ad, int res_isref, int xfervh)
 {

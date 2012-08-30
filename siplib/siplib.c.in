@@ -179,6 +179,8 @@ static sipWrapperType *sip_api_map_int_to_class(int typeInt,
         const sipIntTypeClassMap *map, int maplen);
 static sipWrapperType *sip_api_map_string_to_class(const char *typeString,
         const sipStringTypeClassMap *map, int maplen);
+static int sip_api_parse_result_ex(int *isErr, PyObject *method, PyObject *res,
+        const char *fmt, ...);
 static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
         const char *fmt, ...);
 static void sip_api_trace(unsigned mask,const char *fmt,...);
@@ -307,6 +309,7 @@ static const sipAPIDef sip_api = {
     sip_api_register_attribute_getter,
     sip_api_is_api_enabled,
     sip_api_bad_callable_arg,
+    sip_api_get_address,
     /*
      * The following are deprecated parts of the public API.
      */
@@ -363,10 +366,7 @@ static const sipAPIDef sip_api = {
     sip_api_keep_reference,
     sip_api_parse_kwd_args,
     sip_api_add_exception,
-    /*
-     * The following are part of the public API.
-     */
-    sip_api_get_address
+    sip_api_parse_result_ex
 };
 
 
@@ -543,6 +543,8 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
 static int parsePass2(sipSimpleWrapper *self, int selfarg, PyObject *sipArgs,
         PyObject *sipKwdArgs, const char **kwdlist, const char *fmt,
         va_list va);
+static int parseResult(int *isErr, PyObject *method, PyObject *res,
+        const char *fmt, va_list va);
 static PyObject *signature_FromDocstring(const char *doc, SIP_SSIZE_T line);
 static PyObject *detail_FromFailure(PyObject *failure_obj);
 static int isQObject(PyObject *obj);
@@ -2147,16 +2149,48 @@ static PyObject *buildObject(PyObject *obj, const char *fmt, va_list va)
 
 
 /*
- * Parse a result object based on a format string.
+ * Parse a result object based on a format string.  As of v9.0 of the API this
+ * is only ever called by handwritten code.
  */
 static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
         const char *fmt, ...)
 {
-    int tupsz, rc = 0;
-    sipSimpleWrapper *self = NULL;
+    int rc;
     va_list va;
 
-    va_start(va,fmt);
+    va_start(va, fmt);
+    rc = parseResult(isErr, method, res, fmt, va);
+    va_end(va);
+
+    return rc;
+}
+
+
+/*
+ * Parse a result object based on a format string.
+ */
+static int sip_api_parse_result_ex(int *isErr, PyObject *method, PyObject *res,
+        const char *fmt, ...)
+{
+    int rc;
+    va_list va;
+
+    va_start(va, fmt);
+    rc = parseResult(isErr, method, res, fmt, va);
+    va_end(va);
+
+    return rc;
+}
+
+
+/*
+ * Do the main work of parsing a result object based on a format string.
+ */
+static int parseResult(int *isErr, PyObject *method, PyObject *res,
+        const char *fmt, va_list va)
+{
+    int tupsz, rc = 0;
+    sipSimpleWrapper *self = NULL;
 
     /* Get self if it is provided. */
     if (*fmt == 'S')
@@ -2760,8 +2794,6 @@ static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
             }
         }
     }
-
-    va_end(va);
 
     if (isErr != NULL && rc < 0)
         *isErr = TRUE;
