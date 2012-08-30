@@ -354,11 +354,15 @@ class Makefile:
             win_exceptions = ("exceptions" in wcfg)
             win_rtti = ("rtti" in wcfg)
             win_stl = ("stl" in wcfg)
+
+            qt_version = self.config.qt_version
         else:
             win_shared = 1
             win_exceptions = 0
             win_rtti = 0
             win_stl = 0
+
+            qt_version = 0
 
         # Get what we are going to transform.
         cflags = _UniqueList()
@@ -419,10 +423,18 @@ class Makefile:
         rpaths = _UniqueList()
 
         for l in self.extra_lib_dirs:
+            l_dir = os.path.dirname(l)
+
+            # This is a hack to ignore PyQt's internal support libraries.
+            if '/qpy/' in l_dir:
+                continue
+
             # Ignore relative directories.  This is really a hack to handle
             # SIP v3 inter-module linking.
-            if os.path.dirname(l) not in ("", ".", ".."):
-                rpaths.append(l)
+            if l_dir in ("", ".", ".."):
+                continue
+
+            rpaths.append(l)
 
         if self._python:
             incdir.append(self.config.py_inc_dir)
@@ -554,7 +566,7 @@ class Makefile:
             if not self._debug:
                 defines.append("QT_NO_DEBUG")
 
-            if self.config.qt_version >= 0x040000:
+            if qt_version >= 0x040000:
                 for mod in self._qt:
                     # Note that qmake doesn't define anything for QtHelp.
                     if mod == "QtCore":
@@ -593,7 +605,7 @@ class Makefile:
             libdir.extend(libdir_qt)
             rpaths.extend(libdir_qt)
 
-            if self.config.qt_version >= 0x040000:
+            if qt_version >= 0x040000:
                 # Try and read QT_LIBINFIX from qconfig.pri.
                 qconfig = os.path.join(mkspecs, "qconfig.pri")
                 self._infix = self._extract_value(qconfig, "QT_LIBINFIX")
@@ -642,7 +654,7 @@ class Makefile:
                 # include QtGui and QtNetwork as a dependency any longer.  This
                 # seems to be a bug in Qt v4.2.0.  We explicitly set the
                 # dependencies here.
-                if self.config.qt_version >= 0x040200 and "QtAssistant" in self._qt:
+                if qt_version >= 0x040200 and "QtAssistant" in self._qt:
                     if "QtGui" not in self._qt:
                         self._qt.append("QtGui")
                     if "QtNetwork" not in self._qt:
@@ -680,7 +692,7 @@ class Makefile:
                 qt_lib = self.config.qt_lib
 
                 if self.generator in ("MSVC", "MSVC.NET", "MSBUILD", "BMAKE") and win_shared:
-                    qt_lib = qt_lib + version_to_string(self.config.qt_version).replace(".", "")
+                    qt_lib = qt_lib + version_to_string(qt_version).replace(".", "")
 
                     if self.config.qt_edition == "non-commercial":
                         qt_lib = qt_lib + "nc"
@@ -699,17 +711,30 @@ class Makefile:
             qtincdir = self.optional_list("INCDIR_QT")
 
             if qtincdir:
-                if self.config.qt_version >= 0x040000:
+                if qt_version >= 0x040000:
                     for mod in self._qt:
                         if mod == "QAxContainer":
                             incdir.append(os.path.join(qtincdir[0], "ActiveQt"))
                         elif self._is_framework(mod):
-                            if mod == "QtAssistant" and self.config.qt_version < 0x040202:
+                            if mod == "QtAssistant" and qt_version < 0x040202:
                                 mod = "QtAssistantClient"
 
-                            incdir.append(os.path.join(libdir_qt[0], mod + ".framework", "Headers"))
+                            incdir.append(os.path.join(libdir_qt[0],
+                                    mod + ".framework", "Headers"))
+
+                            if qt_version >= 0x050000 and mod == "QtGui":
+                                incdir.append(os.path.join(libdir_qt[0],
+                                        "QtWidgets.framework", "Headers"))
+                                incdir.append(os.path.join(libdir_qt[0],
+                                        "QtPrintSupport.framework", "Headers"))
                         else:
                             incdir.append(os.path.join(qtincdir[0], mod))
+
+                            if qt_version >= 0x050000 and mod == "QtGui":
+                                incdir.append(os.path.join(qtincdir[0],
+                                        "QtWidgets"))
+                                incdir.append(os.path.join(qtincdir[0],
+                                        "QtPrintSupport"))
 
                 # This must go after the module include directories.
                 incdir.extend(qtincdir)
@@ -721,7 +746,7 @@ class Makefile:
             libs.extend(self.optional_list("LIBS_OPENGL"))
 
         if self._qt or self._opengl:
-            if self.config.qt_version < 0x040000 or self._opengl or "QtGui" in self._qt:
+            if qt_version < 0x040000 or self._opengl or "QtGui" in self._qt:
                 incdir.extend(self.optional_list("INCDIR_X11"))
                 libdir.extend(self.optional_list("LIBDIR_X11"))
                 libs.extend(self.optional_list("LIBS_X11"))
@@ -783,7 +808,10 @@ class Makefile:
         if self._debug:
             if sys.platform == "win32":
                 lib = lib + "d"
-            elif self.config.qt_version < 0x040200 or sys.platform == "darwin":
+            elif sys.platform == "darwin":
+                if not self._is_framework(mname):
+                    lib = lib + "_debug"
+            elif self.config.qt_version < 0x040200:
                 lib = lib + "_debug"
 
         if sys.platform == "win32" and "shared" in self.config.qt_winconfig.split():
@@ -876,7 +904,13 @@ class Makefile:
         else:
             prl_name = os.path.join(self.config.qt_lib_dir, "lib" + clib + ".prl")
 
-        return self._extract_value(prl_name, "QMAKE_PRL_LIBS").split()
+        libs = self._extract_value(prl_name, "QMAKE_PRL_LIBS").split()
+
+        if self.config.qt_version >= 0x050000 and clib == "QtGui":
+            for xtra in ("QtWidgets", "QtPrintSupport"):
+                libs.extend(self.platform_lib(xtra, framework).split())
+
+        return libs
 
     def _extract_value(self, fname, vname):
         """Return the stripped value from a name=value line in a file.
@@ -2357,7 +2391,7 @@ def parse_build_macros(filename, names, overrides=None, properties=None):
                     if orig_rhs is not None:
                         rhs = orig_rhs + " " + rhs
 
-                raw[lhs] = rhs
+                raw[lhs] = _expand_macro_value(raw, rhs, properties)
 
         line = f.readline()
 
@@ -2373,7 +2407,7 @@ def parse_build_macros(filename, names, overrides=None, properties=None):
 
     for lhs in list(raw.keys()):
         # Strip any prefix.
-        if lhs.find(macro_prefix) == 0:
+        if lhs.startswith(macro_prefix):
             reflhs = lhs[len(macro_prefix):]
         else:
             reflhs = lhs
@@ -2383,48 +2417,6 @@ def parse_build_macros(filename, names, overrides=None, properties=None):
             continue
 
         rhs = raw[lhs]
-
-        # Resolve any references.
-        estart = rhs.find("$$(")
-        mstart = rhs.find("$$")
-
-        while mstart >= 0 and mstart != estart:
-            rstart = mstart + 2
-            if rstart < len(rhs) and rhs[rstart] == "{":
-                rstart = rstart + 1
-                term = "}"
-            elif rstart < len(rhs) and rhs[rstart] == "[":
-                rstart = rstart + 1
-                term = "]"
-            else:
-                term = string.whitespace
-
-            mend = rstart
-            while mend < len(rhs) and rhs[mend] not in term:
-                mend = mend + 1
-
-            lhs = rhs[rstart:mend]
-
-            if term in "}]":
-                mend = mend + 1
-
-            if term == "]":
-                if properties is None or lhs not in list(properties.keys()):
-                    error("%s: property '%s' is not defined." % (filename, lhs))
-
-                value = properties[lhs]
-            else:
-                try:
-                    value = raw[lhs]
-                except KeyError:
-                    # We used to treat this as an error, but Qt v4.3.0 has at
-                    # least one case that refers to an undefined macro.  If
-                    # qmake handles it then this must be the correct behaviour.
-                    value = ""
-
-            rhs = rhs[:mstart] + value + rhs[mend:]
-            estart = rhs.find("$$(")
-            mstart = rhs.find("$$")
 
         # Expand any POSIX style environment variables.
         pleadin = ["$$(", "$("]
@@ -2504,6 +2496,50 @@ def parse_build_macros(filename, names, overrides=None, properties=None):
         refined[lhs] = rhs
 
     return refined
+
+
+def _expand_macro_value(macros, rhs, properties):
+    """Expand the value of a macro based on ones seen so far."""
+    estart = rhs.find("$$(")
+    mstart = rhs.find("$$")
+
+    while mstart >= 0 and mstart != estart:
+        rstart = mstart + 2
+        if rstart < len(rhs) and rhs[rstart] == "{":
+            rstart = rstart + 1
+            term = "}"
+        elif rstart < len(rhs) and rhs[rstart] == "[":
+            rstart = rstart + 1
+            term = "]"
+        else:
+            term = string.whitespace
+
+        mend = rstart
+        while mend < len(rhs) and rhs[mend] not in term:
+            mend = mend + 1
+
+        lhs = rhs[rstart:mend]
+
+        if term in "}]":
+            mend = mend + 1
+
+        if term == "]":
+            # Assume a missing property expands to an empty string.
+            if properties is None:
+                value = ""
+            else:
+                value = properties.get(lhs, "")
+        else:
+            # We used to treat a missing value as an error, but Qt v4.3.0 has
+            # at least one case that refers to an undefined macro.  If qmake
+            # handles it then this must be the correct behaviour.
+            value = macros.get(lhs, "")
+
+        rhs = rhs[:mstart] + value + rhs[mend:]
+        estart = rhs.find("$$(")
+        mstart = rhs.find("$$")
+
+    return rhs
 
 
 def create_wrapper(script, wrapper, gui=0, use_arch=''):

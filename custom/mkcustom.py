@@ -45,7 +45,7 @@ PythonLibraryDirectory = cfg.py_lib_dir
 
 
 # Make platform specific modifications.
-if sys.platform == "linux2":
+if sys.platform.startswith("linux"):
     ExtraLibraries.append("util")
 
 

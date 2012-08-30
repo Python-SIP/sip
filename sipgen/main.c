@@ -1,7 +1,7 @@
 /*
  * The main module for SIP.
  *
- * Copyright (c) 2011 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2012 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -439,8 +439,8 @@ void warning(Warning w, const char *fmt, ...)
 
     va_list ap;
 
-    /* At some point deprecation warnings will not be suppressed. */
-    if (!warnings)
+    /* Don't allow deprecation warnings to be suppressed. */
+    if (!warnings && w != DeprecationWarning)
         return;
 
     if (start)

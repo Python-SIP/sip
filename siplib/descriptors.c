@@ -1,7 +1,7 @@
 /*
  * The implementation of the different descriptors.
  *
- * Copyright (c) 2011 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2012 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -240,7 +240,7 @@ static PyObject *sipVariableDescr_descr_get(PyObject *self, PyObject *obj,
     if (get_instance_address(vd, obj, &addr) < 0)
         return NULL;
 
-    return ((sipVariableGetterFunc)vd->vd->vd_getter)(addr, type);
+    return ((sipVariableGetterFunc)vd->vd->vd_getter)(addr, obj, type);
 }
 
 

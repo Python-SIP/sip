@@ -1,7 +1,7 @@
 /*
  * The main header file for SIP.
  *
- * Copyright (c) 2011 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2012 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -61,6 +61,7 @@
 #define MOD_IS_COMPOSITE        0x0004  /* It is a composite module. */
 #define MOD_IS_TRANSFORMED      0x0008  /* It's types have been transformed. */
 #define MOD_USE_ARG_NAMES       0x0010  /* Use real argument names. */
+#define MOD_ALL_RAISE_PY_EXC    0x0020  /* All callable raise a Python exception. */
 
 #define hasDelayedDtors(m)  ((m)->modflags & MOD_HAS_DELAYED_DTORS)
 #define setHasDelayedDtors(m)   ((m)->modflags |= MOD_HAS_DELAYED_DTORS)
@@ -73,6 +74,8 @@
 #define isTransformed(m)    ((m)->modflags & MOD_IS_TRANSFORMED)
 #define setUseArgNames(m)   ((m)->modflags |= MOD_USE_ARG_NAMES)
 #define useArgNames(m)      ((m)->modflags & MOD_USE_ARG_NAMES)
+#define setAllRaisePyException(m)   ((m)->modflags |= MOD_ALL_RAISE_PY_EXC)
+#define allRaisePyException(m)  ((m)->modflags & MOD_ALL_RAISE_PY_EXC)
 
 
 /* Handle section flags. */
@@ -171,6 +174,13 @@
 #define isDtor(cd)          ((cd)->classflags & (SECT_IS_PUBLIC | SECT_IS_PROT | SECT_IS_PRIVATE))
 
 
+/* Handle the second group of class flags. */
+#define CLASS2_TMPL_ARG     0x01        /* The class is a template argument. */
+
+#define isTemplateArg(cd)   ((cd)->classflags2 & CLASS2_TMPL_ARG)
+#define setTemplateArg(cd)  ((cd)->classflags2 |= CLASS2_TMPL_ARG)
+
+
 /* Handle ctor flags.  These are combined with the section flags. */
 
 #define CTOR_RELEASE_GIL    0x00000100  /* The ctor releases the GIL. */
@@ -179,6 +189,7 @@
 #define CTOR_HOLD_GIL       0x00000800  /* The ctor holds the GIL. */
 #define CTOR_XFERRED        0x00001000  /* Ownership is transferred. */
 #define CTOR_IS_DEPRECATED  0x00002000  /* The ctor is deprecated. */
+#define CTOR_RAISES_PY_EXC  0x00004000  /* It raises a Python exception. */
 
 #define isPublicCtor(c)     ((c)->ctorflags & SECT_IS_PUBLIC)
 #define setIsPublicCtor(c)  ((c)->ctorflags |= SECT_IS_PUBLIC)
@@ -198,6 +209,8 @@
 #define setIsResultTransferredCtor(c)   ((c)->ctorflags |= CTOR_XFERRED)
 #define isDeprecatedCtor(c) ((c)->ctorflags & CTOR_IS_DEPRECATED)
 #define setIsDeprecatedCtor(c)  ((c)->ctorflags |= CTOR_IS_DEPRECATED)
+#define raisesPyExceptionCtor(c)    ((c)->ctorflags & CTOR_RAISES_PY_EXC)
+#define setRaisesPyExceptionCtor(c) ((c)->ctorflags |= CTOR_RAISES_PY_EXC)
 
 
 /* Handle member flags. */
@@ -614,6 +627,13 @@ typedef enum {
 } ifaceFileType;
 
 
+/* A location in a .sip source file. */
+typedef struct {
+    int linenr;                         /* The line number. */
+    const char *name;                   /* The filename. */
+} sourceLocation;
+
+
 /* A software license. */
 
 typedef struct {
@@ -789,6 +809,7 @@ typedef struct _moduleDef {
     codeBlockList *unitcode;            /* Compilation unit code. */
     codeBlockList *unitpostinccode;     /* Compilation unit post-include code. */
     codeBlockList *docstring;           /* The docstring. */
+    const char *virt_error_handler;     /* The virtual error handler. */
     int parts;                          /* The number of parts generated. */
     const char *file;                   /* The filename. */
     qualDef *qualifiers;                /* The list of qualifiers. */
@@ -854,6 +875,7 @@ typedef struct _mappedTypeDef {
     ifaceFileDef *iff;                  /* The interface file. */
     struct _memberDef *members;         /* The static member functions. */
     struct _overDef *overs;             /* The static overloads. */
+    codeBlockList *instancecode;        /* Create instance code. */
     codeBlockList *typecode;            /* Type code. */
     codeBlockList *convfromcode;        /* Convert from C++ code. */
     codeBlockList *convtocode;          /* Convert to C++ code. */
@@ -941,6 +963,7 @@ typedef struct _propertyDef {
 /* An overloaded member function definition. */
 
 typedef struct _overDef {
+    sourceLocation sloc;                /* The source location. */
     char *cppname;                      /* The C++ name. */
     int overflags;                      /* The overload flags. */
     KwArgs kwargs;                      /* The keyword argument support. */
@@ -953,6 +976,7 @@ typedef struct _overDef {
     virtHandlerDef *virthandler;        /* The virtual handler. */
     char *prehook;                      /* The pre-hook name. */
     char *posthook;                     /* The post-hook name. */
+    const char *virt_error_handler;     /* The virtual error handler. */
     struct _overDef *next;              /* Next in the list. */
 } overDef;
 
@@ -1056,6 +1080,7 @@ typedef struct _mroDef {
 
 typedef struct _classDef {
     unsigned classflags;                /* The class flags. */
+    unsigned classflags2;               /* The class flags, part 2. */
     int pyqt4_flags;                    /* The PyQt4 specific flags. */
     nameDef *pyname;                    /* The Python name. */
     ifaceFileDef *iff;                  /* The interface file. */
@@ -1080,6 +1105,7 @@ typedef struct _classDef {
     codeBlockList *convtosubcode;       /* Convert to sub C++ code. */
     struct _classDef *subbase;          /* Sub-class base class. */
     codeBlockList *docstring;           /* Class and ctor docstrings. */
+    codeBlockList *instancecode;        /* Create instance code. */
     codeBlockList *convtocode;          /* Convert to C++ code. */
     codeBlockList *travcode;            /* Traverse code. */
     codeBlockList *clearcode;           /* Clear code. */
@@ -1091,6 +1117,7 @@ typedef struct _classDef {
     codeBlockList *charbufcode;         /* Character buffer code (Python v2). */
     codeBlockList *picklecode;          /* Pickle code. */
     propertyDef *properties;            /* The properties. */
+    const char *virt_error_handler;     /* The virtual error handler. */
     struct _classDef *next;             /* Next in the list. */
 } classDef;
 
@@ -1198,6 +1225,7 @@ void warning(Warning w, const char *fmt, ...);
 void deprecated(const char *msg);
 void fatal(char *,...);
 void fatalScopedName(scopedNameDef *);
+void getSourceLocation(sourceLocation *slp);
 int setInputFile(FILE *open_fp, parserContext *pc, int optional);
 void resetLexerState();
 void *sipMalloc(size_t n);
@@ -1383,13 +1411,14 @@ typedef struct _licenseCfg {
     const char *timestamp;
 } licenseCfg;
 
-/* %Module */
+/* %Module and its sub-directives. */
 typedef struct _moduleCfg {
     int token;
     int c_module;
     KwArgs kwargs;
     const char *name;
     int use_arg_names;
+    int all_raise_py_exc;
     int version;
     codeBlock *docstring;
 } moduleCfg;
@@ -1416,5 +1445,11 @@ typedef struct _variableCfg {
     codeBlock *get_code;
     codeBlock *set_code;
 } variableCfg;
+
+/* %VirtualErrorHandler */
+typedef struct _vehCfg {
+    int token;
+    const char *name;
+} vehCfg;
 
 #endif

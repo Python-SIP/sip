@@ -1,7 +1,7 @@
 /*
  * The SIP module interface.
  *
- * Copyright (c) 2011 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2012 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -67,6 +67,8 @@ extern "C" {
  * to 0.
  *
  * History:
+ *
+ * 9.0  Changed the sipVariableGetterFunc signature.
  *
  * 8.1  Revised the sipVariableDef structure.
  *      sip_api_get_address() is now part of the public API.
@@ -174,8 +176,8 @@ extern "C" {
  *
  * 0.0  Original version.
  */
-#define SIP_API_MAJOR_NR    8
-#define SIP_API_MINOR_NR    1
+#define SIP_API_MAJOR_NR    9
+#define SIP_API_MINOR_NR    0
 
 
 /* The name of the sip module. */
@@ -329,14 +331,17 @@ typedef void *(*sipCastFunc)(void *, const struct _sipTypeDef *);
 typedef const struct _sipTypeDef *(*sipSubClassConvertFunc)(void **);
 typedef int (*sipConvertToFunc)(PyObject *, void **, int *, PyObject *);
 typedef PyObject *(*sipConvertFromFunc)(void *, PyObject *);
-typedef int (*sipVirtHandlerFunc)(void *, PyObject *, ...);
+typedef void (*sipVirtErrorHandlerFunc)(sip_gilstate_t,
+        struct _sipSimpleWrapper *);
+typedef int (*sipVirtHandlerFunc)(sip_gilstate_t, sipVirtErrorHandlerFunc,
+        struct _sipSimpleWrapper *, PyObject *, ...);
 typedef void (*sipAssignFunc)(void *, SIP_SSIZE_T, const void *);
 typedef void *(*sipArrayFunc)(SIP_SSIZE_T);
 typedef void *(*sipCopyFunc)(const void *, SIP_SSIZE_T);
 typedef void (*sipReleaseFunc)(void *, int);
 typedef PyObject *(*sipPickleFunc)(void *);
 typedef int (*sipAttrGetterFunc)(const struct _sipTypeDef *, PyObject *);
-typedef PyObject *(*sipVariableGetterFunc)(void *, PyObject *);
+typedef PyObject *(*sipVariableGetterFunc)(void *, PyObject *, PyObject *);
 typedef int (*sipVariableSetterFunc)(void *, PyObject *, PyObject *);
 
 
@@ -684,25 +689,6 @@ typedef struct _sipVariableDef {
     /* The docstring. */
     const char *vd_docstring;
 } sipVariableDef;
-
-
-/*
- * The information describing a variable.  This is deprecated from v8.1 of the
- * API and should be removed in v9.0.
- */
-typedef struct _sipVariableDef_8 {
-    /* The variable name. */
-    const char *vd_name;
-
-    /* The variable getter. */
-    sipVariableGetterFunc vd_getter;
-
-    /* The variable setter.  It is NULL if the variable is const. */
-    sipVariableSetterFunc vd_setter;
-
-    /* This is set if the variable is static. */
-    int vd_is_static;
-} sipVariableDef_8;
 
 
 /*
@@ -1506,13 +1492,15 @@ typedef struct _sipQtAPI {
 /*
  * Useful macros, not part of the public API.
  */
-#define SIP_PY_OWNED        0x0004  /* Owned by Python. */
+#define SIP_PY_OWNED        0x0004  /* If owned by Python. */
 #define SIP_INDIRECT        0x0008  /* If there is a level of indirection. */
 #define SIP_ACCFUNC         0x0010  /* If there is an access function. */
-#define SIP_NOT_IN_MAP      0x0020  /* If Python object not in the map. */
+#define SIP_NOT_IN_MAP      0x0020  /* If Python object is not in the map. */
 #define SIP_SHARE_MAP       0x0040  /* If the map slot might be occupied. */
 #define SIP_CPP_HAS_REF     0x0080  /* If C/C++ has a reference. */
 #define SIP_POSSIBLE_PROXY  0x0100  /* If there might be a proxy slot. */
+#define SIP_ALIAS           0x0200  /* If it is an alias. */
+#define SIP_CREATED         0x0400  /* If the C/C++ object has been created. */
 
 #define sipIsPyOwned(w)     ((w)->flags & SIP_PY_OWNED)
 #define sipSetPyOwned(w)    ((w)->flags |= SIP_PY_OWNED)
@@ -1527,6 +1515,8 @@ typedef struct _sipQtAPI {
 #define sipResetCppHasRef(w)    ((w)->flags &= ~SIP_CPP_HAS_REF)
 #define sipPossibleProxy(w) ((w)->flags & SIP_POSSIBLE_PROXY)
 #define sipSetPossibleProxy(w)  ((w)->flags |= SIP_POSSIBLE_PROXY)
+#define sipIsAlias(w)       ((w)->flags & SIP_ALIAS)
+#define sipWasCreated(w)    ((w)->flags & SIP_CREATED)
 
 
 #define SIP_TYPE_TYPE_MASK  0x0007  /* The type type mask. */

@@ -18,7 +18,7 @@ Revised Directive Syntax
 
 .. versionadded:: 4.12
 
-The directive syntax used in the current version has some problems:
+The directive syntax used in older versions has some problems:
 
 - it is inconsistent in places
 
@@ -768,7 +768,7 @@ copyright and licensing terms.
 For example::
 
     %Copying
-    Copyright (c) 2011 Riverbank Computing Limited
+    Copyright (c) 2012 Riverbank Computing Limited
     %End
 
 
@@ -853,6 +853,50 @@ See the section :ref:`ref-types-metatypes` for more details.
 For example::
 
     %DefaultSupertype sip.simplewrapper
+
+
+.. directive:: %DefaultVirtualErrorHandler
+
+.. versionadded:: 4.14
+
+.. parsed-literal::
+
+    %DefaultVirtualErrorHandler *name*
+
+This directive is used to specify the name of a C/C++ function that is called
+when a Python re-implementation of a virtual C++ function raises a Python
+exception.  By default the ``PyErr_Print()`` function is called.
+
+The handler is called after all tidying up has been completed and with the
+Python Global Interpreter Lock (GIL) acquired.  The handler may change the
+execution path by, for example, throwing a C++ exception but must first restore
+the state of the GIL by calling :c:func:`SIP_RELEASE_GIL`.
+
+The handler is called with two arguments, an opaque :c:type:`sip_gilstate_t`
+(used to pass to :c:func:`SIP_RELEASE_GIL`) and a ``Python *`` that is the
+Python instance containing the reimplementation.
+
+For example::
+
+    %DefaultVirtualErrorHandle my_handler
+
+Steps should also be taken to ensure that the handler is callable from
+anywhere in the module, for example::
+
+    %ModuleHeaderCode
+    void my_handler(sip_gilstate_t, PyObject *);
+    %End
+
+    %ModuleCode
+    void my_handler(sip_gilstate_t gilstate, PyObject *self)
+    {
+        SIP_RELEASE_GIL(gilstate);
+
+        throw my_exception(self);
+    }
+    %End
+
+.. seealso:: :fanno:`NoVirtualErrorHandler`, :fanno:`VirtualErrorHandler``, :canno:`VirtualErrorHandler`
 
 
 .. directive:: %Doc
@@ -1419,6 +1463,32 @@ For example::
     %End
 
 
+.. directive:: %InstanceCode
+
+.. versionadded:: 4.14
+
+.. parsed-literal::
+
+    %InstanceCode
+        *code*
+    %End
+
+There are a number of circumstances where SIP needs to create an instance of a
+C++ class but may not be able to do so.  For example the C++ class may be
+abstract or may not have an argumentless public constructor.  This directive is
+used in the definition of a class or mapped type to specify handwritten code to
+create an instance of the C++ class.  For example, if the C++ class is
+abstract, then the handwritten code may return an instance of a concrete
+sub-class.
+
+The following variable is made available to the handwritten code:
+
+*type* \*sipCpp
+    This must be set by the handwritten code to the address of an instance of
+    the C++ class.  It doesn't matter if the instance is on the heap or not as
+    it will never be explicitly destroyed.
+
+
 .. directive:: %License
 
 .. parsed-literal::
@@ -1808,6 +1878,7 @@ then the pattern should instead be::
 .. parsed-literal::
 
     %Module(name = *dotted-name*
+            [, all_raise_py_exception = [True | False]]
             [, keyword_arguments = ["None" | "All" | "Optional"]]
             [, language = *string*]
             [, use_argument_names = [True | False]]
@@ -1820,6 +1891,11 @@ then the pattern should instead be::
 This directive is used to specify the name of a module and a number of other
 attributes.  ``name`` may contain periods to specify that the module is part of
 a Python package.
+
+``all_raise_py_exception`` specifies that all constructors, functions and
+methods defined in the module raise a Python exception to indicate that an
+error occurred.  It is the equivalent of using the :fanno:`RaisesPyException`
+function annotation on every constructor, function and method.
 
 ``keyword_arguments`` specifies the default level of support for Python keyword
 arguments.  See the :fanno:`KeywordArgs` annotation for an explaination of the

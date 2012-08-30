@@ -2,7 +2,7 @@
  * The SIP library code that implements the interface to the optional module
  * supplied Qt support.
  *
- * Copyright (c) 2011 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2012 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -139,17 +139,11 @@ PyObject *sip_api_invoke_slot(const sipSlot *slot, PyObject *sigargs)
         PyObject *self = (sref != NULL ? sref : slot->meth.mself);
 
         /*
-         * If the receiver wraps a C++ object then ignore the call if it no
-         * longer exists.
+         * We used to check that any wrapped C++ object still existed and just
+         * returning None if it didn't.  This caused inconsistent behaviour
+         * when the slot was a method connected to its object's destroyed()
+         * signal.
          */
-        if (PyObject_TypeCheck(self, (PyTypeObject *)&sipSimpleWrapper_Type) &&
-            sip_api_get_address((sipSimpleWrapper *)self) == NULL)
-        {
-            Py_XDECREF(sref);
-
-            Py_INCREF(Py_None);
-            return Py_None;
-        }
 
 #if PY_MAJOR_VERSION >= 3
         sfunc = PyMethod_New(slot->meth.mfunc, self);

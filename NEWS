@@ -1,3 +1,35 @@
+v4.14 ???
+  - The internal API version is increased to 9.0 requiring the regeneration of
+    all modules.
+  - Added the %InstanceCode directive.
+  - Added the %DefaultVirtualErrorHandler directive.
+  - Added the /VirtualErrorHandler/ class annotation.
+  - Added the /NoVirtualErrorHandler/ and /VirtualErrorHandler/ function
+    annotations.
+  - Deprecated sipTransferBreak().
+  - For Python v2.x unsigned short and unsigned char (when used as a byte) are
+    now converted to int, rather than long, objects.
+
+v4.13.3 20th June 2012
+  - The /NoRaisesPyException/ and /RaisesPyException/ function annotations can
+    now be applied to constructors.
+  - Added support for the Python v3.3 handling of Unicode.
+
+v4.13.2 10th February 2012
+  - A bug fix release.
+
+v4.13.1 22nd December 2011
+  - Deprecation warnings can no longer be disabled.
+  - Added the all_raise_py_exception argument to the %Module directive.
+  - Added the /NoRaisesPyException/ function annotation.
+  - Added the /PyName/ typedef annotation.
+  - Class templates now allow super-classes to be defined as template
+    arguments.
+  - Added support for 'public' preceding the name of a class in a super-class
+    list.
+  - Added support for 'protected' and 'private' preceding the name of a class
+    in a super-class list.  Any such super-class will be ignored.
+
 v4.13 25th October 2011
   - Added the %DefaultDocstringFormat directive.
   - Added the format argument to the %Docstring directive.

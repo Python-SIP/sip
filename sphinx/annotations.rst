@@ -61,9 +61,6 @@ The following example shows argument and function annotations::
 
     void exec(QWidget * /Transfer/) /ReleaseGIL, PyName=call_exec/;
 
-Note that the current version of SIP does not complain about unknown
-annotations, or annotations used out of their correct context.
-
 
 .. _ref-arg-annos:
 
@@ -359,38 +356,38 @@ Class Annotations
     is specified then when the wrapped instance is garbage collected the C or
     C++ instance is not destroyed but instead added to a list of delayed
     instances.  When the interpreter exits then the function
-    :cfunc:`sipDelayedDtors()` is called with the list of delayed instances.
-    :cfunc:`sipDelayedDtors()` can then choose to call (or ignore) the
+    :c:func:`sipDelayedDtors()` is called with the list of delayed instances.
+    :c:func:`sipDelayedDtors()` can then choose to call (or ignore) the
     destructors in any desired order.
 
-    The :cfunc:`sipDelayedDtors()` function must be specified using the
+    The :c:func:`sipDelayedDtors()` function must be specified using the
     :directive:`%ModuleCode` directive.
 
-.. cfunction:: void sipDelayedDtors(const sipDelayedDtor *dd_list)
+.. c:function:: void sipDelayedDtors(const sipDelayedDtor *dd_list)
 
     :param dd_list:
         the linked list of delayed instances.
 
-.. ctype:: sipDelayedDtor
+.. c:type:: sipDelayedDtor
 
     This structure describes a particular delayed destructor.
 
-    .. cmember:: const char *dd_name
+    .. c:member:: const char* dd_name
 
         This is the name of the class excluding any package or module name.
 
-    .. cmember:: void *dd_ptr
+    .. c:member:: void* dd_ptr
 
         This is the address of the C or C++ instance to be destroyed.  It's
-        exact type depends on the value of :cmember:`dd_isderived`.
+        exact type depends on the value of :c:member:`dd_isderived`.
 
-    .. cmember:: int dd_isderived
+    .. c:member:: int dd_isderived
 
-        This is non-zero if the type of :cmember:`dd_ptr` is actually the
+        This is non-zero if the type of :c:member:`dd_ptr` is actually the
         generated derived class.  This allows the correct destructor to be
         called.  See :ref:`ref-derived-classes`.
 
-    .. cmember:: sipDelayedDtor *dd_next
+    .. c:member:: sipDelayedDtor* dd_next
 
         This is the address of the next entry in the list or zero if this is
         the last one.
@@ -448,6 +445,20 @@ Class Annotations
     See the section :ref:`ref-types-metatypes` for more details.
 
 
+.. class-annotation:: VirtualErrorHandler
+
+    .. versionadded:: 4.14
+
+    This name annotation specifies the name of a C/C++ function that is called
+    when a Python re-implementation of any of the class's virtual C++ functions
+    raises a Python exception.  If not specified then the handler specified by
+    the :directive:`DefaultVirtualErrorHandler` directive is used.  The
+    :directive:`%DefaultVirtualErrorHandler` directive describes how the
+    handler is called.
+
+    .. seealso:: :fanno:`NoVirtualErrorHandler`, :fanno:`VirtualErrorHandler`, :directive:`%VirtualErrorHandler`
+
+
 .. _ref-mapped-type-annos:
 
 Mapped Type Annotations
@@ -486,9 +497,9 @@ Mapped Type Annotations
 .. mapped-type-annotation:: NoRelease
 
     This boolean annotation is used to specify that the mapped type does not
-    support the :cfunc:`sipReleaseType()` function.  Any
+    support the :c:func:`sipReleaseType()` function.  Any
     :directive:`%ConvertToTypeCode` should not create temporary instances of
-    the mapped type, i.e. it should not return :cmacro:`SIP_TEMPORARY`.
+    the mapped type, i.e. it should not return :c:macro:`SIP_TEMPORARY`.
 
 
 .. _ref-enum-annos:
@@ -560,7 +571,8 @@ Function Annotations
     compulsory arguments if one is specified.  (SIP will automatically generate
     a constructor with no arguments if no constructors are specified.)  This
     annotation is used to explicitly specify which constructor to use.  Zero is
-    passed as the value of any arguments to the constructor.
+    passed as the value of any arguments to the constructor.  This annotation
+    is ignored if the class defines :directive:`%InstanceCode`.
 
 
 .. function-annotation:: Deprecated
@@ -697,6 +709,30 @@ Function Annotations
     like certain functions to only support positional arguments.
 
 
+.. function-annotation:: NoRaisesPyException
+
+    .. versionadded:: 4.13.1
+
+    This boolean annotation specifies that the function or constructor does not
+    raise a Python exception to indicate that an error occurred.
+
+    .. seealso:: :fanno:`RaisesPyException`
+
+
+.. function-annotation:: NoVirtualErrorHandler
+
+    .. versionadded:: 4.14
+
+    This boolean annotation specifies that when a Python re-implementation of a
+    virtual C++ function raises a Python exception then ``PyErr_Print()`` is
+    always called.  Any error handler specified by either the
+    :fanno:`VirtualErrorHandler` function annotation, the
+    :canno:`VirtualErrorHandler` class annotation or the
+    :directive:`%DefaultVirtualErrorHandler` directive is ignored.
+
+    .. seealso:: :fanno:`VirtualErrorHandler`, :canno:`VirtualErrorHandler`, :directive:`%DefaultVirtualErrorHandler`
+
+
 .. function-annotation:: Numeric
 
     This boolean annotation specifies that the operator should be interpreted
@@ -752,10 +788,12 @@ Function Annotations
 
     .. versionadded:: 4.12.1
 
-    This boolean annotation specifies that the function raises a Python
-    exception to indicate that an error occurred.  Any current exception is
-    cleared before the function is called.  It is ignored if the
-    :directive:`%MethodCode` directive is used.
+    This boolean annotation specifies that the function or constructor raises a
+    Python exception to indicate that an error occurred.  Any current exception
+    is cleared before the function or constructor is called.  It is ignored if
+    the :directive:`%MethodCode` directive is used.
+
+    .. seealso:: :fanno:`NoRaisesPyException`
 
 
 .. function-annotation:: ReleaseGIL
@@ -803,6 +841,20 @@ Function Annotations
     See :ref:`ref-object-ownership` for more detail.
 
 
+.. function-annotation:: VirtualErrorHandler
+
+    .. versionadded:: 4.14
+
+    This name annotation specifies the name of a C/C++ function that is called
+    when a Python re-implementation of the virtual C++ function raises a
+    Python exception.  If not specified then the handler specified by the
+    class's :canno:`VirtualErrorHandler` annotation is used.  The
+    :directive:`%DefaultVirtualErrorHandler` directive describes how the
+    handler is called.
+
+    .. seealso:: :fanno:`NoVirtualErrorHandler`, :canno:`VirtualErrorHandler`, :directive:`%VirtualErrorHandler`
+
+
 .. _ref-typedef-annos:
 
 Typedef Annotations
@@ -844,6 +896,20 @@ Typedef Annotations
 
     This boolean annotation serves the same purpose as the :aanno:`PyInt`
     argument annotation when applied to the type being defined.
+
+
+.. typedef-annotation:: PyName
+
+    .. versionadded:: 4.13.1
+
+    This name annotation only applies when the typedef is being used to create
+    the wrapping for a class defined using a template and specifies an
+    alternative name for the class when it is referred to from Python.  It is
+    required when a class name is the same as a Python keyword.  It may also
+    be used to avoid name clashes with other objects (e.g. enums, exceptions,
+    functions) that have the same name in the same C++ scope.
+
+    .. seealso:: :directive:`%AutoPyName`
 
 
 .. _ref-variable-annos:

@@ -1,7 +1,7 @@
 /*
  * The SIP lexer.
  *
- * Copyright (c) 2011 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2012 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -39,9 +39,8 @@
 
 
 static struct inputFile {
-    int lineno;                         /* The line number. */
+    sourceLocation sloc;                /* The source location. */
     YY_BUFFER_STATE bs;                 /* The flex buffer state handle. */
-    char *name;                         /* The file name. */
     char *cwd;                          /* The path part of the file name. */
     parserContext pc;                   /* The parser context. */
 } inputFileStack[MAX_INCLUDE_DEPTH];
@@ -88,6 +87,7 @@ static void fatallex(char *);
 ^[ \t]*%Plugin              {BEGIN directive_start; return TK_PLUGIN;}
 ^[ \t]*%Property            {BEGIN directive_start; return TK_PROPERTY;}
 ^[ \t]*%Timeline            {return TK_TIMELINE;}
+^[ \t]*%DefaultVirtualErrorHandler  {BEGIN directive_start; return TK_DEFVIRTERRORHANDLER;}
 
 class                       {return TK_CLASS;}
 struct                      {return TK_STRUCT;}
@@ -159,6 +159,7 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
 <directive>timestamp        {return TK_TIMESTAMP;}
 <directive>type             {return TK_TYPE;}
 <directive>use_argument_names   {return TK_USEARGNAMES;}
+<directive>all_raise_py_exception   {return TK_ALLRAISEPYEXC;}
 <directive>version          {return TK_VERSION;}
 
 <directive>True             {return TK_TRUE_VALUE;}
@@ -193,7 +194,7 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
 
 \n {
     /* Maintain the line number. */
-    ++inputFileStack[currentFile].lineno;
+    ++inputFileStack[currentFile].sloc.linenr;
 
     if (codeIdx == 0 && parenDepth == 0)
     {
@@ -283,7 +284,7 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
     yy_push_state(ccomment);
 }
 <ccomment>\n {
-    ++inputFileStack[currentFile].lineno;
+    ++inputFileStack[currentFile].sloc.linenr;
 }
 <ccomment>\*\/ {
     yy_pop_state();
@@ -446,6 +447,12 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
     return TK_CHARBUFFERCODE;
 }
 
+^[ \t]*%InstanceCode {
+    /* The start of a create instance code block. */
+    codeIdx = 0;
+    return TK_INSTANCECODE;
+}
+
 ^[ \t]*%PickleCode {
     /* The start of a pickle code block. */
     codeIdx = 0;
@@ -461,7 +468,7 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
 }
 
 ^[ \t]*%RaiseCode {
-    /* The start of a raise exception code block. */
+    /* The start of a raise Python exception code block. */
     codeIdx = 0;
     return TK_RAISECODE;
 }
@@ -534,8 +541,8 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
     yylval.codeb = sipMalloc(sizeof (codeBlock));
 
     yylval.codeb->frag = sipStrdup(codeLine);
-    yylval.codeb->linenr = ifp->lineno++;
-    yylval.codeb->filename = sipStrdup(ifp->name);
+    yylval.codeb->linenr = ifp->sloc.linenr++;
+    yylval.codeb->filename = ifp->sloc.name;
 
     return TK_CODELINE;
 }
@@ -570,23 +577,33 @@ int yywrap()
     ifp = &inputFileStack[currentFile--];
 
     /* Tell the parser if this is the end of a file. */
+    parserEOF(ifp->sloc.name, &ifp->pc);
 
-    parserEOF(ifp -> name, &ifp -> pc);
-
-    /* Tidy up this file. */
-
+    /*
+     * Tidy up this file.  Note that we don't free the filename as it will
+     * still be referenced for use in error messages.
+     */
     fclose(yyin);
-    free(ifp -> name);
 
     /* See if this was the original file. */
-
     if (currentFile < 0)
         return 1;
 
     yy_delete_buffer(YY_CURRENT_BUFFER);
-    yy_switch_to_buffer(ifp -> bs);
+    yy_switch_to_buffer(ifp->bs);
 
     return 0;
+}
+
+
+/*
+ * Get the current source location.
+ */
+void getSourceLocation(sourceLocation *slp)
+{
+    /* Assume that we will already have gone past the newline. */
+    slp->linenr = inputFileStack[currentFile].sloc.linenr - 1;
+    slp->name = inputFileStack[currentFile].sloc.name;
 }
 
 
@@ -681,8 +698,8 @@ int setInputFile(FILE *open_fp, parserContext *pc, int optional)
         *strrchr(cwd,'/') = '\0';
     }
 
-    inputFileStack[currentFile].lineno = 1;
-    inputFileStack[currentFile].name = fullname;
+    inputFileStack[currentFile].sloc.linenr = 1;
+    inputFileStack[currentFile].sloc.name = fullname;
     inputFileStack[currentFile].pc = *pc;
     inputFileStack[currentFile].cwd = cwd;
 
@@ -719,10 +736,8 @@ void yyerror(char *s)
     if (currentFile < 0)
         fatal("%s\n", s);
 
-    fatal("%s:%d: %s\n",
-        inputFileStack[currentFile].name,
-        inputFileStack[currentFile].lineno,
-        s);
+    fatal("%s:%d: %s\n", inputFileStack[currentFile].sloc.name,
+            inputFileStack[currentFile].sloc.linenr, s);
 }
 
 
@@ -731,8 +746,9 @@ void yyerror(char *s)
  */
 void yywarning(char *s)
 {
-    warning(ParserWarning, "%s:%d: %s\n", inputFileStack[currentFile].name,
-            inputFileStack[currentFile].lineno, s);
+    warning(ParserWarning, "%s:%d: %s\n",
+            inputFileStack[currentFile].sloc.name,
+            inputFileStack[currentFile].sloc.linenr, s);
 }
 
 
@@ -742,8 +758,8 @@ void yywarning(char *s)
 void deprecated(const char *msg)
 {
     warning(DeprecationWarning, "%s:%d: %s\n",
-            inputFileStack[currentFile].name,
-            inputFileStack[currentFile].lineno, msg);
+            inputFileStack[currentFile].sloc.name,
+            inputFileStack[currentFile].sloc.linenr, msg);
 }
 
 
@@ -753,8 +769,8 @@ void deprecated(const char *msg)
 static void fatallex(char *s)
 {
     fatal("%s:%d: Lexical analyser error: %s\n",
-        inputFileStack[currentFile].name,
-        inputFileStack[currentFile].lineno,
+        inputFileStack[currentFile].sloc.name,
+        inputFileStack[currentFile].sloc.linenr,
         s);
 }
 

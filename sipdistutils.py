@@ -55,7 +55,7 @@ class build_ext (build_ext_base):
         Parse the sbf file specified to extract the name of the generated source
         files. Make them absolute assuming they reside in the temp directory.
         """
-        for L in file(sbf):
+        for L in open(sbf).readlines():
             key, value = L.split("=", 1)
             if key.strip() == "sources":
                 out = []
