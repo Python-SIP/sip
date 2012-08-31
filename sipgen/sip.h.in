@@ -283,6 +283,7 @@
 #define OVER_REALLY_PROT    0x02000000  /* It really is protected. */
 #define OVER_IS_DELATTR     0x04000000  /* It is __delattr__. */
 #define OVER_RAISES_PY_EXC  0x08000000  /* It raises a Python exception. */
+#define OVER_NO_ERROR_HANDLER   0x10000000  /* It doesn't use a virtual error handler. */
 
 #define isPublic(o)         ((o)->overflags & SECT_IS_PUBLIC)
 #define setIsPublic(o)      ((o)->overflags |= SECT_IS_PUBLIC)
@@ -339,6 +340,8 @@
 #define setIsDelattr(o)     ((o)->overflags |= OVER_IS_DELATTR)
 #define raisesPyException(o)    ((o)->overflags & OVER_RAISES_PY_EXC)
 #define setRaisesPyException(o) ((o)->overflags |= OVER_RAISES_PY_EXC)
+#define noErrorHandler(o)   ((o)->overflags & OVER_NO_ERROR_HANDLER)
+#define setNoErrorHandler(o)    ((o)->overflags |= OVER_NO_ERROR_HANDLER)
 
 
 /* Handle variable flags. */
@@ -765,7 +768,6 @@ typedef struct _argList {
 
 
 /* A function call. */
-
 typedef struct _fcallDef {
     argDef type;                        /* The type. */
     int nrArgs;                         /* The number of arguments. */
@@ -781,6 +783,16 @@ typedef struct _apiVersionRangeDef {
     int index;                          /* The range index. */
     struct _apiVersionRangeDef *next;   /* The next in the list. */
 } apiVersionRangeDef;
+
+
+/* A virtual error handler. */
+typedef struct _virtErrorHandler {
+    const char *name;                   /* The name of the handler. */
+    codeBlockList *code;                /* The handler code. */
+    struct _moduleDef *mod;             /* The defining module. */
+    int index;                          /* The index within the module. */
+    struct _virtErrorHandler *next;     /* The next in the list. */
+} virtErrorHandler;
 
 
 /* A module definition. */
@@ -819,6 +831,7 @@ typedef struct _moduleDef {
     int nrexceptions;                   /* The nr. of exceptions. */
     int nrtypedefs;                     /* The nr. of typedefs. */
     int nrvirthandlers;                 /* The nr. of virtual handlers. */
+    int nrvirterrorhandlers;            /* The nr. of virtual error handlers. */
     int next_key;                       /* The next key to allocate. */
     struct _virtHandlerDef *virthandlers;   /* The virtual handlers. */
     licenseDef *license;                /* The software license. */
@@ -1181,6 +1194,7 @@ typedef struct {
     enumDef *enums;                     /* List of enums. */
     varDef *vars;                       /* List of variables. */
     typedefDef *typedefs;               /* List of typedefs. */
+    virtErrorHandler *errorhandlers;    /* The list of virtual error handlers. */
     codeBlockList *exphdrcode;          /* Exported header code. */
     codeBlockList *docs;                /* Documentation. */
     int sigslots;                       /* Set if signals or slots are used. */
@@ -1419,6 +1433,7 @@ typedef struct _moduleCfg {
     const char *name;
     int use_arg_names;
     int all_raise_py_exc;
+    const char *def_error_handler;
     int version;
     codeBlock *docstring;
 } moduleCfg;

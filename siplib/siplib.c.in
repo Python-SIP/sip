@@ -2198,7 +2198,7 @@ static int sip_api_parse_result_ex(sip_gilstate_t gil_state,
 
     if (rc < 0)
         if (error_handler != NULL)
-            error_handler(gil_state, py_self);
+            error_handler(gil_state, (PyObject *)py_self);
         else
             PyErr_Print();
 

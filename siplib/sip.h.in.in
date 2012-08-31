@@ -70,6 +70,7 @@ extern "C" {
  *
  * 9.0  Changed the sipVariableGetterFunc signature.
  *      Added sip_api_parse_result_ex() to the private API.
+ *      Added em_virterrorhandlers to sipExportedModuleDef.
  *      Re-ordered the API functions.
  *
  * 8.1  Revised the sipVariableDef structure.
@@ -333,8 +334,7 @@ typedef void *(*sipCastFunc)(void *, const struct _sipTypeDef *);
 typedef const struct _sipTypeDef *(*sipSubClassConvertFunc)(void **);
 typedef int (*sipConvertToFunc)(PyObject *, void **, int *, PyObject *);
 typedef PyObject *(*sipConvertFromFunc)(void *, PyObject *);
-typedef void (*sipVirtErrorHandlerFunc)(sip_gilstate_t,
-        struct _sipSimpleWrapper *);
+typedef void (*sipVirtErrorHandlerFunc)(sip_gilstate_t, PyObject *);
 typedef int (*sipVirtHandlerFunc)(sip_gilstate_t, sipVirtErrorHandlerFunc,
         struct _sipSimpleWrapper *, PyObject *, ...);
 typedef void (*sipAssignFunc)(void *, SIP_SSIZE_T, const void *);
@@ -1024,6 +1024,9 @@ typedef struct _sipExportedModuleDef {
 
     /* The table of virtual handlers. */
     sipVirtHandlerFunc *em_virthandlers;
+
+    /* The table of virtual error handlers. */
+    sipVirtErrorHandlerFunc *em_virterrorhandlers;
 
     /* The sub-class convertors. */
     sipSubClassConvertorDef *em_convertors;

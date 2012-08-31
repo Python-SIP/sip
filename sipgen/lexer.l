@@ -87,7 +87,6 @@ static void fatallex(char *);
 ^[ \t]*%Plugin              {BEGIN directive_start; return TK_PLUGIN;}
 ^[ \t]*%Property            {BEGIN directive_start; return TK_PROPERTY;}
 ^[ \t]*%Timeline            {return TK_TIMELINE;}
-^[ \t]*%DefaultVirtualErrorHandler  {BEGIN directive_start; return TK_DEFVIRTERRORHANDLER;}
 
 class                       {return TK_CLASS;}
 struct                      {return TK_STRUCT;}
@@ -160,6 +159,7 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
 <directive>type             {return TK_TYPE;}
 <directive>use_argument_names   {return TK_USEARGNAMES;}
 <directive>all_raise_py_exception   {return TK_ALLRAISEPYEXC;}
+<directive>default_VirtualErrorHandler  {return TK_DEFERRORHANDLER;}
 <directive>version          {return TK_VERSION;}
 
 <directive>True             {return TK_TRUE_VALUE;}
@@ -519,6 +519,15 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
     /* The start of a set code block. */
     codeIdx = 0;
     return TK_SETCODE;
+}
+
+^[ \t]*%VirtualErrorHandler {
+    /* The start of part of a virtual error handler. */
+    codeIdx = 0;
+
+    BEGIN directive_start;
+
+    return TK_VIRTERRORHANDLER;
 }
 
 <code>^[ \t]*%End {
