@@ -449,12 +449,12 @@ Class Annotations
 
     .. versionadded:: 4.14
 
-    This name annotation specifies the name of a C/C++ function that is called
-    when a Python re-implementation of any of the class's virtual C++ functions
-    raises a Python exception.  If not specified then the handler specified by
-    the :directive:`DefaultVirtualErrorHandler` directive is used.  The
-    :directive:`%DefaultVirtualErrorHandler` directive describes how the
-    handler is called.
+    This name annotation specifies the handler (defined by the
+    :directive:`%VirtualErrorHandler` directive) that is called when a Python
+    re-implementation of any of the class's virtual C++ functions raises a
+    Python exception.  If not specified then the handler specified by the
+    ``default_VirtualErrorHandler`` argument of the :directive:`%Module`
+    directive is used.
 
     .. seealso:: :fanno:`NoVirtualErrorHandler`, :fanno:`VirtualErrorHandler`, :directive:`%VirtualErrorHandler`
 
@@ -728,9 +728,10 @@ Function Annotations
     always called.  Any error handler specified by either the
     :fanno:`VirtualErrorHandler` function annotation, the
     :canno:`VirtualErrorHandler` class annotation or the
-    :directive:`%DefaultVirtualErrorHandler` directive is ignored.
+    ``default_VirtualErrorHandler`` argument of the :directive:`%Module`
+    directive is ignored.
 
-    .. seealso:: :fanno:`VirtualErrorHandler`, :canno:`VirtualErrorHandler`, :directive:`%DefaultVirtualErrorHandler`
+    .. seealso:: :fanno:`VirtualErrorHandler`, :canno:`VirtualErrorHandler`, :directive:`%VirtualErrorHandler`
 
 
 .. function-annotation:: Numeric
@@ -845,12 +846,11 @@ Function Annotations
 
     .. versionadded:: 4.14
 
-    This name annotation specifies the name of a C/C++ function that is called
-    when a Python re-implementation of the virtual C++ function raises a
-    Python exception.  If not specified then the handler specified by the
-    class's :canno:`VirtualErrorHandler` annotation is used.  The
-    :directive:`%DefaultVirtualErrorHandler` directive describes how the
-    handler is called.
+    This name annotation specifies the handler (defined by the
+    :directive:`%VirtualErrorHandler` directive) that is called when a Python
+    re-implementation of the virtual C++ function raises a Python exception.
+    If not specified then the handler specified by the class's
+    :canno:`VirtualErrorHandler` is used.
 
     .. seealso:: :fanno:`NoVirtualErrorHandler`, :canno:`VirtualErrorHandler`, :directive:`%VirtualErrorHandler`
 

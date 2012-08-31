@@ -1,8 +1,9 @@
-v4.14 ???
+v4.14 ??? 2012
   - The internal API version is increased to 9.0 requiring the regeneration of
     all modules.
   - Added the %InstanceCode directive.
-  - Added the %DefaultVirtualErrorHandler directive.
+  - Added the %VirtualErrorHandler directive.
+  - Added the default_VirtualErrorHandler argument to the %Module directive.
   - Added the /VirtualErrorHandler/ class annotation.
   - Added the /NoVirtualErrorHandler/ and /VirtualErrorHandler/ function
     annotations.

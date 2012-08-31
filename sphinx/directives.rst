@@ -855,50 +855,6 @@ For example::
     %DefaultSupertype sip.simplewrapper
 
 
-.. directive:: %DefaultVirtualErrorHandler
-
-.. versionadded:: 4.14
-
-.. parsed-literal::
-
-    %DefaultVirtualErrorHandler *name*
-
-This directive is used to specify the name of a C/C++ function that is called
-when a Python re-implementation of a virtual C++ function raises a Python
-exception.  By default the ``PyErr_Print()`` function is called.
-
-The handler is called after all tidying up has been completed and with the
-Python Global Interpreter Lock (GIL) acquired.  The handler may change the
-execution path by, for example, throwing a C++ exception but must first restore
-the state of the GIL by calling :c:func:`SIP_RELEASE_GIL`.
-
-The handler is called with two arguments, an opaque :c:type:`sip_gilstate_t`
-(used to pass to :c:func:`SIP_RELEASE_GIL`) and a ``Python *`` that is the
-Python instance containing the reimplementation.
-
-For example::
-
-    %DefaultVirtualErrorHandle my_handler
-
-Steps should also be taken to ensure that the handler is callable from
-anywhere in the module, for example::
-
-    %ModuleHeaderCode
-    void my_handler(sip_gilstate_t, PyObject *);
-    %End
-
-    %ModuleCode
-    void my_handler(sip_gilstate_t gilstate, PyObject *self)
-    {
-        SIP_RELEASE_GIL(gilstate);
-
-        throw my_exception(self);
-    }
-    %End
-
-.. seealso:: :fanno:`NoVirtualErrorHandler`, :fanno:`VirtualErrorHandler``, :canno:`VirtualErrorHandler`
-
-
 .. directive:: %Doc
 
 .. deprecated:: 4.12
@@ -1879,6 +1835,7 @@ then the pattern should instead be::
 
     %Module(name = *dotted-name*
             [, all_raise_py_exception = [True | False]]
+            [, default_VirtualErrorHandler = *name*]
             [, keyword_arguments = ["None" | "All" | "Optional"]]
             [, language = *string*]
             [, use_argument_names = [True | False]]
@@ -1896,6 +1853,12 @@ a Python package.
 methods defined in the module raise a Python exception to indicate that an
 error occurred.  It is the equivalent of using the :fanno:`RaisesPyException`
 function annotation on every constructor, function and method.
+
+``default_VirtualErrorHandler`` specifies the handler (defined by the
+:directive:`%VirtualErrorHandler` directive) that is called when a Python
+re-implementation of any virtual C++ function raises a Python exception.  If no
+handler is specified for a virtual C++ function then ``PyErr_Print()`` is
+called.
 
 ``keyword_arguments`` specifies the default level of support for Python keyword
 arguments.  See the :fanno:`KeywordArgs` annotation for an explaination of the
@@ -2480,3 +2443,44 @@ For example::
             }
     %End
     };
+
+
+.. directive:: %VirtualErrorHandler
+
+.. versionadded:: 4.14
+
+.. parsed-literal::
+
+    %VirtualErrorHandler(name = *name*)
+        *code*
+    %End
+
+This directive is used to define the handwritten code that implements a handler
+that is called when a Python re-implementation of a virtual C++ function raises
+a Python exception.  If a virtual C++ function does not have a handler the
+``PyErr_Print()`` function is called.
+
+The handler is called after all tidying up has been completed and with the
+Python Global Interpreter Lock (GIL) acquired.  The handler may change the
+execution path by, for example, throwing a C++ exception but must first restore
+the state of the GIL by calling :c:func:`SIP_RELEASE_GIL`.
+
+The following variables are made available to the handwritten code:
+
+:c:type:`sip_gilstate_t` sipGILState
+    This is an opaque value that can be passed to :c:func:`SIP_RELEASE_GIL` to
+    restore the state of the GIL.
+
+PObject* sipPySelf
+    This is the class instance containing the Python reimplementation.
+
+For example::
+
+    %VirtualErrorHandler my_handler
+        // Only call this because we are throwing a C++ exception.
+        SIP_RELEASE_GIL(sipGILState);
+
+        throw my_exception(sipPySelf);
+    %End
+
+.. seealso:: :fanno:`NoVirtualErrorHandler`, :fanno:`VirtualErrorHandler``, :canno:`VirtualErrorHandler`
