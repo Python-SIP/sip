@@ -2461,25 +2461,17 @@ a Python exception.  If a virtual C++ function does not have a handler the
 ``PyErr_Print()`` function is called.
 
 The handler is called after all tidying up has been completed and with the
-Python Global Interpreter Lock (GIL) acquired.  The handler may change the
-execution path by, for example, throwing a C++ exception but must first restore
-the state of the GIL by calling :c:func:`SIP_RELEASE_GIL`.
+Python Global Interpreter Lock (GIL) released.  Therefore the handler may
+change the execution path by, for example, throwing a C++ exception.
 
-The following variables are made available to the handwritten code:
+The following variable is made available to the handwritten code:
 
-:c:type:`sip_gilstate_t` sipGILState
-    This is an opaque value that can be passed to :c:func:`SIP_RELEASE_GIL` to
-    restore the state of the GIL.
-
-PObject* sipPySelf
+sipSimpleWrapper \*sipPySelf
     This is the class instance containing the Python reimplementation.
 
 For example::
 
     %VirtualErrorHandler my_handler
-        // Only call this because we are throwing a C++ exception.
-        SIP_RELEASE_GIL(sipGILState);
-
         throw my_exception(sipPySelf);
     %End
 

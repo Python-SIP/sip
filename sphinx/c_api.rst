@@ -29,13 +29,6 @@ specification files.
     :c:macro:`SIP_UNBLOCK_THREADS` at the same lexical scope.
 
 
-.. c:type:: sip_gilstate_t
-
-    .. versionadded:: 4.14
-
-    This is an opaque type that holds the state of the Python Global
-    Interpreter Lock.
-
 .. c:macro:: SIP_NO_CONVERTORS
 
     This is a flag used by various type convertors that suppresses the use of a
@@ -57,17 +50,6 @@ specification files.
     ``protected`` redefined as ``public``.  This allows handwritten code to
     determine if the generated helper functions for accessing protected C++
     functions are available (see :directive:`%MethodCode`).
-
-
-.. c:function:: SIP_RELEASE_GIL(sip_gilstate_t sipGILState)
-
-    .. versionadded:: 4.14
-
-    This called to restore the Python Global Interpreter Lock to a previous
-    state.
-
-    :param sipGILState:
-        is the previous state of the GIL.
 
 
 .. c:macro:: SIP_SSIZE_T

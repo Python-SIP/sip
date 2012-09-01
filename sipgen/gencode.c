@@ -598,6 +598,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipFree                     sipAPI_%s->api_free\n"
 "#define sipBuildResult              sipAPI_%s->api_build_result\n"
 "#define sipCallMethod               sipAPI_%s->api_call_method\n"
+"#define sipCallErrorHandler         sipAPI_%s->api_call_error_handler\n"
 "#define sipParseResultEx            sipAPI_%s->api_parse_result_ex\n"
 "#define sipParseResult              sipAPI_%s->api_parse_result\n"
 "#define sipParseArgs                sipAPI_%s->api_parse_args\n"
@@ -704,6 +705,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipConvertFromMappedType    sipConvertFromType\n"
 "#define sipConvertFromNamedEnum(v, pt)  sipConvertFromEnum((v), ((sipEnumTypeObject *)(pt))->type)\n"
 "#define sipConvertFromNewInstance(p, wt, t) sipConvertFromNewType((p), (wt)->type, (t))\n"
+        ,mname
         ,mname
         ,mname
         ,mname
@@ -7622,22 +7624,16 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
         prcode(fp,
 "\n"
 "    Py_DECREF(sipMethod);\n"
+"\n"
+"    SIP_RELEASE_GIL(sipGILState)\n"
             );
 
         if (error_flag || old_error_flag)
             prcode(fp,
 "\n"
 "    if (%s)\n"
-"        if (sipErrorHandler)\n"
-"            sipErrorHandler(sipGILState, (PyObject *)sipPySelf);\n"
-"        else\n"
-"            PyErr_Print();\n"
+"        sipCallErrorHandler(sipErrorHandler, sipPySelf);\n"
                 , (error_flag ? "sipError != sipErrorNone" : "sipIsErr"));
-
-        prcode(fp,
-"\n"
-"    SIP_RELEASE_GIL(sipGILState)\n"
-            );
 
         if (res != NULL)
             prcode(fp,

@@ -184,6 +184,8 @@ static int sip_api_parse_result_ex(sip_gilstate_t gil_state,
         PyObject *method, PyObject *res, const char *fmt, ...);
 static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
         const char *fmt, ...);
+static void sip_api_call_error_handler(sipVirtErrorHandlerFunc error_handler,
+        sipSimpleWrapper *py_self);
 static void sip_api_trace(unsigned mask,const char *fmt,...);
 static void sip_api_transfer_back(PyObject *self);
 static void sip_api_transfer_to(PyObject *self, PyObject *owner);
@@ -367,7 +369,8 @@ static const sipAPIDef sip_api = {
     sip_api_keep_reference,
     sip_api_parse_kwd_args,
     sip_api_add_exception,
-    sip_api_parse_result_ex
+    sip_api_parse_result_ex,
+    sip_api_call_error_handler
 };
 
 
@@ -2196,15 +2199,31 @@ static int sip_api_parse_result_ex(sip_gilstate_t gil_state,
 
     Py_DECREF(method);
 
-    if (rc < 0)
-        if (error_handler != NULL)
-            error_handler(gil_state, (PyObject *)py_self);
-        else
-            PyErr_Print();
-
     SIP_RELEASE_GIL(gil_state);
 
+    if (rc < 0)
+        sip_api_call_error_handler(error_handler, py_self);
+
     return rc;
+}
+
+
+/*
+ * Call a virtual error handler.
+ */
+static void sip_api_call_error_handler(sipVirtErrorHandlerFunc error_handler,
+        sipSimpleWrapper *py_self)
+{
+    if (error_handler != NULL)
+    {
+        error_handler(py_self);
+    }
+    else
+    {
+        SIP_BLOCK_THREADS
+        PyErr_Print();
+        SIP_UNBLOCK_THREADS
+    }
 }
 
 
