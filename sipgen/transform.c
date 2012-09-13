@@ -2995,6 +2995,7 @@ static mappedTypeDef *instantiateMappedTypeTemplate(sipSpec *pt, moduleDef *mod,
             mappedtype_iface, NULL, type);
     mtd->iff->module = mod;
 
+    mtd->mtflags = mtt->mt->mtflags;
     mtd->doctype = templateString(mtt->mt->doctype, type_names, type_values);
 
     appendCodeBlockList(&mtd->iff->hdrcode,

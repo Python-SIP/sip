@@ -171,6 +171,7 @@ static void checkAnnos(optFlags *annos, const char *valid[]);
 static void checkNoAnnos(optFlags *annos, const char *msg);
 static void appendCodeBlock(codeBlockList **headp, codeBlock *cb);
 static void handleKeepReference(optFlags *optflgs, argDef *ad, moduleDef *mod);
+static void mappedTypeAnnos(mappedTypeDef *mtd, optFlags *optflgs);
 %}
 
 %union {
@@ -1037,7 +1038,9 @@ mappedtypetmpl: template TK_MAPPEDTYPE basetype optflags {
             if (notSkipping())
             {
                 static const char *annos[] = {
+                    "AllowNone",
                     "DocType",
+                    "NoRelease",
                     NULL
                 };
 
@@ -1077,7 +1080,7 @@ mappedtypetmpl: template TK_MAPPEDTYPE basetype optflags {
 
                 mtt->sig = $1;
                 mtt->mt = allocMappedType(currentSpec, &$3);
-                mtt->mt->doctype = getDocType(&$4);
+                mappedTypeAnnos(mtt->mt, &$4);
                 mtt->next = currentSpec->mappedtypetemplates;
 
                 currentSpec->mappedtypetemplates = mtt;
@@ -5113,13 +5116,7 @@ static mappedTypeDef *newMappedType(sipSpec *pt, argDef *ad, optFlags *of)
     if (cname != NULL)
         mtd->pyname = cacheName(pt, getPythonName(currentModule, of, cname));
 
-    if (getOptFlag(of, "NoRelease", bool_flag) != NULL)
-        setNoRelease(mtd);
-
-    if (getAllowNone(of))
-        setHandlesNone(mtd);
-
-    mtd->doctype = getDocType(of);
+    mappedTypeAnnos(mtd, of);
 
     mtd->iff = iff;
     mtd->next = pt->mappedtypes;
@@ -8647,4 +8644,20 @@ static void handleKeepReference(optFlags *optflgs, argDef *ad, moduleDef *mod)
         if (ad->key == -1)
             ad->key = mod->next_key--;
     }
+}
+
+
+/*
+ * Configure the mapped type annotations that are also valid with mapped type
+ * templates.
+ */
+static void mappedTypeAnnos(mappedTypeDef *mtd, optFlags *optflgs)
+{
+    if (getOptFlag(optflgs, "NoRelease", bool_flag) != NULL)
+        setNoRelease(mtd);
+
+    if (getAllowNone(optflgs))
+        setHandlesNone(mtd);
+
+    mtd->doctype = getDocType(optflgs);
 }
