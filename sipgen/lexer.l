@@ -215,7 +215,7 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
 }
 
 
--?(([0-9]+)|([0-9]*\.[0-9]*)([eE][-+]?[0-9]+)?)[fF]? {
+-?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][-+]?[0-9]+)?[fF]? {
     /* A floating point number. */
     yylval.real = strtod(yytext,NULL);
     return TK_REAL_VALUE;
