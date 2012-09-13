@@ -483,6 +483,8 @@ Mapped Type Annotations
     If a class or mapped type has different implementations enabled for
     different ranges of version numbers then those ranges must not overlap.
 
+    It should not be used with mapped type templates.
+
     See :ref:`ref-incompat-apis` for more detail.
 
 
@@ -500,6 +502,18 @@ Mapped Type Annotations
     support the :c:func:`sipReleaseType()` function.  Any
     :directive:`%ConvertToTypeCode` should not create temporary instances of
     the mapped type, i.e. it should not return :c:macro:`SIP_TEMPORARY`.
+
+
+.. mapped-type-annotation:: PyName
+
+    This name annotation specifies an alternative name for the mapped type
+    being wrapped which is used when it is referred to from Python.  The only
+    time a Python type is created for a mapped type is when it is used as a
+    scope for static methods or enums.
+    
+    It should not be used with mapped type templates.
+
+    .. seealso:: :directive:`%AutoPyName`
 
 
 .. _ref-enum-annos:
