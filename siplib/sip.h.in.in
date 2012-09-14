@@ -198,12 +198,6 @@ extern "C" {
 typedef unsigned int uint;
 
 
-/* Some compatibility stuff to help with handwritten code for SIP v3. */
-#if !defined(ANY)
-#define ANY     void
-#endif
-
-
 /* Some Python compatibility stuff. */
 #if PY_VERSION_HEX >= 0x02050000
 
