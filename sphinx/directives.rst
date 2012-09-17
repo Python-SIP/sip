@@ -2021,6 +2021,12 @@ Platforms are mutually exclusive - only one platform can be enabled at a time.
 By default all platforms are disabled.  The SIP :option:`-t <sip -t>` command
 line option is used to enable a platform.
 
+.. versionadded:: 4.14
+
+If a platform is enabled then SIP will automatically generate a corresponding C
+preprocessor symbol for use by handwritten code.  The symbol is the name of
+the platform prefixed by ``SIP_PLATFORM_``.
+
 For example::
 
     %Platforms {WIN32_PLATFORM POSIX_PLATFORM MACOS_PLATFORM}
@@ -2208,6 +2214,12 @@ SIP automatically defines a timeline containing all versions of SIP since
 v4.12.  The name of the version is ``SIP_`` followed by the individual parts of
 the version number separated by an underscore.  SIP v4.12 is therefore
 ``SIP_4_12`` and SIP v4.13.2 is ``SIP_4_13_2``.
+
+.. versionadded:: 4.14
+
+If a particular version is enabled then SIP will automatically generate a
+corresponding C preprocessor symbol for use by handwritten code.  The symbol is
+the name of the version prefixed by ``SIP_TIMELINE_``.
 
 For example::
 

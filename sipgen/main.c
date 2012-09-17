@@ -237,7 +237,7 @@ int main(int argc, char **argv)
 
     /* Generate code. */
     generateCode(&spec, codeDir, buildFile, docFile, srcSuffix, exceptions,
-            tracing, releaseGIL, parts, xfeatures, consModule, docs,
+            tracing, releaseGIL, parts, versions, xfeatures, consModule, docs,
             timestamp);
 
     /* Generate any extracts. */

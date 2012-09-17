@@ -1229,7 +1229,8 @@ void parse(sipSpec *, FILE *, char *, stringList *, stringList *, KwArgs, int);
 void parserEOF(char *,parserContext *);
 void transform(sipSpec *);
 void generateCode(sipSpec *, char *, char *, char *, const char *, int, int,
-        int, int, stringList *, const char *, int, int);
+        int, int, stringList *needed_qualifiers, stringList *, const char *,
+        int, int);
 void generateExtracts(sipSpec *pt, const stringList *extracts);
 void addExtractPart(sipSpec *pt, const char *id, int order, codeBlock *part);
 void generateAPI(sipSpec *pt, moduleDef *mod, const char *apiFile);
@@ -1248,6 +1249,7 @@ char *sipStrdup(const char *);
 char *concat(const char *, ...);
 void append(char **, const char *);
 void addToUsedList(ifaceFileList **, ifaceFileDef *);
+int selectedQualifier(stringList *needed_qualifiers, qualDef *qd);
 int excludedFeature(stringList *,qualDef *);
 int sameSignature(signatureDef *,signatureDef *,int);
 int sameTemplateSignature(signatureDef *tmpl_sd, signatureDef *args_sd,

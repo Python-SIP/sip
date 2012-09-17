@@ -107,7 +107,6 @@ static qualDef *allocQualifier(moduleDef *, int, int, const char *, qualType);
 static void newImport(const char *filename);
 static int timePeriod(const char *lname, const char *uname);
 static int platOrFeature(char *,int);
-static int isNeeded(qualDef *);
 static int notSkipping(void);
 static void getHooks(optFlags *,char **,char **);
 static int getTransfer(optFlags *optflgs);
@@ -1233,7 +1232,7 @@ platforms:  TK_PLATFORMS {
                 nrneeded = 0;
 
                 for (qd = currentModule->qualifiers; qd != NULL; qd = qd->next)
-                    if (qd->qtype == platform_qualifier && isNeeded(qd))
+                    if (qd->qtype == platform_qualifier && selectedQualifier(neededQualifiers, qd))
                         ++nrneeded;
 
                 if (nrneeded > 1)
@@ -1301,7 +1300,7 @@ timeline:   TK_TIMELINE {
                 nrneeded = 0;
 
                 for (qd = currentModule->qualifiers; qd != NULL; qd = qd->next)
-                    if (qd->qtype == time_qualifier && isNeeded(qd))
+                    if (qd->qtype == time_qualifier && selectedQualifier(neededQualifiers, qd))
                         ++nrneeded;
 
                 if (nrneeded > 1)
@@ -7822,7 +7821,7 @@ static int timePeriod(const char *lname, const char *uname)
          * This is within the required range so if it is also needed then the
          * expression is true.
          */
-        if (isNeeded(qd))
+        if (selectedQualifier(neededQualifiers, qd))
         {
             this = TRUE;
             break;
@@ -7853,7 +7852,7 @@ static int platOrFeature(char *name,int optnot)
         if (!excludedFeature(excludedQualifiers,qd))
             this = TRUE;
     }
-    else if (isNeeded(qd))
+    else if (selectedQualifier(neededQualifiers, qd))
         this = TRUE;
 
     if (optnot)
@@ -7883,11 +7882,11 @@ int excludedFeature(stringList *xsl,qualDef *qd)
 /*
  * Return TRUE if the given qualifier is needed.
  */
-static int isNeeded(qualDef *qd)
+int selectedQualifier(stringList *needed_qualifiers, qualDef *qd)
 {
     stringList *sl;
 
-    for (sl = neededQualifiers; sl != NULL; sl = sl -> next)
+    for (sl = needed_qualifiers; sl != NULL; sl = sl -> next)
         if (strcmp(qd -> name,sl -> s) == 0)
             return TRUE;
 

@@ -66,9 +66,11 @@ static void generateBuildFile(sipSpec *pt, const char *buildFile,
 static void generateBuildFileSources(sipSpec *pt, moduleDef *mod,
         const char *srcSuffix, FILE *fp);
 static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
-        const char *codeDir, stringList *xsl, int timestamp);
+        const char *codeDir, stringList *needed_qualifiers, stringList *xsl,
+        int timestamp);
 static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
-        const char *srcSuffix, int parts, stringList *xsl, int timestamp);
+        const char *srcSuffix, int parts, stringList *needed_qualifiers,
+        stringList *xsl, int timestamp);
 static void generateCompositeCpp(sipSpec *pt, const char *codeDir,
         int timestamp);
 static void generateConsolidatedCpp(sipSpec *pt, const char *codeDir,
@@ -285,8 +287,8 @@ static virtErrorHandler *getVirtErrorHandler(sipSpec *pt, overDef *od,
  */
 void generateCode(sipSpec *pt, char *codeDir, char *buildfile, char *docFile,
         const char *srcSuffix, int except, int trace, int releaseGIL,
-        int parts, stringList *xsl, const char *consModule, int docs,
-        int timestamp)
+        int parts, stringList *needed_qualifiers, stringList *xsl,
+        const char *consModule, int docs, int timestamp)
 {
     exceptions = except;
     tracing = trace;
@@ -312,16 +314,16 @@ void generateCode(sipSpec *pt, char *codeDir, char *buildfile, char *docFile,
 
             for (mod = pt->modules; mod != NULL; mod = mod->next)
                 if (mod->container == pt->module)
-                    generateCpp(pt, mod, codeDir, srcSuffix, parts, xsl,
-                            timestamp);
+                    generateCpp(pt, mod, codeDir, srcSuffix, parts,
+                            needed_qualifiers, xsl, timestamp);
 
             generateConsolidatedCpp(pt, codeDir, srcSuffix, timestamp);
         }
         else if (consModule != NULL)
             generateComponentCpp(pt, codeDir, consModule, timestamp);
         else
-            generateCpp(pt, pt->module, codeDir, srcSuffix, parts, xsl,
-                    timestamp);
+            generateCpp(pt, pt->module, codeDir, srcSuffix, parts,
+                    needed_qualifiers, xsl, timestamp);
     }
 
     /* Generate the build file. */
@@ -492,7 +494,8 @@ void generateExpression(valueDef *vd, int in_str, FILE *fp)
  * Generate the C++ internal module API header file.
  */
 static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
-        const char *codeDir, stringList *xsl, int timestamp)
+        const char *codeDir, stringList *needed_qualifiers, stringList *xsl,
+        int timestamp)
 {
     char *hfile;
     const char *mname = mod->name;
@@ -524,7 +527,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#include <QThread>\n"
             );
 
-    /* Define the enabled features. */
+    /* Define the qualifiers. */
     noIntro = TRUE;
 
     for (imp = pt->modules; imp != NULL; imp = imp->next)
@@ -532,22 +535,47 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
         qualDef *qd;
 
         for (qd = imp->qualifiers; qd != NULL; qd = qd->next)
-            if (qd->qtype == feature_qualifier && !excludedFeature(xsl, qd))
+        {
+            const char *qtype = NULL;
+
+            switch (qd->qtype)
+            {
+            case time_qualifier:
+                if (selectedQualifier(needed_qualifiers, qd))
+                    qtype = "TIMELINE";
+
+                break;
+
+            case platform_qualifier:
+                if (selectedQualifier(needed_qualifiers, qd))
+                    qtype = "PLATFORM";
+
+                break;
+
+            case feature_qualifier:
+                if (!excludedFeature(xsl, qd))
+                    qtype = "FEATURE";
+
+                break;
+            }
+
+            if (qtype != NULL)
             {
                 if (noIntro)
                 {
                     prcode(fp,
 "\n"
-"/* These are the features that are enabled. */\n"
+"/* These are the qualifiers that are enabled. */\n"
                         );
 
                     noIntro = FALSE;
                 }
 
                 prcode(fp,
-"#define SIP_FEATURE_%s\n"
-                    , qd->name);
+"#define SIP_%s_%s\n"
+                    , qtype, qd->name);
             }
+        }
     }
 
     if (!noIntro)
@@ -1244,7 +1272,8 @@ static void generateNameCache(sipSpec *pt, FILE *fp)
  * Generate the C/C++ code.
  */
 static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
-        const char *srcSuffix, int parts, stringList *xsl, int timestamp)
+        const char *srcSuffix, int parts, stringList *needed_qualifiers,
+        stringList *xsl, int timestamp)
 {
     char *cppfile;
     const char *mname = mod->name;
@@ -2313,7 +2342,8 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 
     mod->parts = parts;
 
-    generateInternalAPIHeader(pt, mod, codeDir, xsl, timestamp);
+    generateInternalAPIHeader(pt, mod, codeDir, needed_qualifiers, xsl,
+            timestamp);
 }
 
 
