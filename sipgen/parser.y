@@ -4003,8 +4003,6 @@ argtype:    cpptype optname optflags {
                 NULL
             };
 
-            optFlag *of;
-
             checkAnnos(&$3, annos);
 
             $$ = $1;
@@ -4382,7 +4380,7 @@ void parse(sipSpec *spec, FILE *fp, char *filename, stringList *tsl,
 /*
  * Tell the parser that a complete file has now been read.
  */
-void parserEOF(char *name, parserContext *pc)
+void parserEOF(const char *name, parserContext *pc)
 {
     previousFile = sipStrdup(name);
     currentContext = *pc;

@@ -7036,10 +7036,12 @@ static void generateDefaultInstanceReturn(argDef *res, const char *indent,
     instance_code = NULL;
 
     if (res->nrderefs == 0)
+    {
         if (res->atype == mapped_type)
             instance_code = res->u.mtd->instancecode;
         else if (res->atype == class_type)
             instance_code = res->u.cd->instancecode;
+    }
 
     if (instance_code != NULL)
     {

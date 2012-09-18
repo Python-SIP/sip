@@ -1226,7 +1226,7 @@ extern stringList *includeDirList;      /* The include directory list for SIP fi
 
 
 void parse(sipSpec *, FILE *, char *, stringList *, stringList *, KwArgs, int);
-void parserEOF(char *,parserContext *);
+void parserEOF(const char *,parserContext *);
 void transform(sipSpec *);
 void generateCode(sipSpec *, char *, char *, char *, const char *, int, int,
         int, int, stringList *needed_qualifiers, stringList *, const char *,
@@ -1275,6 +1275,7 @@ int isSSizeReturnSlot(memberDef *md);
 int isLongReturnSlot(memberDef *md);
 int isVoidReturnSlot(memberDef *md);
 int isNumberSlot(memberDef *md);
+int isInplaceNumberSlot(memberDef *md);
 int isRichCompareSlot(memberDef *md);
 mappedTypeDef *allocMappedType(sipSpec *pt, argDef *type);
 void appendString(stringList **headp, const char *s);
