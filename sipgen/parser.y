@@ -4306,23 +4306,8 @@ void parse(sipSpec *spec, FILE *fp, char *filename, stringList *tsl,
 
     /* Initialise the spec. */
  
-    spec->modules = NULL;
-    spec->namecache = NULL;
-    spec->ifacefiles = NULL;
-    spec->classes = NULL;
-    spec->classtemplates = NULL;
-    spec->exceptions = NULL;
-    spec->mappedtypes = NULL;
-    spec->mappedtypetemplates = NULL;
-    spec->enums = NULL;
-    spec->vars = NULL;
-    spec->typedefs = NULL;
-    spec->exphdrcode = NULL;
-    spec->docs = NULL;
-    spec->sigslots = FALSE;
+    memset(spec, 0, sizeof (sipSpec));
     spec->genc = -1;
-    spec->plugins = NULL;
-    spec->extracts = NULL;
 
     currentSpec = spec;
     neededQualifiers = tsl;
