@@ -1360,9 +1360,9 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
             prcode(fp,
 "\n"
 "\n"
-"void sipVEH_%s_%s(sip_gilstate_t%s, PyObject *%s)\n"
+"void sipVEH_%s_%s(sipSimpleWrapper *%s)\n"
 "{\n"
-                , mname, veh->name, (usedInCode(veh->code, "sipGILState") ? " sipGILState" : ""), (usedInCode(veh->code, "sipPySelf") ? "sipPySelf" : ""));
+                , mname, veh->name, (usedInCode(veh->code, "sipPySelf") ? "sipPySelf" : ""));
 
             generateCppCodeBlock(veh->code, fp);
 
@@ -6835,7 +6835,7 @@ static void generateVirtHandlerCall(sipSpec *pt, moduleDef *mod, classDef *cd,
 
     if (veh != NULL && veh->mod == mod)
         prcode(fp,
-"%sextern void sipVEH_%s_%s(sip_gilstate_t, PyObject *);\n"
+"%sextern void sipVEH_%s_%s(sipSimpleWrapper *);\n"
             , indent, mod->name, veh->name);
 
     prcode(fp,
