@@ -1798,6 +1798,9 @@ class ProgramMakefile(Makefile):
 
         build.extend(self.optional_list("CXXFLAGS"))
 
+        # This is for Qt5.
+        build.extend(self.optional_list("CXXFLAGS_APP"))
+
         # Borland requires all flags to precede all file names.
         if self.generator != "BMAKE":
             build.append(source)
