@@ -165,12 +165,12 @@ can be used by applications.
 
 .. function:: transferback(obj)
 
-    This function is a wrapper around :cfunc:`sipTransferBack()`.
+    This function is a wrapper around :c:func:`sipTransferBack()`.
 
 
 .. function:: transferto(obj, owner)
 
-    This function is a wrapper around :cfunc:`sipTransferTo()`.
+    This function is a wrapper around :c:func:`sipTransferTo()`.
 
 
 .. function:: unwrapinstance(obj) -> integer

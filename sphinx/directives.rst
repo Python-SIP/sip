@@ -205,11 +205,11 @@ The following variables are made available to the handwritten code:
 void \*\*sipPtrPtr
     This is the pointer used to return the address of the character buffer.
 
-:cmacro:`SIP_SSIZE_T` sipRes
+:c:macro:`SIP_SSIZE_T` sipRes
     The handwritten code should set this to the length of the character buffer
     or -1 if there was an error.
 
-:cmacro:`SIP_SSIZE_T` sipSegment
+:c:macro:`SIP_SSIZE_T` sipSegment
     This is the number of the segment of the character buffer.
 
 PyObject \*sipSelf
@@ -239,11 +239,11 @@ The following variables are made available to the handwritten code:
 void \*\*sipPtrPtr
     This is the pointer used to return the address of the read buffer.
 
-:cmacro:`SIP_SSIZE_T` sipRes
+:c:macro:`SIP_SSIZE_T` sipRes
     The handwritten code should set this to the length of the read buffer or
     -1 if there was an error.
 
-:cmacro:`SIP_SSIZE_T` sipSegment
+:c:macro:`SIP_SSIZE_T` sipSegment
     This is the number of the segment of the read buffer.
 
 PyObject \*sipSelf
@@ -270,11 +270,11 @@ The following variables are made available to the handwritten code:
     This is a pointer to the structure or class instance.  Its *type* is a
     pointer to the structure or class.
 
-:cmacro:`SIP_SSIZE_T` \*sipLenPtr
+:c:macro:`SIP_SSIZE_T` \*sipLenPtr
     This is the pointer used to return the total length in bytes of all
     segments of the buffer.
 
-:cmacro:`SIP_SSIZE_T` sipRes
+:c:macro:`SIP_SSIZE_T` sipRes
     The handwritten code should set this to the number of segments that make
     up the buffer.
 
@@ -305,11 +305,11 @@ The following variables are made available to the handwritten code:
 void \*\*sipPtrPtr
     This is the pointer used to return the address of the write buffer.
 
-:cmacro:`SIP_SSIZE_T` sipRes
+:c:macro:`SIP_SSIZE_T` sipRes
     The handwritten code should set this to the length of the write buffer or
     -1 if there was an error.
 
-:cmacro:`SIP_SSIZE_T` sipSegment
+:c:macro:`SIP_SSIZE_T` sipSegment
     This is the number of the segment of the write buffer.
 
 PyObject \*sipSelf
@@ -663,10 +663,11 @@ returned.
 If ``sipIsErr`` is not ``NULL`` then a combination of the following flags is
 returned.
 
-        - :cmacro:`SIP_TEMPORARY` is set to indicate that the returned instance
-          is a temporary and should be released to avoid a memory leak.
+        - :c:macro:`SIP_TEMPORARY` is set to indicate that the returned
+          instance is a temporary and should be released to avoid a memory
+          leak.
 
-        - :cmacro:`SIP_DERIVED_CLASS` is set to indicate that the type of the
+        - :c:macro:`SIP_DERIVED_CLASS` is set to indicate that the type of the
           returned instance is a derived class.  See
           :ref:`ref-derived-classes`.
 
@@ -747,9 +748,9 @@ When used in a class specification the handwritten code replaces the code that
 would normally be automatically generated.  This means that the handwritten
 code must also handle instances of the class itself and not just the additional
 types that are being supported.  This should be done by making calls to
-:cfunc:`sipCanConvertToType()` to check the object type and
-:cfunc:`sipConvertToType()` to convert the object.  The
-:cmacro:`SIP_NO_CONVERTORS` flag *must* be passed to both these functions to
+:c:func:`sipCanConvertToType()` to check the object type and
+:c:func:`sipConvertToType()` to convert the object.  The
+:c:macro:`SIP_NO_CONVERTORS` flag *must* be passed to both these functions to
 prevent recursive calls to the handwritten code.
 
 
@@ -1408,7 +1409,7 @@ This directive is used to specify handwritten code that is embedded in-line
 in the generated module initialisation code after the SIP module has been
 imported but before the module itself has been initialised.
 
-It is typically used to call :cfunc:`sipRegisterPyType()`.
+It is typically used to call :c:func:`sipRegisterPyType()`.
 
 For example::
 
@@ -2379,7 +2380,7 @@ int a0Key
     where it is important to ensure that the corresponding Python object is not
     garbage collected too soon.  This only applies to output arguments that
     return ``'\0'`` terminated strings.  The variable would normally be passed
-    to :cfunc:`sipParseResult()` using either the ``A`` or ``B`` format
+    to :c:func:`sipParseResult()` using either the ``A`` or ``B`` format
     characters.
 
     If ``use_argument_names`` has been set in the :directive:`%Module`
@@ -2392,7 +2393,7 @@ int sipIsErr
 
 PyObject \*sipMethod
     This object is the Python reimplementation of the virtual C++ method.  It
-    is normally passed to :cfunc:`sipCallMethod()`.
+    is normally passed to :c:func:`sipCallMethod()`.
 
 *type* sipRes
     The handwritten code should set this to the result to be returned.  The
@@ -2403,14 +2404,14 @@ int sipResKey
     This variable is only made available if the result has a type where it is
     important to ensure that the corresponding Python object is not garbage
     collected too soon.  This only applies to ``'\0'`` terminated strings.  The
-    variable would normally be passed to :cfunc:`sipParseResult()` using either
-    the ``A`` or ``B`` format characters.
+    variable would normally be passed to :c:func:`sipParseResult()` using
+    either the ``A`` or ``B`` format characters.
 
 sipSimpleWrapper \*sipPySelf
     This variable is only made available if either the ``a0Key`` or
     ``sipResKey`` are made available.  It defines the context within which keys
     are unique.  The variable would normally be passed to
-    :cfunc:`sipParseResult()` using the ``S`` format character.
+    :c:func:`sipParseResult()` using the ``S`` format character.
 
 No variables are made available in the context of a destructor.
 

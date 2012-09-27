@@ -461,8 +461,8 @@ C++ call the destructor).
 This applies equally to C structures where the structure is returned to the
 heap using the ``free()`` function.
 
-See also :cfunc:`sipTransferTo()`, :cfunc:`sipTransferBack()` and
-:cfunc:`sipTransferBreak()`.
+See also :c:func:`sipTransferTo()`, :c:func:`sipTransferBack()` and
+:c:func:`sipTransferBreak()`.
 
 
 .. _ref-types-metatypes:
@@ -502,7 +502,7 @@ by importing modules.
 
 If you want to use your own meta-type or super-type then they must be
 sub-classed from one of the SIP provided types.  Your types must be registered
-using :cfunc:`sipRegisterPyType()`.  This is normally done in code specified
+using :c:func:`sipRegisterPyType()`.  This is normally done in code specified
 using the :directive:`%InitialisationCode` directive.
 
 As an example, PyQt4 uses :directive:`%DefaultMetatype` to specify a new
@@ -527,7 +527,7 @@ tens of thousands of attributes.
 
 SIP allows you to extend the handling of lazy attributes to your own attribute
 types by allowing you to register an attribute getter handler (using
-:cfunc:`sipRegisterAttributeGetter()`).  This will be called just before a
+:c:func:`sipRegisterAttributeGetter()`).  This will be called just before a
 type's dictionary is accessed for the first time.
 
 
@@ -549,14 +549,14 @@ SIP v4.6 introduced support for wide characters (i.e. the ``wchar_t`` type).
 Python's C API includes support for converting between unicode objects and wide
 character strings and arrays.  When converting from a unicode object to wide
 characters SIP creates the string or array on the heap (using memory allocated
-using :cfunc:`sipMalloc()`).  This then raises the problem of how this memory
+using :c:func:`sipMalloc()`).  This then raises the problem of how this memory
 is subsequently freed.
 
 The following describes how SIP handles this memory in the different situations
 where this is an issue.
 
     - When a wide string or array is passed to a function or method then the
-      memory is freed (using :cfunc:`sipFree()`) after than function or method
+      memory is freed (using :c:func:`sipFree()`) after than function or method
       returns.
 
     - When a wide string or array is returned from a virtual method then SIP

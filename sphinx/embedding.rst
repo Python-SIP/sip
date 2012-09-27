@@ -25,7 +25,7 @@ name to lower case and preceding it with an underscore.  For example:
 Note that the type objects that SIP generates for a wrapped module (see
 :ref:`ref-type-structures`, :ref:`ref-enum-type-objects` and
 :ref:`ref-exception-objects`) cannot be refered to directly and must be
-obtained using the :cfunc:`sipFindType()` function.  Of course, the
+obtained using the :c:func:`sipFindType()` function.  Of course, the
 corresponding modules must already have been imported into the interpreter.
 
 The following code fragment shows how to get a pointer to the ``sipAPIDef``
@@ -66,5 +66,5 @@ data structure::
     #endif
     }
 
-The use of :cmacro:`SIP_USE_PYCAPSULE` means that code will run under all
+The use of :c:macro:`SIP_USE_PYCAPSULE` means that code will run under all
 versions of Python.

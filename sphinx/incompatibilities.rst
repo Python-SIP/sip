@@ -42,7 +42,7 @@ Newly Deprecated Features
 The following parts of the :ref:`C API <ref-c-api>` are now deprecated (but
 still supported).
 
-- The ``D`` format character of :cfunc:`sipParseResult()`.
+- The ``D`` format character of :c:func:`sipParseResult()`.
 
 
 SIP v4.8
@@ -59,11 +59,11 @@ special method must be explicitly defined.
 sipWrapper user Member
 **********************
 
-Prior to this version the :ctype:`sipWrapper` structure had a member called
-:ctype:`user` which is available for handwritten code to use.  From this
-version :ctype:`user` is a member of the :ctype:`sipSimpleWrapper` structure.
+Prior to this version the :c:type:`sipWrapper` structure had a member called
+:c:type:`user` which is available for handwritten code to use.  From this
+version :c:type:`user` is a member of the :c:type:`sipSimpleWrapper` structure.
 
-:ctype:`sipWrapper` pointers can be safely cast to :ctype:`sipSimpleWrapper`
+:c:type:`sipWrapper` pointers can be safely cast to :c:type:`sipSimpleWrapper`
 pointers, so if your code does something like::
 
     ((sipWrapper *)obj)->user = an_object_reference;
@@ -79,16 +79,16 @@ Removal of Previously Deprecated Features
 The following parts of the :ref:`C API <ref-c-api>` have been removed.
 
 - The ``a``, ``A``, ``M``, ``N``, ``O``, ``P`` and ``T`` format characters
-  from :cfunc:`sipBuildResult()` and :cfunc:`sipCallMethod()`.
+  from :c:func:`sipBuildResult()` and :c:func:`sipCallMethod()`.
 
 - The ``a``, ``A``, ``L`` and ``M`` format characters from
-  :cfunc:`sipParseResult()`.
+  :c:func:`sipParseResult()`.
 
-- :cfunc:`sipConvertToCpp()`
+- :c:func:`sipConvertToCpp()`
 
-- :cfunc:`sipIsSubClassInstance()`
+- :c:func:`sipIsSubClassInstance()`
 
-- :cfunc:`sipTransfer()`
+- :c:func:`sipTransfer()`
 
 - The :func:`transfer` function of the :mod:`sip` module.
 
@@ -103,13 +103,13 @@ Removal of PyQt-specific Features
 
 The following PyQt-specific support functions have been removed.
 
-- :cfunc:`sipConnectRx()`
+- :c:func:`sipConnectRx()`
 
-- :cfunc:`sipDisconnectRx()`
+- :c:func:`sipDisconnectRx()`
 
-- :cfunc:`sipEmitSlot()`
+- :c:func:`sipEmitSlot()`
 
-- :cfunc:`sipGetSender()`
+- :c:func:`sipGetSender()`
 
 
 Newly Deprecated Features
@@ -122,46 +122,46 @@ still supported).
 
 - The :ref:`ref-enum-type-objects`.
 
-- :cfunc:`sipConvertFromInstance()`
+- :c:func:`sipConvertFromInstance()`
 
-- :cfunc:`sipConvertFromMappedType()`
+- :c:func:`sipConvertFromMappedType()`
 
-- :cfunc:`sipConvertFromNamedEnum()`
+- :c:func:`sipConvertFromNamedEnum()`
 
-- :cfunc:`sipConvertFromNewInstance()`
+- :c:func:`sipConvertFromNewInstance()`
 
-- :cfunc:`sipCanConvertToInstance()`
+- :c:func:`sipCanConvertToInstance()`
 
-- :cfunc:`sipCanConvertToMappedType()`
+- :c:func:`sipCanConvertToMappedType()`
 
-- :cfunc:`sipConvertToInstance()`
+- :c:func:`sipConvertToInstance()`
 
-- :cfunc:`sipConvertToMappedType()`
+- :c:func:`sipConvertToMappedType()`
 
-- :cfunc:`sipForceConvertToInstance()`
+- :c:func:`sipForceConvertToInstance()`
 
-- :cfunc:`sipForceConvertToMappedType()`
+- :c:func:`sipForceConvertToMappedType()`
 
-- :cfunc:`sipClassName()`
+- :c:func:`sipClassName()`
 
-- :cfunc:`sipFindClass()`
+- :c:func:`sipFindClass()`
 
-- :cfunc:`sipFindNamedEnum()`
+- :c:func:`sipFindNamedEnum()`
 
-- :cfunc:`sipFindMappedType()`
+- :c:func:`sipFindMappedType()`
 
-- :cfunc:`sipGetWrapper()`
+- :c:func:`sipGetWrapper()`
 
-- :cfunc:`sipReleaseInstance()`
+- :c:func:`sipReleaseInstance()`
 
-- :cfunc:`sipReleaseMappedType()`
+- :c:func:`sipReleaseMappedType()`
 
-- :cfunc:`sipWrapper_Check()`
+- :c:func:`sipWrapper_Check()`
 
-- The ``B``, ``C`` and ``E`` format characters of :cfunc:`sipBuildResult()` and
-  :cfunc:`sipCallMethod()`.
+- The ``B``, ``C`` and ``E`` format characters of :c:func:`sipBuildResult()`
+  and :c:func:`sipCallMethod()`.
 
-- The ``s``, ``C`` and ``E`` format characters of :cfunc:`sipParseResult()`.
+- The ``s``, ``C`` and ``E`` format characters of :c:func:`sipParseResult()`.
 
 
 SIP v4.7.8
@@ -210,7 +210,7 @@ the :aanno:`Transfer` and :aanno:`TransferBack` annotations.
 SIP_BUILD
 *********
 
-The :cmacro:`SIP_BUILD` C preprocessor symbol has been removed.
+The :c:macro:`SIP_BUILD` C preprocessor symbol has been removed.
 
 
 Newly Deprecated Features
@@ -221,6 +221,6 @@ still supported).
 
 - The old-style generated type convertors.
 
-- :cfunc:`sipConvertToCpp()`
+- :c:func:`sipConvertToCpp()`
 
-- :cfunc:`sipIsSubClassInstance()`
+- :c:func:`sipIsSubClassInstance()`
