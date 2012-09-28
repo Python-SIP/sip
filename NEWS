@@ -7,11 +7,14 @@ v4.14 ??? 2012
   - Added the /VirtualErrorHandler/ class annotation.
   - Added the /NoVirtualErrorHandler/ and /VirtualErrorHandler/ function
     annotations.
+  - The /AllowNone/ and /NoRelease/ mapped type annotations can now be used
+    with mapped type templates.
   - SIP_PLATFORM_* and SIP_TIMELINE_* preprocessor symbols are generated
     corresponding to the '-t' arguments passed on the command line.
   - Deprecated sipTransferBreak().
   - For Python v2.x unsigned short and unsigned char (when used as a byte) are
     now converted to int, rather than long, objects.
+  - Added support for MSVC 2010 to the build system.
 
 v4.13.3 20th June 2012
   - The /NoRaisesPyException/ and /RaisesPyException/ function annotations can
