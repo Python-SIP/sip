@@ -1,4 +1,4 @@
-v4.14 ??? 2012
+v4.14 29th September 2012
   - The internal API version is increased to 9.0 requiring the regeneration of
     all modules.
   - Added the %InstanceCode directive.
