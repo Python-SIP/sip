@@ -1621,12 +1621,11 @@ typedef struct _pyqt3ClassTypeDef {
  * out to a plugin supplied by PyQt4.
  */
 
-#define PYQT4_SIGNAL_EXPLICIT   0x00    /* Explicit overload, ie. no optional args. */
+#define PYQT4_SIGNAL_FIXED_ARGS 0x00    /* No optional args. */
 #define PYQT4_SIGNAL_FIRST      0x01    /* First overload with optional args. */
 #define PYQT4_SIGNAL_NEXT       0x02    /* Subsequent overload with optional args. */
 #define PYQT4_SIGNAL_LAST       0x03    /* Last overload with optional args. */
-#define PYQT4_SIGNAL_MASK       0x03
-#define pyqt4SignalSequence(s)  ((s)->sequence & PYQT4_SIGNAL_MASK)
+#define PYQT4_SIGNAL_ARGS_MASK  0x03
 
 /*
  * The description of a Qt signal for PyQt4.

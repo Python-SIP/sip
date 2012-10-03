@@ -9484,7 +9484,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
                 if (nr_args > 0 && cppsig->args[nr_args - 1].defval != NULL)
                     which_oload = "FIRST";
                 else
-                    which_oload = "EXPLICIT";
+                    which_oload = "FIXED_ARGS";
 
                 generateSignalTableEntry(pt, cd, od, md, membernr, which_oload,
                         fp);
