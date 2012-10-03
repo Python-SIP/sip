@@ -68,6 +68,8 @@ extern "C" {
  *
  * History:
  *
+ * 10.0 Added the flags member to the pyqt4QtSignal structure.
+ *
  * 9.0  Changed the sipVariableGetterFunc signature.
  *      Added sip_api_parse_result_ex() to the private API.
  *      Added sip_api_call_error_handler() to the private API.
@@ -180,7 +182,7 @@ extern "C" {
  *
  * 0.0  Original version.
  */
-#define SIP_API_MAJOR_NR    9
+#define SIP_API_MAJOR_NR    10
 #define SIP_API_MINOR_NR    0
 
 
@@ -1619,12 +1621,22 @@ typedef struct _pyqt3ClassTypeDef {
  * out to a plugin supplied by PyQt4.
  */
 
+#define PYQT4_SIGNAL_EXPLICIT   0x00    /* Explicit overload, ie. no optional args. */
+#define PYQT4_SIGNAL_FIRST      0x01    /* First overload with optional args. */
+#define PYQT4_SIGNAL_NEXT       0x02    /* Subsequent overload with optional args. */
+#define PYQT4_SIGNAL_LAST       0x03    /* Last overload with optional args. */
+#define PYQT4_SIGNAL_MASK       0x03
+#define pyqt4SignalSequence(s)  ((s)->sequence & PYQT4_SIGNAL_MASK)
+
 /*
  * The description of a Qt signal for PyQt4.
  */
 typedef struct _pyqt4QtSignal {
     /* The C++ name and signature of the signal. */
     const char *signature;
+
+    /* The flags - see the PYQT4_SIGNAL_* macros above. */
+    unsigned flags;
 
     /* The optional docstring. */
     const char *docstring;
