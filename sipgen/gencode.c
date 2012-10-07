@@ -257,7 +257,7 @@ static void generateNameCache(sipSpec *pt, FILE *fp);
 static const char *resultOwner(overDef *od);
 static void prCachedName(FILE *fp, nameDef *nd, const char *prefix);
 static void generateSignalTableEntry(sipSpec *pt, classDef *cd, overDef *sig,
-        memberDef *md, int membernr, const char *which_oload, FILE *fp);
+        memberDef *md, int membernr, FILE *fp);
 static void generateTypesTable(sipSpec *pt, moduleDef *mod, FILE *fp);
 static int py2OnlySlot(slotType st);
 static int py2_5LaterSlot(slotType st);
@@ -9442,7 +9442,6 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
             for (od = cd->overs; od != NULL; od = od->next)
             {
                 int a, nr_args;
-                const char *which_oload;
                 signatureDef *cppsig;
 
                 if (od->common != md || !isSignal(od))
@@ -9476,18 +9475,13 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 
                 /*
                  * Default arguments are handled as multiple signals.  We make
-                 * sure the largest is first and the smallest last.
+                 * sure the largest is first and the smallest last which is
+                 * what Qt does.
                  */
                 cppsig = od->cppsig;
                 nr_args = cppsig->nrArgs;
 
-                if (nr_args > 0 && cppsig->args[nr_args - 1].defval != NULL)
-                    which_oload = "FIRST";
-                else
-                    which_oload = "FIXED_ARGS";
-
-                generateSignalTableEntry(pt, cd, od, md, membernr, which_oload,
-                        fp);
+                generateSignalTableEntry(pt, cd, od, md, membernr, fp);
                 membernr = -1;
 
                 for (a = nr_args - 1; a >= 0; --a)
@@ -9495,14 +9489,8 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
                     if (cppsig->args[a].defval == NULL)
                         break;
 
-                    if (a > 0 && cppsig->args[a - 1].defval != NULL)
-                        which_oload = "NEXT";
-                    else
-                        which_oload = "LAST";
-
                     cppsig->nrArgs = a;
-                    generateSignalTableEntry(pt, cd, od, md, -1, which_oload,
-                            fp);
+                    generateSignalTableEntry(pt, cd, od, md, -1, fp);
                 }
 
                 cppsig->nrArgs = nr_args;
@@ -9511,7 +9499,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 
         if (is_signals)
             prcode(fp,
-"    {0, 0, 0, 0}\n"
+"    {0, 0, 0}\n"
 "};\n"
                 );
     }
@@ -10085,7 +10073,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
  * Generate an entry in the PyQt4 signal table.
  */
 static void generateSignalTableEntry(sipSpec *pt, classDef *cd, overDef *sig,
-        memberDef *md, int membernr, const char *which_oload, FILE *fp)
+        memberDef *md, int membernr, FILE *fp)
 {
     int a;
 
@@ -10109,7 +10097,7 @@ static void generateSignalTableEntry(sipSpec *pt, classDef *cd, overDef *sig,
         generateNamedBaseType(cd->iff, &arg, "", TRUE, fp);
     }
 
-    prcode(fp,")\", PYQT4_SIGNAL_%s, ", which_oload);
+    prcode(fp,")\", ");
 
     if (docstrings)
     {
