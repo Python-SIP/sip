@@ -2150,6 +2150,9 @@ def create_config_module(module, template, content, macros=None):
 
         line = sf.readline()
 
+    df.close()
+    sf.close()
+
 
 def version_to_sip_tag(version, tags, description):
     """Convert a version number to a SIP tag.
@@ -2311,10 +2314,13 @@ def parse_build_macros(filename, names, overrides=None, properties=None):
                 self._openfile(nextfile)
                 return self.readline()
 
-            if not line and self.filestack:
-                self.currentfile = self.filestack.pop()
-                self.path = self.pathstack.pop()
-                return self.readline()
+            if not line:
+                self.currentfile.close()
+
+                if self.filestack:
+                    self.currentfile = self.filestack.pop()
+                    self.path = self.pathstack.pop()
+                    return self.readline()
 
             return line
 
