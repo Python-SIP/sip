@@ -4450,7 +4450,7 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
     {
         if (generating_c)
             prcode(fp,
-"    %S *sipCpp = (%S *)sipSelf;\n"
+"    struct %S *sipCpp = (struct %S *)sipSelf;\n"
                 , classFQCName(vd->ecd), classFQCName(vd->ecd));
         else
             prcode(fp,
@@ -4799,7 +4799,7 @@ static void generateVariableSetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
     {
         if (generating_c)
             prcode(fp,
-"    %S *sipCpp = (%S *)sipSelf;\n"
+"    struct %S *sipCpp = (struct %S *)sipSelf;\n"
                 , classFQCName(vd->ecd), classFQCName(vd->ecd));
         else
             prcode(fp,
@@ -4943,9 +4943,9 @@ static void generateVariableSetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
 static void generateVarMember(varDef *vd, FILE *fp)
 {
     if (isStaticVar(vd))
-        prcode(fp,"%S::",classFQCName(vd->ecd));
+        prcode(fp, "%S::", classFQCName(vd->ecd));
     else
-        prcode(fp,"sipCpp->");
+        prcode(fp, "sipCpp->");
 
     prcode(fp, "%s", scopedNameTail(vd->fqcname));
 }
@@ -6139,7 +6139,7 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 
         if (generating_c)
             prcode(fp,
-"    ((%S *)sipDst)[sipDstIdx] = *((const %S *)sipSrc);\n"
+"    ((struct %S *)sipDst)[sipDstIdx] = *((const struct %S *)sipSrc);\n"
                 , classFQCName(cd), classFQCName(cd));
         else
             prcode(fp,
@@ -6168,7 +6168,7 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 
         if (generating_c)
             prcode(fp,
-"    return sipMalloc(sizeof (%S) * sipNrElem);\n"
+"    return sipMalloc(sizeof (struct %S) * sipNrElem);\n"
                 , classFQCName(cd));
         else
             prcode(fp,
@@ -6197,8 +6197,8 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 
         if (generating_c)
             prcode(fp,
-"    %S *sipPtr = sipMalloc(sizeof (%S));\n"
-"    *sipPtr = ((const %S *)sipSrc)[sipSrcIdx];\n"
+"    struct %S *sipPtr = sipMalloc(sizeof (struct %S));\n"
+"    *sipPtr = ((const struct %S *)sipSrc)[sipSrcIdx];\n"
 "\n"
 "    return sipPtr;\n"
                 , classFQCName(cd), classFQCName(cd)
@@ -9076,9 +9076,17 @@ static void generateNamedBaseType(ifaceFileDef *scope, argDef *ad,
              * templates and default values.
              */
             if (prcode_xml)
+            {
                 prScopedName(fp, ad->u.snd, ".");
+            }
             else
-                prcode(fp, "%S", ad->u.snd);
+            {
+                if (generating_c)
+                    fprintf(fp, "struct ");
+
+                prScopedName(fp, ad->u.snd, "::");
+            }
+
             break;
 
         case rxcon_type:
@@ -10734,7 +10742,7 @@ static void generateConstructorCall(classDef *cd, ctorDef *ct, int error_flag,
         generateCppCodeBlock(ct->methodcode,fp);
     else if (generating_c)
         prcode(fp,
-"            sipCpp = sipMalloc(sizeof (%S));\n"
+"            sipCpp = sipMalloc(sizeof (struct %S));\n"
             ,classFQCName(cd));
     else
     {
@@ -13670,10 +13678,7 @@ void prcode(FILE *fp, const char *fmt, ...)
                 }
 
             case 'S':
-                if (generating_c)
-                    fprintf(fp,"struct ");
-
-                prScopedName(fp,va_arg(ap,scopedNameDef *),"::");
+                prScopedName(fp, va_arg(ap, scopedNameDef *), "::");
                 break;
 
             case 'U':
@@ -14159,7 +14164,7 @@ static void generateClassFromVoid(classDef *cd, const char *cname,
         const char *vname, FILE *fp)
 {
     if (generating_c)
-        prcode(fp, "%S *%s = (%S *)%s", classFQCName(cd), cname, classFQCName(cd), vname);
+        prcode(fp, "struct %S *%s = (struct %S *)%s", classFQCName(cd), cname, classFQCName(cd), vname);
     else
         prcode(fp, "%S *%s = reinterpret_cast<%S *>(%s)", classFQCName(cd), cname, classFQCName(cd), vname);
 }
