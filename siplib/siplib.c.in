@@ -732,6 +732,14 @@ PyMODINIT_FUNC SIP_MODULE_ENTRY(void)
     int rc;
     PyObject *mod, *mod_dict, *obj;
 
+    /*
+     * Remind ourselves to add support for capsule variables when we have
+     * another reason to move to the next major version number.
+     */
+#if SIP_API_MAJOR_NR > 9
+#error "Add support for capsule variables"
+#endif
+
 #ifdef WITH_THREAD
     PyEval_InitThreads();
 #endif
@@ -2130,6 +2138,20 @@ static PyObject *buildObject(PyObject *obj, const char *fmt, va_list va)
             el = sip_api_convert_from_void_ptr(va_arg(va, void *));
             break;
 
+        case 'z':
+            {
+                const char *name = va_arg(va, const char *);
+                void *p = va_arg(va, void *);
+
+#if defined(SIP_USE_PYCAPSULE)
+                el = PyCapsule_New(p, name, NULL);
+#else
+                el = sip_api_convert_from_void_ptr(p);
+#endif
+            }
+
+            break;
+
         default:
             PyErr_Format(PyExc_SystemError,"buildObject(): invalid format character '%c'",ch);
             el = NULL;
@@ -2809,11 +2831,32 @@ static int parseResult(PyObject *method, PyObject *res,
             case 'V':
                 {
                     void *v = sip_api_convert_to_void_ptr(arg);
+                    void **p = va_arg(va, void **);
 
                     if (PyErr_Occurred())
                         invalid = TRUE;
                     else
-                        *va_arg(va,void **) = v;
+                        *p = v;
+                }
+
+                break;
+
+            case 'z':
+                {
+                    const char *name = va_arg(va, const char *);
+                    void **p = va_arg(va, void **);
+                    void *v;
+
+#if defined(SIP_USE_CAPSULE)
+                    v = PyCapsule_GetPointer(arg, name);
+#else
+                    v = sip_api_convert_to_void_ptr(arg);
+#endif
+
+                    if (PyErr_Occurred())
+                        invalid = TRUE;
+                    else
+                        *p = v;
                 }
 
                 break;
@@ -4599,6 +4642,36 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 if (arg != NULL)
                 {
                     void *v = sip_api_convert_to_void_ptr(arg);
+
+                    if (PyErr_Occurred())
+                    {
+                        failure.reason = WrongType;
+                        failure.detail_obj = arg;
+                        Py_INCREF(arg);
+                    }
+                    else
+                    {
+                        *p = v;
+                    }
+                }
+
+                break;
+            }
+
+        case 'z':
+            {
+                /* Void pointer as a capsule. */
+
+                const char *name = va_arg(va, const char *);
+                void **p = va_arg(va, void **);
+
+                if (arg != NULL)
+                {
+#if defined(SIP_USE_PYCAPSULE)
+                    void *v = PyCapsule_GetPointer(arg, name);
+#else
+                    void *v = sip_api_convert_to_void_ptr(arg);
+#endif
 
                     if (PyErr_Occurred())
                     {

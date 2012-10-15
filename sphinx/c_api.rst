@@ -314,7 +314,12 @@ specification files.
         count is incremented.
 
     ``V`` (sip.voidptr) [void \*]
-        Convert a C/C++ ``void *`` Python :class:`sip.voidptr` object.
+        Convert a C/C++ ``void *`` to a Python :class:`sip.voidptr` object.
+
+    ``z`` (object) [const char \*, void \*]
+        .. versionadded:: 4.14.1
+
+        Convert a C/C++ ``void *`` to a Python named capsule object.
 
 
 .. c:function:: PyObject *sipCallMethod(int *iserr, PyObject *method, const char *format, ...)
@@ -1321,8 +1326,13 @@ specification files.
         returned without any conversions.  The reference count is incremented.
         The Python object may not be ``Py_None``.
 
-    ``V`` (:class:`sip.voidptr`) [void \*]
+    ``V`` (:class:`sip.voidptr`) [void \*\*]
         Convert a Python :class:`sip.voidptr` object to a C/C++ ``void *``.
+
+    ``z`` (object) [const char \*, void \*\*]
+        .. versionadded:: 4.14.1
+
+        Convert a Python named capsule object to a C/C++ ``void *``.
 
     ``Z`` (object) []
         Check that a Python object is ``Py_None``.  No value is returned.

@@ -4727,6 +4727,13 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
         prcode(fp, "sipVal);\n");
         break;
 
+    case capsule_type:
+        prcode(fp,
+"    return sipCapsule_FromVoidPtr(");
+        generateVoidPtrCast(&vd->type, fp);
+        prcode(fp, "sipVal);\n");
+        break;
+
     case pyobject_type:
     case pytuple_type:
     case pylist_type:
@@ -5153,6 +5160,11 @@ static int generateObjToCppConversion(argDef *ad,FILE *fp)
 
     case void_type:
         rhs = "sipConvertToVoidPtr(sipPy)";
+        break;
+
+    case capsule_type:
+        prcode(fp, "sipCapsule_AsVoidPtr(sipPy, \"%S\");\n"
+            , ad->u.cap);
         break;
 
     case pyobject_type:
@@ -7812,6 +7824,10 @@ static void generateParseResultExtraArgs(moduleDef *mod, argDef *ad, int argnr,
             prcode(fp, ", sipType_%C", ad->u.ed->fqcname);
         break;
 
+    case capsule_type:
+        prcode(fp,", \"%S\"", ad->u.cap);
+        break;
+
     default:
         if (keepPyReference(ad))
         {
@@ -7915,6 +7931,9 @@ static const char *getParseResultFormat(argDef *ad, int res_isref, int xfervh)
     case void_type:
     case struct_type:
         return "V";
+
+    case capsule_type:
+        return "z";
 
     case float_type:
     case cfloat_type:
@@ -8104,6 +8123,10 @@ static void generateTupleBuilder(moduleDef *mod, signatureDef *sd,FILE *fp)
             fmt = "V";
             break;
 
+        case capsule_type:
+            fmt = "z";
+            break;
+
         case float_type:
         case cfloat_type:
             fmt = "f";
@@ -8239,6 +8262,10 @@ static void generateTupleBuilder(moduleDef *mod, signatureDef *sd,FILE *fp)
 
             if (!isArray(ad))
                 prcode(fp, ",NULL");
+        }
+        else if (ad->atype == capsule_type)
+        {
+            prcode(fp, ", \"%S\"", ad->u.cap);
         }
         else
         {
@@ -8873,7 +8900,7 @@ static void generateCallArgs(moduleDef *mod, signatureDef *sd,
         {
             py_ad = &py_sd->args[a];
 
-            if (py_ad->atype != void_type || ad->atype == void_type || py_ad->nrderefs != ad->nrderefs)
+            if ((py_ad->atype != void_type && py_ad->atype != capsule_type) || ad->atype == void_type || ad->atype == capsule_type || py_ad->nrderefs != ad->nrderefs)
                 py_ad = NULL;
         }
         else
@@ -9049,6 +9076,11 @@ static void generateNamedBaseType(ifaceFileDef *scope, argDef *ad,
         case struct_type:
             prcode(fp, "struct %S", ad->u.sname);
             break;
+
+        case capsule_type:
+            nr_derefs = 1;
+
+            /* Drop through. */
 
         case fake_void_type:
         case void_type:
@@ -11650,6 +11682,12 @@ static void generateHandleResult(moduleDef *mod, overDef *od, int isNew,
 
         break;
 
+    case capsule_type:
+        prcode(fp,
+"            %s sipCapsule_FromVoidPtr(%s, \"%S\");\n"
+            , prefix, vname, ad->u.cap);
+        break;
+
     case struct_type:
         prcode(fp,
 "            %s sipConvertFrom%sVoidPtr(%s);\n"
@@ -11777,6 +11815,9 @@ static const char *getBuildResultFormat(argDef *ad)
     case void_type:
     case struct_type:
         return "V";
+
+    case capsule_type:
+        return "z";
 
     case float_type:
     case cfloat_type:
@@ -12902,6 +12943,10 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
             fmt = "v";
             break;
 
+        case capsule_type:
+            fmt = "z";
+            break;
+
         case float_type:
             fmt = "f";
             break;
@@ -13149,6 +13194,10 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
                 prcode(fp, ", sipType_%C", ad->u.ed->fqcname);
 
             prcode(fp, ", &%a", mod, ad, a);
+            break;
+
+        case capsule_type:
+            prcode(fp, ", \"%S\", &%a", ad->u.cap, mod, ad, a);
             break;
 
         default:

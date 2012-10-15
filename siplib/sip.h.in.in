@@ -68,6 +68,10 @@ extern "C" {
  *
  * History:
  *
+ * 9.1  Added the capsule type.
+ *      Added the 'z' format character to sip_api_build_result().
+ *      Added the 'z' format character to sip_api_parse_result_ex().
+ *
  * 9.0  Changed the sipVariableGetterFunc signature.
  *      Added sip_api_parse_result_ex() to the private API.
  *      Added sip_api_call_error_handler() to the private API.
@@ -181,7 +185,7 @@ extern "C" {
  * 0.0  Original version.
  */
 #define SIP_API_MAJOR_NR    9
-#define SIP_API_MINOR_NR    0
+#define SIP_API_MINOR_NR    1
 
 
 /* The name of the sip module. */
@@ -265,6 +269,15 @@ typedef unsigned int uint;
 
 #if !defined(PyVarObject_HEAD_INIT)
 #define PyVarObject_HEAD_INIT(type, size)   PyObject_HEAD_INIT(type) size,
+#endif
+
+
+#if defined(SIP_USE_PYCAPSULE)
+#define sipCapsule_FromVoidPtr(p, n)    PyCapsule_New((p), (n), NULL)
+#define sipCapsule_AsVoidPtr(p, n)      PyCapsule_GetPointer((p), (n))
+#else
+#define sipCapsule_FromVoidPtr(p, n)    sipConvertFromVoidPtr((p))
+#define sipCapsule_AsVoidPtr(p, n)      sipConvertToVoidPtr((p))
 #endif
 
 

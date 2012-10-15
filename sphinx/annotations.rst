@@ -250,8 +250,8 @@ Argument Annotations
     This boolean annotation is used with functions or methods that return a
     ``void *`` or ``const void *``.  It identifies an argument that defines the
     size of the block of memory whose address is being returned.  This allows
-    the ``sip.voidptr`` object that wraps the address to support the Python
-    buffer protocol.
+    the :class:`sip.voidptr` object that wraps the address to support the
+    Python buffer protocol.
 
 
 .. argument-annotation:: SingleShot
@@ -873,6 +873,19 @@ Function Annotations
 
 Typedef Annotations
 -------------------
+
+.. typedef-annotation:: Capsule
+
+    .. versionadded:: 4.14.1
+
+    This boolean annotation may only be used when the base type is ``void *``
+    and specifies that a Python capsule object is used to wrap the value rather
+    than a :class:`sip.voidptr`.  The advantage of using a capsule is that name
+    based type checking is performed using the name of the type being defined.
+
+    For versions of Python that do not support capules :class:`sip.voidptr` is
+    used instead and name based type checking is not performed.
+
 
 .. typedef-annotation:: DocType
 

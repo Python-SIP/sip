@@ -2104,6 +2104,7 @@ static void resolveVariableType(sipSpec *pt, varDef *vd)
     case pycallable_type:
     case pyslice_type:
     case pytype_type:
+    case capsule_type:
         /* These are supported without pointers or references. */
 
         if (!isReference(vtype) && vtype->nrderefs == 0)
@@ -2237,6 +2238,7 @@ static int supportedType(classDef *cd,overDef *od,argDef *ad,int outputs)
     case pycallable_type:
     case pyslice_type:
     case pytype_type:
+    case capsule_type:
         if (isReference(ad))
         {
             if (isConstArg(ad))

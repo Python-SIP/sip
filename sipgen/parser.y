@@ -2655,6 +2655,7 @@ typedef:    TK_TYPEDEF cpptype TK_NAME_VALUE optflags ';' {
             if (notSkipping())
             {
                 const char *annos[] = {
+                    "Capsule",
                     "DocType",
                     "Encoding",
                     "NoTypeName",
@@ -5457,6 +5458,10 @@ static char *type2string(argDef *ad)
             s = "void";
             break;
 
+        case capsule_type:
+            s = "void *";
+            break;
+
         default:
             fatal("Unsupported type argument to type2string(): %d\n", ad->atype);
         }
@@ -6314,6 +6319,20 @@ static void newTypedef(sipSpec *pt, moduleDef *mod, char *name, argDef *type,
     td->module = mod;
     td->type = *type;
 
+    if (getOptFlag(optflgs, "Capsule", bool_flag) != NULL)
+    {
+        /* Make sure the type is void *. */
+        if (type->atype != void_type || type->nrderefs != 1 || isConstArg(type) || isReference(type))
+        {
+            fatalScopedName(fqname);
+            fatal(" must be a void* if /Capsule/ is specified\n");
+        }
+
+        td->type.atype = capsule_type;
+        td->type.nrderefs = 0;
+        td->type.u.cap = fqname;
+    }
+
     if (getOptFlag(optflgs, "NoTypeName", bool_flag) != NULL)
         setNoTypeName(td);
 
@@ -6439,6 +6458,13 @@ static void newVar(sipSpec *pt, moduleDef *mod, char *name, int isstatic,
     varDef *var;
     classDef *escope = currentScope();
     nameDef *nd;
+
+    /*
+     * For the moment we don't support capsule variables because it needs the
+     * API major version increasing.
+     */
+    if (type->atype == capsule_type)
+        yyerror("Capsule variables not yet supported");
 
     /* Check the section. */
     if (section != 0)

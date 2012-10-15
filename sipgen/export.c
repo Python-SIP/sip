@@ -940,6 +940,10 @@ static const char *pyType(sipSpec *pt, argDef *ad, int sec, classDef **scope)
 
     switch (ad->atype)
     {
+    case capsule_type:
+        type_name = "capsule";
+        break;
+
     case struct_type:
     case void_type:
         type_name = "sip.voidptr";

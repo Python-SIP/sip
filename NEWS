@@ -1,3 +1,8 @@
+v4.14.1 ??? ??? 2012
+  - Added /Capsule/ typedef annotation.
+  - Added the 'z' format character to sipBuildResult().
+  - Added the 'z' format character to sipParseResult().
+
 v4.14 29th September 2012
   - The internal API version is increased to 9.0 requiring the regeneration of
     all modules.
