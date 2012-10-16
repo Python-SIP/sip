@@ -2,6 +2,9 @@ v4.14.1 ??? ??? 2012
   - Added /Capsule/ typedef annotation.
   - Added the 'z' format character to sipBuildResult().
   - Added the 'z' format character to sipParseResult().
+  - sipdistutils.py will now include swig_opts if no sip_opts have been
+    defined.
+  - Bug fixes.
 
 v4.14 29th September 2012
   - The internal API version is increased to 9.0 requiring the regeneration of
