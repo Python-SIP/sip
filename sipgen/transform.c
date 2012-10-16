@@ -2021,7 +2021,8 @@ static void resolvePySigTypes(sipSpec *pt, moduleDef *mod, classDef *scope,
         }
         else if (!supportedType(scope,od,ad,TRUE) && (od -> cppsig == &od -> pysig || od -> methodcode == NULL || (isVirtual(od) && od -> virthandler -> virtcode == NULL)))
         {
-            fatal("%s:%d: ", od->sloc.name, od->sloc.linenr);
+            if (od->sloc.name != NULL)
+                fatal("%s:%d: ", od->sloc.name, od->sloc.linenr);
 
             if (scope != NULL)
             {
