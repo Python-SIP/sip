@@ -6672,6 +6672,15 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
 
         if (exceptions != NULL)
             yyerror("Exceptions not allowed in a C module");
+
+        /* Handle C void prototypes. */
+        if (sig->nrArgs == 1)
+        {
+            argDef *vad = &sig->args[0];
+
+            if (vad->atype == void_type && vad->nrderefs == 0)
+                sig->nrArgs = 0;
+        }
     }
 
     if (mt_scope != NULL)
