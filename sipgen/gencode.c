@@ -2520,14 +2520,15 @@ static void generateModInitStart(moduleDef *mod, int gen_c, FILE *fp)
 "#endif\n"
 "\n"
 "#if defined(SIP_STATIC_MODULE)\n"
-"%sSIP_MODULE_TYPE SIP_MODULE_ENTRY()\n"
+"%sSIP_MODULE_TYPE SIP_MODULE_ENTRY(%s)\n"
 "#else\n"
-"PyMODINIT_FUNC SIP_MODULE_ENTRY()\n"
+"PyMODINIT_FUNC SIP_MODULE_ENTRY(%s)\n"
 "#endif\n"
 "{\n"
         , mod->name
         , mod->name
-        , (gen_c ? "" : "extern \"C\" "));
+        , (gen_c ? "" : "extern \"C\" "), (gen_c ? "void" : "")
+        , (gen_c ? "void" : ""));
 }
 
 
