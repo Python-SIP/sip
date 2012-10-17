@@ -1722,7 +1722,7 @@ sipErrorState sipError
     used by code that needs to do additional type checking of the callable's
     arguments.
 
-    When ``sipErrorFail1`` is used, SIP will report the exception immediately
+    When ``sipErrorFail`` is used, SIP will report the exception immediately
     and will not attempt to invoke other overloaded callables.
 
     ``sipError`` is not provided for destructors.
