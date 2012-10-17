@@ -941,7 +941,7 @@ static const char *pyType(sipSpec *pt, argDef *ad, int sec, classDef **scope)
     switch (ad->atype)
     {
     case capsule_type:
-        type_name = "capsule";
+        type_name = scopedNameTail(ad->u.cap);
         break;
 
     case struct_type:
