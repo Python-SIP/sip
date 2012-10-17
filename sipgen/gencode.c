@@ -4730,7 +4730,7 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
 
     case capsule_type:
         prcode(fp,
-"    return sipCapsule_FromVoidPtr(");
+"    return SIPCapsule_FromVoidPtr(");
         generateVoidPtrCast(&vd->type, fp);
         prcode(fp, "sipVal);\n");
         break;
@@ -5164,7 +5164,7 @@ static int generateObjToCppConversion(argDef *ad,FILE *fp)
         break;
 
     case capsule_type:
-        prcode(fp, "sipCapsule_AsVoidPtr(sipPy, \"%S\");\n"
+        prcode(fp, "SIPCapsule_AsVoidPtr(sipPy, \"%S\");\n"
             , ad->u.cap);
         break;
 
@@ -11685,7 +11685,7 @@ static void generateHandleResult(moduleDef *mod, overDef *od, int isNew,
 
     case capsule_type:
         prcode(fp,
-"            %s sipCapsule_FromVoidPtr(%s, \"%S\");\n"
+"            %s SIPCapsule_FromVoidPtr(%s, \"%S\");\n"
             , prefix, vname, ad->u.cap);
         break;
 

@@ -273,11 +273,11 @@ typedef unsigned int uint;
 
 
 #if defined(SIP_USE_PYCAPSULE)
-#define sipCapsule_FromVoidPtr(p, n)    PyCapsule_New((p), (n), NULL)
-#define sipCapsule_AsVoidPtr(p, n)      PyCapsule_GetPointer((p), (n))
+#define SIPCapsule_FromVoidPtr(p, n)    PyCapsule_New((p), (n), NULL)
+#define SIPCapsule_AsVoidPtr(p, n)      PyCapsule_GetPointer((p), (n))
 #else
-#define sipCapsule_FromVoidPtr(p, n)    sipConvertFromVoidPtr((p))
-#define sipCapsule_AsVoidPtr(p, n)      sipConvertToVoidPtr((p))
+#define SIPCapsule_FromVoidPtr(p, n)    sipConvertFromVoidPtr((p))
+#define SIPCapsule_AsVoidPtr(p, n)      sipConvertToVoidPtr((p))
 #endif
 
 
