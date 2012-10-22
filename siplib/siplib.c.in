@@ -2143,11 +2143,19 @@ static PyObject *buildObject(PyObject *obj, const char *fmt, va_list va)
                 const char *name = va_arg(va, const char *);
                 void *p = va_arg(va, void *);
 
+                if (p == NULL)
+                {
+                    el = Py_None;
+                    Py_INCREF(el);
+                }
+                else
+                {
 #if defined(SIP_USE_PYCAPSULE)
-                el = PyCapsule_New(p, name, NULL);
+                    el = PyCapsule_New(p, name, NULL);
 #else
-                el = sip_api_convert_from_void_ptr(p);
+                    el = sip_api_convert_from_void_ptr(p);
 #endif
+                }
             }
 
             break;
@@ -2845,18 +2853,24 @@ static int parseResult(PyObject *method, PyObject *res,
                 {
                     const char *name = va_arg(va, const char *);
                     void **p = va_arg(va, void **);
-                    void *v;
 
+                    if (arg == Py_None)
+                    {
+                        *p = NULL;
+                    }
+                    else
+                    {
 #if defined(SIP_USE_CAPSULE)
-                    v = PyCapsule_GetPointer(arg, name);
+                        void *v = PyCapsule_GetPointer(arg, name);
 #else
-                    v = sip_api_convert_to_void_ptr(arg);
+                        void *v = sip_api_convert_to_void_ptr(arg);
 #endif
 
-                    if (PyErr_Occurred())
-                        invalid = TRUE;
-                    else
-                        *p = v;
+                        if (PyErr_Occurred())
+                            invalid = TRUE;
+                        else
+                            *p = v;
+                    }
                 }
 
                 break;
@@ -4665,7 +4679,11 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 const char *name = va_arg(va, const char *);
                 void **p = va_arg(va, void **);
 
-                if (arg != NULL)
+                if (arg == Py_None)
+                {
+                    *p = NULL;
+                }
+                else if (arg != NULL)
                 {
 #if defined(SIP_USE_PYCAPSULE)
                     void *v = PyCapsule_GetPointer(arg, name);
