@@ -70,9 +70,10 @@ Argument Annotations
 .. argument-annotation:: AllowNone
 
     This boolean annotation specifies that the value of the corresponding
-    argument (which should be either :stype:`SIP_PYCALLABLE`,
-    :stype:`SIP_PYDICT`, :stype:`SIP_PYLIST`, :stype:`SIP_PYSLICE`,
-    :stype:`SIP_PYTUPLE` or :stype:`SIP_PYTYPE`) may be ``None``.
+    argument (which should be either :stype:`SIP_PYBUFFER`,
+    :stype:`SIP_PYCALLABLE`, :stype:`SIP_PYDICT`, :stype:`SIP_PYLIST`,
+    :stype:`SIP_PYSLICE`, :stype:`SIP_PYTUPLE` or :stype:`SIP_PYTYPE`) may be
+    ``None``.
 
 
 .. argument-annotation:: Array

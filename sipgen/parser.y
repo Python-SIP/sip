@@ -295,6 +295,7 @@ static void mappedTypeAnnos(mappedTypeDef *mtd, optFlags *optflgs);
 %token          TK_PYCALLABLE
 %token          TK_PYSLICE
 %token          TK_PYTYPE
+%token          TK_PYBUFFER
 %token          TK_VIRTUAL
 %token          TK_ENUM
 %token          TK_SIGNED
@@ -4221,6 +4222,10 @@ basetype:   scopedname {
     |   TK_PYTYPE {
             memset(&$$, 0, sizeof (argDef));
             $$.atype = pytype_type;
+        }
+    |   TK_PYBUFFER {
+            memset(&$$, 0, sizeof (argDef));
+            $$.atype = pybuffer_type;
         }
     |   TK_SIPSSIZET {
             memset(&$$, 0, sizeof (argDef));

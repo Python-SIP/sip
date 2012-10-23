@@ -1045,6 +1045,10 @@ static const char *pyType(sipSpec *pt, argDef *ad, int sec, classDef **scope)
         type_name = "type";
         break;
 
+    case pybuffer_type:
+        type_name = "buffer";
+        break;
+
     case ellipsis_type:
         type_name = "...";
         break;

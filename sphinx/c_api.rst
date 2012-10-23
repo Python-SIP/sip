@@ -1337,6 +1337,20 @@ specification files.
     ``Z`` (object) []
         Check that a Python object is ``Py_None``.  No value is returned.
 
+    ``!`` (object) [PyObject \*\*]
+        .. versionadded:: 4.14.1
+
+        A Python object is checked to see if it implements the buffer protocol
+        and then returned without any conversions.  The reference count is
+        incremented.  The Python object may not be ``Py_None``.
+
+    ``$`` (object) [PyObject \*\*]
+        .. versionadded:: 4.14.1
+
+        A Python object is checked to see if it implements the buffer protocol
+        and then returned without any conversions.  The reference count is
+        incremented.  The Python object may be ``Py_None``.
+
 
 .. c:function:: int sipRegisterAttributeGetter(const sipTypeDef *td, sipAttrGetterFunc getter)
 

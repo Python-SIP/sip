@@ -2881,6 +2881,36 @@ static int parseResult(PyObject *method, PyObject *res,
 
                 break;
 
+            case '!':
+                {
+                    PyObject **p = va_arg(va, PyObject **);
+
+                    if (PyObject_CheckBuffer(arg) != 0)
+                    {
+                        Py_INCREF(arg);
+                        *p = arg;
+                    }
+                    else
+                        invalid = TRUE;
+                }
+
+                break;
+
+            case '$':
+                {
+                    PyObject **p = va_arg(va, PyObject **);
+
+                    if (arg == Py_None || PyObject_CheckBuffer(arg) != 0)
+                    {
+                        Py_INCREF(arg);
+                        *p = arg;
+                    }
+                    else
+                        invalid = TRUE;
+                }
+
+                break;
+
             default:
                 PyErr_Format(PyExc_SystemError,"sipParseResult(): invalid format character '%c'",ch);
                 rc = -1;
@@ -4008,6 +4038,54 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 if (arg != NULL)
                 {
                     if (arg == Py_None || PyCallable_Check(arg))
+                    {
+                        *p = arg;
+                    }
+                    else
+                    {
+                        failure.reason = WrongType;
+                        failure.detail_obj = arg;
+                        Py_INCREF(arg);
+                    }
+                }
+ 
+                break;
+            }
+
+        case '!':
+            {
+                /* Python object that implements the buffer protocol. */
+ 
+                PyObject **p = va_arg(va, PyObject **);
+
+                if (arg != NULL)
+                {
+                    if (PyObject_CheckBuffer(arg) != 0)
+                    {
+                        *p = arg;
+                    }
+                    else
+                    {
+                        failure.reason = WrongType;
+                        failure.detail_obj = arg;
+                        Py_INCREF(arg);
+                    }
+                }
+ 
+                break;
+            }
+
+        case '$':
+            {
+                /*
+                 * Python object that implements the buffer protocol or None.
+                 */
+ 
+                PyObject **p = va_arg(va, PyObject **);
+
+                if (arg != NULL)
+                {
+                    if (arg == Py_None || PyObject_CheckBuffer(arg) != 0)
                     {
                         *p = arg;
                     }

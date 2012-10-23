@@ -4742,6 +4742,7 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
     case pycallable_type:
     case pyslice_type:
     case pytype_type:
+    case pybuffer_type:
         prcode(fp,
 "    Py_XINCREF(sipVal);\n"
 "    return sipVal;\n"
@@ -4878,7 +4879,7 @@ static void generateVariableSetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
     if (atype == pyobject_type || atype == pytuple_type ||
         atype == pylist_type || atype == pydict_type ||
         atype == pycallable_type || atype == pyslice_type ||
-        atype == pytype_type)
+        atype == pytype_type || atype == pybuffer_type)
     {
         prcode(fp,
 "    Py_XDECREF(");
@@ -5175,6 +5176,7 @@ static int generateObjToCppConversion(argDef *ad,FILE *fp)
     case pycallable_type:
     case pyslice_type:
     case pytype_type:
+    case pybuffer_type:
         rhs = "sipPy";
         break;
     }
@@ -7953,6 +7955,9 @@ static const char *getParseResultFormat(argDef *ad, int res_isref, int xfervh)
     case pyslice_type:
     case pytype_type:
         return (isAllowNone(ad) ? "N" : "T");
+
+    case pybuffer_type:
+        return (isAllowNone(ad) ? "$" : "!");
     }
 
     /* We should never get here. */
@@ -8175,6 +8180,7 @@ static void generateTupleBuilder(moduleDef *mod, signatureDef *sd,FILE *fp)
         case pycallable_type:
         case pyslice_type:
         case pytype_type:
+        case pybuffer_type:
             fmt = "S";
             break;
         }
@@ -9170,6 +9176,7 @@ static void generateNamedBaseType(ifaceFileDef *scope, argDef *ad,
         case pycallable_type:
         case pyslice_type:
         case pytype_type:
+        case pybuffer_type:
         case qobject_type:
         case ellipsis_type:
             prcode(fp, "PyObject *");
@@ -11718,6 +11725,7 @@ static void generateHandleResult(moduleDef *mod, overDef *od, int isNew,
     case pycallable_type:
     case pyslice_type:
     case pytype_type:
+    case pybuffer_type:
         prcode(fp,
 "            %s %s;\n"
             ,prefix,vname);
@@ -11835,6 +11843,7 @@ static const char *getBuildResultFormat(argDef *ad)
     case pycallable_type:
     case pyslice_type:
     case pytype_type:
+    case pybuffer_type:
         return "R";
     }
 
@@ -13028,6 +13037,10 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
 
         case pycallable_type:
             fmt = (isAllowNone(ad) ? "H" : "F");
+            break;
+
+        case pybuffer_type:
+            fmt = (isAllowNone(ad) ? "$" : "!");
             break;
 
         case qobject_type:

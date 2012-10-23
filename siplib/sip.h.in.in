@@ -70,7 +70,8 @@ extern "C" {
  *
  * 9.1  Added the capsule type.
  *      Added the 'z' format character to sip_api_build_result().
- *      Added the 'z' format character to sip_api_parse_result_ex().
+ *      Added the 'z', '!' and '$' format characters to
+ *      sip_api_parse_result_ex().
  *
  * 9.0  Changed the sipVariableGetterFunc signature.
  *      Added sip_api_parse_result_ex() to the private API.
