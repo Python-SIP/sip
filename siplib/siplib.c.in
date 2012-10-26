@@ -2885,7 +2885,13 @@ static int parseResult(PyObject *method, PyObject *res,
                 {
                     PyObject **p = va_arg(va, PyObject **);
 
-                    if (PyObject_CheckBuffer(arg) != 0)
+#if PY_VERSION_HEX >= 0x030000
+                    if (PyObject_CheckBuffer(arg))
+#elif PY_VERSION_HEX >= 0x020603
+                    if (PyObject_CheckBuffer(arg) || PyObject_CheckReadBuffer(arg))
+#else
+                    if (PyObject_CheckReadBuffer(arg))
+#endif
                     {
                         Py_INCREF(arg);
                         *p = arg;
@@ -2900,7 +2906,13 @@ static int parseResult(PyObject *method, PyObject *res,
                 {
                     PyObject **p = va_arg(va, PyObject **);
 
-                    if (arg == Py_None || PyObject_CheckBuffer(arg) != 0)
+#if PY_VERSION_HEX >= 0x030000
+                    if (arg == Py_None || PyObject_CheckBuffer(arg))
+#elif PY_VERSION_HEX >= 0x020603
+                    if (arg == Py_None || PyObject_CheckBuffer(arg) || PyObject_CheckReadBuffer(arg))
+#else
+                    if (arg == Py_None || PyObject_CheckReadBuffer(arg))
+#endif
                     {
                         Py_INCREF(arg);
                         *p = arg;
@@ -4060,7 +4072,13 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
 
                 if (arg != NULL)
                 {
-                    if (PyObject_CheckBuffer(arg) != 0)
+#if PY_VERSION_HEX >= 0x030000
+                    if (PyObject_CheckBuffer(arg))
+#elif PY_VERSION_HEX >= 0x020603
+                    if (PyObject_CheckBuffer(arg) || PyObject_CheckReadBuffer(arg))
+#else
+                    if (PyObject_CheckReadBuffer(arg))
+#endif
                     {
                         *p = arg;
                     }
@@ -4085,7 +4103,13 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
 
                 if (arg != NULL)
                 {
-                    if (arg == Py_None || PyObject_CheckBuffer(arg) != 0)
+#if PY_VERSION_HEX >= 0x030000
+                    if (arg == Py_None || PyObject_CheckBuffer(arg))
+#elif PY_VERSION_HEX >= 0x020603
+                    if (arg == Py_None || PyObject_CheckBuffer(arg) || PyObject_CheckReadBuffer(arg))
+#else
+                    if (arg == Py_None || PyObject_CheckReadBuffer(arg))
+#endif
                     {
                         *p = arg;
                     }
