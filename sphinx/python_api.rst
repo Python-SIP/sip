@@ -216,8 +216,8 @@ can be used by applications.
         .. versionadded:: 4.12
 
         This returns the item at a given index.  An exception will be raised if
-        the address does not have an associated size.  It behaves like a Python
-        ``memoryview`` object.
+        the address does not have an associated size.  In this way it behaves
+        like a Python ``memoryview`` object.
 
         :param idx:
             is the index which may either be an integer, an object that
@@ -250,8 +250,8 @@ can be used by applications.
         .. versionadded:: 4.12
 
         This updates the memory at a given index.  An exception will be raised
-        if the address does not have an associated size or is not writable.  It
-        behaves like a Python ``memoryview`` object.
+        if the address does not have an associated size or is not writable.  In
+        this way it behaves like a Python ``memoryview`` object.
 
         :param idx:
             is the index which may either be an integer, an object that
