@@ -46,7 +46,7 @@ struct vp_values {
 static int check_size(PyObject *self);
 static int check_rw(PyObject *self);
 static int check_index(PyObject *self, SIP_SSIZE_T idx);
-#if PY_VERSION_HEX < 0x02060000
+#if PY_VERSION_HEX < 0x02060300
 static SIP_SSIZE_T get_value_data(PyObject *value, void **value_ptr);
 #endif
 #if PY_VERSION_HEX < 0x02050000
@@ -455,7 +455,7 @@ static int sipVoidPtr_ass_subscript(PyObject *self, PyObject *key,
 {
     sipVoidPtrObject *v;
     Py_ssize_t start, size;
-#if PY_VERSION_HEX >= 0x02060000
+#if PY_VERSION_HEX >= 0x02060300
     Py_buffer value_view;
 #else
     Py_ssize_t value_size;
@@ -502,7 +502,7 @@ static int sipVoidPtr_ass_subscript(PyObject *self, PyObject *key,
         return -1;
     }
 
-#if PY_VERSION_HEX >= 0x02060000
+#if PY_VERSION_HEX >= 0x02060300
     if (PyObject_GetBuffer(value, &value_view, PyBUF_CONTIG_RO) < 0)
         return -1;
 
@@ -548,9 +548,9 @@ static PyMappingMethods sipVoidPtr_MappingMethods = {
 #endif
 
 
-#if PY_VERSION_HEX >= 0x02060000
+#if PY_VERSION_HEX >= 0x02060300
 /*
- * The buffer implementation for Python v2.6 and later.
+ * The buffer implementation for Python v2.6.3 and later.
  */
 static int sipVoidPtr_getbuffer(PyObject *self, Py_buffer *buf, int flags)
 {
@@ -639,7 +639,7 @@ static PyBufferProcs sipVoidPtr_BufferProcs = {
     sipVoidPtr_getsegcount, /* bf_getsegcount */
 #if PY_VERSION_HEX >= 0x02050000
     (charbufferproc)sipVoidPtr_getreadbuffer,   /* bf_getcharbuffer */
-#if PY_VERSION_HEX >= 0x02060000
+#if PY_VERSION_HEX >= 0x02060300
     sipVoidPtr_getbuffer,   /* bf_getbuffer */
     0                       /* bf_releasebuffer */
 #endif
@@ -857,7 +857,7 @@ static int check_index(PyObject *self, SIP_SSIZE_T idx)
 }
 
 
-#if PY_VERSION_HEX < 0x02060000
+#if PY_VERSION_HEX < 0x02060300
 /*
  * Get the address and size of the data from a value that supports the buffer
  * interface.
