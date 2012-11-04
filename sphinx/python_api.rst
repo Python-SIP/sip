@@ -195,7 +195,8 @@ can be used by applications.
 
         :param address:
             the address, either another :class:`sip.voidptr`, ``None``, a
-            Python Capsule, a Python CObject, or an integer.
+            Python Capsule, a Python CObject, an object that implements the
+            buffer protocol or an integer.
         :param size:
             the optional associated size of the block of memory and is negative
             if the size is not known.

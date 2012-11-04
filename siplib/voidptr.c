@@ -986,6 +986,25 @@ static int vp_convertor(PyObject *arg, struct vp_values *vp)
         size = ((sipVoidPtrObject *)arg)->size;
         rw = ((sipVoidPtrObject *)arg)->rw;
     }
+#if PY_VERSION_HEX >= 0x02060300
+    else if (PyObject_CheckBuffer(arg))
+    {
+        Py_buffer view;
+
+        if (PyObject_GetBuffer(arg, &view, PyBUF_SIMPLE) < 0)
+            return 0;
+
+        ptr = view.buf;
+        size = view.len;
+        rw = !view.readonly;
+    }
+#endif
+#if PY_VERSION_HEX < 0x03000000
+    else if (PyObject_AsReadBuffer(arg, &ptr, &size) >= 0)
+    {
+        rw = (Py_TYPE(arg)->tp_as_buffer->bf_getwritebuffer != NULL);
+    }
+#endif
     else
     {
         ptr = PyLong_AsVoidPtr(arg);
@@ -993,9 +1012,9 @@ static int vp_convertor(PyObject *arg, struct vp_values *vp)
         if (PyErr_Occurred())
         {
 #if PY_VERSION_HEX >= 0x03010000
-            PyErr_SetString(PyExc_TypeError, "a single integer, CObject, None or another sip.voidptr object is required");
+            PyErr_SetString(PyExc_TypeError, "a single integer, CObject, None, buffer protocol implementor or another sip.voidptr object is required");
 #else
-            PyErr_SetString(PyExc_TypeError, "a single integer, Capsule, CObject, None or another sip.voidptr object is required");
+            PyErr_SetString(PyExc_TypeError, "a single integer, Capsule, CObject, None, buffer protocol implementor or another sip.voidptr object is required");
 #endif
             return 0;
         }

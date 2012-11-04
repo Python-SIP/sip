@@ -1,3 +1,7 @@
+v4.14.2 ???
+  - sip.voidptr() will now accept any object that implements the buffer
+    protocol.
+
 v4.14.1 27th October 2012
   - SIP_PYBUFFER can now be used to define objects that implement the Python
     buffer protocol.
