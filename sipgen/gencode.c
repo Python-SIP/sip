@@ -203,9 +203,9 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
         int secCall, FILE *fp);
 static void generateTry(throwArgs *, FILE *);
 static void generateCatch(throwArgs *ta, signatureDef *sd, moduleDef *mod,
-        FILE *fp);
+        FILE *fp, int rgil);
 static void generateCatchBlock(moduleDef *mod, exceptionDef *xd,
-        signatureDef *sd, FILE *fp);
+        signatureDef *sd, FILE *fp, int rgil);
 static void generateThrowSpecifier(throwArgs *, FILE *);
 static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
         memberDef *md, FILE *fp);
@@ -10629,7 +10629,7 @@ static void generateTry(throwArgs *ta,FILE *fp)
  * Generate the catch blocks for a call.
  */
 static void generateCatch(throwArgs *ta, signatureDef *sd, moduleDef *mod,
-        FILE *fp)
+        FILE *fp, int rgil)
 {
     /*
      * Generate the block if there was no throw specifier, or a non-empty
@@ -10646,11 +10646,11 @@ static void generateCatch(throwArgs *ta, signatureDef *sd, moduleDef *mod,
             int a;
 
             for (a = 0; a < ta->nrArgs; ++a)
-                generateCatchBlock(mod, ta->args[a], sd, fp);
+                generateCatchBlock(mod, ta->args[a], sd, fp, rgil);
         }
         else if (mod->defexception != NULL)
         {
-            generateCatchBlock(mod, mod->defexception, sd, fp);
+            generateCatchBlock(mod, mod->defexception, sd, fp, rgil);
         }
 
         prcode(fp,
@@ -10658,7 +10658,7 @@ static void generateCatch(throwArgs *ta, signatureDef *sd, moduleDef *mod,
 "            {\n"
             );
 
-        if (release_gil)
+        if (rgil)
             prcode(fp,
 "                Py_BLOCK_THREADS\n"
 "\n"
@@ -10680,7 +10680,7 @@ static void generateCatch(throwArgs *ta, signatureDef *sd, moduleDef *mod,
  * Generate a single catch block.
  */
 static void generateCatchBlock(moduleDef *mod, exceptionDef *xd,
-        signatureDef *sd, FILE *fp)
+        signatureDef *sd, FILE *fp, int rgil)
 {
     scopedNameDef *ename = xd->iff->fqcname;
 
@@ -10689,7 +10689,7 @@ static void generateCatchBlock(moduleDef *mod, exceptionDef *xd,
 "            {\n"
         ,ename,(xd->cd != NULL || usedInCode(xd->raisecode, "sipExceptionRef")) ? "sipExceptionRef" : "");
 
-    if (release_gil)
+    if (rgil)
         prcode(fp,
 "\n"
 "                Py_BLOCK_THREADS\n"
@@ -10825,7 +10825,7 @@ static void generateConstructorCall(classDef *cd, ctorDef *ct, int error_flag,
         prcode(fp,");\n"
             );
 
-        generateCatch(ct->exceptions, &ct->pysig, mod, fp);
+        generateCatch(ct->exceptions, &ct->pysig, mod, fp, rgil);
 
         if (rgil)
             prcode(fp,
@@ -12314,7 +12314,7 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
         prcode(fp,";\n"
             );
 
-        generateCatch(od->exceptions, &od->pysig, mod, fp);
+        generateCatch(od->exceptions, &od->pysig, mod, fp, rgil);
 
         if (rgil)
             prcode(fp,
