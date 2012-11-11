@@ -118,6 +118,22 @@ can be used by applications.
         the Python object.
 
 
+.. function:: setdestroyonexit(destroy)
+
+    .. versionadded:: 4.14.2
+
+    When the Python interpreter exits it garbage collects those objects that it
+    can.  This means that any corresponding C++ instances and C structures
+    owned by Python are destroyed.  Unfortunately this happens in an
+    unpredictable order and so can cause memory faults within the wrapped
+    library.  Calling this function with a value of ``False`` disables the
+    automatic destruction of C++ instances and C structures.
+
+    :param destroy:
+        ``True`` if all C++ instances and C structures owned by Python should
+        be destroyed when the interpreter exits.  This is the default.
+
+
 .. function:: settracemask(mask)
 
     If the bindings have been created with SIP's :option:`-r <sip -r>` command

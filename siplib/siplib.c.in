@@ -527,6 +527,7 @@ static sipSymbol *sipSymbolList = NULL; /* The list of published symbols. */
 static sipAttrGetter *sipAttrGetters = NULL;  /* The list of attribute getters. */
 static sipPyObject *sipRegisteredPyTypes = NULL;    /* Registered Python types. */
 static PyInterpreterState *sipInterpreter = NULL;   /* The interpreter. */
+static int destroy_on_exit = TRUE;      /* Destroy owned objects on exit. */
 
 
 static void addClassSlots(sipWrapperType *wt, sipClassTypeDef *ctd);
@@ -620,6 +621,7 @@ static PyObject *wrapInstance(PyObject *self, PyObject *args);
 static PyObject *unwrapInstance(PyObject *self, PyObject *args);
 static PyObject *transferBack(PyObject *self, PyObject *args);
 static PyObject *transferTo(PyObject *self, PyObject *args);
+static PyObject *setDestroyOnExit(PyObject *self, PyObject *args);
 static void print_object(const char *label, PyObject *obj);
 static void addToParent(sipWrapper *self, sipWrapper *owner);
 static void removeFromParent(sipWrapper *self);
@@ -705,6 +707,7 @@ PyMODINIT_FUNC SIP_MODULE_ENTRY(void)
         {"ispyowned", isPyOwned, METH_VARARGS, NULL},
         {"setapi", sipSetAPI, METH_VARARGS, NULL},
         {"setdeleted", setDeleted, METH_VARARGS, NULL},
+        {"setdestroyonexit", setDestroyOnExit, METH_VARARGS, NULL},
         {"settracemask", setTraceMask, METH_VARARGS, NULL},
         {"transferback", transferBack, METH_VARARGS, NULL},
         {"transferto", transferTo, METH_VARARGS, NULL},
@@ -1217,6 +1220,21 @@ static PyObject *wrapInstance(PyObject *self, PyObject *args)
 
     if (PyArg_ParseTuple(args, "kO!:wrapinstance", &addr, &sipWrapperType_Type, &wt))
         return sip_api_convert_from_type((void *)addr, wt->type, NULL);
+
+    return NULL;
+}
+
+
+/*
+ * Set the destroy on exit flag.
+ */
+static PyObject *setDestroyOnExit(PyObject *self, PyObject *args)
+{
+    if (PyArg_ParseTuple(args, "i:setdestroyonexit", &destroy_on_exit))
+    {
+        Py_INCREF(Py_None);
+        return Py_None;
+    }
 
     return NULL;
 }
@@ -10364,8 +10382,6 @@ static void addTypeSlots(PyHeapTypeObject *heap_to, sipPySlotDef *slots)
  */
 static void forgetObject(sipSimpleWrapper *sw)
 {
-    const sipClassTypeDef *ctd;
-
     /*
      * This is needed because we release the GIL when calling a C++ dtor.
      * Without it the cyclic garbage collector can be invoked from another
@@ -10385,10 +10401,11 @@ static void forgetObject(sipSimpleWrapper *sw)
      */
     sipOMRemoveObject(&cppPyMap, sw);
 
-    if (getPtrTypeDef(sw, &ctd) != NULL)
+    if (sipInterpreter != NULL || destroy_on_exit)
     {
-        /* Call the C++ dtor if there is one. */
-        if (ctd->ctd_dealloc != NULL)
+        const sipClassTypeDef *ctd;
+
+        if (getPtrTypeDef(sw, &ctd) != NULL && ctd->ctd_dealloc != NULL)
             ctd->ctd_dealloc(sw);
     }
 

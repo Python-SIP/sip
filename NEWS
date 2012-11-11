@@ -1,4 +1,5 @@
 v4.14.2 ???
+  - Added sip.setdestroyonexit().
   - sip.voidptr() will now accept any object that implements the buffer
     protocol.
 
