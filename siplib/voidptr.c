@@ -454,7 +454,13 @@ static int sipVoidPtr_ass_subscript(PyObject *self, PyObject *key,
         PyObject *value)
 {
     sipVoidPtrObject *v;
-    Py_ssize_t start;
+    Py_ssize_t start, size;
+#if PY_VERSION_HEX >= 0x02060300
+    Py_buffer value_view;
+#else
+    Py_ssize_t value_size;
+    void *value_ptr;
+#endif
 
     if (check_rw(self) < 0 || check_size(self) < 0)
         return -1;
@@ -463,8 +469,6 @@ static int sipVoidPtr_ass_subscript(PyObject *self, PyObject *key,
 
     if (PyIndex_Check(key))
     {
-        long lv;
-
         start = PyNumber_AsSsize_t(key, PyExc_IndexError);
 
         if (start == -1 && PyErr_Occurred())
@@ -476,23 +480,11 @@ static int sipVoidPtr_ass_subscript(PyObject *self, PyObject *key,
         if (check_index(self, start) < 0)
             return -1;
 
-        if ((lv = SIPLong_AsLong(value)) == -1 && PyErr_Occurred())
-            return -1;
-
-        *((unsigned char *)v->voidptr + start) = lv;
-
-        return 0;
+        size = 1;
     }
-
-    if (PySlice_Check(key))
+    else if (PySlice_Check(key))
     {
-        Py_ssize_t size, stop, step;
-#if PY_VERSION_HEX >= 0x02060300
-        Py_buffer value_view;
-#else
-        Py_ssize_t value_size;
-        void *value_ptr;
-#endif
+        Py_ssize_t stop, step;
 
         if (sipConvertFromSliceObject(key, v->size, &start, &stop, &step, &size) < 0)
             return -1;
@@ -502,46 +494,48 @@ static int sipVoidPtr_ass_subscript(PyObject *self, PyObject *key,
             PyErr_SetNone(PyExc_NotImplementedError);
             return -1;
         }
+    }
+    else
+    {
+        bad_key(key);
 
-#if PY_VERSION_HEX >= 0x02060300
-        if (PyObject_GetBuffer(value, &value_view, PyBUF_CONTIG_RO) < 0)
-            return -1;
-
-        /* We could allow any item size... */
-        if (value_view.itemsize != 1)
-        {
-            PyErr_Format(PyExc_TypeError, "'%s' must have an item size of 1",
-                    Py_TYPE(value_view.obj)->tp_name);
-
-            PyBuffer_Release(&value_view);
-            return -1;
-        }
-
-        if (check_slice_size(size, value_view.len) < 0)
-        {
-            PyBuffer_Release(&value_view);
-            return -1;
-        }
-
-        memmove((char *)v->voidptr + start, value_view.buf, size);
-
-        PyBuffer_Release(&value_view);
-#else
-        if ((value_size = get_value_data(value, &value_ptr)) < 0)
-            return -1;
-
-        if (check_slice_size(size, value_size) < 0)
-            return -1;
-
-        memmove((char *)v->voidptr + start, value_ptr, size);
-#endif
-
-        return 0;
+        return -1;
     }
 
-    bad_key(key);
+#if PY_VERSION_HEX >= 0x02060300
+    if (PyObject_GetBuffer(value, &value_view, PyBUF_CONTIG_RO) < 0)
+        return -1;
 
-    return -1;
+    /* We could allow any item size... */
+    if (value_view.itemsize != 1)
+    {
+        PyErr_Format(PyExc_TypeError, "'%s' must have an item size of 1",
+                Py_TYPE(value_view.obj)->tp_name);
+
+        PyBuffer_Release(&value_view);
+        return -1;
+    }
+
+    if (check_slice_size(size, value_view.len) < 0)
+    {
+        PyBuffer_Release(&value_view);
+        return -1;
+    }
+
+    memmove((char *)v->voidptr + start, value_view.buf, size);
+
+    PyBuffer_Release(&value_view);
+#else
+    if ((value_size = get_value_data(value, &value_ptr)) < 0)
+        return -1;
+
+    if (check_slice_size(size, value_size) < 0)
+        return -1;
+
+    memmove((char *)v->voidptr + start, value_ptr, size);
+#endif
+
+    return 0;
 }
 
 
