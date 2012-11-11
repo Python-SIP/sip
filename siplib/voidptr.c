@@ -300,8 +300,8 @@ static PyObject *sipVoidPtr_item(PyObject *self, SIP_SSIZE_T idx)
     if (check_size(self) < 0 || check_index(self, idx) < 0)
         return NULL;
 
-    return SIPLong_FromLong(
-            *((unsigned char *)((sipVoidPtrObject *)self)->voidptr) + idx);
+    return SIPBytes_FromStringAndSize(
+            (char *)((sipVoidPtrObject *)self)->voidptr + idx, 1);
 }
 
 
