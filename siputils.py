@@ -716,6 +716,9 @@ class Makefile:
             if qtincdir:
                 if qt_version >= 0x040000:
                     for mod in self._qt:
+                        if mod == "QtWebKit" and qt_version >= 0x050000:
+                            mod = "QtWebKitWidgets"
+
                         if mod == "QAxContainer":
                             incdir.append(os.path.join(qtincdir[0], "ActiveQt"))
                         elif self._is_framework(mod):
@@ -803,6 +806,8 @@ class Makefile:
                 lib = mname
             else:
                 lib = "QtAssistantClient"
+        elif mname == "QtWebKit" and self.config.qt_version >= 0x050000:
+            lib = "QtWebKitWidgets"
         else:
             lib = mname
 
