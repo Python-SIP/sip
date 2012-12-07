@@ -716,31 +716,42 @@ class Makefile:
             if qtincdir:
                 if qt_version >= 0x040000:
                     for mod in self._qt:
-                        if mod == "QtWebKit" and qt_version >= 0x050000:
-                            mod = "QtWebKitWidgets"
-
                         if mod == "QAxContainer":
                             incdir.append(os.path.join(qtincdir[0], "ActiveQt"))
                         elif self._is_framework(mod):
+                            idir = libdir_qt[0]
+
                             if mod == "QtAssistant" and qt_version < 0x040202:
                                 mod = "QtAssistantClient"
 
-                            incdir.append(os.path.join(libdir_qt[0],
+                            incdir.append(os.path.join(idir,
                                     mod + ".framework", "Headers"))
 
-                            if qt_version >= 0x050000 and mod == "QtGui":
-                                incdir.append(os.path.join(libdir_qt[0],
-                                        "QtWidgets.framework", "Headers"))
-                                incdir.append(os.path.join(libdir_qt[0],
-                                        "QtPrintSupport.framework", "Headers"))
+                            if qt_version >= 0x050000:
+                                if mod == "QtGui":
+                                    incdir.append(os.path.join(idir,
+                                            "QtWidgets.framework", "Headers"))
+                                    incdir.append(os.path.join(idir,
+                                            "QtPrintSupport.framework",
+                                            "Headers"))
+                                elif mod == "QtWebKit":
+                                    incdir.append(os.path.join(idir,
+                                            "QtWebKitWidgets.framework",
+                                            "Headers"))
                         else:
-                            incdir.append(os.path.join(qtincdir[0], mod))
+                            idir = qtincdir[0]
 
-                            if qt_version >= 0x050000 and mod == "QtGui":
-                                incdir.append(os.path.join(qtincdir[0],
-                                        "QtWidgets"))
-                                incdir.append(os.path.join(qtincdir[0],
-                                        "QtPrintSupport"))
+                            incdir.append(os.path.join(idir, mod))
+
+                            if qt_version >= 0x050000:
+                                if mod == "QtGui":
+                                    incdir.append(os.path.join(idir,
+                                            "QtWidgets"))
+                                    incdir.append(os.path.join(idir,
+                                            "QtPrintSupport"))
+                                elif mod == "QtWebKit":
+                                    incdir.append(os.path.join(idir,
+                                            "QtWebKitWidgets"))
 
                 # This must go after the module include directories.
                 incdir.extend(qtincdir)
