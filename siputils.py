@@ -598,8 +598,13 @@ class Makefile:
                     elif mod == "phonon":
                         defines.append("QT_PHONON_LIB")
 
-                    if qt_version >= 0x050000 and mod in ("QtSql", "QtTest"):
-                        defines.append("QT_WIDGETS_LIB")
+                    if qt_version >= 0x050000:
+                        if mod == "QtTest":
+                            defines.append("QT_GUI_LIB")
+
+                        if mod in ("QtSql", "QtTest"):
+                            defines.append("QT_WIDGETS_LIB")
+
             elif self._threaded:
                 defines.append("QT_THREAD_SUPPORT")
 
