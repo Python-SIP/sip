@@ -817,12 +817,14 @@ class Makefile:
 
         mname is the name of the module.
         """
+        qt_version = self.config.qt_version
+
         if mname == "QtAssistant":
-            if self.config.qt_version >= 0x040202 and sys.platform == "darwin":
+            if qt_version >= 0x040202 and sys.platform == "darwin":
                 lib = mname
             else:
                 lib = "QtAssistantClient"
-        elif mname == "QtWebKit" and self.config.qt_version >= 0x050000:
+        elif mname == "QtWebKit" and qt_version >= 0x050000:
             lib = "QtWebKitWidgets"
         else:
             lib = mname
@@ -835,7 +837,7 @@ class Makefile:
             elif sys.platform == "darwin":
                 if not self._is_framework(mname):
                     lib = lib + "_debug"
-            elif self.config.qt_version < 0x040200:
+            elif qt_version < 0x040200:
                 lib = lib + "_debug"
 
         if sys.platform == "win32" and "shared" in self.config.qt_winconfig.split():
@@ -844,8 +846,11 @@ class Makefile:
                           "QtScript", "QtScriptTools", "QtSql", "QtSvg",
                           "QtTest", "QtWebKit", "QtXml", "QtXmlPatterns",
                           "phonon") or
-                (self.config.qt_version >= 0x040200 and mname == "QtAssistant")):
+                (qt_version >= 0x040200 and mname == "QtAssistant")):
                 lib = lib + "4"
+
+        if sys.platform.startswith("linux") and qt_version >= 0x050000:
+            lib = "Qt5" + lib[2:]
 
         return lib
 
