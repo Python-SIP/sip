@@ -935,9 +935,11 @@ class Makefile:
 
         libs = self._extract_value(prl_name, "QMAKE_PRL_LIBS").split()
 
-        if self.config.qt_version >= 0x050000 and clib == "QtGui":
+        if self.config.qt_version >= 0x050000 and clib in ("QtGui", "Qt5Gui"):
             for xtra in ("QtWidgets", "QtPrintSupport"):
-                libs.extend(self.platform_lib(xtra, framework).split())
+                libs.extend(
+                        self.platform_lib(
+                                self._qt4_module_to_lib(xtra), framework).split())
 
         return libs
 
