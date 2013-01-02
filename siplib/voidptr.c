@@ -749,27 +749,16 @@ PyTypeObject sipVoidPtr_Type = {
  */
 void *sip_api_convert_to_void_ptr(PyObject *obj)
 {
+    struct vp_values vp;
+
     if (obj == NULL)
     {
         PyErr_SetString(PyExc_TypeError, "sip.voidptr is NULL");
         return NULL;
     }
 
-    if (obj == Py_None)
-        return NULL;
-
-    if (PyObject_TypeCheck(obj, &sipVoidPtr_Type))
-        return ((sipVoidPtrObject *)obj)->voidptr;
-
-#if defined(SIP_USE_PYCAPSULE)
-    if (PyCapsule_CheckExact(obj))
-        return PyCapsule_GetPointer(obj, NULL);
-#endif
-
-#if defined(SIP_SUPPORT_PYCOBJECT)
-    if (PyCObject_Check(obj))
-        return PyCObject_AsVoidPtr(obj);
-#endif
+    if (vp_convertor(obj, &vp))
+        return vp.voidptr;
 
     return PyLong_AsVoidPtr(obj);
 }
