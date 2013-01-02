@@ -1513,8 +1513,12 @@ class ModuleMakefile(Makefile):
         self.LFLAGS.extend(self.optional_list(lflags_console))
 
         if sys.platform == "darwin":
-            # 'real_prefix' exists if virtualenv is being used.
-            dl = getattr(sys, 'real_prefix', sys.exec_prefix).split(os.sep)
+            from distutils.sysconfig import get_python_inc
+
+            # The Python include directory seems to be the only one that uses
+            # the real path even when using a virtual environment (eg. pyvenv).
+            # Note that I can't remember why we need a framework build.
+            dl = get_python_inc().split(os.sep)
 
             if "Python.framework" not in dl:
                 error("SIP requires Python to be built as a framework")
