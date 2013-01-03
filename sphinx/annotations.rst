@@ -201,6 +201,18 @@ Argument Annotations
     the reference to the previous argument is discarded.  Note that ownership
     of the argument is not changed.
 
+    If the function is a method then the reference is kept by the instance,
+    i.e. ``self``.  Therefore the extra reference is released when the instance
+    is garbage collected.
+
+    If the function is a class method or an ordinary function and it is
+    annotated using the :fanno:`Factory` annotation, then the reference is
+    kept by the object created by the function.  Therefore the extra reference
+    is released when that object is garbage collected.
+
+    Otherwise the reference is not kept by any specific object and will never
+    be released.
+
     If a value is specified then it defines the argument's key.  Arguments of
     different constructors or methods that have the same key are assumed to
     refer to the same value.

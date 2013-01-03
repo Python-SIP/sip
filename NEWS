@@ -1,3 +1,10 @@
+v4.14.3 ??? ??? 2013
+  - The /KeepReference/ argument annotation, when applied to factories, will
+    now keep the reference with the object created by the factory.
+  - Any object that supports the buffer protocol can now be passed when a
+    sip.voidptr is expected.
+  - Bug fixes.
+
 v4.14.2 8th December 2012
   - Added sip.setdestroyonexit().
   - sip.voidptr() will now accept any object that implements the buffer

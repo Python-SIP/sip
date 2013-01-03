@@ -11883,7 +11883,7 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
         FILE *fp)
 {
     int needsNew, error_flag, old_error_flag, newline, is_result, result_size,
-            a, deltemps, post_process;
+            a, deltemps, post_process, static_factory;
     const char *error_value;
     argDef *res = &od->pysig.result, orig_res;
     ifaceFileDef *scope;
@@ -11904,6 +11904,8 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
         scope = NULL;
         pyname = NULL;
     }
+
+    static_factory = ((scope == NULL || isStatic(od)) && isFactory(od));
 
     prcode(fp,
 "        {\n"
@@ -11977,6 +11979,9 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
         if (isResultSize(ad))
             result_size = a;
 
+        if (static_factory && keepReference(ad))
+            post_process = TRUE;
+
         /*
          * If we have an In,Out argument that has conversion code then we delay
          * the destruction of any temporary variables until after we have
@@ -12005,7 +12010,7 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
     if (post_process)
     {
         prcode(fp,
-"            PyObject *sipResult;\n"
+"            PyObject *sipResObj;\n"
                 );
 
         newline = TRUE;
@@ -12329,8 +12334,8 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
         if (!isInArg(ad))
             continue;
 
-        /* Handle any /KeepReference/ arguments. */
-        if (keepReference(ad))
+        /* Handle any /KeepReference/ arguments except for static factories. */
+        if (!static_factory && keepReference(ad))
         {
             prcode(fp,
 "\n"
@@ -12423,7 +12428,7 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
     else
     {
         generateHandleResult(mod, od, needsNew, result_size,
-                (post_process ? "sipResult =" : "return"), fp);
+                (post_process ? "sipResObj =" : "return"), fp);
 
         /* Delete the temporaries now if we haven't already done so. */
         if (!deltemps)
@@ -12436,13 +12441,36 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
         if (keepReference(res))
             prcode(fp,
 "\n"
-"            sipKeepReference(sipSelf, %d, sipResult);\n"
+"            sipKeepReference(sipSelf, %d, sipResObj);\n"
                 , res->key);
+
+        /*
+         * Keep a reference to any argument with the result if the function is
+         * a static factory.
+         */
+        if (static_factory)
+        {
+            for (a = 0; a < od->pysig.nrArgs; ++a)
+            {
+                argDef *ad = &od->pysig.args[a];
+
+                if (!isInArg(ad))
+                    continue;
+
+                if (keepReference(ad))
+                {
+                    prcode(fp,
+"\n"
+"            sipKeepReference(sipResObj, %d, %a%s);\n"
+                        , ad->key, mod, ad, a, (((ad->atype == ascii_string_type || ad->atype == latin1_string_type || ad->atype == utf8_string_type) && ad->nrderefs == 1) || !isGetWrapper(ad) ? "Keep" : "Wrapper"));
+                }
+            }
+        }
 
         if (post_process)
             prcode(fp,
 "\n"
-"            return sipResult;\n"
+"            return sipResObj;\n"
                 );
     }
 
