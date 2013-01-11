@@ -769,7 +769,7 @@ copyright and licensing terms.
 For example::
 
     %Copying
-    Copyright (c) 2012 Riverbank Computing Limited
+    Copyright (c) 2013 Riverbank Computing Limited
     %End
 
 
