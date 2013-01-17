@@ -9935,12 +9935,18 @@ static int sipWrapper_clear(sipWrapper *self)
     while ((sw = (sipSimpleWrapper *)self->first_child) != NULL)
     {
         /*
-         * Although this object is being garbage collected it doesn't follow
-         * that it's children should be.  So we make sure that the child stays
-         * alive and remember we have done so.
+         * If the child has been customised (ie. it has an instance dict) then
+         * make sure it stays alive and remember we have done so.  Note that
+         * this can cause problems if we are unable to detect when the child
+         * C++ object is destroyed - we end up with a Python object that cannot
+         * be garbage collected and unknowingly points to a destroyed C++
+         * object.
          */
-        Py_INCREF(sw);
-        sipSetCppHasRef(sw);
+        if (sw->dict != NULL)
+        {
+            Py_INCREF(sw);
+            sipSetCppHasRef(sw);
+        }
 
         removeFromParent(self->first_child);
     }
