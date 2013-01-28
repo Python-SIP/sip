@@ -1,4 +1,4 @@
-v4.14.3 ??? ??? 2013
+v4.14.3 28th January 2013
   - The /KeepReference/ argument annotation, when applied to factories, will
     now keep the reference with the object created by the factory.
   - Any object that supports the buffer protocol can now be passed when a
