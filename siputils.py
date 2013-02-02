@@ -644,7 +644,8 @@ class Makefile:
                     "QtWebKit":         ("QtNetwork", "QtWebKitWidgets", "QtWidgets", "QtGui", "QtCore"),
                     "QtXml":            ("QtCore", ),
                     "QtXmlPatterns":    ("QtNetwork", "QtCore"),
-                    "QtDesigner":       ("QtGui", "QtCore")
+                    "QtDesigner":       ("QtGui", "QtCore"),
+                    "QAxContainer":     ("QtGui", "QtCore")
                 }
 
                 qt4_depmap = {
