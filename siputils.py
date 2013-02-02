@@ -871,10 +871,13 @@ class Makefile:
                           "QtHelp", "QtMultimedia", "QtNetwork", "QtOpenGL",
                           "QtScript", "QtScriptTools", "QtSql", "QtSvg",
                           "QtTest", "QtWebKit", "QtXml", "QtXmlPatterns",
-                          "phonon", "QtPrintSupport", "QtWebKitWidgets",
-                          "QtWidgets") or
+                          "phonon", "QAxContainer", "QtPrintSupport",
+                          "QtWebKitWidgets", "QtWidgets") or
                 (qt_version >= 0x040200 and mname == "QtAssistant")):
-                if qt_version >= 0x050000:
+                if mname == "QAxContainer":
+                    if qt_version >= 0x050000:
+                        lib = "Qt5" + lib[1:]
+                elif qt_version >= 0x050000:
                     qt5_rename = True
                 else:
                     lib = lib + "4"
