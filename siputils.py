@@ -645,7 +645,7 @@ class Makefile:
                     "QtXml":            ("QtCore", ),
                     "QtXmlPatterns":    ("QtNetwork", "QtCore"),
                     "QtDesigner":       ("QtGui", "QtCore"),
-                    "QAxContainer":     ("QtGui", "QtCore")
+                    "QAxContainer":     ("Qt5AxBase", "QtWidgets", "QtGui", "QtCore")
                 }
 
                 qt4_depmap = {
