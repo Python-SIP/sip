@@ -848,8 +848,6 @@ class Makefile:
                 lib = mname
             else:
                 lib = "QtAssistantClient"
-        elif mname == "QtWebKit" and qt_version >= 0x050000:
-            lib = "QtWebKitWidgets"
         else:
             lib = mname
 
@@ -1191,7 +1189,14 @@ class Makefile:
         mfile.write("LIBS = %s\n" % ' '.join(libs))
 
         if self._qt:
-            mfile.write("MOC = %s\n" % _quote(self.required_string("MOC")))
+            moc = _quote(self.required_string("MOC"))
+
+            # On Qt5 the Windows moc path includes forward slashes so convert
+            # them.
+            if sys.platform == "win32":
+                moc = moc.replace("/", "\\")
+
+            mfile.write("MOC = %s\n" % moc)
 
         if self._src_dir != self.dir:
             mfile.write("VPATH = %s\n\n" % self._src_dir)
