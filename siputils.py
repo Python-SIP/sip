@@ -1189,14 +1189,7 @@ class Makefile:
         mfile.write("LIBS = %s\n" % ' '.join(libs))
 
         if self._qt:
-            moc = _quote(self.required_string("MOC"))
-
-            # On Qt5 the Windows moc path includes forward slashes so convert
-            # them.
-            if sys.platform == "win32":
-                moc = moc.replace("/", "\\")
-
-            mfile.write("MOC = %s\n" % moc)
+            mfile.write("MOC = %s\n" % _quote(self.required_string("MOC")))
 
         if self._src_dir != self.dir:
             mfile.write("VPATH = %s\n\n" % self._src_dir)
@@ -2029,6 +2022,10 @@ def _quote(s):
 
     s is the string.
     """
+    # On Qt5 paths often includes forward slashes so convert them.
+    if sys.platform == "win32":
+        s = s.replace("/", "\\")
+
     if s.find(" ") >= 0:
         s = '"' + s + '"'
 
