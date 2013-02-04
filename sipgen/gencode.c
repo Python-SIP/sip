@@ -9305,7 +9305,7 @@ static void generateVariable(moduleDef *mod, ifaceFileDef *scope, argDef *ad,
         switch (atype)
         {
         case class_type:
-            if (ad->u.cd->convtocode != NULL && !isConstrained(ad))
+            if (!isArray(ad) && ad->u.cd->convtocode != NULL && !isConstrained(ad))
                 prcode(fp,
 "        int %aState = 0;\n"
                     , mod, ad, argnr);

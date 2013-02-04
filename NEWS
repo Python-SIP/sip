@@ -1,3 +1,6 @@
+v4.14.4 ??? February 2013
+  - Bug fixes.
+
 v4.14.3 28th January 2013
   - The /KeepReference/ argument annotation, when applied to factories, will
     now keep the reference with the object created by the factory.
