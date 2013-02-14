@@ -168,17 +168,11 @@ manage the transition the following approach will be adopted.
 - When an incompatible change is implemented, the old syntax will be deprecated
   (with a warning message) but will be supported for the lifetime of v4.
 
-- Deprecation warning messages are currently suppressed by default.  The
-  :option:`-w <sip -w>` command line option can be used to display them.
-
-- At some point in the future the deprecation warning messages will be
-  displayed by default and it will not be possible to suppress them.
-
 
 Qt Support
 ----------
 
-SIP has specific support for the creation of bindings based on Nokia's Qt
+SIP has specific support for the creation of bindings based on Digia's Qt
 toolkit.
 
 The SIP code generator understands the signal/slot type safe callback mechanism
