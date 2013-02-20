@@ -658,7 +658,6 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipGetComplexCppPtr         sipAPI_%s->api_get_complex_cpp_ptr\n"
 "#define sipIsPyMethod               sipAPI_%s->api_is_py_method\n"
 "#define sipCallHook                 sipAPI_%s->api_call_hook\n"
-"#define sipStartThread              sipAPI_%s->api_start_thread\n"
 "#define sipEndThread                sipAPI_%s->api_end_thread\n"
 "#define sipConnectRx                sipAPI_%s->api_connect_rx\n"
 "#define sipDisconnectRx             sipAPI_%s->api_disconnect_rx\n"
@@ -733,7 +732,6 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipConvertFromMappedType    sipConvertFromType\n"
 "#define sipConvertFromNamedEnum(v, pt)  sipConvertFromEnum((v), ((sipEnumTypeObject *)(pt))->type)\n"
 "#define sipConvertFromNewInstance(p, wt, t) sipConvertFromNewType((p), (wt)->type, (t))\n"
-        ,mname
         ,mname
         ,mname
         ,mname
@@ -6678,10 +6676,21 @@ static void generateVirtualCatcher(sipSpec *pt, moduleDef *mod, classDef *cd,
             );
 
         if (res == NULL)
+        {
+            /*
+             * Note that we should also generate this if the function returns a
+             * value, but we are lazy and this is all that is needed by PyQt.
+             */
+            if (isNewThread(od))
+                prcode(fp,
+"        sipEndThread();\n"
+                    );
+
             prcode(fp,
 "        return;\n"
 "    }\n"
                 );
+        }
     }
 
     /*
@@ -6793,12 +6802,6 @@ static void generateVirtHandlerCall(sipSpec *pt, moduleDef *mod, classDef *cd,
 
     veh = getVirtErrorHandler(pt, od, cd, mod);
 
-    if (isNewThread(od))
-        prcode(fp,
-"%ssipStartThread();\n"
-"\n"
-            , indent);
-
     saved = *vhd->cppsig;
     fakeProtectedArgs(vhd->cppsig);
 
@@ -6901,13 +6904,8 @@ static void generateVirtHandlerCall(sipSpec *pt, moduleDef *mod, classDef *cd,
     if (isNewThread(od))
         prcode(fp,
 "\n"
-"%sSIP_BLOCK_THREADS\n"
 "%ssipEndThread();\n"
-"%sSIP_UNBLOCK_THREADS\n"
-            , indent
-            , indent
             , indent);
-
 }
 
 

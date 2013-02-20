@@ -9288,7 +9288,7 @@ static PyObject *sipSimpleWrapper_new(sipWrapperType *wt, PyObject *args,
     /*
      * See if the object is being created explicitly rather than being wrapped.
      */
-    if (sipGetPending(NULL, NULL) == NULL)
+    if (!sipIsPending())
     {
         /*
          * See if it cannot be instantiated or sub-classed from Python, eg.
@@ -9357,7 +9357,10 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
     unused = NULL;
 
     /* Check there is no existing C++ instance waiting to be wrapped. */
-    if ((sipNew = sipGetPending(&owner, &sipFlags)) == NULL)
+    if (sipGetPending(&sipNew, &owner, &sipFlags) < 0)
+        return -1;
+
+    if (sipNew == NULL)
     {
         PyObject *parseErr = NULL;
 
