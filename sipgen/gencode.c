@@ -1360,9 +1360,9 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
             prcode(fp,
 "\n"
 "\n"
-"void sipVEH_%s_%s(sipSimpleWrapper *%s)\n"
+"void sipVEH_%s_%s(sipSimpleWrapper *%s, sip_gilstate_t%s)\n"
 "{\n"
-                , mname, veh->name, (usedInCode(veh->code, "sipPySelf") ? "sipPySelf" : ""));
+                , mname, veh->name, (usedInCode(veh->code, "sipPySelf") ? "sipPySelf" : ""), (usedInCode(veh->code, "sipGILState") ? " sipGILState" : ""));
 
             generateCppCodeBlock(veh->code, fp);
 
@@ -6850,7 +6850,7 @@ static void generateVirtHandlerCall(sipSpec *pt, moduleDef *mod, classDef *cd,
 
     if (veh != NULL && veh->mod == mod)
         prcode(fp,
-"%sextern void sipVEH_%s_%s(sipSimpleWrapper *);\n"
+"%sextern void sipVEH_%s_%s(sipSimpleWrapper *, sip_gilstate_t);\n"
             , indent, mod->name, veh->name);
 
     prcode(fp,
@@ -7671,16 +7671,19 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
         prcode(fp,
 "\n"
 "    Py_DECREF(sipMethod);\n"
-"\n"
-"    SIP_RELEASE_GIL(sipGILState)\n"
             );
 
         if (error_flag || old_error_flag)
             prcode(fp,
 "\n"
 "    if (%s)\n"
-"        sipCallErrorHandler(sipErrorHandler, sipPySelf);\n"
+"        sipCallErrorHandler(sipErrorHandler, sipPySelf, sipGILState);\n"
                 , (error_flag ? "sipError != sipErrorNone" : "sipIsErr"));
+
+        prcode(fp,
+"\n"
+"    SIP_RELEASE_GIL(sipGILState)\n"
+            );
 
         if (res != NULL)
             prcode(fp,

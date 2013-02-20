@@ -185,7 +185,9 @@ static int sip_api_parse_result_ex(sip_gilstate_t gil_state,
 static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
         const char *fmt, ...);
 static void sip_api_call_error_handler(sipVirtErrorHandlerFunc error_handler,
-        sipSimpleWrapper *py_self);
+        sipSimpleWrapper *py_self, sip_gilstate_t gil_state);
+static void sip_api_call_error_handler_old(
+        sipVirtErrorHandlerFuncOld error_handler, sipSimpleWrapper *py_self);
 static void sip_api_trace(unsigned mask,const char *fmt,...);
 static void sip_api_transfer_back(PyObject *self);
 static void sip_api_transfer_to(PyObject *self, PyObject *owner);
@@ -370,6 +372,7 @@ static const sipAPIDef sip_api = {
     sip_api_parse_kwd_args,
     sip_api_add_exception,
     sip_api_parse_result_ex,
+    sip_api_call_error_handler_old,
     sip_api_call_error_handler
 };
 
@@ -2247,20 +2250,38 @@ static int sip_api_parse_result_ex(sip_gilstate_t gil_state,
 
     Py_DECREF(method);
 
-    SIP_RELEASE_GIL(gil_state);
-
     if (rc < 0)
-        sip_api_call_error_handler(error_handler, py_self);
+        sip_api_call_error_handler(error_handler, py_self, gil_state);
+
+    SIP_RELEASE_GIL(gil_state);
 
     return rc;
 }
 
 
 /*
- * Call a virtual error handler.
+ * Call a virtual error handler.  This is called with the GIL and from the
+ * thread that raised the error.
  */
 static void sip_api_call_error_handler(sipVirtErrorHandlerFunc error_handler,
-        sipSimpleWrapper *py_self)
+        sipSimpleWrapper *py_self, sip_gilstate_t sipGILState)
+{
+    if (error_handler != NULL)
+        error_handler(py_self, sipGILState);
+    else
+        PyErr_Print();
+}
+
+
+/*
+ * Call a virtual error handler.  This is called without the GIL.  This is
+ * deprecated.
+ */
+#if SIP_API_MAJOR_NR != 9
+#error Remove deprecated error handler support.
+#endif
+static void sip_api_call_error_handler_old(
+        sipVirtErrorHandlerFuncOld error_handler, sipSimpleWrapper *py_self)
 {
     if (error_handler != NULL)
     {
@@ -2269,6 +2290,10 @@ static void sip_api_call_error_handler(sipVirtErrorHandlerFunc error_handler,
     else
     {
         SIP_BLOCK_THREADS
+        /*
+         * The current thread may not be the one that raised the exception and
+         * so may not print anything.  This is why this function is deprecated.
+         */
         PyErr_Print();
         SIP_UNBLOCK_THREADS
     }

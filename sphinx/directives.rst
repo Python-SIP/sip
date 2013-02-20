@@ -2473,19 +2473,32 @@ that is called when a Python re-implementation of a virtual C++ function raises
 a Python exception.  If a virtual C++ function does not have a handler the
 ``PyErr_Print()`` function is called.
 
-The handler is called after all tidying up has been completed and with the
-Python Global Interpreter Lock (GIL) released.  Therefore the handler may
-change the execution path by, for example, throwing a C++ exception.
+The handler is called after all tidying up has been completed, with the Python
+Global Interpreter Lock (GIL) held and from the thread that raised the
+exception.  If the handler wants to change the execution path by, for example,
+throwing a C++ exception, it must first release the GIL by calling
+:c:func:`SIP_RELEASE_GIL`.  It must not call :c:func:`SIP_RELEASE_GIL` if the
+execution path is not changed.
 
-The following variable is made available to the handwritten code:
+The following variables are made available to the handwritten code:
 
 sipSimpleWrapper \*sipPySelf
     This is the class instance containing the Python reimplementation.
 
+sip_gilstate_t sipGILState
+    This is an opaque value that must be passed to :c:func:`SIP_RELEASE_GIL` in
+    order to release the GIL prior to changing the execution path.
+
 For example::
 
     %VirtualErrorHandler my_handler
-        throw my_exception(sipPySelf);
+        PyObject *exception, *value, *traceback;
+
+        PyErr_Fetch(&exception, &value, &traceback);
+
+        SIP_RELEASE_GIL(sipGILState);
+
+        throw my_exception(sipPySelf, exception, value, traceback);
     %End
 
-.. seealso:: :fanno:`NoVirtualErrorHandler`, :fanno:`VirtualErrorHandler``, :canno:`VirtualErrorHandler`
+.. seealso:: :fanno:`NoVirtualErrorHandler`, :fanno:`VirtualErrorHandler`, :canno:`VirtualErrorHandler`

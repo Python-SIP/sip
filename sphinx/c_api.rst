@@ -52,6 +52,20 @@ specification files.
     functions are available (see :directive:`%MethodCode`).
 
 
+.. c:function:: SIP_RELEASE_GIL(sip_gilstate_t sipGILState)
+
+    .. versionadded:: 4.14.4
+
+    This is called from the handwritten code specified with the
+    :directive:`VirtualErrorHandler` in order to release the Python Global
+    Interpreter Lock (GIL) prior to changing the execution path (e.g. by
+    throwing a C++ exception).  It should not be called under any other
+    circumstances.
+
+    :param sipGILState:
+        an opaque value provided to the handwritten code by SIP.
+
+
 .. c:macro:: SIP_SSIZE_T
 
     This is a C preprocessor macro that is defined as ``Py_ssize_t`` for Python

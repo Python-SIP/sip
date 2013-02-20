@@ -5,6 +5,20 @@ This section describes incompatibilities introduced by particular versions of
 SIP.  Normally these are the removal of previously deprecated features.
 
 
+SIP v4.14.4
+-----------
+
+Prior to this version, the handwritten code defined by the
+:directive:`%VirtualErrorHandler` directive was called without the Python
+Global Interpreter Lock (GIL) being held and from an arbitrary thread.
+
+Starting with this version the code is called with the GIL being held and from
+the thread that raised the error.  In addition the code is provided a value
+called ``sipGILState`` that may be passed to :c:func:`SIP_RELEASE_GIL` in order
+to release the GIL.  This must be done if the code changes the execution path
+(e.g. by throwing a C++ exception).
+
+
 SIP v4.12.3
 -----------
 
