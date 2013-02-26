@@ -40,7 +40,7 @@ sip_module_base = None
 
 # Constants.
 DEFAULT_MACOSX_ARCH = 'i386 ppc'
-MACOSX_SDK_DIR = '/Developer/SDKs'
+MACOSX_SDK_DIRS = ('/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs', '/Developer/SDKs')
 
 # Command line options.
 default_platform = None
@@ -340,7 +340,7 @@ def create_makefiles(macros):
     makefile.generate()
 
 
-def create_optparser():
+def create_optparser(sdk_dir):
     """Create the parser for the command line.
     """
     def store_abspath(option, opt_str, value, parser):
@@ -364,7 +364,7 @@ def create_optparser():
 
     if sys.platform == 'darwin':
         # Get the latest SDK to use as the default.
-        sdks = glob.glob(MACOSX_SDK_DIR + '/MacOSX*.sdk')
+        sdks = glob.glob(sdk_dir + '/MacOSX*.sdk')
         if len(sdks) > 0:
             sdks.sort()
             _, default_sdk = os.path.split(sdks[-1])
@@ -440,11 +440,21 @@ def main(argv):
     for s in os.listdir(os.path.join(src_dir, "specs")):
         platform_specs.append(s)
 
+    # Determine the directory containing the default OS/X SDK.
+    if sys.platform == 'darwin':
+        for sdk_dir in MACOSX_SDK_DIRS:
+            if os.path.isdir(sdk_dir):
+                break
+        else:
+            sdk_dir = MACOSX_SDK_DIRS[0]
+    else:
+        sdk_dir = ''
+
     # Parse the command line.
     global opts
 
     set_defaults()
-    p = create_optparser()
+    p = create_optparser(sdk_dir)
     opts, args = p.parse_args()
 
     # Make sure MacOS specific options get initialised.
@@ -476,7 +486,7 @@ def main(argv):
         if '/' in opts.sdk:
             opts.universal = os.path.abspath(opts.sdk)
         else:
-            opts.universal = MACOSX_SDK_DIR + '/' + opts.sdk
+            opts.universal = sdk_dir + '/' + opts.sdk
 
         if not os.path.isdir(opts.universal):
             siputils.error("Unable to find the SDK directory %s. Use the --sdk flag to specify the name of the SDK or its full path." % opts.universal)

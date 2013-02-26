@@ -93,7 +93,9 @@ The full set of command line options is:
 
     If the :option:`--universal <configure.py -n>` option was given then this
     specifies the name of the SDK directory.  If a path is not given then it is
-    assumed to be a sub-directory of ``/Developer/SDKs``.
+    assumed to be a sub-directory of
+    ``/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs``
+    or ``/Developer/SDKs``.
 
 .. cmdoption:: -u, --debug
 
