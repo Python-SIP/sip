@@ -1,4 +1,4 @@
-v4.14.4 ??? February 2013
+v4.14.4 1st March 2013
   - The handwritten code provided to the %VirtualErrorHandler directive is now
     called with the GIL held and from the thread that raised the error.  This
     is, potentially, an incompatible change.
