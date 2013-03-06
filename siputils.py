@@ -968,8 +968,16 @@ class Makefile:
 
         libs = self._extract_value(prl_name, "QMAKE_PRL_LIBS").split()
 
-        if self.config.qt_version >= 0x050000 and clib in ("QtGui", "Qt5Gui"):
-            for xtra in ("QtWidgets", "QtPrintSupport"):
+        if self.config.qt_version >= 0x050000:
+            xtra_libs = []
+
+            if clib in ("QtGui", "Qt5Gui"):
+                xtra_libs.append("QtWidgets")
+                xtra_libs.append("QtPrintSupport")
+            elif clib in ("QtWebKit", "Qt5WebKit"):
+                xtra_libs.append("QtWebKitWidgets")
+
+            for xtra in xtra_libs:
                 libs.extend(
                         self.platform_lib(
                                 self._qt_module_to_lib(xtra), framework).split())
