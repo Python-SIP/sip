@@ -13357,16 +13357,19 @@ static void deleteTemps(moduleDef *mod, signatureDef *sd, FILE *fp)
     {
         argDef *ad = &sd->args[a];
 
-        if (isArray(ad) && !isTransferred(ad) && (ad->atype == mapped_type || ad->atype == class_type))
+        if (isArray(ad) && (ad->atype == mapped_type || ad->atype == class_type))
         {
-            if (generating_c)
-                prcode(fp,
+            if (!isTransferred(ad))
+            {
+                if (generating_c)
+                    prcode(fp,
 "            sipFree(%a);\n"
-                    , mod, ad, a);
-            else
-                prcode(fp,
+                        , mod, ad, a);
+                else
+                    prcode(fp,
 "            delete[] %a;\n"
-                    , mod, ad, a);
+                        , mod, ad, a);
+            }
 
             continue;
         }
