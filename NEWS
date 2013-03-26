@@ -1,3 +1,6 @@
+v4.14.5 26th March 2013
+  - Bug fixes (specifically for QGIS).
+
 v4.14.4 1st March 2013
   - The handwritten code provided to the %VirtualErrorHandler directive is now
     called with the GIL held and from the thread that raised the error.  This
