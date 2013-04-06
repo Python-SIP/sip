@@ -1192,7 +1192,6 @@ static void generateComponentCpp(sipSpec *pt, const char *codeDir,
         );
 
     generateModInitStart(pt->module, TRUE, fp);
-    generateModDefinition(pt->module, "NULL", fp);
 
     prcode(fp,
 "    PyObject *sip_mod, *sip_result;\n"
