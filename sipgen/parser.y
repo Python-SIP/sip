@@ -2854,6 +2854,11 @@ superclass: class_access scopedname {
                 if (ad.atype != no_type)
                     yyerror("Super-class list contains an invalid type");
 
+                /*
+                 * Note that passing NULL as the API is a bug.  Instead we
+                 * should pass the API of the sub-class being defined,
+                 * otherwise we cannot create sub-classes of versioned classes.
+                 */
                 super = findClass(currentSpec, class_iface, NULL, snd);
                 appendToClassList(&currentSupers, super);
             }

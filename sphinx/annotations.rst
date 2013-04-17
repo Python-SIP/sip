@@ -354,6 +354,9 @@ Class Annotations
     If a class or mapped type has different implementations enabled for
     different ranges of version numbers then those ranges must not overlap.
 
+    Note that sub-classing from a class that has different implementations is
+    not currently supported.
+
     See :ref:`ref-incompat-apis` for more detail.
 
 
