@@ -1736,10 +1736,8 @@ module: TK_MODULE module_args module_body {
         }
     ;
 
-module_args:    dottedname optnumber {
-            resetLexerState();
-
-            if ($2 >= 0)
+module_args:    dottedname {resetLexerState();} optnumber {
+            if ($3 >= 0)
                 deprecated("%Module version number should be specified using the 'version' argument");
 
             $$.c_module = FALSE;
@@ -1748,7 +1746,7 @@ module_args:    dottedname optnumber {
             $$.use_arg_names = FALSE;
             $$.all_raise_py_exc = FALSE;
             $$.def_error_handler = NULL;
-            $$.version = $2;
+            $$.version = $3;
         }
     |   '(' module_arg_list ')' {
             $$ = $2;
