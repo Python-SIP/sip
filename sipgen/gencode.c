@@ -5696,7 +5696,7 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
         if (canCreate(cd) || isPublicDtor(cd))
         {
             if (pluginPyQt4(pt) && isQObjectSubClass(cd) && isPublicDtor(cd))
-                need_ptr = TRUE;
+                need_ptr = need_cast_ptr = TRUE;
             else if (hasShadow(cd))
                 need_ptr = need_state = TRUE;
             else if (isPublicDtor(cd))
@@ -5719,20 +5719,20 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 "{\n"
             , cd->iff, (need_ptr ? "sipCppV" : ""), (need_state ? " sipState" : ""));
 
-        if (cd->dealloccode != NULL)
+        if (need_cast_ptr)
         {
-            if (need_cast_ptr)
-            {
-                prcode(fp,
+            prcode(fp,
 "    ");
 
-                generateClassFromVoid(cd, "sipCpp", "sipCppV", fp);
+            generateClassFromVoid(cd, "sipCpp", "sipCppV", fp);
 
-                prcode(fp, ";\n"
+            prcode(fp, ";\n"
 "\n"
-                    );
-            }
+                );
+        }
 
+        if (cd->dealloccode != NULL)
+        {
             generateCppCodeBlock(cd->dealloccode, fp);
 
             prcode(fp,
@@ -5763,13 +5763,11 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
                  * belong to.
                  */
                 prcode(fp,
-"    %U *sipCpp = reinterpret_cast<%U *>(sipCppV);\n"
-"\n"
 "    if (QThread::currentThread() == sipCpp->thread())\n"
 "        delete sipCpp;\n"
 "    else\n"
 "        sipCpp->deleteLater();\n"
-                        , cd, cd);
+                        );
             }
             else if (hasShadow(cd))
             {
