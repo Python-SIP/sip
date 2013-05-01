@@ -258,6 +258,7 @@ static void sip_api_clear_any_slot_reference(sipSlot *slot);
 static int sip_api_visit_slot(sipSlot *slot, visitproc visit, void *arg);
 static void sip_api_keep_reference(PyObject *self, int key, PyObject *obj);
 static void sip_api_add_exception(sipErrorState es, PyObject **parseErrp);
+static void sip_api_set_destroy_on_exit(int value);
 
 
 /*
@@ -373,7 +374,11 @@ static const sipAPIDef sip_api = {
     sip_api_add_exception,
     sip_api_parse_result_ex,
     sip_api_call_error_handler_old,
-    sip_api_call_error_handler
+    sip_api_call_error_handler,
+    /*
+     * The following are part of the public API.
+     */
+    sip_api_set_destroy_on_exit
 };
 
 
@@ -1229,7 +1234,7 @@ static PyObject *wrapInstance(PyObject *self, PyObject *args)
 
 
 /*
- * Set the destroy on exit flag.
+ * Set the destroy on exit flag from Python code.
  */
 static PyObject *setDestroyOnExit(PyObject *self, PyObject *args)
 {
@@ -1240,6 +1245,15 @@ static PyObject *setDestroyOnExit(PyObject *self, PyObject *args)
     }
 
     return NULL;
+}
+
+
+/*
+ * Set the destroy on exit flag from C++ code.
+ */
+static void sip_api_set_destroy_on_exit(int value)
+{
+    destroy_on_exit = value;
 }
 
 

@@ -68,6 +68,8 @@ extern "C" {
  *
  * History:
  *
+ * 9.3  Added sip_api_set_destroy_on_exit().
+ *
  * 9.2  Added sip_gilstate_t and SIP_RELEASE_GIL to the public API.
  *      Renamed sip_api_call_error_handler() to
  *      sip_api_call_error_handler_old().
@@ -191,7 +193,7 @@ extern "C" {
  * 0.0  Original version.
  */
 #define SIP_API_MAJOR_NR    9
-#define SIP_API_MINOR_NR    2
+#define SIP_API_MINOR_NR    3
 
 
 /* The name of the sip module. */
@@ -1465,6 +1467,11 @@ typedef struct _sipAPIDef {
             sipSimpleWrapper *);
     void (*api_call_error_handler)(sipVirtErrorHandlerFunc,
             sipSimpleWrapper *, sip_gilstate_t);
+
+    /*
+     * The following are part of the public API.
+     */
+    void (*api_set_destroy_on_exit)(int);
 } sipAPIDef;
 
 
