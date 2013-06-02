@@ -72,7 +72,11 @@ static void *newSignal(void *txrx, const char **sig)
 static void *createUniversalSlot(sipWrapper *txSelf, const char *sig,
         PyObject *rxObj, const char *slot, const char **member, int flags)
 {
-    void *us = sipQtSupport->qt_create_universal_slot(txSelf, sig, rxObj, slot,
+    void *us;
+
+    assert(sipQtSupport->qt_create_universal_slot);
+
+    us = sipQtSupport->qt_create_universal_slot(txSelf, sig, rxObj, slot,
             member, flags);
 
     if (us && txSelf)
@@ -90,6 +94,7 @@ PyObject *sip_api_invoke_slot(const sipSlot *slot, PyObject *sigargs)
     PyObject *sa, *oxtype, *oxvalue, *oxtb, *sfunc, *sref;
 
     assert(sipQtSupport);
+    assert(sipQtSupport->qt_emit_signal);
 
     /* Keep some compilers quiet. */
     oxtype = oxvalue = oxtb = NULL;
@@ -97,8 +102,6 @@ PyObject *sip_api_invoke_slot(const sipSlot *slot, PyObject *sigargs)
     /* Fan out Qt signals.  (Only PyQt3 will do this.) */
     if (slot->name != NULL && slot->name[0] != '\0')
     {
-        assert(sipQtSupport->qt_emit_signal);
-
         if (sipQtSupport->qt_emit_signal(slot->pyobj, slot->name, sigargs) < 0)
             return NULL;
 
@@ -304,6 +307,7 @@ PyObject *sip_api_invoke_slot(const sipSlot *slot, PyObject *sigargs)
 int sip_api_same_slot(const sipSlot *sp, PyObject *rxObj, const char *slot)
 {
     assert(sipQtSupport);
+    assert(sipQtSupport->qt_same_name);
 
     /* See if they are signals or Qt slots, ie. they have a name. */
     if (slot != NULL)
@@ -349,6 +353,9 @@ int sip_api_same_slot(const sipSlot *sp, PyObject *rxObj, const char *slot)
 void *sipGetRx(sipSimpleWrapper *txSelf, const char *sigargs, PyObject *rxObj,
            const char *slot, const char **memberp)
 {
+    assert(sipQtSupport);
+    assert(sipQtSupport->qt_find_slot);
+
     if (slot != NULL)
         if (isQtSlot(slot) || isQtSignal(slot))
         {
@@ -414,6 +421,7 @@ PyObject *sip_api_connect_rx(PyObject *txObj, const char *sig, PyObject *rxObj,
         const char *slot, int type)
 {
     assert(sipQtSupport);
+    assert(sipQtSupport->qt_connect);
 
     /* Handle Qt signals. */
     if (isQtSignal(sig))
@@ -456,6 +464,8 @@ PyObject *sip_api_disconnect_rx(PyObject *txObj,const char *sig,
                 PyObject *rxObj,const char *slot)
 {
     assert(sipQtSupport);
+    assert(sipQtSupport->qt_disconnect);
+    assert(sipQtSupport->qt_destroy_universal_slot);
 
     /* Handle Qt signals. */
     if (isQtSignal(sig))

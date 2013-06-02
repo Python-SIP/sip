@@ -9964,6 +9964,8 @@ static int sipWrapper_clear(sipWrapper *self)
             sipSlot *slot;
             void *context = NULL;
 
+            assert (sipQtSupport->qt_find_sipslot);
+
             while ((slot = sipQtSupport->qt_find_sipslot(tx, &context)) != NULL)
             {
                 sip_api_clear_any_slot_reference(slot);
@@ -10013,7 +10015,7 @@ static int sipWrapper_traverse(sipWrapper *self, visitproc visit, void *arg)
         return vret;
 
     /* This should be handwritten code in PyQt. */
-    if (sipQtSupport != NULL)
+    if (sipQtSupport != NULL && sipQtSupport->qt_find_sipslot)
     {
         void *tx = sip_api_get_address(sw);
 
