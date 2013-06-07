@@ -10056,6 +10056,11 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
                 );
     }
 
+    /* ZZZ - to be implemented. */
+    prcode(fp,
+"    0,\n"
+        );
+
     prcode(fp,
 "    0,\n"
         );

@@ -186,8 +186,6 @@ static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
         const char *fmt, ...);
 static void sip_api_call_error_handler(sipVirtErrorHandlerFunc error_handler,
         sipSimpleWrapper *py_self, sip_gilstate_t gil_state);
-static void sip_api_call_error_handler_old(
-        sipVirtErrorHandlerFuncOld error_handler, sipSimpleWrapper *py_self);
 static void sip_api_trace(unsigned mask,const char *fmt,...);
 static void sip_api_transfer_back(PyObject *self);
 static void sip_api_transfer_to(PyObject *self, PyObject *owner);
@@ -316,6 +314,7 @@ static const sipAPIDef sip_api = {
     sip_api_is_api_enabled,
     sip_api_bad_callable_arg,
     sip_api_get_address,
+    sip_api_set_destroy_on_exit,
     /*
      * The following are deprecated parts of the public API.
      */
@@ -350,7 +349,6 @@ static const sipAPIDef sip_api = {
     sip_api_get_complex_cpp_ptr,
     sip_api_is_py_method,
     sip_api_call_hook,
-    sip_api_start_thread,
     sip_api_end_thread,
     sip_api_raise_unknown_exception,
     sip_api_raise_type_exception,
@@ -373,12 +371,7 @@ static const sipAPIDef sip_api = {
     sip_api_parse_kwd_args,
     sip_api_add_exception,
     sip_api_parse_result_ex,
-    sip_api_call_error_handler_old,
     sip_api_call_error_handler,
-    /*
-     * The following are part of the public API.
-     */
-    sip_api_set_destroy_on_exit
 };
 
 
@@ -747,7 +740,7 @@ PyMODINIT_FUNC SIP_MODULE_ENTRY(void)
      * Remind ourselves to add support for capsule variables when we have
      * another reason to move to the next major version number.
      */
-#if SIP_API_MAJOR_NR > 9
+#if SIP_API_MAJOR_NR > 10
 #error "Add support for capsule variables"
 #endif
 
@@ -2284,33 +2277,6 @@ static void sip_api_call_error_handler(sipVirtErrorHandlerFunc error_handler,
         error_handler(py_self, sipGILState);
     else
         PyErr_Print();
-}
-
-
-/*
- * Call a virtual error handler.  This is called without the GIL.  This is
- * deprecated.
- */
-#if SIP_API_MAJOR_NR != 9
-#error Remove deprecated error handler support.
-#endif
-static void sip_api_call_error_handler_old(
-        sipVirtErrorHandlerFuncOld error_handler, sipSimpleWrapper *py_self)
-{
-    if (error_handler != NULL)
-    {
-        error_handler(py_self);
-    }
-    else
-    {
-        SIP_BLOCK_THREADS
-        /*
-         * The current thread may not be the one that raised the exception and
-         * so may not print anything.  This is why this function is deprecated.
-         */
-        PyErr_Print();
-        SIP_UNBLOCK_THREADS
-    }
 }
 
 

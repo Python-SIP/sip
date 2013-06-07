@@ -1,4 +1,6 @@
 v4.14.7 ??? ??? 2013
+  - The internal API version is increased to 10.0 requiring the regeneration of
+    all modules.
   - Added sipSetDestroyOnExit() to the C API.
   - Bug fixes.
 
