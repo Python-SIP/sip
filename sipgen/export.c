@@ -366,6 +366,9 @@ static void xmlClass(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
     if (cd->convtocode != NULL)
         fprintf(fp, " convert=\"1\"");
 
+    if (cd->convfromcode != NULL)
+        fprintf(fp, " convertfrom=\"1\"");
+
     if (cd->real != NULL)
         fprintf(fp, " extends=\"%s\"", cd->real->iff->module->name);
 

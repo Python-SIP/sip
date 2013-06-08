@@ -450,16 +450,23 @@ specify the name of the consolidated module.
         *code*
     %End
 
-This directive is used as part of the :directive:`%MappedType` directive to
-specify the handwritten code that converts an instance of a mapped type to a
-Python object.
+This directive is used as part of the :directive:`%MappedType` directive (when
+it is required) or of a class specification (when it is optional) to specify
+the handwritten code that converts an instance of a C/C++ type to a Python
+object.
+
+If used as part of a class specification then instances of the class will be
+automatically converted to the Python object, even though the class itself has
+been wrapped.  This behaviour can be changed on a temporary basis from an
+application by calling the :func:`sip.enableautoconversion` function, or from
+handwritten code by calling the :c:func:`sipEnableAutoconversion` function.
 
 The following variables are made available to the handwritten code:
 
 *type* \*sipCpp
-    This is a pointer to the instance of the mapped type to be converted.  It
-    will never be zero as the conversion from zero to ``Py_None`` is handled
-    before the handwritten code is called.
+    This is a pointer to the C/C++ instance to be converted.  It will never be
+    zero as the conversion from zero to ``Py_None`` is handled before the
+    handwritten code is called.
 
 PyObject \*sipTransferObj
     This specifies any desired ownership changes to the returned object.  If it

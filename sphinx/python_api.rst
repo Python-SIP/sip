@@ -43,6 +43,26 @@ can be used by applications.
         the Python object.
 
 
+.. function:: enableautoconversion(type, enable) -> bool
+
+    .. versionadded:: 4.14.7
+
+    Instances of some classes may be automatically converted to other Python
+    objects even though the class has been wrapped.  This allows that behaviour
+    to be suppressed so that an instances of the wrapped class is returned
+    instead.
+
+    :param type:
+        the Python type object.
+    :param enable:
+        is ``True`` if auto-conversion should be enabled for the type.  This is
+        the default behaviour.
+    :return:
+        ``True`` or ``False`` depending on whether or not auto-conversion was
+        previously enabled for the type.  This allows the previous state to be
+        restored later on.
+
+
 .. function:: getapi(name) -> version
 
     .. versionadded:: 4.9

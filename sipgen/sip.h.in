@@ -1122,6 +1122,7 @@ typedef struct _classDef {
     codeBlockList *docstring;           /* Class and ctor docstrings. */
     codeBlockList *instancecode;        /* Create instance code. */
     codeBlockList *convtocode;          /* Convert to C++ code. */
+    codeBlockList *convfromcode;        /* Convert from C++ code. */
     codeBlockList *travcode;            /* Traverse code. */
     codeBlockList *clearcode;           /* Clear code. */
     codeBlockList *getbufcode;          /* Get buffer code (Python v3). */

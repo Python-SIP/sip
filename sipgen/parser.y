@@ -3047,6 +3047,17 @@ classline:  ifstart
                 appendCodeBlock(&scope->convtocode, $2);
             }
         }
+    |   TK_FROMTYPE codeblock {
+            if (notSkipping())
+            {
+                classDef *scope = currentScope();
+
+                if (scope->convfromcode != NULL)
+                    yyerror("Class has more than one %ConvertFromTypeCode directive");
+
+                appendCodeBlock(&scope->convfromcode, $2);
+            }
+        }
     |   TK_PUBLIC optslot ':' {
             if (currentSpec -> genc)
                 yyerror("public section not allowed in a C module");

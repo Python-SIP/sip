@@ -69,6 +69,7 @@ extern "C" {
  * History:
  *
  * 10.0 Added sip_api_set_destroy_on_exit().
+ *      Added sip_api_enable_autoconversion().
  *      Removed sip_api_call_error_handler_old().
  *      Removed sip_api_start_thread().
  *
@@ -1387,6 +1388,7 @@ typedef struct _sipAPIDef {
     sipErrorState (*api_bad_callable_arg)(int arg_nr, PyObject *arg);
     void *(*api_get_address)(struct _sipSimpleWrapper *w);
     void (*api_set_destroy_on_exit)(int);
+    int (*api_enable_autoconversion)(const sipTypeDef *td, int enable);
 
     /*
      * The following are deprecated parts of the public API.

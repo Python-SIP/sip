@@ -833,6 +833,28 @@ specification files.
         the memory address.
 
 
+.. c:function:: int sipEnableAutoconversion(const sipTypeDef *td, int enable)
+
+    .. versionadded:: 4.14.7
+
+    Instances of some classes may be automatically converted to other Python
+    objects even though the class has been wrapped.  This allows that behaviour
+    to be suppressed so that an instances of the wrapped class is returned
+    instead.
+
+    :param td:
+        the type's :ref:`generated type structure <ref-type-structures>`.  This
+        must refer to a class.
+    :param enable:
+        is non-zero if auto-conversion should be enabled for the type.  This is
+        the default behaviour.
+    :return:
+        ``1`` or ``0`` depending on whether or not auto-conversion was
+        previously enabled for the type.  This allows the previous state to be
+        restored later on.  ``-1`` is returned, and a Python exception raised,
+        if there was an error.
+
+
 .. c:function:: int sipExportSymbol(const char *name, void *sym)
 
     Python does not allow extension modules to directly access symbols in

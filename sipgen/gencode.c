@@ -711,6 +711,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipRegisterAttributeGetter  sipAPI_%s->api_register_attribute_getter\n"
 "#define sipIsAPIEnabled             sipAPI_%s->api_is_api_enabled\n"
 "#define sipSetDestroyOnExit         sipAPI_%s->api_set_destroy_on_exit\n"
+"#define sipEnableAutoconversion     sipAPI_%s->api_enable_autoconversion\n"
 "#define sipExportModule             sipAPI_%s->api_export_module\n"
 "#define sipInitModule               sipAPI_%s->api_init_module\n"
 "\n"
@@ -733,6 +734,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipConvertFromMappedType    sipConvertFromType\n"
 "#define sipConvertFromNamedEnum(v, pt)  sipConvertFromEnum((v), ((sipEnumTypeObject *)(pt))->type)\n"
 "#define sipConvertFromNewInstance(p, wt, t) sipConvertFromNewType((p), (wt)->type, (t))\n"
+        ,mname
         ,mname
         ,mname
         ,mname
@@ -3877,7 +3879,6 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
     generateConvertToDefinitions(mtd,NULL,fp);
 
     /* Generate the from type convertor. */
-
     need_xfer = (generating_c || usedInCode(mtd->convfromcode, "sipTransferObj"));
 
     prcode(fp,
@@ -3891,7 +3892,7 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
             , mtd->iff);
 
     prcode(fp,
-"static PyObject *convertFrom_%L(void *sipCppV,PyObject *%s)\n"
+"static PyObject *convertFrom_%L(void *sipCppV, PyObject *%s)\n"
 "{\n"
 "   ", mtd->iff, (need_xfer ? "sipTransferObj" : ""));
 
@@ -4054,7 +4055,44 @@ static void generateClassCpp(classDef *cd, sipSpec *pt, FILE *fp)
     generateAccessFunctions(pt, mod, cd, fp);
 
     if (cd->iff->type != namespace_iface)
+    {
         generateConvertToDefinitions(NULL,cd,fp);
+
+        /* Generate the optional from type convertor. */
+        if (cd->convfromcode != NULL)
+        {
+            int need_xfer;
+
+            need_xfer = (generating_c || usedInCode(cd->convfromcode, "sipTransferObj"));
+
+            prcode(fp,
+"\n"
+"\n"
+                );
+
+            if (!generating_c)
+                prcode(fp,
+"extern \"C\" {static PyObject *convertFrom_%L(void *, PyObject *);}\n"
+                    , cd->iff);
+
+            prcode(fp,
+"static PyObject *convertFrom_%L(void *sipCppV, PyObject *%s)\n"
+"{\n"
+"   ", cd->iff, (need_xfer ? "sipTransferObj" : ""));
+
+            generateClassFromVoid(cd, "sipCpp", "sipCppV", fp);
+
+            prcode(fp, ";\n"
+"\n"
+                );
+
+            generateCppCodeBlock(cd->convfromcode, fp);
+
+            prcode(fp,
+"}\n"
+                );
+        }
+    }
 
     /* The type definition structure. */
     generateTypeDefinition(pt, cd, fp);
@@ -10041,9 +10079,11 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
             , cd->iff);
 
     if (cd->iff->type == namespace_iface)
+    {
         prcode(fp,
 "    0,\n"
             );
+    }
     else
     {
         if (cd->convtocode != NULL)
@@ -10056,10 +10096,23 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
                 );
     }
 
-    /* ZZZ - to be implemented. */
-    prcode(fp,
+    if (cd->iff->type == namespace_iface)
+    {
+        prcode(fp,
 "    0,\n"
-        );
+            );
+    }
+    else
+    {
+        if (cd->convfromcode != NULL)
+            prcode(fp,
+"    convertFrom_%L,\n"
+                , cd->iff);
+        else
+            prcode(fp,
+"    0,\n"
+                );
+    }
 
     prcode(fp,
 "    0,\n"

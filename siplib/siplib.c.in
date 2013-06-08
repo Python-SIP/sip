@@ -257,6 +257,7 @@ static int sip_api_visit_slot(sipSlot *slot, visitproc visit, void *arg);
 static void sip_api_keep_reference(PyObject *self, int key, PyObject *obj);
 static void sip_api_add_exception(sipErrorState es, PyObject **parseErrp);
 static void sip_api_set_destroy_on_exit(int value);
+static int sip_api_enable_autoconversion(const sipTypeDef *td, int enable);
 
 
 /*
@@ -315,6 +316,7 @@ static const sipAPIDef sip_api = {
     sip_api_bad_callable_arg,
     sip_api_get_address,
     sip_api_set_destroy_on_exit,
+    sip_api_enable_autoconversion,
     /*
      * The following are deprecated parts of the public API.
      */
@@ -527,6 +529,7 @@ static PyObject *enum_unpickler;        /* The enum unpickler function. */
 static sipSymbol *sipSymbolList = NULL; /* The list of published symbols. */
 static sipAttrGetter *sipAttrGetters = NULL;  /* The list of attribute getters. */
 static sipPyObject *sipRegisteredPyTypes = NULL;    /* Registered Python types. */
+static sipPyObject *sipDisabledAutoconversions = NULL;  /* Python types whose auto-conversion is disabled. */
 static PyInterpreterState *sipInterpreter = NULL;   /* The interpreter. */
 static int destroy_on_exit = TRUE;      /* Destroy owned objects on exit. */
 
@@ -613,6 +616,7 @@ static int addLicense(PyObject *dict, sipLicenseDef *lc);
 static PyObject *cast(PyObject *self, PyObject *args);
 static PyObject *callDtor(PyObject *self, PyObject *args);
 static PyObject *dumpWrapper(PyObject *self, PyObject *args);
+static PyObject *enableAutoconversion(PyObject *self, PyObject *args);
 static PyObject *isDeleted(PyObject *self, PyObject *args);
 static PyObject *isPyCreated(PyObject *self, PyObject *args);
 static PyObject *isPyOwned(PyObject *self, PyObject *args);
@@ -673,6 +677,8 @@ static PyObject *create_property(sipVariableDef *vd);
 static PyObject *create_function(PyMethodDef *ml);
 static PyObject *sip_exit(PyObject *obj, PyObject *ignore);
 static void register_exit_notifier(void);
+static sipConvertFromFunc get_from_convertor(sipTypeDef *td);
+static sipPyObject **autoconversion_disabled(const sipTypeDef *td);
 
 
 /*
@@ -702,6 +708,7 @@ PyMODINIT_FUNC SIP_MODULE_ENTRY(void)
         {"cast", cast, METH_VARARGS, NULL},
         {"delete", callDtor, METH_VARARGS, NULL},
         {"dump", dumpWrapper, METH_VARARGS, NULL},
+        {"enableautoconversion", enableAutoconversion, METH_VARARGS, NULL},
         {"getapi", sipGetAPI, METH_VARARGS, NULL},
         {"isdeleted", isDeleted, METH_VARARGS, NULL},
         {"ispycreated", isPyCreated, METH_VARARGS, NULL},
@@ -7769,19 +7776,18 @@ static int addSingleTypeInstance(PyObject *dict, const char *name,
     int rc;
     PyObject *obj;
 
-    if (sipTypeIsClass(td))
-    {
-        obj = sipWrapSimpleInstance(cppPtr, td, NULL, initflags);
-    }
-    else if (sipTypeIsEnum(td))
+    if (sipTypeIsEnum(td))
     {
         obj = sip_api_convert_from_enum(*(int *)cppPtr, td);
     }
     else
     {
-        assert(sipTypeIsMapped(td));
+        sipConvertFromFunc cfrom = get_from_convertor(td);
 
-        obj = ((const sipMappedTypeDef *)td)->mtd_cfrom(cppPtr, NULL);
+        if (cfrom != NULL)
+            obj = cfrom(cppPtr, NULL);
+        else
+            obj = sipWrapSimpleInstance(cppPtr, td, NULL, initflags);
     }
 
     if (obj == NULL)
@@ -8384,6 +8390,7 @@ PyObject *sip_api_convert_from_type(void *cpp, const sipTypeDef *td,
         PyObject *transferObj)
 {
     PyObject *py;
+    sipConvertFromFunc cfrom;
 
     assert(sipTypeIsClass(td) || sipTypeIsMapped(td));
 
@@ -8394,8 +8401,10 @@ PyObject *sip_api_convert_from_type(void *cpp, const sipTypeDef *td,
         return Py_None;
     }
 
-    if (sipTypeIsMapped(td))
-        return ((const sipMappedTypeDef *)td)->mtd_cfrom(cpp, transferObj);
+    cfrom = get_from_convertor(td);
+
+    if (cfrom != NULL)
+        return cfrom(cpp, transferObj);
 
     /* Apply any sub-class convertor. */
     if (sipTypeHasSCC(td))
@@ -8427,6 +8436,7 @@ static PyObject *sip_api_convert_from_new_type(void *cpp, const sipTypeDef *td,
         PyObject *transferObj)
 {
     sipWrapper *owner;
+    sipConvertFromFunc cfrom;
 
     /* Handle None. */
     if (cpp == NULL)
@@ -8435,17 +8445,18 @@ static PyObject *sip_api_convert_from_new_type(void *cpp, const sipTypeDef *td,
         return Py_None;
     }
 
-    if (sipTypeIsMapped(td))
+    cfrom = get_from_convertor(td);
+
+    if (cfrom != NULL)
     {
-        PyObject *res = ((const sipMappedTypeDef *)td)->mtd_cfrom(cpp,
-                transferObj);
+        PyObject *res = cfrom(cpp, transferObj);
 
         if (res != NULL)
         {
             /*
              * We no longer need the C/C++ instance so we release it (unless
              * its ownership is transferred).  This means this call is
-             * semantically equivalent to the case where the type is a wrapped
+             * semantically equivalent to the case where we are wrapping a
              * class.
              */
             if (transferObj == NULL || transferObj == Py_None)
@@ -8454,8 +8465,6 @@ static PyObject *sip_api_convert_from_new_type(void *cpp, const sipTypeDef *td,
 
         return res;
     }
-
-    assert(sipTypeIsClass(td));
 
     /* Apply any sub-class convertor. */
     if (sipTypeHasSCC(td))
@@ -11342,4 +11351,111 @@ static void register_exit_notifier(void)
     Py_DECREF(register_func);
     Py_DECREF(atexit_module);
     Py_DECREF(notifier);
+}
+
+
+/*
+ * Return the function that converts a C++ instance to a Python object.
+ */
+static sipConvertFromFunc get_from_convertor(sipTypeDef *td)
+{
+    if (sipTypeIsMapped(td))
+        return ((const sipMappedTypeDef *)td)->mtd_cfrom;
+
+    assert(sipTypeIsClass(td));
+
+    if (autoconversion_disabled(td) != NULL)
+        return NULL;
+
+    return ((const sipClassTypeDef *)td)->ctd_cfrom;
+}
+
+
+/*
+ * Enable or disable the auto-conversion.  Returns the previous enabled state
+ * or -1 on error.
+ */
+static int sip_api_enable_autoconversion(const sipTypeDef *td, int enable)
+{
+    sipPyObject **pop;
+
+    assert(sipTypeIsClass(td));
+
+    pop = autoconversion_disabled(td);
+
+    /* See if there is anything to do. */
+    if (pop == NULL && enable)
+        return TRUE;
+
+    if (pop != NULL && !enable)
+        return FALSE;
+
+    if (pop != NULL)
+    {
+        /* Remove it from the list. */
+        sipPyObject *po = *pop;
+
+        *pop = po->next;
+        sip_api_free(po);
+    }
+    else
+    {
+        /* Add it to the list. */
+        if (addPyObjectToList(&sipDisabledAutoconversions, (PyObject *)sipTypeAsPyTypeObject(td)) < 0)
+            return -1;
+    }
+
+    return !enable;
+}
+
+
+/*
+ * Return a pointer to the entry in the list of disabled auto-conversions for a
+ * type.
+ */
+static sipPyObject **autoconversion_disabled(const sipTypeDef *td)
+{
+    PyObject *type = (PyObject *)sipTypeAsPyTypeObject(td);
+    sipPyObject **pop;
+
+    for (pop = &sipDisabledAutoconversions; *pop != NULL; pop = &(*pop)->next)
+        if ((*pop)->object == type)
+            return pop;
+
+    return NULL;
+}
+
+
+/*
+ * Enable or disable auto-conversion of a class that supports it.
+ */
+static PyObject *enableAutoconversion(PyObject *self, PyObject *args)
+{
+    sipWrapperType *wt;
+    int enable;
+
+    if (PyArg_ParseTuple(args, "O!i:enableautoconversion", &sipWrapperType_Type, &wt, &enable))
+    {
+        sipTypeDef *td = wt->type;
+        int was_enabled;
+        PyObject *res;
+
+        if (!sipTypeIsClass(td) || ((sipClassTypeDef *)td)->ctd_cfrom == NULL)
+        {
+            PyErr_Format(PyExc_TypeError,
+                    "%s is not a wrapped class that supports optional auto-conversion", ((PyTypeObject *)wt)->tp_name);
+
+            return NULL;
+        }
+
+        if ((was_enabled = sip_api_enable_autoconversion(td, enable)) < 0)
+            return NULL;
+
+        res = (was_enabled ? Py_True : Py_False);
+
+        Py_INCREF(res);
+        return res;
+    }
+
+    return NULL;
 }
