@@ -767,16 +767,17 @@ Function Annotations
 .. function-annotation:: Numeric
 
     This boolean annotation specifies that the operator should be interpreted
-    as a numeric operator rather than a sequence operator.  Python uses the
-    ``+`` operator for adding numbers and concatanating sequences, and the
-    ``*`` operator for multiplying numbers and repeating sequences.  SIP tries
-    to work out which is meant by looking at other operators that have been
-    defined for the type.  If it finds either ``-``, ``-=``, ``/``, ``/=``,
-    ``%`` or ``%=`` defined then it assumes that ``+``, ``+=``, ``*`` and
-    ``*=`` should be numeric operators.  Otherwise, if it finds either ``[]``,
-    :meth:`__getitem__`, :meth:`__setitem__` or :meth:`__delitem__` defined
-    then it assumes that they should be sequence operators.  This annotation is
-    used to force SIP to treat the operator as numeric.
+    as a numeric operator rather than a sequence operator.
+    
+    Python uses the ``+`` operator for adding numbers and concatanating
+    sequences, and the ``*`` operator for multiplying numbers and repeating
+    sequences.  Unless this or the :fanno:`Sequence` annotation is specified,
+    SIP tries to work out which is meant by looking at other operators that
+    have been defined for the type.  If it finds either ``-``, ``-=``, ``/``,
+    ``/=``, ``%`` or ``%=`` defined then it assumes that ``+``, ``+=``, ``*``
+    and ``*=`` should be numeric operators.  Otherwise, if it finds either
+    ``[]``, :meth:`__getitem__`, :meth:`__setitem__` or :meth:`__delitem__`
+    defined then it assumes that they should be sequence operators.
 
 
 .. function-annotation:: PostHook
@@ -834,6 +835,24 @@ Function Annotations
     reacquired afterwards.  It should be used for functions that might block or
     take a significant amount of time to execute.  See :ref:`ref-gil` and the
     :fanno:`HoldGIL` annotation.
+
+
+.. function-annotation:: Sequence
+
+    .. versionadded:: 4.14.7
+
+    This boolean annotation specifies that the operator should be interpreted
+    as a sequence operator rather than a numeric operator.
+
+    Python uses the ``+`` operator for adding numbers and concatanating
+    sequences, and the ``*`` operator for multiplying numbers and repeating
+    sequences.  Unless this or the :fanno:`Numeric` annotation is specified,
+    SIP tries to work out which is meant by looking at other operators that
+    have been defined for the type.  If it finds either ``-``, ``-=``, ``/``,
+    ``/=``, ``%`` or ``%=`` defined then it assumes that ``+``, ``+=``, ``*``
+    and ``*=`` should be numeric operators.  Otherwise, if it finds either
+    ``[]``, :meth:`__getitem__`, :meth:`__setitem__` or :meth:`__delitem__`
+    defined then it assumes that they should be sequence operators.
 
 
 .. function-annotation:: Transfer

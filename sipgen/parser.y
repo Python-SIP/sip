@@ -4856,7 +4856,7 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd,
     }
     else
     {
-        int seq_might, seq_not;
+        int seq_might, seq_not, default_to_sequence;
         memberDef *md;
 
         if (getOptFlag(of, "NoDefaultCtors", bool_flag) != NULL)
@@ -4931,13 +4931,14 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd,
          * the multiply and repeat methods.  The number versions can have their
          * operands swapped and may return NotImplemented.  If the user has
          * used the /Numeric/ annotation or there are other numeric operators
-         * then we use add/multiply.  Otherwise, if there are indexing
-         * operators then we use concat/repeat.
+         * then we use add/multiply.  Otherwise, if the user has used the
+         * /Sequence/ annotation or there are indexing operators then we use
+         * concat/repeat.
          */
         seq_might = seq_not = FALSE;
 
-        for (md = cd -> members; md != NULL; md = md -> next)
-            switch (md -> slot)
+        for (md = cd->members; md != NULL; md = md->next)
+            switch (md->slot)
             {
             case getitem_slot:
             case setitem_slot:
@@ -4963,32 +4964,34 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd,
                 break;
             }
 
-        if (!seq_not && seq_might)
-            for (md = cd -> members; md != NULL; md = md -> next)
-            {
-                /* Ignore if the user has been explicit. */
-                if (isNumeric(md))
-                    continue;
+        default_to_sequence = (!seq_not && seq_might);
 
-                switch (md -> slot)
+        for (md = cd->members; md != NULL; md = md->next)
+        {
+            /* Ignore if it is explicitly numeric. */
+            if (isNumeric(md))
+                continue;
+
+            if (isSequence(md) || default_to_sequence)
+                switch (md->slot)
                 {
                 case add_slot:
-                    md -> slot = concat_slot;
+                    md->slot = concat_slot;
                     break;
 
                 case iadd_slot:
-                    md -> slot = iconcat_slot;
+                    md->slot = iconcat_slot;
                     break;
 
                 case mul_slot:
-                    md -> slot = repeat_slot;
+                    md->slot = repeat_slot;
                     break;
 
                 case imul_slot:
-                    md -> slot = irepeat_slot;
+                    md->slot = irepeat_slot;
                     break;
                 }
-            }
+        }
     }
 
     if (inMainModule())
@@ -6665,6 +6668,7 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         "PyName",
         "RaisesPyException",
         "ReleaseGIL",
+        "Sequence",
         "VirtualErrorHandler",
         "Transfer",
         "TransferBack",
@@ -6943,7 +6947,20 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         setNotVersioned(od->common);
 
     if (getOptFlag(optflgs, "Numeric", bool_flag) != NULL)
+    {
+        if (isSequence(od->common))
+            yyerror("/Sequence/ has already been specified");
+
         setIsNumeric(od->common);
+    }
+
+    if (getOptFlag(optflgs, "Sequence", bool_flag) != NULL)
+    {
+        if (isNumeric(od->common))
+            yyerror("/Numeric/ has already been specified");
+
+        setIsSequence(od->common);
+    }
 
     /* Methods that run in new threads must be virtual. */
     if (getOptFlag(optflgs, "NewThread", bool_flag) != NULL)

@@ -1,6 +1,7 @@
 v4.14.7 ??? June 2013
   - The internal API version is increased to 10.0 requiring the regeneration of
     all modules.
+  - Added the /Sequence/ function annotation.
   - %ConvertFromTypeCode can now be specified for classes.
   - Added sipEnableAutoconversion() to the C API.
   - Added sipSetDestroyOnExit() to the C API.

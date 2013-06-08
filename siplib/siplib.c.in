@@ -679,6 +679,7 @@ static PyObject *sip_exit(PyObject *obj, PyObject *ignore);
 static void register_exit_notifier(void);
 static sipConvertFromFunc get_from_convertor(sipTypeDef *td);
 static sipPyObject **autoconversion_disabled(const sipTypeDef *td);
+static void fix_slots(PyTypeObject *py_type, sipPySlotDef *psd);
 
 
 /*
@@ -5840,6 +5841,8 @@ static int createClassType(sipExportedModuleDef *client, sipClassTypeDef *ctd,
     if ((py_type = createContainerType(&ctd->ctd_container, (sipTypeDef *)ctd, bases, metatype, mod_dict, type_dict, client)) == NULL)
         goto reldict;
 
+    fix_slots((PyTypeObject *)py_type, ctd->ctd_pyslots);
+
     /* Handle the pickle function. */
     if (ctd->ctd_pickle != NULL)
     {
@@ -6219,6 +6222,8 @@ static int createEnumType(sipExportedModuleDef *client, sipEnumTypeDef *etd,
         Py_DECREF((PyObject *)py_type);
         goto relname;
     }
+
+    fix_slots((PyTypeObject *)py_type, etd->etd_pyslots);
 
     /* We can now release our remaining references. */
     Py_DECREF(name);
@@ -11458,4 +11463,24 @@ static PyObject *enableAutoconversion(PyObject *self, PyObject *args)
     }
 
     return NULL;
+}
+
+
+/*
+ * Python copies the nb_inplace_add slot to the sq_inplace_concat slot and vice
+ * versa if either are missing.  This is a bug because they don't have the same
+ * API.  We therefore reverse this.
+ */
+static void fix_slots(PyTypeObject *py_type, sipPySlotDef *psd)
+{
+    while (psd->psd_func != NULL)
+    {
+        if (psd->psd_type == iadd_slot && py_type->tp_as_sequence != NULL)
+            py_type->tp_as_sequence->sq_inplace_concat = NULL;
+
+        if (psd->psd_type == iconcat_slot && py_type->tp_as_number != NULL)
+            py_type->tp_as_number->nb_inplace_add = NULL;
+
+        ++psd;
+    }
 }
