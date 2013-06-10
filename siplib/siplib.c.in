@@ -5841,7 +5841,8 @@ static int createClassType(sipExportedModuleDef *client, sipClassTypeDef *ctd,
     if ((py_type = createContainerType(&ctd->ctd_container, (sipTypeDef *)ctd, bases, metatype, mod_dict, type_dict, client)) == NULL)
         goto reldict;
 
-    fix_slots((PyTypeObject *)py_type, ctd->ctd_pyslots);
+    if (ctd->ctd_pyslots != NULL)
+        fix_slots((PyTypeObject *)py_type, ctd->ctd_pyslots);
 
     /* Handle the pickle function. */
     if (ctd->ctd_pickle != NULL)
@@ -6223,7 +6224,8 @@ static int createEnumType(sipExportedModuleDef *client, sipEnumTypeDef *etd,
         goto relname;
     }
 
-    fix_slots((PyTypeObject *)py_type, etd->etd_pyslots);
+    if (etd->etd_pyslots != NULL)
+        fix_slots((PyTypeObject *)py_type, etd->etd_pyslots);
 
     /* We can now release our remaining references. */
     Py_DECREF(name);
