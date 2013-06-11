@@ -1135,8 +1135,8 @@ structure or C++ class keeps its own reference to a Python object then, if the
 garbage collector is to do its job, it needs to provide some handwritten code
 to traverse and potentially clear those embedded references.
 
-See the section *Supporting cyclic garbage collection* in `Embedding and
-Extending the Python Interpreter <http://www.python.org/dev/doc/devel/ext/>`__
+See the section `Supporting Cyclic Garbage Collection
+<http://docs.python.org/3/c-api/gcsupport.html>`__ in the Python documentation
 for the details.
 
 This directive is used to specify the code that clears any embedded references.
