@@ -10,6 +10,11 @@ http://www.riverbankcomputing.com/software/sip/download.
 SIP is also included with all of the major Linux distributions.  However, it
 may be a version or two out of date.
 
+32 and 64 bit Windows installers for some versions of Python are also
+available.  By default these only install the sip extension module.  Select a
+full or custom install if you want to install the developer tools and
+documentation.
+
 
 Configuring
 -----------

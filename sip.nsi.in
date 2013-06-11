@@ -15,11 +15,6 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 
-# Include the tools we use.
-!include MUI2.nsh
-!include LogicLib.nsh
-
-
 # These will change with different releases.
 !define SIP_VERSION         "@RM_RELEASE@"
 !define SIP_INSTALLER       ""
@@ -36,17 +31,19 @@
 !define SIP_HK_ROOT         "Software\SIP\Py${SIP_PYTHON_VERS}"
 !define SIP_HK              "${SIP_HK_ROOT}\InstallPath"
 
-${If} ${SIP_ARCH} == "x64"
-    !define SIP_PROGRAM_DIR "$PROGRAMFILES64\SIP"
-${Else}
-    !define SIP_PROGRAM_DIR "$PROGRAMFILES32\SIP"
-${Endif}
+
+# Include the tools we use.
+!include MUI2.nsh
+!include LogicLib.nsh
+
 
 # Tweak some of the standard pages.
 !define MUI_WELCOMEPAGE_TEXT \
 "This wizard will guide you through the installation of ${SIP_NAME}.$\r$\n\
 $\r$\n\
-FIXME: By default install runtime only.
+By default only the runtime support for extension modules generated with SIP \
+is included. Select a full or custom install if you want to install the \
+developer tools and documentation.$\r$\n\
 $\r$\n\
 Click Next to continue."
 
@@ -97,9 +94,10 @@ Function .onInit
 "A copy of SIP for Python v${SIP_PYTHON_VERS} is already installed in $0 \
 and should be uninstalled first.$\r$\n \
 $\r$\n\
-Do you wish to continue with this installation?" IDYES Overwrite
+Do you wish to uninstall it?" IDYES Uninstall
             Abort
-Overwrite:
+Uninstall:
+        ExecWait '"$PROGRAMFILES\SIP\Uninstall.exe" /S'
     ${Endif}
 
     # Check the right version of Python has been installed.
@@ -130,7 +128,7 @@ FunctionEnd
 !define MUI_DIRECTORYPAGE_TEXT_DESTINATION "Python installation folder"
 !define MUI_DIRECTORYPAGE_TEXT_TOP \
 "The sip extension module will be installed in the site-packages folder of \
-your Python installation.  FIXME: Say where the development tools etc. will go."
+your Python installation."
 !insertmacro MUI_PAGE_DIRECTORY
 
 !insertmacro MUI_PAGE_INSTFILES
@@ -225,7 +223,7 @@ SectionEnd
 !insertmacro MUI_DESCRIPTION_TEXT ${SecTools} "The developer tools."
 !insertmacro MUI_DESCRIPTION_TEXT ${SecDocumentation} "The documentation."
 !insertmacro MUI_DESCRIPTION_TEXT ${SecShortcuts} \
-"This adds shortcuts to your Start Menu."
+"Shortcuts for your Start Menu."
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
 
