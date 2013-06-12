@@ -5,7 +5,6 @@ v4.14.7 ??? June 2013
   - %ConvertFromTypeCode can now be specified for classes.
   - Added sipEnableAutoconversion() to the C API.
   - Added sipSetDestroyOnExit() to the C API.
-  - Added the Windows installer.
   - Bug fixes.
 
 v4.14.6 21st April 2013

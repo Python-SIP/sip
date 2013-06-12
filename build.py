@@ -37,7 +37,6 @@ if os.path.isdir(MacHgPath):
 # The files that need to be patched with the version number.
 _PatchedFiles = (
     ('configure.py', ),
-    ('sip.nsi', ),
     ('sipgen', 'sip.h'),
     ('siplib', 'sip.h.in'),
     ('sphinx', 'conf.py'), ('sphinx', 'introduction.rst'))
@@ -60,7 +59,7 @@ _GeneratedDirs = (
 
 # Files in a release.
 _ReleasedFiles = ('configure.py.in', 'LICENSE', 'LICENSE-GPL2', 'LICENSE-GPL3',
-        'NEWS', 'README', 'sip.nsi.in', 'sipdistutils.py', 'siputils.py')
+        'NEWS', 'README', 'sipdistutils.py', 'siputils.py')
 
 # Directories in a release.
 _ReleasedDirs = ('custom', 'sipgen', 'siplib', 'specs', 'sphinx')
