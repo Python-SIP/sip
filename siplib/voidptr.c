@@ -986,6 +986,8 @@ static int vp_convertor(PyObject *arg, struct vp_values *vp)
         ptr = view.buf;
         size = view.len;
         rw = !view.readonly;
+
+        PyBuffer_Release(&view);
     }
 #endif
 #if PY_VERSION_HEX < 0x03000000
