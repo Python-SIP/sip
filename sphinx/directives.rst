@@ -450,16 +450,23 @@ specify the name of the consolidated module.
         *code*
     %End
 
-This directive is used as part of the :directive:`%MappedType` directive to
-specify the handwritten code that converts an instance of a mapped type to a
-Python object.
+This directive is used as part of the :directive:`%MappedType` directive (when
+it is required) or of a class specification (when it is optional) to specify
+the handwritten code that converts an instance of a C/C++ type to a Python
+object.
+
+If used as part of a class specification then instances of the class will be
+automatically converted to the Python object, even though the class itself has
+been wrapped.  This behaviour can be changed on a temporary basis from an
+application by calling the :func:`sip.enableautoconversion` function, or from
+handwritten code by calling the :c:func:`sipEnableAutoconversion` function.
 
 The following variables are made available to the handwritten code:
 
 *type* \*sipCpp
-    This is a pointer to the instance of the mapped type to be converted.  It
-    will never be zero as the conversion from zero to ``Py_None`` is handled
-    before the handwritten code is called.
+    This is a pointer to the C/C++ instance to be converted.  It will never be
+    zero as the conversion from zero to ``Py_None`` is handled before the
+    handwritten code is called.
 
 PyObject \*sipTransferObj
     This specifies any desired ownership changes to the returned object.  If it
@@ -769,7 +776,7 @@ copyright and licensing terms.
 For example::
 
     %Copying
-    Copyright (c) 2012 Riverbank Computing Limited
+    Copyright (c) 2013 Riverbank Computing Limited
     %End
 
 
@@ -1128,8 +1135,8 @@ structure or C++ class keeps its own reference to a Python object then, if the
 garbage collector is to do its job, it needs to provide some handwritten code
 to traverse and potentially clear those embedded references.
 
-See the section *Supporting cyclic garbage collection* in `Embedding and
-Extending the Python Interpreter <http://www.python.org/dev/doc/devel/ext/>`__
+See the section `Supporting Cyclic Garbage Collection
+<http://docs.python.org/3/c-api/gcsupport.html>`__ in the Python documentation
 for the details.
 
 This directive is used to specify the code that clears any embedded references.
@@ -1722,7 +1729,7 @@ sipErrorState sipError
     used by code that needs to do additional type checking of the callable's
     arguments.
 
-    When ``sipErrorFail1`` is used, SIP will report the exception immediately
+    When ``sipErrorFail`` is used, SIP will report the exception immediately
     and will not attempt to invoke other overloaded callables.
 
     ``sipError`` is not provided for destructors.
@@ -2473,19 +2480,32 @@ that is called when a Python re-implementation of a virtual C++ function raises
 a Python exception.  If a virtual C++ function does not have a handler the
 ``PyErr_Print()`` function is called.
 
-The handler is called after all tidying up has been completed and with the
-Python Global Interpreter Lock (GIL) released.  Therefore the handler may
-change the execution path by, for example, throwing a C++ exception.
+The handler is called after all tidying up has been completed, with the Python
+Global Interpreter Lock (GIL) held and from the thread that raised the
+exception.  If the handler wants to change the execution path by, for example,
+throwing a C++ exception, it must first release the GIL by calling
+:c:func:`SIP_RELEASE_GIL`.  It must not call :c:func:`SIP_RELEASE_GIL` if the
+execution path is not changed.
 
-The following variable is made available to the handwritten code:
+The following variables are made available to the handwritten code:
 
 sipSimpleWrapper \*sipPySelf
     This is the class instance containing the Python reimplementation.
 
+sip_gilstate_t sipGILState
+    This is an opaque value that must be passed to :c:func:`SIP_RELEASE_GIL` in
+    order to release the GIL prior to changing the execution path.
+
 For example::
 
     %VirtualErrorHandler my_handler
-        throw my_exception(sipPySelf);
+        PyObject *exception, *value, *traceback;
+
+        PyErr_Fetch(&exception, &value, &traceback);
+
+        SIP_RELEASE_GIL(sipGILState);
+
+        throw my_exception(sipPySelf, exception, value, traceback);
     %End
 
-.. seealso:: :fanno:`NoVirtualErrorHandler`, :fanno:`VirtualErrorHandler``, :canno:`VirtualErrorHandler`
+.. seealso:: :fanno:`NoVirtualErrorHandler`, :fanno:`VirtualErrorHandler`, :canno:`VirtualErrorHandler`

@@ -2,7 +2,7 @@
 # extension modules created with SIP.  It provides information about file
 # locations, version numbers etc., and provides some classes and functions.
 #
-# Copyright (c) 2011 Riverbank Computing Limited <info@riverbankcomputing.com>
+# Copyright (c) 2013 Riverbank Computing Limited <info@riverbankcomputing.com>
 #
 # This file is part of SIP.
 #
@@ -598,8 +598,13 @@ class Makefile:
                     elif mod == "phonon":
                         defines.append("QT_PHONON_LIB")
 
-                    if qt_version >= 0x050000 and mod in ("QtSql", "QtTest"):
-                        defines.append("QT_WIDGETS_LIB")
+                    if qt_version >= 0x050000:
+                        if mod == "QtTest":
+                            defines.append("QT_GUI_LIB")
+
+                        if mod in ("QtSql", "QtTest"):
+                            defines.append("QT_WIDGETS_LIB")
+
             elif self._threaded:
                 defines.append("QT_THREAD_SUPPORT")
 
@@ -624,7 +629,26 @@ class Makefile:
                 }
 
                 # For Windows: the dependencies between Qt libraries.
-                qdepmap = {
+                qt5_depmap = {
+                    "QtDeclarative":    ("QtXmlPatterns", "QtNetwork", "QtSql", "QtScript", "QtWidgets", "QtGui", "QtCore"),
+                    "QtGui":            ("QtPrintSupport", "QtWidgets", "QtCore"),
+                    "QtHelp":           ("QtNetwork", "QtSql", "QtWidgets", "QtGui", "QtCore"),
+                    "QtMultimedia":     ("QtGui", "QtCore"),
+                    "QtNetwork":        ("QtCore", ),
+                    "QtOpenGL":         ("QtWidgets", "QtGui", "QtCore"),
+                    "QtScript":         ("QtCore", ),
+                    "QtScriptTools":    ("QtScript", "QtGui", "QtCore"),
+                    "QtSql":            ("QtCore", ),
+                    "QtSvg":            ("QtXml", "QtWidgets", "QtGui", "QtCore"),
+                    "QtTest":           ("QtGui", "QtCore"),
+                    "QtWebKit":         ("QtNetwork", "QtWebKitWidgets", "QtWidgets", "QtGui", "QtCore"),
+                    "QtXml":            ("QtCore", ),
+                    "QtXmlPatterns":    ("QtNetwork", "QtCore"),
+                    "QtDesigner":       ("QtGui", "QtCore"),
+                    "QAxContainer":     ("Qt5AxBase", "QtWidgets", "QtGui", "QtCore")
+                }
+
+                qt4_depmap = {
                     "QtAssistant":      ("QtNetwork", "QtGui", "QtCore"),
                     "QtDeclarative":    ("QtNetwork", "QtGui", "QtCore"),
                     "QtGui":            ("QtCore", ),
@@ -645,6 +669,11 @@ class Makefile:
                     "QAxContainer":     ("QtGui", "QtCore")
                 }
 
+                if qt_version >= 0x050000:
+                    qt_depmap = qt5_depmap
+                else:
+                    qt_depmap = qt4_depmap
+
                 # The QtSql .prl file doesn't include QtGui as a dependency (at
                 # least on Linux) so we explcitly set the dependency here for
                 # everything.
@@ -664,7 +693,7 @@ class Makefile:
                         self._qt.append("QtNetwork")
 
                 for mod in self._qt:
-                    lib = self._qt4_module_to_lib(mod)
+                    lib = self._qt_module_to_lib(mod)
                     libs.append(self.platform_lib(lib, self._is_framework(mod)))
 
                     if sys.platform == "win32":
@@ -677,12 +706,12 @@ class Makefile:
                         if mod in list(wdepmap.keys()):
                             deps.extend(self.optional_list(wdepmap[mod]))
 
-                        if mod in list(qdepmap.keys()):
-                            for qdep in qdepmap[mod]:
+                        if mod in list(qt_depmap.keys()):
+                            for qdep in qt_depmap[mod]:
                                 # Ignore the dependency if it is explicitly
                                 # linked.
                                 if qdep not in self._qt:
-                                    libs.append(self.platform_lib(self._qt4_module_to_lib(qdep)))
+                                    libs.append(self.platform_lib(self._qt_module_to_lib(qdep)))
 
                                     if qdep in list(wdepmap.keys()):
                                         deps.extend(self.optional_list(wdepmap[qdep]))
@@ -719,25 +748,39 @@ class Makefile:
                         if mod == "QAxContainer":
                             incdir.append(os.path.join(qtincdir[0], "ActiveQt"))
                         elif self._is_framework(mod):
+                            idir = libdir_qt[0]
+
                             if mod == "QtAssistant" and qt_version < 0x040202:
                                 mod = "QtAssistantClient"
 
-                            incdir.append(os.path.join(libdir_qt[0],
+                            incdir.append(os.path.join(idir,
                                     mod + ".framework", "Headers"))
 
-                            if qt_version >= 0x050000 and mod == "QtGui":
-                                incdir.append(os.path.join(libdir_qt[0],
-                                        "QtWidgets.framework", "Headers"))
-                                incdir.append(os.path.join(libdir_qt[0],
-                                        "QtPrintSupport.framework", "Headers"))
+                            if qt_version >= 0x050000:
+                                if mod == "QtGui":
+                                    incdir.append(os.path.join(idir,
+                                            "QtWidgets.framework", "Headers"))
+                                    incdir.append(os.path.join(idir,
+                                            "QtPrintSupport.framework",
+                                            "Headers"))
+                                elif mod == "QtWebKit":
+                                    incdir.append(os.path.join(idir,
+                                            "QtWebKitWidgets.framework",
+                                            "Headers"))
                         else:
-                            incdir.append(os.path.join(qtincdir[0], mod))
+                            idir = qtincdir[0]
 
-                            if qt_version >= 0x050000 and mod == "QtGui":
-                                incdir.append(os.path.join(qtincdir[0],
-                                        "QtWidgets"))
-                                incdir.append(os.path.join(qtincdir[0],
-                                        "QtPrintSupport"))
+                            incdir.append(os.path.join(idir, mod))
+
+                            if qt_version >= 0x050000:
+                                if mod == "QtGui":
+                                    incdir.append(os.path.join(idir,
+                                            "QtWidgets"))
+                                    incdir.append(os.path.join(idir,
+                                            "QtPrintSupport"))
+                                elif mod == "QtWebKit":
+                                    incdir.append(os.path.join(idir,
+                                            "QtWebKitWidgets"))
 
                 # This must go after the module include directories.
                 incdir.extend(qtincdir)
@@ -793,13 +836,15 @@ class Makefile:
         """
         return (self.config.qt_framework and (self.config.qt_version >= 0x040200 or mod != "QtAssistant"))
 
-    def _qt4_module_to_lib(self, mname):
-        """Return the name of the Qt4 library corresponding to a module.
+    def _qt_module_to_lib(self, mname):
+        """Return the name of the Qt library corresponding to a module.
 
         mname is the name of the module.
         """
+        qt_version = self.config.qt_version
+
         if mname == "QtAssistant":
-            if self.config.qt_version >= 0x040202 and sys.platform == "darwin":
+            if qt_version >= 0x040202 and sys.platform == "darwin":
                 lib = mname
             else:
                 lib = "QtAssistantClient"
@@ -814,17 +859,31 @@ class Makefile:
             elif sys.platform == "darwin":
                 if not self._is_framework(mname):
                     lib = lib + "_debug"
-            elif self.config.qt_version < 0x040200:
+            elif qt_version < 0x040200:
                 lib = lib + "_debug"
+
+        qt5_rename = False
 
         if sys.platform == "win32" and "shared" in self.config.qt_winconfig.split():
             if (mname in ("QtCore", "QtDeclarative", "QtDesigner", "QtGui",
                           "QtHelp", "QtMultimedia", "QtNetwork", "QtOpenGL",
                           "QtScript", "QtScriptTools", "QtSql", "QtSvg",
                           "QtTest", "QtWebKit", "QtXml", "QtXmlPatterns",
-                          "phonon") or
-                (self.config.qt_version >= 0x040200 and mname == "QtAssistant")):
-                lib = lib + "4"
+                          "phonon", "QAxContainer", "QtPrintSupport",
+                          "QtWebKitWidgets", "QtWidgets") or
+                (qt_version >= 0x040200 and mname == "QtAssistant")):
+                if mname == "QAxContainer":
+                    if qt_version >= 0x050000:
+                        lib = "Qt5" + lib[1:]
+                elif qt_version >= 0x050000:
+                    qt5_rename = True
+                else:
+                    lib = lib + "4"
+        elif sys.platform.startswith("linux") and qt_version >= 0x050000:
+            qt5_rename = True
+
+        if qt5_rename:
+            lib = "Qt5" + lib[2:]
 
         return lib
 
@@ -909,9 +968,19 @@ class Makefile:
 
         libs = self._extract_value(prl_name, "QMAKE_PRL_LIBS").split()
 
-        if self.config.qt_version >= 0x050000 and clib == "QtGui":
-            for xtra in ("QtWidgets", "QtPrintSupport"):
-                libs.extend(self.platform_lib(xtra, framework).split())
+        if self.config.qt_version >= 0x050000:
+            xtra_libs = []
+
+            if clib in ("QtGui", "Qt5Gui"):
+                xtra_libs.append("QtWidgets")
+                xtra_libs.append("QtPrintSupport")
+            elif clib in ("QtWebKit", "Qt5WebKit"):
+                xtra_libs.append("QtWebKitWidgets")
+
+            for xtra in xtra_libs:
+                libs.extend(
+                        self.platform_lib(
+                                self._qt_module_to_lib(xtra), framework).split())
 
         return libs
 
@@ -1485,8 +1554,12 @@ class ModuleMakefile(Makefile):
         self.LFLAGS.extend(self.optional_list(lflags_console))
 
         if sys.platform == "darwin":
-            # 'real_prefix' exists if virtualenv is being used.
-            dl = getattr(sys, 'real_prefix', sys.exec_prefix).split(os.sep)
+            from distutils.sysconfig import get_python_inc
+
+            # The Python include directory seems to be the only one that uses
+            # the real path even when using a virtual environment (eg. pyvenv).
+            # Note that I can't remember why we need a framework build.
+            dl = get_python_inc().split(os.sep)
 
             if "Python.framework" not in dl:
                 error("SIP requires Python to be built as a framework")
@@ -1957,6 +2030,10 @@ def _quote(s):
 
     s is the string.
     """
+    # On Qt5 paths often includes forward slashes so convert them.
+    if sys.platform == "win32":
+        s = s.replace("/", "\\")
+
     if s.find(" ") >= 0:
         s = '"' + s + '"'
 
@@ -2150,6 +2227,9 @@ def create_config_module(module, template, content, macros=None):
 
         line = sf.readline()
 
+    df.close()
+    sf.close()
+
 
 def version_to_sip_tag(version, tags, description):
     """Convert a version number to a SIP tag.
@@ -2311,10 +2391,13 @@ def parse_build_macros(filename, names, overrides=None, properties=None):
                 self._openfile(nextfile)
                 return self.readline()
 
-            if not line and self.filestack:
-                self.currentfile = self.filestack.pop()
-                self.path = self.pathstack.pop()
-                return self.readline()
+            if not line:
+                self.currentfile.close()
+
+                if self.filestack:
+                    self.currentfile = self.filestack.pop()
+                    self.path = self.pathstack.pop()
+                    return self.readline()
 
             return line
 

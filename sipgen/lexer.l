@@ -1,7 +1,7 @@
 /*
  * The SIP lexer.
  *
- * Copyright (c) 2012 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2013 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -132,6 +132,7 @@ SIP_PYDICT                  {return TK_PYDICT;}
 SIP_PYCALLABLE              {return TK_PYCALLABLE;}
 SIP_PYSLICE                 {return TK_PYSLICE;}
 SIP_PYTYPE                  {return TK_PYTYPE;}
+SIP_PYBUFFER                {return TK_PYBUFFER;}
 SIP_SIGNAL                  {return TK_SIPSIGNAL;}
 SIP_SLOT                    {return TK_SIPSLOT;}
 SIP_ANYSLOT                 {return TK_SIPANYSLOT;}
@@ -610,9 +611,20 @@ int yywrap()
  */
 void getSourceLocation(sourceLocation *slp)
 {
-    /* Assume that we will already have gone past the newline. */
-    slp->linenr = inputFileStack[currentFile].sloc.linenr - 1;
-    slp->name = inputFileStack[currentFile].sloc.name;
+    /*
+     * Assume that we will already have gone past the newline but watch out in
+     * case we have gone past the end of the file.
+     */
+    if (currentFile > 0)
+    {
+        slp->linenr = inputFileStack[currentFile].sloc.linenr - 1;
+        slp->name = inputFileStack[currentFile].sloc.name;
+    }
+    else
+    {
+        slp->linenr = -1;
+        slp->name = NULL;
+    }
 }
 
 

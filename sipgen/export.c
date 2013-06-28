@@ -1,7 +1,7 @@
 /*
  * The XML and API file generator module for SIP.
  *
- * Copyright (c) 2012 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2013 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -365,6 +365,9 @@ static void xmlClass(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
 
     if (cd->convtocode != NULL)
         fprintf(fp, " convert=\"1\"");
+
+    if (cd->convfromcode != NULL)
+        fprintf(fp, " convertfrom=\"1\"");
 
     if (cd->real != NULL)
         fprintf(fp, " extends=\"%s\"", cd->real->iff->module->name);
@@ -940,6 +943,10 @@ static const char *pyType(sipSpec *pt, argDef *ad, int sec, classDef **scope)
 
     switch (ad->atype)
     {
+    case capsule_type:
+        type_name = scopedNameTail(ad->u.cap);
+        break;
+
     case struct_type:
     case void_type:
         type_name = "sip.voidptr";
@@ -1041,6 +1048,10 @@ static const char *pyType(sipSpec *pt, argDef *ad, int sec, classDef **scope)
         type_name = "type";
         break;
 
+    case pybuffer_type:
+        type_name = "buffer";
+        break;
+
     case ellipsis_type:
         type_name = "...";
         break;
@@ -1082,7 +1093,15 @@ int prPythonSignature(sipSpec *pt, FILE *fp, signatureDef *sd, int sec,
 {
     int need_sec = FALSE, need_comma = FALSE, is_res, nr_out, a;
 
-    fprintf(fp, "%c", (is_signal ? '[' : '('));
+    if (is_signal)
+    {
+        if (sd->nrArgs != 0)
+            fprintf(fp, "[");
+    }
+    else
+    {
+        fprintf(fp, "(");
+    }
 
     nr_out = 0;
 
@@ -1103,7 +1122,16 @@ int prPythonSignature(sipSpec *pt, FILE *fp, signatureDef *sd, int sec,
             need_sec = TRUE;
     }
 
-    fprintf(fp, "%c", (is_signal ? ']' : ')'));
+    if (is_signal)
+    {
+        if (sd->nrArgs != 0)
+            fprintf(fp, "]");
+    }
+    else
+    {
+        fprintf(fp, ")");
+    }
+
 
     is_res = !((sd->result.atype == void_type && sd->result.nrderefs == 0) ||
             (sd->result.doctype != NULL && sd->result.doctype[0] == '\0'));

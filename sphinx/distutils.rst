@@ -39,3 +39,6 @@ file in the supported system or local paths (eg: in the same directory of
      sip-opts = -e -g
 
 and then run ``setup.py build`` as usual.
+
+If ``sip-opts`` has not been specified then any ``swig_opts`` defined when
+creating the ``Extension`` will be used.

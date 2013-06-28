@@ -1,7 +1,7 @@
 /*
  * The parse tree transformation module for SIP.
  *
- * Copyright (c) 2012 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2013 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -2021,7 +2021,8 @@ static void resolvePySigTypes(sipSpec *pt, moduleDef *mod, classDef *scope,
         }
         else if (!supportedType(scope,od,ad,TRUE) && (od -> cppsig == &od -> pysig || od -> methodcode == NULL || (isVirtual(od) && od -> virthandler -> virtcode == NULL)))
         {
-            fatal("%s:%d: ", od->sloc.name, od->sloc.linenr);
+            if (od->sloc.name != NULL)
+                fatal("%s:%d: ", od->sloc.name, od->sloc.linenr);
 
             if (scope != NULL)
             {
@@ -2104,6 +2105,8 @@ static void resolveVariableType(sipSpec *pt, varDef *vd)
     case pycallable_type:
     case pyslice_type:
     case pytype_type:
+    case pybuffer_type:
+    case capsule_type:
         /* These are supported without pointers or references. */
 
         if (!isReference(vtype) && vtype->nrderefs == 0)
@@ -2237,6 +2240,8 @@ static int supportedType(classDef *cd,overDef *od,argDef *ad,int outputs)
     case pycallable_type:
     case pyslice_type:
     case pytype_type:
+    case pybuffer_type:
+    case capsule_type:
         if (isReference(ad))
         {
             if (isConstArg(ad))

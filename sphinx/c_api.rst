@@ -52,6 +52,20 @@ specification files.
     functions are available (see :directive:`%MethodCode`).
 
 
+.. c:function:: SIP_RELEASE_GIL(sip_gilstate_t sipGILState)
+
+    .. versionadded:: 4.14.4
+
+    This is called from the handwritten code specified with the
+    :directive:`VirtualErrorHandler` in order to release the Python Global
+    Interpreter Lock (GIL) prior to changing the execution path (e.g. by
+    throwing a C++ exception).  It should not be called under any other
+    circumstances.
+
+    :param sipGILState:
+        an opaque value provided to the handwritten code by SIP.
+
+
 .. c:macro:: SIP_SSIZE_T
 
     This is a C preprocessor macro that is defined as ``Py_ssize_t`` for Python
@@ -314,7 +328,12 @@ specification files.
         count is incremented.
 
     ``V`` (sip.voidptr) [void \*]
-        Convert a C/C++ ``void *`` Python :class:`sip.voidptr` object.
+        Convert a C/C++ ``void *`` to a Python :class:`sip.voidptr` object.
+
+    ``z`` (object) [const char \*, void \*]
+        .. versionadded:: 4.14.1
+
+        Convert a C/C++ ``void *`` to a Python named capsule object.
 
 
 .. c:function:: PyObject *sipCallMethod(int *iserr, PyObject *method, const char *format, ...)
@@ -812,6 +831,28 @@ specification files.
         :c:type:`PyCObject`.
     :return:
         the memory address.
+
+
+.. c:function:: int sipEnableAutoconversion(const sipTypeDef *td, int enable)
+
+    .. versionadded:: 4.14.7
+
+    Instances of some classes may be automatically converted to other Python
+    objects even though the class has been wrapped.  This allows that behaviour
+    to be suppressed so that an instances of the wrapped class is returned
+    instead.
+
+    :param td:
+        the type's :ref:`generated type structure <ref-type-structures>`.  This
+        must refer to a class.
+    :param enable:
+        is non-zero if auto-conversion should be enabled for the type.  This is
+        the default behaviour.
+    :return:
+        ``1`` or ``0`` depending on whether or not auto-conversion was
+        previously enabled for the type.  This allows the previous state to be
+        restored later on.  ``-1`` is returned, and a Python exception raised,
+        if there was an error.
 
 
 .. c:function:: int sipExportSymbol(const char *name, void *sym)
@@ -1321,11 +1362,30 @@ specification files.
         returned without any conversions.  The reference count is incremented.
         The Python object may not be ``Py_None``.
 
-    ``V`` (:class:`sip.voidptr`) [void \*]
+    ``V`` (:class:`sip.voidptr`) [void \*\*]
         Convert a Python :class:`sip.voidptr` object to a C/C++ ``void *``.
+
+    ``z`` (object) [const char \*, void \*\*]
+        .. versionadded:: 4.14.1
+
+        Convert a Python named capsule object to a C/C++ ``void *``.
 
     ``Z`` (object) []
         Check that a Python object is ``Py_None``.  No value is returned.
+
+    ``!`` (object) [PyObject \*\*]
+        .. versionadded:: 4.14.1
+
+        A Python object is checked to see if it implements the buffer protocol
+        and then returned without any conversions.  The reference count is
+        incremented.  The Python object may not be ``Py_None``.
+
+    ``$`` (object) [PyObject \*\*]
+        .. versionadded:: 4.14.1
+
+        A Python object is checked to see if it implements the buffer protocol
+        and then returned without any conversions.  The reference count is
+        incremented.  The Python object may be ``Py_None``.
 
 
 .. c:function:: int sipRegisterAttributeGetter(const sipTypeDef *td, sipAttrGetterFunc getter)
@@ -1429,6 +1489,22 @@ specification files.
         the name of the typedef.
     :return:
         the value of the typedef or ``NULL`` if there was no such typedef.
+
+
+.. c:function:: void sipSetDestroyOnExit(int destroy)
+
+    .. versionadded:: 4.14.7
+
+    When the Python interpreter exits it garbage collects those objects that it
+    can.  This means that any corresponding C++ instances and C structures
+    owned by Python are destroyed.  Unfortunately this happens in an
+    unpredictable order and so can cause memory faults within the wrapped
+    library.  Calling this function with a value of zero disables the automatic
+    destruction of C++ instances and C structures.
+
+    :param destroy:
+        non-zero if all C++ instances and C structures owned by Python should
+        be destroyed when the interpreter exits.  This is the default.
 
 
 .. c:type:: sipSimpleWrapper

@@ -70,9 +70,10 @@ Argument Annotations
 .. argument-annotation:: AllowNone
 
     This boolean annotation specifies that the value of the corresponding
-    argument (which should be either :stype:`SIP_PYCALLABLE`,
-    :stype:`SIP_PYDICT`, :stype:`SIP_PYLIST`, :stype:`SIP_PYSLICE`,
-    :stype:`SIP_PYTUPLE` or :stype:`SIP_PYTYPE`) may be ``None``.
+    argument (which should be either :stype:`SIP_PYBUFFER`,
+    :stype:`SIP_PYCALLABLE`, :stype:`SIP_PYDICT`, :stype:`SIP_PYLIST`,
+    :stype:`SIP_PYSLICE`, :stype:`SIP_PYTUPLE` or :stype:`SIP_PYTYPE`) may be
+    ``None``.
 
 
 .. argument-annotation:: Array
@@ -200,6 +201,18 @@ Argument Annotations
     the reference to the previous argument is discarded.  Note that ownership
     of the argument is not changed.
 
+    If the function is a method then the reference is kept by the instance,
+    i.e. ``self``.  Therefore the extra reference is released when the instance
+    is garbage collected.
+
+    If the function is a class method or an ordinary function and it is
+    annotated using the :fanno:`Factory` annotation, then the reference is
+    kept by the object created by the function.  Therefore the extra reference
+    is released when that object is garbage collected.
+
+    Otherwise the reference is not kept by any specific object and will never
+    be released.
+
     If a value is specified then it defines the argument's key.  Arguments of
     different constructors or methods that have the same key are assumed to
     refer to the same value.
@@ -250,8 +263,8 @@ Argument Annotations
     This boolean annotation is used with functions or methods that return a
     ``void *`` or ``const void *``.  It identifies an argument that defines the
     size of the block of memory whose address is being returned.  This allows
-    the ``sip.voidptr`` object that wraps the address to support the Python
-    buffer protocol.
+    the :class:`sip.voidptr` object that wraps the address to support the
+    Python buffer protocol.
 
 
 .. argument-annotation:: SingleShot
@@ -340,6 +353,9 @@ Class Annotations
 
     If a class or mapped type has different implementations enabled for
     different ranges of version numbers then those ranges must not overlap.
+
+    Note that sub-classing from a class that has different implementations is
+    not currently supported.
 
     See :ref:`ref-incompat-apis` for more detail.
 
@@ -751,16 +767,17 @@ Function Annotations
 .. function-annotation:: Numeric
 
     This boolean annotation specifies that the operator should be interpreted
-    as a numeric operator rather than a sequence operator.  Python uses the
-    ``+`` operator for adding numbers and concatanating sequences, and the
-    ``*`` operator for multiplying numbers and repeating sequences.  SIP tries
-    to work out which is meant by looking at other operators that have been
-    defined for the type.  If it finds either ``-``, ``-=``, ``/``, ``/=``,
-    ``%`` or ``%=`` defined then it assumes that ``+``, ``+=``, ``*`` and
-    ``*=`` should be numeric operators.  Otherwise, if it finds either ``[]``,
-    :meth:`__getitem__`, :meth:`__setitem__` or :meth:`__delitem__` defined
-    then it assumes that they should be sequence operators.  This annotation is
-    used to force SIP to treat the operator as numeric.
+    as a numeric operator rather than a sequence operator.
+    
+    Python uses the ``+`` operator for adding numbers and concatanating
+    sequences, and the ``*`` operator for multiplying numbers and repeating
+    sequences.  Unless this or the :fanno:`Sequence` annotation is specified,
+    SIP tries to work out which is meant by looking at other operators that
+    have been defined for the type.  If it finds either ``-``, ``-=``, ``/``,
+    ``/=``, ``%`` or ``%=`` defined then it assumes that ``+``, ``+=``, ``*``
+    and ``*=`` should be numeric operators.  Otherwise, if it finds either
+    ``[]``, :meth:`__getitem__`, :meth:`__setitem__` or :meth:`__delitem__`
+    defined then it assumes that they should be sequence operators.
 
 
 .. function-annotation:: PostHook
@@ -820,6 +837,24 @@ Function Annotations
     :fanno:`HoldGIL` annotation.
 
 
+.. function-annotation:: Sequence
+
+    .. versionadded:: 4.14.7
+
+    This boolean annotation specifies that the operator should be interpreted
+    as a sequence operator rather than a numeric operator.
+
+    Python uses the ``+`` operator for adding numbers and concatanating
+    sequences, and the ``*`` operator for multiplying numbers and repeating
+    sequences.  Unless this or the :fanno:`Numeric` annotation is specified,
+    SIP tries to work out which is meant by looking at other operators that
+    have been defined for the type.  If it finds either ``-``, ``-=``, ``/``,
+    ``/=``, ``%`` or ``%=`` defined then it assumes that ``+``, ``+=``, ``*``
+    and ``*=`` should be numeric operators.  Otherwise, if it finds either
+    ``[]``, :meth:`__getitem__`, :meth:`__setitem__` or :meth:`__delitem__`
+    defined then it assumes that they should be sequence operators.
+
+
 .. function-annotation:: Transfer
 
     This boolean annotation specifies that ownership of the value returned by
@@ -873,6 +908,19 @@ Function Annotations
 
 Typedef Annotations
 -------------------
+
+.. typedef-annotation:: Capsule
+
+    .. versionadded:: 4.14.1
+
+    This boolean annotation may only be used when the base type is ``void *``
+    and specifies that a Python capsule object is used to wrap the value rather
+    than a :class:`sip.voidptr`.  The advantage of using a capsule is that name
+    based type checking is performed using the name of the type being defined.
+
+    For versions of Python that do not support capules :class:`sip.voidptr` is
+    used instead and name based type checking is not performed.
+
 
 .. typedef-annotation:: DocType
 

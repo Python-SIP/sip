@@ -1,7 +1,7 @@
 /*
  * This file defines the SIP library internal interfaces.
  *
- * Copyright (c) 2012 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2013 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -111,7 +111,6 @@ void *sip_api_get_cpp_ptr(sipSimpleWrapper *w, const sipTypeDef *td);
 PyObject *sip_api_convert_from_type(void *cppPtr, const sipTypeDef *td,
         PyObject *transferObj);
 void sip_api_common_dtor(sipSimpleWrapper *sipSelf);
-void sip_api_start_thread(void);
 void sip_api_end_thread(void);
 void sip_api_free_sipslot(sipSlot *slot);
 int sip_api_same_slot(const sipSlot *sp, PyObject *rxObj, const char *slot);
@@ -127,7 +126,8 @@ int sip_api_save_slot(sipSlot *sp, PyObject *rxObj, const char *slot);
 sipClassTypeDef *sipGetGeneratedClassType(sipEncodedTypeDef *enc,
         const sipClassTypeDef *ctd);
 void sipSaveMethod(sipPyMethod *pm,PyObject *meth);
-void *sipGetPending(sipWrapper **op, int *fp);
+int sipGetPending(void **pp, sipWrapper **op, int *fp);
+int sipIsPending();
 PyObject *sipWrapSimpleInstance(void *cppPtr, const sipTypeDef *td,
         sipWrapper *owner, int initflags);
 void *sipConvertRxEx(sipWrapper *txSelf, const char *sigargs,

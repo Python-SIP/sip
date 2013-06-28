@@ -1,7 +1,7 @@
 /*
  * The SIP parser.
  *
- * Copyright (c) 2012 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2013 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -295,6 +295,7 @@ static void mappedTypeAnnos(mappedTypeDef *mtd, optFlags *optflgs);
 %token          TK_PYCALLABLE
 %token          TK_PYSLICE
 %token          TK_PYTYPE
+%token          TK_PYBUFFER
 %token          TK_VIRTUAL
 %token          TK_ENUM
 %token          TK_SIGNED
@@ -1735,10 +1736,8 @@ module: TK_MODULE module_args module_body {
         }
     ;
 
-module_args:    dottedname optnumber {
-            resetLexerState();
-
-            if ($2 >= 0)
+module_args:    dottedname {resetLexerState();} optnumber {
+            if ($3 >= 0)
                 deprecated("%Module version number should be specified using the 'version' argument");
 
             $$.c_module = FALSE;
@@ -1747,7 +1746,7 @@ module_args:    dottedname optnumber {
             $$.use_arg_names = FALSE;
             $$.all_raise_py_exc = FALSE;
             $$.def_error_handler = NULL;
-            $$.version = $2;
+            $$.version = $3;
         }
     |   '(' module_arg_list ')' {
             $$ = $2;
@@ -2655,6 +2654,7 @@ typedef:    TK_TYPEDEF cpptype TK_NAME_VALUE optflags ';' {
             if (notSkipping())
             {
                 const char *annos[] = {
+                    "Capsule",
                     "DocType",
                     "Encoding",
                     "NoTypeName",
@@ -2854,6 +2854,11 @@ superclass: class_access scopedname {
                 if (ad.atype != no_type)
                     yyerror("Super-class list contains an invalid type");
 
+                /*
+                 * Note that passing NULL as the API is a bug.  Instead we
+                 * should pass the API of the sub-class being defined,
+                 * otherwise we cannot create sub-classes of versioned classes.
+                 */
                 super = findClass(currentSpec, class_iface, NULL, snd);
                 appendToClassList(&currentSupers, super);
             }
@@ -3040,6 +3045,17 @@ classline:  ifstart
                     yyerror("Class has more than one %ConvertToTypeCode directive");
 
                 appendCodeBlock(&scope->convtocode, $2);
+            }
+        }
+    |   TK_FROMTYPE codeblock {
+            if (notSkipping())
+            {
+                classDef *scope = currentScope();
+
+                if (scope->convfromcode != NULL)
+                    yyerror("Class has more than one %ConvertFromTypeCode directive");
+
+                appendCodeBlock(&scope->convfromcode, $2);
             }
         }
     |   TK_PUBLIC optslot ':' {
@@ -4221,6 +4237,10 @@ basetype:   scopedname {
             memset(&$$, 0, sizeof (argDef));
             $$.atype = pytype_type;
         }
+    |   TK_PYBUFFER {
+            memset(&$$, 0, sizeof (argDef));
+            $$.atype = pybuffer_type;
+        }
     |   TK_SIPSSIZET {
             memset(&$$, 0, sizeof (argDef));
             $$.atype = ssize_type;
@@ -4836,7 +4856,7 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd,
     }
     else
     {
-        int seq_might, seq_not;
+        int seq_might, seq_not, default_to_sequence;
         memberDef *md;
 
         if (getOptFlag(of, "NoDefaultCtors", bool_flag) != NULL)
@@ -4911,13 +4931,14 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd,
          * the multiply and repeat methods.  The number versions can have their
          * operands swapped and may return NotImplemented.  If the user has
          * used the /Numeric/ annotation or there are other numeric operators
-         * then we use add/multiply.  Otherwise, if there are indexing
-         * operators then we use concat/repeat.
+         * then we use add/multiply.  Otherwise, if the user has used the
+         * /Sequence/ annotation or there are indexing operators then we use
+         * concat/repeat.
          */
         seq_might = seq_not = FALSE;
 
-        for (md = cd -> members; md != NULL; md = md -> next)
-            switch (md -> slot)
+        for (md = cd->members; md != NULL; md = md->next)
+            switch (md->slot)
             {
             case getitem_slot:
             case setitem_slot:
@@ -4943,32 +4964,34 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd,
                 break;
             }
 
-        if (!seq_not && seq_might)
-            for (md = cd -> members; md != NULL; md = md -> next)
-            {
-                /* Ignore if the user has been explicit. */
-                if (isNumeric(md))
-                    continue;
+        default_to_sequence = (!seq_not && seq_might);
 
-                switch (md -> slot)
+        for (md = cd->members; md != NULL; md = md->next)
+        {
+            /* Ignore if it is explicitly numeric. */
+            if (isNumeric(md))
+                continue;
+
+            if (isSequence(md) || default_to_sequence)
+                switch (md->slot)
                 {
                 case add_slot:
-                    md -> slot = concat_slot;
+                    md->slot = concat_slot;
                     break;
 
                 case iadd_slot:
-                    md -> slot = iconcat_slot;
+                    md->slot = iconcat_slot;
                     break;
 
                 case mul_slot:
-                    md -> slot = repeat_slot;
+                    md->slot = repeat_slot;
                     break;
 
                 case imul_slot:
-                    md -> slot = irepeat_slot;
+                    md->slot = irepeat_slot;
                     break;
                 }
-            }
+        }
     }
 
     if (inMainModule())
@@ -5455,6 +5478,10 @@ static char *type2string(argDef *ad)
 
         case void_type:
             s = "void";
+            break;
+
+        case capsule_type:
+            s = "void *";
             break;
 
         default:
@@ -6314,6 +6341,20 @@ static void newTypedef(sipSpec *pt, moduleDef *mod, char *name, argDef *type,
     td->module = mod;
     td->type = *type;
 
+    if (getOptFlag(optflgs, "Capsule", bool_flag) != NULL)
+    {
+        /* Make sure the type is void *. */
+        if (type->atype != void_type || type->nrderefs != 1 || isConstArg(type) || isReference(type))
+        {
+            fatalScopedName(fqname);
+            fatal(" must be a void* if /Capsule/ is specified\n");
+        }
+
+        td->type.atype = capsule_type;
+        td->type.nrderefs = 0;
+        td->type.u.cap = fqname;
+    }
+
     if (getOptFlag(optflgs, "NoTypeName", bool_flag) != NULL)
         setNoTypeName(td);
 
@@ -6439,6 +6480,13 @@ static void newVar(sipSpec *pt, moduleDef *mod, char *name, int isstatic,
     varDef *var;
     classDef *escope = currentScope();
     nameDef *nd;
+
+    /*
+     * For the moment we don't support capsule variables because it needs the
+     * API major version increasing.
+     */
+    if (type->atype == capsule_type)
+        yyerror("Capsule variables not yet supported");
 
     /* Check the section. */
     if (section != 0)
@@ -6620,6 +6668,7 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         "PyName",
         "RaisesPyException",
         "ReleaseGIL",
+        "Sequence",
         "VirtualErrorHandler",
         "Transfer",
         "TransferBack",
@@ -6646,6 +6695,15 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
 
         if (exceptions != NULL)
             yyerror("Exceptions not allowed in a C module");
+
+        /* Handle C void prototypes. */
+        if (sig->nrArgs == 1)
+        {
+            argDef *vad = &sig->args[0];
+
+            if (vad->atype == void_type && vad->nrderefs == 0)
+                sig->nrArgs = 0;
+        }
     }
 
     if (mt_scope != NULL)
@@ -6889,7 +6947,20 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         setNotVersioned(od->common);
 
     if (getOptFlag(optflgs, "Numeric", bool_flag) != NULL)
+    {
+        if (isSequence(od->common))
+            yyerror("/Sequence/ has already been specified");
+
         setIsNumeric(od->common);
+    }
+
+    if (getOptFlag(optflgs, "Sequence", bool_flag) != NULL)
+    {
+        if (isNumeric(od->common))
+            yyerror("/Numeric/ has already been specified");
+
+        setIsSequence(od->common);
+    }
 
     /* Methods that run in new threads must be virtual. */
     if (getOptFlag(optflgs, "NewThread", bool_flag) != NULL)
