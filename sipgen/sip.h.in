@@ -1135,6 +1135,7 @@ typedef struct _classDef {
     codeBlockList *segcountcode;        /* Segment count code (Python v2). */
     codeBlockList *charbufcode;         /* Character buffer code (Python v2). */
     codeBlockList *picklecode;          /* Pickle code. */
+    codeBlockList *finalcode;           /* Finalisation code. */
     propertyDef *properties;            /* The properties. */
     const char *virt_error_handler;     /* The virtual error handler. */
     struct _classDef *next;             /* Next in the list. */

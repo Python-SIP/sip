@@ -6169,6 +6169,43 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
             );
     }
 
+    /* The finalisation function. */
+    if (cd->finalcode != NULL)
+    {
+        int need_cpp = usedInCode(cd->finalcode, "sipCpp");
+
+        prcode(fp,
+"\n"
+"\n"
+            );
+
+        if (!generating_c)
+            prcode(fp,
+"extern \"C\" {static int final_%C(PyObject *, void *, PyObject *);}\n"
+                , classFQCName(cd));
+
+        prcode(fp,
+"static int final_%C(PyObject *%s, void *%s, PyObject *%s)\n"
+"{\n"
+            , classFQCName(cd), (usedInCode(cd->finalcode, "sipSelf") ? "sipSelf" : ""), (need_cpp ? "sipCppV" : ""), (usedInCode(cd->finalcode, "sipKwArgs") ? "sipKwArgs" : ""));
+
+        if (need_cpp)
+        {
+            prcode(fp,
+"    ");
+            generateClassFromVoid(cd, "sipCpp", "sipCppV", fp);
+            prcode(fp, ";\n"
+"\n"
+                );
+        }
+
+        generateCppCodeBlock(cd->finalcode, fp);
+
+        prcode(fp,
+"}\n"
+            );
+    }
+
     if (generating_c || assignmentHelper(cd))
     {
         /* The assignment helper. */
@@ -10121,6 +10158,15 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
     if (cd->picklecode != NULL)
         prcode(fp,
 "    pickle_%C\n"
+            , classFQCName(cd));
+    else
+        prcode(fp,
+"    0\n"
+            );
+
+    if (cd->finalcode != NULL)
+        prcode(fp,
+"    final_%C\n"
             , classFQCName(cd));
     else
         prcode(fp,

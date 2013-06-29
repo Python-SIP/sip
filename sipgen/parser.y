@@ -232,6 +232,7 @@ static void mappedTypeAnnos(mappedTypeDef *mtd, optFlags *optflgs);
 %token          TK_PREINITCODE
 %token          TK_INITCODE
 %token          TK_POSTINITCODE
+%token          TK_FINALCODE
 %token          TK_UNITCODE
 %token          TK_UNITPOSTINCLUDECODE
 %token          TK_MODCODE
@@ -392,6 +393,7 @@ static void mappedTypeAnnos(mappedTypeDef *mtd, optFlags *optflgs);
 %type <codeb>           segcountcode
 %type <codeb>           charbufcode
 %type <codeb>           picklecode
+%type <codeb>           finalcode
 %type <codeb>           typecode
 %type <codeb>           codeblock
 %type <codeb>           codelines
@@ -2109,6 +2111,11 @@ picklecode: TK_PICKLECODE codeblock {
         }
     ;
 
+finalcode:  TK_FINALCODE codeblock {
+            $$ = $2;
+        }
+    ;
+
 modcode:    TK_MODCODE codeblock {
             if (notSkipping())
                 appendCodeBlock(&currentModule->cppcode, $2);
@@ -3020,6 +3027,17 @@ classline:  ifstart
                     yyerror("%PickleCode already given for class");
 
                 appendCodeBlock(&scope->picklecode, $1);
+            }
+        }
+    |   finalcode {
+            if (notSkipping())
+            {
+                classDef *scope = currentScope();
+
+                if (scope->finalcode != NULL)
+                    yyerror("%FinalisationCode already given for class");
+
+                appendCodeBlock(&scope->finalcode, $1);
             }
         }
     |   ctor
@@ -5719,6 +5737,7 @@ static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod,
     cd->charbufcode = templateCode(pt, used, cd->charbufcode, type_names, type_values);
     cd->instancecode = templateCode(pt, used, cd->instancecode, type_names, type_values);
     cd->picklecode = templateCode(pt, used, cd->picklecode, type_names, type_values);
+    cd->finalcode = templateCode(pt, used, cd->finalcode, type_names, type_values);
     cd->next = pt->classes;
 
     pt->classes = cd;

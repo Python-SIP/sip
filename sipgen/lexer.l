@@ -364,6 +364,12 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
     return TK_POSTINITCODE;
 }
 
+^[ \t]*%FinalisationCode {
+    /* The start of a class finalisation code block. */
+    codeIdx = 0;
+    return TK_FINALCODE;
+}
+
 ^[ \t]*%UnitCode {
     /* The start of a unit code block. */
     codeIdx = 0;
