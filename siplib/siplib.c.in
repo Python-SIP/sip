@@ -530,7 +530,6 @@ static unsigned traceMask = 0;          /* The current trace mask. */
 
 static sipTypeDef *currentType = NULL;  /* The type being created. */
 
-static PyObject *initName = NULL;       /* __init__ */
 static PyObject *empty_tuple;           /* The empty tuple. */
 static PyObject *type_unpickler;        /* The type unpickler function. */
 static PyObject *enum_unpickler;        /* The enum unpickler function. */
@@ -844,13 +843,7 @@ PyMODINIT_FUNC SIP_MODULE_ENTRY(void)
         SIP_FATAL(SIP_MODULE_NAME ": Failed to add _C_API object to module dictionary");
     }
 
-    /* These will always be needed. */
-    if (objectify("__init__", &initName) < 0)
-    {
-        SIP_MODULE_DISCARD(mod);
-        SIP_FATAL(SIP_MODULE_NAME ": Failed to objectify '__init__'");
-    }
-
+    /* This will always be needed. */
     if ((empty_tuple = PyTuple_New(0)) == NULL)
     {
         SIP_MODULE_DISCARD(mod);
@@ -9346,12 +9339,12 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
         PyObject *kwds)
 {
     void *sipNew;
-    int sipFlags;
+    int sipFlags, rc, i;
     sipWrapper *owner;
     sipWrapperType *wt = (sipWrapperType *)Py_TYPE(self);
     sipTypeDef *td = wt->type;
     sipClassTypeDef *ctd = (sipClassTypeDef *)td;
-    PyObject *unused = NULL, *super, *init, *init_res;
+    PyObject *unused = NULL, *mro, *next_in_mro;
 
     /* Check there is no existing C++ instance waiting to be wrapped. */
     if (sipGetPending(&sipNew, &owner, &sipFlags) < 0)
@@ -9492,39 +9485,25 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
         }
     }
 
-    /* Create a super object. */
-    super = PyObject_CallFunctionObjArgs((PyObject *)&PySuper_Type,
-            (PyObject *)&sipSimpleWrapper_Type, (PyObject *)self, NULL);
+    /* Invoke the next __init__ in the MRO. */
+    mro = Py_TYPE(self)->tp_mro;
+    assert(PyTuple_Check(mro));
 
-    if (super == NULL)
-    {
-        Py_XDECREF(unused);
-        return -1;
-    }
+    for (i = 0; i < PyTuple_GET_SIZE(mro); ++i)
+        if (PyTuple_GET_ITEM(i) == &sipSimpleWrapper_Type)
+            break;
 
-    /* Get its __init__ method. */
-    init = PyObject_GetAttr(super, initName);
+    assert(i + 1 < PyTuple_GET_SIZE(mro));
 
-    if (init == NULL)
-    {
-        Py_DECREF(super);
-        Py_XDECREF(unused);
-        return -1;
-    }
+    next_in_mro = PyTuple_GET_ITEM(i + 1);
+    assert(PyType_Check(next_in_mro));
 
-    /* Call __init__. */
-    init_res = PyObject_Call(init, empty_tuple, unused);
+    rc = ((PyTypeObject *)next_in_mro)->tp_init((PyObject *)self, empty_tuple,
+            unused);
 
-    Py_DECREF(init);
-    Py_DECREF(super);
     Py_XDECREF(unused);
 
-    if (init_res == NULL)
-        return -1;
-
-    Py_DECREF(init_res);
-
-    return 0;
+    return rc;
 }
 
 
