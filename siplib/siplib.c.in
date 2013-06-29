@@ -505,8 +505,14 @@ static PyTypeObject sipEnumType_Type = {
 };
 
 
+/*
+ * Remove these in SIP v5.
+ */
 sipQtAPI *sipQtSupport = NULL;
 sipTypeDef *sipQObjectType;
+
+static int got_kw_handler = FALSE;
+static int (*kw_handler)(PyObject *, void *, PyObject *);
 
 
 /*
@@ -524,6 +530,8 @@ static unsigned traceMask = 0;          /* The current trace mask. */
 
 static sipTypeDef *currentType = NULL;  /* The type being created. */
 
+static PyObject *initName = NULL;       /* __init__ */
+static PyObject *empty_tuple;           /* The empty tuple. */
 static PyObject *type_unpickler;        /* The type unpickler function. */
 static PyObject *enum_unpickler;        /* The enum unpickler function. */
 static sipSymbol *sipSymbolList = NULL; /* The list of published symbols. */
@@ -834,6 +842,19 @@ PyMODINIT_FUNC SIP_MODULE_ENTRY(void)
     {
         SIP_MODULE_DISCARD(mod);
         SIP_FATAL(SIP_MODULE_NAME ": Failed to add _C_API object to module dictionary");
+    }
+
+    /* These will always be needed. */
+    if (objectify("__init__", &initName) < 0)
+    {
+        SIP_MODULE_DISCARD(mod);
+        SIP_FATAL(SIP_MODULE_NAME ": Failed to objectify '__init__'");
+    }
+
+    if ((empty_tuple = PyTuple_New(0)) == NULL)
+    {
+        SIP_MODULE_DISCARD(mod);
+        SIP_FATAL(SIP_MODULE_NAME ": Failed to create empty tuple");
     }
 
     /* Add the SIP version number, but don't worry about errors. */
@@ -1366,6 +1387,13 @@ static int sip_api_export_module(sipExportedModuleDef *client,
     /* Add it to the list of client modules. */
     client->em_next = moduleList;
     moduleList = client;
+
+    /* Get any keyword handler.  Remove this in SIP v5. */
+    if (!got_kw_handler)
+    {
+        kw_handler = sip_api_import_symbol("pyqt_kw_handler");
+        got_kw_handler = TRUE;
+    }
 
     return 0;
 }
@@ -3042,12 +3070,14 @@ static int sip_api_parse_kwd_args(PyObject **parseErrp, PyObject *sipArgs,
 
     if (unused != NULL)
     {
-        /* Initialise the return of any unused keyword arguments. */
+        /*
+         * Initialise the return of any unused keyword arguments.  This is
+         * used by any ctor overload.
+         */
         *unused = NULL;
     }
     else if (sipKwdArgs != NULL && kwdlist == NULL)
     {
-        /* __init__ methods avoid the normal Python checks. */
         PyErr_SetString(PyExc_TypeError,
                 "keyword arguments are not supported");
         return FALSE;
@@ -9229,7 +9259,6 @@ static int sipWrapperType_setattro(PyObject *self, PyObject *name,
 static PyObject *sipSimpleWrapper_new(sipWrapperType *wt, PyObject *args,
         PyObject *kwds)
 {
-    static PyObject *noargs = NULL;
     sipTypeDef *td = wt->type;
     sipContainerDef *cod;
 
@@ -9250,15 +9279,6 @@ static PyObject *sipSimpleWrapper_new(sipWrapperType *wt, PyObject *args,
         cod = &((sipMappedTypeDef *)td)->mtd_container;
     else
         cod = &((sipClassTypeDef *)td)->ctd_container;
-
-    /* We need an empty tuple for an empty argument list. */
-    if (noargs == NULL)
-    {
-        noargs = PyTuple_New(0);
-
-        if (noargs == NULL)
-            return NULL;
-    }
 
     /* See if it is a mapped type. */
     if (sipTypeIsMapped(td))
@@ -9315,7 +9335,7 @@ static PyObject *sipSimpleWrapper_new(sipWrapperType *wt, PyObject *args,
     }
 
     /* Call the standard super-type new. */
-    return PyBaseObject_Type.tp_new((PyTypeObject *)wt, noargs, NULL);
+    return PyBaseObject_Type.tp_new((PyTypeObject *)wt, empty_tuple, NULL);
 }
 
 
@@ -9331,27 +9351,7 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
     sipWrapperType *wt = (sipWrapperType *)Py_TYPE(self);
     sipTypeDef *td = wt->type;
     sipClassTypeDef *ctd = (sipClassTypeDef *)td;
-    PyObject *unused, **unused_p;
-
-    static int got_kw_handler = FALSE;
-    static int (*kw_handler)(PyObject *, void *, PyObject *);
-
-    /*
-     * Get any keyword handler if necessary.  In SIP v5 this will be
-     * generalised and not PyQt specific.
-     */
-    if (!got_kw_handler)
-    {
-        kw_handler = sip_api_import_symbol("pyqt_kw_handler");
-        got_kw_handler = TRUE;
-    }
-
-    /*
-     * We are interested in unused keyword arguments if we are creating a
-     * QObject and we have a handler.
-     */
-    unused_p = (kw_handler != NULL && isQObject((PyObject *)self)) ? &unused : NULL;
-    unused = NULL;
+    PyObject *unused = NULL, *super, *init, *init_res;
 
     /* Check there is no existing C++ instance waiting to be wrapped. */
     if (sipGetPending(&sipNew, &owner, &sipFlags) < 0)
@@ -9364,7 +9364,7 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
         /* Call the C++ ctor. */
         owner = NULL;
 
-        sipNew = ctd->ctd_init(self, args, kwds, unused_p, (PyObject **)&owner,
+        sipNew = ctd->ctd_init(self, args, kwds, &unused, (PyObject **)&owner,
                 &parseErr);
 
         if (sipNew != NULL)
@@ -9389,7 +9389,7 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
              */
             while (PyList_Check(parseErr) && ie != NULL)
             {
-                sipNew = ie->ie_extender(self, args, kwds, unused_p,
+                sipNew = ie->ie_extender(self, args, kwds, &unused,
                         (PyObject **)&owner, &parseErr);
 
                 if (sipNew != NULL)
@@ -9459,17 +9459,70 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
     if (!sipNotInMap(self))
         sipOMAddObject(&cppPyMap, self);
 
-    /* If we have unused keyword arguments then we know how to handle them. */
-    if (unused != NULL)
+    /*
+     * Make sure we have updated keyword arguments with the right reference
+     * count.
+     */
+    if (unused == NULL)
     {
-        int rc;
-
-        rc = kw_handler((PyObject *)self, sipNew, unused);
-        Py_DECREF(unused);
-
-        if (rc < 0)
-            return -1;
+        unused = kwds;
+        Py_XINCREF(unused);
     }
+
+    /* Call any finalisation code. */
+#if SIP_API_MAJOR_NR != 10
+#error Remove test for v10.1
+#endif
+    if (td->td_module->em_api_minor >= 1 && ctd->ctd_final != NULL)
+    {
+        if (ctd->ctd_final((PyObject *)self, sipNew, unused) < 0)
+        {
+            Py_XDECREF(unused);
+            return -1;
+        }
+    }
+
+    /* Call the handler if we have one.  Remove this in SIP v5. */
+    if (kw_handler != NULL && unused != NULL && isQObject((PyObject *)self))
+    {
+        if (kw_handler((PyObject *)self, sipNew, unused) < 0)
+        {
+            Py_DECREF(unused);
+            return -1;
+        }
+    }
+
+    /* Create a super object. */
+    super = PyObject_CallFunctionObjArgs((PyObject *)&PySuper_Type,
+            (PyObject *)&sipSimpleWrapper_Type, (PyObject *)self, NULL);
+
+    if (super == NULL)
+    {
+        Py_XDECREF(unused);
+        return -1;
+    }
+
+    /* Get its __init__ method. */
+    init = PyObject_GetAttr(super, initName);
+
+    if (init == NULL)
+    {
+        Py_DECREF(super);
+        Py_XDECREF(unused);
+        return -1;
+    }
+
+    /* Call __init__. */
+    init_res = PyObject_Call(init, empty_tuple, unused);
+
+    Py_DECREF(init);
+    Py_DECREF(super);
+    Py_XDECREF(unused);
+
+    if (init_res == NULL)
+        return -1;
+
+    Py_DECREF(init_res);
 
     return 0;
 }
