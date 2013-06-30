@@ -9472,7 +9472,7 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
 #endif
     if (td->td_module->em_api_minor >= 1 && ctd->ctd_final != NULL)
     {
-        PyObject *new_unused, **new_unused_p;
+        PyObject *new_unused = NULL, **new_unused_p;
 
         if (unused == NULL || unused != kwds)
         {
@@ -9489,7 +9489,6 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
              * All of the keyword arguments are unused, so if some of them are
              * now going to be used then a new dict will be needed.
              */
-            new_unused = NULL;
             new_unused_p = &new_unused;
         }
             
@@ -9499,7 +9498,7 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
             return -1;
         }
 
-        if (new_unused_p != NULL)
+        if (new_unused != NULL)
         {
             Py_DECREF(unused);
             unused = new_unused;
