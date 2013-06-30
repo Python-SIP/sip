@@ -688,6 +688,7 @@ static void register_exit_notifier(void);
 static sipConvertFromFunc get_from_convertor(sipTypeDef *td);
 static sipPyObject **autoconversion_disabled(const sipTypeDef *td);
 static void fix_slots(PyTypeObject *py_type, sipPySlotDef *psd);
+static sipFinalFunc find_finalisation(sipClassTypeDef *ctd);
 
 
 /*
@@ -9352,6 +9353,7 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
     sipTypeDef *td = wt->type;
     sipClassTypeDef *ctd = (sipClassTypeDef *)td;
     PyObject *unused = NULL, *mro, *init, *init_args, *init_res;
+    sipFinalFunc final_func;
 
     /* Check for an existing C++ instance waiting to be wrapped. */
     if (sipGetPending(&sipNew, &owner, &sipFlags) < 0)
@@ -9470,7 +9472,7 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
 #if SIP_API_MAJOR_NR != 10
 #error Remove test for v10.1
 #endif
-    if (td->td_module->em_api_minor >= 1 && ctd->ctd_final != NULL)
+    if (td->td_module->em_api_minor >= 1 && (final_func = find_finalisation(ctd)) != NULL)
     {
         PyObject *new_unused = NULL, **new_unused_p;
 
@@ -9492,7 +9494,7 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
             new_unused_p = &new_unused;
         }
             
-        if (ctd->ctd_final((PyObject *)self, sipNew, unused, new_unused_p) < 0)
+        if (final_func((PyObject *)self, sipNew, unused, new_unused_p) < 0)
         {
             Py_XDECREF(unused);
             return -1;
@@ -9562,6 +9564,31 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
     return 0;
 }
 
+
+/*
+ * Find any finalisation function for a class, searching its super-classes if
+ * necessary.
+ */
+static sipFinalFunc find_finalisation(sipClassTypeDef *ctd)
+{
+    sipEncodedTypeDef *sup;
+
+    if (ctd->ctd_final != NULL)
+        return ctd->ctd_final;
+
+    if ((sup = ctd->ctd_supers) != NULL)
+        do
+        {
+            sipTypeDef *sup_td = getGeneratedType(sup, ctd->ctd_base.td_module);
+            sipFinalFunc func;
+
+            if ((func = find_finalisation((sipClassTypeDef *)sup_td)) != NULL)
+                return func;
+        }
+        while (!sup++->sc_flag);
+
+    return NULL;
+}
 
 /*
  * The instance traverse slot.

@@ -1,3 +1,8 @@
+v4.15 ??? ??? 2013
+  - Generated classes now support cooperative multi-inheritance.
+  - Added the %FinalisationCode directive.
+  - Bug fixes.
+
 v4.14.7 16th June 2013
   - The internal API version is increased to 10.0 requiring the regeneration of
     all modules.
