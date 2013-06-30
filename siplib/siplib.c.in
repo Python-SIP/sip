@@ -530,6 +530,7 @@ static unsigned traceMask = 0;          /* The current trace mask. */
 
 static sipTypeDef *currentType = NULL;  /* The type being created. */
 
+static PyObject *init_name = NULL;      /* '__init__'. */
 static PyObject *empty_tuple;           /* The empty tuple. */
 static PyObject *type_unpickler;        /* The type unpickler function. */
 static PyObject *enum_unpickler;        /* The enum unpickler function. */
@@ -843,7 +844,13 @@ PyMODINIT_FUNC SIP_MODULE_ENTRY(void)
         SIP_FATAL(SIP_MODULE_NAME ": Failed to add _C_API object to module dictionary");
     }
 
-    /* This will always be needed. */
+    /* These will always be needed. */
+    if (objectify("__init__", &init_name) < 0)
+    {
+        SIP_MODULE_DISCARD(mod);
+        SIP_FATAL(SIP_MODULE_NAME ": Failed to objectify '__init__'");
+    }
+
     if ((empty_tuple = PyTuple_New(0)) == NULL)
     {
         SIP_MODULE_DISCARD(mod);
@@ -9339,14 +9346,14 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
         PyObject *kwds)
 {
     void *sipNew;
-    int sipFlags, rc, i;
+    int sipFlags, i, from_cpp = TRUE;
     sipWrapper *owner;
     sipWrapperType *wt = (sipWrapperType *)Py_TYPE(self);
     sipTypeDef *td = wt->type;
     sipClassTypeDef *ctd = (sipClassTypeDef *)td;
-    PyObject *unused = NULL, *mro, *next_in_mro;
+    PyObject *unused = NULL, *mro, *init, *init_args, *init_res;
 
-    /* Check there is no existing C++ instance waiting to be wrapped. */
+    /* Check for an existing C++ instance waiting to be wrapped. */
     if (sipGetPending(&sipNew, &owner, &sipFlags) < 0)
         return -1;
 
@@ -9426,6 +9433,9 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
             Py_INCREF(self);
             owner = NULL;
         }
+
+        /* The instance was created from Python. */
+        from_cpp = FALSE;
     }
 
     /*
@@ -9452,15 +9462,9 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
     if (!sipNotInMap(self))
         sipOMAddObject(&cppPyMap, self);
 
-    /*
-     * Make sure we have updated keyword arguments with the right reference
-     * count.
-     */
-    if (unused == NULL)
-    {
-        unused = kwds;
-        Py_XINCREF(unused);
-    }
+    /* If we are wrapping an instance returned from C/C++ then we are done. */
+    if (from_cpp)
+        return 0;
 
     /* Call any finalisation code. */
 #if SIP_API_MAJOR_NR != 10
@@ -9468,21 +9472,55 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
 #endif
     if (td->td_module->em_api_minor >= 1 && ctd->ctd_final != NULL)
     {
-        if (ctd->ctd_final((PyObject *)self, sipNew, unused) < 0)
+        PyObject *new_unused, **new_unused_p;
+
+        if (unused == NULL || unused != kwds)
+        {
+            /*
+             * There are no unused arguments or we have already created a dict
+             * containing the unused sub-set, so there is no need to create
+             * another.
+             */
+            new_unused_p = NULL;
+        }
+        else
+        {
+            /*
+             * All of the keyword arguments are unused, so if some of them are
+             * now going to be used then a new dict will be needed.
+             */
+            new_unused = NULL;
+            new_unused_p = &new_unused;
+        }
+            
+        if (ctd->ctd_final((PyObject *)self, sipNew, unused, new_unused_p) < 0)
         {
             Py_XDECREF(unused);
             return -1;
+        }
+
+        if (new_unused_p != NULL)
+        {
+            Py_DECREF(unused);
+            unused = new_unused;
         }
     }
 
     /* Call the handler if we have one.  Remove this in SIP v5. */
     if (kw_handler != NULL && unused != NULL && isQObject((PyObject *)self))
     {
-        if (kw_handler((PyObject *)self, sipNew, unused) < 0)
-        {
-            Py_DECREF(unused);
+        int rc = kw_handler((PyObject *)self, sipNew, unused);
+
+        /*
+         * A handler will always consume all unused keyword arguments (or raise
+         * an exception) so discard the dict now.
+         */
+        Py_DECREF(unused);
+
+        if (rc < 0)
             return -1;
-        }
+
+        unused = NULL;
     }
 
     /* Invoke the next __init__ in the MRO. */
@@ -9490,20 +9528,39 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
     assert(PyTuple_Check(mro));
 
     for (i = 0; i < PyTuple_GET_SIZE(mro); ++i)
-        if (PyTuple_GET_ITEM(i) == &sipSimpleWrapper_Type)
+        if (PyTuple_GET_ITEM(mro, i) == &sipSimpleWrapper_Type)
             break;
 
+    /* Assert that we have found ourself and that we are not the last. */
     assert(i + 1 < PyTuple_GET_SIZE(mro));
 
-    next_in_mro = PyTuple_GET_ITEM(i + 1);
-    assert(PyType_Check(next_in_mro));
+    if ((init = PyObject_GetAttr(PyTuple_GET_ITEM(mro, i + 1), init_name)) == NULL)
+    {
+        Py_XDECREF(unused);
+        return -1;
+    }
 
-    rc = ((PyTypeObject *)next_in_mro)->tp_init((PyObject *)self, empty_tuple,
-            unused);
+    if ((init_args = PyTuple_New(1)) == NULL)
+    {
+        Py_DECREF(init);
+        Py_XDECREF(unused);
+        return -1;
+    }
 
+    PyTuple_SET_ITEM(init_args, 0, (PyObject *)self);
+    Py_INCREF((PyObject *)self);
+
+    init_res = PyObject_Call(init, init_args, unused);
+    Py_DECREF(init_args);
+    Py_DECREF(init);
     Py_XDECREF(unused);
 
-    return rc;
+    if (init_res == NULL)
+        return -1;
+
+    Py_DECREF(init_res);
+
+    return 0;
 }
 
 
