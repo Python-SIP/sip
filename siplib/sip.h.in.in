@@ -1566,6 +1566,7 @@ typedef struct _sipQtAPI {
 #define SIP_TYPE_ALLOW_NONE 0x0020  /* If the type can handle None. */
 #define SIP_TYPE_STUB       0x0040  /* If the type is a stub. */
 #define SIP_TYPE_NONLAZY    0x0080  /* If the type has a non-lazy method. */
+#define SIP_TYPE_SUPER_INIT 0x0100  /* If the instance's super init should be called. */
 
 
 /*
@@ -1604,6 +1605,7 @@ typedef struct _sipQtAPI {
 #define sipTypeIsStub(td)   ((td)->td_flags & SIP_TYPE_STUB)
 #define sipTypeSetStub(td)  ((td)->td_flags |= SIP_TYPE_STUB)
 #define sipTypeHasNonlazyMethod(td) ((td)->td_flags & SIP_TYPE_NONLAZY)
+#define sipTypeCallSuperInit(td)    ((td)->td_flags & SIP_TYPE_SUPER_INIT)
 
 /*
  * Get various names from the string pool for various data types.

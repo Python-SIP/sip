@@ -9347,12 +9347,12 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
         PyObject *kwds)
 {
     void *sipNew;
-    int sipFlags, i, from_cpp = TRUE;
+    int sipFlags, from_cpp = TRUE;
     sipWrapper *owner;
     sipWrapperType *wt = (sipWrapperType *)Py_TYPE(self);
     sipTypeDef *td = wt->type;
     sipClassTypeDef *ctd = (sipClassTypeDef *)td;
-    PyObject *unused = NULL, *mro, *init, *init_args, *init_res;
+    PyObject *unused = NULL;
     sipFinalFunc final_func;
 
     /* Check for an existing C++ instance waiting to be wrapped. */
@@ -9524,42 +9524,81 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
         unused = NULL;
     }
 
-    /* Invoke the next __init__ in the MRO. */
-    mro = Py_TYPE(self)->tp_mro;
-    assert(PyTuple_Check(mro));
-
-    for (i = 0; i < PyTuple_GET_SIZE(mro); ++i)
-        if (PyTuple_GET_ITEM(mro, i) == &sipSimpleWrapper_Type)
-            break;
-
-    /* Assert that we have found ourself and that we are not the last. */
-    assert(i + 1 < PyTuple_GET_SIZE(mro));
-
-    if ((init = PyObject_GetAttr(PyTuple_GET_ITEM(mro, i + 1), init_name)) == NULL)
+    /* See if we should call the equivalent of super().__init__(). */
+    if (sipTypeCallSuperInit(&ctd->ctd_base))
     {
-        Py_XDECREF(unused);
-        return -1;
+        int i;
+        PyObject *mro, *next_in_mro;
+
+        /* Find the next type in the MRO. */
+        mro = Py_TYPE(self)->tp_mro;
+        assert(PyTuple_Check(mro));
+
+        for (i = 0; i < PyTuple_GET_SIZE(mro); ++i)
+            if (PyTuple_GET_ITEM(mro, i) == &sipSimpleWrapper_Type)
+                break;
+
+        /* Assert that we have found ourself and that we are not the last. */
+        assert(i + 1 < PyTuple_GET_SIZE(mro));
+
+        /*
+         * If the next type in the MRO is object then take a shortcut by not
+         * calling super().__init__() but emulating object.__init__() instead.
+         * This will be the most common case and also allows us to generate a
+         * better exception message if there are unused keyword arguments.  The
+         * disadvantage is that the exception message will be different if
+         * there is a mixin.
+         */
+        if ((next_in_mro = PyTuple_GET_ITEM(mro, i + 1)) == &PyBaseObject_Type)
+        {
+            PyObject *init, *init_args, *init_res;
+
+            if ((init = PyObject_GetAttr(next_in_mro, init_name)) == NULL)
+            {
+                Py_XDECREF(unused);
+                return -1;
+            }
+
+            if ((init_args = PyTuple_New(1)) == NULL)
+            {
+                Py_DECREF(init);
+                Py_XDECREF(unused);
+                return -1;
+            }
+
+            PyTuple_SET_ITEM(init_args, 0, (PyObject *)self);
+            Py_INCREF((PyObject *)self);
+
+            init_res = PyObject_Call(init, init_args, unused);
+            Py_DECREF(init_args);
+            Py_DECREF(init);
+            Py_XDECREF(init_res);
+            Py_XDECREF(unused);
+
+            return (init_res != NULL) ? 0 : -1;
+        }
     }
 
-    if ((init_args = PyTuple_New(1)) == NULL)
+    /* We shouldn't have any unused keyword arguments. */
+    if (unused != NULL)
     {
-        Py_DECREF(init);
-        Py_XDECREF(unused);
-        return -1;
+        if (PyDict_Size(unused) != 0)
+        {
+            PyObject *key, *value;
+            SIP_SSIZE_T pos = 0;
+
+            /* Just report one of the unused arguments. */
+            PyDict_Next(unused, &pos, &key, &value);
+            PyErr_Format(PyExc_TypeError,
+                    "'%S' is an unknown keyword argument", key);
+
+            Py_DECREF(unused);
+
+            return -1;
+        }
+
+        Py_DECREF(unused);
     }
-
-    PyTuple_SET_ITEM(init_args, 0, (PyObject *)self);
-    Py_INCREF((PyObject *)self);
-
-    init_res = PyObject_Call(init, init_args, unused);
-    Py_DECREF(init_args);
-    Py_DECREF(init);
-    Py_XDECREF(unused);
-
-    if (init_res == NULL)
-        return -1;
-
-    Py_DECREF(init_res);
 
     return 0;
 }
