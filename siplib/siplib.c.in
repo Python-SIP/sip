@@ -9549,7 +9549,7 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
          * disadvantage is that the exception message will be different if
          * there is a mixin.
          */
-        if ((next_in_mro = PyTuple_GET_ITEM(mro, i + 1)) == &PyBaseObject_Type)
+        if ((next_in_mro = PyTuple_GET_ITEM(mro, i + 1)) != &PyBaseObject_Type)
         {
             PyObject *init, *init_args, *init_res;
 

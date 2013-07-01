@@ -1121,6 +1121,50 @@ For example::
     %End
 
 
+.. directive:: %FinalisationCode
+
+.. versionadded:: 4.15
+
+.. parsed-literal::
+
+    %FinalisationCode
+        *code*
+    %End
+
+This directive is used to specify handwritten code that is executed one the
+instance of a wrapped class has been created.  The handwritten code is passed a
+dictionary of any remaining keyword arguments.  It must explicitly return an
+integer result which should be ``0`` if there was no error.  If an error
+occurred then ``-1`` should be returned and a Python exception raised.
+
+The following variables are made available to the handwritten code:
+
+PyObject \*sipSelf
+    This is the Python object that wraps the structure or class instance, i.e.
+    ``self``.
+
+*type* \*sipCpp
+    This is a pointer to the structure or class instance.  Its *type* is a
+    pointer to the structure or class.
+
+PyObject \*sipKwds
+    This is an optional dictionary of unused keyword arguments.  It may be
+    ``NULL`` or refer to an empty dictionary.  If the handwritten code handles
+    any of the arguments then, if ``sipUnused`` is ``NULL``, those arguments
+    must be removed from the dictionary.  If ``sipUnused`` is not ``NULL`` then
+    the ``sipKwds`` dictionary must not be updated.  Instead a new dictionary
+    must be created that contains any remaining unused keyword arguments and
+    the address of the new dictionary returned via ``sipUnused``.  This rather
+    complicated API ensures that new dictionaries are created only when
+    necessary.
+
+PyObject \*\*sipUnused
+    This is an optional pointer to where the handwritten code should save the
+    address of any new dictionary of unused keyword arguments that it creates.
+    If it is ``NULL`` then the handwritten code is allowed to update the
+    ``sipKwds`` dictionary.
+
+
 .. directive:: %GCClearCode
 
 .. parsed-literal::
@@ -1843,6 +1887,7 @@ then the pattern should instead be::
 
     %Module(name = *dotted-name*
             [, all_raise_py_exception = [True | False]]
+            [, call_super_init = [True | False]]
             [, default_VirtualErrorHandler = *name*]
             [, keyword_arguments = ["None" | "All" | "Optional"]]
             [, language = *string*]
@@ -1861,6 +1906,13 @@ a Python package.
 methods defined in the module raise a Python exception to indicate that an
 error occurred.  It is the equivalent of using the :fanno:`RaisesPyException`
 function annotation on every constructor, function and method.
+
+``call_super_init`` specifies that the ``__init__()`` method of a wrapped class
+should automatically call it's super-class's ``__init__()`` method passing a
+dictionary of any unused keyword arguments.  In other words, wrapped classes
+support cooperative multi-inheritance.  This means that sub-classes, and any
+mixin classes, should always use call ``super().__init__()`` and not call any
+super-class's ``__init__()`` method explicitly.
 
 ``default_VirtualErrorHandler`` specifies the handler (defined by the
 :directive:`%VirtualErrorHandler` directive) that is called when a Python

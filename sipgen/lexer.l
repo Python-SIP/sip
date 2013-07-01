@@ -160,6 +160,7 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
 <directive>type             {return TK_TYPE;}
 <directive>use_argument_names   {return TK_USEARGNAMES;}
 <directive>all_raise_py_exception   {return TK_ALLRAISEPYEXC;}
+<directive>call_super_init  {return TK_CALLSUPERINIT;}
 <directive>default_VirtualErrorHandler  {return TK_DEFERRORHANDLER;}
 <directive>version          {return TK_VERSION;}
 

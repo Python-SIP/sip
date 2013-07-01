@@ -1,5 +1,6 @@
 v4.15 ??? ??? 2013
-  - Generated classes now support cooperative multi-inheritance.
+  - Added the call_super_init argument to the %Module directive to specify that
+    classes should support cooperative multi-inheritance.
   - Added the %FinalisationCode directive.
   - Bug fixes.
 

@@ -9813,6 +9813,12 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
         sep = "|";
     }
 
+    if (isCallSuperInitYes(mod))
+    {
+        prcode(fp, "%sSIP_TYPE_SUPER_INIT", sep);
+        sep = "|";
+    }
+
     if (cd->iff->type == namespace_iface)
     {
         prcode(fp, "%sSIP_TYPE_NAMESPACE", sep);
