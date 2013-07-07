@@ -61,10 +61,12 @@ typedef struct
  */
 extern PyTypeObject sipMethodDescr_Type;
 PyObject *sipMethodDescr_New(PyMethodDef *pmd);
+PyObject *sipMethodDescr_Copy(PyObject *orig, PyObject *mixin_name);
 
 extern PyTypeObject sipVariableDescr_Type;
 PyObject *sipVariableDescr_New(sipVariableDef *vd, const sipTypeDef *td,
     const sipContainerDef *cod);
+PyObject *sipVariableDescr_Copy(PyObject *orig, PyObject *mixin_name);
 
 
 /*

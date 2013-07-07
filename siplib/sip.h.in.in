@@ -69,6 +69,8 @@ extern "C" {
  * History:
  *
  * 10.1 Added ctd_final to sipClassTypeDef.
+ *      Added ctd_init_mixin to sipClassTypeDef.
+ *      Added sip_api_init_mixin() to the private API.
  *
  * 10.0 Added sip_api_set_destroy_on_exit().
  *      Added sip_api_enable_autoconversion().
@@ -856,7 +858,7 @@ typedef struct _sipClassTypeDef {
     /* The optional copy function. */
     sipCopyFunc ctd_copy;
 
-    /* The release function, 0 if a C strict. */
+    /* The release function, 0 if a C struct. */
     sipReleaseFunc ctd_release;
 
     /* The cast function, 0 if a C struct. */
@@ -876,6 +878,9 @@ typedef struct _sipClassTypeDef {
 
     /* The finalisation function. */
     sipFinalFunc ctd_final;
+
+    /* The mixin initialisation function. */
+    initproc ctd_init_mixin;
 } sipClassTypeDef;
 
 
@@ -1477,6 +1482,8 @@ typedef struct _sipAPIDef {
             const char *fmt, ...);
     void (*api_call_error_handler)(sipVirtErrorHandlerFunc,
             sipSimpleWrapper *, sip_gilstate_t);
+    int (*api_init_mixin)(PyObject *self, PyObject *args, PyObject *kwds,
+            const sipClassTypeDef *ctd);
 } sipAPIDef;
 
 

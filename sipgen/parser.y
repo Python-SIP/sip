@@ -2752,6 +2752,7 @@ struct:     TK_STRUCT scopedname {
                     "Deprecated",
                     "External",
                     "Metatype",
+                    "Mixin",
                     "NoDefaultCtors",
                     "PyName",
                     "PyQt4Flags",
@@ -2823,6 +2824,7 @@ class:  TK_CLASS scopedname {
                     "Deprecated",
                     "External",
                     "Metatype",
+                    "Mixin",
                     "NoDefaultCtors",
                     "PyName",
                     "PyQt4Flags",
@@ -4883,6 +4885,9 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd,
 
     if ((flg = getOptFlag(of, "Supertype", dotted_name_flag)) != NULL)
         cd->supertype = cacheName(pt, flg->fvalue.sval);
+
+    if (getOptFlag(of, "Mixin", bool_flag) != NULL)
+        setMixin(cd);
 
     if ((flg = getOptFlag(of, "PyQt4Flags", integer_flag)) != NULL)
         cd->pyqt4_flags = flg->fvalue.ival;

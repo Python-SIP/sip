@@ -258,6 +258,8 @@ static void sip_api_keep_reference(PyObject *self, int key, PyObject *obj);
 static void sip_api_add_exception(sipErrorState es, PyObject **parseErrp);
 static void sip_api_set_destroy_on_exit(int value);
 static int sip_api_enable_autoconversion(const sipTypeDef *td, int enable);
+static int sip_api_init_mixin(PyObject *self, PyObject *args, PyObject *kwds,
+        const sipClassTypeDef *ctd);
 
 
 /*
@@ -374,6 +376,7 @@ static const sipAPIDef sip_api = {
     sip_api_add_exception,
     sip_api_parse_result_ex,
     sip_api_call_error_handler,
+    sip_api_init_mixin,
 };
 
 
@@ -529,6 +532,7 @@ static sipExportedModuleDef *moduleList = NULL; /* List of registered modules. *
 static unsigned traceMask = 0;          /* The current trace mask. */
 
 static sipTypeDef *currentType = NULL;  /* The type being created. */
+static PyObject **unused_backdoor = NULL;   /* For passing dict of unused arguments. */
 
 static PyObject *init_name = NULL;      /* '__init__'. */
 static PyObject *empty_tuple;           /* The empty tuple. */
@@ -689,6 +693,9 @@ static sipConvertFromFunc get_from_convertor(sipTypeDef *td);
 static sipPyObject **autoconversion_disabled(const sipTypeDef *td);
 static void fix_slots(PyTypeObject *py_type, sipPySlotDef *psd);
 static sipFinalFunc find_finalisation(sipClassTypeDef *ctd);
+static PyObject *next_in_mro(PyObject *self, PyObject *after);
+static int super_init(PyObject *self, PyObject *args, PyObject *kwds,
+        PyObject *type);
 
 
 /*
@@ -9167,7 +9174,8 @@ static PyObject *sipWrapperType_alloc(PyTypeObject *self, SIP_SSIZE_T nitems)
 
         if (sipTypeIsClass(currentType))
         {
-            const char *docstring = ((sipClassTypeDef *)currentType)->ctd_docstring;
+            const sipClassTypeDef *ctd = (const sipClassTypeDef *)currentType;
+            const char *docstring = ctd->ctd_docstring;
 
             /*
              * Skip the marker that identifies the docstring as being
@@ -9178,7 +9186,11 @@ static PyObject *sipWrapperType_alloc(PyTypeObject *self, SIP_SSIZE_T nitems)
 
             ((PyTypeObject *)o)->tp_doc = docstring;
 
-            addClassSlots((sipWrapperType *)o, (sipClassTypeDef *)currentType);
+            addClassSlots((sipWrapperType *)o, ctd);
+
+            /* Patch any mixin initialiser. */
+            if (ctd->ctd_init_mixin != NULL)
+                ((PyTypeObject *)o)->tp_init = ctd->ctd_init_mixin;
         }
     }
 
@@ -9527,19 +9539,11 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
     /* See if we should call the equivalent of super().__init__(). */
     if (sipTypeCallSuperInit(&ctd->ctd_base))
     {
-        int i;
-        PyObject *mro, *next_in_mro;
+        PyObject *next;
 
         /* Find the next type in the MRO. */
-        mro = Py_TYPE(self)->tp_mro;
-        assert(PyTuple_Check(mro));
-
-        for (i = 0; i < PyTuple_GET_SIZE(mro); ++i)
-            if (PyTuple_GET_ITEM(mro, i) == &sipSimpleWrapper_Type)
-                break;
-
-        /* Assert that we have found ourself and that we are not the last. */
-        assert(i + 1 < PyTuple_GET_SIZE(mro));
+        next = next_in_mro((PyObject *)self,
+                (PyObject *)&sipSimpleWrapper_Type);
 
         /*
          * If the next type in the MRO is object then take a shortcut by not
@@ -9549,39 +9553,27 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
          * disadvantage is that the exception message will be different if
          * there is a mixin.
          */
-        if ((next_in_mro = PyTuple_GET_ITEM(mro, i + 1)) != &PyBaseObject_Type)
+        if (next != &PyBaseObject_Type)
         {
-            PyObject *init, *init_args, *init_res;
+            int rc = super_init((PyObject *)self, empty_tuple, unused, next);
 
-            if ((init = PyObject_GetAttr(next_in_mro, init_name)) == NULL)
-            {
-                Py_XDECREF(unused);
-                return -1;
-            }
-
-            if ((init_args = PyTuple_New(1)) == NULL)
-            {
-                Py_DECREF(init);
-                Py_XDECREF(unused);
-                return -1;
-            }
-
-            PyTuple_SET_ITEM(init_args, 0, (PyObject *)self);
-            Py_INCREF((PyObject *)self);
-
-            init_res = PyObject_Call(init, init_args, unused);
-            Py_DECREF(init_args);
-            Py_DECREF(init);
-            Py_XDECREF(init_res);
             Py_XDECREF(unused);
 
-            return (init_res != NULL) ? 0 : -1;
+            return rc;
         }
     }
 
-    /* We shouldn't have any unused keyword arguments. */
-    if (unused != NULL)
+    if (unused_backdoor != NULL)
     {
+        /*
+         * We are being called by a mixin's __init__ so save any unused
+         * arguments for it to pass on to the main class's __init__.
+         */
+        *unused_backdoor = unused;
+    }
+    else if (unused != NULL)
+    {
+        /* We shouldn't have any unused keyword arguments. */
         if (PyDict_Size(unused) != 0)
         {
             PyObject *key, *value;
@@ -9601,6 +9593,187 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
     }
 
     return 0;
+}
+
+
+/*
+ * Initialise a mixin.
+ */
+static int sip_api_init_mixin(PyObject *self, PyObject *args, PyObject *kwds,
+        const sipClassTypeDef *ctd)
+{
+    int i, rc;
+    SIP_SSIZE_T pos;
+    PyObject *unused, *mixin, *mixin_name, *key, *value;
+    PyTypeObject *wt = sipTypeAsPyTypeObject(&ctd->ctd_base);
+    PyMethodDef *pmd;
+
+#if PY_MAJOR_VERSION >= 3
+    static PyObject *double_us = NULL;
+
+    if (objectify("__", &double_us) < 0)
+        return -1;
+#endif
+
+    /* If we are not a mixin to another wrapped class then behave as normal. */
+    if (((sipWrapperType *)Py_TYPE(self))->type == ctd)
+        return super_init(self, args, kwds, next_in_mro(self, (PyObject *)wt));
+
+    /*
+     * Create the mixin instance.  Retain the positional arguments for the
+     * super-class.  Remember that, even though the mixin appears after the
+     * main class in the MRO, it appears before sipWrapperType where the main
+     * class's arguments are actually parsed.
+     */
+    unused = NULL;
+    unused_backdoor = &unused;
+    mixin = PyObject_Call((PyObject *)wt, empty_tuple, kwds);
+    unused_backdoor = NULL;
+
+    if (mixin == NULL)
+        goto gc_unused;
+
+#if PY_MAJOR_VERSION >= 3
+    mixin_name = PyUnicode_FromString(sipTypeName(&ctd->ctd_base));
+#else
+    mixin_name = PyString_FromString(sipTypeName(&ctd->ctd_base));
+#endif
+
+    if (mixin_name == NULL)
+    {
+        Py_DECREF(mixin);
+        goto gc_unused;
+    }
+
+    rc = PyObject_SetAttr(self, mixin_name, mixin);
+    Py_DECREF(mixin);
+
+    if (rc < 0)
+        goto gc_mixin_name;
+
+    /* Add the mixin's useful attributes to the main class. */
+    pos = 0;
+
+    while (PyDict_Next(wt->tp_dict, &pos, &key, &value))
+    {
+        /* Skip values with names that start with double underscore. */
+#if PY_MAJOR_VERSION >= 3
+        if (!PyUnicode_Check(key))
+            continue;
+
+        rc = PyUnicode_Tailmatch(key, double_us, 0, 2, -1);
+
+        if (rc < 0)
+            goto gc_mixin_name;
+
+        if (rc > 0)
+            continue;
+#else
+        if (!PyString_Check(key))
+            continue;
+
+        if (PyString_GET_SIZE(key) >= 2 && strncmp(PyString_AS_STRING(key), "__", 2) == 0)
+            continue;
+#endif
+
+        if (PyObject_IsInstance(value, (PyObject *)&sipMethodDescr_Type))
+        {
+            if ((value = sipMethodDescr_Copy(value, mixin_name)) == NULL)
+                goto gc_mixin_name;
+        }
+        else if (PyObject_IsInstance(value, (PyObject *)&sipVariableDescr_Type))
+        {
+            if ((value = sipVariableDescr_Copy(value, mixin_name)) == NULL)
+                goto gc_mixin_name;
+        }
+        else
+        {
+            Py_INCREF(value);
+        }
+
+        rc = PyDict_SetItem(Py_TYPE(self)->tp_dict, key, value);
+
+        Py_DECREF(value);
+
+        if (rc < 0)
+            goto gc_mixin_name;
+    }
+
+    Py_DECREF(mixin_name);
+
+    /* Call the super-class's __init__ with any remaining arguments. */
+    rc = super_init(self, args, unused, next_in_mro(self, (PyObject *)wt));
+    Py_XDECREF(unused);
+
+    return rc;
+
+gc_mixin_name:
+    Py_DECREF(mixin_name);
+
+gc_unused:
+    Py_XDECREF(unused);
+
+    return -1;
+}
+
+
+/*
+ * Return the next in the MRO of an instance after a given type.
+ */
+static PyObject *next_in_mro(PyObject *self, PyObject *after)
+{
+    int i;
+    PyObject *mro, *next;
+
+    mro = Py_TYPE(self)->tp_mro;
+    assert(PyTuple_Check(mro));
+
+    for (i = 0; i < PyTuple_GET_SIZE(mro); ++i)
+        if (PyTuple_GET_ITEM(mro, i) == after)
+            break;
+
+    /* Assert that we have found ourself and that we are not the last. */
+    assert(i + 1 < PyTuple_GET_SIZE(mro));
+
+    return PyTuple_GET_ITEM(mro, i + 1);
+}
+
+
+/*
+ * Call the equivalent of super()__init__() of an instance.
+ */
+static int super_init(PyObject *self, PyObject *args, PyObject *kwds,
+        PyObject *type)
+{
+    int i;
+    PyObject *init, *init_args, *init_res;
+
+    if ((init = PyObject_GetAttr(type, init_name)) == NULL)
+        return -1;
+
+    if ((init_args = PyTuple_New(1 + PyTuple_GET_SIZE(args))) == NULL)
+    {
+        Py_DECREF(init);
+        return -1;
+    }
+
+    PyTuple_SET_ITEM(init_args, 0, self);
+    Py_INCREF(self);
+
+    for (i = 0; i < PyTuple_GET_SIZE(args); ++i)
+    {
+        PyObject *arg = PyTuple_GET_ITEM(args, i);
+
+        PyTuple_SET_ITEM(init_args, 1 + i, arg);
+        Py_INCREF(arg);
+    }
+
+    init_res = PyObject_Call(init, init_args, kwds);
+    Py_DECREF(init_args);
+    Py_DECREF(init);
+    Py_XDECREF(init_res);
+
+    return (init_res != NULL) ? 0 : -1;
 }
 
 

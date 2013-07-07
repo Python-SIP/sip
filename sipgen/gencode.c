@@ -712,6 +712,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipIsAPIEnabled             sipAPI_%s->api_is_api_enabled\n"
 "#define sipSetDestroyOnExit         sipAPI_%s->api_set_destroy_on_exit\n"
 "#define sipEnableAutoconversion     sipAPI_%s->api_enable_autoconversion\n"
+"#define sipInitMixin                sipAPI_%s->api_init_mixin\n"
 "#define sipExportModule             sipAPI_%s->api_export_module\n"
 "#define sipInitModule               sipAPI_%s->api_init_module\n"
 "\n"
@@ -734,6 +735,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipConvertFromMappedType    sipConvertFromType\n"
 "#define sipConvertFromNamedEnum(v, pt)  sipConvertFromEnum((v), ((sipEnumTypeObject *)(pt))->type)\n"
 "#define sipConvertFromNewInstance(p, wt, t) sipConvertFromNewType((p), (wt)->type, (t))\n"
+        ,mname
         ,mname
         ,mname
         ,mname
@@ -6206,6 +6208,32 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
             );
     }
 
+    /* The mixin initialisation function. */
+    if (isMixin(cd))
+    {
+        prcode(fp,
+"\n"
+"\n"
+            );
+
+        if (!generating_c)
+            prcode(fp,
+"extern \"C\" {static int mixin_%C(PyObject *, PyObject *, PyObject *);}\n"
+                , classFQCName(cd));
+
+        prcode(fp,
+"static int mixin_%C(PyObject *sipSelf, PyObject *sipArgs, PyObject *sipKwds)\n"
+"{\n"
+"    return sipInitMixin(sipSelf, sipArgs, sipKwds, &"
+            , classFQCName(cd));
+
+        generateTypeDefName(cd->iff, fp);
+
+        prcode(fp, ");\n"
+"}\n"
+            );
+    }
+
     if (generating_c || assignmentHelper(cd))
     {
         /* The assignment helper. */
@@ -10172,7 +10200,16 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 
     if (cd->finalcode != NULL)
         prcode(fp,
-"    final_%C\n"
+"    final_%C,\n"
+            , classFQCName(cd));
+    else
+        prcode(fp,
+"    0,\n"
+            );
+
+    if (isMixin(cd))
+        prcode(fp,
+"    mixin_%C\n"
             , classFQCName(cd));
     else
         prcode(fp,

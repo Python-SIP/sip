@@ -2,6 +2,7 @@ v4.15 ??? ??? 2013
   - Added the call_super_init argument to the %Module directive to specify that
     classes should support cooperative multi-inheritance.
   - Added the %FinalisationCode directive.
+  - Added the /Mixin/ class annotation.
   - Bug fixes.
 
 v4.14.7 16th June 2013

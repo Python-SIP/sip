@@ -435,6 +435,31 @@ Class Annotations
     See the section :ref:`ref-types-metatypes` for more details.
 
 
+.. class-annotation:: Mixin
+
+    .. versionadded:: 4.15
+
+    This boolean annotation specifies that the class can be used as a mixin
+    with other wrapped classes.
+    
+    Normally a Python application cannot define a new class that is derived
+    from more than one wrapped class.  In C++ this would create a new C++
+    class.  This cannot be done from Python.  At best a C++ instance of each of
+    the wrapped classes can be created and wrapped as separate Python objects.
+    However some C++ classes may function perfectly well with this restriction.
+    Such classes are often intended to be used as mixins.
+
+    If this annotation is specified then a separate instance of the class is
+    created.  The main instance automatically delegates to the instance of the
+    mixin when required.  A mixin class should have the following
+    characteristics:
+
+    - Any constructor arguments should be able to be specified using keyword
+      arguments.
+
+    - The class should not have any virtual methods.
+
+
 .. class-annotation:: NoDefaultCtors
 
     This boolean annotation is used to suppress the automatic generation of
