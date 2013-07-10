@@ -21,6 +21,11 @@ import glob
 import optparse
 from distutils import sysconfig
 
+try:
+    from importlib import invalidate_caches
+except ImportError:
+    invalidate_caches = lambda: None
+
 import siputils
 
 
@@ -291,6 +296,7 @@ def create_makefiles(macros):
     """
     # Bootstrap.  Make sure we get the right one.
     sys.path.insert(0, os.path.curdir)
+    invalidate_caches()
     import sipconfig
 
     cfg = sipconfig.Configuration()
