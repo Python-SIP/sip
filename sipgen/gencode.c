@@ -6223,7 +6223,7 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
         prcode(fp,
 "static int mixin_%C(PyObject *sipSelf, PyObject *sipArgs, PyObject *sipKwds)\n"
 "{\n"
-"    return sipInitMixin(sipSelf, sipArgs, sipKwds, &"
+"    return sipInitMixin(sipSelf, sipArgs, sipKwds, (sipClassTypeDef *)&"
             , classFQCName(cd));
 
         generateTypeDefName(cd->iff, fp);
