@@ -2424,9 +2424,6 @@ static int sameVirtualHandler(virtHandlerDef *vhd1,virtHandlerDef *vhd2)
 {
     int a;
 
-    if (vhd1->virtcode != vhd2->virtcode)
-        return FALSE;
-
     if (isTransferVH(vhd1) != isTransferVH(vhd2))
         return FALSE;
 
