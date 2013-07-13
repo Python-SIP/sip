@@ -739,6 +739,7 @@ typedef struct _valueDef {
     valueType vtype;                    /* The type. */
     char vunop;                         /* Any unary operator. */
     char vbinop;                        /* Any binary operator. */
+    scopedNameDef *cast;                /* Any cast. */
     union {
         char vqchar;                    /* Quoted character value. */
         long vnum;                      /* Numeric value. */

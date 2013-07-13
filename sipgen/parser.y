@@ -418,6 +418,7 @@ static void mappedTypeAnnos(mappedTypeDef *mtd, optFlags *optflgs);
 %type <qchar>           binop
 %type <scpvalp>         scopepart
 %type <scpvalp>         scopedname
+%type <scpvalp>         optcast
 %type <fcall>           exprlist
 %type <boolean>         qualifiers
 %type <boolean>         oredqualifiers
@@ -2570,17 +2571,26 @@ optunop:    {
         }
     ;
 
-value:      optunop simplevalue {
-            if ($1 != '\0' && $2.vtype == string_value)
+value:      optcast optunop simplevalue {
+            if ($2 != '\0' && $3.vtype == string_value)
                 yyerror("Invalid unary operator for string");
  
             /* Convert the value to a simple expression on the heap. */
             $$ = sipMalloc(sizeof (valueDef));
  
-            *$$ = $2;
-            $$->vunop = $1;
+            *$$ = $3;
+            $$->vunop = $2;
             $$->vbinop = '\0';
+            $$->cast = $1;
             $$->next = NULL;
+        }
+    ;
+
+optcast:    {
+            $$ = NULL;
+        }
+    |       '(' scopedname ')' {
+            $$ = $2;
         }
     ;
 

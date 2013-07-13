@@ -442,6 +442,9 @@ void generateExpression(valueDef *vd, int in_str, FILE *fp)
 {
     while (vd != NULL)
     {
+        if (vd->cast != NULL)
+            prcode(fp, "(%S)", vd->cast);
+
         if (vd->vunop != '\0')
             prcode(fp,"%c",vd->vunop);
 
