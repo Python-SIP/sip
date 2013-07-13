@@ -210,7 +210,7 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
 }
 
 
--?[0-9]+ {
+-?[0-9]+[lLuU]? {
     /* A signed decimal number. */
     yylval.number = strtol(yytext,NULL,0);
     return TK_NUMBER_VALUE;
