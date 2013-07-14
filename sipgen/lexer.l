@@ -618,20 +618,20 @@ int yywrap()
  */
 void getSourceLocation(sourceLocation *slp)
 {
+    int cf;
+
     /*
      * Assume that we will already have gone past the newline but watch out in
      * case we have gone past the end of the file.
      */
-    if (currentFile > 0)
+    if ((cf = currentFile) < 0)
     {
-        slp->linenr = inputFileStack[currentFile].sloc.linenr - 1;
-        slp->name = inputFileStack[currentFile].sloc.name;
+        /* This will be valid if we have been called. */
+        cf = 0;
     }
-    else
-    {
-        slp->linenr = -1;
-        slp->name = NULL;
-    }
+
+    slp->linenr = inputFileStack[cf].sloc.linenr - 1;
+    slp->name = inputFileStack[cf].sloc.name;
 }
 
 
