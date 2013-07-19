@@ -172,6 +172,8 @@ static void checkNoAnnos(optFlags *annos, const char *msg);
 static void appendCodeBlock(codeBlockList **headp, codeBlock *cb);
 static void handleKeepReference(optFlags *optflgs, argDef *ad, moduleDef *mod);
 static void mappedTypeAnnos(mappedTypeDef *mtd, optFlags *optflgs);
+static void add_new_deref(argDef *new, argDef *orig, int isconst);
+static void add_derefs(argDef *dst, argDef *src);
 %}
 
 %union {
@@ -363,6 +365,7 @@ static void mappedTypeAnnos(mappedTypeDef *mtd, optFlags *optflgs);
 %type <memArg>          argtype
 %type <memArg>          cpptype
 %type <memArg>          basetype
+%type <memArg>          deref
 %type <signature>       template
 %type <signature>       arglist
 %type <signature>       rawarglist
@@ -376,7 +379,6 @@ static void mappedTypeAnnos(mappedTypeDef *mtd, optFlags *optflgs);
 %type <number>          optconst
 %type <number>          optvirtual
 %type <number>          optabstract
-%type <number>          deref
 %type <number>          optnumber
 %type <value>           simplevalue
 %type <valp>            value
@@ -2681,7 +2683,7 @@ exprlist:   {
             /* Check there is room. */
 
             if ($1.nrArgs == MAX_NR_ARGS)
-                yyerror("Too many arguments to function call");
+                yyerror("Internal error - increase the value of MAX_NR_ARGS");
 
             $$ = $1;
 
@@ -2709,7 +2711,7 @@ typedef:    TK_TYPEDEF cpptype TK_NAME_VALUE optflags ';' {
                 newTypedef(currentSpec, currentModule, $3, &$2, &$4);
             }
         }
-    |   TK_TYPEDEF cpptype '(' deref TK_NAME_VALUE ')' '(' cpptypelist ')' optflags ';' {
+    |   TK_TYPEDEF cpptype '(' '*' TK_NAME_VALUE ')' '(' cpptypelist ')' optflags ';' {
             if (notSkipping())
             {
                 const char *annos[] = {
@@ -2737,7 +2739,7 @@ typedef:    TK_TYPEDEF cpptype TK_NAME_VALUE optflags ';' {
 
                 /* Create the full type. */
                 ftype.atype = function_type;
-                ftype.nrderefs = $4;
+                ftype.nrderefs = 1;
                 ftype.u.sa = sig;
 
                 newTypedef(currentSpec, currentModule, $5, &ftype, &$10);
@@ -4032,17 +4034,31 @@ variable_body_directive:    ifstart {
     ;
 
 cpptype:    TK_CONST basetype deref optref {
+            int i;
+
             $$ = $2;
-            $$.nrderefs += $3;
+            add_derefs(&$$, &$3);
             $$.argflags |= ARG_IS_CONST | $4;
+
+            /*
+             * Treat a prefix const as postfix but check if there isn't already
+             * a postfix const.
+             */
+            if ($3.nrderefs > 0)
+            {
+                if ($$.derefs[0])
+                    yyerror("'const' specified as prefix and postfix");
+
+                $$.derefs[0] = TRUE;
+            }
         }
     |   basetype deref optref {
             $$ = $1;
-            $$.nrderefs += $2;
+            add_derefs(&$$, &$2);
             $$.argflags |= $3;
 
             /* PyObject * is a synonym for SIP_PYOBJECT. */
-            if ($1.atype == defined_type && strcmp($1.u.snd->name, "PyObject") == 0 && $1.u.snd->next == NULL && $2 == 1 && $3 == 0)
+            if ($1.atype == defined_type && strcmp($1.u.snd->name, "PyObject") == 0 && $1.u.snd->next == NULL && $2.nrderefs == 1 && $3 == 0)
             {
                 $$.atype = pyobject_type;
                 $$.nrderefs = 0;
@@ -4141,7 +4157,7 @@ argtype:    cpptype optname optflags {
         }
     ;
 
-optref:     {
+optref: {
             $$ = 0;
         }
     |   '&' {
@@ -4152,11 +4168,14 @@ optref:     {
         }
     ;
 
-deref:      {
-            $$ = 0;
+deref:  {
+            $$.nrderefs = 0;
+        }
+    |   deref TK_CONST '*' {
+            add_new_deref(&$$, &$1, TRUE);
         }
     |   deref '*' {
-            $$ = $1 + 1;
+            add_new_deref(&$$, &$1, FALSE);
         }
     ;
 
@@ -8785,4 +8804,34 @@ static void mappedTypeAnnos(mappedTypeDef *mtd, optFlags *optflgs)
         setHandlesNone(mtd);
 
     mtd->doctype = getDocType(optflgs);
+}
+
+
+/*
+ * Initialise an argument with the derefences of another, plus a new one.
+ */
+static void add_new_deref(argDef *new, argDef *orig, int isconst)
+{
+    if ((new->nrderefs = orig->nrderefs + 1) >= MAX_NR_DEREFS)
+        yyerror("Internal error - increase the value of MAX_NR_DEREFS");
+
+    memcpy(&new->derefs[0], &orig->derefs[0], sizeof (new->derefs));
+    new->derefs[orig->nrderefs] = isconst;
+}
+
+
+/*
+ * Add the dereferences from one type to another.
+ */
+static void add_derefs(argDef *dst, argDef *src)
+{
+    int i;
+
+    for (i = 0; i < src->nrderefs; ++i)
+    {
+        if (dst->nrderefs >= MAX_NR_DEREFS - 1)
+            fatal("Internal error - increase the value of MAX_NR_DEREFS\n");
+
+        dst->derefs[dst->nrderefs++] = src->derefs[i];
+    }
 }

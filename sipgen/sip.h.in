@@ -46,6 +46,7 @@
 #define DEFAULT_OFILE_EXT   ".o"    /* Default object file extension. */
 
 #define MAX_NR_ARGS         20      /* Max. nr. args. to a function or template. */
+#define MAX_NR_DEREFS       5       /* Max. nr. type derefences. */
 
 
 /* For convenience. */
@@ -760,6 +761,7 @@ typedef struct {
     const char *doctype;                /* The documented type. */
     int argflags;                       /* The argument flags. */
     int nrderefs;                       /* Nr. of dereferences. */
+    int derefs[MAX_NR_DEREFS];          /* The const for each dereference. */
     valueDef *defval;                   /* The default value. */
     const char *docval;                 /* The documented value. */
     int key;                            /* The optional /KeepReference/ key. */

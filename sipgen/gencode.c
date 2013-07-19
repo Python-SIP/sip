@@ -9235,10 +9235,15 @@ static void generateNamedBaseType(ifaceFileDef *scope, argDef *ad,
     {
         int i;
 
-        prcode(fp, " ");
+        prcode(fp, " *");
 
-        for (i = 0; i < nr_derefs; ++i)
+        for (i = 1; i < nr_derefs; ++i)
+        {
+            if (ad->derefs[i])
+                prcode(fp, " const ");
+
             prcode(fp, "*");
+        }
     }
 
     if (is_reference)

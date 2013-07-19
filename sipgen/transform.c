@@ -671,6 +671,7 @@ static void moveClassCasts(sipSpec *pt, moduleDef *mod, classDef *cd)
         ad->name = NULL;
         ad->argflags = ARG_IN | (al->arg.argflags & (ARG_IS_REF | ARG_IS_CONST));
         ad->nrderefs = al->arg.nrderefs;
+        memcpy(ad->derefs, al->arg.derefs, sizeof (ad->derefs));
         ad->defval = NULL;
         ad->u.cd = cd;
 
@@ -1907,8 +1908,22 @@ static void resolveFuncTypes(sipSpec *pt, moduleDef *mod, classDef *c_scope,
     if (od->cppsig != &od->pysig)
     {
         int a;
+        argDef *res = &od->cppsig->result;
 
-        resolveType(pt, mod, c_scope, &od->cppsig->result, TRUE);
+        resolveType(pt, mod, c_scope, res, TRUE);
+
+        if ((res->atype != void_type || res->nrderefs != 0) && isVirtual(od) && !supportedType(c_scope, od, &od->cppsig->result, FALSE) && od->virthandler->virtcode == NULL)
+        {
+            fatal("%s:%d: ", od->sloc.name, od->sloc.linenr);
+
+            if (c_scope != NULL)
+            {
+                fatalScopedName(classFQCName(c_scope));
+                fatal("::");
+            }
+
+            fatal("%s() unsupported virtual function return type - provide %%VirtualCatcherCode\n", od->cppname);
+        }
 
         for (a = 0; a < od->cppsig->nrArgs; ++a)
             resolveType(pt, mod, c_scope, &od->cppsig->args[a], TRUE);
@@ -1976,17 +1991,24 @@ static void resolvePySigTypes(sipSpec *pt, moduleDef *mod, classDef *scope,
         resolveType(pt, mod, scope, res, FALSE);
 
         /* Results must be simple. */
-        if (!supportedType(scope,od,res,FALSE) && (od -> cppsig == &od -> pysig || od -> methodcode == NULL))
+        if (!supportedType(scope, od, res, FALSE))
         {
-            fatal("%s:%d: ", od->sloc.name, od->sloc.linenr);
+            int need_meth;
 
-            if (scope != NULL)
+            need_meth = (od->cppsig == &od->pysig || od->methodcode == NULL);
+
+            if (need_meth)
             {
-                fatalScopedName(classFQCName(scope));
-                fatal("::");
-            }
+                fatal("%s:%d: ", od->sloc.name, od->sloc.linenr);
 
-            fatal("%s() unsupported function return type - provide %%MethodCode and a %s signature\n", od->cppname, (pt->genc ? "C" : "C++"));
+                if (scope != NULL)
+                {
+                    fatalScopedName(classFQCName(scope));
+                    fatal("::");
+                }
+
+                fatal("%s() unsupported function return type - provide %%MethodCode and a %s signature\n", od->cppname, (pt->genc ? "C" : "C++"));
+            }
         }
     }
 
@@ -2018,21 +2040,29 @@ static void resolvePySigTypes(sipSpec *pt, moduleDef *mod, classDef *scope,
                 fatal("%s() unsupported signal argument type\n", od->cppname);
             }
         }
-        else if (!supportedType(scope,od,ad,TRUE) && (od -> cppsig == &od -> pysig || od -> methodcode == NULL || (isVirtual(od) && od -> virthandler -> virtcode == NULL)))
+        else if (!supportedType(scope, od, ad, TRUE))
         {
-            if (od->sloc.name != NULL)
-                fatal("%s:%d: ", od->sloc.name, od->sloc.linenr);
+            int need_meth, need_virt;
 
-            if (scope != NULL)
+            need_meth = (od->cppsig == &od->pysig || od->methodcode == NULL);
+            need_virt = (isVirtual(od) && od->virthandler->virtcode == NULL);
+
+            if (need_meth || need_virt)
             {
-                fatalScopedName(classFQCName(scope));
-                fatal("::");
+                if (od->sloc.name != NULL)
+                    fatal("%s:%d: ", od->sloc.name, od->sloc.linenr);
+
+                if (scope != NULL)
+                {
+                    fatalScopedName(classFQCName(scope));
+                    fatal("::");
+                }
+
+                if (need_meth)
+                    fatal("%s() unsupported function argument type - provide %%MethodCode and a %s signature\n", od->cppname, (pt->genc ? "C" : "C++"));
+
+                fatal("%s() unsupported function argument type - provide %%MethodCode, %%VirtualCatcherCode and a C++ signature\n", od->cppname);
             }
-
-            if (isVirtual(od))
-                fatal("%s() unsupported function argument type - provide %%MethodCode, a valid %%VirtualCatcherCode and a valid C++ signature\n", od->cppname);
-
-            fatal("%s() unsupported function argument type - provide %%MethodCode and a valid %s signature\n", od->cppname, (pt->genc ? "C" : "C++"));
         }
 
         if (scope != NULL)
@@ -3250,12 +3280,21 @@ void searchTypedefs(sipSpec *pt, scopedNameDef *snd, argDef *ad)
 
         if (res == 0)
         {
+            int i;
+
             /* Copy the type. */
             ad->atype = td->type.atype;
             ad->argflags |= td->type.argflags;
-            ad->nrderefs += td->type.nrderefs;
             ad->doctype = td->type.doctype;
             ad->u = td->type.u;
+
+            for (i = 0; i < td->type.nrderefs; ++i)
+            {
+                if (ad->nrderefs >= MAX_NR_DEREFS - 1)
+                    fatal("Internal error - increase the value of MAX_NR_DEREFS\n");
+
+                ad->derefs[ad->nrderefs++] = td->type.derefs[i];
+            }
 
             if (ad->original_type == NULL)
                 ad->original_type = td;
