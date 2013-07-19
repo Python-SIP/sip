@@ -11440,7 +11440,7 @@ static void generateHandleResult(moduleDef *mod, overDef *od, int isNew,
                     prcode(fp,"sipRes");
 
                 prcode(fp,",sipType_%C,%s);\n"
-                    , iff->fqcname, ((has_owner && isFactory(od)) ? "(PyObject *)sipOwner" : "NULL"));
+                    , iff->fqcname, ((has_owner && isFactory(od)) ? "(PyObject *)sipOwner" : resultOwner(od)));
 
                 /*
                  * Shortcut if this is the only value returned.
