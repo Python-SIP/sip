@@ -70,7 +70,9 @@ extern "C" {
  *
  * 10.1 Added ctd_final to sipClassTypeDef.
  *      Added ctd_init_mixin to sipClassTypeDef.
+ *      Added sip_api_get_mixin_address() to the public API.
  *      Added sip_api_init_mixin() to the private API.
+ *      Added qt_interface to pyqt4ClassTypeDef.
  *
  * 10.0 Added sip_api_set_destroy_on_exit().
  *      Added sip_api_enable_autoconversion().
@@ -419,6 +421,9 @@ typedef struct _sipSimpleWrapper {
 
     /* The instance dictionary. */
     PyObject *dict;
+
+    /* The main instance if this is a mixin. */
+    PyObject *mixin_main;
 
     /* Next object at this address. */
     struct _sipSimpleWrapper *next;
@@ -1484,6 +1489,11 @@ typedef struct _sipAPIDef {
             sipSimpleWrapper *, sip_gilstate_t);
     int (*api_init_mixin)(PyObject *self, PyObject *args, PyObject *kwds,
             const sipClassTypeDef *ctd);
+    /*
+     * The following are part of the public API.
+     */
+    void *(*api_get_mixin_address)(struct _sipSimpleWrapper *w,
+            const sipTypeDef *td);
 } sipAPIDef;
 
 
@@ -1659,12 +1669,12 @@ typedef struct _pyqt3ClassTypeDef {
 
 
 /*
- * The following are PyQt4-specific extensions.  In SIP v5 they will be pushed
- * out to a plugin supplied by PyQt4.
+ * The following are PyQt-specific extensions.  In SIP v5 they will be pushed
+ * out to a plugin supplied by PyQt.
  */
 
 /*
- * The description of a Qt signal for PyQt4.
+ * The description of a Qt signal for PyQt.
  */
 typedef struct _pyqt4QtSignal {
     /* The C++ name and signature of the signal. */
@@ -1682,7 +1692,7 @@ typedef struct _pyqt4QtSignal {
 
 
 /*
- * This is the PyQt4-specific extension to the generated class type structure.
+ * This is the PyQt-specific extension to the generated class type structure.
  */
 typedef struct _pyqt4ClassTypeDef {
     /*
@@ -1705,6 +1715,9 @@ typedef struct _pyqt4ClassTypeDef {
      * name.
      */
     const pyqt4QtSignal *qt4_signals;
+
+    /* The name of the interface that the class defines. */
+    const char *qt_interface;
 } pyqt4ClassTypeDef;
 
 

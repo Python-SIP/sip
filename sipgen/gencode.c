@@ -522,7 +522,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
         , mname
         , mname);
 
-    if (pluginPyQt4(pt))
+    if (pluginPyQt4(pt) || pluginPyQt5(pt))
         prcode(fp,
 "\n"
 "#include <QMetaType>\n"
@@ -656,6 +656,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipVoidPtr_Type             sipAPI_%s->api_voidptr_type\n"
 "#define sipGetPyObject              sipAPI_%s->api_get_pyobject\n"
 "#define sipGetAddress               sipAPI_%s->api_get_address\n"
+"#define sipGetMixinAddress          sipAPI_%s->api_get_mixin_address\n"
 "#define sipGetCppPtr                sipAPI_%s->api_get_cpp_ptr\n"
 "#define sipGetComplexCppPtr         sipAPI_%s->api_get_complex_cpp_ptr\n"
 "#define sipIsPyMethod               sipAPI_%s->api_is_py_method\n"
@@ -833,6 +834,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
         ,mname
         ,mname
         ,mname
+        ,mname
         ,mname);
 
     /* The name strings. */
@@ -864,7 +866,8 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
             , mname, mld->module->name);
     }
 
-    if (pluginPyQt4(pt))
+    if (pluginPyQt4(pt) || pluginPyQt5(pt))
+    {
         prcode(fp,
 "\n"
 "typedef const QMetaObject *(*sip_qt_metaobject_func)(sipSimpleWrapper *,sipTypeDef *);\n"
@@ -873,11 +876,22 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "typedef int (*sip_qt_metacall_func)(sipSimpleWrapper *,sipTypeDef *,QMetaObject::Call,int,void **);\n"
 "extern sip_qt_metacall_func sip_%s_qt_metacall;\n"
 "\n"
-"typedef int (*sip_qt_metacast_func)(sipSimpleWrapper *,sipTypeDef *,const char *);\n"
-"extern sip_qt_metacast_func sip_%s_qt_metacast;\n"
-            , mname
             , mname
             , mname);
+
+        if (pluginPyQt5(pt))
+            prcode(fp,
+"typedef bool (*sip_qt_metacast_func)(sipSimpleWrapper *, const sipTypeDef *, const char *, void **);\n"
+                );
+        else
+            prcode(fp,
+"typedef int (*sip_qt_metacast_func)(sipSimpleWrapper *, sipTypeDef *, const char *);\n"
+                );
+
+        prcode(fp,
+"extern sip_qt_metacast_func sip_%s_qt_metacast;\n"
+            , mname);
+    }
 
     /*
      * Note that we don't forward declare the virtual handlers.  This is
@@ -2062,7 +2076,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "const sipExportedModuleDef *sipModuleAPI_%s_%s;\n"
             , mname, mld->module->name);
 
-    if (pluginPyQt4(pt))
+    if (pluginPyQt4(pt) || pluginPyQt5(pt))
         prcode(fp,
 "\n"
 "sip_qt_metaobject_func sip_%s_qt_metaobject;\n"
@@ -2211,7 +2225,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "    }\n"
         , mname);
 
-    if (pluginPyQt4(pt))
+    if (pluginPyQt4(pt) || pluginPyQt5(pt))
     {
         /* Import the helpers. */
         prcode(fp,
@@ -2220,6 +2234,10 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "    sip_%s_qt_metacall = (sip_qt_metacall_func)sipImportSymbol(\"qtcore_qt_metacall\");\n"
 "    sip_%s_qt_metacast = (sip_qt_metacast_func)sipImportSymbol(\"qtcore_qt_metacast\");\n"
 "\n"
+"    if (!sip_%s_qt_metacast)\n"
+"        Py_FatalError(\"Unable to import qtcore_qt_metacast\");\n"
+"\n"
+            , mname
             , mname
             , mname
             , mname);
@@ -2361,7 +2379,7 @@ static void generateTypesTable(sipSpec *pt, moduleDef *mod, FILE *fp)
     argDef *ad;
     const char *type_suffix;
 
-    type_suffix = (pluginPyQt4(pt) || pluginPyQt3(pt)) ?  ".super" : "";
+    type_suffix = (pluginPyQt5(pt) || pluginPyQt4(pt) || pluginPyQt3(pt)) ?  ".super" : "";
 
     prcode(fp,
 "\n"
@@ -4033,7 +4051,7 @@ static void generateTypeDefLink(sipSpec *pt, ifaceFileDef *iff, FILE *fp)
 
         if (iff->next_alt->type == mappedtype_iface)
             prcode(fp, ".mtd_base");
-        else if (pluginPyQt3(pt) || pluginPyQt4(pt))
+        else if (pluginPyQt3(pt) || pluginPyQt4(pt) || pluginPyQt5(pt))
             prcode(fp, ".super.ctd_base");
         else
             prcode(fp, ".ctd_base");
@@ -5739,7 +5757,7 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 
         if (canCreate(cd) || isPublicDtor(cd))
         {
-            if (pluginPyQt4(pt) && isQObjectSubClass(cd) && isPublicDtor(cd))
+            if ((pluginPyQt4(pt) || pluginPyQt5(pt)) && isQObjectSubClass(cd) && isPublicDtor(cd))
                 need_ptr = need_cast_ptr = TRUE;
             else if (hasShadow(cd))
                 need_ptr = need_state = TRUE;
@@ -5800,7 +5818,7 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 "\n"
                     );
 
-            if (pluginPyQt4(pt) && isQObjectSubClass(cd) && isPublicDtor(cd))
+            if ((pluginPyQt4(pt) || pluginPyQt5(pt)) && isQObjectSubClass(cd) && isPublicDtor(cd))
             {
                 /*
                  * QObjects should only be deleted in the threads that they
@@ -6499,7 +6517,7 @@ static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
     }
 
     /* The meta methods if required. */
-    if (pluginPyQt4(pt) && isQObjectSubClass(cd))
+    if ((pluginPyQt4(pt) || pluginPyQt5(pt)) && isQObjectSubClass(cd))
     {
         if (!noPyQt4QMetaObject(cd))
             prcode(fp,
@@ -6525,13 +6543,25 @@ static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
 "\n"
 "void *sip%C::qt_metacast(const char *_clname)\n"
 "{\n"
-"    return (sip_%s_qt_metacast && sip_%s_qt_metacast(sipPySelf,sipType_%C,_clname)) ? this : %S::qt_metacast(_clname);\n"
-"}\n"
             , classFQCName(cd)
             , classFQCName(cd)
             , mod->name, classFQCName(cd)
-            , classFQCName(cd)
-            , mod->name, mod->name, classFQCName(cd), classFQCName(cd));
+            , classFQCName(cd));
+
+        if (pluginPyQt5(pt))
+            prcode(fp,
+"    void *sipCpp;\n"
+"\n"
+"    return (sip_%s_qt_metacast(sipPySelf, sipType_%C, _clname, &sipCpp) ? sipCpp : %S::qt_metacast(_clname));\n"
+                , mod->name, classFQCName(cd), classFQCName(cd));
+        else
+            prcode(fp,
+"    return (sip_%s_qt_metacast(sipPySelf, sipType_%C, _clname)) ? this : %S::qt_metacast(_clname);\n"
+                , mod->name, classFQCName(cd), classFQCName(cd));
+
+        prcode(fp,
+"}\n"
+                );
     }
 
     /* Generate the virtual catchers. */
@@ -8529,7 +8559,7 @@ static void generateClassAPI(classDef *cd, sipSpec *pt, FILE *fp)
     {
         const char *type_prefix;
 
-        if (pluginPyQt4(pt))
+        if (pluginPyQt4(pt) || pluginPyQt5(pt))
             type_prefix = "pyqt4";
         else if (pluginPyQt3(pt))
             type_prefix = "pyqt3";
@@ -8686,7 +8716,7 @@ static void generateShadowClassDeclaration(sipSpec *pt,classDef *cd,FILE *fp)
             ,(cd->vmembers != NULL ? "virtual " : ""),classFQCName(cd),cd->dtorexceptions);
 
     /* The metacall methods if required. */
-    if (pluginPyQt4(pt) && isQObjectSubClass(cd))
+    if ((pluginPyQt4(pt) || pluginPyQt5(pt)) && isQObjectSubClass(cd))
     {
         prcode(fp,
 "\n"
@@ -9531,7 +9561,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
     /* Generate the PyQt4 signals table. */
     is_signals = FALSE;
 
-    if (pluginPyQt4(pt) && isQObjectSubClass(cd))
+    if ((pluginPyQt4(pt) || pluginPyQt5(pt)) && isQObjectSubClass(cd))
     {
         /* The signals must be grouped by name. */
         for (md = cd->members; md != NULL; md = md->next)
@@ -9727,7 +9757,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
         has_docstring = TRUE;
     }
 
-    if (pluginPyQt4(pt))
+    if (pluginPyQt4(pt) || pluginPyQt5(pt))
     {
         type_prefix = "pyqt4";
         embedded = TRUE;
@@ -10182,7 +10212,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
                 );
     }
 
-    if (pluginPyQt4(pt))
+    if (pluginPyQt4(pt) || pluginPyQt5(pt))
     {
         if (isQObjectSubClass(cd) && !noPyQt4QMetaObject(cd))
             prcode(fp,
@@ -10199,8 +10229,17 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 
         if (is_signals)
             prcode(fp,
-"    pyqt4_signals_%C\n"
+"    pyqt4_signals_%C,\n"
                 , classFQCName(cd));
+        else
+            prcode(fp,
+"    0,\n"
+                );
+
+        if (cd->pyqt_interface != NULL)
+            prcode(fp,
+"    \"%s\"\n"
+                , cd->pyqt_interface);
         else
             prcode(fp,
 "    0\n"

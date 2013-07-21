@@ -986,6 +986,22 @@ specification files.
         the address of the C/C++ instance
 
 
+.. c:function:: void *sipGetMixinAddress(sipSimpleWrapper *obj, const sipTypeDef *td)
+
+    .. versionadded:: 4.15
+
+    This returns the address of the C++ class instance that implements the
+    mixin of a wrapped Python object.
+
+    :param obj:
+        the Python object.
+    :param td:
+        the :ref:`generated type structure <ref-type-structures>` corresponding
+        to the C++ type of the mixin.
+    :return:
+        the address of the C++ instance
+
+
 .. c:function:: PyObject *sipGetPyObject(void *cppptr, const sipTypeDef *td)
 
     This returns a borrowed reference to the Python object for a C structure or

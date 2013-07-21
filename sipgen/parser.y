@@ -2769,6 +2769,7 @@ struct:     TK_STRUCT scopedname {
                     "PyName",
                     "PyQt4Flags",
                     "PyQt4NoQMetaObject",
+                    "PyQtInterface",
                     "Supertype",
                     "VirtualErrorHandler",
                     NULL
@@ -2841,6 +2842,7 @@ class:  TK_CLASS scopedname {
                     "PyName",
                     "PyQt4Flags",
                     "PyQt4NoQMetaObject",
+                    "PyQtInterface",
                     "Supertype",
                     "VirtualErrorHandler",
                     NULL
@@ -4923,6 +4925,9 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd,
 
     if (getOptFlag(of, "PyQt4NoQMetaObject", bool_flag) != NULL)
         setPyQt4NoQMetaObject(cd);
+
+    if ((flg = getOptFlag(of, "PyQtInterface", string_flag)) != NULL)
+        cd->pyqt_interface = flg->fvalue.sval;
 
     if (isOpaque(cd))
     {
@@ -8240,6 +8245,15 @@ int pluginPyQt3(sipSpec *pt)
 int pluginPyQt4(sipSpec *pt)
 {
     return stringFind(pt->plugins, "PyQt4");
+}
+
+
+/*
+ * Return TRUE if the PyQt5 plugin was specified.
+ */
+int pluginPyQt5(sipSpec *pt)
+{
+    return stringFind(pt->plugins, "PyQt5");
 }
 
 

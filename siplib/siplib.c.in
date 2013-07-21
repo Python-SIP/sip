@@ -260,6 +260,8 @@ static void sip_api_set_destroy_on_exit(int value);
 static int sip_api_enable_autoconversion(const sipTypeDef *td, int enable);
 static int sip_api_init_mixin(PyObject *self, PyObject *args, PyObject *kwds,
         const sipClassTypeDef *ctd);
+static void *sip_api_get_mixin_address(sipSimpleWrapper *w,
+        const sipTypeDef *td);
 
 
 /*
@@ -377,6 +379,10 @@ static const sipAPIDef sip_api = {
     sip_api_parse_result_ex,
     sip_api_call_error_handler,
     sip_api_init_mixin,
+    /*
+     * The following are part of the public API.
+     */
+    sip_api_get_mixin_address,
 };
 
 
@@ -696,6 +702,7 @@ static sipFinalFunc find_finalisation(sipClassTypeDef *ctd);
 static PyObject *next_in_mro(PyObject *self, PyObject *after);
 static int super_init(PyObject *self, PyObject *args, PyObject *kwds,
         PyObject *type);
+static sipSimpleWrapper *deref_mixin(sipSimpleWrapper *w);
 
 
 /*
@@ -2289,7 +2296,7 @@ static int sip_api_parse_result_ex(sip_gilstate_t gil_state,
         va_list va;
 
         va_start(va, fmt);
-        rc = parseResult(method, res, py_self, fmt, va);
+        rc = parseResult(method, res, deref_mixin(py_self), fmt, va);
         va_end(va);
 
         Py_DECREF(res);
@@ -2318,7 +2325,7 @@ static void sip_api_call_error_handler(sipVirtErrorHandlerFunc error_handler,
         sipSimpleWrapper *py_self, sip_gilstate_t sipGILState)
 {
     if (error_handler != NULL)
-        error_handler(py_self, sipGILState);
+        error_handler(deref_mixin(py_self), sipGILState);
     else
         PyErr_Print();
 }
@@ -7893,6 +7900,8 @@ static PyObject *sip_api_is_py_method(sip_gilstate_t *gil, char *pymc,
     *gil = PyGILState_Ensure();
 #endif
 
+    sipSelf = deref_mixin(sipSelf);
+
     /*
      * It's possible that the Python object has been deleted but the underlying
      * C++ instance is still working and trying to handle virtual functions.
@@ -9336,7 +9345,7 @@ static PyObject *sipSimpleWrapper_new(sipWrapperType *wt, PyObject *args,
         }
 
         /* See if it is an abstract type. */
-        if (sipTypeIsAbstract(td) && sipIsExactWrappedType(wt))
+        if (sipTypeIsAbstract(td) && sipIsExactWrappedType(wt) && ((sipClassTypeDef *)td)->ctd_init_mixin == NULL)
         {
             PyErr_Format(PyExc_TypeError,
                     "%s.%s represents a C++ abstract class and cannot be instantiated",
@@ -9597,6 +9606,26 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
 
 
 /*
+ * Get the C++ address of a mixin.
+ */
+static void *sip_api_get_mixin_address(sipSimpleWrapper *w,
+        const sipTypeDef *td)
+{
+    PyObject *mixin;
+    void *cpp;
+
+    if ((mixin = PyObject_GetAttrString((PyObject *)w, sipTypeName(td))) == NULL)
+        return NULL;
+
+    cpp = sip_api_get_address((sipSimpleWrapper *)mixin);
+
+    Py_DECREF(mixin);
+
+    return cpp;
+}
+
+
+/*
  * Initialise a mixin.
  */
 static int sip_api_init_mixin(PyObject *self, PyObject *args, PyObject *kwds,
@@ -9633,6 +9662,10 @@ static int sip_api_init_mixin(PyObject *self, PyObject *args, PyObject *kwds,
     if (mixin == NULL)
         goto gc_unused;
 
+    /* Make sure the mixin can find the main instance. */
+    ((sipSimpleWrapper *)mixin)->mixin_main = self;
+    Py_INCREF(self);
+
 #if PY_MAJOR_VERSION >= 3
     mixin_name = PyUnicode_FromString(sipTypeName(&ctd->ctd_base));
 #else
@@ -9656,6 +9689,10 @@ static int sip_api_init_mixin(PyObject *self, PyObject *args, PyObject *kwds,
 
     while (PyDict_Next(wt->tp_dict, &pos, &key, &value))
     {
+        /* Don't replace existing values. */
+        if (PyDict_Contains(Py_TYPE(self)->tp_dict, key) != 0)
+            continue;
+
         /* Skip values with names that start with double underscore. */
 #if PY_MAJOR_VERSION >= 3
         if (!PyUnicode_Check(key))
@@ -9844,6 +9881,10 @@ static int sipSimpleWrapper_traverse(sipSimpleWrapper *self, visitproc visit,
         if ((vret = visit(self->user, arg)) != 0)
             return vret;
 
+    if (self->mixin_main != NULL)
+        if ((vret = visit(self->mixin_main, arg)) != 0)
+            return vret;
+
     return 0;
 }
 
@@ -9890,6 +9931,11 @@ static int sipSimpleWrapper_clear(sipSimpleWrapper *self)
     /* Remove any user object. */
     tmp = self->user;
     self->user = NULL;
+    Py_XDECREF(tmp);
+
+    /* Remove any mixin main. */
+    tmp = self->mixin_main;
+    self->mixin_main = NULL;
     Py_XDECREF(tmp);
 
     return vret;
@@ -11812,4 +11858,13 @@ static void fix_slots(PyTypeObject *py_type, sipPySlotDef *psd)
 
         ++psd;
     }
+}
+
+
+/*
+ * Return the main instance for an object if it is a mixin.
+ */
+static sipSimpleWrapper *deref_mixin(sipSimpleWrapper *w)
+{
+    return w->mixin_main != NULL ? (sipSimpleWrapper *)w->mixin_main : w;
 }

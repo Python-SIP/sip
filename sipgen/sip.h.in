@@ -1113,6 +1113,7 @@ typedef struct _classDef {
     unsigned classflags;                /* The class flags. */
     unsigned classflags2;               /* The class flags, part 2. */
     int pyqt4_flags;                    /* The PyQt4 specific flags. */
+    const char *pyqt_interface;         /* The Qt interface name. */
     nameDef *pyname;                    /* The Python name. */
     ifaceFileDef *iff;                  /* The interface file. */
     struct _classDef *ecd;              /* The enclosing scope. */
@@ -1307,6 +1308,7 @@ ifaceFileDef *findIfaceFile(sipSpec *pt, moduleDef *mod,
         apiVersionRangeDef *api_range, argDef *ad);
 int pluginPyQt3(sipSpec *pt);
 int pluginPyQt4(sipSpec *pt);
+int pluginPyQt5(sipSpec *pt);
 void yywarning(char *);
 nameDef *cacheName(sipSpec *pt, const char *name);
 scopedNameDef *encodedTemplateName(templateDef *td);
