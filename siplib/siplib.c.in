@@ -7900,8 +7900,6 @@ static PyObject *sip_api_is_py_method(sip_gilstate_t *gil, char *pymc,
     *gil = PyGILState_Ensure();
 #endif
 
-    sipSelf = deref_mixin(sipSelf);
-
     /*
      * It's possible that the Python object has been deleted but the underlying
      * C++ instance is still working and trying to handle virtual functions.
@@ -7909,6 +7907,9 @@ static PyObject *sip_api_is_py_method(sip_gilstate_t *gil, char *pymc,
      * its ctor has returned.  In either case say there is no Python
      * reimplementation.
      */
+    if (sipSelf != NULL)
+        sipSelf = deref_mixin(sipSelf);
+
     if (sipSelf == NULL)
         goto release_gil;
 
