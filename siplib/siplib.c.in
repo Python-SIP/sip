@@ -9635,6 +9635,7 @@ static int sip_api_init_mixin(PyObject *self, PyObject *args, PyObject *kwds,
     int i, rc;
     SIP_SSIZE_T pos;
     PyObject *unused, *mixin, *mixin_name, *key, *value;
+    PyTypeObject *self_wt = sipTypeAsPyTypeObject(((sipWrapperType *)Py_TYPE(self))->type);
     PyTypeObject *wt = sipTypeAsPyTypeObject(&ctd->ctd_base);
     PyMethodDef *pmd;
 
@@ -9646,7 +9647,7 @@ static int sip_api_init_mixin(PyObject *self, PyObject *args, PyObject *kwds,
 #endif
 
     /* If we are not a mixin to another wrapped class then behave as normal. */
-    if (((sipWrapperType *)Py_TYPE(self))->type == ctd)
+    if (PyType_IsSubtype(self_wt, wt))
         return super_init(self, args, kwds, next_in_mro(self, (PyObject *)wt));
 
     /*
