@@ -2339,6 +2339,9 @@ static int parseResult(PyObject *method, PyObject *res,
 {
     int tupsz, rc = 0;
 
+    /* We rely on PyErr_Occurred(). */
+    PyErr_Clear();
+
     /* Get self if it is provided as an argument. */
     if (*fmt == 'S')
     {
