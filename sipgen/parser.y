@@ -2762,6 +2762,7 @@ struct:     TK_STRUCT scopedname {
                     "API",
                     "DelayDtor",
                     "Deprecated",
+                    "ExportDerived",
                     "External",
                     "Metatype",
                     "Mixin",
@@ -2835,6 +2836,7 @@ class:  TK_CLASS scopedname {
                     "API",
                     "DelayDtor",
                     "Deprecated",
+                    "ExportDerived",
                     "External",
                     "Metatype",
                     "Mixin",
@@ -4916,6 +4918,9 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd,
 
     if ((flg = getOptFlag(of, "Supertype", dotted_name_flag)) != NULL)
         cd->supertype = cacheName(pt, flg->fvalue.sval);
+
+    if (getOptFlag(of, "ExportDerived", bool_flag) != NULL)
+        setExportDerived(cd);
 
     if (getOptFlag(of, "Mixin", bool_flag) != NULL)
         setMixin(cd);

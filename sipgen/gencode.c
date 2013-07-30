@@ -5689,7 +5689,9 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
     /* Any shadow code. */
     if (hasShadow(cd))
     {
-        generateShadowClassDeclaration(pt, cd, fp);
+        if (!isExportDerived(cd))
+            generateShadowClassDeclaration(pt, cd, fp);
+
         generateShadowCode(pt, mod, cd, fp);
     }
 
@@ -8570,6 +8572,12 @@ static void generateClassAPI(classDef *cd, sipSpec *pt, FILE *fp)
 "\n"
 "extern %sClassTypeDef sipTypeDef_%s_%L;\n"
             , type_prefix, mname, cd->iff);
+
+        if (isExportDerived(cd))
+        {
+            generateCppCodeBlock(cd->iff->hdrcode, fp);
+            generateShadowClassDeclaration(pt, cd, fp);
+        }
     }
 }
 

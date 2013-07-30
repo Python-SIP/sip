@@ -419,6 +419,16 @@ Class Annotations
     and methods as being deprecated.
 
 
+.. class-annotation:: ExportDerived
+
+    .. versionadded:: 4.15
+
+    In many cases SIP generates a derived class for each class being wrapped
+    (see :ref:`ref-derived-classes`).  Normally this is used internally.  This
+    boolean annotation specifies that the declaration of the class is exported
+    and able to be used by handwritten code.
+
+
 .. class-annotation:: External
 
     This boolean annotation is used to specify that the class is defined in

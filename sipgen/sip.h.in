@@ -186,11 +186,14 @@
 /* Handle the second group of class flags. */
 #define CLASS2_TMPL_ARG     0x01        /* The class is a template argument. */
 #define CLASS2_MIXIN        0x02        /* The class is a mixin. */
+#define CLASS2_EXPORT_DERIVED   0x04    /* Export the derived class declaration. */
 
 #define isTemplateArg(cd)   ((cd)->classflags2 & CLASS2_TMPL_ARG)
 #define setTemplateArg(cd)  ((cd)->classflags2 |= CLASS2_TMPL_ARG)
 #define isMixin(cd)         ((cd)->classflags2 & CLASS2_MIXIN)
 #define setMixin(cd)        ((cd)->classflags2 |= CLASS2_MIXIN)
+#define isExportDerived(cd) ((cd)->classflags2 & CLASS2_EXPORT_DERIVED)
+#define setExportDerived(cd)    ((cd)->classflags2 |= CLASS2_EXPORT_DERIVED)
 
 
 /* Handle ctor flags.  These are combined with the section flags. */
