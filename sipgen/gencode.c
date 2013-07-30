@@ -680,6 +680,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipReleaseType              sipAPI_%s->api_release_type\n"
 "#define sipConvertFromType          sipAPI_%s->api_convert_from_type\n"
 "#define sipConvertFromNewType       sipAPI_%s->api_convert_from_new_type\n"
+"#define sipConvertFromNewPyType     sipAPI_%s->api_convert_from_new_pytype\n"
 "#define sipConvertFromEnum          sipAPI_%s->api_convert_from_enum\n"
 "#define sipGetState                 sipAPI_%s->api_get_state\n"
 "#define sipLong_AsUnsignedLong      sipAPI_%s->api_long_as_unsigned_long\n"
@@ -738,6 +739,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipConvertFromMappedType    sipConvertFromType\n"
 "#define sipConvertFromNamedEnum(v, pt)  sipConvertFromEnum((v), ((sipEnumTypeObject *)(pt))->type)\n"
 "#define sipConvertFromNewInstance(p, wt, t) sipConvertFromNewType((p), (wt)->type, (t))\n"
+        ,mname
         ,mname
         ,mname
         ,mname

@@ -173,6 +173,8 @@ static int sip_api_can_convert_to_enum(PyObject *pyObj, const sipTypeDef *td);
 static void sip_api_release_type(void *cpp, const sipTypeDef *td, int state);
 static PyObject *sip_api_convert_from_new_type(void *cpp, const sipTypeDef *td,
         PyObject *transferObj);
+static PyObject *sip_api_convert_from_new_pytype(void *cpp,
+        PyTypeObject *py_type, int derived, const char *fmt, ...);
 static int sip_api_get_state(PyObject *transferObj);
 static PyObject *sip_api_get_pyobject(void *cppPtr, const sipTypeDef *td);
 static sipWrapperType *sip_api_map_int_to_class(int typeInt,
@@ -383,6 +385,7 @@ static const sipAPIDef sip_api = {
      * The following are part of the public API.
      */
     sip_api_get_mixin_address,
+    sip_api_convert_from_new_pytype,
 };
 
 
@@ -703,6 +706,8 @@ static PyObject *next_in_mro(PyObject *self, PyObject *after);
 static int super_init(PyObject *self, PyObject *args, PyObject *kwds,
         PyObject *type);
 static sipSimpleWrapper *deref_mixin(sipSimpleWrapper *w);
+static PyObject *wrap_simple_instance(void *cpp, const sipTypeDef *td,
+        sipWrapper *owner, int flags);
 
 
 /*
@@ -1108,7 +1113,8 @@ static PyObject *cast(PyObject *self, PyObject *args)
      * We don't put this new object into the map so that the original object is
      * always found.  It would also totally confuse the map logic.
      */
-    return sipWrapSimpleInstance(addr, wt->type, NULL, (sw->flags | SIP_NOT_IN_MAP) & ~SIP_PY_OWNED);
+    return wrap_simple_instance(addr, wt->type, NULL,
+            (sw->flags | SIP_NOT_IN_MAP) & ~SIP_PY_OWNED);
 }
 
 
@@ -1832,6 +1838,35 @@ static PyObject *sip_api_pyslot_extend(sipExportedModuleDef *mod,
 
     Py_INCREF(Py_NotImplemented);
     return Py_NotImplemented;
+}
+
+
+/*
+ * Convert a new C/C++ instance to a Python instance of a specific Python type..
+ */
+static PyObject *sip_api_convert_from_new_pytype(void *cpp,
+        PyTypeObject *py_type, int derived, const char *fmt, ...)
+{
+    PyObject *args, *res;
+    va_list va;
+
+    va_start(va, fmt);
+
+    if ((args = PyTuple_New(strlen(fmt))) != NULL && buildObject(args, fmt, va) != NULL)
+    {
+        res = sipWrapInstance(cpp, py_type, args, NULL,
+                (derived ? SIP_DERIVED_CLASS : 0));
+    }
+    else
+    {
+        res = NULL;
+    }
+
+    Py_XDECREF(args);
+
+    va_end(va);
+
+    return res;
 }
 
 
@@ -7842,7 +7877,7 @@ static int addSingleTypeInstance(PyObject *dict, const char *name,
         if (cfrom != NULL)
             obj = cfrom(cppPtr, NULL);
         else
-            obj = sipWrapSimpleInstance(cppPtr, td, NULL, initflags);
+            obj = wrap_simple_instance(cppPtr, td, NULL, initflags);
     }
 
     if (obj == NULL)
@@ -8471,7 +8506,7 @@ PyObject *sip_api_convert_from_type(void *cpp, const sipTypeDef *td,
     /* See if we have already wrapped it. */
     if ((py = sip_api_get_pyobject(cpp, td)) != NULL)
         Py_INCREF(py);
-    else if ((py = sipWrapSimpleInstance(cpp, td, NULL, SIP_SHARE_MAP)) == NULL)
+    else if ((py = wrap_simple_instance(cpp, td, NULL, SIP_SHARE_MAP)) == NULL)
         return NULL;
 
     /* Handle any ownership transfer. */
@@ -8534,7 +8569,8 @@ static PyObject *sip_api_convert_from_new_type(void *cpp, const sipTypeDef *td,
     else
         owner = (sipWrapper *)transferObj;
 
-    return sipWrapSimpleInstance(cpp, td, owner, (owner == NULL ? SIP_PY_OWNED : 0));
+    return wrap_simple_instance(cpp, td, owner,
+            (owner == NULL ? SIP_PY_OWNED : 0));
 }
 
 
@@ -8936,7 +8972,7 @@ static void sip_api_raise_type_exception(const sipTypeDef *td, void *ptr)
 
     SIP_BLOCK_THREADS
 
-    self = sipWrapSimpleInstance(ptr, td, NULL, SIP_PY_OWNED);
+    self = wrap_simple_instance(ptr, td, NULL, SIP_PY_OWNED);
 
     PyErr_SetObject((PyObject *)sipTypeAsPyTypeObject(td), self);
 
@@ -11872,4 +11908,15 @@ static void fix_slots(PyTypeObject *py_type, sipPySlotDef *psd)
 static sipSimpleWrapper *deref_mixin(sipSimpleWrapper *w)
 {
     return w->mixin_main != NULL ? (sipSimpleWrapper *)w->mixin_main : w;
+}
+
+
+/*
+ * Convert a new C/C++ pointer to a Python instance.
+ */
+static PyObject *wrap_simple_instance(void *cpp, const sipTypeDef *td,
+        sipWrapper *owner, int flags)
+{
+    return sipWrapInstance(cpp, sipTypeAsPyTypeObject(td), empty_tuple, owner,
+            flags);
 }

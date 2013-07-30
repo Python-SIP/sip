@@ -71,6 +71,7 @@ extern "C" {
  * 10.1 Added ctd_final to sipClassTypeDef.
  *      Added ctd_init_mixin to sipClassTypeDef.
  *      Added sip_api_get_mixin_address() to the public API.
+ *      Added sip_api_convert_from_new_pytype() to the public API.
  *      Added sip_api_init_mixin() to the private API.
  *      Added qt_interface to pyqt4ClassTypeDef.
  *
@@ -1494,6 +1495,8 @@ typedef struct _sipAPIDef {
      */
     void *(*api_get_mixin_address)(struct _sipSimpleWrapper *w,
             const sipTypeDef *td);
+    PyObject *(*api_convert_from_new_pytype)(void *cpp, PyTypeObject *py_type,
+            int derived, const char *fmt, ...);
 } sipAPIDef;
 
 
