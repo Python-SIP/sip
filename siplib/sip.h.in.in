@@ -1496,7 +1496,7 @@ typedef struct _sipAPIDef {
     void *(*api_get_mixin_address)(struct _sipSimpleWrapper *w,
             const sipTypeDef *td);
     PyObject *(*api_convert_from_new_pytype)(void *cpp, PyTypeObject *py_type,
-            int derived, const char *fmt, ...);
+            sipWrapper *owner, sipSimpleWrapper **selfp, const char *fmt, ...);
 } sipAPIDef;
 
 

@@ -174,7 +174,8 @@ static void sip_api_release_type(void *cpp, const sipTypeDef *td, int state);
 static PyObject *sip_api_convert_from_new_type(void *cpp, const sipTypeDef *td,
         PyObject *transferObj);
 static PyObject *sip_api_convert_from_new_pytype(void *cpp,
-        PyTypeObject *py_type, int derived, const char *fmt, ...);
+        PyTypeObject *py_type, sipWrapper *owner, sipSimpleWrapper **selfp,
+        const char *fmt, ...);
 static int sip_api_get_state(PyObject *transferObj);
 static PyObject *sip_api_get_pyobject(void *cppPtr, const sipTypeDef *td);
 static sipWrapperType *sip_api_map_int_to_class(int typeInt,
@@ -1845,7 +1846,8 @@ static PyObject *sip_api_pyslot_extend(sipExportedModuleDef *mod,
  * Convert a new C/C++ instance to a Python instance of a specific Python type..
  */
 static PyObject *sip_api_convert_from_new_pytype(void *cpp,
-        PyTypeObject *py_type, int derived, const char *fmt, ...)
+        PyTypeObject *py_type, sipWrapper *owner, sipSimpleWrapper **selfp,
+        const char *fmt, ...)
 {
     PyObject *args, *res;
     va_list va;
@@ -1854,8 +1856,12 @@ static PyObject *sip_api_convert_from_new_pytype(void *cpp,
 
     if ((args = PyTuple_New(strlen(fmt))) != NULL && buildObject(args, fmt, va) != NULL)
     {
-        res = sipWrapInstance(cpp, py_type, args, NULL,
-                (derived ? SIP_DERIVED_CLASS : 0));
+        res = sipWrapInstance(cpp, py_type, args, owner,
+                (selfp != NULL ? SIP_DERIVED_CLASS : 0));
+
+        /* Initialise the rest of an instance of a derived class. */
+        if (selfp != NULL)
+            *selfp = (sipSimpleWrapper *)res;
     }
     else
     {
