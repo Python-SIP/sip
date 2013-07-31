@@ -581,6 +581,36 @@ specification files.
     :directive:`%ConvertToSubClassCode` code.
 
 
+.. c:function:: PyObject *sipConvertFromNewPyType(void *cpp, PyTypeObject *py_type, sipWrapper *owner, sipSimpleWrapper **selfp, const char *format, ...)
+
+    .. versionadded:: 4.15
+
+    This converts a new C structure or a C++ class instance to an instance of a
+    corresponding Python type (as opposed to the corresponding generated Python
+    type).  This is useful when the C/C++ library provides some sort of
+    mechanism whereby handwritten code has some control over the exact type of
+    structure or class being created.  Typically it would be used to create an
+    instance of the generated derived class which would then allow Python
+    re-implementations of C++ virtual methods to function properly.
+
+    :param cpp:
+        the C/C++ instance.
+    :param py_type:
+        the Python type object.  This is called to create the Python object and
+        is passed the arguments defined by the string of format characters.
+    :param owner:
+        is the optional owner of the Python object.
+    :param selfp:
+        is an optional pointer to the ``sipPySelf`` instance variable of the
+        C/C++ instance if that instance's type is a generated derived class.
+        Otherwise it should be ``NULL``.
+    :param format:
+        the string of format characters (see :c:func:`sipBuildResult()`).
+    :return:
+        the Python object.  If there was an error then ``NULL`` is returned and
+        a Python exception is raised.
+
+
 .. c:function:: PyObject *sipConvertFromNewType(void *cpp, const sipTypeDef *td, PyObject *transferObj)
 
     This converts a new C structure or a C++ class instance to an instance of
