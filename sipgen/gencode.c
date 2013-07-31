@@ -6524,14 +6524,26 @@ static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
     if ((pluginPyQt4(pt) || pluginPyQt5(pt)) && isQObjectSubClass(cd))
     {
         if (!noPyQt4QMetaObject(cd))
+        {
             prcode(fp,
 "\n"
 "const QMetaObject *sip%C::metaObject() const\n"
 "{\n"
+                , classFQCName(cd));
+
+            if (pluginPyQt5(pt))
+                prcode(fp,
+"    return QObject::d_ptr->metaObject ? QObject::d_ptr->dynamicMetaObject() : sip_%s_qt_metaobject(sipPySelf,sipType_%C);\n"
+                    , mod->name, classFQCName(cd));
+            else
+                prcode(fp,
 "    return sip_%s_qt_metaobject(sipPySelf,sipType_%C);\n"
+                    , mod->name, classFQCName(cd));
+
+            prcode(fp,
 "}\n"
-                , classFQCName(cd)
-                , mod->name, classFQCName(cd));
+                );
+        }
 
         prcode(fp,
 "\n"
