@@ -1497,6 +1497,8 @@ typedef struct _sipAPIDef {
             const sipTypeDef *td);
     PyObject *(*api_convert_from_new_pytype)(void *cpp, PyTypeObject *py_type,
             sipWrapper *owner, sipSimpleWrapper **selfp, const char *fmt, ...);
+    PyObject *(*api_convert_to_typed_array)(void *cpp, const sipTypeDef *td,
+            size_t stride, SIP_SSIZE_T len, int rw);
 } sipAPIDef;
 
 

@@ -15,5 +15,5 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 target = @CFG_MODULE_BASENAME@
-sources = siplib.c apiversions.c descriptors.c qtlib.c threads.c objmap.c voidptr.c bool.cpp
-headers = sip.h sipint.h
+sources = siplib.c apiversions.c descriptors.c qtlib.c threads.c objmap.c voidptr.c array.c bool.cpp
+headers = sip.h sipint.h array.h
