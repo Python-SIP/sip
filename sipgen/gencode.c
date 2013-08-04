@@ -2970,18 +2970,21 @@ static int generateEnumMemberTable(sipSpec *pt, moduleDef *mod, classDef *cd,
         prcode(fp,
 "    {%N, ", emd->pyname);
 
-        if (cd != NULL)
+        if (!isNoScope(emd->ed))
         {
-            if (isProtectedEnum(emd->ed))
-                prcode(fp, "sip%C::", classFQCName(cd));
-            else if (isProtectedClass(cd))
-                prcode(fp, "%U::", cd);
-            else
-                prcode(fp, "%S::", classFQCName(cd));
-        }
-        else if (mtd != NULL)
-        {
-            prcode(fp, "%S::", mtd->iff->fqcname);
+            if (cd != NULL)
+            {
+                if (isProtectedEnum(emd->ed))
+                    prcode(fp, "sip%C::", classFQCName(cd));
+                else if (isProtectedClass(cd))
+                    prcode(fp, "%U::", cd);
+                else
+                    prcode(fp, "%S::", classFQCName(cd));
+            }
+            else if (mtd != NULL)
+            {
+                prcode(fp, "%S::", mtd->iff->fqcname);
+            }
         }
 
         prcode(fp, "%s, %d},\n", emd->cname, emd->ed->first_alt->enumnr);

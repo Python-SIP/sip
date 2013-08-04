@@ -572,6 +572,17 @@ Mapped Type Annotations
 Enum Annotations
 ----------------
 
+.. enum-annotation:: NoScope
+
+    .. versionadded:: 4.15
+
+    This boolean annotation specifies the that scope of an enum's members
+    should be omitted in the generated code.  Normally this would mean that the
+    generated code will not compile.  However it is useful when defining
+    pseudo-enums, for example, to wrap global values so that they are defined
+    (in Python) within the scope of a class.
+
+
 .. enum-annotation:: PyName
 
     This name annotation specifies an alternative name for the enum or enum

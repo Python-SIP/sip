@@ -254,6 +254,7 @@
 /* Handle enum flags.  These are combined with the section flags. */
 
 #define ENUM_WAS_PROT       0x00000100  /* It was defined as protected. */
+#define ENUM_NO_SCOPE       0x00000200  /* Omit the member scopes. */
 
 #define isProtectedEnum(e)  ((e)->enumflags & SECT_IS_PROT)
 #define setIsProtectedEnum(e)   ((e)->enumflags |= SECT_IS_PROT)
@@ -262,6 +263,8 @@
 #define wasProtectedEnum(e) ((e)->enumflags & ENUM_WAS_PROT)
 #define setWasProtectedEnum(e)  ((e)->enumflags |= ENUM_WAS_PROT)
 #define resetWasProtectedEnum(e)    ((e)->enumflags &= ~ENUM_WAS_PROT)
+#define isNoScope(e)        ((e)->enumflags & ENUM_NO_SCOPE)
+#define setIsNoScope(e)     ((e)->enumflags |= ENUM_NO_SCOPE)
 
 
 /* Handle hierarchy flags. */

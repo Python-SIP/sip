@@ -2418,6 +2418,7 @@ enum:       TK_ENUM optname optflags {
             if (notSkipping())
             {
                 const char *annos[] = {
+                    "NoScope",
                     "PyName",
                     NULL
                 };
@@ -5341,6 +5342,9 @@ static enumDef *newEnum(sipSpec *pt, moduleDef *mod, mappedTypeDef *mt_scope,
     ed->next = pt -> enums;
 
     pt->enums = ed;
+
+    if (getOptFlag(of, "NoScope", bool_flag) != NULL)
+        setIsNoScope(ed);
 
     return ed;
 }
