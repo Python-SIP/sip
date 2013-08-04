@@ -580,19 +580,19 @@ static void *get_slice(sipArrayObject *array, PyObject *value, SIP_SSIZE_T len)
 static PyObject *make_array(void *cpp, const sipTypeDef *td,
         const char *format, size_t stride, SIP_SSIZE_T len, int readonly)
 {
-    sipArrayObject *self;
+    sipArrayObject *array;
 
-    if ((self = PyObject_NEW(sipArrayObject, &sipArray_Type)) == NULL)
+    if ((array = PyObject_NEW(sipArrayObject, &sipArray_Type)) == NULL)
         return NULL;
 
-    self->cpp = cpp;
-    self->td = td;
-    self->format = format;
-    self->stride = stride;
-    self->len = len;
-    self->readonly = readonly;
+    array->cpp = cpp;
+    array->td = td;
+    array->format = format;
+    array->stride = stride;
+    array->len = len;
+    array->readonly = readonly;
 
-    return (PyObject *)self;
+    return (PyObject *)array;
 }
 
 

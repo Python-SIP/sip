@@ -821,6 +821,9 @@ PyMODINIT_FUNC SIP_MODULE_ENTRY(void)
     if (PyType_Ready(&sipVoidPtr_Type) < 0)
         SIP_FATAL(SIP_MODULE_NAME ": Failed to initialise sip.voidptr type");
 
+    if (PyType_Ready(&sipArray_Type) < 0)
+        SIP_FATAL(SIP_MODULE_NAME ": Failed to initialise sip.array type");
+
 #if PY_MAJOR_VERSION >= 3
     mod = PyModule_Create(&module_def);
 #else
