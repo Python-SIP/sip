@@ -167,9 +167,6 @@ static int sip_api_can_convert_to_type(PyObject *pyObj, const sipTypeDef *td,
         int flags);
 static void *sip_api_convert_to_type(PyObject *pyObj, const sipTypeDef *td,
         PyObject *transferObj, int flags, int *statep, int *iserrp);
-static void *sip_api_force_convert_to_type(PyObject *pyObj,
-        const sipTypeDef *td, PyObject *transferObj, int flags, int *statep,
-        int *iserrp);
 static int sip_api_can_convert_to_enum(PyObject *pyObj, const sipTypeDef *td);
 static void sip_api_release_type(void *cpp, const sipTypeDef *td, int state);
 static PyObject *sip_api_convert_from_new_type(void *cpp, const sipTypeDef *td,
@@ -8411,9 +8408,8 @@ static void *sip_api_convert_to_type(PyObject *pyObj, const sipTypeDef *td,
  * Convert a Python object to a C/C++ pointer and raise an exception if it
  * can't be done.
  */
-static void *sip_api_force_convert_to_type(PyObject *pyObj,
-        const sipTypeDef *td, PyObject *transferObj, int flags, int *statep,
-        int *iserrp)
+void *sip_api_force_convert_to_type(PyObject *pyObj, const sipTypeDef *td,
+        PyObject *transferObj, int flags, int *statep, int *iserrp)
 {
     /* Don't even try if there has already been an error. */
     if (*iserrp)

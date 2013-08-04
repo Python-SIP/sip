@@ -32,7 +32,7 @@ extern "C" {
 
 
 PyObject *sip_api_convert_to_typed_array(void *cpp, const sipTypeDef *td,
-        size_t stride, SIP_SSIZE_T len, int rw);
+        const char *format, size_t stride, SIP_SSIZE_T len, int readonly);
 
 
 #ifdef __cplusplus
