@@ -4830,7 +4830,7 @@ static void generateVariableSetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
     argType atype = vd->type.atype;
     const char *first_arg, *last_arg;
     char *deref;
-    int might_be_temp, keep;
+    int might_be_temp, keep, need_py, need_cpp;
 
     keep = keepPyReference(&vd->type);
 
@@ -4844,6 +4844,9 @@ static void generateVariableSetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
     else
         last_arg = "";
 
+    need_py = (generating_c || vd->setcode == NULL || usedInCode(vd->setcode, "sipPy"));
+    need_cpp = (generating_c || vd->setcode == NULL || usedInCode(vd->setcode, "sipCpp"));
+
     prcode(fp,
 "\n"
 "\n"
@@ -4855,9 +4858,9 @@ static void generateVariableSetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
             , vd->fqcname);
 
     prcode(fp,
-"static int varset_%C(void *%s, PyObject *sipPy, PyObject *%s)\n"
+"static int varset_%C(void *%s, PyObject *%s, PyObject *%s)\n"
 "{\n"
-        , vd->fqcname, first_arg, last_arg);
+        , vd->fqcname, (need_cpp ? first_arg : ""), (need_py ? "sipPy" : ""), last_arg);
 
     if (vd->setcode == NULL)
     {
@@ -4870,7 +4873,7 @@ static void generateVariableSetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
             );
     }
 
-    if (!isStaticVar(vd))
+    if (!isStaticVar(vd) && need_cpp)
     {
         if (generating_c)
             prcode(fp,
