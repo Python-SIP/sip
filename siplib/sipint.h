@@ -117,6 +117,7 @@ void sip_api_end_thread(void);
 void *sip_api_force_convert_to_type(PyObject *pyObj, const sipTypeDef *td,
         PyObject *transferObj, int flags, int *statep, int *iserrp);
 void sip_api_free_sipslot(sipSlot *slot);
+unsigned long sip_api_long_as_unsigned_long(PyObject *o);
 int sip_api_same_slot(const sipSlot *sp, PyObject *rxObj, const char *slot);
 PyObject *sip_api_invoke_slot(const sipSlot *slot, PyObject *sigargs);
 void *sip_api_convert_rx(sipWrapper *txSelf, const char *sigargs,

@@ -222,7 +222,6 @@ static PyObject *sip_api_pyslot_extend(sipExportedModuleDef *mod,
         sipPySlotType st, const sipTypeDef *td, PyObject *arg0,
         PyObject *arg1);
 static void sip_api_add_delayed_dtor(sipSimpleWrapper *w);
-static unsigned long sip_api_long_as_unsigned_long(PyObject *o);
 static int sip_api_export_symbol(const char *name, void *sym);
 static void *sip_api_import_symbol(const char *name);
 static const sipTypeDef *sip_api_find_type(const char *type);
@@ -3067,7 +3066,7 @@ static int parseResult(PyObject *method, PyObject *res,
  * Python versions prior to v2.4 where an integer (or a named enum) causes an
  * error.
  */
-static unsigned long sip_api_long_as_unsigned_long(PyObject *o)
+unsigned long sip_api_long_as_unsigned_long(PyObject *o)
 {
 #if PY_VERSION_HEX < 0x02040000
     if (o != NULL && !PyLong_Check(o) && PyInt_Check(o))

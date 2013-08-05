@@ -566,12 +566,12 @@ static void *get_value(sipArrayObject *array, PyObject *value)
         switch (*array->format)
         {
         case 'H':
-            static_data.u_short = sipLongAsUnsignedLong(value);
+            static_data.u_short = sip_api_long_as_unsigned_long(value);
             data = &static_data.u_short;
             break;
 
         case 'I':
-            static_data.u_int = sipLongAsUnsignedLong(value);
+            static_data.u_int = sip_api_long_as_unsigned_long(value);
             data = &static_data.u_int;
             break;
 
