@@ -386,6 +386,7 @@ static const sipAPIDef sip_api = {
     sip_api_get_mixin_address,
     sip_api_convert_from_new_pytype,
     sip_api_convert_to_typed_array,
+    sip_api_convert_to_array,
 };
 
 

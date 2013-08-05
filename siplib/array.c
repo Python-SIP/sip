@@ -71,11 +71,36 @@ static SIP_SSIZE_T sipArray_length(PyObject *self)
 static PyObject *sipArray_item(PyObject *self, SIP_SSIZE_T idx)
 {
     sipArrayObject *array = (sipArrayObject *)self;
+    PyObject *py_item;
+    void *data;
 
     if (check_index(array, idx) < 0)
         return NULL;
 
-    return sip_api_convert_from_type(element(array, idx), array->td, NULL);
+    data = element(array, idx);
+
+    if (array->td != NULL)
+    {
+        py_item = sip_api_convert_from_type(data, array->td, NULL);
+    }
+    else
+    {
+        switch (*array->format)
+        {
+        case 'H':
+            py_item = PyLong_FromUnsignedLong(*(unsigned short *)data);
+            break;
+
+        case 'I':
+            py_item = PyLong_FromUnsignedLong(*(unsigned int *)data);
+            break;
+
+        default:
+            py_item = NULL;
+        }
+    }
+
+    return py_item;
 }
 
 
@@ -520,10 +545,45 @@ static void *element(sipArrayObject *array, SIP_SSIZE_T idx)
  */
 static void *get_value(sipArrayObject *array, PyObject *value)
 {
-    int iserr = FALSE;
+    static union {
+        unsigned short u_short;
+        unsigned int u_int;
+    } static_data;
 
-    return sip_api_force_convert_to_type(value, array->td, NULL,
-            SIP_NOT_NONE|SIP_NO_CONVERTORS, NULL, &iserr);
+    void *data;
+
+    if (array->td != NULL)
+    {
+        int iserr = FALSE;
+
+        data = sip_api_force_convert_to_type(value, array->td, NULL,
+                SIP_NOT_NONE|SIP_NO_CONVERTORS, NULL, &iserr);
+    }
+    else
+    {
+        PyErr_Clear();
+
+        switch (*array->format)
+        {
+        case 'H':
+            static_data.u_short = sipLongAsUnsignedLong(value);
+            data = &static_data.u_short;
+            break;
+
+        case 'I':
+            static_data.u_int = sipLongAsUnsignedLong(value);
+            data = &static_data.u_int;
+            break;
+
+        default:
+            data = NULL;
+        }
+
+        if (PyErr_Occurred())
+            data = NULL;
+    }
+
+    return data;
 }
 
 
@@ -534,11 +594,33 @@ static void *get_slice(sipArrayObject *array, PyObject *value, SIP_SSIZE_T len)
 {
     sipArrayObject *other = (sipArrayObject *)value;
 
-    if (!PyObject_IsInstance(value, (PyObject *)&sipArray_Type) || array->td != other->td)
+    if (!PyObject_IsInstance(value, (PyObject *)&sipArray_Type) || array->td != other->td || strcmp(array->format, other->format) != 0)
     {
+        const char *type;
+
+        if (array->td != NULL)
+        {
+            type = sipTypeName(array->td);
+        }
+        else
+        {
+            switch (*array->format)
+            {
+            case 'H':
+                type = "unsigned short";
+                break;
+
+            case 'I':
+                type = "unsigned int";
+                break;
+
+            default:
+                type = "";
+            }
+        }
+
         PyErr_Format(PyExc_TypeError,
-                "can only assign another array of %s to the slice",
-                sipTypeName(array->td));
+                "can only assign another array of %s to the slice", type);
 
         return NULL;
     }
@@ -593,6 +675,42 @@ static PyObject *make_array(void *cpp, const sipTypeDef *td,
     array->readonly = readonly;
 
     return (PyObject *)array;
+}
+
+
+/*
+ * Wrap an array of instances of a fundamental type.  At the moment format must
+ * be either "H" (unsigned short) or "I" (unsigned int).
+ */
+PyObject *sip_api_convert_to_array(void *cpp, const char *format,
+        SIP_SSIZE_T len, int readonly)
+{
+    size_t stride;
+
+    if (cpp == NULL)
+    {
+        Py_INCREF(Py_None);
+        return Py_None;
+    }
+
+    switch (*format)
+    {
+    case 'H':
+        stride = sizeof (unsigned short);
+        break;
+
+    case 'I':
+        stride = sizeof (unsigned int);
+        break;
+
+    default:
+        stride = 0;
+    }
+
+    assert(stride > 0);
+    assert(len >= 0);
+
+    return make_array(cpp, NULL, format, stride, len, readonly);
 }
 
 
