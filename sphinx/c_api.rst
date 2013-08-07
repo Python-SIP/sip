@@ -714,6 +714,35 @@ specification files.
         the :class:`sip.voidptr` object.
 
 
+.. c:function:: PyObject *sipConvertToArray(void *cpp, const char *format, SIP_SSIZE_T len, int readonly)
+
+    .. versionadded:: 4.15
+
+    This converts a one dimensional array of fundamental types to a
+    :class:`sip.array` object.
+
+    An array is very like a Python :class:`memoryview` object.  The underlying
+    memory is not copied and may be modified in situ.  Arrays support the
+    buffer protocol and so can be passed to other modules, again without the
+    underlying memory being copied.
+
+    :class:`sip.array` objects are not supported by the :program:`sip` code
+    generator.  They can only be created by handwritten code.
+
+    :param cpp:
+        the address of the start of the C/C++ array.
+    :param format:
+        the format, as defined by the :mod:`struct` module, of an array
+        element.  At the moment only ``H`` (unsigned short) and ``I`` (unsigned
+        int) are supported.
+    :param len:
+        the number of elements in the array.
+    :param readonly:
+        is non-zero if the array is read-only.
+    :return:
+        the :class:`sip.array` object.
+
+
 .. c:function:: void *sipConvertToInstance(PyObject *obj, sipWrapperType *type, PyObject *transferObj, int flags, int *state, int *iserr)
 
     .. deprecated:: 4.8
@@ -848,6 +877,40 @@ specification files.
     isn't attempted in the first place.  (This allows several calls to be made
     that share the same error flag so that it only needs to be tested once
     rather than after each call.)
+
+
+.. c:function:: PyObject *sipConvertToTypedArray(void *cpp, const sipTypeDef *td, const char *format, size_t stride, SIP_SSIZE_T len, int readonly)
+
+    .. versionadded:: 4.15
+
+    This converts a one dimensional array of instances of a C structure, C++
+    class or mapped type to a :class:`sip.array` object.
+
+    An array is very like a Python :class:`memoryview` object but it's elements
+    correspond to C structures or C++ classes.  The underlying memory is not
+    copied and may be modified in situ.  Arrays support the buffer protocol and
+    so can be passed to other modules, again without the underlying memory
+    being copied.
+
+    :class:`sip.array` objects are not supported by the :program:`sip` code
+    generator.  They can only be created by handwritten code.
+
+    :param cpp:
+        the address of the start of the C/C++ array.
+    :param td:
+        an element's type's
+        :ref:`generated type structure <ref-type-structures>`.
+    :param format:
+        the format, as defined by the :mod:`struct` module, of an array
+        element.
+    :param stride:
+        the size of an array element, including any padding.
+    :param len:
+        the number of elements in the array.
+    :param readonly:
+        is non-zero if the array is read-only.
+    :return:
+        the :class:`sip.array` object.
 
 
 .. c:function:: void *sipConvertToVoidPtr(PyObject *obj)
