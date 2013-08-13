@@ -1524,9 +1524,35 @@ specification files.
 
         *dict* is the dictionary to be populated.
 
-        0 if there was no error, otherwise -1 is returned.
+        0 is returned if there was no error, otherwise -1 is returned.
 
     See the section :ref:`ref-lazy-type-attributes` for more details.
+
+
+.. c:function:: int sipRegisterProxyResolver(const sipTypeDef *td, sipProxyResolverFunc resolver)
+
+    .. versionadded:: 4.15
+
+    This registers a resolver that will called just before SIP wraps a C/C++
+    pointer in a Python object.  The resolver may choose to replace the C/C++
+    pointer with the address of another object.  Typically this is used to
+    replace a proxy by the object that is being proxied for.
+
+    :param td:
+        the optional :ref:`generated type structure <ref-type-structures>` that
+        determines which type the resolver will be called for.
+    :param resolver:
+        the resolver function.
+    :return:
+        0 if there was no error, otherwise -1 is returned.
+
+    A resolver has the following signature.
+
+    void \*resolver(void \*proxy)
+
+        *proxy* is C/C++ pointer that is being wrapped.
+
+        The C/C++ pointer that will actually be wrapped is returned.
 
 
 .. c:function:: int sipRegisterPyType(PyTypeObject *type)

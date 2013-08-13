@@ -708,6 +708,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipWrappedTypeName(wt)      ((wt)->type->td_cname)\n"
 "#define sipDeprecated               sipAPI_%s->api_deprecated\n"
 "#define sipKeepReference            sipAPI_%s->api_keep_reference\n"
+"#define sipRegisterProxyResolver    sipAPI_%s->api_register_proxy_resolver\n"
 "#define sipRegisterPyType           sipAPI_%s->api_register_py_type\n"
 "#define sipTypeFromPyTypeObject     sipAPI_%s->api_type_from_py_type_object\n"
 "#define sipTypeScope                sipAPI_%s->api_type_scope\n"
@@ -741,6 +742,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipConvertFromMappedType    sipConvertFromType\n"
 "#define sipConvertFromNamedEnum(v, pt)  sipConvertFromEnum((v), ((sipEnumTypeObject *)(pt))->type)\n"
 "#define sipConvertFromNewInstance(p, wt, t) sipConvertFromNewType((p), (wt)->type, (t))\n"
+        ,mname
         ,mname
         ,mname
         ,mname

@@ -262,6 +262,8 @@ static int sip_api_init_mixin(PyObject *self, PyObject *args, PyObject *kwds,
         const sipClassTypeDef *ctd);
 static void *sip_api_get_mixin_address(sipSimpleWrapper *w,
         const sipTypeDef *td);
+static int sip_api_register_proxy_resolver(const sipTypeDef *td,
+        sipProxyResolverFunc resolver);
 
 
 /*
@@ -386,6 +388,7 @@ static const sipAPIDef sip_api = {
     sip_api_convert_from_new_pytype,
     sip_api_convert_to_typed_array,
     sip_api_convert_to_array,
+    sip_api_register_proxy_resolver,
 };
 
 
@@ -461,6 +464,16 @@ typedef struct _sipAttrGetter {
     sipAttrGetterFunc getter;       /* The getter. */
     struct _sipAttrGetter *next;    /* The next in the list. */
 } sipAttrGetter;
+
+
+/*
+ * An entry in the linked list of proxy resolvers.
+ */
+typedef struct _sipProxyResolver {
+    const sipTypeDef *td;           /* The type the resolver handles. */
+    sipProxyResolverFunc resolver;  /* The resolver. */
+    struct _sipProxyResolver *next; /* The next in the list. */
+} sipProxyResolver;
 
 
 /*****************************************************************************
@@ -549,6 +562,7 @@ static PyObject *type_unpickler;        /* The type unpickler function. */
 static PyObject *enum_unpickler;        /* The enum unpickler function. */
 static sipSymbol *sipSymbolList = NULL; /* The list of published symbols. */
 static sipAttrGetter *sipAttrGetters = NULL;  /* The list of attribute getters. */
+static sipProxyResolver *proxyResolvers = NULL; /* The list of proxy resolvers. */
 static sipPyObject *sipRegisteredPyTypes = NULL;    /* Registered Python types. */
 static sipPyObject *sipDisabledAutoconversions = NULL;  /* Python types whose auto-conversion is disabled. */
 static PyInterpreterState *sipInterpreter = NULL;   /* The interpreter. */
@@ -708,6 +722,7 @@ static int super_init(PyObject *self, PyObject *args, PyObject *kwds,
 static sipSimpleWrapper *deref_mixin(sipSimpleWrapper *w);
 static PyObject *wrap_simple_instance(void *cpp, const sipTypeDef *td,
         sipWrapper *owner, int flags);
+static void *resolve_proxy(const sipTypeDef *td, void *proxy);
 
 
 /*
@@ -6820,6 +6835,27 @@ static int sip_api_register_attribute_getter(const sipTypeDef *td,
 
 
 /*
+ * Register a proxy resolver.
+ */
+static int sip_api_register_proxy_resolver(const sipTypeDef *td,
+        sipProxyResolverFunc resolver)
+{
+    sipProxyResolver *pr = sip_api_malloc(sizeof (sipProxyResolver));
+
+    if (pr == NULL)
+        return -1;
+
+    pr->td = td;
+    pr->resolver = resolver;
+    pr->next = proxyResolvers;
+
+    proxyResolvers = pr;
+
+    return 0;
+}
+
+
+/*
  * Report a function with invalid argument types.
  */
 static void sip_api_no_function(PyObject *parseErr, const char *func,
@@ -7880,6 +7916,8 @@ static int addSingleTypeInstance(PyObject *dict, const char *name,
     }
     else
     {
+        cppPtr = resolve_proxy(td, cppPtr);
+
         sipConvertFromFunc cfrom = get_from_convertor(td);
 
         if (cfrom != NULL)
@@ -8501,6 +8539,8 @@ PyObject *sip_api_convert_from_type(void *cpp, const sipTypeDef *td,
         return Py_None;
     }
 
+    cpp = resolve_proxy(td, cpp);
+
     cfrom = get_from_convertor(td);
 
     if (cfrom != NULL)
@@ -8544,6 +8584,8 @@ static PyObject *sip_api_convert_from_new_type(void *cpp, const sipTypeDef *td,
         Py_INCREF(Py_None);
         return Py_None;
     }
+
+    cpp = resolve_proxy(td, cpp);
 
     cfrom = get_from_convertor(td);
 
@@ -11926,4 +11968,19 @@ static PyObject *wrap_simple_instance(void *cpp, const sipTypeDef *td,
 {
     return sipWrapInstance(cpp, sipTypeAsPyTypeObject(td), empty_tuple, owner,
             flags);
+}
+
+
+/*
+ * Resolve a proxy, if applicable.
+ */
+static void *resolve_proxy(const sipTypeDef *td, void *proxy)
+{
+    sipProxyResolver *pr;
+
+    for (pr = proxyResolvers; pr != NULL; pr = pr->next)
+        if (pr->td == td)
+            proxy = pr->resolver(proxy);
+
+    return proxy;
 }

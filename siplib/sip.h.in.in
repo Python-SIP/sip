@@ -72,6 +72,9 @@ extern "C" {
  *      Added ctd_init_mixin to sipClassTypeDef.
  *      Added sip_api_get_mixin_address() to the public API.
  *      Added sip_api_convert_from_new_pytype() to the public API.
+ *      Added sip_api_convert_to_array() to the public API.
+ *      Added sip_api_convert_to_typed_array() to the public API.
+ *      Added sip_api_register_proxy_resolver() to the public API.
  *      Added sip_api_init_mixin() to the private API.
  *      Added qt_interface to pyqt4ClassTypeDef.
  *
@@ -373,6 +376,7 @@ typedef PyObject *(*sipPickleFunc)(void *);
 typedef int (*sipAttrGetterFunc)(const struct _sipTypeDef *, PyObject *);
 typedef PyObject *(*sipVariableGetterFunc)(void *, PyObject *, PyObject *);
 typedef int (*sipVariableSetterFunc)(void *, PyObject *, PyObject *);
+typedef void *(*sipProxyResolverFunc)(void *);
 
 
 /*
@@ -1501,6 +1505,8 @@ typedef struct _sipAPIDef {
             const char *format, size_t stride, SIP_SSIZE_T len, int readonly);
     PyObject *(*api_convert_to_array)(void *cpp, const char *format,
             SIP_SSIZE_T len, int readonly);
+    int (*api_register_proxy_resolver)(const sipTypeDef *td,
+            sipProxyResolverFunc resolver);
 } sipAPIDef;
 
 
