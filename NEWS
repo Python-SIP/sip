@@ -1,8 +1,12 @@
-v4.15 ??? ??? 2013
+v4.15 ??? August 2013
   - Added the call_super_init argument to the %Module directive to specify that
     classes should support cooperative multi-inheritance.
   - Added the %FinalisationCode directive.
   - Added the /Mixin/ class annotation.
+  - Added the /NoScope/ enum annotation.
+  - Added sipConvertFromNewPyType() to the C API.
+  - Added sipConvertToArray() and sipConvertToTypedArray() to the C API.
+  - Added sipRegisterProxyResolver() to the C API.
   - Bug fixes.
 
 v4.14.7 16th June 2013
