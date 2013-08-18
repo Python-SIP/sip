@@ -7916,9 +7916,11 @@ static int addSingleTypeInstance(PyObject *dict, const char *name,
     }
     else
     {
+        sipConvertFromFunc cfrom;
+
         cppPtr = resolve_proxy(td, cppPtr);
 
-        sipConvertFromFunc cfrom = get_from_convertor(td);
+        cfrom = get_from_convertor(td);
 
         if (cfrom != NULL)
             obj = cfrom(cppPtr, NULL);
