@@ -678,7 +678,7 @@ Function Annotations
 
     This boolean annotation specifies that the value returned by the function
     (which should be a wrapped C structure or C++ class instance) is a newly
-    created instance and is owned by C/C++.
+    created instance and is owned by Python.
 
     See :ref:`ref-object-ownership` for more detail.
 
