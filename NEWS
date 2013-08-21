@@ -1,4 +1,4 @@
-v4.15 ??? August 2013
+v4.15 21st August 2013
   - Added the call_super_init argument to the %Module directive to specify that
     classes should support cooperative multi-inheritance.
   - Added the %FinalisationCode directive.
