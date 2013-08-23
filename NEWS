@@ -1,3 +1,6 @@
+v4.15.1 23rd August 2013
+  - Fixes a regression in the handling of hidden virtual methods.
+
 v4.15 21st August 2013
   - Added the call_super_init argument to the %Module directive to specify that
     classes should support cooperative multi-inheritance.
