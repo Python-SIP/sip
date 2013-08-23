@@ -1746,7 +1746,8 @@ static void getVirtuals(sipSpec *pt, classDef *cd)
 
 
 /*
- * Get the list of visible virtual functions for a class.
+ * Update the list of visible virtual functions for a base class from a class
+ * in its MRO.
  */
 static void getClassVirtuals(classDef *base, classDef *cd)
 {
@@ -1754,68 +1755,55 @@ static void getClassVirtuals(classDef *base, classDef *cd)
 
     for (od = cd->overs; od != NULL; od = od->next)
     {
-        virtOverDef **tailp, *vod;
+        mroDef *mro;
+        classDef *nearer;
 
         if (!isVirtual(od) || isPrivate(od))
             continue;
 
         /*
-         * See if a virtual of this name and signature is already in the list.
+         * See if there is an implementation nearer in the class hierarchy with
+         * the same name that will hide it.
          */
-        for (tailp = &base->vmembers; (vod = *tailp) != NULL; tailp = &vod->next)
-            if (strcmp(vod->o.cppname, od->cppname) == 0 && sameOverload(&vod->o, od))
-                break;
- 
-        if (vod == NULL)
+        nearer = NULL;
+
+        for (mro = base->mro; mro->cd != cd; mro = mro->next)
         {
+            overDef *nod;
+
+            if (isDuplicateSuper(mro))
+                continue;
+
             /*
-             * See if there is a non-virtual reimplementation nearer in the
-             * class hierarchy.
+             * Ignore classes that are on a different branch of the class
+             * hierarchy.
              */
+            if (!isSubClass(mro->cd, cd))
+                continue;
 
-            mroDef *mro;
-            classDef *scope = NULL;
-            overDef *eod;
-
-            for (mro = base->mro; mro->cd != cd; mro = mro->next)
+            for (nod = mro->cd->overs; nod != NULL; nod = nod->next)
             {
-                if (isDuplicateSuper(mro))
-                    continue;
-
-                /*
-                 * Ignore classes that are on a different branch of the class
-                 * hierarchy.
-                 */
-                if (!isSubClass(mro->cd, cd))
-                    continue;
-
-                for (eod = mro->cd->overs; eod != NULL; eod = eod->next)
-                    if (strcmp(eod->cppname, od->cppname) == 0 && sameSignature(eod->cppsig, od->cppsig, TRUE) && isConst(eod) == isConst(od) && !isAbstract(eod))
-                    {
-                        scope = mro->cd;
-                        break;
-                    }
-
-                if (scope != NULL)
+                if (strcmp(nod->cppname, od->cppname) == 0)
+                {
+                    nearer = mro->cd;
                     break;
+                }
             }
+
+            if (nearer != NULL)
+                break;
+        }
+
+        if (nearer == NULL)
+        {
+            virtOverDef *vod;
 
             vod = sipMalloc(sizeof (virtOverDef));
  
             vod->o = *od;
-            vod->next = NULL;
+            vod->next = base->vmembers;
  
-            *tailp = vod;
-
-            /*
-             * If there was a nearer reimplementation then we use its
-             * protection and abstract flags.
-             */
-            if (scope != NULL)
-            {
-                vod->o.overflags &= ~(SECT_MASK | OVER_IS_ABSTRACT);
-                vod->o.overflags |= (SECT_MASK | OVER_IS_ABSTRACT) & eod->overflags;
-            }
+            base->vmembers = vod;
         }
     }
 }
