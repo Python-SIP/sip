@@ -1756,7 +1756,8 @@ static void getClassVirtuals(classDef *base, classDef *cd)
     for (od = cd->overs; od != NULL; od = od->next)
     {
         mroDef *mro;
-        classDef *nearer;
+        int is_nearer;
+        overDef *reimp;
 
         if (!isVirtual(od) || isPrivate(od))
             continue;
@@ -1765,7 +1766,8 @@ static void getClassVirtuals(classDef *base, classDef *cd)
          * See if there is an implementation nearer in the class hierarchy with
          * the same name that will hide it.
          */
-        nearer = NULL;
+        is_nearer = FALSE;
+        reimp = NULL;
 
         for (mro = base->mro; mro->cd != cd; mro = mro->next)
         {
@@ -1785,16 +1787,20 @@ static void getClassVirtuals(classDef *base, classDef *cd)
             {
                 if (strcmp(nod->cppname, od->cppname) == 0)
                 {
-                    nearer = mro->cd;
+                    is_nearer = TRUE;
+
+                    if (sameSignature(nod->cppsig, od->cppsig, TRUE) && isConst(nod) == isConst(od) && !isAbstract(nod))
+                        reimp = nod;
+
                     break;
                 }
             }
 
-            if (nearer != NULL)
+            if (is_nearer)
                 break;
         }
 
-        if (nearer == NULL)
+        if (!is_nearer || reimp != NULL)
         {
             virtOverDef *vod;
 
@@ -1804,6 +1810,16 @@ static void getClassVirtuals(classDef *base, classDef *cd)
             vod->next = base->vmembers;
  
             base->vmembers = vod;
+
+            /*
+             * If there was a reimplementation then we use its protection and
+             * abstract flags.
+             */
+             if (reimp != NULL)
+             {
+                vod->o.overflags &= ~(SECT_MASK | OVER_IS_ABSTRACT);
+                vod->o.overflags |= (SECT_MASK | OVER_IS_ABSTRACT) & reimp->overflags;
+             }
         }
     }
 }
