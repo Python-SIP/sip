@@ -1501,10 +1501,10 @@ typedef struct _sipAPIDef {
             const sipTypeDef *td);
     PyObject *(*api_convert_from_new_pytype)(void *cpp, PyTypeObject *py_type,
             sipWrapper *owner, sipSimpleWrapper **selfp, const char *fmt, ...);
-    PyObject *(*api_convert_to_typed_array)(void *cpp, const sipTypeDef *td,
-            const char *format, size_t stride, SIP_SSIZE_T len, int readonly);
-    PyObject *(*api_convert_to_array)(void *cpp, const char *format,
-            SIP_SSIZE_T len, int readonly);
+    PyObject *(*api_convert_to_typed_array)(void *data, const sipTypeDef *td,
+            const char *format, size_t stride, SIP_SSIZE_T len, int flags);
+    PyObject *(*api_convert_to_array)(void *data, const char *format,
+            SIP_SSIZE_T len, int flags);
     int (*api_register_proxy_resolver)(const sipTypeDef *td,
             sipProxyResolverFunc resolver);
 } sipAPIDef;
@@ -1540,6 +1540,13 @@ typedef struct _sipQtAPI {
  */
 #define SIP_NOT_NONE        0x01    /* Disallow None. */
 #define SIP_NO_CONVERTORS   0x02    /* Disable any type convertors. */
+
+
+/*
+ * These are flags that can be passed to sipConvertToArray().
+ */
+#define SIP_READ_ONLY       0x01    /* The array is read-only. */
+#define SIP_OWNS_MEMORY     0x02    /* The array owns its memory. */
 
 
 /*
