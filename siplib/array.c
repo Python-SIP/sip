@@ -87,12 +87,36 @@ static PyObject *sipArray_item(PyObject *self, SIP_SSIZE_T idx)
     {
         switch (*array->format)
         {
+        case 'b':
+            py_item = SIPLong_FromLong(*(char *)data);
+            break;
+
+        case 'B':
+            py_item = PyLong_FromUnsignedLong(*(unsigned char *)data);
+            break;
+
+        case 'h':
+            py_item = SIPLong_FromLong(*(short *)data);
+            break;
+
         case 'H':
             py_item = PyLong_FromUnsignedLong(*(unsigned short *)data);
             break;
 
+        case 'i':
+            py_item = SIPLong_FromLong(*(int *)data);
+            break;
+
         case 'I':
             py_item = PyLong_FromUnsignedLong(*(unsigned int *)data);
+            break;
+
+        case 'f':
+            py_item = PyFloat_FromDouble(*(float *)data);
+            break;
+
+        case 'd':
+            py_item = PyFloat_FromDouble(*(double *)data);
             break;
 
         default:
@@ -546,8 +570,14 @@ static void *element(sipArrayObject *array, SIP_SSIZE_T idx)
 static void *get_value(sipArrayObject *array, PyObject *value)
 {
     static union {
-        unsigned short u_short;
-        unsigned int u_int;
+        signed char s_char_t;
+        unsigned char u_char_t;
+        signed short s_short_t;
+        unsigned short u_short_t;
+        signed int s_int_t;
+        unsigned int u_int_t;
+        float float_t;
+        double double_t;
     } static_data;
 
     void *data;
@@ -565,14 +595,44 @@ static void *get_value(sipArrayObject *array, PyObject *value)
 
         switch (*array->format)
         {
+        case 'b':
+            static_data.s_char_t = SIPLong_AsLong(value);
+            data = &static_data.s_char_t;
+            break;
+
+        case 'B':
+            static_data.u_char_t = sip_api_long_as_unsigned_long(value);
+            data = &static_data.u_char_t;
+            break;
+
+        case 'h':
+            static_data.s_short_t = SIPLong_AsLong(value);
+            data = &static_data.s_short_t;
+            break;
+
         case 'H':
-            static_data.u_short = sip_api_long_as_unsigned_long(value);
-            data = &static_data.u_short;
+            static_data.u_short_t = sip_api_long_as_unsigned_long(value);
+            data = &static_data.u_short_t;
+            break;
+
+        case 'i':
+            static_data.s_int_t = SIPLong_AsLong(value);
+            data = &static_data.s_int_t;
             break;
 
         case 'I':
-            static_data.u_int = sip_api_long_as_unsigned_long(value);
-            data = &static_data.u_int;
+            static_data.u_int_t = sip_api_long_as_unsigned_long(value);
+            data = &static_data.u_int_t;
+            break;
+
+        case 'f':
+            static_data.float_t = PyFloat_AsDouble(value);
+            data = &static_data.float_t;
+            break;
+
+        case 'd':
+            static_data.double_t = PyFloat_AsDouble(value);
+            data = &static_data.double_t;
             break;
 
         default:
@@ -606,12 +666,36 @@ static void *get_slice(sipArrayObject *array, PyObject *value, SIP_SSIZE_T len)
         {
             switch (*array->format)
             {
+            case 'b':
+                type = "char";
+                break;
+
+            case 'B':
+                type = "unsigned char";
+                break;
+
+            case 'h':
+                type = "short";
+                break;
+
             case 'H':
                 type = "unsigned short";
                 break;
 
+            case 'i':
+                type = "int";
+                break;
+
             case 'I':
                 type = "unsigned int";
+                break;
+
+            case 'f':
+                type = "float";
+                break;
+
+            case 'd':
+                type = "double";
                 break;
 
             default:
@@ -680,7 +764,8 @@ static PyObject *make_array(void *cpp, const sipTypeDef *td,
 
 /*
  * Wrap an array of instances of a fundamental type.  At the moment format must
- * be either "H" (unsigned short) or "I" (unsigned int).
+ * be either "b" (char), "B" (unsigned char), "h" (short), "H" (unsigned
+ * short), "i" (int), "I" (unsigned int), "f" (float) or "d" (double).
  */
 PyObject *sip_api_convert_to_array(void *cpp, const char *format,
         SIP_SSIZE_T len, int readonly)
@@ -695,12 +780,36 @@ PyObject *sip_api_convert_to_array(void *cpp, const char *format,
 
     switch (*format)
     {
+    case 'b':
+        stride = sizeof (char);
+        break;
+
+    case 'B':
+        stride = sizeof (unsigned char);
+        break;
+
+    case 'h':
+        stride = sizeof (short);
+        break;
+
     case 'H':
         stride = sizeof (unsigned short);
         break;
 
+    case 'i':
+        stride = sizeof (int);
+        break;
+
     case 'I':
         stride = sizeof (unsigned int);
+        break;
+
+    case 'f':
+        stride = sizeof (float);
+        break;
+
+    case 'd':
+        stride = sizeof (double);
         break;
 
     default:

@@ -733,8 +733,9 @@ specification files.
         the address of the start of the C/C++ array.
     :param format:
         the format, as defined by the :mod:`struct` module, of an array
-        element.  At the moment only ``H`` (unsigned short) and ``I`` (unsigned
-        int) are supported.
+        element.  At the moment only ``b`` (char), ``B`` (unsigned char),
+        ``h`` (short), ``H`` (unsigned short), ``i`` (int),
+        ``I`` (unsigned int), ``f`` (float) and ``d`` (double) are supported.
     :param len:
         the number of elements in the array.
     :param readonly:
