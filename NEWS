@@ -1,3 +1,9 @@
+v4.15.2 14th September 2013
+  - sipConvertToArray() will now optionally take ownership of the array memory.
+  - Added support for char, unsigned char, short, int, float and double as
+    array types.
+  - Bug fixes.
+
 v4.15.1 23rd August 2013
   - Fixes a regression in the handling of hidden virtual methods.
 
