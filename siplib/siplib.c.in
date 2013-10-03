@@ -9681,8 +9681,24 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
 
             /* Just report one of the unused arguments. */
             PyDict_Next(unused, &pos, &key, &value);
+
+#if PY_MAJOR_VERSION >= 3
             PyErr_Format(PyExc_TypeError,
                     "'%S' is an unknown keyword argument", key);
+#else
+            {
+                PyObject *key_s = PyObject_Str(key);
+
+                if (key_s != NULL)
+                {
+                    PyErr_Format(PyExc_TypeError,
+                            "'%s' is an unknown keyword argument",
+                            PyString_AsString(key_s));
+
+                    Py_DECREF(key_s);
+                }
+            }
+#endif
 
             Py_DECREF(unused);
 
