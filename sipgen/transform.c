@@ -1789,7 +1789,11 @@ static void getClassVirtuals(classDef *base, classDef *cd)
                 {
                     is_nearer = TRUE;
 
-                    if (sameSignature(nod->cppsig, od->cppsig, TRUE) && isConst(nod) == isConst(od) && !isAbstract(nod))
+                    /*
+                     * Re-implementations explicitly marked as virtual will
+                     * already have been handled.
+                     */
+                    if (!isVirtual(nod) && sameSignature(nod->cppsig, od->cppsig, TRUE) && isConst(nod) == isConst(od) && !isAbstract(nod))
                         reimp = nod;
 
                     break;
