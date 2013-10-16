@@ -1,3 +1,6 @@
+v4.15.3 16th October 2013
+  - Bug fixes (specifically for PyQtChart).
+
 v4.15.2 14th September 2013
   - sipConvertToArray() will now optionally take ownership of the array memory.
   - Added support for char, unsigned char, short, int, float and double as
