@@ -991,7 +991,7 @@ static int vp_convertor(PyObject *arg, struct vp_values *vp)
     }
 #endif
 #if PY_VERSION_HEX < 0x03000000
-    else if (PyObject_AsReadBuffer(arg, &ptr, &size) >= 0)
+    else if (PyObject_AsReadBuffer(arg, (const void **)&ptr, &size) >= 0)
     {
         rw = (Py_TYPE(arg)->tp_as_buffer->bf_getwritebuffer != NULL);
     }

@@ -348,7 +348,11 @@ static int sipArray_getbuffer(PyObject *self, Py_buffer *view, int flags)
 
     view->format = NULL;
     if ((flags & PyBUF_FORMAT) == PyBUF_FORMAT)
+#if PY_MAJOR_VERSION >= 3
         view->format = array->format;
+#else
+        view->format = (char *)array->format;
+#endif
 
     view->ndim = 1;
 

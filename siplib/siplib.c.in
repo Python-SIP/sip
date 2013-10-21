@@ -569,7 +569,7 @@ static PyInterpreterState *sipInterpreter = NULL;   /* The interpreter. */
 static int destroy_on_exit = TRUE;      /* Destroy owned objects on exit. */
 
 
-static void addClassSlots(sipWrapperType *wt, sipClassTypeDef *ctd);
+static void addClassSlots(sipWrapperType *wt, const sipClassTypeDef *ctd);
 static void addTypeSlots(PyHeapTypeObject *heap_to, sipPySlotDef *slots);
 static void *findSlot(PyObject *self, sipPySlotType st);
 static void *findSlotInType(sipPySlotDef *psd, sipPySlotType st);
@@ -712,7 +712,7 @@ static PyObject *create_property(sipVariableDef *vd);
 static PyObject *create_function(PyMethodDef *ml);
 static PyObject *sip_exit(PyObject *obj, PyObject *ignore);
 static void register_exit_notifier(void);
-static sipConvertFromFunc get_from_convertor(sipTypeDef *td);
+static sipConvertFromFunc get_from_convertor(const sipTypeDef *td);
 static sipPyObject **autoconversion_disabled(const sipTypeDef *td);
 static void fix_slots(PyTypeObject *py_type, sipPySlotDef *psd);
 static sipFinalFunc find_finalisation(sipClassTypeDef *ctd);
@@ -9059,7 +9059,7 @@ static sipTypeDef *getGeneratedType(const sipEncodedTypeDef *enc,
 /*
  * Return the generated class type structure of a class's super-class.
  */
-sipClassTypeDef *sipGetGeneratedClassType(sipEncodedTypeDef *enc,
+sipClassTypeDef *sipGetGeneratedClassType(const sipEncodedTypeDef *enc,
         const sipClassTypeDef *ctd)
 {
     return (sipClassTypeDef *)getGeneratedType(enc, ctd->ctd_base.td_module);
@@ -9094,8 +9094,8 @@ static void *findSlot(PyObject *self, sipPySlotType st)
             if ((sup = ctd->ctd_supers) != NULL)
                 do
                 {
-                    sipClassTypeDef *sup_ctd = sipGetGeneratedClassType(sup,
-                            ctd);
+                    const sipClassTypeDef *sup_ctd = sipGetGeneratedClassType(
+                            sup, ctd);
 
                     if (sup_ctd->ctd_pyslots != NULL)
                         slot = findSlotInType(sup_ctd->ctd_pyslots, st);
@@ -9653,7 +9653,7 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
          * disadvantage is that the exception message will be different if
          * there is a mixin.
          */
-        if (next != &PyBaseObject_Type)
+        if (next != (PyObject *)&PyBaseObject_Type)
         {
             int rc = super_init((PyObject *)self, empty_tuple, unused, next);
 
@@ -9964,7 +9964,7 @@ static int sipSimpleWrapper_traverse(sipSimpleWrapper *self, visitproc visit,
 
         if (ctd->ctd_traverse == NULL)
         {
-            sipEncodedTypeDef *sup;
+            const sipEncodedTypeDef *sup;
 
             if ((sup = ctd->ctd_supers) != NULL)
                 do
@@ -10518,7 +10518,7 @@ static int sipWrapper_traverse(sipWrapper *self, visitproc visit, void *arg)
 /*
  * Add the slots for a class type and all its super-types.
  */
-static void addClassSlots(sipWrapperType *wt, sipClassTypeDef *ctd)
+static void addClassSlots(sipWrapperType *wt, const sipClassTypeDef *ctd)
 {
     /* Add the buffer interface. */
 #if PY_MAJOR_VERSION >= 3
@@ -11845,7 +11845,7 @@ static void register_exit_notifier(void)
 /*
  * Return the function that converts a C++ instance to a Python object.
  */
-static sipConvertFromFunc get_from_convertor(sipTypeDef *td)
+static sipConvertFromFunc get_from_convertor(const sipTypeDef *td)
 {
     if (sipTypeIsMapped(td))
         return ((const sipMappedTypeDef *)td)->mtd_cfrom;
