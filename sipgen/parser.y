@@ -4044,18 +4044,6 @@ cpptype:    TK_CONST basetype deref optref {
             $$ = $2;
             add_derefs(&$$, &$3);
             $$.argflags |= ARG_IS_CONST | $4;
-
-            /*
-             * Treat a prefix const as postfix but check if there isn't already
-             * a postfix const.
-             */
-            if ($3.nrderefs > 0)
-            {
-                if ($$.derefs[0])
-                    yyerror("'const' specified as prefix and postfix");
-
-                $$.derefs[0] = TRUE;
-            }
         }
     |   basetype deref optref {
             $$ = $1;
@@ -4176,7 +4164,7 @@ optref: {
 deref:  {
             $$.nrderefs = 0;
         }
-    |   deref TK_CONST '*' {
+    |   deref '*' TK_CONST {
             add_new_deref(&$$, &$1, TRUE);
         }
     |   deref '*' {

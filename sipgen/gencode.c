@@ -9080,6 +9080,7 @@ static void generateNamedBaseType(ifaceFileDef *scope, argDef *ad,
     typedefDef *td = ad->original_type;
     int nr_derefs = ad->nrderefs;
     int is_reference = isReference(ad);
+    int i;
 
     if (use_typename && td != NULL && !noTypeName(td) && !isArraySize(ad))
     {
@@ -9101,7 +9102,6 @@ static void generateNamedBaseType(ifaceFileDef *scope, argDef *ad,
          */
         if (ad->atype == function_type)
         {
-            int i;
             signatureDef *sig = ad->u.sa;
 
             generateBaseType(scope, &sig->result, TRUE, fp);
@@ -9295,19 +9295,12 @@ static void generateNamedBaseType(ifaceFileDef *scope, argDef *ad,
         }
     }
 
-    if (nr_derefs > 0)
+    for (i = 0; i < nr_derefs; ++i)
     {
-        int i;
-
         prcode(fp, " *");
 
-        for (i = 1; i < nr_derefs; ++i)
-        {
-            if (ad->derefs[i])
-                prcode(fp, " const ");
-
-            prcode(fp, "*");
-        }
+        if (ad->derefs[i])
+            prcode(fp, " const");
     }
 
     if (is_reference)
