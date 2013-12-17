@@ -732,11 +732,7 @@ static void *get_slice(sipArrayObject *array, PyObject *value, SIP_SSIZE_T len)
     if (other->len != len)
     {
         PyErr_Format(PyExc_TypeError,
-#if PY_VERSION_HEX >= 0x02050000
-                "the array being assigned must have length %zd",
-#else
-                "the array being assigned must have length %d",
-#endif
+                "the array being assigned must have length " SIP_SSIZE_T_FORMAT,
                 len);
 
         return NULL;

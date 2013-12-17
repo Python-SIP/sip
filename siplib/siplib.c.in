@@ -6996,14 +6996,13 @@ static void sip_api_no_method(PyObject *parseErr, const char *scope,
                     else
                     {
 #if PY_MAJOR_VERSION >= 3
-                        failure = PyUnicode_FromFormat("\n  overload %zd: %U",
-                            i + 1, detail);
-#elif PY_VERSION_HEX >= 0x02050000
-                        failure = PyString_FromFormat("\n  overload %zd: %s",
-                            i + 1, PyString_AS_STRING(detail));
+                        failure = PyUnicode_FromFormat(
+                            "\n  overload " SIP_SSIZE_T_FORMAT ": %U", i + 1,
+                            detail);
 #else
-                        failure = PyString_FromFormat("\n  overload %d: %s",
-                            i + 1, PyString_AS_STRING(detail));
+                        failure = PyString_FromFormat(
+                            "\n  overload " SIP_SSIZE_T_FORMAT ": %s", i + 1,
+                            PyString_AS_STRING(detail));
 #endif
                     }
 
@@ -7297,11 +7296,7 @@ static void sip_api_bad_length_for_slice(SIP_SSIZE_T seqlen,
         SIP_SSIZE_T slicelen)
 {
     PyErr_Format(PyExc_ValueError,
-#if PY_VERSION_HEX >= 0x02050000
-            "attempt to assign sequence of size %zd to slice of size %zd",
-#else
-            "attempt to assign sequence of size %d to slice of size %d",
-#endif
+            "attempt to assign sequence of size " SIP_SSIZE_T_FORMAT " to slice of size " SIP_SSIZE_T_FORMAT,
             seqlen, slicelen);
 }
 

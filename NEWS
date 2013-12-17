@@ -1,3 +1,7 @@
+v4.15.4 ??? ??? ???
+  - Added SIP_SSIZE_T_FORMAT ot the C API.
+  - Bug fixes (specifically for PyQt5).
+
 v4.15.3 16th October 2013
   - Bug fixes (specifically for PyQtChart).
 

@@ -227,6 +227,7 @@ typedef unsigned int uint;
 #if PY_VERSION_HEX >= 0x02050000
 
 #define SIP_SSIZE_T         Py_ssize_t
+#define SIP_SSIZE_T_FORMAT  "%zd"
 
 #define SIP_MLNAME_CAST(s)  (s)
 #define SIP_MLDOC_CAST(s)   (s)
@@ -235,6 +236,7 @@ typedef unsigned int uint;
 #else
 
 #define SIP_SSIZE_T         int
+#define SIP_SSIZE_T_FORMAT  "%d"
 
 #define SIP_MLNAME_CAST(s)  ((char *)(s))
 #define SIP_MLDOC_CAST(s)   ((char *)(s))
