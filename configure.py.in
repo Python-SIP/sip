@@ -283,7 +283,8 @@ def create_config(module, template, macros):
         "py_lib_dir":       plat_py_lib_dir,
         "universal":        opts.universal,
         "arch":             opts.arch,
-        "deployment_target":    opts.deployment_target
+        "deployment_target":    opts.deployment_target,
+        "qt_framework":     0
     }
 
     siputils.create_config_module(module, template, content, macros)
