@@ -79,7 +79,8 @@ work of creating these additional configuration modules.
         is non-zero if a GUI enabled version of the interpreter should be used
         on platforms that require it.
     :param use_arch:
-        is the MacOS/X architecture to invoke python with.
+        is the MacOS/X architectures to invoke python with.  Several space
+        separated architectures may be specified.
     :return:
         the platform specific name of the wrapper.
 

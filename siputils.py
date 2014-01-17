@@ -2637,7 +2637,8 @@ def create_wrapper(script, wrapper, gui=0, use_arch=''):
     script is the full pathname of the script.
     wrapper is the name of the wrapper file to create.
     gui is non-zero if a GUI enabled version of the interpreter should be used.
-    use_arch is the MacOS/X architecture to invoke python with.
+    use_arch is the MacOS/X architectures to invoke python with.  Several space
+    separated architectures may be specified.
 
     Returns the platform specific name of the wrapper.
     """
@@ -2665,10 +2666,11 @@ def create_wrapper(script, wrapper, gui=0, use_arch=''):
         version = sys.version_info
         exe = "%s%d.%d" % (exe, version[0], version[1])
 
-        if use_arch:
+        if use_arch != '':
             # Note that this may not work with the "standard" interpreter but
             # should with the "pythonX.Y" version.
-            exe = "arch -%s %s" % (use_arch, exe)
+            arch_flags = ' '.join(["-%s" % a for a in use_arch.split()])
+            exe = "arch %s %s" % (arch_flags, exe)
 
         wf.write("#!/bin/sh\n")
         wf.write("exec %s %s ${1+\"$@\"}\n" % (exe, script))

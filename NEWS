@@ -1,5 +1,9 @@
+v4.15.5 ??? ??? 2014
+  - The use_arch argument of sipconfig.create_wrapper() can now specify a space
+    separated set of architectures.
+
 v4.15.4 8th January 2014
-  - Added SIP_SSIZE_T_FORMAT ot the C API.
+  - Added SIP_SSIZE_T_FORMAT to the C API.
   - Bug fixes (specifically for PyQt5).
 
 v4.15.3 16th October 2013
