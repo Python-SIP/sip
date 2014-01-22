@@ -5718,7 +5718,7 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
     for (md = cd->members; md != NULL; md = md->next)
         if (cd->iff->type == namespace_iface)
             generateOrdinaryFunction(pt, mod, cd, NULL, md, fp);
-        else if (md->slot != no_slot && md->slot != unicode_slot)
+        else if (md->slot != no_slot)
             generateSlot(mod, cd, NULL, md, fp);
 
     if (cd->iff->type != namespace_iface && !generating_c)

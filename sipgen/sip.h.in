@@ -499,7 +499,6 @@ typedef enum {
 /* Slot types. */
 typedef enum {
     str_slot,
-    unicode_slot,
     int_slot,
     long_slot,
     float_slot,

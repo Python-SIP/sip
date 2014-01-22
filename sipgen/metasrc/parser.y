@@ -7237,7 +7237,6 @@ static memberDef *findFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         int nrargs;         /* Nr. of arguments. */
     } slot_table[] = {
         {"__str__", str_slot, TRUE, 0},
-        {"__unicode__", unicode_slot, TRUE, 0},
         {"__int__", int_slot, FALSE, 0},
         {"__long__", long_slot, FALSE, 0},
         {"__float__", float_slot, FALSE, 0},
