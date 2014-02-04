@@ -1554,16 +1554,6 @@ class ModuleMakefile(Makefile):
         self.LFLAGS.extend(self.optional_list(lflags_console))
 
         if sys.platform == "darwin":
-            from distutils.sysconfig import get_python_inc
-
-            # The Python include directory seems to be the only one that uses
-            # the real path even when using a virtual environment (eg. pyvenv).
-            # Note that I can't remember why we need a framework build.
-            dl = get_python_inc().split(os.sep)
-
-            if "Python.framework" not in dl:
-                error("SIP requires Python to be built as a framework")
-
             self.LFLAGS.append("-undefined dynamic_lookup")
 
         Makefile.finalise(self)
