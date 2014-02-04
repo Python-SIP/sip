@@ -12603,8 +12603,8 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
         if (keepReference(res))
             prcode(fp,
 "\n"
-"            sipKeepReference(sipSelf, %d, sipResObj);\n"
-                , res->key);
+"            sipKeepReference(%s, %d, sipResObj);\n"
+                , (isStatic(od) ? "NULL" : "sipSelf"), res->key);
 
         /*
          * Keep a reference to any argument with the result if the function is
