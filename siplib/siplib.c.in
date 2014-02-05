@@ -1284,10 +1284,10 @@ static PyObject *unwrapInstance(PyObject *self, PyObject *args)
  */
 static PyObject *wrapInstance(PyObject *self, PyObject *args)
 {
-    unsigned long addr;
+    unsigned PY_LONG_LONG addr;
     sipWrapperType *wt;
 
-    if (PyArg_ParseTuple(args, "kO!:wrapinstance", &addr, &sipWrapperType_Type, &wt))
+    if (PyArg_ParseTuple(args, "KO!:wrapinstance", &addr, &sipWrapperType_Type, &wt))
         return sip_api_convert_from_type((void *)addr, wt->type, NULL);
 
     return NULL;
