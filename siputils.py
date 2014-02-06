@@ -2656,7 +2656,7 @@ def create_wrapper(script, wrapper, gui=0, use_arch=''):
         version = sys.version_info
         exe = "%s%d.%d" % (exe, version[0], version[1])
 
-        if use_arch != '':
+        if use_arch:
             # Note that this may not work with the "standard" interpreter but
             # should with the "pythonX.Y" version.
             arch_flags = ' '.join(["-%s" % a for a in use_arch.split()])
