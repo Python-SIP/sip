@@ -1447,7 +1447,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
             if (cd->ctors != NULL)
             {
                 prcode(fp,
-"    {%P, init_%L, ", cd->iff->api_range, cd->iff);
+"    {%P, init_type_%L, ", cd->iff->api_range, cd->iff);
 
                 generateEncodedType(mod, cd, 0, fp);
 
@@ -10028,7 +10028,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 
     if (canCreate(cd))
         prcode(fp,
-"    init_%L,\n"
+"    init_type_%L,\n"
             , cd->iff);
     else
         prcode(fp,
@@ -10654,11 +10654,11 @@ static void generateTypeInit(classDef *cd, moduleDef *mod, FILE *fp)
 
     if (!generating_c)
         prcode(fp,
-"extern \"C\" {static void *init_%L(sipSimpleWrapper *, PyObject *, PyObject *, PyObject **, PyObject **, PyObject **);}\n"
+"extern \"C\" {static void *init_type_%L(sipSimpleWrapper *, PyObject *, PyObject *, PyObject **, PyObject **, PyObject **);}\n"
             , cd->iff);
 
     prcode(fp,
-"static void *init_%L(sipSimpleWrapper *%s, PyObject *sipArgs, PyObject *sipKwds, PyObject **sipUnused, PyObject **%s, PyObject **sipParseErr)\n"
+"static void *init_type_%L(sipSimpleWrapper *%s, PyObject *sipArgs, PyObject *sipKwds, PyObject **sipUnused, PyObject **%s, PyObject **sipParseErr)\n"
 "{\n"
         , cd->iff, (need_self ? "sipSelf" : ""), (need_owner ? "sipOwner" : ""));
 
@@ -10674,7 +10674,7 @@ static void generateTypeInit(classDef *cd, moduleDef *mod, FILE *fp)
     if (tracing)
         prcode(fp,
 "\n"
-"    sipTrace(SIP_TRACE_INITS,\"init_%L()\\n\");\n"
+"    sipTrace(SIP_TRACE_INITS,\"init_type_%L()\\n\");\n"
             , cd->iff);
 
     /*
