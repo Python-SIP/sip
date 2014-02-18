@@ -1751,13 +1751,10 @@ typedef struct _pyqt4ClassTypeDef {
 /*
  * The description of a Qt signal for PyQt5.
  */
-typedef PyObject *(*pyqt5EmitFunc)(sipSimpleWrapper *, PyObject *);
+typedef int (*pyqt5EmitFunc)(void *, PyObject *);
 
 typedef struct _pyqt5QtSignal {
-    /*
-     * The normalised C++ name and signature of the signal that would be
-     * returned by SIGNAL().
-     */
+    /* The normalised C++ name and signature of the signal. */
     const char *signature;
 
     /* The optional docstring. */
