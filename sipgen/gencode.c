@@ -6535,7 +6535,7 @@ static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
     /* The meta methods if required. */
     if ((pluginPyQt4(pt) || pluginPyQt5(pt)) && isQObjectSubClass(cd))
     {
-        if (!noPyQt4QMetaObject(cd))
+        if (!noPyQtQMetaObject(cd))
         {
             prcode(fp,
 "\n"
@@ -8587,7 +8587,9 @@ static void generateClassAPI(classDef *cd, sipSpec *pt, FILE *fp)
     {
         const char *type_prefix;
 
-        if (pluginPyQt4(pt) || pluginPyQt5(pt))
+        if (pluginPyQt5(pt))
+            type_prefix = "pyqt5";
+        else if (pluginPyQt4(pt))
             type_prefix = "pyqt4";
         else if (pluginPyQt3(pt))
             type_prefix = "pyqt3";
@@ -8758,7 +8760,7 @@ static void generateShadowClassDeclaration(sipSpec *pt,classDef *cd,FILE *fp)
 "    void *qt_metacast(const char *);\n"
             );
 
-        if (!noPyQt4QMetaObject(cd))
+        if (!noPyQtQMetaObject(cd))
             prcode(fp,
 "    const QMetaObject *metaObject() const;\n"
                 );
@@ -9590,6 +9592,8 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 
     if ((pluginPyQt4(pt) || pluginPyQt5(pt)) && isQObjectSubClass(cd))
     {
+        const char *pyqt_prefix = (pluginPyQt5(pt) ? "pyqt5" : "pyqt4");
+
         /* The signals must be grouped by name. */
         for (md = cd->members; md != NULL; md = md->next)
         {
@@ -9625,9 +9629,9 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
                     prcode(fp,
 "\n"
 "\n"
-"/* Define this type's PyQt4 signals. */\n"
-"static const pyqt4QtSignal pyqt4_signals_%C[] = {\n"
-                        , classFQCName(cd));
+"/* Define this type's signals. */\n"
+"static const %sQtSignal signals_%C[] = {\n"
+                        , pyqt_prefix, classFQCName(cd));
                 }
 
                 /*
@@ -9655,10 +9659,16 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
         }
 
         if (is_signals)
-            prcode(fp,
+            if (pluginPyQt5(pt))
+                prcode(fp,
+"    {0, 0, 0, 0}\n"
+"};\n"
+                    );
+            else
+                prcode(fp,
 "    {0, 0, 0}\n"
 "};\n"
-                );
+                    );
     }
 
     /* Generate the property and variable handlers. */
@@ -9784,7 +9794,12 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
         has_docstring = TRUE;
     }
 
-    if (pluginPyQt4(pt) || pluginPyQt5(pt))
+    if (pluginPyQt5(pt))
+    {
+        type_prefix = "pyqt5";
+        embedded = TRUE;
+    }
+    else if (pluginPyQt4(pt))
     {
         type_prefix = "pyqt4";
         embedded = TRUE;
@@ -10241,7 +10256,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 
     if (pluginPyQt4(pt) || pluginPyQt5(pt))
     {
-        if (isQObjectSubClass(cd) && !noPyQt4QMetaObject(cd))
+        if (isQObjectSubClass(cd) && !noPyQtQMetaObject(cd))
             prcode(fp,
 "    &%U::staticMetaObject,\n"
                 , cd);
@@ -10252,25 +10267,39 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 
         prcode(fp,
 "    %u,\n"
-            , cd->pyqt4_flags);
+            , cd->pyqt_flags);
 
-        if (is_signals)
-            prcode(fp,
-"    pyqt4_signals_%C,\n"
-                , classFQCName(cd));
-        else
-            prcode(fp,
+        if (pluginPyQt5(pt))
+        {
+            if (is_signals)
+                prcode(fp,
+"    signals_%C,\n"
+                    , classFQCName(cd));
+            else
+                prcode(fp,
 "    0,\n"
-                );
+                    );
 
-        if (cd->pyqt_interface != NULL)
-            prcode(fp,
+            if (cd->pyqt_interface != NULL)
+                prcode(fp,
 "    \"%s\"\n"
-                , cd->pyqt_interface);
-        else
-            prcode(fp,
+                    , cd->pyqt_interface);
+            else
+                prcode(fp,
 "    0\n"
-                );
+                    );
+        }
+        else
+        {
+            if (is_signals)
+                prcode(fp,
+"    signals_%C,\n"
+                    , classFQCName(cd));
+            else
+                prcode(fp,
+"    0\n"
+                    );
+        }
     }
 
     prcode(fp,
@@ -10336,6 +10365,9 @@ static void generateSignalTableEntry(sipSpec *pt, classDef *cd, overDef *sig,
         prcode(fp, "&methods_%L[%d]", cd->iff, membernr);
     else
         prcode(fp, "0");
+
+    if (pluginPyQt5(pt))
+        prcode(fp, ", 0");
 
     prcode(fp,"},\n"
         );

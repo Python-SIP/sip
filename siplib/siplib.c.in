@@ -791,7 +791,7 @@ PyMODINIT_FUNC SIP_MODULE_ENTRY(void)
      * Remind ourselves to add support for capsule variables when we have
      * another reason to move to the next major version number.
      */
-#if SIP_API_MAJOR_NR > 10
+#if SIP_API_MAJOR_NR > 11
 #error "Add support for capsule variables"
 #endif
 
@@ -9632,10 +9632,7 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
         return 0;
 
     /* Call any finalisation code. */
-#if SIP_API_MAJOR_NR != 10
-#error Remove test for v10.1
-#endif
-    if (td->td_module->em_api_minor >= 1 && (final_func = find_finalisation(ctd)) != NULL)
+    if ((final_func = find_finalisation(ctd)) != NULL)
     {
         PyObject *new_unused = NULL, **new_unused_p;
 

@@ -2769,9 +2769,9 @@ struct:     TK_STRUCT scopedname {
                     "Mixin",
                     "NoDefaultCtors",
                     "PyName",
-                    "PyQt4Flags",
-                    "PyQt4NoQMetaObject",
+                    "PyQtFlags",
                     "PyQtInterface",
+                    "PyQtNoQMetaObject",
                     "Supertype",
                     "VirtualErrorHandler",
                     NULL
@@ -2843,9 +2843,9 @@ class:  TK_CLASS scopedname {
                     "Mixin",
                     "NoDefaultCtors",
                     "PyName",
-                    "PyQt4Flags",
-                    "PyQt4NoQMetaObject",
+                    "PyQtFlags",
                     "PyQtInterface",
+                    "PyQtNoQMetaObject",
                     "Supertype",
                     "VirtualErrorHandler",
                     NULL
@@ -4914,11 +4914,11 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd,
     if (getOptFlag(of, "Mixin", bool_flag) != NULL)
         setMixin(cd);
 
-    if ((flg = getOptFlag(of, "PyQt4Flags", integer_flag)) != NULL)
-        cd->pyqt4_flags = flg->fvalue.ival;
+    if ((flg = getOptFlag(of, "PyQtFlags", integer_flag)) != NULL)
+        cd->pyqt_flags = flg->fvalue.ival;
 
-    if (getOptFlag(of, "PyQt4NoQMetaObject", bool_flag) != NULL)
-        setPyQt4NoQMetaObject(cd);
+    if (getOptFlag(of, "PyQtNoQMetaObject", bool_flag) != NULL)
+        setPyQtNoQMetaObject(cd);
 
     if ((flg = getOptFlag(of, "PyQtInterface", string_flag)) != NULL)
         cd->pyqt_interface = flg->fvalue.sval;

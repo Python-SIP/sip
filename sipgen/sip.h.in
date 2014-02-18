@@ -159,8 +159,8 @@
 #define setIsHoldGILDtor(cd) ((cd)->classflags |= CLASS_DTOR_HOLD_GIL)
 #define assignmentHelper(cd) ((cd)->classflags & CLASS_ASSIGN_HELPER)
 #define setAssignmentHelper(cd) ((cd)->classflags |= CLASS_ASSIGN_HELPER)
-#define noPyQt4QMetaObject(cd)  ((cd)->classflags & CLASS_NO_QMETAOBJECT)
-#define setPyQt4NoQMetaObject(cd)   ((cd)->classflags |= CLASS_NO_QMETAOBJECT)
+#define noPyQtQMetaObject(cd)   ((cd)->classflags & CLASS_NO_QMETAOBJECT)
+#define setPyQtNoQMetaObject(cd)    ((cd)->classflags |= CLASS_NO_QMETAOBJECT)
 #define isTemplateClass(cd) ((cd)->classflags & CLASS_IS_TEMPLATE)
 #define setIsTemplateClass(cd)  ((cd)->classflags |= CLASS_IS_TEMPLATE)
 #define resetIsTemplateClass(cd)    ((cd)->classflags &= ~CLASS_IS_TEMPLATE)
@@ -1117,7 +1117,7 @@ typedef struct _mroDef {
 typedef struct _classDef {
     unsigned classflags;                /* The class flags. */
     unsigned classflags2;               /* The class flags, part 2. */
-    int pyqt4_flags;                    /* The PyQt4 specific flags. */
+    int pyqt_flags;                     /* The PyQt specific flags. */
     const char *pyqt_interface;         /* The Qt interface name. */
     nameDef *pyname;                    /* The Python name. */
     ifaceFileDef *iff;                  /* The interface file. */
