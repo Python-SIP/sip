@@ -6744,6 +6744,7 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         "PreHook",
         "PyInt",
         "PyName",
+        "PyQtSignalHack",
         "RaisesPyException",
         "ReleaseGIL",
         "Sequence",
@@ -6864,6 +6865,10 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         resetIsSignal(od);
         setIsSlot(od);
     }
+
+    if (isSignal(od))
+        if ((of = getOptFlag(optflgs, "PyQtSignalHack", integer_flag)) != NULL)
+            od->pyqt_signal_hack = of->fvalue.ival;
 
     if (factory)
         setIsFactory(od);

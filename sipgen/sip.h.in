@@ -1003,6 +1003,7 @@ typedef struct _overDef {
     sourceLocation sloc;                /* The source location. */
     char *cppname;                      /* The C++ name. */
     int overflags;                      /* The overload flags. */
+    int pyqt_signal_hack;               /* The PyQt signal hack. */
     KwArgs kwargs;                      /* The keyword argument support. */
     struct _memberDef *common;          /* Common parts. */
     apiVersionRangeDef *api_range;      /* The optional API version range. */

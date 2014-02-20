@@ -70,6 +70,7 @@ extern "C" {
  *
  * 11.0 Added the pyqt5QtSignal and pyqt5ClassTypeDef structures.
  *      Removed qt_interface from pyqt4ClassTypeDef.
+ *      Added hack to pyqt4QtSignal.
  *
  * 10.1 Added ctd_final to sipClassTypeDef.
  *      Added ctd_init_mixin to sipClassTypeDef.
@@ -1713,6 +1714,15 @@ typedef struct _pyqt4QtSignal {
      * code that implements those methods.
      */
     PyMethodDef *non_signals;
+
+    /*
+     * The hack to apply when built against Qt5:
+     *
+     * 0 - no hack
+     * 1 - add an optional 0 pointer
+     * 2 - add an optional pointer to a QVector<int>.
+     */
+    int hack;
 } pyqt4QtSignal;
 
 

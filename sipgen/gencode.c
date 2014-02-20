@@ -9638,11 +9638,12 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
                 }
 
                 /*
-                 * For PyQt4 optional arguments are handled as multiple
-                 * signals.  We make sure the largest is first and the smallest
-                 * last which is what Qt does.  For PyQt5 we only include the
-                 * version with all arguments and provide an emitter function
-                 * which handles the optional arguments.
+                 * For PyQt4 built against Qt4 optional arguments are handled
+                 * as multiple signals.  We make sure the largest is first and
+                 * the smallest last which is what Qt does.  When built against
+                 * Qt5 we enable a hack. For PyQt5 we only include the version
+                 * with all arguments and provide an emitter function which
+                 * handles the optional arguments.
                  */
                 generateSignalTableEntry(pt, cd, od, md, membernr,
                         hasOptionalArgs(od), fp);
@@ -9651,7 +9652,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 
                 if (pluginPyQt4(pt))
                 {
-                    int a, nr_args;
+                    int a, nr_args, guard = FALSE;
                     signatureDef *cppsig;
 
                     cppsig = od->cppsig;
@@ -9662,27 +9663,34 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
                         if (cppsig->args[a].defval == NULL)
                             break;
 
+                        if (!guard)
+                        {
+                            guard = TRUE;
+
+                            prcode(fp,
+"#if QT_VERSION < 0x050000\n"
+                                );
+                        }
                         cppsig->nrArgs = a;
                         generateSignalTableEntry(pt, cd, od, md, -1, FALSE,
                                 fp);
                     }
 
                     cppsig->nrArgs = nr_args;
+
+                    if (guard)
+                        prcode(fp,
+"#endif\n"
+                            );
                 }
             }
         }
 
         if (is_signals)
-            if (pluginPyQt5(pt))
-                prcode(fp,
+            prcode(fp,
 "    {0, 0, 0, 0}\n"
 "};\n"
-                    );
-            else
-                prcode(fp,
-"    {0, 0, 0}\n"
-"};\n"
-                    );
+                );
     }
 
     /* Generate the property and variable handlers. */
@@ -10474,15 +10482,21 @@ static void generateSignalTableEntry(sipSpec *pt, classDef *cd, overDef *sig,
     }
 
     if (membernr >= 0)
-        prcode(fp, "&methods_%L[%d]", cd->iff, membernr);
+        prcode(fp, "&methods_%L[%d], ", cd->iff, membernr);
     else
-        prcode(fp, "0");
+        prcode(fp, "0, ");
 
     if (pyqt5)
+    {
         if (optional_args)
-            prcode(fp, ", emit_%L_%s", cd->iff, sig->cppname);
+            prcode(fp, "emit_%L_%s", cd->iff, sig->cppname);
         else
-            prcode(fp, ", 0");
+            prcode(fp, "0");
+    }
+    else
+    {
+        prcode(fp, "%d", sig->pyqt_signal_hack);
+    }
 
     prcode(fp,"},\n"
         );
