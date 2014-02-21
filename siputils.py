@@ -2648,13 +2648,20 @@ def create_wrapper(script, wrapper, gui=0, use_arch=''):
         # The installation of MacOS's python is a mess that changes from
         # version to version and where sys.executable is useless.
 
+        version = sys.version_info
+        py_major = version[0]
+        py_minor = version[1]
+
         if gui:
-            exe = "pythonw"
+            # In Python v3.4 and later there is no pythonw.
+            if (py_major == 3 and py_minor >= 4) or py_major >= 4:
+                exe = "python"
+            else:
+                exe = "pythonw"
         else:
             exe = "python"
 
-        version = sys.version_info
-        exe = "%s%d.%d" % (exe, version[0], version[1])
+        exe = "%s%d.%d" % (exe, py_major, py_minor)
 
         if use_arch:
             # Note that this may not work with the "standard" interpreter but
