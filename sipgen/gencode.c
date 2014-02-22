@@ -9638,12 +9638,13 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
                 }
 
                 /*
-                 * For PyQt4 built against Qt4 optional arguments are handled
-                 * as multiple signals.  We make sure the largest is first and
-                 * the smallest last which is what Qt does.  When built against
-                 * Qt5 we enable a hack. For PyQt5 we only include the version
-                 * with all arguments and provide an emitter function which
-                 * handles the optional arguments.
+                 * For PyQt4 optional arguments are handled as multiple
+                 * signals.  We make sure the largest is first and the smallest
+                 * last which is what Qt does.  When built against Qt5 we
+                 * enable a hack that supplies any missing optional arguments.
+                 * For PyQt5 we only include the version with all arguments and
+                 * provide an emitter function which handles the optional
+                 * arguments.
                  */
                 generateSignalTableEntry(pt, cd, od, md, membernr,
                         hasOptionalArgs(od), fp);
@@ -9652,7 +9653,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 
                 if (pluginPyQt4(pt))
                 {
-                    int a, nr_args, guard = FALSE;
+                    int a, nr_args;
                     signatureDef *cppsig;
 
                     cppsig = od->cppsig;
@@ -9663,25 +9664,12 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
                         if (cppsig->args[a].defval == NULL)
                             break;
 
-                        if (!guard)
-                        {
-                            guard = TRUE;
-
-                            prcode(fp,
-"#if QT_VERSION < 0x050000\n"
-                                );
-                        }
                         cppsig->nrArgs = a;
                         generateSignalTableEntry(pt, cd, od, md, -1, FALSE,
                                 fp);
                     }
 
                     cppsig->nrArgs = nr_args;
-
-                    if (guard)
-                        prcode(fp,
-"#endif\n"
-                            );
                 }
             }
         }

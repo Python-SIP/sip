@@ -1719,8 +1719,9 @@ typedef struct _pyqt4QtSignal {
      * The hack to apply when built against Qt5:
      *
      * 0 - no hack
-     * 1 - add an optional 0 pointer
-     * 2 - add an optional pointer to a QVector<int>.
+     * 1 - add an optional None
+     * 2 - add an optional []
+     * 3 - add an optional False
      */
     int hack;
 } pyqt4QtSignal;
