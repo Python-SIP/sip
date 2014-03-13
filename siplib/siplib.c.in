@@ -9603,14 +9603,22 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
         from_cpp = FALSE;
     }
 
-    /*
-     * If there is an owner then we assume that the wrapper supports the
-     * concept.
-     */
-    if (owner != NULL)
+    /* Handler any owner if the type supports the concept. */
+    if (PyObject_TypeCheck((PyObject *)self, (PyTypeObject *)&sipWrapper_Type))
     {
-        assert(PyObject_TypeCheck((PyObject *)self, (PyTypeObject *)&sipWrapper_Type));
-        addToParent((sipWrapper *)self, (sipWrapper *)owner);
+        /*
+         * The application may be doing something very unadvisable (like
+         * calling __init__() for a second time), so make sure we don't already
+         * have a parent.
+         */
+        removeFromParent((sipWrapper *)self);
+
+        if (owner != NULL)
+        {
+            assert(PyObject_TypeCheck((PyObject *)owner, (PyTypeObject *)&sipWrapper_Type));
+
+            addToParent((sipWrapper *)self, (sipWrapper *)owner);
+        }
     }
 
     self->data = sipNew;
