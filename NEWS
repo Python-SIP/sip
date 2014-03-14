@@ -1,4 +1,4 @@
-v4.15.5 ??? March 2014
+v4.15.5 14th March 2014
   - The use_arch argument of sipconfig.create_wrapper() can now specify a space
     separated set of architectures.
   - Bug fixes.
