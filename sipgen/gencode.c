@@ -2977,6 +2977,9 @@ static int generateEnumMemberTable(sipSpec *pt, moduleDef *mod, classDef *cd,
         prcode(fp,
 "    {%N, ", emd->pyname);
 
+        if (!generating_c)
+            prcode(fp, "static_cast<int>(");
+
         if (!isNoScope(emd->ed))
         {
             if (cd != NULL)
@@ -2994,7 +2997,7 @@ static int generateEnumMemberTable(sipSpec *pt, moduleDef *mod, classDef *cd,
             }
         }
 
-        prcode(fp, "%s, %d},\n", emd->cname, emd->ed->first_alt->enumnr);
+        prcode(fp, "%s%s, %d},\n", emd->cname, (generating_c ? "" : ")"), emd->ed->first_alt->enumnr);
     }
 
     prcode(fp,
