@@ -102,8 +102,9 @@ static scopedNameDef *scopeScopedName(ifaceFileDef *scope,
 static void pushScope(classDef *);
 static void popScope(void);
 static classDef *currentScope(void);
-static void newQualifier(moduleDef *, int, int, const char *, qualType);
-static qualDef *allocQualifier(moduleDef *, int, int, const char *, qualType);
+static void newQualifier(moduleDef *, int, int, int, const char *, qualType);
+static qualDef *allocQualifier(moduleDef *, int, int, int, const char *,
+        qualType);
 static void newImport(const char *filename);
 static int timePeriod(const char *lname, const char *uname);
 static int platOrFeature(char *,int);
@@ -1254,14 +1255,14 @@ platformlist:   platform
     ;
 
 platform:   TK_NAME_VALUE {
-            newQualifier(currentModule,-1,-1,$1,platform_qualifier);
+            newQualifier(currentModule, -1, -1, notSkipping(), $1,
+                    platform_qualifier);
         }
     ;
 
 feature:    TK_FEATURE feature_args {
-            if (notSkipping())
-                newQualifier(currentModule, -1, -1, $2.name,
-                        feature_qualifier);
+            newQualifier(currentModule, -1, -1, notSkipping(), $2.name,
+                    feature_qualifier);
         }
     ;
 
@@ -1325,7 +1326,7 @@ qualifierlist:  qualifiername
 
 qualifiername:  TK_NAME_VALUE {
             newQualifier(currentModule, currentModule->nrtimelines,
-                    currentTimelineOrder++, $1, time_qualifier);
+                    currentTimelineOrder++, TRUE, $1, time_qualifier);
         }
     ;
 
@@ -7700,7 +7701,8 @@ static qualDef *findQualifier(const char *name)
             yyerror("Unexpected character after SIP version number");
 
         return allocQualifier(currentModule, -1,
-                (major << 16) | (minor << 8) | patch, name, time_qualifier);
+                (major << 16) | (minor << 8) | patch, TRUE, name,
+                time_qualifier);
     }
 
     return NULL;
@@ -7994,11 +7996,13 @@ static int platOrFeature(char *name,int optnot)
 
     if (qd -> qtype == feature_qualifier)
     {
-        if (!excludedFeature(excludedQualifiers,qd))
+        if (!excludedFeature(excludedQualifiers, qd))
             this = TRUE;
     }
     else if (selectedQualifier(neededQualifiers, qd))
+    {
         this = TRUE;
+    }
 
     if (optnot)
         this = !this;
@@ -8010,17 +8014,17 @@ static int platOrFeature(char *name,int optnot)
 /*
  * Return TRUE if the given qualifier is excluded.
  */
-int excludedFeature(stringList *xsl,qualDef *qd)
+int excludedFeature(stringList *xsl, qualDef *qd)
 {
     while (xsl != NULL)
     {
-        if (strcmp(qd -> name,xsl -> s) == 0)
+        if (strcmp(qd->name, xsl->s) == 0)
             return TRUE;
 
-        xsl = xsl -> next;
+        xsl = xsl->next;
     }
 
-    return FALSE;
+    return !qd->default_enabled;
 }
 
 
@@ -8031,9 +8035,9 @@ int selectedQualifier(stringList *needed_qualifiers, qualDef *qd)
 {
     stringList *sl;
 
-    for (sl = needed_qualifiers; sl != NULL; sl = sl -> next)
-        if (strcmp(qd -> name,sl -> s) == 0)
-            return TRUE;
+    for (sl = needed_qualifiers; sl != NULL; sl = sl->next)
+        if (strcmp(qd->name, sl->s) == 0)
+            return qd->default_enabled;
 
     return FALSE;
 }
@@ -8052,14 +8056,14 @@ static classDef *currentScope(void)
 /*
  * Create a new qualifier.
  */
-static void newQualifier(moduleDef *mod, int line, int order, const char *name,
-        qualType qt)
+static void newQualifier(moduleDef *mod, int line, int order,
+        int default_enabled, const char *name, qualType qt)
 {
     /* Check it doesn't already exist. */
     if (findQualifier(name) != NULL)
         yyerror("Version is already defined");
 
-    allocQualifier(mod, line, order, name, qt);
+    allocQualifier(mod, line, order, default_enabled, name, qt);
 }
 
 
@@ -8067,7 +8071,7 @@ static void newQualifier(moduleDef *mod, int line, int order, const char *name,
  * Allocate a new qualifier.
  */
 static qualDef *allocQualifier(moduleDef *mod, int line, int order,
-        const char *name, qualType qt)
+        int default_enabled, const char *name, qualType qt)
 {
     qualDef *qd;
 
@@ -8078,6 +8082,7 @@ static qualDef *allocQualifier(moduleDef *mod, int line, int order,
     qd->module = mod;
     qd->line = line;
     qd->order = order;
+    qd->default_enabled = default_enabled;
     qd->next = mod->qualifiers;
 
     mod->qualifiers = qd;

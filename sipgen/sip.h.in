@@ -677,6 +677,7 @@ typedef struct _qualDef {
     struct _moduleDef *module;          /* The defining module. */
     int line;                           /* Timeline if it is a time. */
     int order;                          /* Order if it is a time. */
+    int default_enabled;                /* Enabled by default. */
     struct _qualDef *next;              /* Next in the list. */
 } qualDef;
 
