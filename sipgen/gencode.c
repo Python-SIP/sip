@@ -9305,7 +9305,11 @@ static void generateNamedBaseType(ifaceFileDef *scope, argDef *ad,
 
     for (i = 0; i < nr_derefs; ++i)
     {
-        prcode(fp, " *");
+        /*
+         * Note that we don't put a space before the '*' so that Qt normalised
+         * signal signatures are correct.  Qt4 can cope with it but Qt5 can't.
+         */
+        prcode(fp, "*");
 
         if (ad->derefs[i])
             prcode(fp, " const");
