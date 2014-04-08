@@ -846,7 +846,7 @@ PyMODINIT_FUNC SIP_MODULE_ENTRY(void)
 #endif
 
     if (mod == NULL)
-        SIP_FATAL(SIP_MODULE_NAME ": Failed to intialise sip module");
+        SIP_FATAL(SIP_MODULE_NAME ": Failed to initialise sip module");
 
     mod_dict = PyModule_GetDict(mod);
 
@@ -945,7 +945,7 @@ PyMODINIT_FUNC SIP_MODULE_ENTRY(void)
         sipInterpreter = PyThreadState_Get()->interp;
     }
 
-    /* Make sure are notified when starting to exit. */
+    /* Make sure we are notified when starting to exit. */
     register_exit_notifier();
 
     SIP_MODULE_RETURN(mod);
