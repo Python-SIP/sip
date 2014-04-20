@@ -1,3 +1,24 @@
+v4.15.5 14th March 2014
+  - The use_arch argument of sipconfig.create_wrapper() can now specify a space
+    separated set of architectures.
+  - Bug fixes.
+
+v4.15.4 8th January 2014
+  - Added SIP_SSIZE_T_FORMAT to the C API.
+  - Bug fixes (specifically for PyQt5).
+
+v4.15.3 16th October 2013
+  - Bug fixes (specifically for PyQtChart).
+
+v4.15.2 14th September 2013
+  - sipConvertToArray() will now optionally take ownership of the array memory.
+  - Added support for char, unsigned char, short, int, float and double as
+    array types.
+  - Bug fixes.
+
+v4.15.1 23rd August 2013
+  - Fixes a regression in the handling of hidden virtual methods.
+
 v4.15 21st August 2013
   - Added the call_super_init argument to the %Module directive to specify that
     classes should support cooperative multi-inheritance.

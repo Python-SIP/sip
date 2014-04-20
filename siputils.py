@@ -2,7 +2,7 @@
 # extension modules created with SIP.  It provides information about file
 # locations, version numbers etc., and provides some classes and functions.
 #
-# Copyright (c) 2013 Riverbank Computing Limited <info@riverbankcomputing.com>
+# Copyright (c) 2014 Riverbank Computing Limited <info@riverbankcomputing.com>
 #
 # This file is part of SIP.
 #
@@ -1554,16 +1554,6 @@ class ModuleMakefile(Makefile):
         self.LFLAGS.extend(self.optional_list(lflags_console))
 
         if sys.platform == "darwin":
-            from distutils.sysconfig import get_python_inc
-
-            # The Python include directory seems to be the only one that uses
-            # the real path even when using a virtual environment (eg. pyvenv).
-            # Note that I can't remember why we need a framework build.
-            dl = get_python_inc().split(os.sep)
-
-            if "Python.framework" not in dl:
-                error("SIP requires Python to be built as a framework")
-
             self.LFLAGS.append("-undefined dynamic_lookup")
 
         Makefile.finalise(self)
@@ -2637,7 +2627,8 @@ def create_wrapper(script, wrapper, gui=0, use_arch=''):
     script is the full pathname of the script.
     wrapper is the name of the wrapper file to create.
     gui is non-zero if a GUI enabled version of the interpreter should be used.
-    use_arch is the MacOS/X architecture to invoke python with.
+    use_arch is the MacOS/X architectures to invoke python with.  Several space
+    separated architectures may be specified.
 
     Returns the platform specific name of the wrapper.
     """
@@ -2657,18 +2648,26 @@ def create_wrapper(script, wrapper, gui=0, use_arch=''):
         # The installation of MacOS's python is a mess that changes from
         # version to version and where sys.executable is useless.
 
+        version = sys.version_info
+        py_major = version[0]
+        py_minor = version[1]
+
         if gui:
-            exe = "pythonw"
+            # In Python v3.4 and later there is no pythonw.
+            if (py_major == 3 and py_minor >= 4) or py_major >= 4:
+                exe = "python"
+            else:
+                exe = "pythonw"
         else:
             exe = "python"
 
-        version = sys.version_info
-        exe = "%s%d.%d" % (exe, version[0], version[1])
+        exe = "%s%d.%d" % (exe, py_major, py_minor)
 
         if use_arch:
             # Note that this may not work with the "standard" interpreter but
             # should with the "pythonX.Y" version.
-            exe = "arch -%s %s" % (use_arch, exe)
+            arch_flags = ' '.join(["-%s" % a for a in use_arch.split()])
+            exe = "arch %s %s" % (arch_flags, exe)
 
         wf.write("#!/bin/sh\n")
         wf.write("exec %s %s ${1+\"$@\"}\n" % (exe, script))

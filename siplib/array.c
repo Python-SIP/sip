@@ -1,7 +1,7 @@
 /*
  * This file implements the API for the array type.
  *
- * Copyright (c) 2013 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2014 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -31,12 +31,13 @@
 /* The object data structure. */
 typedef struct {
     PyObject_HEAD
-    void *cpp;
+    void *data;
     const sipTypeDef *td;
     const char *format;
     size_t stride;
     SIP_SSIZE_T len;
-    int readonly;
+    int flags;
+    PyObject *owner;
 } sipArrayObject;
 
 
@@ -52,8 +53,9 @@ static void fix_bounds(int len, int *left, int *right);
 static void bad_key(PyObject *key);
 #endif
 static void *element(sipArrayObject *array, SIP_SSIZE_T idx);
-static PyObject *make_array(void *cpp, const sipTypeDef *td,
-        const char *format, size_t stride, SIP_SSIZE_T len, int readonly);
+static PyObject *make_array(void *data, const sipTypeDef *td,
+        const char *format, size_t stride, SIP_SSIZE_T len, int flags,
+        PyObject *owner);
 
 
 /*
@@ -87,12 +89,36 @@ static PyObject *sipArray_item(PyObject *self, SIP_SSIZE_T idx)
     {
         switch (*array->format)
         {
+        case 'b':
+            py_item = SIPLong_FromLong(*(char *)data);
+            break;
+
+        case 'B':
+            py_item = PyLong_FromUnsignedLong(*(unsigned char *)data);
+            break;
+
+        case 'h':
+            py_item = SIPLong_FromLong(*(short *)data);
+            break;
+
         case 'H':
             py_item = PyLong_FromUnsignedLong(*(unsigned short *)data);
             break;
 
+        case 'i':
+            py_item = SIPLong_FromLong(*(int *)data);
+            break;
+
         case 'I':
             py_item = PyLong_FromUnsignedLong(*(unsigned int *)data);
+            break;
+
+        case 'f':
+            py_item = PyFloat_FromDouble(*(float *)data);
+            break;
+
+        case 'd':
+            py_item = PyFloat_FromDouble(*(double *)data);
             break;
 
         default:
@@ -118,7 +144,8 @@ static PyObject *sipArray_slice(PyObject *self, int left, int right)
         left = right = 0;
 
     return make_array(element(array, left), array->td, array->format,
-            array->stride, right - left, array->readonly);
+            array->stride, right - left, (array->flags & ~SIP_OWNS_MEMORY),
+            array->owner);
 }
 
 
@@ -128,15 +155,15 @@ static PyObject *sipArray_slice(PyObject *self, int left, int right)
 static int sipArray_ass_item(PyObject *self, int idx, PyObject *value)
 {
     sipArrayObject *array = (sipArrayObject *)self;
-    void *value_cpp;
+    void *value_data;
 
     if (check_writable(array) < 0 || check_index(array, idx) < 0)
         return -1;
 
-    if ((value_cpp = get_value(array, value)) == NULL)
+    if ((value_data = get_value(array, value)) == NULL)
         return -1;
 
-    memmove(element(array, idx), value_cpp, array->stride);
+    memmove(element(array, idx), value_data, array->stride);
 
     return 0;
 }
@@ -149,17 +176,17 @@ static int sipArray_ass_slice(PyObject *self, int left, int right,
         PyObject *value)
 {
     sipArrayObject *array = (sipArrayObject *)self;
-    void *value_cpp;
+    void *value_data;
 
     if (check_writable(array) < 0)
         return -1;
 
     fix_bounds(array->len, &left, &right);
 
-    if ((value_cpp = get_slice(array, value, right - left)) == NULL)
+    if ((value_data = get_slice(array, value, right - left)) == NULL)
         return -1;
 
-    memmove(element(array, left), value_cpp, (right - left) * array->stride);
+    memmove(element(array, left), value_data, (right - left) * array->stride);
 
     return 0;
 }
@@ -214,8 +241,9 @@ static PyObject *sipArray_subscript(PyObject *self, PyObject *key)
             return NULL;
         }
 
-        return make_array(element(array->cpp, start), array->td, array->format,
-                array->stride, slicelength, array->readonly);
+        return make_array(element(array->data, start), array->td,
+                array->format, array->stride, slicelength,
+                (array->flags & ~SIP_OWNS_MEMORY), array->owner);
     }
 
     bad_key(key);
@@ -232,7 +260,7 @@ static int sipArray_ass_subscript(PyObject *self, PyObject *key,
 {
     sipArrayObject *array = (sipArrayObject *)self;
     SIP_SSIZE_T start, len;
-    void *value_cpp;
+    void *value_data;
 
     if (check_writable(array) < 0)
         return -1;
@@ -250,7 +278,7 @@ static int sipArray_ass_subscript(PyObject *self, PyObject *key,
         if (check_index(array, start) < 0)
             return -1;
 
-        if ((value_cpp = get_value(array, value)) == NULL)
+        if ((value_data = get_value(array, value)) == NULL)
             return -1;
 
         len = 1;
@@ -268,7 +296,7 @@ static int sipArray_ass_subscript(PyObject *self, PyObject *key,
             return -1;
         }
 
-        if ((value_cpp = get_slice(array, value, len)) == NULL)
+        if ((value_data = get_slice(array, value, len)) == NULL)
             return -1;
     }
     else
@@ -278,7 +306,7 @@ static int sipArray_ass_subscript(PyObject *self, PyObject *key,
         return -1;
     }
 
-    memmove(element(array, start), value_cpp, len * array->stride);
+    memmove(element(array, start), value_data, len * array->stride);
 
     return 0;
 }
@@ -304,7 +332,7 @@ static int sipArray_getbuffer(PyObject *self, Py_buffer *view, int flags)
     if (view == NULL)
         return 0;
 
-    if (((flags & PyBUF_WRITABLE) == PyBUF_WRITABLE) && array->readonly)
+    if (((flags & PyBUF_WRITABLE) == PyBUF_WRITABLE) && (array->flags & SIP_READ_ONLY))
     {
         PyErr_SetString(PyExc_BufferError, "Object is not writable.");
         return -1;
@@ -313,14 +341,18 @@ static int sipArray_getbuffer(PyObject *self, Py_buffer *view, int flags)
     view->obj = self;
     Py_INCREF(self);
 
-    view->buf = array->cpp;
+    view->buf = array->data;
     view->len = array->len;
-    view->readonly = array->readonly;
+    view->readonly = (array->flags & SIP_READ_ONLY);
     view->itemsize = array->stride;
 
     view->format = NULL;
     if ((flags & PyBUF_FORMAT) == PyBUF_FORMAT)
+#if PY_MAJOR_VERSION >= 3
         view->format = array->format;
+#else
+        view->format = (char *)array->format;
+#endif
 
     view->ndim = 1;
 
@@ -355,7 +387,7 @@ static SIP_SSIZE_T sipArray_getreadbuffer(PyObject *self, SIP_SSIZE_T seg,
         return -1;
     }
 
-    *ptr = array->cpp;
+    *ptr = array->data;
 
     return array->len;
 }
@@ -418,6 +450,18 @@ static PyBufferProcs sipArray_BufferProcs = {
 };
 
 
+/* The instance deallocation function. */
+static void sipArray_dealloc(PyObject *self)
+{
+    sipArrayObject *array = (sipArrayObject *)self;
+
+    if (array->flags & SIP_OWNS_MEMORY)
+        sip_api_free(array->data);
+    else
+        Py_XDECREF(array->owner);
+}
+
+
 /* The type data structure. */
 PyTypeObject sipArray_Type = {
     PyVarObject_HEAD_INIT(NULL, 0)
@@ -474,7 +518,7 @@ PyTypeObject sipArray_Type = {
  */
 static int check_writable(sipArrayObject *array)
 {
-    if (array->readonly)
+    if (array->flags & SIP_READ_ONLY)
     {
         PyErr_SetString(PyExc_TypeError, "sip.array object is read-only");
         return -1;
@@ -536,7 +580,7 @@ static void bad_key(PyObject *key)
  */
 static void *element(sipArrayObject *array, SIP_SSIZE_T idx)
 {
-    return (unsigned char *)(array->cpp) + idx * array->stride;
+    return (unsigned char *)(array->data) + idx * array->stride;
 }
 
 
@@ -546,8 +590,14 @@ static void *element(sipArrayObject *array, SIP_SSIZE_T idx)
 static void *get_value(sipArrayObject *array, PyObject *value)
 {
     static union {
-        unsigned short u_short;
-        unsigned int u_int;
+        signed char s_char_t;
+        unsigned char u_char_t;
+        signed short s_short_t;
+        unsigned short u_short_t;
+        signed int s_int_t;
+        unsigned int u_int_t;
+        float float_t;
+        double double_t;
     } static_data;
 
     void *data;
@@ -565,14 +615,44 @@ static void *get_value(sipArrayObject *array, PyObject *value)
 
         switch (*array->format)
         {
+        case 'b':
+            static_data.s_char_t = SIPLong_AsLong(value);
+            data = &static_data.s_char_t;
+            break;
+
+        case 'B':
+            static_data.u_char_t = sip_api_long_as_unsigned_long(value);
+            data = &static_data.u_char_t;
+            break;
+
+        case 'h':
+            static_data.s_short_t = SIPLong_AsLong(value);
+            data = &static_data.s_short_t;
+            break;
+
         case 'H':
-            static_data.u_short = sip_api_long_as_unsigned_long(value);
-            data = &static_data.u_short;
+            static_data.u_short_t = sip_api_long_as_unsigned_long(value);
+            data = &static_data.u_short_t;
+            break;
+
+        case 'i':
+            static_data.s_int_t = SIPLong_AsLong(value);
+            data = &static_data.s_int_t;
             break;
 
         case 'I':
-            static_data.u_int = sip_api_long_as_unsigned_long(value);
-            data = &static_data.u_int;
+            static_data.u_int_t = sip_api_long_as_unsigned_long(value);
+            data = &static_data.u_int_t;
+            break;
+
+        case 'f':
+            static_data.float_t = PyFloat_AsDouble(value);
+            data = &static_data.float_t;
+            break;
+
+        case 'd':
+            static_data.double_t = PyFloat_AsDouble(value);
+            data = &static_data.double_t;
             break;
 
         default:
@@ -606,12 +686,36 @@ static void *get_slice(sipArrayObject *array, PyObject *value, SIP_SSIZE_T len)
         {
             switch (*array->format)
             {
+            case 'b':
+                type = "char";
+                break;
+
+            case 'B':
+                type = "unsigned char";
+                break;
+
+            case 'h':
+                type = "short";
+                break;
+
             case 'H':
                 type = "unsigned short";
                 break;
 
+            case 'i':
+                type = "int";
+                break;
+
             case 'I':
                 type = "unsigned int";
+                break;
+
+            case 'f':
+                type = "float";
+                break;
+
+            case 'd':
+                type = "double";
                 break;
 
             default:
@@ -628,11 +732,7 @@ static void *get_slice(sipArrayObject *array, PyObject *value, SIP_SSIZE_T len)
     if (other->len != len)
     {
         PyErr_Format(PyExc_TypeError,
-#if PY_VERSION_HEX >= 0x02050000
-                "the array being assigned must have length %zd",
-#else
-                "the array being assigned must have length %d",
-#endif
+                "the array being assigned must have length " SIP_SSIZE_T_FORMAT,
                 len);
 
         return NULL;
@@ -652,27 +752,39 @@ static void *get_slice(sipArrayObject *array, PyObject *value, SIP_SSIZE_T len)
         return NULL;
     }
 
-    return other->cpp;
+    return other->data;
 }
 
 
 /*
  * Do the work of creating an array.
  */
-static PyObject *make_array(void *cpp, const sipTypeDef *td,
-        const char *format, size_t stride, SIP_SSIZE_T len, int readonly)
+static PyObject *make_array(void *data, const sipTypeDef *td,
+        const char *format, size_t stride, SIP_SSIZE_T len, int flags,
+        PyObject *owner)
 {
     sipArrayObject *array;
 
     if ((array = PyObject_NEW(sipArrayObject, &sipArray_Type)) == NULL)
         return NULL;
 
-    array->cpp = cpp;
+    array->data = data;
     array->td = td;
     array->format = format;
     array->stride = stride;
     array->len = len;
-    array->readonly = readonly;
+    array->flags = flags;
+
+    if (flags & SIP_OWNS_MEMORY)
+    {
+        /* This is a borrowed reference to itself. */
+        array->owner = (PyObject *)array;
+    }
+    else
+    {
+        Py_XINCREF(owner);
+        array->owner = owner;
+    }
 
     return (PyObject *)array;
 }
@@ -680,14 +792,15 @@ static PyObject *make_array(void *cpp, const sipTypeDef *td,
 
 /*
  * Wrap an array of instances of a fundamental type.  At the moment format must
- * be either "H" (unsigned short) or "I" (unsigned int).
+ * be either "b" (char), "B" (unsigned char), "h" (short), "H" (unsigned
+ * short), "i" (int), "I" (unsigned int), "f" (float) or "d" (double).
  */
-PyObject *sip_api_convert_to_array(void *cpp, const char *format,
-        SIP_SSIZE_T len, int readonly)
+PyObject *sip_api_convert_to_array(void *data, const char *format,
+        SIP_SSIZE_T len, int flags)
 {
     size_t stride;
 
-    if (cpp == NULL)
+    if (data == NULL)
     {
         Py_INCREF(Py_None);
         return Py_None;
@@ -695,12 +808,36 @@ PyObject *sip_api_convert_to_array(void *cpp, const char *format,
 
     switch (*format)
     {
+    case 'b':
+        stride = sizeof (char);
+        break;
+
+    case 'B':
+        stride = sizeof (unsigned char);
+        break;
+
+    case 'h':
+        stride = sizeof (short);
+        break;
+
     case 'H':
         stride = sizeof (unsigned short);
         break;
 
+    case 'i':
+        stride = sizeof (int);
+        break;
+
     case 'I':
         stride = sizeof (unsigned int);
+        break;
+
+    case 'f':
+        stride = sizeof (float);
+        break;
+
+    case 'd':
+        stride = sizeof (double);
         break;
 
     default:
@@ -710,17 +847,17 @@ PyObject *sip_api_convert_to_array(void *cpp, const char *format,
     assert(stride > 0);
     assert(len >= 0);
 
-    return make_array(cpp, NULL, format, stride, len, readonly);
+    return make_array(data, NULL, format, stride, len, flags, NULL);
 }
 
 
 /*
  * Wrap an array of instances of a defined type.
  */
-PyObject *sip_api_convert_to_typed_array(void *cpp, const sipTypeDef *td,
-        const char *format, size_t stride, SIP_SSIZE_T len, int readonly)
+PyObject *sip_api_convert_to_typed_array(void *data, const sipTypeDef *td,
+        const char *format, size_t stride, SIP_SSIZE_T len, int flags)
 {
-    if (cpp == NULL)
+    if (data == NULL)
     {
         Py_INCREF(Py_None);
         return Py_None;
@@ -729,5 +866,5 @@ PyObject *sip_api_convert_to_typed_array(void *cpp, const sipTypeDef *td,
     assert(stride > 0);
     assert(len >= 0);
 
-    return make_array(cpp, td, format, stride, len, readonly);
+    return make_array(data, td, format, stride, len, flags, NULL);
 }

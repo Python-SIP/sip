@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# Copyright (c) 2013 Riverbank Computing Limited <info@riverbankcomputing.com>
+# Copyright (c) 2014 Riverbank Computing Limited <info@riverbankcomputing.com>
 #
 # This file is part of SIP.
 #
@@ -55,7 +55,8 @@ _GeneratedFileTypes = ('.pyc', '.o', '.obj', '.so', '.pyd', '.exp', '.exe',
 
 # Directories that are auto-generated and need to be cleaned.
 _GeneratedDirs = (
-    ('doc', ), )
+    ('__pycache__', ),
+    ('doc', ))
 
 # Files in a release.
 _ReleasedFiles = ('configure.py.in', 'LICENSE', 'LICENSE-GPL2', 'LICENSE-GPL3',
@@ -344,14 +345,17 @@ def _run_tools(package, quiet):
     """
 
     sipgen = _rooted_name(package, 'sipgen')
+    metasrc = os.path.join(sipgen, 'metasrc')
 
-    lexer = os.path.join(sipgen, 'lexer')
-    _progress("Running flex to create %s.c" % lexer, quiet)
-    os.system('flex -o%s.c %s.l' % (lexer, lexer))
+    lexer_l = os.path.join(metasrc, 'lexer.l')
+    lexer_c = os.path.join(sipgen, 'lexer.c')
+    _progress("Running flex to create %s" % lexer_c, quiet)
+    os.system('flex -o%s %s' % (lexer_c, lexer_l))
 
-    parser = os.path.join(sipgen, 'parser')
-    _progress("Running bison to create %s.c" % parser, quiet)
-    os.system('bison -y -d -o %s.c %s.y' % (parser, parser))
+    parser_y = os.path.join(metasrc, 'parser.y')
+    parser_c = os.path.join(sipgen, 'parser.c')
+    _progress("Running bison to create %s" % parser_c, quiet)
+    os.system('bison -y -d -o %s %s' % (parser_c, parser_y))
 
 
 def _run_sphinx(package=None, quiet=True, clean=False):

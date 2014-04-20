@@ -698,6 +698,10 @@ Function Annotations
     :aanno:`KeepReference` argument annotation when applied to the type of the
     value returned by the function.
 
+    If the function is a class method or an ordinary function then the
+    reference is not kept by any other object and so the returned value will
+    never be garbage collected.
+
 
 .. function-annotation:: KeywordArgs
 

@@ -12,7 +12,7 @@ supports over 50 different platform/compiler combinations.
 
 The build system is implemented as a pure Python module called :mod:`sipconfig`
 that contains a number of classes and functions.  Using this module you can
-write bespoke configuration scripts (e.g. PyQt's ``configure.py``) or use it
+write bespoke configuration scripts (e.g. PyQt4's ``configure.py``) or use it
 with other Python based build systems (e.g.
 `Distutils <http://www.python.org/sigs/distutils-sig/distutils.html>`_ and
 `SCons <http://www.scons.org>`_).
@@ -20,12 +20,12 @@ with other Python based build systems (e.g.
 An important feature of SIP is the ability to generate bindings that are built
 on top of existing bindings.  For example, both
 `PyKDE <http://www.riverbankcomputing.com/software/pykde/>`_ and
-`PyQwt <http://pyqwt.sourceforge.net/>`_ are built on top of PyQt but all three
-packages are maintained by different developers.  To make this easier PyQt
-includes its own configuration module, ``pyqtconfig``, that contains additional
-classes intended to be used by the configuration scripts of bindings built on
-top of PyQt.  The SIP build system includes facilities that do a lot of the
-work of creating these additional configuration modules.
+`PyQwt <http://pyqwt.sourceforge.net/>`_ are built on top of PyQt4 but all
+three packages are maintained by different developers.  To make this easier
+PyQt4 includes its own configuration module, ``pyqtconfig``, that contains
+additional classes intended to be used by the configuration scripts of bindings
+built on top of PyQt4.  The SIP build system includes facilities that do a lot
+of the work of creating these additional configuration modules.
 
 
 .. function:: create_config_module(module, template, content[, macros=None])
@@ -79,7 +79,8 @@ work of creating these additional configuration modules.
         is non-zero if a GUI enabled version of the interpreter should be used
         on platforms that require it.
     :param use_arch:
-        is the MacOS/X architecture to invoke python with.
+        is the MacOS/X architectures to invoke python with.  Several space
+        separated architectures may be specified.
     :return:
         the platform specific name of the wrapper.
 

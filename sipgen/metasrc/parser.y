@@ -1,7 +1,7 @@
 /*
  * The SIP parser.
  *
- * Copyright (c) 2013 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2014 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -102,8 +102,9 @@ static scopedNameDef *scopeScopedName(ifaceFileDef *scope,
 static void pushScope(classDef *);
 static void popScope(void);
 static classDef *currentScope(void);
-static void newQualifier(moduleDef *, int, int, const char *, qualType);
-static qualDef *allocQualifier(moduleDef *, int, int, const char *, qualType);
+static void newQualifier(moduleDef *, int, int, int, const char *, qualType);
+static qualDef *allocQualifier(moduleDef *, int, int, int, const char *,
+        qualType);
 static void newImport(const char *filename);
 static int timePeriod(const char *lname, const char *uname);
 static int platOrFeature(char *,int);
@@ -1254,14 +1255,14 @@ platformlist:   platform
     ;
 
 platform:   TK_NAME_VALUE {
-            newQualifier(currentModule,-1,-1,$1,platform_qualifier);
+            newQualifier(currentModule, -1, -1, notSkipping(), $1,
+                    platform_qualifier);
         }
     ;
 
 feature:    TK_FEATURE feature_args {
-            if (notSkipping())
-                newQualifier(currentModule, -1, -1, $2.name,
-                        feature_qualifier);
+            newQualifier(currentModule, -1, -1, notSkipping(), $2.name,
+                    feature_qualifier);
         }
     ;
 
@@ -1325,7 +1326,7 @@ qualifierlist:  qualifiername
 
 qualifiername:  TK_NAME_VALUE {
             newQualifier(currentModule, currentModule->nrtimelines,
-                    currentTimelineOrder++, $1, time_qualifier);
+                    currentTimelineOrder++, TRUE, $1, time_qualifier);
         }
     ;
 
@@ -2769,9 +2770,9 @@ struct:     TK_STRUCT scopedname {
                     "Mixin",
                     "NoDefaultCtors",
                     "PyName",
-                    "PyQt4Flags",
-                    "PyQt4NoQMetaObject",
+                    "PyQtFlags",
                     "PyQtInterface",
+                    "PyQtNoQMetaObject",
                     "Supertype",
                     "VirtualErrorHandler",
                     NULL
@@ -2843,9 +2844,9 @@ class:  TK_CLASS scopedname {
                     "Mixin",
                     "NoDefaultCtors",
                     "PyName",
-                    "PyQt4Flags",
-                    "PyQt4NoQMetaObject",
+                    "PyQtFlags",
                     "PyQtInterface",
+                    "PyQtNoQMetaObject",
                     "Supertype",
                     "VirtualErrorHandler",
                     NULL
@@ -4044,18 +4045,6 @@ cpptype:    TK_CONST basetype deref optref {
             $$ = $2;
             add_derefs(&$$, &$3);
             $$.argflags |= ARG_IS_CONST | $4;
-
-            /*
-             * Treat a prefix const as postfix but check if there isn't already
-             * a postfix const.
-             */
-            if ($3.nrderefs > 0)
-            {
-                if ($$.derefs[0])
-                    yyerror("'const' specified as prefix and postfix");
-
-                $$.derefs[0] = TRUE;
-            }
         }
     |   basetype deref optref {
             $$ = $1;
@@ -4176,7 +4165,7 @@ optref: {
 deref:  {
             $$.nrderefs = 0;
         }
-    |   deref TK_CONST '*' {
+    |   deref '*' TK_CONST {
             add_new_deref(&$$, &$1, TRUE);
         }
     |   deref '*' {
@@ -4926,11 +4915,11 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd,
     if (getOptFlag(of, "Mixin", bool_flag) != NULL)
         setMixin(cd);
 
-    if ((flg = getOptFlag(of, "PyQt4Flags", integer_flag)) != NULL)
-        cd->pyqt4_flags = flg->fvalue.ival;
+    if ((flg = getOptFlag(of, "PyQtFlags", integer_flag)) != NULL)
+        cd->pyqt_flags = flg->fvalue.ival;
 
-    if (getOptFlag(of, "PyQt4NoQMetaObject", bool_flag) != NULL)
-        setPyQt4NoQMetaObject(cd);
+    if (getOptFlag(of, "PyQtNoQMetaObject", bool_flag) != NULL)
+        setPyQtNoQMetaObject(cd);
 
     if ((flg = getOptFlag(of, "PyQtInterface", string_flag)) != NULL)
         cd->pyqt_interface = flg->fvalue.sval;
@@ -6756,6 +6745,7 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         "PreHook",
         "PyInt",
         "PyName",
+        "PyQtSignalHack",
         "RaisesPyException",
         "ReleaseGIL",
         "Sequence",
@@ -6876,6 +6866,10 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         resetIsSignal(od);
         setIsSlot(od);
     }
+
+    if (isSignal(od))
+        if ((of = getOptFlag(optflgs, "PyQtSignalHack", integer_flag)) != NULL)
+            od->pyqt_signal_hack = of->fvalue.ival;
 
     if (factory)
         setIsFactory(od);
@@ -7249,7 +7243,6 @@ static memberDef *findFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         int nrargs;         /* Nr. of arguments. */
     } slot_table[] = {
         {"__str__", str_slot, TRUE, 0},
-        {"__unicode__", unicode_slot, TRUE, 0},
         {"__int__", int_slot, FALSE, 0},
         {"__long__", long_slot, FALSE, 0},
         {"__float__", float_slot, FALSE, 0},
@@ -7708,7 +7701,8 @@ static qualDef *findQualifier(const char *name)
             yyerror("Unexpected character after SIP version number");
 
         return allocQualifier(currentModule, -1,
-                (major << 16) | (minor << 8) | patch, name, time_qualifier);
+                (major << 16) | (minor << 8) | patch, TRUE, name,
+                time_qualifier);
     }
 
     return NULL;
@@ -8002,11 +7996,13 @@ static int platOrFeature(char *name,int optnot)
 
     if (qd -> qtype == feature_qualifier)
     {
-        if (!excludedFeature(excludedQualifiers,qd))
+        if (!excludedFeature(excludedQualifiers, qd))
             this = TRUE;
     }
     else if (selectedQualifier(neededQualifiers, qd))
+    {
         this = TRUE;
+    }
 
     if (optnot)
         this = !this;
@@ -8018,17 +8014,17 @@ static int platOrFeature(char *name,int optnot)
 /*
  * Return TRUE if the given qualifier is excluded.
  */
-int excludedFeature(stringList *xsl,qualDef *qd)
+int excludedFeature(stringList *xsl, qualDef *qd)
 {
     while (xsl != NULL)
     {
-        if (strcmp(qd -> name,xsl -> s) == 0)
+        if (strcmp(qd->name, xsl->s) == 0)
             return TRUE;
 
-        xsl = xsl -> next;
+        xsl = xsl->next;
     }
 
-    return FALSE;
+    return !qd->default_enabled;
 }
 
 
@@ -8039,9 +8035,9 @@ int selectedQualifier(stringList *needed_qualifiers, qualDef *qd)
 {
     stringList *sl;
 
-    for (sl = needed_qualifiers; sl != NULL; sl = sl -> next)
-        if (strcmp(qd -> name,sl -> s) == 0)
-            return TRUE;
+    for (sl = needed_qualifiers; sl != NULL; sl = sl->next)
+        if (strcmp(qd->name, sl->s) == 0)
+            return qd->default_enabled;
 
     return FALSE;
 }
@@ -8060,14 +8056,14 @@ static classDef *currentScope(void)
 /*
  * Create a new qualifier.
  */
-static void newQualifier(moduleDef *mod, int line, int order, const char *name,
-        qualType qt)
+static void newQualifier(moduleDef *mod, int line, int order,
+        int default_enabled, const char *name, qualType qt)
 {
     /* Check it doesn't already exist. */
     if (findQualifier(name) != NULL)
         yyerror("Version is already defined");
 
-    allocQualifier(mod, line, order, name, qt);
+    allocQualifier(mod, line, order, default_enabled, name, qt);
 }
 
 
@@ -8075,7 +8071,7 @@ static void newQualifier(moduleDef *mod, int line, int order, const char *name,
  * Allocate a new qualifier.
  */
 static qualDef *allocQualifier(moduleDef *mod, int line, int order,
-        const char *name, qualType qt)
+        int default_enabled, const char *name, qualType qt)
 {
     qualDef *qd;
 
@@ -8086,6 +8082,7 @@ static qualDef *allocQualifier(moduleDef *mod, int line, int order,
     qd->module = mod;
     qd->line = line;
     qd->order = order;
+    qd->default_enabled = default_enabled;
     qd->next = mod->qualifiers;
 
     mod->qualifiers = qd;

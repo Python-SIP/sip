@@ -260,7 +260,7 @@ previous examples.
 
     - The :directive:`%Import` directive has been added to specify that we are
       extending the class hierarchy defined in the file ``QtGui/QtGuimod.sip``.
-      This file is part of PyQt.  The build system will take care of finding
+      This file is part of PyQt4.  The build system will take care of finding
       the file's exact location.
 
     - The :directive:`%If` directive has been added to specify that everything
@@ -291,7 +291,7 @@ previous examples.
 
     - The :directive:`%If` directive has been added to specify that everything
       up to the matching :directive:`%End` directive does not apply to Windows.
-      ``WS_WIN`` is another tag defined by PyQt, this time using the
+      ``WS_WIN`` is another tag defined by PyQt4, this time using the
       :directive:`%Platforms` directive.  Tags defined by the
       :directive:`%Platforms` directive are mutually exclusive, i.e. only one
       may be valid at a time [#]_.
@@ -303,8 +303,8 @@ prevent the automatic generation of a public copy constructor.
 We now look at the ``configure.py`` script.  This is a little different to the
 script in the previous examples for two related reasons.
 
-Firstly, PyQt includes a pure Python module called ``pyqtconfig`` that extends
-the SIP build system for modules, like our example, that build on top of PyQt.
+Firstly, PyQt4 includes a pure Python module called ``pyqtconfig`` that extends
+the SIP build system for modules, like our example, that build on top of PyQt4.
 It deals with the details of which version of Qt is being used (i.e. it
 determines what the correct tags are) and where it is installed.  This is
 called a module's configuration module.
@@ -324,10 +324,10 @@ Now we have two scripts.  First the ``configure.py`` script::
     # system.
     build_file = "hello.sbf"
 
-    # Get the PyQt configuration information.
+    # Get the PyQt4 configuration information.
     config = pyqtconfig.Configuration()
 
-    # Get the extra SIP flags needed by the imported PyQt modules.  Note that
+    # Get the extra SIP flags needed by the imported PyQt4 modules.  Note that
     # this normally only includes those flags (-x and -t) that relate to SIP's
     # versioning system.
     pyqt_sip_flags = config.pyqt_sip_flags
@@ -424,7 +424,7 @@ Next we have the ``helloconfig.py.in`` template script::
 Again, we hope that the scripts are self documenting.
 
 .. [#] Some parts of a SIP specification aren't subject to version control.
-.. [#] Actually in ``versions.sip``.  PyQt uses the :directive:`%Include`
+.. [#] Actually in ``versions.sip``.  PyQt4 uses the :directive:`%Include`
        directive to split the SIP specification for Qt across a large number of
        separate ``.sip`` files.
 .. [#] Tags can also be defined by the :directive:`%Feature` directive.  These
