@@ -121,7 +121,7 @@ unsigned long sip_api_long_as_unsigned_long(PyObject *o);
 int sip_api_same_slot(const sipSlot *sp, PyObject *rxObj, const char *slot);
 PyObject *sip_api_invoke_slot(const sipSlot *slot, PyObject *sigargs);
 PyObject *sip_api_invoke_slot_ex(const sipSlot *slot, PyObject *sigargs,
-        int check_receiver);
+        int no_receiver_check);
 void *sip_api_convert_rx(sipWrapper *txSelf, const char *sigargs,
         PyObject *rxObj, const char *slot, const char **memberp, int flags);
 int sip_api_save_slot(sipSlot *sp, PyObject *rxObj, const char *slot);

@@ -92,7 +92,7 @@ static void *createUniversalSlot(sipWrapper *txSelf, const char *sig,
  */
 PyObject *sip_api_invoke_slot(const sipSlot *slot, PyObject *sigargs)
 {
-    return sip_api_invoke_slot_ex(slot, sigargs, FALSE);
+    return sip_api_invoke_slot_ex(slot, sigargs, TRUE);
 }
 
 
@@ -101,7 +101,7 @@ PyObject *sip_api_invoke_slot(const sipSlot *slot, PyObject *sigargs)
  * that any receiver C++ object still exist.
  */
 PyObject *sip_api_invoke_slot_ex(const sipSlot *slot, PyObject *sigargs,
-        int check_receiver)
+        int no_receiver_check)
 {
     PyObject *sa, *oxtype, *oxvalue, *oxtb, *sfunc, *sref;
 
@@ -160,7 +160,7 @@ PyObject *sip_api_invoke_slot_ex(const sipSlot *slot, PyObject *sigargs,
          * If the receiver wraps a C++ object then ignore the call if it no
          * longer exists.
          */
-        if (check_receiver &&
+        if (!no_receiver_check &&
             PyObject_TypeCheck(self, (PyTypeObject *)&sipSimpleWrapper_Type) &&
             sip_api_get_address((sipSimpleWrapper *)self) == NULL)
         {
