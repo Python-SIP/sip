@@ -705,6 +705,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipConvertFromVoidPtrAndSize    sipAPI_%s->api_convert_from_void_ptr_and_size\n"
 "#define sipConvertFromConstVoidPtrAndSize   sipAPI_%s->api_convert_from_const_void_ptr_and_size\n"
 "#define sipInvokeSlot               sipAPI_%s->api_invoke_slot\n"
+"#define sipInvokeSlotEx             sipAPI_%s->api_invoke_slot_ex\n"
 "#define sipSaveSlot                 sipAPI_%s->api_save_slot\n"
 "#define sipClearAnySlotReference    sipAPI_%s->api_clear_any_slot_reference\n"
 "#define sipVisitSlot                sipAPI_%s->api_visit_slot\n"
@@ -745,6 +746,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipConvertFromMappedType    sipConvertFromType\n"
 "#define sipConvertFromNamedEnum(v, pt)  sipConvertFromEnum((v), ((sipEnumTypeObject *)(pt))->type)\n"
 "#define sipConvertFromNewInstance(p, wt, t) sipConvertFromNewType((p), (wt)->type, (t))\n"
+        ,mname
         ,mname
         ,mname
         ,mname

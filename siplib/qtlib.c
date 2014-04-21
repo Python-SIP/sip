@@ -87,9 +87,21 @@ static void *createUniversalSlot(sipWrapper *txSelf, const char *sig,
 
 
 /*
- * Invoke a single slot (Qt or Python) and return the result.
+ * Invoke a single slot (Qt or Python) and return the result.  Don't check if
+ * any receiver C++ object still exists.
  */
 PyObject *sip_api_invoke_slot(const sipSlot *slot, PyObject *sigargs)
+{
+    return sip_api_invoke_slot_ex(slot, sigargs, FALSE);
+}
+
+
+/*
+ * Invoke a single slot (Qt or Python) and return the result.  Optionally check
+ * that any receiver C++ object still exist.
+ */
+PyObject *sip_api_invoke_slot_ex(const sipSlot *slot, PyObject *sigargs,
+        int check_receiver)
 {
     PyObject *sa, *oxtype, *oxvalue, *oxtb, *sfunc, *sref;
 
@@ -145,11 +157,18 @@ PyObject *sip_api_invoke_slot(const sipSlot *slot, PyObject *sigargs)
         PyObject *self = (sref != NULL ? sref : slot->meth.mself);
 
         /*
-         * We used to check that any wrapped C++ object still existed and just
-         * returning None if it didn't.  This caused inconsistent behaviour
-         * when the slot was a method connected to its object's destroyed()
-         * signal.
+         * If the receiver wraps a C++ object then ignore the call if it no
+         * longer exists.
          */
+        if (check_receiver &&
+            PyObject_TypeCheck(self, (PyTypeObject *)&sipSimpleWrapper_Type) &&
+            sip_api_get_address((sipSimpleWrapper *)self) == NULL)
+        {
+            Py_XDECREF(sref);
+
+            Py_INCREF(Py_None);
+            return Py_None;
+        }
 
 #if PY_MAJOR_VERSION >= 3
         sfunc = PyMethod_New(slot->meth.mfunc, self);

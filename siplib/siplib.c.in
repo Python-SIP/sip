@@ -389,6 +389,11 @@ static const sipAPIDef sip_api = {
     sip_api_convert_to_typed_array,
     sip_api_convert_to_array,
     sip_api_register_proxy_resolver,
+    /*
+     * The following may be used by Qt support code but by no other handwritten
+     * code.
+     */
+    sip_api_invoke_slot_ex,
 };
 
 
