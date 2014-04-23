@@ -202,6 +202,15 @@ static PyMethodDef sipVoidPtr_Methods[] = {
 
 
 /*
+ * Implement bool() for the type.
+ */
+static int sipVoidPtr_bool(PyObject *self)
+{
+    return ((sipVoidPtrObject *)self)->voidptr;
+}
+
+
+/*
  * Implement int() for the type.
  */
 static PyObject *sipVoidPtr_int(PyObject *self)
@@ -240,7 +249,7 @@ static PyNumberMethods sipVoidPtr_NumberMethods = {
     0,                      /* nb_negative */
     0,                      /* nb_positive */
     0,                      /* nb_absolute */
-    0,                      /* nb_bool (Python v3), nb_nonzero (Python v2) */
+    sipVoidPtr_bool,        /* nb_bool (Python v3), nb_nonzero (Python v2) */
     0,                      /* nb_invert */
     0,                      /* nb_lshift */
     0,                      /* nb_rshift */
