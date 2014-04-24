@@ -206,7 +206,7 @@ static PyMethodDef sipVoidPtr_Methods[] = {
  */
 static int sipVoidPtr_bool(PyObject *self)
 {
-    return ((sipVoidPtrObject *)self)->voidptr;
+    return (((sipVoidPtrObject *)self)->voidptr != NULL);
 }
 
 
