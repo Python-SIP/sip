@@ -2445,10 +2445,10 @@ def parse_build_macros(filename, names, overrides=None, properties=None):
             else:
                 break
 
-        line = line.strip()
+        # Strip comments and surrounding whitespace.
+        line = line.split('#', 1)[0].strip()
 
-        # Ignore comments.
-        if line and line[0] != "#":
+        if line:
             assstart = line.find("+")
             if assstart > 0 and line[assstart + 1] == '=':
                 adding = True
