@@ -179,12 +179,20 @@ def set_defaults():
 
 
 def inform_user():
-    """Tell the user the option values that are going to be used.
-    """
-    siputils.inform("The SIP code generator will be installed in %s." % opts.sipbindir)
+    """ Tell the user the option values that are going to be used. """
+
+    if opts.sipbindir != '':
+        siputils.inform("The SIP code generator will be installed in %s." % opts.sipbindir)
+
     siputils.inform("The %s module will be installed in %s." % (sip_module_base, opts.sipmoddir))
+
+    if opts.static:
+        siputils.inform("The %s module will be built as a static library." % sip_module_base)
+
     siputils.inform("The sip.h header file will be installed in %s." % opts.sipincdir)
-    siputils.inform("The default directory to install .sip files in is %s." % opts.sipsipdir)
+
+    if opts.sipsipdir != '':
+        siputils.inform("The default directory to install .sip files in is %s." % opts.sipsipdir)
     siputils.inform("The platform/compiler configuration is %s." % opts.platform)
 
     if opts.arch:
@@ -306,26 +314,34 @@ def create_makefiles(macros):
 
     sipconfig.inform("Creating top level Makefile...")
 
-    sipconfig.ParentMakefile(
-        configuration=cfg,
+    if opts.sipbindir != '':
         subdirs=["sipgen", "siplib"],
         installs=(["sipconfig.py", os.path.join(src_dir, "sipdistutils.py")],
                 cfg.sip_mod_dir)
-    ).generate()
+    else:
+        subdirs = ["siplib"]
+        installs = None
 
-    sipconfig.inform("Creating sip code generator Makefile...")
-
-    sipconfig.ProgramMakefile(
+    sipconfig.ParentMakefile(
         configuration=cfg,
-        build_file=os.path.join(src_dir, "sipgen", "sipgen.sbf"),
-        dir="sipgen",
-        install_dir=os.path.dirname(cfg.sip_bin),
-        console=1,
-        warnings=0,
-        universal=opts.universal,
-        arch=opts.arch,
-        deployment_target=opts.deployment_target
+        subdirs=subdirs,
+        installs=installs
     ).generate()
+
+    if opts.sipbindir != '':
+        sipconfig.inform("Creating sip code generator Makefile...")
+
+        sipconfig.ProgramMakefile(
+            configuration=cfg,
+            build_file=os.path.join(src_dir, "sipgen", "sipgen.sbf"),
+            dir="sipgen",
+            install_dir=os.path.dirname(cfg.sip_bin),
+            console=1,
+            warnings=0,
+            universal=opts.universal,
+            arch=opts.arch,
+            deployment_target=opts.deployment_target
+        ).generate()
 
     sipconfig.inform("Creating sip module Makefile...")
 
@@ -425,6 +441,9 @@ def create_optparser(sdk_dir):
             default=default_sipsipdir, type="string", metavar="DIR",
             dest="sipsipdir", callback=store_abspath, help="where .sip files "
             "are normally installed [default: %s]" % default_sipsipdir)
+    g.add_option("--static-root", action="callback", type="string",
+            metavar="DIR", dest="static_root", callback=store_abspath,
+            help="configure for a static build installed in DIR")
     p.add_option_group(g)
 
     return p
@@ -522,6 +541,23 @@ def main(argv):
         del module_path[-1]
         module_path.insert(0, opts.sipmoddir)
         opts.sipmoddir = os.path.join(*module_path)
+
+    # Apply the overrides for a static root directory.
+    if opts.static_root is not None:
+        global plat_py_inc_dir, plat_py_conf_inc_dir, plat_py_lib_dir
+
+        py_version_dir = 'python%d.%d' % (py_version >> 16, (py_version >> 8) & 0xff)
+
+        plat_py_inc_dir = os.path.join(opts.static_root, 'include',
+                py_version_dir)
+        plat_py_conf_inc_dir = plat_py_inc_dir 
+        plat_py_lib_dir = os.path.join(opts.static_root, 'lib', py_version_dir)
+
+        opts.sipbindir = ''
+        opts.sipincdir = plat_py_inc_dir
+        opts.sipmoddir = os.path.join(plat_py_lib_dir, 'site-packages')
+        opts.sipsipdir = ''
+        opts.static = True
 
     # Tell the user what's been found.
     inform_user()
