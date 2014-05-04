@@ -576,8 +576,7 @@ of the work of creating these additional configuration modules.
             the name of the directory where the module will be optionally
             installed.
         :param static:
-            is set if the module should be built as a static library (see
-            :ref:`ref-builtin`).
+            is set if the module should be built as a static library.
         :param console:
             see :meth:`sipconfig.Makefile.__init__`.
         :param qt:

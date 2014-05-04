@@ -17,4 +17,3 @@ SIP Reference Guide
     python_api
     build_system
     distutils
-    builtin

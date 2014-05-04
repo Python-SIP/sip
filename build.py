@@ -63,7 +63,7 @@ _ReleasedFiles = ('configure.py.in', 'LICENSE', 'LICENSE-GPL2', 'LICENSE-GPL3',
         'NEWS', 'README', 'sipdistutils.py', 'siputils.py')
 
 # Directories in a release.
-_ReleasedDirs = ('custom', 'sipgen', 'siplib', 'specs', 'sphinx')
+_ReleasedDirs = ('sipgen', 'siplib', 'specs', 'sphinx')
 
 # The root directory, i.e. the one containing this script.
 _RootDir = os.path.dirname(os.path.abspath(__file__))
