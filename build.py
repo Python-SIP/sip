@@ -41,22 +41,25 @@ _PatchedFiles = (
     ('siplib', 'sip.h.in'),
     ('sphinx', 'conf.py'), ('sphinx', 'introduction.rst'))
 
-# Specific files that are auto-generated and need to be cleaned.
+# Specific files that may be auto-generated and need to be cleaned.
 _GeneratedFiles = (
-    ('Makefile', ), ('sipconfig.py', ),
+    ('Makefile', ), ('sipconfig.py', ), ('.qmake.stash', ),
     ('sipgen', 'Makefile'), ('sipgen', 'lexer.c'), ('sipgen', 'parser.c'),
     ('sipgen', 'parser.h'), ('sipgen', 'sip'),
-    ('siplib', 'Makefile'), ('siplib', 'sip.h'), ('siplib', 'siplib.c'),
-    ('siplib', 'siplib.sbf'))
+    ('siplib', 'Makefile'), ('siplib', 'Makefile.Device'),
+    ('siplib', 'Makefile.Simulator'), ('siplib', 'sip.h'),
+    ('siplib', 'siplib.c'), ('siplib', 'siplib.sbf'))
 
 # File types that are auto-generated and need to be cleaned.
 _GeneratedFileTypes = ('.pyc', '.o', '.obj', '.so', '.pyd', '.exp', '.exe',
-        '.gz', '.zip')
+        '.gz', '.zip', '.a', '.dylib', '.pro')
 
 # Directories that are auto-generated and need to be cleaned.
 _GeneratedDirs = (
     ('__pycache__', ),
-    ('doc', ))
+    ('doc', ),
+    ('siplib', 'iphoneos'),
+    ('siplib', 'iphonesimulator'))
 
 # Files in a release.
 _ReleasedFiles = ('configure.py.in', 'LICENSE', 'LICENSE-GPL2', 'LICENSE-GPL3',

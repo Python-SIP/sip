@@ -141,6 +141,17 @@ The full set of command line options is:
     ``X`` and ``Y`` are the major and minor version of the Python interpreter
     used to run the ``configure.py`` script.
 
+.. cmdoption:: --use-qmake
+
+    .. versionadded:: 4.16
+
+    Normally the ``configure.py`` script uses SIP's own build system to create
+    the Makefiles for the code generator and module.  This option causes
+    project files (``.pro`` files) used by Qt's :program:`qmake` program to be
+    generated instead.  :program:`qmake` should then be run to generate the
+    Makefiles.  This is particularly useful when cross-compiling the SIP module
+    to (for example) iOS or Android.
+
 The ``configure.py`` script takes many other options that allows the build
 system to be finely tuned.  These are of the form ``name=value`` or
 ``name+=value``.  The :option:`--show-build-macros <configure.py

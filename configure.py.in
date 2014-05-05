@@ -193,7 +193,9 @@ def inform_user():
 
     if opts.sipsipdir != '':
         siputils.inform("The default directory to install .sip files in is %s." % opts.sipsipdir)
-    siputils.inform("The platform/compiler configuration is %s." % opts.platform)
+
+    if opts.use_qmake is None:
+        siputils.inform("The platform/compiler configuration is %s." % opts.platform)
 
     if opts.arch:
         siputils.inform("MacOS/X binaries will be created for %s." % (", ".join(opts.arch.split())))
@@ -315,52 +317,167 @@ def create_makefiles(macros):
     sipconfig.inform("Creating top level Makefile...")
 
     if opts.sipbindir != '':
-        subdirs=["sipgen", "siplib"],
+        subdirs=["sipgen", "siplib"]
         installs=(["sipconfig.py", os.path.join(src_dir, "sipdistutils.py")],
                 cfg.sip_mod_dir)
     else:
         subdirs = ["siplib"]
         installs = None
 
-    sipconfig.ParentMakefile(
-        configuration=cfg,
-        subdirs=subdirs,
-        installs=installs
-    ).generate()
+    if opts.use_qmake:
+        pro = open("sip.pro", "w")
+
+        pro.write("TEMPLATE = subdirs\n")
+        pro.write("SUBDIRS = %s\n" % " ".join(subdirs))
+
+        if installs is not None:
+            files, path = installs
+
+            pro.write("\n")
+            pro.write("build_system.files = %s\n" % " ".join(files))
+            pro.write("build_system.path = %s\n" % quote(path))
+            pro.write("INSTALLS += build_system\n")
+
+        pro.close()
+    else:
+        sipconfig.ParentMakefile(
+            configuration=cfg,
+            subdirs=subdirs,
+            installs=installs
+        ).generate()
 
     if opts.sipbindir != '':
         sipconfig.inform("Creating sip code generator Makefile...")
 
-        sipconfig.ProgramMakefile(
+        if opts.use_qmake:
+            pro = open(os.path.join("sipgen", "sipgen.pro"), "w")
+
+            pro.write("TEMPLATE = app\n")
+            pro.write("TARGET = sip\n")
+            pro.write("CONFIG -= qt app_bundle\n")
+            pro.write("CONFIG += warn_off exceptions_off console %s\n" % (
+                    ("debug" if opts.debug else "release")))
+
+            pro.write("\n")
+            pro.write("target.path = %s\n" % os.path.dirname(cfg.sip_bin))
+            pro.write("INSTALLS += target\n")
+
+            c_sources = get_sources("sipgen", "*.c")
+            pro.write("\n")
+            pro.write("SOURCES = %s\n" % " ".join(c_sources))
+
+            headers = get_sources("sipgen", "*.h")
+            pro.write("\n")
+            pro.write("HEADERS = %s\n" % " ".join(headers))
+
+            pro.close()
+        else:
+            sipconfig.ProgramMakefile(
+                configuration=cfg,
+                build_file=os.path.join(src_dir, "sipgen", "sipgen.sbf"),
+                dir="sipgen",
+                install_dir=os.path.dirname(cfg.sip_bin),
+                console=1,
+                warnings=0,
+                universal=opts.universal,
+                arch=opts.arch,
+                deployment_target=opts.deployment_target
+            ).generate()
+
+    sipconfig.inform("Creating sip module Makefile...")
+
+    if opts.use_qmake:
+        pro = open(os.path.join("siplib", "siplib.pro"), "w")
+
+        pro.write("TEMPLATE = lib\n")
+        pro.write("TARGET = %s\n" % sip_module_base)
+        pro.write("CONFIG -= qt\n")
+        pro.write("CONFIG += warn_on exceptions_off %s %s\n" % (
+                ("staticlib" if opts.static else "plugin"),
+                ("debug" if opts.debug else "release")))
+
+        pro.write("\n")
+        pro.write("INCLUDEPATH += %s\n" % cfg.py_inc_dir)
+        if cfg.py_conf_inc_dir != cfg.py_inc_dir:
+            pro.write("INCLUDEPATH += %s\n" % cfg.py_conf_inc_dir)
+
+        if not opts.static:
+            # These only need to be correct for Windows.
+            debug_suffix = "_d" if opts.debug else ""
+            link_lib_dir = quote("-L" + cfg.py_lib_dir)
+
+            pro.write("""
+win32 {
+    PY_MODULE = %s%s.pyd
+    target.files = %s%s.pyd
+    LIBS += %s -lpython%d.%d
+    QMAKE_POST_LINK = $(COPY_FILE) $(DESTDIR_TARGET) $$PY_MODULE
+} else {
+    PY_MODULE = %s.so
+    target.files = %s.so
+    QMAKE_POST_LINK = $(COPY_FILE) $(TARGET) $$PY_MODULE
+}
+
+macx {
+    QMAKE_LFLAGS += "-undefined dynamic_lookup"
+    QMAKE_LFLAGS += "-install_name $$absolute_path($$PY_MODULE, $$target.path)"
+}
+""" % (sip_module_base, debug_suffix,
+       sip_module_base, debug_suffix,
+       link_lib_dir, (py_version >> 16), ((py_version >> 8) & 0xff),
+       sip_module_base,
+       sip_module_base))
+
+        pro.write("\n")
+        pro.write("target.CONFIG = no_check_exist\n")
+        pro.write("target.path = %s\n" % cfg.sip_mod_dir)
+        pro.write("INSTALLS += target\n")
+
+        pro.write("\n")
+        pro.write("sip_h.files = sip.h\n")
+        pro.write("sip_h.path = %s\n" % cfg.sip_inc_dir)
+        pro.write("INSTALLS += sip_h\n")
+
+        c_sources = get_sources("siplib", "*.c")
+        cpp_sources = get_sources("siplib", "*.cpp")
+        pro.write("\n")
+        pro.write("SOURCES = %s\n" % " ".join(c_sources + cpp_sources))
+
+        headers = get_sources("siplib", "*.h")
+        pro.write("\n")
+        pro.write("HEADERS = %s\n" % " ".join(headers))
+
+        pro.close()
+    else:
+        sipconfig.ModuleMakefile(
             configuration=cfg,
-            build_file=os.path.join(src_dir, "sipgen", "sipgen.sbf"),
-            dir="sipgen",
-            install_dir=os.path.dirname(cfg.sip_bin),
+            build_file=os.path.join(src_dir, "siplib", "siplib.sbf"),
+            dir="siplib",
+            install_dir=cfg.sip_mod_dir,
+            installs=([os.path.join(src_dir, "siplib", "sip.h")], cfg.sip_inc_dir),
             console=1,
             warnings=0,
+            static=opts.static,
+            debug=opts.debug,
             universal=opts.universal,
             arch=opts.arch,
             deployment_target=opts.deployment_target
         ).generate()
 
-    sipconfig.inform("Creating sip module Makefile...")
 
-    makefile = sipconfig.ModuleMakefile(
-        configuration=cfg,
-        build_file=os.path.join(src_dir, "siplib", "siplib.sbf"),
-        dir="siplib",
-        install_dir=cfg.sip_mod_dir,
-        installs=([os.path.join(src_dir, "siplib", "sip.h")], cfg.sip_inc_dir),
-        console=1,
-        warnings=0,
-        static=opts.static,
-        debug=opts.debug,
-        universal=opts.universal,
-        arch=opts.arch,
-        deployment_target=opts.deployment_target
-    )
+def get_sources(sources_dir, ext):
+    """ Get the quoted files with the specified extension from a directory. """
 
-    makefile.generate()
+    return [quote(f) for f in glob.glob(os.path.join(src_dir, sources_dir, ext))]
+
+
+def quote(path):
+    """ Return a path that is quoted if necessary. """
+
+    if " " in path:
+        path = '"' + path + '"'
+
+    return path
 
 
 def create_optparser(sdk_dir):
@@ -384,6 +501,9 @@ def create_optparser(sdk_dir):
     p.add_option("--sip-module", action="store", default="sip", type="string",
             metavar="NAME", dest="sip_module", help="the package.module name "
             "of the sip module [default: sip]")
+    p.add_option("--use-qmake", action="store_true", default=False,
+            dest="use_qmake", help="generate qmake .pro files instead of "
+            "Makefiles")
 
     if sys.platform == 'darwin':
         # Get the latest SDK to use as the default.
