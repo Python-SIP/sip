@@ -90,6 +90,17 @@ static PyTypeObject sipWrapperType_Type = {
     sipWrapperType_alloc,   /* tp_alloc */
     0,                      /* tp_new */
     0,                      /* tp_free */
+    0,                      /* tp_is_gc */
+    0,                      /* tp_bases */
+    0,                      /* tp_mro */
+    0,                      /* tp_cache */
+    0,                      /* tp_subclasses */
+    0,                      /* tp_weaklist */
+    0,                      /* tp_del */
+    0,                      /* tp_version_tag */
+#if PY_VERSION_HEX >= 0x03040000
+    0,                      /* tp_finalize */
+#endif
 };
 
 
@@ -146,12 +157,24 @@ static sipWrapperType sipWrapper_Type = {
             0,              /* tp_alloc */
             0,              /* tp_new */
             0,              /* tp_free */
+            0,              /* tp_is_gc */
+            0,              /* tp_bases */
+            0,              /* tp_mro */
+            0,              /* tp_cache */
+            0,              /* tp_subclasses */
+            0,              /* tp_weaklist */
+            0,              /* tp_del */
+            0,              /* tp_version_tag */
+#if PY_VERSION_HEX >= 0x03040000
+            0,              /* tp_finalize */
+#endif
         },
 #if !defined(STACKLESS)
     },
 #endif
     0,
-    0
+    0,
+    0,
 };
 
 
@@ -532,6 +555,17 @@ static PyTypeObject sipEnumType_Type = {
     sipEnumType_alloc,      /* tp_alloc */
     0,                      /* tp_new */
     0,                      /* tp_free */
+    0,                      /* tp_is_gc */
+    0,                      /* tp_bases */
+    0,                      /* tp_mro */
+    0,                      /* tp_cache */
+    0,                      /* tp_subclasses */
+    0,                      /* tp_weaklist */
+    0,                      /* tp_del */
+    0,                      /* tp_version_tag */
+#if PY_VERSION_HEX >= 0x03040000
+    0,                      /* tp_finalize */
+#endif
 };
 
 
@@ -621,10 +655,10 @@ static int createClassType(sipExportedModuleDef *client, sipClassTypeDef *ctd,
 static int createMappedType(sipExportedModuleDef *client,
         sipMappedTypeDef *mtd, PyObject *mod_dict);
 static sipExportedModuleDef *getModule(PyObject *mname_obj);
-static PyObject *pickle_type(PyObject *obj, PyObject *);
-static PyObject *unpickle_type(PyObject *, PyObject *args);
-static PyObject *pickle_enum(PyObject *obj, PyObject *);
-static PyObject *unpickle_enum(PyObject *, PyObject *args);
+static PyObject *pickle_type(PyObject *obj, PyObject *args);
+static PyObject *unpickle_type(PyObject *obj, PyObject *args);
+static PyObject *pickle_enum(PyObject *obj, PyObject *args);
+static PyObject *unpickle_enum(PyObject *obj, PyObject *args);
 static int setReduce(PyTypeObject *type, PyMethodDef *pickler);
 static int createEnumType(sipExportedModuleDef *client, sipEnumTypeDef *etd,
         PyObject *mod_dict);
@@ -715,7 +749,7 @@ static int isNonlazyMethod(PyMethodDef *pmd);
 static int addMethod(PyObject *dict, PyMethodDef *pmd);
 static PyObject *create_property(sipVariableDef *vd);
 static PyObject *create_function(PyMethodDef *ml);
-static PyObject *sip_exit(PyObject *obj, PyObject *ignore);
+static PyObject *sip_exit(PyObject *self, PyObject *args);
 static void register_exit_notifier(void);
 static sipConvertFromFunc get_from_convertor(const sipTypeDef *td);
 static sipPyObject **autoconversion_disabled(const sipTypeDef *td);
@@ -981,6 +1015,8 @@ static PyObject *setTraceMask(PyObject *self, PyObject *args)
 {
     unsigned new_mask;
 
+    (void)self;
+
     if (PyArg_ParseTuple(args, "I:settracemask", &new_mask))
     {
         traceMask = new_mask;
@@ -999,6 +1035,8 @@ static PyObject *setTraceMask(PyObject *self, PyObject *args)
 static PyObject *dumpWrapper(PyObject *self, PyObject *args)
 {
     sipSimpleWrapper *sw;
+
+    (void)self;
 
     if (PyArg_ParseTuple(args, "O!:dump", &sipSimpleWrapper_Type, &sw))
     {
@@ -1056,6 +1094,8 @@ static PyObject *transferTo(PyObject *self, PyObject *args)
 {
     PyObject *w, *owner;
 
+    (void)self;
+
     if (PyArg_ParseTuple(args, "O!O:transferto", &sipWrapper_Type, &w, &owner))
     {
         if (owner == Py_None)
@@ -1089,6 +1129,8 @@ static PyObject *transferBack(PyObject *self, PyObject *args)
 {
     PyObject *w;
 
+    (void)self;
+
     if (PyArg_ParseTuple(args, "O!:transferback", &sipWrapper_Type, &w))
     {
         sip_api_transfer_back(w);
@@ -1112,6 +1154,8 @@ static PyObject *cast(PyObject *self, PyObject *args)
     const sipTypeDef *td;
     void *addr;
     PyTypeObject *ft, *tt;
+
+    (void)self;
 
     if (!PyArg_ParseTuple(args, "O!O!:cast", &sipSimpleWrapper_Type, &sw, &sipWrapperType_Type, &wt))
         return NULL;
@@ -1150,6 +1194,8 @@ static PyObject *callDtor(PyObject *self, PyObject *args)
     void *addr;
     const sipClassTypeDef *ctd;
 
+    (void)self;
+
     if (!PyArg_ParseTuple(args, "O!:delete", &sipSimpleWrapper_Type, &sw))
         return NULL;
 
@@ -1183,6 +1229,8 @@ static PyObject *isDeleted(PyObject *self, PyObject *args)
     sipSimpleWrapper *sw;
     PyObject *res;
 
+    (void)self;
+
     if (!PyArg_ParseTuple(args, "O!:isdeleted", &sipSimpleWrapper_Type, &sw))
         return NULL;
 
@@ -1200,6 +1248,8 @@ static PyObject *isPyCreated(PyObject *self, PyObject *args)
 {
     sipSimpleWrapper *sw;
     PyObject *res;
+
+    (void)self;
 
     if (!PyArg_ParseTuple(args, "O!:ispycreated", &sipSimpleWrapper_Type, &sw))
         return NULL;
@@ -1220,6 +1270,8 @@ static PyObject *isPyOwned(PyObject *self, PyObject *args)
     sipSimpleWrapper *sw;
     PyObject *res;
 
+    (void)self;
+
     if (!PyArg_ParseTuple(args, "O!:ispyowned", &sipSimpleWrapper_Type, &sw))
         return NULL;
 
@@ -1236,6 +1288,8 @@ static PyObject *isPyOwned(PyObject *self, PyObject *args)
 static PyObject *setDeleted(PyObject *self, PyObject *args)
 {
     sipSimpleWrapper *sw;
+
+    (void)self;
 
     if (!PyArg_ParseTuple(args, "O!:setdeleted", &sipSimpleWrapper_Type, &sw))
         return NULL;
@@ -1263,6 +1317,8 @@ static PyObject *setDeleted(PyObject *self, PyObject *args)
 static PyObject *unwrapInstance(PyObject *self, PyObject *args)
 {
     sipSimpleWrapper *sw;
+
+    (void)self;
 
     if (PyArg_ParseTuple(args, "O!:unwrapinstance", &sipSimpleWrapper_Type, &sw))
     {
@@ -1292,6 +1348,8 @@ static PyObject *wrapInstance(PyObject *self, PyObject *args)
     unsigned PY_LONG_LONG addr;
     sipWrapperType *wt;
 
+    (void)self;
+
     if (PyArg_ParseTuple(args, "KO!:wrapinstance", &addr, &sipWrapperType_Type, &wt))
         return sip_api_convert_from_type((void *)addr, wt->type, NULL);
 
@@ -1304,6 +1362,8 @@ static PyObject *wrapInstance(PyObject *self, PyObject *args)
  */
 static PyObject *setDestroyOnExit(PyObject *self, PyObject *args)
 {
+    (void)self;
+
     if (PyArg_ParseTuple(args, "i:setdestroyonexit", &destroy_on_exit))
     {
         Py_INCREF(Py_None);
@@ -1332,6 +1392,8 @@ static int sip_api_export_module(sipExportedModuleDef *client,
 {
     sipExportedModuleDef *em;
     const char *full_name = sipNameOfModule(client);
+
+    (void)unused;
 
     /* Check that we can support it. */
 
@@ -3050,6 +3112,8 @@ static int parseResult(PyObject *method, PyObject *res,
                         void *v = PyCapsule_GetPointer(arg, name);
 #else
                         void *v = sip_api_convert_to_void_ptr(arg);
+
+                        (void)name;
 #endif
 
                         if (PyErr_Occurred())
@@ -6132,12 +6196,14 @@ static sipExportedModuleDef *getModule(PyObject *mname_obj)
 /*
  * The type unpickler.
  */
-static PyObject *unpickle_type(PyObject *ignore, PyObject *args)
+static PyObject *unpickle_type(PyObject *obj, PyObject *args)
 {
     PyObject *mname_obj, *init_args;
     const char *tname;
     sipExportedModuleDef *em;
     int i;
+
+    (void)obj;
 
     if (!PyArg_ParseTuple(args,
 #if PY_MAJOR_VERSION >= 3
@@ -6176,9 +6242,11 @@ static PyObject *unpickle_type(PyObject *ignore, PyObject *args)
 /*
  * The type pickler.
  */
-static PyObject *pickle_type(PyObject *obj, PyObject *ignore)
+static PyObject *pickle_type(PyObject *obj, PyObject *args)
 {
     sipExportedModuleDef *em;
+
+    (void)args;
 
     /* Find the type definition and defining module. */
     for (em = moduleList; em != NULL; em = em->em_next)
@@ -6231,12 +6299,14 @@ static PyObject *pickle_type(PyObject *obj, PyObject *ignore)
 /*
  * The enum unpickler.
  */
-static PyObject *unpickle_enum(PyObject *ignore, PyObject *args)
+static PyObject *unpickle_enum(PyObject *obj, PyObject *args)
 {
     PyObject *mname_obj, *evalue_obj;
     const char *ename;
     sipExportedModuleDef *em;
     int i;
+
+    (void)obj;
 
     if (!PyArg_ParseTuple(args,
 #if PY_MAJOR_VERSION >= 3
@@ -6270,9 +6340,11 @@ static PyObject *unpickle_enum(PyObject *ignore, PyObject *args)
 /*
  * The enum pickler.
  */
-static PyObject *pickle_enum(PyObject *obj, PyObject *ignore)
+static PyObject *pickle_enum(PyObject *obj, PyObject *args)
 {
     sipTypeDef *td = ((sipEnumTypeObject *)Py_TYPE(obj))->type;
+
+    (void)args;
 
     return Py_BuildValue("O(Osi)", enum_unpickler, td->td_module->em_nameobj,
             sipPyNameOfEnum((sipEnumTypeDef *)td),
@@ -9431,6 +9503,9 @@ static PyObject *sipSimpleWrapper_new(sipWrapperType *wt, PyObject *args,
     sipTypeDef *td = wt->type;
     sipContainerDef *cod;
 
+    (void)args;
+    (void)kwds;
+
     /* Check the base types are not being used directly. */
     if (wt == &sipSimpleWrapper_Type || wt == &sipWrapper_Type)
     {
@@ -9799,12 +9874,11 @@ static void *sip_api_get_mixin_address(sipSimpleWrapper *w,
 static int sip_api_init_mixin(PyObject *self, PyObject *args, PyObject *kwds,
         const sipClassTypeDef *ctd)
 {
-    int i, rc;
+    int rc;
     SIP_SSIZE_T pos;
     PyObject *unused, *mixin, *mixin_name, *key, *value;
     PyTypeObject *self_wt = sipTypeAsPyTypeObject(((sipWrapperType *)Py_TYPE(self))->type);
     PyTypeObject *wt = sipTypeAsPyTypeObject(&ctd->ctd_base);
-    PyMethodDef *pmd;
 
 #if PY_MAJOR_VERSION >= 3
     static PyObject *double_us = NULL;
@@ -9929,7 +10003,7 @@ gc_unused:
 static PyObject *next_in_mro(PyObject *self, PyObject *after)
 {
     int i;
-    PyObject *mro, *next;
+    PyObject *mro;
 
     mro = Py_TYPE(self)->tp_mro;
     assert(PyTuple_Check(mro));
@@ -10359,6 +10433,8 @@ static PyObject *sipSimpleWrapper_get_dict(PyObject *self, void *closure)
 {
     sipSimpleWrapper *sw = (sipSimpleWrapper *)self;
 
+    (void)closure;
+
     /* Create the dictionary if needed. */
     if (sw->dict == NULL)
     {
@@ -10380,6 +10456,8 @@ static int sipSimpleWrapper_set_dict(PyObject *self, PyObject *value,
         void *closure)
 {
     sipSimpleWrapper *sw = (sipSimpleWrapper *)self;
+
+    (void)closure;
 
     /* Check that any new value really is a dictionary. */
     if (value != NULL && !PyDict_Check(value))
@@ -10459,12 +10537,24 @@ sipWrapperType sipSimpleWrapper_Type = {
             0,              /* tp_alloc */
             (newfunc)sipSimpleWrapper_new,  /* tp_new */
             0,              /* tp_free */
+            0,              /* tp_is_gc */
+            0,              /* tp_bases */
+            0,              /* tp_mro */
+            0,              /* tp_cache */
+            0,              /* tp_subclasses */
+            0,              /* tp_weaklist */
+            0,              /* tp_del */
+            0,              /* tp_version_tag */
+#if PY_VERSION_HEX >= 0x03040000
+            0,              /* tp_finalize */
+#endif
         },
 #if !defined(STACKLESS)
     },
 #endif
     0,
-    0
+    0,
+    0,
 };
 
 
@@ -11913,8 +12003,11 @@ static int check_encoded_string(PyObject *obj)
 /*
  * This is called by the atexit module.
  */
-static PyObject *sip_exit(PyObject *obj, PyObject *ignore)
+static PyObject *sip_exit(PyObject *self, PyObject *args)
 {
+    (void)self;
+    (void)args;
+
     /* Disable all Python reimplementations of virtuals. */
     sipInterpreter = NULL;
 
@@ -12038,6 +12131,8 @@ static PyObject *enableAutoconversion(PyObject *self, PyObject *args)
 {
     sipWrapperType *wt;
     int enable;
+
+    (void)self;
 
     if (PyArg_ParseTuple(args, "O!i:enableautoconversion", &sipWrapperType_Type, &wt, &enable))
     {

@@ -199,11 +199,18 @@ static PySequenceMethods sipArray_SequenceMethods = {
     0,                      /* sq_concat */
     0,                      /* sq_repeat */
     sipArray_item,          /* sq_item */
-#if PY_VERSION_HEX < 0x02050000
+#if PY_VERSION_HEX >= 0x02050000
+    0,                      /* sq_slice */
+    0,                      /* sq_ass_item */
+    0,                      /* sq_ass_slice */
+#else
     sipArray_slice,         /* sq_slice */
     sipArray_ass_item,      /* sq_ass_item */
     sipArray_ass_slice,     /* sq_ass_slice */
 #endif
+    0,                      /* sq_contains */
+    0,                      /* sq_inplace_concat */
+    0,                      /* sq_inplace_repeat */
 };
 
 
@@ -348,11 +355,7 @@ static int sipArray_getbuffer(PyObject *self, Py_buffer *view, int flags)
 
     view->format = NULL;
     if ((flags & PyBUF_FORMAT) == PyBUF_FORMAT)
-#if PY_MAJOR_VERSION >= 3
-        view->format = array->format;
-#else
         view->format = (char *)array->format;
-#endif
 
     view->ndim = 1;
 
@@ -468,7 +471,7 @@ PyTypeObject sipArray_Type = {
     "sip.array",            /* tp_name */
     sizeof (sipArrayObject),    /* tp_basicsize */
     0,                      /* tp_itemsize */
-    0,                      /* tp_dealloc */
+    sipArray_dealloc,       /* tp_dealloc */
     0,                      /* tp_print */
     0,                      /* tp_getattr */
     0,                      /* tp_setattr */
@@ -510,6 +513,18 @@ PyTypeObject sipArray_Type = {
     0,                      /* tp_init */
     0,                      /* tp_alloc */
     0,                      /* tp_new */
+    0,                      /* tp_free */
+    0,                      /* tp_is_gc */
+    0,                      /* tp_bases */
+    0,                      /* tp_mro */
+    0,                      /* tp_cache */
+    0,                      /* tp_subclasses */
+    0,                      /* tp_weaklist */
+    0,                      /* tp_del */
+    0,                      /* tp_version_tag */
+#if PY_VERSION_HEX >= 0x03040000
+    0,                      /* tp_finalize */
+#endif
 };
 
 

@@ -90,6 +90,23 @@ PyTypeObject sipMethodDescr_Type = {
     0,                      /* tp_base */
     0,                      /* tp_dict */
     sipMethodDescr_descr_get,   /* tp_descr_get */
+    0,                      /* tp_descr_set */
+    0,                      /* tp_dictoffset */
+    0,                      /* tp_init */
+    0,                      /* tp_alloc */
+    0,                      /* tp_new */
+    0,                      /* tp_free */
+    0,                      /* tp_is_gc */
+    0,                      /* tp_bases */
+    0,                      /* tp_mro */
+    0,                      /* tp_cache */
+    0,                      /* tp_subclasses */
+    0,                      /* tp_weaklist */
+    0,                      /* tp_del */
+    0,                      /* tp_version_tag */
+#if PY_VERSION_HEX >= 0x03040000
+    0,                      /* tp_finalize */
+#endif
 };
 
 
@@ -134,6 +151,8 @@ PyObject *sipMethodDescr_Copy(PyObject *orig, PyObject *mixin_name)
 static PyObject *sipMethodDescr_descr_get(PyObject *self, PyObject *obj,
         PyObject *type)
 {
+    (void)type;
+
     sipMethodDescr *md = (sipMethodDescr *)self;
 
     if (obj == Py_None)
@@ -279,6 +298,22 @@ PyTypeObject sipVariableDescr_Type = {
     0,                      /* tp_dict */
     sipVariableDescr_descr_get, /* tp_descr_get */
     sipVariableDescr_descr_set, /* tp_descr_set */
+    0,                      /* tp_dictoffset */
+    0,                      /* tp_init */
+    0,                      /* tp_alloc */
+    0,                      /* tp_new */
+    0,                      /* tp_free */
+    0,                      /* tp_is_gc */
+    0,                      /* tp_bases */
+    0,                      /* tp_mro */
+    0,                      /* tp_cache */
+    0,                      /* tp_subclasses */
+    0,                      /* tp_weaklist */
+    0,                      /* tp_del */
+    0,                      /* tp_version_tag */
+#if PY_VERSION_HEX >= 0x03040000
+    0,                      /* tp_finalize */
+#endif
 };
 
 

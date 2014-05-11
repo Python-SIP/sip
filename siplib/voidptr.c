@@ -66,6 +66,8 @@ static int vp_convertor(PyObject *arg, struct vp_values *vp);
  */
 static PyObject *sipVoidPtr_ascapsule(sipVoidPtrObject *v, PyObject *arg)
 {
+    (void)arg;
+
     return PyCapsule_New(v->voidptr, NULL, NULL);
 }
 #endif
@@ -77,6 +79,8 @@ static PyObject *sipVoidPtr_ascapsule(sipVoidPtrObject *v, PyObject *arg)
  */
 static PyObject *sipVoidPtr_ascobject(sipVoidPtrObject *v, PyObject *arg)
 {
+    (void)arg;
+
     return PyCObject_FromVoidPtr(v->voidptr, NULL);
 }
 #endif
@@ -121,6 +125,8 @@ static PyObject *sipVoidPtr_asstring(sipVoidPtrObject *v, PyObject *args,
  */
 static PyObject *sipVoidPtr_getsize(sipVoidPtrObject *v, PyObject *arg)
 {
+    (void)arg;
+
 #if PY_MAJOR_VERSION >= 3
     return PyLong_FromSsize_t(v->size);
 #elif PY_VERSION_HEX >= 0x02050000
@@ -161,6 +167,8 @@ static PyObject *sipVoidPtr_setsize(sipVoidPtrObject *v, PyObject *arg)
  */
 static PyObject *sipVoidPtr_getwriteable(sipVoidPtrObject *v, PyObject *arg)
 {
+    (void)arg;
+
     return PyBool_FromLong(v->rw);
 }
 
@@ -197,7 +205,7 @@ static PyMethodDef sipVoidPtr_Methods[] = {
     {"setsize", (PyCFunction)sipVoidPtr_setsize, METH_O, NULL},
     {"getwriteable", (PyCFunction)sipVoidPtr_getwriteable, METH_NOARGS, NULL},
     {"setwriteable", (PyCFunction)sipVoidPtr_setwriteable, METH_O, NULL},
-    {NULL}
+    {NULL, NULL, 0, NULL}
 };
 
 
@@ -400,11 +408,18 @@ static PySequenceMethods sipVoidPtr_SequenceMethods = {
     0,                      /* sq_concat */
     0,                      /* sq_repeat */
     sipVoidPtr_item,        /* sq_item */
-#if PY_VERSION_HEX < 0x02050000
+#if PY_VERSION_HEX >= 0x02050000
+    0,                      /* sq_slice */
+    0,                      /* sq_ass_item */
+    0,                      /* sq_ass_slice */
+#else
     sipVoidPtr_slice,       /* sq_slice */
     sipVoidPtr_ass_item,    /* sq_ass_item */
     sipVoidPtr_ass_slice,   /* sq_ass_slice */
 #endif
+    0,                      /* sq_contains */
+    0,                      /* sq_inplace_concat */
+    0,                      /* sq_inplace_repeat */
 };
 
 
@@ -750,6 +765,18 @@ PyTypeObject sipVoidPtr_Type = {
     0,                      /* tp_init */
     0,                      /* tp_alloc */
     sipVoidPtr_new,         /* tp_new */
+    0,                      /* tp_free */
+    0,                      /* tp_is_gc */
+    0,                      /* tp_bases */
+    0,                      /* tp_mro */
+    0,                      /* tp_cache */
+    0,                      /* tp_subclasses */
+    0,                      /* tp_weaklist */
+    0,                      /* tp_del */
+    0,                      /* tp_version_tag */
+#if PY_VERSION_HEX >= 0x03040000
+    0,                      /* tp_finalize */
+#endif
 };
 
 
