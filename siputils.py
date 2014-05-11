@@ -2030,11 +2030,20 @@ def _quote(s):
     return s
 
 
-def version_to_string(v):
-    """Convert a 3 part version number encoded as a hexadecimal value to a
-    string.
+def version_to_string(version, parts=3):
+    """ Convert an n-part version number encoded as a hexadecimal value to a
+    string.  version is the version number.  Returns the string.
     """
-    return "%u.%u.%u" % (((v >> 16) & 0xff), ((v >> 8) & 0xff), (v & 0xff))
+
+    part_list = [str((version >> 16) & 0xff)]
+
+    if parts > 1:
+        part_list.append(str((version >> 8) & 0xff))
+
+        if parts > 2:
+            part_list.append(str(version & 0xff))
+
+    return '.'.join(part_list)
 
 
 def read_version(filename, description, numdefine=None, strdefine=None):

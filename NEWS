@@ -1,7 +1,9 @@
 v4.16 ??? May 2014
   - Added support for the 'no_receiver_check' argument to connect() in PyQt
     v4.11.
-  - Added the --static-root option to configure.py.
+  - Added the --configuration option to configure.py.
+  - Added the --sysroot option to configure.py.
+  - Added the --target-py-version option to configure.py.
   - Added the --use-qmake option to configure.py.
   - Bug fixes.
 
