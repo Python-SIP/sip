@@ -59,9 +59,7 @@ The full set of command line options is:
 
     ``<FILE>`` contains the configuration of the SIP build to be used instead
     of dynamically introspecting the system and is typically used when
-    cross-compiling.  The :file:`configurations` directory contains
-    configuration files for a number of target devices.  See
-    :ref:`ref-configuration-files`.
+    cross-compiling.  See :ref:`ref-configuration-files`.
 
 .. cmdoption:: -d <DIR>, --destdir <DIR>
 
