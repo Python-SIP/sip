@@ -250,6 +250,19 @@ The format of a configuration file is as follows:
 
 - blank lines are ignored.
 
+:program:`configure.py` provides the following preset values for a
+configuration:
+
+``py_major``
+    is the major version number of the target Python installation.
+
+``py_minor``
+    is the minor version number of the target Python installation.
+
+``sysroot``
+    is the name of the system root directory.  This is specified with the
+    :option:`--sysroot <configure.py --sysroot>` option.
+
 The following is an example configuration file::
 
     # The target Python installation.
@@ -259,23 +272,6 @@ The following is an example configuration file::
     # Where SIP will be installed.
     sip_bin_dir = %(sysroot)/usr/bin
     sip_module_dir = %(sysroot)/usr/lib/python%(py_major)/dist-packages
-
-:program:`configure.py` provides the following default values for a
-configuration:
-
-``py_major``
-    is the major version number of the target Python installation.  This is
-    typically specified with the
-    :option:`--target-py-version <configure.py --target-py-version>` option.
-
-``py_minor``
-    is the minor version number of the target Python installation.  This is
-    typically specified with the
-    :option:`--target-py-version <configure.py --target-py-version>` option.
-
-``sysroot``
-    is the name of the system root directory.  This is typically specified with
-    the :option:`--sysroot <configure.py --sysroot>` option.
 
 The following values can be specified in the configuration file:
 
@@ -294,21 +290,21 @@ The following values can be specified in the configuration file:
 
 ``sip_bin_dir``
     is the name of the target directory where the SIP code generator will be
-    installed.  It can be overriden by the :option:`--bindir <configure.py -b>`
-    option.
+    installed.  It can be overridden by the
+    :option:`--bindir <configure.py -b>` option.
 
 ``sip_inc_dir``
     is the name of the target directory where the ``sip.h`` file will be
     installed.  If this isn't specified then it defaults to the value of
-    ``py_inc_dir``.  It can be overriden by the
+    ``py_inc_dir``.  It can be overridden by the
     :option:`--incdir <configure.py -e>` option.
 
 ``sip_module_dir``
     is the target directory where the SIP module will be installed.  It can be
-    overriden by the :option:`--destdir <configure.py -d>` option.
+    overridden by the :option:`--destdir <configure.py -d>` option.
 
 ``sip_sip_dir``
     is the name of the target directory where generated ``.sip`` files will be
     installed by default.  It is only used when creating the :mod:`sipconfig`
-    module.  It can be overriden by the :option:`--sipdir <configure.py -v>`
+    module.  It can be overridden by the :option:`--sipdir <configure.py -v>`
     option.
