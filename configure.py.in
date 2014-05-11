@@ -505,6 +505,7 @@ def _get_configuration_value(config, name, default=None):
 
     return value
 
+
 def update_from_configuration_file(config_file):
     """ Update a number of globals from values read from a configuration file.
     """
@@ -516,31 +517,19 @@ def update_from_configuration_file(config_file):
     # Read the file into the dict.
     cfg = open(config_file)
     line_nr = 0
-    last_name = None
 
     for l in cfg:
         line_nr += 1
 
-        # Strip comments.
-        l = l.split('#')[0]
-
-        # See if this might be part of a multi-line.
-        multiline = (last_name is not None and len(l) != 0 and l[0] == ' ')
-
-        l = l.strip()
-
-        if len(l) == 0:
-            last_name = None
+        # Strip comments and blank lines.
+        l = l.split('#')[0].strip()
+        if l == '':
             continue
 
-        eq = l.find('=')
-        if eq > 0:
-            name = l[:eq - 1].rstrip()
-            value = l[eq + 1:].lstrip()
-        elif multiline:
-            name = last_name
-            value = config[last_name]
-            value += ' ' + l
+        parts = l.split('=', maxsplit=1)
+        if len(parts) == 2:
+            name = parts[0].strip()
+            value = parts[1].strip()
         else:
             name = value = ''
 

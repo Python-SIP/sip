@@ -245,9 +245,6 @@ The format of a configuration file is as follows:
 - a configuration item is a single line containing a name/value pair separated
   by ``=``
 
-- values may be extended to lines immediately following if they are indented by
-  at least one space
-
 - a value may include another value by embedding the name of that value
   surrounded by ``%(`` and ``)``
 
