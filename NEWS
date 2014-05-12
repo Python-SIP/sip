@@ -4,6 +4,7 @@ v4.16 ??? May 2014
   - Added the --configuration option to configure.py.
   - Added the --sysroot option to configure.py.
   - Added the --target-py-version option to configure.py.
+  - Added the --no-tools option to configure.py.
   - Added the --use-qmake option to configure.py.
   - Bug fixes.
 

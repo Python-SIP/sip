@@ -175,7 +175,9 @@ def set_build_platform():
 def inform_user():
     """ Tell the user the option values that are going to be used. """
 
-    siputils.inform("The SIP code generator will be installed in %s." % sip_bin_dir)
+    if not opts.no_tools:
+        siputils.inform("The SIP code generator will be installed in %s." % sip_bin_dir)
+
     siputils.inform("The %s module will be installed in %s." % (sip_module_base, sip_module_dir))
 
     if opts.static:
@@ -304,9 +306,13 @@ def create_makefiles(macros):
 
     cfg.set_build_macros(macros)
 
-    subdirs=["sipgen", "siplib"]
-    installs=(["sipconfig.py", os.path.join(src_dir, "sipdistutils.py")],
-            cfg.sip_mod_dir)
+    if opts.no_tools:
+        subdirs = ["siplib"]
+        installs = None
+    else:
+        subdirs = ["sipgen", "siplib"]
+        installs = (["sipconfig.py", os.path.join(src_dir, "sipdistutils.py")],
+                cfg.sip_mod_dir)
 
     if opts.use_qmake:
         sipconfig.inform("Creating top level .pro file...")
@@ -316,11 +322,12 @@ def create_makefiles(macros):
         pro.write("TEMPLATE = subdirs\n")
         pro.write("SUBDIRS = %s\n" % " ".join(subdirs))
 
-        files, path = installs
-        pro.write("\n")
-        pro.write("build_system.files = %s\n" % " ".join(files))
-        pro.write("build_system.path = %s\n" % quote(path))
-        pro.write("INSTALLS += build_system\n")
+        if installs is not None:
+            files, path = installs
+            pro.write("\n")
+            pro.write("build_system.files = %s\n" % " ".join(files))
+            pro.write("build_system.path = %s\n" % quote(path))
+            pro.write("INSTALLS += build_system\n")
 
         pro.close()
     else:
@@ -622,6 +629,9 @@ def create_optparser(sdk_dir):
     p.add_option("--sysroot", dest='sysroot', type='string', action='callback',
             callback=store_abspath_dir, metavar="DIR",
             help="DIR is the target system root directory")
+    p.add_option("--no-tools", action="store_true", default=False,
+            dest="no_tools", help="disable the building of the code generator "
+            "and the installation of the build system [default: enabled]")
     p.add_option("--use-qmake", action="store_true", default=False,
             dest="use_qmake", help="generate qmake .pro files instead of "
             "Makefiles")

@@ -90,6 +90,12 @@ The full set of command line options is:
     not been specified then the universal binary will include the ``i386`` and
     ``ppc`` architectures.
 
+.. cmdoption:: --no-tools
+
+    .. versionadded:: 4.16
+
+    The SIP code generator and :mod:`sipconfig` module will not be installed.
+
 .. cmdoption:: -p <PLATFORM>, --platform <PLATFORM>
 
     Explicitly specify the platform/compiler to be used by the build system,
