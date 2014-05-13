@@ -31,7 +31,7 @@
 #define smtypeName(sm)          (strrchr((sm)->name->text, '.') + 1)
 
 /* Return TRUE if a wrapped variable can be set. */
-#define canSetVariable(vd)      ((vd)->type.nrderefs != 0 || !isConstArg(&(vd)->type))
+#define canSetVariable(vd)      (!noSetter(vd) && ((vd)->type.nrderefs != 0 || !isConstArg(&(vd)->type)))
 
 
 /* Control what generateCalledArgs() actually generates. */

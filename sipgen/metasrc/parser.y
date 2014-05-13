@@ -3916,6 +3916,7 @@ variable:   cpptype TK_NAME_VALUE optflags variable_body ';' optaccesscode optge
                 const char *annos[] = {
                     "DocType",
                     "Encoding",
+                    "NoSetter",
                     "PyInt",
                     "PyName",
                     NULL
@@ -6613,6 +6614,9 @@ static void newVar(sipSpec *pt, moduleDef *mod, char *name, int isstatic,
 
     if (isstatic || (escope != NULL && escope->iff->type == namespace_iface))
         setIsStaticVar(var);
+
+    if (getOptFlag(of, "NoSetter", bool_flag) != NULL)
+        setNoSetter(var);
 
     addVariable(pt, var);
 }

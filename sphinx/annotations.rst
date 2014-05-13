@@ -1043,6 +1043,16 @@ Variable Annotations
     argument annotation when applied to the type of the variable being defined.
 
 
+.. variable-annotation:: NoSetter
+
+    .. versionadded:: 4.16
+
+    This boolean annotation specifies that the variable will have no setter and
+    will be read-only.  Because SIP does not fully understand C/C++ types
+    (particularly ``const`` arrays) it is sometimes necessary to explicitly
+    annotate a variable as being read-only.
+
+
 .. variable-annotation:: PyInt
 
     .. versionadded:: 4.12

@@ -1,4 +1,5 @@
 v4.16 ??? May 2014
+  - Added the /NoSetter/ variable annotation.
   - Added support for the 'no_receiver_check' argument to connect() in PyQt
     v4.11.
   - Added the --configuration option to configure.py.

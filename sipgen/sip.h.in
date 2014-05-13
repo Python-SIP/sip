@@ -368,12 +368,15 @@
 /* Handle variable flags. */
 
 #define VAR_IS_STATIC       0x01    /* It is a static variable. */
-#define VAR_NEEDS_HANDLER   0x02    /* It the variable needs a handler. */
+#define VAR_NEEDS_HANDLER   0x02    /* The variable needs a handler. */
+#define VAR_NO_SETTER       0x04    /* The variable has no setter. */
 
 #define isStaticVar(v)      ((v)->varflags & VAR_IS_STATIC)
 #define setIsStaticVar(v)   ((v)->varflags |= VAR_IS_STATIC)
 #define needsHandler(v)     ((v)->varflags & VAR_NEEDS_HANDLER)
 #define setNeedsHandler(v)  ((v)->varflags |= VAR_NEEDS_HANDLER)
+#define noSetter(v)         ((v)->varflags & VAR_NO_SETTER)
+#define setNoSetter(v)      ((v)->varflags |= VAR_NO_SETTER)
 
 
 /* Handle argument flags. */
