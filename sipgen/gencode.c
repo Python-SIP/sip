@@ -9090,7 +9090,7 @@ static void generateNamedBaseType(ifaceFileDef *scope, argDef *ad,
     typedefDef *td = ad->original_type;
     int nr_derefs = ad->nrderefs;
     int is_reference = isReference(ad);
-    int i;
+    int i, space_before_name;
 
     if (use_typename && td != NULL && !noTypeName(td) && !isArraySize(ad))
     {
@@ -9305,6 +9305,8 @@ static void generateNamedBaseType(ifaceFileDef *scope, argDef *ad,
         }
     }
 
+    space_before_name = TRUE;
+
     for (i = 0; i < nr_derefs; ++i)
     {
         /*
@@ -9312,9 +9314,13 @@ static void generateNamedBaseType(ifaceFileDef *scope, argDef *ad,
          * signal signatures are correct.  Qt4 can cope with it but Qt5 can't.
          */
         prcode(fp, "*");
+        space_before_name = FALSE;
 
         if (ad->derefs[i])
+        {
             prcode(fp, " const");
+            space_before_name = TRUE;
+        }
     }
 
     if (is_reference)
@@ -9322,7 +9328,7 @@ static void generateNamedBaseType(ifaceFileDef *scope, argDef *ad,
 
     if (*name != '\0')
     {
-        if (nr_derefs == 0)
+        if (space_before_name)
             prcode(fp, " ");
 
         prcode(fp, name);
