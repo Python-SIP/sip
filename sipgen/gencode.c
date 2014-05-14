@@ -3684,6 +3684,31 @@ static void generateIfaceCpp(sipSpec *pt, ifaceFileDef *iff, int need_postinc,
     classDef *cd;
     mappedTypeDef *mtd;
     FILE *fp;
+    int empty;
+
+    /*
+     * Check that there will be something in the file so that we don't get
+     * warning messages from ranlib.
+     */
+    empty = TRUE;
+
+    for (cd = pt->classes; cd != NULL; cd = cd->next)
+        if (!isProtectedClass(cd) && !isExternal(cd) && cd->iff == iff)
+        {
+            empty = FALSE;
+            break;
+        }
+
+    if (empty)
+        for (mtd = pt->mappedtypes; mtd != NULL; mtd = mtd->next)
+            if (mtd->iff == iff)
+            {
+                empty = FALSE;
+                break;
+            }
+
+    if (empty)
+        return;
 
     if (master == NULL)
     {
@@ -3720,7 +3745,10 @@ static void generateIfaceCpp(sipSpec *pt, ifaceFileDef *iff, int need_postinc,
         if (isProtectedClass(cd))
             continue;
 
-        if (cd->iff == iff && !isExternal(cd))
+        if (isExternal(cd))
+            continue;
+
+        if (cd->iff == iff)
         {
             classDef *pcd;
 
