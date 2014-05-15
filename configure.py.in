@@ -549,9 +549,9 @@ def update_from_configuration_file(config_file):
     cfg.close()
 
     # Enforce the presets.
-    major, minor = siputils.version_to_string(py_version, parts=2)
-    config['py_major'] = major
-    config['py_minor'] = minor
+    version = siputils.version_to_string(py_version).split('.')
+    config['py_major'] = version[0]
+    config['py_minor'] = version[1]
     config['sysroot'] = sysroot
 
     # Override the relevent values.
