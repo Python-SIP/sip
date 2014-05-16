@@ -37,6 +37,14 @@ The full set of command line options is:
     to generate a platform and compiler specific Makefile for the module.  By
     default the file is not generated.
 
+.. cmdoption:: -B <TAG>
+
+    .. versionadded:: 4.16
+
+    The tag is added to the list of *backstops*.  The option may be given more
+    than once if multiple timelines have been defined.  See the
+    :directive:`%Timeline` directive for more details.
+
 .. cmdoption:: -c <DIR>
 
     The name of the directory (which must exist) into which all of the

@@ -2262,8 +2262,13 @@ are used by the :directive:`%If` directive to control whether or not parts of a
 specification are processed or ignored.
 
 Versions are mutually exclusive - only one version can be enabled at a time.
-By default all versions are disabled.  The SIP :option:`-t <sip -t>` command
-line option is used to enable a version.
+The SIP :option:`-t <sip -t>` command line option is used to enable a version.
+If a timeline does not have a version explicitly enabled then the latest
+version will be enabled automatically.
+
+The :option:`-B <sip -B>` command line option may be used to define a
+*backstop* for a timeline.  Instead of automatically enabling the latest
+version, the version immediately preceeding the backstop is enabled instead.
 
 The :directive:`%Timeline` directive can be used any number of times in a
 module to allow multiple libraries to be wrapped in the same module.

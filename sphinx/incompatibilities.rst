@@ -5,6 +5,20 @@ This section describes incompatibilities introduced by particular versions of
 SIP.  Normally these are the removal of previously deprecated features.
 
 
+SIP v4.16
+---------
+
+Prior to this version, if no valid version tag was specified using the
+:option:`-t <sip -t>` command line option to :program:`sip` then all versions
+of the corresponding timeline were considered disabled.
+
+Starting with this version SIP assumes that the latest version is enabled if no
+valid version tag was specified.  Exactly what is meant by the latest version
+can be changed by using the :option:`-B <sip -B>` command line option to
+define a *backstop* for a timeline.  See the :directive:`%Timeline` directive
+for more details.
+
+
 SIP v4.14.4
 -----------
 

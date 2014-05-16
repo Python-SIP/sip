@@ -31,6 +31,7 @@
 
 
 static sipSpec *currentSpec;            /* The current spec being parsed. */
+static stringList *backstops;           /* The list of backstops. */
 static stringList *neededQualifiers;    /* The list of required qualifiers. */
 static stringList *excludedQualifiers;  /* The list of excluded qualifiers. */
 static moduleDef *currentModule;        /* The current module being parsed. */
@@ -175,6 +176,7 @@ static void handleKeepReference(optFlags *optflgs, argDef *ad, moduleDef *mod);
 static void mappedTypeAnnos(mappedTypeDef *mtd, optFlags *optflgs);
 static void add_new_deref(argDef *new, argDef *orig, int isconst);
 static void add_derefs(argDef *dst, argDef *src);
+static int isBackstop(qualDef *qd);
 %}
 
 %union {
@@ -4387,7 +4389,7 @@ exceptionlist:  {
  * Parse the specification.
  */
 void parse(sipSpec *spec, FILE *fp, char *filename, stringList *tsl,
-        stringList *xfl, KwArgs kwArgs, int protHack)
+        stringList *bsl, stringList *xfl, KwArgs kwArgs, int protHack)
 {
     classTmplDef *tcd;
 
@@ -4397,6 +4399,7 @@ void parse(sipSpec *spec, FILE *fp, char *filename, stringList *tsl,
     spec->genc = -1;
 
     currentSpec = spec;
+    backstops = bsl;
     neededQualifiers = tsl;
     excludedQualifiers = xfl;
     currentModule = NULL;
@@ -7901,7 +7904,7 @@ static int notSkipping()
  */
 static int timePeriod(const char *lname, const char *uname)
 {
-    int this, line;
+    int line;
     qualDef *qd, *lower, *upper;
     moduleDef *mod;
 
@@ -7946,40 +7949,59 @@ static int timePeriod(const char *lname, const char *uname)
     /* Handle the SIP version number pseudo-timeline. */
     if (line < 0)
     {
-        if (lower != NULL && lower->order > SIP_VERSION)
+        if (lower != NULL && SIP_VERSION < lower->order)
             return FALSE;
 
-        if (upper != NULL && upper->order <= SIP_VERSION)
+        if (upper != NULL && SIP_VERSION >= upper->order)
             return FALSE;
 
         return TRUE;
     }
-
-    this = FALSE;
 
     for (qd = mod->qualifiers; qd != NULL; qd = qd->next)
     {
         if (qd->qtype != time_qualifier || qd->line != line)
             continue;
 
-        if (lower != NULL && qd->order < lower->order)
-            continue;
-
-        if (upper != NULL && qd->order >= upper->order)
-            continue;
-
-        /*
-         * This is within the required range so if it is also needed then the
-         * expression is true.
-         */
         if (selectedQualifier(neededQualifiers, qd))
         {
-            this = TRUE;
-            break;
+            if (lower != NULL && qd->order < lower->order)
+                return FALSE;
+
+            if (upper != NULL && qd->order >= upper->order)
+                return FALSE;
+
+            return TRUE;
         }
     }
 
-    return this;
+    /*
+     * If there is no upper bound then assume the expression is true unless
+     * the lower bound is a backstop.
+     */
+    if (upper == NULL)
+        return !isBackstop(lower);
+
+    /*
+     * If the upper limit corresponds to a backstop then assume the expression
+     * is true.
+     */
+    return isBackstop(upper);
+}
+
+
+/*
+ * See if a qualifier is a backstop.
+ */
+static int isBackstop(qualDef *qd)
+{
+    stringList *sl;
+
+    for (sl = backstops; sl != NULL; sl = sl->next)
+        if (strcmp(qd->name, sl->s) == 0)
+            return TRUE;
+
+    return FALSE;
 }
 
 

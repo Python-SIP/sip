@@ -55,12 +55,13 @@ int main(int argc, char **argv)
     KwArgs kwArgs;
     FILE *file;
     sipSpec spec;
-    stringList *versions, *xfeatures, *extracts;
+    stringList *versions, *backstops, *xfeatures, *extracts;
 
     /* Initialise. */
     sipVersion = SIP_VERSION_STR;
     includeDirList = NULL;
     versions = NULL;
+    backstops = NULL;
     xfeatures = NULL;
     buildFile = NULL;
     codeDir = NULL;
@@ -83,7 +84,7 @@ int main(int argc, char **argv)
     /* Parse the command line. */
     optnr = 1;
 
-    while ((arg = parseopt(argc, argv, "hVa:b:ec:d:gI:j:km:op:Prs:t:Twx:X:z:", &flagFile, &optnr, &optarg)) != '\0')
+    while ((arg = parseopt(argc, argv, "hVa:b:B:ec:d:gI:j:km:op:Prs:t:Twx:X:z:", &flagFile, &optnr, &optarg)) != '\0')
         switch (arg)
         {
         case 'o':
@@ -114,6 +115,11 @@ int main(int argc, char **argv)
         case 'b':
             /* Generate a build file. */
             buildFile = optarg;
+            break;
+
+        case 'B':
+            /* Define a backstop. */
+            appendString(&backstops, optarg);
             break;
 
         case 'e':
@@ -230,7 +236,8 @@ int main(int argc, char **argv)
         warning(DeprecationWarning, "the -k flag is deprecated\n");
 
     /* Parse the input file. */
-    parse(&spec, file, filename, versions, xfeatures, kwArgs, protHack);
+    parse(&spec, file, filename, versions, backstops, xfeatures, kwArgs,
+            protHack);
 
     /* Verify and transform the parse tree. */
     transform(&spec);
@@ -513,12 +520,13 @@ static void help(void)
 {
     printf(
 "Usage:\n"
-"    %s [-h] [-V] [-a file] [-b file] [-c dir] [-d file] [-e] [-g] [-I dir] [-j #] [-k] [-m file] [-o] [-p module] [-P] [-r] [-s suffix] [-t tag] [-T] [-w] [-x feature] [-X id:file] [-z file] [file]\n"
+"    %s [-h] [-V] [-a file] [-b file] [-B tag] [-c dir] [-d file] [-e] [-g] [-I dir] [-j #] [-k] [-m file] [-o] [-p module] [-P] [-r] [-s suffix] [-t tag] [-T] [-w] [-x feature] [-X id:file] [-z file] [file]\n"
 "where:\n"
 "    -h          display this help message\n"
 "    -V          display the %s version number\n"
 "    -a file     the name of the QScintilla API file [default not generated]\n"
 "    -b file     the name of the build file [default none generated]\n"
+"    -B tag      add tag to the list of timeline backstops\n"
 "    -c dir      the name of the code directory [default not generated]\n"
 "    -d file     the name of the documentation file (deprecated) [default not generated]\n"
 "    -e          enable support for exceptions [default disabled]\n"
@@ -550,5 +558,5 @@ static void help(void)
  */
 static void usage(void)
 {
-    fatal("Usage: %s [-h] [-V] [-a file] [-b file] [-c dir] [-d file] [-e] [-g] [-I dir] [-j #] [-k] [-m file] [-o] [-p module] [-P] [-r] [-s suffix] [-t tag] [-T] [-w] [-x feature] [-X id:file] [-z file] [file]\n", sipPackage);
+    fatal("Usage: %s [-h] [-V] [-a file] [-b file] [-B tag] [-c dir] [-d file] [-e] [-g] [-I dir] [-j #] [-k] [-m file] [-o] [-p module] [-P] [-r] [-s suffix] [-t tag] [-T] [-w] [-x feature] [-X id:file] [-z file] [file]\n", sipPackage);
 }
