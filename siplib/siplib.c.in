@@ -5441,7 +5441,7 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, PyObject *sipArgs,
 
                 if (arg != NULL)
                 {
-                    PyObject *s;
+                    PyObject *s = NULL;
 
                     switch (sub_fmt)
                     {
@@ -8324,7 +8324,7 @@ static void *explicit_access_func(sipSimpleWrapper *sw, AccessFuncOp op)
  */
 static void *indirect_access_func(sipSimpleWrapper *sw, AccessFuncOp op)
 {
-    void *addr;
+    void *addr = NULL;
 
     switch (op)
     {
@@ -8334,10 +8334,6 @@ static void *indirect_access_func(sipSimpleWrapper *sw, AccessFuncOp op)
 
     case GuardedPointer:
         addr = *((void **)sw->data);
-        break;
-
-    case ReleaseGuard:
-        addr = NULL;
         break;
     }
 
