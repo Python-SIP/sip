@@ -779,15 +779,6 @@ def main(argv):
     else:
         opts.universal = ''
 
-    # Get the platform specific macros for building.
-    macros = siputils.parse_build_macros(
-            os.path.join(src_dir, "specs", build_platform), build_macro_names,
-            args)
-
-    if macros is None:
-        siputils.error("Unsupported macro name specified. Use the --show-build-macros flag to see a list of supported macros.")
-        sys.exit(2)
-
     # Apply the overrides from any configuration file.
     global plat_bin_dir, plat_py_conf_inc_dir, plat_py_inc_dir
     global plat_py_lib_dir, plat_py_site_dir, plat_sip_dir
@@ -835,6 +826,15 @@ def main(argv):
 
     if opts.sipsipdir is not None:
         sip_sip_dir = opts.sipsipdir
+
+    # Get the platform specific macros for building.
+    macros = siputils.parse_build_macros(
+            os.path.join(src_dir, "specs", build_platform), build_macro_names,
+            args)
+
+    if macros is None:
+        siputils.error("Unsupported macro name specified. Use the --show-build-macros flag to see a list of supported macros.")
+        sys.exit(2)
 
     # Fix the name of the sip module.
     global sip_module_base
