@@ -151,9 +151,9 @@ PyObject *sipMethodDescr_Copy(PyObject *orig, PyObject *mixin_name)
 static PyObject *sipMethodDescr_descr_get(PyObject *self, PyObject *obj,
         PyObject *type)
 {
-    (void)type;
-
     sipMethodDescr *md = (sipMethodDescr *)self;
+
+    (void)type;
 
     if (obj == Py_None)
         obj = NULL;
