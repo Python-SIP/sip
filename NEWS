@@ -1,4 +1,4 @@
-v4.16 ??? May 2014
+v4.16 26th May 2014
   - Added the /NoSetter/ variable annotation.
   - Added the -B option to sip.
   - Changed the handling of timelines (introducing a potential incompatibility)
