@@ -282,6 +282,7 @@ static void generatePreprocLine(int linenr, const char *fname, FILE *fp);
 static virtErrorHandler *getVirtErrorHandler(sipSpec *pt, overDef *od,
         classDef *cd, moduleDef *mod);
 static int hasOptionalArgs(overDef *od);
+static int emptyIfaceFile(sipSpec *pt, ifaceFileDef *iff);
 
 
 /*
@@ -427,6 +428,9 @@ static void generateBuildFileSources(sipSpec *pt, moduleDef *mod,
                 continue;
 
             if (iff->type == exception_iface)
+                continue;
+
+            if (emptyIfaceFile(pt, iff))
                 continue;
 
             if (iff->api_range != NULL)
@@ -3673,6 +3677,26 @@ static int generateDoubles(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
 
 
 /*
+ * See if an interface file has any content.
+ */
+static int emptyIfaceFile(sipSpec *pt, ifaceFileDef *iff)
+{
+    classDef *cd;
+    mappedTypeDef *mtd;
+
+    for (cd = pt->classes; cd != NULL; cd = cd->next)
+        if (!isProtectedClass(cd) && !isExternal(cd) && cd->iff == iff)
+            return FALSE;
+
+    for (mtd = pt->mappedtypes; mtd != NULL; mtd = mtd->next)
+        if (mtd->iff == iff)
+            return FALSE;
+
+    return TRUE;
+}
+
+
+/*
  * Generate the C/C++ code for an interface.
  */
 static void generateIfaceCpp(sipSpec *pt, ifaceFileDef *iff, int need_postinc,
@@ -3684,30 +3708,12 @@ static void generateIfaceCpp(sipSpec *pt, ifaceFileDef *iff, int need_postinc,
     classDef *cd;
     mappedTypeDef *mtd;
     FILE *fp;
-    int empty;
 
     /*
      * Check that there will be something in the file so that we don't get
      * warning messages from ranlib.
      */
-    empty = TRUE;
-
-    for (cd = pt->classes; cd != NULL; cd = cd->next)
-        if (!isProtectedClass(cd) && !isExternal(cd) && cd->iff == iff)
-        {
-            empty = FALSE;
-            break;
-        }
-
-    if (empty)
-        for (mtd = pt->mappedtypes; mtd != NULL; mtd = mtd->next)
-            if (mtd->iff == iff)
-            {
-                empty = FALSE;
-                break;
-            }
-
-    if (empty)
+    if (emptyIfaceFile(pt, iff))
         return;
 
     if (master == NULL)
