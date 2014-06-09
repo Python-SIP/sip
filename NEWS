@@ -1,3 +1,6 @@
+v4.16.1 9th June 2014
+  - Bug fixes.
+
 v4.16 26th May 2014
   - Added the /NoSetter/ variable annotation.
   - Added the -B option to sip.
