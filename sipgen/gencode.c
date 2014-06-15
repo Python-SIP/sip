@@ -8017,6 +8017,10 @@ static const char *getParseResultFormat(argDef *ad, int res_isref, int xfervh)
                 if (!res_isref)
                     f |= 0x04;
             }
+            else if (ad->nrderefs == 1 && isOutArg(ad))
+            {
+                f |= 0x04;
+            }
 
             if (xfervh)
                 f |= 0x02;
