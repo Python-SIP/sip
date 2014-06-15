@@ -961,6 +961,8 @@ static void generateCompositeCpp(sipSpec *pt, const char *codeDir,
 "\n"
 "static void sip_import_component_module(PyObject *d, const char *name)\n"
 "{\n"
+"    PyErr_Clear();\n"
+"\n"
 "#if PY_VERSION_HEX >= 0x02050000\n"
 "    PyObject *mod = PyImport_ImportModule(name);\n"
 "#else\n"
