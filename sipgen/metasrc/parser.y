@@ -1554,6 +1554,8 @@ defsupertype_arg:   TK_NAME '=' dottedname {
     ;
 
 consmodule: TK_CONSMODULE consmodule_args consmodule_body {
+            deprecated("%ConsolidatedModule is deprecated and will not be supported by SIP v5");
+
             if (notSkipping())
             {
                 /* Make sure this is the first mention of a module. */

@@ -403,6 +403,9 @@ don't have to remember which individual module an object is defined in.
 
 .. directive:: %ConsolidatedModule
 
+.. deprecated:: 4.16.2
+    This will not be supported in SIP v5.
+
 .. parsed-literal::
 
     %ConsolidatedModule(name = *dotted-name*)
