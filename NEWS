@@ -1,4 +1,4 @@
-v4.16.2 ??? June 2014
+v4.16.2 3rd July 2014
   - Deprecated the %ConsolidatedModule directive as it won't be supported in
     SIP v5.
   - Bug fixes.
