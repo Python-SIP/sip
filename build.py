@@ -52,7 +52,7 @@ _GeneratedFiles = (
 
 # File types that are auto-generated and need to be cleaned.
 _GeneratedFileTypes = ('.pyc', '.o', '.obj', '.so', '.pyd', '.exp', '.exe',
-        '.gz', '.zip', '.a', '.dylib', '.pro')
+        '.gz', '.zip', '.a', '.dylib', '.pro', '.cfg')
 
 # Directories that are auto-generated and need to be cleaned.
 _GeneratedDirs = (
