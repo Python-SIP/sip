@@ -514,6 +514,22 @@ typedef struct _sipProxyResolver {
 
 static PyObject *sipEnumType_alloc(PyTypeObject *self, SIP_SSIZE_T nitems);
 
+#if PY_VERSION_HEX >= 0x03030000
+static PyObject *sipEnumType_get_qualname(sipEnumTypeObject *eto,
+        void *closure);
+
+
+/*
+ * The table of getters and setters.
+ */
+static PyGetSetDef sipEnumType_getset[] = {
+    {(char *)"__qualname__", (getter)sipEnumType_get_qualname, NULL, NULL,
+            NULL},
+    {NULL, NULL, NULL, NULL, NULL}
+};
+#endif
+
+
 /*
  * The type data structure.  We inherit everything from the standard Python
  * metatype and the size of the type object created is increased to accomodate
@@ -549,7 +565,11 @@ static PyTypeObject sipEnumType_Type = {
     0,                      /* tp_iternext */
     0,                      /* tp_methods */
     0,                      /* tp_members */
+#if PY_VERSION_HEX >= 0x03030000
+    sipEnumType_getset,     /* tp_getset */
+#else
     0,                      /* tp_getset */
+#endif
     0,                      /* tp_base */
     0,                      /* tp_dict */
     0,                      /* tp_descr_get */
@@ -6470,6 +6490,16 @@ static int createEnumType(sipExportedModuleDef *client, sipEnumTypeDef *etd,
     if (etd->etd_pyslots != NULL)
         fix_slots((PyTypeObject *)py_type, etd->etd_pyslots);
 
+#if PY_VERSION_HEX >= 0x03030000
+    /*
+     * If the enum has a scope then the default __qualname__ will be incorrect
+     * so we remove it.  We will create the correct one in the getter if it is
+     * ever called.
+     */
+     if (etd->etd_scope >= 0)
+        Py_CLEAR(((PyHeapTypeObject *)py_type)->ht_qualname);
+#endif
+
     /* We can now release our remaining references. */
     Py_DECREF(name);
 
@@ -10429,10 +10459,8 @@ static PyObject *slot_richcompare(PyObject *self, PyObject *arg, int op)
 /*
  * The __dict__ getter.
  */
-static PyObject *sipSimpleWrapper_get_dict(PyObject *self, void *closure)
+static PyObject *sipSimpleWrapper_get_dict(sipSimpleWrapper *sw, void *closure)
 {
-    sipSimpleWrapper *sw = (sipSimpleWrapper *)self;
-
     (void)closure;
 
     /* Create the dictionary if needed. */
@@ -10452,11 +10480,9 @@ static PyObject *sipSimpleWrapper_get_dict(PyObject *self, void *closure)
 /*
  * The __dict__ setter.
  */
-static int sipSimpleWrapper_set_dict(PyObject *self, PyObject *value,
+static int sipSimpleWrapper_set_dict(sipSimpleWrapper *sw, PyObject *value,
         void *closure)
 {
-    sipSimpleWrapper *sw = (sipSimpleWrapper *)self;
-
     (void)closure;
 
     /* Check that any new value really is a dictionary. */
@@ -10481,8 +10507,8 @@ static int sipSimpleWrapper_set_dict(PyObject *self, PyObject *value,
  * The table of getters and setters.
  */
 static PyGetSetDef sipSimpleWrapper_getset[] = {
-    {(char *)"__dict__", sipSimpleWrapper_get_dict, sipSimpleWrapper_set_dict,
-            NULL, NULL},
+    {(char *)"__dict__", (getter)sipSimpleWrapper_get_dict,
+            (setter)sipSimpleWrapper_set_dict, NULL, NULL},
     {NULL, NULL, NULL, NULL, NULL}
 };
 
@@ -12214,3 +12240,48 @@ static void *resolve_proxy(const sipTypeDef *td, void *proxy)
 
     return proxy;
 }
+
+
+#if PY_VERSION_HEX >= 0x03030000
+
+/*
+ * The __qualname__ getter for an enum.
+ */
+static PyObject *sipEnumType_get_qualname(sipEnumTypeObject *eto,
+        void *closure)
+{
+    (void)closure;
+
+    /* Create the name if needed. */
+    if (eto->super.ht_qualname == NULL)
+    {
+        sipEnumTypeDef *etd;
+        sipTypeDef *scope_td;
+        PyObject *scope_type, *scope_qualname;
+
+        /* Get the type that is the enum's scope. */
+        etd = (sipEnumTypeDef *)eto->type;
+        scope_td = eto->type->td_module->em_types[etd->etd_scope];
+        scope_type = (PyObject *)sipTypeAsPyTypeObject(scope_td);
+
+        /* Get the scope's __qualname__. */
+        scope_qualname = PyObject_GetAttrString(scope_type, "__qualname__");
+
+        if (scope_qualname == NULL)
+            return NULL;
+
+        /* Append the name of the enum. */
+        eto->super.ht_qualname = PyUnicode_FromFormat("%U.%s", scope_qualname,
+                sipPyNameOfEnum(etd));
+
+        Py_DECREF(scope_qualname);
+
+        if (eto->super.ht_qualname == NULL)
+            return NULL;
+    }
+
+    Py_INCREF(eto->super.ht_qualname);
+    return eto->super.ht_qualname;
+}
+
+#endif
