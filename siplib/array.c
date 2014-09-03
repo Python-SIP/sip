@@ -633,22 +633,22 @@ static void *get_value(sipArrayObject *array, PyObject *value)
         switch (*array->format)
         {
         case 'b':
-            static_data.s_char_t = SIPLong_AsLong(value);
+            static_data.s_char_t = (signed char)SIPLong_AsLong(value);
             data = &static_data.s_char_t;
             break;
 
         case 'B':
-            static_data.u_char_t = sip_api_long_as_unsigned_long(value);
+            static_data.u_char_t = (unsigned char)sip_api_long_as_unsigned_long(value);
             data = &static_data.u_char_t;
             break;
 
         case 'h':
-            static_data.s_short_t = SIPLong_AsLong(value);
+            static_data.s_short_t = (signed short)SIPLong_AsLong(value);
             data = &static_data.s_short_t;
             break;
 
         case 'H':
-            static_data.u_short_t = sip_api_long_as_unsigned_long(value);
+            static_data.u_short_t = (unsigned short)sip_api_long_as_unsigned_long(value);
             data = &static_data.u_short_t;
             break;
 
@@ -663,7 +663,7 @@ static void *get_value(sipArrayObject *array, PyObject *value)
             break;
 
         case 'f':
-            static_data.float_t = PyFloat_AsDouble(value);
+            static_data.float_t = (float)PyFloat_AsDouble(value);
             data = &static_data.float_t;
             break;
 

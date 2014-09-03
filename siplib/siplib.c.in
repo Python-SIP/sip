@@ -2035,7 +2035,7 @@ static PyObject *sip_api_build_result(int *isErr, const char *fmt, ...)
         if ((ep = strchr(fmt,')')) == NULL || ep[1] != '\0')
             badfmt = TRUE;
         else
-            tupsz = ep - fmt - 1;
+            tupsz = (int)(ep - fmt - 1);
     }
     else if (strlen(fmt) == 1)
         tupsz = -1;
@@ -2709,7 +2709,7 @@ static int parseResult(PyObject *method, PyObject *res,
             case 'f':
                 {
                     float *p = va_arg(va, float *);
-                    float v = PyFloat_AsDouble(arg);
+                    float v = (float)PyFloat_AsDouble(arg);
 
                     if (PyErr_Occurred())
                         invalid = TRUE;
@@ -2722,7 +2722,7 @@ static int parseResult(PyObject *method, PyObject *res,
             case 'L':
                 {
                     signed char *p = va_arg(va, signed char *);
-                    signed char v = SIPLong_AsLong(arg);
+                    signed char v = (signed char)SIPLong_AsLong(arg);
 
                     if (PyErr_Occurred())
                         invalid = TRUE;
@@ -2735,7 +2735,7 @@ static int parseResult(PyObject *method, PyObject *res,
             case 'M':
                 {
                     unsigned char *p = va_arg(va, unsigned char *);
-                    unsigned char v = sip_api_long_as_unsigned_long(arg);
+                    unsigned char v = (unsigned char)sip_api_long_as_unsigned_long(arg);
 
                     if (PyErr_Occurred())
                         invalid = TRUE;
@@ -2747,8 +2747,8 @@ static int parseResult(PyObject *method, PyObject *res,
 
             case 'h':
                 {
-                    short *p = va_arg(va, short *);
-                    short v = SIPLong_AsLong(arg);
+                    signed short *p = va_arg(va, signed short *);
+                    signed short v = (signed short)SIPLong_AsLong(arg);
 
                     if (PyErr_Occurred())
                         invalid = TRUE;
@@ -2761,7 +2761,7 @@ static int parseResult(PyObject *method, PyObject *res,
             case 't':
                 {
                     unsigned short *p = va_arg(va, unsigned short *);
-                    unsigned short v = sip_api_long_as_unsigned_long(arg);
+                    unsigned short v = (unsigned short)sip_api_long_as_unsigned_long(arg);
 
                     if (PyErr_Occurred())
                         invalid = TRUE;
@@ -4663,7 +4663,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
 
                 if (arg != NULL)
                 {
-                    signed char v = SIPLong_AsLong(arg);
+                    signed char v = (signed char)SIPLong_AsLong(arg);
 
                     if (non_overflow_exception())
                     {
@@ -4688,7 +4688,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
 
                 if (arg != NULL)
                 {
-                    unsigned char v = sip_api_long_as_unsigned_long(arg);
+                    unsigned char v = (unsigned char)sip_api_long_as_unsigned_long(arg);
 
                     if (non_overflow_exception())
                     {
@@ -4709,11 +4709,11 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
             {
                 /* Short integer. */
 
-                short *p = va_arg(va, short *);
+                signed short *p = va_arg(va, signed short *);
 
                 if (arg != NULL)
                 {
-                    short v = SIPLong_AsLong(arg);
+                    signed short v = (signed short)SIPLong_AsLong(arg);
 
                     if (non_overflow_exception())
                     {
@@ -4738,7 +4738,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
 
                 if (arg != NULL)
                 {
-                    unsigned short v = sip_api_long_as_unsigned_long(arg);
+                    unsigned short v = (unsigned short)sip_api_long_as_unsigned_long(arg);
 
                     if (non_overflow_exception())
                     {
@@ -9971,7 +9971,11 @@ static int sip_api_init_mixin(PyObject *self, PyObject *args, PyObject *kwds,
         if (!PyUnicode_Check(key))
             continue;
 
-        rc = PyUnicode_Tailmatch(key, double_us, 0, 2, -1);
+        /*
+         * Despite what the docs say this returns a Py_ssize_t - although the
+         * docs are probably right.
+         */
+        rc = (int)PyUnicode_Tailmatch(key, double_us, 0, 2, -1);
 
         if (rc < 0)
             goto gc_mixin_name;
