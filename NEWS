@@ -1,3 +1,6 @@
+v4.16.3 ??? September 2014
+  - Enums now support __qualname__ for Python v3.3 and later.
+
 v4.16.2 3rd July 2014
   - Deprecated the %ConsolidatedModule directive as it won't be supported in
     SIP v5.
