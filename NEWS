@@ -1,4 +1,4 @@
-v4.16.3 ??? September 2014
+v4.16.3 11th September 2014
   - Enums now support __qualname__ for Python v3.3 and later.
 
 v4.16.2 3rd July 2014
