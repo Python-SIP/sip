@@ -1481,7 +1481,7 @@ specification files.
 
         Convert a Python long to a C/C++ ``unsigned char``.
 
-    ``N`` (object) [PyTypeObject \*, :PyObject \*\*]
+    ``N`` (object) [PyTypeObject \*, PyObject \*\*]
         A Python object is checked to see if it is a certain type and then
         returned without any conversions.  The reference count is incremented.
         The Python object may be ``Py_None``.

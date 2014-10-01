@@ -6735,6 +6735,7 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
 {
     static const char *annos[] = {
         "__len__",
+        "AllowNone",
         "API",
         "AutoGen",
         "Deprecated",
@@ -7017,6 +7018,9 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
 
     if (getOptFlag(optflgs, "NoCopy", bool_flag) != NULL)
         setNoCopy(&od->pysig.result);
+
+    if (getAllowNone(optflgs))
+        setAllowNone(&od->pysig.result);
 
     handleKeepReference(optflgs, &od->pysig.result, mod);
 

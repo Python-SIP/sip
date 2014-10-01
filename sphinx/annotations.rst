@@ -622,6 +622,16 @@ Exception Annotations
 Function Annotations
 --------------------
 
+.. function-annotation:: AllowNone
+
+    .. versionadded:: 4.16.4
+
+    This boolean annotation specifies that the value returned by the function
+    (which should be either :stype:`SIP_PYBUFFER`, :stype:`SIP_PYCALLABLE`,
+    :stype:`SIP_PYDICT`, :stype:`SIP_PYLIST`, :stype:`SIP_PYSLICE`,
+    :stype:`SIP_PYTUPLE` or :stype:`SIP_PYTYPE`) may be ``None``.
+
+
 .. function-annotation:: API
 
     .. versionadded:: 4.9
