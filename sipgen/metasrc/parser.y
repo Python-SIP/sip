@@ -116,6 +116,7 @@ static int getReleaseGIL(optFlags *optflgs);
 static int getHoldGIL(optFlags *optflgs);
 static int getDeprecated(optFlags *optflgs);
 static int getAllowNone(optFlags *optflgs);
+static int getDisallowNone(optFlags *optflgs);
 static const char *getVirtErrorHandler(optFlags *optflgs);
 static const char *getDocType(optFlags *optflgs);
 static const char *getDocValue(optFlags *optflgs);
@@ -4071,6 +4072,7 @@ argtype:    cpptype optname optflags {
                 "Array",
                 "ArraySize",
                 "Constrained",
+                "DisallowNone",
                 "DocType",
                 "DocValue",
                 "Encoding",
@@ -4096,6 +4098,9 @@ argtype:    cpptype optname optflags {
 
             if (getAllowNone(&$3))
                 $$.argflags |= ARG_ALLOW_NONE;
+
+            if (getDisallowNone(&$3))
+                $$.argflags |= ARG_DISALLOW_NONE;
 
             if (getOptFlag(&$3,"GetWrapper",bool_flag) != NULL)
                 $$.argflags |= ARG_GET_WRAPPER;
@@ -8223,6 +8228,15 @@ static int getDeprecated(optFlags *optflgs)
 static int getAllowNone(optFlags *optflgs)
 {
     return (getOptFlag(optflgs, "AllowNone", bool_flag) != NULL);
+}
+
+
+/*
+ * Get the /DisallowNone/ option flag.
+ */
+static int getDisallowNone(optFlags *optflgs)
+{
+    return (getOptFlag(optflgs, "DisallowNone", bool_flag) != NULL);
 }
 
 

@@ -13644,7 +13644,7 @@ static char *getSubFormatChar(char fc, argDef *ad)
 
     if (ad->atype == class_type || ad->atype == mapped_type)
     {
-        if (ad->nrderefs == 0)
+        if (ad->nrderefs == 0 || isDisallowNone(ad))
             flags |= 0x01;
 
         if (isThisTransferred(ad))

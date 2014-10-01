@@ -707,6 +707,9 @@ static void xmlArgument(sipSpec *pt, argDef *ad, const char *dir, int res_xfer,
     if (isAllowNone(ad))
         fprintf(fp, " allownone=\"1\"");
 
+    if (isDisallowNone(ad))
+        fprintf(fp, " disallownone=\"1\"");
+
     if (isTransferred(ad))
         fprintf(fp, " transfer=\"to\"");
     else if (isThisTransferred(ad))

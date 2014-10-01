@@ -131,6 +131,15 @@ Argument Annotations
         void foo(int);
 
 
+.. argument-annotation:: DisallowNone
+
+    .. versionadded:: 4.16.4
+
+    This boolean annotation specifies that the value of the corresponding
+    argument (which should be a pointer to either a C++ class or a mapped type)
+    must not be ``None``.
+
+
 .. argument-annotation:: DocType
 
     .. versionadded:: 4.10
