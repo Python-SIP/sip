@@ -7864,7 +7864,7 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
 
     prcode(fp, ");\n"
 "\n"
-"    %ssipParseResultEx(sipGILState, sipErrorHandler, sipPySelf, sipMethod, sipResObj, \"", (res_isref ? "int sipRc = " : ""));
+"    %ssipParseResultEx(sipGILState, sipErrorHandler, sipPySelf, sipMethod, sipResObj, \"", ((res_isref || abortOnException(vhd)) ? "int sipRc = " : ""));
 
     /* Build the format string. */
     if (nrvals == 0)
@@ -7914,14 +7914,19 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
 
     if (res != NULL)
     {
-        if (res_isref)
+        if (res_isref || abortOnException(vhd))
         {
             prcode(fp,
 "\n"
 "    if (sipRc < 0)\n"
                 );
 
-            generateDefaultInstanceReturn(res, "    ", fp);
+            if (abortOnException(vhd))
+                prcode(fp,
+"        abort();\n"
+                    );
+            else
+                generateDefaultInstanceReturn(res, "    ", fp);
         }
 
         prcode(fp,

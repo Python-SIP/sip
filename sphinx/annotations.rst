@@ -631,6 +631,15 @@ Exception Annotations
 Function Annotations
 --------------------
 
+.. function-annotation:: AbortOnException
+
+    .. versionadded:: 4.16.4
+
+    This boolean annotation specifies that when a Python re-implementation of a
+    virtual C++ function raises a Python exception then ``abort()`` is
+    called after the error handler returns.
+
+
 .. function-annotation:: AllowNone
 
     .. versionadded:: 4.16.4

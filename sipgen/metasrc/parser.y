@@ -6740,6 +6740,7 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
 {
     static const char *annos[] = {
         "__len__",
+        "AbortOnException",
         "AllowNone",
         "API",
         "AutoGen",
@@ -6968,6 +6969,9 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
 
         if (factory || xferback)
             setIsTransferVH(vhd);
+
+        if (getOptFlag(optflgs, "AbortOnException", bool_flag) != NULL)
+            setAbortOnException(vhd);
 
         if (no_virt_error_handler)
         {

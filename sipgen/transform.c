@@ -2469,6 +2469,9 @@ static int sameVirtualHandler(virtHandlerDef *vhd1,virtHandlerDef *vhd2)
     if (isTransferVH(vhd1) != isTransferVH(vhd2))
         return FALSE;
 
+    if (abortOnException(vhd1) != abortOnException(vhd2))
+        return FALSE;
+
     if (!sameArgType(&vhd1->pysig->result, &vhd2->pysig->result, TRUE))
         return FALSE;
 
