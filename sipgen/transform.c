@@ -2475,6 +2475,9 @@ static int sameVirtualHandler(virtHandlerDef *vhd1,virtHandlerDef *vhd2)
     if (isAllowNone(&vhd1->pysig->result) != isAllowNone(&vhd2->pysig->result))
         return FALSE;
 
+    if (isDisallowNone(&vhd1->pysig->result) != isDisallowNone(&vhd2->pysig->result))
+        return FALSE;
+
     if (!sameSignature(vhd1->pysig, vhd2->pysig, TRUE))
         return FALSE;
 

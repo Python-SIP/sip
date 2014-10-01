@@ -635,10 +635,11 @@ Function Annotations
 
     .. versionadded:: 4.16.4
 
-    This boolean annotation specifies that the value returned by the function
-    (which should be either :stype:`SIP_PYBUFFER`, :stype:`SIP_PYCALLABLE`,
-    :stype:`SIP_PYDICT`, :stype:`SIP_PYLIST`, :stype:`SIP_PYSLICE`,
-    :stype:`SIP_PYTUPLE` or :stype:`SIP_PYTYPE`) may be ``None``.
+    This boolean annotation is used to specify that the value returned by the
+    function (which should be either :stype:`SIP_PYBUFFER`,
+    :stype:`SIP_PYCALLABLE`, :stype:`SIP_PYDICT`, :stype:`SIP_PYLIST`,
+    :stype:`SIP_PYSLICE`, :stype:`SIP_PYTUPLE` or :stype:`SIP_PYTYPE`) may be
+    ``None``.
 
 
 .. function-annotation:: API
@@ -675,6 +676,15 @@ Function Annotations
     This boolean annotation is used to specify that the constructor or function
     is deprecated.  A deprecation warning is issued whenever the constructor or
     function is called.
+
+
+.. function-annotation:: DisallowNone
+
+    .. versionadded:: 4.16.4
+
+    This boolean annotation is used to specify that the value returned by the
+    function (which should be a pointer to either a C++ class or a mapped type)
+    must not be ``None``.
 
 
 .. function-annotation:: DocType

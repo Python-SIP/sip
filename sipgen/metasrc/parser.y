@@ -6744,6 +6744,7 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         "API",
         "AutoGen",
         "Deprecated",
+        "DisallowNone",
         "DocType",
         "Encoding",
         "Factory",
@@ -7026,6 +7027,9 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
 
     if (getAllowNone(optflgs))
         setAllowNone(&od->pysig.result);
+
+    if (getDisallowNone(optflgs))
+        setDisallowNone(&od->pysig.result);
 
     handleKeepReference(optflgs, &od->pysig.result, mod);
 
