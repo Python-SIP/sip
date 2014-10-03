@@ -29,14 +29,6 @@ specification files.
     :c:macro:`SIP_UNBLOCK_THREADS` at the same lexical scope.
 
 
-.. c:macro:: SIP_OWNS_MEMORY
-
-    .. versionadded:: 4.15.2
-
-    This is a flag used by various array constructors that species that the
-    array owns the memory that holds the array's contents.
-
-
 .. c:macro:: SIP_NO_CONVERTORS
 
     This is a flag used by various type convertors that suppresses the use of a
@@ -49,6 +41,14 @@ specification files.
     to fail if the Python object being converted is ``Py_None``.
 
 
+.. c:macro:: SIP_OWNS_MEMORY
+
+    .. versionadded:: 4.15.2
+
+    This is a flag used by various array constructors that species that the
+    array owns the memory that holds the array's contents.
+
+
 .. c:macro:: SIP_PROTECTED_IS_PUBLIC
 
     .. versionadded:: 4.10
@@ -58,6 +58,18 @@ specification files.
     ``protected`` redefined as ``public``.  This allows handwritten code to
     determine if the generated helper functions for accessing protected C++
     functions are available (see :directive:`%MethodCode`).
+
+
+.. c:function:: SIP_REACQUIRE_GIL()
+
+    .. versionadded:: 4.16.4
+
+    This is called from the handwritten code specified with the
+    :directive:`VirtualErrorHandler` in order to re-acquire the Python Global
+    Interpreter Lock (GIL) after a previous call to :c:func:`SIP_RELEASE_GIL`.
+    It should not be called under any other circumstances.
+
+    .. seealso:: :c:func:`SIP_RELEASE_GIL`
 
 
 .. c:macro:: SIP_READ_ONLY
@@ -80,6 +92,8 @@ specification files.
 
     :param sipGILState:
         an opaque value provided to the handwritten code by SIP.
+
+    .. seealso:: :c:func:`SIP_REACQUIRE_GIL`
 
 
 .. c:macro:: SIP_SSIZE_T

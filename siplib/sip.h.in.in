@@ -326,11 +326,13 @@ typedef unsigned int uint;
  */
 #ifdef WITH_THREAD
 typedef PyGILState_STATE sip_gilstate_t;
+#define SIP_REACQUIRE_GIL() PyGILState_Ensure();
 #define SIP_RELEASE_GIL(gs) PyGILState_Release(gs);
 #define SIP_BLOCK_THREADS   {PyGILState_STATE sipGIL = PyGILState_Ensure();
 #define SIP_UNBLOCK_THREADS PyGILState_Release(sipGIL);}
 #else
 typedef int sip_gilstate_t;
+#define SIP_REACQUIRE_GIL()
 #define SIP_RELEASE_GIL(gs)
 #define SIP_BLOCK_THREADS
 #define SIP_UNBLOCK_THREADS
