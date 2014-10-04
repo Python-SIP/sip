@@ -2462,8 +2462,13 @@ static int sameVirtualHandler(virtHandlerDef *vhd1,virtHandlerDef *vhd2)
 {
     int a;
 
-    /* If either has code then they must be different. */
-    if (vhd1->virtcode != NULL || vhd2->virtcode != NULL)
+    /*
+     * If both have code then they must be different.  However it doesn't
+     * follow that if they don't then they are the same.  We should really take
+     * whether they correspond to reimplementations of the same method into
+     * account.  In the meantime this will be correct in most cases.
+     */
+    if (vhd1->virtcode != NULL && vhd2->virtcode != NULL)
         return FALSE;
 
     if (isTransferVH(vhd1) != isTransferVH(vhd2))
