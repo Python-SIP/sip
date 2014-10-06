@@ -514,21 +514,6 @@ typedef struct _sipProxyResolver {
 
 static PyObject *sipEnumType_alloc(PyTypeObject *self, SIP_SSIZE_T nitems);
 
-#if PY_VERSION_HEX >= 0x03030000
-static PyObject *sipEnumType_get_qualname(sipEnumTypeObject *eto,
-        void *closure);
-
-
-/*
- * The table of getters and setters.
- */
-static PyGetSetDef sipEnumType_getset[] = {
-    {(char *)"__qualname__", (getter)sipEnumType_get_qualname, NULL, NULL,
-            NULL},
-    {NULL, NULL, NULL, NULL, NULL}
-};
-#endif
-
 
 /*
  * The type data structure.  We inherit everything from the standard Python
@@ -565,11 +550,7 @@ static PyTypeObject sipEnumType_Type = {
     0,                      /* tp_iternext */
     0,                      /* tp_methods */
     0,                      /* tp_members */
-#if PY_VERSION_HEX >= 0x03030000
-    sipEnumType_getset,     /* tp_getset */
-#else
     0,                      /* tp_getset */
-#endif
     0,                      /* tp_base */
     0,                      /* tp_dict */
     0,                      /* tp_descr_get */
@@ -6417,7 +6398,7 @@ static int createEnumType(sipExportedModuleDef *client, sipEnumTypeDef *etd,
 {
     static PyObject *bases = NULL;
     PyObject *name, *type_dict, *args, *dict;
-    PyTypeObject *py_type;
+    sipEnumTypeObject *eto;
 
     etd->etd_base.td_module = client;
 
@@ -6471,33 +6452,44 @@ static int createEnumType(sipExportedModuleDef *client, sipEnumTypeDef *etd,
     /* Pass the type via the back door. */
     assert(currentType == NULL);
     currentType = &etd->etd_base;
-    py_type = (PyTypeObject *)PyObject_Call((PyObject *)&sipEnumType_Type,
+    eto = (sipEnumTypeObject *)PyObject_Call((PyObject *)&sipEnumType_Type,
             args, NULL);
     currentType = NULL;
 
     Py_DECREF(args);
 
-    if (py_type == NULL)
+    if (eto == NULL)
         goto relname;
 
     /* Add the type to the "parent" dictionary. */
-    if (PyDict_SetItem(dict, name, (PyObject *)py_type) < 0)
+    if (PyDict_SetItem(dict, name, (PyObject *)eto) < 0)
     {
-        Py_DECREF((PyObject *)py_type);
+        Py_DECREF((PyObject *)eto);
         goto relname;
     }
 
     if (etd->etd_pyslots != NULL)
-        fix_slots((PyTypeObject *)py_type, etd->etd_pyslots);
+        fix_slots((PyTypeObject *)eto, etd->etd_pyslots);
 
 #if PY_VERSION_HEX >= 0x03030000
     /*
-     * If the enum has a scope then the default __qualname__ will be incorrect
-     * so we remove it.  We will create the correct one in the getter if it is
-     * ever called.
+     * If the enum has a scope then the default __qualname__ will be incorrect.
      */
      if (etd->etd_scope >= 0)
-        Py_CLEAR(((PyHeapTypeObject *)py_type)->ht_qualname);
+     {
+        PyTypeObject *scope_type;
+
+        /* Get the type that is the enum's scope. */
+        scope_type = sipTypeAsPyTypeObject(client->em_types[etd->etd_scope]);
+
+        /* Append the name of the enum to the scope's __qualname__. */
+        Py_CLEAR(eto->super.ht_qualname);
+        eto->super.ht_qualname = PyUnicode_FromFormat("%U.%U",
+                ((PyHeapTypeObject *)scope_type)->ht_qualname, name);
+
+        if (eto->super.ht_qualname == NULL)
+            goto relname;
+    }
 #endif
 
     /* We can now release our remaining references. */
@@ -12244,48 +12236,3 @@ static void *resolve_proxy(const sipTypeDef *td, void *proxy)
 
     return proxy;
 }
-
-
-#if PY_VERSION_HEX >= 0x03030000
-
-/*
- * The __qualname__ getter for an enum.
- */
-static PyObject *sipEnumType_get_qualname(sipEnumTypeObject *eto,
-        void *closure)
-{
-    (void)closure;
-
-    /* Create the name if needed. */
-    if (eto->super.ht_qualname == NULL)
-    {
-        sipEnumTypeDef *etd;
-        sipTypeDef *scope_td;
-        PyObject *scope_type, *scope_qualname;
-
-        /* Get the type that is the enum's scope. */
-        etd = (sipEnumTypeDef *)eto->type;
-        scope_td = eto->type->td_module->em_types[etd->etd_scope];
-        scope_type = (PyObject *)sipTypeAsPyTypeObject(scope_td);
-
-        /* Get the scope's __qualname__. */
-        scope_qualname = PyObject_GetAttrString(scope_type, "__qualname__");
-
-        if (scope_qualname == NULL)
-            return NULL;
-
-        /* Append the name of the enum. */
-        eto->super.ht_qualname = PyUnicode_FromFormat("%U.%s", scope_qualname,
-                sipPyNameOfEnum(etd));
-
-        Py_DECREF(scope_qualname);
-
-        if (eto->super.ht_qualname == NULL)
-            return NULL;
-    }
-
-    Py_INCREF(eto->super.ht_qualname);
-    return eto->super.ht_qualname;
-}
-
-#endif
