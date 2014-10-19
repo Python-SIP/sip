@@ -8148,26 +8148,12 @@ static void generateTupleBuilder(moduleDef *mod, signatureDef *sd,FILE *fp)
         switch (ad->atype)
         {
         case ascii_string_type:
-            if (ad->nrderefs == 0 || (ad->nrderefs == 1 && isOutArg(ad)))
-                fmt = "aA";
-            else
-                fmt = "AA";
-
-            break;
-
         case latin1_string_type:
-            if (ad->nrderefs == 0 || (ad->nrderefs == 1 && isOutArg(ad)))
-                fmt = "aL";
-            else
-                fmt = "AL";
-
-            break;
-
         case utf8_string_type:
             if (ad->nrderefs == 0 || (ad->nrderefs == 1 && isOutArg(ad)))
-                fmt = "a8";
+                fmt = "a";
             else
-                fmt = "A8";
+                fmt = "A";
 
             break;
 
@@ -12146,13 +12132,9 @@ static const char *getBuildResultFormat(argDef *ad)
         return "b";
 
     case ascii_string_type:
-        return (ad->nrderefs > (isOutArg(ad) ? 1 : 0)) ? "AA" : "aA";
-
     case latin1_string_type:
-        return (ad->nrderefs > (isOutArg(ad) ? 1 : 0)) ? "AL" : "aL";
-
     case utf8_string_type:
-        return (ad->nrderefs > (isOutArg(ad) ? 1 : 0)) ? "A8" : "a8";
+        return (ad->nrderefs > (isOutArg(ad) ? 1 : 0)) ? "A" : "a";
 
     case sstring_type:
     case ustring_type:
