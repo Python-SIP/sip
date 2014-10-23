@@ -1,3 +1,9 @@
+v4.16.4 23rd October 2014
+  - Added the /AbortOnException/ function annotation.
+  - Added the /DisallowNone/ function annotation.
+  - Added the /DisallowNone/ argument annotation.
+  - Bug fixes.
+
 v4.16.3 11th September 2014
   - Enums now support __qualname__ for Python v3.3 and later.
 
