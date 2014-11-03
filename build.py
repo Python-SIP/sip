@@ -28,12 +28,6 @@ import tarfile
 import zipfile
 
 
-# MacHg is not on sys.path, so put it there if we find it.
-MacHgPath = '/Applications/MacHg.app/Contents/Plugins/LocalMercurial'
-if os.path.isdir(MacHgPath):
-    sys.path.append(MacHgPath)
-
-
 # The files that need to be patched with the version number.
 _PatchedFiles = (
     ('configure.py', ),
