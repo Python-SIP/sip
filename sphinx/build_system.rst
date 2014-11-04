@@ -5,6 +5,11 @@ The Build System
 
 .. module:: sipconfig
 
+.. note::
+
+    This should not be used for new projects as it will not be supported by SIP
+    v5.
+
 The purpose of the build system is to make it easy for you to write
 configuration scripts in Python for your own bindings.  The build system takes
 care of the details of particular combinations of platform and compiler.  It
