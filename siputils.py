@@ -262,7 +262,7 @@ class Makefile:
         if dir:
             self.dir = os.path.abspath(dir)
         else:
-            self.dir = os.path.curdir
+            self.dir = os.getcwd()
 
         # Assume we are building in the source tree.
         self._src_dir = self.dir
@@ -319,6 +319,7 @@ class Makefile:
         self.extra_lflags = []
         self.extra_lib_dirs = []
         self.extra_libs = []
+        self.extra_source_dirs = []
 
         # Get these once and make them available to sub-classes.
         if sys.platform == "win32":
@@ -1199,8 +1200,13 @@ class Makefile:
         if self._qt:
             mfile.write("MOC = %s\n" % _quote(self.required_string("MOC")))
 
+        vpath = _UniqueList(self.extra_source_dirs)
+
         if self._src_dir != self.dir:
-            mfile.write("VPATH = %s\n\n" % self._src_dir)
+            vpath.append(self._src_dir)
+
+        if vpath.as_list():
+            mfile.write("VPATH = %s\n\n" % " ".join(vpath.as_list()))
 
         # These probably don't matter.
         if self.generator == "MINGW":

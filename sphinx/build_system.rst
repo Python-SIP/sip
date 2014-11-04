@@ -373,6 +373,10 @@ of the work of creating these additional configuration modules.
         libraries must be in platform neutral form (i.e. without any platform
         specific prefixes, version numbers or extensions).
 
+    .. attribute:: extra_source_dirs
+
+        A list of additional source directories passed to ``make``.
+
     .. attribute:: generator
 
         A string that defines the platform specific style of Makefile.  The
