@@ -507,6 +507,11 @@ def release(quiet=True):
     _remove_directory(package, quiet)
     _create_directory(package, quiet)
 
+    _progress("Creating ChangeLog", quiet)
+    os.system(
+            'hg log --style changelog >%s' % os.path.join(
+                    package, 'ChangeLog'))
+
     for f in _ReleasedFiles:
         _progress("Adding file %s to release" % f, quiet)
         shutil.copy2(f, package)
