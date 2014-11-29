@@ -1683,7 +1683,7 @@ class ModuleMakefile(Makefile):
             cpp = "moc_" + root + ".cpp"
 
             mfile.write("\n%s: %s\n" % (cpp, mf))
-            mfile.write("\t$(MOC) -o %s %<\n" % cpp)
+            mfile.write("\t$(MOC) -o %s $<\n" % cpp)
 
         mfile.write("\n$(TARGET): $(OFILES)\n")
 
@@ -1980,7 +1980,7 @@ class ProgramMakefile(Makefile):
                 mf = os.path.join(self._src_dir, mf)
 
             mfile.write("\n%s: %s\n" % (cpp, mf))
-            mfile.write("\t$(MOC) -o %s %s\n" % (cpp, mf))
+            mfile.write("\t$(MOC) -o %s $<\n" % cpp)
 
         mfile.write("\n$(TARGET): $(OFILES)\n")
 
