@@ -200,7 +200,7 @@ static PyMethodDef sipVoidPtr_Methods[] = {
 #if defined(SIP_SUPPORT_PYCOBJECT)
     {"ascobject", (PyCFunction)sipVoidPtr_ascobject, METH_NOARGS, NULL},
 #endif
-    {"asstring", (PyCFunction)sipVoidPtr_asstring, METH_KEYWORDS, NULL},
+    {"asstring", (PyCFunction)sipVoidPtr_asstring, METH_VARARGS|METH_KEYWORDS, NULL},
     {"getsize", (PyCFunction)sipVoidPtr_getsize, METH_NOARGS, NULL},
     {"setsize", (PyCFunction)sipVoidPtr_setsize, METH_O, NULL},
     {"getwriteable", (PyCFunction)sipVoidPtr_getwriteable, METH_NOARGS, NULL},
