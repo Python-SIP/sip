@@ -752,7 +752,8 @@ specification files.
     underlying memory being copied.
 
     :class:`sip.array` objects are not supported by the :program:`sip` code
-    generator.  They can only be created by handwritten code.
+    generator.  They can only be created by handwritten code or by
+    :func:`sip.voidptr.asarray`.
 
     :param data:
         the address of the start of the C/C++ array.

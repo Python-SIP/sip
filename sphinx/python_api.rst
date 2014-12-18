@@ -11,6 +11,18 @@ you will completely ignore it.  However, it does expose some functionality that
 can be used by applications.
 
 
+.. class:: array
+
+    .. versionadded:: 4.15
+
+    This is the type object for the type SIP uses to represent an array of a
+    limited number of C/C++ types.  Typically the memory is not owned by Python
+    so that it is not freed when the object is garbage collected.  A
+    :class:`sip.array` object can be created from a :class:`sip.voidptr` object
+    by calling :func:`sip.voidptr.asarray`.  This allows the underlying memory
+    (interpreted as a sequence of unsigned bytes) to be processed much more
+    quickly.
+
 .. function:: cast(obj, type) -> object
 
     This does the Python equivalent of casting a C++ instance to one of its
@@ -297,6 +309,20 @@ can be used by applications.
             is the data that will update the memory defined by the index.  It
             must implement the buffer interface and be the same size as the
             data that is being updated.
+
+    .. method:: asarray([size=-1]) -> :class:`sip.array`
+
+        .. versionadded:: 4.16.5
+
+        This returned the block of memory as a :class:`sip.array` object.  The
+        memory is *not* copied.
+        
+        :param size:
+            the size of the array.  If it is negative then the size associated
+            with the address is used.  If there is no associated size then an
+            exception is raised.
+        :return:
+            the :class:`sip.array` object.
 
     .. method:: ascapsule() -> capsule
 

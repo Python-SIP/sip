@@ -341,7 +341,7 @@ static int sipArray_getbuffer(PyObject *self, Py_buffer *view, int flags)
 
     if (((flags & PyBUF_WRITABLE) == PyBUF_WRITABLE) && (array->flags & SIP_READ_ONLY))
     {
-        PyErr_SetString(PyExc_BufferError, "Object is not writable.");
+        PyErr_SetString(PyExc_BufferError, "object is not writable.");
         return -1;
     }
 

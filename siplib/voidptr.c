@@ -24,6 +24,7 @@
 
 #include "sip.h"
 #include "sipint.h"
+#include "array.h"
 
 
 /* The object data structure. */
@@ -58,6 +59,7 @@ static void bad_key(PyObject *key);
 static int check_slice_size(SIP_SSIZE_T size, SIP_SSIZE_T value_size);
 static PyObject *make_voidptr(void *voidptr, SIP_SSIZE_T size, int rw);
 static int vp_convertor(PyObject *arg, struct vp_values *vp);
+static SIP_SSIZE_T get_size_from_arg(sipVoidPtrObject *v, SIP_SSIZE_T size);
 
 
 #if defined(SIP_USE_PYCAPSULE)
@@ -87,6 +89,33 @@ static PyObject *sipVoidPtr_ascobject(sipVoidPtrObject *v, PyObject *arg)
 
 
 /*
+ * Implement asarray() for the type.
+ */
+static PyObject *sipVoidPtr_asarray(sipVoidPtrObject *v, PyObject *args,
+        PyObject *kw)
+{
+    static char *kwlist[] = {"size", NULL};
+
+    SIP_SSIZE_T size = -1;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kw,
+#if PY_VERSION_HEX >= 0x02050000
+            "|n:asarray",
+#else
+            "|i:asarray",
+#endif
+            kwlist, &size))
+        return NULL;
+
+    if ((size = get_size_from_arg(v, size)) < 0)
+        return NULL;
+
+    return sip_api_convert_to_array(v->voidptr, "B", size,
+            (v->rw ? 0 : SIP_READ_ONLY));
+}
+
+
+/*
  * Implement asstring() for the type.
  */
 static PyObject *sipVoidPtr_asstring(sipVoidPtrObject *v, PyObject *args,
@@ -105,16 +134,8 @@ static PyObject *sipVoidPtr_asstring(sipVoidPtrObject *v, PyObject *args,
             kwlist, &size))
         return NULL;
 
-    /* Use the current size if one wasn't explicitly given. */
-    if (size < 0)
-        size = v->size;
-
-    if (size < 0)
-    {
-        PyErr_SetString(PyExc_ValueError,
-                "a size must be given or the sip.voidptr object must have a size");
+    if ((size = get_size_from_arg(v, size)) < 0)
         return NULL;
-    }
 
     return SIPBytes_FromStringAndSize(v->voidptr, size);
 }
@@ -194,6 +215,7 @@ static PyObject *sipVoidPtr_setwriteable(sipVoidPtrObject *v, PyObject *arg)
 
 /* The methods data structure. */
 static PyMethodDef sipVoidPtr_Methods[] = {
+    {"asarray", (PyCFunction)sipVoidPtr_asarray, METH_VARARGS|METH_KEYWORDS, NULL},
 #if defined(SIP_USE_PYCAPSULE)
     {"ascapsule", (PyCFunction)sipVoidPtr_ascapsule, METH_NOARGS, NULL},
 #endif
@@ -1055,4 +1077,22 @@ static int vp_convertor(PyObject *arg, struct vp_values *vp)
     vp->rw = rw;
 
     return 1;
+}
+
+
+/*
+ * Get a size possibly supplied as an argument, otherwise get it from the
+ * object.  Raise an exception if there was no size specified.
+ */
+static SIP_SSIZE_T get_size_from_arg(sipVoidPtrObject *v, SIP_SSIZE_T size)
+{
+    /* Use the current size if one wasn't explicitly given. */
+    if (size < 0)
+        size = v->size;
+
+    if (size < 0)
+        PyErr_SetString(PyExc_ValueError,
+                "a size must be given or the sip.voidptr object must have a size");
+
+    return size;
 }
