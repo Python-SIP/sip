@@ -9439,7 +9439,7 @@ static void generateVariable(moduleDef *mod, ifaceFileDef *scope, argDef *ad,
 
     resetIsReference(ad);
 
-    if (ad->nrderefs == 0)
+    if (ad->nrderefs == 0 && ad->atype != slotcon_type && ad->atype != slotdis_type)
         resetIsConstArg(ad);
 
     prcode(fp,
