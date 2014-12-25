@@ -2052,6 +2052,35 @@ def version_to_string(version, parts=3):
     return '.'.join(part_list)
 
 
+def version_from_string(version_str):
+    """ Convert a version string of the form m.n or m.n.o to an encoded version
+    number (or None if it was an invalid format).  version_str is the version
+    string.
+    """
+
+    parts = version_str.split('.')
+    if not isinstance(parts, list):
+        return None
+
+    if len(parts) == 2:
+        parts.append('0')
+
+    if len(parts) != 3:
+        return None
+
+    version = 0
+
+    for part in parts:
+        try:
+            v = int(part)
+        except ValueError:
+            return None
+
+        version = (version << 8) + v
+
+    return version
+
+
 def read_version(filename, description, numdefine=None, strdefine=None):
     """Read the version information for a package from a file.  The information
     is specified as #defines of a numeric (hexadecimal or decimal) value and/or

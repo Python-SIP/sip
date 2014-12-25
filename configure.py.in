@@ -616,7 +616,7 @@ def create_optparser(sdk_dir):
         setattr(parser.values, option.dest, os.path.abspath(value))
 
     def store_version(option, opt_str, value, parser):
-        version = version_from_string(value)
+        version = siputils.version_from_string(value)
         if version is None:
             raise optparse.OptionValueError(
                     "'%s' is not a valid version number" % value)
