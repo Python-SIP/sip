@@ -9053,9 +9053,6 @@ static void generateCallArgs(moduleDef *mod, signatureDef *sd,
                 ind = "&";
         }
 
-        if (ind != NULL)
-            prcode(fp, ind);
-
         /*
          * See if we need to cast a Python void * to the correct C/C++ pointer
          * type.
@@ -9072,6 +9069,9 @@ static void generateCallArgs(moduleDef *mod, signatureDef *sd,
 
         if (py_ad == NULL)
         {
+            if (ind != NULL)
+                prcode(fp, ind);
+
             if (isArraySize(ad))
                 prcode(fp, "(%b)", ad);
 
