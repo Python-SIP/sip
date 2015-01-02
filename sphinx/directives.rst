@@ -779,7 +779,7 @@ copyright and licensing terms.
 For example::
 
     %Copying
-    Copyright (c) 2014 Riverbank Computing Limited
+    Copyright (c) 2015 Riverbank Computing Limited
     %End
 
 
