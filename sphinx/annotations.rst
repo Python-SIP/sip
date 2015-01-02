@@ -428,6 +428,15 @@ Class Annotations
     and methods as being deprecated.
 
 
+.. class-annotation:: FileExtension
+
+    .. versionadded:: 4.16.6
+
+    This string annotation is used to specify the filename extension to be used
+    for the file containing the generated code for this class.  A separate file
+    will be generated even if the :option:`-j <sip -j>` command line option is
+    specified.
+
 .. class-annotation:: ExportDerived
 
     .. versionadded:: 4.15

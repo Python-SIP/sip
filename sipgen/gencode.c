@@ -2374,7 +2374,8 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
             }
 
             generateIfaceCpp(pt, iff, need_postinc, codeDir, srcSuffix,
-                    (parts ? fp : NULL), timestamp);
+                    ((parts && iff->file_extension == NULL) ? fp : NULL),
+                    timestamp);
         }
 
     closeFile(fp);
@@ -3804,6 +3805,9 @@ static char *createIfaceFileName(const char *codeDir, ifaceFileDef *iff,
         sprintf(buf, "_%d", iff->api_range->index);
         append(&fn, buf);
     }
+
+    if (iff->file_extension != NULL)
+        suffix = iff->file_extension;
 
     append(&fn,suffix);
 
