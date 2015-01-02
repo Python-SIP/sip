@@ -199,16 +199,19 @@ can be used by applications.
 
 .. data:: SIP_VERSION
 
+    .. versionadded:: 4.2
+
     This is a Python integer object that represents the SIP version number as
     a 3 part hexadecimal number (e.g. v4.0.0 is represented as ``0x040000``).
-    It was first implemented in SIP v4.2.
 
 
 .. data:: SIP_VERSION_STR
 
+    .. versionadded:: 4.3
+
     This is a Python string object that defines the SIP version number as
-    represented as a string.  For development snapshots it will start with
-    ``snapshot-``.  It was first implemented in SIP v4.3.
+    represented as a string.  For development previews it will start with
+    ``preview-`` or ``snapshot-``.
 
 
 .. function:: transferback(obj)

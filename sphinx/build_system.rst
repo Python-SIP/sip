@@ -177,7 +177,8 @@ of the work of creating these additional configuration modules.
     :param version:
         the numeric version number of the C/C++ library being wrapped.  If it
         is negative then the latest version is assumed.  (This is typically
-        useful if a snapshot is indicated by a negative version number.)
+        useful if a development preview is indicated by a negative version
+        number.)
     :param tags:
         the dictionary of SIP version tags keyed by the corresponding C/C++
         library version number.  The tag used is the one with the smallest key
@@ -273,8 +274,8 @@ of the work of creating these additional configuration modules.
 
     .. attribute:: sip_version_str
 
-        The SIP version as a string.  For development snapshots it will start
-        with ``snapshot-``.
+        The SIP version as a string.  For development previews it will start
+        with ``preview-`` or ``snapshot-``.
 
     .. attribute:: universal
 

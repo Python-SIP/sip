@@ -2269,8 +2269,8 @@ def version_to_sip_tag(version, tags, description):
     """Convert a version number to a SIP tag.
 
     version is the version number.  If it is negative then the latest version
-    is assumed.  (This is typically useful if a snapshot is indicated by a
-    negative version number.)
+    is assumed.  (This is typically useful if a development preview  is
+    indicated by a negative version number.)
     tags is the dictionary of tags keyed by version number.  The tag used is
     the one with the smallest key (ie. earliest version) that is greater than
     the given version number.
@@ -2281,7 +2281,7 @@ def version_to_sip_tag(version, tags, description):
     vl = list(tags.keys())
     vl.sort()
 
-    # For a snapshot use the latest tag.
+    # For a preview use the latest tag.
     if version < 0:
         tag = tags[vl[-1]]
     else:

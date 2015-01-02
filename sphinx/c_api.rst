@@ -123,8 +123,8 @@ specification files.
 .. c:macro:: SIP_VERSION_STR
 
     This is a C preprocessor symbol that defines the SIP version number
-    represented as a string.  For development snapshots it will contain either
-    ``-snapshot-`` or ``-preview-``.
+    represented as a string.  For development previews it will contain either
+    ``-preview-`` or ``-snapshot-``.
 
 
 .. c:function:: sipErrorState sipBadCallableArg(int arg_nr, PyObject *arg)
