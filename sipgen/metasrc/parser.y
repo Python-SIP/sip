@@ -2846,6 +2846,7 @@ class:  TK_CLASS scopedname {
                     "Deprecated",
                     "ExportDerived",
                     "External",
+                    "FileExtension",
                     "Metatype",
                     "Mixin",
                     "NoDefaultCtors",
