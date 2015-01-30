@@ -616,7 +616,8 @@ static int destroy_on_exit = TRUE;      /* Destroy owned objects on exit. */
 static void addClassSlots(sipWrapperType *wt, const sipClassTypeDef *ctd);
 static void addTypeSlots(PyHeapTypeObject *heap_to, sipPySlotDef *slots);
 static void *findSlot(PyObject *self, sipPySlotType st);
-static void *findSlotInType(sipPySlotDef *psd, sipPySlotType st);
+static void *findSlotInClass(sipClassTypeDef *psd, sipPySlotType st);
+static void *findSlotInSlotList(sipPySlotDef *psd, sipPySlotType st);
 static int objobjargprocSlot(PyObject *self, PyObject *arg1, PyObject *arg2,
         sipPySlotType st);
 static int ssizeobjargprocSlot(PyObject *self, SIP_SSIZE_T arg1,
@@ -9231,27 +9232,7 @@ static void *findSlot(PyObject *self, sipPySlotType st)
 
         ctd = (sipClassTypeDef *)((sipWrapperType *)(py_type))->type;
 
-        if (ctd->ctd_pyslots != NULL)
-            slot = findSlotInType(ctd->ctd_pyslots, st);
-        else
-            slot = NULL;
-
-        if (slot == NULL)
-        {
-            sipEncodedTypeDef *sup;
-
-            /* Search any super-types. */
-            if ((sup = ctd->ctd_supers) != NULL)
-                do
-                {
-                    const sipClassTypeDef *sup_ctd = sipGetGeneratedClassType(
-                            sup, ctd);
-
-                    if (sup_ctd->ctd_pyslots != NULL)
-                        slot = findSlotInType(sup_ctd->ctd_pyslots, st);
-                }
-                while (slot == NULL && !sup++->sc_flag);
-        }
+        slot = findSlotInClass(ctd, st);
     }
     else
     {
@@ -9264,7 +9245,41 @@ static void *findSlot(PyObject *self, sipPySlotType st)
 
         assert(etd->etd_pyslots != NULL);
 
-        slot = findSlotInType(etd->etd_pyslots, st);
+        slot = findSlotInSlotList(etd->etd_pyslots, st);
+    }
+
+    return slot;
+}
+
+
+/*
+ * Find a particular slot function in a class hierarchy.
+ */
+static void *findSlotInClass(sipClassTypeDef *ctd, sipPySlotType st)
+{
+    void *slot;
+
+    if (ctd->ctd_pyslots != NULL)
+        slot = findSlotInSlotList(ctd->ctd_pyslots, st);
+    else
+        slot = NULL;
+
+    if (slot == NULL)
+    {
+        sipEncodedTypeDef *sup;
+
+        /* Search any super-types. */
+        if ((sup = ctd->ctd_supers) != NULL)
+        {
+            do
+            {
+                const sipClassTypeDef *sup_ctd = sipGetGeneratedClassType(
+                        sup, ctd);
+
+                slot = findSlotInClass(sup_ctd, st);
+            }
+            while (slot == NULL && !sup++->sc_flag);
+        }
     }
 
     return slot;
@@ -9274,7 +9289,7 @@ static void *findSlot(PyObject *self, sipPySlotType st)
 /*
  * Find a particular slot function in a particular type.
  */
-static void *findSlotInType(sipPySlotDef *psd, sipPySlotType st)
+static void *findSlotInSlotList(sipPySlotDef *psd, sipPySlotType st)
 {
     while (psd->psd_func != NULL)
     {
