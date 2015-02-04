@@ -1,7 +1,7 @@
 /*
  * The parse tree transformation module for SIP.
  *
- * Copyright (c) 2014 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2015 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -2462,10 +2462,28 @@ static int sameVirtualHandler(virtHandlerDef *vhd1,virtHandlerDef *vhd2)
 {
     int a;
 
+    /*
+     * If both have code then they must be different.  However it doesn't
+     * follow that if they don't then they are the same.  We should really take
+     * whether they correspond to reimplementations of the same method into
+     * account.  In the meantime this will be correct in most cases.
+     */
+    if (vhd1->virtcode != NULL && vhd2->virtcode != NULL)
+        return FALSE;
+
     if (isTransferVH(vhd1) != isTransferVH(vhd2))
         return FALSE;
 
+    if (abortOnException(vhd1) != abortOnException(vhd2))
+        return FALSE;
+
     if (!sameArgType(&vhd1->pysig->result, &vhd2->pysig->result, TRUE))
+        return FALSE;
+
+    if (isAllowNone(&vhd1->pysig->result) != isAllowNone(&vhd2->pysig->result))
+        return FALSE;
+
+    if (isDisallowNone(&vhd1->pysig->result) != isDisallowNone(&vhd2->pysig->result))
         return FALSE;
 
     if (!sameSignature(vhd1->pysig, vhd2->pysig, TRUE))

@@ -1,7 +1,7 @@
 /*
  * The main header file for SIP.
  *
- * Copyright (c) 2014 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2015 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -381,22 +381,23 @@
 
 /* Handle argument flags. */
 
-#define ARG_IS_REF          0x0001  /* It is a reference. */
-#define ARG_IS_CONST        0x0002  /* It is a const. */
-#define ARG_XFERRED         0x0004  /* Ownership is transferred. */
-#define ARG_THIS_XFERRED    0x0008  /* Ownership of this is transferred. */
-#define ARG_XFERRED_BACK    0x0010  /* Ownership is transferred back. */
-#define ARG_ARRAY           0x0020  /* Used as an array. */
-#define ARG_ARRAY_SIZE      0x0040  /* Used as an array size. */
-#define ARG_ALLOW_NONE      0x0080  /* Allow None as a value. */
-#define ARG_GET_WRAPPER     0x0100  /* Get the wrapper object. */
-#define ARG_IN              0x0200  /* It passes an argument. */
-#define ARG_OUT             0x0400  /* It returns a result. */
-#define ARG_CONSTRAINED     0x0800  /* Suppress type conversion. */
-#define ARG_SINGLE_SHOT     0x1000  /* The slot is only ever fired once. */
-#define ARG_RESULT_SIZE     0x2000  /* It defines the result size. */
-#define ARG_KEEP_REF        0x4000  /* Keep a reference. */
-#define ARG_NO_COPY         0x8000  /* Disable copying of const references. */
+#define ARG_IS_REF          0x00000001  /* It is a reference. */
+#define ARG_IS_CONST        0x00000002  /* It is a const. */
+#define ARG_XFERRED         0x00000004  /* Ownership is transferred. */
+#define ARG_THIS_XFERRED    0x00000008  /* Ownership of this is transferred. */
+#define ARG_XFERRED_BACK    0x00000010  /* Ownership is transferred back. */
+#define ARG_ARRAY           0x00000020  /* Used as an array. */
+#define ARG_ARRAY_SIZE      0x00000040  /* Used as an array size. */
+#define ARG_ALLOW_NONE      0x00000080  /* Allow None as a value. */
+#define ARG_GET_WRAPPER     0x00000100  /* Get the wrapper object. */
+#define ARG_IN              0x00000200  /* It passes an argument. */
+#define ARG_OUT             0x00000400  /* It returns a result. */
+#define ARG_CONSTRAINED     0x00000800  /* Suppress type conversion. */
+#define ARG_SINGLE_SHOT     0x00001000  /* The slot is only ever fired once. */
+#define ARG_RESULT_SIZE     0x00002000  /* It defines the result size. */
+#define ARG_KEEP_REF        0x00004000  /* Keep a reference. */
+#define ARG_NO_COPY         0x00008000  /* Disable copying of const refs. */
+#define ARG_DISALLOW_NONE   0x00010000  /* Disallow None as a value. */
 
 #define isReference(a)      ((a)->argflags & ARG_IS_REF)
 #define setIsReference(a)   ((a)->argflags |= ARG_IS_REF)
@@ -432,6 +433,8 @@
 #define setKeepReference(a) ((a)->argflags |= ARG_KEEP_REF)
 #define noCopy(a)           ((a)->argflags & ARG_NO_COPY)
 #define setNoCopy(a)        ((a)->argflags |= ARG_NO_COPY)
+#define isDisallowNone(a)   ((a)->argflags & ARG_DISALLOW_NONE)
+#define setDisallowNone(a)  ((a)->argflags |= ARG_DISALLOW_NONE)
 
 
 /* Handle name flags. */
@@ -450,12 +453,15 @@
 
 #define VH_IS_DUPLICATE     0x01    /* It is a duplicate. */
 #define VH_TRANSFERS        0x02    /* It transfers ownership of the result. */
+#define VH_ABORT_ON_EXC     0x04    /* It aborts on an exception. */
 
 #define isDuplicateVH(vh)   ((vh)->vhflags & VH_IS_DUPLICATE)
 #define setIsDuplicateVH(vh)    ((vh)->vhflags |= VH_IS_DUPLICATE)
 #define resetIsDuplicateVH(vh)  ((vh)->vhflags &= ~VH_IS_DUPLICATE)
 #define isTransferVH(vh)    ((vh)->vhflags & VH_TRANSFERS)
 #define setIsTransferVH(vh) ((vh)->vhflags |= VH_TRANSFERS)
+#define abortOnException(vh)    ((vh)->vhflags & VH_ABORT_ON_EXC)
+#define setAbortOnException(vh) ((vh)->vhflags |= VH_ABORT_ON_EXC)
 
 
 /* Handle mapped type flags. */
@@ -892,6 +898,7 @@ typedef struct _ifaceFileDef {
     scopedNameDef *fqcname;             /* The fully qualified C++ name. */
     moduleDef *module;                  /* The owning module. */
     codeBlockList *hdrcode;             /* Header code. */
+    const char *file_extension;         /* The optional file extension. */
     struct _ifaceFileList *used;        /* Interface files used. */
     struct _ifaceFileDef *next;         /* Next in the list. */
 } ifaceFileDef;

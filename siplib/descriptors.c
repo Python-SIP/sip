@@ -1,7 +1,7 @@
 /*
  * The implementation of the different descriptors.
  *
- * Copyright (c) 2014 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2015 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -103,7 +103,9 @@ PyTypeObject sipMethodDescr_Type = {
     0,                      /* tp_subclasses */
     0,                      /* tp_weaklist */
     0,                      /* tp_del */
+#if PY_VERSION_HEX >= 0x02060000
     0,                      /* tp_version_tag */
+#endif
 #if PY_VERSION_HEX >= 0x03040000
     0,                      /* tp_finalize */
 #endif

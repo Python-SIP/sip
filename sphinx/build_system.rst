@@ -5,6 +5,11 @@ The Build System
 
 .. module:: sipconfig
 
+.. note::
+
+    This should not be used for new projects as it will not be supported by SIP
+    v5.
+
 The purpose of the build system is to make it easy for you to write
 configuration scripts in Python for your own bindings.  The build system takes
 care of the details of particular combinations of platform and compiler.  It
@@ -172,7 +177,8 @@ of the work of creating these additional configuration modules.
     :param version:
         the numeric version number of the C/C++ library being wrapped.  If it
         is negative then the latest version is assumed.  (This is typically
-        useful if a snapshot is indicated by a negative version number.)
+        useful if a development preview is indicated by a negative version
+        number.)
     :param tags:
         the dictionary of SIP version tags keyed by the corresponding C/C++
         library version number.  The tag used is the one with the smallest key
@@ -268,8 +274,8 @@ of the work of creating these additional configuration modules.
 
     .. attribute:: sip_version_str
 
-        The SIP version as a string.  For development snapshots it will start
-        with ``snapshot-``.
+        The SIP version as a string.  For development previews it will start
+        with ``preview-`` or ``snapshot-``.
 
     .. attribute:: universal
 
@@ -367,6 +373,10 @@ of the work of creating these additional configuration modules.
         A list of additional libraries passed to the linker.  The names of the
         libraries must be in platform neutral form (i.e. without any platform
         specific prefixes, version numbers or extensions).
+
+    .. attribute:: extra_source_dirs
+
+        A list of additional source directories passed to ``make``.
 
     .. attribute:: generator
 

@@ -1,6 +1,6 @@
 # This script handles the SIP configuration and generates the Makefiles.
 #
-# Copyright (c) 2014 Riverbank Computing Limited <info@riverbankcomputing.com>
+# Copyright (c) 2015 Riverbank Computing Limited <info@riverbankcomputing.com>
 #
 # This file is part of SIP.
 #
@@ -351,6 +351,10 @@ def create_makefiles(macros):
                 ("debug" if opts.debug else "release")))
 
         pro.write("\n")
+        pro.write("# Work around QTBUG-39300.\n")
+        pro.write("CONFIG -= android_install\n")
+
+        pro.write("\n")
         pro.write("target.path = %s\n" % os.path.dirname(cfg.sip_bin))
         pro.write("INSTALLS += target\n")
 
@@ -389,6 +393,10 @@ def create_makefiles(macros):
         pro.write("CONFIG += warn_on exceptions_off %s %s\n" % (
                 ("staticlib" if opts.static else "plugin"),
                 ("debug" if opts.debug else "release")))
+
+        pro.write("\n")
+        pro.write("# Work around QTBUG-39300.\n")
+        pro.write("CONFIG -= android_install\n")
 
         pro.write("\n")
         pro.write("INCLUDEPATH += %s\n" % cfg.py_inc_dir)
@@ -445,12 +453,15 @@ macx {
     else:
         sipconfig.inform("Creating sip module Makefile...")
 
-        sipconfig.ModuleMakefile(
+        build_dir = os.getcwd()
+
+        makefile = sipconfig.ModuleMakefile(
             configuration=cfg,
-            build_file=os.path.join(src_dir, "siplib", "siplib.sbf"),
+            build_file=os.path.join(build_dir, "siplib", "siplib.sbf"),
             dir="siplib",
             install_dir=cfg.sip_mod_dir,
-            installs=([os.path.join(src_dir, "siplib", "sip.h")], cfg.sip_inc_dir),
+            installs=([os.path.join(build_dir, "siplib", "sip.h")],
+                    cfg.sip_inc_dir),
             console=1,
             warnings=0,
             static=opts.static,
@@ -458,7 +469,14 @@ macx {
             universal=opts.universal,
             arch=opts.arch,
             deployment_target=opts.deployment_target
-        ).generate()
+        )
+        
+        if src_dir != build_dir:
+            src_siplib_dir = os.path.join(src_dir, "siplib")
+            makefile.extra_include_dirs.append(src_siplib_dir)
+            makefile.extra_source_dirs.append(src_siplib_dir)
+
+        makefile.generate()
 
 
 def get_sources(sources_dir, ext):
@@ -489,11 +507,11 @@ def _get_configuration_value(config, name, default=None):
 
         return default
 
-    parts = value.split('%(', maxsplit=1)
+    parts = value.split('%(', 1)
     while len(parts) == 2:
         prefix, tail = parts
 
-        parts = tail.split(')', maxsplit=1)
+        parts = tail.split(')', 1)
         if len(parts) != 2:
             siputils.error("Configuration file contains unterminated extrapolated name '%s'." % tail)
 
@@ -508,7 +526,7 @@ def _get_configuration_value(config, name, default=None):
 
         value = prefix + xtra_value + suffix
 
-        parts = value.split('%(', maxsplit=1)
+        parts = value.split('%(', 1)
 
     return value
 
@@ -533,7 +551,7 @@ def update_from_configuration_file(config_file):
         if l == '':
             continue
 
-        parts = l.split('=', maxsplit=1)
+        parts = l.split('=', 1)
         if len(parts) == 2:
             name = parts[0].strip()
             value = parts[1].strip()
@@ -598,7 +616,7 @@ def create_optparser(sdk_dir):
         setattr(parser.values, option.dest, os.path.abspath(value))
 
     def store_version(option, opt_str, value, parser):
-        version = version_from_string(value)
+        version = siputils.version_from_string(value)
         if version is None:
             raise optparse.OptionValueError(
                     "'%s' is not a valid version number" % value)

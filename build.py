@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# Copyright (c) 2014 Riverbank Computing Limited <info@riverbankcomputing.com>
+# Copyright (c) 2015 Riverbank Computing Limited <info@riverbankcomputing.com>
 #
 # This file is part of SIP.
 #
@@ -28,12 +28,6 @@ import tarfile
 import zipfile
 
 
-# MacHg is not on sys.path, so put it there if we find it.
-MacHgPath = '/Applications/MacHg.app/Contents/Plugins/LocalMercurial'
-if os.path.isdir(MacHgPath):
-    sys.path.append(MacHgPath)
-
-
 # The files that need to be patched with the version number.
 _PatchedFiles = (
     ('configure.py', ),
@@ -52,7 +46,7 @@ _GeneratedFiles = (
 
 # File types that are auto-generated and need to be cleaned.
 _GeneratedFileTypes = ('.pyc', '.o', '.obj', '.so', '.pyd', '.exp', '.exe',
-        '.gz', '.zip', '.a', '.dylib', '.pro')
+        '.gz', '.zip', '.a', '.dylib', '.pro', '.cfg')
 
 # Directories that are auto-generated and need to be cleaned.
 _GeneratedDirs = (
@@ -512,6 +506,11 @@ def release(quiet=True):
     package = 'sip-' + release
     _remove_directory(package, quiet)
     _create_directory(package, quiet)
+
+    _progress("Creating ChangeLog", quiet)
+    os.system(
+            'hg log --style changelog >%s' % os.path.join(
+                    package, 'ChangeLog'))
 
     for f in _ReleasedFiles:
         _progress("Adding file %s to release" % f, quiet)

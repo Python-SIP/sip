@@ -1,7 +1,7 @@
 /*
  * The code generator module for SIP.
  *
- * Copyright (c) 2014 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2015 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -282,6 +282,7 @@ static void generatePreprocLine(int linenr, const char *fname, FILE *fp);
 static virtErrorHandler *getVirtErrorHandler(sipSpec *pt, overDef *od,
         classDef *cd, moduleDef *mod);
 static int hasOptionalArgs(overDef *od);
+static int emptyIfaceFile(sipSpec *pt, ifaceFileDef *iff);
 
 
 /*
@@ -427,6 +428,9 @@ static void generateBuildFileSources(sipSpec *pt, moduleDef *mod,
                 continue;
 
             if (iff->type == exception_iface)
+                continue;
+
+            if (emptyIfaceFile(pt, iff))
                 continue;
 
             if (iff->api_range != NULL)
@@ -957,10 +961,14 @@ static void generateCompositeCpp(sipSpec *pt, const char *codeDir,
 "\n"
 "static void sip_import_component_module(PyObject *d, const char *name)\n"
 "{\n"
+"    PyObject *mod;\n"
+"\n"
+"    PyErr_Clear();\n"
+"\n"
 "#if PY_VERSION_HEX >= 0x02050000\n"
-"    PyObject *mod = PyImport_ImportModule(name);\n"
+"    mod = PyImport_ImportModule(name);\n"
 "#else\n"
-"    PyObject *mod = PyImport_ImportModule((char *)name);\n"
+"    mod = PyImport_ImportModule((char *)name);\n"
 "#endif\n"
 "\n"
 "    /*\n"
@@ -2366,7 +2374,8 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
             }
 
             generateIfaceCpp(pt, iff, need_postinc, codeDir, srcSuffix,
-                    (parts ? fp : NULL), timestamp);
+                    ((parts && iff->file_extension == NULL) ? fp : NULL),
+                    timestamp);
         }
 
     closeFile(fp);
@@ -3673,6 +3682,26 @@ static int generateDoubles(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
 
 
 /*
+ * See if an interface file has any content.
+ */
+static int emptyIfaceFile(sipSpec *pt, ifaceFileDef *iff)
+{
+    classDef *cd;
+    mappedTypeDef *mtd;
+
+    for (cd = pt->classes; cd != NULL; cd = cd->next)
+        if (!isProtectedClass(cd) && !isExternal(cd) && cd->iff == iff)
+            return FALSE;
+
+    for (mtd = pt->mappedtypes; mtd != NULL; mtd = mtd->next)
+        if (mtd->iff == iff)
+            return FALSE;
+
+    return TRUE;
+}
+
+
+/*
  * Generate the C/C++ code for an interface.
  */
 static void generateIfaceCpp(sipSpec *pt, ifaceFileDef *iff, int need_postinc,
@@ -3684,30 +3713,12 @@ static void generateIfaceCpp(sipSpec *pt, ifaceFileDef *iff, int need_postinc,
     classDef *cd;
     mappedTypeDef *mtd;
     FILE *fp;
-    int empty;
 
     /*
      * Check that there will be something in the file so that we don't get
      * warning messages from ranlib.
      */
-    empty = TRUE;
-
-    for (cd = pt->classes; cd != NULL; cd = cd->next)
-        if (!isProtectedClass(cd) && !isExternal(cd) && cd->iff == iff)
-        {
-            empty = FALSE;
-            break;
-        }
-
-    if (empty)
-        for (mtd = pt->mappedtypes; mtd != NULL; mtd = mtd->next)
-            if (mtd->iff == iff)
-            {
-                empty = FALSE;
-                break;
-            }
-
-    if (empty)
+    if (emptyIfaceFile(pt, iff))
         return;
 
     if (master == NULL)
@@ -3794,6 +3805,9 @@ static char *createIfaceFileName(const char *codeDir, ifaceFileDef *iff,
         sprintf(buf, "_%d", iff->api_range->index);
         append(&fn, buf);
     }
+
+    if (iff->file_extension != NULL)
+        suffix = iff->file_extension;
 
     append(&fn,suffix);
 
@@ -7854,7 +7868,7 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
 
     prcode(fp, ");\n"
 "\n"
-"    %ssipParseResultEx(sipGILState, sipErrorHandler, sipPySelf, sipMethod, sipResObj, \"", (res_isref ? "int sipRc = " : ""));
+"    %ssipParseResultEx(sipGILState, sipErrorHandler, sipPySelf, sipMethod, sipResObj, \"", ((res_isref || abortOnException(vhd)) ? "int sipRc = " : ""));
 
     /* Build the format string. */
     if (nrvals == 0)
@@ -7904,14 +7918,19 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
 
     if (res != NULL)
     {
-        if (res_isref)
+        if (res_isref || abortOnException(vhd))
         {
             prcode(fp,
 "\n"
 "    if (sipRc < 0)\n"
                 );
 
-            generateDefaultInstanceReturn(res, "    ", fp);
+            if (abortOnException(vhd))
+                prcode(fp,
+"        abort();\n"
+                    );
+            else
+                generateDefaultInstanceReturn(res, "    ", fp);
         }
 
         prcode(fp,
@@ -8008,6 +8027,13 @@ static const char *getParseResultFormat(argDef *ad, int res_isref, int xfervh)
 
                 if (!res_isref)
                     f |= 0x04;
+            }
+            else if (ad->nrderefs == 1)
+            {
+                if (isOutArg(ad))
+                    f |= 0x04;
+                else if (isDisallowNone(ad))
+                    f |= 0x01;
             }
 
             if (xfervh)
@@ -8126,26 +8152,12 @@ static void generateTupleBuilder(moduleDef *mod, signatureDef *sd,FILE *fp)
         switch (ad->atype)
         {
         case ascii_string_type:
-            if (ad->nrderefs == 0 || (ad->nrderefs == 1 && isOutArg(ad)))
-                fmt = "aA";
-            else
-                fmt = "AA";
-
-            break;
-
         case latin1_string_type:
-            if (ad->nrderefs == 0 || (ad->nrderefs == 1 && isOutArg(ad)))
-                fmt = "aL";
-            else
-                fmt = "AL";
-
-            break;
-
         case utf8_string_type:
             if (ad->nrderefs == 0 || (ad->nrderefs == 1 && isOutArg(ad)))
-                fmt = "a8";
+                fmt = "a";
             else
-                fmt = "A8";
+                fmt = "A";
 
             break;
 
@@ -9045,9 +9057,6 @@ static void generateCallArgs(moduleDef *mod, signatureDef *sd,
                 ind = "&";
         }
 
-        if (ind != NULL)
-            prcode(fp, ind);
-
         /*
          * See if we need to cast a Python void * to the correct C/C++ pointer
          * type.
@@ -9064,6 +9073,9 @@ static void generateCallArgs(moduleDef *mod, signatureDef *sd,
 
         if (py_ad == NULL)
         {
+            if (ind != NULL)
+                prcode(fp, ind);
+
             if (isArraySize(ad))
                 prcode(fp, "(%b)", ad);
 
@@ -9431,7 +9443,7 @@ static void generateVariable(moduleDef *mod, ifaceFileDef *scope, argDef *ad,
 
     resetIsReference(ad);
 
-    if (ad->nrderefs == 0)
+    if (ad->nrderefs == 0 && ad->atype != slotcon_type && ad->atype != slotdis_type)
         resetIsConstArg(ad);
 
     prcode(fp,
@@ -12124,13 +12136,9 @@ static const char *getBuildResultFormat(argDef *ad)
         return "b";
 
     case ascii_string_type:
-        return (ad->nrderefs > (isOutArg(ad) ? 1 : 0)) ? "AA" : "aA";
-
     case latin1_string_type:
-        return (ad->nrderefs > (isOutArg(ad) ? 1 : 0)) ? "AL" : "aL";
-
     case utf8_string_type:
-        return (ad->nrderefs > (isOutArg(ad) ? 1 : 0)) ? "A8" : "a8";
+        return (ad->nrderefs > (isOutArg(ad) ? 1 : 0)) ? "A" : "a";
 
     case sstring_type:
     case ustring_type:
@@ -13630,7 +13638,7 @@ static char *getSubFormatChar(char fc, argDef *ad)
 
     if (ad->atype == class_type || ad->atype == mapped_type)
     {
-        if (ad->nrderefs == 0)
+        if (ad->nrderefs == 0 || isDisallowNone(ad))
             flags |= 0x01;
 
         if (isThisTransferred(ad))

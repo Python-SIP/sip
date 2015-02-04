@@ -1,7 +1,7 @@
 /*
  * The SIP parser.
  *
- * Copyright (c) 2014 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2015 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -116,6 +116,7 @@ static int getReleaseGIL(optFlags *optflgs);
 static int getHoldGIL(optFlags *optflgs);
 static int getDeprecated(optFlags *optflgs);
 static int getAllowNone(optFlags *optflgs);
+static int getDisallowNone(optFlags *optflgs);
 static const char *getVirtErrorHandler(optFlags *optflgs);
 static const char *getDocType(optFlags *optflgs);
 static const char *getDocValue(optFlags *optflgs);
@@ -1554,6 +1555,8 @@ defsupertype_arg:   TK_NAME '=' dottedname {
     ;
 
 consmodule: TK_CONSMODULE consmodule_args consmodule_body {
+            deprecated("%ConsolidatedModule is deprecated and will not be supported by SIP v5");
+
             if (notSkipping())
             {
                 /* Make sure this is the first mention of a module. */
@@ -2768,6 +2771,7 @@ struct:     TK_STRUCT scopedname {
                     "Deprecated",
                     "ExportDerived",
                     "External",
+                    "FileExtension",
                     "Metatype",
                     "Mixin",
                     "NoDefaultCtors",
@@ -2842,6 +2846,7 @@ class:  TK_CLASS scopedname {
                     "Deprecated",
                     "ExportDerived",
                     "External",
+                    "FileExtension",
                     "Metatype",
                     "Mixin",
                     "NoDefaultCtors",
@@ -4069,6 +4074,7 @@ argtype:    cpptype optname optflags {
                 "Array",
                 "ArraySize",
                 "Constrained",
+                "DisallowNone",
                 "DocType",
                 "DocValue",
                 "Encoding",
@@ -4094,6 +4100,9 @@ argtype:    cpptype optname optflags {
 
             if (getAllowNone(&$3))
                 $$.argflags |= ARG_ALLOW_NONE;
+
+            if (getDisallowNone(&$3))
+                $$.argflags |= ARG_DISALLOW_NONE;
 
             if (getOptFlag(&$3,"GetWrapper",bool_flag) != NULL)
                 $$.argflags |= ARG_GET_WRAPPER;
@@ -4677,6 +4686,7 @@ ifaceFileDef *findIfaceFile(sipSpec *pt, moduleDef *mod, scopedNameDef *fqname,
     iff->module = NULL;
     iff->hdrcode = NULL;
     iff->used = NULL;
+    iff->file_extension = NULL;
     iff->next = pt->ifacefiles;
 
     pt->ifacefiles = iff;
@@ -4918,6 +4928,9 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd,
 
     if (getOptFlag(of, "Mixin", bool_flag) != NULL)
         setMixin(cd);
+
+    if ((flg = getOptFlag(of, "FileExtension", string_flag)) != NULL)
+        cd->iff->file_extension = flg->fvalue.sval;
 
     if ((flg = getOptFlag(of, "PyQtFlags", integer_flag)) != NULL)
         cd->pyqt_flags = flg->fvalue.ival;
@@ -6733,9 +6746,12 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
 {
     static const char *annos[] = {
         "__len__",
+        "AbortOnException",
+        "AllowNone",
         "API",
         "AutoGen",
         "Deprecated",
+        "DisallowNone",
         "DocType",
         "Encoding",
         "Factory",
@@ -6960,6 +6976,9 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         if (factory || xferback)
             setIsTransferVH(vhd);
 
+        if (getOptFlag(optflgs, "AbortOnException", bool_flag) != NULL)
+            setAbortOnException(vhd);
+
         if (no_virt_error_handler)
         {
             if (virt_error_handler != NULL)
@@ -7015,6 +7034,12 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
 
     if (getOptFlag(optflgs, "NoCopy", bool_flag) != NULL)
         setNoCopy(&od->pysig.result);
+
+    if (getAllowNone(optflgs))
+        setAllowNone(&od->pysig.result);
+
+    if (getDisallowNone(optflgs))
+        setDisallowNone(&od->pysig.result);
 
     handleKeepReference(optflgs, &od->pysig.result, mod);
 
@@ -8217,6 +8242,15 @@ static int getDeprecated(optFlags *optflgs)
 static int getAllowNone(optFlags *optflgs)
 {
     return (getOptFlag(optflgs, "AllowNone", bool_flag) != NULL);
+}
+
+
+/*
+ * Get the /DisallowNone/ option flag.
+ */
+static int getDisallowNone(optFlags *optflgs)
+{
+    return (getOptFlag(optflgs, "DisallowNone", bool_flag) != NULL);
 }
 
 

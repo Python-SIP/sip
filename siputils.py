@@ -2,7 +2,7 @@
 # extension modules created with SIP.  It provides information about file
 # locations, version numbers etc., and provides some classes and functions.
 #
-# Copyright (c) 2014 Riverbank Computing Limited <info@riverbankcomputing.com>
+# Copyright (c) 2015 Riverbank Computing Limited <info@riverbankcomputing.com>
 #
 # This file is part of SIP.
 #
@@ -262,7 +262,7 @@ class Makefile:
         if dir:
             self.dir = os.path.abspath(dir)
         else:
-            self.dir = os.path.curdir
+            self.dir = os.getcwd()
 
         # Assume we are building in the source tree.
         self._src_dir = self.dir
@@ -319,6 +319,7 @@ class Makefile:
         self.extra_lflags = []
         self.extra_lib_dirs = []
         self.extra_libs = []
+        self.extra_source_dirs = []
 
         # Get these once and make them available to sub-classes.
         if sys.platform == "win32":
@@ -1199,8 +1200,13 @@ class Makefile:
         if self._qt:
             mfile.write("MOC = %s\n" % _quote(self.required_string("MOC")))
 
+        vpath = _UniqueList(self.extra_source_dirs)
+
         if self._src_dir != self.dir:
-            mfile.write("VPATH = %s\n\n" % self._src_dir)
+            vpath.append(self._src_dir)
+
+        if vpath.as_list():
+            mfile.write("VPATH = %s\n\n" % " ".join(vpath.as_list()))
 
         # These probably don't matter.
         if self.generator == "MINGW":
@@ -1677,7 +1683,7 @@ class ModuleMakefile(Makefile):
             cpp = "moc_" + root + ".cpp"
 
             mfile.write("\n%s: %s\n" % (cpp, mf))
-            mfile.write("\t$(MOC) -o %s %s\n" % (cpp, mf))
+            mfile.write("\t$(MOC) -o %s $<\n" % cpp)
 
         mfile.write("\n$(TARGET): $(OFILES)\n")
 
@@ -1974,7 +1980,7 @@ class ProgramMakefile(Makefile):
                 mf = os.path.join(self._src_dir, mf)
 
             mfile.write("\n%s: %s\n" % (cpp, mf))
-            mfile.write("\t$(MOC) -o %s %s\n" % (cpp, mf))
+            mfile.write("\t$(MOC) -o %s $<\n" % cpp)
 
         mfile.write("\n$(TARGET): $(OFILES)\n")
 
@@ -2044,6 +2050,35 @@ def version_to_string(version, parts=3):
             part_list.append(str(version & 0xff))
 
     return '.'.join(part_list)
+
+
+def version_from_string(version_str):
+    """ Convert a version string of the form m.n or m.n.o to an encoded version
+    number (or None if it was an invalid format).  version_str is the version
+    string.
+    """
+
+    parts = version_str.split('.')
+    if not isinstance(parts, list):
+        return None
+
+    if len(parts) == 2:
+        parts.append('0')
+
+    if len(parts) != 3:
+        return None
+
+    version = 0
+
+    for part in parts:
+        try:
+            v = int(part)
+        except ValueError:
+            return None
+
+        version = (version << 8) + v
+
+    return version
 
 
 def read_version(filename, description, numdefine=None, strdefine=None):
@@ -2234,8 +2269,8 @@ def version_to_sip_tag(version, tags, description):
     """Convert a version number to a SIP tag.
 
     version is the version number.  If it is negative then the latest version
-    is assumed.  (This is typically useful if a snapshot is indicated by a
-    negative version number.)
+    is assumed.  (This is typically useful if a development preview  is
+    indicated by a negative version number.)
     tags is the dictionary of tags keyed by version number.  The tag used is
     the one with the smallest key (ie. earliest version) that is greater than
     the given version number.
@@ -2246,7 +2281,7 @@ def version_to_sip_tag(version, tags, description):
     vl = list(tags.keys())
     vl.sort()
 
-    # For a snapshot use the latest tag.
+    # For a preview use the latest tag.
     if version < 0:
         tag = tags[vl[-1]]
     else:

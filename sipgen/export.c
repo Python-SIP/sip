@@ -1,7 +1,7 @@
 /*
  * The XML and API file generator module for SIP.
  *
- * Copyright (c) 2014 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2015 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -706,6 +706,9 @@ static void xmlArgument(sipSpec *pt, argDef *ad, const char *dir, int res_xfer,
 
     if (isAllowNone(ad))
         fprintf(fp, " allownone=\"1\"");
+
+    if (isDisallowNone(ad))
+        fprintf(fp, " disallownone=\"1\"");
 
     if (isTransferred(ad))
         fprintf(fp, " transfer=\"to\"");
