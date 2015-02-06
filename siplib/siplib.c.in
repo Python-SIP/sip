@@ -616,7 +616,7 @@ static int destroy_on_exit = TRUE;      /* Destroy owned objects on exit. */
 static void addClassSlots(sipWrapperType *wt, const sipClassTypeDef *ctd);
 static void addTypeSlots(PyHeapTypeObject *heap_to, sipPySlotDef *slots);
 static void *findSlot(PyObject *self, sipPySlotType st);
-static void *findSlotInClass(sipClassTypeDef *psd, sipPySlotType st);
+static void *findSlotInClass(const sipClassTypeDef *psd, sipPySlotType st);
 static void *findSlotInSlotList(sipPySlotDef *psd, sipPySlotType st);
 static int objobjargprocSlot(PyObject *self, PyObject *arg1, PyObject *arg2,
         sipPySlotType st);
@@ -8347,7 +8347,7 @@ static void *explicit_access_func(sipSimpleWrapper *sw, AccessFuncOp op)
  */
 static void *indirect_access_func(sipSimpleWrapper *sw, AccessFuncOp op)
 {
-    void *addr = NULL;
+    void *addr;
 
     switch (op)
     {
@@ -8357,6 +8357,10 @@ static void *indirect_access_func(sipSimpleWrapper *sw, AccessFuncOp op)
 
     case GuardedPointer:
         addr = *((void **)sw->data);
+        break;
+
+    default:
+        addr = NULL;
         break;
     }
 
@@ -9228,7 +9232,7 @@ static void *findSlot(PyObject *self, sipPySlotType st)
     /* See if it is a wrapper. */
     if (PyObject_TypeCheck((PyObject *)py_type, &sipWrapperType_Type))
     {
-        sipClassTypeDef *ctd;
+        const sipClassTypeDef *ctd;
 
         ctd = (sipClassTypeDef *)((sipWrapperType *)(py_type))->type;
 
@@ -9255,7 +9259,7 @@ static void *findSlot(PyObject *self, sipPySlotType st)
 /*
  * Find a particular slot function in a class hierarchy.
  */
-static void *findSlotInClass(sipClassTypeDef *ctd, sipPySlotType st)
+static void *findSlotInClass(const sipClassTypeDef *ctd, sipPySlotType st)
 {
     void *slot;
 
