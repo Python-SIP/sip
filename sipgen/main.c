@@ -51,7 +51,7 @@ int main(int argc, char **argv)
     char *filename, *docFile, *codeDir, *srcSuffix, *flagFile, *consModule;
     char arg, *optarg, *buildFile, *apiFile, *xmlFile;
     int optnr, exceptions, tracing, releaseGIL, parts, protHack, docs;
-    int timestamp;
+    int timestamp, was_flagFile;
     KwArgs kwArgs;
     FILE *file;
     sipSpec spec;
@@ -68,6 +68,7 @@ int main(int argc, char **argv)
     docFile = NULL;
     srcSuffix = NULL;
     flagFile = NULL;
+    was_flagFile = FALSE;
     apiFile = NULL;
     xmlFile = NULL;
     consModule = NULL;
@@ -143,6 +144,7 @@ int main(int argc, char **argv)
                 fatal("The -z flag cannot be specified in an argument file\n");
 
             flagFile = optarg;
+            was_flagFile = TRUE;
             break;
 
         case 'c':
@@ -234,6 +236,9 @@ int main(int argc, char **argv)
 
     if (kwArgs != NoKwArgs)
         warning(DeprecationWarning, "the -k flag is deprecated\n");
+
+    if (was_flagFile)
+        warning(DeprecationWarning, "the -z flag is deprecated\n");
 
     /* Parse the input file. */
     parse(&spec, file, filename, versions, backstops, xfeatures, kwArgs,

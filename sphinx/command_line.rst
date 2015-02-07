@@ -163,4 +163,5 @@ The full set of command line options is:
 
 .. cmdoption:: -z <FILE>
 
-    The name of a file containing more command line options.
+    The name of a file containing more command line options.  This command line
+    option will not be supported by SIP v5.
