@@ -279,9 +279,18 @@ static char parseopt(int argc, char **argv, char *opts, char **flags,
     int optnr;
     static FILE *fp = NULL;
 
+    optnr = *optnrp;
+
     /* Deal with any file first. */
 
     fname = *flags;
+
+    /* Support the sip5 method of passing arguments in a file. */
+    if (fname == NULL && optnr < argc && argv[optnr][0] == '@')
+    {
+        fname = *flags = &argv[optnr][1];
+        *optnrp = ++optnr;
+    }
 
     if (fname != NULL && fp == NULL && (fp = fopen(fname,"r")) == NULL)
         fatal("Unable to open %s\n",fname);
@@ -358,8 +367,6 @@ static char parseopt(int argc, char **argv, char *opts, char **flags,
     }
 
     /* Check there is an argument and it is a switch. */
-
-    optnr = *optnrp;
 
     if (optnr >= argc || argv[optnr] == NULL || argv[optnr][0] != '-')
         return '\0';
@@ -525,7 +532,7 @@ static void help(void)
 {
     printf(
 "Usage:\n"
-"    %s [-h] [-V] [-a file] [-b file] [-B tag] [-c dir] [-d file] [-e] [-g] [-I dir] [-j #] [-k] [-m file] [-o] [-p module] [-P] [-r] [-s suffix] [-t tag] [-T] [-w] [-x feature] [-X id:file] [-z file] [file]\n"
+"    %s [-h] [-V] [-a file] [-b file] [-B tag] [-c dir] [-d file] [-e] [-g] [-I dir] [-j #] [-k] [-m file] [-o] [-p module] [-P] [-r] [-s suffix] [-t tag] [-T] [-w] [-x feature] [-X id:file] [-z file] [@file] [file]\n"
 "where:\n"
 "    -h          display this help message\n"
 "    -V          display the %s version number\n"
@@ -551,6 +558,7 @@ static void help(void)
 "    -x feature  this feature is disabled\n"
 "    -X id:file  create the extracts for an id in a file\n"
 "    -z file     the name of a file containing more command line flags\n"
+"    @file       the name of a file containing more command line flags\n"
 "    file        the name of the specification file [default stdin]\n"
         , sipPackage, sipPackage);
 
@@ -563,5 +571,5 @@ static void help(void)
  */
 static void usage(void)
 {
-    fatal("Usage: %s [-h] [-V] [-a file] [-b file] [-B tag] [-c dir] [-d file] [-e] [-g] [-I dir] [-j #] [-k] [-m file] [-o] [-p module] [-P] [-r] [-s suffix] [-t tag] [-T] [-w] [-x feature] [-X id:file] [-z file] [file]\n", sipPackage);
+    fatal("Usage: %s [-h] [-V] [-a file] [-b file] [-B tag] [-c dir] [-d file] [-e] [-g] [-I dir] [-j #] [-k] [-m file] [-o] [-p module] [-P] [-r] [-s suffix] [-t tag] [-T] [-w] [-x feature] [-X id:file] [-z file] [@file] [file]\n", sipPackage);
 }
