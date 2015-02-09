@@ -139,6 +139,9 @@ The full set of command line options is:
 
 .. cmdoption:: -T
 
+    .. deprecated:: 4.16.6
+        This option is now ignored and timestamps are always disabled.
+
     By default the generated C and C++ source and header files include a
     timestamp specifying when they were generated.  This option disables the
     timestamp so that the contents of the generated files remain constant for a

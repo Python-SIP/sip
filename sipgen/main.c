@@ -163,7 +163,10 @@ int main(int argc, char **argv)
             break;
 
         case 'T':
-            /* Disable the timestamp in the header of generated files. */
+            /*
+             * Disable the timestamp in the header of generated files.  It is
+             * now ignored apart from triggering a deprecation warning.
+             */
             timestamp = FALSE;
             break;
 
@@ -237,6 +240,9 @@ int main(int argc, char **argv)
     if (kwArgs != NoKwArgs)
         warning(DeprecationWarning, "the -k flag is deprecated\n");
 
+    if (!timestamp)
+        warning(DeprecationWarning, "the -T flag is ignored and deprecated\n");
+
     if (was_flagFile)
         warning(DeprecationWarning, "the -z flag is deprecated\n");
 
@@ -250,7 +256,7 @@ int main(int argc, char **argv)
     /* Generate code. */
     generateCode(&spec, codeDir, buildFile, docFile, srcSuffix, exceptions,
             tracing, releaseGIL, parts, versions, xfeatures, consModule, docs,
-            timestamp);
+            FALSE);
 
     /* Generate any extracts. */
     generateExtracts(&spec, extracts);
@@ -553,7 +559,6 @@ static void help(void)
 "    -r          generate code with tracing enabled [default disabled]\n"
 "    -s suffix   the suffix to use for C or C++ source files [default \".c\" or \".cpp\"]\n"
 "    -t tag      the version/platform to generate code for\n"
-"    -T          disable the timestamp in the header of generated files\n"
 "    -w          enable warning messages\n"
 "    -x feature  this feature is disabled\n"
 "    -X id:file  create the extracts for an id in a file\n"
@@ -571,5 +576,5 @@ static void help(void)
  */
 static void usage(void)
 {
-    fatal("Usage: %s [-h] [-V] [-a file] [-b file] [-B tag] [-c dir] [-d file] [-e] [-g] [-I dir] [-j #] [-k] [-m file] [-o] [-p module] [-P] [-r] [-s suffix] [-t tag] [-T] [-w] [-x feature] [-X id:file] [-z file] [@file] [file]\n", sipPackage);
+    fatal("Usage: %s [-h] [-V] [-a file] [-b file] [-B tag] [-c dir] [-d file] [-e] [-g] [-I dir] [-j #] [-k] [-m file] [-o] [-p module] [-P] [-r] [-s suffix] [-t tag] [-w] [-x feature] [-X id:file] [-z file] [@file] [file]\n", sipPackage);
 }
