@@ -3283,12 +3283,6 @@ static int sip_api_parse_kwd_args(PyObject **parseErrp, PyObject *sipArgs,
          */
         *unused = NULL;
     }
-    else if (sipKwdArgs != NULL && kwdlist == NULL)
-    {
-        PyErr_SetString(PyExc_TypeError,
-                "keyword arguments are not supported");
-        return FALSE;
-    }
 
     va_start(va, fmt);
     ok = parseKwdArgs(parseErrp, sipArgs, sipKwdArgs, kwdlist, unused, fmt,
@@ -3846,7 +3840,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
             arg = PyTuple_GET_ITEM(sipArgs, argnr);
             failure.arg_nr = argnr + 1;
         }
-        else if (sipKwdArgs != NULL && kwdlist != NULL)
+        else if (nr_kwd_args != 0 && kwdlist != NULL)
         {
             const char *name = kwdlist[argnr - *selfargp];
 
