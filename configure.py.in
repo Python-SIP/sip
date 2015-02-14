@@ -36,6 +36,7 @@ py_version = sys.hexversion >> 8
 py_platform = sys.platform
 plat_py_site_dir = None
 plat_py_inc_dir = None
+plat_py_venv_inc_dir = None
 plat_py_conf_inc_dir = None
 plat_py_lib_dir = None
 plat_sip_dir = None
@@ -203,12 +204,13 @@ def set_platform_directories():
     """ Initialise the global variables relating to platform-specific
     directories.
     """
-    global plat_py_site_dir, plat_py_inc_dir, plat_py_conf_inc_dir
-    global plat_bin_dir, plat_py_lib_dir, plat_sip_dir
+    global plat_py_site_dir, plat_py_inc_dir, plat_py_venv_inc_dir
+    global plat_py_conf_inc_dir, plat_bin_dir, plat_py_lib_dir, plat_sip_dir
 
     # We trust distutils for some stuff.
     plat_py_site_dir = sysconfig.get_python_lib(plat_specific=1)
     plat_py_inc_dir = sysconfig.get_python_inc()
+    plat_py_venv_inc_dir = sysconfig.get_python_inc(prefix=sys.prefix)
     plat_py_conf_inc_dir = os.path.dirname(sysconfig.get_config_h_filename())
 
     if sys.platform == "win32":
@@ -704,7 +706,7 @@ def create_optparser(sdk_dir):
     g.add_option("-e", "--incdir", action="callback", type="string",
             metavar="DIR", dest="sipincdir", callback=store_abspath,
             help="where the SIP header file will be installed [default: "
-                    "%s]" % plat_py_inc_dir)
+                    "%s]" % plat_py_venv_inc_dir)
     g.add_option("-v", "--sipdir", action="callback", type="string",
             metavar="DIR", dest="sipsipdir", callback=store_abspath,
             help="where .sip files are normally installed [default: "
@@ -804,7 +806,7 @@ def main(argv):
 
     # Set defaults.
     sip_bin_dir = plat_bin_dir
-    sip_inc_dir = plat_py_inc_dir
+    sip_inc_dir = plat_py_venv_inc_dir
     sip_module_dir = plat_py_site_dir
     sip_sip_dir = plat_sip_dir
 
