@@ -101,6 +101,7 @@ static void generateFunction(sipSpec *, memberDef *, overDef *, classDef *,
         classDef *, moduleDef *, FILE *);
 static void generateFunctionBody(overDef *, classDef *, mappedTypeDef *,
         classDef *, int deref, moduleDef *, FILE *);
+static void generatePyObjects(sipSpec *pt, moduleDef *mod, FILE *fp);
 static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp);
 static void generateTypeInit(classDef *, moduleDef *, FILE *);
 static void generateCppCodeBlock(codeBlockList *cbl, FILE *fp);
@@ -2292,6 +2293,8 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 
     generateTypesInline(pt, mod, fp);
 
+    generatePyObjects(pt, mod, fp);
+
     /* Create any exceptions. */
     for (xd = pt->exceptions; xd != NULL; xd = xd->next)
     {
@@ -3067,6 +3070,53 @@ static void generateAccessFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
         prcode(fp,
 "}\n"
             );
+    }
+}
+
+
+/*
+ * Generate the inline code to add a set of Python objects to a module
+ * dictionary.  Note that we should add these via a table (like int, etc) but
+ * that will require a major API version change so this will do for now.
+ */
+static void generatePyObjects(sipSpec *pt, moduleDef *mod, FILE *fp)
+{
+    int noIntro;
+    varDef *vd;
+
+    noIntro = TRUE;
+
+    for (vd = pt->vars; vd != NULL; vd = vd->next)
+    {
+        if (vd->module != mod)
+            continue;
+
+        if (vd->type.atype != pyobject_type &&
+            vd->type.atype != pytuple_type &&
+            vd->type.atype != pylist_type &&
+            vd->type.atype != pydict_type &&
+            vd->type.atype != pycallable_type &&
+            vd->type.atype != pyslice_type &&
+            vd->type.atype != pytype_type &&
+            vd->type.atype != pybuffer_type)
+            continue;
+
+        if (needsHandler(vd))
+            continue;
+
+        if (noIntro)
+        {
+            prcode(fp,
+"\n"
+"    /* Define the Python objects wrapped as such. */\n"
+                );
+
+            noIntro = FALSE;
+        }
+
+        prcode(fp,
+"    PyDict_SetItemString(sipModuleDict, %N, %S);\n"
+                , vd->pyname, vd->fqcname);
     }
 }
 
