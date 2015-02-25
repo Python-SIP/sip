@@ -1,3 +1,11 @@
+v4.16.6 ??? February 2015
+  - Added the /FileExtension/ class annotation.
+  - Installing into a virtual env should now work.
+  - Timestamps are no longer included in generated code.  The -T command line
+    option is now ignored and deprecated.
+  - The '@file' method of passing additional command line options is now
+    supported.  The -z command line option is now deprecated.
+
 v4.16.5 24th December 2014
   - Added the asarray() method to sip.voidptr.
   - Bug fixes.
