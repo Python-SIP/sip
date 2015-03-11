@@ -9263,6 +9263,10 @@ static void generateNamedBaseType(ifaceFileDef *scope, argDef *ad,
             break;
 
         case uint_type:
+            /*
+             * Qt4 moc uses "uint" in signal signatures.  We do all the time
+             * and hope it is always defined.
+             */
             prcode(fp, "uint");
             break;
 
