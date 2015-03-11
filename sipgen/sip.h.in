@@ -81,8 +81,8 @@
 #define useArgNames(m)      ((m)->modflags & MOD_USE_ARG_NAMES)
 #define setAllRaisePyException(m)   ((m)->modflags |= MOD_ALL_RAISE_PY_EXC)
 #define allRaisePyException(m)  ((m)->modflags & MOD_ALL_RAISE_PY_EXC)
-#define setCallSuperInitNo(m)   ((m)->modflags = ((m)->modflags & MOD_SUPER_INIT_MASK) | MOD_SUPER_INIT_NO)
-#define setCallSuperInitYes(m)  ((m)->modflags = ((m)->modflags & MOD_SUPER_INIT_MASK) | MOD_SUPER_INIT_YES)
+#define setCallSuperInitNo(m)   ((m)->modflags = ((m)->modflags & ~MOD_SUPER_INIT_MASK) | MOD_SUPER_INIT_NO)
+#define setCallSuperInitYes(m)  ((m)->modflags = ((m)->modflags & ~MOD_SUPER_INIT_MASK) | MOD_SUPER_INIT_YES)
 #define isCallSuperInitYes(m)   (((m)->modflags & MOD_SUPER_INIT_MASK) == MOD_SUPER_INIT_YES)
 #define isCallSuperInitUndefined(m) (((m)->modflags & MOD_SUPER_INIT_MASK) == MOD_SUPER_INIT_UNDEF)
 
