@@ -1111,6 +1111,7 @@ typedef struct _classList {
 
 typedef struct _virtOverDef {
     overDef o;                          /* The overload. */
+    struct _classDef *scope;            /* The overload scope. */
     struct _virtOverDef *next;          /* Next in the list. */
 } virtOverDef;
 
