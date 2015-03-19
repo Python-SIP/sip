@@ -149,6 +149,8 @@ static void generateHandleResult(moduleDef *, overDef *, int, int, char *,
 static void generateOrdinaryFunction(sipSpec *pt, moduleDef *mod,
         classDef *c_scope, mappedTypeDef *mt_scope, memberDef *md, FILE *fp);
 static void generateSimpleFunctionCall(fcallDef *, FILE *);
+static int generateResultVar(ifaceFileDef *scope, overDef *od, argDef *res,
+        const char *indent, FILE *fp);
 static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
         ifaceFileDef *o_scope, overDef *od, int deref, moduleDef *mod,
         FILE *fp);
@@ -6909,8 +6911,32 @@ static void generateVirtualCatcher(sipSpec *pt, moduleDef *mod, classDef *cd,
 "    if (!sipMeth)\n"
         );
 
-    if (isAbstract(od))
+    if (od->invokecode != NULL)
+    {
+        int is_result;
+
+        prcode(fp,
+"    {\n");
+
+        is_result = generateResultVar(cd->iff, od, &od->pysig.result,
+                "        ", fp);
+
+        prcode(fp,
+"\n"
+            );
+
+        generateCppCodeBlock(od->invokecode, fp);
+
+        prcode(fp,
+"\n"
+"        return%s;\n"
+"    }\n"
+            , (is_result ? " sipRes" : ""));
+    }
+    else if (isAbstract(od))
+    {
         generateDefaultInstanceReturn(res, "    ", fp);
+    }
     else
     {
         int a;
@@ -12292,6 +12318,44 @@ static int copyConstRefArg(argDef *ad)
 
 
 /*
+ * Generate a variable to hold the result of a function call if one is needed.
+ */
+static int generateResultVar(ifaceFileDef *scope, overDef *od, argDef *res,
+        const char *indent, FILE *fp)
+{
+    int is_result;
+
+    /* See if sipRes is needed. */
+    is_result = (!isInplaceNumberSlot(od->common) &&
+             !isInplaceSequenceSlot(od->common) &&
+             (res->atype != void_type || res->nrderefs != 0));
+
+    if (is_result)
+    {
+        prcode(fp, "%s", indent);
+
+        generateNamedValueType(scope, res, "sipRes", fp);
+
+        /*
+         * The typical %MethodCode usually causes a compiler warning, so we
+         * initialise the result in that case to try and suppress it.
+         */
+        if (od->methodcode != NULL)
+        {
+            prcode(fp," = ");
+
+            generateCastZero(res, fp);
+        }
+
+        prcode(fp,";\n"
+            );
+    }
+
+    return is_result;
+}
+
+
+/*
  * Generate a function call.
  */
 static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
@@ -12349,36 +12413,8 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
     if (needsNew)
         resetIsConstArg(res);
 
-    /* See if sipRes is needed. */
-    is_result = (!isInplaceNumberSlot(od->common) &&
-             !isInplaceSequenceSlot(od->common) &&
-             (res->atype != void_type || res->nrderefs != 0));
-
-    newline = FALSE;
-
-    if (is_result)
-    {
-        prcode(fp,
-"            ");
-
-        generateNamedValueType(scope, res, "sipRes", fp);
-
-        /*
-         * The typical %MethodCode usually causes a compiler warning, so we
-         * initialise the result in that case to try and suppress it.
-         */
-        if (od->methodcode != NULL)
-        {
-            prcode(fp," = ");
-
-            generateCastZero(res,fp);
-        }
-
-        prcode(fp,";\n"
-            );
-
-        newline = TRUE;
-    }
+    is_result = newline = generateResultVar(scope, od, res, "            ",
+            fp);
 
     result_size = -1;
     deltemps = TRUE;
@@ -12503,7 +12539,7 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
     else
     {
         int rgil = ((release_gil || isReleaseGIL(od)) && !isHoldGIL(od));
-        int closing_paren = FALSE;
+        int closing_paren = FALSE, hw_code;
 
         if (needsNew && generating_c)
         {
@@ -12534,10 +12570,13 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
 
         generateTry(od->exceptions,fp);
 
-        prcode(fp,
+        hw_code = (od->common->slot == no_slot && od->invokecode != NULL);
+
+        if (!hw_code)
+            prcode(fp,
 "            ");
 
-        if (od->common->slot != cmp_slot && is_result)
+        if (od->common->slot != cmp_slot && is_result && !hw_code)
         {
             /* Construct a copy on the heap if needed. */
             if (needsNew)
@@ -12732,8 +12771,9 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
         if (closing_paren)
             prcode(fp,")");
 
-        prcode(fp,";\n"
-            );
+        if (!hw_code)
+            prcode(fp,";\n"
+                );
 
         generateCatch(od->exceptions, &od->pysig, mod, fp, rgil);
 
@@ -12918,14 +12958,23 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
 static void generateCppFunctionCall(moduleDef *mod, ifaceFileDef *scope,
         ifaceFileDef *o_scope, overDef *od, FILE *fp)
 {
-    char *mname = od->cppname;
-    int parens = 1;
+    char *mname;
+    int parens;
+
+    if (od->invokecode != NULL)
+    {
+        generateCppCodeBlock(od->invokecode, fp);
+        return;
+    }
 
     /*
      * If the function is protected then call the public wrapper.  If it is
      * virtual then call the explicit scoped function if "self" was passed as
      * the first argument.
      */
+
+    mname = od->cppname;
+    parens = 1;
 
     if (scope == NULL)
         prcode(fp, "%s(", mname);

@@ -82,7 +82,8 @@ static void newCtor(moduleDef *, char *, int, signatureDef *, optFlags *,
         codeBlock *, throwArgs *, signatureDef *, int, codeBlock *);
 static void newFunction(sipSpec *, moduleDef *, classDef *, mappedTypeDef *,
         int, int, int, int, int, char *, signatureDef *, int, int, optFlags *,
-        codeBlock *, codeBlock *, throwArgs *, signatureDef *, codeBlock *);
+        codeBlock *, codeBlock *, codeBlock *, throwArgs *, signatureDef *,
+        codeBlock *);
 static optFlag *findOptFlag(optFlags *flgs, const char *name);
 static optFlag *getOptFlag(optFlags *flgs, const char *name, flagType ft);
 static memberDef *findFunction(sipSpec *, moduleDef *, classDef *,
@@ -263,6 +264,7 @@ static int isBackstop(qualDef *qd);
 %token          TK_SEGCOUNTCODE
 %token          TK_CHARBUFFERCODE
 %token          TK_PICKLECODE
+%token          TK_INVOKECODE
 %token          TK_METHODCODE
 %token          TK_INSTANCECODE
 %token          TK_FROMTYPE
@@ -406,6 +408,7 @@ static int isBackstop(qualDef *qd);
 %type <codeb>           codeblock
 %type <codeb>           codelines
 %type <codeb>           virtualcatchercode
+%type <codeb>           invokecode
 %type <codeb>           methodcode
 %type <codeb>           instancecode
 %type <codeb>           raisecode
@@ -1165,7 +1168,7 @@ mtline: ifstart
     |   mtfunction
     ;
 
-mtfunction: TK_STATIC cpptype TK_NAME_VALUE '(' arglist ')' optconst optexceptions optflags optsig ';' optdocstring methodcode {
+mtfunction: TK_STATIC cpptype TK_NAME_VALUE '(' arglist ')' optconst optexceptions optflags optsig ';' optdocstring invokecode methodcode {
             if (notSkipping())
             {
                 applyTypeFlags(currentModule, &$2, &$9);
@@ -1174,7 +1177,7 @@ mtfunction: TK_STATIC cpptype TK_NAME_VALUE '(' arglist ')' optconst optexceptio
 
                 newFunction(currentSpec, currentModule, NULL,
                         currentMappedType, 0, TRUE, FALSE, FALSE, FALSE, $3,
-                        &$5, $7, FALSE, &$9, $13, NULL, $8, $10, $12);
+                        &$5, $7, FALSE, &$9, $13, $14, NULL, $8, $10, $12);
             }
         }
     ;
@@ -3410,7 +3413,7 @@ optvirtual: {
         }
     ;
 
-function:   cpptype TK_NAME_VALUE '(' arglist ')' optconst optexceptions optabstract optflags optsig ';' optdocstring methodcode virtualcatchercode {
+function:   cpptype TK_NAME_VALUE '(' arglist ')' optconst optexceptions optabstract optflags optsig ';' optdocstring invokecode methodcode virtualcatchercode {
             if (notSkipping())
             {
                 applyTypeFlags(currentModule, &$1, &$9);
@@ -3420,7 +3423,7 @@ function:   cpptype TK_NAME_VALUE '(' arglist ')' optconst optexceptions optabst
                 newFunction(currentSpec, currentModule, currentScope(), NULL,
                         sectionFlags, currentIsStatic, currentIsSignal,
                         currentIsSlot, currentOverIsVirt, $2, &$4, $6, $8, &$9,
-                        $13, $14, $7, $10, $12);
+                        $13, $14, $15, $7, $10, $12);
             }
 
             currentIsStatic = FALSE;
@@ -3448,7 +3451,7 @@ function:   cpptype TK_NAME_VALUE '(' arglist ')' optconst optexceptions optabst
             currentIsSlot = FALSE;
             currentOverIsVirt = FALSE;
         }
-    |   cpptype TK_OPERATOR operatorname '(' arglist ')' optconst optexceptions optabstract optflags optsig ';' methodcode virtualcatchercode {
+    |   cpptype TK_OPERATOR operatorname '(' arglist ')' optconst optexceptions optabstract optflags optsig ';' invokecode methodcode virtualcatchercode {
             if (notSkipping())
             {
                 classDef *cd = currentScope();
@@ -3476,7 +3479,7 @@ function:   cpptype TK_NAME_VALUE '(' arglist ')' optconst optexceptions optabst
                 newFunction(currentSpec, currentModule, cd, NULL,
                         sectionFlags, currentIsStatic, currentIsSignal,
                         currentIsSlot, currentOverIsVirt, $3, &$5, $7, $9,
-                        &$10, $13, $14, $8, $11, NULL);
+                        &$10, $13, $14, $15, $8, $11, NULL);
             }
 
             currentIsStatic = FALSE;
@@ -3484,7 +3487,7 @@ function:   cpptype TK_NAME_VALUE '(' arglist ')' optconst optexceptions optabst
             currentIsSlot = FALSE;
             currentOverIsVirt = FALSE;
         }
-    |   TK_OPERATOR cpptype '(' arglist ')' optconst optexceptions optabstract optflags optsig ';' methodcode virtualcatchercode {
+    |   TK_OPERATOR cpptype '(' arglist ')' optconst optexceptions optabstract optflags optsig ';' invokecode methodcode virtualcatchercode {
             if (notSkipping())
             {
                 char *sname;
@@ -3539,7 +3542,7 @@ function:   cpptype TK_NAME_VALUE '(' arglist ')' optconst optexceptions optabst
                     newFunction(currentSpec, currentModule, scope, NULL,
                             sectionFlags, currentIsStatic, currentIsSignal,
                             currentIsSlot, currentOverIsVirt, sname, &$4, $6,
-                            $8, &$9, $12, $13, $7, $10, NULL);
+                            $8, &$9, $12, $13, $14, $7, $10, NULL);
                 }
                 else
                 {
@@ -3684,6 +3687,14 @@ flagvalue:  dottedname {
     |   TK_NUMBER_VALUE {
             $$.ftype = integer_flag;
             $$.fvalue.ival = $1;
+        }
+    ;
+
+invokecode: {
+            $$ = NULL;
+        }
+    |   TK_INVOKECODE codeblock {
+            $$ = $2;
         }
     ;
 
@@ -5898,6 +5909,7 @@ static overDef *instantiateTemplateOverloads(sipSpec *pt, overDef *tod,
             templateSignature(nod->cppsig, TRUE, tcd, td, cd);
         }
 
+        nod->invokecode = templateCode(pt, used, nod->invokecode, type_names, type_values);
         nod->methodcode = templateCode(pt, used, nod->methodcode, type_names, type_values);
 
         /* Handle any virtual handler. */
@@ -6740,9 +6752,9 @@ static void newCtor(moduleDef *mod, char *name, int sectFlags,
 static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         mappedTypeDef *mt_scope, int sflags, int isstatic, int issignal,
         int isslot, int isvirt, char *name, signatureDef *sig, int isconst,
-        int isabstract, optFlags *optflgs, codeBlock *methodcode,
-        codeBlock *vcode, throwArgs *exceptions, signatureDef *cppsig,
-        codeBlock *docstring)
+        int isabstract, optFlags *optflgs, codeBlock *invokecode,
+        codeBlock *methodcode, codeBlock *vcode, throwArgs *exceptions,
+        signatureDef *cppsig, codeBlock *docstring)
 {
     static const char *annos[] = {
         "__len__",
@@ -6923,7 +6935,7 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         pt->sigslots = TRUE;
     }
 
-    if (isSignal(od) && (methodcode != NULL || vcode != NULL))
+    if (isSignal(od) && (invokecode != NULL || methodcode != NULL || vcode != NULL))
         yyerror("Cannot provide code for signals");
 
     if (isstatic)
@@ -7021,6 +7033,7 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
     od->pysig = *sig;
     od->cppsig = (cppsig != NULL ? cppsig : &od->pysig);
     od->exceptions = exceptions;
+    appendCodeBlock(&od->invokecode, invokecode);
     appendCodeBlock(&od->methodcode, methodcode);
     od->virthandler = vhd;
 
@@ -7046,7 +7059,8 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
     pyname = getPythonName(mod, optflgs, name);
 
     od->common = findFunction(pt, mod, c_scope, mt_scope, pyname,
-            (methodcode != NULL), sig->nrArgs, no_arg_parser);
+            (invokecode != NULL || methodcode != NULL), sig->nrArgs,
+            no_arg_parser);
 
     if (isProtected(od))
         setHasProtected(od->common);
@@ -7159,7 +7173,7 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         len->common = findFunction(pt, mod, c_scope, mt_scope, len->cppname,
                 TRUE, 0, FALSE);
 
-        if ((len->methodcode = od->methodcode) == NULL)
+        if (od->methodcode == NULL && od->invokecode == NULL)
         {
             char *buf = sipStrdup("            sipRes = (SIP_SSIZE_T)sipCpp->");
             codeBlock *code;
@@ -7173,6 +7187,7 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
             code->filename = "Auto-generated";
             code->linenr = 1;
 
+            len->methodcode = NULL;
             appendCodeBlock(&len->methodcode, code);
         }
 

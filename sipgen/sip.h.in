@@ -1021,6 +1021,7 @@ typedef struct _overDef {
     signatureDef pysig;                 /* The Python signature. */
     signatureDef *cppsig;               /* The C++ signature. */
     throwArgs *exceptions;              /* The exceptions. */
+    codeBlockList *invokecode;          /* Invocation code. */
     codeBlockList *methodcode;          /* Method code. */
     virtHandlerDef *virthandler;        /* The virtual handler. */
     char *prehook;                      /* The pre-hook name. */
