@@ -1756,7 +1756,7 @@ static void getClassVirtuals(classDef *base, classDef *cd)
     for (od = cd->overs; od != NULL; od = od->next)
     {
         mroDef *mro;
-        classDef *scope;
+        int is_nearer;
         overDef *reimp;
 
         if (!isVirtual(od) || isPrivate(od))
@@ -1766,7 +1766,7 @@ static void getClassVirtuals(classDef *base, classDef *cd)
          * See if there is an implementation nearer in the class hierarchy with
          * the same name that will hide it.
          */
-        scope = NULL;
+        is_nearer = FALSE;
         reimp = NULL;
 
         for (mro = base->mro; mro->cd != cd; mro = mro->next)
@@ -1787,7 +1787,7 @@ static void getClassVirtuals(classDef *base, classDef *cd)
             {
                 if (strcmp(nod->cppname, od->cppname) == 0)
                 {
-                    scope = mro->cd;
+                    is_nearer = TRUE;
 
                     /*
                      * Re-implementations explicitly marked as virtual will
@@ -1800,18 +1800,17 @@ static void getClassVirtuals(classDef *base, classDef *cd)
                 }
             }
 
-            if (scope != NULL)
+            if (is_nearer)
                 break;
         }
 
-        if (scope == NULL || reimp != NULL)
+        if (!is_nearer || reimp != NULL)
         {
             virtOverDef *vod;
 
             vod = sipMalloc(sizeof (virtOverDef));
  
             vod->o = *od;
-            vod->scope = (scope != NULL ? scope : cd);
             vod->next = base->vmembers;
  
             base->vmembers = vod;

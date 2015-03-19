@@ -137,7 +137,6 @@ static void generateVirtualCatcher(sipSpec *pt, moduleDef *mod, classDef *cd,
         int virtNr, virtOverDef *vod, FILE *fp);
 static void generateVirtHandlerCall(sipSpec *pt, moduleDef *mod, classDef *cd,
         virtOverDef *vod, argDef *res, const char *indent, FILE *fp);
-static void generateUnambiguousClass(classDef *cd, classDef *scope, FILE *fp);
 static void generateProtectedEnums(sipSpec *, classDef *, FILE *);
 static void generateProtectedDeclarations(classDef *, FILE *);
 static void generateProtectedDefinitions(moduleDef *, classDef *, FILE *);
@@ -6924,9 +6923,7 @@ static void generateVirtualCatcher(sipSpec *pt, moduleDef *mod, classDef *cd,
             prcode(fp,
 "        return ");
 
-        generateUnambiguousClass(cd, vod->scope, fp);
-
-        prcode(fp, "::%O(", od);
+        prcode(fp, "%S::%O(", classFQCName(cd), od);
  
         for (a = 0; a < od->cppsig->nrArgs; ++a)
         {
@@ -7026,12 +7023,8 @@ static void generateVirtualCatcher(sipSpec *pt, moduleDef *mod, classDef *cd,
         {
             int a;
 
-            prcode(fp, "    %s", (res != NULL ? "return " : ""));
-
-            generateUnambiguousClass(cd, vod->scope, fp);
-
-            prcode(fp, "::%O(", od);
-
+            prcode(fp, "    %s%S::%O(", (res != NULL ? "return " : ""), classFQCName(cd), od);
+ 
             for (a = 0; a < od->cppsig->nrArgs; ++a)
             {
                 argDef *ad = &od->cppsig->args[a];
@@ -7222,63 +7215,6 @@ static virtErrorHandler *getVirtErrorHandler(sipSpec *pt, overDef *od,
         fatal("Unknown virtual error handler \"%s\"\n", name);
 
     return veh;
-}
-
-
-/*
- * Generate the scope of the near class of a virtual taking duplicate
- * super-classes into account.
- */
-static void generateUnambiguousClass(classDef *cd, classDef *scope, FILE *fp)
-{
-    mroDef *mro;
-
-    /* See if the near class has a duplicate. */
-    for (mro = cd->mro; mro != NULL; mro = mro->next)
-        if (mro->cd == scope)
-        {
-            if (hasDuplicateSuper(mro))
-            {
-                mroDef *guardc;
-
-                /*
-                 * Backtrack to find the class that directly sub-classes the
-                 * duplicated one.  This will be the one that disambiguates the
-                 * duplicated one.
-                 */
-                guardc = mro;
-
-                while (guardc != cd->mro)
-                {
-                    mroDef *sub;
-                    classList *cl;
-
-                    for (sub = cd->mro; sub->next != guardc; sub = sub->next)
-                        ;
-
-                    for (cl = sub->cd->supers; cl != NULL; cl = cl->next)
-                        if (cl->cd == mro->cd)
-                        {
-                            prcode(fp, "%S", classFQCName(sub->cd));
-
-                            return;
-                        }
-
-                    /* Try the previous one. */
-                    guardc = sub;
-                }
-            }
-
-            break;
-        }
-
-    /*
-     * If we got here there is nothing to worry about.  Note that we use the
-     * immediate class rather than the scope and let the compiler work it out
-     * in case there are any intermediate implementations that we son't know
-     * about.
-     */
-    prcode(fp, "%S", classFQCName(cd));
 }
 
 
