@@ -1134,7 +1134,7 @@ For example::
         *code*
     %End
 
-This directive is used to specify handwritten code that is executed one the
+This directive is used to specify handwritten code that is executed once the
 instance of a wrapped class has been created.  The handwritten code is passed a
 dictionary of any remaining keyword arguments.  It must explicitly return an
 integer result which should be ``0`` if there was no error.  If an error
