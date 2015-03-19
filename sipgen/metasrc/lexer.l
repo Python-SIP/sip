@@ -395,16 +395,16 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
     return TK_TYPECODE;
 }
 
-^[ \t]*%InvokeCode {
-    /* The start of a C++ invocation code block. */
-    codeIdx = 0;
-    return TK_INVOKECODE;
-}
-
 ^[ \t]*%MethodCode {
     /* The start of a C++ method code block. */
     codeIdx = 0;
     return TK_METHODCODE;
+}
+
+^[ \t]*%VirtualCallCode {
+    /* The start of a C++ virtual call code block. */
+    codeIdx = 0;
+    return TK_VIRTUALCALLCODE;
 }
 
 ^[ \t]*%VirtualCatcherCode {

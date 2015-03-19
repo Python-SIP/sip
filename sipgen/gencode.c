@@ -6911,21 +6911,21 @@ static void generateVirtualCatcher(sipSpec *pt, moduleDef *mod, classDef *cd,
 "    if (!sipMeth)\n"
         );
 
-    if (od->invokecode != NULL)
+    if (od->virtcallcode != NULL)
     {
         int is_result;
 
         prcode(fp,
 "    {\n");
 
-        is_result = generateResultVar(cd->iff, od, &od->pysig.result,
+        is_result = generateResultVar(cd->iff, od, &od->cppsig->result,
                 "        ", fp);
 
         prcode(fp,
 "\n"
             );
 
-        generateCppCodeBlock(od->invokecode, fp);
+        generateCppCodeBlock(od->virtcallcode, fp);
 
         prcode(fp,
 "\n"
@@ -12539,7 +12539,7 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
     else
     {
         int rgil = ((release_gil || isReleaseGIL(od)) && !isHoldGIL(od));
-        int closing_paren = FALSE, hw_code;
+        int closing_paren = FALSE;
 
         if (needsNew && generating_c)
         {
@@ -12570,13 +12570,10 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
 
         generateTry(od->exceptions,fp);
 
-        hw_code = (od->common->slot == no_slot && od->invokecode != NULL);
-
-        if (!hw_code)
-            prcode(fp,
+        prcode(fp,
 "            ");
 
-        if (od->common->slot != cmp_slot && is_result && !hw_code)
+        if (od->common->slot != cmp_slot && is_result)
         {
             /* Construct a copy on the heap if needed. */
             if (needsNew)
@@ -12771,9 +12768,8 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
         if (closing_paren)
             prcode(fp,")");
 
-        if (!hw_code)
-            prcode(fp,";\n"
-                );
+        prcode(fp,";\n"
+            );
 
         generateCatch(od->exceptions, &od->pysig, mod, fp, rgil);
 
@@ -12958,23 +12954,14 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
 static void generateCppFunctionCall(moduleDef *mod, ifaceFileDef *scope,
         ifaceFileDef *o_scope, overDef *od, FILE *fp)
 {
-    char *mname;
-    int parens;
-
-    if (od->invokecode != NULL)
-    {
-        generateCppCodeBlock(od->invokecode, fp);
-        return;
-    }
+    char *mname = od->cppname;
+    int parens = 1;
 
     /*
      * If the function is protected then call the public wrapper.  If it is
      * virtual then call the explicit scoped function if "self" was passed as
      * the first argument.
      */
-
-    mname = od->cppname;
-    parens = 1;
 
     if (scope == NULL)
         prcode(fp, "%s(", mname);
