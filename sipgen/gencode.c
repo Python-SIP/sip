@@ -6913,13 +6913,25 @@ static void generateVirtualCatcher(sipSpec *pt, moduleDef *mod, classDef *cd,
 
     if (od->virtcallcode != NULL)
     {
-        int is_result;
+        argDef *res = &od->cppsig->result;
 
         prcode(fp,
 "    {\n");
 
-        is_result = generateResultVar(cd->iff, od, &od->cppsig->result,
-                "        ", fp);
+        if (res->atype != void_type || res->nrderefs != 0)
+        {
+            prcode(fp,
+"        ");
+
+            generateNamedBaseType(cd->iff, res, "sipRes", TRUE, fp);
+
+            prcode(fp, ";\n"
+                );
+        }
+        else
+        {
+            res = NULL;
+        }
 
         prcode(fp,
 "\n"
@@ -6931,7 +6943,7 @@ static void generateVirtualCatcher(sipSpec *pt, moduleDef *mod, classDef *cd,
 "\n"
 "        return%s;\n"
 "    }\n"
-            , (is_result ? " sipRes" : ""));
+            , (res != NULL ? " sipRes" : ""));
     }
     else if (isAbstract(od))
     {
