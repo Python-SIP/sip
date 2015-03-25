@@ -7172,7 +7172,7 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         len->common = findFunction(pt, mod, c_scope, mt_scope, len->cppname,
                 TRUE, 0, FALSE);
 
-        if (od->methodcode == NULL)
+        if ((len->methodcode = od->methodcode) == NULL)
         {
             char *buf = sipStrdup("            sipRes = (SIP_SSIZE_T)sipCpp->");
             codeBlock *code;
