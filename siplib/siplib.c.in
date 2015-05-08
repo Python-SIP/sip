@@ -768,6 +768,7 @@ static sipSimpleWrapper *deref_mixin(sipSimpleWrapper *w);
 static PyObject *wrap_simple_instance(void *cpp, const sipTypeDef *td,
         sipWrapper *owner, int flags);
 static void *resolve_proxy(const sipTypeDef *td, void *proxy);
+static void clear_wrapper(sipSimpleWrapper *sw);
 
 
 /*
@@ -1210,15 +1211,7 @@ static PyObject *callDtor(PyObject *self, PyObject *args)
     if (checkPointer(addr, sw) < 0)
         return NULL;
 
-    if (PyObject_TypeCheck((PyObject *)sw, (PyTypeObject *)&sipWrapper_Type))
-    {
-        /*
-         * Transfer ownership to C++ so we don't try to release it again when
-         * the Python object is garbage collected.
-         */
-        removeFromParent((sipWrapper *)sw);
-        sipResetPyOwned(sw);
-    }
+    clear_wrapper(sw);
 
     release(addr, (const sipTypeDef *)ctd, sw->flags);
 
@@ -1300,17 +1293,7 @@ static PyObject *setDeleted(PyObject *self, PyObject *args)
     if (!PyArg_ParseTuple(args, "O!:setdeleted", &sipSimpleWrapper_Type, &sw))
         return NULL;
 
-    if (PyObject_TypeCheck((PyObject *)sw, (PyTypeObject *)&sipWrapper_Type))
-    {
-        /*
-         * Transfer ownership to C++ so we don't try to release it when the
-         * Python object is garbage collected.
-         */
-        removeFromParent((sipWrapper *)sw);
-        sipResetPyOwned(sw);
-    }
-
-    clear_access_func(sw);
+    clear_wrapper(sw);
 
     Py_INCREF(Py_None);
     return Py_None;
@@ -12252,4 +12235,22 @@ static void *resolve_proxy(const sipTypeDef *td, void *proxy)
             proxy = pr->resolver(proxy);
 
     return proxy;
+}
+
+
+/*
+ * Clear a simple wrapper.
+ */
+static void clear_wrapper(sipSimpleWrapper *sw)
+{
+    if (PyObject_TypeCheck((PyObject *)sw, (PyTypeObject *)&sipWrapper_Type))
+        removeFromParent((sipWrapper *)sw);
+
+    /*
+     * Transfer ownership to C++ so we don't try to release it when the
+     * Python object is garbage collected.
+     */
+    sipResetPyOwned(sw);
+
+    clear_access_func(sw);
 }
