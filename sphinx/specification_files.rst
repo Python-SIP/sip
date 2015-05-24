@@ -244,22 +244,36 @@ file.
 
     *exception-base* ::= **(** [*exception-name* | *python-exception*] **)**
 
-    *python-exception* ::= [**SIP_Exception** | **SIP_StopIteration** |
-            **SIP_StandardError** | **SIP_ArithmeticError** |
-            **SIP_LookupError** | **SIP_AssertionError** |
-            **SIP_AttributeError** | **SIP_EOFError** |
-            **SIP_FloatingPointError** | **SIP_EnvironmentError** |
-            **SIP_IOError** | **SIP_OSError** | **SIP_ImportError** |
-            **SIP_IndexError** | **SIP_KeyError** | **SIP_KeyboardInterrupt** |
-            **SIP_MemoryError** | **SIP_NameError** | **SIP_OverflowError** |
-            **SIP_RuntimeError** | **SIP_NotImplementedError** |
-            **SIP_SyntaxError** | **SIP_IndentationError** | **SIP_TabError** |
-            **SIP_ReferenceError** | **SIP_SystemError** | **SIP_SystemExit** |
+    *python-exception* ::= [**SIP_ArithmeticError** | **SIP_AssertionError** |
+            **SIP_AttributeError** | **SIP_BaseException** |
+            **SIP_BlockingIOError** | **SIP_BrokenPipeError** |
+            **SIP_BufferError** | **SIP_ChildProcessError** |
+            **SIP_ConnectionAbortedError** | **SIP_ConnectionError** |
+            **SIP_ConnectionRefusedError** | **SIP_ConnectionResetError** |
+            **SIP_EnvironmentError** | **SIP_EOFError** | **SIP_Exception** |
+            **SIP_FileExistsError** | **SIP_FileNotFoundError** |
+            **SIP_FloatingPointError** | **SIP_GeneratorExit** |
+            **SIP_ImportError** | **SIP_IndentationError** |
+            **SIP_IndexError** | **SIP_InterruptedError** | **SIP_IOError** |
+            **SIP_IsADirectoryError** | **SIP_KeyboardInterrupt** |
+            **SIP_KeyError** | **SIP_LookupError** | **SIP_MemoryError** |
+            **SIP_NameError** | **SIP_NotADirectoryError** |
+            **SIP_NotImplementedError** | **SIP_OSError** |
+            **SIP_OverflowError** | **SIP_PermissionError** |
+            **SIP_ProcessLookupError** | **SIP_ReferenceError** |
+            **SIP_RuntimeError** | **SIP_StandardError** |
+            **SIP_StopIteration** | **SIP_SyntaxError** | **SIP_SystemError** |
+            **SIP_SystemExit** | **SIP_TabError** | **SIP_TimeoutError** |
             **SIP_TypeError** | **SIP_UnboundLocalError** |
-            **SIP_UnicodeError** | **SIP_UnicodeEncodeError** |
-            **SIP_UnicodeDecodeError** | **SIP_UnicodeTranslateError** |
-            **SIP_ValueError** | **SIP_ZeroDivisionError** |
-            **SIP_WindowsError** | **SIP_VMSError**]
+            **SIP_UnicodeDecodeError** | **SIP_UnicodeEncodeError** |
+            **SIP_UnicodeError** | **SIP_UnicodeTranslateError** |
+            **SIP_ValueError** | **SIP_VMSError** | **SIP_WindowsError** |
+            **SIP_ZeroDivisionError** | **SIP_Warning** |
+            **SIP_BytesWarning** | **SIP_DeprecationWarning** |
+            **SIP_FutureWarning** | **SIP_ImportWarning** |
+            **SIP_PendingDeprecationWarning** | **SIP_ResourceWarning** |
+            **SIP_RuntimeWarning** | **SIP_SyntaxWarning** |
+            **SIP_UnicodeWarning** | **SIP_UserWarning**]
 
     *exceptions* ::= **throw (** [*exception-list*] **)**
 

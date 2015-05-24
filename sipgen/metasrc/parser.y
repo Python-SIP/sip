@@ -916,17 +916,19 @@ baseexception:  {
                 /* See if it is a builtin exception. */
 
                 static char *builtins[] = {
+                    "BaseException",
                     "Exception",
                     "StopIteration",
-                    "StandardError",
+                    "GeneratorExit",
                     "ArithmeticError",
                     "LookupError",
+                    "StandardError",                /* Python v2. */
+
                     "AssertionError",
                     "AttributeError",
+                    "BufferError",
                     "EOFError",
                     "FloatingPointError",
-                    "EnvironmentError",
-                    "IOError",
                     "OSError",
                     "ImportError",
                     "IndexError",
@@ -951,8 +953,39 @@ baseexception:  {
                     "UnicodeTranslateError",
                     "ValueError",
                     "ZeroDivisionError",
-                    "WindowsError",
-                    "VMSError",
+                    "EnvironmentError",             /* Python v2. */
+                    "IOError",                      /* Python v2. */
+                    "WindowsError",                 /* Python v2. */
+                    "VMSError",                     /* Python v2. */
+
+                    "BlockingIOError",
+                    "BrokenPipeError",
+                    "ChildProcessError",
+                    "ConnectionError",
+                    "ConnectionAbortedError",
+                    "ConnectionRefusedError",
+                    "ConnectionResetError",
+                    "FileExistsError",
+                    "FileNotFoundError",
+                    "InterruptedError",
+                    "IsADirectoryError",
+                    "NotADirectoryError",
+                    "PermissionError",
+                    "ProcessLookupError",
+                    "TimeoutError",
+
+                    "Warning",
+                    "UserWarning",
+                    "DeprecationWarning",
+                    "PendingDeprecationWarning",
+                    "SyntaxWarning",
+                    "RuntimeWarning",
+                    "FutureWarning",
+                    "ImportWarning",
+                    "UnicodeWarning",
+                    "BytesWarning",
+                    "ResourceWarning",
+
                     NULL
                 };
 
