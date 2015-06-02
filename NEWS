@@ -1,3 +1,7 @@
+v4.16.8 ??? June 2015
+  - Added support for the current Python v3 exceptions.
+  - Bug fixes.
+
 v4.16.7 25th March 2015
   - Added the %VirtualCallCode directive.
   - Bug fixes.
