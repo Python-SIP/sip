@@ -68,6 +68,8 @@ extern "C" {
  *
  * History:
  *
+ * 11.2 Added sip_api_get_reference() to the private API.
+ *
  * 11.1 Added sip_api_invoke_slot_ex().
  *
  * 11.0 Added the pyqt5QtSignal and pyqt5ClassTypeDef structures.
@@ -1522,6 +1524,10 @@ typedef struct _sipAPIDef {
      */
     PyObject *(*api_invoke_slot_ex)(const sipSlot *slot, PyObject *sigargs,
             int check_receiver);
+    /*
+     * The following are not part of the public API.
+     */
+    PyObject *(*api_get_reference)(PyObject *self, int key);
 } sipAPIDef;
 
 

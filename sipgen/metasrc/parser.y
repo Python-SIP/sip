@@ -4576,9 +4576,7 @@ static moduleDef *allocModule()
     newmod->encoding = no_type;
     newmod->qobjclass = -1;
     newmod->nrvirthandlers = -1;
-
-    /* -1 is reserved for variable getters. */
-    newmod->next_key = -2;
+    newmod->next_key = -1;
 
     /*
      * The consolidated module support needs these to be in order that they
