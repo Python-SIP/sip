@@ -4586,7 +4586,7 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
     needsNew = ((atype == class_type || atype == mapped_type) && vd->type.nrderefs == 0 && isConstArg(&vd->type));
     key = ((atype == class_type || atype == mapped_type) && vd->type.nrderefs == 0) ? vd->module->next_key-- : 0;
 
-    second_arg = (generating_c || key < 0) ? "sipPySelf" : "";
+    second_arg = (generating_c || (key < 0 && !isStaticVar(vd))) ? "sipPySelf" : "";
 
     prcode(fp,
 "\n"
@@ -4603,11 +4603,22 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
 "{\n"
         , vd->fqcname, first_arg, second_arg, last_arg);
 
-    if (vd->getcode != NULL || key < 0)
+    if (vd->getcode != NULL)
     {
         prcode(fp,
 "    PyObject *sipPy;\n"
             );
+    }
+    else if (key < 0)
+    {
+        if (isStaticVar(vd))
+            prcode(fp,
+"    static PyObject *sipPy = NULL;\n"
+                );
+        else
+            prcode(fp,
+"    PyObject *sipPy;\n"
+                );
     }
 
     if (vd->getcode == NULL)
@@ -4631,11 +4642,11 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
             prcode(fp,
 "    %S *sipCpp = reinterpret_cast<%S *>(sipSelf);\n"
                 , classFQCName(vd->ecd), classFQCName(vd->ecd));
-
-        prcode(fp,
-"\n"
-            );
     }
+
+    prcode(fp,
+"\n"
+        );
 
     /* Handle any handwritten getter. */
     if (vd->getcode != NULL)
@@ -4649,6 +4660,30 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
             );
 
         return;
+    }
+
+    if (key < 0)
+    {
+        if (isStaticVar(vd))
+        {
+            prcode(fp,
+"    if (sipPy)\n"
+"    {\n"
+"        Py_INCREF(sipPy);\n"
+"        return sipPy;\n"
+"    }\n"
+"\n"
+                );
+        }
+        else
+        {
+            prcode(fp,
+"    sipPy = sipGetReference(sipPySelf, %d);\n"
+"    if (sipPy)\n"
+"        return sipPy;\n"
+"\n"
+                , key);
+        }
     }
 
     if (needsNew)
@@ -4687,14 +4722,6 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
             else
                 iff = vd->type.u.cd->iff;
 
-            if (key < 0)
-                prcode(fp,
-"    sipPy = sipGetReference(sipPySelf, %d);\n"
-"    if (sipPy)\n"
-"        return sipPy;\n"
-"\n"
-                    , key);
-
             prcode(fp,
 "    %s sipConvertFrom%sType(", (key < 0 ? "sipPy =" : "return"), (needsNew ? "New" : ""));
 
@@ -4708,11 +4735,15 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
 
             if (key < 0)
             {
-                prcode(fp,
+                if (!isStaticVar(vd))
+                    prcode(fp,
 "    sipKeepReference(sipPySelf, %d, sipPy);\n"
+                        , key);
+
+                prcode(fp,
 "\n"
 "    return sipPy;\n"
-                    , key);
+                    );
             }
         }
 
