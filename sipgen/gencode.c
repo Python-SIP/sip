@@ -4735,7 +4735,11 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
 
             if (key < 0)
             {
-                if (!isStaticVar(vd))
+                if (isStaticVar(vd))
+                    prcode(fp,
+"    Py_XINCREF(sipPy);\n"
+                        );
+                else
                     prcode(fp,
 "    sipKeepReference(sipPySelf, %d, sipPy);\n"
                         , key);
