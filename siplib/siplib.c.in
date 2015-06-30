@@ -12284,5 +12284,7 @@ static void clear_wrapper(sipSimpleWrapper *sw)
      */
     sipResetPyOwned(sw);
 
+    sipOMRemoveObject(&cppPyMap, sw);
+
     clear_access_func(sw);
 }
