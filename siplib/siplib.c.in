@@ -10623,7 +10623,7 @@ static int sipWrapper_clear(sipWrapper *self)
     vret = sipSimpleWrapper_clear(sw);
 
     /* Remove any slots connected via a proxy. */
-    if (sipQtSupport != NULL && sipPossibleProxy(sw))
+    if (sipQtSupport != NULL && sipPossibleProxy(sw) && !sipNotInMap(sw))
     {
         void *tx = sip_api_get_address(sw);
 
@@ -10682,8 +10682,13 @@ static int sipWrapper_traverse(sipWrapper *self, visitproc visit, void *arg)
     if ((vret = sipSimpleWrapper_traverse(sw, visit, arg)) != 0)
         return vret;
 
-    /* This should be handwritten code in PyQt. */
-    if (sipQtSupport != NULL && sipQtSupport->qt_find_sipslot)
+    /*
+     * This should be handwritten code in PyQt.  The map check is a bit of a
+     * hack to work around PyQt4 problems with qApp and a user created
+     * instance.  qt_find_sipslot() will return the same slot information for
+     * both causing the gc module to trigger assert() failures.
+     */
+    if (sipQtSupport != NULL && sipQtSupport->qt_find_sipslot && !sipNotInMap(sw))
     {
         void *tx = sip_api_get_address(sw);
 
