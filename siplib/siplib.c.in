@@ -7454,11 +7454,20 @@ static void sip_api_bad_class(const char *classname)
 
 
 /*
- * Report a Python member function with an unexpected return type.
+ * Report a Python member function with an unexpected result.
  */
 static void sip_api_bad_catcher_result(PyObject *method)
 {
-    PyObject *mname;
+    PyObject *mname, *etype, *evalue, *etraceback;
+
+    /*
+     * Get the current exception object if there is one.  Its string
+     * representation will be used as the detail of a new exception.
+     */
+    PyErr_Fetch(&etype, &evalue, &etraceback);
+    PyErr_NormalizeException(&etype, &evalue, &etraceback);
+    Py_XDECREF(etype);
+    Py_XDECREF(etraceback);
 
     /*
      * This is part of the public API so we make no assumptions about the
@@ -7476,14 +7485,34 @@ static void sip_api_bad_catcher_result(PyObject *method)
 
     mname = ((PyFunctionObject *)PyMethod_GET_FUNCTION(method))->func_name;
 
+    if (evalue != NULL)
+    {
 #if PY_MAJOR_VERSION >= 3
-    PyErr_Format(PyExc_TypeError, "invalid result type from %s.%U()",
-            Py_TYPE(PyMethod_GET_SELF(method))->tp_name, mname);
+        PyErr_Format(PyExc_TypeError, "invalid result from %s.%U(), %S",
+                Py_TYPE(PyMethod_GET_SELF(method))->tp_name, mname, evalue);
 #else
-    PyErr_Format(PyExc_TypeError, "invalid result type from %s.%s()",
-            Py_TYPE(PyMethod_GET_SELF(method))->tp_name,
-            PyString_AsString(mname));
+        PyObject *evalue_s = PyObject_Str(evalue);
+
+        PyErr_Format(PyExc_TypeError, "invalid result from %s.%s(), %s",
+                Py_TYPE(PyMethod_GET_SELF(method))->tp_name,
+                PyString_AsString(mname), PyString_AsString(evalue_s));
+
+        Py_XDECREF(evalue_s);
 #endif
+
+        Py_DECREF(evalue);
+    }
+    else
+    {
+#if PY_MAJOR_VERSION >= 3
+        PyErr_Format(PyExc_TypeError, "invalid result from %s.%U()",
+                Py_TYPE(PyMethod_GET_SELF(method))->tp_name, mname);
+#else
+        PyErr_Format(PyExc_TypeError, "invalid result from %s.%s()",
+                Py_TYPE(PyMethod_GET_SELF(method))->tp_name,
+                PyString_AsString(mname));
+#endif
+    }
 }
 
 
