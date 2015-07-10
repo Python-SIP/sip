@@ -8517,10 +8517,17 @@ static int sip_api_can_convert_to_type(PyObject *pyObj, const sipTypeDef *td,
 {
     int ok;
 
-    assert(sipTypeIsClass(td) || sipTypeIsMapped(td));
+    assert(td == NULL || sipTypeIsClass(td) || sipTypeIsMapped(td));
 
-    /* None is handled outside the type checkers. */
-    if (pyObj == Py_None)
+    if (td == NULL)
+    {
+        /*
+         * The type must be /External/ and the module that contains the
+         * implementation hasn't been imported.
+         */
+        ok = FALSE;
+    }
+    else if (pyObj == Py_None)
     {
         /* If the type explicitly handles None then ignore the flags. */
         if (sipTypeAllowNone(td))
