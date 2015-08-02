@@ -1965,15 +1965,13 @@ static PyObject *sip_api_call_method(int *isErr, PyObject *method,
 
     va_start(va,fmt);
 
-    if ((args = PyTuple_New(strlen(fmt))) != NULL && buildObject(args,fmt,va) != NULL)
-        res = PyEval_CallObject(method,args);
+    if ((args = PyTuple_New(strlen(fmt))) != NULL && buildObject(args, fmt, va) != NULL)
+        res = PyEval_CallObject(method, args);
     else
-    {
         res = NULL;
 
-        if (isErr != NULL)
-            *isErr = TRUE;
-    }
+    if (res == NULL && isErr != NULL)
+        *isErr = TRUE;
 
     Py_XDECREF(args);
 
