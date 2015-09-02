@@ -556,7 +556,7 @@ The following describes how SIP handles this memory in the different situations
 where this is an issue.
 
     - When a wide string or array is passed to a function or method then the
-      memory is freed (using :c:func:`sipFree()`) after than function or method
+      memory is freed (using :c:func:`sipFree()`) after that function or method
       returns.
 
     - When a wide string or array is returned from a virtual method then SIP

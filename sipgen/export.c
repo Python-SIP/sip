@@ -612,6 +612,11 @@ static int xmlOverload(sipSpec *pt, classDef *scope, memberDef *md,
         fprintf(fp, "\"");
     }
 
+    if (isVirtual(od))
+    {
+        fprintf(fp, " virtual=\"1\"");
+    }
+
     if (xtnds != NULL)
     {
         fprintf(fp, " extends=\"");

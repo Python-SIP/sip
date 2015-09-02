@@ -3274,15 +3274,21 @@ static mappedTypeDef *copyTemplateType(mappedTypeDef *mtd, argDef *ad)
         if (tdd != NULL)
         {
             /*
-             * Create the copy now that we know it is needed and if it hasn't
-             * already been done.
+             * Create an appropriately deep copy now that we know it is needed
+             * and if it hasn't already been done.
              */
             if (mtd_copy == mtd)
             {
+                templateDef *td_copy;
+
                 mtd_copy = sipMalloc(sizeof (mappedTypeDef));
                 *mtd_copy = *mtd;
 
-                dst = &mtd_copy->type.u.td->types;
+                td_copy = sipMalloc(sizeof (templateDef));
+                *td_copy = *mtd->type.u.td;
+                mtd_copy->type.u.td = td_copy;
+
+                dst = &td_copy->types;
             }
 
             dst->args[a].original_type = tdd;

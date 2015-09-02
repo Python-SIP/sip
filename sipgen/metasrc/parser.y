@@ -82,7 +82,8 @@ static void newCtor(moduleDef *, char *, int, signatureDef *, optFlags *,
         codeBlock *, throwArgs *, signatureDef *, int, codeBlock *);
 static void newFunction(sipSpec *, moduleDef *, classDef *, mappedTypeDef *,
         int, int, int, int, int, char *, signatureDef *, int, int, optFlags *,
-        codeBlock *, codeBlock *, throwArgs *, signatureDef *, codeBlock *);
+        codeBlock *, codeBlock *, codeBlock *, throwArgs *, signatureDef *,
+        codeBlock *);
 static optFlag *findOptFlag(optFlags *flgs, const char *name);
 static optFlag *getOptFlag(optFlags *flgs, const char *name, flagType ft);
 static memberDef *findFunction(sipSpec *, moduleDef *, classDef *,
@@ -263,6 +264,7 @@ static int isBackstop(qualDef *qd);
 %token          TK_SEGCOUNTCODE
 %token          TK_CHARBUFFERCODE
 %token          TK_PICKLECODE
+%token          TK_VIRTUALCALLCODE
 %token          TK_METHODCODE
 %token          TK_INSTANCECODE
 %token          TK_FROMTYPE
@@ -406,6 +408,7 @@ static int isBackstop(qualDef *qd);
 %type <codeb>           codeblock
 %type <codeb>           codelines
 %type <codeb>           virtualcatchercode
+%type <codeb>           virtualcallcode
 %type <codeb>           methodcode
 %type <codeb>           instancecode
 %type <codeb>           raisecode
@@ -913,17 +916,19 @@ baseexception:  {
                 /* See if it is a builtin exception. */
 
                 static char *builtins[] = {
+                    "BaseException",
                     "Exception",
                     "StopIteration",
-                    "StandardError",
+                    "GeneratorExit",
                     "ArithmeticError",
                     "LookupError",
+                    "StandardError",                /* Python v2. */
+
                     "AssertionError",
                     "AttributeError",
+                    "BufferError",
                     "EOFError",
                     "FloatingPointError",
-                    "EnvironmentError",
-                    "IOError",
                     "OSError",
                     "ImportError",
                     "IndexError",
@@ -948,8 +953,39 @@ baseexception:  {
                     "UnicodeTranslateError",
                     "ValueError",
                     "ZeroDivisionError",
-                    "WindowsError",
-                    "VMSError",
+                    "EnvironmentError",             /* Python v2. */
+                    "IOError",                      /* Python v2. */
+                    "WindowsError",                 /* Python v2. */
+                    "VMSError",                     /* Python v2. */
+
+                    "BlockingIOError",
+                    "BrokenPipeError",
+                    "ChildProcessError",
+                    "ConnectionError",
+                    "ConnectionAbortedError",
+                    "ConnectionRefusedError",
+                    "ConnectionResetError",
+                    "FileExistsError",
+                    "FileNotFoundError",
+                    "InterruptedError",
+                    "IsADirectoryError",
+                    "NotADirectoryError",
+                    "PermissionError",
+                    "ProcessLookupError",
+                    "TimeoutError",
+
+                    "Warning",
+                    "UserWarning",
+                    "DeprecationWarning",
+                    "PendingDeprecationWarning",
+                    "SyntaxWarning",
+                    "RuntimeWarning",
+                    "FutureWarning",
+                    "ImportWarning",
+                    "UnicodeWarning",
+                    "BytesWarning",
+                    "ResourceWarning",
+
                     NULL
                 };
 
@@ -1174,7 +1210,7 @@ mtfunction: TK_STATIC cpptype TK_NAME_VALUE '(' arglist ')' optconst optexceptio
 
                 newFunction(currentSpec, currentModule, NULL,
                         currentMappedType, 0, TRUE, FALSE, FALSE, FALSE, $3,
-                        &$5, $7, FALSE, &$9, $13, NULL, $8, $10, $12);
+                        &$5, $7, FALSE, &$9, $13, NULL, NULL, $8, $10, $12);
             }
         }
     ;
@@ -3410,7 +3446,7 @@ optvirtual: {
         }
     ;
 
-function:   cpptype TK_NAME_VALUE '(' arglist ')' optconst optexceptions optabstract optflags optsig ';' optdocstring methodcode virtualcatchercode {
+function:   cpptype TK_NAME_VALUE '(' arglist ')' optconst optexceptions optabstract optflags optsig ';' optdocstring methodcode virtualcatchercode virtualcallcode {
             if (notSkipping())
             {
                 applyTypeFlags(currentModule, &$1, &$9);
@@ -3420,7 +3456,7 @@ function:   cpptype TK_NAME_VALUE '(' arglist ')' optconst optexceptions optabst
                 newFunction(currentSpec, currentModule, currentScope(), NULL,
                         sectionFlags, currentIsStatic, currentIsSignal,
                         currentIsSlot, currentOverIsVirt, $2, &$4, $6, $8, &$9,
-                        $13, $14, $7, $10, $12);
+                        $13, $14, $15, $7, $10, $12);
             }
 
             currentIsStatic = FALSE;
@@ -3448,7 +3484,7 @@ function:   cpptype TK_NAME_VALUE '(' arglist ')' optconst optexceptions optabst
             currentIsSlot = FALSE;
             currentOverIsVirt = FALSE;
         }
-    |   cpptype TK_OPERATOR operatorname '(' arglist ')' optconst optexceptions optabstract optflags optsig ';' methodcode virtualcatchercode {
+    |   cpptype TK_OPERATOR operatorname '(' arglist ')' optconst optexceptions optabstract optflags optsig ';' methodcode virtualcatchercode virtualcallcode {
             if (notSkipping())
             {
                 classDef *cd = currentScope();
@@ -3476,7 +3512,7 @@ function:   cpptype TK_NAME_VALUE '(' arglist ')' optconst optexceptions optabst
                 newFunction(currentSpec, currentModule, cd, NULL,
                         sectionFlags, currentIsStatic, currentIsSignal,
                         currentIsSlot, currentOverIsVirt, $3, &$5, $7, $9,
-                        &$10, $13, $14, $8, $11, NULL);
+                        &$10, $13, $14, $15, $8, $11, NULL);
             }
 
             currentIsStatic = FALSE;
@@ -3484,7 +3520,7 @@ function:   cpptype TK_NAME_VALUE '(' arglist ')' optconst optexceptions optabst
             currentIsSlot = FALSE;
             currentOverIsVirt = FALSE;
         }
-    |   TK_OPERATOR cpptype '(' arglist ')' optconst optexceptions optabstract optflags optsig ';' methodcode virtualcatchercode {
+    |   TK_OPERATOR cpptype '(' arglist ')' optconst optexceptions optabstract optflags optsig ';' methodcode virtualcatchercode virtualcallcode {
             if (notSkipping())
             {
                 char *sname;
@@ -3539,7 +3575,7 @@ function:   cpptype TK_NAME_VALUE '(' arglist ')' optconst optexceptions optabst
                     newFunction(currentSpec, currentModule, scope, NULL,
                             sectionFlags, currentIsStatic, currentIsSignal,
                             currentIsSlot, currentOverIsVirt, sname, &$4, $6,
-                            $8, &$9, $12, $13, $7, $10, NULL);
+                            $8, &$9, $12, $13, $14, $7, $10, NULL);
                 }
                 else
                 {
@@ -3684,6 +3720,14 @@ flagvalue:  dottedname {
     |   TK_NUMBER_VALUE {
             $$.ftype = integer_flag;
             $$.fvalue.ival = $1;
+        }
+    ;
+
+virtualcallcode: {
+            $$ = NULL;
+        }
+    |   TK_VIRTUALCALLCODE codeblock {
+            $$ = $2;
         }
     ;
 
@@ -4532,9 +4576,7 @@ static moduleDef *allocModule()
     newmod->encoding = no_type;
     newmod->qobjclass = -1;
     newmod->nrvirthandlers = -1;
-
-    /* -1 is reserved for variable getters. */
-    newmod->next_key = -2;
+    newmod->next_key = -1;
 
     /*
      * The consolidated module support needs these to be in order that they
@@ -5899,6 +5941,7 @@ static overDef *instantiateTemplateOverloads(sipSpec *pt, overDef *tod,
         }
 
         nod->methodcode = templateCode(pt, used, nod->methodcode, type_names, type_values);
+        nod->virtcallcode = templateCode(pt, used, nod->virtcallcode, type_names, type_values);
 
         /* Handle any virtual handler. */
         if (od->virthandler != NULL)
@@ -6741,11 +6784,13 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         mappedTypeDef *mt_scope, int sflags, int isstatic, int issignal,
         int isslot, int isvirt, char *name, signatureDef *sig, int isconst,
         int isabstract, optFlags *optflgs, codeBlock *methodcode,
-        codeBlock *vcode, throwArgs *exceptions, signatureDef *cppsig,
-        codeBlock *docstring)
+        codeBlock *vcode, codeBlock *virtcallcode, throwArgs *exceptions,
+        signatureDef *cppsig, codeBlock *docstring)
 {
     static const char *annos[] = {
         "__len__",
+        "__imatmul__",
+        "__matmul__",
         "AbortOnException",
         "AllowNone",
         "API",
@@ -6923,7 +6968,7 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         pt->sigslots = TRUE;
     }
 
-    if (isSignal(od) && (methodcode != NULL || vcode != NULL))
+    if (isSignal(od) && (methodcode != NULL || vcode != NULL || virtcallcode))
         yyerror("Cannot provide code for signals");
 
     if (isstatic)
@@ -7022,6 +7067,7 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
     od->cppsig = (cppsig != NULL ? cppsig : &od->pysig);
     od->exceptions = exceptions;
     appendCodeBlock(&od->methodcode, methodcode);
+    appendCodeBlock(&od->virtcallcode, virtcallcode);
     od->virthandler = vhd;
 
     no_arg_parser = (getOptFlag(optflgs, "NoArgParser", bool_flag) != NULL);
@@ -7143,7 +7189,9 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         }
     }
 
-    /* See if we want to auto-generate a __len__() method. */
+    od->next = NULL;
+
+    /* See if we want to auto-generate some methods. */
     if (getOptFlag(optflgs, "__len__", bool_flag) != NULL)
     {
         overDef *len;
@@ -7151,13 +7199,10 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         len = sipMalloc(sizeof (overDef));
 
         len->cppname = "__len__";
-        len->overflags = SECT_IS_PUBLIC;
+        len->overflags = od->overflags;
         len->pysig.result.atype = ssize_type;
         len->pysig.nrArgs = 0;
         len->cppsig = &len->pysig;
-
-        len->common = findFunction(pt, mod, c_scope, mt_scope, len->cppname,
-                TRUE, 0, FALSE);
 
         if ((len->methodcode = od->methodcode) == NULL)
         {
@@ -7176,13 +7221,53 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
             appendCodeBlock(&len->methodcode, code);
         }
 
-        len->next = NULL;
+        len->common = findFunction(pt, mod, c_scope, mt_scope, len->cppname,
+                TRUE, 0, FALSE);
 
+        len->next = od->next;
         od->next = len;
     }
-    else
+
+    if (getOptFlag(optflgs, "__matmul__", bool_flag) != NULL)
     {
-        od->next = NULL;
+        overDef *matmul;
+
+        matmul = sipMalloc(sizeof (overDef));
+
+        matmul->cppname = "__matmul__";
+        matmul->overflags = od->overflags;
+        matmul->pysig = od->pysig;
+        matmul->cppsig = (cppsig != NULL ? cppsig : &matmul->pysig);
+
+        matmul->methodcode = od->methodcode;
+
+        matmul->common = findFunction(pt, mod, c_scope, mt_scope,
+                matmul->cppname, (matmul->methodcode != NULL),
+                matmul->pysig.nrArgs, FALSE);
+
+        matmul->next = od->next;
+        od->next = matmul;
+    }
+
+    if (getOptFlag(optflgs, "__imatmul__", bool_flag) != NULL)
+    {
+        overDef *imatmul;
+
+        imatmul = sipMalloc(sizeof (overDef));
+
+        imatmul->cppname = "__imatmul__";
+        imatmul->overflags = od->overflags;
+        imatmul->pysig = od->pysig;
+        imatmul->cppsig = (cppsig != NULL ? cppsig : &imatmul->pysig);
+
+        imatmul->methodcode = od->methodcode;
+
+        imatmul->common = findFunction(pt, mod, c_scope, mt_scope,
+                imatmul->cppname, (imatmul->methodcode != NULL),
+                imatmul->pysig.nrArgs, FALSE);
+
+        imatmul->next = od->next;
+        od->next = imatmul;
     }
 
     /* Append to the list. */
@@ -7328,6 +7413,8 @@ static memberDef *findFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         {"__next__", next_slot, TRUE, 0},
         {"__setattr__", setattr_slot, TRUE, 2},
         {"__delattr__", delattr_slot, TRUE, 1},
+        {"__matmul__", matmul_slot, FALSE, 1},
+        {"__imatmul__", imatmul_slot, FALSE, 1},
         {NULL}
     };
 

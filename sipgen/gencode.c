@@ -101,6 +101,7 @@ static void generateFunction(sipSpec *, memberDef *, overDef *, classDef *,
         classDef *, moduleDef *, FILE *);
 static void generateFunctionBody(overDef *, classDef *, mappedTypeDef *,
         classDef *, int deref, moduleDef *, FILE *);
+static void generatePyObjects(sipSpec *pt, moduleDef *mod, FILE *fp);
 static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp);
 static void generateTypeInit(classDef *, moduleDef *, FILE *);
 static void generateCppCodeBlock(codeBlockList *cbl, FILE *fp);
@@ -148,6 +149,8 @@ static void generateHandleResult(moduleDef *, overDef *, int, int, char *,
 static void generateOrdinaryFunction(sipSpec *pt, moduleDef *mod,
         classDef *c_scope, mappedTypeDef *mt_scope, memberDef *md, FILE *fp);
 static void generateSimpleFunctionCall(fcallDef *, FILE *);
+static int generateResultVar(ifaceFileDef *scope, overDef *od, argDef *res,
+        const char *indent, FILE *fp);
 static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
         ifaceFileDef *o_scope, overDef *od, int deref, moduleDef *mod,
         FILE *fp);
@@ -715,6 +718,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipVisitSlot                sipAPI_%s->api_visit_slot\n"
 "#define sipWrappedTypeName(wt)      ((wt)->type->td_cname)\n"
 "#define sipDeprecated               sipAPI_%s->api_deprecated\n"
+"#define sipGetReference             sipAPI_%s->api_get_reference\n"
 "#define sipKeepReference            sipAPI_%s->api_keep_reference\n"
 "#define sipRegisterProxyResolver    sipAPI_%s->api_register_proxy_resolver\n"
 "#define sipRegisterPyType           sipAPI_%s->api_register_py_type\n"
@@ -750,6 +754,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipConvertFromMappedType    sipConvertFromType\n"
 "#define sipConvertFromNamedEnum(v, pt)  sipConvertFromEnum((v), ((sipEnumTypeObject *)(pt))->type)\n"
 "#define sipConvertFromNewInstance(p, wt, t) sipConvertFromNewType((p), (wt)->type, (t))\n"
+        ,mname
         ,mname
         ,mname
         ,mname
@@ -2292,6 +2297,8 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 
     generateTypesInline(pt, mod, fp);
 
+    generatePyObjects(pt, mod, fp);
+
     /* Create any exceptions. */
     for (xd = pt->exceptions; xd != NULL; xd = xd->next)
     {
@@ -3067,6 +3074,53 @@ static void generateAccessFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
         prcode(fp,
 "}\n"
             );
+    }
+}
+
+
+/*
+ * Generate the inline code to add a set of Python objects to a module
+ * dictionary.  Note that we should add these via a table (like int, etc) but
+ * that will require a major API version change so this will do for now.
+ */
+static void generatePyObjects(sipSpec *pt, moduleDef *mod, FILE *fp)
+{
+    int noIntro;
+    varDef *vd;
+
+    noIntro = TRUE;
+
+    for (vd = pt->vars; vd != NULL; vd = vd->next)
+    {
+        if (vd->module != mod)
+            continue;
+
+        if (vd->type.atype != pyobject_type &&
+            vd->type.atype != pytuple_type &&
+            vd->type.atype != pylist_type &&
+            vd->type.atype != pydict_type &&
+            vd->type.atype != pycallable_type &&
+            vd->type.atype != pyslice_type &&
+            vd->type.atype != pytype_type &&
+            vd->type.atype != pybuffer_type)
+            continue;
+
+        if (needsHandler(vd))
+            continue;
+
+        if (noIntro)
+        {
+            prcode(fp,
+"\n"
+"    /* Define the Python objects wrapped as such. */\n"
+                );
+
+            noIntro = FALSE;
+        }
+
+        prcode(fp,
+"    PyDict_SetItemString(sipModuleDict, %N, %S);\n"
+                , vd->pyname, vd->fqcname);
     }
 }
 
@@ -4520,7 +4574,7 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
 {
     argType atype = vd->type.atype;
     const char *first_arg, *second_arg, *last_arg;
-    int needsNew, keepRef;
+    int needsNew, key;
 
     if (generating_c || !isStaticVar(vd))
         first_arg = "sipSelf";
@@ -4530,9 +4584,9 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
     last_arg = (generating_c || usedInCode(vd->getcode, "sipPyType")) ? "sipPyType" : "";
 
     needsNew = ((atype == class_type || atype == mapped_type) && vd->type.nrderefs == 0 && isConstArg(&vd->type));
-    keepRef = (atype == class_type && vd->type.nrderefs == 0 && !isConstArg(&vd->type));
+    key = ((atype == class_type || atype == mapped_type) && vd->type.nrderefs == 0) ? vd->module->next_key-- : 0;
 
-    second_arg = (generating_c || keepRef) ? "sipPySelf" : "";
+    second_arg = (generating_c || (key < 0 && !isStaticVar(vd))) ? "sipPySelf" : "";
 
     prcode(fp,
 "\n"
@@ -4549,11 +4603,22 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
 "{\n"
         , vd->fqcname, first_arg, second_arg, last_arg);
 
-    if (vd->getcode != NULL || keepRef)
+    if (vd->getcode != NULL)
     {
         prcode(fp,
 "    PyObject *sipPy;\n"
             );
+    }
+    else if (key < 0)
+    {
+        if (isStaticVar(vd))
+            prcode(fp,
+"    static PyObject *sipPy = NULL;\n"
+                );
+        else
+            prcode(fp,
+"    PyObject *sipPy;\n"
+                );
     }
 
     if (vd->getcode == NULL)
@@ -4577,11 +4642,11 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
             prcode(fp,
 "    %S *sipCpp = reinterpret_cast<%S *>(sipSelf);\n"
                 , classFQCName(vd->ecd), classFQCName(vd->ecd));
-
-        prcode(fp,
-"\n"
-            );
     }
+
+    prcode(fp,
+"\n"
+        );
 
     /* Handle any handwritten getter. */
     if (vd->getcode != NULL)
@@ -4595,6 +4660,30 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
             );
 
         return;
+    }
+
+    if (key < 0)
+    {
+        if (isStaticVar(vd))
+        {
+            prcode(fp,
+"    if (sipPy)\n"
+"    {\n"
+"        Py_INCREF(sipPy);\n"
+"        return sipPy;\n"
+"    }\n"
+"\n"
+                );
+        }
+        else
+        {
+            prcode(fp,
+"    sipPy = sipGetReference(sipPySelf, %d);\n"
+"    if (sipPy)\n"
+"        return sipPy;\n"
+"\n"
+                , key);
+        }
     }
 
     if (needsNew)
@@ -4634,7 +4723,7 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
                 iff = vd->type.u.cd->iff;
 
             prcode(fp,
-"    %s sipConvertFrom%sType(", (keepRef ? "sipPy =" : "return"), (needsNew ? "New" : ""));
+"    %s sipConvertFrom%sType(", (key < 0 ? "sipPy =" : "return"), (needsNew ? "New" : ""));
 
             if (isConstArg(&vd->type))
                 prcode(fp, "const_cast<%b *>(sipVal)", &vd->type);
@@ -4644,10 +4733,18 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
             prcode(fp, ", sipType_%C, NULL);\n"
                 , iff->fqcname);
 
-            if (keepRef)
+            if (key < 0)
             {
+                if (isStaticVar(vd))
+                    prcode(fp,
+"    Py_XINCREF(sipPy);\n"
+                        );
+                else
+                    prcode(fp,
+"    sipKeepReference(sipPySelf, %d, sipPy);\n"
+                        , key);
+
                 prcode(fp,
-"    sipKeepReference(sipPy, -1, sipPySelf);\n"
 "\n"
 "    return sipPy;\n"
                     );
@@ -5405,7 +5502,8 @@ int isInplaceNumberSlot(memberDef *md)
     return (st == iadd_slot || st == isub_slot || st == imul_slot ||
         st == idiv_slot || st == imod_slot || st == ifloordiv_slot ||
         st == itruediv_slot || st == ior_slot || st == ixor_slot ||
-        st == iand_slot || st == ilshift_slot || st == irshift_slot);
+        st == iand_slot || st == ilshift_slot || st == irshift_slot ||
+        st == imatmul_slot);
 }
 
 
@@ -5430,7 +5528,8 @@ int isNumberSlot(memberDef *md)
     return (st == add_slot || st == sub_slot || st == mul_slot ||
         st == div_slot || st == mod_slot || st == floordiv_slot ||
         st == truediv_slot || st == and_slot || st == or_slot ||
-        st == xor_slot || st == lshift_slot || st == rshift_slot);
+        st == xor_slot || st == lshift_slot || st == rshift_slot ||
+        st == matmul_slot);
 }
 
 
@@ -6859,8 +6958,44 @@ static void generateVirtualCatcher(sipSpec *pt, moduleDef *mod, classDef *cd,
 "    if (!sipMeth)\n"
         );
 
-    if (isAbstract(od))
+    if (od->virtcallcode != NULL)
+    {
+        argDef *res = &od->cppsig->result;
+
+        prcode(fp,
+"    {\n");
+
+        if (res->atype != void_type || res->nrderefs != 0)
+        {
+            prcode(fp,
+"        ");
+
+            generateNamedBaseType(cd->iff, res, "sipRes", TRUE, fp);
+
+            prcode(fp, ";\n"
+                );
+        }
+        else
+        {
+            res = NULL;
+        }
+
+        prcode(fp,
+"\n"
+            );
+
+        generateCppCodeBlock(od->virtcallcode, fp);
+
+        prcode(fp,
+"\n"
+"        return%s;\n"
+"    }\n"
+            , (res != NULL ? " sipRes" : ""));
+    }
+    else if (isAbstract(od))
+    {
         generateDefaultInstanceReturn(res, "    ", fp);
+    }
     else
     {
         int a;
@@ -9213,6 +9348,10 @@ static void generateNamedBaseType(ifaceFileDef *scope, argDef *ad,
             break;
 
         case uint_type:
+            /*
+             * Qt4 moc uses "uint" in signal signatures.  We do all the time
+             * and hope it is always defined.
+             */
             prcode(fp, "uint");
             break;
 
@@ -10801,6 +10940,14 @@ static const char *slotName(slotType st)
         sn = "setattr_slot";
         break;
 
+    case matmul_slot:
+        sn = "matmul_slot";
+        break;
+
+    case imatmul_slot:
+        sn = "imatmul_slot";
+        break;
+
     default:
         sn = NULL;
     }
@@ -12238,6 +12385,44 @@ static int copyConstRefArg(argDef *ad)
 
 
 /*
+ * Generate a variable to hold the result of a function call if one is needed.
+ */
+static int generateResultVar(ifaceFileDef *scope, overDef *od, argDef *res,
+        const char *indent, FILE *fp)
+{
+    int is_result;
+
+    /* See if sipRes is needed. */
+    is_result = (!isInplaceNumberSlot(od->common) &&
+             !isInplaceSequenceSlot(od->common) &&
+             (res->atype != void_type || res->nrderefs != 0));
+
+    if (is_result)
+    {
+        prcode(fp, "%s", indent);
+
+        generateNamedValueType(scope, res, "sipRes", fp);
+
+        /*
+         * The typical %MethodCode usually causes a compiler warning, so we
+         * initialise the result in that case to try and suppress it.
+         */
+        if (od->methodcode != NULL)
+        {
+            prcode(fp," = ");
+
+            generateCastZero(res, fp);
+        }
+
+        prcode(fp,";\n"
+            );
+    }
+
+    return is_result;
+}
+
+
+/*
  * Generate a function call.
  */
 static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
@@ -12295,36 +12480,8 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
     if (needsNew)
         resetIsConstArg(res);
 
-    /* See if sipRes is needed. */
-    is_result = (!isInplaceNumberSlot(od->common) &&
-             !isInplaceSequenceSlot(od->common) &&
-             (res->atype != void_type || res->nrderefs != 0));
-
-    newline = FALSE;
-
-    if (is_result)
-    {
-        prcode(fp,
-"            ");
-
-        generateNamedValueType(scope, res, "sipRes", fp);
-
-        /*
-         * The typical %MethodCode usually causes a compiler warning, so we
-         * initialise the result in that case to try and suppress it.
-         */
-        if (od->methodcode != NULL)
-        {
-            prcode(fp," = ");
-
-            generateCastZero(res,fp);
-        }
-
-        prcode(fp,";\n"
-            );
-
-        newline = TRUE;
-    }
+    is_result = newline = generateResultVar(scope, od, res, "            ",
+            fp);
 
     result_size = -1;
     deltemps = TRUE;
@@ -12545,6 +12702,7 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
             break;
 
         case mul_slot:
+        case matmul_slot:
             generateNumberSlotCall(mod, od, "*", fp);
             break;
 
@@ -12592,6 +12750,7 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
 
         case imul_slot:
         case irepeat_slot:
+        case imatmul_slot:
             generateBinarySlotCall(mod, scope, od, "*=", deref, fp);
             break;
 

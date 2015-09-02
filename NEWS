@@ -1,3 +1,23 @@
+v4.16.9 17th July 2015
+  - Bug fixes.
+
+v4.16.8 11th June 2015
+  - Added support for the current Python v3 exceptions.
+  - Bug fixes.
+
+v4.16.7 25th March 2015
+  - Added the %VirtualCallCode directive.
+  - Bug fixes.
+
+v4.16.6 25th February 2015
+  - Added the /FileExtension/ class annotation.
+  - Installing into a virtual env should now work.
+  - Timestamps are no longer included in generated code.  The -T command line
+    option is now ignored and deprecated.
+  - The '@file' method of passing additional command line options is now
+    supported.  The -z command line option is now deprecated.
+  - Bug fixes.
+
 v4.16.5 24th December 2014
   - Added the asarray() method to sip.voidptr.
   - Bug fixes.

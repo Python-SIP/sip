@@ -51,7 +51,7 @@ int main(int argc, char **argv)
     char *filename, *docFile, *codeDir, *srcSuffix, *flagFile, *consModule;
     char arg, *optarg, *buildFile, *apiFile, *xmlFile;
     int optnr, exceptions, tracing, releaseGIL, parts, protHack, docs;
-    int timestamp;
+    int timestamp, was_flagFile;
     KwArgs kwArgs;
     FILE *file;
     sipSpec spec;
@@ -68,6 +68,7 @@ int main(int argc, char **argv)
     docFile = NULL;
     srcSuffix = NULL;
     flagFile = NULL;
+    was_flagFile = FALSE;
     apiFile = NULL;
     xmlFile = NULL;
     consModule = NULL;
@@ -143,6 +144,7 @@ int main(int argc, char **argv)
                 fatal("The -z flag cannot be specified in an argument file\n");
 
             flagFile = optarg;
+            was_flagFile = TRUE;
             break;
 
         case 'c':
@@ -161,7 +163,10 @@ int main(int argc, char **argv)
             break;
 
         case 'T':
-            /* Disable the timestamp in the header of generated files. */
+            /*
+             * Disable the timestamp in the header of generated files.  It is
+             * now ignored apart from triggering a deprecation warning.
+             */
             timestamp = FALSE;
             break;
 
@@ -235,6 +240,12 @@ int main(int argc, char **argv)
     if (kwArgs != NoKwArgs)
         warning(DeprecationWarning, "the -k flag is deprecated\n");
 
+    if (!timestamp)
+        warning(DeprecationWarning, "the -T flag is ignored and deprecated\n");
+
+    if (was_flagFile)
+        warning(DeprecationWarning, "the -z flag is deprecated\n");
+
     /* Parse the input file. */
     parse(&spec, file, filename, versions, backstops, xfeatures, kwArgs,
             protHack);
@@ -245,7 +256,7 @@ int main(int argc, char **argv)
     /* Generate code. */
     generateCode(&spec, codeDir, buildFile, docFile, srcSuffix, exceptions,
             tracing, releaseGIL, parts, versions, xfeatures, consModule, docs,
-            timestamp);
+            FALSE);
 
     /* Generate any extracts. */
     generateExtracts(&spec, extracts);
@@ -274,9 +285,18 @@ static char parseopt(int argc, char **argv, char *opts, char **flags,
     int optnr;
     static FILE *fp = NULL;
 
+    optnr = *optnrp;
+
     /* Deal with any file first. */
 
     fname = *flags;
+
+    /* Support the sip5 method of passing arguments in a file. */
+    if (fname == NULL && optnr < argc && argv[optnr][0] == '@')
+    {
+        fname = *flags = &argv[optnr][1];
+        *optnrp = ++optnr;
+    }
 
     if (fname != NULL && fp == NULL && (fp = fopen(fname,"r")) == NULL)
         fatal("Unable to open %s\n",fname);
@@ -353,8 +373,6 @@ static char parseopt(int argc, char **argv, char *opts, char **flags,
     }
 
     /* Check there is an argument and it is a switch. */
-
-    optnr = *optnrp;
 
     if (optnr >= argc || argv[optnr] == NULL || argv[optnr][0] != '-')
         return '\0';
@@ -520,7 +538,7 @@ static void help(void)
 {
     printf(
 "Usage:\n"
-"    %s [-h] [-V] [-a file] [-b file] [-B tag] [-c dir] [-d file] [-e] [-g] [-I dir] [-j #] [-k] [-m file] [-o] [-p module] [-P] [-r] [-s suffix] [-t tag] [-T] [-w] [-x feature] [-X id:file] [-z file] [file]\n"
+"    %s [-h] [-V] [-a file] [-b file] [-B tag] [-c dir] [-d file] [-e] [-g] [-I dir] [-j #] [-k] [-m file] [-o] [-p module] [-P] [-r] [-s suffix] [-t tag] [-T] [-w] [-x feature] [-X id:file] [-z file] [@file] [file]\n"
 "where:\n"
 "    -h          display this help message\n"
 "    -V          display the %s version number\n"
@@ -541,11 +559,11 @@ static void help(void)
 "    -r          generate code with tracing enabled [default disabled]\n"
 "    -s suffix   the suffix to use for C or C++ source files [default \".c\" or \".cpp\"]\n"
 "    -t tag      the version/platform to generate code for\n"
-"    -T          disable the timestamp in the header of generated files\n"
 "    -w          enable warning messages\n"
 "    -x feature  this feature is disabled\n"
 "    -X id:file  create the extracts for an id in a file\n"
 "    -z file     the name of a file containing more command line flags\n"
+"    @file       the name of a file containing more command line flags\n"
 "    file        the name of the specification file [default stdin]\n"
         , sipPackage, sipPackage);
 
@@ -558,5 +576,5 @@ static void help(void)
  */
 static void usage(void)
 {
-    fatal("Usage: %s [-h] [-V] [-a file] [-b file] [-B tag] [-c dir] [-d file] [-e] [-g] [-I dir] [-j #] [-k] [-m file] [-o] [-p module] [-P] [-r] [-s suffix] [-t tag] [-T] [-w] [-x feature] [-X id:file] [-z file] [file]\n", sipPackage);
+    fatal("Usage: %s [-h] [-V] [-a file] [-b file] [-B tag] [-c dir] [-d file] [-e] [-g] [-I dir] [-j #] [-k] [-m file] [-o] [-p module] [-P] [-r] [-s suffix] [-t tag] [-w] [-x feature] [-X id:file] [-z file] [@file] [file]\n", sipPackage);
 }

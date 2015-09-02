@@ -1134,7 +1134,7 @@ For example::
         *code*
     %End
 
-This directive is used to specify handwritten code that is executed one the
+This directive is used to specify handwritten code that is executed once the
 instance of a wrapped class has been created.  The handwritten code is passed a
 dictionary of any remaining keyword arguments.  It must explicitly return an
 integer result which should be ``0`` if there was no error.  If an error
@@ -2397,11 +2397,13 @@ the ``#include`` of all header files in a generated compilation unit (ie. C or
 C++ source file).
 
 
-.. directive:: %VirtualCatcherCode
+.. directive:: %VirtualCallCode
+
+.. versionadded:: 4.16.7
 
 .. parsed-literal::
 
-    %VirtualCatcherCode
+    %VirtualCallCode
         *code*
     %End
 
@@ -2412,9 +2414,37 @@ corresponding Python reimplementation and call it if so.  If there is no Python
 reimplementation then the method in the original class is called instead.
 
 This directive is used to specify handwritten code that replaces the normally
-generated call to the Python reimplementation and the handling of any returned
-results.  It is usually used to handle argument types and results that SIP
-cannot deal with automatically.
+generated call to the original class method if there is no Python
+reimplementation.
+
+The following variables are made available to the handwritten code in the
+context of a method:
+
+*type* a0
+    There is a variable for each argument of the C++ signature named ``a0``,
+    ``a1``, etc.  If ``use_argument_names`` has been set in the
+    :directive:`%Module` directive then the name of the argument is the real
+    name.  The *type* of the variable is the same as the type defined in the
+    specification.
+
+*type* sipRes
+    The handwritten code should set this to any result to be returned.  The
+    *type* of the variable is the same as the type defined in the C++ signature
+    in the specification.
+
+
+.. directive:: %VirtualCatcherCode
+
+.. parsed-literal::
+
+    %VirtualCatcherCode
+        *code*
+    %End
+
+This directive is used to specify handwritten code that replaces the normally
+generated call to the Python reimplementation of a virtual method and the
+handling of any returned results.  It is usually used to handle argument types
+and results that SIP cannot deal with automatically.
 
 This directive can also be used in the context of a class destructor to
 specify handwritten code that is embedded in-line in the internal derived
@@ -2463,7 +2493,7 @@ PyObject \*sipMethod
     is normally passed to :c:func:`sipCallMethod()`.
 
 *type* sipRes
-    The handwritten code should set this to the result to be returned.  The
+    The handwritten code should set this to any result to be returned.  The
     *type* of the variable is the same as the type defined in the C++ signature
     in the specification.
 

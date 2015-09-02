@@ -401,6 +401,12 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
     return TK_METHODCODE;
 }
 
+^[ \t]*%VirtualCallCode {
+    /* The start of a C++ virtual call code block. */
+    codeIdx = 0;
+    return TK_VIRTUALCALLCODE;
+}
+
 ^[ \t]*%VirtualCatcherCode {
     /* The start of a C++ virtual code block. */
     codeIdx = 0;
