@@ -171,9 +171,10 @@ file.
             [:directive:`%MethodCode`]
 
     *special-method-name* ::= [**__abs__** | **__add__** | **__and__** |
-            **__bool__** | **__call__** | **__cmp__** | **__contains__** |
-            **__delattr__** | **__delitem__** | **__div__** | **__eq__** |
-            **__float__** | **__floordiv__** | **__ge__** | **__getattr__** |
+            **__aiter__** | **__anext__** | **__await__** | **__bool__** |
+            **__call__** | **__cmp__** | **__contains__** | **__delattr__** |
+            **__delitem__** | **__div__** | **__eq__** | **__float__** |
+            **__floordiv__** | **__ge__** | **__getattr__** |
             **__getattribute__** | **__getitem__** | **__gt__** |
             **__hash__** | **__iadd__** | **__iand__** | **__idiv__** |
             **__ifloordiv__** | **__ilshift__** | **__imatmul__** |

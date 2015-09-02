@@ -560,12 +560,15 @@ typedef enum {
     repr_slot,
     hash_slot,
     index_slot,
-    matmul_slot,
-    imatmul_slot,
     iter_slot,
     next_slot,
     setattr_slot,
     delattr_slot,       /* This is local to the parser. */
+    matmul_slot,
+    imatmul_slot,
+    await_slot,
+    aiter_slot,
+    anext_slot,
     no_slot
 } slotType;
 

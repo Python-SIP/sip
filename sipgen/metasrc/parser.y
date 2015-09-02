@@ -7417,6 +7417,9 @@ static memberDef *findFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         {"__delattr__", delattr_slot, TRUE, 1},
         {"__matmul__", matmul_slot, FALSE, 1},
         {"__imatmul__", imatmul_slot, FALSE, 1},
+        {"__await__", await_slot, TRUE, 0},
+        {"__aiter__", aiter_slot, TRUE, 0},
+        {"__anext__", anext_slot, TRUE, 0},
         {NULL}
     };
 

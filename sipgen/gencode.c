@@ -5420,7 +5420,8 @@ int isZeroArgSlot(memberDef *md)
         st == float_slot || st == invert_slot || st == neg_slot ||
         st == len_slot || st == bool_slot || st == pos_slot ||
         st == abs_slot || st == repr_slot || st == hash_slot ||
-        st == index_slot || st == iter_slot || st == next_slot);
+        st == index_slot || st == iter_slot || st == next_slot ||
+        st == await_slot || st == aiter_slot || st == anext_slot);
 }
 
 
@@ -10946,6 +10947,18 @@ static const char *slotName(slotType st)
 
     case imatmul_slot:
         sn = "imatmul_slot";
+        break;
+
+    case await_slot:
+        sn = "await_slot";
+        break;
+
+    case aiter_slot:
+        sn = "aiter_slot";
+        break;
+
+    case anext_slot:
+        sn = "anext_slot";
         break;
 
     default:
