@@ -1063,10 +1063,14 @@ static int vp_convertor(PyObject *arg, struct vp_values *vp)
 
         if (PyErr_Occurred())
         {
-#if PY_VERSION_HEX >= 0x03010000
-            PyErr_SetString(PyExc_TypeError, "a single integer, CObject, None, buffer protocol implementor or another sip.voidptr object is required");
+#if defined(SIP_USE_PYCAPSULE)
+#if defined(SIP_SUPPORT_PYCOBJECT)
+            PyErr_SetString(PyExc_TypeError, "a single integer, Capsule, CObject, None, bytes-like object or another sip.voidptr object is required");
 #else
-            PyErr_SetString(PyExc_TypeError, "a single integer, Capsule, CObject, None, buffer protocol implementor or another sip.voidptr object is required");
+            PyErr_SetString(PyExc_TypeError, "a single integer, Capsule, None, bytes-like object or another sip.voidptr object is required");
+#endif
+#else
+            PyErr_SetString(PyExc_TypeError, "a single integer, CObject, None, bytes-like object or another sip.voidptr object is required");
 #endif
             return 0;
         }
