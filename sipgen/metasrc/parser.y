@@ -7199,7 +7199,7 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         len = sipMalloc(sizeof (overDef));
 
         len->cppname = "__len__";
-        len->overflags = od->overflags;
+        len->overflags = SECT_IS_PUBLIC;
         len->pysig.result.atype = ssize_type;
         len->pysig.nrArgs = 0;
         len->cppsig = &len->pysig;
@@ -7235,7 +7235,7 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         matmul = sipMalloc(sizeof (overDef));
 
         matmul->cppname = "__matmul__";
-        matmul->overflags = od->overflags;
+        matmul->overflags = SECT_IS_PUBLIC;
         matmul->pysig = od->pysig;
         matmul->cppsig = (cppsig != NULL ? cppsig : &matmul->pysig);
 
@@ -7256,7 +7256,7 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         imatmul = sipMalloc(sizeof (overDef));
 
         imatmul->cppname = "__imatmul__";
-        imatmul->overflags = od->overflags;
+        imatmul->overflags = SECT_IS_PUBLIC;
         imatmul->pysig = od->pysig;
         imatmul->cppsig = (cppsig != NULL ? cppsig : &imatmul->pysig);
 
