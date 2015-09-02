@@ -6873,6 +6873,8 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
             "__getattr__",
             "__enter__",
             "__exit__",
+            "__aenter__",
+            "__aexit__",
             NULL
         };
 
