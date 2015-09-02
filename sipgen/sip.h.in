@@ -560,6 +560,8 @@ typedef enum {
     repr_slot,
     hash_slot,
     index_slot,
+    matmul_slot,
+    imatmul_slot,
     iter_slot,
     next_slot,
     setattr_slot,

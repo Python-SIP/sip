@@ -11103,6 +11103,18 @@ static void addTypeSlots(PyHeapTypeObject *heap_to, sipPySlotDef *slots)
             break;
 #endif
 
+#if PY_VERSION_HEX >= 0x03050000
+        case matmul_slot:
+            if (nb != NULL)
+                nb->nb_matrix_multiply = (binaryfunc)f;
+            break;
+
+        case imatmul_slot:
+            if (nb != NULL)
+                nb->nb_inplace_matrix_multiply = (binaryfunc)f;
+            break;
+#endif
+
         case iter_slot:
             to->tp_iter = (getiterfunc)f;
             break;

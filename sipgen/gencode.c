@@ -5502,7 +5502,8 @@ int isInplaceNumberSlot(memberDef *md)
     return (st == iadd_slot || st == isub_slot || st == imul_slot ||
         st == idiv_slot || st == imod_slot || st == ifloordiv_slot ||
         st == itruediv_slot || st == ior_slot || st == ixor_slot ||
-        st == iand_slot || st == ilshift_slot || st == irshift_slot);
+        st == iand_slot || st == ilshift_slot || st == irshift_slot ||
+        st == imatmul_slot);
 }
 
 
@@ -5527,7 +5528,8 @@ int isNumberSlot(memberDef *md)
     return (st == add_slot || st == sub_slot || st == mul_slot ||
         st == div_slot || st == mod_slot || st == floordiv_slot ||
         st == truediv_slot || st == and_slot || st == or_slot ||
-        st == xor_slot || st == lshift_slot || st == rshift_slot);
+        st == xor_slot || st == lshift_slot || st == rshift_slot ||
+        st == matmul_slot);
 }
 
 
@@ -10938,6 +10940,14 @@ static const char *slotName(slotType st)
         sn = "setattr_slot";
         break;
 
+    case matmul_slot:
+        sn = "matmul_slot";
+        break;
+
+    case imatmul_slot:
+        sn = "imatmul_slot";
+        break;
+
     default:
         sn = NULL;
     }
@@ -12692,6 +12702,7 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
             break;
 
         case mul_slot:
+        case matmul_slot:
             generateNumberSlotCall(mod, od, "*", fp);
             break;
 
@@ -12739,6 +12750,7 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
 
         case imul_slot:
         case irepeat_slot:
+        case imatmul_slot:
             generateBinarySlotCall(mod, scope, od, "*=", deref, fp);
             break;
 

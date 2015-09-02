@@ -737,6 +737,15 @@ Function Annotations
     See :ref:`ref-gil` and the :fanno:`ReleaseGIL` annotation.
 
 
+.. function-annotation:: __imatmul__
+
+    .. versionadded:: 4.17
+
+    This boolean annotation specifies that a ``__imatmul__()`` method should be
+    automatically generated that will use the method being annotated to compute
+    the value that the ``__imatmul__()`` method will return.
+
+
 .. function-annotation:: KeepReference
 
     .. versionadded:: 4.12.2
@@ -781,6 +790,15 @@ Function Annotations
     This boolean annotation specifies that a ``__len__()`` method should be
     automatically generated that will use the method being annotated to compute
     the value that the ``__len__()`` method will return.
+
+
+.. function-annotation:: __matmul__
+
+    .. versionadded:: 4.17
+
+    This boolean annotation specifies that a ``__matmul__()`` method should be
+    automatically generated that will use the method being annotated to compute
+    the value that the ``__matmul__()`` method will return.
 
 
 .. function-annotation:: NewThread
