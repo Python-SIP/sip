@@ -592,7 +592,8 @@ typedef enum {
 
 
 /*
- * The different Python slot types.
+ * The different Python slot types.  New slots must be added to the end,
+ * otherwise the major version of the internal ABI muts be changed.
  */
 typedef enum {
     str_slot,           /* __str__ */
