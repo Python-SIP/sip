@@ -593,7 +593,7 @@ typedef enum {
 
 /*
  * The different Python slot types.  New slots must be added to the end,
- * otherwise the major version of the internal ABI muts be changed.
+ * otherwise the major version of the internal ABI must be changed.
  */
 typedef enum {
     str_slot,           /* __str__ */
@@ -658,13 +658,11 @@ typedef enum {
     iter_slot,          /* __iter__ */
     next_slot,          /* __next__ */
     setattr_slot,       /* __setattr__, __delattr__ */
-#if PY_VERSION_HEX >= 0x03050000
-    matmul_slot,        /* __matmul__ */
-    imatmul_slot,       /* __imatmul__ */
-    await_slot,         /* __await__ */
-    aiter_slot,         /* __aiter__ */
-    anext_slot,         /* __anext__ */
-#endif
+    matmul_slot,        /* __matmul__ (for Python v3.5 and later) */
+    imatmul_slot,       /* __imatmul__ (for Python v3.5 and later) */
+    await_slot,         /* __await__ (for Python v3.5 and later) */
+    aiter_slot,         /* __aiter__ (for Python v3.5 and later) */
+    anext_slot,         /* __anext__ (for Python v3.5 and later) */
 } sipPySlotType;
 
 
