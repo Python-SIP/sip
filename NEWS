@@ -1,3 +1,10 @@
+v4.17 24th October 2015
+  - Added support for PEP 465 (__matmul__ and __imatmul__).
+  - Added support for PEP 492 (__aenter__, __aexit__, __await__, __aiter__
+    and __anext__).
+  - Added support for MSVC 2015 to the build system.
+  - Bug fixes.
+
 v4.16.9 17th July 2015
   - Bug fixes.
 
