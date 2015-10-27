@@ -5871,52 +5871,52 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
         else if (md->slot != no_slot)
             generateSlot(mod, cd, NULL, md, fp);
 
-    if (cd->iff->type != namespace_iface && !generating_c)
+    /* The cast function. */
+    if (needsCastFunction(cd))
     {
-        classList *cl;
-        int need_ptr, need_cast_ptr, need_state;
+        mroDef *mro;
 
-        /* The cast function. */
         prcode(fp,
 "\n"
 "\n"
-"/* Cast a pointer to a type somewhere in its superclass hierarchy. */\n"
+"/* Cast a pointer to a type somewhere in its multiple inheritance hierarchy. */\n"
 "extern \"C\" {static void *cast_%L(void *, const sipTypeDef *);}\n"
-"static void *cast_%L(void *ptr, const sipTypeDef *targetType)\n"
+"static void *cast_%L(void *sipCppV, const sipTypeDef *targetType)\n"
 "{\n"
+"    "
             , cd->iff
             , cd->iff);
 
-        if (cd->supers != NULL)
-            prcode(fp,
-"    void *res;\n"
+        generateClassFromVoid(cd, "sipCpp", "sipCppV", fp);
+
+        prcode(fp, ";\n"
 "\n"
-                );
+            );
 
-        prcode(fp,
-"    if (targetType == sipType_%C)\n"
-"        return ptr;\n"
-            ,classFQCName(cd));
-
-        for (cl = cd->supers; cl != NULL; cl = cl->next)
+        for (mro = cd->mro; mro != NULL; mro = mro->next)
         {
-            scopedNameDef *sname = cl->cd->iff->fqcname;
-
-            prcode(fp,
+            if (needsCast(mro))
+            {
+                prcode(fp,
+"    if (targetType == sipType_%C)\n"
+"        return static_cast<%S *>(sipCpp);\n"
 "\n"
-"    if ((res = ((const sipClassTypeDef *)sipType_%C)->ctd_cast((%S *)(%S *)ptr,targetType)) != NULL)\n"
-"        return res;\n"
-                ,sname,sname,classFQCName(cd));
+                    , classFQCName(mro->cd)
+                    , classFQCName(mro->cd));
+            }
         }
 
         prcode(fp,
-"\n"
-"    return NULL;\n"
+"    return sipCppV;\n"
 "}\n"
             );
+    }
+
+    if (cd->iff->type != namespace_iface && !generating_c)
+    {
+        int need_ptr = FALSE, need_cast_ptr = FALSE, need_state = FALSE;
 
         /* Generate the release function without compiler warnings. */
-        need_ptr = need_cast_ptr = need_state = FALSE;
 
         if (cd->dealloccode != NULL)
             need_ptr = need_cast_ptr = usedInCode(cd->dealloccode, "sipCpp");
@@ -10366,14 +10366,20 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
     if (cd->iff->type == namespace_iface || generating_c)
         prcode(fp,
 "    0,\n"
-"    0,\n"
             );
     else
         prcode(fp,
 "    release_%L,\n"
-"    cast_%L,\n"
-            , cd->iff
             , cd->iff);
+
+    if (needsCastFunction(cd))
+        prcode(fp,
+"    cast_%L,\n"
+            , cd->iff);
+    else
+        prcode(fp,
+"    0,\n"
+            );
 
     if (cd->iff->type == namespace_iface)
     {

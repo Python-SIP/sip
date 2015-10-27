@@ -69,7 +69,7 @@ static void searchClassScope(sipSpec *,classDef *,scopedNameDef *,argDef *);
 static void searchMappedTypes(sipSpec *,moduleDef *,scopedNameDef *,argDef *);
 static void searchEnums(sipSpec *,scopedNameDef *,argDef *);
 static void searchClasses(sipSpec *,moduleDef *mod,scopedNameDef *,argDef *);
-static void appendToMRO(mroDef *,mroDef ***,classDef *);
+static mroDef *appendToMRO(mroDef *,mroDef ***,classDef *);
 static void moveMainModuleCastsSlots(sipSpec *pt, moduleDef *mod);
 static void moveClassCasts(sipSpec *pt, moduleDef *mod, classDef *cd);
 static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd);
@@ -1178,8 +1178,6 @@ static void addAutoOverload(sipSpec *pt,classDef *autocd,overDef *autood)
 static void setHierarchy(sipSpec *pt, classDef *base, classDef *cd,
         classList **head)
 {
-    mroDef **tailp = &cd->mro;
-
     /* See if it has already been done. */
     if (cd->mro != NULL)
         return;
@@ -1195,6 +1193,7 @@ static void setHierarchy(sipSpec *pt, classDef *base, classDef *cd,
     if (cd->iff->type == class_iface)
     {
         classList *cl;
+        mroDef **tailp = &cd->mro;
 
         /* The first thing is itself. */
         appendToMRO(cd->mro, &tailp, cd);
@@ -1221,10 +1220,23 @@ static void setHierarchy(sipSpec *pt, classDef *base, classDef *cd,
             /* Make sure the super-class's hierarchy has been done. */
             setHierarchy(pt, base, cl->cd, head);
 
+            if (needsCastFunction(cl->cd))
+                setNeedsCastFunction(cd);
+
             /* Append the super-classes hierarchy. */
             for (mro = cl->cd->mro; mro != NULL; mro = mro->next)
             {
-                appendToMRO(cd->mro, &tailp, mro->cd);
+                mroDef *new_mro = appendToMRO(cd->mro, &tailp, mro->cd);
+
+                if (cl != cd->supers || needsCast(mro))
+                {
+                    /*
+                     * It's not the class's first super-class so it will need a
+                     * cast function.
+                     */
+                    setNeedsCast(new_mro);
+                    setNeedsCastFunction(cd);
+                }
 
                 if (isDeprecatedClass(mro->cd))
                     setIsDeprecatedClass(cd);
@@ -1330,7 +1342,7 @@ static void setHierarchy(sipSpec *pt, classDef *base, classDef *cd,
 /*
  * Append a class definition to an mro list
  */
-static void appendToMRO(mroDef *head,mroDef ***tailp,classDef *cd)
+static mroDef *appendToMRO(mroDef *head,mroDef ***tailp,classDef *cd)
 {
     mroDef *mro, *new;
 
@@ -1356,6 +1368,8 @@ static void appendToMRO(mroDef *head,mroDef ***tailp,classDef *cd)
     /* Append to the list and update the tail pointer. */
     **tailp = new;
     *tailp = &new -> next;
+
+    return new;
 }
 
 
