@@ -8743,12 +8743,28 @@ PyObject *sip_api_convert_from_type(void *cpp, const sipTypeDef *td,
     if (cfrom != NULL)
         return cfrom(cpp, transferObj);
 
-    /* Apply any sub-class convertor. */
-    if (sipTypeHasSCC(td))
+    /*
+     * See if we have already wrapped it.  Invoking sub-class code can be
+     * expensive so we check the cache first, even though the sub-class code
+     * might perform a down-cast.
+     */
+    if ((py = sip_api_get_pyobject(cpp, td)) == NULL && sipTypeHasSCC(td))
+    {
+        void *orig_cpp = cpp;
+        const sipTypeDef *orig_td = td;
+
+        /* Apply the sub-class convertor. */
         td = convertSubClass(td, &cpp);
 
-    /* See if we have already wrapped it. */
-    if ((py = sip_api_get_pyobject(cpp, td)) != NULL)
+        /*
+         * If the sub-class convertor has done something then check the cache
+         * again using the modified values.
+         */
+        if (cpp != orig_cpp || td != orig_td)
+            py = sip_api_get_pyobject(cpp, td);
+    }
+
+    if (py != NULL)
         Py_INCREF(py);
     else if ((py = wrap_simple_instance(cpp, td, NULL, SIP_SHARE_MAP)) == NULL)
         return NULL;
