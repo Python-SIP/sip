@@ -9966,7 +9966,10 @@ static void *sip_api_get_mixin_address(sipSimpleWrapper *w,
     void *cpp;
 
     if ((mixin = PyObject_GetAttrString((PyObject *)w, sipTypeName(td))) == NULL)
+    {
+        PyErr_Clear();
         return NULL;
+    }
 
     cpp = sip_api_get_address((sipSimpleWrapper *)mixin);
 
