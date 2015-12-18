@@ -1109,6 +1109,17 @@ specification files.
         the address of the C/C++ instance
 
 
+.. c:function:: PyInterpreterState *sipGetInterpreter()
+
+    .. versionadded:: 4.17.1
+
+    This returns the address of the Python interpreter.  If it is ``NULL`` then
+    calls to the Python interpreter library must not be made.
+
+    :return:
+        the address of the Python interpreter
+
+
 .. c:function:: void *sipGetMixinAddress(sipSimpleWrapper *obj, const sipTypeDef *td)
 
     .. versionadded:: 4.15

@@ -732,6 +732,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipInitMixin                sipAPI_%s->api_init_mixin\n"
 "#define sipExportModule             sipAPI_%s->api_export_module\n"
 "#define sipInitModule               sipAPI_%s->api_init_module\n"
+"#define sipGetInterpreter           sipAPI_%s->api_get_interpreter\n"
 "\n"
 "/* These are deprecated. */\n"
 "#define sipMapStringToClass         sipAPI_%s->api_map_string_to_class\n"
@@ -754,6 +755,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipConvertFromMappedType    sipConvertFromType\n"
 "#define sipConvertFromNamedEnum(v, pt)  sipConvertFromEnum((v), ((sipEnumTypeObject *)(pt))->type)\n"
 "#define sipConvertFromNewInstance(p, wt, t) sipConvertFromNewType((p), (wt)->type, (t))\n"
+        ,mname
         ,mname
         ,mname
         ,mname
@@ -6695,7 +6697,7 @@ static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
 
             if (pluginPyQt5(pt))
                 prcode(fp,
-"    return QObject::d_ptr->metaObject ? QObject::d_ptr->dynamicMetaObject() : sip_%s_qt_metaobject(sipPySelf,sipType_%C);\n"
+"    return (!sipGetInterpreter() || QObject::d_ptr->metaObject) ? QObject::d_ptr->dynamicMetaObject() : sip_%s_qt_metaobject(sipPySelf,sipType_%C);\n"
                     , mod->name, classFQCName(cd));
             else
                 prcode(fp,

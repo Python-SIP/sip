@@ -290,6 +290,7 @@ static void *sip_api_get_mixin_address(sipSimpleWrapper *w,
         const sipTypeDef *td);
 static int sip_api_register_proxy_resolver(const sipTypeDef *td,
         sipProxyResolverFunc resolver);
+static PyInterpreterState *sip_api_get_interpreter();
 
 
 /*
@@ -421,9 +422,13 @@ static const sipAPIDef sip_api = {
      */
     sip_api_invoke_slot_ex,
     /*
-     * The following are not part of the public API.
+     * The following is not part of the public API.
      */
     sip_api_get_reference,
+    /*
+     * The following is part of the public API.
+     */
+    sip_api_get_interpreter,
 };
 
 
@@ -998,6 +1003,15 @@ PyMODINIT_FUNC SIP_MODULE_ENTRY(void)
     register_exit_notifier();
 
     SIP_MODULE_RETURN(mod);
+}
+
+
+/*
+ * Return the current interpreter, if there is one.
+ */
+static PyInterpreterState *sip_api_get_interpreter()
+{
+    return sipInterpreter;
 }
 
 
