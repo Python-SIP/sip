@@ -6697,8 +6697,12 @@ static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
 
             if (pluginPyQt5(pt))
                 prcode(fp,
-"    return (!sipGetInterpreter() || QObject::d_ptr->metaObject) ? QObject::d_ptr->dynamicMetaObject() : sip_%s_qt_metaobject(sipPySelf,sipType_%C);\n"
-                    , mod->name, classFQCName(cd));
+"    if (sipGetInterpreter())\n"
+"        return QObject::d_ptr->metaObject ? QObject::d_ptr->dynamicMetaObject() : sip_%s_qt_metaobject(sipPySelf,sipType_%C);\n"
+"\n"
+"    return %S::metaObject();\n"
+                    , mod->name, classFQCName(cd)
+                    , classFQCName(cd));
             else
                 prcode(fp,
 "    return sip_%s_qt_metaobject(sipPySelf,sipType_%C);\n"
