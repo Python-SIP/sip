@@ -31,6 +31,12 @@
 #endif
 
 
+/* These are unused. */
+static int input(void) SIP_UNUSED;
+static void yy_fatal_error(yyconst char *) SIP_UNUSED;
+static int yy_top_state(void) SIP_UNUSED;
+static void yyunput(int, char *) SIP_UNUSED;
+
 #define YY_NO_UNISTD_H
 #define YY_FATAL_ERROR(s)       fatallex(s)
 

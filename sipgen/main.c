@@ -39,9 +39,9 @@ static char *sipPackage = PACKAGE;
 static int warnings = FALSE;
 
 
-static void help(void);
-static void version(void);
-static void usage(void);
+static void help(void) SIP_NORETURN;
+static void version(void) SIP_NORETURN;
+static void usage(void) SIP_NORETURN;
 static char parseopt(int,char **,char *,char **,int *,char **);
 static int parseInt(char *,char);
 
@@ -498,26 +498,33 @@ void warning(Warning w, const char *fmt, ...)
 
 /*
  * Display all or part of a one line error message describing a fatal error.
- * If the message is complete (it has a newline) then the program exits.
  */
-void fatal(char *fmt,...)
+void fatal(const char *fmt, ...)
 {
-    static int start = TRUE;
-
     va_list ap;
 
-    if (start)
-    {
-        fprintf(stderr,"%s: ",sipPackage);
-        start = FALSE;
-    }
+    fatalStart();
 
     va_start(ap,fmt);
     vfprintf(stderr,fmt,ap);
     va_end(ap);
 
-    if (strchr(fmt,'\n') != NULL)
-        exit(1);
+    exit(1);
+}
+
+
+/*
+ * Make sure the start of a fatal message is handled.
+ */
+void fatalStart()
+{
+    static int start = TRUE;
+
+    if (start)
+    {
+        fprintf(stderr, "%s: ", sipPackage);
+        start = FALSE;
+    }
 }
 
 
@@ -576,5 +583,9 @@ static void help(void)
  */
 static void usage(void)
 {
-    fatal("Usage: %s [-h] [-V] [-a file] [-b file] [-B tag] [-c dir] [-d file] [-e] [-g] [-I dir] [-j #] [-k] [-m file] [-o] [-p module] [-P] [-r] [-s suffix] [-t tag] [-w] [-x feature] [-X id:file] [-z file] [@file] [file]\n", sipPackage);
+    fatal("Usage: %s [-h] [-V] [-a file] [-b file] [-B tag] [-c dir] "
+            "[-d file] [-e] [-g] [-I dir] [-j #] [-k] [-m file] [-o] "
+            "[-p module] [-P] [-r] [-s suffix] [-t tag] [-w] [-x feature] "
+            "[-X id:file] [-z file] [@file] [file]\n",
+            sipPackage);
 }

@@ -60,7 +60,7 @@ static void transformTypedefs(sipSpec *pt, moduleDef *mod);
 static void resolveMappedTypeTypes(sipSpec *,mappedTypeDef *);
 static void resolveCtorTypes(sipSpec *,classDef *,ctorDef *);
 static void resolveFuncTypes(sipSpec *pt, moduleDef *mod, classDef *c_scope,
-        mappedTypeDef *mt_scope, overDef *od);
+        overDef *od);
 static void resolvePySigTypes(sipSpec *,moduleDef *,classDef *,overDef *,signatureDef *,int);
 static void resolveVariableType(sipSpec *,varDef *);
 static void fatalNoDefinedType(scopedNameDef *);
@@ -433,6 +433,10 @@ static void addComplementarySlots(sipSpec *pt, classDef *cd)
         case ne_slot:
             addComplementarySlot(pt, cd, md, eq_slot, "__eq__");
             break;
+
+        /* Suppress a compiler warning. */
+        default:
+            ;
         }
 }
 
@@ -1574,7 +1578,7 @@ static void transformScopeOverloads(sipSpec *pt, classDef *c_scope,
     {
         overDef *prev;
 
-        resolveFuncTypes(pt, od->common->module, c_scope, mt_scope, od);
+        resolveFuncTypes(pt, od->common->module, c_scope, od);
 
         /*
          * Now check that the Python signature doesn't conflict with an earlier
@@ -1922,7 +1926,7 @@ static void resolveCtorTypes(sipSpec *pt,classDef *scope,ctorDef *ct)
  * Resolve the types of a function.
  */
 static void resolveFuncTypes(sipSpec *pt, moduleDef *mod, classDef *c_scope,
-        mappedTypeDef *mt_scope, overDef *od)
+        overDef *od)
 {
     argDef *res;
 
@@ -2171,6 +2175,10 @@ static void resolveVariableType(sipSpec *pt, varDef *vd)
         if (!isReference(vtype) && vtype->nrderefs == 1)
             bad = FALSE;
         break;
+
+    /* Suppress a compiler warning. */
+    default:
+        ;
     }
 
     if (bad && (vd->getcode == NULL || vd->setcode == NULL))
@@ -2379,6 +2387,10 @@ static int supportedType(classDef *cd,overDef *od,argDef *ad,int outputs)
         }
 
         break;
+
+    /* Suppress a compiler warning. */
+    default:
+        ;
     }
 
     /* Unsupported if we got this far. */
@@ -2440,6 +2452,8 @@ static void defaultOutput(argDef *ad)
  */
 void fatalScopedName(scopedNameDef *snd)
 {
+    fatalStart();
+
     while (snd != NULL)
     {
         fatal("%s",snd -> name);
@@ -2755,6 +2769,10 @@ int sameBaseType(argDef *a1, argDef *a2)
             return FALSE;
 
         break;
+
+    /* Suppress a compiler warning. */
+    default:
+        ;
     }
 
     /* Must be the same if we've got this far. */
@@ -3657,6 +3675,10 @@ static void createSortedNumberedTypesTable(sipSpec *pt, moduleDef *mod)
         case enum_type:
             ad->u.ed->enumnr = i;
             break;
+
+        /* Suppress a compiler warning. */
+        default:
+            ;
         }
     }
 }

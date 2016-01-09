@@ -2321,7 +2321,7 @@ docstring:  TK_DOCSTRING docstring_args codeblock {
                 /*
                  * Go through the text again removing the common indentation.
                  */
-                dp = cp = $$->frag;
+                cp = dp = $$->frag;
 
                 while (*cp != '\0')
                 {
@@ -3773,6 +3773,10 @@ arglist:    rawarglist {
                 case slotdis_type:
                     ++nrslotdis;
                     break;
+
+                /* Suppress a compiler warning. */
+                default:
+                    ;
                 }
 
                 if (isArray(ad))
@@ -4092,8 +4096,6 @@ variable_body_directive:    ifstart {
     ;
 
 cpptype:    TK_CONST basetype deref optref {
-            int i;
-
             $$ = $2;
             add_derefs(&$$, &$3);
             $$.argflags |= ARG_IS_CONST | $4;
@@ -4199,6 +4201,10 @@ argtype:    cpptype optname optflags {
                 case double_type:
                     $$.atype = cdouble_type;
                     break;
+
+                /* Suppress a compiler warning. */
+                default:
+                    ;
                 }
             }
 
@@ -5096,6 +5102,10 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd,
                 /* This is definately not a sequence. */
                 seq_not = TRUE;
                 break;
+
+            /* Suppress a compiler warning. */
+            default:
+                ;
             }
 
         default_to_sequence = (!seq_not && seq_might);
@@ -5124,6 +5134,10 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd,
                 case imul_slot:
                     md->slot = irepeat_slot;
                     break;
+
+                /* Suppress a compiler warning. */
+                default:
+                    ;
                 }
         }
     }
@@ -7420,7 +7434,7 @@ static memberDef *findFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         {"__await__", await_slot, TRUE, 0},
         {"__aiter__", aiter_slot, TRUE, 0},
         {"__anext__", anext_slot, TRUE, 0},
-        {NULL}
+        {NULL, no_slot, FALSE, 0}
     };
 
     memberDef *md, **flist;
@@ -7784,10 +7798,12 @@ static void handleEOM()
             from->encoding = currentModule->encoding;
 
         if (isCallSuperInitUndefined(from))
+        {
             if (isCallSuperInitYes(currentModule))
                 setCallSuperInitYes(from);
             else
                 setCallSuperInitNo(from);
+        }
     }
 
     /* The previous module is now current. */

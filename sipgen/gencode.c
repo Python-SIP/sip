@@ -2448,6 +2448,10 @@ static void generateTypesTable(sipSpec *pt, moduleDef *mod, FILE *fp)
 "    &enumTypes[%d].etd_base,\n"
                 , ad->u.ed->enum_idx);
             break;
+
+        /* Supress a compiler warning. */
+        default:
+            ;
         }
     }
 
@@ -4967,6 +4971,10 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
 "    return sipVal;\n"
             );
         break;
+
+    /* Supress a compiler warning. */
+    default:
+        ;
     }
 
     prcode(fp,
@@ -5401,6 +5409,10 @@ static int generateObjToCppConversion(argDef *ad,FILE *fp)
     case pybuffer_type:
         rhs = "sipPy";
         break;
+
+    /* Supress a compiler warning. */
+    default:
+        ;
     }
 
     if (rhs != NULL)
@@ -8267,6 +8279,10 @@ static const char *getParseResultFormat(argDef *ad, int res_isref, int xfervh)
 
     case pybuffer_type:
         return (isAllowNone(ad) ? "$" : "!");
+
+    /* Supress a compiler warning. */
+    default:
+        ;
     }
 
     /* We should never get here. */
@@ -8478,6 +8494,10 @@ static void generateTupleBuilder(moduleDef *mod, signatureDef *sd,FILE *fp)
         case pybuffer_type:
             fmt = "S";
             break;
+
+        /* Supress a compiler warning. */
+        default:
+            ;
         }
 
         prcode(fp,fmt);
@@ -8521,6 +8541,10 @@ static void generateTupleBuilder(moduleDef *mod, signatureDef *sd,FILE *fp)
         case void_type:
             --derefs;
             break;
+
+        /* Supress a compiler warning. */
+        default:
+            ;
         }
 
         if (ad->atype == mapped_type || ad->atype == class_type ||
@@ -9488,6 +9512,10 @@ static void generateNamedBaseType(ifaceFileDef *scope, argDef *ad,
         case ellipsis_type:
             prcode(fp, "PyObject *");
             break;
+
+        /* Supress a compiler warning. */
+        default:
+            ;
         }
     }
 
@@ -9652,6 +9680,10 @@ static void generateVariable(moduleDef *mod, ifaceFileDef *scope, argDef *ad,
             prcode(fp, ";\n"
                 );
             break;
+
+        /* Supress a compiler warning. */
+        default:
+            ;
         }
     }
 }
@@ -12269,6 +12301,10 @@ static void generateHandleResult(moduleDef *mod, overDef *od, int isNew,
             ,prefix,vname);
 
         break;
+
+    /* Supress a compiler warning. */
+    default:
+        ;
     }
 }
 
@@ -12379,6 +12415,10 @@ static const char *getBuildResultFormat(argDef *ad)
     case pytype_type:
     case pybuffer_type:
         return "R";
+
+    /* Supress a compiler warning. */
+    default:
+        ;
     }
 
     /* We should never get here. */
@@ -12857,6 +12897,10 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
 "                sipRes = 0");
 
             break;
+
+        /* Supress a compiler warning. */
+        default:
+            ;
         }
 
         if (closing_paren)
@@ -13233,6 +13277,10 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
             slotdisarg_ad = ad;
             slotdisarg = a;
             break;
+
+        /* Supress a compiler warning. */
+        default:
+            ;
         }
 
         if (isArraySize(ad))
@@ -13624,6 +13672,10 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
         case ellipsis_type:
             fmt = "W";
             break;
+
+        /* Supress a compiler warning. */
+        default:
+            ;
         }
 
         /*

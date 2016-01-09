@@ -59,7 +59,7 @@ static PyTypeObject sipWrapperType_Type = {
     0,                      /* tp_print */
     0,                      /* tp_getattr */
     0,                      /* tp_setattr */
-    0,                      /* tp_reserved (Python v3), tp_compare (Python v2) */
+    0,                      /* tp_as_async (Python v3.5), tp_compare (Python v2) */
     0,                      /* tp_repr */
     0,                      /* tp_as_number */
     0,                      /* tp_as_sequence */
@@ -126,7 +126,7 @@ static sipWrapperType sipWrapper_Type = {
             0,              /* tp_print */
             0,              /* tp_getattr */
             0,              /* tp_setattr */
-            0,              /* tp_reserved (Python v3), tp_compare (Python v2) */
+            0,              /* tp_as_async (Python v3.5), tp_compare (Python v2) */
             0,              /* tp_repr */
             0,              /* tp_as_number */
             0,              /* tp_as_sequence */
@@ -171,6 +171,106 @@ static sipWrapperType sipWrapper_Type = {
             0,              /* tp_finalize */
 #endif
         },
+#if PY_VERSION_HEX >= 0x03050000
+        {
+            0,              /* am_await */
+            0,              /* am_aiter */
+            0,              /* am_anext */
+        },
+#endif
+        {
+            0,              /* nb_add */
+            0,              /* nb_subtract */
+            0,              /* nb_multiply */
+#if PY_MAJOR_VERSION < 3
+            0,              /* nb_divide */
+#endif
+            0,              /* nb_remainder */
+            0,              /* nb_divmod */
+            0,              /* nb_power */
+            0,              /* nb_negative */
+            0,              /* nb_positive */
+            0,              /* nb_absolute */
+            0,              /* nb_bool (Python v3), nb_nonzero (Python v2) */
+            0,              /* nb_invert */
+            0,              /* nb_lshift */
+            0,              /* nb_rshift */
+            0,              /* nb_and */
+            0,              /* nb_xor */
+            0,              /* nb_or */
+#if PY_MAJOR_VERSION < 3
+            0,              /* nb_coerce */
+#endif
+            0,              /* nb_int */
+            0,              /* nb_reserved (Python v3), nb_long (Python v2) */
+            0,              /* nb_float */
+#if PY_MAJOR_VERSION < 3
+            0,              /* nb_oct */
+            0,              /* nb_hex */
+#endif
+            0,              /* nb_inplace_add */
+            0,              /* nb_inplace_subtract */
+            0,              /* nb_inplace_multiply */
+#if PY_MAJOR_VERSION < 3
+            0,              /* nb_inplace_divide */
+#endif
+            0,              /* nb_inplace_remainder */
+            0,              /* nb_inplace_power */
+            0,              /* nb_inplace_lshift */
+            0,              /* nb_inplace_rshift */
+            0,              /* nb_inplace_and */
+            0,              /* nb_inplace_xor */
+            0,              /* nb_inplace_or */
+#if PY_VERSION_HEX >= 0x02020000
+            0,              /* nb_floor_divide */
+            0,              /* nb_true_divide */
+            0,              /* nb_inplace_floor_divide */
+            0,              /* nb_inplace_true_divide */
+#endif
+#if PY_VERSION_HEX >= 0x02050000
+            0,              /* nb_index */
+#endif
+#if PY_VERSION_HEX >= 0x03050000
+            0,              /* nb_matrix_multiply */
+            0,              /* nb_inplace_matrix_multiply */
+#endif
+        },
+        {
+            0,              /* mp_length */
+            0,              /* mp_subscript */
+            0,              /* mp_ass_subscript */
+        },
+        {
+            0,              /* sq_length */
+            0,              /* sq_concat */
+            0,              /* sq_repeat */
+            0,              /* sq_item */
+            0,              /* was_sq_slice */
+            0,              /* sq_ass_item */
+            0,              /* was_sq_ass_slice */
+            0,              /* sq_contains */
+            0,              /* sq_inplace_concat */
+            0,              /* sq_inplace_repeat */
+        },
+        {
+#if PY_MAJOR_VERSION >= 3
+            0,              /* bf_getbuffer */
+            0,              /* bf_releasebuffer */
+#else
+            0,              /* bf_getreadbuffer */
+            0,              /* bf_getwritebuffer */
+            0,              /* bf_getsegcount */
+            0,              /* bf_getcharbuffer */
+            0,              /* bf_getbuffer */
+            0,              /* bf_releasebuffer */
+#endif
+        },
+        0,                  /* ht_name */
+        0,                  /* ht_slots */
+#if PY_MAJOR_VERSION >= 3
+        0,                  /* ht_qualname */
+        0,                  /* ht_cached_keys */
+#endif
 #if !defined(STACKLESS)
     },
 #endif
@@ -539,7 +639,7 @@ static PyTypeObject sipEnumType_Type = {
     0,                      /* tp_print */
     0,                      /* tp_getattr */
     0,                      /* tp_setattr */
-    0,                      /* tp_reserved (Python v3), tp_compare (Python v2) */
+    0,                      /* tp_as_async (Python v3.5), tp_compare (Python v2) */
     0,                      /* tp_repr */
     0,                      /* tp_as_number */
     0,                      /* tp_as_sequence */
@@ -10630,7 +10730,7 @@ sipWrapperType sipSimpleWrapper_Type = {
             0,              /* tp_print */
             0,              /* tp_getattr */
             0,              /* tp_setattr */
-            0,              /* tp_reserved (Python v3), tp_compare (Python v2) */
+            0,              /* tp_as_async (Python v3.5), tp_compare (Python v2) */
             0,              /* tp_repr */
             0,              /* tp_as_number */
             0,              /* tp_as_sequence */
@@ -10673,6 +10773,106 @@ sipWrapperType sipSimpleWrapper_Type = {
             0,              /* tp_finalize */
 #endif
         },
+#if PY_VERSION_HEX >= 0x03050000
+        {
+            0,              /* am_await */
+            0,              /* am_aiter */
+            0,              /* am_anext */
+        },
+#endif
+        {
+            0,              /* nb_add */
+            0,              /* nb_subtract */
+            0,              /* nb_multiply */
+#if PY_MAJOR_VERSION < 3
+            0,              /* nb_divide */
+#endif
+            0,              /* nb_remainder */
+            0,              /* nb_divmod */
+            0,              /* nb_power */
+            0,              /* nb_negative */
+            0,              /* nb_positive */
+            0,              /* nb_absolute */
+            0,              /* nb_bool (Python v3), nb_nonzero (Python v2) */
+            0,              /* nb_invert */
+            0,              /* nb_lshift */
+            0,              /* nb_rshift */
+            0,              /* nb_and */
+            0,              /* nb_xor */
+            0,              /* nb_or */
+#if PY_MAJOR_VERSION < 3
+            0,              /* nb_coerce */
+#endif
+            0,              /* nb_int */
+            0,              /* nb_reserved (Python v3), nb_long (Python v2) */
+            0,              /* nb_float */
+#if PY_MAJOR_VERSION < 3
+            0,              /* nb_oct */
+            0,              /* nb_hex */
+#endif
+            0,              /* nb_inplace_add */
+            0,              /* nb_inplace_subtract */
+            0,              /* nb_inplace_multiply */
+#if PY_MAJOR_VERSION < 3
+            0,              /* nb_inplace_divide */
+#endif
+            0,              /* nb_inplace_remainder */
+            0,              /* nb_inplace_power */
+            0,              /* nb_inplace_lshift */
+            0,              /* nb_inplace_rshift */
+            0,              /* nb_inplace_and */
+            0,              /* nb_inplace_xor */
+            0,              /* nb_inplace_or */
+#if PY_VERSION_HEX >= 0x02020000
+            0,              /* nb_floor_divide */
+            0,              /* nb_true_divide */
+            0,              /* nb_inplace_floor_divide */
+            0,              /* nb_inplace_true_divide */
+#endif
+#if PY_VERSION_HEX >= 0x02050000
+            0,              /* nb_index */
+#endif
+#if PY_VERSION_HEX >= 0x03050000
+            0,              /* nb_matrix_multiply */
+            0,              /* nb_inplace_matrix_multiply */
+#endif
+        },
+        {
+            0,              /* mp_length */
+            0,              /* mp_subscript */
+            0,              /* mp_ass_subscript */
+        },
+        {
+            0,              /* sq_length */
+            0,              /* sq_concat */
+            0,              /* sq_repeat */
+            0,              /* sq_item */
+            0,              /* was_sq_slice */
+            0,              /* sq_ass_item */
+            0,              /* was_sq_ass_slice */
+            0,              /* sq_contains */
+            0,              /* sq_inplace_concat */
+            0,              /* sq_inplace_repeat */
+        },
+        {
+#if PY_MAJOR_VERSION >= 3
+            0,              /* bf_getbuffer */
+            0,              /* bf_releasebuffer */
+#else
+            0,              /* bf_getreadbuffer */
+            0,              /* bf_getwritebuffer */
+            0,              /* bf_getsegcount */
+            0,              /* bf_getcharbuffer */
+            0,              /* bf_getbuffer */
+            0,              /* bf_releasebuffer */
+#endif
+        },
+        0,                  /* ht_name */
+        0,                  /* ht_slots */
+#if PY_MAJOR_VERSION >= 3
+        0,                  /* ht_qualname */
+        0,                  /* ht_cached_keys */
+#endif
 #if !defined(STACKLESS)
     },
 #endif
@@ -11130,6 +11330,10 @@ static void addTypeSlots(PyHeapTypeObject *heap_to, sipPySlotDef *slots)
             am->am_anext = (unaryfunc)f;
             break;
 #endif
+
+        /* Suppress a compiler warning. */
+        default:
+            ;
         }
 }
 
