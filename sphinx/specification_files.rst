@@ -164,7 +164,7 @@ file.
             **(** [*argument-list*] **)** [**const**] [*exceptions*] [**= 0**]
             [*function-annotations*] [*c++-signature*] **;**
             [:directive:`%MethodCode`] [:directive:`%VirtualCatcherCode`]
-            [:directive:`VirtualCallCode`]
+            [:directive:`%VirtualCallCode`]
 
     *special-method* ::= *type* *special-method-name*
             **(** [*argument-list*] **)** [*function-annotations*] **;**
@@ -195,7 +195,7 @@ file.
     *virtual-operator* ::= **virtual** *operator-type*
             **(** [*argument-list*] **)** [**const**] [*exceptions*] [**= 0**]
             [*function-annotations*] **;** [:directive:`%MethodCode`]
-            [:directive:`%VirtualCatcherCode`] [:directive:`VirtualCallCode`]
+            [:directive:`%VirtualCatcherCode`] [:directive:`%VirtualCallCode`]
 
     *operatator-type* ::= [ *operator-function* | *operator-cast* ]
 

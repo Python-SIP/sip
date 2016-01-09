@@ -8386,7 +8386,6 @@ static void *indirect_access_func(sipSimpleWrapper *sw, AccessFuncOp op)
 
     default:
         addr = NULL;
-        break;
     }
 
     return addr;

@@ -6970,7 +6970,7 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         pt->sigslots = TRUE;
     }
 
-    if (isSignal(od) && (methodcode != NULL || vcode != NULL || virtcallcode))
+    if (isSignal(od) && (methodcode != NULL || vcode != NULL || virtcallcode != NULL))
         yyerror("Cannot provide code for signals");
 
     if (isstatic)
