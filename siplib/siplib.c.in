@@ -290,6 +290,7 @@ static void *sip_api_get_mixin_address(sipSimpleWrapper *w,
         const sipTypeDef *td);
 static int sip_api_register_proxy_resolver(const sipTypeDef *td,
         sipProxyResolverFunc resolver);
+static PyInterpreterState *sip_api_get_interpreter();
 
 
 /*
@@ -421,9 +422,13 @@ static const sipAPIDef sip_api = {
      */
     sip_api_invoke_slot_ex,
     /*
-     * The following are not part of the public API.
+     * The following is not part of the public API.
      */
     sip_api_get_reference,
+    /*
+     * The following is part of the public API.
+     */
+    sip_api_get_interpreter,
 };
 
 
@@ -652,8 +657,6 @@ static int getSelfFromArgs(sipTypeDef *td, PyObject *args, int argnr,
 static PyObject *createEnumMember(sipTypeDef *td, sipEnumMemberDef *enm);
 static int compareTypedefName(const void *key, const void *el);
 static int checkPointer(void *ptr, sipSimpleWrapper *sw);
-static void *cast_cpp_ptr(void *ptr, PyTypeObject *src_type,
-        const sipTypeDef *dst_type);
 static void finalise(void);
 static PyObject *getDefaultBases(void);
 static PyObject *getScopeDict(sipTypeDef *td, PyObject *mod_dict,
@@ -1000,6 +1003,15 @@ PyMODINIT_FUNC SIP_MODULE_ENTRY(void)
     register_exit_notifier();
 
     SIP_MODULE_RETURN(mod);
+}
+
+
+/*
+ * Return the current interpreter, if there is one.
+ */
+static PyInterpreterState *sip_api_get_interpreter()
+{
+    return sipInterpreter;
 }
 
 
@@ -8423,29 +8435,24 @@ void *sip_api_get_cpp_ptr(sipSimpleWrapper *sw, const sipTypeDef *td)
 
     if (td != NULL)
     {
-        ptr = cast_cpp_ptr(ptr, Py_TYPE(sw), td);
+        if (PyObject_TypeCheck((PyObject *)sw, sipTypeAsPyTypeObject(td)))
+        {
+            sipCastFunc cast = ((const sipClassTypeDef *)((sipWrapperType *)Py_TYPE(sw))->type)->ctd_cast;
+
+            /* Handle any multiple inheritance. */
+            if (cast != NULL)
+                ptr = (*cast)(ptr, td);
+        }
+        else
+        {
+            ptr = NULL;
+        }
 
         if (ptr == NULL)
             PyErr_Format(PyExc_TypeError, "could not convert '%s' to '%s'",
                     Py_TYPE(sw)->tp_name,
                     sipPyNameOfContainer(&((const sipClassTypeDef *)td)->ctd_container, td));
     }
-
-    return ptr;
-}
-
-
-/*
- * Cast a C/C++ pointer from a source type to a destination type.
- */
-static void *cast_cpp_ptr(void *ptr, PyTypeObject *src_type,
-        const sipTypeDef *dst_type)
-{
-    sipCastFunc cast = ((const sipClassTypeDef *)((sipWrapperType *)src_type)->type)->ctd_cast;
-
-    /* C structures don't have cast functions. */
-    if (cast != NULL)
-        ptr = (*cast)(ptr, dst_type);
 
     return ptr;
 }
@@ -8750,12 +8757,28 @@ PyObject *sip_api_convert_from_type(void *cpp, const sipTypeDef *td,
     if (cfrom != NULL)
         return cfrom(cpp, transferObj);
 
-    /* Apply any sub-class convertor. */
-    if (sipTypeHasSCC(td))
+    /*
+     * See if we have already wrapped it.  Invoking sub-class code can be
+     * expensive so we check the cache first, even though the sub-class code
+     * might perform a down-cast.
+     */
+    if ((py = sip_api_get_pyobject(cpp, td)) == NULL && sipTypeHasSCC(td))
+    {
+        void *orig_cpp = cpp;
+        const sipTypeDef *orig_td = td;
+
+        /* Apply the sub-class convertor. */
         td = convertSubClass(td, &cpp);
 
-    /* See if we have already wrapped it. */
-    if ((py = sip_api_get_pyobject(cpp, td)) != NULL)
+        /*
+         * If the sub-class convertor has done something then check the cache
+         * again using the modified values.
+         */
+        if (cpp != orig_cpp || td != orig_td)
+            py = sip_api_get_pyobject(cpp, td);
+    }
+
+    if (py != NULL)
         Py_INCREF(py);
     else if ((py = wrap_simple_instance(cpp, td, NULL, SIP_SHARE_MAP)) == NULL)
         return NULL;
@@ -9070,7 +9093,7 @@ static int convertPass(const sipTypeDef **tdp, void **cppPtr)
 
         while (scc->scc_convertor != NULL)
         {
-            PyTypeObject *base_type = sipTypeAsPyTypeObject(scc->scc_basetype);
+            PyTypeObject *base_type, *tp;
 
             /*
              * The base type is the "root" class that may have a number of
@@ -9079,14 +9102,21 @@ static int convertPass(const sipTypeDef **tdp, void **cppPtr)
              * provides the RTTI used by the convertors and is re-implemented
              * by derived classes.  We therefore see if the target type is a
              * sub-class of the root, ie. see if the convertor might be able to
-             * convert the target type to something more specific.
+             * convert the target type to something more specific.  Note that
+             * we only consider direct sub-classes so that (for example) a
+             * QLayout is only handled by the QObject convertor and not by the
+             * QLayoutItem convertor.
              */
-            if (PyType_IsSubtype(py_type, base_type))
-            {
-                void *ptr;
-                const sipTypeDef *sub_td;
+            base_type = sipTypeAsPyTypeObject(scc->scc_basetype);
 
-                ptr = cast_cpp_ptr(*cppPtr, py_type, scc->scc_basetype);
+            for (tp = py_type; tp != NULL; tp = tp->tp_base)
+                if (tp == base_type)
+                    break;
+
+            if (tp != NULL)
+            {
+                void *ptr = *cppPtr;
+                const sipTypeDef *sub_td;
 
                 if ((sub_td = (*scc->scc_convertor)(&ptr)) != NULL)
                 {
@@ -9950,7 +9980,10 @@ static void *sip_api_get_mixin_address(sipSimpleWrapper *w,
     void *cpp;
 
     if ((mixin = PyObject_GetAttrString((PyObject *)w, sipTypeName(td))) == NULL)
+    {
+        PyErr_Clear();
         return NULL;
+    }
 
     cpp = sip_api_get_address((sipSimpleWrapper *)mixin);
 
