@@ -63,7 +63,7 @@ static void resolveFuncTypes(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         overDef *od);
 static void resolvePySigTypes(sipSpec *,moduleDef *,classDef *,overDef *,signatureDef *,int);
 static void resolveVariableType(sipSpec *,varDef *);
-static void fatalNoDefinedType(scopedNameDef *);
+static void fatalNoDefinedType(scopedNameDef *) SIP_NORETURN;
 static void resolveType(sipSpec *,moduleDef *,classDef *,argDef *,int);
 static void searchClassScope(sipSpec *,classDef *,scopedNameDef *,argDef *);
 static void searchMappedTypes(sipSpec *,moduleDef *,scopedNameDef *,argDef *);
@@ -697,11 +697,12 @@ static void moveClassCasts(sipSpec *pt, moduleDef *mod, classDef *cd)
         for (ctp = &dcd->ctors; *ctp != NULL; ctp = &(*ctp)->next)
             if (sameSignature(&(*ctp)->pysig, &ct->pysig, FALSE))
             {
-                fatal("operator ");
+                fatalStart();
+                fprintf(stderr, "operator ");
                 fatalScopedName(classFQCName(dcd));
-                fatal("::");
+                fprintf(stderr, "::");
                 fatalScopedName(classFQCName(dcd));
-                fatal("(");
+                fprintf(stderr, "(");
                 fatalScopedName(classFQCName(cd));
                 fatal(") already defined\n");
             }
@@ -800,7 +801,8 @@ static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd)
 
         if (mdhead == NULL)
         {
-            fatal("%s:%d: One of the arguments of ", od->sloc.name,
+            fatalStart();
+            fprintf(stderr, "%s:%d: One of the arguments of ", od->sloc.name,
                     od->sloc.linenr);
             prOverloadName(stderr, od);
             fatal(" must be a class or enum\n");
@@ -816,7 +818,8 @@ static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd)
         {
             if (second)
             {
-                fatal("%s:%d: The first argument of ", od->sloc.name,
+                fatalStart();
+                fprintf(stderr, "%s:%d: The first argument of ", od->sloc.name,
                         od->sloc.linenr);
                 prOverloadName(stderr, od);
                 fatal(" must be a class or enum\n");
@@ -824,7 +827,8 @@ static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd)
 
             if (mod != gmd->module && arg0->atype == enum_type)
             {
-                fatal("%s:%d: The first argument of ", od->sloc.name,
+                fatalStart();
+                fprintf(stderr, "%s:%d: The first argument of ", od->sloc.name,
                         od->sloc.linenr);
                 prOverloadName(stderr, od);
                 fatal(" must be a class\n");
@@ -1214,9 +1218,10 @@ static void setHierarchy(sipSpec *pt, classDef *base, classDef *cd,
 
             if (cl->cd->mro != NULL && hierBeingSet(cl->cd->mro))
             {
-                fatal("Recursive class hierarchy detected: ");
+                fatalStart();
+                fprintf(stderr, "Recursive class hierarchy detected: ");
                 fatalScopedName(classFQCName(cd));
-                fatal(" and ");
+                fprintf(stderr, " and ");
                 fatalScopedName(classFQCName(cl->cd));
                 fatal("\n");
             }
@@ -1603,7 +1608,8 @@ static void transformScopeOverloads(sipSpec *pt, classDef *c_scope,
                 {
                     ifaceFileDef *iff;
 
-                    fatal("%s:%d: ", od->sloc.name, od->sloc.linenr);
+                    fatalStart();
+                    fprintf(stderr, "%s:%d: ", od->sloc.name, od->sloc.linenr);
 
                     if (mt_scope != NULL)
                         iff = mt_scope->iff;
@@ -1615,7 +1621,7 @@ static void transformScopeOverloads(sipSpec *pt, classDef *c_scope,
                     if (iff != NULL)
                     {
                         fatalScopedName(iff->fqcname);
-                        fatal("::");
+                        fprintf(stderr, "::");
                     }
 
                     fatal("%s() has overloaded functions with the same Python signature\n", od->common->pyname->text);
@@ -1940,12 +1946,13 @@ static void resolveFuncTypes(sipSpec *pt, moduleDef *mod, classDef *c_scope,
 
         if ((res->atype != void_type || res->nrderefs != 0) && isVirtual(od) && !supportedType(c_scope, od, &od->cppsig->result, FALSE) && od->virthandler->virtcode == NULL)
         {
-            fatal("%s:%d: ", od->sloc.name, od->sloc.linenr);
+            fatalStart();
+            fprintf(stderr, "%s:%d: ", od->sloc.name, od->sloc.linenr);
 
             if (c_scope != NULL)
             {
                 fatalScopedName(classFQCName(c_scope));
-                fatal("::");
+                fprintf(stderr, "::");
             }
 
             fatal("%s() unsupported virtual function return type - provide %%VirtualCatcherCode\n", od->cppname);
@@ -2003,12 +2010,13 @@ static void resolvePySigTypes(sipSpec *pt, moduleDef *mod, classDef *scope,
     {
         if (issignal)
         {
-            fatal("%s:%d: ", od->sloc.name, od->sloc.linenr);
+            fatalStart();
+            fprintf(stderr, "%s:%d: ", od->sloc.name, od->sloc.linenr);
 
             if (scope != NULL)
             {
                 fatalScopedName(classFQCName(scope));
-                fatal("::");
+                fprintf(stderr, "::");
             }
 
             fatal("%s() signals must return void\n", od->cppname);
@@ -2025,12 +2033,13 @@ static void resolvePySigTypes(sipSpec *pt, moduleDef *mod, classDef *scope,
 
             if (need_meth)
             {
-                fatal("%s:%d: ", od->sloc.name, od->sloc.linenr);
+                fatalStart();
+                fprintf(stderr, "%s:%d: ", od->sloc.name, od->sloc.linenr);
 
                 if (scope != NULL)
                 {
                     fatalScopedName(classFQCName(scope));
-                    fatal("::");
+                    fprintf(stderr, "::");
                 }
 
                 fatal("%s() unsupported function return type - provide %%MethodCode and a %s signature\n", od->cppname, (pt->genc ? "C" : "C++"));
@@ -2055,12 +2064,13 @@ static void resolvePySigTypes(sipSpec *pt, moduleDef *mod, classDef *scope,
         {
             if (!supportedType(scope,od,ad,FALSE))
             {
-                fatal("%s:%d: ", od->sloc.name, od->sloc.linenr);
+                fatalStart();
+                fprintf(stderr, "%s:%d: ", od->sloc.name, od->sloc.linenr);
 
                 if (scope != NULL)
                 {
                     fatalScopedName(classFQCName(scope));
-                    fatal("::");
+                    fprintf(stderr, "::");
                 }
 
                 fatal("%s() unsupported signal argument type\n", od->cppname);
@@ -2075,13 +2085,15 @@ static void resolvePySigTypes(sipSpec *pt, moduleDef *mod, classDef *scope,
 
             if (need_meth || need_virt)
             {
+                fatalStart();
+
                 if (od->sloc.name != NULL)
-                    fatal("%s:%d: ", od->sloc.name, od->sloc.linenr);
+                    fprintf(stderr, "%s:%d: ", od->sloc.name, od->sloc.linenr);
 
                 if (scope != NULL)
                 {
                     fatalScopedName(classFQCName(scope));
-                    fatal("::");
+                    fprintf(stderr, "::");
                 }
 
                 if (need_meth)
@@ -2405,14 +2417,16 @@ static void ensureInput(classDef *cd,overDef *od,argDef *ad)
 {
     if (isOutArg(ad))
     {
+        fatalStart();
+
         if (cd != NULL)
         {
             fatalScopedName(classFQCName(cd));
-            fatal("::");
+            fprintf(stderr, "::");
         }
 
         if (od != NULL)
-            fatal("%s",od -> cppname);
+            fprintf(stderr, "%s", od->cppname);
 
         fatal("() invalid argument type for /Out/\n");
     }
@@ -2456,12 +2470,12 @@ void fatalScopedName(scopedNameDef *snd)
 
     while (snd != NULL)
     {
-        fatal("%s",snd -> name);
+        fprintf(stderr, "%s", snd->name);
 
         snd = snd -> next;
 
         if (snd != NULL)
-            fatal("::");
+            fprintf(stderr, "::");
     }
 }
 

@@ -7105,7 +7105,7 @@ static void generateVirtualCatcher(sipSpec *pt, moduleDef *mod, classDef *cd,
                     if (avr == NULL)
                     {
                         fatalScopedName(classFQCName(cd));
-                        fatal("::");
+                        fprintf(stderr, "::");
                         prOverloadName(stderr, od);
                         fatal(" has versioned and unversioned overloads\n");
                     }
