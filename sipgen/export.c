@@ -791,6 +791,10 @@ static void xmlType(sipSpec *pt, argDef *ad, int sec, FILE *fp)
     case mapped_type:
         type_type = "mappedtype";
         break;
+
+    /* Suppress a compiler warning. */
+    default:
+        ;
     }
 
     if ((type_name = pyType(pt, ad, sec, &type_scope)) != NULL)

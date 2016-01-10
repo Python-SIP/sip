@@ -351,7 +351,7 @@ def create_makefiles(macros):
         pro.write("TEMPLATE = app\n")
         pro.write("TARGET = sip\n")
         pro.write("CONFIG -= qt app_bundle\n")
-        pro.write("CONFIG += warn_off exceptions_off console %s\n" % (
+        pro.write("CONFIG += warn_on exceptions_off console %s\n" % (
                 ("debug" if opts.debug else "release")))
 
         pro.write("\n")
@@ -380,7 +380,7 @@ def create_makefiles(macros):
             dir="sipgen",
             install_dir=os.path.dirname(cfg.sip_bin),
             console=1,
-            warnings=0,
+            warnings=1,
             universal=opts.universal,
             arch=opts.arch,
             deployment_target=opts.deployment_target
@@ -467,7 +467,7 @@ macx {
             installs=([os.path.join(build_dir, "siplib", "sip.h")],
                     cfg.sip_inc_dir),
             console=1,
-            warnings=0,
+            warnings=1,
             static=opts.static,
             debug=opts.debug,
             universal=opts.universal,

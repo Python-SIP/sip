@@ -43,6 +43,23 @@
 #define FALSE   0
 
 
+/* Some convenient compiler extensions. */
+
+#if defined(__GNUC__)
+#define SIP_NORETURN    __attribute__((__noreturn__))
+#define SIP_UNUSED      __attribute__((__unused__))
+#elif defined(_MSC_VER)
+#define SIP_NORETURN    __declspec(noreturn)
+#endif
+
+#if !defined(SIP_NORETURN)
+#define SIP_NORETURN
+#endif
+#if !defined(SIP_UNUSED)
+#define SIP_UNUSED
+#endif
+
+
 #define DEFAULT_OFILE_EXT   ".o"    /* Default object file extension. */
 
 #define MAX_NR_ARGS         20      /* Max. nr. args. to a function or template. */
@@ -1033,7 +1050,7 @@ typedef struct _overDef {
     signatureDef *cppsig;               /* The C++ signature. */
     throwArgs *exceptions;              /* The exceptions. */
     codeBlockList *methodcode;          /* Method code. */
-    codeBlockList *virtcallcode;        /* Virtual call  code. */
+    codeBlockList *virtcallcode;        /* Virtual call code. */
     virtHandlerDef *virthandler;        /* The virtual handler. */
     char *prehook;                      /* The pre-hook name. */
     char *posthook;                     /* The post-hook name. */
@@ -1289,8 +1306,9 @@ void generateXML(sipSpec *pt, moduleDef *mod, const char *xmlFile);
 void generateExpression(valueDef *vd, int in_str, FILE *fp);
 void warning(Warning w, const char *fmt, ...);
 void deprecated(const char *msg);
-void fatal(char *,...);
+void fatal(const char *fmt,...) SIP_NORETURN;
 void fatalScopedName(scopedNameDef *);
+void fatalStart();
 void getSourceLocation(sourceLocation *slp);
 int setInputFile(FILE *open_fp, parserContext *pc, int optional);
 void resetLexerState();
@@ -1339,7 +1357,9 @@ ifaceFileDef *findIfaceFile(sipSpec *pt, moduleDef *mod,
 int pluginPyQt3(sipSpec *pt);
 int pluginPyQt4(sipSpec *pt);
 int pluginPyQt5(sipSpec *pt);
+void yyerror(char *) SIP_NORETURN;
 void yywarning(char *);
+int yylex();
 nameDef *cacheName(sipSpec *pt, const char *name);
 scopedNameDef *encodedTemplateName(templateDef *td);
 apiVersionRangeDef *findAPI(sipSpec *pt, const char *name);
