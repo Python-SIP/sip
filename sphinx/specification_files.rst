@@ -504,6 +504,8 @@ The corresponding SIP specification is::
 
 .. sip-type:: SIP_SLOT_DIS
 
+.. deprecated:: 4.18
+
 This is a ``const char *`` that is used as the type of the member instead of
 ``const char *`` in functions that implement the disconnection of an
 internally generated signal to a slot.  The type includes a comma separated

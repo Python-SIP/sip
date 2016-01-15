@@ -3915,6 +3915,7 @@ argvalue:   TK_SIPSIGNAL optname optflags optassign {
             currentSpec -> sigslots = TRUE;
         }
     |   TK_SIPSLOTDIS '(' arglist ')' optname optflags {
+            warning(DeprecationWarning, "SIP_SLOT_DIS is deprecated\n");
             checkNoAnnos(&$6, "SIP_SLOT_DIS has no annotations");
 
             $$.atype = slotdis_type;
