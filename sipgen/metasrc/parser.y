@@ -3889,6 +3889,7 @@ argvalue:   TK_SIPSIGNAL optname optflags optassign {
             currentSpec -> sigslots = TRUE;
         }
     |   TK_SIPRXDIS optname optflags {
+            warning(DeprecationWarning, "SIP_RXOBJ_DIS is deprecated\n");
             checkNoAnnos(&$3, "SIP_RXOBJ_DIS has no annotations");
 
             $$.atype = rxdis_type;

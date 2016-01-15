@@ -464,6 +464,8 @@ QObject *`` in functions that implement a connection to a slot.
 
 .. sip-type:: SIP_RXOBJ_DIS
 
+.. deprecated:: 4.18
+
 This is a ``QObject *`` that is a C++ instance of a class derived from Qt's
 ``QObject`` class.  It is used as the type of the receiver instead of ``const
 QObject *`` in functions that implement a disconnection from a slot.
