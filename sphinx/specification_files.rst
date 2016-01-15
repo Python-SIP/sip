@@ -402,6 +402,8 @@ signatures.
 
 .. sip-type:: SIP_ANYSLOT
 
+.. deprecated:: 4.18
+
 This is both a ``const char *`` and a ``PyObject *`` that is used as the type
 of the member instead of ``const char *`` in functions that implement the
 connection or disconnection of an explicitly generated signal to a slot.

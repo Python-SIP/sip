@@ -3860,6 +3860,7 @@ argvalue:   TK_SIPSIGNAL optname optflags optassign {
             currentSpec -> sigslots = TRUE;
         }
     |   TK_SIPANYSLOT optname optflags optassign {
+            warning(DeprecationWarning, "SIP_ANYSLOT is deprecated\n");
             checkNoAnnos(&$3, "SIP_ANYSLOT has no annotations");
 
             $$.atype = anyslot_type;
