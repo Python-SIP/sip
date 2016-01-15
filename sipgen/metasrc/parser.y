@@ -3933,6 +3933,7 @@ argvalue:   TK_SIPSIGNAL optname optflags optassign {
             currentSpec -> sigslots = TRUE;
         }
     |   TK_QOBJECT optname optflags {
+            warning(DeprecationWarning, "SIP_QOBJECT is deprecated\n");
             checkNoAnnos(&$3, "SIP_QOBJECT has no annotations");
 
             $$.atype = qobject_type;

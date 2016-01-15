@@ -451,6 +451,8 @@ This is a ``PyObject *`` that is a Python type object.
 
 .. sip-type:: SIP_QOBJECT
 
+.. deprecated:: 4.18
+
 This is a ``QObject *`` that is a C++ instance of a class derived from Qt's
 ``QObject`` class.
 
