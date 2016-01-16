@@ -477,6 +477,8 @@ QObject *`` in functions that implement a disconnection from a slot.
 
 .. sip-type:: SIP_SIGNAL
 
+.. deprecated:: 4.18
+
 This is a ``const char *`` that is used as the type of the signal instead of
 ``const char *`` in functions that implement the connection or disconnection
 of an explicitly generated signal to a slot.
