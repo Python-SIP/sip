@@ -461,6 +461,8 @@ This is a ``QObject *`` that is a C++ instance of a class derived from Qt's
 
 .. sip-type:: SIP_RXOBJ_CON
 
+.. deprecated:: 4.18
+
 This is a ``QObject *`` that is a C++ instance of a class derived from Qt's
 ``QObject`` class.  It is used as the type of the receiver instead of ``const
 QObject *`` in functions that implement a connection to a slot.
@@ -486,12 +488,16 @@ of an explicitly generated signal to a slot.
 
 .. sip-type:: SIP_SLOT
 
+.. deprecated:: 4.18
+
 This is a ``const char *`` that is used as the type of the member instead of
 ``const char *`` in functions that implement the connection or disconnection
 of an explicitly generated signal to a slot.
 
 
 .. sip-type:: SIP_SLOT_CON
+
+.. deprecated:: 4.18
 
 This is a ``const char *`` that is used as the type of the member instead of
 ``const char *`` in functions that implement the connection of an internally
