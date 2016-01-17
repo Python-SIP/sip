@@ -3,7 +3,7 @@ SIP v5 Roadmap
 
 The next major release of SIP will be v5 and is currently being planned.  While
 we make no committments to release dates, we expect that the development will
-be done during 2015.
+be done during 2016.
 
 The major focus of v5 will be to:
 
@@ -22,19 +22,14 @@ Any feedback on the roadmap is very welcome.
 Migration from SIP v4 to v5
 ---------------------------
 
-The intention is that all changes to the syntax of specification files will be
-implemented in SIP v4 starting with v4.12.  Any old syntax will be supported
-thoughout the life of v4 but will not be supported by v5.
-
+SIP v4.18.x will be the final series of SIP v4 releases.  All features that
+will be removed in SIP v5 will trigger a deprecation warning.  These will be
 Use of the old syntax will trigger deprecation warning messages.  These will be
 disabled by default and will be enabled by passing the ``-w`` command line
 option to the code generator.
 
-Starting with SIP v4.13 the deprecation messages will be enabled and it will
-not be possible to disable them.
-
 A set of specification files that does not trigger any deprecation warnings
-with SIP v4.13 should work unchanged with SIP v5.
+with SIP v4.18.x should work unchanged with SIP v5.
 
 
 Roadmap
