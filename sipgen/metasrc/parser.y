@@ -3878,6 +3878,7 @@ argvalue:   TK_SIPSIGNAL optname optflags optassign {
                 NULL
             };
 
+            warning(DeprecationWarning, "SIP_RXOBJ_CON is deprecated\n");
             checkAnnos(&$3, annos);
 
             $$.atype = rxcon_type;
@@ -3902,6 +3903,7 @@ argvalue:   TK_SIPSIGNAL optname optflags optassign {
             currentSpec -> sigslots = TRUE;
         }
     |   TK_SIPSLOTCON '(' arglist ')' optname optflags {
+            warning(DeprecationWarning, "SIP_SLOT_CON is deprecated\n");
             checkNoAnnos(&$6, "SIP_SLOT_CON has no annotations");
 
             $$.atype = slotcon_type;
