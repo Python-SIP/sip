@@ -116,8 +116,8 @@ specification files.
 .. c:macro:: SIP_VERSION
 
     This is a C preprocessor symbol that defines the SIP version number
-    represented as a 3 part hexadecimal number (e.g. v4.0.0 is represented as
-    ``0x040000``).
+    represented as a 3 part hexadecimal number (e.g. v5.0.0 is represented as
+    ``0x050000``).
 
 
 .. c:macro:: SIP_VERSION_STR
