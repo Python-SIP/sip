@@ -185,7 +185,7 @@ def inform_user():
     siputils.inform("The %s module will be installed in %s." % (sip_module_base, sip_module_dir))
 
     if opts.pyi:
-        siputils.inform("The %s.pyi stub file will be installed in %s." % (sip_module_base, pyi_dir))
+        siputils.inform("The sip.pyi stub file will be installed in %s." % pyi_dir)
 
     if opts.static:
         siputils.inform("The %s module will be built as a static library." % sip_module_base)
@@ -445,7 +445,7 @@ macx {
 
         if opts.pyi:
             pro.write("\n")
-            pro.write("sip_pyi.files = %s.pyi\n" % sip_module_base)
+            pro.write("sip_pyi.files = sip.pyi\n")
             pro.write("sip_pyi.path = %s\n" % pyi_dir)
             pro.write("INSTALLS += sip_pyi\n")
 
@@ -474,9 +474,7 @@ macx {
                         cfg.sip_inc_dir)]
 
         if opts.pyi:
-            installs.append(
-                    ([os.path.join(build_dir, '%s.pyi' % sip_module_base)],
-                            pyi_dir))
+            installs.append(([os.path.join(build_dir, 'sip.pyi')], pyi_dir))
 
         makefile = sipconfig.ModuleMakefile(
             configuration=cfg,
