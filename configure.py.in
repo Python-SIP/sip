@@ -46,6 +46,7 @@ sip_bin_dir = ''
 sip_inc_dir = ''
 sip_module_dir = ''
 sip_sip_dir = ''
+pyi_dir = ''
 sysroot = ''
 src_dir = os.path.dirname(os.path.abspath(__file__))
 sip_module_base = None
@@ -182,6 +183,9 @@ def inform_user():
         siputils.inform("The SIP code generator will be installed in %s." % sip_bin_dir)
 
     siputils.inform("The %s module will be installed in %s." % (sip_module_base, sip_module_dir))
+
+    if opts.pyi:
+        siputils.inform("The %s.pyi stub file will be installed in %s." % (sip_module_base, pyi_dir))
 
     if opts.static:
         siputils.inform("The %s module will be built as a static library." % sip_module_base)
@@ -439,6 +443,12 @@ macx {
         pro.write("target.path = %s\n" % cfg.sip_mod_dir)
         pro.write("INSTALLS += target\n")
 
+        if opts.pyi:
+            pro.write("\n")
+            pro.write("sip_pyi.files = %s.pyi\n" % sip_module_base)
+            pro.write("sip_pyi.path = %s\n" % pyi_dir)
+            pro.write("INSTALLS += sip_pyi\n")
+
         pro.write("\n")
         pro.write("sip_h.files = sip.h\n")
         pro.write("sip_h.path = %s\n" % cfg.sip_inc_dir)
@@ -459,13 +469,21 @@ macx {
 
         build_dir = os.getcwd()
 
+        installs=[
+                ([os.path.join(build_dir, "siplib", "sip.h")],
+                        cfg.sip_inc_dir)]
+
+        if opts.pyi:
+            installs.append(
+                    ([os.path.join(build_dir, '%s.pyi' % sip_module_base)],
+                            pyi_dir))
+
         makefile = sipconfig.ModuleMakefile(
             configuration=cfg,
             build_file=os.path.join(build_dir, "siplib", "siplib.sbf"),
             dir="siplib",
             install_dir=cfg.sip_mod_dir,
-            installs=([os.path.join(build_dir, "siplib", "sip.h")],
-                    cfg.sip_inc_dir),
+            installs=installs,
             console=1,
             warnings=1,
             static=opts.static,
@@ -576,7 +594,7 @@ def update_from_configuration_file(config_file):
     config['py_minor'] = version[1]
     config['sysroot'] = sysroot
 
-    # Override the relevent values.
+    # Override the relevant values.
     global py_platform, plat_py_conf_inc_dir, plat_py_inc_dir, plat_py_lib_dir
     global sip_bin_dir, sip_inc_dir, sip_module_dir, sip_sip_dir
 
@@ -713,6 +731,12 @@ def create_optparser(sdk_dir):
             metavar="DIR", dest="sipsipdir", callback=store_abspath,
             help="where .sip files are normally installed [default: "
                     "%s]" % plat_sip_dir)
+    g.add_option("--no-pyi", action="store_false", default=True, dest="pyi",
+            help="do not install the sip.pyi stub file")
+    g.add_option("--pyidir", action="callback", type="string", metavar="DIR",
+            dest="pyidir", callback=store_abspath,
+            help="where the sip.pyi stub file will be installed [default: "
+                    "%s]" % plat_py_site_dir)
     p.add_option_group(g)
 
     return p
@@ -804,7 +828,7 @@ def main(argv):
     # Apply the overrides from any configuration file.
     global plat_bin_dir, plat_py_conf_inc_dir, plat_py_inc_dir
     global plat_py_lib_dir, plat_py_site_dir, plat_sip_dir
-    global sip_bin_dir, sip_inc_dir, sip_module_dir, sip_sip_dir
+    global sip_bin_dir, sip_inc_dir, sip_module_dir, sip_sip_dir, pyi_dir
 
     # Set defaults.
     sip_bin_dir = plat_bin_dir
@@ -848,6 +872,11 @@ def main(argv):
 
     if opts.sipsipdir is not None:
         sip_sip_dir = opts.sipsipdir
+
+    if opts.pyidir is not None:
+        pyi_dir = opts.pyidir
+    else:
+        pyi_dir = sip_module_dir
 
     # Get the platform specific macros for building.
     macros = siputils.parse_build_macros(

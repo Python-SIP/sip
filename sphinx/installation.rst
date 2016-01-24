@@ -26,7 +26,7 @@ For example::
 This assumes that the Python interpreter is on your path.  Something like the
 following may be appropriate on Windows::
 
-    c:\python34\python configure.py
+    c:\python35\python configure.py
 
 If you have multiple versions of Python installed then make sure you use the
 interpreter for which you wish SIP to generate bindings for.
@@ -63,7 +63,7 @@ The full set of command line options is:
 
 .. cmdoption:: -d <DIR>, --destdir <DIR>
 
-    The SIP module will be installed in the directory ``<DIR>``.
+    The :mod:`sip` module will be installed in the directory ``<DIR>``.
 
 .. cmdoption:: --deployment-target <VERSION>
 
@@ -80,8 +80,8 @@ The full set of command line options is:
 
 .. cmdoption:: -k, --static
 
-    The SIP module will be built as a static library.  This is useful when
-    building the SIP module as a Python builtin.
+    The :mod:`sip` module will be built as a static library.  This is useful
+    when building the :mod:`sip` module as a Python builtin.
 
 .. cmdoption:: -n, --universal
 
@@ -89,6 +89,12 @@ The full set of command line options is:
     under MacOS/X.  If the :option:`--arch <configure.py --arch>` option has
     not been specified then the universal binary will include the ``i386`` and
     ``ppc`` architectures.
+
+.. cmdoption:: --no-pyi
+
+    .. versionadded:: 4.18
+
+    This disables the installation of the ``sip.pyi`` type hints stub file.
 
 .. cmdoption:: --no-tools
 
@@ -103,6 +109,14 @@ The full set of command line options is:
     :option:`--show-platforms <configure.py --show-platforms>` option will
     display all the supported platform/compilers.
 
+.. cmdoption:: --pyi-dir <DIR>
+
+    .. versionadded:: 4.18
+
+    ``<DIR>`` is the name of the directory where the ``sip.pyi`` type hints
+    stub file is installed.  By default this is the directory where the
+    :mod:`sip` module is installed.
+
 .. cmdoption:: -s <SDK>, --sdk <SDK>
 
     If the :option:`--universal <configure.py -n>` option was given then this
@@ -113,7 +127,7 @@ The full set of command line options is:
 
 .. cmdoption:: -u, --debug
 
-    The SIP module will be built with debugging symbols.
+    The :mod:`sip` module will be built with debugging symbols.
 
 .. cmdoption:: -v <DIR>, --sipdir <DIR>
 
@@ -129,10 +143,10 @@ The full set of command line options is:
 
 .. cmdoption:: --sip-module <NAME>
 
-    The SIP module will be created with the name ``<NAME>`` rather than the
-    default ``sip``.  ``<NAME>`` may be of the form
-    ``package.sub-package.module``.  See :ref:`ref-private-sip` for how to
-    use this to create a private copy of the SIP module.
+    The :mod:`sip` module will be created with the name ``<NAME>`` rather than
+    the default ``sip``.  ``<NAME>`` may be of the form
+    ``package.sub-package.module``.  See :ref:`ref-private-sip` for how to use
+    this to create a private copy of the :mod:`sip` module.
 
 .. cmdoption:: --sysroot <DIR>
 
@@ -194,7 +208,7 @@ SIP, and the modules it generates, can be built with MinGW, the Windows port of
 GCC.  You must use the :option:`--platform <configure.py -p>` command line
 option to specify the correct platform.  For example::
 
-    c:\python34\python configure.py --platform win32-g++
+    c:\python35\python configure.py --platform win32-g++
 
 
 Configuring for the Borland C++ Compiler
@@ -204,14 +218,14 @@ SIP, and the modules it generates, can be built with the free Borland C++
 compiler.  You must use the :option:`--platform <configure.py -p>` command line
 option to specify the correct platform.  For example::
 
-    c:\python34\python configure.py --platform win32-borland
+    c:\python35\python configure.py --platform win32-borland
 
 You must also make sure you have a Borland-compatible version of the Python
 library.  If you are using the standard Python distribution (built using the
 Microsoft compiler) then you must convert the format of the Python library.
 For example::
 
-    coff2omf python34.lib python34_bcpp.lib
+    coff2omf python35.lib python35_bcpp.lib
 
 
 Building
@@ -306,8 +320,8 @@ The following values can be specified in the configuration file:
     :option:`--incdir <configure.py -e>` option.
 
 ``sip_module_dir``
-    is the target directory where the SIP module will be installed.  It can be
-    overridden by the :option:`--destdir <configure.py -d>` option.
+    is the target directory where the :mod:`sip` module will be installed.  It
+    can be overridden by the :option:`--destdir <configure.py -d>` option.
 
 ``sip_sip_dir``
     is the name of the target directory where generated ``.sip`` files will be
