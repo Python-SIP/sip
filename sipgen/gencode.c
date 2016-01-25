@@ -10697,7 +10697,7 @@ static void generateSignalTableEntry(sipSpec *pt, classDef *cd, overDef *sig,
             prScopedPythonName(fp, cd->ecd, cd->pyname->text);
             fprintf(fp, ".%s", md->pyname->text);
             prPythonSignature(pt, fp, &sig->pysig, FALSE, FALSE, FALSE, FALSE,
-                    TRUE);
+                    TRUE, FALSE);
             fprintf(fp, "\"");
         }
 
@@ -14098,9 +14098,6 @@ static FILE *createFile(moduleDef *mod, const char *fname,
 
     if (description != NULL)
     {
-        int needComment;
-        codeBlockList *cbl;
-
         /* Write the header. */
         prcode(fp,
 "/*\n"
@@ -14122,31 +14119,7 @@ static FILE *createFile(moduleDef *mod, const char *fname,
                 );
         }
 
-        if (mod->copying != NULL)
-            prcode(fp,
-" *\n"
-                );
-
-        needComment = TRUE;
-
-        for (cbl = mod->copying; cbl != NULL; cbl = cbl->next)
-        {
-            const char *cp;
-
-            for (cp = cbl->block->frag; *cp != '\0'; ++cp)
-            {
-                if (needComment)
-                {
-                    needComment = FALSE;
-                    prcode(fp," * ");
-                }
-
-                prcode(fp,"%c",*cp);
-
-                if (*cp == '\n')
-                    needComment = TRUE;
-            }
-        }
+        prCopying(fp, mod, " *");
 
         prcode(fp,
 " */\n"
@@ -14154,6 +14127,38 @@ static FILE *createFile(moduleDef *mod, const char *fname,
     }
 
     return fp;
+}
+
+
+/*
+ * Generate any copying (ie. licensing) text as a comment.
+ */
+void prCopying(FILE *fp, moduleDef *mod, const char *comment)
+{
+    int needComment = TRUE;
+    codeBlockList *cbl;
+
+    if (mod->copying != NULL)
+        prcode(fp, "%s\n", comment);
+
+    for (cbl = mod->copying; cbl != NULL; cbl = cbl->next)
+    {
+        const char *cp;
+
+        for (cp = cbl->block->frag; *cp != '\0'; ++cp)
+        {
+            if (needComment)
+            {
+                needComment = FALSE;
+                prcode(fp, "%s ", comment);
+            }
+
+            prcode(fp, "%c", *cp);
+
+            if (*cp == '\n')
+                needComment = TRUE;
+        }
+    }
 }
 
 
@@ -14995,7 +15000,7 @@ static void generateDocstring(sipSpec *pt, overDef *overs, memberDef *md,
 
         prcode(fp, "%s", md->pyname->text);
         need_sec = prPythonSignature(pt, fp, &od->pysig, FALSE, TRUE, TRUE,
-                TRUE, FALSE);
+                TRUE, FALSE, FALSE);
 
         if (need_sec)
         {
@@ -15008,7 +15013,7 @@ static void generateDocstring(sipSpec *pt, overDef *overs, memberDef *md,
 
             prcode(fp, "%s", md->pyname->text);
             prPythonSignature(pt, fp, &od->pysig, TRUE, TRUE, TRUE, TRUE,
-                    FALSE);
+                    FALSE, FALSE);
         }
     }
 
@@ -15079,7 +15084,7 @@ static void generateClassDocstring(sipSpec *pt, classDef *cd, FILE *fp)
 
         prScopedPythonName(fp, cd->ecd, cd->pyname->text);
         need_sec = prPythonSignature(pt, fp, &ct->pysig, FALSE, TRUE, TRUE,
-                TRUE, FALSE);
+                TRUE, FALSE, FALSE);
         ++currentLineNr;
 
         if (need_sec)
@@ -15088,7 +15093,7 @@ static void generateClassDocstring(sipSpec *pt, classDef *cd, FILE *fp)
 
             prScopedPythonName(fp, cd->ecd, cd->pyname->text);
             prPythonSignature(pt, fp, &ct->pysig, TRUE, TRUE, TRUE, TRUE,
-                    FALSE);
+                    FALSE, FALSE);
             ++currentLineNr;
         }
     }

@@ -1,7 +1,7 @@
 /*
  * The main header file for SIP.
  *
- * Copyright (c) 2015 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2016 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -1303,6 +1303,7 @@ void generateExtracts(sipSpec *pt, const stringList *extracts);
 void addExtractPart(sipSpec *pt, const char *id, int order, codeBlock *part);
 void generateAPI(sipSpec *pt, moduleDef *mod, const char *apiFile);
 void generateXML(sipSpec *pt, moduleDef *mod, const char *xmlFile);
+void generateTypeHints(sipSpec *pt, moduleDef *mod, const char *pyiFile);
 void generateExpression(valueDef *vd, int in_str, FILE *fp);
 void warning(Warning w, const char *fmt, ...);
 void deprecated(const char *msg);
@@ -1332,11 +1333,16 @@ void freeScopedName(scopedNameDef *);
 void appendToClassList(classList **,classDef *);
 void appendCodeBlockList(codeBlockList **headp, codeBlockList *cbl);
 void prcode(FILE *fp, const char *fmt, ...);
+void prCopying(FILE *fp, moduleDef *mod, const char *comment);
+const char *pyType(sipSpec *pt, argDef *ad, int sec, classDef **scope);
+int prArgument(sipSpec *pt, argDef *ad, int out, int need_comma, int sec,
+        int names, int defaults, int in_str, FILE *fp);
+void prDefaultValue(argDef *ad, int in_str, FILE *fp);
 void prOverloadName(FILE *fp, overDef *od);
 void prOverloadDecl(FILE *fp, ifaceFileDef *scope, overDef *od, int defval);
 void prScopedPythonName(FILE *fp, classDef *scope, const char *pyname);
 int prPythonSignature(sipSpec *pt, FILE *fp, signatureDef *sd, int sec,
-        int names, int defaults, int in_str, int is_signal);
+        int names, int defaults, int in_str, int is_signal, int pep484);
 void searchTypedefs(sipSpec *pt, scopedNameDef *snd, argDef *ad);
 int isZeroArgSlot(memberDef *md);
 int isIntReturnSlot(memberDef *md);

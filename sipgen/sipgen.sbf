@@ -1,6 +1,6 @@
 # This is the build file for the code generator.
 #
-# Copyright (c) 2015 Riverbank Computing Limited <info@riverbankcomputing.com>
+# Copyright (c) 2016 Riverbank Computing Limited <info@riverbankcomputing.com>
 #
 # This file is part of SIP.
 #
@@ -15,5 +15,5 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 target = sip
-sources = main.c transform.c gencode.c extracts.c export.c heap.c parser.c lexer.c 
+sources = main.c transform.c gencode.c extracts.c export.c type_hints.c heap.c parser.c lexer.c 
 headers = sip.h parser.h

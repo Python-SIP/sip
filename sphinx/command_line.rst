@@ -24,6 +24,8 @@ The full set of command line options is:
 
 .. cmdoption:: -a <FILE>
 
+    .. deprecated:: 4.18
+
     The name of the QScintilla API file to generate.  This file contains a
     description of the module API in a form that the QScintilla editor
     component can use for auto-completion and call tips.  (The file may also be
@@ -163,6 +165,14 @@ The full set of command line options is:
 
     The extract (defined with the :directive:`%Extract` directive) with the
     identifier ``ID`` is written to the file ``FILE``.
+
+.. cmdoption:: -y <FILE>
+
+    .. versionadded:: 4.18
+
+    The name of the Python type hints stub file to generate.  This file
+    contains a description of the module API that is compliant with PEP 484.
+    By default the file is not generated.
 
 .. cmdoption:: -z <FILE>
 

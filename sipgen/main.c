@@ -1,7 +1,7 @@
 /*
  * The main module for SIP.
  *
- * Copyright (c) 2015 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2016 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -49,7 +49,7 @@ static int parseInt(char *,char);
 int main(int argc, char **argv)
 {
     char *filename, *docFile, *codeDir, *srcSuffix, *flagFile, *consModule;
-    char arg, *optarg, *buildFile, *apiFile, *xmlFile;
+    char arg, *optarg, *buildFile, *apiFile, *xmlFile, *pyiFile;
     int optnr, exceptions, tracing, releaseGIL, parts, protHack, docs;
     int timestamp, was_flagFile;
     KwArgs kwArgs;
@@ -71,6 +71,7 @@ int main(int argc, char **argv)
     was_flagFile = FALSE;
     apiFile = NULL;
     xmlFile = NULL;
+    pyiFile = NULL;
     consModule = NULL;
     extracts = NULL;
     exceptions = FALSE;
@@ -85,7 +86,7 @@ int main(int argc, char **argv)
     /* Parse the command line. */
     optnr = 1;
 
-    while ((arg = parseopt(argc, argv, "hVa:b:B:ec:d:gI:j:km:op:Prs:t:Twx:X:z:", &flagFile, &optnr, &optarg)) != '\0')
+    while ((arg = parseopt(argc, argv, "hVa:b:B:ec:d:gI:j:km:op:Prs:t:Twx:X:y:z:", &flagFile, &optnr, &optarg)) != '\0')
         switch (arg)
         {
         case 'o':
@@ -111,6 +112,11 @@ int main(int argc, char **argv)
         case 'm':
             /* Where to generate the XML file. */
             xmlFile = optarg;
+            break;
+
+        case 'y':
+            /* Where to generate the .pyi file. */
+            pyiFile = optarg;
             break;
 
         case 'b':
@@ -268,6 +274,10 @@ int main(int argc, char **argv)
     /* Generate the XML export. */
     if (xmlFile != NULL)
         generateXML(&spec, spec.module,  xmlFile);
+
+    /* Generate the .pyi file. */
+    if (pyiFile != NULL)
+        generateTypeHints(&spec, spec.module,  pyiFile);
 
     /* All done. */
     return 0;
@@ -569,6 +579,7 @@ static void help(void)
 "    -w          enable warning messages\n"
 "    -x feature  this feature is disabled\n"
 "    -X id:file  create the extracts for an id in a file\n"
+"    -y file     the name of the .pyi stub file [default not generated]\n"
 "    -z file     the name of a file containing more command line flags\n"
 "    @file       the name of a file containing more command line flags\n"
 "    file        the name of the specification file [default stdin]\n"
@@ -586,6 +597,6 @@ static void usage(void)
     fatal("Usage: %s [-h] [-V] [-a file] [-b file] [-B tag] [-c dir] "
             "[-d file] [-e] [-g] [-I dir] [-j #] [-k] [-m file] [-o] "
             "[-p module] [-P] [-r] [-s suffix] [-t tag] [-w] [-x feature] "
-            "[-X id:file] [-z file] [@file] [file]\n",
+            "[-X id:file] [-y file] [-z file] [@file] [file]\n",
             sipPackage);
 }
