@@ -6251,7 +6251,7 @@ static int createMappedType(sipExportedModuleDef *client,
     mtd->mtd_base.td_module = client;
 
     /* Create the tuple of super-types. */
-    if ((bases = getDefaultSimpleBase()) == NULL)
+    if ((bases = getDefaultBase()) == NULL)
         goto reterr;
 
     /* Create the type dictionary. */
