@@ -25,23 +25,29 @@
 
 static void pyiEnums(sipSpec *pt, moduleDef *mod, classDef *scope,
         classList *defined, int indent, FILE *fp);
-static void pyiVars(sipSpec *pt, moduleDef *mod, classDef *scope, int indent,
+static void pyiVars(sipSpec *pt, moduleDef *mod, classDef *scope,
+        classList *defined, int indent, FILE *fp);
+static void pyiCtor(sipSpec *pt, moduleDef *mod, ctorDef *ct, int overloaded,
+        int sec, classList *defined, int indent, FILE *fp);
+static int pyiOverload(sipSpec *pt, moduleDef *mod, overDef *od, int sec,
+        classList *defined, int indent, FILE *fp);
+static int pyiPythonSignature(sipSpec *pt, moduleDef *mod, signatureDef *sd,
+        int sec, classList *defined, FILE *fp);
+static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int out,
+        int need_comma, int sec, int names, int defaults, classList *defined,
         FILE *fp);
-static int pyiCtor(sipSpec *pt, moduleDef *mod, classDef *scope, ctorDef *ct,
-        int sec, FILE *fp);
-static int pyiOverload(sipSpec *pt, overDef *od, int sec, int indent,
-        FILE *fp);
-static int pyiPythonSignature(sipSpec *pt, FILE *fp, signatureDef *sd, int sec,
-        int names, int defaults, int in_str, int is_signal, int pep484);
-static const char *pyiType(sipSpec *pt, argDef *ad, int sec, classDef **scope);
+static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int sec,
+        classList *defined, FILE *fp);
+static void pyiDefaultValue(argDef *ad, FILE *fp);
 static void prIndent(int indent, FILE *fp);
 static int separate(int first, int indent, FILE *fp);
 static void prClassRef(classDef *cd, moduleDef *mod, classList *defined,
         FILE *fp);
 static void prEnumRef(enumDef *ed, moduleDef *mod, classList *defined,
         FILE *fp);
-static void prTypeRef(moduleDef *owning_mod, classDef *scope, nameDef *pyname,
-        moduleDef *mod, classList *defined, FILE *fp);
+static void prTypeRef(classDef *scope, const char *name, moduleDef *mod,
+        classList *defined, FILE *fp);
+static int hasImplicitOverloads(signatureDef *sd);
 
 
 /*
@@ -113,6 +119,7 @@ void generateTypeHints(sipSpec *pt, moduleDef *mod, const char *pyiFile)
 
     for (cd = pt->classes; cd != NULL; cd = cd->next)
     {
+        int implicit_overloads, nr_overloads, overloaded;
         ctorDef *ct;
 
         if (cd->iff->module != mod)
@@ -152,7 +159,17 @@ void generateTypeHints(sipSpec *pt, moduleDef *mod, const char *pyiFile)
 
         // FIXME: Fix the indents.
         pyiEnums(pt, mod, cd, defined, 1, fp);
-        pyiVars(pt, mod, cd, 1, fp);
+        pyiVars(pt, mod, cd, defined, 1, fp);
+
+        nr_overloads = 0;
+
+        for (ct = cd->ctors; ct != NULL; ct = ct->next)
+        {
+            if (isPrivateCtor(ct))
+                continue;
+
+            ++nr_overloads;
+        }
 
         first = TRUE;
 
@@ -161,11 +178,16 @@ void generateTypeHints(sipSpec *pt, moduleDef *mod, const char *pyiFile)
             if (isPrivateCtor(ct))
                 continue;
 
+            implicit_overloads = hasImplicitOverloads(&ct->pysig);
+            overloaded = (implicit_overloads || nr_overloads > 1);
+
             // FIXME: Fix the indents.
             first = separate(first, 1, fp);
 
-            if (pyiCtor(pt, mod, cd, ct, FALSE, fp))
-                pyiCtor(pt, mod, cd, ct, TRUE, fp);
+            pyiCtor(pt, mod, ct, overloaded, FALSE, defined, 1, fp);
+
+            if (implicit_overloads)
+                pyiCtor(pt, mod, ct, overloaded, TRUE, defined, 1, fp);
         }
 
         first = TRUE;
@@ -181,8 +203,8 @@ void generateTypeHints(sipSpec *pt, moduleDef *mod, const char *pyiFile)
             // FIXME: Fix the indents.
             first = separate(first, 1, fp);
 
-            if (pyiOverload(pt, od, FALSE, 1, fp))
-                pyiOverload(pt, od, TRUE, 1, fp);
+            if (pyiOverload(pt, mod, od, FALSE, defined, 1, fp))
+                pyiOverload(pt, mod, od, TRUE, defined, 1, fp);
         }
 
         /*
@@ -192,7 +214,7 @@ void generateTypeHints(sipSpec *pt, moduleDef *mod, const char *pyiFile)
         appendToClassList(&defined, cd);
     }
 
-    pyiVars(pt, mod, NULL, 0, fp);
+    pyiVars(pt, mod, NULL, NULL, 0, fp);
 
     first = TRUE;
 
@@ -206,8 +228,8 @@ void generateTypeHints(sipSpec *pt, moduleDef *mod, const char *pyiFile)
 
         first = separate(first, 0, fp);
 
-        if (pyiOverload(pt, od, FALSE, 0, fp))
-            pyiOverload(pt, od, TRUE, 0, fp);
+        if (pyiOverload(pt, mod, od, FALSE, NULL, 0, fp))
+            pyiOverload(pt, mod, od, TRUE, NULL, 0, fp);
     }
 
     fclose(fp);
@@ -215,45 +237,27 @@ void generateTypeHints(sipSpec *pt, moduleDef *mod, const char *pyiFile)
 
 
 /*
- * Generate an API ctor.
+ * Generate an ctor type hint.
  */
-static int pyiCtor(sipSpec *pt, moduleDef *mod, classDef *scope, ctorDef *ct,
-        int sec, FILE *fp)
+static void pyiCtor(sipSpec *pt, moduleDef *mod, ctorDef *ct, int overloaded,
+        int sec, classList *defined, int indent, FILE *fp)
 {
-    int need_sec = FALSE, need_comma, a;
+    int a;
 
-    /* Do the callable type form. */
-    fprintf(fp, "%s.", mod->name);
-    prScopedPythonName(fp, scope->ecd, scope->pyname->text);
-    fprintf(fp, "(");
-
-    need_comma = FALSE;
-
-    for (a = 0; a < ct->pysig.nrArgs; ++a)
+    if (overloaded)
     {
-        argDef *ad = &ct->pysig.args[a];
-
-        need_comma = prArgument(pt, ad, FALSE, need_comma, sec, TRUE, TRUE,
-                FALSE, fp);
-
-        if (ad->atype == rxcon_type || ad->atype == rxdis_type)
-            need_sec = TRUE;
+        prIndent(indent, fp);
+        fprintf(fp, "@overload\n");
     }
 
-    fprintf(fp, ")\n");
-
-    /* Do the call __init__ form. */
-    fprintf(fp, "%s.", mod->name);
-    prScopedPythonName(fp, scope->ecd, scope->pyname->text);
-    fprintf(fp, ".__init__(self");
+    prIndent(indent, fp);
+    fprintf(fp, "def __init__(self");
 
     for (a = 0; a < ct->pysig.nrArgs; ++a)
-        prArgument(pt, &ct->pysig.args[a], FALSE, TRUE, sec, TRUE, TRUE,
-                FALSE, fp);
+        pyiArgument(pt, mod, &ct->pysig.args[a], FALSE, TRUE, sec, TRUE, TRUE,
+                defined, fp);
 
-    fprintf(fp, ")\n");
-
-    return need_sec;
+    fprintf(fp, ") -> None: ...\n");
 }
 
 
@@ -310,33 +314,25 @@ static void pyiEnums(sipSpec *pt, moduleDef *mod, classDef *scope,
 /*
  * Generate the APIs for all the variables in a scope.
  */
-static void pyiVars(sipSpec *pt, moduleDef *mod, classDef *scope, int indent,
-        FILE *fp)
+static void pyiVars(sipSpec *pt, moduleDef *mod, classDef *scope,
+        classList *defined, int indent, FILE *fp)
 {
     int first = TRUE;
     varDef *vd;
 
     for (vd = pt->vars; vd != NULL; vd = vd->next)
     {
-        const char *tname;
-        classDef *tscope;
-
         if (vd->module != mod)
             continue;
 
         if (vd->ecd != scope)
             continue;
 
-        /* This should never fail. */
-        if ((tname = pyiType(pt, &vd->type, FALSE, &tscope)) == NULL)
-            continue;
-
         first = separate(first, indent, fp);
 
-        // FIXME: Handle forward references.
         prIndent(indent, fp);
         fprintf(fp, "%s = ... # type: ", vd->pyname->text);
-        prScopedPythonName(fp, tscope, tname);
+        pyiType(pt, mod, &vd->type, FALSE, defined, fp);
         fprintf(fp, "\n");
     }
 }
@@ -345,16 +341,16 @@ static void pyiVars(sipSpec *pt, moduleDef *mod, classDef *scope, int indent,
 /*
  * Generate a single API overload.
  */
-static int pyiOverload(sipSpec *pt, overDef *od, int sec, int indent, FILE *fp)
+static int pyiOverload(sipSpec *pt, moduleDef *mod, overDef *od, int sec,
+        classList *defined, int indent, FILE *fp)
 {
     int need_sec;
 
     prIndent(indent, fp);
     fprintf(fp, "def %s", od->common->pyname->text);
 
-    /* FIXME: Handle @overload - means we need to know sec ahead of time. */
-    need_sec = pyiPythonSignature(pt, fp, &od->pysig, sec, TRUE, TRUE, FALSE,
-            FALSE, TRUE);
+    // FIXME: Handle @overload - means we need to know sec ahead of time.
+    need_sec = pyiPythonSignature(pt, mod, &od->pysig, sec, defined, fp);
 
     fprintf(fp, ": ...\n");
 
@@ -365,29 +361,23 @@ static int pyiOverload(sipSpec *pt, overDef *od, int sec, int indent, FILE *fp)
 /*
  * Generate a Python argument.
  */
-int prArgument(sipSpec *pt, argDef *ad, int out, int need_comma,
-        int sec, int names, int defaults, int in_str, FILE *fp)
+static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int out,
+        int need_comma, int sec, int names, int defaults, classList *defined,
+        FILE *fp)
 {
-    const char *tname;
-    classDef *tscope;
-
     if (isArraySize(ad))
         return need_comma;
 
     if (sec && (ad->atype == slotcon_type || ad->atype == slotdis_type))
         return need_comma;
 
-    if ((tname = pyiType(pt, ad, sec, &tscope)) == NULL)
-        return need_comma;
-
     if (need_comma)
         fprintf(fp, ", ");
 
-    prScopedPythonName(fp, tscope, tname);
+    pyiType(pt, mod, ad, sec, defined, fp);
 
     /*
-     * Handle the default value is required, but ignore it if it is an output
-     * only argument.
+     * Handle the default value but ignore it if it is an output only argument.
      */
     if (defaults && ad->defval && !out)
     {
@@ -396,7 +386,7 @@ int prArgument(sipSpec *pt, argDef *ad, int out, int need_comma,
 
         fprintf(fp, "=");
         prcode(fp, "%M");
-        prDefaultValue(ad, in_str, fp);
+        pyiDefaultValue(ad, fp);
         prcode(fp, "%M");
     }
 
@@ -407,7 +397,7 @@ int prArgument(sipSpec *pt, argDef *ad, int out, int need_comma,
 /*
  * Generate the default value of an argument.
  */
-void prDefaultValue(argDef *ad, int in_str, FILE *fp)
+static void pyiDefaultValue(argDef *ad, FILE *fp)
 {
     /* Use any explicitly provided documentation. */
     if (ad->docval != NULL)
@@ -432,27 +422,29 @@ void prDefaultValue(argDef *ad, int in_str, FILE *fp)
         }
     }
 
-    generateExpression(ad->defval, in_str, fp);
+    generateExpression(ad->defval, FALSE, fp);
 }
 
 
 /*
- * Get the Python representation of a type.
+ * Generate the Python representation of a type.
  */
-static const char *pyiType(sipSpec *pt, argDef *ad, int sec, classDef **scope)
+static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int sec,
+        classList *defined, FILE *fp)
 {
     const char *type_name;
 
-    *scope = NULL;
-
     /* Use any explicit documented type. */
     if (ad->doctype != NULL)
-        return ad->doctype;
+    {
+        fprintf(fp, "%s", ad->doctype);
+        return;
+    }
 
     /* For classes and mapped types we need the default implementation. */
     if (ad->atype == class_type || ad->atype == mapped_type)
     {
-        classDef *def_cd = NULL;
+        classDef *scope, *def_cd = NULL;
         mappedTypeDef *def_mtd = NULL;
         ifaceFileDef *iff;
 
@@ -514,8 +506,8 @@ static const char *pyiType(sipSpec *pt, argDef *ad, int sec, classDef **scope)
         /* Now handle the correct implementation. */
         if (def_cd != NULL)
         {
-            *scope = def_cd->ecd;
             type_name = def_cd->pyname->text;
+            scope = def_cd->ecd;
         }
         else
         {
@@ -532,9 +524,20 @@ static const char *pyiType(sipSpec *pt, argDef *ad, int sec, classDef **scope)
                 else if (def_mtd->pyname != NULL)
                     type_name = def_mtd->pyname->text;
             }
+
+            scope = NULL;
         }
 
-        return type_name;
+        prTypeRef(scope, type_name, mod, defined, fp);
+
+        return;
+    }
+
+    if (ad->atype == enum_type && ad->u.ed->pyname != NULL)
+    {
+        prEnumRef(ad->u.ed, mod, defined, fp);
+
+        return;
     }
 
     switch (ad->atype)
@@ -546,16 +549,6 @@ static const char *pyiType(sipSpec *pt, argDef *ad, int sec, classDef **scope)
     case struct_type:
     case void_type:
         type_name = "sip.voidptr";
-        break;
-
-    case enum_type:
-        if (ad->u.ed->pyname != NULL)
-        {
-            type_name = ad->u.ed->pyname->text;
-            *scope = ad->u.ed->ecd;
-        }
-        else
-            type_name = "int";
         break;
 
     case signal_type:
@@ -589,6 +582,7 @@ static const char *pyiType(sipSpec *pt, argDef *ad, int sec, classDef **scope)
         type_name = "str";
         break;
 
+    case enum_type:
     case byte_type:
     case sbyte_type:
     case ubyte_type:
@@ -658,10 +652,10 @@ static const char *pyiType(sipSpec *pt, argDef *ad, int sec, classDef **scope)
         break;
 
     default:
-        type_name = NULL;
+        type_name = "unknown-type";
     }
 
-    return type_name;
+    fprintf(fp, "%s", type_name);
 }
 
 
@@ -684,20 +678,12 @@ void prScopedPythonName(FILE *fp, classDef *scope, const char *pyname)
 /*
  * Generate a Python signature.
  */
-static int pyiPythonSignature(sipSpec *pt, FILE *fp, signatureDef *sd, int sec,
-        int names, int defaults, int in_str, int is_signal, int pep484)
+static int pyiPythonSignature(sipSpec *pt, moduleDef *mod, signatureDef *sd,
+        int sec, classList *defined, FILE *fp)
 {
     int need_sec = FALSE, need_comma = FALSE, is_res, nr_out, a;
 
-    if (is_signal)
-    {
-        if (sd->nrArgs != 0)
-            fprintf(fp, "[");
-    }
-    else
-    {
-        fprintf(fp, "(");
-    }
+    fprintf(fp, "(");
 
     nr_out = 0;
 
@@ -711,22 +697,14 @@ static int pyiPythonSignature(sipSpec *pt, FILE *fp, signatureDef *sd, int sec,
         if (!isInArg(ad))
             continue;
 
-        need_comma = prArgument(pt, ad, FALSE, need_comma, sec, names,
-                defaults, in_str, fp);
+        need_comma = pyiArgument(pt, mod, ad, FALSE, need_comma, sec, TRUE,
+                TRUE, defined, fp);
 
         if (ad->atype == rxcon_type || ad->atype == rxdis_type)
             need_sec = TRUE;
     }
 
-    if (is_signal)
-    {
-        if (sd->nrArgs != 0)
-            fprintf(fp, "]");
-    }
-    else
-    {
-        fprintf(fp, ")");
-    }
+    fprintf(fp, ")");
 
     is_res = !((sd->result.atype == void_type && sd->result.nrderefs == 0) ||
             (sd->result.doctype != NULL && sd->result.doctype[0] == '\0'));
@@ -739,8 +717,8 @@ static int pyiPythonSignature(sipSpec *pt, FILE *fp, signatureDef *sd, int sec,
             fprintf(fp, "(");
 
         if (is_res)
-            need_comma = prArgument(pt, &sd->result, TRUE, FALSE, sec, FALSE,
-                    FALSE, in_str, fp);
+            need_comma = pyiArgument(pt, mod, &sd->result, TRUE, FALSE, sec,
+                    FALSE, FALSE, defined, fp);
         else
             need_comma = FALSE;
 
@@ -750,14 +728,14 @@ static int pyiPythonSignature(sipSpec *pt, FILE *fp, signatureDef *sd, int sec,
 
             if (isOutArg(ad))
                 /* We don't want the name in the result tuple. */
-                need_comma = prArgument(pt, ad, TRUE, need_comma, sec, FALSE,
-                        FALSE, in_str, fp);
+                need_comma = pyiArgument(pt, mod, ad, TRUE, need_comma, sec,
+                        FALSE, FALSE, defined, fp);
         }
 
         if ((is_res && nr_out > 0) || nr_out > 1)
             fprintf(fp, ")");
     }
-    else if (pep484)
+    else
     {
         fprintf(fp, " -> None");
     }
@@ -795,7 +773,7 @@ static int separate(int first, int indent, FILE *fp)
 static void prClassRef(classDef *cd, moduleDef *mod, classList *defined,
         FILE *fp)
 {
-    prTypeRef(cd->iff->module, cd->ecd, cd->pyname, mod, defined, fp);
+    prTypeRef(cd->ecd, cd->pyname->text, mod, defined, fp);
 }
 
 
@@ -806,7 +784,7 @@ static void prClassRef(classDef *cd, moduleDef *mod, classList *defined,
 static void prEnumRef(enumDef *ed, moduleDef *mod, classList *defined,
         FILE *fp)
 {
-    prTypeRef(ed->module, ed->ecd, ed->pyname, mod, defined, fp);
+    prTypeRef(ed->ecd, ed->pyname->text, mod, defined, fp);
 }
 
 
@@ -814,39 +792,65 @@ static void prEnumRef(enumDef *ed, moduleDef *mod, classList *defined,
  * Generate a type reference, including its owning module if necessary and
  * handling forward references if necessary.
  */
-static void prTypeRef(moduleDef *owning_mod, classDef *scope, nameDef *pyname,
-        moduleDef *mod, classList *defined, FILE *fp)
+static void prTypeRef(classDef *scope, const char *name, moduleDef *mod,
+        classList *defined, FILE *fp)
 {
     int forward;
 
-    if (owning_mod != mod)
+    if (scope != NULL)
     {
-        fprintf(fp, "%s.", owning_mod->name);
-        forward = FALSE;
-    }
-    else if (scope != NULL)
-    {
-        classList *cl;
+        if (scope->iff->module != mod)
+        {
+            forward = FALSE;
 
-        forward = TRUE;
+            fprintf(fp, "%s.", scope->iff->module->name);
+        }
+        else
+        {
+            classList *cl;
 
-        for (cl = defined; cl != NULL; cl = cl->next)
-            if (scope == cl->cd)
-            {
-                forward = FALSE;
-                break;
-            }
+            forward = TRUE;
 
-        if (forward)
-            fprintf(fp, "'");
+            for (cl = defined; cl != NULL; cl = cl->next)
+                if (scope == cl->cd)
+                {
+                    forward = FALSE;
+                    break;
+                }
+
+            if (forward)
+                fprintf(fp, "'");
+        }
     }
     else
     {
         forward = FALSE;
     }
 
-    prScopedPythonName(fp, scope, pyname->text);
+    prScopedPythonName(fp, scope, name);
 
     if (forward)
         fprintf(fp, "'");
+}
+
+
+/*
+ * See if a signature has implicit overloads.
+ */
+static int hasImplicitOverloads(signatureDef *sd)
+{
+    int a;
+
+    for (a = 0; a < sd->nrArgs; ++a)
+    {
+        argDef *ad = &sd->args[a];
+
+        if (!isInArg(ad))
+            continue;
+
+        if (ad->atype == rxcon_type || ad->atype == rxdis_type)
+            return TRUE;
+    }
+
+    return FALSE;
 }
