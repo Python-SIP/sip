@@ -38,6 +38,8 @@ static int apiCtor(sipSpec *pt, moduleDef *mod, classDef *scope, ctorDef *ct,
         int sec, FILE *fp);
 static int apiOverload(sipSpec *pt, moduleDef *mod, classDef *scope,
         overDef *od, int sec, FILE *fp);
+static int apiArgument(sipSpec *pt, argDef *ad, int out, int need_comma,
+        int sec, int names, int defaults, int in_str, FILE *fp);
 static void xmlClass(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp);
 static void xmlEnums(sipSpec *pt, moduleDef *mod, classDef *scope, int indent,
         FILE *fp);
@@ -55,6 +57,8 @@ static void xmlArgument(sipSpec *pt, argDef *ad, const char *dir, int res_xfer,
 static void xmlType(sipSpec *pt, argDef *ad, int sec, FILE *fp);
 static void xmlIndent(int indent, FILE *fp);
 static const char *dirAttribute(argDef *ad);
+static void exportDefaultValue(argDef *ad, int in_str, FILE *fp);
+static const char *pyType(sipSpec *pt, argDef *ad, int sec, classDef **scope);
 
 
 /*
@@ -143,7 +147,7 @@ static int apiCtor(sipSpec *pt, moduleDef *mod, classDef *scope, ctorDef *ct,
     {
         argDef *ad = &ct->pysig.args[a];
 
-        need_comma = prArgument(pt, ad, FALSE, need_comma, sec, TRUE, TRUE,
+        need_comma = apiArgument(pt, ad, FALSE, need_comma, sec, TRUE, TRUE,
                 FALSE, fp);
 
         if (ad->atype == rxcon_type || ad->atype == rxdis_type)
@@ -158,7 +162,7 @@ static int apiCtor(sipSpec *pt, moduleDef *mod, classDef *scope, ctorDef *ct,
     fprintf(fp, ".__init__?%d(self", CLASS_ID);
 
     for (a = 0; a < ct->pysig.nrArgs; ++a)
-        prArgument(pt, &ct->pysig.args[a], FALSE, TRUE, sec, TRUE, TRUE,
+        apiArgument(pt, &ct->pysig.args[a], FALSE, TRUE, sec, TRUE, TRUE,
                 FALSE, fp);
 
     fprintf(fp, ")\n");
@@ -181,15 +185,8 @@ static void apiEnums(sipSpec *pt, moduleDef *mod, classDef *scope, FILE *fp)
         if (ed->module != mod)
             continue;
 
-        if (scope != NULL)
-        {
-            if (ed->ecd != scope)
-                continue;
-        }
-        else if (ed->ecd != NULL || ed->emtd != NULL)
-        {
+        if (ed->ecd != scope)
             continue;
-        }
 
         if (ed->pyname != NULL)
         {
@@ -243,11 +240,53 @@ static int apiOverload(sipSpec *pt, moduleDef *mod, classDef *scope,
     fprintf(fp, "?%d", METHOD_ID);
 
     need_sec = prPythonSignature(pt, fp, &od->pysig, sec, TRUE, TRUE, FALSE,
-            FALSE, FALSE);
+            FALSE);
 
     fprintf(fp, "\n");
 
     return need_sec;
+}
+
+
+/*
+ * Generate the API for an argument.
+ */
+static int apiArgument(sipSpec *pt, argDef *ad, int out, int need_comma,
+        int sec, int names, int defaults, int in_str, FILE *fp)
+{
+    const char *tname;
+    classDef *tscope;
+
+    if (isArraySize(ad))
+        return need_comma;
+
+    if (sec && (ad->atype == slotcon_type || ad->atype == slotdis_type))
+        return need_comma;
+
+    if ((tname = pyType(pt, ad, sec, &tscope)) == NULL)
+        return need_comma;
+
+    if (need_comma)
+        fprintf(fp, ", ");
+
+    prScopedPythonName(fp, tscope, tname);
+
+    /*
+     * Handle the default value is required, but ignore it if it is an output
+     * only argument.
+     */
+    if (defaults && ad->defval && !out)
+    {
+        if (names && ad->name != NULL)
+            fprintf(fp, " %s", ad->name->text);
+
+        fprintf(fp, "=");
+        prcode(fp, "%M");
+        exportDefaultValue(ad, in_str, fp);
+        prcode(fp, "%M");
+    }
+
+    return TRUE;
 }
 
 
@@ -385,15 +424,8 @@ static void xmlEnums(sipSpec *pt, moduleDef *mod, classDef *scope, int indent,
         if (ed->module != mod)
             continue;
 
-        if (scope != NULL)
-        {
-            if (ed->ecd != scope)
-                continue;
-        }
-        else if (ed->ecd != NULL || ed->emtd != NULL)
-        {
+        if (ed->ecd != scope)
             continue;
-        }
 
         if (ed->pyname != NULL)
         {
@@ -697,7 +729,7 @@ static void xmlArgument(sipSpec *pt, argDef *ad, const char *dir, int res_xfer,
     if (ad->defval && (dir == NULL || strcmp(dir, "out") != 0))
     {
         prcode(fp, " default=\"%M");
-        prDefaultValue(ad, FALSE, fp);
+        exportDefaultValue(ad, FALSE, fp);
         prcode(fp, "%M\"");
     }
 
@@ -785,4 +817,347 @@ static void xmlIndent(int indent, FILE *fp)
 {
     while (indent-- > 0)
         fprintf(fp, "  ");
+}
+
+
+/*
+ * Export the default value of an argument.
+ */
+static void exportDefaultValue(argDef *ad, int in_str, FILE *fp)
+{
+    /* Use any explicitly provided documentation. */
+    if (ad->docval != NULL)
+    {
+        prcode(fp, "%s", ad->docval);
+        return;
+    }
+
+    /* Translate some special cases. */
+    if (ad->defval->next == NULL && ad->defval->vtype == numeric_value)
+    {
+        if (ad->nrderefs > 0 && ad->defval->u.vnum == 0)
+        {
+            prcode(fp, "None");
+            return;
+        }
+
+        if (ad->atype == bool_type || ad->atype == cbool_type)
+        {
+            prcode(fp, ad->defval->u.vnum ? "True" : "False");
+            return;
+        }
+    }
+
+    generateExpression(ad->defval, in_str, fp);
+}
+
+
+/*
+ * Get the Python representation of a type.
+ */
+static const char *pyType(sipSpec *pt, argDef *ad, int sec, classDef **scope)
+{
+    const char *type_name;
+
+    *scope = NULL;
+
+    /* Use any explicit documented type. */
+    if (ad->doctype != NULL)
+        return ad->doctype;
+
+    /* For classes and mapped types we need the default implementation. */
+    if (ad->atype == class_type || ad->atype == mapped_type)
+    {
+        classDef *def_cd = NULL;
+        mappedTypeDef *def_mtd = NULL;
+        ifaceFileDef *iff;
+
+        if (ad->atype == class_type)
+        {
+            iff = ad->u.cd->iff;
+
+            if (iff->api_range == NULL)
+            {
+                /* There is only one implementation. */
+                def_cd = ad->u.cd;
+                iff = NULL;
+            }
+        }
+        else
+        {
+            iff = ad->u.mtd->iff;
+
+            if (iff->api_range == NULL)
+            {
+                /* There is only one implementation. */
+                def_mtd = ad->u.mtd;
+                iff = NULL;
+            }
+        }
+
+        if (iff != NULL)
+        {
+            int def_api;
+
+            /* Find the default implementation. */
+            def_api = findAPI(pt, iff->api_range->api_name->text)->from;
+
+            for (iff = iff->first_alt; iff != NULL; iff = iff->next_alt)
+            {
+                apiVersionRangeDef *avd = iff->api_range;
+
+                if (avd->from > 0 && avd->from > def_api)
+                    continue;
+
+                if (avd->to > 0 && avd->to <= def_api)
+                    continue;
+
+                /* It's within range. */
+                break;
+            }
+
+            /* Find the corresponding class or mapped type. */
+            for (def_cd = pt->classes; def_cd != NULL; def_cd = def_cd->next)
+                if (def_cd->iff == iff)
+                    break;
+
+            if (def_cd == NULL)
+                for (def_mtd = pt->mappedtypes; def_mtd != NULL; def_mtd = def_mtd->next)
+                    if (def_mtd->iff == iff)
+                        break;
+        }
+
+        /* Now handle the correct implementation. */
+        if (def_cd != NULL)
+        {
+            *scope = def_cd->ecd;
+            type_name = def_cd->pyname->text;
+        }
+        else
+        {
+            /*
+             * Give a hint that /DocType/ should be used, or there is no
+             * default implementation.
+             */
+            type_name = "unknown-type";
+
+            if (def_mtd != NULL)
+            {
+                if (def_mtd->doctype != NULL)
+                    type_name = def_mtd->doctype;
+                else if (def_mtd->pyname != NULL)
+                    type_name = def_mtd->pyname->text;
+            }
+        }
+
+        return type_name;
+    }
+
+    switch (ad->atype)
+    {
+    case capsule_type:
+        type_name = scopedNameTail(ad->u.cap);
+        break;
+
+    case struct_type:
+    case void_type:
+        type_name = "sip.voidptr";
+        break;
+
+    case enum_type:
+        if (ad->u.ed->pyname != NULL)
+        {
+            type_name = ad->u.ed->pyname->text;
+            *scope = ad->u.ed->ecd;
+        }
+        else
+            type_name = "int";
+        break;
+
+    case signal_type:
+        type_name = "SIGNAL()";
+        break;
+
+    case slot_type:
+        type_name = "SLOT()";
+        break;
+
+    case rxcon_type:
+    case rxdis_type:
+        if (sec)
+            type_name = "callable";
+        else
+            type_name = "QObject";
+
+        break;
+
+    case qobject_type:
+        type_name = "QObject";
+        break;
+
+    case ustring_type:
+    case string_type:
+    case sstring_type:
+    case wstring_type:
+    case ascii_string_type:
+    case latin1_string_type:
+    case utf8_string_type:
+        type_name = "str";
+        break;
+
+    case byte_type:
+    case sbyte_type:
+    case ubyte_type:
+    case ushort_type:
+    case uint_type:
+    case long_type:
+    case longlong_type:
+    case ulong_type:
+    case ulonglong_type:
+    case short_type:
+    case int_type:
+    case cint_type:
+        type_name = "int";
+        break;
+
+    case float_type:
+    case cfloat_type:
+    case double_type:
+    case cdouble_type:
+        type_name = "float";
+        break;
+
+    case bool_type:
+    case cbool_type:
+        type_name = "bool";
+        break;
+
+    case pyobject_type:
+        type_name = "object";
+        break;
+
+    case pytuple_type:
+        type_name = "tuple";
+        break;
+
+    case pylist_type:
+        type_name = "list";
+        break;
+
+    case pydict_type:
+        type_name = "dict";
+        break;
+
+    case pycallable_type:
+        type_name = "callable";
+        break;
+
+    case pyslice_type:
+        type_name = "slice";
+        break;
+
+    case pytype_type:
+        type_name = "type";
+        break;
+
+    case pybuffer_type:
+        type_name = "buffer";
+        break;
+
+    case ellipsis_type:
+        type_name = "...";
+        break;
+
+    case slotcon_type:
+    case anyslot_type:
+        type_name = "SLOT()";
+        break;
+
+    default:
+        type_name = NULL;
+    }
+
+    return type_name;
+}
+
+
+/*
+ * Generate a Python signature.
+ */
+int prPythonSignature(sipSpec *pt, FILE *fp, signatureDef *sd, int sec,
+        int names, int defaults, int in_str, int is_signal)
+{
+    int need_sec = FALSE, need_comma = FALSE, is_res, nr_out, a;
+
+    if (is_signal)
+    {
+        if (sd->nrArgs != 0)
+            fprintf(fp, "[");
+    }
+    else
+    {
+        fprintf(fp, "(");
+    }
+
+    nr_out = 0;
+
+    for (a = 0; a < sd->nrArgs; ++a)
+    {
+        argDef *ad = &sd->args[a];
+
+        if (isOutArg(ad))
+            ++nr_out;
+
+        if (!isInArg(ad))
+            continue;
+
+        need_comma = apiArgument(pt, ad, FALSE, need_comma, sec, names,
+                defaults, in_str, fp);
+
+        if (ad->atype == rxcon_type || ad->atype == rxdis_type)
+            need_sec = TRUE;
+    }
+
+    if (is_signal)
+    {
+        if (sd->nrArgs != 0)
+            fprintf(fp, "]");
+    }
+    else
+    {
+        fprintf(fp, ")");
+    }
+
+
+    is_res = !((sd->result.atype == void_type && sd->result.nrderefs == 0) ||
+            (sd->result.doctype != NULL && sd->result.doctype[0] == '\0'));
+
+    if (is_res || nr_out > 0)
+    {
+        fprintf(fp, " -> ");
+
+        if ((is_res && nr_out > 0) || nr_out > 1)
+            fprintf(fp, "(");
+
+        if (is_res)
+            need_comma = apiArgument(pt, &sd->result, TRUE, FALSE, sec, FALSE,
+                    FALSE, in_str, fp);
+        else
+            need_comma = FALSE;
+
+        for (a = 0; a < sd->nrArgs; ++a)
+        {
+            argDef *ad = &sd->args[a];
+
+            if (isOutArg(ad))
+                /* We don't want the name in the result tuple. */
+                need_comma = apiArgument(pt, ad, TRUE, need_comma, sec, FALSE,
+                        FALSE, in_str, fp);
+        }
+
+        if ((is_res && nr_out > 0) || nr_out > 1)
+            fprintf(fp, ")");
+    }
+
+    return need_sec;
 }

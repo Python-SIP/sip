@@ -10697,7 +10697,7 @@ static void generateSignalTableEntry(sipSpec *pt, classDef *cd, overDef *sig,
             prScopedPythonName(fp, cd->ecd, cd->pyname->text);
             fprintf(fp, ".%s", md->pyname->text);
             prPythonSignature(pt, fp, &sig->pysig, FALSE, FALSE, FALSE, FALSE,
-                    TRUE, FALSE);
+                    TRUE);
             fprintf(fp, "\"");
         }
 
@@ -15000,7 +15000,7 @@ static void generateDocstring(sipSpec *pt, overDef *overs, memberDef *md,
 
         prcode(fp, "%s", md->pyname->text);
         need_sec = prPythonSignature(pt, fp, &od->pysig, FALSE, TRUE, TRUE,
-                TRUE, FALSE, FALSE);
+                TRUE, FALSE);
 
         if (need_sec)
         {
@@ -15013,7 +15013,7 @@ static void generateDocstring(sipSpec *pt, overDef *overs, memberDef *md,
 
             prcode(fp, "%s", md->pyname->text);
             prPythonSignature(pt, fp, &od->pysig, TRUE, TRUE, TRUE, TRUE,
-                    FALSE, FALSE);
+                    FALSE);
         }
     }
 
@@ -15084,7 +15084,7 @@ static void generateClassDocstring(sipSpec *pt, classDef *cd, FILE *fp)
 
         prScopedPythonName(fp, cd->ecd, cd->pyname->text);
         need_sec = prPythonSignature(pt, fp, &ct->pysig, FALSE, TRUE, TRUE,
-                TRUE, FALSE, FALSE);
+                TRUE, FALSE);
         ++currentLineNr;
 
         if (need_sec)
@@ -15093,7 +15093,7 @@ static void generateClassDocstring(sipSpec *pt, classDef *cd, FILE *fp)
 
             prScopedPythonName(fp, cd->ecd, cd->pyname->text);
             prPythonSignature(pt, fp, &ct->pysig, TRUE, TRUE, TRUE, TRUE,
-                    FALSE, FALSE);
+                    FALSE);
             ++currentLineNr;
         }
     }
