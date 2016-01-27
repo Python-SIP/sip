@@ -88,7 +88,7 @@ void generateTypeHints(sipSpec *pt, moduleDef *mod, const char *pyiFile)
     fprintf(fp,
 "\n"
 "\n"
-"from typing import overload%s\n"
+"from typing import Any, Callable, Dict, List, Optional, overload, Set%s\n"
 "\n"
 "import sip\n"
         , (pt->sigslots ? ", TypeVar, Union" : ""));
@@ -527,10 +527,13 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int sec,
 {
     const char *type_name;
 
-    /* Use any explicit hint type. */
-    if (ad->hinttype != NULL)
+    /* Use any explicit type. */
+    if ((type_name = ad->hinttype) == NULL)
+        type_name = ad->doctype;
+
+    if (type_name != NULL)
     {
-        fprintf(fp, "%s", ad->hinttype);
+        fprintf(fp, "%s", type_name);
         return;
     }
 
@@ -613,6 +616,8 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int sec,
             {
                 if (def_mtd->hinttype != NULL)
                     type_name = def_mtd->hinttype;
+                else if (def_mtd->doctype != NULL)
+                    type_name = def_mtd->doctype;
                 else if (def_mtd->pyname != NULL)
                     type_name = def_mtd->pyname->text;
             }
@@ -652,7 +657,7 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int sec,
     case rxcon_type:
     case rxdis_type:
         if (sec)
-            type_name = "callable";
+            type_name = "Callable";
         else
             type_name = "QObject";
 
@@ -705,19 +710,19 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int sec,
         break;
 
     case pytuple_type:
-        type_name = "tuple";
+        type_name = "Tuple";
         break;
 
     case pylist_type:
-        type_name = "list";
+        type_name = "List";
         break;
 
     case pydict_type:
-        type_name = "dict";
+        type_name = "Dict";
         break;
 
     case pycallable_type:
-        type_name = "callable";
+        type_name = "Callable";
         break;
 
     case pyslice_type:
@@ -738,11 +743,11 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int sec,
 
     case slotcon_type:
     case anyslot_type:
-        type_name = "SLOT()";
+        type_name = "SLOT_T";
         break;
 
     default:
-        type_name = "unknown-type";
+        type_name = "Any";
     }
 
     fprintf(fp, "%s", type_name);
@@ -771,6 +776,7 @@ void prScopedPythonName(FILE *fp, classDef *scope, const char *pyname)
 static void pyiPythonSignature(sipSpec *pt, moduleDef *mod, signatureDef *sd,
         int need_self, int sec, classList *defined, FILE *fp)
 {
+    const char *type_name;
     int need_comma, is_res, nr_out, a;
 
     if (need_self)
@@ -802,8 +808,11 @@ static void pyiPythonSignature(sipSpec *pt, moduleDef *mod, signatureDef *sd,
 
     fprintf(fp, ")");
 
+    if ((type_name = sd->result.hinttype) == NULL)
+        type_name = sd->result.doctype;
+
     is_res = !((sd->result.atype == void_type && sd->result.nrderefs == 0) ||
-            (sd->result.hinttype != NULL && sd->result.hinttype[0] == '\0'));
+            (type_name != NULL && type_name[0] == '\0'));
 
     if (is_res || nr_out > 0)
     {
