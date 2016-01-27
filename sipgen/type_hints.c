@@ -60,6 +60,7 @@ static int hasImplicitOverloads(signatureDef *sd);
  */
 void generateTypeHints(sipSpec *pt, moduleDef *mod, const char *pyiFile)
 {
+    char *cp;
     int first;
     memberDef *md;
     classDef *cd;
@@ -91,17 +92,28 @@ void generateTypeHints(sipSpec *pt, moduleDef *mod, const char *pyiFile)
 "from typing import Any, Callable, Dict, List, Optional, overload, Set%s\n"
 "\n"
 "import sip\n"
+"\n"
         , (pt->sigslots ? ", TypeVar, Union" : ""));
 
-    first = TRUE;
+    /*
+     * We import the root package so that we can forward reference any type by
+     * specifying its fully qualified name.  This is necessary to support
+     * mapped type templates where we have no idea what the context will be
+     * when the template is expanded.
+     */
+    if ((cp = strchr(mod->fullname->text, '.')) == NULL)
+    {
+        fprintf(fp, "import %s\n", mod->fullname->text);
+    }
+    else
+    {
+        *cp = '\0';
+        fprintf(fp, "import %s\n", mod->fullname->text);
+        *cp = '.';
+    }
 
     for (mld = mod->imports; mld != NULL; mld = mld->next)
     {
-        char *cp;
-
-        /* We only want a single blank line so lie about the indent. */
-        first = separate(first, 1, fp);
-
         if ((cp = strrchr(mld->module->fullname->text, '.')) == NULL)
         {
             fprintf(fp, "import %s\n", mld->module->name);
@@ -628,15 +640,16 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int sec,
         return;
     }
 
-    if (ad->atype == enum_type && ad->u.ed->pyname != NULL)
-    {
-        prEnumRef(ad->u.ed, mod, defined, fp);
-
-        return;
-    }
-
     switch (ad->atype)
     {
+    case enum_type:
+        if (ad->u.ed->pyname != NULL)
+            prEnumRef(ad->u.ed, mod, defined, fp);
+        else
+            type_name = "int";
+
+        break;
+
     case capsule_type:
         type_name = scopedNameTail(ad->u.cap);
         break;
@@ -657,9 +670,41 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int sec,
     case rxcon_type:
     case rxdis_type:
         if (sec)
+        {
             type_name = "Callable";
+        }
         else
-            type_name = "QObject";
+        {
+            static classDef *qobject_cd = NULL;
+
+            if (qobject_cd == NULL)
+            {
+                moduleDef *qmod;
+
+                /* Find the QObject class. */
+                for (qmod = pt->modules; qmod != NULL; qmod = qmod->next)
+                    if (qmod->qobjclass >= 0)
+                    {
+                        for (qobject_cd = pt->classes; qobject_cd != NULL; qobject_cd = qobject_cd->next)
+                        {
+                            if (qobject_cd->iff->module != qmod)
+                                continue;
+
+                            if (qobject_cd->iff->ifacenr == qmod->qobjclass)
+                                break;
+                        }
+
+                        if (qobject_cd != NULL)
+                            break;
+                    }
+            }
+
+            /* The class should always be found. */
+            if (qobject_cd != NULL)
+                prClassRef(qobject_cd, mod, defined, fp);
+            else
+                type_name = "Any";
+        }
 
         break;
 
@@ -677,7 +722,6 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int sec,
         type_name = "str";
         break;
 
-    case enum_type:
     case byte_type:
     case sbyte_type:
     case ubyte_type:
@@ -750,7 +794,8 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int sec,
         type_name = "Any";
     }
 
-    fprintf(fp, "%s", type_name);
+    if (type_name != NULL)
+        fprintf(fp, "%s", type_name);
 }
 
 
