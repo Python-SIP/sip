@@ -802,6 +802,7 @@ typedef struct {
     argType atype;                      /* The type. */
     nameDef *name;                      /* The name. */
     const char *doctype;                /* The documented type. */
+    const char *hinttype;               /* The hint type. */
     int argflags;                       /* The argument flags. */
     int nrderefs;                       /* Nr. of dereferences. */
     int derefs[MAX_NR_DEREFS];          /* The const for each dereference. */
@@ -948,6 +949,7 @@ typedef struct _mappedTypeDef {
     nameDef *pyname;                    /* The Python name. */
     nameDef *cname;                     /* The C/C++ name. */
     const char *doctype;                /* The documented type. */
+    const char *hinttype;               /* The hint type. */
     ifaceFileDef *iff;                  /* The interface file. */
     struct _memberDef *members;         /* The static member functions. */
     struct _overDef *overs;             /* The static overloads. */

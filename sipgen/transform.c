@@ -3103,6 +3103,7 @@ static mappedTypeDef *instantiateMappedTypeTemplate(sipSpec *pt, moduleDef *mod,
 
     mtd->mtflags = mtt->mt->mtflags;
     mtd->doctype = templateString(mtt->mt->doctype, type_names, type_values);
+    mtd->hinttype = templateString(mtt->mt->hinttype, type_names, type_values);
 
     appendCodeBlockList(&mtd->iff->hdrcode,
             templateCode(pt, &mtd->iff->used, mtt->mt->iff->hdrcode,
@@ -3364,6 +3365,7 @@ void searchTypedefs(sipSpec *pt, scopedNameDef *snd, argDef *ad)
             ad->atype = td->type.atype;
             ad->argflags |= td->type.argflags;
             ad->doctype = td->type.doctype;
+            ad->hinttype = td->type.hinttype;
             ad->u = td->type.u;
 
             for (i = 0; i < td->type.nrderefs; ++i)

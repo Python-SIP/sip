@@ -88,10 +88,10 @@ void generateTypeHints(sipSpec *pt, moduleDef *mod, const char *pyiFile)
     fprintf(fp,
 "\n"
 "\n"
-"from typing import overload\n"
+"from typing import overload%s\n"
 "\n"
 "import sip\n"
-        );
+        , (pt->sigslots ? ", TypeVar, Union" : ""));
 
     first = TRUE;
 
@@ -114,6 +114,14 @@ void generateTypeHints(sipSpec *pt, moduleDef *mod, const char *pyiFile)
             *cp = '.';
         }
     }
+
+    if (pt->sigslots)
+        fprintf(fp,
+"\n"
+"\n"
+"SIGNAL_T = TypeVar('SIGNAL_T')\n"
+"SLOT_T = TypeVar('SLOT_T')\n"
+            );
 
     /* Generate the types - enums and classes. */
     pyiEnums(pt, mod, NULL, NULL, 0, fp);
@@ -519,10 +527,10 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int sec,
 {
     const char *type_name;
 
-    /* Use any explicit documented type. */
-    if (ad->doctype != NULL)
+    /* Use any explicit hint type. */
+    if (ad->hinttype != NULL)
     {
-        fprintf(fp, "%s", ad->doctype);
+        fprintf(fp, "%s", ad->hinttype);
         return;
     }
 
@@ -596,15 +604,15 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int sec,
         else
         {
             /*
-             * Give a hint that /DocType/ should be used, or there is no
+             * Give a hint that /HintType/ should be used, or there is no
              * default implementation.
              */
-            type_name = "unknown-type";
+            type_name = "Any";
 
             if (def_mtd != NULL)
             {
-                if (def_mtd->doctype != NULL)
-                    type_name = def_mtd->doctype;
+                if (def_mtd->hinttype != NULL)
+                    type_name = def_mtd->hinttype;
                 else if (def_mtd->pyname != NULL)
                     type_name = def_mtd->pyname->text;
             }
@@ -634,11 +642,11 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int sec,
         break;
 
     case signal_type:
-        type_name = "SIGNAL()";
+        type_name = "SIGNAL_T";
         break;
 
     case slot_type:
-        type_name = "SLOT()";
+        type_name = "Union[SLOT_T, SIGNAL_T]";
         break;
 
     case rxcon_type:
@@ -795,7 +803,7 @@ static void pyiPythonSignature(sipSpec *pt, moduleDef *mod, signatureDef *sd,
     fprintf(fp, ")");
 
     is_res = !((sd->result.atype == void_type && sd->result.nrderefs == 0) ||
-            (sd->result.doctype != NULL && sd->result.doctype[0] == '\0'));
+            (sd->result.hinttype != NULL && sd->result.hinttype[0] == '\0'));
 
     if (is_res || nr_out > 0)
     {

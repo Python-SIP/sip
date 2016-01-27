@@ -186,6 +186,15 @@ Argument Annotations
     See the :directive:`%MethodCode` directive for more detail.
 
 
+.. argument-annotation:: HintType
+
+    .. versionadded:: 4.18
+
+    This string annotation specifies the type of the argument as it will appear
+    in any generated PEP 484 type hints.  It is usually used with arguments of
+    type :stype:`SIP_PYOBJECT` to provide a more specific type.
+
+
 .. argument-annotation:: In
 
     This boolean annotation is used to specify that the corresponding argument
@@ -567,6 +576,15 @@ Mapped Type Annotations
     argument annotation when applied to the mapped type being defined.
 
 
+.. mapped-type-annotation:: HintType
+
+    .. versionadded:: 4.18
+
+    This string annotation specifies the type of the argument as it will appear
+    in any generated PEP 484 type hints.  It is usually used with arguments of
+    type :stype:`SIP_PYOBJECT` to provide a more specific type.
+
+
 .. mapped-type-annotation:: NoRelease
 
     This boolean annotation is used to specify that the mapped type does not
@@ -730,6 +748,15 @@ Function Annotations
     created instance and is owned by Python.
 
     See :ref:`ref-object-ownership` for more detail.
+
+
+.. function-annotation:: HintType
+
+    .. versionadded:: 4.18
+
+    This string annotation specifies the type of the argument as it will appear
+    in any generated PEP 484 type hints.  It is usually used with arguments of
+    type :stype:`SIP_PYOBJECT` to provide a more specific type.
 
 
 .. function-annotation:: HoldGIL
@@ -1053,6 +1080,15 @@ Typedef Annotations
     argument annotation when applied to the mapped type being defined.
 
 
+.. typedef-annotation:: HintType
+
+    .. versionadded:: 4.18
+
+    This string annotation specifies the type of the argument as it will appear
+    in any generated PEP 484 type hints.  It is usually used with arguments of
+    type :stype:`SIP_PYOBJECT` to provide a more specific type.
+
+
 .. typedef-annotation:: NoTypeName
 
     This boolean annotation specifies that the definition of the type rather
@@ -1108,6 +1144,15 @@ Variable Annotations
 
     This string annotation serves the same purpose as the :aanno:`Encoding`
     argument annotation when applied to the type of the variable being defined.
+
+
+.. variable-annotation:: HintType
+
+    .. versionadded:: 4.18
+
+    This string annotation specifies the type of the argument as it will appear
+    in any generated PEP 484 type hints.  It is usually used with arguments of
+    type :stype:`SIP_PYOBJECT` to provide a more specific type.
 
 
 .. variable-annotation:: NoSetter
