@@ -44,6 +44,8 @@ static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int out,
         FILE *fp);
 static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int sec,
         classList *defined, FILE *fp);
+static void pyiTypeHint(sipSpec *pt, moduleDef *mod, typeHintDef *thd,
+        classList *defined, FILE *fp);
 static void pyiDefaultValue(argDef *ad, FILE *fp);
 static void prIndent(int indent, FILE *fp);
 static int separate(int first, int indent, FILE *fp);
@@ -539,13 +541,16 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int sec,
 {
     const char *type_name;
 
-    /* Use any explicit type. */
-    if ((type_name = ad->hinttype) == NULL)
-        type_name = ad->doctype;
-
-    if (type_name != NULL)
+    /* Use any explicit type hint. */
+    if (ad->typehint != NULL)
     {
-        fprintf(fp, "%s", type_name);
+        pyiTypeHint(pt, mod, ad->typehint, defined, fp);
+        return;
+    }
+
+    if (ad->doctype != NULL)
+    {
+        fprintf(fp, "%s", ad->doctype);
         return;
     }
 
@@ -626,12 +631,20 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int sec,
 
             if (def_mtd != NULL)
             {
-                if (def_mtd->hinttype != NULL)
-                    type_name = def_mtd->hinttype;
-                else if (def_mtd->doctype != NULL)
+                if (def_mtd->typehint != NULL)
+                {
+                    pyiTypeHint(pt, mod, def_mtd->typehint, defined, fp);
+                    return;
+                }
+
+                if (def_mtd->doctype != NULL)
+                {
                     type_name = def_mtd->doctype;
+                }
                 else if (def_mtd->pyname != NULL)
+                {
                     type_name = def_mtd->pyname->text;
+                }
             }
 
             fprintf(fp, "%s", type_name);
@@ -639,6 +652,8 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int sec,
 
         return;
     }
+
+    type_name = NULL;
 
     switch (ad->atype)
     {
@@ -829,7 +844,9 @@ static void pyiPythonSignature(sipSpec *pt, moduleDef *mod, signatureDef *sd,
 
     fprintf(fp, ")");
 
-    if ((type_name = sd->result.hinttype) == NULL)
+    if (sd->result.typehint != NULL)
+        type_name = sd->result.typehint->raw_hint;
+    else
         type_name = sd->result.doctype;
 
     is_res = !((sd->result.atype == void_type && sd->result.nrderefs == 0) ||
@@ -974,4 +991,29 @@ static int hasImplicitOverloads(signatureDef *sd)
     }
 
     return FALSE;
+}
+
+
+/*
+ * Create a new type hint for a raw string.
+ */
+typeHintDef *newTypeHint(const char *raw_hint)
+{
+    typeHintDef *thd = sipMalloc(sizeof (typeHintDef));
+
+    thd->status = NeedsParsing;
+    thd->raw_hint = raw_hint;
+
+    return thd;
+}
+
+
+/*
+ * Generate a type hint from a /HintType/ annotation.
+ */
+static void pyiTypeHint(sipSpec *pt, moduleDef *mod, typeHintDef *thd,
+        classList *defined, FILE *fp)
+{
+    // FIXME: Do the parse, if not already done, then generate the type.
+    fprintf(fp, "%s", thd->raw_hint);
 }

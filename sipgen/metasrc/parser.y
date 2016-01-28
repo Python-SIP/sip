@@ -121,7 +121,7 @@ static int getDisallowNone(optFlags *optflgs);
 static const char *getVirtErrorHandler(optFlags *optflgs);
 static const char *getDocType(optFlags *optflgs);
 static const char *getDocValue(optFlags *optflgs);
-static const char *getHintType(optFlags *optflgs);
+static typeHintDef *getHintType(optFlags *optflgs);
 static void templateSignature(signatureDef *sd, int result, classTmplDef *tcd, templateDef *td, classDef *ncd);
 static void templateType(argDef *ad, classTmplDef *tcd, templateDef *td, classDef *ncd);
 static int search_back(const char *end, const char *start, const char *target);
@@ -8422,14 +8422,14 @@ static const char *getDocValue(optFlags *optflgs)
 /*
  * Get the /HintType/ option flag.
  */
-static const char *getHintType(optFlags *optflgs)
+static typeHintDef *getHintType(optFlags *optflgs)
 {
     optFlag *of = getOptFlag(optflgs, "HintType", string_flag);
 
     if (of == NULL)
         return NULL;
 
-    return of->fvalue.sval;
+    return newTypeHint(of->fvalue.sval);
 }
 
 
@@ -8568,7 +8568,7 @@ static void addVariable(sipSpec *pt, varDef *vd)
 static void applyTypeFlags(moduleDef *mod, argDef *ad, optFlags *flags)
 {
     ad->doctype = getDocType(flags);
-    ad->hinttype = getHintType(flags);
+    ad->typehint = getHintType(flags);
 
     if (getOptFlag(flags, "PyInt", bool_flag) != NULL)
     {
@@ -9022,7 +9022,7 @@ static void mappedTypeAnnos(mappedTypeDef *mtd, optFlags *optflgs)
         setHandlesNone(mtd);
 
     mtd->doctype = getDocType(optflgs);
-    mtd->hinttype = getHintType(optflgs);
+    mtd->typehint = getHintType(optflgs);
 }
 
 

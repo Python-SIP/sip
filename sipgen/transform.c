@@ -3102,8 +3102,15 @@ static mappedTypeDef *instantiateMappedTypeTemplate(sipSpec *pt, moduleDef *mod,
     mtd->iff->module = mod;
 
     mtd->mtflags = mtt->mt->mtflags;
-    mtd->doctype = templateString(mtt->mt->doctype, type_names, type_values);
-    mtd->hinttype = templateString(mtt->mt->hinttype, type_names, type_values);
+
+    if (mtt->mt->doctype != NULL)
+        mtd->doctype = templateString(mtt->mt->doctype, type_names,
+                type_values);
+
+    if (mtt->mt->typehint != NULL)
+        mtd->typehint = newTypeHint(
+                templateString(mtt->mt->typehint->raw_hint, type_names,
+                        type_values));
 
     appendCodeBlockList(&mtd->iff->hdrcode,
             templateCode(pt, &mtd->iff->used, mtt->mt->iff->hdrcode,
@@ -3136,13 +3143,7 @@ static mappedTypeDef *instantiateMappedTypeTemplate(sipSpec *pt, moduleDef *mod,
 static const char *templateString(const char *src, scopedNameDef *names,
         scopedNameDef *values)
 {
-    char *dst;
-
-    /* Handle the trivial case. */
-    if (src == NULL)
-        return NULL;
-
-    dst = sipStrdup(src);
+    char *dst = sipStrdup(src);
 
     while (names != NULL && values != NULL)
     {
@@ -3365,7 +3366,7 @@ void searchTypedefs(sipSpec *pt, scopedNameDef *snd, argDef *ad)
             ad->atype = td->type.atype;
             ad->argflags |= td->type.argflags;
             ad->doctype = td->type.doctype;
-            ad->hinttype = td->type.hinttype;
+            ad->typehint = td->type.typehint;
             ad->u = td->type.u;
 
             for (i = 0; i < td->type.nrderefs; ++i)

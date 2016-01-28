@@ -659,7 +659,6 @@ typedef enum {
 
 
 /* Value types. */
-
 typedef enum {
     qchar_value,
     string_value,
@@ -671,7 +670,6 @@ typedef enum {
 
 
 /* Version types. */
-
 typedef enum {
     time_qualifier,
     platform_qualifier,
@@ -680,7 +678,6 @@ typedef enum {
 
 
 /* Interface file types. */
-
 typedef enum {
     exception_iface,
     mappedtype_iface,
@@ -697,7 +694,6 @@ typedef struct {
 
 
 /* A software license. */
-
 typedef struct {
     const char *type;                   /* The license type. */
     const char *licensee;               /* The licensee. */
@@ -707,7 +703,6 @@ typedef struct {
 
 
 /* A version qualifier. */
-
 typedef struct _qualDef {
     const char *name;                   /* The qualifier name. */
     qualType qtype;                     /* The qualifier type. */
@@ -720,7 +715,6 @@ typedef struct _qualDef {
 
 
 /* A scoped name. */
-
 typedef struct _scopedNameDef {
     char *name;                         /* The name. */
     struct _scopedNameDef *next;        /* Next in the scope list. */
@@ -728,7 +722,6 @@ typedef struct _scopedNameDef {
 
 
 /* A name. */
-
 typedef struct _nameDef {
     int nameflags;                      /* The name flags. */
     const char *text;                   /* The text of the name. */
@@ -739,7 +732,6 @@ typedef struct _nameDef {
 
 
 /* A literal code block. */
-
 typedef struct _codeBlock {
     char *frag;                         /* The code itself. */
     const char *filename;               /* The original file. */
@@ -748,7 +740,6 @@ typedef struct _codeBlock {
 
 
 /* A list of literal code blocks. */
-
 typedef struct _codeBlockList {
     codeBlock *block;                   /* The code block. */
     struct _codeBlockList *next;        /* The next in the list. */
@@ -756,7 +747,6 @@ typedef struct _codeBlockList {
 
 
 /* The arguments to a throw specifier. */
-
 typedef struct _throwArgs {
     int nrArgs;                         /* The number of arguments. */
     struct _exceptionDef *args[MAX_NR_ARGS];    /* The arguments. */
@@ -764,7 +754,6 @@ typedef struct _throwArgs {
 
 
 /* An exception. */
-
 typedef struct _exceptionDef {
     int exceptionnr;                    /* The exception number. */
     struct _ifaceFileDef *iff;          /* The interface file. */
@@ -778,7 +767,6 @@ typedef struct _exceptionDef {
 
 
 /* A value. */
-
 typedef struct _valueDef {
     valueType vtype;                    /* The type. */
     char vunop;                         /* Any unary operator. */
@@ -797,12 +785,11 @@ typedef struct _valueDef {
 
 
 /* A member function argument (or result). */
-
 typedef struct {
     argType atype;                      /* The type. */
     nameDef *name;                      /* The name. */
     const char *doctype;                /* The documented type. */
-    const char *hinttype;               /* The hint type. */
+    struct _typeHintDef *typehint;      /* The PEP 484 type hint. */
     int argflags;                       /* The argument flags. */
     int nrderefs;                       /* Nr. of dereferences. */
     int derefs[MAX_NR_DEREFS];          /* The const for each dereference. */
@@ -856,6 +843,21 @@ typedef struct _virtErrorHandler {
     int index;                          /* The index within the module. */
     struct _virtErrorHandler *next;     /* The next in the list. */
 } virtErrorHandler;
+
+
+/* The status of a type hint. */
+typedef enum {
+    NeedsParsing,                       /* The type hint needs parsing. */
+    Parsed,                             /* The type hint has been parsed. */
+    ParseFailed                         /* The type hint couldn't be parsed. */
+} typeHintStatus;
+
+
+/* A parsed PEP 484 compliant type hint. */
+typedef struct _typeHintDef {
+    typeHintStatus status;              /* The status of the type hint. */
+    const char *raw_hint;               /* The raw hint. */
+} typeHintDef;
 
 
 /* A module definition. */
@@ -948,7 +950,7 @@ typedef struct _mappedTypeDef {
     nameDef *pyname;                    /* The Python name. */
     nameDef *cname;                     /* The C/C++ name. */
     const char *doctype;                /* The documented type. */
-    const char *hinttype;               /* The hint type. */
+    typeHintDef *typehint;              /* The PEP 484 type hint. */
     ifaceFileDef *iff;                  /* The interface file. */
     struct _memberDef *members;         /* The static member functions. */
     struct _overDef *overs;             /* The static overloads. */
@@ -1368,6 +1370,7 @@ nameDef *cacheName(sipSpec *pt, const char *name);
 scopedNameDef *encodedTemplateName(templateDef *td);
 apiVersionRangeDef *findAPI(sipSpec *pt, const char *name);
 memberDef *findMethod(classDef *cd, const char *name);
+typeHintDef *newTypeHint(const char *raw_hint);
 
 
 /* These are only here because bison publically references them. */
