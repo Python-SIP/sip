@@ -4595,7 +4595,6 @@ static moduleDef *allocModule()
     newmod->version = -1;
     newmod->defdocstring = raw;
     newmod->encoding = no_type;
-    newmod->qobjclass = -1;
     newmod->nrvirthandlers = -1;
     newmod->next_key = -1;
 

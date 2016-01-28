@@ -3680,7 +3680,12 @@ static void createSortedNumberedTypesTable(sipSpec *pt, moduleDef *mod)
 
             /* If we find a class called QObject, assume it's Qt. */
             if (strcmp(ad->name->text, "QObject") == 0)
-                mod->qobjclass = i;
+            {
+                if (pt->qobject_cd != NULL)
+                    fatal("QObject has been defined more than once\n");
+
+                pt->qobject_cd = ad->u.cd;
+            }
 
             break;
 

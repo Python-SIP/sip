@@ -33,6 +33,9 @@
 /* Return TRUE if a wrapped variable can be set. */
 #define canSetVariable(vd)      (!noSetter(vd) && ((vd)->type.nrderefs != 0 || !isConstArg(&(vd)->type)))
 
+/* Return TRUE if a module implements Qt support. */
+#define moduleSupportsQt(pt, mod)   ((pt)->qobject_cd != NULL && (pt)->qobject_cd->iff->module == (mod))
+
 
 /* Control what generateCalledArgs() actually generates. */
 typedef enum {
@@ -1378,7 +1381,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
      * optional parts.  These should be undefined in %ModuleCode if a C++
      * implementation is provided.
      */
-    if (mod->qobjclass >= 0)
+    if (moduleSupportsQt(pt, mod))
         prcode(fp,
 "\n"
 "#define sipQtCreateUniversalSignal          0\n"
@@ -1999,7 +2002,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
             );
 
     /* Generate any Qt support API. */
-    if (mod->qobjclass >= 0)
+    if (moduleSupportsQt(pt, mod))
         prcode(fp,
 "\n"
 "\n"
@@ -2020,7 +2023,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "    sipQtConnectPySignal,\n"
 "    sipQtDisconnectPySignal\n"
 "};\n"
-            , mod->qobjclass);
+            , pt->qobject_cd->iff->ifacenr);
 
     prcode(fp,
 "\n"
@@ -2060,7 +2063,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         , mod->version
         , pt->module->name
         , mod->allimports != NULL ? "importsTable" : "NULL"
-        , mod->qobjclass >= 0 ? "&qtAPI" : "NULL"
+        , moduleSupportsQt(pt, mod) ? "&qtAPI" : "NULL"
         , mod->nrtypes
         , mod->nrtypes > 0 ? "typesTable" : "NULL"
         , hasexternal ? "externalTypesTable" : "NULL"

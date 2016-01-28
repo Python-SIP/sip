@@ -675,33 +675,9 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int sec,
         }
         else
         {
-            static classDef *qobject_cd = NULL;
-
-            if (qobject_cd == NULL)
-            {
-                moduleDef *qmod;
-
-                /* Find the QObject class. */
-                for (qmod = pt->modules; qmod != NULL; qmod = qmod->next)
-                    if (qmod->qobjclass >= 0)
-                    {
-                        for (qobject_cd = pt->classes; qobject_cd != NULL; qobject_cd = qobject_cd->next)
-                        {
-                            if (qobject_cd->iff->module != qmod)
-                                continue;
-
-                            if (qobject_cd->iff->ifacenr == qmod->qobjclass)
-                                break;
-                        }
-
-                        if (qobject_cd != NULL)
-                            break;
-                    }
-            }
-
             /* The class should always be found. */
-            if (qobject_cd != NULL)
-                prClassRef(qobject_cd, mod, defined, fp);
+            if (pt->qobject_cd != NULL)
+                prClassRef(pt->qobject_cd, mod, defined, fp);
             else
                 type_name = "Any";
         }
