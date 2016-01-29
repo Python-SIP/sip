@@ -86,7 +86,7 @@ static void addComplementarySlot(sipSpec *pt, classDef *cd, memberDef *md,
         slotType cslot, const char *cslot_name);
 static void resolveInstantiatedClassTemplate(sipSpec *pt, argDef *type);
 static void setStringPoolOffsets(sipSpec *pt);
-static const char *templateString(const char *src, scopedNameDef *names,
+static char *templateString(const char *src, scopedNameDef *names,
         scopedNameDef *values);
 static mappedTypeDef *copyTemplateType(mappedTypeDef *mtd, argDef *ad);
 static void checkProperties(classDef *cd);
@@ -564,7 +564,7 @@ static void checkAssignmentHelper(sipSpec *pt, classDef *cd)
     if (pub_def_ctor && pub_copy_ctor)
     {
         setAssignmentHelper(cd);
-        addToUsedList(&cd->iff->module->used, cd->iff);
+        appendToIfaceFileList(&cd->iff->module->used, cd->iff);
     }
 }
 
@@ -1311,7 +1311,7 @@ static void setHierarchy(sipSpec *pt, classDef *base, classDef *cd,
      * knows about the base class.
      */
     if (cd->subbase != NULL)
-        addToUsedList(&cd->iff->module->used, cd->subbase->iff);
+        appendToIfaceFileList(&cd->iff->module->used, cd->subbase->iff);
 
     /*
      * We can't have a shadow if the specification is incomplete, there is
@@ -3140,7 +3140,7 @@ static mappedTypeDef *instantiateMappedTypeTemplate(sipSpec *pt, moduleDef *mod,
  * Return a string based on an original with names replaced by corresponding
  * values.
  */
-static const char *templateString(const char *src, scopedNameDef *names,
+static char *templateString(const char *src, scopedNameDef *names,
         scopedNameDef *values)
 {
     char *dst = sipStrdup(src);
@@ -3483,7 +3483,7 @@ static void ifaceFilesAreUsedByOverload(ifaceFileList **used, overDef *od)
         int a;
 
         for (a = 0; a < ta->nrArgs; ++a)
-            addToUsedList(used, ta->args[a]->iff);
+            appendToIfaceFileList(used, ta->args[a]->iff);
     }
 }
 
@@ -3498,7 +3498,7 @@ static void ifaceFileIsUsed(ifaceFileList **used, argDef *ad)
 
     if ((iff = getIfaceFile(ad)) != NULL)
     {
-        addToUsedList(used, iff);
+        appendToIfaceFileList(used, iff);
 
         /*
          * For mapped type templates we also need the template arguments.
@@ -3510,7 +3510,7 @@ static void ifaceFileIsUsed(ifaceFileList **used, argDef *ad)
             ifaceFileList *iffl = iff->used;
 
             for (iffl = iff->used; iffl != NULL; iffl = iffl->next)
-                addToUsedList(used, iffl->iff);
+                appendToIfaceFileList(used, iffl->iff);
         }
     }
 }

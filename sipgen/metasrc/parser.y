@@ -4794,7 +4794,7 @@ static classDef *findClassWithInterface(sipSpec *pt, ifaceFileDef *iff)
 /*
  * Add an interface file to an interface file list if it isn't already there.
  */
-void addToUsedList(ifaceFileList **ifflp, ifaceFileDef *iff)
+void appendToIfaceFileList(ifaceFileList **ifflp, ifaceFileDef *iff)
 {
     /* Make sure we don't try to add an interface file to its own list. */
     if (&iff->used != ifflp)
@@ -5767,7 +5767,7 @@ static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod,
     used = &cd->iff->used;
 
     for (iffl = tcd->cd->iff->used; iffl != NULL; iffl = iffl->next)
-        addToUsedList(used, iffl->iff);
+        appendToIfaceFileList(used, iffl->iff);
 
     /* Include any scope header code. */
     if (scope != NULL)
@@ -6396,7 +6396,7 @@ static void addUsedFromCode(sipSpec *pt, ifaceFileList **used, const char *sname
 
         if (sameName(iff->fqcname, sname))
         {
-            addToUsedList(used, iff);
+            appendToIfaceFileList(used, iff);
             return;
         }
     }
@@ -6408,7 +6408,7 @@ static void addUsedFromCode(sipSpec *pt, ifaceFileList **used, const char *sname
 
         if (sameName(ed->fqcname, sname))
         {
-            addToUsedList(used, ed->ecd->iff);
+            appendToIfaceFileList(used, ed->ecd->iff);
             return;
         }
     }

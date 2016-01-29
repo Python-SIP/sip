@@ -24,37 +24,47 @@
 
 
 static void pyiEnums(sipSpec *pt, moduleDef *mod, classDef *scope,
-        classList *defined, int indent, FILE *fp);
+        ifaceFileList *defined, int indent, FILE *fp);
 static void pyiVars(sipSpec *pt, moduleDef *mod, classDef *scope,
-        classList *defined, int indent, FILE *fp);
+        ifaceFileList *defined, int indent, FILE *fp);
 static void pyiClass(sipSpec *pt, moduleDef *mod, classDef *cd,
-        classList **defined, int indent, FILE *fp);
+        ifaceFileList **defined, int indent, FILE *fp);
 static void pyiCtor(sipSpec *pt, moduleDef *mod, ctorDef *ct, int overloaded,
-        int sec, classList *defined, int indent, FILE *fp);
+        int sec, ifaceFileList *defined, int indent, FILE *fp);
 static void pyiCallable(sipSpec *pt, moduleDef *mod, memberDef *md,
-        overDef *overloads, int is_method, classList *defined, int indent,
+        overDef *overloads, int is_method, ifaceFileList *defined, int indent,
         FILE *fp);
 static void pyiOverload(sipSpec *pt, moduleDef *mod, overDef *od,
-        int overloaded, int is_method, int sec, classList *defined, int indent,
-        FILE *fp);
+        int overloaded, int is_method, int sec, ifaceFileList *defined,
+        int indent, FILE *fp);
 static void pyiPythonSignature(sipSpec *pt, moduleDef *mod, signatureDef *sd,
-        int need_self, int sec, classList *defined, FILE *fp);
+        int need_self, int sec, ifaceFileList *defined, FILE *fp);
 static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int out,
-        int need_comma, int sec, int names, int defaults, classList *defined,
-        FILE *fp);
+        int need_comma, int sec, int names, int defaults,
+        ifaceFileList *defined, FILE *fp);
 static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int sec,
-        classList *defined, FILE *fp);
+        ifaceFileList *defined, FILE *fp);
 static void pyiTypeHint(sipSpec *pt, moduleDef *mod, typeHintDef *thd,
-        classList *defined, FILE *fp);
+        ifaceFileList *defined, FILE *fp);
 static void pyiDefaultValue(argDef *ad, FILE *fp);
 static void prIndent(int indent, FILE *fp);
 static int separate(int first, int indent, FILE *fp);
-static void prClassRef(classDef *cd, moduleDef *mod, classList *defined,
+static void prClassRef(classDef *cd, moduleDef *mod, ifaceFileList *defined,
         FILE *fp);
-static void prEnumRef(enumDef *ed, moduleDef *mod, classList *defined,
+static void prEnumRef(enumDef *ed, moduleDef *mod, ifaceFileList *defined,
         FILE *fp);
-static int isDefined(classDef *cd, moduleDef *mod, classList *defined);
+static void prMappedTypeRef(mappedTypeDef *mtd, moduleDef *mod,
+        ifaceFileList *defined, FILE *fp);
+static int isDefined(ifaceFileDef *iff, moduleDef *mod,
+        ifaceFileList *defined);
 static int hasImplicitOverloads(signatureDef *sd);
+static void parseTypeHint(sipSpec *pt, typeHintDef *thd);
+static void lookupType(sipSpec *pt, char *name, argDef *ad);
+static enumDef *lookupEnum(sipSpec *pt, const char *name, classDef *scope_cd,
+        mappedTypeDef *scope_mtd);
+static mappedTypeDef *lookupMappedType(sipSpec *pt, const char *name);
+static classDef *lookupClass(sipSpec *pt, const char *name,
+        classDef *scope_cd);
 
 
 /*
@@ -66,10 +76,11 @@ void generateTypeHints(sipSpec *pt, moduleDef *mod, const char *pyiFile)
     int first;
     memberDef *md;
     classDef *cd;
-    classList *defined;
+    ifaceFileList *defined;
     moduleListDef *mld;
     FILE *fp;
 
+    // FIXME: Add support for composite modules.
     /* Generate the file. */
     if ((fp = fopen(pyiFile, "w")) == NULL)
         fatal("Unable to create file \"%s\"\n", pyiFile);
@@ -94,28 +105,15 @@ void generateTypeHints(sipSpec *pt, moduleDef *mod, const char *pyiFile)
 "from typing import Any, Callable, Dict, List, Optional, overload, Set%s\n"
 "\n"
 "import sip\n"
-"\n"
-        , (pt->sigslots ? ", TypeVar, Union" : ""));
+        , ((pluginPyQt4(pt) || pluginPyQt5(pt)) ? ", TypeVar, Union" : ""));
 
-    /*
-     * We import the root package so that we can forward reference any type by
-     * specifying its fully qualified name.  This is necessary to support
-     * mapped type templates where we have no idea what the context will be
-     * when the template is expanded.
-     */
-    if ((cp = strchr(mod->fullname->text, '.')) == NULL)
-    {
-        fprintf(fp, "import %s\n", mod->fullname->text);
-    }
-    else
-    {
-        *cp = '\0';
-        fprintf(fp, "import %s\n", mod->fullname->text);
-        *cp = '.';
-    }
+    first = TRUE;
 
     for (mld = mod->imports; mld != NULL; mld = mld->next)
     {
+        /* We lie about the indent because we only want one blank line. */
+        first = separate(first, 1, fp);
+
         if ((cp = strrchr(mld->module->fullname->text, '.')) == NULL)
         {
             fprintf(fp, "import %s\n", mld->module->name);
@@ -129,7 +127,7 @@ void generateTypeHints(sipSpec *pt, moduleDef *mod, const char *pyiFile)
         }
     }
 
-    if (pt->sigslots)
+    if (pluginPyQt4(pt) || pluginPyQt5(pt))
         fprintf(fp,
 "\n"
 "\n"
@@ -181,7 +179,7 @@ void generateTypeHints(sipSpec *pt, moduleDef *mod, const char *pyiFile)
  * Generate the type hints for a class.
  */
 static void pyiClass(sipSpec *pt, moduleDef *mod, classDef *cd,
-        classList **defined, int indent, FILE *fp)
+        ifaceFileList **defined, int indent, FILE *fp)
 {
     int first, nr_overloads;
     classDef *nested;
@@ -278,7 +276,7 @@ static void pyiClass(sipSpec *pt, moduleDef *mod, classDef *cd,
      * Keep track of what has been defined so that forward references are no
      * longer required.
      */
-    appendToClassList(defined, cd);
+    appendToIfaceFileList(defined, cd->iff);
 }
 
 
@@ -286,7 +284,7 @@ static void pyiClass(sipSpec *pt, moduleDef *mod, classDef *cd,
  * Generate an ctor type hint.
  */
 static void pyiCtor(sipSpec *pt, moduleDef *mod, ctorDef *ct, int overloaded,
-        int sec, classList *defined, int indent, FILE *fp)
+        int sec, ifaceFileList *defined, int indent, FILE *fp)
 {
     int a;
 
@@ -311,7 +309,7 @@ static void pyiCtor(sipSpec *pt, moduleDef *mod, ctorDef *ct, int overloaded,
  * Generate the APIs for all the enums in a scope.
  */
 static void pyiEnums(sipSpec *pt, moduleDef *mod, classDef *scope,
-        classList *defined, int indent, FILE *fp)
+        ifaceFileList *defined, int indent, FILE *fp)
 {
     enumDef *ed;
 
@@ -361,7 +359,7 @@ static void pyiEnums(sipSpec *pt, moduleDef *mod, classDef *scope,
  * Generate the APIs for all the variables in a scope.
  */
 static void pyiVars(sipSpec *pt, moduleDef *mod, classDef *scope,
-        classList *defined, int indent, FILE *fp)
+        ifaceFileList *defined, int indent, FILE *fp)
 {
     int first = TRUE;
     varDef *vd;
@@ -388,7 +386,7 @@ static void pyiVars(sipSpec *pt, moduleDef *mod, classDef *scope,
  * Generate the type hints for a callable.
  */
 static void pyiCallable(sipSpec *pt, moduleDef *mod, memberDef *md,
-        overDef *overloads, int is_method, classList *defined, int indent,
+        overDef *overloads, int is_method, ifaceFileList *defined, int indent,
         FILE *fp)
 {
     int nr_overloads;
@@ -436,8 +434,8 @@ static void pyiCallable(sipSpec *pt, moduleDef *mod, memberDef *md,
  * Generate a single API overload.
  */
 static void pyiOverload(sipSpec *pt, moduleDef *mod, overDef *od,
-        int overloaded, int is_method, int sec, classList *defined, int indent,
-        FILE *fp)
+        int overloaded, int is_method, int sec, ifaceFileList *defined,
+        int indent, FILE *fp)
 {
     int need_self;
 
@@ -468,8 +466,8 @@ static void pyiOverload(sipSpec *pt, moduleDef *mod, overDef *od,
  * Generate a Python argument.
  */
 static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int out,
-        int need_comma, int sec, int names, int defaults, classList *defined,
-        FILE *fp)
+        int need_comma, int sec, int names, int defaults,
+        ifaceFileList *defined, FILE *fp)
 {
     if (isArraySize(ad))
         return need_comma;
@@ -506,6 +504,7 @@ static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int out,
  */
 static void pyiDefaultValue(argDef *ad, FILE *fp)
 {
+    // FIXME: What if the default value is an enum member?
     /* Use any explicitly provided documentation. */
     if (ad->docval != NULL)
     {
@@ -537,7 +536,7 @@ static void pyiDefaultValue(argDef *ad, FILE *fp)
  * Generate the Python representation of a type.
  */
 static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int sec,
-        classList *defined, FILE *fp)
+        ifaceFileList *defined, FILE *fp)
 {
     const char *type_name;
 
@@ -810,7 +809,7 @@ void prScopedPythonName(FILE *fp, classDef *scope, const char *pyname)
  * Generate a Python signature.
  */
 static void pyiPythonSignature(sipSpec *pt, moduleDef *mod, signatureDef *sd,
-        int need_self, int sec, classList *defined, FILE *fp)
+        int need_self, int sec, ifaceFileList *defined, FILE *fp)
 {
     const char *type_name;
     int need_comma, is_res, nr_out, a;
@@ -911,10 +910,10 @@ static int separate(int first, int indent, FILE *fp)
  * Generate a class reference, including its owning module if necessary and
  * handling forward references if necessary.
  */
-static void prClassRef(classDef *cd, moduleDef *mod, classList *defined,
+static void prClassRef(classDef *cd, moduleDef *mod, ifaceFileList *defined,
         FILE *fp)
 {
-    int is_defined = isDefined(cd, mod, defined);
+    int is_defined = isDefined(cd->iff, mod, defined);
 
     if (!is_defined)
         fprintf(fp, "'");
@@ -933,10 +932,10 @@ static void prClassRef(classDef *cd, moduleDef *mod, classList *defined,
  * Generate an enum reference, including its owning module if necessary and
  * handling forward references if necessary.
  */
-static void prEnumRef(enumDef *ed, moduleDef *mod, classList *defined,
+static void prEnumRef(enumDef *ed, moduleDef *mod, ifaceFileList *defined,
         FILE *fp)
 {
-    int is_defined = (ed->ecd != NULL && isDefined(ed->ecd, mod, defined));
+    int is_defined = (ed->ecd != NULL && isDefined(ed->ecd->iff, mod, defined));
 
     if (!is_defined)
         fprintf(fp, "'");
@@ -952,17 +951,39 @@ static void prEnumRef(enumDef *ed, moduleDef *mod, classList *defined,
 
 
 /*
- * Check if a class has been defined.
+ * Generate a mapped type reference, including its owning module if necessary
+ * and handling forward references if necessary.
  */
-static int isDefined(classDef *cd, moduleDef *mod, classList *defined)
+static void prMappedTypeRef(mappedTypeDef *mtd, moduleDef *mod,
+        ifaceFileList *defined, FILE *fp)
 {
-    /* A class in another module would have been imported. */
-    if (cd->iff->module != mod)
+    int is_defined = isDefined(mtd->iff, mod, defined);
+
+    if (!is_defined)
+        fprintf(fp, "'");
+
+    if (mtd->iff->module != mod)
+        fprintf(fp, "%s.", mtd->iff->module->name);
+
+    fprintf(fp, "%s", mtd->pyname->text);
+
+    if (!is_defined)
+        fprintf(fp, "'");
+}
+
+
+/*
+ * Check if a type has been defined.
+ */
+static int isDefined(ifaceFileDef *iff, moduleDef *mod, ifaceFileList *defined)
+{
+    /* A type in another module would have been imported. */
+    if (iff->module != mod)
         return TRUE;
 
     while (defined != NULL)
     {
-        if (defined->cd == cd)
+        if (defined->iff == iff)
             return TRUE;
 
         defined = defined->next;
@@ -997,11 +1018,11 @@ static int hasImplicitOverloads(signatureDef *sd)
 /*
  * Create a new type hint for a raw string.
  */
-typeHintDef *newTypeHint(const char *raw_hint)
+typeHintDef *newTypeHint(char *raw_hint)
 {
     typeHintDef *thd = sipMalloc(sizeof (typeHintDef));
 
-    thd->status = NeedsParsing;
+    thd->needs_parsing = TRUE;
     thd->raw_hint = raw_hint;
 
     return thd;
@@ -1012,8 +1033,277 @@ typeHintDef *newTypeHint(const char *raw_hint)
  * Generate a type hint from a /HintType/ annotation.
  */
 static void pyiTypeHint(sipSpec *pt, moduleDef *mod, typeHintDef *thd,
-        classList *defined, FILE *fp)
+        ifaceFileList *defined, FILE *fp)
 {
-    // FIXME: Do the parse, if not already done, then generate the type.
-    fprintf(fp, "%s", thd->raw_hint);
+    if (thd->needs_parsing)
+        parseTypeHint(pt, thd);
+
+    if (thd->sections != NULL)
+    {
+        typeHintSection *ths;
+
+        for (ths = thd->sections; ths != NULL; ths = ths->next)
+        {
+            if (ths->before != NULL)
+                fprintf(fp, "%s", ths->before);
+
+            if (ths->type.atype == class_type)
+                prClassRef(ths->type.u.cd, mod, defined, fp);
+            else if (ths->type.atype == enum_type)
+                prEnumRef(ths->type.u.ed, mod, defined, fp);
+            else
+                prMappedTypeRef(ths->type.u.mtd, mod, defined, fp);
+
+            if (ths->after != NULL)
+                fprintf(fp, "%s", ths->after);
+        }
+    }
+    else
+    {
+        fprintf(fp, "%s", thd->raw_hint);
+    }
+}
+
+
+/*
+ * Parse a type hint and update its status accordingly.
+ */
+static void parseTypeHint(sipSpec *pt, typeHintDef *thd)
+{
+    char *sp, *dp, *cp;
+    typeHintSection *tail;
+
+    /* No matter what happends we don't do this again. */
+    thd->needs_parsing = FALSE;
+
+    /* Remove any whitespace. */
+    sp = dp = thd->raw_hint;
+
+    do
+    {
+        if (*sp != ' ')
+            *dp = *sp++;
+    }
+    while (*dp++ != '\0');
+
+    /* Parse each section. */
+    tail = NULL;
+
+    sp = cp = thd->raw_hint;
+
+    while (*cp != '\0')
+    {
+        char *ep, *tp, saved;
+        argDef type;
+
+        /* Find the end of a potential type. */
+        for (ep = cp; *ep != '\0' && *ep != ']' && *ep != ','; ++ep)
+            ;
+
+        /* Find the beginning of the potential type. */
+        for (tp = ep - 1; tp >= sp && *tp != '[' && *ep != ','; --tp)
+            ;
+
+        ++tp;
+
+        /* Isolate the potential type. */
+        saved = *ep;
+        *ep = '\0';
+
+        /* Search for the type. */
+        lookupType(pt, tp, &type);
+
+        *ep = saved;
+
+        if (type.atype != no_type)
+        {
+            typeHintSection *ths = sipMalloc(sizeof (typeHintSection));
+
+            *tp = '\0';
+            ths->before = sp;
+
+            ths->type = type;
+
+            if (tail != NULL)
+                tail->next = ths;
+            else
+                thd->sections = ths;
+
+            tail = ths;
+
+            /* Move past the parsed type. */
+            sp = ep;
+        }
+
+        /*
+         * Start the next lookup from the end of this one (after the character
+         * that terminated it).
+         */
+        cp = ep;
+
+        if (*cp != '\0')
+            ++cp;
+    }
+
+    /* See if there is trailing text. */
+    if (*sp != '\0' && tail != NULL)
+        tail->after = sp;
+}
+
+
+/*
+ * Look up a qualified Python type.
+ */
+static void lookupType(sipSpec *pt, char *name, argDef *ad)
+{
+    char *ep;
+    classDef *scope_cd;
+    mappedTypeDef *scope_mtd;
+
+    /* Start searching at the global level. */
+    scope_cd = NULL;
+    scope_mtd = NULL;
+
+    ep = NULL;
+
+    while (name != '\0')
+    {
+        enumDef *ed;
+
+        /* Isolate the next part of the name. */
+        if ((ep = strchr(name, '.')) != NULL)
+            *ep = '\0';
+
+        /* See if it's an enum. */
+        if ((ed = lookupEnum(pt, name, scope_cd, scope_mtd)) != NULL)
+        {
+            /* Make sure we have used the whole name. */
+            if (ep == NULL)
+            {
+                ad->atype = enum_type;
+                ad->u.ed = ed;
+
+                return;
+            }
+
+            /* There is some left so the whole lookup has failed. */
+            break;
+        }
+
+        /*
+         * If we have a mapped type scope then we must be looking for an enum,
+         * which we have failed to find.
+         */
+        if (scope_mtd != NULL)
+            break;
+
+        if (scope_cd == NULL)
+        {
+            mappedTypeDef *mtd;
+
+            /*
+             * We are looking at the global level, so see if it is a mapped
+             * type.
+             */
+            if ((mtd = lookupMappedType(pt, name)) != NULL)
+            {
+                /*
+                 * If we have used the whole name then the lookup has
+                 * succeeded.
+                 */
+                if (ep == NULL)
+                {
+                    ad->atype = mapped_type;
+                    ad->u.mtd = mtd;
+
+                    return;
+                }
+
+                /* Otherwise this is the scope for the next part. */
+                scope_mtd = mtd;
+            }
+        }
+
+        if (scope_mtd == NULL)
+        {
+            classDef *cd;
+
+            /* If we get here then it must be a class. */
+            if ((cd = lookupClass(pt, name, scope_cd)) == NULL)
+                break;
+
+            /* If we have used the whole name then the lookup has succeeded. */
+            if (ep == NULL)
+            {
+                ad->atype = class_type;
+                ad->u.cd = cd;
+
+                return;
+            }
+
+            /* Otherwise this is the scope for the next part. */
+            scope_cd = cd;
+        }
+
+        /* If we have run out of name then the lookup has failed. */
+        if (ep == NULL)
+            break;
+
+        /* Repair the name and go on to the next part. */
+        *ep++ = '.';
+        name = ep;
+    }
+
+    /* Repair the name. */
+    if (ep != NULL)
+        *ep = '.';
+
+    /* Nothing was found. */
+    ad->atype = no_type;
+}
+
+
+/*
+ * Lookup an enum.
+ */
+static enumDef *lookupEnum(sipSpec *pt, const char *name, classDef *scope_cd,
+        mappedTypeDef *scope_mtd)
+{
+    enumDef *ed;
+
+    for (ed = pt->enums; ed != NULL; ed = ed->next)
+        if (strcmp(ed->pyname->text, name) == 0 && ed->ecd == scope_cd && ed->emtd == scope_mtd)
+            return ed;
+
+    return NULL;
+}
+
+
+/*
+ * Lookup a mapped type.
+ */
+static mappedTypeDef *lookupMappedType(sipSpec *pt, const char *name)
+{
+    mappedTypeDef *mtd;
+
+    for (mtd = pt->mappedtypes; mtd != NULL; mtd = mtd->next)
+        if (mtd->pyname != NULL && strcmp(mtd->pyname->text, name) == 0)
+            return mtd;
+
+    return NULL;
+}
+
+
+/*
+ * Lookup a class.
+ */
+static classDef *lookupClass(sipSpec *pt, const char *name, classDef *scope_cd)
+{
+    classDef *cd;
+
+    for (cd = pt->classes; cd != NULL; cd = cd->next)
+        if (strcmp(cd->pyname->text, name) == 0 && cd->ecd == scope_cd)
+            return cd;
+
+    return NULL;
 }
