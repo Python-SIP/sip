@@ -39,8 +39,8 @@ static void pyiOverload(sipSpec *pt, moduleDef *mod, overDef *od,
         int indent, FILE *fp);
 static void pyiPythonSignature(sipSpec *pt, moduleDef *mod, signatureDef *sd,
         int need_self, int sec, ifaceFileList *defined, FILE *fp);
-static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int out,
-        int need_comma, int sec, int names, int defaults,
+static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int arg_nr,
+        int out, int need_comma, int sec, int names, int defaults,
         ifaceFileList *defined, FILE *fp);
 static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int sec,
         ifaceFileList *defined, FILE *fp);
@@ -99,13 +99,16 @@ void generateTypeHints(sipSpec *pt, moduleDef *mod, const char *pyiFile)
      * Generate the imports. Note that we assume the super-types are the
      * standard SIP ones.
      */
+    // FIXME: Only import objects explicitly used in SIP generated hints and
+    // leave the rest to the new directive.
     fprintf(fp,
 "\n"
 "\n"
-"from typing import Any, Callable, Dict, List, Optional, overload, Set%s\n"
+"from typing import (Any, Callable, Dict, List, Optional, overload,\n"
+"        Sequence, Set, Tuple, TypeVar, Union)\n"
 "\n"
 "import sip\n"
-        , ((pluginPyQt4(pt) || pluginPyQt5(pt)) ? ", TypeVar, Union" : ""));
+        );
 
     first = TRUE;
 
@@ -133,7 +136,42 @@ void generateTypeHints(sipSpec *pt, moduleDef *mod, const char *pyiFile)
 "\n"
 "SIGNAL_T = TypeVar('SIGNAL_T')\n"
 "SLOT_T = TypeVar('SLOT_T')\n"
+"SLOT_SIGNAL_T = Union[SLOT_T, SIGNAL_T]\n"
             );
+
+    // FIXME: Replace this with a new directive. Some things need to be
+    // exported (like TypeVar and type aliases) but others don't (like
+    // handwritten function definitions).
+    // FIXME: Have a NoTypeHint function anno that suppresses the generation of
+    // any type hint - on the assumption that it will be implemented in
+    // handwritten code. (Handle pyqtSlot like that?)
+    // FIXME: Rename to PYQT_CORE_*.
+    // FIXME: Rename HintType to TypeHint?
+    // FIXME: Have TypeHintIn and TypeHintOut
+    fprintf(fp,
+"\n"
+"import datetime\n"
+"\n"
+"PYQT_SIGNAL_T = TypeVar('PYQT_SIGNAL_T')\n"
+"PYQT_SLOT_T = Union[Callable, PYQT_SIGNAL_T]\n"
+"\n"
+"def pyqtSignal(*types, name: Optional[str]) -> PYQT_SIGNAL_T: ...\n"
+        );
+
+    // FIXME: This goes into the QtOpenGL module.
+#if 0
+    fprintf(fp,
+"\n"
+"PYQT_OPENGL_ATTRIBUTE_ARRAY_T = Union[Sequence[QVector2D],\n"
+"        Sequence[QVector3D], Sequence[QVector4D], Sequence[Sequence[float]]]\n"
+"PYQT_OPENGL_UNIFORM_VALUE_ARRAY_T = Union[Sequence[QVector2D],\n"
+"        Sequence[QVector3D], Sequence[QVector4D], Sequence[QMatrix2x2],\n"
+"        Sequence[QMatrix2x3], Sequence[QMatrix2x4], Sequence[QMatrix3x2],\n"
+"        Sequence[QMatrix3x3], Sequence[QMatrix3x4], Sequence[QMatrix4x2],\n"
+"        Sequence[QMatrix4x3], Sequence[QMatrix4x4],\n"
+"        Sequence[Sequence[float]]]\n"
+        );
+#endif
 
     /* Generate the types - enums and classes. */
     pyiEnums(pt, mod, NULL, NULL, 0, fp);
@@ -181,7 +219,7 @@ void generateTypeHints(sipSpec *pt, moduleDef *mod, const char *pyiFile)
 static void pyiClass(sipSpec *pt, moduleDef *mod, classDef *cd,
         ifaceFileList **defined, int indent, FILE *fp)
 {
-    int first, nr_overloads;
+    int first, no_body, nr_overloads;
     classDef *nested;
     ctorDef *ct;
     memberDef *md;
@@ -215,7 +253,55 @@ static void pyiClass(sipSpec *pt, moduleDef *mod, classDef *cd,
         fprintf(fp, "sip.wrapper");
     }
 
-    fprintf(fp, "):\n");
+    /* See if there is anything in the class body. */
+    nr_overloads = 0;
+
+    for (ct = cd->ctors; ct != NULL; ct = ct->next)
+    {
+        if (isPrivateCtor(ct))
+            continue;
+
+        ++nr_overloads;
+    }
+
+    no_body = (nr_overloads == 0 && cd->members == NULL);
+
+    if (no_body)
+    {
+        enumDef *ed;
+
+        for (ed = pt->enums; ed != NULL; ed = ed->next)
+            if (ed->ecd == cd)
+            {
+                no_body = FALSE;
+                break;
+            }
+
+    }
+
+    if (no_body)
+    {
+        for (nested = pt->classes; nested != NULL; nested = nested->next)
+            if (nested->ecd == cd)
+            {
+                no_body = FALSE;
+                break;
+            }
+    }
+
+    if (no_body)
+    {
+        varDef *vd;
+
+        for (vd = pt->vars; vd != NULL; vd = vd->next)
+            if (vd->ecd == cd)
+            {
+                no_body = FALSE;
+                break;
+            }
+    }
+
+    fprintf(fp, "):%s\n", (no_body ? " ..." : ""));
 
     ++indent;
 
@@ -227,16 +313,6 @@ static void pyiClass(sipSpec *pt, moduleDef *mod, classDef *cd,
             pyiClass(pt, mod, nested, defined, indent, fp);
 
     pyiVars(pt, mod, cd, *defined, indent, fp);
-
-    nr_overloads = 0;
-
-    for (ct = cd->ctors; ct != NULL; ct = ct->next)
-    {
-        if (isPrivateCtor(ct))
-            continue;
-
-        ++nr_overloads;
-    }
 
     first = TRUE;
 
@@ -298,8 +374,8 @@ static void pyiCtor(sipSpec *pt, moduleDef *mod, ctorDef *ct, int overloaded,
     fprintf(fp, "def __init__(self");
 
     for (a = 0; a < ct->pysig.nrArgs; ++a)
-        pyiArgument(pt, mod, &ct->pysig.args[a], FALSE, TRUE, sec, TRUE, TRUE,
-                defined, fp);
+        pyiArgument(pt, mod, &ct->pysig.args[a], a, FALSE, TRUE, sec, TRUE,
+                TRUE, defined, fp);
 
     fprintf(fp, ") -> None: ...\n");
 }
@@ -465,8 +541,8 @@ static void pyiOverload(sipSpec *pt, moduleDef *mod, overDef *od,
 /*
  * Generate a Python argument.
  */
-static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int out,
-        int need_comma, int sec, int names, int defaults,
+static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int arg_nr,
+        int out, int need_comma, int sec, int names, int defaults,
         ifaceFileList *defined, FILE *fp)
 {
     if (isArraySize(ad))
@@ -478,9 +554,14 @@ static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int out,
     if (need_comma)
         fprintf(fp, ", ");
 
-    // FIXME: Don't have a name when arg is ellipsis.
-    if (names)
-        fprintf(fp, "%s: ", (ad->name != NULL ? ad->name->text : "arg"));
+    if (names && ad->atype != ellipsis_type)
+    {
+        if (ad->name != NULL)
+            fprintf(fp, "%s%s: ", ad->name->text,
+                    (isPyKeyword(ad->name->text) ? "_" : ""));
+        else
+            fprintf(fp, "a%d: ", arg_nr);
+    }
 
     pyiType(pt, mod, ad, sec, defined, fp);
 
@@ -504,7 +585,8 @@ static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int out,
  */
 static void pyiDefaultValue(argDef *ad, FILE *fp)
 {
-    // FIXME: What if the default value is an enum member?
+    // FIXME: What if the default value is an enum member (eg. QUrl.toEncoded()
+    // and toString()?
     /* Use any explicitly provided documentation. */
     if (ad->docval != NULL)
     {
@@ -528,6 +610,8 @@ static void pyiDefaultValue(argDef *ad, FILE *fp)
         }
     }
 
+    // FIXME: What if the expression includes references to classes (eg a call
+    // to a class ctor)? QUrl.toPercentEncoding().  Just make it Optional?
     generateExpression(ad->defval, FALSE, fp);
 }
 
@@ -544,12 +628,6 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int sec,
     if (ad->typehint != NULL)
     {
         pyiTypeHint(pt, mod, ad->typehint, defined, fp);
-        return;
-    }
-
-    if (ad->doctype != NULL)
-    {
-        fprintf(fp, "%s", ad->doctype);
         return;
     }
 
@@ -636,14 +714,8 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int sec,
                     return;
                 }
 
-                if (def_mtd->doctype != NULL)
-                {
-                    type_name = def_mtd->doctype;
-                }
-                else if (def_mtd->pyname != NULL)
-                {
+                if (def_mtd->pyname != NULL)
                     type_name = def_mtd->pyname->text;
-                }
             }
 
             fprintf(fp, "%s", type_name);
@@ -678,7 +750,7 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int sec,
         break;
 
     case slot_type:
-        type_name = "Union[SLOT_T, SIGNAL_T]";
+        type_name = "SLOT_SIGNAL_T";
         break;
 
     case rxcon_type:
@@ -760,19 +832,22 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int sec,
         break;
 
     case pyslice_type:
+        // FIXME: How to represent this in PEP 484?
         type_name = "slice";
         break;
 
     case pytype_type:
+        // FIXME: How to represent this in PEP 484?
         type_name = "type";
         break;
 
     case pybuffer_type:
+        // FIXME: How to represent this in PEP 484?
         type_name = "buffer";
         break;
 
     case ellipsis_type:
-        type_name = "...";
+        type_name = "*args";
         break;
 
     case slotcon_type:
@@ -837,7 +912,7 @@ static void pyiPythonSignature(sipSpec *pt, moduleDef *mod, signatureDef *sd,
         if (!isInArg(ad))
             continue;
 
-        need_comma = pyiArgument(pt, mod, ad, FALSE, need_comma, sec, TRUE,
+        need_comma = pyiArgument(pt, mod, ad, a, FALSE, need_comma, sec, TRUE,
                 TRUE, defined, fp);
     }
 
@@ -856,11 +931,11 @@ static void pyiPythonSignature(sipSpec *pt, moduleDef *mod, signatureDef *sd,
         fprintf(fp, " -> ");
 
         if ((is_res && nr_out > 0) || nr_out > 1)
-            fprintf(fp, "(");
+            fprintf(fp, "Tuple[");
 
         if (is_res)
-            need_comma = pyiArgument(pt, mod, &sd->result, TRUE, FALSE, sec,
-                    FALSE, FALSE, defined, fp);
+            need_comma = pyiArgument(pt, mod, &sd->result, -1, TRUE, FALSE,
+                    sec, FALSE, FALSE, defined, fp);
         else
             need_comma = FALSE;
 
@@ -870,12 +945,12 @@ static void pyiPythonSignature(sipSpec *pt, moduleDef *mod, signatureDef *sd,
 
             if (isOutArg(ad))
                 /* We don't want the name in the result tuple. */
-                need_comma = pyiArgument(pt, mod, ad, TRUE, need_comma, sec,
-                        FALSE, FALSE, defined, fp);
+                need_comma = pyiArgument(pt, mod, ad, -1, TRUE, need_comma,
+                        sec, FALSE, FALSE, defined, fp);
         }
 
         if ((is_res && nr_out > 0) || nr_out > 1)
-            fprintf(fp, ")");
+            fprintf(fp, "]");
     }
     else
     {

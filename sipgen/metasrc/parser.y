@@ -121,7 +121,7 @@ static int getDisallowNone(optFlags *optflgs);
 static const char *getVirtErrorHandler(optFlags *optflgs);
 static const char *getDocType(optFlags *optflgs);
 static const char *getDocValue(optFlags *optflgs);
-static typeHintDef *getHintType(optFlags *optflgs);
+static typeHintDef *getHintType(optFlags *optflgs, const char *doctype);
 static void templateSignature(signatureDef *sd, int result, classTmplDef *tcd, templateDef *td, classDef *ncd);
 static void templateType(argDef *ad, classTmplDef *tcd, templateDef *td, classDef *ncd);
 static int search_back(const char *end, const char *start, const char *target);
@@ -8422,12 +8422,12 @@ static const char *getDocValue(optFlags *optflgs)
 /*
  * Get the /HintType/ option flag.
  */
-static typeHintDef *getHintType(optFlags *optflgs)
+static typeHintDef *getHintType(optFlags *optflgs, const char *doctype)
 {
     optFlag *of = getOptFlag(optflgs, "HintType", string_flag);
 
     if (of == NULL)
-        return NULL;
+        return (doctype != NULL) ? newTypeHint(sipStrdup(doctype)) : NULL;
 
     return newTypeHint(of->fvalue.sval);
 }
@@ -8568,7 +8568,7 @@ static void addVariable(sipSpec *pt, varDef *vd)
 static void applyTypeFlags(moduleDef *mod, argDef *ad, optFlags *flags)
 {
     ad->doctype = getDocType(flags);
-    ad->typehint = getHintType(flags);
+    ad->typehint = getHintType(flags, ad->doctype);
 
     if (getOptFlag(flags, "PyInt", bool_flag) != NULL)
     {
@@ -9022,7 +9022,7 @@ static void mappedTypeAnnos(mappedTypeDef *mtd, optFlags *optflgs)
         setHandlesNone(mtd);
 
     mtd->doctype = getDocType(optflgs);
-    mtd->typehint = getHintType(optflgs);
+    mtd->typehint = getHintType(optflgs, mtd->doctype);
 }
 
 
@@ -9053,4 +9053,30 @@ static void add_derefs(argDef *dst, argDef *src)
 
         dst->derefs[dst->nrderefs++] = src->derefs[i];
     }
+}
+
+
+/*
+ * Check if a word is a Python keyword (or has been at any time).
+ */
+int isPyKeyword(const char *word)
+{
+    static const char *kwds[] = {
+        "False", "None", "True", "and", "as", "assert", "break", "class",
+        "continue", "def", "del", "elif", "else", "except", "finally", "for",
+        "from", "global", "if", "import", "in", "is", "lambda", "nonlocal",
+        "not", "or", "pass", "raise", "return", "try", "while", "with'"
+        "yield",
+        /* Historical keywords. */
+        "exec", "print",
+        NULL
+    };
+
+    const char **kwd;
+
+    for (kwd = kwds; *kwd != NULL; ++kwd)
+        if (strcmp(*kwd, word) == 0)
+            return TRUE;
+
+    return FALSE;
 }
