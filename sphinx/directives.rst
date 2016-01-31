@@ -1058,6 +1058,23 @@ Python modules should not explicitly call functions in another Python module.
 .. seealso:: :directive:`%ModuleCode`, :directive:`%ModuleHeaderCode`
 
 
+.. directive:: %ExportedTypeHintCode
+
+.. versionadded:: 4.18
+
+.. parsed-literal::
+
+    %ExportedTypeHintCode
+        *code*
+    %End
+
+This directive is used to specify handwritten code, typically the declarations
+of types, that is placed in the PEP 484 type hint stub file for this module and
+any module that imports it.
+
+.. seealso:: :directive:`%ModuleTypeHintCode`
+
+
 .. directive:: %Extract
 
 .. versionadded:: 4.12
@@ -2005,6 +2022,23 @@ For example::
     %End
 
 .. seealso:: :directive:`%ExportedHeaderCode`, :directive:`%ModuleCode`
+
+
+.. directive:: %ModuleTypeHintCode
+
+.. versionadded:: 4.18
+
+.. parsed-literal::
+
+    %ModuleTypeHintCode
+        *code*
+    %End
+
+This directive is used to specify handwritten code, typically the import of
+additional modules, that is placed in the PEP 484 type hint stub file for this
+module.
+
+.. seealso:: :directive:`%ExportedTypeHintCode`
 
 
 .. directive:: %OptionalInclude

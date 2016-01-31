@@ -1,6 +1,7 @@
 v4.18 ??? ??? 2016
   - Added the /TypeHint/ argument, mapped type, function, typedef and variable
     annotations.
+  - Added the %ExportedTypeHintCode and %ModuleTypeHintCode directives.
   - Added the -y command line option to generated PEP 484 compatible type hint
     stub files.
 

@@ -64,6 +64,7 @@ file.
             :directive:`%DefaultMetatype` |
             :directive:`%DefaultSupertype` |
             :directive:`%ExportedHeaderCode` |
+            :directive:`%ExportedTypeHintCode` |
             :directive:`%Extract` |
             :directive:`%Feature` |
             :directive:`%Import` |
@@ -74,6 +75,7 @@ file.
             :directive:`%Module` |
             :directive:`%ModuleCode` |
             :directive:`%ModuleHeaderCode` |
+            :directive:`%ModuleTypeHintCode` |
             :directive:`%OptionalInclude` |
             :directive:`%Platforms` |
             :directive:`%PreInitialisationCode` |
