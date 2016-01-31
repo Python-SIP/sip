@@ -145,8 +145,7 @@ void generateTypeHints(sipSpec *pt, moduleDef *mod, const char *pyiFile)
     // FIXME: Have a NoTypeHint function anno that suppresses the generation of
     // any type hint - on the assumption that it will be implemented in
     // handwritten code. (Handle pyqtSlot like that?)
-    // FIXME: Rename to PYQT_CORE_*.
-    // FIXME: Rename HintType to TypeHint?
+    // FIXME: Rename to PYQT_CORE_*?
     // FIXME: Have TypeHintIn and TypeHintOut
     fprintf(fp,
 "\n"
@@ -701,7 +700,7 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int sec,
         else
         {
             /*
-             * Give a hint that /HintType/ should be used, or there is no
+             * Give a hint that /TypeHint/ should be used, or there is no
              * default implementation.
              */
             type_name = "Any";
@@ -1105,7 +1104,7 @@ typeHintDef *newTypeHint(char *raw_hint)
 
 
 /*
- * Generate a type hint from a /HintType/ annotation.
+ * Generate a type hint from a /TypeHint/ annotation.
  */
 static void pyiTypeHint(sipSpec *pt, moduleDef *mod, typeHintDef *thd,
         ifaceFileList *defined, FILE *fp)

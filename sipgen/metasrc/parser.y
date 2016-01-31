@@ -121,7 +121,7 @@ static int getDisallowNone(optFlags *optflgs);
 static const char *getVirtErrorHandler(optFlags *optflgs);
 static const char *getDocType(optFlags *optflgs);
 static const char *getDocValue(optFlags *optflgs);
-static typeHintDef *getHintType(optFlags *optflgs, const char *doctype);
+static typeHintDef *getTypeHint(optFlags *optflgs, const char *doctype);
 static void templateSignature(signatureDef *sd, int result, classTmplDef *tcd, templateDef *td, classDef *ncd);
 static void templateType(argDef *ad, classTmplDef *tcd, templateDef *td, classDef *ncd);
 static int search_back(const char *end, const char *start, const char *target);
@@ -1070,9 +1070,9 @@ mappedtype: TK_MAPPEDTYPE basetype optflags {
                     "AllowNone",
                     "API",
                     "DocType",
-                    "HintType",
                     "NoRelease",
                     "PyName",
+                    "TypeHint",
                     NULL
                 };
 
@@ -1089,8 +1089,8 @@ mappedtypetmpl: template TK_MAPPEDTYPE basetype optflags {
                 static const char *annos[] = {
                     "AllowNone",
                     "DocType",
-                    "HintType",
                     "NoRelease",
+                    "TypeHint",
                     NULL
                 };
 
@@ -2744,11 +2744,11 @@ typedef:    TK_TYPEDEF cpptype TK_NAME_VALUE optflags ';' {
                 const char *annos[] = {
                     "Capsule",
                     "DocType",
-                    "HintType",
                     "Encoding",
                     "NoTypeName",
                     "PyInt",
                     "PyName",
+                    "TypeHint",
                     NULL
                 };
 
@@ -2763,11 +2763,11 @@ typedef:    TK_TYPEDEF cpptype TK_NAME_VALUE optflags ';' {
             {
                 const char *annos[] = {
                     "DocType",
-                    "HintType",
                     "Encoding",
                     "NoTypeName",
                     "PyInt",
                     "PyName",
+                    "TypeHint",
                     NULL
                 };
 
@@ -3984,10 +3984,10 @@ variable:   cpptype TK_NAME_VALUE optflags variable_body ';' optaccesscode optge
                 const char *annos[] = {
                     "DocType",
                     "Encoding",
-                    "HintType",
                     "NoSetter",
                     "PyInt",
                     "PyName",
+                    "TypeHint",
                     NULL
                 };
 
@@ -4139,7 +4139,6 @@ argtype:    cpptype optname optflags {
                 "DocValue",
                 "Encoding",
                 "GetWrapper",
-                "HintType",
                 "In",
                 "KeepReference",
                 "NoCopy",
@@ -4149,6 +4148,7 @@ argtype:    cpptype optname optflags {
                 "Transfer",
                 "TransferBack",
                 "TransferThis",
+                "TypeHint",
                 NULL
             };
 
@@ -6828,7 +6828,6 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         "DocType",
         "Encoding",
         "Factory",
-        "HintType",
         "HoldGIL",
         "KeywordArgs",
         "KeepReference",
@@ -6850,6 +6849,7 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         "Transfer",
         "TransferBack",
         "TransferThis",
+        "TypeHint",
         NULL
     };
 
@@ -8420,11 +8420,11 @@ static const char *getDocValue(optFlags *optflgs)
 
 
 /*
- * Get the /HintType/ option flag.
+ * Get the /TypeHint/ option flag.
  */
-static typeHintDef *getHintType(optFlags *optflgs, const char *doctype)
+static typeHintDef *getTypeHint(optFlags *optflgs, const char *doctype)
 {
-    optFlag *of = getOptFlag(optflgs, "HintType", string_flag);
+    optFlag *of = getOptFlag(optflgs, "TypeHint", string_flag);
 
     if (of == NULL)
         return (doctype != NULL) ? newTypeHint(sipStrdup(doctype)) : NULL;
@@ -8568,7 +8568,7 @@ static void addVariable(sipSpec *pt, varDef *vd)
 static void applyTypeFlags(moduleDef *mod, argDef *ad, optFlags *flags)
 {
     ad->doctype = getDocType(flags);
-    ad->typehint = getHintType(flags, ad->doctype);
+    ad->typehint = getTypeHint(flags, ad->doctype);
 
     if (getOptFlag(flags, "PyInt", bool_flag) != NULL)
     {
@@ -9022,7 +9022,7 @@ static void mappedTypeAnnos(mappedTypeDef *mtd, optFlags *optflgs)
         setHandlesNone(mtd);
 
     mtd->doctype = getDocType(optflgs);
-    mtd->typehint = getHintType(optflgs, mtd->doctype);
+    mtd->typehint = getTypeHint(optflgs, mtd->doctype);
 }
 
 

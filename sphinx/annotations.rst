@@ -186,16 +186,6 @@ Argument Annotations
     See the :directive:`%MethodCode` directive for more detail.
 
 
-.. argument-annotation:: HintType
-
-    .. versionadded:: 4.18
-
-    This string annotation specifies the type of the argument as it will appear
-    in any generated PEP 484 type hints.  Any :aanno:`DocType` annotation will
-    be used if this annotaion is not specified.  It is usually used with
-    arguments of type :stype:`SIP_PYOBJECT` to provide a more specific type.
-
-
 .. argument-annotation:: In
 
     This boolean annotation is used to specify that the corresponding argument
@@ -339,6 +329,16 @@ Argument Annotations
     transferred to last instance that is not ``None``.
 
     See :ref:`ref-object-ownership` for more detail.
+
+
+.. argument-annotation:: TypeHint
+
+    .. versionadded:: 4.18
+
+    This string annotation specifies the type of the argument as it will appear
+    in any generated PEP 484 type hints.  Any :aanno:`DocType` annotation will
+    be used if this annotaion is not specified.  It is usually used with
+    arguments of type :stype:`SIP_PYOBJECT` to provide a more specific type.
 
 
 .. _ref-class-annos:
@@ -577,16 +577,6 @@ Mapped Type Annotations
     argument annotation when applied to the mapped type being defined.
 
 
-.. mapped-type-annotation:: HintType
-
-    .. versionadded:: 4.18
-
-    This string annotation specifies the type of the argument as it will appear
-    in any generated PEP 484 type hints.  Any :manno:`DocType` annotation will
-    be used if this annotaion is not specified.  It is usually used with
-    arguments of type :stype:`SIP_PYOBJECT` to provide a more specific type.
-
-
 .. mapped-type-annotation:: NoRelease
 
     This boolean annotation is used to specify that the mapped type does not
@@ -605,6 +595,16 @@ Mapped Type Annotations
     It should not be used with mapped type templates.
 
     .. seealso:: :directive:`%AutoPyName`
+
+
+.. mapped-type-annotation:: TypeHint
+
+    .. versionadded:: 4.18
+
+    This string annotation specifies the type of the argument as it will appear
+    in any generated PEP 484 type hints.  Any :manno:`DocType` annotation will
+    be used if this annotaion is not specified.  It is usually used with
+    arguments of type :stype:`SIP_PYOBJECT` to provide a more specific type.
 
 
 .. _ref-enum-annos:
@@ -750,16 +750,6 @@ Function Annotations
     created instance and is owned by Python.
 
     See :ref:`ref-object-ownership` for more detail.
-
-
-.. function-annotation:: HintType
-
-    .. versionadded:: 4.18
-
-    This string annotation specifies the type of the argument as it will appear
-    in any generated PEP 484 type hints.  Any :fanno:`DocType` annotation will
-    be used if this annotaion is not specified.  It is usually used with
-    arguments of type :stype:`SIP_PYOBJECT` to provide a more specific type.
 
 
 .. function-annotation:: HoldGIL
@@ -1038,6 +1028,16 @@ Function Annotations
     See :ref:`ref-object-ownership` for more detail.
 
 
+.. function-annotation:: TypeHint
+
+    .. versionadded:: 4.18
+
+    This string annotation specifies the type of the argument as it will appear
+    in any generated PEP 484 type hints.  Any :fanno:`DocType` annotation will
+    be used if this annotaion is not specified.  It is usually used with
+    arguments of type :stype:`SIP_PYOBJECT` to provide a more specific type.
+
+
 .. function-annotation:: VirtualErrorHandler
 
     .. versionadded:: 4.14
@@ -1083,16 +1083,6 @@ Typedef Annotations
     argument annotation when applied to the mapped type being defined.
 
 
-.. typedef-annotation:: HintType
-
-    .. versionadded:: 4.18
-
-    This string annotation specifies the type of the argument as it will appear
-    in any generated PEP 484 type hints.  Any :tanno:`DocType` annotation will
-    be used if this annotaion is not specified.  It is usually used with
-    arguments of type :stype:`SIP_PYOBJECT` to provide a more specific type.
-
-
 .. typedef-annotation:: NoTypeName
 
     This boolean annotation specifies that the definition of the type rather
@@ -1131,6 +1121,16 @@ Typedef Annotations
     .. seealso:: :directive:`%AutoPyName`
 
 
+.. typedef-annotation:: TypeHint
+
+    .. versionadded:: 4.18
+
+    This string annotation specifies the type of the argument as it will appear
+    in any generated PEP 484 type hints.  Any :tanno:`DocType` annotation will
+    be used if this annotaion is not specified.  It is usually used with
+    arguments of type :stype:`SIP_PYOBJECT` to provide a more specific type.
+
+
 .. _ref-variable-annos:
 
 Variable Annotations
@@ -1148,16 +1148,6 @@ Variable Annotations
 
     This string annotation serves the same purpose as the :aanno:`Encoding`
     argument annotation when applied to the type of the variable being defined.
-
-
-.. variable-annotation:: HintType
-
-    .. versionadded:: 4.18
-
-    This string annotation specifies the type of the argument as it will appear
-    in any generated PEP 484 type hints.  Any :vanno:`DocType` annotation will
-    be used if this annotaion is not specified.  It is usually used with
-    arguments of type :stype:`SIP_PYOBJECT` to provide a more specific type.
 
 
 .. variable-annotation:: NoSetter
@@ -1187,3 +1177,13 @@ Variable Annotations
     have the same name in the same C++ scope.
 
     .. seealso:: :directive:`%AutoPyName`
+
+
+.. variable-annotation:: TypeHint
+
+    .. versionadded:: 4.18
+
+    This string annotation specifies the type of the argument as it will appear
+    in any generated PEP 484 type hints.  Any :vanno:`DocType` annotation will
+    be used if this annotaion is not specified.  It is usually used with
+    arguments of type :stype:`SIP_PYOBJECT` to provide a more specific type.
