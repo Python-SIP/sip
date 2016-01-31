@@ -1108,7 +1108,7 @@ This directive is used to declare a feature.  Features (along with
 are processed or ignored.
 
 Features are mutually independent of each other - any combination of features
-may be enabled or disable.  By default all features are enabled.  The
+may be enabled or disabled.  By default all features are enabled.  The
 :option:`-x <sip -x>` command line option is used to disable a feature.
 
 If a feature is enabled then SIP will automatically generate a corresponding C

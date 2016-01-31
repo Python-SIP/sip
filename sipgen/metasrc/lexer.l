@@ -1,7 +1,7 @@
 /*
  * The SIP lexer.
  *
- * Copyright (c) 2015 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2016 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -491,6 +491,18 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
     /* The start of a raise Python exception code block. */
     codeIdx = 0;
     return TK_RAISECODE;
+}
+
+^[ \t]*%ExportedTypeHintCode {
+    /* The start of an exported type hint code block. */
+    codeIdx = 0;
+    return TK_EXPTYPEHINTCODE;
+}
+
+^[ \t]*%ModuleTypeHintCode {
+    /* The start of a module type hint code block. */
+    codeIdx = 0;
+    return TK_MODTYPEHINTCODE;
 }
 
 ^[ \t]*%Docstring {

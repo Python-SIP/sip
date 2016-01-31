@@ -1,3 +1,9 @@
+v4.18 ??? ??? 2016
+  - Added the /TypeHint/ argument, mapped type, function, typedef and variable
+    annotations.
+  - Added the -y command line option to generated PEP 484 compatible type hint
+    stub files.
+
 v4.17 24th October 2015
   - Added support for PEP 465 (__matmul__ and __imatmul__).
   - Added support for PEP 492 (__aenter__, __aexit__, __await__, __aiter__

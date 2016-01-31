@@ -887,6 +887,7 @@ typedef struct _moduleDef {
     codeBlockList *unitcode;            /* Compilation unit code. */
     codeBlockList *unitpostinccode;     /* Compilation unit post-include code. */
     codeBlockList *docstring;           /* The docstring. */
+    codeBlockList *typehintcode;        /* Type hint code. */
     const char *virt_error_handler;     /* The virtual error handler. */
     int parts;                          /* The number of parts generated. */
     const char *file;                   /* The filename. */
@@ -1243,6 +1244,7 @@ typedef struct {
     typedefDef *typedefs;               /* List of typedefs. */
     virtErrorHandler *errorhandlers;    /* The list of virtual error handlers. */
     codeBlockList *exphdrcode;          /* Exported header code. */
+    codeBlockList *exptypehintcode;     /* Exported type hint code. */
     codeBlockList *docs;                /* Documentation. */
     classDef *qobject_cd;               /* QObject class, NULL if none. */
     int sigslots;                       /* Set if signals or slots are used. */

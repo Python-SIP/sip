@@ -230,6 +230,8 @@ static int isBackstop(qualDef *qd);
 %token          TK_DEFENCODING
 %token          TK_PLUGIN
 %token          TK_VIRTERRORHANDLER
+%token          TK_EXPTYPEHINTCODE
+%token          TK_MODTYPEHINTCODE
 %token          TK_DOCSTRING
 %token          TK_DOC
 %token          TK_EXPORTEDDOC
@@ -581,6 +583,8 @@ modstatement:   module
     |   unitcode
     |   unitpostinccode
     |   prepycode
+    |   exptypehintcode
+    |   modtypehintcode
     |   doc
     |   exporteddoc
     |   extract
@@ -2230,6 +2234,18 @@ unitpostinccode:    TK_UNITPOSTINCLUDECODE codeblock {
 
 prepycode:  TK_PREPYCODE codeblock {
             /* Deprecated. */
+        }
+    ;
+
+exptypehintcode: TK_EXPTYPEHINTCODE codeblock {
+            if (notSkipping())
+                appendCodeBlock(&currentSpec->exptypehintcode, $2);
+        }
+    ;
+
+modtypehintcode: TK_MODTYPEHINTCODE codeblock {
+            if (notSkipping())
+                appendCodeBlock(&currentModule->typehintcode, $2);
         }
     ;
 

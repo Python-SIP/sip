@@ -23,6 +23,7 @@
 #include "sip.h"
 
 
+static void pyiTypeHintCode(codeBlockList *thc, FILE *fp);
 static void pyiEnums(sipSpec *pt, moduleDef *mod, classDef *scope,
         ifaceFileList *defined, int indent, FILE *fp);
 static void pyiVars(sipSpec *pt, moduleDef *mod, classDef *scope,
@@ -46,7 +47,6 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int sec,
         ifaceFileList *defined, FILE *fp);
 static void pyiTypeHint(sipSpec *pt, moduleDef *mod, typeHintDef *thd,
         ifaceFileList *defined, FILE *fp);
-static void pyiDefaultValue(argDef *ad, FILE *fp);
 static void prIndent(int indent, FILE *fp);
 static int separate(int first, int indent, FILE *fp);
 static void prClassRef(classDef *cd, moduleDef *mod, ifaceFileList *defined,
@@ -55,8 +55,9 @@ static void prEnumRef(enumDef *ed, moduleDef *mod, ifaceFileList *defined,
         FILE *fp);
 static void prMappedTypeRef(mappedTypeDef *mtd, moduleDef *mod,
         ifaceFileList *defined, FILE *fp);
-static int isDefined(ifaceFileDef *iff, moduleDef *mod,
+static int isDefined(ifaceFileDef *iff, classDef *cd, moduleDef *mod,
         ifaceFileList *defined);
+static int inIfaceFileList(ifaceFileDef *iff, ifaceFileList *defined);
 static int hasImplicitOverloads(signatureDef *sd);
 static void parseTypeHint(sipSpec *pt, typeHintDef *thd);
 static void lookupType(sipSpec *pt, char *name, argDef *ad);
@@ -99,13 +100,11 @@ void generateTypeHints(sipSpec *pt, moduleDef *mod, const char *pyiFile)
      * Generate the imports. Note that we assume the super-types are the
      * standard SIP ones.
      */
-    // FIXME: Only import objects explicitly used in SIP generated hints and
-    // leave the rest to the new directive.
     fprintf(fp,
 "\n"
 "\n"
-"from typing import (Any, Callable, Dict, List, Optional, overload,\n"
-"        Sequence, Set, Tuple, TypeVar, Union)\n"
+"from typing import (Any, Callable, Dict, List, Optional, overload, Sequence,\n"
+"        Set, Tuple, TypeVar, Union)\n"
 "\n"
 "import sip\n"
         );
@@ -130,47 +129,39 @@ void generateTypeHints(sipSpec *pt, moduleDef *mod, const char *pyiFile)
         }
     }
 
+    fprintf(fp,
+"\n"
+"\n"
+"# PEP 484 doesn't have support for these types.\n"
+"PY_BUFFER_T = TypeVar('PY_BUFFER_T')\n"
+"PY_SLICE_T = TypeVar('PY_SLICE_T')\n"
+"PY_TYPE_T = TypeVar('PY_TYPE_T')\n"
+        );
+
     if (pluginPyQt4(pt) || pluginPyQt5(pt))
         fprintf(fp,
 "\n"
-"\n"
+"# Support for old-style signals and slots.\n"
 "SIGNAL_T = TypeVar('SIGNAL_T')\n"
 "SLOT_T = TypeVar('SLOT_T')\n"
 "SLOT_SIGNAL_T = Union[SLOT_T, SIGNAL_T]\n"
             );
 
-    // FIXME: Replace this with a new directive. Some things need to be
-    // exported (like TypeVar and type aliases) but others don't (like
-    // handwritten function definitions).
+    /*
+     * Generate any exported type hint code and any module-specific type hint
+     * code.
+     */
+    if (pt->exptypehintcode != NULL)
+        pyiTypeHintCode(pt->exptypehintcode, fp);
+
+    if (mod->typehintcode != NULL)
+        pyiTypeHintCode(mod->typehintcode, fp);
+
     // FIXME: Have a NoTypeHint function anno that suppresses the generation of
     // any type hint - on the assumption that it will be implemented in
-    // handwritten code. (Handle pyqtSlot like that?)
-    // FIXME: Rename to PYQT_CORE_*?
+    // handwritten code. (Handle pyqtSlot like that?, pyqtConfigure?
+    // FIXME: Check what QObject.__getattr__ is supposed to return.
     // FIXME: Have TypeHintIn and TypeHintOut
-    fprintf(fp,
-"\n"
-"import datetime\n"
-"\n"
-"PYQT_SIGNAL_T = TypeVar('PYQT_SIGNAL_T')\n"
-"PYQT_SLOT_T = Union[Callable, PYQT_SIGNAL_T]\n"
-"\n"
-"def pyqtSignal(*types, name: Optional[str]) -> PYQT_SIGNAL_T: ...\n"
-        );
-
-    // FIXME: This goes into the QtOpenGL module.
-#if 0
-    fprintf(fp,
-"\n"
-"PYQT_OPENGL_ATTRIBUTE_ARRAY_T = Union[Sequence[QVector2D],\n"
-"        Sequence[QVector3D], Sequence[QVector4D], Sequence[Sequence[float]]]\n"
-"PYQT_OPENGL_UNIFORM_VALUE_ARRAY_T = Union[Sequence[QVector2D],\n"
-"        Sequence[QVector3D], Sequence[QVector4D], Sequence[QMatrix2x2],\n"
-"        Sequence[QMatrix2x3], Sequence[QMatrix2x4], Sequence[QMatrix3x2],\n"
-"        Sequence[QMatrix3x3], Sequence[QMatrix3x4], Sequence[QMatrix4x2],\n"
-"        Sequence[QMatrix4x3], Sequence[QMatrix4x4],\n"
-"        Sequence[Sequence[float]]]\n"
-        );
-#endif
 
     /* Generate the types - enums and classes. */
     pyiEnums(pt, mod, NULL, NULL, 0, fp);
@@ -199,16 +190,27 @@ void generateTypeHints(sipSpec *pt, moduleDef *mod, const char *pyiFile)
 
     for (md = mod->othfuncs; md != NULL; md = md->next)
     {
-        // FIXME: Handle slots.
-        if (md->slot != no_slot)
-            continue;
-
         first = separate(first, 0, fp);
 
         pyiCallable(pt, mod, md, mod->overs, FALSE, defined, 0, fp);
     }
 
     fclose(fp);
+}
+
+
+/*
+ * Generate handwritten type hint code.
+ */
+static void pyiTypeHintCode(codeBlockList *thc, FILE *fp)
+{
+    fprintf(fp, "\n");
+
+    while (thc != NULL)
+    {
+        fprintf(fp, "%s", thc->block->frag);
+        thc = thc->next;
+    }
 }
 
 
@@ -337,10 +339,6 @@ static void pyiClass(sipSpec *pt, moduleDef *mod, classDef *cd,
 
     for (md = cd->members; md != NULL; md = md->next)
     {
-        // FIXME: Handle slots.
-        if (md->slot != no_slot)
-            continue;
-
         first = separate(first, indent, fp);
 
         pyiCallable(pt, mod, md, cd->overs, TRUE, *defined, indent, fp);
@@ -544,6 +542,8 @@ static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int arg_nr,
         int out, int need_comma, int sec, int names, int defaults,
         ifaceFileList *defined, FILE *fp)
 {
+    int optional;
+
     if (isArraySize(ad))
         return need_comma;
 
@@ -562,56 +562,17 @@ static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int arg_nr,
             fprintf(fp, "a%d: ", arg_nr);
     }
 
+    optional = (defaults && ad->defval && !out);
+
+    if (optional)
+        fprintf(fp, "Optional[");
+
     pyiType(pt, mod, ad, sec, defined, fp);
 
-    /*
-     * Handle the default value but ignore it if it is an output only argument.
-     */
-    if (defaults && ad->defval && !out)
-    {
-        fprintf(fp, " = ");
-        prcode(fp, "%M");
-        pyiDefaultValue(ad, fp);
-        prcode(fp, "%M");
-    }
+    if (optional)
+        fprintf(fp, "]");
 
     return TRUE;
-}
-
-
-/*
- * Generate the default value of an argument.
- */
-static void pyiDefaultValue(argDef *ad, FILE *fp)
-{
-    // FIXME: What if the default value is an enum member (eg. QUrl.toEncoded()
-    // and toString()?
-    /* Use any explicitly provided documentation. */
-    if (ad->docval != NULL)
-    {
-        prcode(fp, "%s", ad->docval);
-        return;
-    }
-
-    /* Translate some special cases. */
-    if (ad->defval->next == NULL && ad->defval->vtype == numeric_value)
-    {
-        if (ad->nrderefs > 0 && ad->defval->u.vnum == 0)
-        {
-            prcode(fp, "None");
-            return;
-        }
-
-        if (ad->atype == bool_type || ad->atype == cbool_type)
-        {
-            prcode(fp, ad->defval->u.vnum ? "True" : "False");
-            return;
-        }
-    }
-
-    // FIXME: What if the expression includes references to classes (eg a call
-    // to a class ctor)? QUrl.toPercentEncoding().  Just make it Optional?
-    generateExpression(ad->defval, FALSE, fp);
 }
 
 
@@ -811,7 +772,7 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int sec,
         break;
 
     case pyobject_type:
-        type_name = "object";
+        type_name = "Any";
         break;
 
     case pytuple_type:
@@ -831,18 +792,15 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int sec,
         break;
 
     case pyslice_type:
-        // FIXME: How to represent this in PEP 484?
-        type_name = "slice";
+        type_name = "PY_SLICE_T";
         break;
 
     case pytype_type:
-        // FIXME: How to represent this in PEP 484?
-        type_name = "type";
+        type_name = "PY_TYPE_T";
         break;
 
     case pybuffer_type:
-        // FIXME: How to represent this in PEP 484?
-        type_name = "buffer";
+        type_name = "PY_BUFFER_T";
         break;
 
     case ellipsis_type:
@@ -987,7 +945,7 @@ static int separate(int first, int indent, FILE *fp)
 static void prClassRef(classDef *cd, moduleDef *mod, ifaceFileList *defined,
         FILE *fp)
 {
-    int is_defined = isDefined(cd->iff, mod, defined);
+    int is_defined = isDefined(cd->iff, cd->ecd, mod, defined);
 
     if (!is_defined)
         fprintf(fp, "'");
@@ -1009,7 +967,7 @@ static void prClassRef(classDef *cd, moduleDef *mod, ifaceFileList *defined,
 static void prEnumRef(enumDef *ed, moduleDef *mod, ifaceFileList *defined,
         FILE *fp)
 {
-    int is_defined = (ed->ecd != NULL && isDefined(ed->ecd->iff, mod, defined));
+    int is_defined = (ed->ecd != NULL && isDefined(ed->ecd->iff, ed->ecd->ecd, mod, defined));
 
     if (!is_defined)
         fprintf(fp, "'");
@@ -1031,7 +989,7 @@ static void prEnumRef(enumDef *ed, moduleDef *mod, ifaceFileList *defined,
 static void prMappedTypeRef(mappedTypeDef *mtd, moduleDef *mod,
         ifaceFileList *defined, FILE *fp)
 {
-    int is_defined = isDefined(mtd->iff, mod, defined);
+    int is_defined = isDefined(mtd->iff, NULL, mod, defined);
 
     if (!is_defined)
         fprintf(fp, "'");
@@ -1049,12 +1007,34 @@ static void prMappedTypeRef(mappedTypeDef *mtd, moduleDef *mod,
 /*
  * Check if a type has been defined.
  */
-static int isDefined(ifaceFileDef *iff, moduleDef *mod, ifaceFileList *defined)
+static int isDefined(ifaceFileDef *iff, classDef *scope, moduleDef *mod,
+        ifaceFileList *defined)
 {
     /* A type in another module would have been imported. */
     if (iff->module != mod)
         return TRUE;
 
+    if (!inIfaceFileList(iff, defined))
+        return FALSE;
+
+    /* Check all enclosing scopes have been defined as well. */
+    while (scope != NULL)
+    {
+        if (!inIfaceFileList(scope->iff, defined))
+            return FALSE;
+
+        scope = scope->ecd;
+    }
+
+    return TRUE;
+}
+
+
+/*
+ * Check if an interface file appears in a list of them.
+ */
+static int inIfaceFileList(ifaceFileDef *iff, ifaceFileList *defined)
+{
     while (defined != NULL)
     {
         if (defined->iff == iff)
