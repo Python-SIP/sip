@@ -1404,7 +1404,7 @@ static enumDef *lookupEnum(sipSpec *pt, const char *name, classDef *scope_cd,
     enumDef *ed;
 
     for (ed = pt->enums; ed != NULL; ed = ed->next)
-        if (strcmp(ed->pyname->text, name) == 0 && ed->ecd == scope_cd && ed->emtd == scope_mtd)
+        if (ed->pyname != NULL && strcmp(ed->pyname->text, name) == 0 && ed->ecd == scope_cd && ed->emtd == scope_mtd)
             return ed;
 
     return NULL;
