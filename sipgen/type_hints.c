@@ -244,11 +244,12 @@ static void pyiModule(sipSpec *pt, moduleDef *mod, FILE *fp)
     first = TRUE;
 
     for (md = mod->othfuncs; md != NULL; md = md->next)
-    {
-        first = separate(first, 0, fp);
+        if (md->slot == no_slot)
+        {
+            first = separate(first, 0, fp);
 
-        pyiCallable(pt, mod, md, mod->overs, FALSE, defined, 0, fp);
-    }
+            pyiCallable(pt, mod, md, mod->overs, FALSE, defined, 0, fp);
+        }
 }
 
 
