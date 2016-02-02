@@ -30,6 +30,8 @@ static void pyiVars(sipSpec *pt, moduleDef *mod, classDef *scope,
         ifaceFileList *defined, int indent, FILE *fp);
 static void pyiClass(sipSpec *pt, moduleDef *mod, classDef *cd,
         ifaceFileList **defined, int indent, FILE *fp);
+static void pyiMappedType(sipSpec *pt, moduleDef *mod, mappedTypeDef *mtd,
+        ifaceFileList **defined, int indent, FILE *fp);
 static void pyiCtor(sipSpec *pt, moduleDef *mod, ctorDef *ct, int overloaded,
         int sec, ifaceFileList *defined, int indent, FILE *fp);
 static void pyiCallable(sipSpec *pt, moduleDef *mod, memberDef *md,
@@ -53,7 +55,7 @@ static void prClassRef(classDef *cd, moduleDef *mod, ifaceFileList *defined,
         FILE *fp);
 static void prEnumRef(enumDef *ed, moduleDef *mod, ifaceFileList *defined,
         FILE *fp);
-static void prMappedTypeRef(mappedTypeDef *mtd, moduleDef *mod,
+static void prMappedTypeRef(sipSpec *pt, mappedTypeDef *mtd, moduleDef *mod,
         ifaceFileList *defined, FILE *fp);
 static int isDefined(ifaceFileDef *iff, classDef *cd, moduleDef *mod,
         ifaceFileList *defined);
@@ -66,6 +68,9 @@ static enumDef *lookupEnum(sipSpec *pt, const char *name, classDef *scope_cd,
 static mappedTypeDef *lookupMappedType(sipSpec *pt, const char *name);
 static classDef *lookupClass(sipSpec *pt, const char *name,
         classDef *scope_cd);
+static classDef *getClassImplementation(sipSpec *pt, classDef *cd);
+static mappedTypeDef *getMappedTypeImplementation(sipSpec *pt,
+        mappedTypeDef *mtd);
 
 
 /*
@@ -77,6 +82,7 @@ void generateTypeHints(sipSpec *pt, moduleDef *mod, const char *pyiFile)
     int first;
     memberDef *md;
     classDef *cd;
+    mappedTypeDef *mtd;
     ifaceFileList *defined;
     moduleListDef *mld;
     FILE *fp;
@@ -163,14 +169,15 @@ void generateTypeHints(sipSpec *pt, moduleDef *mod, const char *pyiFile)
     // FIXME: Check what QObject.__getattr__ is supposed to return.
     // FIXME: Have TypeHintIn and TypeHintOut
 
-    /* Generate the types - enums and classes. */
+    /* Generate the types - global enums must be first. */
     pyiEnums(pt, mod, NULL, NULL, 0, fp);
 
-    // FIXME: Mapped types.
     defined = NULL;
 
     for (cd = pt->classes; cd != NULL; cd = cd->next)
     {
+        classDef *impl;
+
         if (cd->iff->module != mod)
             continue;
 
@@ -181,7 +188,23 @@ void generateTypeHints(sipSpec *pt, moduleDef *mod, const char *pyiFile)
         if (cd->ecd != NULL)
             continue;
 
-        pyiClass(pt, mod, cd, &defined, 0, fp);
+        impl = getClassImplementation(pt, cd);
+
+        if (impl != NULL)
+            pyiClass(pt, mod, impl, &defined, 0, fp);
+    }
+
+    for (mtd = pt->mappedtypes; mtd != NULL; mtd = mtd->next)
+    {
+        mappedTypeDef *impl;
+
+        if (mtd->iff->module != mod)
+            continue;
+
+        impl = getMappedTypeImplementation(pt, mtd);
+
+        if (impl != NULL && impl->pyname != NULL)
+            pyiMappedType(pt, mod, impl, &defined, 0, fp);
     }
 
     pyiVars(pt, mod, NULL, defined, 0, fp);
@@ -310,8 +333,12 @@ static void pyiClass(sipSpec *pt, moduleDef *mod, classDef *cd,
 
     /* Handle any nested classes. */
     for (nested = pt->classes; nested != NULL; nested = nested->next)
-        if (nested->ecd == cd)
-            pyiClass(pt, mod, nested, defined, indent, fp);
+    {
+        classDef *impl = getClassImplementation(pt, nested);
+
+        if (impl != NULL && impl->ecd == cd)
+            pyiClass(pt, mod, impl, defined, indent, fp);
+    }
 
     pyiVars(pt, mod, cd, *defined, indent, fp);
 
@@ -344,12 +371,156 @@ static void pyiClass(sipSpec *pt, moduleDef *mod, classDef *cd,
         pyiCallable(pt, mod, md, cd->overs, TRUE, *defined, indent, fp);
     }
 
-
     /*
      * Keep track of what has been defined so that forward references are no
      * longer required.
      */
     appendToIfaceFileList(defined, cd->iff);
+}
+
+
+/*
+ * Generate the type hints for a mapped type.
+ */
+static void pyiMappedType(sipSpec *pt, moduleDef *mod, mappedTypeDef *mtd,
+        ifaceFileList **defined, int indent, FILE *fp)
+{
+fprintf(stderr, "---------- TODO: %s\n", mtd->pyname->text);
+#if 0
+    int first, no_body, nr_overloads;
+    classDef *nested;
+    ctorDef *ct;
+    memberDef *md;
+
+    separate(TRUE, indent, fp);
+    prIndent(indent, fp);
+    fprintf(fp, "class %s(", cd->pyname->text);
+
+    if (cd->supers != NULL)
+    {
+        classList *cl;
+
+        for (cl = cd->supers; cl != NULL; cl = cl->next)
+        {
+            if (cl != cd->supers)
+                fprintf(fp, ", ");
+
+            prClassRef(cl->cd, mod, *defined, fp);
+        }
+    }
+    else if (cd->supertype != NULL)
+    {
+        fprintf(fp, "%s", cd->supertype->text);
+    }
+    else if (cd->iff->type == namespace_iface)
+    {
+        fprintf(fp, "sip.simplewrapper");
+    }
+    else
+    {
+        fprintf(fp, "sip.wrapper");
+    }
+
+    /* See if there is anything in the class body. */
+    nr_overloads = 0;
+
+    for (ct = cd->ctors; ct != NULL; ct = ct->next)
+    {
+        if (isPrivateCtor(ct))
+            continue;
+
+        ++nr_overloads;
+    }
+
+    no_body = (nr_overloads == 0 && cd->members == NULL);
+
+    if (no_body)
+    {
+        enumDef *ed;
+
+        for (ed = pt->enums; ed != NULL; ed = ed->next)
+            if (ed->ecd == cd)
+            {
+                no_body = FALSE;
+                break;
+            }
+
+    }
+
+    if (no_body)
+    {
+        for (nested = pt->classes; nested != NULL; nested = nested->next)
+            if (nested->ecd == cd)
+            {
+                no_body = FALSE;
+                break;
+            }
+    }
+
+    if (no_body)
+    {
+        varDef *vd;
+
+        for (vd = pt->vars; vd != NULL; vd = vd->next)
+            if (vd->ecd == cd)
+            {
+                no_body = FALSE;
+                break;
+            }
+    }
+
+    fprintf(fp, "):%s\n", (no_body ? " ..." : ""));
+
+    ++indent;
+
+    pyiEnums(pt, mod, cd, *defined, indent, fp);
+
+    /* Handle any nested classes. */
+    for (nested = pt->classes; nested != NULL; nested = nested->next)
+    {
+        classDef *impl = getClassImplementation(pt, nested);
+
+        if (impl != NULL && impl->ecd == cd)
+            pyiClass(pt, mod, impl, defined, indent, fp);
+    }
+
+    pyiVars(pt, mod, cd, *defined, indent, fp);
+
+    first = TRUE;
+
+    for (ct = cd->ctors; ct != NULL; ct = ct->next)
+    {
+        int implicit_overloads, overloaded;
+
+        if (isPrivateCtor(ct))
+            continue;
+
+        implicit_overloads = hasImplicitOverloads(&ct->pysig);
+        overloaded = (implicit_overloads || nr_overloads > 1);
+
+        first = separate(first, indent, fp);
+
+        pyiCtor(pt, mod, ct, overloaded, FALSE, *defined, indent, fp);
+
+        if (implicit_overloads)
+            pyiCtor(pt, mod, ct, overloaded, TRUE, *defined, indent, fp);
+    }
+
+    first = TRUE;
+
+    for (md = cd->members; md != NULL; md = md->next)
+    {
+        first = separate(first, indent, fp);
+
+        pyiCallable(pt, mod, md, cd->overs, TRUE, *defined, indent, fp);
+    }
+#endif
+
+    /*
+     * Keep track of what has been defined so that forward references are no
+     * longer required.
+     */
+    appendToIfaceFileList(defined, mtd->iff);
 }
 
 
@@ -479,6 +650,7 @@ static void pyiCallable(sipSpec *pt, moduleDef *mod, memberDef *md,
         ++nr_overloads;
     }
 
+    // FIXME: Handle static functions in mapped types.
     /* Handle each overload. */
     for (od = overloads; od != NULL; od = od->next)
     {
@@ -594,91 +766,27 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int sec,
     /* For classes and mapped types we need the default implementation. */
     if (ad->atype == class_type || ad->atype == mapped_type)
     {
-        classDef *def_cd = NULL;
-        mappedTypeDef *def_mtd = NULL;
-        ifaceFileDef *iff;
+        classDef *cd = ad->u.cd;
+        mappedTypeDef *mtd = ad->u.mtd;
 
-        if (ad->atype == class_type)
+        getDefaultImplementation(pt, ad->atype, &cd, &mtd);
+
+        if (cd != NULL)
         {
-            iff = ad->u.cd->iff;
-
-            if (iff->api_range == NULL)
-            {
-                /* There is only one implementation. */
-                def_cd = ad->u.cd;
-                iff = NULL;
-            }
+            prClassRef(cd, mod, defined, fp);
         }
-        else
+        else if (mtd != NULL)
         {
-            iff = ad->u.mtd->iff;
-
-            if (iff->api_range == NULL)
-            {
-                /* There is only one implementation. */
-                def_mtd = ad->u.mtd;
-                iff = NULL;
-            }
-        }
-
-        if (iff != NULL)
-        {
-            int def_api;
-
-            /* Find the default implementation. */
-            def_api = findAPI(pt, iff->api_range->api_name->text)->from;
-
-            for (iff = iff->first_alt; iff != NULL; iff = iff->next_alt)
-            {
-                apiVersionRangeDef *avd = iff->api_range;
-
-                if (avd->from > 0 && avd->from > def_api)
-                    continue;
-
-                if (avd->to > 0 && avd->to <= def_api)
-                    continue;
-
-                /* It's within range. */
-                break;
-            }
-
-            /* Find the corresponding class or mapped type. */
-            for (def_cd = pt->classes; def_cd != NULL; def_cd = def_cd->next)
-                if (def_cd->iff == iff)
-                    break;
-
-            if (def_cd == NULL)
-                for (def_mtd = pt->mappedtypes; def_mtd != NULL; def_mtd = def_mtd->next)
-                    if (def_mtd->iff == iff)
-                        break;
-        }
-
-        /* Now handle the correct implementation. */
-        if (def_cd != NULL)
-        {
-            prClassRef(def_cd, mod, defined, fp);
+            prMappedTypeRef(pt, mtd, mod, defined, fp);
         }
         else
         {
             /*
-             * Give a hint that /TypeHint/ should be used, or there is no
-             * default implementation.
+             * This should never happen as it should have been picked up when
+             * generating code - but maybe we haven't been asked to generate
+             * code.
              */
-            type_name = "Any";
-
-            if (def_mtd != NULL)
-            {
-                if (def_mtd->typehint != NULL)
-                {
-                    pyiTypeHint(pt, mod, def_mtd->typehint, defined, fp);
-                    return;
-                }
-
-                if (def_mtd->pyname != NULL)
-                    type_name = def_mtd->pyname->text;
-            }
-
-            fprintf(fp, "%s", type_name);
+            fprintf(fp, "Any");
         }
 
         return;
@@ -756,6 +864,7 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int sec,
     case short_type:
     case int_type:
     case cint_type:
+    case ssize_type:
         type_name = "int";
         break;
 
@@ -986,21 +1095,32 @@ static void prEnumRef(enumDef *ed, moduleDef *mod, ifaceFileList *defined,
  * Generate a mapped type reference, including its owning module if necessary
  * and handling forward references if necessary.
  */
-static void prMappedTypeRef(mappedTypeDef *mtd, moduleDef *mod,
+static void prMappedTypeRef(sipSpec *pt, mappedTypeDef *mtd, moduleDef *mod,
         ifaceFileList *defined, FILE *fp)
 {
-    int is_defined = isDefined(mtd->iff, NULL, mod, defined);
-
-    if (!is_defined)
-        fprintf(fp, "'");
-
     if (mtd->iff->module != mod)
         fprintf(fp, "%s.", mtd->iff->module->name);
 
-    fprintf(fp, "%s", mtd->pyname->text);
+    if (mtd->typehint != NULL)
+    {
+        pyiTypeHint(pt, mod, mtd->typehint, defined, fp);
+    }
+    else if (mtd->pyname != NULL)
+    {
+        int is_defined = isDefined(mtd->iff, NULL, mod, defined);
 
-    if (!is_defined)
-        fprintf(fp, "'");
+        if (!is_defined)
+            fprintf(fp, "'");
+
+        fprintf(fp, "%s", mtd->pyname->text);
+
+        if (!is_defined)
+            fprintf(fp, "'");
+    }
+    else
+    {
+        fprintf(fp, "Any");
+    }
 }
 
 
@@ -1106,7 +1226,7 @@ static void pyiTypeHint(sipSpec *pt, moduleDef *mod, typeHintDef *thd,
             else if (ths->type.atype == enum_type)
                 prEnumRef(ths->type.u.ed, mod, defined, fp);
             else
-                prMappedTypeRef(ths->type.u.mtd, mod, defined, fp);
+                prMappedTypeRef(pt, ths->type.u.mtd, mod, defined, fp);
 
             if (ths->after != NULL)
                 fprintf(fp, "%s", ths->after);
@@ -1124,26 +1244,19 @@ static void pyiTypeHint(sipSpec *pt, moduleDef *mod, typeHintDef *thd,
  */
 static void parseTypeHint(sipSpec *pt, typeHintDef *thd)
 {
-    char *sp, *dp, *cp;
+    char *cp, *before;
     typeHintSection *tail;
 
     /* No matter what happends we don't do this again. */
     thd->needs_parsing = FALSE;
 
-    /* Remove any whitespace. */
-    sp = dp = thd->raw_hint;
-
-    do
-    {
-        if (*sp != ' ')
-            *dp = *sp++;
-    }
-    while (*dp++ != '\0');
-
     /* Parse each section. */
     tail = NULL;
+    before = thd->raw_hint;
 
-    sp = cp = thd->raw_hint;
+    /* Ignore leading spaces. */
+    for (cp = before; *cp == ' '; ++cp)
+        ;
 
     while (*cp != '\0')
     {
@@ -1151,11 +1264,11 @@ static void parseTypeHint(sipSpec *pt, typeHintDef *thd)
         argDef type;
 
         /* Find the end of a potential type. */
-        for (ep = cp; *ep != '\0' && *ep != ']' && *ep != ','; ++ep)
+        for (ep = cp; *ep != '\0' && *ep != ' ' && *ep != ']' && *ep != ','; ++ep)
             ;
 
         /* Find the beginning of the potential type. */
-        for (tp = ep - 1; tp >= sp && *tp != '[' && *ep != ','; --tp)
+        for (tp = ep - 1; tp >= cp && *tp != ' ' && *tp != '[' && *tp != ','; --tp)
             ;
 
         ++tp;
@@ -1174,7 +1287,7 @@ static void parseTypeHint(sipSpec *pt, typeHintDef *thd)
             typeHintSection *ths = sipMalloc(sizeof (typeHintSection));
 
             *tp = '\0';
-            ths->before = sp;
+            ths->before = before;
 
             ths->type = type;
 
@@ -1186,22 +1299,22 @@ static void parseTypeHint(sipSpec *pt, typeHintDef *thd)
             tail = ths;
 
             /* Move past the parsed type. */
-            sp = ep;
+            before = ep;
         }
 
         /*
          * Start the next lookup from the end of this one (after the character
-         * that terminated it).
+         * that terminated it) and skipping any additional non-significant
+         * characters.
          */
-        cp = ep;
-
-        if (*cp != '\0')
-            ++cp;
+        for (cp = ep; *cp != '\0'; ++cp)
+            if (strchr(" [],", *cp) == NULL)
+                break;
     }
 
     /* See if there is trailing text. */
-    if (*sp != '\0' && tail != NULL)
-        tail->after = sp;
+    if (*before != '\0' && tail != NULL)
+        tail->after = before;
 }
 
 
@@ -1342,7 +1455,12 @@ static mappedTypeDef *lookupMappedType(sipSpec *pt, const char *name)
 
     for (mtd = pt->mappedtypes; mtd != NULL; mtd = mtd->next)
         if (mtd->pyname != NULL && strcmp(mtd->pyname->text, name) == 0)
-            return mtd;
+        {
+            mappedTypeDef *impl = getMappedTypeImplementation(pt, mtd);
+
+            if (impl != NULL)
+                return impl;
+        }
 
     return NULL;
 }
@@ -1357,7 +1475,109 @@ static classDef *lookupClass(sipSpec *pt, const char *name, classDef *scope_cd)
 
     for (cd = pt->classes; cd != NULL; cd = cd->next)
         if (strcmp(cd->pyname->text, name) == 0 && cd->ecd == scope_cd)
-            return cd;
+        {
+            classDef *impl = getClassImplementation(pt, cd);
+
+            if (impl != NULL)
+                return impl;
+        }
 
     return NULL;
+}
+
+
+/*
+ * Get the implementation (if there is one) for a type for the default API
+ * version.
+ */
+void getDefaultImplementation(sipSpec *pt, argType atype, classDef **cdp,
+        mappedTypeDef **mtdp)
+{
+    classDef *cd;
+    mappedTypeDef *mtd;
+    ifaceFileDef *iff;
+
+    if (atype == class_type)
+    {
+        cd = *cdp;
+        mtd = NULL;
+        iff = cd->iff;
+    }
+    else
+    {
+        cd = NULL;
+        mtd = *mtdp;
+        iff = mtd->iff;
+    }
+
+    /* See if there is more than one implementation. */
+    if (iff->api_range != NULL)
+    {
+        int def_api;
+
+        cd = NULL;
+        mtd = NULL;
+
+        /* Find the default implementation. */
+        def_api = findAPI(pt, iff->api_range->api_name->text)->from;
+
+        for (iff = iff->first_alt; iff != NULL; iff = iff->next_alt)
+        {
+            apiVersionRangeDef *avd = iff->api_range;
+
+            if (avd->from > 0 && avd->from > def_api)
+                continue;
+
+            if (avd->to > 0 && avd->to <= def_api)
+                continue;
+
+            /* It's within range. */
+            if (iff->type == class_iface)
+            {
+                for (cd = pt->classes; cd != NULL; cd = cd->next)
+                    if (cd->iff == iff)
+                        break;
+            }
+            else
+            {
+                for (mtd = pt->mappedtypes; mtd != NULL; mtd = mtd->next)
+                    if (mtd->iff == iff)
+                        break;
+            }
+
+            break;
+        }
+    }
+
+    *cdp = cd;
+    *mtdp = mtd;
+}
+
+
+/*
+ * Get the class implementation (if there is one) of the given class according
+ * to the default version of any relevant API.
+ */
+static classDef *getClassImplementation(sipSpec *pt, classDef *cd)
+{
+    mappedTypeDef *mtd;
+
+    getDefaultImplementation(pt, class_type, &cd, &mtd);
+
+    return cd;
+}
+
+
+/*
+ * Get the mapped type implementation (if there is one) of the given mapped
+ * type according to the default version of any relevant API.
+ */
+static mappedTypeDef *getMappedTypeImplementation(sipSpec *pt,
+        mappedTypeDef *mtd)
+{
+    classDef *cd;
+
+    getDefaultImplementation(pt, mapped_type, &cd, &mtd);
+
+    return mtd;
 }

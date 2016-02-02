@@ -1349,6 +1349,8 @@ apiVersionRangeDef *findAPI(sipSpec *pt, const char *name);
 memberDef *findMethod(classDef *cd, const char *name);
 typeHintDef *newTypeHint(char *raw_hint);
 int isPyKeyword(const char *word);
+void getDefaultImplementation(sipSpec *pt, argType atype, classDef **cdp,
+        mappedTypeDef **mtdp);
 
 
 /* These are only here because bison publically references them. */
