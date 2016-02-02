@@ -24,7 +24,7 @@
 
 
 static void pyiTypeHintCode(codeBlockList *thc, FILE *fp);
-static void pyiEnums(sipSpec *pt, moduleDef *mod, classDef *scope,
+static void pyiEnums(sipSpec *pt, moduleDef *mod, ifaceFileDef *scope,
         ifaceFileList *defined, int indent, FILE *fp);
 static void pyiVars(sipSpec *pt, moduleDef *mod, classDef *scope,
         ifaceFileList *defined, int indent, FILE *fp);
@@ -88,6 +88,8 @@ void generateTypeHints(sipSpec *pt, moduleDef *mod, const char *pyiFile)
     FILE *fp;
 
     // FIXME: Add support for composite modules.
+    // FIXME: Other objects that have an API version (other than classes and
+    // mapped types).
     /* Generate the file. */
     if ((fp = fopen(pyiFile, "w")) == NULL)
         fatal("Unable to create file \"%s\"\n", pyiFile);
@@ -329,7 +331,7 @@ static void pyiClass(sipSpec *pt, moduleDef *mod, classDef *cd,
 
     ++indent;
 
-    pyiEnums(pt, mod, cd, *defined, indent, fp);
+    pyiEnums(pt, mod, cd->iff, *defined, indent, fp);
 
     /* Handle any nested classes. */
     for (nested = pt->classes; nested != NULL; nested = nested->next)
@@ -385,61 +387,18 @@ static void pyiClass(sipSpec *pt, moduleDef *mod, classDef *cd,
 static void pyiMappedType(sipSpec *pt, moduleDef *mod, mappedTypeDef *mtd,
         ifaceFileList **defined, int indent, FILE *fp)
 {
-fprintf(stderr, "---------- TODO: %s\n", mtd->pyname->text);
-#if 0
-    int first, no_body, nr_overloads;
-    classDef *nested;
-    ctorDef *ct;
+    int first, no_body;
     memberDef *md;
 
-    separate(TRUE, indent, fp);
-    prIndent(indent, fp);
-    fprintf(fp, "class %s(", cd->pyname->text);
-
-    if (cd->supers != NULL)
-    {
-        classList *cl;
-
-        for (cl = cd->supers; cl != NULL; cl = cl->next)
-        {
-            if (cl != cd->supers)
-                fprintf(fp, ", ");
-
-            prClassRef(cl->cd, mod, *defined, fp);
-        }
-    }
-    else if (cd->supertype != NULL)
-    {
-        fprintf(fp, "%s", cd->supertype->text);
-    }
-    else if (cd->iff->type == namespace_iface)
-    {
-        fprintf(fp, "sip.simplewrapper");
-    }
-    else
-    {
-        fprintf(fp, "sip.wrapper");
-    }
-
-    /* See if there is anything in the class body. */
-    nr_overloads = 0;
-
-    for (ct = cd->ctors; ct != NULL; ct = ct->next)
-    {
-        if (isPrivateCtor(ct))
-            continue;
-
-        ++nr_overloads;
-    }
-
-    no_body = (nr_overloads == 0 && cd->members == NULL);
+    /* See if there is anything in the mapped type body. */
+    no_body = (mtd->members == NULL);
 
     if (no_body)
     {
         enumDef *ed;
 
         for (ed = pt->enums; ed != NULL; ed = ed->next)
-            if (ed->ecd == cd)
+            if (ed->emtd == mtd)
             {
                 no_body = FALSE;
                 break;
@@ -447,74 +406,25 @@ fprintf(stderr, "---------- TODO: %s\n", mtd->pyname->text);
 
     }
 
-    if (no_body)
+    if (!no_body)
     {
-        for (nested = pt->classes; nested != NULL; nested = nested->next)
-            if (nested->ecd == cd)
-            {
-                no_body = FALSE;
-                break;
-            }
+        separate(TRUE, indent, fp);
+        prIndent(indent, fp);
+        fprintf(fp, "class %s(sip.wrapper):\n", mtd->pyname->text);
+
+        ++indent;
+
+        pyiEnums(pt, mod, mtd->iff, *defined, indent, fp);
+
+        first = TRUE;
+
+        for (md = mtd->members; md != NULL; md = md->next)
+        {
+            first = separate(first, indent, fp);
+
+            pyiCallable(pt, mod, md, mtd->overs, TRUE, *defined, indent, fp);
+        }
     }
-
-    if (no_body)
-    {
-        varDef *vd;
-
-        for (vd = pt->vars; vd != NULL; vd = vd->next)
-            if (vd->ecd == cd)
-            {
-                no_body = FALSE;
-                break;
-            }
-    }
-
-    fprintf(fp, "):%s\n", (no_body ? " ..." : ""));
-
-    ++indent;
-
-    pyiEnums(pt, mod, cd, *defined, indent, fp);
-
-    /* Handle any nested classes. */
-    for (nested = pt->classes; nested != NULL; nested = nested->next)
-    {
-        classDef *impl = getClassImplementation(pt, nested);
-
-        if (impl != NULL && impl->ecd == cd)
-            pyiClass(pt, mod, impl, defined, indent, fp);
-    }
-
-    pyiVars(pt, mod, cd, *defined, indent, fp);
-
-    first = TRUE;
-
-    for (ct = cd->ctors; ct != NULL; ct = ct->next)
-    {
-        int implicit_overloads, overloaded;
-
-        if (isPrivateCtor(ct))
-            continue;
-
-        implicit_overloads = hasImplicitOverloads(&ct->pysig);
-        overloaded = (implicit_overloads || nr_overloads > 1);
-
-        first = separate(first, indent, fp);
-
-        pyiCtor(pt, mod, ct, overloaded, FALSE, *defined, indent, fp);
-
-        if (implicit_overloads)
-            pyiCtor(pt, mod, ct, overloaded, TRUE, *defined, indent, fp);
-    }
-
-    first = TRUE;
-
-    for (md = cd->members; md != NULL; md = md->next)
-    {
-        first = separate(first, indent, fp);
-
-        pyiCallable(pt, mod, md, cd->overs, TRUE, *defined, indent, fp);
-    }
-#endif
 
     /*
      * Keep track of what has been defined so that forward references are no
@@ -552,7 +462,7 @@ static void pyiCtor(sipSpec *pt, moduleDef *mod, ctorDef *ct, int overloaded,
 /*
  * Generate the APIs for all the enums in a scope.
  */
-static void pyiEnums(sipSpec *pt, moduleDef *mod, classDef *scope,
+static void pyiEnums(sipSpec *pt, moduleDef *mod, ifaceFileDef *scope,
         ifaceFileList *defined, int indent, FILE *fp)
 {
     enumDef *ed;
@@ -566,12 +476,11 @@ static void pyiEnums(sipSpec *pt, moduleDef *mod, classDef *scope,
 
         if (scope != NULL)
         {
-            if (ed->ecd != scope)
+            if ((ed->ecd == NULL || ed->ecd->iff != scope) && (ed->emtd == NULL || ed->emtd->iff != scope))
                 continue;
         }
         else if (ed->ecd != NULL || ed->emtd != NULL)
         {
-            /* FIXME: Handle enums in mapped types. */
             continue;
         }
 
@@ -650,7 +559,6 @@ static void pyiCallable(sipSpec *pt, moduleDef *mod, memberDef *md,
         ++nr_overloads;
     }
 
-    // FIXME: Handle static functions in mapped types.
     /* Handle each overload. */
     for (od = overloads; od != NULL; od = od->next)
     {
