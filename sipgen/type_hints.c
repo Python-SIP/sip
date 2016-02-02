@@ -1064,9 +1064,6 @@ static void prEnumRef(enumDef *ed, moduleDef *mod, ifaceFileList *defined,
 static void prMappedTypeRef(sipSpec *pt, mappedTypeDef *mtd, moduleDef *mod,
         ifaceFileList *defined, FILE *fp)
 {
-    if (mtd->iff->module != mod)
-        fprintf(fp, "%s.", mtd->iff->module->name);
-
     if (mtd->typehint != NULL)
     {
         pyiTypeHint(pt, mod, mtd->typehint, defined, fp);
@@ -1074,6 +1071,9 @@ static void prMappedTypeRef(sipSpec *pt, mappedTypeDef *mtd, moduleDef *mod,
     else if (mtd->pyname != NULL)
     {
         int is_defined = isDefined(mtd->iff, NULL, mod, defined);
+
+        if (mtd->iff->module != mod)
+            fprintf(fp, "%s.", mtd->iff->module->name);
 
         if (!is_defined)
             fprintf(fp, "'");
