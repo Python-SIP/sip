@@ -142,8 +142,8 @@ static void pyiModule(sipSpec *pt, moduleDef *mod, FILE *fp)
      * standard SIP ones.
      */
     fprintf(fp,
-"from typing import (Any, Callable, Dict, List, Optional, overload, Sequence,\n"
-"        Set, Tuple, TypeVar, Union)\n"
+"from typing import (Any, Callable, Dict, Iterator, List, Mapping, Optional,\n"
+"        overload, Sequence, Set, Tuple, TypeVar, Union)\n"
 "\n"
 "import sip\n"
         );
@@ -199,7 +199,12 @@ static void pyiModule(sipSpec *pt, moduleDef *mod, FILE *fp)
     // FIXME: Have a NoTypeHint function anno that suppresses the generation of
     // any type hint - on the assumption that it will be implemented in
     // handwritten code. (Handle pyqtSlot, pyqtConfigure, pyqtSignature?)
-    // FIXME: Have TypeHintIn and TypeHintOut
+    // FIXME: Have TypeHintIn and TypeHintOut, DocTypeIn and DocTypeOut.
+    // FIXME: Types with slot extenders cannot have predictable arguments so
+    // need to specify Any and NoTypeHint for the overloads in the originating
+    // module. (QDataStream, QTextStream)
+    // FIXME: Add TypeHintIn-Out to classes (not mapped types) with
+    // %ConvertToTypeCode.
 
     /* Generate the types - global enums must be first. */
     pyiEnums(pt, mod, NULL, NULL, 0, fp);
