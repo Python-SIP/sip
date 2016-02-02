@@ -68,6 +68,7 @@ static enumDef *lookupEnum(sipSpec *pt, const char *name, classDef *scope_cd,
 static mappedTypeDef *lookupMappedType(sipSpec *pt, const char *name);
 static classDef *lookupClass(sipSpec *pt, const char *name,
         classDef *scope_cd);
+static int inDefaultAPI(sipSpec *pt, apiVersionRangeDef *range);
 static classDef *getClassImplementation(sipSpec *pt, classDef *cd);
 static mappedTypeDef *getMappedTypeImplementation(sipSpec *pt,
         mappedTypeDef *mtd);
@@ -88,8 +89,6 @@ void generateTypeHints(sipSpec *pt, moduleDef *mod, const char *pyiFile)
     FILE *fp;
 
     // FIXME: Add support for composite modules.
-    // FIXME: Other objects that have an API version (other than classes and
-    // mapped types).
     /* Generate the file. */
     if ((fp = fopen(pyiFile, "w")) == NULL)
         fatal("Unable to create file \"%s\"\n", pyiFile);
@@ -167,8 +166,7 @@ void generateTypeHints(sipSpec *pt, moduleDef *mod, const char *pyiFile)
 
     // FIXME: Have a NoTypeHint function anno that suppresses the generation of
     // any type hint - on the assumption that it will be implemented in
-    // handwritten code. (Handle pyqtSlot like that?, pyqtConfigure?
-    // FIXME: Check what QObject.__getattr__ is supposed to return.
+    // handwritten code. (Handle pyqtSlot, pyqtConfigure, pyqtSignature?)
     // FIXME: Have TypeHintIn and TypeHintOut
 
     /* Generate the types - global enums must be first. */
@@ -287,10 +285,30 @@ static void pyiClass(sipSpec *pt, moduleDef *mod, classDef *cd,
         if (isPrivateCtor(ct))
             continue;
 
+        if (!inDefaultAPI(pt, ct->api_range))
+            continue;
+
         ++nr_overloads;
     }
 
-    no_body = (nr_overloads == 0 && cd->members == NULL);
+    no_body = (nr_overloads == 0);
+
+    if (no_body)
+    {
+        overDef *od;
+
+        for (od = cd->overs; od != NULL; od = od->next)
+        {
+            if (isPrivate(od))
+                continue;
+
+            if (inDefaultAPI(pt, od->api_range))
+            {
+                no_body = FALSE;
+                break;
+            }
+        }
+    }
 
     if (no_body)
     {
@@ -351,6 +369,9 @@ static void pyiClass(sipSpec *pt, moduleDef *mod, classDef *cd,
         int implicit_overloads, overloaded;
 
         if (isPrivateCtor(ct))
+            continue;
+
+        if (!inDefaultAPI(pt, ct->api_range))
             continue;
 
         implicit_overloads = hasImplicitOverloads(&ct->pysig);
@@ -556,6 +577,9 @@ static void pyiCallable(sipSpec *pt, moduleDef *mod, memberDef *md,
         if (od->common != md)
             continue;
 
+        if (!inDefaultAPI(pt, od->api_range))
+            continue;
+
         ++nr_overloads;
     }
 
@@ -568,6 +592,9 @@ static void pyiCallable(sipSpec *pt, moduleDef *mod, memberDef *md,
             continue;
 
         if (od->common != md)
+            continue;
+
+        if (!inDefaultAPI(pt, od->api_range))
             continue;
 
         implicit_overloads = hasImplicitOverloads(&od->pysig);
@@ -1459,6 +1486,30 @@ void getDefaultImplementation(sipSpec *pt, argType atype, classDef **cdp,
 
     *cdp = cd;
     *mtdp = mtd;
+}
+
+
+/*
+ * Return TRUE if a version range includes the default API.
+ */
+static int inDefaultAPI(sipSpec *pt, apiVersionRangeDef *range)
+{
+    int def_api;
+
+    /* Handle the trivial case. */
+    if (range == NULL)
+        return TRUE;
+
+    /* Get the default API. */
+    def_api = findAPI(pt, range->api_name->text)->from;
+
+    if (range->from > 0 && range->from > def_api)
+        return FALSE;
+
+    if (range->to > 0 && range->to <= def_api)
+        return FALSE;
+
+    return TRUE;
 }
 
 
