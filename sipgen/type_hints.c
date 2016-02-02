@@ -23,6 +23,8 @@
 #include "sip.h"
 
 
+static void pyiCompositeModule(sipSpec *pt, moduleDef *comp_mod, FILE *fp);
+static void pyiModule(sipSpec *pt, moduleDef *mod, FILE *fp);
 static void pyiTypeHintCode(codeBlockList *thc, FILE *fp);
 static void pyiEnums(sipSpec *pt, moduleDef *mod, ifaceFileDef *scope,
         ifaceFileList *defined, int indent, FILE *fp);
@@ -79,16 +81,8 @@ static mappedTypeDef *getMappedTypeImplementation(sipSpec *pt,
  */
 void generateTypeHints(sipSpec *pt, moduleDef *mod, const char *pyiFile)
 {
-    char *cp;
-    int first;
-    memberDef *md;
-    classDef *cd;
-    mappedTypeDef *mtd;
-    ifaceFileList *defined;
-    moduleListDef *mld;
     FILE *fp;
 
-    // FIXME: Add support for composite modules.
     /* Generate the file. */
     if ((fp = fopen(pyiFile, "w")) == NULL)
         fatal("Unable to create file \"%s\"\n", pyiFile);
@@ -103,13 +97,51 @@ void generateTypeHints(sipSpec *pt, moduleDef *mod, const char *pyiFile)
 
     prCopying(fp, mod, "#");
 
+    fprintf(fp,
+"\n"
+"\n"
+        );
+
+    if (isComposite(mod))
+        pyiCompositeModule(pt, mod, fp);
+    else
+        pyiModule(pt, mod, fp);
+
+    fclose(fp);
+}
+
+
+/*
+ * Generate the type hints for a composite module.
+ */
+static void pyiCompositeModule(sipSpec *pt, moduleDef *comp_mod, FILE *fp)
+{
+    moduleDef *mod;
+
+    for (mod = pt->modules; mod != NULL; mod = mod->next)
+        if (mod->container == comp_mod)
+            fprintf(fp, "from %s import *\n", mod->fullname->text);
+}
+
+
+/*
+ * Generate the type hints for an ordinary module.
+ */
+static void pyiModule(sipSpec *pt, moduleDef *mod, FILE *fp)
+{
+    char *cp;
+    int first;
+    memberDef *md;
+    classDef *cd;
+    mappedTypeDef *mtd;
+    ifaceFileList *defined;
+    moduleListDef *mld;
+
     /*
      * Generate the imports. Note that we assume the super-types are the
      * standard SIP ones.
      */
     fprintf(fp,
-"\n"
-"\n"
 "from typing import (Any, Callable, Dict, List, Optional, overload, Sequence,\n"
 "        Set, Tuple, TypeVar, Union)\n"
 "\n"
@@ -217,8 +249,6 @@ void generateTypeHints(sipSpec *pt, moduleDef *mod, const char *pyiFile)
 
         pyiCallable(pt, mod, md, mod->overs, FALSE, defined, 0, fp);
     }
-
-    fclose(fp);
 }
 
 
