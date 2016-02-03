@@ -144,6 +144,9 @@ Argument Annotations
 
     .. versionadded:: 4.10
 
+    .. deprecated:: 4.18
+        Use the :aanno:`TypeHint` annotation instead.
+
     This string annotation specifies the type of the argument as it will appear
     in any generated docstrings.  It is usually used with arguments of type
     :stype:`SIP_PYOBJECT` to provide a more specific type.
@@ -152,6 +155,9 @@ Argument Annotations
 .. argument-annotation:: DocValue
 
     .. versionadded:: 4.10
+
+    .. deprecated:: 4.18
+        Use the :aanno:`TypeHintValue` annotation instead.
 
     This string annotation specifies the default value of the argument as it
     will appear in any generated docstrings.
@@ -336,9 +342,10 @@ Argument Annotations
     .. versionadded:: 4.18
 
     This string annotation specifies the type of the argument as it will appear
-    in any generated PEP 484 type hints.  Any :aanno:`DocType` annotation will
-    be used if this annotaion is not specified.  It is usually used with
-    arguments of type :stype:`SIP_PYOBJECT` to provide a more specific type.
+    in any generated docstrings and PEP 484 type hints.  It is the equivalent
+    of specifying :aanno:`TypeHintIn` and :aanno:`TypeHintOut` with the same
+    value.  It is usually used with arguments of type :stype:`SIP_PYOBJECT` to
+    provide a more specific type.
 
 
 .. _ref-class-annos:
@@ -573,6 +580,9 @@ Mapped Type Annotations
 
     .. versionadded:: 4.10
 
+    .. deprecated:: 4.18
+        Use the :manno:`TypeHint` annotation instead.
+
     This string annotation serves the same purpose as the :aanno:`DocType`
     argument annotation when applied to the mapped type being defined.
 
@@ -601,10 +611,10 @@ Mapped Type Annotations
 
     .. versionadded:: 4.18
 
-    This string annotation specifies the type of the argument as it will appear
-    in any generated PEP 484 type hints.  Any :manno:`DocType` annotation will
-    be used if this annotaion is not specified.  It is usually used with
-    arguments of type :stype:`SIP_PYOBJECT` to provide a more specific type.
+    This string annotation specifies the type of the mapped type as it will
+    appear in any generated docstrings and PEP 484 type hints.  It is the
+    equivalent of specifying :manno:`TypeHintIn` and :manno:`TypeHintOut` with
+    the same value.
 
 
 .. _ref-enum-annos:
@@ -730,6 +740,9 @@ Function Annotations
 .. function-annotation:: DocType
 
     .. versionadded:: 4.10
+
+    .. deprecated:: 4.18
+        Use the :fanno:`TypeHint` annotation instead.
 
     This string annotation serves the same purpose as the :aanno:`DocType`
     argument annotation when applied to the type of the value returned by the
@@ -1032,10 +1045,11 @@ Function Annotations
 
     .. versionadded:: 4.18
 
-    This string annotation specifies the type of the argument as it will appear
-    in any generated PEP 484 type hints.  Any :fanno:`DocType` annotation will
-    be used if this annotaion is not specified.  It is usually used with
-    arguments of type :stype:`SIP_PYOBJECT` to provide a more specific type.
+    This string annotation specifies the type of the value returned by the
+    function as it will appear in any generated docstrings and PEP 484 type
+    hints.  It is the equivalent of specifying :fanno:`TypeHintIn` and
+    :fanno:`TypeHintOut` with the same value.  It is usually used with results
+    of type :stype:`SIP_PYOBJECT` to provide a more specific type.
 
 
 .. function-annotation:: VirtualErrorHandler
@@ -1072,6 +1086,9 @@ Typedef Annotations
 .. typedef-annotation:: DocType
 
     .. versionadded:: 4.10
+
+    .. deprecated:: 4.18
+        Use the :tanno:`TypeHint` annotation instead.
 
     This string annotation serves the same purpose as the :aanno:`DocType`
     argument annotation when applied to the mapped type being defined.
@@ -1125,10 +1142,10 @@ Typedef Annotations
 
     .. versionadded:: 4.18
 
-    This string annotation specifies the type of the argument as it will appear
-    in any generated PEP 484 type hints.  Any :tanno:`DocType` annotation will
-    be used if this annotaion is not specified.  It is usually used with
-    arguments of type :stype:`SIP_PYOBJECT` to provide a more specific type.
+    This string annotation specifies the type as it will appear in any
+    generated docstrings and PEP 484 type hints.  It is the equivalent of
+    specifying :tanno:`TypeHintIn` and :tanno:`TypeHintOut` with the same
+    value.
 
 
 .. _ref-variable-annos:
@@ -1139,6 +1156,9 @@ Variable Annotations
 .. variable-annotation:: DocType
 
     .. versionadded:: 4.10
+
+    .. deprecated:: 4.18
+        Use the :vanno:`TypeHint` annotation instead.
 
     This string annotation serves the same purpose as the :aanno:`DocType`
     argument annotation when applied to the type of the variable being defined.
@@ -1183,7 +1203,7 @@ Variable Annotations
 
     .. versionadded:: 4.18
 
-    This string annotation specifies the type of the argument as it will appear
-    in any generated PEP 484 type hints.  Any :vanno:`DocType` annotation will
-    be used if this annotaion is not specified.  It is usually used with
-    arguments of type :stype:`SIP_PYOBJECT` to provide a more specific type.
+    This string annotation specifies the type of the variable as it will appear
+    in any generated docstrings and PEP 484 type hints.  It is usually used
+    with arguments of type :stype:`SIP_PYOBJECT` to provide a more specific
+    type.

@@ -3859,7 +3859,7 @@ rawarglist: {
     ;
 
 argvalue:   TK_SIPSIGNAL optname optflags optassign {
-            warning(DeprecationWarning, "SIP_SIGNAL is deprecated\n");
+            deprecated("SIP_SIGNAL is deprecated\n");
             checkNoAnnos(&$3, "SIP_SIGNAL has no annotations");
 
             $$.atype = signal_type;
@@ -3871,7 +3871,7 @@ argvalue:   TK_SIPSIGNAL optname optflags optassign {
             currentSpec -> sigslots = TRUE;
         }
     |   TK_SIPSLOT optname optflags optassign {
-            warning(DeprecationWarning, "SIP_SLOT is deprecated\n");
+            deprecated("SIP_SLOT is deprecated\n");
             checkNoAnnos(&$3, "SIP_SLOT has no annotations");
 
             $$.atype = slot_type;
@@ -3883,7 +3883,7 @@ argvalue:   TK_SIPSIGNAL optname optflags optassign {
             currentSpec -> sigslots = TRUE;
         }
     |   TK_SIPANYSLOT optname optflags optassign {
-            warning(DeprecationWarning, "SIP_ANYSLOT is deprecated\n");
+            deprecated("SIP_ANYSLOT is deprecated\n");
             checkNoAnnos(&$3, "SIP_ANYSLOT has no annotations");
 
             $$.atype = anyslot_type;
@@ -3900,7 +3900,7 @@ argvalue:   TK_SIPSIGNAL optname optflags optassign {
                 NULL
             };
 
-            warning(DeprecationWarning, "SIP_RXOBJ_CON is deprecated\n");
+            deprecated("SIP_RXOBJ_CON is deprecated\n");
             checkAnnos(&$3, annos);
 
             $$.atype = rxcon_type;
@@ -3914,7 +3914,7 @@ argvalue:   TK_SIPSIGNAL optname optflags optassign {
             currentSpec -> sigslots = TRUE;
         }
     |   TK_SIPRXDIS optname optflags {
-            warning(DeprecationWarning, "SIP_RXOBJ_DIS is deprecated\n");
+            deprecated("SIP_RXOBJ_DIS is deprecated\n");
             checkNoAnnos(&$3, "SIP_RXOBJ_DIS has no annotations");
 
             $$.atype = rxdis_type;
@@ -3925,7 +3925,7 @@ argvalue:   TK_SIPSIGNAL optname optflags optassign {
             currentSpec -> sigslots = TRUE;
         }
     |   TK_SIPSLOTCON '(' arglist ')' optname optflags {
-            warning(DeprecationWarning, "SIP_SLOT_CON is deprecated\n");
+            deprecated("SIP_SLOT_CON is deprecated\n");
             checkNoAnnos(&$6, "SIP_SLOT_CON has no annotations");
 
             $$.atype = slotcon_type;
@@ -3942,7 +3942,7 @@ argvalue:   TK_SIPSIGNAL optname optflags optassign {
             currentSpec -> sigslots = TRUE;
         }
     |   TK_SIPSLOTDIS '(' arglist ')' optname optflags {
-            warning(DeprecationWarning, "SIP_SLOT_DIS is deprecated\n");
+            deprecated("SIP_SLOT_DIS is deprecated\n");
             checkNoAnnos(&$6, "SIP_SLOT_DIS has no annotations");
 
             $$.atype = slotdis_type;
@@ -3959,7 +3959,7 @@ argvalue:   TK_SIPSIGNAL optname optflags optassign {
             currentSpec -> sigslots = TRUE;
         }
     |   TK_QOBJECT optname optflags {
-            warning(DeprecationWarning, "SIP_QOBJECT is deprecated\n");
+            deprecated("SIP_QOBJECT is deprecated\n");
             checkNoAnnos(&$3, "SIP_QOBJECT has no annotations");
 
             $$.atype = qobject_type;
@@ -8417,6 +8417,8 @@ static const char *getDocType(optFlags *optflgs)
     if (of == NULL)
         return NULL;
 
+    deprecated("/DocType/ is deprecated\n");
+
     return of->fvalue.sval;
 }
 
@@ -8430,6 +8432,8 @@ static const char *getDocValue(optFlags *optflgs)
 
     if (of == NULL)
         return NULL;
+
+    deprecated("/DocValue/ is deprecated\n");
 
     return of->fvalue.sval;
 }
@@ -8988,7 +8992,7 @@ static void checkAnnos(optFlags *annos, const char *valid[])
                     break;
 
             if (*name == NULL)
-                deprecated("Annotation is invalid");
+                yywarning("Annotation is unknown");
         }
     }
 }
