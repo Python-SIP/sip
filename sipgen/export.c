@@ -826,9 +826,9 @@ static void xmlIndent(int indent, FILE *fp)
 static void exportDefaultValue(argDef *ad, int in_str, FILE *fp)
 {
     /* Use any explicitly provided documentation. */
-    if (ad->typehintvalue != NULL)
+    if (ad->typehint_value != NULL)
     {
-        prcode(fp, "%s", ad->typehintvalue);
+        prcode(fp, "%s", ad->typehint_value);
         return;
     }
 

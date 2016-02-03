@@ -47,9 +47,9 @@ static void pyiPythonSignature(sipSpec *pt, moduleDef *mod, signatureDef *sd,
 static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int arg_nr,
         int out, int need_comma, int sec, int names, int defaults,
         ifaceFileList *defined, FILE *fp);
-static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int sec,
+static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, int sec,
         ifaceFileList *defined, FILE *fp);
-static void pyiTypeHint(sipSpec *pt, moduleDef *mod, typeHintDef *thd,
+static void pyiTypeHint(sipSpec *pt, moduleDef *mod, typeHintDef *thd, int out,
         ifaceFileList *defined, FILE *fp);
 static void prIndent(int indent, FILE *fp);
 static int separate(int first, int indent, FILE *fp);
@@ -57,8 +57,8 @@ static void prClassRef(classDef *cd, moduleDef *mod, ifaceFileList *defined,
         FILE *fp);
 static void prEnumRef(enumDef *ed, moduleDef *mod, ifaceFileList *defined,
         FILE *fp);
-static void prMappedTypeRef(sipSpec *pt, mappedTypeDef *mtd, moduleDef *mod,
-        ifaceFileList *defined, FILE *fp);
+static void prMappedTypeRef(sipSpec *pt, mappedTypeDef *mtd, int out,
+        moduleDef *mod, ifaceFileList *defined, FILE *fp);
 static int isDefined(ifaceFileDef *iff, classDef *cd, moduleDef *mod,
         ifaceFileList *defined);
 static int inIfaceFileList(ifaceFileDef *iff, ifaceFileList *defined);
@@ -199,15 +199,13 @@ static void pyiModule(sipSpec *pt, moduleDef *mod, FILE *fp)
     // FIXME: Have a NoTypeHint function anno that suppresses the generation of
     // any type hint - on the assumption that it will be implemented in
     // handwritten code. (Handle pyqtSlot, pyqtConfigure, pyqtSignature?)
-    // FIXME: Have TypeHintIn, TypeHintOut and TypeHintValue.
     // FIXME: Types with slot extenders cannot have predictable arguments so
     // need to specify Any and NoTypeHint for the overloads in the originating
     // module. (QDataStream, QTextStream)
-    // FIXME: Add TypeHintIn-Out to classes (not mapped types) with
-    // FIXME: The QVariantList typedef shouldn't need type hints as all the
-    // necessary information is available. See the [read|write]QVariantList()
-    // methods of QDataStream. Also check QVariantHash and QVariantMap. The
-    // [read|write]QStringList() methods also seem to be wrong.
+    // FIXME: Add TypeHintIn to classes (not mapped types) with
+    // %ConvertToTypeCode to document auto-conversions (eg. List[QString]
+    // whenever a QStringList is allowed).
+    // FIXME: Re-implement the docstring support.
     // %ConvertToTypeCode.
 
     /* Generate the types - global enums must be first. */
@@ -590,7 +588,7 @@ static void pyiVars(sipSpec *pt, moduleDef *mod, classDef *scope,
 
         prIndent(indent, fp);
         fprintf(fp, "%s = ... # type: ", vd->pyname->text);
-        pyiType(pt, mod, &vd->type, FALSE, defined, fp);
+        pyiType(pt, mod, &vd->type, FALSE, FALSE, defined, fp);
         fprintf(fp, "\n");
     }
 }
@@ -714,7 +712,7 @@ static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int arg_nr,
     if (optional)
         fprintf(fp, "Optional[");
 
-    pyiType(pt, mod, ad, sec, defined, fp);
+    pyiType(pt, mod, ad, out, sec, defined, fp);
 
     if (optional)
         fprintf(fp, "]");
@@ -726,15 +724,18 @@ static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int arg_nr,
 /*
  * Generate the Python representation of a type.
  */
-static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int sec,
+static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, int sec,
         ifaceFileList *defined, FILE *fp)
 {
     const char *type_name;
+    typeHintDef *thd;
 
     /* Use any explicit type hint. */
-    if (ad->typehint != NULL)
+    thd = (out ? ad->typehint_out : ad->typehint_in);
+
+    if (thd != NULL)
     {
-        pyiTypeHint(pt, mod, ad->typehint, defined, fp);
+        pyiTypeHint(pt, mod, thd, out, defined, fp);
         return;
     }
 
@@ -752,7 +753,7 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int sec,
         }
         else if (mtd != NULL)
         {
-            prMappedTypeRef(pt, mtd, mod, defined, fp);
+            prMappedTypeRef(pt, mtd, out, mod, defined, fp);
         }
         else
         {
@@ -959,10 +960,10 @@ static void pyiPythonSignature(sipSpec *pt, moduleDef *mod, signatureDef *sd,
 
     fprintf(fp, ")");
 
-    if (sd->result.typehint != NULL)
-        type_name = sd->result.typehint->raw_hint;
+    if (sd->result.typehint_out != NULL)
+        type_name = sd->result.typehint_out->raw_hint;
     else
-        type_name = sd->result.doctype;
+        type_name = NULL;
 
     is_res = !((sd->result.atype == void_type && sd->result.nrderefs == 0) ||
             (type_name != NULL && type_name[0] == '\0'));
@@ -1070,12 +1071,16 @@ static void prEnumRef(enumDef *ed, moduleDef *mod, ifaceFileList *defined,
  * Generate a mapped type reference, including its owning module if necessary
  * and handling forward references if necessary.
  */
-static void prMappedTypeRef(sipSpec *pt, mappedTypeDef *mtd, moduleDef *mod,
-        ifaceFileList *defined, FILE *fp)
+static void prMappedTypeRef(sipSpec *pt, mappedTypeDef *mtd, int out,
+        moduleDef *mod, ifaceFileList *defined, FILE *fp)
 {
-    if (mtd->typehint != NULL)
+    typeHintDef *thd;
+
+    thd = (out ? mtd->typehint_out : mtd->typehint_in);
+
+    if (thd != NULL)
     {
-        pyiTypeHint(pt, mod, mtd->typehint, defined, fp);
+        pyiTypeHint(pt, mod, thd, out, defined, fp);
     }
     else if (mtd->pyname != NULL)
     {
@@ -1181,7 +1186,7 @@ typeHintDef *newTypeHint(char *raw_hint)
 /*
  * Generate a type hint from a /TypeHint/ annotation.
  */
-static void pyiTypeHint(sipSpec *pt, moduleDef *mod, typeHintDef *thd,
+static void pyiTypeHint(sipSpec *pt, moduleDef *mod, typeHintDef *thd, int out,
         ifaceFileList *defined, FILE *fp)
 {
     if (thd->needs_parsing)
@@ -1201,7 +1206,7 @@ static void pyiTypeHint(sipSpec *pt, moduleDef *mod, typeHintDef *thd,
             else if (ths->type.atype == enum_type)
                 prEnumRef(ths->type.u.ed, mod, defined, fp);
             else
-                prMappedTypeRef(pt, ths->type.u.mtd, mod, defined, fp);
+                prMappedTypeRef(pt, ths->type.u.mtd, out, mod, defined, fp);
 
             if (ths->after != NULL)
                 fprintf(fp, "%s", ths->after);

@@ -121,7 +121,8 @@ static int getDisallowNone(optFlags *optflgs);
 static const char *getVirtErrorHandler(optFlags *optflgs);
 static const char *getDocType(optFlags *optflgs);
 static const char *getTypeHintValue(optFlags *optflgs);
-static typeHintDef *getTypeHint(optFlags *optflgs);
+static void getTypeHints(optFlags *optflgs, typeHintDef **in,
+        typeHintDef **out);
 static void templateSignature(signatureDef *sd, int result, classTmplDef *tcd, templateDef *td, classDef *ncd);
 static void templateType(argDef *ad, classTmplDef *tcd, templateDef *td, classDef *ncd);
 static int search_back(const char *end, const char *start, const char *target);
@@ -4251,7 +4252,7 @@ argtype:    cpptype optname optflags {
             }
 
             applyTypeFlags(currentModule, &$$, &$3);
-            $$.typehintvalue = getTypeHintValue(&$3);
+            $$.typehint_value = getTypeHintValue(&$3);
         }
     ;
 
@@ -8456,16 +8457,42 @@ static const char *getTypeHintValue(optFlags *optflgs)
 
 
 /*
- * Get the /TypeHint/ option flag.
+ * Get the /TypeHint/, /TypeHintIn/ and /TypeHintOut/ option flags.
  */
-static typeHintDef *getTypeHint(optFlags *optflgs)
+static void getTypeHints(optFlags *optflgs, typeHintDef **in,
+        typeHintDef **out)
 {
-    optFlag *of = getOptFlag(optflgs, "TypeHint", string_flag);
+    optFlag *of;
+    typeHintDef *thd;
 
-    if (of == NULL)
-        return NULL;
+    if ((of = getOptFlag(optflgs, "TypeHint", string_flag)) != NULL)
+        thd = newTypeHint(of->fvalue.sval);
+    else
+        thd = NULL;
 
-    return newTypeHint(of->fvalue.sval);
+    if ((of = getOptFlag(optflgs, "TypeHintIn", string_flag)) != NULL)
+    {
+        if (thd != NULL)
+            yywarning("/TypeHintIn/ overrides /TypeHint/");
+
+        *in = newTypeHint(of->fvalue.sval);
+    }
+    else
+    {
+        *in = thd;
+    }
+
+    if ((of = getOptFlag(optflgs, "TypeHintOut", string_flag)) != NULL)
+    {
+        if (thd != NULL)
+            yywarning("/TypeHintOut/ overrides /TypeHint/");
+
+        *out = newTypeHint(of->fvalue.sval);
+    }
+    else
+    {
+        *out = thd;
+    }
 }
 
 
@@ -8604,7 +8631,7 @@ static void addVariable(sipSpec *pt, varDef *vd)
 static void applyTypeFlags(moduleDef *mod, argDef *ad, optFlags *flags)
 {
     ad->doctype = getDocType(flags);
-    ad->typehint = getTypeHint(flags);
+    getTypeHints(flags, &ad->typehint_in, &ad->typehint_out);
 
     if (getOptFlag(flags, "PyInt", bool_flag) != NULL)
     {
@@ -9058,7 +9085,7 @@ static void mappedTypeAnnos(mappedTypeDef *mtd, optFlags *optflgs)
         setHandlesNone(mtd);
 
     mtd->doctype = getDocType(optflgs);
-    mtd->typehint = getTypeHint(optflgs);
+    getTypeHints(optflgs, &mtd->typehint_in, &mtd->typehint_out);
 }
 
 
