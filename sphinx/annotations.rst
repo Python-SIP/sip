@@ -348,6 +348,36 @@ Argument Annotations
     provide a more specific type.
 
 
+.. argument-annotation:: TypeHintIn
+
+    .. versionadded:: 4.18
+
+    This string annotation specifies the type of the argument as it will appear
+    in any generated docstrings and PEP 484 type hints when the argument is
+    used to pass a value to a function (rather than being used to return a
+    value from a function).  It is usually used with arguments of type
+    :stype:`SIP_PYOBJECT` to provide a more specific type.
+
+
+.. argument-annotation:: TypeHintOut
+
+    .. versionadded:: 4.18
+
+    This string annotation specifies the type of the argument as it will appear
+    in any generated docstrings and PEP 484 type hints when the argument is
+    used to return a value from a function (rather than being used to pass a
+    value to a function).  It is usually used with arguments of type
+    :stype:`SIP_PYOBJECT` to provide a more specific type.
+
+
+.. argument-annotation:: TypeHintValue
+
+    .. versionadded:: 4.18
+
+    This string annotation specifies the default value of the argument as it
+    will appear in any generated docstrings.
+
+
 .. _ref-class-annos:
 
 Class Annotations
@@ -615,6 +645,28 @@ Mapped Type Annotations
     appear in any generated docstrings and PEP 484 type hints.  It is the
     equivalent of specifying :manno:`TypeHintIn` and :manno:`TypeHintOut` with
     the same value.
+
+
+.. mapped-type-annotation:: TypeHintIn
+
+    .. versionadded:: 4.18
+
+    This string annotation specifies the type of the mapped type as it will
+    appear in any generated docstrings and PEP 484 type hints when it is passed
+    to a function (rather than being returned from a function).  It is usually
+    used with arguments of type :stype:`SIP_PYOBJECT` to provide a more
+    specific type.
+
+
+.. mapped-type-annotation:: TypeHintOut
+
+    .. versionadded:: 4.18
+
+    This string annotation specifies the type of the mapped type as it will
+    appear in any generated docstrings and PEP 484 type hints when it is
+    returned from a function (rather than being passed to a function).  It is
+    usually used with arguments of type :stype:`SIP_PYOBJECT` to provide a more
+    specific type.
 
 
 .. _ref-enum-annos:
@@ -1047,9 +1099,8 @@ Function Annotations
 
     This string annotation specifies the type of the value returned by the
     function as it will appear in any generated docstrings and PEP 484 type
-    hints.  It is the equivalent of specifying :fanno:`TypeHintIn` and
-    :fanno:`TypeHintOut` with the same value.  It is usually used with results
-    of type :stype:`SIP_PYOBJECT` to provide a more specific type.
+    hints.  It is usually used with results of type :stype:`SIP_PYOBJECT` to
+    provide a more specific type.
 
 
 .. function-annotation:: VirtualErrorHandler
@@ -1146,6 +1197,26 @@ Typedef Annotations
     generated docstrings and PEP 484 type hints.  It is the equivalent of
     specifying :tanno:`TypeHintIn` and :tanno:`TypeHintOut` with the same
     value.
+
+
+.. typedef-annotation:: TypeHintIn
+
+    .. versionadded:: 4.18
+
+    This string annotation specifies the type as it will appear in any
+    generated docstrings and PEP 484 type hints when it is passed to a function
+    (rather than being returned from a function).  It is usually used with
+    arguments of type :stype:`SIP_PYOBJECT` to provide a more specific type.
+
+
+.. typedef-annotation:: TypeHintOut
+
+    .. versionadded:: 4.18
+
+    This string annotation specifies the type as it will appear in any
+    generated docstrings and PEP 484 type hints when it is returned from a
+    function (rather than being passed to a function).  It is usually used with
+    arguments of type :stype:`SIP_PYOBJECT` to provide a more specific type.
 
 
 .. _ref-variable-annos:

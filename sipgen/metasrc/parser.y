@@ -1077,6 +1077,8 @@ mappedtype: TK_MAPPEDTYPE basetype optflags {
                     "NoRelease",
                     "PyName",
                     "TypeHint",
+                    "TypeHintIn",
+                    "TypeHintOut",
                     NULL
                 };
 
@@ -1095,6 +1097,8 @@ mappedtypetmpl: template TK_MAPPEDTYPE basetype optflags {
                     "DocType",
                     "NoRelease",
                     "TypeHint",
+                    "TypeHintIn",
+                    "TypeHintOut",
                     NULL
                 };
 
@@ -2765,6 +2769,8 @@ typedef:    TK_TYPEDEF cpptype TK_NAME_VALUE optflags ';' {
                     "PyInt",
                     "PyName",
                     "TypeHint",
+                    "TypeHintIn",
+                    "TypeHintOut",
                     NULL
                 };
 
@@ -2784,6 +2790,8 @@ typedef:    TK_TYPEDEF cpptype TK_NAME_VALUE optflags ';' {
                     "PyInt",
                     "PyName",
                     "TypeHint",
+                    "TypeHintIn",
+                    "TypeHintOut",
                     NULL
                 };
 
@@ -4165,6 +4173,9 @@ argtype:    cpptype optname optflags {
                 "TransferBack",
                 "TransferThis",
                 "TypeHint",
+                "TypeHintIn",
+                "TypeHintOut",
+                "TypeHintValue",
                 NULL
             };
 
