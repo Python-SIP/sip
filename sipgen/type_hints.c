@@ -199,11 +199,15 @@ static void pyiModule(sipSpec *pt, moduleDef *mod, FILE *fp)
     // FIXME: Have a NoTypeHint function anno that suppresses the generation of
     // any type hint - on the assumption that it will be implemented in
     // handwritten code. (Handle pyqtSlot, pyqtConfigure, pyqtSignature?)
-    // FIXME: Have TypeHintIn and TypeHintOut, DocTypeIn and DocTypeOut.
+    // FIXME: Have TypeHintIn, TypeHintOut and TypeHintValue.
     // FIXME: Types with slot extenders cannot have predictable arguments so
     // need to specify Any and NoTypeHint for the overloads in the originating
     // module. (QDataStream, QTextStream)
     // FIXME: Add TypeHintIn-Out to classes (not mapped types) with
+    // FIXME: The QVariantList typedef shouldn't need type hints as all the
+    // necessary information is available. See the [read|write]QVariantList()
+    // methods of QDataStream. Also check QVariantHash and QVariantMap. The
+    // [read|write]QStringList() methods also seem to be wrong.
     // %ConvertToTypeCode.
 
     /* Generate the types - global enums must be first. */

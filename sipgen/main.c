@@ -37,6 +37,7 @@ stringList *includeDirList;
 
 static char *sipPackage = PACKAGE;
 static int warnings = FALSE;
+static int warnings_are_fatal = FALSE;
 
 
 static void help(void) SIP_NORETURN;
@@ -86,7 +87,7 @@ int main(int argc, char **argv)
     /* Parse the command line. */
     optnr = 1;
 
-    while ((arg = parseopt(argc, argv, "hVa:b:B:ec:d:gI:j:km:op:Prs:t:Twx:X:y:z:", &flagFile, &optnr, &optarg)) != '\0')
+    while ((arg = parseopt(argc, argv, "hVa:b:B:ec:d:fgI:j:km:op:Prs:t:Twx:X:y:z:", &flagFile, &optnr, &optarg)) != '\0')
         switch (arg)
         {
         case 'o':
@@ -204,6 +205,11 @@ int main(int argc, char **argv)
         case 'w':
             /* Enable warning messages. */
             warnings = TRUE;
+            break;
+
+        case 'f':
+            /* Warning messages are fatal. */
+            warnings_are_fatal = TRUE;
             break;
 
         case 'k':
@@ -502,7 +508,12 @@ void warning(Warning w, const char *fmt, ...)
     va_end(ap);
 
     if (strchr(fmt, '\n') != NULL)
+    {
+        if (warnings_are_fatal)
+            exit(1);
+
         start = TRUE;
+    }
 }
 
 
@@ -555,7 +566,7 @@ static void help(void)
 {
     printf(
 "Usage:\n"
-"    %s [-h] [-V] [-a file] [-b file] [-B tag] [-c dir] [-d file] [-e] [-g] [-I dir] [-j #] [-k] [-m file] [-o] [-p module] [-P] [-r] [-s suffix] [-t tag] [-T] [-w] [-x feature] [-X id:file] [-z file] [@file] [file]\n"
+"    %s [-h] [-V] [-a file] [-b file] [-B tag] [-c dir] [-d file] [-e] [-f] [-g] [-I dir] [-j #] [-k] [-m file] [-o] [-p module] [-P] [-r] [-s suffix] [-t tag] [-T] [-w] [-x feature] [-X id:file] [-z file] [@file] [file]\n"
 "where:\n"
 "    -h          display this help message\n"
 "    -V          display the %s version number\n"
@@ -565,6 +576,7 @@ static void help(void)
 "    -c dir      the name of the code directory [default not generated]\n"
 "    -d file     the name of the documentation file (deprecated) [default not generated]\n"
 "    -e          enable support for exceptions [default disabled]\n"
+"    -f          warnings are handled as errors\n"
 "    -g          always release and reacquire the GIL [default only when specified]\n"
 "    -I dir      look in this directory when including files\n"
 "    -j #        split the generated code into # files [default 1 per class]\n"
@@ -595,7 +607,7 @@ static void help(void)
 static void usage(void)
 {
     fatal("Usage: %s [-h] [-V] [-a file] [-b file] [-B tag] [-c dir] "
-            "[-d file] [-e] [-g] [-I dir] [-j #] [-k] [-m file] [-o] "
+            "[-d file] [-e] [-f] [-g] [-I dir] [-j #] [-k] [-m file] [-o] "
             "[-p module] [-P] [-r] [-s suffix] [-t tag] [-w] [-x feature] "
             "[-X id:file] [-y file] [-z file] [@file] [file]\n",
             sipPackage);

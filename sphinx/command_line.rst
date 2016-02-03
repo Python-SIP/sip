@@ -68,6 +68,12 @@ The full set of command line options is:
     to be enclosed in ``try``/``catch`` blocks and C++ exceptions to be
     converted to Python exceptions.  By default exception support is disabled.
 
+.. cmdoption:: -f
+
+    .. versionadded:: 4.18
+
+    Warnings are handled as if they were errors and the program terminates.
+
 .. cmdoption:: -g
 
     The Python GIL is released before making any calls to the C/C++ library
