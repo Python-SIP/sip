@@ -120,7 +120,7 @@ static int getAllowNone(optFlags *optflgs);
 static int getDisallowNone(optFlags *optflgs);
 static const char *getVirtErrorHandler(optFlags *optflgs);
 static const char *getDocType(optFlags *optflgs);
-static const char *getDocValue(optFlags *optflgs);
+static const char *getTypeHintValue(optFlags *optflgs);
 static typeHintDef *getTypeHint(optFlags *optflgs);
 static void templateSignature(signatureDef *sd, int result, classTmplDef *tcd, templateDef *td, classDef *ncd);
 static void templateType(argDef *ad, classTmplDef *tcd, templateDef *td, classDef *ncd);
@@ -4251,7 +4251,7 @@ argtype:    cpptype optname optflags {
             }
 
             applyTypeFlags(currentModule, &$$, &$3);
-            $$.docval = getDocValue(&$3);
+            $$.typehintvalue = getTypeHintValue(&$3);
         }
     ;
 
@@ -8435,18 +8435,23 @@ static const char *getDocType(optFlags *optflgs)
 
 
 /*
- * Get the /DocValue/ option flag.
+ * Get the /TypeHintValue/ option flag.
  */
-static const char *getDocValue(optFlags *optflgs)
+static const char *getTypeHintValue(optFlags *optflgs)
 {
-    optFlag *of = getOptFlag(optflgs, "DocValue", string_flag);
+    optFlag *of = getOptFlag(optflgs, "TypeHintValue", string_flag);
 
-    if (of == NULL)
-        return NULL;
+    if (of != NULL)
+        return of->fvalue.sval;
 
-    deprecated("/DocValue/ is deprecated\n");
+    if ((of = getOptFlag(optflgs, "DocValue", string_flag)) != NULL)
+    {
+        deprecated("/DocValue/ is deprecated\n");
 
-    return of->fvalue.sval;
+        return of->fvalue.sval;
+    }
+
+    return NULL;
 }
 
 

@@ -794,7 +794,7 @@ typedef struct {
     int nrderefs;                       /* Nr. of dereferences. */
     int derefs[MAX_NR_DEREFS];          /* The const for each dereference. */
     valueDef *defval;                   /* The default value. */
-    const char *docval;                 /* The documented value. */
+    const char *typehintvalue;          /* The type hint value. */
     int key;                            /* The optional /KeepReference/ key. */
     struct _typedefDef *original_type;  /* The original type if typedef'd. */
     union {
