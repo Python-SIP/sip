@@ -65,7 +65,7 @@ static classDef *findClass(sipSpec *pt, ifaceFileType iftype,
 static classDef *findClassWithInterface(sipSpec *pt, ifaceFileDef *iff);
 static classDef *newClass(sipSpec *pt, ifaceFileType iftype,
         apiVersionRangeDef *api_range, scopedNameDef *snd,
-        const char *virt_error_handler);
+        const char *virt_error_handler, typeHintDef *typehint_in);
 static void finishClass(sipSpec *, moduleDef *, classDef *, optFlags *);
 static exceptionDef *findException(sipSpec *pt, scopedNameDef *fqname, int new);
 static mappedTypeDef *newMappedType(sipSpec *,argDef *, optFlags *);
@@ -123,6 +123,7 @@ static const char *getDocType(optFlags *optflgs);
 static const char *getTypeHintValue(optFlags *optflgs);
 static void getTypeHints(optFlags *optflgs, typeHintDef **in,
         typeHintDef **out);
+static typeHintDef *getTypeHintIn(optFlags *optflgs);
 static void templateSignature(signatureDef *sd, int result, classTmplDef *tcd, templateDef *td, classDef *ncd);
 static void templateType(argDef *ad, classTmplDef *tcd, templateDef *td, classDef *ncd);
 static int search_back(const char *end, const char *start, const char *target);
@@ -1242,7 +1243,7 @@ namespace:  TK_NAMESPACE TK_NAME_VALUE {
                     scope = NULL;
 
                 ns = newClass(currentSpec, namespace_iface, NULL,
-                        text2scopedName(scope, $2), NULL);
+                        text2scopedName(scope, $2), NULL, NULL);
 
                 pushScope(ns);
 
@@ -2846,6 +2847,7 @@ struct:     TK_STRUCT scopedname {
                     "PyQtInterface",
                     "PyQtNoQMetaObject",
                     "Supertype",
+                    "TypeHintIn",
                     "VirtualErrorHandler",
                     NULL
                 };
@@ -2921,6 +2923,7 @@ class:  TK_CLASS scopedname {
                     "PyQtInterface",
                     "PyQtNoQMetaObject",
                     "Supertype",
+                    "TypeHintIn",
                     "VirtualErrorHandler",
                     NULL
                 };
@@ -4913,7 +4916,7 @@ static exceptionDef *findException(sipSpec *pt, scopedNameDef *fqname, int new)
  */
 static classDef *newClass(sipSpec *pt, ifaceFileType iftype,
         apiVersionRangeDef *api_range, scopedNameDef *fqname,
-        const char *virt_error_handler)
+        const char *virt_error_handler, typeHintDef *typehint_in)
 {
     int flags;
     classDef *cd, *scope;
@@ -4960,6 +4963,7 @@ static classDef *newClass(sipSpec *pt, ifaceFileType iftype,
     cd->ecd = scope;
     cd->iff->module = currentModule;
     cd->virt_error_handler = virt_error_handler;
+    cd->typehint_in = typehint_in;
 
     if (currentIsTemplate)
         setIsTemplateClass(cd);
@@ -8470,17 +8474,8 @@ static void getTypeHints(optFlags *optflgs, typeHintDef **in,
     else
         thd = NULL;
 
-    if ((of = getOptFlag(optflgs, "TypeHintIn", string_flag)) != NULL)
-    {
-        if (thd != NULL)
-            yywarning("/TypeHintIn/ overrides /TypeHint/");
-
-        *in = newTypeHint(of->fvalue.sval);
-    }
-    else
-    {
-        *in = thd;
-    }
+    if ((*in = getTypeHintIn(optflgs)) != NULL && thd != NULL)
+        yywarning("/TypeHintIn/ overrides /TypeHint/");
 
     if ((of = getOptFlag(optflgs, "TypeHintOut", string_flag)) != NULL)
     {
@@ -8493,6 +8488,20 @@ static void getTypeHints(optFlags *optflgs, typeHintDef **in,
     {
         *out = thd;
     }
+}
+
+
+/*
+ * Get the /TypeHintIn/ option flag.
+ */
+static typeHintDef *getTypeHintIn(optFlags *optflgs)
+{
+    optFlag *of;
+
+    if ((of = getOptFlag(optflgs, "TypeHintIn", string_flag)) != NULL)
+        return newTypeHint(of->fvalue.sval);
+
+    return NULL;
 }
 
 
@@ -8566,7 +8575,7 @@ static void defineClass(scopedNameDef *snd, classList *supers, optFlags *of)
 
     cd = newClass(currentSpec, class_iface, getAPIRange(of),
             scopeScopedName((c_scope != NULL ? c_scope->iff : NULL), snd),
-            getVirtErrorHandler(of));
+            getVirtErrorHandler(of), getTypeHintIn(of));
     cd->supers = supers;
 
     pushScope(cd);

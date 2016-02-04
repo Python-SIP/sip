@@ -205,6 +205,7 @@
 #define CLASS2_MIXIN        0x02        /* The class is a mixin. */
 #define CLASS2_EXPORT_DERIVED   0x04    /* Export the derived class declaration. */
 #define CLASS2_NEEDS_CAST_FUNC  0x08    /* The class needs a cast function. */
+#define CLASS2_IS_RECURSING 0x10        /* A recursive process has started. */
 
 #define isTemplateArg(cd)   ((cd)->classflags2 & CLASS2_TMPL_ARG)
 #define setTemplateArg(cd)  ((cd)->classflags2 |= CLASS2_TMPL_ARG)
@@ -214,6 +215,9 @@
 #define setExportDerived(cd)    ((cd)->classflags2 |= CLASS2_EXPORT_DERIVED)
 #define needsCastFunction(cd)   ((cd)->classflags2 & CLASS2_NEEDS_CAST_FUNC)
 #define setNeedsCastFunction(cd)    ((cd)->classflags2 |= CLASS2_NEEDS_CAST_FUNC)
+#define setRecursing(cd)    ((cd)->classflags2 |= CLASS2_IS_RECURSING)
+#define resetRecursing(cd)  ((cd)->classflags2 &= ~CLASS2_IS_RECURSING)
+#define isRecursing(cd)     ((cd)->classflags2 & CLASS2_IS_RECURSING)
 
 
 /* Handle ctor flags.  These are combined with the section flags. */
@@ -1187,6 +1191,7 @@ typedef struct _classDef {
     codeBlockList *finalcode;           /* Finalisation code. */
     propertyDef *properties;            /* The properties. */
     const char *virt_error_handler;     /* The virtual error handler. */
+    typeHintDef *typehint_in;           /* The type hint code. */
     struct _classDef *next;             /* Next in the list. */
 } classDef;
 

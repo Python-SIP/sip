@@ -563,6 +563,18 @@ Class Annotations
     See the section :ref:`ref-types-metatypes` for more details.
 
 
+.. class-annotation:: TypeHintIn
+
+    .. versionadded:: 4.18
+
+    This string annotation specifies the type of the class as it will appear
+    in any generated docstrings and PEP 484 type hints when an instance of the
+    class is passed as an argument to a function (rather than being returned
+    from a function).  It is used with classes that implement
+    :directive:`%ConvertToTypeCode` to allow additional types to be used
+    whenever and instance of the class is expected.
+
+
 .. class-annotation:: VirtualErrorHandler
 
     .. versionadded:: 4.14

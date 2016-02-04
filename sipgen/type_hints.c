@@ -53,8 +53,8 @@ static void pyiTypeHint(sipSpec *pt, moduleDef *mod, typeHintDef *thd, int out,
         ifaceFileList *defined, FILE *fp);
 static void prIndent(int indent, FILE *fp);
 static int separate(int first, int indent, FILE *fp);
-static void prClassRef(classDef *cd, moduleDef *mod, ifaceFileList *defined,
-        FILE *fp);
+static void prClassRef(sipSpec *pt, classDef *cd, int out, moduleDef *mod,
+        ifaceFileList *defined, FILE *fp);
 static void prEnumRef(enumDef *ed, moduleDef *mod, ifaceFileList *defined,
         FILE *fp);
 static void prMappedTypeRef(sipSpec *pt, mappedTypeDef *mtd, int out,
@@ -299,7 +299,7 @@ static void pyiClass(sipSpec *pt, moduleDef *mod, classDef *cd,
             if (cl != cd->supers)
                 fprintf(fp, ", ");
 
-            prClassRef(cl->cd, mod, *defined, fp);
+            prClassRef(pt, cl->cd, TRUE, mod, *defined, fp);
         }
     }
     else if (cd->supertype != NULL)
@@ -749,7 +749,7 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, int sec,
 
         if (cd != NULL)
         {
-            prClassRef(cd, mod, defined, fp);
+            prClassRef(pt, cd, out, mod, defined, fp);
         }
         else if (mtd != NULL)
         {
@@ -807,7 +807,7 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, int sec,
         {
             /* The class should always be found. */
             if (pt->qobject_cd != NULL)
-                prClassRef(pt->qobject_cd, mod, defined, fp);
+                prClassRef(pt, pt->qobject_cd, out, mod, defined, fp);
             else
                 type_name = "Any";
         }
@@ -1027,21 +1027,34 @@ static int separate(int first, int indent, FILE *fp)
  * Generate a class reference, including its owning module if necessary and
  * handling forward references if necessary.
  */
-static void prClassRef(classDef *cd, moduleDef *mod, ifaceFileList *defined,
-        FILE *fp)
+static void prClassRef(sipSpec *pt, classDef *cd, int out, moduleDef *mod,
+        ifaceFileList *defined, FILE *fp)
 {
-    int is_defined = isDefined(cd->iff, cd->ecd, mod, defined);
+    typeHintDef *thd;
 
-    if (!is_defined)
-        fprintf(fp, "'");
+    thd = (out ? NULL : cd->typehint_in);
 
-    if (cd->iff->module != mod)
-        fprintf(fp, "%s.", cd->iff->module->name);
+    if (thd != NULL && !isRecursing(cd))
+    {
+        setRecursing(cd);
+        pyiTypeHint(pt, mod, cd->typehint_in, out, defined, fp);
+        resetRecursing(cd);
+    }
+    else
+    {
+        int is_defined = isDefined(cd->iff, cd->ecd, mod, defined);
 
-    prScopedPythonName(fp, cd->ecd, cd->pyname->text);
+        if (!is_defined)
+            fprintf(fp, "'");
 
-    if (!is_defined)
-        fprintf(fp, "'");
+        if (cd->iff->module != mod)
+            fprintf(fp, "%s.", cd->iff->module->name);
+
+        prScopedPythonName(fp, cd->ecd, cd->pyname->text);
+
+        if (!is_defined)
+            fprintf(fp, "'");
+    }
 }
 
 
@@ -1202,7 +1215,7 @@ static void pyiTypeHint(sipSpec *pt, moduleDef *mod, typeHintDef *thd, int out,
                 fprintf(fp, "%s", ths->before);
 
             if (ths->type.atype == class_type)
-                prClassRef(ths->type.u.cd, mod, defined, fp);
+                prClassRef(pt, ths->type.u.cd, out, mod, defined, fp);
             else if (ths->type.atype == enum_type)
                 prEnumRef(ths->type.u.ed, mod, defined, fp);
             else
