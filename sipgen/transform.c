@@ -86,8 +86,6 @@ static void addComplementarySlot(sipSpec *pt, classDef *cd, memberDef *md,
         slotType cslot, const char *cslot_name);
 static void resolveInstantiatedClassTemplate(sipSpec *pt, argDef *type);
 static void setStringPoolOffsets(sipSpec *pt);
-static char *templateString(const char *src, scopedNameDef *names,
-        scopedNameDef *values);
 static mappedTypeDef *copyTemplateType(mappedTypeDef *mtd, argDef *ad);
 static void checkProperties(classDef *cd);
 
@@ -3145,7 +3143,7 @@ static mappedTypeDef *instantiateMappedTypeTemplate(sipSpec *pt, moduleDef *mod,
  * Return a string based on an original with names replaced by corresponding
  * values.
  */
-static char *templateString(const char *src, scopedNameDef *names,
+char *templateString(const char *src, scopedNameDef *names,
         scopedNameDef *values)
 {
     char *dst = sipStrdup(src);

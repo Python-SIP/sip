@@ -202,9 +202,6 @@ static void pyiModule(sipSpec *pt, moduleDef *mod, FILE *fp)
     // FIXME: Types with slot extenders cannot have predictable arguments so
     // need to specify Any and NoTypeHint for the overloads in the originating
     // module. (QDataStream, QTextStream)
-    // FIXME: Add TypeHintIn to classes (not mapped types) with
-    // %ConvertToTypeCode to document auto-conversions (eg. List[QString]
-    // whenever a QStringList is allowed).
     // FIXME: Re-implement the docstring support.
     // %ConvertToTypeCode.
 

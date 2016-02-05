@@ -1358,6 +1358,8 @@ typeHintDef *newTypeHint(char *raw_hint);
 int isPyKeyword(const char *word);
 void getDefaultImplementation(sipSpec *pt, argType atype, classDef **cdp,
         mappedTypeDef **mtdp);
+char *templateString(const char *src, scopedNameDef *names,
+        scopedNameDef *values);
 
 
 /* These are only here because bison publically references them. */

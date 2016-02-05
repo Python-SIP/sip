@@ -5813,6 +5813,12 @@ static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod,
 
     cd->ecd = currentScope();
 
+    /* Handle any type hints. */
+    if (cd->typehint_in != NULL)
+        cd->typehint_in = newTypeHint(
+                templateString(cd->typehint_in->raw_hint, type_names,
+                        type_values));
+
     /* Handle the super-classes. */
     for (cl = cd->supers; cl != NULL; cl = cl->next)
     {
