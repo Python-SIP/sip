@@ -124,6 +124,7 @@ static const char *getTypeHintValue(optFlags *optflgs);
 static void getTypeHints(optFlags *optflgs, typeHintDef **in,
         typeHintDef **out);
 static typeHintDef *getTypeHintIn(optFlags *optflgs);
+static int getNoTypeHint(optFlags *optflgs);
 static void templateSignature(signatureDef *sd, int result, classTmplDef *tcd,
         templateDef *td, classDef *ncd, scopedNameDef *type_names,
         scopedNameDef *type_values);
@@ -2491,6 +2492,7 @@ enum:       TK_ENUM optname optflags {
             {
                 const char *annos[] = {
                     "NoScope",
+                    "NoTypeHint",
                     "PyName",
                     NULL
                 };
@@ -2536,6 +2538,7 @@ enumline:   ifstart
             if (notSkipping())
             {
                 const char *annos[] = {
+                    "NoTypeHint",
                     "PyName",
                     NULL
                 };
@@ -2547,11 +2550,12 @@ enumline:   ifstart
                 /* Note that we don't use the assigned value. */
                 emd = sipMalloc(sizeof (enumMemberDef));
 
-                emd -> pyname = cacheName(currentSpec,
+                emd->pyname = cacheName(currentSpec,
                         getPythonName(currentModule, &$3, $1));
-                emd -> cname = $1;
-                emd -> ed = currentEnum;
-                emd -> next = NULL;
+                emd->cname = $1;
+                emd->no_typehint = getNoTypeHint(&$3);
+                emd->ed = currentEnum;
+                emd->next = NULL;
 
                 checkAttributes(currentSpec, currentModule, emd->ed->ecd,
                         emd->ed->emtd, emd->pyname->text, FALSE);
@@ -2563,7 +2567,7 @@ enumline:   ifstart
                 *tail = emd;
 
                 if (inMainModule())
-                    setIsUsedName(emd -> pyname);
+                    setIsUsedName(emd->pyname);
             }
         }
     ;
@@ -2847,6 +2851,7 @@ struct:     TK_STRUCT scopedname {
                     "Metatype",
                     "Mixin",
                     "NoDefaultCtors",
+                    "NoTypeHint",
                     "PyName",
                     "PyQtFlags",
                     "PyQtInterface",
@@ -3415,6 +3420,7 @@ simplector: TK_NAME_VALUE '(' arglist ')' optexceptions optflags optctorsig ';' 
                     "KeywordArgs",
                     "NoDerived",
                     "NoRaisesPyException",
+                    "NoTypeHint",
                     "PostHook",
                     "PreHook",
                     "RaisesPyException",
@@ -4014,6 +4020,7 @@ variable:   cpptype TK_NAME_VALUE optflags variable_body ';' optaccesscode optge
                     "DocType",
                     "Encoding",
                     "NoSetter",
+                    "NoTypeHint",
                     "PyInt",
                     "PyName",
                     "TypeHint",
@@ -5011,6 +5018,7 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd,
     cd->pyname = NULL;
     checkAttributes(pt, mod, cd->ecd, NULL, pyname, FALSE);
     cd->pyname = cacheName(pt, pyname);
+    cd->no_typehint = getNoTypeHint(of);
 
     if ((flg = getOptFlag(of, "Metatype", dotted_name_flag)) != NULL)
         cd->metatype = cacheName(pt, flg->fvalue.sval);
@@ -5439,6 +5447,7 @@ static enumDef *newEnum(sipSpec *pt, moduleDef *mod, mappedTypeDef *mt_scope,
     }
 
     ed->enumflags = flags;
+    ed->no_typehint = getNoTypeHint(of);
     ed->enumnr = -1;
     ed->ecd = c_scope;
     ed->emtd = mt_scope;
@@ -6753,6 +6762,7 @@ static void newVar(sipSpec *pt, moduleDef *mod, char *name, int isstatic,
     var->ecd = escope;
     var->module = mod;
     var->varflags = 0;
+    var->no_typehint = getNoTypeHint(of);
     var->type = *type;
     appendCodeBlock(&var->accessfunc, acode);
     appendCodeBlock(&var->getcode, gcode);
@@ -6800,6 +6810,7 @@ static void newCtor(moduleDef *mod, char *name, int sectFlags,
     args->result.atype = void_type;
 
     ct->ctorflags = sectFlags;
+    ct->no_typehint = getNoTypeHint(optflgs);
     ct->api_range = getAPIRange(optflgs);
     ct->pysig = *args;
     ct->cppsig = (cppsig != NULL ? cppsig : &ct->pysig);
@@ -6894,6 +6905,7 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         "NoArgParser",
         "NoCopy",
         "NoRaisesPyException",
+        "NoTypeHint",
         "NoVirtualErrorHandler",
         "Numeric",
         "PostHook",
@@ -7024,6 +7036,8 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         resetIsSignal(od);
         setIsSlot(od);
     }
+
+    od->no_typehint = getNoTypeHint(optflgs);
 
     if (isSignal(od))
         if ((of = getOptFlag(optflgs, "PyQtSignalHack", integer_flag)) != NULL)
@@ -8547,6 +8561,15 @@ static typeHintDef *getTypeHintIn(optFlags *optflgs)
         return newTypeHint(of->fvalue.sval);
 
     return NULL;
+}
+
+
+/*
+ * Get the /NoTypeHint/ option flag.
+ */
+static int getNoTypeHint(optFlags *optflgs)
+{
+    return (getOptFlag(optflgs, "NoTypeHint", bool_flag) != NULL);
 }
 
 

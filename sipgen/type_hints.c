@@ -221,6 +221,9 @@ static void pyiModule(sipSpec *pt, moduleDef *mod, FILE *fp)
         if (isExternal(cd))
             continue;
 
+        if (cd->no_typehint)
+            continue;
+
         /* Only handle non-nested classes here. */
         if (cd->ecd != NULL)
             continue;
@@ -321,6 +324,9 @@ static void pyiClass(sipSpec *pt, moduleDef *mod, classDef *cd,
         if (isPrivateCtor(ct))
             continue;
 
+        if (ct->no_typehint)
+            continue;
+
         if (!inDefaultAPI(pt, ct->api_range))
             continue;
 
@@ -338,6 +344,9 @@ static void pyiClass(sipSpec *pt, moduleDef *mod, classDef *cd,
             if (isPrivate(od))
                 continue;
 
+            if (od->no_typehint)
+                continue;
+
             if (inDefaultAPI(pt, od->api_range))
             {
                 no_body = FALSE;
@@ -351,22 +360,31 @@ static void pyiClass(sipSpec *pt, moduleDef *mod, classDef *cd,
         enumDef *ed;
 
         for (ed = pt->enums; ed != NULL; ed = ed->next)
+        {
+            if (ed->no_typehint)
+                continue;
+
             if (ed->ecd == cd)
             {
                 no_body = FALSE;
                 break;
             }
-
+        }
     }
 
     if (no_body)
     {
         for (nested = pt->classes; nested != NULL; nested = nested->next)
+        {
+            if (nested->no_typehint)
+                continue;
+
             if (nested->ecd == cd)
             {
                 no_body = FALSE;
                 break;
             }
+        }
     }
 
     if (no_body)
@@ -374,11 +392,16 @@ static void pyiClass(sipSpec *pt, moduleDef *mod, classDef *cd,
         varDef *vd;
 
         for (vd = pt->vars; vd != NULL; vd = vd->next)
+        {
+            if (vd->no_typehint)
+                continue;
+
             if (vd->ecd == cd)
             {
                 no_body = FALSE;
                 break;
             }
+        }
     }
 
     fprintf(fp, "):%s\n", (no_body ? " ..." : ""));
@@ -392,7 +415,7 @@ static void pyiClass(sipSpec *pt, moduleDef *mod, classDef *cd,
     {
         classDef *impl = getClassImplementation(pt, nested);
 
-        if (impl != NULL && impl->ecd == cd)
+        if (impl != NULL && impl->ecd == cd && !impl->no_typehint)
             pyiClass(pt, mod, impl, defined, indent, fp);
     }
 
@@ -405,6 +428,9 @@ static void pyiClass(sipSpec *pt, moduleDef *mod, classDef *cd,
         int implicit_overloads, overloaded;
 
         if (isPrivateCtor(ct))
+            continue;
+
+        if (ct->no_typehint)
             continue;
 
         if (!inDefaultAPI(pt, ct->api_range))
@@ -455,12 +481,16 @@ static void pyiMappedType(sipSpec *pt, moduleDef *mod, mappedTypeDef *mtd,
         enumDef *ed;
 
         for (ed = pt->enums; ed != NULL; ed = ed->next)
+        {
+            if (ed->no_typehint)
+                continue;
+
             if (ed->emtd == mtd)
             {
                 no_body = FALSE;
                 break;
             }
-
+        }
     }
 
     if (!no_body)
@@ -531,6 +561,9 @@ static void pyiEnums(sipSpec *pt, moduleDef *mod, ifaceFileDef *scope,
         if (ed->module != mod)
             continue;
 
+        if (ed->no_typehint)
+            continue;
+
         if (scope != NULL)
         {
             if ((ed->ecd == NULL || ed->ecd->iff != scope) && (ed->emtd == NULL || ed->emtd->iff != scope))
@@ -551,6 +584,9 @@ static void pyiEnums(sipSpec *pt, moduleDef *mod, ifaceFileDef *scope,
 
         for (emd = ed->members; emd != NULL; emd = emd->next)
         {
+            if (emd->no_typehint)
+                continue;
+
             prIndent(indent, fp);
             fprintf(fp, "%s = ... # type: ", emd->pyname->text);
 
@@ -580,6 +616,9 @@ static void pyiVars(sipSpec *pt, moduleDef *mod, classDef *scope,
             continue;
 
         if (vd->ecd != scope)
+            continue;
+
+        if (vd->no_typehint)
             continue;
 
         first = separate(first, indent, fp);
@@ -613,6 +652,9 @@ static void pyiCallable(sipSpec *pt, moduleDef *mod, memberDef *md,
         if (od->common != md)
             continue;
 
+        if (od->no_typehint)
+            continue;
+
         if (!inDefaultAPI(pt, od->api_range))
             continue;
 
@@ -628,6 +670,9 @@ static void pyiCallable(sipSpec *pt, moduleDef *mod, memberDef *md,
             continue;
 
         if (od->common != md)
+            continue;
+
+        if (od->no_typehint)
             continue;
 
         if (!inDefaultAPI(pt, od->api_range))

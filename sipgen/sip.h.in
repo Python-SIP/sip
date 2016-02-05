@@ -1023,8 +1023,9 @@ typedef struct _typedefDef {
 
 /* A variable definition. */
 typedef struct _varDef {
-    nameDef *pyname;                    /* The variable Python name. */
     scopedNameDef *fqcname;             /* The fully qualified C/C++ name. */
+    nameDef *pyname;                    /* The variable Python name. */
+    int no_typehint;                    /* The type hint will be suppressed. */
     struct _classDef *ecd;              /* The enclosing class. */
     moduleDef *module;                  /* The owning module. */
     int varflags;                       /* The variable flags. */
@@ -1051,6 +1052,7 @@ typedef struct _overDef {
     sourceLocation sloc;                /* The source location. */
     char *cppname;                      /* The C++ name. */
     int overflags;                      /* The overload flags. */
+    int no_typehint;                    /* The type hint will be suppressed. */
     int pyqt_signal_hack;               /* The PyQt signal hack. */
     KwArgs kwargs;                      /* The keyword argument support. */
     struct _memberDef *common;          /* Common parts. */
@@ -1071,6 +1073,7 @@ typedef struct _overDef {
 /* An overloaded constructor definition. */
 typedef struct _ctorDef {
     int ctorflags;                      /* The ctor flags. */
+    int no_typehint;                    /* The type hint will be suppressed. */
     KwArgs kwargs;                      /* The keyword argument support. */
     apiVersionRangeDef *api_range;      /* The optional API version range. */
     signatureDef pysig;                 /* The Python signature. */
@@ -1086,6 +1089,7 @@ typedef struct _ctorDef {
 /* An enumerated type member definition. */
 typedef struct _enumMemberDef {
     nameDef *pyname;                    /* The Python name. */
+    int no_typehint;                    /* The type hint will be suppressed. */
     char *cname;                        /* The C/C++ name. */
     struct _enumDef *ed;                /* The enclosing enum. */
     struct _enumMemberDef *next;        /* Next in the list. */
@@ -1095,9 +1099,10 @@ typedef struct _enumMemberDef {
 /* An enumerated type definition. */
 typedef struct _enumDef {
     int enumflags;                      /* The enum flags. */
-    nameDef *pyname;                    /* The Python name (may be NULL). */
     scopedNameDef *fqcname;             /* The C/C++ name (may be NULL). */
     nameDef *cname;                     /* The C/C++ name (may be NULL). */
+    nameDef *pyname;                    /* The Python name (may be NULL). */
+    int no_typehint;                    /* The type hint will be suppressed. */
     struct _enumDef *first_alt;         /* The first alternate API. */
     struct _enumDef *next_alt;          /* The next alternate API. */
     int enumnr;                         /* The enum number. */
@@ -1161,6 +1166,7 @@ typedef struct _classDef {
     int pyqt_flags;                     /* The PyQt specific flags. */
     const char *pyqt_interface;         /* The Qt interface name. */
     nameDef *pyname;                    /* The Python name. */
+    int no_typehint;                    /* The type hint will be suppressed. */
     ifaceFileDef *iff;                  /* The interface file. */
     struct _classDef *ecd;              /* The enclosing scope. */
     struct _classDef *real;             /* The real class if this is a proxy or extender. */

@@ -77,6 +77,7 @@ static classDef *findAltClassImplementation(sipSpec *pt, mappedTypeDef *mtd);
 static void filterMainModuleVirtualHandlers(moduleDef *mod);
 static void filterModuleVirtualHandlers(moduleDef *mod);
 static ifaceFileDef *getIfaceFile(argDef *ad);
+static ifaceFileDef *getIfaceFileForEnum(enumDef *ed);
 static mappedTypeDef *instantiateMappedTypeTemplate(sipSpec *pt, moduleDef *mod, mappedTypeTmplDef *mtt, argDef *type);
 static classDef *getProxy(moduleDef *mod, classDef *cd);
 static int generatingCodeForModule(sipSpec *pt, moduleDef *mod);
@@ -685,6 +686,7 @@ static void moveClassCasts(sipSpec *pt, moduleDef *mod, classDef *cd)
         {
             ifaceFileIsUsed(&mod->used, ad);
             dcd = getProxy(mod, dcd);
+            ct->no_typehint = TRUE;
         }
 
         ifaceFileIsUsed(&dcd->iff->used, ad);
@@ -724,7 +726,7 @@ static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd)
         memberDef *md, **mdhead;
         overDef **odhead;
         moduleDef *mod;
-        nameDef *nd;
+        enumDef *ed;
 
         if (od->common != gmd)
         {
@@ -743,7 +745,7 @@ static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd)
 
         mdhead = NULL;
         second = FALSE;
-        nd = NULL;
+        ed = NULL;
 
         if (arg0->atype == class_type)
         {
@@ -767,7 +769,7 @@ static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd)
             mdhead = &arg0->u.ed->slots;
             odhead = &arg0->u.ed->overs;
             mod = arg0->u.ed->module;
-            nd = arg0->u.ed->pyname;
+            ed = arg0->u.ed;
         }
         else if (arg1->atype == class_type)
         {
@@ -793,7 +795,7 @@ static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd)
             mdhead = &arg1->u.ed->slots;
             odhead = &arg1->u.ed->overs;
             mod = arg1->u.ed->module;
-            nd = arg1->u.ed->pyname;
+            ed = arg1->u.ed;
             second = TRUE;
         }
 
@@ -863,6 +865,7 @@ static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd)
                 pod = sipMalloc(sizeof (overDef));
 
                 *pod = *od;
+                pod->no_typehint = TRUE;
                 pod->common = pmd;
                 pod->next = pcd->overs;
 
@@ -884,9 +887,16 @@ static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd)
         /* Remove from the list. */
         *odp = od->next;
 
-        /* The only time we need the name of an enum is when it has slots. */
-        if (nd != NULL)
-            setIsUsedName(nd);
+        if (ed != NULL)
+        {
+            ifaceFileDef *enum_iff = getIfaceFileForEnum(ed);
+
+            /* The slot code is generated at the module level. */
+            if (enum_iff != NULL)
+                appendToIfaceFileList(&mod->used, enum_iff);
+
+            setIsUsedName(ed->pyname);
+        }
 
         /* See if there is already a member or create a new one. */
         for (md = *mdhead; md != NULL; md = md->next)
@@ -3521,6 +3531,24 @@ static void ifaceFileIsUsed(ifaceFileList **used, argDef *ad)
 
 
 /*
+ * Return the interface file for an enum, or NULL if it doesn't have one.
+ */
+static ifaceFileDef *getIfaceFileForEnum(enumDef *ed)
+{
+    if (ed->fqcname != NULL)
+    {
+        if (ed->ecd != NULL)
+            return ed->ecd->iff;
+
+        if (ed->emtd != NULL)
+            return ed->emtd->iff;
+    }
+
+    return NULL;
+}
+
+
+/*
  * Return the interface file for a type, or NULL if it doesn't have one.
  */
 static ifaceFileDef *getIfaceFile(argDef *ad)
@@ -3538,22 +3566,8 @@ static ifaceFileDef *getIfaceFile(argDef *ad)
         break;
 
     case enum_type:
-        if (ad->u.ed->fqcname != NULL)
-        {
-            if (ad->u.ed->ecd != NULL)
-            {
-                iff = ad->u.ed->ecd->iff;
-                break;
-            }
-
-            if (ad->u.ed->emtd != NULL)
-            {
-                iff = ad->u.ed->emtd->iff;
-                break;
-            }
-        }
-
-        /* Drop through. */
+        iff = getIfaceFileForEnum(ad->u.ed);
+        break;
 
     default:
         iff = NULL;
