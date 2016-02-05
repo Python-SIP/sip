@@ -186,6 +186,7 @@ static void mappedTypeAnnos(mappedTypeDef *mtd, optFlags *optflgs);
 static void add_new_deref(argDef *new, argDef *orig, int isconst);
 static void add_derefs(argDef *dst, argDef *src);
 static int isBackstop(qualDef *qd);
+static void checkEllipsis(signatureDef *sd);
 %}
 
 %union {
@@ -3852,10 +3853,6 @@ rawarglist: {
             if ($1.nrArgs == 0)
                 yyerror("First argument of the list is missing");
 
-            /* Check there is nothing after an ellipsis. */
-            if ($1.args[$1.nrArgs - 1].atype == ellipsis_type)
-                yyerror("An ellipsis must be at the end of the argument list");
-
             /*
              * If this argument has no default value, then the
              * previous one mustn't either.
@@ -7170,6 +7167,17 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         if (methodcode == NULL)
             yyerror("%MethodCode must be supplied if /NoArgParser/ is specified");
     }
+    else
+    {
+        /*
+         * The argument parser requires that there is nothing after an
+         * ellipsis.
+         */
+        checkEllipsis(sig);
+    }
+
+    if (cppsig != NULL)
+        checkEllipsis(cppsig);
 
     if (getOptFlag(optflgs, "NoCopy", bool_flag) != NULL)
         setNoCopy(&od->pysig.result);
@@ -9188,4 +9196,17 @@ int isPyKeyword(const char *word)
             return TRUE;
 
     return FALSE;
+}
+
+
+/*
+ * Check there is nothing after an ellipsis.
+ */
+static void checkEllipsis(signatureDef *sd)
+{
+    int a;
+
+    for (a = 0; a < sd->nrArgs; ++a)
+        if (sd->args[a].atype == ellipsis_type && a < sd->nrArgs - 1)
+            yyerror("An ellipsis must be at the end of the argument list if /NoArgParser/ is not specified");
 }

@@ -198,12 +198,11 @@ static void pyiModule(sipSpec *pt, moduleDef *mod, FILE *fp)
 
     // FIXME: Have a NoTypeHint function anno that suppresses the generation of
     // any type hint - on the assumption that it will be implemented in
-    // handwritten code. (Handle pyqtSlot, pyqtConfigure, pyqtSignature?)
-    // FIXME: Add NoTypeHint to QFlags(int).
-    // FIXME: Implement TypeHintCode. Rename ModuleTypeHintCode to TypeHintCode?
+    // handwritten code.
     // FIXME: Types with slot extenders cannot have predictable arguments so
     // need to specify Any and NoTypeHint for the overloads in the originating
-    // module. (QDataStream, QTextStream)
+    // module. (QDataStream, QTextStream)  Apply NoTypeHint automatically in
+    // the sub-modules.
     // FIXME: Re-implement the docstring support.
     // %ConvertToTypeCode.
 
@@ -713,6 +712,15 @@ static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int arg_nr,
 
     pyiType(pt, mod, ad, out, sec, defined, fp);
 
+    if (names && ad->atype == ellipsis_type)
+    {
+        if (ad->name != NULL)
+            fprintf(fp, "%s%s", ad->name->text,
+                    (isPyKeyword(ad->name->text) ? "_" : ""));
+        else
+            fprintf(fp, "a%d", arg_nr);
+    }
+
     if (optional)
         fprintf(fp, "]");
 
@@ -888,7 +896,7 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, int sec,
         break;
 
     case ellipsis_type:
-        type_name = "*args";
+        type_name = "*";
         break;
 
     case slotcon_type:
