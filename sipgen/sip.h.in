@@ -104,6 +104,15 @@
 #define isCallSuperInitUndefined(m) (((m)->modflags & MOD_SUPER_INIT_MASK) == MOD_SUPER_INIT_UNDEF)
 
 
+/* Handle the interface file flags. */
+
+#define IFACE_IS_RECURSING  0x01        /* A recursive process has started. */
+
+#define setRecursing(iff)   ((iff)->ifaceflags |= IFACE_IS_RECURSING)
+#define resetRecursing(iff) ((iff)->ifaceflags &= ~IFACE_IS_RECURSING)
+#define isRecursing(iff)    ((iff)->ifaceflags & IFACE_IS_RECURSING)
+
+
 /* Handle section flags. */
 
 #define SECT_IS_PUBLIC      0x01        /* It is public. */
@@ -201,11 +210,11 @@
 
 
 /* Handle the second group of class flags. */
+
 #define CLASS2_TMPL_ARG     0x01        /* The class is a template argument. */
 #define CLASS2_MIXIN        0x02        /* The class is a mixin. */
 #define CLASS2_EXPORT_DERIVED   0x04    /* Export the derived class declaration. */
 #define CLASS2_NEEDS_CAST_FUNC  0x08    /* The class needs a cast function. */
-#define CLASS2_IS_RECURSING 0x10        /* A recursive process has started. */
 
 #define isTemplateArg(cd)   ((cd)->classflags2 & CLASS2_TMPL_ARG)
 #define setTemplateArg(cd)  ((cd)->classflags2 |= CLASS2_TMPL_ARG)
@@ -215,9 +224,6 @@
 #define setExportDerived(cd)    ((cd)->classflags2 |= CLASS2_EXPORT_DERIVED)
 #define needsCastFunction(cd)   ((cd)->classflags2 & CLASS2_NEEDS_CAST_FUNC)
 #define setNeedsCastFunction(cd)    ((cd)->classflags2 |= CLASS2_NEEDS_CAST_FUNC)
-#define setRecursing(cd)    ((cd)->classflags2 |= CLASS2_IS_RECURSING)
-#define resetRecursing(cd)  ((cd)->classflags2 &= ~CLASS2_IS_RECURSING)
-#define isRecursing(cd)     ((cd)->classflags2 & CLASS2_IS_RECURSING)
 
 
 /* Handle ctor flags.  These are combined with the section flags. */
@@ -931,6 +937,7 @@ typedef struct _ifaceFileDef {
     struct _ifaceFileDef *first_alt;    /* The first alternate API. */
     struct _ifaceFileDef *next_alt;     /* The next alternate API. */
     ifaceFileType type;                 /* Interface file type. */
+    int ifaceflags;                     /* The flags. */
     int ifacenr;                        /* The index into the types table. */
     scopedNameDef *fqcname;             /* The fully qualified C++ name. */
     moduleDef *module;                  /* The owning module. */

@@ -199,6 +199,8 @@ static void pyiModule(sipSpec *pt, moduleDef *mod, FILE *fp)
     // FIXME: Have a NoTypeHint function anno that suppresses the generation of
     // any type hint - on the assumption that it will be implemented in
     // handwritten code. (Handle pyqtSlot, pyqtConfigure, pyqtSignature?)
+    // FIXME: Add NoTypeHint to QFlags(int).
+    // FIXME: Implement TypeHintCode. Rename ModuleTypeHintCode to TypeHintCode?
     // FIXME: Types with slot extenders cannot have predictable arguments so
     // need to specify Any and NoTypeHint for the overloads in the originating
     // module. (QDataStream, QTextStream)
@@ -1031,11 +1033,11 @@ static void prClassRef(sipSpec *pt, classDef *cd, int out, moduleDef *mod,
 
     thd = (out ? NULL : cd->typehint_in);
 
-    if (thd != NULL && !isRecursing(cd))
+    if (thd != NULL && !isRecursing(cd->iff))
     {
-        setRecursing(cd);
+        setRecursing(cd->iff);
         pyiTypeHint(pt, mod, cd->typehint_in, out, defined, fp);
-        resetRecursing(cd);
+        resetRecursing(cd->iff);
     }
     else
     {
@@ -1088,9 +1090,11 @@ static void prMappedTypeRef(sipSpec *pt, mappedTypeDef *mtd, int out,
 
     thd = (out ? mtd->typehint_out : mtd->typehint_in);
 
-    if (thd != NULL)
+    if (thd != NULL && !isRecursing(mtd->iff))
     {
+        setRecursing(mtd->iff);
         pyiTypeHint(pt, mod, thd, out, defined, fp);
+        resetRecursing(mtd->iff);
     }
     else if (mtd->pyname != NULL)
     {

@@ -124,8 +124,11 @@ static const char *getTypeHintValue(optFlags *optflgs);
 static void getTypeHints(optFlags *optflgs, typeHintDef **in,
         typeHintDef **out);
 static typeHintDef *getTypeHintIn(optFlags *optflgs);
-static void templateSignature(signatureDef *sd, int result, classTmplDef *tcd, templateDef *td, classDef *ncd);
-static void templateType(argDef *ad, classTmplDef *tcd, templateDef *td, classDef *ncd);
+static void templateSignature(signatureDef *sd, int result, classTmplDef *tcd,
+        templateDef *td, classDef *ncd, scopedNameDef *type_names,
+        scopedNameDef *type_values);
+static void templateType(argDef *ad, classTmplDef *tcd, templateDef *td,
+        classDef *ncd, scopedNameDef *type_names, scopedNameDef *type_values);
 static int search_back(const char *end, const char *start, const char *target);
 static char *type2string(argDef *ad);
 static char *scopedNameToString(scopedNameDef *name);
@@ -144,7 +147,8 @@ static void instantiateTemplateVars(sipSpec *pt, classTmplDef *tcd,
         templateDef *td, classDef *cd, ifaceFileList **used,
         scopedNameDef *type_names, scopedNameDef *type_values);
 static void instantiateTemplateTypedefs(sipSpec *pt, classTmplDef *tcd,
-        templateDef *td, classDef *cd);
+        templateDef *td, classDef *cd, scopedNameDef *type_names,
+        scopedNameDef *type_values);
 static overDef *instantiateTemplateOverloads(sipSpec *pt, overDef *tod,
         memberDef *tmethods, memberDef *methods, classTmplDef *tcd,
         templateDef *td, classDef *cd, ifaceFileList **used,
@@ -5860,7 +5864,7 @@ static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod,
     instantiateTemplateVars(pt, tcd, td, cd, used, type_names, type_values);
 
     /* Handle the typedefs. */
-    instantiateTemplateTypedefs(pt, tcd, td, cd);
+    instantiateTemplateTypedefs(pt, tcd, td, cd, type_names, type_values);
 
     /* Handle the ctors. */
     cd->ctors = NULL;
@@ -5873,7 +5877,8 @@ static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod,
         /* Start with a shallow copy. */
         *nct = *oct;
 
-        templateSignature(&nct->pysig, FALSE, tcd, td, cd);
+        templateSignature(&nct->pysig, FALSE, tcd, td, cd, type_names,
+                type_values);
 
         if (oct->cppsig == NULL)
             nct->cppsig = NULL;
@@ -5885,7 +5890,8 @@ static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod,
 
             *nct->cppsig = *oct->cppsig;
 
-            templateSignature(nct->cppsig, FALSE, tcd, td, cd);
+            templateSignature(nct->cppsig, FALSE, tcd, td, cd, type_names,
+                    type_values);
         }
 
         nct->methodcode = templateCode(pt, used, nct->methodcode, type_names, type_values);
@@ -5993,7 +5999,8 @@ static overDef *instantiateTemplateOverloads(sipSpec *pt, overDef *tod,
                 break;
             }
 
-        templateSignature(&nod->pysig, TRUE, tcd, td, cd);
+        templateSignature(&nod->pysig, TRUE, tcd, td, cd, type_names,
+                type_values);
 
         if (od->cppsig == &od->pysig)
             nod->cppsig = &nod->pysig;
@@ -6003,7 +6010,8 @@ static overDef *instantiateTemplateOverloads(sipSpec *pt, overDef *tod,
 
             *nod->cppsig = *od->cppsig;
 
-            templateSignature(nod->cppsig, TRUE, tcd, td, cd);
+            templateSignature(nod->cppsig, TRUE, tcd, td, cd, type_names,
+                    type_values);
         }
 
         nod->methodcode = templateCode(pt, used, nod->methodcode, type_names, type_values);
@@ -6132,7 +6140,7 @@ static void instantiateTemplateVars(sipSpec *pt, classTmplDef *tcd,
             vd->ecd = cd;
             vd->module = cd->iff->module;
 
-            templateType(&vd->type, tcd, td, cd);
+            templateType(&vd->type, tcd, td, cd, type_names, type_values);
 
             vd->accessfunc = templateCode(pt, used, vd->accessfunc, type_names, type_values);
             vd->getcode = templateCode(pt, used, vd->getcode, type_names, type_values);
@@ -6147,7 +6155,8 @@ static void instantiateTemplateVars(sipSpec *pt, classTmplDef *tcd,
  * Instantiate the typedefs of a template class.
  */
 static void instantiateTemplateTypedefs(sipSpec *pt, classTmplDef *tcd,
-        templateDef *td, classDef *cd)
+        templateDef *td, classDef *cd, scopedNameDef *type_names,
+        scopedNameDef *type_values)
 {
     typedefDef *tdd;
 
@@ -6168,7 +6177,7 @@ static void instantiateTemplateTypedefs(sipSpec *pt, classTmplDef *tcd,
         new_tdd->ecd = cd;
         new_tdd->module = cd->iff->module;
 
-        templateType(&new_tdd->type, tcd, td, cd);
+        templateType(&new_tdd->type, tcd, td, cd, type_names, type_values);
 
         addTypedef(pt, new_tdd);
     }
@@ -6178,22 +6187,25 @@ static void instantiateTemplateTypedefs(sipSpec *pt, classTmplDef *tcd,
 /*
  * Replace any template arguments in a signature.
  */
-static void templateSignature(signatureDef *sd, int result, classTmplDef *tcd, templateDef *td, classDef *ncd)
+static void templateSignature(signatureDef *sd, int result, classTmplDef *tcd,
+        templateDef *td, classDef *ncd, scopedNameDef *type_names,
+        scopedNameDef *type_values)
 {
     int a;
 
     if (result)
-        templateType(&sd->result, tcd, td, ncd);
+        templateType(&sd->result, tcd, td, ncd, type_names, type_values);
 
     for (a = 0; a < sd->nrArgs; ++a)
-        templateType(&sd->args[a], tcd, td, ncd);
+        templateType(&sd->args[a], tcd, td, ncd, type_names, type_values);
 }
 
 
 /*
  * Replace any template arguments in a type.
  */
-static void templateType(argDef *ad, classTmplDef *tcd, templateDef *td, classDef *ncd)
+static void templateType(argDef *ad, classTmplDef *tcd, templateDef *td,
+        classDef *ncd, scopedNameDef *type_names, scopedNameDef *type_values)
 {
     int a;
     char *name;
@@ -6207,10 +6219,22 @@ static void templateType(argDef *ad, classTmplDef *tcd, templateDef *td, classDe
         *new_td = *ad->u.td;
         ad->u.td = new_td;
 
-        templateSignature(&ad->u.td->types, FALSE, tcd, td, ncd);
+        templateSignature(&ad->u.td->types, FALSE, tcd, td, ncd, type_names,
+                type_values);
 
         return;
     }
+
+    /* Handle any type hints. */
+    if (ad->typehint_in != NULL)
+        ad->typehint_in = newTypeHint(
+                templateString(ad->typehint_in->raw_hint, type_names,
+                        type_values));
+
+    if (ad->typehint_out != NULL)
+        ad->typehint_out = newTypeHint(
+                templateString(ad->typehint_out->raw_hint, type_names,
+                        type_values));
 
     /* Ignore if it isn't an unscoped name. */
     if (ad->atype != defined_type || ad->u.snd->next != NULL)
@@ -8480,8 +8504,15 @@ static void getTypeHints(optFlags *optflgs, typeHintDef **in,
     else
         thd = NULL;
 
-    if ((*in = getTypeHintIn(optflgs)) != NULL && thd != NULL)
-        yywarning("/TypeHintIn/ overrides /TypeHint/");
+    if ((*in = getTypeHintIn(optflgs)) != NULL)
+    {
+        if (thd != NULL)
+            yywarning("/TypeHintIn/ overrides /TypeHint/");
+    }
+    else
+    {
+        *in = thd;
+    }
 
     if ((of = getOptFlag(optflgs, "TypeHintOut", string_flag)) != NULL)
     {
