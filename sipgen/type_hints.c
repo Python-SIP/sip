@@ -196,16 +196,6 @@ static void pyiModule(sipSpec *pt, moduleDef *mod, FILE *fp)
     if (mod->typehintcode != NULL)
         pyiTypeHintCode(mod->typehintcode, fp);
 
-    // FIXME: Have a NoTypeHint function anno that suppresses the generation of
-    // any type hint - on the assumption that it will be implemented in
-    // handwritten code.
-    // FIXME: Types with slot extenders cannot have predictable arguments so
-    // need to specify Any and NoTypeHint for the overloads in the originating
-    // module. (QDataStream, QTextStream)  Apply NoTypeHint automatically in
-    // the sub-modules.
-    // FIXME: Re-implement the docstring support.
-    // %ConvertToTypeCode.
-
     /* Generate the types - global enums must be first. */
     pyiEnums(pt, mod, NULL, NULL, 0, fp);
 

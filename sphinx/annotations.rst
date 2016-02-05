@@ -543,6 +543,14 @@ Class Annotations
     default constructors for the class.
 
 
+.. enum-annotation:: NoTypeHint
+
+    .. versionadded:: 4.18
+
+    This boolean annotation is used to suppress the generation of the PEP 484
+    type hint for the class and its contents.
+
+
 .. class-annotation:: PyName
 
     This name annotation specifies an alternative name for the class being
@@ -695,6 +703,14 @@ Enum Annotations
     generated code will not compile.  However it is useful when defining
     pseudo-enums, for example, to wrap global values so that they are defined
     (in Python) within the scope of a class.
+
+
+.. enum-annotation:: NoTypeHint
+
+    .. versionadded:: 4.18
+
+    This boolean annotation is used to suppress the generation of the PEP 484
+    type hint for the enum or enum member.
 
 
 .. enum-annotation:: PyName
@@ -961,6 +977,14 @@ Function Annotations
     raise a Python exception to indicate that an error occurred.
 
     .. seealso:: :fanno:`RaisesPyException`
+
+
+.. function-annotation:: NoTypeHint
+
+    .. versionadded:: 4.18
+
+    This boolean annotation is used to suppress the generation of the PEP 484
+    type hint for the function or constructor.
 
 
 .. function-annotation:: NoVirtualErrorHandler
@@ -1261,6 +1285,14 @@ Variable Annotations
     will be read-only.  Because SIP does not fully understand C/C++ types
     (particularly ``const`` arrays) it is sometimes necessary to explicitly
     annotate a variable as being read-only.
+
+
+.. variable-annotation:: NoTypeHint
+
+    .. versionadded:: 4.18
+
+    This boolean annotation is used to suppress the generation of the PEP 484
+    type hint for the variable.
 
 
 .. variable-annotation:: PyInt
