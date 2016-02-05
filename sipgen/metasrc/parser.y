@@ -239,7 +239,7 @@ static void checkEllipsis(signatureDef *sd);
 %token          TK_PLUGIN
 %token          TK_VIRTERRORHANDLER
 %token          TK_EXPTYPEHINTCODE
-%token          TK_MODTYPEHINTCODE
+%token          TK_TYPEHINTCODE
 %token          TK_DOCSTRING
 %token          TK_DOC
 %token          TK_EXPORTEDDOC
@@ -2255,7 +2255,7 @@ exptypehintcode: TK_EXPTYPEHINTCODE codeblock {
         }
     ;
 
-modtypehintcode: TK_MODTYPEHINTCODE codeblock {
+modtypehintcode: TK_TYPEHINTCODE codeblock {
             if (notSkipping())
                 appendCodeBlock(&currentModule->typehintcode, $2);
         }

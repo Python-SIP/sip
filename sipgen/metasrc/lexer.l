@@ -499,10 +499,10 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
     return TK_EXPTYPEHINTCODE;
 }
 
-^[ \t]*%ModuleTypeHintCode {
-    /* The start of a module type hint code block. */
+^[ \t]*%TypeHintCode {
+    /* The start of a type hint code block. */
     codeIdx = 0;
-    return TK_MODTYPEHINTCODE;
+    return TK_TYPEHINTCODE;
 }
 
 ^[ \t]*%Docstring {

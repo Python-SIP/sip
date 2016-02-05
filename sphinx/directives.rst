@@ -1072,7 +1072,7 @@ This directive is used to specify handwritten code, typically the declarations
 of types, that is placed in the PEP 484 type hint stub file for this module and
 any module that imports it.
 
-.. seealso:: :directive:`%ModuleTypeHintCode`
+.. seealso:: :directive:`%TypeHintCode`
 
 
 .. directive:: %Extract
@@ -2024,23 +2024,6 @@ For example::
 .. seealso:: :directive:`%ExportedHeaderCode`, :directive:`%ModuleCode`
 
 
-.. directive:: %ModuleTypeHintCode
-
-.. versionadded:: 4.18
-
-.. parsed-literal::
-
-    %ModuleTypeHintCode
-        *code*
-    %End
-
-This directive is used to specify handwritten code, typically the import of
-additional modules, that is placed in the PEP 484 type hint stub file for this
-module.
-
-.. seealso:: :directive:`%ExportedTypeHintCode`
-
-
 .. directive:: %OptionalInclude
 
 .. parsed-literal::
@@ -2401,6 +2384,23 @@ For example::
 
         // The rest of the class specification.
     };
+
+
+.. directive:: %TypeHintCode
+
+.. versionadded:: 4.18
+
+.. parsed-literal::
+
+    %TypeHintCode
+        *code*
+    %End
+
+This directive is used to specify handwritten code, typically the import of
+additional modules, that is placed in the PEP 484 type hint stub file for this
+module.
+
+.. seealso:: :directive:`%ExportedTypeHintCode`
 
 
 .. directive:: %UnitCode
