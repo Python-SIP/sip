@@ -4036,7 +4036,7 @@ variable:   cpptype TK_NAME_VALUE optflags variable_body ';' optaccesscode optge
 
                     $4.access_code = $6;
 
-                    deprecated("%AccessCode should be used a sub-directive");
+                    deprecated("%AccessCode should be used as a sub-directive");
                 }
 
                 if ($7 != NULL)
@@ -4046,7 +4046,7 @@ variable:   cpptype TK_NAME_VALUE optflags variable_body ';' optaccesscode optge
 
                     $4.get_code = $7;
 
-                    deprecated("%GetCode should be used a sub-directive");
+                    deprecated("%GetCode should be used as a sub-directive");
                 }
 
                 if ($8 != NULL)
@@ -4056,7 +4056,7 @@ variable:   cpptype TK_NAME_VALUE optflags variable_body ';' optaccesscode optge
 
                     $4.set_code = $8;
 
-                    deprecated("%SetCode should be used a sub-directive");
+                    deprecated("%SetCode should be used as a sub-directive");
                 }
 
                 newVar(currentSpec, currentModule, $2, currentIsStatic, &$1,
