@@ -2201,10 +2201,15 @@ static void resolveVariableType(sipSpec *pt, varDef *vd)
         ;
     }
 
-    if (bad && (vd->getcode == NULL || vd->setcode == NULL))
+    if (bad && (vd->getcode == NULL || (!noSetter(vd) && vd->setcode == NULL)))
     {
         fatalScopedName(vd->fqcname);
-        fatal(" has an unsupported type - provide %%GetCode and %%SetCode\n");
+        fatal(" has an unsupported type - provide %%GetCode");
+
+        if (!noSetter(vd))
+            fatal(" and %%SetCode");
+
+        fatal("\n");
     }
  
     if (vtype->atype != class_type && vd->accessfunc != NULL)
