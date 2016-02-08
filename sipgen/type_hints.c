@@ -77,6 +77,7 @@ static classDef *lookupClass(sipSpec *pt, const char *name,
 static classDef *getClassImplementation(sipSpec *pt, classDef *cd);
 static mappedTypeDef *getMappedTypeImplementation(sipSpec *pt,
         mappedTypeDef *mtd);
+static const char *maybeAnyObject(int pep484, const char *hint);
 
 
 /*
@@ -175,18 +176,18 @@ static void pyiModule(sipSpec *pt, moduleDef *mod, FILE *fp)
 "\n"
 "\n"
 "# PEP 484 doesn't have support for these types.\n"
-"PY_BUFFER_T = TypeVar('PY_BUFFER_T')\n"
-"PY_SLICE_T = TypeVar('PY_SLICE_T')\n"
-"PY_TYPE_T = TypeVar('PY_TYPE_T')\n"
+"PY_BUFFER = TypeVar('PY_BUFFER')\n"
+"PY_SLICE = TypeVar('PY_SLICE')\n"
+"PY_TYPE = TypeVar('PY_TYPE')\n"
         );
 
     if (pluginPyQt4(pt) || pluginPyQt5(pt))
         fprintf(fp,
 "\n"
 "# Support for old-style signals and slots.\n"
-"SIGNAL_T = TypeVar('SIGNAL_T')\n"
-"SLOT_T = TypeVar('SLOT_T')\n"
-"SLOT_SIGNAL_T = Union[SLOT_T, SIGNAL_T]\n"
+"QT_SIGNAL = TypeVar('QT_SIGNAL')\n"
+"QT_SLOT = TypeVar('QT_SLOT')\n"
+"QT_SLOT_QT_SIGNAL = Union[QT_SLOT, QT_SIGNAL]\n"
             );
 
     /*
@@ -921,11 +922,11 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, int sec,
         break;
 
     case signal_type:
-        type_name = "SIGNAL_T";
+        type_name = "QT_SIGNAL";
         break;
 
     case slot_type:
-        type_name = "SLOT_SIGNAL_T";
+        type_name = "QT_SLOT_QT_SIGNAL";
         break;
 
     case rxcon_type:
@@ -1008,15 +1009,15 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, int sec,
         break;
 
     case pyslice_type:
-        type_name = "PY_SLICE_T";
+        type_name = "PY_SLICE";
         break;
 
     case pytype_type:
-        type_name = "PY_TYPE_T";
+        type_name = "PY_TYPE";
         break;
 
     case pybuffer_type:
-        type_name = "PY_BUFFER_T";
+        type_name = "PY_BUFFER";
         break;
 
     case ellipsis_type:
@@ -1025,7 +1026,7 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, int sec,
 
     case slotcon_type:
     case anyslot_type:
-        type_name = "SLOT_T";
+        type_name = "QT_SLOT";
         break;
 
     default:
@@ -1380,7 +1381,7 @@ static void pyiTypeHint(sipSpec *pt, moduleDef *mod, typeHintDef *thd, int out,
     }
     else
     {
-        fprintf(fp, "%s", thd->raw_hint);
+        fprintf(fp, "%s", maybeAnyObject(pep484, thd->raw_hint));
     }
 }
 
@@ -1750,4 +1751,13 @@ static mappedTypeDef *getMappedTypeImplementation(sipSpec *pt,
     getDefaultImplementation(pt, mapped_type, &cd, &mtd);
 
     return mtd;
+}
+
+
+/*
+ * Return a hint taking into account that it may be any sort of object.
+ */
+static const char *maybeAnyObject(int pep484, const char *hint)
+{
+    return (strcmp(hint, "Any") != 0 ? hint : anyObject(pep484));
 }
