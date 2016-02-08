@@ -57,8 +57,9 @@ static void xmlArgument(sipSpec *pt, argDef *ad, const char *dir, int res_xfer,
 static void xmlType(sipSpec *pt, argDef *ad, int sec, FILE *fp);
 static void xmlIndent(int indent, FILE *fp);
 static const char *dirAttribute(argDef *ad);
-static void exportDefaultValue(argDef *ad, int in_str, FILE *fp);
 static const char *pyType(sipSpec *pt, argDef *ad, int sec, classDef **scope);
+static int exportPythonSignature(sipSpec *pt, FILE *fp, signatureDef *sd,
+        int sec, int names, int defaults, int in_str, int is_signal);
 
 
 /*
@@ -239,8 +240,8 @@ static int apiOverload(sipSpec *pt, moduleDef *mod, classDef *scope,
     prScopedPythonName(fp, scope, od->common->pyname->text);
     fprintf(fp, "?%d", METHOD_ID);
 
-    need_sec = prPythonSignature(pt, fp, &od->pysig, sec, TRUE, TRUE, FALSE,
-            FALSE);
+    need_sec = exportPythonSignature(pt, fp, &od->pysig, sec, TRUE, TRUE,
+            FALSE, FALSE);
 
     fprintf(fp, "\n");
 
@@ -282,7 +283,7 @@ static int apiArgument(sipSpec *pt, argDef *ad, int out, int need_comma,
 
         fprintf(fp, "=");
         prcode(fp, "%M");
-        exportDefaultValue(ad, in_str, fp);
+        prDefaultValue(ad, in_str, fp);
         prcode(fp, "%M");
     }
 
@@ -729,7 +730,7 @@ static void xmlArgument(sipSpec *pt, argDef *ad, const char *dir, int res_xfer,
     if (ad->defval && (dir == NULL || strcmp(dir, "out") != 0))
     {
         prcode(fp, " default=\"%M");
-        exportDefaultValue(ad, FALSE, fp);
+        prDefaultValue(ad, FALSE, fp);
         prcode(fp, "%M\"");
     }
 
@@ -817,38 +818,6 @@ static void xmlIndent(int indent, FILE *fp)
 {
     while (indent-- > 0)
         fprintf(fp, "  ");
-}
-
-
-/*
- * Export the default value of an argument.
- */
-static void exportDefaultValue(argDef *ad, int in_str, FILE *fp)
-{
-    /* Use any explicitly provided documentation. */
-    if (ad->typehint_value != NULL)
-    {
-        prcode(fp, "%s", ad->typehint_value);
-        return;
-    }
-
-    /* Translate some special cases. */
-    if (ad->defval->next == NULL && ad->defval->vtype == numeric_value)
-    {
-        if (ad->nrderefs > 0 && ad->defval->u.vnum == 0)
-        {
-            prcode(fp, "None");
-            return;
-        }
-
-        if (ad->atype == bool_type || ad->atype == cbool_type)
-        {
-            prcode(fp, ad->defval->u.vnum ? "True" : "False");
-            return;
-        }
-    }
-
-    generateExpression(ad->defval, in_str, fp);
 }
 
 
@@ -1085,8 +1054,8 @@ static const char *pyType(sipSpec *pt, argDef *ad, int sec, classDef **scope)
 /*
  * Generate a Python signature.
  */
-int prPythonSignature(sipSpec *pt, FILE *fp, signatureDef *sd, int sec,
-        int names, int defaults, int in_str, int is_signal)
+static int exportPythonSignature(sipSpec *pt, FILE *fp, signatureDef *sd,
+        int sec, int names, int defaults, int in_str, int is_signal)
 {
     int need_sec = FALSE, need_comma = FALSE, is_res, nr_out, a;
 

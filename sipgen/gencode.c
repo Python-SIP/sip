@@ -277,11 +277,10 @@ static int overloadHasDocstring(sipSpec *pt, overDef *od, memberDef *md);
 static int hasDocstring(sipSpec *pt, overDef *od, memberDef *md,
         ifaceFileDef *scope);
 static void generateDocstring(sipSpec *pt, overDef *overs, memberDef *md,
-        const char *scope_name, classDef *scope_scope, FILE *fp);
+        int is_method, FILE *fp);
 static int overloadHasClassDocstring(sipSpec *pt, ctorDef *ct);
 static int hasClassDocstring(sipSpec *pt, classDef *cd);
 static void generateClassDocstring(sipSpec *pt, classDef *cd, FILE *fp);
-static int isDefaultAPI(sipSpec *pt, apiVersionRangeDef *avd);
 static void generateExplicitDocstring(codeBlockList *cbl, FILE *fp);
 static int copyConstRefArg(argDef *ad);
 static void generatePreprocLine(int linenr, const char *fname, FILE *fp);
@@ -2743,28 +2742,21 @@ static void generateOrdinaryFunction(sipSpec *pt, moduleDef *mod,
     overDef *od;
     int need_intro, has_auto_docstring;
     ifaceFileDef *scope;
-    classDef *scope_scope;
-    const char *scope_name, *kw_fw_decl, *kw_decl;
+    const char *kw_fw_decl, *kw_decl;
 
     if (mt_scope != NULL)
     {
         scope = mt_scope->iff;
-        scope_name = mt_scope->pyname->text;
-        scope_scope = NULL;
         od = mt_scope->overs;
     }
     else if (c_scope != NULL)
     {
         scope = c_scope->iff;
-        scope_name = c_scope->pyname->text;
-        scope_scope = NULL;
         od = c_scope->overs;
     }
     else
     {
         scope = NULL;
-        scope_name = NULL;
-        scope_scope = NULL;
         od = mod->overs;
     }
 
@@ -2791,7 +2783,7 @@ static void generateOrdinaryFunction(sipSpec *pt, moduleDef *mod,
         }
         else
         {
-            generateDocstring(pt, od, md, scope_name, scope_scope, fp);
+            generateDocstring(pt, od, md, FALSE, fp);
             has_auto_docstring = TRUE;
         }
 
@@ -10697,10 +10689,7 @@ static void generateSignalTableEntry(sipSpec *pt, classDef *cd, overDef *sig,
         else
         {
             fprintf(fp, "\"\\1");
-            prScopedPythonName(fp, cd->ecd, cd->pyname->text);
-            fprintf(fp, ".%s", md->pyname->text);
-            prPythonSignature(pt, fp, &sig->pysig, FALSE, FALSE, FALSE, FALSE,
-                    TRUE);
+            dsOverload(pt, sig, TRUE, FALSE, fp);
             fprintf(fp, "\"");
         }
 
@@ -11640,7 +11629,7 @@ static void generateFunction(sipSpec *pt, memberDef *md, overDef *overs,
             }
             else
             {
-                generateDocstring(pt, overs, md, cd->pyname->text, cd->ecd, fp);
+                generateDocstring(pt, overs, md, TRUE, fp);
                 has_auto_docstring = TRUE;
             }
 
@@ -14944,7 +14933,7 @@ static int overloadHasDocstring(sipSpec *pt, overDef *od, memberDef *md)
         return FALSE;
 
     /* If it is versioned then make sure it is the default API. */
-    return isDefaultAPI(pt, od->api_range);
+    return inDefaultAPI(pt, od->api_range);
 }
 
 
@@ -14959,7 +14948,7 @@ static int hasDocstring(sipSpec *pt, overDef *overs, memberDef *md,
     if (noArgParser(md))
         return FALSE;
 
-    if (scope != NULL && !isDefaultAPI(pt, scope->api_range))
+    if (scope != NULL && !inDefaultAPI(pt, scope->api_range))
         return FALSE;
 
     for (od = overs; od != NULL; od = od->next)
@@ -14974,15 +14963,13 @@ static int hasDocstring(sipSpec *pt, overDef *overs, memberDef *md,
  * Generate the docstring for a function or method.
  */
 static void generateDocstring(sipSpec *pt, overDef *overs, memberDef *md,
-        const char *scope_name, classDef *scope_scope, FILE *fp)
+        int is_method, FILE *fp)
 {
     const char *sep = NULL;
     overDef *od;
 
     for (od = overs; od != NULL; od = od->next)
     {
-        int need_sec;
-
         if (!overloadHasDocstring(pt, od, md))
             continue;
 
@@ -14996,27 +14983,15 @@ static void generateDocstring(sipSpec *pt, overDef *overs, memberDef *md,
             prcode(fp, "%s", sep);
         }
 
-        prScopedPythonName(fp, scope_scope, scope_name);
+        dsOverload(pt, od, is_method, FALSE, fp);
+        ++currentLineNr;
 
-        if (scope_name != NULL)
-            prcode(fp, ".");
-
-        prcode(fp, "%s", md->pyname->text);
-        need_sec = prPythonSignature(pt, fp, &od->pysig, FALSE, TRUE, TRUE,
-                TRUE, FALSE);
-
-        if (need_sec)
+        if (hasImplicitOverloads(&od->pysig))
         {
             prcode(fp, "%s", sep);
 
-            prScopedPythonName(fp, scope_scope, scope_name);
-
-            if (scope_name != NULL)
-                prcode(fp, ".");
-
-            prcode(fp, "%s", md->pyname->text);
-            prPythonSignature(pt, fp, &od->pysig, TRUE, TRUE, TRUE, TRUE,
-                    FALSE);
+            dsOverload(pt, od, is_method, TRUE, fp);
+            ++currentLineNr;
         }
     }
 
@@ -15035,7 +15010,7 @@ static int overloadHasClassDocstring(sipSpec *pt, ctorDef *ct)
         return FALSE;
 
     /* If it is versioned then make sure it is the default API. */
-    return isDefaultAPI(pt, ct->api_range);
+    return inDefaultAPI(pt, ct->api_range);
 }
 
 
@@ -15049,7 +15024,7 @@ static int hasClassDocstring(sipSpec *pt, classDef *cd)
     if (!canCreate(cd))
         return FALSE;
 
-    if (!isDefaultAPI(pt, cd->iff->api_range))
+    if (!inDefaultAPI(pt, cd->iff->api_range))
         return FALSE;
 
     for (ct = cd->ctors; ct != NULL; ct = ct->next)
@@ -15070,8 +15045,6 @@ static void generateClassDocstring(sipSpec *pt, classDef *cd, FILE *fp)
 
     for (ct = cd->ctors; ct != NULL; ct = ct->next)
     {
-        int need_sec;
-
         if (!overloadHasClassDocstring(pt, ct))
             continue;
 
@@ -15085,47 +15058,20 @@ static void generateClassDocstring(sipSpec *pt, classDef *cd, FILE *fp)
             fprintf(fp, "%s", sep);
         }
 
-        prScopedPythonName(fp, cd->ecd, cd->pyname->text);
-        need_sec = prPythonSignature(pt, fp, &ct->pysig, FALSE, TRUE, TRUE,
-                TRUE, FALSE);
+        dsCtor(pt, cd, ct, FALSE, fp);
         ++currentLineNr;
 
-        if (need_sec)
+        if (hasImplicitOverloads(&ct->pysig))
         {
             fprintf(fp, "%s", sep);
 
-            prScopedPythonName(fp, cd->ecd, cd->pyname->text);
-            prPythonSignature(pt, fp, &ct->pysig, TRUE, TRUE, TRUE, TRUE,
-                    FALSE);
+            dsCtor(pt, cd, ct, TRUE, fp);
             ++currentLineNr;
         }
     }
 
     if (sep != NULL)
         fprintf(fp, "\"");
-}
-
-
-/*
- * Returns TRUE if the given API version corresponds to the default.
- */
-static int isDefaultAPI(sipSpec *pt, apiVersionRangeDef *avd)
-{
-    int def_api;
-
-    /* Handle the trivial case. */
-    if (avd == NULL)
-        return TRUE;
-
-    def_api = findAPI(pt, avd->api_name->text)->from;
-
-    if (avd->from > 0 && avd->from > def_api)
-        return FALSE;
-
-    if (avd->to > 0 && avd->to <= def_api)
-        return FALSE;
-
-    return TRUE;
 }
 
 

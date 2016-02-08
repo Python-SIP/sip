@@ -23,6 +23,10 @@
 #include "sip.h"
 
 
+/* Return a string referring to an object of any type. */
+#define anyObject(pep484)   ((pep484) ? "Any" : "object")
+
+
 static void pyiCompositeModule(sipSpec *pt, moduleDef *comp_mod, FILE *fp);
 static void pyiModule(sipSpec *pt, moduleDef *mod, FILE *fp);
 static void pyiTypeHintCode(codeBlockList *thc, FILE *fp);
@@ -34,35 +38,35 @@ static void pyiClass(sipSpec *pt, moduleDef *mod, classDef *cd,
         ifaceFileList **defined, int indent, FILE *fp);
 static void pyiMappedType(sipSpec *pt, moduleDef *mod, mappedTypeDef *mtd,
         ifaceFileList **defined, int indent, FILE *fp);
-static void pyiCtor(sipSpec *pt, moduleDef *mod, ctorDef *ct, int overloaded,
-        int sec, ifaceFileList *defined, int indent, FILE *fp);
+static void pyiCtor(sipSpec *pt, moduleDef *mod, classDef *cd, ctorDef *ct,
+        int overloaded, int sec, ifaceFileList *defined, int indent, FILE *fp);
 static void pyiCallable(sipSpec *pt, moduleDef *mod, memberDef *md,
         overDef *overloads, int is_method, ifaceFileList *defined, int indent,
         FILE *fp);
 static void pyiOverload(sipSpec *pt, moduleDef *mod, overDef *od,
         int overloaded, int is_method, int sec, ifaceFileList *defined,
-        int indent, FILE *fp);
+        int indent, int pep484, FILE *fp);
 static void pyiPythonSignature(sipSpec *pt, moduleDef *mod, signatureDef *sd,
-        int need_self, int sec, ifaceFileList *defined, FILE *fp);
+        int need_self, int sec, ifaceFileList *defined, KwArgs kwargs,
+        int pep484, FILE *fp);
 static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int arg_nr,
         int out, int need_comma, int sec, int names, int defaults,
-        ifaceFileList *defined, FILE *fp);
+        ifaceFileList *defined, KwArgs kwargs, int pep484, FILE *fp);
 static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, int sec,
-        ifaceFileList *defined, FILE *fp);
+        ifaceFileList *defined, int pep484, FILE *fp);
 static void pyiTypeHint(sipSpec *pt, moduleDef *mod, typeHintDef *thd, int out,
-        ifaceFileList *defined, FILE *fp);
+        ifaceFileList *defined, int pep484, FILE *fp);
 static void prIndent(int indent, FILE *fp);
 static int separate(int first, int indent, FILE *fp);
 static void prClassRef(sipSpec *pt, classDef *cd, int out, moduleDef *mod,
-        ifaceFileList *defined, FILE *fp);
+        ifaceFileList *defined, int pep484, FILE *fp);
 static void prEnumRef(enumDef *ed, moduleDef *mod, ifaceFileList *defined,
-        FILE *fp);
+        int pep484, FILE *fp);
 static void prMappedTypeRef(sipSpec *pt, mappedTypeDef *mtd, int out,
-        moduleDef *mod, ifaceFileList *defined, FILE *fp);
+        moduleDef *mod, ifaceFileList *defined, int pep484, FILE *fp);
 static int isDefined(ifaceFileDef *iff, classDef *cd, moduleDef *mod,
         ifaceFileList *defined);
 static int inIfaceFileList(ifaceFileDef *iff, ifaceFileList *defined);
-static int hasImplicitOverloads(signatureDef *sd);
 static void parseTypeHint(sipSpec *pt, typeHintDef *thd);
 static void lookupType(sipSpec *pt, char *name, argDef *ad);
 static enumDef *lookupEnum(sipSpec *pt, const char *name, classDef *scope_cd,
@@ -70,7 +74,6 @@ static enumDef *lookupEnum(sipSpec *pt, const char *name, classDef *scope_cd,
 static mappedTypeDef *lookupMappedType(sipSpec *pt, const char *name);
 static classDef *lookupClass(sipSpec *pt, const char *name,
         classDef *scope_cd);
-static int inDefaultAPI(sipSpec *pt, apiVersionRangeDef *range);
 static classDef *getClassImplementation(sipSpec *pt, classDef *cd);
 static mappedTypeDef *getMappedTypeImplementation(sipSpec *pt,
         mappedTypeDef *mtd);
@@ -211,17 +214,19 @@ static void pyiModule(sipSpec *pt, moduleDef *mod, FILE *fp)
         if (isExternal(cd))
             continue;
 
-        if (cd->no_typehint)
-            continue;
-
-        /* Only handle non-nested classes here. */
-        if (cd->ecd != NULL)
-            continue;
-
         impl = getClassImplementation(pt, cd);
 
         if (impl != NULL)
+        {
+            if (impl->no_typehint)
+                continue;
+
+            /* Only handle non-nested classes here. */
+            if (impl->ecd != NULL)
+                continue;
+
             pyiClass(pt, mod, impl, &defined, 0, fp);
+        }
     }
 
     for (mtd = pt->mappedtypes; mtd != NULL; mtd = mtd->next)
@@ -290,7 +295,7 @@ static void pyiClass(sipSpec *pt, moduleDef *mod, classDef *cd,
             if (cl != cd->supers)
                 fprintf(fp, ", ");
 
-            prClassRef(pt, cl->cd, TRUE, mod, *defined, fp);
+            prClassRef(pt, cl->cd, TRUE, mod, *defined, TRUE, fp);
         }
     }
     else if (cd->supertype != NULL)
@@ -431,10 +436,10 @@ static void pyiClass(sipSpec *pt, moduleDef *mod, classDef *cd,
 
         first = separate(first, indent, fp);
 
-        pyiCtor(pt, mod, ct, overloaded, FALSE, *defined, indent, fp);
+        pyiCtor(pt, mod, NULL, ct, overloaded, FALSE, *defined, indent, fp);
 
         if (implicit_overloads)
-            pyiCtor(pt, mod, ct, overloaded, TRUE, *defined, indent, fp);
+            pyiCtor(pt, mod, NULL, ct, overloaded, TRUE, *defined, indent, fp);
     }
 
     first = TRUE;
@@ -512,12 +517,21 @@ static void pyiMappedType(sipSpec *pt, moduleDef *mod, mappedTypeDef *mtd,
 
 
 /*
+ * Generate a ctor docstring.
+ */
+void dsCtor(sipSpec *pt, classDef *cd, ctorDef *ct, int sec, FILE *fp)
+{
+    pyiCtor(pt, pt->module, cd, ct, FALSE, sec, NULL, 0, fp);
+}
+
+
+/*
  * Generate an ctor type hint.
  */
-static void pyiCtor(sipSpec *pt, moduleDef *mod, ctorDef *ct, int overloaded,
-        int sec, ifaceFileList *defined, int indent, FILE *fp)
+static void pyiCtor(sipSpec *pt, moduleDef *mod, classDef *cd, ctorDef *ct,
+        int overloaded, int sec, ifaceFileList *defined, int indent, FILE *fp)
 {
-    int a;
+    int a, need_comma;
 
     if (overloaded)
     {
@@ -526,13 +540,25 @@ static void pyiCtor(sipSpec *pt, moduleDef *mod, ctorDef *ct, int overloaded,
     }
 
     prIndent(indent, fp);
-    fprintf(fp, "def __init__(self");
+
+    if (cd == NULL)
+    {
+        fprintf(fp, "def __init__(self");
+        need_comma = TRUE;
+    }
+    else
+    {
+        prScopedPythonName(fp, cd->ecd, cd->pyname->text);
+        fprintf(fp, "(");
+        need_comma = FALSE;
+    }
 
     for (a = 0; a < ct->pysig.nrArgs; ++a)
-        pyiArgument(pt, mod, &ct->pysig.args[a], a, FALSE, TRUE, sec, TRUE,
-                TRUE, defined, fp);
+        need_comma = pyiArgument(pt, mod, &ct->pysig.args[a], a, FALSE,
+                need_comma, sec, TRUE, TRUE, defined, ct->kwargs, (cd == NULL),
+                fp);
 
-    fprintf(fp, ") -> None: ...\n");
+    fprintf(fp, (cd == NULL) ? ") -> None: ...\n" : ")");
 }
 
 
@@ -581,7 +607,7 @@ static void pyiEnums(sipSpec *pt, moduleDef *mod, ifaceFileDef *scope,
             fprintf(fp, "%s = ... # type: ", emd->pyname->text);
 
             if (ed->pyname != NULL)
-                prEnumRef(ed, mod, defined, fp);
+                prEnumRef(ed, mod, defined, TRUE, fp);
             else
                 fprintf(fp, "int");
 
@@ -615,7 +641,7 @@ static void pyiVars(sipSpec *pt, moduleDef *mod, classDef *scope,
 
         prIndent(indent, fp);
         fprintf(fp, "%s = ... # type: ", vd->pyname->text);
-        pyiType(pt, mod, &vd->type, FALSE, FALSE, defined, fp);
+        pyiType(pt, mod, &vd->type, FALSE, FALSE, defined, TRUE, fp);
         fprintf(fp, "\n");
     }
 }
@@ -672,21 +698,30 @@ static void pyiCallable(sipSpec *pt, moduleDef *mod, memberDef *md,
         overloaded = (implicit_overloads || nr_overloads > 1);
 
         pyiOverload(pt, mod, od, overloaded, is_method, FALSE, defined, indent,
-                fp);
+                TRUE, fp);
 
         if (implicit_overloads)
             pyiOverload(pt, mod, od, overloaded, is_method, TRUE, defined,
-                    indent, fp);
+                    indent, TRUE, fp);
     }
 }
 
 
 /*
- * Generate a single API overload.
+ * Generate the docstring for a single API overload.
+ */
+void dsOverload(sipSpec *pt, overDef *od, int is_method, int sec, FILE *fp)
+{
+    pyiOverload(pt, pt->module, od, FALSE, is_method, sec, NULL, 0, FALSE, fp);
+}
+
+
+/*
+ * Generate the type hints for a single API overload.
  */
 static void pyiOverload(sipSpec *pt, moduleDef *mod, overDef *od,
         int overloaded, int is_method, int sec, ifaceFileList *defined,
-        int indent, FILE *fp)
+        int indent, int pep484, FILE *fp)
 {
     int need_self;
 
@@ -696,20 +731,22 @@ static void pyiOverload(sipSpec *pt, moduleDef *mod, overDef *od,
         fprintf(fp, "@overload\n");
     }
 
-    if (is_method && isStatic(od))
+    if (pep484 && is_method && isStatic(od))
     {
         prIndent(indent, fp);
         fprintf(fp, "@staticmethod\n");
     }
 
     prIndent(indent, fp);
-    fprintf(fp, "def %s", od->common->pyname->text);
+    fprintf(fp, "%s%s", (pep484 ? "def " : ""), od->common->pyname->text);
 
     need_self = (is_method && !isStatic(od));
 
-    pyiPythonSignature(pt, mod, &od->pysig, need_self, sec, defined, fp);
+    pyiPythonSignature(pt, mod, &od->pysig, need_self, sec, defined,
+            od->kwargs, pep484, fp);
 
-    fprintf(fp, ": ...\n");
+    if (pep484)
+        fprintf(fp, ": ...\n");
 }
 
 
@@ -718,7 +755,7 @@ static void pyiOverload(sipSpec *pt, moduleDef *mod, overDef *od,
  */
 static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int arg_nr,
         int out, int need_comma, int sec, int names, int defaults,
-        ifaceFileList *defined, FILE *fp)
+        ifaceFileList *defined, KwArgs kwargs, int pep484, FILE *fp)
 {
     int optional;
 
@@ -731,6 +768,15 @@ static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int arg_nr,
     if (need_comma)
         fprintf(fp, ", ");
 
+    optional = (defaults && ad->defval && !out);
+
+    /*
+     * We only show names for PEP 484 type hints and when they are part of the
+     * API.
+     */
+    if (names)
+        names = (pep484 || kwargs == AllKwArgs || (kwargs == OptionalKwArgs && optional));
+
     if (names && ad->atype != ellipsis_type)
     {
         if (ad->name != NULL)
@@ -740,12 +786,10 @@ static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int arg_nr,
             fprintf(fp, "a%d: ", arg_nr);
     }
 
-    optional = (defaults && ad->defval && !out);
-
-    if (optional)
+    if (optional && pep484)
         fprintf(fp, "Optional[");
 
-    pyiType(pt, mod, ad, out, sec, defined, fp);
+    pyiType(pt, mod, ad, out, sec, defined, pep484, fp);
 
     if (names && ad->atype == ellipsis_type)
     {
@@ -757,9 +801,54 @@ static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int arg_nr,
     }
 
     if (optional)
-        fprintf(fp, "]");
+    {
+        if (pep484)
+        {
+            fprintf(fp, "]");
+        }
+        else
+        {
+            fprintf(fp, " = ");
+            prDefaultValue(ad, TRUE, fp);
+        }
+    }
 
     return TRUE;
+}
+
+
+/*
+ * Generate the default value of an argument.
+ */
+void prDefaultValue(argDef *ad, int in_str, FILE *fp)
+{
+    /* Use any explicitly provided documentation. */
+    if (ad->typehint_value != NULL)
+    {
+        fprintf(fp, "%s", ad->typehint_value);
+        return;
+    }
+
+    /* Translate some special cases. */
+    if (ad->defval->next == NULL && ad->defval->vtype == numeric_value)
+    {
+        if (ad->nrderefs > 0 && ad->defval->u.vnum == 0)
+        {
+            fprintf(fp, "None");
+            return;
+        }
+
+        if (ad->atype == bool_type || ad->atype == cbool_type)
+        {
+            fprintf(fp, ad->defval->u.vnum ? "True" : "False");
+            return;
+        }
+    }
+
+    /* SIP v5 won't need this. */
+    prcode(fp, "%M");
+    generateExpression(ad->defval, in_str, fp);
+    prcode(fp, "%M");
 }
 
 
@@ -767,7 +856,7 @@ static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int arg_nr,
  * Generate the Python representation of a type.
  */
 static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, int sec,
-        ifaceFileList *defined, FILE *fp)
+        ifaceFileList *defined, int pep484, FILE *fp)
 {
     const char *type_name;
     typeHintDef *thd;
@@ -777,7 +866,7 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, int sec,
 
     if (thd != NULL)
     {
-        pyiTypeHint(pt, mod, thd, out, defined, fp);
+        pyiTypeHint(pt, mod, thd, out, defined, pep484, fp);
         return;
     }
 
@@ -791,11 +880,11 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, int sec,
 
         if (cd != NULL)
         {
-            prClassRef(pt, cd, out, mod, defined, fp);
+            prClassRef(pt, cd, out, mod, defined, pep484, fp);
         }
         else if (mtd != NULL)
         {
-            prMappedTypeRef(pt, mtd, out, mod, defined, fp);
+            prMappedTypeRef(pt, mtd, out, mod, defined, pep484, fp);
         }
         else
         {
@@ -804,7 +893,7 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, int sec,
              * generating code - but maybe we haven't been asked to generate
              * code.
              */
-            fprintf(fp, "Any");
+            fprintf(fp, anyObject(pep484));
         }
 
         return;
@@ -816,7 +905,7 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, int sec,
     {
     case enum_type:
         if (ad->u.ed->pyname != NULL)
-            prEnumRef(ad->u.ed, mod, defined, fp);
+            prEnumRef(ad->u.ed, mod, defined, pep484, fp);
         else
             type_name = "int";
 
@@ -849,9 +938,9 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, int sec,
         {
             /* The class should always be found. */
             if (pt->qobject_cd != NULL)
-                prClassRef(pt, pt->qobject_cd, out, mod, defined, fp);
+                prClassRef(pt, pt->qobject_cd, out, mod, defined, pep484, fp);
             else
-                type_name = "Any";
+                type_name = anyObject(pep484);
         }
 
         break;
@@ -899,7 +988,7 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, int sec,
         break;
 
     case pyobject_type:
-        type_name = "Any";
+        type_name = anyObject(pep484);
         break;
 
     case pytuple_type:
@@ -940,7 +1029,7 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, int sec,
         break;
 
     default:
-        type_name = "Any";
+        type_name = anyObject(pep484);
     }
 
     if (type_name != NULL)
@@ -968,7 +1057,8 @@ void prScopedPythonName(FILE *fp, classDef *scope, const char *pyname)
  * Generate a Python signature.
  */
 static void pyiPythonSignature(sipSpec *pt, moduleDef *mod, signatureDef *sd,
-        int need_self, int sec, ifaceFileList *defined, FILE *fp)
+        int need_self, int sec, ifaceFileList *defined, KwArgs kwargs,
+        int pep484, FILE *fp)
 {
     const char *type_name;
     int need_comma, is_res, nr_out, a;
@@ -997,7 +1087,7 @@ static void pyiPythonSignature(sipSpec *pt, moduleDef *mod, signatureDef *sd,
             continue;
 
         need_comma = pyiArgument(pt, mod, ad, a, FALSE, need_comma, sec, TRUE,
-                TRUE, defined, fp);
+                TRUE, defined, kwargs, pep484, fp);
     }
 
     fprintf(fp, ")");
@@ -1019,7 +1109,7 @@ static void pyiPythonSignature(sipSpec *pt, moduleDef *mod, signatureDef *sd,
 
         if (is_res)
             need_comma = pyiArgument(pt, mod, &sd->result, -1, TRUE, FALSE,
-                    sec, FALSE, FALSE, defined, fp);
+                    sec, FALSE, FALSE, defined, kwargs, pep484, fp);
         else
             need_comma = FALSE;
 
@@ -1030,13 +1120,13 @@ static void pyiPythonSignature(sipSpec *pt, moduleDef *mod, signatureDef *sd,
             if (isOutArg(ad))
                 /* We don't want the name in the result tuple. */
                 need_comma = pyiArgument(pt, mod, ad, -1, TRUE, need_comma,
-                        sec, FALSE, FALSE, defined, fp);
+                        sec, FALSE, FALSE, defined, kwargs, pep484, fp);
         }
 
         if ((is_res && nr_out > 0) || nr_out > 1)
             fprintf(fp, "]");
     }
-    else
+    else if (pep484)
     {
         fprintf(fp, " -> None");
     }
@@ -1070,7 +1160,7 @@ static int separate(int first, int indent, FILE *fp)
  * handling forward references if necessary.
  */
 static void prClassRef(sipSpec *pt, classDef *cd, int out, moduleDef *mod,
-        ifaceFileList *defined, FILE *fp)
+        ifaceFileList *defined, int pep484, FILE *fp)
 {
     typeHintDef *thd;
 
@@ -1079,10 +1169,10 @@ static void prClassRef(sipSpec *pt, classDef *cd, int out, moduleDef *mod,
     if (thd != NULL && !isRecursing(cd->iff))
     {
         setRecursing(cd->iff);
-        pyiTypeHint(pt, mod, cd->typehint_in, out, defined, fp);
+        pyiTypeHint(pt, mod, cd->typehint_in, out, defined, pep484, fp);
         resetRecursing(cd->iff);
     }
-    else
+    else if (pep484)
     {
         int is_defined = isDefined(cd->iff, cd->ecd, mod, defined);
 
@@ -1097,6 +1187,10 @@ static void prClassRef(sipSpec *pt, classDef *cd, int out, moduleDef *mod,
         if (!is_defined)
             fprintf(fp, "'");
     }
+    else
+    {
+        prScopedPythonName(fp, cd->ecd, cd->pyname->text);
+    }
 }
 
 
@@ -1105,20 +1199,27 @@ static void prClassRef(sipSpec *pt, classDef *cd, int out, moduleDef *mod,
  * handling forward references if necessary.
  */
 static void prEnumRef(enumDef *ed, moduleDef *mod, ifaceFileList *defined,
-        FILE *fp)
+        int pep484, FILE *fp)
 {
-    int is_defined = (ed->ecd != NULL && isDefined(ed->ecd->iff, ed->ecd->ecd, mod, defined));
+    if (pep484)
+    {
+        int is_defined = (ed->ecd != NULL && isDefined(ed->ecd->iff, ed->ecd->ecd, mod, defined));
 
-    if (!is_defined)
-        fprintf(fp, "'");
+        if (!is_defined)
+            fprintf(fp, "'");
 
-    if (ed->module != mod)
-        fprintf(fp, "%s.", ed->module->name);
+        if (ed->module != mod)
+            fprintf(fp, "%s.", ed->module->name);
 
-    prScopedPythonName(fp, ed->ecd, ed->pyname->text);
+        prScopedPythonName(fp, ed->ecd, ed->pyname->text);
 
-    if (!is_defined)
-        fprintf(fp, "'");
+        if (!is_defined)
+            fprintf(fp, "'");
+    }
+    else
+    {
+        prScopedPythonName(fp, ed->ecd, ed->pyname->text);
+    }
 }
 
 
@@ -1127,7 +1228,7 @@ static void prEnumRef(enumDef *ed, moduleDef *mod, ifaceFileList *defined,
  * and handling forward references if necessary.
  */
 static void prMappedTypeRef(sipSpec *pt, mappedTypeDef *mtd, int out,
-        moduleDef *mod, ifaceFileList *defined, FILE *fp)
+        moduleDef *mod, ifaceFileList *defined, int pep484, FILE *fp)
 {
     typeHintDef *thd;
 
@@ -1136,27 +1237,34 @@ static void prMappedTypeRef(sipSpec *pt, mappedTypeDef *mtd, int out,
     if (thd != NULL && !isRecursing(mtd->iff))
     {
         setRecursing(mtd->iff);
-        pyiTypeHint(pt, mod, thd, out, defined, fp);
+        pyiTypeHint(pt, mod, thd, out, defined, pep484, fp);
         resetRecursing(mtd->iff);
     }
     else if (mtd->pyname != NULL)
     {
-        int is_defined = isDefined(mtd->iff, NULL, mod, defined);
+        if (pep484)
+        {
+            int is_defined = isDefined(mtd->iff, NULL, mod, defined);
 
-        if (mtd->iff->module != mod)
-            fprintf(fp, "%s.", mtd->iff->module->name);
+            if (mtd->iff->module != mod)
+                fprintf(fp, "%s.", mtd->iff->module->name);
 
-        if (!is_defined)
-            fprintf(fp, "'");
+            if (!is_defined)
+                fprintf(fp, "'");
 
-        fprintf(fp, "%s", mtd->pyname->text);
+            fprintf(fp, "%s", mtd->pyname->text);
 
-        if (!is_defined)
-            fprintf(fp, "'");
+            if (!is_defined)
+                fprintf(fp, "'");
+        }
+        else
+        {
+            fprintf(fp, "%s", mtd->pyname->text);
+        }
     }
     else
     {
-        fprintf(fp, "Any");
+        fprintf(fp, anyObject(pep484));
     }
 }
 
@@ -1207,7 +1315,7 @@ static int inIfaceFileList(ifaceFileDef *iff, ifaceFileList *defined)
 /*
  * See if a signature has implicit overloads.
  */
-static int hasImplicitOverloads(signatureDef *sd)
+int hasImplicitOverloads(signatureDef *sd)
 {
     int a;
 
@@ -1244,7 +1352,7 @@ typeHintDef *newTypeHint(char *raw_hint)
  * Generate a type hint from a /TypeHint/ annotation.
  */
 static void pyiTypeHint(sipSpec *pt, moduleDef *mod, typeHintDef *thd, int out,
-        ifaceFileList *defined, FILE *fp)
+        ifaceFileList *defined, int pep484, FILE *fp)
 {
     if (thd->needs_parsing)
         parseTypeHint(pt, thd);
@@ -1259,11 +1367,12 @@ static void pyiTypeHint(sipSpec *pt, moduleDef *mod, typeHintDef *thd, int out,
                 fprintf(fp, "%s", ths->before);
 
             if (ths->type.atype == class_type)
-                prClassRef(pt, ths->type.u.cd, out, mod, defined, fp);
+                prClassRef(pt, ths->type.u.cd, out, mod, defined, pep484, fp);
             else if (ths->type.atype == enum_type)
-                prEnumRef(ths->type.u.ed, mod, defined, fp);
+                prEnumRef(ths->type.u.ed, mod, defined, pep484, fp);
             else
-                prMappedTypeRef(pt, ths->type.u.mtd, out, mod, defined, fp);
+                prMappedTypeRef(pt, ths->type.u.mtd, out, mod, defined, pep484,
+                        fp);
 
             if (ths->after != NULL)
                 fprintf(fp, "%s", ths->after);
@@ -1594,7 +1703,7 @@ void getDefaultImplementation(sipSpec *pt, argType atype, classDef **cdp,
 /*
  * Return TRUE if a version range includes the default API.
  */
-static int inDefaultAPI(sipSpec *pt, apiVersionRangeDef *range)
+int inDefaultAPI(sipSpec *pt, apiVersionRangeDef *range)
 {
     int def_api;
 
