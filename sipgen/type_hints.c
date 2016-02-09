@@ -175,10 +175,8 @@ static void pyiModule(sipSpec *pt, moduleDef *mod, FILE *fp)
     fprintf(fp,
 "\n"
 "\n"
-"# PEP 484 doesn't have support for these types.\n"
+"# PEP 484 doesn't have support for this.\n"
 "PY_BUFFER = TypeVar('PY_BUFFER')\n"
-"PY_SLICE = TypeVar('PY_SLICE')\n"
-"PY_TYPE = TypeVar('PY_TYPE')\n"
         );
 
     if (pluginPyQt4(pt) || pluginPyQt5(pt))
@@ -1009,11 +1007,11 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, int sec,
         break;
 
     case pyslice_type:
-        type_name = "PY_SLICE";
+        type_name = "slice";
         break;
 
     case pytype_type:
-        type_name = "PY_TYPE";
+        type_name = "type";
         break;
 
     case pybuffer_type:
