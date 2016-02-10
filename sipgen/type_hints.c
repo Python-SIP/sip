@@ -785,9 +785,6 @@ static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int arg_nr,
             fprintf(fp, "a%d: ", arg_nr);
     }
 
-    if (optional && pep484)
-        fprintf(fp, "Optional[");
-
     pyiType(pt, mod, ad, out, sec, defined, pep484, fp);
 
     if (names && ad->atype == ellipsis_type)
@@ -801,15 +798,12 @@ static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int arg_nr,
 
     if (optional)
     {
+        fprintf(fp, " = ");
+
         if (pep484)
-        {
-            fprintf(fp, "]");
-        }
+            fprintf(fp, "...");
         else
-        {
-            fprintf(fp, " = ");
             prDefaultValue(ad, TRUE, fp);
-        }
     }
 
     return TRUE;
