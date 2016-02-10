@@ -756,7 +756,7 @@ static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int arg_nr,
         int out, int need_comma, int sec, int names, int defaults,
         ifaceFileList *defined, KwArgs kwargs, int pep484, FILE *fp)
 {
-    int optional;
+    int optional, use_optional;
 
     if (isArraySize(ad))
         return need_comma;
@@ -785,6 +785,18 @@ static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int arg_nr,
             fprintf(fp, "a%d: ", arg_nr);
     }
 
+    use_optional = FALSE;
+
+    if (optional && pep484)
+    {
+        /* Assume pointers can be None unless specified otherwise. */
+        if (isAllowNone(ad) || (!isDisallowNone(ad) && ad->nrderefs > 0))
+        {
+            fprintf(fp, "Optional[");
+            use_optional = TRUE;
+        }
+    }
+
     pyiType(pt, mod, ad, out, sec, defined, pep484, fp);
 
     if (names && ad->atype == ellipsis_type)
@@ -798,6 +810,9 @@ static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int arg_nr,
 
     if (optional)
     {
+        if (use_optional)
+            fprintf(fp, "]");
+
         fprintf(fp, " = ");
 
         if (pep484)
