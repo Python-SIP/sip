@@ -1,7 +1,7 @@
 /*
  * The parse tree transformation module for SIP.
  *
- * Copyright (c) 2015 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2016 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -3275,6 +3275,11 @@ static void searchMappedTypes(sipSpec *pt, moduleDef *context,
         ad->u.snd = snd;
         ad->atype = defined_type;
     }
+    else
+    {
+        /* Avoid a compiler warning. */
+        oname = NULL;
+    }
 
     for (mtd = pt->mappedtypes; mtd != NULL; mtd = mtd->next)
         if (sameBaseType(ad, &mtd->type))
@@ -3332,6 +3337,7 @@ static mappedTypeDef *copyTemplateType(mappedTypeDef *mtd, argDef *ad)
     /* Retain the original types if there are any. */
     mtd_copy = mtd;
     src = &ad->u.td->types;
+    dst = NULL;
 
     for (a = 0; a < src->nrArgs; ++a)
     {
@@ -3343,7 +3349,7 @@ static mappedTypeDef *copyTemplateType(mappedTypeDef *mtd, argDef *ad)
              * Create an appropriately deep copy now that we know it is needed
              * and if it hasn't already been done.
              */
-            if (mtd_copy == mtd)
+            if (dst == NULL)
             {
                 templateDef *td_copy;
 

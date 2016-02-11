@@ -31,6 +31,10 @@
 #endif
 
 
+/* Windows doesn't have unistd.h so declare it here. */
+extern int isatty(int);
+
+
 /* These are unused. */
 static int input(void) SIP_UNUSED;
 static void yy_fatal_error(yyconst char *) SIP_UNUSED;

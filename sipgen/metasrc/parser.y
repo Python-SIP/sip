@@ -6295,6 +6295,9 @@ codeBlockList *templateCode(sipSpec *pt, ifaceFileList **used,
             codeBlock *cb;
             scopedNameDef *nam, *val, *nam_first, *val_first;
 
+            /* Suppress a compiler warning. */
+            val_first = NULL;
+
             /*
              * Don't do any substitution in lines that appear to be
              * preprocessor directives.  This prevents #include'd file names

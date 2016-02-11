@@ -1,7 +1,7 @@
 /*
  * The code generator module for SIP.
  *
- * Copyright (c) 2015 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2016 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -3790,7 +3790,12 @@ static void generateIfaceCpp(sipSpec *pt, ifaceFileDef *iff, int need_postinc,
         need_postinc = TRUE;
     }
     else
+    {
         fp = master;
+
+        /* Suppress a compiler warning. */
+        cppfile = NULL;
+    }
 
     prcode(fp,
 "\n"
@@ -8292,6 +8297,9 @@ static void generateTupleBuilder(moduleDef *mod, signatureDef *sd,FILE *fp)
 {
     int a, arraylenarg;
 
+    /* Suppress a compiler warning. */
+    arraylenarg = 0;
+
     prcode(fp,"\"");
 
     for (a = 0; a < sd->nrArgs; ++a)
@@ -8490,7 +8498,7 @@ static void generateTupleBuilder(moduleDef *mod, signatureDef *sd,FILE *fp)
             fmt = "S";
             break;
 
-        /* Supress a compiler warning. */
+        /* Suppress a compiler warning. */
         default:
             ;
         }
@@ -9730,7 +9738,7 @@ static void generateSimpleFunctionCall(fcallDef *fcd,FILE *fp)
  */
 static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 {
-    const char *mname, *sep, *type_prefix;
+    const char *sep, *type_prefix;
     int is_slots, is_signals, nr_methods, nr_enums, nr_vars, embedded;
     int is_inst_class, is_inst_voidp, is_inst_char, is_inst_string;
     int is_inst_int, is_inst_long, is_inst_ulong, is_inst_longlong;
@@ -9740,7 +9748,6 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
     propertyDef *pd;
 
     mod = cd->iff->module;
-    mname = mod->name;
 
     if (cd->supers != NULL)
     {
@@ -13215,6 +13222,10 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
     int slotconarg, slotdisarg, need_owner;
     ifaceFileDef *scope;
     argDef *arraylenarg_ad, *sigarg_ad, *slotconarg_ad, *slotdisarg_ad;
+
+    /* Suppress compiler warnings. */
+    arraylenarg = slotconarg = slotdisarg = 0;
+    arraylenarg_ad = sigarg_ad = slotconarg_ad = slotdisarg_ad = NULL;
 
     if (mt_scope != NULL)
         scope = mt_scope->iff;
