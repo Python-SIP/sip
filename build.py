@@ -57,7 +57,7 @@ _GeneratedDirs = (
 
 # Files in a release.
 _ReleasedFiles = ('configure.py.in', 'LICENSE', 'LICENSE-GPL2', 'LICENSE-GPL3',
-        'NEWS', 'README', 'sipdistutils.py', 'siputils.py')
+        'NEWS', 'README', 'sip.pyi', 'sipdistutils.py', 'siputils.py')
 
 # Directories in a release.
 _ReleasedDirs = ('sipgen', 'siplib', 'specs', 'sphinx')
