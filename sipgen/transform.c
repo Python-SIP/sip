@@ -3130,6 +3130,8 @@ static mappedTypeDef *instantiateMappedTypeTemplate(sipSpec *pt, moduleDef *mod,
                 templateString(mtt->mt->typehint_out->raw_hint, type_names,
                         type_values));
 
+    mtd->typehint_value = mtt->mt->typehint_value;
+
     appendCodeBlockList(&mtd->iff->hdrcode,
             templateCode(pt, &mtd->iff->used, mtt->mt->iff->hdrcode,
                     type_names, type_values));
@@ -3308,6 +3310,19 @@ static void searchMappedTypes(sipSpec *pt, moduleDef *context,
             ad->atype = mapped_type;
             ad->u.mtd = mtd;
 
+            /*
+             * Copy the type hints if nothing was specified for this particular
+             * context.
+             */
+            if (ad->typehint_in == NULL)
+                ad->typehint_in = mtd->typehint_in;
+
+            if (ad->typehint_out == NULL)
+                ad->typehint_out = mtd->typehint_out;
+
+            if (ad->typehint_value == NULL)
+                ad->typehint_value = mtd->typehint_value;
+
             return;
         }
 
@@ -3392,6 +3407,7 @@ void searchTypedefs(sipSpec *pt, scopedNameDef *snd, argDef *ad)
             ad->doctype = td->type.doctype;
             ad->typehint_in = td->type.typehint_in;
             ad->typehint_out = td->type.typehint_out;
+            ad->typehint_value = td->type.typehint_value;
             ad->u = td->type.u;
 
             for (i = 0; i < td->type.nrderefs; ++i)

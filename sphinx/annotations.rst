@@ -673,9 +673,7 @@ Mapped Type Annotations
 
     This string annotation specifies the type of the mapped type as it will
     appear in any generated docstrings and PEP 484 type hints when it is passed
-    to a function (rather than being returned from a function).  It is usually
-    used with arguments of type :stype:`SIP_PYOBJECT` to provide a more
-    specific type.
+    to a function (rather than being returned from a function).
 
 
 .. mapped-type-annotation:: TypeHintOut
@@ -684,9 +682,14 @@ Mapped Type Annotations
 
     This string annotation specifies the type of the mapped type as it will
     appear in any generated docstrings and PEP 484 type hints when it is
-    returned from a function (rather than being passed to a function).  It is
-    usually used with arguments of type :stype:`SIP_PYOBJECT` to provide a more
-    specific type.
+    returned from a function (rather than being passed to a function).
+
+.. mapped-type-annotation:: TypeHintValue
+
+    .. versionadded:: 4.18
+
+    This string annotation specifies the default value of the argument as it
+    will appear in any generated docstrings.
 
 
 .. _ref-enum-annos:

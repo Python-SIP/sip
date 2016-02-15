@@ -1087,6 +1087,7 @@ mappedtype: TK_MAPPEDTYPE basetype optflags {
                     "TypeHint",
                     "TypeHintIn",
                     "TypeHintOut",
+                    "TypeHintValue",
                     NULL
                 };
 
@@ -1107,6 +1108,7 @@ mappedtypetmpl: template TK_MAPPEDTYPE basetype optflags {
                     "TypeHint",
                     "TypeHintIn",
                     "TypeHintOut",
+                    "TypeHintValue",
                     NULL
                 };
 
@@ -9166,6 +9168,7 @@ static void mappedTypeAnnos(mappedTypeDef *mtd, optFlags *optflgs)
 
     mtd->doctype = getDocType(optflgs);
     getTypeHints(optflgs, &mtd->typehint_in, &mtd->typehint_out);
+    mtd->typehint_value = getTypeHintValue(optflgs);
 }
 
 
