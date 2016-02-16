@@ -65,7 +65,8 @@ static classDef *findClass(sipSpec *pt, ifaceFileType iftype,
 static classDef *findClassWithInterface(sipSpec *pt, ifaceFileDef *iff);
 static classDef *newClass(sipSpec *pt, ifaceFileType iftype,
         apiVersionRangeDef *api_range, scopedNameDef *snd,
-        const char *virt_error_handler, typeHintDef *typehint_in);
+        const char *virt_error_handler, typeHintDef *typehint_in,
+        typeHintDef *typehint_out, const char *typehint_value);
 static void finishClass(sipSpec *, moduleDef *, classDef *, optFlags *);
 static exceptionDef *findException(sipSpec *pt, scopedNameDef *fqname, int new);
 static mappedTypeDef *newMappedType(sipSpec *,argDef *, optFlags *);
@@ -123,7 +124,6 @@ static const char *getDocType(optFlags *optflgs);
 static const char *getTypeHintValue(optFlags *optflgs);
 static void getTypeHints(optFlags *optflgs, typeHintDef **in,
         typeHintDef **out);
-static typeHintDef *getTypeHintIn(optFlags *optflgs);
 static int getNoTypeHint(optFlags *optflgs);
 static void templateSignature(signatureDef *sd, int result, classTmplDef *tcd,
         templateDef *td, classDef *ncd, scopedNameDef *type_names,
@@ -1251,7 +1251,7 @@ namespace:  TK_NAMESPACE TK_NAME_VALUE {
                     scope = NULL;
 
                 ns = newClass(currentSpec, namespace_iface, NULL,
-                        text2scopedName(scope, $2), NULL, NULL);
+                        text2scopedName(scope, $2), NULL, NULL, NULL, NULL);
 
                 pushScope(ns);
 
@@ -2859,7 +2859,10 @@ struct:     TK_STRUCT scopedname {
                     "PyQtInterface",
                     "PyQtNoQMetaObject",
                     "Supertype",
+                    "TypeHint",
                     "TypeHintIn",
+                    "TypeHintOut",
+                    "TypeHintValue",
                     "VirtualErrorHandler",
                     NULL
                 };
@@ -2935,7 +2938,10 @@ class:  TK_CLASS scopedname {
                     "PyQtInterface",
                     "PyQtNoQMetaObject",
                     "Supertype",
+                    "TypeHint",
                     "TypeHintIn",
+                    "TypeHintOut",
+                    "TypeHintValue",
                     "VirtualErrorHandler",
                     NULL
                 };
@@ -4926,7 +4932,8 @@ static exceptionDef *findException(sipSpec *pt, scopedNameDef *fqname, int new)
  */
 static classDef *newClass(sipSpec *pt, ifaceFileType iftype,
         apiVersionRangeDef *api_range, scopedNameDef *fqname,
-        const char *virt_error_handler, typeHintDef *typehint_in)
+        const char *virt_error_handler, typeHintDef *typehint_in,
+        typeHintDef *typehint_out, const char *typehint_value)
 {
     int flags;
     classDef *cd, *scope;
@@ -4974,6 +4981,8 @@ static classDef *newClass(sipSpec *pt, ifaceFileType iftype,
     cd->iff->module = currentModule;
     cd->virt_error_handler = virt_error_handler;
     cd->typehint_in = typehint_in;
+    cd->typehint_out = typehint_out;
+    cd->typehint_value = typehint_value;
 
     if (currentIsTemplate)
         setIsTemplateClass(cd);
@@ -5829,6 +5838,11 @@ static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod,
     if (cd->typehint_in != NULL)
         cd->typehint_in = newTypeHint(
                 templateString(cd->typehint_in->raw_hint, type_names,
+                        type_values));
+
+    if (cd->typehint_out != NULL)
+        cd->typehint_out = newTypeHint(
+                templateString(cd->typehint_out->raw_hint, type_names,
                         type_values));
 
     /* Handle the super-classes. */
@@ -8531,10 +8545,12 @@ static void getTypeHints(optFlags *optflgs, typeHintDef **in,
     else
         thd = NULL;
 
-    if ((*in = getTypeHintIn(optflgs)) != NULL)
+    if ((of = getOptFlag(optflgs, "TypeHintIn", string_flag)) != NULL)
     {
         if (thd != NULL)
             yywarning("/TypeHintIn/ overrides /TypeHint/");
+
+        *in = newTypeHint(of->fvalue.sval);
     }
     else
     {
@@ -8552,20 +8568,6 @@ static void getTypeHints(optFlags *optflgs, typeHintDef **in,
     {
         *out = thd;
     }
-}
-
-
-/*
- * Get the /TypeHintIn/ option flag.
- */
-static typeHintDef *getTypeHintIn(optFlags *optflgs)
-{
-    optFlag *of;
-
-    if ((of = getOptFlag(optflgs, "TypeHintIn", string_flag)) != NULL)
-        return newTypeHint(of->fvalue.sval);
-
-    return NULL;
 }
 
 
@@ -8645,10 +8647,13 @@ static void setModuleName(sipSpec *pt, moduleDef *mod, const char *fullname)
 static void defineClass(scopedNameDef *snd, classList *supers, optFlags *of)
 {
     classDef *cd, *c_scope = currentScope();
+    typeHintDef *in, *out;
+
+    getTypeHints(of, &in, &out);
 
     cd = newClass(currentSpec, class_iface, getAPIRange(of),
             scopeScopedName((c_scope != NULL ? c_scope->iff : NULL), snd),
-            getVirtErrorHandler(of), getTypeHintIn(of));
+            getVirtErrorHandler(of), in, out, getTypeHintValue(of));
     cd->supers = supers;
 
     pushScope(cd);

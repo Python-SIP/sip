@@ -801,11 +801,11 @@ typedef struct {
     const char *doctype;                /* The documented type. */
     struct _typeHintDef *typehint_in;   /* The PEP 484 input type hint. */
     struct _typeHintDef *typehint_out;  /* The PEP 484 output type hint. */
+    const char *typehint_value;         /* The type hint value. */
     int argflags;                       /* The argument flags. */
     int nrderefs;                       /* Nr. of dereferences. */
     int derefs[MAX_NR_DEREFS];          /* The const for each dereference. */
     valueDef *defval;                   /* The default value. */
-    const char *typehint_value;         /* The type hint value. */
     int key;                            /* The optional /KeepReference/ key. */
     struct _typedefDef *original_type;  /* The original type if typedef'd. */
     union {
@@ -1205,7 +1205,9 @@ typedef struct _classDef {
     codeBlockList *finalcode;           /* Finalisation code. */
     propertyDef *properties;            /* The properties. */
     const char *virt_error_handler;     /* The virtual error handler. */
-    typeHintDef *typehint_in;           /* The type hint code. */
+    typeHintDef *typehint_in;           /* The PEP 484 input type hint. */
+    typeHintDef *typehint_out;          /* The PEP 484 output type hint. */
+    const char *typehint_value;         /* The type hint value. */
     struct _classDef *next;             /* Next in the list. */
 } classDef;
 

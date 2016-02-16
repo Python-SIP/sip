@@ -3476,6 +3476,19 @@ static void searchClasses(sipSpec *pt, moduleDef *context,
             ad->atype = class_type;
             ad->u.cd = cd;
 
+            /*
+             * Copy the type hints if nothing was specified for this particular
+             * context.
+             */
+            if (ad->typehint_in == NULL)
+                ad->typehint_in = cd->typehint_in;
+
+            if (ad->typehint_out == NULL)
+                ad->typehint_out = cd->typehint_out;
+
+            if (ad->typehint_value == NULL)
+                ad->typehint_value = cd->typehint_value;
+
             break;
         }
     }

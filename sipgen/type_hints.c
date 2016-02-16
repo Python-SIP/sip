@@ -1163,7 +1163,7 @@ static void prClassRef(sipSpec *pt, classDef *cd, int out, moduleDef *mod,
 {
     typeHintDef *thd;
 
-    thd = (out ? NULL : cd->typehint_in);
+    thd = (out ? cd->typehint_out : cd->typehint_in);
 
     if (thd != NULL && !isRecursing(cd->iff))
     {
