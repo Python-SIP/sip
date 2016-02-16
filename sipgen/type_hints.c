@@ -179,15 +179,6 @@ static void pyiModule(sipSpec *pt, moduleDef *mod, FILE *fp)
 "PY_BUFFER = TypeVar('PY_BUFFER')\n"
         );
 
-    if (pluginPyQt4(pt) || pluginPyQt5(pt))
-        fprintf(fp,
-"\n"
-"# Support for old-style signals and slots.\n"
-"QT_SIGNAL = TypeVar('QT_SIGNAL')\n"
-"QT_SLOT = TypeVar('QT_SLOT')\n"
-"QT_SLOT_QT_SIGNAL = Union[QT_SLOT, QT_SIGNAL]\n"
-            );
-
     /*
      * Generate any exported type hint code and any module-specific type hint
      * code.
