@@ -15,7 +15,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 
-from typing import overload, TypeVar, Union
+from typing import overload, Sequence, TypeVar, Union
 
 
 # Constants.
@@ -29,29 +29,13 @@ class simplewrapper: ...
 class wrapper(simplewrapper): ...
 
 
-# There is no explicit support for the buffer protocol
+# PEP 484 has no explicit support for the buffer protocol so we just name types
+# we know that implement it.
 Buffer = TypeVar('Buffer', 'array', 'voidptr', str, bytes, bytearray)
 
 
-# The different types that can be stored in an array.
-ArrayElement = TypeVar('ArrayElement', simplewrapper, int, float)
-
 # The array type.
-class array:
-
-    @overload
-    def __getitem__(self, i: int) -> ArrayElement: ...
-
-    @overload
-    def __getitem__(self, s: slice) -> array: ...
-
-    @overload
-    def __setitem__(self, i: int, v: ArrayElement) -> None: ...
-
-    @overload
-    def __setitem__(self, s: slice, v: array) -> None: ...
-
-    def __len__(self) -> int: ...
+class array(Sequence): ...
 
 
 # The voidptr type.

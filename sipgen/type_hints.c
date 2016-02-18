@@ -172,13 +172,6 @@ static void pyiModule(sipSpec *pt, moduleDef *mod, FILE *fp)
         }
     }
 
-    fprintf(fp,
-"\n"
-"\n"
-"# PEP 484 doesn't have support for this.\n"
-"PY_BUFFER = TypeVar('PY_BUFFER')\n"
-        );
-
     /*
      * Generate any exported type hint code and any module-specific type hint
      * code.
