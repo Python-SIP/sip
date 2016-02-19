@@ -429,6 +429,13 @@ static void pyiClass(sipSpec *pt, moduleDef *mod, classDef *cd,
 
     for (md = cd->members; md != NULL; md = md->next)
     {
+        /*
+         * Ignore slots which can return Py_NotImplemented as code may be
+         * correctly handled elsewhere.
+         */
+        if (isNumberSlot(md) || isInplaceNumberSlot(md) || isRichCompareSlot(md))
+            continue;
+
         first = separate(first, indent, fp);
 
         pyiCallable(pt, mod, md, cd->overs, TRUE, *defined, indent, fp);
@@ -924,7 +931,7 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, int sec,
     case rxdis_type:
         if (sec)
         {
-            type_name = "Callable";
+            type_name = "Callable[..., None]";
         }
         else
         {
@@ -996,7 +1003,7 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, int sec,
         break;
 
     case pycallable_type:
-        type_name = "Callable";
+        type_name = "Callable[..., None]";
         break;
 
     case pyslice_type:
