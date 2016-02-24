@@ -415,6 +415,7 @@ static void checkEllipsis(signatureDef *sd);
 %type <codeb>           charbufcode
 %type <codeb>           picklecode
 %type <codeb>           finalcode
+%type <codeb>           classtypehintcode
 %type <codeb>           typecode
 %type <codeb>           codeblock
 %type <codeb>           codelines
@@ -2263,6 +2264,11 @@ modtypehintcode: TK_TYPEHINTCODE codeblock {
         }
     ;
 
+classtypehintcode: TK_TYPEHINTCODE codeblock {
+            $$ = $2;
+        }
+    ;
+
 doc:        TK_DOC codeblock {
             if (notSkipping() && inMainModule())
                 appendCodeBlock(&currentSpec->docs, $2);
@@ -3175,6 +3181,17 @@ classline:  ifstart
                     yyerror("%FinalisationCode already given for class");
 
                 appendCodeBlock(&scope->finalcode, $1);
+            }
+        }
+    |   classtypehintcode {
+            if (notSkipping())
+            {
+                classDef *scope = currentScope();
+
+                if (scope->typehintcode != NULL)
+                    yyerror("%TypeHintCode already given for class");
+
+                appendCodeBlock(&scope->typehintcode, $1);
             }
         }
     |   ctor
@@ -5951,6 +5968,7 @@ static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod,
     cd->instancecode = templateCode(pt, used, cd->instancecode, type_names, type_values);
     cd->picklecode = templateCode(pt, used, cd->picklecode, type_names, type_values);
     cd->finalcode = templateCode(pt, used, cd->finalcode, type_names, type_values);
+    cd->typehintcode = templateCode(pt, used, cd->typehintcode, type_names, type_values);
     cd->next = pt->classes;
 
     pt->classes = cd;

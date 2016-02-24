@@ -1203,6 +1203,7 @@ typedef struct _classDef {
     codeBlockList *charbufcode;         /* Character buffer code (Python v2). */
     codeBlockList *picklecode;          /* Pickle code. */
     codeBlockList *finalcode;           /* Finalisation code. */
+    codeBlockList *typehintcode;        /* Type hint code. */
     propertyDef *properties;            /* The properties. */
     const char *virt_error_handler;     /* The virtual error handler. */
     typeHintDef *typehint_in;           /* The PEP 484 input type hint. */

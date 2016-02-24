@@ -311,7 +311,7 @@ static void pyiClass(sipSpec *pt, moduleDef *mod, classDef *cd,
         ++nr_overloads;
     }
 
-    no_body = (nr_overloads == 0);
+    no_body = (cd->typehintcode == NULL && nr_overloads == 0);
 
     if (no_body)
     {
@@ -385,6 +385,28 @@ static void pyiClass(sipSpec *pt, moduleDef *mod, classDef *cd,
     fprintf(fp, "):%s\n", (no_body ? " ..." : ""));
 
     ++indent;
+
+    if (cd->typehintcode != NULL)
+    {
+        int need_indent = TRUE;
+        const char *cp;
+
+        fprintf(fp, "\n");
+
+        for (cp = cd->typehintcode->block->frag; *cp != '\0'; ++cp)
+        {
+            if (need_indent)
+            {
+                need_indent = FALSE;
+                prIndent(indent, fp);
+            }
+
+            fprintf(fp, "%c", *cp);
+
+            if (*cp == '\n')
+                need_indent = TRUE;
+        }
+    }
 
     pyiEnums(pt, mod, cd->iff, *defined, indent, fp);
 
@@ -1173,7 +1195,11 @@ static void prClassRef(sipSpec *pt, classDef *cd, int out, moduleDef *mod,
     }
     else if (pep484)
     {
-        int is_defined = isDefined(cd->iff, cd->ecd, mod, defined);
+        /*
+         * We assume that an external class will be handled properly by some
+         * handwritten type hint code.
+         */
+        int is_defined = (isExternal(cd) || isDefined(cd->iff, cd->ecd, mod, defined));
 
         if (!is_defined)
             fprintf(fp, "'");

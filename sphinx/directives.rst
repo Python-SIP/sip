@@ -2396,9 +2396,9 @@ For example::
         *code*
     %End
 
-This directive is used to specify handwritten code, typically the import of
-additional modules, that is placed in the PEP 484 type hint stub file for this
-module.
+This directive is used, in the context of a module or an individual class, to
+specify handwritten code, typically the import of additional modules, that is
+placed in the PEP 484 type hint stub file for the module or class.
 
 .. seealso:: :directive:`%ExportedTypeHintCode`
 
