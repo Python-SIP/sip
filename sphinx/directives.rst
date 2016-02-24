@@ -1069,8 +1069,9 @@ Python modules should not explicitly call functions in another Python module.
     %End
 
 This directive is used to specify handwritten code, typically the declarations
-of types, that is placed in the PEP 484 type hint stub file for this module and
-any module that imports it.
+of types, that is placed in the PEP 484 type hint stub file for any module that
+imports it.  Note that it is not included in the stub file for the module
+itself.
 
 .. seealso:: :directive:`%TypeHintCode`
 

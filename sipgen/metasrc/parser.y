@@ -2253,7 +2253,7 @@ prepycode:  TK_PREPYCODE codeblock {
     ;
 
 exptypehintcode: TK_EXPTYPEHINTCODE codeblock {
-            if (notSkipping())
+            if (notSkipping() && !inMainModule())
                 appendCodeBlock(&currentSpec->exptypehintcode, $2);
         }
     ;
