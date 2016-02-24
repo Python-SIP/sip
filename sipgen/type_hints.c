@@ -446,9 +446,11 @@ static void pyiClass(sipSpec *pt, moduleDef *mod, classDef *cd,
     {
         /*
          * Ignore slots which can return Py_NotImplemented as code may be
-         * correctly handled elsewhere.
+         * correctly handled elsewhere.  We also have to include the sequence
+         * slots because they can't be distinguished from the number slots of
+         * the same name.
          */
-        if (isNumberSlot(md) || isInplaceNumberSlot(md) || isRichCompareSlot(md))
+        if (isNumberSlot(md) || isInplaceNumberSlot(md) || isRichCompareSlot(md) || md->slot == concat_slot || md->slot == iconcat_slot || md->slot == repeat_slot || md->slot == irepeat_slot)
             continue;
 
         first = separate(first, indent, fp);
