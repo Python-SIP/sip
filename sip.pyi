@@ -15,7 +15,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 
-from typing import overload, Sequence, TypeVar, Union
+from typing import overload, Sequence, Union
 
 
 # Constants.
@@ -31,7 +31,7 @@ class wrapper(simplewrapper): ...
 
 # PEP 484 has no explicit support for the buffer protocol so we just name types
 # we know that implement it.
-Buffer = TypeVar('Buffer', 'array', 'voidptr', str, bytes, bytearray)
+Buffer = Union['array', 'voidptr', str, bytes, bytearray]
 
 
 # The array type.
