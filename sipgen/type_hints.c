@@ -1638,7 +1638,7 @@ static classDef *lookupClass(sipSpec *pt, const char *name, classDef *scope_cd)
     classDef *cd;
 
     for (cd = pt->classes; cd != NULL; cd = cd->next)
-        if (strcmp(cd->pyname->text, name) == 0 && cd->ecd == scope_cd)
+        if (strcmp(cd->pyname->text, name) == 0 && cd->ecd == scope_cd && !isExternal(cd))
         {
             classDef *impl = getClassImplementation(pt, cd);
 
