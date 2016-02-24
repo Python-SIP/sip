@@ -3168,7 +3168,12 @@ char *templateString(const char *src, scopedNameDef *names,
     while (names != NULL && values != NULL)
     {
         char *cp, *vname = values->name;
+        int vname_on_heap = FALSE;
         size_t name_len, value_len;
+
+        /* Skip over any leading const. */
+        if (strstr(vname, "const ") == vname)
+            vname += 6;
 
         name_len = strlen(names->name);
         value_len = strlen(vname);
@@ -3187,6 +3192,7 @@ char *templateString(const char *src, scopedNameDef *names,
                 free(vname);
 
             vname = new_vname;
+            vname_on_heap = TRUE;
             --value_len;
         }
 
@@ -3202,7 +3208,7 @@ char *templateString(const char *src, scopedNameDef *names,
             dst = new_dst;
         }
 
-        if (vname != values->name)
+        if (vname_on_heap)
             free(vname);
 
         names = names->next;

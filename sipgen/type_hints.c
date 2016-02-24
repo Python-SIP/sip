@@ -29,7 +29,7 @@
 
 static void pyiCompositeModule(sipSpec *pt, moduleDef *comp_mod, FILE *fp);
 static void pyiModule(sipSpec *pt, moduleDef *mod, FILE *fp);
-static void pyiTypeHintCode(codeBlockList *thc, FILE *fp);
+static void pyiTypeHintCode(codeBlockList *thc, int indent, FILE *fp);
 static void pyiEnums(sipSpec *pt, moduleDef *mod, ifaceFileDef *scope,
         ifaceFileList *defined, int indent, FILE *fp);
 static void pyiVars(sipSpec *pt, moduleDef *mod, classDef *scope,
@@ -176,11 +176,8 @@ static void pyiModule(sipSpec *pt, moduleDef *mod, FILE *fp)
      * Generate any exported type hint code and any module-specific type hint
      * code.
      */
-    if (pt->exptypehintcode != NULL)
-        pyiTypeHintCode(pt->exptypehintcode, fp);
-
-    if (mod->typehintcode != NULL)
-        pyiTypeHintCode(mod->typehintcode, fp);
+    pyiTypeHintCode(pt->exptypehintcode, 0, fp);
+    pyiTypeHintCode(mod->typehintcode, 0, fp);
 
     /* Generate the types - global enums must be first. */
     pyiEnums(pt, mod, NULL, NULL, 0, fp);
@@ -242,13 +239,29 @@ static void pyiModule(sipSpec *pt, moduleDef *mod, FILE *fp)
 /*
  * Generate handwritten type hint code.
  */
-static void pyiTypeHintCode(codeBlockList *thc, FILE *fp)
+static void pyiTypeHintCode(codeBlockList *thc, int indent, FILE *fp)
 {
-    fprintf(fp, "\n");
-
     while (thc != NULL)
     {
-        fprintf(fp, "%s", thc->block->frag);
+        int need_indent = TRUE;
+        const char *cp;
+
+        fprintf(fp, "\n");
+
+        for (cp = thc->block->frag; *cp != '\0'; ++cp)
+        {
+            if (need_indent)
+            {
+                need_indent = FALSE;
+                prIndent(indent, fp);
+            }
+
+            fprintf(fp, "%c", *cp);
+
+            if (*cp == '\n')
+                need_indent = TRUE;
+        }
+
         thc = thc->next;
     }
 }
@@ -386,27 +399,7 @@ static void pyiClass(sipSpec *pt, moduleDef *mod, classDef *cd,
 
     ++indent;
 
-    if (cd->typehintcode != NULL)
-    {
-        int need_indent = TRUE;
-        const char *cp;
-
-        fprintf(fp, "\n");
-
-        for (cp = cd->typehintcode->block->frag; *cp != '\0'; ++cp)
-        {
-            if (need_indent)
-            {
-                need_indent = FALSE;
-                prIndent(indent, fp);
-            }
-
-            fprintf(fp, "%c", *cp);
-
-            if (*cp == '\n')
-                need_indent = TRUE;
-        }
-    }
+    pyiTypeHintCode(cd->typehintcode, indent, fp);
 
     pyiEnums(pt, mod, cd->iff, *defined, indent, fp);
 
