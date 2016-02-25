@@ -867,6 +867,7 @@ typedef struct _typeHintDef {
 /* A section of a parsed type hint. */
 typedef struct _typeHintSection {
     const char *before;                 /* The optional text before the type. */
+    const char *typing;                 /* The typing module object. */
     argDef type;                        /* The parsed type. */
     const char *after;                  /* The optional text after the type. */
     struct _typeHintSection *next;      /* The next section. */

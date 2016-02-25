@@ -24,7 +24,7 @@
 
 
 /* Return a string referring to an object of any type. */
-#define anyObject(pep484)   ((pep484) ? "Any" : "object")
+#define anyObject(pep484)   ((pep484) ? "typing.Any" : "object")
 
 
 static void pyiCompositeModule(sipSpec *pt, moduleDef *comp_mod, FILE *fp);
@@ -68,6 +68,7 @@ static int isDefined(ifaceFileDef *iff, classDef *cd, moduleDef *mod,
         ifaceFileList *defined);
 static int inIfaceFileList(ifaceFileDef *iff, ifaceFileList *defined);
 static void parseTypeHint(sipSpec *pt, typeHintDef *thd);
+static const char *typingModule(const char *name);
 static void lookupType(sipSpec *pt, char *name, argDef *ad);
 static enumDef *lookupEnum(sipSpec *pt, const char *name, classDef *scope_cd,
         mappedTypeDef *scope_mtd);
@@ -146,9 +147,7 @@ static void pyiModule(sipSpec *pt, moduleDef *mod, FILE *fp)
      * standard SIP ones.
      */
     fprintf(fp,
-"from typing import (Any, Callable, Dict, Iterator, List, Mapping, Optional,\n"
-"        overload, Sequence, Set, Tuple, TypeVar, Union)\n"
-"\n"
+"import typing\n"
 "import sip\n"
         );
 
@@ -543,7 +542,7 @@ static void pyiCtor(sipSpec *pt, moduleDef *mod, classDef *cd, ctorDef *ct,
     if (overloaded)
     {
         prIndent(indent, fp);
-        fprintf(fp, "@overload\n");
+        fprintf(fp, "@typing.overload\n");
     }
 
     prIndent(indent, fp);
@@ -735,7 +734,7 @@ static void pyiOverload(sipSpec *pt, moduleDef *mod, overDef *od,
     if (overloaded)
     {
         prIndent(indent, fp);
-        fprintf(fp, "@overload\n");
+        fprintf(fp, "@typing.overload\n");
     }
 
     if (pep484 && is_method && isStatic(od))
@@ -800,7 +799,7 @@ static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int arg_nr,
         /* Assume pointers can be None unless specified otherwise. */
         if (isAllowNone(ad) || (!isDisallowNone(ad) && ad->nrderefs > 0))
         {
-            fprintf(fp, "Optional[");
+            fprintf(fp, "typing.Optional[");
             use_optional = TRUE;
         }
     }
@@ -948,7 +947,7 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, int sec,
     case rxdis_type:
         if (sec)
         {
-            type_name = "Callable[..., None]";
+            type_name = (pep484 ? "typing.Callable[..., None]" : "Callable[..., None]");
         }
         else
         {
@@ -1008,19 +1007,19 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, int sec,
         break;
 
     case pytuple_type:
-        type_name = "Tuple";
+        type_name = (pep484 ? "typing.Tuple" : "Tuple");
         break;
 
     case pylist_type:
-        type_name = "List";
+        type_name = (pep484 ? "typing.List" : "List");
         break;
 
     case pydict_type:
-        type_name = "Dict";
+        type_name = (pep484 ? "typing.Dict" : "Dict");
         break;
 
     case pycallable_type:
-        type_name = "Callable[..., None]";
+        type_name = (pep484 ? "typing.Callable[..., None]" : "Callable[..., None]");
         break;
 
     case pyslice_type:
@@ -1032,7 +1031,7 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, int sec,
         break;
 
     case pybuffer_type:
-        type_name = "PY_BUFFER";
+        type_name = "sip.Buffer";
         break;
 
     case ellipsis_type:
@@ -1121,7 +1120,7 @@ static void pyiPythonSignature(sipSpec *pt, moduleDef *mod, signatureDef *sd,
         fprintf(fp, " -> ");
 
         if ((is_res && nr_out > 0) || nr_out > 1)
-            fprintf(fp, "Tuple[");
+            fprintf(fp, "%sTuple[", (pep484 ? "typing." : ""));
 
         if (is_res)
             need_comma = pyiArgument(pt, mod, &sd->result, -1, TRUE, FALSE,
@@ -1386,7 +1385,9 @@ static void pyiTypeHint(sipSpec *pt, moduleDef *mod, typeHintDef *thd, int out,
             if (ths->before != NULL)
                 fprintf(fp, "%s", ths->before);
 
-            if (ths->type.atype == class_type)
+            if (ths->typing != NULL)
+                fprintf(fp, "%s%s", (pep484 ? "typing." : ""), ths->typing);
+            else if (ths->type.atype == class_type)
                 prClassRef(pt, ths->type.u.cd, out, mod, defined, pep484, fp);
             else if (ths->type.atype == enum_type)
                 prEnumRef(ths->type.u.ed, mod, defined, pep484, fp);
@@ -1427,14 +1428,15 @@ static void parseTypeHint(sipSpec *pt, typeHintDef *thd)
     while (*cp != '\0')
     {
         char *ep, *tp, saved;
+        const char *typing;
         argDef type;
 
         /* Find the end of a potential type. */
-        for (ep = cp; *ep != '\0' && *ep != ' ' && *ep != ']' && *ep != ','; ++ep)
+        for (ep = cp; *ep != '\0' && *ep != ' ' && *ep != '[' && *ep != ']' && *ep != ','; ++ep)
             ;
 
         /* Find the beginning of the potential type. */
-        for (tp = ep - 1; tp >= cp && *tp != ' ' && *tp != '[' && *tp != ','; --tp)
+        for (tp = ep - 1; tp >= cp && *tp != ' ' && *tp != '[' && *tp != '[' && *tp != ','; --tp)
             ;
 
         ++tp;
@@ -1443,18 +1445,23 @@ static void parseTypeHint(sipSpec *pt, typeHintDef *thd)
         saved = *ep;
         *ep = '\0';
 
-        /* Search for the type. */
-        lookupType(pt, tp, &type);
+        /* See if it an object in the typing module. */
+        if ((typing = typingModule(tp)) == NULL)
+        {
+            /* Search for the type. */
+            lookupType(pt, tp, &type);
+        }
 
         *ep = saved;
 
-        if (type.atype != no_type)
+        if (typing != NULL || type.atype != no_type)
         {
             typeHintSection *ths = sipMalloc(sizeof (typeHintSection));
 
             *tp = '\0';
             ths->before = before;
 
+            ths->typing = typing;
             ths->type = type;
 
             if (tail != NULL)
@@ -1481,6 +1488,37 @@ static void parseTypeHint(sipSpec *pt, typeHintDef *thd)
     /* See if there is trailing text. */
     if (*before != '\0' && tail != NULL)
         tail->after = before;
+}
+
+
+/*
+ * Look up an object in the typing module.
+ */
+static const char *typingModule(const char *name)
+{
+    static const char *typing[] = {
+        "Any",
+        "Callable",
+        "Dict",
+        "Iterator",
+        "List",
+        "Mapping",
+        "NamedTuple",
+        "Optional",
+        "Sequence",
+        "Set",
+        "Tuple",
+        "Union",
+        NULL
+    };
+
+    const char **np;
+
+    for (np = typing; *np != NULL; ++np)
+        if (strcmp(*np, name) == 0)
+            return *np;
+
+    return NULL;
 }
 
 
