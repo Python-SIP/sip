@@ -104,15 +104,6 @@
 #define isCallSuperInitUndefined(m) (((m)->modflags & MOD_SUPER_INIT_MASK) == MOD_SUPER_INIT_UNDEF)
 
 
-/* Handle the interface file flags. */
-
-#define IFACE_IS_RECURSING  0x01        /* A recursive process has started. */
-
-#define setRecursing(iff)   ((iff)->ifaceflags |= IFACE_IS_RECURSING)
-#define resetRecursing(iff) ((iff)->ifaceflags &= ~IFACE_IS_RECURSING)
-#define isRecursing(iff)    ((iff)->ifaceflags & IFACE_IS_RECURSING)
-
-
 /* Handle section flags. */
 
 #define SECT_IS_PUBLIC      0x01        /* It is public. */
@@ -859,6 +850,7 @@ typedef struct _virtErrorHandler {
 /* A parsed PEP 484 compliant type hint. */
 typedef struct _typeHintDef {
     int needs_parsing;                  /* TRUE if the hint needs parsing. */
+    int generating;                     /* TRUE if generating this hint. */
     char *raw_hint;                     /* The raw hint. */
     struct _typeHintSection *sections;  /* The list of parsed sections. */
 } typeHintDef;
@@ -938,7 +930,6 @@ typedef struct _ifaceFileDef {
     struct _ifaceFileDef *first_alt;    /* The first alternate API. */
     struct _ifaceFileDef *next_alt;     /* The next alternate API. */
     ifaceFileType type;                 /* Interface file type. */
-    int ifaceflags;                     /* The flags. */
     int ifacenr;                        /* The index into the types table. */
     scopedNameDef *fqcname;             /* The fully qualified C++ name. */
     moduleDef *module;                  /* The owning module. */

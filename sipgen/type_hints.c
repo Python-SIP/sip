@@ -1181,11 +1181,9 @@ static void prClassRef(sipSpec *pt, classDef *cd, int out, moduleDef *mod,
 
     thd = (out ? cd->typehint_out : cd->typehint_in);
 
-    if (thd != NULL && !isRecursing(cd->iff))
+    if (thd != NULL && !thd->generating)
     {
-        setRecursing(cd->iff);
         pyiTypeHint(pt, mod, cd->typehint_in, out, defined, pep484, fp);
-        resetRecursing(cd->iff);
     }
     else if (pep484)
     {
@@ -1253,11 +1251,9 @@ static void prMappedTypeRef(sipSpec *pt, mappedTypeDef *mtd, int out,
 
     thd = (out ? mtd->typehint_out : mtd->typehint_in);
 
-    if (thd != NULL && !isRecursing(mtd->iff))
+    if (thd != NULL && !thd->generating)
     {
-        setRecursing(mtd->iff);
         pyiTypeHint(pt, mod, thd, out, defined, pep484, fp);
-        resetRecursing(mtd->iff);
     }
     else if (mtd->pyname != NULL)
     {
@@ -1376,6 +1372,8 @@ static void pyiTypeHint(sipSpec *pt, moduleDef *mod, typeHintDef *thd, int out,
     if (thd->needs_parsing)
         parseTypeHint(pt, thd);
 
+    thd->generating = TRUE;
+
     if (thd->sections != NULL)
     {
         typeHintSection *ths;
@@ -1403,6 +1401,8 @@ static void pyiTypeHint(sipSpec *pt, moduleDef *mod, typeHintDef *thd, int out,
     {
         fprintf(fp, "%s", maybeAnyObject(pep484, thd->raw_hint));
     }
+
+    thd->generating = FALSE;
 }
 
 
