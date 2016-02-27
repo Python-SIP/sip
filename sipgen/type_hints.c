@@ -1075,8 +1075,7 @@ static void pyiPythonSignature(sipSpec *pt, moduleDef *mod, signatureDef *sd,
         int need_self, int sec, ifaceFileList *defined, KwArgs kwargs,
         int pep484, FILE *fp)
 {
-    const char *type_name;
-    int need_comma, is_res, nr_out, a;
+    int void_return, need_comma, is_res, nr_out, a;
 
     if (need_self)
     {
@@ -1107,13 +1106,21 @@ static void pyiPythonSignature(sipSpec *pt, moduleDef *mod, signatureDef *sd,
 
     fprintf(fp, ")");
 
+    /* An empty type hint specifies a void return. */
     if (sd->result.typehint_out != NULL)
-        type_name = sd->result.typehint_out->raw_hint;
+    {
+        if (sd->result.typehint_out->needs_parsing)
+            void_return = (sd->result.typehint_out->raw_hint[0] == '\0');
+        else
+            void_return = (sd->result.typehint_out->sections == NULL);
+    }
     else
-        type_name = NULL;
+    {
+        void_return = FALSE;
+    }
 
     is_res = !((sd->result.atype == void_type && sd->result.nrderefs == 0) ||
-            (type_name != NULL && type_name[0] == '\0'));
+            void_return);
 
     if (is_res || nr_out > 0)
     {
