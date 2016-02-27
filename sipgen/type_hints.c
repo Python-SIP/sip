@@ -1500,6 +1500,7 @@ static const char *typingModule(const char *name)
         "Any",
         "Callable",
         "Dict",
+        "Iterable",
         "Iterator",
         "List",
         "Mapping",
