@@ -62,6 +62,7 @@ static void prClassRef(sipSpec *pt, classDef *cd, int out, moduleDef *mod,
         ifaceFileList *defined, int pep484, FILE *fp);
 static void prEnumRef(enumDef *ed, moduleDef *mod, ifaceFileList *defined,
         int pep484, FILE *fp);
+static void prScopedEnumName(FILE *fp, enumDef *ed);
 static void prMappedTypeRef(sipSpec *pt, mappedTypeDef *mtd, int out,
         moduleDef *mod, ifaceFileList *defined, int pep484, FILE *fp);
 static int isDefined(ifaceFileDef *iff, classDef *cd, moduleDef *mod,
@@ -1227,7 +1228,21 @@ static void prEnumRef(enumDef *ed, moduleDef *mod, ifaceFileList *defined,
 {
     if (pep484)
     {
-        int is_defined = (ed->ecd != NULL && isDefined(ed->ecd->iff, ed->ecd->ecd, mod, defined));
+        int is_defined;
+
+        if (ed->ecd != NULL)
+        {
+            is_defined = isDefined(ed->ecd->iff, ed->ecd->ecd, mod, defined);
+        }
+        else if (ed->emtd != NULL)
+        {
+            is_defined = isDefined(ed->emtd->iff, NULL, mod, defined);
+        }
+        else
+        {
+            /* Global enums are defined early on. */
+            is_defined = TRUE;
+        }
 
         if (!is_defined)
             fprintf(fp, "'");
@@ -1235,15 +1250,27 @@ static void prEnumRef(enumDef *ed, moduleDef *mod, ifaceFileList *defined,
         if (ed->module != mod)
             fprintf(fp, "%s.", ed->module->name);
 
-        prScopedPythonName(fp, ed->ecd, ed->pyname->text);
+        prScopedEnumName(fp, ed);
 
         if (!is_defined)
             fprintf(fp, "'");
     }
     else
     {
-        prScopedPythonName(fp, ed->ecd, ed->pyname->text);
+        prScopedEnumName(fp, ed);
     }
+}
+
+
+/*
+ * Generate a scoped enum name.
+ */
+static void prScopedEnumName(FILE *fp, enumDef *ed)
+{
+    if (ed->emtd != NULL)
+        fprintf(fp, "%s.%s", ed->emtd->pyname->text, ed->pyname->text);
+    else
+        prScopedPythonName(fp, ed->ecd, ed->pyname->text);
 }
 
 
@@ -1545,7 +1572,7 @@ static void lookupType(sipSpec *pt, char *name, argDef *ad)
 
     ep = NULL;
 
-    while (name != '\0')
+    while (*name != '\0')
     {
         enumDef *ed;
 
