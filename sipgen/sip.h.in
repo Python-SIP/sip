@@ -687,6 +687,24 @@ typedef enum {
 } ifaceFileType;
 
 
+/* Type hint parse status. */
+typedef enum {
+    needs_parsing,
+    being_parsed,
+    parsed
+} typeHintParseStatus;
+
+
+/* Type hint node type. */
+typedef enum {
+    typing_node,
+    class_node,
+    enum_node,
+    brackets_node,
+    other_node
+} typeHintNodeType;
+
+
 /* A location in a .sip source file. */
 typedef struct {
     int linenr;                         /* The line number. */
@@ -849,21 +867,23 @@ typedef struct _virtErrorHandler {
 
 /* A parsed PEP 484 compliant type hint. */
 typedef struct _typeHintDef {
-    int needs_parsing;                  /* TRUE if the hint needs parsing. */
-    int generating;                     /* TRUE if generating this hint. */
+    typeHintParseStatus status;         /* The state of the type hint parse. */
     char *raw_hint;                     /* The raw hint. */
-    struct _typeHintSection *sections;  /* The list of parsed sections. */
+    struct _typeHintNodeDef *root;      /* The root of parsed nodes. */
 } typeHintDef;
 
 
-/* A section of a parsed type hint. */
-typedef struct _typeHintSection {
-    const char *before;                 /* The optional text before the type. */
-    const char *typing;                 /* The typing module object. */
-    argDef type;                        /* The parsed type. */
-    const char *after;                  /* The optional text after the type. */
-    struct _typeHintSection *next;      /* The next section. */
-} typeHintSection;
+/* A node of a parsed type hint. */
+typedef struct _typeHintNodeDef {
+    typeHintNodeType type;              /* The type of the node. */
+    union {
+        const char *name;               /* For typing objects and others. */
+        struct _classDef *cd;           /* For class nodes. */
+        struct _enumDef *ed;            /* For enum nodes. */
+    } u;
+    struct _typeHintNodeDef *children;  /* The list of children. */
+    struct _typeHintNodeDef *next;      /* The next sibling. */
+} typeHintNodeDef;
 
 
 /* A module definition. */
