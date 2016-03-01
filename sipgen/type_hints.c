@@ -1433,7 +1433,7 @@ static int parseTypeHintNode(sipSpec *pt, int out, int top_level, char *start,
     int have_brackets = FALSE;
     typeHintNodeDef *node, *children = NULL;
 
-    /* Assume there will be an error. */
+    /* Assume there won't be a node. */
     *thnp = NULL;
 
     /* Find the name and any opening and closing bracket. */
@@ -1532,9 +1532,12 @@ static int parseTypeHintNode(sipSpec *pt, int out, int top_level, char *start,
         {
             if (strcmp(typing, "Union") == 0)
             {
-                /* Flatten any nested unions. */
+                /*
+                 * If there are no children assume it is because they have been
+                 * omitted.
+                 */
                 if (children == NULL)
-                    return FALSE;
+                    return TRUE;
 
                 children = flatten_unions(children);
             }
@@ -1632,14 +1635,40 @@ static const char *typingModule(const char *name)
  */
 static typeHintNodeDef *flatten_unions(typeHintNodeDef *nodes)
 {
-    /* TODO */
-    return nodes;
+    typeHintNodeDef *head, **tailp, *thnd;
+
+    head = NULL;
+    tailp = &head;
+
+    for (thnd = nodes; thnd != NULL; thnd = thnd->next)
+    {
+        if (thnd->type == typing_node && strcmp(thnd->u.name, "Union") == 0)
+        {
+            typeHintNodeDef *child;
+
+            for (child = thnd->children; child != NULL; child = child->next)
+            {
+                *tailp = child;
+                tailp = &child->next;
+            }
+        }
+        else
+        {
+            /* Move this one to the new list. */
+            *tailp = thnd;
+            tailp = &thnd->next;
+        }
+    }
+
+    *tailp = NULL;
+
+    return head;
 }
 
 
 /*
- * Look up a qualified Python type.  Return TRUE if the type should not be
- * omitted because of a recursive definition.
+ * Look up a qualified Python type and return the corresponding node (or NULL
+ * if the type should be omitted because of a recursive definition).
  */
 static typeHintNodeDef *lookupType(sipSpec *pt, char *name, int out)
 {
