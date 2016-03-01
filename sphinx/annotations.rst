@@ -130,6 +130,8 @@ Argument Annotations
         // can convert to an integer, except for floating point numbers.
         void foo(int);
 
+    Any type hint for the argument will be ignored.
+
 
 .. argument-annotation:: DisallowNone
 

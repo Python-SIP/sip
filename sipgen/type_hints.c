@@ -884,8 +884,8 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, int sec,
     const char *type_name;
     typeHintDef *thd;
 
-    /* Use any explicit type hint. */
-    thd = (out ? ad->typehint_out : ad->typehint_in);
+    /* Use any explicit type hint unless the argument is constrained. */
+    thd = (out ? ad->typehint_out : (isConstrained(ad) ? NULL : ad->typehint_in));
 
     if (thd != NULL)
     {
