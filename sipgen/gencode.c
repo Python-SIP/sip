@@ -1514,6 +1514,12 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "    {(void *)slot_%s, %s, {0, 0, 0}},\n"
                         , md->pyname->text, slotName(md->slot));
 
+                    if (md->slot == long_slot)
+                        prcode(fp,
+"#else\n"
+"    {(void *)slot_%s, %s, {0, 0, 0}},\n"
+                            , md->pyname->text, slotName(int_slot));
+
                     if (py2OnlySlot(md->slot) || py2_5LaterSlot(md->slot))
                         prcode(fp,
 "#endif\n"
@@ -1541,7 +1547,19 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
                 generateEncodedType(mod, cd, 0, fp);
 
                 prcode(fp, "},\n"
-                      );
+                    );
+
+                if (md->slot == long_slot)
+                {
+                    prcode(fp,
+"#else\n"
+"    {(void *)slot_%L_%s, %s, ", cd->iff, md->pyname->text, slotName(int_slot));
+
+                    generateEncodedType(mod, cd, 0, fp);
+
+                    prcode(fp, "},\n"
+                        );
+                }
 
                 if (py2OnlySlot(md->slot) || py2_5LaterSlot(md->slot))
                     prcode(fp,
@@ -1632,6 +1650,12 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
                 prcode(fp,
 "    {(void *)slot_%C_%s, %s},\n"
                     , ed->fqcname, slot->pyname->text, stype);
+
+                if (slot->slot == long_slot)
+                    prcode(fp,
+"#else\n"
+"    {(void *)slot_%C_%s, %s},\n"
+                        , ed->fqcname, slot->pyname->text, slotName(int_slot));
 
                 if (py2OnlySlot(slot->slot) || py2_5LaterSlot(slot->slot))
                     prcode(fp,
@@ -5660,14 +5684,17 @@ static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
 "\n"
         );
 
-    if (py2OnlySlot(md->slot))
-        prcode(fp,
+    if (md->slot != long_slot)
+    {
+        if (py2OnlySlot(md->slot))
+            prcode(fp,
 "#if PY_MAJOR_VERSION < 3\n"
-            );
-    else if (py2_5LaterSlot(md->slot))
-        prcode(fp,
+                );
+        else if (py2_5LaterSlot(md->slot))
+            prcode(fp,
 "#if PY_VERSION_HEX >= 0x02050000\n"
-            );
+                );
+    }
 
     if (!generating_c)
     {
@@ -5848,10 +5875,11 @@ static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
 "}\n"
         );
 
-    if (py2OnlySlot(md->slot) || py2_5LaterSlot(md->slot))
-        prcode(fp,
+    if (md->slot != long_slot)
+        if (py2OnlySlot(md->slot) || py2_5LaterSlot(md->slot))
+            prcode(fp,
 "#endif\n"
-            );
+                );
 }
 
 
@@ -9807,6 +9835,12 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
             prcode(fp,
 "    {(void *)slot_%L_%s, %s},\n"
                 , cd->iff, md->pyname->text, stype);
+
+            if (md->slot == long_slot)
+                prcode(fp,
+"#else\n"
+"    {(void *)slot_%L_%s, %s},\n"
+                , cd->iff, md->pyname->text, slotName(int_slot));
 
             if (py2OnlySlot(md->slot) || py2_5LaterSlot(md->slot))
                 prcode(fp,
