@@ -210,8 +210,8 @@ can be used by applications.
     .. versionadded:: 4.3
 
     This is a Python string object that defines the SIP version number as
-    represented as a string.  For development previews it will start with
-    ``preview-`` or ``snapshot-``.
+    represented as a string.  For development versions it will contain either
+    ``.dev`` or ``-snapshot-``.
 
 
 .. function:: transferback(obj)

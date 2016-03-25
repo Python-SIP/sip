@@ -274,8 +274,8 @@ of the work of creating these additional configuration modules.
 
     .. attribute:: sip_version_str
 
-        The SIP version as a string.  For development previews it will start
-        with ``preview-`` or ``snapshot-``.
+        The SIP version as a string.  For development versions it will contain
+        either ``.dev`` or ``-snapshot-``.
 
     .. attribute:: universal
 

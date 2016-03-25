@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# Copyright (c) 2015 Riverbank Computing Limited <info@riverbankcomputing.com>
+# Copyright (c) 2016 Riverbank Computing Limited <info@riverbankcomputing.com>
 #
 # This file is part of SIP.
 #
@@ -21,10 +21,12 @@ repository or a Mercurial archive.  It is not part of a packaged release.
 """
 
 
+import glob
 import os
 import shutil
 import sys
 import tarfile
+import time
 import zipfile
 
 
@@ -46,7 +48,7 @@ _GeneratedFiles = (
 
 # File types that are auto-generated and need to be cleaned.
 _GeneratedFileTypes = ('.pyc', '.o', '.obj', '.so', '.pyd', '.exp', '.exe',
-        '.gz', '.zip', '.a', '.dylib', '.pro', '.cfg')
+        '.gz', '.zip', '.a', '.dylib', '.pro', '.cfg', '.whl')
 
 # Directories that are auto-generated and need to be cleaned.
 _GeneratedDirs = (
@@ -143,7 +145,8 @@ def _get_release():
         if version is not None:
             ctx = before
         else:
-            release_suffix = '-snapshot-' + str(ctx)
+            release_suffix = time.strftime('.dev%y%m%d%H%M',
+                    time.localtime(ctx.date()[0]))
 
         changelog = [_format_changelog(ctx)]
 
@@ -470,7 +473,14 @@ def clean(quiet=True):
 
     release, _, _, _ = _get_release()
     package = 'sip-' + release
-    _remove_directory(package, quiet)
+
+    # If it is a snapshot then we don't know the name because the timestamp
+    # will be wrong.
+    if '.dev' in release:
+        for snapshot_dir in glob.glob(package[:-10] + '*'):
+            _remove_directory(snapshot_dir, quiet)
+    else:
+        _remove_directory(package, quiet)
 
 
 def doc(quiet=True):
@@ -542,12 +552,9 @@ def release(quiet=True):
 
 
 def version(quiet=True):
-    """ Get the full version name of the package.  If it is a release then it
-    will be of the form x.y[.z].  If it is a snapshot then it will be of the
-    form snapshot-x.y[.z]-changeset where x.y[.z] is the version number of the
-    next release (not the previous one).  If this is a Mercurial archive
-    (rather than a repository) then it does the best it can (based on the name
-    of the directory) with the limited information available.
+    """ Get the full version name of the package.  If this is a Mercurial
+    archive (rather than a repository) then it does the best it can (based on
+    the name of the directory) with the limited information available.
 
     :param quiet:
         Set if progress messages should be suppressed.
