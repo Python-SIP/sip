@@ -545,7 +545,7 @@ Class Annotations
     default constructors for the class.
 
 
-.. enum-annotation:: NoTypeHint
+.. class-annotation:: NoTypeHint
 
     .. versionadded:: 4.18
 
