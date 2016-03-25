@@ -282,9 +282,7 @@ static int apiArgument(sipSpec *pt, argDef *ad, int out, int need_comma,
             fprintf(fp, " %s", ad->name->text);
 
         fprintf(fp, "=");
-        prcode(fp, "%M");
         prDefaultValue(ad, in_str, fp);
-        prcode(fp, "%M");
     }
 
     return TRUE;
@@ -729,9 +727,9 @@ static void xmlArgument(sipSpec *pt, argDef *ad, const char *dir, int res_xfer,
      */
     if (ad->defval && (dir == NULL || strcmp(dir, "out") != 0))
     {
-        prcode(fp, " default=\"%M");
+        prcode(fp, " default=\"");
         prDefaultValue(ad, FALSE, fp);
-        prcode(fp, "%M\"");
+        prcode(fp, "\"");
     }
 
     fprintf(fp, "/>\n");
