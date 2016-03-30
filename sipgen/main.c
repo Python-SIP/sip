@@ -40,9 +40,9 @@ static int warnings = FALSE;
 static int warnings_are_fatal = FALSE;
 
 
-static void help(void) SIP_NORETURN;
-static void version(void) SIP_NORETURN;
-static void usage(void) SIP_NORETURN;
+SIP_NORETURN static void help(void);
+SIP_NORETURN static void version(void);
+SIP_NORETURN static void usage(void);
 static char parseopt(int,char **,char *,char **,int *,char **);
 static int parseInt(char *,char);
 

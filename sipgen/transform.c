@@ -63,7 +63,7 @@ static void resolveFuncTypes(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         overDef *od);
 static void resolvePySigTypes(sipSpec *,moduleDef *,classDef *,overDef *,signatureDef *,int);
 static void resolveVariableType(sipSpec *,varDef *);
-static void fatalNoDefinedType(scopedNameDef *) SIP_NORETURN;
+SIP_NORETURN static void fatalNoDefinedType(scopedNameDef *);
 static void resolveType(sipSpec *,moduleDef *,classDef *,argDef *,int);
 static void searchClassScope(sipSpec *,classDef *,scopedNameDef *,argDef *);
 static void searchMappedTypes(sipSpec *,moduleDef *,scopedNameDef *,argDef *);

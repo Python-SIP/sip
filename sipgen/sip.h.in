@@ -1324,7 +1324,7 @@ void generateTypeHints(sipSpec *pt, moduleDef *mod, const char *pyiFile);
 void generateExpression(valueDef *vd, int in_str, FILE *fp);
 void warning(Warning w, const char *fmt, ...);
 void deprecated(const char *msg);
-void fatal(const char *fmt,...) SIP_NORETURN;
+SIP_NORETURN void fatal(const char *fmt,...);
 void fatalScopedName(scopedNameDef *);
 void fatalStart();
 void getSourceLocation(sourceLocation *slp);
@@ -1375,7 +1375,7 @@ ifaceFileDef *findIfaceFile(sipSpec *pt, moduleDef *mod,
 int pluginPyQt3(sipSpec *pt);
 int pluginPyQt4(sipSpec *pt);
 int pluginPyQt5(sipSpec *pt);
-void yyerror(char *) SIP_NORETURN;
+SIP_NORETURN void yyerror(char *);
 void yywarning(char *);
 int yylex();
 nameDef *cacheName(sipSpec *pt, const char *name);
