@@ -122,7 +122,7 @@ The following parts of the :ref:`C API <ref-c-api>` have been removed.
 
 - The old-style generated type convertors.
 
-In addition the :option:`-a` command line option to :file:`configure.py` has
+In addition the ``-a`` command line option to :file:`configure.py` has
 been removed.
 
 
