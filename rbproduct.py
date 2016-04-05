@@ -56,7 +56,7 @@ class SipProduct(Product, TestableProduct, WheelProduct):
 
         return name
 
-    def get_imports(self):
+    def get_imports(self, platform):
         """ Get the sequence of modules to test that they can be imported. """
 
         return ('sip', )
