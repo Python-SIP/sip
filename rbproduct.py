@@ -25,9 +25,8 @@
 
 
 import os
-import sys
 
-from rbtools import PkgInfo, Product, TestableProduct, WheelProduct
+from rbtools import Product, TestableProduct, WheelProduct
 
 
 class SipProduct(Product, TestableProduct, WheelProduct):
@@ -35,11 +34,6 @@ class SipProduct(Product, TestableProduct, WheelProduct):
 
     # The name of the product.
     name = 'sip'
-
-    # The PKG-INFO meta-data.
-    _PKG_INFO = PkgInfo(
-        description="The sip extension module required by sip generated bindings",
-        provides=['sip'])
 
     def build(self, platform):
         """ Build the product in the current directory using the given
@@ -60,11 +54,6 @@ class SipProduct(Product, TestableProduct, WheelProduct):
         """ Get the sequence of modules to test that they can be imported. """
 
         return ('sip', )
-
-    def get_pkginfo(self):
-        """ Get the PKG-INFO meta-data. """
-
-        return self._PKG_INFO
 
     def add_wheel_contents(self, wheel, platform):
         """ Add the product's files to a wheel. """
