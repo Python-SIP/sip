@@ -10,7 +10,6 @@ Platform: OS X
 Platform: Windows
 Platform: iOS
 Platform: Android
-Provides: sip
 
 SIP - A Python Extension Module Generator for C and C++ Libraries
 =================================================================
