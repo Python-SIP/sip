@@ -63,13 +63,16 @@ to the BSD license.
 Installation
 ------------
 
-SIP source packages can be dowloaded from
+SIP source packages, and Linux 64-bit wheels, can be dowloaded from
 https://www.riverbankcomputing.com/software/sip/download/.
 
-The ``sip`` module (i.e. excluding the code generator) can also be installed
-from PyPI::
+Wheels for 32 and 64-bit Windows and 64-bit OS X modules can be installed from
+PyPI::
 
     pip3 install sip
+
+All wheels include the ``sip`` extension module but od not include the code
+generator.
 
 
 Documentation
