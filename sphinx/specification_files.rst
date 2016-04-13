@@ -75,12 +75,12 @@ file.
             :directive:`%Module` |
             :directive:`%ModuleCode` |
             :directive:`%ModuleHeaderCode` |
-            :directive:`%ModuleTypeHintCode` |
             :directive:`%OptionalInclude` |
             :directive:`%Platforms` |
             :directive:`%PreInitialisationCode` |
             :directive:`%PostInitialisationCode` |
             :directive:`%Timeline` |
+            :directive:`%TypeHintCode` |
             :directive:`%UnitCode` |
             *mapped-type-template*]
 

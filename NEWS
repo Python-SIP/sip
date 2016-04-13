@@ -1,9 +1,16 @@
-v4.18 ??? ??? 2016
-  - Added the /TypeHint/ argument, mapped type, function, typedef and variable
-    annotations.
-  - Added the %ExportedTypeHintCode and %ModuleTypeHintCode directives.
+v4.18 13th April 2016
+  - Added the /TypeHint/ argument, class, mapped type, function, typedef and
+    variable annotations.
+  - Added the /TypeHintIn/ and /TypeHintOut/ argument, class, mapped type and
+    typedef annotations.
+  - Added the /TypeHintValue/ argument, class and mapped type annotations.
+  - Added the /NoTypeHint/ class, enum, function and variable annotations.
+  - Added the %ExportedTypeHintCode and %TypeHintCode directives.
+  - Added the -f command line option to treat warnings as errors.
   - Added the -y command line option to generated PEP 484 compatible type hint
     stub files.
+  - Deprecated the /DocType/ and /DocValue/ annotations.
+  - Bug fixes.
 
 v4.17 24th October 2015
   - Added support for PEP 465 (__matmul__ and __imatmul__).
