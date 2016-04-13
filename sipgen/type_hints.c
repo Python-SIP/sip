@@ -975,7 +975,7 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, int sec,
     case ascii_string_type:
     case latin1_string_type:
     case utf8_string_type:
-        type_name = "str";
+        type_name = isArray(ad) ? "bytes" : "str";
         break;
 
     case byte_type:

@@ -71,7 +71,7 @@ PyPI::
 
     pip3 install sip
 
-All wheels include the ``sip`` extension module but od not include the code
+All wheels include the ``sip`` extension module but do not include the code
 generator.
 
 
