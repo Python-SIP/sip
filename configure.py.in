@@ -474,7 +474,7 @@ macx {
                         cfg.sip_inc_dir)]
 
         if opts.pyi:
-            installs.append(([os.path.join(build_dir, 'sip.pyi')], pyi_dir))
+            installs.append(([os.path.join(src_dir, 'sip.pyi')], pyi_dir))
 
         makefile = sipconfig.ModuleMakefile(
             configuration=cfg,
