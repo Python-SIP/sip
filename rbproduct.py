@@ -26,14 +26,25 @@
 
 import os
 
-from rbtools import Product, TestableProduct, WheelProduct
+from rbtools import BuildableProduct, Product, TestableProduct, WheelProduct
 
 
-class SipProduct(Product, TestableProduct, WheelProduct):
+class SipProduct(Product, BuildableProduct, TestableProduct, WheelProduct):
     """ The encapsulation of the sip product. """
+
+    ### Product ###############################################################
 
     # The name of the product.
     name = 'sip'
+
+    def installation(self, name):
+        """ Convert a file or directory name relative to the installation
+        directory of the product to one that is relative to site-packages.
+        """
+
+        return name
+
+    ### BuildableProduct ######################################################
 
     def build(self, platform):
         """ Build the product in the current directory using the given
@@ -43,17 +54,14 @@ class SipProduct(Product, TestableProduct, WheelProduct):
         platform.run_script('configure.py')
         platform.run_make()
 
-    def installation(self, name):
-        """ Convert a file or directory name relative to the installation
-        directory of the product to one that is relative to site-packages.
-        """
-
-        return name
+    ### TestableProduct #######################################################
 
     def get_imports(self, platform):
         """ Get the sequence of modules to test that they can be imported. """
 
         return ('sip', )
+
+    ### WheelProduct ##########################################################
 
     def add_wheel_contents(self, wheel, platform):
         """ Add the product's files to a wheel. """
