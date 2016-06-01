@@ -26,7 +26,8 @@
 
 import os
 
-from rbtools import BuildableProduct, Product, TestableProduct, WheelProduct
+from rbtools import (BuildableProduct, copy_into_directory, patch_file,
+        Product, progress, remove_file, TestableProduct, WheelProduct)
 
 
 class SipProduct(Product, BuildableProduct, TestableProduct, WheelProduct):
@@ -46,13 +47,73 @@ class SipProduct(Product, BuildableProduct, TestableProduct, WheelProduct):
 
     ### BuildableProduct ######################################################
 
-    def build(self, platform):
+    # The files and directories to exclude from the working source directory.
+    _EXCLUDE = ('METADATA.in', 'Roadmap.rst', 'build.py', 'rbproduct.py',
+            '__pycache__')
+
+    # The files that need patching with the release information.
+    _PATCH = (
+        ('configure.py', ),
+        ('sipgen', 'sip.h'),
+        ('siplib', 'sip.h.in'),
+        ('sphinx', 'conf.py'), ('sphinx', 'introduction.rst'))
+
+    def build(self, platform, build_type=None, debug=False):
         """ Build the product in the current directory using the given
         platform.
         """
 
-        platform.run_script('configure.py')
+        # Configure the build.
+        configure_py = ['configure.py']
+
+        if debug:
+            configure_py.append('--debug')
+
+        platform.run_script(*configure_py)
+
+        # Do the build.
         platform.run_make()
+
+    def prepare(self, platform, working_src_dir, release_map):
+        """ Prepare a new working source directory (prior to building or making
+        a release) for a version of the product.
+        """
+
+        # Populate the working source directory.
+        progress("Populating '{}'".format(working_src_dir))
+
+        for src in os.listdir():
+            if src not in self._EXCLUDE:
+                copy_into_directory(src, working_src_dir)
+
+        # Patch the files that need it.
+        progress("Patching files")
+
+        for f in self._PATCH:
+            dst_file = os.path.join(working_src_dir, os.path.join(*f))
+            src_file = dst_file + '.in'
+
+            patch_file(src_file, dst_file, release_map)
+            remove_file(src_file)
+
+        # Run bison and flex.
+        sipgen = os.path.join(working_src_dir, 'sipgen')
+        metasrc = os.path.join(sipgen, 'metasrc')
+
+        lexer_l = os.path.join(metasrc, 'lexer.l')
+        lexer_c = os.path.join(sipgen, 'lexer.c')
+        progress("Running flex to create {}".format(lexer_c))
+        platform.run('flex', '-o', lexer_c, lexer_l)
+
+        parser_y = os.path.join(metasrc, 'parser.y')
+        parser_c = os.path.join(sipgen, 'parser.c')
+        progress("Running bison to create {}".format(parser_c))
+        platform.run('bison', '-y', '-d', '-o', parser_c, parser_y)
+
+        # TODO: run sphinx - should we have a separate release method and do it
+        # in that?  Should there be a separate rb-docs for when developing
+        # docs? (and therefore a separate build_docs() method called after
+        # prepare() by rb-release?)
 
     ### TestableProduct #######################################################
 
