@@ -27,10 +27,10 @@
 import os
 
 from rbtools import (BuildableProduct, copy_into_directory, patch_file,
-        Product, progress, remove_file, TestableProduct, WheelProduct)
+        progress, remove_file, TestableProduct, WheelProduct)
 
 
-class SipProduct(Product, BuildableProduct, TestableProduct, WheelProduct):
+class SipProduct(BuildableProduct, TestableProduct, WheelProduct):
     """ The encapsulation of the sip product. """
 
     ### Product ###############################################################
@@ -114,6 +114,8 @@ class SipProduct(Product, BuildableProduct, TestableProduct, WheelProduct):
         # in that?  Should there be a separate rb-docs for when developing
         # docs? (and therefore a separate build_docs() method called after
         # prepare() by rb-release?)
+
+        # TODO: ChangeLog
 
     ### TestableProduct #######################################################
 
