@@ -58,7 +58,7 @@ class SipProduct(BuildableProduct, TestableProduct, WheelProduct):
         ('siplib', 'sip.h.in'),
         ('sphinx', 'conf.py'), ('sphinx', 'introduction.rst'))
 
-    def build(self, platform, build_type=None, debug=False):
+    def build(self, platform, debug=False):
         """ Build the product in the current directory using the given
         platform.
         """
