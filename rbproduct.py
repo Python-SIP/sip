@@ -27,7 +27,7 @@
 import os
 
 from rbtools import (BuildableProduct, copy_into_directory, patch_file,
-        progress, remove_file, TestableProduct, WheelProduct)
+        progress, remove_directory, remove_file, TestableProduct, WheelProduct)
 
 
 class SipProduct(BuildableProduct, TestableProduct, WheelProduct):
@@ -47,6 +47,13 @@ class SipProduct(BuildableProduct, TestableProduct, WheelProduct):
 
     ### BuildableProduct ######################################################
 
+    # The supported build types.
+    build_types = {
+        "develop*": "a debug build of the code generator and module",
+        "docs": "a build of the documentation",
+        "full": "a full build",
+    }
+
     # The files and directories to exclude from the working source directory.
     _EXCLUDE = ('METADATA.in', 'Roadmap.rst', 'build.py', 'rbproduct.py',
             '__pycache__')
@@ -58,7 +65,7 @@ class SipProduct(BuildableProduct, TestableProduct, WheelProduct):
         ('siplib', 'sip.h.in'),
         ('sphinx', 'conf.py'), ('sphinx', 'introduction.rst'))
 
-    def build(self, platform, debug=False):
+    def build(self, platform):
         """ Build the product in the current directory using the given
         platform.
         """
@@ -66,13 +73,21 @@ class SipProduct(BuildableProduct, TestableProduct, WheelProduct):
         # Configure the build.
         configure_py = ['configure.py']
 
-        if debug:
+        if self.build_type == 'develop':
             configure_py.append('--debug')
 
         platform.run_script(*configure_py)
 
         # Do the build.
         platform.run_make()
+
+    def install(self, platform):
+        """ Install the product from the current directory using the given
+        platform.
+        """
+
+        if self.build_type != 'docs':
+            super().install(platform)
 
     def prepare(self, platform, working_src_dir, release_map):
         """ Prepare a new working source directory (prior to building or making
@@ -96,26 +111,32 @@ class SipProduct(BuildableProduct, TestableProduct, WheelProduct):
             patch_file(src_file, dst_file, release_map)
             remove_file(src_file)
 
-        # Run bison and flex.
-        sipgen = os.path.join(working_src_dir, 'sipgen')
-        metasrc = os.path.join(sipgen, 'metasrc')
+        if self.build_type in ('develop', 'full'):
+            # Run bison and flex.
+            sipgen = os.path.join(working_src_dir, 'sipgen')
+            metasrc = os.path.join(sipgen, 'metasrc')
 
-        lexer_l = os.path.join(metasrc, 'lexer.l')
-        lexer_c = os.path.join(sipgen, 'lexer.c')
-        progress("Running flex to create {}".format(lexer_c))
-        platform.run('flex', '-o', lexer_c, lexer_l)
+            lexer_l = os.path.join(metasrc, 'lexer.l')
+            lexer_c = os.path.join(sipgen, 'lexer.c')
+            progress("Running flex to create {}".format(lexer_c))
+            platform.run('flex', '-o', lexer_c, lexer_l)
 
-        parser_y = os.path.join(metasrc, 'parser.y')
-        parser_c = os.path.join(sipgen, 'parser.c')
-        progress("Running bison to create {}".format(parser_c))
-        platform.run('bison', '-y', '-d', '-o', parser_c, parser_y)
+            parser_y = os.path.join(metasrc, 'parser.y')
+            parser_c = os.path.join(sipgen, 'parser.c')
+            progress("Running bison to create {}".format(parser_c))
+            platform.run('bison', '-y', '-d', '-o', parser_c, parser_y)
 
-        # TODO: run sphinx - should we have a separate release method and do it
-        # in that?  Should there be a separate rb-docs for when developing
-        # docs? (and therefore a separate build_docs() method called after
-        # prepare() by rb-release?)
+        if self.build_type in ('docs', 'full'):
+            # Run sphinx.
+            sphinx = os.path.join(working_src_dir, 'sphinx')
+            doc = os.path.join(working_src_dir, 'doc')
+            html = os.path.join(doc, 'html')
 
-        # TODO: ChangeLog
+            progress("Creating HTML documentation in {}".format(html))
+            platform.run('sphinx-build', '-b', 'html', sphinx, html)
+
+            remove_file(os.path.join(html, '.buildinfo'))
+            remove_directory(os.path.join(html, '.doctrees'))
 
     ### TestableProduct #######################################################
 
