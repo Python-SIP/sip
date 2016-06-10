@@ -5937,7 +5937,7 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 
         for (mro = cd->mro; mro != NULL; mro = mro->next)
         {
-            if (needsCast(mro))
+            if (needsCast(mro) && !isDuplicateSuper(mro) && !hasDuplicateSuper(mro))
             {
                 prcode(fp,
 "    if (targetType == sipType_%C)\n"
