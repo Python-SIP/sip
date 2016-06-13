@@ -49,10 +49,18 @@ class SipProduct(BuildableProduct, TestableProduct, WheelProduct):
 
     # The supported build types.
     build_types = {
-        "develop*": "a debug build of the code generator and module",
-        "docs": "a build of the documentation",
-        "full": "a full build",
+        'develop':  "a debug build of the code generator and module",
+        'docs':     "a build of the documentation",
+        'full':     "a full build",
     }
+    default_build_type = 'develop'
+
+    # The supported release types.
+    release_types = {
+        'posix':    "a release for any POSIX target",
+        'win':      "a release for any Windows target",
+    }
+    default_release_type = 'posix'
 
     # The files and directories to exclude from the working source directory.
     _EXCLUDE = ('METADATA.in', 'Roadmap.rst', 'build.py', 'rbproduct.py',
@@ -73,7 +81,7 @@ class SipProduct(BuildableProduct, TestableProduct, WheelProduct):
         # Configure the build.
         configure_py = ['configure.py']
 
-        if self.build_type == 'develop':
+        if self.type == 'develop':
             configure_py.append('--debug')
 
         platform.run_script(*configure_py)
@@ -86,13 +94,16 @@ class SipProduct(BuildableProduct, TestableProduct, WheelProduct):
         platform.
         """
 
-        if self.build_type != 'docs':
+        if self.type != 'docs':
             super().install(platform)
 
-    def prepare(self, platform, working_src_dir, release_map):
+    def prepare(self, platform, working_src_dir, macros):
         """ Prepare a new working source directory (prior to building or making
         a release) for a version of the product.
         """
+
+        # As far as preparation goes, any release corresponds to a full build.
+        prep_type = 'full' if self.type in self.release_types else self.type
 
         # Populate the working source directory.
         progress("Populating '{}'".format(working_src_dir))
@@ -108,10 +119,10 @@ class SipProduct(BuildableProduct, TestableProduct, WheelProduct):
             dst_file = os.path.join(working_src_dir, os.path.join(*f))
             src_file = dst_file + '.in'
 
-            patch_file(src_file, dst_file, release_map)
+            patch_file(src_file, dst_file, macros)
             remove_file(src_file)
 
-        if self.build_type in ('develop', 'full'):
+        if prep_type in ('develop', 'full'):
             # Run bison and flex.
             sipgen = os.path.join(working_src_dir, 'sipgen')
             metasrc = os.path.join(sipgen, 'metasrc')
@@ -126,7 +137,7 @@ class SipProduct(BuildableProduct, TestableProduct, WheelProduct):
             progress("Running bison to create {}".format(parser_c))
             platform.run('bison', '-y', '-d', '-o', parser_c, parser_y)
 
-        if self.build_type in ('docs', 'full'):
+        if prep_type in ('docs', 'full'):
             # Run sphinx.
             sphinx = os.path.join(working_src_dir, 'sphinx')
             doc = os.path.join(working_src_dir, 'doc')
@@ -137,6 +148,16 @@ class SipProduct(BuildableProduct, TestableProduct, WheelProduct):
 
             remove_file(os.path.join(html, '.buildinfo'))
             remove_directory(os.path.join(html, '.doctrees'))
+
+    def release(self, platform, working_src_dir):
+        """ Release the product in the current directory using the given
+        platform.
+        """
+
+        if self.type == 'posix':
+            self.package_tgz(platform, working_src_dir)
+        elif self.type == 'win':
+            self.package_zip(platform, working_src_dir)
 
     ### TestableProduct #######################################################
 
