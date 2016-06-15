@@ -62,9 +62,10 @@ class SipProduct(BuildableProduct, TestableProduct, WheelProduct):
     }
     default_release_type = 'posix'
 
-    # The files and directories to exclude from the working source directory.
-    _EXCLUDE = ('METADATA.in', 'Roadmap.rst', 'build.py', 'rbproduct.py',
-            '__pycache__')
+    # The files and directories to copy to the working source directory.
+    _INCLUDE = ('LICENSE', 'LICENSE-GPL2', 'LICENSE-GPL3', 'NEWS', 'README',
+            'configure.py.in', 'sip.pyi', 'sipdistutils.py', 'sipgen',
+            'siplib', 'siputils.py', 'specs', 'sphinx')
 
     # The files that need patching with the release information.
     _PATCH = (
@@ -108,9 +109,8 @@ class SipProduct(BuildableProduct, TestableProduct, WheelProduct):
         # Populate the working source directory.
         progress("Populating '{}'".format(working_src_dir))
 
-        for src in os.listdir():
-            if src not in self._EXCLUDE:
-                copy_into_directory(src, working_src_dir)
+        for src in self._INCLUDE:
+            copy_into_directory(src, working_src_dir)
 
         # Patch the files that need it.
         progress("Patching files")
