@@ -113,14 +113,8 @@ class SipProduct(BuildableProduct, TestableProduct, WheelProduct):
             copy_into_directory(src, working_src_dir)
 
         # Patch the files that need it.
-        progress("Patching files")
-
         for f in self._PATCH:
-            dst_file = os.path.join(working_src_dir, os.path.join(*f))
-            src_file = dst_file + '.in'
-
-            patch_file(src_file, dst_file, macros)
-            remove_file(src_file)
+            patch_file(f, macros, prototype='.in')
 
         if prep_type in ('develop', 'full'):
             # Run bison and flex.
@@ -148,16 +142,6 @@ class SipProduct(BuildableProduct, TestableProduct, WheelProduct):
 
             remove_file(os.path.join(html, '.buildinfo'))
             remove_directory(os.path.join(html, '.doctrees'))
-
-    def release(self, platform, working_src_dir):
-        """ Release the product in the current directory using the given
-        platform.
-        """
-
-        if self.type == 'posix':
-            self.package_tgz(platform, working_src_dir)
-        elif self.type == 'win':
-            self.package_zip(platform, working_src_dir)
 
     ### TestableProduct #######################################################
 
