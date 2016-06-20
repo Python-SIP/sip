@@ -26,8 +26,9 @@
 
 import os
 
-from rbtools import (BuildableProduct, copy_into_directory, patch_file,
-        progress, remove_directory, remove_file, TestableProduct, WheelProduct)
+from rbtools import (BuildableProduct, copy_into_directory, get_configuration,
+        patch_file, progress, remove_directory, remove_file, TestableProduct,
+        WheelProduct)
 
 
 class SipProduct(BuildableProduct, TestableProduct, WheelProduct):
@@ -49,18 +50,15 @@ class SipProduct(BuildableProduct, TestableProduct, WheelProduct):
 
     # The supported build types.
     build_types = {
-        'develop':  "a debug build of the code generator and module",
-        'docs':     "a build of the documentation",
-        'full':     "a full build",
+        'develop-build':    "a debug build of the code generator and module",
+        'docs-build':       "a build of the documentation",
+        'minimal-build':    "a build containing the code generator",
+        'full-build':       "a full build",
+        'posix':            "a source release for any POSIX target",
+        'win':              "a source release for any Windows target",
+        'wheel':            "a binary release for the native target",
     }
-    default_build_type = 'develop'
-
-    # The supported release types.
-    release_types = {
-        'posix':    "a release for any POSIX target",
-        'win':      "a release for any Windows target",
-    }
-    default_release_type = 'posix'
+    default_build_type = 'develop-build'
 
     # The files and directories to copy to the working source directory.
     _INCLUDE = ('LICENSE', 'LICENSE-GPL2', 'LICENSE-GPL3', 'NEWS', 'README',
@@ -82,8 +80,16 @@ class SipProduct(BuildableProduct, TestableProduct, WheelProduct):
         # Configure the build.
         configure_py = ['configure.py']
 
-        if self.type == 'develop':
+        if self.build_type == 'develop-build':
             configure_py.append('--debug')
+
+        if self.build_type == 'minimal-build':
+            configuration = get_configuration()
+            minimal_bin_dir = configuration.get('sip', 'minimal_bin_dir',
+                    platform, ispath=True)
+
+            if minimal_bin_dir:
+                configure_py.extend(['--bindir', minimal_bin_dir])
 
         platform.run_script(*configure_py)
 
@@ -95,16 +101,19 @@ class SipProduct(BuildableProduct, TestableProduct, WheelProduct):
         platform.
         """
 
-        if self.type != 'docs':
-            super().install(platform)
+        if self.build_type == 'minimal-build':
+            platform.run_make(target='install', chdir='sipgen')
+        elif self.build_type != 'docs-build':
+            super().run_make()
 
     def prepare(self, platform, working_src_dir, macros):
         """ Prepare a new working source directory (prior to building or making
         a release) for a version of the product.
         """
 
-        # As far as preparation goes, any release corresponds to a full build.
-        prep_type = 'full' if self.type in self.release_types else self.type
+        # As far as preparation goes, any release corresponds to a full build
+        # (although a wheel doesn't need the code generator).
+        prep_type = self.build_type if self.is_build() else 'full-build'
 
         # Populate the working source directory.
         progress("Populating '{}'".format(working_src_dir))
@@ -116,7 +125,7 @@ class SipProduct(BuildableProduct, TestableProduct, WheelProduct):
         for f in self._PATCH:
             patch_file(f, macros, prototype='.in')
 
-        if prep_type in ('develop', 'full'):
+        if prep_type in ('develop-build', 'minimal-build', 'full-build'):
             # Run bison and flex.
             sipgen = os.path.join(working_src_dir, 'sipgen')
             metasrc = os.path.join(sipgen, 'metasrc')
@@ -131,7 +140,7 @@ class SipProduct(BuildableProduct, TestableProduct, WheelProduct):
             progress("Running bison to create {}".format(parser_c))
             platform.run('bison', '-y', '-d', '-o', parser_c, parser_y)
 
-        if prep_type in ('docs', 'full'):
+        if prep_type in ('docs-build', 'full-build'):
             # Run sphinx.
             sphinx = os.path.join(working_src_dir, 'sphinx')
             doc = os.path.join(working_src_dir, 'doc')
