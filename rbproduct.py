@@ -104,7 +104,7 @@ class SipProduct(BuildableProduct, TestableProduct, WheelProduct):
         if self.build_type == 'minimal-build':
             platform.run_make(target='install', chdir='sipgen')
         elif self.build_type != 'docs-build':
-            super().run_make()
+            platform.run_make()
 
     def prepare(self, platform, working_src_dir, macros):
         """ Prepare a new working source directory (prior to building or making
@@ -116,14 +116,16 @@ class SipProduct(BuildableProduct, TestableProduct, WheelProduct):
         prep_type = self.build_type if self.is_build() else 'full-build'
 
         # Populate the working source directory.
-        progress("Populating '{}'".format(working_src_dir))
+        progress("Populating the '{}' directory".format(working_src_dir))
 
         for src in self._INCLUDE:
             copy_into_directory(src, working_src_dir)
 
         # Patch the files that need it.
         for f in self._PATCH:
-            patch_file(f, macros, prototype='.in')
+            patched = [working_src_dir]
+            patched += f
+            patch_file(os.path.join(*patched), macros, prototype='.in')
 
         if prep_type in ('develop-build', 'minimal-build', 'full-build'):
             # Run bison and flex.
