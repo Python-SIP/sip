@@ -39,13 +39,6 @@ class SipProduct(BuildableProduct, TestableProduct, WheelProduct):
     # The name of the product.
     name = 'sip'
 
-    def installation(self, name):
-        """ Convert a file or directory name relative to the installation
-        directory of the product to one that is relative to site-packages.
-        """
-
-        return name
-
     ### BuildableProduct ######################################################
 
     # The supported build types.
@@ -102,9 +95,16 @@ class SipProduct(BuildableProduct, TestableProduct, WheelProduct):
         """
 
         if self.build_type == 'minimal-build':
-            platform.run_make(target='install', chdir='sipgen')
+            platform.run_make('install', chdir='sipgen')
         elif self.build_type != 'docs-build':
             platform.run_make()
+
+    def installation(self, name):
+        """ Convert a file or directory name relative to the installation
+        directory of the product to one that is relative to site-packages.
+        """
+
+        return name
 
     def prepare(self, platform, working_src_dir, macros):
         """ Prepare a new working source directory (prior to building or making
