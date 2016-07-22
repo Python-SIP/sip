@@ -55,11 +55,6 @@ planned for the ``sip`` extension module.
 - Error messages will be improved and will always include a reference to the
   originating file and line number.
 
-- The XML export file will be officially supported and its format documented.
-  Its contents will be enhanced to fully describe the Python API that is
-  generated including aspects of the C/C++ API that influence it (e.g.
-  ownership, whether a method can be reimplemented etc.).
-
 - Support for the generation of QScintilla API files will be removed.  A
   utility to create these files from the XML export file will be added to
   QScintilla.
