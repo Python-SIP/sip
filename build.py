@@ -15,203 +15,13 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 
-"""This script prepares a repository copy of SIP for building and does all the
-work of creating a packaged release.  It should be run from a Mercurial
-repository or a Mercurial archive.  It is not part of a packaged release.
+"""This script prepares a repository copy of SIP for building.  It should be
+run from a Mercurial repository.  It is not part of a packaged release.
 """
 
 
-import glob
 import os
-import shutil
 import sys
-import tarfile
-import time
-import zipfile
-
-
-# The files that need to be patched with the version number.
-_PatchedFiles = (
-    ('configure.py', ),
-    ('sipgen', 'sip.h'),
-    ('siplib', 'sip.h.in'),
-    ('sphinx', 'conf.py'), ('sphinx', 'introduction.rst'))
-
-# Specific files that may be auto-generated and need to be cleaned.
-_GeneratedFiles = (
-    ('Makefile', ), ('sipconfig.py', ), ('.qmake.stash', ),
-    ('sipgen', 'Makefile'), ('sipgen', 'lexer.c'), ('sipgen', 'parser.c'),
-    ('sipgen', 'parser.h'), ('sipgen', 'sip'),
-    ('siplib', 'Makefile'), ('siplib', 'Makefile.Device'),
-    ('siplib', 'Makefile.Simulator'), ('siplib', 'sip.h'),
-    ('siplib', 'siplib.c'), ('siplib', 'siplib.sbf'))
-
-# File types that are auto-generated and need to be cleaned.
-_GeneratedFileTypes = ('.pyc', '.o', '.obj', '.so', '.pyd', '.exp', '.exe',
-        '.gz', '.zip', '.a', '.dylib', '.pro', '.cfg', '.whl')
-
-# Directories that are auto-generated and need to be cleaned.
-_GeneratedDirs = (
-    ('__pycache__', ),
-    ('doc', ),
-    ('siplib', 'iphoneos'),
-    ('siplib', 'iphonesimulator'))
-
-# Files in a release.
-_ReleasedFiles = ('configure.py.in', 'LICENSE', 'LICENSE-GPL2', 'LICENSE-GPL3',
-        'NEWS', 'README', 'sip.pyi', 'sipdistutils.py', 'siputils.py')
-
-# Directories in a release.
-_ReleasedDirs = ('sipgen', 'siplib', 'specs', 'sphinx')
-
-# The root directory, i.e. the one containing this script.
-_RootDir = os.path.dirname(os.path.abspath(__file__))
-
-
-def _release_tag(ctx):
-    """ Get the release tag (i.e. a tag of the form x.y[.z]) converted to a
-    3-tuple of integers if there is one.
-
-    :param ctx:
-        The Mercurial change context containing the tags.
-    :return:
-        The 3-tuple of integers or None if there was no release tag.
-    """
-
-    for tag in ctx.tags():
-        if tag != 'tip':
-            parts = tag.split('.')
-
-            if len(parts) == 2:
-                parts.append('0')
-
-            if len(parts) == 3:
-                major, minor, micro = parts
-
-                try:
-                    return (int(major), int(minor), int(micro))
-                except ValueError:
-                    pass
-
-    return None
-
-
-def _format_changelog(ctx):
-    """ Format the log message for a changeset.
-
-    :param ctx:
-        The Mercurial change context containing the tags.
-    :return:
-        The formatted change log.
-    """
-
-    from mercurial.util import datestr
-
-    log = "changeset:   %s\ndate:        %s\n%s" % (str(ctx), datestr(ctx.date()), ctx.description())
-
-    return log
-
-
-def _get_release():
-    """ Get the release of the package.
-
-    :return:
-        A tuple of the full release name, the version number, the hexadecimal
-        version number and a list of changelog entries (all as strings).
-    """
-
-    # The root directory should contain dot files that tell us what sort of
-    # package we are.
-
-    release_suffix = ''
-
-    if os.path.exists(os.path.join(_RootDir, '.hg')):
-        # Handle a Mercurial repository.
-
-        from mercurial import hg, ui
-
-        # Get the repository.
-        repo = hg.repository(ui.ui(), _RootDir)
-
-        # The last changeset is the "parent" of the working directory.
-        ctx = repo[None].parents()[0]
-
-        # If the one before the last changeset has a release tag then the last
-        # changeset refers to the tagging and not a genuine change.
-        before = ctx.parents()[0]
-
-        version = _release_tag(before)
-
-        if version is not None:
-            ctx = before
-        else:
-            release_suffix = time.strftime('.dev%y%m%d%H%M',
-                    time.localtime(ctx.date()[0]))
-
-        changelog = [_format_changelog(ctx)]
-
-        # Go back through the line of the first parent to find the last
-        # release.
-        parent_version = None
-
-        parents = ctx.parents()
-        while len(parents) != 0:
-            parent_ctx = parents[0]
-
-            changelog.append(_format_changelog(parent_ctx))
-
-            parent_version = _release_tag(parent_ctx)
-            if parent_version is not None:
-                break
-
-            parents = parent_ctx.parents()
-
-        if version is None and parent_version is not None:
-            # This is a snapshot so work out what the next version will be
-            # based on the previous version.
-            major, minor, micro = parent_version
-
-            if ctx.branch() == 'default':
-                minor += 1
-
-                # This should be 0 anyway.
-                micro = 0
-            else:
-                micro += 1
-
-            version = (major, minor, micro)
-    else:
-        # Handle a Mercurial archive.
-
-        changelog = None
-        name = os.path.basename(_RootDir)
-
-        release_suffix = "-unknown"
-        version = None
-
-        parts = name.split('-')
-        if len(parts) > 1:
-            name = parts[-1]
-
-            if len(name) == 12:
-                # This is the best we can do without access to the repository.
-                release_suffix = '-' + name
-
-    # Format the results.
-    if version is None:
-        version = (0, 1, 0)
-
-    major, minor, micro = version
-
-    if micro == 0:
-        version = '%d.%d' % (major, minor)
-    else:
-        version = '%d.%d.%d' % (major, minor, micro)
-
-    release = '%s%s' % (version, release_suffix)
-    hex_version = '%02x%02x%02x' % (major, minor, micro)
-
-    return release, version, hex_version, changelog
 
 
 def _progress(message, quiet):
@@ -228,123 +38,15 @@ def _progress(message, quiet):
         sys.stdout.write("\n")
 
 
-def _rooted_name(package, *path):
-    """ Convert a sequence of path components to a name below the root
-    directory.
+def prepare(quiet):
+    """ Prepare for configuration and building by creating all the required
+    additional files.
 
-    :param package:
-        The name of the optional package directory.
-    :param \*path:
-        The sequence of path components.
-    :return:
-        The name.
-    """
-
-    name = os.path.join(*path)
-
-    if package is not None:
-        name = os.path.join(package, name)
-
-    name = os.path.join(_RootDir, name)
-
-    return name
-
-
-def _remove_file(name, quiet):
-    """ Remove a file, ignoring any errors.
-
-    :param name:
-        The name of the file.
     :param quiet:
         Set if progress messages should be suppressed.
     """
 
-    _progress("Removing %s" % name, quiet)
-
-    try:
-        os.remove(name)
-    except:
-        pass
-
-
-def _create_directory(name, quiet):
-    """ Create a directory.
-
-    :param name:
-        The name of the directory.
-    :param quiet:
-        Set if progress messages should be suppressed.
-    """
-
-    _progress("Creating directory %s" % name, quiet)
-
-    try:
-        os.mkdir(name)
-    except:
-        pass
-
-
-def _remove_directory(name, quiet):
-    """ Remove a directory, ignoring any errors.
-
-    :param name:
-        The name of the directory.
-    :param quiet:
-        Set if progress messages should be suppressed.
-    """
-
-    _progress("Removing directory %s" % name, quiet)
-    shutil.rmtree(name, ignore_errors=True)
-
-
-def _patch_files(package, quiet, clean_patches):
-    """ Patch the required files to contain the correct version information.
-
-    :param package:
-        The name of the optional package directory.
-    :param quiet:
-        Set if progress messages should be suppressed.
-    :param clean_patches:
-        Set if the original files should be removed after creating the patched
-        version.
-    """
-
-    release, version, hex_version, _ = _get_release()
-
-    for f in _PatchedFiles:
-        dst_fn = _rooted_name(package, *f)
-        src_fn = dst_fn + '.in'
-
-        _progress("Patching %s" % dst_fn, quiet)
-
-        dst = open(dst_fn, 'w')
-        src = open(src_fn)
-
-        for line in src:
-            line = line.replace('@RM_RELEASE@', release)
-            line = line.replace('@RM_VERSION@', version)
-            line = line.replace('@RM_HEXVERSION@', hex_version)
-
-            dst.write(line)
-
-        dst.close()
-        src.close()
-
-        if clean_patches:
-            _remove_file(src_fn, quiet)
-
-
-def _run_tools(package, quiet):
-    """ Run flex and bison.  This should really be done from make but the SIP
-    build system doesn't support it - and it will be gone in SIP v5 anyway.
-
-    :param package:
-        The name of the optional package directory.
-    :param quiet:
-        Set if progress messages should be suppressed.
-    """
-
-    sipgen = _rooted_name(package, 'sipgen')
+    sipgen = 'sipgen'
     metasrc = os.path.join(sipgen, 'metasrc')
 
     lexer_l = os.path.join(metasrc, 'lexer.l')
@@ -358,256 +60,15 @@ def _run_tools(package, quiet):
     os.system('bison -y -d -o %s %s' % (parser_c, parser_y))
 
 
-def _run_sphinx(package=None, quiet=True, clean=False):
-    """ Run Sphinx to create the HTML documentation.
-
-    :param package:
-        The name of the optional package directory.
-    :param quiet:
-        Set if progress messages should be suppressed.
-    :param clean:
-        Set if the .buildinfo file and .doctrees directory should be removed.
-    """
-
-    sphinx = _rooted_name(package, 'sphinx')
-    doc = _rooted_name(package, 'doc')
-
-    html = os.path.join(doc, 'html')
-
-    if quiet:
-        qflag = ' -q'
-    else:
-        qflag = ''
-
-    _progress("Creating HTML documentation in %s" % html, quiet)
-    os.system('sphinx-build%s -b html %s %s' % (qflag, sphinx, html))
-
-    if clean:
-        _remove_file(os.path.join(html, '.buildinfo'), quiet)
-        _remove_directory(os.path.join(html, '.doctrees'), quiet)
-
-
-def _prepare_root(package=None, quiet=True, clean_patches=False):
-    """ Prepare a directory.
-
-    :param package:
-        The name of the optional package directory.
-    :param quiet:
-        Set if progress messages should be suppressed.
-    :param clean_patches:
-        Set if the original files should be removed after creating the patched
-        version.
-    """
-
-    _patch_files(package, quiet, clean_patches)
-    _run_tools(package, quiet)
-
-
-def _clean_root(package=None, quiet=True):
-    """ Clean up a directory.
-
-    :param package:
-        The name of the optional package directory.
-    :param quiet:
-        Set if progress messages should be suppressed.
-    """
-
-    for f in _PatchedFiles:
-        _remove_file(_rooted_name(package, *f), quiet)
-
-    for f in _GeneratedFiles:
-        _remove_file(_rooted_name(package, *f), quiet)
-
-    root = _RootDir
-    if package is not None:
-        root = os.path.join(root, package)
-
-    for dirpath, dirnames, filenames in os.walk(root):
-        try:
-            dirnames.remove('.hg')
-        except ValueError:
-            pass
-
-        for f in filenames:
-            for ext in _GeneratedFileTypes:
-                if f.endswith(ext):
-                    name = os.path.join(dirpath, f)
-                    _remove_file(name, quiet)
-
-    for d in _GeneratedDirs:
-        _remove_directory(_rooted_name(package, *d), quiet)
-
-
-def changelog(output, quiet=True):
-    """ The description of each change set going back to the last release are
-    written to a file object.
-
-    :param output:
-        The file object that the log is written to.
-    :param quiet:
-        Set if progress messages should be suppressed.
-    :return:
-        True if the log was written or False if the information wasn't
-        available (because this is a Mercurial archive).
-    """
-
-    _, _, _, changelog = _get_release()
-
-    if changelog is None:
-        return False
-
-    output.write("\n\n".join(changelog) + "\n")
-
-    return True
-
-
-def clean(quiet=True):
-    """ Clean by removing all files and directories not stored in the
-    repository.
-
-    :param quiet:
-        Set if progress messages should be suppressed.
-    """
-
-    _clean_root(quiet=quiet)
-
-    release, _, _, _ = _get_release()
-    package = 'sip-' + release
-
-    # If it is a snapshot then we don't know the name because the timestamp
-    # will be wrong.
-    if '.dev' in release:
-        for snapshot_dir in glob.glob(package[:-10] + '*'):
-            _remove_directory(snapshot_dir, quiet)
-    else:
-        _remove_directory(package, quiet)
-
-
-def doc(quiet=True):
-    """ Create the documentation.
-
-    :param quiet:
-        Set if progress messages should be suppressed.
-    """
-
-    _run_sphinx(quiet=quiet)
-
-
-def prepare(quiet=True):
-    """ Prepare for configuration and building by creating all the required
-    additional files.
-
-    :param quiet:
-        Set if progress messages should be suppressed.
-    """
-
-    _prepare_root(quiet=quiet)
-
-
-def release(quiet=True):
-    """ Generate a set of release packages.
-
-    :param quiet:
-        Set if progress messages should be suppressed.
-    """
-
-    release, _, _, _ = _get_release()
-
-    package = 'sip-' + release
-    _remove_directory(package, quiet)
-    _create_directory(package, quiet)
-
-    _progress("Creating ChangeLog", quiet)
-    os.system(
-            'hg log --style changelog >%s' % os.path.join(
-                    package, 'ChangeLog'))
-
-    for f in _ReleasedFiles:
-        _progress("Adding file %s to release" % f, quiet)
-        shutil.copy2(f, package)
-
-    for d in _ReleasedDirs:
-        _progress("Adding directory %s to release" % d, quiet)
-        shutil.copytree(d, os.path.join(package, d))
-
-    _clean_root(package=package, quiet=quiet)
-    _prepare_root(package=package, quiet=quiet, clean_patches=True)
-    _run_sphinx(package=package, quiet=quiet, clean=True)
-
-    tar_package = package + '.tar.gz'
-    _progress("Creating package %s" % tar_package, quiet)
-    tf = tarfile.open(tar_package, 'w:gz')
-    tf.add(package)
-    tf.close()
-
-    zip_package = package + '.zip'
-    _progress("Creating package %s" % zip_package, quiet)
-    zf = zipfile.ZipFile(zip_package, 'w', zipfile.ZIP_DEFLATED)
-
-    for dirpath, dirnames, filenames in os.walk(package):
-        for f in filenames:
-            zf.write(os.path.join(dirpath, f))
-
-    zf.close()
-
-
-def version(quiet=True):
-    """ Get the full version name of the package.  If this is a Mercurial
-    archive (rather than a repository) then it does the best it can (based on
-    the name of the directory) with the limited information available.
-
-    :param quiet:
-        Set if progress messages should be suppressed.
-    :return:
-        The full version name.
-    """
-
-    release, _, _, _ = _get_release()
-
-    return release
-
-
 if __name__ == '__main__':
-
-    def _changelog(options):
-        """get the changelog entries since the last release"""
-
-        if not changelog(sys.stdout, quiet=options.quiet):
-            sys.stderr.write("Unable to produce a changelog without a repository\n")
-            sys.exit(2)
-
-
-    def _clean(options):
-        """remove all files not stored in the repository"""
-
-        clean(quiet=options.quiet)
-
-
-    def _doc(options):
-        """create the documentation"""
-
-        doc(quiet=options.quiet)
-
 
     def _prepare(options):
         """prepare for configuration and building"""
 
-        prepare(quiet=options.quiet)
+        prepare(options.quiet)
 
 
-    def _release(options):
-        """generate release packages"""
-
-        release(quiet=options.quiet)
-
-
-    def _version(options):
-        """query the version of the package"""
-
-        sys.stdout.write(version(quiet=options.quiet) + "\n")
-
-
-    actions = (_changelog, _clean, _doc, _prepare, _release, _version)
+    actions = (_prepare, )
 
     import optparse
 
@@ -623,17 +84,15 @@ if __name__ == '__main__':
             usage += "\n" + __doc__ + "\nActions:\n"
 
             for action in actions:
-                usage += "  %-9s  %s\n" % (action.func_name[1:], action.func_doc)
+                usage += "  %-9s  %s\n" % (action.__name__[1:], action.__doc__)
 
             return usage
 
 
-    action_names = [action.func_name[1:] for action in actions]
-
-    rel, _, _, _ = _get_release()
+    action_names = [action.__name__[1:] for action in actions]
 
     parser = MyParser(
-            usage="%%prog [options] %s" % '|'.join(action_names), version=rel)
+            usage="%%prog [options] %s" % '|'.join(action_names))
 
     parser.add_option("-q", "--quiet", action='store_true', default=False,
             dest='quiet', help="suppress progress messages")
@@ -645,7 +104,7 @@ if __name__ == '__main__':
         sys.exit(1)
 
     for action in actions:
-        if action.func_name[1:] == args[0]:
+        if action.__name__[1:] == args[0]:
             action(options)
             break
     else:

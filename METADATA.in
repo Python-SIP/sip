@@ -66,8 +66,8 @@ Installation
 SIP source packages, and Linux 64-bit wheels, can be dowloaded from
 https://www.riverbankcomputing.com/software/sip/download/.
 
-Wheels for 32 and 64-bit Windows and 64-bit OS X modules can be installed from
-PyPI::
+Wheels for 32 and 64-bit Windows, 64-bit OS X and 64-bit Linux can be installed
+from PyPI::
 
     pip3 install sip
 

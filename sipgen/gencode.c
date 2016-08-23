@@ -3515,7 +3515,7 @@ static int generateInts(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
         if (!(vtype == enum_type || vtype == byte_type ||
               vtype == sbyte_type || vtype == ubyte_type ||
               vtype == ushort_type || vtype == short_type ||
-              vtype == uint_type || vtype == cint_type || vtype == int_type ||
+              vtype == cint_type || vtype == int_type ||
               vtype == bool_type || vtype == cbool_type))
             continue;
 
@@ -3654,6 +3654,13 @@ static int generateVariableType(sipSpec *pt, moduleDef *mod, classDef *cd,
     for (vd = pt->vars; vd != NULL; vd = vd->next)
     {
         argType vtype = vd->type.atype;
+
+        /*
+         * We treat unsigned as unsigned long as we don't (currently anyway)
+         * generate a table for unsigned.
+         */
+        if (vtype == uint_type && atype == ulong_type)
+            vtype = ulong_type;
 
         if (vd->ecd != cd || vd->module != mod)
             continue;
@@ -5937,7 +5944,7 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 
         for (mro = cd->mro; mro != NULL; mro = mro->next)
         {
-            if (needsCast(mro))
+            if (needsCast(mro) && !isDuplicateSuper(mro) && !hasDuplicateSuper(mro))
             {
                 prcode(fp,
 "    if (targetType == sipType_%C)\n"

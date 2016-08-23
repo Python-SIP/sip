@@ -1,3 +1,6 @@
+v4.18.1 25th July 2016
+  - Bug fixes.
+
 v4.18 13th April 2016
   - Added the /TypeHint/ argument, class, mapped type, function, typedef and
     variable annotations.
