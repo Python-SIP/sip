@@ -10454,6 +10454,25 @@ static int sipSimpleWrapper_getbuffer(sipSimpleWrapper *self, Py_buffer *buf,
     if ((ptr = getPtrTypeDef(self, &ctd)) == NULL)
         return -1;
 
+    if (sipTypeUseLimitedAPI(&ctd->ctd_base))
+    {
+        sipGetBufferFuncLimited getbuffer = (sipGetBufferFuncLimited)ctd->ctd_getbuffer;
+        sipBufferDef bd;
+
+        /*
+         * Ensure all fields have a default value.  This means that extra
+         * fields can be appended in the future that older handwritten code
+         * doesn't know about.
+         */
+        memset(&bd, 0, sizeof(sipBufferDef));
+
+        if (getbuffer((PyObject *)self, ptr, &bd) < 0)
+            return -1;
+
+        return PyBuffer_FillInfo(buf, (PyObject *)self, bd.bd_buffer,
+                bd.bd_length, bd.bd_readonly, flags);
+    }
+
     return ctd->ctd_getbuffer((PyObject *)self, ptr, buf, flags);
 }
 #endif
@@ -10471,6 +10490,15 @@ static void sipSimpleWrapper_releasebuffer(sipSimpleWrapper *self,
 
     if ((ptr = getPtrTypeDef(self, &ctd)) == NULL)
         return;
+
+    if (sipTypeUseLimitedAPI(&ctd->ctd_base))
+    {
+        sipReleaseBufferFuncLimited releasebuffer = (sipReleaseBufferFuncLimited)ctd->ctd_releasebuffer;
+
+        releasebuffer((PyObject *)self, ptr);
+
+        return;
+    }
 
     ctd->ctd_releasebuffer((PyObject *)self, ptr, buf);
 }

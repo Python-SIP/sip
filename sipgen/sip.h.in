@@ -79,11 +79,12 @@
 #define MOD_IS_COMPOSITE        0x0004  /* It is a composite module. */
 #define MOD_IS_TRANSFORMED      0x0008  /* It's types have been transformed. */
 #define MOD_USE_ARG_NAMES       0x0010  /* Use real argument names. */
-#define MOD_ALL_RAISE_PY_EXC    0x0020  /* All callable raise a Python exception. */
-#define MOD_SUPER_INIT_NO       0x0040  /* Don't call super().__init__(). */
-#define MOD_SUPER_INIT_YES      0x0080  /* Call super().__init__(). */
+#define MOD_USE_LIMITED_API     0x0020  /* Use the limited API. */
+#define MOD_ALL_RAISE_PY_EXC    0x0040  /* All callable raise a Python exception. */
+#define MOD_SUPER_INIT_NO       0x0080  /* Don't call super().__init__(). */
+#define MOD_SUPER_INIT_YES      0x0100  /* Call super().__init__(). */
 #define MOD_SUPER_INIT_UNDEF    0x0000  /* Calling super().__init__() is undefined. */
-#define MOD_SUPER_INIT_MASK     0x00c0  /* The mask for the above flags. */
+#define MOD_SUPER_INIT_MASK     0x0180  /* The mask for the above flags. */
 
 #define hasDelayedDtors(m)  ((m)->modflags & MOD_HAS_DELAYED_DTORS)
 #define setHasDelayedDtors(m)   ((m)->modflags |= MOD_HAS_DELAYED_DTORS)
@@ -96,6 +97,8 @@
 #define isTransformed(m)    ((m)->modflags & MOD_IS_TRANSFORMED)
 #define setUseArgNames(m)   ((m)->modflags |= MOD_USE_ARG_NAMES)
 #define useArgNames(m)      ((m)->modflags & MOD_USE_ARG_NAMES)
+#define setUseLimitedAPI(m) ((m)->modflags |= MOD_USE_LIMITED_API)
+#define useLimitedAPI(m)    ((m)->modflags & MOD_USE_LIMITED_API)
 #define setAllRaisePyException(m)   ((m)->modflags |= MOD_ALL_RAISE_PY_EXC)
 #define allRaisePyException(m)  ((m)->modflags & MOD_ALL_RAISE_PY_EXC)
 #define setCallSuperInitNo(m)   ((m)->modflags = ((m)->modflags & ~MOD_SUPER_INIT_MASK) | MOD_SUPER_INIT_NO)
@@ -1535,6 +1538,7 @@ typedef struct _moduleCfg {
     KwArgs kwargs;
     const char *name;
     int use_arg_names;
+    int use_limited_api;
     int all_raise_py_exc;
     int call_super_init;
     const char *def_error_handler;

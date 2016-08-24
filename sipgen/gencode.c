@@ -288,6 +288,7 @@ static virtErrorHandler *getVirtErrorHandler(sipSpec *pt, overDef *od,
         classDef *cd, moduleDef *mod);
 static int hasOptionalArgs(overDef *od);
 static int emptyIfaceFile(sipSpec *pt, ifaceFileDef *iff);
+static void declareLimitedAPI(moduleDef *mod, FILE *fp);
 
 
 /*
@@ -528,11 +529,15 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "\n"
 "#ifndef _%sAPI_H\n"
 "#define _%sAPI_H\n"
-"\n"
-"\n"
-"#include <sip.h>\n"
         , mname
         , mname);
+
+    declareLimitedAPI(mod, fp);
+
+    prcode(fp,
+"\n"
+"#include <sip.h>\n"
+        );
 
     if (pluginPyQt4(pt) || pluginPyQt5(pt))
         prcode(fp,
@@ -962,6 +967,8 @@ static void generateCompositeCpp(sipSpec *pt, const char *codeDir,
     cppfile = concat(codeDir, "/sip", pt->module->name, "cmodule.c", NULL);
     fp = createCompilationUnit(pt->module, cppfile, "Composite module code.",
             timestamp);
+
+    declareLimitedAPI(NULL, fp);
 
     prcode(fp,
 "\n"
@@ -6155,15 +6162,32 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 "#if PY_MAJOR_VERSION >= 3\n"
             );
 
-        if (!generating_c)
+        if (useLimitedAPI(mod))
+        {
+            if (!generating_c)
+                prcode(fp,
+"extern \"C\" {static int getbuffer_%C(PyObject *, void *, sipBufferDef *);}\n"
+                    , classFQCName(cd));
+
             prcode(fp,
+"static int getbuffer_%C(PyObject *%s, void *%s, sipBufferDef *sipBuffer)\n"
+                , classFQCName(cd), argName("sipSelf", cd->getbufcode), (generating_c || need_cpp ? "sipCppV" : ""));
+        }
+        else
+        {
+            if (!generating_c)
+                prcode(fp,
 "extern \"C\" {static int getbuffer_%C(PyObject *, void *, Py_buffer *, int);}\n"
-                , classFQCName(cd));
+                    , classFQCName(cd));
+
+            prcode(fp,
+"static int getbuffer_%C(PyObject *%s, void *%s, Py_buffer *sipBuffer, int %s)\n"
+                , classFQCName(cd), argName("sipSelf", cd->getbufcode), (generating_c || need_cpp ? "sipCppV" : ""), argName("sipFlags", cd->getbufcode));
+        }
 
         prcode(fp,
-"static int getbuffer_%C(PyObject *%s, void *%s, Py_buffer *sipBuffer, int %s)\n"
 "{\n"
-            , classFQCName(cd), argName("sipSelf", cd->getbufcode), (generating_c || need_cpp ? "sipCppV" : ""), argName("sipFlags", cd->getbufcode));
+            );
 
         if (need_cpp)
         {
@@ -6190,28 +6214,48 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 
     if (cd->releasebufcode != NULL)
     {
+        int need_cpp = usedInCode(cd->releasebufcode, "sipCpp");
+
         prcode(fp,
 "\n"
 "\n"
 "#if PY_MAJOR_VERSION >= 3\n"
             );
 
-        if (!generating_c)
+        if (useLimitedAPI(mod))
+        {
+            if (!generating_c)
+                prcode(fp,
+"extern \"C\" {static void releasebuffer_%C(PyObject *, void *);}\n"
+                    , classFQCName(cd));
+
             prcode(fp,
+"static void releasebuffer_%C(PyObject *%s, void *%s)\n"
+                , classFQCName(cd), argName("sipSelf", cd->releasebufcode), (generating_c || need_cpp ? "sipCppV" : ""));
+        }
+        else
+        {
+            if (!generating_c)
+                prcode(fp,
 "extern \"C\" {static void releasebuffer_%C(PyObject *, void *, Py_buffer *);}\n"
-                , classFQCName(cd));
+                    , classFQCName(cd));
+
+            prcode(fp,
+"static void releasebuffer_%C(PyObject *%s, void *%s, Py_buffer *%s)\n"
+                , classFQCName(cd), argName("sipSelf", cd->releasebufcode), (generating_c || need_cpp ? "sipCppV" : ""), argName("sipBuffer", cd->releasebufcode));
+        }
 
         prcode(fp,
-"static void releasebuffer_%C(PyObject *%s, void *sipCppV, Py_buffer *)\n"
 "{\n"
-"    ", classFQCName(cd)
-     , argName("sipSelf", cd->releasebufcode));
-
-        generateClassFromVoid(cd, "sipCpp", "sipCppV", fp);
-
-        prcode(fp, ";\n"
-"\n"
             );
+
+        if (need_cpp)
+        {
+            prcode(fp, "    ");
+            generateClassFromVoid(cd, "sipCpp", "sipCppV", fp);
+            prcode(fp, ";\n"
+                );
+        }
 
         generateCppCodeBlock(cd->releasebufcode, fp);
 
@@ -10151,6 +10195,12 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
     if (isCallSuperInitYes(mod))
     {
         prcode(fp, "%sSIP_TYPE_SUPER_INIT", sep);
+        sep = "|";
+    }
+
+    if (useLimitedAPI(mod))
+    {
+        prcode(fp, "%sSIP_TYPE_LIMITED_API", sep);
         sep = "|";
     }
 
@@ -15204,4 +15254,19 @@ static void generateVoidPtrCast(argDef *ad, FILE *fp)
      */
     if (ad->original_type != NULL)
         prcode(fp, "(%svoid *)", (isConstArg(ad) ? "const " : ""));
+}
+
+
+/*
+ * Declare the use of the limited API.
+ */
+static void declareLimitedAPI(moduleDef *mod, FILE *fp)
+{
+    if (mod == NULL || useLimitedAPI(mod))
+        prcode(fp,
+"\n"
+"#if !defined(Py_LIMITED_API)\n"
+"#define Py_LIMITED_API\n"
+"#endif\n"
+            );
 }

@@ -68,9 +68,10 @@ extern "C" {
  *
  * History:
  *
+ * 11.4 Added SIP_TYPE_LIMITED_API to the sipTypeDef flags.
+ *
  * 11.3 Added sip_api_get_interpreter() to the public API.
  *
- * 11.1 Added sip_api_invoke_slot_ex().
  * 11.2 Added sip_api_get_reference() to the private API.
  *
  * 11.1 Added sip_api_invoke_slot_ex().
@@ -217,7 +218,7 @@ extern "C" {
  * 0.0  Original version.
  */
 #define SIP_API_MAJOR_NR    11
-#define SIP_API_MINOR_NR    3
+#define SIP_API_MINOR_NR    4
 
 
 /* The name of the sip module. */
@@ -358,6 +359,7 @@ typedef enum
 
 struct _sipSimpleWrapper;
 struct _sipTypeDef;
+struct _sipBufferDef;
 
 typedef void *(*sipInitFunc)(struct _sipSimpleWrapper *, PyObject *,
         PyObject *, PyObject **, PyObject **, PyObject **);
@@ -366,8 +368,13 @@ typedef void *(*sipAccessFunc)(struct _sipSimpleWrapper *, AccessFuncOp);
 typedef int (*sipTraverseFunc)(void *, visitproc, void *);
 typedef int (*sipClearFunc)(void *);
 #if PY_MAJOR_VERSION >= 3
+typedef int (*sipGetBufferFuncLimited)(PyObject *, void *,
+        struct _sipBufferDef *);
+typedef void (*sipReleaseBufferFuncLimited)(PyObject *, void *);
+#if !defined(Py_LIMITED_API)
 typedef int (*sipGetBufferFunc)(PyObject *, void *, Py_buffer *, int);
 typedef void (*sipReleaseBufferFunc)(PyObject *, void *, Py_buffer *);
+#endif
 #else
 typedef SIP_SSIZE_T (*sipBufferFunc)(PyObject *, void *, SIP_SSIZE_T, void **);
 typedef SIP_SSIZE_T (*sipSegCountFunc)(PyObject *, void *, SIP_SSIZE_T *);
@@ -857,10 +864,18 @@ typedef struct _sipClassTypeDef {
 
 #if PY_MAJOR_VERSION >= 3
     /* The get buffer function. */
+#if defined(Py_LIMITED_API)
+    sipGetBufferFuncLimited ctd_getbuffer;
+#else
     sipGetBufferFunc ctd_getbuffer;
+#endif
 
     /* The release buffer function. */
+#if defined(Py_LIMITED_API)
+    sipReleaseBufferFuncLimited ctd_releasebuffer;
+#else
     sipReleaseBufferFunc ctd_releasebuffer;
+#endif
 #else
     /* The read buffer function. */
     sipBufferFunc ctd_readbuffer;
@@ -1292,6 +1307,21 @@ typedef struct _sipTypeInstanceDef {
 
 
 /*
+ * The structure populated by %BIGetBufferCode when the limited API is enabled.
+ */
+typedef struct _sipBufferDef {
+    /* The address of the buffer. */
+    void *bd_buffer;
+
+    /* The length of the buffer. */
+    SIP_SSIZE_T bd_length;
+
+    /* Set if the buffer is read-only. */
+    int bd_readonly;
+} sipBufferDef;
+
+
+/*
  * Define a mapping between a wrapped type identified by a string and the
  * corresponding Python type.  This is deprecated.
  */
@@ -1640,6 +1670,7 @@ typedef struct _sipQtAPI {
 #define SIP_TYPE_STUB       0x0040  /* If the type is a stub. */
 #define SIP_TYPE_NONLAZY    0x0080  /* If the type has a non-lazy method. */
 #define SIP_TYPE_SUPER_INIT 0x0100  /* If the instance's super init should be called. */
+#define SIP_TYPE_LIMITED_API    0x0200  /* Use the limited API.  If this is more generally required it may need to be moved to the module definition. */
 
 
 /*
@@ -1679,6 +1710,7 @@ typedef struct _sipQtAPI {
 #define sipTypeSetStub(td)  ((td)->td_flags |= SIP_TYPE_STUB)
 #define sipTypeHasNonlazyMethod(td) ((td)->td_flags & SIP_TYPE_NONLAZY)
 #define sipTypeCallSuperInit(td)    ((td)->td_flags & SIP_TYPE_SUPER_INIT)
+#define sipTypeUseLimitedAPI(td)    ((td)->td_flags & SIP_TYPE_LIMITED_API)
 
 /*
  * Get various names from the string pool for various data types.

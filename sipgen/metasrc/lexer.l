@@ -169,6 +169,7 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
 <directive>timestamp        {return TK_TIMESTAMP;}
 <directive>type             {return TK_TYPE;}
 <directive>use_argument_names   {return TK_USEARGNAMES;}
+<directive>use_limited_api  {return TK_USELIMITEDAPI;}
 <directive>all_raise_py_exception   {return TK_ALLRAISEPYEXC;}
 <directive>call_super_init  {return TK_CALLSUPERINIT;}
 <directive>default_VirtualErrorHandler  {return TK_DEFERRORHANDLER;}

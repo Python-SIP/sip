@@ -160,19 +160,28 @@ This directive (along with :directive:`%BIReleaseBufferCode`) is used to
 specify code that implements the buffer interface of Python v3.  If Python v2
 is being used then this is ignored.
 
-The following variables are made available to the handwritten code:
+The variables that are made available to the handwritten code depend on
+whether or not the limited Python API is enabled or not.  The following
+variables are made available:
+
+sipBufferDef \*sipBuffer
+    When the use of the limited API is enabled, this is a pointer to a
+    structure that should be populated by the code.  The ``bd_buffer`` field
+    should be set to the address of the buffer.  The ``bd_length`` field should
+    be set to the length of the buffer.  The ``bd_readonly`` field should be
+    set to a non-zero value if the buffer is read-only.
 
 Py_buffer \*sipBuffer
-    This is a pointer to the Python buffer structure that the handwritten code
-    must populate.
+    When the use of the limited API is disabled, this is a pointer to the
+    Python buffer structure that should be populated by the code.
 
 *type* \*sipCpp
     This is a pointer to the structure or class instance.  Its *type* is a
     pointer to the structure or class.
 
 int sipFlags
-    These are the flags that specify what elements of the ``sipBuffer``
-    structure must be populated.
+    When the use of the limited API is disabled, these are the flags that
+    specify what elements of the ``sipBuffer`` structure must be populated.
 
 int sipRes
     The handwritten code should set this to 0 if there was no error or -1 if
@@ -329,10 +338,13 @@ This directive (along with :directive:`%BIGetBufferCode`) is used to specify
 code that implements the buffer interface of Python v3.  If Python v2 is being
 used then this is ignored.
 
-The following variables are made available to the handwritten code:
+The variables that are made available to the handwritten code depend on
+whether or not the limited Python API is enabled or not.  The following
+variables are made available:
 
 Py_buffer \*sipBuffer
-    This is a pointer to the Python buffer structure.
+    When the use of the limited API is disabled, this is a pointer to the
+    Python buffer structure.
 
 *type* \*sipCpp
     This is a pointer to the structure or class instance.  Its *type* is a
@@ -1913,6 +1925,7 @@ then the pattern should instead be::
             [, keyword_arguments = ["None" | "All" | "Optional"]]
             [, language = *string*]
             [, use_argument_names = [True | False]]
+            [, use_limited_api = [True | False]]
             [, version = *integer*])
     {
         [:directive:`%AutoPyName`]
@@ -1956,6 +1969,12 @@ argument is named ``a0``, the second ``a1`` and so on.  ``use_argument_names``
 is set to specify that the real name of the argument, if any, should be used
 instead.  It also affects the name of the variable created when the
 :aanno:`GetWrapper` argument annotation is used.
+
+``use_limited_api`` specifies that the generated code will only use the
+limited Python API defined in PEP 384.  It also ensures that the C preprocessor
+symbol ``Py_LIMITED_API`` is defined before the ``Python.h`` header file is
+included.  Python extensions built in this way are independent of the version
+of Python being used.  It is ignored for Python v2.
 
 ``version`` is an optional version number that is useful if you (or others)
 might create other modules that build on this module, i.e. if another module
