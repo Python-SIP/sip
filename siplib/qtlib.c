@@ -2,7 +2,7 @@
  * The SIP library code that implements the interface to the optional module
  * supplied Qt support.
  *
- * Copyright (c) 2015 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2016 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -22,7 +22,6 @@
 #include <assert.h>
 #include <string.h>
 
-#include "sip.h"
 #include "sipint.h"
 
 

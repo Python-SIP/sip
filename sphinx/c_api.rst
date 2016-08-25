@@ -1920,6 +1920,9 @@ specification files.
     extension of the ``PyObject`` structure) and so may be safely cast to
     ``PyTypeObject`` (and ``PyObject``).
 
+    When the limited Python API is enabled and Python v3.2 or later is being
+    used then it is only available as an opaque (i.e. incomplete) type.
+
 
 .. c:var:: PyTypeObject *sipWrapperType_Type
 

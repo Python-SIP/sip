@@ -68,7 +68,8 @@ extern "C" {
  *
  * History:
  *
- * 11.4 Added SIP_TYPE_LIMITED_API to the sipTypeDef flags.
+ * 12.0 Added SIP_TYPE_LIMITED_API to the sipTypeDef flags.
+ *      Changed the size of sipWrapperType.
  *
  * 11.3 Added sip_api_get_interpreter() to the public API.
  *
@@ -344,6 +345,25 @@ typedef int sip_gilstate_t;
 
 
 /*
+ * Forward declarations of types.
+ */
+struct _sipBufferDef;
+typedef struct _sipBufferDef sipBufferDef;
+
+struct _sipEnumTypeObject;
+typedef struct _sipEnumTypeObject sipEnumTypeObject;
+
+struct _sipSimpleWrapper;
+typedef struct _sipSimpleWrapper sipSimpleWrapper;
+
+struct _sipTypeDef;
+typedef struct _sipTypeDef sipTypeDef;
+
+struct _sipWrapperType;
+typedef struct _sipWrapperType sipWrapperType;
+
+
+/*
  * Some convenient function pointers.
  */
 
@@ -357,19 +377,14 @@ typedef enum
     ReleaseGuard        /* Release the guard, if any. */
 } AccessFuncOp;
 
-struct _sipSimpleWrapper;
-struct _sipTypeDef;
-struct _sipBufferDef;
-
-typedef void *(*sipInitFunc)(struct _sipSimpleWrapper *, PyObject *,
-        PyObject *, PyObject **, PyObject **, PyObject **);
+typedef void *(*sipInitFunc)(sipSimpleWrapper *, PyObject *, PyObject *,
+        PyObject **, PyObject **, PyObject **);
 typedef int (*sipFinalFunc)(PyObject *, void *, PyObject *, PyObject **);
-typedef void *(*sipAccessFunc)(struct _sipSimpleWrapper *, AccessFuncOp);
+typedef void *(*sipAccessFunc)(sipSimpleWrapper *, AccessFuncOp);
 typedef int (*sipTraverseFunc)(void *, visitproc, void *);
 typedef int (*sipClearFunc)(void *);
 #if PY_MAJOR_VERSION >= 3
-typedef int (*sipGetBufferFuncLimited)(PyObject *, void *,
-        struct _sipBufferDef *);
+typedef int (*sipGetBufferFuncLimited)(PyObject *, void *, sipBufferDef *);
 typedef void (*sipReleaseBufferFuncLimited)(PyObject *, void *);
 #if !defined(Py_LIMITED_API)
 typedef int (*sipGetBufferFunc)(PyObject *, void *, Py_buffer *, int);
@@ -379,30 +394,30 @@ typedef void (*sipReleaseBufferFunc)(PyObject *, void *, Py_buffer *);
 typedef SIP_SSIZE_T (*sipBufferFunc)(PyObject *, void *, SIP_SSIZE_T, void **);
 typedef SIP_SSIZE_T (*sipSegCountFunc)(PyObject *, void *, SIP_SSIZE_T *);
 #endif
-typedef void (*sipDeallocFunc)(struct _sipSimpleWrapper *);
-typedef void *(*sipCastFunc)(void *, const struct _sipTypeDef *);
-typedef const struct _sipTypeDef *(*sipSubClassConvertFunc)(void **);
+typedef void (*sipDeallocFunc)(sipSimpleWrapper *);
+typedef void *(*sipCastFunc)(void *, const sipTypeDef *);
+typedef const sipTypeDef *(*sipSubClassConvertFunc)(void **);
 typedef int (*sipConvertToFunc)(PyObject *, void **, int *, PyObject *);
 typedef PyObject *(*sipConvertFromFunc)(void *, PyObject *);
-typedef void (*sipVirtErrorHandlerFunc)(struct _sipSimpleWrapper *,
-        sip_gilstate_t);
+typedef void (*sipVirtErrorHandlerFunc)(sipSimpleWrapper *, sip_gilstate_t);
 typedef int (*sipVirtHandlerFunc)(sip_gilstate_t, sipVirtErrorHandlerFunc,
-        struct _sipSimpleWrapper *, PyObject *, ...);
+        sipSimpleWrapper *, PyObject *, ...);
 typedef void (*sipAssignFunc)(void *, SIP_SSIZE_T, const void *);
 typedef void *(*sipArrayFunc)(SIP_SSIZE_T);
 typedef void *(*sipCopyFunc)(const void *, SIP_SSIZE_T);
 typedef void (*sipReleaseFunc)(void *, int);
 typedef PyObject *(*sipPickleFunc)(void *);
-typedef int (*sipAttrGetterFunc)(const struct _sipTypeDef *, PyObject *);
+typedef int (*sipAttrGetterFunc)(const sipTypeDef *, PyObject *);
 typedef PyObject *(*sipVariableGetterFunc)(void *, PyObject *, PyObject *);
 typedef int (*sipVariableSetterFunc)(void *, PyObject *, PyObject *);
 typedef void *(*sipProxyResolverFunc)(void *);
 
 
+#if !defined(Py_LIMITED_API) || PY_VERSION_HEX < 0x03020000
 /*
  * The meta-type of a wrapper type.
  */
-typedef struct _sipWrapperType {
+struct _sipWrapperType {
     /*
      * The super-metatype.  This must be first in the structure so that it can
      * be cast to a PyTypeObject *.
@@ -417,13 +432,20 @@ typedef struct _sipWrapperType {
 
     /* Set if the type's dictionary contains all lazy attributes. */
     int dict_complete;
-} sipWrapperType;
+
+    /*
+     * For the user to use.  Note that any data structure will leak if the
+     * type is garbage collected.
+     */
+    void *user;
+};
+#endif
 
 
 /*
  * The type of a simple C/C++ wrapper object.
  */
-typedef struct _sipSimpleWrapper {
+struct _sipSimpleWrapper {
     PyObject_HEAD
 
     /*
@@ -452,7 +474,7 @@ typedef struct _sipSimpleWrapper {
 
     /* Next object at this address. */
     struct _sipSimpleWrapper *next;
-} sipSimpleWrapper;
+};
 
 
 /*
@@ -476,11 +498,12 @@ typedef struct _sipWrapper {
 } sipWrapper;
 
 
+#if !defined(Py_LIMITED_API) || PY_VERSION_HEX < 0x03020000
 /*
  * The meta-type of an enum type.  (This is exposed only to support the
  * deprecated sipConvertFromNamedEnum() macro.)
  */
-typedef struct _sipEnumTypeObject {
+struct _sipEnumTypeObject {
     /*
      * The super-metatype.  This must be first in the structure so that it can
      * be cast to a PyTypeObject *.
@@ -489,7 +512,8 @@ typedef struct _sipEnumTypeObject {
 
     /* The generated type structure. */
     struct _sipTypeDef *type;
-} sipEnumTypeObject;
+};
+#endif
 
 
 /*
@@ -758,7 +782,7 @@ typedef struct _sipVariableDef {
  * The information describing a type, either a C++ class (or C struct), a C++
  * namespace, a mapped type or a named enum.
  */
-typedef struct _sipTypeDef {
+struct _sipTypeDef {
     /* The version range index, -1 if the type isn't versioned. */
     int td_version;
 
@@ -782,7 +806,7 @@ typedef struct _sipTypeDef {
         PyTypeObject *td_py_type;
         sipWrapperType *td_wrapper_type;
     } u;
-} sipTypeDef;
+};
 
 
 /*

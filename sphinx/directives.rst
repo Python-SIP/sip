@@ -172,16 +172,17 @@ sipBufferDef \*sipBuffer
     set to a non-zero value if the buffer is read-only.
 
 Py_buffer \*sipBuffer
-    When the use of the limited API is disabled, this is a pointer to the
-    Python buffer structure that should be populated by the code.
+    When the use of the limited Python API is disabled, this is a pointer to
+    the Python buffer structure that should be populated by the code.
 
 *type* \*sipCpp
     This is a pointer to the structure or class instance.  Its *type* is a
     pointer to the structure or class.
 
 int sipFlags
-    When the use of the limited API is disabled, these are the flags that
-    specify what elements of the ``sipBuffer`` structure must be populated.
+    When the use of the limited Python API is disabled, these are the flags
+    that specify what elements of the ``sipBuffer`` structure must be
+    populated.
 
 int sipRes
     The handwritten code should set this to 0 if there was no error or -1 if
@@ -343,8 +344,8 @@ whether or not the limited Python API is enabled or not.  The following
 variables are made available:
 
 Py_buffer \*sipBuffer
-    When the use of the limited API is disabled, this is a pointer to the
-    Python buffer structure.
+    When the use of the limited Python API is disabled, this is a pointer to
+    the Python buffer structure.
 
 *type* \*sipCpp
     This is a pointer to the structure or class instance.  Its *type* is a
