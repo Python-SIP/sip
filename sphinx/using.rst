@@ -513,6 +513,10 @@ uses :directive:`%DefaultSupertype` to specify that the smaller
 default and use :class:`sip.wrapper` as the super-type so that the parent/child
 relationships of ``QObject`` instances are properly maintained.
 
+.. note::
+
+    It is not possible to define new super-types or meta-types if the limited
+    Python API is enabled.
 
 .. _ref-lazy-type-attributes:
 

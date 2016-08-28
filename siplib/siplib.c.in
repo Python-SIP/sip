@@ -391,6 +391,10 @@ static void *sip_api_get_mixin_address(sipSimpleWrapper *w,
 static int sip_api_register_proxy_resolver(const sipTypeDef *td,
         sipProxyResolverFunc resolver);
 static PyInterpreterState *sip_api_get_interpreter();
+static void sip_api_set_new_user_type_handler(sipTypeDef *td,
+        sipNewUserTypeFunc handler);
+static void sip_api_set_type_user_data(sipWrapperType *wt, void *data);
+static void *sip_api_get_type_user_data(sipWrapperType *wt);
 
 
 /*
@@ -946,7 +950,7 @@ PyMODINIT_FUNC SIP_MODULE_ENTRY(void)
      * Remind ourselves to add support for capsule variables when we have
      * another reason to move to the next major version number.
      */
-#if SIP_API_MAJOR_NR > 11
+#if SIP_API_MAJOR_NR > 12
 #error "Add support for capsule variables"
 #endif
 
@@ -6933,7 +6937,7 @@ static int add_lazy_attrs(sipTypeDef *td)
     sipAttrGetter *ag;
 
     /* Handle the trivial case. */
-    if (wt->dict_complete)
+    if (wt->wt_dict_complete)
         return 0;
 
     dict = ((PyTypeObject *)wt)->tp_dict;
@@ -6962,7 +6966,7 @@ static int add_lazy_attrs(sipTypeDef *td)
             if (ag->getter(td, dict) < 0)
                 return -1;
 
-    wt->dict_complete = TRUE;
+    wt->wt_dict_complete = TRUE;
 
 #if PY_VERSION_HEX >= 0x02060000
     PyType_Modified((PyTypeObject *)wt);
@@ -9689,6 +9693,8 @@ static int sipWrapperType_init(sipWrapperType *self, PyObject *args,
     {
         PyTypeObject *base = ((PyTypeObject *)self)->tp_base;
 
+        self->wt_user_type = TRUE;
+
         /*
          * We allow the class to use this as a meta-type without being derived
          * from a class that uses it.  This allows mixin classes that need
@@ -9697,7 +9703,32 @@ static int sipWrapperType_init(sipWrapperType *self, PyObject *args,
          * the generated type structure being NULL.
          */
         if (base != NULL && PyObject_TypeCheck((PyObject *)base, (PyTypeObject *)&sipWrapperType_Type))
+        {
+            SIP_SSIZE_T i;
+            PyObject *mro;
+
             self->type = ((sipWrapperType *)base)->type;
+
+            /* See if there is a new type handler. */
+            mro = Py_TYPE(self)->tp_mro;
+            assert(PyTuple_Check(mro));
+
+            for (i = 0; i < PyTuple_GET_SIZE(mro); ++i)
+            {
+                sipWrapperType *wt = (sipWrapperType *)PyTuple_GET_ITEM(mro, i);
+
+                if (!wt->wt_user_type)
+                {
+                    if (wt->wt_new_user_type_handler != NULL)
+                    {
+                        if (wt->wt_new_user_type_handler(self) < 0)
+                            return -1;
+                    }
+
+                    break;
+                }
+            }
+        }
     }
     else
     {
@@ -10258,7 +10289,7 @@ gc_unused:
  */
 static PyObject *next_in_mro(PyObject *self, PyObject *after)
 {
-    int i;
+    SIP_SSIZE_T i;
     PyObject *mro;
 
     mro = Py_TYPE(self)->tp_mro;
@@ -10932,9 +10963,12 @@ sipWrapperType sipSimpleWrapper_Type = {
 #if !defined(STACKLESS)
     },
 #endif
-    0,
-    0,
-    0,
+    FALSE,                  /* wt_user_type */
+    FALSE,                  /* wt_dict_complete */
+    0,                      /* wt_type */
+    0,                      /* wt_iextend */
+    0,                      /* wt_new_user_type_handler */
+    0,                      /* wt_user_data */
 };
 
 
@@ -12602,4 +12636,32 @@ static void clear_wrapper(sipSimpleWrapper *sw)
     sipOMRemoveObject(&cppPyMap, sw);
 
     clear_access_func(sw);
+}
+
+
+/*
+ * Set the handler to invoke when a new user Python sub-class is defined.
+ */
+static void sip_api_set_new_user_type_handler(sipTypeDef *td,
+        sipNewUserTypeFunc handler)
+{
+    ((sipWrapperType *)sipTypeAsPyTypeObject(td))->wt_new_user_type_handler = handler;
+}
+
+
+/*
+ * Set the user-specific type data.
+ */
+static void sip_api_set_type_user_data(sipWrapperType *wt, void *data)
+{
+    wt->wt_user_data = data;
+}
+
+
+/*
+ * Get the user-specific type data.
+ */
+static void *sip_api_get_type_user_data(sipWrapperType *wt)
+{
+    return wt->wt_user_data;
 }

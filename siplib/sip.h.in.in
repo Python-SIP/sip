@@ -69,7 +69,9 @@ extern "C" {
  * History:
  *
  * 12.0 Added SIP_TYPE_LIMITED_API to the sipTypeDef flags.
- *      Changed the size of sipWrapperType.
+ *      Added sip_api_set_new_user_type_handler() to the public API.
+ *      Added sip_api_set_type_user_data() and sip_api_get_type_user_data() to
+ *      the public API.
  *
  * 11.3 Added sip_api_get_interpreter() to the public API.
  *
@@ -218,8 +220,8 @@ extern "C" {
  *
  * 0.0  Original version.
  */
-#define SIP_API_MAJOR_NR    11
-#define SIP_API_MINOR_NR    4
+#define SIP_API_MAJOR_NR    12
+#define SIP_API_MINOR_NR    0
 
 
 /* The name of the sip module. */
@@ -411,6 +413,7 @@ typedef int (*sipAttrGetterFunc)(const sipTypeDef *, PyObject *);
 typedef PyObject *(*sipVariableGetterFunc)(void *, PyObject *, PyObject *);
 typedef int (*sipVariableSetterFunc)(void *, PyObject *, PyObject *);
 typedef void *(*sipProxyResolverFunc)(void *);
+typedef int (*sipNewUserTypeFunc)(sipWrapperType *);
 
 
 #if !defined(Py_LIMITED_API) || PY_VERSION_HEX < 0x03020000
@@ -424,20 +427,26 @@ struct _sipWrapperType {
      */
     PyHeapTypeObject super;
 
+    /* Set if the type is a user implemented Python sub-class. */
+    unsigned wt_user_type : 1;
+
+    /* Set if the type's dictionary contains all lazy attributes. */
+    unsigned wt_dict_complete : 1;
+
     /* The generated type structure. */
-    struct _sipTypeDef *type;
+    sipTypeDef *type;
 
     /* The list of init extenders. */
     struct _sipInitExtenderDef *iextend;
 
-    /* Set if the type's dictionary contains all lazy attributes. */
-    int dict_complete;
+    /* The handler called whenever a new user type has been created. */
+    sipNewUserTypeFunc wt_new_user_type_handler;
 
     /*
      * For the user to use.  Note that any data structure will leak if the
      * type is garbage collected.
      */
-    void *user;
+    void *wt_user_data;
 };
 #endif
 
@@ -789,7 +798,11 @@ struct _sipTypeDef {
     /* The next version of this type. */
     struct _sipTypeDef *td_next_version;
 
-    /* The module, 0 if the type hasn't been initialised. */
+    /*
+     * The module, 0 if the type hasn't been initialised.
+     * TODO: Refactor to move this to sipWrapperType so that the struct is
+     * always const.
+     */
     struct _sipExportedModuleDef *td_module;
 
     /* Type flags, see the sipType*() macros. */
@@ -801,6 +814,7 @@ struct _sipTypeDef {
     /*
      * The Python type object.  This needs to be a union until we remove the
      * deprecated sipClass_* macros.
+     * TODO: Refactor to eliminate this so that the struct is always const.
      */
     union {
         PyTypeObject *td_py_type;
@@ -1594,9 +1608,12 @@ typedef struct _sipAPIDef {
     PyObject *(*api_get_reference)(PyObject *self, int key);
 
     /*
-     * The following is part of the public API.
+     * The following are part of the public API.
      */
     PyInterpreterState *(*api_get_interpreter)();
+    void (*api_set_new_user_type_handler)(sipTypeDef *, sipNewUserTypeFunc);
+    void (*api_set_type_user_data)(sipWrapperType *, void *);
+    void *(*api_get_type_user_data)(sipWrapperType *);
 } sipAPIDef;
 
 

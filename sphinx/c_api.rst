@@ -1165,6 +1165,20 @@ specification files.
         the state of the converted value.
 
 
+.. c:function:: void *sipGetTypeUserData(sipWrapperType *type)
+
+    .. versionadded:: 4.19
+
+    Each generated Python type contains a pointer for the use of handwritten
+    code.  This returns the value of that pointer.
+
+    :param type:
+        the :ref:`generated type object <ref-type-objects>` corresponding to
+        the C/C++ type.
+    :return:
+        the type-specific pointer.
+
+
 .. c:function:: PyObject *sipGetWrapper(void *cppptr, sipWrapperType *type)
 
     .. deprecated:: 4.8
@@ -1683,6 +1697,41 @@ specification files.
         be destroyed when the interpreter exits.  This is the default.
 
 
+.. c:function:: void sipSetNewUserTypeHandler(sipTypeDef *type, sipNewUserTypeFunc handler)
+
+    .. versionadded:: 4.19
+
+    The allows a function to be specified that is called whenever a user
+    defined sub-class of a C/C++ type is created (i.e. one implemented in
+    Python).  It is normalled called from a module's
+    :directive:`%PostInitialisationCode`.  It is provided as an alternative to
+    providing a meta-type when the limited Python API is enabled.
+
+    :param type:
+        the :ref:`generated type object <ref-type-objects>` corresponding to
+        the C/C++ type.
+    :param handler:
+        the function that is called whenever a user defined sub-class of the
+        type is created.  The function takes a single argument which is the
+        :c:type:`sipWrapperType` of the user defined class.  It returns an
+        :c:type:`int` which is 0 if there was no error.  A Python exception is
+        raised and -1 returned if there was an error.
+
+
+.. c:function:: void sipSetTypeUserData(sipWrapperType *type, void *data)
+
+    .. versionadded:: 4.19
+
+    Each generated Python type contains a pointer for the use of handwritten
+    code.  This sets the value of that pointer.
+
+    :param type:
+        the :ref:`generated type object <ref-type-objects>` corresponding to
+        the C/C++ type.
+    :param data:
+        the type-specific pointer.
+
+
 .. c:type:: sipSimpleWrapper
 
     This is a C structure that represents a Python wrapped instance whose type
@@ -1721,6 +1770,9 @@ specification files.
     This is the type of a :c:type:`sipSimpleWrapper` structure and is the C
     implementation of :class:`sip.simplewrapper`.  It may be safely cast to
     :c:type:`sipWrapperType`.
+
+    When the limited Python API is enabled and Python v3.2 or later is being
+    used then it is only available as an opaque (i.e. incomplete) type.
 
 
 .. c:type:: sipStringTypeClassMap
@@ -1889,6 +1941,9 @@ specification files.
     is :class:`sip.wrapper`.  It is an extension of the
     :c:type:`sipSimpleWrapper` and ``PyObject`` structures and so may be safely
     cast to both.
+
+    When the limited Python API is enabled and Python v3.2 or later is being
+    used then it is only available as an opaque (i.e. incomplete) type.
 
 
 .. c:function:: int sipWrapper_Check(PyObject *obj)
