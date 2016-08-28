@@ -267,6 +267,8 @@ typedef unsigned int uint;
 #define SIPBytes_Check      PyBytes_Check
 #define SIPBytes_FromString PyBytes_FromString
 #define SIPBytes_FromStringAndSize  PyBytes_FromStringAndSize
+#define SIPBytes_AsString   PyBytes_AsString
+#define SIPBytes_GetSize    PyBytes_GetSize
 #define SIPBytes_AS_STRING  PyBytes_AS_STRING
 #define SIPBytes_GET_SIZE   PyBytes_GET_SIZE
 
@@ -286,6 +288,8 @@ typedef unsigned int uint;
 #define SIPBytes_Check      PyString_Check
 #define SIPBytes_FromString PyString_FromString
 #define SIPBytes_FromStringAndSize  PyString_FromStringAndSize
+#define SIPBytes_AsString   PyString_AsString
+#define SIPBytes_GetSize    PyString_GetSize
 #define SIPBytes_AS_STRING  PyString_AS_STRING
 #define SIPBytes_GET_SIZE   PyString_GET_SIZE
 
