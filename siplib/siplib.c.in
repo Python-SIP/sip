@@ -395,6 +395,7 @@ static void sip_api_set_new_user_type_handler(sipTypeDef *td,
         sipNewUserTypeFunc handler);
 static void sip_api_set_type_user_data(sipWrapperType *wt, void *data);
 static void *sip_api_get_type_user_data(sipWrapperType *wt);
+static const char *sip_api_py_type_name(PyTypeObject *py_type);
 
 
 /*
@@ -12664,4 +12665,13 @@ static void sip_api_set_type_user_data(sipWrapperType *wt, void *data)
 static void *sip_api_get_type_user_data(sipWrapperType *wt)
 {
     return wt->wt_user_data;
+}
+
+
+/*
+ * Get the name of a Python type (on behalf of the limited API).
+ */
+static const char *sip_api_py_type_name(PyTypeObject *py_type)
+{
+    return py_type->tp_name;
 }
