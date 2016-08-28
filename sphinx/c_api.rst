@@ -1552,6 +1552,19 @@ specification files.
         incremented.  The Python object may be ``Py_None``.
 
 
+.. c:function:: const char *sipPyTypeName(PyTypeObject *py_type)
+
+    .. versionadded:: 4.19
+
+    This provides access to a Python type object's ``tp_name`` field and is
+    typically used when the limited Python API is enabled.
+
+    :param py_type:
+        the type object.
+    :return:
+        the value of the type object's ``tp_name`` field.
+
+
 .. c:function:: int sipRegisterAttributeGetter(const sipTypeDef *td, sipAttrGetterFunc getter)
 
     This registers a handler that will called just before SIP needs to get an
