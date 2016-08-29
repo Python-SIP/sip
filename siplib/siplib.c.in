@@ -1325,7 +1325,7 @@ static PyObject *cast(PyObject *self, PyObject *args)
     if (ft == tt || PyType_IsSubtype(tt, ft))
         td = NULL;
     else if (PyType_IsSubtype(ft, tt))
-        td = wt->type;
+        td = wt->wt_type;
     else
     {
         PyErr_SetString(PyExc_TypeError, "argument 1 of cast() must be an instance of a sub or super-type of argument 2");
@@ -1339,7 +1339,7 @@ static PyObject *cast(PyObject *self, PyObject *args)
      * We don't put this new object into the map so that the original object is
      * always found.  It would also totally confuse the map logic.
      */
-    return wrap_simple_instance(addr, wt->type, NULL,
+    return wrap_simple_instance(addr, wt->wt_type, NULL,
             (sw->flags | SIP_NOT_IN_MAP) & ~SIP_PY_OWNED);
 }
 
@@ -1492,7 +1492,7 @@ static PyObject *wrapInstance(PyObject *self, PyObject *args)
     (void)self;
 
     if (PyArg_ParseTuple(args, "KO!:wrapinstance", &addr, &sipWrapperType_Type, &wt))
-        return sip_api_convert_from_type((void *)addr, wt->type, NULL);
+        return sip_api_convert_from_type((void *)addr, wt->wt_type, NULL);
 
     return NULL;
 }
@@ -1779,8 +1779,8 @@ static int sip_api_init_module(sipExportedModuleDef *client,
             {
                 sipWrapperType *wt = (sipWrapperType *)sipTypeAsPyTypeObject(td);
 
-                ie->ie_next = wt->iextend;
-                wt->iextend = ie;
+                ie->ie_next = wt->wt_iextend;
+                wt->wt_iextend = ie;
             }
 
             ++ie;
@@ -2417,7 +2417,7 @@ static PyObject *buildObject(PyObject *obj, const char *fmt, va_list va)
                 sipWrapperType *wt = va_arg(va, sipWrapperType *);
                 PyObject *xfer = va_arg(va, PyObject *);
 
-                el = sip_api_convert_from_new_type(p, wt->type, xfer);
+                el = sip_api_convert_from_new_type(p, wt->wt_type, xfer);
             }
 
             break;
@@ -2441,7 +2441,7 @@ static PyObject *buildObject(PyObject *obj, const char *fmt, va_list va)
                 sipWrapperType *wt = va_arg(va, sipWrapperType *);
                 PyObject *xfer = va_arg(va, PyObject *);
 
-                el = sip_api_convert_from_type(p, wt->type, xfer);
+                el = sip_api_convert_from_type(p, wt->wt_type, xfer);
             }
 
             break;
@@ -3077,7 +3077,7 @@ static int parseResult(PyObject *method, PyObject *res,
 
                         cpp = va_arg(va, void **);
 
-                        *cpp = sip_api_force_convert_to_type(arg, type->type, (flags & FMT_RP_FACTORY ? arg : NULL), (flags & FMT_RP_DEREF ? SIP_NOT_NONE : 0), state, &iserr);
+                        *cpp = sip_api_force_convert_to_type(arg, type->wt_type, (flags & FMT_RP_FACTORY ? arg : NULL), (flags & FMT_RP_DEREF ? SIP_NOT_NONE : 0), state, &iserr);
 
                         if (iserr)
                             invalid = TRUE;
@@ -7044,7 +7044,7 @@ static int add_all_lazy_attrs(sipTypeDef *td)
 static const sipTypeDef *sip_api_type_from_py_type_object(PyTypeObject *py_type)
 {
     if (PyObject_TypeCheck((PyObject *)py_type, &sipWrapperType_Type))
-        return ((sipWrapperType *)py_type)->type;
+        return ((sipWrapperType *)py_type)->wt_type;
 
     if (PyObject_TypeCheck((PyObject *)py_type, &sipEnumType_Type))
         return ((sipEnumTypeObject *)py_type)->type;
@@ -8370,7 +8370,7 @@ static PyObject *sip_api_is_py_method(sip_gilstate_t *gil, char *pymc,
      * the MRO).  However that means we must explicitly check that the class
      * hierarchy is fully initialised.
      */
-    if (add_all_lazy_attrs(((sipWrapperType *)Py_TYPE(sipSelf))->type) < 0)
+    if (add_all_lazy_attrs(((sipWrapperType *)Py_TYPE(sipSelf))->wt_type) < 0)
     {
         Py_DECREF(mname_obj);
         goto release_gil;
@@ -8598,7 +8598,7 @@ void *sip_api_get_cpp_ptr(sipSimpleWrapper *sw, const sipTypeDef *td)
     {
         if (PyObject_TypeCheck((PyObject *)sw, sipTypeAsPyTypeObject(td)))
         {
-            sipCastFunc cast = ((const sipClassTypeDef *)((sipWrapperType *)Py_TYPE(sw))->type)->ctd_cast;
+            sipCastFunc cast = ((const sipClassTypeDef *)((sipWrapperType *)Py_TYPE(sw))->wt_type)->ctd_cast;
 
             /* Handle any multiple inheritance. */
             if (cast != NULL)
@@ -9472,7 +9472,7 @@ static void *findSlot(PyObject *self, sipPySlotType st)
     {
         const sipClassTypeDef *ctd;
 
-        ctd = (sipClassTypeDef *)((sipWrapperType *)(py_type))->type;
+        ctd = (sipClassTypeDef *)((sipWrapperType *)(py_type))->wt_type;
 
         slot = findSlotInClass(ctd, st);
     }
@@ -9550,7 +9550,7 @@ static void *findSlotInSlotList(sipPySlotDef *psd, sipPySlotType st)
  */
 static void *getPtrTypeDef(sipSimpleWrapper *self, const sipClassTypeDef **ctd)
 {
-    *ctd = (const sipClassTypeDef *)((sipWrapperType *)Py_TYPE(self))->type;
+    *ctd = (const sipClassTypeDef *)((sipWrapperType *)Py_TYPE(self))->wt_type;
 
     return (sipNotInMap(self) ? NULL : sip_api_get_address(self));
 }
@@ -9677,7 +9677,7 @@ static PyObject *sipWrapperType_alloc(PyTypeObject *self, SIP_SSIZE_T nitems)
     {
         assert(!sipTypeIsEnum(currentType));
 
-        ((sipWrapperType *)o)->type = currentType;
+        ((sipWrapperType *)o)->wt_type = currentType;
 
         if (sipTypeIsClass(currentType))
         {
@@ -9719,7 +9719,7 @@ static int sipWrapperType_init(sipWrapperType *self, PyObject *args,
      * If we don't yet have any extra type specific information (because we are
      * a programmer defined sub-class) then get it from the (first) super-type.
      */
-    if (self->type == NULL)
+    if (self->wt_type == NULL)
     {
         PyTypeObject *base = ((PyTypeObject *)self)->tp_base;
 
@@ -9737,7 +9737,7 @@ static int sipWrapperType_init(sipWrapperType *self, PyObject *args,
             SIP_SSIZE_T i;
             PyObject *mro;
 
-            self->type = ((sipWrapperType *)base)->type;
+            self->wt_type = ((sipWrapperType *)base)->wt_type;
 
             /* See if there is a new type handler. */
             mro = Py_TYPE(self)->tp_mro;
@@ -9766,9 +9766,9 @@ static int sipWrapperType_init(sipWrapperType *self, PyObject *args,
          * We must be a generated type so remember the type object in the
          * generated type structure.
          */
-        assert(self->type->u.td_py_type == NULL);
+        assert(self->wt_type->u.td_py_type == NULL);
 
-        self->type->u.td_py_type = (PyTypeObject *)self;
+        self->wt_type->u.td_py_type = (PyTypeObject *)self;
     }
 
     return 0;
@@ -9780,7 +9780,7 @@ static int sipWrapperType_init(sipWrapperType *self, PyObject *args,
  */
 static PyObject *sipWrapperType_getattro(PyObject *self, PyObject *name)
 {
-    if (add_all_lazy_attrs(((sipWrapperType *)self)->type) < 0)
+    if (add_all_lazy_attrs(((sipWrapperType *)self)->wt_type) < 0)
         return NULL;
 
     return PyType_Type.tp_getattro(self, name);
@@ -9793,7 +9793,7 @@ static PyObject *sipWrapperType_getattro(PyObject *self, PyObject *name)
 static int sipWrapperType_setattro(PyObject *self, PyObject *name,
         PyObject *value)
 {
-    if (add_all_lazy_attrs(((sipWrapperType *)self)->type) < 0)
+    if (add_all_lazy_attrs(((sipWrapperType *)self)->wt_type) < 0)
         return -1;
 
     return PyType_Type.tp_setattro(self, name, value);
@@ -9806,7 +9806,7 @@ static int sipWrapperType_setattro(PyObject *self, PyObject *name,
 static PyObject *sipSimpleWrapper_new(sipWrapperType *wt, PyObject *args,
         PyObject *kwds)
 {
-    sipTypeDef *td = wt->type;
+    sipTypeDef *td = wt->wt_type;
     sipContainerDef *cod;
 
     (void)args;
@@ -9822,7 +9822,7 @@ static PyObject *sipSimpleWrapper_new(sipWrapperType *wt, PyObject *args,
         return NULL;
     }
 
-    if (add_all_lazy_attrs(wt->type) < 0)
+    if (add_all_lazy_attrs(td) < 0)
         return NULL;
 
     if (sipTypeIsMapped(td))
@@ -9873,7 +9873,7 @@ static PyObject *sipSimpleWrapper_new(sipWrapperType *wt, PyObject *args,
         }
 
         /* See if it is an abstract type. */
-        if (sipTypeIsAbstract(td) && sipIsExactWrappedType(wt) && ((sipClassTypeDef *)td)->ctd_init_mixin == NULL)
+        if (sipTypeIsAbstract(td) && !wt->wt_user_type && ((sipClassTypeDef *)td)->ctd_init_mixin == NULL)
         {
             PyErr_Format(PyExc_TypeError,
                     "%s.%s represents a C++ abstract class and cannot be instantiated",
@@ -9899,7 +9899,7 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
     int sipFlags, from_cpp = TRUE;
     sipWrapper *owner;
     sipWrapperType *wt = (sipWrapperType *)Py_TYPE(self);
-    sipTypeDef *td = wt->type;
+    sipTypeDef *td = wt->wt_type;
     sipClassTypeDef *ctd = (sipClassTypeDef *)td;
     PyObject *unused = NULL;
     sipFinalFunc final_func = find_finalisation(ctd);
@@ -9936,7 +9936,7 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
         }
         else
         {
-            sipInitExtenderDef *ie = wt->iextend;
+            sipInitExtenderDef *ie = wt->wt_iextend;
 
             /*
              * If we have not found an appropriate overload then try any
@@ -10190,7 +10190,7 @@ static int sip_api_init_mixin(PyObject *self, PyObject *args, PyObject *kwds,
     int rc;
     SIP_SSIZE_T pos;
     PyObject *unused, *mixin, *mixin_name, *key, *value;
-    PyTypeObject *self_wt = sipTypeAsPyTypeObject(((sipWrapperType *)Py_TYPE(self))->type);
+    PyTypeObject *self_wt = sipTypeAsPyTypeObject(((sipWrapperType *)Py_TYPE(self))->wt_type);
     PyTypeObject *wt = sipTypeAsPyTypeObject(&ctd->ctd_base);
 
 #if PY_MAJOR_VERSION >= 3
@@ -10993,8 +10993,8 @@ sipWrapperType sipSimpleWrapper_Type = {
 #if !defined(STACKLESS)
     },
 #endif
-    FALSE,                  /* wt_user_type */
-    FALSE,                  /* wt_dict_complete */
+    0,                      /* wt_user_type */
+    0,                      /* wt_dict_complete */
     0,                      /* wt_type */
     0,                      /* wt_iextend */
     0,                      /* wt_new_user_type_handler */
@@ -12569,7 +12569,7 @@ static PyObject *enableAutoconversion(PyObject *self, PyObject *args)
 
     if (PyArg_ParseTuple(args, "O!i:enableautoconversion", &sipWrapperType_Type, &wt, &enable))
     {
-        sipTypeDef *td = wt->type;
+        sipTypeDef *td = wt->wt_type;
         int was_enabled;
         PyObject *res;
 

@@ -162,7 +162,7 @@ void sipOMAddObject(sipObjectMap *om, sipSimpleWrapper *val)
     add_object(om, addr, val);
 
     /* Add any aliases. */
-    base_ctd = (const sipClassTypeDef *)((sipWrapperType *)Py_TYPE(val))->type;
+    base_ctd = (const sipClassTypeDef *)((sipWrapperType *)Py_TYPE(val))->wt_type;
     add_aliases(om, addr, val, base_ctd, base_ctd);
 }
 
@@ -377,7 +377,7 @@ int sipOMRemoveObject(sipObjectMap *om, sipSimpleWrapper *val)
         return 0;
 
     /* Remove any aliases. */
-    base_ctd = (const sipClassTypeDef *)((sipWrapperType *)Py_TYPE(val))->type;
+    base_ctd = (const sipClassTypeDef *)((sipWrapperType *)Py_TYPE(val))->wt_type;
     remove_aliases(om, addr, val, base_ctd, base_ctd);
 
     /* Remove the object. */

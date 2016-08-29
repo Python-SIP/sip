@@ -452,10 +452,10 @@ struct _sipWrapperType {
     unsigned wt_dict_complete : 1;
 
     /* The generated type structure. */
-    sipTypeDef *type;
+    sipTypeDef *wt_type;
 
     /* The list of init extenders. */
-    struct _sipInitExtenderDef *iextend;
+    struct _sipInitExtenderDef *wt_iextend;
 
     /* The handler called whenever a new user type has been created. */
     sipNewUserTypeFunc wt_new_user_type_handler;
