@@ -1276,16 +1276,16 @@ specification files.
         a non-zero value if the object is a Python time object.
 
 
-.. c:function:: void *sipGetTypeUserData(sipWrapperType *type)
+.. c:function:: void *sipGetTypeUserData(const sipWrapperType *type)
 
     .. versionadded:: 4.19
 
-    Each generated Python type contains a pointer for the use of handwritten
+    Each generated type corresponding to a wrapped C/C++ type, or a user
+    sub-class of such a type, contains a pointer for the use of handwritten
     code.  This returns the value of that pointer.
 
     :param type:
-        the :ref:`generated type object <ref-type-objects>` corresponding to
-        the C/C++ type.
+        the type object.
     :return:
         the type-specific pointer.
 
@@ -1358,6 +1358,19 @@ specification files.
         made.
     :return:
         a non-zero value if the API is enabled.
+
+
+.. c:function:: int sipIsUserType(const sipWrapperType *type)
+
+    .. versionadded:: 4.19
+
+    This checks if a type corresponds to a wrapped C/C++ type or a user
+    sub-class of such a type.
+
+    :param type:
+        the type object.
+    :return:
+        a non-zero value if the type is a user defined type.
 
 
 .. c:function:: unsigned long sipLong_AsUnsignedLong(PyObject *obj)
@@ -1663,7 +1676,7 @@ specification files.
         incremented.  The Python object may be ``Py_None``.
 
 
-.. c:function:: const char *sipPyTypeName(PyTypeObject *py_type)
+.. c:function:: const char *sipPyTypeName(const PyTypeObject *py_type)
 
     .. versionadded:: 4.19
 
@@ -1821,7 +1834,7 @@ specification files.
         be destroyed when the interpreter exits.  This is the default.
 
 
-.. c:function:: void sipSetNewUserTypeHandler(sipTypeDef *type, sipNewUserTypeFunc handler)
+.. c:function:: void sipSetNewUserTypeHandler(const sipTypeDef *td, sipNewUserTypeFunc handler)
 
     .. versionadded:: 4.19
 
@@ -1831,7 +1844,7 @@ specification files.
     :directive:`%PostInitialisationCode`.  It is provided as an alternative to
     providing a meta-type when the limited Python API is enabled.
 
-    :param type:
+    :param td:
         the :ref:`generated type object <ref-type-objects>` corresponding to
         the C/C++ type.
     :param handler:
@@ -1846,12 +1859,12 @@ specification files.
 
     .. versionadded:: 4.19
 
-    Each generated Python type contains a pointer for the use of handwritten
+    Each generated type corresponding to a wrapped C/C++ type, or a user
+    sub-class of such a type, contains a pointer for the use of handwritten
     code.  This sets the value of that pointer.
 
     :param type:
-        the :ref:`generated type object <ref-type-objects>` corresponding to
-        the C/C++ type.
+        the type object.
     :param data:
         the type-specific pointer.
 
@@ -1987,7 +2000,7 @@ specification files.
         instance's destructor is always transfered to C++.
 
 
-.. c:function:: PyTypeObject *sipTypeAsPyTypeObject(sipTypeDef *td)
+.. c:function:: PyTypeObject *sipTypeAsPyTypeObject(const sipTypeDef *td)
 
     This returns a pointer to the Python type object that SIP creates for a
     :ref:`generated type structure <ref-type-structures>`.
