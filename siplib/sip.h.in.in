@@ -73,6 +73,10 @@ extern "C" {
  *      Added sip_api_set_new_user_type_handler() to the public API.
  *      Added sip_api_set_type_user_data() and sip_api_get_type_user_data() to
  *      the public API.
+ *      Added sip_api_get_date() and sip_api_from_date() to the public API.
+ *      Added sip_api_get_datetime() and sip_api_from_datetime() to the public
+ *      API.
+ *      Added sip_api_get_time() and sip_api_from_time() to the public API.
  *
  * 11.3 Added sip_api_get_interpreter() to the public API.
  *
@@ -357,11 +361,17 @@ typedef int sip_gilstate_t;
 struct _sipBufferDef;
 typedef struct _sipBufferDef sipBufferDef;
 
+struct _sipDateDef;
+typedef struct _sipDateDef sipDateDef;
+
 struct _sipEnumTypeObject;
 typedef struct _sipEnumTypeObject sipEnumTypeObject;
 
 struct _sipSimpleWrapper;
 typedef struct _sipSimpleWrapper sipSimpleWrapper;
+
+struct _sipTimeDef;
+typedef struct _sipTimeDef sipTimeDef;
 
 struct _sipTypeDef;
 typedef struct _sipTypeDef sipTypeDef;
@@ -627,6 +637,54 @@ typedef struct _sipSubClassConvertorDef {
     /* The base type. */
     struct _sipTypeDef *scc_basetype;
 } sipSubClassConvertorDef;
+
+
+/*
+ * The structure populated by %BIGetBufferCode when the limited API is enabled.
+ */
+struct _sipBufferDef {
+    /* The address of the buffer. */
+    void *bd_buffer;
+
+    /* The length of the buffer. */
+    SIP_SSIZE_T bd_length;
+
+    /* Set if the buffer is read-only. */
+    int bd_readonly;
+};
+
+
+/*
+ * The structure describing a Python date.
+ */
+struct _sipDateDef {
+    /* The year. */
+    int pd_year;
+
+    /* The month (1-12). */
+    int pd_month;
+
+    /* The day (1-31). */
+    int pd_day;
+};
+
+
+/*
+ * The structure describing a Python time.
+ */
+struct _sipTimeDef {
+    /* The hour (0-23). */
+    int pt_hour;
+
+    /* The minute (0-59). */
+    int pt_minute;
+
+    /* The second (0-59). */
+    int pt_second;
+
+    /* The microsecond (0-999999). */
+    int pt_microsecond;
+};
 
 
 /*
@@ -1350,21 +1408,6 @@ typedef struct _sipTypeInstanceDef {
 
 
 /*
- * The structure populated by %BIGetBufferCode when the limited API is enabled.
- */
-typedef struct _sipBufferDef {
-    /* The address of the buffer. */
-    void *bd_buffer;
-
-    /* The length of the buffer. */
-    SIP_SSIZE_T bd_length;
-
-    /* Set if the buffer is read-only. */
-    int bd_readonly;
-} sipBufferDef;
-
-
-/*
  * Define a mapping between a wrapped type identified by a string and the
  * corresponding Python type.  This is deprecated.
  */
@@ -1620,6 +1663,12 @@ typedef struct _sipAPIDef {
     void (*api_set_type_user_data)(sipWrapperType *, void *);
     void *(*api_get_type_user_data)(sipWrapperType *);
     const char *(*api_py_type_name)(PyTypeObject *);
+    int (*api_get_date)(PyObject *, sipDateDef *);
+    PyObject *(*api_from_date)(const sipDateDef *);
+    int (*api_get_datetime)(PyObject *, sipDateDef *, sipTimeDef *);
+    PyObject *(*api_from_datetime)(const sipDateDef *, const sipTimeDef *);
+    int (*api_get_time)(PyObject *, sipTimeDef *);
+    PyObject *(*api_from_time)(const sipTimeDef *);
 } sipAPIDef;
 
 

@@ -956,6 +956,28 @@ specification files.
         the memory address.
 
 
+.. c:type:: sipDateDef
+
+    .. versionadded:: 4.19
+
+    This C structure is used with :c:func:`sipGetDate()`,
+    :c:func:`sipFromDate(), :c:func:`sipGetDateTime()` and
+    :c:func:`sipFromDateTime()` and encapsulates the components parts of a
+    Python date.  The structure elements are as follows.
+
+    .. c:member:: int pd_year
+
+        The year.
+
+    .. c:member:: int pd_month
+
+        The month (1-12).
+
+    .. c:member:: int pd_day
+
+        The day (1-31).
+
+
 .. c:function:: int sipEnableAutoconversion(const sipTypeDef *td, int enable)
 
     .. versionadded:: 4.14.7
@@ -1096,6 +1118,44 @@ specification files.
         the memory address.
 
 
+.. c:function:: PyObject *sipFromDate(const sipDateDef *date)
+
+    .. versionadded:: 4.19
+
+    This creates a Python date object from its component parts.
+
+    :param date:
+        the component parts of the date.
+    :return:
+        the Python date object.
+
+
+.. c:function:: PyObject *sipFromDateTime(const sipDateDef *date, const sipTimeDef *time)
+
+    .. versionadded:: 4.19
+
+    This creates a Python datetime object from its component parts.
+
+    :param date:
+        the date related component parts of the datetime.
+    :param time:
+        the time related component parts of the datetime.
+    :return:
+        the Python datetime object.
+
+
+.. c:function:: PyObject *sipFromTime(const sipTimeDef *time)
+
+    .. versionadded:: 4.19
+
+    This creates a Python time object from its component parts.
+
+    :param time:
+        the component parts of the time.
+    :return:
+        the Python time object.
+
+
 .. c:function:: void *sipGetAddress(sipSimpleWrapper *obj)
 
     .. versionadded:: 4.12
@@ -1107,6 +1167,41 @@ specification files.
         the Python object.
     :return:
         the address of the C/C++ instance
+
+
+.. c:function:: int sipGetDate(PyObject *obj, sipDateDef *date)
+
+    .. versionadded:: 4.19
+
+    This checks to see if an object is a Python date object and, if so,
+    optionally returns its component parts.
+
+    :param obj:
+        the Python object.
+    :param date:
+        if this is not ``NULL``, and the object is a date object, then the
+        component parts are returned in this structure.
+    :return:
+        a non-zero value if the object is a Python date object.
+
+
+.. c:function:: int sipGetDateTime(PyObject *obj, sipDateDef *date, sipTimeDef *time)
+
+    .. versionadded:: 4.19
+
+    This checks to see if an object is a Python datetime object and, if so,
+    optionally returns its component parts.
+
+    :param obj:
+        the Python object.
+    :param date:
+        if this is not ``NULL``, and the object is a datetime object, then the
+        date related component parts are returned in this structure.
+    :param time:
+        if this is not ``NULL``, and the object is a datetime object, then the
+        time related component parts are returned in this structure.
+    :return:
+        a non-zero value if the object is a Python datetime object.
 
 
 .. c:function:: PyInterpreterState *sipGetInterpreter()
@@ -1163,6 +1258,22 @@ specification files.
         the object that describes the requested transfer of ownership.
     :return:
         the state of the converted value.
+
+
+.. c:function:: int sipGetTime(PyObject *obj, sipTimeDef *time)
+
+    .. versionadded:: 4.19
+
+    This checks to see if an object is a Python time object and, if so,
+    optionally returns its component parts.
+
+    :param obj:
+        the Python object.
+    :param time:
+        if this is not ``NULL``, and the object is a time object, then the
+        component parts are returned in this structure.
+    :return:
+        a non-zero value if the object is a Python time object.
 
 
 .. c:function:: void *sipGetTypeUserData(sipWrapperType *type)
@@ -1803,6 +1914,32 @@ specification files.
     .. c:member:: sipWrapperType **pyType.
 
         A pointer to the corresponding generated type object.
+
+
+.. c:type:: sipTimeDef
+
+    .. versionadded:: 4.19
+
+    This C structure is used with :c:func:`sipGetTime()`,
+    :c:func:`sipFromTime(), :c:func:`sipGetDateTime()` and
+    :c:func:`sipFromDateTime()` and encapsulates the components parts of a
+    Python time.  The structure elements are as follows.
+
+    .. c:member:: int pt_hour
+
+        The hour (0-23).
+
+    .. c:member:: int pt_minute
+
+        The minute (0-59).
+
+    .. c:member:: int pt_second
+
+        The second (0-59).
+
+    .. c:member:: int pt_microsecond
+
+        The microsecond (0-999999).
 
 
 .. c:function:: void sipTransferBack(PyObject *obj)

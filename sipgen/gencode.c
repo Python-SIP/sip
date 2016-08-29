@@ -744,6 +744,12 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipSetTypeUserData          sipAPI_%s->api_set_type_user_data\n"
 "#define sipGetTypeUserData          sipAPI_%s->api_get_type_user_data\n"
 "#define sipPyTypeName               sipAPI_%s->api_py_type_name\n"
+"#define sipGetDate                  sipAPI_%s->api_get_date\n"
+"#define sipFromDate                 sipAPI_%s->api_from_date\n"
+"#define sipGetDateTime              sipAPI_%s->api_get_datetime\n"
+"#define sipFromDateTime             sipAPI_%s->api_from_datetime\n"
+"#define sipGetTime                  sipAPI_%s->api_get_time\n"
+"#define sipFromTime                 sipAPI_%s->api_from_time\n"
 "\n"
 "/* These are deprecated. */\n"
 "#define sipMapStringToClass         sipAPI_%s->api_map_string_to_class\n"
@@ -766,6 +772,12 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipConvertFromMappedType    sipConvertFromType\n"
 "#define sipConvertFromNamedEnum(v, pt)  sipConvertFromEnum((v), ((sipEnumTypeObject *)(pt))->type)\n"
 "#define sipConvertFromNewInstance(p, wt, t) sipConvertFromNewType((p), (wt)->type, (t))\n"
+        ,mname
+        ,mname
+        ,mname
+        ,mname
+        ,mname
+        ,mname
         ,mname
         ,mname
         ,mname

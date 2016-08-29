@@ -18,6 +18,7 @@
 
 
 #include <Python.h>
+#include <datetime.h>
 
 #include <assert.h>
 #include <stdio.h>
@@ -396,6 +397,14 @@ static void sip_api_set_new_user_type_handler(sipTypeDef *td,
 static void sip_api_set_type_user_data(sipWrapperType *wt, void *data);
 static void *sip_api_get_type_user_data(sipWrapperType *wt);
 static const char *sip_api_py_type_name(PyTypeObject *py_type);
+static int sip_api_get_date(PyObject *obj, sipDateDef *date);
+static PyObject *sip_api_from_date(const sipDateDef *date);
+static int sip_api_get_datetime(PyObject *obj, sipDateDef *date,
+        sipTimeDef *time);
+static PyObject *sip_api_from_datetime(const sipDateDef *date,
+        const sipTimeDef *time);
+static int sip_api_get_time(PyObject *obj, sipTimeDef *time);
+static PyObject *sip_api_from_time(const sipTimeDef *time);
 
 
 /*
@@ -12674,4 +12683,121 @@ static void *sip_api_get_type_user_data(sipWrapperType *wt)
 static const char *sip_api_py_type_name(PyTypeObject *py_type)
 {
     return py_type->tp_name;
+}
+
+
+/*
+ * Check an object is a date and return TRUE and its component parts if it is.
+ */
+static int sip_api_get_date(PyObject *obj, sipDateDef *date)
+{
+    if (!PyDateTimeAPI)
+        PyDateTime_IMPORT;
+
+    if (!PyDate_Check(obj))
+        return FALSE;
+
+    if (date != NULL)
+    {
+        date->pd_year = PyDateTime_GET_YEAR(obj);
+        date->pd_month = PyDateTime_GET_MONTH(obj);
+        date->pd_day = PyDateTime_GET_DAY(obj);
+    }
+
+    return TRUE;
+}
+
+
+/*
+ * Create a date from its component parts.
+ */
+static PyObject *sip_api_from_date(const sipDateDef *date)
+{
+    if (!PyDateTimeAPI)
+        PyDateTime_IMPORT;
+
+    return PyDate_FromDate(date->pd_year, date->pd_month, date->pd_day);
+}
+
+
+/*
+ * Check an object is a datetime and return TRUE and its component parts if it
+ * is.
+ */
+static int sip_api_get_datetime(PyObject *obj, sipDateDef *date,
+        sipTimeDef *time)
+{
+    if (!PyDateTimeAPI)
+        PyDateTime_IMPORT;
+
+    if (!PyDateTime_Check(obj))
+        return FALSE;
+
+    if (date != NULL)
+    {
+        date->pd_year = PyDateTime_GET_YEAR(obj);
+        date->pd_month = PyDateTime_GET_MONTH(obj);
+        date->pd_day = PyDateTime_GET_DAY(obj);
+    }
+
+    if (time != NULL)
+    {
+        time->pt_hour = PyDateTime_DATE_GET_HOUR(obj);
+        time->pt_minute = PyDateTime_DATE_GET_MINUTE(obj);
+        time->pt_second = PyDateTime_DATE_GET_SECOND(obj);
+        time->pt_microsecond = PyDateTime_DATE_GET_MICROSECOND(obj);
+    }
+
+    return TRUE;
+}
+
+
+/*
+ * Create a datetime from its component parts.
+ */
+static PyObject *sip_api_from_datetime(const sipDateDef *date,
+        const sipTimeDef *time)
+{
+    if (!PyDateTimeAPI)
+        PyDateTime_IMPORT;
+
+    return PyDateTime_FromDateAndTime(date->pd_year, date->pd_month,
+            date->pd_day, time->pt_hour, time->pt_minute, time->pt_second,
+            time->pt_microsecond);
+}
+
+
+/*
+ * Check an object is a time and return TRUE and its component parts if it is.
+ */
+static int sip_api_get_time(PyObject *obj, sipTimeDef *time)
+{
+    if (!PyDateTimeAPI)
+        PyDateTime_IMPORT;
+
+    if (!PyTime_Check(obj))
+        return FALSE;
+
+    if (time != NULL)
+    {
+        time->pt_hour = PyDateTime_TIME_GET_HOUR(obj);
+        time->pt_minute = PyDateTime_TIME_GET_MINUTE(obj);
+        time->pt_second = PyDateTime_TIME_GET_SECOND(obj);
+        time->pt_microsecond = PyDateTime_TIME_GET_MICROSECOND(obj);
+    }
+
+    return TRUE;
+}
+
+
+/*
+ * Create a time from its component parts.
+ */
+static PyObject *sip_api_from_time(const sipTimeDef *time)
+{
+    if (!PyDateTimeAPI)
+        PyDateTime_IMPORT;
+
+    return PyTime_FromTime(time->pt_hour, time->pt_minute, time->pt_second,
+            time->pt_microsecond);
 }
