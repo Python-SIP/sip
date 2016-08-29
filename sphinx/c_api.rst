@@ -1688,6 +1688,19 @@ specification files.
         incremented.  The Python object may be ``Py_None``.
 
 
+.. c:function:: PyObject *sipPyTypeDict(const PyTypeObject *py_type)
+
+    .. versionadded:: 4.19
+
+    This provides access to a Python type object's ``tp_dict`` field and is
+    typically used when the limited Python API is enabled.
+
+    :param py_type:
+        the type object.
+    :return:
+        the value of the type object's ``tp_dict`` field.
+
+
 .. c:function:: const char *sipPyTypeName(const PyTypeObject *py_type)
 
     .. versionadded:: 4.19

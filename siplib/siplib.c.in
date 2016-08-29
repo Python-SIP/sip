@@ -400,6 +400,7 @@ static void sip_api_set_new_user_type_handler(const sipTypeDef *td,
         sipNewUserTypeFunc handler);
 static void sip_api_set_type_user_data(sipWrapperType *wt, void *data);
 static void *sip_api_get_type_user_data(const sipWrapperType *wt);
+static PyObject *sip_api_py_type_dict(const PyTypeObject *py_type);
 static const char *sip_api_py_type_name(const PyTypeObject *py_type);
 static int sip_api_get_date(PyObject *obj, sipDateDef *date);
 static PyObject *sip_api_from_date(const sipDateDef *date);
@@ -552,6 +553,7 @@ static const sipAPIDef sip_api = {
     sip_api_set_new_user_type_handler,
     sip_api_set_type_user_data,
     sip_api_get_type_user_data,
+    sip_api_py_type_dict,
     sip_api_py_type_name,
     sip_api_get_date,
     sip_api_from_date,
@@ -12692,6 +12694,15 @@ static void sip_api_set_type_user_data(sipWrapperType *wt, void *data)
 static void *sip_api_get_type_user_data(const sipWrapperType *wt)
 {
     return wt->wt_user_data;
+}
+
+
+/*
+ * Get the dict of a Python type (on behalf of the limited API).
+ */
+static PyObject *sip_api_py_type_dict(const PyTypeObject *py_type)
+{
+    return py_type->tp_dict;
 }
 
 

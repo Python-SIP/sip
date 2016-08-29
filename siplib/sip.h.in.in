@@ -69,7 +69,8 @@ extern "C" {
  * History:
  *
  * 12.0 Added SIP_TYPE_LIMITED_API to the sipTypeDef flags.
- *      Added sip_api_py_type_name() to the public API.
+ *      Added sip_api_py_type_dict() and sip_api_py_type_name() to the public
+ *      API.
  *      Added sip_api_set_new_user_type_handler() to the public API.
  *      Added sip_api_is_user_type() to the public API.
  *      Added sip_api_set_type_user_data() and sip_api_get_type_user_data() to
@@ -1661,6 +1662,7 @@ typedef struct _sipAPIDef {
     void (*api_set_new_user_type_handler)(sipTypeDef *, sipNewUserTypeFunc);
     void (*api_set_type_user_data)(sipWrapperType *, void *);
     void *(*api_get_type_user_data)(sipWrapperType *);
+    PyObject *(*api_py_type_dict)(const PyTypeObject *);
     const char *(*api_py_type_name)(const PyTypeObject *);
     int (*api_get_date)(PyObject *, sipDateDef *);
     PyObject *(*api_from_date)(const sipDateDef *);
