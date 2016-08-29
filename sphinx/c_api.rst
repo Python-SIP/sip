@@ -1204,6 +1204,18 @@ specification files.
         a non-zero value if the object is a Python datetime object.
 
 
+.. c:function:: struct _frame sipGetFrame(int depth)
+
+    .. versionadded:: 4.19
+
+    This retrieves a frame object from the current execution stack.
+
+    :param depth:
+        the depth of frame to retrieve where 0 is the current frame, 1 is the
+        previous frame etc.
+    :return:
+        the opaque frame or NULL if there wasn't one at the given depth.
+
 .. c:function:: PyInterpreterState *sipGetInterpreter()
 
     .. versionadded:: 4.17.1

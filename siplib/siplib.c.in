@@ -19,6 +19,7 @@
 
 #include <Python.h>
 #include <datetime.h>
+#include <frameobject.h>
 
 #include <assert.h>
 #include <stdio.h>
@@ -409,6 +410,7 @@ static PyObject *sip_api_from_datetime(const sipDateDef *date,
 static int sip_api_get_time(PyObject *obj, sipTimeDef *time);
 static PyObject *sip_api_from_time(const sipTimeDef *time);
 static int sip_api_is_user_type(const sipWrapperType *wt);
+static struct _frame *sip_api_get_frame(int);
 
 
 /*
@@ -558,6 +560,7 @@ static const sipAPIDef sip_api = {
     sip_api_get_time,
     sip_api_from_time,
     sip_api_is_user_type,
+    sip_api_get_frame,
 };
 
 
@@ -12824,4 +12827,21 @@ static PyObject *sip_api_from_time(const sipTimeDef *time)
 static int sip_api_is_user_type(const sipWrapperType *wt)
 {
     return wt->wt_user_type;
+}
+
+
+/*
+ * Return a frame from the execution stack.
+ */
+static struct _frame *sip_api_get_frame(int depth)
+{
+    struct _frame *frame = PyEval_GetFrame();
+
+    while (frame != NULL && depth > 0)
+    {
+        frame = frame->f_back;
+        --depth;
+    }
+
+    return frame;
 }

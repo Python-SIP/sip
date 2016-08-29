@@ -78,6 +78,7 @@ extern "C" {
  *      Added sip_api_get_datetime() and sip_api_from_datetime() to the public
  *      API.
  *      Added sip_api_get_time() and sip_api_from_time() to the public API.
+ *      Added sip_api_get_frame() to the public API.
  *
  * 11.3 Added sip_api_get_interpreter() to the public API.
  *
@@ -1668,6 +1669,7 @@ typedef struct _sipAPIDef {
     int (*api_get_time)(PyObject *, sipTimeDef *);
     PyObject *(*api_from_time)(const sipTimeDef *);
     int (*api_is_user_type)(const sipWrapperType *);
+    struct _frame *(*api_get_frame)(int);
 } sipAPIDef;
 
 
