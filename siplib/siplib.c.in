@@ -402,6 +402,9 @@ static void sip_api_set_type_user_data(sipWrapperType *wt, void *data);
 static void *sip_api_get_type_user_data(const sipWrapperType *wt);
 static PyObject *sip_api_py_type_dict(const PyTypeObject *py_type);
 static const char *sip_api_py_type_name(const PyTypeObject *py_type);
+static int sip_api_get_method(PyObject *obj, sipMethodDef *method);
+static PyObject *sip_api_from_method(const sipMethodDef *method);
+static int sip_api_get_c_function(PyObject *obj, sipCFunctionDef *c_function);
 static int sip_api_get_date(PyObject *obj, sipDateDef *date);
 static PyObject *sip_api_from_date(const sipDateDef *date);
 static int sip_api_get_datetime(PyObject *obj, sipDateDef *date,
@@ -557,6 +560,9 @@ static const sipAPIDef sip_api = {
     sip_api_get_type_user_data,
     sip_api_py_type_dict,
     sip_api_py_type_name,
+    sip_api_get_method,
+    sip_api_from_method,
+    sip_api_get_c_function,
     sip_api_get_date,
     sip_api_from_date,
     sip_api_get_datetime,
@@ -12720,6 +12726,60 @@ static PyObject *sip_api_py_type_dict(const PyTypeObject *py_type)
 static const char *sip_api_py_type_name(const PyTypeObject *py_type)
 {
     return py_type->tp_name;
+}
+
+
+/*
+ * Check an object is a method and return TRUE and its component parts if it
+ * is.
+ */
+static int sip_api_get_method(PyObject *obj, sipMethodDef *method)
+{
+    if (!PyMethod_Check(obj))
+        return FALSE;
+
+    if (method != NULL)
+    {
+        method->pm_self = PyMethod_GET_SELF(obj);
+        method->pm_function = PyMethod_GET_FUNCTION(obj);
+#if PY_MAJOR_VERSION < 3
+        method->pm_class = PyMethod_GET_CLASS(obj);
+#endif
+    }
+
+    return TRUE;
+}
+
+
+/*
+ * Create a method from its component parts.
+ */
+static PyObject *sip_api_from_method(const sipMethodDef *method)
+{
+#if PY_MAJOR_VERSION < 3
+    return PyMethod_New(method->pm_function, method->pm_self, method->pm_class);
+#else
+    return PyMethod_New(method->pm_function, method->pm_self);
+#endif
+}
+
+
+/*
+ * Check an object is a C function and return TRUE and its component parts if
+ * it is.
+ */
+static int sip_api_get_c_function(PyObject *obj, sipCFunctionDef *c_function)
+{
+    if (!PyCFunction_Check(obj))
+        return FALSE;
+
+    if (c_function != NULL)
+    {
+        c_function->cf_function = ((PyCFunctionObject *)obj)->m_ml;
+        c_function->cf_self = PyCFunction_GET_SELF(obj);
+    }
+
+    return TRUE;
 }
 
 

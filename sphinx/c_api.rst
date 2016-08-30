@@ -448,6 +448,23 @@ specification files.
         a non-zero value if the object can be converted.
 
 
+.. c:type:: sipCFunctionDef
+
+    .. versionadded:: 4.19
+
+    This C structure is used with :c:func:`sipGetCFunction()` and encapsulates
+    the components parts of a Python C function.  The structure elements are as
+    follows.
+
+    .. c:member:: PyMethodDef *cf_function
+
+        The C function.
+
+    .. c:member:: PyObject *cf_self
+
+        The optional bound object.
+
+
 .. c:function:: PyObject *sipClassName(PyObject *obj)
 
     .. deprecated:: 4.8
@@ -1144,6 +1161,18 @@ specification files.
         the Python datetime object.
 
 
+.. c:function:: PyObject *sipFromMethod(const sipMethodDef *method)
+
+    .. versionadded:: 4.19
+
+    This creates a Python method object from its component parts.
+
+    :param method:
+        the component parts of the method.
+    :return:
+        the Python method object.
+
+
 .. c:function:: PyObject *sipFromTime(const sipTimeDef *time)
 
     .. versionadded:: 4.19
@@ -1167,6 +1196,22 @@ specification files.
         the Python object.
     :return:
         the address of the C/C++ instance
+
+
+.. c:function:: int sipGetCFunction(PyObject *obj, sipCFunctionDef *c_function)
+
+    .. versionadded:: 4.19
+
+    This checks to see if an object is a Python C function object and, if so,
+    optionally returns its component parts.
+
+    :param obj:
+        the Python object.
+    :param c_function:
+        if this is not ``NULL``, and the object is a C function object, then
+        the component parts are returned in this structure.
+    :return:
+        a non-zero value if the object is a Python C function object.
 
 
 .. c:function:: int sipGetDate(PyObject *obj, sipDateDef *date)
@@ -1216,6 +1261,7 @@ specification files.
     :return:
         the opaque frame or NULL if there wasn't one at the given depth.
 
+
 .. c:function:: PyInterpreterState *sipGetInterpreter()
 
     .. versionadded:: 4.17.1
@@ -1225,6 +1271,22 @@ specification files.
 
     :return:
         the address of the Python interpreter
+
+
+.. c:function:: int sipGetMethod(PyObject *obj, sipMethodDef *method)
+
+    .. versionadded:: 4.19
+
+    This checks to see if an object is a Python method object and, if so,
+    optionally returns its component parts.
+
+    :param obj:
+        the Python object.
+    :param method:
+        if this is not ``NULL``, and the object is a method object, then the
+        component parts are returned in this structure.
+    :return:
+        a non-zero value if the object is a Python method object.
 
 
 .. c:function:: void *sipGetMixinAddress(sipSimpleWrapper *obj, const sipTypeDef *td)
@@ -1443,6 +1505,27 @@ specification files.
         the number of entries in the table.
     :return:
         the corresponding type object, or ``NULL`` if *type* wasn't in *map*.
+
+
+.. c:type:: sipMethodDef
+
+    .. versionadded:: 4.19
+
+    This C structure is used with :c:func:`sipGetMethod()` and
+    :c:func:`sipFromMethod()` and encapsulates the components parts of a Python
+    method.  The structure elements are as follows.
+
+    .. c:member:: PyObject *pm_function
+
+        The function that implements the method.
+
+    .. c:member:: PyObject *pm_self
+
+        The bound object.
+
+    .. c:member:: PyObject *pm_class
+
+        The class.  (Python v2 only.)
 
 
 .. c:function:: int sipParseResult(int *iserr, PyObject *method, PyObject *result, const char *format, ...)

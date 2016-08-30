@@ -75,6 +75,8 @@ extern "C" {
  *      Added sip_api_is_user_type() to the public API.
  *      Added sip_api_set_type_user_data() and sip_api_get_type_user_data() to
  *      the public API.
+ *      Added sip_api_get_method() and sip_api_from_method() to the public API.
+ *      Added sip_api_get_c_function() to the public API.
  *      Added sip_api_get_date() and sip_api_from_date() to the public API.
  *      Added sip_api_get_datetime() and sip_api_from_datetime() to the public
  *      API.
@@ -365,11 +367,17 @@ typedef int sip_gilstate_t;
 struct _sipBufferDef;
 typedef struct _sipBufferDef sipBufferDef;
 
+struct _sipCFunctionDef;
+typedef struct _sipCFunctionDef sipCFunctionDef;
+
 struct _sipDateDef;
 typedef struct _sipDateDef sipDateDef;
 
 struct _sipEnumTypeObject;
 typedef struct _sipEnumTypeObject sipEnumTypeObject;
+
+struct _sipMethodDef;
+typedef struct _sipMethodDef sipMethodDef;
 
 struct _sipSimpleWrapper;
 typedef struct _sipSimpleWrapper sipSimpleWrapper;
@@ -655,6 +663,35 @@ struct _sipBufferDef {
 
     /* Set if the buffer is read-only. */
     int bd_readonly;
+};
+
+
+/*
+ * The structure describing a Python C function.
+ */
+struct _sipCFunctionDef {
+    /* The C function. */
+    PyMethodDef *cf_function;
+
+    /* The optional bound object. */
+    PyObject *cf_self;
+};
+
+
+/*
+ * The structure describing a Python method.
+ */
+struct _sipMethodDef {
+    /* The function that implements the method. */
+    PyObject *pm_function;
+
+    /* The bound object. */
+    PyObject *pm_self;
+
+#if PY_MAJOR_VERSION < 3
+    /* The class. */
+    PyObject *pm_class;
+#endif
 };
 
 
@@ -1666,6 +1703,9 @@ typedef struct _sipAPIDef {
     void *(*api_get_type_user_data)(sipWrapperType *);
     PyObject *(*api_py_type_dict)(const PyTypeObject *);
     const char *(*api_py_type_name)(const PyTypeObject *);
+    int (*api_get_method)(PyObject *, sipMethodDef *);
+    PyObject *(*api_from_method)(const sipMethodDef *);
+    int (*api_get_c_function)(PyObject *, sipCFunctionDef *);
     int (*api_get_date)(PyObject *, sipDateDef *);
     PyObject *(*api_from_date)(const sipDateDef *);
     int (*api_get_datetime)(PyObject *, sipDateDef *, sipTimeDef *);
