@@ -1859,7 +1859,7 @@ specification files.
         be destroyed when the interpreter exits.  This is the default.
 
 
-.. c:function:: void sipSetNewUserTypeHandler(const sipTypeDef *td, sipNewUserTypeFunc handler)
+.. c:function:: sipNewUserTypeFunc sipSetNewUserTypeHandler(const sipTypeDef *td, sipNewUserTypeFunc handler)
 
     .. versionadded:: 4.19
 
@@ -1878,6 +1878,8 @@ specification files.
         :c:type:`sipWrapperType` of the user defined class.  It returns an
         :c:type:`int` which is 0 if there was no error.  A Python exception is
         raised and -1 returned if there was an error.
+    :return:
+        the previously installed handler.  This allows handlers to be chained.
 
 
 .. c:function:: void sipSetTypeUserData(sipWrapperType *type, void *data)

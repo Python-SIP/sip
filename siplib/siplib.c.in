@@ -396,8 +396,8 @@ static void *sip_api_get_mixin_address(sipSimpleWrapper *w,
 static int sip_api_register_proxy_resolver(const sipTypeDef *td,
         sipProxyResolverFunc resolver);
 static PyInterpreterState *sip_api_get_interpreter();
-static void sip_api_set_new_user_type_handler(const sipTypeDef *td,
-        sipNewUserTypeFunc handler);
+static sipNewUserTypeFunc sip_api_set_new_user_type_handler(
+        const sipTypeDef *td, sipNewUserTypeFunc handler);
 static void sip_api_set_type_user_data(sipWrapperType *wt, void *data);
 static void *sip_api_get_type_user_data(const sipWrapperType *wt);
 static PyObject *sip_api_py_type_dict(const PyTypeObject *py_type);
@@ -412,6 +412,8 @@ static int sip_api_get_time(PyObject *obj, sipTimeDef *time);
 static PyObject *sip_api_from_time(const sipTimeDef *time);
 static int sip_api_is_user_type(const sipWrapperType *wt);
 static struct _frame *sip_api_get_frame(int);
+static int sip_api_check_plugin_for_type(const sipTypeDef *td,
+        const char *name);
 
 
 /*
@@ -12670,12 +12672,18 @@ static void clear_wrapper(sipSimpleWrapper *sw)
 
 
 /*
- * Set the handler to invoke when a new user Python sub-class is defined.
+ * Set the handler to invoke when a new user Python sub-class is defined and
+ * return the old handler.
  */
-static void sip_api_set_new_user_type_handler(const sipTypeDef *td,
-        sipNewUserTypeFunc handler)
+static sipNewUserTypeFunc sip_api_set_new_user_type_handler(
+        const sipTypeDef *td, sipNewUserTypeFunc handler)
 {
-    ((sipWrapperType *)sipTypeAsPyTypeObject(td))->wt_new_user_type_handler = handler;
+    sipWrapperType *wt = (sipWrapperType *)sipTypeAsPyTypeObject(td);
+    sipNewUserTypeFunc old_handler = wt->wt_new_user_type_handler;;
+
+    wt->wt_new_user_type_handler = handler;
+
+    return old_handler;
 }
 
 
@@ -12855,4 +12863,42 @@ static struct _frame *sip_api_get_frame(int depth)
     }
 
     return frame;
+}
+
+
+/*
+ * Check if a type was generated using the given plugin.  Note that, although
+ * this is part of the public API it is undocumented on purpose.
+ */
+static int sip_api_check_plugin_for_type(const sipTypeDef *td,
+        const char *name)
+{
+    /*
+     * The current thinking on plugins is that SIP v5 will look for a plugin
+     * with a name derived from the name as the current module in the same
+     * directory as the .sip defining the module (ie. no %Plugin directive).  A
+     * module hierachy may have multiple plugins but they must co-operate.  If
+     * a plugin generates user data then it should include a void* (and a
+     * run-time API) so that other plugins can extend it further.  This
+     * approach means that a plugin's user data structure can be opaque.
+     */
+
+    sipExportedModuleDef *em = td->td_module;
+    sipImportedModuleDef *im;
+
+    if (strcmp(sipNameOfModule(em), name) == 0)
+        return TRUE;
+
+    if ((im = em->em_imports) == NULL)
+        return FALSE;
+
+    while (im->im_name != NULL)
+    {
+        if (strcmp(im->im_name, name) == 0)
+            return TRUE;
+
+        ++im;
+    }
+
+    return FALSE;
 }

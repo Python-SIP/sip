@@ -701,7 +701,10 @@ defencoding_arg:    TK_NAME '=' TK_STRING_VALUE {
     ;
 
 plugin:     TK_PLUGIN plugin_args {
-            /* Note that %Plugin is internal in SIP v4. */
+            /*
+             * Note that %Plugin is internal in SIP v4.  The current thinking
+             * is that it won't be needed for SIP v5.
+             */
 
             if (notSkipping())
                 appendString(&currentSpec->plugins, $2.name);
