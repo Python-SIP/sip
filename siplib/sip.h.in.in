@@ -83,6 +83,8 @@ extern "C" {
  *      Added sip_api_get_time() and sip_api_from_time() to the public API.
  *      Added sip_api_get_frame() to the public API.
  *      Added sip_api_check_plugin_for_type() to the public API.
+ *      Added sip_api_unicode_new(), sip_api_unicode_write() and
+ *      sip_api_unicode_data() to the public API.
  *
  * 11.3 Added sip_api_get_interpreter() to the public API.
  *
@@ -1715,6 +1717,9 @@ typedef struct _sipAPIDef {
     int (*api_is_user_type)(const sipWrapperType *);
     struct _frame *(*api_get_frame)(int);
     int (*api_check_plugin_for_type)(const sipTypeDef *, const char *);
+    PyObject *(*api_unicode_new)(SIP_SSIZE_T, unsigned, int *, void **);
+    void (*api_unicode_write)(int, void *, int, unsigned);
+    void *(*api_unicode_data)(PyObject *, int *, SIP_SSIZE_T *);
 } sipAPIDef;
 
 

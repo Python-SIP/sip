@@ -757,6 +757,9 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipIsUserType               sipAPI_%s->api_is_user_type\n"
 "#define sipGetFrame                 sipAPI_%s->api_get_frame\n"
 "#define sipCheckPluginForType       sipAPI_%s->api_check_plugin_for_type\n"
+"#define sipUnicodeNew               sipAPI_%s->api_unicode_new\n"
+"#define sipUnicodeWrite             sipAPI_%s->api_unicode_write\n"
+"#define sipUnicodeData              sipAPI_%s->api_unicode_data\n"
 "\n"
 "/* These are deprecated. */\n"
 "#define sipMapStringToClass         sipAPI_%s->api_map_string_to_class\n"
@@ -779,6 +782,9 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipConvertFromMappedType    sipConvertFromType\n"
 "#define sipConvertFromNamedEnum(v, pt)  sipConvertFromEnum((v), ((sipEnumTypeObject *)(pt))->type)\n"
 "#define sipConvertFromNewInstance(p, wt, t) sipConvertFromNewType((p), (wt)->type, (t))\n"
+        ,mname
+        ,mname
+        ,mname
         ,mname
         ,mname
         ,mname

@@ -417,6 +417,14 @@ static int sip_api_is_user_type(const sipWrapperType *wt);
 static struct _frame *sip_api_get_frame(int);
 static int sip_api_check_plugin_for_type(const sipTypeDef *td,
         const char *name);
+#if PY_VERSION_HEX >= 0x03030000
+static PyObject *sip_api_unicode_new(SIP_SSIZE_T len, unsigned maxchar,
+        int *kind, void **data);
+static void sip_api_unicode_write(int kind, void *data, int index,
+        unsigned value);
+static void *sip_api_unicode_data(PyObject *obj, int *char_size,
+        SIP_SSIZE_T *len);
+#endif
 
 
 /*
@@ -571,6 +579,16 @@ static const sipAPIDef sip_api = {
     sip_api_from_time,
     sip_api_is_user_type,
     sip_api_get_frame,
+    sip_api_check_plugin_for_type,
+#if PY_VERSION_HEX >= 0x03030000
+    sip_api_unicode_new,
+    sip_api_unicode_write,
+    sip_api_unicode_data,
+#else
+    NULL,
+    NULL,
+    NULL,
+#endif
 };
 
 
@@ -12962,3 +12980,75 @@ static int sip_api_check_plugin_for_type(const sipTypeDef *td,
 
     return FALSE;
 }
+
+
+#if PY_VERSION_HEX >= 0x03030000
+/*
+ * Create a new Unicode object and return the character size and buffer.
+ */
+static PyObject *sip_api_unicode_new(SIP_SSIZE_T len, unsigned maxchar,
+        int *kind, void **data)
+{
+    PyObject *obj;
+
+    if ((obj = PyUnicode_New(len, maxchar)) != NULL)
+    {
+        *kind = PyUnicode_KIND(obj);
+        *data = PyUnicode_DATA(obj);
+    }
+
+    return obj;
+}
+
+
+/*
+ * Update a new Unicode object with a new character.
+ */
+static void sip_api_unicode_write(int kind, void *data, int index,
+        unsigned value)
+{
+    PyUnicode_WRITE(kind, data, index, value);
+}
+
+
+/*
+ * Get the address of the contents of a Unicode object, the character size and
+ * the length.
+ */
+static void *sip_api_unicode_data(PyObject *obj, int *char_size,
+        SIP_SSIZE_T *len)
+{
+    void *data;
+
+    /* Assume there will be an error. */
+    *char_size = -1;
+
+    if (PyUnicode_READY(obj) < 0)
+        return NULL;
+
+    *len = PyUnicode_GET_LENGTH(obj);
+
+    switch (PyUnicode_KIND(obj))
+    {
+    case PyUnicode_1BYTE_KIND:
+        *char_size = 1;
+        data = PyUnicode_1BYTE_DATA(obj);
+        break;
+
+    case PyUnicode_2BYTE_KIND:
+        *char_size = 2;
+        data = PyUnicode_2BYTE_DATA(obj);
+        break;
+
+    case PyUnicode_4BYTE_KIND:
+        *char_size = 4;
+        data = PyUnicode_4BYTE_DATA(obj);
+        break;
+
+    default:
+        data = NULL;
+    }
+
+    return data;
+}
+#endif
