@@ -2202,6 +2202,71 @@ specification files.
         the type structure of the scope or ``NULL`` if the type has no scope.
 
 
+.. c:function:: void *sipUnicodeData(PyObject *obj, int *char_size, SIP_SSIZE_T *len)
+
+    .. versionadded:: 4.19
+
+    This returns information about the contents of a Python unicode object.
+
+    This is only supported for Python v3.3 and later.
+
+    :param obj:
+        the unicode object.
+    :param char_size:
+        a pointer which will be updated with the number of bytes (either 1, 2
+        or 4) used to store a character.  If there was an error then this will
+        be a negative value.
+    :param len:
+        a pointer which will be updated with the number of characters (not
+        bytes) in the unicode object.
+    :return:
+        the address of the buffer where the characters are stored.  It will be
+        undefined if the returned character size is a negative value.
+
+
+.. c:function:: PyObject *sipUnicodeNew(SIP_SSIZE_T len, unsigned maxchar, int *kind, void **data)
+
+    .. versionadded:: 4.19
+
+    This creates a Python unicode object that will hold a set number of
+    characters, each character being of a certain size.
+
+    This is only supported for Python v3.3 and later.
+
+    :param len:
+        the number of characters.
+    :param maxchar:
+        the largest code point that will be placed in the object.
+    :param kind:
+        a pointer which will be updated with a value that represents the number
+        of bytes (either 1, 2 or 4) used to store a character.
+    :param data:
+        a pointer which will be updated with the address of the buffer where
+        the characters will be stored.
+    :return:
+        the unicode object or ``NULL`` if there was an error.
+
+
+.. c:function:: void sipUnicodeWrite(int kind, void *data, int index, unsigned value)
+
+    .. versionadded:: 4.19
+
+    This updates the buffer of a Python unicode object with a character at a
+    particular position.
+
+    This is only supported for Python v3.3 and later.
+
+    :param kind:
+        the value that represents the number of bytes (either 1, 2 or 4) used
+        to store a character.
+    :param data:
+        the address of the buffer where the characters are stored.
+    :param index:
+        the character (not byte) index of the character to be updated.
+    :param value:
+        the value of the new character.
+
+
 .. c:var:: PyTypeObject *sipVoidPtr_Type
 
     This is the type of a ``PyObject`` structure that is used to wrap a
