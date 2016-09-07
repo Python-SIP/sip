@@ -169,6 +169,32 @@ specification files.
         the length of the slice.
 
 
+.. c:type:: sipBufferInfoDef
+
+    .. versionadded:: 4.19
+
+    This C structure is used with :c:func:`sipGetBufferInfo()` and
+    :c:func:`sipReleaseBufferInfo()` and encapsulates information provided by a
+    Python object that implements the buffer protocol.  The structure elements
+    are as follows.
+
+    .. c:member:: void \*bi_buf
+
+        The address of the buffer.
+
+    .. c:member:: PyObject \*bi_obj
+
+        A reference to the object that implements the buffer protocol.
+
+    .. c:member:: int bi_ndim
+
+        The number of dimensions.
+
+    .. c:member:: char \*bi_format
+
+        The format of each element of the buffer.
+
+
 .. c:function:: PyObject *sipBuildResult(int *iserr, const char *format, ...)
 
     This creates a Python object based on a format string and associated
@@ -456,11 +482,11 @@ specification files.
     the components parts of a Python C function.  The structure elements are as
     follows.
 
-    .. c:member:: PyMethodDef *cf_function
+    .. c:member:: PyMethodDef \*cf_function
 
         The C function.
 
-    .. c:member:: PyObject *cf_self
+    .. c:member:: PyObject \*cf_self
 
         The optional bound object.
 
@@ -1198,6 +1224,25 @@ specification files.
         the address of the C/C++ instance
 
 
+.. c:function:: int sipGetBufferInfo(PyObject *obj, sipBufferInfoDef *buffer_info)
+
+    .. versionadded:: 4.19
+
+    This returns the buffer information related to a Python object that
+    implements the buffer protocol.  It is similar to
+    :c:func:`PyObject_GetBuffer` and should be used instead of that when the
+    limited Python API is enabled.  There should be a corresponding call to
+    :c:func:`sipReleaseBuffer`.
+
+    :param obj:
+        the Python object.
+    :param buffer_info:
+        the buffer information is returned in this structure.
+    :return:
+        zero if there was no error.  A negative value is returned, and a
+        Python exception raised,  if there was an error.
+
+
 .. c:function:: int sipGetCFunction(PyObject *obj, sipCFunctionDef *c_function)
 
     .. versionadded:: 4.19
@@ -1526,6 +1571,29 @@ specification files.
     .. c:member:: PyObject *pm_class
 
         The class.  (Python v2 only.)
+
+
+.. c:function:: sipNewUserTypeFunc sipSetNewUserTypeHandler(const sipTypeDef *td, sipNewUserTypeFunc handler)
+
+    .. versionadded:: 4.19
+
+    The allows a function to be specified that is called whenever a user
+    defined sub-class of a C/C++ type is created (i.e. one implemented in
+    Python).  It is normalled called from a module's
+    :directive:`%PostInitialisationCode`.  It is provided as an alternative to
+    providing a meta-type when the limited Python API is enabled.
+
+    :param td:
+        the :ref:`generated type object <ref-type-objects>` corresponding to
+        the C/C++ type.
+    :param handler:
+        the function that is called whenever a user defined sub-class of the
+        type is created.  The function takes a single argument which is the
+        :c:type:`sipWrapperType` of the user defined class.  It returns an
+        :c:type:`int` which is 0 if there was no error.  A Python exception is
+        raised and -1 returned if there was an error.
+    :return:
+        the previously installed handler.  This allows handlers to be chained.
 
 
 .. c:function:: int sipParseResult(int *iserr, PyObject *method, PyObject *result, const char *format, ...)
@@ -1868,6 +1936,20 @@ specification files.
     See the section :ref:`ref-types-metatypes` for more details.
 
 
+.. c:function:: void sipReleaseBufferInfo(sipBufferInfoDef *buffer_info)
+
+    .. versionadded:: 4.19
+
+    This releases the buffer information related to a Python object that
+    implements the buffer protocol that was created with a corresponding call
+    to :c:func:`sipGetBufferInfo`.  It is similar to
+    :c:func:`PyBuffer_Release` and should be used instead of that when the
+    limited Python API is enabled.
+
+    :param buffer_info:
+        the buffer information to release.
+
+
 .. c:function:: void sipReleaseInstance(void *cpp, sipWrapperType *type, int state)
 
     .. deprecated:: 4.8
@@ -1940,29 +2022,6 @@ specification files.
     :param destroy:
         non-zero if all C++ instances and C structures owned by Python should
         be destroyed when the interpreter exits.  This is the default.
-
-
-.. c:function:: sipNewUserTypeFunc sipSetNewUserTypeHandler(const sipTypeDef *td, sipNewUserTypeFunc handler)
-
-    .. versionadded:: 4.19
-
-    The allows a function to be specified that is called whenever a user
-    defined sub-class of a C/C++ type is created (i.e. one implemented in
-    Python).  It is normalled called from a module's
-    :directive:`%PostInitialisationCode`.  It is provided as an alternative to
-    providing a meta-type when the limited Python API is enabled.
-
-    :param td:
-        the :ref:`generated type object <ref-type-objects>` corresponding to
-        the C/C++ type.
-    :param handler:
-        the function that is called whenever a user defined sub-class of the
-        type is created.  The function takes a single argument which is the
-        :c:type:`sipWrapperType` of the user defined class.  It returns an
-        :c:type:`int` which is 0 if there was no error.  A Python exception is
-        raised and -1 returned if there was an error.
-    :return:
-        the previously installed handler.  This allows handlers to be chained.
 
 
 .. c:function:: void sipSetTypeUserData(sipWrapperType *type, void *data)

@@ -85,6 +85,8 @@ extern "C" {
  *      Added sip_api_check_plugin_for_type() to the public API.
  *      Added sip_api_unicode_new(), sip_api_unicode_write() and
  *      sip_api_unicode_data() to the public API.
+ *      Added sip_api_get_buffer_info() and sip_api_relese_buffer_info() to the
+ *      public API.
  *
  * 11.3 Added sip_api_get_interpreter() to the public API.
  *
@@ -368,6 +370,9 @@ typedef int sip_gilstate_t;
  */
 struct _sipBufferDef;
 typedef struct _sipBufferDef sipBufferDef;
+
+struct _sipBufferInfoDef;
+typedef struct _sipBufferInfoDef sipBufferInfoDef;
 
 struct _sipCFunctionDef;
 typedef struct _sipCFunctionDef sipCFunctionDef;
@@ -665,6 +670,24 @@ struct _sipBufferDef {
 
     /* Set if the buffer is read-only. */
     int bd_readonly;
+};
+
+
+/*
+ * The structure describing a Python buffer.
+ */
+struct _sipBufferInfoDef {
+    /* The address of the buffer. */
+    void *bi_buf;
+
+    /* A reference to the object implementing the buffer interface. */
+    PyObject *bi_obj;
+
+    /* The number of dimensions. */
+    int bi_ndim;
+
+    /* The format of each element of the buffer. */
+    char *bi_format;
 };
 
 
@@ -1720,6 +1743,8 @@ typedef struct _sipAPIDef {
     PyObject *(*api_unicode_new)(SIP_SSIZE_T, unsigned, int *, void **);
     void (*api_unicode_write)(int, void *, int, unsigned);
     void *(*api_unicode_data)(PyObject *, int *, SIP_SSIZE_T *);
+    int (*api_get_buffer_info)(PyObject *, sipBufferInfoDef *);
+    void (*api_release_buffer_info)(sipBufferInfoDef *);
 } sipAPIDef;
 
 

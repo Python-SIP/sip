@@ -423,6 +423,8 @@ static void sip_api_unicode_write(int kind, void *data, int index,
         unsigned value);
 static void *sip_api_unicode_data(PyObject *obj, int *char_size,
         SIP_SSIZE_T *len);
+static int sip_api_get_buffer_info(PyObject *obj, sipBufferInfoDef *bi);
+static void sip_api_release_buffer_info(sipBufferInfoDef *bi);
 
 
 /*
@@ -581,6 +583,8 @@ static const sipAPIDef sip_api = {
     sip_api_unicode_new,
     sip_api_unicode_write,
     sip_api_unicode_data,
+    sip_api_get_buffer_info,
+    sip_api_release_buffer_info,
 };
 
 
@@ -13052,5 +13056,49 @@ static void *sip_api_unicode_data(PyObject *obj, int *char_size,
     *char_size = -1;
 
     return NULL;
+#endif
+}
+
+
+/*
+ * Get the buffer information supplied by an object that supports the buffer
+ * protocol.
+ */
+static int sip_api_get_buffer_info(PyObject *obj, sipBufferInfoDef *bi)
+{
+#if PY_VERSION_HEX >= 0x02060300
+    Py_buffer buffer;
+
+    if (PyObject_GetBuffer(obj, &buffer, PyBUF_FORMAT) < 0)
+        return -1;
+
+    bi->bi_buf = buffer.buf;
+    bi->bi_obj = buffer.obj;
+    bi->bi_ndim = buffer.ndim;
+    bi->bi_format = buffer.format;
+
+    Py_XINCREF(bi->bi_obj);
+
+    PyBuffer_Release(&buffer);
+
+    return 0;
+#else
+    return -1;
+#endif
+}
+
+
+/*
+ * Release the buffer information obtained from a previous call to
+ * sipGetBufferInfo().
+ */
+static void sip_api_release_buffer_info(sipBufferInfoDef *bi)
+{
+#if PY_VERSION_HEX >= 0x02060300
+    if (bi->bi_obj != NULL)
+    {
+        Py_DECREF(bi->bi_obj);
+        bi->bi_obj = NULL;
+    }
 #endif
 }
