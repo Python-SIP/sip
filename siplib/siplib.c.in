@@ -9757,12 +9757,11 @@ static int sipWrapperType_init(sipWrapperType *self, PyObject *args,
         if (base != NULL && PyObject_TypeCheck((PyObject *)base, (PyTypeObject *)&sipWrapperType_Type))
         {
             SIP_SSIZE_T i;
-            PyObject *mro;
+            PyObject *mro = base->tp_mro;
 
             self->wt_type = ((sipWrapperType *)base)->wt_type;
 
             /* See if there is a new type handler. */
-            mro = Py_TYPE(self)->tp_mro;
             assert(PyTuple_Check(mro));
 
             for (i = 0; i < PyTuple_GET_SIZE(mro); ++i)
