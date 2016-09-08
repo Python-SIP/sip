@@ -468,7 +468,7 @@ struct _sipWrapperType {
     unsigned wt_dict_complete : 1;
 
     /* The generated type structure. */
-    sipTypeDef *wt_type;
+    sipTypeDef *wt_td;
 
     /* The list of init extenders. */
     struct _sipInitExtenderDef *wt_iextend;
