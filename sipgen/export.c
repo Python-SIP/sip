@@ -963,6 +963,10 @@ static const char *pyType(sipSpec *pt, argDef *ad, int sec, classDef **scope)
         break;
 
     case ustring_type:
+        /* Correct for Python v3. */
+        type_name = "bytes";
+        break;
+
     case string_type:
     case sstring_type:
     case wstring_type:
