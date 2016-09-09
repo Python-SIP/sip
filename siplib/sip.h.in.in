@@ -683,6 +683,9 @@ struct _sipBufferInfoDef {
     /* A reference to the object implementing the buffer interface. */
     PyObject *bi_obj;
 
+    /* The length of the buffer in bytes. */
+    SIP_SSIZE_T bi_len;
+
     /* The number of dimensions. */
     int bi_ndim;
 

@@ -13089,21 +13089,36 @@ static void *sip_api_unicode_data(PyObject *obj, int *char_size,
 static int sip_api_get_buffer_info(PyObject *obj, sipBufferInfoDef *bi)
 {
 #if PY_VERSION_HEX >= 0x02060300
+    int rc;
+
+    if (bi == NULL)
+        return PyObject_CheckBuffer(obj);
+
     Py_buffer buffer;
 
     if (PyObject_GetBuffer(obj, &buffer, PyBUF_FORMAT) < 0)
         return -1;
 
-    bi->bi_buf = buffer.buf;
-    bi->bi_obj = buffer.obj;
-    bi->bi_ndim = buffer.ndim;
-    bi->bi_format = buffer.format;
+    if (buffer.ndim == 1)
+    {
+        bi->bi_buf = buffer.buf;
+        bi->bi_obj = buffer.obj;
+        bi->bi_len = buffer.len;
+        bi->bi_format = buffer.format;
 
-    Py_XINCREF(bi->bi_obj);
+        Py_XINCREF(bi->bi_obj);
+
+        rc = 1;
+    }
+    else
+    {
+        PyErr_SetString(PyExc_TypeError, "a 1-dimensional buffer is required");
+        rc = -1;
+    }
 
     PyBuffer_Release(&buffer);
 
-    return 0;
+    return rc;
 #else
     return -1;
 #endif

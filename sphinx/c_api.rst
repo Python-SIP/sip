@@ -186,9 +186,9 @@ specification files.
 
         A reference to the object that implements the buffer protocol.
 
-    .. c:member:: int bi_ndim
+    .. c:member:: SIP_SSIZE_T bi_len
 
-        The number of dimensions.
+        The length of the buffer in bytes.
 
     .. c:member:: char \*bi_format
 
@@ -1228,19 +1228,24 @@ specification files.
 
     .. versionadded:: 4.19
 
-    This returns the buffer information related to a Python object that
-    implements the buffer protocol.  It is similar to
+    This checks to see if an object implements the Python buffer protocol and,
+    if so, optionally returns the buffer information.  It is similar to
     :c:func:`PyObject_GetBuffer` and should be used instead of that when the
-    limited Python API is enabled.  There should be a corresponding call to
-    :c:func:`sipReleaseBuffer`.
+    limited Python API is enabled.  Note that, at the moment, only
+    1-dimensional buffers are supported.
 
     :param obj:
         the Python object.
     :param buffer_info:
-        the buffer information is returned in this structure.
+        if this is not ``NULL``, and the object implements the buffer protocol,
+        then the buffer information is returned in this structure.  There
+        should be a corresponding call to :c:func:`sipReleaseBuffer`. 
     :return:
-        zero if there was no error.  A negative value is returned, and a
-        Python exception raised,  if there was an error.
+        > 0 if the object supports the buffer protocol and the buffer
+        information was returned (if requested).  0 if the object does not
+        support the buffer protocol.  < 0 (and a Python exception is raised) if
+        the object supports the buffer protocol but there was an error
+        returning the requested buffer information.
 
 
 .. c:function:: int sipGetCFunction(PyObject *obj, sipCFunctionDef *c_function)
