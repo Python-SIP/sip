@@ -13095,7 +13095,7 @@ static int sip_api_get_buffer_info(PyObject *obj, sipBufferInfoDef *bi)
     if (bi == NULL)
         return PyObject_CheckBuffer(obj);
 
-    if ((bi->bi_internal = sip_api_malloc(sizeof Py_buffer)) == NULL)
+    if ((bi->bi_internal = sip_api_malloc(sizeof (Py_buffer))) == NULL)
         return -1;
 
     buffer = (Py_buffer *)bi->bi_internal;
@@ -13103,7 +13103,7 @@ static int sip_api_get_buffer_info(PyObject *obj, sipBufferInfoDef *bi)
     if (PyObject_GetBuffer(obj, buffer, PyBUF_FORMAT) < 0)
         return -1;
 
-    if (buffer.ndim == 1)
+    if (buffer->ndim == 1)
     {
         bi->bi_buf = buffer->buf;
         bi->bi_obj = buffer->obj;
