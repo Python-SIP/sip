@@ -677,6 +677,9 @@ struct _sipBufferDef {
  * The structure describing a Python buffer.
  */
 struct _sipBufferInfoDef {
+    /* This is internal to sip. */
+    void *bi_internal;
+
     /* The address of the buffer. */
     void *bi_buf;
 
