@@ -1881,11 +1881,11 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 
         for (mld = mod->allimports; mld != NULL; mld = mld->next)
             prcode(fp,
-"    {\"%s\", %d, NULL},\n"
-                , mld->module->fullname->text, mld->module->version);
+"    {\"%s\", NULL},\n"
+                , mld->module->fullname->text);
 
         prcode(fp,
-"    {NULL, -1, NULL}\n"
+"    {NULL, NULL}\n"
 "};\n"
             );
     }
@@ -2108,7 +2108,6 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "    SIP_API_MINOR_NR,\n"
 "    %n,\n"
 "    0,\n"
-"    %d,\n"
 "    sipStrings_%s,\n"
 "    %s,\n"
 "    %s,\n"
@@ -2134,7 +2133,6 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "};\n"
         , mname
         , mod->fullname
-        , mod->version
         , pt->module->name
         , mod->allimports != NULL ? "importsTable" : "NULL"
         , moduleSupportsQt(pt, mod) ? "&qtAPI" : "NULL"

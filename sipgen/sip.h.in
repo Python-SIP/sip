@@ -893,7 +893,6 @@ typedef struct _typeHintNodeDef {
 typedef struct _moduleDef {
     nameDef *fullname;                  /* The full module name. */
     const char *name;                   /* The module base name. */
-    int version;                        /* The module version. */
     apiVersionRangeDef *api_versions;   /* The defined APIs. */
     apiVersionRangeDef *api_ranges;     /* The list of API version ranges. */
     int modflags;                       /* The module flags. */
@@ -1542,7 +1541,6 @@ typedef struct _moduleCfg {
     int all_raise_py_exc;
     int call_super_init;
     const char *def_error_handler;
-    int version;
     codeBlock *docstring;
 } moduleCfg;
 

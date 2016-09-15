@@ -1985,7 +1985,7 @@ version number.  A module built on that module knows the version number of the
 API that it is expecting.  If, when the modules are imported at run-time, the
 version numbers do not match then a Python exception is raised.  The dependent
 module must then be re-built using the correct specification files for the base
-module.
+module.  This is deprecated and ignored in SIP v4.19.
 
 The optional :directive:`%AutoPyName` sub-directive is used to specify a rule
 for automatically providing Python names.

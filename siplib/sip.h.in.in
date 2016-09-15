@@ -87,6 +87,8 @@ extern "C" {
  *      sip_api_unicode_data() to the public API.
  *      Added sip_api_get_buffer_info() and sip_api_relese_buffer_info() to the
  *      public API.
+ *      Removed the im_version member from sipImportedModuleDef.
+ *      Removed the em_version member from sipExportedModuleDef.
  *
  * 11.3 Added sip_api_get_interpreter() to the public API.
  *
@@ -1213,9 +1215,6 @@ typedef struct _sipImportedModuleDef {
     /* The module name. */
     const char *im_name;
 
-    /* The required version. */
-    int im_version;
-
     /* The imported module. */
     struct _sipExportedModuleDef *im_module;
 } sipImportedModuleDef;
@@ -1236,9 +1235,6 @@ typedef struct _sipExportedModuleDef {
 
     /* The module name as an object. */
     PyObject *em_nameobj;
-
-    /* The module version. */
-    int em_version;
 
     /* The string pool. */
     const char *em_strings;
