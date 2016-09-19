@@ -1896,9 +1896,18 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
                 , mname, mld->module->name);
 
             for (i = 0; i < mld->module->nrtypes; ++i)
-                prcode(fp,
+            {
+                argDef *ad = &mld->module->types[i];
+
+                if (ad->atype == mapped_type)
+                    prcode(fp,
+"    {\"%s\"},\n"
+                        , ad->u.mtd->cname->text);
+                else
+                    prcode(fp,
 "    {\"%S\"},\n"
-                    , getFQCNameOfType(&mld->module->types[i]));
+                        , getFQCNameOfType(ad));
+            }
 
             prcode(fp,
 "};\n"
@@ -4208,12 +4217,12 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
     prcode(fp, ",\n"
 "        0,\n"
 "        %sSIP_TYPE_MAPPED,\n"
-"        %n,\n"
+"        %n,     /* %s */\n"
 "        {0}\n"
 "    },\n"
 "    {\n"
         , (handlesNone(mtd) ? "SIP_TYPE_ALLOW_NONE|" : "")
-        , mtd->cname);
+        , mtd->cname, mtd->cname->text);
 
     if (nr_enums == 0)
         prcode(fp,

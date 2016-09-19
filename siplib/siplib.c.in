@@ -9056,7 +9056,9 @@ static int compareTypeDef(const void *key, const void *el)
     td = *(const sipTypeDef **)el;
 
     if (td != NULL)
+    {
         s2 = sipTypeName(td);
+    }
     else
     {
         sipExternalTypeDef *etd = module_searched->em_external;
