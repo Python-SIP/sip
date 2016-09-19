@@ -5040,6 +5040,10 @@ static classDef *newClass(sipSpec *pt, ifaceFileType iftype,
                 continue;
 
             cd->real = ns;
+
+            if (inMainModule())
+                setNeedsClass(ns);
+
             break;
         }
     }
@@ -5402,6 +5406,9 @@ mappedTypeDef *allocMappedType(sipSpec *pt, argDef *type)
     mtd->type.nrderefs = 0;
 
     mtd->cname = cacheName(pt, type2string(&mtd->type));
+
+    /* Keep track of the original definition as it gets copied. */
+    mtd->real = mtd;
 
     return mtd;
 }

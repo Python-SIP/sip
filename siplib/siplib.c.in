@@ -834,8 +834,6 @@ static int setReduce(PyTypeObject *type, PyMethodDef *pickler);
 static int createEnumType(sipExportedModuleDef *client, sipEnumTypeDef *etd,
         PyObject *mod_dict);
 static PyObject *createTypeDict(sipExportedModuleDef *em);
-static sipExportedModuleDef *getTypeModule(const sipEncodedTypeDef *enc,
-        sipExportedModuleDef *em);
 static sipTypeDef *getGeneratedType(const sipEncodedTypeDef *enc,
         sipExportedModuleDef *em);
 static const sipTypeDef *convertSubClass(const sipTypeDef *td, void **cppPtr);
@@ -935,6 +933,7 @@ static PyObject *wrap_simple_instance(void *cpp, const sipTypeDef *td,
         sipWrapper *owner, int flags);
 static void *resolve_proxy(const sipTypeDef *td, void *proxy);
 static void clear_wrapper(sipSimpleWrapper *sw);
+static int importTypes(sipImportedModuleDef *im, sipExportedModuleDef *em);
 
 
 /*
@@ -1601,6 +1600,9 @@ static int sip_api_export_module(sipExportedModuleDef *client,
 
                 return -1;
             }
+
+            if (importTypes(im, em) < 0)
+                return -1;
 
             /* Save the imported module. */
             im->im_module = em;
@@ -9438,25 +9440,15 @@ static void sip_api_raise_type_exception(const sipTypeDef *td, void *ptr)
 
 
 /*
- * Return the module of an encoded type.
- */
-static sipExportedModuleDef *getTypeModule(const sipEncodedTypeDef *enc,
-        sipExportedModuleDef *em)
-{
-    if (enc->sc_module != 255)
-        em = em->em_imports[enc->sc_module].im_module;
-
-    return em;
-}
-
-
-/*
  * Return the generated type structure of an encoded type.
  */
 static sipTypeDef *getGeneratedType(const sipEncodedTypeDef *enc,
         sipExportedModuleDef *em)
 {
-    return getTypeModule(enc, em)->em_types[enc->sc_type];
+    if (enc->sc_module == 255)
+        return em->em_types[enc->sc_type];
+
+    return em->em_imports[enc->sc_module].im_imported_types[enc->sc_type].it_td;
 }
 
 
@@ -13128,4 +13120,51 @@ static void sip_api_release_buffer_info(sipBufferInfoDef *bi)
         bi->bi_internal = NULL;
     }
 #endif
+}
+
+
+/*
+ * Import all the required types from an imported module.
+ */
+static int importTypes(sipImportedModuleDef *im, sipExportedModuleDef *em)
+{
+    int i, e;
+
+    /*
+     * Look for each required type in turn.  Both tables are sorted so a single
+     * pass will find them all.
+     */
+    for (i = e = 0; i < im->im_nr_imported_types; ++i)
+    {
+        const char *name;
+        sipTypeDef *td;
+
+        name = im->im_imported_types[i].it_name;
+        td = NULL;
+
+        do
+        {
+            sipTypeDef *e_td;
+
+            if (e >= em->em_nrtypes)
+            {
+                PyErr_Format(PyExc_RuntimeError,
+                        "the type '%s' cannot be imported from the %s module",
+                        name, sipNameOfModule(em));
+
+                return -1;
+            }
+
+            e_td = em->em_types[e++];
+
+            /* Ignore unresolved external types. */
+            if (e_td != NULL && strcmp(name, sipTypeName(e_td)) == 0)
+                td = e_td;
+        }
+        while (td == NULL);
+
+        im->im_imported_types[i].it_td = td;
+    }
+
+    return 0;
 }

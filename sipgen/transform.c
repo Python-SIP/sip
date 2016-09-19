@@ -1245,6 +1245,9 @@ static void setHierarchy(sipSpec *pt, classDef *base, classDef *cd,
             {
                 mroDef *new_mro = appendToMRO(cd->mro, &tailp, mro->cd);
 
+                if (generatingCodeForModule(pt, cd->iff->module))
+                    setNeedsClass(mro->cd);
+
                 if (cl != cd->supers || needsCast(mro))
                 {
                     /*
@@ -2997,7 +3000,7 @@ static void resolveType(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         type->atype = no_type;
 
         if (c_scope != NULL)
-            searchClassScope(pt, c_scope, snd,type);
+            searchClassScope(pt, c_scope, snd, type);
 
         if (type->atype == no_type)
             searchMappedTypes(pt, mod, snd, type);
@@ -3058,6 +3061,29 @@ static void resolveType(sipSpec *pt, moduleDef *mod, classDef *c_scope,
                 }
         }
     }
+
+    /*
+     * If we are in the main module then mark any generated types as being
+     * needed.
+     */
+    if (generatingCodeForModule(pt, mod))
+        switch (type->atype)
+        {
+        case class_type:
+            setNeedsClass(type->u.cd);
+            break;
+
+        case mapped_type:
+            setNeedsMappedType(type->u.mtd->real);
+            break;
+
+        case enum_type:
+            setNeedsEnum(type->u.ed);
+            break;
+
+        default:
+            ;
+        }
 }
 
 
@@ -3293,7 +3319,7 @@ static void searchMappedTypes(sipSpec *pt, moduleDef *context,
         if (sameBaseType(ad, &mtd->type))
         {
             /*
-             * If we a building a consolidated module and this mapped type is
+             * If we are building a consolidated module and this mapped type is
              * defined in a different module then see if that other module is
              * in a different branch of the module hierarchy.
              */
@@ -3624,7 +3650,9 @@ static ifaceFileDef *getIfaceFile(argDef *ad)
 
 
 /*
- * Create the sorted array of numbered types for a module.
+ * Create the sorted array of numbered types for a module.  For the main module
+ * this will be every type defined in the module.  For other modules this will
+ * be every type needed by the main module.
  */
 static void createSortedNumberedTypesTable(sipSpec *pt, moduleDef *mod)
 {
@@ -3645,7 +3673,8 @@ static void createSortedNumberedTypesTable(sipSpec *pt, moduleDef *mod)
         if (cd->iff->first_alt != cd->iff)
             continue;
 
-        mod->nrtypes++;
+        if (generatingCodeForModule(pt, mod) || needsClass(cd))
+            mod->nrtypes++;
     }
 
     for (mtd = pt->mappedtypes; mtd != NULL; mtd = mtd->next)
@@ -3656,7 +3685,8 @@ static void createSortedNumberedTypesTable(sipSpec *pt, moduleDef *mod)
         if (mtd->iff->first_alt != mtd->iff)
             continue;
 
-        mod->nrtypes++;
+        if (generatingCodeForModule(pt, mod) || needsMappedType(mtd))
+            mod->nrtypes++;
     }
 
     for (ed = pt->enums; ed != NULL; ed = ed->next)
@@ -3673,7 +3703,8 @@ static void createSortedNumberedTypesTable(sipSpec *pt, moduleDef *mod)
         if (ed->first_alt != ed)
             continue;
 
-        mod->nrtypes++;
+        if (generatingCodeForModule(pt, mod) || needsEnum(ed))
+            mod->nrtypes++;
     }
 
     if (mod->nrtypes == 0)
@@ -3690,11 +3721,14 @@ static void createSortedNumberedTypesTable(sipSpec *pt, moduleDef *mod)
         if (cd->iff->first_alt != cd->iff)
             continue;
 
-        ad->atype = class_type;
-        ad->u.cd = cd;
-        ad->name = cd->iff->name;
+        if (generatingCodeForModule(pt, mod) || needsClass(cd))
+        {
+            ad->atype = class_type;
+            ad->u.cd = cd;
+            ad->name = cd->iff->name;
 
-        ++ad;
+            ++ad;
+        }
     }
 
     for (mtd = pt->mappedtypes; mtd != NULL; mtd = mtd->next)
@@ -3705,11 +3739,14 @@ static void createSortedNumberedTypesTable(sipSpec *pt, moduleDef *mod)
         if (mtd->iff->first_alt != mtd->iff)
             continue;
 
-        ad->atype = mapped_type;
-        ad->u.mtd = mtd;
-        ad->name = mtd->cname;
+        if (generatingCodeForModule(pt, mod) || needsMappedType(mtd))
+        {
+            ad->atype = mapped_type;
+            ad->u.mtd = mtd;
+            ad->name = mtd->cname;
 
-        ++ad;
+            ++ad;
+        }
     }
 
     for (ed = pt->enums; ed != NULL; ed = ed->next)
@@ -3726,11 +3763,14 @@ static void createSortedNumberedTypesTable(sipSpec *pt, moduleDef *mod)
         if (ed->first_alt != ed)
             continue;
 
-        ad->atype = enum_type;
-        ad->u.ed = ed;
-        ad->name = ed->cname;
+        if (generatingCodeForModule(pt, mod) || needsEnum(ed))
+        {
+            ad->atype = enum_type;
+            ad->u.ed = ed;
+            ad->name = ed->cname;
 
-        ++ad;
+            ++ad;
+        }
     }
 
     /* Sort the table and assign type numbers. */
@@ -3771,11 +3811,46 @@ static void createSortedNumberedTypesTable(sipSpec *pt, moduleDef *mod)
 
 
 /*
- * The qsort helper to compare two generated type names.
+ * The qsort helper to compare two generated C/C++ type names.
  */
 static int compareTypes(const void *t1, const void *t2)
 {
-    return strcmp(((argDef *)t1)->name->text, ((argDef *)t2)->name->text);
+    scopedNameDef *snd1, *snd2;
+
+    snd1 = getFQCNameOfType((argDef *)t1);
+    snd2 = getFQCNameOfType((argDef *)t2);
+
+    return compareScopedNames(snd1, snd2);
+}
+
+
+/*
+ * Return the fully qualified C/C++ name for a generated type.
+ */
+scopedNameDef *getFQCNameOfType(argDef *ad)
+{
+    scopedNameDef *snd;
+
+    switch (ad->atype)
+    {
+    case class_type:
+        snd = classFQCName(ad->u.cd);
+        break;
+
+    case mapped_type:
+        snd = ad->u.mtd->iff->fqcname;
+        break;
+
+    case enum_type:
+        snd = ad->u.ed->fqcname;
+        break;
+
+    default:
+        /* Suppress a compiler warning. */
+        snd = NULL;
+    }
+
+    return snd;
 }
 
 

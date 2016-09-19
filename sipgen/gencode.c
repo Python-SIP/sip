@@ -919,9 +919,6 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "extern const char sipStrings_%s[];\n"
         , pt->module->name);
 
-    /* The unscoped enum macros. */
-    generateEnumMacros(pt, mod, NULL, NULL, fp);
-
     generateModuleAPI(pt, mod, fp);
 
     prcode(fp,
@@ -932,13 +929,24 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
         , mname
         , mname, mname);
 
+    if (mod->nrtypes > 0)
+        prcode(fp,
+"extern sipTypeDef *sipExportedTypes_%s[];\n"
+            , mname);
+
     for (mld = mod->allimports; mld != NULL; mld = mld->next)
     {
         generateImportedModuleAPI(pt, mod, mld->module, fp);
 
         prcode(fp,
+"\n"
 "extern const sipExportedModuleDef *sipModuleAPI_%s_%s;\n"
             , mname, mld->module->name);
+
+        if (mld->module->nrtypes > 0)
+            prcode(fp,
+"extern sipImportedTypeDef sipImportedTypes_%s_%s[];\n"
+                , mname, mld->module->name);
     }
 
     if (pluginPyQt4(pt) || pluginPyQt5(pt))
@@ -1872,6 +1880,31 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 
     if (mod->allimports != NULL)
     {
+        for (mld = mod->allimports; mld != NULL; mld = mld->next)
+        {
+            int i;
+
+            if (mld->module->nrtypes == 0)
+                continue;
+
+            prcode(fp,
+"\n"
+"\n"
+"/* This defines the types that this module needs to import from %s. */\n"
+"sipImportedTypeDef sipImportedTypes_%s_%s[] = {\n"
+                , mld->module->name
+                , mname, mld->module->name);
+
+            for (i = 0; i < mld->module->nrtypes; ++i)
+                prcode(fp,
+"    {\"%S\"},\n"
+                    , getFQCNameOfType(&mld->module->types[i]));
+
+            prcode(fp,
+"};\n"
+                );
+        }
+
         prcode(fp,
 "\n"
 "\n"
@@ -1880,12 +1913,21 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
             );
 
         for (mld = mod->allimports; mld != NULL; mld = mld->next)
+        {
             prcode(fp,
-"    {\"%s\", NULL},\n"
-                , mld->module->fullname->text);
+"    {\"%s\", NULL, %d, ", mld->module->fullname->text, mld->module->nrtypes);
+
+            if (mld->module->nrtypes > 0)
+                prcode(fp, "sipImportedTypes_%s_%s", mname, mld->module->name);
+            else
+                prcode(fp, "NULL");
+
+            prcode(fp, "},\n"
+                );
+        }
 
         prcode(fp,
-"    {NULL, NULL}\n"
+"    {NULL, NULL, -1, NULL}\n"
 "};\n"
             );
     }
@@ -2083,7 +2125,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "/* This defines the Qt support API. */\n"
 "\n"
 "static sipQtAPI qtAPI = {\n"
-"    &typesTable[%d],\n"
+"    &sipExportedTypes_%s[%d],\n"
 "    sipQtCreateUniversalSignal,\n"
 "    sipQtFindUniversalSignal,\n"
 "    sipQtCreateUniversalSlot,\n"
@@ -2097,7 +2139,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "    sipQtConnectPySignal,\n"
 "    sipQtDisconnectPySignal\n"
 "};\n"
-            , pt->qobject_cd->iff->ifacenr);
+            , mname, pt->qobject_cd->iff->ifacenr);
 
     prcode(fp,
 "\n"
@@ -2112,7 +2154,23 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "    %s,\n"
 "    %s,\n"
 "    %d,\n"
-"    %s,\n"
+        , mname
+        , mod->fullname
+        , pt->module->name
+        , mod->allimports != NULL ? "importsTable" : "NULL"
+        , moduleSupportsQt(pt, mod) ? "&qtAPI" : "NULL"
+        , mod->nrtypes);
+
+    if (mod->nrtypes > 0)
+        prcode(fp,
+"    sipExportedTypes_%s,\n"
+            , mname);
+    else
+        prcode(fp,
+"    NULL,\n"
+            );
+
+    prcode(fp,
 "    %s,\n"
 "    %d,\n"
 "    %s,\n"
@@ -2131,13 +2189,6 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "    %s,\n"
 "    %s\n"
 "};\n"
-        , mname
-        , mod->fullname
-        , pt->module->name
-        , mod->allimports != NULL ? "importsTable" : "NULL"
-        , moduleSupportsQt(pt, mod) ? "&qtAPI" : "NULL"
-        , mod->nrtypes
-        , mod->nrtypes > 0 ? "typesTable" : "NULL"
         , hasexternal ? "externalTypesTable" : "NULL"
         , nr_enummembers
         , nr_enummembers > 0 ? "enummembers" : "NULL"
@@ -2493,8 +2544,8 @@ static void generateTypesTable(sipSpec *pt, moduleDef *mod, FILE *fp)
 "/*\n"
 " * This defines each type in this module.\n"
 " */\n"
-"static sipTypeDef *typesTable[] = {\n"
-        );
+"sipTypeDef *sipExportedTypes_%s[] = {\n"
+        , mod->name);
 
     for (ad = mod->types, i = 0; i < mod->nrtypes; ++i, ++ad)
     {
@@ -8779,6 +8830,8 @@ static void generateModuleAPI(sipSpec *pt, moduleDef *mod, FILE *fp)
 "\n"
 "#define sipException_%C sipModuleAPI_%s.em_exceptions[%d]\n"
                 , xd->iff->fqcname, mod->name, xd->exceptionnr);
+
+    generateEnumMacros(pt, mod, NULL, NULL, fp);
 }
 
 
@@ -8793,12 +8846,22 @@ static void generateImportedModuleAPI(sipSpec *pt, moduleDef *mod,
     exceptionDef *xd;
 
     for (cd = pt->classes; cd != NULL; cd = cd->next)
-        if (cd->iff->module == immod && !isExternal(cd))
-            generateImportedClassAPI(cd, pt, mod, fp);
+        if (cd->iff->module == immod)
+        {
+            if (needsClass(cd))
+                generateImportedClassAPI(cd, pt, mod, fp);
+
+            generateEnumMacros(pt, mod, cd, NULL, fp);
+        }
 
     for (mtd = pt->mappedtypes; mtd != NULL; mtd = mtd->next)
         if (mtd->iff->module == immod)
-            generateImportedMappedTypeAPI(mtd, pt, mod, fp);
+        {
+            if (needsMappedType(mtd))
+                generateImportedMappedTypeAPI(mtd, pt, mod, fp);
+
+            generateEnumMacros(pt, mod, NULL, mtd, fp);
+        }
 
     for (xd = pt->exceptions; xd != NULL; xd = xd->next)
         if (xd->iff->module == immod && xd->exceptionnr >= 0)
@@ -8806,6 +8869,8 @@ static void generateImportedModuleAPI(sipSpec *pt, moduleDef *mod,
 "\n"
 "#define sipException_%C sipModuleAPI_%s_%s->em_exceptions[%d]\n"
                     , xd->iff->fqcname, mod->name, xd->iff->module->name, xd->exceptionnr);
+
+    generateEnumMacros(pt, mod, NULL, NULL, fp);
 }
 
 
@@ -8829,11 +8894,9 @@ static void generateImportedMappedTypeAPI(mappedTypeDef *mtd, sipSpec *pt,
 
         prcode(fp,
 "\n"
-"#define sipType_%T      sipModuleAPI_%s_%s->em_types[%d]\n"
+"#define sipType_%T sipImportedTypes_%s_%s[%d].it_td\n"
             , &type, mname, imname, mtd->iff->ifacenr);
     }
-
-    generateEnumMacros(pt, mod, NULL, mtd, fp);
 }
 
 
@@ -8852,7 +8915,7 @@ static void generateMappedTypeAPI(sipSpec *pt, mappedTypeDef *mtd, FILE *fp)
     if (mtd->iff->first_alt == mtd->iff)
         prcode(fp,
 "\n"
-"#define sipType_%T      sipModuleAPI_%s.em_types[%d]\n"
+"#define sipType_%T sipExportedTypes_%s[%d]\n"
             , &type, mtd->iff->module->name, mtd->iff->ifacenr);
 
     prcode(fp,
@@ -8870,15 +8933,15 @@ static void generateMappedTypeAPI(sipSpec *pt, mappedTypeDef *mtd, FILE *fp)
 static void generateImportedClassAPI(classDef *cd, sipSpec *pt, moduleDef *mod,
         FILE *fp)
 {
-    prcode(fp,
-"\n"
-        );
-
     /* Ignore alternate API implementations. */
     if (cd->iff->first_alt == cd->iff)
     {
         const char *mname = mod->name;
         const char *imname = cd->iff->module->name;
+
+        prcode(fp,
+"\n"
+            );
 
         if (cd->iff->type == namespace_iface)
             prcode(fp,
@@ -8886,8 +8949,8 @@ static void generateImportedClassAPI(classDef *cd, sipSpec *pt, moduleDef *mod,
                 , cd->iff);
 
         prcode(fp,
-"#define sipType_%C              sipModuleAPI_%s_%s->em_types[%d]\n"
-"#define sipClass_%C             sipModuleAPI_%s_%s->em_types[%d]->u.td_wrapper_type\n"
+"#define sipType_%C sipImportedTypes_%s_%s[%d].it_td\n"
+"#define sipClass_%C sipImportedTypes_%s_%s[%d].it_td->u.td_wrapper_type\n"
             , classFQCName(cd), mname, imname, cd->iff->ifacenr
             , classFQCName(cd), mname, imname, cd->iff->ifacenr);
 
@@ -8896,8 +8959,6 @@ static void generateImportedClassAPI(classDef *cd, sipSpec *pt, moduleDef *mod,
 "#endif\n"
                 );
     }
-
-    generateEnumMacros(pt, mod, cd, NULL, fp);
 }
 
 
@@ -8914,8 +8975,8 @@ static void generateClassAPI(classDef *cd, sipSpec *pt, FILE *fp)
 
     if (cd->real == NULL && cd->iff->first_alt == cd->iff)
         prcode(fp,
-"#define sipType_%C              sipModuleAPI_%s.em_types[%d]\n"
-"#define sipClass_%C             sipModuleAPI_%s.em_types[%d]->u.td_wrapper_type\n"
+"#define sipType_%C sipExportedTypes_%s[%d]\n"
+"#define sipClass_%C sipExportedTypes_%s[%d]->u.td_wrapper_type\n"
             , classFQCName(cd), mname, cd->iff->ifacenr
             , classFQCName(cd), mname, cd->iff->ifacenr);
 
@@ -8955,7 +9016,6 @@ static void generateEnumMacros(sipSpec *pt, moduleDef *mod, classDef *cd,
         mappedTypeDef *mtd, FILE *fp)
 {
     enumDef *ed;
-    int noIntro = TRUE;
 
     for (ed = pt->enums; ed != NULL; ed = ed->next)
     {
@@ -8980,25 +9040,18 @@ static void generateEnumMacros(sipSpec *pt, moduleDef *mod, classDef *cd,
             continue;
         }
 
-        if (noIntro)
-        {
-            prcode(fp,
-"\n"
-                );
-
-            noIntro = FALSE;
-        }
-
         if (mod == ed->module)
             prcode(fp,
-"#define sipType_%C              sipModuleAPI_%s.em_types[%d]\n"
-"#define sipEnum_%C              sipModuleAPI_%s.em_types[%d]->u.td_py_type\n"
+"\n"
+"#define sipType_%C sipExportedTypes_%s[%d]\n"
+"#define sipEnum_%C sipExportedTypes_%s[%d]->u.td_py_type\n"
                 , ed->fqcname, mod->name, ed->enumnr
                 , ed->fqcname, mod->name, ed->enumnr);
-        else
+        else if (needsEnum(ed))
             prcode(fp,
-"#define sipType_%C              sipModuleAPI_%s_%s->em_types[%d]\n"
-"#define sipEnum_%C              sipModuleAPI_%s_%s->em_types[%d]->u.td_py_type\n"
+"\n"
+"#define sipType_%C sipImportedTypes_%s_%s[%d].it_td\n"
+"#define sipEnum_%C sipImportedTypes_%s_%s[%d].it_td->u.td_py_type\n"
                 , ed->fqcname, mod->name, ed->module->name, ed->enumnr
                 , ed->fqcname, mod->name, ed->module->name, ed->enumnr);
     }

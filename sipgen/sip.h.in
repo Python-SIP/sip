@@ -209,6 +209,7 @@
 #define CLASS2_MIXIN        0x02        /* The class is a mixin. */
 #define CLASS2_EXPORT_DERIVED   0x04    /* Export the derived class declaration. */
 #define CLASS2_NEEDS_CAST_FUNC  0x08    /* The class needs a cast function. */
+#define CLASS2_NEEDS_CLASS  0x10        /* The module needs it. */
 
 #define isTemplateArg(cd)   ((cd)->classflags2 & CLASS2_TMPL_ARG)
 #define setTemplateArg(cd)  ((cd)->classflags2 |= CLASS2_TMPL_ARG)
@@ -218,6 +219,8 @@
 #define setExportDerived(cd)    ((cd)->classflags2 |= CLASS2_EXPORT_DERIVED)
 #define needsCastFunction(cd)   ((cd)->classflags2 & CLASS2_NEEDS_CAST_FUNC)
 #define setNeedsCastFunction(cd)    ((cd)->classflags2 |= CLASS2_NEEDS_CAST_FUNC)
+#define needsClass(cd)      ((cd)->classflags2 & CLASS2_NEEDS_CLASS)
+#define setNeedsClass(cd)   ((cd)->classflags2 |= CLASS2_NEEDS_CLASS)
 
 
 /* Handle ctor flags.  These are combined with the section flags. */
@@ -279,6 +282,7 @@
 
 #define ENUM_WAS_PROT       0x00000100  /* It was defined as protected. */
 #define ENUM_NO_SCOPE       0x00000200  /* Omit the member scopes. */
+#define ENUM_NEEDS_ENUM     0x00000400  /* The module needs it. */
 
 #define isProtectedEnum(e)  ((e)->enumflags & SECT_IS_PROT)
 #define setIsProtectedEnum(e)   ((e)->enumflags |= SECT_IS_PROT)
@@ -289,6 +293,8 @@
 #define resetWasProtectedEnum(e)    ((e)->enumflags &= ~ENUM_WAS_PROT)
 #define isNoScope(e)        ((e)->enumflags & ENUM_NO_SCOPE)
 #define setIsNoScope(e)     ((e)->enumflags |= ENUM_NO_SCOPE)
+#define needsEnum(e)        ((e)->enumflags & ENUM_NEEDS_ENUM)
+#define setNeedsEnum(e)     ((e)->enumflags |= ENUM_NEEDS_ENUM)
 
 
 /* Handle hierarchy flags. */
@@ -495,11 +501,14 @@
 
 #define MT_NO_RELEASE       0x01    /* Do not generate a release function. */
 #define MT_ALLOW_NONE       0x02    /* The mapped type will handle None. */
+#define MT_NEEDS_MT         0x04    /* The module needs it. */
 
 #define noRelease(mt)       ((mt)->mtflags & MT_NO_RELEASE)
 #define setNoRelease(mt)    ((mt)->mtflags |= MT_NO_RELEASE)
 #define handlesNone(mt)     ((mt)->mtflags & MT_ALLOW_NONE)
 #define setHandlesNone(mt)  ((mt)->mtflags |= MT_ALLOW_NONE)
+#define needsMappedType(mt) ((mt)->mtflags & MT_NEEDS_MT)
+#define setNeedsMappedType(mt)  ((mt)->mtflags |= MT_NEEDS_MT)
 
 
 /* Handle typedef flags. */
@@ -987,6 +996,7 @@ typedef struct _mappedTypeDef {
     codeBlockList *typecode;            /* Type code. */
     codeBlockList *convfromcode;        /* Convert from C++ code. */
     codeBlockList *convtocode;          /* Convert to C++ code. */
+    struct _mappedTypeDef *real;        /* The original definition. */
     struct _mappedTypeDef *next;        /* Next in the list. */
 } mappedTypeDef;
 
@@ -1394,6 +1404,7 @@ int inDefaultAPI(sipSpec *pt, apiVersionRangeDef *range);
 int hasImplicitOverloads(signatureDef *sd);
 void dsCtor(sipSpec *pt, classDef *cd, ctorDef *ct, int sec, FILE *fp);
 void dsOverload(sipSpec *pt, overDef *od, int is_method, int sec, FILE *fp);
+scopedNameDef *getFQCNameOfType(argDef *ad);
 
 
 /* These are only here because bison publically references them. */

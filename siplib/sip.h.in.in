@@ -566,13 +566,13 @@ struct _sipEnumTypeObject {
  */
 typedef struct _sipEncodedTypeDef {
     /* The type number. */
-    unsigned sc_type:16;
+    unsigned sc_type : 16;
 
     /* The module number (255 for this one). */
-    unsigned sc_module:8;
+    unsigned sc_module : 8;
 
     /* A context specific flag. */
-    unsigned sc_flag:1;
+    unsigned sc_flag : 1;
 } sipEncodedTypeDef;
 
 
@@ -1209,6 +1209,18 @@ typedef struct _sipVersionedFunctionDef {
 
 
 /*
+ * Defines a type imported from another module.
+ */
+typedef union _sipImportedTypeDef {
+    /* The type name before the module is imported. */
+    const char *it_name;
+
+    /* The type after the module is imported. */
+    sipTypeDef *it_td;
+} sipImportedTypeDef;
+
+
+/*
  * The information describing an imported module.
  */
 typedef struct _sipImportedModuleDef {
@@ -1216,7 +1228,14 @@ typedef struct _sipImportedModuleDef {
     const char *im_name;
 
     /* The imported module. */
+    // TODO: remove this when virthandlers are fixed.
     struct _sipExportedModuleDef *im_module;
+
+    /* The number of types imported from the module. */
+    int im_nr_imported_types;
+
+    /* The types imported from the module. */
+    sipImportedTypeDef *im_imported_types;
 } sipImportedModuleDef;
 
 
