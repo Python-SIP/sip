@@ -275,9 +275,12 @@ void transform(sipSpec *pt)
             for (od = cd->overs; od != NULL; od = od->next)
                 ifaceFilesAreUsedByOverload(&cd->iff->used, od);
 
-    /* Filter the virtuals of the main module. */
     for (mod = pt->modules; mod != NULL; mod = mod->next)
     {
+        if (generatingCodeForModule(pt, mod))
+            for (od = mod->overs; od != NULL; od = od->next)
+                ifaceFilesAreUsedByOverload(&mod->used, od);
+
         /* Update proxies with some information from the real classes. */
         for (cd = mod->proxies; cd != NULL; cd = cd->next)
             cd->iff->ifacenr = cd->real->iff->ifacenr;
@@ -1637,6 +1640,8 @@ static void getVirtuals(sipSpec *pt, classDef *cd)
 
             /* Make sure we get the name. */
             setIsUsedName(vod->o.common->pyname);
+
+            ifaceFilesAreUsedByOverload(&cd->iff->module->used, &vod->o);
         }
     }
 }
