@@ -338,6 +338,7 @@
 #define OVER_IS_DELATTR     0x04000000  /* It is __delattr__. */
 #define OVER_RAISES_PY_EXC  0x08000000  /* It raises a Python exception. */
 #define OVER_NO_ERROR_HANDLER   0x10000000  /* It doesn't use a virtual error handler. */
+#define OVER_ABORT_ON_EXC   0x20000000  /* It aborts on an exception. */
 
 #define isPublic(o)         ((o)->overflags & SECT_IS_PUBLIC)
 #define setIsPublic(o)      ((o)->overflags |= SECT_IS_PUBLIC)
@@ -396,6 +397,8 @@
 #define setRaisesPyException(o) ((o)->overflags |= OVER_RAISES_PY_EXC)
 #define noErrorHandler(o)   ((o)->overflags & OVER_NO_ERROR_HANDLER)
 #define setNoErrorHandler(o)    ((o)->overflags |= OVER_NO_ERROR_HANDLER)
+#define abortOnException(o)     ((o)->overflags & OVER_ABORT_ON_EXC)
+#define setAbortOnException(o)  ((o)->overflags |= OVER_ABORT_ON_EXC)
 
 
 /* Handle variable flags. */
@@ -484,17 +487,13 @@
 
 /* Handle virtual handler flags. */
 
-#define VH_IS_DUPLICATE     0x01    /* It is a duplicate. */
-#define VH_TRANSFERS        0x02    /* It transfers ownership of the result. */
-#define VH_ABORT_ON_EXC     0x04    /* It aborts on an exception. */
+#define VH_TRANSFERS        0x01    /* It transfers ownership of the result. */
+#define VH_ABORT_ON_EXC     0x02    /* It aborts on an exception. */
 
-#define isDuplicateVH(vh)   ((vh)->vhflags & VH_IS_DUPLICATE)
-#define setIsDuplicateVH(vh)    ((vh)->vhflags |= VH_IS_DUPLICATE)
-#define resetIsDuplicateVH(vh)  ((vh)->vhflags &= ~VH_IS_DUPLICATE)
 #define isTransferVH(vh)    ((vh)->vhflags & VH_TRANSFERS)
 #define setIsTransferVH(vh) ((vh)->vhflags |= VH_TRANSFERS)
-#define abortOnException(vh)    ((vh)->vhflags & VH_ABORT_ON_EXC)
-#define setAbortOnException(vh) ((vh)->vhflags |= VH_ABORT_ON_EXC)
+#define abortOnExceptionVH(vh)  ((vh)->vhflags & VH_ABORT_ON_EXC)
+#define setAbortOnExceptionVH(vh)   ((vh)->vhflags |= VH_ABORT_ON_EXC)
 
 
 /* Handle mapped type flags. */
@@ -932,10 +931,8 @@ typedef struct _moduleDef {
     int nrtimelines;                    /* The nr. of timelines. */
     int nrexceptions;                   /* The nr. of exceptions. */
     int nrtypedefs;                     /* The nr. of typedefs. */
-    int nrvirthandlers;                 /* The nr. of virtual handlers. */
     int nrvirterrorhandlers;            /* The nr. of virtual error handlers. */
     int next_key;                       /* The next key to allocate. */
-    struct _virtHandlerDef *virthandlers;   /* The virtual handlers. */
     licenseDef *license;                /* The software license. */
     struct _classDef *proxies;          /* The list of proxy classes. */
     struct _moduleDef *container;       /* The container module, if any. */
@@ -1029,7 +1026,6 @@ typedef struct _virtHandlerDef {
     int vhflags;                        /* The virtual handler flags. */
     signatureDef *pysig;                /* The Python signature. */
     signatureDef *cppsig;               /* The C++ signature. */
-    struct _moduleDef *module;          /* The defining module. */
     codeBlockList *virtcode;            /* Virtual handler code. */
     struct _virtHandlerDef *next;       /* Next in the list. */
 } virtHandlerDef;
@@ -1087,7 +1083,7 @@ typedef struct _overDef {
     throwArgs *exceptions;              /* The exceptions. */
     codeBlockList *methodcode;          /* Method code. */
     codeBlockList *virtcallcode;        /* Virtual call code. */
-    virtHandlerDef *virthandler;        /* The virtual handler. */
+    codeBlockList *virtcode;            /* Virtual handler code. */
     char *prehook;                      /* The pre-hook name. */
     char *posthook;                     /* The post-hook name. */
     const char *virt_error_handler;     /* The virtual error handler. */
@@ -1172,6 +1168,7 @@ typedef struct _classList {
 /* A virtual overload definition. */
 typedef struct _virtOverDef {
     overDef o;                          /* The overload. */
+    virtHandlerDef *virthandler;        /* The virtual handler. */
     struct _virtOverDef *next;          /* Next in the list. */
 } virtOverDef;
 
@@ -1290,6 +1287,8 @@ typedef struct {
     enumDef *enums;                     /* List of enums. */
     varDef *vars;                       /* List of variables. */
     typedefDef *typedefs;               /* List of typedefs. */
+    int nrvirthandlers;                 /* The number of virtual handlers. */
+    virtHandlerDef *virthandlers;       /* The virtual handlers. */
     virtErrorHandler *errorhandlers;    /* The list of virtual error handlers. */
     codeBlockList *exphdrcode;          /* Exported header code. */
     codeBlockList *exptypehintcode;     /* Exported type hint code. */

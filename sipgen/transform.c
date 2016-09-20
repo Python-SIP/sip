@@ -29,7 +29,6 @@ static int nextSignificantArg(signatureDef *sd, int a);
 static int sameArgType(argDef *a1, argDef *a2, int strict);
 static int supportedType(classDef *,overDef *,argDef *,int);
 static int sameOverload(overDef *od1, overDef *od2);
-static int sameVirtualHandler(virtHandlerDef *vhd1,virtHandlerDef *vhd2);
 static int isSubClass(classDef *cc,classDef *pc);
 static void setAllImports(moduleDef *mod);
 static void addUniqueModule(moduleDef *mod, moduleDef *imp);
@@ -55,6 +54,8 @@ static void transformVariableList(sipSpec *pt, moduleDef *mod);
 static void transformMappedTypes(sipSpec *pt, moduleDef *mod);
 static void getVisibleMembers(sipSpec *,classDef *);
 static void getVirtuals(sipSpec *pt,classDef *cd);
+static virtHandlerDef *getVirtualHandler(sipSpec *pt, overDef *od);
+static int checkVirtualHandler(overDef *od, virtHandlerDef *vhd);
 static void getClassVirtuals(classDef *,classDef *);
 static void transformTypedefs(sipSpec *pt, moduleDef *mod);
 static void resolveMappedTypeTypes(sipSpec *,mappedTypeDef *);
@@ -74,8 +75,6 @@ static void moveMainModuleCastsSlots(sipSpec *pt, moduleDef *mod);
 static void moveClassCasts(sipSpec *pt, moduleDef *mod, classDef *cd);
 static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd);
 static classDef *findAltClassImplementation(sipSpec *pt, mappedTypeDef *mtd);
-static void filterMainModuleVirtualHandlers(moduleDef *mod);
-static void filterModuleVirtualHandlers(moduleDef *mod);
 static ifaceFileDef *getIfaceFile(argDef *ad);
 static ifaceFileDef *getIfaceFileForEnum(enumDef *ed);
 static mappedTypeDef *instantiateMappedTypeTemplate(sipSpec *pt, moduleDef *mod, mappedTypeTmplDef *mtt, argDef *type);
@@ -276,20 +275,9 @@ void transform(sipSpec *pt)
             for (od = cd->overs; od != NULL; od = od->next)
                 ifaceFilesAreUsedByOverload(&cd->iff->used, od);
 
-    /*
-     * Filter the virtuals of all component modules (if consolidated) or the
-     * main module (if not).
-     */
+    /* Filter the virtuals of the main module. */
     for (mod = pt->modules; mod != NULL; mod = mod->next)
     {
-        if (generatingCodeForModule(pt, mod))
-        {
-            filterMainModuleVirtualHandlers(mod);
-
-            for (od = mod->overs; od != NULL; od = od->next)
-                ifaceFilesAreUsedByOverload(&mod->used, od);
-        }
-
         /* Update proxies with some information from the real classes. */
         for (cd = mod->proxies; cd != NULL; cd = cd->next)
             cd->iff->ifacenr = cd->real->iff->ifacenr;
@@ -1003,134 +991,6 @@ static classDef *getProxy(moduleDef *mod, classDef *cd)
 
 
 /*
- * Filter the virtual handlers for a main module (ie. one we are generating
- * code for.
- */
-static void filterMainModuleVirtualHandlers(moduleDef *mod)
-{
-    moduleListDef *mld;
-    virtHandlerDef *vhd;
-
-    /*
-     * Remove redundant virtual handlers.  It's important that earlier, ie.
-     * those at the deepest level of %Import, are done first.
-     */
-    for (mld = mod->allimports; mld != NULL; mld = mld->next)
-        filterModuleVirtualHandlers(mld->module);
-
-    filterModuleVirtualHandlers(mod);
-
-    /*
-     * Make sure we have the interface files for all types from other modules
-     * that are used in virtual handlers implemented in this module.
-     */
-    for (vhd = mod->virthandlers; vhd != NULL; vhd = vhd->next)
-        if (!isDuplicateVH(vhd))
-            ifaceFilesAreUsedBySignature(&mod->used, vhd->cppsig);
-}
-
-
-/*
- * Go through the virtual handlers filtering those that can duplicate earlier
- * ones.  Make sure each virtual is numbered within its module, and according
- * to their position in the list (ignoring duplicates).
- */
-static void filterModuleVirtualHandlers(moduleDef *mod)
-{
-    virtHandlerDef *vhd;
-
-    /* See if it has already been done for this module. */
-    if (mod->nrvirthandlers >= 0)
-        return;
-
-    mod->nrvirthandlers = 0;
-
-    for (vhd = mod->virthandlers; vhd != NULL; vhd = vhd->next)
-    {
-        virtHandlerDef *best, *best_thismod, *hd;
-
-        best = best_thismod = NULL;
-
-        /*
-         * If this has handwritten code then we will want to use it.
-         * Otherwise, look for a handler in earlier modules.
-         */
-        if (vhd->virtcode == NULL)
-        {
-            moduleListDef *mld;
-
-            for (mld = mod->allimports; mld != NULL && mld->module != mod; mld = mld->next)
-            {
-                for (hd = mld->module->virthandlers; hd != NULL; hd = hd->next)
-                    if (sameVirtualHandler(vhd, hd))
-                    {
-                        best = hd;
-                        break;
-                    }
-
-                /*
-                 * No need to check later modules as this will either be the
-                 * right one, or a duplicate of the right one.
-                 */
-                if (best != NULL)
-                    break;
-            }
-        }
-
-        /*
-         * Find the best candidate in this module in case we want to give it
-         * our handwritten code.
-         */
-        for (hd = mod->virthandlers; hd != vhd; hd = hd->next)
-            if (sameVirtualHandler(vhd, hd))
-            {
-                best_thismod = hd;
-                break;
-            }
-
-        /*
-         * We don't use this one if it doesn't have virtual code and there is
-         * an alternative, or if it does have virtual code and there is already
-         * an alternative in the same module which doesn't have virtual code.
-         */
-        if ((vhd->virtcode == NULL && (best != NULL || best_thismod != NULL)) ||
-            (vhd->virtcode != NULL && best_thismod != NULL && best_thismod->virtcode == NULL))
-        {
-            virtHandlerDef *saved;
-
-            /*
-             * If the alternative is in the same module and we have virtual
-             * code then give it to the alternative.  Note that there is a bug
-             * here.  If there are three handlers, the first without code and
-             * the second and third with code then which code is transfered to
-             * the first is down to luck.  We should really only transfer code
-             * to methods that are known to be re-implementations - just having
-             * the same signature isn't enough.
-             */
-            if (best_thismod != NULL)
-            {
-                if (best_thismod->virtcode == NULL && vhd->virtcode != NULL)
-                {
-                    best_thismod->virtcode = vhd->virtcode;
-                    resetIsDuplicateVH(best_thismod);
-                }
-
-                best = best_thismod;
-            }
-
-            /* Use the better one in place of this one. */
-            saved = vhd->next;
-            *vhd = *best;
-            setIsDuplicateVH(vhd);
-            vhd->next = saved;
-        }
-        else
-            vhd->virthandlernr = mod->nrvirthandlers++;
-    }
-}
-
-
-/*
  * Add an overload that is automatically generated (typically by Qt's moc).
  */
 static void addAutoOverload(sipSpec *pt,classDef *autocd,overDef *autood)
@@ -1768,15 +1628,105 @@ static void getVirtuals(sipSpec *pt, classDef *cd)
         }
 
         /*
-         * If this class is defined in the main module make sure we get the API
-         * files for all the visible virtuals.
+         * If this class is defined in the main module then make sure the
+         * virtuals have a handler.
          */
         if (generatingCodeForModule(pt, cd->iff->module))
         {
+            vod->virthandler = getVirtualHandler(pt, &vod->o);
+
             /* Make sure we get the name. */
             setIsUsedName(vod->o.common->pyname);
         }
     }
+}
+
+
+/*
+ * Get the virtual handler for an overload.
+ */
+static virtHandlerDef *getVirtualHandler(sipSpec *pt, overDef *od)
+{
+    virtHandlerDef *vhd;
+
+    /* See if there is an existing handler that is suitable. */
+    for (vhd = pt->virthandlers; vhd != NULL; vhd = vhd->next)
+        if (checkVirtualHandler(od, vhd))
+            return vhd;
+
+    /* Create a new one. */
+    vhd = sipMalloc(sizeof (virtHandlerDef));
+
+    vhd->virthandlernr = pt->nrvirthandlers++;
+
+    if (isFactory(od) || isResultTransferredBack(od))
+        setIsTransferVH(vhd);
+
+    if (abortOnException(od))
+        setAbortOnExceptionVH(vhd);
+
+    vhd->pysig = &od->pysig;
+    vhd->cppsig = od->cppsig;
+    vhd->virtcode = od->virtcode;
+
+    vhd->next = pt->virthandlers;
+    pt->virthandlers = vhd;
+
+    return vhd;
+}
+
+
+/*
+ * See if a virtual handler is appropriate for an overload.
+ */
+static int checkVirtualHandler(overDef *od, virtHandlerDef *vhd)
+{
+    int a;
+
+    /*
+     * If both have code then they must be different.  However it doesn't
+     * follow that if they don't then they are the same.  We should really take
+     * whether they correspond to reimplementations of the same method into
+     * account.  In the meantime this will be correct in most cases.
+     */
+    if (od->virtcode != NULL && vhd->virtcode != NULL)
+        return FALSE;
+
+    if ((isFactory(od) || isResultTransferredBack(od)) && !isTransferVH(vhd))
+        return FALSE;
+
+    if (!abortOnException(od) != !abortOnExceptionVH(vhd))
+        return FALSE;
+
+    if (!sameArgType(&od->pysig.result, &vhd->pysig->result, TRUE))
+        return FALSE;
+
+    if (isAllowNone(&od->pysig.result) != isAllowNone(&vhd->pysig->result))
+        return FALSE;
+
+    if (isDisallowNone(&od->pysig.result) != isDisallowNone(&vhd->pysig->result))
+        return FALSE;
+
+    if (!sameSignature(&od->pysig, vhd->pysig, TRUE))
+        return FALSE;
+
+    /* Take into account the argument directions in the Python signatures. */
+    for (a = 0; a < od->pysig.nrArgs; ++a)
+    {
+        int dir1 = (od->pysig.args[a].argflags & (ARG_IN | ARG_OUT));
+        int dir2 = (vhd->pysig->args[a].argflags & (ARG_IN | ARG_OUT));
+
+        if (dir1 != dir2)
+            return FALSE;
+    }
+
+    if (&od->pysig == od->cppsig && vhd->pysig == vhd->cppsig)
+        return TRUE;
+
+    if (!sameArgType(&od->cppsig->result, &vhd->cppsig->result, TRUE))
+        return FALSE;
+
+    return sameSignature(od->cppsig, vhd->cppsig, TRUE);
 }
 
 
@@ -1955,7 +1905,7 @@ static void resolveFuncTypes(sipSpec *pt, moduleDef *mod, classDef *c_scope,
 
         resolveType(pt, mod, c_scope, res, TRUE);
 
-        if ((res->atype != void_type || res->nrderefs != 0) && isVirtual(od) && !supportedType(c_scope, od, &od->cppsig->result, FALSE) && od->virthandler->virtcode == NULL)
+        if ((res->atype != void_type || res->nrderefs != 0) && isVirtual(od) && !supportedType(c_scope, od, &od->cppsig->result, FALSE) && od->virtcode == NULL)
         {
             fatalStart();
             fprintf(stderr, "%s:%d: ", od->sloc.name, od->sloc.linenr);
@@ -2092,7 +2042,7 @@ static void resolvePySigTypes(sipSpec *pt, moduleDef *mod, classDef *scope,
             int need_meth, need_virt;
 
             need_meth = (od->cppsig == &od->pysig || od->methodcode == NULL);
-            need_virt = (isVirtual(od) && od->virthandler->virtcode == NULL);
+            need_virt = (isVirtual(od) && od->virtcode == NULL);
 
             if (need_meth || need_virt)
             {
@@ -2510,60 +2460,6 @@ static int sameOverload(overDef *od1, overDef *od2)
         return FALSE;
 
     return sameSignature(&od1->pysig, &od2->pysig, TRUE);
-}
-
-
-/*
- * Compare two virtual handlers and return TRUE if they are the same.
- */
-static int sameVirtualHandler(virtHandlerDef *vhd1,virtHandlerDef *vhd2)
-{
-    int a;
-
-    /*
-     * If both have code then they must be different.  However it doesn't
-     * follow that if they don't then they are the same.  We should really take
-     * whether they correspond to reimplementations of the same method into
-     * account.  In the meantime this will be correct in most cases.
-     */
-    if (vhd1->virtcode != NULL && vhd2->virtcode != NULL)
-        return FALSE;
-
-    if (isTransferVH(vhd1) != isTransferVH(vhd2))
-        return FALSE;
-
-    if (abortOnException(vhd1) != abortOnException(vhd2))
-        return FALSE;
-
-    if (!sameArgType(&vhd1->pysig->result, &vhd2->pysig->result, TRUE))
-        return FALSE;
-
-    if (isAllowNone(&vhd1->pysig->result) != isAllowNone(&vhd2->pysig->result))
-        return FALSE;
-
-    if (isDisallowNone(&vhd1->pysig->result) != isDisallowNone(&vhd2->pysig->result))
-        return FALSE;
-
-    if (!sameSignature(vhd1->pysig, vhd2->pysig, TRUE))
-        return FALSE;
-
-    /* Take into account the argument directions in the Python signatures. */
-    for (a = 0; a < vhd1->pysig->nrArgs; ++a)
-    {
-        int dir1 = (vhd1->pysig->args[a].argflags & (ARG_IN | ARG_OUT));
-        int dir2 = (vhd2->pysig->args[a].argflags & (ARG_IN | ARG_OUT));
-
-        if (dir1 != dir2)
-            return FALSE;
-    }
-
-    if (vhd1->pysig == vhd1->cppsig && vhd2->pysig == vhd2->cppsig)
-        return TRUE;
-
-    if (!sameArgType(&vhd1->cppsig->result, &vhd2->cppsig->result, TRUE))
-        return FALSE;
-
-    return sameSignature(vhd1->cppsig, vhd2->cppsig, TRUE);
 }
 
 

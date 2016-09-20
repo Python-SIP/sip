@@ -89,12 +89,11 @@ static void generateModDocstring(moduleDef *mod, FILE *fp);
 static void generateIfaceCpp(sipSpec *, ifaceFileDef *, int, const char *,
         const char *, FILE *, int);
 static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp);
-static void generateImportedMappedTypeAPI(mappedTypeDef *mtd, sipSpec *pt,
-        moduleDef *mod, FILE *fp);
+static void generateImportedMappedTypeAPI(mappedTypeDef *mtd, moduleDef *mod,
+        FILE *fp);
 static void generateMappedTypeAPI(sipSpec *pt, mappedTypeDef *mtd, FILE *fp);
 static void generateClassCpp(classDef *cd, sipSpec *pt, FILE *fp);
-static void generateImportedClassAPI(classDef *cd, sipSpec *pt, moduleDef *mod,
-        FILE *fp);
+static void generateImportedClassAPI(classDef *cd, moduleDef *mod, FILE *fp);
 static void generateClassAPI(classDef *cd, sipSpec *pt, FILE *fp);
 static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
         FILE *fp);
@@ -1457,9 +1456,8 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
     generateCppCodeBlock(mod->cppcode, fp);
 
     /* Generate any virtual handlers. */
-    for (vhd = mod->virthandlers; vhd != NULL; vhd = vhd->next)
-        if (!isDuplicateVH(vhd))
-            generateVirtualHandler(mod, vhd, fp);
+    for (vhd = pt->virthandlers; vhd != NULL; vhd = vhd->next)
+        generateVirtualHandler(mod, vhd, fp);
 
     /* Generate any virtual error handlers. */
     for (veh = pt->errorhandlers; veh != NULL; veh = veh->next)
@@ -1832,29 +1830,6 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
             );
     }
 
-    if (mod->nrvirthandlers > 0)
-    {
-        prcode(fp,
-"\n"
-"\n"
-"/*\n"
-" * This defines the virtual handlers that this module implements and can be\n"
-" * used by other modules.\n"
-" */\n"
-"static sipVirtHandlerFunc virtHandlersTable[] = {\n"
-            );
-
-        for (vhd = mod->virthandlers; vhd != NULL; vhd = vhd->next)
-            if (!isDuplicateVH(vhd))
-                prcode(fp,
-"    (sipVirtHandlerFunc)sipVH_%s_%d,\n"
-                    , mname, vhd->virthandlernr);
-
-        prcode(fp,
-"};\n"
-            );
-    }
-
     if (mod->nrvirterrorhandlers > 0)
     {
         prcode(fp,
@@ -2187,7 +2162,6 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "    %s,\n"
 "    %s,\n"
 "    %s,\n"
-"    %s,\n"
 "    {%s, %s, %s, %s, %s, %s, %s, %s, %s, %s},\n"
 "    %s,\n"
 "    %s,\n"
@@ -2203,7 +2177,6 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         , nr_enummembers > 0 ? "enummembers" : "NULL"
         , mod->nrtypedefs
         , mod->nrtypedefs > 0 ? "typedefsTable" : "NULL"
-        , mod->nrvirthandlers > 0 ? "virtHandlersTable" : "NULL"
         , mod->nrvirterrorhandlers > 0 ? "virtErrorHandlersTable" : "NULL"
         , nrSccs > 0 ? "convertorsTable" : "NULL"
         , is_inst_class ? "typeInstances" : "NULL"
@@ -7335,7 +7308,7 @@ static void generateVirtHandlerCall(sipSpec *pt, moduleDef *mod, classDef *cd,
         virtOverDef *vod, argDef *res, const char *indent, FILE *fp)
 {
     overDef *od = &vod->o;
-    virtHandlerDef *vhd = od->virthandler;
+    virtHandlerDef *vhd = vod->virthandler;
     virtErrorHandler *veh;
     signatureDef saved;
     argDef *ad;
@@ -7346,24 +7319,12 @@ static void generateVirtHandlerCall(sipSpec *pt, moduleDef *mod, classDef *cd,
     saved = *vhd->cppsig;
     fakeProtectedArgs(vhd->cppsig);
 
-    if (vhd->module == mod)
-    {
-        prcode(fp,
+    prcode(fp,
 "%sextern ", indent);
 
-        generateBaseType(cd->iff, &od->cppsig->result, FALSE, fp);
+    generateBaseType(cd->iff, &od->cppsig->result, FALSE, fp);
 
-        prcode(fp, " sipVH_%s_%d(sip_gilstate_t, sipVirtErrorHandlerFunc, sipSimpleWrapper *, PyObject *", vhd->module->name, vhd->virthandlernr);
-    }
-    else
-    {
-        prcode(fp,
-"%stypedef ", indent);
-
-        generateBaseType(cd->iff, &od->cppsig->result, FALSE, fp);
-
-        prcode(fp, " (*sipVH_%s_%d)(sip_gilstate_t, sipVirtErrorHandlerFunc, sipSimpleWrapper *, PyObject *", vhd->module->name, vhd->virthandlernr);
-    }
+    prcode(fp, " sipVH_%s_%d(sip_gilstate_t, sipVirtErrorHandlerFunc, sipSimpleWrapper *, PyObject *", mod->name, vhd->virthandlernr);
 
     if (vhd->cppsig->nrArgs > 0)
     {
@@ -7404,12 +7365,7 @@ static void generateVirtHandlerCall(sipSpec *pt, moduleDef *mod, classDef *cd,
     if (!isNewThread(od) && res != NULL)
         prcode(fp, "return ");
 
-    if (vhd->module == mod)
-        prcode(fp, "sipVH_%s_%d", vhd->module->name,vhd->virthandlernr);
-    else
-        prcode(fp, "((sipVH_%s_%d)(sipModuleAPI_%s_%s->em_virthandlers[%d]))", vhd->module->name, vhd->virthandlernr, mod->name, vhd->module->name, vhd->virthandlernr);
-
-    prcode(fp, "(sipGILState, ");
+    prcode(fp, "sipVH_%s_%d(sipGILState, ", mod->name, vhd->virthandlernr);
 
     if (veh == NULL)
         prcode(fp, "0");
@@ -8024,7 +7980,9 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
     res_isref = FALSE;
 
     if (res->atype == void_type && res->nrderefs == 0)
+    {
         res = NULL;
+    }
     else
     {
         /*
@@ -8052,7 +8010,7 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
     generateBaseType(NULL, &vhd->cppsig->result, FALSE, fp);
 
     prcode(fp," sipVH_%s_%d(sip_gilstate_t sipGILState, sipVirtErrorHandlerFunc sipErrorHandler, sipSimpleWrapper *sipPySelf, PyObject *sipMethod"
-        , vhd->module->name, vhd->virthandlernr);
+        , mod->name, vhd->virthandlernr);
 
     if (vhd->cppsig->nrArgs > 0)
     {
@@ -8203,7 +8161,7 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
 
     prcode(fp, ");\n"
 "\n"
-"    %ssipParseResultEx(sipGILState, sipErrorHandler, sipPySelf, sipMethod, sipResObj, \"", ((res_isref || abortOnException(vhd)) ? "int sipRc = " : ""));
+"    %ssipParseResultEx(sipGILState, sipErrorHandler, sipPySelf, sipMethod, sipResObj, \"", ((res_isref || abortOnExceptionVH(vhd)) ? "int sipRc = " : ""));
 
     /* Build the format string. */
     if (nrvals == 0)
@@ -8253,14 +8211,14 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
 
     if (res != NULL)
     {
-        if (res_isref || abortOnException(vhd))
+        if (res_isref || abortOnExceptionVH(vhd))
         {
             prcode(fp,
 "\n"
 "    if (sipRc < 0)\n"
                 );
 
-            if (abortOnException(vhd))
+            if (abortOnExceptionVH(vhd))
                 prcode(fp,
 "        abort();\n"
                     );
@@ -8737,7 +8695,7 @@ static void generateTupleBuilder(moduleDef *mod, signatureDef *sd,FILE *fp)
         {
             int copy = copyConstRefArg(ad);
 
-            prcode(fp,",");
+            prcode(fp,", ");
 
             if (copy)
             {
@@ -8761,17 +8719,17 @@ static void generateTupleBuilder(moduleDef *mod, signatureDef *sd,FILE *fp)
                 prcode(fp,")");
 
             if (isArray(ad))
-                prcode(fp, ",(SIP_SSIZE_T)%a", mod, &sd->args[arraylenarg], arraylenarg);
+                prcode(fp, ", (SIP_SSIZE_T)%a", mod, &sd->args[arraylenarg], arraylenarg);
 
             if (ad->atype == mapped_type)
-                prcode(fp, ",sipType_%T", ad);
+                prcode(fp, ", sipType_%T", ad);
             else if (ad->atype == fake_void_type || ad->atype == class_type)
-                prcode(fp, ",sipType_%C", classFQCName(ad->u.cd));
+                prcode(fp, ", sipType_%C", classFQCName(ad->u.cd));
             else
-                prcode(fp,",sipType_QObject");
+                prcode(fp,", sipType_QObject");
 
             if (!isArray(ad))
-                prcode(fp, ",NULL");
+                prcode(fp, ", NULL");
         }
         else if (ad->atype == capsule_type)
         {
@@ -8781,7 +8739,7 @@ static void generateTupleBuilder(moduleDef *mod, signatureDef *sd,FILE *fp)
         {
             if (!isArraySize(ad))
             {
-                prcode(fp, ",");
+                prcode(fp, ", ");
 
                 while (derefs-- != 0)
                     prcode(fp, "*");
@@ -8790,9 +8748,9 @@ static void generateTupleBuilder(moduleDef *mod, signatureDef *sd,FILE *fp)
             }
 
             if (isArray(ad))
-                prcode(fp, ",(SIP_SSIZE_T)%a", mod, &sd->args[arraylenarg], arraylenarg);
+                prcode(fp, ", (SIP_SSIZE_T)%a", mod, &sd->args[arraylenarg], arraylenarg);
             else if (ad->atype == enum_type && ad->u.ed->fqcname != NULL)
-                prcode(fp, ",sipType_%C", ad->u.ed->fqcname);
+                prcode(fp, ", sipType_%C", ad->u.ed->fqcname);
         }
     }
 }
@@ -8858,7 +8816,7 @@ static void generateImportedModuleAPI(sipSpec *pt, moduleDef *mod,
         if (cd->iff->module == immod)
         {
             if (needsClass(cd))
-                generateImportedClassAPI(cd, pt, mod, fp);
+                generateImportedClassAPI(cd, mod, fp);
 
             generateEnumMacros(pt, mod, cd, NULL, fp);
         }
@@ -8867,7 +8825,7 @@ static void generateImportedModuleAPI(sipSpec *pt, moduleDef *mod,
         if (mtd->iff->module == immod)
         {
             if (needsMappedType(mtd))
-                generateImportedMappedTypeAPI(mtd, pt, mod, fp);
+                generateImportedMappedTypeAPI(mtd, mod, fp);
 
             generateEnumMacros(pt, mod, NULL, mtd, fp);
         }
@@ -8886,8 +8844,8 @@ static void generateImportedModuleAPI(sipSpec *pt, moduleDef *mod,
 /*
  * Generate the API details for an imported mapped type.
  */
-static void generateImportedMappedTypeAPI(mappedTypeDef *mtd, sipSpec *pt,
-        moduleDef *mod, FILE *fp)
+static void generateImportedMappedTypeAPI(mappedTypeDef *mtd, moduleDef *mod,
+        FILE *fp)
 {
     /* Ignore alternate API implementations. */
     if (mtd->iff->first_alt == mtd->iff)
@@ -8939,8 +8897,7 @@ static void generateMappedTypeAPI(sipSpec *pt, mappedTypeDef *mtd, FILE *fp)
 /*
  * Generate the API details for an imported class.
  */
-static void generateImportedClassAPI(classDef *cd, sipSpec *pt, moduleDef *mod,
-        FILE *fp)
+static void generateImportedClassAPI(classDef *cd, moduleDef *mod, FILE *fp)
 {
     /* Ignore alternate API implementations. */
     if (cd->iff->first_alt == cd->iff)

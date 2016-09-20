@@ -4676,7 +4676,6 @@ static moduleDef *allocModule()
 
     newmod->defdocstring = raw;
     newmod->encoding = no_type;
-    newmod->nrvirthandlers = -1;
     newmod->next_key = -1;
 
     /*
@@ -6080,26 +6079,7 @@ static overDef *instantiateTemplateOverloads(sipSpec *pt, overDef *tod,
 
         nod->methodcode = templateCode(pt, used, nod->methodcode, type_names, type_values);
         nod->virtcallcode = templateCode(pt, used, nod->virtcallcode, type_names, type_values);
-
-        /* Handle any virtual handler. */
-        if (od->virthandler != NULL)
-        {
-            moduleDef *mod = cd->iff->module;
-
-            nod->virthandler = sipMalloc(sizeof (virtHandlerDef));
-
-            /* Start with a shallow copy. */
-            *nod->virthandler = *od->virthandler;
-
-            nod->virthandler->pysig = &nod->pysig;
-            nod->virthandler->cppsig = nod->cppsig;
-
-            nod->virthandler->module = mod;
-            nod->virthandler->virtcode = templateCode(pt, used, nod->virthandler->virtcode, type_names, type_values);
-            nod->virthandler->next = mod->virthandlers;
-
-            mod->virthandlers = nod->virthandler;
-        }
+        nod->virtcode = templateCode(pt, used, nod->virtcode, type_names, type_values);
 
         nod->next = NULL;
         *odtail = nod;
@@ -6989,7 +6969,6 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
     int factory, xferback, no_arg_parser, no_virt_error_handler;
     overDef *od, **odp, **headp;
     optFlag *of;
-    virtHandlerDef *vhd;
 
     checkAnnos(optflgs, annos);
 
@@ -7175,19 +7154,8 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         setIsVirtual(od);
         setHasShadow(c_scope);
 
-        vhd = sipMalloc(sizeof (virtHandlerDef));
-
-        vhd->virthandlernr = -1;
-        vhd->vhflags = 0;
-        vhd->pysig = &od->pysig;
-        vhd->cppsig = (cppsig != NULL ? cppsig : &od->pysig);
-        appendCodeBlock(&vhd->virtcode, vcode);
-
-        if (factory || xferback)
-            setIsTransferVH(vhd);
-
         if (getOptFlag(optflgs, "AbortOnException", bool_flag) != NULL)
-            setAbortOnException(vhd);
+            setAbortOnException(od);
 
         if (no_virt_error_handler)
         {
@@ -7200,18 +7168,6 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         {
             od->virt_error_handler = virt_error_handler;
         }
-
-        /*
-         * Only add it to the module's virtual handlers if we are not in a
-         * class template.
-         */
-        if (!currentIsTemplate)
-        {
-            vhd->module = mod;
-
-            vhd->next = mod->virthandlers;
-            mod->virthandlers = vhd;
-        }
     }
     else
     {
@@ -7223,8 +7179,6 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
 
         if (no_virt_error_handler)
             yyerror("/NoVirtualErrorHandler/ provided for non-virtual function");
-
-        vhd = NULL;
     }
 
     od->cppname = name;
@@ -7233,7 +7187,7 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
     od->exceptions = exceptions;
     appendCodeBlock(&od->methodcode, methodcode);
     appendCodeBlock(&od->virtcallcode, virtcallcode);
-    od->virthandler = vhd;
+    appendCodeBlock(&od->virtcode, vcode);
 
     no_arg_parser = (getOptFlag(optflgs, "NoArgParser", bool_flag) != NULL);
 
