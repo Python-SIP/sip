@@ -928,7 +928,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
         , mname
         , mname, mname);
 
-    if (mod->nrtypes > 0)
+    if (mod->nr_needed_types > 0)
         prcode(fp,
 "extern sipTypeDef *sipExportedTypes_%s[];\n"
             , mname);
@@ -942,7 +942,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "extern const sipExportedModuleDef *sipModuleAPI_%s_%s;\n"
             , mname, mld->module->name);
 
-        if (mld->module->nrtypes > 0)
+        if (mld->module->nr_needed_types > 0)
             prcode(fp,
 "extern sipImportedTypeDef sipImportedTypes_%s_%s[];\n"
                 , mname, mld->module->name);
@@ -1789,7 +1789,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
     nr_enummembers = generateEnumMemberTable(pt, mod, NULL, NULL, fp);
 
     /* Generate the types table. */
-    if (mod->nrtypes > 0)
+    if (mod->nr_needed_types > 0)
         generateTypesTable(pt, mod, fp);
 
     if (mod->nrtypedefs > 0)
@@ -1859,7 +1859,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         {
             int i;
 
-            if (mld->module->nrtypes == 0)
+            if (mld->module->nr_needed_types == 0)
                 continue;
 
             prcode(fp,
@@ -1870,9 +1870,9 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
                 , mld->module->name
                 , mname, mld->module->name);
 
-            for (i = 0; i < mld->module->nrtypes; ++i)
+            for (i = 0; i < mld->module->nr_needed_types; ++i)
             {
-                argDef *ad = &mld->module->types[i];
+                argDef *ad = &mld->module->needed_types[i];
 
                 if (ad->atype == mapped_type)
                     prcode(fp,
@@ -1899,9 +1899,9 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         for (mld = mod->allimports; mld != NULL; mld = mld->next)
         {
             prcode(fp,
-"    {\"%s\", NULL, %d, ", mld->module->fullname->text, mld->module->nrtypes);
+"    {\"%s\", NULL, %d, ", mld->module->fullname->text, mld->module->nr_needed_types);
 
-            if (mld->module->nrtypes > 0)
+            if (mld->module->nr_needed_types > 0)
                 prcode(fp, "sipImportedTypes_%s_%s", mname, mld->module->name);
             else
                 prcode(fp, "NULL");
@@ -2143,9 +2143,9 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         , pt->module->name
         , mod->allimports != NULL ? "importsTable" : "NULL"
         , moduleSupportsQt(pt, mod) ? "&qtAPI" : "NULL"
-        , mod->nrtypes);
+        , mod->nr_needed_types);
 
-    if (mod->nrtypes > 0)
+    if (mod->nr_needed_types > 0)
         prcode(fp,
 "    sipExportedTypes_%s,\n"
             , mname);
@@ -2529,7 +2529,7 @@ static void generateTypesTable(sipSpec *pt, moduleDef *mod, FILE *fp)
 "sipTypeDef *sipExportedTypes_%s[] = {\n"
         , mod->name);
 
-    for (ad = mod->types, i = 0; i < mod->nrtypes; ++i, ++ad)
+    for (ad = mod->needed_types, i = 0; i < mod->nr_needed_types; ++i, ++ad)
     {
         switch (ad->atype)
         {

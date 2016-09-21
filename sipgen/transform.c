@@ -230,10 +230,6 @@ void transform(sipSpec *pt)
             if (!noDefaultCtors(cd) && !isOpaque(cd) && cd->iff->type != namespace_iface)
                 addDefaultCopyCtor(cd);
 
-    /* Create the array of numbered types sorted by type name. */
-    for (mod = pt->modules; mod != NULL; mod = mod->next)
-        createSortedNumberedTypesTable(pt, mod);
-
     /* Add any automatically generated methods. */
     for (cd = pt -> classes; cd != NULL; cd = cd -> next)
         for (od = cd -> overs; od != NULL; od = od -> next)
@@ -280,6 +276,9 @@ void transform(sipSpec *pt)
 
     for (mod = pt->modules; mod != NULL; mod = mod->next)
     {
+        /* Create the array of numbered types sorted by type name. */
+        createSortedNumberedTypesTable(pt, mod);
+
         for (od = mod->overs; od != NULL; od = od->next)
             ifaceFilesAreUsedByOverload(&mod->used, od, FALSE);
 
@@ -1683,7 +1682,7 @@ static void addVirtual(sipSpec *pt, classDef *cd, overDef *od)
          * Make sure we have the interface files and type definitions for the
          * virtual handler.
          */
-        ifaceFilesAreUsedByOverload(&cd->iff->module->used, od, TRUE);
+        ifaceFilesAreUsedByOverload(&pt->module->used, od, TRUE);
     }
     else
     {
@@ -3522,7 +3521,7 @@ static void createSortedNumberedTypesTable(sipSpec *pt, moduleDef *mod)
     int i;
 
     /* Count the how many types there are. */
-    mod->nrtypes = 0;
+    mod->nr_needed_types = 0;
 
     for (cd = pt->classes; cd != NULL; cd = cd->next)
     {
@@ -3533,7 +3532,7 @@ static void createSortedNumberedTypesTable(sipSpec *pt, moduleDef *mod)
             continue;
 
         if (generatingCodeForModule(pt, mod) || needsClass(cd))
-            mod->nrtypes++;
+            mod->nr_needed_types++;
     }
 
     for (mtd = pt->mappedtypes; mtd != NULL; mtd = mtd->next)
@@ -3545,7 +3544,7 @@ static void createSortedNumberedTypesTable(sipSpec *pt, moduleDef *mod)
             continue;
 
         if (generatingCodeForModule(pt, mod) || needsMappedType(mtd))
-            mod->nrtypes++;
+            mod->nr_needed_types++;
     }
 
     for (ed = pt->enums; ed != NULL; ed = ed->next)
@@ -3563,14 +3562,14 @@ static void createSortedNumberedTypesTable(sipSpec *pt, moduleDef *mod)
             continue;
 
         if (generatingCodeForModule(pt, mod) || needsEnum(ed))
-            mod->nrtypes++;
+            mod->nr_needed_types++;
     }
 
-    if (mod->nrtypes == 0)
+    if (mod->nr_needed_types == 0)
         return;
 
     /* Allocate and populate the table. */
-    ad = mod->types = sipCalloc(mod->nrtypes, sizeof (argDef));
+    ad = mod->needed_types = sipCalloc(mod->nr_needed_types, sizeof (argDef));
 
     for (cd = pt->classes; cd != NULL; cd = cd->next)
     {
@@ -3633,9 +3632,10 @@ static void createSortedNumberedTypesTable(sipSpec *pt, moduleDef *mod)
     }
 
     /* Sort the table and assign type numbers. */
-    qsort(mod->types, mod->nrtypes, sizeof (argDef), compareTypes);
+    qsort(mod->needed_types, mod->nr_needed_types, sizeof (argDef),
+            compareTypes);
 
-    for (ad = mod->types, i = 0; i < mod->nrtypes; ++i, ++ad)
+    for (ad = mod->needed_types, i = 0; i < mod->nr_needed_types; ++i, ++ad)
     {
         switch (ad->atype)
         {

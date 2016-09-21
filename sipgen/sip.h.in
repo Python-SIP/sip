@@ -926,8 +926,8 @@ typedef struct _moduleDef {
     int parts;                          /* The number of parts generated. */
     const char *file;                   /* The filename. */
     qualDef *qualifiers;                /* The list of qualifiers. */
-    argDef *types;                      /* The array of numbered types. */
-    int nrtypes;                        /* The number of numbered types. */
+    argDef *needed_types;               /* The array of needed types. */
+    int nr_needed_types;                /* The number of needed types. */
     int nrtimelines;                    /* The nr. of timelines. */
     int nrexceptions;                   /* The nr. of exceptions. */
     int nrtypedefs;                     /* The nr. of typedefs. */
