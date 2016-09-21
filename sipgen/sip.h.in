@@ -1167,7 +1167,7 @@ typedef struct _classList {
 
 /* A virtual overload definition. */
 typedef struct _virtOverDef {
-    overDef o;                          /* The overload. */
+    overDef *od;                        /* The overload. */
     virtHandlerDef *virthandler;        /* The virtual handler. */
     struct _virtOverDef *next;          /* Next in the list. */
 } virtOverDef;

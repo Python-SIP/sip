@@ -6920,7 +6920,7 @@ static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
  
     for (vod = cd->vmembers; vod != NULL; vod = vod->next)
     {
-        overDef *od = &vod->o;
+        overDef *od = vod->od;
         virtOverDef *dvod;
 
         if (isPrivate(od))
@@ -6933,7 +6933,7 @@ static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
          * /Out/ annotations.
          */
         for (dvod = cd->vmembers; dvod != vod; dvod = dvod->next)
-            if (strcmp(dvod->o.cppname, od->cppname) == 0 && sameSignature(dvod->o.cppsig, od->cppsig, TRUE))
+            if (strcmp(dvod->od->cppname, od->cppname) == 0 && sameSignature(dvod->od->cppsig, od->cppsig, TRUE))
                 break;
 
         if (dvod == vod)
@@ -7065,7 +7065,7 @@ static void generateProtectedEnums(sipSpec *pt,classDef *cd,FILE *fp)
 static void generateVirtualCatcher(sipSpec *pt, moduleDef *mod, classDef *cd,
         int virtNr, virtOverDef *vod, FILE *fp)
 {
-    overDef *od = &vod->o;
+    overDef *od = vod->od;
     argDef *res;
     apiVersionRangeDef *avr;
 
@@ -7251,9 +7251,9 @@ static void generateVirtualCatcher(sipSpec *pt, moduleDef *mod, classDef *cd,
             /* Find the next overload. */
             while ((versioned_vod = versioned_vod->next) != NULL)
             {
-                if (strcmp(versioned_vod->o.cppname, od->cppname) == 0 && sameSignature(versioned_vod->o.cppsig, od->cppsig, TRUE))
+                if (strcmp(versioned_vod->od->cppname, od->cppname) == 0 && sameSignature(versioned_vod->od->cppsig, od->cppsig, TRUE))
                 {
-                    avr = versioned_vod->o.api_range;
+                    avr = versioned_vod->od->api_range;
 
                     /* Check that it has an API specified. */
                     if (avr == NULL)
@@ -7307,7 +7307,7 @@ static void generateVirtualCatcher(sipSpec *pt, moduleDef *mod, classDef *cd,
 static void generateVirtHandlerCall(sipSpec *pt, moduleDef *mod, classDef *cd,
         virtOverDef *vod, argDef *res, const char *indent, FILE *fp)
 {
-    overDef *od = &vod->o;
+    overDef *od = vod->od;
     virtHandlerDef *vhd = vod->virthandler;
     virtErrorHandler *veh;
     signatureDef saved;
@@ -9178,7 +9178,7 @@ static void generateShadowClassDeclaration(sipSpec *pt,classDef *cd,FILE *fp)
 
     for (vod = cd->vmembers; vod != NULL; vod = vod->next)
     {
-        overDef *od = &vod->o;
+        overDef *od = vod->od;
         virtOverDef *dvod;
 
         if (isPrivate(od))
@@ -9186,7 +9186,7 @@ static void generateShadowClassDeclaration(sipSpec *pt,classDef *cd,FILE *fp)
 
         /* Check we haven't already handled this C++ signature. */
         for (dvod = cd->vmembers; dvod != vod; dvod = dvod->next)
-            if (strcmp(dvod->o.cppname,od->cppname) == 0 && sameSignature(dvod->o.cppsig,od->cppsig,TRUE))
+            if (strcmp(dvod->od->cppname,od->cppname) == 0 && sameSignature(dvod->od->cppsig,od->cppsig,TRUE))
                 break;
 
         if (dvod != vod)
@@ -11322,7 +11322,7 @@ static int countVirtuals(classDef *cd)
     nrvirts = 0;
  
     for (vod = cd->vmembers; vod != NULL; vod = vod->next)
-        if (!isPrivate(&vod->o))
+        if (!isPrivate(vod->od))
             ++nrvirts;
  
     return nrvirts;

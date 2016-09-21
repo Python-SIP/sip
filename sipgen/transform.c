@@ -28,8 +28,7 @@ static int samePythonSignature(signatureDef *sd1, signatureDef *sd2);
 static int nextSignificantArg(signatureDef *sd, int a);
 static int sameArgType(argDef *a1, argDef *a2, int strict);
 static int supportedType(classDef *,overDef *,argDef *,int);
-static int sameOverload(overDef *od1, overDef *od2);
-static int isSubClass(classDef *cc,classDef *pc);
+static int sameCppOverload(overDef *od1, overDef *od2);
 static void setAllImports(moduleDef *mod);
 static void addUniqueModule(moduleDef *mod, moduleDef *imp);
 static void ensureInput(classDef *,overDef *,argDef *);
@@ -38,10 +37,11 @@ static void defaultOutput(argDef *ad);
 static void createSortedNumberedTypesTable(sipSpec *pt, moduleDef *mod);
 static int compareTypes(const void *t1, const void *t2);
 static void addAutoOverload(sipSpec *,classDef *,overDef *);
-static void ifaceFileIsUsed(ifaceFileList **used, argDef *ad);
-static void ifaceFilesAreUsedByOverload(ifaceFileList **used, overDef *od);
+static void ifaceFileIsUsed(ifaceFileList **used, argDef *ad, int need_types);
+static void ifaceFilesAreUsedByOverload(ifaceFileList **used, overDef *od,
+        int need_types);
 static void ifaceFilesAreUsedBySignature(ifaceFileList **used,
-        signatureDef *sd);
+        signatureDef *sd, int need_types);
 static void scopeDefaultValue(sipSpec *,classDef *,argDef *);
 static void setHierarchy(sipSpec *,classDef *,classDef *,classList **);
 static void transformModules(sipSpec *pt, moduleDef *mod);
@@ -52,11 +52,11 @@ static void transformScopeOverloads(sipSpec *pt, classDef *c_scope,
         mappedTypeDef *mt_scope, overDef *overs);
 static void transformVariableList(sipSpec *pt, moduleDef *mod);
 static void transformMappedTypes(sipSpec *pt, moduleDef *mod);
-static void getVisibleMembers(sipSpec *,classDef *);
-static void getVirtuals(sipSpec *pt,classDef *cd);
+static void getVisiblePyMembers(sipSpec *pt, classDef *cd);
+static void getVirtuals(sipSpec *pt, classDef *cd);
+static void addVirtual(sipSpec *pt, classDef *cd, overDef *od);
 static virtHandlerDef *getVirtualHandler(sipSpec *pt, overDef *od);
 static int checkVirtualHandler(overDef *od, virtHandlerDef *vhd);
-static void getClassVirtuals(classDef *,classDef *);
 static void transformTypedefs(sipSpec *pt, moduleDef *mod);
 static void resolveMappedTypeTypes(sipSpec *,mappedTypeDef *);
 static void resolveCtorTypes(sipSpec *,classDef *,ctorDef *);
@@ -66,6 +66,7 @@ static void resolvePySigTypes(sipSpec *,moduleDef *,classDef *,overDef *,signatu
 static void resolveVariableType(sipSpec *,varDef *);
 SIP_NORETURN static void fatalNoDefinedType(scopedNameDef *);
 static void resolveType(sipSpec *,moduleDef *,classDef *,argDef *,int);
+static void setNeededType(argDef *ad);
 static void searchClassScope(sipSpec *,classDef *,scopedNameDef *,argDef *);
 static void searchMappedTypes(sipSpec *,moduleDef *,scopedNameDef *,argDef *);
 static void searchEnums(sipSpec *,scopedNameDef *,argDef *);
@@ -264,22 +265,23 @@ void transform(sipSpec *pt)
     for (cd = pt->classes; cd != NULL; cd = cd->next)
         if (cd->iff->type == class_iface)
         {
-            /* Get the list of visible member functions. */
-            getVisibleMembers(pt, cd);
+            /* Get the list of visible Python member functions. */
+            getVisiblePyMembers(pt, cd);
 
             /* Get the virtual members. */
             if (hasShadow(cd))
                 getVirtuals(pt, cd);
         }
         else if (cd->iff->type == namespace_iface)
+        {
             for (od = cd->overs; od != NULL; od = od->next)
-                ifaceFilesAreUsedByOverload(&cd->iff->used, od);
+                ifaceFilesAreUsedByOverload(&cd->iff->used, od, FALSE);
+        }
 
     for (mod = pt->modules; mod != NULL; mod = mod->next)
     {
-        if (generatingCodeForModule(pt, mod))
-            for (od = mod->overs; od != NULL; od = od->next)
-                ifaceFilesAreUsedByOverload(&mod->used, od);
+        for (od = mod->overs; od != NULL; od = od->next)
+            ifaceFilesAreUsedByOverload(&mod->used, od, FALSE);
 
         /* Update proxies with some information from the real classes. */
         for (cd = mod->proxies; cd != NULL; cd = cd->next)
@@ -675,12 +677,12 @@ static void moveClassCasts(sipSpec *pt, moduleDef *mod, classDef *cd)
          */
         if (dcd->iff->module != mod)
         {
-            ifaceFileIsUsed(&mod->used, ad);
+            ifaceFileIsUsed(&mod->used, ad, FALSE);
             dcd = getProxy(mod, dcd);
             ct->no_typehint = TRUE;
         }
 
-        ifaceFileIsUsed(&dcd->iff->used, ad);
+        ifaceFileIsUsed(&dcd->iff->used, ad, FALSE);
 
         ct->pysig.nrArgs = 1;
 
@@ -1524,9 +1526,9 @@ static void transformVariableList(sipSpec *pt, moduleDef *mod)
 
 
 /*
- * Set the list of visible member functions for a class.
+ * Set the list of visible Python member functions for a class.
  */
-static void getVisibleMembers(sipSpec *pt, classDef *cd)
+static void getVisiblePyMembers(sipSpec *pt, classDef *cd)
 {
     mroDef *mro;
 
@@ -1535,14 +1537,14 @@ static void getVisibleMembers(sipSpec *pt, classDef *cd)
     for (mro = cd->mro; mro != NULL; mro = mro->next)
     {
         memberDef *md;
-        classDef *mrocd;
+        classDef *mro_cd;
 
         if (isDuplicateSuper(mro))
             continue;
 
-        mrocd = mro->cd;
+        mro_cd = mro->cd;
 
-        for (md = mrocd->members; md != NULL; md = md->next)
+        for (md = mro_cd->members; md != NULL; md = md->next)
         {
             visibleList *vl;
 
@@ -1564,18 +1566,18 @@ static void getVisibleMembers(sipSpec *pt, classDef *cd)
                 vl = sipMalloc(sizeof (visibleList));
 
                 vl->m = md;
-                vl->cd = mrocd;
+                vl->cd = mro_cd;
                 vl->next = cd->visible;
 
                 cd->visible = vl;
 
-                for (od = mrocd->overs; od != NULL; od = od->next)
+                for (od = mro_cd->overs; od != NULL; od = od->next)
                     if (od->common == md)
                     {
                         if (isAbstract(od))
                             setIsAbstractClass(cd);
 
-                        ifaceFilesAreUsedByOverload(&cd->iff->used, od);
+                        ifaceFilesAreUsedByOverload(&cd->iff->used, od, FALSE);
 
                         /* See if we need the name. */
                         if (!generatingCodeForModule(pt, cd->iff->module))
@@ -1584,7 +1586,7 @@ static void getVisibleMembers(sipSpec *pt, classDef *cd)
                         if (isProtected(od) || (isSignal(od) && pluginPyQt3(pt)))
                             setIsUsedName(md->pyname);
 
-                        /* Make we have any API name. */
+                        /* Make sure we have any API name. */
                         if (od->api_range != NULL)
                             setIsUsedName(od->api_range->api_name);
                     }
@@ -1599,51 +1601,102 @@ static void getVisibleMembers(sipSpec *pt, classDef *cd)
  */
 static void getVirtuals(sipSpec *pt, classDef *cd)
 {
-    mroDef *mro;
-    virtOverDef *vod;
-
-    for (mro = cd->mro; mro != NULL; mro = mro->next)
-    {
-        if (isDuplicateSuper(mro))
-            continue;
-
-        getClassVirtuals(cd, mro->cd);
-    }
+    classList *cl;
+    overDef *od;
 
     /*
-     * Identify any re-implementations of virtuals.  We have to do this for all
-     * classes, not just those in the module we are generating code for.
+     * Copy the collected virtuals of each super-class updating from what we
+     * find in this class.
      */
-    for (vod = cd->vmembers; vod != NULL; vod = vod->next)
+    for (cl = cd->supers; cl != NULL; cl = cl->next)
     {
-        overDef *od;
+        virtOverDef *s_vod;
 
-        for (od = cd->overs; od != NULL; od = od->next)
+        for (s_vod = cl->cd->vmembers; s_vod != NULL; s_vod = s_vod->next)
         {
-            if (isVirtual(od))
-                continue;
+            int implicit = TRUE;
 
-            if (strcmp(vod->o.cppname, od->cppname) == 0 && sameOverload(&vod->o, od))
+            for (od = cd->overs; od != NULL; od = od->next)
             {
-                setIsVirtualReimp(od);
-                break;
+                if (strcmp(s_vod->od->cppname, od->cppname) != 0)
+                    continue;
+
+                implicit = FALSE;
+
+                /* See if it re-implements rather than hides. */
+                if (sameCppOverload(s_vod->od, od))
+                {
+                    // What if is is private?
+                    setIsVirtual(od);
+                    setIsVirtualReimp(od);
+
+                    /*
+                     * Use the base implementation's virtual handler code if
+                     * there is any.  We cannot just use it's virtual handler
+                     * because this re-implementation may have different
+                     * annotations which means the complete handler would be
+                     * different.  In practice there is no reason why it
+                     * would be different (and maybe this should be detected as
+                     * an error) but if they are the same then the same handler
+                     * will eventually be chosen.
+                     */
+                    if (od->virtcode == NULL)
+                        od->virtcode = s_vod->od->virtcode;
+
+                    addVirtual(pt, cd, od);
+                }
             }
-        }
 
-        /*
-         * If this class is defined in the main module then make sure the
-         * virtuals have a handler.
-         */
-        if (generatingCodeForModule(pt, cd->iff->module))
-        {
-            vod->virthandler = getVirtualHandler(pt, &vod->o);
-
-            /* Make sure we get the name. */
-            setIsUsedName(vod->o.common->pyname);
-
-            ifaceFilesAreUsedByOverload(&cd->iff->module->used, &vod->o);
+            /* Add it if it wasn't explcitly mentioned in the class. */
+            if (implicit)
+                addVirtual(pt, cd, s_vod->od);
         }
     }
+
+    /* Handle any new virtuals. */
+    for (od = cd->overs; od != NULL; od = od->next)
+        if (isVirtual(od) && !isVirtualReimp(od))
+            addVirtual(pt, cd, od);
+}
+
+
+/*
+ * Add an overload to the list of virtuals for a class.
+ */
+static void addVirtual(sipSpec *pt, classDef *cd, overDef *od)
+{
+    virtHandlerDef *vhd;
+    virtOverDef *vod;
+
+    /*
+     * If this class is defined in the main module then make sure the virtuals
+     * have a handler.
+     */
+    if (generatingCodeForModule(pt, cd->iff->module))
+    {
+        vhd = getVirtualHandler(pt, od);
+
+        /* Make sure we get the name. */
+        setIsUsedName(od->common->pyname);
+
+        /*
+         * Make sure we have the interface files and type definitions for the
+         * virtual handler.
+         */
+        ifaceFilesAreUsedByOverload(&cd->iff->module->used, od, TRUE);
+    }
+    else
+    {
+        vhd = NULL;
+    }
+
+    /* Add it to the class. */
+    vod = sipMalloc(sizeof (virtOverDef));
+    vod->od = od;
+    vod->virthandler = vhd;
+    vod->next = cd->vmembers;
+ 
+    cd->vmembers = vod;
 }
 
 
@@ -1688,13 +1741,7 @@ static int checkVirtualHandler(overDef *od, virtHandlerDef *vhd)
 {
     int a;
 
-    /*
-     * If both have code then they must be different.  However it doesn't
-     * follow that if they don't then they are the same.  We should really take
-     * whether they correspond to reimplementations of the same method into
-     * account.  In the meantime this will be correct in most cases.
-     */
-    if (od->virtcode != NULL && vhd->virtcode != NULL)
+    if (od->virtcode != vhd->virtcode)
         return FALSE;
 
     if ((isFactory(od) || isResultTransferredBack(od)) && !isTransferVH(vhd))
@@ -1736,109 +1783,6 @@ static int checkVirtualHandler(overDef *od, virtHandlerDef *vhd)
 
 
 /*
- * Update the list of visible virtual functions for a base class from a class
- * in its MRO.
- */
-static void getClassVirtuals(classDef *base, classDef *cd)
-{
-    overDef *od;
-
-    for (od = cd->overs; od != NULL; od = od->next)
-    {
-        mroDef *mro;
-        int is_nearer;
-        overDef *reimp;
-
-        if (!isVirtual(od) || isPrivate(od))
-            continue;
-
-        /*
-         * See if there is an implementation nearer in the class hierarchy with
-         * the same name that will hide it.
-         */
-        is_nearer = FALSE;
-        reimp = NULL;
-
-        for (mro = base->mro; mro->cd != cd; mro = mro->next)
-        {
-            overDef *nod;
-
-            if (isDuplicateSuper(mro))
-                continue;
-
-            /*
-             * Ignore classes that are on a different branch of the class
-             * hierarchy.
-             */
-            if (!isSubClass(mro->cd, cd))
-                continue;
-
-            for (nod = mro->cd->overs; nod != NULL; nod = nod->next)
-            {
-                if (strcmp(nod->cppname, od->cppname) == 0)
-                {
-                    is_nearer = TRUE;
-
-                    /*
-                     * Re-implementations explicitly marked as virtual will
-                     * already have been handled.
-                     */
-                    if (!isVirtual(nod) && sameSignature(nod->cppsig, od->cppsig, TRUE) && isConst(nod) == isConst(od) && !isAbstract(nod))
-                        reimp = nod;
-
-                    break;
-                }
-            }
-
-            if (is_nearer)
-                break;
-        }
-
-        if (!is_nearer || reimp != NULL)
-        {
-            virtOverDef *vod;
-
-            vod = sipMalloc(sizeof (virtOverDef));
- 
-            vod->o = *od;
-            vod->next = base->vmembers;
- 
-            base->vmembers = vod;
-
-            /*
-             * If there was a reimplementation then we use its protection and
-             * abstract flags.
-             */
-             if (reimp != NULL)
-             {
-                vod->o.overflags &= ~(SECT_MASK | OVER_IS_ABSTRACT);
-                vod->o.overflags |= (SECT_MASK | OVER_IS_ABSTRACT) & reimp->overflags;
-             }
-        }
-    }
-}
-
-
-/*
- * Return TRUE is a class is derived from another.
- */
-static int isSubClass(classDef *cc,classDef *pc)
-{
-    mroDef *mro;
-
-    /*
-     * In other words, does the parent class appear in the child class's
-     * MRO list.
-     */
-    for (mro = cc -> mro; mro != NULL; mro = mro -> next)
-        if (mro -> cd == pc)
-            return TRUE;
-
-    return FALSE;
-}
-
-
-/*
  * Resolve the types of a mapped type based on a template.
  */
 static void resolveMappedTypeTypes(sipSpec *pt, mappedTypeDef *mt)
@@ -1858,7 +1802,7 @@ static void resolveMappedTypeTypes(sipSpec *pt, mappedTypeDef *mt)
     /* Make sure that the signature result won't cause problems. */
     sd->result.atype = no_type;
 
-    ifaceFilesAreUsedBySignature(&mt->iff->used, sd);
+    ifaceFilesAreUsedBySignature(&mt->iff->used, sd, FALSE);
 }
 
 
@@ -1888,7 +1832,7 @@ static void resolveCtorTypes(sipSpec *pt,classDef *scope,ctorDef *ct)
             fatal(" unsupported ctor argument type - provide %%MethodCode and a C++ signature\n");
         }
 
-        ifaceFileIsUsed(&scope->iff->used, ad);
+        ifaceFileIsUsed(&scope->iff->used, ad, FALSE);
         scopeDefaultValue(pt, scope, ad);
     }
 }
@@ -2177,9 +2121,9 @@ static void resolveVariableType(sipSpec *pt, varDef *vd)
     }
 
     if (vd->ecd != NULL)
-        ifaceFileIsUsed(&vd->ecd->iff->used, vtype);
+        ifaceFileIsUsed(&vd->ecd->iff->used, vtype, FALSE);
     else
-        ifaceFileIsUsed(&vd->module->used, vtype);
+        ifaceFileIsUsed(&vd->module->used, vtype, FALSE);
 
     /* Scoped variables need a handler unless they have %AccessCode. */
     if (vd->ecd != NULL && vd->accessfunc == NULL)
@@ -2454,7 +2398,7 @@ void fatalScopedName(scopedNameDef *snd)
 /*
  * Compare two overloads and return TRUE if they are the same.
  */
-static int sameOverload(overDef *od1, overDef *od2)
+static int sameCppOverload(overDef *od1, overDef *od2)
 {
     /* They must both be enabled for the same API. */
     if (od1->api_range != od2->api_range)
@@ -2464,14 +2408,14 @@ static int sameOverload(overDef *od1, overDef *od2)
     if (isConst(od1) != isConst(od2))
         return FALSE;
 
-    return sameSignature(&od1->pysig, &od2->pysig, TRUE);
+    return sameSignature(od1->cppsig, od2->cppsig, TRUE);
 }
 
 
 /*
  * Compare two signatures and return TRUE if they are the same.
  */
-int sameSignature(signatureDef *sd1,signatureDef *sd2,int strict)
+int sameSignature(signatureDef *sd1, signatureDef *sd2, int strict)
 {
     int a;
 
@@ -2968,23 +2912,32 @@ static void resolveType(sipSpec *pt, moduleDef *mod, classDef *c_scope,
      * needed.
      */
     if (generatingCodeForModule(pt, mod))
-        switch (type->atype)
-        {
-        case class_type:
-            setNeedsClass(type->u.cd);
-            break;
+        setNeededType(type);
+}
 
-        case mapped_type:
-            setNeedsMappedType(type->u.mtd->real);
-            break;
 
-        case enum_type:
-            setNeedsEnum(type->u.ed);
-            break;
+/*
+ * Specify that a generated type is needed.
+ */
+static void setNeededType(argDef *ad)
+{
+    switch (ad->atype)
+    {
+    case class_type:
+        setNeedsClass(ad->u.cd);
+        break;
 
-        default:
-            ;
-        }
+    case mapped_type:
+        setNeedsMappedType(ad->u.mtd->real);
+        break;
+
+    case enum_type:
+        setNeedsEnum(ad->u.ed);
+        break;
+
+    default:
+        ;
+    }
 }
 
 
@@ -3442,28 +3395,30 @@ static void fatalNoDefinedType(scopedNameDef *snd)
 /*
  * Make sure all interface files for a signature are used.
  */
-static void ifaceFilesAreUsedBySignature(ifaceFileList **used, signatureDef *sd)
+static void ifaceFilesAreUsedBySignature(ifaceFileList **used,
+        signatureDef *sd, int need_types)
 {
     int a;
 
-    ifaceFileIsUsed(used, &sd->result);
+    ifaceFileIsUsed(used, &sd->result, need_types);
 
     for (a = 0; a < sd->nrArgs; ++a)
-        ifaceFileIsUsed(used, &sd->args[a]);
+        ifaceFileIsUsed(used, &sd->args[a], need_types);
 }
 
 
 /*
  * Make sure all interface files for a function are used.
  */
-static void ifaceFilesAreUsedByOverload(ifaceFileList **used, overDef *od)
+static void ifaceFilesAreUsedByOverload(ifaceFileList **used, overDef *od,
+        int need_types)
 {
     throwArgs *ta;
 
-    ifaceFilesAreUsedBySignature(used, &od->pysig);
+    ifaceFilesAreUsedBySignature(used, &od->pysig, need_types);
 
     if (od->cppsig != &od->pysig)
-        ifaceFilesAreUsedBySignature(used, od->cppsig);
+        ifaceFilesAreUsedBySignature(used, od->cppsig, need_types);
 
     if ((ta = od->exceptions) != NULL)
     {
@@ -3479,7 +3434,7 @@ static void ifaceFilesAreUsedByOverload(ifaceFileList **used, overDef *od)
  * If a type has an interface file then add it to the the given list of used
  * interface files so that the header file is #included in the generated code.
  */
-static void ifaceFileIsUsed(ifaceFileList **used, argDef *ad)
+static void ifaceFileIsUsed(ifaceFileList **used, argDef *ad, int need_types)
 {
     ifaceFileDef *iff;
 
@@ -3500,6 +3455,9 @@ static void ifaceFileIsUsed(ifaceFileList **used, argDef *ad)
                 appendToIfaceFileList(used, iffl->iff);
         }
     }
+
+    if (need_types)
+        setNeededType(ad);
 }
 
 
