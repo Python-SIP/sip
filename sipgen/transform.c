@@ -72,6 +72,7 @@ static void resolveType(sipSpec *,moduleDef *,classDef *,argDef *,int);
 static void setNeededType(argDef *ad);
 static void setNeededExceptions(sipSpec *pt, moduleDef *mod,
         throwArgs *exceptions);
+static void setNeedsException(exceptionDef *xd);
 static void searchClassScope(sipSpec *,classDef *,scopedNameDef *,argDef *);
 static void searchMappedTypes(sipSpec *,moduleDef *,scopedNameDef *,argDef *);
 static void searchEnums(sipSpec *,scopedNameDef *,argDef *);
@@ -3052,7 +3053,7 @@ static void setNeededType(argDef *ad)
 
 
 /*
- * Specify that an exception is needed.
+ * Specify that a set of thrown exceptions are needed.
  */
 static void setNeededExceptions(sipSpec *pt, moduleDef *mod,
         throwArgs *exceptions)
@@ -3062,8 +3063,20 @@ static void setNeededExceptions(sipSpec *pt, moduleDef *mod,
         int i;
 
         for (i = 0; i < exceptions->nrArgs; ++i)
-            exceptions->args[i]->needed = TRUE;
+            setNeedsException(exceptions->args[i]);
     }
+}
+
+
+/*
+ * Specify that an exception is needed.
+ */
+static void setNeedsException(exceptionDef *xd)
+{
+    if (xd->cd != NULL)
+        setNeedsClass(xd->cd);
+    else
+        xd->needed = TRUE;
 }
 
 
@@ -3557,7 +3570,7 @@ static void ifaceFilesAreUsedByOverload(ifaceFileList **used, overDef *od,
             appendToIfaceFileList(used, xd->iff);
 
             if (need_types)
-                xd->needed = TRUE;
+                setNeedsException(xd);
         }
     }
 }

@@ -88,8 +88,10 @@ extern "C" {
  *      Added sip_api_get_buffer_info() and sip_api_relese_buffer_info() to the
  *      public API.
  *      Removed the im_version member from sipImportedModuleDef.
+ *      Removed the im_module member from sipImportedModuleDef.
  *      Removed the em_version member from sipExportedModuleDef.
  *      Removed the em_virthandlers member from sipExportedModuleDef.
+ *      Re-ordered the API functions.
  *
  * 11.3 Added sip_api_get_interpreter() to the public API.
  *
