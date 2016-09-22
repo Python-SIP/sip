@@ -1220,29 +1220,28 @@ static void setHierarchy(sipSpec *pt, classDef *base, classDef *cd,
         appendToIfaceFileList(&cd->iff->module->used, cd->subbase->iff);
 
     /*
-     * We can't have a shadow if the specification is incomplete, there is
-     * a private dtor, there are no none-private ctors or there are private
+     * We can't have a shadow if the specification is incomplete, there is a
+     * private dtor, there are no non-private ctors or there are private
      * abstract methods.
      */
     if (isIncomplete(cd) || isPrivateDtor(cd) || !canCreate(cd))
+    {
         resetHasShadow(cd);
+    }
     else
     {
         overDef *od;
 
         /*
-         * Note that we should be able to provide better support for
-         * abstract private methods than we do at the moment.
+         * Note that we should be able to provide better support for abstract
+         * private methods than we do at the moment.
          */
         for (od = cd->overs; od != NULL; od = od->next)
             if (isAbstract(od) && isPrivate(od))
             {
                 resetHasShadow(cd);
 
-                /*
-                 * It also means we cannot create an instance
-                 * from Python.
-                 */
+                /* It also means we cannot create an instance from Python. */
                 resetCanCreate(cd);
 
                 break;
@@ -1469,6 +1468,9 @@ static void addDefaultCopyCtor(classDef *cd)
     if (isDeprecatedClass(cd))
         setIsDeprecatedCtor(copyct);
 
+    if (!isAbstractClass(cd))
+        setCanCreate(cd);
+
     /* Append it to the list. */
     for (tailp = &cd->ctors; *tailp != NULL; tailp = &(*tailp)->next)
         ;
@@ -1535,8 +1537,17 @@ static void transformScopeOverloads(sipSpec *pt, classDef *c_scope,
             }
         }
 
-        if (c_scope != NULL && isDeprecatedClass(c_scope))
-            setIsDeprecated(od);
+        if (c_scope != NULL)
+        {
+            if (isDeprecatedClass(c_scope))
+                setIsDeprecated(od);
+
+            if (isAbstract(od))
+            {
+                setIsAbstractClass(c_scope);
+                resetCanCreate(c_scope);
+            }
+        }
     }
 }
 
@@ -1604,9 +1615,6 @@ static void getVisiblePyMembers(sipSpec *pt, classDef *cd)
                 for (od = mro_cd->overs; od != NULL; od = od->next)
                     if (od->common == md)
                     {
-                        if (isAbstract(od))
-                            setIsAbstractClass(cd);
-
                         ifaceFilesAreUsedByOverload(&cd->iff->used, od, FALSE);
 
                         /* See if we need the name. */
