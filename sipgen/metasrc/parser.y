@@ -760,7 +760,7 @@ virterrorhandler:   TK_VIRTERRORHANDLER veh_args codeblock {
                 veh->name = $2.name;
                 appendCodeBlock(&veh->code, $3);
                 veh->mod = currentModule;
-                veh->index = currentModule->nrvirterrorhandlers++;
+                veh->index = -1;
                 veh->next = NULL;
 
                 *tailp = veh;

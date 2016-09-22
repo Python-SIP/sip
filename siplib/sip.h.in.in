@@ -1210,6 +1210,18 @@ typedef struct _sipVersionedFunctionDef {
 
 
 /*
+ * Defines a virtual error handler.
+ */
+typedef struct _sipVirtErrorHandlerDef {
+    /* The name of the handler. */
+    const char *veh_name;
+
+    /* The handler function. */
+    sipVirtErrorHandlerFunc veh_handler;
+} sipVirtErrorHandlerDef;
+
+
+/*
  * Defines a type imported from another module.
  */
 typedef union _sipImportedTypeDef {
@@ -1222,6 +1234,18 @@ typedef union _sipImportedTypeDef {
 
 
 /*
+ * Defines a virtual error handler imported from another module.
+ */
+typedef union _sipImportedVirtErrorHandlerDef {
+    /* The handler name before the module is imported. */
+    const char *iveh_name;
+
+    /* The handler after the module is imported. */
+    sipVirtErrorHandlerFunc iveh_handler;
+} sipImportedVirtErrorHandlerDef;
+
+
+/*
  * The information describing an imported module.
  */
 typedef struct _sipImportedModuleDef {
@@ -1229,14 +1253,14 @@ typedef struct _sipImportedModuleDef {
     const char *im_name;
 
     /* The imported module. */
-    // TODO: remove this when virthandlers are fixed.
+    // TODO: remove this when dependecies are fixed.
     struct _sipExportedModuleDef *im_module;
-
-    /* The number of types imported from the module. */
-    int im_nr_imported_types;
 
     /* The types imported from the module. */
     sipImportedTypeDef *im_imported_types;
+
+    /* The virtual error handlers imported from the module. */
+    sipImportedVirtErrorHandlerDef *im_imported_veh;
 } sipImportedModuleDef;
 
 
@@ -1287,7 +1311,7 @@ typedef struct _sipExportedModuleDef {
     sipTypedefDef *em_typedefs;
 
     /* The table of virtual error handlers. */
-    sipVirtErrorHandlerFunc *em_virterrorhandlers;
+    sipVirtErrorHandlerDef *em_virterrorhandlers;
 
     /* The sub-class convertors. */
     sipSubClassConvertorDef *em_convertors;

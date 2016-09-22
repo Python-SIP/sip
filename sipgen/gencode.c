@@ -137,7 +137,7 @@ static void generateDefaultInstanceReturn(argDef *res, const char *indent,
         FILE *fp);
 static void generateVirtualCatcher(sipSpec *pt, moduleDef *mod, classDef *cd,
         int virtNr, virtOverDef *vod, FILE *fp);
-static void generateVirtHandlerCall(sipSpec *pt, moduleDef *mod, classDef *cd,
+static void generateVirtHandlerCall(moduleDef *mod, classDef *cd,
         virtOverDef *vod, argDef *res, const char *indent, FILE *fp);
 static void generateProtectedEnums(sipSpec *, classDef *, FILE *);
 static void generateProtectedDeclarations(classDef *, FILE *);
@@ -283,8 +283,6 @@ static void generateClassDocstring(sipSpec *pt, classDef *cd, FILE *fp);
 static void generateExplicitDocstring(codeBlockList *cbl, FILE *fp);
 static int copyConstRefArg(argDef *ad);
 static void generatePreprocLine(int linenr, const char *fname, FILE *fp);
-static virtErrorHandler *getVirtErrorHandler(sipSpec *pt, overDef *od,
-        classDef *cd, moduleDef *mod);
 static int hasOptionalArgs(overDef *od);
 static int emptyIfaceFile(sipSpec *pt, ifaceFileDef *iff);
 static void declareLimitedAPI(moduleDef *mod, FILE *fp);
@@ -946,6 +944,11 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
             prcode(fp,
 "extern sipImportedTypeDef sipImportedTypes_%s_%s[];\n"
                 , mname, mld->module->name);
+
+        if (mld->module->nrvirterrorhandlers > 0)
+            prcode(fp,
+"extern sipImportedVirtErrorHandlerDef sipImportedVirtErrorHandlers_%s_%s[];\n"
+                , mname, mld->module->name);
     }
 
     if (pluginPyQt4(pt) || pluginPyQt5(pt))
@@ -1390,6 +1393,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
     int is_inst_ulonglong, is_inst_double, nr_enummembers, is_api_versions;
     int is_versioned_functions;
     int hasexternal = FALSE, slot_extenders = FALSE, ctor_extenders = FALSE;
+    int hasvirterrorhandlers = FALSE;
     FILE *fp;
     moduleListDef *mld;
     classDef *cd;
@@ -1461,6 +1465,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 
     /* Generate any virtual error handlers. */
     for (veh = pt->errorhandlers; veh != NULL; veh = veh->next)
+    {
         if (veh->mod == mod)
         {
             prcode(fp,
@@ -1476,6 +1481,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "}\n"
                 );
         }
+    }
 
     /* Generate the global functions. */
     for (md = mod->othfuncs; md != NULL; md = md->next)
@@ -1830,28 +1836,36 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
             );
     }
 
-    if (mod->nrvirterrorhandlers > 0)
+    for (veh = pt->errorhandlers; veh != NULL; veh = veh->next)
     {
-        prcode(fp,
+        if (veh->mod == mod)
+        {
+            if (!hasvirterrorhandlers)
+            {
+                hasvirterrorhandlers = TRUE;
+
+                prcode(fp,
 "\n"
 "\n"
 "/*\n"
 " * This defines the virtual error handlers that this module implements and\n"
 " * can be used by other modules.\n"
 " */\n"
-"static sipVirtErrorHandlerFunc virtErrorHandlersTable[] = {\n"
-            );
+"static sipVirtErrorHandlerDef virtErrorHandlersTable[] = {\n"
+                    );
+            }
 
-        for (veh = pt->errorhandlers; veh != NULL; veh = veh->next)
-            if (veh->mod == mod)
-                prcode(fp,
-"    sipVEH_%s_%s,\n"
-                    , mname, veh->name);
+            prcode(fp,
+"    {\"%s\", sipVEH_%s_%s},\n"
+                , veh->name, mname, veh->name);
+        }
+    }
 
+    if (hasvirterrorhandlers)
         prcode(fp,
+"    {NULL, NULL}\n"
 "};\n"
             );
-    }
 
     if (mod->allimports != NULL)
     {
@@ -1859,34 +1873,75 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         {
             int i;
 
-            if (mld->module->nr_needed_types == 0)
-                continue;
-
-            prcode(fp,
+            if (mld->module->nr_needed_types > 0)
+            {
+                prcode(fp,
 "\n"
 "\n"
 "/* This defines the types that this module needs to import from %s. */\n"
 "sipImportedTypeDef sipImportedTypes_%s_%s[] = {\n"
-                , mld->module->name
-                , mname, mld->module->name);
+                    , mld->module->name
+                    , mname, mld->module->name);
 
-            for (i = 0; i < mld->module->nr_needed_types; ++i)
-            {
-                argDef *ad = &mld->module->needed_types[i];
+                for (i = 0; i < mld->module->nr_needed_types; ++i)
+                {
+                    argDef *ad = &mld->module->needed_types[i];
 
-                if (ad->atype == mapped_type)
-                    prcode(fp,
+                    if (ad->atype == mapped_type)
+                        prcode(fp,
 "    {\"%s\"},\n"
-                        , ad->u.mtd->cname->text);
-                else
-                    prcode(fp,
+                            , ad->u.mtd->cname->text);
+                    else
+                        prcode(fp,
 "    {\"%S\"},\n"
-                        , getFQCNameOfType(ad));
+                            , getFQCNameOfType(ad));
+                }
+
+                prcode(fp,
+"    {NULL}\n"
+"};\n"
+                    );
             }
 
-            prcode(fp,
+            if (mld->module->nrvirterrorhandlers > 0)
+            {
+                int i;
+
+                prcode(fp,
+"\n"
+"\n"
+"/*\n"
+" * This defines the virtual error handlers that this module needs to import\n"
+" * from %s.\n"
+" */\n"
+"sipImportedVirtErrorHandlerDef sipImportedVirtErrorHandlers_%s_%s[] = {\n"
+                    , mld->module->name
+                    , mname, mld->module->name);
+
+                /*
+                 * The handlers are unordered so search for each in turn.
+                 * There will probably be only one so speed isn't an issue.
+                 */
+                for (i = 0; i < mld->module->nrvirterrorhandlers; ++i)
+                {
+                    virtErrorHandler *veh;
+
+                    for (veh = pt->errorhandlers; veh != NULL; veh = veh->next)
+                    {
+                        if (veh->mod == mld->module && veh->index == i)
+                        {
+                            prcode(fp,
+"    {\"%s\"},\n"
+                                , veh->name);
+                        }
+                    }
+                }
+
+                prcode(fp,
+"    {NULL}\n"
 "};\n"
-                );
+                    );
+            }
         }
 
         prcode(fp,
@@ -1899,10 +1954,15 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         for (mld = mod->allimports; mld != NULL; mld = mld->next)
         {
             prcode(fp,
-"    {\"%s\", NULL, %d, ", mld->module->fullname->text, mld->module->nr_needed_types);
+"    {\"%s\", NULL, ", mld->module->fullname->text);
 
             if (mld->module->nr_needed_types > 0)
-                prcode(fp, "sipImportedTypes_%s_%s", mname, mld->module->name);
+                prcode(fp, "sipImportedTypes_%s_%s, ", mname, mld->module->name);
+            else
+                prcode(fp, "NULL, ");
+
+            if (mld->module->nrvirterrorhandlers > 0)
+                prcode(fp, "sipImportedVirtErrorHandlers_%s_%s", mname, mld->module->name);
             else
                 prcode(fp, "NULL");
 
@@ -1911,7 +1971,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         }
 
         prcode(fp,
-"    {NULL, NULL, -1, NULL}\n"
+"    {NULL, NULL, NULL, NULL}\n"
 "};\n"
             );
     }
@@ -2177,7 +2237,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         , nr_enummembers > 0 ? "enummembers" : "NULL"
         , mod->nrtypedefs
         , mod->nrtypedefs > 0 ? "typedefsTable" : "NULL"
-        , mod->nrvirterrorhandlers > 0 ? "virtErrorHandlersTable" : "NULL"
+        , hasvirterrorhandlers ? "virtErrorHandlersTable" : "NULL"
         , nrSccs > 0 ? "convertorsTable" : "NULL"
         , is_inst_class ? "typeInstances" : "NULL"
         , is_inst_voidp ? "voidPtrInstances" : "NULL"
@@ -5914,12 +5974,12 @@ static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
                     else if (isNumberSlot(md))
                         prcode(fp,
 "\n"
-"    return sipPySlotExtend(&sipModuleAPI_%s,%s,NULL,sipArg0,sipArg1);\n"
+"    return sipPySlotExtend(&sipModuleAPI_%s, %s, NULL, sipArg0, sipArg1);\n"
                             , mod->name, slotName(md->slot));
                     else
                         prcode(fp,
 "\n"
-"    return sipPySlotExtend(&sipModuleAPI_%s,%s,sipType_%C,sipSelf,sipArg);\n"
+"    return sipPySlotExtend(&sipModuleAPI_%s, %s, sipType_%C, sipSelf, sipArg);\n"
                             , mod->name, slotName(md->slot), fqcname);
                 }
                 else if (isInplaceNumberSlot(md))
@@ -7223,7 +7283,7 @@ static void generateVirtualCatcher(sipSpec *pt, moduleDef *mod, classDef *cd,
 "\n"
             );
 
-        generateVirtHandlerCall(pt, mod, cd, vod, res, "    ", fp);
+        generateVirtHandlerCall(mod, cd, vod, res, "    ", fp);
     }
     else
     {
@@ -7237,7 +7297,7 @@ static void generateVirtualCatcher(sipSpec *pt, moduleDef *mod, classDef *cd,
 "    {\n"
                 , avr->api_name, avr->from, avr->to);
 
-            generateVirtHandlerCall(pt, mod, cd, versioned_vod, res, "        ", fp);
+            generateVirtHandlerCall(mod, cd, versioned_vod, res, "        ", fp);
 
             if (res == NULL)
                 prcode(fp,
@@ -7304,7 +7364,7 @@ static void generateVirtualCatcher(sipSpec *pt, moduleDef *mod, classDef *cd,
 /*
  * Generate a call to a single virtual handler.
  */
-static void generateVirtHandlerCall(sipSpec *pt, moduleDef *mod, classDef *cd,
+static void generateVirtHandlerCall(moduleDef *mod, classDef *cd,
         virtOverDef *vod, argDef *res, const char *indent, FILE *fp)
 {
     overDef *od = vod->od;
@@ -7313,8 +7373,6 @@ static void generateVirtHandlerCall(sipSpec *pt, moduleDef *mod, classDef *cd,
     signatureDef saved;
     argDef *ad;
     int a, args_keep = FALSE, result_keep = FALSE;
-
-    veh = getVirtErrorHandler(pt, od, cd, mod);
 
     saved = *vhd->cppsig;
     fakeProtectedArgs(vhd->cppsig);
@@ -7353,11 +7411,6 @@ static void generateVirtHandlerCall(sipSpec *pt, moduleDef *mod, classDef *cd,
     prcode(fp,");\n"
         );
 
-    if (veh != NULL && veh->mod == mod)
-        prcode(fp,
-"%sextern void sipVEH_%s_%s(sipSimpleWrapper *, sip_gilstate_t);\n"
-            , indent, mod->name, veh->name);
-
     prcode(fp,
 "\n"
 "%s", indent);
@@ -7367,12 +7420,14 @@ static void generateVirtHandlerCall(sipSpec *pt, moduleDef *mod, classDef *cd,
 
     prcode(fp, "sipVH_%s_%d(sipGILState, ", mod->name, vhd->virthandlernr);
 
+    veh = vhd->veh;
+
     if (veh == NULL)
         prcode(fp, "0");
     else if (veh->mod == mod)
         prcode(fp, "sipVEH_%s_%s" , mod->name, veh->name);
     else
-        prcode(fp, "sipModuleAPI_%s_%s->em_virterrorhandlers[%d]", mod->name, veh->mod->name, veh->index);
+        prcode(fp, "sipImportedVirtErrorHandlers_%s_%s[%d].iveh_handler", mod->name, veh->mod->name, veh->index);
 
     prcode(fp, ", sipPySelf, sipMeth");
 
@@ -7403,59 +7458,6 @@ static void generateVirtHandlerCall(sipSpec *pt, moduleDef *mod, classDef *cd,
 "\n"
 "%ssipEndThread();\n"
             , indent);
-}
-
-
-/*
- * Get the virtual error handler for a function.
- */
-static virtErrorHandler *getVirtErrorHandler(sipSpec *pt, overDef *od,
-        classDef *cd, moduleDef *mod)
-{
-    const char *name;
-    virtErrorHandler *veh;
-    
-    /* Handle the trivial case. */
-    if (noErrorHandler(od))
-        return NULL;
-
-    /* Check the function itself. */
-    if ((name = od->virt_error_handler) == NULL)
-    {
-        mroDef *mro;
-
-        /* Check the class hierarchy. */
-        for (mro = cd->mro; mro != NULL; mro = mro->next)
-            if ((name = mro->cd->virt_error_handler) != NULL)
-                break;
-
-        if (name == NULL)
-        {
-            /* Check the module. */
-            if ((name = mod->virt_error_handler) == NULL)
-            {
-                moduleListDef *mld;
-
-                /* Check the module hierarchy. */
-                for (mld = mod->allimports; mld != NULL; mld = mld->next)
-                    if ((name = mld->module->virt_error_handler) != NULL)
-                        break;
-            }
-        }
-    }
-
-    if (name == NULL)
-        return NULL;
-
-    /* Find the handler with the name. */
-    for (veh = pt->errorhandlers; veh != NULL; veh = veh->next)
-        if (strcmp(veh->name, name) == 0)
-            break;
-
-    if (veh == NULL)
-        fatal("Unknown virtual error handler \"%s\"\n", name);
-
-    return veh;
 }
 
 
@@ -8782,6 +8784,7 @@ static void generateModuleAPI(sipSpec *pt, moduleDef *mod, FILE *fp)
     classDef *cd;
     mappedTypeDef *mtd;
     exceptionDef *xd;
+    virtErrorHandler *veh;
 
     for (cd = pt->classes; cd != NULL; cd = cd->next)
         if (cd->iff->module == mod)
@@ -8799,6 +8802,13 @@ static void generateModuleAPI(sipSpec *pt, moduleDef *mod, FILE *fp)
                 , xd->iff->fqcname, mod->name, xd->exceptionnr);
 
     generateEnumMacros(pt, mod, NULL, NULL, fp);
+
+    for (veh = pt->errorhandlers; veh != NULL; veh = veh->next)
+        if (veh->mod == mod)
+            prcode(fp,
+"\n"
+"void sipVEH_%s_%s(sipSimpleWrapper *, sip_gilstate_t);\n"
+                , mod->name, veh->name);
 }
 
 

@@ -1027,6 +1027,7 @@ typedef struct _virtHandlerDef {
     signatureDef *pysig;                /* The Python signature. */
     signatureDef *cppsig;               /* The C++ signature. */
     codeBlockList *virtcode;            /* Virtual handler code. */
+    virtErrorHandler *veh;              /* The virtual error handler. */
     struct _virtHandlerDef *next;       /* Next in the list. */
 } virtHandlerDef;
 

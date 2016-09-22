@@ -54,8 +54,11 @@ static void transformVariableList(sipSpec *pt, moduleDef *mod);
 static void transformMappedTypes(sipSpec *pt, moduleDef *mod);
 static void getVisiblePyMembers(sipSpec *pt, classDef *cd);
 static void getVirtuals(sipSpec *pt, classDef *cd);
-static void addVirtual(sipSpec *pt, classDef *cd, overDef *od);
-static virtHandlerDef *getVirtualHandler(sipSpec *pt, overDef *od);
+static void addVirtual(sipSpec *pt, overDef *od, classDef *cd);
+static virtErrorHandler *getVirtErrorHandler(sipSpec *pt, overDef *od,
+        classDef *cd);
+static virtHandlerDef *getVirtualHandler(sipSpec *pt, overDef *od,
+        classDef *cd);
 static int checkVirtualHandler(overDef *od, virtHandlerDef *vhd);
 static void transformTypedefs(sipSpec *pt, moduleDef *mod);
 static void resolveMappedTypeTypes(sipSpec *,mappedTypeDef *);
@@ -1642,27 +1645,34 @@ static void getVirtuals(sipSpec *pt, classDef *cd)
                     if (od->virtcode == NULL)
                         od->virtcode = s_vod->od->virtcode;
 
-                    addVirtual(pt, cd, od);
+                    /*
+                     * Use the base implementation's virtual error handler if
+                     * one isn't explicitly specified.
+                     */
+                    if (od->virt_error_handler == NULL)
+                        od->virt_error_handler = s_vod->od->virt_error_handler;
+
+                    addVirtual(pt, od, cd);
                 }
             }
 
             /* Add it if it wasn't explcitly mentioned in the class. */
             if (implicit)
-                addVirtual(pt, cd, s_vod->od);
+                addVirtual(pt, s_vod->od, cd);
         }
     }
 
     /* Handle any new virtuals. */
     for (od = cd->overs; od != NULL; od = od->next)
         if (isVirtual(od) && !isVirtualReimp(od))
-            addVirtual(pt, cd, od);
+            addVirtual(pt, od, cd);
 }
 
 
 /*
  * Add an overload to the list of virtuals for a class.
  */
-static void addVirtual(sipSpec *pt, classDef *cd, overDef *od)
+static void addVirtual(sipSpec *pt, overDef *od, classDef *cd)
 {
     virtHandlerDef *vhd;
     virtOverDef *vod;
@@ -1673,7 +1683,7 @@ static void addVirtual(sipSpec *pt, classDef *cd, overDef *od)
      */
     if (generatingCodeForModule(pt, cd->iff->module))
     {
-        vhd = getVirtualHandler(pt, od);
+        vhd = getVirtualHandler(pt, od, cd);
 
         /* Make sure we get the name. */
         setIsUsedName(od->common->pyname);
@@ -1698,11 +1708,68 @@ static void addVirtual(sipSpec *pt, classDef *cd, overDef *od)
     cd->vmembers = vod;
 }
 
+/*
+ * Get the virtual error handler for a function.
+ */
+static virtErrorHandler *getVirtErrorHandler(sipSpec *pt, overDef *od,
+        classDef *cd)
+{
+    const char *name;
+    virtErrorHandler *veh;
+    moduleDef *mod = cd->iff->module;
+
+    /* Handle the trivial case. */
+    if (noErrorHandler(od))
+        return NULL;
+
+    /* Check the function itself. */
+    if ((name = od->virt_error_handler) == NULL)
+    {
+        mroDef *mro;
+
+        /* Check the class hierarchy. */
+        for (mro = cd->mro; mro != NULL; mro = mro->next)
+            if ((name = mro->cd->virt_error_handler) != NULL)
+                break;
+
+        if (name == NULL)
+        {
+            /* Check the class's module. */
+            if ((name = mod->virt_error_handler) == NULL)
+            {
+                moduleListDef *mld;
+
+                /* Check the module hierarchy. */
+                for (mld = mod->allimports; mld != NULL; mld = mld->next)
+                    if ((name = mld->module->virt_error_handler) != NULL)
+                        break;
+            }
+        }
+    }
+
+    if (name == NULL)
+        return NULL;
+
+    /* Find the handler with the name. */
+    for (veh = pt->errorhandlers; veh != NULL; veh = veh->next)
+        if (strcmp(veh->name, name) == 0)
+            break;
+
+    if (veh == NULL)
+        fatal("Unknown virtual error handler \"%s\"\n", name);
+
+    /* Assign it an index if we need to import the handler. */
+    if (mod != veh->mod && veh->index < 0)
+        veh->index = veh->mod->nrvirterrorhandlers++;
+
+    return veh;
+}
+
 
 /*
  * Get the virtual handler for an overload.
  */
-static virtHandlerDef *getVirtualHandler(sipSpec *pt, overDef *od)
+static virtHandlerDef *getVirtualHandler(sipSpec *pt, overDef *od, classDef *cd)
 {
     virtHandlerDef *vhd;
 
@@ -1725,6 +1792,7 @@ static virtHandlerDef *getVirtualHandler(sipSpec *pt, overDef *od)
     vhd->pysig = &od->pysig;
     vhd->cppsig = od->cppsig;
     vhd->virtcode = od->virtcode;
+    vhd->veh = getVirtErrorHandler(pt, od, cd);
 
     vhd->next = pt->virthandlers;
     pt->virthandlers = vhd;
@@ -1742,6 +1810,16 @@ static int checkVirtualHandler(overDef *od, virtHandlerDef *vhd)
 
     if (od->virtcode != vhd->virtcode)
         return FALSE;
+
+    if (od->virt_error_handler != NULL)
+    {
+        if (vhd->veh == NULL || strcmp(od->virt_error_handler, vhd->veh->name) != 0)
+            return FALSE;
+    }
+    else if (vhd->veh != NULL)
+    {
+        return FALSE;
+    }
 
     if ((isFactory(od) || isResultTransferredBack(od)) && !isTransferVH(vhd))
         return FALSE;
