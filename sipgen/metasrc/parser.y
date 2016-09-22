@@ -904,9 +904,6 @@ exception:  TK_EXCEPTION scopedname baseexception optflags exception_body {
 
                 if (getOptFlag(&$4, "Default", bool_flag) != NULL)
                     currentModule->defexception = xd;
-
-                if (xd->bibase != NULL || xd->base != NULL)
-                    xd->exceptionnr = currentModule->nrexceptions++;
             }
         }
     ;
@@ -4942,6 +4939,7 @@ static exceptionDef *findException(sipSpec *pt, scopedNameDef *fqname, int new)
     xd = sipMalloc(sizeof (exceptionDef));
 
     xd->exceptionnr = -1;
+    xd->needed = FALSE;
     xd->iff = iff;
     xd->pyname = NULL;
     xd->cd = cd;

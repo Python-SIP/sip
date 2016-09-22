@@ -786,6 +786,7 @@ typedef struct _throwArgs {
 /* An exception. */
 typedef struct _exceptionDef {
     int exceptionnr;                    /* The exception number. */
+    int needed;                         /* The module needs it. */
     struct _ifaceFileDef *iff;          /* The interface file. */
     const char *pyname;                 /* The exception Python name. */
     struct _classDef *cd;               /* The exception class. */

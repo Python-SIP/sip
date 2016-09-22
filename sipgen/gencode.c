@@ -135,8 +135,8 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
         FILE *fp);
 static void generateDefaultInstanceReturn(argDef *res, const char *indent,
         FILE *fp);
-static void generateVirtualCatcher(sipSpec *pt, moduleDef *mod, classDef *cd,
-        int virtNr, virtOverDef *vod, FILE *fp);
+static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
+        virtOverDef *vod, FILE *fp);
 static void generateVirtHandlerCall(moduleDef *mod, classDef *cd,
         virtOverDef *vod, argDef *res, const char *indent, FILE *fp);
 static void generateProtectedEnums(sipSpec *, classDef *, FILE *);
@@ -948,6 +948,11 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
         if (mld->module->nrvirterrorhandlers > 0)
             prcode(fp,
 "extern sipImportedVirtErrorHandlerDef sipImportedVirtErrorHandlers_%s_%s[];\n"
+                , mname, mld->module->name);
+
+        if (mld->module->nrexceptions > 0)
+            prcode(fp,
+"extern sipImportedExceptionDef sipImportedExceptions_%s_%s[];\n"
                 , mname, mld->module->name);
     }
 
@@ -1942,6 +1947,46 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "};\n"
                     );
             }
+
+            if (mld->module->nrexceptions > 0)
+            {
+                int i;
+
+                prcode(fp,
+"\n"
+"\n"
+"/*\n"
+" * This defines the exception objects that this module needs to import from\n"
+" * %s.\n"
+" */\n"
+"sipImportedExceptionDef sipImportedExceptions_%s_%s[] = {\n"
+                    , mld->module->name
+                    , mname, mld->module->name);
+
+                /*
+                 * The exceptions are unordered so search for each in turn.
+                 * There will probably be very few so speed isn't an issue.
+                 */
+                for (i = 0; i < mld->module->nrexceptions; ++i)
+                {
+                    exceptionDef *xd;
+
+                    for (xd = pt->exceptions; xd != NULL; xd = xd->next)
+                    {
+                        if (xd->iff->module == mld->module && xd->exceptionnr == i)
+                        {
+                            prcode(fp,
+"    {\"%s.%s\"},\n"
+                                , mld->module->name, xd->pyname);
+                        }
+                    }
+                }
+
+                prcode(fp,
+"    {NULL}\n"
+"};\n"
+                    );
+            }
         }
 
         prcode(fp,
@@ -1962,7 +2007,12 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
                 prcode(fp, "NULL, ");
 
             if (mld->module->nrvirterrorhandlers > 0)
-                prcode(fp, "sipImportedVirtErrorHandlers_%s_%s", mname, mld->module->name);
+                prcode(fp, "sipImportedVirtErrorHandlers_%s_%s, ", mname, mld->module->name);
+            else
+                prcode(fp, "NULL, ");
+
+            if (mld->module->nrexceptions > 0)
+                prcode(fp, "sipImportedExceptions_%s_%s", mname, mld->module->name);
             else
                 prcode(fp, "NULL");
 
@@ -1971,7 +2021,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         }
 
         prcode(fp,
-"    {NULL, NULL, NULL, NULL}\n"
+"    {NULL, NULL, NULL, NULL, NULL}\n"
 "};\n"
             );
     }
@@ -2072,8 +2122,8 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         prcode(fp,
 "\n"
 "\n"
-"static PyObject *exceptionsTable[%d];\n"
-            , mod->nrexceptions);
+"PyObject *sipExportedExceptions_%s[%d];\n"
+            , mname, mod->nrexceptions);
 
     /* Generate any API versions table. */
     if (mod->api_ranges != NULL || mod->api_versions != NULL)
@@ -2224,14 +2274,6 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "    %s,\n"
 "    {%s, %s, %s, %s, %s, %s, %s, %s, %s, %s},\n"
 "    %s,\n"
-"    %s,\n"
-"    %s,\n"
-"    %s,\n"
-"    %s,\n"
-"    NULL,\n"
-"    %s,\n"
-"    %s\n"
-"};\n"
         , hasexternal ? "externalTypesTable" : "NULL"
         , nr_enummembers
         , nr_enummembers > 0 ? "enummembers" : "NULL"
@@ -2249,8 +2291,25 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         , is_inst_longlong ? "longLongInstances" : "NULL"
         , is_inst_ulonglong ? "unsignedLongLongInstances" : "NULL"
         , is_inst_double ? "doubleInstances" : "NULL"
-        , mod->license != NULL ? "&module_license" : "NULL"
-        , mod->nrexceptions > 0 ? "exceptionsTable" : "NULL"
+        , mod->license != NULL ? "&module_license" : "NULL");
+
+    if (mod->nrexceptions > 0)
+        prcode(fp,
+"    sipExportedExceptions_%s,\n"
+            , mname);
+    else
+        prcode(fp,
+"    NULL,\n"
+            );
+
+    prcode(fp,
+"    %s,\n"
+"    %s,\n"
+"    %s,\n"
+"    NULL,\n"
+"    %s,\n"
+"    %s\n"
+"};\n"
         , slot_extenders ? "slotExtenders" : "NULL"
         , ctor_extenders ? "initExtenders" : "NULL"
         , hasDelayedDtors(mod) ? "sipDelayedDtors" : "NULL"
@@ -2469,13 +2528,10 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 
     generatePyObjects(pt, mod, fp);
 
-    /* Create any exceptions. */
+    /* Create any exception objects. */
     for (xd = pt->exceptions; xd != NULL; xd = xd->next)
     {
         if (xd->iff->module != mod)
-            continue;
-
-        if (xd->iff->type != exception_iface)
             continue;
 
         if (xd->exceptionnr < 0)
@@ -2483,30 +2539,28 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 
         prcode(fp,
 "\n"
-"    if ((exceptionsTable[%d] = PyErr_NewException(\n"
+"    if ((sipExportedExceptions_%s[%d] = PyErr_NewException(\n"
 "#if PY_MAJOR_VERSION >= 3\n"
 "            \"%s.%s\",\n"
 "#else\n"
 "            const_cast<char *>(\"%s.%s\"),\n"
 "#endif\n"
 "            "
-            , xd->exceptionnr
+            , xd->iff->module->name, xd->exceptionnr
             , xd->iff->module->name, xd->pyname
             , xd->iff->module->name, xd->pyname);
 
         if (xd->bibase != NULL)
             prcode(fp, "PyExc_%s", xd->bibase);
-        else if (xd->base->iff->module == mod)
-            prcode(fp, "exceptionsTable[%d]", xd->base->exceptionnr);
         else
             prcode(fp, "sipException_%C", xd->base->iff->fqcname);
 
-        prcode(fp, ",NULL)) == NULL || PyDict_SetItemString(sipModuleDict,\"%s\",exceptionsTable[%d]) < 0)\n"
+        prcode(fp, ",NULL)) == NULL || PyDict_SetItemString(sipModuleDict, \"%s\", sipExportedExceptions_%s[%d]) < 0)\n"
 "    {\n"
 "        SIP_MODULE_DISCARD(sipModule);\n"
 "        SIP_MODULE_RETURN(0);\n"
 "    }\n"
-            , xd->pyname, xd->exceptionnr);
+            , xd->pyname, xd->iff->module->name, xd->exceptionnr);
     }
 
     /* Generate any post-initialisation code. */
@@ -6997,7 +7051,7 @@ static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
                 break;
 
         if (dvod == vod)
-            generateVirtualCatcher(pt, mod, cd, virtNr++, vod, fp);
+            generateVirtualCatcher(mod, cd, virtNr++, vod, fp);
     }
 
     /* Generate the wrapper around each protected member function. */
@@ -7122,8 +7176,8 @@ static void generateProtectedEnums(sipSpec *pt,classDef *cd,FILE *fp)
 /*
  * Generate the catcher for a virtual function.
  */
-static void generateVirtualCatcher(sipSpec *pt, moduleDef *mod, classDef *cd,
-        int virtNr, virtOverDef *vod, FILE *fp)
+static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
+        virtOverDef *vod, FILE *fp)
 {
     overDef *od = vod->od;
     argDef *res;
@@ -8798,7 +8852,7 @@ static void generateModuleAPI(sipSpec *pt, moduleDef *mod, FILE *fp)
         if (xd->iff->module == mod && xd->exceptionnr >= 0)
             prcode(fp,
 "\n"
-"#define sipException_%C sipModuleAPI_%s.em_exceptions[%d]\n"
+"#define sipException_%C sipExportedExceptions_%s[%d]\n"
                 , xd->iff->fqcname, mod->name, xd->exceptionnr);
 
     generateEnumMacros(pt, mod, NULL, NULL, fp);
@@ -8844,7 +8898,7 @@ static void generateImportedModuleAPI(sipSpec *pt, moduleDef *mod,
         if (xd->iff->module == immod && xd->exceptionnr >= 0)
                 prcode(fp,
 "\n"
-"#define sipException_%C sipModuleAPI_%s_%s->em_exceptions[%d]\n"
+"#define sipException_%C sipImportedExceptions_%s_%s[%d].iexc_object\n"
                     , xd->iff->fqcname, mod->name, xd->iff->module->name, xd->exceptionnr);
 
     generateEnumMacros(pt, mod, NULL, NULL, fp);

@@ -936,6 +936,8 @@ static void clear_wrapper(sipSimpleWrapper *sw);
 static int importTypes(sipImportedModuleDef *im, sipExportedModuleDef *em);
 static int importErrorHandlers(sipImportedModuleDef *im,
         sipExportedModuleDef *em);
+static int importExceptions(sipImportedModuleDef *im,
+        sipExportedModuleDef *em);
 
 
 /*
@@ -1607,6 +1609,9 @@ static int sip_api_export_module(sipExportedModuleDef *client,
                 return -1;
 
             if (im->im_imported_veh != NULL && importErrorHandlers(im, em) < 0)
+                return -1;
+
+            if (im->im_imported_exceptions != NULL && importExceptions(im, em) < 0)
                 return -1;
 
             /* Save the imported module. */
@@ -13212,6 +13217,49 @@ static int importErrorHandlers(sipImportedModuleDef *im,
         }
 
         im->im_imported_veh[i].iveh_handler = handler;
+    }
+
+    return 0;
+}
+
+
+/*
+ * Import all the required exceptions from an imported module.
+ */
+static int importExceptions(sipImportedModuleDef *im, sipExportedModuleDef *em)
+{
+    const char *name;
+    int i;
+
+    for (i = 0; (name = im->im_imported_exceptions[i].iexc_name) != NULL; ++i)
+    {
+        PyObject **exc = em->em_exceptions;
+        PyObject *exception = NULL;
+
+        if (exc != NULL)
+        {
+            while (*exc != NULL)
+            {
+                if (strcmp(Py_TYPE(*exc)->tp_name, name) == 0)
+                {
+                    exception = *exc;
+                    break;
+                }
+
+                ++exc;
+            }
+        }
+
+        if (exception == NULL)
+        {
+            PyErr_Format(PyExc_RuntimeError,
+                    "the exception '%s' cannot be imported from the %s module",
+                    name, sipNameOfModule(em));
+
+            return -1;
+        }
+
+        im->im_imported_exceptions[i].iexc_object = exception;
     }
 
     return 0;

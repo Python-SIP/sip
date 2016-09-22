@@ -70,6 +70,8 @@ static void resolveVariableType(sipSpec *,varDef *);
 SIP_NORETURN static void fatalNoDefinedType(scopedNameDef *);
 static void resolveType(sipSpec *,moduleDef *,classDef *,argDef *,int);
 static void setNeededType(argDef *ad);
+static void setNeededExceptions(sipSpec *pt, moduleDef *mod,
+        throwArgs *exceptions);
 static void searchClassScope(sipSpec *,classDef *,scopedNameDef *,argDef *);
 static void searchMappedTypes(sipSpec *,moduleDef *,scopedNameDef *,argDef *);
 static void searchEnums(sipSpec *,scopedNameDef *,argDef *);
@@ -104,6 +106,7 @@ void transform(sipSpec *pt)
     classDef *cd, *rev, **tail;
     classList *newl;
     overDef *od;
+    exceptionDef *xd;
 
     /*
      * The class list has the main module's classes at the front and the ones
@@ -297,6 +300,27 @@ void transform(sipSpec *pt)
         checkProperties(cd);
     }
 
+    /* Number the exceptions as they will be seen by the main module. */
+    for (xd = pt->exceptions; xd != NULL; xd = xd->next)
+    {
+        moduleDef *xd_mod;
+
+        /*
+         * Skip those that don't require a Python exception object to be
+         * created.
+        */
+        if (xd->iff->type != exception_iface)
+            continue;
+
+        if (xd->bibase == NULL && xd->base == NULL)
+            continue;
+
+        xd_mod = xd->iff->module;
+
+        if (xd_mod == pt->module || xd->needed)
+            xd->exceptionnr = xd_mod->nrexceptions++;
+    }
+
     setStringPoolOffsets(pt);
 }
 
@@ -332,6 +356,9 @@ static void transformModules(sipSpec *pt, moduleDef *mod)
         if (cd->iff->module == mod)
         {
             transformCtors(pt, cd);
+
+            /* Handle any dtor exceptions. */
+            setNeededExceptions(pt, mod, cd->dtorexceptions);
 
             if (!pt->genc)
             {
@@ -1890,6 +1917,9 @@ static void resolveCtorTypes(sipSpec *pt,classDef *scope,ctorDef *ct)
 {
     int a;
 
+    /* Handle any exceptions. */
+    setNeededExceptions(pt, scope->iff->module, ct->exceptions);
+
     /* Handle any C++ signature. */
     if (ct->cppsig != NULL && ct->cppsig != &ct->pysig)
         for (a = 0; a < ct -> cppsig -> nrArgs; ++a)
@@ -1922,6 +1952,9 @@ static void resolveFuncTypes(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         overDef *od)
 {
     argDef *res;
+
+    /* Handle any exceptions. */
+    setNeededExceptions(pt, mod, od->exceptions);
 
     /* Handle any C++ signature. */
     if (od->cppsig != &od->pysig)
@@ -3019,6 +3052,22 @@ static void setNeededType(argDef *ad)
 
 
 /*
+ * Specify that an exception is needed.
+ */
+static void setNeededExceptions(sipSpec *pt, moduleDef *mod,
+        throwArgs *exceptions)
+{
+    if (generatingCodeForModule(pt, mod) && exceptions != NULL)
+    {
+        int i;
+
+        for (i = 0; i < exceptions->nrArgs; ++i)
+            exceptions->args[i]->needed = TRUE;
+    }
+}
+
+
+/*
  * If the type corresponds to a previously instantiated class template then
  * replace it with the class that was created.
  */
@@ -3502,7 +3551,14 @@ static void ifaceFilesAreUsedByOverload(ifaceFileList **used, overDef *od,
         int a;
 
         for (a = 0; a < ta->nrArgs; ++a)
-            appendToIfaceFileList(used, ta->args[a]->iff);
+        {
+            exceptionDef *xd = ta->args[a];
+
+            appendToIfaceFileList(used, xd->iff);
+
+            if (need_types)
+                xd->needed = TRUE;
+        }
     }
 }
 

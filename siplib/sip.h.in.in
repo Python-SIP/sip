@@ -1246,6 +1246,18 @@ typedef union _sipImportedVirtErrorHandlerDef {
 
 
 /*
+ * Defines an exception imported from another module.
+ */
+typedef union _sipImportedExceptionDef {
+    /* The exception name before the module is imported. */
+    const char *iexc_name;
+
+    /* The exception object after the module is imported. */
+    PyObject *iexc_object;
+} sipImportedExceptionDef;
+
+
+/*
  * The information describing an imported module.
  */
 typedef struct _sipImportedModuleDef {
@@ -1261,6 +1273,9 @@ typedef struct _sipImportedModuleDef {
 
     /* The virtual error handlers imported from the module. */
     sipImportedVirtErrorHandlerDef *im_imported_veh;
+
+    /* The exceptions imported from the module. */
+    sipImportedExceptionDef *im_imported_exceptions;
 } sipImportedModuleDef;
 
 
