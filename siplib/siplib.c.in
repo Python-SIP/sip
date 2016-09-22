@@ -1614,9 +1614,6 @@ static int sip_api_export_module(sipExportedModuleDef *client,
             if (im->im_imported_exceptions != NULL && importExceptions(im, em) < 0)
                 return -1;
 
-            /* Save the imported module. */
-            im->im_module = em;
-
             ++im;
         }
     }

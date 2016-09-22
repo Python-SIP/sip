@@ -1264,10 +1264,6 @@ typedef struct _sipImportedModuleDef {
     /* The module name. */
     const char *im_name;
 
-    /* The imported module. */
-    // TODO: remove this when dependecies are fixed.
-    struct _sipExportedModuleDef *im_module;
-
     /* The types imported from the module. */
     sipImportedTypeDef *im_imported_types;
 

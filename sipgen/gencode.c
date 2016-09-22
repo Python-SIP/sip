@@ -935,11 +935,6 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
     {
         generateImportedModuleAPI(pt, mod, mld->module, fp);
 
-        prcode(fp,
-"\n"
-"extern const sipExportedModuleDef *sipModuleAPI_%s_%s;\n"
-            , mname, mld->module->name);
-
         if (mld->module->nr_needed_types > 0)
             prcode(fp,
 "extern sipImportedTypeDef sipImportedTypes_%s_%s[];\n"
@@ -1392,7 +1387,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 {
     char *cppfile;
     const char *mname = mod->name;
-    int nrSccs = 0, files_in_part, max_per_part, this_part, mod_nr, enum_idx;
+    int nrSccs = 0, files_in_part, max_per_part, this_part, enum_idx;
     int is_inst_class, is_inst_voidp, is_inst_char, is_inst_string;
     int is_inst_int, is_inst_long, is_inst_ulong, is_inst_longlong;
     int is_inst_ulonglong, is_inst_double, nr_enummembers, is_api_versions;
@@ -1999,7 +1994,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         for (mld = mod->allimports; mld != NULL; mld = mld->next)
         {
             prcode(fp,
-"    {\"%s\", NULL, ", mld->module->fullname->text);
+"    {\"%s\", ", mld->module->fullname->text);
 
             if (mld->module->nr_needed_types > 0)
                 prcode(fp, "sipImportedTypes_%s_%s, ", mname, mld->module->name);
@@ -2021,7 +2016,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         }
 
         prcode(fp,
-"    {NULL, NULL, NULL, NULL, NULL}\n"
+"    {NULL, NULL, NULL, NULL}\n"
 "};\n"
             );
     }
@@ -2326,11 +2321,6 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "const sipAPIDef *sipAPI_%s;\n"
         , mname);
 
-    for (mld = mod->allimports; mld != NULL; mld = mld->next)
-        prcode(fp,
-"const sipExportedModuleDef *sipModuleAPI_%s_%s;\n"
-            , mname, mld->module->name);
-
     if (pluginPyQt4(pt) || pluginPyQt5(pt))
         prcode(fp,
 "\n"
@@ -2506,23 +2496,6 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "        SIP_MODULE_RETURN(0);\n"
 "    }\n"
         , mname);
-
-    mod_nr = 0;
-
-    for (mld = mod->allimports; mld != NULL; mld = mld->next)
-    {
-        if (mod_nr == 0)
-            prcode(fp,
-"\n"
-"    /* Get the APIs of the modules that this one is dependent on. */\n"
-                );
-
-        prcode(fp,
-"    sipModuleAPI_%s_%s = sipModuleAPI_%s.em_imports[%d].im_module;\n"
-            , mname, mld->module->name, mname, mod_nr);
-
-        ++mod_nr;
-    }
 
     generateTypesInline(pt, mod, fp);
 
