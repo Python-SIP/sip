@@ -1662,31 +1662,40 @@ typedef struct _sipAPIDef {
     void *(*api_get_address)(struct _sipSimpleWrapper *w);
     void (*api_set_destroy_on_exit)(int);
     int (*api_enable_autoconversion)(const sipTypeDef *td, int enable);
-
-    /*
-     * The following are deprecated parts of the public API.
-     */
-    PyTypeObject *(*api_find_named_enum)(const char *type);
-    const sipMappedType *(*api_find_mapped_type)(const char *type);
-    sipWrapperType *(*api_find_class)(const char *type);
-    sipWrapperType *(*api_map_int_to_class)(int typeInt,
-            const sipIntTypeClassMap *map, int maplen);
-    sipWrapperType *(*api_map_string_to_class)(const char *typeString,
-            const sipStringTypeClassMap *map, int maplen);
-
-    /*
-     * The following may be used by Qt support code but no other handwritten
-     * code.
-     */
-    void (*api_free_sipslot)(sipSlot *slot);
-    int (*api_same_slot)(const sipSlot *sp, PyObject *rxObj, const char *slot);
-    void *(*api_convert_rx)(sipWrapper *txSelf, const char *sigargs,
-            PyObject *rxObj, const char *slot, const char **memberp,
-            int flags);
-    PyObject *(*api_invoke_slot)(const sipSlot *slot, PyObject *sigargs);
-    int (*api_save_slot)(sipSlot *sp, PyObject *rxObj, const char *slot);
-    void (*api_clear_any_slot_reference)(sipSlot *slot);
-    int (*api_visit_slot)(sipSlot *slot, visitproc visit, void *arg);
+    void *(*api_get_mixin_address)(struct _sipSimpleWrapper *w,
+            const sipTypeDef *td);
+    PyObject *(*api_convert_from_new_pytype)(void *cpp, PyTypeObject *py_type,
+            sipWrapper *owner, sipSimpleWrapper **selfp, const char *fmt, ...);
+    PyObject *(*api_convert_to_typed_array)(void *data, const sipTypeDef *td,
+            const char *format, size_t stride, SIP_SSIZE_T len, int flags);
+    PyObject *(*api_convert_to_array)(void *data, const char *format,
+            SIP_SSIZE_T len, int flags);
+    int (*api_register_proxy_resolver)(const sipTypeDef *td,
+            sipProxyResolverFunc resolver);
+    PyInterpreterState *(*api_get_interpreter)();
+    sipNewUserTypeFunc (*api_set_new_user_type_handler)(sipTypeDef *,
+            sipNewUserTypeFunc);
+    void (*api_set_type_user_data)(sipWrapperType *, void *);
+    void *(*api_get_type_user_data)(sipWrapperType *);
+    PyObject *(*api_py_type_dict)(const PyTypeObject *);
+    const char *(*api_py_type_name)(const PyTypeObject *);
+    int (*api_get_method)(PyObject *, sipMethodDef *);
+    PyObject *(*api_from_method)(const sipMethodDef *);
+    int (*api_get_c_function)(PyObject *, sipCFunctionDef *);
+    int (*api_get_date)(PyObject *, sipDateDef *);
+    PyObject *(*api_from_date)(const sipDateDef *);
+    int (*api_get_datetime)(PyObject *, sipDateDef *, sipTimeDef *);
+    PyObject *(*api_from_datetime)(const sipDateDef *, const sipTimeDef *);
+    int (*api_get_time)(PyObject *, sipTimeDef *);
+    PyObject *(*api_from_time)(const sipTimeDef *);
+    int (*api_is_user_type)(const sipWrapperType *);
+    struct _frame *(*api_get_frame)(int);
+    int (*api_check_plugin_for_type)(const sipTypeDef *, const char *);
+    PyObject *(*api_unicode_new)(SIP_SSIZE_T, unsigned, int *, void **);
+    void (*api_unicode_write)(int, void *, int, unsigned);
+    void *(*api_unicode_data)(PyObject *, int *, SIP_SSIZE_T *);
+    int (*api_get_buffer_info)(PyObject *, sipBufferInfoDef *);
+    void (*api_release_buffer_info)(sipBufferInfoDef *);
 
     /*
      * The following are not part of the public API.
@@ -1746,59 +1755,34 @@ typedef struct _sipAPIDef {
             sipSimpleWrapper *, sip_gilstate_t);
     int (*api_init_mixin)(PyObject *self, PyObject *args, PyObject *kwds,
             const sipClassTypeDef *ctd);
-    /*
-     * The following are part of the public API.
-     */
-    void *(*api_get_mixin_address)(struct _sipSimpleWrapper *w,
-            const sipTypeDef *td);
-    PyObject *(*api_convert_from_new_pytype)(void *cpp, PyTypeObject *py_type,
-            sipWrapper *owner, sipSimpleWrapper **selfp, const char *fmt, ...);
-    PyObject *(*api_convert_to_typed_array)(void *data, const sipTypeDef *td,
-            const char *format, size_t stride, SIP_SSIZE_T len, int flags);
-    PyObject *(*api_convert_to_array)(void *data, const char *format,
-            SIP_SSIZE_T len, int flags);
-    int (*api_register_proxy_resolver)(const sipTypeDef *td,
-            sipProxyResolverFunc resolver);
+    PyObject *(*api_get_reference)(PyObject *self, int key);
 
     /*
      * The following may be used by Qt support code but no other handwritten
      * code.
      */
+    void (*api_free_sipslot)(sipSlot *slot);
+    int (*api_same_slot)(const sipSlot *sp, PyObject *rxObj, const char *slot);
+    void *(*api_convert_rx)(sipWrapper *txSelf, const char *sigargs,
+            PyObject *rxObj, const char *slot, const char **memberp,
+            int flags);
+    PyObject *(*api_invoke_slot)(const sipSlot *slot, PyObject *sigargs);
     PyObject *(*api_invoke_slot_ex)(const sipSlot *slot, PyObject *sigargs,
             int check_receiver);
+    int (*api_save_slot)(sipSlot *sp, PyObject *rxObj, const char *slot);
+    void (*api_clear_any_slot_reference)(sipSlot *slot);
+    int (*api_visit_slot)(sipSlot *slot, visitproc visit, void *arg);
 
     /*
-     * The following is not part of the public API.
+     * The following are deprecated parts of the public API.
      */
-    PyObject *(*api_get_reference)(PyObject *self, int key);
-
-    /*
-     * The following are part of the public API.
-     */
-    PyInterpreterState *(*api_get_interpreter)();
-    sipNewUserTypeFunc (*api_set_new_user_type_handler)(sipTypeDef *,
-            sipNewUserTypeFunc);
-    void (*api_set_type_user_data)(sipWrapperType *, void *);
-    void *(*api_get_type_user_data)(sipWrapperType *);
-    PyObject *(*api_py_type_dict)(const PyTypeObject *);
-    const char *(*api_py_type_name)(const PyTypeObject *);
-    int (*api_get_method)(PyObject *, sipMethodDef *);
-    PyObject *(*api_from_method)(const sipMethodDef *);
-    int (*api_get_c_function)(PyObject *, sipCFunctionDef *);
-    int (*api_get_date)(PyObject *, sipDateDef *);
-    PyObject *(*api_from_date)(const sipDateDef *);
-    int (*api_get_datetime)(PyObject *, sipDateDef *, sipTimeDef *);
-    PyObject *(*api_from_datetime)(const sipDateDef *, const sipTimeDef *);
-    int (*api_get_time)(PyObject *, sipTimeDef *);
-    PyObject *(*api_from_time)(const sipTimeDef *);
-    int (*api_is_user_type)(const sipWrapperType *);
-    struct _frame *(*api_get_frame)(int);
-    int (*api_check_plugin_for_type)(const sipTypeDef *, const char *);
-    PyObject *(*api_unicode_new)(SIP_SSIZE_T, unsigned, int *, void **);
-    void (*api_unicode_write)(int, void *, int, unsigned);
-    void *(*api_unicode_data)(PyObject *, int *, SIP_SSIZE_T *);
-    int (*api_get_buffer_info)(PyObject *, sipBufferInfoDef *);
-    void (*api_release_buffer_info)(sipBufferInfoDef *);
+    PyTypeObject *(*api_find_named_enum)(const char *type);
+    const sipMappedType *(*api_find_mapped_type)(const char *type);
+    sipWrapperType *(*api_find_class)(const char *type);
+    sipWrapperType *(*api_map_int_to_class)(int typeInt,
+            const sipIntTypeClassMap *map, int maplen);
+    sipWrapperType *(*api_map_string_to_class)(const char *typeString,
+            const sipStringTypeClassMap *map, int maplen);
 } sipAPIDef;
 
 

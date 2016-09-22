@@ -484,25 +484,34 @@ static const sipAPIDef sip_api = {
     sip_api_get_address,
     sip_api_set_destroy_on_exit,
     sip_api_enable_autoconversion,
-    /*
-     * The following are deprecated parts of the public API.
-     */
-    sip_api_find_named_enum,
-    sip_api_find_mapped_type,
-    sip_api_find_class,
-    sip_api_map_int_to_class,
-    sip_api_map_string_to_class,
-    /*
-     * The following may be used by Qt support code but by no other handwritten
-     * code.
-     */
-    sip_api_free_sipslot,
-    sip_api_same_slot,
-    sip_api_convert_rx,
-    sip_api_invoke_slot,
-    sip_api_save_slot,
-    sip_api_clear_any_slot_reference,
-    sip_api_visit_slot,
+    sip_api_get_mixin_address,
+    sip_api_convert_from_new_pytype,
+    sip_api_convert_to_typed_array,
+    sip_api_convert_to_array,
+    sip_api_register_proxy_resolver,
+    sip_api_get_interpreter,
+    sip_api_set_new_user_type_handler,
+    sip_api_set_type_user_data,
+    sip_api_get_type_user_data,
+    sip_api_py_type_dict,
+    sip_api_py_type_name,
+    sip_api_get_method,
+    sip_api_from_method,
+    sip_api_get_c_function,
+    sip_api_get_date,
+    sip_api_from_date,
+    sip_api_get_datetime,
+    sip_api_from_datetime,
+    sip_api_get_time,
+    sip_api_from_time,
+    sip_api_is_user_type,
+    sip_api_get_frame,
+    sip_api_check_plugin_for_type,
+    sip_api_unicode_new,
+    sip_api_unicode_write,
+    sip_api_unicode_data,
+    sip_api_get_buffer_info,
+    sip_api_release_buffer_info,
     /*
      * The following are not part of the public API.
      */
@@ -542,49 +551,27 @@ static const sipAPIDef sip_api = {
     sip_api_parse_result_ex,
     sip_api_call_error_handler,
     sip_api_init_mixin,
-    /*
-     * The following are part of the public API.
-     */
-    sip_api_get_mixin_address,
-    sip_api_convert_from_new_pytype,
-    sip_api_convert_to_typed_array,
-    sip_api_convert_to_array,
-    sip_api_register_proxy_resolver,
+    sip_api_get_reference,
     /*
      * The following may be used by Qt support code but by no other handwritten
      * code.
      */
+    sip_api_free_sipslot,
+    sip_api_same_slot,
+    sip_api_convert_rx,
+    sip_api_invoke_slot,
     sip_api_invoke_slot_ex,
+    sip_api_save_slot,
+    sip_api_clear_any_slot_reference,
+    sip_api_visit_slot,
     /*
-     * The following is not part of the public API.
+     * The following are deprecated parts of the public API.
      */
-    sip_api_get_reference,
-    /*
-     * The following are part of the public API.
-     */
-    sip_api_get_interpreter,
-    sip_api_set_new_user_type_handler,
-    sip_api_set_type_user_data,
-    sip_api_get_type_user_data,
-    sip_api_py_type_dict,
-    sip_api_py_type_name,
-    sip_api_get_method,
-    sip_api_from_method,
-    sip_api_get_c_function,
-    sip_api_get_date,
-    sip_api_from_date,
-    sip_api_get_datetime,
-    sip_api_from_datetime,
-    sip_api_get_time,
-    sip_api_from_time,
-    sip_api_is_user_type,
-    sip_api_get_frame,
-    sip_api_check_plugin_for_type,
-    sip_api_unicode_new,
-    sip_api_unicode_write,
-    sip_api_unicode_data,
-    sip_api_get_buffer_info,
-    sip_api_release_buffer_info,
+    sip_api_find_named_enum,
+    sip_api_find_mapped_type,
+    sip_api_find_class,
+    sip_api_map_int_to_class,
+    sip_api_map_string_to_class,
 };
 
 
