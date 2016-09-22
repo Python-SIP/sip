@@ -642,6 +642,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipFree                     sipAPI_%s->api_free\n"
 "#define sipBuildResult              sipAPI_%s->api_build_result\n"
 "#define sipCallMethod               sipAPI_%s->api_call_method\n"
+"#define sipCallProcedureMethod      sipAPI_%s->api_call_procedure_method\n"
 "#define sipCallErrorHandler         sipAPI_%s->api_call_error_handler\n"
 "#define sipParseResultEx            sipAPI_%s->api_parse_result_ex\n"
 "#define sipParseResult              sipAPI_%s->api_parse_result\n"
@@ -781,6 +782,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipConvertFromMappedType    sipConvertFromType\n"
 "#define sipConvertFromNamedEnum(v, pt)  sipConvertFromEnum((v), ((sipEnumTypeObject *)(pt))->type)\n"
 "#define sipConvertFromNewInstance(p, wt, t) sipConvertFromNewType((p), (wt)->type, (t))\n"
+        ,mname
         ,mname
         ,mname
         ,mname
@@ -8180,13 +8182,26 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
             ++nrvals;
 
     /* Call the method. */
-    prcode(fp,
+    if (nrvals == 0)
+        prcode(fp,
+"    sipCallProcedureMethod(sipGILState, sipErrorHandler, sipPySelf, sipMethod, ");
+    else
+        prcode(fp,
 "    PyObject *sipResObj = sipCallMethod(0, sipMethod, ");
 
     saved = *vhd->pysig;
     fakeProtectedArgs(vhd->pysig);
     generateTupleBuilder(mod, vhd->pysig, fp);
     *vhd->pysig = saved;
+
+    if (nrvals == 0)
+    {
+        prcode(fp, ");\n"
+"}\n"
+            );
+
+        return;
+    }
 
     prcode(fp, ");\n"
 "\n"

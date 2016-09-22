@@ -87,6 +87,7 @@ extern "C" {
  *      sip_api_unicode_data() to the public API.
  *      Added sip_api_get_buffer_info() and sip_api_relese_buffer_info() to the
  *      public API.
+ *      Added sip_api_call_procedure_method() to the public API.
  *      Removed the im_version member from sipImportedModuleDef.
  *      Removed the im_module member from sipImportedModuleDef.
  *      Removed the em_version member from sipExportedModuleDef.
@@ -1613,6 +1614,8 @@ typedef struct _sipAPIDef {
     PyObject *(*api_build_result)(int *isErr, const char *fmt, ...);
     PyObject *(*api_call_method)(int *isErr, PyObject *method, const char *fmt,
             ...);
+    void (*api_call_procedure_method)(sip_gilstate_t, sipVirtErrorHandlerFunc,
+            sipSimpleWrapper *, PyObject *, const char *, ...);
     PyObject *(*api_connect_rx)(PyObject *txObj, const char *sig,
             PyObject *rxObj, const char *slot, int type);
     SIP_SSIZE_T (*api_convert_from_sequence_index)(SIP_SSIZE_T idx,

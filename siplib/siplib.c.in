@@ -291,6 +291,9 @@ static void sip_api_bad_length_for_slice(SIP_SSIZE_T seqlen,
 static PyObject *sip_api_build_result(int *isErr, const char *fmt, ...);
 static PyObject *sip_api_call_method(int *isErr, PyObject *method,
         const char *fmt, ...);
+static void sip_api_call_procedure_method(sip_gilstate_t gil_state,
+        sipVirtErrorHandlerFunc error_handler, sipSimpleWrapper *py_self,
+        PyObject *method, const char *fmt, ...);
 static SIP_SSIZE_T sip_api_convert_from_sequence_index(SIP_SSIZE_T idx,
         SIP_SSIZE_T len);
 static int sip_api_can_convert_to_type(PyObject *pyObj, const sipTypeDef *td,
@@ -445,6 +448,7 @@ static const sipAPIDef sip_api = {
     sip_api_bad_length_for_slice,
     sip_api_build_result,
     sip_api_call_method,
+    sip_api_call_procedure_method,
     sip_api_connect_rx,
     sip_api_convert_from_sequence_index,
     sip_api_can_convert_to_type,
@@ -920,6 +924,7 @@ static PyObject *wrap_simple_instance(void *cpp, const sipTypeDef *td,
         sipWrapper *owner, int flags);
 static void *resolve_proxy(const sipTypeDef *td, void *proxy);
 static void clear_wrapper(sipSimpleWrapper *sw);
+static PyObject *call_method(PyObject *method, const char *fmt, va_list va);
 static int importTypes(sipImportedModuleDef *im, sipExportedModuleDef *em);
 static int importErrorHandlers(sipImportedModuleDef *im,
         sipExportedModuleDef *em);
@@ -2109,27 +2114,76 @@ static PyObject *sip_api_convert_from_new_pytype(void *cpp,
 
 
 /*
+ * Call a method and return the result.
+ */
+static PyObject *call_method(PyObject *method, const char *fmt, va_list va)
+{
+    PyObject *args, *res;
+
+    if ((args = PyTuple_New(strlen(fmt))) == NULL)
+        return NULL;
+
+    if (buildObject(args, fmt, va) != NULL)
+        res = PyEval_CallObject(method, args);
+    else
+        res = NULL;
+
+    Py_DECREF(args);
+
+    return res;
+}
+
+
+/*
+ * Call the Python re-implementation of a C++ virtual that does not return a
+ * value and handle the result..
+ */
+static void sip_api_call_procedure_method(sip_gilstate_t gil_state,
+        sipVirtErrorHandlerFunc error_handler, sipSimpleWrapper *py_self,
+        PyObject *method, const char *fmt, ...)
+{
+    PyObject *res;
+    va_list va;
+
+    va_start(va, fmt);
+    res = call_method(method, fmt, va);
+    va_end(va);
+
+    if (res != NULL)
+    {
+        Py_DECREF(res);
+
+        if (res != Py_None)
+        {
+            sip_api_bad_catcher_result(method);
+            res = NULL;
+        }
+    }
+
+    Py_DECREF(method);
+
+    if (res == NULL)
+        sip_api_call_error_handler(error_handler, py_self, gil_state);
+
+    SIP_RELEASE_GIL(gil_state);
+}
+
+
+/*
  * Call the Python re-implementation of a C++ virtual.
  */
 static PyObject *sip_api_call_method(int *isErr, PyObject *method,
         const char *fmt, ...)
 {
-    PyObject *args, *res;
+    PyObject *res;
     va_list va;
 
-    va_start(va,fmt);
-
-    if ((args = PyTuple_New(strlen(fmt))) != NULL && buildObject(args, fmt, va) != NULL)
-        res = PyEval_CallObject(method, args);
-    else
-        res = NULL;
+    va_start(va, fmt);
+    res = call_method(method, fmt, va);
+    va_end(va);
 
     if (res == NULL && isErr != NULL)
         *isErr = TRUE;
-
-    Py_XDECREF(args);
-
-    va_end(va);
 
     return res;
 }
