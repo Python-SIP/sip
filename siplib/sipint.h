@@ -38,34 +38,6 @@ extern "C" {
 
 
 /*
- * Access to the wrapper object flags.  These (along with macros defined in
- * sip.h) are held in sw_flags.
- */
-#define SIP_PY_OWNED        0x0020  /* If owned by Python. */
-#define SIP_SHARE_MAP       0x0040  /* If the map slot might be occupied. */
-#define SIP_CPP_HAS_REF     0x0080  /* If C/C++ has a reference. */
-#define SIP_POSSIBLE_PROXY  0x0100  /* If there might be a proxy slot. */
-#define SIP_ALIAS           0x0200  /* If it is an alias. */
-#define SIP_CREATED         0x0400  /* If the C/C++ object has been created. */
-
-#define sipIsPyOwned(sw)    ((sw)->sw_flags & SIP_PY_OWNED)
-#define sipSetPyOwned(sw)   ((sw)->sw_flags |= SIP_PY_OWNED)
-#define sipResetPyOwned(sw) ((sw)->sw_flags &= ~SIP_PY_OWNED)
-#define sipIsDerived(sw)    ((sw)->sw_flags & SIP_DERIVED_CLASS)
-#define sipIsIndirect(sw)   ((sw)->sw_flags & SIP_INDIRECT)
-#define sipIsAccessFunc(sw) ((sw)->sw_flags & SIP_ACCFUNC)
-#define sipNotInMap(sw)     ((sw)->sw_flags & SIP_NOT_IN_MAP)
-#define sipSetNotInMap(sw)  ((sw)->sw_flags |= SIP_NOT_IN_MAP)
-#define sipCppHasRef(sw)    ((sw)->sw_flags & SIP_CPP_HAS_REF)
-#define sipSetCppHasRef(sw) ((sw)->sw_flags |= SIP_CPP_HAS_REF)
-#define sipResetCppHasRef(sw)   ((sw)->sw_flags &= ~SIP_CPP_HAS_REF)
-#define sipPossibleProxy(sw)    ((sw)->sw_flags & SIP_POSSIBLE_PROXY)
-#define sipSetPossibleProxy(sw) ((sw)->sw_flags |= SIP_POSSIBLE_PROXY)
-#define sipIsAlias(sw)      ((sw)->sw_flags & SIP_ALIAS)
-#define sipWasCreated(sw)   ((sw)->sw_flags & SIP_CREATED)
-
-
-/*
  * This defines a single entry in an object map's hash table.
  */
 typedef struct
