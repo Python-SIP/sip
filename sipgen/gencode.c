@@ -767,6 +767,8 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipReleaseBufferInfo        sipAPI_%s->api_release_buffer_info\n"
 "#define sipIsOwnedByPython          sipAPI_%s->api_is_owned_by_python\n"
 "#define sipIsDerivedClass           sipAPI_%s->api_is_derived_class\n"
+"#define sipGetUserObject            sipAPI_%s->api_get_user_object\n"
+"#define sipSetUserObject            sipAPI_%s->api_set_user_object\n"
 "\n"
 "/* These are deprecated. */\n"
 "#define sipMapStringToClass         sipAPI_%s->api_map_string_to_class\n"
@@ -789,6 +791,8 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipConvertFromMappedType    sipConvertFromType\n"
 "#define sipConvertFromNamedEnum(v, pt)  sipConvertFromEnum((v), ((sipEnumTypeObject *)(pt))->type)\n"
 "#define sipConvertFromNewInstance(p, wt, t) sipConvertFromNewType((p), (wt)->type, (t))\n"
+        ,mname
+        ,mname
         ,mname
         ,mname
         ,mname
@@ -6168,9 +6172,9 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
                 , cd->iff);
 
         prcode(fp,
-"static void release_%L(void *%s,int%s)\n"
+"static void release_%L(void *%s, int%s)\n"
 "{\n"
-            , cd->iff, (need_ptr ? "sipCppV" : ""), (need_state ? " sipState" : ""));
+            , cd->iff, (need_ptr ? "sipCppV" : ""), (need_state ? " sipIsDerived" : ""));
 
         if (need_cast_ptr)
         {
@@ -6225,7 +6229,7 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
             else if (hasShadow(cd))
             {
                 prcode(fp,
-"    if (sipState & SIP_DERIVED_CLASS)\n"
+"    if (sipIsDerived)\n"
 "        delete reinterpret_cast<sip%C *>(sipCppV);\n"
                     , classFQCName(cd));
 
@@ -6833,8 +6837,8 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
             else
             {
                 prcode(fp,
-"        release_%L(sipGetAddress(sipSelf),%s);\n"
-                    , cd->iff, (hasShadow(cd) ? "sipSelf->flags" : "0"));
+"        release_%L(sipGetAddress(sipSelf), %s);\n"
+                    , cd->iff, (hasShadow(cd) ? "sipIsDerivedClass(sipSelf)" : "0"));
             }
 
             prcode(fp,

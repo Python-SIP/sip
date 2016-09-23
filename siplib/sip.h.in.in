@@ -75,6 +75,8 @@ extern "C" {
  *      Added sip_api_is_user_type() to the public API.
  *      Added sip_api_set_type_user_data() and sip_api_get_type_user_data() to
  *      the public API.
+ *      Added sip_api_set_user_object() and sip_api_get_user_object() to the
+ *      public API.
  *      Added sip_api_get_method() and sip_api_from_method() to the public API.
  *      Added sip_api_get_c_function() to the public API.
  *      Added sip_api_get_date() and sip_api_from_date() to the public API.
@@ -1707,6 +1709,8 @@ typedef struct _sipAPIDef {
     void *(*api_unicode_data)(PyObject *, int *, SIP_SSIZE_T *);
     int (*api_get_buffer_info)(PyObject *, sipBufferInfoDef *);
     void (*api_release_buffer_info)(sipBufferInfoDef *);
+    PyObject *(*api_get_user_object)(const sipSimpleWrapper *);
+    void (*api_set_user_object)(sipSimpleWrapper *, PyObject *);
 
     /*
      * The following are not part of the public API.

@@ -1414,6 +1414,20 @@ specification files.
         the type-specific pointer.
 
 
+.. c:function:: PyObject *sipGetUserObject(const sipSimpleWrapper *obj)
+
+    .. versionadded:: 4.19
+
+    Each wrapped object can contain a reference to a single Python object that
+    can be used for any purpose by handwritten code and will automatically be
+    garbage collected at the appropriate time.  This returns that object.
+
+    :param obj:
+        the wrapped object.
+    :return:
+        the user object.
+
+
 .. c:function:: PyObject *sipGetWrapper(void *cppptr, sipWrapperType *type)
 
     .. deprecated:: 4.8
@@ -2043,11 +2057,29 @@ specification files.
         the type-specific pointer.
 
 
+.. c:function:: void sipSetUserObject(sipSimpleWrapper *obj, PyObject *user)
+
+    .. versionadded:: 4.19
+
+    Each wrapped object can contain a reference to a single Python object that
+    can be used for any purpose by handwritten code and will automatically be
+    garbage collected at the appropriate time.  This sets that object.
+
+    :param obj:
+        the wrapped object.
+    :param user:
+        the user object.
+
+
 .. c:type:: sipSimpleWrapper
 
     This is a C structure that represents a Python wrapped instance whose type
     is :class:`sip.simplewrapper`.  It is an extension of the ``PyObject``
     structure and so may be safely cast to it.
+
+    When the limited Python API is enabled and Python v3.2 or later is being
+    used then it is only available as an opaque (i.e. incomplete) type and the
+    following memebers are not available.
 
     .. c:member:: void *data
 
