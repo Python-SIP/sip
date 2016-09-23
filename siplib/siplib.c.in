@@ -1358,7 +1358,7 @@ static PyObject *cast(PyObject *self, PyObject *args)
      * always found.  It would also totally confuse the map logic.
      */
     return wrap_simple_instance(addr, wt->wt_td, NULL,
-            (sw->flags | SIP_NOT_IN_MAP) & ~SIP_PY_OWNED);
+            (sw->sw_flags | SIP_NOT_IN_MAP) & ~SIP_PY_OWNED);
 }
 
 
@@ -1383,7 +1383,7 @@ static PyObject *callDtor(PyObject *self, PyObject *args)
 
     clear_wrapper(sw);
 
-    release(addr, (const sipTypeDef *)ctd, sw->flags);
+    release(addr, (const sipTypeDef *)ctd, sw->sw_flags);
 
     Py_INCREF(Py_None);
     return Py_None;
@@ -10052,7 +10052,7 @@ static int sipSimpleWrapper_init(sipSimpleWrapper *self, PyObject *args,
     }
 
     self->data = sipNew;
-    self->flags = sipFlags | SIP_CREATED;
+    self->sw_flags = sipFlags | SIP_CREATED;
 
     /* Set the access function. */
     if (sipIsAccessFunc(self))

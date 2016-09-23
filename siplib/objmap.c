@@ -213,7 +213,7 @@ static void add_aliases(sipObjectMap *om, void *addr, sipSimpleWrapper *val,
                      */
                     *alias = *val;
 
-                    alias->flags = (val->flags & SIP_SHARE_MAP) | SIP_ALIAS;
+                    alias->sw_flags = (val->sw_flags & SIP_SHARE_MAP) | SIP_ALIAS;
                     alias->data = val;
                     alias->next = NULL;
 
@@ -253,7 +253,7 @@ static void add_object(sipObjectMap *om, void *addr, sipSimpleWrapper *val)
          * pointers as invalid and reuse the entry.  Otherwise we just add this
          * one to the existing list of objects at this address.
          */
-        if (!(val->flags & SIP_SHARE_MAP))
+        if (!(val->sw_flags & SIP_SHARE_MAP))
         {
             sipSimpleWrapper *sw = he->first;
 

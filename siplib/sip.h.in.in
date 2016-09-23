@@ -507,7 +507,7 @@ struct _sipSimpleWrapper {
     sipAccessFunc access_func;
 
     /* Object flags. */
-    int flags;
+    int sw_flags;
 
     /* The optional dictionary of extra references keyed by argument number. */
     PyObject *extra_refs;
@@ -1681,10 +1681,10 @@ typedef struct _sipAPIDef {
     int (*api_register_proxy_resolver)(const sipTypeDef *td,
             sipProxyResolverFunc resolver);
     PyInterpreterState *(*api_get_interpreter)();
-    sipNewUserTypeFunc (*api_set_new_user_type_handler)(sipTypeDef *,
+    sipNewUserTypeFunc (*api_set_new_user_type_handler)(const sipTypeDef *,
             sipNewUserTypeFunc);
     void (*api_set_type_user_data)(sipWrapperType *, void *);
-    void *(*api_get_type_user_data)(sipWrapperType *);
+    void *(*api_get_type_user_data)(const sipWrapperType *);
     PyObject *(*api_py_type_dict)(const PyTypeObject *);
     const char *(*api_py_type_name)(const PyTypeObject *);
     int (*api_get_method)(PyObject *, sipMethodDef *);
@@ -1860,21 +1860,21 @@ typedef struct _sipQtAPI {
 #define SIP_ALIAS           0x0200  /* If it is an alias. */
 #define SIP_CREATED         0x0400  /* If the C/C++ object has been created. */
 
-#define sipIsPyOwned(w)     ((w)->flags & SIP_PY_OWNED)
-#define sipSetPyOwned(w)    ((w)->flags |= SIP_PY_OWNED)
-#define sipResetPyOwned(w)  ((w)->flags &= ~SIP_PY_OWNED)
-#define sipIsDerived(w)     ((w)->flags & SIP_DERIVED_CLASS)
-#define sipIsIndirect(w)    ((w)->flags & SIP_INDIRECT)
-#define sipIsAccessFunc(w)  ((w)->flags & SIP_ACCFUNC)
-#define sipNotInMap(w)      ((w)->flags & SIP_NOT_IN_MAP)
-#define sipSetNotInMap(w)   ((w)->flags |= SIP_NOT_IN_MAP)
-#define sipCppHasRef(w)     ((w)->flags & SIP_CPP_HAS_REF)
-#define sipSetCppHasRef(w)  ((w)->flags |= SIP_CPP_HAS_REF)
-#define sipResetCppHasRef(w)    ((w)->flags &= ~SIP_CPP_HAS_REF)
-#define sipPossibleProxy(w) ((w)->flags & SIP_POSSIBLE_PROXY)
-#define sipSetPossibleProxy(w)  ((w)->flags |= SIP_POSSIBLE_PROXY)
-#define sipIsAlias(w)       ((w)->flags & SIP_ALIAS)
-#define sipWasCreated(w)    ((w)->flags & SIP_CREATED)
+#define sipIsPyOwned(w)     ((w)->sw_flags & SIP_PY_OWNED)
+#define sipSetPyOwned(w)    ((w)->sw_flags |= SIP_PY_OWNED)
+#define sipResetPyOwned(w)  ((w)->sw_flags &= ~SIP_PY_OWNED)
+#define sipIsDerived(w)     ((w)->sw_flags & SIP_DERIVED_CLASS)
+#define sipIsIndirect(w)    ((w)->sw_flags & SIP_INDIRECT)
+#define sipIsAccessFunc(w)  ((w)->sw_flags & SIP_ACCFUNC)
+#define sipNotInMap(w)      ((w)->sw_flags & SIP_NOT_IN_MAP)
+#define sipSetNotInMap(w)   ((w)->sw_flags |= SIP_NOT_IN_MAP)
+#define sipCppHasRef(w)     ((w)->sw_flags & SIP_CPP_HAS_REF)
+#define sipSetCppHasRef(w)  ((w)->sw_flags |= SIP_CPP_HAS_REF)
+#define sipResetCppHasRef(w)    ((w)->sw_flags &= ~SIP_CPP_HAS_REF)
+#define sipPossibleProxy(w) ((w)->sw_flags & SIP_POSSIBLE_PROXY)
+#define sipSetPossibleProxy(w)  ((w)->sw_flags |= SIP_POSSIBLE_PROXY)
+#define sipIsAlias(w)       ((w)->sw_flags & SIP_ALIAS)
+#define sipWasCreated(w)    ((w)->sw_flags & SIP_CREATED)
 
 
 #define SIP_TYPE_TYPE_MASK  0x0007  /* The type type mask. */

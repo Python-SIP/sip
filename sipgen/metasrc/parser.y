@@ -1803,7 +1803,7 @@ module: TK_MODULE module_args module_body {
 
             if (notSkipping())
                 currentModule = configureModule(currentSpec, currentModule,
-                        currentContext.filename, $3, TRUE, defaultKwArgs,
+                        currentContext.filename, $2, TRUE, defaultKwArgs,
                         FALSE, FALSE, -1, FALSE, NULL, NULL);
         }
     ;
