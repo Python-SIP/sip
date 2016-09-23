@@ -1836,15 +1836,15 @@ typedef struct _sipQtAPI {
 
 
 /*
- * These are flags that can be passed to sipConvertToArray().
+ * These are flags that can be passed to sipConvertToArray().  These are held
+ * in sw_flags.
  */
 #define SIP_READ_ONLY       0x01    /* The array is read-only. */
 #define SIP_OWNS_MEMORY     0x02    /* The array owns its memory. */
 
 
 /*
- * These are the state flags returned by %ConvertToTypeCode.  Note that these
- * share the same "namespace" as the flags below.
+ * These are the state flags returned by %ConvertToTypeCode.
  */
 #define SIP_TEMPORARY       0x01    /* A temporary instance. */
 #define SIP_DERIVED_CLASS   0x02    /* The instance is derived. */
@@ -1859,6 +1859,12 @@ typedef struct _sipQtAPI {
 /*
  * Useful macros, not part of the public API.
  */
+
+/* These are held in sw_flags. */
+#define SIP_INDIRECT        0x0004  /* If there is a level of indirection. */
+#define SIP_ACCFUNC         0x0008  /* If there is an access function. */
+#define SIP_NOT_IN_MAP      0x0010  /* If Python object is not in the map. */
+
 #define SIP_TYPE_TYPE_MASK  0x0007  /* The type type mask. */
 #define SIP_TYPE_CLASS      0x0000  /* If the type is a C++ class. */
 #define SIP_TYPE_NAMESPACE  0x0001  /* If the type is a C++ namespace. */

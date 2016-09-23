@@ -38,13 +38,10 @@ extern "C" {
 
 
 /*
- * Access to the wrapper object flags.  Note that the public SIP_TEMPORARY and
- * SIP_DERIVED_CLASS values are part of the flag "namespace".
+ * Access to the wrapper object flags.  These (along with macros defined in
+ * sip.h) are held in sw_flags.
  */
-#define SIP_PY_OWNED        0x0004  /* If owned by Python. */
-#define SIP_INDIRECT        0x0008  /* If there is a level of indirection. */
-#define SIP_ACCFUNC         0x0010  /* If there is an access function. */
-#define SIP_NOT_IN_MAP      0x0020  /* If Python object is not in the map. */
+#define SIP_PY_OWNED        0x0020  /* If owned by Python. */
 #define SIP_SHARE_MAP       0x0040  /* If the map slot might be occupied. */
 #define SIP_CPP_HAS_REF     0x0080  /* If C/C++ has a reference. */
 #define SIP_POSSIBLE_PROXY  0x0100  /* If there might be a proxy slot. */
