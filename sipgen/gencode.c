@@ -765,6 +765,8 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipUnicodeData              sipAPI_%s->api_unicode_data\n"
 "#define sipGetBufferInfo            sipAPI_%s->api_get_buffer_info\n"
 "#define sipReleaseBufferInfo        sipAPI_%s->api_release_buffer_info\n"
+"#define sipIsOwnedByPython          sipAPI_%s->api_is_owned_by_python\n"
+"#define sipIsDerivedClass           sipAPI_%s->api_is_derived_class\n"
 "\n"
 "/* These are deprecated. */\n"
 "#define sipMapStringToClass         sipAPI_%s->api_map_string_to_class\n"
@@ -787,6 +789,8 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipConvertFromMappedType    sipConvertFromType\n"
 "#define sipConvertFromNamedEnum(v, pt)  sipConvertFromEnum((v), ((sipEnumTypeObject *)(pt))->type)\n"
 "#define sipConvertFromNewInstance(p, wt, t) sipConvertFromNewType((p), (wt)->type, (t))\n"
+        ,mname
+        ,mname
         ,mname
         ,mname
         ,mname
@@ -6799,7 +6803,7 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
         /* Disable the virtual handlers. */
         if (hasShadow(cd))
             prcode(fp,
-"    if (sipIsDerived(sipSelf))\n"
+"    if (sipIsDerivedClass(sipSelf))\n"
 "        reinterpret_cast<sip%C *>(sipGetAddress(sipSelf))->sipPySelf = NULL;\n"
 "\n"
                 ,classFQCName(cd));
@@ -6807,7 +6811,7 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
         if (generating_c || isPublicDtor(cd) || (hasShadow(cd) && isProtectedDtor(cd)))
         {
             prcode(fp,
-"    if (sipIsPyOwned(sipSelf))\n"
+"    if (sipIsOwnedByPython(sipSelf))\n"
 "    {\n"
                 );
 
@@ -11727,7 +11731,7 @@ static void generateFunction(sipSpec *pt, memberDef *md, overDef *overs,
                  * 'sipExplicitScope' but it is part of the public API.
                  */
                 prcode(fp,
-"    bool sipSelfWasArg = (!sipSelf || sipIsDerived((sipSimpleWrapper *)sipSelf));\n"
+"    bool sipSelfWasArg = (!sipSelf || sipIsDerivedClass((sipSimpleWrapper *)sipSelf));\n"
                     );
             }
 

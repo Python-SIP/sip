@@ -389,6 +389,8 @@ static void sip_api_clear_any_slot_reference(sipSlot *slot);
 static int sip_api_visit_slot(sipSlot *slot, visitproc visit, void *arg);
 static void sip_api_keep_reference(PyObject *self, int key, PyObject *obj);
 static PyObject *sip_api_get_reference(PyObject *self, int key);
+static int sip_api_is_owned_by_python(sipSimpleWrapper *sw);
+static int sip_api_is_derived_class(sipSimpleWrapper *sw);
 static void sip_api_add_exception(sipErrorState es, PyObject **parseErrp);
 static void sip_api_set_destroy_on_exit(int value);
 static int sip_api_enable_autoconversion(const sipTypeDef *td, int enable);
@@ -556,6 +558,8 @@ static const sipAPIDef sip_api = {
     sip_api_call_error_handler,
     sip_api_init_mixin,
     sip_api_get_reference,
+    sip_api_is_owned_by_python,
+    sip_api_is_derived_class,
     /*
      * The following may be used by Qt support code but by no other handwritten
      * code.
@@ -8766,6 +8770,28 @@ static PyObject *sip_api_get_reference(PyObject *self, int key)
     Py_XINCREF(obj);
 
     return obj;
+}
+
+
+/*
+ * Return TRUE if an object is owned by Python.  Note that this isn't
+ * implemented as a macro in sip.h because the position of the sw_flags field
+ * is dependent on the version of Python.
+ */
+static int sip_api_is_owned_by_python(sipSimpleWrapper *sw)
+{
+    return sipIsPyOwned(sw);
+}
+
+
+/*
+ * Return TRUE if the type of a C++ instance is a derived class.  Note that
+ * this isn't implemented as a macro in sip.h because the position of the
+ * sw_flags field is dependent on the version of Python.
+ */
+static int sip_api_is_derived_class(sipSimpleWrapper *sw)
+{
+    return sipIsDerived(sw);
 }
 
 

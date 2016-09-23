@@ -88,6 +88,8 @@ extern "C" {
  *      Added sip_api_get_buffer_info() and sip_api_relese_buffer_info() to the
  *      public API.
  *      Added sip_api_call_procedure_method() to the public API.
+ *      Added sip_api_is_owned_by_python() to the private API.
+ *      Added sip_api_is_derived_class() to the private API.
  *      Removed the im_version member from sipImportedModuleDef.
  *      Removed the im_module member from sipImportedModuleDef.
  *      Removed the em_version member from sipExportedModuleDef.
@@ -404,6 +406,9 @@ typedef struct _sipTypeDef sipTypeDef;
 struct _sipWrapperType;
 typedef struct _sipWrapperType sipWrapperType;
 
+struct _sipWrapper;
+typedef struct _sipWrapper sipWrapper;
+
 
 /*
  * Some convenient function pointers.
@@ -488,7 +493,6 @@ struct _sipWrapperType {
      */
     void *wt_user_data;
 };
-#endif
 
 
 /*
@@ -507,7 +511,7 @@ struct _sipSimpleWrapper {
     sipAccessFunc access_func;
 
     /* Object flags. */
-    int sw_flags;
+    unsigned sw_flags;
 
     /* The optional dictionary of extra references keyed by argument number. */
     PyObject *extra_refs;
@@ -529,7 +533,7 @@ struct _sipSimpleWrapper {
 /*
  * The type of a C/C++ wrapper object that supports parent/child relationships.
  */
-typedef struct _sipWrapper {
+struct _sipWrapper {
     /* The super-type. */
     sipSimpleWrapper super;
 
@@ -544,10 +548,9 @@ typedef struct _sipWrapper {
 
     /* Owning object. */
     struct _sipWrapper *parent;
-} sipWrapper;
+};
 
 
-#if !defined(Py_LIMITED_API) || PY_VERSION_HEX < 0x03020000
 /*
  * The meta-type of an enum type.  (This is exposed only to support the
  * deprecated sipConvertFromNamedEnum() macro.)
@@ -1764,6 +1767,8 @@ typedef struct _sipAPIDef {
     int (*api_init_mixin)(PyObject *self, PyObject *args, PyObject *kwds,
             const sipClassTypeDef *ctd);
     PyObject *(*api_get_reference)(PyObject *self, int key);
+    int (*api_is_owned_by_python)(sipSimpleWrapper *);
+    int (*api_is_derived_class)(sipSimpleWrapper *);
 
     /*
      * The following may be used by Qt support code but no other handwritten
@@ -1837,8 +1842,8 @@ typedef struct _sipQtAPI {
  * These are the state flags returned by %ConvertToTypeCode.  Note that these
  * share the same "namespace" as the flags below.
  */
-#define SIP_TEMPORARY       0x0001  /* A temporary instance. */
-#define SIP_DERIVED_CLASS   0x0002  /* The instance is derived. */
+#define SIP_TEMPORARY       0x01    /* A temporary instance. */
+#define SIP_DERIVED_CLASS   0x02    /* The instance is derived. */
 
 
 /*
@@ -1850,33 +1855,6 @@ typedef struct _sipQtAPI {
 /*
  * Useful macros, not part of the public API.
  */
-#define SIP_PY_OWNED        0x0004  /* If owned by Python. */
-#define SIP_INDIRECT        0x0008  /* If there is a level of indirection. */
-#define SIP_ACCFUNC         0x0010  /* If there is an access function. */
-#define SIP_NOT_IN_MAP      0x0020  /* If Python object is not in the map. */
-#define SIP_SHARE_MAP       0x0040  /* If the map slot might be occupied. */
-#define SIP_CPP_HAS_REF     0x0080  /* If C/C++ has a reference. */
-#define SIP_POSSIBLE_PROXY  0x0100  /* If there might be a proxy slot. */
-#define SIP_ALIAS           0x0200  /* If it is an alias. */
-#define SIP_CREATED         0x0400  /* If the C/C++ object has been created. */
-
-#define sipIsPyOwned(w)     ((w)->sw_flags & SIP_PY_OWNED)
-#define sipSetPyOwned(w)    ((w)->sw_flags |= SIP_PY_OWNED)
-#define sipResetPyOwned(w)  ((w)->sw_flags &= ~SIP_PY_OWNED)
-#define sipIsDerived(w)     ((w)->sw_flags & SIP_DERIVED_CLASS)
-#define sipIsIndirect(w)    ((w)->sw_flags & SIP_INDIRECT)
-#define sipIsAccessFunc(w)  ((w)->sw_flags & SIP_ACCFUNC)
-#define sipNotInMap(w)      ((w)->sw_flags & SIP_NOT_IN_MAP)
-#define sipSetNotInMap(w)   ((w)->sw_flags |= SIP_NOT_IN_MAP)
-#define sipCppHasRef(w)     ((w)->sw_flags & SIP_CPP_HAS_REF)
-#define sipSetCppHasRef(w)  ((w)->sw_flags |= SIP_CPP_HAS_REF)
-#define sipResetCppHasRef(w)    ((w)->sw_flags &= ~SIP_CPP_HAS_REF)
-#define sipPossibleProxy(w) ((w)->sw_flags & SIP_POSSIBLE_PROXY)
-#define sipSetPossibleProxy(w)  ((w)->sw_flags |= SIP_POSSIBLE_PROXY)
-#define sipIsAlias(w)       ((w)->sw_flags & SIP_ALIAS)
-#define sipWasCreated(w)    ((w)->sw_flags & SIP_CREATED)
-
-
 #define SIP_TYPE_TYPE_MASK  0x0007  /* The type type mask. */
 #define SIP_TYPE_CLASS      0x0000  /* If the type is a C++ class. */
 #define SIP_TYPE_NAMESPACE  0x0001  /* If the type is a C++ namespace. */
