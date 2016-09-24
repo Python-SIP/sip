@@ -5039,7 +5039,7 @@ static classDef *newClass(sipSpec *pt, ifaceFileType iftype,
             cd->real = ns;
 
             if (inMainModule())
-                setNeedsClass(ns);
+                ns->iff->first_alt->needed = TRUE;
 
             break;
         }

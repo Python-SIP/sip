@@ -209,7 +209,6 @@
 #define CLASS2_MIXIN        0x02        /* The class is a mixin. */
 #define CLASS2_EXPORT_DERIVED   0x04    /* Export the derived class declaration. */
 #define CLASS2_NEEDS_CAST_FUNC  0x08    /* The class needs a cast function. */
-#define CLASS2_NEEDS_CLASS  0x10        /* The module needs it. */
 
 #define isTemplateArg(cd)   ((cd)->classflags2 & CLASS2_TMPL_ARG)
 #define setTemplateArg(cd)  ((cd)->classflags2 |= CLASS2_TMPL_ARG)
@@ -219,8 +218,6 @@
 #define setExportDerived(cd)    ((cd)->classflags2 |= CLASS2_EXPORT_DERIVED)
 #define needsCastFunction(cd)   ((cd)->classflags2 & CLASS2_NEEDS_CAST_FUNC)
 #define setNeedsCastFunction(cd)    ((cd)->classflags2 |= CLASS2_NEEDS_CAST_FUNC)
-#define needsClass(cd)      ((cd)->classflags2 & CLASS2_NEEDS_CLASS)
-#define setNeedsClass(cd)   ((cd)->classflags2 |= CLASS2_NEEDS_CLASS)
 
 
 /* Handle ctor flags.  These are combined with the section flags. */
@@ -500,14 +497,11 @@
 
 #define MT_NO_RELEASE       0x01    /* Do not generate a release function. */
 #define MT_ALLOW_NONE       0x02    /* The mapped type will handle None. */
-#define MT_NEEDS_MT         0x04    /* The module needs it. */
 
 #define noRelease(mt)       ((mt)->mtflags & MT_NO_RELEASE)
 #define setNoRelease(mt)    ((mt)->mtflags |= MT_NO_RELEASE)
 #define handlesNone(mt)     ((mt)->mtflags & MT_ALLOW_NONE)
 #define setHandlesNone(mt)  ((mt)->mtflags |= MT_ALLOW_NONE)
-#define needsMappedType(mt) ((mt)->mtflags & MT_NEEDS_MT)
-#define setNeedsMappedType(mt)  ((mt)->mtflags |= MT_NEEDS_MT)
 
 
 /* Handle typedef flags. */
@@ -955,6 +949,7 @@ typedef struct _moduleListDef {
 /* An interface file definition. */
 typedef struct _ifaceFileDef {
     nameDef *name;                      /* The name. */
+    int needed;                         /* The main module needs it. */
     apiVersionRangeDef *api_range;      /* The optional API version range. */
     struct _ifaceFileDef *first_alt;    /* The first alternate API. */
     struct _ifaceFileDef *next_alt;     /* The next alternate API. */

@@ -8876,7 +8876,7 @@ static void generateImportedModuleAPI(sipSpec *pt, moduleDef *mod,
     for (cd = pt->classes; cd != NULL; cd = cd->next)
         if (cd->iff->module == immod)
         {
-            if (needsClass(cd))
+            if (cd->iff->needed)
                 generateImportedClassAPI(cd, mod, fp);
 
             generateEnumMacros(pt, mod, cd, NULL, fp);
@@ -8885,7 +8885,7 @@ static void generateImportedModuleAPI(sipSpec *pt, moduleDef *mod,
     for (mtd = pt->mappedtypes; mtd != NULL; mtd = mtd->next)
         if (mtd->iff->module == immod)
         {
-            if (needsMappedType(mtd))
+            if (mtd->iff->needed)
                 generateImportedMappedTypeAPI(mtd, mod, fp);
 
             generateEnumMacros(pt, mod, NULL, mtd, fp);
@@ -8903,28 +8903,25 @@ static void generateImportedModuleAPI(sipSpec *pt, moduleDef *mod,
 
 
 /*
- * Generate the API details for an imported mapped type.
+ * Generate the API details for an imported mapped type.  This will only be
+ * called for the first API implementation.
  */
 static void generateImportedMappedTypeAPI(mappedTypeDef *mtd, moduleDef *mod,
         FILE *fp)
 {
-    /* Ignore alternate API implementations. */
-    if (mtd->iff->first_alt == mtd->iff)
-    {
-        const char *mname = mod->name;
-        const char *imname = mtd->iff->module->name;
-        argDef type;
+    const char *mname = mod->name;
+    const char *imname = mtd->iff->module->name;
+    argDef type;
 
-        memset(&type, 0, sizeof (argDef));
+    memset(&type, 0, sizeof (argDef));
 
-        type.atype = mapped_type;
-        type.u.mtd = mtd;
+    type.atype = mapped_type;
+    type.u.mtd = mtd;
 
-        prcode(fp,
+    prcode(fp,
 "\n"
 "#define sipType_%T sipImportedTypes_%s_%s[%d].it_td\n"
-            , &type, mname, imname, mtd->iff->ifacenr);
-    }
+        , &type, mname, imname, mtd->iff->ifacenr);
 }
 
 
@@ -8956,36 +8953,33 @@ static void generateMappedTypeAPI(sipSpec *pt, mappedTypeDef *mtd, FILE *fp)
 
 
 /*
- * Generate the API details for an imported class.
+ * Generate the API details for an imported class.  This will only be called
+ * for the first API implementation.
  */
 static void generateImportedClassAPI(classDef *cd, moduleDef *mod, FILE *fp)
 {
-    /* Ignore alternate API implementations. */
-    if (cd->iff->first_alt == cd->iff)
-    {
-        const char *mname = mod->name;
-        const char *imname = cd->iff->module->name;
+    const char *mname = mod->name;
+    const char *imname = cd->iff->module->name;
 
-        prcode(fp,
+    prcode(fp,
 "\n"
-            );
+        );
 
-        if (cd->iff->type == namespace_iface)
-            prcode(fp,
-"#if !defined(sipType_%L)\n"
-                , cd->iff);
-
+    if (cd->iff->type == namespace_iface)
         prcode(fp,
+"#if !defined(sipType_%L)\n"
+            , cd->iff);
+
+    prcode(fp,
 "#define sipType_%C sipImportedTypes_%s_%s[%d].it_td\n"
 "#define sipClass_%C sipImportedTypes_%s_%s[%d].it_td->u.td_wrapper_type\n"
-            , classFQCName(cd), mname, imname, cd->iff->ifacenr
-            , classFQCName(cd), mname, imname, cd->iff->ifacenr);
+        , classFQCName(cd), mname, imname, cd->iff->ifacenr
+        , classFQCName(cd), mname, imname, cd->iff->ifacenr);
 
-        if (cd->iff->type == namespace_iface)
-            prcode(fp,
+    if (cd->iff->type == namespace_iface)
+        prcode(fp,
 "#endif\n"
-                );
-    }
+            );
 }
 
 

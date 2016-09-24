@@ -1141,7 +1141,7 @@ static void setHierarchy(sipSpec *pt, classDef *base, classDef *cd,
                 mroDef *new_mro = appendToMRO(cd->mro, &tailp, mro->cd);
 
                 if (generatingCodeForModule(pt, cd->iff->module))
-                    setNeedsClass(mro->cd);
+                    mro->cd->iff->first_alt->needed = TRUE;
 
                 if (cl != cd->supers || needsCast(mro))
                 {
@@ -3043,15 +3043,15 @@ static void setNeededType(argDef *ad)
     switch (ad->atype)
     {
     case class_type:
-        setNeedsClass(ad->u.cd);
+        ad->u.cd->iff->first_alt->needed = TRUE;
         break;
 
     case mapped_type:
-        setNeedsMappedType(ad->u.mtd->real);
+        ad->u.mtd->real->iff->first_alt->needed = TRUE;
         break;
 
     case enum_type:
-        setNeedsEnum(ad->u.ed);
+        setNeedsEnum(ad->u.ed->first_alt);
         break;
 
     default:
@@ -3082,7 +3082,7 @@ static void setNeededExceptions(sipSpec *pt, moduleDef *mod,
 static void setNeedsException(exceptionDef *xd)
 {
     if (xd->cd != NULL)
-        setNeedsClass(xd->cd);
+        xd->cd->iff->first_alt->needed = TRUE;
     else
         xd->needed = TRUE;
 }
@@ -3686,7 +3686,7 @@ static void createSortedNumberedTypesTable(sipSpec *pt, moduleDef *mod)
         if (cd->iff->first_alt != cd->iff)
             continue;
 
-        if (generatingCodeForModule(pt, mod) || needsClass(cd))
+        if (generatingCodeForModule(pt, mod) || cd->iff->needed)
             mod->nr_needed_types++;
     }
 
@@ -3698,7 +3698,7 @@ static void createSortedNumberedTypesTable(sipSpec *pt, moduleDef *mod)
         if (mtd->iff->first_alt != mtd->iff)
             continue;
 
-        if (generatingCodeForModule(pt, mod) || needsMappedType(mtd))
+        if (generatingCodeForModule(pt, mod) || mtd->iff->needed)
             mod->nr_needed_types++;
     }
 
@@ -3734,7 +3734,7 @@ static void createSortedNumberedTypesTable(sipSpec *pt, moduleDef *mod)
         if (cd->iff->first_alt != cd->iff)
             continue;
 
-        if (generatingCodeForModule(pt, mod) || needsClass(cd))
+        if (generatingCodeForModule(pt, mod) || cd->iff->needed)
         {
             ad->atype = class_type;
             ad->u.cd = cd;
@@ -3752,7 +3752,7 @@ static void createSortedNumberedTypesTable(sipSpec *pt, moduleDef *mod)
         if (mtd->iff->first_alt != mtd->iff)
             continue;
 
-        if (generatingCodeForModule(pt, mod) || needsMappedType(mtd))
+        if (generatingCodeForModule(pt, mod) || mtd->iff->needed)
         {
             ad->atype = mapped_type;
             ad->u.mtd = mtd;
