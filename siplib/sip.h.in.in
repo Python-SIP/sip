@@ -480,6 +480,9 @@ struct _sipWrapperType {
     /* Set if the type's dictionary contains all lazy attributes. */
     unsigned wt_dict_complete : 1;
 
+    /* Unused and available for future use. */
+    unsigned wt_unused : 30;
+
     /* The generated type structure. */
     sipTypeDef *wt_td;
 

@@ -1847,14 +1847,14 @@ static int checkVirtualHandler(overDef *od, virtHandlerDef *vhd)
     if (od->virtcode != vhd->virtcode)
         return FALSE;
 
+    /*
+     * If the overload has an explicit error handler then it must be the same
+     * as the candidate.
+     */
     if (od->virt_error_handler != NULL)
     {
         if (vhd->veh == NULL || strcmp(od->virt_error_handler, vhd->veh->name) != 0)
             return FALSE;
-    }
-    else if (vhd->veh != NULL)
-    {
-        return FALSE;
     }
 
     if ((isFactory(od) || isResultTransferredBack(od)) && !isTransferVH(vhd))
