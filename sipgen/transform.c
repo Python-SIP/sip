@@ -1615,6 +1615,14 @@ static void getVisiblePyMembers(sipSpec *pt, classDef *cd)
                 for (od = mro_cd->overs; od != NULL; od = od->next)
                     if (od->common == md)
                     {
+                        /*
+                         * If the visible overload is abstract then it hasn't
+                         * had a concrete implementation so this class must
+                         * also be abstract.
+                         */
+                        if (isAbstract(od))
+                            setIsAbstractClass(cd);
+
                         ifaceFilesAreUsedByOverload(&cd->iff->used, od, FALSE);
 
                         /* See if we need the name. */
