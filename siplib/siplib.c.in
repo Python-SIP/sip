@@ -8625,8 +8625,9 @@ static void *indirect_access_func(sipSimpleWrapper *sw, AccessFuncOp op)
 
 /*
  * Get the C/C++ pointer for a complex object.  Note that not casting the C++
- * pointer is a bug.  However this is only ever called by PyQt3 signal emitter
- * code and PyQt doesn't contain anything that multiply inherits from QObject.
+ * pointer is a bug.  However this would only ever be called by PyQt3 signal
+ * emitter code and PyQt doesn't contain anything that multiply inherits from
+ * QObject.
  */
 static void *sip_api_get_complex_cpp_ptr(sipSimpleWrapper *sw)
 {
@@ -11724,7 +11725,7 @@ static void *sip_api_import_symbol(const char *name)
 
 /*
  * Visit a slot connected to an object for the cyclic garbage collector.  This
- * is only called externally by PyQt3.
+ * would only be called externally by PyQt3.
  */
 static int sip_api_visit_slot(sipSlot *slot, visitproc visit, void *arg)
 {
@@ -11737,8 +11738,8 @@ static int sip_api_visit_slot(sipSlot *slot, visitproc visit, void *arg)
 
 
 /*
- * Clear a slot if it has an extra reference to keep it alive.  This is only
- * called externally by PyQt3.
+ * Clear a slot if it has an extra reference to keep it alive.  This would only
+ * be called externally by PyQt3.
  */
 static void sip_api_clear_any_slot_reference(sipSlot *slot)
 {

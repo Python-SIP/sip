@@ -60,11 +60,11 @@ extern "C" {
 
 /*
  * Define the current API version number.  SIP must handle modules with the
- * same major number and with the same or earlier minor number.  Whenever data
- * structure elements are added they must be appended and the minor number
- * incremented.  Whenever data structure elements are removed or the order
- * changed then the major number must be incremented and the minor number set
- * to 0.
+ * same major number and with the same or earlier minor number.  Whenever
+ * members are added to non-embedded data structures they must be appended and
+ * the minor number incremented.  Whenever data structure members are removed
+ * or their offset changed then the major number must be incremented and the
+ * minor number set * to 0.
  *
  * History:
  *
@@ -1959,35 +1959,6 @@ typedef struct _sipQtAPI {
 #define sipNameOfModule(em)     sipNameFromPool((em), (em)->em_name)
 #define sipPyNameOfContainer(cod, td)   sipNameFromPool((td)->td_module, (cod)->cod_name)
 #define sipPyNameOfEnum(etd)    sipNameFromPool((etd)->etd_base.td_module, (etd)->etd_name)
-
-
-/*
- * The following are PyQt3-specific extensions.  In SIP v5 they will be pushed
- * out to a plugin supplied by PyQt3.
- */
-
-
-/*
- * Maps the name of a Qt signal to a wrapper function to emit it.
- */
-typedef int (*pyqt3EmitFunc)(sipSimpleWrapper *, PyObject *);
-
-typedef struct _pyqt3QtSignal {
-    /* The signal name. */
-    const char *st_name;
-
-    /* The emitter function. */
-    pyqt3EmitFunc st_emitfunc;
-} pyqt3QtSignal;
-
-
-/*
- * This is the PyQt3-specific extension to the generated class type structure.
- */
-typedef struct _pyqt3ClassPluginDef {
-    /* The emit table for Qt signals. */
-    pyqt3QtSignal *qt3_emit;
-} pyqt3ClassPluginDef;
 
 
 /*

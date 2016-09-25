@@ -668,7 +668,7 @@ Building a Private Copy of the ``sip`` Module
 .. versionadded:: 4.12
 
 The ``sip`` module is intended to be be used by all the SIP generated modules
-of a particular Python installation.  For example PyQt3 and PyQt4 are
+of a particular Python installation.  For example PyQt4 and PyQt5 are
 completely independent of each other but will use the same ``sip`` module.
 However, this means that all the generated modules must be built against a
 compatible version of SIP.  If you do not have complete control over the

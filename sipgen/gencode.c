@@ -127,9 +127,6 @@ static void generateBaseType(ifaceFileDef *, argDef *, int, FILE *);
 static void generateNamedBaseType(ifaceFileDef *, argDef *, const char *, int,
         FILE *);
 static void generateTupleBuilder(moduleDef *, signatureDef *, FILE *);
-static void generatePyQt3Emitters(moduleDef *mod, classDef *cd, FILE *fp);
-static void generatePyQt3Emitter(moduleDef *, classDef *, visibleList *,
-        FILE *);
 static void generatePyQt5Emitters(classDef *cd, FILE *fp);
 static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
         FILE *fp);
@@ -290,7 +287,6 @@ static int generatePluginSignalsTable(sipSpec *pt, classDef *cd,
         const char *pyqt_prefix, FILE *fp);
 static int generatePyQt5ClassPlugin(sipSpec *pt, classDef *cd, FILE *fp);
 static int generatePyQt4ClassPlugin(sipSpec *pt, classDef *cd, FILE *fp);
-static int generatePyQt3ClassPlugin(classDef *cd, FILE *fp);
 
 
 /*
@@ -7040,69 +7036,6 @@ static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
 
     /* Generate the wrapper around each protected member function. */
     generateProtectedDefinitions(mod, cd, fp);
-
-    /* Generate the emitters if needed. */
-    if (pluginPyQt3(pt))
-        generatePyQt3Emitters(mod, cd, fp);
-}
-
-
-/*
- * Generate the PyQt3 emitter functions.
- */
-static void generatePyQt3Emitters(moduleDef *mod, classDef *cd, FILE *fp)
-{
-    int noIntro;
-    visibleList *vl;
-
-    for (vl = cd->visible; vl != NULL; vl = vl->next)
-    {
-        overDef *od;
-
-        for (od = vl->cd->overs; od != NULL; od = od->next)
-            if (od->common == vl->m && isSignal(od))
-            {
-                generatePyQt3Emitter(mod, cd, vl, fp);
-                break;
-            }
-    }
-
-    /* Generate the table of signals to support fan-outs. */
-
-    noIntro = TRUE;
-
-    for (vl = cd->visible; vl != NULL; vl = vl->next)
-    {
-        overDef *od;
-
-        for (od = vl->cd->overs; od != NULL; od = od->next)
-            if (od->common == vl->m && isSignal(od))
-            {
-                if (noIntro)
-                {
-                    setHasSigSlots(cd);
-
-                    prcode(fp,
-"\n"
-"static pyqt3QtSignal signals_%C[] = {\n"
-                        ,classFQCName(cd));
-
-                    noIntro = FALSE;
-                }
-
-                prcode(fp,
-"    {%N, %C_emit_%s},\n"
-                    ,vl->m->pyname,classFQCName(cd),vl->m->pyname->text);
-
-                break;
-            }
-    }
-
-    if (!noIntro)
-        prcode(fp,
-"    {NULL, NULL}\n"
-"};\n"
-            );
 }
 
 
@@ -7678,100 +7611,6 @@ static void generateCallDefaultCtor(ctorDef *ct, FILE *fp)
     }
 
     prcode(fp, ")");
-}
-
-
-/*
- * Generate the PyQt3 emitter function for a signal.
- */
-static void generatePyQt3Emitter(moduleDef *mod, classDef *cd, visibleList *vl,
-        FILE *fp)
-{
-    const char *pname = vl->m->pyname->text;
-    overDef *od;
-
-    prcode(fp,
-"\n"
-"int sip%C::sipEmit_%s(PyObject *sipArgs)\n"
-"{\n"
-"    PyObject *sipParseErr = NULL;\n"
-        ,classFQCName(cd),pname);
-
-    for (od = vl->cd->overs; od != NULL; od = od->next)
-    {
-        int rgil = ((release_gil || isReleaseGIL(od)) && !isHoldGIL(od));
-
-        if (od->common != vl->m || !isSignal(od))
-            continue;
-
-        /*
-         * Generate the code that parses the args and emits the appropriate
-         * overloaded signal.
-         */
-        prcode(fp,
-"\n"
-"    {\n"
-            );
-
-        generateArgParser(mod, &od->pysig, cd, NULL, NULL, NULL, FALSE, fp);
-
-        prcode(fp,
-"        {\n"
-            );
-
-        if (rgil)
-            prcode(fp,
-"            Py_BEGIN_ALLOW_THREADS\n"
-                );
-
-        prcode(fp,
-"            emit %s("
-            ,od->cppname);
-
-        generateCallArgs(mod, od->cppsig, &od->pysig, fp);
-
-        prcode(fp,");\n"
-            );
-
-        if (rgil)
-            prcode(fp,
-"            Py_END_ALLOW_THREADS\n"
-                );
-
-        deleteTemps(mod, &od->pysig, fp);
-
-        prcode(fp,
-"\n"
-"            return 0;\n"
-"        }\n"
-"    }\n"
-            );
-    }
-
-    prcode(fp,
-"\n"
-"    sipNoMethod(sipParseErr, %N, %N, NULL);\n"
-"\n"
-"    return -1;\n"
-"}\n"
-"\n"
-        , cd->pyname, vl->m->pyname);
-
-    if (!generating_c)
-        prcode(fp,
-"extern \"C\" {static int %C_emit_%s(sipSimpleWrapper *, PyObject *);}\n"
-            , classFQCName(cd), pname);
-
-    prcode(fp,
-"static int %C_emit_%s(sipSimpleWrapper *sw,PyObject *sipArgs)\n"
-"{\n"
-"    sip%C *ptr = reinterpret_cast<sip%C *>(sipGetComplexCppPtr(sw));\n"
-"\n"
-"    return (ptr ? ptr->sipEmit_%s(sipArgs) : -1);\n"
-"}\n"
-        ,classFQCName(cd),pname
-        ,classFQCName(cd),classFQCName(cd)
-        ,pname);
 }
 
 
@@ -9175,48 +9014,6 @@ static void generateShadowClassDeclaration(sipSpec *pt,classDef *cd,FILE *fp)
 
     generateProtectedDeclarations(cd,fp);
 
-    /* The public wrapper around each signal emitter. */
-    if (pluginPyQt3(pt))
-    {
-        visibleList *vl;
-
-        noIntro = TRUE;
-
-        for (vl = cd->visible; vl != NULL; vl = vl->next)
-        {
-            overDef *od;
-
-            if (vl->m->slot != no_slot)
-                continue;
-
-            for (od = vl->cd->overs; od != NULL; od = od->next)
-            {
-                if (od->common != vl->m || !isSignal(od))
-                    continue;
-
-                if (noIntro)
-                {
-                    prcode(fp,
-"\n"
-"    /*\n"
-"     * There is a public method for every Qt signal that can be emitted\n"
-"     * by this object.  This function is called by Python to emit the\n"
-"     * signal.\n"
-"     */\n"
-                        );
-
-                    noIntro = FALSE;
-                }
-
-                prcode(fp,
-"    int sipEmit_%s(PyObject *);\n"
-                    ,vl->m->pyname->text);
-
-                break;
-            }
-        }
-    }
-
     /* The catcher around each virtual function in the hierarchy. */
     noIntro = TRUE;
 
@@ -10143,8 +9940,6 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
         plugin = generatePyQt5ClassPlugin(pt, cd, fp);
     else if (pluginPyQt4(pt))
         plugin = generatePyQt4ClassPlugin(pt, cd, fp);
-    else if (pluginPyQt3(pt))
-        plugin = generatePyQt3ClassPlugin(cd, fp);
     else
         plugin = FALSE;
 
@@ -15415,27 +15210,4 @@ static int generatePyQt4ClassPlugin(sipSpec *pt, classDef *cd, FILE *fp)
         );
 
     return TRUE;
-}
-
-
-/*
- * Generate any extended class definition data for PyQt3.  Return TRUE if there
- * was something generated.
- */
-static int generatePyQt3ClassPlugin(classDef *cd, FILE *fp)
-{
-    if (!hasSigSlots(cd))
-        return FALSE;
-
-    prcode(fp,
-"\n"
-"\n"
-"static pyqt3ClassPluginDef plugin_%L = {\n"
-"    signals_%C\n"
-"};\n"
-        , cd->iff
-        , classFQCName(cd));
-
-    return TRUE;
-
 }

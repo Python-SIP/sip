@@ -7146,9 +7146,6 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
 
     if (isvirt)
     {
-        if (isSignal(od) && pluginPyQt3(pt))
-            yyerror("Virtual signals aren't supported");
-
         setIsVirtual(od);
         setHasShadow(c_scope);
 
@@ -8571,15 +8568,6 @@ static void getTypeHints(optFlags *optflgs, typeHintDef **in,
 static int getNoTypeHint(optFlags *optflgs)
 {
     return (getOptFlag(optflgs, "NoTypeHint", bool_flag) != NULL);
-}
-
-
-/*
- * Return TRUE if the PyQt3 plugin was specified.
- */
-int pluginPyQt3(sipSpec *pt)
-{
-    return stringFind(pt->plugins, "PyQt3");
 }
 
 
