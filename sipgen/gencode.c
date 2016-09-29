@@ -10023,11 +10023,11 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 
     if (plugin)
         prcode(fp,
-"    &plugin_%L\n"
+"        &plugin_%L\n"
             , cd->iff);
     else
         prcode(fp,
-"    0\n"
+"        0\n"
             );
 
     prcode(fp,
