@@ -4787,7 +4787,10 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
 {
     argType atype = vd->type.atype;
     const char *first_arg, *second_arg, *last_arg;
-    int needsNew, key;
+    int needsNew;
+
+    if (keepPyReference(&vd->type))
+        vd->type.key = vd->module->next_key--;
 
     if (generating_c || !isStaticVar(vd))
         first_arg = "sipSelf";
@@ -4797,9 +4800,8 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
     last_arg = (generating_c || usedInCode(vd->getcode, "sipPyType")) ? "sipPyType" : "";
 
     needsNew = ((atype == class_type || atype == mapped_type) && vd->type.nrderefs == 0 && isConstArg(&vd->type));
-    key = ((atype == class_type || atype == mapped_type) && vd->type.nrderefs == 0) ? vd->module->next_key-- : 0;
 
-    second_arg = (generating_c || (key < 0 && !isStaticVar(vd))) ? "sipPySelf" : "";
+    second_arg = (generating_c || (vd->type.key < 0 && !isStaticVar(vd))) ? "sipPySelf" : "";
 
     prcode(fp,
 "\n"
@@ -4822,7 +4824,7 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
 "    PyObject *sipPy;\n"
             );
     }
-    else if (key < 0)
+    else if (vd->type.key < 0)
     {
         if (isStaticVar(vd))
             prcode(fp,
@@ -4875,7 +4877,7 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
         return;
     }
 
-    if (key < 0)
+    if (vd->type.key < 0)
     {
         if (isStaticVar(vd))
         {
@@ -4895,7 +4897,7 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
 "    if (sipPy)\n"
 "        return sipPy;\n"
 "\n"
-                , key);
+                , vd->type.key);
         }
     }
 
@@ -4936,7 +4938,7 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
                 iff = vd->type.u.cd->iff;
 
             prcode(fp,
-"    %s sipConvertFrom%sType(", (key < 0 ? "sipPy =" : "return"), (needsNew ? "New" : ""));
+"    %s sipConvertFrom%sType(", (vd->type.key < 0 ? "sipPy =" : "return"), (needsNew ? "New" : ""));
 
             if (isConstArg(&vd->type))
                 prcode(fp, "const_cast<%b *>(sipVal)", &vd->type);
@@ -4946,7 +4948,7 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
             prcode(fp, ", sipType_%C, NULL);\n"
                 , iff->fqcname);
 
-            if (key < 0)
+            if (vd->type.key < 0)
             {
                 if (isStaticVar(vd))
                     prcode(fp,
@@ -4955,7 +4957,7 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
                 else
                     prcode(fp,
 "    sipKeepReference(sipPySelf, %d, sipPy);\n"
-                        , key);
+                        , vd->type.key);
 
                 prcode(fp,
 "\n"
@@ -5198,16 +5200,14 @@ static void generateVariableSetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
     argType atype = vd->type.atype;
     const char *first_arg, *last_arg;
     char *deref;
-    int might_be_temp, keep, need_py, need_cpp;
-
-    keep = keepPyReference(&vd->type);
+    int might_be_temp, need_py, need_cpp;
 
     if (generating_c || !isStaticVar(vd))
         first_arg = "sipSelf";
     else
         first_arg = "";
 
-    if (generating_c || (!isStaticVar(vd) && keep))
+    if (generating_c || (!isStaticVar(vd) && vd->type.key < 0))
         last_arg = "sipPySelf";
     else
         last_arg = "";
@@ -5351,7 +5351,7 @@ static void generateVariableSetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
             , &vd->type);
 
     /* Generate the code to keep the object alive while we use its data. */
-    if (keep)
+    if (vd->type.key < 0)
     {
         if (isStaticVar(vd))
         {
@@ -5366,8 +5366,6 @@ static void generateVariableSetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
         }
         else
         {
-            vd->type.key = scope->module->next_key--;
-
             prcode(fp,
 "\n"
 "    sipKeepReference(sipPySelf, %d, sipPy);\n"
