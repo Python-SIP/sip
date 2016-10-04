@@ -73,7 +73,12 @@ static void setNeededType(argDef *ad);
 static void setNeededExceptions(sipSpec *pt, moduleDef *mod,
         throwArgs *exceptions);
 static void setNeedsException(exceptionDef *xd);
-static void searchClassScope(sipSpec *,classDef *,scopedNameDef *,argDef *);
+static void searchClassScope(sipSpec *pt, classDef *c_scope,
+        scopedNameDef *snd, argDef *ad);
+static void searchScope(sipSpec *pt, classDef *scope, scopedNameDef *snd,
+        argDef *ad);
+static void nameLookup(sipSpec *pt, moduleDef *context, scopedNameDef *snd,
+        argDef *ad);
 static void searchMappedTypes(sipSpec *,moduleDef *,scopedNameDef *,argDef *);
 static void searchEnums(sipSpec *,scopedNameDef *,argDef *);
 static void searchClasses(sipSpec *,moduleDef *mod,scopedNameDef *,argDef *);
@@ -2967,35 +2972,37 @@ static void resolveType(sipSpec *pt, moduleDef *mod, classDef *c_scope,
     /* Loop until we've got to a base type. */
     while (type->atype == defined_type)
     {
+        classDef *scope;
         scopedNameDef *snd = type->u.snd;
 
         type->atype = no_type;
 
-        if (c_scope != NULL)
-            searchClassScope(pt, c_scope, snd, type);
-
-        if (type->atype == no_type)
-            searchMappedTypes(pt, mod, snd, type);
-
-        if (type->atype == no_type)
-            searchTypedefs(pt, snd, type);
-
-        if (type->atype == no_type)
-            searchEnums(pt, snd, type);
-
-        if (type->atype == no_type)
-            searchClasses(pt, mod, snd, type);
-
-        if (type->atype == no_type)
+        for (scope = c_scope; scope != NULL; scope = scope->ecd)
         {
-            if (allow_defined)
-            {
-                type->atype = defined_type;
-                return;
-            }
+            if (scope->iff->type == class_iface)
+                searchClassScope(pt, scope, snd, type);
+            else
+                searchScope(pt, scope, snd, type);
 
-            fatalNoDefinedType(snd);
+            if (type->atype != no_type)
+                break;
         }
+
+        if (type->atype != no_type)
+            break;
+
+        nameLookup(pt, mod, snd, type);
+
+        if (type->atype != no_type)
+            break;
+
+        if (allow_defined)
+        {
+            type->atype = defined_type;
+            return;
+        }
+
+        fatalNoDefinedType(snd);
     }
 
     /* Get the base type of any slot arguments. */
@@ -3255,12 +3262,11 @@ char *templateString(const char *src, scopedNameDef *names,
 
 
 /*
- * Search for a name in a scope and return the corresponding type.
+ * Search for a name in a class scope and return the corresponding type.
  */
 static void searchClassScope(sipSpec *pt, classDef *c_scope,
         scopedNameDef *snd, argDef *ad)
 {
-    scopedNameDef *tmpsnd = NULL;
     mroDef *mro;
 
     for (mro = c_scope->mro; mro != NULL; mro = mro->next)
@@ -3268,43 +3274,57 @@ static void searchClassScope(sipSpec *pt, classDef *c_scope,
         if (isDuplicateSuper(mro))
             continue;
 
-        /* Append the name to the scope and see if it exists. */
-        tmpsnd = copyScopedName(classFQCName(mro->cd));
-        appendScopedName(&tmpsnd, copyScopedName(snd));
-
-        searchMappedTypes(pt, mro->cd->iff->module, tmpsnd, ad);
+        searchScope(pt, mro->cd, snd, ad);
 
         if (ad->atype != no_type)
             break;
-
-        searchTypedefs(pt, tmpsnd, ad);
-
-        if (ad->atype != no_type)
-            break;
-
-        searchEnums(pt, tmpsnd, ad);
-
-        if (ad->atype != no_type)
-            break;
-
-        searchClasses(pt, mro->cd->iff->module, tmpsnd, ad);
-
-        if (ad->atype != no_type)
-            break;
-
-        freeScopedName(tmpsnd);
-        tmpsnd = NULL;
     }
+}
 
-    if (tmpsnd != NULL)
-        freeScopedName(tmpsnd);
+
+/*
+ * Search for a name in a scope and return the corresponding type.
+ */
+static void searchScope(sipSpec *pt, classDef *scope, scopedNameDef *snd,
+        argDef *ad)
+{
+    scopedNameDef *tmpsnd;
+
+    /* Append the name to the scope and see if it exists. */
+    tmpsnd = copyScopedName(classFQCName(scope));
+    appendScopedName(&tmpsnd, copyScopedName(snd));
+
+    nameLookup(pt, scope->iff->module, tmpsnd, ad);
+
+    freeScopedName(tmpsnd);
+}
+
+
+/*
+ * Look up a name and return the corresponding type.
+ */
+static void nameLookup(sipSpec *pt, moduleDef *context, scopedNameDef *snd,
+        argDef *ad)
+{
+    searchMappedTypes(pt, context, snd, ad);
+    if (ad->atype != no_type)
+        return;
+
+    searchTypedefs(pt, snd, ad);
+    if (ad->atype != no_type)
+        return;
+
+    searchEnums(pt, snd, ad);
+    if (ad->atype != no_type)
+        return;
+
+    searchClasses(pt, context, snd, ad);
 }
 
 
 /*
  * Search the mapped types for a name and return the type.
  */
-
 static void searchMappedTypes(sipSpec *pt, moduleDef *context,
         scopedNameDef *snd, argDef *ad)
 {
