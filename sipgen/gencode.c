@@ -8594,7 +8594,7 @@ static void generateTupleBuilder(moduleDef *mod, signatureDef *sd,FILE *fp)
             else
             {
                 if (isConstArg(ad))
-                    prcode(fp,"const_cast<%b *>(",ad);
+                    prcode(fp, "const_cast<%D *>(", ad);
 
                 if (ad->nrderefs == 0)
                     prcode(fp,"&");
@@ -14033,62 +14033,28 @@ void prcode(FILE *fp, const char *fmt, ...)
 
             switch (ch)
             {
-            case 'c':
+            case 'a':
                 {
-                    char c = (char)va_arg(ap,int);
+                    moduleDef *mod = va_arg(ap, moduleDef *);
+                    argDef *ad = va_arg(ap, argDef *);
+                    int argnr = va_arg(ap, int);
 
-                    if (c == '\n')
-                        ++currentLineNr;
-
-                    fputc(c,fp);
-                    break;
-                }
-
-            case 's':
-                {
-                    const char *cp = va_arg(ap,const char *);
-
-                    while (*cp != '\0')
-                    {
-                        if (*cp == '\n')
-                            ++currentLineNr;
-
-                        fputc(*cp,fp);
-                        ++cp;
-                    }
+                    if (useArgNames(mod) && ad->name != NULL)
+                        fprintf(fp, "%s", ad->name->text);
+                    else
+                        fprintf(fp, "a%d", argnr);
 
                     break;
                 }
 
-            case 'l':
-                fprintf(fp,"%ld",va_arg(ap,long));
-                break;
+            case 'A':
+                {
+                    ifaceFileDef *scope = va_arg(ap, ifaceFileDef *);
+                    argDef *ad = va_arg(ap, argDef *);
 
-            case 'u':
-                fprintf(fp,"%u",va_arg(ap,unsigned));
-                break;
-
-            case 'd':
-                fprintf(fp,"%d",va_arg(ap,int));
-                break;
-
-            case 'g':
-                fprintf(fp,"%g",va_arg(ap,double));
-                break;
-
-            case 'x':
-                fprintf(fp,"0x%08x",va_arg(ap,unsigned));
-                break;
-
-            case '\0':
-                fputc('%',fp);
-                --fmt;
-                break;
-
-            case '\n':
-                fputc('\n',fp);
-                ++currentLineNr;
-                break;
+                    generateBaseType(scope, ad, TRUE, fp);
+                    break;
+                }
 
             case 'b':
                 {
@@ -14108,64 +14074,47 @@ void prcode(FILE *fp, const char *fmt, ...)
                     break;
                 }
 
-            case 'M':
-                prcode_xml = !prcode_xml;
-                break;
-
-            case 'A':
-                {
-                    ifaceFileDef *scope = va_arg(ap, ifaceFileDef *);
-                    argDef *ad = va_arg(ap, argDef *);
-
-                    generateBaseType(scope, ad, TRUE, fp);
-                    break;
-                }
-
-            case 'a':
-                {
-                    moduleDef *mod = va_arg(ap, moduleDef *);
-                    argDef *ad = va_arg(ap, argDef *);
-                    int argnr = va_arg(ap, int);
-
-                    if (useArgNames(mod) && ad->name != NULL)
-                        fprintf(fp, "%s", ad->name->text);
-                    else
-                        fprintf(fp, "a%d", argnr);
-
-                    break;
-                }
-
             case 'B':
                 generateBaseType(NULL, va_arg(ap,argDef *), TRUE, fp);
                 break;
 
-            case 'T':
-                prTypeName(fp, va_arg(ap,argDef *));
+            case 'c':
+                {
+                    char c = (char)va_arg(ap,int);
+
+                    if (c == '\n')
+                        ++currentLineNr;
+
+                    fputc(c,fp);
+                    break;
+                }
+
+            case 'C':
+                prScopedName(fp,va_arg(ap,scopedNameDef *),"_");
                 break;
 
-            case 'I':
+            case 'd':
+                fprintf(fp,"%d",va_arg(ap,int));
+                break;
+
+            case 'D':
                 {
-                    int indent = va_arg(ap,int);
+                    /*
+                     * This is the same as 'b' but never uses a typedef's name.
+                     */
+                    argDef *ad, orig;
 
-                    while (indent-- > 0)
-                        fputc('\t',fp);
+                    ad = va_arg(ap,argDef *);
+                    orig = *ad;
 
-                    break;
-                }
+                    resetIsConstArg(ad);
+                    resetIsReference(ad);
+                    ad->nrderefs = 0;
 
-            case 'N':
-                {
-                    nameDef *nd = va_arg(ap,nameDef *);
+                    generateBaseType(NULL, ad, FALSE, fp);
 
-                    prCachedName(fp, nd, "sipName_");
-                    break;
-                }
+                    *ad = orig;
 
-            case 'n':
-                {
-                    nameDef *nd = va_arg(ap,nameDef *);
-
-                    prCachedName(fp, nd, "sipNameNr_");
                     break;
                 }
 
@@ -14185,8 +14134,22 @@ void prcode(FILE *fp, const char *fmt, ...)
                 prScopedName(fp,va_arg(ap,scopedNameDef *),"");
                 break;
 
-            case 'C':
-                prScopedName(fp,va_arg(ap,scopedNameDef *),"_");
+            case 'g':
+                fprintf(fp,"%g",va_arg(ap,double));
+                break;
+
+            case 'I':
+                {
+                    int indent = va_arg(ap,int);
+
+                    while (indent-- > 0)
+                        fputc('\t',fp);
+
+                    break;
+                }
+
+            case 'l':
+                fprintf(fp,"%ld",va_arg(ap,long));
                 break;
 
             case 'L':
@@ -14201,6 +14164,30 @@ void prcode(FILE *fp, const char *fmt, ...)
                     break;
                 }
 
+            case 'M':
+                prcode_xml = !prcode_xml;
+                break;
+
+            case 'n':
+                {
+                    nameDef *nd = va_arg(ap,nameDef *);
+
+                    prCachedName(fp, nd, "sipNameNr_");
+                    break;
+                }
+
+            case 'N':
+                {
+                    nameDef *nd = va_arg(ap,nameDef *);
+
+                    prCachedName(fp, nd, "sipName_");
+                    break;
+                }
+
+            case 'O':
+                prOverloadName(fp, va_arg(ap, overDef *));
+                break;
+
             case 'P':
                 {
                     apiVersionRangeDef *avr = va_arg(ap, apiVersionRangeDef *);
@@ -14210,8 +14197,32 @@ void prcode(FILE *fp, const char *fmt, ...)
                     break;
                 }
 
+            case 's':
+                {
+                    const char *cp = va_arg(ap,const char *);
+
+                    while (*cp != '\0')
+                    {
+                        if (*cp == '\n')
+                            ++currentLineNr;
+
+                        fputc(*cp,fp);
+                        ++cp;
+                    }
+
+                    break;
+                }
+
             case 'S':
                 prScopedName(fp, va_arg(ap, scopedNameDef *), "::");
+                break;
+
+            case 'T':
+                prTypeName(fp, va_arg(ap,argDef *));
+                break;
+
+            case 'u':
+                fprintf(fp,"%u",va_arg(ap,unsigned));
                 break;
 
             case 'U':
@@ -14237,12 +14248,22 @@ void prcode(FILE *fp, const char *fmt, ...)
                     break;
                 }
 
-            case 'O':
-                prOverloadName(fp, va_arg(ap, overDef *));
+            case 'x':
+                fprintf(fp,"0x%08x",va_arg(ap,unsigned));
                 break;
 
             case 'X':
                 generateThrowSpecifier(va_arg(ap,throwArgs *),fp);
+                break;
+
+            case '\n':
+                fputc('\n',fp);
+                ++currentLineNr;
+                break;
+
+            case '\0':
+                fputc('%',fp);
+                --fmt;
                 break;
 
             default:
