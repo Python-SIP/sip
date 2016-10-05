@@ -119,7 +119,7 @@ static void gc_ellipsis(signatureDef *sd, FILE *fp);
 static void generateCallArgs(moduleDef *, signatureDef *, signatureDef *,
         FILE *);
 static void generateCalledArgs(moduleDef *, ifaceFileDef *, signatureDef *,
-        funcArgType, int, FILE *);
+        funcArgType, FILE *);
 static void generateVariable(moduleDef *, ifaceFileDef *, argDef *, int,
         FILE *);
 static void generateNamedValueType(ifaceFileDef *, argDef *, char *, FILE *);
@@ -6887,7 +6887,7 @@ static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
 "\n"
 "sip%C::sip%C(",classFQCName(cd),classFQCName(cd));
 
-        generateCalledArgs(mod, cd->iff, ct->cppsig, Definition, TRUE, fp);
+        generateCalledArgs(mod, cd->iff, ct->cppsig, Definition, fp);
 
         prcode(fp,")%X: %S(",ct->exceptions,classFQCName(cd));
 
@@ -6901,7 +6901,7 @@ static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
         {
             prcode(fp,
 "    sipTrace(SIP_TRACE_CTORS,\"sip%C::sip%C(",classFQCName(cd),classFQCName(cd));
-            generateCalledArgs(NULL, cd->iff, ct->cppsig, Declaration, TRUE, fp);
+            generateCalledArgs(NULL, cd->iff, ct->cppsig, Declaration, fp);
             prcode(fp,")%X (this=0x%%08x)\\n\",this);\n"
 "\n"
                 ,ct->exceptions);
@@ -7111,7 +7111,7 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
     generateBaseType(cd->iff, &od->cppsig->result, TRUE, fp);
 
     prcode(fp," sip%C::%O(",classFQCName(cd),od);
-    generateCalledArgs(mod, cd->iff, od->cppsig, Definition, TRUE, fp);
+    generateCalledArgs(mod, cd->iff, od->cppsig, Definition, fp);
     prcode(fp,")%s%X\n"
 "{\n"
         ,(isConst(od) ? " const" : ""),od->exceptions);
@@ -7123,7 +7123,7 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
 
         generateBaseType(cd->iff, &od->cppsig->result, TRUE, fp);
         prcode(fp," sip%C::%O(",classFQCName(cd),od);
-        generateCalledArgs(NULL, cd->iff, od->cppsig, Declaration, TRUE, fp);
+        generateCalledArgs(NULL, cd->iff, od->cppsig, Declaration, fp);
         prcode(fp,")%s%X (this=0x%%08x)\\n\",this);\n"
 "\n"
             ,(isConst(od) ? " const" : ""),od->exceptions);
@@ -7349,14 +7349,14 @@ static void generateVirtHandlerCall(moduleDef *mod, classDef *cd,
     prcode(fp,
 "%sextern ", indent);
 
-    generateBaseType(cd->iff, &od->cppsig->result, FALSE, fp);
+    generateBaseType(cd->iff, &od->cppsig->result, TRUE, fp);
 
     prcode(fp, " sipVH_%s_%d(sip_gilstate_t, sipVirtErrorHandlerFunc, sipSimpleWrapper *, PyObject *", mod->name, vhd->virthandlernr);
 
     if (vhd->cppsig->nrArgs > 0)
     {
         prcode(fp, ", ");
-        generateCalledArgs(NULL, cd->iff, vhd->cppsig, Declaration, FALSE, fp);
+        generateCalledArgs(NULL, cd->iff, vhd->cppsig, Declaration, fp);
     }
 
     *vhd->cppsig = saved;
@@ -7672,7 +7672,7 @@ static void generateProtectedDeclarations(classDef *cd,FILE *fp)
             else
                 prcode(fp, " sipProtect_%s(", od->cppname);
 
-            generateCalledArgs(NULL, cd->iff, od->cppsig, Declaration, TRUE, fp);
+            generateCalledArgs(NULL, cd->iff, od->cppsig, Declaration, fp);
             prcode(fp,")%s;\n"
                 ,(isConst(od) ? " const" : ""));
         }
@@ -7726,7 +7726,7 @@ static void generateProtectedDefinitions(moduleDef *mod, classDef *cd, FILE *fp)
             else
                 prcode(fp, " sip%C::sipProtect_%s(", classFQCName(cd), mname);
 
-            generateCalledArgs(mod, cd->iff, od->cppsig, Definition, TRUE, fp);
+            generateCalledArgs(mod, cd->iff, od->cppsig, Definition, fp);
             prcode(fp,")%s\n"
 "{\n"
                 ,(isConst(od) ? " const" : ""));
@@ -7884,7 +7884,7 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
     saved = *vhd->cppsig;
     fakeProtectedArgs(vhd->cppsig);
 
-    generateBaseType(NULL, &vhd->cppsig->result, FALSE, fp);
+    generateBaseType(NULL, &vhd->cppsig->result, TRUE, fp);
 
     prcode(fp," sipVH_%s_%d(sip_gilstate_t sipGILState, sipVirtErrorHandlerFunc sipErrorHandler, sipSimpleWrapper *sipPySelf, PyObject *sipMethod"
         , mod->name, vhd->virthandlernr);
@@ -7892,7 +7892,7 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
     if (vhd->cppsig->nrArgs > 0)
     {
         prcode(fp,", ");
-        generateCalledArgs(mod, NULL, vhd->cppsig, Definition, FALSE, fp);
+        generateCalledArgs(mod, NULL, vhd->cppsig, Definition, fp);
     }
 
     *vhd->cppsig = saved;
@@ -7931,7 +7931,7 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
         if (res->atype == wstring_type && res->nrderefs == 1)
             prcode(fp, "static ");
 
-        generateBaseType(NULL, &res_noconstref, FALSE, fp);
+        generateBaseType(NULL, &res_noconstref, TRUE, fp);
 
         prcode(fp," %ssipRes",(res_isref ? "*" : ""));
 
@@ -8976,7 +8976,7 @@ static void generateShadowClassDeclaration(sipSpec *pt,classDef *cd,FILE *fp)
         prcode(fp,
 "    sip%C(",classFQCName(cd));
 
-        generateCalledArgs(NULL, cd->iff, ct->cppsig, Declaration, TRUE, fp);
+        generateCalledArgs(NULL, cd->iff, ct->cppsig, Declaration, fp);
 
         prcode(fp,")%X;\n"
             ,ct->exceptions);
@@ -9119,7 +9119,7 @@ void prOverloadDecl(FILE *fp, ifaceFileDef *scope, overDef *od, int defval)
  * Generate typed arguments for a declaration or a definition.
  */
 static void generateCalledArgs(moduleDef *mod, ifaceFileDef *scope,
-        signatureDef *sd, funcArgType ftype, int use_typename, FILE *fp)
+        signatureDef *sd, funcArgType ftype, FILE *fp)
 {
     const char *name;
     char buf[50];
@@ -9146,7 +9146,7 @@ static void generateCalledArgs(moduleDef *mod, ifaceFileDef *scope,
             buf[0] = '\0';
         }
 
-        generateNamedBaseType(scope, ad, name, use_typename, fp);
+        generateNamedBaseType(scope, ad, name, TRUE, fp);
     }
 }
 
@@ -9310,7 +9310,7 @@ static void generateNamedBaseType(ifaceFileDef *scope, argDef *ad,
                 prcode(fp, "*");
 
             prcode(fp, "%s)(",name);
-            generateCalledArgs(NULL, scope, sig, Declaration, use_typename, fp);
+            generateCalledArgs(NULL, scope, sig, Declaration, fp);
             prcode(fp, ")");
 
             return;
@@ -13613,7 +13613,7 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
                 {
                     prcode(fp,", \"(");
 
-                    generateCalledArgs(NULL, scope, slotconarg_ad->u.sa, Declaration, TRUE, fp);
+                    generateCalledArgs(NULL, scope, slotconarg_ad->u.sa, Declaration, fp);
 
                     prcode(fp,")\"");
                 }
@@ -13627,7 +13627,7 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
             {
                 prcode(fp,", \"(");
 
-                generateCalledArgs(NULL, scope, slotdisarg_ad->u.sa, Declaration, TRUE, fp);
+                generateCalledArgs(NULL, scope, slotdisarg_ad->u.sa, Declaration, fp);
 
                 prcode(fp, ")\", &%a, &%a", mod, ad, a, mod, slotdisarg_ad, slotdisarg);
 
@@ -14136,7 +14136,7 @@ void prcode(FILE *fp, const char *fmt, ...)
                 }
 
             case 'B':
-                generateBaseType(NULL, va_arg(ap,argDef *),TRUE, fp);
+                generateBaseType(NULL, va_arg(ap,argDef *), TRUE, fp);
                 break;
 
             case 'T':
