@@ -1370,6 +1370,23 @@ For example::
 .. seealso:: :directive:`%AccessCode`, :directive:`%SetCode`
 
 
+.. directive:: %HideNamespace
+
+.. versionadded:: 4.19
+
+.. parsed-literal::
+
+    %HideNamespace(name = *name*)
+
+This directive is used to specify that a C++ namespace, which would normally be
+wrapped as a Python class, is not wrapped.  The contents of the namespace are
+still wrapped but are placed in the module dictionary.  This is usually used
+when a library being wrapped uses a single namespace that includes everything
+in the library.  In Python the module itself performs the same function as the
+namespace and so the namespace would just add an unneccessary extra level of
+indirection.
+
+
 .. directive:: %If
 
 .. parsed-literal::
