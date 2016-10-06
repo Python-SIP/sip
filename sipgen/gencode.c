@@ -287,6 +287,8 @@ static int generatePluginSignalsTable(sipSpec *pt, classDef *cd,
         const char *pyqt_prefix, FILE *fp);
 static int generatePyQt5ClassPlugin(sipSpec *pt, classDef *cd, FILE *fp);
 static int generatePyQt4ClassPlugin(sipSpec *pt, classDef *cd, FILE *fp);
+static void generateGlobalFunctionTableEntries(sipSpec *pt, moduleDef *mod,
+        memberDef *members, FILE *fp);
 
 
 /*
@@ -1496,8 +1498,11 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 
     /* Generate the global functions. */
     for (md = mod->othfuncs; md != NULL; md = md->next)
+    {
         if (md->slot == no_slot)
+        {
             generateOrdinaryFunction(pt, mod, NULL, NULL, md, fp);
+        }
         else
         {
             overDef *od;
@@ -1507,13 +1512,29 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
              * them all to classes.
              */
             for (od = mod->overs; od != NULL; od = od->next)
+            {
                 if (od->common == md)
                 {
                     generateSlot(mod, NULL, NULL, md, fp);
                     slot_extenders = TRUE;
                     break;
                 }
+            }
         }
+    }
+
+    /* Generate the global functions for any hidden namespaces. */
+    for (cd = pt->classes; cd != NULL; cd = cd->next)
+    {
+        if (cd->iff->module == mod && isHiddenNamespace(cd))
+        {
+            for (md = cd->members; md != NULL; md = md->next)
+            {
+                if (md->slot == no_slot)
+                    generateOrdinaryFunction(pt, mod, cd, NULL, md, fp);
+            }
+        }
+    }
 
     /* Generate any class specific ctor or slot extenders. */
     for (cd = mod->proxies; cd != NULL; cd = cd->next)
@@ -2368,34 +2389,12 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "    static PyMethodDef sip_methods[] = {\n"
         );
 
-    for (md = mod->othfuncs; md != NULL; md = md->next)
-        if (md->slot == no_slot)
-        {
-            int has_docstring;
+    generateGlobalFunctionTableEntries(pt, mod, mod->othfuncs, fp);
 
-            if (!notVersioned(md))
-                continue;
-
-            has_docstring = FALSE;
-
-            if (md->docstring != NULL || (docstrings && hasDocstring(pt, mod->overs, md, NULL)))
-                has_docstring = TRUE;
-
-            prcode(fp,
-"        {SIP_MLNAME_CAST(%N), ", md->pyname);
-
-            if (noArgParser(md) || useKeywordArgs(md))
-                prcode(fp, "(PyCFunction)func_%s, METH_VARARGS|METH_KEYWORDS", md->pyname->text);
-            else
-                prcode(fp, "func_%s, METH_VARARGS", md->pyname->text);
-
-            if (has_docstring)
-                prcode(fp, ", SIP_MLDOC_CAST(doc_%s)},\n"
-                    , md->pyname->text);
-            else
-                prcode(fp, ", NULL},\n"
-                    );
-        }
+    /* Generate the global functions for any hidden namespaces. */
+    for (cd = pt->classes; cd != NULL; cd = cd->next)
+        if (cd->iff->module == mod && isHiddenNamespace(cd))
+            generateGlobalFunctionTableEntries(pt, mod, cd->members, fp);
 
     prcode(fp,
 "        {0, 0, 0, 0}\n"
@@ -2633,7 +2632,7 @@ static void generateTypesTable(moduleDef *mod, FILE *fp)
                 prcode(fp,
 "    0,\n"
                     );
-            else
+            else if (!isHiddenNamespace(ad->u.cd))
                 prcode(fp,
 "    &sipTypeDef_%s_%L.ctd_base,\n"
                     , mod->name, ad->u.cd->iff);
@@ -2952,7 +2951,7 @@ static void generateOrdinaryFunction(sipSpec *pt, moduleDef *mod,
     }
     else if (c_scope != NULL)
     {
-        scope = c_scope->iff;
+        scope = (isHiddenNamespace(c_scope) ? NULL : c_scope->iff);
         od = c_scope->overs;
     }
     else
@@ -3108,13 +3107,14 @@ static int generateEnumMemberTable(sipSpec *pt, moduleDef *mod, classDef *cd,
     for (ed = pt->enums; ed != NULL; ed = ed->next)
     {
         enumMemberDef *emd;
+        classDef *ps = pyScope(ed->ecd);
 
         if (ed->module != mod)
             continue;
 
         if (cd != NULL)
         {
-            if (ed->ecd != cd || (isProtectedEnum(ed) && !hasShadow(cd)))
+            if (ps != cd || (isProtectedEnum(ed) && !hasShadow(cd)))
                 continue;
         }
         else if (mtd != NULL)
@@ -3122,7 +3122,7 @@ static int generateEnumMemberTable(sipSpec *pt, moduleDef *mod, classDef *cd,
             if (ed->emtd != mtd)
                 continue;
         }
-        else if (ed->ecd != NULL || ed->emtd != NULL || ed->fqcname == NULL)
+        else if (ps != NULL || ed->emtd != NULL || ed->fqcname == NULL)
         {
             continue;
         }
@@ -3143,13 +3143,14 @@ static int generateEnumMemberTable(sipSpec *pt, moduleDef *mod, classDef *cd,
     for (ed = pt->enums; ed != NULL; ed = ed->next)
     {
         enumMemberDef *emd;
+        classDef *ps = pyScope(ed->ecd);
 
         if (ed->module != mod)
             continue;
 
         if (cd != NULL)
         {
-            if (ed->ecd != cd)
+            if (ps != cd)
                 continue;
         }
         else if (mtd != NULL)
@@ -3157,7 +3158,7 @@ static int generateEnumMemberTable(sipSpec *pt, moduleDef *mod, classDef *cd,
             if (ed->emtd != mtd)
                 continue;
         }
-        else if (ed->ecd != NULL || ed->emtd != NULL || ed->fqcname == NULL)
+        else if (ps != NULL || ed->emtd != NULL || ed->fqcname == NULL)
         {
             continue;
         }
@@ -3202,14 +3203,16 @@ static int generateEnumMemberTable(sipSpec *pt, moduleDef *mod, classDef *cd,
 
         if (!isNoScope(emd->ed))
         {
-            if (cd != NULL)
+            classDef *ecd = emd->ed->ecd;
+
+            if (ecd != NULL)
             {
                 if (isProtectedEnum(emd->ed))
-                    prcode(fp, "sip%C::", classFQCName(cd));
-                else if (isProtectedClass(cd))
-                    prcode(fp, "%U::", cd);
+                    prcode(fp, "sip%C::", classFQCName(ecd));
+                else if (isProtectedClass(ecd))
+                    prcode(fp, "%U::", ecd);
                 else
-                    prcode(fp, "%S::", classFQCName(cd));
+                    prcode(fp, "%S::", classFQCName(ecd));
             }
             else if (mtd != NULL)
             {
@@ -3369,7 +3372,7 @@ static void generateTypesInline(sipSpec *pt, moduleDef *mod, FILE *fp)
         prcode(fp,
 "    sipAddTypeInstance(");
 
-        if (vd->ecd == NULL)
+        if (pyScope(vd->ecd) == NULL)
             prcode(fp, "sipModuleDict");
         else
             prcode(fp, "(PyObject *)sipTypeAsPyTypeObject(sipType_%C)", classFQCName(vd->ecd));
@@ -3407,7 +3410,7 @@ static int generateClasses(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
 
     for (vd = pt->vars; vd != NULL; vd = vd->next)
     {
-        if (vd->ecd != cd || vd->module != mod)
+        if (pyScope(vd->ecd) != cd || vd->module != mod)
             continue;
 
         if (vd->type.atype != class_type && (vd->type.atype != enum_type || vd->type.u.ed->fqcname == NULL))
@@ -3503,7 +3506,7 @@ static int generateVoidPointers(sipSpec *pt, moduleDef *mod, classDef *cd,
 
     for (vd = pt->vars; vd != NULL; vd = vd->next)
     {
-        if (vd->ecd != cd || vd->module != mod)
+        if (pyScope(vd->ecd) != cd || vd->module != mod)
             continue;
 
         if (vd->type.atype != void_type && vd->type.atype != struct_type)
@@ -3567,7 +3570,7 @@ static int generateChars(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
     {
         argType vtype = vd->type.atype;
 
-        if (vd->ecd != cd || vd->module != mod)
+        if (pyScope(vd->ecd) != cd || vd->module != mod)
             continue;
 
         if (!((vtype == ascii_string_type || vtype == latin1_string_type || vtype == utf8_string_type || vtype == sstring_type || vtype == ustring_type || vtype == string_type || vtype == wstring_type) && vd->type.nrderefs == 0))
@@ -3626,7 +3629,7 @@ static int generateStrings(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
     {
         argType vtype = vd->type.atype;
 
-        if (vd->ecd != cd || vd->module != mod)
+        if (pyScope(vd->ecd) != cd || vd->module != mod)
             continue;
 
         if (!((vtype == ascii_string_type || vtype == latin1_string_type || vtype == utf8_string_type || vtype == sstring_type || vtype == ustring_type || vtype == string_type || vtype == wstring_type) && vd->type.nrderefs != 0))
@@ -3686,7 +3689,7 @@ static int generateInts(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
     {
         argType vtype = vd->type.atype;
 
-        if (vd->ecd != cd || vd->module != mod)
+        if (pyScope(vd->ecd) != cd || vd->module != mod)
             continue;
 
         if (!(vtype == enum_type || vtype == byte_type ||
@@ -3839,7 +3842,7 @@ static int generateVariableType(sipSpec *pt, moduleDef *mod, classDef *cd,
         if (vtype == uint_type && atype == ulong_type)
             vtype = ulong_type;
 
-        if (vd->ecd != cd || vd->module != mod)
+        if (pyScope(vd->ecd) != cd || vd->module != mod)
             continue;
 
         if (vtype != atype)
@@ -3900,7 +3903,7 @@ static int generateDoubles(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
     {
         argType vtype = vd->type.atype;
 
-        if (vd->ecd != cd || vd->module != mod)
+        if (pyScope(vd->ecd) != cd || vd->module != mod)
             continue;
 
         if (!(vtype == float_type || vtype == cfloat_type || vtype == double_type || vtype == cdouble_type))
@@ -3953,7 +3956,7 @@ static int emptyIfaceFile(sipSpec *pt, ifaceFileDef *iff)
     mappedTypeDef *mtd;
 
     for (cd = pt->classes; cd != NULL; cd = cd->next)
-        if (!isProtectedClass(cd) && !isExternal(cd) && cd->iff == iff)
+        if (!isHiddenNamespace(cd) && !isProtectedClass(cd) && !isExternal(cd) && cd->iff == iff)
             return FALSE;
 
     for (mtd = pt->mappedtypes; mtd != NULL; mtd = mtd->next)
@@ -8831,7 +8834,7 @@ static void generateClassAPI(classDef *cd, sipSpec *pt, FILE *fp)
 "\n"
             );
 
-    if (cd->real == NULL && cd->iff->first_alt == cd->iff)
+    if (cd->real == NULL && cd->iff->first_alt == cd->iff && !isHiddenNamespace(cd))
         prcode(fp,
 "#define sipType_%C sipExportedTypes_%s[%d]\n"
 "#define sipClass_%C sipExportedTypes_%s[%d]->u.td_wrapper_type\n"
@@ -8840,7 +8843,7 @@ static void generateClassAPI(classDef *cd, sipSpec *pt, FILE *fp)
 
     generateEnumMacros(pt, cd->iff->module, cd, NULL, fp);
 
-    if (!isExternal(cd))
+    if (!isExternal(cd) && !isHiddenNamespace(cd))
     {
         prcode(fp,
 "\n"
@@ -10046,7 +10049,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 
     if (cd->real != NULL)
         generateEncodedType(mod, cd->real, 0, fp);
-    else if (cd->ecd != NULL)
+    else if (pyScope(cd->ecd) != NULL)
         generateEncodedType(mod, cd->ecd, 0, fp);
     else
         prcode(fp, "{0, 0, 1}");
@@ -15229,4 +15232,39 @@ static int generatePyQt4ClassPlugin(sipSpec *pt, classDef *cd, FILE *fp)
         );
 
     return TRUE;
+}
+
+
+/*
+ * Generate the entries in a table of PyMethodDef for global functions.
+ */
+static void generateGlobalFunctionTableEntries(sipSpec *pt, moduleDef *mod,
+        memberDef *members, FILE *fp)
+{
+    memberDef *md;
+
+    for (md = members; md != NULL; md = md->next)
+    {
+        if (md->slot == no_slot && notVersioned(md))
+        {
+            int has_docstring;
+
+            has_docstring = (md->docstring != NULL || (docstrings && hasDocstring(pt, mod->overs, md, NULL)));
+
+            prcode(fp,
+"        {SIP_MLNAME_CAST(%N), ", md->pyname);
+
+            if (noArgParser(md) || useKeywordArgs(md))
+                prcode(fp, "(PyCFunction)func_%s, METH_VARARGS|METH_KEYWORDS", md->pyname->text);
+            else
+                prcode(fp, "func_%s, METH_VARARGS", md->pyname->text);
+
+            if (has_docstring)
+                prcode(fp, ", SIP_MLDOC_CAST(doc_%s)},\n"
+                    , md->pyname->text);
+            else
+                prcode(fp, ", NULL},\n"
+                    );
+        }
+    }
 }

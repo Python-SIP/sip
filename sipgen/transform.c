@@ -2258,7 +2258,7 @@ static void resolveVariableType(sipSpec *pt, varDef *vd)
         ifaceFileIsUsed(&vd->module->used, vtype, FALSE);
 
     /* Scoped variables need a handler unless they have %AccessCode. */
-    if (vd->ecd != NULL && vd->accessfunc == NULL)
+    if (pyScope(vd->ecd) != NULL && vd->accessfunc == NULL)
     {
         setNeedsHandler(vd);
         setHasVarHandlers(vd->ecd);
@@ -3715,7 +3715,8 @@ static void createSortedNumberedTypesTable(sipSpec *pt, moduleDef *mod)
             continue;
 
         if (generatingCodeForModule(pt, mod) || cd->iff->needed)
-            mod->nr_needed_types++;
+            if (!isHiddenNamespace(cd))
+                mod->nr_needed_types++;
     }
 
     for (mtd = pt->mappedtypes; mtd != NULL; mtd = mtd->next)
@@ -3763,13 +3764,14 @@ static void createSortedNumberedTypesTable(sipSpec *pt, moduleDef *mod)
             continue;
 
         if (generatingCodeForModule(pt, mod) || cd->iff->needed)
-        {
-            ad->atype = class_type;
-            ad->u.cd = cd;
-            ad->name = cd->iff->name;
+            if (!isHiddenNamespace(cd))
+            {
+                ad->atype = class_type;
+                ad->u.cd = cd;
+                ad->name = cd->iff->name;
 
-            ++ad;
-        }
+                ++ad;
+            }
     }
 
     for (mtd = pt->mappedtypes; mtd != NULL; mtd = mtd->next)

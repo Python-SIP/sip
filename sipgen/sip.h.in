@@ -71,6 +71,9 @@
 #define classBaseName(cd)   scopedNameTail((cd)->iff->fqcname)
 #define classFQCName(cd)    ((cd)->iff->fqcname)
 
+/* Return the Python scope corresponding to a C/C++ scope. */
+#define pyScope(c)          ((c) != NULL && isHiddenNamespace(c) ? NULL : (c))
+
 
 /* Handle module flags. */
 
@@ -209,6 +212,7 @@
 #define CLASS2_MIXIN        0x02        /* The class is a mixin. */
 #define CLASS2_EXPORT_DERIVED   0x04    /* Export the derived class declaration. */
 #define CLASS2_NEEDS_CAST_FUNC  0x08    /* The class needs a cast function. */
+#define CLASS2_HIDDEN_NS    0x10        /* The namespace is hidden. */
 
 #define isTemplateArg(cd)   ((cd)->classflags2 & CLASS2_TMPL_ARG)
 #define setTemplateArg(cd)  ((cd)->classflags2 |= CLASS2_TMPL_ARG)
@@ -218,6 +222,8 @@
 #define setExportDerived(cd)    ((cd)->classflags2 |= CLASS2_EXPORT_DERIVED)
 #define needsCastFunction(cd)   ((cd)->classflags2 & CLASS2_NEEDS_CAST_FUNC)
 #define setNeedsCastFunction(cd)    ((cd)->classflags2 |= CLASS2_NEEDS_CAST_FUNC)
+#define isHiddenNamespace(cd)   ((cd)->classflags2 & CLASS2_HIDDEN_NS)
+#define setHiddenNamespace(cd)  ((cd)->classflags2 |= CLASS2_HIDDEN_NS)
 
 
 /* Handle ctor flags.  These are combined with the section flags. */
@@ -1513,6 +1519,12 @@ typedef struct _featureCfg {
     int token;
     const char *name;
 } featureCfg;
+
+/* %HiddenNamespace */
+typedef struct _hiddenNsCfg {
+    int token;
+    scopedNameDef *name;
+} hiddenNsCfg;
 
 /* %Import */
 typedef struct _importCfg {

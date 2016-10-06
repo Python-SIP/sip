@@ -86,6 +86,7 @@ static void fatallex(char *);
 <directive_start>^[ \t]*%End    {BEGIN INITIAL; return TK_END;}
 ^[ \t]*%Exception           {return TK_EXCEPTION;}
 ^[ \t]*%Feature             {BEGIN directive_start; return TK_FEATURE;}
+^[ \t]*%HideNamespace       {BEGIN directive_start; return TK_HIDE_NS;}
 ^[ \t]*%If                  {return TK_IF;}
 ^[ \t]*%Import              {BEGIN directive_start; return TK_IMPORT;}
 ^[ \t]*%Include             {BEGIN directive_start; return TK_INCLUDE;}

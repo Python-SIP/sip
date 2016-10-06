@@ -217,6 +217,7 @@ static void checkEllipsis(signatureDef *sd);
     defEncodingCfg  defencoding;
     defMetatypeCfg  defmetatype;
     defSupertypeCfg defsupertype;
+    hiddenNsCfg     hiddenns;
     exceptionCfg    exception;
     docstringCfg    docstring;
     extractCfg      extract;
@@ -357,6 +358,7 @@ static void checkEllipsis(signatureDef *sd);
 %token          TK_DEFMETATYPE
 %token          TK_DEFSUPERTYPE
 %token          TK_PROPERTY
+%token          TK_HIDE_NS
 
 %token          TK_FORMAT
 %token          TK_GET
@@ -488,6 +490,10 @@ static void checkEllipsis(signatureDef *sd);
 %type <defsupertype>    defsupertype_arg_list
 %type <defsupertype>    defsupertype_arg
 
+%type <hiddenns>        hiddenns_args
+%type <hiddenns>        hiddenns_arg_list
+%type <hiddenns>        hiddenns_arg
+
 %type <exception>       exception_body
 %type <exception>       exception_body_directives
 %type <exception>       exception_body_directive
@@ -584,6 +590,7 @@ modstatement:   module
     |   defencoding
     |   defmetatype
     |   defsupertype
+    |   hiddenns
     |   exphdrcode
     |   modhdrcode
     |   modcode
@@ -1607,6 +1614,46 @@ defsupertype_arg_list:  defsupertype_arg
     ;
 
 defsupertype_arg:   TK_NAME '=' dottedname {
+            $$.token = TK_NAME;
+
+            $$.name = $3;
+        }
+    ;
+
+hiddenns:   TK_HIDE_NS hiddenns_args {
+            if (notSkipping())
+            {
+                classDef *ns;
+
+                ns = newClass(currentSpec, namespace_iface, NULL, $2.name,
+                        NULL, NULL, NULL, NULL);
+                setHiddenNamespace(ns);
+            }
+        }
+    ;
+
+hiddenns_args:  scopedname {
+            resetLexerState();
+
+            $$.name = $1;
+        }
+    |   '(' hiddenns_arg_list ')' {
+            $$ = $2;
+        }
+    ;
+
+hiddenns_arg_list:  hiddenns_arg
+    |   hiddenns_arg_list ',' hiddenns_arg {
+            $$ = $1;
+
+            switch ($3.token)
+            {
+            case TK_NAME: $$.name = $3.name; break;
+            }
+        }
+    ;
+
+hiddenns_arg:   TK_NAME '=' scopedname {
             $$.token = TK_NAME;
 
             $$.name = $3;
