@@ -1149,6 +1149,7 @@ typedef struct _memberDef {
     slotType slot;                      /* The slot type. */
     moduleDef *module;                  /* The owning module. */
     codeBlockList *docstring;           /* The overloads docstrings. */
+    struct _ifaceFileDef *ns_scope;     /* The scope if it has been moved. */
     struct _memberDef *next;            /* Next in the list. */
 } memberDef;
 

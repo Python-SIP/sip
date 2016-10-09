@@ -13013,10 +13013,17 @@ static void generateComparisonSlotCall(moduleDef *mod, ifaceFileDef *scope,
         else
             prcode(fp, "sipCpp%s%S::operator%s(", deref_s, scope->fqcname, op);
     }
-    else if (deref)
-        prcode(fp, "operator%s((*sipCpp), ", op);
     else
-        prcode(fp, "operator%s(sipCpp, ", op);
+    {
+        /* If it has been moved from a namespace then get the C++ scope. */
+        if (od->common->ns_scope != NULL)
+            prcode(fp, "%S::", od->common->ns_scope->fqcname);
+
+        if (deref)
+            prcode(fp, "operator%s((*sipCpp), ", op);
+        else
+            prcode(fp, "operator%s(sipCpp, ", op);
+    }
 
     generateSlotArg(mod, &od->pysig, 0, fp);
     prcode(fp, ")");

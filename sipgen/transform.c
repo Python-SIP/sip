@@ -884,6 +884,7 @@ static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd)
                     pmd->memberflags = 0;
                     pmd->slot = gmd->slot;
                     pmd->module = mod;
+                    pmd->ns_scope = gmd->ns_scope;
                     pmd->next = pcd->members;
 
                     pcd->members = pmd;

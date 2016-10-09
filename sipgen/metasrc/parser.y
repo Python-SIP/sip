@@ -81,14 +81,14 @@ static void newVar(sipSpec *pt, moduleDef *mod, char *name, int isstatic,
         codeBlock *scode, int section);
 static void newCtor(moduleDef *, char *, int, signatureDef *, optFlags *,
         codeBlock *, throwArgs *, signatureDef *, int, codeBlock *);
-static void newFunction(sipSpec *, moduleDef *, classDef *, mappedTypeDef *,
-        int, int, int, int, int, char *, signatureDef *, int, int, optFlags *,
-        codeBlock *, codeBlock *, codeBlock *, throwArgs *, signatureDef *,
-        codeBlock *);
+static void newFunction(sipSpec *, moduleDef *, classDef *, ifaceFileDef *,
+        mappedTypeDef *, int, int, int, int, int, char *, signatureDef *, int,
+        int, optFlags *, codeBlock *, codeBlock *, codeBlock *, throwArgs *,
+        signatureDef *, codeBlock *);
 static optFlag *findOptFlag(optFlags *flgs, const char *name);
 static optFlag *getOptFlag(optFlags *flgs, const char *name, flagType ft);
 static memberDef *findFunction(sipSpec *, moduleDef *, classDef *,
-        mappedTypeDef *, const char *, int, int, int);
+        ifaceFileDef *, mappedTypeDef *, const char *, int, int, int);
 static void checkAttributes(sipSpec *, moduleDef *, classDef *,
         mappedTypeDef *, const char *, int);
 static void newModule(FILE *fp, const char *filename);
@@ -1238,7 +1238,7 @@ mtfunction: TK_STATIC cpptype TK_NAME_VALUE '(' arglist ')' optconst optexceptio
 
                 $5.result = $2;
 
-                newFunction(currentSpec, currentModule, NULL,
+                newFunction(currentSpec, currentModule, NULL, NULL,
                         currentMappedType, 0, TRUE, FALSE, FALSE, FALSE, $3,
                         &$5, $7, FALSE, &$9, $13, NULL, NULL, $8, $10, $12);
             }
@@ -3585,7 +3585,7 @@ function:   cpptype TK_NAME_VALUE '(' arglist ')' optconst optexceptions optabst
                 $4.result = $1;
 
                 newFunction(currentSpec, currentModule, currentScope(), NULL,
-                        sectionFlags, currentIsStatic, currentIsSignal,
+                        NULL, sectionFlags, currentIsStatic, currentIsSignal,
                         currentIsSlot, currentOverIsVirt, $2, &$4, $6, $8, &$9,
                         $13, $14, $15, $7, $10, $12);
             }
@@ -3619,13 +3619,21 @@ function:   cpptype TK_NAME_VALUE '(' arglist ')' optconst optexceptions optabst
             if (notSkipping())
             {
                 classDef *cd = currentScope();
+                ifaceFileDef *ns_scope;
 
                 /*
                  * If the scope is a namespace then make sure the operator is
-                 * handled as a global.
+                 * handled as a global, but remember it's C++ scope..
                  */
                 if (cd != NULL && cd->iff->type == namespace_iface)
+                {
+                    ns_scope = cd->iff;
                     cd = NULL;
+                }
+                else
+                {
+                    ns_scope = NULL;
+                }
 
                 applyTypeFlags(currentModule, &$1, &$10);
 
@@ -3640,7 +3648,7 @@ function:   cpptype TK_NAME_VALUE '(' arglist ')' optconst optexceptions optabst
 
                 $5.result = $1;
 
-                newFunction(currentSpec, currentModule, cd, NULL,
+                newFunction(currentSpec, currentModule, cd, ns_scope, NULL,
                         sectionFlags, currentIsStatic, currentIsSignal,
                         currentIsSlot, currentOverIsVirt, $3, &$5, $7, $9,
                         &$10, $13, $14, $15, $8, $11, NULL);
@@ -3703,7 +3711,7 @@ function:   cpptype TK_NAME_VALUE '(' arglist ')' optconst optexceptions optabst
                 {
                     $4.result = $2;
 
-                    newFunction(currentSpec, currentModule, scope, NULL,
+                    newFunction(currentSpec, currentModule, scope, NULL, NULL,
                             sectionFlags, currentIsStatic, currentIsSignal,
                             currentIsSlot, currentOverIsVirt, sname, &$4, $6,
                             $8, &$9, $12, $13, $14, $7, $10, NULL);
@@ -6965,11 +6973,11 @@ static void newCtor(moduleDef *mod, char *name, int sectFlags,
  * Create a new function.
  */
 static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
-        mappedTypeDef *mt_scope, int sflags, int isstatic, int issignal,
-        int isslot, int isvirt, char *name, signatureDef *sig, int isconst,
-        int isabstract, optFlags *optflgs, codeBlock *methodcode,
-        codeBlock *vcode, codeBlock *virtcallcode, throwArgs *exceptions,
-        signatureDef *cppsig, codeBlock *docstring)
+        ifaceFileDef *ns_scope, mappedTypeDef *mt_scope, int sflags,
+        int isstatic, int issignal, int isslot, int isvirt, char *name,
+        signatureDef *sig, int isconst, int isabstract, optFlags *optflgs,
+        codeBlock *methodcode, codeBlock *vcode, codeBlock *virtcallcode,
+        throwArgs *exceptions, signatureDef *cppsig, codeBlock *docstring)
 {
     static const char *annos[] = {
         "__len__",
@@ -7263,7 +7271,7 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
 
     pyname = getPythonName(mod, optflgs, name);
 
-    od->common = findFunction(pt, mod, c_scope, mt_scope, pyname,
+    od->common = findFunction(pt, mod, c_scope, ns_scope, mt_scope, pyname,
             (methodcode != NULL), sig->nrArgs, no_arg_parser);
 
     if (isProtected(od))
@@ -7393,8 +7401,8 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
             appendCodeBlock(&len->methodcode, code);
         }
 
-        len->common = findFunction(pt, mod, c_scope, mt_scope, len->cppname,
-                TRUE, 0, FALSE);
+        len->common = findFunction(pt, mod, c_scope, ns_scope, mt_scope,
+                len->cppname, TRUE, 0, FALSE);
 
         len->next = od->next;
         od->next = len;
@@ -7413,7 +7421,7 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
 
         matmul->methodcode = od->methodcode;
 
-        matmul->common = findFunction(pt, mod, c_scope, mt_scope,
+        matmul->common = findFunction(pt, mod, c_scope, ns_scope, mt_scope,
                 matmul->cppname, (matmul->methodcode != NULL),
                 matmul->pysig.nrArgs, FALSE);
 
@@ -7434,7 +7442,7 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
 
         imatmul->methodcode = od->methodcode;
 
-        imatmul->common = findFunction(pt, mod, c_scope, mt_scope,
+        imatmul->common = findFunction(pt, mod, c_scope, ns_scope, mt_scope,
                 imatmul->cppname, (imatmul->methodcode != NULL),
                 imatmul->pysig.nrArgs, FALSE);
 
@@ -7522,8 +7530,8 @@ nameDef *cacheName(sipSpec *pt, const char *name)
  * Find (or create) an overloaded function name.
  */
 static memberDef *findFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
-        mappedTypeDef *mt_scope, const char *pname, int hwcode, int nrargs,
-        int no_arg_parser)
+        ifaceFileDef *ns_scope, mappedTypeDef *mt_scope, const char *pname,
+        int hwcode, int nrargs, int no_arg_parser)
 {
     static struct slot_map {
         const char *name;   /* The slot name. */
@@ -7657,6 +7665,7 @@ static memberDef *findFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         md->memberflags = 0;
         md->slot = st;
         md->module = mod;
+        md->ns_scope = ns_scope;
         md->next = *flist;
 
         *flist = md;
