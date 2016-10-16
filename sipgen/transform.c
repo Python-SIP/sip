@@ -2837,6 +2837,10 @@ static int nextSignificantArg(signatureDef *sd, int a)
  */
 int compareScopedNames(scopedNameDef *snd1, scopedNameDef *snd2)
 {
+    /* Strip the global scope if the target doesn't specify it. */
+    if (snd1->name[0] == '\0' && snd2->name[0] != '\0')
+        snd1 = snd1->next;
+
     while (snd1 != NULL && snd2 != NULL)
     {
         int res = strcmp(snd1->name, snd2->name);
@@ -2973,24 +2977,32 @@ static void resolveType(sipSpec *pt, moduleDef *mod, classDef *c_scope,
     /* Loop until we've got to a base type. */
     while (type->atype == defined_type)
     {
-        classDef *scope;
         scopedNameDef *snd = type->u.snd;
 
         type->atype = no_type;
 
-        for (scope = c_scope; scope != NULL; scope = scope->ecd)
+        /*
+         * Search the local scopes unless what we are looking for has an
+         * explicit global scope.
+         */
+        if (snd->name[0] != '\0')
         {
-            if (scope->iff->type == class_iface)
-                searchClassScope(pt, scope, snd, type);
-            else
-                searchScope(pt, scope, snd, type);
+            classDef *scope;
+
+            for (scope = c_scope; scope != NULL; scope = scope->ecd)
+            {
+                if (scope->iff->type == class_iface)
+                    searchClassScope(pt, scope, snd, type);
+                else
+                    searchScope(pt, scope, snd, type);
+
+                if (type->atype != no_type)
+                    break;
+            }
 
             if (type->atype != no_type)
                 break;
         }
-
-        if (type->atype != no_type)
-            break;
 
         nameLookup(pt, mod, snd, type);
 

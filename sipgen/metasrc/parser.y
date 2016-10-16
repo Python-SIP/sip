@@ -188,6 +188,7 @@ static void add_new_deref(argDef *new, argDef *orig, int isconst);
 static void add_derefs(argDef *dst, argDef *src);
 static int isBackstop(qualDef *qd);
 static void checkEllipsis(signatureDef *sd);
+static scopedNameDef *fullyQualifiedName(scopedNameDef *snd);
 %}
 
 %union {
@@ -442,6 +443,7 @@ static void checkEllipsis(signatureDef *sd);
 %type <qchar>           binop
 %type <scpvalp>         scopepart
 %type <scpvalp>         scopedname
+%type <scpvalp>         scopednamehead
 %type <scpvalp>         optcast
 %type <fcall>           exprlist
 %type <boolean>         qualifiers
@@ -2743,12 +2745,21 @@ optcast:    {
         }
     ;
 
-scopedname: scopepart
-    |   scopedname TK_SCOPE scopepart {
-            if (currentSpec -> genc)
+scopedname: TK_SCOPE scopednamehead {
+            if (currentSpec->genc)
                 yyerror("Scoped names are not allowed in a C module");
 
-            appendScopedName(&$1,$3);
+            $$ = scopeScopedName(NULL, $2);
+        }
+    |       scopednamehead
+    ;
+
+scopednamehead: scopepart
+    |   scopednamehead TK_SCOPE scopepart {
+            if (currentSpec->genc)
+                yyerror("Scoped names are not allowed in a C module");
+
+            appendScopedName(&$1, $3);
         }
     ;
 
@@ -3065,6 +3076,13 @@ superclass: class_access scopedname {
 
                 if (ad.atype != no_type)
                     yyerror("Super-class list contains an invalid type");
+
+                /*
+                 * This is a bug because we should look in the local scope
+                 * rather than assume it is in the global scope.
+                 */
+                if (snd->name[0] != '\0')
+                    snd = scopeScopedName(NULL, snd);
 
                 /*
                  * Note that passing NULL as the API is a bug.  Instead we
@@ -5823,6 +5841,13 @@ static char *scopedNameToString(scopedNameDef *name)
     scopedNameDef *snd;
     char *s, *dp;
 
+    /*
+     * We don't want the global scope (which probably should always be there,
+     * but we check anyway).
+     */
+    if (name != NULL && name->name[0] == '\0')
+        name = name->next;
+
     /* Work out the length of buffer needed. */
     len = 0;
 
@@ -8139,7 +8164,7 @@ static scopedNameDef *scopeScopedName(ifaceFileDef *scope, scopedNameDef *name)
 {
     scopedNameDef *snd;
 
-    snd = (scope != NULL ? copyScopedName(scope->fqcname) : NULL);
+    snd = (scope != NULL ? copyScopedName(scope->fqcname) : text2scopePart(""));
 
     appendScopedName(&snd, name);
 
@@ -8155,10 +8180,10 @@ char *scopedNameTail(scopedNameDef *snd)
     if (snd == NULL)
         return NULL;
 
-    while (snd -> next != NULL)
-        snd = snd -> next;
+    while (snd->next != NULL)
+        snd = snd->next;
 
-    return snd -> name;
+    return snd->name;
 }
 
 
@@ -8684,17 +8709,28 @@ static void setModuleName(sipSpec *pt, moduleDef *mod, const char *fullname)
  */
 static void defineClass(scopedNameDef *snd, classList *supers, optFlags *of)
 {
-    classDef *cd, *c_scope = currentScope();
+    classDef *cd;
     typeHintDef *in, *out;
 
     getTypeHints(of, &in, &out);
 
     cd = newClass(currentSpec, class_iface, getAPIRange(of),
-            scopeScopedName((c_scope != NULL ? c_scope->iff : NULL), snd),
-            getVirtErrorHandler(of), in, out, getTypeHintValue(of));
+            fullyQualifiedName(snd), getVirtErrorHandler(of), in, out,
+            getTypeHintValue(of));
     cd->supers = supers;
 
     pushScope(cd);
+}
+
+
+/*
+ * Return a fully qualified scoped name.
+ */
+static scopedNameDef *fullyQualifiedName(scopedNameDef *snd)
+{
+    classDef *scope = currentScope();
+
+    return scopeScopedName((scope != NULL ? scope->iff : NULL), snd);
 }
 
 

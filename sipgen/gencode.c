@@ -3601,7 +3601,7 @@ static int generateChars(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
 
         prcode(fp,
 "    {%N, %S, '%c'},\n"
-            , vd->pyname, vd->fqcname, getEncoding(vtype));
+            , vd->pyname, (cd != NULL ? vd->fqcname : vd->fqcname->next), getEncoding(vtype));
     }
 
     if (!noIntro)
@@ -3660,7 +3660,7 @@ static int generateStrings(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
 
         prcode(fp,
 "    {%N, %S, '%c'},\n"
-            , vd->pyname, vd->fqcname, getEncoding(vtype));
+            , vd->pyname, (cd != NULL ? vd->fqcname : vd->fqcname->next), getEncoding(vtype));
     }
 
     if (!noIntro)
@@ -3714,7 +3714,7 @@ static int generateInts(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
 
         prcode(fp,
 "    {%N, %S},\n"
-            , vd->pyname, vd->fqcname);
+            , vd->pyname, (cd != NULL ? vd->fqcname : vd->fqcname->next));
     }
 
     /* Now do global anonymous enums. */
@@ -3875,7 +3875,7 @@ static int generateVariableType(sipSpec *pt, moduleDef *mod, classDef *cd,
 
         prcode(fp,
 "    {%N, %S},\n"
-            , vd->pyname, vd->fqcname);
+            , vd->pyname, (cd != NULL ? vd->fqcname : vd->fqcname->next));
     }
 
     if (!noIntro)
@@ -3934,7 +3934,7 @@ static int generateDoubles(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
 
         prcode(fp,
 "    {%N, %S},\n"
-            , vd->pyname, vd->fqcname);
+            , vd->pyname, (cd != NULL ? vd->fqcname : vd->fqcname->next));
     }
 
     if (!noIntro)
@@ -10921,8 +10921,8 @@ static void generateTypeInit(classDef *cd, moduleDef *mod, FILE *fp)
             , cd->iff);
 
     /*
-     * Generate the code that parses the Python arguments and calls the
-     * correct constructor.
+     * Generate the code that parses the Python arguments and calls the correct
+     * constructor.
      */
     for (ct = cd->ctors; ct != NULL; ct = ct->next)
     {
@@ -14464,14 +14464,18 @@ void prOverloadName(FILE *fp, overDef *od)
 /*
  * Generate a scoped name with the given separator string.
  */
-static void prScopedName(FILE *fp,scopedNameDef *snd,char *sep)
+static void prScopedName(FILE *fp, scopedNameDef *snd, char *sep)
 {
+    /* Ignore the global scope unless we are generating C++. */
+    if (strcmp(sep, "::") != 0 && snd != NULL && snd->name[0] == '\0')
+        snd = snd->next;
+
     while (snd != NULL)
     {
-        fprintf(fp,"%s",snd->name);
+        fprintf(fp, "%s", snd->name);
 
         if ((snd = snd->next) != NULL)
-            fprintf(fp,"%s",sep);
+            fprintf(fp, "%s", sep);
     }
 }
 
@@ -14496,7 +14500,7 @@ static void prScopedClassName(FILE *fp, ifaceFileDef *scope, classDef *cd)
 
         while (snd != NULL)
         {
-            fprintf(fp,"%s",snd->name);
+            fprintf(fp, "%s", snd->name);
 
             if ((snd = snd->next) != NULL)
                 fprintf(fp, "::");
