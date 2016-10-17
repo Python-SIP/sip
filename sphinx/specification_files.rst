@@ -154,8 +154,8 @@ file.
             [:directive:`%VirtualCatcherCode`]
 
     *method* ::= [**Q_SIGNAL**] [**Q_SLOT**] *type* *name* **(**
-            [*argument-list*] **)** [**const**] [*exceptions*] [**= 0**]
-            [*function-annotations*] [*c++-signature*] **;**
+            [*argument-list*] **)** [**const**] [**final**] [*exceptions*]
+            [**= 0**] [*function-annotations*] [*c++-signature*] **;**
             [:directive:`%Docstring`] [:directive:`%MethodCode`]
 
     *c++-signature* ::= **[** *type* **(** [*argument-list*] **)]**
@@ -163,9 +163,9 @@ file.
     *static-method* ::= **static** *function*
 
     *virtual-method* ::= [**Q_SIGNAL**] [**Q_SLOT**] **virtual** *type* *name*
-            **(** [*argument-list*] **)** [**const**] [*exceptions*] [**= 0**]
-            [*function-annotations*] [*c++-signature*] **;**
-            [:directive:`%MethodCode`] [:directive:`%VirtualCatcherCode`]
+            **(** [*argument-list*] **)** [**const**] [**final**]
+            [*exceptions*] [**= 0**] [*function-annotations*] [*c++-signature*]
+            **;** [:directive:`%MethodCode`] [:directive:`%VirtualCatcherCode`]
             [:directive:`%VirtualCallCode`]
 
     *special-method* ::= *type* *special-method-name*
@@ -191,13 +191,15 @@ file.
             **__xor__**]
 
     *operator* ::= *operator-type*
-            **(** [*argument-list*] **)** [**const**] [*exceptions*]
-            [*function-annotations*] **;** [:directive:`%MethodCode`]
+            **(** [*argument-list*] **)** [**const**] [**final**]
+            [*exceptions*] [*function-annotations*] **;**
+            [:directive:`%MethodCode`]
 
     *virtual-operator* ::= **virtual** *operator-type*
-            **(** [*argument-list*] **)** [**const**] [*exceptions*] [**= 0**]
-            [*function-annotations*] **;** [:directive:`%MethodCode`]
-            [:directive:`%VirtualCatcherCode`] [:directive:`%VirtualCallCode`]
+            **(** [*argument-list*] **)** [**const**] [**final**]
+            [*exceptions*] [**= 0**] [*function-annotations*] **;**
+            [:directive:`%MethodCode`] [:directive:`%VirtualCatcherCode`]
+            [:directive:`%VirtualCallCode`]
 
     *operatator-type* ::= [ *operator-function* | *operator-cast* ]
 

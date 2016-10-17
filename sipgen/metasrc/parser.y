@@ -84,7 +84,7 @@ static void newCtor(moduleDef *, char *, int, signatureDef *, optFlags *,
 static void newFunction(sipSpec *, moduleDef *, classDef *, ifaceFileDef *,
         mappedTypeDef *, int, int, int, int, int, char *, signatureDef *, int,
         int, optFlags *, codeBlock *, codeBlock *, codeBlock *, throwArgs *,
-        signatureDef *, codeBlock *);
+        signatureDef *, codeBlock *, int);
 static optFlag *findOptFlag(optFlags *flgs, const char *name);
 static optFlag *getOptFlag(optFlags *flgs, const char *name, flagType ft);
 static memberDef *findFunction(sipSpec *, moduleDef *, classDef *,
@@ -355,6 +355,7 @@ static scopedNameDef *fullyQualifiedName(scopedNameDef *snd);
 %token          TK_VIRTERRORCODE
 %token          TK_EXPLICIT
 %token          TK_TEMPLATE
+%token          TK_FINAL
 %token          TK_ELLIPSIS
 %token          TK_DEFMETATYPE
 %token          TK_DEFSUPERTYPE
@@ -398,6 +399,7 @@ static scopedNameDef *fullyQualifiedName(scopedNameDef *snd);
 %type <number>          optslot
 %type <number>          optref
 %type <number>          optconst
+%type <number>          optfinal
 %type <number>          optvirtual
 %type <number>          optabstract
 %type <number>          optnumber
@@ -1242,7 +1244,8 @@ mtfunction: TK_STATIC cpptype TK_NAME_VALUE '(' arglist ')' optconst optexceptio
 
                 newFunction(currentSpec, currentModule, NULL, NULL,
                         currentMappedType, 0, TRUE, FALSE, FALSE, FALSE, $3,
-                        &$5, $7, FALSE, &$9, $13, NULL, NULL, $8, $10, $12);
+                        &$5, $7, FALSE, &$9, $13, NULL, NULL, $8, $10, $12,
+                        FALSE);
             }
         }
     ;
@@ -3595,17 +3598,17 @@ optvirtual: {
         }
     ;
 
-function:   cpptype TK_NAME_VALUE '(' arglist ')' optconst optexceptions optabstract optflags optsig ';' optdocstring methodcode virtualcatchercode virtualcallcode {
+function:   cpptype TK_NAME_VALUE '(' arglist ')' optconst optfinal optexceptions optabstract optflags optsig ';' optdocstring methodcode virtualcatchercode virtualcallcode {
             if (notSkipping())
             {
-                applyTypeFlags(currentModule, &$1, &$9);
+                applyTypeFlags(currentModule, &$1, &$10);
 
                 $4.result = $1;
 
                 newFunction(currentSpec, currentModule, currentScope(), NULL,
                         NULL, sectionFlags, currentIsStatic, currentIsSignal,
-                        currentIsSlot, currentOverIsVirt, $2, &$4, $6, $8, &$9,
-                        $13, $14, $15, $7, $10, $12);
+                        currentIsSlot, currentOverIsVirt, $2, &$4, $6, $9,
+                        &$10, $14, $15, $16, $8, $11, $13, $7);
             }
 
             currentIsStatic = FALSE;
@@ -3633,7 +3636,7 @@ function:   cpptype TK_NAME_VALUE '(' arglist ')' optconst optexceptions optabst
             currentIsSlot = FALSE;
             currentOverIsVirt = FALSE;
         }
-    |   cpptype TK_OPERATOR operatorname '(' arglist ')' optconst optexceptions optabstract optflags optsig ';' methodcode virtualcatchercode virtualcallcode {
+    |   cpptype TK_OPERATOR operatorname '(' arglist ')' optconst optfinal optexceptions optabstract optflags optsig ';' methodcode virtualcatchercode virtualcallcode {
             if (notSkipping())
             {
                 classDef *cd = currentScope();
@@ -3653,7 +3656,7 @@ function:   cpptype TK_NAME_VALUE '(' arglist ')' optconst optexceptions optabst
                     ns_scope = NULL;
                 }
 
-                applyTypeFlags(currentModule, &$1, &$10);
+                applyTypeFlags(currentModule, &$1, &$11);
 
                 /* Handle the unary '+' and '-' operators. */
                 if ((cd != NULL && $5.nrArgs == 0) || (cd == NULL && $5.nrArgs == 1))
@@ -3668,8 +3671,8 @@ function:   cpptype TK_NAME_VALUE '(' arglist ')' optconst optexceptions optabst
 
                 newFunction(currentSpec, currentModule, cd, ns_scope, NULL,
                         sectionFlags, currentIsStatic, currentIsSignal,
-                        currentIsSlot, currentOverIsVirt, $3, &$5, $7, $9,
-                        &$10, $13, $14, $15, $8, $11, NULL);
+                        currentIsSlot, currentOverIsVirt, $3, &$5, $7, $10,
+                        &$11, $14, $15, $16, $9, $12, NULL, $8);
             }
 
             currentIsStatic = FALSE;
@@ -3677,7 +3680,7 @@ function:   cpptype TK_NAME_VALUE '(' arglist ')' optconst optexceptions optabst
             currentIsSlot = FALSE;
             currentOverIsVirt = FALSE;
         }
-    |   TK_OPERATOR cpptype '(' arglist ')' optconst optexceptions optabstract optflags optsig ';' methodcode virtualcatchercode virtualcallcode {
+    |   TK_OPERATOR cpptype '(' arglist ')' optconst optfinal optexceptions optabstract optflags optsig ';' methodcode virtualcatchercode virtualcallcode {
             if (notSkipping())
             {
                 char *sname;
@@ -3686,7 +3689,7 @@ function:   cpptype TK_NAME_VALUE '(' arglist ')' optconst optexceptions optabst
                 if (scope == NULL || $4.nrArgs != 0)
                     yyerror("Operator casts must be specified in a class and have no arguments");
 
-                applyTypeFlags(currentModule, &$2, &$9);
+                applyTypeFlags(currentModule, &$2, &$10);
 
                 switch ($2.atype)
                 {
@@ -3732,7 +3735,7 @@ function:   cpptype TK_NAME_VALUE '(' arglist ')' optconst optexceptions optabst
                     newFunction(currentSpec, currentModule, scope, NULL, NULL,
                             sectionFlags, currentIsStatic, currentIsSignal,
                             currentIsSlot, currentOverIsVirt, sname, &$4, $6,
-                            $8, &$9, $12, $13, $14, $7, $10, NULL);
+                            $9, &$10, $13, $14, $15, $8, $11, NULL, $7);
                 }
                 else
                 {
@@ -3793,6 +3796,14 @@ optconst:   {
             $$ = FALSE;
         }
     |   TK_CONST {
+            $$ = TRUE;
+        }
+    ;
+
+optfinal:   {
+            $$ = FALSE;
+        }
+    |   TK_FINAL {
             $$ = TRUE;
         }
     ;
@@ -7002,7 +7013,8 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         int isstatic, int issignal, int isslot, int isvirt, char *name,
         signatureDef *sig, int isconst, int isabstract, optFlags *optflgs,
         codeBlock *methodcode, codeBlock *vcode, codeBlock *virtcallcode,
-        throwArgs *exceptions, signatureDef *cppsig, codeBlock *docstring)
+        throwArgs *exceptions, signatureDef *cppsig, codeBlock *docstring,
+        int isfinal)
 {
     static const char *annos[] = {
         "__len__",
@@ -7206,6 +7218,9 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
 
     if (isconst)
         setIsConst(od);
+
+    if (isfinal)
+        setIsFinal(od);
 
     if (isabstract)
     {

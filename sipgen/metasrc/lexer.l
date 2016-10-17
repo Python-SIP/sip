@@ -134,6 +134,7 @@ operator                    {return TK_OPERATOR;}
 throw                       {return TK_THROW;}
 explicit                    {return TK_EXPLICIT;}
 template                    {return TK_TEMPLATE;}
+final                       {return TK_FINAL;}
 ::                          {return TK_SCOPE;}
 \|\|                        {return TK_LOGICAL_OR;}
 SIP_PYOBJECT                {return TK_PYOBJECT;}

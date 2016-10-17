@@ -342,6 +342,7 @@
 #define OVER_RAISES_PY_EXC  0x08000000  /* It raises a Python exception. */
 #define OVER_NO_ERROR_HANDLER   0x10000000  /* It doesn't use a virtual error handler. */
 #define OVER_ABORT_ON_EXC   0x20000000  /* It aborts on an exception. */
+#define OVER_IS_FINAL       0x40000000  /* It is a final method. */
 
 #define isPublic(o)         ((o)->overflags & SECT_IS_PUBLIC)
 #define setIsPublic(o)      ((o)->overflags |= SECT_IS_PUBLIC)
@@ -402,6 +403,8 @@
 #define setNoErrorHandler(o)    ((o)->overflags |= OVER_NO_ERROR_HANDLER)
 #define abortOnException(o)     ((o)->overflags & OVER_ABORT_ON_EXC)
 #define setAbortOnException(o)  ((o)->overflags |= OVER_ABORT_ON_EXC)
+#define isFinal(o)          ((o)->overflags & OVER_IS_FINAL)
+#define setIsFinal(o)       ((o)->overflags |= OVER_IS_FINAL)
 
 
 /* Handle variable flags. */
