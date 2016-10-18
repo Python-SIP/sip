@@ -1149,9 +1149,11 @@ mappedtypetmpl: template TK_MAPPEDTYPE basetype optflags {
                 if ($3.atype != template_type)
                     yyerror("%MappedType template must map a template type");
 
+                $3.u.td->fqname  = fullyQualifiedName($3.u.td->fqname);
+
                 /* Check a template hasn't already been provided. */
                 for (mtt = currentSpec->mappedtypetemplates; mtt != NULL; mtt = mtt->next)
-                    if (compareScopedNames(mtt->mt->type.u.td->fqname, $3.u.td->fqname) == 0 && sameTemplateSignature(&mtt->mt->type.u.td->types, &$3.u.td->types, TRUE))
+                    if (compareScopedNames(mtt->mt->type.u.td->fqname, $3.u.td->fqname ) == 0 && sameTemplateSignature(&mtt->mt->type.u.td->types, &$3.u.td->types, TRUE))
                         yyerror("%MappedType template for this type has already been defined");
 
                 $3.nrderefs = 0;
@@ -1630,8 +1632,8 @@ hiddenns:   TK_HIDE_NS hiddenns_args {
             {
                 classDef *ns;
 
-                ns = newClass(currentSpec, namespace_iface, NULL, $2.name,
-                        NULL, NULL, NULL, NULL);
+                ns = newClass(currentSpec, namespace_iface, NULL,
+                        fullyQualifiedName($2.name), NULL, NULL, NULL, NULL);
                 setHiddenNamespace(ns);
             }
         }
@@ -5412,17 +5414,18 @@ static mappedTypeDef *newMappedType(sipSpec *pt, argDef *ad, optFlags *of)
     switch (ad->atype)
     {
     case defined_type:
-        snd = ad->u.snd;
+        snd = ad->u.snd = fullyQualifiedName(ad->u.snd);
         cname = scopedNameTail(snd);
         break;
 
     case template_type:
+        ad->u.td->fqname = fullyQualifiedName(ad->u.td->fqname);
         snd = encodedTemplateName(ad->u.td);
         cname = NULL;
         break;
 
     case struct_type:
-        snd = ad->u.sname;
+        snd = ad->u.sname = fullyQualifiedName(ad->u.sname);
         cname = scopedNameTail(snd);
         break;
 
@@ -5843,6 +5846,15 @@ static char *type2string(argDef *ad)
 
 
 /*
+ * Remove any explicit global scope.
+ */
+scopedNameDef *removeGlobalScope(scopedNameDef *snd)
+{
+    return ((snd != NULL && snd->name[0] == '\0') ? snd->next : snd);
+}
+
+
+/*
  * Convert a scoped name to a string on the heap.
  */
 static char *scopedNameToString(scopedNameDef *name)
@@ -5856,8 +5868,7 @@ static char *scopedNameToString(scopedNameDef *name)
      * We don't want the global scope (which probably should always be there,
      * but we check anyway).
      */
-    if (name != NULL && name->name[0] == '\0')
-        name = name->next;
+    name = removeGlobalScope(name);
 
     /* Work out the length of buffer needed. */
     len = 0;
@@ -7241,8 +7252,11 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
 
     if (isvirt)
     {
-        setIsVirtual(od);
-        setHasShadow(c_scope);
+        if (!isfinal)
+        {
+            setIsVirtual(od);
+            setHasShadow(c_scope);
+        }
 
         if (getOptFlag(optflgs, "AbortOnException", bool_flag) != NULL)
             setAbortOnException(od);

@@ -1410,6 +1410,7 @@ int hasImplicitOverloads(signatureDef *sd);
 void dsCtor(sipSpec *pt, classDef *cd, ctorDef *ct, int sec, FILE *fp);
 void dsOverload(sipSpec *pt, overDef *od, int is_method, int sec, FILE *fp);
 scopedNameDef *getFQCNameOfType(argDef *ad);
+scopedNameDef *removeGlobalScope(scopedNameDef *snd);
 
 
 /* These are only here because bison publically references them. */

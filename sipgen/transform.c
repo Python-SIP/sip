@@ -1675,6 +1675,9 @@ static void getVirtuals(sipSpec *pt, classDef *cd)
 
                 implicit = FALSE;
 
+                if (isFinal(od))
+                    break;
+
                 /* See if it re-implements rather than hides. */
                 if (sameCppOverload(s_vod->od, od))
                 {
@@ -1714,7 +1717,7 @@ static void getVirtuals(sipSpec *pt, classDef *cd)
 
     /* Handle any new virtuals. */
     for (od = cd->overs; od != NULL; od = od->next)
-        if (isVirtual(od) && !isVirtualReimp(od))
+        if (isVirtual(od) && !isVirtualReimp(od) && !isFinal(od))
             addVirtual(pt, od, cd);
 }
 
@@ -2838,8 +2841,8 @@ static int nextSignificantArg(signatureDef *sd, int a)
 int compareScopedNames(scopedNameDef *snd1, scopedNameDef *snd2)
 {
     /* Strip the global scope if the target doesn't specify it. */
-    if (snd1->name[0] == '\0' && snd2->name[0] != '\0')
-        snd1 = snd1->next;
+    if (snd2->name[0] != '\0')
+        snd1 = removeGlobalScope(snd1);
 
     while (snd1 != NULL && snd2 != NULL)
     {
@@ -3044,7 +3047,7 @@ static void resolveType(sipSpec *pt, moduleDef *mod, classDef *c_scope,
             mappedTypeTmplDef *mtt;
 
             for (mtt = pt->mappedtypetemplates; mtt != NULL; mtt = mtt->next)
-                if (compareScopedNames(type->u.td->fqname, mtt->mt->type.u.td->fqname) == 0 && sameTemplateSignature(&mtt->mt->type.u.td->types, &type->u.td->types, TRUE))
+                if (compareScopedNames(mtt->mt->type.u.td->fqname, type->u.td->fqname) == 0 && sameTemplateSignature(&mtt->mt->type.u.td->types, &type->u.td->types, TRUE))
                 {
                     type->u.mtd = instantiateMappedTypeTemplate(pt, mod, mtt, type);
                     type->atype = mapped_type;
@@ -3358,7 +3361,7 @@ static void searchMappedTypes(sipSpec *pt, moduleDef *context,
     }
 
     for (mtd = pt->mappedtypes; mtd != NULL; mtd = mtd->next)
-        if (sameBaseType(ad, &mtd->type))
+        if (sameBaseType(&mtd->type, ad))
         {
             /*
              * If we are building a consolidated module and this mapped type is
@@ -3876,6 +3879,14 @@ static int compareTypes(const void *t1, const void *t2)
 
     snd1 = getFQCNameOfType((argDef *)t1);
     snd2 = getFQCNameOfType((argDef *)t2);
+
+    /*
+     * This is a lazy hack.  All names should have an explicit scope.  However
+     * mapped type templates don't (yet), so for the moment we just strip the
+     * global scope.
+     */
+    if (snd1->name[0] == '\0') snd1 = snd1->next;
+    if (snd2->name[0] == '\0') snd2 = snd2->next;
 
     return compareScopedNames(snd1, snd2);
 }
