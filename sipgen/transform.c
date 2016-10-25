@@ -1549,10 +1549,7 @@ static void transformScopeOverloads(sipSpec *pt, classDef *c_scope,
                 setIsDeprecated(od);
 
             if (isAbstract(od))
-            {
                 setIsAbstractClass(c_scope);
-                resetCanCreate(c_scope);
-            }
         }
     }
 }
