@@ -14478,7 +14478,8 @@ static void prScopedName(FILE *fp, scopedNameDef *snd, char *sep)
 {
     while (snd != NULL)
     {
-        fprintf(fp, "%s", snd->name);
+        /* Precede an explicit global scope with a space to avoid '<::'. */
+        fprintf(fp, "%s", (snd->name[0] != '\0' ? snd->name : " "));
 
         if ((snd = snd->next) != NULL)
             fprintf(fp, "%s", sep);
@@ -14508,13 +14509,7 @@ static void prScopedClassName(FILE *fp, ifaceFileDef *scope, classDef *cd,
         if (remove_global_scope)
             snd = removeGlobalScope(snd);
 
-        while (snd != NULL)
-        {
-            fprintf(fp, "%s", snd->name);
-
-            if ((snd = snd->next) != NULL)
-                fprintf(fp, "::");
-        }
+        prScopedName(fp, snd, "::");
     }
 }
 
