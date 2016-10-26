@@ -13103,6 +13103,11 @@ static PyObject *sip_api_unicode_new(SIP_SSIZE_T len, unsigned maxchar,
 
     return obj;
 #else
+    (void)len;
+    (void)maxchar;
+    (void)kind;
+    (void)data;
+
     return NULL;
 #endif
 }
@@ -13116,6 +13121,11 @@ static void sip_api_unicode_write(int kind, void *data, int index,
 {
 #if PY_VERSION_HEX >= 0x03030000
     PyUnicode_WRITE(kind, data, index, value);
+#else
+    (void)kind;
+    (void)data;
+    (void)index;
+    (void)value;
 #endif
 }
 
@@ -13161,6 +13171,9 @@ static void *sip_api_unicode_data(PyObject *obj, int *char_size,
 
     return data;
 #else
+    (void)obj;
+    (void)len;
+
     *char_size = -1;
 
     return NULL;
