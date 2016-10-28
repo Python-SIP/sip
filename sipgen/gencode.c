@@ -603,15 +603,6 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "\n"
             );
 
-    generateCppCodeBlock(pt->exphdrcode, fp);
-    generateCppCodeBlock(mod->hdrcode, fp);
-
-    /*
-     * Make sure any header code needed by the default exception is included.
-     */
-    if (mod->defexception != NULL)
-        generateCppCodeBlock(mod->defexception->iff->hdrcode, fp);
-
     /* Shortcuts that hide the messy detail of the APIs. */
     noIntro = TRUE;
 
@@ -991,6 +982,16 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "extern sip_qt_metacast_func sip_%s_qt_metacast;\n"
             , mname);
     }
+
+    /* Handwritten code. */
+    generateCppCodeBlock(pt->exphdrcode, fp);
+    generateCppCodeBlock(mod->hdrcode, fp);
+
+    /*
+     * Make sure any header code needed by the default exception is included.
+     */
+    if (mod->defexception != NULL)
+        generateCppCodeBlock(mod->defexception->iff->hdrcode, fp);
 
     /*
      * Note that we don't forward declare the virtual handlers.  This is
