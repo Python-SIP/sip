@@ -6629,6 +6629,17 @@ static void addUsedFromCode(sipSpec *pt, ifaceFileList **used, const char *sname
  */
 static int sameName(scopedNameDef *snd, const char *sname)
 {
+    /* Handle any explicit scopes. */
+    if (sname[0] == ':' && sname[1] == ':')
+    {
+        if (snd->name[0] != '\0')
+            return FALSE;
+
+        sname += 2;
+    }
+
+    snd = removeGlobalScope(snd);
+
     while (snd != NULL && *sname != '\0')
     {
         const char *sp = snd->name;
