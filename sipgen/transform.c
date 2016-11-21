@@ -82,7 +82,7 @@ static void nameLookup(sipSpec *pt, moduleDef *context, scopedNameDef *snd,
 static void searchMappedTypes(sipSpec *,moduleDef *,scopedNameDef *,argDef *);
 static void searchEnums(sipSpec *,scopedNameDef *,argDef *);
 static void searchClasses(sipSpec *,moduleDef *mod,scopedNameDef *,argDef *);
-static mroDef *appendToMRO(mroDef *,mroDef ***,classDef *);
+static void appendToMRO(mroDef *,mroDef ***,classDef *);
 static void moveMainModuleCastsSlots(sipSpec *pt, moduleDef *mod);
 static void moveClassCasts(sipSpec *pt, moduleDef *mod, classDef *cd);
 static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd);
@@ -1141,7 +1141,7 @@ static void setHierarchy(sipSpec *pt, classDef *base, classDef *cd,
             /* Append the super-classes hierarchy. */
             for (mro = cl->cd->mro; mro != NULL; mro = mro->next)
             {
-                mroDef *new_mro = appendToMRO(cd->mro, &tailp, mro->cd);
+                appendToMRO(cd->mro, &tailp, mro->cd);
 
                 if (generatingCodeForModule(pt, cd->iff->module))
                     mro->cd->iff->first_alt->needed = TRUE;
@@ -1249,7 +1249,7 @@ static void setHierarchy(sipSpec *pt, classDef *base, classDef *cd,
 /*
  * Append a class definition to an mro list
  */
-static mroDef *appendToMRO(mroDef *head,mroDef ***tailp,classDef *cd)
+static void appendToMRO(mroDef *head,mroDef ***tailp,classDef *cd)
 {
     mroDef *mro, *new;
 
