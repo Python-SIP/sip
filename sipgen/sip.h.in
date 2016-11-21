@@ -211,8 +211,7 @@
 #define CLASS2_TMPL_ARG     0x01        /* The class is a template argument. */
 #define CLASS2_MIXIN        0x02        /* The class is a mixin. */
 #define CLASS2_EXPORT_DERIVED   0x04    /* Export the derived class declaration. */
-#define CLASS2_NEEDS_CAST_FUNC  0x08    /* The class needs a cast function. */
-#define CLASS2_HIDDEN_NS    0x10        /* The namespace is hidden. */
+#define CLASS2_HIDDEN_NS    0x08        /* The namespace is hidden. */
 
 #define isTemplateArg(cd)   ((cd)->classflags2 & CLASS2_TMPL_ARG)
 #define setTemplateArg(cd)  ((cd)->classflags2 |= CLASS2_TMPL_ARG)
@@ -220,8 +219,6 @@
 #define setMixin(cd)        ((cd)->classflags2 |= CLASS2_MIXIN)
 #define isExportDerived(cd) ((cd)->classflags2 & CLASS2_EXPORT_DERIVED)
 #define setExportDerived(cd)    ((cd)->classflags2 |= CLASS2_EXPORT_DERIVED)
-#define needsCastFunction(cd)   ((cd)->classflags2 & CLASS2_NEEDS_CAST_FUNC)
-#define setNeedsCastFunction(cd)    ((cd)->classflags2 |= CLASS2_NEEDS_CAST_FUNC)
 #define isHiddenNamespace(cd)   ((cd)->classflags2 & CLASS2_HIDDEN_NS)
 #define setHiddenNamespace(cd)  ((cd)->classflags2 |= CLASS2_HIDDEN_NS)
 
@@ -305,7 +302,6 @@
 #define HIER_IS_DUPLICATE   0x0001      /* It is a super class duplicate. */
 #define HIER_HAS_DUPLICATE  0x0002      /* It has a super class duplicate. */
 #define HIER_BEING_SET      0x0004      /* The MRO is being set. */
-#define HIER_NEEDS_CAST     0x0008      /* The class needs an explicit cast. */
 
 #define isDuplicateSuper(m) ((m)->mroflags & HIER_IS_DUPLICATE)
 #define setIsDuplicateSuper(m)  ((m)->mroflags |= HIER_IS_DUPLICATE)
@@ -314,8 +310,6 @@
 #define hierBeingSet(m)     ((m)->mroflags & HIER_BEING_SET)
 #define setHierBeingSet(m)  ((m)->mroflags |= HIER_BEING_SET)
 #define resetHierBeingSet(m)    ((m)->mroflags &= ~HIER_BEING_SET)
-#define needsCast(m)        ((m)->mroflags & HIER_NEEDS_CAST)
-#define setNeedsCast(m)     ((m)->mroflags |= HIER_NEEDS_CAST)
 
 
 /* Handle overload flags.  These are combined with the section flags. */

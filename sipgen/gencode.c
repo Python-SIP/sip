@@ -6099,15 +6099,20 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
         else if (md->slot != no_slot)
             generateSlot(mod, cd, NULL, md, fp);
 
-    /* The cast function. */
-    if (needsCastFunction(cd))
+    /*
+     * The cast function.  Note that we used to try and work out if the cast
+     * function was really needed (eg. only for multiple inheritance) but there
+     * are subtle cases where, even for single inheritance, it is needed.  We
+     * take the conservative approach and generate it for all derived classes.
+     */
+    if (cd->supers != NULL)
     {
         mroDef *mro;
 
         prcode(fp,
 "\n"
 "\n"
-"/* Cast a pointer to a type somewhere in its multiple inheritance hierarchy. */\n"
+"/* Cast a pointer to a type somewhere in its inheritance hierarchy. */\n"
 "extern \"C\" {static void *cast_%L(void *, const sipTypeDef *);}\n"
 "static void *cast_%L(void *sipCppV, const sipTypeDef *targetType)\n"
 "{\n"
@@ -6121,9 +6126,10 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 "\n"
             );
 
-        for (mro = cd->mro; mro != NULL; mro = mro->next)
+        /* Skip the the class itself. */
+        for (mro = cd->mro->next; mro != NULL; mro = mro->next)
         {
-            if (needsCast(mro) && !isDuplicateSuper(mro) && !hasDuplicateSuper(mro))
+            if (!isDuplicateSuper(mro) && !hasDuplicateSuper(mro))
             {
                 prcode(fp,
 "    if (targetType == sipType_%C)\n"
@@ -10328,7 +10334,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
 "    release_%L,\n"
             , cd->iff);
 
-    if (needsCastFunction(cd))
+    if (cd->supers != NULL)
         prcode(fp,
 "    cast_%L,\n"
             , cd->iff);

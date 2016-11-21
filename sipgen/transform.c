@@ -1138,9 +1138,6 @@ static void setHierarchy(sipSpec *pt, classDef *base, classDef *cd,
             /* Make sure the super-class's hierarchy has been done. */
             setHierarchy(pt, base, cl->cd, head);
 
-            if (needsCastFunction(cl->cd))
-                setNeedsCastFunction(cd);
-
             /* Append the super-classes hierarchy. */
             for (mro = cl->cd->mro; mro != NULL; mro = mro->next)
             {
@@ -1148,16 +1145,6 @@ static void setHierarchy(sipSpec *pt, classDef *base, classDef *cd,
 
                 if (generatingCodeForModule(pt, cd->iff->module))
                     mro->cd->iff->first_alt->needed = TRUE;
-
-                if (cl != cd->supers || needsCast(mro))
-                {
-                    /*
-                     * It's not the class's first super-class so it will need a
-                     * cast function.
-                     */
-                    setNeedsCast(new_mro);
-                    setNeedsCastFunction(cd);
-                }
 
                 if (isDeprecatedClass(mro->cd))
                     setIsDeprecatedClass(cd);
