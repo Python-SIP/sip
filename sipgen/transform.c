@@ -1275,8 +1275,6 @@ static void appendToMRO(mroDef *head,mroDef ***tailp,classDef *cd)
     /* Append to the list and update the tail pointer. */
     **tailp = new;
     *tailp = &new -> next;
-
-    return new;
 }
 
 
