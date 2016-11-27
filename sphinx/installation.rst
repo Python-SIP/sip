@@ -90,9 +90,9 @@ The full set of command line options is:
     not been specified then the universal binary will include the ``i386`` and
     ``ppc`` architectures.
 
-.. cmdoption:: --no-pyi
+.. cmdoption:: --no-stubs
 
-    .. versionadded:: 4.18
+    .. versionadded:: 4.19
 
     This disables the installation of the ``sip.pyi`` type hints stub file.
 
@@ -109,14 +109,6 @@ The full set of command line options is:
     :option:`--show-platforms <configure.py --show-platforms>` option will
     display all the supported platform/compilers.
 
-.. cmdoption:: --pyi-dir <DIR>
-
-    .. versionadded:: 4.18
-
-    ``<DIR>`` is the name of the directory where the ``sip.pyi`` type hints
-    stub file is installed.  By default this is the directory where the
-    :mod:`sip` module is installed.
-
 .. cmdoption:: -s <SDK>, --sdk <SDK>
 
     If the :option:`--universal <configure.py -n>` option was given then this
@@ -124,6 +116,14 @@ The full set of command line options is:
     assumed to be a sub-directory of
     ``/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs``
     or ``/Developer/SDKs``.
+
+.. cmdoption:: --stubsdir <DIR>
+
+    .. versionadded:: 4.19
+
+    ``<DIR>`` is the name of the directory where the ``sip.pyi`` type hints
+    stub file is installed.  By default this is the directory where the
+    :mod:`sip` module is installed.
 
 .. cmdoption:: -u, --debug
 
