@@ -856,6 +856,7 @@ static int addTypeInstances(PyObject *dict, sipTypeInstanceDef *ti);
 static int addSingleTypeInstance(PyObject *dict, const char *name,
         void *cppPtr, const sipTypeDef *td, int initflags);
 static int addLicense(PyObject *dict, sipLicenseDef *lc);
+static PyObject *assign(PyObject *self, PyObject *args);
 static PyObject *cast(PyObject *self, PyObject *args);
 static PyObject *callDtor(PyObject *self, PyObject *args);
 static PyObject *dumpWrapper(PyObject *self, PyObject *args);
@@ -966,6 +967,7 @@ PyMODINIT_FUNC SIP_MODULE_ENTRY(void)
 #endif
 {
     static PyMethodDef methods[] = {
+        {"assign", assign, METH_VARARGS, NULL},
         {"cast", cast, METH_VARARGS, NULL},
         {"delete", callDtor, METH_VARARGS, NULL},
         {"dump", dumpWrapper, METH_VARARGS, NULL},
@@ -1327,6 +1329,71 @@ static PyObject *transferBack(PyObject *self, PyObject *args)
     }
 
     return NULL;
+}
+
+
+/*
+ * Invoke the assignment operator for a C++ instance.
+ */
+static PyObject *assign(PyObject *self, PyObject *args)
+{
+    sipSimpleWrapper *dst, *src;
+    PyTypeObject *dst_type, *src_type;
+    const sipTypeDef *td, *super_td;
+    sipAssignFunc assign_helper;
+    void *dst_addr, *src_addr;
+
+    (void)self;
+
+    if (!PyArg_ParseTuple(args, "O!O!:assign", &sipSimpleWrapper_Type, &dst, &sipSimpleWrapper_Type, &src))
+        return NULL;
+
+    /* Get the assignment helper. */
+    dst_type = Py_TYPE(dst);
+    td = ((sipWrapperType *)dst_type)->wt_td;
+
+    if (sipTypeIsMapped(td))
+        assign_helper = ((const sipMappedTypeDef *)td)->mtd_assign;
+    else
+        assign_helper = ((const sipClassTypeDef *)td)->ctd_assign;
+
+    if (assign_helper == NULL)
+    {
+        PyErr_SetString(PyExc_TypeError,
+                "argument 1 of assign() does not support assignment");
+        return NULL;
+    }
+
+    /* Check the types are compatible. */
+    src_type = Py_TYPE(src);
+
+    if (src_type == dst_type)
+    {
+        super_td = NULL;
+    }
+    else if (PyType_IsSubtype(src_type, dst_type))
+    {
+        super_td = td;
+    }
+    else
+    {
+        PyErr_SetString(PyExc_TypeError,
+                "type of argument 1 of assign() must be a super-type of type of argument 2");
+        return NULL;
+    }
+
+    /* Get the addresses. */
+    if ((dst_addr = sip_api_get_cpp_ptr(dst, NULL)) == NULL)
+        return NULL;
+
+    if ((src_addr = sip_api_get_cpp_ptr(src, super_td)) == NULL)
+        return NULL;
+
+    /* Do the assignment. */
+    assign_helper(dst_addr, 0, src_addr);
+
+    Py_INCREF(Py_None);
+    return Py_None;
 }
 
 

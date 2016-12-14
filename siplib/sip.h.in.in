@@ -192,8 +192,6 @@ extern "C" {
  *      Added sip_api_invoke_slot().
  *      Added sip_api_parse_type().
  *      Added sip_api_is_exact_wrapped_type().
- *      Added sip_api_assign_instance().
- *      Added sip_api_assign_mapped_type().
  *      Added the td_assign and td_qt fields to the sipTypeDef structure.
  *      Added the mt_assign field to the sipMappedType structure.
  *

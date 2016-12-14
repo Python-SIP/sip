@@ -23,6 +23,20 @@ can be used by applications.
     (interpreted as a sequence of unsigned bytes) to be processed much more
     quickly.
 
+
+.. function:: assign(obj, other)
+
+    .. versionadded:: 4.19
+
+    This does the Python equivalent of invoking the assignment operator of a
+    C++ instance (i.e. ``*obj = other``).
+
+    :param obj:
+        the Python object being assigned to.
+    :param other:
+        the Python object being assigned.
+
+
 .. function:: cast(obj, type) -> object
 
     This does the Python equivalent of casting a C++ instance to one of its
