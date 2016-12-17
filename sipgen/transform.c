@@ -1603,6 +1603,8 @@ static void getVisiblePyMembers(sipSpec *pt, classDef *cd)
                 for (od = mro_cd->overs; od != NULL; od = od->next)
                     if (od->common == md)
                     {
+                        int need_types = FALSE;
+
                         /*
                          * If the visible overload is abstract then it hasn't
                          * had a concrete implementation so this class must
@@ -1611,18 +1613,19 @@ static void getVisiblePyMembers(sipSpec *pt, classDef *cd)
                         if (isAbstract(od))
                             setIsAbstractClass(cd);
 
-                        ifaceFilesAreUsedByOverload(&cd->iff->used, od, FALSE);
+                        if (generatingCodeForModule(pt, cd->iff->module) && (cd == mro_cd || (isProtected(od) && hasShadow(cd))))
+                        {
+                            need_types = TRUE;
 
-                        /* See if we need the name. */
-                        if (!generatingCodeForModule(pt, cd->iff->module))
-                            continue;
-
-                        if (isProtected(od))
                             setIsUsedName(md->pyname);
 
-                        /* Make sure we have any API name. */
-                        if (od->api_range != NULL)
-                            setIsUsedName(od->api_range->api_name);
+                            /* Make sure we have any API name. */
+                            if (od->api_range != NULL)
+                                setIsUsedName(od->api_range->api_name);
+                        }
+
+                        ifaceFilesAreUsedByOverload(&cd->iff->used, od,
+                                need_types);
                     }
             }
         }
