@@ -1,3 +1,28 @@
+v4.19 25th December 2016
+  - Added support for the 'final' keyword.
+  - Added the 'use_limited_api' argument to the %Module directive.
+  - Added the %HideNamespace directive.
+  - Added the assign() function to the sip module.
+  - Added sipCallProcedureMethod() to the C API.
+  - Added sipCheckPluginForType() to the C API.
+  - Added sipGetBufferInfo() and sipReleaseBufferInfo() to the C API.
+  - Added sipGetCFunction() to the C API.
+  - Added sipGetDate() and sipFromDate() to the C API.
+  - Added sipGetDatetime() and sipFromDatetime() to the C API.
+  - Added sipGetFrame() to the C API.
+  - Added sipGetMethod() and sipFromMethod() to the C API.
+  - Added sipGetTime() and sipFromTime() to the C API.
+  - Added sipGetTypeUserData() and sipSetTypeUserData() to the C API.
+  - Added sipGetUserObject() and sipSetUserObject() to the C API.
+  - Added sipIsUserType() to the C API.
+  - Added sipPyTypeDict() and sipPyTypeName() to the C API.
+  - Added sipSetNewUserTypeHandler() to the C API.
+  - Added sipUnicodeData(), sipUnicodeNew()  and sipUnicodeWrite() to the C
+    API.
+  - Removed the support for module version numbers.
+  - Removed all code generator support for PyQt3.
+  - Bug fixes.
+
 v4.18.1 25th July 2016
   - Bug fixes.
 
