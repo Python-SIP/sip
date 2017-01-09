@@ -11233,7 +11233,17 @@ static int sipWrapper_clear(sipWrapper *self)
 
     /* Detach children (which will be owned by C/C++). */
     while ((sw = (sipSimpleWrapper *)self->first_child) != NULL)
+    {
+        /*
+         * Although this object is being garbage collected it doesn't follow
+         * that it's children should be.  So we make sure that the child stays
+         * alive and remember we have done so.
+         */
+        Py_INCREF(sw);
+        sipSetCppHasRef(sw);
+
         removeFromParent(self->first_child);
+    }
 
     return vret;
 }
