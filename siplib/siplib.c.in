@@ -11235,12 +11235,17 @@ static int sipWrapper_clear(sipWrapper *self)
     while ((sw = (sipSimpleWrapper *)self->first_child) != NULL)
     {
         /*
-         * Although this object is being garbage collected it doesn't follow
-         * that it's children should be.  So we make sure that the child stays
-         * alive and remember we have done so.
+         * Although this object is being garbage collected, if it is owned by
+         * C++ (and therefore we aren't about to call the C++ dtor) then it
+         * doesn't follow that it's children should be.  So we make sure that
+         * the child stays alive (in case it has Python re-implementations of
+         * C++ virtuals) and remember we have done so.
          */
-        Py_INCREF(sw);
-        sipSetCppHasRef(sw);
+        if (!sipIsPyOwned(sw))
+        {
+            Py_INCREF(sw);
+            sipSetCppHasRef(sw);
+        }
 
         removeFromParent(self->first_child);
     }
