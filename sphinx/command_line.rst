@@ -62,6 +62,12 @@ The full set of command line options is:
     :directive:`%ExportedDoc` directives.  By default the file is not
     generated.
 
+.. cmdoption:: -D
+
+    .. versionadded:: 4.19.1
+
+    Code is generated for a debug build of Python.
+
 .. cmdoption:: -e
 
     Support for C++ exceptions is enabled.  This causes all calls to C++ code

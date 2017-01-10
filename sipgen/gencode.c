@@ -1,7 +1,7 @@
 /*
  * The code generator module for SIP.
  *
- * Copyright (c) 2016 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2017 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -18,7 +18,6 @@
 
 
 #include <stdio.h>
-#include <time.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -70,33 +69,34 @@ static void generateBuildFileSources(sipSpec *pt, moduleDef *mod,
         const char *srcSuffix, FILE *fp);
 static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
         const char *codeDir, stringList *needed_qualifiers, stringList *xsl,
-        int timestamp);
+        int py_debug);
 static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         const char *srcSuffix, int parts, stringList *needed_qualifiers,
-        stringList *xsl, int timestamp);
+        stringList *xsl, int py_debug);
 static void generateCompositeCpp(sipSpec *pt, const char *codeDir,
-        int timestamp);
+        int py_debug);
 static void generateConsolidatedCpp(sipSpec *pt, const char *codeDir,
-        const char *srcSuffix, int timestamp);
+        const char *srcSuffix);
 static void generateComponentCpp(sipSpec *pt, const char *codeDir,
-        const char *consModule, int timestamp);
+        const char *consModule);
 static void generateSipImport(moduleDef *mod, FILE *fp);
 static void generateSipImportVariables(FILE *fp);
 static void generateModInitStart(moduleDef *mod, int gen_c, FILE *fp);
 static void generateModDefinition(moduleDef *mod, const char *methods,
         FILE *fp);
 static void generateModDocstring(moduleDef *mod, FILE *fp);
-static void generateIfaceCpp(sipSpec *, ifaceFileDef *, int, const char *,
-        const char *, FILE *, int);
+static void generateIfaceCpp(sipSpec *, int, ifaceFileDef *, int, const char *,
+        const char *, FILE *);
 static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp);
 static void generateImportedMappedTypeAPI(mappedTypeDef *mtd, moduleDef *mod,
         FILE *fp);
 static void generateMappedTypeAPI(sipSpec *pt, mappedTypeDef *mtd, FILE *fp);
-static void generateClassCpp(classDef *cd, sipSpec *pt, FILE *fp);
+static void generateClassCpp(classDef *cd, sipSpec *pt, int py_debug,
+        FILE *fp);
 static void generateImportedClassAPI(classDef *cd, moduleDef *mod, FILE *fp);
 static void generateClassAPI(classDef *cd, sipSpec *pt, FILE *fp);
 static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
-        FILE *fp);
+        int py_debug, FILE *fp);
 static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
         FILE *fp);
 static void generateFunction(sipSpec *, memberDef *, overDef *, classDef *,
@@ -104,7 +104,8 @@ static void generateFunction(sipSpec *, memberDef *, overDef *, classDef *,
 static void generateFunctionBody(overDef *, classDef *, mappedTypeDef *,
         classDef *, int deref, moduleDef *, FILE *);
 static void generatePyObjects(sipSpec *pt, moduleDef *mod, FILE *fp);
-static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp);
+static void generateTypeDefinition(sipSpec *pt, classDef *cd, int py_debug,
+        FILE *fp);
 static void generateTypeInit(classDef *, moduleDef *, FILE *);
 static void generateCppCodeBlock(codeBlockList *cbl, FILE *fp);
 static void generateUsedIncludes(ifaceFileList *iffl, FILE *fp);
@@ -222,9 +223,9 @@ static int compareEnumMembers(const void *, const void *);
 static char *getSubFormatChar(char, argDef *);
 static char *createIfaceFileName(const char *, ifaceFileDef *, const char *);
 static FILE *createCompilationUnit(moduleDef *mod, const char *fname,
-        const char *description, int timestamp);
+        const char *description);
 static FILE *createFile(moduleDef *mod, const char *fname,
-        const char *description, int timestamp);
+        const char *description);
 static void closeFile(FILE *);
 static void prScopedName(FILE *fp, scopedNameDef *snd, char *sep);
 static void prTypeName(FILE *fp, argDef *ad);
@@ -283,7 +284,7 @@ static int copyConstRefArg(argDef *ad);
 static void generatePreprocLine(int linenr, const char *fname, FILE *fp);
 static int hasOptionalArgs(overDef *od);
 static int emptyIfaceFile(sipSpec *pt, ifaceFileDef *iff);
-static void declareLimitedAPI(moduleDef *mod, FILE *fp);
+static void declareLimitedAPI(int py_debug, moduleDef *mod, FILE *fp);
 static int generatePluginSignalsTable(sipSpec *pt, classDef *cd,
         const char *pyqt_prefix, FILE *fp);
 static int generatePyQt5ClassPlugin(sipSpec *pt, classDef *cd, FILE *fp);
@@ -298,7 +299,7 @@ static void generateGlobalFunctionTableEntries(sipSpec *pt, moduleDef *mod,
 void generateCode(sipSpec *pt, char *codeDir, char *buildfile, char *docFile,
         const char *srcSuffix, int except, int trace, int releaseGIL,
         int parts, stringList *needed_qualifiers, stringList *xsl,
-        const char *consModule, int docs, int timestamp)
+        const char *consModule, int docs, int py_debug)
 {
     exceptions = except;
     tracing = trace;
@@ -317,7 +318,7 @@ void generateCode(sipSpec *pt, char *codeDir, char *buildfile, char *docFile,
     if (codeDir != NULL)
     {
         if (isComposite(pt->module))
-            generateCompositeCpp(pt, codeDir, timestamp);
+            generateCompositeCpp(pt, codeDir, py_debug);
         else if (isConsolidated(pt->module))
         {
             moduleDef *mod;
@@ -325,15 +326,15 @@ void generateCode(sipSpec *pt, char *codeDir, char *buildfile, char *docFile,
             for (mod = pt->modules; mod != NULL; mod = mod->next)
                 if (mod->container == pt->module)
                     generateCpp(pt, mod, codeDir, srcSuffix, parts,
-                            needed_qualifiers, xsl, timestamp);
+                            needed_qualifiers, xsl, py_debug);
 
-            generateConsolidatedCpp(pt, codeDir, srcSuffix, timestamp);
+            generateConsolidatedCpp(pt, codeDir, srcSuffix);
         }
         else if (consModule != NULL)
-            generateComponentCpp(pt, codeDir, consModule, timestamp);
+            generateComponentCpp(pt, codeDir, consModule);
         else
             generateCpp(pt, pt->module, codeDir, srcSuffix, parts,
-                    needed_qualifiers, xsl, timestamp);
+                    needed_qualifiers, xsl, py_debug);
     }
 
     /* Generate the build file. */
@@ -350,7 +351,7 @@ static void generateDocumentation(sipSpec *pt, const char *docFile)
     FILE *fp;
     codeBlockList *cbl;
 
-    fp = createFile(pt->module, docFile, NULL, FALSE);
+    fp = createFile(pt->module, docFile, NULL);
 
     for (cbl = pt->docs; cbl != NULL; cbl = cbl->next)
         fputs(cbl->block->frag, fp);
@@ -368,7 +369,7 @@ static void generateBuildFile(sipSpec *pt, const char *buildFile,
     const char *mname = pt->module->name;
     FILE *fp;
 
-    fp = createFile(pt->module, buildFile, NULL, FALSE);
+    fp = createFile(pt->module, buildFile, NULL);
 
     prcode(fp, "target = %s\nsources =", mname);
 
@@ -511,7 +512,7 @@ void generateExpression(valueDef *vd, int in_str, FILE *fp)
  */
 static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
         const char *codeDir, stringList *needed_qualifiers, stringList *xsl,
-        int timestamp)
+        int py_debug)
 {
     char *hfile;
     const char *mname = mod->name;
@@ -522,7 +523,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
     moduleListDef *mld;
 
     hfile = concat(codeDir, "/sipAPI", mname, ".h",NULL);
-    fp = createFile(mod, hfile, "Internal module API header file.", timestamp);
+    fp = createFile(mod, hfile, "Internal module API header file.");
 
     /* Include files. */
 
@@ -533,7 +534,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
         , mname
         , mname);
 
-    declareLimitedAPI(mod, fp);
+    declareLimitedAPI(py_debug, mod, fp);
 
     prcode(fp,
 "\n"
@@ -1026,7 +1027,7 @@ static char *makePartName(const char *codeDir, const char *mname, int part,
  * Generate the C code for a composite module.
  */
 static void generateCompositeCpp(sipSpec *pt, const char *codeDir,
-        int timestamp)
+        int py_debug)
 {
     char *cppfile;
     const char *fullname = pt->module->fullname->text;
@@ -1034,10 +1035,9 @@ static void generateCompositeCpp(sipSpec *pt, const char *codeDir,
     FILE *fp;
 
     cppfile = concat(codeDir, "/sip", pt->module->name, "cmodule.c", NULL);
-    fp = createCompilationUnit(pt->module, cppfile, "Composite module code.",
-            timestamp);
+    fp = createCompilationUnit(pt->module, cppfile, "Composite module code.");
 
-    declareLimitedAPI(NULL, fp);
+    declareLimitedAPI(py_debug, NULL, fp);
 
     prcode(fp,
 "\n"
@@ -1130,7 +1130,7 @@ static void generateCompositeCpp(sipSpec *pt, const char *codeDir,
  * Generate the C/C++ code for a consolidated module.
  */
 static void generateConsolidatedCpp(sipSpec *pt, const char *codeDir,
-        const char *srcSuffix, int timestamp)
+        const char *srcSuffix)
 {
     char *cppfile;
     const char *mname = pt->module->name;
@@ -1140,7 +1140,7 @@ static void generateConsolidatedCpp(sipSpec *pt, const char *codeDir,
 
     cppfile = concat(codeDir, "/sip", mname, "cmodule", srcSuffix, NULL);
     fp = createCompilationUnit(pt->module, cppfile,
-            "Consolidated module code.", timestamp);
+            "Consolidated module code.");
 
     prcode(fp,
 "\n"
@@ -1305,14 +1305,13 @@ static void generateConsolidatedCpp(sipSpec *pt, const char *codeDir,
  * Generate the C/C++ code for a component module.
  */
 static void generateComponentCpp(sipSpec *pt, const char *codeDir,
-        const char *consModule, int timestamp)
+        const char *consModule)
 {
     char *cppfile;
     FILE *fp;
 
     cppfile = concat(codeDir, "/sip", pt->module->name, "cmodule.c", NULL);
-    fp = createCompilationUnit(pt->module, cppfile, "Component module code.",
-            timestamp);
+    fp = createCompilationUnit(pt->module, cppfile, "Component module code.");
 
     prcode(fp,
 "\n"
@@ -1398,7 +1397,7 @@ static void generateNameCache(sipSpec *pt, FILE *fp)
  */
 static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         const char *srcSuffix, int parts, stringList *needed_qualifiers,
-        stringList *xsl, int timestamp)
+        stringList *xsl, int py_debug)
 {
     char *cppfile;
     const char *mname = mod->name;
@@ -1437,7 +1436,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
     else
         cppfile = concat(codeDir, "/sip", mname, "cmodule", srcSuffix, NULL);
 
-    fp = createCompilationUnit(mod, cppfile, "Module code.", timestamp);
+    fp = createCompilationUnit(mod, cppfile, "Module code.");
 
     prcode(fp,
 "\n"
@@ -2574,8 +2573,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
                 ++this_part;
 
                 cppfile = makePartName(codeDir, mname, this_part, srcSuffix);
-                fp = createCompilationUnit(mod, cppfile, "Module code.",
-                        timestamp);
+                fp = createCompilationUnit(mod, cppfile, "Module code.");
 
                 prcode(fp,
 "\n"
@@ -2589,9 +2587,9 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
                 need_postinc = FALSE;
             }
 
-            generateIfaceCpp(pt, iff, need_postinc, codeDir, srcSuffix,
-                    ((parts && iff->file_extension == NULL) ? fp : NULL),
-                    timestamp);
+            generateIfaceCpp(pt, py_debug, iff, need_postinc, codeDir,
+                    srcSuffix,
+                    ((parts && iff->file_extension == NULL) ? fp : NULL));
         }
 
     closeFile(fp);
@@ -2604,7 +2602,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
     mod->parts = parts;
 
     generateInternalAPIHeader(pt, mod, codeDir, needed_qualifiers, xsl,
-            timestamp);
+            py_debug);
 }
 
 
@@ -3972,9 +3970,9 @@ static int emptyIfaceFile(sipSpec *pt, ifaceFileDef *iff)
 /*
  * Generate the C/C++ code for an interface.
  */
-static void generateIfaceCpp(sipSpec *pt, ifaceFileDef *iff, int need_postinc,
-        const char *codeDir, const char *srcSuffix, FILE *master,
-        int timestamp)
+static void generateIfaceCpp(sipSpec *pt, int py_debug, ifaceFileDef *iff,
+        int need_postinc, const char *codeDir, const char *srcSuffix,
+        FILE *master)
 {
     char *cppfile;
     const char *cmname = iff->module->name;
@@ -3993,7 +3991,7 @@ static void generateIfaceCpp(sipSpec *pt, ifaceFileDef *iff, int need_postinc,
     {
         cppfile = createIfaceFileName(codeDir,iff,srcSuffix);
         fp = createCompilationUnit(iff->module, cppfile,
-                "Interface wrapper code.", timestamp);
+                "Interface wrapper code.");
 
         prcode(fp,
 "\n"
@@ -4036,12 +4034,12 @@ static void generateIfaceCpp(sipSpec *pt, ifaceFileDef *iff, int need_postinc,
         {
             classDef *pcd;
 
-            generateClassCpp(cd, pt, fp);
+            generateClassCpp(cd, pt, py_debug, fp);
 
             /* Generate any enclosed protected classes. */
             for (pcd = pt->classes; pcd != NULL; pcd = pcd->next)
                 if (isProtectedClass(pcd) && pcd->ecd == cd)
-                    generateClassCpp(pcd, pt, fp);
+                    generateClassCpp(pcd, pt, py_debug, fp);
         }
     }
 
@@ -4397,7 +4395,7 @@ static void generateTypeDefLink(ifaceFileDef *iff, FILE *fp)
 /*
  * Generate the C++ code for a class.
  */
-static void generateClassCpp(classDef *cd, sipSpec *pt, FILE *fp)
+static void generateClassCpp(classDef *cd, sipSpec *pt, int py_debug, FILE *fp)
 {
     moduleDef *mod = cd->iff->module;
 
@@ -4405,7 +4403,7 @@ static void generateClassCpp(classDef *cd, sipSpec *pt, FILE *fp)
 
     generateCppCodeBlock(cd->cppcode, fp);
 
-    generateClassFunctions(pt, mod, cd, fp);
+    generateClassFunctions(pt, mod, cd, py_debug, fp);
 
     generateAccessFunctions(pt, mod, cd, fp);
 
@@ -4450,7 +4448,7 @@ static void generateClassCpp(classDef *cd, sipSpec *pt, FILE *fp)
     }
 
     /* The type definition structure. */
-    generateTypeDefinition(pt, cd, fp);
+    generateTypeDefinition(pt, cd, py_debug, fp);
 }
 
 
@@ -6073,7 +6071,7 @@ static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
  * Generate the member functions for a class.
  */
 static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
-        FILE *fp)
+        int py_debug, FILE *fp)
 {
     visibleList *vl;
     memberDef *md;
@@ -6340,7 +6338,7 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 "#if PY_MAJOR_VERSION >= 3\n"
             );
 
-        if (useLimitedAPI(mod))
+        if (!py_debug && useLimitedAPI(mod))
         {
             if (!generating_c)
                 prcode(fp,
@@ -6400,7 +6398,7 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 "#if PY_MAJOR_VERSION >= 3\n"
             );
 
-        if (useLimitedAPI(mod))
+        if (!py_debug && useLimitedAPI(mod))
         {
             if (!generating_c)
                 prcode(fp,
@@ -6409,6 +6407,7 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 
             prcode(fp,
 "static void releasebuffer_%C(PyObject *%s, void *%s)\n"
+"#else\n"
                 , classFQCName(cd), argName("sipSelf", cd->releasebufcode), (generating_c || need_cpp ? "sipCppV" : ""));
         }
         else
@@ -9740,7 +9739,8 @@ static void generateSimpleFunctionCall(fcallDef *fcd,FILE *fp)
  * Generate the type structure that contains all the information needed by the
  * meta-type.  A sub-set of this is used to extend namespaces.
  */
-static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
+static void generateTypeDefinition(sipSpec *pt, classDef *cd, int py_debug,
+        FILE *fp)
 {
     const char *sep;
     int is_slots, nr_methods, nr_enums, nr_vars, plugin;
@@ -10017,7 +10017,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, FILE *fp)
         sep = "|";
     }
 
-    if (useLimitedAPI(mod))
+    if (!py_debug && useLimitedAPI(mod))
     {
         prcode(fp, "%sSIP_TYPE_LIMITED_API", sep);
         sep = "|";
@@ -13935,9 +13935,9 @@ static void generatePreprocLine(int linenr, const char *fname, FILE *fp)
  * Create a source file.
  */
 static FILE *createCompilationUnit(moduleDef *mod, const char *fname,
-        const char *description, int timestamp)
+        const char *description)
 {
-    FILE *fp = createFile(mod, fname, description, timestamp);
+    FILE *fp = createFile(mod, fname, description);
 
     if (fp != NULL)
         generateCppCodeBlock(mod->unitcode, fp);
@@ -13950,7 +13950,7 @@ static FILE *createCompilationUnit(moduleDef *mod, const char *fname,
  * Create a file with an optional standard header.
  */
 static FILE *createFile(moduleDef *mod, const char *fname,
-        const char *description, int timestamp)
+        const char *description)
 {
     FILE *fp;
 
@@ -13971,21 +13971,9 @@ static FILE *createFile(moduleDef *mod, const char *fname,
 "/*\n"
 " * %s\n"
 " *\n"
-" * Generated by SIP %s"
+" * Generated by SIP %s\n"
             , description
             , sipVersion);
-
-        if (timestamp)
-        {
-            time_t now = time(NULL);
-
-            prcode(fp, " on %s", ctime(&now));
-        }
-        else
-        {
-            prcode(fp, "\n"
-                );
-        }
 
         prCopying(fp, mod, " *");
 
@@ -15049,9 +15037,9 @@ static void generateVoidPtrCast(argDef *ad, FILE *fp)
 /*
  * Declare the use of the limited API.
  */
-static void declareLimitedAPI(moduleDef *mod, FILE *fp)
+static void declareLimitedAPI(int py_debug, moduleDef *mod, FILE *fp)
 {
-    if (mod == NULL || useLimitedAPI(mod))
+    if (!py_debug && (mod == NULL || useLimitedAPI(mod)))
         prcode(fp,
 "\n"
 "#if !defined(Py_LIMITED_API)\n"

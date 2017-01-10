@@ -1,7 +1,7 @@
 /*
  * The main module for SIP.
  *
- * Copyright (c) 2016 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2017 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -52,7 +52,7 @@ int main(int argc, char **argv)
     char *filename, *docFile, *codeDir, *srcSuffix, *flagFile, *consModule;
     char arg, *optarg, *buildFile, *apiFile, *xmlFile, *pyiFile;
     int optnr, exceptions, tracing, releaseGIL, parts, protHack, docs;
-    int timestamp, was_flagFile;
+    int timestamp, was_flagFile, py_debug;
     KwArgs kwArgs;
     FILE *file;
     sipSpec spec;
@@ -83,11 +83,12 @@ int main(int argc, char **argv)
     protHack = FALSE;
     docs = FALSE;
     timestamp = TRUE;
+    py_debug = FALSE;
 
     /* Parse the command line. */
     optnr = 1;
 
-    while ((arg = parseopt(argc, argv, "hVa:b:B:ec:d:fgI:j:km:op:Prs:t:Twx:X:y:z:", &flagFile, &optnr, &optarg)) != '\0')
+    while ((arg = parseopt(argc, argv, "hVa:b:B:ec:d:DfgI:j:km:op:Prs:t:Twx:X:y:z:", &flagFile, &optnr, &optarg)) != '\0')
         switch (arg)
         {
         case 'o':
@@ -162,6 +163,11 @@ int main(int argc, char **argv)
         case 'd':
             /* Where to generate the documentation. */
             docFile = optarg;
+            break;
+
+        case 'D':
+            /* Generate code for a debug build of Python. */
+            py_debug = TRUE;
             break;
 
         case 't':
@@ -268,7 +274,7 @@ int main(int argc, char **argv)
     /* Generate code. */
     generateCode(&spec, codeDir, buildFile, docFile, srcSuffix, exceptions,
             tracing, releaseGIL, parts, versions, xfeatures, consModule, docs,
-            FALSE);
+            py_debug);
 
     /* Generate any extracts. */
     generateExtracts(&spec, extracts);
@@ -566,7 +572,7 @@ static void help(void)
 {
     printf(
 "Usage:\n"
-"    %s [-h] [-V] [-a file] [-b file] [-B tag] [-c dir] [-d file] [-e] [-f] [-g] [-I dir] [-j #] [-k] [-m file] [-o] [-p module] [-P] [-r] [-s suffix] [-t tag] [-T] [-w] [-x feature] [-X id:file] [-z file] [@file] [file]\n"
+"    %s [-h] [-V] [-a file] [-b file] [-B tag] [-c dir] [-d file] [-D] [-e] [-f] [-g] [-I dir] [-j #] [-k] [-m file] [-o] [-p module] [-P] [-r] [-s suffix] [-t tag] [-T] [-w] [-x feature] [-X id:file] [-z file] [@file] [file]\n"
 "where:\n"
 "    -h          display this help message\n"
 "    -V          display the %s version number\n"
@@ -575,6 +581,7 @@ static void help(void)
 "    -B tag      add tag to the list of timeline backstops\n"
 "    -c dir      the name of the code directory [default not generated]\n"
 "    -d file     the name of the documentation file (deprecated) [default not generated]\n"
+"    -D          generate code for a debug build of Python\n"
 "    -e          enable support for exceptions [default disabled]\n"
 "    -f          warnings are handled as errors\n"
 "    -g          always release and reacquire the GIL [default only when specified]\n"
@@ -607,7 +614,7 @@ static void help(void)
 static void usage(void)
 {
     fatal("Usage: %s [-h] [-V] [-a file] [-b file] [-B tag] [-c dir] "
-            "[-d file] [-e] [-f] [-g] [-I dir] [-j #] [-k] [-m file] [-o] "
+            "[-d file] [-D] [-e] [-f] [-g] [-I dir] [-j #] [-k] [-m file] [-o] "
             "[-p module] [-P] [-r] [-s suffix] [-t tag] [-w] [-x feature] "
             "[-X id:file] [-y file] [-z file] [@file] [file]\n",
             sipPackage);
