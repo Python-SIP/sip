@@ -13273,8 +13273,11 @@ static int sip_api_get_buffer_info(PyObject *obj, sipBufferInfoDef *bi)
     int rc;
     Py_buffer *buffer;
 
+    if (!PyObject_CheckBuffer(obj))
+        return 0;
+
     if (bi == NULL)
-        return PyObject_CheckBuffer(obj);
+        return 1;
 
     if ((bi->bi_internal = sip_api_malloc(sizeof (Py_buffer))) == NULL)
         return -1;
