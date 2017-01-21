@@ -3083,13 +3083,6 @@ superclass: class_access scopedname {
                     yyerror("Super-class list contains an invalid type");
 
                 /*
-                 * This is a bug because we should look in the local scope
-                 * rather than assume it is in the global scope.
-                 */
-                if (snd->name[0] != '\0')
-                    snd = scopeScopedName(NULL, snd);
-
-                /*
                  * Note that passing NULL as the API is a bug.  Instead we
                  * should pass the API of the sub-class being defined,
                  * otherwise we cannot create sub-classes of versioned classes.
