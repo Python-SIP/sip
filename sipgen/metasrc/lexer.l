@@ -414,6 +414,12 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
     return TK_METHODCODE;
 }
 
+^[ \t]*%PreMethodCode {
+    /* The start of a C++ code block to insert before the MethodCode. */
+    codeIdx = 0;
+    return TK_PREMETHODCODE;
+}
+
 ^[ \t]*%VirtualCallCode {
     /* The start of a C++ virtual call code block. */
     codeIdx = 0;

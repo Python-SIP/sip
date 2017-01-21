@@ -11179,6 +11179,13 @@ static void generateConstructorCall(classDef *cd, ctorDef *ct, int error_flag,
 "        {\n"
         );
 
+    if (ct->premethodcode != NULL)
+    {
+        prcode(fp, "\n");
+        generateCppCodeBlock(ct->premethodcode,fp);
+        prcode(fp, "\n");
+    }
+
     if (error_flag)
         prcode(fp,
 "            sipErrorState sipError = sipErrorNone;\n"
@@ -12455,6 +12462,12 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
                 );
 
         newline = TRUE;
+    }
+
+    if (od->premethodcode != NULL)
+    {
+        prcode(fp, "\n");
+        generateCppCodeBlock(od->premethodcode,fp);
     }
 
     error_flag = old_error_flag = FALSE;

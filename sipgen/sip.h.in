@@ -1082,6 +1082,7 @@ typedef struct _overDef {
     signatureDef *cppsig;               /* The C++ signature. */
     throwArgs *exceptions;              /* The exceptions. */
     codeBlockList *methodcode;          /* Method code. */
+    codeBlockList *premethodcode;       /* Code to insert before the method code. */
     codeBlockList *virtcallcode;        /* Virtual call code. */
     codeBlockList *virtcode;            /* Virtual handler code. */
     char *prehook;                      /* The pre-hook name. */
@@ -1101,6 +1102,7 @@ typedef struct _ctorDef {
     signatureDef *cppsig;               /* The C++ signature, NULL if /NoDerived/. */
     throwArgs *exceptions;              /* The exceptions. */
     codeBlockList *methodcode;          /* Method code. */
+    codeBlockList *premethodcode;       /* Code to insert before the method code. */
     char *prehook;                      /* The pre-hook name. */
     char *posthook;                     /* The post-hook name. */
     struct _ctorDef *next;              /* Next in the list. */

@@ -1,3 +1,7 @@
+v4.19.1 ??? ??? 2017
+  - Added the %PreMethodCode directive.
+  - Bug fixes.
+
 v4.19 25th December 2016
   - Added support for the 'final' keyword.
   - Added the 'use_limited_api' argument to the %Module directive.

@@ -2239,6 +2239,22 @@ For example::
     };
 
 
+.. directive:: %PreMethodCode
+
+.. versionadded:: 4.19.1
+
+.. parsed-literal::
+
+    %PreMethodCode
+        *code*
+    %End
+
+This directive is used as part of the specification of a global function, class
+method, operator, constructor or destructor to specify handwritten code that
+is inserted before the default code for calling the wrapped function, or
+before the :directive:`%MethodCode` directive if it is also given.
+
+
 .. directive:: %RaiseCode
 
 .. parsed-literal::
