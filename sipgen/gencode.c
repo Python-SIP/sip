@@ -291,6 +291,8 @@ static int generatePyQt5ClassPlugin(sipSpec *pt, classDef *cd, FILE *fp);
 static int generatePyQt4ClassPlugin(sipSpec *pt, classDef *cd, FILE *fp);
 static void generateGlobalFunctionTableEntries(sipSpec *pt, moduleDef *mod,
         memberDef *members, FILE *fp);
+static void prTemplateType(FILE *fp, ifaceFileDef *scope, templateDef *td,
+        int remove_global_scope);
 
 
 /*
@@ -6131,10 +6133,10 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
             {
                 prcode(fp,
 "    if (targetType == sipType_%C)\n"
-"        return static_cast<%S *>(sipCpp);\n"
+"        return static_cast<%U *>(sipCpp);\n"
 "\n"
                     , classFQCName(mro->cd)
-                    , classFQCName(mro->cd));
+                    , mro->cd);
             }
         }
 
@@ -6710,12 +6712,12 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 
         if (generating_c)
             prcode(fp,
-"    ((struct %S *)sipDst)[sipDstIdx] = *((const struct %S *)sipSrc);\n"
-                , classFQCName(cd), classFQCName(cd));
+"    ((struct %U *)sipDst)[sipDstIdx] = *((const struct %U *)sipSrc);\n"
+                , cd, cd);
         else
             prcode(fp,
-"    reinterpret_cast<%S *>(sipDst)[sipDstIdx] = *reinterpret_cast<const %S *>(sipSrc);\n"
-                , classFQCName(cd), classFQCName(cd));
+"    reinterpret_cast<%U *>(sipDst)[sipDstIdx] = *reinterpret_cast<const %U *>(sipSrc);\n"
+                , cd, cd);
 
         prcode(fp,
 "}\n"
@@ -6739,12 +6741,12 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 
         if (generating_c)
             prcode(fp,
-"    return sipMalloc(sizeof (struct %S) * sipNrElem);\n"
-                , classFQCName(cd));
+"    return sipMalloc(sizeof (struct %U) * sipNrElem);\n"
+                , cd);
         else
             prcode(fp,
-"    return new %S[sipNrElem];\n"
-                , classFQCName(cd));
+"    return new %U[sipNrElem];\n"
+                , cd);
 
         prcode(fp,
 "}\n"
@@ -6768,16 +6770,16 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 
         if (generating_c)
             prcode(fp,
-"    struct %S *sipPtr = sipMalloc(sizeof (struct %S));\n"
-"    *sipPtr = ((const struct %S *)sipSrc)[sipSrcIdx];\n"
+"    struct %U *sipPtr = sipMalloc(sizeof (struct %U));\n"
+"    *sipPtr = ((const struct %U *)sipSrc)[sipSrcIdx];\n"
 "\n"
 "    return sipPtr;\n"
-                , classFQCName(cd), classFQCName(cd)
-                , classFQCName(cd));
+                , cd, cd
+                , cd);
         else
             prcode(fp,
-"    return new %S(reinterpret_cast<const %S *>(sipSrc)[sipSrcIdx]);\n"
-                , classFQCName(cd), classFQCName(cd));
+"    return new %U(reinterpret_cast<const %U *>(sipSrc)[sipSrcIdx]);\n"
+                , cd, cd);
 
         prcode(fp,
 "}\n"
@@ -9471,28 +9473,8 @@ static void generateNamedBaseType(ifaceFileDef *scope, argDef *ad,
             break;
 
         case template_type:
-            {
-                static const char tail[] = ">";
-                int a;
-                templateDef *td = ad->u.td;
-
-                prcode(fp, "%S%s", ((prcode_xml || remove_global_scope) ? removeGlobalScope(td->fqname) : td->fqname), (prcode_xml ? "&lt;" : "<"));
-
-                for (a = 0; a < td->types.nrArgs; ++a)
-                {
-                    if (a > 0)
-                        prcode(fp, ",");
-
-                    generateBaseType(scope, &td->types.args[a], TRUE,
-                            remove_global_scope, fp);
-                }
-
-                if (prcode_last == tail)
-                    prcode(fp, " ");
-
-                prcode(fp, (prcode_xml ? "&gt;" : tail));
-                break;
-            }
+			prTemplateType(fp, scope, ad->u.td, remove_global_scope);
+			break;
 
         case enum_type:
             {
@@ -14496,13 +14478,17 @@ static void prScopedName(FILE *fp, scopedNameDef *snd, char *sep)
 
 
 /*
- * Generate a scoped class name.
+ * Generate a scoped class name.  Protected classes have to be explicitly
+ * scoped.
  */
 static void prScopedClassName(FILE *fp, ifaceFileDef *scope, classDef *cd,
         int remove_global_scope)
 {
-    /* Protected classes have to be explicitly scoped. */
-    if (isProtectedClass(cd))
+    if (useTemplateName(cd))
+    {
+        prTemplateType(fp, scope, cd->td, remove_global_scope);
+    }
+    else if (isProtectedClass(cd))
     {
         /* This should never happen. */
         if (scope == NULL)
@@ -15291,4 +15277,31 @@ static void generateGlobalFunctionTableEntries(sipSpec *pt, moduleDef *mod,
                     );
         }
     }
+}
+
+
+/*
+ * Generate a template type.
+ */
+static void prTemplateType(FILE *fp, ifaceFileDef *scope, templateDef *td,
+        int remove_global_scope)
+{   
+    static const char tail[] = ">";
+    int a;
+    
+    prcode(fp, "%S%s", ((prcode_xml || remove_global_scope) ? removeGlobalScope(td->fqname) : td->fqname), (prcode_xml ? "&lt;" : "<"));
+    
+    for (a = 0; a < td->types.nrArgs; ++a)
+    {   
+        if (a > 0)
+            prcode(fp, ",");
+        
+        generateBaseType(scope, &td->types.args[a], TRUE, remove_global_scope,
+                fp);
+    }       
+    
+    if (prcode_last == tail)
+        prcode(fp, " ");
+    
+    prcode(fp, (prcode_xml ? "&gt;" : tail));
 }

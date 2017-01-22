@@ -212,6 +212,7 @@
 #define CLASS2_MIXIN        0x02        /* The class is a mixin. */
 #define CLASS2_EXPORT_DERIVED   0x04    /* Export the derived class declaration. */
 #define CLASS2_HIDDEN_NS    0x08        /* The namespace is hidden. */
+#define CLASS2_USE_TMPL_NAME    0x10    /* Use the template name. */
 
 #define isTemplateArg(cd)   ((cd)->classflags2 & CLASS2_TMPL_ARG)
 #define setTemplateArg(cd)  ((cd)->classflags2 |= CLASS2_TMPL_ARG)
@@ -221,6 +222,8 @@
 #define setExportDerived(cd)    ((cd)->classflags2 |= CLASS2_EXPORT_DERIVED)
 #define isHiddenNamespace(cd)   ((cd)->classflags2 & CLASS2_HIDDEN_NS)
 #define setHiddenNamespace(cd)  ((cd)->classflags2 |= CLASS2_HIDDEN_NS)
+#define useTemplateName(cd) ((cd)->classflags2 & CLASS2_USE_TMPL_NAME)
+#define setUseTemplateName(cd)  ((cd)->classflags2 |= CLASS2_USE_TMPL_NAME)
 
 
 /* Handle ctor flags.  These are combined with the section flags. */
