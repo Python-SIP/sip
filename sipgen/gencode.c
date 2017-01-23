@@ -6901,7 +6901,7 @@ static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
 
         generateCalledArgs(mod, cd->iff, ct->cppsig, Definition, fp);
 
-        prcode(fp,")%X: %S(",ct->exceptions,classFQCName(cd));
+        prcode(fp, ")%X: %U(", ct->exceptions, cd);
 
         generateProtectedCallArgs(mod, ct->cppsig, fp);
 
@@ -7774,7 +7774,7 @@ static void generateProtectedDefinitions(moduleDef *mod, classDef *cd, FILE *fp)
             {
                 if (isVirtual(od) || isVirtualReimp(od))
                 {
-                    prcode(fp, "(sipSelfWasArg ? %S::%s(", classFQCName(vl->cd), mname);
+                    prcode(fp, "(sipSelfWasArg ? %U::%s(", vl->cd, mname);
 
                     generateProtectedCallArgs(mod, od->cppsig, fp);
 
@@ -7782,7 +7782,9 @@ static void generateProtectedDefinitions(moduleDef *mod, classDef *cd, FILE *fp)
                     ++parens;
                 }
                 else
-                    prcode(fp, "%S::", classFQCName(vl->cd));
+                {
+                    prcode(fp, "%U::", vl->cd);
+                }
             }
 
             prcode(fp,"%s(",mname);
@@ -8932,10 +8934,10 @@ static void generateShadowClassDeclaration(sipSpec *pt,classDef *cd,FILE *fp)
     prcode(fp,
 "\n"
 "\n"
-"class sip%C : public %S\n"
+"class sip%C : public %U\n"
 "{\n"
 "public:\n"
-        ,classFQCName(cd),classFQCName(cd));
+        , classFQCName(cd), cd);
 
     /* Define a shadow class for any protected classes we have. */
 
