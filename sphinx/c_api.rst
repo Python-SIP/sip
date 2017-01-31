@@ -1043,6 +1043,20 @@ specification files.
         if there was an error.
 
 
+.. c:function:: int sipEnableGC(int enable)
+
+    .. versionadded:: 4.19.1
+
+    This enables or disables the Python garbarge collector.
+
+    :param enable:
+        is greater than ``0`` if the garbage collector should be enabled.
+    :return:
+        ``1`` or ``0`` depending on whether or not the garbage collector was
+        previously enabled.  This allows the previous state to be restored
+        later on.  ``-1`` is returned if there was an error.
+
+
 .. c:function:: int sipExportSymbol(const char *name, void *sym)
 
     Python does not allow extension modules to directly access symbols in
