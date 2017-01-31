@@ -389,7 +389,8 @@ Class Annotations
 
     This boolean annotation is used to specify that the class has additional
     pure virtual methods that have not been specified and so it cannot be
-    instantiated or sub-classed from Python.
+    instantiated or sub-classed from Python.  It should not be specified if all
+    pure virtual methods have been specified.
 
 
 .. class-annotation:: AllowNone
