@@ -277,8 +277,13 @@ void transform(sipSpec *pt)
             getVisiblePyMembers(pt, cd);
 
             /* Get the virtual members. */
-            if (hasShadow(cd))
+            if (needsShadow(cd))
+            {
                 getVirtuals(pt, cd);
+
+                if (!isIncomplete(cd) && canCreate(cd))
+                    setHasShadow(cd);
+            }
         }
         else if (cd->iff->type == namespace_iface)
         {
@@ -1164,11 +1169,11 @@ static void setHierarchy(sipSpec *pt, classDef *base, classDef *cd,
                     setCannotAssign(cd);
 
                 /*
-                 * If the super-class has a shadow then this one should have
+                 * If the super-class needs a shadow then this one should have
                  * one as well.
                  */
-                if (hasShadow(mro->cd))
-                    setHasShadow(cd);
+                if (needsShadow(mro->cd))
+                    setNeedsShadow(cd);
 
                 /*
                  * Ensure that the sub-class base class is the furthest up the

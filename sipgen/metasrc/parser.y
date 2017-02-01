@@ -3507,7 +3507,7 @@ dtor:       optvirtual '~' TK_NAME_VALUE '(' ')' optexceptions optabstract optfl
                     if (currentSpec -> genc)
                         yyerror("Virtual destructor or %VirtualCatcherCode not allowed in a C module");
 
-                    setHasShadow(cd);
+                    setNeedsShadow(cd);
                 }
 
                 if (getReleaseGIL(&$8))
@@ -5081,7 +5081,7 @@ static classDef *newClass(sipSpec *pt, ifaceFileType iftype,
             flags = CLASS_IS_PROTECTED;
 
             if (scope->iff->type == class_iface)
-                setHasShadow(scope);
+                setNeedsShadow(scope);
         }
 
         /* Header code from outer scopes is also included. */
@@ -5591,7 +5591,7 @@ static enumDef *newEnum(sipSpec *pt, moduleDef *mod, mappedTypeDef *mt_scope,
         }
         else if (c_scope != NULL)
         {
-            setHasShadow(c_scope);
+            setNeedsShadow(c_scope);
         }
     }
 
@@ -6995,7 +6995,7 @@ static void newCtor(moduleDef *mod, char *name, int sectFlags,
         setCanCreate(cd);
 
     if (isProtectedCtor(ct))
-        setHasShadow(cd);
+        setNeedsShadow(cd);
 
     if (explicit)
         setIsExplicitCtor(ct);
@@ -7236,12 +7236,12 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
     }
 
     if (isProtected(od))
-        setHasShadow(c_scope);
+        setNeedsShadow(c_scope);
 
     if ((isSlot(od) || isSignal(od)) && !isPrivate(od))
     {
         if (isSignal(od))
-            setHasShadow(c_scope);
+            setNeedsShadow(c_scope);
 
         pt->sigslots = TRUE;
     }
@@ -7288,7 +7288,7 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         if (!isfinal)
         {
             setIsVirtual(od);
-            setHasShadow(c_scope);
+            setNeedsShadow(c_scope);
         }
 
         if (getOptFlag(optflgs, "AbortOnException", bool_flag) != NULL)

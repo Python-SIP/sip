@@ -213,6 +213,7 @@
 #define CLASS2_EXPORT_DERIVED   0x04    /* Export the derived class declaration. */
 #define CLASS2_HIDDEN_NS    0x08        /* The namespace is hidden. */
 #define CLASS2_USE_TMPL_NAME    0x10    /* Use the template name. */
+#define CLASS2_NEEDS_SHADOW 0x20        /* The class needs a shadow class. */
 
 #define isTemplateArg(cd)   ((cd)->classflags2 & CLASS2_TMPL_ARG)
 #define setTemplateArg(cd)  ((cd)->classflags2 |= CLASS2_TMPL_ARG)
@@ -224,6 +225,8 @@
 #define setHiddenNamespace(cd)  ((cd)->classflags2 |= CLASS2_HIDDEN_NS)
 #define useTemplateName(cd) ((cd)->classflags2 & CLASS2_USE_TMPL_NAME)
 #define setUseTemplateName(cd)  ((cd)->classflags2 |= CLASS2_USE_TMPL_NAME)
+#define needsShadow(cd)      ((cd)->classflags & CLASS2_NEEDS_SHADOW)
+#define setNeedsShadow(cd)   ((cd)->classflags |= CLASS2_NEEDS_SHADOW)
 
 
 /* Handle ctor flags.  These are combined with the section flags. */
