@@ -13482,7 +13482,7 @@ static int sip_api_enable_gc(int enable)
         return -1;
 
     /* Get the functions if we haven't already got them. */
-    if (enable == NULL)
+    if (enable_func == NULL)
     {
         PyObject *gc_module;
 
