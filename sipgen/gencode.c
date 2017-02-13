@@ -2887,7 +2887,7 @@ static int generateSubClassConvertors(sipSpec *pt, moduleDef *mod, FILE *fp)
         if (needs_sipClass)
             prcode(fp,
 "\n"
-"    return (sipClass ? sipClass->type : 0);\n"
+"    return (sipClass ? sipClass->wt_td : 0);\n"
 "}\n"
                 );
         else
