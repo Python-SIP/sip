@@ -1,5 +1,8 @@
-v4.19.1 ??? ??? 2017
+v4.19.1 15th February 2017
   - Added the %PreMethodCode directive.
+  - Added sipEnableGC() to the C API.
+  - Added the -D command line option so that the generated code is aware of
+    Python debug builds.
   - Bug fixes.
 
 v4.19 25th December 2016
