@@ -9918,11 +9918,6 @@ static int sipWrapperType_init(sipWrapperType *self, PyObject *args,
 
             self->wt_td = ((sipWrapperType *)base)->wt_td;
 
-            /*
-             * There could still be no generated type object if the meta-type
-             * is being used for a class that is not sub-classed from
-             * sip.simplewrapper.
-             */
             if (self->wt_td != NULL)
             {
                 /* Call any new type handler. */
