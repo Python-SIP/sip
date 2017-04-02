@@ -273,7 +273,7 @@ void transform(sipSpec *pt)
     for (cd = pt->classes; cd != NULL; cd = cd->next)
         if (cd->iff->type == class_iface)
         {
-            if (needsShadow(cd) && !isIncomplete(cd) && canCreate(cd))
+            if (needsShadow(cd) && !isIncomplete(cd) && !isPrivateDtor(cd) && canCreate(cd))
                 setHasShadow(cd);
 
             /* Get the list of visible Python member functions. */
