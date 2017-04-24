@@ -317,7 +317,7 @@ void transform(sipSpec *pt)
         /*
          * Skip those that don't require a Python exception object to be
          * created.
-        */
+         */
         if (xd->iff->type != exception_iface)
             continue;
 
