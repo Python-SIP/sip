@@ -2008,8 +2008,8 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
                         if (xd->iff->module == mld->module && xd->exceptionnr == i)
                         {
                             prcode(fp,
-"    {\"%s.%s\"},\n"
-                                , mld->module->name, xd->pyname);
+"    {\"%s\"},\n"
+                                , xd->pyname);
                         }
                     }
                 }
@@ -2155,7 +2155,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "\n"
 "\n"
 "PyObject *sipExportedExceptions_%s[%d];\n"
-            , mname, mod->nrexceptions);
+            , mname, mod->nrexceptions + 1);
 
     /* Generate any API versions table. */
     if (mod->api_ranges != NULL || mod->api_versions != NULL)
@@ -2550,6 +2550,14 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "    }\n"
             , xd->pyname, xd->iff->module->name, xd->exceptionnr);
     }
+
+    if (mod->nrexceptions > 0)
+        prcode(fp,
+"\n"
+"    sipExportedExceptions_%s[%d] = NULL;\n"
+            , mname, mod->nrexceptions);
+
+    /* Generate the interface source files. */
 
     /* Generate any post-initialisation code. */
     generateCppCodeBlock(mod->postinitcode, fp);
@@ -8687,6 +8695,7 @@ static void generateUsedIncludes(ifaceFileList *iffl, FILE *fp)
  */
 static void generateModuleAPI(sipSpec *pt, moduleDef *mod, FILE *fp)
 {
+    int no_exceptions = TRUE;
     classDef *cd;
     mappedTypeDef *mtd;
     exceptionDef *xd;
@@ -8702,10 +8711,21 @@ static void generateModuleAPI(sipSpec *pt, moduleDef *mod, FILE *fp)
 
     for (xd = pt->exceptions; xd != NULL; xd = xd->next)
         if (xd->iff->module == mod && xd->exceptionnr >= 0)
-            prcode(fp,
+        {
+            if (no_exceptions)
+            {
+                prcode(fp,
 "\n"
+"/* The exceptions defined in this module. */\n"
+"extern PyObject *sipExportedExceptions_%s[];\n"
+"\n"
+                    , mod->name);
+            }
+
+            prcode(fp,
 "#define sipException_%C sipExportedExceptions_%s[%d]\n"
                 , xd->iff->fqcname, mod->name, xd->exceptionnr);
+        }
 
     generateEnumMacros(pt, mod, NULL, NULL, fp);
 

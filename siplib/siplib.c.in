@@ -13427,7 +13427,7 @@ static int importExceptions(sipExportedModuleDef *client,
         {
             while (*exc != NULL)
             {
-                if (strcmp(Py_TYPE(*exc)->tp_name, name) == 0)
+                if (strcmp(((PyTypeObject *)(*exc))->tp_name, name) == 0)
                 {
                     exception = *exc;
                     break;
