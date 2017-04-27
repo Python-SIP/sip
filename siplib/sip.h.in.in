@@ -68,6 +68,8 @@ extern "C" {
  *
  * History:
  *
+ * 12.2 Added sip_api_print_object() to the public API.
+ *
  * 12.1 Added sip_api_enable_gc() to the public API.
  *
  * 12.0 Added SIP_TYPE_LIMITED_API to the sipTypeDef flags.
@@ -246,7 +248,7 @@ extern "C" {
  * 0.0  Original version.
  */
 #define SIP_API_MAJOR_NR    12
-#define SIP_API_MINOR_NR    1
+#define SIP_API_MINOR_NR    2
 
 
 /* The name of the sip module. */
@@ -1808,6 +1810,7 @@ typedef struct _sipAPIDef {
      * The following are part of the public API.
      */
     int (*api_enable_gc)(int enable);
+    void (*api_print_object)(PyObject *o);
 } sipAPIDef;
 
 

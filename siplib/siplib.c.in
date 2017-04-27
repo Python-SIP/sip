@@ -434,6 +434,7 @@ static void sip_api_release_buffer_info(sipBufferInfoDef *bi);
 static PyObject *sip_api_get_user_object(const sipSimpleWrapper *sw);
 static void sip_api_set_user_object(sipSimpleWrapper *sw, PyObject *user);
 static int sip_api_enable_gc(int enable);
+static void sip_api_print_object(PyObject *o);
 
 
 /*
@@ -590,6 +591,7 @@ static const sipAPIDef sip_api = {
      * The following are part of the public API.
      */
     sip_api_enable_gc,
+    sip_api_print_object,
 };
 
 
@@ -13525,4 +13527,14 @@ static int sip_api_enable_gc(int enable)
     }
 
     return was_enabled;
+}
+
+
+/*
+ * A thin wrapper around PyObject_Print() usually used when debugging with the
+ * limited API.
+ */
+static void sip_api_print_object(PyObject *o)
+{
+    PyObject_Print(o, stdout, 0);
 }
