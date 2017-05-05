@@ -7963,7 +7963,7 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
 
         prcode(fp," %ssipRes",(res_isref ? "*" : ""));
 
-        if ((res->atype == class_type || res->atype == mapped_type) && res->nrderefs == 0)
+        if ((res->atype == class_type || res->atype == mapped_type || res->atype == template_type) && res->nrderefs == 0)
         {
             if (res->atype == class_type)
             {
