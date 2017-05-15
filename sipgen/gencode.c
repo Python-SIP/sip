@@ -293,6 +293,7 @@ static void generateGlobalFunctionTableEntries(sipSpec *pt, moduleDef *mod,
         memberDef *members, FILE *fp);
 static void prTemplateType(FILE *fp, ifaceFileDef *scope, templateDef *td,
         int remove_global_scope);
+static int isString(argDef *ad);
 
 
 /*
@@ -9219,7 +9220,7 @@ static void generateCallArgs(moduleDef *mod, signatureDef *sd,
         case ustring_type:
         case string_type:
         case wstring_type:
-            if (ad->nrderefs > (isOutArg(ad) ? 0 : 1))
+            if (ad->nrderefs > (isOutArg(ad) ? 0 : 1) && !isReference(ad))
                 ind = "&";
 
             break;
@@ -12197,6 +12198,20 @@ static const char *resultOwner(overDef *od)
 
 
 /*
+ * Check if an argument is a string rather than a char type.
+ */
+static int isString(argDef *ad)
+{
+    int nrderefs = ad->nrderefs;
+
+    if (isOutArg(ad) && !isReference(ad))
+        --nrderefs;
+
+    return nrderefs > 0;
+}
+
+
+/*
  * Return the format string used by sipBuildResult() for a particular type.
  */
 static const char *getBuildResultFormat(argDef *ad)
@@ -12218,15 +12233,15 @@ static const char *getBuildResultFormat(argDef *ad)
     case ascii_string_type:
     case latin1_string_type:
     case utf8_string_type:
-        return (ad->nrderefs > (isOutArg(ad) ? 1 : 0)) ? "A" : "a";
+        return isString(ad) ? "A" : "a";
 
     case sstring_type:
     case ustring_type:
     case string_type:
-        return (ad->nrderefs > (isOutArg(ad) ? 1 : 0)) ? "s" : "c";
+        return isString(ad) ? "s" : "c";
 
     case wstring_type:
-        return (ad->nrderefs > (isOutArg(ad) ? 1 : 0)) ? "x" : "w";
+        return isString(ad) ? "x" : "w";
 
     case enum_type:
         return (ad->u.ed->fqcname != NULL) ? "F" : "e";
@@ -13332,48 +13347,48 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
         switch (ad->atype)
         {
         case ascii_string_type:
-            if (ad->nrderefs == 0 || (isOutArg(ad) && ad->nrderefs == 1))
-                fmt = "aA";
-            else
+            if (isString(ad))
                 fmt = "AA";
+            else
+                fmt = "aA";
 
             break;
 
         case latin1_string_type:
-            if (ad->nrderefs == 0 || (isOutArg(ad) && ad->nrderefs == 1))
-                fmt = "aL";
-            else
+            if (isString(ad))
                 fmt = "AL";
+            else
+                fmt = "aL";
 
             break;
 
         case utf8_string_type:
-            if (ad->nrderefs == 0 || (isOutArg(ad) && ad->nrderefs == 1))
-                fmt = "a8";
-            else
+            if (isString(ad))
                 fmt = "A8";
+            else
+                fmt = "a8";
 
             break;
 
         case sstring_type:
         case ustring_type:
         case string_type:
-            if (ad->nrderefs == 0 || (isOutArg(ad) && ad->nrderefs == 1))
-                fmt = "c";
-            else if (isArray(ad))
+            if (isArray(ad))
                 fmt = "k";
-            else
+            else if (isString(ad))
                 fmt = "s";
+            else
+                fmt = "c";
 
             break;
 
         case wstring_type:
-            if (ad->nrderefs == 0 || (isOutArg(ad) && ad->nrderefs == 1))
-                fmt = "w";
-            else if (isArray(ad))
+            if (isArray(ad))
                 fmt = "K";
-            else
+            else if (isString(ad))
                 fmt = "x";
+            else
+                fmt = "w";
 
             break;
 
