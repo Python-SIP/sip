@@ -3134,6 +3134,7 @@ classline:  ifstart
     |   namespace
     |   struct
     |   class
+    |   classtmpl
     |   exception
     |   typedef
     |   enum
