@@ -1326,6 +1326,19 @@ specification files.
         the opaque frame or NULL if there wasn't one at the given depth.
 
 
+.. c:function:: void sipInstanceDestroyed(sipSimpleWrapper *obj)
+
+    .. versionadded:: 4.19.3
+
+    This should be called by handwritten code if it is able to detect that a
+    wrapped C++ instance has been destroyed from C++.  It should not be called
+    if SIP is able to detect this itself, i.e. when the instance was created
+    from Python and the class has a virtual destructor.
+
+    :param obj:
+        the Python object that wraps the destroyed instance.
+
+
 .. c:function:: PyInterpreterState *sipGetInterpreter()
 
     .. versionadded:: 4.17.1

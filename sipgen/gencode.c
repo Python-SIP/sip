@@ -648,7 +648,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipParseArgs                sipAPI_%s->api_parse_args\n"
 "#define sipParseKwdArgs             sipAPI_%s->api_parse_kwd_args\n"
 "#define sipParsePair                sipAPI_%s->api_parse_pair\n"
-"#define sipCommonDtor               sipAPI_%s->api_common_dtor\n"
+"#define sipInstanceDestroyed        sipAPI_%s->api_instance_destroyed\n"
 "#define sipConvertFromSequenceIndex sipAPI_%s->api_convert_from_sequence_index\n"
 "#define sipConvertFromVoidPtr       sipAPI_%s->api_convert_from_void_ptr\n"
 "#define sipConvertToVoidPtr         sipAPI_%s->api_convert_to_void_ptr\n"
@@ -6962,7 +6962,7 @@ static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
             generateCppCodeBlock(cd->dtorcode,fp);
 
         prcode(fp,
-"    sipCommonDtor(sipPySelf);\n"
+"    sipInstanceDestroyed(sipPySelf);\n"
 "}\n"
             );
     }

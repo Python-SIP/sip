@@ -69,6 +69,8 @@ extern "C" {
  * History:
  *
  * 12.2 Added sip_api_print_object() to the public API.
+ *      Renamed sip_api_common_dtor() to sip_api_instance_destroyed() and added
+ *      it ot the public API.
  *
  * 12.1 Added sip_api_enable_gc() to the public API.
  *
@@ -1725,7 +1727,15 @@ typedef struct _sipAPIDef {
             const char *fmt, ...);
     int (*api_parse_pair)(PyObject **parseErrp, PyObject *arg0, PyObject *arg1,
             const char *fmt, ...);
-    void (*api_common_dtor)(sipSimpleWrapper *sipSelf);
+
+    /*
+     * The following are part of the public API.
+     */
+    void (*api_instance_destroyed)(sipSimpleWrapper *sipSelf);
+
+    /*
+     * The following are not part of the public API.
+     */
     void (*api_no_function)(PyObject *parseErr, const char *func,
             const char *doc);
     void (*api_no_method)(PyObject *parseErr, const char *scope,
