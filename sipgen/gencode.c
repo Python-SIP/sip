@@ -763,6 +763,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipIsDerivedClass           sipAPI_%s->api_is_derived_class\n"
 "#define sipGetUserObject            sipAPI_%s->api_get_user_object\n"
 "#define sipSetUserObject            sipAPI_%s->api_set_user_object\n"
+"#define sipRegisterEventHandler     sipAPI_%s->api_register_event_handler\n"
 "\n"
 "/* These are deprecated. */\n"
 "#define sipMapStringToClass         sipAPI_%s->api_map_string_to_class\n"
@@ -787,6 +788,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipConvertFromMappedType    sipConvertFromType\n"
 "#define sipConvertFromNamedEnum(v, pt)  sipConvertFromEnum((v), ((sipEnumTypeObject *)(pt))->type)\n"
 "#define sipConvertFromNewInstance(p, wt, t) sipConvertFromNewType((p), (wt)->wt_td, (t))\n"
+        ,mname
         ,mname
         ,mname
         ,mname

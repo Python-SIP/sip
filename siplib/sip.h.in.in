@@ -70,7 +70,9 @@ extern "C" {
  *
  * 12.2 Added sip_api_print_object() to the public API.
  *      Renamed sip_api_common_dtor() to sip_api_instance_destroyed() and added
- *      it ot the public API.
+ *      it to the public API.
+ *      Added sipEventType and sip_api_register_event_handler() to the public
+ *      API.
  *
  * 12.1 Added sip_api_enable_gc() to the public API.
  *
@@ -417,8 +419,21 @@ typedef struct _sipWrapper sipWrapper;
 
 
 /*
- * Some convenient function pointers.
+ * The different events a handler can be registered for.
  */
+typedef enum
+{
+    sipEventWrappedInstance,    /* After wrapping a C/C++ instance. */
+    sipEventCollectingWrapper,  /* When garbage collecting a wrapper object. */
+    sipEventNrEvents
+} sipEventType;
+
+/*
+ * The event handlers.
+ */
+typedef void (*sipWrappedInstanceEventHandler)(void *sipCpp);
+typedef void (*sipCollectingWrapperEventHandler)(sipSimpleWrapper *sipSelf);
+
 
 /*
  * The operation an access function is being asked to perform.
@@ -430,6 +445,10 @@ typedef enum
     ReleaseGuard        /* Release the guard, if any. */
 } AccessFuncOp;
 
+
+/*
+ * Some convenient function pointers.
+ */
 typedef void *(*sipInitFunc)(sipSimpleWrapper *, PyObject *, PyObject *,
         PyObject **, PyObject **, PyObject **);
 typedef int (*sipFinalFunc)(PyObject *, void *, PyObject *, PyObject **);
@@ -1821,6 +1840,8 @@ typedef struct _sipAPIDef {
      */
     int (*api_enable_gc)(int enable);
     void (*api_print_object)(PyObject *o);
+    int (*api_register_event_handler)(sipEventType type, const sipTypeDef *td,
+            void *handler);
 } sipAPIDef;
 
 
