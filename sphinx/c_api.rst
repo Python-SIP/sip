@@ -2106,7 +2106,7 @@ specification files.
 
     When the limited Python API is enabled and Python v3.2 or later is being
     used then it is only available as an opaque (i.e. incomplete) type and the
-    following memebers are not available.
+    following members are not available.
 
     .. c:member:: void *data
 
@@ -2444,6 +2444,55 @@ specification files.
 
     This is the type of a :c:type:`sipWrapperType` structure and is the C
     implementation of :class:`sip.wrappertype`.
+
+
+Event Handlers
+--------------
+
+.. versionadded:: 4.19.3
+
+The :mod:`sip` module will trigger a number of events.  Handwritten code can
+supply handlers for these events to allow it to perform additional actions.
+Each event has a type, described by the :cpp:enum:`sipEventType` enum.  An
+event handler is registered using :c:func:`sipRegisterEventHandler()`.  The
+signature of an event handler is specific to the event type.
+
+
+.. cpp:enum:: sipEventType
+
+    This is the enum that defines the different event types.
+
+
+.. :cpp:enumerator:: sipEventWrappedInstance
+
+    This event is triggered whenever a C/C++ instance that is created by C/C++
+    (and not by Python) is wrapped.  The handler is passed a ``void *`` which
+    is the address of the C/C++ instance.
+
+
+.. :cpp:enumerator:: sipEventCollectingWrapper
+
+    This event is triggered whenever a Python wrapper object is being garbage
+    collected.  The handler is passed a pointer to the
+    :c:type:`sipSimpleWrapper` object that is the Python wrapper object being
+    garbage collected.
+
+
+.. c:function:: int sipRegisterEventHandler(sipEventType type, const sipTypeDef *td, void *handler)
+
+    This registers an event handler which will be called whenever an event is
+    triggered.
+
+    :param type:
+        the event type for which the handler is registered.
+    :param td:
+        the generated type structure - the handler will only be invoked for
+        Python object corresponding to this type or a sub-type.
+    :param handler:
+        the handler that is called when the event is triggered.
+    :return:
+        0 if there was no error, otherwise -1 is returned (and a Python
+        exception is raised).
 
 
 .. _ref-type-structures:

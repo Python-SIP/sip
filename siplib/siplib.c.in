@@ -7157,6 +7157,7 @@ static int add_lazy_attrs(sipTypeDef *td)
      * Get any lazy attributes from registered getters.  This must be done last
      * to allow any existing attributes to be replaced.
      */
+    /* TODO: Deprecate this mechanism in favour of an event handler. */
     for (ag = sipAttrGetters; ag != NULL; ag = ag->next)
         if (ag->type == NULL || PyType_IsSubtype((PyTypeObject *)wt, ag->type))
             if (ag->getter(td, dict) < 0)
@@ -9937,6 +9938,7 @@ static int sipWrapperType_init(sipWrapperType *self, PyObject *args,
          */
         if (base != NULL && PyObject_TypeCheck((PyObject *)base, (PyTypeObject *)&sipWrapperType_Type))
         {
+            /* TODO: Deprecate this mechanism in favour of an event handler. */
             sipNewUserTypeFunc new_user_type_handler;
 
             self->wt_td = ((sipWrapperType *)base)->wt_td;
@@ -12903,6 +12905,7 @@ static void *resolve_proxy(const sipTypeDef *td, void *proxy)
 {
     sipProxyResolver *pr;
 
+    /* TODO: Deprecate this mechanism in favour of an event handler. */
     for (pr = proxyResolvers; pr != NULL; pr = pr->next)
         if (pr->td == td)
             proxy = pr->resolver(proxy);
