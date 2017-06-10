@@ -6194,7 +6194,7 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
         prcode(fp,
 "static void release_%L(void *%s, int%s)\n"
 "{\n"
-            , cd->iff, (need_ptr ? "sipCppV" : ""), (need_state ? " sipIsDerived" : ""));
+            , cd->iff, (need_ptr ? "sipCppV" : ""), (need_state ? " sipState" : ""));
 
         if (need_cast_ptr)
         {
@@ -6249,7 +6249,7 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
             else if (hasShadow(cd))
             {
                 prcode(fp,
-"    if (sipIsDerived)\n"
+"    if (sipState & SIP_DERIVED_CLASS)\n"
 "        delete reinterpret_cast<sip%C *>(sipCppV);\n"
                     , classFQCName(cd));
 
