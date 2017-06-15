@@ -6402,13 +6402,18 @@ static void templateType(argDef *ad, classTmplDef *tcd, templateDef *td,
         {
             valueDef *new_vd;
             fcallDef *fcd;
-            scopedNameDef *snd;
+            scopedNameDef *snd, **tailp;
 
             fcd = sipMalloc(sizeof (fcallDef));
             *fcd = *vd->u.fcd;
 
-            for (snd = fcd->type.u.snd; snd != NULL; snd = snd->next)
-                snd->name = templateString(snd->name, type_names, type_values);
+            tailp = &fcd->type.u.snd;
+            for (snd = vd->u.fcd->type.u.snd; snd != NULL; snd = snd->next)
+            {
+                *tailp = text2scopePart(
+                        templateString(snd->name, type_names, type_values));
+                tailp = &(*tailp)->next;
+            }
 
             new_vd = sipMalloc(sizeof (valueDef));
             new_vd->vtype = fcall_value;
