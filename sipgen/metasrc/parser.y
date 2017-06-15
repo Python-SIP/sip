@@ -6389,6 +6389,35 @@ static void templateType(argDef *ad, classTmplDef *tcd, templateDef *td,
         return;
     }
 
+    /* Handle any default value. */
+    if (ad->defval != NULL && ad->defval->vtype == fcall_value)
+    {
+        /*
+         * We only handle the subset where the value is an function call, ie. a
+         * template ctor.
+         */
+        valueDef *vd = ad->defval;
+
+        if (vd->vtype == fcall_value && vd->u.fcd->type.atype == defined_type)
+        {
+            valueDef *new_vd;
+            fcallDef *fcd;
+            scopedNameDef *snd;
+
+            fcd = sipMalloc(sizeof (fcallDef));
+            *fcd = *vd->u.fcd;
+
+            for (snd = fcd->type.u.snd; snd != NULL; snd = snd->next)
+                snd->name = templateString(snd->name, type_names, type_values);
+
+            new_vd = sipMalloc(sizeof (valueDef));
+            new_vd->vtype = fcall_value;
+            new_vd->u.fcd = fcd;
+
+            ad->defval = new_vd;
+        }
+    }
+
     /* Handle any type hints. */
     if (ad->typehint_in != NULL)
         ad->typehint_in = newTypeHint(
