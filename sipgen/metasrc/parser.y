@@ -4935,6 +4935,12 @@ ifaceFileDef *findIfaceFile(sipSpec *pt, moduleDef *mod, scopedNameDef *fqname,
         iff->first_alt = iff;
     }
 
+    /*
+     * Note that we assume that the type (ie. class vs. mapped type vs.
+     * exception) will be the same across all platforms.
+     */
+    iff->platforms = currentPlatforms;
+
     iff->type = iftype;
     iff->ifacenr = -1;
     iff->fqcname = fqname;
@@ -4976,7 +4982,6 @@ static classDef *findClassWithInterface(sipSpec *pt, ifaceFileDef *iff)
 
     cd->iff = iff;
     cd->pyname = cacheName(pt, classBaseName(cd));
-    cd->platforms = currentPlatforms;
     cd->next = pt->classes;
 
     pt->classes = cd;
@@ -5063,7 +5068,6 @@ static exceptionDef *findException(sipSpec *pt, scopedNameDef *fqname, int new)
     xd->bibase = NULL;
     xd->base = NULL;
     xd->raisecode = NULL;
-    xd->platforms = currentPlatforms;
     xd->next = NULL;
 
     /* Append it to the list. */
@@ -5492,7 +5496,6 @@ static mappedTypeDef *newMappedType(sipSpec *pt, argDef *ad, optFlags *of)
     mappedTypeAnnos(mtd, of);
 
     mtd->iff = iff;
-    mtd->platforms = currentPlatforms;
     mtd->next = pt->mappedtypes;
 
     pt->mappedtypes = mtd;
@@ -6834,20 +6837,20 @@ static void addTypedef(sipSpec *pt, typedefDef *tdd)
     typedefDef **tdp;
 
     /*
-     * Check it doesn't already exist and find the position in the sorted list
-     * where it should be put.
+     * Check it doesn't already exist (with a strict parse) and find the
+     * position in the sorted list where it should be put.
      */
     for (tdp = &pt->typedefs; *tdp != NULL; tdp = &(*tdp)->next)
     {
         int res = compareScopedNames((*tdp)->fqname, tdd->fqname);
 
-        if (res == 0)
+        if (res == 0 && strictParse)
         {
             fatalScopedName(tdd->fqname);
             fatal(" already defined\n");
         }
 
-        if (res > 0)
+        if (res >= 0)
             break;
     }
 
@@ -7913,8 +7916,11 @@ static void checkAttributes(sipSpec *pt, moduleDef *mod, classDef *py_c_scope,
     varDef *vd;
     classDef *cd;
 
-    /* Check the enums. */
+    /* We don't do any check for a non-strict parse. */
+    if (!strictParse)
+        return;
 
+    /* Check the enums. */
     for (ed = pt->enums; ed != NULL; ed = ed->next)
     {
         enumMemberDef *emd;
@@ -7946,8 +7952,8 @@ static void checkAttributes(sipSpec *pt, moduleDef *mod, classDef *py_c_scope,
     }
 
     /*
-     * Only check the members if this attribute isn't a member because we
-     * can handle members with the same name in the same scope.
+     * Only check the members if this attribute isn't a member because we can
+     * handle members with the same name in the same scope.
      */
     if (!isfunc)
     {

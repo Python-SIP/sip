@@ -803,7 +803,6 @@ typedef struct _exceptionDef {
     char *bibase;                       /* The builtin base exception. */
     struct _exceptionDef *base;         /* The defined base exception. */
     codeBlockList *raisecode;           /* Raise exception code. */
-    platformDef *platforms;             /* The platforms. */
     struct _exceptionDef *next;         /* The next in the list. */
 } exceptionDef;
 
@@ -977,6 +976,7 @@ typedef struct _ifaceFileDef {
     codeBlockList *hdrcode;             /* Header code. */
     const char *file_extension;         /* The optional file extension. */
     struct _ifaceFileList *used;        /* Interface files used. */
+    platformDef *platforms;             /* The platforms. */
     struct _ifaceFileDef *next;         /* Next in the list. */
 } ifaceFileDef;
 
@@ -1006,7 +1006,6 @@ typedef struct _mappedTypeDef {
     codeBlockList *typecode;            /* Type code. */
     codeBlockList *convfromcode;        /* Convert from C++ code. */
     codeBlockList *convtocode;          /* Convert to C++ code. */
-    platformDef *platforms;             /* The platforms. */
     struct _mappedTypeDef *real;        /* The original definition. */
     struct _mappedTypeDef *next;        /* Next in the list. */
 } mappedTypeDef;
@@ -1255,7 +1254,6 @@ typedef struct _classDef {
     typeHintDef *typehint_in;           /* The PEP 484 input type hint. */
     typeHintDef *typehint_out;          /* The PEP 484 output type hint. */
     const char *typehint_value;         /* The type hint value. */
-    platformDef *platforms;             /* The platforms. */
     struct _classDef *next;             /* Next in the list. */
 } classDef;
 
@@ -1349,7 +1347,7 @@ extern stringList *includeDirList;      /* The include directory list for SIP fi
 void parse(sipSpec *, FILE *, char *, int, stringList *, stringList *,
         stringList *, KwArgs, int);
 void parserEOF(const char *,parserContext *);
-void transform(sipSpec *);
+void transform(sipSpec *, int);
 void generateCode(sipSpec *, char *, char *, char *, const char *, int, int,
         int, int, stringList *needed_qualifiers, stringList *, const char *,
         int, int);

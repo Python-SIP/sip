@@ -279,7 +279,7 @@ int main(int argc, char **argv)
             kwArgs, protHack);
 
     /* Verify and transform the parse tree. */
-    transform(&spec);
+    transform(&spec, strict);
 
     /* Generate code. */
     generateCode(&spec, codeDir, buildFile, docFile, srcSuffix, exceptions,

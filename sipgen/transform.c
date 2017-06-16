@@ -44,14 +44,14 @@ static void ifaceFilesAreUsedBySignature(ifaceFileList **used,
         signatureDef *sd, int need_types);
 static void scopeDefaultValue(sipSpec *,classDef *,argDef *);
 static void setHierarchy(sipSpec *,classDef *,classDef *,classList **);
-static void transformModules(sipSpec *pt, moduleDef *mod);
+static void transformModules(sipSpec *pt, int strict, moduleDef *mod);
 static void transformCtors(sipSpec *,classDef *);
 static void transformCasts(sipSpec *,classDef *);
 static void addDefaultCopyCtor(classDef *);
-static void transformScopeOverloads(sipSpec *pt, classDef *c_scope,
+static void transformScopeOverloads(sipSpec *pt, int strict, classDef *c_scope,
         mappedTypeDef *mt_scope, overDef *overs);
 static void transformVariableList(sipSpec *pt, moduleDef *mod);
-static void transformMappedTypes(sipSpec *pt, moduleDef *mod);
+static void transformMappedTypes(sipSpec *pt, int strict, moduleDef *mod);
 static void getVisiblePyMembers(sipSpec *pt, classDef *cd);
 static void getVirtuals(sipSpec *pt, classDef *cd);
 static void addVirtual(sipSpec *pt, overDef *od, classDef *cd);
@@ -106,7 +106,7 @@ static void checkProperties(classDef *cd);
  * Transform the parse tree.
  */
 
-void transform(sipSpec *pt)
+void transform(sipSpec *pt, int strict)
 {
     moduleDef *mod;
     classDef *cd, *rev, **tail;
@@ -229,11 +229,11 @@ void transform(sipSpec *pt)
     {
         /* Transform the modules included by the consolidated module. */
         for (mod = pt->modules->next; mod != NULL; mod = mod->next)
-            transformModules(pt, mod);
+            transformModules(pt, strict, mod);
     }
     else
     {
-        transformModules(pt, pt->modules);
+        transformModules(pt, strict, pt->modules);
     }
 
     /* Handle default ctors now that the argument types are resolved. */ 
@@ -337,7 +337,7 @@ void transform(sipSpec *pt)
 /*
  * Transform a module and the modules it imports.
  */
-static void transformModules(sipSpec *pt, moduleDef *mod)
+static void transformModules(sipSpec *pt, int strict, moduleDef *mod)
 {
     classDef *cd;
     moduleListDef *mld;
@@ -352,12 +352,12 @@ static void transformModules(sipSpec *pt, moduleDef *mod)
      * right module.
      */
     for (mld = mod->imports; mld != NULL; mld = mld->next)
-        transformModules(pt, mld->module);
+        transformModules(pt, strict, mld->module);
 
     /* Transform typedefs, variables and global functions. */
     transformTypedefs(pt, mod);
     transformVariableList(pt, mod);
-    transformScopeOverloads(pt, NULL, NULL, mod->overs);
+    transformScopeOverloads(pt, strict, NULL, NULL, mod->overs);
 
     /* Transform class ctors, functions and casts. */
     for (cd = pt->classes; cd != NULL; cd = cd->next)
@@ -371,14 +371,14 @@ static void transformModules(sipSpec *pt, moduleDef *mod)
 
             if (!pt->genc)
             {
-                transformScopeOverloads(pt, cd, NULL, cd->overs);
+                transformScopeOverloads(pt, strict, cd, NULL, cd->overs);
                 transformCasts(pt, cd);
             }
         }
     }
 
     /* Transform mapped types based on templates. */
-    transformMappedTypes(pt, mod);
+    transformMappedTypes(pt, strict, mod);
 
     setIsTransformed(mod);
 }
@@ -1298,7 +1298,7 @@ static void transformTypedefs(sipSpec *pt, moduleDef *mod)
 /*
  * Transform the data types for mapped types based on a template.
  */
-static void transformMappedTypes(sipSpec *pt, moduleDef *mod)
+static void transformMappedTypes(sipSpec *pt, int strict, moduleDef *mod)
 {
     mappedTypeDef *mt;
 
@@ -1309,7 +1309,7 @@ static void transformMappedTypes(sipSpec *pt, moduleDef *mod)
             if (mt->type.atype == template_type)
                 resolveMappedTypeTypes(pt, mt);
             else
-                transformScopeOverloads(pt, NULL, mt, mt->overs);
+                transformScopeOverloads(pt, strict, NULL, mt, mt->overs);
         }
     }
 }
@@ -1476,7 +1476,7 @@ static void addDefaultCopyCtor(classDef *cd)
 /*
  * Transform the data types for a list of overloads.
  */
-static void transformScopeOverloads(sipSpec *pt, classDef *c_scope,
+static void transformScopeOverloads(sipSpec *pt, int strict, classDef *c_scope,
         mappedTypeDef *mt_scope, overDef *overs)
 {
     overDef *od;
@@ -1492,7 +1492,7 @@ static void transformScopeOverloads(sipSpec *pt, classDef *c_scope,
          * one.  If there is %MethodCode then assume that it will handle any
          * potential conflicts.
          */
-        if (od->methodcode == NULL)
+        if (od->methodcode == NULL && strict)
         {
             for (prev = overs; prev != od; prev = prev->next)
             {
