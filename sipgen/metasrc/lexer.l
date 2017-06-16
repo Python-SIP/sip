@@ -258,23 +258,34 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
 }
 
 
-\"[^"\n]*["\n] {
+\"(\\.|[^\\"])*\" {
     /* A double-quoted string. */
-    char *dp, *sp;
+    char ch, *dp, *sp;
 
-    /* Copy the string without the quotes. */
-
-    yylval.text = sipMalloc(strlen(yytext) + 1);
+    /*
+     * Copy the string without the quotes and interpret any standard escape
+     * characters.
+     */
+    yylval.text = sipMalloc(strlen(yytext) - 2 + 1);
 
     dp = yylval.text;
-    sp = yytext;
+    sp = yytext + 1;
 
-    while (*sp != '\0')
+    while ((ch = *sp++) != '"' && ch != '\0')
     {
-        if (*sp != '"')
-            *dp++ = *sp;
+        if (ch == '\\')
+        {
+            ch = *sp++;
 
-        ++sp;
+            if (ch == 'n')
+                ch = '\n';
+            else if (ch == 'r')
+                ch = '\r';
+            else if (ch == 't')
+                ch = '\t';
+        }
+
+        *dp++ = ch;
     }
 
     *dp = '\0';

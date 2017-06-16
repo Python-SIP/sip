@@ -148,7 +148,7 @@ static void generateHandleResult(moduleDef *, overDef *, int, int, char *,
         FILE *);
 static void generateOrdinaryFunction(sipSpec *pt, moduleDef *mod,
         classDef *c_scope, mappedTypeDef *mt_scope, memberDef *md, FILE *fp);
-static void generateSimpleFunctionCall(fcallDef *, FILE *);
+static void generateSimpleFunctionCall(fcallDef *, int, FILE *);
 static int generateResultVar(ifaceFileDef *scope, overDef *od, argDef *res,
         const char *indent, FILE *fp);
 static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
@@ -474,9 +474,43 @@ void generateExpression(valueDef *vd, int in_str, FILE *fp)
 
         case string_value:
             {
-                const char *quote = (in_str ? "\\\"" : "\"");
+                const char *cp, *quote = (in_str ? "\\\"" : "\"");
 
-                prcode(fp,"%s%s%s", quote, vd->u.vstr, quote);
+                prcode(fp, "%s", quote);
+
+                for (cp = vd->u.vstr; *cp != '\0'; ++cp)
+                {
+                    char ch = *cp;
+                    int escape;
+
+                    if (strchr("\\\"", ch) != NULL)
+                    {
+                        escape = TRUE;
+                    }
+                    else if (ch == '\n')
+                    {
+                        escape = TRUE;
+                        ch = 'n';
+                    }
+                    else if (ch == '\r')
+                    {
+                        escape = TRUE;
+                        ch = 'r';
+                    }
+                    else if (ch == '\t')
+                    {
+                        escape = TRUE;
+                        ch = 't';
+                    }
+                    else
+                    {
+                        escape = FALSE;
+                    }
+
+                    prcode(fp, "%s%c", (escape ? "\\" : ""), ch);
+                }
+
+                prcode(fp, "%s", quote);
             }
 
             break;
@@ -498,7 +532,7 @@ void generateExpression(valueDef *vd, int in_str, FILE *fp)
             break;
 
         case fcall_value:
-            generateSimpleFunctionCall(vd->u.fcd,fp);
+            generateSimpleFunctionCall(vd->u.fcd, in_str, fp);
             break;
         }
  
@@ -9728,7 +9762,7 @@ static void generateDefaultValue(moduleDef *mod, argDef *ad, int argnr,
 /*
  * Generate a simple function call.
  */
-static void generateSimpleFunctionCall(fcallDef *fcd,FILE *fp)
+static void generateSimpleFunctionCall(fcallDef *fcd, int in_str, FILE *fp)
 {
     int i;
 
@@ -9739,7 +9773,7 @@ static void generateSimpleFunctionCall(fcallDef *fcd,FILE *fp)
         if (i > 0)
             prcode(fp,",");
 
-        generateExpression(fcd->args[i], FALSE, fp);
+        generateExpression(fcd->args[i], in_str, fp);
     }
 
     prcode(fp,")");
