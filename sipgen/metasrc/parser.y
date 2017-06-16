@@ -2647,6 +2647,7 @@ enumline:   ifstart
                 emd->cname = $1;
                 emd->no_typehint = getNoTypeHint(&$3);
                 emd->ed = currentEnum;
+                emd->platforms = currentPlatforms;
                 emd->next = NULL;
 
                 checkAttributes(currentSpec, currentModule, emd->ed->ecd,
@@ -4975,6 +4976,7 @@ static classDef *findClassWithInterface(sipSpec *pt, ifaceFileDef *iff)
 
     cd->iff = iff;
     cd->pyname = cacheName(pt, classBaseName(cd));
+    cd->platforms = currentPlatforms;
     cd->next = pt->classes;
 
     pt->classes = cd;
@@ -5061,6 +5063,7 @@ static exceptionDef *findException(sipSpec *pt, scopedNameDef *fqname, int new)
     xd->bibase = NULL;
     xd->base = NULL;
     xd->raisecode = NULL;
+    xd->platforms = currentPlatforms;
     xd->next = NULL;
 
     /* Append it to the list. */
@@ -5489,6 +5492,7 @@ static mappedTypeDef *newMappedType(sipSpec *pt, argDef *ad, optFlags *of)
     mappedTypeAnnos(mtd, of);
 
     mtd->iff = iff;
+    mtd->platforms = currentPlatforms;
     mtd->next = pt->mappedtypes;
 
     pt->mappedtypes = mtd;
@@ -5622,6 +5626,7 @@ static enumDef *newEnum(sipSpec *pt, moduleDef *mod, mappedTypeDef *mt_scope,
     ed->members = NULL;
     ed->slots = NULL;
     ed->overs = NULL;
+    ed->platforms = currentPlatforms;
     ed->next = pt -> enums;
 
     pt->enums = ed;
@@ -6797,6 +6802,7 @@ static void newTypedef(sipSpec *pt, moduleDef *mod, char *name, argDef *type,
     td->fqname = fqname;
     td->ecd = scope;
     td->module = mod;
+    td->platforms = currentPlatforms;
     td->type = *type;
 
     if (getOptFlag(optflgs, "Capsule", bool_flag) != NULL)
@@ -6986,6 +6992,7 @@ static void newVar(sipSpec *pt, moduleDef *mod, char *name, int isstatic,
     var->module = mod;
     var->varflags = 0;
     var->no_typehint = getNoTypeHint(of);
+    var->platforms = currentPlatforms;
     var->type = *type;
     appendCodeBlock(&var->accessfunc, acode);
     appendCodeBlock(&var->getcode, gcode);
@@ -7038,6 +7045,7 @@ static void newCtor(moduleDef *mod, char *name, int sectFlags,
     ct->pysig = *args;
     ct->cppsig = (cppsig != NULL ? cppsig : &ct->pysig);
     ct->exceptions = exceptions;
+    ct->platforms = currentPlatforms;
     appendCodeBlock(&ct->methodcode, methodcode);
     appendCodeBlock(&ct->premethodcode, premethodcode);
 
@@ -7372,6 +7380,7 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
     od->pysig = *sig;
     od->cppsig = (cppsig != NULL ? cppsig : &od->pysig);
     od->exceptions = exceptions;
+    od->platforms = currentPlatforms;
     appendCodeBlock(&od->methodcode, methodcode);
     appendCodeBlock(&od->premethodcode, premethodcode);
     appendCodeBlock(&od->virtcallcode, virtcallcode);
@@ -7542,6 +7551,7 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         len->common = findFunction(pt, mod, c_scope, ns_scope, mt_scope,
                 len->cppname, TRUE, 0, FALSE);
 
+        len->platforms = od->platforms;
         len->next = od->next;
         od->next = len;
     }
@@ -7563,6 +7573,7 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
                 matmul->cppname, (matmul->methodcode != NULL),
                 matmul->pysig.nrArgs, FALSE);
 
+        matmul->platforms = od->platforms;
         matmul->next = od->next;
         od->next = matmul;
     }
@@ -7584,6 +7595,7 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
                 imatmul->cppname, (imatmul->methodcode != NULL),
                 imatmul->pysig.nrArgs, FALSE);
 
+        imatmul->platforms = od->platforms;
         imatmul->next = od->next;
         od->next = imatmul;
     }
@@ -9251,6 +9263,7 @@ static void addProperty(sipSpec *pt, moduleDef *mod, classDef *cd,
     pd->get = get;
     pd->set = set;
     appendCodeBlock(&pd->docstring, docstring);
+    pd->platforms = currentPlatforms;
     pd->next = cd->properties;
 
     cd->properties = pd;
