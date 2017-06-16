@@ -31,6 +31,7 @@
 
 
 static sipSpec *currentSpec;            /* The current spec being parsed. */
+static int strictParse;                 /* Set if the platform is enforced. */
 static stringList *backstops;           /* The list of backstops. */
 static stringList *neededQualifiers;    /* The list of required qualifiers. */
 static stringList *excludedQualifiers;  /* The list of excluded qualifiers. */
@@ -46,13 +47,15 @@ static int currentIsSlot;               /* Set if the current is Q_SLOT. */
 static int currentIsTemplate;           /* Set if the current is a template. */
 static char *previousFile;              /* The file just parsed. */
 static parserContext currentContext;    /* The current context. */
-static int skipStackPtr;                /* The skip stack pointer. */
+static int stackPtr;                    /* The stack pointer. */
 static int skipStack[MAX_NESTED_IF];    /* Stack of skip flags. */
 static classDef *scopeStack[MAX_NESTED_SCOPE];  /* The scope stack. */
 static int sectFlagsStack[MAX_NESTED_SCOPE];    /* The section flags stack. */
 static int currentScopeIdx;             /* The scope stack index. */
 static int currentTimelineOrder;        /* The current timeline order. */
 static classList *currentSupers;        /* The current super-class list. */
+static platformDef *currentPlatforms;   /* The current platforms list. */
+static platformDef *platformStack[MAX_NESTED_IF];   /* Stack of platforms. */
 static KwArgs defaultKwArgs;            /* The default keyword arguments support. */
 static int makeProtPublic;              /* Treat protected items as public. */
 static int parsingCSignature;           /* An explicit C/C++ signature is being parsed. */
@@ -111,7 +114,8 @@ static qualDef *allocQualifier(moduleDef *, int, int, int, const char *,
         qualType);
 static void newImport(const char *filename);
 static int timePeriod(const char *lname, const char *uname);
-static int platOrFeature(char *,int);
+static int platOrFeature(char *name, int optnot);
+static void addPlatform(qualDef *qd);
 static int notSkipping(void);
 static void getHooks(optFlags *,char **,char **);
 static int getTransfer(optFlags *optflgs);
@@ -1409,30 +1413,36 @@ qualifiername:  TK_NAME_VALUE {
         }
     ;
 
-ifstart:    TK_IF '(' qualifiers ')' {
-            if (skipStackPtr >= MAX_NESTED_IF)
+ifstart:    TK_IF '(' {
+            currentPlatforms = NULL;
+        } qualifiers ')' {
+            if (stackPtr >= MAX_NESTED_IF)
                 yyerror("Internal error: increase the value of MAX_NESTED_IF");
 
             /* Nested %Ifs are implicit logical ands. */
 
-            if (skipStackPtr > 0)
-                $3 = ($3 && skipStack[skipStackPtr - 1]);
+            if (stackPtr > 0)
+                $4 = ($4 && skipStack[stackPtr - 1]);
 
-            skipStack[skipStackPtr++] = $3;
+            skipStack[stackPtr] = $4;
+
+            platformStack[stackPtr] = currentPlatforms;
+
+            ++stackPtr;
         }
     ;
 
 oredqualifiers: TK_NAME_VALUE {
-            $$ = platOrFeature($1,FALSE);
+            $$ = platOrFeature($1, FALSE);
         }
     |   '!' TK_NAME_VALUE {
-            $$ = platOrFeature($2,TRUE);
+            $$ = platOrFeature($2, TRUE);
         }
     |   oredqualifiers TK_LOGICAL_OR TK_NAME_VALUE {
-            $$ = (platOrFeature($3,FALSE) || $1);
+            $$ = (platOrFeature($3, FALSE) || $1);
         }
     |   oredqualifiers TK_LOGICAL_OR '!' TK_NAME_VALUE {
-            $$ = (platOrFeature($4,TRUE) || $1);
+            $$ = (platOrFeature($4, TRUE) || $1);
         }
     ;
 
@@ -1443,8 +1453,10 @@ qualifiers: oredqualifiers
     ;
 
 ifend:      TK_END {
-            if (skipStackPtr-- <= 0)
+            if (stackPtr-- <= 0)
                 yyerror("Too many %End directives");
+
+            currentPlatforms = (stackPtr == 0 ? NULL : platformStack[stackPtr - 1]);
         }
     ;
 
@@ -4641,8 +4653,9 @@ exceptionlist:  {
 /*
  * Parse the specification.
  */
-void parse(sipSpec *spec, FILE *fp, char *filename, stringList *tsl,
-        stringList *bsl, stringList *xfl, KwArgs kwArgs, int protHack)
+void parse(sipSpec *spec, FILE *fp, char *filename, int strict,
+        stringList *tsl, stringList *bsl, stringList *xfl, KwArgs kwArgs,
+        int protHack)
 {
     classTmplDef *tcd;
 
@@ -4652,6 +4665,7 @@ void parse(sipSpec *spec, FILE *fp, char *filename, stringList *tsl,
     spec->genc = -1;
 
     currentSpec = spec;
+    strictParse = strict;
     backstops = bsl;
     neededQualifiers = tsl;
     excludedQualifiers = xfl;
@@ -4664,7 +4678,8 @@ void parse(sipSpec *spec, FILE *fp, char *filename, stringList *tsl,
     currentIsSlot = FALSE;
     currentIsTemplate = FALSE;
     previousFile = NULL;
-    skipStackPtr = 0;
+    stackPtr = 0;
+    currentPlatforms = NULL;
     currentScopeIdx = 0;
     sectionFlags = 0;
     defaultKwArgs = kwArgs;
@@ -4797,7 +4812,7 @@ static void parseFile(FILE *fp, const char *name, moduleDef *prevmod,
     parserContext pc;
 
     pc.filename = name;
-    pc.ifdepth = skipStackPtr;
+    pc.ifdepth = stackPtr;
     pc.prevmod = prevmod;
 
     if (setInputFile(fp, &pc, optional))
@@ -8058,10 +8073,10 @@ static void handleEOF()
      * the file.
      */
 
-    if (skipStackPtr > currentContext.ifdepth)
+    if (stackPtr > currentContext.ifdepth)
         fatal("Too many %%If statements in %s\n", previousFile);
 
-    if (skipStackPtr < currentContext.ifdepth)
+    if (stackPtr < currentContext.ifdepth)
         fatal("Too many %%End statements in %s\n", previousFile);
 }
 
@@ -8316,7 +8331,7 @@ static void popScope(void)
  */
 static int notSkipping()
 {
-    return (skipStackPtr == 0 ? TRUE : skipStack[skipStackPtr - 1]);
+    return (stackPtr == 0 ? TRUE : skipStack[stackPtr - 1]);
 }
 
 
@@ -8429,32 +8444,79 @@ static int isBackstop(qualDef *qd)
 /*
  * Return the value of an expression involving a single platform or feature.
  */
-static int platOrFeature(char *name,int optnot)
+static int platOrFeature(char *name, int optnot)
 {
     int this;
     qualDef *qd;
 
-    if ((qd = findQualifier(name)) == NULL || qd -> qtype == time_qualifier)
+    if ((qd = findQualifier(name)) == NULL || qd->qtype == time_qualifier)
         yyerror("No such platform or feature");
 
     /* Assume this sub-expression is false. */
 
     this = FALSE;
 
-    if (qd -> qtype == feature_qualifier)
+    if (qd->qtype == feature_qualifier)
     {
         if (!excludedFeature(excludedQualifiers, qd))
             this = TRUE;
     }
-    else if (selectedQualifier(neededQualifiers, qd))
+    else
     {
-        this = TRUE;
+        if (!strictParse)
+        {
+            if (optnot)
+            {
+                moduleDef *mod;
+
+                /* Add every platform except the one we have. */
+                for (mod = currentSpec->modules; mod != NULL; mod = mod->next)
+                {
+                    qualDef *not_qd;
+
+                    for (not_qd = mod->qualifiers; not_qd != NULL; not_qd = not_qd->next)
+                        if (not_qd->qtype == platform_qualifier && strcmp(not_qd->name, qd->name) != 0)
+                            addPlatform(not_qd);
+                }
+            }
+            else
+            {
+                addPlatform(qd);
+            }
+
+            /*
+             * If it is a non-strict parse then this is always TRUE, ie. we
+             * never skip because of the platform.
+             */
+            return TRUE;
+        }
+
+        if (selectedQualifier(neededQualifiers, qd))
+            this = TRUE;
     }
 
     if (optnot)
         this = !this;
 
     return this;
+}
+
+
+/*
+ * Add a platform to the current list of platforms if it is not already there.
+ */
+static void addPlatform(qualDef *qd)
+{
+    platformDef *pd;
+
+    for (pd = currentPlatforms; pd != NULL; pd = pd->next)
+        if (pd->qualifier == qd)
+            return;
+
+    pd = sipMalloc(sizeof (platformDef));
+    pd->qualifier = qd;
+    pd->next = currentPlatforms;
+    currentPlatforms = pd;
 }
 
 

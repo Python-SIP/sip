@@ -747,6 +747,13 @@ typedef struct _qualDef {
 } qualDef;
 
 
+/* A platform. */
+typedef struct _platformDef {
+    struct _qualDef *qualifier;         /* The platform qualifier. */
+    struct _platformDef *next;          /* Next in the list. */
+} platformDef;
+
+
 /* A scoped name. */
 typedef struct _scopedNameDef {
     char *name;                         /* The name. */
@@ -1329,8 +1336,8 @@ extern char *sipVersion;                /* The version of SIP. */
 extern stringList *includeDirList;      /* The include directory list for SIP files. */
 
 
-void parse(sipSpec *, FILE *, char *, stringList *, stringList *, stringList *,
-        KwArgs, int);
+void parse(sipSpec *, FILE *, char *, int, stringList *, stringList *,
+        stringList *, KwArgs, int);
 void parserEOF(const char *,parserContext *);
 void transform(sipSpec *);
 void generateCode(sipSpec *, char *, char *, char *, const char *, int, int,

@@ -52,7 +52,7 @@ int main(int argc, char **argv)
     char *filename, *docFile, *codeDir, *srcSuffix, *flagFile, *consModule;
     char arg, *optarg, *buildFile, *apiFile, *xmlFile, *pyiFile;
     int optnr, exceptions, tracing, releaseGIL, parts, protHack, docs;
-    int timestamp, was_flagFile, py_debug;
+    int timestamp, was_flagFile, py_debug, strict;
     KwArgs kwArgs;
     FILE *file;
     sipSpec spec;
@@ -84,6 +84,7 @@ int main(int argc, char **argv)
     docs = FALSE;
     timestamp = TRUE;
     py_debug = FALSE;
+    strict = TRUE;
 
     /* Parse the command line. */
     optnr = 1;
@@ -264,9 +265,18 @@ int main(int argc, char **argv)
     if (was_flagFile)
         warning(DeprecationWarning, "the -z flag is deprecated\n");
 
+    /* Handle conflicting arguments. */
+    if (xmlFile != NULL)
+    {
+        if (codeDir != NULL || docFile != NULL || buildFile != NULL)
+            fatal("The -m flag cannot be specified with either the -b, -c or -d flags\n");
+
+        strict = FALSE;
+    }
+
     /* Parse the input file. */
-    parse(&spec, file, filename, versions, backstops, xfeatures, kwArgs,
-            protHack);
+    parse(&spec, file, filename, strict, versions, backstops, xfeatures,
+            kwArgs, protHack);
 
     /* Verify and transform the parse tree. */
     transform(&spec);

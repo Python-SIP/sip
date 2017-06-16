@@ -299,7 +299,7 @@ static int isString(argDef *ad);
 /*
  * Generate the code from a specification.
  */
-void generateCode(sipSpec *pt, char *codeDir, char *buildfile, char *docFile,
+void generateCode(sipSpec *pt, char *codeDir, char *buildFile, char *docFile,
         const char *srcSuffix, int except, int trace, int releaseGIL,
         int parts, stringList *needed_qualifiers, stringList *xsl,
         const char *consModule, int docs, int py_debug)
@@ -341,8 +341,8 @@ void generateCode(sipSpec *pt, char *codeDir, char *buildfile, char *docFile,
     }
 
     /* Generate the build file. */
-    if (buildfile != NULL)
-        generateBuildFile(pt, buildfile, srcSuffix, consModule);
+    if (buildFile != NULL)
+        generateBuildFile(pt, buildFile, srcSuffix, consModule);
 }
 
 
