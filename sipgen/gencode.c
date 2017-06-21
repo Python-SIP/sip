@@ -469,7 +469,11 @@ void generateExpression(valueDef *vd, int in_str, FILE *fp)
         switch (vd->vtype)
         {
         case qchar_value:
-            prcode(fp,"'%c'",vd->u.vqchar);
+            if (vd->u.vqchar == '"' && in_str)
+                prcode(fp, "'\\\"'");
+            else
+                prcode(fp, "'%c'", vd->u.vqchar);
+
             break;
 
         case string_value:
