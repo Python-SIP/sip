@@ -3138,7 +3138,8 @@ optclassbody:   {
         }
     ;
 
-classbody:  classline
+classbody:
+    |   classline
     |   classbody classline
     ;
 
