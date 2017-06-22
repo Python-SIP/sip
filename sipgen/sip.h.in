@@ -217,6 +217,7 @@
 
 #define isTemplateArg(cd)   ((cd)->classflags2 & CLASS2_TMPL_ARG)
 #define setTemplateArg(cd)  ((cd)->classflags2 |= CLASS2_TMPL_ARG)
+#define resetTemplateArg(cd)    ((cd)->classflags2 &= ~CLASS2_TMPL_ARG)
 #define isMixin(cd)         ((cd)->classflags2 & CLASS2_MIXIN)
 #define setMixin(cd)        ((cd)->classflags2 |= CLASS2_MIXIN)
 #define isExportDerived(cd) ((cd)->classflags2 & CLASS2_EXPORT_DERIVED)

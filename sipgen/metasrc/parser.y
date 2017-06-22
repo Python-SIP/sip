@@ -64,8 +64,9 @@ static int parsingCSignature;           /* An explicit C/C++ signature is being 
 static const char *getPythonName(moduleDef *mod, optFlags *optflgs,
         const char *cname);
 static classDef *findClass(sipSpec *pt, ifaceFileType iftype,
-        apiVersionRangeDef *api_range, scopedNameDef *fqname);
-static classDef *findClassWithInterface(sipSpec *pt, ifaceFileDef *iff);
+        apiVersionRangeDef *api_range, scopedNameDef *fqname, int tmpl_arg);
+static classDef *findClassWithInterface(sipSpec *pt, ifaceFileDef *iff,
+        int tmpl_arg);
 static classDef *newClass(sipSpec *pt, ifaceFileType iftype,
         apiVersionRangeDef *api_range, scopedNameDef *snd,
         const char *virt_error_handler, typeHintDef *typehint_in,
@@ -3110,7 +3111,8 @@ superclass: class_access scopedname {
                  * should pass the API of the sub-class being defined,
                  * otherwise we cannot create sub-classes of versioned classes.
                  */
-                super = findClass(currentSpec, class_iface, NULL, snd);
+                super = findClass(currentSpec, class_iface, NULL, snd,
+                        currentIsTemplate);
                 appendToClassList(&currentSupers, super);
             }
         }
@@ -4961,25 +4963,36 @@ ifaceFileDef *findIfaceFile(sipSpec *pt, moduleDef *mod, scopedNameDef *fqname,
  * Find a class definition in a parse tree.
  */
 static classDef *findClass(sipSpec *pt, ifaceFileType iftype,
-        apiVersionRangeDef *api_range, scopedNameDef *fqname)
+        apiVersionRangeDef *api_range, scopedNameDef *fqname, int tmpl_arg)
 {
-    return findClassWithInterface(pt, findIfaceFile(pt, currentModule, fqname, iftype, api_range, NULL));
+    return findClassWithInterface(pt,
+            findIfaceFile(pt, currentModule, fqname, iftype, api_range, NULL),
+            tmpl_arg);
 }
 
 
 /*
  * Find a class definition given an existing interface file.
  */
-static classDef *findClassWithInterface(sipSpec *pt, ifaceFileDef *iff)
+static classDef *findClassWithInterface(sipSpec *pt, ifaceFileDef *iff,
+        int tmpl_arg)
 {
     classDef *cd;
 
-    for (cd = pt -> classes; cd != NULL; cd = cd -> next)
-        if (cd -> iff == iff)
+    for (cd = pt->classes; cd != NULL; cd = cd->next)
+        if (cd->iff == iff)
+        {
+            if (isTemplateArg(cd) && !tmpl_arg)
+                resetTemplateArg(cd);
+
             return cd;
+        }
 
     /* Create a new one. */
     cd = sipMalloc(sizeof (classDef));
+
+    if (tmpl_arg)
+        setTemplateArg(cd);
 
     cd->iff = iff;
     cd->pyname = cacheName(pt, classBaseName(cd));
@@ -5055,7 +5068,7 @@ static exceptionDef *findException(sipSpec *pt, scopedNameDef *fqname, int new)
         if (iff->type == exception_iface)
             iff->type = class_iface;
 
-        cd = findClassWithInterface(pt, iff);
+        cd = findClassWithInterface(pt, iff, FALSE);
     }
 
     /* Create a new one. */
@@ -5123,7 +5136,7 @@ static classDef *newClass(sipSpec *pt, ifaceFileType iftype,
         scope = NULL;
     }
 
-    cd = findClass(pt, iftype, api_range, fqname);
+    cd = findClass(pt, iftype, api_range, fqname, FALSE);
 
     /* Check it hasn't already been defined. */
     if (iftype != namespace_iface && cd->iff->module != NULL)
@@ -6045,17 +6058,12 @@ static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod,
                 classDef *icd;
 
                 if (tad->atype == defined_type)
-                    icd = findClass(pt, class_iface, NULL, tad->u.snd);
+                    icd = findClass(pt, class_iface, NULL, tad->u.snd, FALSE);
                 else if (tad->atype == class_type)
                     icd = tad->u.cd;
                 else
                     fatal("Template argument %s must expand to a class\n",
                             unscoped->name);
-
-                /*
-                 * Don't complain about the template argument being undefined.
-                 */
-                setTemplateArg(cl->cd);
 
                 cl->cd = icd;
             }
