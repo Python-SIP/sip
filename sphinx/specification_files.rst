@@ -386,9 +386,6 @@ SIP that might trip you up.
 
     - Variables declared outside of a class are effectively read-only.
 
-    - A class's list of super-classes doesn't not include any access specifier
-      (e.g. ``public``).
-
 
 Variable Numbers of Arguments
 -----------------------------
