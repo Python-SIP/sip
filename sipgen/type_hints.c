@@ -1134,7 +1134,7 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, int sec,
  */
 void prScopedPythonName(FILE *fp, classDef *scope, const char *pyname)
 {
-    if (scope != NULL)
+    if (scope != NULL && !isHiddenNamespace(scope))
     {
         prScopedPythonName(fp, scope->ecd, NULL);
         fprintf(fp, "%s.", scope->pyname->text);
