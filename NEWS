@@ -1,3 +1,10 @@
+v4.19.3 3rd July 2017
+  - Added support for type hints for properties.
+  - Added sipEventType and sipRegisterEventHandler() to the C API.
+  - Added sipInstanceDestroyed() to the C API.
+  - Added sipPrintObject() to the C API.
+  - Bug fixes.
+
 v4.19.2 30th March 2017
   - Bug fixes.
 
