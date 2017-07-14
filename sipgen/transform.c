@@ -616,7 +616,20 @@ static void setAllImports(moduleDef *mod)
 
     /* Make sure all the direct imports are done first. */
     for (mld = mod->imports; mld != NULL; mld = mld->next)
+    {
+        moduleListDef *amld;
+
+        /* Check for recursive imports. */
+        for (amld = mld->module->allimports; amld != NULL; amld = amld->next)
+            if (amld->module == mod)
+            {
+                fatalStart();
+                fatal("Module %s is imported recursively via module %s\n",
+                        mod->name, mld->module->name);
+            }
+
         setAllImports(mld->module);
+    }
 
     /*
      * Now build the list from our direct imports lists but ignoring
