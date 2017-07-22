@@ -614,22 +614,18 @@ static void setAllImports(moduleDef *mod)
     if (mod->imports == NULL || mod->allimports != NULL)
         return;
 
+    /* Check for recursive imports. */
+    if (settingImports(mod))
+    {
+        fatalStart();
+        fatal("Module %s is imported recursively\n", mod->name);
+    }
+
+    setSettingImports(mod);
+
     /* Make sure all the direct imports are done first. */
     for (mld = mod->imports; mld != NULL; mld = mld->next)
-    {
-        moduleListDef *amld;
-
-        /* Check for recursive imports. */
-        for (amld = mld->module->allimports; amld != NULL; amld = amld->next)
-            if (amld->module == mod)
-            {
-                fatalStart();
-                fatal("Module %s is imported recursively via module %s\n",
-                        mod->name, mld->module->name);
-            }
-
         setAllImports(mld->module);
-    }
 
     /*
      * Now build the list from our direct imports lists but ignoring
@@ -644,6 +640,8 @@ static void setAllImports(moduleDef *mod)
 
         addUniqueModule(mod, mld->module);
     }
+
+    resetSettingImports(mod);
 }
 
 
