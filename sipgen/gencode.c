@@ -10511,7 +10511,7 @@ static void generatePyQt5Emitters(classDef *cd, FILE *fp)
 "static int emit_%L_%s(void *sipCppV, PyObject *sipArgs)\n"
 "{\n"
 "    PyObject *sipParseErr = NULL;\n"
-"    %C *sipCpp = reinterpret_cast<%C *>(sipCppV);\n"
+"    %V *sipCpp = reinterpret_cast<%V *>(sipCppV);\n"
                     , cd->iff, od->cppname
                     , classFQCName(cd), classFQCName(cd));
             }
