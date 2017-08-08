@@ -861,7 +861,7 @@ static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd)
             if (second)
             {
                 fatalStart();
-                fprintf(stderr, "%s:%d: The first argument of ", od->sloc.name,
+                fprintf(stderr, "%s:%d: Argument 1 of ", od->sloc.name,
                         od->sloc.linenr);
                 prOverloadName(stderr, od);
                 fatal(" must be a class or enum\n");
@@ -870,7 +870,7 @@ static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd)
             if (mod != gmd->module && arg0->atype == enum_type)
             {
                 fatalStart();
-                fprintf(stderr, "%s:%d: The first argument of ", od->sloc.name,
+                fprintf(stderr, "%s:%d: Argument 1 of ", od->sloc.name,
                         od->sloc.linenr);
                 prOverloadName(stderr, od);
                 fatal(" must be a class\n");
@@ -1958,10 +1958,10 @@ static void resolveCtorTypes(sipSpec *pt,classDef *scope,ctorDef *ct)
 
         resolveType(pt, scope->iff->module, scope, ad, FALSE);
 
-        if (!supportedType(scope,NULL,ad,FALSE) && (ct -> cppsig == &ct -> pysig || ct -> methodcode == NULL))
+        if (!supportedType(scope,NULL,ad,FALSE))
         {
             fatalScopedName(classFQCName(scope));
-            fatal(" unsupported ctor argument type - provide %%MethodCode and a C++ signature\n");
+            fatal(" ctor argument %d has an unsupported type for a Python signature - provide a valid type, %%MethodCode and a C++ signature\n", a + 1);
         }
 
         ifaceFileIsUsed(&scope->iff->used, ad, FALSE);
@@ -2118,34 +2118,26 @@ static void resolvePySigTypes(sipSpec *pt, moduleDef *mod, classDef *scope,
                     fprintf(stderr, "::");
                 }
 
-                fatal("%s() unsupported signal argument type\n", od->cppname);
+                fatal("%s() argument %d has an unsupported type for a Python signature\n", od->cppname, a + 1);
             }
         }
         else if (!supportedType(scope, od, ad, TRUE))
         {
-            int need_meth, need_virt;
+            fatalStart();
 
-            need_meth = (od->cppsig == &od->pysig || od->methodcode == NULL);
-            need_virt = (isVirtual(od) && od->virtcode == NULL);
+            if (od->sloc.name != NULL)
+                fprintf(stderr, "%s:%d: ", od->sloc.name, od->sloc.linenr);
 
-            if (need_meth || need_virt)
+            if (scope != NULL)
             {
-                fatalStart();
-
-                if (od->sloc.name != NULL)
-                    fprintf(stderr, "%s:%d: ", od->sloc.name, od->sloc.linenr);
-
-                if (scope != NULL)
-                {
-                    fatalScopedName(classFQCName(scope));
-                    fprintf(stderr, "::");
-                }
-
-                if (need_meth)
-                    fatal("%s() unsupported function argument type - provide %%MethodCode and a %s signature\n", od->cppname, (pt->genc ? "C" : "C++"));
-
-                fatal("%s() unsupported function argument type - provide %%MethodCode, %%VirtualCatcherCode and a C++ signature\n", od->cppname);
+                fatalScopedName(classFQCName(scope));
+                fprintf(stderr, "::");
             }
+
+            if (isVirtual(od))
+                fatal("%s() argument %d has an unsupported type for a Python signature - provide a valid type, %%MethodCode, %%VirtualCatcherCode and a C++ signature\n", od->cppname, a + 1);
+
+            fatal("%s() argument %d has an unsupported type for a Python signature - provide a valid type, %%MethodCode and a C++ signature\n", od->cppname, a + 1);
         }
 
         if (scope != NULL)
