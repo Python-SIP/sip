@@ -5663,6 +5663,9 @@ static enumDef *newEnum(sipSpec *pt, moduleDef *mod, mappedTypeDef *mt_scope,
     if (getOptFlag(of, "NoScope", bool_flag) != NULL)
         setIsNoScope(ed);
 
+    if (isscoped)
+        setIsScopedEnum(ed);
+
     return ed;
 }
 
@@ -7944,8 +7947,6 @@ static void checkAttributes(sipSpec *pt, moduleDef *mod, classDef *py_c_scope,
     /* Check the enums. */
     for (ed = pt->enums; ed != NULL; ed = ed->next)
     {
-        enumMemberDef *emd;
-
         if (ed->pyname == NULL)
             continue;
 
@@ -7967,9 +7968,14 @@ static void checkAttributes(sipSpec *pt, moduleDef *mod, classDef *py_c_scope,
         if (strcmp(ed->pyname->text, attr) == 0)
             yyerror("There is already an enum in scope with the same Python name");
 
-        for (emd = ed->members; emd != NULL; emd = emd->next)
-            if (strcmp(emd->pyname->text, attr) == 0)
-                yyerror("There is already an enum member in scope with the same Python name");
+        if (!isScopedEnum(ed))
+        {
+            enumMemberDef *emd;
+
+            for (emd = ed->members; emd != NULL; emd = emd->next)
+                if (strcmp(emd->pyname->text, attr) == 0)
+                    yyerror("There is already an enum member in scope with the same Python name");
+        }
     }
 
     /*
