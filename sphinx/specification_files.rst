@@ -220,7 +220,9 @@ file.
     *mapped-type-template* :: = **template** **<** *type-list* **>**
             :directive:`%MappedType`
 
-    *enum* ::= **enum** [*name*] [*enum-annotations*] **{** {*enum-line*} **};**
+    *enum* ::= **enum** [*enum-key*] [*name*] [*enum-annotations*] **{** {*enum-line*} **};**
+
+    *enum-key* ::= [**class** | **struct**]
 
     *enum-line* ::= [:directive:`%If` | *name* [*enum-annotations*] **,**
 

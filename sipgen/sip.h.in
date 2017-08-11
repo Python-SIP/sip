@@ -294,6 +294,7 @@
 #define ENUM_WAS_PROT       0x00000100  /* It was defined as protected. */
 #define ENUM_NO_SCOPE       0x00000200  /* Omit the member scopes. */
 #define ENUM_NEEDS_ENUM     0x00000400  /* The module needs it. */
+#define ENUM_SCOPED         0x00000800  /* A C++0x11 scoped enum. */
 
 #define isProtectedEnum(e)  ((e)->enumflags & SECT_IS_PROT)
 #define setIsProtectedEnum(e)   ((e)->enumflags |= SECT_IS_PROT)
@@ -306,6 +307,8 @@
 #define setIsNoScope(e)     ((e)->enumflags |= ENUM_NO_SCOPE)
 #define needsEnum(e)        ((e)->enumflags & ENUM_NEEDS_ENUM)
 #define setNeedsEnum(e)     ((e)->enumflags |= ENUM_NEEDS_ENUM)
+#define isScopedEnum(e)     ((e)->enumflags & ENUM_SCOPED)
+#define setIsScopedEnum(e)  ((e)->enumflags |= ENUM_SCOPED)
 
 
 /* Handle hierarchy flags. */
