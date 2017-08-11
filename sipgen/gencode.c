@@ -5155,9 +5155,21 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
     case enum_type:
         if (vd->type.u.ed->fqcname != NULL)
         {
+            const char *cast_prefix, *cast_suffix;
+
+            if (generating_c)
+            {
+                cast_prefix = cast_suffix = "";
+            }
+            else
+            {
+                cast_prefix = "static_cast<int>(";
+                cast_suffix = ")";
+            }
+
             prcode(fp,
-"    return sipConvertFromEnum(sipVal, sipType_%C);\n"
-                , vd->type.u.ed->fqcname);
+"    return sipConvertFromEnum(%ssipVal%s, sipType_%C);\n"
+                , cast_prefix, cast_suffix, vd->type.u.ed->fqcname);
 
             break;
         }
@@ -12087,9 +12099,21 @@ static void generateHandleResult(moduleDef *mod, overDef *od, int isNew,
     case enum_type:
         if (ad->u.ed->fqcname != NULL)
         {
+            const char *cast_prefix, *cast_suffix;
+
+            if (generating_c)
+            {
+                cast_prefix = cast_suffix = "";
+            }
+            else
+            {
+                cast_prefix = "static_cast<int>(";
+                cast_suffix = ")";
+            }
+
             prcode(fp,
-"            %s sipConvertFromEnum(%s,sipType_%C);\n"
-                , prefix, vname, ad->u.ed->fqcname);
+"            %s sipConvertFromEnum(%s%s%s, sipType_%C);\n"
+                , prefix, cast_prefix, vname, cast_suffix, ad->u.ed->fqcname);
 
             break;
         }
