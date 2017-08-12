@@ -1856,7 +1856,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         else
             prcode(fp, "0");
 
-        prcode(fp, ", 0, SIP_TYPE_ENUM, %n, {0}, 0}, %n, %d, ", ed->cname, ed->pyname, type_nr);
+        prcode(fp, ", 0, SIP_TYPE_%s, %n, {0}, 0}, %n, %d, ", (isScopedEnum(ed) ? "SCOPED_ENUM" : "ENUM"), ed->cname, ed->pyname, type_nr);
 
         if (ed->slots != NULL)
             prcode(fp, "slots_%C", ed->fqcname);
@@ -3260,7 +3260,11 @@ static int generateEnumMemberTable(sipSpec *pt, moduleDef *mod, classDef *cd,
         {
             classDef *ecd = emd->ed->ecd;
 
-            if (ecd != NULL)
+            if (isScopedEnum(emd->ed))
+            {
+                prcode(fp, "::%s::", emd->ed->cname->text);
+            }
+            else if (ecd != NULL)
             {
                 if (isProtectedEnum(emd->ed))
                     prcode(fp, "sip%C::", classFQCName(ecd));

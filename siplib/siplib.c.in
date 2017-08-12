@@ -859,6 +859,9 @@ static PyObject *unpickle_enum(PyObject *obj, PyObject *args);
 static int setReduce(PyTypeObject *type, PyMethodDef *pickler);
 static int createEnumType(sipExportedModuleDef *client, sipEnumTypeDef *etd,
         PyObject *mod_dict);
+static PyObject *createUnscopedEnum(sipExportedModuleDef *client,
+        sipEnumTypeDef *etd, PyObject *name);
+static PyObject *createScopedEnum();
 static PyObject *createTypeDict(sipExportedModuleDef *em);
 static sipTypeDef *getGeneratedType(const sipEncodedTypeDef *enc,
         sipExportedModuleDef *em);
@@ -1799,7 +1802,7 @@ static int sip_api_init_module(sipExportedModuleDef *client,
             continue;
         }
 
-        if (sipTypeIsEnum(td))
+        if (sipTypeIsEnum(td) || sipTypeIsScopedEnum(td))
         {
             sipEnumTypeDef *etd = (sipEnumTypeDef *)td;
 
@@ -1808,10 +1811,10 @@ static int sip_api_init_module(sipExportedModuleDef *client,
                     return -1;
 
             /*
-             * Register the enum pickler for scoped enums (unscoped, ie. those
-             * not nested, don't need special treatment).
+             * Register the enum pickler for nested enums (non-nested enums
+             * don't need special treatment).
              */
-            if (etd->etd_scope >= 0)
+            if (sipTypeIsEnum(td) && etd->etd_scope >= 0)
             {
                 static PyMethodDef md = {
                     "_pickle_enum", pickle_enum, METH_NOARGS, NULL
@@ -6717,9 +6720,8 @@ static int setReduce(PyTypeObject *type, PyMethodDef *pickler)
 static int createEnumType(sipExportedModuleDef *client, sipEnumTypeDef *etd,
         PyObject *mod_dict)
 {
-    static PyObject *bases = NULL;
-    PyObject *name, *type_dict, *args, *dict;
-    sipEnumTypeObject *eto;
+    int rc;
+    PyObject *name, *dict, *enum_obj;
 
     etd->etd_base.td_module = client;
 
@@ -6727,7 +6729,50 @@ static int createEnumType(sipExportedModuleDef *client, sipEnumTypeDef *etd,
     if (etd->etd_scope < 0)
         dict = mod_dict;
     else if ((dict = getScopeDict(client->em_types[etd->etd_scope], mod_dict, client)) == NULL)
-        goto reterr;
+        return -1;
+
+    /* Create an object corresponding to the type name. */
+#if PY_MAJOR_VERSION >= 3
+    name = PyUnicode_FromString(sipPyNameOfEnum(etd));
+#else
+    name = PyString_FromString(sipPyNameOfEnum(etd));
+#endif
+
+    if (name == NULL)
+        return -1;
+
+    /* Create the enum. */
+    if (sipTypeIsEnum(&etd->etd_base))
+        enum_obj = createUnscopedEnum(client, etd, name);
+    else
+        enum_obj = createScopedEnum();
+
+    if (enum_obj == NULL)
+    {
+        Py_DECREF(name);
+        return -1;
+    }
+
+    /* Add the enum to the "parent" dictionary. */
+    rc = PyDict_SetItem(dict, name, enum_obj);
+
+    /* We can now release our remaining references. */
+    Py_DECREF(name);
+    Py_DECREF(enum_obj);
+
+    return rc;
+}
+
+
+/*
+ * Create an unscoped enum.
+ */
+static PyObject *createUnscopedEnum(sipExportedModuleDef *client,
+        sipEnumTypeDef *etd, PyObject *name)
+{
+    static PyObject *bases = NULL;
+    PyObject *type_dict, *args;
+    sipEnumTypeObject *eto;
 
     /* Create the base type tuple if it hasn't already been done. */
     if (bases == NULL)
@@ -6741,22 +6786,12 @@ static int createEnumType(sipExportedModuleDef *client, sipEnumTypeDef *etd,
 #endif
 
         if (bases == NULL)
-            goto reterr;
+            return NULL;
     }
-
-    /* Create an object corresponding to the type name. */
-#if PY_MAJOR_VERSION >= 3
-    name = PyUnicode_FromString(sipPyNameOfEnum(etd));
-#else
-    name = PyString_FromString(sipPyNameOfEnum(etd));
-#endif
-
-    if (name == NULL)
-        goto reterr;
 
     /* Create the type dictionary. */
     if ((type_dict = createTypeDict(client)) == NULL)
-        goto relname;
+        return NULL;
 
     /* Create the type by calling the metatype. */
 #if PY_VERSION_HEX >= 0x02040000
@@ -6768,7 +6803,7 @@ static int createEnumType(sipExportedModuleDef *client, sipEnumTypeDef *etd,
     Py_DECREF(type_dict);
 
     if (args == NULL)
-        goto relname;
+        return NULL;
 
     /* Pass the type via the back door. */
     assert(currentType == NULL);
@@ -6780,14 +6815,7 @@ static int createEnumType(sipExportedModuleDef *client, sipEnumTypeDef *etd,
     Py_DECREF(args);
 
     if (eto == NULL)
-        goto relname;
-
-    /* Add the type to the "parent" dictionary. */
-    if (PyDict_SetItem(dict, name, (PyObject *)eto) < 0)
-    {
-        Py_DECREF((PyObject *)eto);
-        goto relname;
-    }
+        return NULL;
 
     if (etd->etd_pyslots != NULL)
         fix_slots((PyTypeObject *)eto, etd->etd_pyslots);
@@ -6809,23 +6837,27 @@ static int createEnumType(sipExportedModuleDef *client, sipEnumTypeDef *etd,
                 ((PyHeapTypeObject *)scope_type)->ht_qualname, name);
 
         if (eto->super.ht_qualname == NULL)
-            goto relname;
+        {
+            Py_DECREF((PyObject *)eto);
+            return NULL;
+        }
     }
 #endif
 
-    /* We can now release our remaining references. */
-    Py_DECREF(name);
+    return (PyObject *)eto;
+}
 
-    return 0;
 
-    /* Unwind after an error. */
+/*
+ * Create a scoped enum.
+ */
+static PyObject *createScopedEnum()
+{
+    // ZZZ
+    PyErr_SetString(PyExc_NotImplementedError,
+            "scoped enums not yet implemented");
 
-relname:
-    Py_DECREF(name);
-
-reterr:
-    etd->etd_base.td_module = client;
-    return -1;
+    return NULL;
 }
 
 
@@ -7226,7 +7258,7 @@ static const sipTypeDef *sip_api_type_from_py_type_object(PyTypeObject *py_type)
  */
 static const sipTypeDef *sip_api_type_scope(const sipTypeDef *td)
 {
-    if (sipTypeIsEnum(td))
+    if (sipTypeIsEnum(td) || sipTypeIsScopedEnum(td))
     {
         const sipEnumTypeDef *etd = (const sipEnumTypeDef *)td;
 
@@ -7255,7 +7287,11 @@ static const sipTypeDef *sip_api_type_scope(const sipTypeDef *td)
  */
 static int sip_api_can_convert_to_enum(PyObject *obj, const sipTypeDef *td)
 {
-    assert(sipTypeIsEnum(td));
+    assert(sipTypeIsEnum(td) || sipTypeIsScopedEnum(td));
+
+    // ZZZ
+    if (sipTypeIsScopedEnum(td))
+        return FALSE;
 
     /* If the object is an enum then it must be the right enum. */
     if (PyObject_TypeCheck((PyObject *)Py_TYPE(obj), &sipEnumType_Type))
@@ -7291,8 +7327,9 @@ static PyObject *createEnumMember(sipTypeDef *td, sipEnumMemberDef *enm)
  */
 static PyObject *sip_api_convert_from_enum(int eval, const sipTypeDef *td)
 {
-    assert(sipTypeIsEnum(td));
+    assert(sipTypeIsEnum(td) || sipTypeIsScopedEnum(td));
 
+    // ZZZ
     return PyObject_CallFunction((PyObject *)sipTypeAsPyTypeObject(td), "(i)",
             eval);
 }
@@ -8419,6 +8456,7 @@ static int addSingleTypeInstance(PyObject *dict, const char *name,
     int rc;
     PyObject *obj;
 
+    // ZZZ
     if (sipTypeIsEnum(td))
     {
         obj = sip_api_convert_from_enum(*(int *)cppPtr, td);
@@ -9371,6 +9409,7 @@ static PyTypeObject *sip_api_find_named_enum(const char *type)
 {
     const sipTypeDef *td = sip_api_find_type(type);
 
+    // ZZZ
     if (td != NULL && sipTypeIsEnum(td))
         return sipTypeAsPyTypeObject(td);
 
@@ -9879,6 +9918,7 @@ static PyObject *sipWrapperType_alloc(PyTypeObject *self, SIP_SSIZE_T nitems)
      */
     if (currentType != NULL)
     {
+        // ZZZ
         assert(!sipTypeIsEnum(currentType));
 
         ((sipWrapperType *)o)->wt_td = currentType;

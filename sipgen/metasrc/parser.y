@@ -2596,6 +2596,9 @@ enum:       TK_ENUM optenumkey optname optflags {
                 if (sectionFlags != 0 && (sectionFlags & ~(SECT_IS_PUBLIC | SECT_IS_PROT)) != 0)
                     yyerror("Class enums must be in the public or protected sections");
 
+                if (currentSpec->genc && $2)
+                    yyerror("Scoped enums not allowed in a C module");
+
                 currentEnum = newEnum(currentSpec, currentModule,
                         currentMappedType, $3, &$4, sectionFlags, $2);
             }
