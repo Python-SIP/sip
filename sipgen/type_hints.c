@@ -758,8 +758,6 @@ static void pyiProperty(sipSpec *pt, moduleDef *mod, propertyDef *pd,
     /* Handle each overload. */
     for (od = overloads; od != NULL; od = od->next)
     {
-        int implicit_overloads, overloaded;
-
         if (isPrivate(od))
             continue;
 
