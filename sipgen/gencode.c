@@ -4153,7 +4153,12 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 
     if (!noRelease(mtd))
     {
-        /* Generate the assignment helper. */
+        /*
+         * Generate the assignment helper.  Note that the source pointer is not
+         * const.  This is to allow the source instance to be modified as a
+         * consequence of the assignment, eg. if it is implementing some sort
+         * of reference counting scheme.
+         */
         prcode(fp,
 "\n"
 "\n"
@@ -4161,21 +4166,21 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 
         if (!generating_c)
             prcode(fp,
-"extern \"C\" {static void assign_%L(void *, SIP_SSIZE_T, const void *);}\n"
+"extern \"C\" {static void assign_%L(void *, SIP_SSIZE_T, void *);}\n"
                 , mtd->iff);
 
         prcode(fp,
-"static void assign_%L(void *sipDst, SIP_SSIZE_T sipDstIdx, const void *sipSrc)\n"
+"static void assign_%L(void *sipDst, SIP_SSIZE_T sipDstIdx, void *sipSrc)\n"
 "{\n"
             , mtd->iff);
 
         if (generating_c)
             prcode(fp,
-"    ((%b *)sipDst)[sipDstIdx] = *((const %b *)sipSrc);\n"
+"    ((%b *)sipDst)[sipDstIdx] = *((%b *)sipSrc);\n"
                 , &mtd->type, &mtd->type);
         else
             prcode(fp,
-"    reinterpret_cast<%b *>(sipDst)[sipDstIdx] = *reinterpret_cast<const %b *>(sipSrc);\n"
+"    reinterpret_cast<%b *>(sipDst)[sipDstIdx] = *reinterpret_cast<%b *>(sipSrc);\n"
                 , &mtd->type, &mtd->type);
 
         prcode(fp,
@@ -6759,7 +6764,12 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 
     if (generating_c || assignmentHelper(cd))
     {
-        /* The assignment helper. */
+        /*
+         * Generate the assignment helper.  Note that the source pointer is not
+         * const.  This is to allow the source instance to be modified as a
+         * consequence of the assignment, eg. if it is implementing some sort
+         * of reference counting scheme.
+         */
         prcode(fp,
 "\n"
 "\n"
@@ -6767,21 +6777,21 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 
         if (!generating_c)
             prcode(fp,
-"extern \"C\" {static void assign_%L(void *, SIP_SSIZE_T, const void *);}\n"
+"extern \"C\" {static void assign_%L(void *, SIP_SSIZE_T, void *);}\n"
                 , cd->iff);
 
         prcode(fp,
-"static void assign_%L(void *sipDst, SIP_SSIZE_T sipDstIdx, const void *sipSrc)\n"
+"static void assign_%L(void *sipDst, SIP_SSIZE_T sipDstIdx, void *sipSrc)\n"
 "{\n"
             , cd->iff);
 
         if (generating_c)
             prcode(fp,
-"    ((struct %U *)sipDst)[sipDstIdx] = *((const struct %U *)sipSrc);\n"
+"    ((struct %U *)sipDst)[sipDstIdx] = *((struct %U *)sipSrc);\n"
                 , cd, cd);
         else
             prcode(fp,
-"    reinterpret_cast<%U *>(sipDst)[sipDstIdx] = *reinterpret_cast<const %U *>(sipSrc);\n"
+"    reinterpret_cast<%U *>(sipDst)[sipDstIdx] = *reinterpret_cast<%U *>(sipSrc);\n"
                 , cd, cd);
 
         prcode(fp,

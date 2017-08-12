@@ -474,7 +474,7 @@ typedef PyObject *(*sipConvertFromFunc)(void *, PyObject *);
 typedef void (*sipVirtErrorHandlerFunc)(sipSimpleWrapper *, sip_gilstate_t);
 typedef int (*sipVirtHandlerFunc)(sip_gilstate_t, sipVirtErrorHandlerFunc,
         sipSimpleWrapper *, PyObject *, ...);
-typedef void (*sipAssignFunc)(void *, SIP_SSIZE_T, const void *);
+typedef void (*sipAssignFunc)(void *, SIP_SSIZE_T, void *);
 typedef void *(*sipArrayFunc)(SIP_SSIZE_T);
 typedef void *(*sipCopyFunc)(const void *, SIP_SSIZE_T);
 typedef void (*sipReleaseFunc)(void *, int);
