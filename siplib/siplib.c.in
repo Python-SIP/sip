@@ -861,7 +861,7 @@ static int createEnum(sipExportedModuleDef *client, sipEnumTypeDef *etd,
 static PyObject *createUnscopedEnum(sipExportedModuleDef *client,
         sipEnumTypeDef *etd, PyObject *name);
 static PyObject *createScopedEnum(sipExportedModuleDef *client,
-        sipEnumTypeDef *etd, int enum_nr);
+        sipEnumTypeDef *etd, int enum_nr, PyObject *name);
 static PyObject *createTypeDict(sipExportedModuleDef *em);
 static sipTypeDef *getGeneratedType(const sipEncodedTypeDef *enc,
         sipExportedModuleDef *em);
@@ -974,6 +974,9 @@ static int is_subtype(const sipClassTypeDef *ctd,
         const sipClassTypeDef *base_ctd);
 static PyObject *import_module_attr(const char *module, const char *attr);
 static const sipContainerDef *get_container(const sipTypeDef *td);
+#if PY_VERSION_HEX >= 0x03030000
+static PyObject *get_qualname(const sipTypeDef *td, PyObject *name);
+#endif
 
 
 /*
@@ -6747,7 +6750,7 @@ static int createEnum(sipExportedModuleDef *client, sipEnumTypeDef *etd,
     if (sipTypeIsEnum(&etd->etd_base))
         enum_obj = createUnscopedEnum(client, etd, name);
     else
-        enum_obj = createScopedEnum(client, etd, enum_nr);
+        enum_obj = createScopedEnum(client, etd, enum_nr, name);
 
     if (enum_obj == NULL)
     {
@@ -6828,15 +6831,10 @@ static PyObject *createUnscopedEnum(sipExportedModuleDef *client,
      */
      if (etd->etd_scope >= 0)
      {
-        PyTypeObject *scope_type;
-
-        /* Get the type that is the enum's scope. */
-        scope_type = sipTypeAsPyTypeObject(client->em_types[etd->etd_scope]);
-
         /* Append the name of the enum to the scope's __qualname__. */
         Py_CLEAR(eto->super.ht_qualname);
-        eto->super.ht_qualname = PyUnicode_FromFormat("%U.%U",
-                ((PyHeapTypeObject *)scope_type)->ht_qualname, name);
+        eto->super.ht_qualname = get_qualname(
+                client->em_types[etd->etd_scope], name);
 
         if (eto->super.ht_qualname == NULL)
         {
@@ -6854,24 +6852,26 @@ static PyObject *createUnscopedEnum(sipExportedModuleDef *client,
  * Create a scoped enum.
  */
 static PyObject *createScopedEnum(sipExportedModuleDef *client,
-        sipEnumTypeDef *etd, int enum_nr)
+        sipEnumTypeDef *etd, int enum_nr, PyObject *name)
 {
-    // ZZZ
-    static PyObject *enum_type = NULL;
+    static PyObject *enum_type = NULL, *module_arg = NULL;
+#if PY_VERSION_HEX >= 0x03030000
+    static PyObject *qualname_arg = NULL;
+#endif
     int i, nr_members;
     sipEnumMemberDef *enm;
-    PyObject *members;
+    PyObject *members, *enum_obj, *args, *kw_args;
 
     /* Get the enum type if we haven't done so already. */
     if (enum_type == NULL)
     {
         if ((enum_type = import_module_attr("enum", "Enum")) == NULL)
-            return NULL;
+            goto ret_err;
     }
 
     /* Create a dict of the members. */
     if ((members = PyDict_New()) == NULL)
-        return NULL;
+        goto ret_err;
 
     /*
      * Note that the current structures for defining scoped enums are not ideal
@@ -6905,35 +6905,82 @@ static PyObject *createScopedEnum(sipExportedModuleDef *client,
 #endif
 
             if (val == NULL)
-            {
-                Py_DECREF(members);
-                return NULL;
-            }
+                goto rel_members;
 
             rc = PyDict_SetItemString(members, enm->em_name, val);
 
             Py_DECREF(val);
 
             if (rc < 0)
-            {
-                Py_DECREF(members);
-                return NULL;
-            }
+                goto rel_members;
         }
 
         ++enm;
     }
 
-    PyObject_Print(members, stdout, 0);
-    printf("\n");
+#if PY_VERSION_HEX >= 0x02040000
+    args = PyTuple_Pack(2, name, members);
+#else
+    args = Py_BuildValue("(OO)", name, members);
+#endif
 
+    if (args == NULL)
+        goto rel_members;
+
+    if ((kw_args = PyDict_New()) == NULL)
+        goto rel_args;
+
+    if (objectify("module", &module_arg) < 0)
+        goto rel_kw_args;
+
+    if (PyDict_SetItem(kw_args, module_arg, client->em_nameobj) < 0)
+        goto rel_kw_args;
+
+#if PY_VERSION_HEX >= 0x03030000
+    /*
+     * If the enum has a scope then the default __qualname__ will be incorrect.
+     */
+     if (etd->etd_scope >= 0)
+     {
+        int rc;
+        PyObject *qualname;
+
+        if (objectify("qualname", &qualname_arg) < 0)
+            goto rel_kw_args;
+
+        if ((qualname = get_qualname(client->em_types[etd->etd_scope], name)) == NULL)
+            goto rel_kw_args;
+
+        rc = PyDict_SetItem(kw_args, qualname_arg, qualname);
+
+        Py_DECREF(qualname);
+
+        if (rc < 0)
+            goto rel_kw_args;
+    }
+#endif
+
+    if ((enum_obj = PyObject_Call(enum_type, args, kw_args)) == NULL)
+        goto rel_kw_args;
+
+    Py_DECREF(kw_args);
+    Py_DECREF(args);
     Py_DECREF(members);
 
-    // TODO: see if the module or qualname keyword args to Enum() are needed.
+    return enum_obj;
 
-    PyErr_SetString(PyExc_NotImplementedError,
-            "scoped enums not yet implemented");
+    /* Unwind on errors. */
 
+rel_kw_args:
+    Py_DECREF(kw_args);
+
+rel_args:
+    Py_DECREF(args);
+
+rel_members:
+    Py_DECREF(members);
+
+ret_err:
     return NULL;
 }
 
@@ -13780,3 +13827,20 @@ static const sipContainerDef *get_container(const sipTypeDef *td)
 
     return &((const sipClassTypeDef *)td)->ctd_container;
 }
+
+
+#if PY_VERSION_HEX >= 0x03030000
+/*
+ * Get the __qualname__ of an object based on its enclosing scope.
+ */
+static PyObject *get_qualname(const sipTypeDef *td, PyObject *name)
+{
+    PyTypeObject *scope_type;
+
+    /* Get the type that is the scope. */
+    scope_type = sipTypeAsPyTypeObject(td);
+
+    return PyUnicode_FromFormat("%U.%U",
+            ((PyHeapTypeObject *)scope_type)->ht_qualname, name);
+}
+#endif
