@@ -533,8 +533,10 @@ specification files.
 
 .. c:function:: PyObject *sipConvertFromEnum(int eval, const sipTypeDef *td)
 
-    This converts a named C/C++ ``enum`` to an instance of the corresponding
-    generated Python type.
+    This converts a named C/C++ ``enum`` to a Python object.  If the enum is a
+    C++11 scoped enum then the Python object is created using the
+    :py:mod:`enum` module.  Otherwise a SIP generated type is used that can
+    itself be converted to an ``int``.
 
     :param eval:
         the enumerated value to convert.
@@ -814,6 +816,23 @@ specification files.
         :c:macro:`SIP_OWNS_MEMORY` flags.
     :return:
         the :class:`sip.array` object.
+
+
+.. c:function:: int sipConvertToEnum(PyObject *obj, const sipTypeDef *td)
+
+    .. versionadded:: 4.19.4
+
+    This converts a Python object to the value of a named C/C++ ``enum``
+    member.  If the enum is a C++11 scoped enum then the Python object must be
+    a member of the enum.  Otherwise it may also be an ``int`` corresponding to
+    the name of the member.
+
+    :param obj:
+        the Python object to convert.
+    :param td:
+        the enum's :ref:`generated type structure <ref-type-structures>`.
+    :return:
+        the integer value.  An exception is raised if there was an error.
 
 
 .. c:function:: void *sipConvertToInstance(PyObject *obj, sipWrapperType *type, PyObject *transferObj, int flags, int *state, int *iserr)

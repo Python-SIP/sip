@@ -1,3 +1,8 @@
+v4.19.4 ??? ??? 2017
+  - Added support for C++11 scoped enums implemented as Python enums.
+  - Added sipConvertToEnum() to the C API.
+  - Bug fixes.
+
 v4.19.3 3rd July 2017
   - Added support for type hints for properties.
   - Added sipEventType and sipRegisterEventHandler() to the C API.
