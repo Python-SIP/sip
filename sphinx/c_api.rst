@@ -1108,14 +1108,14 @@ specification files.
         Use :c:func:`sipFindType()` instead.
 
     This returns a pointer to the :ref:`generated Python type object
-    <ref-enum-type-objects>` corresponding to a named C/C++ enum.
+    <ref-enum-type-objects>` corresponding to a named unscoped C/C++ enum.
 
     :param type:
         the C/C++ declaration of the enum.
     :return:
         the generated Python type object.  This will not change and may be
-        saved in a static cache.  ``NULL`` is returned if the C/C++ enum
-        doesn't exist.
+        saved in a static cache.  ``NULL`` is returned if the C/C++ unscoped
+        enum doesn't exist.
 
 
 .. c:function:: const sipTypeDef *sipFindType(const char *type)

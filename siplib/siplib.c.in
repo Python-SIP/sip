@@ -836,7 +836,6 @@ static PyObject *convertToSequence(void *array, SIP_SSIZE_T nr_elem,
         const sipTypeDef *td);
 static int getSelfFromArgs(sipTypeDef *td, PyObject *args, int argnr,
         sipSimpleWrapper **selfp);
-static PyObject *createEnumMember(sipTypeDef *td, sipEnumMemberDef *enm);
 static int compareTypedefName(const void *key, const void *el);
 static int checkPointer(void *ptr, sipSimpleWrapper *sw);
 static void finalise(void);
@@ -857,11 +856,12 @@ static PyObject *unpickle_type(PyObject *obj, PyObject *args);
 static PyObject *pickle_enum(PyObject *obj, PyObject *args);
 static PyObject *unpickle_enum(PyObject *obj, PyObject *args);
 static int setReduce(PyTypeObject *type, PyMethodDef *pickler);
-static int createEnumType(sipExportedModuleDef *client, sipEnumTypeDef *etd,
-        PyObject *mod_dict);
+static int createEnum(sipExportedModuleDef *client, sipEnumTypeDef *etd,
+        int enum_nr, PyObject *mod_dict);
 static PyObject *createUnscopedEnum(sipExportedModuleDef *client,
         sipEnumTypeDef *etd, PyObject *name);
-static PyObject *createScopedEnum();
+static PyObject *createScopedEnum(sipExportedModuleDef *client,
+        sipEnumTypeDef *etd, int enum_nr);
 static PyObject *createTypeDict(sipExportedModuleDef *em);
 static sipTypeDef *getGeneratedType(const sipEncodedTypeDef *enc,
         sipExportedModuleDef *em);
@@ -972,6 +972,8 @@ static int importExceptions(sipExportedModuleDef *client,
         sipImportedModuleDef *im, sipExportedModuleDef *em);
 static int is_subtype(const sipClassTypeDef *ctd,
         const sipClassTypeDef *base_ctd);
+static PyObject *import_module_attr(const char *module, const char *attr);
+static const sipContainerDef *get_container(const sipTypeDef *td);
 
 
 /*
@@ -1807,7 +1809,7 @@ static int sip_api_init_module(sipExportedModuleDef *client,
             sipEnumTypeDef *etd = (sipEnumTypeDef *)td;
 
             if (td->td_version < 0 || sipIsRangeEnabled(client, td->td_version))
-                if (createEnumType(client, etd, mod_dict) < 0)
+                if (createEnum(client, etd, i, mod_dict) < 0)
                     return -1;
 
             /*
@@ -6715,10 +6717,10 @@ static int setReduce(PyTypeObject *type, PyMethodDef *pickler)
 
 
 /*
- * Create an enum type object.
+ * Create an enum object.
  */
-static int createEnumType(sipExportedModuleDef *client, sipEnumTypeDef *etd,
-        PyObject *mod_dict)
+static int createEnum(sipExportedModuleDef *client, sipEnumTypeDef *etd,
+        int enum_nr, PyObject *mod_dict)
 {
     int rc;
     PyObject *name, *dict, *enum_obj;
@@ -6745,7 +6747,7 @@ static int createEnumType(sipExportedModuleDef *client, sipEnumTypeDef *etd,
     if (sipTypeIsEnum(&etd->etd_base))
         enum_obj = createUnscopedEnum(client, etd, name);
     else
-        enum_obj = createScopedEnum();
+        enum_obj = createScopedEnum(client, etd, enum_nr);
 
     if (enum_obj == NULL)
     {
@@ -6851,9 +6853,84 @@ static PyObject *createUnscopedEnum(sipExportedModuleDef *client,
 /*
  * Create a scoped enum.
  */
-static PyObject *createScopedEnum()
+static PyObject *createScopedEnum(sipExportedModuleDef *client,
+        sipEnumTypeDef *etd, int enum_nr)
 {
     // ZZZ
+    static PyObject *enum_type = NULL;
+    int i, nr_members;
+    sipEnumMemberDef *enm;
+    PyObject *members;
+
+    /* Get the enum type if we haven't done so already. */
+    if (enum_type == NULL)
+    {
+        if ((enum_type = import_module_attr("enum", "Enum")) == NULL)
+            return NULL;
+    }
+
+    /* Create a dict of the members. */
+    if ((members = PyDict_New()) == NULL)
+        return NULL;
+
+    /*
+     * Note that the current structures for defining scoped enums are not ideal
+     * as we are re-using the ones used for unscoped enums (which are designed
+     * to support lazy implementations).
+     */
+    if (etd->etd_scope < 0)
+    {
+        nr_members = client->em_nrenummembers;
+        enm = client->em_enummembers;
+    }
+    else
+    {
+        const sipContainerDef *cod = get_container(client->em_types[etd->etd_scope]);
+
+        nr_members = cod->cod_nrenummembers;
+        enm = cod->cod_enummembers;
+    }
+
+    for (i = 0; i < nr_members; ++i)
+    {
+        if (enm->em_enum == enum_nr)
+        {
+            int rc;
+            PyObject *val;
+
+#if PY_MAJOR_VERSION >= 3
+            val = PyLong_FromLong(enm->em_val);
+#else
+            val = PyInt_FromLong(enm->em_val);
+#endif
+
+            if (val == NULL)
+            {
+                Py_DECREF(members);
+                return NULL;
+            }
+
+            rc = PyDict_SetItemString(members, enm->em_name, val);
+
+            Py_DECREF(val);
+
+            if (rc < 0)
+            {
+                Py_DECREF(members);
+                return NULL;
+            }
+        }
+
+        ++enm;
+    }
+
+    PyObject_Print(members, stdout, 0);
+    printf("\n");
+
+    Py_DECREF(members);
+
+    // TODO: see if the module or qualname keyword args to Enum() are needed.
+
     PyErr_SetString(PyExc_NotImplementedError,
             "scoped enums not yet implemented");
 
@@ -7045,7 +7122,7 @@ static int add_lazy_container_attrs(sipTypeDef *td, sipContainerDef *cod,
         ++pmd;
     }
 
-    /* Do the enum members. */
+    /* Do the unscoped enum members. */
     enm = cod->cod_enummembers;
 
     for (i = 0; i < cod->cod_nrenummembers; ++i)
@@ -7053,7 +7130,26 @@ static int add_lazy_container_attrs(sipTypeDef *td, sipContainerDef *cod,
         int rc;
         PyObject *val;
 
-        if ((val = createEnumMember(td, enm)) == NULL)
+        if (enm->em_enum < 0)
+        {
+            /* It's an unnamed unscoped enum. */
+#if PY_MAJOR_VERSION >= 3
+            val = PyLong_FromLong(enm->em_val);
+#else
+            val = PyInt_FromLong(enm->em_val);
+#endif
+        }
+        else
+        {
+            sipTypeDef *etd = td->td_module->em_types[enm->em_enum];
+
+            if (sipTypeIsScopedEnum(etd))
+                continue;
+
+            val = sip_api_convert_from_enum(enm->em_val, etd);
+        }
+
+        if (val == NULL)
             return -1;
 
         rc = PyDict_SetItemString(dict, enm->em_name, val);
@@ -7283,15 +7379,12 @@ static const sipTypeDef *sip_api_type_scope(const sipTypeDef *td)
 
 
 /*
- * Return TRUE if an object can be converted to a named enum.
+ * Return TRUE if an object can be converted to a named unscoped enum.
  */
 static int sip_api_can_convert_to_enum(PyObject *obj, const sipTypeDef *td)
 {
-    assert(sipTypeIsEnum(td) || sipTypeIsScopedEnum(td));
-
     // ZZZ
-    if (sipTypeIsScopedEnum(td))
-        return FALSE;
+    assert(sipTypeIsEnum(td));
 
     /* If the object is an enum then it must be the right enum. */
     if (PyObject_TypeCheck((PyObject *)Py_TYPE(obj), &sipEnumType_Type))
@@ -7306,30 +7399,13 @@ static int sip_api_can_convert_to_enum(PyObject *obj, const sipTypeDef *td)
 
 
 /*
- * Create a Python object for an enum member.
- */
-static PyObject *createEnumMember(sipTypeDef *td, sipEnumMemberDef *enm)
-{
-    if (enm->em_enum < 0)
-#if PY_MAJOR_VERSION >= 3
-        return PyLong_FromLong(enm->em_val);
-#else
-        return PyInt_FromLong(enm->em_val);
-#endif
-
-    return sip_api_convert_from_enum(enm->em_val,
-            td->td_module->em_types[enm->em_enum]);
-}
-
-
-/*
  * Create a Python object for a member of a named enum.
  */
 static PyObject *sip_api_convert_from_enum(int eval, const sipTypeDef *td)
 {
-    assert(sipTypeIsEnum(td) || sipTypeIsScopedEnum(td));
-
     // ZZZ
+    assert(sipTypeIsEnum(td));
+
     return PyObject_CallFunction((PyObject *)sipTypeAsPyTypeObject(td), "(i)",
             eval);
 }
@@ -9403,13 +9479,13 @@ static sipWrapperType *sip_api_find_class(const char *type)
 
 
 /*
- * Return the type structure for a particular named enum.  This is deprecated.
+ * Return the type structure for a particular named unscoped enum.  This is
+ * deprecated.
  */
 static PyTypeObject *sip_api_find_named_enum(const char *type)
 {
     const sipTypeDef *td = sip_api_find_type(type);
 
-    // ZZZ
     if (td != NULL && sipTypeIsEnum(td))
         return sipTypeAsPyTypeObject(td);
 
@@ -9918,7 +9994,6 @@ static PyObject *sipWrapperType_alloc(PyTypeObject *self, SIP_SSIZE_T nitems)
      */
     if (currentType != NULL)
     {
-        // ZZZ
         assert(!sipTypeIsEnum(currentType));
 
         ((sipWrapperType *)o)->wt_td = currentType;
@@ -10042,7 +10117,6 @@ static PyObject *sipSimpleWrapper_new(sipWrapperType *wt, PyObject *args,
         PyObject *kwds)
 {
     sipTypeDef *td = wt->wt_td;
-    sipContainerDef *cod;
 
     (void)args;
     (void)kwds;
@@ -10060,18 +10134,13 @@ static PyObject *sipSimpleWrapper_new(sipWrapperType *wt, PyObject *args,
     if (add_all_lazy_attrs(td) < 0)
         return NULL;
 
-    if (sipTypeIsMapped(td))
-        cod = &((sipMappedTypeDef *)td)->mtd_container;
-    else
-        cod = &((sipClassTypeDef *)td)->ctd_container;
-
     /* See if it is a mapped type. */
     if (sipTypeIsMapped(td))
     {
         PyErr_Format(PyExc_TypeError,
                 "%s.%s represents a mapped type and cannot be instantiated",
                 sipNameOfModule(td->td_module),
-                sipPyNameOfContainer(cod, td));
+                sipPyNameOfContainer(get_container(td), td));
 
         return NULL;
     }
@@ -10082,7 +10151,7 @@ static PyObject *sipSimpleWrapper_new(sipWrapperType *wt, PyObject *args,
         PyErr_Format(PyExc_TypeError,
                 "%s.%s represents a C++ namespace and cannot be instantiated",
                 sipNameOfModule(td->td_module),
-                sipPyNameOfContainer(cod, td));
+                sipPyNameOfContainer(get_container(td), td));
 
         return NULL;
     }
@@ -10102,7 +10171,7 @@ static PyObject *sipSimpleWrapper_new(sipWrapperType *wt, PyObject *args,
             PyErr_Format(PyExc_TypeError,
                     "%s.%s cannot be instantiated or sub-classed",
                     sipNameOfModule(td->td_module),
-                    sipPyNameOfContainer(cod, td));
+                    sipPyNameOfContainer(get_container(td), td));
 
             return NULL;
         }
@@ -10113,7 +10182,7 @@ static PyObject *sipSimpleWrapper_new(sipWrapperType *wt, PyObject *args,
             PyErr_Format(PyExc_TypeError,
                     "%s.%s represents a C++ abstract class and cannot be instantiated",
                     sipNameOfModule(td->td_module),
-                    sipPyNameOfContainer(cod, td));
+                    sipPyNameOfContainer(get_container(td), td));
 
             return NULL;
         }
@@ -12762,20 +12831,13 @@ static void register_exit_notifier(void)
         "_sip_exit", sip_exit, METH_NOARGS, NULL
     };
 
-    PyObject *notifier, *atexit_module, *register_func, *res;
+    PyObject *notifier, *register_func, *res;
 
     if ((notifier = PyCFunction_New(&md, NULL)) == NULL)
         return;
 
-    if ((atexit_module = PyImport_ImportModule("atexit")) == NULL)
+    if ((register_func = import_module_attr("atexit", "register")) == NULL)
     {
-        Py_DECREF(notifier);
-        return;
-    }
-
-    if ((register_func = PyObject_GetAttrString(atexit_module, "register")) == NULL)
-    {
-        Py_DECREF(atexit_module);
         Py_DECREF(notifier);
         return;
     }
@@ -12784,7 +12846,6 @@ static void register_exit_notifier(void)
 
     Py_XDECREF(res);
     Py_DECREF(register_func);
-    Py_DECREF(atexit_module);
     Py_DECREF(notifier);
 }
 
@@ -13688,4 +13749,34 @@ static int is_subtype(const sipClassTypeDef *ctd,
     while (!sup++->sc_flag);
 
     return FALSE;
+}
+
+
+/*
+ * Return an attribute of an imported module.
+ */
+static PyObject *import_module_attr(const char *module, const char *attr)
+{
+    PyObject *mod_obj, *attr_obj;
+
+    if ((mod_obj = PyImport_ImportModule(module)) == NULL)
+        return NULL;
+
+    attr_obj = PyObject_GetAttrString(mod_obj, attr);
+
+    Py_DECREF(mod_obj);
+
+    return attr_obj;
+}
+
+
+/*
+ * Get the container for a generated type.
+ */
+static const sipContainerDef *get_container(const sipTypeDef *td)
+{
+    if (sipTypeIsMapped(td))
+        return &((const sipMappedTypeDef *)td)->mtd_container;
+
+    return &((const sipClassTypeDef *)td)->ctd_container;
 }
