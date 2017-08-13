@@ -729,6 +729,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipConvertToType            sipAPI_%s->api_convert_to_type\n"
 "#define sipForceConvertToType       sipAPI_%s->api_force_convert_to_type\n"
 "#define sipCanConvertToEnum         sipAPI_%s->api_can_convert_to_enum\n"
+"#define sipConvertToEnum            sipAPI_%s->api_convert_to_enum\n"
 "#define sipReleaseType              sipAPI_%s->api_release_type\n"
 "#define sipConvertFromType          sipAPI_%s->api_convert_from_type\n"
 "#define sipConvertFromNewType       sipAPI_%s->api_convert_from_new_type\n"
@@ -826,6 +827,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipConvertFromMappedType    sipConvertFromType\n"
 "#define sipConvertFromNamedEnum(v, pt)  sipConvertFromEnum((v), ((sipEnumTypeObject *)(pt))->type)\n"
 "#define sipConvertFromNewInstance(p, wt, t) sipConvertFromNewType((p), (wt)->wt_td, (t))\n"
+        ,mname
         ,mname
         ,mname
         ,mname
@@ -5544,8 +5546,8 @@ static int generateObjToCppConversion(argDef *ad,FILE *fp)
         break;
 
     case enum_type:
-        prcode(fp, "(%E)SIPLong_AsLong(sipPy);\n"
-            , ad->u.ed);
+        prcode(fp, "(%E)sipConvertToEnum(sipPy, sipType_%C);\n"
+            , ad->u.ed, ad->u.ed->fqcname);
         break;
 
     case sstring_type:

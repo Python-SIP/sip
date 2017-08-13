@@ -302,6 +302,7 @@ static int sip_api_can_convert_to_type(PyObject *pyObj, const sipTypeDef *td,
 static void *sip_api_convert_to_type(PyObject *pyObj, const sipTypeDef *td,
         PyObject *transferObj, int flags, int *statep, int *iserrp);
 static int sip_api_can_convert_to_enum(PyObject *pyObj, const sipTypeDef *td);
+static int sip_api_convert_to_enum(PyObject *pyObj, const sipTypeDef *td);
 static void sip_api_release_type(void *cpp, const sipTypeDef *td, int state);
 static PyObject *sip_api_convert_from_new_type(void *cpp, const sipTypeDef *td,
         PyObject *transferObj);
@@ -601,6 +602,7 @@ static const sipAPIDef sip_api = {
     sip_api_enable_gc,
     sip_api_print_object,
     sip_api_register_event_handler,
+    sip_api_convert_to_enum,
 };
 
 
@@ -977,6 +979,8 @@ static const sipContainerDef *get_container(const sipTypeDef *td);
 #if PY_VERSION_HEX >= 0x03030000
 static PyObject *get_qualname(const sipTypeDef *td, PyObject *name);
 #endif
+static int can_convert_to_enum(PyObject *obj, const sipTypeDef *td,
+        int constrained);
 
 
 /*
@@ -2966,8 +2970,12 @@ static int parseResult(PyObject *method, PyObject *res,
 
                     if (sip_api_can_convert_to_enum(arg, ((sipEnumTypeObject *)et)->type))
                     {
-                        if (p != NULL)
-                            *p = SIPLong_AsLong(arg);
+                        int v = sip_api_convert_to_enum(arg, ((sipEnumTypeObject *)et)->type);
+
+                        if (PyErr_Occurred())
+                            invalid = TRUE;
+                        else if (p != NULL)
+                            *p = v;
                     }
                     else
                     {
@@ -2984,8 +2992,12 @@ static int parseResult(PyObject *method, PyObject *res,
 
                     if (sip_api_can_convert_to_enum(arg, td))
                     {
-                        if (p != NULL)
-                            *p = SIPLong_AsLong(arg);
+                        int v = sip_api_convert_to_enum(arg, td);
+
+                        if (PyErr_Occurred())
+                            invalid = TRUE;
+                        else if (p != NULL)
+                            *p = v;
                     }
                     else
                     {
@@ -5193,7 +5205,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
 
                     va_arg(va, int *);
 
-                    if (arg != NULL && !PyObject_TypeCheck(arg, sipTypeAsPyTypeObject(td)))
+                    if (arg != NULL && !can_convert_to_enum(arg, td, TRUE))
                     {
                         failure.reason = WrongType;
                         failure.detail_obj = arg;
@@ -5704,16 +5716,25 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, PyObject *sipArgs,
             {
                 /* Constrained types. */
 
-                va_arg(va, void *);
-
                 if (*fmt++ == 'E')
                 {
                     /* Named enum. */
 
+                    sipTypeDef *td = va_arg(va, sipTypeDef *);
+
                     int *p = va_arg(va, int *);
 
                     if (arg != NULL)
-                        *p = SIPLong_AsLong(arg);
+                    {
+                        *p = sip_api_convert_to_enum(arg, td);
+
+                        if (PyErr_Occurred())
+                            return FALSE;
+                    }
+                }
+                else
+                {
+                    va_arg(va, void *);
                 }
 
                 break;
@@ -5723,13 +5744,17 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, PyObject *sipArgs,
             {
                 /* Named enum. */
 
-                int *p;
+                sipTypeDef *td = va_arg(va, sipTypeDef *);
 
-                va_arg(va, sipTypeDef *);
-                p = va_arg(va, int *);
+                int *p = va_arg(va, int *);
 
                 if (arg != NULL)
-                    *p = SIPLong_AsLong(arg);
+                {
+                    *p = sip_api_convert_to_enum(arg, td);
+
+                    if (PyErr_Occurred())
+                        return FALSE;
+                }
 
                 break;
             }
@@ -6967,6 +6992,9 @@ static PyObject *createScopedEnum(sipExportedModuleDef *client,
     Py_DECREF(args);
     Py_DECREF(members);
 
+    /* Note that it isn't actually a PyTypeObject. */
+    etd->etd_base.u.td_py_type = (PyTypeObject *)enum_obj;
+
     return enum_obj;
 
     /* Unwind on errors. */
@@ -7426,16 +7454,32 @@ static const sipTypeDef *sip_api_type_scope(const sipTypeDef *td)
 
 
 /*
- * Return TRUE if an object can be converted to a named unscoped enum.
+ * Return TRUE if an object can be converted to a named enum.
  */
 static int sip_api_can_convert_to_enum(PyObject *obj, const sipTypeDef *td)
 {
-    // ZZZ
-    assert(sipTypeIsEnum(td));
+    return can_convert_to_enum(obj, td, FALSE);
+}
+
+
+/*
+ * Return TRUE if an object can be converted to a named enum, allowing for
+ * contraints.
+ */
+static int can_convert_to_enum(PyObject *obj, const sipTypeDef *td,
+        int constrained)
+{
+    assert(sipTypeIsEnum(td) || sipTypeIsScopedEnum(td));
+
+    if (sipTypeIsScopedEnum(td))
+        return (PyObject_IsInstance(obj, (PyObject *)sipTypeAsPyTypeObject(td)) > 0);
 
     /* If the object is an enum then it must be the right enum. */
     if (PyObject_TypeCheck((PyObject *)Py_TYPE(obj), &sipEnumType_Type))
         return (PyObject_TypeCheck(obj, sipTypeAsPyTypeObject(td)));
+
+    if (constrained)
+        return FALSE;
 
 #if PY_MAJOR_VERSION >= 3
     return PyLong_Check(obj);
@@ -7446,12 +7490,48 @@ static int sip_api_can_convert_to_enum(PyObject *obj, const sipTypeDef *td)
 
 
 /*
+ * Convert a Python object implementing a named enum to an integer value.
+ */
+static int sip_api_convert_to_enum(PyObject *obj, const sipTypeDef *td)
+{
+    int val;
+    PyObject *val_obj;
+
+    assert(sipTypeIsEnum(td) || sipTypeIsScopedEnum(td));
+
+    if (sipTypeIsScopedEnum(td))
+    {
+        static PyObject *value = NULL;
+
+        if (objectify("value", &value) < 0)
+            return -1;
+
+        if ((val_obj = PyObject_GetAttr(obj, value)) == NULL)
+            return -1;
+    }
+    else
+    {
+        val_obj = obj;
+    }
+
+    /* Convert the numerical object. */
+    PyErr_Clear();
+
+    val = SIPLong_AsLong(val_obj);
+
+    if (val_obj != obj)
+        Py_DECREF(val_obj);
+
+    return val;
+}
+
+
+/*
  * Create a Python object for a member of a named enum.
  */
 static PyObject *sip_api_convert_from_enum(int eval, const sipTypeDef *td)
 {
-    // ZZZ
-    assert(sipTypeIsEnum(td));
+    assert(sipTypeIsEnum(td) || sipTypeIsScopedEnum(td));
 
     return PyObject_CallFunction((PyObject *)sipTypeAsPyTypeObject(td), "(i)",
             eval);
@@ -8579,8 +8659,7 @@ static int addSingleTypeInstance(PyObject *dict, const char *name,
     int rc;
     PyObject *obj;
 
-    // ZZZ
-    if (sipTypeIsEnum(td))
+    if (sipTypeIsEnum(td) || sipTypeIsScopedEnum(td))
     {
         obj = sip_api_convert_from_enum(*(int *)cppPtr, td);
     }
