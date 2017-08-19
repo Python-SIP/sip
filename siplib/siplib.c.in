@@ -396,6 +396,7 @@ static int sip_api_is_derived_class(sipSimpleWrapper *sw);
 static void sip_api_add_exception(sipErrorState es, PyObject **parseErrp);
 static void sip_api_set_destroy_on_exit(int value);
 static int sip_api_enable_autoconversion(const sipTypeDef *td, int enable);
+static int sip_api_enable_overflow_checking(int enable);
 static int sip_api_init_mixin(PyObject *self, PyObject *args, PyObject *kwds,
         const sipClassTypeDef *ctd);
 static void *sip_api_get_mixin_address(sipSimpleWrapper *w,
@@ -603,6 +604,7 @@ static const sipAPIDef sip_api = {
     sip_api_print_object,
     sip_api_register_event_handler,
     sip_api_convert_to_enum,
+    sip_api_enable_overflow_checking,
 };
 
 
@@ -805,6 +807,7 @@ static sipPyObject *sipRegisteredPyTypes = NULL;    /* Registered Python types. 
 static sipPyObject *sipDisabledAutoconversions = NULL;  /* Python types whose auto-conversion is disabled. */
 static PyInterpreterState *sipInterpreter = NULL;   /* The interpreter. */
 static int destroy_on_exit = TRUE;      /* Destroy owned objects on exit. */
+static int overflow_checking = FALSE;   /* Check for overflows. */
 static sipEventHandler *event_handlers[sipEventNrEvents];   /* The event handler lists. */
 
 static void addClassSlots(sipWrapperType *wt, const sipClassTypeDef *ctd);
@@ -892,6 +895,7 @@ static PyObject *cast(PyObject *self, PyObject *args);
 static PyObject *callDtor(PyObject *self, PyObject *args);
 static PyObject *dumpWrapper(PyObject *self, PyObject *args);
 static PyObject *enableAutoconversion(PyObject *self, PyObject *args);
+static PyObject *enableOverflowChecking(PyObject *self, PyObject *args);
 static PyObject *isDeleted(PyObject *self, PyObject *args);
 static PyObject *isPyCreated(PyObject *self, PyObject *args);
 static PyObject *isPyOwned(PyObject *self, PyObject *args);
@@ -1012,6 +1016,7 @@ PyMODINIT_FUNC SIP_MODULE_ENTRY(void)
         {"delete", callDtor, METH_VARARGS, NULL},
         {"dump", dumpWrapper, METH_VARARGS, NULL},
         {"enableautoconversion", enableAutoconversion, METH_VARARGS, NULL},
+        {"enableoverflowchecking", enableOverflowChecking, METH_VARARGS, NULL},
         {"getapi", sipGetAPI, METH_VARARGS, NULL},
         {"isdeleted", isDeleted, METH_VARARGS, NULL},
         {"ispycreated", isPyCreated, METH_VARARGS, NULL},
@@ -2883,6 +2888,7 @@ static int parseResult(PyObject *method, PyObject *res,
 
             case 'b':
                 {
+                    //ZZZ should use PyObject_IsTrue()?
                     char *p = va_arg(va, void *);
                     int v = SIPLong_AsLong(arg);
 
@@ -2968,6 +2974,7 @@ static int parseResult(PyObject *method, PyObject *res,
                     PyTypeObject *et = va_arg(va, PyTypeObject *);
                     int *p = va_arg(va, int *);
 
+                    //ZZZ - should always check for overflow?
                     if (sip_api_can_convert_to_enum(arg, ((sipEnumTypeObject *)et)->type))
                     {
                         int v = sip_api_convert_to_enum(arg, ((sipEnumTypeObject *)et)->type);
@@ -2990,6 +2997,7 @@ static int parseResult(PyObject *method, PyObject *res,
                     sipTypeDef *td = va_arg(va, sipTypeDef *);
                     int *p = va_arg(va, int *);
 
+                    //ZZZ - should always check for overflow?
                     if (sip_api_can_convert_to_enum(arg, td))
                     {
                         int v = sip_api_convert_to_enum(arg, td);
@@ -3022,6 +3030,7 @@ static int parseResult(PyObject *method, PyObject *res,
 
             case 'L':
                 {
+                    //ZZZ
                     signed char *p = va_arg(va, signed char *);
                     signed char v = (signed char)SIPLong_AsLong(arg);
 
@@ -3035,6 +3044,7 @@ static int parseResult(PyObject *method, PyObject *res,
 
             case 'M':
                 {
+                    //ZZZ
                     unsigned char *p = va_arg(va, unsigned char *);
                     unsigned char v = (unsigned char)sip_api_long_as_unsigned_long(arg);
 
@@ -3048,6 +3058,7 @@ static int parseResult(PyObject *method, PyObject *res,
 
             case 'h':
                 {
+                    //ZZZ
                     signed short *p = va_arg(va, signed short *);
                     signed short v = (signed short)SIPLong_AsLong(arg);
 
@@ -3061,6 +3072,7 @@ static int parseResult(PyObject *method, PyObject *res,
 
             case 't':
                 {
+                    //ZZZ
                     unsigned short *p = va_arg(va, unsigned short *);
                     unsigned short v = (unsigned short)sip_api_long_as_unsigned_long(arg);
 
@@ -3075,6 +3087,7 @@ static int parseResult(PyObject *method, PyObject *res,
             case 'e':
             case 'i':
                 {
+                    //ZZZ - should always check for overflow?
                     int *p = va_arg(va, int *);
                     int v = SIPLong_AsLong(arg);
 
@@ -3088,6 +3101,7 @@ static int parseResult(PyObject *method, PyObject *res,
 
             case 'u':
                 {
+                    //ZZZ
                     unsigned *p = va_arg(va, unsigned *);
                     unsigned v = sip_api_long_as_unsigned_long(arg);
 
@@ -3101,6 +3115,7 @@ static int parseResult(PyObject *method, PyObject *res,
 
             case 'l':
                 {
+                    //ZZZ
                     long *p = va_arg(va, long *);
                     long v = PyLong_AsLong(arg);
 
@@ -3114,6 +3129,7 @@ static int parseResult(PyObject *method, PyObject *res,
 
             case 'm':
                 {
+                    //ZZZ
                     unsigned long *p = va_arg(va, unsigned long *);
                     unsigned long v = sip_api_long_as_unsigned_long(arg);
 
@@ -3127,6 +3143,7 @@ static int parseResult(PyObject *method, PyObject *res,
 
             case 'n':
                 {
+                    //ZZZ
 #if defined(HAVE_LONG_LONG)
                     PY_LONG_LONG *p = va_arg(va, PY_LONG_LONG *);
                     PY_LONG_LONG v = PyLong_AsLongLong(arg);
@@ -3145,6 +3162,7 @@ static int parseResult(PyObject *method, PyObject *res,
 
             case 'o':
                 {
+                    //ZZZ
 #if defined(HAVE_LONG_LONG)
                     unsigned PY_LONG_LONG *p = va_arg(va, unsigned PY_LONG_LONG *);
                     unsigned PY_LONG_LONG v = PyLong_AsUnsignedLongLongMask(arg);
@@ -4864,6 +4882,11 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
 
                 if (arg != NULL)
                 {
+                //ZZZ this should convert to the largest type possible and then convert to int, ie.
+                //    long long lv = ...()
+                //    int v = !!lv;
+                //ZZZ or should it just use PyObject_IsTrue()? The bool can be marked as constrained if we really need a Python bool object
+
                     int v = SIPLong_AsLong(arg);
 
                     if (non_overflow_exception())
@@ -4889,6 +4912,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
 
                 va_arg(va, int *);
 
+                //ZZZ - should check for overflow anyway (maybe not for scoped enums)
                 if (arg != NULL && !sip_api_can_convert_to_enum(arg, td))
                 {
                     failure.reason = WrongType;
@@ -4908,6 +4932,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
 
                 if (arg != NULL)
                 {
+                    //ZZZ - should check for overflow anyway
                     int v = SIPLong_AsLong(arg);
 
                     if (non_overflow_exception())
@@ -4933,6 +4958,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
 
                 if (arg != NULL)
                 {
+                    //ZZZ
                     unsigned v = sip_api_long_as_unsigned_long(arg);
 
                     if (non_overflow_exception())
@@ -4954,6 +4980,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
             {
                 /* Signed char. */
 
+                //ZZZ
                 signed char *p = va_arg(va, signed char *);
 
                 if (arg != NULL)
@@ -4979,6 +5006,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
             {
                 /* Unsigned char. */
 
+                //ZZZ
                 unsigned char *p = va_arg(va, unsigned char *);
 
                 if (arg != NULL)
@@ -5004,6 +5032,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
             {
                 /* Short integer. */
 
+                //ZZZ
                 signed short *p = va_arg(va, signed short *);
 
                 if (arg != NULL)
@@ -5029,6 +5058,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
             {
                 /* Unsigned short integer. */
 
+                //ZZZ
                 unsigned short *p = va_arg(va, unsigned short *);
 
                 if (arg != NULL)
@@ -5054,6 +5084,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
             {
                 /* Long integer. */
 
+                //ZZZ
                 long *p = va_arg(va, long *);
 
                 if (arg != NULL)
@@ -5079,6 +5110,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
             {
                 /* Unsigned long integer. */
 
+                //ZZZ
                 unsigned long *p = va_arg(va, unsigned long *);
 
                 if (arg != NULL)
@@ -5104,6 +5136,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
             {
                 /* Long long integer. */
 
+                //ZZZ
 #if defined(HAVE_LONG_LONG)
                 PY_LONG_LONG *p = va_arg(va, PY_LONG_LONG *);
 #else
@@ -5137,6 +5170,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
             {
                 /* Unsigned long long integer. */
 
+                //ZZZ
 #if defined(HAVE_LONG_LONG)
                 unsigned PY_LONG_LONG *p = va_arg(va, unsigned PY_LONG_LONG *);
 #else
@@ -5201,6 +5235,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 {
                     /* Named enum. */
 
+                //ZZZ - should check for overflow anyway (maybe not for scoped enums)
                     sipTypeDef *td = va_arg(va, sipTypeDef *);
 
                     va_arg(va, int *);
@@ -5279,6 +5314,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                                 /* Integer. */
 
 #if PY_MAJOR_VERSION >= 3
+                                //ZZZ
                                 if (PyLong_Check(arg))
                                 {
                                     *(int *)p = PyLong_AS_LONG(arg);
@@ -5726,6 +5762,7 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, PyObject *sipArgs,
 
                     if (arg != NULL)
                     {
+                        //ZZZ
                         *p = sip_api_convert_to_enum(arg, td);
 
                         if (PyErr_Occurred())
@@ -5750,6 +5787,7 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, PyObject *sipArgs,
 
                 if (arg != NULL)
                 {
+                    //ZZZ
                     *p = sip_api_convert_to_enum(arg, td);
 
                     if (PyErr_Occurred())
@@ -13076,6 +13114,42 @@ static PyObject *enableAutoconversion(PyObject *self, PyObject *args)
             return NULL;
 
         res = (was_enabled ? Py_True : Py_False);
+
+        Py_INCREF(res);
+        return res;
+    }
+
+    return NULL;
+}
+
+
+/*
+ * Enable or disable overflow checking.
+ */
+static int sip_api_enable_overflow_checking(int enable)
+{
+    int was_enabled = overflow_checking;
+
+    overflow_checking = enable;
+
+    return was_enabled;
+}
+
+
+/*
+ * Enable or disable overflow checking.
+ */
+static PyObject *enableOverflowChecking(PyObject *self, PyObject *args)
+{
+    int enable;
+
+    (void)self;
+
+    if (PyArg_ParseTuple(args, "i:enableoverflowchecking", &enable))
+    {
+        PyObject *res;
+
+        res = (sip_api_enable_overflow_checking(enable) ? Py_True : Py_False);
 
         Py_INCREF(res);
         return res;

@@ -1076,6 +1076,23 @@ specification files.
         later on.  ``-1`` is returned if there was an error.
 
 
+.. c:function:: int sipEnableOverflowChecking(int enable)
+
+    .. versionadded:: 4.19.4
+
+    This enables or disables the checking for overflows when converting Python
+    integer objects to C/C++ integer types.  When it is enabled an exception is
+    raised when the value of a Python integer object is too large to fit in the
+    corresponding C/C++ type.  By default it is disabled.
+
+    :param enable:
+        is greater than ``0`` if overflow checking should be enabled.
+    :return:
+        ``1`` or ``0`` depending on whether or not overflow chacking was
+        previously enabled.  This allows the previous state to be restored
+        later on.
+
+
 .. c:function:: int sipExportSymbol(const char *name, void *sym)
 
     Python does not allow extension modules to directly access symbols in

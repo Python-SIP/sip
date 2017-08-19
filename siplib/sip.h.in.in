@@ -1846,6 +1846,7 @@ typedef struct _sipAPIDef {
     int (*api_register_event_handler)(sipEventType type, const sipTypeDef *td,
             void *handler);
     int (*api_convert_to_enum)(PyObject *obj, const sipTypeDef *td);
+    int (*api_enable_overflow_checking)(int enable);
 } sipAPIDef;
 
 

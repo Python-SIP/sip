@@ -76,17 +76,32 @@ can be used by applications.
     Instances of some classes may be automatically converted to other Python
     objects even though the class has been wrapped.  This allows that behaviour
     to be suppressed so that an instances of the wrapped class is returned
-    instead.
+    instead.  By default it is enabled.
 
     :param type:
         the Python type object.
     :param enable:
-        is ``True`` if auto-conversion should be enabled for the type.  This is
-        the default behaviour.
+        is ``True`` if auto-conversion should be enabled for the type.
     :return:
         ``True`` or ``False`` depending on whether or not auto-conversion was
         previously enabled for the type.  This allows the previous state to be
         restored later on.
+
+.. function:: enableoverflowchecking(enable) -> bool
+
+    .. versionadded:: 4.19.4
+
+    This enables or disables the checking for overflows when converting Python
+    integer objects to C/C++ integer types.  When it is enabled an exception is
+    raised when the value of a Python integer object is too large to fit in the
+    corresponding C/C++ type.  By default it is disabled.
+
+    :param enable:
+        is ``True`` if overflow checking should be enabled.
+    :return:
+        ``True`` or ``False`` depending on whether or not overflow checking was
+        previously enabled.  This allows the previous state to be restored
+        later on.
 
 
 .. function:: getapi(name) -> version
