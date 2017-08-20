@@ -736,7 +736,6 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipConvertFromNewPyType     sipAPI_%s->api_convert_from_new_pytype\n"
 "#define sipConvertFromEnum          sipAPI_%s->api_convert_from_enum\n"
 "#define sipGetState                 sipAPI_%s->api_get_state\n"
-"#define sipLong_AsUnsignedLong      sipAPI_%s->api_long_as_unsigned_long\n"
 "#define sipExportSymbol             sipAPI_%s->api_export_symbol\n"
 "#define sipImportSymbol             sipAPI_%s->api_import_symbol\n"
 "#define sipFindType                 sipAPI_%s->api_find_type\n"
@@ -804,6 +803,16 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipGetUserObject            sipAPI_%s->api_get_user_object\n"
 "#define sipSetUserObject            sipAPI_%s->api_set_user_object\n"
 "#define sipRegisterEventHandler     sipAPI_%s->api_register_event_handler\n"
+"#define sipLong_AsChar              sipAPI_%s->api_long_as_char\n"
+"#define sipLong_AsUnsignedChar      sipAPI_%s->api_long_as_unsigned_char\n"
+"#define sipLong_AsShort             sipAPI_%s->api_long_as_short\n"
+"#define sipLong_AsUnsignedShort     sipAPI_%s->api_long_as_unsigned_short\n"
+"#define sipLong_AsInt               sipAPI_%s->api_long_as_int\n"
+"#define sipLong_AsUnsignedInt       sipAPI_%s->api_long_as_unsigned_int\n"
+"#define sipLong_AsLong              sipAPI_%s->api_long_as_long\n"
+"#define sipLong_AsUnsignedLong      sipAPI_%s->api_long_as_unsigned_long\n"
+"#define sipLong_AsLongLong          sipAPI_%s->api_long_as_long_long\n"
+"#define sipLong_AsUnsignedLongLong  sipAPI_%s->api_long_as_unsigned_long_long\n"
 "\n"
 "/* These are deprecated. */\n"
 "#define sipMapStringToClass         sipAPI_%s->api_map_string_to_class\n"
@@ -828,6 +837,15 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipConvertFromMappedType    sipConvertFromType\n"
 "#define sipConvertFromNamedEnum(v, pt)  sipConvertFromEnum((v), ((sipEnumTypeObject *)(pt))->type)\n"
 "#define sipConvertFromNewInstance(p, wt, t) sipConvertFromNewType((p), (wt)->wt_td, (t))\n"
+        ,mname
+        ,mname
+        ,mname
+        ,mname
+        ,mname
+        ,mname
+        ,mname
+        ,mname
+        ,mname
         ,mname
         ,mname
         ,mname

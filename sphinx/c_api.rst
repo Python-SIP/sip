@@ -1574,11 +1574,136 @@ specification files.
         a non-zero value if the type is a user defined type.
 
 
+.. c:function:: signed char sipLong_AsChar(PyObject *obj)
+
+    .. versionadded:: 4.19.4
+
+    This converts a Python object to a C/C++ signed char.  If the value is too
+    large then an exception is raised if overflow checking is enabled.
+
+    :param obj:
+        the Python object.
+    :return:
+        the converted C/C++ value.
+
+
+.. c:function:: unsigned char sipLong_AsUnsignedChar(PyObject *obj)
+
+    .. versionadded:: 4.19.4
+
+    This converts a Python object to a C/C++ unsigned char.  If the value is
+    too large then an exception is raised if overflow checking is enabled.
+
+    :param obj:
+        the Python object.
+    :return:
+        the converted C/C++ value.
+
+
+.. c:function:: short sipLong_AsShort(PyObject *obj)
+
+    .. versionadded:: 4.19.4
+
+    This converts a Python object to a C/C++ short.  If the value is too large
+    then an exception is raised if overflow checking is enabled.
+
+    :param obj:
+        the Python object.
+    :return:
+        the converted C/C++ value.
+
+
+.. c:function:: unsigned short sipLong_AsUnsignedShort(PyObject *obj)
+
+    .. versionadded:: 4.19.4
+
+    This converts a Python object to a C/C++ unsigned short.  If the value is
+    too large then an exception is raised if overflow checking is enabled.
+
+    :param obj:
+        the Python object.
+    :return:
+        the converted C/C++ value.
+
+
+.. c:function:: int sipLong_AsInt(PyObject *obj)
+
+    .. versionadded:: 4.19.4
+
+    This converts a Python object to a C/C++ int.  If the value is too large
+    then an exception is raised if overflow checking is enabled.
+
+    :param obj:
+        the Python object.
+    :return:
+        the converted C/C++ value.
+
+
+.. c:function:: unsigned int sipLong_AsUnsignedInt(PyObject *obj)
+
+    .. versionadded:: 4.19.4
+
+    This converts a Python object to a C/C++ unsigned int.  If the value is too
+    large then an exception is raised if overflow checking is enabled.
+
+    :param obj:
+        the Python object.
+    :return:
+        the converted C/C++ value.
+
+
+.. c:function:: long sipLong_AsLong(PyObject *obj)
+
+    .. versionadded:: 4.19.4
+
+    This converts a Python object to a C/C++ long.  If the value is too large
+    then an exception is raised if overflow checking is enabled.
+
+    :param obj:
+        the Python object.
+    :return:
+        the converted C/C++ value.
+
+
 .. c:function:: unsigned long sipLong_AsUnsignedLong(PyObject *obj)
 
-    This function is a thin wrapper around :c:func:`PyLong_AsUnsignedLong()`
-    that works around a bug in Python v2.3.x and earlier when converting
-    integer objects.
+    .. versionadded:: 4.19.4
+
+    This converts a Python object to a C/C++ unsigned long.  If the value is
+    too large then an exception is raised if overflow checking is enabled.
+
+    :param obj:
+        the Python object.
+    :return:
+        the converted C/C++ value.
+
+
+.. c:function:: PY_LONG_LONG sipLong_AsLongLong(PyObject *obj)
+
+    .. versionadded:: 4.19.4
+
+    This converts a Python object to a C/C++ long long.  If the value is too
+    large then an exception is raised if overflow checking is enabled.  It is
+    not available if ``Python.h`` does not define ``HAVE_LONG_LONG``.
+
+    :param obj:
+        the Python object.
+    :return:
+        the converted C/C++ value.
+
+
+.. c:function:: unsigned PY_LONG_LONG sipLong_AsUnsignedLongLong(PyObject *obj)
+
+    .. versionadded:: 4.19.4
+
+    This converts a Python object to a C/C++ unsigned long long.  If the value
+    is too large then an exception is raised if overflow checking is enabled.
+    It is not available if ``Python.h`` does not define ``HAVE_LONG_LONG``.
+
+    :param obj:
+        the Python object.
+    :return:
+        the converted C/C++ value.
 
 
 .. c:function:: void *sipMalloc(size_t nbytes)

@@ -604,6 +604,20 @@ static const sipAPIDef sip_api = {
     sip_api_register_event_handler,
     sip_api_convert_to_enum,
     sip_api_enable_overflow_checking,
+    sip_api_long_as_char,
+    sip_api_long_as_unsigned_char,
+    sip_api_long_as_short,
+    sip_api_long_as_unsigned_short,
+    sip_api_long_as_int,
+    sip_api_long_as_unsigned_int,
+    sip_api_long_as_long,
+#if defined(HAVE_LONG_LONG)
+    sip_api_long_as_long_long,
+    sip_api_long_as_unsigned_long_long,
+#else
+    0,
+    0,
+#endif
 };
 
 
@@ -3539,46 +3553,6 @@ static int parseResult(PyObject *method, PyObject *res,
     }
 
     return rc;
-}
-
-
-/*
- * A thin wrapper around PyLong_AsUnsignedLong() that works around a bug in
- * Python versions prior to v2.4 where an integer (or a named enum) causes an
- * error.
- */
-unsigned long sip_api_long_as_unsigned_long(PyObject *o)
-{
-#if PY_VERSION_HEX < 0x02040000
-    if (o != NULL && !PyLong_Check(o) && PyInt_Check(o))
-    {
-        long v = PyInt_AsLong(o);
-
-        /*
-         * Strictly speaking this should be changed to be consistent with the
-         * use of PyLong_AsUnsignedLongMask().  However as it's such an old
-         * version of Python we choose to leave it as it is.
-         */
-
-        if (v < 0)
-        {
-            PyErr_SetString(PyExc_OverflowError,
-                    "can't convert negative value to unsigned long");
-
-            return (unsigned long)-1;
-        }
-
-        return v;
-    }
-#endif
-
-    /*
-     * Note that we now ignore any overflow so that (for example) a negative
-     * integer will be converted to an unsigned as C/C++ would do.  We don't
-     * bother to check for overflow when converting to small C/C++ types (short
-     * etc.) so at least this is consistent.
-     */
-    return PyLong_AsUnsignedLongMask(o);
 }
 
 
