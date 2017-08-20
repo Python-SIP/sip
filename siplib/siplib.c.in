@@ -396,7 +396,6 @@ static int sip_api_is_derived_class(sipSimpleWrapper *sw);
 static void sip_api_add_exception(sipErrorState es, PyObject **parseErrp);
 static void sip_api_set_destroy_on_exit(int value);
 static int sip_api_enable_autoconversion(const sipTypeDef *td, int enable);
-static int sip_api_enable_overflow_checking(int enable);
 static int sip_api_init_mixin(PyObject *self, PyObject *args, PyObject *kwds,
         const sipClassTypeDef *ctd);
 static void *sip_api_get_mixin_address(sipSimpleWrapper *w,
@@ -895,7 +894,6 @@ static PyObject *cast(PyObject *self, PyObject *args);
 static PyObject *callDtor(PyObject *self, PyObject *args);
 static PyObject *dumpWrapper(PyObject *self, PyObject *args);
 static PyObject *enableAutoconversion(PyObject *self, PyObject *args);
-static PyObject *enableOverflowChecking(PyObject *self, PyObject *args);
 static PyObject *isDeleted(PyObject *self, PyObject *args);
 static PyObject *isPyCreated(PyObject *self, PyObject *args);
 static PyObject *isPyOwned(PyObject *self, PyObject *args);
@@ -1016,7 +1014,7 @@ PyMODINIT_FUNC SIP_MODULE_ENTRY(void)
         {"delete", callDtor, METH_VARARGS, NULL},
         {"dump", dumpWrapper, METH_VARARGS, NULL},
         {"enableautoconversion", enableAutoconversion, METH_VARARGS, NULL},
-        {"enableoverflowchecking", enableOverflowChecking, METH_VARARGS, NULL},
+        {"enableoverflowchecking", sipEnableOverflowChecking, METH_VARARGS, NULL},
         {"getapi", sipGetAPI, METH_VARARGS, NULL},
         {"isdeleted", isDeleted, METH_VARARGS, NULL},
         {"ispycreated", isPyCreated, METH_VARARGS, NULL},
@@ -13114,42 +13112,6 @@ static PyObject *enableAutoconversion(PyObject *self, PyObject *args)
             return NULL;
 
         res = (was_enabled ? Py_True : Py_False);
-
-        Py_INCREF(res);
-        return res;
-    }
-
-    return NULL;
-}
-
-
-/*
- * Enable or disable overflow checking.
- */
-static int sip_api_enable_overflow_checking(int enable)
-{
-    int was_enabled = overflow_checking;
-
-    overflow_checking = enable;
-
-    return was_enabled;
-}
-
-
-/*
- * Enable or disable overflow checking.
- */
-static PyObject *enableOverflowChecking(PyObject *self, PyObject *args)
-{
-    int enable;
-
-    (void)self;
-
-    if (PyArg_ParseTuple(args, "i:enableoverflowchecking", &enable))
-    {
-        PyObject *res;
-
-        res = (sip_api_enable_overflow_checking(enable) ? Py_True : Py_False);
 
         Py_INCREF(res);
         return res;

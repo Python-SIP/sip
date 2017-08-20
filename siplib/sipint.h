@@ -96,6 +96,13 @@ PyObject *sip_api_convert_from_const_void_ptr_and_size(const void *val,
         SIP_SSIZE_T size);
 
 
+/*
+ * Support for int convertors.
+ */
+int sip_api_enable_overflow_checking(int enable);
+PyObject *sipEnableOverflowChecking(PyObject *self, PyObject *args);
+
+
 extern sipQtAPI *sipQtSupport;  /* The Qt support API. */
 extern sipWrapperType sipSimpleWrapper_Type;    /* The simple wrapper type. */
 extern sipTypeDef *sipQObjectType;  /* The QObject type. */
