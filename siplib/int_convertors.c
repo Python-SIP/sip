@@ -17,12 +17,52 @@
  */
 
 
+/*
+ * NOTES
+ *
+ * The legacy integer conversions (ie. without support for overflow checking)
+ * are flawed and inconsistent.  Large Python signed values were converted to
+ * -1 whereas small values where truncated.  When converting function arguments
+ * all overlows were ignored, however when converting the results returned by
+ * Python re-implementations then large Python values raised an exception
+ * whereas small values were truncated.
+ *
+ * With the new integer conversions large Python signed values will always
+ * raise an overflow exception (even if overflow checking is disabled).  This
+ * is because a truncated value is not available - it would have to be
+ * computed.  This may cause new exceptions to be raised but is justified in
+ * that the value that was being used bore no relation to the original value.
+ */
+
+
 #include <Python.h>
+
+#include <limits.h>
 
 #include "sipint.h"
 
 
+/* Wrappers to deal with lack of long long support. */
+#if defined(HAVE_LONG_LONG)
+#define SIPLong_AsLongLong              PyLong_AsLongLong
+#define SIP_LONG_LONG                   PY_LONG_LONG
+#define SIP_LONG_LONG_FORMAT            "%lld"
+#define SIP_UNSIGNED_LONG_LONG_FORMAT   "%llu"
+#else
+#define SIPLong_AsLongLong              PyLong_AsLong
+#define SIP_LONG_LONG                   long
+#define SIP_LONG_LONG_FORMAT            "%ld"
+#define SIP_UNSIGNED_LONG_LONG_FORMAT   "%lu"
+#endif
+
+
 static int overflow_checking = FALSE;   /* Check for overflows. */
+
+static SIP_LONG_LONG long_as_long_long(PyObject *o, SIP_LONG_LONG min,
+        SIP_LONG_LONG max);
+static unsigned long long_as_unsigned_long(PyObject *o, unsigned long max);
+static void raise_signed_overflow(SIP_LONG_LONG min, SIP_LONG_LONG max);
+static void raise_unsigned_overflow(unsigned SIP_LONG_LONG max);
 
 
 /*
@@ -66,7 +106,7 @@ static int sip_api_enable_overflow_checking(int enable)
  */
 signed char sip_api_long_as_char(PyObject *o)
 {
-    return 0;
+    return (signed char)long_as_long_long(o, SCHAR_MIN, SCHAR_MAX);
 }
 
 
@@ -75,7 +115,7 @@ signed char sip_api_long_as_char(PyObject *o)
  */
 unsigned char sip_api_long_as_unsigned_char(PyObject *o)
 {
-    return 0;
+    return (unsigned char)long_as_unsigned_long(o, UCHAR_MAX);
 }
 
 
@@ -84,7 +124,7 @@ unsigned char sip_api_long_as_unsigned_char(PyObject *o)
  */
 short sip_api_long_as_short(PyObject *o)
 {
-    return 0;
+    return (short)long_as_long_long(o, SHRT_MIN, SHRT_MAX);
 }
 
 
@@ -93,7 +133,7 @@ short sip_api_long_as_short(PyObject *o)
  */
 unsigned short sip_api_long_as_unsigned_short(PyObject *o)
 {
-    return 0;
+    return (unsigned short)long_as_unsigned_long(o, USHRT_MAX);
 }
 
 
@@ -102,7 +142,7 @@ unsigned short sip_api_long_as_unsigned_short(PyObject *o)
  */
 int sip_api_long_as_int(PyObject *o)
 {
-    return 0;
+    return (int)long_as_long_long(o, INT_MIN, INT_MAX);
 }
 
 
@@ -111,7 +151,7 @@ int sip_api_long_as_int(PyObject *o)
  */
 unsigned sip_api_long_as_unsigned_int(PyObject *o)
 {
-    return 0;
+    return (unsigned)long_as_unsigned_long(o, UINT_MAX);
 }
 
 
@@ -120,7 +160,7 @@ unsigned sip_api_long_as_unsigned_int(PyObject *o)
  */
 long sip_api_long_as_long(PyObject *o)
 {
-    return 0;
+    return (long)long_as_long_long(o, LONG_MIN, LONG_MAX);
 }
 
 
@@ -129,40 +169,7 @@ long sip_api_long_as_long(PyObject *o)
  */
 unsigned long sip_api_long_as_unsigned_long(PyObject *o)
 {
-#if PY_VERSION_HEX < 0x02040000
-    /*
-     * Work around a bug in Python versions prior to v2.4 where an integer (or
-     * a named enum) causes an error.
-     */
-    if (o != NULL && !PyLong_Check(o) && PyInt_Check(o))
-    {
-        long v = PyInt_AsLong(o);
-
-        /*
-         * Strictly speaking this should be changed to be consistent with the
-         * use of PyLong_AsUnsignedLongMask().  However as it's such an old
-         * version of Python we choose to leave it as it is.
-         */
-
-        if (v < 0)
-        {
-            PyErr_SetString(PyExc_OverflowError,
-                    "can't convert negative value to unsigned long");
-
-            return (unsigned long)-1;
-        }
-
-        return v;
-    }
-#endif
-
-    /*
-     * Note that we now ignore any overflow so that (for example) a negative
-     * integer will be converted to an unsigned as C/C++ would do.  We don't
-     * bother to check for overflow when converting to small C/C++ types (short
-     * etc.) so at least this is consistent.
-     */
-    return PyLong_AsUnsignedLongMask(o);
+    return long_as_unsigned_long(o, ULONG_MAX);
 }
 
 
@@ -172,7 +179,7 @@ unsigned long sip_api_long_as_unsigned_long(PyObject *o)
  */
 PY_LONG_LONG sip_api_long_as_long_long(PyObject *o)
 {
-    return 0;
+    return long_as_long_long(o, LLONG_MIN, LLONG_MAX);
 }
 
 
@@ -181,6 +188,134 @@ PY_LONG_LONG sip_api_long_as_long_long(PyObject *o)
  */
 unsigned PY_LONG_LONG sip_api_long_as_unsigned_long_long(PyObject *o)
 {
-    return 0;
+    unsigned PY_LONG_LONG value;
+
+    PyErr_Clear();
+
+    if (overflow_checking)
+    {
+        value = PyLong_AsUnsignedLongLong(o);
+
+        if (PyErr_Occurred())
+        {
+            /* Provide a better exception message. */
+            if (PyErr_ExceptionMatches(PyExc_OverflowError))
+                raise_unsigned_overflow(UULONG_MAX);
+        }
+    }
+    else
+    {
+        /*
+         * Note that this doesn't handle Python v2 int objects, but the old
+         * convertors didn't either.
+         */
+        value = PyLong_AsUnsignedLongLongMask(o);
+    }
+
+    return value;
 }
 #endif
+
+
+/*
+ * Convert a Python object to a long long checking that the value is within a
+ * range if overflow checking is enabled.
+ */
+static SIP_LONG_LONG long_as_long_long(PyObject *o, SIP_LONG_LONG min,
+        SIP_LONG_LONG max)
+{
+    SIP_LONG_LONG value;
+
+    PyErr_Clear();
+
+    value = SIPLong_AsLongLong(o);
+
+    if (PyErr_Occurred())
+    {
+        /* Provide a better exception message. */
+        if (PyErr_ExceptionMatches(PyExc_OverflowError))
+            raise_signed_overflow(min, max);
+    }
+    else if (overflow_checking && (value < min || value > max))
+    {
+        raise_signed_overflow(min, max);
+    }
+
+    return value;
+}
+
+
+/*
+ * Convert a Python object to an unsigned long checking that the value is
+ * within a range if overflow checking is enabled.
+ */
+static unsigned long long_as_unsigned_long(PyObject *o, unsigned long max)
+{
+    unsigned long value;
+
+    PyErr_Clear();
+
+    if (overflow_checking)
+    {
+        value = PyLong_AsUnsignedLong(o);
+
+        if (PyErr_Occurred())
+        {
+            /* Provide a better exception message. */
+            if (PyErr_ExceptionMatches(PyExc_OverflowError))
+                raise_unsigned_overflow(max);
+        }
+        else if (value > max)
+        {
+            raise_unsigned_overflow(max);
+        }
+    }
+    else
+    {
+#if PY_VERSION_HEX < 0x02040000
+        /*
+         * Work around a bug in Python versions prior to v2.4 where an integer
+         * (or a named enum) causes an error.
+         */
+        if (!PyLong_Check(o) && PyInt_Check(o))
+        {
+            long v = PyInt_AsLong(o);
+
+            if (v < 0)
+            {
+                raise_unsigned_overflow(max);
+
+                return (unsigned long)-1;
+            }
+
+            return v;
+        }
+#endif
+
+        value = PyLong_AsUnsignedLongMask(o);
+    }
+
+    return value;
+}
+
+
+/*
+ * Raise an overflow exception if a signed value is out of range.
+ */
+static void raise_signed_overflow(SIP_LONG_LONG min, SIP_LONG_LONG max)
+{
+    PyErr_Format(PyExc_OverflowError,
+            "value must be in the range " SIP_LONG_LONG_FORMAT  " to " SIP_LONG_LONG_FORMAT,
+            min, max);
+}
+
+
+/*
+ * Raise an overflow exception if an unsigned value is out of range.
+ */
+static void raise_unsigned_overflow(unsigned SIP_LONG_LONG max)
+{
+    PyErr_Format(PyExc_OverflowError,
+            "value must be in the range 0 to " SIP_UNSIGNED_LONG_LONG_FORMAT,
+            max);
+}
