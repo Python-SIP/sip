@@ -623,8 +623,6 @@ static const sipAPIDef sip_api = {
 
 #define AUTO_DOCSTRING          '\1'    /* Marks an auto class docstring. */
 
-#define non_overflow_exception()    (PyErr_Occurred() && !PyErr_ExceptionMatches(PyExc_OverflowError))
-
 
 /*
  * These are the format flags supported by argument parsers.
@@ -652,7 +650,7 @@ static const sipAPIDef sip_api = {
  */
 typedef enum {
     Ok, Unbound, TooFew, TooMany, UnknownKeyword, Duplicate, WrongType, Raised,
-    KeywordNotString, Exception
+    KeywordNotString, Exception, Overflow
 } sipParseFailureReason;
 
 
@@ -997,6 +995,7 @@ static PyObject *get_qualname(const sipTypeDef *td, PyObject *name);
 #endif
 static int can_convert_to_enum(PyObject *obj, const sipTypeDef *td,
         int constrained);
+static void handle_failed_int_conversion(sipParseFailure *pf, PyObject *arg);
 
 
 /*
@@ -2900,11 +2899,10 @@ static int parseResult(PyObject *method, PyObject *res,
 
             case 'b':
                 {
-                    //ZZZ should use PyObject_IsTrue()?
                     char *p = va_arg(va, void *);
-                    int v = SIPLong_AsLong(arg);
+                    int v = PyObject_IsTrue(arg);
 
-                    if (PyErr_Occurred())
+                    if (v < 0)
                         invalid = TRUE;
                     else if (p != NULL)
                         sipSetBool(p, v);
@@ -2986,7 +2984,6 @@ static int parseResult(PyObject *method, PyObject *res,
                     PyTypeObject *et = va_arg(va, PyTypeObject *);
                     int *p = va_arg(va, int *);
 
-                    //ZZZ - should always check for overflow?
                     if (sip_api_can_convert_to_enum(arg, ((sipEnumTypeObject *)et)->type))
                     {
                         int v = sip_api_convert_to_enum(arg, ((sipEnumTypeObject *)et)->type);
@@ -3009,7 +3006,6 @@ static int parseResult(PyObject *method, PyObject *res,
                     sipTypeDef *td = va_arg(va, sipTypeDef *);
                     int *p = va_arg(va, int *);
 
-                    //ZZZ - should always check for overflow?
                     if (sip_api_can_convert_to_enum(arg, td))
                     {
                         int v = sip_api_convert_to_enum(arg, td);
@@ -3042,9 +3038,8 @@ static int parseResult(PyObject *method, PyObject *res,
 
             case 'L':
                 {
-                    //ZZZ
                     signed char *p = va_arg(va, signed char *);
-                    signed char v = (signed char)SIPLong_AsLong(arg);
+                    signed char v = sip_api_long_as_char(arg);
 
                     if (PyErr_Occurred())
                         invalid = TRUE;
@@ -3056,9 +3051,8 @@ static int parseResult(PyObject *method, PyObject *res,
 
             case 'M':
                 {
-                    //ZZZ
                     unsigned char *p = va_arg(va, unsigned char *);
-                    unsigned char v = (unsigned char)sip_api_long_as_unsigned_long(arg);
+                    unsigned char v = sip_api_long_as_unsigned_char(arg);
 
                     if (PyErr_Occurred())
                         invalid = TRUE;
@@ -3070,9 +3064,8 @@ static int parseResult(PyObject *method, PyObject *res,
 
             case 'h':
                 {
-                    //ZZZ
                     signed short *p = va_arg(va, signed short *);
-                    signed short v = (signed short)SIPLong_AsLong(arg);
+                    signed short v = sip_api_long_as_short(arg);
 
                     if (PyErr_Occurred())
                         invalid = TRUE;
@@ -3084,9 +3077,8 @@ static int parseResult(PyObject *method, PyObject *res,
 
             case 't':
                 {
-                    //ZZZ
                     unsigned short *p = va_arg(va, unsigned short *);
-                    unsigned short v = (unsigned short)sip_api_long_as_unsigned_long(arg);
+                    unsigned short v = sip_api_long_as_unsigned_short(arg);
 
                     if (PyErr_Occurred())
                         invalid = TRUE;
@@ -3097,11 +3089,11 @@ static int parseResult(PyObject *method, PyObject *res,
                 break;
 
             case 'e':
+                    //ZZZ - should always check for overflow?
             case 'i':
                 {
-                    //ZZZ - should always check for overflow?
                     int *p = va_arg(va, int *);
-                    int v = SIPLong_AsLong(arg);
+                    int v = sip_api_long_as_int(arg);
 
                     if (PyErr_Occurred())
                         invalid = TRUE;
@@ -3113,9 +3105,8 @@ static int parseResult(PyObject *method, PyObject *res,
 
             case 'u':
                 {
-                    //ZZZ
                     unsigned *p = va_arg(va, unsigned *);
-                    unsigned v = sip_api_long_as_unsigned_long(arg);
+                    unsigned v = sip_api_long_as_unsigned_int(arg);
 
                     if (PyErr_Occurred())
                         invalid = TRUE;
@@ -3127,9 +3118,8 @@ static int parseResult(PyObject *method, PyObject *res,
 
             case 'l':
                 {
-                    //ZZZ
                     long *p = va_arg(va, long *);
-                    long v = PyLong_AsLong(arg);
+                    long v = sip_api_long_as_long(arg);
 
                     if (PyErr_Occurred())
                         invalid = TRUE;
@@ -3141,7 +3131,6 @@ static int parseResult(PyObject *method, PyObject *res,
 
             case 'm':
                 {
-                    //ZZZ
                     unsigned long *p = va_arg(va, unsigned long *);
                     unsigned long v = sip_api_long_as_unsigned_long(arg);
 
@@ -3155,13 +3144,12 @@ static int parseResult(PyObject *method, PyObject *res,
 
             case 'n':
                 {
-                    //ZZZ
 #if defined(HAVE_LONG_LONG)
                     PY_LONG_LONG *p = va_arg(va, PY_LONG_LONG *);
-                    PY_LONG_LONG v = PyLong_AsLongLong(arg);
+                    PY_LONG_LONG v = sip_api_long_as_long_long(arg);
 #else
                     long *p = va_arg(va, long *);
-                    long v = PyLong_AsLong(arg);
+                    long v = sip_api_long_as_long(arg);
 #endif
 
                     if (PyErr_Occurred())
@@ -3174,13 +3162,12 @@ static int parseResult(PyObject *method, PyObject *res,
 
             case 'o':
                 {
-                    //ZZZ
 #if defined(HAVE_LONG_LONG)
                     unsigned PY_LONG_LONG *p = va_arg(va, unsigned PY_LONG_LONG *);
-                    unsigned PY_LONG_LONG v = PyLong_AsUnsignedLongLongMask(arg);
+                    unsigned PY_LONG_LONG v = sip_api_long_as_unsigned_long_long(arg);
 #else
                     unsigned long *p = va_arg(va, unsigned long *);
-                    unsigned long v = PyLong_AsUnsignedLongMask(arg);
+                    unsigned long v = sip_api_long_as_unsigned_long(arg);
 #endif
 
                     if (PyErr_Occurred())
@@ -3996,8 +3983,11 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
         --fmt;
     }
 
-    /* Now handle the remaining arguments. */
-    while (failure.reason == Ok)
+    /*
+     * Now handle the remaining arguments.  We continue to parse if we get an
+     * overflow because that is, strictly speaking, a second pass error.
+     */
+    while (failure.reason == Ok || failure.reason == Overflow)
     {
         char ch;
         PyObject *arg;
@@ -4854,14 +4844,9 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
 
                 if (arg != NULL)
                 {
-                //ZZZ this should convert to the largest type possible and then convert to int, ie.
-                //    long long lv = ...()
-                //    int v = !!lv;
-                //ZZZ or should it just use PyObject_IsTrue()? The bool can be marked as constrained if we really need a Python bool object
+                    int v = PyObject_IsTrue(arg);
 
-                    int v = SIPLong_AsLong(arg);
-
-                    if (non_overflow_exception())
+                    if (v < 0)
                     {
                         failure.reason = WrongType;
                         failure.detail_obj = arg;
@@ -4884,7 +4869,6 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
 
                 va_arg(va, int *);
 
-                //ZZZ - should check for overflow anyway (maybe not for scoped enums)
                 if (arg != NULL && !sip_api_can_convert_to_enum(arg, td))
                 {
                     failure.reason = WrongType;
@@ -4896,6 +4880,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
             break;
 
         case 'e':
+                    //ZZZ - should check for overflow anyway
         case 'i':
             {
                 /* Integer or anonymous enum. */
@@ -4904,19 +4889,12 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
 
                 if (arg != NULL)
                 {
-                    //ZZZ - should check for overflow anyway
-                    int v = SIPLong_AsLong(arg);
+                    int v = sip_api_long_as_int(arg);
 
-                    if (non_overflow_exception())
-                    {
-                        failure.reason = WrongType;
-                        failure.detail_obj = arg;
-                        Py_INCREF(arg);
-                    }
+                    if (PyErr_Occurred())
+                        handle_failed_int_conversion(&failure, arg);
                     else
-                    {
                         *p = v;
-                    }
                 }
 
                 break;
@@ -4930,19 +4908,12 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
 
                 if (arg != NULL)
                 {
-                    //ZZZ
-                    unsigned v = sip_api_long_as_unsigned_long(arg);
+                    unsigned v = sip_api_long_as_unsigned(arg);
 
-                    if (non_overflow_exception())
-                    {
-                        failure.reason = WrongType;
-                        failure.detail_obj = arg;
-                        Py_INCREF(arg);
-                    }
+                    if (PyErr_Occurred())
+                        handle_failed_int_conversion(&failure, arg);
                     else
-                    {
                         *p = v;
-                    }
                 }
 
                 break;
@@ -4952,23 +4923,16 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
             {
                 /* Signed char. */
 
-                //ZZZ
                 signed char *p = va_arg(va, signed char *);
 
                 if (arg != NULL)
                 {
-                    signed char v = (signed char)SIPLong_AsLong(arg);
+                    signed char v = sip_api_long_as_char(arg);
 
-                    if (non_overflow_exception())
-                    {
-                        failure.reason = WrongType;
-                        failure.detail_obj = arg;
-                        Py_INCREF(arg);
-                    }
+                    if (PyErr_Occurred())
+                        handle_failed_int_conversion(&failure, arg);
                     else
-                    {
                         *p = v;
-                    }
                 }
 
                 break;
@@ -4978,23 +4942,16 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
             {
                 /* Unsigned char. */
 
-                //ZZZ
                 unsigned char *p = va_arg(va, unsigned char *);
 
                 if (arg != NULL)
                 {
-                    unsigned char v = (unsigned char)sip_api_long_as_unsigned_long(arg);
+                    unsigned char v = sip_api_long_as_unsigned_char(arg);
 
-                    if (non_overflow_exception())
-                    {
-                        failure.reason = WrongType;
-                        failure.detail_obj = arg;
-                        Py_INCREF(arg);
-                    }
+                    if (PyErr_Occurred())
+                        handle_failed_int_conversion(&failure, arg);
                     else
-                    {
                         *p = v;
-                    }
                 }
 
                 break;
@@ -5004,23 +4961,16 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
             {
                 /* Short integer. */
 
-                //ZZZ
                 signed short *p = va_arg(va, signed short *);
 
                 if (arg != NULL)
                 {
-                    signed short v = (signed short)SIPLong_AsLong(arg);
+                    signed short v = sip_api_long_as_short(arg);
 
-                    if (non_overflow_exception())
-                    {
-                        failure.reason = WrongType;
-                        failure.detail_obj = arg;
-                        Py_INCREF(arg);
-                    }
+                    if (PyErr_Occurred())
+                        handle_failed_int_conversion(&failure, arg);
                     else
-                    {
                         *p = v;
-                    }
                 }
 
                 break;
@@ -5030,23 +4980,16 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
             {
                 /* Unsigned short integer. */
 
-                //ZZZ
                 unsigned short *p = va_arg(va, unsigned short *);
 
                 if (arg != NULL)
                 {
-                    unsigned short v = (unsigned short)sip_api_long_as_unsigned_long(arg);
+                    unsigned short v = sip_api_long_as_unsigned_short(arg);
 
-                    if (non_overflow_exception())
-                    {
-                        failure.reason = WrongType;
-                        failure.detail_obj = arg;
-                        Py_INCREF(arg);
-                    }
+                    if (PyErr_Occurred())
+                        handle_failed_int_conversion(&failure, arg);
                     else
-                    {
                         *p = v;
-                    }
                 }
 
                 break;
@@ -5056,23 +4999,16 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
             {
                 /* Long integer. */
 
-                //ZZZ
                 long *p = va_arg(va, long *);
 
                 if (arg != NULL)
                 {
-                    long v = PyLong_AsLong(arg);
+                    long v = sip_api_long_as_long(arg);
 
-                    if (non_overflow_exception())
-                    {
-                        failure.reason = WrongType;
-                        failure.detail_obj = arg;
-                        Py_INCREF(arg);
-                    }
+                    if (PyErr_Occurred())
+                        handle_failed_int_conversion(&failure, arg);
                     else
-                    {
                         *p = v;
-                    }
                 }
 
                 break;
@@ -5082,23 +5018,16 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
             {
                 /* Unsigned long integer. */
 
-                //ZZZ
                 unsigned long *p = va_arg(va, unsigned long *);
 
                 if (arg != NULL)
                 {
                     unsigned long v = sip_api_long_as_unsigned_long(arg);
 
-                    if (non_overflow_exception())
-                    {
-                        failure.reason = WrongType;
-                        failure.detail_obj = arg;
-                        Py_INCREF(arg);
-                    }
+                    if (PyErr_Occurred())
+                        handle_failed_int_conversion(&failure, arg);
                     else
-                    {
                         *p = v;
-                    }
                 }
 
                 break;
@@ -5108,7 +5037,6 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
             {
                 /* Long long integer. */
 
-                //ZZZ
 #if defined(HAVE_LONG_LONG)
                 PY_LONG_LONG *p = va_arg(va, PY_LONG_LONG *);
 #else
@@ -5118,21 +5046,15 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 if (arg != NULL)
                 {
 #if defined(HAVE_LONG_LONG)
-                    PY_LONG_LONG v = PyLong_AsLongLong(arg);
+                    PY_LONG_LONG v = sip_api_long_as_long_long(arg);
 #else
-                    long v = PyLong_AsLong(arg);
+                    long v = sip_api_long_as_long(arg);
 #endif
 
-                    if (non_overflow_exception())
-                    {
-                        failure.reason = WrongType;
-                        failure.detail_obj = arg;
-                        Py_INCREF(arg);
-                    }
+                    if (PyErr_Occurred())
+                        handle_failed_int_conversion(&failure, arg);
                     else
-                    {
                         *p = v;
-                    }
                 }
 
                 break;
@@ -5142,7 +5064,6 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
             {
                 /* Unsigned long long integer. */
 
-                //ZZZ
 #if defined(HAVE_LONG_LONG)
                 unsigned PY_LONG_LONG *p = va_arg(va, unsigned PY_LONG_LONG *);
 #else
@@ -5152,21 +5073,15 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 if (arg != NULL)
                 {
 #if defined(HAVE_LONG_LONG)
-                    unsigned PY_LONG_LONG v = PyLong_AsUnsignedLongLongMask(arg);
+                    unsigned PY_LONG_LONG v = sip_api_long_as_unsigned_long_long(arg);
 #else
-                    unsigned long v = PyLong_AsUnsignedLongMask(arg);
+                    unsigned long v = sip_api_long_as_unsigned_long(arg);
 #endif
 
-                    if (non_overflow_exception())
-                    {
-                        failure.reason = WrongType;
-                        failure.detail_obj = arg;
-                        Py_INCREF(arg);
-                    }
+                    if (PyErr_Occurred())
+                        handle_failed_int_conversion(&failure, arg);
                     else
-                    {
                         *p = v;
-                    }
                 }
 
                 break;
@@ -5398,7 +5313,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
             }
         }
 
-        if (failure.reason == Ok && ch == 'W')
+        if ((failure.reason == Ok || failure.reason == Overflow) && ch == 'W')
         {
             /* An ellipsis matches everything and ends the parse. */
             break;
@@ -5410,18 +5325,65 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
     if (failure.reason == Ok)
         return TRUE;
 
-    if (failure.reason != Raised)
+    if (failure.reason == Overflow)
     {
-        add_failure(parseErrp, &failure);
+        /*
+         * We have successfully parsed the signature but one of the arguments
+         * has been found to overflow.  Raise an appropriate exception and
+         * ensure we don't parse any subsequent overloads.
+         */
+#if PY_MAJOR_VERSION < 3
+        PyObject *exc_str_obj;
+        const char *exc_str;
+
+        if ((exc_str_obj = PyObject_Str(failure.detail_ob)) == NULL)
+            exc_str = NULL;
+        else
+            exc_str = PyString_AsString(exc_str_obj);
+
+        if (exc_str == NULL)
+            exc_str = "invalid exception text";
+#endif
+
+        if (failure.arg_nr >= 0)
+        {
+#if PY_MAJOR_VERSION >= 3
+            PyErr_Format(PyExc_Overflow, "argument %d overflowed: %S",
+                    failure.arg_nr, failure.detail_obj)
+#else
+            PyErr_Format(PyExc_Overflow, "argument %d overflowed: %s",
+                    failure.arg_nr, exc_str);
+#endif
+        }
+        else
+        {
+#if PY_MAJOR_VERSION >= 3
+            PyErr_Format(PyExc_Overflow, "argument '%s' overflowed: %S",
+                    failure.arg_nr, failure.detail_obj)
+#else
+            PyErr_Format(PyExc_Overflow, "argument '%s' overflowed: %s",
+                    failure.arg_nr, exc_str);
+#endif
+        }
+
+#if PY_MAJOR_VERSION < 3
+        Py_XDECREF(exc_str_obj);
+#endif
+
+        /* The overflow exception has now been raised. */
+        failure.reason = Raised;
     }
+
+    if (failure.reason != Raised)
+        add_failure(parseErrp, &failure);
 
     if (failure.reason == Raised)
     {
         Py_XDECREF(failure.detail_obj);
 
         /*
-         * The error isn't a user error so don't bother with the detail of the
-         * overload.
+         * Discard any previous errors and flag that the exception we want the
+         * user to see has been raised.
          */
         Py_XDECREF(*parseErrp);
         *parseErrp = Py_None;
@@ -5429,6 +5391,39 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
     }
 
     return FALSE;
+}
+
+
+/*
+ * Called after a failed conversion of an integer.
+ */
+static void handle_failed_int_conversion(sipParseFailure *pf, PyObject *arg)
+{
+    PyObject *xtype, *xvalue, *xtb;
+
+    assert(pf->reason == Ok || pf->reason == Overflow);
+
+    PyErr_Fetch(&xtype, &xvalue, &xtb);
+
+    if (PyErr_GivenExceptionMatches(xtype, PyExc_OverflowError) && xvalue != NULL)
+    {
+        /* Remove any previous overflow exception. */
+        Py_XDECREF(pf->detail_obj);
+
+        fp->reason = Overflow;
+        fp->detail_obj = xvalue;
+        Py_INCREF(xvalue);
+    }
+    else
+    {
+        fp->reason = WrongType;
+        fp->detail_obj = arg;
+        Py_INCREF(arg);
+    }
+
+    Py_XDECREF(xtype);
+    Py_XDECREF(xvalue);
+    Py_XDECREF(xtb);
 }
 
 
@@ -5734,7 +5729,6 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, PyObject *sipArgs,
 
                     if (arg != NULL)
                     {
-                        //ZZZ
                         *p = sip_api_convert_to_enum(arg, td);
 
                         if (PyErr_Occurred())
@@ -5759,7 +5753,6 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, PyObject *sipArgs,
 
                 if (arg != NULL)
                 {
-                    //ZZZ
                     *p = sip_api_convert_to_enum(arg, td);
 
                     if (PyErr_Occurred())
@@ -7504,7 +7497,7 @@ static int can_convert_to_enum(PyObject *obj, const sipTypeDef *td,
  */
 static int sip_api_convert_to_enum(PyObject *obj, const sipTypeDef *td)
 {
-    int val;
+    int val, old_overflow;
     PyObject *val_obj;
 
     assert(sipTypeIsEnum(td) || sipTypeIsScopedEnum(td));
@@ -7525,9 +7518,9 @@ static int sip_api_convert_to_enum(PyObject *obj, const sipTypeDef *td)
     }
 
     /* Convert the numerical object. */
-    PyErr_Clear();
-
-    val = SIPLong_AsLong(val_obj);
+    old_overflow = sip_api_enable_overflow_checking(TRUE);
+    val = sip_api_long_as_int(val_obj);
+    sip_api_enable_overflow_checking(old_overflow);
 
     if (val_obj != obj)
         Py_DECREF(val_obj);
@@ -7768,9 +7761,7 @@ static void sip_api_no_method(PyObject *parseErr, const char *scope,
     {
         /*
          * None is used as a marker to say that an exception has already been
-         * raised.  This won't show which overload we were parsing but it
-         * doesn't really matter as it is a fundamental problem rather than a
-         * user error.
+         * raised.
          */
         assert(parseErr == Py_None);
     }
