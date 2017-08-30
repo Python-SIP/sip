@@ -996,6 +996,7 @@ static PyObject *get_qualname(const sipTypeDef *td, PyObject *name);
 static int can_convert_to_enum(PyObject *obj, const sipTypeDef *td,
         int constrained);
 static void handle_failed_int_conversion(sipParseFailure *pf, PyObject *arg);
+static int long_as_nonoverflow_int(PyObject *val_obj);
 
 
 /*
@@ -3089,7 +3090,18 @@ static int parseResult(PyObject *method, PyObject *res,
                 break;
 
             case 'e':
-                    //ZZZ - should always check for overflow?
+                {
+                    int *p = va_arg(va, int *);
+                    int v = long_as_nonoverflow_int(arg);
+
+                    if (PyErr_Occurred())
+                        invalid = TRUE;
+                    else if (p != NULL)
+                        *p = v;
+                }
+
+                break;
+
             case 'i':
                 {
                     int *p = va_arg(va, int *);
@@ -4880,7 +4892,24 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
             break;
 
         case 'e':
-                    //ZZZ - should check for overflow anyway
+            {
+                /* Anonymous enum. */
+
+                int *p = va_arg(va, int *);
+
+                if (arg != NULL)
+                {
+                    int v = long_as_nonoverflow_int(arg);
+
+                    if (PyErr_Occurred())
+                        handle_failed_int_conversion(&failure, arg);
+                    else
+                        *p = v;
+                }
+            }
+
+            break;
+
         case 'i':
             {
                 /* Integer or anonymous enum. */
@@ -4908,7 +4937,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
 
                 if (arg != NULL)
                 {
-                    unsigned v = sip_api_long_as_unsigned(arg);
+                    unsigned v = sip_api_long_as_unsigned_int(arg);
 
                     if (PyErr_Occurred())
                         handle_failed_int_conversion(&failure, arg);
@@ -5122,7 +5151,6 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 {
                     /* Named enum. */
 
-                //ZZZ - should check for overflow anyway (maybe not for scoped enums)
                     sipTypeDef *td = va_arg(va, sipTypeDef *);
 
                     va_arg(va, int *);
@@ -5201,17 +5229,17 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                                 /* Integer. */
 
 #if PY_MAJOR_VERSION >= 3
-                                //ZZZ
                                 if (PyLong_Check(arg))
-                                {
-                                    *(int *)p = PyLong_AS_LONG(arg);
-                                }
 #else
-                                if (PyInt_Check(arg))
-                                {
-                                    *(int *)p = PyInt_AS_LONG(arg);
-                                }
+                                if (PyInt_Check(arg) || PyLong_Check(arg))
 #endif
+                                {
+                                    *(int *)p = sip_api_long_as_int(arg);
+
+                                    if (PyErr_Occurred())
+                                        handle_failed_int_conversion(&failure,
+                                                arg);
+                                }
                                 else
                                 {
                                     failure.reason = WrongType;
@@ -5348,20 +5376,20 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
         if (failure.arg_nr >= 0)
         {
 #if PY_MAJOR_VERSION >= 3
-            PyErr_Format(PyExc_Overflow, "argument %d overflowed: %S",
-                    failure.arg_nr, failure.detail_obj)
+            PyErr_Format(PyExc_OverflowError, "argument %d overflowed: %S",
+                    failure.arg_nr, failure.detail_obj);
 #else
-            PyErr_Format(PyExc_Overflow, "argument %d overflowed: %s",
+            PyErr_Format(PyExc_OverflowError, "argument %d overflowed: %s",
                     failure.arg_nr, exc_str);
 #endif
         }
         else
         {
 #if PY_MAJOR_VERSION >= 3
-            PyErr_Format(PyExc_Overflow, "argument '%s' overflowed: %S",
-                    failure.arg_nr, failure.detail_obj)
+            PyErr_Format(PyExc_OverflowError, "argument '%s' overflowed: %S",
+                    failure.arg_nr, failure.detail_obj);
 #else
-            PyErr_Format(PyExc_Overflow, "argument '%s' overflowed: %s",
+            PyErr_Format(PyExc_OverflowError, "argument '%s' overflowed: %s",
                     failure.arg_nr, exc_str);
 #endif
         }
@@ -5410,14 +5438,14 @@ static void handle_failed_int_conversion(sipParseFailure *pf, PyObject *arg)
         /* Remove any previous overflow exception. */
         Py_XDECREF(pf->detail_obj);
 
-        fp->reason = Overflow;
-        fp->detail_obj = xvalue;
+        pf->reason = Overflow;
+        pf->detail_obj = xvalue;
         Py_INCREF(xvalue);
     }
     else
     {
-        fp->reason = WrongType;
-        fp->detail_obj = arg;
+        pf->reason = WrongType;
+        pf->detail_obj = arg;
         Py_INCREF(arg);
     }
 
@@ -7497,7 +7525,7 @@ static int can_convert_to_enum(PyObject *obj, const sipTypeDef *td,
  */
 static int sip_api_convert_to_enum(PyObject *obj, const sipTypeDef *td)
 {
-    int val, old_overflow;
+    int val;
     PyObject *val_obj;
 
     assert(sipTypeIsEnum(td) || sipTypeIsScopedEnum(td));
@@ -7518,12 +7546,23 @@ static int sip_api_convert_to_enum(PyObject *obj, const sipTypeDef *td)
     }
 
     /* Convert the numerical object. */
-    old_overflow = sip_api_enable_overflow_checking(TRUE);
-    val = sip_api_long_as_int(val_obj);
-    sip_api_enable_overflow_checking(old_overflow);
+    val = long_as_nonoverflow_int(val_obj);
 
     if (val_obj != obj)
         Py_DECREF(val_obj);
+
+    return val;
+}
+
+
+/* Convert to a C/C++ int while checking for overflow. */
+static int long_as_nonoverflow_int(PyObject *val_obj)
+{
+    int old_overflow, val;
+
+    old_overflow = sip_api_enable_overflow_checking(TRUE);
+    val = sip_api_long_as_int(val_obj);
+    sip_api_enable_overflow_checking(old_overflow);
 
     return val;
 }
