@@ -70,12 +70,12 @@ extern "C" {
  *
  * 12.3 Added SIP_TYPE_SCOPED_ENUM to the sipTypeDef flags.
  *      Added sip_api_convert_to_enum() to the public API.
- *      Added sip_api_long_as_char(), sip_api_long_as_unsigned_char(),
- *      sip_api_long_as_short(), sip_api_long_as_unsigned_short(),
- *      sip_api_long_as_int(), sip_api_long_as_unsigned_int(),
- *      sip_api_long_as_long(), sip_api_long_as_unsigned_long(),
- *      sip_api_long_as_long_long(), sip_api_long_as_unsigned_long_long() to
- *      the public API.
+ *      Added sip_api_long_as_char(), sip_api_long_as_signed_char(),
+ *      sip_api_long_as_unsigned_char(), sip_api_long_as_short(),
+ *      sip_api_long_as_unsigned_short(), sip_api_long_as_int(),
+ *      sip_api_long_as_unsigned_int(), sip_api_long_as_long(),
+ *      sip_api_long_as_unsigned_long(), sip_api_long_as_long_long(),
+ *      sip_api_long_as_unsigned_long_long() to the public API.
  *
  * 12.2 Added sip_api_print_object() to the public API.
  *      Renamed sip_api_common_dtor() to sip_api_instance_destroyed() and added
@@ -1853,7 +1853,8 @@ typedef struct _sipAPIDef {
             void *handler);
     int (*api_convert_to_enum)(PyObject *obj, const sipTypeDef *td);
     int (*api_enable_overflow_checking)(int enable);
-    signed char (*api_long_as_char)(PyObject *o);
+    char (*api_long_as_char)(PyObject *o);
+    signed char (*api_long_as_signed_char)(PyObject *o);
     unsigned char (*api_long_as_unsigned_char)(PyObject *o);
     short (*api_long_as_short)(PyObject *o);
     unsigned short (*api_long_as_unsigned_short)(PyObject *o);

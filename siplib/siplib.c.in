@@ -605,6 +605,7 @@ static const sipAPIDef sip_api = {
     sip_api_convert_to_enum,
     sip_api_enable_overflow_checking,
     sip_api_long_as_char,
+    sip_api_long_as_signed_char,
     sip_api_long_as_unsigned_char,
     sip_api_long_as_short,
     sip_api_long_as_unsigned_short,
@@ -818,7 +819,6 @@ static sipPyObject *sipRegisteredPyTypes = NULL;    /* Registered Python types. 
 static sipPyObject *sipDisabledAutoconversions = NULL;  /* Python types whose auto-conversion is disabled. */
 static PyInterpreterState *sipInterpreter = NULL;   /* The interpreter. */
 static int destroy_on_exit = TRUE;      /* Destroy owned objects on exit. */
-static int overflow_checking = FALSE;   /* Check for overflows. */
 static sipEventHandler *event_handlers[sipEventNrEvents];   /* The event handler lists. */
 
 static void addClassSlots(sipWrapperType *wt, const sipClassTypeDef *ctd);
@@ -3040,7 +3040,7 @@ static int parseResult(PyObject *method, PyObject *res,
             case 'L':
                 {
                     signed char *p = va_arg(va, signed char *);
-                    signed char v = sip_api_long_as_char(arg);
+                    signed char v = sip_api_long_as_signed_char(arg);
 
                     if (PyErr_Occurred())
                         invalid = TRUE;
@@ -4956,7 +4956,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
 
                 if (arg != NULL)
                 {
-                    signed char v = sip_api_long_as_char(arg);
+                    signed char v = sip_api_long_as_signed_char(arg);
 
                     if (PyErr_Occurred())
                         handle_failed_int_conversion(&failure, arg);

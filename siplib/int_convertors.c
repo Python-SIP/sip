@@ -91,7 +91,7 @@ PyObject *sipEnableOverflowChecking(PyObject *self, PyObject *args)
 /*
  * Enable or disable overflow checking (C API).
  */
-static int sip_api_enable_overflow_checking(int enable)
+int sip_api_enable_overflow_checking(int enable)
 {
     int was_enabled = overflow_checking;
 
@@ -102,9 +102,18 @@ static int sip_api_enable_overflow_checking(int enable)
 
 
 /*
+ * Convert a Python object to a C char.
+ */
+char sip_api_long_as_char(PyObject *o)
+{
+    return (char)long_as_long_long(o, CHAR_MIN, CHAR_MAX);
+}
+
+
+/*
  * Convert a Python object to a C signed char.
  */
-signed char sip_api_long_as_char(PyObject *o)
+signed char sip_api_long_as_signed_char(PyObject *o)
 {
     return (signed char)long_as_long_long(o, SCHAR_MIN, SCHAR_MAX);
 }
@@ -200,7 +209,7 @@ unsigned PY_LONG_LONG sip_api_long_as_unsigned_long_long(PyObject *o)
         {
             /* Provide a better exception message. */
             if (PyErr_ExceptionMatches(PyExc_OverflowError))
-                raise_unsigned_overflow(UULONG_MAX);
+                raise_unsigned_overflow(ULLONG_MAX);
         }
     }
     else

@@ -101,7 +101,8 @@ PyObject *sip_api_convert_from_const_void_ptr_and_size(const void *val,
  */
 PyObject *sipEnableOverflowChecking(PyObject *self, PyObject *args);
 int sip_api_enable_overflow_checking(int enable);
-signed char sip_api_long_as_char(PyObject *o);
+char sip_api_long_as_char(PyObject *o);
+signed char sip_api_long_as_signed_char(PyObject *o);
 unsigned char sip_api_long_as_unsigned_char(PyObject *o);
 short sip_api_long_as_short(PyObject *o);
 unsigned short sip_api_long_as_unsigned_short(PyObject *o);

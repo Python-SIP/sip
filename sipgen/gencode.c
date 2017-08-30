@@ -804,6 +804,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipSetUserObject            sipAPI_%s->api_set_user_object\n"
 "#define sipRegisterEventHandler     sipAPI_%s->api_register_event_handler\n"
 "#define sipLong_AsChar              sipAPI_%s->api_long_as_char\n"
+"#define sipLong_AsSignedChar        sipAPI_%s->api_long_as_signed_char\n"
 "#define sipLong_AsUnsignedChar      sipAPI_%s->api_long_as_unsigned_char\n"
 "#define sipLong_AsShort             sipAPI_%s->api_long_as_short\n"
 "#define sipLong_AsUnsignedShort     sipAPI_%s->api_long_as_unsigned_short\n"
@@ -837,6 +838,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipConvertFromMappedType    sipConvertFromType\n"
 "#define sipConvertFromNamedEnum(v, pt)  sipConvertFromEnum((v), ((sipEnumTypeObject *)(pt))->type)\n"
 "#define sipConvertFromNewInstance(p, wt, t) sipConvertFromNewType((p), (wt)->wt_td, (t))\n"
+        ,mname
         ,mname
         ,mname
         ,mname
@@ -5299,7 +5301,7 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
 static void generateVariableSetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
 {
     argType atype = vd->type.atype;
-    const char *first_arg, *last_arg;
+    const char *first_arg, *last_arg, *error_test;
     char *deref;
     int might_be_temp, need_py, need_cpp;
 
@@ -5336,7 +5338,10 @@ static void generateVariableSetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
         prcode(fp,
 "    ");
 
-        generateNamedValueType(scope, &vd->type, "sipVal", fp);
+        if (atype == bool_type)
+            prcode(fp, "int sipVal");
+        else
+            generateNamedValueType(scope, &vd->type, "sipVal", fp);
 
         prcode(fp, ";\n"
             );
@@ -5397,22 +5402,23 @@ static void generateVariableSetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
         if (vd->type.nrderefs == 0)
             deref = "*";
 
-        prcode(fp,
-"\n"
-"    if (sipIsErr)\n"
-"        return -1;\n"
-"\n"
-            );
+        error_test = "sipIsErr";
+    }
+    else if (atype == bool_type)
+    {
+        error_test = "sipVal < 0";
     }
     else
     {
-        prcode(fp,
+        error_test = "PyErr_Occurred() != NULL";
+    }
+
+    prcode(fp,
 "\n"
-"    if (PyErr_Occurred() != NULL)\n"
+"    if (%s)\n"
 "        return -1;\n"
 "\n"
-        );
-    }
+        , error_test);
 
     if (atype == pyobject_type || atype == pytuple_type ||
         atype == pylist_type || atype == pydict_type ||
@@ -5435,8 +5441,20 @@ static void generateVariableSetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
 
     generateVarMember(vd, fp);
 
-    prcode(fp, " = %ssipVal;\n"
-        , deref);
+    if (atype == bool_type)
+    {
+        if (generating_c)
+            prcode(fp, " = (bool)%ssipVal;\n"
+                , deref);
+        else
+            prcode(fp, " = static_cast<bool>(%ssipVal);\n"
+                , deref);
+    }
+    else
+    {
+        prcode(fp, " = %ssipVal;\n"
+            , deref);
+    }
 
     /* Note that wchar_t * leaks here. */
 
@@ -5643,36 +5661,36 @@ static int generateObjToCppConversion(argDef *ad,FILE *fp)
 
     case bool_type:
     case cbool_type:
-        rhs = "(bool)SIPLong_AsLong(sipPy)";
+        rhs = "PyObject_IsTrue(sipPy)";
         break;
 
     case byte_type:
-        rhs = "(char)SIPLong_AsLong(sipPy)";
+        rhs = "sipLong_AsChar(sipPy)";
         break;
 
     case sbyte_type:
-        rhs = "(signed char)SIPLong_AsLong(sipPy)";
+        rhs = "sipLong_AsSignedChar(sipPy)";
         break;
 
     case ubyte_type:
-        rhs = "(unsigned char)sipLong_AsUnsignedLong(sipPy)";
+        rhs = "sipLong_AsUnsignedChar(sipPy)";
         break;
 
     case ushort_type:
-        rhs = "(unsigned short)sipLong_AsUnsignedLong(sipPy)";
+        rhs = "sipLong_AsUnsignedShort(sipPy)";
         break;
 
     case short_type:
-        rhs = "(short)SIPLong_AsLong(sipPy)";
+        rhs = "sipLong_AsShort(sipPy)";
         break;
 
     case uint_type:
-        rhs = "(uint)sipLong_AsUnsignedLong(sipPy)";
+        rhs = "sipLong_AsUnsignedInt(sipPy)";
         break;
 
     case int_type:
     case cint_type:
-        rhs = "(int)SIPLong_AsLong(sipPy)";
+        rhs = "sipLong_AsInt(sipPy)";
         break;
 
     case ulong_type:
@@ -5680,15 +5698,15 @@ static int generateObjToCppConversion(argDef *ad,FILE *fp)
         break;
 
     case long_type:
-        rhs = "PyLong_AsLong(sipPy)";
+        rhs = "sipLong_AsLong(sipPy)";
         break;
 
     case ulonglong_type:
-        rhs = "PyLong_AsUnsignedLongLongMask(sipPy)";
+        rhs = "sipLong_AsUnsignedLongLong(sipPy)";
         break;
 
     case longlong_type:
-        rhs = "PyLong_AsLongLong(sipPy)";
+        rhs = "sipLong_AsLongLong(sipPy)";
         break;
 
     case struct_type:
@@ -8367,6 +8385,11 @@ static const char *getParseResultFormat(argDef *ad, int res_isref, int xfervh)
         return ((ad->u.ed->fqcname != NULL) ? "F" : "e");
 
     case byte_type:
+        /*
+         * Note that this assumes that char is signed.  We should not make that
+         * assumption.
+         */
+
     case sbyte_type:
         return "L";
 

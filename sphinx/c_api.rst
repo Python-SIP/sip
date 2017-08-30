@@ -1574,7 +1574,20 @@ specification files.
         a non-zero value if the type is a user defined type.
 
 
-.. c:function:: signed char sipLong_AsChar(PyObject *obj)
+.. c:function:: char sipLong_AsChar(PyObject *obj)
+
+    .. versionadded:: 4.19.4
+
+    This converts a Python object to a C/C++ char.  If the value is too large
+    then an exception is raised if overflow checking is enabled.
+
+    :param obj:
+        the Python object.
+    :return:
+        the converted C/C++ value.
+
+
+.. c:function:: signed char sipLong_AsSignedChar(PyObject *obj)
 
     .. versionadded:: 4.19.4
 
