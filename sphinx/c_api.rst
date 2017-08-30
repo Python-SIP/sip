@@ -825,8 +825,7 @@ specification files.
     This converts a Python object to the value of a named C/C++ ``enum``
     member.  If the enum is a C++11 scoped enum then the Python object must be
     a member of the enum.  Otherwise it may also be an ``int`` corresponding to
-    the name of the member.  There is no need to call
-    :c:func:`sipCanConvertToEnum()` beforehand.
+    the name of the member.
 
     :param obj:
         the Python object to convert.
