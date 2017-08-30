@@ -7515,7 +7515,7 @@ static int can_convert_to_enum(PyObject *obj, const sipTypeDef *td,
 #if PY_MAJOR_VERSION >= 3
     return PyLong_Check(obj);
 #else
-    return PyInt_Check(obj);
+    return (PyInt_Check(arg) || PyLong_Check(arg));
 #endif
 }
 

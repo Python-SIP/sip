@@ -6047,16 +6047,19 @@ static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
 "    %S *sipCpp = reinterpret_cast<%S *>(sipGetCppPtr((sipSimpleWrapper *)sipSelf,sipType_%C));\n"
 "\n"
 "    if (!sipCpp)\n"
-"        return %s;\n"
-"\n"
-                    , fqcname, fqcname, fqcname
-                    , (md->slot == cmp_slot ? "-2" : (ret_int ? "-1" : "0")));
+                    , fqcname, fqcname, fqcname);
             else
                 prcode(fp,
-"    %S sipCpp = static_cast<%S>(SIPLong_AsLong(sipSelf));\n"
+"    %S sipCpp = static_cast<%S>(sipConvertToEnum(sipSelf, sipType_%C));\n"
 "\n"
-                    , fqcname, fqcname);
+"    if (PyErr_Occurred())\n"
+                    , fqcname, fqcname, fqcname);
         }
+
+        prcode(fp,
+"        return %s;\n"
+"\n"
+            , (md->slot == cmp_slot ? "-2" : (ret_int ? "-1" : "0")));
 
         if (has_args)
             prcode(fp,
