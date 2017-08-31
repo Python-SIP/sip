@@ -6054,12 +6054,12 @@ static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
 "\n"
 "    if (PyErr_Occurred())\n"
                     , fqcname, fqcname, fqcname);
-        }
 
-        prcode(fp,
+            prcode(fp,
 "        return %s;\n"
 "\n"
-            , (md->slot == cmp_slot ? "-2" : (ret_int ? "-1" : "0")));
+                , (md->slot == cmp_slot ? "-2" : (ret_int ? "-1" : "0")));
+        }
 
         if (has_args)
             prcode(fp,

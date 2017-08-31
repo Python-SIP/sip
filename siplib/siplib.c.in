@@ -4912,7 +4912,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
 
         case 'i':
             {
-                /* Integer or anonymous enum. */
+                /* Integer. */
 
                 int *p = va_arg(va, int *);
 
