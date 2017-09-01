@@ -34,18 +34,50 @@ public:
     static void long_long_set(long long) {}
     long long long_long_var;
 
-    enum class Willy {
-        willy = 10
-    };
+    static unsigned unsigned_char_sizeof() {return sizeof (unsigned char);}
+    unsigned char unsigned_char_get() {return unsigned_char_virt();}
+    virtual unsigned char unsigned_char_virt() {return 0;}
+    static void unsigned_char_set(unsigned char) {}
+    unsigned char unsigned_char_var;
 
-    enum Poo {
-        poo = 20
-    };
+    static unsigned unsigned_short_sizeof() {return sizeof (unsigned short);}
+    unsigned short unsigned_short_get() {return unsigned_short_virt();}
+    virtual unsigned short unsigned_short_virt() {return 0;}
+    static void unsigned_short_set(unsigned short) {}
+    unsigned short unsigned_short_var;
+
+    static unsigned unsigned_int_sizeof() {return sizeof (unsigned int);}
+    unsigned int unsigned_int_get() {return unsigned_int_virt();}
+    virtual unsigned int unsigned_int_virt() {return 0;}
+    static void unsigned_int_set(unsigned int) {}
+    unsigned int unsigned_int_var;
+
+    static unsigned unsigned_long_sizeof() {return sizeof (unsigned long);}
+    unsigned long unsigned_long_get() {return unsigned_long_virt();}
+    virtual unsigned long unsigned_long_virt() {return 0;}
+    static void unsigned_long_set(unsigned long) {}
+    unsigned long unsigned_long_var;
+
+    static unsigned unsigned_long_long_sizeof() {
+        return sizeof (unsigned long long);
+    }
+    unsigned long long unsigned_long_long_get() {
+        return unsigned_long_long_virt();
+    }
+    virtual unsigned long long unsigned_long_long_virt() {return 0;}
+    static void unsigned_long_long_set(unsigned long long) {}
+    unsigned long long unsigned_long_long_var;
+
+    //enum class Willy {
+    //    willy = 10
+    //};
+
+    //enum Poo {
+    //    poo = 20
+    //};
 
     //void test(Willy w) {printf("Got Willy: %d\n", static_cast<int>(w));}
     //void test(Poo p) {printf("Got Poo: %d\n", static_cast<int>(p));}
-    bool var_bool;
-    int var_int;
 };
 
 #endif

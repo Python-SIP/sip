@@ -39,16 +39,44 @@ public:
     static void long_long_set(long long);
     long long long_long_var;
 
-    enum class Willy {
-        willy
-    };
+    static unsigned unsigned_char_sizeof();
+    unsigned char unsigned_char_get() /PyInt/;
+    virtual unsigned char unsigned_char_virt() /PyInt/;
+    static void unsigned_char_set(unsigned char /PyInt/);
+    unsigned char unsigned_char_var /PyInt/;
 
-    enum Poo {
-        poo
-    };
+    static unsigned unsigned_short_sizeof();
+    unsigned short unsigned_short_get();
+    virtual unsigned short unsigned_short_virt();
+    static void unsigned_short_set(unsigned short);
+    unsigned short unsigned_short_var;
+
+    static unsigned unsigned_int_sizeof();
+    unsigned int unsigned_int_get();
+    virtual unsigned int unsigned_int_virt();
+    static void unsigned_int_set(unsigned int);
+    unsigned int unsigned_int_var;
+
+    static unsigned unsigned_long_sizeof();
+    unsigned long unsigned_long_get();
+    virtual unsigned long unsigned_long_virt();
+    static void unsigned_long_set(unsigned long);
+    unsigned long unsigned_long_var;
+
+    static unsigned unsigned_long_long_sizeof();
+    unsigned long long unsigned_long_long_get();
+    virtual unsigned long long unsigned_long_long_virt();
+    static void unsigned_long_long_set(unsigned long long);
+    unsigned long long unsigned_long_long_var;
+
+    //enum class Willy {
+    //    willy
+    //};
+
+    //enum Poo {
+    //    poo
+    //};
 
     //void test(Willy);
     //void test(Poo);
-    bool var_bool;
-    int var_int;
 };

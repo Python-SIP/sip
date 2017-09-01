@@ -59,6 +59,60 @@ class BaseFixture(Test):
         self.limits = limits
 
 
+class InvalidFixture(Test):
+    """ A fixture for testing invalid values. """
+
+    def signed_char_virt(self):
+        """ Re-implemented to return the fixture-specific value. """
+
+        return '0'
+
+    def short_virt(self):
+        """ Re-implemented to return the fixture-specific value. """
+
+        return '0'
+
+    def int_virt(self):
+        """ Re-implemented to return the fixture-specific value. """
+
+        return '0'
+
+    def long_virt(self):
+        """ Re-implemented to return the fixture-specific value. """
+
+        return '0'
+
+    def long_long_virt(self):
+        """ Re-implemented to return the fixture-specific value. """
+
+        return '0'
+
+    def unsigned_char_virt(self):
+        """ Re-implemented to return the fixture-specific value. """
+
+        return '0'
+
+    def unsigned_short_virt(self):
+        """ Re-implemented to return the fixture-specific value. """
+
+        return '0'
+
+    def unsigned_int_virt(self):
+        """ Re-implemented to return the fixture-specific value. """
+
+        return '0'
+
+    def unsigned_long_virt(self):
+        """ Re-implemented to return the fixture-specific value. """
+
+        return '0'
+
+    def unsigned_long_long_virt(self):
+        """ Re-implemented to return the fixture-specific value. """
+
+        return '0'
+
+
 class ValidLowerFixture(BaseFixture):
     """ A fixture for testing the lower bound of non-overflowing signed values.
     """
@@ -118,6 +172,31 @@ class ValidUpperFixture(BaseFixture):
 
         return self.limits.LONG_LONG_UPPER
 
+    def unsigned_char_virt(self):
+        """ Re-implemented to return the fixture-specific value. """
+
+        return self.limits.UNSIGNED_CHAR_UPPER
+
+    def unsigned_short_virt(self):
+        """ Re-implemented to return the fixture-specific value. """
+
+        return self.limits.UNSIGNE_SHORT_UPPER
+
+    def unsigned_int_virt(self):
+        """ Re-implemented to return the fixture-specific value. """
+
+        return self.limits.UNSIGNE_INT_UPPER
+
+    def unsigned_long_virt(self):
+        """ Re-implemented to return the fixture-specific value. """
+
+        return self.limits.UNSIGNE_LONG_UPPER
+
+    def unsigned_long_long_virt(self):
+        """ Re-implemented to return the fixture-specific value. """
+
+        return self.limits.UNSIGNE_LONG_LONG_UPPER
+
 
 class OverflowLowerFixture(BaseFixture):
     """ A fixture for testing the lower bound of overflowing signed values. """
@@ -176,6 +255,31 @@ class OverflowUpperFixture(BaseFixture):
 
         return self.limits.LONG_LONG_UPPER + 1
 
+    def unsigned_char_virt(self):
+        """ Re-implemented to return the fixture-specific value. """
+
+        return self.limits.UNSIGNED_CHAR_UPPER + 1
+
+    def unsigned_short_virt(self):
+        """ Re-implemented to return the fixture-specific value. """
+
+        return self.limits.UNSIGNED_SHORT_UPPER + 1
+
+    def unsigned_int_virt(self):
+        """ Re-implemented to return the fixture-specific value. """
+
+        return self.limits.UNSIGNED_INT_UPPER + 1
+
+    def unsigned_long_virt(self):
+        """ Re-implemented to return the fixture-specific value. """
+
+        return self.limits.UNSIGNED_LONG_UPPER + 1
+
+    def unsigned_long_long_virt(self):
+        """ Re-implemented to return the fixture-specific value. """
+
+        return self.limits.UNSIGNED_LONG_LONG_UPPER + 1
+
 
 class TestIntConvertors(unittest.TestCase):
     """ This tests the integer and enum convertors with valid values. """
@@ -193,16 +297,34 @@ class TestIntConvertors(unittest.TestCase):
         cls.LONG_LOWER, cls.LONG_UPPER = cls._signed_bounds(Test.long_sizeof())
         cls.LONG_LONG_LOWER, cls.LONG_LONG_UPPER = cls._signed_bounds(
                 Test.long_long_sizeof())
+        cls.UNSIGNED_CHAR_UPPER = cls._unsigned_upper_bound(
+                Test.unsigned_char_sizeof())
+        cls.UNSIGNED_SHORT_UPPER = cls._unsigned_upper_bound(
+                Test.unsigned_short_sizeof())
+        cls.UNSIGNED_INT_UPPER = cls._unsigned_upper_bound(
+                Test.unsigned_int_sizeof())
+        cls.UNSIGNED_LONG_UPPER = cls._unsigned_upper_bound(
+                Test.unsigned_long_sizeof())
+        cls.UNSIGNED_LONG_LONG_UPPER = cls._unsigned_upper_bound(
+                Test.unsigned_long_long_sizeof())
 
     @staticmethod
     def _signed_bounds(nrbytes):
-        """ Return the values range of values for a number of bytes
-        representing a signed value.
+        """ Return the range of values for a number of bytes representing a
+        signed value.
         """
 
         v = 1 << ((nrbytes * 8) - 1)
 
         return -v, v - 1
+
+    @staticmethod
+    def _unsigned_upper_bound(nrbytes):
+        """ Return the upper bound for a number of bytes representing an
+        unsigned value.
+        """
+
+        return (1 << (nrbytes * 8)) - 1
 
 
 class TestInvalidValues(TestIntConvertors):
@@ -211,12 +333,20 @@ class TestInvalidValues(TestIntConvertors):
     def setUp(self):
         """ Set up a test. """
 
-        self.fixture = Test()
+        self.fixture = InvalidFixture()
 
     def tearDown(self):
         """ Tidy up after a test. """
 
         del self.fixture
+
+    def test_signed_char_get(self):
+        """ signed char virtual result. """
+
+        with self.assertRaises(TypeError):
+            install_hook()
+            self.fixture.signed_char_get()
+            uninstall_hook()
 
     def test_signed_char_set(self):
         """ signed char function argument. """
@@ -230,6 +360,14 @@ class TestInvalidValues(TestIntConvertors):
         with self.assertRaises(TypeError):
             self.fixture.signed_char_var = '0'
 
+    def test_short_get(self):
+        """ short virtual result. """
+
+        with self.assertRaises(TypeError):
+            install_hook()
+            self.fixture.short_get()
+            uninstall_hook()
+
     def test_short_set(self):
         """ short function argument. """
 
@@ -241,6 +379,14 @@ class TestInvalidValues(TestIntConvertors):
 
         with self.assertRaises(TypeError):
             self.fixture.short_var = '0'
+
+    def test_int_get(self):
+        """ int virtual result. """
+
+        with self.assertRaises(TypeError):
+            install_hook()
+            self.fixture.int_get()
+            uninstall_hook()
 
     def test_int_set(self):
         """ int function argument. """
@@ -254,6 +400,14 @@ class TestInvalidValues(TestIntConvertors):
         with self.assertRaises(TypeError):
             self.fixture.int_var = '0'
 
+    def test_long_get(self):
+        """ long virtual result. """
+
+        with self.assertRaises(TypeError):
+            install_hook()
+            self.fixture.long_get()
+            uninstall_hook()
+
     def test_long_set(self):
         """ long function argument. """
 
@@ -266,6 +420,14 @@ class TestInvalidValues(TestIntConvertors):
         with self.assertRaises(TypeError):
             self.fixture.long_var = '0'
 
+    def test_long_long_get(self):
+        """ long long virtual result. """
+
+        with self.assertRaises(TypeError):
+            install_hook()
+            self.fixture.long_long_get()
+            uninstall_hook()
+
     def test_long_long_set(self):
         """ long long function argument. """
 
@@ -277,6 +439,106 @@ class TestInvalidValues(TestIntConvertors):
 
         with self.assertRaises(TypeError):
             self.fixture.long_long_var = '0'
+
+    def test_unsigned_char_get(self):
+        """ unsigned char virtual result. """
+
+        with self.assertRaises(TypeError):
+            install_hook()
+            self.fixture.unsigned_char_get()
+            uninstall_hook()
+
+    def test_unsigned_char_set(self):
+        """ unsigned char function argument. """
+
+        with self.assertRaises(TypeError):
+            self.fixture.unsigned_char_set('0')
+
+    def test_unsigned_char_var(self):
+        """ unsigned char instance variable. """
+
+        with self.assertRaises(TypeError):
+            self.fixture.unsigned_char_var = '0'
+
+    def test_unsigned_short_get(self):
+        """ unsigned short virtual result. """
+
+        with self.assertRaises(TypeError):
+            install_hook()
+            self.fixture.unsigned_short_get()
+            uninstall_hook()
+
+    def test_unsigned_short_set(self):
+        """ unsigned short function argument. """
+
+        with self.assertRaises(TypeError):
+            self.fixture.unsigned_short_set('0')
+
+    def test_unsigned_short_var(self):
+        """ unsigned short instance variable. """
+
+        with self.assertRaises(TypeError):
+            self.fixture.unsigned_short_var = '0'
+
+    def test_unsigned_int_get(self):
+        """ unsigned int virtual result. """
+
+        with self.assertRaises(TypeError):
+            install_hook()
+            self.fixture.unsigned_int_get()
+            uninstall_hook()
+
+    def test_unsigned_int_set(self):
+        """ unsigned int function argument. """
+
+        with self.assertRaises(TypeError):
+            self.fixture.unsigned_int_set('0')
+
+    def test_unsigned_int_var(self):
+        """ unsigned int instance variable. """
+
+        with self.assertRaises(TypeError):
+            self.fixture.unsigned_int_var = '0'
+
+    def test_unsigned_long_get(self):
+        """ unsigned long virtual result. """
+
+        with self.assertRaises(TypeError):
+            install_hook()
+            self.fixture.unsigned_long_get()
+            uninstall_hook()
+
+    def test_unsigned_long_set(self):
+        """ unsigned long function argument. """
+
+        with self.assertRaises(TypeError):
+            self.fixture.unsigned_long_set('0')
+
+    def test_unsigned_long_var(self):
+        """ unsigned long instance variable. """
+
+        with self.assertRaises(TypeError):
+            self.fixture.unsigned_long_var = '0'
+
+    def test_unsigned_long_long_get(self):
+        """ unsigned long long virtual result. """
+
+        with self.assertRaises(TypeError):
+            install_hook()
+            self.fixture.unsigned_long_long_get()
+            uninstall_hook()
+
+    def test_unsigned_long_long_set(self):
+        """ unsigned long long function argument. """
+
+        with self.assertRaises(TypeError):
+            self.fixture.unsigned_long_long_set('0')
+
+    def test_unsigned_long_long_var(self):
+        """ unsigned long long instance variable. """
+
+        with self.assertRaises(TypeError):
+            self.fixture.unsigned_long_long_var = '0'
 
 
 class TestValidValues(TestIntConvertors):
