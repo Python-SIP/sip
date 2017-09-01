@@ -454,6 +454,14 @@ class TestNoOverflowChecking(TestIntConvertors):
     overflow checking disabled.
     """
 
+    @staticmethod
+    def _long_long_is_long():
+        """ Return True if (unsigned) long long is the same size as (unsigned)
+        long.
+        """
+
+        return Test.long_long_sizeof() == Test.long_sizeof()
+
     def setUp(self):
         """ Set up a test. """
 
@@ -577,68 +585,124 @@ class TestNoOverflowChecking(TestIntConvertors):
 
         install_hook()
         self.lower_fixture.long_get()
-        uninstall_hook()
+
+        if self._long_long_is_long():
+            # To maintain compatibility with older versions of SIP this
+            # overflows even with overflow checking disabled.
+            with self.assertRaises(OverflowError):
+                uninstall_hook()
+        else:
+            uninstall_hook()
 
     def test_long_get_upper(self):
         """ long virtual result upper bound. """
 
         install_hook()
         self.upper_fixture.long_get()
-        uninstall_hook()
+
+        if self._long_long_is_long():
+            # To maintain compatibility with older versions of SIP this
+            # overflows even with overflow checking disabled.
+            with self.assertRaises(OverflowError):
+                uninstall_hook()
+        else:
+            uninstall_hook()
 
     def test_long_set_lower(self):
         """ long function argument lower bound. """
 
-        self.lower_fixture.long_set(self.LONG_LOWER - 1)
+        if self._long_long_is_long():
+            # To maintain compatibility with older versions of SIP this
+            # overflows even with overflow checking disabled.
+            with self.assertRaises(OverflowError):
+                self.lower_fixture.long_set(self.LONG_LOWER - 1)
+        else:
+            self.lower_fixture.long_set(self.LONG_LOWER - 1)
 
     def test_long_set_upper(self):
         """ long function argument upper bound. """
 
-        self.upper_fixture.long_set(self.LONG_UPPER + 1)
+        if self._long_long_is_long():
+            # To maintain compatibility with older versions of SIP this
+            # overflows even with overflow checking disabled.
+            with self.assertRaises(OverflowError):
+                self.upper_fixture.long_set(self.LONG_UPPER + 1)
+        else:
+            self.upper_fixture.long_set(self.LONG_UPPER + 1)
 
     def test_long_var_lower(self):
         """ long instance variable lower bound. """
 
-        self.lower_fixture.long_var = self.LONG_LOWER - 1
+        if self._long_long_is_long():
+            # To maintain compatibility with older versions of SIP this
+            # overflows even with overflow checking disabled.
+            with self.assertRaises(OverflowError):
+                self.lower_fixture.long_var = self.LONG_LOWER - 1
+        else:
+            self.lower_fixture.long_var = self.LONG_LOWER - 1
 
     def test_long_var_upper(self):
         """ long instance variable upper bound. """
 
-        self.upper_fixture.long_var = self.LONG_UPPER + 1
+        if self._long_long_is_long():
+            # To maintain compatibility with older versions of SIP this
+            # overflows even with overflow checking disabled.
+            with self.assertRaises(OverflowError):
+                self.upper_fixture.long_var = self.LONG_UPPER + 1
+        else:
+            self.upper_fixture.long_var = self.LONG_UPPER + 1
 
     def test_long_long_get_lower(self):
         """ long long virtual result lower bound. """
 
-        install_hook()
-        self.lower_fixture.long_long_get()
-        uninstall_hook()
+        # To maintain compatibility with older versions of SIP this overflows
+        # even with overflow checking disabled.
+        with self.assertRaises(OverflowError):
+            install_hook()
+            self.lower_fixture.long_long_get()
+            uninstall_hook()
 
     def test_long_long_get_upper(self):
         """ long long virtual result upper bound. """
 
-        install_hook()
-        self.upper_fixture.long_long_get()
-        uninstall_hook()
+        # To maintain compatibility with older versions of SIP this overflows
+        # even with overflow checking disabled.
+        with self.assertRaises(OverflowError):
+            install_hook()
+            self.upper_fixture.long_long_get()
+            uninstall_hook()
 
     def test_long_long_set_lower(self):
         """ long long function argument lower bound. """
 
-        self.lower_fixture.long_long_set(self.LONG_LONG_LOWER - 1)
+        # To maintain compatibility with older versions of SIP this overflows
+        # even with overflow checking disabled.
+        with self.assertRaises(OverflowError):
+            self.lower_fixture.long_long_set(self.LONG_LONG_LOWER - 1)
 
     def test_long_long_set_upper(self):
         """ long long function argument upper bound. """
 
-        self.upper_fixture.long_long_set(self.LONG_LONG_UPPER + 1)
+        # To maintain compatibility with older versions of SIP this overflows
+        # even with overflow checking disabled.
+        with self.assertRaises(OverflowError):
+            self.upper_fixture.long_long_set(self.LONG_LONG_UPPER + 1)
 
     def test_long_long_var_lower(self):
         """ long long instance variable lower bound. """
 
-        self.lower_fixture.long_long_var = self.LONG_LONG_LOWER - 1
+        # To maintain compatibility with older versions of SIP this overflows
+        # even with overflow checking disabled.
+        with self.assertRaises(OverflowError):
+            self.lower_fixture.long_long_var = self.LONG_LONG_LOWER - 1
 
     def test_long_long_var_upper(self):
         """ long long instance variable upper bound. """
 
-        self.upper_fixture.long_long_var = self.LONG_LONG_UPPER + 1
+        # To maintain compatibility with older versions of SIP this overflows
+        # even with overflow checking disabled.
+        with self.assertRaises(OverflowError):
+            self.upper_fixture.long_long_var = self.LONG_LONG_UPPER + 1
 
 
 class TestOverflowChecking(TestNoOverflowChecking):
@@ -765,73 +829,71 @@ class TestOverflowChecking(TestNoOverflowChecking):
         """ long virtual result lower bound. """
 
         with self.assertRaises(OverflowError):
-            super().test_long_get_lower()
+            install_hook()
+            self.lower_fixture.long_get()
+            uninstall_hook()
 
     def test_long_get_upper(self):
         """ long virtual result upper bound. """
 
         with self.assertRaises(OverflowError):
-            super().test_long_get_upper()
+            install_hook()
+            self.upper_fixture.long_get()
+            uninstall_hook()
 
     def test_long_set_lower(self):
         """ long function argument lower bound. """
 
         with self.assertRaises(OverflowError):
-            super().test_long_set_lower()
+            self.lower_fixture.long_set(self.LONG_LOWER - 1)
 
     def test_long_set_upper(self):
         """ long function argument upper bound. """
 
         with self.assertRaises(OverflowError):
-            super().test_long_set_upper()
+            self.upper_fixture.long_set(self.LONG_UPPER + 1)
 
     def test_long_var_lower(self):
         """ long instance variable lower bound. """
 
         with self.assertRaises(OverflowError):
-            super().test_long_var_lower()
+            self.lower_fixture.long_var = self.LONG_LOWER - 1
 
     def test_long_var_upper(self):
         """ long instance variable upper bound. """
 
         with self.assertRaises(OverflowError):
-            super().test_long_var_upper()
+            self.upper_fixture.long_var = self.LONG_UPPER + 1
 
     def test_long_long_get_lower(self):
         """ long long virtual result lower bound. """
 
-        with self.assertRaises(OverflowError):
-            super().test_long_long_get_lower()
+        super().test_long_long_get_lower()
 
     def test_long_long_get_upper(self):
         """ long long virtual result upper bound. """
 
-        with self.assertRaises(OverflowError):
-            super().test_long_long_get_upper()
+        super().test_long_long_get_upper()
 
     def test_long_long_set_lower(self):
         """ long long function argument lower bound. """
 
-        with self.assertRaises(OverflowError):
-            super().test_long_long_set_lower()
+        super().test_long_long_set_lower()
 
     def test_long_long_set_upper(self):
         """ long long function argument upper bound. """
 
-        with self.assertRaises(OverflowError):
-            super().test_long_long_set_upper()
+        super().test_long_long_set_upper()
 
     def test_long_long_var_lower(self):
         """ long long instance variable lower bound. """
 
-        with self.assertRaises(OverflowError):
-            super().test_long_long_var_lower()
+        super().test_long_long_var_lower()
 
     def test_long_long_var_upper(self):
         """ long long instance variable upper bound. """
 
-        with self.assertRaises(OverflowError):
-            super().test_long_long_var_upper()
+        super().test_long_long_var_upper()
 
 
 if __name__ == '__main__':
