@@ -180,22 +180,22 @@ class ValidUpperFixture(BaseFixture):
     def unsigned_short_virt(self):
         """ Re-implemented to return the fixture-specific value. """
 
-        return self.limits.UNSIGNE_SHORT_UPPER
+        return self.limits.UNSIGNED_SHORT_UPPER
 
     def unsigned_int_virt(self):
         """ Re-implemented to return the fixture-specific value. """
 
-        return self.limits.UNSIGNE_INT_UPPER
+        return self.limits.UNSIGNED_INT_UPPER
 
     def unsigned_long_virt(self):
         """ Re-implemented to return the fixture-specific value. """
 
-        return self.limits.UNSIGNE_LONG_UPPER
+        return self.limits.UNSIGNED_LONG_UPPER
 
     def unsigned_long_long_virt(self):
         """ Re-implemented to return the fixture-specific value. """
 
-        return self.limits.UNSIGNE_LONG_LONG_UPPER
+        return self.limits.UNSIGNED_LONG_LONG_UPPER
 
 
 class OverflowLowerFixture(BaseFixture):
@@ -709,6 +709,87 @@ class TestValidValues(TestIntConvertors):
         """ long long instance variable upper bound. """
 
         self.upper_fixture.long_long_var = self.LONG_LONG_UPPER
+
+    def test_unsigned_char_get_upper(self):
+        """ unsigned char virtual result upper bound. """
+
+        self.assertEqual(self.upper_fixture.unsigned_char_get(),
+                self.UNSIGNED_CHAR_UPPER)
+
+    def test_unsigned_char_set_upper(self):
+        """ unsigned char function argument upper bound. """
+
+        self.upper_fixture.unsigned_char_set(self.UNSIGNED_CHAR_UPPER)
+
+    def test_unsigned_char_var_upper(self):
+        """ unsigned char instance variable upper bound. """
+
+        self.upper_fixture.unsigned_char_var = self.UNSIGNED_CHAR_UPPER
+
+    def test_unsigned_short_get_upper(self):
+        """ unsigned short virtual result upper bound. """
+
+        self.assertEqual(self.upper_fixture.unsigned_short_get(),
+                self.UNSIGNED_SHORT_UPPER)
+
+    def test_unsigned_short_set_upper(self):
+        """ unsigned short function argument upper bound. """
+
+        self.upper_fixture.unsigned_short_set(self.UNSIGNED_SHORT_UPPER)
+
+    def test_unsigned_short_var_upper(self):
+        """ unsigned short instance variable upper bound. """
+
+        self.upper_fixture.unsigned_short_var = self.UNSIGNED_SHORT_UPPER
+
+    def test_unsigned_int_get_upper(self):
+        """ unsigned int virtual result upper bound. """
+
+        self.assertEqual(self.upper_fixture.unsigned_int_get(),
+                self.UNSIGNED_INT_UPPER)
+
+    def test_unsigned_int_set_upper(self):
+        """ unsigned int function argument upper bound. """
+
+        self.upper_fixture.unsigned_int_set(self.UNSIGNED_INT_UPPER)
+
+    def test_unsigned_int_var_upper(self):
+        """ unsigned int instance variable upper bound. """
+
+        self.upper_fixture.unsigned_int_var = self.UNSIGNED_INT_UPPER
+
+    def test_unsigned_long_get_upper(self):
+        """ unsigned long virtual result upper bound. """
+
+        self.assertEqual(self.upper_fixture.unsigned_long_get(),
+                self.UNSIGNED_LONG_UPPER)
+
+    def test_unsigned_long_set_upper(self):
+        """ unsigned long function argument upper bound. """
+
+        self.upper_fixture.unsigned_long_set(self.UNSIGNED_LONG_UPPER)
+
+    def test_unsigned_long_var_upper(self):
+        """ unsigned long instance variable upper bound. """
+
+        self.upper_fixture.unsigned_long_var = self.UNSIGNED_LONG_UPPER
+
+    def test_unsigned_long_long_get_upper(self):
+        """ unsigned long long virtual result upper bound. """
+
+        self.assertEqual(self.upper_fixture.unsigned_long_long_get(),
+                self.UNSIGNED_LONG_LONG_UPPER)
+
+    def test_unsigned_long_long_set_upper(self):
+        """ unsigned long long function argument upper bound. """
+
+        self.upper_fixture.unsigned_long_long_set(
+                self.UNSIGNED_LONG_LONG_UPPER)
+
+    def test_unsigned_long_long_var_upper(self):
+        """ unsigned long long instance variable upper bound. """
+
+        self.upper_fixture.unsigned_long_long_var = self.UNSIGNED_LONG_LONG_UPPER
 
 
 class TestNoOverflowChecking(TestIntConvertors):
