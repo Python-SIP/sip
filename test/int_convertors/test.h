@@ -16,6 +16,24 @@ public:
     static void short_set(short) {}
     short short_var;
 
+    static unsigned int_sizeof() {return sizeof (int);}
+    int int_get() {return int_virt();}
+    virtual int int_virt() {return 0;}
+    static void int_set(int) {}
+    int int_var;
+
+    static unsigned long_sizeof() {return sizeof (long);}
+    long long_get() {return long_virt();}
+    virtual long long_virt() {return 0;}
+    static void long_set(long) {}
+    long long_var;
+
+    static unsigned long_long_sizeof() {return sizeof (long long);}
+    long long long_long_get() {return long_long_virt();}
+    virtual long long long_long_virt() {return 0;}
+    static void long_long_set(long long) {}
+    long long long_long_var;
+
     enum class Willy {
         willy = 10
     };

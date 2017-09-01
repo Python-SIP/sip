@@ -73,6 +73,21 @@ class ValidLowerFixture(BaseFixture):
 
         return self.limits.SHORT_LOWER
 
+    def int_virt(self):
+        """ Re-implemented to return the fixture-specific value. """
+
+        return self.limits.INT_LOWER
+
+    def long_virt(self):
+        """ Re-implemented to return the fixture-specific value. """
+
+        return self.limits.LONG_LOWER
+
+    def long_long_virt(self):
+        """ Re-implemented to return the fixture-specific value. """
+
+        return self.limits.LONG_LONG_LOWER
+
 
 class ValidUpperFixture(BaseFixture):
     """ A fixture for testing the upper bound of non-overflowing signed values.
@@ -88,6 +103,21 @@ class ValidUpperFixture(BaseFixture):
 
         return self.limits.SHORT_UPPER
 
+    def int_virt(self):
+        """ Re-implemented to return the fixture-specific value. """
+
+        return self.limits.INT_UPPER
+
+    def long_virt(self):
+        """ Re-implemented to return the fixture-specific value. """
+
+        return self.limits.LONG_UPPER
+
+    def long_long_virt(self):
+        """ Re-implemented to return the fixture-specific value. """
+
+        return self.limits.LONG_LONG_UPPER
+
 
 class OverflowLowerFixture(BaseFixture):
     """ A fixture for testing the lower bound of overflowing signed values. """
@@ -101,6 +131,21 @@ class OverflowLowerFixture(BaseFixture):
         """ Re-implemented to return the fixture-specific value. """
 
         return self.limits.SHORT_LOWER - 1
+
+    def int_virt(self):
+        """ Re-implemented to return the fixture-specific value. """
+
+        return self.limits.INT_LOWER - 1
+
+    def long_virt(self):
+        """ Re-implemented to return the fixture-specific value. """
+
+        return self.limits.LONG_LOWER - 1
+
+    def long_long_virt(self):
+        """ Re-implemented to return the fixture-specific value. """
+
+        return self.limits.LONG_LONG_LOWER - 1
 
 
 class OverflowUpperFixture(BaseFixture):
@@ -116,6 +161,21 @@ class OverflowUpperFixture(BaseFixture):
 
         return self.limits.SHORT_UPPER + 1
 
+    def int_virt(self):
+        """ Re-implemented to return the fixture-specific value. """
+
+        return self.limits.INT_UPPER + 1
+
+    def long_virt(self):
+        """ Re-implemented to return the fixture-specific value. """
+
+        return self.limits.LONG_UPPER + 1
+
+    def long_long_virt(self):
+        """ Re-implemented to return the fixture-specific value. """
+
+        return self.limits.LONG_LONG_UPPER + 1
+
 
 class TestIntConvertors(unittest.TestCase):
     """ This tests the integer and enum convertors with valid values. """
@@ -129,6 +189,10 @@ class TestIntConvertors(unittest.TestCase):
                 Test.signed_char_sizeof())
         cls.SHORT_LOWER, cls.SHORT_UPPER = cls._signed_bounds(
                 Test.short_sizeof())
+        cls.INT_LOWER, cls.INT_UPPER = cls._signed_bounds(Test.int_sizeof())
+        cls.LONG_LOWER, cls.LONG_UPPER = cls._signed_bounds(Test.long_sizeof())
+        cls.LONG_LONG_LOWER, cls.LONG_LONG_UPPER = cls._signed_bounds(
+                Test.long_long_sizeof())
 
     @staticmethod
     def _signed_bounds(nrbytes):
@@ -177,6 +241,42 @@ class TestInvalidValues(TestIntConvertors):
 
         with self.assertRaises(TypeError):
             self.fixture.short_var = '0'
+
+    def test_int_set(self):
+        """ int function argument. """
+
+        with self.assertRaises(TypeError):
+            self.fixture.int_set('0')
+
+    def test_int_var(self):
+        """ int instance variable. """
+
+        with self.assertRaises(TypeError):
+            self.fixture.int_var = '0'
+
+    def test_long_set(self):
+        """ long function argument. """
+
+        with self.assertRaises(TypeError):
+            self.fixture.long_set('0')
+
+    def test_long_var(self):
+        """ long instance variable. """
+
+        with self.assertRaises(TypeError):
+            self.fixture.long_var = '0'
+
+    def test_long_long_set(self):
+        """ long long function argument. """
+
+        with self.assertRaises(TypeError):
+            self.fixture.long_long_set('0')
+
+    def test_long_long_var(self):
+        """ long long instance variable. """
+
+        with self.assertRaises(TypeError):
+            self.fixture.long_long_var = '0'
 
 
 class TestValidValues(TestIntConvertors):
@@ -255,6 +355,98 @@ class TestValidValues(TestIntConvertors):
         """ short instance variable upper bound. """
 
         self.upper_fixture.short_var = self.SHORT_UPPER
+
+    def test_int_get_lower(self):
+        """ int virtual result lower bound. """
+
+        self.assertEqual(self.lower_fixture.int_get(), self.INT_LOWER)
+
+    def test_int_get_upper(self):
+        """ int virtual result upper bound. """
+
+        self.assertEqual(self.upper_fixture.int_get(), self.INT_UPPER)
+
+    def test_int_set_lower(self):
+        """ int function argument lower bound. """
+
+        self.lower_fixture.int_set(self.INT_LOWER)
+
+    def test_int_set_upper(self):
+        """ int function argument upper bound. """
+
+        self.upper_fixture.int_set(self.INT_UPPER)
+
+    def test_int_var_lower(self):
+        """ int instance variable lower bound. """
+
+        self.lower_fixture.int_var = self.INT_LOWER
+
+    def test_int_var_upper(self):
+        """ int instance variable upper bound. """
+
+        self.upper_fixture.int_var = self.INT_UPPER
+
+    def test_long_get_lower(self):
+        """ long virtual result lower bound. """
+
+        self.assertEqual(self.lower_fixture.long_get(), self.LONG_LOWER)
+
+    def test_long_get_upper(self):
+        """ long virtual result upper bound. """
+
+        self.assertEqual(self.upper_fixture.long_get(), self.LONG_UPPER)
+
+    def test_long_set_lower(self):
+        """ long function argument lower bound. """
+
+        self.lower_fixture.long_set(self.LONG_LOWER)
+
+    def test_long_set_upper(self):
+        """ long function argument upper bound. """
+
+        self.upper_fixture.long_set(self.LONG_UPPER)
+
+    def test_long_var_lower(self):
+        """ long instance variable lower bound. """
+
+        self.lower_fixture.long_var = self.LONG_LOWER
+
+    def test_long_var_upper(self):
+        """ long instance variable upper bound. """
+
+        self.upper_fixture.long_var = self.LONG_UPPER
+
+    def test_long_long_get_lower(self):
+        """ long long virtual result lower bound. """
+
+        self.assertEqual(self.lower_fixture.long_long_get(),
+                self.LONG_LONG_LOWER)
+
+    def test_long_long_get_upper(self):
+        """ long long virtual result upper bound. """
+
+        self.assertEqual(self.upper_fixture.long_long_get(),
+                self.LONG_LONG_UPPER)
+
+    def test_long_long_set_lower(self):
+        """ long long function argument lower bound. """
+
+        self.lower_fixture.long_long_set(self.LONG_LONG_LOWER)
+
+    def test_long_long_set_upper(self):
+        """ long long function argument upper bound. """
+
+        self.upper_fixture.long_long_set(self.LONG_LONG_UPPER)
+
+    def test_long_long_var_lower(self):
+        """ long long instance variable lower bound. """
+
+        self.lower_fixture.long_long_var = self.LONG_LONG_LOWER
+
+    def test_long_long_var_upper(self):
+        """ long long instance variable upper bound. """
+
+        self.upper_fixture.long_long_var = self.LONG_LONG_UPPER
 
 
 class TestNoOverflowChecking(TestIntConvertors):
@@ -346,6 +538,108 @@ class TestNoOverflowChecking(TestIntConvertors):
 
         self.upper_fixture.short_var = self.SHORT_UPPER + 1
 
+    def test_int_get_lower(self):
+        """ int virtual result lower bound. """
+
+        install_hook()
+        self.lower_fixture.int_get()
+        uninstall_hook()
+
+    def test_int_get_upper(self):
+        """ int virtual result upper bound. """
+
+        install_hook()
+        self.upper_fixture.int_get()
+        uninstall_hook()
+
+    def test_int_set_lower(self):
+        """ int function argument lower bound. """
+
+        self.lower_fixture.int_set(self.INT_LOWER - 1)
+
+    def test_int_set_upper(self):
+        """ int function argument upper bound. """
+
+        self.upper_fixture.int_set(self.INT_UPPER + 1)
+
+    def test_int_var_lower(self):
+        """ int instance variable lower bound. """
+
+        self.lower_fixture.int_var = self.INT_LOWER - 1
+
+    def test_int_var_upper(self):
+        """ int instance variable upper bound. """
+
+        self.upper_fixture.int_var = self.INT_UPPER + 1
+
+    def test_long_get_lower(self):
+        """ long virtual result lower bound. """
+
+        install_hook()
+        self.lower_fixture.long_get()
+        uninstall_hook()
+
+    def test_long_get_upper(self):
+        """ long virtual result upper bound. """
+
+        install_hook()
+        self.upper_fixture.long_get()
+        uninstall_hook()
+
+    def test_long_set_lower(self):
+        """ long function argument lower bound. """
+
+        self.lower_fixture.long_set(self.LONG_LOWER - 1)
+
+    def test_long_set_upper(self):
+        """ long function argument upper bound. """
+
+        self.upper_fixture.long_set(self.LONG_UPPER + 1)
+
+    def test_long_var_lower(self):
+        """ long instance variable lower bound. """
+
+        self.lower_fixture.long_var = self.LONG_LOWER - 1
+
+    def test_long_var_upper(self):
+        """ long instance variable upper bound. """
+
+        self.upper_fixture.long_var = self.LONG_UPPER + 1
+
+    def test_long_long_get_lower(self):
+        """ long long virtual result lower bound. """
+
+        install_hook()
+        self.lower_fixture.long_long_get()
+        uninstall_hook()
+
+    def test_long_long_get_upper(self):
+        """ long long virtual result upper bound. """
+
+        install_hook()
+        self.upper_fixture.long_long_get()
+        uninstall_hook()
+
+    def test_long_long_set_lower(self):
+        """ long long function argument lower bound. """
+
+        self.lower_fixture.long_long_set(self.LONG_LONG_LOWER - 1)
+
+    def test_long_long_set_upper(self):
+        """ long long function argument upper bound. """
+
+        self.upper_fixture.long_long_set(self.LONG_LONG_UPPER + 1)
+
+    def test_long_long_var_lower(self):
+        """ long long instance variable lower bound. """
+
+        self.lower_fixture.long_long_var = self.LONG_LONG_LOWER - 1
+
+    def test_long_long_var_upper(self):
+        """ long long instance variable upper bound. """
+
+        self.upper_fixture.long_long_var = self.LONG_LONG_UPPER + 1
+
 
 class TestOverflowChecking(TestNoOverflowChecking):
     """ This tests the integer and enum convertors with overflowing values with
@@ -430,6 +724,114 @@ class TestOverflowChecking(TestNoOverflowChecking):
 
         with self.assertRaises(OverflowError):
             super().test_short_var_upper()
+
+    def test_int_get_lower(self):
+        """ int virtual result lower bound. """
+
+        with self.assertRaises(OverflowError):
+            super().test_int_get_lower()
+
+    def test_int_get_upper(self):
+        """ int virtual result upper bound. """
+
+        with self.assertRaises(OverflowError):
+            super().test_int_get_upper()
+
+    def test_int_set_lower(self):
+        """ int function argument lower bound. """
+
+        with self.assertRaises(OverflowError):
+            super().test_int_set_lower()
+
+    def test_int_set_upper(self):
+        """ int function argument upper bound. """
+
+        with self.assertRaises(OverflowError):
+            super().test_int_set_upper()
+
+    def test_int_var_lower(self):
+        """ int instance variable lower bound. """
+
+        with self.assertRaises(OverflowError):
+            super().test_int_var_lower()
+
+    def test_int_var_upper(self):
+        """ int instance variable upper bound. """
+
+        with self.assertRaises(OverflowError):
+            super().test_int_var_upper()
+
+    def test_long_get_lower(self):
+        """ long virtual result lower bound. """
+
+        with self.assertRaises(OverflowError):
+            super().test_long_get_lower()
+
+    def test_long_get_upper(self):
+        """ long virtual result upper bound. """
+
+        with self.assertRaises(OverflowError):
+            super().test_long_get_upper()
+
+    def test_long_set_lower(self):
+        """ long function argument lower bound. """
+
+        with self.assertRaises(OverflowError):
+            super().test_long_set_lower()
+
+    def test_long_set_upper(self):
+        """ long function argument upper bound. """
+
+        with self.assertRaises(OverflowError):
+            super().test_long_set_upper()
+
+    def test_long_var_lower(self):
+        """ long instance variable lower bound. """
+
+        with self.assertRaises(OverflowError):
+            super().test_long_var_lower()
+
+    def test_long_var_upper(self):
+        """ long instance variable upper bound. """
+
+        with self.assertRaises(OverflowError):
+            super().test_long_var_upper()
+
+    def test_long_long_get_lower(self):
+        """ long long virtual result lower bound. """
+
+        with self.assertRaises(OverflowError):
+            super().test_long_long_get_lower()
+
+    def test_long_long_get_upper(self):
+        """ long long virtual result upper bound. """
+
+        with self.assertRaises(OverflowError):
+            super().test_long_long_get_upper()
+
+    def test_long_long_set_lower(self):
+        """ long long function argument lower bound. """
+
+        with self.assertRaises(OverflowError):
+            super().test_long_long_set_lower()
+
+    def test_long_long_set_upper(self):
+        """ long long function argument upper bound. """
+
+        with self.assertRaises(OverflowError):
+            super().test_long_long_set_upper()
+
+    def test_long_long_var_lower(self):
+        """ long long instance variable lower bound. """
+
+        with self.assertRaises(OverflowError):
+            super().test_long_long_var_lower()
+
+    def test_long_long_var_upper(self):
+        """ long long instance variable upper bound. """
+
+        with self.assertRaises(OverflowError):
+            super().test_long_long_var_upper()
 
 
 if __name__ == '__main__':
