@@ -8089,7 +8089,6 @@ static void sip_api_bad_catcher_result(PyObject *method)
      */
     PyErr_Fetch(&etype, &evalue, &etraceback);
     PyErr_NormalizeException(&etype, &evalue, &etraceback);
-    Py_XDECREF(etype);
     Py_XDECREF(etraceback);
 
     /*
@@ -8111,12 +8110,12 @@ static void sip_api_bad_catcher_result(PyObject *method)
     if (evalue != NULL)
     {
 #if PY_MAJOR_VERSION >= 3
-        PyErr_Format(PyExc_TypeError, "invalid result from %s.%U(), %S",
+        PyErr_Format(etype, "invalid result from %s.%U(), %S",
                 Py_TYPE(PyMethod_GET_SELF(method))->tp_name, mname, evalue);
 #else
         PyObject *evalue_s = PyObject_Str(evalue);
 
-        PyErr_Format(PyExc_TypeError, "invalid result from %s.%s(), %s",
+        PyErr_Format(etype, "invalid result from %s.%s(), %s",
                 Py_TYPE(PyMethod_GET_SELF(method))->tp_name,
                 PyString_AsString(mname), PyString_AsString(evalue_s));
 
@@ -8128,14 +8127,16 @@ static void sip_api_bad_catcher_result(PyObject *method)
     else
     {
 #if PY_MAJOR_VERSION >= 3
-        PyErr_Format(PyExc_TypeError, "invalid result from %s.%U()",
+        PyErr_Format(etype, "invalid result from %s.%U()",
                 Py_TYPE(PyMethod_GET_SELF(method))->tp_name, mname);
 #else
-        PyErr_Format(PyExc_TypeError, "invalid result from %s.%s()",
+        PyErr_Format(etype, "invalid result from %s.%s()",
                 Py_TYPE(PyMethod_GET_SELF(method))->tp_name,
                 PyString_AsString(mname));
 #endif
     }
+
+    Py_DECREF(etype);
 }
 
 
