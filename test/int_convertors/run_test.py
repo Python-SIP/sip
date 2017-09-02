@@ -48,17 +48,6 @@ def uninstall_hook():
         raise _exc
 
 
-class BaseFixture(Test):
-    """ The base test fixture. """
-
-    def __init__(self, limits):
-        """ Initialise the object. """
-
-        super().__init__()
-
-        self.limits = limits
-
-
 class InvalidFixture(Test):
     """ A fixture for testing invalid values. """
 
@@ -123,7 +112,34 @@ class InvalidFixture(Test):
         return '0'
 
 
-class ValidLowerFixture(BaseFixture):
+class BoolFixture(Test):
+    """ A fixture for testing valid boolean values. """
+
+    def __init__(self, value):
+        """ Initialise the object. """
+
+        super().__init__()
+
+        self._value = value
+
+    def bool_virt(self):
+        """ Re-implemented to return the fixture-specific value. """
+
+        return self._value
+
+
+class LimitsFixture(Test):
+    """ The base test fixture for those implementing a range of values. """
+
+    def __init__(self, limits):
+        """ Initialise the object. """
+
+        super().__init__()
+
+        self.limits = limits
+
+
+class ValidLowerFixture(LimitsFixture):
     """ A fixture for testing the lower bound of non-overflowing signed values.
     """
 
@@ -158,7 +174,7 @@ class ValidLowerFixture(BaseFixture):
         return self.limits.LONG_LONG_LOWER
 
 
-class ValidUpperFixture(BaseFixture):
+class ValidUpperFixture(LimitsFixture):
     """ A fixture for testing the upper bound of non-overflowing values.
     """
 
@@ -218,7 +234,7 @@ class ValidUpperFixture(BaseFixture):
         return self.limits.UNSIGNED_LONG_LONG_UPPER
 
 
-class OverflowLowerFixture(BaseFixture):
+class OverflowLowerFixture(LimitsFixture):
     """ A fixture for testing the lower bound of overflowing signed values. """
 
     def char_virt(self):
@@ -252,7 +268,7 @@ class OverflowLowerFixture(BaseFixture):
         return self.limits.LONG_LONG_LOWER - 1
 
 
-class OverflowUpperFixture(BaseFixture):
+class OverflowUpperFixture(LimitsFixture):
     """ A fixture for testing the upper bound of overflowing values. """
 
     def char_virt(self):
@@ -309,6 +325,86 @@ class OverflowUpperFixture(BaseFixture):
         """ Re-implemented to return the fixture-specific value. """
 
         return self.limits.UNSIGNED_LONG_LONG_UPPER + 1
+
+
+class TestBoolConvertors(unittest.TestCase):
+    """ This tests the bool convertors with valid values. """
+
+    def setUp(self):
+        """ Set up a test. """
+
+        self.true_fixture = BoolFixture(True)
+        self.false_fixture = BoolFixture(False)
+        self.nonzero_fixture = BoolFixture(-1)
+        self.zero_fixture = BoolFixture(0)
+
+    def tearDown(self):
+        """ Tidy up after a test. """
+
+        del self.true_fixture
+        del self.false_fixture
+        del self.nonzero_fixture
+        del self.zero_fixture
+
+    def test_bool_get_true(self):
+        """ bool virtual result with a True value. """
+
+        self.assertIs(self.true_fixture.bool_get(), True)
+
+    def test_bool_set_true(self):
+        """ bool function argument with a True value. """
+
+        self.true_fixture.bool_set(True)
+
+    def test_bool_var_true(self):
+        """ bool instance variable with a True value. """
+
+        self.true_fixture.bool_var = True
+
+    def test_bool_get_false(self):
+        """ bool virtual result with a True value. """
+
+        self.assertIs(self.false_fixture.bool_get(), False)
+
+    def test_bool_set_false(self):
+        """ bool function argument with a False value. """
+
+        self.false_fixture.bool_set(False)
+
+    def test_bool_var_false(self):
+        """ bool instance variable with a False value. """
+
+        self.false_fixture.bool_var = False
+
+    def test_bool_get_nonzero(self):
+        """ bool virtual result with a non-zero value. """
+
+        self.assertIs(self.nonzero_fixture.bool_get(), True)
+
+    def test_bool_set_nonzero(self):
+        """ bool function argument with a non-zero value. """
+
+        self.nonzero_fixture.bool_set(-1)
+
+    def test_bool_var_nonzero(self):
+        """ bool instance variable with a non-zero value. """
+
+        self.nonzero_fixture.bool_var = -1
+
+    def test_bool_get_zero(self):
+        """ bool virtual result with a zero value. """
+
+        self.assertIs(self.zero_fixture.bool_get(), False)
+
+    def test_bool_set_zero(self):
+        """ bool function argument with a zero value. """
+
+        self.zero_fixture.bool_set(0)
+
+    def test_bool_var_zero(self):
+        """ bool instance variable with a zero value. """
+
+        self.zero_fixture.bool_var = 0
 
 
 class TestIntConvertors(unittest.TestCase):
