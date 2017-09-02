@@ -8128,16 +8128,16 @@ static void sip_api_bad_catcher_result(PyObject *method)
     else
     {
 #if PY_MAJOR_VERSION >= 3
-        PyErr_Format(etype, "invalid result from %s.%U()",
+        PyErr_Format(PyExc_TypeError, "invalid result from %s.%U()",
                 Py_TYPE(PyMethod_GET_SELF(method))->tp_name, mname);
 #else
-        PyErr_Format(etype, "invalid result from %s.%s()",
+        PyErr_Format(PyExc_TypeError, "invalid result from %s.%s()",
                 Py_TYPE(PyMethod_GET_SELF(method))->tp_name,
                 PyString_AsString(mname));
 #endif
     }
 
-    Py_DECREF(etype);
+    Py_XDECREF(etype);
 }
 
 
