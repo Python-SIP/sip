@@ -9,6 +9,13 @@ class Test
 %End
 
 public:
+    static int char_lower();
+    static int char_upper();
+    char char_get() /PyInt/;
+    virtual char char_virt() /PyInt/;
+    static void char_set(char /PyInt/);
+    char char_var /PyInt/;
+
     static unsigned signed_char_sizeof();
     signed char signed_char_get() /PyInt/;
     virtual signed char signed_char_virt() /PyInt/;

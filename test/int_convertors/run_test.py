@@ -62,6 +62,11 @@ class BaseFixture(Test):
 class InvalidFixture(Test):
     """ A fixture for testing invalid values. """
 
+    def char_virt(self):
+        """ Re-implemented to return the fixture-specific value. """
+
+        return '0'
+
     def signed_char_virt(self):
         """ Re-implemented to return the fixture-specific value. """
 
@@ -117,6 +122,11 @@ class ValidLowerFixture(BaseFixture):
     """ A fixture for testing the lower bound of non-overflowing signed values.
     """
 
+    def char_virt(self):
+        """ Re-implemented to return the fixture-specific value. """
+
+        return self.limits.CHAR_LOWER
+
     def signed_char_virt(self):
         """ Re-implemented to return the fixture-specific value. """
 
@@ -146,6 +156,11 @@ class ValidLowerFixture(BaseFixture):
 class ValidUpperFixture(BaseFixture):
     """ A fixture for testing the upper bound of non-overflowing signed values.
     """
+
+    def char_virt(self):
+        """ Re-implemented to return the fixture-specific value. """
+
+        return self.limits.CHAR_UPPER
 
     def signed_char_virt(self):
         """ Re-implemented to return the fixture-specific value. """
@@ -201,6 +216,11 @@ class ValidUpperFixture(BaseFixture):
 class OverflowLowerFixture(BaseFixture):
     """ A fixture for testing the lower bound of overflowing signed values. """
 
+    def char_virt(self):
+        """ Re-implemented to return the fixture-specific value. """
+
+        return self.limits.CHAR_LOWER - 1
+
     def signed_char_virt(self):
         """ Re-implemented to return the fixture-specific value. """
 
@@ -229,6 +249,11 @@ class OverflowLowerFixture(BaseFixture):
 
 class OverflowUpperFixture(BaseFixture):
     """ A fixture for testing the upper bound of overflowing signed values. """
+
+    def char_virt(self):
+        """ Re-implemented to return the fixture-specific value. """
+
+        return self.limits.CHAR_UPPER + 1
 
     def signed_char_virt(self):
         """ Re-implemented to return the fixture-specific value. """
@@ -289,6 +314,8 @@ class TestIntConvertors(unittest.TestCase):
         """ Set up a test case. """
 
         # Compute the various test values based on the native sizes.
+        cls.CHAR_LOWER = Test.char_lower()
+        cls.CHAR_UPPER = Test.char_upper()
         cls.SIGNED_CHAR_LOWER, cls.SIGNED_CHAR_UPPER = cls._signed_bounds(
                 Test.signed_char_sizeof())
         cls.SHORT_LOWER, cls.SHORT_UPPER = cls._signed_bounds(
@@ -339,6 +366,26 @@ class TestInvalidValues(TestIntConvertors):
         """ Tidy up after a test. """
 
         del self.fixture
+
+    def test_char_get(self):
+        """ char virtual result. """
+
+        with self.assertRaises(TypeError):
+            install_hook()
+            self.fixture.char_get()
+            uninstall_hook()
+
+    def test_char_set(self):
+        """ char function argument. """
+
+        with self.assertRaises(TypeError):
+            self.fixture.char_set('0')
+
+    def test_char_var(self):
+        """ char instance variable. """
+
+        with self.assertRaises(TypeError):
+            self.fixture.char_var = '0'
 
     def test_signed_char_get(self):
         """ signed char virtual result. """
@@ -555,6 +602,36 @@ class TestValidValues(TestIntConvertors):
 
         del self.lower_fixture
         del self.upper_fixture
+
+    def test_char_get_lower(self):
+        """ char virtual result lower bound. """
+
+        self.assertEqual(self.lower_fixture.char_get(), self.CHAR_LOWER)
+
+    def test_char_get_upper(self):
+        """ char virtual result upper bound. """
+
+        self.assertEqual(self.upper_fixture.char_get(), self.CHAR_UPPER)
+
+    def test_char_set_lower(self):
+        """ char function argument lower bound. """
+
+        self.lower_fixture.char_set(self.CHAR_LOWER)
+
+    def test_char_set_upper(self):
+        """ char function argument upper bound. """
+
+        self.upper_fixture.char_set(self.CHAR_UPPER)
+
+    def test_char_var_lower(self):
+        """ char instance variable lower bound. """
+
+        self.lower_fixture.char_var = self.CHAR_LOWER
+
+    def test_char_var_upper(self):
+        """ char instance variable upper bound. """
+
+        self.upper_fixture.char_var = self.CHAR_UPPER
 
     def test_signed_char_get_lower(self):
         """ signed char virtual result lower bound. """
@@ -820,6 +897,40 @@ class TestNoOverflowChecking(TestIntConvertors):
 
         del self.lower_fixture
         del self.upper_fixture
+
+    def test_char_get_lower(self):
+        """ char virtual result lower bound. """
+
+        install_hook()
+        self.lower_fixture.char_get()
+        uninstall_hook()
+
+    def test_char_get_upper(self):
+        """ char virtual result upper bound. """
+
+        install_hook()
+        self.upper_fixture.char_get()
+        uninstall_hook()
+
+    def test_char_set_lower(self):
+        """ char function argument lower bound. """
+
+        self.lower_fixture.char_set(self.CHAR_LOWER - 1)
+
+    def test_char_set_upper(self):
+        """ char function argument upper bound. """
+
+        self.upper_fixture.char_set(self.CHAR_UPPER + 1)
+
+    def test_char_var_lower(self):
+        """ char instance variable lower bound. """
+
+        self.lower_fixture.char_var = self.CHAR_LOWER - 1
+
+    def test_char_var_upper(self):
+        """ char instance variable upper bound. """
+
+        self.upper_fixture.char_var = self.CHAR_UPPER + 1
 
     def test_signed_char_get_lower(self):
         """ signed char virtual result lower bound. """
@@ -1145,6 +1256,42 @@ class TestOverflowChecking(TestNoOverflowChecking):
         super().setUp()
 
         enableoverflowchecking(True)
+
+    def test_char_get_lower(self):
+        """ char virtual result lower bound. """
+
+        with self.assertRaises(OverflowError):
+            super().test_char_get_lower()
+
+    def test_char_get_upper(self):
+        """ char virtual result upper bound. """
+
+        with self.assertRaises(OverflowError):
+            super().test_char_get_upper()
+
+    def test_char_set_lower(self):
+        """ char function argument lower bound. """
+
+        with self.assertRaises(OverflowError):
+            super().test_char_set_lower()
+
+    def test_char_set_upper(self):
+        """ char function argument upper bound. """
+
+        with self.assertRaises(OverflowError):
+            super().test_char_set_upper()
+
+    def test_char_var_lower(self):
+        """ char instance variable lower bound. """
+
+        with self.assertRaises(OverflowError):
+            super().test_char_var_lower()
+
+    def test_char_var_upper(self):
+        """ char instance variable upper bound. """
+
+        with self.assertRaises(OverflowError):
+            super().test_char_var_upper()
 
     def test_signed_char_get_lower(self):
         """ signed char virtual result lower bound. """
