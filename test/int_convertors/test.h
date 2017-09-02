@@ -7,12 +7,17 @@
 class Test
 {
 public:
+    bool bool_get() {return bool_virt();}
+    virtual bool bool_virt() {return false;}
+    static void bool_set(bool) {}
+    bool bool_var;
+
     static int char_lower() {return CHAR_MIN;}
     static int char_upper() {return CHAR_MAX;}
     char char_get() {return char_virt();}
     virtual char char_virt() {return 0;}
     static void char_set(char) {}
-    signed char char_var;
+    char char_var;
 
     static unsigned signed_char_sizeof() {return sizeof (signed char);}
     signed char signed_char_get() {return signed_char_virt();}

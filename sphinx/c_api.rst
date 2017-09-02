@@ -818,6 +818,21 @@ specification files.
         the :class:`sip.array` object.
 
 
+.. c:function:: int sipConvertToBool(PyObject *obj)
+
+    .. versionadded:: 4.19.4
+
+    This converts a Python object to an integer corresponding to a C++
+    ``bool``.
+
+    :param obj:
+        the Python object to convert.
+    :return:
+        the boolean value as an integer.  ``1`` corresponds to ``true`` and
+        ``0`` corresponds to ``false``.  ``-1`` is returned, and an exception
+        is raised, if there was an error.
+
+
 .. c:function:: int sipConvertToEnum(PyObject *obj, const sipTypeDef *td)
 
     .. versionadded:: 4.19.4

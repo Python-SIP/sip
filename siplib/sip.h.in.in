@@ -70,6 +70,7 @@ extern "C" {
  *
  * 12.3 Added SIP_TYPE_SCOPED_ENUM to the sipTypeDef flags.
  *      Added sip_api_convert_to_enum() to the public API.
+ *      Added sip_api_convert_to_bool() to the public API.
  *      Added sip_api_long_as_char(), sip_api_long_as_signed_char(),
  *      sip_api_long_as_unsigned_char(), sip_api_long_as_short(),
  *      sip_api_long_as_unsigned_short(), sip_api_long_as_int(),
@@ -1852,6 +1853,7 @@ typedef struct _sipAPIDef {
     int (*api_register_event_handler)(sipEventType type, const sipTypeDef *td,
             void *handler);
     int (*api_convert_to_enum)(PyObject *obj, const sipTypeDef *td);
+    int (*api_convert_to_bool)(PyObject *obj);
     int (*api_enable_overflow_checking)(int enable);
     char (*api_long_as_char)(PyObject *o);
     signed char (*api_long_as_signed_char)(PyObject *o);

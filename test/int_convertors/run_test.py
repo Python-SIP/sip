@@ -62,6 +62,11 @@ class BaseFixture(Test):
 class InvalidFixture(Test):
     """ A fixture for testing invalid values. """
 
+    def bool_virt(self):
+        """ Re-implemented to return the fixture-specific value. """
+
+        return '0'
+
     def char_virt(self):
         """ Re-implemented to return the fixture-specific value. """
 
@@ -154,7 +159,7 @@ class ValidLowerFixture(BaseFixture):
 
 
 class ValidUpperFixture(BaseFixture):
-    """ A fixture for testing the upper bound of non-overflowing signed values.
+    """ A fixture for testing the upper bound of non-overflowing values.
     """
 
     def char_virt(self):
@@ -248,7 +253,7 @@ class OverflowLowerFixture(BaseFixture):
 
 
 class OverflowUpperFixture(BaseFixture):
-    """ A fixture for testing the upper bound of overflowing signed values. """
+    """ A fixture for testing the upper bound of overflowing values. """
 
     def char_virt(self):
         """ Re-implemented to return the fixture-specific value. """
@@ -366,6 +371,26 @@ class TestInvalidValues(TestIntConvertors):
         """ Tidy up after a test. """
 
         del self.fixture
+
+    def test_bool_get(self):
+        """ bool virtual result. """
+
+        with self.assertRaises(TypeError):
+            install_hook()
+            self.fixture.bool_get()
+            uninstall_hook()
+
+    def test_bool_set(self):
+        """ bool function argument. """
+
+        with self.assertRaises(TypeError):
+            self.fixture.bool_set('0')
+
+    def test_bool_var(self):
+        """ bool instance variable. """
+
+        with self.assertRaises(TypeError):
+            self.fixture.bool_var = '0'
 
     def test_char_get(self):
         """ char virtual result. """

@@ -102,6 +102,41 @@ int sip_api_enable_overflow_checking(int enable)
 
 
 /*
+ * Convert a Python object to a C++ bool (returned as an int).
+ */
+int sip_api_convert_to_bool(PyObject *o)
+{
+    int was_enabled, v;
+
+    /* Convert the object to an int while checking for overflow. */
+    was_enabled = sip_api_enable_overflow_checking(TRUE);
+    v = sip_api_long_as_int(o);
+    sip_api_enable_overflow_checking(was_enabled);
+
+    if (PyErr_Occurred())
+    {
+        if (PyErr_ExceptionMatches(PyExc_OverflowError))
+        {
+            PyErr_Clear();
+
+            /* The value must have been non-zero. */
+            v = 1;
+        }
+        else
+        {
+            v = -1;
+        }
+    }
+    else if (v != 0)
+    {
+        v = 1;
+    }
+
+    return v;
+}
+
+
+/*
  * Convert a Python object to a C char.
  */
 char sip_api_long_as_char(PyObject *o)

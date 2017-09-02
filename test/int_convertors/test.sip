@@ -9,6 +9,11 @@ class Test
 %End
 
 public:
+    bool bool_get();
+    virtual bool bool_virt();
+    static void bool_set(bool);
+    bool bool_var;
+
     static int char_lower();
     static int char_upper();
     char char_get() /PyInt/;

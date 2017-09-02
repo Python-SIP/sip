@@ -603,6 +603,7 @@ static const sipAPIDef sip_api = {
     sip_api_print_object,
     sip_api_register_event_handler,
     sip_api_convert_to_enum,
+    sip_api_convert_to_bool,
     sip_api_enable_overflow_checking,
     sip_api_long_as_char,
     sip_api_long_as_signed_char,
@@ -2901,7 +2902,7 @@ static int parseResult(PyObject *method, PyObject *res,
             case 'b':
                 {
                     char *p = va_arg(va, void *);
-                    int v = PyObject_IsTrue(arg);
+                    int v = sip_api_convert_to_bool(arg);
 
                     if (v < 0)
                         invalid = TRUE;
@@ -4856,7 +4857,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
 
                 if (arg != NULL)
                 {
-                    int v = PyObject_IsTrue(arg);
+                    int v = sip_api_convert_to_bool(arg);
 
                     if (v < 0)
                     {
