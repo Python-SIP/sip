@@ -124,6 +124,9 @@ int sip_api_convert_to_bool(PyObject *o)
         }
         else
         {
+            PyErr_Format(PyExc_TypeError, "a 'bool' is expected not '%s'",
+                    Py_TYPE(o)->tp_name);
+
             v = -1;
         }
     }

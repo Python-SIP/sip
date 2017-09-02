@@ -3019,6 +3019,10 @@ static int parseResult(PyObject *method, PyObject *res,
                     }
                     else
                     {
+                        PyErr_Format(PyExc_TypeError,
+                                "a member of enum '%s' is expected not '%s'",
+                                sipPyNameOfEnum((sipEnumTypeDef *)td),
+                                Py_TYPE(arg)->tp_name);
                         invalid = TRUE;
                     }
                 }
