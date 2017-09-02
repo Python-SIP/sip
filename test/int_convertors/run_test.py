@@ -51,6 +51,11 @@ def uninstall_hook():
 class InvalidFixture(Test):
     """ A fixture for testing invalid values. """
 
+    def named_virt(self):
+        """ Re-implemented to return the fixture-specific value. """
+
+        return '0'
+
     def bool_virt(self):
         """ Re-implemented to return the fixture-specific value. """
 
@@ -110,6 +115,22 @@ class InvalidFixture(Test):
         """ Re-implemented to return the fixture-specific value. """
 
         return '0'
+
+
+class NamedEnumFixture(Test):
+    """ A fixture for testing named enum values. """
+
+    def __init__(self, value):
+        """ Initialise the object. """
+
+        super().__init__()
+
+        self._value = value
+
+    def named_virt(self):
+        """ Re-implemented to return the fixture-specific value. """
+
+        return self._value
 
 
 class BoolFixture(Test):
@@ -327,6 +348,52 @@ class OverflowUpperFixture(LimitsFixture):
         return self.limits.UNSIGNED_LONG_LONG_UPPER + 1
 
 
+class TestNamedEnumConvertors(unittest.TestCase):
+    """ This tests the named enum convertors with valid values. """
+
+    def setUp(self):
+        """ Set up a test. """
+
+        self.member_fixture = NamedEnumFixture(Test.named)
+        self.int_fixture = NamedEnumFixture(0)
+
+    def tearDown(self):
+        """ Tidy up after a test. """
+
+        del self.member_fixture
+        del self.int_fixture
+
+    def test_named_get_member(self):
+        """ named enum virtual result with a member value. """
+
+        self.assertEqual(self.member_fixture.named_get(), Test.named)
+
+    def test_named_set_member(self):
+        """ named enum function argument with a member value. """
+
+        self.member_fixture.named_set(Test.named)
+
+    def test_named_var_member(self):
+        """ named enum instance variable with a member value. """
+
+        self.member_fixture.named_var = Test.named
+
+    def test_named_get_int(self):
+        """ named enum virtual result with an integer value. """
+
+        self.assertEqual(self.int_fixture.named_get(), 0)
+
+    def test_named_set_int(self):
+        """ named enum function argument with an integer value. """
+
+        self.int_fixture.named_set(0)
+
+    def test_named_var_int(self):
+        """ named enum instance variable with an integer value. """
+
+        self.int_fixture.named_var = 0
+
+
 class TestBoolConvertors(unittest.TestCase):
     """ This tests the bool convertors with valid values. """
 
@@ -408,7 +475,7 @@ class TestBoolConvertors(unittest.TestCase):
 
 
 class TestIntConvertors(unittest.TestCase):
-    """ This tests the integer and enum convertors with valid values. """
+    """ This tests the integer convertors with valid values. """
 
     @classmethod
     def setUpClass(cls):
@@ -456,7 +523,9 @@ class TestIntConvertors(unittest.TestCase):
 
 
 class TestInvalidValues(TestIntConvertors):
-    """ This tests the integer and enum convertors with invalid values. """
+    """ This tests the integer, boolean and enum convertors with invalid
+    values.
+    """
 
     def setUp(self):
         """ Set up a test. """
@@ -467,6 +536,26 @@ class TestInvalidValues(TestIntConvertors):
         """ Tidy up after a test. """
 
         del self.fixture
+
+    def test_named_get(self):
+        """ named enum virtual result. """
+
+        with self.assertRaises(TypeError):
+            install_hook()
+            self.fixture.named_get()
+            uninstall_hook()
+
+    def test_named_set(self):
+        """ named enum function argument. """
+
+        with self.assertRaises(TypeError):
+            self.fixture.named_set('0')
+
+    def test_named_var(self):
+        """ named enum instance variable. """
+
+        with self.assertRaises(TypeError):
+            self.fixture.named_var = '0'
 
     def test_bool_get(self):
         """ bool virtual result. """
@@ -710,7 +799,7 @@ class TestInvalidValues(TestIntConvertors):
 
 
 class TestValidValues(TestIntConvertors):
-    """ This tests the integer and enum convertors with valid values. """
+    """ This tests the integer convertors with valid values. """
 
     def setUp(self):
         """ Set up a test. """
@@ -991,8 +1080,8 @@ class TestValidValues(TestIntConvertors):
 
 
 class TestNoOverflowChecking(TestIntConvertors):
-    """ This tests the integer and enum convertors with overflowing values with
-    overflow checking disabled.
+    """ This tests the integer convertors with overflowing values with overflow
+    checking disabled.
     """
 
     @staticmethod
@@ -1367,8 +1456,8 @@ class TestNoOverflowChecking(TestIntConvertors):
 
 
 class TestOverflowChecking(TestNoOverflowChecking):
-    """ This tests the integer and enum convertors with overflowing values with
-    overflow checking enabled.
+    """ This tests the integer convertors with overflowing values with overflow
+    checking enabled.
     """
 
     def setUp(self):

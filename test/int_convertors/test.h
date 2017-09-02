@@ -7,6 +7,14 @@
 class Test
 {
 public:
+    enum Named {
+        named = 10
+    };
+    Named named_get() {return named_virt();}
+    virtual Named named_virt() {return named;}
+    static void named_set(Named) {}
+    Named named_var;
+
     bool bool_get() {return bool_virt();}
     virtual bool bool_virt() {return false;}
     static void bool_set(bool) {}
@@ -86,13 +94,6 @@ public:
     //enum class Willy {
     //    willy = 10
     //};
-
-    //enum Poo {
-    //    poo = 20
-    //};
-
-    //void test(Willy w) {printf("Got Willy: %d\n", static_cast<int>(w));}
-    //void test(Poo p) {printf("Got Poo: %d\n", static_cast<int>(p));}
 };
 
 #endif

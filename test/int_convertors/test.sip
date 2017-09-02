@@ -9,6 +9,14 @@ class Test
 %End
 
 public:
+    enum Named {
+        named = 10
+    };
+    Named named_get();
+    virtual Named named_virt();
+    static void named_set(Named);
+    Named named_var;
+
     bool bool_get();
     virtual bool bool_virt();
     static void bool_set(bool);
@@ -84,11 +92,4 @@ public:
     //enum class Willy {
     //    willy
     //};
-
-    //enum Poo {
-    //    poo
-    //};
-
-    //void test(Willy);
-    //void test(Poo);
 };
