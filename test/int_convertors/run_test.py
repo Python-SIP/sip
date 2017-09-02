@@ -1047,6 +1047,92 @@ class TestNoOverflowChecking(TestIntConvertors):
         with self.assertRaises(OverflowError):
             self.upper_fixture.long_long_var = self.LONG_LONG_UPPER + 1
 
+    def test_unsigned_char_get_upper(self):
+        """ unsigned char virtual result upper bound. """
+
+        install_hook()
+        self.upper_fixture.unsigned_char_get()
+        uninstall_hook()
+
+    def test_unsigned_char_set_upper(self):
+        """ unsigned char function argument upper bound. """
+
+        self.upper_fixture.unsigned_char_set(self.UNSIGNED_CHAR_UPPER + 1)
+
+    def test_unsigned_char_var_upper(self):
+        """ unsigned char instance variable upper bound. """
+
+        self.upper_fixture.unsigned_char_var = self.UNSIGNED_CHAR_UPPER + 1
+
+    def test_unsigned_short_get_upper(self):
+        """ unsigned short virtual result upper bound. """
+
+        install_hook()
+        self.upper_fixture.unsigned_short_get()
+        uninstall_hook()
+
+    def test_unsigned_short_set_upper(self):
+        """ unsigned short function argument upper bound. """
+
+        self.upper_fixture.unsigned_short_set(self.UNSIGNED_SHORT_UPPER + 1)
+
+    def test_unsigned_short_var_upper(self):
+        """ unsigned short instance variable upper bound. """
+
+        self.upper_fixture.unsigned_short_var = self.UNSIGNED_SHORT_UPPER + 1
+
+    def test_unsigned_int_get_upper(self):
+        """ unsigned int virtual result upper bound. """
+
+        install_hook()
+        self.upper_fixture.unsigned_int_get()
+        uninstall_hook()
+
+    def test_unsigned_int_set_upper(self):
+        """ unsigned int function argument upper bound. """
+
+        self.upper_fixture.unsigned_int_set(self.UNSIGNED_INT_UPPER + 1)
+
+    def test_unsigned_int_var_upper(self):
+        """ unsigned int instance variable upper bound. """
+
+        self.upper_fixture.unsigned_int_var = self.UNSIGNED_INT_UPPER + 1
+
+    def test_unsigned_long_get_upper(self):
+        """ unsigned long virtual result upper bound. """
+
+        install_hook()
+        self.upper_fixture.unsigned_long_get()
+        uninstall_hook()
+
+    def test_unsigned_long_set_upper(self):
+        """ unsigned long function argument upper bound. """
+
+        self.upper_fixture.unsigned_long_set(self.UNSIGNED_LONG_UPPER + 1)
+
+    def test_unsigned_long_var_upper(self):
+        """ unsigned long instance variable upper bound. """
+
+        self.upper_fixture.unsigned_long_var = self.UNSIGNED_LONG_UPPER + 1
+
+    def test_unsigned_long_long_get_upper(self):
+        """ unsigned long long virtual result upper bound. """
+
+        install_hook()
+        self.upper_fixture.unsigned_long_long_get()
+        uninstall_hook()
+
+    def test_unsigned_long_long_set_upper(self):
+        """ unsigned long long function argument upper bound. """
+
+        self.upper_fixture.unsigned_long_long_set(
+                self.UNSIGNED_LONG_LONG_UPPER + 1)
+
+    def test_unsigned_long_long_var_upper(self):
+        """ unsigned long long instance variable upper bound. """
+
+        self.upper_fixture.unsigned_long_long_var = self.UNSIGNED_LONG_LONG_UPPER + 1
+
 
 class TestOverflowChecking(TestNoOverflowChecking):
     """ This tests the integer and enum convertors with overflowing values with
@@ -1237,6 +1323,96 @@ class TestOverflowChecking(TestNoOverflowChecking):
         """ long long instance variable upper bound. """
 
         super().test_long_long_var_upper()
+
+    def test_unsigned_char_get_upper(self):
+        """ unsigned char virtual result upper bound. """
+
+        with self.assertRaises(OverflowError):
+            super().test_unsigned_char_get_upper()
+
+    def test_unsigned_char_set_upper(self):
+        """ unsigned char function argument upper bound. """
+
+        with self.assertRaises(OverflowError):
+            super().test_unsigned_char_set_upper()
+
+    def test_unsigned_char_var_upper(self):
+        """ unsigned char instance variable upper bound. """
+
+        with self.assertRaises(OverflowError):
+            super().test_unsigned_char_var_upper()
+
+    def test_unsigned_short_get_upper(self):
+        """ unsigned short virtual result upper bound. """
+
+        with self.assertRaises(OverflowError):
+            super().test_unsigned_short_get_upper()
+
+    def test_unsigned_short_set_upper(self):
+        """ unsigned short function argument upper bound. """
+
+        with self.assertRaises(OverflowError):
+            super().test_unsigned_short_set_upper()
+
+    def test_unsigned_short_var_upper(self):
+        """ unsigned short instance variable upper bound. """
+
+        with self.assertRaises(OverflowError):
+            super().test_unsigned_short_var_upper()
+
+    def test_unsigned_int_get_upper(self):
+        """ unsigned int virtual result upper bound. """
+
+        with self.assertRaises(OverflowError):
+            super().test_unsigned_int_get_upper()
+
+    def test_unsigned_int_set_upper(self):
+        """ unsigned int function argument upper bound. """
+
+        with self.assertRaises(OverflowError):
+            super().test_unsigned_int_set_upper()
+
+    def test_unsigned_int_var_upper(self):
+        """ unsigned int instance variable upper bound. """
+
+        with self.assertRaises(OverflowError):
+            super().test_unsigned_int_var_upper()
+
+    def test_unsigned_long_get_upper(self):
+        """ unsigned long virtual result upper bound. """
+
+        with self.assertRaises(OverflowError):
+            super().test_unsigned_long_get_upper()
+
+    def test_unsigned_long_set_upper(self):
+        """ unsigned long function argument upper bound. """
+
+        with self.assertRaises(OverflowError):
+            super().test_unsigned_long_set_upper()
+
+    def test_unsigned_long_var_upper(self):
+        """ unsigned long instance variable upper bound. """
+
+        with self.assertRaises(OverflowError):
+            super().test_unsigned_long_var_upper()
+
+    def test_unsigned_long_long_get_upper(self):
+        """ unsigned long long virtual result upper bound. """
+
+        with self.assertRaises(OverflowError):
+            super().test_unsigned_long_long_get_upper()
+
+    def test_unsigned_long_long_set_upper(self):
+        """ unsigned long long function argument upper bound. """
+
+        with self.assertRaises(OverflowError):
+            super().test_unsigned_long_long_set_upper()
+
+    def test_unsigned_long_long_var_upper(self):
+        """ unsigned long long instance variable upper bound. """
+
+        with self.assertRaises(OverflowError):
+            super().test_unsigned_long_long_var_upper()
 
 
 if __name__ == '__main__':
