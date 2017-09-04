@@ -9,8 +9,16 @@ class Test
 %End
 
 public:
+    enum class Scoped {
+        scoped
+    };
+    Scoped scoped_get();
+    virtual Scoped scoped_virt();
+    static void scoped_set(Scoped);
+    Scoped scoped_var;
+
     enum Named {
-        named = 10
+        named
     };
     Named named_get();
     virtual Named named_virt();
@@ -88,8 +96,4 @@ public:
     virtual unsigned long long unsigned_long_long_virt();
     static void unsigned_long_long_set(unsigned long long);
     unsigned long long unsigned_long_long_var;
-
-    //enum class Willy {
-    //    willy
-    //};
 };

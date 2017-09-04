@@ -51,6 +51,11 @@ def uninstall_hook():
 class InvalidFixture(Test):
     """ A fixture for testing invalid values. """
 
+    def scoped_virt(self):
+        """ Re-implemented to return the fixture-specific value. """
+
+        return 10
+
     def named_virt(self):
         """ Re-implemented to return the fixture-specific value. """
 
@@ -115,6 +120,15 @@ class InvalidFixture(Test):
         """ Re-implemented to return the fixture-specific value. """
 
         return '0'
+
+
+class ScopedEnumFixture(Test):
+    """ A fixture for testing scoped enum values. """
+
+    def scoped_virt(self):
+        """ Re-implemented to return the fixture-specific value. """
+
+        return Test.Scoped.scoped
 
 
 class NamedEnumFixture(Test):
@@ -348,6 +362,35 @@ class OverflowUpperFixture(LimitsFixture):
         return self.limits.UNSIGNED_LONG_LONG_UPPER + 1
 
 
+class TestScopedEnumConvertors(unittest.TestCase):
+    """ This tests the scoped enum convertors with valid values. """
+
+    def setUp(self):
+        """ Set up a test. """
+
+        self.fixture = ScopedEnumFixture()
+
+    def tearDown(self):
+        """ Tidy up after a test. """
+
+        del self.fixture
+
+    def test_scoped_get_member(self):
+        """ scoped enum virtual result with a member value. """
+
+        self.assertIs(self.fixture.scoped_get(), Test.Scoped.scoped)
+
+    def test_scoped_set_member(self):
+        """ scoped enum function argument with a member value. """
+
+        self.fixture.scoped_set(Test.Scoped.scoped)
+
+    def test_scoped_var_member(self):
+        """ scoped enum instance variable with a member value. """
+
+        self.fixture.scoped_var = Test.Scoped.scoped
+
+
 class TestNamedEnumConvertors(unittest.TestCase):
     """ This tests the named enum convertors with valid values. """
 
@@ -536,6 +579,26 @@ class TestInvalidValues(TestIntConvertors):
         """ Tidy up after a test. """
 
         del self.fixture
+
+    def test_scoped_get(self):
+        """ scoped enum virtual result. """
+
+        with self.assertRaises(TypeError):
+            install_hook()
+            self.fixture.scoped_get()
+            uninstall_hook()
+
+    def test_scoped_set(self):
+        """ scoped enum function argument. """
+
+        with self.assertRaises(TypeError):
+            self.fixture.scoped_set(10)
+
+    def test_scoped_var(self):
+        """ scoped enum instance variable. """
+
+        with self.assertRaises(TypeError):
+            self.fixture.scoped_var = 10
 
     def test_named_get(self):
         """ named enum virtual result. """

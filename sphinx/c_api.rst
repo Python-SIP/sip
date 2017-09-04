@@ -411,6 +411,9 @@ specification files.
 
 .. c:function:: int sipCanConvertToEnum(PyObject *obj, const sipTypeDef *td)
 
+    .. deprecated:: 4.19.4
+        Use :c:func:`sipConvertToEnum()` instead.
+
     This checks if a Python object can be converted to a named enum.
 
     :param obj:

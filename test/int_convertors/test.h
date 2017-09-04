@@ -7,6 +7,14 @@
 class Test
 {
 public:
+    enum class Scoped {
+        scoped = 10
+    };
+    Scoped scoped_get() {return scoped_virt();}
+    virtual Scoped scoped_virt() {return Scoped::scoped;}
+    static void scoped_set(Scoped) {}
+    Scoped scoped_var;
+
     enum Named {
         named = 10
     };
@@ -90,10 +98,6 @@ public:
     virtual unsigned long long unsigned_long_long_virt() {return 0;}
     static void unsigned_long_long_set(unsigned long long) {}
     unsigned long long unsigned_long_long_var;
-
-    //enum class Willy {
-    //    willy = 10
-    //};
 };
 
 #endif
