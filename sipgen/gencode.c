@@ -3547,6 +3547,10 @@ static int generateClasses(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
             }
             else if (vd->type.nrderefs != 0)
             {
+                /* This may be a bit heavy handed. */
+                if (isConstArg(&vd->type))
+                    prcode(fp, "(void *)");
+
                 prcode(fp, "&%S, &sipType_%C, SIP_INDIRECT", vd->fqcname, vcname);
             }
             else if (isConstArg(&vd->type))
