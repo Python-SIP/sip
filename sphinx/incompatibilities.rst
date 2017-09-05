@@ -14,13 +14,13 @@ Converting to C/C++ Enums
 Prior to this version only traditional C/C++ enums were supported.  They are
 implemented with a SIP-generated type that allows integers to be used whenever
 enum members are expected.  Obtaining the integer value of an enum member
-could be done using the standard Python function :py:func:`PyLong_AsLong` and
+could be done using the standard Python function :c:func:`PyLong_AsLong()` and
 therefore no specific conversion function was provided by the SIP API.
 
 Starting with this version, C++11 scoped enums are also supported and are
 implemented using Python's :py:mod:`enum` module.  The integer values of
-members of these enums cannot be obtained using :py:func:`PyLong_AsLong` and so
-:c:func:`sipConvertToEnum` has been added to the SIP API.  This function
+members of these enums cannot be obtained using :c:func:`PyLong_AsLong()` and
+so :c:func:`sipConvertToEnum()` has been added to the SIP API.  This function
 should be used for converting all types of enum.
 
 

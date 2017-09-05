@@ -518,6 +518,7 @@ relationships of ``QObject`` instances are properly maintained.
     It is not possible to define new super-types or meta-types if the limited
     Python API is enabled.
 
+
 .. _ref-lazy-type-attributes:
 
 Lazy Type Attributes
@@ -533,6 +534,21 @@ SIP allows you to extend the handling of lazy attributes to your own attribute
 types by allowing you to register an attribute getter handler (using
 :c:func:`sipRegisterAttributeGetter()`).  This will be called just before a
 type's dictionary is accessed for the first time.
+
+
+Overflow Checking
+-----------------
+
+By default SIP does not check for overflow when converting Python number
+objects to C/C++ types.  Overflowed values are undefined - it cannot be assumed
+that upper bits are simply discarded.
+
+SIP v4.19.4 allowed overflow checking to be enabled and disabled by the wrapper
+author (using :c:func`sipEnableOverflowChecking()`) or by the application
+developer (using :py:func`sip.enableoverflowchecking()`).
+
+It is recommended that wrapper authors should always enable overflow checking
+by default.
 
 
 Support for Python's Buffer Interface
