@@ -7569,12 +7569,22 @@ static void generateVirtHandlerCall(moduleDef *mod, classDef *cd,
 /*
  * Generate a cast to zero.
  */
-static void generateCastZero(argDef *ad,FILE *fp)
+static void generateCastZero(argDef *ad, FILE *fp)
 {
     if (ad->atype == enum_type)
-        prcode(fp,"(%E)",ad->u.ed);
+    {
+        enumDef *ed = ad->u.ed;
 
-    prcode(fp,"0");
+        if (ed->members != NULL)
+        {
+            prcode(fp, "%E::%s", ed, ed->members->cname);
+            return;
+        }
+
+        prcode(fp, "(%E)", ed);
+    }
+
+    prcode(fp, "0");
 }
 
 
