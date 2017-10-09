@@ -5352,7 +5352,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
         PyObject *exc_str_obj;
         const char *exc_str;
 
-        if ((exc_str_obj = PyObject_Str(failure.detail_ob)) == NULL)
+        if ((exc_str_obj = PyObject_Str(failure.detail_obj)) == NULL)
             exc_str = NULL;
         else
             exc_str = PyString_AsString(exc_str_obj);
@@ -5367,7 +5367,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
             PyErr_Format(PyExc_OverflowError, "argument %d overflowed: %S",
                     failure.arg_nr, failure.detail_obj);
 #else
-            PyErr_Format(PyExc_OverflowError, "argument %d overflowed: %s",
+            PyErr_Format(PyExc_OverflowError, "argument %s overflowed: %s",
                     failure.arg_nr, exc_str);
 #endif
         }
