@@ -1,6 +1,17 @@
-v4.19.4 ??? ??? 2017
+v4.19.4 1st November 2017
   - Added support for C++11 scoped enums implemented as Python enums.
+  - Added enableoverflowchecking() to the sip module.
+  - Added sipEnableOverflowChecking() to the C API.
+  - Added sipTypeIsScopedEnum() to the C API.
+  - Added sipConvertToBool() to the C API.
   - Added sipConvertToEnum() to the C API.
+  - Deprecated sipCanConvertToEnum() in the C API.
+  - Added sipLong_AsChar(), sipLong_AsSignedChar() and sipLong_AsUnsignedChar()
+    to the C API.
+  - Added sipLong_AsShort() and sipLong_AsUnsignedShort() to the C API.
+  - Added sipLong_AsInt() and sipLong_AsUnsignedInt() to the C API.
+  - Added sipLong_AsLong() and sipLong_AsUnsignedLong() to the C API.
+  - Added sipLong_AsLongLong() and sipLong_AsUnsignedLongLong() to the C API.
   - Bug fixes.
 
 v4.19.3 3rd July 2017
