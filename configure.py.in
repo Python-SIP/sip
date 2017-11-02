@@ -399,7 +399,7 @@ def create_makefiles(macros):
         pro.write("TARGET = %s\n" % sip_module_base)
         pro.write("CONFIG -= qt\n")
         pro.write("CONFIG += warn_on exceptions_off %s %s\n" % (
-                ("staticlib" if opts.static else "plugin"),
+                ("staticlib" if opts.static else "plugin plugin_bundle"),
                 ("debug" if opts.debug else "release")))
 
         pro.write("\n")
@@ -419,27 +419,30 @@ def create_makefiles(macros):
             pro.write("""
 win32 {
     PY_MODULE = %s%s.pyd
-    target.files = %s%s.pyd
-    LIBS += %s -lpython%d.%d
-    QMAKE_POST_LINK = $(COPY_FILE) $(DESTDIR_TARGET) $$PY_MODULE
+    PY_MODULE_SRC = $(DESTDIR_TARGET)
+
+    LIBS += %s
 } else {
     PY_MODULE = %s.so
-    target.files = %s.so
-    QMAKE_POST_LINK = $(COPY_FILE) $(TARGET) $$PY_MODULE
+
+    macx {
+        PY_MODULE_SRC = $(TARGET).plugin/Contents/MacOS/$(TARGET)
+
+        QMAKE_LFLAGS += "-undefined dynamic_lookup"
+    } else {
+        PY_MODULE_SRC = $(TARGET)
+    }
 }
 
-macx {
-    QMAKE_LFLAGS += "-undefined dynamic_lookup"
-    QMAKE_LFLAGS += "-install_name $$absolute_path($$PY_MODULE, $$target.path)"
-}
+QMAKE_POST_LINK = $(COPY_FILE) $(DESTDIR_TARGET) $$PY_MODULE
+
+target.CONFIG = no_check_exist
+target.files = $$PY_MODULE
 """ % (sip_module_base, debug_suffix,
-       sip_module_base, debug_suffix,
-       link_lib_dir, (py_version >> 16), ((py_version >> 8) & 0xff),
-       sip_module_base,
+       link_lib_dir,
        sip_module_base))
 
         pro.write("\n")
-        pro.write("target.CONFIG = no_check_exist\n")
         pro.write("target.path = %s\n" % cfg.sip_mod_dir)
         pro.write("INSTALLS += target\n")
 
