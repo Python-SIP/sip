@@ -23,6 +23,13 @@ public:
     static void named_set(Named) {}
     Named named_var;
 
+    enum Named2 {
+        named2 = 10
+    };
+    void named_overload_set(Named2) {named_overload = false;}
+    void named_overload_set(Named) {named_overload = true;}
+    bool named_overload;
+
     bool bool_get() {return bool_virt();}
     virtual bool bool_virt() {return false;}
     static void bool_set(bool) {}

@@ -25,6 +25,13 @@ public:
     static void named_set(Named);
     Named named_var;
 
+    enum Named2 {
+        named2 = 10
+    };
+    void named_overload_set(Named2);
+    void named_overload_set(Named);
+    bool named_overload;
+
     bool bool_get();
     virtual bool bool_virt();
     static void bool_set(bool);

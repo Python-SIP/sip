@@ -3,8 +3,8 @@ PYTHON_ARCH="$PYTHON"m
 #PYTHON=2.7
 #PYTHON_ARCH=$PYTHON
 
-QT=5.9.1
-QT_SHORT=5.9.1
+QT=5.9.2
+QT_SHORT=5.9.2
 
 PYROOT=/Library/Frameworks/Python.framework/Versions/$PYTHON
 

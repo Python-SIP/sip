@@ -421,6 +421,12 @@ class TestNamedEnumConvertors(unittest.TestCase):
 
         self.member_fixture.named_var = Test.named
 
+    def test_named_overload_set(self):
+        """ overloaded named enum function argument. """
+
+        self.member_fixture.named_overload_set(Test.named)
+        self.assertIs(self.member_fixture.named_overload, True)
+
     def test_named_get_int(self):
         """ named enum virtual result with an integer value. """
 
