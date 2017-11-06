@@ -303,6 +303,7 @@ typedef unsigned int uint;
 
 #if PY_MAJOR_VERSION >= 3
 
+#define SIPLong_Check       PyLong_Check
 #define SIPLong_FromLong    PyLong_FromLong
 #define SIPLong_AsLong      PyLong_AsLong
 
@@ -324,6 +325,7 @@ typedef unsigned int uint;
 
 #else
 
+#define SIPLong_Check       PyInt_Check
 #define SIPLong_FromLong    PyInt_FromLong
 #define SIPLong_AsLong      PyInt_AsLong
 
