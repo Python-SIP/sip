@@ -1,3 +1,6 @@
+v4.19.5 6th November 2017
+  - Bug fixes.
+
 v4.19.4 1st November 2017
   - Added support for C++11 scoped enums implemented as Python enums.
   - Added enableoverflowchecking() to the sip module.
