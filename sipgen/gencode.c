@@ -305,6 +305,7 @@ static void prTemplateType(FILE *fp, ifaceFileDef *scope, templateDef *td,
 static int isString(argDef *ad);
 static scopedNameDef *stripScope(scopedNameDef *snd, classDef *ecd,
         StripAction strip);
+static void prEnumMemberScope(enumMemberDef *emd, FILE *fp);
 
 
 /*
@@ -3295,25 +3296,14 @@ static int generateEnumMemberTable(sipSpec *pt, moduleDef *mod, classDef *cd,
 
         if (!isNoScope(emd->ed))
         {
-            classDef *ecd = emd->ed->ecd;
-
             if (isScopedEnum(emd->ed))
-            {
-                prcode(fp, "::%s::", emd->ed->cname->text);
-            }
-            else if (ecd != NULL)
-            {
-                if (isProtectedEnum(emd->ed))
-                    prcode(fp, "sip%C::", classFQCName(ecd));
-                else if (isProtectedClass(ecd))
-                    prcode(fp, "%U::", ecd);
-                else
-                    prcode(fp, "%S::", classFQCName(ecd));
-            }
+                prcode(fp, "::%s", emd->ed->cname->text);
+            else if (emd->ed->ecd != NULL)
+                prEnumMemberScope(emd, fp);
             else if (mtd != NULL)
-            {
-                prcode(fp, "%S::", mtd->iff->fqcname);
-            }
+                prcode(fp, "%S", mtd->iff->fqcname);
+
+            prcode(fp, "::");
         }
 
         prcode(fp, "%s%s, %d},\n", emd->cname, (generating_c ? "" : ")"), emd->ed->first_alt->enumnr);
@@ -7592,7 +7582,13 @@ static void generateCastZero(argDef *ad, FILE *fp)
 
         if (ed->members != NULL)
         {
-            prcode(fp, "%E::%s", ed, ed->members->cname);
+            if (isScopedEnum(ed))
+                prcode(fp, "%E", ed);
+            else
+                prEnumMemberScope(ed->members, fp);
+
+            prcode(fp, "::%s", ed->members->cname);
+
             return;
         }
 
@@ -15530,4 +15526,20 @@ static scopedNameDef *stripScope(scopedNameDef *snd, classDef *ecd,
     }
 
     return snd;
+}
+
+
+/*
+ * Generate the scope of a member of an unscoped enum.
+ */
+static void prEnumMemberScope(enumMemberDef *emd, FILE *fp)
+{
+    classDef *ecd = emd->ed->ecd;
+
+    if (isProtectedEnum(emd->ed))
+        prcode(fp, "sip%C", classFQCName(ecd));
+    else if (isProtectedClass(ecd))
+        prcode(fp, "%U", ecd);
+    else
+        prcode(fp, "%S", classFQCName(ecd));
 }
