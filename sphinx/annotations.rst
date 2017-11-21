@@ -952,8 +952,8 @@ Function Annotations
 
 .. function-annotation:: NewThread
 
-    This boolean annotation specifies that the function will create a new
-    thread.
+    This boolean annotation specifies that the function (which must be a
+    virtual) will be executed in a new thread.
 
 
 .. function-annotation:: NoArgParser
