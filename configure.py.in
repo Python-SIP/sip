@@ -234,6 +234,7 @@ def set_platform_directories():
                 # virtualenv for Python v2.
                 base_prefix = sys.real_prefix
                 bin_dir += '\\Scripts'
+
             except AttributeError:
                 # We can't detect the base prefix in Python v3 prior to v3.3.
                 base_prefix = sys.prefix
