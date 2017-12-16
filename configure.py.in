@@ -220,7 +220,18 @@ def set_platform_directories():
     plat_py_conf_inc_dir = os.path.dirname(sysconfig.get_config_h_filename())
 
     if sys.platform == "win32":
-        plat_py_lib_dir = sys.prefix + "\\libs"
+        try:
+            # Python v3.3 and later.
+            base_prefix = sys.base_prefix
+        except AttributeError:
+            try:
+                # virtualenv for Python v2.
+                base_prefix = sys.real_prefix
+            except AttributeError:
+                # We can't detect the base prefix in Python v3 prior to v3.3.
+                base_prefix = sys.prefix
+
+        plat_py_lib_dir = base_prefix + "\\libs"
         plat_bin_dir = sys.exec_prefix
         plat_sip_dir = sys.prefix + "\\sip"
     else:
