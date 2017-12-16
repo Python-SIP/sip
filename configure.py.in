@@ -1,6 +1,6 @@
 # This script handles the SIP configuration and generates the Makefiles.
 #
-# Copyright (c) 2015 Riverbank Computing Limited <info@riverbankcomputing.com>
+# Copyright (c) 2017 Riverbank Computing Limited <info@riverbankcomputing.com>
 #
 # This file is part of SIP.
 #
@@ -220,19 +220,26 @@ def set_platform_directories():
     plat_py_conf_inc_dir = os.path.dirname(sysconfig.get_config_h_filename())
 
     if sys.platform == "win32":
+        bin_dir = sys.exec_prefix
+
         try:
             # Python v3.3 and later.
             base_prefix = sys.base_prefix
+
+            if sys.exec_prefix != sys.base_exec_prefix:
+                bin_dir += '\\Scripts'
+
         except AttributeError:
             try:
                 # virtualenv for Python v2.
                 base_prefix = sys.real_prefix
+                bin_dir += '\\Scripts'
             except AttributeError:
                 # We can't detect the base prefix in Python v3 prior to v3.3.
                 base_prefix = sys.prefix
 
         plat_py_lib_dir = base_prefix + "\\libs"
-        plat_bin_dir = sys.exec_prefix
+        plat_bin_dir = bin_dir
         plat_sip_dir = sys.prefix + "\\sip"
     else:
         lib_dir = sysconfig.get_python_lib(plat_specific=1, standard_lib=1)
