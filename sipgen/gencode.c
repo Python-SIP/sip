@@ -277,7 +277,7 @@ static int py2OnlySlot(slotType st);
 static int py2_5LaterSlot(slotType st);
 static int keepPyReference(argDef *ad);
 static int isDuplicateProtected(classDef *cd, overDef *target);
-static char getEncoding(argType atype);
+static char getEncoding(argDef *ad);
 static void generateTypeDefName(ifaceFileDef *iff, FILE *fp);
 static void generateTypeDefLink(ifaceFileDef *iff, FILE *fp);
 static int overloadHasDocstring(sipSpec *pt, overDef *od, memberDef *md);
@@ -3663,7 +3663,7 @@ static int generateChars(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
         if (pyScope(vd->ecd) != cd || vd->module != mod)
             continue;
 
-        if (!((vtype == ascii_string_type || vtype == latin1_string_type || vtype == utf8_string_type || vtype == sstring_type || vtype == ustring_type || vtype == string_type || vtype == wstring_type) && vd->type.nrderefs == 0))
+        if (!((vtype == ascii_string_type || vtype == latin1_string_type || vtype == utf8_string_type || vtype == sstring_type || vtype == ustring_type || vtype == string_type) && vd->type.nrderefs == 0))
             continue;
 
         if (needsHandler(vd))
@@ -3691,7 +3691,7 @@ static int generateChars(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
 
         prcode(fp,
 "    {%N, %S, '%c'},\n"
-            , vd->pyname, (cd != NULL ? vd->fqcname : vd->fqcname->next), getEncoding(vtype));
+            , vd->pyname, (cd != NULL ? vd->fqcname : vd->fqcname->next), getEncoding(&vd->type));
     }
 
     if (!noIntro)
@@ -3718,11 +3718,13 @@ static int generateStrings(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
     for (vd = pt->vars; vd != NULL; vd = vd->next)
     {
         argType vtype = vd->type.atype;
+        const char *cast;
+        char encoding;
 
         if (pyScope(vd->ecd) != cd || vd->module != mod)
             continue;
 
-        if (!((vtype == ascii_string_type || vtype == latin1_string_type || vtype == utf8_string_type || vtype == sstring_type || vtype == ustring_type || vtype == string_type || vtype == wstring_type) && vd->type.nrderefs != 0))
+        if (!(((vtype == ascii_string_type || vtype == latin1_string_type || vtype == utf8_string_type || vtype == sstring_type || vtype == ustring_type || vtype == string_type) && vd->type.nrderefs != 0) || vtype == wstring_type))
             continue;
 
         if (needsHandler(vd))
@@ -3748,9 +3750,19 @@ static int generateStrings(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
             noIntro = FALSE;
         }
 
+        /* This is the hack for handling wchar_t and wchar_t*. */
+        encoding = getEncoding(&vd->type);
+
+        if (encoding == 'w')
+            cast = "(const char *)&";
+        else if (encoding == 'W')
+            cast = "(const char *)";
+        else
+            cast = "";
+
         prcode(fp,
-"    {%N, %S, '%c'},\n"
-            , vd->pyname, (cd != NULL ? vd->fqcname : vd->fqcname->next), getEncoding(vtype));
+"    {%N, %s%S, '%c'},\n"
+            , vd->pyname, cast, (cd != NULL ? vd->fqcname : vd->fqcname->next), encoding);
     }
 
     if (!noIntro)
@@ -14956,11 +14968,11 @@ static int keepPyReference(argDef *ad)
 /*
  * Return the encoding character for the given type.
  */
-static char getEncoding(argType atype)
+static char getEncoding(argDef *ad)
 {
     char encoding;
 
-    switch (atype)
+    switch (ad->atype)
     {
     case ascii_string_type:
         encoding = 'A';
@@ -14972,6 +14984,10 @@ static char getEncoding(argType atype)
 
     case utf8_string_type:
         encoding = '8';
+        break;
+
+    case wstring_type:
+        encoding = ((ad->nrderefs == 0) ? 'w' : 'W');
         break;
 
     default:
