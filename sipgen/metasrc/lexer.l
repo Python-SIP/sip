@@ -1,7 +1,7 @@
 /*
  * The SIP lexer.
  *
- * Copyright (c) 2016 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2018 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -78,7 +78,8 @@ static void fatallex(char *);
 ^[ \t]*%CModule             {return TK_CMODULE;}
 ^[ \t]*%CompositeModule     {BEGIN directive_start; return TK_COMPOMODULE;}
 ^[ \t]*%ConsolidatedModule  {BEGIN directive_start; return TK_CONSMODULE;}
-^[ \t]*%DefaultDocstringFormat  {BEGIN directive_start; return TK_DEFDOCSTRING;}
+^[ \t]*%DefaultDocstringFormat  {BEGIN directive_start; return TK_DEFDOCSTRFMT;}
+^[ \t]*%DefaultDocstringSignature   {BEGIN directive_start; return TK_DEFDOCSTRSIG;}
 ^[ \t]*%DefaultEncoding     {BEGIN directive_start; return TK_DEFENCODING;}
 ^[ \t]*%DefaultMetatype     {BEGIN directive_start; return TK_DEFMETATYPE;}
 ^[ \t]*%DefaultSupertype    {BEGIN directive_start; return TK_DEFSUPERTYPE;}

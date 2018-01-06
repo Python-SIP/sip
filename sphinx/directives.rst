@@ -816,6 +816,27 @@ For example::
     %DefaultDocstringFormat "deindented"
 
 
+.. directive:: %DefaultDocstringSignature
+
+.. versionadded:: 4.19.7
+
+.. parsed-literal::
+
+    %DefaultDocstringSignature(name = ["discarded" | "prepended" | "appended"])
+
+This directive is used to specify the default positioning of signatures in
+docstrings, i.e. when the :directive:`%Docstring` directive is used but does
+not specify an explicit positioning.
+
+See the :directive:`%Docstring` directive for an explanation of the different
+ways signatures are positioned.  If the directive is not specified then the
+default positioning is ``"discarded"``.
+
+For example::
+
+    %DefaultDocstringSignature "prepended"
+
+
 .. directive:: %DefaultEncoding
 
 .. parsed-literal::
@@ -917,7 +938,7 @@ For example::
 
 .. parsed-literal::
 
-    %Docstring(format = ["raw" | "deindented"])
+    %Docstring(format = ["raw" | "deindented"], signature = ["discarded" | "prepended" | "appended"])
         *text*
     %End
 
@@ -930,23 +951,39 @@ itself, with the docstrings specified for each contructor appended.
 The docstring of a function or method is made up of the concatenated docstrings
 specified for each of the overloads.
 
-Specifying an explicit docstring will prevent SIP from generating an automatic
-docstring that describes the Python signature of a function or method overload.
-This means that SIP will generate less informative exceptions (i.e. without a
-full signature) when it fails to match a set of arguments to any function or
-method overload.
+.. note::
+
+    Specifying an explicit docstring will mean that SIP will generate less
+    informative exceptions (i.e. without a full signature) when it fails to
+    match a set of arguments to any function or method overload.
 
 .. versionadded:: 4.13
 
-The format may either be ``"raw"`` or ``"deindented"``.  If it is not specified
+``format`` may either be ``"raw"`` or ``"deindented"``.  If it is not specified
 then the value specified by any :directive:`%DefaultDocstringFormat` directive
 is used.
 
-If the format is ``"raw"`` then the docstring is used as it appears in the
+If ``format`` is ``"raw"`` then the docstring is used as it appears in the
 specification file.
 
-If the format is ``"deindented"`` then any leading spaces common to all
+If ``format`` is ``"deindented"`` then any leading spaces common to all
 non-blank lines of the docstring are removed.
+
+.. versionadded:: 4.19.7
+
+``signature`` may either be ``"discarded"``, ``"prepended"`` or ``"appended"``.
+It is ignored unless applied to the docstring of a function or method.  If it
+is not specified then the value specified by any
+:directive:`%DefaultDocstringSignature` directive is used.
+
+If ``signature`` is ``"discarded"`` then the automatically generated function
+or method signature is discarded.
+
+If ``signature`` is ``"prepended"`` then the automatically generated function
+or method signature is placed before the docstring.
+
+If ``signature`` is ``"appended"`` then the automatically generated function
+or method signature is placed after the docstring.
 
 For example::
 
@@ -964,6 +1001,9 @@ For example::
             This will be indented by four spaces.
     %End
     };
+
+.. seealso:: :directive:`%DefaultDocstringFormat`,
+    :directive:`%DefaultDocstringSignature`
 
 
 .. directive:: %End

@@ -1,7 +1,7 @@
 /*
  * The main header file for SIP.
  *
- * Copyright (c) 2016 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2018 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -543,6 +543,14 @@ typedef enum {
 } Format;
 
 
+/* Docstring signature positioning. */
+typedef enum {
+    discarded,
+    prepended,
+    appended
+} Signature;
+
+
 /* Levels of keyword argument support. */
 typedef enum {
     NoKwArgs = 0,
@@ -916,17 +924,26 @@ typedef struct _typeHintNodeDef {
 } typeHintNodeDef;
 
 
+/* An explicit docstring. */
+typedef struct _docstringDef {
+    Signature signature;                /* How the signature should be positioned. */
+    char *text;                         /* The text of the docstring. */
+} docstringDef;
+
+
 /* A module definition. */
 typedef struct _moduleDef {
     nameDef *fullname;                  /* The full module name. */
     const char *name;                   /* The module base name. */
+    docstringDef *docstring;            /* The docstring. */
     apiVersionRangeDef *api_versions;   /* The defined APIs. */
     apiVersionRangeDef *api_ranges;     /* The list of API version ranges. */
     int modflags;                       /* The module flags. */
     KwArgs kwargs;                      /* The style of keyword argument support. */
     struct _memberDef *othfuncs;        /* List of other functions. */
     struct _overDef *overs;             /* Global overloads. */
-    Format defdocstring;                /* The default docstring format. */
+    Format defdocstringfmt;             /* The default docstring format. */
+    Signature defdocstringsig;          /* The default docstring signature. */
     argType encoding;                   /* The default string encoding. */
     nameDef *defmetatype;               /* The optional default meta-type. */
     nameDef *defsupertype;              /* The optional default super-type. */
@@ -939,7 +956,6 @@ typedef struct _moduleDef {
     codeBlockList *postinitcode;        /* Post-initialisation code. */
     codeBlockList *unitcode;            /* Compilation unit code. */
     codeBlockList *unitpostinccode;     /* Compilation unit post-include code. */
-    codeBlockList *docstring;           /* The docstring. */
     codeBlockList *typehintcode;        /* Type hint code. */
     const char *virt_error_handler;     /* The virtual error handler. */
     int parts;                          /* The number of parts generated. */
@@ -1085,9 +1101,9 @@ typedef struct _varDef {
 /* A property definition. */
 typedef struct _propertyDef {
     nameDef *name;                      /* The property name. */
+    docstringDef *docstring;            /* The docstring. */
     const char *get;                    /* The name of the getter method. */
     const char *set;                    /* The name of the setter method. */
-    codeBlockList *docstring;           /* The docstring. */
     platformDef *platforms;             /* The platforms. */
     struct _propertyDef *next;          /* Next in the list. */
 } propertyDef;
@@ -1097,6 +1113,7 @@ typedef struct _propertyDef {
 typedef struct _overDef {
     sourceLocation sloc;                /* The source location. */
     char *cppname;                      /* The C++ name. */
+    docstringDef *docstring;            /* The docstring. */
     int overflags;                      /* The overload flags. */
     int no_typehint;                    /* The type hint will be suppressed. */
     int pyqt_signal_hack;               /* The PyQt signal hack. */
@@ -1120,6 +1137,7 @@ typedef struct _overDef {
 
 /* An overloaded constructor definition. */
 typedef struct _ctorDef {
+    docstringDef *docstring;            /* The docstring. */
     int ctorflags;                      /* The ctor flags. */
     int no_typehint;                    /* The type hint will be suppressed. */
     KwArgs kwargs;                      /* The keyword argument support. */
@@ -1176,7 +1194,6 @@ typedef struct _memberDef {
     int membernr;                       /* The index in the method table. */
     slotType slot;                      /* The slot type. */
     moduleDef *module;                  /* The owning module. */
-    codeBlockList *docstring;           /* The overloads docstrings. */
     struct _ifaceFileDef *ns_scope;     /* The scope if it has been moved. */
     struct _memberDef *next;            /* Next in the list. */
 } memberDef;
@@ -1215,6 +1232,7 @@ typedef struct _mroDef {
 
 /* A class definition. */
 typedef struct _classDef {
+    docstringDef *docstring;            /* The class docstring. */
     unsigned classflags;                /* The class flags. */
     unsigned classflags2;               /* The class flags, part 2. */
     int pyqt_flags;                     /* The PyQt specific flags. */
@@ -1242,7 +1260,6 @@ typedef struct _classDef {
     codeBlockList *cppcode;             /* Class C++ code. */
     codeBlockList *convtosubcode;       /* Convert to sub C++ code. */
     struct _classDef *subbase;          /* Sub-class base class. */
-    codeBlockList *docstring;           /* Class and ctor docstrings. */
     codeBlockList *instancecode;        /* Create instance code. */
     codeBlockList *convtocode;          /* Convert to C++ code. */
     codeBlockList *convfromcode;        /* Convert from C++ code. */
@@ -1490,21 +1507,27 @@ typedef struct _autoPyNameCfg {
 typedef struct _compModuleCfg {
     int token;
     const char *name;
-    codeBlock *docstring;
+    docstringDef *docstring;
 } compModuleCfg;
 
 /* %ConsolidatedModule */
 typedef struct _consModuleCfg {
     int token;
     const char *name;
-    codeBlock *docstring;
+    docstringDef *docstring;
 } consModuleCfg;
 
 /* %DefaultDocstringFormat */
-typedef struct _defDocstringCfg {
+typedef struct _defDocstringFmtCfg {
     int token;
     const char *name;
-} defDocstringCfg;
+} defDocstringFmtCfg;
+
+/* %DefaultDocstringSignature */
+typedef struct _defDocstringSigCfg {
+    int token;
+    const char *name;
+} defDocstringSigCfg;
 
 /* %DefaultEncoding */
 typedef struct _defEncodingCfg {
@@ -1528,6 +1551,7 @@ typedef struct _defSupertypeCfg {
 typedef struct _docstringCfg {
     int token;
     Format format;
+    Signature signature;
 } docstringCfg;
 
 /* %Exception */
@@ -1589,7 +1613,7 @@ typedef struct _moduleCfg {
     int all_raise_py_exc;
     int call_super_init;
     const char *def_error_handler;
-    codeBlock *docstring;
+    docstringDef *docstring;
 } moduleCfg;
 
 /* %Plugin */
@@ -1604,7 +1628,7 @@ typedef struct _propertyCfg {
     const char *get;
     const char *name;
     const char *set;
-    codeBlock *docstring;
+    docstringDef *docstring;
 } propertyCfg;
 
 /* Variable sub-directives. */
