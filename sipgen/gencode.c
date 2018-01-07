@@ -14996,9 +14996,6 @@ static int overloadHasAutoDocstring(sipSpec *pt, overDef *od)
     if (!docstrings)
         return FALSE;
 
-    if (isPrivate(od) || isSignal(od))
-        return FALSE;
-
     /* If it is versioned then make sure it is the default API. */
     return inDefaultAPI(pt, od->api_range);
 }
@@ -15020,6 +15017,9 @@ static int hasMemberDocstring(sipSpec *pt, overDef *overs, memberDef *md,
     for (od = overs; od != NULL; od = od->next)
     {
         if (od->common != md)
+            continue;
+
+        if (isPrivate(od) || isSignal(od))
             continue;
 
         if (od->docstring != NULL)
@@ -15060,6 +15060,9 @@ static int generateMemberDocstring(sipSpec *pt, overDef *overs, memberDef *md,
         if (od->common != md)
             continue;
 
+        if (isPrivate(od) || isSignal(od))
+            continue;
+
         if (od->docstring != NULL)
         {
             all_auto = FALSE;
@@ -15075,6 +15078,9 @@ static int generateMemberDocstring(sipSpec *pt, overDef *overs, memberDef *md,
     for (od = overs; od != NULL; od = od->next)
     {
         if (od->common != md)
+            continue;
+
+        if (isPrivate(od) || isSignal(od))
             continue;
 
         if (!is_first)
@@ -15149,9 +15155,6 @@ static int ctorHasAutoDocstring(sipSpec *pt, ctorDef *ct)
     if (!docstrings)
         return FALSE;
 
-    if (isPrivateCtor(ct))
-        return FALSE;
-
     /* If it is versioned then make sure it is the default API. */
     return inDefaultAPI(pt, ct->api_range);
 }
@@ -15174,6 +15177,9 @@ static int hasClassDocstring(sipSpec *pt, classDef *cd)
 
     for (ct = cd->ctors; ct != NULL; ct = ct->next)
     {
+        if (isPrivateCtor(ct))
+            continue;
+
         if (ct->docstring != NULL)
             return TRUE;
 
@@ -15206,6 +15212,9 @@ static void generateClassDocstring(sipSpec *pt, classDef *cd, FILE *fp)
 
     for (ct = cd->ctors; ct != NULL; ct = ct->next)
     {
+        if (isPrivateCtor(ct))
+            continue;
+
         if (ct->docstring != NULL)
         {
             all_auto = FALSE;
@@ -15223,6 +15232,9 @@ static void generateClassDocstring(sipSpec *pt, classDef *cd, FILE *fp)
 
     for (ct = cd->ctors; ct != NULL; ct = ct->next)
     {
+        if (isPrivateCtor(ct))
+            continue;
+
         if (!is_first)
         {
             prcode(fp, newline);
