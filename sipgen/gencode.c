@@ -271,7 +271,7 @@ static void generateNameCache(sipSpec *pt, FILE *fp);
 static const char *resultOwner(overDef *od);
 static void prCachedName(FILE *fp, nameDef *nd, const char *prefix);
 static void generateSignalTableEntry(sipSpec *pt, classDef *cd, overDef *sig,
-        memberDef *md, int membernr, int optional_args, FILE *fp);
+        int membernr, int optional_args, FILE *fp);
 static void generateTypesTable(moduleDef *mod, FILE *fp);
 static int py2OnlySlot(slotType st);
 static int py2_5LaterSlot(slotType st);
@@ -10666,7 +10666,7 @@ static void generatePyQt5Emitters(classDef *cd, FILE *fp)
  * Generate an entry in the PyQt4 or PyQt5 signal table.
  */
 static void generateSignalTableEntry(sipSpec *pt, classDef *cd, overDef *sig,
-        memberDef *md, int membernr, int optional_args, FILE *fp)
+        int membernr, int optional_args, FILE *fp)
 {
     int a, pyqt5 = pluginPyQt5(pt);
 
@@ -10690,25 +10690,23 @@ static void generateSignalTableEntry(sipSpec *pt, classDef *cd, overDef *sig,
         generateNamedBaseType(cd->iff, &arg, "", TRUE, StripNamespace, fp);
     }
 
-    prcode(fp,")\", ");
+    prcode(fp, ")\", ");
 
     if (docstrings)
     {
-        /* TODO */
-#if 0
-        if (md->docstring != NULL)
+        prcode(fp, "\"");
+
+        if (sig->docstring != NULL)
         {
-            generateDocstringText(md->docstring, fp);
+            generateDocstringText(sig->docstring, fp);
         }
         else
         {
-            fprintf(fp, "\"\\1");
+            fprintf(fp, "\\1");
             dsOverload(pt, sig, TRUE, FALSE, fp);
-            fprintf(fp, "\"");
         }
-#endif
 
-        fprintf(fp, ", ");
+        fprintf(fp, "\", ");
     }
     else
     {
@@ -15431,7 +15429,7 @@ static int generatePluginSignalsTable(sipSpec *pt, classDef *cd,
                  * provide an emitter function which handles the optional
                  * arguments.
                  */
-                generateSignalTableEntry(pt, cd, od, md, membernr,
+                generateSignalTableEntry(pt, cd, od, membernr,
                         hasOptionalArgs(od), fp);
 
                 membernr = -1;
@@ -15450,8 +15448,7 @@ static int generatePluginSignalsTable(sipSpec *pt, classDef *cd,
                             break;
 
                         cppsig->nrArgs = a;
-                        generateSignalTableEntry(pt, cd, od, md, -1, FALSE,
-                                fp);
+                        generateSignalTableEntry(pt, cd, od, -1, FALSE, fp);
                     }
 
                     cppsig->nrArgs = nr_args;
