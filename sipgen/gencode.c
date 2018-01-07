@@ -10008,11 +10008,11 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, int py_debug,
         {
             prcode(fp,
 "\n"
-"PyDoc_STRVAR(doc_%L_%s, " , cd->iff, pd->name->text);
+"PyDoc_STRVAR(doc_%L_%s, \"" , cd->iff, pd->name->text);
 
             generateDocstringText(pd->docstring, fp);
 
-            prcode(fp, ");\n"
+            prcode(fp, "\");\n"
                 );
         }
     }
@@ -15044,9 +15044,12 @@ static int generateMemberDocstring(sipSpec *pt, overDef *overs, memberDef *md,
         int is_method, FILE *fp)
 {
     int auto_docstring = TRUE;
-    int need_blank = FALSE;
-    static const char *blank_line = "\n\"\\n\"\n";
+    int is_first, needs_blanks;
+    static const char *newline = "\\n\"\n\"";
     overDef *od;
+
+    /* See if blank lines should separate the overloads. */
+    needs_blanks = FALSE;
 
     for (od = overs; od != NULL; od = od->next)
     {
@@ -15055,41 +15058,56 @@ static int generateMemberDocstring(sipSpec *pt, overDef *overs, memberDef *md,
 
         if (od->docstring != NULL)
         {
+            needs_blanks = TRUE;
+            break;
+        }
+    }
+
+    /* Generate the docstring. */
+    prcode(fp, "\"");
+
+    is_first = TRUE;
+
+    for (od = overs; od != NULL; od = od->next)
+    {
+        if (od->common != md)
+            continue;
+
+        if (!is_first)
+        {
+            prcode(fp, newline);
+
+            if (needs_blanks)
+                prcode(fp, newline);
+        }
+
+        if (od->docstring != NULL)
+        {
             if (od->docstring->signature == prepended)
             {
-                if (need_blank)
-                    prcode(fp, blank_line);
-
                 generateMemberAutoDocstring(pt, od, is_method, fp);
-                need_blank = TRUE;
+                prcode(fp, newline);
             }
 
-            if (need_blank)
-                prcode(fp, blank_line);
-
             generateDocstringText(od->docstring, fp);
-            need_blank = TRUE;
 
             if (od->docstring->signature == appended)
             {
-                if (need_blank)
-                    prcode(fp, blank_line);
-
+                prcode(fp, newline);
                 generateMemberAutoDocstring(pt, od, is_method, fp);
-                need_blank = TRUE;
             }
 
             auto_docstring = FALSE;
         }
         else
         {
-            if (need_blank)
-                prcode(fp, blank_line);
-
             generateMemberAutoDocstring(pt, od, is_method, fp);
-            need_blank = TRUE;
         }
+
+        is_first = FALSE;
     }
+
+    prcode(fp, "\"");
 
     return auto_docstring;
 }
@@ -15103,8 +15121,6 @@ static void generateMemberAutoDocstring(sipSpec *pt, overDef *od,
 {
     if (overloadHasAutoDocstring(pt, od))
     {
-        prcode(fp, "\"");
-
         dsOverload(pt, od, is_method, FALSE, fp);
         ++currentLineNr;
 
@@ -15115,8 +15131,6 @@ static void generateMemberAutoDocstring(sipSpec *pt, overDef *od,
             dsOverload(pt, od, is_method, TRUE, fp);
             ++currentLineNr;
         }
-
-        prcode(fp, "\"");
     }
 }
 
@@ -15261,8 +15275,6 @@ static void generateDocstringText(docstringDef *docstring, FILE *fp)
 {
     const char *cp;
 
-    prcode(fp, "\"");
-
     for (cp = docstring->text; *cp != '\0'; ++cp)
     {
         if (*cp == '\n')
@@ -15279,8 +15291,6 @@ static void generateDocstringText(docstringDef *docstring, FILE *fp)
             prcode(fp, "%c", *cp);
         }
     }
-
-    prcode(fp, "\"");
 }
 
 
@@ -15293,11 +15303,11 @@ static void generateModDocstring(moduleDef *mod, FILE *fp)
     {
         prcode(fp,
 "\n"
-"PyDoc_STRVAR(doc_mod_%s, ", mod->name);
+"PyDoc_STRVAR(doc_mod_%s, \"", mod->name);
 
         generateDocstringText(mod->docstring, fp);
 
-        prcode(fp, ");\n"
+        prcode(fp, "\");\n"
             );
     }
 }
