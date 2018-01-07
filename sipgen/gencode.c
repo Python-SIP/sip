@@ -3067,11 +3067,11 @@ static void generateOrdinaryFunction(sipSpec *pt, moduleDef *mod,
 "PyDoc_STRVAR(doc_%L_%s, ", scope, md->pyname->text);
         else
             prcode(fp,
-"PyDoc_STRVAR(doc_%s, " , md->pyname->text);
+"PyDoc_STRVAR(doc_%s, \"" , md->pyname->text);
 
         has_auto_docstring = generateMemberDocstring(pt, od, md, FALSE, fp);
 
-        prcode(fp, ");\n"
+        prcode(fp, "\");\n"
 "\n"
             );
     }
@@ -10088,11 +10088,14 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, int py_debug,
     {
         prcode(fp,
 "\n"
-"PyDoc_STRVAR(doc_%L, ", cd->iff);
+"PyDoc_STRVAR(doc_%L, \"", cd->iff);
 
-        generateClassDocstring(pt, cd, fp);
+        if (cd->docstring != NULL)
+            generateDocstringText(cd->docstring, fp);
+        else
+            generateClassDocstring(pt, cd, fp);
 
-        prcode(fp, ");\n"
+        prcode(fp, "\");\n"
             );
 
         has_docstring = TRUE;
@@ -11638,12 +11641,12 @@ static void generateFunction(sipSpec *pt, memberDef *md, overDef *overs,
         if (hasMemberDocstring(pt, overs, md, cd->iff))
         {
             prcode(fp,
-"PyDoc_STRVAR(doc_%L_%s, " , cd->iff, pname);
+"PyDoc_STRVAR(doc_%L_%s, \"" , cd->iff, pname);
 
             has_auto_docstring = generateMemberDocstring(pt, overs, md, TRUE,
                     fp);
 
-            prcode(fp, ");\n"
+            prcode(fp, "\");\n"
 "\n"
                 );
         }
@@ -15044,12 +15047,13 @@ static int generateMemberDocstring(sipSpec *pt, overDef *overs, memberDef *md,
         int is_method, FILE *fp)
 {
     int auto_docstring = TRUE;
-    int is_first, needs_blanks;
+    int is_first, all_auto, any_implied;
     static const char *newline = "\\n\"\n\"";
     overDef *od;
 
-    /* See if blank lines should separate the overloads. */
-    needs_blanks = FALSE;
+    /* See if all the docstrings are automatically generated. */
+    all_auto = TRUE;
+    any_implied = FALSE;
 
     for (od = overs; od != NULL; od = od->next)
     {
@@ -15058,14 +15062,14 @@ static int generateMemberDocstring(sipSpec *pt, overDef *overs, memberDef *md,
 
         if (od->docstring != NULL)
         {
-            needs_blanks = TRUE;
-            break;
+            all_auto = FALSE;
+
+            if (od->docstring->signature != discarded)
+                any_implied = TRUE;
         }
     }
 
     /* Generate the docstring. */
-    prcode(fp, "\"");
-
     is_first = TRUE;
 
     for (od = overs; od != NULL; od = od->next)
@@ -15077,7 +15081,11 @@ static int generateMemberDocstring(sipSpec *pt, overDef *overs, memberDef *md,
         {
             prcode(fp, newline);
 
-            if (needs_blanks)
+            /*
+             * Insert a blank line if any explicit docstring wants to include a
+             * signature.  This maintains compatibility with previous versions.
+             */
+            if (any_implied)
                 prcode(fp, newline);
         }
 
@@ -15099,15 +15107,13 @@ static int generateMemberDocstring(sipSpec *pt, overDef *overs, memberDef *md,
 
             auto_docstring = FALSE;
         }
-        else
+        else if (all_auto || any_implied)
         {
             generateMemberAutoDocstring(pt, od, is_method, fp);
         }
 
         is_first = FALSE;
     }
-
-    prcode(fp, "\"");
 
     return auto_docstring;
 }
@@ -15190,54 +15196,67 @@ static int hasClassDocstring(sipSpec *pt, classDef *cd)
  */
 static void generateClassDocstring(sipSpec *pt, classDef *cd, FILE *fp)
 {
-    int need_blank = FALSE;
-    static const char *blank_line = "\n\"\\n\"\n";
+    int is_first, all_auto, any_implied;
+    static const char *newline = "\\n\"\n\"";
     ctorDef *ct;
 
-    /* TODO: Does the first byte of a line being \1 indicate a signature? */
-
-    if (cd->docstring != NULL)
-    {
-        generateDocstringText(cd->docstring, fp);
-        need_blank = TRUE;
-    }
+    /* See if all the docstrings are automatically generated. */
+    all_auto = TRUE;
+    any_implied = FALSE;
 
     for (ct = cd->ctors; ct != NULL; ct = ct->next)
     {
         if (ct->docstring != NULL)
         {
+            all_auto = FALSE;
+
+            if (ct->docstring->signature != discarded)
+                any_implied = TRUE;
+        }
+    }
+
+    /* Generate the docstring. */
+    if (all_auto)
+        prcode(fp, "\\1");
+
+    is_first = TRUE;
+
+    for (ct = cd->ctors; ct != NULL; ct = ct->next)
+    {
+        if (!is_first)
+        {
+            prcode(fp, newline);
+
+            /*
+             * Insert a blank line if any explicit docstring wants to include a
+             * signature.  This maintains compatibility with previous versions.
+             */
+            if (any_implied)
+                prcode(fp, newline);
+        }
+
+        if (ct->docstring != NULL)
+        {
             if (ct->docstring->signature == prepended)
             {
-                if (need_blank)
-                    prcode(fp, blank_line);
-
                 generateCtorAutoDocstring(pt, cd, ct, fp);
-                need_blank = TRUE;
+                prcode(fp, newline);
             }
 
-            if (need_blank)
-                prcode(fp, blank_line);
-
             generateDocstringText(ct->docstring, fp);
-            need_blank = TRUE;
 
             if (ct->docstring->signature == appended)
             {
-                if (need_blank)
-                    prcode(fp, blank_line);
-
+                prcode(fp, newline);
                 generateCtorAutoDocstring(pt, cd, ct, fp);
-                need_blank = TRUE;
             }
         }
-        else
+        else if (all_auto || any_implied)
         {
-            if (need_blank)
-                prcode(fp, blank_line);
-
             generateCtorAutoDocstring(pt, cd, ct, fp);
-            need_blank = TRUE;
         }
+
+        is_first = FALSE;
     }
 }
 
@@ -15250,8 +15269,6 @@ static void generateCtorAutoDocstring(sipSpec *pt, classDef *cd, ctorDef *ct,
 {
     if (ctorHasAutoDocstring(pt, ct))
     {
-        prcode(fp, "\"");
-
         dsCtor(pt, cd, ct, FALSE, fp);
         ++currentLineNr;
 
@@ -15262,8 +15279,6 @@ static void generateCtorAutoDocstring(sipSpec *pt, classDef *cd, ctorDef *ct,
             dsCtor(pt, cd, ct, TRUE, fp);
             ++currentLineNr;
         }
-
-        prcode(fp, "\"");
     }
 }
 
