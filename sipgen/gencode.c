@@ -3064,7 +3064,7 @@ static void generateOrdinaryFunction(sipSpec *pt, moduleDef *mod,
     {
         if (scope != NULL)
             prcode(fp,
-"PyDoc_STRVAR(doc_%L_%s, ", scope, md->pyname->text);
+"PyDoc_STRVAR(doc_%L_%s, \"", scope, md->pyname->text);
         else
             prcode(fp,
 "PyDoc_STRVAR(doc_%s, \"" , md->pyname->text);
