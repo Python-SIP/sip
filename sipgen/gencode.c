@@ -7585,7 +7585,7 @@ static void generateCastZero(argDef *ad, FILE *fp)
         {
             if (isScopedEnum(ed))
                 prcode(fp, "%E", ed);
-            else
+            else if (ed->ecd != NULL)
                 prEnumMemberScope(ed->members, fp);
 
             prcode(fp, "::%s", ed->members->cname);
