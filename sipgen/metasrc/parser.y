@@ -78,8 +78,10 @@ static enumDef *newEnum(sipSpec *pt, moduleDef *mod, mappedTypeDef *mt_scope,
         char *name, optFlags *of, int flags, int isscoped);
 static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod,
         classDef *scope, scopedNameDef *fqname, classTmplDef *tcd,
-        templateDef *td, const char *pyname, int use_template_name);
-static void newTypedef(sipSpec *, moduleDef *, char *, argDef *, optFlags *);
+        templateDef *td, const char *pyname, int use_template_name,
+        docstringDef *docstring);
+static void newTypedef(sipSpec *, moduleDef *, char *, argDef *, optFlags *,
+        docstringDef *);
 static void newVar(sipSpec *pt, moduleDef *mod, char *name, int isstatic,
         argDef *type, optFlags *of, codeBlock *acode, codeBlock *gcode,
         codeBlock *scode, int section);
@@ -2941,7 +2943,7 @@ exprlist:   {
         }
     ;
 
-typedef:    TK_TYPEDEF cpptype TK_NAME_VALUE optflags ';' {
+typedef:    TK_TYPEDEF cpptype TK_NAME_VALUE optflags ';' optdocstring {
             if (notSkipping())
             {
                 const char *annos[] = {
@@ -2960,10 +2962,10 @@ typedef:    TK_TYPEDEF cpptype TK_NAME_VALUE optflags ';' {
                 checkAnnos(&$4, annos);
 
                 applyTypeFlags(currentModule, &$2, &$4);
-                newTypedef(currentSpec, currentModule, $3, &$2, &$4);
+                newTypedef(currentSpec, currentModule, $3, &$2, &$4, $6);
             }
         }
-    |   TK_TYPEDEF cpptype '(' '*' TK_NAME_VALUE ')' '(' cpptypelist ')' optflags ';' {
+    |   TK_TYPEDEF cpptype '(' '*' TK_NAME_VALUE ')' '(' cpptypelist ')' optflags ';' optdocstring {
             if (notSkipping())
             {
                 const char *annos[] = {
@@ -2997,7 +2999,7 @@ typedef:    TK_TYPEDEF cpptype TK_NAME_VALUE optflags ';' {
                 ftype.nrderefs = 1;
                 ftype.u.sa = sig;
 
-                newTypedef(currentSpec, currentModule, $5, &ftype, &$10);
+                newTypedef(currentSpec, currentModule, $5, &ftype, &$10, $12);
             }
         }
     ;
@@ -6045,7 +6047,8 @@ static char *scopedNameToString(scopedNameDef *name)
  */
 static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod,
         classDef *scope, scopedNameDef *fqname, classTmplDef *tcd,
-        templateDef *td, const char *pyname, int use_template_name)
+        templateDef *td, const char *pyname, int use_template_name,
+        docstringDef *docstring)
 {
     scopedNameDef *type_names, *type_values;
     classDef *cd;
@@ -6074,6 +6077,9 @@ static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod,
 
     /* Start with a shallow copy. */
     *cd = *tcd->cd;
+
+    if (docstring != NULL)
+        cd->docstring = docstring;
 
     resetIsTemplateClass(cd);
     cd->pyname = cacheName(pt, pyname);
@@ -6858,7 +6864,7 @@ static int foundInScope(scopedNameDef *fq_name, scopedNameDef *rel_name)
  * Create a new typedef.
  */
 static void newTypedef(sipSpec *pt, moduleDef *mod, char *name, argDef *type,
-        optFlags *optflgs)
+        optFlags *optflgs, docstringDef *docstring)
 {
     int no_type_name;
     typedefDef *td;
@@ -6880,7 +6886,8 @@ static void newTypedef(sipSpec *pt, moduleDef *mod, char *name, argDef *type,
                 sameTemplateSignature(&tcd->sig, &td->types, FALSE))
             {
                 instantiateClassTemplate(pt, mod, scope, fqname, tcd, td,
-                        getPythonName(mod, optflgs, name), no_type_name);
+                        getPythonName(mod, optflgs, name), no_type_name,
+                        docstring);
 
                 /* All done. */
                 return;
