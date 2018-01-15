@@ -157,7 +157,9 @@ SIP_SSIZE_T                 {return TK_SIPSSIZET;}
 SIP_QOBJECT                 {return TK_QOBJECT;}
 \.\.\.                      {return TK_ELLIPSIS;}
 
-<directive>format           {return TK_FORMAT;}
+format                      {return TK_FORMAT;}
+signature                   {return TK_SIGNATURE;}
+
 <directive>get              {return TK_GET;}
 <directive>id               {return TK_ID;}
 <directive>keyword_arguments    {return TK_KWARGS;}
@@ -168,7 +170,6 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
 <directive>order            {return TK_ORDER;}
 <directive>remove_leading   {return TK_REMOVELEADING;}
 <directive>set              {return TK_SET;}
-<directive>signature        {return TK_SIGNATURE;}
 <directive>timestamp        {return TK_TIMESTAMP;}
 <directive>type             {return TK_TYPE;}
 <directive>use_argument_names   {return TK_USEARGNAMES;}

@@ -10090,10 +10090,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, int py_debug,
 "\n"
 "PyDoc_STRVAR(doc_%L, \"", cd->iff);
 
-        if (cd->docstring != NULL)
-            generateDocstringText(cd->docstring, fp);
-        else
-            generateClassDocstring(pt, cd, fp);
+        generateClassDocstring(pt, cd, fp);
 
         prcode(fp, "\");\n"
             );
@@ -15205,7 +15202,7 @@ static void generateClassDocstring(sipSpec *pt, classDef *cd, FILE *fp)
     ctorDef *ct;
 
     /* See if all the docstrings are automatically generated. */
-    all_auto = TRUE;
+    all_auto = (cd->docstring == NULL);
     any_implied = FALSE;
 
     for (ct = cd->ctors; ct != NULL; ct = ct->next)
@@ -15226,47 +15223,70 @@ static void generateClassDocstring(sipSpec *pt, classDef *cd, FILE *fp)
     if (all_auto)
         prcode(fp, "\\1");
 
-    is_first = TRUE;
-
-    for (ct = cd->ctors; ct != NULL; ct = ct->next)
+    if (cd->docstring != NULL && cd->docstring->signature != prepended)
     {
-        if (isPrivateCtor(ct))
-            continue;
+        generateDocstringText(cd->docstring, fp);
+        is_first = FALSE;
+    }
+    else
+    {
+        is_first = TRUE;
+    }
 
+    if (cd->docstring == NULL || cd->docstring->signature != discarded)
+    {
+        for (ct = cd->ctors; ct != NULL; ct = ct->next)
+        {
+            if (isPrivateCtor(ct))
+                continue;
+
+            if (!is_first)
+            {
+                prcode(fp, newline);
+
+                /*
+                 * Insert a blank line if any explicit docstring wants to
+                 * include a signature.  This maintains compatibility with
+                 * previous versions.
+                 */
+                if (any_implied)
+                    prcode(fp, newline);
+            }
+
+            if (ct->docstring != NULL)
+            {
+                if (ct->docstring->signature == prepended)
+                {
+                    generateCtorAutoDocstring(pt, cd, ct, fp);
+                    prcode(fp, newline);
+                }
+
+                generateDocstringText(ct->docstring, fp);
+
+                if (ct->docstring->signature == appended)
+                {
+                    prcode(fp, newline);
+                    generateCtorAutoDocstring(pt, cd, ct, fp);
+                }
+            }
+            else if (all_auto || any_implied)
+            {
+                generateCtorAutoDocstring(pt, cd, ct, fp);
+            }
+
+            is_first = FALSE;
+        }
+    }
+
+    if (cd->docstring != NULL && cd->docstring->signature == prepended)
+    {
         if (!is_first)
         {
             prcode(fp, newline);
-
-            /*
-             * Insert a blank line if any explicit docstring wants to include a
-             * signature.  This maintains compatibility with previous versions.
-             */
-            if (any_implied)
-                prcode(fp, newline);
+            prcode(fp, newline);
         }
 
-        if (ct->docstring != NULL)
-        {
-            if (ct->docstring->signature == prepended)
-            {
-                generateCtorAutoDocstring(pt, cd, ct, fp);
-                prcode(fp, newline);
-            }
-
-            generateDocstringText(ct->docstring, fp);
-
-            if (ct->docstring->signature == appended)
-            {
-                prcode(fp, newline);
-                generateCtorAutoDocstring(pt, cd, ct, fp);
-            }
-        }
-        else if (all_auto || any_implied)
-        {
-            generateCtorAutoDocstring(pt, cd, ct, fp);
-        }
-
-        is_first = FALSE;
+        generateDocstringText(cd->docstring, fp);
     }
 }
 

@@ -972,18 +972,21 @@ non-blank lines of the docstring are removed.
 .. versionadded:: 4.19.7
 
 ``signature`` may either be ``"discarded"``, ``"prepended"`` or ``"appended"``.
-It is ignored unless applied to the docstring of a function or method.  If it
-is not specified then the value specified by any
+It is ignored unless applied to the docstring of a class, function or method.
+If it is not specified then the value specified by any
 :directive:`%DefaultDocstringSignature` directive is used.
 
 If ``signature`` is ``"discarded"`` then the automatically generated function
-or method signature is discarded.
+or method signature is discarded.  In the context of a class's docstring then
+this refers to all of the constructors' docstrings.
 
 If ``signature`` is ``"prepended"`` then the automatically generated function
-or method signature is placed before the docstring.
+or method signature is placed before the docstring.  In the context of a
+class's docstring then this refers to all of the constructors' docstrings.
 
 If ``signature`` is ``"appended"`` then the automatically generated function
-or method signature is placed after the docstring.
+or method signature is placed after the docstring.  In the context of a class's
+docstring then this refers to all of the constructors' docstrings.
 
 For example::
 

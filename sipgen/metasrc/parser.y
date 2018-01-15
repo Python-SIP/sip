@@ -2533,6 +2533,7 @@ docstring_args: {
             resetLexerState();
 
             $$.format = convertFormat($1);
+            $$.signature = currentModule->defdocstringsig;
         }
     |   '(' docstring_arg_list ')' {
             $$ = $2;
@@ -2555,10 +2556,12 @@ docstring_arg:  TK_FORMAT '=' TK_STRING_VALUE {
             $$.token = TK_FORMAT;
 
             $$.format = convertFormat($3);
+            $$.signature = currentModule->defdocstringsig;
         }
     |   TK_SIGNATURE '=' TK_STRING_VALUE {
             $$.token = TK_SIGNATURE;
 
+            $$.format = currentModule->defdocstringfmt;
             $$.signature = convertSignature($3);
         }
     ;
