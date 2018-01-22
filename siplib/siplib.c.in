@@ -12006,7 +12006,7 @@ static void forgetObject(sipSimpleWrapper *sw)
     }
 
     /*
-     * This is needed because we release the GIL when calling a C++ dtor.
+     * This is needed because we might release the GIL when calling a C++ dtor.
      * Without it the cyclic garbage collector can be invoked from another
      * thread resulting in a crash.
      */
