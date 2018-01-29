@@ -1,7 +1,7 @@
 /*
  * SIP library code.
  *
- * Copyright (c) 2017 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2018 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -438,6 +438,7 @@ static int sip_api_enable_gc(int enable);
 static void sip_api_print_object(PyObject *o);
 static int sip_api_register_event_handler(sipEventType type,
         const sipTypeDef *td, void *handler);
+static void sip_api_instance_destroyed_ex(sipSimpleWrapper **sipSelfp);
 
 
 /*
@@ -620,6 +621,10 @@ static const sipAPIDef sip_api = {
     0,
     0,
 #endif
+    /*
+     * The following are not part of the public API.
+     */
+    sip_api_instance_destroyed_ex,
 };
 
 
@@ -6000,15 +6005,26 @@ static PyObject *convertToSequence(void *array, SIP_SSIZE_T nr_elem,
 
 
 /*
+ * Perform housekeeping after a C++ instance has been destroyed.
+ */
+void sip_api_instance_destroyed(sipSimpleWrapper *sw)
+{
+    sip_api_instance_destroyed_ex(&sw);
+}
+
+
+/*
  * Carry out actions common to all dtors.
  */
-void sip_api_instance_destroyed(sipSimpleWrapper *sipSelf)
+static void sip_api_instance_destroyed_ex(sipSimpleWrapper **sipSelfp)
 {
+    SIP_BLOCK_THREADS
+
+    sipSimpleWrapper *sipSelf = *sipSelfp;
+
     if (sipSelf != NULL && sipInterpreter != NULL)
     {
         PyObject *xtype, *xvalue, *xtb;
-
-        SIP_BLOCK_THREADS
 
         /* We may be tidying up after an exception so preserve it. */
         PyErr_Fetch(&xtype, &xvalue, &xtb);
@@ -6017,7 +6033,11 @@ void sip_api_instance_destroyed(sipSimpleWrapper *sipSelf)
 
         sipOMRemoveObject(&cppPyMap, sipSelf);
 
-        /* This no longer points to anything useful. */
+        /*
+         * This no longer points to anything useful.  Actually it might do as
+         * the partialy destroyed C++ instance may still be trying to invoke
+         * reimplemented virtuals.
+         */
         clear_access_func(sipSelf);
 
         /*
@@ -6030,10 +6050,20 @@ void sip_api_instance_destroyed(sipSimpleWrapper *sipSelf)
             Py_DECREF(sipSelf);
         }
         else if (PyObject_TypeCheck((PyObject *)sipSelf, (PyTypeObject *)&sipWrapper_Type))
+        {
             removeFromParent((sipWrapper *)sipSelf);
-
-        SIP_UNBLOCK_THREADS
+        }
     }
+
+    /*
+     * Normally this is done in the generated dealloc function.  However this
+     * is only called if the pointer/access function has not been reset (which
+     * it has).  It acts as a guard to prevent any further invocations of 
+     * reimplemented virtuals.
+     */
+    *sipSelfp = NULL;
+
+    SIP_UNBLOCK_THREADS
 }
 
 

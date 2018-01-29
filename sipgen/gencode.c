@@ -703,6 +703,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipParseKwdArgs             sipAPI_%s->api_parse_kwd_args\n"
 "#define sipParsePair                sipAPI_%s->api_parse_pair\n"
 "#define sipInstanceDestroyed        sipAPI_%s->api_instance_destroyed\n"
+"#define sipInstanceDestroyedEx      sipAPI_%s->api_instance_destroyed_ex\n"
 "#define sipConvertFromSequenceIndex sipAPI_%s->api_convert_from_sequence_index\n"
 "#define sipConvertFromVoidPtr       sipAPI_%s->api_convert_from_void_ptr\n"
 "#define sipConvertToVoidPtr         sipAPI_%s->api_convert_to_void_ptr\n"
@@ -855,6 +856,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipConvertFromMappedType    sipConvertFromType\n"
 "#define sipConvertFromNamedEnum(v, pt)  sipConvertFromEnum((v), ((sipEnumTypeObject *)(pt))->type)\n"
 "#define sipConvertFromNewInstance(p, wt, t) sipConvertFromNewType((p), (wt)->wt_td, (t))\n"
+        ,mname
         ,mname
         ,mname
         ,mname
@@ -7079,7 +7081,7 @@ static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
             generateCppCodeBlock(cd->dtorcode,fp);
 
         prcode(fp,
-"    sipInstanceDestroyed(sipPySelf);\n"
+"    sipInstanceDestroyedEx(&sipPySelf);\n"
 "}\n"
             );
     }
