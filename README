@@ -2,7 +2,7 @@ SIP - C/C++ Bindings Generator for Python v2 and v3
 ===================================================
 
 The SIP documentation (including installation instructions) can be found in the
-``doc`` directory.
+``sphinx`` directory.
 
 
 Building from the Mercurial Repository
