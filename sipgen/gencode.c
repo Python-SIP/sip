@@ -10697,7 +10697,19 @@ static void generateSignalTableEntry(sipSpec *pt, classDef *cd, overDef *sig,
 
         if (sig->docstring != NULL)
         {
+            if (sig->docstring->signature == prepended)
+            {
+                dsOverload(pt, sig, TRUE, FALSE, fp);
+                prcode(fp, "\\n");
+            }
+
             generateDocstringText(sig->docstring, fp);
+
+            if (sig->docstring->signature == appended)
+            {
+                prcode(fp, "\\n");
+                dsOverload(pt, sig, TRUE, FALSE, fp);
+            }
         }
         else
         {
