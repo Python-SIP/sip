@@ -6408,6 +6408,16 @@ static int createClassType(sipExportedModuleDef *client, sipClassTypeDef *ctd,
 
             Py_INCREF(st);
             PyTuple_SET_ITEM(bases, i, st);
+
+            /*
+             * Inherit any garbage collector code rather than look for it each
+             * time it is needed.
+             */
+            if (ctd->ctd_traverse == NULL)
+                ctd->ctd_traverse = ((sipClassTypeDef *)sup_td)->ctd_traverse;
+
+            if (ctd->ctd_clear == NULL)
+                ctd->ctd_clear = ((sipClassTypeDef *)sup_td)->ctd_clear;
         }
     }
 
@@ -10965,25 +10975,11 @@ static int sipSimpleWrapper_traverse(sipSimpleWrapper *self, visitproc visit,
     void *ptr;
     const sipClassTypeDef *ctd;
 
-    /* Call the nearest handwritten traverse code in the class hierachy. */
+    /* Call any handwritten traverse code. */
     if ((ptr = getPtrTypeDef(self, &ctd)) != NULL)
-    {
-        const sipClassTypeDef *sup_ctd = ctd;
-
-        if (ctd->ctd_traverse == NULL)
-        {
-            const sipEncodedTypeDef *sup;
-
-            if ((sup = ctd->ctd_supers) != NULL)
-                do
-                    sup_ctd = sipGetGeneratedClassType(sup, ctd);
-                while (sup_ctd->ctd_traverse == NULL && !sup++->sc_flag);
-        }
-
-        if (sup_ctd->ctd_traverse != NULL)
-            if ((vret = sup_ctd->ctd_traverse(ptr, visit, arg)) != 0)
+        if (ctd->ctd_traverse != NULL)
+            if ((vret = ctd->ctd_traverse(ptr, visit, arg)) != 0)
                 return vret;
-    }
 
     if (self->dict != NULL)
         if ((vret = visit(self->dict, arg)) != 0)
@@ -11015,24 +11011,10 @@ static int sipSimpleWrapper_clear(sipSimpleWrapper *self)
     const sipClassTypeDef *ctd;
     PyObject *tmp;
 
-    /* Call the nearest handwritten clear code in the class hierachy. */
+    /* Call any handwritten clear code. */
     if ((ptr = getPtrTypeDef(self, &ctd)) != NULL)
-    {
-        const sipClassTypeDef *sup_ctd = ctd;
-
-        if (ctd->ctd_clear == NULL)
-        {
-            sipEncodedTypeDef *sup;
-
-            if ((sup = ctd->ctd_supers) != NULL)
-                do
-                    sup_ctd = sipGetGeneratedClassType(sup, ctd);
-                while (sup_ctd->ctd_clear == NULL && !sup++->sc_flag);
-        }
-
-        if (sup_ctd->ctd_clear != NULL)
-            vret = sup_ctd->ctd_clear(ptr);
-    }
+        if (ctd->ctd_clear != NULL)
+            vret = ctd->ctd_clear(ptr);
 
     /* Remove the instance dictionary. */
     tmp = self->dict;
