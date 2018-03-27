@@ -12557,10 +12557,25 @@ static int parseBytes_AsCharArray(PyObject *obj, const char **ap,
         a = SIPBytes_AS_STRING(obj);
         asz = SIPBytes_GET_SIZE(obj);
     }
+#if PY_MAJOR_VERSION >= 3
+    else
+    {
+        Py_buffer view;
+
+        if (PyObject_GetBuffer(obj, &view, PyBUF_SIMPLE) < 0)
+            return -1;
+
+        a = view.buf;
+        asz = view.len;
+
+        PyBuffer_Release(&view);
+    }
+#else
     else if (PyObject_AsCharBuffer(obj, &a, &asz) < 0)
     {
         return -1;
     }
+#endif
 
     if (ap != NULL)
         *ap = a;
@@ -12585,10 +12600,25 @@ static int parseBytes_AsChar(PyObject *obj, char *ap)
         chp = SIPBytes_AS_STRING(obj);
         sz = SIPBytes_GET_SIZE(obj);
     }
+#if PY_MAJOR_VERSION >= 3
+    else
+    {
+        Py_buffer view;
+
+        if (PyObject_GetBuffer(obj, &view, PyBUF_SIMPLE) < 0)
+            return -1;
+
+        chp = view.buf;
+        sz = view.len;
+
+        PyBuffer_Release(&view);
+    }
+#else
     else if (PyObject_AsCharBuffer(obj, &chp, &sz) < 0)
     {
         return -1;
     }
+#endif
 
     if (sz != 1)
         return -1;
@@ -12979,8 +13009,24 @@ static int check_encoded_string(PyObject *obj)
     if (SIPBytes_Check(obj))
         return 0;
 
+#if PY_MAJOR_VERSION >= 3
+    {
+        Py_buffer view;
+
+        if (PyObject_GetBuffer(obj, &view, PyBUF_SIMPLE) < 0)
+        {
+            PyErr_Clear();
+        }
+        else
+        {
+            PyBuffer_Release(&view);
+            return 0;
+        }
+    }
+#else
     if (PyObject_CheckReadBuffer(obj))
         return 0;
+#endif
 
     return -1;
 }
