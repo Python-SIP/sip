@@ -453,7 +453,7 @@ win32 {
     }
 }
 
-QMAKE_POST_LINK = $(COPY_FILE) $(DESTDIR_TARGET) $$PY_MODULE
+QMAKE_POST_LINK = $(COPY_FILE) $$PY_MODULE_SRC $$PY_MODULE
 
 target.CONFIG = no_check_exist
 target.files = $$PY_MODULE
