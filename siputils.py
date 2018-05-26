@@ -2,7 +2,7 @@
 # extension modules created with SIP.  It provides information about file
 # locations, version numbers etc., and provides some classes and functions.
 #
-# Copyright (c) 2015 Riverbank Computing Limited <info@riverbankcomputing.com>
+# Copyright (c) 2018 Riverbank Computing Limited <info@riverbankcomputing.com>
 #
 # This file is part of SIP.
 #
@@ -223,7 +223,8 @@ class Makefile:
         installs is a list of extra install targets.  Each element is a two
         part list, the first of which is the source and the second is the
         destination.  If the source is another list then it is a set of source
-        files and the destination is a directory.
+        files and the destination is a directory.  If the destination is None
+        then the source is a command to run.
         universal is the name of the SDK if the target is a MacOS/X universal
         binary.  If it is None then the value is taken from the configuration.
         arch is the space separated MacOS/X architectures to build.  If it is
@@ -1143,7 +1144,10 @@ class Makefile:
                 self._installs = [self._installs]
 
             for src, dst in self._installs:
-                self.install_file(mfile, src, dst)
+                if dst is None:
+                    mfile.write("\t%s\n" % src)
+                else:
+                    self.install_file(mfile, src, dst)
 
         self.generate_target_clean(mfile)
 

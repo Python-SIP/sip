@@ -427,7 +427,8 @@ of the work of creating these additional configuration modules.
             the list of extra install targets.  Each element is a two part
             list, the first of which is the source and the second is the
             destination.  If the source is another list then it is a list of
-            source files and the destination is a directory.
+            source files and the destination is a directory.  If the
+            destination is a directory then the source is a command to run.
         :param universal:
             the name of the SDK if universal binaries are to be created under
             MacOS/X.  If it is ``None`` then the value is taken from the

@@ -1,3 +1,9 @@
+v4.19.9 ??? ??? 2018
+  - A PEP 376 .dist-info directory is created on installation that provides
+    version information for dependent packages and allows pip to uninstall.
+  - Added the --no-dist-info option to configure.py.
+  - Bug fixes.
+
 v4.19.8 26th February 2018
   - Bug fixes.
 
