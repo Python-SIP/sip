@@ -6323,6 +6323,7 @@ static PyObject *createContainerType(sipContainerDef *cod, sipTypeDef *td,
     if (py_type == NULL)
         goto relargs;
 
+#if PY_VERSION_HEX >= 0x03030000
     /* Fix __qualname__ if there is a scope. */
     if (scope_td != NULL)
     {
@@ -6337,6 +6338,7 @@ static PyObject *createContainerType(sipContainerDef *cod, sipTypeDef *td,
         Py_CLEAR(ht->ht_qualname);
         ht->ht_qualname = qualname;
     }
+#endif
 
     /* Add the type to the "parent" dictionary. */
     if (PyDict_SetItem(scope_dict, name, py_type) < 0)
