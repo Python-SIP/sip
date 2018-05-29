@@ -406,11 +406,13 @@ def create_makefiles(macros):
 
         c_sources = get_sources("sipgen", "*.c")
         pro.write("\n")
-        pro.write("SOURCES = %s\n" % " ".join(c_sources))
+        pro.write("SOURCES = %s\n" % " ".join(
+                [qmake_quote(s) for s in c_sources]))
 
         headers = get_sources("sipgen", "*.h")
         pro.write("\n")
-        pro.write("HEADERS = %s\n" % " ".join(headers))
+        pro.write("HEADERS = %s\n" % " ".join(
+                [qmake_quote(h) for h in headers]))
 
         pro.close()
     else:
@@ -514,11 +516,13 @@ target.files = $$PY_MODULE
         c_sources = get_sources("siplib", "*.c")
         cpp_sources = get_sources("siplib", "*.cpp")
         pro.write("\n")
-        pro.write("SOURCES = %s\n" % " ".join(c_sources + cpp_sources))
+        pro.write("SOURCES = %s\n" % " ".join(
+                [qmake_quote(s) for s in c_sources + cpp_sources]))
 
         headers = get_sources("siplib", "*.h")
         pro.write("\n")
-        pro.write("HEADERS = %s\n" % " ".join(headers))
+        pro.write("HEADERS = %s\n" % " ".join(
+                [qmake_quote(h) for h in headers]))
 
         pro.close()
     else:
@@ -572,8 +576,19 @@ def get_sources(sources_dir, ext):
 def quote(path):
     """ Return a path that is quoted if necessary. """
 
-    if " " in path:
+    if ' ' in path:
         path = '"' + path + '"'
+
+    return path
+
+
+def qmake_quote(path):
+    """ Return a path quoted for qmake if it contains spaces.  path is the
+    path.
+    """
+
+    if ' ' in path:
+        path = '$$quote(%s)' % path
 
     return path
 
