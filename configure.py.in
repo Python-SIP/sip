@@ -432,6 +432,9 @@ def create_makefiles(macros):
 
     # The code generator installs.
     sip_dir, sip_exe = os.path.split(cfg.sip_bin)
+    if sys.platform == 'win32':
+        sip_exe += '.exe'
+
     all_installs.append((sip_exe, sip_dir))
 
     # The module installs.
