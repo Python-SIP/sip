@@ -3,7 +3,7 @@
 #
 # Copyright (c) 2018 Riverbank Computing Limited <info@riverbankcomputing.com>
 #
-# This script is distrubyted under the terms of the GNU General Public License
+# This script is distributed under the terms of the GNU General Public License
 # v3 as published by the Free Software Foundation.
 #
 # This script is supplied WITHOUT ANY WARRANTY; without even the implied
