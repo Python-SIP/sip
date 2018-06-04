@@ -63,11 +63,11 @@ Version: {1}
 '''
 
 distinfo_path, distinfo_base = os.path.split(distinfo_dir)
-name, version = os.path.splitext(distinfo_base)[0].split('-')
+pkg_name, version = os.path.splitext(distinfo_base)[0].split('-')
 
 metadata_fn = os.path.join(distinfo_dir, 'METADATA')
 metadata_f = open(metadata_fn, 'w')
-metadata_f.write(METADATA.format(name, version))
+metadata_f.write(METADATA.format(pkg_name, version))
 metadata_f.close()
 
 installed.append(metadata_fn)
@@ -76,23 +76,38 @@ installed.append(metadata_fn)
 record_fn = os.path.join(distinfo_dir, 'RECORD')
 record_f = open(record_fn, 'w')
 
-for fn in installed:
-    if fn.startswith(distinfo_path):
-        name = fn[len(distinfo_path) + 1:].replace('\\', '/')
-    elif fn.startswith(sys.prefix):
-        name = os.path.relpath(fn, distinfo_path).replace('\\', '/')
+for name in installed:
+    native_name = name.replace('/', os.sep)
+    if os.path.isdir(native_name):
+        all_fns = []
+
+        for root, dirs, files in os.walk(native_name):
+            for f in files:
+                all_fns.append(os.path.join(root, f).replace(os.sep, '/'))
+
+            if '__pycache__' in dirs:
+                dirs.remove('__pycache__')
     else:
-        name = fn
+        all_fns = [name]
 
-    fn_f = open(fn, 'rb')
-    data = fn_f.read()
-    fn_f.close()
+    for fn in all_fns:
+        if fn.startswith(distinfo_path):
+            fn_name = fn[len(distinfo_path) + 1:].replace('\\', '/')
+        elif fn.startswith(sys.prefix):
+            fn_name = os.path.relpath(fn, distinfo_path).replace('\\', '/')
+        else:
+            fn_name = fn
 
-    digest = base64.urlsafe_b64encode(
-            hashlib.sha256(data).digest()).rstrip(b'=').decode('ascii')
+        fn_f = open(fn, 'rb')
+        data = fn_f.read()
+        fn_f.close()
 
-    record_f.write('{0},sha256={1},{2}\n'.format(name, digest, len(data)))
+        digest = base64.urlsafe_b64encode(
+                hashlib.sha256(data).digest()).rstrip(b'=').decode('ascii')
 
-record_f.write('{0}/RECORD,,'.format(distinfo_base))
+        record_f.write(
+                '{0},sha256={1},{2}\n'.format(fn_name, digest, len(data)))
+
+record_f.write('{0}/RECORD,,\n'.format(distinfo_base))
 
 record_f.close()
