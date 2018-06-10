@@ -1,4 +1,7 @@
 v4.19.9 ??? ??? 2018
+  - The members of traditional C/C++ enums are now also visible within the
+    scope of the enum itself.  This means that members of scoped and unscoped
+    enums can be accessed in the same way from Python.
   - A PEP 376 .dist-info directory is created on installation that provides
     version information for dependent packages and allows pip to uninstall.
   - Added the --no-dist-info option to configure.py.

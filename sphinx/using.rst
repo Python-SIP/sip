@@ -431,6 +431,47 @@ Again, we hope that the scripts are self documenting.
        tags are not mutually exclusive, i.e. any number may be valid at a time.
 
 
+Wrapping Enums
+--------------
+
+.. versionadded:: 4.19.4
+
+SIP wraps C/C++ enums using a dedicated Python type and implements behaviour
+that mimics the C/C++ behaviour regqrding the visibility of the enum's members.
+In other words, an enum's members have the same visibility as the enum itself.
+For example::
+
+    class MyClass
+    {
+    public:
+        enum MyEnum
+        {
+            Member
+        }
+    }
+
+In Python the ``Member`` member is referenced as ``MyClass.Member``.  This
+behaviour makes it easier to translate C/C++ code to Python.
+
+In more recent times C++11 has introduced scoped enums and Python has
+introduced the :mod:`enum` module.  In both cases a member is only visible in
+the scope of the enum.  In other words, the ``Member`` member is referenced as
+``MyClass.MyEnum.Member``.
+
+This version of SIP adds support for wrapping C++11 scoped enums and implements
+them as Python :class:`enum.Enum` objects.
+
+.. versionadded:: 4.19.9
+
+A disadvantage of the above is that the Python programmer needs to know the
+nature of the C/C++ enum in order to access its members.  In order to avoid
+this, this version of SIP makes the members of traditional C/C++ enums visible
+from the scope of the enum as well.
+
+It is recommended that Python code should always specify the enum scope when
+referencing an enum member.
+
+
 .. _ref-object-ownership:
 
 Ownership of Objects

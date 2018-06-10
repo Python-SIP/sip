@@ -727,6 +727,7 @@ typedef struct _sipEventHandler {
  *****************************************************************************/
 
 static PyObject *sipEnumType_alloc(PyTypeObject *self, SIP_SSIZE_T nitems);
+static PyObject *sipEnumType_getattr(PyObject *self, char *name);
 
 
 /*
@@ -741,7 +742,7 @@ static PyTypeObject sipEnumType_Type = {
     0,                      /* tp_itemsize */
     0,                      /* tp_dealloc */
     0,                      /* tp_print */
-    0,                      /* tp_getattr */
+    sipEnumType_getattr,    /* tp_getattr */
     0,                      /* tp_setattr */
     0,                      /* tp_as_async (Python v3.5), tp_compare (Python v2) */
     0,                      /* tp_repr */
@@ -13019,6 +13020,48 @@ static PyObject *sipEnumType_alloc(PyTypeObject *self, SIP_SSIZE_T nitems)
         addTypeSlots(&py_type->super, psd);
 
     return (PyObject *)py_type;
+}
+
+
+/*
+ * The enum type getattr slot.
+ */
+static PyObject *sipEnumType_getattr(PyObject *self, char *name)
+{
+    sipEnumTypeDef *etd = (sipEnumTypeDef *)((sipEnumTypeObject *)self)->type;
+    sipExportedModuleDef *client = ((sipTypeDef *)etd)->td_module;
+    const sipEnumMemberDef *enm, *emd;
+    int enum_nr, nr_members, m;
+
+    /* Find the number of this enum. */
+    for (enum_nr = 0; enum_nr < client->em_nrtypes; ++enum_nr)
+        if (client->em_types[enum_nr] == (sipTypeDef *)etd)
+            break;
+
+    /* Get the enum members in the same scope. */
+    if (etd->etd_scope < 0)
+    {
+        nr_members = client->em_nrenummembers;
+        enm = client->em_enummembers;
+    }
+    else
+    {
+        const sipContainerDef *cod = get_container(client->em_types[etd->etd_scope]);
+
+        nr_members = cod->cod_nrenummembers;
+        enm = cod->cod_enummembers;
+    }
+
+    /* Find the enum member. */
+    for (emd = enm, m = 0; m < nr_members; ++m, ++emd)
+        if (emd->em_enum == enum_nr && strcmp(emd->em_name, name) == 0)
+            return sip_api_convert_from_enum(emd->em_val, (sipTypeDef *)etd);
+
+    PyErr_Format(PyExc_AttributeError,
+            "sip.enumtype object '%s' has no member '%s'",
+            sipPyNameOfEnum(etd), name);
+
+    return NULL;
 }
 
 
