@@ -727,7 +727,7 @@ typedef struct _sipEventHandler {
  *****************************************************************************/
 
 static PyObject *sipEnumType_alloc(PyTypeObject *self, SIP_SSIZE_T nitems);
-static PyObject *sipEnumType_getattr(PyObject *self, char *name);
+static PyObject *sipEnumType_getattro(PyObject *self, PyObject *name);
 
 
 /*
@@ -742,7 +742,7 @@ static PyTypeObject sipEnumType_Type = {
     0,                      /* tp_itemsize */
     0,                      /* tp_dealloc */
     0,                      /* tp_print */
-    sipEnumType_getattr,    /* tp_getattr */
+    0,                      /* tp_getattr */
     0,                      /* tp_setattr */
     0,                      /* tp_as_async (Python v3.5), tp_compare (Python v2) */
     0,                      /* tp_repr */
@@ -752,7 +752,7 @@ static PyTypeObject sipEnumType_Type = {
     0,                      /* tp_hash */
     0,                      /* tp_call */
     0,                      /* tp_str */
-    0,                      /* tp_getattro */
+    sipEnumType_getattro,   /* tp_getattro */
     0,                      /* tp_setattro */
     0,                      /* tp_as_buffer */
     Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,   /* tp_flags */
@@ -6277,8 +6277,6 @@ static PyObject *createContainerType(sipContainerDef *cod, sipTypeDef *td,
 {
     PyObject *py_type, *scope_dict, *name, *args;
     sipTypeDef *scope_td;
-#if PY_VERSION_HEX >= 0x03030000
-#endif
 
     /* Get the dictionary to place the type in. */
     if (cod->cod_scope.sc_flag)
@@ -13024,14 +13022,54 @@ static PyObject *sipEnumType_alloc(PyTypeObject *self, SIP_SSIZE_T nitems)
 
 
 /*
- * The enum type getattr slot.
+ * The enum type getattro slot.
  */
-static PyObject *sipEnumType_getattr(PyObject *self, char *name)
+static PyObject *sipEnumType_getattro(PyObject *self, PyObject *name)
 {
-    sipEnumTypeDef *etd = (sipEnumTypeDef *)((sipEnumTypeObject *)self)->type;
-    sipExportedModuleDef *client = ((sipTypeDef *)etd)->td_module;
+    PyObject *res;
+    sipEnumTypeDef *etd;
+    sipExportedModuleDef *client;
     const sipEnumMemberDef *enm, *emd;
     int enum_nr, nr_members, m;
+    const char *name_str;
+
+    /*
+     * Try a generic lookup first.  This has the side effect of checking the
+     * type of the name object.
+     */
+    if ((res = PyObject_GenericGetAttr(self, name)) != NULL)
+        return res;
+
+    if (!PyErr_ExceptionMatches(PyExc_AttributeError))
+        return NULL;
+
+    PyErr_Clear();
+
+    /* Get the member name. */
+#if PY_VERSION_HEX >= 0x03030000
+    name_str = PyUnicode_AsUTF8(name);
+#elif PY_MAJOR_VERSION >= 3
+    name_str = _PyUnicode_AsString(name);
+#else
+    /* We don't handle Unicode names. */
+    if (!PyStringCheck(name))
+    {
+        PyErr_Format(PyExc_TypeError,
+                "attribute name must be string, not '%.200s'",
+                Py_TYPE(name)->tp_name);
+        name_str = NULL;
+    }
+    else
+    {
+        name_str = PyString_AS_STRING(name);
+    }
+#endif
+
+    if (name_str == NULL)
+        return NULL;
+
+    etd = (sipEnumTypeDef *)((sipEnumTypeObject *)self)->type;
+    client = ((sipTypeDef *)etd)->td_module;
 
     /* Find the number of this enum. */
     for (enum_nr = 0; enum_nr < client->em_nrtypes; ++enum_nr)
@@ -13054,12 +13092,12 @@ static PyObject *sipEnumType_getattr(PyObject *self, char *name)
 
     /* Find the enum member. */
     for (emd = enm, m = 0; m < nr_members; ++m, ++emd)
-        if (emd->em_enum == enum_nr && strcmp(emd->em_name, name) == 0)
+        if (emd->em_enum == enum_nr && strcmp(emd->em_name, name_str) == 0)
             return sip_api_convert_from_enum(emd->em_val, (sipTypeDef *)etd);
 
     PyErr_Format(PyExc_AttributeError,
             "sip.enumtype object '%s' has no member '%s'",
-            sipPyNameOfEnum(etd), name);
+            sipPyNameOfEnum(etd), name_str);
 
     return NULL;
 }
