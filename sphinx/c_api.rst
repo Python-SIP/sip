@@ -2287,7 +2287,7 @@ specification files.
     :param obj:
         the wrapped object.
     :param user:
-        the user object.
+        a borrowed reference to the user object.
 
 
 .. c:type:: sipSimpleWrapper
