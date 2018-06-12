@@ -12392,7 +12392,7 @@ static const char *resultOwner(overDef *od)
     if (isResultTransferredBack(od))
         return "Py_None";
 
-    if (isResultTransferred(od))
+    if (isResultTransferred(od) && !isStatic(od))
         return "sipSelf";
 
     return "NULL";
