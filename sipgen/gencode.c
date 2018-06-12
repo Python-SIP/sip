@@ -11992,8 +11992,10 @@ static void generateHandleResult(moduleDef *mod, overDef *od, int isNew,
             }
             else
             {
+                int need_xfer = (isResultTransferred(od) && isStatic(od));
+
                 prcode(fp,
-"            %s sipConvertFromType(",(nrvals == 1 ? prefix : "PyObject *sipResObj ="));
+"            %s sipConvertFromType(", (nrvals > 1 || need_xfer ? "PyObject *sipResObj =" : prefix));
 
                 if (isConstArg(res))
                     prcode(fp,"const_cast<%b *>(sipRes)",res);
@@ -12001,13 +12003,31 @@ static void generateHandleResult(moduleDef *mod, overDef *od, int isNew,
                     prcode(fp,"sipRes");
 
                 prcode(fp, ",sipType_%C,%s);\n"
-                    , iff->fqcname, resultOwner(od));
+                    , iff->fqcname, (need_xfer ? "NULL" : resultOwner(od)));
+
+                /*
+                 * Transferring the result of a static overload needs an
+                 * explicit call to sipTransferTo().
+                 */
+                if (need_xfer)
+                    prcode(fp,
+"\n"
+"           sipTransferTo(sipResObj, Py_None);\n"
+                        );
 
                 /*
                  * Shortcut if this is the only value returned.
                  */
                 if (nrvals == 1)
+                {
+                    if (need_xfer)
+                        prcode(fp,
+"\n"
+"           return sipResObj;\n"
+                        );
+
                     return;
+                }
             }
         }
     }
@@ -12392,7 +12412,7 @@ static const char *resultOwner(overDef *od)
     if (isResultTransferredBack(od))
         return "Py_None";
 
-    if (isResultTransferred(od) && !isStatic(od))
+    if (isResultTransferred(od))
         return "sipSelf";
 
     return "NULL";
