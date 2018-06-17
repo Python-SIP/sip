@@ -10,6 +10,14 @@ all SIP generated bindings.  It is loaded automatically and most of the time
 you will completely ignore it.  However, it does expose some functionality that
 can be used by applications.
 
+.. versionadded:: 4.19.4
+
+When a private copy of the SIP module is being used it would normally be
+imported from the package containing the private copy.  However, in order to
+maintain compatibility with earlier versions, the module can also be imported
+as a top-level module *so long as a SIP-generated extension module has
+previously been imported*.
+
 
 .. class:: array
 

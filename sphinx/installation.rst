@@ -154,9 +154,10 @@ The full set of command line options is:
 .. cmdoption:: --sip-module <NAME>
 
     The :mod:`sip` module will be created with the name ``<NAME>`` rather than
-    the default ``sip``.  ``<NAME>`` may be of the form
-    ``package.sub-package.module``.  See :ref:`ref-private-sip` for how to use
-    this to create a private copy of the :mod:`sip` module.
+    the default ``sip``.  ``<NAME>`` should be of the form ``package.sip``.
+    See :ref:`ref-private-sip` for how to use this to create a private copy of
+    the :mod:`sip` module.  Also see the :option:`-n <sip -n>` option of the
+    code generator.
 
 .. cmdoption:: --sysroot <DIR>
 

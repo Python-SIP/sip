@@ -724,23 +724,22 @@ Building a Private Copy of the ``sip`` Module
 
 .. versionadded:: 4.12
 
-The ``sip`` module is intended to be be used by all the SIP generated modules
-of a particular Python installation.  For example PyQt4 and PyQt5 are
-completely independent of each other but will use the same ``sip`` module.
-However, this means that all the generated modules must be built against a
-compatible version of SIP.  If you do not have complete control over the
-Python installation then this may be difficult or even impossible to achieve.
+The :mod:`sip` module is intended to be be used by all the SIP generated
+modules of a particular Python installation.  For example PyQt4 and PyQt5 are
+completely independent of each other but, historically, used the same
+:mod:`sip` module.  However, this meant that all the generated modules must be
+built against a compatible version of SIP.  If you do not have complete control
+over the Python installation then this may be difficult or even impossible to
+achieve.
 
-To get around this problem you can build a private copy of the ``sip`` module
-that has a different name and/or is placed in a different Python package.  To
-do this you use the :option:`--sip-module <configure.py --sip-module>` option
-to specify the name (optionally including a package name) of your private copy.
+To get around this problem you can build a private copy of the :mod:`sip`
+module that installed as part of your package.  To do this you use the
+:option:`--sip-module <configure.py --sip-module>` option to specify the fully
+qualified package name of your private copy.
 
-As well as building the private copy of the module, the version of the
-``sip.h`` header file will also be specific to the private copy.  You will
-probably also want to use the :option:`--incdir <configure.py -e>` option to
-specify the directory where the header file will be installed to avoid
-overwriting a copy of the default version that might already be installed.
+Note that SIP v5 will only support private copies of the :mod:`sip` module.
 
-When building your generated modules you must ensure that they ``#include`` the
-private copy of ``sip.h`` instead of any default version.
+.. versionadded:: 4.19.9
+
+In order use the private copy of the :mod:`sip` module you must use the
+:option:`-n <sip -n>` option when generating the bindings code.

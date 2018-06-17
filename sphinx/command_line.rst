@@ -111,6 +111,15 @@ The full set of command line options is:
     All functions and methods will, by default, support passing parameters
     using the Python keyword argument syntax.
 
+.. cmdoption:: -n <NAME>
+
+    .. versionadded:: 4.19.9
+
+    The qualified name of the private copy of the :mod:`sip` module.  It should
+    be of the form ``package.sip``.  See also the
+    :option:`--sip-module <configure.py --sip-module>` option of the
+    installation script.
+
 .. cmdoption:: -o
 
     .. versionadded:: 4.10
