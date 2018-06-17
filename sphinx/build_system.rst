@@ -19,18 +19,15 @@ The build system is implemented as a pure Python module called :mod:`sipconfig`
 that contains a number of classes and functions.  Using this module you can
 write bespoke configuration scripts (e.g. PyQt4's ``configure.py``) or use it
 with other Python based build systems (e.g.
-`Distutils <http://www.python.org/sigs/distutils-sig/distutils.html>`_ and
-`SCons <http://www.scons.org>`_).
+`Distutils <https://www.python.org/community/sigs/current/distutils-sig/>`_ and
+`SCons <https://www.scons.org>`_).
 
 An important feature of SIP is the ability to generate bindings that are built
-on top of existing bindings.  For example, both
-`PyKDE <http://www.riverbankcomputing.com/software/pykde/>`_ and
-`PyQwt <http://pyqwt.sourceforge.net/>`_ are built on top of PyQt4 but all
-three packages are maintained by different developers.  To make this easier
-PyQt4 includes its own configuration module, ``pyqtconfig``, that contains
-additional classes intended to be used by the configuration scripts of bindings
-built on top of PyQt4.  The SIP build system includes facilities that do a lot
-of the work of creating these additional configuration modules.
+on top of existing bindings.  To make this easier PyQt4 includes its own
+configuration module, ``pyqtconfig``, that contains additional classes intended
+to be used by the configuration scripts of bindings built on top of PyQt4.  The
+SIP build system includes facilities that do a lot of the work of creating
+these additional configuration modules.
 
 
 .. function:: create_config_module(module, template, content[, macros=None])

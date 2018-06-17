@@ -5,7 +5,7 @@ Downloading
 -----------
 
 You can get the latest release of the SIP source code from
-http://www.riverbankcomputing.com/software/sip/download.
+https://www.riverbankcomputing.com/software/sip/download.
 
 SIP is also included with all of the major Linux distributions.  However, it
 may be a version or two out of date.

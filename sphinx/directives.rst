@@ -1257,7 +1257,7 @@ garbage collector is to do its job, it needs to provide some handwritten code
 to traverse and potentially clear those embedded references.
 
 See the section `Supporting Cyclic Garbage Collection
-<http://docs.python.org/3/c-api/gcsupport.html>`__ in the Python documentation
+<https://docs.python.org/3/c-api/gcsupport.html>`__ in the Python documentation
 for the details.
 
 This directive is used to specify the code that clears any embedded references.
