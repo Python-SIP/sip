@@ -1010,13 +1010,13 @@ static int long_as_nonoverflow_int(PyObject *val_obj);
  * The Python module initialisation function.
  */
 #if PY_MAJOR_VERSION >= 3
-#define SIP_MODULE_ENTRY        PyInit_@CFG_MODULE_BASENAME@
+#define SIP_MODULE_ENTRY        PyInit_sip
 #define SIP_MODULE_TYPE         PyObject *
 #define SIP_MODULE_DISCARD(m)   Py_DECREF(m)
 #define SIP_FATAL(s)            return NULL
 #define SIP_MODULE_RETURN(m)    return (m)
 #else
-#define SIP_MODULE_ENTRY        init@CFG_MODULE_BASENAME@
+#define SIP_MODULE_ENTRY        initsip
 #define SIP_MODULE_TYPE         void
 #define SIP_MODULE_DISCARD(m)
 #define SIP_FATAL(s)            Py_FatalError(s)
@@ -1230,6 +1230,18 @@ PyMODINIT_FUNC SIP_MODULE_ENTRY(void)
 
     /* Make sure we are notified when starting to exit. */
     register_exit_notifier();
+
+    /*
+     * Also install the package-specific module at the top level for backwards
+     * compatibility.
+     */
+    if (strcmp(SIP_MODULE_NAME, "sip") != 0)
+    {
+        PyObject *modules = PySys_GetObject("modules");
+
+        if (modules != NULL)
+            PyDict_SetItemString(modules, "sip", mod);
+    }
 
     SIP_MODULE_RETURN(mod);
 }
