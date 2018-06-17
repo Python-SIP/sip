@@ -50,7 +50,7 @@ static int parseInt(char *,char);
 int main(int argc, char **argv)
 {
     char *filename, *docFile, *codeDir, *srcSuffix, *flagFile, *consModule;
-    char arg, *optarg, *buildFile, *apiFile, *xmlFile, *pyiFile;
+    char arg, *optarg, *buildFile, *apiFile, *xmlFile, *pyiFile, *sipName;
     int optnr, exceptions, tracing, releaseGIL, parts, protHack, docs;
     int timestamp, was_flagFile, py_debug, strict;
     KwArgs kwArgs;
@@ -73,6 +73,7 @@ int main(int argc, char **argv)
     apiFile = NULL;
     xmlFile = NULL;
     pyiFile = NULL;
+    sipName = NULL;
     consModule = NULL;
     extracts = NULL;
     exceptions = FALSE;
@@ -89,7 +90,7 @@ int main(int argc, char **argv)
     /* Parse the command line. */
     optnr = 1;
 
-    while ((arg = parseopt(argc, argv, "hVa:b:B:ec:d:DfgI:j:km:op:Prs:t:Twx:X:y:z:", &flagFile, &optnr, &optarg)) != '\0')
+    while ((arg = parseopt(argc, argv, "hVa:b:B:ec:d:DfgI:j:km:n:op:Prs:t:Twx:X:y:z:", &flagFile, &optnr, &optarg)) != '\0')
         switch (arg)
         {
         case 'o':
@@ -115,6 +116,11 @@ int main(int argc, char **argv)
         case 'm':
             /* Where to generate the XML file. */
             xmlFile = optarg;
+            break;
+
+        case 'n':
+            /* The qualified name of the sip module. */
+            sipName = optarg;
             break;
 
         case 'y':
@@ -284,7 +290,7 @@ int main(int argc, char **argv)
     /* Generate code. */
     generateCode(&spec, codeDir, buildFile, docFile, srcSuffix, exceptions,
             tracing, releaseGIL, parts, versions, xfeatures, consModule, docs,
-            py_debug);
+            py_debug, sipName);
 
     /* Generate any extracts. */
     generateExtracts(&spec, extracts);
@@ -582,7 +588,7 @@ static void help(void)
 {
     printf(
 "Usage:\n"
-"    %s [-h] [-V] [-a file] [-b file] [-B tag] [-c dir] [-d file] [-D] [-e] [-f] [-g] [-I dir] [-j #] [-k] [-m file] [-o] [-p module] [-P] [-r] [-s suffix] [-t tag] [-T] [-w] [-x feature] [-X id:file] [-z file] [@file] [file]\n"
+"    %s [-h] [-V] [-a file] [-b file] [-B tag] [-c dir] [-d file] [-D] [-e] [-f] [-g] [-I dir] [-j #] [-k] [-m file] [-n name] [-o] [-p module] [-P] [-r] [-s suffix] [-t tag] [-T] [-w] [-x feature] [-X id:file] [-z file] [@file] [file]\n"
 "where:\n"
 "    -h          display this help message\n"
 "    -V          display the %s version number\n"
@@ -599,6 +605,7 @@ static void help(void)
 "    -j #        split the generated code into # files [default 1 per class]\n"
 "    -k          support keyword arguments in functions and methods\n"
 "    -m file     the name of the XML export file [default not generated]\n"
+"    -n name     the qualified name of the private copy of the sip module\n"
 "    -o          enable the automatic generation of docstrings [default disabled]\n"
 "    -p module   the name of the consolidated module that this is a component of\n"
 "    -P          enable the protected/public hack\n"
@@ -624,8 +631,8 @@ static void help(void)
 static void usage(void)
 {
     fatal("Usage: %s [-h] [-V] [-a file] [-b file] [-B tag] [-c dir] "
-            "[-d file] [-D] [-e] [-f] [-g] [-I dir] [-j #] [-k] [-m file] [-o] "
-            "[-p module] [-P] [-r] [-s suffix] [-t tag] [-w] [-x feature] "
-            "[-X id:file] [-y file] [-z file] [@file] [file]\n",
+            "[-d file] [-D] [-e] [-f] [-g] [-I dir] [-j #] [-k] [-m file] "
+            "[-n name] [-o] [-p module] [-P] [-r] [-s suffix] [-t tag] [-w] "
+            "[-x feature] [-X id:file] [-y file] [-z file] [@file] [file]\n",
             sipPackage);
 }

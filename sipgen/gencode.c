@@ -80,14 +80,14 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
         int py_debug);
 static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         const char *srcSuffix, int parts, stringList *needed_qualifiers,
-        stringList *xsl, int py_debug);
+        stringList *xsl, int py_debug, const char *sipName);
 static void generateCompositeCpp(sipSpec *pt, const char *codeDir,
         int py_debug);
 static void generateConsolidatedCpp(sipSpec *pt, const char *codeDir,
         const char *srcSuffix);
 static void generateComponentCpp(sipSpec *pt, const char *codeDir,
         const char *consModule);
-static void generateSipImport(moduleDef *mod, FILE *fp);
+static void generateSipImport(moduleDef *mod, const char *sipName, FILE *fp);
 static void generateSipImportVariables(FILE *fp);
 static void generateModInitStart(moduleDef *mod, int gen_c, FILE *fp);
 static void generateModDefinition(moduleDef *mod, const char *methods,
@@ -319,7 +319,7 @@ static void normaliseSignalArg(argDef *ad);
 void generateCode(sipSpec *pt, char *codeDir, char *buildFile, char *docFile,
         const char *srcSuffix, int except, int trace, int releaseGIL,
         int parts, stringList *needed_qualifiers, stringList *xsl,
-        const char *consModule, int docs, int py_debug)
+        const char *consModule, int docs, int py_debug, const char *sipName)
 {
     exceptions = except;
     tracing = trace;
@@ -346,7 +346,7 @@ void generateCode(sipSpec *pt, char *codeDir, char *buildFile, char *docFile,
             for (mod = pt->modules; mod != NULL; mod = mod->next)
                 if (mod->container == pt->module)
                     generateCpp(pt, mod, codeDir, srcSuffix, parts,
-                            needed_qualifiers, xsl, py_debug);
+                            needed_qualifiers, xsl, py_debug, sipName);
 
             generateConsolidatedCpp(pt, codeDir, srcSuffix);
         }
@@ -354,7 +354,7 @@ void generateCode(sipSpec *pt, char *codeDir, char *buildFile, char *docFile,
             generateComponentCpp(pt, codeDir, consModule);
         else
             generateCpp(pt, pt->module, codeDir, srcSuffix, parts,
-                    needed_qualifiers, xsl, py_debug);
+                    needed_qualifiers, xsl, py_debug, sipName);
     }
 
     /* Generate the build file. */
@@ -1489,7 +1489,7 @@ static void generateNameCache(sipSpec *pt, FILE *fp)
  */
 static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         const char *srcSuffix, int parts, stringList *needed_qualifiers,
-        stringList *xsl, int py_debug)
+        stringList *xsl, int py_debug, const char *sipName)
 {
     char *cppfile;
     const char *mname = mod->name;
@@ -2556,7 +2556,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "\n"
         );
 
-    generateSipImport(mod, fp);
+    generateSipImport(mod, sipName, fp);
 
     /* Generate any initialisation code. */
     generateCppCodeBlock(mod->initcode, fp);
@@ -2763,7 +2763,7 @@ static void generateTypesTable(moduleDef *mod, FILE *fp)
 /*
  * Generate the code to import the sip module and get its API.
  */
-static void generateSipImport(moduleDef *mod, FILE *fp)
+static void generateSipImport(moduleDef *mod, const char *sipName, FILE *fp)
 {
     /*
      * Note that we don't use PyCapsule_Import() because it doesn't handle
@@ -2773,18 +2773,18 @@ static void generateSipImport(moduleDef *mod, FILE *fp)
     prcode(fp,
 "    /* Get the SIP module's API. */\n"
 "#if PY_VERSION_HEX >= 0x02050000\n"
-"    sip_sipmod = PyImport_ImportModule(SIP_MODULE_NAME);\n"
+"    sip_sipmod = PyImport_ImportModule(\"%s\");\n"
 "#else\n"
-        );
+        , sipName);
 
     if (generating_c)
         prcode(fp,
-"    sip_sipmod = PyImport_ImportModule((char *)SIP_MODULE_NAME);\n"
-            );
+"    sip_sipmod = PyImport_ImportModule((char *)\"%s\");\n"
+            , sipName);
     else
         prcode(fp,
-"    sip_sipmod = PyImport_ImportModule(const_cast<char *>(SIP_MODULE_NAME));\n"
-            );
+"    sip_sipmod = PyImport_ImportModule(const_cast<char *>(\"%s\"));\n"
+            , sipName);
 
     prcode(fp,
 "#endif\n"
@@ -2813,21 +2813,21 @@ static void generateSipImport(moduleDef *mod, FILE *fp)
     if (generating_c)
         prcode(fp,
 "#if defined(SIP_USE_PYCAPSULE)\n"
-"    sipAPI_%s = (const sipAPIDef *)PyCapsule_GetPointer(sip_capiobj, SIP_MODULE_NAME \"._C_API\");\n"
+"    sipAPI_%s = (const sipAPIDef *)PyCapsule_GetPointer(sip_capiobj, \"%s._C_API\");\n"
 "#else\n"
 "    sipAPI_%s = (const sipAPIDef *)PyCObject_AsVoidPtr(sip_capiobj);\n"
 "#endif\n"
-        , mod->name
+        , mod->name, sipName
         , mod->name);
     else
         prcode(fp,
 "#if defined(SIP_USE_PYCAPSULE)\n"
-"    sipAPI_%s = reinterpret_cast<const sipAPIDef *>(PyCapsule_GetPointer(sip_capiobj, SIP_MODULE_NAME \"._C_API\"));\n"
+"    sipAPI_%s = reinterpret_cast<const sipAPIDef *>(PyCapsule_GetPointer(sip_capiobj, \"%s._C_API\"));\n"
 "#else\n"
 "    sipAPI_%s = reinterpret_cast<const sipAPIDef *>(PyCObject_AsVoidPtr(sip_capiobj));\n"
 "#endif\n"
 "\n"
-        , mod->name
+        , mod->name, sipName
         , mod->name);
 
     prcode(fp,

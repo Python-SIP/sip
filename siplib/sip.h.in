@@ -269,15 +269,6 @@ extern "C" {
 
 
 /*
- * The qualified name of the sip module.  The qualified name should be defined
- * in the compiler invocation when creating/using a package-specific copy.
- */
-#if !defined(SIP_MODULE_NAME)
-#define SIP_MODULE_NAME     "sip"
-#endif
-
-
-/*
  * Qt includes this typedef and its meta-object system explicitly converts
  * types to uint.  If these correspond to signal arguments then that conversion
  * is exposed.  Therefore SIP generates code that uses it.  This definition is

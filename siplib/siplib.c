@@ -39,6 +39,15 @@
 
 
 /*
+ * The qualified name of the sip module.  The qualified name should be defined
+ * in the compiler invocation when creating a package-specific copy.
+ */
+#if !defined(SIP_MODULE_NAME)
+#define SIP_MODULE_NAME     "sip"
+#endif
+
+
+/*
  * The Python metatype for a C++ wrapper type.  We inherit everything from the
  * standard Python metatype except the init and getattro methods and the size
  * of the type object created is increased to accomodate the extra information
