@@ -269,7 +269,7 @@ def create_config(module, template, macros):
         "sip_bin":          os.path.join(sip_bin_dir, "sip"),
         "sip_inc_dir":      sip_inc_dir,
         "sip_root_dir":     sip_root_dir,
-        "sip_mod_dir":      sip_module_dir,
+        "sip_module_dir":   sip_module_dir,
         "default_bin_dir":  plat_bin_dir,
         "default_mod_dir":  plat_py_site_dir,
         "default_sip_dir":  sip_sip_dir,
@@ -348,7 +348,9 @@ def create_makefiles(macros):
     else:
         sipconfig.inform("Creating top level Makefile...")
 
-        if opts.distinfo:
+        # Note that mk_distinfo.py won't exist if we are building from the
+        # repository.
+        if opts.distinfo and os.path.isfile('mk_distinfo.py'):
             installs.append((mk_distinfo, None))
 
         sipconfig.ParentMakefile(
@@ -419,7 +421,7 @@ def create_makefiles(macros):
     all_installs.extend(module_installs)
 
     mod_ext = '.pyd' if sys.platform == 'win32' else '.so'
-    all_installs.append(('sip' + mod_ext, cfg.sip_mod_dir))
+    all_installs.append(('sip' + mod_ext, cfg.sip_module_dir))
 
     if opts.use_qmake:
         sipconfig.inform("Creating sip module .pro file...")
@@ -476,7 +478,7 @@ target.files = $$PY_MODULE
 """ % (debug_suffix, link_lib_dir))
 
         pro.write("\n")
-        pro.write("target.path = %s\n" % cfg.sip_mod_dir)
+        pro.write("target.path = %s\n" % cfg.sip_module_dir)
         pro.write("INSTALLS += target\n")
 
         if opts.pyi:
@@ -511,7 +513,7 @@ target.files = $$PY_MODULE
             configuration=cfg,
             build_file=os.path.join(build_dir, "siplib", "siplib.sbf"),
             dir="siplib",
-            install_dir=cfg.sip_mod_dir,
+            install_dir=cfg.sip_module_dir,
             installs=module_installs,
             console=1,
             warnings=1,
@@ -934,6 +936,8 @@ def main(argv):
         del module_path[-1]
         module_path.insert(0, sip_root_dir)
         sip_module_dir = os.path.join(*module_path)
+    else:
+        sip_module_dir = sip_root_dir
 
     # Override from the command line.
     if opts.platform is not None:

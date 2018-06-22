@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# Copyright (c) 2017 Riverbank Computing Limited <info@riverbankcomputing.com>
+# Copyright (c) 2018 Riverbank Computing Limited <info@riverbankcomputing.com>
 #
 # This file is part of SIP.
 #
@@ -73,7 +73,7 @@ def prepare(quiet):
     os.system('bison -y -d -o %s %s' % (parser_c, parser_y))
 
     _patch(os.path.join('sipgen', 'sip.h'), quiet)
-    _patch(os.path.join('siplib', 'sip.h.in'), quiet)
+    _patch(os.path.join('siplib', 'sip.h'), quiet)
     _patch('configure.py', quiet)
 
 
