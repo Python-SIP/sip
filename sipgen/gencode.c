@@ -307,7 +307,7 @@ static void generateGlobalFunctionTableEntries(sipSpec *pt, moduleDef *mod,
 static int prTemplateType(FILE *fp, ifaceFileDef *scope, templateDef *td,
         StripAction strip);
 static int isString(argDef *ad);
-static scopedNameDef *stripScope(scopedNameDef *snd, classDef *ecd,
+static scopedNameDef *stripScope(ifaceFileDef *scope, scopedNameDef *snd,
         StripAction strip, int *ns_stripped);
 static void prEnumMemberScope(enumMemberDef *emd, FILE *fp);
 static void normaliseSignalArg(argDef *ad);
@@ -9472,7 +9472,8 @@ static int generateNamedBaseType(ifaceFileDef *scope, argDef *ad,
         if (isReference(&td->type))
             is_reference = FALSE;
 
-        prcode(fp, "%S", stripScope(td->fqname, NULL, strip, &ns_stripped));
+        prcode(fp, "%S",
+                stripScope(scope, td->fqname, strip, &ns_stripped));
     }
     else
     {
@@ -9620,7 +9621,7 @@ static int generateNamedBaseType(ifaceFileDef *scope, argDef *ad,
                     fprintf(fp, "struct ");
 
                 prScopedName(fp,
-                        stripScope(ad->u.snd, NULL, strip, &ns_stripped),
+                        stripScope(scope, ad->u.snd, strip, &ns_stripped),
                         "::");
             }
 
@@ -9653,7 +9654,7 @@ static int generateNamedBaseType(ifaceFileDef *scope, argDef *ad,
                     fprintf(fp,"int");
                 else
                     prScopedName(fp,
-                            stripScope(ed->fqcname, ed->ecd, strip,
+                            stripScope(scope, ed->fqcname, strip,
                                     &ns_stripped),
                             "::");
 
@@ -14767,7 +14768,7 @@ static int prScopedClassName(FILE *fp, ifaceFileDef *scope, classDef *cd,
     else
     {
         prScopedName(fp,
-                stripScope(classFQCName(cd), cd->ecd, strip, &ns_stripped),
+                stripScope(scope, classFQCName(cd), strip, &ns_stripped),
                 "::");
     }
 
@@ -15714,7 +15715,7 @@ static int prTemplateType(FILE *fp, ifaceFileDef *scope, templateDef *td,
     if (prcode_xml)
         strip = StripGlobal;
 
-    prcode(fp, "%S%s", stripScope(td->fqname, NULL, strip, &ns_stripped),
+    prcode(fp, "%S%s", stripScope(scope, td->fqname, strip, &ns_stripped),
             (prcode_xml ? "&lt;" : "<"));
     
     for (a = 0; a < td->types.nrArgs; ++a)
@@ -15738,7 +15739,7 @@ static int prTemplateType(FILE *fp, ifaceFileDef *scope, templateDef *td,
 /*
  * Strip the leading scopes from a scoped name as required.
  */
-static scopedNameDef *stripScope(scopedNameDef *snd, classDef *ecd,
+static scopedNameDef *stripScope(ifaceFileDef *scope, scopedNameDef *snd,
         StripAction strip, int *ns_stripped)
 {
     *ns_stripped = FALSE;
@@ -15747,27 +15748,16 @@ static scopedNameDef *stripScope(scopedNameDef *snd, classDef *ecd,
     {
         snd = removeGlobalScope(snd);
 
-        if (strip == StripNamespace && ecd != NULL)
+        if (strip == StripNamespace)
         {
-            int i, nr_outers;
+            scopedNameDef *scoped_snd = removeGlobalScope(scope->fqcname);
 
-            /* Count the number of outer namespaces. */
-            nr_outers = 0;
-
-            do
+            while (scoped_snd != NULL && snd != NULL && strcmp(scoped_snd->name, snd->name) == 0)
             {
-                if (ecd->iff->type != namespace_iface)
-                    nr_outers = 0;
-                else
-                    ++nr_outers;
-            }
-            while ((ecd = ecd->ecd) != NULL);
-
-            /* Remove the names of any outer namespaces. */
-            for (i = 0; i < nr_outers; ++i)
-            {
-                *ns_stripped = TRUE;
+                scoped_snd = scoped_snd->next;
                 snd = snd->next;
+
+                *ns_stripped = TRUE;
             }
         }
     }
