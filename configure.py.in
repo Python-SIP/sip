@@ -320,6 +320,10 @@ def create_makefiles(macros):
     distinfo_dir = os.path.join(cfg.sip_root_dir,
             '%s-%s.dist-info' % (sip_module_name.replace('.', '_'),
                     sip_version_str))
+
+    if sys.platform != 'win32':
+        distinfo_dir = '$(DESTDIR)' + distinfo_dir
+
     mk_distinfo = '%s mk_distinfo.py %s installed.txt' % (sys.executable,
             distinfo_dir)
 
