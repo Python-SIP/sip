@@ -15752,7 +15752,8 @@ static scopedNameDef *stripScope(ifaceFileDef *scope, scopedNameDef *snd,
         {
             scopedNameDef *scoped_snd = removeGlobalScope(scope->fqcname);
 
-            while (scoped_snd != NULL && snd != NULL && strcmp(scoped_snd->name, snd->name) == 0)
+            /* Make sure we don't strip everything. */
+            while (scoped_snd->next != NULL && snd->next != NULL && strcmp(scoped_snd->name, snd->name) == 0)
             {
                 scoped_snd = scoped_snd->next;
                 snd = snd->next;
