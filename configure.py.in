@@ -511,7 +511,7 @@ target.files = $$PY_MODULE
 
         makefile = sipconfig.ModuleMakefile(
             configuration=cfg,
-            build_file=os.path.join(build_dir, "siplib", "siplib.sbf"),
+            build_file=os.path.join(src_dir, "siplib", "siplib.sbf"),
             dir="siplib",
             install_dir=cfg.sip_module_dir,
             installs=module_installs,
