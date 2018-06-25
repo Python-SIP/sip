@@ -4418,6 +4418,7 @@ argtype:    cpptype optname optflags {
                 "Out",
                 "PyInt",
                 "ResultSize",
+                "ScopesStripped",
                 "Transfer",
                 "TransferBack",
                 "TransferThis",
@@ -4428,12 +4429,18 @@ argtype:    cpptype optname optflags {
                 NULL
             };
 
+            optFlag *of;
+
             checkAnnos(&$3, annos);
 
             $$ = $1;
             $$.name = cacheName(currentSpec, $2);
 
             handleKeepReference(&$3, &$$, currentModule);
+
+            if ((of = getOptFlag(&$3, "ScopesStripped", opt_integer_flag)) != NULL)
+                if (($$.scopes_stripped = of->fvalue.ival) <= 0)
+                    yyerror("/ScopesStripped/ must be greater than 0");
 
             if (getAllowNone(&$3))
                 $$.argflags |= ARG_ALLOW_NONE;

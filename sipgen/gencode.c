@@ -36,6 +36,11 @@
 #define moduleSupportsQt(pt, mod)   ((pt)->qobject_cd != NULL && (pt)->qobject_cd->iff->module == (mod))
 
 
+/* Control how scopes should be stripped. */
+#define STRIP_NONE      0       /* This must be 0. */
+#define STRIP_GLOBAL    (-1)    /* This must be -ve. */
+
+
 /* Control what generateCalledArgs() actually generates. */
 typedef enum {
     Declaration,
@@ -43,11 +48,10 @@ typedef enum {
 } funcArgType;
 
 
-/* Control how scopes should be stripped. */
 typedef enum {
     StripNone,
     StripGlobal,
-    StripNamespace
+    StripScope
 } StripAction;
 
 
@@ -132,10 +136,9 @@ static void generateCalledArgs(moduleDef *, ifaceFileDef *, signatureDef *,
 static void generateVariable(moduleDef *, ifaceFileDef *, argDef *, int,
         FILE *);
 static void generateNamedValueType(ifaceFileDef *, argDef *, char *, FILE *);
-static int generateBaseType(ifaceFileDef *, argDef *, int, StripAction,
-        FILE *);
-static int generateNamedBaseType(ifaceFileDef *, argDef *, const char *, int,
-        StripAction, FILE *);
+static void generateBaseType(ifaceFileDef *, argDef *, int, int, FILE *);
+static void generateNamedBaseType(ifaceFileDef *, argDef *, const char *, int,
+        int, FILE *);
 static void generateTupleBuilder(moduleDef *, signatureDef *, FILE *);
 static void generatePyQt5Emitters(classDef *cd, FILE *fp);
 static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
@@ -238,8 +241,8 @@ static FILE *createFile(moduleDef *mod, const char *fname,
 static void closeFile(FILE *);
 static void prScopedName(FILE *fp, scopedNameDef *snd, char *sep);
 static void prTypeName(FILE *fp, argDef *ad);
-static int prScopedClassName(FILE *fp, ifaceFileDef *scope, classDef *cd,
-        StripAction strip);
+static void prScopedClassName(FILE *fp, ifaceFileDef *scope, classDef *cd,
+        int strip);
 static int isMultiArgSlot(memberDef *md);
 static int isIntArgSlot(memberDef *md);
 static int isInplaceSequenceSlot(memberDef *md);
@@ -304,11 +307,10 @@ static int generatePyQt5ClassPlugin(sipSpec *pt, classDef *cd, FILE *fp);
 static int generatePyQt4ClassPlugin(sipSpec *pt, classDef *cd, FILE *fp);
 static void generateGlobalFunctionTableEntries(sipSpec *pt, moduleDef *mod,
         memberDef *members, FILE *fp);
-static int prTemplateType(FILE *fp, ifaceFileDef *scope, templateDef *td,
-        StripAction strip);
+static void prTemplateType(FILE *fp, ifaceFileDef *scope, templateDef *td,
+        int strip);
 static int isString(argDef *ad);
-static scopedNameDef *stripScope(ifaceFileDef *scope, scopedNameDef *snd,
-        StripAction strip, int *ns_stripped);
+static scopedNameDef *stripScope(scopedNameDef *snd, int strip);
 static void prEnumMemberScope(enumMemberDef *emd, FILE *fp);
 static void normaliseSignalArg(argDef *ad);
 
@@ -1950,7 +1952,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
             else if (td->type.atype == ulonglong_type)
                 prcode(fp, "unsigned long long");
             else
-                generateBaseType(NULL, &td->type, FALSE, StripGlobal, fp);
+                generateBaseType(NULL, &td->type, FALSE, STRIP_GLOBAL, fp);
 
             prcode(fp, "\"},\n"
                 );
@@ -7253,7 +7255,7 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
     prcode(fp,
 "\n");
 
-    generateBaseType(cd->iff, &od->cppsig->result, TRUE, StripNone, fp);
+    generateBaseType(cd->iff, &od->cppsig->result, TRUE, STRIP_NONE, fp);
 
     prcode(fp," sip%C::%O(",classFQCName(cd),od);
     generateCalledArgs(mod, cd->iff, od->cppsig, Definition, fp);
@@ -7266,7 +7268,7 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
         prcode(fp,
 "    sipTrace(SIP_TRACE_CATCHERS,\"");
 
-        generateBaseType(cd->iff, &od->cppsig->result, TRUE, StripGlobal, fp);
+        generateBaseType(cd->iff, &od->cppsig->result, TRUE, STRIP_GLOBAL, fp);
         prcode(fp," sip%C::%O(",classFQCName(cd),od);
         generateCalledArgs(NULL, cd->iff, od->cppsig, Declaration, fp);
         prcode(fp,")%s%X (this=0x%%08x)\\n\",this);\n"
@@ -7317,7 +7319,8 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
             prcode(fp,
 "        ");
 
-            generateNamedBaseType(cd->iff, res, "sipRes", TRUE, StripNone, fp);
+            generateNamedBaseType(cd->iff, res, "sipRes", TRUE, STRIP_NONE,
+                    fp);
 
             prcode(fp, ";\n"
                 );
@@ -7494,7 +7497,7 @@ static void generateVirtHandlerCall(moduleDef *mod, classDef *cd,
     prcode(fp,
 "%sextern ", indent);
 
-    generateBaseType(cd->iff, &od->cppsig->result, TRUE, StripNone, fp);
+    generateBaseType(cd->iff, &od->cppsig->result, TRUE, STRIP_NONE, fp);
 
     prcode(fp, " sipVH_%s_%d(sip_gilstate_t, sipVirtErrorHandlerFunc, sipSimpleWrapper *, PyObject *", mod->name, vhd->virthandlernr);
 
@@ -7821,7 +7824,8 @@ static void generateProtectedDeclarations(classDef *cd,FILE *fp)
             if (isStatic(od))
                 prcode(fp,"static ");
 
-            generateBaseType(cd->iff, &od->cppsig->result, TRUE, StripNone, fp);
+            generateBaseType(cd->iff, &od->cppsig->result, TRUE, STRIP_NONE,
+                    fp);
 
             if (!isStatic(od) && !isAbstract(od) && (isVirtual(od) || isVirtualReimp(od)))
             {
@@ -7875,7 +7879,8 @@ static void generateProtectedDefinitions(moduleDef *mod, classDef *cd, FILE *fp)
 "\n"
                 );
 
-            generateBaseType(cd->iff, &od->cppsig->result, TRUE, StripNone, fp);
+            generateBaseType(cd->iff, &od->cppsig->result, TRUE, STRIP_NONE,
+                    fp);
 
             if (!isStatic(od) && !isAbstract(od) && (isVirtual(od) || isVirtualReimp(od)))
             {
@@ -8049,7 +8054,7 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
     saved = *vhd->cppsig;
     fakeProtectedArgs(vhd->cppsig);
 
-    generateBaseType(NULL, &vhd->cppsig->result, TRUE, StripNone, fp);
+    generateBaseType(NULL, &vhd->cppsig->result, TRUE, STRIP_NONE, fp);
 
     prcode(fp," sipVH_%s_%d(sip_gilstate_t sipGILState, sipVirtErrorHandlerFunc sipErrorHandler, sipSimpleWrapper *sipPySelf, PyObject *sipMethod"
         , mod->name, vhd->virthandlernr);
@@ -8096,7 +8101,7 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
         if (res->atype == wstring_type && res->nrderefs == 1)
             prcode(fp, "static ");
 
-        generateBaseType(NULL, &res_noconstref, TRUE, StripNone, fp);
+        generateBaseType(NULL, &res_noconstref, TRUE, STRIP_NONE, fp);
 
         prcode(fp," %ssipRes",(res_isref ? "*" : ""));
 
@@ -9271,7 +9276,7 @@ void prOverloadDecl(FILE *fp, ifaceFileDef *scope, overDef *od, int defval)
 
     normaliseArgs(od->cppsig);
 
-    generateBaseType(scope, &od->cppsig->result, TRUE, StripNone, fp);
+    generateBaseType(scope, &od->cppsig->result, TRUE, STRIP_NONE, fp);
  
     prcode(fp, " %O(", od);
 
@@ -9282,7 +9287,7 @@ void prOverloadDecl(FILE *fp, ifaceFileDef *scope, overDef *od, int defval)
         if (a > 0)
             prcode(fp, ",");
 
-        generateBaseType(scope, ad, TRUE, StripNone, fp);
+        generateBaseType(scope, ad, TRUE, STRIP_NONE, fp);
 
         if (defval && ad->defval != NULL)
         {
@@ -9328,7 +9333,7 @@ static void generateCalledArgs(moduleDef *mod, ifaceFileDef *scope,
             buf[0] = '\0';
         }
 
-        generateNamedBaseType(scope, ad, name, TRUE, StripNone, fp);
+        generateNamedBaseType(scope, ad, name, TRUE, STRIP_NONE, fp);
     }
 }
 
@@ -9437,30 +9442,30 @@ static void generateNamedValueType(ifaceFileDef *scope, argDef *ad,
     }
 
     resetIsReference(&mod);
-    generateNamedBaseType(scope, &mod, name, TRUE, StripNone, fp);
+    generateNamedBaseType(scope, &mod, name, TRUE, STRIP_NONE, fp);
 }
 
 
 /*
- * Generate a C++ type.  Return TRUE if a namespace was stripped.
+ * Generate a C++ type.
  */
-static int generateBaseType(ifaceFileDef *scope, argDef *ad,
-        int use_typename, StripAction strip, FILE *fp)
+static void generateBaseType(ifaceFileDef *scope, argDef *ad,
+        int use_typename, int strip, FILE *fp)
 {
-    return generateNamedBaseType(scope, ad, "", use_typename, strip, fp);
+    generateNamedBaseType(scope, ad, "", use_typename, strip, fp);
 }
 
 
 /*
- * Generate a C++ type and name.  Return TRUE if a namespace was stripped.
+ * Generate a C++ type and name.
  */
-static int generateNamedBaseType(ifaceFileDef *scope, argDef *ad,
-        const char *name, int use_typename, StripAction strip, FILE *fp)
+static void generateNamedBaseType(ifaceFileDef *scope, argDef *ad,
+        const char *name, int use_typename, int strip, FILE *fp)
 {
     typedefDef *td = ad->original_type;
     int nr_derefs = ad->nrderefs;
     int is_reference = isReference(ad);
-    int i, space_before_name, ns_stripped = FALSE;
+    int i, space_before_name;
 
     if (use_typename && td != NULL && !noTypeName(td) && !isArraySize(ad))
     {
@@ -9472,8 +9477,7 @@ static int generateNamedBaseType(ifaceFileDef *scope, argDef *ad,
         if (isReference(&td->type))
             is_reference = FALSE;
 
-        prcode(fp, "%S",
-                stripScope(scope, td->fqname, strip, &ns_stripped));
+        prcode(fp, "%S", stripScope(td->fqname, strip));
     }
     else
     {
@@ -9485,8 +9489,7 @@ static int generateNamedBaseType(ifaceFileDef *scope, argDef *ad,
         {
             signatureDef *sig = ad->u.sa;
 
-            ns_stripped = generateBaseType(scope, &sig->result, TRUE, strip,
-                    fp);
+            generateBaseType(scope, &sig->result, TRUE, strip, fp);
 
             prcode(fp," (");
 
@@ -9497,7 +9500,7 @@ static int generateNamedBaseType(ifaceFileDef *scope, argDef *ad,
             generateCalledArgs(NULL, scope, sig, Declaration, fp);
             prcode(fp, ")");
 
-            return ns_stripped;
+            return;
         }
 
         if (isConstArg(ad))
@@ -9620,9 +9623,7 @@ static int generateNamedBaseType(ifaceFileDef *scope, argDef *ad,
                 if (generating_c)
                     fprintf(fp, "struct ");
 
-                prScopedName(fp,
-                        stripScope(scope, ad->u.snd, strip, &ns_stripped),
-                        "::");
+                prScopedName(fp, stripScope(ad->u.snd, strip), "::");
             }
 
             break;
@@ -9634,16 +9635,15 @@ static int generateNamedBaseType(ifaceFileDef *scope, argDef *ad,
             break;
 
         case mapped_type:
-            ns_stripped = generateBaseType(scope, &ad->u.mtd->type, TRUE,
-                    strip, fp);
+            generateBaseType(scope, &ad->u.mtd->type, TRUE, strip, fp);
             break;
 
         case class_type:
-            ns_stripped = prScopedClassName(fp, scope, ad->u.cd, strip);
+            prScopedClassName(fp, scope, ad->u.cd, strip);
             break;
 
         case template_type:
-			ns_stripped = prTemplateType(fp, scope, ad->u.td, strip);
+			prTemplateType(fp, scope, ad->u.td, strip);
 			break;
 
         case enum_type:
@@ -9653,10 +9653,7 @@ static int generateNamedBaseType(ifaceFileDef *scope, argDef *ad,
                 if (ed->fqcname == NULL || isProtectedEnum(ed))
                     fprintf(fp,"int");
                 else
-                    prScopedName(fp,
-                            stripScope(scope, ed->fqcname, strip,
-                                    &ns_stripped),
-                            "::");
+                    prScopedName(fp, stripScope(ed->fqcname, strip), "::");
 
                 break;
             }
@@ -9708,8 +9705,6 @@ static int generateNamedBaseType(ifaceFileDef *scope, argDef *ad,
 
         prcode(fp, name);
     }
-
-    return ns_stripped;
 }
 
 
@@ -10677,12 +10672,12 @@ static void generatePyQt5Emitters(classDef *cd, FILE *fp)
 static void generateSignalTableEntry(sipSpec *pt, classDef *cd, overDef *sig,
         int membernr, int optional_args, FILE *fp)
 {
-    int a, ns_stripped, pyqt5 = pluginPyQt5(pt);
+    int a, stripped, pyqt5 = pluginPyQt5(pt);
 
     prcode(fp,
 "    {\"%s(", sig->cppname);
 
-    ns_stripped = FALSE;
+    stripped = FALSE;
 
     for (a = 0; a < sig->cppsig->nrArgs; ++a)
     {
@@ -10693,17 +10688,25 @@ static void generateSignalTableEntry(sipSpec *pt, classDef *cd, overDef *sig,
 
         normaliseSignalArg(&arg);
 
-        if (generateNamedBaseType(cd->iff, &arg, "", TRUE, StripNamespace, fp))
-            ns_stripped = TRUE;
+        if (arg.scopes_stripped)
+        {
+            generateNamedBaseType(cd->iff, &arg, "", TRUE, arg.scopes_stripped,
+                    fp);
+            stripped = TRUE;
+        }
+        else
+        {
+            generateNamedBaseType(cd->iff, &arg, "", TRUE, STRIP_GLOBAL, fp);
+        }
     }
 
     prcode(fp, ")");
 
     /*
-     * If a namespace was stripped then append an unstripped version which can
-     * be parsed by PyQt.
+     * If a scope was stripped then append an unstripped version which can be
+     * parsed by PyQt.
      */
-    if (ns_stripped)
+    if (stripped)
     {
         prcode(fp, "|(");
 
@@ -10716,7 +10719,7 @@ static void generateSignalTableEntry(sipSpec *pt, classDef *cd, overDef *sig,
 
             normaliseSignalArg(&arg);
 
-            generateNamedBaseType(cd->iff, &arg, "", TRUE, StripGlobal, fp);
+            generateNamedBaseType(cd->iff, &arg, "", TRUE, STRIP_GLOBAL, fp);
         }
 
         prcode(fp, ")");
@@ -14331,7 +14334,7 @@ void prcode(FILE *fp, const char *fmt, ...)
                     ifaceFileDef *scope = va_arg(ap, ifaceFileDef *);
                     argDef *ad = va_arg(ap, argDef *);
 
-                    generateBaseType(scope, ad, TRUE, StripNone, fp);
+                    generateBaseType(scope, ad, TRUE, STRIP_NONE, fp);
                     break;
                 }
 
@@ -14346,7 +14349,7 @@ void prcode(FILE *fp, const char *fmt, ...)
                     resetIsReference(ad);
                     ad->nrderefs = 0;
 
-                    generateBaseType(NULL, ad, TRUE, StripNone, fp);
+                    generateBaseType(NULL, ad, TRUE, STRIP_NONE, fp);
 
                     *ad = orig;
 
@@ -14354,7 +14357,7 @@ void prcode(FILE *fp, const char *fmt, ...)
                 }
 
             case 'B':
-                generateBaseType(NULL, va_arg(ap,argDef *), TRUE, StripNone,
+                generateBaseType(NULL, va_arg(ap,argDef *), TRUE, STRIP_NONE,
                         fp);
                 break;
 
@@ -14392,7 +14395,7 @@ void prcode(FILE *fp, const char *fmt, ...)
                     resetIsReference(ad);
                     ad->nrderefs = 0;
 
-                    generateBaseType(NULL, ad, FALSE, StripNone, fp);
+                    generateBaseType(NULL, ad, FALSE, STRIP_NONE, fp);
 
                     *ad = orig;
 
@@ -14514,7 +14517,7 @@ void prcode(FILE *fp, const char *fmt, ...)
                     if (generating_c)
                         fprintf(fp,"struct ");
 
-                    prScopedClassName(fp, cd->iff, cd, StripNone);
+                    prScopedClassName(fp, cd->iff, cd, STRIP_NONE);
                     break;
                 }
 
@@ -14744,16 +14747,14 @@ static void prScopedName(FILE *fp, scopedNameDef *snd, char *sep)
 
 /*
  * Generate a scoped class name.  Protected classes have to be explicitly
- * scoped.  Return TRUE if a namespace was stripped.
+ * scoped.
  */
-static int prScopedClassName(FILE *fp, ifaceFileDef *scope, classDef *cd,
-        StripAction strip)
+static void prScopedClassName(FILE *fp, ifaceFileDef *scope, classDef *cd,
+        int strip)
 {
-    int ns_stripped;
-
     if (useTemplateName(cd))
     {
-        ns_stripped = prTemplateType(fp, scope, cd->td, strip);
+        prTemplateType(fp, scope, cd->td, strip);
     }
     else if (isProtectedClass(cd))
     {
@@ -14762,17 +14763,11 @@ static int prScopedClassName(FILE *fp, ifaceFileDef *scope, classDef *cd,
             scope = cd->iff;
 
         prcode(fp, "sip%C::sip%s", scope->fqcname, classBaseName(cd));
-
-        ns_stripped = FALSE;
     }
     else
     {
-        prScopedName(fp,
-                stripScope(scope, classFQCName(cd), strip, &ns_stripped),
-                "::");
+        prScopedName(fp, stripScope(classFQCName(cd), strip), "::");
     }
-
-    return ns_stripped;
 }
 
 
@@ -15704,18 +15699,18 @@ static void generateGlobalFunctionTableEntries(sipSpec *pt, moduleDef *mod,
 
 
 /*
- * Generate a template type.  Return TRUE if a namespace was stripped.
+ * Generate a template type.
  */
-static int prTemplateType(FILE *fp, ifaceFileDef *scope, templateDef *td,
-        StripAction strip)
+static void prTemplateType(FILE *fp, ifaceFileDef *scope, templateDef *td,
+        int strip)
 {   
     static const char tail[] = ">";
-    int a, ns_stripped;
+    int a;
     
     if (prcode_xml)
-        strip = StripGlobal;
+        strip = STRIP_GLOBAL;
 
-    prcode(fp, "%S%s", stripScope(scope, td->fqname, strip, &ns_stripped),
+    prcode(fp, "%S%s", stripScope(td->fqname, strip),
             (prcode_xml ? "&lt;" : "<"));
     
     for (a = 0; a < td->types.nrArgs; ++a)
@@ -15723,44 +15718,27 @@ static int prTemplateType(FILE *fp, ifaceFileDef *scope, templateDef *td,
         if (a > 0)
             prcode(fp, ",");
         
-        if (generateBaseType(scope, &td->types.args[a], TRUE, strip, fp))
-            ns_stripped = TRUE;
+        generateBaseType(scope, &td->types.args[a], TRUE, strip, fp);
     }       
     
     if (prcode_last == tail)
         prcode(fp, " ");
     
     prcode(fp, (prcode_xml ? "&gt;" : tail));
-
-    return ns_stripped;
 }
 
 
 /*
  * Strip the leading scopes from a scoped name as required.
  */
-static scopedNameDef *stripScope(ifaceFileDef *scope, scopedNameDef *snd,
-        StripAction strip, int *ns_stripped)
+static scopedNameDef *stripScope(scopedNameDef *snd, int strip)
 {
-    *ns_stripped = FALSE;
-
-    if (strip != StripNone)
+    if (strip != STRIP_NONE)
     {
         snd = removeGlobalScope(snd);
 
-        if (strip == StripNamespace)
-        {
-            scopedNameDef *scoped_snd = removeGlobalScope(scope->fqcname);
-
-            /* Make sure we don't strip everything. */
-            while (scoped_snd->next != NULL && snd->next != NULL && strcmp(scoped_snd->name, snd->name) == 0)
-            {
-                scoped_snd = scoped_snd->next;
-                snd = snd->next;
-
-                *ns_stripped = TRUE;
-            }
-        }
+        while (strip-- > 0 && snd->next != NULL)
+            snd = snd->next;
     }
 
     return snd;
