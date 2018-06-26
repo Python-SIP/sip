@@ -10787,7 +10787,7 @@ static void generateSignalTableEntry(sipSpec *pt, classDef *cd, overDef *sig,
  */
 static void normaliseSignalArg(argDef *ad)
 {
-    if (isConstArg(ad) && isReference(ad))
+    if (isConstArg(ad) && (isReference(ad) || ad->nrderefs == 0))
     {
         resetIsConstArg(ad);
         resetIsReference(ad);
