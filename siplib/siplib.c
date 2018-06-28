@@ -5401,10 +5401,10 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
         {
 #if PY_MAJOR_VERSION >= 3
             PyErr_Format(PyExc_OverflowError, "argument '%s' overflowed: %S",
-                    failure.arg_nr, failure.detail_obj);
+                    failure.arg_name, failure.detail_obj);
 #else
-            PyErr_Format(PyExc_OverflowError, "argument '%d' overflowed: %s",
-                    failure.arg_nr, exc_str);
+            PyErr_Format(PyExc_OverflowError, "argument '%s' overflowed: %s",
+                    failure.arg_name, exc_str);
 #endif
         }
 
