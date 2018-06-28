@@ -13073,7 +13073,7 @@ static PyObject *sipEnumType_getattro(PyObject *self, PyObject *name)
     name_str = _PyUnicode_AsString(name);
 #else
     /* We don't handle Unicode names. */
-    if (!PyStringCheck(name))
+    if (!PyString_Check(name))
     {
         PyErr_Format(PyExc_TypeError,
                 "attribute name must be string, not '%.200s'",
