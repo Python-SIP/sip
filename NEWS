@@ -1,5 +1,6 @@
-v4.19.11 ??? June 2018
+v4.19.11 ??? July 2018
   - Added the /ScopesStripped/ argument annotation.
+  - Bug fixes.
 
 v4.19.10 24th June 2018
   - A bug fix release fixing a serious regression in the code generator.
