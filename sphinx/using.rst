@@ -459,7 +459,9 @@ the scope of the enum.  In other words, the ``Member`` member is referenced as
 ``MyClass.MyEnum.Member``.
 
 This version of SIP adds support for wrapping C++11 scoped enums and implements
-them as Python :class:`enum.Enum` objects.
+them as Python :class:`enum.Enum` objects.  For versions of Python that don't
+include the :mod:`enum` module in the standrd library (i.e. versions earlier
+than v3.4) then the ``enum34`` package must be installed from PyPI.
 
 .. versionadded:: 4.19.9
 
