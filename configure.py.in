@@ -417,7 +417,7 @@ def create_makefiles(macros):
 
     # The module installs.
     module_installs=[
-            (os.path.join(os.getcwd(), "siplib", "sip.h"), cfg.sip_inc_dir)]
+            (os.path.join(src_dir, "siplib", "sip.h"), cfg.sip_inc_dir)]
 
     if opts.pyi:
         module_installs.append((os.path.join(src_dir, 'sip.pyi'), pyi_dir))
