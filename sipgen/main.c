@@ -50,7 +50,8 @@ static int parseInt(char *,char);
 int main(int argc, char **argv)
 {
     char *filename, *docFile, *codeDir, *srcSuffix, *flagFile, *consModule;
-    char arg, *optarg, *buildFile, *apiFile, *xmlFile, *pyiFile, *sipName;
+    char arg, *optarg, *buildFile, *apiFile, *xmlFile, *pyiFile;
+    const char *sipName;
     int optnr, exceptions, tracing, releaseGIL, parts, protHack, docs;
     int timestamp, was_flagFile, py_debug, strict;
     KwArgs kwArgs;
@@ -73,7 +74,7 @@ int main(int argc, char **argv)
     apiFile = NULL;
     xmlFile = NULL;
     pyiFile = NULL;
-    sipName = NULL;
+    sipName = "sip";
     consModule = NULL;
     extracts = NULL;
     exceptions = FALSE;
