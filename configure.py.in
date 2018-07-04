@@ -308,11 +308,9 @@ def create_makefiles(macros):
     else:
         subdirs = ["sipgen", "siplib"]
 
-        # Only install the (deprecated) build system for legacy installs.
-        if sip_module_name == 'sip':
-            installs.append(
-                    (["sipconfig.py", os.path.join(src_dir, "sipdistutils.py")],
-                            cfg.sip_root_dir))
+        installs.append(
+                (["sipconfig.py", os.path.join(src_dir, "sipdistutils.py")],
+                        cfg.sip_root_dir))
 
     all_installs += installs
 
