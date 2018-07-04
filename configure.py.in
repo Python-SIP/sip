@@ -317,6 +317,8 @@ def create_makefiles(macros):
     all_installs += installs
 
     # The command to run to generate the dist-info directory.
+    mk_distinfo = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                'mk_distinfo.py')
     distinfo_dir = os.path.join(cfg.sip_root_dir,
             '%s-%s.dist-info' % (sip_module_name.replace('.', '_'),
                     sip_version_str))
@@ -324,7 +326,7 @@ def create_makefiles(macros):
     if sys.platform != 'win32':
         distinfo_dir = '$(DESTDIR)' + distinfo_dir
 
-    mk_distinfo = '%s mk_distinfo.py %s installed.txt' % (sys.executable,
+    run_mk_distinfo = '%s %s %s installed.txt' % (sys.executable, mk_distinfo,
             distinfo_dir)
 
     if opts.use_qmake:
@@ -344,7 +346,7 @@ def create_makefiles(macros):
 
         if opts.distinfo:
             pro.write("\n")
-            pro.write("distinfo.extra = %s\n" % mk_distinfo)
+            pro.write("distinfo.extra = %s\n" % run_mk_distinfo)
             pro.write("distinfo.path = %s\n" % quote(cfg.sip_root_dir))
             pro.write("INSTALLS += distinfo\n")
 
@@ -354,8 +356,8 @@ def create_makefiles(macros):
 
         # Note that mk_distinfo.py won't exist if we are building from the
         # repository.
-        if opts.distinfo and os.path.isfile('mk_distinfo.py'):
-            installs.append((mk_distinfo, None))
+        if opts.distinfo and os.path.isfile(mk_distinfo):
+            installs.append((run_mk_distinfo, None))
 
         sipconfig.ParentMakefile(
             configuration=cfg,
