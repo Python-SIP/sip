@@ -634,6 +634,10 @@ static const sipAPIDef sip_api = {
      * The following are not part of the public API.
      */
     sip_api_instance_destroyed_ex,
+    /*
+     * The following are part of the public API.
+     */
+    sip_api_convert_from_slice_object,
 };
 
 
@@ -14140,3 +14144,26 @@ static PyObject *get_qualname(const sipTypeDef *td, PyObject *name)
             ((PyHeapTypeObject *)scope_type)->ht_qualname, name);
 }
 #endif
+
+
+/*
+ * Implement PySlice_GetIndicesEx() (or its subsequent replacement).
+ */
+int sip_api_convert_from_slice_object(PyObject *slice, SIP_SSIZE_T length,
+        SIP_SSIZE_T *start, SIP_SSIZE_T *stop, SIP_SSIZE_T *step,
+        SIP_SSIZE_T *slicelength)
+{
+#if PY_VERSION_HEX >= 0x03070000
+    if (PySlice_Unpack(slice, start, stop, step) < 0)
+        return -1;
+
+    *slicelength = PySlice_AdjustIndices(length, start, stop, *step);
+
+    return 0;
+#elif PY_VERSION_HEX >= 0x03020000
+    return PySlice_GetIndicesEx(slice, length, start, stop, step, slicelength);
+#else
+    return PySlice_GetIndicesEx((PySliceObject *)slice, length, start, stop,
+            step, slicelength);
+#endif
+}

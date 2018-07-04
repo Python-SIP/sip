@@ -68,6 +68,9 @@ extern "C" {
  *
  * History:
  *
+ * 12.5 Replaced the sipConvertFromSliceObject() macro with
+ *      sip_api_convert_from_slice_object() in the public API.
+ *
  * 12.4 Added sip_api_instance_destroyed_ex() to the private API.
  *
  * 12.3 Added SIP_TYPE_SCOPED_ENUM to the sipTypeDef flags.
@@ -265,7 +268,7 @@ extern "C" {
  * 0.0  Original version.
  */
 #define SIP_API_MAJOR_NR    12
-#define SIP_API_MINOR_NR    4
+#define SIP_API_MINOR_NR    5
 
 
 /*
@@ -1889,6 +1892,13 @@ typedef struct _sipAPIDef {
      * The following are not part of the public API.
      */
     void (*api_instance_destroyed_ex)(sipSimpleWrapper **sipSelfp);
+
+    /*
+     * The following are part of the public API.
+     */
+    int (*api_convert_from_slice_object)(PyObject *slice, SIP_SSIZE_T length,
+            SIP_SSIZE_T *start, SIP_SSIZE_T *stop, SIP_SSIZE_T *step,
+            SIP_SSIZE_T *slicelength);
 } sipAPIDef;
 
 
@@ -2007,18 +2017,6 @@ typedef struct _sipQtAPI {
 #define sipTypeName(td)     sipNameFromPool((td)->td_module, (td)->td_cname)
 #define sipTypePluginData(td)   ((td)->td_plugin_data)
 
-#if PY_VERSION_HEX >= 0x03070000
-#define sipConvertFromSliceObject(o, len, start, stop, step, slen) (        \
-    PySlice_Unpack((o), (start), (stop), (step)) < 0 ?                      \
-    ((*(slen) = 0), -1) :                                                   \
-    ((*(slen) = PySlice_AdjustIndices((len), (start), (stop), *(step))), 0))
-#elif PY_VERSION_HEX >= 0x03020000
-#define sipConvertFromSliceObject   PySlice_GetIndicesEx
-#else
-#define sipConvertFromSliceObject(o, len, start, stop, step, slen)          \
-        PySlice_GetIndicesEx((PySliceObject *)(o), (len), (start), (stop),  \
-                (step), (slen))
-#endif
 
 /*
  * Note that this was never actually documented as being part of the public
