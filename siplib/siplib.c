@@ -7254,9 +7254,7 @@ static int add_lazy_container_attrs(sipTypeDef *td, sipContainerDef *cod,
     sipVariableDef *vd;
 
     /* Do the methods. */
-    pmd = cod->cod_methods;
-
-    for (i = 0; i < cod->cod_nrmethods; ++i)
+    for (pmd = cod->cod_methods, i = 0; i < cod->cod_nrmethods; ++i, ++pmd)
     {
         /* Non-lazy methods will already have been handled. */
         if (!sipTypeHasNonlazyMethod(td) || !isNonlazyMethod(pmd))
@@ -7264,14 +7262,10 @@ static int add_lazy_container_attrs(sipTypeDef *td, sipContainerDef *cod,
             if (addMethod(dict, pmd) < 0)
                 return -1;
         }
-
-        ++pmd;
     }
 
     /* Do the unscoped enum members. */
-    enm = cod->cod_enummembers;
-
-    for (i = 0; i < cod->cod_nrenummembers; ++i)
+    for (enm = cod->cod_enummembers, i = 0; i < cod->cod_nrenummembers; ++i, ++enm)
     {
         int rc;
         PyObject *val;
@@ -7304,14 +7298,10 @@ static int add_lazy_container_attrs(sipTypeDef *td, sipContainerDef *cod,
 
         if (rc < 0)
             return -1;
-
-        ++enm;
     }
 
     /* Do the variables. */
-    vd = cod->cod_variables;
-
-    for (i = 0; i < cod->cod_nrvariables; ++i)
+    for (vd = cod->cod_variables, i = 0; i < cod->cod_nrvariables; ++i, ++vd)
     {
         int rc;
         PyObject *descr;
@@ -7330,8 +7320,6 @@ static int add_lazy_container_attrs(sipTypeDef *td, sipContainerDef *cod,
 
         if (rc < 0)
             return -1;
-
-        ++vd;
     }
 
     return 0;
