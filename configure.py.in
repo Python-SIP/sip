@@ -322,12 +322,8 @@ def create_makefiles(macros):
     distinfo_dir = os.path.join(cfg.sip_root_dir,
             '%s-%s.dist-info' % (sip_module_name.replace('.', '_'),
                     sip_version_str))
-
-    if sys.platform != 'win32':
-        distinfo_dir = '$(DESTDIR)' + distinfo_dir
-
-    run_mk_distinfo = '%s %s %s installed.txt' % (sys.executable, mk_distinfo,
-            distinfo_dir)
+    run_mk_distinfo = '%s %s "$(DESTDIR)" %s installed.txt' % (sys.executable,
+            mk_distinfo, distinfo_dir)
 
     if opts.use_qmake:
         sipconfig.inform("Creating top level .pro file...")
