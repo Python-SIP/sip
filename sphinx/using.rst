@@ -737,7 +737,9 @@ achieve.
 To get around this problem you can build a private copy of the :mod:`sip`
 module that installed as part of your package.  To do this you use the
 :option:`--sip-module <configure.py --sip-module>` option to specify the fully
-qualified package name of your private copy.
+qualified package name of your private copy.  You can also use the
+:option:`--no-tools <configure.py --no-tools>` option to specify that nothing
+else but the :mod:`sip` module is installed.
 
 Note that SIP v5 will only support private copies of the :mod:`sip` module.
 
@@ -745,3 +747,9 @@ Note that SIP v5 will only support private copies of the :mod:`sip` module.
 
 In order use the private copy of the :mod:`sip` module you must use the
 :option:`-n <sip -n>` option when generating the bindings code.
+
+.. versionadded:: 4.19.12
+
+If you always use private copies of the :mod:`sip` module and do not want the
+legacy shared copy to be installed then specify the
+:option:`--no-module <configure.py --no-module>` option.
