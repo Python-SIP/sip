@@ -100,6 +100,12 @@ The full set of command line options is:
     dependent packages.  It also means that ``pip`` can be used to uninstall
     the package.
 
+.. cmdoption:: --no-module
+
+    .. versionadded:: 4.19.12
+
+    The :mod:`sip` module will not be installed.
+
 .. cmdoption:: --no-stubs
 
     .. versionadded:: 4.19
@@ -110,7 +116,8 @@ The full set of command line options is:
 
     .. versionadded:: 4.16
 
-    The SIP code generator and :mod:`sipconfig` module will not be installed.
+    The SIP code generator, ``sip.h`` header file and :mod:`sipconfig` module
+    will not be installed.
 
 .. cmdoption:: -p <PLATFORM>, --platform <PLATFORM>
 

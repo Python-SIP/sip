@@ -184,7 +184,8 @@ def inform_user():
         siputils.inform("The SIP code generator will be installed in %s." % sip_bin_dir)
         siputils.inform("The sip.h header file will be installed in %s." % sip_inc_dir)
 
-    siputils.inform("The %s module will be installed in %s." % (sip_module_name, sip_module_dir))
+    if not opts.no_module:
+        siputils.inform("The %s module will be installed in %s." % (sip_module_name, sip_module_dir))
 
     if opts.pyi:
         siputils.inform("The sip.pyi stub file will be installed in %s." % pyi_dir)
@@ -302,15 +303,16 @@ def create_makefiles(macros):
 
     all_installs = []
     installs = []
+    subdirs = []
 
-    if opts.no_tools:
-        subdirs = ["siplib"]
-    else:
-        subdirs = ["sipgen", "siplib"]
-
+    if not opts.no_tools:
+        subdirs.append('sipgen')
         installs.append(
                 (["sipconfig.py", os.path.join(src_dir, "sipdistutils.py")],
                         cfg.sip_root_dir))
+
+    if not opts.no_module:
+        subdirs.append('siplib')
 
     all_installs += installs
 
@@ -424,8 +426,9 @@ def create_makefiles(macros):
 
     all_installs.extend(module_installs)
 
-    mod_ext = '.pyd' if sys.platform == 'win32' else '.so'
-    all_installs.append(('sip' + mod_ext, cfg.sip_module_dir))
+    if not opts.no_module:
+        mod_ext = '.pyd' if sys.platform == 'win32' else '.so'
+        all_installs.append(('sip' + mod_ext, cfg.sip_module_dir))
 
     if opts.use_qmake:
         sipconfig.inform("Creating sip module .pro file...")
@@ -734,6 +737,9 @@ def create_optparser(sdk_dir):
     p.add_option("--sysroot", dest='sysroot', type='string', action='callback',
             callback=store_abspath_dir, metavar="DIR",
             help="DIR is the target system root directory")
+    p.add_option("--no-module", action="store_true", default=False,
+            dest="no_module", help="disable the installation of the sip "
+            "module [default: enabled]")
     p.add_option("--no-tools", action="store_true", default=False,
             dest="no_tools", help="disable the building of the code generator "
             "and the installation of the build system [default: enabled]")
@@ -893,6 +899,10 @@ def main(argv):
             opts.arch = DEFAULT_MACOSX_ARCH
     else:
         opts.universal = ''
+
+    # No sip module also implies no stubs.
+    if opts.no_module:
+        opts.pyi = False
 
     # Apply the overrides from any configuration file.
     global plat_bin_dir, plat_py_conf_inc_dir, plat_py_inc_dir

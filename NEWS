@@ -1,4 +1,5 @@
 v4.19.12 ??? July 2018
+  - Added the --no-module option to configure.py.
   - Bug fixes.
 
 v4.19.11 2nd July 2018
