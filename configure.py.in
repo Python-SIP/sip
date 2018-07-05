@@ -182,6 +182,7 @@ def inform_user():
 
     if not opts.no_tools:
         siputils.inform("The SIP code generator will be installed in %s." % sip_bin_dir)
+        siputils.inform("The sip.h header file will be installed in %s." % sip_inc_dir)
 
     siputils.inform("The %s module will be installed in %s." % (sip_module_name, sip_module_dir))
 
@@ -191,7 +192,6 @@ def inform_user():
     if opts.static:
         siputils.inform("The %s module will be built as a static library." % sip_module_name)
 
-    siputils.inform("The sip.h header file will be installed in %s." % sip_inc_dir)
     siputils.inform("The default directory to install .sip files in is %s." % sip_sip_dir)
 
     if opts.use_qmake is None:
@@ -405,15 +405,19 @@ def create_makefiles(macros):
         ).generate()
 
     # The code generator installs.
-    sip_dir, sip_exe = os.path.split(cfg.sip_bin)
-    if sys.platform == 'win32':
-        sip_exe += '.exe'
+    if not opts.no_tools:
+        sip_dir, sip_exe = os.path.split(cfg.sip_bin)
+        if sys.platform == 'win32':
+            sip_exe += '.exe'
 
-    all_installs.append((sip_exe, sip_dir))
+        all_installs.append((sip_exe, sip_dir))
 
     # The module installs.
-    module_installs=[
-            (os.path.join(src_dir, "siplib", "sip.h"), cfg.sip_inc_dir)]
+    module_installs=[]
+
+    if not opts.no_tools:
+        module_installs.append(
+                (os.path.join(src_dir, "siplib", "sip.h"), cfg.sip_inc_dir))
 
     if opts.pyi:
         module_installs.append((os.path.join(src_dir, 'sip.pyi'), pyi_dir))
@@ -487,10 +491,11 @@ target.files = $$PY_MODULE
             pro.write("sip_pyi.path = %s\n" % pyi_dir)
             pro.write("INSTALLS += sip_pyi\n")
 
-        pro.write("\n")
-        pro.write("sip_h.files = sip.h\n")
-        pro.write("sip_h.path = %s\n" % cfg.sip_inc_dir)
-        pro.write("INSTALLS += sip_h\n")
+        if not opts.no_tools:
+            pro.write("\n")
+            pro.write("sip_h.files = sip.h\n")
+            pro.write("sip_h.path = %s\n" % cfg.sip_inc_dir)
+            pro.write("INSTALLS += sip_h\n")
 
         c_sources = get_sources("siplib", "*.c")
         cpp_sources = get_sources("siplib", "*.cpp")
