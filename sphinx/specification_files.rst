@@ -220,7 +220,9 @@ file.
     *mapped-type-template* :: = **template** **<** *type-list* **>**
             :directive:`%MappedType`
 
-    *enum* ::= **enum** [*name*] [*enum-annotations*] **{** {*enum-line*} **};**
+    *enum* ::= **enum** [*enum-key*] [*name*] [*enum-annotations*] **{** {*enum-line*} **};**
+
+    *enum-key* ::= [**class** | **struct**]
 
     *enum-line* ::= [:directive:`%If` | *name* [*enum-annotations*] **,**
 
@@ -385,9 +387,6 @@ SIP that might trip you up.
       class or a named enum that has been wrapped in the same module.
 
     - Variables declared outside of a class are effectively read-only.
-
-    - A class's list of super-classes doesn't not include any access specifier
-      (e.g. ``public``).
 
 
 Variable Numbers of Arguments

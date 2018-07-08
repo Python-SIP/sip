@@ -62,6 +62,12 @@ The full set of command line options is:
     :directive:`%ExportedDoc` directives.  By default the file is not
     generated.
 
+.. cmdoption:: -D
+
+    .. versionadded:: 4.19.1
+
+    Code is generated for a debug build of Python.
+
 .. cmdoption:: -e
 
     Support for C++ exceptions is enabled.  This causes all calls to C++ code
@@ -104,6 +110,15 @@ The full set of command line options is:
 
     All functions and methods will, by default, support passing parameters
     using the Python keyword argument syntax.
+
+.. cmdoption:: -n <NAME>
+
+    .. versionadded:: 4.19.9
+
+    The qualified name of the private copy of the :mod:`sip` module.  It should
+    be of the form ``package.sip``.  See also the
+    :option:`--sip-module <configure.py --sip-module>` option of the
+    installation script.
 
 .. cmdoption:: -o
 

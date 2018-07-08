@@ -1,7 +1,7 @@
 /*
  * The SIP lexer.
  *
- * Copyright (c) 2016 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2018 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -78,7 +78,8 @@ static void fatallex(char *);
 ^[ \t]*%CModule             {return TK_CMODULE;}
 ^[ \t]*%CompositeModule     {BEGIN directive_start; return TK_COMPOMODULE;}
 ^[ \t]*%ConsolidatedModule  {BEGIN directive_start; return TK_CONSMODULE;}
-^[ \t]*%DefaultDocstringFormat  {BEGIN directive_start; return TK_DEFDOCSTRING;}
+^[ \t]*%DefaultDocstringFormat  {BEGIN directive_start; return TK_DEFDOCSTRFMT;}
+^[ \t]*%DefaultDocstringSignature   {BEGIN directive_start; return TK_DEFDOCSTRSIG;}
 ^[ \t]*%DefaultEncoding     {BEGIN directive_start; return TK_DEFENCODING;}
 ^[ \t]*%DefaultMetatype     {BEGIN directive_start; return TK_DEFMETATYPE;}
 ^[ \t]*%DefaultSupertype    {BEGIN directive_start; return TK_DEFSUPERTYPE;}
@@ -258,23 +259,34 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
 }
 
 
-\"[^"\n]*["\n] {
+\"(\\.|[^\\"])*\" {
     /* A double-quoted string. */
-    char *dp, *sp;
+    char ch, *dp, *sp;
 
-    /* Copy the string without the quotes. */
-
-    yylval.text = sipMalloc(strlen(yytext) + 1);
+    /*
+     * Copy the string without the quotes and interpret any standard escape
+     * characters.
+     */
+    yylval.text = sipMalloc(strlen(yytext) - 2 + 1);
 
     dp = yylval.text;
-    sp = yytext;
+    sp = yytext + 1;
 
-    while (*sp != '\0')
+    while ((ch = *sp++) != '"' && ch != '\0')
     {
-        if (*sp != '"')
-            *dp++ = *sp;
+        if (ch == '\\')
+        {
+            ch = *sp++;
 
-        ++sp;
+            if (ch == 'n')
+                ch = '\n';
+            else if (ch == 'r')
+                ch = '\r';
+            else if (ch == 't')
+                ch = '\t';
+        }
+
+        *dp++ = ch;
     }
 
     *dp = '\0';
@@ -414,6 +426,12 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
     return TK_METHODCODE;
 }
 
+^[ \t]*%PreMethodCode {
+    /* The start of a C++ code block to insert before the MethodCode. */
+    codeIdx = 0;
+    return TK_PREMETHODCODE;
+}
+
 ^[ \t]*%VirtualCallCode {
     /* The start of a C++ virtual call code block. */
     codeIdx = 0;
@@ -515,6 +533,9 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
 ^[ \t]*%Docstring {
     /* The start of a docstring block. */
     codeIdx = 0;
+
+    BEGIN directive_start;
+
     return TK_DOCSTRING;
 }
 

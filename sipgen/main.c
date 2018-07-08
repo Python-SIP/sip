@@ -1,7 +1,7 @@
 /*
  * The main module for SIP.
  *
- * Copyright (c) 2016 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2017 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -51,8 +51,9 @@ int main(int argc, char **argv)
 {
     char *filename, *docFile, *codeDir, *srcSuffix, *flagFile, *consModule;
     char arg, *optarg, *buildFile, *apiFile, *xmlFile, *pyiFile;
+    const char *sipName;
     int optnr, exceptions, tracing, releaseGIL, parts, protHack, docs;
-    int timestamp, was_flagFile;
+    int timestamp, was_flagFile, py_debug, strict;
     KwArgs kwArgs;
     FILE *file;
     sipSpec spec;
@@ -73,6 +74,7 @@ int main(int argc, char **argv)
     apiFile = NULL;
     xmlFile = NULL;
     pyiFile = NULL;
+    sipName = "sip";
     consModule = NULL;
     extracts = NULL;
     exceptions = FALSE;
@@ -83,11 +85,13 @@ int main(int argc, char **argv)
     protHack = FALSE;
     docs = FALSE;
     timestamp = TRUE;
+    py_debug = FALSE;
+    strict = TRUE;
 
     /* Parse the command line. */
     optnr = 1;
 
-    while ((arg = parseopt(argc, argv, "hVa:b:B:ec:d:fgI:j:km:op:Prs:t:Twx:X:y:z:", &flagFile, &optnr, &optarg)) != '\0')
+    while ((arg = parseopt(argc, argv, "hVa:b:B:ec:d:DfgI:j:km:n:op:Prs:t:Twx:X:y:z:", &flagFile, &optnr, &optarg)) != '\0')
         switch (arg)
         {
         case 'o':
@@ -113,6 +117,11 @@ int main(int argc, char **argv)
         case 'm':
             /* Where to generate the XML file. */
             xmlFile = optarg;
+            break;
+
+        case 'n':
+            /* The qualified name of the sip module. */
+            sipName = optarg;
             break;
 
         case 'y':
@@ -162,6 +171,11 @@ int main(int argc, char **argv)
         case 'd':
             /* Where to generate the documentation. */
             docFile = optarg;
+            break;
+
+        case 'D':
+            /* Generate code for a debug build of Python. */
+            py_debug = TRUE;
             break;
 
         case 't':
@@ -258,17 +272,26 @@ int main(int argc, char **argv)
     if (was_flagFile)
         warning(DeprecationWarning, "the -z flag is deprecated\n");
 
+    /* Handle conflicting arguments. */
+    if (xmlFile != NULL)
+    {
+        if (codeDir != NULL || docFile != NULL || buildFile != NULL)
+            fatal("The -m flag cannot be specified with either the -b, -c or -d flags\n");
+
+        strict = FALSE;
+    }
+
     /* Parse the input file. */
-    parse(&spec, file, filename, versions, backstops, xfeatures, kwArgs,
-            protHack);
+    parse(&spec, file, filename, strict, versions, backstops, xfeatures,
+            kwArgs, protHack);
 
     /* Verify and transform the parse tree. */
-    transform(&spec);
+    transform(&spec, strict);
 
     /* Generate code. */
     generateCode(&spec, codeDir, buildFile, docFile, srcSuffix, exceptions,
             tracing, releaseGIL, parts, versions, xfeatures, consModule, docs,
-            FALSE);
+            py_debug, sipName);
 
     /* Generate any extracts. */
     generateExtracts(&spec, extracts);
@@ -566,7 +589,7 @@ static void help(void)
 {
     printf(
 "Usage:\n"
-"    %s [-h] [-V] [-a file] [-b file] [-B tag] [-c dir] [-d file] [-e] [-f] [-g] [-I dir] [-j #] [-k] [-m file] [-o] [-p module] [-P] [-r] [-s suffix] [-t tag] [-T] [-w] [-x feature] [-X id:file] [-z file] [@file] [file]\n"
+"    %s [-h] [-V] [-a file] [-b file] [-B tag] [-c dir] [-d file] [-D] [-e] [-f] [-g] [-I dir] [-j #] [-k] [-m file] [-n name] [-o] [-p module] [-P] [-r] [-s suffix] [-t tag] [-T] [-w] [-x feature] [-X id:file] [-z file] [@file] [file]\n"
 "where:\n"
 "    -h          display this help message\n"
 "    -V          display the %s version number\n"
@@ -575,6 +598,7 @@ static void help(void)
 "    -B tag      add tag to the list of timeline backstops\n"
 "    -c dir      the name of the code directory [default not generated]\n"
 "    -d file     the name of the documentation file (deprecated) [default not generated]\n"
+"    -D          generate code for a debug build of Python\n"
 "    -e          enable support for exceptions [default disabled]\n"
 "    -f          warnings are handled as errors\n"
 "    -g          always release and reacquire the GIL [default only when specified]\n"
@@ -582,6 +606,7 @@ static void help(void)
 "    -j #        split the generated code into # files [default 1 per class]\n"
 "    -k          support keyword arguments in functions and methods\n"
 "    -m file     the name of the XML export file [default not generated]\n"
+"    -n name     the qualified name of the private copy of the sip module\n"
 "    -o          enable the automatic generation of docstrings [default disabled]\n"
 "    -p module   the name of the consolidated module that this is a component of\n"
 "    -P          enable the protected/public hack\n"
@@ -607,8 +632,8 @@ static void help(void)
 static void usage(void)
 {
     fatal("Usage: %s [-h] [-V] [-a file] [-b file] [-B tag] [-c dir] "
-            "[-d file] [-e] [-f] [-g] [-I dir] [-j #] [-k] [-m file] [-o] "
-            "[-p module] [-P] [-r] [-s suffix] [-t tag] [-w] [-x feature] "
-            "[-X id:file] [-y file] [-z file] [@file] [file]\n",
+            "[-d file] [-D] [-e] [-f] [-g] [-I dir] [-j #] [-k] [-m file] "
+            "[-n name] [-o] [-p module] [-P] [-r] [-s suffix] [-t tag] [-w] "
+            "[-x feature] [-X id:file] [-y file] [-z file] [@file] [file]\n",
             sipPackage);
 }

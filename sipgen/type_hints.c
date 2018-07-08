@@ -1,7 +1,7 @@
 /*
  * The PEP 484 type hints generator for SIP.
  *
- * Copyright (c) 2016 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2017 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -43,6 +43,9 @@ static void pyiCtor(sipSpec *pt, moduleDef *mod, classDef *cd, ctorDef *ct,
 static void pyiCallable(sipSpec *pt, moduleDef *mod, memberDef *md,
         overDef *overloads, int is_method, ifaceFileList *defined, int indent,
         FILE *fp);
+static void pyiProperty(sipSpec *pt, moduleDef *mod, propertyDef *pd,
+        int is_setter, memberDef *md, overDef *overloads,
+        ifaceFileList *defined, int indent, FILE *fp);
 static void pyiOverload(sipSpec *pt, moduleDef *mod, overDef *od,
         int overloaded, int is_method, int sec, ifaceFileList *defined,
         int indent, int pep484, FILE *fp);
@@ -284,6 +287,7 @@ static void pyiClass(sipSpec *pt, moduleDef *mod, classDef *cd,
     classDef *nested;
     ctorDef *ct;
     memberDef *md;
+    propertyDef *pd;
 
     separate(TRUE, indent, fp);
     prIndent(indent, fp);
@@ -463,6 +467,27 @@ static void pyiClass(sipSpec *pt, moduleDef *mod, classDef *cd,
         first = separate(first, indent, fp);
 
         pyiCallable(pt, mod, md, cd->overs, TRUE, *defined, indent, fp);
+    }
+
+    for (pd = cd->properties; pd != NULL; pd = pd->next)
+    {
+        first = separate(first, indent, fp);
+
+        if (pd->get != NULL)
+        {
+            if ((md = findMethod(cd, pd->get)) != NULL)
+            {
+                pyiProperty(pt, mod, pd, FALSE, md, cd->overs, *defined,
+                        indent, fp);
+
+                if (pd->set != NULL)
+                {
+                    if ((md = findMethod(cd, pd->set)) != NULL)
+                        pyiProperty(pt, mod, pd, TRUE, md, cd->overs, *defined,
+                                indent, fp);
+                }
+            }
+        }
     }
 
     /*
@@ -717,6 +742,48 @@ static void pyiCallable(sipSpec *pt, moduleDef *mod, memberDef *md,
         if (implicit_overloads)
             pyiOverload(pt, mod, od, overloaded, is_method, TRUE, defined,
                     indent, TRUE, fp);
+    }
+}
+
+
+/*
+ * Generate the type hints for a property.
+ */
+static void pyiProperty(sipSpec *pt, moduleDef *mod, propertyDef *pd,
+        int is_setter, memberDef *md, overDef *overloads,
+        ifaceFileList *defined, int indent, FILE *fp)
+{
+    overDef *od;
+
+    /* Handle each overload. */
+    for (od = overloads; od != NULL; od = od->next)
+    {
+        if (isPrivate(od))
+            continue;
+
+        if (od->common != md)
+            continue;
+
+        if (od->no_typehint)
+            continue;
+
+        prIndent(indent, fp);
+
+        if (is_setter)
+            fprintf(fp, "@%s.setter\n", pd->name->text);
+        else
+            fprintf(fp, "@property\n");
+
+        prIndent(indent, fp);
+
+        fprintf(fp, "def %s", pd->name->text);
+
+        pyiPythonSignature(pt, mod, &od->pysig, TRUE, FALSE, defined,
+                od->kwargs, TRUE, fp);
+
+        fprintf(fp, ": ...\n");
+
+        break;
     }
 }
 
@@ -1065,7 +1132,7 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, int sec,
  */
 void prScopedPythonName(FILE *fp, classDef *scope, const char *pyname)
 {
-    if (scope != NULL)
+    if (scope != NULL && !isHiddenNamespace(scope))
     {
         prScopedPythonName(fp, scope->ecd, NULL);
         fprintf(fp, "%s.", scope->pyname->text);

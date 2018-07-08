@@ -294,6 +294,15 @@ Argument Annotations
     leaks.
 
 
+.. argument-annotation:: ScopesStripped
+
+    .. versionadded:: 4.19.11
+
+    This integer annotation is only used with Qt signal arguments.  Normally
+    the fully scoped type of the argument is used but this annotation specifies
+    that the given number of scopes should be removed.
+
+
 .. argument-annotation:: Transfer
 
     This boolean annotation is used to specify that ownership of the
@@ -389,7 +398,8 @@ Class Annotations
 
     This boolean annotation is used to specify that the class has additional
     pure virtual methods that have not been specified and so it cannot be
-    instantiated or sub-classed from Python.
+    instantiated or sub-classed from Python.  It should not be specified if all
+    pure virtual methods have been specified.
 
 
 .. class-annotation:: AllowNone
@@ -951,8 +961,8 @@ Function Annotations
 
 .. function-annotation:: NewThread
 
-    This boolean annotation specifies that the function will create a new
-    thread.
+    This boolean annotation specifies that the function (which must be a
+    virtual) will be executed in a new thread.
 
 
 .. function-annotation:: NoArgParser

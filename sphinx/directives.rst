@@ -816,6 +816,27 @@ For example::
     %DefaultDocstringFormat "deindented"
 
 
+.. directive:: %DefaultDocstringSignature
+
+.. versionadded:: 4.19.7
+
+.. parsed-literal::
+
+    %DefaultDocstringSignature(name = ["discarded" | "prepended" | "appended"])
+
+This directive is used to specify the default positioning of signatures in
+docstrings, i.e. when the :directive:`%Docstring` directive is used but does
+not specify an explicit positioning.
+
+See the :directive:`%Docstring` directive for an explanation of the different
+ways signatures are positioned.  If the directive is not specified then the
+default positioning is ``"discarded"``.
+
+For example::
+
+    %DefaultDocstringSignature "prepended"
+
+
 .. directive:: %DefaultEncoding
 
 .. parsed-literal::
@@ -917,12 +938,12 @@ For example::
 
 .. parsed-literal::
 
-    %Docstring(format = ["raw" | "deindented"])
+    %Docstring(format = ["raw" | "deindented"], signature = ["discarded" | "prepended" | "appended"])
         *text*
     %End
 
 This directive is used to specify explicit docstrings for modules, classes,
-functions, methods and properties.
+functions, methods, typedefs and properties.
 
 The docstring of a class is made up of the docstring specified for the class
 itself, with the docstrings specified for each contructor appended.
@@ -930,23 +951,42 @@ itself, with the docstrings specified for each contructor appended.
 The docstring of a function or method is made up of the concatenated docstrings
 specified for each of the overloads.
 
-Specifying an explicit docstring will prevent SIP from generating an automatic
-docstring that describes the Python signature of a function or method overload.
-This means that SIP will generate less informative exceptions (i.e. without a
-full signature) when it fails to match a set of arguments to any function or
-method overload.
+.. note::
+
+    Specifying an explicit docstring will mean that SIP will generate less
+    informative exceptions (i.e. without a full signature) when it fails to
+    match a set of arguments to any function or method overload.
 
 .. versionadded:: 4.13
 
-The format may either be ``"raw"`` or ``"deindented"``.  If it is not specified
+``format`` may either be ``"raw"`` or ``"deindented"``.  If it is not specified
 then the value specified by any :directive:`%DefaultDocstringFormat` directive
 is used.
 
-If the format is ``"raw"`` then the docstring is used as it appears in the
+If ``format`` is ``"raw"`` then the docstring is used as it appears in the
 specification file.
 
-If the format is ``"deindented"`` then any leading spaces common to all
+If ``format`` is ``"deindented"`` then any leading spaces common to all
 non-blank lines of the docstring are removed.
+
+.. versionadded:: 4.19.7
+
+``signature`` may either be ``"discarded"``, ``"prepended"`` or ``"appended"``.
+It is ignored unless applied to the docstring of a class, function or method.
+If it is not specified then the value specified by any
+:directive:`%DefaultDocstringSignature` directive is used.
+
+If ``signature`` is ``"discarded"`` then the automatically generated function
+or method signature is discarded.  In the context of a class's docstring then
+this refers to all of the constructors' docstrings.
+
+If ``signature`` is ``"prepended"`` then the automatically generated function
+or method signature is placed before the docstring.  In the context of a
+class's docstring then this refers to all of the constructors' docstrings.
+
+If ``signature`` is ``"appended"`` then the automatically generated function
+or method signature is placed after the docstring.  In the context of a class's
+docstring then this refers to all of the constructors' docstrings.
 
 For example::
 
@@ -964,6 +1004,9 @@ For example::
             This will be indented by four spaces.
     %End
     };
+
+.. seealso:: :directive:`%DefaultDocstringFormat`,
+    :directive:`%DefaultDocstringSignature`
 
 
 .. directive:: %End
@@ -1214,7 +1257,7 @@ garbage collector is to do its job, it needs to provide some handwritten code
 to traverse and potentially clear those embedded references.
 
 See the section `Supporting Cyclic Garbage Collection
-<http://docs.python.org/3/c-api/gcsupport.html>`__ in the Python documentation
+<https://docs.python.org/3/c-api/gcsupport.html>`__ in the Python documentation
 for the details.
 
 This directive is used to specify the code that clears any embedded references.
@@ -2237,6 +2280,22 @@ For example::
 
         %Property(name=count, get=get_count, set=set_count)
     };
+
+
+.. directive:: %PreMethodCode
+
+.. versionadded:: 4.19.1
+
+.. parsed-literal::
+
+    %PreMethodCode
+        *code*
+    %End
+
+This directive is used as part of the specification of a global function, class
+method, operator, constructor or destructor to specify handwritten code that
+is inserted before the default code for calling the wrapped function, or
+before the :directive:`%MethodCode` directive if it is also given.
 
 
 .. directive:: %RaiseCode

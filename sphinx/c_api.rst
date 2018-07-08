@@ -411,6 +411,9 @@ specification files.
 
 .. c:function:: int sipCanConvertToEnum(PyObject *obj, const sipTypeDef *td)
 
+    .. deprecated:: 4.19.4
+        Use :c:func:`sipConvertToEnum()` instead.
+
     This checks if a Python object can be converted to a named enum.
 
     :param obj:
@@ -533,8 +536,10 @@ specification files.
 
 .. c:function:: PyObject *sipConvertFromEnum(int eval, const sipTypeDef *td)
 
-    This converts a named C/C++ ``enum`` to an instance of the corresponding
-    generated Python type.
+    This converts a named C/C++ ``enum`` to a Python object.  If the enum is a
+    C++11 scoped enum then the Python object is created using the
+    :py:mod:`enum` module.  Otherwise a SIP generated type is used that can
+    itself be converted to an ``int``.
 
     :param eval:
         the enumerated value to convert.
@@ -816,6 +821,38 @@ specification files.
         the :class:`sip.array` object.
 
 
+.. c:function:: int sipConvertToBool(PyObject *obj)
+
+    .. versionadded:: 4.19.4
+
+    This converts a Python object to an integer corresponding to a C++
+    ``bool``.
+
+    :param obj:
+        the Python object to convert.
+    :return:
+        the boolean value as an integer.  ``1`` corresponds to ``true`` and
+        ``0`` corresponds to ``false``.  ``-1`` is returned, and an exception
+        is raised, if there was an error.
+
+
+.. c:function:: int sipConvertToEnum(PyObject *obj, const sipTypeDef *td)
+
+    .. versionadded:: 4.19.4
+
+    This converts a Python object to the value of a named C/C++ ``enum``
+    member.  If the enum is a C++11 scoped enum then the Python object must be
+    a member of the enum.  Otherwise it may also be an ``int`` corresponding to
+    the name of the member.
+
+    :param obj:
+        the Python object to convert.
+    :param td:
+        the enum's :ref:`generated type structure <ref-type-structures>`.
+    :return:
+        the integer value.  An exception is raised if there was an error.
+
+
 .. c:function:: void *sipConvertToInstance(PyObject *obj, sipWrapperType *type, PyObject *transferObj, int flags, int *state, int *iserr)
 
     .. deprecated:: 4.8
@@ -1043,6 +1080,37 @@ specification files.
         if there was an error.
 
 
+.. c:function:: int sipEnableGC(int enable)
+
+    .. versionadded:: 4.19.1
+
+    This enables or disables the Python garbarge collector.
+
+    :param enable:
+        is greater than ``0`` if the garbage collector should be enabled.
+    :return:
+        ``1`` or ``0`` depending on whether or not the garbage collector was
+        previously enabled.  This allows the previous state to be restored
+        later on.  ``-1`` is returned if there was an error.
+
+
+.. c:function:: int sipEnableOverflowChecking(int enable)
+
+    .. versionadded:: 4.19.4
+
+    This enables or disables the checking for overflows when converting Python
+    integer objects to C/C++ integer types.  When it is enabled an exception is
+    raised when the value of a Python integer object is too large to fit in the
+    corresponding C/C++ type.  By default it is disabled.
+
+    :param enable:
+        is greater than ``0`` if overflow checking should be enabled.
+    :return:
+        ``1`` or ``0`` depending on whether or not overflow chacking was
+        previously enabled.  This allows the previous state to be restored
+        later on.
+
+
 .. c:function:: int sipExportSymbol(const char *name, void *sym)
 
     Python does not allow extension modules to directly access symbols in
@@ -1094,14 +1162,14 @@ specification files.
         Use :c:func:`sipFindType()` instead.
 
     This returns a pointer to the :ref:`generated Python type object
-    <ref-enum-type-objects>` corresponding to a named C/C++ enum.
+    <ref-enum-type-objects>` corresponding to a named unscoped C/C++ enum.
 
     :param type:
         the C/C++ declaration of the enum.
     :return:
         the generated Python type object.  This will not change and may be
-        saved in a static cache.  ``NULL`` is returned if the C/C++ enum
-        doesn't exist.
+        saved in a static cache.  ``NULL`` is returned if the C/C++ unscoped
+        enum doesn't exist.
 
 
 .. c:function:: const sipTypeDef *sipFindType(const char *type)
@@ -1460,6 +1528,19 @@ specification files.
         symbol.
 
 
+.. c:function:: void sipInstanceDestroyed(sipSimpleWrapper *obj)
+
+    .. versionadded:: 4.19.3
+
+    This should be called by handwritten code if it is able to detect that a
+    wrapped C++ instance has been destroyed from C++.  It should not be called
+    if SIP is able to detect this itself, i.e. when the instance was created
+    from Python and the class has a virtual destructor.
+
+    :param obj:
+        the Python object that wraps the destroyed instance.
+
+
 .. c:type:: sipIntTypeClassMap
 
     .. deprecated:: 4.8
@@ -1511,11 +1592,149 @@ specification files.
         a non-zero value if the type is a user defined type.
 
 
+.. c:function:: char sipLong_AsChar(PyObject *obj)
+
+    .. versionadded:: 4.19.4
+
+    This converts a Python object to a C/C++ char.  If the value is too large
+    then an exception is raised if overflow checking is enabled.
+
+    :param obj:
+        the Python object.
+    :return:
+        the converted C/C++ value.
+
+
+.. c:function:: signed char sipLong_AsSignedChar(PyObject *obj)
+
+    .. versionadded:: 4.19.4
+
+    This converts a Python object to a C/C++ signed char.  If the value is too
+    large then an exception is raised if overflow checking is enabled.
+
+    :param obj:
+        the Python object.
+    :return:
+        the converted C/C++ value.
+
+
+.. c:function:: unsigned char sipLong_AsUnsignedChar(PyObject *obj)
+
+    .. versionadded:: 4.19.4
+
+    This converts a Python object to a C/C++ unsigned char.  If the value is
+    too large then an exception is raised if overflow checking is enabled.
+
+    :param obj:
+        the Python object.
+    :return:
+        the converted C/C++ value.
+
+
+.. c:function:: short sipLong_AsShort(PyObject *obj)
+
+    .. versionadded:: 4.19.4
+
+    This converts a Python object to a C/C++ short.  If the value is too large
+    then an exception is raised if overflow checking is enabled.
+
+    :param obj:
+        the Python object.
+    :return:
+        the converted C/C++ value.
+
+
+.. c:function:: unsigned short sipLong_AsUnsignedShort(PyObject *obj)
+
+    .. versionadded:: 4.19.4
+
+    This converts a Python object to a C/C++ unsigned short.  If the value is
+    too large then an exception is raised if overflow checking is enabled.
+
+    :param obj:
+        the Python object.
+    :return:
+        the converted C/C++ value.
+
+
+.. c:function:: int sipLong_AsInt(PyObject *obj)
+
+    .. versionadded:: 4.19.4
+
+    This converts a Python object to a C/C++ int.  If the value is too large
+    then an exception is raised if overflow checking is enabled.
+
+    :param obj:
+        the Python object.
+    :return:
+        the converted C/C++ value.
+
+
+.. c:function:: unsigned int sipLong_AsUnsignedInt(PyObject *obj)
+
+    .. versionadded:: 4.19.4
+
+    This converts a Python object to a C/C++ unsigned int.  If the value is too
+    large then an exception is raised if overflow checking is enabled.
+
+    :param obj:
+        the Python object.
+    :return:
+        the converted C/C++ value.
+
+
+.. c:function:: long sipLong_AsLong(PyObject *obj)
+
+    .. versionadded:: 4.19.4
+
+    This converts a Python object to a C/C++ long.  If the value is too large
+    then an exception is raised if overflow checking is enabled.
+
+    :param obj:
+        the Python object.
+    :return:
+        the converted C/C++ value.
+
+
 .. c:function:: unsigned long sipLong_AsUnsignedLong(PyObject *obj)
 
-    This function is a thin wrapper around :c:func:`PyLong_AsUnsignedLong()`
-    that works around a bug in Python v2.3.x and earlier when converting
-    integer objects.
+    .. versionadded:: 4.19.4
+
+    This converts a Python object to a C/C++ unsigned long.  If the value is
+    too large then an exception is raised if overflow checking is enabled.
+
+    :param obj:
+        the Python object.
+    :return:
+        the converted C/C++ value.
+
+
+.. c:function:: PY_LONG_LONG sipLong_AsLongLong(PyObject *obj)
+
+    .. versionadded:: 4.19.4
+
+    This converts a Python object to a C/C++ long long.  If the value is too
+    large then an exception is raised if overflow checking is enabled.  It is
+    not available if ``Python.h`` does not define ``HAVE_LONG_LONG``.
+
+    :param obj:
+        the Python object.
+    :return:
+        the converted C/C++ value.
+
+
+.. c:function:: unsigned PY_LONG_LONG sipLong_AsUnsignedLongLong(PyObject *obj)
+
+    .. versionadded:: 4.19.4
+
+    This converts a Python object to a C/C++ unsigned long long.  If the value
+    is too large then an exception is raised if overflow checking is enabled.
+    It is not available if ``Python.h`` does not define ``HAVE_LONG_LONG``.
+
+    :param obj:
+        the Python object.
+    :return:
+        the converted C/C++ value.
 
 
 .. c:function:: void *sipMalloc(size_t nbytes)
@@ -2068,7 +2287,7 @@ specification files.
     :param obj:
         the wrapped object.
     :param user:
-        the user object.
+        a borrowed reference to the user object.
 
 
 .. c:type:: sipSimpleWrapper
@@ -2079,7 +2298,7 @@ specification files.
 
     When the limited Python API is enabled and Python v3.2 or later is being
     used then it is only available as an opaque (i.e. incomplete) type and the
-    following memebers are not available.
+    following members are not available.
 
     .. c:member:: void *data
 
@@ -2247,12 +2466,12 @@ specification files.
 .. c:function:: int sipTypeIsEnum(sipTypeDef *td)
 
     This checks if a :ref:`generated type structure <ref-type-structures>`
-    refers to a named enum.
+    refers to a C-style named enum.
 
     :param td:
         the type structure.
     :return:
-        a non-zero value if the type structure refers to an enum.
+        a non-zero value if the type structure refers to a C-style named enum.
 
 
 .. c:function:: int sipTypeIsMapped(sipTypeDef *td)
@@ -2275,6 +2494,19 @@ specification files.
         the type structure.
     :return:
         a non-zero value if the type structure refers to a namespace.
+
+
+.. c:function:: int sipTypeIsScopedEnum(sipTypeDef *td)
+
+    .. versionadded:: 4.19.4
+
+    This checks if a :ref:`generated type structure <ref-type-structures>`
+    refers to a C++11 scoped enum.
+
+    :param td:
+        the type structure.
+    :return:
+        a non-zero value if the type structure refers to a C++11 scoped enum.
 
 
 .. c:function:: const char *sipTypeName(const sipTypeDef *td)
@@ -2417,6 +2649,55 @@ specification files.
 
     This is the type of a :c:type:`sipWrapperType` structure and is the C
     implementation of :class:`sip.wrappertype`.
+
+
+Event Handlers
+--------------
+
+.. versionadded:: 4.19.3
+
+The :mod:`sip` module will trigger a number of events.  Handwritten code can
+supply handlers for these events to allow it to perform additional actions.
+Each event has a type, described by the :cpp:enum:`sipEventType` enum.  An
+event handler is registered using :c:func:`sipRegisterEventHandler()`.  The
+signature of an event handler is specific to the event type.
+
+
+.. cpp:enum:: sipEventType
+
+    This is the enum that defines the different event types.
+
+
+.. :cpp:enumerator:: sipEventWrappedInstance
+
+    This event is triggered whenever a C/C++ instance that is created by C/C++
+    (and not by Python) is wrapped.  The handler is passed a ``void *`` which
+    is the address of the C/C++ instance.
+
+
+.. :cpp:enumerator:: sipEventCollectingWrapper
+
+    This event is triggered whenever a Python wrapper object is being garbage
+    collected.  The handler is passed a pointer to the
+    :c:type:`sipSimpleWrapper` object that is the Python wrapper object being
+    garbage collected.
+
+
+.. c:function:: int sipRegisterEventHandler(sipEventType type, const sipTypeDef *td, void *handler)
+
+    This registers an event handler which will be called whenever an event is
+    triggered.
+
+    :param type:
+        the event type for which the handler is registered.
+    :param td:
+        the generated type structure - the handler will only be invoked for
+        Python object corresponding to this type or a sub-type.
+    :param handler:
+        the handler that is called when the event is triggered.
+    :return:
+        0 if there was no error, otherwise -1 is returned (and a Python
+        exception is raised).
 
 
 .. _ref-type-structures:

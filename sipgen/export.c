@@ -354,44 +354,44 @@ static void xmlClass(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
         return;
     }
 
-    xmlIndent(indent++, fp);
-    fprintf(fp, "<Class name=\"");
-    prScopedPythonName(fp, cd->ecd, cd->pyname->text);
-    fprintf(fp, "\"");
-
-    if (cd->picklecode != NULL)
-        fprintf(fp, " pickle=\"1\"");
-
-    if (cd->convtocode != NULL)
-        fprintf(fp, " convert=\"1\"");
-
-    if (cd->convfromcode != NULL)
-        fprintf(fp, " convertfrom=\"1\"");
-
-    if (cd->real != NULL)
-        fprintf(fp, " extends=\"%s\"", cd->real->iff->module->name);
-
-    if (cd->supers != NULL)
+    if (!isHiddenNamespace(cd))
     {
-        classList *cl;
+        xmlIndent(indent++, fp);
+        fprintf(fp, "<Class name=\"");
+        prScopedPythonName(fp, cd->ecd, cd->pyname->text);
+        fprintf(fp, "\"");
 
-        fprintf(fp, " inherits=\"");
+        if (cd->picklecode != NULL)
+            fprintf(fp, " pickle=\"1\"");
 
-        for (cl = cd->supers; cl != NULL; cl = cl->next)
+        if (cd->convtocode != NULL)
+            fprintf(fp, " convert=\"1\"");
+
+        if (cd->convfromcode != NULL)
+            fprintf(fp, " convertfrom=\"1\"");
+
+        if (cd->real != NULL)
+            fprintf(fp, " extends=\"%s\"", cd->real->iff->module->name);
+
+        if (cd->supers != NULL)
         {
-            if (cl != cd->supers)
-                fprintf(fp, " ");
+            classList *cl;
 
-            prScopedPythonName(fp, cl->cd->ecd, cl->cd->pyname->text);
+            fprintf(fp, " inherits=\"");
+
+            for (cl = cd->supers; cl != NULL; cl = cl->next)
+            {
+                if (cl != cd->supers)
+                    fprintf(fp, " ");
+
+                prScopedPythonName(fp, cl->cd->ecd, cl->cd->pyname->text);
+            }
+
+            fprintf(fp, "\"");
         }
 
-        fprintf(fp, "\"");
+        fprintf(fp, ">\n");
     }
-
-    fprintf(fp, ">\n");
-
-    xmlEnums(pt, mod, cd, indent, fp);
-    xmlVars(pt, mod, cd, indent, fp);
 
     for (ct = cd->ctors; ct != NULL; ct = ct->next)
     {
@@ -402,11 +402,17 @@ static void xmlClass(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
             xmlCtor(pt, cd, ct, TRUE, indent, fp);
     }
 
+    xmlEnums(pt, mod, cd, indent, fp);
+    xmlVars(pt, mod, cd, indent, fp);
+
     for (md = cd->members; md != NULL; md = md->next)
         xmlFunction(pt, cd, md, cd->overs, indent, fp);
 
-    xmlIndent(--indent, fp);
-    fprintf(fp, "</Class>\n");
+    if (!isHiddenNamespace(cd))
+    {
+        xmlIndent(--indent, fp);
+        fprintf(fp, "</Class>\n");
+    }
 }
 
 

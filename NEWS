@@ -1,3 +1,75 @@
+v4.19.12 8th July 2018
+  - Added the --no-module option to configure.py.
+  - Bug fixes.
+
+v4.19.11 2nd July 2018
+  - Added the /ScopesStripped/ argument annotation.
+  - Bug fixes.
+
+v4.19.10 24th June 2018
+  - A bug fix release fixing a serious regression in the code generator.
+
+v4.19.9 23rd June 2018
+  - The members of traditional C/C++ enums are now also visible within the
+    scope of the enum itself.  This means that members of scoped and unscoped
+    enums can be accessed in the same way from Python.
+  - A PEP 376 .dist-info directory is created on installation that provides
+    version information for dependent packages and allows pip to uninstall.
+  - Added the --no-dist-info option to configure.py.
+  - Private copies of the sip module are now easier to configure and use.  SIP
+    v5 will only support private copies.
+  - Added the -n option to the sip code generator to support private copies of
+    the sip module.
+  - Bug fixes.
+
+v4.19.8 26th February 2018
+  - Bug fixes.
+
+v4.19.7 23rd January 2018
+  - The %Docstring directive can now include automatically generated signature
+    descriptions using the "signature" option.
+  - typedefs can now have %Docstring directives.
+  - Bug fixes.
+
+v4.19.6 23rd November 2017
+  - Bug fixes.
+
+v4.19.5 6th November 2017
+  - Bug fixes.
+
+v4.19.4 1st November 2017
+  - Added support for C++11 scoped enums implemented as Python enums.
+  - Added enableoverflowchecking() to the sip module.
+  - Added sipEnableOverflowChecking() to the C API.
+  - Added sipTypeIsScopedEnum() to the C API.
+  - Added sipConvertToBool() to the C API.
+  - Added sipConvertToEnum() to the C API.
+  - Deprecated sipCanConvertToEnum() in the C API.
+  - Added sipLong_AsChar(), sipLong_AsSignedChar() and sipLong_AsUnsignedChar()
+    to the C API.
+  - Added sipLong_AsShort() and sipLong_AsUnsignedShort() to the C API.
+  - Added sipLong_AsInt() and sipLong_AsUnsignedInt() to the C API.
+  - Added sipLong_AsLong() and sipLong_AsUnsignedLong() to the C API.
+  - Added sipLong_AsLongLong() and sipLong_AsUnsignedLongLong() to the C API.
+  - Bug fixes.
+
+v4.19.3 3rd July 2017
+  - Added support for type hints for properties.
+  - Added sipEventType and sipRegisterEventHandler() to the C API.
+  - Added sipInstanceDestroyed() to the C API.
+  - Added sipPrintObject() to the C API.
+  - Bug fixes.
+
+v4.19.2 30th March 2017
+  - Bug fixes.
+
+v4.19.1 15th February 2017
+  - Added the %PreMethodCode directive.
+  - Added sipEnableGC() to the C API.
+  - Added the -D command line option so that the generated code is aware of
+    Python debug builds.
+  - Bug fixes.
+
 v4.19 25th December 2016
   - Added support for the 'final' keyword.
   - Added the 'use_limited_api' argument to the %Module directive.

@@ -1,7 +1,7 @@
 /*
  * The parse tree transformation module for SIP.
  *
- * Copyright (c) 2016 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2017 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -44,14 +44,14 @@ static void ifaceFilesAreUsedBySignature(ifaceFileList **used,
         signatureDef *sd, int need_types);
 static void scopeDefaultValue(sipSpec *,classDef *,argDef *);
 static void setHierarchy(sipSpec *,classDef *,classDef *,classList **);
-static void transformModules(sipSpec *pt, moduleDef *mod);
+static void transformModules(sipSpec *pt, int strict, moduleDef *mod);
 static void transformCtors(sipSpec *,classDef *);
 static void transformCasts(sipSpec *,classDef *);
 static void addDefaultCopyCtor(classDef *);
-static void transformScopeOverloads(sipSpec *pt, classDef *c_scope,
+static void transformScopeOverloads(sipSpec *pt, int strict, classDef *c_scope,
         mappedTypeDef *mt_scope, overDef *overs);
 static void transformVariableList(sipSpec *pt, moduleDef *mod);
-static void transformMappedTypes(sipSpec *pt, moduleDef *mod);
+static void transformMappedTypes(sipSpec *pt, int strict, moduleDef *mod);
 static void getVisiblePyMembers(sipSpec *pt, classDef *cd);
 static void getVirtuals(sipSpec *pt, classDef *cd);
 static void addVirtual(sipSpec *pt, overDef *od, classDef *cd);
@@ -106,7 +106,7 @@ static void checkProperties(classDef *cd);
  * Transform the parse tree.
  */
 
-void transform(sipSpec *pt)
+void transform(sipSpec *pt, int strict)
 {
     moduleDef *mod;
     classDef *cd, *rev, **tail;
@@ -229,11 +229,11 @@ void transform(sipSpec *pt)
     {
         /* Transform the modules included by the consolidated module. */
         for (mod = pt->modules->next; mod != NULL; mod = mod->next)
-            transformModules(pt, mod);
+            transformModules(pt, strict, mod);
     }
     else
     {
-        transformModules(pt, pt->modules);
+        transformModules(pt, strict, pt->modules);
     }
 
     /* Handle default ctors now that the argument types are resolved. */ 
@@ -273,11 +273,14 @@ void transform(sipSpec *pt)
     for (cd = pt->classes; cd != NULL; cd = cd->next)
         if (cd->iff->type == class_iface)
         {
+            if (needsShadow(cd) && !isIncomplete(cd) && !isPrivateDtor(cd) && canCreate(cd))
+                setHasShadow(cd);
+
             /* Get the list of visible Python member functions. */
             getVisiblePyMembers(pt, cd);
 
             /* Get the virtual members. */
-            if (hasShadow(cd))
+            if (needsShadow(cd))
                 getVirtuals(pt, cd);
         }
         else if (cd->iff->type == namespace_iface)
@@ -314,7 +317,7 @@ void transform(sipSpec *pt)
         /*
          * Skip those that don't require a Python exception object to be
          * created.
-        */
+         */
         if (xd->iff->type != exception_iface)
             continue;
 
@@ -334,7 +337,7 @@ void transform(sipSpec *pt)
 /*
  * Transform a module and the modules it imports.
  */
-static void transformModules(sipSpec *pt, moduleDef *mod)
+static void transformModules(sipSpec *pt, int strict, moduleDef *mod)
 {
     classDef *cd;
     moduleListDef *mld;
@@ -349,12 +352,12 @@ static void transformModules(sipSpec *pt, moduleDef *mod)
      * right module.
      */
     for (mld = mod->imports; mld != NULL; mld = mld->next)
-        transformModules(pt, mld->module);
+        transformModules(pt, strict, mld->module);
 
     /* Transform typedefs, variables and global functions. */
     transformTypedefs(pt, mod);
     transformVariableList(pt, mod);
-    transformScopeOverloads(pt, NULL, NULL, mod->overs);
+    transformScopeOverloads(pt, strict, NULL, NULL, mod->overs);
 
     /* Transform class ctors, functions and casts. */
     for (cd = pt->classes; cd != NULL; cd = cd->next)
@@ -368,14 +371,14 @@ static void transformModules(sipSpec *pt, moduleDef *mod)
 
             if (!pt->genc)
             {
-                transformScopeOverloads(pt, cd, NULL, cd->overs);
+                transformScopeOverloads(pt, strict, cd, NULL, cd->overs);
                 transformCasts(pt, cd);
             }
         }
     }
 
     /* Transform mapped types based on templates. */
-    transformMappedTypes(pt, mod);
+    transformMappedTypes(pt, strict, mod);
 
     setIsTransformed(mod);
 }
@@ -611,6 +614,15 @@ static void setAllImports(moduleDef *mod)
     if (mod->imports == NULL || mod->allimports != NULL)
         return;
 
+    /* Check for recursive imports. */
+    if (settingImports(mod))
+    {
+        fatalStart();
+        fatal("Module %s is imported recursively\n", mod->name);
+    }
+
+    setSettingImports(mod);
+
     /* Make sure all the direct imports are done first. */
     for (mld = mod->imports; mld != NULL; mld = mld->next)
         setAllImports(mld->module);
@@ -628,6 +640,8 @@ static void setAllImports(moduleDef *mod)
 
         addUniqueModule(mod, mld->module);
     }
+
+    resetSettingImports(mod);
 }
 
 
@@ -847,7 +861,7 @@ static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd)
             if (second)
             {
                 fatalStart();
-                fprintf(stderr, "%s:%d: The first argument of ", od->sloc.name,
+                fprintf(stderr, "%s:%d: Argument 1 of ", od->sloc.name,
                         od->sloc.linenr);
                 prOverloadName(stderr, od);
                 fatal(" must be a class or enum\n");
@@ -856,7 +870,7 @@ static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd)
             if (mod != gmd->module && arg0->atype == enum_type)
             {
                 fatalStart();
-                fprintf(stderr, "%s:%d: The first argument of ", od->sloc.name,
+                fprintf(stderr, "%s:%d: Argument 1 of ", od->sloc.name,
                         od->sloc.linenr);
                 prOverloadName(stderr, od);
                 fatal(" must be a class\n");
@@ -1164,11 +1178,11 @@ static void setHierarchy(sipSpec *pt, classDef *base, classDef *cd,
                     setCannotAssign(cd);
 
                 /*
-                 * If the super-class has a shadow then this one should have
+                 * If the super-class needs a shadow then this one should have
                  * one as well.
                  */
-                if (hasShadow(mro->cd))
-                    setHasShadow(cd);
+                if (needsShadow(mro->cd))
+                    setNeedsShadow(cd);
 
                 /*
                  * Ensure that the sub-class base class is the furthest up the
@@ -1295,7 +1309,7 @@ static void transformTypedefs(sipSpec *pt, moduleDef *mod)
 /*
  * Transform the data types for mapped types based on a template.
  */
-static void transformMappedTypes(sipSpec *pt, moduleDef *mod)
+static void transformMappedTypes(sipSpec *pt, int strict, moduleDef *mod)
 {
     mappedTypeDef *mt;
 
@@ -1306,7 +1320,7 @@ static void transformMappedTypes(sipSpec *pt, moduleDef *mod)
             if (mt->type.atype == template_type)
                 resolveMappedTypeTypes(pt, mt);
             else
-                transformScopeOverloads(pt, NULL, mt, mt->overs);
+                transformScopeOverloads(pt, strict, NULL, mt, mt->overs);
         }
     }
 }
@@ -1473,7 +1487,7 @@ static void addDefaultCopyCtor(classDef *cd)
 /*
  * Transform the data types for a list of overloads.
  */
-static void transformScopeOverloads(sipSpec *pt, classDef *c_scope,
+static void transformScopeOverloads(sipSpec *pt, int strict, classDef *c_scope,
         mappedTypeDef *mt_scope, overDef *overs)
 {
     overDef *od;
@@ -1489,7 +1503,7 @@ static void transformScopeOverloads(sipSpec *pt, classDef *c_scope,
          * one.  If there is %MethodCode then assume that it will handle any
          * potential conflicts.
          */
-        if (od->methodcode == NULL)
+        if (od->methodcode == NULL && strict)
         {
             for (prev = overs; prev != od; prev = prev->next)
             {
@@ -1944,10 +1958,10 @@ static void resolveCtorTypes(sipSpec *pt,classDef *scope,ctorDef *ct)
 
         resolveType(pt, scope->iff->module, scope, ad, FALSE);
 
-        if (!supportedType(scope,NULL,ad,FALSE) && (ct -> cppsig == &ct -> pysig || ct -> methodcode == NULL))
+        if (!supportedType(scope,NULL,ad,FALSE))
         {
             fatalScopedName(classFQCName(scope));
-            fatal(" unsupported ctor argument type - provide %%MethodCode and a C++ signature\n");
+            fatal(" ctor argument %d has an unsupported type for a Python signature - provide a valid type, %%MethodCode and a C++ signature\n", a + 1);
         }
 
         ifaceFileIsUsed(&scope->iff->used, ad, FALSE);
@@ -2104,34 +2118,26 @@ static void resolvePySigTypes(sipSpec *pt, moduleDef *mod, classDef *scope,
                     fprintf(stderr, "::");
                 }
 
-                fatal("%s() unsupported signal argument type\n", od->cppname);
+                fatal("%s() argument %d has an unsupported type for a Python signature\n", od->cppname, a + 1);
             }
         }
         else if (!supportedType(scope, od, ad, TRUE))
         {
-            int need_meth, need_virt;
+            fatalStart();
 
-            need_meth = (od->cppsig == &od->pysig || od->methodcode == NULL);
-            need_virt = (isVirtual(od) && od->virtcode == NULL);
+            if (od->sloc.name != NULL)
+                fprintf(stderr, "%s:%d: ", od->sloc.name, od->sloc.linenr);
 
-            if (need_meth || need_virt)
+            if (scope != NULL)
             {
-                fatalStart();
-
-                if (od->sloc.name != NULL)
-                    fprintf(stderr, "%s:%d: ", od->sloc.name, od->sloc.linenr);
-
-                if (scope != NULL)
-                {
-                    fatalScopedName(classFQCName(scope));
-                    fprintf(stderr, "::");
-                }
-
-                if (need_meth)
-                    fatal("%s() unsupported function argument type - provide %%MethodCode and a %s signature\n", od->cppname, (pt->genc ? "C" : "C++"));
-
-                fatal("%s() unsupported function argument type - provide %%MethodCode, %%VirtualCatcherCode and a C++ signature\n", od->cppname);
+                fatalScopedName(classFQCName(scope));
+                fprintf(stderr, "::");
             }
+
+            if (isVirtual(od))
+                fatal("%s() argument %d has an unsupported type for a Python signature - provide a valid type, %%MethodCode, %%VirtualCatcherCode and a C++ signature\n", od->cppname, a + 1);
+
+            fatal("%s() argument %d has an unsupported type for a Python signature - provide a valid type, %%MethodCode and a C++ signature\n", od->cppname, a + 1);
         }
 
         if (scope != NULL)
@@ -3860,20 +3866,7 @@ static void createSortedNumberedTypesTable(sipSpec *pt, moduleDef *mod)
  */
 static int compareTypes(const void *t1, const void *t2)
 {
-    scopedNameDef *snd1, *snd2;
-
-    snd1 = getFQCNameOfType((argDef *)t1);
-    snd2 = getFQCNameOfType((argDef *)t2);
-
-    /*
-     * This is a lazy hack.  All names should have an explicit scope.  However
-     * mapped type templates don't (yet), so for the moment we just strip the
-     * global scope.
-     */
-    if (snd1->name[0] == '\0') snd1 = snd1->next;
-    if (snd2->name[0] == '\0') snd2 = snd2->next;
-
-    return compareScopedNames(snd1, snd2);
+    return strcmp(((argDef *)t1)->name->text, ((argDef *)t2)->name->text);
 }
 
 

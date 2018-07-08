@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# Copyright (c) 2016 Riverbank Computing Limited <info@riverbankcomputing.com>
+# Copyright (c) 2018 Riverbank Computing Limited <info@riverbankcomputing.com>
 #
 # This file is part of SIP.
 #
@@ -24,26 +24,39 @@ import os
 import sys
 
 
-def _progress(message, quiet):
-    """ Show a progress message to the user.
+# Dummy version numbers.
+RM_HEXVERSION = '04ffff'
+RM_RELEASE = '4.255.255'
 
-    :param message:
-        The text of the message (without a newline).
-    :param quiet:
-        Set if progress messages should be suppressed.
-    """
+
+def _progress(message, quiet):
+    """ Show a progress message to the user. """
 
     if not quiet:
         sys.stdout.write(message)
         sys.stdout.write("\n")
 
 
+def _patch(name, quiet):
+    """ Patch a file with version information. """
+
+    _progress("Creating %s" % name, quiet)
+
+    patched_f = open(name + '.in')
+    patched = patched_f.read()
+    patched_f.close()
+
+    patched = patched.replace('@RM_HEXVERSION@', RM_HEXVERSION)
+    patched = patched.replace('@RM_RELEASE@', RM_RELEASE)
+
+    patched_f = open(name, 'w')
+    patched_f.write(patched)
+    patched_f.close()
+
+
 def prepare(quiet):
     """ Prepare for configuration and building by creating all the required
     additional files.
-
-    :param quiet:
-        Set if progress messages should be suppressed.
     """
 
     sipgen = 'sipgen'
@@ -58,6 +71,10 @@ def prepare(quiet):
     parser_c = os.path.join(sipgen, 'parser.c')
     _progress("Running bison to create %s" % parser_c, quiet)
     os.system('bison -y -d -o %s %s' % (parser_c, parser_y))
+
+    _patch(os.path.join('sipgen', 'sip.h'), quiet)
+    _patch(os.path.join('siplib', 'sip.h'), quiet)
+    _patch('configure.py', quiet)
 
 
 if __name__ == '__main__':

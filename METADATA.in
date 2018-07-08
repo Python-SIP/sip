@@ -1,7 +1,7 @@
 Metadata-Version: 1.1
-Name: sip
+Name: PyQt5_sip
 Version: @RB_VERSION@
-Summary: Python extension module generator for C and C++ libraries
+Summary: Python extension module support for PyQt5
 Home-page: https://www.riverbankcomputing.com/software/sip/
 Author: Riverbank Computing Limited
 Author-email: info@riverbankcomputing.com
@@ -28,8 +28,10 @@ the Qt toolkit, but can be used to create bindings for any C or C++ library.
 
 SIP comprises a code generator and a Python module. The code generator
 processes a set of specification files and generates C or C++ code which is
-then compiled to create the bindings extension module.  The ``sip`` Python
-module provides support functions to the automatically generated code.
+then compiled to create the bindings extension module.  The Python module
+provides support functions to the automatically generated code.  Normally a
+package containing SIP generated bindings includes a private copy of the
+Python module.
 
 The specification files contain a description of the interface of the C or C++
 library, i.e. the classes, methods, functions and variables.  The format of a
@@ -63,20 +65,17 @@ to the BSD license.
 Installation
 ------------
 
-SIP source packages, and Linux 64-bit wheels, can be dowloaded from
+SIP source packages can be dowloaded from
 https://www.riverbankcomputing.com/software/sip/download/.
 
-Wheels for 32 and 64-bit Windows, 64-bit OS X and 64-bit Linux can be installed
-from PyPI::
+Wheels containing the private copy of the Python module for PyQt5 for 32 and
+64-bit Windows, 64-bit macOS and 64-bit Linux can be installed from PyPI::
 
-    pip3 install sip
-
-All wheels include the ``sip`` extension module but do not include the code
-generator.
+    pip3 install PyQt5_sip
 
 
 Documentation
 -------------
 
 The documentation for the latest release can be found
-`here <http://pyqt.sourceforge.net/Docs/sip/>`__.
+`here <http://pyqt.sourceforge.net/Docs/sip4/>`__.
