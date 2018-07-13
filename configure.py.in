@@ -310,6 +310,8 @@ def create_makefiles(macros):
         installs.append(
                 (["sipconfig.py", os.path.join(src_dir, "sipdistutils.py")],
                         cfg.sip_root_dir))
+        installs.append(
+                (os.path.join(src_dir, "siplib", "sip.h"), cfg.sip_inc_dir))
 
     if not opts.no_module:
         subdirs.append('siplib')
@@ -334,13 +336,18 @@ def create_makefiles(macros):
         pro.write("TEMPLATE = subdirs\n")
         pro.write("SUBDIRS = %s\n" % " ".join(subdirs))
 
-        if installs:
-            # There will only be one element in the list.
+        if not opts.no_tools:
             files, path = installs[0]
             pro.write("\n")
             pro.write("build_system.files = %s\n" % " ".join(files))
             pro.write("build_system.path = %s\n" % quote(path))
             pro.write("INSTALLS += build_system\n")
+
+            files, path = installs[1]
+            pro.write("\n")
+            pro.write("sip_h.files = %s\n" % " ".join(files))
+            pro.write("sip_h.path = %s\n" % quote(path))
+            pro.write("INSTALLS += sip_h\n")
 
         if opts.distinfo:
             pro.write("\n")
@@ -422,10 +429,6 @@ def create_makefiles(macros):
     # The module installs.
     module_installs=[]
 
-    if not opts.no_tools:
-        module_installs.append(
-                (os.path.join(src_dir, "siplib", "sip.h"), cfg.sip_inc_dir))
-
     if opts.pyi:
         module_installs.append((os.path.join(src_dir, 'sip.pyi'), pyi_dir))
 
@@ -502,12 +505,6 @@ target.files = $$PY_MODULE
             pro.write("sip_pyi.files = sip.pyi\n")
             pro.write("sip_pyi.path = %s\n" % pyi_dir)
             pro.write("INSTALLS += sip_pyi\n")
-
-        if not opts.no_tools:
-            pro.write("\n")
-            pro.write("sip_h.files = sip.h\n")
-            pro.write("sip_h.path = %s\n" % cfg.sip_inc_dir)
-            pro.write("INSTALLS += sip_h\n")
 
         c_sources = get_sources("siplib", "*.c")
         cpp_sources = get_sources("siplib", "*.cpp")
