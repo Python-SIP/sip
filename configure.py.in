@@ -432,8 +432,12 @@ def create_makefiles(macros):
     all_installs.extend(module_installs)
 
     if not opts.no_module:
-        mod_ext = '.pyd' if sys.platform == 'win32' else '.so'
-        all_installs.append(('sip' + mod_ext, cfg.sip_module_dir))
+        if sys.platform == 'win32':
+            mod = 'sip.lib' if opts.static else 'sip.pyd'
+        else:
+            mod = 'libsip.a' if opts.static else 'sip.so'
+
+        all_installs.append((mod, cfg.sip_module_dir))
 
     if opts.use_qmake:
         sipconfig.inform("Creating sip module .pro file...")
