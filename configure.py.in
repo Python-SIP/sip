@@ -335,7 +335,8 @@ def create_makefiles(macros):
         pro.write("SUBDIRS = %s\n" % " ".join(subdirs))
 
         if installs:
-            files, path = installs
+            # There will only be one element in the list.
+            files, path = installs[0]
             pro.write("\n")
             pro.write("build_system.files = %s\n" % " ".join(files))
             pro.write("build_system.path = %s\n" % quote(path))
