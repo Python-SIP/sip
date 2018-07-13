@@ -322,10 +322,11 @@ def create_makefiles(macros):
     distinfo_dir = os.path.join(cfg.sip_root_dir,
             '%s-%s.dist-info' % (sip_module_name.replace('.', '_'),
                     sip_version_str))
-    run_mk_distinfo = '%s %s "$(DESTDIR)" %s installed.txt' % (sys.executable,
-            mk_distinfo, distinfo_dir)
 
     if opts.use_qmake:
+        run_mk_distinfo = '%s %s \\\"$(INSTALL_ROOT)\\\" %s installed.txt' % (
+                sys.executable, mk_distinfo, distinfo_dir)
+
         sipconfig.inform("Creating top level .pro file...")
 
         pro = open("sip.pro", "w")
@@ -348,6 +349,9 @@ def create_makefiles(macros):
 
         pro.close()
     else:
+        run_mk_distinfo = '%s %s "$(DESTDIR)" %s installed.txt' % (
+                sys.executable, mk_distinfo, distinfo_dir)
+
         sipconfig.inform("Creating top level Makefile...")
 
         # Note that mk_distinfo.py won't exist if we are building from the
