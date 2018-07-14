@@ -302,21 +302,23 @@ def create_makefiles(macros):
     cfg.set_build_macros(macros)
 
     all_installs = []
-    installs = []
+    top_installs = []
+    gen_installs = []
     subdirs = []
 
     if not opts.no_tools:
         subdirs.append('sipgen')
-        installs.append(
+        top_installs.append(
                 (["sipconfig.py", os.path.join(src_dir, "sipdistutils.py")],
                         cfg.sip_root_dir))
-        installs.append(
+        gen_installs.append(
                 (os.path.join(src_dir, "siplib", "sip.h"), cfg.sip_inc_dir))
 
     if not opts.no_module:
         subdirs.append('siplib')
 
-    all_installs += installs
+    all_installs.extend(top_installs)
+    all_installs.extend(gen_installs)
 
     # The command to run to generate the dist-info directory.
     mk_distinfo = os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -336,18 +338,13 @@ def create_makefiles(macros):
         pro.write("TEMPLATE = subdirs\n")
         pro.write("SUBDIRS = %s\n" % " ".join(subdirs))
 
-        if not opts.no_tools:
-            files, path = installs[0]
+        if top_installs:
+            # There will only be one element.
+            files, path = top_installs[0]
             pro.write("\n")
             pro.write("build_system.files = %s\n" % " ".join(files))
             pro.write("build_system.path = %s\n" % quote(path))
             pro.write("INSTALLS += build_system\n")
-
-            files, path = installs[1]
-            pro.write("\n")
-            pro.write("sip_h.files = %s\n" % " ".join(files))
-            pro.write("sip_h.path = %s\n" % quote(path))
-            pro.write("INSTALLS += sip_h\n")
 
         if opts.distinfo:
             pro.write("\n")
@@ -365,12 +362,12 @@ def create_makefiles(macros):
         # Note that mk_distinfo.py won't exist if we are building from the
         # repository.
         if opts.distinfo and os.path.isfile(mk_distinfo):
-            installs.append((run_mk_distinfo, None))
+            top_installs.append((run_mk_distinfo, None))
 
         sipconfig.ParentMakefile(
             configuration=cfg,
             subdirs=subdirs,
-            installs=installs
+            installs=top_installs
         ).generate()
 
     if opts.use_qmake:
@@ -402,6 +399,14 @@ def create_makefiles(macros):
         pro.write("HEADERS = %s\n" % " ".join(
                 [qmake_quote(h) for h in headers]))
 
+        if gen_installs:
+            # There will only be one element.
+            files, path = gen_installs[0]
+            pro.write("\n")
+            pro.write("sip_h.files = %s\n" % " ".join(files))
+            pro.write("sip_h.path = %s\n" % quote(path))
+            pro.write("INSTALLS += sip_h\n")
+
         pro.close()
     else:
         sipconfig.inform("Creating sip code generator Makefile...")
@@ -411,6 +416,7 @@ def create_makefiles(macros):
             build_file=os.path.join(src_dir, "sipgen", "sipgen.sbf"),
             dir="sipgen",
             install_dir=os.path.dirname(cfg.sip_bin),
+            installs=gen_installs,
             console=1,
             warnings=1,
             universal=opts.universal,
@@ -418,7 +424,7 @@ def create_makefiles(macros):
             deployment_target=opts.deployment_target
         ).generate()
 
-    # The code generator installs.
+    # The implied code generator installs.
     if not opts.no_tools:
         sip_dir, sip_exe = os.path.split(cfg.sip_bin)
         if sys.platform == 'win32':
