@@ -46,6 +46,7 @@ sip_bin_dir = ''
 sip_inc_dir = ''
 sip_root_dir = ''
 sip_module_dir = ''
+sip_module_dest_dir = ''
 sip_sip_dir = ''
 pyi_dir = ''
 sysroot = ''
@@ -185,7 +186,7 @@ def inform_user():
         siputils.inform("The sip.h header file will be installed in %s." % sip_inc_dir)
 
     if not opts.no_module:
-        siputils.inform("The %s module will be installed in %s." % (sip_module_name, sip_module_dir))
+        siputils.inform("The %s module will be installed in %s." % (sip_module_name, sip_module_dest_dir))
 
     if opts.pyi:
         siputils.inform("The sip.pyi stub file will be installed in %s." % pyi_dir)
@@ -323,7 +324,7 @@ def create_makefiles(macros):
     # The command to run to generate the dist-info directory.
     mk_distinfo = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                 'mk_distinfo.py')
-    distinfo_dir = os.path.join(cfg.sip_root_dir,
+    distinfo_dir = os.path.join(cfg.sip_module_dir,
             '%s-%s.dist-info' % (sip_module_name.replace('.', '_'),
                     sip_version_str))
 
@@ -349,7 +350,7 @@ def create_makefiles(macros):
         if opts.distinfo:
             pro.write("\n")
             pro.write("distinfo.extra = %s\n" % run_mk_distinfo)
-            pro.write("distinfo.path = %s\n" % quote(cfg.sip_root_dir))
+            pro.write("distinfo.path = %s\n" % quote(cfg.sip_module_dir))
             pro.write("INSTALLS += distinfo\n")
 
         pro.close()
@@ -446,7 +447,7 @@ def create_makefiles(macros):
         else:
             mod = 'libsip.a' if opts.static else 'sip.so'
 
-        all_installs.append((mod, cfg.sip_module_dir))
+        all_installs.append((mod, sip_module_dest_dir))
 
     if opts.use_qmake:
         sipconfig.inform("Creating sip module .pro file...")
@@ -503,7 +504,7 @@ target.files = $$PY_MODULE
 """ % (debug_suffix, link_lib_dir))
 
         pro.write("\n")
-        pro.write("target.path = %s\n" % cfg.sip_module_dir)
+        pro.write("target.path = %s\n" % sip_module_dest_dir)
         pro.write("INSTALLS += target\n")
 
         if opts.pyi:
@@ -533,7 +534,7 @@ target.files = $$PY_MODULE
             configuration=cfg,
             build_file=os.path.join(src_dir, "siplib", "siplib.sbf"),
             dir="siplib",
-            install_dir=cfg.sip_module_dir,
+            install_dir=sip_module_dest_dir,
             installs=module_installs,
             console=1,
             warnings=1,
@@ -920,7 +921,7 @@ def main(argv):
     global plat_bin_dir, plat_py_conf_inc_dir, plat_py_inc_dir
     global plat_py_lib_dir, plat_py_site_dir, plat_sip_dir
     global sip_bin_dir, sip_inc_dir, sip_root_dir, sip_module_dir, sip_sip_dir
-    global pyi_dir
+    global sip_module_dest_dir, sip_module_name, pyi_dir
 
     # Set defaults.
     sip_bin_dir = plat_bin_dir
@@ -953,7 +954,9 @@ def main(argv):
     if opts.destdir is not None:
         sip_root_dir = opts.destdir
 
-    global sip_module_name
+    # The module directory might have been set in a configuration file.
+    if not sip_module_dir:
+        sip_module_dir = sip_root_dir
 
     sip_module_name = opts.sip_module
 
@@ -961,10 +964,10 @@ def main(argv):
 
     if len(module_path) > 1:
         del module_path[-1]
-        module_path.insert(0, sip_root_dir)
-        sip_module_dir = os.path.join(*module_path)
+        module_path.insert(0, sip_module_dir)
+        sip_module_dest_dir = os.path.join(*module_path)
     else:
-        sip_module_dir = sip_root_dir
+        sip_module_dest_dir = sip_module_dir
 
     # Override from the command line.
     if opts.platform is not None:
@@ -982,7 +985,7 @@ def main(argv):
     if opts.pyidir is not None:
         pyi_dir = opts.pyidir
     else:
-        pyi_dir = sip_module_dir
+        pyi_dir = sip_module_dest_dir
 
     # Get the platform specific macros for building.
     macros = siputils.parse_build_macros(
