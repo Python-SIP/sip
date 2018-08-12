@@ -472,7 +472,11 @@ def create_makefiles(macros):
 
         if sip_module_name != 'sip':
             pro.write("\n")
-            pro.write('DEFINES += SIP_MODULE_NAME=\\\\\\"%s\\\\\\"\n' % sip_module_name)
+            pro.write('DEFINES += SIP_MODULE_NAME=%s\n' % sip_module_name)
+
+            base_name = sip_module_name.split('.')[-1]
+            if base_name != 'sip':
+                pro.write('DEFINES += SIP_MODULE_BASENAME=%s\n' % base_name)
 
         if not opts.static:
             # These only need to be correct for Windows.
@@ -546,8 +550,11 @@ target.files = $$PY_MODULE
         )
 
         if sip_module_name != 'sip':
-            makefile.DEFINES.append(
-                    'SIP_MODULE_NAME=\\"%s\\"' % sip_module_name)
+            makefile.DEFINES.append('SIP_MODULE_NAME=%s' % sip_module_name)
+
+            base_name = sip_module_name.split('.')[-1]
+            if base_name != 'sip':
+                makefile.DEFINES.append('SIP_MODULE_BASENAME=%s' % base_name)
 
         if src_dir != build_dir:
             src_siplib_dir = os.path.join(src_dir, "siplib")
