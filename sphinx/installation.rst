@@ -160,11 +160,10 @@ The full set of command line options is:
 
 .. cmdoption:: --sip-module <NAME>
 
-    The :mod:`sip` module will be created with the name ``<NAME>`` rather than
-    the default ``sip``.  ``<NAME>`` should be of the form ``package.sip``.
-    See :ref:`ref-private-sip` for how to use this to create a private copy of
-    the :mod:`sip` module.  Also see the :option:`-n <sip -n>` option of the
-    code generator.
+    The :mod:`sip` module will be created with the fully qualified name
+    ``<NAME>`` rather than the default ``sip``.  See :ref:`ref-private-sip` for
+    how to use this to create a private copy of the :mod:`sip` module.  Also
+    see the :option:`-n <sip -n>` option of the code generator.
 
 .. cmdoption:: --sysroot <DIR>
 
@@ -264,7 +263,7 @@ achieve.
 To get around this problem you can build a private copy of the :mod:`sip`
 module that installed as part of your package.  To do this you use the
 :option:`--sip-module <configure.py --sip-module>` option to specify the fully
-qualified package name of your private copy.  You can also use the
+qualified name of your private copy.  You can also use the
 :option:`--no-tools <configure.py --no-tools>` option to specify that nothing
 else but the :mod:`sip` module is installed.
 

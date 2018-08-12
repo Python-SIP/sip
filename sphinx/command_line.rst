@@ -115,10 +115,9 @@ The full set of command line options is:
 
     .. versionadded:: 4.19.9
 
-    The qualified name of the private copy of the :mod:`sip` module.  It should
-    be of the form ``package.sip``.  See also the
-    :option:`--sip-module <configure.py --sip-module>` option of the
-    installation script.
+    The fully qualified name of the private copy of the :mod:`sip` module.
+    See also the :option:`--sip-module <configure.py --sip-module>` option of
+    the installation script.
 
 .. cmdoption:: -o
 
