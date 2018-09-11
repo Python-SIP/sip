@@ -346,7 +346,7 @@ static void xmlCppName(scopedNameDef *fqcname, FILE *fp)
 
     fprintf(fp, " cppname=\"");
 
-    for (snd = fqcname; snd != NULL; snd = snd->next)
+    for (snd = removeGlobalScope(fqcname); snd != NULL; snd = snd->next)
     {
         fprintf(fp, "%s%s", sep, snd->name);
         sep = "::";
@@ -465,7 +465,7 @@ static void xmlEnums(sipSpec *pt, moduleDef *mod, classDef *scope, int indent,
             prScopedPythonName(fp, ed->ecd, ed->pyname->text);
             fprintf(fp, "\"");
 
-            if (ed->pyname != ed->cname)
+            if (strcmp(ed->pyname->text, scopedNameTail(ed->fqcname)) != 0)
                 xmlCppName(ed->fqcname, fp);
 
             fprintf(fp, ">\n");
