@@ -56,6 +56,7 @@ static void xmlArgument(sipSpec *pt, argDef *ad, const char *dir, int res_xfer,
         int sec, int indent, FILE *fp);
 static void xmlType(sipSpec *pt, argDef *ad, int sec, FILE *fp);
 static void xmlIndent(int indent, FILE *fp);
+static void xmlCppName(scopedNameDef *fqcname, FILE *fp);
 static const char *dirAttribute(argDef *ad);
 static const char *pyType(sipSpec *pt, argDef *ad, int sec, classDef **scope);
 static int exportPythonSignature(sipSpec *pt, FILE *fp, signatureDef *sd,
@@ -336,6 +337,26 @@ void generateXML(sipSpec *pt, moduleDef *mod, const char *xmlFile)
 
 
 /*
+ * Generate a 'cppname' attribute containing a fully qualified C/C++ name.
+ */
+static void xmlCppName(scopedNameDef *fqcname, FILE *fp)
+{
+    const char *sep = "";
+    scopedNameDef *snd;
+
+    fprintf(fp, " cppname=\"");
+
+    for (snd = fqcname; snd != NULL; snd = snd->next)
+    {
+        fprintf(fp, "%s%s", sep, snd->name);
+        sep = "::";
+    }
+
+    fprintf(fp, "\"");
+}
+
+
+/*
  * Generate the XML for a class.
  */
 static void xmlClass(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
@@ -360,6 +381,9 @@ static void xmlClass(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
         fprintf(fp, "<Class name=\"");
         prScopedPythonName(fp, cd->ecd, cd->pyname->text);
         fprintf(fp, "\"");
+
+        if (strcmp(cd->pyname->text, classBaseName(cd)) != 0)
+            xmlCppName(classFQCName(cd), fp);
 
         if (cd->picklecode != NULL)
             fprintf(fp, " pickle=\"1\"");
@@ -439,14 +463,22 @@ static void xmlEnums(sipSpec *pt, moduleDef *mod, classDef *scope, int indent,
             xmlIndent(indent++, fp);
             fprintf(fp, "<Enum name=\"");
             prScopedPythonName(fp, ed->ecd, ed->pyname->text);
-            fprintf(fp, "\">\n");
+            fprintf(fp, "\"");
+
+            if (ed->pyname != ed->cname)
+                xmlCppName(ed->fqcname, fp);
+
+            fprintf(fp, ">\n");
 
             for (emd = ed->members; emd != NULL; emd = emd->next)
             {
                 xmlIndent(indent, fp);
-                fprintf(fp, "<EnumMember name=\"");
-                prScopedPythonName(fp, ed->ecd, emd->pyname->text);
-                fprintf(fp, "\"/>\n");
+                fprintf(fp, "<EnumMember name=\"%s\"", emd->pyname->text);
+
+                if (strcmp(emd->pyname->text, emd->cname) != 0)
+                    fprintf(fp, " cppname=\"%s\"", emd->cname);
+
+                fprintf(fp, "/>\n");
             }
 
             xmlIndent(--indent, fp);
