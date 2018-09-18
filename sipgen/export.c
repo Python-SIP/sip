@@ -56,7 +56,7 @@ static void xmlArgument(sipSpec *pt, argDef *ad, const char *dir, int res_xfer,
         int sec, int indent, FILE *fp);
 static void xmlType(sipSpec *pt, argDef *ad, int sec, FILE *fp);
 static void xmlIndent(int indent, FILE *fp);
-static void xmlCppName(scopedNameDef *fqcname, FILE *fp);
+static void xmlRealName(scopedNameDef *fqcname, FILE *fp);
 static const char *dirAttribute(argDef *ad);
 static const char *pyType(sipSpec *pt, argDef *ad, int sec, classDef **scope);
 static int exportPythonSignature(sipSpec *pt, FILE *fp, signatureDef *sd,
@@ -337,14 +337,14 @@ void generateXML(sipSpec *pt, moduleDef *mod, const char *xmlFile)
 
 
 /*
- * Generate a 'cppname' attribute containing a fully qualified C/C++ name.
+ * Generate a 'realname' attribute containing a fully qualified C/C++ name.
  */
-static void xmlCppName(scopedNameDef *fqcname, FILE *fp)
+static void xmlRealName(scopedNameDef *fqcname, FILE *fp)
 {
     const char *sep = "";
     scopedNameDef *snd;
 
-    fprintf(fp, " cppname=\"");
+    fprintf(fp, " realname=\"");
 
     for (snd = removeGlobalScope(fqcname); snd != NULL; snd = snd->next)
     {
@@ -382,8 +382,11 @@ static void xmlClass(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
         prScopedPythonName(fp, cd->ecd, cd->pyname->text);
         fprintf(fp, "\"");
 
+        /*
+         * FIXME: this doesn't account for outer scopes having different names.
+         */
         if (strcmp(cd->pyname->text, classBaseName(cd)) != 0)
-            xmlCppName(classFQCName(cd), fp);
+            xmlRealName(classFQCName(cd), fp);
 
         if (cd->picklecode != NULL)
             fprintf(fp, " pickle=\"1\"");
@@ -407,6 +410,8 @@ static void xmlClass(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
             {
                 if (cl != cd->supers)
                     fprintf(fp, " ");
+
+                fprintf(fp, "%s.", cl->cd->iff->module->name);
 
                 prScopedPythonName(fp, cl->cd->ecd, cl->cd->pyname->text);
             }
@@ -465,8 +470,12 @@ static void xmlEnums(sipSpec *pt, moduleDef *mod, classDef *scope, int indent,
             prScopedPythonName(fp, ed->ecd, ed->pyname->text);
             fprintf(fp, "\"");
 
+            /*
+             * FIXME: this doesn't account for outer scopes having different
+             * names.
+             */
             if (strcmp(ed->pyname->text, scopedNameTail(ed->fqcname)) != 0)
-                xmlCppName(ed->fqcname, fp);
+                xmlRealName(ed->fqcname, fp);
 
             fprintf(fp, ">\n");
 
@@ -476,7 +485,7 @@ static void xmlEnums(sipSpec *pt, moduleDef *mod, classDef *scope, int indent,
                 fprintf(fp, "<EnumMember name=\"%s\"", emd->pyname->text);
 
                 if (strcmp(emd->pyname->text, emd->cname) != 0)
-                    fprintf(fp, " cppname=\"%s\"", emd->cname);
+                    fprintf(fp, " realname=\"%s\"", emd->cname);
 
                 fprintf(fp, "/>\n");
             }
