@@ -61,8 +61,8 @@ static const char *dirAttribute(argDef *ad);
 static const char *pyType(sipSpec *pt, argDef *ad, classDef **scope);
 static void exportPythonSignature(sipSpec *pt, FILE *fp, signatureDef *sd,
         int names, int defaults, int in_str, int is_signal);
-static void restPyClass(FILE *fp, classDef *cd, int isref);
-static void restPyEnum(FILE *fp, enumDef *ed, int isref);
+static void fqPyClass(FILE *fp, classDef *cd);
+static void fqPyEnum(FILE *fp, enumDef *ed);
 
 
 /*
@@ -365,7 +365,7 @@ static void xmlClass(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
     {
         xmlIndent(indent++, fp);
         fprintf(fp, "<Class name=\"");
-        restPyClass(fp, cd, FALSE);
+        fqPyClass(fp, cd);
         fprintf(fp, "\"");
 
         xmlRealName(classFQCName(cd), fp);
@@ -393,7 +393,7 @@ static void xmlClass(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
                 if (cl != cd->supers)
                     fprintf(fp, " ");
 
-                restPyClass(fp, cl->cd, TRUE);
+                fqPyClass(fp, cl->cd);
             }
 
             fprintf(fp, "\"");
@@ -446,7 +446,7 @@ static void xmlEnums(sipSpec *pt, moduleDef *mod, classDef *scope, int indent,
 
             xmlIndent(indent++, fp);
             fprintf(fp, "<Enum name=\"");
-            restPyEnum(fp, ed, FALSE);
+            fqPyEnum(fp, ed);
             fprintf(fp, "\"");
 
             xmlRealName(ed->fqcname, fp);
@@ -752,14 +752,14 @@ static void xmlType(sipSpec *pt, argDef *ad, FILE *fp)
     switch (ad->atype)
     {
     case class_type:
-        restPyClass(fp, ad->u.cd, FALSE);
+        fqPyClass(fp, ad->u.cd);
         type_type = (isOpaque(ad->u.cd) ? "opaque" : "class");
         break;
 
     case enum_type:
         if (ad->u.ed->pyname != NULL)
         {
-            restPyEnum(fp, ad->u.ed, FALSE);
+            fqPyEnum(fp, ad->u.ed);
             type_type = "enum";
         }
         else
@@ -770,7 +770,7 @@ static void xmlType(sipSpec *pt, argDef *ad, FILE *fp)
         break;
 
     case qobject_type:
-        restPyClass(fp, pt->qobject_cd, FALSE);
+        fqPyClass(fp, pt->qobject_cd);
         type_type = "class";
         break;
 
@@ -1094,32 +1094,20 @@ static void exportPythonSignature(sipSpec *pt, FILE *fp, signatureDef *sd,
 
 
 /*
- * Generate the reST for a class name.
+ * Generate a fully qualified class name.
  */
-static void restPyClass(FILE *fp, classDef *cd, int isref)
+static void fqPyClass(FILE *fp, classDef *cd)
 {
-    if (isref)
-        fprintf(fp, ":sip:class:`~");
-
     fprintf(fp, "%s.", cd->iff->module->fullname->text);
     prScopedPythonName(fp, cd->ecd, cd->pyname->text);
-
-    if (isref)
-        fprintf(fp, "`");
 }
 
 
 /*
- * Generate the reST for an enum name.
+ * Generate a fully qualified enum name.
  */
-static void restPyEnum(FILE *fp, enumDef *ed, int isref)
+static void fqPyEnum(FILE *fp, enumDef *ed)
 {
-    if (isref)
-        fprintf(fp, ":sip:enum:`~");
-
     fprintf(fp, "%s.", ed->module->fullname->text);
     prScopedPythonName(fp, ed->ecd, ed->pyname->text);
-
-    if (isref)
-        fprintf(fp, "`");
 }
