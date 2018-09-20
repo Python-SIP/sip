@@ -764,26 +764,6 @@ static void xmlType(sipSpec *pt, argDef *ad, FILE *fp)
         type_type = "class";
         break;
 
-    case slotcon_type:
-    case slotdis_type:
-        {
-            int a;
-
-            prcode(fp, "SLOT(");
-
-            for (a = 0; a < ad->u.sa->nrArgs; ++a)
-            {
-                if (a > 0)
-                    prcode(fp, ", ");
-
-                prcode(fp, "%M%B%M", &ad->u.sa->args[a]);
-            }
-
-            prcode(fp, ")");
-        }
-
-        break;
-
     case mapped_type:
         type_type = "mappedtype";
         break;
@@ -938,14 +918,6 @@ static const char *pyType(sipSpec *pt, argDef *ad, classDef **scope)
             type_name = "int";
         break;
 
-    case signal_type:
-        type_name = "SIGNAL()";
-        break;
-
-    case slot_type:
-        type_name = "SLOT()";
-        break;
-
     case qobject_type:
         type_name = "QObject";
         break;
@@ -1026,11 +998,6 @@ static const char *pyType(sipSpec *pt, argDef *ad, classDef **scope)
 
     case ellipsis_type:
         type_name = "...";
-        break;
-
-    case slotcon_type:
-    case anyslot_type:
-        type_name = "SLOT()";
         break;
 
     default:
