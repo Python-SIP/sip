@@ -752,29 +752,37 @@ static void xmlType(sipSpec *pt, argDef *ad, FILE *fp)
     switch (ad->atype)
     {
     case class_type:
+        restPyClass(fp, ad->u.cd, FALSE);
         type_type = (isOpaque(ad->u.cd) ? "opaque" : "class");
         break;
 
     case enum_type:
         if (ad->u.ed->pyname != NULL)
+        {
+            restPyEnum(fp, ad->u.ed, FALSE);
             type_type = "enum";
+        }
+        else
+        {
+            fprintf(fp, "int");
+        }
+
         break;
 
     case qobject_type:
+        restPyClass(fp, pt->qobject_cd, FALSE);
         type_type = "class";
         break;
 
     case mapped_type:
         type_type = "mappedtype";
-        break;
 
-    /* Suppress a compiler warning. */
+        /* Drop through. */
+
     default:
-        ;
+        if ((type_name = pyType(pt, ad, &type_scope)) != NULL)
+            prScopedPythonName(fp, type_scope, type_name);
     }
-
-    if ((type_name = pyType(pt, ad, &type_scope)) != NULL)
-        prScopedPythonName(fp, type_scope, type_name);
 
     fprintf(fp, "\"");
 
