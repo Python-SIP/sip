@@ -1,7 +1,7 @@
 /*
  * The XML and API file generator module for SIP.
  *
- * Copyright (c) 2015 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2018 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -34,12 +34,12 @@
 
 static void apiEnums(sipSpec *pt, moduleDef *mod, classDef *scope, FILE *fp);
 static void apiVars(sipSpec *pt, moduleDef *mod, classDef *scope, FILE *fp);
-static int apiCtor(sipSpec *pt, moduleDef *mod, classDef *scope, ctorDef *ct,
-        int sec, FILE *fp);
-static int apiOverload(sipSpec *pt, moduleDef *mod, classDef *scope,
-        overDef *od, int sec, FILE *fp);
+static void apiCtor(sipSpec *pt, moduleDef *mod, classDef *scope, ctorDef *ct,
+        FILE *fp);
+static void apiOverload(sipSpec *pt, moduleDef *mod, classDef *scope,
+        overDef *od, FILE *fp);
 static int apiArgument(sipSpec *pt, argDef *ad, int out, int need_comma,
-        int sec, int names, int defaults, int in_str, FILE *fp);
+        int names, int defaults, int in_str, FILE *fp);
 static void xmlClass(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp);
 static void xmlEnums(sipSpec *pt, moduleDef *mod, classDef *scope, int indent,
         FILE *fp);
@@ -47,20 +47,22 @@ static void xmlVars(sipSpec *pt, moduleDef *mod, classDef *scope, int indent,
         FILE *fp);
 static void xmlFunction(sipSpec *pt, classDef *scope, memberDef *md,
         overDef *oloads, int indent, FILE *fp);
-static int xmlCtor(sipSpec *pt, classDef *scope, ctorDef *ct, int sec,
-        int indent, FILE *fp);
-static int xmlOverload(sipSpec *pt, classDef *scope, memberDef *md,
-        overDef *od, classDef *xtnds, int stat, int sec, int indent, FILE *fp);
+static void xmlCtor(sipSpec *pt, classDef *scope, ctorDef *ct, int indent,
+        FILE *fp);
+static void xmlOverload(sipSpec *pt, classDef *scope, memberDef *md,
+        overDef *od, classDef *xtnds, int stat, int indent, FILE *fp);
 static void xmlCppSignature(FILE *fp, overDef *od);
 static void xmlArgument(sipSpec *pt, argDef *ad, const char *dir, int res_xfer,
-        int sec, int indent, FILE *fp);
-static void xmlType(sipSpec *pt, argDef *ad, int sec, FILE *fp);
+        int indent, FILE *fp);
+static void xmlType(sipSpec *pt, argDef *ad, FILE *fp);
 static void xmlIndent(int indent, FILE *fp);
 static void xmlRealName(scopedNameDef *fqcname, FILE *fp);
 static const char *dirAttribute(argDef *ad);
-static const char *pyType(sipSpec *pt, argDef *ad, int sec, classDef **scope);
-static int exportPythonSignature(sipSpec *pt, FILE *fp, signatureDef *sd,
-        int sec, int names, int defaults, int in_str, int is_signal);
+static const char *pyType(sipSpec *pt, argDef *ad, classDef **scope);
+static void exportPythonSignature(sipSpec *pt, FILE *fp, signatureDef *sd,
+        int names, int defaults, int in_str, int is_signal);
+static void restPyClass(FILE *fp, classDef *cd, int isref);
+static void restPyEnum(FILE *fp, enumDef *ed, int isref);
 
 
 /*
@@ -87,8 +89,7 @@ void generateAPI(sipSpec *pt, moduleDef *mod, const char *apiFile)
         if (od->common->slot != no_slot)
             continue;
 
-        if (apiOverload(pt, mod, NULL, od, FALSE, fp))
-            apiOverload(pt, mod, NULL, od, TRUE, fp);
+        apiOverload(pt, mod, NULL, od, fp);
     }
 
     for (cd = pt->classes; cd != NULL; cd = cd->next)
@@ -109,8 +110,7 @@ void generateAPI(sipSpec *pt, moduleDef *mod, const char *apiFile)
             if (isPrivateCtor(ct))
                 continue;
 
-            if (apiCtor(pt, mod, cd, ct, FALSE, fp))
-                apiCtor(pt, mod, cd, ct, TRUE, fp);
+            apiCtor(pt, mod, cd, ct, fp);
         }
 
         for (od = cd->overs; od != NULL; od = od->next)
@@ -121,8 +121,7 @@ void generateAPI(sipSpec *pt, moduleDef *mod, const char *apiFile)
             if (od->common->slot != no_slot)
                 continue;
 
-            if (apiOverload(pt, mod, cd, od, FALSE, fp))
-                apiOverload(pt, mod, cd, od, TRUE, fp);
+            apiOverload(pt, mod, cd, od, fp);
         }
     }
 
@@ -133,10 +132,10 @@ void generateAPI(sipSpec *pt, moduleDef *mod, const char *apiFile)
 /*
  * Generate an API ctor.
  */
-static int apiCtor(sipSpec *pt, moduleDef *mod, classDef *scope, ctorDef *ct,
-        int sec, FILE *fp)
+static void apiCtor(sipSpec *pt, moduleDef *mod, classDef *scope, ctorDef *ct,
+        FILE *fp)
 {
-    int need_sec = FALSE, need_comma, a;
+    int need_comma, a;
 
     /* Do the callable type form. */
     fprintf(fp, "%s.", mod->name);
@@ -149,11 +148,8 @@ static int apiCtor(sipSpec *pt, moduleDef *mod, classDef *scope, ctorDef *ct,
     {
         argDef *ad = &ct->pysig.args[a];
 
-        need_comma = apiArgument(pt, ad, FALSE, need_comma, sec, TRUE, TRUE,
-                FALSE, fp);
-
-        if (ad->atype == rxcon_type || ad->atype == rxdis_type)
-            need_sec = TRUE;
+        need_comma = apiArgument(pt, ad, FALSE, need_comma, TRUE, TRUE, FALSE,
+                fp);
     }
 
     fprintf(fp, ")\n");
@@ -164,12 +160,10 @@ static int apiCtor(sipSpec *pt, moduleDef *mod, classDef *scope, ctorDef *ct,
     fprintf(fp, ".__init__?%d(self", CLASS_ID);
 
     for (a = 0; a < ct->pysig.nrArgs; ++a)
-        apiArgument(pt, &ct->pysig.args[a], FALSE, TRUE, sec, TRUE, TRUE,
-                FALSE, fp);
+        apiArgument(pt, &ct->pysig.args[a], FALSE, TRUE, TRUE, TRUE, FALSE,
+                fp);
 
     fprintf(fp, ")\n");
-
-    return need_sec;
 }
 
 
@@ -232,21 +226,16 @@ static void apiVars(sipSpec *pt, moduleDef *mod, classDef *scope, FILE *fp)
 /*
  * Generate a single API overload.
  */
-static int apiOverload(sipSpec *pt, moduleDef *mod, classDef *scope,
-        overDef *od, int sec, FILE *fp)
+static void apiOverload(sipSpec *pt, moduleDef *mod, classDef *scope,
+        overDef *od, FILE *fp)
 {
-    int need_sec;
-
     fprintf(fp, "%s.", mod->name);
     prScopedPythonName(fp, scope, od->common->pyname->text);
     fprintf(fp, "?%d", METHOD_ID);
 
-    need_sec = exportPythonSignature(pt, fp, &od->pysig, sec, TRUE, TRUE,
-            FALSE, FALSE);
+    exportPythonSignature(pt, fp, &od->pysig, TRUE, TRUE, FALSE, FALSE);
 
     fprintf(fp, "\n");
-
-    return need_sec;
 }
 
 
@@ -254,7 +243,7 @@ static int apiOverload(sipSpec *pt, moduleDef *mod, classDef *scope,
  * Generate the API for an argument.
  */
 static int apiArgument(sipSpec *pt, argDef *ad, int out, int need_comma,
-        int sec, int names, int defaults, int in_str, FILE *fp)
+        int names, int defaults, int in_str, FILE *fp)
 {
     const char *tname;
     classDef *tscope;
@@ -262,10 +251,7 @@ static int apiArgument(sipSpec *pt, argDef *ad, int out, int need_comma,
     if (isArraySize(ad))
         return need_comma;
 
-    if (sec && (ad->atype == slotcon_type || ad->atype == slotdis_type))
-        return need_comma;
-
-    if ((tname = pyType(pt, ad, sec, &tscope)) == NULL)
+    if ((tname = pyType(pt, ad, &tscope)) == NULL)
         return need_comma;
 
     if (need_comma)
@@ -379,14 +365,10 @@ static void xmlClass(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
     {
         xmlIndent(indent++, fp);
         fprintf(fp, "<Class name=\"");
-        prScopedPythonName(fp, cd->ecd, cd->pyname->text);
+        restPyClass(fp, cd, FALSE);
         fprintf(fp, "\"");
 
-        /*
-         * FIXME: this doesn't account for outer scopes having different names.
-         */
-        if (strcmp(cd->pyname->text, classBaseName(cd)) != 0)
-            xmlRealName(classFQCName(cd), fp);
+        xmlRealName(classFQCName(cd), fp);
 
         if (cd->picklecode != NULL)
             fprintf(fp, " pickle=\"1\"");
@@ -411,9 +393,7 @@ static void xmlClass(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
                 if (cl != cd->supers)
                     fprintf(fp, " ");
 
-                fprintf(fp, "%s.", cl->cd->iff->module->name);
-
-                prScopedPythonName(fp, cl->cd->ecd, cl->cd->pyname->text);
+                restPyClass(fp, cl->cd, TRUE);
             }
 
             fprintf(fp, "\"");
@@ -427,8 +407,7 @@ static void xmlClass(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
         if (isPrivateCtor(ct))
             continue;
 
-        if (xmlCtor(pt, cd, ct, FALSE, indent, fp))
-            xmlCtor(pt, cd, ct, TRUE, indent, fp);
+        xmlCtor(pt, cd, ct, indent, fp);
     }
 
     xmlEnums(pt, mod, cd, indent, fp);
@@ -467,15 +446,10 @@ static void xmlEnums(sipSpec *pt, moduleDef *mod, classDef *scope, int indent,
 
             xmlIndent(indent++, fp);
             fprintf(fp, "<Enum name=\"");
-            prScopedPythonName(fp, ed->ecd, ed->pyname->text);
+            restPyEnum(fp, ed, FALSE);
             fprintf(fp, "\"");
 
-            /*
-             * FIXME: this doesn't account for outer scopes having different
-             * names.
-             */
-            if (strcmp(ed->pyname->text, scopedNameTail(ed->fqcname)) != 0)
-                xmlRealName(ed->fqcname, fp);
+            xmlRealName(ed->fqcname, fp);
 
             fprintf(fp, ">\n");
 
@@ -536,7 +510,7 @@ static void xmlVars(sipSpec *pt, moduleDef *mod, classDef *scope, int indent,
         if (isStaticVar(vd))
             fprintf(fp, " static=\"1\"");
 
-        xmlType(pt, &vd->type, FALSE, fp);
+        xmlType(pt, &vd->type, fp);
         fprintf(fp, "/>\n");
     }
 }
@@ -545,10 +519,10 @@ static void xmlVars(sipSpec *pt, moduleDef *mod, classDef *scope, int indent,
 /*
  * Generate the XML for a ctor.
  */
-static int xmlCtor(sipSpec *pt, classDef *scope, ctorDef *ct, int sec,
-        int indent, FILE *fp)
+static void xmlCtor(sipSpec *pt, classDef *scope, ctorDef *ct, int indent,
+        FILE *fp)
 {
-    int a, need_sec;
+    int a;
 
     xmlIndent(indent++, fp);
     fprintf(fp, "<Function name=\"");
@@ -559,27 +533,20 @@ static int xmlCtor(sipSpec *pt, classDef *scope, ctorDef *ct, int sec,
     if (ct->pysig.nrArgs == 0)
     {
         fprintf(fp, "/>\n");
-        return FALSE;
+        return;
     }
 
     fprintf(fp, ">\n");
-
-    need_sec = FALSE;
 
     for (a = 0; a < ct->pysig.nrArgs; ++a)
     {
         argDef *ad = &ct->pysig.args[a];
 
-        xmlArgument(pt, ad, dirAttribute(ad), FALSE, sec, indent, fp);
-
-        if (ad->atype == rxcon_type || ad->atype == rxdis_type)
-            need_sec = TRUE;
+        xmlArgument(pt, ad, dirAttribute(ad), FALSE, indent, fp);
     }
 
     xmlIndent(--indent, fp);
     fprintf(fp, "</Function>\n");
-
-    return need_sec;
 }
 
 
@@ -626,8 +593,7 @@ static void xmlFunction(sipSpec *pt, classDef *scope, memberDef *md,
             isstat = FALSE;
         }
 
-        if (xmlOverload(pt, scope, md, od, xtnds, isstat, FALSE, indent, fp))
-            xmlOverload(pt, scope, md, od, xtnds, isstat, TRUE, indent, fp);
+        xmlOverload(pt, scope, md, od, xtnds, isstat, indent, fp);
     }
 }
 
@@ -635,10 +601,10 @@ static void xmlFunction(sipSpec *pt, classDef *scope, memberDef *md,
 /*
  * Generate the XML for an overload.
  */
-static int xmlOverload(sipSpec *pt, classDef *scope, memberDef *md,
-        overDef *od, classDef *xtnds, int stat, int sec, int indent, FILE *fp)
+static void xmlOverload(sipSpec *pt, classDef *scope, memberDef *md,
+        overDef *od, classDef *xtnds, int stat, int indent, FILE *fp)
 {
-    int a, need_sec, no_res;
+    int a, no_res;
 
     xmlIndent(indent++, fp);
     fprintf(fp, "<Function name=\"");
@@ -676,16 +642,14 @@ static int xmlOverload(sipSpec *pt, classDef *scope, memberDef *md,
     if (no_res && od->pysig.nrArgs == 0)
     {
         fprintf(fp, "/>\n");
-        return FALSE;
+        return;
     }
 
     fprintf(fp, ">\n");
 
     if (!no_res)
         xmlArgument(pt, &od->pysig.result, "out", isResultTransferredBack(od),
-                FALSE, indent, fp);
-
-    need_sec = FALSE;
+                indent, fp);
 
     for (a = 0; a < od->pysig.nrArgs; ++a)
     {
@@ -695,16 +659,11 @@ static int xmlOverload(sipSpec *pt, classDef *scope, memberDef *md,
         if (isNumberSlot(md) && a == 0 && od->pysig.nrArgs == 2)
             continue;
 
-        xmlArgument(pt, ad, dirAttribute(ad), FALSE, sec, indent, fp);
-
-        if (ad->atype == rxcon_type || ad->atype == rxdis_type)
-            need_sec = TRUE;
+        xmlArgument(pt, ad, dirAttribute(ad), FALSE, indent, fp);
     }
 
     xmlIndent(--indent, fp);
     fprintf(fp, "</Function>\n");
-
-    return need_sec;
 }
 
 
@@ -740,17 +699,14 @@ static const char *dirAttribute(argDef *ad)
  * Generate the XML for an argument.
  */
 static void xmlArgument(sipSpec *pt, argDef *ad, const char *dir, int res_xfer,
-        int sec, int indent, FILE *fp)
+        int indent, FILE *fp)
 {
     if (isArraySize(ad))
         return;
 
-    if (sec && (ad->atype == slotcon_type || ad->atype == slotdis_type))
-        return;
-
     xmlIndent(indent, fp);
     fprintf(fp, "<Argument");
-    xmlType(pt, ad, sec, fp);
+    xmlType(pt, ad, fp);
 
     if (dir != NULL)
         fprintf(fp, " dir=\"%s\"", dir);
@@ -786,7 +742,7 @@ static void xmlArgument(sipSpec *pt, argDef *ad, const char *dir, int res_xfer,
 /*
  * Generate the XML for a type.
  */
-static void xmlType(sipSpec *pt, argDef *ad, int sec, FILE *fp)
+static void xmlType(sipSpec *pt, argDef *ad, FILE *fp)
 {
     const char *type_type = NULL, *type_name;
     classDef *type_scope;
@@ -802,12 +758,6 @@ static void xmlType(sipSpec *pt, argDef *ad, int sec, FILE *fp)
     case enum_type:
         if (ad->u.ed->pyname != NULL)
             type_type = "enum";
-        break;
-
-    case rxcon_type:
-    case rxdis_type:
-        if (!sec)
-            type_type = "class";
         break;
 
     case qobject_type:
@@ -843,7 +793,7 @@ static void xmlType(sipSpec *pt, argDef *ad, int sec, FILE *fp)
         ;
     }
 
-    if ((type_name = pyType(pt, ad, sec, &type_scope)) != NULL)
+    if ((type_name = pyType(pt, ad, &type_scope)) != NULL)
         prScopedPythonName(fp, type_scope, type_name);
 
     fprintf(fp, "\"");
@@ -869,7 +819,7 @@ static void xmlIndent(int indent, FILE *fp)
 /*
  * Get the Python representation of a type.
  */
-static const char *pyType(sipSpec *pt, argDef *ad, int sec, classDef **scope)
+static const char *pyType(sipSpec *pt, argDef *ad, classDef **scope)
 {
     const char *type_name;
 
@@ -996,15 +946,6 @@ static const char *pyType(sipSpec *pt, argDef *ad, int sec, classDef **scope)
         type_name = "SLOT()";
         break;
 
-    case rxcon_type:
-    case rxdis_type:
-        if (sec)
-            type_name = "callable";
-        else
-            type_name = "QObject";
-
-        break;
-
     case qobject_type:
         type_name = "QObject";
         break;
@@ -1103,10 +1044,10 @@ static const char *pyType(sipSpec *pt, argDef *ad, int sec, classDef **scope)
 /*
  * Generate a Python signature.
  */
-static int exportPythonSignature(sipSpec *pt, FILE *fp, signatureDef *sd,
-        int sec, int names, int defaults, int in_str, int is_signal)
+static void exportPythonSignature(sipSpec *pt, FILE *fp, signatureDef *sd,
+        int names, int defaults, int in_str, int is_signal)
 {
-    int need_sec = FALSE, need_comma = FALSE, is_res, nr_out, a;
+    int need_comma = FALSE, is_res, nr_out, a;
 
     if (is_signal)
     {
@@ -1130,11 +1071,8 @@ static int exportPythonSignature(sipSpec *pt, FILE *fp, signatureDef *sd,
         if (!isInArg(ad))
             continue;
 
-        need_comma = apiArgument(pt, ad, FALSE, need_comma, sec, names,
-                defaults, in_str, fp);
-
-        if (ad->atype == rxcon_type || ad->atype == rxdis_type)
-            need_sec = TRUE;
+        need_comma = apiArgument(pt, ad, FALSE, need_comma, names, defaults,
+                in_str, fp);
     }
 
     if (is_signal)
@@ -1159,7 +1097,7 @@ static int exportPythonSignature(sipSpec *pt, FILE *fp, signatureDef *sd,
             fprintf(fp, "(");
 
         if (is_res)
-            need_comma = apiArgument(pt, &sd->result, TRUE, FALSE, sec, FALSE,
+            need_comma = apiArgument(pt, &sd->result, TRUE, FALSE, FALSE,
                     FALSE, in_str, fp);
         else
             need_comma = FALSE;
@@ -1170,13 +1108,43 @@ static int exportPythonSignature(sipSpec *pt, FILE *fp, signatureDef *sd,
 
             if (isOutArg(ad))
                 /* We don't want the name in the result tuple. */
-                need_comma = apiArgument(pt, ad, TRUE, need_comma, sec, FALSE,
+                need_comma = apiArgument(pt, ad, TRUE, need_comma, FALSE,
                         FALSE, in_str, fp);
         }
 
         if ((is_res && nr_out > 0) || nr_out > 1)
             fprintf(fp, ")");
     }
+}
 
-    return need_sec;
+
+/*
+ * Generate the reST for a class name.
+ */
+static void restPyClass(FILE *fp, classDef *cd, int isref)
+{
+    if (isref)
+        fprintf(fp, ":sip:class:`~");
+
+    fprintf(fp, "%s.", cd->iff->module->fullname->text);
+    prScopedPythonName(fp, cd->ecd, cd->pyname->text);
+
+    if (isref)
+        fprintf(fp, "`");
+}
+
+
+/*
+ * Generate the reST for an enum name.
+ */
+static void restPyEnum(FILE *fp, enumDef *ed, int isref)
+{
+    if (isref)
+        fprintf(fp, ":sip:enum:`~");
+
+    fprintf(fp, "%s.", ed->module->fullname->text);
+    prScopedPythonName(fp, ed->ecd, ed->pyname->text);
+
+    if (isref)
+        fprintf(fp, "`");
 }
