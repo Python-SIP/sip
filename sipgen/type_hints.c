@@ -58,7 +58,7 @@ static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int arg_nr,
 static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, int sec,
         ifaceFileList *defined, int pep484, FILE *fp);
 static void pyiTypeHintNode(typeHintNodeDef *node, moduleDef *mod,
-        ifaceFileList *defined, int pep484, FILE *fp);
+        ifaceFileList *defined, int pep484, int rest, FILE *fp);
 static void prIndent(int indent, FILE *fp);
 static int separate(int first, int indent, FILE *fp);
 static void prClassRef(classDef *cd, moduleDef *mod, ifaceFileList *defined,
@@ -954,7 +954,7 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, int sec,
 
     if (thd != NULL)
     {
-        pyiTypeHint(pt, thd, mod, out, defined, pep484, fp);
+        pyiTypeHint(pt, thd, mod, out, defined, pep484, FALSE, fp);
         return;
     }
 
@@ -1414,12 +1414,12 @@ typeHintDef *newTypeHint(char *raw_hint)
  * Generate a type hint from a /TypeHint/ annotation.
  */
 void pyiTypeHint(sipSpec *pt, typeHintDef *thd, moduleDef *mod, int out,
-        ifaceFileList *defined, int pep484, FILE *fp)
+        ifaceFileList *defined, int pep484, int rest, FILE *fp)
 {
     parseTypeHint(pt, thd, out);
 
     if (thd->root != NULL)
-        pyiTypeHintNode(thd->root, mod, defined, pep484, fp);
+        pyiTypeHintNode(thd->root, mod, defined, pep484, rest, fp);
     else
         maybeAnyObject(thd->raw_hint, pep484, fp);
 }
@@ -1429,7 +1429,7 @@ void pyiTypeHint(sipSpec *pt, typeHintDef *thd, moduleDef *mod, int out,
  * Generate a single node of a type hint.
  */
 static void pyiTypeHintNode(typeHintNodeDef *node, moduleDef *mod,
-        ifaceFileList *defined, int pep484, FILE *fp)
+        ifaceFileList *defined, int pep484, int rest, FILE *fp)
 {
     switch (node->type)
     {
@@ -1445,12 +1445,13 @@ static void pyiTypeHintNode(typeHintNodeDef *node, moduleDef *mod,
 
             for (thnd = node->children; thnd != NULL; thnd = thnd->next)
             {
+                /* We don't want any spaces in the reST. */
                 if (need_comma)
-                    fprintf(fp, ", ");
+                    fprintf(fp, ",%s", (rest ? "" : " "));
 
                 need_comma = TRUE;
 
-                pyiTypeHintNode(thnd, mod, defined, pep484, fp);
+                pyiTypeHintNode(thnd, mod, defined, pep484, rest, fp);
             }
 
             fprintf(fp, "]");
@@ -1459,11 +1460,19 @@ static void pyiTypeHintNode(typeHintNodeDef *node, moduleDef *mod,
         break;
 
     case class_node:
-        prClassRef(node->u.cd, mod, defined, pep484, fp);
+        if (rest)
+            restPyClass(node->u.cd, TRUE, fp);
+        else
+            prClassRef(node->u.cd, mod, defined, pep484, fp);
+
         break;
 
     case enum_node:
-        prEnumRef(node->u.ed, mod, defined, pep484, fp);
+        if (rest)
+            restPyEnum(node->u.ed, TRUE, fp);
+        else
+            prEnumRef(node->u.ed, mod, defined, pep484, fp);
+
         break;
 
     case brackets_node:
