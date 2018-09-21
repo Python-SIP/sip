@@ -53,12 +53,12 @@ static void xmlOverload(sipSpec *pt, moduleDef *mod, classDef *scope,
         memberDef *md, overDef *od, classDef *xtnds, int stat, int indent,
         FILE *fp);
 static void xmlCppSignature(FILE *fp, overDef *od);
-static void xmlArgument(sipSpec *pt, moduleDef *mod, argDef *ad,
-        const char *dir, int res_xfer, int indent, FILE *fp);
-static void xmlType(sipSpec *pt, moduleDef *mod, argDef *ad, FILE *fp);
+static void xmlArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int out,
+        int res_xfer, int indent, FILE *fp);
+static void xmlType(sipSpec *pt, moduleDef *mod, argDef *ad, int out,
+        FILE *fp);
 static void xmlIndent(int indent, FILE *fp);
 static void xmlRealName(scopedNameDef *fqcname, FILE *fp);
-static const char *dirAttribute(argDef *ad);
 static const char *pyType(sipSpec *pt, argDef *ad, classDef **scope);
 static void exportPythonSignature(sipSpec *pt, FILE *fp, signatureDef *sd,
         int names, int defaults, int in_str, int is_signal);
@@ -511,7 +511,7 @@ static void xmlVars(sipSpec *pt, moduleDef *mod, classDef *scope, int indent,
         if (isStaticVar(vd))
             fprintf(fp, " static=\"1\"");
 
-        xmlType(pt, mod, &vd->type, fp);
+        xmlType(pt, mod, &vd->type, FALSE, fp);
         fprintf(fp, "/>\n");
     }
 }
@@ -543,7 +543,11 @@ static void xmlCtor(sipSpec *pt, moduleDef *mod, classDef *scope, ctorDef *ct,
     {
         argDef *ad = &ct->pysig.args[a];
 
-        xmlArgument(pt, mod, ad, dirAttribute(ad), FALSE, indent, fp);
+        if (isInArg(ad))
+            xmlArgument(pt, mod, ad, FALSE, FALSE, indent, fp);
+
+        if (isOutArg(ad))
+            xmlArgument(pt, mod, ad, TRUE, FALSE, indent, fp);
     }
 
     xmlIndent(--indent, fp);
@@ -650,7 +654,7 @@ static void xmlOverload(sipSpec *pt, moduleDef *mod, classDef *scope,
     fprintf(fp, ">\n");
 
     if (!no_res)
-        xmlArgument(pt, mod, &od->pysig.result, "out",
+        xmlArgument(pt, mod, &od->pysig.result, TRUE,
                 isResultTransferredBack(od), indent, fp);
 
     for (a = 0; a < od->pysig.nrArgs; ++a)
@@ -661,7 +665,11 @@ static void xmlOverload(sipSpec *pt, moduleDef *mod, classDef *scope,
         if (isNumberSlot(md) && a == 0 && od->pysig.nrArgs == 2)
             continue;
 
-        xmlArgument(pt, mod, ad, dirAttribute(ad), FALSE, indent, fp);
+        if (isInArg(ad))
+            xmlArgument(pt, mod, ad, FALSE, FALSE, indent, fp);
+
+        if (isOutArg(ad))
+            xmlArgument(pt, mod, ad, TRUE, FALSE, indent, fp);
     }
 
     xmlIndent(--indent, fp);
@@ -681,56 +689,37 @@ static void xmlCppSignature(FILE *fp, overDef *od)
 
 
 /*
- * Convert an arguments direction to an XML attribute value.
- */
-static const char *dirAttribute(argDef *ad)
-{
-    if (isInArg(ad))
-    {
-        if (isOutArg(ad))
-            return "inout";
-
-        return NULL;
-    }
-
-    return "out";
-}
-
-
-/*
  * Generate the XML for an argument.
  */
-static void xmlArgument(sipSpec *pt, moduleDef *mod, argDef *ad,
-        const char *dir, int res_xfer, int indent, FILE *fp)
+static void xmlArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int out,
+        int res_xfer, int indent, FILE *fp)
 {
     if (isArraySize(ad))
         return;
 
     xmlIndent(indent, fp);
-    fprintf(fp, "<Argument");
-    xmlType(pt, mod, ad, fp);
+    fprintf(fp, "<%s", (out ? "Return" : "Argument"));
+    xmlType(pt, mod, ad, out, fp);
 
-    if (dir != NULL)
-        fprintf(fp, " dir=\"%s\"", dir);
+    if (!out)
+    {
+        if (isAllowNone(ad))
+            fprintf(fp, " allownone=\"1\"");
 
-    if (isAllowNone(ad))
-        fprintf(fp, " allownone=\"1\"");
+        if (isDisallowNone(ad))
+            fprintf(fp, " disallownone=\"1\"");
 
-    if (isDisallowNone(ad))
-        fprintf(fp, " disallownone=\"1\"");
+        if (isTransferred(ad))
+            fprintf(fp, " transfer=\"to\"");
+        else if (isThisTransferred(ad))
+            fprintf(fp, " transfer=\"this\"");
+    }
 
-    if (isTransferred(ad))
-        fprintf(fp, " transfer=\"to\"");
-    else if (isThisTransferred(ad))
-        fprintf(fp, " transfer=\"this\"");
-    else if (res_xfer || isTransferredBack(ad))
+    if (res_xfer || isTransferredBack(ad))
         fprintf(fp, " transfer=\"back\"");
 
-    /*
-     * Handle the default value, but ignore it if it is an output only
-     * argument.
-     */
-    if (ad->defval && (dir == NULL || strcmp(dir, "out") != 0))
+    /* Handle the default value, but ignore it if it is a return. */
+    if (ad->defval && !out)
     {
         prcode(fp, " default=\"");
         prDefaultValue(ad, FALSE, fp);
@@ -744,22 +733,15 @@ static void xmlArgument(sipSpec *pt, moduleDef *mod, argDef *ad,
 /*
  * Generate the XML for a type.
  */
-static void xmlType(sipSpec *pt, moduleDef *mod, argDef *ad, FILE *fp)
+static void xmlType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, FILE *fp)
 {
     const char *type_name;
-    int out;
     classDef *type_scope;
     typeHintDef *thd;
 
     fprintf(fp, " typename=\"");
 
-    /*
-     * Use any explicit type hint unless the argument is constrained.  Note
-     * that this is broken for in/out arguments.  To fix it we would have out
-     * arguments as a different element rather than an attribute value of the
-     * 'Argument' element.
-     */
-    out = (isOutArg(ad) && !isInArg(ad));
+    /* Use any explicit type hint unless the argument is constrained. */
     thd = (out ? ad->typehint_out : (isConstrained(ad) ? NULL : ad->typehint_in));
 
     if (thd != NULL)
