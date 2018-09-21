@@ -57,8 +57,6 @@ static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int arg_nr,
         ifaceFileList *defined, KwArgs kwargs, int pep484, FILE *fp);
 static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, int sec,
         ifaceFileList *defined, int pep484, FILE *fp);
-static void pyiTypeHint(sipSpec *pt, typeHintDef *thd, moduleDef *mod, int out,
-        ifaceFileList *defined, int pep484, FILE *fp);
 static void pyiTypeHintNode(typeHintNodeDef *node, moduleDef *mod,
         ifaceFileList *defined, int pep484, FILE *fp);
 static void prIndent(int indent, FILE *fp);
@@ -1415,7 +1413,7 @@ typeHintDef *newTypeHint(char *raw_hint)
 /*
  * Generate a type hint from a /TypeHint/ annotation.
  */
-static void pyiTypeHint(sipSpec *pt, typeHintDef *thd, moduleDef *mod, int out,
+void pyiTypeHint(sipSpec *pt, typeHintDef *thd, moduleDef *mod, int out,
         ifaceFileList *defined, int pep484, FILE *fp)
 {
     parseTypeHint(pt, thd, out);
@@ -1702,7 +1700,7 @@ static const char *typingModule(const char *name)
 
 
 /*
- * Flatten an unions in a list of nodes.
+ * Flatten any unions in a list of nodes.
  */
 static typeHintNodeDef *flatten_unions(typeHintNodeDef *nodes)
 {

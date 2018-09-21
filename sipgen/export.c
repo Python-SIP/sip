@@ -45,16 +45,17 @@ static void xmlEnums(sipSpec *pt, moduleDef *mod, classDef *scope, int indent,
         FILE *fp);
 static void xmlVars(sipSpec *pt, moduleDef *mod, classDef *scope, int indent,
         FILE *fp);
-static void xmlFunction(sipSpec *pt, classDef *scope, memberDef *md,
-        overDef *oloads, int indent, FILE *fp);
-static void xmlCtor(sipSpec *pt, classDef *scope, ctorDef *ct, int indent,
-        FILE *fp);
-static void xmlOverload(sipSpec *pt, classDef *scope, memberDef *md,
-        overDef *od, classDef *xtnds, int stat, int indent, FILE *fp);
-static void xmlCppSignature(FILE *fp, overDef *od);
-static void xmlArgument(sipSpec *pt, argDef *ad, const char *dir, int res_xfer,
+static void xmlFunction(sipSpec *pt, moduleDef *mod, classDef *scope,
+        memberDef *md, overDef *oloads, int indent, FILE *fp);
+static void xmlCtor(sipSpec *pt, moduleDef *mod, classDef *scope, ctorDef *ct,
         int indent, FILE *fp);
-static void xmlType(sipSpec *pt, argDef *ad, FILE *fp);
+static void xmlOverload(sipSpec *pt, moduleDef *mod, classDef *scope,
+        memberDef *md, overDef *od, classDef *xtnds, int stat, int indent,
+        FILE *fp);
+static void xmlCppSignature(FILE *fp, overDef *od);
+static void xmlArgument(sipSpec *pt, moduleDef *mod, argDef *ad,
+        const char *dir, int res_xfer, int indent, FILE *fp);
+static void xmlType(sipSpec *pt, moduleDef *mod, argDef *ad, FILE *fp);
 static void xmlIndent(int indent, FILE *fp);
 static void xmlRealName(scopedNameDef *fqcname, FILE *fp);
 static const char *dirAttribute(argDef *ad);
@@ -314,7 +315,7 @@ void generateXML(sipSpec *pt, moduleDef *mod, const char *xmlFile)
     xmlVars(pt, mod, NULL, 1, fp);
 
     for (md = mod->othfuncs; md != NULL; md = md->next)
-        xmlFunction(pt, NULL, md, mod->overs, 1, fp);
+        xmlFunction(pt, mod, NULL, md, mod->overs, 1, fp);
 
     fprintf(fp, "</Module>\n");
 
@@ -407,14 +408,14 @@ static void xmlClass(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
         if (isPrivateCtor(ct))
             continue;
 
-        xmlCtor(pt, cd, ct, indent, fp);
+        xmlCtor(pt, mod, cd, ct, indent, fp);
     }
 
     xmlEnums(pt, mod, cd, indent, fp);
     xmlVars(pt, mod, cd, indent, fp);
 
     for (md = cd->members; md != NULL; md = md->next)
-        xmlFunction(pt, cd, md, cd->overs, indent, fp);
+        xmlFunction(pt, mod, cd, md, cd->overs, indent, fp);
 
     if (!isHiddenNamespace(cd))
     {
@@ -510,7 +511,7 @@ static void xmlVars(sipSpec *pt, moduleDef *mod, classDef *scope, int indent,
         if (isStaticVar(vd))
             fprintf(fp, " static=\"1\"");
 
-        xmlType(pt, &vd->type, fp);
+        xmlType(pt, mod, &vd->type, fp);
         fprintf(fp, "/>\n");
     }
 }
@@ -519,8 +520,8 @@ static void xmlVars(sipSpec *pt, moduleDef *mod, classDef *scope, int indent,
 /*
  * Generate the XML for a ctor.
  */
-static void xmlCtor(sipSpec *pt, classDef *scope, ctorDef *ct, int indent,
-        FILE *fp)
+static void xmlCtor(sipSpec *pt, moduleDef *mod, classDef *scope, ctorDef *ct,
+        int indent, FILE *fp)
 {
     int a;
 
@@ -542,7 +543,7 @@ static void xmlCtor(sipSpec *pt, classDef *scope, ctorDef *ct, int indent,
     {
         argDef *ad = &ct->pysig.args[a];
 
-        xmlArgument(pt, ad, dirAttribute(ad), FALSE, indent, fp);
+        xmlArgument(pt, mod, ad, dirAttribute(ad), FALSE, indent, fp);
     }
 
     xmlIndent(--indent, fp);
@@ -553,8 +554,8 @@ static void xmlCtor(sipSpec *pt, classDef *scope, ctorDef *ct, int indent,
 /*
  * Generate the XML for a function.
  */
-static void xmlFunction(sipSpec *pt, classDef *scope, memberDef *md,
-        overDef *oloads, int indent, FILE *fp)
+static void xmlFunction(sipSpec *pt, moduleDef *mod, classDef *scope,
+        memberDef *md, overDef *oloads, int indent, FILE *fp)
 {
     overDef *od;
     const char *default_str = "default=\"1\" ";
@@ -593,7 +594,7 @@ static void xmlFunction(sipSpec *pt, classDef *scope, memberDef *md,
             isstat = FALSE;
         }
 
-        xmlOverload(pt, scope, md, od, xtnds, isstat, indent, fp);
+        xmlOverload(pt, mod, scope, md, od, xtnds, isstat, indent, fp);
     }
 }
 
@@ -601,8 +602,9 @@ static void xmlFunction(sipSpec *pt, classDef *scope, memberDef *md,
 /*
  * Generate the XML for an overload.
  */
-static void xmlOverload(sipSpec *pt, classDef *scope, memberDef *md,
-        overDef *od, classDef *xtnds, int stat, int indent, FILE *fp)
+static void xmlOverload(sipSpec *pt, moduleDef *mod, classDef *scope,
+        memberDef *md, overDef *od, classDef *xtnds, int stat, int indent,
+        FILE *fp)
 {
     int a, no_res;
 
@@ -648,8 +650,8 @@ static void xmlOverload(sipSpec *pt, classDef *scope, memberDef *md,
     fprintf(fp, ">\n");
 
     if (!no_res)
-        xmlArgument(pt, &od->pysig.result, "out", isResultTransferredBack(od),
-                indent, fp);
+        xmlArgument(pt, mod, &od->pysig.result, "out",
+                isResultTransferredBack(od), indent, fp);
 
     for (a = 0; a < od->pysig.nrArgs; ++a)
     {
@@ -659,7 +661,7 @@ static void xmlOverload(sipSpec *pt, classDef *scope, memberDef *md,
         if (isNumberSlot(md) && a == 0 && od->pysig.nrArgs == 2)
             continue;
 
-        xmlArgument(pt, ad, dirAttribute(ad), FALSE, indent, fp);
+        xmlArgument(pt, mod, ad, dirAttribute(ad), FALSE, indent, fp);
     }
 
     xmlIndent(--indent, fp);
@@ -698,15 +700,15 @@ static const char *dirAttribute(argDef *ad)
 /*
  * Generate the XML for an argument.
  */
-static void xmlArgument(sipSpec *pt, argDef *ad, const char *dir, int res_xfer,
-        int indent, FILE *fp)
+static void xmlArgument(sipSpec *pt, moduleDef *mod, argDef *ad,
+        const char *dir, int res_xfer, int indent, FILE *fp)
 {
     if (isArraySize(ad))
         return;
 
     xmlIndent(indent, fp);
     fprintf(fp, "<Argument");
-    xmlType(pt, ad, fp);
+    xmlType(pt, mod, ad, fp);
 
     if (dir != NULL)
         fprintf(fp, " dir=\"%s\"", dir);
@@ -742,52 +744,60 @@ static void xmlArgument(sipSpec *pt, argDef *ad, const char *dir, int res_xfer,
 /*
  * Generate the XML for a type.
  */
-static void xmlType(sipSpec *pt, argDef *ad, FILE *fp)
+static void xmlType(sipSpec *pt, moduleDef *mod, argDef *ad, FILE *fp)
 {
-    const char *type_type = NULL, *type_name;
+    const char *type_name;
+    int out;
     classDef *type_scope;
+    typeHintDef *thd;
 
     fprintf(fp, " typename=\"");
 
-    switch (ad->atype)
+    /*
+     * Use any explicit type hint unless the argument is constrained.  Note
+     * that this is broken for in/out arguments.  To fix it we would have out
+     * arguments as a different element rather than an attribute value of the
+     * 'Argument' element.
+     */
+    out = (isOutArg(ad) && !isInArg(ad));
+    thd = (out ? ad->typehint_out : (isConstrained(ad) ? NULL : ad->typehint_in));
+
+    if (thd != NULL)
     {
-    case class_type:
-        restPyClass(fp, ad->u.cd, TRUE);
-        type_type = (isOpaque(ad->u.cd) ? "opaque" : "class");
-        break;
-
-    case enum_type:
-        if (ad->u.ed->pyname != NULL)
+        pyiTypeHint(pt, thd, mod, out, NULL, FALSE, fp);
+    }
+    else
+    {
+        switch (ad->atype)
         {
-            restPyEnum(fp, ad->u.ed, TRUE);
-            type_type = "enum";
+        case class_type:
+            restPyClass(fp, ad->u.cd, TRUE);
+            break;
+
+        case enum_type:
+            if (ad->u.ed->pyname != NULL)
+                restPyEnum(fp, ad->u.ed, TRUE);
+            else
+                fprintf(fp, "int");
+
+            break;
+
+        case qobject_type:
+            restPyClass(fp, pt->qobject_cd, TRUE);
+            break;
+
+        case mapped_type:
+            /* There would normally be a type hint. */
+            fprintf(fp, "unknown-type");
+            break;
+
+        default:
+            if ((type_name = pyType(pt, ad, &type_scope)) != NULL)
+                prScopedPythonName(fp, type_scope, type_name);
         }
-        else
-        {
-            fprintf(fp, "int");
-        }
-
-        break;
-
-    case qobject_type:
-        restPyClass(fp, pt->qobject_cd, TRUE);
-        type_type = "class";
-        break;
-
-    case mapped_type:
-        type_type = "mappedtype";
-
-        /* Drop through. */
-
-    default:
-        if ((type_name = pyType(pt, ad, &type_scope)) != NULL)
-            prScopedPythonName(fp, type_scope, type_name);
     }
 
     fprintf(fp, "\"");
-
-    if (type_type != NULL)
-        fprintf(fp, " typetype=\"%s\"", type_type);
 
     if (ad->name != NULL)
         fprintf(fp, " name=\"%s\"", ad->name->text);

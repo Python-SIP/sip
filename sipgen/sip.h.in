@@ -1454,6 +1454,8 @@ void dsCtor(sipSpec *pt, classDef *cd, ctorDef *ct, int sec, FILE *fp);
 void dsOverload(sipSpec *pt, overDef *od, int is_method, int sec, FILE *fp);
 scopedNameDef *getFQCNameOfType(argDef *ad);
 scopedNameDef *removeGlobalScope(scopedNameDef *snd);
+void pyiTypeHint(sipSpec *pt, typeHintDef *thd, moduleDef *mod, int out,
+        ifaceFileList *defined, int pep484, FILE *fp);
 
 
 /* These are only here because bison publically references them. */
