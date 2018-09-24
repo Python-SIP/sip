@@ -54,9 +54,9 @@ static void xmlOverload(sipSpec *pt, moduleDef *mod, classDef *scope,
         FILE *fp);
 static void xmlCppSignature(FILE *fp, overDef *od);
 static void xmlArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int out,
-        int res_xfer, int indent, FILE *fp);
+        KwArgs kwargs, int res_xfer, int indent, FILE *fp);
 static void xmlType(sipSpec *pt, moduleDef *mod, argDef *ad, int out,
-        FILE *fp);
+        KwArgs kwargs, FILE *fp);
 static void xmlIndent(int indent, FILE *fp);
 static void xmlRealName(scopedNameDef *fqcname, FILE *fp);
 static const char *pyType(sipSpec *pt, argDef *ad, classDef **scope);
@@ -509,7 +509,7 @@ static void xmlVars(sipSpec *pt, moduleDef *mod, classDef *scope, int indent,
         if (isStaticVar(vd))
             fprintf(fp, " static=\"1\"");
 
-        xmlType(pt, mod, &vd->type, FALSE, fp);
+        xmlType(pt, mod, &vd->type, FALSE, NoKwArgs, fp);
         fprintf(fp, "/>\n");
     }
 }
@@ -542,10 +542,10 @@ static void xmlCtor(sipSpec *pt, moduleDef *mod, classDef *scope, ctorDef *ct,
         argDef *ad = &ct->pysig.args[a];
 
         if (isInArg(ad))
-            xmlArgument(pt, mod, ad, FALSE, FALSE, indent, fp);
+            xmlArgument(pt, mod, ad, FALSE, ct->kwargs, FALSE, indent, fp);
 
         if (isOutArg(ad))
-            xmlArgument(pt, mod, ad, TRUE, FALSE, indent, fp);
+            xmlArgument(pt, mod, ad, TRUE, ct->kwargs, FALSE, indent, fp);
     }
 
     xmlIndent(--indent, fp);
@@ -652,7 +652,7 @@ static void xmlOverload(sipSpec *pt, moduleDef *mod, classDef *scope,
     fprintf(fp, ">\n");
 
     if (!no_res)
-        xmlArgument(pt, mod, &od->pysig.result, TRUE,
+        xmlArgument(pt, mod, &od->pysig.result, TRUE, NoKwArgs,
                 isResultTransferredBack(od), indent, fp);
 
     for (a = 0; a < od->pysig.nrArgs; ++a)
@@ -664,10 +664,10 @@ static void xmlOverload(sipSpec *pt, moduleDef *mod, classDef *scope,
             continue;
 
         if (isInArg(ad))
-            xmlArgument(pt, mod, ad, FALSE, FALSE, indent, fp);
+            xmlArgument(pt, mod, ad, FALSE, od->kwargs, FALSE, indent, fp);
 
         if (isOutArg(ad))
-            xmlArgument(pt, mod, ad, TRUE, FALSE, indent, fp);
+            xmlArgument(pt, mod, ad, TRUE, od->kwargs, FALSE, indent, fp);
     }
 
     xmlIndent(--indent, fp);
@@ -690,14 +690,14 @@ static void xmlCppSignature(FILE *fp, overDef *od)
  * Generate the XML for an argument.
  */
 static void xmlArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int out,
-        int res_xfer, int indent, FILE *fp)
+        KwArgs kwargs, int res_xfer, int indent, FILE *fp)
 {
     if (isArraySize(ad))
         return;
 
     xmlIndent(indent, fp);
     fprintf(fp, "<%s", (out ? "Return" : "Argument"));
-    xmlType(pt, mod, ad, out, fp);
+    xmlType(pt, mod, ad, out, kwargs, fp);
 
     if (!out)
     {
@@ -716,14 +716,6 @@ static void xmlArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int out,
     if (res_xfer || isTransferredBack(ad))
         fprintf(fp, " transfer=\"back\"");
 
-    /* Handle the default value, but ignore it if it is a return. */
-    if (ad->defval && !out)
-    {
-        prcode(fp, " default=\"");
-        prDefaultValue(ad, FALSE, fp);
-        prcode(fp, "\"");
-    }
-
     fprintf(fp, "/>\n");
 }
 
@@ -731,13 +723,21 @@ static void xmlArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int out,
 /*
  * Generate the XML for a type.
  */
-static void xmlType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, FILE *fp)
+static void xmlType(sipSpec *pt, moduleDef *mod, argDef *ad, int out,
+        KwArgs kwargs, FILE *fp)
 {
     const char *type_name;
     classDef *type_scope;
     typeHintDef *thd;
 
     fprintf(fp, " typename=\"");
+
+    /* Handle the argument name. */
+    if (!out && ad->name != NULL)
+    {
+        if (kwargs == AllKwArgs || (kwargs == OptionalKwArgs && ad->defval != NULL))
+            fprintf(fp, "%s: ", ad->name->text);
+    }
 
     /* Use any explicit type hint unless the argument is constrained. */
     thd = (out ? ad->typehint_out : (isConstrained(ad) ? NULL : ad->typehint_in));
@@ -777,10 +777,14 @@ static void xmlType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, FILE *fp)
         }
     }
 
-    fprintf(fp, "\"");
+    if (!out && ad->name != NULL && ad->defval != NULL)
+    {
+        fprintf(fp, " = ");
+        /* TODO: use reST references where appropriate. */
+        prDefaultValue(ad, FALSE, fp);
+    }
 
-    if (ad->name != NULL)
-        fprintf(fp, " name=\"%s\"", ad->name->text);
+    fprintf(fp, "\"");
 }
 
 

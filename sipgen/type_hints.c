@@ -1445,9 +1445,8 @@ static void pyiTypeHintNode(typeHintNodeDef *node, moduleDef *mod,
 
             for (thnd = node->children; thnd != NULL; thnd = thnd->next)
             {
-                /* We don't want any spaces in the reST. */
                 if (need_comma)
-                    fprintf(fp, ",%s", (rest ? "" : " "));
+                    fprintf(fp, ", ");
 
                 need_comma = TRUE;
 
