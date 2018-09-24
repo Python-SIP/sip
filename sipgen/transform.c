@@ -89,7 +89,8 @@ static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd);
 static classDef *findAltClassImplementation(sipSpec *pt, mappedTypeDef *mtd);
 static ifaceFileDef *getIfaceFile(argDef *ad);
 static ifaceFileDef *getIfaceFileForEnum(enumDef *ed);
-static mappedTypeDef *instantiateMappedTypeTemplate(sipSpec *pt, moduleDef *mod, mappedTypeTmplDef *mtt, argDef *type);
+static void instantiateMappedTypeTemplate(sipSpec *pt, moduleDef *mod,
+        mappedTypeTmplDef *mtt, argDef *type);
 static classDef *getProxy(moduleDef *mod, classDef *cd);
 static int generatingCodeForModule(sipSpec *pt, moduleDef *mod);
 static void checkAssignmentHelper(sipSpec *pt, classDef *cd);
@@ -3040,9 +3041,7 @@ static void resolveType(sipSpec *pt, moduleDef *mod, classDef *c_scope,
             for (mtt = pt->mappedtypetemplates; mtt != NULL; mtt = mtt->next)
                 if (compareScopedNames(mtt->mt->type.u.td->fqname, type->u.td->fqname) == 0 && sameTemplateSignature(&mtt->mt->type.u.td->types, &type->u.td->types, TRUE))
                 {
-                    type->u.mtd = instantiateMappedTypeTemplate(pt, mod, mtt, type);
-                    type->atype = mapped_type;
-
+                    instantiateMappedTypeTemplate(pt, mod, mtt, type);
                     break;
                 }
         }
@@ -3144,9 +3143,10 @@ static void resolveInstantiatedClassTemplate(sipSpec *pt, argDef *type)
 
 
 /*
- * Instantiate a mapped type template and return it.
+ * Instantiate a mapped type template.
  */
-static mappedTypeDef *instantiateMappedTypeTemplate(sipSpec *pt, moduleDef *mod, mappedTypeTmplDef *mtt, argDef *type)
+static void instantiateMappedTypeTemplate(sipSpec *pt, moduleDef *mod,
+        mappedTypeTmplDef *mtt, argDef *type)
 {
     scopedNameDef *type_names, *type_values;
     mappedTypeDef *mtd;
@@ -3201,7 +3201,13 @@ static mappedTypeDef *instantiateMappedTypeTemplate(sipSpec *pt, moduleDef *mod,
 
     mtd = copyTemplateType(mtd, type);
 
-    return mtd;
+    /* Replace the template with the mapped type. */
+    type->atype = mapped_type;
+    type->typehint_in = mtd->typehint_in;
+    type->typehint_out = mtd->typehint_out;
+    type->typehint_value = mtd->typehint_value;
+
+    type->u.mtd = mtd;
 }
 
 
