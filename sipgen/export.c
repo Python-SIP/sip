@@ -560,7 +560,6 @@ static void xmlFunction(sipSpec *pt, moduleDef *mod, classDef *scope,
         memberDef *md, overDef *oloads, int indent, FILE *fp)
 {
     overDef *od;
-    const char *default_str = "default=\"1\" ";
 
     for (od = oloads; od != NULL; od = od->next)
     {
@@ -575,14 +574,33 @@ static void xmlFunction(sipSpec *pt, moduleDef *mod, classDef *scope,
 
         if (isSignal(od))
         {
-            xmlIndent(indent, fp);
-            fprintf(fp, "<Signal %sname=\"", default_str);
-            prScopedPythonName(fp, scope, md->pyname->text);
-            fprintf(fp, "\" sig=\"");
-            xmlCppSignature(fp, od);
-            fprintf(fp, "\"/>\n");
+            int a;
 
-            default_str = "";
+            xmlIndent(indent++, fp);
+            fprintf(fp, "<Signal name=\"");
+            prScopedPythonName(fp, scope, md->pyname->text);
+            /* TODO: add the C++ signature. */
+            /* fprintf(fp, "\" sig=\""); */
+            /* xmlCppSignature(fp, od); */
+
+            /* Handle the trivial case. */
+            if (od->pysig.nrArgs == 0)
+            {
+                fprintf(fp, "\"/>\n");
+                continue;
+            }
+
+            fprintf(fp, "\">\n");
+
+            for (a = 0; a < od->pysig.nrArgs; ++a)
+            {
+                argDef *ad = &od->pysig.args[a];
+
+                xmlArgument(pt, mod, ad, FALSE, od->kwargs, FALSE, indent, fp);
+            }
+
+            xmlIndent(--indent, fp);
+            fprintf(fp, "</Signal>\n");
 
             continue;
         }

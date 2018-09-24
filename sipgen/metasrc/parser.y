@@ -7586,7 +7586,7 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
     if (getDeprecated(optflgs))
         setIsDeprecated(od);
 
-    if (!isPrivate(od) && !isSignal(od) && (od->common->slot == no_slot || od->common->slot == call_slot))
+    if (!isPrivate(od) && (od->common->slot == no_slot || od->common->slot == call_slot))
     {
         od->kwargs = keywordArgs(mod, optflgs, &od->pysig, hasProtected(od->common));
 
@@ -7598,7 +7598,7 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
          * we need to make sure that any other overloads' keyword argument
          * names are marked as used.
          */
-        if (isProtected(od) && !inMainModule())
+        if (!isSignal(od) && isProtected(od) && !inMainModule())
         {
             overDef *kwod;
 
