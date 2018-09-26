@@ -1120,7 +1120,7 @@ static void exportPythonSignature(sipSpec *pt, FILE *fp, signatureDef *sd,
 void restPyClass(classDef *cd, int as_ref, FILE *fp)
 {
     if (as_ref)
-        fprintf(fp, ":sip:class:`~");
+        fprintf(fp, ":sip:ref:`~");
 
     fprintf(fp, "%s.", cd->iff->module->fullname->text);
     prScopedPythonName(fp, cd->ecd, cd->pyname->text);
@@ -1136,7 +1136,7 @@ void restPyClass(classDef *cd, int as_ref, FILE *fp)
 void restPyEnum(enumDef *ed, int as_ref, FILE *fp)
 {
     if (as_ref)
-        fprintf(fp, ":sip:enum:`~");
+        fprintf(fp, ":sip:ref:`~");
 
     fprintf(fp, "%s.", ed->module->fullname->text);
     prScopedPythonName(fp, ed->ecd, ed->pyname->text);
@@ -1151,7 +1151,7 @@ void restPyEnum(enumDef *ed, int as_ref, FILE *fp)
  */
 static void restPyEnumMember(enumMemberDef *emd, FILE *fp)
 {
-    fprintf(fp, ":sip:member:`~%s.", emd->ed->module->fullname->text);
+    fprintf(fp, ":sip:ref:`~%s.", emd->ed->module->fullname->text);
     prScopedPythonName(fp, emd->ed->ecd, emd->ed->pyname->text);
     fprintf(fp, ".%s`", emd->pyname->text);
 }
@@ -1163,7 +1163,7 @@ static void restPyEnumMember(enumMemberDef *emd, FILE *fp)
 static void restPyAttribute(moduleDef *mod, classDef *scope, nameDef *name,
         FILE *fp)
 {
-    fprintf(fp, ":sip:attr:`~%s.", mod->fullname->text);
+    fprintf(fp, ":sip:ref:`~%s.", mod->fullname->text);
     prScopedPythonName(fp, scope, name->text);
     fprintf(fp, "`");
 }
