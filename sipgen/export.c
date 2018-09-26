@@ -62,6 +62,10 @@ static void xmlRealName(scopedNameDef *fqcname, FILE *fp);
 static const char *pyType(sipSpec *pt, argDef *ad, classDef **scope);
 static void exportPythonSignature(sipSpec *pt, FILE *fp, signatureDef *sd,
         int names, int defaults, int in_str, int is_signal);
+static void restPyEnumMember(enumMemberDef *emd, FILE *fp);
+static void restPyAttribute(moduleDef *mod, classDef *scope, nameDef *name,
+        FILE *fp);
+static int restValue(sipSpec *pt, valueDef *value, FILE *fp);
 
 
 /*
@@ -798,8 +802,13 @@ static void xmlType(sipSpec *pt, moduleDef *mod, argDef *ad, int out,
     if (!out && ad->name != NULL && ad->defval != NULL)
     {
         fprintf(fp, " = ");
-        /* TODO: use reST references where appropriate. */
-        prDefaultValue(ad, FALSE, fp);
+
+        /*
+         * Try and convert the value to a reST reference.  We don't try very
+         * hard but will get most cases.
+         */
+        if (!restValue(pt, ad->defval, fp))
+            prDefaultValue(ad, FALSE, fp);
     }
 
     fprintf(fp, "\"");
@@ -1134,4 +1143,120 @@ void restPyEnum(enumDef *ed, int as_ref, FILE *fp)
 
     if (as_ref)
         fprintf(fp, "`");
+}
+
+
+/*
+ * Generate a fully qualified attribute name as a reST reference.
+ */
+static void restPyEnumMember(enumMemberDef *emd, FILE *fp)
+{
+    fprintf(fp, ":sip:member:`~%s.", emd->ed->module->fullname->text);
+    prScopedPythonName(fp, emd->ed->ecd, emd->ed->pyname->text);
+    fprintf(fp, ".%s`", emd->pyname->text);
+}
+
+
+/*
+ * Generate a fully qualified attribute name as a reST reference.
+ */
+static void restPyAttribute(moduleDef *mod, classDef *scope, nameDef *name,
+        FILE *fp)
+{
+    fprintf(fp, ":sip:attr:`~%s.", mod->fullname->text);
+    prScopedPythonName(fp, scope, name->text);
+    fprintf(fp, "`");
+}
+
+
+/*
+ * Generate a reST reference for a scoped name is possible.  Return TRUE if
+ * something was generated.
+ */
+static int restValue(sipSpec *pt, valueDef *value, FILE *fp)
+{
+    const char *name;
+    scopedNameDef *target, *scope, *snd;
+    varDef *vd;
+    enumDef *ed;
+
+    /* The value must be a scoped name and we don't handle expressions. */
+    if (value->vtype != scoped_value || value->next != NULL)
+        return FALSE;
+
+    target = value->u.vscp;
+
+    /* See if it is an attribute. */
+    for (vd = pt->vars; vd != NULL; vd = vd->next)
+        if (compareScopedNames(vd->fqcname, target) == 0)
+        {
+            restPyAttribute(vd->module, vd->ecd, vd->pyname, fp);
+
+            return TRUE;
+        }
+
+    /* Get the name and scope. */
+    name = scopedNameTail(target);
+
+    scope = NULL;
+
+    for (snd = target; snd->name != name; snd = snd->next)
+        appendScopedName(&scope, text2scopePart(snd->name));
+
+    /* See if it is an enum member. */
+    for (ed = pt->enums; ed != NULL; ed = ed->next)
+    {
+        enumMemberDef *emd;
+
+        /*
+         * Look for the member name first before working out if it is the
+         * correct enum.
+         */
+        for (emd = ed->members; emd != NULL; emd = emd->next)
+        {
+            if (strcmp(emd->cname, name) == 0)
+            {
+                if (isScopedEnum(ed))
+                {
+                    /*
+                     * It's a scoped enum so the fully qualified name of the
+                     * enum must match the scope of the name.
+                     */
+                    if (scope != NULL && compareScopedNames(ed->fqcname, scope) == 0)
+                    {
+                        restPyEnumMember(emd, fp);
+
+                        freeScopedName(scope);
+
+                        return TRUE;
+                    }
+                }
+                else
+                {
+                    /*
+                     * It's a traditional enum so the scope of the enum must
+                     * match the scope of the name.
+                     */
+                    if ((ed->ecd == NULL && scope == NULL) || (ed->ecd != NULL && scope != NULL && compareScopedNames(ed->ecd->iff->fqcname, scope) == 0))
+                    {
+                        if (ed->fqcname == NULL)
+                            restPyAttribute(ed->module, ed->ecd, emd->pyname,
+                                    fp);
+                        else
+                            restPyEnumMember(emd, fp);
+
+                        freeScopedName(scope);
+
+                        return TRUE;
+                    }
+                }
+
+                break;
+            }
+        }
+    }
+
+    freeScopedName(scope);
+
+    return FALSE;
 }

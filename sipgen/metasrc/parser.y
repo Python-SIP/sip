@@ -173,7 +173,6 @@ static apiVersionRangeDef *getAPIRange(optFlags *optflgs);
 static apiVersionRangeDef *convertAPIRange(moduleDef *mod, nameDef *name,
         int from, int to);
 static char *convertFeaturedString(char *fs);
-static scopedNameDef *text2scopePart(char *text);
 static KwArgs keywordArgs(moduleDef *mod, optFlags *optflgs, signatureDef *sd,
         int need_name);
 static char *strip(char *s);
@@ -8371,7 +8370,7 @@ void freeScopedName(scopedNameDef *snd)
 /*
  * Convert a text string to a scope part structure.
  */
-static scopedNameDef *text2scopePart(char *text)
+scopedNameDef *text2scopePart(char *text)
 {
     scopedNameDef *snd;
 

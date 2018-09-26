@@ -1407,6 +1407,7 @@ int sameBaseType(argDef *,argDef *);
 char *scopedNameTail(scopedNameDef *);
 scopedNameDef *copyScopedName(scopedNameDef *);
 void appendScopedName(scopedNameDef **,scopedNameDef *);
+scopedNameDef *text2scopePart(char *text);
 void freeScopedName(scopedNameDef *);
 void appendToClassList(classList **,classDef *);
 void appendCodeBlockList(codeBlockList **headp, codeBlockList *cbl);
