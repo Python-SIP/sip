@@ -3270,14 +3270,9 @@ static int parseResult(PyObject *method, PyObject *res,
                     const char **p = va_arg(va, const char **);
 
                     if (parseBytes_AsString(arg, p) < 0)
-                    {
                         invalid = TRUE;
-                    }
                     else
-                    {
-                        Py_INCREF(arg);
                         sip_api_keep_reference((PyObject *)py_self, key, arg);
-                    }
                 }
 
                 break;
