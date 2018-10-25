@@ -9207,13 +9207,13 @@ static void generateShadowClassDeclaration(sipSpec *pt,classDef *cd,FILE *fp)
     {
         prcode(fp,
 "\n"
-"    int qt_metacall(QMetaObject::Call,int,void **);\n"
-"    void *qt_metacast(const char *);\n"
+"    int qt_metacall(QMetaObject::Call, int, void **) SIP_OVERRIDE;\n"
+"    void *qt_metacast(const char *) SIP_OVERRIDE;\n"
             );
 
         if (!noPyQtQMetaObject(cd))
             prcode(fp,
-"    const QMetaObject *metaObject() const;\n"
+"    const QMetaObject *metaObject() const SIP_OVERRIDE;\n"
                 );
     }
 
@@ -9322,7 +9322,7 @@ void prOverloadDecl(FILE *fp, ifaceFileDef *scope, overDef *od, int defval)
         }
     }
  
-    prcode(fp, ")%s%X", (isConst(od) ? " const" : ""), od->exceptions);
+    prcode(fp, ")%s SIP_OVERRIDE%X", (isConst(od) ? " const" : ""), od->exceptions);
 
     restoreArgs(od->cppsig);
 }
