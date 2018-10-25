@@ -284,6 +284,12 @@ typedef unsigned int uint;
 /* Some C++ compatibility stuff. */
 #if defined(__cplusplus)
 
+/*
+ * Cast a PyCFunctionWithKeywords to a PyCFunction in such a way that it
+ * suppresses the GCC -Wcast-function-type warning.
+ */
+#define SIP_MLMETH_CAST(m)  reinterpret_cast<PyCFunction>(reinterpret_cast<void (*)(void)>(m))
+
 #if __cplusplus >= 201103L || defined(_MSVC_LANG)
 
 /* C++11 and later. */
@@ -299,6 +305,9 @@ typedef unsigned int uint;
 #endif
 
 #else
+
+/* Cast a PyCFunctionWithKeywords to a PyCFunction. */
+#define SIP_MLMETH_CAST(m)  ((PyCFunction)(m))
 
 /* C. */
 #define SIP_NULLPTR     NULL

@@ -4769,16 +4769,18 @@ static void prMethodTable(sipSpec *pt, sortedMethTab *mtable, int nr,
     for (i = 0; i < nr; ++i)
     {
         memberDef *md = mtable[i].md;
-        const char *cast, *flags;
+        const char *cast, *cast_suffix, *flags;
 
         if (noArgParser(md) || useKeywordArgs(md))
         {
-            cast = "(PyCFunction)";
+            cast = "SIP_MLMETH_CAST(";
+            cast_suffix = ")";
             flags = "|METH_KEYWORDS";
         }
         else
         {
             cast = "";
+            cast_suffix = "";
             flags = "";
         }
 
@@ -4786,7 +4788,7 @@ static void prMethodTable(sipSpec *pt, sortedMethTab *mtable, int nr,
         md->membernr = i;
 
         prcode(fp,
-"    {SIP_MLNAME_CAST(%N), %smeth_%L_%s, METH_VARARGS%s, ", md->pyname, cast, iff, md->pyname->text, flags);
+"    {SIP_MLNAME_CAST(%N), %smeth_%L_%s%s, METH_VARARGS%s, ", md->pyname, cast, iff, md->pyname->text, cast_suffix, flags);
 
         if (hasMemberDocstring(pt, overs, md, iff))
             prcode(fp, "SIP_MLDOC_CAST(doc_%L_%s)", iff, md->pyname->text);
@@ -15707,7 +15709,7 @@ static void generateGlobalFunctionTableEntries(sipSpec *pt, moduleDef *mod,
 "        {SIP_MLNAME_CAST(%N), ", md->pyname);
 
             if (noArgParser(md) || useKeywordArgs(md))
-                prcode(fp, "(PyCFunction)func_%s, METH_VARARGS|METH_KEYWORDS", md->pyname->text);
+                prcode(fp, "SIP_MLMETH_CAST(func_%s), METH_VARARGS|METH_KEYWORDS", md->pyname->text);
             else
                 prcode(fp, "func_%s, METH_VARARGS", md->pyname->text);
 
