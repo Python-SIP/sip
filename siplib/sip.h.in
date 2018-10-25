@@ -281,6 +281,32 @@ extern "C" {
 typedef unsigned int uint;
 
 
+/* Some C++ compatibility stuff. */
+#if defined(__cplusplus)
+
+#if __cplusplus >= 201103L || defined(_MSVC_LANG)
+
+/* C++11 and later. */
+#define SIP_NULLPTR     nullptr
+#define SIP_OVERRIDE    override
+
+#else
+
+/* Earlier versions of C++. */
+#define SIP_NULLPTR     0
+#define SIP_OVERRIDE
+
+#endif
+
+#else
+
+/* C. */
+#define SIP_NULLPTR     NULL
+#define SIP_OVERRIDE
+
+#endif
+
+
 /* Some Python compatibility stuff. */
 #if PY_VERSION_HEX >= 0x02050000
 

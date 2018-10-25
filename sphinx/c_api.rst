@@ -41,6 +41,16 @@ specification files.
     to fail if the Python object being converted is ``Py_None``.
 
 
+.. c:macro:: SIP_NULLPTR
+
+    .. versionadded:: 4.19.14
+
+    This is a C preprocessor macro that should be used instead of ``NULL`` or
+    ``nullptr``.  It ensures the correct value is used depending on whether C
+    or C++ is being generated and which language standard the compiler
+    supports.
+
+
 .. c:macro:: SIP_OWNS_MEMORY
 
     .. versionadded:: 4.15.2
