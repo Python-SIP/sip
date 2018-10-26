@@ -8688,9 +8688,20 @@ static classDef *currentScope(void)
 static void newQualifier(moduleDef *mod, int line, int order,
         int default_enabled, const char *name, qualType qt)
 {
-    /* Check it doesn't already exist. */
-    if (findQualifier(name) != NULL)
-        yyerror("Version is already defined");
+    qualDef *qd;
+
+    /* See if it already exists. */
+    if ((qd = findQualifier(name)) != NULL)
+    {
+        /*
+         * We allow versions to be defined more than once so long as they are
+         * in different timelines.  It is sometimes necessary to define the
+         * same timeline in multiple modules if a module that others depend on
+         * is added during the timeline (eg. QtWebEngineCore).
+         */
+        if (qd->qtype != time_qualifier || qt != time_qualifier || (qd->module == mod && qd->line == line))
+            yyerror("Version is already defined");
+    }
 
     allocQualifier(mod, line, order, default_enabled, name, qt);
 }
