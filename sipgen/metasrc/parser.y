@@ -39,7 +39,7 @@ static moduleDef *currentModule;        /* The current module being parsed. */
 static mappedTypeDef *currentMappedType;    /* The current mapped type. */
 static enumDef *currentEnum;            /* The current enum being parsed. */
 static int sectionFlags;                /* The current section flags. */
-static int currentOverIsVirt;           /* Set if the overload is virtual. */
+static int currentIsVirt;               /* Set if the callable is virtual. */
 static int currentCtorIsExplicit;       /* Set if the ctor is explicit. */
 static int currentIsStatic;             /* Set if the current is static. */
 static int currentIsSignal;             /* Set if the current is Q_SIGNAL. */
@@ -412,7 +412,6 @@ static scopedNameDef *fullyQualifiedName(scopedNameDef *snd);
 %type <number>          optref
 %type <number>          optconst
 %type <number>          optfinal
-%type <number>          optvirtual
 %type <number>          optabstract
 %type <number>          optnumber
 %type <value>           simplevalue
@@ -3551,7 +3550,12 @@ optslot:    {
         }
     ;
 
-dtor:       optvirtual '~' TK_NAME_VALUE '(' ')' optexceptions optabstract optflags ';' premethodcode methodcode virtualcatchercode {
+dtor:
+        TK_VIRTUAL {currentIsVirt = TRUE;} dtor_decl
+    |   dtor_decl
+    ;
+
+dtor_decl:  '~' TK_NAME_VALUE '(' ')' optexceptions optabstract optflags ';' premethodcode methodcode virtualcatchercode {
             /* Note that we allow non-virtual dtors in C modules. */
 
             if (notSkipping())
@@ -3564,22 +3568,22 @@ dtor:       optvirtual '~' TK_NAME_VALUE '(' ')' optexceptions optabstract optfl
 
                 classDef *cd = currentScope();
 
-                checkAnnos(&$8, annos);
+                checkAnnos(&$7, annos);
 
-                if (strcmp(classBaseName(cd),$3) != 0)
+                if (strcmp(classBaseName(cd),$2) != 0)
                     yyerror("Destructor doesn't have the same name as its class");
 
                 if (isDtor(cd))
                     yyerror("Destructor has already been defined");
 
-                if (currentSpec -> genc && $10 == NULL)
+                if (currentSpec -> genc && $9 == NULL)
                     yyerror("Destructor in C modules must include %MethodCode");
 
 
-                appendCodeBlock(&cd->dealloccode, $10); /* premethodcode */
-                appendCodeBlock(&cd->dealloccode, $11); /* methodcode */
-                appendCodeBlock(&cd->dtorcode, $12);
-                cd -> dtorexceptions = $6;
+                appendCodeBlock(&cd->dealloccode, $9);  /* premethodcode */
+                appendCodeBlock(&cd->dealloccode, $10); /* methodcode */
+                appendCodeBlock(&cd->dtorcode, $11);
+                cd -> dtorexceptions = $5;
 
                 /*
                  * Note that we don't apply the protected/public hack to dtors
@@ -3587,9 +3591,9 @@ dtor:       optvirtual '~' TK_NAME_VALUE '(' ')' optexceptions optabstract optfl
                  */
                 cd->classflags |= sectionFlags;
 
-                if ($7)
+                if ($6)
                 {
-                    if (!$1)
+                    if (!currentIsVirt)
                         yyerror("Abstract destructor must be virtual");
 
                     setIsAbstractClass(cd);
@@ -3599,7 +3603,7 @@ dtor:       optvirtual '~' TK_NAME_VALUE '(' ')' optexceptions optabstract optfl
                  * The class has a shadow if we have a virtual dtor or some
                  * dtor code.
                  */
-                if ($1 || $11 != NULL)
+                if (currentIsVirt || $10 != NULL)
                 {
                     if (currentSpec -> genc)
                         yyerror("Virtual destructor or %VirtualCatcherCode not allowed in a C module");
@@ -3607,11 +3611,13 @@ dtor:       optvirtual '~' TK_NAME_VALUE '(' ')' optexceptions optabstract optfl
                     setNeedsShadow(cd);
                 }
 
-                if (getReleaseGIL(&$8))
+                if (getReleaseGIL(&$7))
                     setIsReleaseGILDtor(cd);
-                else if (getHoldGIL(&$8))
+                else if (getHoldGIL(&$7))
                     setIsHoldGILDtor(cd);
             }
+
+            currentIsVirt = FALSE;
         }
     ;
 
@@ -3694,14 +3700,6 @@ optsig: {
         }
     ;
 
-optvirtual: {
-            $$ = FALSE;
-        }
-    |   TK_VIRTUAL {
-            $$ = TRUE;
-        }
-    ;
-
 function:   cpptype TK_NAME_VALUE '(' arglist ')' optconst optfinal optexceptions optabstract optflags optsig ';' optdocstring premethodcode methodcode virtualcatchercode virtualcallcode {
             if (notSkipping())
             {
@@ -3711,14 +3709,14 @@ function:   cpptype TK_NAME_VALUE '(' arglist ')' optconst optfinal optexception
 
                 newFunction(currentSpec, currentModule, currentScope(), NULL,
                         NULL, sectionFlags, currentIsStatic, currentIsSignal,
-                        currentIsSlot, currentOverIsVirt, $2, &$4, $6, $9,
-                        &$10, $15, $16, $17, $8, $11, $13, $7, $14);
+                        currentIsSlot, currentIsVirt, $2, &$4, $6, $9, &$10,
+                        $15, $16, $17, $8, $11, $13, $7, $14);
             }
 
             currentIsStatic = FALSE;
             currentIsSignal = FALSE;
             currentIsSlot = FALSE;
-            currentOverIsVirt = FALSE;
+            currentIsVirt = FALSE;
         }
     |   cpptype TK_OPERATOR '=' '(' cpptype ')' ';' {
             /*
@@ -3738,7 +3736,7 @@ function:   cpptype TK_NAME_VALUE '(' arglist ')' optconst optfinal optexception
             currentIsStatic = FALSE;
             currentIsSignal = FALSE;
             currentIsSlot = FALSE;
-            currentOverIsVirt = FALSE;
+            currentIsVirt = FALSE;
         }
     |   cpptype TK_OPERATOR operatorname '(' arglist ')' optconst optfinal optexceptions optabstract optflags optsig ';' premethodcode methodcode virtualcatchercode virtualcallcode {
             if (notSkipping())
@@ -3775,14 +3773,14 @@ function:   cpptype TK_NAME_VALUE '(' arglist ')' optconst optfinal optexception
 
                 newFunction(currentSpec, currentModule, cd, ns_scope, NULL,
                         sectionFlags, currentIsStatic, currentIsSignal,
-                        currentIsSlot, currentOverIsVirt, $3, &$5, $7, $10,
-                        &$11, $15, $16, $17, $9, $12, NULL, $8, $14);
+                        currentIsSlot, currentIsVirt, $3, &$5, $7, $10, &$11,
+                        $15, $16, $17, $9, $12, NULL, $8, $14);
             }
 
             currentIsStatic = FALSE;
             currentIsSignal = FALSE;
             currentIsSlot = FALSE;
-            currentOverIsVirt = FALSE;
+            currentIsVirt = FALSE;
         }
     |   TK_OPERATOR cpptype '(' arglist ')' optconst optfinal optexceptions optabstract optflags optsig ';' premethodcode methodcode virtualcatchercode virtualcallcode {
             if (notSkipping())
@@ -3838,8 +3836,8 @@ function:   cpptype TK_NAME_VALUE '(' arglist ')' optconst optfinal optexception
 
                     newFunction(currentSpec, currentModule, scope, NULL, NULL,
                             sectionFlags, currentIsStatic, currentIsSignal,
-                            currentIsSlot, currentOverIsVirt, sname, &$4, $6,
-                            $9, &$10, $14, $15, $16, $8, $11, NULL, $7, $13);
+                            currentIsSlot, currentIsVirt, sname, &$4, $6, $9,
+                            &$10, $14, $15, $16, $8, $11, NULL, $7, $13);
                 }
                 else
                 {
@@ -3861,7 +3859,7 @@ function:   cpptype TK_NAME_VALUE '(' arglist ')' optconst optfinal optexception
             currentIsStatic = FALSE;
             currentIsSignal = FALSE;
             currentIsSlot = FALSE;
-            currentOverIsVirt = FALSE;
+            currentIsVirt = FALSE;
         }
     ;
 
@@ -4245,7 +4243,7 @@ varmem:
     ;
 
 member:
-        TK_VIRTUAL {currentOverIsVirt = TRUE;} function
+        TK_VIRTUAL {currentIsVirt = TRUE;} function
     |   function
     ;
 
@@ -4762,7 +4760,7 @@ void parse(sipSpec *spec, FILE *fp, char *filename, int strict,
     excludedQualifiers = xfl;
     currentModule = NULL;
     currentMappedType = NULL;
-    currentOverIsVirt = FALSE;
+    currentIsVirt = FALSE;
     currentCtorIsExplicit = FALSE;
     currentIsStatic = FALSE;
     currentIsSignal = FALSE;
