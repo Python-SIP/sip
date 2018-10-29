@@ -364,7 +364,6 @@ static scopedNameDef *fullyQualifiedName(scopedNameDef *snd);
 %token          TK_QOBJECT
 %token          TK_EXCEPTION
 %token          TK_RAISECODE
-%token          TK_VIRTERRORCODE
 %token          TK_EXPLICIT
 %token          TK_TEMPLATE
 %token          TK_FINAL
