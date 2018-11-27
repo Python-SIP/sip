@@ -730,7 +730,6 @@ typedef enum {
     typing_node,
     class_node,
     enum_node,
-    brackets_node,
     other_node
 } typeHintNodeType;
 
