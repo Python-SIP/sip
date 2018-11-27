@@ -22,7 +22,7 @@
  *
  * The legacy integer conversions (ie. without support for overflow checking)
  * are flawed and inconsistent.  Large Python signed values were converted to
- * -1 whereas small values where truncated.  When converting function arguments
+ * -1 whereas small values were truncated.  When converting function arguments
  * all overlows were ignored, however when converting the results returned by
  * Python re-implementations then large Python values raised an exception
  * whereas small values were truncated.
