@@ -6974,7 +6974,7 @@ static PyObject *createScopedEnum(sipExportedModuleDef *client,
     /* Get the enum type if we haven't done so already. */
     if (enum_type == NULL)
     {
-        if ((enum_type = import_module_attr("enum", "Enum")) == NULL)
+        if ((enum_type = import_module_attr("enum", "IntEnum")) == NULL)
             goto ret_err;
     }
 
