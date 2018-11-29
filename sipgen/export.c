@@ -662,7 +662,11 @@ static void xmlOverload(sipSpec *pt, moduleDef *mod, classDef *scope,
         fprintf(fp, "\"");
     }
 
-    no_res = (od->pysig.result.atype == void_type && od->pysig.result.nrderefs == 0);
+    /* An empty type hint specifies a void return. */
+    if (od->pysig.result.typehint_out != NULL && od->pysig.result.typehint_out->raw_hint[0] == '\0')
+        no_res = TRUE;
+    else
+        no_res = (od->pysig.result.atype == void_type && od->pysig.result.nrderefs == 0);
 
     /* Handle the trivial case. */
     if (no_res && od->pysig.nrArgs == 0)
