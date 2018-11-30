@@ -1,7 +1,7 @@
 /*
  * The implementation of the Python object to C/C++ integer convertors.
  *
- * Copyright (c) 2017 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2018 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -237,6 +237,11 @@ unsigned PY_LONG_LONG sip_api_long_as_unsigned_long_long(PyObject *o)
 {
     unsigned PY_LONG_LONG value;
 
+    /*
+     * Note that this doesn't handle Python v2 int objects, but the old
+     * convertors didn't either.
+     */
+
     PyErr_Clear();
 
     if (overflow_checking)
@@ -252,10 +257,6 @@ unsigned PY_LONG_LONG sip_api_long_as_unsigned_long_long(PyObject *o)
     }
     else
     {
-        /*
-         * Note that this doesn't handle Python v2 int objects, but the old
-         * convertors didn't either.
-         */
         value = PyLong_AsUnsignedLongLongMask(o);
     }
 

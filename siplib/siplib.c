@@ -692,6 +692,8 @@ typedef struct _sipParseFailure {
     PyObject *detail_obj;           /* The detail if a Python object. */
     int arg_nr;                     /* The wrong positional argument. */
     const char *arg_name;           /* The wrong keyword argument. */
+    int overflow_arg_nr;            /* The overflowed positional argument. */
+    const char *overflow_arg_name;  /* The overflowed keyword argument. */
 } sipParseFailure;
 
 
@@ -5400,24 +5402,24 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
             exc_str = "invalid exception text";
 #endif
 
-        if (failure.arg_nr >= 0)
+        if (failure.overflow_arg_nr >= 0)
         {
 #if PY_MAJOR_VERSION >= 3
             PyErr_Format(PyExc_OverflowError, "argument %d overflowed: %S",
-                    failure.arg_nr, failure.detail_obj);
+                    failure.overflow_arg_nr, failure.detail_obj);
 #else
             PyErr_Format(PyExc_OverflowError, "argument %d overflowed: %s",
-                    failure.arg_nr, exc_str);
+                    failure.overflow_arg_nr, exc_str);
 #endif
         }
         else
         {
 #if PY_MAJOR_VERSION >= 3
             PyErr_Format(PyExc_OverflowError, "argument '%s' overflowed: %S",
-                    failure.arg_name, failure.detail_obj);
+                    failure.overflow_arg_name, failure.detail_obj);
 #else
             PyErr_Format(PyExc_OverflowError, "argument '%s' overflowed: %s",
-                    failure.arg_name, exc_str);
+                    failure.overflow_arg_name, exc_str);
 #endif
         }
 
@@ -5466,6 +5468,8 @@ static void handle_failed_int_conversion(sipParseFailure *pf, PyObject *arg)
         Py_XDECREF(pf->detail_obj);
 
         pf->reason = Overflow;
+        pf->overflow_arg_nr = pf->arg_nr;
+        pf->overflow_arg_name = pf->arg_name;
         pf->detail_obj = xvalue;
         Py_INCREF(xvalue);
     }
@@ -5476,9 +5480,7 @@ static void handle_failed_int_conversion(sipParseFailure *pf, PyObject *arg)
         Py_INCREF(arg);
     }
 
-    Py_XDECREF(xtype);
-    Py_XDECREF(xvalue);
-    Py_XDECREF(xtb);
+    PyErr_Restore(xtype, xvalue, xtb);
 }
 
 
