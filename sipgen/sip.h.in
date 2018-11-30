@@ -351,6 +351,7 @@
 #define OVER_NO_ERROR_HANDLER   0x10000000  /* It doesn't use a virtual error handler. */
 #define OVER_ABORT_ON_EXC   0x20000000  /* It aborts on an exception. */
 #define OVER_IS_FINAL       0x40000000  /* It is a final method. */
+#define OVER_IS_REFLECTED   0x80000000  /* It is a reflected slot. */
 
 #define isPublic(o)         ((o)->overflags & SECT_IS_PUBLIC)
 #define setIsPublic(o)      ((o)->overflags |= SECT_IS_PUBLIC)
@@ -413,6 +414,8 @@
 #define setAbortOnException(o)  ((o)->overflags |= OVER_ABORT_ON_EXC)
 #define isFinal(o)          ((o)->overflags & OVER_IS_FINAL)
 #define setIsFinal(o)       ((o)->overflags |= OVER_IS_FINAL)
+#define isReflected(o)      ((o)->overflags & OVER_IS_REFLECTED)
+#define setIsReflected(o)   ((o)->overflags |= OVER_IS_REFLECTED)
 
 
 /* Handle variable flags. */

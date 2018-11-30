@@ -66,6 +66,7 @@ static void restPyEnumMember(enumMemberDef *emd, FILE *fp);
 static void restPyAttribute(moduleDef *mod, classDef *scope, nameDef *name,
         FILE *fp);
 static int restValue(sipSpec *pt, valueDef *value, FILE *fp);
+static const char *reflectedSlot(slotType st);
 
 
 /*
@@ -630,11 +631,24 @@ static void xmlOverload(sipSpec *pt, moduleDef *mod, classDef *scope,
         memberDef *md, overDef *od, classDef *xtnds, int stat, int indent,
         FILE *fp)
 {
+    const char *name;
     int a, no_res;
 
     xmlIndent(indent++, fp);
     fprintf(fp, "<Function name=\"");
-    prScopedPythonName(fp, scope, md->pyname->text);
+
+    if (isReflected(od))
+    {
+        if ((name = reflectedSlot(md->slot)) == NULL)
+            name = md->pyname->text;
+    }
+    else
+    {
+        name = md->pyname->text;
+    }
+
+    prScopedPythonName(fp, scope, name);
+
     fprintf(fp, "\"");
 
     if (isAbstract(od))
@@ -685,9 +699,13 @@ static void xmlOverload(sipSpec *pt, moduleDef *mod, classDef *scope,
     {
         argDef *ad = &od->pysig.args[a];
 
-        /* Ignore the first argument of number slots. */
-        if (isNumberSlot(md) && a == 0 && od->pysig.nrArgs == 2)
-            continue;
+        /*
+         * Ignore the first argument of non-reflected number slots and the
+         * second argument of reflected number slots.
+         */
+        if (isNumberSlot(md) && od->pysig.nrArgs == 2)
+            if ((a == 0 && !isReflected(od)) || (a == 1 && isReflected(od)))
+                continue;
 
         if (isInArg(ad))
             xmlArgument(pt, mod, ad, FALSE, od->kwargs, FALSE, indent, fp);
@@ -1263,4 +1281,53 @@ static int restValue(sipSpec *pt, valueDef *value, FILE *fp)
     freeScopedName(scope);
 
     return FALSE;
+}
+
+
+/*
+ * Return the name of the reflected version of a slot or NULL if it doesn't
+ * have one.
+ */
+static const char *reflectedSlot(slotType st)
+{
+    switch (st)
+    {
+    case add_slot:
+        return "__radd__";
+
+    case sub_slot:
+        return "__rsub__";
+
+    case mul_slot:
+        return "__rmul__";
+
+    case matmul_slot:
+        return "__rmatmul__";
+
+    case truediv_slot:
+        return "__rtruediv__";
+
+    case floordiv_slot:
+        return "__rfloordiv__";
+
+    case mod_slot:
+        return "__rmod__";
+
+    case lshift_slot:
+        return "__rlshift__";
+
+    case rshift_slot:
+        return "__rrshift__";
+
+    case and_slot:
+        return "__rand__";
+
+    case or_slot:
+        return "__ror__";
+
+    case xor_slot:
+        return "__rxor__";
+    }
+
+    return NULL;
 }

@@ -960,6 +960,9 @@ static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd)
         }
 
         /* Move the overload to the end of the destination list. */
+        if (second)
+            setIsReflected(od);
+
         setIsPublic(od);
         setIsGlobal(od);
         od->common = md;
