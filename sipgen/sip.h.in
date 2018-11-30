@@ -273,7 +273,7 @@
 #define MEMBR_NO_ARG_PARSER 0x0004      /* Don't generate an argument parser. */
 #define MEMBR_NOT_VERSIONED 0x0008      /* There is an unversioned overload. */
 #define MEMBR_KEYWORD_ARGS  0x0010      /* It allows keyword arguments. */
-#define MEMBR_HAS_PROTECTED 0x0011      /* It has a protected overload. */
+#define MEMBR_HAS_PROTECTED 0x0020      /* It has a protected overload. */
 
 #define isNumeric(m)        ((m)->memberflags & MEMBR_NUMERIC)
 #define setIsNumeric(m)     ((m)->memberflags |= MEMBR_NUMERIC)
