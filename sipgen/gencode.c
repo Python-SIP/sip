@@ -36,11 +36,6 @@
 #define moduleSupportsQt(pt, mod)   ((pt)->qobject_cd != NULL && (pt)->qobject_cd->iff->module == (mod))
 
 
-/* Control how scopes should be stripped. */
-#define STRIP_NONE      0       /* This must be 0. */
-#define STRIP_GLOBAL    (-1)    /* This must be -ve. */
-
-
 /* Control what generateCalledArgs() actually generates. */
 typedef enum {
     Declaration,
@@ -136,7 +131,7 @@ static void generateCalledArgs(moduleDef *, ifaceFileDef *, signatureDef *,
 static void generateVariable(moduleDef *, ifaceFileDef *, argDef *, int,
         FILE *);
 static void generateNamedValueType(ifaceFileDef *, argDef *, char *, FILE *);
-static void generateBaseType(ifaceFileDef *, argDef *, int, int, FILE *);
+static void generateOverloadDecl(FILE *fp, ifaceFileDef *scope, overDef *od);
 static void generateNamedBaseType(ifaceFileDef *, argDef *, const char *, int,
         int, FILE *);
 static void generateTupleBuilder(moduleDef *, signatureDef *, FILE *);
@@ -257,8 +252,6 @@ static void generateParseResultExtraArgs(moduleDef *mod, argDef *ad, int argnr,
 static char *makePartName(const char *codeDir, const char *mname, int part,
         const char *srcSuffix);
 static void fakeProtectedArgs(signatureDef *sd);
-static void normaliseArgs(signatureDef *);
-static void restoreArgs(signatureDef *);
 static const char *slotName(slotType st);
 static void ints_intro(classDef *cd, FILE *fp);
 static const char *argName(const char *name, codeBlockList *cbl);
@@ -9261,7 +9254,7 @@ static void generateShadowClassDeclaration(sipSpec *pt,classDef *cd,FILE *fp)
         prcode(fp,
 "    ");
  
-        prOverloadDecl(fp, cd->iff, od, FALSE);
+        generateOverloadDecl(fp, cd->iff, od);
         prcode(fp, ";\n");
     }
 
@@ -9296,7 +9289,7 @@ static void generateShadowClassDeclaration(sipSpec *pt,classDef *cd,FILE *fp)
 /*
  * Generate the C++ declaration for an overload.
  */
-void prOverloadDecl(FILE *fp, ifaceFileDef *scope, overDef *od, int defval)
+static void generateOverloadDecl(FILE *fp, ifaceFileDef *scope, overDef *od)
 {
     int a;
 
@@ -9314,12 +9307,6 @@ void prOverloadDecl(FILE *fp, ifaceFileDef *scope, overDef *od, int defval)
             prcode(fp, ",");
 
         generateBaseType(scope, ad, TRUE, STRIP_NONE, fp);
-
-        if (defval && ad->defval != NULL)
-        {
-            prcode(fp, " = ");
-            generateExpression(ad->defval, FALSE, fp);
-        }
     }
  
     prcode(fp, ")%s SIP_OVERRIDE%X", (isConst(od) ? " const" : ""), od->exceptions);
@@ -9475,8 +9462,8 @@ static void generateNamedValueType(ifaceFileDef *scope, argDef *ad,
 /*
  * Generate a C++ type.
  */
-static void generateBaseType(ifaceFileDef *scope, argDef *ad,
-        int use_typename, int strip, FILE *fp)
+void generateBaseType(ifaceFileDef *scope, argDef *ad, int use_typename,
+        int strip, FILE *fp)
 {
     generateNamedBaseType(scope, ad, "", use_typename, strip, fp);
 }
@@ -14896,7 +14883,7 @@ static void fakeProtectedArgs(signatureDef *sd)
  * Reset and save any argument flags so that the signature will be rendered
  * exactly as defined in C++.
  */
-static void normaliseArgs(signatureDef *sd)
+void normaliseArgs(signatureDef *sd)
 {
     int a;
     argDef *ad = sd->args;
@@ -14922,7 +14909,7 @@ static void normaliseArgs(signatureDef *sd)
 /*
  * Restore any argument flags modified by normaliseArgs().
  */
-static void restoreArgs(signatureDef *sd)
+void restoreArgs(signatureDef *sd)
 {
     int a;
     argDef *ad = sd->args;

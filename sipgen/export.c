@@ -52,7 +52,7 @@ static void xmlCtor(sipSpec *pt, moduleDef *mod, classDef *scope, ctorDef *ct,
 static void xmlOverload(sipSpec *pt, moduleDef *mod, classDef *scope,
         memberDef *md, overDef *od, classDef *xtnds, int stat, int indent,
         FILE *fp);
-static void xmlCppSignature(FILE *fp, overDef *od);
+static void xmlCppSignature(FILE *fp, signatureDef *sd, int is_const);
 static void xmlArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int out,
         KwArgs kwargs, int res_xfer, int indent, FILE *fp);
 static void xmlType(sipSpec *pt, moduleDef *mod, argDef *ad, int out,
@@ -67,6 +67,7 @@ static void restPyAttribute(moduleDef *mod, classDef *scope, nameDef *name,
         FILE *fp);
 static int restValue(sipSpec *pt, valueDef *value, FILE *fp);
 static const char *reflectedSlot(slotType st);
+static int hasCppSignature(signatureDef *sd);
 
 
 /*
@@ -533,6 +534,13 @@ static void xmlCtor(sipSpec *pt, moduleDef *mod, classDef *scope, ctorDef *ct,
     prScopedPythonName(fp, scope, "__init__");
     fprintf(fp, "\"");
 
+    if (hasCppSignature(ct->cppsig))
+    {
+        fprintf(fp, " cppsig=\"");
+        xmlCppSignature(fp, ct->cppsig, FALSE);
+        fprintf(fp, "\"");
+    }
+
     /* Handle the trivial case. */
     if (ct->pysig.nrArgs == 0)
     {
@@ -584,9 +592,12 @@ static void xmlFunction(sipSpec *pt, moduleDef *mod, classDef *scope,
             xmlIndent(indent++, fp);
             fprintf(fp, "<Signal name=\"");
             prScopedPythonName(fp, scope, md->pyname->text);
-            /* TODO: add the C++ signature. */
-            /* fprintf(fp, "\" sig=\""); */
-            /* xmlCppSignature(fp, od); */
+
+            if (hasCppSignature(od->cppsig))
+            {
+                fprintf(fp, "\" cppsig=\"");
+                xmlCppSignature(fp, od->cppsig, FALSE);
+            }
 
             /* Handle the trivial case. */
             if (od->pysig.nrArgs == 0)
@@ -651,6 +662,13 @@ static void xmlOverload(sipSpec *pt, moduleDef *mod, classDef *scope,
 
     fprintf(fp, "\"");
 
+    if (hasCppSignature(od->cppsig))
+    {
+        fprintf(fp, " cppsig=\"");
+        xmlCppSignature(fp, od->cppsig, isConst(od));
+        fprintf(fp, "\"");
+    }
+
     if (isAbstract(od))
         fprintf(fp, " abstract=\"1\"");
 
@@ -658,11 +676,7 @@ static void xmlOverload(sipSpec *pt, moduleDef *mod, classDef *scope,
         fprintf(fp, " static=\"1\"");
 
     if (isSlot(od))
-    {
-        fprintf(fp, " slot=\"");
-        xmlCppSignature(fp, od);
-        fprintf(fp, "\"");
-    }
+        fprintf(fp, " slot=\"1\"");
 
     if (isVirtual(od))
     {
@@ -720,12 +734,68 @@ static void xmlOverload(sipSpec *pt, moduleDef *mod, classDef *scope,
 
 
 /*
+ * Return TRUE if there is a C/C++ signature.
+ */
+static int hasCppSignature(signatureDef *sd)
+{
+    int a;
+
+    if (sd == NULL)
+        return FALSE;
+
+    /*
+     * See if there are any arguments that could only have come from
+     * handwritten code.
+     */
+    for (a = 0; a < sd->nrArgs; ++a)
+    {
+        switch (sd->args[a].atype)
+        {
+        case pyobject_type:
+        case pytuple_type:
+        case pylist_type:
+        case pydict_type:
+        case pycallable_type:
+        case pyslice_type:
+        case pytype_type:
+        case pybuffer_type:
+        case capsule_type:
+            return FALSE;
+
+        default:
+            break;
+        }
+    }
+
+    return TRUE;
+}
+
+
+/*
  * Generate the XML for a C++ signature.
  */
-static void xmlCppSignature(FILE *fp, overDef *od)
+static void xmlCppSignature(FILE *fp, signatureDef *sd, int is_const)
 {
+    int a;
+
     prcode(fp, "%M");
-    prOverloadDecl(fp, NULL, od, TRUE);
+    normaliseArgs(sd);
+
+    prcode(fp, "(");
+
+    for (a = 0; a < sd->nrArgs; ++a)
+    {
+        argDef *ad = &sd->args[a];
+
+        if (a > 0)
+            prcode(fp, ",");
+
+        generateBaseType(NULL, ad, TRUE, STRIP_GLOBAL, fp);
+    }
+
+    prcode(fp, ")%s", (is_const ? " const" : ""));
+
+    restoreArgs(sd);
     prcode(fp, "%M");
 }
 
@@ -1327,6 +1397,9 @@ static const char *reflectedSlot(slotType st)
 
     case xor_slot:
         return "__rxor__";
+
+    default:
+        break;
     }
 
     return NULL;
