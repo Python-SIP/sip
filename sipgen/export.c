@@ -59,6 +59,7 @@ static void xmlType(sipSpec *pt, moduleDef *mod, argDef *ad, int out,
         KwArgs kwargs, FILE *fp);
 static void xmlIndent(int indent, FILE *fp);
 static void xmlRealName(scopedNameDef *fqcname, FILE *fp);
+static void xmlRealOverloadName(classDef *scope, overDef *od, FILE *fp);
 static const char *pyType(sipSpec *pt, argDef *ad, classDef **scope);
 static void exportPythonSignature(sipSpec *pt, FILE *fp, signatureDef *sd,
         int names, int defaults, int in_str, int is_signal);
@@ -328,6 +329,33 @@ void generateXML(sipSpec *pt, moduleDef *mod, const char *xmlFile)
 
 
 /*
+ * Generate a 'realname' attribute containing a fully qualified C/C++ name of
+ * an overload.
+ */
+static void xmlRealOverloadName(classDef *scope, overDef *od, FILE *fp)
+{
+    const char *sep = "";
+
+    fprintf(fp, " realname=\"");
+
+    if (scope != NULL)
+    {
+        scopedNameDef *snd;
+
+        for (snd = removeGlobalScope(classFQCName(scope)); snd != NULL; snd = snd->next)
+        {
+            fprintf(fp, "%s%s", sep, snd->name);
+            sep = "::";
+        }
+    }
+
+    fprintf(fp, "%s%s", sep, od->cppname);
+
+    fprintf(fp, "\"");
+}
+
+
+/*
  * Generate a 'realname' attribute containing a fully qualified C/C++ name.
  */
 static void xmlRealName(scopedNameDef *fqcname, FILE *fp)
@@ -481,7 +509,12 @@ static void xmlEnums(sipSpec *pt, moduleDef *mod, classDef *scope, int indent,
                 xmlIndent(indent, fp);
                 fprintf(fp, "<Member name=\"");
                 prScopedPythonName(fp, ed->ecd, emd->pyname->text);
-                fprintf(fp, "\" const=\"1\" typename=\"int\"/>\n");
+                fprintf(fp, "\"");
+
+                if (strcmp(emd->pyname->text, emd->cname) != 0)
+                    fprintf(fp, " realname=\"%s\"", emd->cname);
+
+                fprintf(fp, " const=\"1\" typename=\"int\"/>\n");
             }
         }
     }
@@ -508,6 +541,8 @@ static void xmlVars(sipSpec *pt, moduleDef *mod, classDef *scope, int indent,
         fprintf(fp, "<Member name=\"");
         prScopedPythonName(fp, vd->ecd, vd->pyname->text);
         fprintf(fp, "\"");
+
+        xmlRealName(vd->fqcname, fp);
 
         if (isConstArg(&vd->type) || scope == NULL)
             fprintf(fp, " const=\"1\"");
@@ -592,21 +627,25 @@ static void xmlFunction(sipSpec *pt, moduleDef *mod, classDef *scope,
             xmlIndent(indent++, fp);
             fprintf(fp, "<Signal name=\"");
             prScopedPythonName(fp, scope, md->pyname->text);
+            fprintf(fp, "\"");
+
+            xmlRealOverloadName(scope, od, fp);
 
             if (hasCppSignature(od->cppsig))
             {
-                fprintf(fp, "\" cppsig=\"");
+                fprintf(fp, " cppsig=\"");
                 xmlCppSignature(fp, od->cppsig, FALSE);
+                fprintf(fp, "\"");
             }
 
             /* Handle the trivial case. */
             if (od->pysig.nrArgs == 0)
             {
-                fprintf(fp, "\"/>\n");
+                fprintf(fp, "/>\n");
                 continue;
             }
 
-            fprintf(fp, "\">\n");
+            fprintf(fp, ">\n");
 
             for (a = 0; a < od->pysig.nrArgs; ++a)
             {
@@ -661,6 +700,8 @@ static void xmlOverload(sipSpec *pt, moduleDef *mod, classDef *scope,
     prScopedPythonName(fp, scope, name);
 
     fprintf(fp, "\"");
+
+    xmlRealOverloadName(scope, od, fp);
 
     if (hasCppSignature(od->cppsig))
     {
