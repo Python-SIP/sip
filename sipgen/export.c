@@ -701,7 +701,8 @@ static void xmlOverload(sipSpec *pt, moduleDef *mod, classDef *scope,
 
     fprintf(fp, "\"");
 
-    xmlRealOverloadName(scope, od, fp);
+    if (md->slot == no_slot)
+        xmlRealOverloadName(scope, od, fp);
 
     if (hasCppSignature(od->cppsig))
     {
