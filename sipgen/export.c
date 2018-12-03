@@ -59,7 +59,7 @@ static void xmlType(sipSpec *pt, moduleDef *mod, argDef *ad, int out,
         KwArgs kwargs, FILE *fp);
 static void xmlIndent(int indent, FILE *fp);
 static void xmlRealName(scopedNameDef *fqcname, FILE *fp);
-static void xmlRealOverloadName(classDef *scope, overDef *od, FILE *fp);
+static void xmlRealScopedName(classDef *scope, const char *cppname, FILE *fp);
 static const char *pyType(sipSpec *pt, argDef *ad, classDef **scope);
 static void exportPythonSignature(sipSpec *pt, FILE *fp, signatureDef *sd,
         int names, int defaults, int in_str, int is_signal);
@@ -330,9 +330,9 @@ void generateXML(sipSpec *pt, moduleDef *mod, const char *xmlFile)
 
 /*
  * Generate a 'realname' attribute containing a fully qualified C/C++ name of
- * an overload.
+ * an object.
  */
-static void xmlRealOverloadName(classDef *scope, overDef *od, FILE *fp)
+static void xmlRealScopedName(classDef *scope, const char *cppname, FILE *fp)
 {
     const char *sep = "";
 
@@ -349,7 +349,7 @@ static void xmlRealOverloadName(classDef *scope, overDef *od, FILE *fp)
         }
     }
 
-    fprintf(fp, "%s%s", sep, od->cppname);
+    fprintf(fp, "%s%s", sep, cppname);
 
     fprintf(fp, "\"");
 }
@@ -511,8 +511,7 @@ static void xmlEnums(sipSpec *pt, moduleDef *mod, classDef *scope, int indent,
                 prScopedPythonName(fp, ed->ecd, emd->pyname->text);
                 fprintf(fp, "\"");
 
-                if (strcmp(emd->pyname->text, emd->cname) != 0)
-                    fprintf(fp, " realname=\"%s\"", emd->cname);
+                xmlRealScopedName(scope, emd->cname, fp);
 
                 fprintf(fp, " const=\"1\" typename=\"int\"/>\n");
             }
@@ -629,7 +628,7 @@ static void xmlFunction(sipSpec *pt, moduleDef *mod, classDef *scope,
             prScopedPythonName(fp, scope, md->pyname->text);
             fprintf(fp, "\"");
 
-            xmlRealOverloadName(scope, od, fp);
+            xmlRealScopedName(scope, od->cppname, fp);
 
             if (hasCppSignature(od->cppsig))
             {
@@ -702,7 +701,7 @@ static void xmlOverload(sipSpec *pt, moduleDef *mod, classDef *scope,
     fprintf(fp, "\"");
 
     if (md->slot == no_slot)
-        xmlRealOverloadName(scope, od, fp);
+        xmlRealScopedName(scope, od->cppname, fp);
 
     if (hasCppSignature(od->cppsig))
     {
