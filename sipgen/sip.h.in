@@ -703,7 +703,8 @@ typedef enum {
     numeric_value,
     real_value,
     scoped_value,
-    fcall_value
+    fcall_value,
+    empty_value
 } valueType;
 
 

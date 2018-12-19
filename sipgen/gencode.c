@@ -550,6 +550,10 @@ void generateExpression(valueDef *vd, int in_str, FILE *fp)
         case fcall_value:
             generateSimpleFunctionCall(vd->u.fcd, in_str, fp);
             break;
+
+        case empty_value:
+            prcode(fp, "{}");
+            break;
         }
  
         if (vd->vbinop != '\0')

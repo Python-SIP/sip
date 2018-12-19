@@ -2888,6 +2888,9 @@ simplevalue:    scopedname {
             $$.vtype = fcall_value;
             $$.u.fcd = fcd;
         }
+    |   '{' '}' {
+            $$.vtype = empty_value;
+        }
     |   TK_REAL_VALUE {
             $$.vtype = real_value;
             $$.u.vreal = $1;
