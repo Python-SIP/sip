@@ -1,4 +1,4 @@
-Metadata-Version: 1.1
+Metadata-Version: 1.2
 Name: PyQt5_sip
 Version: @RB_VERSION@
 Summary: Python extension module support for PyQt5
