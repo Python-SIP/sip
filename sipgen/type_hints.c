@@ -1060,6 +1060,7 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, int sec,
     case int_type:
     case cint_type:
     case ssize_type:
+    case size_type:
         type_name = "int";
         break;
 

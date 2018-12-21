@@ -9581,6 +9581,10 @@ static void generateNamedBaseType(ifaceFileDef *scope, argDef *ad,
             prcode(fp, "SIP_SSIZE_T");
             break;
 
+        case size_type:
+            prcode(fp, "size_t");
+            break;
+
         case ulong_type:
             prcode(fp, "unsigned long");
             break;

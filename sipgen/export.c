@@ -1111,6 +1111,7 @@ static const char *pyType(sipSpec *pt, argDef *ad, classDef **scope)
     case int_type:
     case cint_type:
     case ssize_type:
+    case size_type:
         type_name = "int";
         break;
 

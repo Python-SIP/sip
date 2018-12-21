@@ -692,7 +692,8 @@ typedef enum {
     sbyte_type,
     ubyte_type,
     capsule_type,
-    pybuffer_type
+    pybuffer_type,
+    size_type
 } argType;
 
 

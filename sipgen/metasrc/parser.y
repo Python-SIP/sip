@@ -347,6 +347,7 @@ static scopedNameDef *fullyQualifiedName(scopedNameDef *snd);
 %token          TK_SIPSLOTCON
 %token          TK_SIPSLOTDIS
 %token          TK_SIPSSIZET
+%token          TK_SIZET
 %token <number> TK_NUMBER_VALUE
 %token <real>   TK_REAL_VALUE
 %token          TK_TYPEDEF
@@ -4669,6 +4670,10 @@ basetype:   scopedname {
     |   TK_SIPSSIZET {
             memset(&$$, 0, sizeof (argDef));
             $$.atype = ssize_type;
+        }
+    |   TK_SIZET {
+            memset(&$$, 0, sizeof (argDef));
+            $$.atype = size_type;
         }
     |   TK_ELLIPSIS {
             memset(&$$, 0, sizeof (argDef));
