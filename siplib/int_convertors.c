@@ -203,6 +203,15 @@ unsigned sip_api_long_as_unsigned_int(PyObject *o)
 
 
 /*
+ * Convert a Python object to a C size_t.
+ */
+size_t sip_api_long_as_size_t(PyObject *o)
+{
+    return (size_t)long_as_unsigned_long(o, SIZE_MAX);
+}
+
+
+/*
  * Convert a Python object to a C long.
  */
 long sip_api_long_as_long(PyObject *o)

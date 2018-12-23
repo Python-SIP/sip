@@ -833,6 +833,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipLong_AsUnsignedLong      sipAPI_%s->api_long_as_unsigned_long\n"
 "#define sipLong_AsLongLong          sipAPI_%s->api_long_as_long_long\n"
 "#define sipLong_AsUnsignedLongLong  sipAPI_%s->api_long_as_unsigned_long_long\n"
+"#define sipLong_AsSizeT             sipAPI_%s->api_long_as_size_t\n"
 "\n"
 "/* These are deprecated. */\n"
 "#define sipMapStringToClass         sipAPI_%s->api_map_string_to_class\n"
@@ -857,6 +858,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipConvertFromMappedType    sipConvertFromType\n"
 "#define sipConvertFromNamedEnum(v, pt)  sipConvertFromEnum((v), ((sipEnumTypeObject *)(pt))->type)\n"
 "#define sipConvertFromNewInstance(p, wt, t) sipConvertFromNewType((p), (wt)->wt_td, (t))\n"
+        ,mname
         ,mname
         ,mname
         ,mname
@@ -3938,10 +3940,10 @@ static int generateVariableType(sipSpec *pt, moduleDef *mod, classDef *cd,
         argType vtype = vd->type.atype;
 
         /*
-         * We treat unsigned as unsigned long as we don't (currently anyway)
-         * generate a table for unsigned.
+         * We treat unsigned and size_t as unsigned long as we don't (currently
+         * anyway) generate a separate table for them.
          */
-        if (vtype == uint_type && atype == ulong_type)
+        if ((vtype == uint_type || vtype == size_type) && atype == ulong_type)
             vtype = ulong_type;
 
         if (pyScope(vd->ecd) != cd || vd->module != mod)
@@ -5253,6 +5255,7 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
 
     case uint_type:
     case ulong_type:
+    case size_type:
         prcode(fp,
 "    return PyLong_FromUnsignedLong(sipVal);\n"
             );
@@ -5701,6 +5704,10 @@ static int generateObjToCppConversion(argDef *ad,FILE *fp)
 
     case uint_type:
         rhs = "sipLong_AsUnsignedInt(sipPy)";
+        break;
+
+    case size_type:
+        rhs = "sipLong_AsSizeT(sipPy)";
         break;
 
     case int_type:
@@ -7781,7 +7788,7 @@ static void generateCallDefaultCtor(ctorDef *ct, FILE *fp)
             prcode(fp, "0.0F");
         else if (atype == double_type || atype == cdouble_type)
             prcode(fp, "0.0");
-        else if (atype == uint_type)
+        else if (atype == uint_type || atype == size_type)
             prcode(fp, "0U");
         else if (atype == long_type || atype == longlong_type)
             prcode(fp, "0L");
@@ -8467,6 +8474,9 @@ static const char *getParseResultFormat(argDef *ad, int res_isref, int xfervh)
     case uint_type:
         return "u";
 
+    case size_type:
+        return "=";
+
     case long_type:
         return "l";
 
@@ -8597,6 +8607,14 @@ static void generateTupleBuilder(moduleDef *mod, signatureDef *sd,FILE *fp)
                 arraylenarg = a;
             else
                 fmt = "i";
+
+            break;
+
+        case size_type:
+            if (isArraySize(ad))
+                arraylenarg = a;
+            else
+                fmt = "=";
 
             break;
 
@@ -12336,6 +12354,7 @@ static void generateHandleResult(moduleDef *mod, overDef *od, int isNew,
 
     case uint_type:
     case ulong_type:
+    case size_type:
         prcode(fp,
 "            %s PyLong_FromUnsignedLong(%s);\n"
             , prefix, vname);
@@ -12512,6 +12531,9 @@ static const char *getBuildResultFormat(argDef *ad)
 
     case uint_type:
         return "u";
+
+    case size_type:
+        return "=";
 
     case long_type:
         return "l";
@@ -13665,6 +13687,12 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
         case uint_type:
             if (!isArraySize(ad))
                 fmt = "u";
+
+            break;
+
+        case size_type:
+            if (!isArraySize(ad))
+                fmt = "=";
 
             break;
 

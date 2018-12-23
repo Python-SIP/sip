@@ -647,6 +647,7 @@ static const sipAPIDef sip_api = {
      * The following are part of the public API.
      */
     sip_api_convert_from_slice_object,
+    sip_api_long_as_size_t,
 };
 
 
@@ -2652,6 +2653,10 @@ static PyObject *buildObject(PyObject *obj, const char *fmt, va_list va)
             el = PyLong_FromUnsignedLong(va_arg(va, unsigned));
             break;
 
+        case '=':
+            el = PyLong_FromUnsignedLong(va_arg(va, size_t));
+            break;
+
         case 'B':
             {
                 /* This is deprecated. */
@@ -3151,6 +3156,19 @@ static int parseResult(PyObject *method, PyObject *res,
                 {
                     unsigned *p = va_arg(va, unsigned *);
                     unsigned v = sip_api_long_as_unsigned_int(arg);
+
+                    if (PyErr_Occurred())
+                        invalid = TRUE;
+                    else if (p != NULL)
+                        *p = v;
+                }
+
+                break;
+
+            case '=':
+                {
+                    size_t *p = va_arg(va, size_t *);
+                    size_t v = sip_api_long_as_size_t(arg);
 
                     if (PyErr_Occurred())
                         invalid = TRUE;
@@ -4967,6 +4985,25 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 if (arg != NULL)
                 {
                     unsigned v = sip_api_long_as_unsigned_int(arg);
+
+                    if (PyErr_Occurred())
+                        handle_failed_int_conversion(&failure, arg);
+                    else
+                        *p = v;
+                }
+
+                break;
+            }
+
+        case '=':
+            {
+                /* size_t integer. */
+
+                size_t *p = va_arg(va, size_t *);
+
+                if (arg != NULL)
+                {
+                    size_t v = sip_api_long_as_size_t(arg);
 
                     if (PyErr_Occurred())
                         handle_failed_int_conversion(&failure, arg);

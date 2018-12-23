@@ -1693,6 +1693,19 @@ specification files.
         the converted C/C++ value.
 
 
+.. c:function:: size_t sipLong_AsSizeT(PyObject *obj)
+
+    .. versionadded:: 4.19.14
+
+    This converts a Python object to a C/C++ size_t.  If the value is too large
+    then an exception is raised if overflow checking is enabled.
+
+    :param obj:
+        the Python object.
+    :return:
+        the converted C/C++ value.
+
+
 .. c:function:: long sipLong_AsLong(PyObject *obj)
 
     .. versionadded:: 4.19.4

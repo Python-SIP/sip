@@ -68,6 +68,8 @@ extern "C" {
  *
  * History:
  *
+ * 12.6 Added sip_api_long_as_size_t() to the public API.
+ *
  * 12.5 Replaced the sipConvertFromSliceObject() macro with
  *      sip_api_convert_from_slice_object() in the public API.
  *
@@ -268,7 +270,7 @@ extern "C" {
  * 0.0  Original version.
  */
 #define SIP_API_MAJOR_NR    12
-#define SIP_API_MINOR_NR    5
+#define SIP_API_MINOR_NR    6
 
 
 /*
@@ -1934,6 +1936,7 @@ typedef struct _sipAPIDef {
     int (*api_convert_from_slice_object)(PyObject *slice, SIP_SSIZE_T length,
             SIP_SSIZE_T *start, SIP_SSIZE_T *stop, SIP_SSIZE_T *step,
             SIP_SSIZE_T *slicelength);
+    size_t (*api_long_as_size_t)(PyObject *o);
 } sipAPIDef;
 
 
