@@ -2,6 +2,7 @@ v4.19.14 ??? January 2019
   - Added SIP_NULLPTR to the public API.
   - Added support for size_t.
   - Added sipLong_AsSizeT() to the C API.
+  - Added the '=' format characters to sipBuildResult() and sipParseResult().
   - Bug fixes.
 
 v4.19.13 1st October 2018

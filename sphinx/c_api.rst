@@ -396,6 +396,11 @@ specification files.
 
         Convert a C/C++ ``void *`` to a Python named capsule object.
 
+    ``=`` (long) [size_t]
+        .. versionadded:: 4.19.14
+
+        Convert a C/C++ ``size_t`` to a Python long.
+
 
 .. c:function:: PyObject *sipCallMethod(int *iserr, PyObject *method, const char *format, ...)
 
@@ -2098,6 +2103,11 @@ specification files.
         A Python object is checked to see if it implements the buffer protocol
         and then returned without any conversions.  The reference count is
         incremented.  The Python object may be ``Py_None``.
+
+    ``=`` (long) [size_t \*]
+        .. versionadded:: 4.19.14
+
+        Convert a Python long to a C/C++ ``size_t``.
 
 
 .. c:function:: PyObject *sipPyTypeDict(const PyTypeObject *py_type)

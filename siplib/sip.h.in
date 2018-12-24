@@ -69,6 +69,8 @@ extern "C" {
  * History:
  *
  * 12.6 Added sip_api_long_as_size_t() to the public API.
+ *      Added the '=' format character to sip_api_build_result().
+ *      Added the '=' format character to sip_api_parse_result_ex().
  *
  * 12.5 Replaced the sipConvertFromSliceObject() macro with
  *      sip_api_convert_from_slice_object() in the public API.
