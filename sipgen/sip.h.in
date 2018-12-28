@@ -1464,8 +1464,8 @@ scopedNameDef *getFQCNameOfType(argDef *ad);
 scopedNameDef *removeGlobalScope(scopedNameDef *snd);
 void pyiTypeHint(sipSpec *pt, typeHintDef *thd, moduleDef *mod, int out,
         ifaceFileList *defined, int pep484, int rest, FILE *fp);
-void restPyClass(classDef *cd, int as_ref, FILE *fp);
-void restPyEnum(enumDef *ed, int as_ref, FILE *fp);
+void restPyClass(classDef *cd, FILE *fp);
+void restPyEnum(enumDef *ed, FILE *fp);
 void generateBaseType(ifaceFileDef *scope, argDef *ad, int use_typename,
         int strip, FILE *fp);
 void normaliseArgs(signatureDef *sd);

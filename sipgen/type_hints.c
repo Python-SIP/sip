@@ -1462,7 +1462,7 @@ static void pyiTypeHintNode(typeHintNodeDef *node, moduleDef *mod,
 
     case class_node:
         if (rest)
-            restPyClass(node->u.cd, TRUE, fp);
+            restPyClass(node->u.cd, fp);
         else
             prClassRef(node->u.cd, mod, defined, pep484, fp);
 
@@ -1470,7 +1470,7 @@ static void pyiTypeHintNode(typeHintNodeDef *node, moduleDef *mod,
 
     case enum_node:
         if (rest)
-            restPyEnum(node->u.ed, TRUE, fp);
+            restPyEnum(node->u.ed, fp);
         else
             prEnumRef(node->u.ed, mod, defined, pep484, fp);
 

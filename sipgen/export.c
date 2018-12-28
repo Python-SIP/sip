@@ -398,7 +398,7 @@ static void xmlClass(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
     {
         xmlIndent(indent++, fp);
         fprintf(fp, "<Class name=\"");
-        restPyClass(cd, FALSE, fp);
+        prScopedPythonName(fp, cd->ecd, cd->pyname->text);
         fprintf(fp, "\"");
 
         xmlRealName(classFQCName(cd), fp);
@@ -426,7 +426,7 @@ static void xmlClass(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
                 if (cl != cd->supers)
                     fprintf(fp, " ");
 
-                restPyClass(cl->cd, TRUE, fp);
+                restPyClass(cl->cd, fp);
             }
 
             fprintf(fp, "\"");
@@ -479,7 +479,7 @@ static void xmlEnums(sipSpec *pt, moduleDef *mod, classDef *scope, int indent,
 
             xmlIndent(indent++, fp);
             fprintf(fp, "<Enum name=\"");
-            restPyEnum(ed, FALSE, fp);
+            prScopedPythonName(fp, ed->ecd, ed->pyname->text);
             fprintf(fp, "\"");
 
             xmlRealName(ed->fqcname, fp);
@@ -906,19 +906,19 @@ static void xmlType(sipSpec *pt, moduleDef *mod, argDef *ad, int out,
         switch (ad->atype)
         {
         case class_type:
-            restPyClass(ad->u.cd, TRUE, fp);
+            restPyClass(ad->u.cd, fp);
             break;
 
         case enum_type:
             if (ad->u.ed->pyname != NULL)
-                restPyEnum(ad->u.ed, TRUE, fp);
+                restPyEnum(ad->u.ed, fp);
             else
                 fprintf(fp, "int");
 
             break;
 
         case qobject_type:
-            restPyClass(pt->qobject_cd, TRUE, fp);
+            restPyClass(pt->qobject_cd, fp);
             break;
 
         case mapped_type:
@@ -1249,34 +1249,24 @@ static void exportPythonSignature(sipSpec *pt, FILE *fp, signatureDef *sd,
 
 
 /*
- * Generate a fully qualified class name optionally as a reST reference.
+ * Generate a fully qualified class name as a reST reference.
  */
-void restPyClass(classDef *cd, int as_ref, FILE *fp)
+void restPyClass(classDef *cd, FILE *fp)
 {
-    if (as_ref)
-        fprintf(fp, ":sip:ref:`~");
-
-    fprintf(fp, "%s.", cd->iff->module->fullname->text);
+    fprintf(fp, ":sip:ref:`~%s.", cd->iff->module->fullname->text);
     prScopedPythonName(fp, cd->ecd, cd->pyname->text);
-
-    if (as_ref)
-        fprintf(fp, "`");
+    fprintf(fp, "`");
 }
 
 
 /*
- * Generate a fully qualified enum name optionally as a reST reference.
+ * Generate a fully qualified enum name as a reST reference.
  */
-void restPyEnum(enumDef *ed, int as_ref, FILE *fp)
+void restPyEnum(enumDef *ed, FILE *fp)
 {
-    if (as_ref)
-        fprintf(fp, ":sip:ref:`~");
-
-    fprintf(fp, "%s.", ed->module->fullname->text);
+    fprintf(fp, ":sip:ref:`~%s.", ed->module->fullname->text);
     prScopedPythonName(fp, ed->ecd, ed->pyname->text);
-
-    if (as_ref)
-        fprintf(fp, "`");
+    fprintf(fp, "`");
 }
 
 
@@ -1304,7 +1294,7 @@ static void restPyAttribute(moduleDef *mod, classDef *scope, nameDef *name,
 
 
 /*
- * Generate a reST reference for a scoped name is possible.  Return TRUE if
+ * Generate a reST reference for a scoped name if possible.  Return TRUE if
  * something was generated.
  */
 static int restValue(sipSpec *pt, valueDef *value, FILE *fp)
