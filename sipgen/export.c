@@ -1,7 +1,7 @@
 /*
  * The XML and API file generator module for SIP.
  *
- * Copyright (c) 2018 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2019 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -564,9 +564,11 @@ static void xmlCtor(sipSpec *pt, moduleDef *mod, classDef *scope, ctorDef *ct,
     int a;
 
     xmlIndent(indent++, fp);
-    fprintf(fp, "<Function name=\"");
+    fprintf(fp, "<PySlot name=\"");
     prScopedPythonName(fp, scope, "__init__");
     fprintf(fp, "\"");
+
+    xmlRealScopedName(scope, "__init__", fp);
 
     if (hasCppSignature(ct->cppsig))
     {
@@ -596,7 +598,7 @@ static void xmlCtor(sipSpec *pt, moduleDef *mod, classDef *scope, ctorDef *ct,
     }
 
     xmlIndent(--indent, fp);
-    fprintf(fp, "</Function>\n");
+    fprintf(fp, "</PySlot>\n");
 }
 
 
@@ -680,15 +682,19 @@ static void xmlOverload(sipSpec *pt, moduleDef *mod, classDef *scope,
         memberDef *md, overDef *od, classDef *xtnds, int stat, int indent,
         FILE *fp)
 {
-    const char *name;
+    const char *name, *tag, *cppname = od->cppname;
     int a, no_res;
 
+    tag = (md->slot == no_slot ? "Function" : "PySlot");
+
     xmlIndent(indent++, fp);
-    fprintf(fp, "<Function name=\"");
+    fprintf(fp, "<%s name=\"", tag);
 
     if (isReflected(od))
     {
-        if ((name = reflectedSlot(md->slot)) == NULL)
+        if ((name = reflectedSlot(md->slot)) != NULL)
+            cppname = name;
+        else
             name = md->pyname->text;
     }
     else
@@ -700,8 +706,7 @@ static void xmlOverload(sipSpec *pt, moduleDef *mod, classDef *scope,
 
     fprintf(fp, "\"");
 
-    if (md->slot == no_slot)
-        xmlRealScopedName(scope, od->cppname, fp);
+    xmlRealScopedName(scope, cppname, fp);
 
     if (hasCppSignature(od->cppsig))
     {
@@ -770,7 +775,7 @@ static void xmlOverload(sipSpec *pt, moduleDef *mod, classDef *scope,
     }
 
     xmlIndent(--indent, fp);
-    fprintf(fp, "</Function>\n");
+    fprintf(fp, "</%s>\n", tag);
 }
 
 

@@ -1,7 +1,7 @@
 /*
  * The main header file for SIP.
  *
- * Copyright (c) 2018 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2019 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -1121,7 +1121,7 @@ typedef struct _propertyDef {
 /* An overloaded member function definition. */
 typedef struct _overDef {
     sourceLocation sloc;                /* The source location. */
-    char *cppname;                      /* The C++ name. */
+    const char *cppname;                /* The C++ name. */
     docstringDef *docstring;            /* The docstring. */
     int overflags;                      /* The overload flags. */
     int no_typehint;                    /* The type hint will be suppressed. */

@@ -1,7 +1,7 @@
 /*
  * The parse tree transformation module for SIP.
  *
- * Copyright (c) 2018 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2019 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -531,6 +531,7 @@ static void addComplementarySlot(sipSpec *pt, classDef *cd, memberDef *md,
         resetIsVirtual(od2);
         setIsComplementary(od2);
         od2->common = md2;
+        od2->cppname = cslot_name;
 
         od2->next = cd->overs;
         cd->overs = od2;

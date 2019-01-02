@@ -1,7 +1,7 @@
 /*
  * The code generator module for SIP.
  *
- * Copyright (c) 2018 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2019 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -7891,7 +7891,7 @@ static void generateProtectedDefinitions(moduleDef *mod, classDef *cd, FILE *fp)
 
         for (od = vl->cd->overs; od != NULL; od = od->next)
         {
-            char *mname = od->cppname;
+            const char *mname = od->cppname;
             int parens;
             argDef *res;
 
@@ -13254,7 +13254,7 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
 static void generateCppFunctionCall(moduleDef *mod, ifaceFileDef *scope,
         ifaceFileDef *o_scope, overDef *od, FILE *fp)
 {
-    char *mname = od->cppname;
+    const char *mname = od->cppname;
     int parens = 1;
 
     /*
@@ -14645,7 +14645,7 @@ static void prCachedName(FILE *fp, nameDef *nd, const char *prefix)
  */
 void prOverloadName(FILE *fp, overDef *od)
 {
-    char *pt1, *pt2;
+    const char *pt1, *pt2;
 
     pt1 = "operator";
 
