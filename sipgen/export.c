@@ -564,7 +564,7 @@ static void xmlCtor(sipSpec *pt, moduleDef *mod, classDef *scope, ctorDef *ct,
     int a;
 
     xmlIndent(indent++, fp);
-    fprintf(fp, "<PySlot name=\"");
+    fprintf(fp, "<Function name=\"");
     prScopedPythonName(fp, scope, "__init__");
     fprintf(fp, "\"");
 
@@ -598,7 +598,7 @@ static void xmlCtor(sipSpec *pt, moduleDef *mod, classDef *scope, ctorDef *ct,
     }
 
     xmlIndent(--indent, fp);
-    fprintf(fp, "</PySlot>\n");
+    fprintf(fp, "</Function>\n");
 }
 
 
@@ -682,13 +682,11 @@ static void xmlOverload(sipSpec *pt, moduleDef *mod, classDef *scope,
         memberDef *md, overDef *od, classDef *xtnds, int stat, int indent,
         FILE *fp)
 {
-    const char *name, *tag, *cppname = od->cppname;
+    const char *name, *cppname = od->cppname;
     int a, no_res;
 
-    tag = (md->slot == no_slot ? "Function" : "PySlot");
-
     xmlIndent(indent++, fp);
-    fprintf(fp, "<%s name=\"", tag);
+    fprintf(fp, "<Function name=\"");
 
     if (isReflected(od))
     {
@@ -775,7 +773,7 @@ static void xmlOverload(sipSpec *pt, moduleDef *mod, classDef *scope,
     }
 
     xmlIndent(--indent, fp);
-    fprintf(fp, "</%s>\n", tag);
+    fprintf(fp, "</Function>\n");
 }
 
 
