@@ -58,7 +58,7 @@ static void xmlArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int out,
 static void xmlType(sipSpec *pt, moduleDef *mod, argDef *ad, int out,
         KwArgs kwargs, FILE *fp);
 static void xmlIndent(int indent, FILE *fp);
-static void xmlRealName(scopedNameDef *fqcname, FILE *fp);
+static void xmlRealName(scopedNameDef *fqcname, const char *member, FILE *fp);
 static void xmlRealScopedName(classDef *scope, const char *cppname, FILE *fp);
 static const char *pyType(sipSpec *pt, argDef *ad, classDef **scope);
 static void exportPythonSignature(sipSpec *pt, FILE *fp, signatureDef *sd,
@@ -349,16 +349,14 @@ static void xmlRealScopedName(classDef *scope, const char *cppname, FILE *fp)
         }
     }
 
-    fprintf(fp, "%s%s", sep, cppname);
-
-    fprintf(fp, "\"");
+    fprintf(fp, "%s%s\"", sep, cppname);
 }
 
 
 /*
  * Generate a 'realname' attribute containing a fully qualified C/C++ name.
  */
-static void xmlRealName(scopedNameDef *fqcname, FILE *fp)
+static void xmlRealName(scopedNameDef *fqcname, const char *member, FILE *fp)
 {
     const char *sep = "";
     scopedNameDef *snd;
@@ -370,6 +368,9 @@ static void xmlRealName(scopedNameDef *fqcname, FILE *fp)
         fprintf(fp, "%s%s", sep, snd->name);
         sep = "::";
     }
+
+    if (member != NULL)
+        fprintf(fp, "::%s", member);
 
     fprintf(fp, "\"");
 }
@@ -401,7 +402,7 @@ static void xmlClass(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
         prScopedPythonName(fp, cd->ecd, cd->pyname->text);
         fprintf(fp, "\"");
 
-        xmlRealName(classFQCName(cd), fp);
+        xmlRealName(classFQCName(cd), NULL, fp);
 
         if (cd->picklecode != NULL)
             fprintf(fp, " pickle=\"1\"");
@@ -482,17 +483,18 @@ static void xmlEnums(sipSpec *pt, moduleDef *mod, classDef *scope, int indent,
             prScopedPythonName(fp, ed->ecd, ed->pyname->text);
             fprintf(fp, "\"");
 
-            xmlRealName(ed->fqcname, fp);
+            xmlRealName(ed->fqcname, NULL, fp);
 
             fprintf(fp, ">\n");
 
             for (emd = ed->members; emd != NULL; emd = emd->next)
             {
                 xmlIndent(indent, fp);
-                fprintf(fp, "<EnumMember name=\"%s\"", emd->pyname->text);
+                fprintf(fp, "<EnumMember name=\"");
+                prScopedPythonName(fp, ed->ecd, ed->pyname->text);
+                fprintf(fp, ".%s\"", emd->pyname->text);
 
-                if (strcmp(emd->pyname->text, emd->cname) != 0)
-                    fprintf(fp, " realname=\"%s\"", emd->cname);
+                xmlRealName(ed->fqcname, emd->cname, fp);
 
                 fprintf(fp, "/>\n");
             }
@@ -541,7 +543,7 @@ static void xmlVars(sipSpec *pt, moduleDef *mod, classDef *scope, int indent,
         prScopedPythonName(fp, vd->ecd, vd->pyname->text);
         fprintf(fp, "\"");
 
-        xmlRealName(vd->fqcname, fp);
+        xmlRealName(vd->fqcname, NULL, fp);
 
         if (isConstArg(&vd->type) || scope == NULL)
             fprintf(fp, " const=\"1\"");
