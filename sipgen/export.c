@@ -416,6 +416,23 @@ static void xmlClass(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
         if (cd->real != NULL)
             fprintf(fp, " extends=\"%s\"", cd->real->iff->module->name);
 
+        if (cd->pyqt_flags_enums != NULL)
+        {
+            const char *sep;
+            stringList *sl;
+
+            fprintf(fp, " flagsenums=\"");
+            sep = "";
+
+            for (sl = cd->pyqt_flags_enums; sl != NULL; sl = sl->next)
+            {
+                fprintf(fp, "%s%s", sep, sl->s);
+                sep = " ";
+            }
+
+            fprintf(fp, "\"");
+        }
+
         if (cd->supers != NULL)
         {
             classList *cl;

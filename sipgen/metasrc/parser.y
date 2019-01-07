@@ -3032,6 +3032,7 @@ struct:     TK_STRUCT scopedname {
                     "NoTypeHint",
                     "PyName",
                     "PyQtFlags",
+                    "PyQtFlagsEnums",
                     "PyQtInterface",
                     "PyQtNoQMetaObject",
                     "Supertype",
@@ -3111,6 +3112,7 @@ class:  TK_CLASS scopedname {
                     "NoDefaultCtors",
                     "PyName",
                     "PyQtFlags",
+                    "PyQtFlagsEnums",
                     "PyQtInterface",
                     "PyQtNoQMetaObject",
                     "Supertype",
@@ -5309,6 +5311,13 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd,
     if ((flg = getOptFlag(of, "FileExtension", string_flag)) != NULL)
         cd->iff->file_extension = flg->fvalue.sval;
 
+    if ((flg = getOptFlag(of, "PyQtFlagsEnums", string_list_flag)) != NULL)
+    {
+        cd->pyqt_flags_enums = flg->fvalue.slval;
+        cd->pyqt_flags = 1;
+    }
+
+    /* This is deprecated and only used by versions before v5.12. */
     if ((flg = getOptFlag(of, "PyQtFlags", integer_flag)) != NULL)
         cd->pyqt_flags = flg->fvalue.ival;
 
@@ -6070,6 +6079,7 @@ static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod,
     argDef *ad;
     ifaceFileList *iffl, **used;
     classList *cl;
+    stringList *sl;
 
     type_names = type_values = NULL;
     appendTypeStrings(classFQCName(tcd->cd), &tcd->sig, &td->types, NULL, &type_names, &type_values);
@@ -6137,6 +6147,20 @@ static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod,
         cd->typehint_out = newTypeHint(
                 templateString(cd->typehint_out->raw_hint, type_names,
                         type_values));
+
+    /* Handle any flagged enums. */
+    if ((sl = cd->pyqt_flags_enums) != NULL)
+    {
+        cd->pyqt_flags_enums = NULL;
+
+        do
+        {
+            appendString(&cd->pyqt_flags_enums,
+                    templateString(sl->s, type_names, type_values));
+            sl = sl->next;
+        }
+        while (sl != NULL);
+    }
 
     /* Handle the super-classes. */
     for (cl = cd->supers; cl != NULL; cl = cl->next)
@@ -8000,6 +8024,43 @@ static optFlag *getOptFlag(optFlags *flgs, const char *name, flagType ft)
             {
                 of->ftype = opt_integer_flag;
             }
+        }
+
+        /* A string list will look like a string. */
+        if (ft == string_list_flag && of->ftype == string_flag)
+        {
+            char *s;
+
+            s = of->fvalue.sval;
+            of->fvalue.slval = NULL;
+
+            while (*s != '\0')
+            {
+                char *start;
+
+                while (*s == ' ')
+                    ++s;
+
+                start = s;
+
+                if (*start != '\0')
+                {
+                    char saved, *end;
+
+                    for (end = start + 1; *end != ' ' && *end != '\0'; ++end)
+                        ;
+
+                    saved = *end;
+                    *end = '\0';
+
+                    appendString(&of->fvalue.slval, start);
+
+                    *end = saved;
+                    s = end;
+                }
+            }
+
+            of->ftype = string_list_flag;
         }
 
         if (ft != of->ftype)

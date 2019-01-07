@@ -1245,6 +1245,7 @@ typedef struct _classDef {
     unsigned classflags;                /* The class flags. */
     unsigned classflags2;               /* The class flags, part 2. */
     int pyqt_flags;                     /* The PyQt specific flags. */
+    struct _stringList *pyqt_flags_enums;   /* The names of the flagged enum. */
     const char *pyqt_interface;         /* The Qt interface name. */
     nameDef *pyname;                    /* The Python name. */
     int no_typehint;                    /* The type hint will be suppressed. */
@@ -1481,6 +1482,7 @@ void restoreArgs(signatureDef *sd);
 typedef enum {
     bool_flag,
     string_flag,
+    string_list_flag,
     name_flag,
     opt_name_flag,
     dotted_name_flag,
@@ -1494,6 +1496,7 @@ typedef struct {
     flagType ftype;                     /* The flag type. */
     union {                             /* The flag value. */
         char *sval;                     /* A string value. */
+        struct _stringList *slval;      /* A string list value. */
         long ival;                      /* An integer value. */
         apiVersionRangeDef *aval;       /* An API range value. */
     } fvalue;
