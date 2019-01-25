@@ -951,6 +951,7 @@ static PyObject *setDestroyOnExit(PyObject *self, PyObject *args);
 static void print_object(const char *label, PyObject *obj);
 static void addToParent(sipWrapper *self, sipWrapper *owner);
 static void removeFromParent(sipWrapper *self);
+static void detachChildren(sipWrapper *self);
 static void release(void *addr, const sipTypeDef *td, int state);
 static void callPyDtor(sipSimpleWrapper *self);
 static int parseBytes_AsCharArray(PyObject *obj, const char **ap,
@@ -6125,6 +6126,7 @@ static void sip_api_instance_destroyed_ex(sipSimpleWrapper **sipSelfp)
         }
         else if (PyObject_TypeCheck((PyObject *)sipSelf, (PyTypeObject *)&sipWrapper_Type))
         {
+            detachChildren((sipWrapper *)sipSelf);
             removeFromParent((sipWrapper *)sipSelf);
         }
     }
@@ -6235,6 +6237,16 @@ static void removeFromParent(sipWrapper *self)
          */
         Py_DECREF((sipSimpleWrapper *)self);
     }
+}
+
+
+/*
+ * Detach and children of a parent.
+ */
+static void detachChildren(sipWrapper *self)
+{
+    while (self->first_child != NULL)
+        removeFromParent(self->first_child);
 }
 
 
@@ -8262,7 +8274,9 @@ static void sip_api_transfer_back(PyObject *self)
             Py_DECREF(sw);
         }
         else
+        {
             removeFromParent((sipWrapper *)sw);
+        }
 
         sipSetPyOwned(sw);
     }
@@ -8285,7 +8299,9 @@ static void sip_api_transfer_break(PyObject *self)
             Py_DECREF(sw);
         }
         else
+        {
             removeFromParent((sipWrapper *)sw);
+        }
     }
 }
 
@@ -11660,9 +11676,8 @@ static int sipWrapper_clear(sipWrapper *self)
         }
     }
 
-    /* Detach children (which will be owned by C/C++). */
-    while ((sw = (sipSimpleWrapper *)self->first_child) != NULL)
-        removeFromParent(self->first_child);
+    /* Detach any children (which will be owned by C/C++). */
+    detachChildren(self);
 
     return vret;
 }
@@ -13416,7 +13431,10 @@ static void *resolve_proxy(const sipTypeDef *td, void *proxy)
 static void clear_wrapper(sipSimpleWrapper *sw)
 {
     if (PyObject_TypeCheck((PyObject *)sw, (PyTypeObject *)&sipWrapper_Type))
+    {
+        detachChildren((sipWrapper *)sw);
         removeFromParent((sipWrapper *)sw);
+    }
 
     /*
      * Transfer ownership to C++ so we don't try to release it when the
