@@ -11153,6 +11153,9 @@ static void generateTypeInit(classDef *cd, moduleDef *mod, FILE *fp)
                 if (keepReference(ad))
                     need_self = TRUE;
 
+                if (isTransferred(ad))
+                    need_self = TRUE;
+
                 if (isThisTransferred(ad))
                     need_owner = TRUE;
             }
