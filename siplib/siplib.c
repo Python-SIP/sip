@@ -936,7 +936,7 @@ static int addLicense(PyObject *dict, sipLicenseDef *lc);
 static PyObject *assign(PyObject *self, PyObject *args);
 static PyObject *cast(PyObject *self, PyObject *args);
 static PyObject *callDtor(PyObject *self, PyObject *args);
-static PyObject *dumpWrapper(PyObject *self, PyObject *args);
+static PyObject *dumpWrapper(PyObject *self, PyObject *arg);
 static PyObject *enableAutoconversion(PyObject *self, PyObject *args);
 static PyObject *isDeleted(PyObject *self, PyObject *args);
 static PyObject *isPyCreated(PyObject *self, PyObject *args);
@@ -1064,7 +1064,7 @@ PyMODINIT_FUNC SIP_MODULE_ENTRY(void)
         {"assign", assign, METH_VARARGS, NULL},
         {"cast", cast, METH_VARARGS, NULL},
         {"delete", callDtor, METH_VARARGS, NULL},
-        {"dump", dumpWrapper, METH_VARARGS, NULL},
+        {"dump", dumpWrapper, METH_O, NULL},
         {"enableautoconversion", enableAutoconversion, METH_VARARGS, NULL},
         {"enableoverflowchecking", sipEnableOverflowChecking, METH_VARARGS, NULL},
         {"getapi", sipGetAPI, METH_VARARGS, NULL},
@@ -1326,43 +1326,49 @@ static PyObject *setTraceMask(PyObject *self, PyObject *args)
 
 
 /*
- * Dump various bits of potentially useful information to stdout.
+ * Dump various bits of potentially useful information to stdout.  Note that we
+ * use the same calling convention as sys.getrefcount() so that it has the
+ * same caveat regarding the reference count.
  */
-static PyObject *dumpWrapper(PyObject *self, PyObject *args)
+static PyObject *dumpWrapper(PyObject *self, PyObject *arg)
 {
     sipSimpleWrapper *sw;
 
     (void)self;
 
-    if (PyArg_ParseTuple(args, "O!:dump", &sipSimpleWrapper_Type, &sw))
+    if (!PyObject_TypeCheck(arg, (PyTypeObject *)&sipSimpleWrapper_Type))
     {
-        print_object(NULL, (PyObject *)sw);
-
-#if PY_VERSION_HEX >= 0x02050000
-        printf("    Reference count: %" PY_FORMAT_SIZE_T "d\n", Py_REFCNT(sw));
-#else
-        printf("    Reference count: %d\n", Py_REFCNT(sw));
-#endif
-        printf("    Address of wrapped object: %p\n", sip_api_get_address(sw));
-        printf("    Created by: %s\n", (sipIsDerived(sw) ? "Python" : "C/C++"));
-        printf("    To be destroyed by: %s\n", (sipIsPyOwned(sw) ? "Python" : "C/C++"));
-
-        if (PyObject_TypeCheck((PyObject *)sw, (PyTypeObject *)&sipWrapper_Type))
-        {
-            sipWrapper *w = (sipWrapper *)sw;
-
-            print_object("Parent wrapper", (PyObject *)w->parent);
-            print_object("Next sibling wrapper", (PyObject *)w->sibling_next);
-            print_object("Previous sibling wrapper",
-                    (PyObject *)w->sibling_prev);
-            print_object("First child wrapper", (PyObject *)w->first_child);
-        }
-
-        Py_INCREF(Py_None);
-        return Py_None;
+        PyErr_Format(PyExc_TypeError,
+                "dump() argument 1 must be sip.simplewrapper, not %s",
+                Py_TYPE(arg)->tp_name);
+        return NULL;
     }
 
-    return NULL;
+    sw = (sipSimpleWrapper *)arg;
+
+    print_object(NULL, (PyObject *)sw);
+
+#if PY_VERSION_HEX >= 0x02050000
+    printf("    Reference count: %" PY_FORMAT_SIZE_T "d\n", Py_REFCNT(sw));
+#else
+    printf("    Reference count: %d\n", Py_REFCNT(sw));
+#endif
+    printf("    Address of wrapped object: %p\n", sip_api_get_address(sw));
+    printf("    Created by: %s\n", (sipIsDerived(sw) ? "Python" : "C/C++"));
+    printf("    To be destroyed by: %s\n", (sipIsPyOwned(sw) ? "Python" : "C/C++"));
+
+    if (PyObject_TypeCheck((PyObject *)sw, (PyTypeObject *)&sipWrapper_Type))
+    {
+        sipWrapper *w = (sipWrapper *)sw;
+
+        print_object("Parent wrapper", (PyObject *)w->parent);
+        print_object("Next sibling wrapper", (PyObject *)w->sibling_next);
+        print_object("Previous sibling wrapper", (PyObject *)w->sibling_prev);
+        print_object("First child wrapper", (PyObject *)w->first_child);
+    }
+
+    Py_INCREF(Py_None);
+    return Py_None;
 }
 
 

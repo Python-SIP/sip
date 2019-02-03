@@ -71,7 +71,9 @@ previously been imported*.
 .. function:: dump(obj)
 
     This displays various bits of useful information about the internal state
-    of the Python object that wraps a C++ instance or C structure.
+    of the Python object that wraps a C++ instance or C structure.  Note that
+    the reference count that is displayed has the same caveat as that of
+    :func:`sys.getrefcount`.
 
     :param obj:
         the Python object.
