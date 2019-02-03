@@ -2392,7 +2392,7 @@ specification files.
     .. versionadded:: 4.19
 
     This C structure is used with :c:func:`sipGetTime()`,
-    :c:func:`sipFromTime(), :c:func:`sipGetDateTime()` and
+    :c:func:`sipFromTime()`, :c:func:`sipGetDateTime()` and
     :c:func:`sipFromDateTime()` and encapsulates the components parts of a
     Python time.  The structure elements are as follows.
 
