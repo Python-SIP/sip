@@ -7152,6 +7152,7 @@ static void newCtor(moduleDef *mod, char *name, int sectFlags,
         throwArgs *exceptions, signatureDef *cppsig, int explicit,
         docstringDef *docstring, codeBlock *premethodcode)
 {
+    int a;
     ctorDef *ct, **ctp;
     classDef *cd = currentScope();
 
@@ -7231,6 +7232,15 @@ static void newCtor(moduleDef *mod, char *name, int sectFlags,
             yyerror("A constructor with the /Default/ annotation has already been defined");
 
         cd->defctor = ct;
+    }
+
+    /* /Transfer/ arguments need the wrapper. */
+    for (a = 0; a < ct->pysig.nrArgs; ++a)
+    {
+        argDef *ad = &ct->pysig.args[a];
+
+        if (isTransferred(ad))
+            setGetWrapper(ad);
     }
 
     /* Append to the list. */

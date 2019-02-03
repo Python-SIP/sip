@@ -464,6 +464,7 @@
 #define resetIsConstArg(a)  ((a)->argflags &= ~ARG_IS_CONST)
 #define isTransferred(a)    ((a)->argflags & ARG_XFERRED)
 #define setIsTransferred(a) ((a)->argflags |= ARG_XFERRED)
+#define resetIsTransferred(a)   ((a)->argflags &= ~ARG_XFERRED)
 #define isThisTransferred(a)    ((a)->argflags & ARG_THIS_XFERRED)
 #define setIsThisTransferred(a) ((a)->argflags |= ARG_THIS_XFERRED)
 #define isTransferredBack(a)    ((a)->argflags & ARG_XFERRED_BACK)

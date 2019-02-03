@@ -11513,7 +11513,7 @@ static void generateConstructorCall(classDef *cd, ctorDef *ct, int error_flag,
 "            Py_END_ALLOW_THREADS\n"
                 );
 
-        /* Handle any /KeepReference/ arguments. */
+        /* Handle any /KeepReference/ and /Transfer/ arguments. */
         for (a = 0; a < ct->pysig.nrArgs; ++a)
         {
             argDef *ad = &ct->pysig.args[a];
@@ -11527,6 +11527,13 @@ static void generateConstructorCall(classDef *cd, ctorDef *ct, int error_flag,
 "\n"
 "            sipKeepReference((PyObject *)sipSelf, %d, %a%s);\n"
                     , ad->key, mod, ad, a, (((ad->atype == ascii_string_type || ad->atype == latin1_string_type || ad->atype == utf8_string_type) && ad->nrderefs == 1) || !isGetWrapper(ad) ? "Keep" : "Wrapper"));
+            }
+
+            if (isTransferred(ad))
+            {
+                prcode(fp,
+"\n"
+"            sipTransferTo(%aWrapper, (PyObject *)sipSelf);\n" , mod, ad, a);
             }
         }
 
@@ -13819,7 +13826,15 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
             }
             else
             {
+                int saved_flags = ad->argflags;
+
+                /* /Transfer/ for ctor arguments is handled separately. */
+                if (ct != NULL)
+                    resetIsTransferred(ad);
+
                 fmt = getSubFormatChar('J', ad);
+
+                ad->argflags = saved_flags;
             }
 
             break;
