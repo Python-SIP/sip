@@ -9331,7 +9331,7 @@ static void generateOverloadDecl(FILE *fp, ifaceFileDef *scope, overDef *od)
         generateBaseType(scope, ad, TRUE, STRIP_NONE, fp);
     }
  
-    prcode(fp, ")%s SIP_OVERRIDE%X", (isConst(od) ? " const" : ""), od->exceptions);
+    prcode(fp, ")%s%X SIP_OVERRIDE", (isConst(od) ? " const" : ""), od->exceptions);
 
     restoreArgs(od->cppsig);
 }
