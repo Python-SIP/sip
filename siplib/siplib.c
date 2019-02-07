@@ -6132,7 +6132,6 @@ static void sip_api_instance_destroyed_ex(sipSimpleWrapper **sipSelfp)
         }
         else if (PyObject_TypeCheck((PyObject *)sipSelf, (PyTypeObject *)&sipWrapper_Type))
         {
-            detachChildren((sipWrapper *)sipSelf);
             removeFromParent((sipWrapper *)sipSelf);
         }
     }
@@ -13437,10 +13436,7 @@ static void *resolve_proxy(const sipTypeDef *td, void *proxy)
 static void clear_wrapper(sipSimpleWrapper *sw)
 {
     if (PyObject_TypeCheck((PyObject *)sw, (PyTypeObject *)&sipWrapper_Type))
-    {
-        detachChildren((sipWrapper *)sw);
         removeFromParent((sipWrapper *)sw);
-    }
 
     /*
      * Transfer ownership to C++ so we don't try to release it when the
