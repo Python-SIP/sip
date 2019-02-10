@@ -1,6 +1,6 @@
 v4.19.14 10th February 2019
-  - The reference count display by sip.dump() now has the same caveat as
-    sip.getrefcount().
+  - The reference count displayed by sip.dump() now has the same caveat as
+    sys.getrefcount().
   - Added SIP_NULLPTR to the public API.
   - Added support for size_t.
   - Added sipLong_AsSizeT() to the C API.
