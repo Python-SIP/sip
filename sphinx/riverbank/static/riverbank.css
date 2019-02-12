@@ -11,12 +11,22 @@ div.body p {
 div.body h1,
 div.body h2 {
     border-radius: 10px;
+    border-bottom: #ccc;
     margin-right: 0px;
 }
 
 div.body h3 {
     background-color: white;
     color: black;
+    margin-right: 0px;
+}
+
+div.body h4,
+div.body h5,
+div.body h6 {
+    background-color: white;
+    color: black;
+    border-bottom: #ccc;
 }
 
 h1 a,
