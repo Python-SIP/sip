@@ -295,7 +295,7 @@ static int hasOptionalArgs(overDef *od);
 static int emptyIfaceFile(sipSpec *pt, ifaceFileDef *iff);
 static void declareLimitedAPI(int py_debug, moduleDef *mod, FILE *fp);
 static int generatePluginSignalsTable(sipSpec *pt, classDef *cd,
-        const char *pyqt_prefix, FILE *fp);
+        int pyqt_version, FILE *fp);
 static int generatePyQt5ClassPlugin(sipSpec *pt, classDef *cd, FILE *fp);
 static int generatePyQt4ClassPlugin(sipSpec *pt, classDef *cd, FILE *fp);
 static void generateGlobalFunctionTableEntries(sipSpec *pt, moduleDef *mod,
@@ -15542,7 +15542,7 @@ static void declareLimitedAPI(int py_debug, moduleDef *mod, FILE *fp)
  * Generate the PyQt4/5 signals table.
  */
 static int generatePluginSignalsTable(sipSpec *pt, classDef *cd,
-        const char *pyqt_prefix, FILE *fp)
+        int pyqt_version, FILE *fp)
 {
     int is_signals = FALSE;
 
@@ -15586,8 +15586,8 @@ static int generatePluginSignalsTable(sipSpec *pt, classDef *cd,
 "\n"
 "\n"
 "/* Define this type's signals. */\n"
-"static const %sQtSignal signals_%C[] = {\n"
-                        , pyqt_prefix, classFQCName(cd));
+"static const pyqt%dQtSignal signals_%C[] = {\n"
+                        , pyqt_version, classFQCName(cd));
                 }
 
                 /*
@@ -15628,9 +15628,9 @@ static int generatePluginSignalsTable(sipSpec *pt, classDef *cd,
 
         if (is_signals)
             prcode(fp,
-"    {SIP_NULLPTR, SIP_NULLPTR, SIP_NULLPTR, SIP_NULLPTR}\n"
+"    {SIP_NULLPTR, SIP_NULLPTR, SIP_NULLPTR, %s}\n"
 "};\n"
-                );
+                , (pyqt_version == 5 ? "SIP_NULLPTR" : "0"));
     }
 
     return is_signals;
@@ -15643,7 +15643,7 @@ static int generatePluginSignalsTable(sipSpec *pt, classDef *cd,
  */
 static int generatePyQt5ClassPlugin(sipSpec *pt, classDef *cd, FILE *fp)
 {
-    int is_signals = generatePluginSignalsTable(pt, cd, "pyqt5", fp);
+    int is_signals = generatePluginSignalsTable(pt, cd, 5, fp);
 
     prcode(fp,
 "\n"
@@ -15696,7 +15696,7 @@ static int generatePyQt5ClassPlugin(sipSpec *pt, classDef *cd, FILE *fp)
  */
 static int generatePyQt4ClassPlugin(sipSpec *pt, classDef *cd, FILE *fp)
 {
-    int is_signals = generatePluginSignalsTable(pt, cd, "pyqt4", fp);
+    int is_signals = generatePluginSignalsTable(pt, cd, 4, fp);
 
     prcode(fp,
 "\n"
