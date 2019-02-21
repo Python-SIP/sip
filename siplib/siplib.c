@@ -886,6 +886,8 @@ static int getSelfFromArgs(sipTypeDef *td, PyObject *args, int argnr,
         sipSimpleWrapper **selfp);
 static int compareTypedefName(const void *key, const void *el);
 static int checkPointer(void *ptr, sipSimpleWrapper *sw);
+static void *cast_cpp_ptr(void *ptr, PyTypeObject *src_type,
+        const sipTypeDef *dst_type);
 static void finalise(void);
 static PyObject *getDefaultBase(void);
 static PyObject *getDefaultSimpleBase(void);
@@ -9195,23 +9197,31 @@ void *sip_api_get_cpp_ptr(sipSimpleWrapper *sw, const sipTypeDef *td)
     if (td != NULL)
     {
         if (PyObject_TypeCheck((PyObject *)sw, sipTypeAsPyTypeObject(td)))
-        {
-            sipCastFunc cast = ((const sipClassTypeDef *)((sipWrapperType *)Py_TYPE(sw))->wt_td)->ctd_cast;
-
-            /* Handle any multiple inheritance. */
-            if (cast != NULL)
-                ptr = (*cast)(ptr, td);
-        }
+            ptr = cast_cpp_ptr(ptr, Py_TYPE(sw), td);
         else
-        {
             ptr = NULL;
-        }
 
         if (ptr == NULL)
             PyErr_Format(PyExc_TypeError, "could not convert '%s' to '%s'",
                     Py_TYPE(sw)->tp_name,
                     sipPyNameOfContainer(&((const sipClassTypeDef *)td)->ctd_container, td));
     }
+
+    return ptr;
+}
+
+
+/*
+ * Cast a C/C++ pointer from a source type to a destination type.
+ */
+static void *cast_cpp_ptr(void *ptr, PyTypeObject *src_type,
+        const sipTypeDef *dst_type)
+{
+    sipCastFunc cast = ((const sipClassTypeDef *)((sipWrapperType *)src_type)->wt_td)->ctd_cast;
+
+    /* C structures and base classes don't have cast functions. */
+    if (cast != NULL)
+        ptr = (*cast)(ptr, dst_type);
 
     return ptr;
 }
@@ -9912,8 +9922,10 @@ static int convertPass(const sipTypeDef **tdp, void **cppPtr)
              */
             if (PyType_IsSubtype(py_type, base_type))
             {
-                void *ptr = *cppPtr;
+                void *ptr;
                 const sipTypeDef *sub_td;
+
+                ptr = cast_cpp_ptr(*cppPtr, py_type, scc->scc_basetype);
 
                 if ((sub_td = (*scc->scc_convertor)(&ptr)) != NULL)
                 {
