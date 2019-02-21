@@ -9916,7 +9916,7 @@ static int convertPass(const sipTypeDef **tdp, void **cppPtr)
             base_type = sipTypeAsPyTypeObject(scc->scc_basetype);
 
             for (tp = py_type; tp != NULL; tp = tp->tp_base)
-                if (tp == base_type)
+                if (tp->tp_base == base_type)
                     break;
 
             if (tp != NULL)
