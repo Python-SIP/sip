@@ -9899,7 +9899,7 @@ static int convertPass(const sipTypeDef **tdp, void **cppPtr)
 
         while (scc->scc_convertor != NULL)
         {
-            PyTypeObject *base_type, *tp;
+            PyTypeObject *base_type = sipTypeAsPyTypeObject(scc->scc_basetype);
 
             /*
              * The base type is the "root" class that may have a number of
@@ -9908,18 +9908,9 @@ static int convertPass(const sipTypeDef **tdp, void **cppPtr)
              * provides the RTTI used by the convertors and is re-implemented
              * by derived classes.  We therefore see if the target type is a
              * sub-class of the root, ie. see if the convertor might be able to
-             * convert the target type to something more specific.  Note that
-             * we only consider direct sub-classes so that (for example) a
-             * QLayout is only handled by the QObject convertor and not by the
-             * QLayoutItem convertor.
+             * convert the target type to something more specific.
              */
-            base_type = sipTypeAsPyTypeObject(scc->scc_basetype);
-
-            for (tp = py_type; tp != NULL; tp = tp->tp_base)
-                if (tp->tp_base == base_type)
-                    break;
-
-            if (tp != NULL)
+            if (PyType_IsSubtype(py_type, base_type))
             {
                 void *ptr = *cppPtr;
                 const sipTypeDef *sub_td;
