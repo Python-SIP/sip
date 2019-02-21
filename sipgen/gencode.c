@@ -6271,17 +6271,12 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 
         /* Skip the the class itself. */
         for (mro = cd->mro->next; mro != NULL; mro = mro->next)
-        {
-            if (!isDuplicateSuper(mro) && !hasDuplicateSuper(mro))
-            {
-                prcode(fp,
+            prcode(fp,
 "    if (targetType == sipType_%C)\n"
 "        return static_cast<%U *>(sipCpp);\n"
 "\n"
-                    , classFQCName(mro->cd)
-                    , mro->cd);
-            }
-        }
+                , classFQCName(mro->cd)
+                , mro->cd);
 
         prcode(fp,
 "    return sipCppV;\n"

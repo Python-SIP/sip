@@ -1266,34 +1266,26 @@ static void setHierarchy(sipSpec *pt, classDef *base, classDef *cd,
 
 
 /*
- * Append a class definition to an mro list
+ * Append a class definition to an MRO list
  */
-static void appendToMRO(mroDef *head,mroDef ***tailp,classDef *cd)
+static void appendToMRO(mroDef *head, mroDef ***tailp, classDef *cd)
 {
-    mroDef *mro, *new;
+    mroDef *mro;
 
-    new = sipMalloc(sizeof (mroDef));
+    /* Ignore if it is already in the MRO. */
+    for (mro = head; mro != NULL; mro = mro->next)
+        if (mro->cd == cd)
+            return;
 
-    new -> cd = cd;
-    new -> mroflags = 0;
-    new -> next = NULL;
+    mro = sipMalloc(sizeof (mroDef));
 
-    /* See if it is a duplicate. */
-
-    for (mro = head; mro != NULL; mro = mro -> next)
-        if (mro -> cd == cd)
-        {
-            setIsDuplicateSuper(new);
-
-            if (!isDuplicateSuper(mro))
-                setHasDuplicateSuper(mro);
-
-            break;
-        }
+    mro -> cd = cd;
+    mro -> mroflags = 0;
+    mro -> next = NULL;
 
     /* Append to the list and update the tail pointer. */
-    **tailp = new;
-    *tailp = &new -> next;
+    **tailp = mro;
+    *tailp = &mro->next;
 }
 
 
@@ -1411,9 +1403,6 @@ static void addDefaultCopyCtor(classDef *cd)
     for (mro = cd->mro; mro != NULL; mro = mro->next)
     {
         ctorDef *ct;
-
-        if (isDuplicateSuper(mro))
-            continue;
 
         for (ct = mro->cd->ctors; ct != NULL; ct = ct->next)
         {
@@ -1586,9 +1575,6 @@ static void getVisiblePyMembers(sipSpec *pt, classDef *cd)
     {
         memberDef *md;
         classDef *mro_cd;
-
-        if (isDuplicateSuper(mro))
-            continue;
 
         mro_cd = mro->cd;
 
@@ -2925,9 +2911,6 @@ static void scopeDefaultValue(sipSpec *pt,classDef *cd,argDef *ad)
         {
             enumDef *ed;
 
-            if (isDuplicateSuper(mro))
-                continue;
-
             for (ed = pt -> enums; ed != NULL; ed = ed -> next)
             {
                 enumMemberDef *emd;
@@ -3290,9 +3273,6 @@ static void searchClassScope(sipSpec *pt, classDef *c_scope,
 
     for (mro = c_scope->mro; mro != NULL; mro = mro->next)
     {
-        if (isDuplicateSuper(mro))
-            continue;
-
         searchScope(pt, mro->cd, snd, ad);
 
         if (ad->atype != no_type)
