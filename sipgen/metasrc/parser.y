@@ -5982,6 +5982,10 @@ static char *type2string(argDef *ad)
             s = "void *";
             break;
 
+        case size_type:
+            s = "size_t";
+            break;
+
         default:
             fatal("Unsupported type argument to type2string(): %d\n", ad->atype);
         }
