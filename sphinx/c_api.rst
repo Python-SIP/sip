@@ -41,6 +41,16 @@ specification files.
     to fail if the Python object being converted is ``Py_None``.
 
 
+.. c:macro:: SIP_NULLPTR
+
+    .. versionadded:: 4.19.14
+
+    This is a C preprocessor macro that should be used instead of ``NULL`` or
+    ``nullptr``.  It ensures the correct value is used depending on whether C
+    or C++ is being generated and which language standard the compiler
+    supports.
+
+
 .. c:macro:: SIP_OWNS_MEMORY
 
     .. versionadded:: 4.15.2
@@ -385,6 +395,11 @@ specification files.
         .. versionadded:: 4.14.1
 
         Convert a C/C++ ``void *`` to a Python named capsule object.
+
+    ``=`` (long) [size_t]
+        .. versionadded:: 4.19.14
+
+        Convert a C/C++ ``size_t`` to a Python long.
 
 
 .. c:function:: PyObject *sipCallMethod(int *iserr, PyObject *method, const char *format, ...)
@@ -1683,6 +1698,19 @@ specification files.
         the converted C/C++ value.
 
 
+.. c:function:: size_t sipLong_AsSizeT(PyObject *obj)
+
+    .. versionadded:: 4.19.14
+
+    This converts a Python object to a C/C++ size_t.  If the value is too large
+    then an exception is raised if overflow checking is enabled.
+
+    :param obj:
+        the Python object.
+    :return:
+        the converted C/C++ value.
+
+
 .. c:function:: long sipLong_AsLong(PyObject *obj)
 
     .. versionadded:: 4.19.4
@@ -2076,6 +2104,11 @@ specification files.
         and then returned without any conversions.  The reference count is
         incremented.  The Python object may be ``Py_None``.
 
+    ``=`` (long) [size_t \*]
+        .. versionadded:: 4.19.14
+
+        Convert a Python long to a C/C++ ``size_t``.
+
 
 .. c:function:: PyObject *sipPyTypeDict(const PyTypeObject *py_type)
 
@@ -2359,7 +2392,7 @@ specification files.
     .. versionadded:: 4.19
 
     This C structure is used with :c:func:`sipGetTime()`,
-    :c:func:`sipFromTime(), :c:func:`sipGetDateTime()` and
+    :c:func:`sipFromTime()`, :c:func:`sipGetDateTime()` and
     :c:func:`sipFromDateTime()` and encapsulates the components parts of a
     Python time.  The structure elements are as follows.
 

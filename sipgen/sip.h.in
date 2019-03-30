@@ -1,7 +1,7 @@
 /*
  * The main header file for SIP.
  *
- * Copyright (c) 2018 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2019 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -73,6 +73,10 @@
 
 /* Return the Python scope corresponding to a C/C++ scope. */
 #define pyScope(c)          ((c) != NULL && isHiddenNamespace(c) ? NULL : (c))
+
+/* Control how scopes should be stripped. */
+#define STRIP_NONE      0       /* This must be 0. */
+#define STRIP_GLOBAL    (-1)    /* This must be -ve. */
 
 
 /* Handle module flags. */
@@ -273,7 +277,7 @@
 #define MEMBR_NO_ARG_PARSER 0x0004      /* Don't generate an argument parser. */
 #define MEMBR_NOT_VERSIONED 0x0008      /* There is an unversioned overload. */
 #define MEMBR_KEYWORD_ARGS  0x0010      /* It allows keyword arguments. */
-#define MEMBR_HAS_PROTECTED 0x0011      /* It has a protected overload. */
+#define MEMBR_HAS_PROTECTED 0x0020      /* It has a protected overload. */
 
 #define isNumeric(m)        ((m)->memberflags & MEMBR_NUMERIC)
 #define setIsNumeric(m)     ((m)->memberflags |= MEMBR_NUMERIC)
@@ -313,14 +317,8 @@
 
 /* Handle hierarchy flags. */
 
-#define HIER_IS_DUPLICATE   0x0001      /* It is a super class duplicate. */
-#define HIER_HAS_DUPLICATE  0x0002      /* It has a super class duplicate. */
-#define HIER_BEING_SET      0x0004      /* The MRO is being set. */
+#define HIER_BEING_SET      0x0001      /* The MRO is being set. */
 
-#define isDuplicateSuper(m) ((m)->mroflags & HIER_IS_DUPLICATE)
-#define setIsDuplicateSuper(m)  ((m)->mroflags |= HIER_IS_DUPLICATE)
-#define hasDuplicateSuper(m)    ((m)->mroflags & HIER_HAS_DUPLICATE)
-#define setHasDuplicateSuper(m) ((m)->mroflags |= HIER_HAS_DUPLICATE)
 #define hierBeingSet(m)     ((m)->mroflags & HIER_BEING_SET)
 #define setHierBeingSet(m)  ((m)->mroflags |= HIER_BEING_SET)
 #define resetHierBeingSet(m)    ((m)->mroflags &= ~HIER_BEING_SET)
@@ -351,6 +349,7 @@
 #define OVER_NO_ERROR_HANDLER   0x10000000  /* It doesn't use a virtual error handler. */
 #define OVER_ABORT_ON_EXC   0x20000000  /* It aborts on an exception. */
 #define OVER_IS_FINAL       0x40000000  /* It is a final method. */
+#define OVER_IS_REFLECTED   0x80000000  /* It is a reflected slot. */
 
 #define isPublic(o)         ((o)->overflags & SECT_IS_PUBLIC)
 #define setIsPublic(o)      ((o)->overflags |= SECT_IS_PUBLIC)
@@ -413,6 +412,8 @@
 #define setAbortOnException(o)  ((o)->overflags |= OVER_ABORT_ON_EXC)
 #define isFinal(o)          ((o)->overflags & OVER_IS_FINAL)
 #define setIsFinal(o)       ((o)->overflags |= OVER_IS_FINAL)
+#define isReflected(o)      ((o)->overflags & OVER_IS_REFLECTED)
+#define setIsReflected(o)   ((o)->overflags |= OVER_IS_REFLECTED)
 
 
 /* Handle variable flags. */
@@ -457,6 +458,7 @@
 #define resetIsConstArg(a)  ((a)->argflags &= ~ARG_IS_CONST)
 #define isTransferred(a)    ((a)->argflags & ARG_XFERRED)
 #define setIsTransferred(a) ((a)->argflags |= ARG_XFERRED)
+#define resetIsTransferred(a)   ((a)->argflags &= ~ARG_XFERRED)
 #define isThisTransferred(a)    ((a)->argflags & ARG_THIS_XFERRED)
 #define setIsThisTransferred(a) ((a)->argflags |= ARG_THIS_XFERRED)
 #define isTransferredBack(a)    ((a)->argflags & ARG_XFERRED_BACK)
@@ -685,7 +687,8 @@ typedef enum {
     sbyte_type,
     ubyte_type,
     capsule_type,
-    pybuffer_type
+    pybuffer_type,
+    size_type
 } argType;
 
 
@@ -696,7 +699,8 @@ typedef enum {
     numeric_value,
     real_value,
     scoped_value,
-    fcall_value
+    fcall_value,
+    empty_value
 } valueType;
 
 
@@ -730,7 +734,6 @@ typedef enum {
     typing_node,
     class_node,
     enum_node,
-    brackets_node,
     other_node
 } typeHintNodeType;
 
@@ -1113,7 +1116,7 @@ typedef struct _propertyDef {
 /* An overloaded member function definition. */
 typedef struct _overDef {
     sourceLocation sloc;                /* The source location. */
-    char *cppname;                      /* The C++ name. */
+    const char *cppname;                /* The C++ name. */
     docstringDef *docstring;            /* The docstring. */
     int overflags;                      /* The overload flags. */
     int no_typehint;                    /* The type hint will be suppressed. */
@@ -1237,6 +1240,7 @@ typedef struct _classDef {
     unsigned classflags;                /* The class flags. */
     unsigned classflags2;               /* The class flags, part 2. */
     int pyqt_flags;                     /* The PyQt specific flags. */
+    struct _stringList *pyqt_flags_enums;   /* The names of the flagged enum. */
     const char *pyqt_interface;         /* The Qt interface name. */
     nameDef *pyname;                    /* The Python name. */
     int no_typehint;                    /* The type hint will be suppressed. */
@@ -1407,13 +1411,13 @@ int sameBaseType(argDef *,argDef *);
 char *scopedNameTail(scopedNameDef *);
 scopedNameDef *copyScopedName(scopedNameDef *);
 void appendScopedName(scopedNameDef **,scopedNameDef *);
+scopedNameDef *text2scopePart(char *text);
 void freeScopedName(scopedNameDef *);
 void appendToClassList(classList **,classDef *);
 void appendCodeBlockList(codeBlockList **headp, codeBlockList *cbl);
 void prcode(FILE *fp, const char *fmt, ...);
 void prCopying(FILE *fp, moduleDef *mod, const char *comment);
 void prOverloadName(FILE *fp, overDef *od);
-void prOverloadDecl(FILE *fp, ifaceFileDef *scope, overDef *od, int defval);
 void prDefaultValue(argDef *ad, int in_str, FILE *fp);
 void prScopedPythonName(FILE *fp, classDef *scope, const char *pyname);
 void searchTypedefs(sipSpec *pt, scopedNameDef *snd, argDef *ad);
@@ -1454,6 +1458,14 @@ void dsCtor(sipSpec *pt, classDef *cd, ctorDef *ct, int sec, FILE *fp);
 void dsOverload(sipSpec *pt, overDef *od, int is_method, int sec, FILE *fp);
 scopedNameDef *getFQCNameOfType(argDef *ad);
 scopedNameDef *removeGlobalScope(scopedNameDef *snd);
+void pyiTypeHint(sipSpec *pt, typeHintDef *thd, moduleDef *mod, int out,
+        ifaceFileList *defined, int pep484, int rest, FILE *fp);
+void restPyClass(classDef *cd, FILE *fp);
+void restPyEnum(enumDef *ed, FILE *fp);
+void generateBaseType(ifaceFileDef *scope, argDef *ad, int use_typename,
+        int strip, FILE *fp);
+void normaliseArgs(signatureDef *sd);
+void restoreArgs(signatureDef *sd);
 
 
 /* These are only here because bison publically references them. */
@@ -1465,6 +1477,7 @@ scopedNameDef *removeGlobalScope(scopedNameDef *snd);
 typedef enum {
     bool_flag,
     string_flag,
+    string_list_flag,
     name_flag,
     opt_name_flag,
     dotted_name_flag,
@@ -1478,6 +1491,7 @@ typedef struct {
     flagType ftype;                     /* The flag type. */
     union {                             /* The flag value. */
         char *sval;                     /* A string value. */
+        struct _stringList *slval;      /* A string list value. */
         long ival;                      /* An integer value. */
         apiVersionRangeDef *aval;       /* An API range value. */
     } fvalue;

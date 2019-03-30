@@ -167,24 +167,55 @@ SIP comprises a number of different components.
 Preparing for SIP v5
 --------------------
 
-The syntax of a SIP specification file will change in SIP v5.  The command line
-options to the SIP code generator will also change.  In order to help users
-manage the transition the following approach will be adopted.
+SIP v4.19 will be the final series of SIP v4 releases.  The next major release
+of SIP will be v5.  SIP v5.0 and SIP v5.1 will have different goals.
 
-- Where possible, all incompatible changes will be first implemented in SIP v4.
+The goals of SIP v5.0 will be to:
 
-- When an incompatible change is implemented, the old syntax will be deprecated
-  (with a warning message) but will be supported for the lifetime of v4.
+- remove support for Python v2
 
-- The use of the :option:`--sip-module <configure.py --sip-module>` option to
-  build a private copy of the SIP module will be compulsory.
+- remove support for other Python versions that have reached their end-of-life
+
+- remove support for all features marked as deprecated in SIP v4
+
+- play nicely in a modern Python packaging context (distutils, setuptools,
+  wheels, PyPI) both itself and the packages being generated.
+
+The goals of SIP v5.1 will be to:
+
+- eliminate any remaining inconsistencies in the syntax of specification files
+
+- fill in some gaps in the C/C++ support
+
+- restructure, refactor and rewrite the code as appropriate to ensure that it
+  is easy to test, maintain and enhance over the long term.
+
+All features that will be removed in SIP v5.0 will trigger a deprecation
+warning.  Any new language features added in SIP v5.0 will also be added to
+SIP v4.19.  A set of specification files that does not trigger any deprecation
+warnings with SIP v4.19 will work unchanged with SIP v5.0.
+
+It will be possible to install SIP v4 and SIP v5 for the same Python
+installation without conflict.
+
+New releases of SIP v4.19 and SIP v5.0 will be made in parallel.  During this
+period projects should update their build systems to use SIP v5.  When SIP v5.1
+is released no more SIP v4.19 releases will be made.  It is guaranteed that
+there will be a minimum of six months between the releases of SIP v5.0 and SIP
+v5.1.
+
+SIP v5 will introduce a formal end-of-life policy for Python versions.  When a
+Python version reaches it's end-of-life, support for it will be removed in the
+next minor release of SIP v5.  For example, if the current version of SIP is
+v5.x.y then the support will be removed in v5.x+1.0.  Specifically, SIP v5.0
+will only support Python v3.5 and later.
 
 
 Qt Support
 ----------
 
 SIP has specific support for the creation of bindings for the Qt application
-toolkit from The Qt Company..
+toolkit from The Qt Company.
 
 The SIP code generator understands the signal/slot type safe callback mechanism
 that Qt uses to connect objects together.  This allows applications to define

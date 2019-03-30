@@ -1,3 +1,18 @@
+v4.19.15 19th March 2019
+  - Bug fixes.
+
+v4.19.14 10th February 2019
+  - The reference count displayed by sip.dump() now has the same caveat as
+    sys.getrefcount().
+  - Added SIP_NULLPTR to the public API.
+  - Added support for size_t.
+  - Added sipLong_AsSizeT() to the C API.
+  - Added the '=' format characters to sipBuildResult() and sipParseResult().
+  - Bug fixes.
+
+v4.19.13 1st October 2018
+  - Bug fixes.
+
 v4.19.12 8th July 2018
   - Added the --no-module option to configure.py.
   - Bug fixes.

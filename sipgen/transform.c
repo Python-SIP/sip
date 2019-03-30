@@ -1,7 +1,7 @@
 /*
  * The parse tree transformation module for SIP.
  *
- * Copyright (c) 2017 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2019 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -89,7 +89,8 @@ static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd);
 static classDef *findAltClassImplementation(sipSpec *pt, mappedTypeDef *mtd);
 static ifaceFileDef *getIfaceFile(argDef *ad);
 static ifaceFileDef *getIfaceFileForEnum(enumDef *ed);
-static mappedTypeDef *instantiateMappedTypeTemplate(sipSpec *pt, moduleDef *mod, mappedTypeTmplDef *mtt, argDef *type);
+static void instantiateMappedTypeTemplate(sipSpec *pt, moduleDef *mod,
+        mappedTypeTmplDef *mtt, argDef *type);
 static classDef *getProxy(moduleDef *mod, classDef *cd);
 static int generatingCodeForModule(sipSpec *pt, moduleDef *mod);
 static void checkAssignmentHelper(sipSpec *pt, classDef *cd);
@@ -530,6 +531,7 @@ static void addComplementarySlot(sipSpec *pt, classDef *cd, memberDef *md,
         resetIsVirtual(od2);
         setIsComplementary(od2);
         od2->common = md2;
+        od2->cppname = cslot_name;
 
         od2->next = cd->overs;
         cd->overs = od2;
@@ -959,6 +961,9 @@ static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd)
         }
 
         /* Move the overload to the end of the destination list. */
+        if (second)
+            setIsReflected(od);
+
         setIsPublic(od);
         setIsGlobal(od);
         od->common = md;
@@ -1261,34 +1266,26 @@ static void setHierarchy(sipSpec *pt, classDef *base, classDef *cd,
 
 
 /*
- * Append a class definition to an mro list
+ * Append a class definition to an MRO list
  */
-static void appendToMRO(mroDef *head,mroDef ***tailp,classDef *cd)
+static void appendToMRO(mroDef *head, mroDef ***tailp, classDef *cd)
 {
-    mroDef *mro, *new;
+    mroDef *mro;
 
-    new = sipMalloc(sizeof (mroDef));
+    /* Ignore if it is already in the MRO. */
+    for (mro = head; mro != NULL; mro = mro->next)
+        if (mro->cd == cd)
+            return;
 
-    new -> cd = cd;
-    new -> mroflags = 0;
-    new -> next = NULL;
+    mro = sipMalloc(sizeof (mroDef));
 
-    /* See if it is a duplicate. */
-
-    for (mro = head; mro != NULL; mro = mro -> next)
-        if (mro -> cd == cd)
-        {
-            setIsDuplicateSuper(new);
-
-            if (!isDuplicateSuper(mro))
-                setHasDuplicateSuper(mro);
-
-            break;
-        }
+    mro -> cd = cd;
+    mro -> mroflags = 0;
+    mro -> next = NULL;
 
     /* Append to the list and update the tail pointer. */
-    **tailp = new;
-    *tailp = &new -> next;
+    **tailp = mro;
+    *tailp = &mro->next;
 }
 
 
@@ -1406,9 +1403,6 @@ static void addDefaultCopyCtor(classDef *cd)
     for (mro = cd->mro; mro != NULL; mro = mro->next)
     {
         ctorDef *ct;
-
-        if (isDuplicateSuper(mro))
-            continue;
 
         for (ct = mro->cd->ctors; ct != NULL; ct = ct->next)
         {
@@ -1581,9 +1575,6 @@ static void getVisiblePyMembers(sipSpec *pt, classDef *cd)
     {
         memberDef *md;
         classDef *mro_cd;
-
-        if (isDuplicateSuper(mro))
-            continue;
 
         mro_cd = mro->cd;
 
@@ -2202,6 +2193,7 @@ static void resolveVariableType(sipSpec *pt, varDef *vd)
     case ulonglong_type:
     case longlong_type:
     case ssize_type:
+    case size_type:
     case pyobject_type:
     case pytuple_type:
     case pylist_type:
@@ -2346,6 +2338,7 @@ static int supportedType(classDef *cd,overDef *od,argDef *ad,int outputs)
     case ulonglong_type:
     case longlong_type:
     case ssize_type:
+    case size_type:
     case pyobject_type:
     case pytuple_type:
     case pylist_type:
@@ -2602,8 +2595,8 @@ int sameSignature(signatureDef *sd1, signatureDef *sd2, int strict)
 #define pyAsFloat(t)    ((t) == cfloat_type || (t) == float_type || \
             (t) == cdouble_type || (t) == double_type)
 #define pyAsInt(t)  ((t) == bool_type || (t) == ssize_type || \
-            (t) == byte_type || (t) == sbyte_type || (t) == ubyte_type || \
-            (t) == short_type || (t) == ushort_type || \
+            (t) == size_type || (t) == byte_type || (t) == sbyte_type || \
+            (t) == ubyte_type || (t) == short_type || (t) == ushort_type || \
             (t) == cint_type || (t) == int_type || (t) == uint_type)
 #define pyAsLong(t) ((t) == long_type || (t) == longlong_type)
 #define pyAsULong(t)    ((t) == ulong_type || (t) == ulonglong_type)
@@ -2918,9 +2911,6 @@ static void scopeDefaultValue(sipSpec *pt,classDef *cd,argDef *ad)
         {
             enumDef *ed;
 
-            if (isDuplicateSuper(mro))
-                continue;
-
             for (ed = pt -> enums; ed != NULL; ed = ed -> next)
             {
                 enumMemberDef *emd;
@@ -3040,9 +3030,7 @@ static void resolveType(sipSpec *pt, moduleDef *mod, classDef *c_scope,
             for (mtt = pt->mappedtypetemplates; mtt != NULL; mtt = mtt->next)
                 if (compareScopedNames(mtt->mt->type.u.td->fqname, type->u.td->fqname) == 0 && sameTemplateSignature(&mtt->mt->type.u.td->types, &type->u.td->types, TRUE))
                 {
-                    type->u.mtd = instantiateMappedTypeTemplate(pt, mod, mtt, type);
-                    type->atype = mapped_type;
-
+                    instantiateMappedTypeTemplate(pt, mod, mtt, type);
                     break;
                 }
         }
@@ -3144,9 +3132,10 @@ static void resolveInstantiatedClassTemplate(sipSpec *pt, argDef *type)
 
 
 /*
- * Instantiate a mapped type template and return it.
+ * Instantiate a mapped type template.
  */
-static mappedTypeDef *instantiateMappedTypeTemplate(sipSpec *pt, moduleDef *mod, mappedTypeTmplDef *mtt, argDef *type)
+static void instantiateMappedTypeTemplate(sipSpec *pt, moduleDef *mod,
+        mappedTypeTmplDef *mtt, argDef *type)
 {
     scopedNameDef *type_names, *type_values;
     mappedTypeDef *mtd;
@@ -3201,7 +3190,13 @@ static mappedTypeDef *instantiateMappedTypeTemplate(sipSpec *pt, moduleDef *mod,
 
     mtd = copyTemplateType(mtd, type);
 
-    return mtd;
+    /* Replace the template with the mapped type. */
+    type->atype = mapped_type;
+    type->typehint_in = mtd->typehint_in;
+    type->typehint_out = mtd->typehint_out;
+    type->typehint_value = mtd->typehint_value;
+
+    type->u.mtd = mtd;
 }
 
 
@@ -3278,9 +3273,6 @@ static void searchClassScope(sipSpec *pt, classDef *c_scope,
 
     for (mro = c_scope->mro; mro != NULL; mro = mro->next)
     {
-        if (isDuplicateSuper(mro))
-            continue;
-
         searchScope(pt, mro->cd, snd, ad);
 
         if (ad->atype != no_type)

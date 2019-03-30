@@ -353,7 +353,7 @@ file.
 
     *base-type* ::= [*scoped-name* | *template* | **struct** *scoped-name* |
             **char** | **signed char** | **unsigned char** | **wchar_t** |
-            **int** | **unsigned** | **unsigned int** |
+            **int** | **unsigned** | **unsigned int** | **size_t** |
             **short** | **unsigned short** |
             **long** | **unsigned long** |
             **long long** | **unsigned long long** |

@@ -540,32 +540,13 @@ list of ``QWidget`` instances::
         *code*
     %End
 
-When SIP needs to wrap a C++ class instance it first checks to make sure it
-hasn't already done so.  If it has then it just returns a new reference to the
-corresponding Python object.  Otherwise it creates a new Python object of the
-appropriate type.  In C++ a function may be defined to return an instance of a
-certain class, but can often return a sub-class instead.
-
-This directive is used to specify handwritten code that exploits any available
-real-time type information (RTTI) to see if there is a more specific Python
-type that can be used when wrapping the C++ instance.  The RTTI may be
-provided by the compiler or by the C++ instance itself.
-
-The directive is included in the specification of one of the classes that the
-handwritten code handles the type conversion for.  It doesn't matter which
-one, but a sensible choice would be the one at the root of that class
-hierarchy in the module.
-
-Note that if a class hierarchy extends over a number of modules then this
-directive should be used in each of those modules to handle the part of the
-hierarchy defined in that module.  SIP will ensure that the different pieces
-of code are called in the right order to determine the most specific Python
-type to use.
+This directive is fully described in :ref:`ref-subclass-convertors`.
 
 The following variables are made available to the handwritten code:
 
 *type* \*sipCpp
-    This is a pointer to the C++ class instance.
+    This is a pointer to the C++ class instance.  It's type is the base class
+    of the convertor.
 
 void \*\*sipCppRet
     When the sub-class is derived from more than one super-class then it is
