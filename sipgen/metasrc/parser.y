@@ -297,7 +297,6 @@ static scopedNameDef *fullyQualifiedName(scopedNameDef *snd);
 %token          TK_MODHEADERCODE
 %token          TK_TYPEHEADERCODE
 %token          TK_MODULE
-%token          TK_CMODULE
 %token          TK_COMPOMODULE
 %token          TK_CLASS
 %token          TK_STRUCT
@@ -1803,14 +1802,6 @@ module: TK_MODULE module_args module_body {
                         $2.kwargs, $2.use_arg_names, $2.use_limited_api,
                         $2.call_super_init, $2.all_raise_py_exc,
                         $2.def_error_handler, $3.docstring);
-        }
-    |   TK_CMODULE dottedname optnumber {
-            deprecated("%CModule is deprecated, use %Module and the 'language' argument instead");
-
-            if (notSkipping())
-                currentModule = configureModule(currentSpec, currentModule,
-                        currentContext.filename, $2, TRUE, defaultKwArgs,
-                        FALSE, FALSE, -1, FALSE, NULL, NULL);
         }
     ;
 

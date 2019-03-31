@@ -356,27 +356,6 @@ PyObject \*sipSelf
     ``self``.
 
 
-.. directive:: %CModule
-
-.. deprecated:: 4.12
-    Use the :directive:`%Module` directive with the ``language`` argument set
-    to ``"C"`` instead.
-
-.. parsed-literal::
-
-    %CModule *name* [*version*]
-
-This directive is used to identify that the library being wrapped is a C
-library and to define the name of the module and it's optional version number.
-
-See the :directive:`%Module` directive for an explanation of the version
-number.
-
-For example::
-
-    %CModule dbus 1
-
-
 .. directive:: %CompositeModule
 
 .. parsed-literal::
