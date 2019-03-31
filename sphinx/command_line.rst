@@ -75,15 +75,6 @@ The full set of command line options is:
     ``make``.  By default 1 file is generated for each C structure or C++
     class.
 
-.. cmdoption:: -k
-
-    .. deprecated:: 4.12
-        Use the ``keyword_arguments="All"`` :directive:`%Module` directive
-        argument instead.
-
-    All functions and methods will, by default, support passing parameters
-    using the Python keyword argument syntax.
-
 .. cmdoption:: -n <NAME>
 
     The fully qualified name of the private copy of the :mod:`sip` module.

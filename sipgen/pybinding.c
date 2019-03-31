@@ -210,15 +210,14 @@ static PyObject *py_parse(PyObject *self, PyObject *args)
     FILE *file;
     char *filename;
     stringList *versions, *backstops, *xfeatures;
-    int strict, allKwArgs, protHack;
+    int strict, protHack;
 
-    if (!PyArg_ParseTuple(args, "O&pO&O&O&pp",
+    if (!PyArg_ParseTuple(args, "O&pO&O&O&p",
             fs_convertor, &filename,
             &strict,
             stringList_convertor, &versions,
             stringList_convertor, &backstops,
             stringList_convertor, &xfeatures,
-            &allKwArgs,
             &protHack))
         return NULL;
 
@@ -234,8 +233,8 @@ static PyObject *py_parse(PyObject *self, PyObject *args)
         filename = "stdin";
     }
 
-    parse(pt, file, filename, strict, versions, backstops, xfeatures,
-            (allKwArgs ? AllKwArgs : NoKwArgs), protHack);
+    parse(pt, file, filename, strict, versions, backstops, xfeatures, NoKwArgs,
+            protHack);
 
     return PyCapsule_New(pt, NULL, NULL);
 }

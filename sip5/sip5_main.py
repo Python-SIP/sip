@@ -77,10 +77,6 @@ def main():
                     "class]",
             metavar="FILES")
 
-    parser.add_argument('-k', dest='allKwArgs', action='store_true',
-            default=False,
-            help="support keyword arguments in functions and methods")
-
     parser.add_argument('-m', dest='xmlFile',
             help="the name of the XML export file [default not generated]",
             metavar="FILE")
@@ -152,7 +148,7 @@ def main():
 
     # Parse the input file.
     pt = parse(args.filename, strict, args.versions, args.backstops,
-            args.xfeatures, args.allKwArgs, args.protHack)
+            args.xfeatures, args.protHack)
 
     # Verify and transform the parse tree.
     transform(pt, strict)
