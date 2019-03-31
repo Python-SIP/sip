@@ -172,9 +172,8 @@ static PyObject *py_generateCode(PyObject *self, PyObject *args)
             &sipName))
         return NULL;
 
-    generateCode(pt, codeDir, NULL, NULL, srcSuffix, exceptions, tracing,
-            releaseGIL, parts, versions, xfeatures, NULL, docs, py_debug,
-            sipName);
+    generateCode(pt, codeDir, NULL, srcSuffix, exceptions, tracing, releaseGIL,
+            parts, versions, xfeatures, NULL, docs, py_debug, sipName);
 
     Py_RETURN_NONE;
 }

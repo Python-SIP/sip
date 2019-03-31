@@ -70,10 +70,6 @@ static int docstrings;                  /* Set if generating docstrings. */
 
 
 static void generateDocumentation(sipSpec *pt, const char *docFile);
-static void generateBuildFile(sipSpec *pt, const char *buildFile,
-        const char *srcSuffix, const char *consModule);
-static void generateBuildFileSources(sipSpec *pt, moduleDef *mod,
-        const char *srcSuffix, FILE *fp);
 static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
         const char *codeDir, stringList *needed_qualifiers, stringList *xsl,
         int py_debug);
@@ -311,7 +307,7 @@ static void normaliseSignalArg(argDef *ad);
 /*
  * Generate the code from a specification.
  */
-void generateCode(sipSpec *pt, char *codeDir, char *buildFile, char *docFile,
+void generateCode(sipSpec *pt, char *codeDir, char *docFile,
         const char *srcSuffix, int except, int trace, int releaseGIL,
         int parts, stringList *needed_qualifiers, stringList *xsl,
         const char *consModule, int docs, int py_debug, const char *sipName)
@@ -351,10 +347,6 @@ void generateCode(sipSpec *pt, char *codeDir, char *buildFile, char *docFile,
             generateCpp(pt, pt->module, codeDir, srcSuffix, parts,
                     needed_qualifiers, xsl, py_debug, sipName);
     }
-
-    /* Generate the build file. */
-    if (buildFile != NULL)
-        generateBuildFile(pt, buildFile, srcSuffix, consModule);
 }
 
 
@@ -372,96 +364,6 @@ static void generateDocumentation(sipSpec *pt, const char *docFile)
         fputs(cbl->block->frag, fp);
 
     closeFile(fp);
-}
-
-
-/*
- * Generate the build file.
- */
-static void generateBuildFile(sipSpec *pt, const char *buildFile,
-        const char *srcSuffix, const char *consModule)
-{
-    const char *mname = pt->module->name;
-    FILE *fp;
-
-    fp = createFile(pt->module, buildFile, NULL);
-
-    prcode(fp, "target = %s\nsources =", mname);
-
-    if (isComposite(pt->module))
-        prcode(fp, " sip%scmodule.c", mname);
-    else if (isConsolidated(pt->module))
-    {
-        moduleDef *mod;
-
-        for (mod = pt->modules; mod != NULL; mod = mod->next)
-            if (mod->container == pt->module)
-                generateBuildFileSources(pt, mod, srcSuffix, fp);
-
-        prcode(fp, " sip%scmodule%s", mname, srcSuffix);
-    }
-    else if (consModule == NULL)
-        generateBuildFileSources(pt, pt->module, srcSuffix, fp);
-    else
-        prcode(fp, " sip%scmodule.c", mname);
-
-    if (isConsolidated(pt->module))
-    {
-        moduleDef *mod;
-
-        prcode(fp, "\nheaders =");
-
-        for (mod = pt->modules; mod != NULL; mod = mod->next)
-            if (mod->container == pt->module)
-                prcode(fp, " sipAPI%s.h", mod->name);
-    }
-    else if (!isComposite(pt->module) && consModule == NULL)
-        prcode(fp, "\nheaders = sipAPI%s.h", mname);
-
-    prcode(fp, "\n");
-
-    closeFile(fp);
-}
-
-
-/*
- * Generate the list of source files for a module.
- */
-static void generateBuildFileSources(sipSpec *pt, moduleDef *mod,
-        const char *srcSuffix, FILE *fp)
-{
-    const char *mname = mod->name;
-
-    if (mod->parts)
-    {
-        int p;
-
-        for (p = 0; p < mod->parts; ++p)
-            prcode(fp, " sip%spart%d%s", mname, p, srcSuffix);
-    }
-    else
-    {
-        ifaceFileDef *iff;
-
-        prcode(fp, " sip%scmodule%s", mname, srcSuffix);
-
-        for (iff = pt->ifacefiles; iff != NULL; iff = iff->next)
-        {
-            if (iff->module != mod)
-                continue;
-
-            if (iff->type == exception_iface)
-                continue;
-
-            if (emptyIfaceFile(pt, iff))
-                continue;
-
-            if (iff->api_range != NULL)
-                prcode(fp, " sip%s%F_%d%s", mname, iff->fqcname, iff->api_range->index, srcSuffix);
-            else
-                prcode(fp, " sip%s%F%s", mname, iff->fqcname, srcSuffix);
-        }
-    }
 }
 
 
