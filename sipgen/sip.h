@@ -1520,13 +1520,6 @@ typedef struct _compModuleCfg {
     docstringDef *docstring;
 } compModuleCfg;
 
-/* %ConsolidatedModule */
-typedef struct _consModuleCfg {
-    int token;
-    const char *name;
-    docstringDef *docstring;
-} consModuleCfg;
-
 /* %DefaultDocstringFormat */
 typedef struct _defDocstringFmtCfg {
     int token;
