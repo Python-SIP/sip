@@ -270,7 +270,6 @@ static scopedNameDef *fullyQualifiedName(scopedNameDef *snd);
 %token          TK_UNITPOSTINCLUDECODE
 %token          TK_MODCODE
 %token          TK_TYPECODE
-%token          TK_PREPYCODE
 %token          TK_COPYING
 %token          TK_MAPPEDTYPE
 %token <codeb>  TK_CODELINE
@@ -622,7 +621,6 @@ modstatement:   module
     |   postinitcode
     |   unitcode
     |   unitpostinccode
-    |   prepycode
     |   exptypehintcode
     |   modtypehintcode
     |   doc
@@ -2374,11 +2372,6 @@ unitcode:   TK_UNITCODE codeblock {
 unitpostinccode:    TK_UNITPOSTINCLUDECODE codeblock {
             if (notSkipping())
                 appendCodeBlock(&currentModule->unitpostinccode, $2);
-        }
-    ;
-
-prepycode:  TK_PREPYCODE codeblock {
-            /* Deprecated. */
         }
     ;
 

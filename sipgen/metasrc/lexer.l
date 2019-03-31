@@ -505,14 +505,6 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
     return TK_PICKLECODE;
 }
 
-^[ \t]*%PrePythonCode {
-    /* The start of a pre-Python code block. */
-    deprecated("%PrePythonCode is deprecated");
-
-    codeIdx = 0;
-    return TK_PREPYCODE;
-}
-
 ^[ \t]*%RaiseCode {
     /* The start of a raise Python exception code block. */
     codeIdx = 0;
