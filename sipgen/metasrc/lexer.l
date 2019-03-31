@@ -77,7 +77,6 @@ static void fatallex(char *);
 ^[ \t]*%AutoPyName          {BEGIN directive_start; return TK_AUTOPYNAME;}
 ^[ \t]*%CModule             {return TK_CMODULE;}
 ^[ \t]*%CompositeModule     {BEGIN directive_start; return TK_COMPOMODULE;}
-^[ \t]*%ConsolidatedModule  {BEGIN directive_start; return TK_CONSMODULE;}
 ^[ \t]*%DefaultDocstringFormat  {BEGIN directive_start; return TK_DEFDOCSTRFMT;}
 ^[ \t]*%DefaultDocstringSignature   {BEGIN directive_start; return TK_DEFDOCSTRSIG;}
 ^[ \t]*%DefaultEncoding     {BEGIN directive_start; return TK_DEFENCODING;}

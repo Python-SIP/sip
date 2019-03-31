@@ -414,50 +414,6 @@ The main purpose of a composite module is as a programmer convenience as they
 don't have to remember which individual module an object is defined in.
 
 
-.. directive:: %ConsolidatedModule
-
-.. deprecated:: 4.16.2
-    This will not be supported in SIP v5.
-
-.. parsed-literal::
-
-    %ConsolidatedModule(name = *dotted-name*)
-    {
-        [:directive:`%Docstring`]
-    };
-
-A consolidated module is one that consolidates the wrapper code of a number of
-SIP generated modules (refered to as component modules in this context).
-
-This directive is used to specify the name of a consolidated module.  Any
-subsequent :directive:`%Module` directive is interpreted as defining a
-component module.
-
-The optional :directive:`%Docstring` sub-directive is used to specify the
-module's docstring.
-
-For example::
-
-    %ConsolidatedModule PyQt4._qt
-    %Include QtCore/QtCoremod.sip
-    %Include QtGui/QtGuimod.sip
-
-A consolidated module is not intended to be explicitly imported by an
-application.  Instead it is imported by its component modules when they
-themselves are imported.
-
-Normally the wrapper code is contained in the component module and is linked
-against the corresponding C or C++ library.  The advantage of a consolidated
-module is that it allows all of the wrapped C or C++ libraries to be linked
-against a single module.  If the linking is done statically then deployment of
-generated modules can be greatly simplified.
-
-It follows that a component module can be built in one of two ways, as a
-normal standalone module, or as a component of a consolidated module.  When
-building as a component the ``-p`` command line option should be used to
-specify the name of the consolidated module.
-
-
 .. directive:: %ConvertFromTypeCode
 
 .. parsed-literal::

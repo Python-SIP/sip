@@ -223,7 +223,6 @@ static scopedNameDef *fullyQualifiedName(scopedNameDef *snd);
     apiCfg          api;
     autoPyNameCfg   autopyname;
     compModuleCfg   compmodule;
-    consModuleCfg   consmodule;
     defDocstringFmtCfg  defdocstringfmt;
     defDocstringSigCfg  defdocstringsig;
     defEncodingCfg  defencoding;
@@ -300,7 +299,6 @@ static scopedNameDef *fullyQualifiedName(scopedNameDef *snd);
 %token          TK_TYPEHEADERCODE
 %token          TK_MODULE
 %token          TK_CMODULE
-%token          TK_CONSMODULE
 %token          TK_COMPOMODULE
 %token          TK_CLASS
 %token          TK_STRUCT
@@ -442,7 +440,6 @@ static scopedNameDef *fullyQualifiedName(scopedNameDef *snd);
 %type <docstr>          optdocstring
 %type <docstr>          docstring
 %type <text>            operatorname
-%type <text>            optfilename
 %type <text>            optname
 %type <text>            dottedname
 %type <text>            name_or_string
@@ -480,13 +477,6 @@ static scopedNameDef *fullyQualifiedName(scopedNameDef *snd);
 %type <compmodule>      compmodule_body
 %type <compmodule>      compmodule_body_directives
 %type <compmodule>      compmodule_body_directive
-
-%type <consmodule>      consmodule_args
-%type <consmodule>      consmodule_arg_list
-%type <consmodule>      consmodule_arg
-%type <consmodule>      consmodule_body
-%type <consmodule>      consmodule_body_directives
-%type <consmodule>      consmodule_body_directive
 
 %type <defdocstringfmt> defdocstringfmt_args
 %type <defdocstringfmt> defdocstringfmt_arg_list
@@ -592,7 +582,6 @@ statement:  {
     ;
 
 modstatement:   module
-    |   consmodule
     |   compmodule
     |   plugin
     |   copying
@@ -1720,94 +1709,6 @@ hiddenns_arg:   TK_NAME '=' scopedname {
         }
     ;
 
-consmodule: TK_CONSMODULE consmodule_args consmodule_body {
-            deprecated("%ConsolidatedModule is deprecated and will not be supported by SIP v5");
-
-            if (notSkipping())
-            {
-                /* Make sure this is the first mention of a module. */
-                if (currentSpec->module != currentModule)
-                    yyerror("A %ConsolidatedModule cannot be %Imported");
-
-                if (currentModule->fullname != NULL)
-                    yyerror("%ConsolidatedModule must appear before any %Module or %CModule directive");
-
-                setModuleName(currentSpec, currentModule, $2.name);
-                currentModule->docstring = $3.docstring;
-
-                setIsConsolidated(currentModule);
-            }
-        }
-    ;
-
-consmodule_args:    dottedname {
-            resetLexerState();
-
-            $$.name = $1;
-        }
-    |   '(' consmodule_arg_list ')' {
-            $$ = $2;
-        }
-    ;
-
-consmodule_arg_list:    consmodule_arg
-    |   consmodule_arg_list ',' consmodule_arg {
-            $$ = $1;
-
-            switch ($3.token)
-            {
-            case TK_NAME: $$.name = $3.name; break;
-            }
-        }
-    ;
-
-consmodule_arg: TK_NAME '=' dottedname {
-            $$.token = TK_NAME;
-
-            $$.name = $3;
-        }
-    ;
-
-consmodule_body:    {
-            $$.token = 0;
-            $$.docstring = NULL;
-        }
-    |   '{' consmodule_body_directives '}' ';' {
-            $$ = $2;
-        }
-    ;
-
-consmodule_body_directives: consmodule_body_directive
-    |   consmodule_body_directives consmodule_body_directive {
-            $$ = $1;
-
-            switch ($2.token)
-            {
-            case TK_DOCSTRING: $$.docstring = $2.docstring; break;
-            }
-        }
-    ;
-
-consmodule_body_directive:  ifstart {
-            $$.token = TK_IF;
-        }
-    |   ifend {
-            $$.token = TK_END;
-        }
-    |   docstring {
-            if (notSkipping())
-            {
-                $$.token = TK_DOCSTRING;
-                $$.docstring = $1;
-            }
-            else
-            {
-                $$.token = 0;
-                $$.docstring = NULL;
-            }
-        }
-    ;
-
 compmodule: TK_COMPOMODULE compmodule_args compmodule_body {
             if (notSkipping())
             {
@@ -2641,14 +2542,6 @@ optenumkey: {
         }
     |   TK_STRUCT {
             $$ = TRUE;
-        }
-    ;
-
-optfilename:    {
-            $$ = NULL;
-        }
-    |   TK_PATH_VALUE {
-            $$ = $1;
         }
     ;
 
