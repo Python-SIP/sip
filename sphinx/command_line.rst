@@ -24,24 +24,13 @@ The full set of command line options is:
 
 .. cmdoption:: -a <FILE>
 
-    .. deprecated:: 4.18
-
     The name of the QScintilla API file to generate.  This file contains a
     description of the module API in a form that the QScintilla editor
     component can use for auto-completion and call tips.  (The file may also be
     used by the SciTE editor but must be sorted first.)  By default the file is
     not generated.
 
-.. cmdoption:: -b <FILE>
-
-    The name of the build file to generate.  This file contains the information
-    about the module needed by the :ref:`SIP build system <ref-build-system>`
-    to generate a platform and compiler specific Makefile for the module.  By
-    default the file is not generated.
-
 .. cmdoption:: -B <TAG>
-
-    .. versionadded:: 4.16
 
     The tag is added to the list of *backstops*.  The option may be given more
     than once if multiple timelines have been defined.  See the
@@ -52,19 +41,7 @@ The full set of command line options is:
     The name of the directory (which must exist) into which all of the
     generated C or C++ code is placed.  By default no code is generated.
 
-.. cmdoption:: -d <FILE>
-
-    .. deprecated:: 4.12
-        Use the :option:`-X <sip -X>` option instead.
-
-    The name of the documentation file to generate.  Documentation is included
-    in specification files using the :directive:`%Doc` and
-    :directive:`%ExportedDoc` directives.  By default the file is not
-    generated.
-
 .. cmdoption:: -D
-
-    .. versionadded:: 4.19.1
 
     Code is generated for a debug build of Python.
 
@@ -75,8 +52,6 @@ The full set of command line options is:
     converted to Python exceptions.  By default exception support is disabled.
 
 .. cmdoption:: -f
-
-    .. versionadded:: 4.18
 
     Warnings are handled as if they were errors and the program terminates.
 
@@ -102,8 +77,6 @@ The full set of command line options is:
 
 .. cmdoption:: -k
 
-    .. versionadded:: 4.10
-
     .. deprecated:: 4.12
         Use the ``keyword_arguments="All"`` :directive:`%Module` directive
         argument instead.
@@ -113,27 +86,16 @@ The full set of command line options is:
 
 .. cmdoption:: -n <NAME>
 
-    .. versionadded:: 4.19.9
-
     The fully qualified name of the private copy of the :mod:`sip` module.
     See also the :option:`--sip-module <configure.py --sip-module>` option of
     the installation script.
 
 .. cmdoption:: -o
 
-    .. versionadded:: 4.10
-
     Docstrings will be automatically generated that describe the signature of
     all functions, methods and constructors.
 
-.. cmdoption:: -p <MODULE>
-
-    The name of the :directive:`%ConsolidatedModule` which will contain the
-    wrapper code for this component module.
-
 .. cmdoption:: -P
-
-    .. versionadded:: 4.10
 
     By default SIP generates code to provide access to protected C++ functions
     from Python.  On some platforms (notably Linux, but not Windows) this code
@@ -159,16 +121,6 @@ The full set of command line options is:
     to generate code for.  This option may be given any number of times so long
     as the tags do not conflict.
 
-.. cmdoption:: -T
-
-    .. deprecated:: 4.16.6
-        This option is now ignored and timestamps are always disabled.
-
-    By default the generated C and C++ source and header files include a
-    timestamp specifying when they were generated.  This option disables the
-    timestamp so that the contents of the generated files remain constant for a
-    particular version of SIP.
-
 .. cmdoption:: -w
 
     The display of warning messages is enabled.  By default warning messages
@@ -181,25 +133,14 @@ The full set of command line options is:
 
 .. cmdoption:: -X <ID:FILE>
 
-    .. versionadded:: 4.12
-
     The extract (defined with the :directive:`%Extract` directive) with the
     identifier ``ID`` is written to the file ``FILE``.
 
 .. cmdoption:: -y <FILE>
 
-    .. versionadded:: 4.18
-
     The name of the Python type hints stub file to generate.  This file
     contains a description of the module API that is compliant with PEP 484.
     By default the file is not generated.
-
-.. cmdoption:: -z <FILE>
-
-    .. deprecated:: 4.16.6
-        Use the ``@<FILE>`` style instead.
-
-    The name of a file containing more command line options.
 
 Command line options can also be placed in a file and passed on the command
 line using the ``@`` prefix.
