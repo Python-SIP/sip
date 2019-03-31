@@ -255,7 +255,6 @@ static scopedNameDef *fullyQualifiedName(scopedNameDef *snd);
 %token          TK_EXPTYPEHINTCODE
 %token          TK_TYPEHINTCODE
 %token          TK_DOCSTRING
-%token          TK_DOC
 %token          TK_EXPORTEDDOC
 %token          TK_EXTRACT
 %token          TK_MAKEFILE
@@ -623,7 +622,6 @@ modstatement:   module
     |   unitpostinccode
     |   exptypehintcode
     |   modtypehintcode
-    |   doc
     |   exporteddoc
     |   extract
     |   makefile
@@ -2389,12 +2387,6 @@ modtypehintcode: TK_TYPEHINTCODE codeblock {
 
 classtypehintcode: TK_TYPEHINTCODE codeblock {
             $$ = $2;
-        }
-    ;
-
-doc:        TK_DOC codeblock {
-            if (notSkipping() && inMainModule())
-                appendCodeBlock(&currentSpec->docs, $2);
         }
     ;
 

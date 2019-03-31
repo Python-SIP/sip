@@ -881,38 +881,6 @@ For example::
     %DefaultSupertype sip.simplewrapper
 
 
-.. directive:: %Doc
-
-.. deprecated:: 4.12
-    Use the :directive:`%Extract` directive instead.
-
-.. parsed-literal::
-
-    %Doc
-        *text*
-    %End
-
-This directive is used to specify some arbitrary text that will be extracted
-by SIP when the ``-d`` command line option is used.  The directive can be
-specified any number of times and SIP will concatenate all the separate pieces
-of text in the order that it sees them.
-
-Documentation that is specified using this directive is local to the module in
-which it appears.  It is ignored by modules that :directive:`%Import` it.  Use
-the :directive:`%ExportedDoc` directive for documentation that should be
-included by all modules that :directive:`%Import` this one.
-
-For example::
-
-    %Doc
-    <h1>An Example</h1>
-    <p>
-    This fragment of documentation is HTML and is local to the module in
-    which it is defined.
-    </p>
-    %End
-
-
 .. directive:: %Docstring
 
 .. versionadded:: 4.10

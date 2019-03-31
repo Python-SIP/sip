@@ -532,14 +532,6 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
     return TK_DOCSTRING;
 }
 
-^[ \t]*%Doc {
-    /* The start of a documentation block. */
-    deprecated("%Doc is deprecated, use %Extract instead");
-
-    codeIdx = 0;
-    return TK_DOC;
-}
-
 ^[ \t]*%ExportedDoc {
     /* The start of an exported documentation block. */
     deprecated("%ExportedDoc is deprecated, use %Extract instead");
