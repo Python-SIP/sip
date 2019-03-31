@@ -17,22 +17,11 @@
  */
 
 
-#include <stdarg.h>
 #include <stdio.h>
-#include <string.h>
 
 #include <Python.h>
 
 #include "sip.h"
-
-
-/* Global variables. */
-unsigned sipVersion;
-const char *sipVersionStr;
-stringList *includeDirList;
-
-static int warnings = FALSE;
-static int warnings_are_fatal = FALSE;
 
 
 /* Forward declarations. */
@@ -80,107 +69,6 @@ PyMODINIT_FUNC PyInit_code_generator(void)
     };
 
     return PyModule_Create(&module_def);
-}
-
-
-/*
- * Append a string to a list of them.
- */
-void appendString(stringList **headp, const char *s)
-{
-    stringList *sl;
-
-    /* Create the new entry. */
-
-    sl = sipMalloc(sizeof (stringList));
-
-    sl -> s = s;
-    sl -> next = NULL;
-
-    /* Append it to the list. */
-
-    while (*headp != NULL)
-        headp = &(*headp) -> next;
-
-    *headp = sl;
-}
-
-
-/*
- * Display a warning message.
- */
-void warning(Warning w, const char *fmt, ...)
-{
-    static int start = TRUE;
-
-    va_list ap;
-
-    /* Don't allow deprecation warnings to be suppressed. */
-    if (!warnings && w != DeprecationWarning)
-        return;
-
-    if (start)
-    {
-        const char *wstr;
-
-        switch (w)
-        {
-        case ParserWarning:
-            wstr = "Parser warning";
-            break;
-
-        case DeprecationWarning:
-            wstr = "Deprecation warning";
-            break;
-        }
-
-        fprintf(stderr, "sip5: %s: ", wstr);
-        start = FALSE;
-    }
-
-    va_start(ap, fmt);
-    vfprintf(stderr, fmt, ap);
-    va_end(ap);
-
-    if (strchr(fmt, '\n') != NULL)
-    {
-        if (warnings_are_fatal)
-            exit(1);
-
-        start = TRUE;
-    }
-}
-
-
-/*
- * Display all or part of a one line error message describing a fatal error.
- */
-void fatal(const char *fmt,...)
-{
-    va_list ap;
-
-    fatalStart();
-
-    va_start(ap,fmt);
-    vfprintf(stderr,fmt,ap);
-    va_end(ap);
-
-    exit(1);
-}
-
-
-/*
- * Make sure the start of a fatal message is handled.
- */
-void fatalStart()
-{
-    static int start = TRUE;
-
-    if (start)
-    {
-        fprintf(stderr, "sip5: ");
-        start = FALSE;
-    }
 }
 
 
@@ -233,7 +121,7 @@ static PyObject *py_parse(PyObject *self, PyObject *args)
         filename = "stdin";
     }
 
-    parse(pt, file, filename, strict, versions, backstops, xfeatures, NoKwArgs,
+    parse(pt, file, filename, strict, versions, backstops, xfeatures,
             protHack);
 
     return PyCapsule_New(pt, NULL, NULL);

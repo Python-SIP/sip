@@ -4753,8 +4753,7 @@ exceptionlist:  {
  * Parse the specification.
  */
 void parse(sipSpec *spec, FILE *fp, char *filename, int strict,
-        stringList *tsl, stringList *bsl, stringList *xfl, KwArgs kwArgs,
-        int protHack)
+        stringList *tsl, stringList *bsl, stringList *xfl, int protHack)
 {
     classTmplDef *tcd;
 
@@ -4781,7 +4780,7 @@ void parse(sipSpec *spec, FILE *fp, char *filename, int strict,
     currentPlatforms = NULL;
     currentScopeIdx = 0;
     sectionFlags = 0;
-    defaultKwArgs = kwArgs;
+    defaultKwArgs = NoKwArgs;
     makeProtPublic = protHack;
 
     newModule(fp, filename);
@@ -8083,6 +8082,29 @@ static optFlag *getOptFlag(optFlags *flgs, const char *name, flagType ft)
     }
 
     return of;
+}
+
+
+/*
+ * Append a string to a list of them.
+ */
+void appendString(stringList **headp, const char *s)
+{
+    stringList *sl;
+
+    /* Create the new entry. */
+
+    sl = sipMalloc(sizeof (stringList));
+
+    sl -> s = s;
+    sl -> next = NULL;
+
+    /* Append it to the list. */
+
+    while (*headp != NULL)
+        headp = &(*headp) -> next;
+
+    *headp = sl;
 }
 
 
