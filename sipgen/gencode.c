@@ -69,7 +69,6 @@ static int prcode_xml = FALSE;          /* Set if prcode is XML aware. */
 static int docstrings;                  /* Set if generating docstrings. */
 
 
-static void generateDocumentation(sipSpec *pt, const char *docFile);
 static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
         const char *codeDir, stringList *needed_qualifiers, stringList *xsl,
         int py_debug);
@@ -307,10 +306,10 @@ static void normaliseSignalArg(argDef *ad);
 /*
  * Generate the code from a specification.
  */
-void generateCode(sipSpec *pt, char *codeDir, char *docFile,
-        const char *srcSuffix, int except, int trace, int releaseGIL,
-        int parts, stringList *needed_qualifiers, stringList *xsl,
-        const char *consModule, int docs, int py_debug, const char *sipName)
+void generateCode(sipSpec *pt, char *codeDir, const char *srcSuffix,
+        int except, int trace, int releaseGIL, int parts,
+        stringList *needed_qualifiers, stringList *xsl, const char *consModule,
+        int docs, int py_debug, const char *sipName)
 {
     exceptions = except;
     tracing = trace;
@@ -320,10 +319,6 @@ void generateCode(sipSpec *pt, char *codeDir, char *docFile,
 
     if (srcSuffix == NULL)
         srcSuffix = (generating_c ? ".c" : ".cpp");
-
-    /* Generate the documentation. */
-    if (docFile != NULL)
-        generateDocumentation(pt,docFile);
 
     /* Generate the code. */
     if (codeDir != NULL)
@@ -347,23 +342,6 @@ void generateCode(sipSpec *pt, char *codeDir, char *docFile,
             generateCpp(pt, pt->module, codeDir, srcSuffix, parts,
                     needed_qualifiers, xsl, py_debug, sipName);
     }
-}
-
-
-/*
- * Generate the documentation.
- */
-static void generateDocumentation(sipSpec *pt, const char *docFile)
-{
-    FILE *fp;
-    codeBlockList *cbl;
-
-    fp = createFile(pt->module, docFile, NULL);
-
-    for (cbl = pt->docs; cbl != NULL; cbl = cbl->next)
-        fputs(cbl->block->frag, fp);
-
-    closeFile(fp);
 }
 
 
