@@ -16,8 +16,6 @@ not define names that start with the prefix ``sip``.
 Revised Directive Syntax
 ------------------------
 
-.. versionadded:: 4.12
-
 The directive syntax used in older versions has some problems:
 
 - it is inconsistent in places
@@ -107,8 +105,6 @@ For example::
 
 .. directive:: %API
 
-.. versionadded:: 4.9
-
 .. parsed-literal::
 
     %API(name = *name*, version = *integer*)
@@ -124,8 +120,6 @@ For example::
 
 
 .. directive:: %AutoPyName
-
-.. versionadded:: 4.12
 
 .. parsed-literal::
 
@@ -714,8 +708,6 @@ For example::
 
 .. directive:: %DefaultDocstringFormat
 
-.. versionadded:: 4.13
-
 .. parsed-literal::
 
     %DefaultDocstringFormat(name = ["raw" | "deindented"])
@@ -733,8 +725,6 @@ For example::
 
 
 .. directive:: %DefaultDocstringSignature
-
-.. versionadded:: 4.19.7
 
 .. parsed-literal::
 
@@ -818,8 +808,6 @@ For example::
 
 .. directive:: %Docstring
 
-.. versionadded:: 4.10
-
 .. parsed-literal::
 
     %Docstring(format = ["raw" | "deindented"], signature = ["discarded" | "prepended" | "appended"])
@@ -841,8 +829,6 @@ specified for each of the overloads.
     informative exceptions (i.e. without a full signature) when it fails to
     match a set of arguments to any function or method overload.
 
-.. versionadded:: 4.13
-
 ``format`` may either be ``"raw"`` or ``"deindented"``.  If it is not specified
 then the value specified by any :directive:`%DefaultDocstringFormat` directive
 is used.
@@ -852,8 +838,6 @@ specification file.
 
 If ``format`` is ``"deindented"`` then any leading spaces common to all
 non-blank lines of the docstring are removed.
-
-.. versionadded:: 4.19.7
 
 ``signature`` may either be ``"discarded"``, ``"prepended"`` or ``"appended"``.
 It is ignored unless applied to the docstring of a class, function or method.
@@ -969,8 +953,6 @@ Python modules should not explicitly call functions in another Python module.
 
 .. directive:: %ExportedTypeHintCode
 
-.. versionadded:: 4.18
-
 .. parsed-literal::
 
     %ExportedTypeHintCode
@@ -986,8 +968,6 @@ itself.
 
 
 .. directive:: %Extract
-
-.. versionadded:: 4.12
 
 .. parsed-literal::
 
@@ -1052,8 +1032,6 @@ For example::
 
 
 .. directive:: %FinalisationCode
-
-.. versionadded:: 4.15
 
 .. parsed-literal::
 
@@ -1268,8 +1246,6 @@ For example::
 
 .. directive:: %HideNamespace
 
-.. versionadded:: 4.19
-
 .. parsed-literal::
 
     %HideNamespace(name = *name*)
@@ -1419,8 +1395,6 @@ For example::
 
 
 .. directive:: %InstanceCode
-
-.. versionadded:: 4.14
 
 .. parsed-literal::
 
@@ -2016,8 +1990,6 @@ Platforms are mutually exclusive - only one platform can be enabled at a time.
 By default all platforms are disabled.  The SIP :option:`-t <sip -t>` command
 line option is used to enable a platform.
 
-.. versionadded:: 4.14
-
 If a platform is enabled then SIP will automatically generate a corresponding C
 preprocessor symbol for use by handwritten code.  The symbol is the name of
 the platform prefixed by ``SIP_PLATFORM_``.
@@ -2083,8 +2055,6 @@ For example::
 
 .. directive:: %Property
 
-.. versionadded:: 4.12
-
 .. parsed-literal::
 
     %Property(name = *name*, get = *name* [, set = *name*])
@@ -2117,8 +2087,6 @@ For example::
 
 
 .. directive:: %PreMethodCode
-
-.. versionadded:: 4.19.1
 
 .. parsed-literal::
 
@@ -2224,14 +2192,10 @@ version, the version immediately preceeding the backstop is enabled instead.
 The :directive:`%Timeline` directive can be used any number of times in a
 module to allow multiple libraries to be wrapped in the same module.
 
-.. versionadded:: 4.12
-
 SIP automatically defines a timeline containing all versions of SIP since
 v4.12.  The name of the version is ``SIP_`` followed by the individual parts of
 the version number separated by an underscore.  SIP v4.12 is therefore
 ``SIP_4_12`` and SIP v4.13.2 is ``SIP_4_13_2``.
-
-.. versionadded:: 4.14
 
 If a particular version is enabled then SIP will automatically generate a
 corresponding C preprocessor symbol for use by handwritten code.  The symbol is
@@ -2319,8 +2283,6 @@ For example::
 
 .. directive:: %TypeHintCode
 
-.. versionadded:: 4.18
-
 .. parsed-literal::
 
     %TypeHintCode
@@ -2349,8 +2311,6 @@ typically used to ``#include`` a C++ precompiled header file.
 
 .. directive:: %UnitPostIncludeCode
 
-.. versionadded:: 4.11
-
 .. parsed-literal::
 
     %UnitPostIncludeCode
@@ -2363,8 +2323,6 @@ C++ source file).
 
 
 .. directive:: %VirtualCallCode
-
-.. versionadded:: 4.16.7
 
 .. parsed-literal::
 
@@ -2521,8 +2479,6 @@ For example::
 
 
 .. directive:: %VirtualErrorHandler
-
-.. versionadded:: 4.14
 
 .. parsed-literal::
 
