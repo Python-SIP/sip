@@ -1891,8 +1891,7 @@ called.
 
 ``keyword_arguments`` specifies the default level of support for Python keyword
 arguments.  See the :fanno:`KeywordArgs` annotation for an explaination of the
-possible values and their effect.  If it is not specified then the value
-implied by the (deprecated) :option:`-k <sip -k>` command line option is used.
+possible values and their effect.
 
 ``language`` specifies the implementation language of the library being
 wrapped.  Its value is either ``"C++"`` (the default) or ``"C"``.
@@ -1977,24 +1976,6 @@ For example::
     %End
 
 .. seealso:: :directive:`%ExportedHeaderCode`, :directive:`%ModuleCode`
-
-
-.. directive:: %OptionalInclude
-
-.. parsed-literal::
-
-    %OptionalInclude *filename*
-
-.. deprecated:: 4.12
-    Use the :directive:`%Include` directive with the ``optional`` argument set
-    to ``True`` instead.
-
-This directive is identical to the :directive:`%Include` directive except that
-SIP silently continues processing if *filename* could not be opened.
-
-For example::
-
-    %OptionalInclude license.sip
 
 
 .. directive:: %PickleCode

@@ -292,7 +292,6 @@ static scopedNameDef *fullyQualifiedName(scopedNameDef *snd);
 %token          TK_TOTYPE
 %token          TK_TOSUBCLASS
 %token          TK_INCLUDE
-%token          TK_OPTINCLUDE
 %token          TK_IMPORT
 %token          TK_EXPHEADERCODE
 %token          TK_MODHEADERCODE
@@ -586,7 +585,6 @@ modstatement:   module
     |   plugin
     |   copying
     |   include
-    |   optinclude
     |   import
     |   api
     |   timeline
@@ -2082,14 +2080,6 @@ include_arg:    TK_NAME '=' TK_PATH_VALUE {
 
             $$.name = NULL;
             $$.optional = $3;
-        }
-    ;
-
-optinclude: TK_OPTINCLUDE TK_PATH_VALUE {
-            deprecated("%OptionalInclude is deprecated, use %Include and the 'optional' argument instead");
-
-            if (notSkipping())
-                parseFile(NULL, $2, NULL, TRUE);
         }
     ;
 
