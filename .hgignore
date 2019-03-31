@@ -3,5 +3,6 @@ syntax: glob
 __pycache__
 build
 sip5.egg-info
+sip5/version.py
 sip5/*.pyd
 sip5/*.so
