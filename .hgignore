@@ -1,4 +1,7 @@
 syntax: glob
 .DS_Store
 __pycache__
-sip-build
+build
+sip5.egg-info
+sip5/*.pyd
+sip5/*.so

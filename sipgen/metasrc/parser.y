@@ -52,7 +52,7 @@ static int skipStack[MAX_NESTED_IF];    /* Stack of skip flags. */
 static classDef *scopeStack[MAX_NESTED_SCOPE];  /* The scope stack. */
 static int sectFlagsStack[MAX_NESTED_SCOPE];    /* The section flags stack. */
 static int currentScopeIdx;             /* The scope stack index. */
-static int currentTimelineOrder;        /* The current timeline order. */
+static unsigned currentTimelineOrder;   /* The current timeline order. */
 static classList *currentSupers;        /* The current super-class list. */
 static platformDef *currentPlatforms;   /* The current platforms list. */
 static platformDef *platformStack[MAX_NESTED_IF];   /* Stack of platforms. */
@@ -112,8 +112,9 @@ static scopedNameDef *scopeScopedName(ifaceFileDef *scope,
 static void pushScope(classDef *);
 static void popScope(void);
 static classDef *currentScope(void);
-static void newQualifier(moduleDef *, int, int, int, const char *, qualType);
-static qualDef *allocQualifier(moduleDef *, int, int, int, const char *,
+static void newQualifier(moduleDef *, int, unsigned, int, const char *,
+        qualType);
+static qualDef *allocQualifier(moduleDef *, int, unsigned, int, const char *,
         qualType);
 static void newImport(const char *filename);
 static int timePeriod(const char *lname, const char *uname);
@@ -1383,13 +1384,13 @@ platformlist:   platform
     ;
 
 platform:   TK_NAME_VALUE {
-            newQualifier(currentModule, -1, -1, notSkipping(), $1,
+            newQualifier(currentModule, -1, 0, notSkipping(), $1,
                     platform_qualifier);
         }
     ;
 
 feature:    TK_FEATURE feature_args {
-            newQualifier(currentModule, -1, -1, notSkipping(), $2.name,
+            newQualifier(currentModule, -1, 0, notSkipping(), $2.name,
                     feature_qualifier);
         }
     ;
@@ -8587,10 +8588,10 @@ static int timePeriod(const char *lname, const char *uname)
     /* Handle the SIP version number pseudo-timeline. */
     if (line < 0)
     {
-        if (lower != NULL && SIP_VERSION < lower->order)
+        if (lower != NULL && sipVersion < lower->order)
             return FALSE;
 
-        if (upper != NULL && SIP_VERSION >= upper->order)
+        if (upper != NULL && sipVersion >= upper->order)
             return FALSE;
 
         return TRUE;
@@ -8767,7 +8768,7 @@ static classDef *currentScope(void)
 /*
  * Create a new qualifier.
  */
-static void newQualifier(moduleDef *mod, int line, int order,
+static void newQualifier(moduleDef *mod, int line, unsigned order,
         int default_enabled, const char *name, qualType qt)
 {
     qualDef *qd;
@@ -8792,7 +8793,7 @@ static void newQualifier(moduleDef *mod, int line, int order,
 /*
  * Allocate a new qualifier.
  */
-static qualDef *allocQualifier(moduleDef *mod, int line, int order,
+static qualDef *allocQualifier(moduleDef *mod, int line, unsigned order,
         int default_enabled, const char *name, qualType qt)
 {
     qualDef *qd;

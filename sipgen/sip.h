@@ -24,13 +24,6 @@
 #include <sys/types.h>
 
 
-/*
- * Define the SIP version number.
- */
-#define SIP_VERSION         0x@RM_HEXVERSION@
-#define SIP_VERSION_STR     "@RM_RELEASE@"
-
-
 #ifdef TRUE
 #undef TRUE
 #endif
@@ -760,7 +753,7 @@ typedef struct _qualDef {
     qualType qtype;                     /* The qualifier type. */
     struct _moduleDef *module;          /* The defining module. */
     int line;                           /* Timeline if it is a time. */
-    int order;                          /* Order if it is a time. */
+    unsigned order;                     /* Order if it is a time. */
     int default_enabled;                /* Enabled by default. */
     struct _qualDef *next;              /* Next in the list. */
 } qualDef;
@@ -1370,7 +1363,8 @@ typedef struct _parserContext {
 } parserContext;
 
 
-extern char *sipVersion;                /* The version of SIP. */
+extern unsigned sipVersion;             /* The version of SIP. */
+extern const char *sipVersionStr;       /* The version of SIP as a string. */
 extern stringList *includeDirList;      /* The include directory list for SIP files. */
 
 
