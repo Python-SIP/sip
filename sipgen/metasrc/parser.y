@@ -256,7 +256,6 @@ static scopedNameDef *fullyQualifiedName(scopedNameDef *snd);
 %token          TK_TYPEHINTCODE
 %token          TK_DOCSTRING
 %token          TK_EXTRACT
-%token          TK_MAKEFILE
 %token          TK_ACCESSCODE
 %token          TK_GETCODE
 %token          TK_SETCODE
@@ -622,7 +621,6 @@ modstatement:   module
     |   exptypehintcode
     |   modtypehintcode
     |   extract
-    |   makefile
     |   mappedtype
     |   mappedtypetmpl
     |   virterrorhandler
@@ -2594,11 +2592,6 @@ extract_arg:    TK_ID '=' TK_NAME_VALUE {
 
             $$.id = NULL;
             $$.order = $3;
-        }
-    ;
-
-makefile:   TK_MAKEFILE TK_PATH_VALUE optfilename codeblock {
-            /* Deprecated. */
         }
     ;
 

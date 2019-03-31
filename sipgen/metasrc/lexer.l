@@ -532,14 +532,6 @@ SIP_QOBJECT                 {return TK_QOBJECT;}
     return TK_DOCSTRING;
 }
 
-^[ \t]*%Makefile {
-    /* The start of a Makefile code block. */
-    deprecated("%Makefile is deprecated");
-
-    codeIdx = 0;
-    return TK_MAKEFILE;
-}
-
 ^[ \t]*%AccessCode {
     /* The start of an access code block. */
     codeIdx = 0;
