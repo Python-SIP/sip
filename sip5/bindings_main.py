@@ -22,15 +22,14 @@
 
 
 import argparse
-import sys
 
-from . import SIP5_HEXVERSION, SIP5_RELEASE
-from .code_generator import (set_globals, parse, transform, generateCode,
-        generateExtracts, generateAPI, generateXML, generateTypeHints)
+from .bindings import bindings
+from .exceptions import handle_exception
+from .verion import SIP5_RELEASE
 
 
 def main():
-    """ The entry point for the setuptools generated CLI wrapper. """
+    """ Create the bindings for a C/C++ library. """
 
     # Parse the command line.
     parser = argparse.ArgumentParser(
@@ -40,11 +39,11 @@ def main():
 
     parser.add_argument('-V', action='version', version=SIP5_RELEASE)
 
-    parser.add_argument('filename',
+    parser.add_argument('specification',
             help="the name of the specification file [default stdin]",
             metavar="FILE", nargs='?')
 
-    parser.add_argument('-a', dest='apiFile',
+    parser.add_argument('-a', dest='api_extract',
             help="the name of the QScintilla API file [default not generated]",
             metavar="FILE")
 
@@ -52,7 +51,7 @@ def main():
             help="add <TAG> to the list of timeline backstops",
             metavar="TAG")
 
-    parser.add_argument('-c', dest='codeDir',
+    parser.add_argument('-c', dest='bindings_dir',
             help="the name of the code directory [default not generated]",
             metavar="DIR")
 
@@ -64,16 +63,16 @@ def main():
             default=False,
             help="enable support for exceptions [default disabled]")
 
-    parser.add_argument('-f', dest='warnings_are_fatal', action='store_true',
+    parser.add_argument('-f', dest='warnings_are_errors', action='store_true',
             default=False,
             help="warnings are handled as errors")
 
-    parser.add_argument('-g', dest='releaseGIL', action='store_true',
+    parser.add_argument('-g', dest='release_gil', action='store_true',
             default=False,
             help="always release and reacquire the GIL [default only when "
                     "specified]")
 
-    parser.add_argument('-I', dest='includeDirList', action='append',
+    parser.add_argument('-I', dest='include_dirs', action='append',
             help="add <DIR> to the list of directories to search when "
                     "including files",
             metavar="DIR")
@@ -83,19 +82,20 @@ def main():
                     "class]",
             metavar="FILES")
 
-    parser.add_argument('-m', dest='xmlFile',
+    parser.add_argument('-m', dest='xml_extract',
             help="the name of the XML export file [default not generated]",
             metavar="FILE")
 
-    parser.add_argument('-n', dest='sipName',
+    parser.add_argument('-n', dest='sip_module',
             help="the qualified name of the sip module",
             metavar="NAME")
 
-    parser.add_argument('-o', dest='docs', action='store_true', default=False,
+    parser.add_argument('-o', dest='docstrings', action='store_true',
+            default=False,
             help="enable the automatic generation of docstrings [default "
                     "disabled]")
 
-    parser.add_argument('-P', dest='protHack', action='store_true',
+    parser.add_argument('-P', dest='protected_is_public', action='store_true',
             default=False,
             help="enable the protected/public hack [default disabled]")
 
@@ -103,12 +103,12 @@ def main():
             default=False,
             help="generate code with tracing enabled [default disabled]")
 
-    parser.add_argument('-s', dest='srcSuffix',
+    parser.add_argument('-s', dest='source_suffix',
             help="the suffix to use for C or C++ source files [default \".c\" "
                     "or \".cpp\"]",
             metavar="SUFFIX")
 
-    parser.add_argument('-t', dest='versions', action='append',
+    parser.add_argument('-t', dest='tags', action='append',
             help="add <TAG> to the list of versions/platforms to generate "
                     "code for",
             metavar="TAG")
@@ -117,7 +117,7 @@ def main():
             default=False,
             help="enable warning messages [default disabled]")
 
-    parser.add_argument('-x', dest='xfeatures', action='append',
+    parser.add_argument('-x', dest='disabled_features', action='append',
             help="add <FEATURE> to the list of disabled features",
             metavar="FEATURE")
 
@@ -125,60 +125,26 @@ def main():
             help="add <ID:FILE> to the list of extracts to generate",
             metavar="ID:FILE")
 
-    parser.add_argument('-y', dest='pyiFile',
+    parser.add_argument('-y', dest='pyi_extract',
             help="the name of the .pyi stub file [default not generated]",
             metavar="FILE")
 
     args = parser.parse_args()
 
-    # The XML extract requires a non-strict parser.
-    strict = (args.xmlFile is None)
+    try:
+        bindings(specification=args.specification, sip_module=args.sip_module,
+                bindings_dir=args.bindings_dir, include_dirs=args.include_dirs,
+                tags=args.tags, backstops=args.backstops,
+                disabled_features=args.disabled_features,
+                exceptions=args.exceptions, parts=args.parts,
+                source_suffix=args.source_suffix, docstrings=args.docstrings,
+                protected_is_public=args.protected_is_public,
+                py_debug=args.py_debug, release_gil=args.release_gil,
+                tracing=args.tracing, extracts=args.extracts,
+                pyi_extract=args.pyi_extract, api_extract=args.api_extract,
+                xml_extract=args.xml_extract, warnings=args.warnings,
+                warnings_are_errors=args.warnings_are_errors)
+    except Exception as e:
+        handle_exception(e)
 
-    # Check for option conflicts.
-    if args.codeDir is not None:
-        # The code generator requires a strict parser.
-        if not strict:
-            print("The -m option cannot be given if the -c option is given",
-                    file=sys.stderr)
-            sys.exit(1)
-
-        # The code generator requires the name of the sip module.
-        if args.sipName is None:
-            print("The -n option must be given if the -c option is given",
-                    file=sys.stderr)
-            sys.exit(1)
-
-    # Set the globals.
-    set_globals(SIP5_HEXVERSION, SIP5_RELEASE, args.includeDirList,
-            args.warnings, args.warnings_are_fatal)
-
-    # Parse the input file.
-    pt = parse(args.filename, strict, args.versions, args.backstops,
-            args.xfeatures, args.protHack)
-
-    # Verify and transform the parse tree.
-    transform(pt, strict)
-
-    # Generate the code.
-    if args.codeDir is not None:
-        generateCode(pt, args.codeDir, args.srcSuffix, args.exceptions,
-                args.tracing, args.releaseGIL, args.parts, args.versions,
-                args.xfeatures, args.docs, args.py_debug, args.sipName)
-
-    # Generate any extracts.
-    generateExtracts(pt, args.extracts)
-
-    # Generate the API file.
-    if args.apiFile is not None:
-        generateAPI(pt, args.apiFile)
-
-    # Generate the XML export.
-    if args.xmlFile is not None:
-        generateXML(pt, args.xmlFile)
-
-    # Generate the type hints file.
-    if args.pyiFile is not None:
-        generateTypeHints(pt, args.pyiFile)
-
-    # All done.
     return 0

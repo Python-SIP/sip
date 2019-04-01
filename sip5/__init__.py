@@ -22,5 +22,6 @@
 
 
 # Publish the package's API.
+from .bindings import bindings
 from .exceptions import UserException
 from .version import SIP5_HEXVERSION, SIP5_RELEASE
