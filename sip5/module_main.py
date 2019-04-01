@@ -21,8 +21,40 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-# Publish the package's API.
-from .bindings import bindings
-from .exceptions import UserException
+import argparse
+
+from .exceptions import handle_exception
 from .module import module
-from .version import SIP5_HEXVERSION, SIP5_RELEASE
+from .version import SIP5_RELEASE
+
+
+def main():
+    """ Create the code to build a sip module. """
+
+    # Parse the command line.
+    parser = argparse.ArgumentParser(
+            description="Generate the code for a sip extension module.")
+
+    parser.add_argument('-V', action='version', version=SIP5_RELEASE)
+
+    parser.add_argument(dest='sip_modules', nargs=1,
+            help="the qualified name of the sip module",
+            metavar="NAME")
+
+    parser.add_argument('--module-dir', dest='module_dir',
+            help="the name of the directory where the code will be generated",
+            metavar="DIR")
+
+    parser.add_argument('--setup-cfg', dest='setup_cfg',
+            help="the name of the setup.cfg file to use",
+            metavar="FILE")
+
+    args = parser.parse_args()
+
+    try:
+        module(sip_module=args.sip_modules[0], module_dir=args.module_dir,
+                setup_cfg=args.setup_cfg)
+    except Exception as e:
+        handle_exception(e)
+
+    return 0

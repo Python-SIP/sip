@@ -68,6 +68,7 @@ setup(
         zip_safe=False,
         entry_points={
             'console_scripts': [
-                'sip5-bindings = sip5.bindings_main:main']
+                'sip5-bindings = sip5.bindings_main:main',
+                'sip5-module = sip5.module_main:main']
         }
      )
