@@ -7,7 +7,7 @@
 # This copy of SIP may also used under the terms of the GNU General Public
 # License v2 or v3 as published by the Free Software Foundation which can be
 # found in the files LICENSE-GPL2 and LICENSE-GPL3 included in this package.
-#
+# 
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 # AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 # IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -21,6 +21,43 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-# Publish the package's API.
-from .exceptions import UserException
-from .version import SIP5_HEXVERSION, SIP5_RELEASE
+import os
+import sys
+
+
+class UserException(Exception):
+    """ An exception capturing user friendly information. """
+
+    def __init__(self, text, detail=''):
+        """ Initialise the exception with its user friendly text and the
+        optional detail.
+        """
+
+        super().__init__()
+
+        self.text = text
+        self.detail = detail
+
+
+def handle_exception(e):
+    """ Tell the user about an exception. """
+
+    if isinstance(e, UserException):
+        # An "expected" exception.
+        if e.detail != '':
+            message = "{0}: {1}".format(e.text, e.detail)
+        else:
+            message = e.text
+
+        print("{0}: {1}".format(os.path.basename(sys.argv[0]), message),
+                file=sys.stderr)
+
+        sys.exit(1)
+
+    # An internal error.
+    print(
+            "{0}: An internal error occurred...".format(
+                    os.path.basename(sys.argv[0])),
+            file=sys.stderr)
+
+    raise e

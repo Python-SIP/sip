@@ -1,15 +1,12 @@
 # Copyright (c) 2019, Riverbank Computing Limited
 # All rights reserved.
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-# 
-# 1. Redistributions of source code must retain the above copyright notice,
-#    this list of conditions and the following disclaimer.
-# 
-# 2. Redistributions in binary form must reproduce the above copyright notice,
-#    this list of conditions and the following disclaimer in the documentation
-#    and/or other materials provided with the distribution.
+# This copy of SIP is licensed for use under the terms of the SIP License
+# Agreement.  See the file LICENSE for more details.
+#
+# This copy of SIP may also used under the terms of the GNU General Public
+# License v2 or v3 as published by the Free Software Foundation which can be
+# found in the files LICENSE-GPL2 and LICENSE-GPL3 included in this package.
 # 
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 # AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -58,7 +55,7 @@ code_gen_module = Extension('sip5.code_generator', code_gen_src,
 setup(
         name='sip5',
         version=version,
-        description="A Python module generator for wrapping C/C++ libraries",
+        description="A Python module generator for binding C/C++ libraries",
         long_description=long_description,
         author='Riverbank Computing Limited',
         author_email='info@riverbankcomputing.com',
@@ -71,6 +68,6 @@ setup(
         zip_safe=False,
         entry_points={
             'console_scripts': [
-                'sip5 = sip5.sip5_main:main']
+                'sip5-bindings = sip5.bindings_main:main']
         }
      )
