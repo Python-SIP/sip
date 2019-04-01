@@ -25,7 +25,7 @@ import argparse
 
 from .bindings import bindings
 from .exceptions import handle_exception
-from .verion import SIP5_RELEASE
+from .version import SIP5_RELEASE
 
 
 def main():

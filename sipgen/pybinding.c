@@ -24,6 +24,13 @@
 #include "sip.h"
 
 
+/* Globals - see sip.h for their meanings. */
+unsigned sipVersion;
+const char *sipVersionStr;
+stringList *includeDirList;
+int warnings;
+int warnings_are_fatal;
+
 /* Forward declarations. */
 static PyObject *py_set_globals(PyObject *self, PyObject *args);
 static PyObject *py_parse(PyObject *self, PyObject *args);
