@@ -21,17 +21,19 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-def module(sip_module, module_dir=None, setup_cfg=None):
-    """ Create the code to build a sip module. """
+def module(sip_module, include_dir=None, module_dir=None, no_sdist=False, setup_cfg=None):
+    """ Create the sdist for a sip module. """
 
     # sip_module: eg. 'PyQt5.sip'
-    # module_dir: the directory to create everything in, default to cwd, create
-    #    if doesn't exist, leave any existing contents in place.
+    # include_dir: the directory to create the sip.h file in, don't install it
+    #    if not specified.  The name of the sip module will be #defined in the
+    #    file to be used by a sip generated module that needs to import it.
+    # module_dir: the directory to create the module in, don't create it if not
+    #    specified.
+    # no_sdist: normally an sdist .tar.gz is created in the module_dir.  If
+    #    this is set then it is left as a directory and the .tar.gz is not
+    #    created.
     # setup_cfg: the name of an optional setup.cfg file.
-
-    # By default this will create an sdist .tar.gz which can be uploaded to
-    # PyPI.  Run 'pip wheel sdist.tar.gz' to create the wheel.  There should be
-    # an option to leave it as a directory and to not create the .tar.gz.
 
     # There will be a default setup.cfg file with generic details (including a
     # long_description link to a generic README).  The following macros will be
@@ -41,19 +43,12 @@ def module(sip_module, module_dir=None, setup_cfg=None):
     #    @SIP5_NAME@ the PyPI name of the package: sip_module.replace('.', '_')
     #    @SIP5_VERSION@ the version number of the package
 
-    # setup.cfg requires setuptools v30.3.0 to there needs to be a
-    # pyproject.toml file to specify that as a minimum requirement.
-
-    # Need an option to install the sip.h file in a specified directory.  Do we
-    # define the name of the module in sip.h (DRY) and to be picked up by the
-    # generated code? Yes.
-
-    # The setup.cfg file determines if the sip.pyi is included.  The default
-    # setup.cfg does not but should include a commented out section that does.
-
-    # Add an option to provide an optional README file so that the default
-    # setup.cfg can be used in most cases.
-
     # The version number is major.minor.maint with major.minor corresponding to
     # the ABI major.minor.  The maint is incremented when the implementation of
     # the current ABI version changes.
+
+    # setup.cfg requires setuptools v30.3.0 to there needs to be a
+    # pyproject.toml file to specify that as a minimum requirement.
+
+    # The setup.cfg file determines if the sip.pyi is included.  The default
+    # setup.cfg does not but should include a commented out section that does.
