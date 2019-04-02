@@ -29,21 +29,31 @@ def module(sip_module, module_dir=None, setup_cfg=None):
     #    if doesn't exist, leave any existing contents in place.
     # setup_cfg: the name of an optional setup.cfg file.
 
+    # By default this will create an sdist .tar.gz which can be uploaded to
+    # PyPI.  Run 'pip wheel sdist.tar.gz' to create the wheel.  There should be
+    # an option to leave it as a directory and to not create the .tar.gz.
+
     # There will be a default setup.cfg file with generic details (including a
     # long_description link to a generic README).  The following macros will be
     # expanded (for both default and user supplied files):
 
     #    @SIP5_PACKAGE@ the top-level package name: sip_module.split('.')[0]
-    #    @SIP5_NAME@ the PyPI name of the package: sip_module.replace('.', '-')
-    #    @SIP5_VERSION@ the version number of the package (ie. the module ABI
-    #        version or something derived from it)
+    #    @SIP5_NAME@ the PyPI name of the package: sip_module.replace('.', '_')
+    #    @SIP5_VERSION@ the version number of the package
 
     # setup.cfg requires setuptools v30.3.0 to there needs to be a
     # pyproject.toml file to specify that as a minimum requirement.
 
-    # The sip.h file will not be installed anywhere but the eventual build
-    # system will automatically add its location to the compiler invocation as
-    # required. (Might reconsider later.)
+    # Need an option to install the sip.h file in a specified directory.  Do we
+    # define the name of the module in sip.h (DRY) and to be picked up by the
+    # generated code? Yes.
 
-    # Do we always install the .pyi file or do we add it as an option?  Do we
-    # leave that to the setup.cfg file?
+    # The setup.cfg file determines if the sip.pyi is included.  The default
+    # setup.cfg does not but should include a commented out section that does.
+
+    # Add an option to provide an optional README file so that the default
+    # setup.cfg can be used in most cases.
+
+    # The version number is major.minor.maint with major.minor corresponding to
+    # the ABI major.minor.  The maint is incremented when the implementation of
+    # the current ABI version changes.
