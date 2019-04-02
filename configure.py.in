@@ -155,7 +155,8 @@ def set_build_platform():
         "sunos5":       "solaris-cc",
         "ultrix":       "ultrix-g++",
         "unix_sv":      "unixware-g++",
-        "unixware":     "unixware-cc"
+        "unixware":     "unixware-cc",
+        "haiku1":       "haiku-g++"
     }
 
     build_platform = "none"
