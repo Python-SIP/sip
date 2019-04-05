@@ -6271,12 +6271,23 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 
         /* Skip the the class itself. */
         for (mro = cd->mro->next; mro != NULL; mro = mro->next)
+        {
+            /*
+             * If the class appears more than once in the hierarchy then we
+             * choose to ignore it (rather than pick a copy to use).  Note that
+             * we should support the concept of virtual inheritance if it used
+             * to ensure there is only one copy of the class in the hierarchy.
+             */
+            if (inADiamond(mro))
+                continue;
+
             prcode(fp,
 "    if (targetType == sipType_%C)\n"
 "        return static_cast<%U *>(sipCpp);\n"
 "\n"
                 , classFQCName(mro->cd)
                 , mro->cd);
+        }
 
         prcode(fp,
 "    return sipCppV;\n"

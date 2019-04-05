@@ -1275,7 +1275,10 @@ static void appendToMRO(mroDef *head, mroDef ***tailp, classDef *cd)
     /* Ignore if it is already in the MRO. */
     for (mro = head; mro != NULL; mro = mro->next)
         if (mro->cd == cd)
+        {
+            setInADiamond(mro);
             return;
+        }
 
     mro = sipMalloc(sizeof (mroDef));
 
