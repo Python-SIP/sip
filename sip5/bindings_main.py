@@ -25,7 +25,7 @@ import argparse
 
 from .bindings import bindings
 from .exceptions import handle_exception
-from .version import SIP5_RELEASE
+from .version import SIP_VERSION_STR
 
 
 def main():
@@ -37,7 +37,7 @@ def main():
                     "libraries.",
             fromfile_prefix_chars='@')
 
-    parser.add_argument('-V', action='version', version=SIP5_RELEASE)
+    parser.add_argument('-V', action='version', version=SIP_VERSION_STR)
 
     parser.add_argument('specification',
             help="the name of the specification file [default stdin]",

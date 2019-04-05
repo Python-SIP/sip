@@ -37,9 +37,7 @@ except FileNotFoundError:
     # Provide a minimal version file.
     version = '0.0.dev0'
     version_file = open(version_file_name, 'w')
-    version_file.write(
-            'SIP5_RELEASE = \'%s\'\nSIP5_HEXVERSION = 0\n' %
-                    version)
+    version_file.write('SIP_VERSION = 0\nSIP_VERSION_STR = \'%s\'\n' % version)
     version_file.close()
 
 # Get the long description for PyPI.

@@ -39,9 +39,11 @@ def module(sip_module, include_dir=None, module_dir=None, no_sdist=False, setup_
     # long_description link to a generic README).  The following macros will be
     # expanded (for both default and user supplied files):
 
-    #    @SIP5_PACKAGE@ the top-level package name: sip_module.split('.')[0]
-    #    @SIP5_NAME@ the PyPI name of the package: sip_module.replace('.', '_')
-    #    @SIP5_VERSION@ the version number of the package
+    #    @SIP_MODULE_PACKAGE@ the top-level package name:
+    #       sip_module.split('.')[0]
+    #    @SIP_MODULE_NAME@ the PyPI name of the package:
+    #       sip_module.replace('.', '_')
+    #    @SIP_MODULE_VERSION@ the version number of the package
 
     # The version number is major.minor.maint with major.minor corresponding to
     # the ABI major.minor.  The maint is incremented when the implementation of

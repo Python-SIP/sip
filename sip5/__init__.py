@@ -25,4 +25,4 @@
 from .bindings import bindings
 from .exceptions import UserException
 from .module import module
-from .version import SIP5_HEXVERSION, SIP5_RELEASE
+from .version import SIP_VERSION, SIP_VERSION_STR
