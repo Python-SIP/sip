@@ -47,9 +47,9 @@ with open('README') as readme:
     long_description = readme.read()
 
 # Build the code generator extension module.
-code_gen_src = glob.glob(os.path.join('sipgen', '*.c'))
+code_gen_src = glob.glob(os.path.join('code_generator', '*.c'))
 code_gen_module = Extension('sip5.code_generator', code_gen_src,
-        include_dirs=['sipgen'])
+        include_dirs=['code_generator'])
 
 # Do the setup.
 setup(

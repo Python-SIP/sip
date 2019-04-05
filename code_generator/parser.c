@@ -358,7 +358,7 @@
 
 
 /* Copy the first part of user declarations.  */
-#line 19 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 19 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
 
 #include <stdlib.h>
 #include <string.h>
@@ -563,7 +563,7 @@ static scopedNameDef *fullyQualifiedName(scopedNameDef *snd);
 
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 typedef union YYSTYPE
-#line 203 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 203 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
 {
     char            qchar;
     char            *text;
@@ -608,7 +608,7 @@ typedef union YYSTYPE
     int             token;
 }
 /* Line 193 of yacc.c.  */
-#line 612 "/Users/phil/hg/sip/sipgen/parser.c"
+#line 612 "/Users/phil/hg/sip/code_generator/parser.c"
 	YYSTYPE;
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
 # define YYSTYPE_IS_DECLARED 1
@@ -621,7 +621,7 @@ typedef union YYSTYPE
 
 
 /* Line 216 of yacc.c.  */
-#line 625 "/Users/phil/hg/sip/sipgen/parser.c"
+#line 625 "/Users/phil/hg/sip/code_generator/parser.c"
 
 #ifdef short
 # undef short
@@ -2985,7 +2985,7 @@ yyreduce:
   switch (yyn)
     {
         case 4:
-#line 563 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 563 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             /*
              * We don't do these in parserEOF() because the parser is reading
@@ -3006,7 +3006,7 @@ yyreduce:
     break;
 
   case 49:
-#line 627 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 627 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -3021,7 +3021,7 @@ yyreduce:
     break;
 
   case 50:
-#line 640 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 640 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
                 currentModule->defdocstringfmt = convertFormat((yyvsp[(2) - (2)].defdocstringfmt).name);
@@ -3029,7 +3029,7 @@ yyreduce:
     break;
 
   case 51:
-#line 646 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 646 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             resetLexerState();
 
@@ -3038,14 +3038,14 @@ yyreduce:
     break;
 
   case 52:
-#line 651 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 651 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.defdocstringfmt) = (yyvsp[(2) - (3)].defdocstringfmt);
         }
     break;
 
   case 54:
-#line 657 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 657 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.defdocstringfmt) = (yyvsp[(1) - (3)].defdocstringfmt);
 
@@ -3057,7 +3057,7 @@ yyreduce:
     break;
 
   case 55:
-#line 667 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 667 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.defdocstringfmt).token = TK_NAME;
 
@@ -3066,7 +3066,7 @@ yyreduce:
     break;
 
   case 56:
-#line 674 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 674 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
                 currentModule->defdocstringsig = convertSignature((yyvsp[(2) - (2)].defdocstringsig).name);
@@ -3074,7 +3074,7 @@ yyreduce:
     break;
 
   case 57:
-#line 680 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 680 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             resetLexerState();
 
@@ -3083,14 +3083,14 @@ yyreduce:
     break;
 
   case 58:
-#line 685 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 685 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.defdocstringsig) = (yyvsp[(2) - (3)].defdocstringsig);
         }
     break;
 
   case 60:
-#line 691 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 691 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.defdocstringsig) = (yyvsp[(1) - (3)].defdocstringsig);
 
@@ -3102,7 +3102,7 @@ yyreduce:
     break;
 
   case 61:
-#line 701 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 701 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.defdocstringsig).token = TK_NAME;
 
@@ -3111,7 +3111,7 @@ yyreduce:
     break;
 
   case 62:
-#line 708 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 708 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -3122,7 +3122,7 @@ yyreduce:
     break;
 
   case 63:
-#line 717 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 717 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             resetLexerState();
 
@@ -3131,14 +3131,14 @@ yyreduce:
     break;
 
   case 64:
-#line 722 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 722 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.defencoding) = (yyvsp[(2) - (3)].defencoding);
         }
     break;
 
   case 66:
-#line 728 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 728 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.defencoding) = (yyvsp[(1) - (3)].defencoding);
 
@@ -3150,7 +3150,7 @@ yyreduce:
     break;
 
   case 67:
-#line 738 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 738 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.defencoding).token = TK_NAME;
 
@@ -3159,7 +3159,7 @@ yyreduce:
     break;
 
   case 68:
-#line 745 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 745 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             /*
              * Note that %Plugin is internal in SIP v4.  The current thinking
@@ -3172,7 +3172,7 @@ yyreduce:
     break;
 
   case 69:
-#line 756 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 756 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             resetLexerState();
 
@@ -3181,14 +3181,14 @@ yyreduce:
     break;
 
   case 70:
-#line 761 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 761 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.plugin) = (yyvsp[(2) - (3)].plugin);
         }
     break;
 
   case 72:
-#line 767 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 767 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.plugin) = (yyvsp[(1) - (3)].plugin);
 
@@ -3200,7 +3200,7 @@ yyreduce:
     break;
 
   case 73:
-#line 777 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 777 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.plugin).token = TK_NAME;
 
@@ -3209,7 +3209,7 @@ yyreduce:
     break;
 
   case 74:
-#line 784 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 784 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if ((yyvsp[(2) - (3)].veh).name == NULL)
                 yyerror("%VirtualErrorHandler must have a 'name' argument");
@@ -3240,7 +3240,7 @@ yyreduce:
     break;
 
   case 75:
-#line 813 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 813 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             resetLexerState();
 
@@ -3249,14 +3249,14 @@ yyreduce:
     break;
 
   case 76:
-#line 818 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 818 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.veh) = (yyvsp[(2) - (3)].veh);
         }
     break;
 
   case 78:
-#line 824 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 824 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.veh) = (yyvsp[(1) - (3)].veh);
 
@@ -3268,7 +3268,7 @@ yyreduce:
     break;
 
   case 79:
-#line 834 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 834 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.veh).token = TK_NAME;
 
@@ -3277,7 +3277,7 @@ yyreduce:
     break;
 
   case 80:
-#line 841 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 841 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -3305,7 +3305,7 @@ yyreduce:
     break;
 
   case 81:
-#line 867 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 867 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             resetLexerState();
 
@@ -3317,14 +3317,14 @@ yyreduce:
     break;
 
   case 82:
-#line 875 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 875 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.api) = (yyvsp[(2) - (3)].api);
         }
     break;
 
   case 84:
-#line 881 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 881 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.api) = (yyvsp[(1) - (3)].api);
 
@@ -3337,7 +3337,7 @@ yyreduce:
     break;
 
   case 85:
-#line 892 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 892 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.api).token = TK_NAME;
 
@@ -3347,7 +3347,7 @@ yyreduce:
     break;
 
   case 86:
-#line 898 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 898 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.api).token = TK_VERSION;
 
@@ -3357,7 +3357,7 @@ yyreduce:
     break;
 
   case 87:
-#line 906 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 906 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -3406,7 +3406,7 @@ yyreduce:
     break;
 
   case 88:
-#line 953 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 953 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.exceptionbase).bibase = NULL;
             (yyval.exceptionbase).base = NULL;
@@ -3414,7 +3414,7 @@ yyreduce:
     break;
 
   case 89:
-#line 957 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 957 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             exceptionDef *xd;
 
@@ -3523,14 +3523,14 @@ yyreduce:
     break;
 
   case 90:
-#line 1064 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1064 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.exception) = (yyvsp[(2) - (4)].exception);
         }
     break;
 
   case 92:
-#line 1070 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1070 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.exception) = (yyvsp[(1) - (2)].exception);
 
@@ -3543,21 +3543,21 @@ yyreduce:
     break;
 
   case 93:
-#line 1081 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1081 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.exception).token = TK_IF;
         }
     break;
 
   case 94:
-#line 1084 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1084 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.exception).token = TK_END;
         }
     break;
 
   case 95:
-#line 1087 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1087 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -3575,7 +3575,7 @@ yyreduce:
     break;
 
   case 96:
-#line 1101 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1101 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -3593,14 +3593,14 @@ yyreduce:
     break;
 
   case 97:
-#line 1117 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1117 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.codeb) = (yyvsp[(2) - (2)].codeb);
         }
     break;
 
   case 98:
-#line 1122 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1122 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -3625,7 +3625,7 @@ yyreduce:
     break;
 
   case 100:
-#line 1145 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1145 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -3694,7 +3694,7 @@ yyreduce:
     break;
 
   case 102:
-#line 1212 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1212 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -3710,7 +3710,7 @@ yyreduce:
     break;
 
   case 107:
-#line 1232 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1232 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
                 appendCodeBlock(&currentMappedType->iff->hdrcode, (yyvsp[(1) - (1)].codeb));
@@ -3718,7 +3718,7 @@ yyreduce:
     break;
 
   case 108:
-#line 1236 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1236 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
                 appendCodeBlock(&currentMappedType->typecode, (yyvsp[(1) - (1)].codeb));
@@ -3726,7 +3726,7 @@ yyreduce:
     break;
 
   case 109:
-#line 1240 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1240 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -3739,7 +3739,7 @@ yyreduce:
     break;
 
   case 110:
-#line 1249 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1249 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -3752,7 +3752,7 @@ yyreduce:
     break;
 
   case 111:
-#line 1258 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1258 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -3765,7 +3765,7 @@ yyreduce:
     break;
 
   case 114:
-#line 1271 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1271 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -3782,7 +3782,7 @@ yyreduce:
     break;
 
   case 115:
-#line 1286 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1286 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (currentSpec -> genc)
                 yyerror("namespace definition not allowed in a C module");
@@ -3808,7 +3808,7 @@ yyreduce:
     break;
 
   case 116:
-#line 1307 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1307 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -3826,7 +3826,7 @@ yyreduce:
     break;
 
   case 121:
-#line 1331 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1331 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -3840,7 +3840,7 @@ yyreduce:
     break;
 
   case 122:
-#line 1341 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1341 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -3861,7 +3861,7 @@ yyreduce:
     break;
 
   case 125:
-#line 1364 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1364 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             newQualifier(currentModule, -1, 0, notSkipping(), (yyvsp[(1) - (1)].text),
                     platform_qualifier);
@@ -3869,7 +3869,7 @@ yyreduce:
     break;
 
   case 126:
-#line 1370 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1370 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             newQualifier(currentModule, -1, 0, notSkipping(), (yyvsp[(2) - (2)].feature).name,
                     feature_qualifier);
@@ -3877,7 +3877,7 @@ yyreduce:
     break;
 
   case 127:
-#line 1376 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1376 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             resetLexerState();
 
@@ -3886,14 +3886,14 @@ yyreduce:
     break;
 
   case 128:
-#line 1381 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1381 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.feature) = (yyvsp[(2) - (3)].feature);
         }
     break;
 
   case 130:
-#line 1387 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1387 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.feature) = (yyvsp[(1) - (3)].feature);
 
@@ -3905,7 +3905,7 @@ yyreduce:
     break;
 
   case 131:
-#line 1397 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1397 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.feature).token = TK_NAME;
 
@@ -3914,14 +3914,14 @@ yyreduce:
     break;
 
   case 132:
-#line 1404 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1404 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             currentTimelineOrder = 0;
         }
     break;
 
   case 133:
-#line 1407 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1407 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -3946,7 +3946,7 @@ yyreduce:
     break;
 
   case 136:
-#line 1434 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1434 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             newQualifier(currentModule, currentModule->nrtimelines,
                     currentTimelineOrder++, TRUE, (yyvsp[(1) - (1)].text), time_qualifier);
@@ -3954,14 +3954,14 @@ yyreduce:
     break;
 
   case 137:
-#line 1440 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1440 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             currentPlatforms = NULL;
         }
     break;
 
   case 138:
-#line 1442 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1442 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (stackPtr >= MAX_NESTED_IF)
                 yyerror("Internal error: increase the value of MAX_NESTED_IF");
@@ -3980,42 +3980,42 @@ yyreduce:
     break;
 
   case 139:
-#line 1459 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1459 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.boolean) = platOrFeature((yyvsp[(1) - (1)].text), FALSE);
         }
     break;
 
   case 140:
-#line 1462 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1462 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.boolean) = platOrFeature((yyvsp[(2) - (2)].text), TRUE);
         }
     break;
 
   case 141:
-#line 1465 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1465 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.boolean) = (platOrFeature((yyvsp[(3) - (3)].text), FALSE) || (yyvsp[(1) - (3)].boolean));
         }
     break;
 
   case 142:
-#line 1468 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1468 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.boolean) = (platOrFeature((yyvsp[(4) - (4)].text), TRUE) || (yyvsp[(1) - (4)].boolean));
         }
     break;
 
   case 144:
-#line 1474 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1474 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.boolean) = timePeriod((yyvsp[(1) - (3)].text), (yyvsp[(3) - (3)].text));
         }
     break;
 
   case 145:
-#line 1479 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1479 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (stackPtr-- <= 0)
                 yyerror("Too many %End directives");
@@ -4025,7 +4025,7 @@ yyreduce:
     break;
 
   case 146:
-#line 1487 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1487 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             optFlag *of;
 
@@ -4064,7 +4064,7 @@ yyreduce:
     break;
 
   case 147:
-#line 1524 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1524 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             resetLexerState();
 
@@ -4076,7 +4076,7 @@ yyreduce:
     break;
 
   case 148:
-#line 1532 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1532 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.license).type = (yyvsp[(1) - (1)].text);
             (yyval.license).licensee = NULL;
@@ -4086,14 +4086,14 @@ yyreduce:
     break;
 
   case 149:
-#line 1538 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1538 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.license) = (yyvsp[(2) - (3)].license);
         }
     break;
 
   case 151:
-#line 1544 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1544 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.license) = (yyvsp[(1) - (3)].license);
 
@@ -4108,7 +4108,7 @@ yyreduce:
     break;
 
   case 152:
-#line 1557 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1557 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.license).token = TK_NAME;
 
@@ -4120,7 +4120,7 @@ yyreduce:
     break;
 
   case 153:
-#line 1565 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1565 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.license).token = TK_LICENSEE;
 
@@ -4132,7 +4132,7 @@ yyreduce:
     break;
 
   case 154:
-#line 1573 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1573 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.license).token = TK_SIGNATURE;
 
@@ -4144,7 +4144,7 @@ yyreduce:
     break;
 
   case 155:
-#line 1581 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1581 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.license).token = TK_TIMESTAMP;
 
@@ -4156,7 +4156,7 @@ yyreduce:
     break;
 
   case 156:
-#line 1591 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1591 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -4169,7 +4169,7 @@ yyreduce:
     break;
 
   case 157:
-#line 1602 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1602 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             resetLexerState();
 
@@ -4178,14 +4178,14 @@ yyreduce:
     break;
 
   case 158:
-#line 1607 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1607 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.defmetatype) = (yyvsp[(2) - (3)].defmetatype);
         }
     break;
 
   case 160:
-#line 1613 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1613 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.defmetatype) = (yyvsp[(1) - (3)].defmetatype);
 
@@ -4197,7 +4197,7 @@ yyreduce:
     break;
 
   case 161:
-#line 1623 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1623 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.defmetatype).token = TK_NAME;
 
@@ -4206,7 +4206,7 @@ yyreduce:
     break;
 
   case 162:
-#line 1630 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1630 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -4219,7 +4219,7 @@ yyreduce:
     break;
 
   case 163:
-#line 1641 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1641 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             resetLexerState();
 
@@ -4228,14 +4228,14 @@ yyreduce:
     break;
 
   case 164:
-#line 1646 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1646 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.defsupertype) = (yyvsp[(2) - (3)].defsupertype);
         }
     break;
 
   case 166:
-#line 1652 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1652 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.defsupertype) = (yyvsp[(1) - (3)].defsupertype);
 
@@ -4247,7 +4247,7 @@ yyreduce:
     break;
 
   case 167:
-#line 1662 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1662 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.defsupertype).token = TK_NAME;
 
@@ -4256,7 +4256,7 @@ yyreduce:
     break;
 
   case 168:
-#line 1669 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1669 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -4270,7 +4270,7 @@ yyreduce:
     break;
 
   case 169:
-#line 1681 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1681 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             resetLexerState();
 
@@ -4279,14 +4279,14 @@ yyreduce:
     break;
 
   case 170:
-#line 1686 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1686 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.hiddenns) = (yyvsp[(2) - (3)].hiddenns);
         }
     break;
 
   case 172:
-#line 1692 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1692 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.hiddenns) = (yyvsp[(1) - (3)].hiddenns);
 
@@ -4298,7 +4298,7 @@ yyreduce:
     break;
 
   case 173:
-#line 1702 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1702 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.hiddenns).token = TK_NAME;
 
@@ -4307,7 +4307,7 @@ yyreduce:
     break;
 
   case 174:
-#line 1709 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1709 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -4327,7 +4327,7 @@ yyreduce:
     break;
 
   case 175:
-#line 1727 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1727 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             resetLexerState();
 
@@ -4336,14 +4336,14 @@ yyreduce:
     break;
 
   case 176:
-#line 1732 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1732 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.compmodule) = (yyvsp[(2) - (3)].compmodule);
         }
     break;
 
   case 178:
-#line 1738 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1738 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.compmodule) = (yyvsp[(1) - (3)].compmodule);
 
@@ -4355,7 +4355,7 @@ yyreduce:
     break;
 
   case 179:
-#line 1748 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1748 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.compmodule).token = TK_NAME;
 
@@ -4364,7 +4364,7 @@ yyreduce:
     break;
 
   case 180:
-#line 1755 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1755 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.compmodule).token = 0;
             (yyval.compmodule).docstring = NULL;
@@ -4372,14 +4372,14 @@ yyreduce:
     break;
 
   case 181:
-#line 1759 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1759 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.compmodule) = (yyvsp[(2) - (4)].compmodule);
         }
     break;
 
   case 183:
-#line 1765 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1765 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.compmodule) = (yyvsp[(1) - (2)].compmodule);
 
@@ -4391,21 +4391,21 @@ yyreduce:
     break;
 
   case 184:
-#line 1775 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1775 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.compmodule).token = TK_IF;
         }
     break;
 
   case 185:
-#line 1778 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1778 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.compmodule).token = TK_END;
         }
     break;
 
   case 186:
-#line 1781 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1781 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -4421,7 +4421,7 @@ yyreduce:
     break;
 
   case 187:
-#line 1795 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1795 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if ((yyvsp[(2) - (3)].module).name == NULL)
                 yyerror("%Module must have a 'name' argument");
@@ -4436,12 +4436,12 @@ yyreduce:
     break;
 
   case 188:
-#line 1808 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1808 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {resetLexerState();}
     break;
 
   case 189:
-#line 1808 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1808 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if ((yyvsp[(3) - (3)].number) >= 0)
                 deprecated("%Module version number should be specified using the 'version' argument");
@@ -4458,14 +4458,14 @@ yyreduce:
     break;
 
   case 190:
-#line 1821 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1821 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.module) = (yyvsp[(2) - (3)].module);
         }
     break;
 
   case 192:
-#line 1827 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1827 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.module) = (yyvsp[(1) - (3)].module);
 
@@ -4484,7 +4484,7 @@ yyreduce:
     break;
 
   case 193:
-#line 1844 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1844 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.module).token = TK_KWARGS;
 
@@ -4500,7 +4500,7 @@ yyreduce:
     break;
 
   case 194:
-#line 1856 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1856 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.module).token = TK_LANGUAGE;
 
@@ -4522,7 +4522,7 @@ yyreduce:
     break;
 
   case 195:
-#line 1874 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1874 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.module).token = TK_NAME;
 
@@ -4538,7 +4538,7 @@ yyreduce:
     break;
 
   case 196:
-#line 1886 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1886 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.module).token = TK_USEARGNAMES;
 
@@ -4554,7 +4554,7 @@ yyreduce:
     break;
 
   case 197:
-#line 1898 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1898 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.module).token = TK_USELIMITEDAPI;
 
@@ -4570,7 +4570,7 @@ yyreduce:
     break;
 
   case 198:
-#line 1910 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1910 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.module).token = TK_ALLRAISEPYEXC;
 
@@ -4586,7 +4586,7 @@ yyreduce:
     break;
 
   case 199:
-#line 1922 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1922 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.module).token = TK_CALLSUPERINIT;
 
@@ -4602,7 +4602,7 @@ yyreduce:
     break;
 
   case 200:
-#line 1934 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1934 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.module).token = TK_DEFERRORHANDLER;
 
@@ -4618,7 +4618,7 @@ yyreduce:
     break;
 
   case 201:
-#line 1946 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1946 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             deprecated("%Module version numbers are deprecated and ignored");
 
@@ -4639,7 +4639,7 @@ yyreduce:
     break;
 
   case 202:
-#line 1965 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1965 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.module).token = 0;
             (yyval.module).docstring = NULL;
@@ -4647,14 +4647,14 @@ yyreduce:
     break;
 
   case 203:
-#line 1969 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1969 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.module) = (yyvsp[(2) - (4)].module);
         }
     break;
 
   case 205:
-#line 1975 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1975 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.module) = (yyvsp[(1) - (2)].module);
 
@@ -4666,28 +4666,28 @@ yyreduce:
     break;
 
   case 206:
-#line 1985 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1985 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.module).token = TK_IF;
         }
     break;
 
   case 207:
-#line 1988 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1988 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.module).token = TK_END;
         }
     break;
 
   case 208:
-#line 1991 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1991 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.module).token = TK_AUTOPYNAME;
         }
     break;
 
   case 209:
-#line 1994 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 1994 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -4703,7 +4703,7 @@ yyreduce:
     break;
 
   case 211:
-#line 2009 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2009 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             /*
              * The grammar design is a bit broken and this is the easiest way
@@ -4721,14 +4721,14 @@ yyreduce:
     break;
 
   case 212:
-#line 2025 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2025 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.number) = -1;
         }
     break;
 
   case 214:
-#line 2031 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2031 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if ((yyvsp[(2) - (2)].include).name == NULL)
                 yyerror("%Include must have a 'name' argument");
@@ -4739,7 +4739,7 @@ yyreduce:
     break;
 
   case 215:
-#line 2040 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2040 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             resetLexerState();
 
@@ -4749,14 +4749,14 @@ yyreduce:
     break;
 
   case 216:
-#line 2046 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2046 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.include) = (yyvsp[(2) - (3)].include);
         }
     break;
 
   case 218:
-#line 2052 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2052 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.include) = (yyvsp[(1) - (3)].include);
 
@@ -4769,7 +4769,7 @@ yyreduce:
     break;
 
   case 219:
-#line 2063 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2063 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.include).token = TK_NAME;
 
@@ -4779,7 +4779,7 @@ yyreduce:
     break;
 
   case 220:
-#line 2069 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2069 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.include).token = TK_OPTIONAL;
 
@@ -4789,7 +4789,7 @@ yyreduce:
     break;
 
   case 221:
-#line 2077 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2077 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
                 newImport((yyvsp[(2) - (2)].import).name);
@@ -4797,7 +4797,7 @@ yyreduce:
     break;
 
   case 222:
-#line 2083 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2083 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             resetLexerState();
 
@@ -4806,14 +4806,14 @@ yyreduce:
     break;
 
   case 223:
-#line 2088 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2088 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.import) = (yyvsp[(2) - (3)].import);
         }
     break;
 
   case 225:
-#line 2094 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2094 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.import) = (yyvsp[(1) - (3)].import);
 
@@ -4825,7 +4825,7 @@ yyreduce:
     break;
 
   case 226:
-#line 2104 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2104 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.import).token = TK_NAME;
 
@@ -4834,49 +4834,49 @@ yyreduce:
     break;
 
   case 227:
-#line 2111 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2111 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.codeb) = NULL;
         }
     break;
 
   case 228:
-#line 2114 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2114 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.codeb) = (yyvsp[(2) - (2)].codeb);
         }
     break;
 
   case 229:
-#line 2119 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2119 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.codeb) = NULL;
         }
     break;
 
   case 230:
-#line 2122 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2122 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.codeb) = (yyvsp[(2) - (2)].codeb);
         }
     break;
 
   case 231:
-#line 2127 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2127 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.codeb) = NULL;
         }
     break;
 
   case 232:
-#line 2130 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2130 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.codeb) = (yyvsp[(2) - (2)].codeb);
         }
     break;
 
   case 233:
-#line 2135 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2135 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
                 appendCodeBlock(&currentModule->copying, (yyvsp[(2) - (2)].codeb));
@@ -4884,7 +4884,7 @@ yyreduce:
     break;
 
   case 234:
-#line 2141 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2141 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
                 appendCodeBlock(&currentSpec->exphdrcode, (yyvsp[(2) - (2)].codeb));
@@ -4892,7 +4892,7 @@ yyreduce:
     break;
 
   case 235:
-#line 2147 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2147 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
                 appendCodeBlock(&currentModule->hdrcode, (yyvsp[(2) - (2)].codeb));
@@ -4900,91 +4900,91 @@ yyreduce:
     break;
 
   case 236:
-#line 2153 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2153 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.codeb) = (yyvsp[(2) - (2)].codeb);
         }
     break;
 
   case 237:
-#line 2158 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2158 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.codeb) = (yyvsp[(2) - (2)].codeb);
         }
     break;
 
   case 238:
-#line 2163 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2163 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.codeb) = (yyvsp[(2) - (2)].codeb);
         }
     break;
 
   case 239:
-#line 2168 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2168 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.codeb) = (yyvsp[(2) - (2)].codeb);
         }
     break;
 
   case 240:
-#line 2173 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2173 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.codeb) = (yyvsp[(2) - (2)].codeb);
         }
     break;
 
   case 241:
-#line 2178 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2178 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.codeb) = (yyvsp[(2) - (2)].codeb);
         }
     break;
 
   case 242:
-#line 2183 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2183 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.codeb) = (yyvsp[(2) - (2)].codeb);
         }
     break;
 
   case 243:
-#line 2188 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2188 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.codeb) = (yyvsp[(2) - (2)].codeb);
         }
     break;
 
   case 244:
-#line 2193 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2193 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.codeb) = (yyvsp[(2) - (2)].codeb);
         }
     break;
 
   case 245:
-#line 2198 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2198 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.codeb) = (yyvsp[(2) - (2)].codeb);
         }
     break;
 
   case 246:
-#line 2203 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2203 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.codeb) = (yyvsp[(2) - (2)].codeb);
         }
     break;
 
   case 247:
-#line 2208 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2208 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.codeb) = (yyvsp[(2) - (2)].codeb);
         }
     break;
 
   case 248:
-#line 2213 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2213 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
                 appendCodeBlock(&currentModule->cppcode, (yyvsp[(2) - (2)].codeb));
@@ -4992,14 +4992,14 @@ yyreduce:
     break;
 
   case 249:
-#line 2219 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2219 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.codeb) = (yyvsp[(2) - (2)].codeb);
         }
     break;
 
   case 250:
-#line 2224 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2224 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
                 appendCodeBlock(&currentModule->preinitcode, (yyvsp[(2) - (2)].codeb));
@@ -5007,7 +5007,7 @@ yyreduce:
     break;
 
   case 251:
-#line 2230 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2230 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
                 appendCodeBlock(&currentModule->initcode, (yyvsp[(2) - (2)].codeb));
@@ -5015,7 +5015,7 @@ yyreduce:
     break;
 
   case 252:
-#line 2236 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2236 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
                 appendCodeBlock(&currentModule->postinitcode, (yyvsp[(2) - (2)].codeb));
@@ -5023,7 +5023,7 @@ yyreduce:
     break;
 
   case 253:
-#line 2242 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2242 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
                 appendCodeBlock(&currentModule->unitcode, (yyvsp[(2) - (2)].codeb));
@@ -5031,7 +5031,7 @@ yyreduce:
     break;
 
   case 254:
-#line 2248 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2248 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
                 appendCodeBlock(&currentModule->unitpostinccode, (yyvsp[(2) - (2)].codeb));
@@ -5039,7 +5039,7 @@ yyreduce:
     break;
 
   case 255:
-#line 2254 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2254 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping() && !inMainModule())
                 appendCodeBlock(&currentSpec->exptypehintcode, (yyvsp[(2) - (2)].codeb));
@@ -5047,7 +5047,7 @@ yyreduce:
     break;
 
   case 256:
-#line 2260 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2260 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
                 appendCodeBlock(&currentModule->typehintcode, (yyvsp[(2) - (2)].codeb));
@@ -5055,14 +5055,14 @@ yyreduce:
     break;
 
   case 257:
-#line 2266 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2266 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.codeb) = (yyvsp[(2) - (2)].codeb);
         }
     break;
 
   case 258:
-#line 2271 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2271 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
                 addAutoPyName(currentModule, (yyvsp[(2) - (2)].autopyname).remove_leading);
@@ -5070,14 +5070,14 @@ yyreduce:
     break;
 
   case 259:
-#line 2277 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2277 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.autopyname) = (yyvsp[(2) - (3)].autopyname);
         }
     break;
 
   case 261:
-#line 2283 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2283 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.autopyname) = (yyvsp[(1) - (3)].autopyname);
 
@@ -5089,7 +5089,7 @@ yyreduce:
     break;
 
   case 262:
-#line 2293 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2293 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.autopyname).token = TK_REMOVELEADING;
 
@@ -5098,7 +5098,7 @@ yyreduce:
     break;
 
   case 263:
-#line 2300 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2300 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.docstr) = sipMalloc(sizeof(docstringDef));
 
@@ -5184,7 +5184,7 @@ yyreduce:
     break;
 
   case 264:
-#line 2384 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2384 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.docstring).format = currentModule->defdocstringfmt;
             (yyval.docstring).signature = currentModule->defdocstringsig;
@@ -5192,7 +5192,7 @@ yyreduce:
     break;
 
   case 265:
-#line 2388 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2388 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             resetLexerState();
 
@@ -5202,14 +5202,14 @@ yyreduce:
     break;
 
   case 266:
-#line 2394 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2394 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.docstring) = (yyvsp[(2) - (3)].docstring);
         }
     break;
 
   case 268:
-#line 2400 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2400 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.docstring) = (yyvsp[(1) - (3)].docstring);
 
@@ -5222,7 +5222,7 @@ yyreduce:
     break;
 
   case 269:
-#line 2411 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2411 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.docstring).token = TK_FORMAT;
 
@@ -5232,7 +5232,7 @@ yyreduce:
     break;
 
   case 270:
-#line 2417 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2417 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.docstring).token = TK_SIGNATURE;
 
@@ -5242,14 +5242,14 @@ yyreduce:
     break;
 
   case 271:
-#line 2425 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2425 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.docstr) = NULL;
         }
     break;
 
   case 273:
-#line 2431 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2431 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if ((yyvsp[(2) - (3)].extract).id == NULL)
                 yyerror("%Extract must have an 'id' argument");
@@ -5260,7 +5260,7 @@ yyreduce:
     break;
 
   case 274:
-#line 2440 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2440 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             resetLexerState();
 
@@ -5270,14 +5270,14 @@ yyreduce:
     break;
 
   case 275:
-#line 2446 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2446 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.extract) = (yyvsp[(2) - (3)].extract);
         }
     break;
 
   case 277:
-#line 2452 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2452 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.extract) = (yyvsp[(1) - (3)].extract);
 
@@ -5290,7 +5290,7 @@ yyreduce:
     break;
 
   case 278:
-#line 2463 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2463 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.extract).token = TK_ID;
 
@@ -5300,7 +5300,7 @@ yyreduce:
     break;
 
   case 279:
-#line 2469 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2469 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.extract).token = TK_ORDER;
 
@@ -5313,7 +5313,7 @@ yyreduce:
     break;
 
   case 282:
-#line 2484 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2484 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.codeb) = (yyvsp[(1) - (2)].codeb);
 
@@ -5325,7 +5325,7 @@ yyreduce:
     break;
 
   case 283:
-#line 2494 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2494 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -5351,42 +5351,42 @@ yyreduce:
     break;
 
   case 285:
-#line 2518 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2518 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.boolean) = FALSE;
         }
     break;
 
   case 286:
-#line 2521 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2521 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.boolean) = TRUE;
         }
     break;
 
   case 287:
-#line 2524 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2524 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.boolean) = TRUE;
         }
     break;
 
   case 288:
-#line 2529 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2529 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.text) = NULL;
         }
     break;
 
   case 289:
-#line 2532 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2532 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.text) = (yyvsp[(1) - (1)].text);
         }
     break;
 
   case 296:
-#line 2547 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2547 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -5427,21 +5427,21 @@ yyreduce:
     break;
 
   case 301:
-#line 2594 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2594 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.valp) = NULL;
         }
     break;
 
   case 302:
-#line 2597 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2597 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.valp) = (yyvsp[(2) - (2)].valp);
         }
     break;
 
   case 304:
-#line 2603 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2603 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             valueDef *vd;
  
@@ -5461,98 +5461,98 @@ yyreduce:
     break;
 
   case 305:
-#line 2621 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2621 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.qchar) = '-';
         }
     break;
 
   case 306:
-#line 2624 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2624 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.qchar) = '+';
         }
     break;
 
   case 307:
-#line 2627 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2627 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.qchar) = '*';
         }
     break;
 
   case 308:
-#line 2630 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2630 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.qchar) = '/';
         }
     break;
 
   case 309:
-#line 2633 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2633 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.qchar) = '&';
         }
     break;
 
   case 310:
-#line 2636 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2636 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.qchar) = '|';
         }
     break;
 
   case 311:
-#line 2641 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2641 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.qchar) = '\0';
         }
     break;
 
   case 312:
-#line 2644 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2644 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.qchar) = '!';
         }
     break;
 
   case 313:
-#line 2647 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2647 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.qchar) = '~';
         }
     break;
 
   case 314:
-#line 2650 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2650 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.qchar) = '-';
         }
     break;
 
   case 315:
-#line 2653 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2653 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.qchar) = '+';
         }
     break;
 
   case 316:
-#line 2656 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2656 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.qchar) = '*';
         }
     break;
 
   case 317:
-#line 2659 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2659 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.qchar) = '&';
         }
     break;
 
   case 318:
-#line 2664 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2664 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if ((yyvsp[(2) - (3)].qchar) != '\0' && (yyvsp[(3) - (3)].value).vtype == string_value)
                 yyerror("Invalid unary operator for string");
@@ -5569,21 +5569,21 @@ yyreduce:
     break;
 
   case 319:
-#line 2679 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2679 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.scpvalp) = NULL;
         }
     break;
 
   case 320:
-#line 2682 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2682 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.scpvalp) = (yyvsp[(2) - (3)].scpvalp);
         }
     break;
 
   case 321:
-#line 2687 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2687 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (currentSpec->genc)
                 yyerror("Scoped names are not allowed in a C module");
@@ -5593,7 +5593,7 @@ yyreduce:
     break;
 
   case 324:
-#line 2697 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2697 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (currentSpec->genc)
                 yyerror("Scoped names are not allowed in a C module");
@@ -5603,28 +5603,28 @@ yyreduce:
     break;
 
   case 325:
-#line 2705 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2705 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.scpvalp) = text2scopePart((yyvsp[(1) - (1)].text));
         }
     break;
 
   case 326:
-#line 2710 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2710 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.boolean) = TRUE;
         }
     break;
 
   case 327:
-#line 2713 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2713 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.boolean) = FALSE;
         }
     break;
 
   case 328:
-#line 2718 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2718 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             /*
              * We let the C++ compiler decide if the value is a valid one - no
@@ -5637,7 +5637,7 @@ yyreduce:
     break;
 
   case 329:
-#line 2727 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2727 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             fcallDef *fcd;
 
@@ -5651,14 +5651,14 @@ yyreduce:
     break;
 
   case 330:
-#line 2737 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2737 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.value).vtype = empty_value;
         }
     break;
 
   case 331:
-#line 2740 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2740 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.value).vtype = real_value;
             (yyval.value).u.vreal = (yyvsp[(1) - (1)].real);
@@ -5666,7 +5666,7 @@ yyreduce:
     break;
 
   case 332:
-#line 2744 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2744 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.value).vtype = numeric_value;
             (yyval.value).u.vnum = (yyvsp[(1) - (1)].number);
@@ -5674,7 +5674,7 @@ yyreduce:
     break;
 
   case 333:
-#line 2748 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2748 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.value).vtype = numeric_value;
             (yyval.value).u.vnum = (yyvsp[(1) - (1)].boolean);
@@ -5682,7 +5682,7 @@ yyreduce:
     break;
 
   case 334:
-#line 2752 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2752 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.value).vtype = numeric_value;
             (yyval.value).u.vnum = 0;
@@ -5690,7 +5690,7 @@ yyreduce:
     break;
 
   case 335:
-#line 2756 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2756 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.value).vtype = string_value;
             (yyval.value).u.vstr = (yyvsp[(1) - (1)].text);
@@ -5698,7 +5698,7 @@ yyreduce:
     break;
 
   case 336:
-#line 2760 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2760 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.value).vtype = qchar_value;
             (yyval.value).u.vqchar = (yyvsp[(1) - (1)].qchar);
@@ -5706,7 +5706,7 @@ yyreduce:
     break;
 
   case 337:
-#line 2766 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2766 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             /* No values. */
 
@@ -5715,7 +5715,7 @@ yyreduce:
     break;
 
   case 338:
-#line 2771 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2771 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             /* The single or first expression. */
 
@@ -5725,7 +5725,7 @@ yyreduce:
     break;
 
   case 339:
-#line 2777 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2777 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             /* Check that it wasn't ...(,expression...). */
 
@@ -5745,7 +5745,7 @@ yyreduce:
     break;
 
   case 340:
-#line 2795 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2795 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -5771,7 +5771,7 @@ yyreduce:
     break;
 
   case 341:
-#line 2817 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2817 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -5812,7 +5812,7 @@ yyreduce:
     break;
 
   case 342:
-#line 2856 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2856 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (currentSpec -> genc && (yyvsp[(2) - (2)].scpvalp)->next != NULL)
                 yyerror("Namespaces not allowed in a C module");
@@ -5823,7 +5823,7 @@ yyreduce:
     break;
 
   case 343:
-#line 2862 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2862 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -5866,7 +5866,7 @@ yyreduce:
     break;
 
   case 344:
-#line 2900 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2900 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
                 completeClass((yyvsp[(2) - (8)].scpvalp), &(yyvsp[(5) - (8)].optflags), (yyvsp[(7) - (8)].boolean));
@@ -5874,12 +5874,12 @@ yyreduce:
     break;
 
   case 345:
-#line 2906 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2906 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {currentIsTemplate = TRUE;}
     break;
 
   case 346:
-#line 2906 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2906 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (currentSpec->genc)
                 yyerror("Class templates not allowed in a C module");
@@ -5907,14 +5907,14 @@ yyreduce:
     break;
 
   case 347:
-#line 2932 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2932 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.signature) = (yyvsp[(3) - (4)].signature);
         }
     break;
 
   case 348:
-#line 2937 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2937 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (currentSpec->genc)
                 yyerror("Class definition not allowed in a C module");
@@ -5925,7 +5925,7 @@ yyreduce:
     break;
 
   case 349:
-#line 2943 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2943 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -5964,7 +5964,7 @@ yyreduce:
     break;
 
   case 350:
-#line 2977 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2977 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
                 (yyval.klass) = completeClass((yyvsp[(2) - (8)].scpvalp), &(yyvsp[(5) - (8)].optflags), (yyvsp[(7) - (8)].boolean));
@@ -5972,7 +5972,7 @@ yyreduce:
     break;
 
   case 355:
-#line 2991 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 2991 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping() && (yyvsp[(1) - (2)].token) == TK_PUBLIC)
             {
@@ -6026,49 +6026,49 @@ yyreduce:
     break;
 
   case 356:
-#line 3043 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3043 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
         (yyval.token) = TK_PUBLIC;
         }
     break;
 
   case 357:
-#line 3046 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3046 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
         (yyval.token) = TK_PUBLIC;
         }
     break;
 
   case 358:
-#line 3049 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3049 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
         (yyval.token) = TK_PROTECTED;
         }
     break;
 
   case 359:
-#line 3052 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3052 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
         (yyval.token) = TK_PRIVATE;
         }
     break;
 
   case 360:
-#line 3057 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3057 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.boolean) = FALSE;
         }
     break;
 
   case 361:
-#line 3060 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3060 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.boolean) = TRUE;
         }
     break;
 
   case 375:
-#line 3080 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3080 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -6083,7 +6083,7 @@ yyreduce:
     break;
 
   case 376:
-#line 3091 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3091 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
                 appendCodeBlock(&currentScope()->cppcode, (yyvsp[(1) - (1)].codeb));
@@ -6091,7 +6091,7 @@ yyreduce:
     break;
 
   case 377:
-#line 3095 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3095 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
                 appendCodeBlock(&currentScope()->iff->hdrcode, (yyvsp[(1) - (1)].codeb));
@@ -6099,7 +6099,7 @@ yyreduce:
     break;
 
   case 378:
-#line 3099 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3099 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -6114,7 +6114,7 @@ yyreduce:
     break;
 
   case 379:
-#line 3110 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3110 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -6129,7 +6129,7 @@ yyreduce:
     break;
 
   case 380:
-#line 3121 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3121 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -6144,7 +6144,7 @@ yyreduce:
     break;
 
   case 381:
-#line 3132 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3132 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -6159,7 +6159,7 @@ yyreduce:
     break;
 
   case 382:
-#line 3143 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3143 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -6174,7 +6174,7 @@ yyreduce:
     break;
 
   case 383:
-#line 3154 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3154 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -6189,7 +6189,7 @@ yyreduce:
     break;
 
   case 384:
-#line 3165 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3165 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -6204,7 +6204,7 @@ yyreduce:
     break;
 
   case 385:
-#line 3176 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3176 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -6219,7 +6219,7 @@ yyreduce:
     break;
 
   case 386:
-#line 3187 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3187 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -6234,7 +6234,7 @@ yyreduce:
     break;
 
   case 387:
-#line 3198 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3198 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -6249,7 +6249,7 @@ yyreduce:
     break;
 
   case 388:
-#line 3209 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3209 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -6264,7 +6264,7 @@ yyreduce:
     break;
 
   case 389:
-#line 3220 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3220 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -6279,7 +6279,7 @@ yyreduce:
     break;
 
   case 393:
-#line 3234 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3234 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -6294,7 +6294,7 @@ yyreduce:
     break;
 
   case 394:
-#line 3245 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3245 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -6309,7 +6309,7 @@ yyreduce:
     break;
 
   case 395:
-#line 3256 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3256 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -6324,7 +6324,7 @@ yyreduce:
     break;
 
   case 396:
-#line 3267 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3267 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (currentSpec -> genc)
                 yyerror("public section not allowed in a C module");
@@ -6335,7 +6335,7 @@ yyreduce:
     break;
 
   case 397:
-#line 3274 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3274 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (currentSpec -> genc)
                 yyerror("protected section not allowed in a C module");
@@ -6346,7 +6346,7 @@ yyreduce:
     break;
 
   case 398:
-#line 3281 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3281 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (currentSpec -> genc)
                 yyerror("private section not allowed in a C module");
@@ -6357,7 +6357,7 @@ yyreduce:
     break;
 
   case 399:
-#line 3288 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3288 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (currentSpec -> genc)
                 yyerror("signals section not allowed in a C module");
@@ -6368,7 +6368,7 @@ yyreduce:
     break;
 
   case 400:
-#line 3297 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3297 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if ((yyvsp[(2) - (3)].property).name == NULL)
                 yyerror("A %Property directive must have a 'name' argument");
@@ -6383,14 +6383,14 @@ yyreduce:
     break;
 
   case 401:
-#line 3310 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3310 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.property) = (yyvsp[(2) - (3)].property);
         }
     break;
 
   case 403:
-#line 3316 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3316 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.property) = (yyvsp[(1) - (3)].property);
 
@@ -6404,7 +6404,7 @@ yyreduce:
     break;
 
   case 404:
-#line 3328 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3328 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.property).token = TK_GET;
 
@@ -6415,7 +6415,7 @@ yyreduce:
     break;
 
   case 405:
-#line 3335 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3335 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.property).token = TK_NAME;
 
@@ -6426,7 +6426,7 @@ yyreduce:
     break;
 
   case 406:
-#line 3342 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3342 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.property).token = TK_SET;
 
@@ -6437,7 +6437,7 @@ yyreduce:
     break;
 
   case 407:
-#line 3351 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3351 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.property).token = 0;
             (yyval.property).docstring = NULL;
@@ -6445,14 +6445,14 @@ yyreduce:
     break;
 
   case 408:
-#line 3355 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3355 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.property) = (yyvsp[(2) - (4)].property);
         }
     break;
 
   case 410:
-#line 3361 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3361 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.property) = (yyvsp[(1) - (2)].property);
 
@@ -6464,21 +6464,21 @@ yyreduce:
     break;
 
   case 411:
-#line 3371 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3371 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.property).token = TK_IF;
         }
     break;
 
   case 412:
-#line 3374 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3374 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.property).token = TK_END;
         }
     break;
 
   case 413:
-#line 3377 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3377 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -6494,26 +6494,26 @@ yyreduce:
     break;
 
   case 416:
-#line 3395 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3395 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.number) = 0;
         }
     break;
 
   case 417:
-#line 3398 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3398 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.number) = SECT_IS_SLOT;
         }
     break;
 
   case 418:
-#line 3404 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3404 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {currentIsVirt = TRUE;}
     break;
 
   case 421:
-#line 3408 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3408 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             /* Note that we allow non-virtual dtors in C modules. */
 
@@ -6581,12 +6581,12 @@ yyreduce:
     break;
 
   case 422:
-#line 3474 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3474 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {currentCtorIsExplicit = TRUE;}
     break;
 
   case 425:
-#line 3478 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3478 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             /* Note that we allow ctors in C modules. */
 
@@ -6634,21 +6634,21 @@ yyreduce:
     break;
 
   case 426:
-#line 3524 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3524 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.optsignature) = NULL;
         }
     break;
 
   case 427:
-#line 3527 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3527 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             parsingCSignature = TRUE;
         }
     break;
 
   case 428:
-#line 3529 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3529 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.optsignature) = sipMalloc(sizeof (signatureDef));
 
@@ -6659,21 +6659,21 @@ yyreduce:
     break;
 
   case 429:
-#line 3538 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3538 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.optsignature) = NULL;
         }
     break;
 
   case 430:
-#line 3541 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3541 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             parsingCSignature = TRUE;
         }
     break;
 
   case 431:
-#line 3543 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3543 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.optsignature) = sipMalloc(sizeof (signatureDef));
 
@@ -6685,7 +6685,7 @@ yyreduce:
     break;
 
   case 432:
-#line 3553 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3553 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -6707,7 +6707,7 @@ yyreduce:
     break;
 
   case 433:
-#line 3571 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3571 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             /*
              * It looks like an assignment operator (though we don't bother to
@@ -6731,7 +6731,7 @@ yyreduce:
     break;
 
   case 434:
-#line 3591 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3591 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -6779,7 +6779,7 @@ yyreduce:
     break;
 
   case 435:
-#line 3635 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3635 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -6862,187 +6862,187 @@ yyreduce:
     break;
 
   case 436:
-#line 3716 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3716 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__add__";}
     break;
 
   case 437:
-#line 3717 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3717 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__sub__";}
     break;
 
   case 438:
-#line 3718 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3718 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__mul__";}
     break;
 
   case 439:
-#line 3719 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3719 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__div__";}
     break;
 
   case 440:
-#line 3720 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3720 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__mod__";}
     break;
 
   case 441:
-#line 3721 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3721 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__and__";}
     break;
 
   case 442:
-#line 3722 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3722 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__or__";}
     break;
 
   case 443:
-#line 3723 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3723 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__xor__";}
     break;
 
   case 444:
-#line 3724 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3724 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__lshift__";}
     break;
 
   case 445:
-#line 3725 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3725 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__rshift__";}
     break;
 
   case 446:
-#line 3726 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3726 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__iadd__";}
     break;
 
   case 447:
-#line 3727 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3727 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__isub__";}
     break;
 
   case 448:
-#line 3728 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3728 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__imul__";}
     break;
 
   case 449:
-#line 3729 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3729 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__idiv__";}
     break;
 
   case 450:
-#line 3730 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3730 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__imod__";}
     break;
 
   case 451:
-#line 3731 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3731 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__iand__";}
     break;
 
   case 452:
-#line 3732 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3732 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__ior__";}
     break;
 
   case 453:
-#line 3733 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3733 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__ixor__";}
     break;
 
   case 454:
-#line 3734 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3734 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__ilshift__";}
     break;
 
   case 455:
-#line 3735 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3735 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__irshift__";}
     break;
 
   case 456:
-#line 3736 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3736 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__invert__";}
     break;
 
   case 457:
-#line 3737 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3737 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__call__";}
     break;
 
   case 458:
-#line 3738 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3738 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__getitem__";}
     break;
 
   case 459:
-#line 3739 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3739 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__lt__";}
     break;
 
   case 460:
-#line 3740 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3740 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__le__";}
     break;
 
   case 461:
-#line 3741 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3741 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__eq__";}
     break;
 
   case 462:
-#line 3742 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3742 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__ne__";}
     break;
 
   case 463:
-#line 3743 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3743 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__gt__";}
     break;
 
   case 464:
-#line 3744 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3744 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__ge__";}
     break;
 
   case 465:
-#line 3747 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3747 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.number) = FALSE;
         }
     break;
 
   case 466:
-#line 3750 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3750 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.number) = TRUE;
         }
     break;
 
   case 467:
-#line 3755 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3755 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.number) = FALSE;
         }
     break;
 
   case 468:
-#line 3758 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3758 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.number) = TRUE;
         }
     break;
 
   case 469:
-#line 3763 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3763 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.number) = 0;
         }
     break;
 
   case 470:
-#line 3766 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3766 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if ((yyvsp[(2) - (2)].number) != 0)
                 yyerror("Abstract virtual function '= 0' expected");
@@ -7052,21 +7052,21 @@ yyreduce:
     break;
 
   case 471:
-#line 3774 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3774 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.optflags).nrFlags = 0;
         }
     break;
 
   case 472:
-#line 3777 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3777 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.optflags) = (yyvsp[(2) - (3)].optflags);
         }
     break;
 
   case 473:
-#line 3783 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3783 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.optflags).flags[0] = (yyvsp[(1) - (1)].flag);
             (yyval.optflags).nrFlags = 1;
@@ -7074,7 +7074,7 @@ yyreduce:
     break;
 
   case 474:
-#line 3787 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3787 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             /* Check there is room. */
 
@@ -7088,7 +7088,7 @@ yyreduce:
     break;
 
   case 475:
-#line 3799 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3799 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.flag).ftype = bool_flag;
             (yyval.flag).fname = (yyvsp[(1) - (1)].text);
@@ -7096,7 +7096,7 @@ yyreduce:
     break;
 
   case 476:
-#line 3803 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3803 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.flag) = (yyvsp[(3) - (3)].flag);
             (yyval.flag).fname = (yyvsp[(1) - (3)].text);
@@ -7104,7 +7104,7 @@ yyreduce:
     break;
 
   case 477:
-#line 3809 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3809 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.flag).ftype = (strchr((yyvsp[(1) - (1)].text), '.') != NULL) ? dotted_name_flag : name_flag;
             (yyval.flag).fvalue.sval = (yyvsp[(1) - (1)].text);
@@ -7112,7 +7112,7 @@ yyreduce:
     break;
 
   case 478:
-#line 3813 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3813 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             apiVersionRangeDef *avd;
             int from, to;
@@ -7139,7 +7139,7 @@ yyreduce:
     break;
 
   case 479:
-#line 3836 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3836 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.flag).ftype = string_flag;
             (yyval.flag).fvalue.sval = convertFeaturedString((yyvsp[(1) - (1)].text));
@@ -7147,7 +7147,7 @@ yyreduce:
     break;
 
   case 480:
-#line 3840 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3840 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.flag).ftype = integer_flag;
             (yyval.flag).fvalue.ival = (yyvsp[(1) - (1)].number);
@@ -7155,63 +7155,63 @@ yyreduce:
     break;
 
   case 481:
-#line 3846 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3846 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.codeb) = NULL;
         }
     break;
 
   case 482:
-#line 3849 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3849 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.codeb) = (yyvsp[(2) - (2)].codeb);
         }
     break;
 
   case 483:
-#line 3854 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3854 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.codeb) = NULL;
         }
     break;
 
   case 484:
-#line 3857 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3857 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.codeb) = (yyvsp[(2) - (2)].codeb);
         }
     break;
 
   case 485:
-#line 3862 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3862 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.codeb) = NULL;
         }
     break;
 
   case 486:
-#line 3865 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3865 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.codeb) = (yyvsp[(2) - (2)].codeb);
         }
     break;
 
   case 487:
-#line 3870 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3870 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.codeb) = NULL;
         }
     break;
 
   case 488:
-#line 3873 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3873 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.codeb) = (yyvsp[(2) - (2)].codeb);
         }
     break;
 
   case 489:
-#line 3878 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3878 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             int a, nrrxcon, nrrxdis, nrslotcon, nrslotdis, nrarray, nrarraysize;
 
@@ -7265,7 +7265,7 @@ yyreduce:
     break;
 
   case 490:
-#line 3930 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3930 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             /* No arguments. */
 
@@ -7274,7 +7274,7 @@ yyreduce:
     break;
 
   case 491:
-#line 3935 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3935 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             /* The single or first argument. */
 
@@ -7284,7 +7284,7 @@ yyreduce:
     break;
 
   case 492:
-#line 3941 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3941 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             /* Check that it wasn't ...(,arg...). */
             if ((yyvsp[(1) - (3)].signature).nrArgs == 0)
@@ -7309,7 +7309,7 @@ yyreduce:
     break;
 
   case 493:
-#line 3964 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3964 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             deprecated("SIP_SIGNAL is deprecated\n");
             checkNoAnnos(&(yyvsp[(3) - (4)].optflags), "SIP_SIGNAL has no annotations");
@@ -7325,7 +7325,7 @@ yyreduce:
     break;
 
   case 494:
-#line 3976 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3976 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             deprecated("SIP_SLOT is deprecated\n");
             checkNoAnnos(&(yyvsp[(3) - (4)].optflags), "SIP_SLOT has no annotations");
@@ -7341,7 +7341,7 @@ yyreduce:
     break;
 
   case 495:
-#line 3988 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 3988 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             deprecated("SIP_ANYSLOT is deprecated\n");
             checkNoAnnos(&(yyvsp[(3) - (4)].optflags), "SIP_ANYSLOT has no annotations");
@@ -7357,7 +7357,7 @@ yyreduce:
     break;
 
   case 496:
-#line 4000 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4000 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             const char *annos[] = {
                 "SingleShot",
@@ -7380,7 +7380,7 @@ yyreduce:
     break;
 
   case 497:
-#line 4019 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4019 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             deprecated("SIP_RXOBJ_DIS is deprecated\n");
             checkNoAnnos(&(yyvsp[(3) - (3)].optflags), "SIP_RXOBJ_DIS has no annotations");
@@ -7395,7 +7395,7 @@ yyreduce:
     break;
 
   case 498:
-#line 4030 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4030 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             deprecated("SIP_SLOT_CON is deprecated\n");
             checkNoAnnos(&(yyvsp[(6) - (6)].optflags), "SIP_SLOT_CON has no annotations");
@@ -7416,7 +7416,7 @@ yyreduce:
     break;
 
   case 499:
-#line 4047 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4047 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             deprecated("SIP_SLOT_DIS is deprecated\n");
             checkNoAnnos(&(yyvsp[(6) - (6)].optflags), "SIP_SLOT_DIS has no annotations");
@@ -7437,7 +7437,7 @@ yyreduce:
     break;
 
   case 500:
-#line 4064 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4064 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             deprecated("SIP_QOBJECT is deprecated\n");
             checkNoAnnos(&(yyvsp[(3) - (3)].optflags), "SIP_QOBJECT has no annotations");
@@ -7450,7 +7450,7 @@ yyreduce:
     break;
 
   case 501:
-#line 4073 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4073 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.memArg) = (yyvsp[(1) - (2)].memArg);
             (yyval.memArg).defval = (yyvsp[(2) - (2)].valp);
@@ -7458,27 +7458,27 @@ yyreduce:
     break;
 
   case 502:
-#line 4080 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4080 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {currentIsSignal = TRUE;}
     break;
 
   case 504:
-#line 4081 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4081 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {currentIsSlot = TRUE;}
     break;
 
   case 507:
-#line 4086 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4086 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {currentIsStatic = TRUE;}
     break;
 
   case 512:
-#line 4096 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4096 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {currentIsVirt = TRUE;}
     break;
 
   case 515:
-#line 4100 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4100 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -7535,7 +7535,7 @@ yyreduce:
     break;
 
   case 516:
-#line 4155 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4155 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.variable).token = 0;
             (yyval.variable).access_code = NULL;
@@ -7545,14 +7545,14 @@ yyreduce:
     break;
 
   case 517:
-#line 4161 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4161 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.variable) = (yyvsp[(2) - (3)].variable);
         }
     break;
 
   case 519:
-#line 4167 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4167 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.variable) = (yyvsp[(1) - (2)].variable);
 
@@ -7566,21 +7566,21 @@ yyreduce:
     break;
 
   case 520:
-#line 4179 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4179 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.variable).token = TK_IF;
         }
     break;
 
   case 521:
-#line 4182 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4182 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.variable).token = TK_END;
         }
     break;
 
   case 522:
-#line 4185 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4185 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -7599,7 +7599,7 @@ yyreduce:
     break;
 
   case 523:
-#line 4200 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4200 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -7618,7 +7618,7 @@ yyreduce:
     break;
 
   case 524:
-#line 4215 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4215 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -7637,7 +7637,7 @@ yyreduce:
     break;
 
   case 525:
-#line 4232 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4232 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.memArg) = (yyvsp[(2) - (4)].memArg);
             add_derefs(&(yyval.memArg), &(yyvsp[(3) - (4)].memArg));
@@ -7646,7 +7646,7 @@ yyreduce:
     break;
 
   case 526:
-#line 4237 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4237 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.memArg) = (yyvsp[(1) - (3)].memArg);
             add_derefs(&(yyval.memArg), &(yyvsp[(2) - (3)].memArg));
@@ -7662,7 +7662,7 @@ yyreduce:
     break;
 
   case 527:
-#line 4251 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4251 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             const char *annos[] = {
                 "AllowNone",
@@ -7774,14 +7774,14 @@ yyreduce:
     break;
 
   case 528:
-#line 4361 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4361 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.number) = 0;
         }
     break;
 
   case 529:
-#line 4364 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4364 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (currentSpec -> genc)
                 yyerror("References not allowed in a C module");
@@ -7791,28 +7791,28 @@ yyreduce:
     break;
 
   case 530:
-#line 4372 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4372 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.memArg).nrderefs = 0;
         }
     break;
 
   case 531:
-#line 4375 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4375 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             add_new_deref(&(yyval.memArg), &(yyvsp[(1) - (3)].memArg), TRUE);
         }
     break;
 
   case 532:
-#line 4378 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4378 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             add_new_deref(&(yyval.memArg), &(yyvsp[(1) - (2)].memArg), FALSE);
         }
     break;
 
   case 533:
-#line 4383 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4383 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = defined_type;
@@ -7824,7 +7824,7 @@ yyreduce:
     break;
 
   case 534:
-#line 4391 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4391 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             templateDef *td;
 
@@ -7839,7 +7839,7 @@ yyreduce:
     break;
 
   case 535:
-#line 4402 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4402 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
 
@@ -7858,7 +7858,7 @@ yyreduce:
     break;
 
   case 536:
-#line 4417 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4417 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = ushort_type;
@@ -7866,7 +7866,7 @@ yyreduce:
     break;
 
   case 537:
-#line 4421 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4421 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = short_type;
@@ -7874,7 +7874,7 @@ yyreduce:
     break;
 
   case 538:
-#line 4425 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4425 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = uint_type;
@@ -7882,7 +7882,7 @@ yyreduce:
     break;
 
   case 539:
-#line 4429 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4429 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = uint_type;
@@ -7890,7 +7890,7 @@ yyreduce:
     break;
 
   case 540:
-#line 4433 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4433 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = int_type;
@@ -7898,7 +7898,7 @@ yyreduce:
     break;
 
   case 541:
-#line 4437 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4437 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = long_type;
@@ -7906,7 +7906,7 @@ yyreduce:
     break;
 
   case 542:
-#line 4441 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4441 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = ulong_type;
@@ -7914,7 +7914,7 @@ yyreduce:
     break;
 
   case 543:
-#line 4445 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4445 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = longlong_type;
@@ -7922,7 +7922,7 @@ yyreduce:
     break;
 
   case 544:
-#line 4449 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4449 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = ulonglong_type;
@@ -7930,7 +7930,7 @@ yyreduce:
     break;
 
   case 545:
-#line 4453 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4453 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = float_type;
@@ -7938,7 +7938,7 @@ yyreduce:
     break;
 
   case 546:
-#line 4457 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4457 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = double_type;
@@ -7946,7 +7946,7 @@ yyreduce:
     break;
 
   case 547:
-#line 4461 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4461 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = bool_type;
@@ -7954,7 +7954,7 @@ yyreduce:
     break;
 
   case 548:
-#line 4465 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4465 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = sstring_type;
@@ -7962,7 +7962,7 @@ yyreduce:
     break;
 
   case 549:
-#line 4469 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4469 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = ustring_type;
@@ -7970,7 +7970,7 @@ yyreduce:
     break;
 
   case 550:
-#line 4473 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4473 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = string_type;
@@ -7978,7 +7978,7 @@ yyreduce:
     break;
 
   case 551:
-#line 4477 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4477 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = wstring_type;
@@ -7986,7 +7986,7 @@ yyreduce:
     break;
 
   case 552:
-#line 4481 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4481 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = void_type;
@@ -7994,7 +7994,7 @@ yyreduce:
     break;
 
   case 553:
-#line 4485 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4485 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = pyobject_type;
@@ -8002,7 +8002,7 @@ yyreduce:
     break;
 
   case 554:
-#line 4489 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4489 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = pytuple_type;
@@ -8010,7 +8010,7 @@ yyreduce:
     break;
 
   case 555:
-#line 4493 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4493 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = pylist_type;
@@ -8018,7 +8018,7 @@ yyreduce:
     break;
 
   case 556:
-#line 4497 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4497 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = pydict_type;
@@ -8026,7 +8026,7 @@ yyreduce:
     break;
 
   case 557:
-#line 4501 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4501 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = pycallable_type;
@@ -8034,7 +8034,7 @@ yyreduce:
     break;
 
   case 558:
-#line 4505 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4505 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = pyslice_type;
@@ -8042,7 +8042,7 @@ yyreduce:
     break;
 
   case 559:
-#line 4509 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4509 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = pytype_type;
@@ -8050,7 +8050,7 @@ yyreduce:
     break;
 
   case 560:
-#line 4513 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4513 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = pybuffer_type;
@@ -8058,7 +8058,7 @@ yyreduce:
     break;
 
   case 561:
-#line 4517 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4517 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = ssize_type;
@@ -8066,7 +8066,7 @@ yyreduce:
     break;
 
   case 562:
-#line 4521 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4521 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = size_type;
@@ -8074,7 +8074,7 @@ yyreduce:
     break;
 
   case 563:
-#line 4525 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4525 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = ellipsis_type;
@@ -8082,7 +8082,7 @@ yyreduce:
     break;
 
   case 564:
-#line 4531 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4531 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             /* The single or first type. */
 
@@ -8092,7 +8092,7 @@ yyreduce:
     break;
 
   case 565:
-#line 4537 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4537 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             /* Check there is nothing after an ellipsis. */
             if ((yyvsp[(1) - (3)].signature).args[(yyvsp[(1) - (3)].signature).nrArgs - 1].atype == ellipsis_type)
@@ -8110,14 +8110,14 @@ yyreduce:
     break;
 
   case 566:
-#line 4553 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4553 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.throwlist) = NULL;
         }
     break;
 
   case 567:
-#line 4556 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4556 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (currentSpec->genc)
                 yyerror("Exceptions not allowed in a C module");
@@ -8127,7 +8127,7 @@ yyreduce:
     break;
 
   case 568:
-#line 4564 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4564 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             /* Empty list so use a blank. */
 
@@ -8137,7 +8137,7 @@ yyreduce:
     break;
 
   case 569:
-#line 4570 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4570 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             /* The only or first exception. */
 
@@ -8148,7 +8148,7 @@ yyreduce:
     break;
 
   case 570:
-#line 4577 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4577 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             /* Check that it wasn't ...(,arg...). */
 
@@ -8167,7 +8167,7 @@ yyreduce:
 
 
 /* Line 1267 of yacc.c.  */
-#line 8171 "/Users/phil/hg/sip/sipgen/parser.c"
+#line 8171 "/Users/phil/hg/sip/code_generator/parser.c"
       default: break;
     }
   YY_SYMBOL_PRINT ("-> $$ =", yyr1[yyn], &yyval, &yyloc);
@@ -8381,7 +8381,7 @@ yyreturn:
 }
 
 
-#line 4593 "/Users/phil/hg/sip/sipgen/metasrc/parser.y"
+#line 4593 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
 
 
 
