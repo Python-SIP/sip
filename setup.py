@@ -31,7 +31,7 @@ from setuptools import Extension, setup
 version_file_name = os.path.join('sip5', 'version.py')
 try:
     version_file = open(version_file_name)
-    version = version_file.read().strip().split('\n')[0].split()[-1][1:-1]
+    version = version_file.read().strip().split('\n')[1].split()[-1][1:-1]
     version_file.close()
 except FileNotFoundError:
     # Provide a minimal version file.

@@ -21,6 +21,15 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
+import os
+
+from .module_abi import ABI_MAJOR, ABI_MINOR, ABI_MAINTENANCE
+
+
+# The directory containing the source code.
+_src_dir = os.path.join(os.path.dirname(__file__), 'module_source')
+
+
 def module(sip_module, include_dir=None, module_dir=None, no_sdist=False, setup_cfg=None):
     """ Create the sdist for a sip module. """
 
@@ -35,22 +44,50 @@ def module(sip_module, include_dir=None, module_dir=None, no_sdist=False, setup_
     #    created.
     # setup_cfg: the name of an optional setup.cfg file.
 
+    # Create the patches.
+    version = (ABI_MAJOR << 16) | (ABI_MINOR << 8) | ABI_MAINTENANCE
+
+    version_str = '%d.%d' % (ABI_MAJOR, ABI_MINOR)
+    if ABI_MAINTENANCE > 0:
+        version_str = '%s.%d' % (version_str, ABI_MAINTENANCE)
+
+    patches = {
+        '@SIP_MODULE_PACKAGE@': sip_module.split('.')[0],
+        '@SIP_MODULE_NAME@':    sip_module.replace('.', '_'),
+        '@SIP_MODULE_VERSION@': version_str,
+
+        # These are internal.
+        '@_SIP_ABI_MAJOR@':     str(ABI_MAJOR),
+        '@_SIP_ABI_MINOR@':     str(ABI_MINOR),
+        '@_SIP_ABI_VERSION@':   hex(version),
+        '@_SIP_FQ_NAME@':       sip_module,
+    }
+
+    # Install the sip.h file.
+    if include_dir is not None:
+        _install_file('sip.h', include_dir, patches)
+
     # There will be a default setup.cfg file with generic details (including a
-    # long_description link to a generic README).  The following macros will be
-    # expanded (for both default and user supplied files):
-
-    #    @SIP_MODULE_PACKAGE@ the top-level package name:
-    #       sip_module.split('.')[0]
-    #    @SIP_MODULE_NAME@ the PyPI name of the package:
-    #       sip_module.replace('.', '_')
-    #    @SIP_MODULE_VERSION@ the version number of the package
-
-    # The version number is major.minor.maint with major.minor corresponding to
-    # the ABI major.minor.  The maint is incremented when the implementation of
-    # the current ABI version changes.
+    # long_description link to a generic README).
 
     # setup.cfg requires setuptools v30.3.0 to there needs to be a
     # pyproject.toml file to specify that as a minimum requirement.
 
     # The setup.cfg file determines if the sip.pyi is included.  The default
     # setup.cfg does not but should include a commented out section that does.
+
+
+def _install_file(name, target_dir, patches):
+    """ Install a file in a target directory. """
+
+    # Read the file.
+    with open(os.path.join(_src_dir, name + '.in')) as f:
+        data = f.read()
+
+    # Patch the file.
+    for patch_name, patch in patches.items():
+        data = data.replace(patch_name, patch)
+
+    # Write the file.
+    with open(os.path.join(target_dir, name), 'w') as f:
+        f.write(data)
