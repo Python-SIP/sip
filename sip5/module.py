@@ -22,6 +22,8 @@
 
 
 import os
+import shutil
+import tarfile
 
 from .module_abi import ABI_MAJOR, ABI_MINOR, ABI_MAINTENANCE
 
@@ -33,18 +35,9 @@ _src_dir = os.path.join(os.path.dirname(__file__), 'module_source')
 def module(sip_module, include_dir=None, module_dir=None, no_sdist=False, setup_cfg=None):
     """ Create the sdist for a sip module. """
 
-    # sip_module: eg. 'PyQt5.sip'
-    # include_dir: the directory to create the sip.h file in, don't install it
-    #    if not specified.  The name of the sip module will be #defined in the
-    #    file to be used by a sip generated module that needs to import it.
-    # module_dir: the directory to create the module in, don't create it if not
-    #    specified.
-    # no_sdist: normally an sdist .tar.gz is created in the module_dir.  If
-    #    this is set then it is left as a directory and the .tar.gz is not
-    #    created.
-    # setup_cfg: the name of an optional setup.cfg file.
-
     # Create the patches.
+    pypi_name = sip_module.replace('.', '_')
+
     version = (ABI_MAJOR << 16) | (ABI_MINOR << 8) | ABI_MAINTENANCE
 
     version_str = '%d.%d' % (ABI_MAJOR, ABI_MINOR)
@@ -53,7 +46,7 @@ def module(sip_module, include_dir=None, module_dir=None, no_sdist=False, setup_
 
     patches = {
         '@SIP_MODULE_PACKAGE@': sip_module.split('.')[0],
-        '@SIP_MODULE_NAME@':    sip_module.replace('.', '_'),
+        '@SIP_MODULE_NAME@':    pypi_name,
         '@SIP_MODULE_VERSION@': version_str,
 
         # These are internal.
@@ -65,7 +58,26 @@ def module(sip_module, include_dir=None, module_dir=None, no_sdist=False, setup_
 
     # Install the sip.h file.
     if include_dir is not None:
-        _install_file('sip.h', include_dir, patches)
+        _install_source_file('sip.h', include_dir, patches)
+
+    # Create the source directory.
+    if module_dir is not None:
+        pkg_dir = os.path.join(module_dir, pypi_name + '-' + version_str)
+
+        _install_code(pkg_dir, patches)
+
+        # Overwrite setup.cfg is required.
+        if setup_cfg is not None:
+            _install_source_file(setup_cfg,
+                    os.path.join(pkg_dir, 'setup.cfg'), patches)
+
+        if not no_sdist:
+            # Created the sdist.
+            tf = tarfile.open(pkg_dir + '.tar.gz', 'w:gz')
+            tf.add(pkg_dir)
+            tf.close()
+
+            shutil.rmtree(pkg_dir)
 
     # There will be a default setup.cfg file with generic details (including a
     # long_description link to a generic README).
@@ -77,11 +89,34 @@ def module(sip_module, include_dir=None, module_dir=None, no_sdist=False, setup_
     # setup.cfg does not but should include a commented out section that does.
 
 
-def _install_file(name, target_dir, patches):
-    """ Install a file in a target directory. """
+def _install_code(target_dir, patches):
+    """ Install the module code in a target directory. """
+
+    # Remove any existing directory.
+    shutil.rmtree(target_dir, ignore_errors=True)
+
+    os.mkdir(target_dir)
+
+    # The source directory doesn't have sub-directories.
+    for name in os.listdir(_src_dir):
+        if name.endswith('.in'):
+            _install_source_file(name[:-3], target_dir, patches)
+        else:
+            shutil.copy(os.path.join(_src_dir, name), target_dir)
+
+
+def _install_source_file(name, target_dir, patches):
+    """ Install a source file in a target directory. """
+
+    _install_file(os.path.join(_src_dir, name) + '.in',
+            os.path.join(target_dir, name), patches)
+
+
+def _install_file(name_in, name_out, patches):
+    """ Install a file. """
 
     # Read the file.
-    with open(os.path.join(_src_dir, name + '.in')) as f:
+    with open(name_in) as f:
         data = f.read()
 
     # Patch the file.
@@ -89,5 +124,5 @@ def _install_file(name, target_dir, patches):
         data = data.replace(patch_name, patch)
 
     # Write the file.
-    with open(os.path.join(target_dir, name), 'w') as f:
+    with open(name_out, 'w') as f:
         f.write(data)
