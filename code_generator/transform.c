@@ -82,7 +82,7 @@ static void nameLookup(sipSpec *pt, moduleDef *context, scopedNameDef *snd,
 static void searchMappedTypes(sipSpec *,moduleDef *,scopedNameDef *,argDef *);
 static void searchEnums(sipSpec *,scopedNameDef *,argDef *);
 static void searchClasses(sipSpec *,moduleDef *mod,scopedNameDef *,argDef *);
-static void appendToMRO(mroDef *,mroDef ***,classDef *);
+static mroDef *newMRO(classDef *cd);
 static void moveMainModuleCastsSlots(sipSpec *pt, moduleDef *mod);
 static void moveClassCasts(sipSpec *pt, moduleDef *mod, classDef *cd);
 static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd);
@@ -1129,10 +1129,9 @@ static void setHierarchy(sipSpec *pt, classDef *base, classDef *cd,
     if (cd->iff->type == class_iface)
     {
         classList *cl;
-        mroDef **tailp = &cd->mro;
 
         /* The first thing is itself. */
-        appendToMRO(cd->mro, &tailp, cd);
+        cd->mro = newMRO(cd);
 
         if (cd->convtosubcode != NULL)
             cd->subbase = cd;
@@ -1160,7 +1159,25 @@ static void setHierarchy(sipSpec *pt, classDef *base, classDef *cd,
             /* Append the super-classes hierarchy. */
             for (mro = cl->cd->mro; mro != NULL; mro = mro->next)
             {
-                appendToMRO(cd->mro, &tailp, mro->cd);
+                mroDef **tailp;
+
+                /* See if the class is already in the hierarchy. */
+                for (tailp = &cd->mro->next; *tailp != NULL; tailp = &(*tailp)->next)
+                {
+                    if ((*tailp)->cd == mro->cd)
+                    {
+                        setInADiamond(*tailp);
+                        break;
+                    }
+                }
+
+                if (*tailp == NULL)
+                {
+                    *tailp = newMRO(mro->cd);
+
+                    if (inADiamond(mro))
+                        setInADiamond(*tailp);
+                }
 
                 if (generatingCodeForModule(pt, cd->iff->module))
                     mro->cd->iff->first_alt->needed = TRUE;
@@ -1266,19 +1283,11 @@ static void setHierarchy(sipSpec *pt, classDef *base, classDef *cd,
 
 
 /*
- * Append a class definition to an MRO list
+ * Create an MRO entry for a class.
  */
-static void appendToMRO(mroDef *head, mroDef ***tailp, classDef *cd)
+static mroDef *newMRO(classDef *cd)
 {
     mroDef *mro;
-
-    /* Ignore if it is already in the MRO. */
-    for (mro = head; mro != NULL; mro = mro->next)
-        if (mro->cd == cd)
-        {
-            setInADiamond(mro);
-            return;
-        }
 
     mro = sipMalloc(sizeof (mroDef));
 
@@ -1286,9 +1295,7 @@ static void appendToMRO(mroDef *head, mroDef ***tailp, classDef *cd)
     mro -> mroflags = 0;
     mro -> next = NULL;
 
-    /* Append to the list and update the tail pointer. */
-    **tailp = mro;
-    *tailp = &mro->next;
+    return mro;
 }
 
 
