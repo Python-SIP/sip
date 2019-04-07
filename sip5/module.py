@@ -62,7 +62,8 @@ def module(sip_module, include_dir=None, module_dir=None, no_sdist=False, setup_
 
     # Create the source directory.
     if module_dir is not None:
-        pkg_dir = os.path.join(module_dir, pypi_name + '-' + version_str)
+        full_pypi_name = pypi_name + '-' + version_str
+        pkg_dir = os.path.join(module_dir, full_pypi_name)
 
         _install_code(pkg_dir, patches)
 
@@ -74,7 +75,14 @@ def module(sip_module, include_dir=None, module_dir=None, no_sdist=False, setup_
         if not no_sdist:
             # Created the sdist.
             tf = tarfile.open(pkg_dir + '.tar.gz', 'w:gz')
-            tf.add(pkg_dir)
+
+            # Make sure that the names in the archive don't have a leading path
+            # component.
+            old_cwd = os.getcwd()
+            os.chdir(module_dir)
+            tf.add(full_pypi_name)
+            os.chdir(old_cwd)
+
             tf.close()
 
             shutil.rmtree(pkg_dir)
