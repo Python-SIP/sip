@@ -79,15 +79,6 @@ def module(sip_module, include_dir=None, module_dir=None, no_sdist=False, setup_
 
             shutil.rmtree(pkg_dir)
 
-    # There will be a default setup.cfg file with generic details (including a
-    # long_description link to a generic README).
-
-    # setup.cfg requires setuptools v30.3.0 to there needs to be a
-    # pyproject.toml file to specify that as a minimum requirement.
-
-    # The setup.cfg file determines if the sip.pyi is included.  The default
-    # setup.cfg does not but should include a commented out section that does.
-
 
 def _install_code(target_dir, patches):
     """ Install the module code in a target directory. """

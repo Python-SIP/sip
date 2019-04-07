@@ -56,7 +56,7 @@ extern "C" {
  */
 #define SIP_MODULE_NAME     "@_SIP_FQ_NAME@"
 
-#define SIP_VERSION         0x@_SIP_ABI_VERSION@
+#define SIP_VERSION         @_SIP_ABI_VERSION@
 #define SIP_VERSION_STR     "@SIP_MODULE_VERSION@"
 
 #define SIP_API_MAJOR_NR    @_SIP_ABI_MAJOR@
