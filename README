@@ -1,26 +1,72 @@
-SIP - C/C++ Bindings Generator for Python v2 and v3
-===================================================
+SIP - A Python Bindings Generator for C and C++ Libraries
+=========================================================
 
-The SIP documentation (including installation instructions) can be found in the
-``sphinx`` directory.
+What is SIP?
+------------
+
+One of the features of Python that makes it so powerful is the ability to take
+existing libraries, written in C or C++, and make them available as Python
+extension modules.  Such extension modules are often called bindings for the
+library.
+
+SIP is a collection of tools that makes it very easy to create Python bindings
+for C and C++ libraries.  It was originally developed in 1998 to create PyQt,
+the Python bindings for the Qt toolkit, but can be used to create bindings for
+any C or C++ library.  For example it is also used to generate wxPython, the
+Python bindings for wxWidgets.
+
+SIP comprises a code generator and a sip module. The code generator
+processes a set of specification files and generates C or C++ code which is
+then compiled to create the bindings extension module.  Several extension
+modules may be installed in the same Python package.  Extension modules can be
+built so that they are are independent of the version of Python being used.  In
+other words a wheel created from them can be installed with any version of
+Python starting with v3.5.
+
+The sip module provides support functions to the automatically generated
+code.  The sip module is installed as part of the same Python package as the
+generated extension modules.  Unlike the extension modules the sip module is
+specific to a particular version of Python (e.g. v3.5, v3.6, v3.7).
+
+The specification files contain a description of the interface of the C or C++
+library, i.e. the classes, methods, functions and variables.  The format of a
+specification file is almost identical to a C or C++ header file, so much so
+that the easiest way of creating a specification file is to edit a copy of the
+corresponding header file.
+
+SIP makes it easy to exploit existing C or C++ libraries in a productive
+interpretive programming environment.  SIP also makes it easy to take a Python
+application (maybe a prototype) and selectively implement parts of the
+application (maybe for performance reasons) in C or C++.
 
 
-Building from the Mercurial Repository
---------------------------------------
+Author
+------
 
-If you are using a copy of SIP cloned from the Mercurial repository, or are
-using a Mercurial archive, then you have to prepare it first before you follow
-the normal installation instructions.
+SIP is copyright (c) Riverbank Computing Limited.  Its homepage is
+https://www.riverbankcomputing.com/software/sip/.
 
-The preparation is done using the ``build.py`` script which can be found in the
-same directory as this ``README`` file.  If it isn't there then you probably
-have a packaged release and should just follow the normal installation
-instructions.
+Support may be obtained from the PyQt mailing list at
+https://www.riverbankcomputing.com/mailman/listinfo/pyqt/.
 
-The ``build.py`` script requires that ``flex`` and ``bison`` are installed.
 
-To prepare run the following::
+License
+-------
 
-    python build.py prepare
+SIP is released under the GPL v2, GPL v3 licenses, and under a license similar
+to the BSD license.
 
-Now you can follow the normal installation instructions.
+
+Installation
+------------
+
+SIP can be installed from PyPI::
+
+    pip install sip
+
+
+Documentation
+-------------
+
+The documentation for the latest release can be found
+`here <https://www.riverbankcomputing.com/static/Docs/sip/>`__.

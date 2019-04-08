@@ -40,10 +40,6 @@ except FileNotFoundError:
     version_file.write('SIP_VERSION = 0\nSIP_VERSION_STR = \'%s\'\n' % version)
     version_file.close()
 
-# Get the long description for PyPI.
-with open('README') as readme:
-    long_description = readme.read()
-
 # Build the code generator extension module.
 code_gen_src = glob.glob(os.path.join('code_generator', '*.c'))
 code_gen_module = Extension('sip5.code_generator', code_gen_src,
@@ -53,17 +49,10 @@ code_gen_module = Extension('sip5.code_generator', code_gen_src,
 setup(
         name='sip5',
         version=version,
-        description="A Python module generator for binding C/C++ libraries",
-        long_description=long_description,
-        author='Riverbank Computing Limited',
-        author_email='info@riverbankcomputing.com',
-        url='https://www.riverbankcomputing.com/software/sip/',
         license='SIP',
-        platforms=['X11', 'macOS', 'Windows'],
         python_requires='>=3.5',
         packages=['sip5'],
         ext_modules=[code_gen_module],
-        zip_safe=False,
         entry_points={
             'console_scripts': [
                 'sip5-bindings = sip5.bindings_main:main',
