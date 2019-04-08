@@ -65,12 +65,7 @@ def module(sip_module, include_dir=None, module_dir=None, no_sdist=False, setup_
         full_pypi_name = pypi_name + '-' + version_str
         pkg_dir = os.path.join(module_dir, full_pypi_name)
 
-        _install_code(pkg_dir, patches)
-
-        # Overwrite setup.cfg is required.
-        if setup_cfg is not None:
-            _install_source_file(setup_cfg,
-                    os.path.join(pkg_dir, 'setup.cfg'), patches)
+        _install_code(pkg_dir, patches, setup_cfg)
 
         if not no_sdist:
             # Created the sdist.
@@ -88,7 +83,7 @@ def module(sip_module, include_dir=None, module_dir=None, no_sdist=False, setup_
             shutil.rmtree(pkg_dir)
 
 
-def _install_code(target_dir, patches):
+def _install_code(target_dir, patches, setup_cfg):
     """ Install the module code in a target directory. """
 
     # Remove any existing directory.
@@ -99,20 +94,36 @@ def _install_code(target_dir, patches):
     # The source directory doesn't have sub-directories.
     for name in os.listdir(_src_dir):
         if name.endswith('.in'):
-            _install_source_file(name[:-3], target_dir, patches)
-        else:
+            name = name[:-3]
+
+            # Don't install the default README if we are not using the default
+            # setup.cfg.
+            if name != 'README' or setup_cfg is None:
+                _install_source_file(name, target_dir, patches)
+        elif name != 'sip.pyi':
             shutil.copy(os.path.join(_src_dir, name), target_dir)
+
+    # Overwrite setup.cfg is required.
+    if setup_cfg is not None:
+        setup_cfg_text = _install_source_file(setup_cfg,
+                os.path.join(target_dir, 'setup.cfg'), patches)
+
+        # If the user's setup.cfg mentions sip.pyi then assume it is needed.
+        if 'sip.pyi' in setup_cfg_text:
+            shutil.copy(os.path.join(_src_dir, 'sip.pyi'), target_dir)
 
 
 def _install_source_file(name, target_dir, patches):
-    """ Install a source file in a target directory. """
+    """ Install a source file in a target directory and return a copy of the
+    contents of the file.
+    """
 
-    _install_file(os.path.join(_src_dir, name) + '.in',
+    return _install_file(os.path.join(_src_dir, name) + '.in',
             os.path.join(target_dir, name), patches)
 
 
 def _install_file(name_in, name_out, patches):
-    """ Install a file. """
+    """ Install a file and return a copy of its contents. """
 
     # Read the file.
     with open(name_in) as f:
@@ -125,3 +136,5 @@ def _install_file(name_in, name_out, patches):
     # Write the file.
     with open(name_out, 'w') as f:
         f.write(data)
+
+    return data
