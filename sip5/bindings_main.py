@@ -21,23 +21,19 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-import argparse
-
 from .bindings import bindings
 from .exceptions import handle_exception
-from .version import SIP_VERSION_STR
+from .standard_arguments import StandardArgumentParser
 
 
 def main():
     """ Create the bindings for a C/C++ library. """
 
     # Parse the command line.
-    parser = argparse.ArgumentParser(
+    parser = StandardArgumentParser(
             description="Generate Python extension modules for C/C++ "
                     "libraries.",
             fromfile_prefix_chars='@')
-
-    parser.add_argument('-V', action='version', version=SIP_VERSION_STR)
 
     parser.add_argument('specification',
             help="the name of the specification file [default stdin]",
