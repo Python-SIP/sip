@@ -1,9 +1,8 @@
 Introduction
 ============
 
-This is the reference guide for SIP @RM_RELEASE@.  SIP is a tool for
-automatically generating `Python <https://www.python.org>`__ bindings for C and
-C++ libraries.  SIP was originally developed in 1998 for
+SIP is a tool for automatically generating `Python <https://www.python.org>`__
+bindings for C and C++ libraries.  SIP was originally developed in 1998 for
 `PyQt <https://www.riverbankcomputing.com/software/pyqt>`__ - the Python
 bindings for the Qt GUI toolkit - but is suitable for generating bindings for
 any C or C++ library.
