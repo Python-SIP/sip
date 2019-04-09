@@ -1,8 +1,10 @@
 syntax: glob
 .DS_Store
 __pycache__
+ChangeLog
 build
-sip5.egg-info
+doc/html
+sip.egg-info
 sip5/version.py
 sip5/*.pyd
 sip5/*.so
