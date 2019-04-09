@@ -47,7 +47,7 @@ code_gen_module = Extension('sip5.code_generator', code_gen_src,
 
 # Do the setup.
 setup(
-        name='sip5',
+        name='sip',
         version=version,
         license='SIP',
         python_requires='>=3.5',
