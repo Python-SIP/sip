@@ -52,6 +52,9 @@ setup(
         license='SIP',
         python_requires='>=3.5',
         packages=['sip5'],
+        package_data={
+            'sip5': ['module_source/*'],
+        },
         ext_modules=[code_gen_module],
         entry_points={
             'console_scripts': [
