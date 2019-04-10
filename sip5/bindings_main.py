@@ -35,6 +35,9 @@ def main():
                     "libraries.",
             fromfile_prefix_chars='@')
 
+    parser.add_include_dir_option()
+    parser.add_warnings_options()
+
     parser.add_argument('specification',
             help="the name of the specification file [default stdin]",
             metavar="FILE", nargs='?')
@@ -59,28 +62,15 @@ def main():
             default=False,
             help="enable support for exceptions [default disabled]")
 
-    parser.add_argument('-f', dest='warnings_are_errors', action='store_true',
-            default=False,
-            help="warnings are handled as errors")
-
     parser.add_argument('-g', dest='release_gil', action='store_true',
             default=False,
             help="always release and reacquire the GIL [default only when "
                     "specified]")
 
-    parser.add_argument('-I', dest='include_dirs', action='append',
-            help="add <DIR> to the list of directories to search when "
-                    "including files",
-            metavar="DIR")
-
     parser.add_argument('-j', dest='parts', type=int, default=0,
             help="split the generated code into <FILES> files [default 1 per "
                     "class]",
             metavar="FILES")
-
-    parser.add_argument('-m', dest='xml_extract',
-            help="the name of the XML export file [default not generated]",
-            metavar="FILE")
 
     parser.add_argument('-n', dest='sip_module',
             help="the qualified name of the sip module",
@@ -109,10 +99,6 @@ def main():
                     "code for",
             metavar="TAG")
 
-    parser.add_argument('-w', dest='warnings', action='store_true',
-            default=False,
-            help="enable warning messages [default disabled]")
-
     parser.add_argument('-x', dest='disabled_features', action='append',
             help="add <FEATURE> to the list of disabled features",
             metavar="FEATURE")
@@ -138,7 +124,7 @@ def main():
                 py_debug=args.py_debug, release_gil=args.release_gil,
                 tracing=args.tracing, extracts=args.extracts,
                 pyi_extract=args.pyi_extract, api_extract=args.api_extract,
-                xml_extract=args.xml_extract, warnings=args.warnings,
+                warnings=args.warnings,
                 warnings_are_errors=args.warnings_are_errors)
     except Exception as e:
         handle_exception(e)

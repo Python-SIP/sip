@@ -27,11 +27,11 @@ from .code_generator import (set_globals, parse, transform, generateCode,
 from .version import SIP_VERSION, SIP_VERSION_STR
 
 
-def bindings(specification, sip_module=None, bindings_dir=None, include_dirs=None, tags=None, backstops=None, disabled_features=None, exceptions=False, parts=0, source_suffix=None, docstrings=False, protected_is_public=False, py_debug=False, release_gil=False, tracing=False, extracts=None, pyi_extract=None, api_extract=None, xml_extract=None, warnings=False, warnings_are_errors=False):
+def bindings(specification, sip_module=None, bindings_dir=None, include_dirs=None, tags=None, backstops=None, disabled_features=None, exceptions=False, parts=0, source_suffix=None, docstrings=False, protected_is_public=False, py_debug=False, release_gil=False, tracing=False, extracts=None, pyi_extract=None, api_extract=None, warnings=False, warnings_are_errors=False):
     """ Create the bindings for a C/C++ library. """
 
-    # The XML extract requires a non-strict parser.
-    strict = (xml_extract is None)
+    # See if we need a non-strict parser.
+    strict = (pyi_extract is None and api_extract is None)
 
     # Check for option conflicts.
     if bindings_dir is not None:
@@ -67,10 +67,6 @@ def bindings(specification, sip_module=None, bindings_dir=None, include_dirs=Non
     # Generate the API file.
     if api_extract is not None:
         generateAPI(pt, api_extract)
-
-    # Generate the XML extract.
-    if xml_extract is not None:
-        generateXML(pt, xml_extract)
 
     # Generate the type hints file.
     if pyi_extract is not None:

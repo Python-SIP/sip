@@ -21,11 +21,22 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-# Publish the package's API.
-from .bindings import bindings
-from .exceptions import UserException
-from .module import module
+from .code_generator import set_globals, parse, transform, generateXML
 from .version import SIP_VERSION, SIP_VERSION_STR
 
-# This is a private API for PyQt5Docs.
-from .extract_xml import extract_xml
+
+def extract_xml(specification, xml_extract, include_dirs=None, warnings=False, warnings_are_errors=False):
+    """ Create the XML extract. """
+
+    # Set the globals.
+    set_globals(SIP_VERSION, SIP_VERSION_STR, include_dirs, warnings,
+            warnings_are_errors)
+
+    # Parse the input file.
+    pt = parse(specification, False, None, None, None, False)
+
+    # Verify and transform the parse tree.
+    transform(pt, False)
+
+    # Generate the XML extract.
+    generateXML(pt, xml_extract)

@@ -38,3 +38,23 @@ class StandardArgumentParser(ArgumentParser):
 
         self.add_argument('-V', '--version', action='version',
                 version=SIP_VERSION_STR)
+
+    def add_include_dir_option(self):
+        """ Add the standard option for the include directory. """
+
+        self.add_argument('-I', '--include-dir', dest='include_dirs',
+                action='append',
+                help="add <DIR> to the list of directories to search when "
+                        "importing or including .sip files",
+                metavar="DIR")
+
+    def add_warnings_options(self):
+        """ Add the standard options related to warnings. """
+
+        self.add_argument('-w', dest='warnings', action='store_true',
+                default=False,
+                help="enable warning messages [default disabled]")
+
+        self..add_argument('-f', '--warnings-are-errors',
+                dest='warnings_are_errors', action='store_true', default=False,
+                help="warnings are handled as errors")
