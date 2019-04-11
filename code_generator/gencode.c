@@ -3659,11 +3659,11 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 
         if (!generating_c)
             prcode(fp,
-"extern \"C\" {static void assign_%L(void *, SIP_SSIZE_T, void *);}\n"
+"extern \"C\" {static void assign_%L(void *, Py_ssize_t, void *);}\n"
                 , mtd->iff);
 
         prcode(fp,
-"static void assign_%L(void *sipDst, SIP_SSIZE_T sipDstIdx, void *sipSrc)\n"
+"static void assign_%L(void *sipDst, Py_ssize_t sipDstIdx, void *sipSrc)\n"
 "{\n"
             , mtd->iff);
 
@@ -3688,11 +3688,11 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 
         if (!generating_c)
             prcode(fp,
-"extern \"C\" {static void *array_%L(SIP_SSIZE_T);}\n"
+"extern \"C\" {static void *array_%L(Py_ssize_t);}\n"
                 , mtd->iff);
 
         prcode(fp,
-"static void *array_%L(SIP_SSIZE_T sipNrElem)\n"
+"static void *array_%L(Py_ssize_t sipNrElem)\n"
 "{\n"
             , mtd->iff);
 
@@ -3717,11 +3717,11 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 
         if (!generating_c)
             prcode(fp,
-"extern \"C\" {static void *copy_%L(const void *, SIP_SSIZE_T);}\n"
+"extern \"C\" {static void *copy_%L(const void *, Py_ssize_t);}\n"
                 , mtd->iff);
 
         prcode(fp,
-"static void *copy_%L(const void *sipSrc, SIP_SSIZE_T sipSrcIdx)\n"
+"static void *copy_%L(const void *sipSrc, Py_ssize_t sipSrcIdx)\n"
 "{\n"
             , mtd->iff);
 
@@ -4212,29 +4212,21 @@ static void prMethodTable(sipSpec *pt, sortedMethTab *mtable, int nr,
     for (i = 0; i < nr; ++i)
     {
         memberDef *md = mtable[i].md;
-        const char *cast, *cast_suffix, *flags;
+        const char *flags;
 
         if (noArgParser(md) || useKeywordArgs(md))
-        {
-            cast = "SIP_MLMETH_CAST(";
-            cast_suffix = ")";
             flags = "|METH_KEYWORDS";
-        }
         else
-        {
-            cast = "";
-            cast_suffix = "";
             flags = "";
-        }
 
         /* Save the index in the table. */
         md->membernr = i;
 
         prcode(fp,
-"    {SIP_MLNAME_CAST(%N), %smeth_%L_%s%s, METH_VARARGS%s, ", md->pyname, cast, iff, md->pyname->text, cast_suffix, flags);
+"    {%N, meth_%L_%s, METH_VARARGS%s, ", md->pyname, iff, md->pyname->text, flags);
 
         if (hasMemberDocstring(pt, overs, md, iff))
-            prcode(fp, "SIP_MLDOC_CAST(doc_%L_%s)", iff, md->pyname->text);
+            prcode(fp, "doc_%L_%s", iff, md->pyname->text);
         else
             prcode(fp, "SIP_NULLPTR");
 
@@ -4590,7 +4582,7 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
 
             if (vd->type.nrderefs == 0)
                 prcode(fp,
-"    return SIPBytes_FromStringAndSize(%s&sipVal, 1);\n"
+"    return PyBytes_FromStringAndSize(%s&sipVal, 1);\n"
                     , cast);
             else
                 prcode(fp,
@@ -4600,7 +4592,7 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
 "        return Py_None;\n"
 "    }\n"
 "\n"
-"    return SIPBytes_FromString(%ssipVal);\n"
+"    return PyBytes_FromString(%ssipVal);\n"
                     , cast);
         }
 
@@ -4619,7 +4611,7 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
 "        return Py_None;\n"
 "    }\n"
 "\n"
-"    return PyUnicode_FromWideChar(sipVal, (SIP_SSIZE_T)wcslen(sipVal));\n"
+"    return PyUnicode_FromWideChar(sipVal, (Py_ssize_t)wcslen(sipVal));\n"
                 );
 
         break;
@@ -4668,7 +4660,7 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
     case cint_type:
     case int_type:
         prcode(fp,
-"    return SIPLong_FromLong(sipVal);\n"
+"    return PyLong_FromLong(sipVal);\n"
             );
         break;
 
@@ -4715,9 +4707,10 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
 
     case capsule_type:
         prcode(fp,
-"    return SIPCapsule_FromVoidPtr(");
+"    return PyCapsule_New(");
         generateVoidPtrCast(&vd->type, fp);
-        prcode(fp, "sipVal);\n");
+        prcode(fp, "sipVal, \"%S\", SIP_NULLPTR);\n"
+            , vd->type.u.cap);
         break;
 
     case pyobject_type:
@@ -5173,7 +5166,7 @@ static int generateObjToCppConversion(argDef *ad,FILE *fp)
         break;
 
     case capsule_type:
-        prcode(fp, "SIPCapsule_AsVoidPtr(sipPy, \"%S\");\n"
+        prcode(fp, "PyCapsule_GetPointer(sipPy, \"%S\");\n"
             , ad->u.cap);
         break;
 
@@ -5253,7 +5246,7 @@ int isIntReturnSlot(memberDef *md)
 
 
 /*
- * Returns TRUE if the given method is a slot that returns SIP_SSIZE_T.
+ * Returns TRUE if the given method is a slot that returns Py_ssize_t.
  */
 int isSSizeReturnSlot(memberDef *md)
 {
@@ -5379,7 +5372,7 @@ static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
     }
     else if (isSSizeReturnSlot(md))
     {
-        ret_type = "SIP_SSIZE_T ";
+        ret_type = "Py_ssize_t ";
         ret_value = "0";
     }
     else if (isLongReturnSlot(md))
@@ -6012,11 +6005,11 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 
         if (!generating_c)
             prcode(fp,
-"extern \"C\" {static SIP_SSIZE_T getreadbuffer_%C(PyObject *, void *, SIP_SSIZE_T, void **);}\n"
+"extern \"C\" {static Py_ssize_t getreadbuffer_%C(PyObject *, void *, Py_ssize_t, void **);}\n"
                 , classFQCName(cd));
 
         prcode(fp,
-"static SIP_SSIZE_T getreadbuffer_%C(PyObject *%s, void *sipCppV, SIP_SSIZE_T %s, void **%s)\n"
+"static Py_ssize_t getreadbuffer_%C(PyObject *%s, void *sipCppV, Py_ssize_t %s, void **%s)\n"
 "{\n"
 "    ", classFQCName(cd)
      , argName("sipSelf", cd->readbufcode)
@@ -6026,7 +6019,7 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
         generateClassFromVoid(cd, "sipCpp", "sipCppV", fp);
 
         prcode(fp, ";\n"
-"    SIP_SSIZE_T sipRes;\n"
+"    Py_ssize_t sipRes;\n"
 "\n"
             );
 
@@ -6048,11 +6041,11 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 
         if (!generating_c)
             prcode(fp,
-"extern \"C\" {static SIP_SSIZE_T getwritebuffer_%C(PyObject *, void *, SIP_SSIZE_T, void **);}\n"
+"extern \"C\" {static Py_ssize_t getwritebuffer_%C(PyObject *, void *, Py_ssize_t, void **);}\n"
                 , classFQCName(cd));
 
         prcode(fp,
-"static SIP_SSIZE_T getwritebuffer_%C(PyObject *%s, void *sipCppV, SIP_SSIZE_T %s, void **%s)\n"
+"static Py_ssize_t getwritebuffer_%C(PyObject *%s, void *sipCppV, Py_ssize_t %s, void **%s)\n"
 "{\n"
 "    ", classFQCName(cd)
      , argName("sipSelf", cd->writebufcode)
@@ -6062,7 +6055,7 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
         generateClassFromVoid(cd, "sipCpp", "sipCppV", fp);
 
         prcode(fp, ";\n"
-"    SIP_SSIZE_T sipRes;\n"
+"    Py_ssize_t sipRes;\n"
 "\n"
             );
 
@@ -6187,11 +6180,11 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 
         if (!generating_c)
             prcode(fp,
-"extern \"C\" {static void assign_%L(void *, SIP_SSIZE_T, void *);}\n"
+"extern \"C\" {static void assign_%L(void *, Py_ssize_t, void *);}\n"
                 , cd->iff);
 
         prcode(fp,
-"static void assign_%L(void *sipDst, SIP_SSIZE_T sipDstIdx, void *sipSrc)\n"
+"static void assign_%L(void *sipDst, Py_ssize_t sipDstIdx, void *sipSrc)\n"
 "{\n"
             , cd->iff);
 
@@ -6216,11 +6209,11 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 
         if (!generating_c)
             prcode(fp,
-"extern \"C\" {static void *array_%L(SIP_SSIZE_T);}\n"
+"extern \"C\" {static void *array_%L(Py_ssize_t);}\n"
                 , cd->iff);
 
         prcode(fp,
-"static void *array_%L(SIP_SSIZE_T sipNrElem)\n"
+"static void *array_%L(Py_ssize_t sipNrElem)\n"
 "{\n"
             , cd->iff);
 
@@ -6245,11 +6238,11 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 
         if (!generating_c)
             prcode(fp,
-"extern \"C\" {static void *copy_%L(const void *, SIP_SSIZE_T);}\n"
+"extern \"C\" {static void *copy_%L(const void *, Py_ssize_t);}\n"
                 , cd->iff);
 
         prcode(fp,
-"static void *copy_%L(const void *sipSrc, SIP_SSIZE_T sipSrcIdx)\n"
+"static void *copy_%L(const void *sipSrc, Py_ssize_t sipSrcIdx)\n"
 "{\n"
             , cd->iff);
 
@@ -8162,7 +8155,7 @@ static void generateTupleBuilder(moduleDef *mod, signatureDef *sd,FILE *fp)
                 prcode(fp,")");
 
             if (isArray(ad))
-                prcode(fp, ", (SIP_SSIZE_T)%a", mod, &sd->args[arraylenarg], arraylenarg);
+                prcode(fp, ", (Py_ssize_t)%a", mod, &sd->args[arraylenarg], arraylenarg);
 
             if (ad->atype == mapped_type)
                 prcode(fp, ", sipType_%T", ad);
@@ -8191,7 +8184,7 @@ static void generateTupleBuilder(moduleDef *mod, signatureDef *sd,FILE *fp)
             }
 
             if (isArray(ad))
-                prcode(fp, ", (SIP_SSIZE_T)%a", mod, &sd->args[arraylenarg], arraylenarg);
+                prcode(fp, ", (Py_ssize_t)%a", mod, &sd->args[arraylenarg], arraylenarg);
             else if (ad->atype == enum_type && ad->u.ed->fqcname != NULL)
                 prcode(fp, ", sipType_%C", ad->u.ed->fqcname);
         }
@@ -8933,7 +8926,7 @@ static void generateNamedBaseType(ifaceFileDef *scope, argDef *ad,
             break;
 
         case ssize_type:
-            prcode(fp, "SIP_SSIZE_T");
+            prcode(fp, "Py_ssize_t");
             break;
 
         case size_type:
@@ -9145,7 +9138,7 @@ static void generateVariable(moduleDef *mod, ifaceFileDef *scope, argDef *ad,
         ad->nrderefs = 0;
     }
 
-    /* Array sizes are always SIP_SSIZE_T. */
+    /* Array sizes are always Py_ssize_t. */
     if (isArraySize(ad))
         ad->atype = ssize_type;
 
@@ -11509,7 +11502,7 @@ static void generateHandleResult(moduleDef *mod, overDef *od, int isNew,
     case string_type:
         if (ad->nrderefs == 0)
             prcode(fp,
-"            %s SIPBytes_FromStringAndSize(%s&%s,1);\n"
+"            %s PyBytes_FromStringAndSize(%s&%s,1);\n"
                 ,prefix,(ad->atype != string_type) ? "(char *)" : "",vname);
         else
             prcode(fp,
@@ -11519,7 +11512,7 @@ static void generateHandleResult(moduleDef *mod, overDef *od, int isNew,
 "                return Py_None;\n"
 "            }\n"
 "\n"
-"            %s SIPBytes_FromString(%s%s);\n"
+"            %s PyBytes_FromString(%s%s);\n"
             ,vname
             ,prefix,(ad->atype != string_type) ? "(char *)" : "",vname);
 
@@ -11538,7 +11531,7 @@ static void generateHandleResult(moduleDef *mod, overDef *od, int isNew,
 "                return Py_None;\n"
 "            }\n"
 "\n"
-"            %s PyUnicode_FromWideChar(%s,(SIP_SSIZE_T)wcslen(%s));\n"
+"            %s PyUnicode_FromWideChar(%s,(Py_ssize_t)wcslen(%s));\n"
             , vname
             , prefix, vname, vname);
 
@@ -11574,7 +11567,7 @@ static void generateHandleResult(moduleDef *mod, overDef *od, int isNew,
     case int_type:
     case cint_type:
         prcode(fp,
-"            %s SIPLong_FromLong(%s);\n"
+"            %s PyLong_FromLong(%s);\n"
             ,prefix,vname);
 
         break;
@@ -11643,7 +11636,7 @@ static void generateHandleResult(moduleDef *mod, overDef *od, int isNew,
 
     case capsule_type:
         prcode(fp,
-"            %s SIPCapsule_FromVoidPtr(%s, \"%S\");\n"
+"            %s PyCapsule_New(%s, \"%S\", SIP_NULLPTR);\n"
             , prefix, vname, ad->u.cap);
         break;
 
@@ -14979,7 +14972,7 @@ static void generateGlobalFunctionTableEntries(sipSpec *pt, moduleDef *mod,
         if (md->slot == no_slot && notVersioned(md))
         {
             prcode(fp,
-"        {SIP_MLNAME_CAST(%N), ", md->pyname);
+"        {%N, ", md->pyname);
 
             if (noArgParser(md) || useKeywordArgs(md))
                 prcode(fp, "SIP_MLMETH_CAST(func_%s), METH_VARARGS|METH_KEYWORDS", md->pyname->text);
@@ -14987,7 +14980,7 @@ static void generateGlobalFunctionTableEntries(sipSpec *pt, moduleDef *mod,
                 prcode(fp, "func_%s, METH_VARARGS", md->pyname->text);
 
             if (hasMemberDocstring(pt, mod->overs, md, NULL))
-                prcode(fp, ", SIP_MLDOC_CAST(doc_%s)},\n"
+                prcode(fp, ", doc_%s},\n"
                     , md->pyname->text);
             else
                 prcode(fp, ", SIP_NULLPTR},\n"

@@ -1,7 +1,7 @@
 /*
  * The implementation of the supprt for setting API versions.
  *
- * Copyright (c) 2016 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2019 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -124,7 +124,7 @@ int sipInitAPI(sipExportedModuleDef *em, PyObject *mod_dict)
                 if ((pmd = sip_api_malloc(sizeof (PyMethodDef))) == NULL)
                     return -1;
 
-                pmd->ml_name = SIP_MLNAME_CAST(func_name);
+                pmd->ml_name = func_name;
                 pmd->ml_meth = vf->vf_function;
                 pmd->ml_flags = vf->vf_flags;
                 pmd->ml_doc = vf->vf_docstring;
@@ -195,11 +195,7 @@ PyObject *sipGetAPI(PyObject *self, PyObject *args)
         return NULL;
     }
 
-#if PY_MAJOR_VERSION >= 3
     return PyLong_FromLong(avd->version_nr);
-#else
-    return PyInt_FromLong(avd->version_nr);
-#endif
 }
 
 

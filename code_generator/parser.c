@@ -11316,7 +11316,7 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
 
         if ((len->methodcode = od->methodcode) == NULL)
         {
-            char *buf = sipStrdup("            sipRes = (SIP_SSIZE_T)sipCpp->");
+            char *buf = sipStrdup("            sipRes = (Py_ssize_t)sipCpp->");
             codeBlock *code;
 
             append(&buf, od->cppname);

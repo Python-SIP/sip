@@ -2013,11 +2013,11 @@ static void resolveFuncTypes(sipSpec *pt, moduleDef *mod, classDef *c_scope,
 
     res = &od->pysig.result;
 
-    /* These slots must return SIP_SSIZE_T (or int - deprecated). */
+    /* These slots must return Py_ssize_t. */
     if (isSSizeReturnSlot(od->common))
         if ((res->atype != ssize_type && res->atype != int_type) || res->nrderefs != 0 ||
             isReference(res) || isConstArg(res))
-            fatal("%s:%d: %s slots must return SIP_SSIZE_T\n", od->sloc.name,
+            fatal("%s:%d: %s slots must return Py_ssize_t\n", od->sloc.name,
                     od->sloc.linenr, od->common->pyname->text);
 
     /* These slots must return int. */

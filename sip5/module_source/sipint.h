@@ -1,7 +1,7 @@
 /*
  * This file defines the SIP library internal interfaces.
  *
- * Copyright (c) 2017 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2019 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -91,9 +91,9 @@ extern PyTypeObject sipVoidPtr_Type;
 void *sip_api_convert_to_void_ptr(PyObject *obj);
 PyObject *sip_api_convert_from_void_ptr(void *val);
 PyObject *sip_api_convert_from_const_void_ptr(const void *val);
-PyObject *sip_api_convert_from_void_ptr_and_size(void *val, SIP_SSIZE_T size);
+PyObject *sip_api_convert_from_void_ptr_and_size(void *val, Py_ssize_t size);
 PyObject *sip_api_convert_from_const_void_ptr_and_size(const void *val,
-        SIP_SSIZE_T size);
+        Py_ssize_t size);
 
 
 /*
@@ -151,9 +151,9 @@ PyObject *sip_api_invoke_slot_ex(const sipSlot *slot, PyObject *sigargs,
 void *sip_api_convert_rx(sipWrapper *txSelf, const char *sigargs,
         PyObject *rxObj, const char *slot, const char **memberp, int flags);
 int sip_api_save_slot(sipSlot *sp, PyObject *rxObj, const char *slot);
-int sip_api_convert_from_slice_object(PyObject *slice, SIP_SSIZE_T length,
-        SIP_SSIZE_T *start, SIP_SSIZE_T *stop, SIP_SSIZE_T *step,
-        SIP_SSIZE_T *slicelength);
+int sip_api_convert_from_slice_object(PyObject *slice, Py_ssize_t length,
+        Py_ssize_t *start, Py_ssize_t *stop, Py_ssize_t *step,
+        Py_ssize_t *slicelength);
 
 
 /*
