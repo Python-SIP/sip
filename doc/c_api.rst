@@ -814,7 +814,7 @@ specification files.
     buffer protocol and so can be passed to other modules, again without the
     underlying memory being copied.
 
-    :class:`sip.array` objects are not supported by the :program:`sip` code
+    :class:`sip.array` objects are not supported by the :program:`sip5` code
     generator.  They can only be created by handwritten code or by
     :func:`sip.voidptr.asarray`.
 
@@ -1017,7 +1017,7 @@ specification files.
     so can be passed to other modules, again without the underlying memory
     being copied.
 
-    :class:`sip.array` objects are not supported by the :program:`sip` code
+    :class:`sip.array` objects are not supported by the :program:`sip5` code
     generator.  They can only be created by handwritten code.
 
     :param data:

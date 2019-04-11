@@ -57,7 +57,7 @@ SIP v4.16
 ---------
 
 Prior to this version, if no valid version tag was specified using the
-:option:`-t <sip -t>` command line option to :program:`sip` then all versions
+:option:`-t <sip -t>` command line option to :program:`sip5` then all versions
 of the corresponding timeline were considered disabled.
 
 Starting with this version SIP assumes that the latest version is enabled if no

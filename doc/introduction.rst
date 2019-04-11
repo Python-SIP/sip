@@ -130,9 +130,10 @@ SIP Components
 
 SIP comprises a number of different components.
 
-- The SIP code generator (:program:`sip`).  This processes :file:`.sip`
+- The SIP code generator (:program:`sip5`).  This processes :file:`.sip`
   specification files and generates C or C++ bindings.  It is covered in detail
-  in :ref:`ref-using`.
+  in :ref:`ref-using`.  This is a drop-in replacement for the ``sip`` code
+  generator in SIP v4.
 
 - The SIP header file (:file:`sip.h`).  This contains definitions and data
   structures needed by the generated C and C++ code.

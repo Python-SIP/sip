@@ -1,18 +1,18 @@
 .. _ref-command-line:
 
-The SIP Command Line
-====================
+The sip5 Command Line
+=====================
 
-The syntax of the SIP command line is::
+The syntax of the sip5 command line is::
 
-    sip [options] [specification]
+    sip5 [options] [specification]
 
 ``specification`` is the name of the specification file for the module.  If it
 is omitted then ``stdin`` is used.
 
 The full set of command line options is:
 
-.. program:: sip
+.. program:: sip5
 
 .. cmdoption:: -h
 
