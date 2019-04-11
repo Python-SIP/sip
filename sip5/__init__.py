@@ -21,11 +21,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-# Publish the package's API.
+# At the moment the API is private.
 from .bindings import bindings
 from .exceptions import UserException
+from .extract_xml import extract_xml
 from .module import module
 from .version import SIP_VERSION, SIP_VERSION_STR
-
-# This is a private API for PyQt5Docs.
-from .extract_xml import extract_xml

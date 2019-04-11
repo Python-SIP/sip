@@ -30,30 +30,20 @@ from .version import SIP_VERSION, SIP_VERSION_STR
 def bindings(specification, sip_module=None, bindings_dir=None, include_dirs=None, tags=None, backstops=None, disabled_features=None, exceptions=False, parts=0, source_suffix=None, docstrings=False, protected_is_public=False, py_debug=False, release_gil=False, tracing=False, extracts=None, pyi_extract=None, api_extract=None, warnings=False, warnings_are_errors=False):
     """ Create the bindings for a C/C++ library. """
 
-    # See if we need a non-strict parser.
-    strict = (pyi_extract is None and api_extract is None)
-
-    # Check for option conflicts.
-    if bindings_dir is not None:
-        # The code generator requires a strict parser.
-        if not strict:
-            raise UserException(
-                    "the XML extract is incompatible with generating the bindings")
-
-        # The code generator requires the name of the sip module.
-        if sip_module is None:
-            raise UserException("the name of the sip module must be given")
+    # The code generator requires the name of the sip module.
+    if bindings_dir is not None and sip_module is None:
+        raise UserException("the name of the sip module must be given")
 
     # Set the globals.
     set_globals(SIP_VERSION, SIP_VERSION_STR, include_dirs, warnings,
             warnings_are_errors)
 
     # Parse the input file.
-    pt = parse(specification, strict, tags, backstops, disabled_features,
+    pt = parse(specification, True, tags, backstops, disabled_features,
             protected_is_public)
 
     # Verify and transform the parse tree.
-    transform(pt, strict)
+    transform(pt, True)
 
     # Generate the bindings.
     if bindings_dir is not None:
