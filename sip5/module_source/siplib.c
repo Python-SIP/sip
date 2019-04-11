@@ -6832,7 +6832,7 @@ static PyObject *createScopedEnum(sipExportedModuleDef *client,
     Py_DECREF(members);
 
     /* Note that it isn't actually a PyTypeObject. */
-    etd->etd_base.u.td_py_type = (PyTypeObject *)enum_obj;
+    etd->etd_base.td_py_type = (PyTypeObject *)enum_obj;
 
     return enum_obj;
 
@@ -9836,9 +9836,9 @@ static int sipWrapperType_init(sipWrapperType *self, PyObject *args,
          * We must be a generated type so remember the type object in the
          * generated type structure.
          */
-        assert(self->wt_td->u.td_py_type == NULL);
+        assert(self->wt_td->td_py_type == NULL);
 
-        self->wt_td->u.td_py_type = (PyTypeObject *)self;
+        self->wt_td->td_py_type = (PyTypeObject *)self;
     }
 
     return 0;
@@ -12165,7 +12165,7 @@ static PyObject *sipEnumType_alloc(PyTypeObject *self, Py_ssize_t nitems)
      * structure.  Strictly speaking this doesn't need to be done here.
      */
     py_type->type = currentType;
-    currentType->u.td_py_type = (PyTypeObject *)py_type;
+    currentType->td_py_type = (PyTypeObject *)py_type;
 
     /*
      * Initialise any slots.  This must be done here, after the type is

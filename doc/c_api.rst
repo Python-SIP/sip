@@ -2762,40 +2762,6 @@ The type structures of all imported types explicitly used by a module are
 available to handwritten code.
 
 
-.. _ref-type-objects:
-
-Generated Type Objects
-----------------------
-
-.. deprecated:: 4.8
-    Use the corresponding generated type structure (see
-    :ref:`ref-type-structures`) and :c:func:`sipTypeAsPyTypeObject()` instead.
-
-SIP generates a :c:type:`sipWrapperType` type object for each C structure or
-C++ class being wrapped.
-
-These objects are named with the structure or class name prefixed by
-``sipClass_``.  For example, the type object for class ``Klass`` is
-``sipClass_Klass``.
-
-
-.. _ref-enum-type-objects:
-
-Generated Named Enum Type Objects
----------------------------------
-
-.. deprecated:: 4.8
-    Use the corresponding generated type structure (see
-    :ref:`ref-type-structures`) and :c:func:`sipTypeAsPyTypeObject()` instead.
-
-SIP generates a type object for each named enum being wrapped.  These are
-PyTypeObject structures.  (Anonymous enums are wrapped as Python integers.)
-
-These objects are named with the fully qualified enum name (i.e. including any
-enclosing scope) prefixed by ``sipEnum_``.  For example, the type object for
-enum ``Enum`` defined in class ``Klass`` is ``sipEnum_Klass_Enum``.
-
-
 .. _ref-derived-classes:
 
 Generated Derived Classes

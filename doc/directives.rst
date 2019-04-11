@@ -499,17 +499,6 @@ const sipTypeDef \*sipType
     subject to this conversion process.  It allows the code for one super-class
     to switch to the code for another (more appropriate) super-class.
 
-sipWrapperType \*sipClass
-    .. deprecated:: 4.8
-        Use ``sipType`` instead.
-
-    The handwritten code must set this to the SIP generated Python type object
-    that corresponds to the class instance.  (The type object for class
-    ``Klass`` is ``sipClass_Klass``.)  If the RTTI of the class instance isn't
-    recognised then ``sipClass`` must be set to ``NULL``.  The code doesn't
-    have to recognise the exact class, only the most specific sub-class that
-    it can.
-
 The handwritten code must not explicitly return.
 
 The following example shows the sub-class conversion code for ``QEvent`` based

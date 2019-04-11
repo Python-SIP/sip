@@ -8367,8 +8367,6 @@ static void generateImportedClassAPI(classDef *cd, moduleDef *mod, FILE *fp)
 
     prcode(fp,
 "#define sipType_%C sipImportedTypes_%s_%s[%d].it_td\n"
-"#define sipClass_%C sipImportedTypes_%s_%s[%d].it_td->u.td_wrapper_type\n"
-        , classFQCName(cd), mname, imname, cd->iff->ifacenr
         , classFQCName(cd), mname, imname, cd->iff->ifacenr);
 
     if (cd->iff->type == namespace_iface)
@@ -8392,8 +8390,6 @@ static void generateClassAPI(classDef *cd, sipSpec *pt, FILE *fp)
     if (cd->real == NULL && cd->iff->first_alt == cd->iff && !isHiddenNamespace(cd))
         prcode(fp,
 "#define sipType_%C sipExportedTypes_%s[%d]\n"
-"#define sipClass_%C sipExportedTypes_%s[%d]->u.td_wrapper_type\n"
-            , classFQCName(cd), mname, cd->iff->ifacenr
             , classFQCName(cd), mname, cd->iff->ifacenr);
 
     generateEnumMacros(pt, cd->iff->module, cd, NULL, fp);
@@ -8415,7 +8411,7 @@ static void generateClassAPI(classDef *cd, sipSpec *pt, FILE *fp)
 
 
 /*
- * Generate the sipEnum_* macros.
+ * Generate the type macros for enums.
  */
 static void generateEnumMacros(sipSpec *pt, moduleDef *mod, classDef *cd,
         mappedTypeDef *mtd, FILE *fp)
@@ -8449,15 +8445,11 @@ static void generateEnumMacros(sipSpec *pt, moduleDef *mod, classDef *cd,
             prcode(fp,
 "\n"
 "#define sipType_%C sipExportedTypes_%s[%d]\n"
-"#define sipEnum_%C sipExportedTypes_%s[%d]->u.td_py_type\n"
-                , ed->fqcname, mod->name, ed->enumnr
                 , ed->fqcname, mod->name, ed->enumnr);
         else if (needsEnum(ed))
             prcode(fp,
 "\n"
 "#define sipType_%C sipImportedTypes_%s_%s[%d].it_td\n"
-"#define sipEnum_%C sipImportedTypes_%s_%s[%d].it_td->u.td_py_type\n"
-                , ed->fqcname, mod->name, ed->module->name, ed->enumnr
                 , ed->fqcname, mod->name, ed->module->name, ed->enumnr);
     }
 }
