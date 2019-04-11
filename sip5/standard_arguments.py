@@ -55,6 +55,6 @@ class StandardArgumentParser(ArgumentParser):
                 default=False,
                 help="enable warning messages [default disabled]")
 
-        self..add_argument('-f', '--warnings-are-errors',
+        self.add_argument('-f', '--warnings-are-errors',
                 dest='warnings_are_errors', action='store_true', default=False,
                 help="warnings are handled as errors")
