@@ -22,7 +22,7 @@
 
 
 from .exceptions import UserException
-from .code_generator import (set_globals, parse, transform, generateCode,
+from .code_generator import (set_globals, parse, generateCode,
         generateExtracts, generateAPI, generateXML, generateTypeHints)
 from .version import SIP_VERSION, SIP_VERSION_STR
 
@@ -41,9 +41,6 @@ def bindings(specification, sip_module=None, bindings_dir=None, include_dirs=Non
     # Parse the input file.
     pt = parse(specification, True, tags, backstops, disabled_features,
             protected_is_public)
-
-    # Verify and transform the parse tree.
-    transform(pt, True)
 
     # Generate the bindings.
     if bindings_dir is not None:

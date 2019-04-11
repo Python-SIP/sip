@@ -34,7 +34,6 @@ int warnings_are_fatal;
 /* Forward declarations. */
 static PyObject *py_set_globals(PyObject *self, PyObject *args);
 static PyObject *py_parse(PyObject *self, PyObject *args);
-static PyObject *py_transform(PyObject *self, PyObject *args);
 static PyObject *py_generateCode(PyObject *self, PyObject *args);
 static PyObject *py_generateExtracts(PyObject *self, PyObject *args);
 static PyObject *py_generateAPI(PyObject *self, PyObject *args);
@@ -54,7 +53,6 @@ PyMODINIT_FUNC PyInit_code_generator(void)
     static PyMethodDef methods[] = {
         {"set_globals", py_set_globals, METH_VARARGS, NULL},
         {"parse", py_parse, METH_VARARGS, NULL},
-        {"transform", py_transform, METH_VARARGS, NULL},
         {"generateCode", py_generateCode, METH_VARARGS, NULL},
         {"generateExtracts", py_generateExtracts, METH_VARARGS, NULL},
         {"generateAPI", py_generateAPI, METH_VARARGS, NULL},
@@ -131,26 +129,9 @@ static PyObject *py_parse(PyObject *self, PyObject *args)
     parse(pt, file, filename, strict, versions, backstops, xfeatures,
             protHack);
 
-    return PyCapsule_New(pt, NULL, NULL);
-}
-
-
-/*
- * Wrapper around transform().
- */
-static PyObject *py_transform(PyObject *self, PyObject *args)
-{
-    sipSpec *pt;
-    int strict;
-
-    if (!PyArg_ParseTuple(args, "O&p",
-            sipSpec_convertor, &pt,
-            &strict))
-        return NULL;
-
     transform(pt, strict);
 
-    Py_RETURN_NONE;
+    return PyCapsule_New(pt, NULL, NULL);
 }
 
 

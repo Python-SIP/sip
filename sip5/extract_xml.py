@@ -21,7 +21,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from .code_generator import set_globals, parse, transform, generateXML
+from .code_generator import set_globals, parse, generateXML
 from .version import SIP_VERSION, SIP_VERSION_STR
 
 
@@ -34,9 +34,6 @@ def extract_xml(specification, xml_extract, include_dirs=None, warnings=False, w
 
     # Parse the input file.
     pt = parse(specification, False, None, None, None, False)
-
-    # Verify and transform the parse tree.
-    transform(pt, False)
 
     # Generate the XML extract.
     generateXML(pt, xml_extract)
