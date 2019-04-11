@@ -95,6 +95,7 @@ specification files.
 .. c:macro:: SIP_SSIZE_T
 
     .. deprecated:: 5.0
+        Use ``Py_ssize_t`` instead.
 
     This is a C preprocessor macro that is defined as ``Py_ssize_t`` for Python
     v2.5 and later, and as ``int`` for earlier versions of Python.  It makes it
@@ -106,6 +107,7 @@ specification files.
     .. versionadded:: 4.15.4
 
     .. deprecated:: 5.0
+        Use ``%zd`` instead.
 
     This is a C preprocessor macro that is defined as ``%zd`` for Python
     v2.5 and later, and as ``%d`` for earlier versions of Python.  It makes it
@@ -122,6 +124,9 @@ specification files.
 .. c:macro:: SIP_USE_PYCAPSULE
 
     .. versionadded:: 4.11
+
+    .. deprecated:: 5.0
+        This will always be defined.
 
     This is a C preprocessor symbol that is defined when ``PyCapsule`` objects
     are being used rather than the (now deprecated) ``PyCObject`` objects.

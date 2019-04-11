@@ -95,6 +95,7 @@ typedef unsigned int uint;
 /* Some (deprecated) Python compatibility stuff. */
 #define SIP_SSIZE_T         Py_ssize_t
 #define SIP_SSIZE_T_FORMAT  "%zd"
+#define SIP_USE_PYCAPSULE
 
 /*
  * These are undocumented and can be removed when PyQt5 drops support for
