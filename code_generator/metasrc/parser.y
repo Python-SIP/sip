@@ -8551,17 +8551,10 @@ static const char *getTypeHintValue(optFlags *optflgs)
 {
     optFlag *of = getOptFlag(optflgs, "TypeHintValue", string_flag);
 
-    if (of != NULL)
-        return of->fvalue.sval;
+    if (of == NULL)
+        return NULL;
 
-    if ((of = getOptFlag(optflgs, "DocValue", string_flag)) != NULL)
-    {
-        deprecated("/DocValue/ is deprecated\n");
-
-        return of->fvalue.sval;
-    }
-
-    return NULL;
+    return of->fvalue.sval;
 }
 
 

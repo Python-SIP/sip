@@ -142,17 +142,6 @@ Argument Annotations
     must not be ``None``.
 
 
-.. argument-annotation:: DocValue
-
-    .. versionadded:: 4.10
-
-    .. deprecated:: 4.18
-        Use the :aanno:`TypeHintValue` annotation instead.
-
-    This string annotation specifies the default value of the argument as it
-    will appear in any generated docstrings.
-
-
 .. argument-annotation:: Encoding
 
     This string annotation specifies that the corresponding argument (which
