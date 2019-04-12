@@ -640,7 +640,6 @@ typedef enum {
     signal_type,
     slot_type,
     rxcon_type,
-    rxdis_type,
     ustring_type,
     string_type,
     short_type,

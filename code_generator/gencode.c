@@ -8054,7 +8054,6 @@ static void generateTupleBuilder(moduleDef *mod, signatureDef *sd,FILE *fp)
 
         case fake_void_type:
         case rxcon_type:
-        case rxdis_type:
             fmt = "D";
             break;
 
@@ -8122,8 +8121,7 @@ static void generateTupleBuilder(moduleDef *mod, signatureDef *sd,FILE *fp)
         }
 
         if (ad->atype == mapped_type || ad->atype == class_type ||
-            ad->atype == rxcon_type || ad->atype == rxdis_type ||
-            ad->atype == fake_void_type)
+            ad->atype == rxcon_type || ad->atype == fake_void_type)
         {
             int copy = copyConstRefArg(ad);
 
@@ -8983,7 +8981,6 @@ static void generateNamedBaseType(ifaceFileDef *scope, argDef *ad,
             break;
 
         case rxcon_type:
-        case rxdis_type:
             nr_derefs = 1;
             prcode(fp, "QObject");
             break;
@@ -12645,7 +12642,6 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
             break;
 
         case rxcon_type:
-        case rxdis_type:
             isQtSlot = TRUE;
             break;
 
@@ -12984,10 +12980,6 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
             fmt = (secCall ? (isSingleShot(ad) ? "g" : "y") : "q");
             break;
 
-        case rxdis_type:
-            fmt = (secCall ? "Y" : "Q");
-            break;
-
         case mapped_type:
         case class_type:
             if (isArray(ad))
@@ -13155,17 +13147,6 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
                 }
 
                 prcode(fp, ", &%a, &%a", mod, ad, a, mod, slotconarg_ad, slotconarg);
-
-                break;
-            }
-
-        case rxdis_type:
-            {
-                prcode(fp,", \"(");
-
-                generateCalledArgs(NULL, scope, slotdisarg_ad->u.sa, Declaration, fp);
-
-                prcode(fp, ")\", &%a, &%a", mod, ad, a, mod, slotdisarg_ad, slotdisarg);
 
                 break;
             }

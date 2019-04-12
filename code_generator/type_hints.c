@@ -1010,7 +1010,6 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, int sec,
         break;
 
     case rxcon_type:
-    case rxdis_type:
         if (sec)
         {
             type_name = (pep484 ? "typing.Callable[..., None]" : "Callable[..., None]");
@@ -1377,7 +1376,7 @@ int hasImplicitOverloads(signatureDef *sd)
         if (!isInArg(ad))
             continue;
 
-        if (ad->atype == rxcon_type || ad->atype == rxdis_type)
+        if (ad->atype == rxcon_type)
             return TRUE;
     }
 

@@ -335,7 +335,6 @@ static scopedNameDef *fullyQualifiedName(scopedNameDef *snd);
 %token          TK_SIPSIGNAL
 %token          TK_SIPSLOT
 %token          TK_SIPRXCON
-%token          TK_SIPRXDIS
 %token          TK_PYSSIZET
 %token          TK_SIZET
 %token <number> TK_NUMBER_VALUE
@@ -3817,9 +3816,9 @@ virtualcatchercode: {
     ;
 
 arglist:    rawarglist {
-            int a, nrrxcon, nrrxdis, nrarray, nrarraysize;
+            int a, nrrxcon, nrarray, nrarraysize;
 
-            nrrxcon = nrrxdis = nrarray = nrarraysize = 0;
+            nrrxcon = nrarray = nrarraysize = 0;
 
             for (a = 0; a < $1.nrArgs; ++a)
             {
@@ -3829,10 +3828,6 @@ arglist:    rawarglist {
                 {
                 case rxcon_type:
                     ++nrrxcon;
-                    break;
-
-                case rxdis_type:
-                    ++nrrxdis;
                     break;
 
                 /* Suppress a compiler warning. */
@@ -3849,9 +3844,6 @@ arglist:    rawarglist {
 
             if (nrrxcon != 0)
                 yyerror("SIP_RXOBJ_CON and SIP_SLOT_CON must both be given and at most once");
-
-            if (nrrxdis != 0)
-                yyerror("SIP_RXOBJ_DIS and SIP_SLOT_DIS must both be given and at most once");
 
             if (nrarray != nrarraysize || nrarray > 1)
                 yyerror("/Array/ and /ArraySize/ must both be given and at most once");
@@ -3934,17 +3926,6 @@ argvalue:   TK_SIPSIGNAL optname optflags optassign {
 
             if (getOptFlag(&$3, "SingleShot", bool_flag) != NULL)
                 $$.argflags |= ARG_SINGLE_SHOT;
-
-            currentSpec -> sigslots = TRUE;
-        }
-    |   TK_SIPRXDIS optname optflags {
-            deprecated("SIP_RXOBJ_DIS is deprecated\n");
-            checkNoAnnos(&$3, "SIP_RXOBJ_DIS has no annotations");
-
-            $$.atype = rxdis_type;
-            $$.argflags = 0;
-            $$.nrderefs = 0;
-            $$.name = cacheName(currentSpec, $2);
 
             currentSpec -> sigslots = TRUE;
         }
