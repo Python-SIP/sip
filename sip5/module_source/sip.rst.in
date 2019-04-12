@@ -1,29 +1,21 @@
-.. _ref-python-api:
+The ``sip`` Module
+==================
 
-Python API for Applications
-===========================
+.. module:: @_SIP_FQ_NAME@
 
-.. module:: sip
-
-The main purpose of the :mod:`sip` module is to provide functionality common to
-all SIP generated bindings.  It is loaded automatically and most of the time
-you will completely ignore it.  However, it does expose some functionality that
-can be used by applications.
-
-When a private copy of the SIP module is being used it would normally be
-imported from the package containing the private copy.  However, in order to
-maintain compatibility with earlier versions, the module can also be imported
-as a top-level module *so long as a SIP-generated extension module has
-previously been imported*.
-
+The main purpose of the :mod:`@_SIP_FQ_NAME@` module is to provide
+functionality common to all SIP generated bindings.  It is loaded automatically
+and most of the time you will completely ignore it.  However, it does expose
+some functionality that can be used by applications.
 
 .. class:: array
 
     This is the type object for the type SIP uses to represent an array of a
     limited number of C/C++ types.  Typically the memory is not owned by Python
     so that it is not freed when the object is garbage collected.  A
-    :class:`sip.array` object can be created from a :class:`sip.voidptr` object
-    by calling :func:`sip.voidptr.asarray`.  This allows the underlying memory
+    :class:`@_SIP_FQ_NAME@.array` object can be created from a
+    :class:`@_SIP_FQ_NAME@.voidptr` object by calling
+    :func:`@_SIP_FQ_NAME@.voidptr.asarray`.  This allows the underlying memory
     (interpreted as a sequence of unsigned bytes) to be processed much more
     quickly.
 
@@ -107,8 +99,8 @@ previously been imported*.
 .. function:: getapi(name) -> version
 
     This returns the version number that has been set for an API.  The version
-    number is either set explicitly by a call to :func:`sip.setapi` or
-    implicitly by importing the module that defines it.
+    number is either set explicitly by a call to :func:`@_SIP_FQ_NAME@.setapi`
+    or implicitly by importing the module that defines it.
 
     :param name:
         the name of the API.
@@ -214,8 +206,8 @@ previously been imported*.
 
     This is an alternative type object than can be used as the base type of an
     instance wrapped by SIP.  Objects using this are smaller than those that
-    use the default :class:`sip.wrapper` type but do not support the concept of
-    object ownership.
+    use the default :class:`@_SIP_FQ_NAME@.wrapper` type but do not support the
+    concept of object ownership.
 
 
 .. data:: SIP_VERSION
@@ -262,16 +254,16 @@ previously been imported*.
     .. method:: __init__(address[, size=-1[, writeable=True]])
 
         :param address:
-            the address, either another :class:`sip.voidptr`, ``None``, a
-            Python Capsule, a Python CObject, an object that implements the
-            buffer protocol or an integer.
+            the address, either another :class:`@_SIP_FQ_NAME@.voidptr`,
+            ``None``, a Python Capsule, an object that implements the buffer
+            protocol or an integer.
         :param size:
             the optional associated size of the block of memory and is negative
             if the size is not known.
         :param writeable:
             set if the memory is writeable.  If it is not specified, and
-            *address* is a :class:`sip.voidptr` instance then its value will be
-            used.
+            *address* is a :class:`@_SIP_FQ_NAME@.voidptr` instance then its
+            value will be used.
 
     .. method:: __int__() -> integer
 
@@ -290,11 +282,11 @@ previously been imported*.
             is the index which may either be an integer, an object that
             implements ``__index__()`` or a slice object.
         :return:
-            the item.  If the index is an integer then the item will be a
-            Python v2 string object or a Python v3 bytes object containing the
-            single byte at that index.  If the index is a slice object then the
-            item will be a new :class:`voidptr` object defining the subset of
-            the memory corresponding to the slice.
+            the item.  If the index is an integer then the item will be a bytes
+            object containing the single byte at that index.  If the index is a
+            slice object then the item will be a new
+            :class:`@_SIP_FQ_NAME@.voidptr` object defining the subset of the
+            memory corresponding to the slice.
 
     .. method:: __hex__() -> string
 
@@ -324,45 +316,35 @@ previously been imported*.
             must implement the buffer interface and be the same size as the
             data that is being updated.
 
-    .. method:: asarray([size=-1]) -> :class:`sip.array`
+    .. method:: asarray([size=-1]) -> :class:`@_SIP_FQ_NAME@.array`
 
-        This returned the block of memory as a :class:`sip.array` object.  The
-        memory is *not* copied.
+        This returned the block of memory as a :class:`@_SIP_FQ_NAME@.array`
+        object.  The memory is *not* copied.
         
         :param size:
             the size of the array.  If it is negative then the size associated
             with the address is used.  If there is no associated size then an
             exception is raised.
         :return:
-            the :class:`sip.array` object.
+            the :class:`@_SIP_FQ_NAME@.array` object.
 
     .. method:: ascapsule() -> capsule
 
-        This returns the address as an unnamed Python Capsule.  This requires
-        Python v3.1 or later or Python v2.7 or later.
+        This returns the address as an unnamed Python Capsule.
 
         :return:
             the Capsule.
 
-    .. method:: ascobject() -> cObject
-
-        This returns the address as a Python CObject.  This is deprecated with
-        Python v3.1 and is not supported with Python v3.2 and later.
-
-        :return:
-            the CObject.
-
     .. method:: asstring([size=-1]) -> string/bytes
 
-        This returns a copy of the block of memory as a Python v2 string object
-        or a Python v3 bytes object.
+        This returns a copy of the block of memory as a bytes object.
         
         :param size:
             the number of bytes to copy.  If it is negative then the size
             associated with the address is used.  If there is no associated
             size then an exception is raised.
         :return:
-            the string or bytes object.
+            the bytes object.
 
     .. method:: getsize() -> integer
 
@@ -417,4 +399,5 @@ previously been imported*.
 
 .. class:: wrappertype
 
-    This is the type object of the metatype of the :class:`sip.wrapper` type.
+    This is the type object of the metatype of the
+    :class:`@_SIP_FQ_NAME@.wrapper` type.

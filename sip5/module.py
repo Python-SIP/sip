@@ -32,7 +32,7 @@ from .module_abi import ABI_MAJOR, ABI_MINOR, ABI_MAINTENANCE
 _src_dir = os.path.join(os.path.dirname(__file__), 'module_source')
 
 
-def module(sip_module, include_dir=None, module_dir=None, no_sdist=False, setup_cfg=None):
+def module(sip_module, documentation_dir=None, include_dir=None, module_dir=None, no_sdist=False, setup_cfg=None):
     """ Create the sdist for a sip module. """
 
     # Create the patches.
@@ -55,6 +55,10 @@ def module(sip_module, include_dir=None, module_dir=None, no_sdist=False, setup_
         '@_SIP_ABI_VERSION@':   hex(version),
         '@_SIP_FQ_NAME@':       sip_module,
     }
+
+    # Install the sip.rst file.
+    if documentation_dir is not None:
+        _install_source_file('sip.rst', documentation_dir, patches)
 
     # Install the sip.h file.
     if include_dir is not None:
@@ -93,6 +97,9 @@ def _install_code(target_dir, patches, setup_cfg):
 
     # The source directory doesn't have sub-directories.
     for name in os.listdir(_src_dir):
+        if name in ('sip.pyi', 'sip.rst.in'):
+            continue
+
         if name.endswith('.in'):
             name = name[:-3]
 
@@ -100,7 +107,7 @@ def _install_code(target_dir, patches, setup_cfg):
             # setup.cfg.
             if name != 'README' or setup_cfg is None:
                 _install_source_file(name, target_dir, patches)
-        elif name != 'sip.pyi':
+        else:
             shutil.copy(os.path.join(_src_dir, name), target_dir)
 
     # Overwrite setup.cfg is required.

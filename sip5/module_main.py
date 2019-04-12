@@ -37,6 +37,10 @@ def main():
             help="the qualified name of the sip module",
             metavar="NAME")
 
+    parser.add_argument('--documentation-dir', dest='documentation_dir',
+            help="the name of the directory where sip.rst will be installed",
+            metavar="DIR")
+
     parser.add_argument('--include-dir', dest='include_dir',
             help="the name of the directory where sip.h will be installed",
             metavar="DIR")
@@ -47,7 +51,7 @@ def main():
 
     parser.add_argument('--no-sdist', dest='no_sdist', action='store_true',
             default=False,
-            help="the name of the directory where the code will be generated")
+            help="do not generate the .tar.gz sdist file")
 
     parser.add_argument('--setup-cfg', dest='setup_cfg',
             help="the name of the setup.cfg file to use",
@@ -56,9 +60,10 @@ def main():
     args = parser.parse_args()
 
     try:
-        module(sip_module=args.sip_modules[0], include_dir=args.include_dir,
-                module_dir=args.module_dir, no_sdist=args.no_sdist,
-                setup_cfg=args.setup_cfg)
+        module(sip_module=args.sip_modules[0],
+                documentation_dir=args.documentation_dir,
+                include_dir=args.include_dir, module_dir=args.module_dir,
+                no_sdist=args.no_sdist, setup_cfg=args.setup_cfg)
     except Exception as e:
         handle_exception(e)
 
