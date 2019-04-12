@@ -97,9 +97,7 @@ specification files.
     .. deprecated:: 5.0
         Use ``Py_ssize_t`` instead.
 
-    This is a C preprocessor macro that is defined as ``Py_ssize_t`` for Python
-    v2.5 and later, and as ``int`` for earlier versions of Python.  It makes it
-    easier to write PEP 353 compliant handwritten code.
+    This is a C preprocessor macro that is defined as ``Py_ssize_t``.
 
 
 .. c:macro:: SIP_SSIZE_T_FORMAT
@@ -109,9 +107,7 @@ specification files.
     .. deprecated:: 5.0
         Use ``%zd`` instead.
 
-    This is a C preprocessor macro that is defined as ``%zd`` for Python
-    v2.5 and later, and as ``%d`` for earlier versions of Python.  It makes it
-    easier to write PEP 353 compliant handwritten code.
+    This is a C preprocessor macro that is defined as ``%zd``.
 
 
 .. c:macro:: SIP_UNBLOCK_THREADS

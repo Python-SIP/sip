@@ -339,7 +339,7 @@ static scopedNameDef *fullyQualifiedName(scopedNameDef *snd);
 %token          TK_SIPRXDIS
 %token          TK_SIPSLOTCON
 %token          TK_SIPSLOTDIS
-%token          TK_SIPSSIZET
+%token          TK_PYSSIZET
 %token          TK_SIZET
 %token <number> TK_NUMBER_VALUE
 %token <real>   TK_REAL_VALUE
@@ -4514,7 +4514,7 @@ basetype:   scopedname {
             memset(&$$, 0, sizeof (argDef));
             $$.atype = pybuffer_type;
         }
-    |   TK_SIPSSIZET {
+    |   TK_PYSSIZET {
             memset(&$$, 0, sizeof (argDef));
             $$.atype = ssize_type;
         }
@@ -6566,7 +6566,6 @@ codeBlockList *templateCode(sipSpec *pt, ifaceFileList **used,
             {
                 static char *gen_names[] = {
                     "sipType_",
-                    "sipEnum_",
                     "sipException_",
                     NULL
                 };

@@ -298,8 +298,7 @@ file.
             :stype:`SIP_SIGNAL` [*default-value*] |
             :stype:`SIP_SLOT` [*default-value*] |
             :stype:`SIP_SLOT_CON` |
-            :stype:`SIP_SLOT_DIS` |
-            :stype:`SIP_SSIZE_T`]
+            :stype:`SIP_SLOT_DIS`]
 
     *default-value* ::= **=** *expression*
 
@@ -360,6 +359,7 @@ file.
             **float** | **double** |
             **bool** |
             **void** |
+            **Py_ssize_t** |
             **PyObject** |
             :stype:`SIP_PYBUFFER` |
             :stype:`SIP_PYCALLABLE` |
@@ -527,12 +527,6 @@ This is a ``const char *`` that is used as the type of the member instead of
 ``const char *`` in functions that implement the disconnection of an
 internally generated signal to a slot.  The type includes a comma separated
 list of types that is the C++ signature of of the signal.
-
-
-.. sip-type:: SIP_SSIZE_T
-
-This is a ``Py_ssize_t`` in Python v2.5 and later and ``int`` in earlier
-versions of Python.
 
 
 Classic Division and True Division

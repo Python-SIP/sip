@@ -151,8 +151,10 @@ SIP_RXOBJ_CON               {return TK_SIPRXCON;}
 SIP_RXOBJ_DIS               {return TK_SIPRXDIS;}
 SIP_SLOT_CON                {return TK_SIPSLOTCON;}
 SIP_SLOT_DIS                {return TK_SIPSLOTDIS;}
-SIP_SSIZE_T                 {return TK_SIPSSIZET;}
 SIP_QOBJECT                 {return TK_QOBJECT;}
+Py_ssize_t                  {return TK_PYSSIZET;}
+/* Remove in v5.1. */
+SIP_SSIZE_T                 {return TK_PYSSIZET;}
 \.\.\.                      {return TK_ELLIPSIS;}
 
 <directive>format           {return TK_FORMAT;}

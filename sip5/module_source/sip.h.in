@@ -92,14 +92,14 @@ typedef unsigned int uint;
 #endif
 
 
-/* Some (deprecated) Python compatibility stuff. */
+/* Remove in v5.1. */
 #define SIP_SSIZE_T         Py_ssize_t
 #define SIP_SSIZE_T_FORMAT  "%zd"
 #define SIP_USE_PYCAPSULE
 
 /*
- * These are undocumented and can be removed when PyQt5 drops support for
- * Python v2.
+ * Remove in v5.1.  These are undocumented and can be removed when PyQt5 drops
+ * support for Python v2.
  */
 #define SIPLong_Check       PyLong_Check
 #define SIPLong_FromLong    PyLong_FromLong
