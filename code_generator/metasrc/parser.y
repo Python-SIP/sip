@@ -1098,7 +1098,6 @@ mappedtype: TK_MAPPEDTYPE basetype optflags {
                 static const char *annos[] = {
                     "AllowNone",
                     "API",
-                    "DocType",
                     "NoRelease",
                     "PyName",
                     "TypeHint",
@@ -1120,7 +1119,6 @@ mappedtypetmpl: template TK_MAPPEDTYPE basetype optflags {
             {
                 static const char *annos[] = {
                     "AllowNone",
-                    "DocType",
                     "NoRelease",
                     "TypeHint",
                     "TypeHintIn",
@@ -2705,7 +2703,6 @@ typedef:    TK_TYPEDEF cpptype TK_NAME_VALUE optflags ';' optdocstring {
             {
                 const char *annos[] = {
                     "Capsule",
-                    "DocType",
                     "Encoding",
                     "NoTypeName",
                     "PyInt",
@@ -2726,7 +2723,6 @@ typedef:    TK_TYPEDEF cpptype TK_NAME_VALUE optflags ';' optdocstring {
             if (notSkipping())
             {
                 const char *annos[] = {
-                    "DocType",
                     "Encoding",
                     "NoTypeName",
                     "PyInt",
@@ -3871,7 +3867,6 @@ variable:   cpptype TK_NAME_VALUE optflags variable_body ';' {
             if (notSkipping())
             {
                 const char *annos[] = {
-                    "DocType",
                     "Encoding",
                     "NoSetter",
                     "NoTypeHint",
@@ -3995,8 +3990,6 @@ argtype:    cpptype optname optflags {
                 "ArraySize",
                 "Constrained",
                 "DisallowNone",
-                "DocType",
-                "DocValue",
                 "Encoding",
                 "GetWrapper",
                 "In",
@@ -6858,7 +6851,6 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         "AutoGen",
         "Deprecated",
         "DisallowNone",
-        "DocType",
         "Encoding",
         "Factory",
         "HoldGIL",
@@ -8906,42 +8898,15 @@ static KwArgs keywordArgs(moduleDef *mod, optFlags *optflgs, signatureDef *sd,
         int need_name)
 {
     KwArgs kwargs;
-    optFlag *ka_anno, *no_ka_anno;
+    optFlag *ka_anno;
 
-    /* Get the default. */
-    kwargs = mod->kwargs;
+    /* See if there was an explicit annotation. */
+    ka_anno = getOptFlag(optflgs, "KeywordArgs", string_flag);
 
-    /*
-     * Get the possible annotations allowing /KeywordArgs/ to have different
-     * types of values.
-     */
-    ka_anno = findOptFlag(optflgs, "KeywordArgs");
-    no_ka_anno = getOptFlag(optflgs, "NoKeywordArgs", bool_flag);
-
-    if (no_ka_anno != NULL)
-    {
-        if (ka_anno != NULL)
-            yyerror("/KeywordArgs/ and /NoKeywordArgs/ cannot both be specified");
-
-        deprecated("/NoKeywordArgs/ is deprecated, use /KeywordArgs=\"None\" instead");
-
-        kwargs = NoKwArgs;
-    }
-    else if (ka_anno != NULL)
-    {
-        /* A string value is the non-deprecated type. */
-        if (ka_anno->ftype == string_flag)
-        {
-            kwargs = convertKwArgs(ka_anno->fvalue.sval);
-        }
-        else
-        {
-            deprecated("/KeywordArgs/ is deprecated, use /KeywordArgs=\"All\" instead");
-
-            /* Get it again to check the type. */
-            ka_anno = getOptFlag(optflgs, "KeywordArgs", bool_flag);
-        }
-    }
+    if (ka_anno != NULL)
+        kwargs = convertKwArgs(ka_anno->fvalue.sval);
+    else
+        kwargs = mod->kwargs;
 
     /* An ellipsis cannot be used with keyword arguments. */
     if (sd->nrArgs > 0 && sd->args[sd->nrArgs - 1].atype == ellipsis_type)

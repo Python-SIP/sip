@@ -890,10 +890,6 @@ Function Annotations
     Keyword arguments cannot be used for functions that use an ellipsis to
     designate that the function has a variable number of arguments.
 
-    .. deprecated:: 4.12
-        It can also be used as a boolean annotation which is the equivalent of
-        specifiying a value of ``"All"``.
-
 
 .. function-annotation:: __len__
 
@@ -948,22 +944,6 @@ Function Annotations
     to define a Python constructor that has no corresponding C++ constructor.
     This annotation is used to suppress the generation of the constructor in
     the derived class.
-
-
-.. function-annotation:: NoKeywordArgs
-
-    .. versionadded:: 4.10
-
-    .. deprecated:: 4.12
-        Use the :fanno:`KeywordArgs` annotation with a value of ``"None"``.
-
-    This boolean annotation specifies that the argument parser generated for
-    this function will not support passing the parameters using Python's
-    keyword argument syntax.  In other words, the argument parser will only
-    support normal positional arguments.  This annotation is useful when the
-    default setting of allowing keyword arguments has been changed via the
-    command line or the :directive:`%Module` directive, but you would still
-    like certain functions to only support positional arguments.
 
 
 .. function-annotation:: NoRaisesPyException
