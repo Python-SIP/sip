@@ -402,9 +402,6 @@ static scopedNameDef *fullyQualifiedName(scopedNameDef *snd);
 %type <valp>            value
 %type <valp>            expr
 %type <valp>            optassign
-%type <codeb>           optaccesscode
-%type <codeb>           optgetcode
-%type <codeb>           optsetcode
 %type <codeb>           typehdrcode
 %type <codeb>           travcode
 %type <codeb>           clearcode
@@ -2041,30 +2038,6 @@ import_arg: TK_NAME '=' TK_PATH_VALUE {
             $$.token = TK_NAME;
 
             $$.name = $3;
-        }
-    ;
-
-optaccesscode:  {
-            $$ = NULL;
-        }
-    |   TK_ACCESSCODE codeblock {
-            $$ = $2;
-        }
-    ;
-
-optgetcode: {
-            $$ = NULL;
-        }
-    |   TK_GETCODE codeblock {
-            $$ = $2;
-        }
-    ;
-
-optsetcode: {
-            $$ = NULL;
-        }
-    |   TK_SETCODE codeblock {
-            $$ = $2;
         }
     ;
 
@@ -3895,7 +3868,7 @@ member:
     |   function
     ;
 
-variable:   cpptype TK_NAME_VALUE optflags variable_body ';' optaccesscode optgetcode optsetcode {
+variable:   cpptype TK_NAME_VALUE optflags variable_body ';' {
             if (notSkipping())
             {
                 const char *annos[] = {
@@ -3910,36 +3883,6 @@ variable:   cpptype TK_NAME_VALUE optflags variable_body ';' optaccesscode optge
                 };
 
                 checkAnnos(&$3, annos);
-
-                if ($6 != NULL)
-                {
-                    if ($4.access_code != NULL)
-                        yyerror("%AccessCode already defined");
-
-                    $4.access_code = $6;
-
-                    deprecated("%AccessCode should be used as a sub-directive");
-                }
-
-                if ($7 != NULL)
-                {
-                    if ($4.get_code != NULL)
-                        yyerror("%GetCode already defined");
-
-                    $4.get_code = $7;
-
-                    deprecated("%GetCode should be used as a sub-directive");
-                }
-
-                if ($8 != NULL)
-                {
-                    if ($4.set_code != NULL)
-                        yyerror("%SetCode already defined");
-
-                    $4.set_code = $8;
-
-                    deprecated("%SetCode should be used as a sub-directive");
-                }
 
                 newVar(currentSpec, currentModule, $2, currentIsStatic, &$1,
                         &$3, $4.access_code, $4.get_code, $4.set_code,
