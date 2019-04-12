@@ -1029,10 +1029,6 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, int sec,
 
         break;
 
-    case qobject_type:
-        type_name = "QObject";
-        break;
-
     case ustring_type:
         /* Correct for Python v3. */
         type_name = "bytes";

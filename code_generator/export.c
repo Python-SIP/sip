@@ -939,10 +939,6 @@ static void xmlType(sipSpec *pt, moduleDef *mod, argDef *ad, int out,
 
             break;
 
-        case qobject_type:
-            restPyClass(pt->qobject_cd, fp);
-            break;
-
         case mapped_type:
             /* There would normally be a type hint. */
             fprintf(fp, "unknown-type");
@@ -1100,10 +1096,6 @@ static const char *pyType(sipSpec *pt, argDef *ad, classDef **scope)
         }
         else
             type_name = "int";
-        break;
-
-    case qobject_type:
-        type_name = "QObject";
         break;
 
     case ustring_type:

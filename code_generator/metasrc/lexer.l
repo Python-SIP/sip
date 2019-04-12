@@ -151,7 +151,6 @@ SIP_RXOBJ_CON               {return TK_SIPRXCON;}
 SIP_RXOBJ_DIS               {return TK_SIPRXDIS;}
 SIP_SLOT_CON                {return TK_SIPSLOTCON;}
 SIP_SLOT_DIS                {return TK_SIPSLOTDIS;}
-SIP_QOBJECT                 {return TK_QOBJECT;}
 Py_ssize_t                  {return TK_PYSSIZET;}
 SIP_SSIZE_T                 {
     /* Remove in v5.1. */

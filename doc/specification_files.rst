@@ -292,7 +292,6 @@ file.
     *argument* ::= [
             *type* [*name*] [*argument-annotations*] [*default-value*] |
             :stype:`SIP_ANYSLOT` [*default-value*] |
-            :stype:`SIP_QOBJECT` |
             :stype:`SIP_RXOBJ_CON` |
             :stype:`SIP_RXOBJ_DIS` |
             :stype:`SIP_SIGNAL` [*default-value*] |
@@ -452,14 +451,6 @@ This is a ``PyObject *`` that is a Python tuple object.
 .. sip-type:: SIP_PYTYPE
 
 This is a ``PyObject *`` that is a Python type object.
-
-
-.. sip-type:: SIP_QOBJECT
-
-.. deprecated:: 4.18
-
-This is a ``QObject *`` that is a C++ instance of a class derived from Qt's
-``QObject`` class.
 
 
 .. sip-type:: SIP_RXOBJ_CON
