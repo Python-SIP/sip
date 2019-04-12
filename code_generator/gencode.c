@@ -8033,7 +8033,6 @@ static void generateTupleBuilder(moduleDef *mod, signatureDef *sd,FILE *fp)
 
         case signal_type:
         case slot_type:
-        case slotcon_type:
             fmt = "s";
             break;
 
@@ -8879,7 +8878,6 @@ static void generateNamedBaseType(ifaceFileDef *scope, argDef *ad,
         case signal_type:
         case slot_type:
         case anyslot_type:
-        case slotcon_type:
             nr_derefs = 1;
 
             /* Drop through. */
@@ -9131,7 +9129,7 @@ static void generateVariable(moduleDef *mod, ifaceFileDef *scope, argDef *ad,
 
     resetIsReference(ad);
 
-    if (ad->nrderefs == 0 && ad->atype != slotcon_type)
+    if (ad->nrderefs == 0)
         resetIsConstArg(ad);
 
     prcode(fp,
@@ -12663,11 +12661,6 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
             isQtSlot = TRUE;
             break;
 
-        case slotcon_type:
-            slotconarg_ad = ad;
-            slotconarg = a;
-            break;
-
         /* Supress a compiler warning. */
         default:
             ;
@@ -13003,10 +12996,6 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
             fmt = "U";
             break;
 
-        case slotcon_type:
-            fmt = (secCall ? "" : "S");
-            break;
-
         case rxcon_type:
             fmt = (secCall ? (isSingleShot(ad) ? "g" : "y") : "q");
             break;
@@ -13196,12 +13185,6 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
 
                 break;
             }
-
-        case slotcon_type:
-            if (!secCall)
-                prcode(fp, ", &%a", mod, ad, a);
-
-            break;
 
         case anyslot_type:
             prcode(fp, ", &%aName, &%aCallable", mod, ad, a, mod, ad, a);

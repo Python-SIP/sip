@@ -841,9 +841,6 @@ static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int arg_nr,
     if (isArraySize(ad))
         return need_comma;
 
-    if (sec && ad->atype == slotcon_type)
-        return need_comma;
-
     if (need_comma)
         fprintf(fp, ", ");
 
@@ -1108,7 +1105,6 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, int sec,
         type_name = "*";
         break;
 
-    case slotcon_type:
     case anyslot_type:
         type_name = "QT_SLOT";
         break;

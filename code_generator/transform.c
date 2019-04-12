@@ -2099,9 +2099,6 @@ static void resolvePySigTypes(sipSpec *pt, moduleDef *mod, classDef *scope,
 
         resolveType(pt, mod, scope, ad, FALSE);
 
-        if (ad -> atype == slotcon_type)
-            resolvePySigTypes(pt, mod, scope, od, ad->u.sa, TRUE);
-
         /*
          * Note signal arguments are restricted in their types because we don't
          * (yet) support handwritten code for them.
@@ -2282,7 +2279,6 @@ static int supportedType(classDef *cd,overDef *od,argDef *ad,int outputs)
     case slot_type:
     case rxcon_type:
     case rxdis_type:
-    case slotcon_type:
     case ellipsis_type:
         /* These can only appear in argument lists without * or &. */
 
@@ -2721,12 +2717,6 @@ int sameBaseType(argDef *a1, argDef *a2)
 
         break;
 
-    case slotcon_type:
-        if (!sameSignature(a1->u.sa, a2->u.sa, TRUE))
-            return FALSE;
-
-        break;
-
     case template_type:
         {
             int a;
@@ -3007,15 +2997,6 @@ static void resolveType(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         }
 
         fatalNoDefinedType(snd);
-    }
-
-    /* Get the base type of any slot arguments. */
-    if (type->atype == slotcon_type)
-    {
-        int sa;
-
-        for (sa = 0; sa < type->u.sa->nrArgs; ++sa)
-            resolveType(pt, mod, c_scope, &type->u.sa->args[sa], FALSE);
     }
 
     /* See if the type refers to an instantiated template. */

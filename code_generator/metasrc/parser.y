@@ -337,7 +337,6 @@ static scopedNameDef *fullyQualifiedName(scopedNameDef *snd);
 %token          TK_SIPANYSLOT
 %token          TK_SIPRXCON
 %token          TK_SIPRXDIS
-%token          TK_SIPSLOTCON
 %token          TK_PYSSIZET
 %token          TK_SIZET
 %token <number> TK_NUMBER_VALUE
@@ -3819,9 +3818,9 @@ virtualcatchercode: {
     ;
 
 arglist:    rawarglist {
-            int a, nrrxcon, nrrxdis, nrslotcon, nrarray, nrarraysize;
+            int a, nrrxcon, nrrxdis, nrarray, nrarraysize;
 
-            nrrxcon = nrrxdis = nrslotcon = nrarray = nrarraysize = 0;
+            nrrxcon = nrrxdis = nrarray = nrarraysize = 0;
 
             for (a = 0; a < $1.nrArgs; ++a)
             {
@@ -3837,10 +3836,6 @@ arglist:    rawarglist {
                     ++nrrxdis;
                     break;
 
-                case slotcon_type:
-                    ++nrslotcon;
-                    break;
-
                 /* Suppress a compiler warning. */
                 default:
                     ;
@@ -3853,7 +3848,7 @@ arglist:    rawarglist {
                     ++nrarraysize;
             }
 
-            if (nrrxcon != nrslotcon || nrrxcon > 1)
+            if (nrrxcon != 0)
                 yyerror("SIP_RXOBJ_CON and SIP_SLOT_CON must both be given and at most once");
 
             if (nrrxdis != 0)
@@ -3963,23 +3958,6 @@ argvalue:   TK_SIPSIGNAL optname optflags optassign {
             $$.argflags = 0;
             $$.nrderefs = 0;
             $$.name = cacheName(currentSpec, $2);
-
-            currentSpec -> sigslots = TRUE;
-        }
-    |   TK_SIPSLOTCON '(' arglist ')' optname optflags {
-            deprecated("SIP_SLOT_CON is deprecated\n");
-            checkNoAnnos(&$6, "SIP_SLOT_CON has no annotations");
-
-            $$.atype = slotcon_type;
-            $$.argflags = ARG_IS_CONST;
-            $$.nrderefs = 0;
-            $$.name = cacheName(currentSpec, $5);
-
-            memset(&$3.result, 0, sizeof (argDef));
-            $3.result.atype = void_type;
-
-            $$.u.sa = sipMalloc(sizeof (signatureDef));
-            *$$.u.sa = $3;
 
             currentSpec -> sigslots = TRUE;
         }

@@ -641,7 +641,6 @@ typedef enum {
     slot_type,
     rxcon_type,
     rxdis_type,
-    slotcon_type,
     ustring_type,
     string_type,
     short_type,
