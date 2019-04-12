@@ -844,7 +844,6 @@ typedef struct _valueDef {
 typedef struct {
     argType atype;                      /* The type. */
     nameDef *name;                      /* The name. */
-    const char *doctype;                /* The documented type. */
     struct _typeHintDef *typehint_in;   /* The PEP 484 input type hint. */
     struct _typeHintDef *typehint_out;  /* The PEP 484 output type hint. */
     const char *typehint_value;         /* The type hint value. */
@@ -1019,7 +1018,6 @@ typedef struct _mappedTypeDef {
     argDef type;                        /* The type being mapped. */
     nameDef *pyname;                    /* The Python name. */
     nameDef *cname;                     /* The C/C++ name. */
-    const char *doctype;                /* The documented type. */
     typeHintDef *typehint_in;           /* The PEP 484 input type hint. */
     typeHintDef *typehint_out;          /* The PEP 484 output type hint. */
     const char *typehint_value;         /* The type hint value. */

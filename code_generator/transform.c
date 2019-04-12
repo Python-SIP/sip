@@ -3129,10 +3129,6 @@ static void instantiateMappedTypeTemplate(sipSpec *pt, moduleDef *mod,
 
     mtd->mtflags = mtt->mt->mtflags;
 
-    if (mtt->mt->doctype != NULL)
-        mtd->doctype = templateString(mtt->mt->doctype, type_names,
-                type_values);
-
     if (mtt->mt->typehint_in != NULL)
         mtd->typehint_in = newTypeHint(
                 templateString(mtt->mt->typehint_in->raw_hint, type_names,
@@ -3439,7 +3435,6 @@ void searchTypedefs(sipSpec *pt, scopedNameDef *snd, argDef *ad)
             /* Copy the type. */
             ad->atype = td->type.atype;
             ad->argflags |= td->type.argflags;
-            ad->doctype = td->type.doctype;
             ad->typehint_in = td->type.typehint_in;
             ad->typehint_out = td->type.typehint_out;
             ad->typehint_value = td->type.typehint_value;

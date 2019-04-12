@@ -129,7 +129,6 @@ static int getDeprecated(optFlags *optflgs);
 static int getAllowNone(optFlags *optflgs);
 static int getDisallowNone(optFlags *optflgs);
 static const char *getVirtErrorHandler(optFlags *optflgs);
-static const char *getDocType(optFlags *optflgs);
 static const char *getTypeHintValue(optFlags *optflgs);
 static void getTypeHints(optFlags *optflgs, typeHintDef **in,
         typeHintDef **out);
@@ -8546,22 +8545,6 @@ static const char *getVirtErrorHandler(optFlags *optflgs)
 
 
 /*
- * Get the /DocType/ option flag.
- */
-static const char *getDocType(optFlags *optflgs)
-{
-    optFlag *of = getOptFlag(optflgs, "DocType", string_flag);
-
-    if (of == NULL)
-        return NULL;
-
-    deprecated("/DocType/ is deprecated\n");
-
-    return of->fvalue.sval;
-}
-
-
-/*
  * Get the /TypeHintValue/ option flag.
  */
 static const char *getTypeHintValue(optFlags *optflgs)
@@ -8770,7 +8753,6 @@ static void addVariable(sipSpec *pt, varDef *vd)
  */
 static void applyTypeFlags(moduleDef *mod, argDef *ad, optFlags *flags)
 {
-    ad->doctype = getDocType(flags);
     getTypeHints(flags, &ad->typehint_in, &ad->typehint_out);
 
     if (getOptFlag(flags, "PyInt", bool_flag) != NULL)
@@ -9235,7 +9217,6 @@ static void mappedTypeAnnos(mappedTypeDef *mtd, optFlags *optflgs)
     if (getAllowNone(optflgs))
         setHandlesNone(mtd);
 
-    mtd->doctype = getDocType(optflgs);
     getTypeHints(optflgs, &mtd->typehint_in, &mtd->typehint_out);
     mtd->typehint_value = getTypeHintValue(optflgs);
 }

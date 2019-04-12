@@ -142,18 +142,6 @@ Argument Annotations
     must not be ``None``.
 
 
-.. argument-annotation:: DocType
-
-    .. versionadded:: 4.10
-
-    .. deprecated:: 4.18
-        Use the :aanno:`TypeHint` annotation instead.
-
-    This string annotation specifies the type of the argument as it will appear
-    in any generated docstrings.  It is usually used with arguments of type
-    :stype:`SIP_PYOBJECT` to provide a more specific type.
-
-
 .. argument-annotation:: DocValue
 
     .. versionadded:: 4.10
@@ -666,17 +654,6 @@ Mapped Type Annotations
     See :ref:`ref-incompat-apis` for more detail.
 
 
-.. mapped-type-annotation:: DocType
-
-    .. versionadded:: 4.10
-
-    .. deprecated:: 4.18
-        Use the :manno:`TypeHint` annotation instead.
-
-    This string annotation serves the same purpose as the :aanno:`DocType`
-    argument annotation when applied to the mapped type being defined.
-
-
 .. mapped-type-annotation:: NoRelease
 
     This boolean annotation is used to specify that the mapped type does not
@@ -858,18 +835,6 @@ Function Annotations
     This boolean annotation is used to specify that the value returned by the
     function (which should be a pointer to either a C++ class or a mapped type)
     must not be ``None``.
-
-
-.. function-annotation:: DocType
-
-    .. versionadded:: 4.10
-
-    .. deprecated:: 4.18
-        Use the :fanno:`TypeHint` annotation instead.
-
-    This string annotation serves the same purpose as the :aanno:`DocType`
-    argument annotation when applied to the type of the value returned by the
-    function.
 
 
 .. function-annotation:: Encoding
@@ -1213,17 +1178,6 @@ Typedef Annotations
     used instead and name based type checking is not performed.
 
 
-.. typedef-annotation:: DocType
-
-    .. versionadded:: 4.10
-
-    .. deprecated:: 4.18
-        Use the :tanno:`TypeHint` annotation instead.
-
-    This string annotation serves the same purpose as the :aanno:`DocType`
-    argument annotation when applied to the mapped type being defined.
-
-
 .. typedef-annotation:: Encoding
 
     This string annotation serves the same purpose as the :aanno:`Encoding`
@@ -1302,17 +1256,6 @@ Typedef Annotations
 
 Variable Annotations
 --------------------
-
-.. variable-annotation:: DocType
-
-    .. versionadded:: 4.10
-
-    .. deprecated:: 4.18
-        Use the :vanno:`TypeHint` annotation instead.
-
-    This string annotation serves the same purpose as the :aanno:`DocType`
-    argument annotation when applied to the type of the variable being defined.
-
 
 .. variable-annotation:: Encoding
 

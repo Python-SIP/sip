@@ -985,10 +985,6 @@ static const char *pyType(sipSpec *pt, argDef *ad, classDef **scope)
 
     *scope = NULL;
 
-    /* Use any explicit documented type. */
-    if (ad->doctype != NULL)
-        return ad->doctype;
-
     /* For classes and mapped types we need the default implementation. */
     if (ad->atype == class_type || ad->atype == mapped_type)
     {
@@ -1059,19 +1055,10 @@ static const char *pyType(sipSpec *pt, argDef *ad, classDef **scope)
         }
         else
         {
-            /*
-             * Give a hint that /DocType/ should be used, or there is no
-             * default implementation.
-             */
-            type_name = "unknown-type";
-
-            if (def_mtd != NULL)
-            {
-                if (def_mtd->doctype != NULL)
-                    type_name = def_mtd->doctype;
-                else if (def_mtd->pyname != NULL)
-                    type_name = def_mtd->pyname->text;
-            }
+            if (def_mtd != NULL && def_mtd->pyname != NULL)
+                type_name = def_mtd->pyname->text;
+            else
+                type_name = "unknown-type";
         }
 
         return type_name;
@@ -1230,8 +1217,7 @@ static void exportPythonSignature(sipSpec *pt, FILE *fp, signatureDef *sd,
     }
 
 
-    is_res = !((sd->result.atype == void_type && sd->result.nrderefs == 0) ||
-            (sd->result.doctype != NULL && sd->result.doctype[0] == '\0'));
+    is_res = !(sd->result.atype == void_type && sd->result.nrderefs == 0);
 
     if (is_res || nr_out > 0)
     {
