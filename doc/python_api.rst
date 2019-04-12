@@ -10,8 +10,6 @@ all SIP generated bindings.  It is loaded automatically and most of the time
 you will completely ignore it.  However, it does expose some functionality that
 can be used by applications.
 
-.. versionadded:: 4.19.4
-
 When a private copy of the SIP module is being used it would normally be
 imported from the package containing the private copy.  However, in order to
 maintain compatibility with earlier versions, the module can also be imported
@@ -20,8 +18,6 @@ previously been imported*.
 
 
 .. class:: array
-
-    .. versionadded:: 4.15
 
     This is the type object for the type SIP uses to represent an array of a
     limited number of C/C++ types.  Typically the memory is not owned by Python
@@ -33,8 +29,6 @@ previously been imported*.
 
 
 .. function:: assign(obj, other)
-
-    .. versionadded:: 4.19
 
     This does the Python equivalent of invoking the assignment operator of a
     C++ instance (i.e. ``*obj = other``).
@@ -81,8 +75,6 @@ previously been imported*.
 
 .. function:: enableautoconversion(type, enable) -> bool
 
-    .. versionadded:: 4.14.7
-
     Instances of some classes may be automatically converted to other Python
     objects even though the class has been wrapped.  This allows that behaviour
     to be suppressed so that an instances of the wrapped class is returned
@@ -99,8 +91,6 @@ previously been imported*.
 
 .. function:: enableoverflowchecking(enable) -> bool
 
-    .. versionadded:: 4.19.4
-
     This enables or disables the checking for overflows when converting Python
     integer objects to C/C++ integer types.  When it is enabled an exception is
     raised when the value of a Python integer object is too large to fit in the
@@ -115,8 +105,6 @@ previously been imported*.
 
 
 .. function:: getapi(name) -> version
-
-    .. versionadded:: 4.9
 
     This returns the version number that has been set for an API.  The version
     number is either set explicitly by a call to :func:`sip.setapi` or
@@ -142,8 +130,6 @@ previously been imported*.
 
 .. function:: ispycreated(obj) -> bool
 
-    .. versionadded:: 4.12.1
-
     This checks if the C++ instance or C structure was created by Python.  If
     it was then it is possible to call a C++ instance's protected methods.
 
@@ -164,8 +150,6 @@ previously been imported*.
 
 
 .. function:: setapi(name, version)
-
-    .. versionadded:: 4.9
 
     This sets the version number of an API.  An exception is raised if a
     different version number has already been set, either explicitly by a
@@ -190,8 +174,6 @@ previously been imported*.
 
 
 .. function:: setdestroyonexit(destroy)
-
-    .. versionadded:: 4.14.2
 
     When the Python interpreter exits it garbage collects those objects that it
     can.  This means that any corresponding C++ instances and C structures
@@ -238,15 +220,11 @@ previously been imported*.
 
 .. data:: SIP_VERSION
 
-    .. versionadded:: 4.2
-
     This is a Python integer object that represents the SIP version number as
     a 3 part hexadecimal number (e.g. v4.0.0 is represented as ``0x040000``).
 
 
 .. data:: SIP_VERSION_STR
-
-    .. versionadded:: 4.3
 
     This is a Python string object that defines the SIP version number as
     represented as a string.  For development versions it will contain either
@@ -304,8 +282,6 @@ previously been imported*.
 
     .. method:: __getitem__(idx) -> item
 
-        .. versionadded:: 4.12
-
         This returns the item at a given index.  An exception will be raised if
         the address does not have an associated size.  In this way it behaves
         like a Python ``memoryview`` object.
@@ -329,16 +305,12 @@ previously been imported*.
 
     .. method:: __len__() -> integer
 
-        .. versionadded:: 4.12
-
         This returns the size associated with the address.
         
         :return:
             the associated size.  An exception will be raised if there is none.
 
     .. method:: __setitem__(idx, item)
-
-        .. versionadded:: 4.12
 
         This updates the memory at a given index.  An exception will be raised
         if the address does not have an associated size or is not writable.  In
@@ -354,8 +326,6 @@ previously been imported*.
 
     .. method:: asarray([size=-1]) -> :class:`sip.array`
 
-        .. versionadded:: 4.16.5
-
         This returned the block of memory as a :class:`sip.array` object.  The
         memory is *not* copied.
         
@@ -367,8 +337,6 @@ previously been imported*.
             the :class:`sip.array` object.
 
     .. method:: ascapsule() -> capsule
-
-        .. versionadded:: 4.10
 
         This returns the address as an unnamed Python Capsule.  This requires
         Python v3.1 or later or Python v2.7 or later.

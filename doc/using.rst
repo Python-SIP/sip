@@ -434,8 +434,6 @@ Again, we hope that the scripts are self documenting.
 Wrapping Enums
 --------------
 
-.. versionadded:: 4.19.4
-
 SIP wraps C/C++ enums using a dedicated Python type and implements behaviour
 that mimics the C/C++ behaviour regqrding the visibility of the enum's members.
 In other words, an enum's members have the same visibility as the enum itself.
@@ -462,8 +460,6 @@ This version of SIP adds support for wrapping C++11 scoped enums and implements
 them as Python :class:`enum.Enum` objects.  For versions of Python that don't
 include the :mod:`enum` module in the standrd library (i.e. versions earlier
 than v3.4) then the ``enum34`` package must be installed from PyPI.
-
-.. versionadded:: 4.19.9
 
 A disadvantage of the above is that the Python programmer needs to know the
 nature of the C/C++ enum in order to access its members.  In order to avoid
@@ -657,8 +653,6 @@ override this behaviour when required.
 
 Managing Incompatible APIs
 --------------------------
-
-.. versionadded:: 4.9
 
 Sometimes it is necessary to change the way something is wrapped in a way that
 introduces an incompatibility.  For example a new feature of Python may

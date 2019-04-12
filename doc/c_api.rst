@@ -43,8 +43,6 @@ specification files.
 
 .. c:macro:: SIP_NULLPTR
 
-    .. versionadded:: 4.19.14
-
     This is a C preprocessor macro that should be used instead of ``NULL`` or
     ``nullptr``.  It ensures the correct value is used depending on whether C
     or C++ is being generated and which language standard the compiler
@@ -53,15 +51,11 @@ specification files.
 
 .. c:macro:: SIP_OWNS_MEMORY
 
-    .. versionadded:: 4.15.2
-
     This is a flag used by various array constructors that species that the
     array owns the memory that holds the array's contents.
 
 
 .. c:macro:: SIP_PROTECTED_IS_PUBLIC
-
-    .. versionadded:: 4.10
 
     This is a C preprocessor symbol that is defined automatically by the build
     system to specify that the generated code is being compiled with
@@ -72,15 +66,11 @@ specification files.
 
 .. c:macro:: SIP_READ_ONLY
 
-    .. versionadded:: 4.15.2
-
     This is a flag used by various array constructors that species that the
     array is read-only.
 
 
 .. c:function:: SIP_RELEASE_GIL(sip_gilstate_t sipGILState)
-
-    .. versionadded:: 4.14.4
 
     This is called from the handwritten code specified with the
     :directive:`VirtualErrorHandler` in order to release the Python Global
@@ -102,8 +92,6 @@ specification files.
 
 .. c:macro:: SIP_SSIZE_T_FORMAT
 
-    .. versionadded:: 4.15.4
-
     .. deprecated:: 5.0
         Use ``%zd`` instead.
 
@@ -118,8 +106,6 @@ specification files.
 
 
 .. c:macro:: SIP_USE_PYCAPSULE
-
-    .. versionadded:: 4.11
 
     .. deprecated:: 5.0
         This will always be defined.
@@ -143,8 +129,6 @@ specification files.
 
 
 .. c:function:: sipErrorState sipBadCallableArg(int arg_nr, PyObject *arg)
-
-    .. versionadded:: 4.10
 
     This is called from :directive:`%MethodCode` to raise a Python exception
     when an argument to a function, a C++ constructor or method is found to
@@ -185,8 +169,6 @@ specification files.
 
 
 .. c:type:: sipBufferInfoDef
-
-    .. versionadded:: 4.19
 
     This C structure is used with :c:func:`sipGetBufferInfo()` and
     :c:func:`sipReleaseBufferInfo()` and encapsulates information provided by a
@@ -328,13 +310,9 @@ specification files.
         result is ``Py_None``.
 
     ``L`` (integer) [char]
-        .. versionadded:: 4.12
-
         Convert a C/C++ ``char`` to a Python integer.
 
     ``M`` (long) [unsigned char]
-        .. versionadded:: 4.12
-
         Convert a C/C++ ``unsigned char`` to a Python long.
 
     ``N`` (wrapped instance) [*type* \*, :c:type:`sipTypeDef` \*, PyObject \*]
@@ -359,13 +337,9 @@ specification files.
         Convert a C/C++ ``void *`` to a Python :class:`sip.voidptr` object.
 
     ``z`` (object) [const char \*, void \*]
-        .. versionadded:: 4.14.1
-
         Convert a C/C++ ``void *`` to a Python named capsule object.
 
     ``=`` (long) [size_t]
-        .. versionadded:: 4.19.14
-
         Convert a C/C++ ``size_t`` to a Python long.
 
 
@@ -408,8 +382,6 @@ specification files.
 
 
 .. c:type:: sipCFunctionDef
-
-    .. versionadded:: 4.19
 
     This C structure is used with :c:func:`sipGetCFunction()` and encapsulates
     the components parts of a Python C function.  The structure elements are as
@@ -464,8 +436,6 @@ specification files.
 
 
 .. c:function:: PyObject *sipConvertFromNewPyType(void *cpp, PyTypeObject *py_type, sipWrapper *owner, sipSimpleWrapper **selfp, const char *format, ...)
-
-    .. versionadded:: 4.15
 
     This converts a new C structure or a C++ class instance to an instance of a
     corresponding Python type (as opposed to the corresponding generated Python
@@ -598,8 +568,6 @@ specification files.
 
 .. c:function:: PyObject *sipConvertToArray(void *data, const char *format, Py_ssize_t len, int flags)
 
-    .. versionadded:: 4.15
-
     This converts a one dimensional array of fundamental types to a
     :class:`sip.array` object.
 
@@ -632,8 +600,6 @@ specification files.
 
 .. c:function:: int sipConvertToBool(PyObject *obj)
 
-    .. versionadded:: 4.19.4
-
     This converts a Python object to an integer corresponding to a C++
     ``bool``.
 
@@ -646,8 +612,6 @@ specification files.
 
 
 .. c:function:: int sipConvertToEnum(PyObject *obj, const sipTypeDef *td)
-
-    .. versionadded:: 4.19.4
 
     This converts a Python object to the value of a named C/C++ ``enum``
     member.  If the enum is a C++11 scoped enum then the Python object must be
@@ -709,8 +673,6 @@ specification files.
 
 .. c:function:: PyObject *sipConvertToTypedArray(void *data, const sipTypeDef *td, const char *format, size_t stride, Py_ssize_t len, int flags)
 
-    .. versionadded:: 4.15
-
     This converts a one dimensional array of instances of a C structure, C++
     class or mapped type to a :class:`sip.array` object.
 
@@ -756,8 +718,6 @@ specification files.
 
 .. c:type:: sipDateDef
 
-    .. versionadded:: 4.19
-
     This C structure is used with :c:func:`sipGetDate()`,
     :c:func:`sipFromDate(), :c:func:`sipGetDateTime()` and
     :c:func:`sipFromDateTime()` and encapsulates the components parts of a
@@ -777,8 +737,6 @@ specification files.
 
 
 .. c:function:: int sipEnableAutoconversion(const sipTypeDef *td, int enable)
-
-    .. versionadded:: 4.14.7
 
     Instances of some classes may be automatically converted to other Python
     objects even though the class has been wrapped.  This allows that behaviour
@@ -800,8 +758,6 @@ specification files.
 
 .. c:function:: int sipEnableGC(int enable)
 
-    .. versionadded:: 4.19.1
-
     This enables or disables the Python garbarge collector.
 
     :param enable:
@@ -813,8 +769,6 @@ specification files.
 
 
 .. c:function:: int sipEnableOverflowChecking(int enable)
-
-    .. versionadded:: 4.19.4
 
     This enables or disables the checking for overflows when converting Python
     integer objects to C/C++ integer types.  When it is enabled an exception is
@@ -877,8 +831,6 @@ specification files.
 
 .. c:function:: PyObject *sipFromDate(const sipDateDef *date)
 
-    .. versionadded:: 4.19
-
     This creates a Python date object from its component parts.
 
     :param date:
@@ -888,8 +840,6 @@ specification files.
 
 
 .. c:function:: PyObject *sipFromDateTime(const sipDateDef *date, const sipTimeDef *time)
-
-    .. versionadded:: 4.19
 
     This creates a Python datetime object from its component parts.
 
@@ -903,8 +853,6 @@ specification files.
 
 .. c:function:: PyObject *sipFromMethod(const sipMethodDef *method)
 
-    .. versionadded:: 4.19
-
     This creates a Python method object from its component parts.
 
     :param method:
@@ -914,8 +862,6 @@ specification files.
 
 
 .. c:function:: PyObject *sipFromTime(const sipTimeDef *time)
-
-    .. versionadded:: 4.19
 
     This creates a Python time object from its component parts.
 
@@ -927,8 +873,6 @@ specification files.
 
 .. c:function:: void *sipGetAddress(sipSimpleWrapper *obj)
 
-    .. versionadded:: 4.12
-
     This returns the address of the C structure or C++ class instance wrapped
     by a Python object.
 
@@ -939,8 +883,6 @@ specification files.
 
 
 .. c:function:: int sipGetBufferInfo(PyObject *obj, sipBufferInfoDef *buffer_info)
-
-    .. versionadded:: 4.19
 
     This checks to see if an object implements the Python buffer protocol and,
     if so, optionally returns the buffer information.  It is similar to
@@ -964,8 +906,6 @@ specification files.
 
 .. c:function:: int sipGetCFunction(PyObject *obj, sipCFunctionDef *c_function)
 
-    .. versionadded:: 4.19
-
     This checks to see if an object is a Python C function object and, if so,
     optionally returns its component parts.
 
@@ -980,8 +920,6 @@ specification files.
 
 .. c:function:: int sipGetDate(PyObject *obj, sipDateDef *date)
 
-    .. versionadded:: 4.19
-
     This checks to see if an object is a Python date object and, if so,
     optionally returns its component parts.
 
@@ -995,8 +933,6 @@ specification files.
 
 
 .. c:function:: int sipGetDateTime(PyObject *obj, sipDateDef *date, sipTimeDef *time)
-
-    .. versionadded:: 4.19
 
     This checks to see if an object is a Python datetime object and, if so,
     optionally returns its component parts.
@@ -1015,8 +951,6 @@ specification files.
 
 .. c:function:: struct _frame sipGetFrame(int depth)
 
-    .. versionadded:: 4.19
-
     This retrieves a frame object from the current execution stack.
 
     :param depth:
@@ -1028,8 +962,6 @@ specification files.
 
 .. c:function:: PyInterpreterState *sipGetInterpreter()
 
-    .. versionadded:: 4.17.1
-
     This returns the address of the Python interpreter.  If it is ``NULL`` then
     calls to the Python interpreter library must not be made.
 
@@ -1038,8 +970,6 @@ specification files.
 
 
 .. c:function:: int sipGetMethod(PyObject *obj, sipMethodDef *method)
-
-    .. versionadded:: 4.19
 
     This checks to see if an object is a Python method object and, if so,
     optionally returns its component parts.
@@ -1054,8 +984,6 @@ specification files.
 
 
 .. c:function:: void *sipGetMixinAddress(sipSimpleWrapper *obj, const sipTypeDef *td)
-
-    .. versionadded:: 4.15
 
     This returns the address of the C++ class instance that implements the
     mixin of a wrapped Python object.
@@ -1100,8 +1028,6 @@ specification files.
 
 .. c:function:: int sipGetTime(PyObject *obj, sipTimeDef *time)
 
-    .. versionadded:: 4.19
-
     This checks to see if an object is a Python time object and, if so,
     optionally returns its component parts.
 
@@ -1116,8 +1042,6 @@ specification files.
 
 .. c:function:: void *sipGetTypeUserData(const sipWrapperType *type)
 
-    .. versionadded:: 4.19
-
     Each generated type corresponding to a wrapped C/C++ type, or a user
     sub-class of such a type, contains a pointer for the use of handwritten
     code.  This returns the value of that pointer.
@@ -1129,8 +1053,6 @@ specification files.
 
 
 .. c:function:: PyObject *sipGetUserObject(const sipSimpleWrapper *obj)
-
-    .. versionadded:: 4.19
 
     Each wrapped object can contain a reference to a single Python object that
     can be used for any purpose by handwritten code and will automatically be
@@ -1158,8 +1080,6 @@ specification files.
 
 .. c:function:: void sipInstanceDestroyed(sipSimpleWrapper *obj)
 
-    .. versionadded:: 4.19.3
-
     This should be called by handwritten code if it is able to detect that a
     wrapped C++ instance has been destroyed from C++.  It should not be called
     if SIP is able to detect this itself, i.e. when the instance was created
@@ -1170,8 +1090,6 @@ specification files.
 
 
 .. c:function:: int sipIsAPIEnabled(const char *name, int from, int to)
-
-    .. versionadded:: 4.9
 
     This checks to see if the current version number of an API falls within a
     given range.  See :ref:`ref-incompat-apis` for more detail.
@@ -1192,8 +1110,6 @@ specification files.
 
 .. c:function:: int sipIsUserType(const sipWrapperType *type)
 
-    .. versionadded:: 4.19
-
     This checks if a type corresponds to a wrapped C/C++ type or a user
     sub-class of such a type.
 
@@ -1204,8 +1120,6 @@ specification files.
 
 
 .. c:function:: char sipLong_AsChar(PyObject *obj)
-
-    .. versionadded:: 4.19.4
 
     This converts a Python object to a C/C++ char.  If the value is too large
     then an exception is raised if overflow checking is enabled.
@@ -1218,8 +1132,6 @@ specification files.
 
 .. c:function:: signed char sipLong_AsSignedChar(PyObject *obj)
 
-    .. versionadded:: 4.19.4
-
     This converts a Python object to a C/C++ signed char.  If the value is too
     large then an exception is raised if overflow checking is enabled.
 
@@ -1230,8 +1142,6 @@ specification files.
 
 
 .. c:function:: unsigned char sipLong_AsUnsignedChar(PyObject *obj)
-
-    .. versionadded:: 4.19.4
 
     This converts a Python object to a C/C++ unsigned char.  If the value is
     too large then an exception is raised if overflow checking is enabled.
@@ -1244,8 +1154,6 @@ specification files.
 
 .. c:function:: short sipLong_AsShort(PyObject *obj)
 
-    .. versionadded:: 4.19.4
-
     This converts a Python object to a C/C++ short.  If the value is too large
     then an exception is raised if overflow checking is enabled.
 
@@ -1256,8 +1164,6 @@ specification files.
 
 
 .. c:function:: unsigned short sipLong_AsUnsignedShort(PyObject *obj)
-
-    .. versionadded:: 4.19.4
 
     This converts a Python object to a C/C++ unsigned short.  If the value is
     too large then an exception is raised if overflow checking is enabled.
@@ -1270,8 +1176,6 @@ specification files.
 
 .. c:function:: int sipLong_AsInt(PyObject *obj)
 
-    .. versionadded:: 4.19.4
-
     This converts a Python object to a C/C++ int.  If the value is too large
     then an exception is raised if overflow checking is enabled.
 
@@ -1282,8 +1186,6 @@ specification files.
 
 
 .. c:function:: unsigned int sipLong_AsUnsignedInt(PyObject *obj)
-
-    .. versionadded:: 4.19.4
 
     This converts a Python object to a C/C++ unsigned int.  If the value is too
     large then an exception is raised if overflow checking is enabled.
@@ -1296,8 +1198,6 @@ specification files.
 
 .. c:function:: size_t sipLong_AsSizeT(PyObject *obj)
 
-    .. versionadded:: 4.19.14
-
     This converts a Python object to a C/C++ size_t.  If the value is too large
     then an exception is raised if overflow checking is enabled.
 
@@ -1308,8 +1208,6 @@ specification files.
 
 
 .. c:function:: long sipLong_AsLong(PyObject *obj)
-
-    .. versionadded:: 4.19.4
 
     This converts a Python object to a C/C++ long.  If the value is too large
     then an exception is raised if overflow checking is enabled.
@@ -1322,8 +1220,6 @@ specification files.
 
 .. c:function:: unsigned long sipLong_AsUnsignedLong(PyObject *obj)
 
-    .. versionadded:: 4.19.4
-
     This converts a Python object to a C/C++ unsigned long.  If the value is
     too large then an exception is raised if overflow checking is enabled.
 
@@ -1334,8 +1230,6 @@ specification files.
 
 
 .. c:function:: PY_LONG_LONG sipLong_AsLongLong(PyObject *obj)
-
-    .. versionadded:: 4.19.4
 
     This converts a Python object to a C/C++ long long.  If the value is too
     large then an exception is raised if overflow checking is enabled.  It is
@@ -1348,8 +1242,6 @@ specification files.
 
 
 .. c:function:: unsigned PY_LONG_LONG sipLong_AsUnsignedLongLong(PyObject *obj)
-
-    .. versionadded:: 4.19.4
 
     This converts a Python object to a C/C++ unsigned long long.  If the value
     is too large then an exception is raised if overflow checking is enabled.
@@ -1376,8 +1268,6 @@ specification files.
 
 .. c:type:: sipMethodDef
 
-    .. versionadded:: 4.19
-
     This C structure is used with :c:func:`sipGetMethod()` and
     :c:func:`sipFromMethod()` and encapsulates the components parts of a Python
     method.  The structure elements are as follows.
@@ -1396,8 +1286,6 @@ specification files.
 
 
 .. c:function:: sipNewUserTypeFunc sipSetNewUserTypeHandler(const sipTypeDef *td, sipNewUserTypeFunc handler)
-
-    .. versionadded:: 4.19
 
     The allows a function to be specified that is called whenever a user
     defined sub-class of a C/C++ type is created (i.e. one implemented in
@@ -1556,13 +1444,9 @@ specification files.
             0x04 returns a copy of the C/C++ instance.
 
     ``L`` (integer) [signed char \*]
-        .. versionadded:: 4.12
-
         Convert a Python integer to a C/C++ ``signed char``.
 
     ``M`` (long) [unsigned char \*]
-        .. versionadded:: 4.12
-
         Convert a Python long to a C/C++ ``unsigned char``.
 
     ``N`` (object) [PyTypeObject \*, PyObject \*\*]
@@ -1588,36 +1472,26 @@ specification files.
         Convert a Python :class:`sip.voidptr` object to a C/C++ ``void *``.
 
     ``z`` (object) [const char \*, void \*\*]
-        .. versionadded:: 4.14.1
-
         Convert a Python named capsule object to a C/C++ ``void *``.
 
     ``Z`` (object) []
         Check that a Python object is ``Py_None``.  No value is returned.
 
     ``!`` (object) [PyObject \*\*]
-        .. versionadded:: 4.14.1
-
         A Python object is checked to see if it implements the buffer protocol
         and then returned without any conversions.  The reference count is
         incremented.  The Python object may not be ``Py_None``.
 
     ``$`` (object) [PyObject \*\*]
-        .. versionadded:: 4.14.1
-
         A Python object is checked to see if it implements the buffer protocol
         and then returned without any conversions.  The reference count is
         incremented.  The Python object may be ``Py_None``.
 
     ``=`` (long) [size_t \*]
-        .. versionadded:: 4.19.14
-
         Convert a Python long to a C/C++ ``size_t``.
 
 
 .. c:function:: PyObject *sipPyTypeDict(const PyTypeObject *py_type)
-
-    .. versionadded:: 4.19
 
     This provides access to a Python type object's ``tp_dict`` field and is
     typically used when the limited Python API is enabled.
@@ -1629,8 +1503,6 @@ specification files.
 
 
 .. c:function:: const char *sipPyTypeName(const PyTypeObject *py_type)
-
-    .. versionadded:: 4.19
 
     This provides access to a Python type object's ``tp_name`` field and is
     typically used when the limited Python API is enabled.
@@ -1675,8 +1547,6 @@ specification files.
 
 .. c:function:: int sipRegisterProxyResolver(const sipTypeDef *td, sipProxyResolverFunc resolver)
 
-    .. versionadded:: 4.15
-
     This registers a resolver that will called just before SIP wraps a C/C++
     pointer in a Python object.  The resolver may choose to replace the C/C++
     pointer with the address of another object.  Typically this is used to
@@ -1714,8 +1584,6 @@ specification files.
 
 .. c:function:: void sipReleaseBufferInfo(sipBufferInfoDef *buffer_info)
 
-    .. versionadded:: 4.19
-
     This releases the buffer information related to a Python object that
     implements the buffer protocol that was created with a corresponding call
     to :c:func:`sipGetBufferInfo`.  It is similar to
@@ -1752,8 +1620,6 @@ specification files.
 
 .. c:function:: void sipSetDestroyOnExit(int destroy)
 
-    .. versionadded:: 4.14.7
-
     When the Python interpreter exits it garbage collects those objects that it
     can.  This means that any corresponding C++ instances and C structures
     owned by Python are destroyed.  Unfortunately this happens in an
@@ -1768,8 +1634,6 @@ specification files.
 
 .. c:function:: void sipSetTypeUserData(sipWrapperType *type, void *data)
 
-    .. versionadded:: 4.19
-
     Each generated type corresponding to a wrapped C/C++ type, or a user
     sub-class of such a type, contains a pointer for the use of handwritten
     code.  This sets the value of that pointer.
@@ -1781,8 +1645,6 @@ specification files.
 
 
 .. c:function:: void sipSetUserObject(sipSimpleWrapper *obj, PyObject *user)
-
-    .. versionadded:: 4.19
 
     Each wrapped object can contain a reference to a single Python object that
     can be used for any purpose by handwritten code and will automatically be
@@ -1842,8 +1704,6 @@ specification files.
 
 
 .. c:type:: sipTimeDef
-
-    .. versionadded:: 4.19
 
     This C structure is used with :c:func:`sipGetTime()`,
     :c:func:`sipFromTime()`, :c:func:`sipGetDateTime()` and
@@ -1970,8 +1830,6 @@ specification files.
 
 .. c:function:: int sipTypeIsScopedEnum(sipTypeDef *td)
 
-    .. versionadded:: 4.19.4
-
     This checks if a :ref:`generated type structure <ref-type-structures>`
     refers to a C++11 scoped enum.
 
@@ -2004,8 +1862,6 @@ specification files.
 
 .. c:function:: void *sipUnicodeData(PyObject *obj, int *char_size, Py_ssize_t *len)
 
-    .. versionadded:: 4.19
-
     This returns information about the contents of a Python unicode object.
 
     This is only supported for Python v3.3 and later.
@@ -2025,8 +1881,6 @@ specification files.
 
 
 .. c:function:: PyObject *sipUnicodeNew(Py_ssize_t len, unsigned maxchar, int *kind, void **data)
-
-    .. versionadded:: 4.19
 
     This creates a Python unicode object that will hold a set number of
     characters, each character being of a certain size.
@@ -2048,8 +1902,6 @@ specification files.
 
 
 .. c:function:: void sipUnicodeWrite(int kind, void *data, int index, unsigned value)
-
-    .. versionadded:: 4.19
 
     This updates the buffer of a Python unicode object with a character at a
     particular position.
@@ -2110,8 +1962,6 @@ specification files.
 
 Event Handlers
 --------------
-
-.. versionadded:: 4.19.3
 
 The :mod:`sip` module will trigger a number of events.  Handwritten code can
 supply handlers for these events to allow it to perform additional actions.
