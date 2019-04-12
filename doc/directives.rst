@@ -1802,8 +1802,7 @@ then the pattern should instead be::
             [, keyword_arguments = ["None" | "All" | "Optional"]]
             [, language = *string*]
             [, use_argument_names = [True | False]]
-            [, use_limited_api = [True | False]]
-            [, version = *integer*])
+            [, use_limited_api = [True | False]])
     {
         [:directive:`%AutoPyName`]
         [:directive:`%Docstring`]
@@ -1851,16 +1850,6 @@ limited Python API defined in PEP 384.  It also ensures that the C preprocessor
 symbol ``Py_LIMITED_API`` is defined before the ``Python.h`` header file is
 included.  Python extensions built in this way are independent of the version
 of Python being used.  It is ignored for Python v2.
-
-``version`` is an optional version number that is useful if you (or others)
-might create other modules that build on this module, i.e. if another module
-might :directive:`%Import` this module.  Under the covers, a module exports an
-API that is used by modules that :directive:`%Import` it and the API is given a
-version number.  A module built on that module knows the version number of the
-API that it is expecting.  If, when the modules are imported at run-time, the
-version numbers do not match then a Python exception is raised.  The dependent
-module must then be re-built using the correct specification files for the base
-module.  This is deprecated and ignored in SIP v4.19.
 
 The optional :directive:`%AutoPyName` sub-directive is used to specify a rule
 for automatically providing Python names.

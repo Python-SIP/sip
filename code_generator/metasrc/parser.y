@@ -1770,10 +1770,7 @@ module: TK_MODULE module_args module_body {
         }
     ;
 
-module_args:    dottedname {resetLexerState();} optnumber {
-            if ($3 >= 0)
-                deprecated("%Module version number should be specified using the 'version' argument");
-
+module_args:    dottedname {resetLexerState();} {
             $$.c_module = FALSE;
             $$.kwargs = defaultKwArgs;
             $$.name = $1;
@@ -1907,23 +1904,6 @@ module_arg: TK_KWARGS '=' TK_STRING_VALUE {
             $$.all_raise_py_exc = FALSE;
             $$.call_super_init = -1;
             $$.def_error_handler = $3;
-        }
-    |   TK_VERSION '=' TK_NUMBER_VALUE {
-            deprecated("%Module version numbers are deprecated and ignored");
-
-            if ($3 < 0)
-                yyerror("%Module 'version' argument cannot be negative");
-
-            $$.token = TK_VERSION;
-
-            $$.c_module = FALSE;
-            $$.kwargs = defaultKwArgs;
-            $$.name = NULL;
-            $$.use_arg_names = FALSE;
-            $$.use_limited_api = FALSE;
-            $$.all_raise_py_exc = FALSE;
-            $$.call_super_init = -1;
-            $$.def_error_handler = NULL;
         }
     ;
 
