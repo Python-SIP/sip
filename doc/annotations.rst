@@ -261,16 +261,6 @@ Argument Annotations
     Python buffer protocol.
 
 
-.. argument-annotation:: SingleShot
-
-    .. deprecated:: 4.18
-
-    This boolean annotation is used only with arguments of type
-    :stype:`SIP_RXOBJ_CON` to specify that the signal connected to the slot
-    will only ever be emitted once.  This prevents a certain class of memory
-    leaks.
-
-
 .. argument-annotation:: ScopesStripped
 
     .. versionadded:: 4.19.11
