@@ -2267,10 +2267,8 @@ static int supportedType(classDef *cd,overDef *od,argDef *ad,int outputs)
 {
     switch (ad -> atype)
     {
-    case signal_type:
     case ellipsis_type:
-        /* These can only appear in argument lists without * or &. */
-
+        /* This can only appear in argument lists without * or &. */
         ensureInput(cd,od,ad);
         return TRUE;
 

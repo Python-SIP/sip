@@ -8031,10 +8031,6 @@ static void generateTupleBuilder(moduleDef *mod, signatureDef *sd,FILE *fp)
             fmt = "d";
             break;
 
-        case signal_type:
-            fmt = "s";
-            break;
-
         case mapped_type:
         case class_type:
             if (isArray(ad))
@@ -8870,11 +8866,6 @@ static void generateNamedBaseType(ifaceFileDef *scope, argDef *ad,
         case wstring_type:
             prcode(fp, "wchar_t");
             break;
-
-        case signal_type:
-            nr_derefs = 1;
-
-            /* Drop through. */
 
         case byte_type:
         case ascii_string_type:
@@ -12585,14 +12576,13 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
         classDef *c_scope, mappedTypeDef *mt_scope, ctorDef *ct, overDef *od,
         int secCall, FILE *fp)
 {
-    int a, optargs, arraylenarg, sigarg, handle_self, single_arg;
-    int slotconarg, slotdisarg, need_owner;
+    int a, optargs, arraylenarg, handle_self, single_arg, need_owner;
     ifaceFileDef *scope;
-    argDef *arraylenarg_ad, *sigarg_ad, *slotconarg_ad, *slotdisarg_ad;
+    argDef *arraylenarg_ad;
 
     /* Suppress compiler warnings. */
-    arraylenarg = slotconarg = slotdisarg = 0;
-    arraylenarg_ad = sigarg_ad = slotconarg_ad = slotdisarg_ad = NULL;
+    arraylenarg = 0;
+    arraylenarg_ad = NULL;
 
     if (mt_scope != NULL)
         scope = mt_scope->iff;
@@ -12616,24 +12606,11 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
      * Generate the local variables that will hold the parsed arguments and
      * values returned via arguments.
      */
-    sigarg = -1;
     need_owner = FALSE;
 
     for (a = 0; a < sd->nrArgs; ++a)
     {
         argDef *ad = &sd->args[a];
-
-        switch (ad->atype)
-        {
-        case signal_type:
-            sigarg_ad = ad;
-            sigarg = a;
-            break;
-
-        /* Supress a compiler warning. */
-        default:
-            ;
-        }
 
         if (isArraySize(ad))
         {
@@ -12949,10 +12926,6 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
 
         case cdouble_type:
             fmt = "Xd";
-            break;
-
-        case signal_type:
-            fmt = "G";
             break;
 
         case mapped_type:

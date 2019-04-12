@@ -189,7 +189,6 @@ static moduleDef *configureModule(sipSpec *pt, moduleDef *module,
 static void addAutoPyName(moduleDef *mod, const char *remove_leading);
 static KwArgs convertKwArgs(const char *kwargs);
 static void checkAnnos(optFlags *annos, const char *valid[]);
-static void checkNoAnnos(optFlags *annos, const char *msg);
 static void appendCodeBlock(codeBlockList **headp, codeBlock *cb);
 static void handleKeepReference(optFlags *optflgs, argDef *ad, moduleDef *mod);
 static void mappedTypeAnnos(mappedTypeDef *mtd, optFlags *optflgs);
@@ -332,7 +331,6 @@ static scopedNameDef *fullyQualifiedName(scopedNameDef *snd);
 %token          TK_LOGICAL_OR
 %token          TK_CONST
 %token          TK_STATIC
-%token          TK_SIPSIGNAL
 %token          TK_PYSSIZET
 %token          TK_SIZET
 %token <number> TK_NUMBER_VALUE
@@ -3870,19 +3868,7 @@ rawarglist: {
         }
     ;
 
-argvalue:   TK_SIPSIGNAL optname optflags optassign {
-            deprecated("SIP_SIGNAL is deprecated\n");
-            checkNoAnnos(&$3, "SIP_SIGNAL has no annotations");
-
-            $$.atype = signal_type;
-            $$.argflags = ARG_IS_CONST;
-            $$.nrderefs = 0;
-            $$.name = cacheName(currentSpec, $2);
-            $$.defval = $4;
-
-            currentSpec -> sigslots = TRUE;
-        }
-    |   argtype optassign {
+argvalue:   argtype optassign {
             $$ = $1;
             $$.defval = $2;
         }
@@ -9270,16 +9256,6 @@ static void checkAnnos(optFlags *annos, const char *valid[])
                 yywarning("Annotation is unknown");
         }
     }
-}
-
-
-/*
- * Check that no annotations were given.
- */
-static void checkNoAnnos(optFlags *annos, const char *msg)
-{
-    if (annos->nrFlags != 0)
-        deprecated(msg);
 }
 
 

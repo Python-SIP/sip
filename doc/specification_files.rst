@@ -289,9 +289,7 @@ file.
 
     *argument-list* ::= *argument* [**,** *argument-list*] [**,** **...**]
 
-    *argument* ::= [
-            *type* [*name*] [*argument-annotations*] [*default-value*] |
-            :stype:`SIP_SIGNAL` [*default-value*]]
+    *argument* ::= *type* [*name*] [*argument-annotations*] [*default-value*]
 
     *default-value* ::= **=** *expression*
 
@@ -434,15 +432,6 @@ This is a ``PyObject *`` that is a Python tuple object.
 .. sip-type:: SIP_PYTYPE
 
 This is a ``PyObject *`` that is a Python type object.
-
-
-.. sip-type:: SIP_SIGNAL
-
-.. deprecated:: 4.18
-
-This is a ``const char *`` that is used as the type of the signal instead of
-``const char *`` in functions that implement the connection or disconnection
-of an explicitly generated signal to a slot.
 
 
 Classic Division and True Division
