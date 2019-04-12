@@ -1,7 +1,7 @@
 /*
  * The SIP parser.
  *
- * Copyright (c) 2018 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2019 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -461,7 +461,6 @@ static scopedNameDef *fullyQualifiedName(scopedNameDef *snd);
 %type <klass>           class
 %type <token>           class_access
 
-%type <api>             api_args
 %type <api>             api_arg_list
 %type <api>             api_arg
 
@@ -838,21 +837,21 @@ veh_arg: TK_NAME '=' TK_NAME_VALUE {
         }
     ;
 
-api:    TK_API api_args {
+api:    TK_API '(' api_arg_list ')' {
             if (notSkipping())
             {
                 apiVersionRangeDef *avd;
 
-                if (findAPI(currentSpec, $2.name) != NULL)
+                if (findAPI(currentSpec, $3.name) != NULL)
                     yyerror("The API name in the %API directive has already been defined");
 
-                if ($2.version < 1)
+                if ($3.version < 1)
                     yyerror("The version number in the %API directive must be greater than or equal to 1");
 
                 avd = sipMalloc(sizeof (apiVersionRangeDef));
 
-                avd->api_name = cacheName(currentSpec, $2.name);
-                avd->from = $2.version;
+                avd->api_name = cacheName(currentSpec, $3.name);
+                avd->from = $3.version;
                 avd->to = -1;
 
                 avd->next = currentModule->api_versions;
@@ -861,19 +860,6 @@ api:    TK_API api_args {
                 if (inMainModule())
                     setIsUsedName(avd->api_name);
             }
-        }
-    ;
-
-api_args:   TK_NAME_VALUE TK_NUMBER_VALUE {
-            resetLexerState();
-
-            deprecated("%API name and version number should be specified using the 'name' and 'version' arguments");
-
-            $$.name = $1;
-            $$.version = $2;
-        }
-    |   '(' api_arg_list ')' {
-            $$ = $2;
         }
     ;
 
