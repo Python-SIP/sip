@@ -603,7 +603,6 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipCanConvertToType         sipAPI_%s->api_can_convert_to_type\n"
 "#define sipConvertToType            sipAPI_%s->api_convert_to_type\n"
 "#define sipForceConvertToType       sipAPI_%s->api_force_convert_to_type\n"
-"#define sipCanConvertToEnum         sipAPI_%s->api_can_convert_to_enum\n"
 "#define sipConvertToEnum            sipAPI_%s->api_convert_to_enum\n"
 "#define sipConvertToBool            sipAPI_%s->api_convert_to_bool\n"
 "#define sipReleaseType              sipAPI_%s->api_release_type\n"
@@ -615,7 +614,6 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipExportSymbol             sipAPI_%s->api_export_symbol\n"
 "#define sipImportSymbol             sipAPI_%s->api_import_symbol\n"
 "#define sipFindType                 sipAPI_%s->api_find_type\n"
-"#define sipFindNamedEnum            sipAPI_%s->api_find_named_enum\n"
 "#define sipBytes_AsChar             sipAPI_%s->api_bytes_as_char\n"
 "#define sipBytes_AsString           sipAPI_%s->api_bytes_as_string\n"
 "#define sipString_AsASCIIChar       sipAPI_%s->api_string_as_ascii_char\n"
@@ -693,34 +691,13 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipLong_AsSizeT             sipAPI_%s->api_long_as_size_t\n"
 "\n"
 "/* These are deprecated. */\n"
-"#define sipMapStringToClass         sipAPI_%s->api_map_string_to_class\n"
-"#define sipMapIntToClass            sipAPI_%s->api_map_int_to_class\n"
-"#define sipFindClass                sipAPI_%s->api_find_class\n"
-"#define sipFindMappedType           sipAPI_%s->api_find_mapped_type\n"
 "#define sipConvertToArray           sipAPI_%s->api_convert_to_array\n"
 "#define sipConvertToTypedArray      sipAPI_%s->api_convert_to_typed_array\n"
 "#define sipEnableGC                 sipAPI_%s->api_enable_gc\n"
 "#define sipPrintObject              sipAPI_%s->api_print_object\n"
 "#define sipWrapper_Check(w)         PyObject_TypeCheck((w), sipAPI_%s->api_wrapper_type)\n"
-"#define sipGetWrapper(p, wt)        sipGetPyObject((p), (wt)->wt_td)\n"
 "#define sipReleaseInstance(p, wt, s)    sipReleaseType((p), (wt)->wt_td, (s))\n"
 "#define sipReleaseMappedType        sipReleaseType\n"
-"#define sipCanConvertToInstance(o, wt, f)   sipCanConvertToType((o), (wt)->wt_td, (f))\n"
-"#define sipCanConvertToMappedType   sipCanConvertToType\n"
-"#define sipConvertToInstance(o, wt, t, f, s, e)     sipConvertToType((o), (wt)->wt_td, (t), (f), (s), (e))\n"
-"#define sipConvertToMappedType      sipConvertToType\n"
-"#define sipForceConvertToInstance(o, wt, t, f, s, e)    sipForceConvertToType((o), (wt)->wt_td, (t), (f), (s), (e))\n"
-"#define sipForceConvertToMappedType sipForceConvertToType\n"
-"#define sipConvertFromInstance(p, wt, t)    sipConvertFromType((p), (wt)->wt_td, (t))\n"
-"#define sipConvertFromMappedType    sipConvertFromType\n"
-"#define sipConvertFromNamedEnum(v, pt)  sipConvertFromEnum((v), ((sipEnumTypeObject *)(pt))->type)\n"
-"#define sipConvertFromNewInstance(p, wt, t) sipConvertFromNewType((p), (wt)->wt_td, (t))\n"
-        ,mname
-        ,mname
-        ,mname
-        ,mname
-        ,mname
-        ,mname
         ,mname
         ,mname
         ,mname

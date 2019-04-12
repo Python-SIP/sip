@@ -2441,7 +2441,7 @@ static PyObject *buildObject(PyObject *obj, const char *fmt, va_list va)
 
         case 'E':
             {
-                /* This is deprecated. */
+                /* Remove in v5.1. */
 
                 int ev = va_arg(va, int);
                 PyTypeObject *et = va_arg(va, PyTypeObject *);
@@ -2564,7 +2564,7 @@ static PyObject *buildObject(PyObject *obj, const char *fmt, va_list va)
 
         case 'B':
             {
-                /* This is deprecated. */
+                /* Remove in v5.1. */
 
                 void *p = va_arg(va,void *);
                 sipWrapperType *wt = va_arg(va, sipWrapperType *);
@@ -2588,7 +2588,7 @@ static PyObject *buildObject(PyObject *obj, const char *fmt, va_list va)
 
         case 'C':
             {
-                /* This is deprecated. */
+                /* Remove in v5.1. */
 
                 void *p = va_arg(va,void *);
                 sipWrapperType *wt = va_arg(va, sipWrapperType *);
@@ -7265,6 +7265,8 @@ static const sipTypeDef *sip_api_type_scope(const sipTypeDef *td)
  */
 static int sip_api_can_convert_to_enum(PyObject *obj, const sipTypeDef *td)
 {
+    /* Remove in v5.1. */
+
     assert(sipTypeIsEnum(td));
 
     /* If the object is an enum then it must be the right enum. */
@@ -9248,6 +9250,8 @@ static const sipTypeDef *sip_api_find_type(const char *type)
  */
 static const sipMappedType *sip_api_find_mapped_type(const char *type)
 {
+    /* Remove in v5.1. */
+
     const sipTypeDef *td = sip_api_find_type(type);
 
     if (td != NULL && sipTypeIsMapped(td))
@@ -9262,6 +9266,8 @@ static const sipMappedType *sip_api_find_mapped_type(const char *type)
  */
 static sipWrapperType *sip_api_find_class(const char *type)
 {
+    /* Remove in v5.1. */
+
     const sipTypeDef *td = sip_api_find_type(type);
 
     if (td != NULL && sipTypeIsClass(td))
@@ -9277,6 +9283,8 @@ static sipWrapperType *sip_api_find_class(const char *type)
  */
 static PyTypeObject *sip_api_find_named_enum(const char *type)
 {
+    /* Remove in v5.1. */
+
     const sipTypeDef *td = sip_api_find_type(type);
 
     if (td != NULL && sipTypeIsEnum(td))
@@ -9446,6 +9454,8 @@ static int compareStringMapEntry(const void *key,const void *el)
 static sipWrapperType *sip_api_map_string_to_class(const char *typeString,
         const sipStringTypeClassMap *map, int maplen)
 {
+    /* Remove in v5.1. */
+
     sipStringTypeClassMap *me;
 
     me = (sipStringTypeClassMap *)bsearch((const void *)typeString,
@@ -9482,6 +9492,8 @@ static int compareIntMapEntry(const void *keyp,const void *el)
 static sipWrapperType *sip_api_map_int_to_class(int typeInt,
         const sipIntTypeClassMap *map, int maplen)
 {
+    /* Remove in v5.1. */
+
     sipIntTypeClassMap *me;
 
     me = (sipIntTypeClassMap *)bsearch((const void *)&typeInt,

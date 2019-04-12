@@ -335,6 +335,7 @@ struct _sipWrapper {
 
 
 /*
+ * Removed in v5.1.
  * The meta-type of an enum type.  (This is exposed only to support the
  * deprecated sipConvertFromNamedEnum() macro.)
  */
@@ -921,6 +922,7 @@ typedef struct _sipExternalTypeDef {
 
 
 /*
+ * Remove in v5.1.
  * The information describing a mapped class.  This (and anything that uses it)
  * is deprecated.
  */
@@ -1289,8 +1291,9 @@ typedef struct _sipTypeInstanceDef {
 
 
 /*
+ * Remove in v5.1.
  * Define a mapping between a wrapped type identified by a string and the
- * corresponding Python type.  This is deprecated.
+ * corresponding Python type.
  */
 typedef struct _sipStringTypeClassMap {
     /* The type as a string. */
@@ -1302,8 +1305,9 @@ typedef struct _sipStringTypeClassMap {
 
 
 /*
+ * Remove in v5.1.
  * Define a mapping between a wrapped type identified by an integer and the
- * corresponding Python type.  This is deprecated.
+ * corresponding Python type.
  */
 typedef struct _sipIntTypeClassMap {
     /* The type as an integer. */
@@ -1723,16 +1727,10 @@ typedef struct _sipQtAPI {
 
 
 /*
- * Note that this was never actually documented as being part of the public
- * API.  It is now deprecated.  sipIsUserType() should be used instead.
- */
-#define sipIsExactWrappedType(wt)   (sipTypeAsPyTypeObject((wt)->wt_td) == (PyTypeObject *)(wt))
-
-
-/*
- * The following are deprecated parts of the public API.
+ * Remove in v5.1.
  */
 #define sipClassName(w)     PyString_FromString(Py_TYPE(w)->tp_name)
+#define sipIsExactWrappedType(wt)   (sipTypeAsPyTypeObject((wt)->wt_td) == (PyTypeObject *)(wt))
 
 
 /*
