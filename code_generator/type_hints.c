@@ -996,10 +996,6 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, int sec,
         type_name = "QT_SIGNAL";
         break;
 
-    case slot_type:
-        type_name = "QT_SLOT_QT_SIGNAL";
-        break;
-
     case ustring_type:
         /* Correct for Python v3. */
         type_name = "bytes";

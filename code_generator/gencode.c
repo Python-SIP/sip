@@ -8032,7 +8032,6 @@ static void generateTupleBuilder(moduleDef *mod, signatureDef *sd,FILE *fp)
             break;
 
         case signal_type:
-        case slot_type:
             fmt = "s";
             break;
 
@@ -8873,7 +8872,6 @@ static void generateNamedBaseType(ifaceFileDef *scope, argDef *ad,
             break;
 
         case signal_type:
-        case slot_type:
             nr_derefs = 1;
 
             /* Drop through. */
@@ -12955,10 +12953,6 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
 
         case signal_type:
             fmt = "G";
-            break;
-
-        case slot_type:
-            fmt = "S";
             break;
 
         case mapped_type:

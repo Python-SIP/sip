@@ -128,53 +128,52 @@
      TK_CONST = 344,
      TK_STATIC = 345,
      TK_SIPSIGNAL = 346,
-     TK_SIPSLOT = 347,
-     TK_PYSSIZET = 348,
-     TK_SIZET = 349,
-     TK_NUMBER_VALUE = 350,
-     TK_REAL_VALUE = 351,
-     TK_TYPEDEF = 352,
-     TK_NAMESPACE = 353,
-     TK_TIMELINE = 354,
-     TK_PLATFORMS = 355,
-     TK_FEATURE = 356,
-     TK_LICENSE = 357,
-     TK_QCHAR_VALUE = 358,
-     TK_TRUE_VALUE = 359,
-     TK_FALSE_VALUE = 360,
-     TK_NULL_VALUE = 361,
-     TK_OPERATOR = 362,
-     TK_THROW = 363,
-     TK_EXCEPTION = 364,
-     TK_RAISECODE = 365,
-     TK_EXPLICIT = 366,
-     TK_TEMPLATE = 367,
-     TK_FINAL = 368,
-     TK_ELLIPSIS = 369,
-     TK_DEFMETATYPE = 370,
-     TK_DEFSUPERTYPE = 371,
-     TK_PROPERTY = 372,
-     TK_HIDE_NS = 373,
-     TK_FORMAT = 374,
-     TK_GET = 375,
-     TK_ID = 376,
-     TK_KWARGS = 377,
-     TK_LANGUAGE = 378,
-     TK_LICENSEE = 379,
-     TK_NAME = 380,
-     TK_OPTIONAL = 381,
-     TK_ORDER = 382,
-     TK_REMOVELEADING = 383,
-     TK_SET = 384,
-     TK_SIGNATURE = 385,
-     TK_TIMESTAMP = 386,
-     TK_TYPE = 387,
-     TK_USEARGNAMES = 388,
-     TK_USELIMITEDAPI = 389,
-     TK_ALLRAISEPYEXC = 390,
-     TK_CALLSUPERINIT = 391,
-     TK_DEFERRORHANDLER = 392,
-     TK_VERSION = 393
+     TK_PYSSIZET = 347,
+     TK_SIZET = 348,
+     TK_NUMBER_VALUE = 349,
+     TK_REAL_VALUE = 350,
+     TK_TYPEDEF = 351,
+     TK_NAMESPACE = 352,
+     TK_TIMELINE = 353,
+     TK_PLATFORMS = 354,
+     TK_FEATURE = 355,
+     TK_LICENSE = 356,
+     TK_QCHAR_VALUE = 357,
+     TK_TRUE_VALUE = 358,
+     TK_FALSE_VALUE = 359,
+     TK_NULL_VALUE = 360,
+     TK_OPERATOR = 361,
+     TK_THROW = 362,
+     TK_EXCEPTION = 363,
+     TK_RAISECODE = 364,
+     TK_EXPLICIT = 365,
+     TK_TEMPLATE = 366,
+     TK_FINAL = 367,
+     TK_ELLIPSIS = 368,
+     TK_DEFMETATYPE = 369,
+     TK_DEFSUPERTYPE = 370,
+     TK_PROPERTY = 371,
+     TK_HIDE_NS = 372,
+     TK_FORMAT = 373,
+     TK_GET = 374,
+     TK_ID = 375,
+     TK_KWARGS = 376,
+     TK_LANGUAGE = 377,
+     TK_LICENSEE = 378,
+     TK_NAME = 379,
+     TK_OPTIONAL = 380,
+     TK_ORDER = 381,
+     TK_REMOVELEADING = 382,
+     TK_SET = 383,
+     TK_SIGNATURE = 384,
+     TK_TIMESTAMP = 385,
+     TK_TYPE = 386,
+     TK_USEARGNAMES = 387,
+     TK_USELIMITEDAPI = 388,
+     TK_ALLRAISEPYEXC = 389,
+     TK_CALLSUPERINIT = 390,
+     TK_DEFERRORHANDLER = 391,
+     TK_VERSION = 392
    };
 #endif
 /* Tokens.  */
@@ -267,53 +266,52 @@
 #define TK_CONST 344
 #define TK_STATIC 345
 #define TK_SIPSIGNAL 346
-#define TK_SIPSLOT 347
-#define TK_PYSSIZET 348
-#define TK_SIZET 349
-#define TK_NUMBER_VALUE 350
-#define TK_REAL_VALUE 351
-#define TK_TYPEDEF 352
-#define TK_NAMESPACE 353
-#define TK_TIMELINE 354
-#define TK_PLATFORMS 355
-#define TK_FEATURE 356
-#define TK_LICENSE 357
-#define TK_QCHAR_VALUE 358
-#define TK_TRUE_VALUE 359
-#define TK_FALSE_VALUE 360
-#define TK_NULL_VALUE 361
-#define TK_OPERATOR 362
-#define TK_THROW 363
-#define TK_EXCEPTION 364
-#define TK_RAISECODE 365
-#define TK_EXPLICIT 366
-#define TK_TEMPLATE 367
-#define TK_FINAL 368
-#define TK_ELLIPSIS 369
-#define TK_DEFMETATYPE 370
-#define TK_DEFSUPERTYPE 371
-#define TK_PROPERTY 372
-#define TK_HIDE_NS 373
-#define TK_FORMAT 374
-#define TK_GET 375
-#define TK_ID 376
-#define TK_KWARGS 377
-#define TK_LANGUAGE 378
-#define TK_LICENSEE 379
-#define TK_NAME 380
-#define TK_OPTIONAL 381
-#define TK_ORDER 382
-#define TK_REMOVELEADING 383
-#define TK_SET 384
-#define TK_SIGNATURE 385
-#define TK_TIMESTAMP 386
-#define TK_TYPE 387
-#define TK_USEARGNAMES 388
-#define TK_USELIMITEDAPI 389
-#define TK_ALLRAISEPYEXC 390
-#define TK_CALLSUPERINIT 391
-#define TK_DEFERRORHANDLER 392
-#define TK_VERSION 393
+#define TK_PYSSIZET 347
+#define TK_SIZET 348
+#define TK_NUMBER_VALUE 349
+#define TK_REAL_VALUE 350
+#define TK_TYPEDEF 351
+#define TK_NAMESPACE 352
+#define TK_TIMELINE 353
+#define TK_PLATFORMS 354
+#define TK_FEATURE 355
+#define TK_LICENSE 356
+#define TK_QCHAR_VALUE 357
+#define TK_TRUE_VALUE 358
+#define TK_FALSE_VALUE 359
+#define TK_NULL_VALUE 360
+#define TK_OPERATOR 361
+#define TK_THROW 362
+#define TK_EXCEPTION 363
+#define TK_RAISECODE 364
+#define TK_EXPLICIT 365
+#define TK_TEMPLATE 366
+#define TK_FINAL 367
+#define TK_ELLIPSIS 368
+#define TK_DEFMETATYPE 369
+#define TK_DEFSUPERTYPE 370
+#define TK_PROPERTY 371
+#define TK_HIDE_NS 372
+#define TK_FORMAT 373
+#define TK_GET 374
+#define TK_ID 375
+#define TK_KWARGS 376
+#define TK_LANGUAGE 377
+#define TK_LICENSEE 378
+#define TK_NAME 379
+#define TK_OPTIONAL 380
+#define TK_ORDER 381
+#define TK_REMOVELEADING 382
+#define TK_SET 383
+#define TK_SIGNATURE 384
+#define TK_TIMESTAMP 385
+#define TK_TYPE 386
+#define TK_USEARGNAMES 387
+#define TK_USELIMITEDAPI 388
+#define TK_ALLRAISEPYEXC 389
+#define TK_CALLSUPERINIT 390
+#define TK_DEFERRORHANDLER 391
+#define TK_VERSION 392
 
 
 
@@ -365,7 +363,7 @@ typedef union YYSTYPE
     int             token;
 }
 /* Line 1529 of yacc.c.  */
-#line 369 "/Users/phil/hg/sip/code_generator/parser.h"
+#line 367 "/Users/phil/hg/sip/code_generator/parser.h"
 	YYSTYPE;
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
 # define YYSTYPE_IS_DECLARED 1
