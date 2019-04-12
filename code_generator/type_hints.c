@@ -39,7 +39,7 @@ static void pyiClass(sipSpec *pt, moduleDef *mod, classDef *cd,
 static void pyiMappedType(sipSpec *pt, moduleDef *mod, mappedTypeDef *mtd,
         ifaceFileList **defined, int indent, FILE *fp);
 static void pyiCtor(sipSpec *pt, moduleDef *mod, classDef *cd, ctorDef *ct,
-        int overloaded, int sec, ifaceFileList *defined, int indent, FILE *fp);
+        int overloaded, ifaceFileList *defined, int indent, FILE *fp);
 static void pyiCallable(sipSpec *pt, moduleDef *mod, memberDef *md,
         overDef *overloads, int is_method, ifaceFileList *defined, int indent,
         FILE *fp);
@@ -47,15 +47,15 @@ static void pyiProperty(sipSpec *pt, moduleDef *mod, propertyDef *pd,
         int is_setter, memberDef *md, overDef *overloads,
         ifaceFileList *defined, int indent, FILE *fp);
 static void pyiOverload(sipSpec *pt, moduleDef *mod, overDef *od,
-        int overloaded, int is_method, int sec, ifaceFileList *defined,
-        int indent, int pep484, FILE *fp);
-static void pyiPythonSignature(sipSpec *pt, moduleDef *mod, signatureDef *sd,
-        int need_self, int sec, ifaceFileList *defined, KwArgs kwargs,
+        int overloaded, int is_method, ifaceFileList *defined, int indent,
         int pep484, FILE *fp);
+static void pyiPythonSignature(sipSpec *pt, moduleDef *mod, signatureDef *sd,
+        int need_self, ifaceFileList *defined, KwArgs kwargs, int pep484,
+        FILE *fp);
 static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int arg_nr,
-        int out, int need_comma, int sec, int names, int defaults,
+        int out, int need_comma, int names, int defaults,
         ifaceFileList *defined, KwArgs kwargs, int pep484, FILE *fp);
-static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, int sec,
+static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out,
         ifaceFileList *defined, int pep484, FILE *fp);
 static void pyiTypeHintNode(typeHintNodeDef *node, moduleDef *mod,
         ifaceFileList *defined, int pep484, int rest, FILE *fp);
@@ -442,7 +442,7 @@ static void pyiClass(sipSpec *pt, moduleDef *mod, classDef *cd,
 
         first = separate(first, indent, fp);
 
-        pyiCtor(pt, mod, NULL, ct, overloaded, FALSE, *defined, indent, fp);
+        pyiCtor(pt, mod, NULL, ct, overloaded, *defined, indent, fp);
     }
 
     first = TRUE;
@@ -552,9 +552,9 @@ static void pyiMappedType(sipSpec *pt, moduleDef *mod, mappedTypeDef *mtd,
 /*
  * Generate a ctor docstring.
  */
-void dsCtor(sipSpec *pt, classDef *cd, ctorDef *ct, int sec, FILE *fp)
+void dsCtor(sipSpec *pt, classDef *cd, ctorDef *ct, FILE *fp)
 {
-    pyiCtor(pt, pt->module, cd, ct, FALSE, sec, NULL, 0, fp);
+    pyiCtor(pt, pt->module, cd, ct, FALSE, NULL, 0, fp);
 }
 
 
@@ -562,7 +562,7 @@ void dsCtor(sipSpec *pt, classDef *cd, ctorDef *ct, int sec, FILE *fp)
  * Generate an ctor type hint.
  */
 static void pyiCtor(sipSpec *pt, moduleDef *mod, classDef *cd, ctorDef *ct,
-        int overloaded, int sec, ifaceFileList *defined, int indent, FILE *fp)
+        int overloaded, ifaceFileList *defined, int indent, FILE *fp)
 {
     int a, need_comma;
 
@@ -588,7 +588,7 @@ static void pyiCtor(sipSpec *pt, moduleDef *mod, classDef *cd, ctorDef *ct,
 
     for (a = 0; a < ct->pysig.nrArgs; ++a)
         need_comma = pyiArgument(pt, mod, &ct->pysig.args[a], a, FALSE,
-                need_comma, sec, TRUE, TRUE, defined, ct->kwargs, (cd == NULL),
+                need_comma, TRUE, TRUE, defined, ct->kwargs, (cd == NULL),
                 fp);
 
     fprintf(fp, (cd == NULL) ? ") -> None: ...\n" : ")");
@@ -674,7 +674,7 @@ static void pyiVars(sipSpec *pt, moduleDef *mod, classDef *scope,
 
         prIndent(indent, fp);
         fprintf(fp, "%s = ... # type: ", vd->pyname->text);
-        pyiType(pt, mod, &vd->type, FALSE, FALSE, defined, TRUE, fp);
+        pyiType(pt, mod, &vd->type, FALSE, defined, TRUE, fp);
         fprintf(fp, "\n");
     }
 }
@@ -729,8 +729,8 @@ static void pyiCallable(sipSpec *pt, moduleDef *mod, memberDef *md,
 
         overloaded = (nr_overloads > 1);
 
-        pyiOverload(pt, mod, od, overloaded, is_method, FALSE, defined, indent,
-                TRUE, fp);
+        pyiOverload(pt, mod, od, overloaded, is_method, defined, indent, TRUE,
+                fp);
     }
 }
 
@@ -767,8 +767,8 @@ static void pyiProperty(sipSpec *pt, moduleDef *mod, propertyDef *pd,
 
         fprintf(fp, "def %s", pd->name->text);
 
-        pyiPythonSignature(pt, mod, &od->pysig, TRUE, FALSE, defined,
-                od->kwargs, TRUE, fp);
+        pyiPythonSignature(pt, mod, &od->pysig, TRUE, defined, od->kwargs,
+                TRUE, fp);
 
         fprintf(fp, ": ...\n");
 
@@ -780,9 +780,9 @@ static void pyiProperty(sipSpec *pt, moduleDef *mod, propertyDef *pd,
 /*
  * Generate the docstring for a single API overload.
  */
-void dsOverload(sipSpec *pt, overDef *od, int is_method, int sec, FILE *fp)
+void dsOverload(sipSpec *pt, overDef *od, int is_method, FILE *fp)
 {
-    pyiOverload(pt, pt->module, od, FALSE, is_method, sec, NULL, 0, FALSE, fp);
+    pyiOverload(pt, pt->module, od, FALSE, is_method, NULL, 0, FALSE, fp);
 }
 
 
@@ -790,7 +790,7 @@ void dsOverload(sipSpec *pt, overDef *od, int is_method, int sec, FILE *fp)
  * Generate the type hints for a single API overload.
  */
 static void pyiOverload(sipSpec *pt, moduleDef *mod, overDef *od,
-        int overloaded, int is_method, int sec, ifaceFileList *defined,
+        int overloaded, int is_method, ifaceFileList *defined,
         int indent, int pep484, FILE *fp)
 {
     int need_self;
@@ -812,8 +812,8 @@ static void pyiOverload(sipSpec *pt, moduleDef *mod, overDef *od,
 
     need_self = (is_method && !isStatic(od));
 
-    pyiPythonSignature(pt, mod, &od->pysig, need_self, sec, defined,
-            od->kwargs, pep484, fp);
+    pyiPythonSignature(pt, mod, &od->pysig, need_self, defined, od->kwargs,
+            pep484, fp);
 
     if (pep484)
         fprintf(fp, ": ...\n");
@@ -824,7 +824,7 @@ static void pyiOverload(sipSpec *pt, moduleDef *mod, overDef *od,
  * Generate a Python argument.
  */
 static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int arg_nr,
-        int out, int need_comma, int sec, int names, int defaults,
+        int out, int need_comma, int names, int defaults,
         ifaceFileList *defined, KwArgs kwargs, int pep484, FILE *fp)
 {
     int optional, use_optional;
@@ -865,7 +865,7 @@ static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int arg_nr,
         }
     }
 
-    pyiType(pt, mod, ad, out, sec, defined, pep484, fp);
+    pyiType(pt, mod, ad, out, defined, pep484, fp);
 
     if (names && ad->atype == ellipsis_type)
     {
@@ -931,7 +931,7 @@ void prDefaultValue(argDef *ad, int in_str, FILE *fp)
 /*
  * Generate the Python representation of a type.
  */
-static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, int sec,
+static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out,
         ifaceFileList *defined, int pep484, FILE *fp)
 {
     const char *type_name;
@@ -1100,8 +1100,8 @@ void prScopedPythonName(FILE *fp, classDef *scope, const char *pyname)
  * Generate a Python signature.
  */
 static void pyiPythonSignature(sipSpec *pt, moduleDef *mod, signatureDef *sd,
-        int need_self, int sec, ifaceFileList *defined, KwArgs kwargs,
-        int pep484, FILE *fp)
+        int need_self, ifaceFileList *defined, KwArgs kwargs, int pep484,
+        FILE *fp)
 {
     int void_return, need_comma, is_res, nr_out, a;
 
@@ -1128,8 +1128,8 @@ static void pyiPythonSignature(sipSpec *pt, moduleDef *mod, signatureDef *sd,
         if (!isInArg(ad))
             continue;
 
-        need_comma = pyiArgument(pt, mod, ad, a, FALSE, need_comma, sec, TRUE,
-                TRUE, defined, kwargs, pep484, fp);
+        need_comma = pyiArgument(pt, mod, ad, a, FALSE, need_comma, TRUE, TRUE,
+                defined, kwargs, pep484, fp);
     }
 
     fprintf(fp, ")");
@@ -1152,7 +1152,7 @@ static void pyiPythonSignature(sipSpec *pt, moduleDef *mod, signatureDef *sd,
 
         if (is_res)
             need_comma = pyiArgument(pt, mod, &sd->result, -1, TRUE, FALSE,
-                    sec, FALSE, FALSE, defined, kwargs, pep484, fp);
+                    FALSE, FALSE, defined, kwargs, pep484, fp);
         else
             need_comma = FALSE;
 
@@ -1163,7 +1163,7 @@ static void pyiPythonSignature(sipSpec *pt, moduleDef *mod, signatureDef *sd,
             if (isOutArg(ad))
                 /* We don't want the name in the result tuple. */
                 need_comma = pyiArgument(pt, mod, ad, -1, TRUE, need_comma,
-                        sec, FALSE, FALSE, defined, kwargs, pep484, fp);
+                        FALSE, FALSE, defined, kwargs, pep484, fp);
         }
 
         if ((is_res && nr_out > 0) || nr_out > 1)

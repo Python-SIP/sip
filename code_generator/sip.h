@@ -1449,8 +1449,8 @@ void getDefaultImplementation(sipSpec *pt, argType atype, classDef **cdp,
 char *templateString(const char *src, scopedNameDef *names,
         scopedNameDef *values);
 int inDefaultAPI(sipSpec *pt, apiVersionRangeDef *range);
-void dsCtor(sipSpec *pt, classDef *cd, ctorDef *ct, int sec, FILE *fp);
-void dsOverload(sipSpec *pt, overDef *od, int is_method, int sec, FILE *fp);
+void dsCtor(sipSpec *pt, classDef *cd, ctorDef *ct, FILE *fp);
+void dsOverload(sipSpec *pt, overDef *od, int is_method, FILE *fp);
 scopedNameDef *getFQCNameOfType(argDef *ad);
 scopedNameDef *removeGlobalScope(scopedNameDef *snd);
 void pyiTypeHint(sipSpec *pt, typeHintDef *thd, moduleDef *mod, int out,

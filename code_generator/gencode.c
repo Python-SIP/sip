@@ -200,9 +200,9 @@ static void generateAccessFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 static void generateConvertToDefinitions(mappedTypeDef *, classDef *, FILE *);
 static void generateEncodedType(moduleDef *mod, classDef *cd, int last,
         FILE *fp);
-static int generateArgParser(moduleDef *mod, signatureDef *sd,
+static void generateArgParser(moduleDef *mod, signatureDef *sd,
         classDef *c_scope, mappedTypeDef *mt_scope, ctorDef *ct, overDef *od,
-        int secCall, FILE *fp);
+        FILE *fp);
 static void generateTry(throwArgs *, FILE *);
 static void generateCatch(throwArgs *ta, signatureDef *sd, moduleDef *mod,
         FILE *fp, int rgil);
@@ -9842,7 +9842,7 @@ static void generatePyQt5Emitters(classDef *cd, FILE *fp)
 "    {\n"
                 );
 
-            generateArgParser(mod, &od->pysig, cd, NULL, NULL, NULL, FALSE, fp);
+            generateArgParser(mod, &od->pysig, cd, NULL, NULL, NULL, fp);
 
             prcode(fp,
 "        {\n"
@@ -9950,7 +9950,7 @@ static void generateSignalTableEntry(sipSpec *pt, classDef *cd, overDef *sig,
         {
             if (sig->docstring->signature == prepended)
             {
-                dsOverload(pt, sig, TRUE, FALSE, fp);
+                dsOverload(pt, sig, TRUE, fp);
                 prcode(fp, "\\n");
             }
 
@@ -9959,13 +9959,13 @@ static void generateSignalTableEntry(sipSpec *pt, classDef *cd, overDef *sig,
             if (sig->docstring->signature == appended)
             {
                 prcode(fp, "\\n");
-                dsOverload(pt, sig, TRUE, FALSE, fp);
+                dsOverload(pt, sig, TRUE, fp);
             }
         }
         else
         {
             fprintf(fp, "\\1");
-            dsOverload(pt, sig, TRUE, FALSE, fp);
+            dsOverload(pt, sig, TRUE, fp);
         }
 
         fprintf(fp, "\", ");
@@ -10352,7 +10352,7 @@ static void generateTypeInit(classDef *cd, moduleDef *mod, FILE *fp)
      */
     for (ct = cd->ctors; ct != NULL; ct = ct->next)
     {
-        int needSecCall, error_flag, old_error_flag;
+        int error_flag, old_error_flag;
         apiVersionRangeDef *avr;
 
         if (isPrivateCtor(ct))
@@ -10383,30 +10383,8 @@ static void generateTypeInit(classDef *cd, moduleDef *mod, FILE *fp)
             error_flag = old_error_flag = FALSE;
         }
 
-        needSecCall = generateArgParser(mod, &ct->pysig, cd, NULL, ct, NULL,
-                FALSE, fp);
+        generateArgParser(mod, &ct->pysig, cd, NULL, ct, NULL, fp);
         generateConstructorCall(cd, ct, error_flag, old_error_flag, mod, fp);
-
-        if (needSecCall)
-        {
-            prcode(fp,
-"    }\n"
-"\n"
-                );
-
-            if (avr != NULL)
-                prcode(fp,
-"    if (sipIsAPIEnabled(%N, %d, %d))\n"
-                    , avr->api_name, avr->from, avr->to);
-
-            prcode(fp,
-"    {\n"
-                );
-
-            generateArgParser(mod, &ct->pysig, cd, NULL, ct, NULL, TRUE, fp);
-            generateConstructorCall(cd, ct, error_flag, old_error_flag, mod,
-                    fp);
-        }
 
         prcode(fp,
 "    }\n"
@@ -11028,7 +11006,6 @@ static void generateFunctionBody(overDef *od, classDef *c_scope,
         mappedTypeDef *mt_scope, classDef *ocd, int deref, moduleDef *mod,
         FILE *fp)
 {
-    int needSecCall;
     signatureDef saved;
     ifaceFileDef *o_scope;
     apiVersionRangeDef *avr;
@@ -11081,30 +11058,14 @@ static void generateFunctionBody(overDef *od, classDef *c_scope,
             od->pysig.args[0].u.cd = ocd;
         }
 
-        generateArgParser(mod, &od->pysig, c_scope, mt_scope, NULL, od, FALSE,
-                fp);
-        needSecCall = FALSE;
+        generateArgParser(mod, &od->pysig, c_scope, mt_scope, NULL, od, fp);
     }
-    else if (isIntArgSlot(od->common) || isZeroArgSlot(od->common))
-        needSecCall = FALSE;
-    else
-        needSecCall = generateArgParser(mod, &od->pysig, c_scope, mt_scope,
-                NULL, od, FALSE, fp);
+    else if (!isIntArgSlot(od->common) && !isZeroArgSlot(od->common))
+    {
+        generateArgParser(mod, &od->pysig, c_scope, mt_scope, NULL, od, fp);
+    }
 
     generateFunctionCall(c_scope, mt_scope, o_scope, od, deref, mod, fp);
-
-    if (needSecCall)
-    {
-        prcode(fp,
-"    }\n"
-"\n"
-"    {\n"
-            );
-
-        generateArgParser(mod, &od->pysig, c_scope, mt_scope, NULL, od, TRUE,
-                fp);
-        generateFunctionCall(c_scope, mt_scope, o_scope, od, deref, mod, fp);
-    }
 
     prcode(fp,
 "    }\n"
@@ -12533,9 +12494,9 @@ static void generateNumberSlotCall(moduleDef *mod, overDef *od, char *op,
 /*
  * Generate the argument variables for a member function/constructor/operator.
  */
-static int generateArgParser(moduleDef *mod, signatureDef *sd,
+static void generateArgParser(moduleDef *mod, signatureDef *sd,
         classDef *c_scope, mappedTypeDef *mt_scope, ctorDef *ct, overDef *od,
-        int secCall, FILE *fp)
+        FILE *fp)
 {
     int a, optargs, arraylenarg, handle_self, single_arg, need_owner;
     ifaceFileDef *scope;
@@ -13081,8 +13042,6 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
     }
 
     prcode(fp,"))\n");
-
-    return FALSE;
 }
 
 
@@ -14312,7 +14271,7 @@ static void generateMemberAutoDocstring(sipSpec *pt, overDef *od,
 {
     if (overloadHasAutoDocstring(pt, od))
     {
-        dsOverload(pt, od, is_method, FALSE, fp);
+        dsOverload(pt, od, is_method, fp);
         ++currentLineNr;
     }
 }
@@ -14475,7 +14434,7 @@ static void generateCtorAutoDocstring(sipSpec *pt, classDef *cd, ctorDef *ct,
 {
     if (ctorHasAutoDocstring(pt, ct))
     {
-        dsCtor(pt, cd, ct, FALSE, fp);
+        dsCtor(pt, cd, ct, fp);
         ++currentLineNr;
     }
 }
