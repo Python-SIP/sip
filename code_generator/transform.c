@@ -2267,14 +2267,6 @@ static int supportedType(classDef *cd,overDef *od,argDef *ad,int outputs)
 {
     switch (ad -> atype)
     {
-    case anyslot_type:
-        /*
-         * This must be an input, and must also have handwritten code.
-         */
-
-        ensureInput(cd,od,ad);
-        return FALSE;
-
     case signal_type:
     case slot_type:
     case rxcon_type:

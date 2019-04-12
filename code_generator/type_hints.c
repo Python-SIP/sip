@@ -1105,10 +1105,6 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, int sec,
         type_name = "*";
         break;
 
-    case anyslot_type:
-        type_name = "QT_SLOT";
-        break;
-
     default:
         type_name = anyObject(pep484);
     }
