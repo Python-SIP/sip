@@ -8034,7 +8034,6 @@ static void generateTupleBuilder(moduleDef *mod, signatureDef *sd,FILE *fp)
         case signal_type:
         case slot_type:
         case slotcon_type:
-        case slotdis_type:
             fmt = "s";
             break;
 
@@ -8881,7 +8880,6 @@ static void generateNamedBaseType(ifaceFileDef *scope, argDef *ad,
         case slot_type:
         case anyslot_type:
         case slotcon_type:
-        case slotdis_type:
             nr_derefs = 1;
 
             /* Drop through. */
@@ -9133,7 +9131,7 @@ static void generateVariable(moduleDef *mod, ifaceFileDef *scope, argDef *ad,
 
     resetIsReference(ad);
 
-    if (ad->nrderefs == 0 && ad->atype != slotcon_type && ad->atype != slotdis_type)
+    if (ad->nrderefs == 0 && ad->atype != slotcon_type)
         resetIsConstArg(ad);
 
     prcode(fp,
@@ -12670,11 +12668,6 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
             slotconarg = a;
             break;
 
-        case slotdis_type:
-            slotdisarg_ad = ad;
-            slotdisarg = a;
-            break;
-
         /* Supress a compiler warning. */
         default:
             ;
@@ -13011,7 +13004,6 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
             break;
 
         case slotcon_type:
-        case slotdis_type:
             fmt = (secCall ? "" : "S");
             break;
 
@@ -13206,7 +13198,6 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
             }
 
         case slotcon_type:
-        case slotdis_type:
             if (!secCall)
                 prcode(fp, ", &%a", mod, ad, a);
 

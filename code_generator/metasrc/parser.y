@@ -338,7 +338,6 @@ static scopedNameDef *fullyQualifiedName(scopedNameDef *snd);
 %token          TK_SIPRXCON
 %token          TK_SIPRXDIS
 %token          TK_SIPSLOTCON
-%token          TK_SIPSLOTDIS
 %token          TK_PYSSIZET
 %token          TK_SIZET
 %token <number> TK_NUMBER_VALUE
@@ -3820,9 +3819,9 @@ virtualcatchercode: {
     ;
 
 arglist:    rawarglist {
-            int a, nrrxcon, nrrxdis, nrslotcon, nrslotdis, nrarray, nrarraysize;
+            int a, nrrxcon, nrrxdis, nrslotcon, nrarray, nrarraysize;
 
-            nrrxcon = nrrxdis = nrslotcon = nrslotdis = nrarray = nrarraysize = 0;
+            nrrxcon = nrrxdis = nrslotcon = nrarray = nrarraysize = 0;
 
             for (a = 0; a < $1.nrArgs; ++a)
             {
@@ -3842,10 +3841,6 @@ arglist:    rawarglist {
                     ++nrslotcon;
                     break;
 
-                case slotdis_type:
-                    ++nrslotdis;
-                    break;
-
                 /* Suppress a compiler warning. */
                 default:
                     ;
@@ -3861,7 +3856,7 @@ arglist:    rawarglist {
             if (nrrxcon != nrslotcon || nrrxcon > 1)
                 yyerror("SIP_RXOBJ_CON and SIP_SLOT_CON must both be given and at most once");
 
-            if (nrrxdis != nrslotdis || nrrxdis > 1)
+            if (nrrxdis != 0)
                 yyerror("SIP_RXOBJ_DIS and SIP_SLOT_DIS must both be given and at most once");
 
             if (nrarray != nrarraysize || nrarray > 1)
@@ -3976,23 +3971,6 @@ argvalue:   TK_SIPSIGNAL optname optflags optassign {
             checkNoAnnos(&$6, "SIP_SLOT_CON has no annotations");
 
             $$.atype = slotcon_type;
-            $$.argflags = ARG_IS_CONST;
-            $$.nrderefs = 0;
-            $$.name = cacheName(currentSpec, $5);
-
-            memset(&$3.result, 0, sizeof (argDef));
-            $3.result.atype = void_type;
-
-            $$.u.sa = sipMalloc(sizeof (signatureDef));
-            *$$.u.sa = $3;
-
-            currentSpec -> sigslots = TRUE;
-        }
-    |   TK_SIPSLOTDIS '(' arglist ')' optname optflags {
-            deprecated("SIP_SLOT_DIS is deprecated\n");
-            checkNoAnnos(&$6, "SIP_SLOT_DIS has no annotations");
-
-            $$.atype = slotdis_type;
             $$.argflags = ARG_IS_CONST;
             $$.nrderefs = 0;
             $$.name = cacheName(currentSpec, $5);

@@ -841,7 +841,7 @@ static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int arg_nr,
     if (isArraySize(ad))
         return need_comma;
 
-    if (sec && (ad->atype == slotcon_type || ad->atype == slotdis_type))
+    if (sec && ad->atype == slotcon_type)
         return need_comma;
 
     if (need_comma)
