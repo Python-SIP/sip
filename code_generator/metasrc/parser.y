@@ -9154,25 +9154,21 @@ static void addAutoPyName(moduleDef *mod, const char *remove_leading)
  */
 static void checkAnnos(optFlags *annos, const char *valid[])
 {
+    int i;
+
     if (parsingCSignature && annos->nrFlags != 0)
+        yyerror("Annotations must not be used in explicit C/C++ signatures");
+
+    for (i = 0; i < annos->nrFlags; i++)
     {
-        deprecated("Annotations should not be used in explicit C/C++ signatures");
-    }
-    else
-    {
-        int i;
+        const char **name;
 
-        for (i = 0; i < annos->nrFlags; i++)
-        {
-            const char **name;
+        for (name = valid; *name != NULL; ++name)
+            if (strcmp(*name, annos->flags[i].fname) == 0)
+                break;
 
-            for (name = valid; *name != NULL; ++name)
-                if (strcmp(*name, annos->flags[i].fname) == 0)
-                    break;
-
-            if (*name == NULL)
-                yywarning("Annotation is unknown");
-        }
+        if (*name == NULL)
+            yyerror("Annotation is unknown");
     }
 }
 
