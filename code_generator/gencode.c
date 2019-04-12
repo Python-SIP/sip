@@ -8053,7 +8053,6 @@ static void generateTupleBuilder(moduleDef *mod, signatureDef *sd,FILE *fp)
             /* Drop through. */
 
         case fake_void_type:
-        case rxcon_type:
             fmt = "D";
             break;
 
@@ -8121,7 +8120,7 @@ static void generateTupleBuilder(moduleDef *mod, signatureDef *sd,FILE *fp)
         }
 
         if (ad->atype == mapped_type || ad->atype == class_type ||
-            ad->atype == rxcon_type || ad->atype == fake_void_type)
+            ad->atype == fake_void_type)
         {
             int copy = copyConstRefArg(ad);
 
@@ -8978,11 +8977,6 @@ static void generateNamedBaseType(ifaceFileDef *scope, argDef *ad,
                 prScopedName(fp, stripScope(ad->u.snd, strip), "::");
             }
 
-            break;
-
-        case rxcon_type:
-            nr_derefs = 1;
-            prcode(fp, "QObject");
             break;
 
         case mapped_type:
@@ -12593,7 +12587,7 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
         classDef *c_scope, mappedTypeDef *mt_scope, ctorDef *ct, overDef *od,
         int secCall, FILE *fp)
 {
-    int a, isQtSlot, optargs, arraylenarg, sigarg, handle_self, single_arg;
+    int a, optargs, arraylenarg, sigarg, handle_self, single_arg;
     int slotconarg, slotdisarg, need_owner;
     ifaceFileDef *scope;
     argDef *arraylenarg_ad, *sigarg_ad, *slotconarg_ad, *slotdisarg_ad;
@@ -12620,9 +12614,6 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
 
     handle_self = (od != NULL && od->common->slot == no_slot && !isStatic(od) && c_scope != NULL);
 
-    /* Assume there isn't a Qt slot. */
-    isQtSlot = FALSE;
-
     /*
      * Generate the local variables that will hold the parsed arguments and
      * values returned via arguments.
@@ -12639,10 +12630,6 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
         case signal_type:
             sigarg_ad = ad;
             sigarg = a;
-            break;
-
-        case rxcon_type:
-            isQtSlot = TRUE;
             break;
 
         /* Supress a compiler warning. */
@@ -12790,8 +12777,6 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
 
     if (handle_self)
         prcode(fp,"%c",(isReallyProtected(od) ? 'p' : 'B'));
-    else if (isQtSlot && od == NULL)
-        prcode(fp,"C");
 
     for (a = 0; a < sd->nrArgs; ++a)
     {
@@ -12976,10 +12961,6 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
             fmt = "S";
             break;
 
-        case rxcon_type:
-            fmt = (secCall ? (isSingleShot(ad) ? "g" : "y") : "q");
-            break;
-
         case mapped_type:
         case class_type:
             if (isArray(ad))
@@ -13059,8 +13040,6 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
 
     if (handle_self)
         prcode(fp,", &sipSelf, sipType_%C, &sipCpp",classFQCName(c_scope));
-    else if (isQtSlot && od == NULL)
-        prcode(fp,", sipSelf");
 
     for (a = 0; a < sd->nrArgs; ++a)
     {
@@ -13133,24 +13112,6 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
             prcode(fp, ", &%a", mod, ad, a);
             break;
 
-        case rxcon_type:
-            {
-                if (sigarg > 0)
-                    prcode(fp, ", %a", mod, sigarg_ad, sigarg);
-                else
-                {
-                    prcode(fp,", \"(");
-
-                    generateCalledArgs(NULL, scope, slotconarg_ad->u.sa, Declaration, fp);
-
-                    prcode(fp,")\"");
-                }
-
-                prcode(fp, ", &%a, &%a", mod, ad, a, mod, slotconarg_ad, slotconarg);
-
-                break;
-            }
-
         case pytuple_type:
             prcode(fp, ", &PyTuple_Type, &%a", mod, ad, a);
             break;
@@ -13193,7 +13154,7 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
 
     prcode(fp,"))\n");
 
-    return isQtSlot;
+    return FALSE;
 }
 
 
@@ -14425,14 +14386,6 @@ static void generateMemberAutoDocstring(sipSpec *pt, overDef *od,
     {
         dsOverload(pt, od, is_method, FALSE, fp);
         ++currentLineNr;
-
-        if (hasImplicitOverloads(&od->pysig))
-        {
-            prcode(fp, "\\n\"\n\"");
-
-            dsOverload(pt, od, is_method, TRUE, fp);
-            ++currentLineNr;
-        }
     }
 }
 
@@ -14596,14 +14549,6 @@ static void generateCtorAutoDocstring(sipSpec *pt, classDef *cd, ctorDef *ct,
     {
         dsCtor(pt, cd, ct, FALSE, fp);
         ++currentLineNr;
-
-        if (hasImplicitOverloads(&ct->pysig))
-        {
-            prcode(fp, "\\n\"\n\"");
-
-            dsCtor(pt, cd, ct, TRUE, fp);
-            ++currentLineNr;
-        }
     }
 }
 

@@ -146,7 +146,6 @@ SIP_PYTYPE                  {return TK_PYTYPE;}
 SIP_PYBUFFER                {return TK_PYBUFFER;}
 SIP_SIGNAL                  {return TK_SIPSIGNAL;}
 SIP_SLOT                    {return TK_SIPSLOT;}
-SIP_RXOBJ_CON               {return TK_SIPRXCON;}
 Py_ssize_t                  {return TK_PYSSIZET;}
 SIP_SSIZE_T                 {
     /* Remove in v5.1. */

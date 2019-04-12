@@ -639,7 +639,6 @@ typedef enum {
     template_type,
     signal_type,
     slot_type,
-    rxcon_type,
     ustring_type,
     string_type,
     short_type,
@@ -1446,7 +1445,6 @@ void getDefaultImplementation(sipSpec *pt, argType atype, classDef **cdp,
 char *templateString(const char *src, scopedNameDef *names,
         scopedNameDef *values);
 int inDefaultAPI(sipSpec *pt, apiVersionRangeDef *range);
-int hasImplicitOverloads(signatureDef *sd);
 void dsCtor(sipSpec *pt, classDef *cd, ctorDef *ct, int sec, FILE *fp);
 void dsOverload(sipSpec *pt, overDef *od, int is_method, int sec, FILE *fp);
 scopedNameDef *getFQCNameOfType(argDef *ad);

@@ -427,7 +427,7 @@ static void pyiClass(sipSpec *pt, moduleDef *mod, classDef *cd,
 
     for (ct = cd->ctors; ct != NULL; ct = ct->next)
     {
-        int implicit_overloads, overloaded;
+        int overloaded;
 
         if (isPrivateCtor(ct))
             continue;
@@ -438,15 +438,11 @@ static void pyiClass(sipSpec *pt, moduleDef *mod, classDef *cd,
         if (!inDefaultAPI(pt, ct->api_range))
             continue;
 
-        implicit_overloads = hasImplicitOverloads(&ct->pysig);
-        overloaded = (implicit_overloads || nr_overloads > 1);
+        overloaded = (nr_overloads > 1);
 
         first = separate(first, indent, fp);
 
         pyiCtor(pt, mod, NULL, ct, overloaded, FALSE, *defined, indent, fp);
-
-        if (implicit_overloads)
-            pyiCtor(pt, mod, NULL, ct, overloaded, TRUE, *defined, indent, fp);
     }
 
     first = TRUE;
@@ -717,7 +713,7 @@ static void pyiCallable(sipSpec *pt, moduleDef *mod, memberDef *md,
     /* Handle each overload. */
     for (od = overloads; od != NULL; od = od->next)
     {
-        int implicit_overloads, overloaded;
+        int overloaded;
 
         if (isPrivate(od))
             continue;
@@ -731,15 +727,10 @@ static void pyiCallable(sipSpec *pt, moduleDef *mod, memberDef *md,
         if (!inDefaultAPI(pt, od->api_range))
             continue;
 
-        implicit_overloads = hasImplicitOverloads(&od->pysig);
-        overloaded = (implicit_overloads || nr_overloads > 1);
+        overloaded = (nr_overloads > 1);
 
         pyiOverload(pt, mod, od, overloaded, is_method, FALSE, defined, indent,
                 TRUE, fp);
-
-        if (implicit_overloads)
-            pyiOverload(pt, mod, od, overloaded, is_method, TRUE, defined,
-                    indent, TRUE, fp);
     }
 }
 
@@ -1007,22 +998,6 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, int sec,
 
     case slot_type:
         type_name = "QT_SLOT_QT_SIGNAL";
-        break;
-
-    case rxcon_type:
-        if (sec)
-        {
-            type_name = (pep484 ? "typing.Callable[..., None]" : "Callable[..., None]");
-        }
-        else
-        {
-            /* The class should always be found. */
-            if (pt->qobject_cd != NULL)
-                prClassRef(pt->qobject_cd, mod, defined, pep484, fp);
-            else
-                type_name = anyObject(pep484);
-        }
-
         break;
 
     case ustring_type:
@@ -1356,28 +1331,6 @@ static int inIfaceFileList(ifaceFileDef *iff, ifaceFileList *defined)
             return TRUE;
 
         defined = defined->next;
-    }
-
-    return FALSE;
-}
-
-
-/*
- * See if a signature has implicit overloads.
- */
-int hasImplicitOverloads(signatureDef *sd)
-{
-    int a;
-
-    for (a = 0; a < sd->nrArgs; ++a)
-    {
-        argDef *ad = &sd->args[a];
-
-        if (!isInArg(ad))
-            continue;
-
-        if (ad->atype == rxcon_type)
-            return TRUE;
     }
 
     return FALSE;

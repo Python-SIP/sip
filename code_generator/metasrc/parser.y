@@ -334,7 +334,6 @@ static scopedNameDef *fullyQualifiedName(scopedNameDef *snd);
 %token          TK_STATIC
 %token          TK_SIPSIGNAL
 %token          TK_SIPSLOT
-%token          TK_SIPRXCON
 %token          TK_PYSSIZET
 %token          TK_SIZET
 %token <number> TK_NUMBER_VALUE
@@ -3816,24 +3815,13 @@ virtualcatchercode: {
     ;
 
 arglist:    rawarglist {
-            int a, nrrxcon, nrarray, nrarraysize;
+            int a, nrarray, nrarraysize;
 
-            nrrxcon = nrarray = nrarraysize = 0;
+            nrarray = nrarraysize = 0;
 
             for (a = 0; a < $1.nrArgs; ++a)
             {
                 argDef *ad = &$1.args[a];
-
-                switch (ad -> atype)
-                {
-                case rxcon_type:
-                    ++nrrxcon;
-                    break;
-
-                /* Suppress a compiler warning. */
-                default:
-                    ;
-                }
 
                 if (isArray(ad))
                     ++nrarray;
@@ -3841,9 +3829,6 @@ arglist:    rawarglist {
                 if (isArraySize(ad))
                     ++nrarraysize;
             }
-
-            if (nrrxcon != 0)
-                yyerror("SIP_RXOBJ_CON and SIP_SLOT_CON must both be given and at most once");
 
             if (nrarray != nrarraysize || nrarray > 1)
                 yyerror("/Array/ and /ArraySize/ must both be given and at most once");
@@ -3907,25 +3892,6 @@ argvalue:   TK_SIPSIGNAL optname optflags optassign {
             $$.nrderefs = 0;
             $$.name = cacheName(currentSpec, $2);
             $$.defval = $4;
-
-            currentSpec -> sigslots = TRUE;
-        }
-    |   TK_SIPRXCON optname optflags {
-            const char *annos[] = {
-                "SingleShot",
-                NULL
-            };
-
-            deprecated("SIP_RXOBJ_CON is deprecated\n");
-            checkAnnos(&$3, annos);
-
-            $$.atype = rxcon_type;
-            $$.argflags = 0;
-            $$.nrderefs = 0;
-            $$.name = cacheName(currentSpec, $2);
-
-            if (getOptFlag(&$3, "SingleShot", bool_flag) != NULL)
-                $$.argflags |= ARG_SINGLE_SHOT;
 
             currentSpec -> sigslots = TRUE;
         }
