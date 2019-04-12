@@ -5,7 +5,6 @@ SIP Reference Guide
     :maxdepth: 2
 
     introduction
-    incompatibilities
     installation
     using
     command_line
