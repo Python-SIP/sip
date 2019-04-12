@@ -576,7 +576,6 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipTrace                    sipAPI_%s->api_trace\n"
 "#define sipTransferBack             sipAPI_%s->api_transfer_back\n"
 "#define sipTransferTo               sipAPI_%s->api_transfer_to\n"
-"#define sipTransferBreak            sipAPI_%s->api_transfer_break\n"
 "#define sipSimpleWrapper_Type       sipAPI_%s->api_simplewrapper_type\n"
 "#define sipWrapper_Type             sipAPI_%s->api_wrapper_type\n"
 "#define sipWrapperType_Type         sipAPI_%s->api_wrappertype_type\n"
@@ -689,21 +688,6 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipLong_AsLongLong          sipAPI_%s->api_long_as_long_long\n"
 "#define sipLong_AsUnsignedLongLong  sipAPI_%s->api_long_as_unsigned_long_long\n"
 "#define sipLong_AsSizeT             sipAPI_%s->api_long_as_size_t\n"
-"\n"
-"/* These are deprecated. */\n"
-"#define sipConvertToArray           sipAPI_%s->api_convert_to_array\n"
-"#define sipConvertToTypedArray      sipAPI_%s->api_convert_to_typed_array\n"
-"#define sipEnableGC                 sipAPI_%s->api_enable_gc\n"
-"#define sipPrintObject              sipAPI_%s->api_print_object\n"
-"#define sipWrapper_Check(w)         PyObject_TypeCheck((w), sipAPI_%s->api_wrapper_type)\n"
-"#define sipReleaseInstance(p, wt, s)    sipReleaseType((p), (wt)->wt_td, (s))\n"
-"#define sipReleaseMappedType        sipReleaseType\n"
-        ,mname
-        ,mname
-        ,mname
-        ,mname
-        ,mname
-        ,mname
         ,mname
         ,mname
         ,mname

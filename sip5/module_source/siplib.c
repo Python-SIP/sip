@@ -2934,7 +2934,7 @@ static int parseResult(PyObject *method, PyObject *res,
 
             case 'E':
                 {
-                    /* This is deprecated. */
+                    /* Remove in v5.1. */
 
                     PyTypeObject *et = va_arg(va, PyTypeObject *);
                     int *p = va_arg(va, int *);
@@ -3143,7 +3143,7 @@ static int parseResult(PyObject *method, PyObject *res,
 
             case 's':
                 {
-                    /* This is deprecated. */
+                    /* Remove in v5.1. */
 
                     const char **p = va_arg(va, const char **);
 
@@ -3215,7 +3215,7 @@ static int parseResult(PyObject *method, PyObject *res,
 
             case 'C':
                 {
-                    /* This is deprecated. */
+                    /* Remove in v5.1. */
 
                     if (*fmt == '\0')
                     {
@@ -3249,7 +3249,7 @@ static int parseResult(PyObject *method, PyObject *res,
 
             case 'D':
                 {
-                    /* This is deprecated. */
+                    /* Remove in v5.1. */
 
                     if (*fmt == '\0')
                     {
@@ -7842,6 +7842,8 @@ static void sip_api_transfer_back(PyObject *self)
  */
 static void sip_api_transfer_break(PyObject *self)
 {
+    /* Remove in v5.1. */
+
     if (self != NULL && PyObject_TypeCheck(self, (PyTypeObject *)&sipWrapper_Type))
     {
         sipSimpleWrapper *sw = (sipSimpleWrapper *)self;
