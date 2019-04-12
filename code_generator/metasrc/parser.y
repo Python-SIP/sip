@@ -1470,28 +1470,7 @@ ifend:      TK_END {
         }
     ;
 
-license:    TK_LICENSE license_args optflags {
-            optFlag *of;
-
-            if ($3.nrFlags != 0)
-                deprecated("%License annotations are deprecated, use arguments instead");
-
-            if ($2.type == NULL)
-                if ((of = getOptFlag(&$3, "Type", string_flag)) != NULL)
-                    $2.type = of->fvalue.sval;
-
-            if ($2.licensee == NULL)
-                if ((of = getOptFlag(&$3, "Licensee", string_flag)) != NULL)
-                    $2.licensee = of->fvalue.sval;
-
-            if ($2.signature == NULL)
-                if ((of = getOptFlag(&$3, "Signature", string_flag)) != NULL)
-                    $2.signature = of->fvalue.sval;
-
-            if ($2.timestamp == NULL)
-                if ((of = getOptFlag(&$3, "Timestamp", string_flag)) != NULL)
-                    $2.timestamp = of->fvalue.sval;
-
+license:    TK_LICENSE license_args {
             if ($2.type == NULL)
                 yyerror("%License must have a 'type' argument");
 
