@@ -12239,15 +12239,6 @@ static int getNoTypeHint(optFlags *optflgs)
 
 
 /*
- * Return TRUE if the PyQt4 plugin was specified.
- */
-int pluginPyQt4(sipSpec *pt)
-{
-    return stringFind(pt->plugins, "PyQt4");
-}
-
-
-/*
  * Return TRUE if the PyQt5 plugin was specified.
  */
 int pluginPyQt5(sipSpec *pt)

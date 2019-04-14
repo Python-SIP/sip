@@ -283,10 +283,8 @@ static void generatePreprocLine(int linenr, const char *fname, FILE *fp);
 static int hasOptionalArgs(overDef *od);
 static int emptyIfaceFile(sipSpec *pt, ifaceFileDef *iff);
 static void declareLimitedAPI(int py_debug, moduleDef *mod, FILE *fp);
-static int generatePluginSignalsTable(sipSpec *pt, classDef *cd,
-        int pyqt_version, FILE *fp);
+static int generatePluginSignalsTable(sipSpec *pt, classDef *cd, FILE *fp);
 static int generatePyQt5ClassPlugin(sipSpec *pt, classDef *cd, FILE *fp);
-static int generatePyQt4ClassPlugin(sipSpec *pt, classDef *cd, FILE *fp);
 static void generateGlobalFunctionTableEntries(sipSpec *pt, moduleDef *mod,
         memberDef *members, FILE *fp);
 static void prTemplateType(FILE *fp, ifaceFileDef *scope, templateDef *td,
@@ -455,7 +453,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#include <sip.h>\n"
         );
 
-    if (pluginPyQt4(pt) || pluginPyQt5(pt))
+    if (pluginPyQt5(pt))
         prcode(fp,
 "\n"
 "#include <QMetaType>\n"
@@ -870,7 +868,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
                 , mname, mld->module->name);
     }
 
-    if (pluginPyQt4(pt) || pluginPyQt5(pt))
+    if (pluginPyQt5(pt))
     {
         prcode(fp,
 "\n"
@@ -1943,7 +1941,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "const sipAPIDef *sipAPI_%s;\n"
         , mname);
 
-    if (pluginPyQt4(pt) || pluginPyQt5(pt))
+    if (pluginPyQt5(pt))
         prcode(fp,
 "\n"
 "sip_qt_metaobject_func sip_%s_qt_metaobject;\n"
@@ -2017,7 +2015,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "    }\n"
         , mname);
 
-    if (pluginPyQt4(pt) || pluginPyQt5(pt))
+    if (pluginPyQt5(pt))
     {
         /* Import the helpers. */
         prcode(fp,
@@ -5674,7 +5672,7 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 
         if (canCreate(cd) || isPublicDtor(cd))
         {
-            if ((pluginPyQt4(pt) || pluginPyQt5(pt)) && isQObjectSubClass(cd) && isPublicDtor(cd))
+            if (pluginPyQt5(pt) && isQObjectSubClass(cd) && isPublicDtor(cd))
                 need_ptr = need_cast_ptr = TRUE;
             else if (hasShadow(cd))
                 need_ptr = need_state = TRUE;
@@ -5735,7 +5733,7 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 "\n"
                     );
 
-            if ((pluginPyQt4(pt) || pluginPyQt5(pt)) && isQObjectSubClass(cd) && isPublicDtor(cd))
+            if (pluginPyQt5(pt) && isQObjectSubClass(cd) && isPublicDtor(cd))
             {
                 /*
                  * QObjects should only be deleted in the threads that they
@@ -6394,7 +6392,7 @@ static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
     }
 
     /* The meta methods if required. */
-    if ((pluginPyQt4(pt) || pluginPyQt5(pt)) && isQObjectSubClass(cd))
+    if (pluginPyQt5(pt) && isQObjectSubClass(cd))
     {
         if (!noPyQtQMetaObject(cd))
         {
@@ -8489,7 +8487,7 @@ static void generateShadowClassDeclaration(sipSpec *pt,classDef *cd,FILE *fp)
             ,(cd->vmembers != NULL ? "virtual " : ""),classFQCName(cd),cd->dtorexceptions);
 
     /* The metacall methods if required. */
-    if ((pluginPyQt4(pt) || pluginPyQt5(pt)) && isQObjectSubClass(cd))
+    if (pluginPyQt5(pt) && isQObjectSubClass(cd))
     {
         prcode(fp,
 "\n"
@@ -8977,7 +8975,7 @@ static void generateNamedBaseType(ifaceFileDef *scope, argDef *ad,
     {
         /*
          * Note that we don't put a space before the '*' so that Qt normalised
-         * signal signatures are correct.  Qt4 can cope with it but Qt5 can't.
+         * signal signatures are correct.
          */
         prcode(fp, "*");
         space_before_name = FALSE;
@@ -9375,8 +9373,6 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, int py_debug,
     /* Generate any plugin-specific data structures. */
     if (pluginPyQt5(pt))
         plugin = generatePyQt5ClassPlugin(pt, cd, fp);
-    else if (pluginPyQt4(pt))
-        plugin = generatePyQt4ClassPlugin(pt, cd, fp);
     else
         plugin = FALSE;
 
@@ -9882,12 +9878,12 @@ static void generatePyQt5Emitters(classDef *cd, FILE *fp)
 
 
 /*
- * Generate an entry in the PyQt4 or PyQt5 signal table.
+ * Generate an entry in the PyQt5 signal table.
  */
 static void generateSignalTableEntry(sipSpec *pt, classDef *cd, overDef *sig,
         int membernr, int optional_args, FILE *fp)
 {
-    int a, stripped, pyqt5 = pluginPyQt5(pt);
+    int a, stripped;
 
     prcode(fp,
 "    {\"%s(", sig->cppname);
@@ -9980,17 +9976,10 @@ static void generateSignalTableEntry(sipSpec *pt, classDef *cd, overDef *sig,
     else
         prcode(fp, "SIP_NULLPTR, ");
 
-    if (pyqt5)
-    {
-        if (optional_args)
-            prcode(fp, "emit_%L_%s", cd->iff, sig->cppname);
-        else
-            prcode(fp, "SIP_NULLPTR");
-    }
+    if (optional_args)
+        prcode(fp, "emit_%L_%s", cd->iff, sig->cppname);
     else
-    {
-        prcode(fp, "%d", sig->pyqt_signal_hack);
-    }
+        prcode(fp, "SIP_NULLPTR");
 
     prcode(fp,"},\n"
         );
@@ -14516,10 +14505,9 @@ static void declareLimitedAPI(int py_debug, moduleDef *mod, FILE *fp)
 
 
 /*
- * Generate the PyQt4/5 signals table.
+ * Generate the PyQt5 signals table.
  */
-static int generatePluginSignalsTable(sipSpec *pt, classDef *cd,
-        int pyqt_version, FILE *fp)
+static int generatePluginSignalsTable(sipSpec *pt, classDef *cd, FILE *fp)
 {
     int is_signals = FALSE;
 
@@ -14563,51 +14551,28 @@ static int generatePluginSignalsTable(sipSpec *pt, classDef *cd,
 "\n"
 "\n"
 "/* Define this type's signals. */\n"
-"static const pyqt%dQtSignal signals_%C[] = {\n"
-                        , pyqt_version, classFQCName(cd));
+"static const pyqt5QtSignal signals_%C[] = {\n"
+                        , classFQCName(cd));
                 }
 
                 /*
-                 * For PyQt4 optional arguments are handled as multiple
-                 * signals.  We make sure the largest is first and the smallest
-                 * last which is what Qt does.  When built against Qt5 we
-                 * enable a hack that supplies any missing optional arguments.
-                 * For PyQt5 we only include the version with all arguments and
-                 * provide an emitter function which handles the optional
+                 * We enable a hack that supplies any missing optional
+                 * arguments.  We only include the version with all arguments
+                 * and provide an emitter function which handles the optional
                  * arguments.
                  */
                 generateSignalTableEntry(pt, cd, od, membernr,
                         hasOptionalArgs(od), fp);
 
                 membernr = -1;
-
-                if (pluginPyQt4(pt))
-                {
-                    int a, nr_args;
-                    signatureDef *cppsig;
-
-                    cppsig = od->cppsig;
-                    nr_args = cppsig->nrArgs;
-
-                    for (a = nr_args - 1; a >= 0; --a)
-                    {
-                        if (cppsig->args[a].defval == NULL)
-                            break;
-
-                        cppsig->nrArgs = a;
-                        generateSignalTableEntry(pt, cd, od, -1, FALSE, fp);
-                    }
-
-                    cppsig->nrArgs = nr_args;
-                }
             }
         }
 
         if (is_signals)
             prcode(fp,
-"    {SIP_NULLPTR, SIP_NULLPTR, SIP_NULLPTR, %s}\n"
+"    {SIP_NULLPTR, SIP_NULLPTR, SIP_NULLPTR, SIP_NULLPTR}\n"
 "};\n"
-                , (pyqt_version == 5 ? "SIP_NULLPTR" : "0"));
+                );
     }
 
     return is_signals;
@@ -14620,7 +14585,7 @@ static int generatePluginSignalsTable(sipSpec *pt, classDef *cd,
  */
 static int generatePyQt5ClassPlugin(sipSpec *pt, classDef *cd, FILE *fp)
 {
-    int is_signals = generatePluginSignalsTable(pt, cd, 5, fp);
+    int is_signals = generatePluginSignalsTable(pt, cd, fp);
 
     prcode(fp,
 "\n"
@@ -14655,50 +14620,6 @@ static int generatePyQt5ClassPlugin(sipSpec *pt, classDef *cd, FILE *fp)
 "    \"%s\"\n"
             , cd->pyqt_interface);
     else
-        prcode(fp,
-"    SIP_NULLPTR\n"
-            );
-
-    prcode(fp,
-"};\n"
-        );
-
-    return TRUE;
-}
-
-
-/*
- * Generate any extended class definition data for PyQt4.  Return TRUE if there
- * was something generated.
- */
-static int generatePyQt4ClassPlugin(sipSpec *pt, classDef *cd, FILE *fp)
-{
-    int is_signals = generatePluginSignalsTable(pt, cd, 4, fp);
-
-    prcode(fp,
-"\n"
-"\n"
-"static pyqt4ClassPluginDef plugin_%L = {\n"
-        , cd->iff);
-
-    if (isQObjectSubClass(cd) && !noPyQtQMetaObject(cd))
-        prcode(fp,
-"    &%U::staticMetaObject,\n"
-            , cd);
-    else
-        prcode(fp,
-"    SIP_NULLPTR,\n"
-            );
-
-    prcode(fp,
-"    %u,\n"
-        , cd->pyqt_flags);
-
-    if (is_signals)
-        prcode(fp,
-"    signals_%C\n"
-            , classFQCName(cd));
-        else
         prcode(fp,
 "    SIP_NULLPTR\n"
             );
