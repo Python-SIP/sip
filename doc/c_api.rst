@@ -1502,6 +1502,15 @@ specification files.
         the value of the type object's ``tp_dict`` field.
 
 
+.. c:function:: void sipPrintObject(PyObject *obj)
+
+    This is a thin wrapper around :c:func:`PyObject_Print()` that is typically
+    used when debugging when the limited Python API is enabled.
+
+    :param obj:
+        the Python object.
+
+
 .. c:function:: const char *sipPyTypeName(const PyTypeObject *py_type)
 
     This provides access to a Python type object's ``tp_name`` field and is

@@ -674,7 +674,10 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipGetUserObject            sipAPI_%s->api_get_user_object\n"
 "#define sipSetUserObject            sipAPI_%s->api_set_user_object\n"
 "#define sipRegisterEventHandler     sipAPI_%s->api_register_event_handler\n"
+"#define sipConvertToArray           sipAPI_%s->api_convert_to_array\n"
+"#define sipConvertToTypedArray      sipAPI_%s->api_convert_to_typed_array\n"
 "#define sipEnableGC                 sipAPI_%s->api_enable_gc\n"
+"#define sipPrintObject              sipAPI_%s->api_print_object\n"
 "#define sipLong_AsChar              sipAPI_%s->api_long_as_char\n"
 "#define sipLong_AsSignedChar        sipAPI_%s->api_long_as_signed_char\n"
 "#define sipLong_AsUnsignedChar      sipAPI_%s->api_long_as_unsigned_char\n"
@@ -687,6 +690,9 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipLong_AsLongLong          sipAPI_%s->api_long_as_long_long\n"
 "#define sipLong_AsUnsignedLongLong  sipAPI_%s->api_long_as_unsigned_long_long\n"
 "#define sipLong_AsSizeT             sipAPI_%s->api_long_as_size_t\n"
+        ,mname
+        ,mname
+        ,mname
         ,mname
         ,mname
         ,mname
