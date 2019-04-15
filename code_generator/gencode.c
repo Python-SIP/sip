@@ -674,6 +674,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipGetUserObject            sipAPI_%s->api_get_user_object\n"
 "#define sipSetUserObject            sipAPI_%s->api_set_user_object\n"
 "#define sipRegisterEventHandler     sipAPI_%s->api_register_event_handler\n"
+"#define sipEnableGC                 sipAPI_%s->api_enable_gc\n"
 "#define sipLong_AsChar              sipAPI_%s->api_long_as_char\n"
 "#define sipLong_AsSignedChar        sipAPI_%s->api_long_as_signed_char\n"
 "#define sipLong_AsUnsignedChar      sipAPI_%s->api_long_as_unsigned_char\n"
@@ -686,6 +687,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipLong_AsLongLong          sipAPI_%s->api_long_as_long_long\n"
 "#define sipLong_AsUnsignedLongLong  sipAPI_%s->api_long_as_unsigned_long_long\n"
 "#define sipLong_AsSizeT             sipAPI_%s->api_long_as_size_t\n"
+        ,mname
         ,mname
         ,mname
         ,mname
@@ -1399,7 +1401,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         else
             prcode(fp, "0");
 
-        prcode(fp, ", 0, SIP_TYPE_%s, %n, {0}, 0}, %n, %d, ", (isScopedEnum(ed) ? "SCOPED_ENUM" : "ENUM"), ed->cname, ed->pyname, type_nr);
+        prcode(fp, ", 0, SIP_TYPE_%s, %n, SIP_NULLPTR, 0}, %n, %d, ", (isScopedEnum(ed) ? "SCOPED_ENUM" : "ENUM"), ed->cname, ed->pyname, type_nr);
 
         if (ed->slots != NULL)
             prcode(fp, "slots_%C", ed->fqcname);
@@ -3801,7 +3803,7 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 "        0,\n"
 "        %sSIP_TYPE_MAPPED,\n"
 "        %n,     /* %s */\n"
-"        {0},\n"
+"        SIP_NULLPTR,\n"
 "        0\n"
 "    },\n"
 "    {\n"
@@ -4171,18 +4173,26 @@ static void prMethodTable(sipSpec *pt, sortedMethTab *mtable, int nr,
     for (i = 0; i < nr; ++i)
     {
         memberDef *md = mtable[i].md;
-        const char *flags;
+        const char *cast, *cast_suffix, *flags;
 
         if (noArgParser(md) || useKeywordArgs(md))
+        {
+            cast = "SIP_MLMETH_CAST(";
+            cast_suffix = ")";
             flags = "|METH_KEYWORDS";
+        }
         else
+        {
+            cast = "";
+            cast_suffix = "";
             flags = "";
+        }
 
         /* Save the index in the table. */
         md->membernr = i;
 
         prcode(fp,
-"    {%N, meth_%L_%s, METH_VARARGS%s, ", md->pyname, iff, md->pyname->text, flags);
+"    {%N, %smeth_%L_%s%s, METH_VARARGS%s, ", md->pyname, cast, iff, md->pyname->text, cast_suffix, flags);
 
         if (hasMemberDocstring(pt, overs, md, iff))
             prcode(fp, "doc_%L_%s", iff, md->pyname->text);
@@ -9451,7 +9461,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, int py_debug,
 
     prcode(fp,
 "        %n,\n"
-"        {SIP_NULLPTR},\n"
+"        SIP_NULLPTR,\n"
         , cd->iff->name);
 
     if (plugin)
