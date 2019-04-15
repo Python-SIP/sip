@@ -561,7 +561,6 @@ typedef enum {
 typedef enum {
     str_slot,
     int_slot,
-    long_slot,
     float_slot,
     len_slot,
     contains_slot,

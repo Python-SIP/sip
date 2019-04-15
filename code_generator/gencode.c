@@ -5170,12 +5170,12 @@ int isZeroArgSlot(memberDef *md)
 {
     slotType st = md->slot;
 
-    return (st == str_slot || st == int_slot || st == long_slot ||
-        st == float_slot || st == invert_slot || st == neg_slot ||
-        st == len_slot || st == bool_slot || st == pos_slot ||
-        st == abs_slot || st == repr_slot || st == hash_slot ||
-        st == index_slot || st == iter_slot || st == next_slot ||
-        st == await_slot || st == aiter_slot || st == anext_slot);
+    return (st == str_slot || st == int_slot || st == float_slot ||
+        st == invert_slot || st == neg_slot || st == len_slot ||
+        st == bool_slot || st == pos_slot || st == abs_slot ||
+        st == repr_slot || st == hash_slot || st == index_slot ||
+        st == iter_slot || st == next_slot || st == await_slot ||
+        st == aiter_slot || st == anext_slot);
 }
 
 
@@ -10026,10 +10026,6 @@ static const char *slotName(slotType st)
         sn = "int_slot";
         break;
 
-    case long_slot:
-        sn = "long_slot";
-        break;
-
     case float_slot:
         sn = "float_slot";
         break;
@@ -12020,7 +12016,6 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
             break;
 
         case int_slot:
-        case long_slot:
         case float_slot:
             prcode(fp, "*sipCpp");
             break;

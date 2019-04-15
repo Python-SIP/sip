@@ -3563,14 +3563,11 @@ function:   cpptype TK_NAME_VALUE '(' arglist ')' optconst optfinal optexception
                 case int_type:
                 case cint_type:
                 case uint_type:
-                    sname = "__int__";
-                    break;
-
                 case long_type:
                 case ulong_type:
                 case longlong_type:
                 case ulonglong_type:
-                    sname = "__long__";
+                    sname = "__int__";
                     break;
 
                 case float_type:
@@ -7412,7 +7409,6 @@ static memberDef *findFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
     } slot_table[] = {
         {"__str__", str_slot, TRUE, 0},
         {"__int__", int_slot, FALSE, 0},
-        {"__long__", long_slot, FALSE, 0},
         {"__float__", float_slot, FALSE, 0},
         {"__len__", len_slot, TRUE, 0},
         {"__contains__", contains_slot, TRUE, 1},
