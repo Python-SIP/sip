@@ -96,9 +96,10 @@ typedef unsigned int uint;
 
 
 /* Remove in v5.1. */
-#define SIP_SSIZE_T         Py_ssize_t
-#define SIP_SSIZE_T_FORMAT  "%zd"
+#define SIP_SSIZE_T             Py_ssize_t
+#define SIP_SSIZE_T_FORMAT      "%zd"
 #define SIP_USE_PYCAPSULE
+#define SIP_MODULE_RETURN(v)    return (v)
 
 /*
  * Remove in v5.1.  These are undocumented and can be removed when PyQt5 drops
