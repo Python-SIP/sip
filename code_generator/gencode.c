@@ -2229,11 +2229,7 @@ static void generateSipImport(moduleDef *mod, const char *sipName, FILE *fp)
 "    sip_capiobj = PyDict_GetItemString(PyModule_GetDict(sip_sipmod), \"_C_API\");\n"
 "    Py_DECREF(sip_sipmod);\n"
 "\n"
-"#if defined(SIP_USE_PYCAPSULE)\n"
 "    if (sip_capiobj == SIP_NULLPTR || !PyCapsule_CheckExact(sip_capiobj))\n"
-"#else\n"
-"    if (sip_capiobj == SIP_NULLPTR || !PyCObject_Check(sip_capiobj))\n"
-"#endif\n"
 "    {\n"
 "        Py_DECREF(sipModule);\n"
 "        return SIP_NULLPTR;\n"
@@ -2243,32 +2239,20 @@ static void generateSipImport(moduleDef *mod, const char *sipName, FILE *fp)
 
     if (generating_c)
         prcode(fp,
-"#if defined(SIP_USE_PYCAPSULE)\n"
 "    sipAPI_%s = (const sipAPIDef *)PyCapsule_GetPointer(sip_capiobj, \"%s._C_API\");\n"
-"#else\n"
-"    sipAPI_%s = (const sipAPIDef *)PyCObject_AsVoidPtr(sip_capiobj);\n"
-"#endif\n"
-        , mod->name, sipName
-        , mod->name);
+        , mod->name, sipName);
     else
         prcode(fp,
-"#if defined(SIP_USE_PYCAPSULE)\n"
 "    sipAPI_%s = reinterpret_cast<const sipAPIDef *>(PyCapsule_GetPointer(sip_capiobj, \"%s._C_API\"));\n"
-"#else\n"
-"    sipAPI_%s = reinterpret_cast<const sipAPIDef *>(PyCObject_AsVoidPtr(sip_capiobj));\n"
-"#endif\n"
 "\n"
-        , mod->name, sipName
-        , mod->name);
+        , mod->name, sipName);
 
     prcode(fp,
-"#if defined(SIP_USE_PYCAPSULE)\n"
 "    if (sipAPI_%s == SIP_NULLPTR)\n"
 "    {\n"
 "        Py_DECREF(sipModule);\n"
 "        return SIP_NULLPTR;\n"
 "    }\n"
-"#endif\n"
 "\n"
         , mod->name);
 }
