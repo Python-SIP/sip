@@ -44,8 +44,10 @@ def module(sip_module, documentation_dir=None, include_dir=None, module_dir=None
     if ABI_MAINTENANCE > 0:
         version_str = '%s.%d' % (version_str, ABI_MAINTENANCE)
 
+    sip_module_parts = sip_module.split('.')
+
     patches = {
-        '@SIP_MODULE_PACKAGE@': sip_module.split('.')[0],
+        '@SIP_MODULE_PACKAGE@': sip_module_parts[0],
         '@SIP_MODULE_NAME@':    pypi_name,
         '@SIP_MODULE_VERSION@': version_str,
 
@@ -54,6 +56,8 @@ def module(sip_module, documentation_dir=None, include_dir=None, module_dir=None
         '@_SIP_ABI_MINOR@':     str(ABI_MINOR),
         '@_SIP_ABI_VERSION@':   hex(version),
         '@_SIP_FQ_NAME@':       sip_module,
+        '@_SIP_BASE_NAME@':     sip_module_parts[-1],
+        '@_SIP_MODULE_ENTRY@':  'PyInit_' + sip_module_parts[-1],
     }
 
     # Install the sip.rst file.

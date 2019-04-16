@@ -39,24 +39,6 @@
 
 
 /*
- * The qualified and base names of the sip module.  These should be defined in
- * the compiler invocation when creating a package-specific copy.
- */
-#if !defined(SIP_MODULE_NAME)
-#define SIP_MODULE_NAME     sip
-#endif
-
-#if !defined(SIP_MODULE_BASENAME)
-#define SIP_MODULE_BASENAME sip
-#endif
-
-#define STRINGIFY_EX(s)     #s
-#define STRINGIFY(s)        STRINGIFY_EX(s)
-
-#define SIP_MODULE_NAME_STR     STRINGIFY(SIP_MODULE_NAME)
-#define SIP_MODULE_BASENAME_STR STRINGIFY(SIP_MODULE_BASENAME)
-
-/*
  * The Python metatype for a C++ wrapper type.  We inherit everything from the
  * standard Python metatype except the init and getattro methods and the size
  * of the type object created is increased to accomodate the extra information
@@ -995,15 +977,10 @@ static int long_as_nonoverflow_int(PyObject *val_obj);
 /*
  * The Python module initialisation function.
  */
-#define CONCAT_EX(PREFIX, NAME) PREFIX ## NAME
-#define CONCAT(PREFIX, NAME)    CONCAT_EX(PREFIX, NAME)
-
-#define SIP_MODULE_ENTRY        CONCAT(PyInit_, SIP_MODULE_BASENAME)
-
 #if defined(SIP_STATIC_MODULE)
-PyObject *SIP_MODULE_ENTRY(void)
+PyObject *_SIP_MODULE_ENTRY(void)
 #else
-PyMODINIT_FUNC SIP_MODULE_ENTRY(void)
+PyMODINIT_FUNC _SIP_MODULE_ENTRY(void)
 #endif
 {
     static PyMethodDef methods[] = {
@@ -1032,7 +1009,7 @@ PyMODINIT_FUNC SIP_MODULE_ENTRY(void)
 
     static PyModuleDef module_def = {
         PyModuleDef_HEAD_INIT,
-        SIP_MODULE_NAME_STR,    /* m_name */
+        SIP_MODULE_NAME,        /* m_name */
         NULL,                   /* m_doc */
         -1,                     /* m_size */
         methods,                /* m_methods */
@@ -1111,7 +1088,7 @@ PyMODINIT_FUNC SIP_MODULE_ENTRY(void)
     }
 
     /* Publish the SIP API. */
-    if ((obj = PyCapsule_New((void *)&sip_api, SIP_MODULE_NAME_STR "._C_API", NULL)) == NULL)
+    if ((obj = PyCapsule_New((void *)&sip_api, SIP_MODULE_NAME "._C_API", NULL)) == NULL)
     {
         Py_DECREF(mod);
         return NULL;
@@ -1184,7 +1161,7 @@ PyMODINIT_FUNC SIP_MODULE_ENTRY(void)
      * Also install the package-specific module at the top level for backwards
      * compatibility.
      */
-    if (strcmp(SIP_MODULE_NAME_STR, "sip") != 0 && strcmp(SIP_MODULE_BASENAME_STR, "sip") == 0)
+    if (strcmp(SIP_MODULE_NAME, "sip") != 0 && strcmp(SIP_MODULE_BASENAME, "sip") == 0)
     {
         PyObject *modules = PySys_GetObject("modules");
 
