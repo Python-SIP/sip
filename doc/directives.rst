@@ -105,6 +105,9 @@ For example::
 
 .. directive:: %API
 
+.. deprecated:: 5.0
+    This will be removed in v5.1.
+
 .. parsed-literal::
 
     %API(name = *name*, version = *integer*)

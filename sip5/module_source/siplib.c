@@ -341,7 +341,6 @@ static int sip_api_unicode_as_wchar(PyObject *obj);
 static int *sip_api_unicode_as_wstring(PyObject *obj);
 #endif
 static void sip_api_transfer_break(PyObject *self);
-static int sip_api_deprecated(const char *classname, const char *method);
 static int sip_api_register_py_type(PyTypeObject *supertype);
 static PyObject *sip_api_convert_from_enum(int eval, const sipTypeDef *td);
 static const sipTypeDef *sip_api_type_from_py_type_object(PyTypeObject *py_type);
@@ -7664,7 +7663,7 @@ static void sip_api_abstract_method(const char *classname, const char *method)
 /*
  * Report a deprecated class or method.
  */
-static int sip_api_deprecated(const char *classname, const char *method)
+int sip_api_deprecated(const char *classname, const char *method)
 {
     char buf[100];
 

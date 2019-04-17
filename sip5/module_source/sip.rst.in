@@ -98,6 +98,9 @@ some functionality that can be used by applications.
 
 .. function:: getapi(name) -> version
 
+    .. deprecated:: 12.6
+        This will be removed in v13.0.
+
     This returns the version number that has been set for an API.  The version
     number is either set explicitly by a call to :func:`@_SIP_FQ_NAME@.setapi`
     or implicitly by importing the module that defines it.
@@ -142,6 +145,9 @@ some functionality that can be used by applications.
 
 
 .. function:: setapi(name, version)
+
+    .. deprecated:: 12.6
+        This will be removed in v13.0.
 
     This sets the version number of an API.  An exception is raised if a
     different version number has already been set, either explicitly by a

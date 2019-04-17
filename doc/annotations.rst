@@ -365,6 +365,9 @@ Class Annotations
 
 .. class-annotation:: API
 
+    .. deprecated:: 5.0
+        This will be removed in v5.1.
+
     This API range annotation is used to specify an API and corresponding
     range of version numbers that the class is enabled for.
 
@@ -582,6 +585,9 @@ Mapped Type Annotations
 
 .. mapped-type-annotation:: API
 
+    .. deprecated:: 5.0
+        This will be removed in v5.1.
+
     This API range annotation is used to specify an API and corresponding
     range of version numbers that the mapped type is enabled for.
 
@@ -716,6 +722,9 @@ Function Annotations
 
 
 .. function-annotation:: API
+
+    .. deprecated:: 5.0
+        This will be removed in v5.1.
 
     This API range annotation is used to specify an API and corresponding
     range of version numbers that the function is enabled for.

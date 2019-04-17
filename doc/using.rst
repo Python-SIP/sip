@@ -654,6 +654,9 @@ override this behaviour when required.
 Managing Incompatible APIs
 --------------------------
 
+.. deprecated:: 5.0
+    This will be removed in v5.1.
+
 Sometimes it is necessary to change the way something is wrapped in a way that
 introduces an incompatibility.  For example a new feature of Python may
 suggest that something may be wrapped in a different way to exploit that

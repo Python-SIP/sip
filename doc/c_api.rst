@@ -85,7 +85,7 @@ specification files.
 .. c:macro:: SIP_SSIZE_T
 
     .. deprecated:: 5.0
-        Use ``Py_ssize_t`` instead.
+        This will be removed in v5.1, use ``Py_ssize_t`` instead.
 
     This is a C preprocessor macro that is defined as ``Py_ssize_t``.
 
@@ -93,7 +93,7 @@ specification files.
 .. c:macro:: SIP_SSIZE_T_FORMAT
 
     .. deprecated:: 5.0
-        Use ``%zd`` instead.
+        This will be removed in v5.1, use ``%zd`` instead.
 
     This is a C preprocessor macro that is defined as ``%zd``.
 
@@ -108,7 +108,7 @@ specification files.
 .. c:macro:: SIP_USE_PYCAPSULE
 
     .. deprecated:: 5.0
-        This will always be defined.
+        This will be removed in v5.1.  It will always be defined.
 
     This is a C preprocessor symbol that is defined when ``PyCapsule`` objects
     are being used rather than the (now deprecated) ``PyCObject`` objects.
@@ -1090,6 +1090,9 @@ specification files.
 
 
 .. c:function:: int sipIsAPIEnabled(const char *name, int from, int to)
+
+    .. deprecated:: 5.0
+        This will be removed in v5.1.
 
     This checks to see if the current version number of an API falls within a
     given range.  See :ref:`ref-incompat-apis` for more detail.

@@ -825,6 +825,8 @@ veh_arg: TK_NAME '=' TK_NAME_VALUE {
     ;
 
 api:    TK_API '(' api_arg_list ')' {
+            deprecated("The %API directive is deprecated and will be removed in v5.1");
+
             if (notSkipping())
             {
                 apiVersionRangeDef *avd;
@@ -8836,6 +8838,8 @@ static apiVersionRangeDef *getAPIRange(optFlags *optflgs)
 
     if ((of = getOptFlag(optflgs, "API", api_range_flag)) == NULL)
         return NULL;
+
+    deprecated("The /API/ annotation is deprecated and will be removed in v5.1");
 
     return of->fvalue.aval;
 }
