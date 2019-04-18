@@ -34,7 +34,7 @@ def main():
             description="Generate the code for a sip extension module.")
 
     parser.add_argument(dest='sip_modules', nargs=1,
-            help="the qualified name of the sip module",
+            help="the fully qualified name of the sip module",
             metavar="NAME")
 
     parser.add_argument('--documentation-dir', dest='documentation_dir',

@@ -73,7 +73,7 @@ def main():
             metavar="FILES")
 
     parser.add_argument('-n', dest='sip_module',
-            help="the qualified name of the sip module",
+            help="the fully qualified name of the sip module",
             metavar="NAME")
 
     parser.add_argument('-o', dest='docstrings', action='store_true',

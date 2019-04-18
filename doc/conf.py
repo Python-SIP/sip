@@ -49,7 +49,7 @@ copyright = '{0} Riverbank Computing Limited'.format(
 #
 # The full version, including alpha/beta/rc tags.
 version_file = open(os.path.join('..', 'sip5', 'version.py'))
-release = version_file.read().strip().split('\n')[0].split()[-1][1:-1]
+release = version_file.read().strip().split('\n')[1].split()[-1][1:-1]
 version_file.close()
 del version_file
 # The short X.Y version.

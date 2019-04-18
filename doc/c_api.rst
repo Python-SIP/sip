@@ -1297,8 +1297,8 @@ specification files.
     providing a meta-type when the limited Python API is enabled.
 
     :param td:
-        the :ref:`generated type object <ref-type-objects>` corresponding to
-        the C/C++ type.
+        the :ref:`generated type structure <ref-type-structures>` corresponding
+        to the C/C++ type.
     :param handler:
         the function that is called whenever a user defined sub-class of the
         type is created.  The function takes a single argument which is the

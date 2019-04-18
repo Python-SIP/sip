@@ -977,7 +977,7 @@ The part's optional ``order`` determines its position relative to the extract's
 other parts.  If the order is not specified then the part is appended to the
 extract.
 
-An extract is written to a file using the :option:`-X <sip -X>` command line
+An extract is written to a file using the :option:`-X <sip5 -X>` command line
 option.
 
 For example::
@@ -1008,7 +1008,7 @@ are processed or ignored.
 
 Features are mutually independent of each other - any combination of features
 may be enabled or disabled.  By default all features are enabled.  The
-:option:`-x <sip -x>` command line option is used to disable a feature.
+:option:`-x <sip5 -x>` command line option is used to disable a feature.
 
 If a feature is enabled then SIP will automatically generate a corresponding C
 preprocessor symbol for use by handwritten code.  The symbol is the name of
@@ -1330,7 +1330,7 @@ If ``name`` cannot be opened then SIP prepends ``name`` with the name of the
 directory containing the current specification file (i.e. the one containing
 the :directive:`%Import` directive) and tries again.  If this also fails then
 SIP prepends ``name`` with each of the directories, in turn, specified by the
-:option:`-I <sip -I>` command line option.
+:option:`-I <sip5 -I>` command line option.
 
 Directory separators must always be ``/``.
 
@@ -1968,7 +1968,7 @@ This directive is used to declare a set of platforms.  Platforms (along with
 are processed or ignored.
 
 Platforms are mutually exclusive - only one platform can be enabled at a time.
-By default all platforms are disabled.  The SIP :option:`-t <sip -t>` command
+By default all platforms are disabled.  The SIP :option:`-t <sip5 -t>` command
 line option is used to enable a platform.
 
 If a platform is enabled then SIP will automatically generate a corresponding C
@@ -2162,11 +2162,11 @@ are used by the :directive:`%If` directive to control whether or not parts of a
 specification are processed or ignored.
 
 Versions are mutually exclusive - only one version can be enabled at a time.
-The SIP :option:`-t <sip -t>` command line option is used to enable a version.
+The SIP :option:`-t <sip5 -t>` command line option is used to enable a version.
 If a timeline does not have a version explicitly enabled then the latest
 version will be enabled automatically.
 
-The :option:`-B <sip -B>` command line option may be used to define a
+The :option:`-B <sip5 -B>` command line option may be used to define a
 *backstop* for a timeline.  Instead of automatically enabling the latest
 version, the version immediately preceeding the backstop is enabled instead.
 

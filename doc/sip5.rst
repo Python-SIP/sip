@@ -1,9 +1,7 @@
-.. _ref-command-line:
+The :program:`sip5` Command Line
+================================
 
-The sip5 Command Line
-=====================
-
-The syntax of the sip5 command line is::
+The syntax of the :program:`sip5` command line is::
 
     sip5 [options] [specification]
 
@@ -77,9 +75,8 @@ The full set of command line options is:
 
 .. cmdoption:: -n <NAME>
 
-    The fully qualified name of the private copy of the :mod:`sip` module.
-    See also the :option:`--sip-module <configure.py --sip-module>` option of
-    the installation script.
+    The fully qualified name of the ``sip`` module (i.e. including the
+    package name).
 
 .. cmdoption:: -o
 

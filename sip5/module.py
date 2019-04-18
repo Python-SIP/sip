@@ -47,8 +47,8 @@ def module(sip_module, documentation_dir=None, include_dir=None, module_dir=None
     sip_module_parts = sip_module.split('.')
 
     patches = {
-        '@SIP_MODULE_PACKAGE@': sip_module_parts[0],
         '@SIP_MODULE_NAME@':    pypi_name,
+        '@SIP_MODULE_PACKAGE@': sip_module_parts[0],
         '@SIP_MODULE_VERSION@': version_str,
 
         # These are internal.

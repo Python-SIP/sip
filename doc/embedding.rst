@@ -23,10 +23,10 @@ name to lower case and preceding it with an underscore.  For example:
     ``sipWrapperCheck`` becomes ``api_wrapper_check``
 
 Note that the type objects that SIP generates for a wrapped module (see
-:ref:`ref-type-structures`, :ref:`ref-enum-type-objects` and
-:ref:`ref-exception-objects`) cannot be refered to directly and must be
-obtained using the :c:func:`sipFindType()` function.  Of course, the
-corresponding modules must already have been imported into the interpreter.
+:ref:`ref-type-structures` and :ref:`ref-exception-objects`) cannot be refered
+to directly and must be obtained using the :c:func:`sipFindType()` function.
+Of course, the corresponding modules must already have been imported into the
+interpreter.
 
 The following code fragment shows how to get a pointer to the ``sipAPIDef``
 data structure::
@@ -35,36 +35,8 @@ data structure::
 
     const sipAPIDef *get_sip_api()
     {
-    #if defined(SIP_USE_PYCAPSULE)
         return (const sipAPIDef *)PyCapsule_Import("sip._C_API", 0);
-    #else
-        PyObject *sip_module;
-        PyObject *sip_module_dict;
-        PyObject *c_api;
-
-        /* Import the SIP module. */
-        sip_module = PyImport_ImportModule("sip");
-
-        if (sip_module == NULL)
-            return NULL;
-
-        /* Get the module's dictionary. */
-        sip_module_dict = PyModule_GetDict(sip_module);
-
-        /* Get the "_C_API" attribute. */
-        c_api = PyDict_GetItemString(sip_module_dict, "_C_API");
-
-        if (c_api == NULL)
-            return NULL;
-
-        /* Sanity check that it is the right type. */
-        if (!PyCObject_Check(c_api))
-            return NULL;
-
-        /* Get the actual pointer from the object. */
-        return (const sipAPIDef *)PyCObject_AsVoidPtr(c_api);
-    #endif
     }
 
-The use of :c:macro:`SIP_USE_PYCAPSULE` means that code will run under all
-versions of Python.
+``"sip._C_API"`` should be replaced by the fully qualified name of the ``sip``
+module.
