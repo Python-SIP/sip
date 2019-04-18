@@ -24,7 +24,8 @@ a header file called ``word.h`` which might look something like this::
 
     // Define the interface to the word library.
 
-    class Word {
+    class Word
+    {
         const char *the_word;
 
     public:
@@ -39,8 +40,8 @@ The corresponding SIP specification file would then look something like this::
 
     %Module word
 
-    class Word {
-
+    class Word
+    {
     %TypeHeaderCode
     #include <word.h>
     %End
@@ -85,7 +86,8 @@ Let's now look at a very similar example of wrapping a fictional C library::
 
     /* Define the interface to the word library. */
 
-    struct Word {
+    struct Word
+    {
         const char *the_word;
     };
 
@@ -98,8 +100,8 @@ The corresponding SIP specification file would then look something like this::
 
     %Module(name=word, language="C")
 
-    struct Word {
-
+    struct Word
+    {
     %TypeHeaderCode
     #include <word.h>
     %End
@@ -135,7 +137,7 @@ introduce SIP's versioning system.
 The library contains a single C++ class called ``Hello`` which is derived from
 Qt's ``QLabel`` class.  It behaves just like ``QLabel`` except that the text
 in the label is hard coded to be ``Hello World``.  To make the example more
-interesting we'll also say that the library only supports Qt v4.2 and later,
+interesting we'll also say that the library only supports Qt v5.2 and later,
 and also includes a function called ``setDefault()`` that is not implemented
 in the Windows version of the library.
 
@@ -170,9 +172,9 @@ The corresponding SIP specification file would then look something like this::
 
     %Module hello
 
-    %Import QtGui/QtGuimod.sip
+    %Import QtWidgets/QtWidgetsmod.sip
 
-    %If (Qt_4_2_0 -)
+    %If (Qt_5_2_0 -)
 
     class Hello : public QLabel {
 
@@ -197,19 +199,16 @@ Again we look at the differences, but we'll skip those that we've looked at in
 previous examples.
 
     - The :directive:`%Import` directive has been added to specify that we are
-      extending the class hierarchy defined in the file ``QtGui/QtGuimod.sip``.
-      This file is part of PyQt4.  The build system will take care of finding
-      the file's exact location.
+      extending the class hierarchy defined in the file
+      :file:`QtWidgets/QtWidgetsmod.sip`.  This file is part of PyQt5.
 
     - The :directive:`%If` directive has been added to specify that everything
-      [#]_ up to the matching :directive:`%End` directive only applies to Qt
-      v4.2 and later.  ``Qt_4_2_0`` is a *tag* defined in ``QtCoremod.sip``
+      up to the matching :directive:`%End` directive only applies to Qt v5.2
+      and later.  ``Qt_5_2_0`` is a *tag* defined in :file:`QtCoremod.sip`
       [#]_ using the :directive:`%Timeline` directive.  :directive:`%Timeline`
       is used to define a tag for each version of a library's API you are
       wrapping allowing you to maintain all the different versions in a single
-      SIP specification.  The build system provides support to ``configure.py``
-      scripts for working out the correct tags to use according to which
-      version of the library is actually installed.
+      SIP specification.
 
     - The :aanno:`TransferThis` annotation has been added to the constructor's
       argument.  It specifies that if the argument is not 0 (i.e. the ``Hello``
@@ -229,7 +228,7 @@ previous examples.
 
     - The :directive:`%If` directive has been added to specify that everything
       up to the matching :directive:`%End` directive does not apply to Windows.
-      ``WS_WIN`` is another tag defined by PyQt4, this time using the
+      ``WS_WIN`` is another tag defined by PyQt5, this time using the
       :directive:`%Platforms` directive.  Tags defined by the
       :directive:`%Platforms` directive are mutually exclusive, i.e. only one
       may be valid at a time [#]_.
@@ -238,7 +237,6 @@ One question you might have at this point is why bother to define the private
 copy constructor when it can never be called from Python?  The answer is to
 prevent the automatic generation of a public copy constructor.
 
-.. [#] Some parts of a SIP specification aren't subject to version control.
 .. [#] Actually in ``versions.sip``.  PyQt4 uses the :directive:`%Include`
        directive to split the SIP specification for Qt across a large number of
        separate ``.sip`` files.
@@ -250,7 +248,7 @@ Wrapping Enums
 --------------
 
 SIP wraps C/C++ enums using a dedicated Python type and implements behaviour
-that mimics the C/C++ behaviour regqrding the visibility of the enum's members.
+that mimics the C/C++ behaviour regarding the visibility of the enum's members.
 In other words, an enum's members have the same visibility as the enum itself.
 For example::
 
@@ -271,15 +269,13 @@ introduced the :mod:`enum` module.  In both cases a member is only visible in
 the scope of the enum.  In other words, the ``Member`` member is referenced as
 ``MyClass.MyEnum.Member``.
 
-This version of SIP adds support for wrapping C++11 scoped enums and implements
-them as Python :class:`enum.Enum` objects.  For versions of Python that don't
-include the :mod:`enum` module in the standrd library (i.e. versions earlier
-than v3.4) then the ``enum34`` package must be installed from PyPI.
+SIP generates bindings for C++11 scoped enums and implements them as Python
+:class:`enum.Enum` objects.
 
 A disadvantage of the above is that the Python programmer needs to know the
 nature of the C/C++ enum in order to access its members.  In order to avoid
-this, this version of SIP makes the members of traditional C/C++ enums visible
-from the scope of the enum as well.
+this, SIP makes the members of traditional C/C++ enums visible from the scope
+of the enum as well.
 
 It is recommended that Python code should always specify the enum scope when
 referencing an enum member.
@@ -306,11 +302,11 @@ ensure that Python's cyclic garbage collector can detect and break any
 reference cycles between the owning and owned instances.  The association is
 implemented as the owning instance taking a reference to the owned instance.
 
-The TransferThis, Transfer and TransferBack annotations are used to specify
-where, and it what direction, transfers of ownership happen.  It is very
-important that these are specified correctly to avoid crashes (where both
-Python and C++ call the destructor) and memory leaks (where neither Python and
-C++ call the destructor).
+The :aanno:`TransferThis`, :aanno:`Transfer` and :aanno:`TransferBack` argument
+annotations are used to specify where, and it what direction, transfers of
+ownership happen.  It is very important that these are specified correctly to
+avoid crashes (where both Python and C++ call the destructor) and memory leaks
+(where neither Python and C++ call the destructor).
 
 This applies equally to C structures where the structure is returned to the
 heap using the ``free()`` function.
@@ -359,7 +355,7 @@ sub-classed from one of the SIP provided types.  Your types must be registered
 using :c:func:`sipRegisterPyType()`.  This is normally done in code specified
 using the :directive:`%InitialisationCode` directive.
 
-As an example, PyQt4 uses :directive:`%DefaultMetatype` to specify a new
+As an example, PyQt5 uses :directive:`%DefaultMetatype` to specify a new
 meta-type that handles the interaction with Qt's own meta-type system.  It also
 uses :directive:`%DefaultSupertype` to specify that the smaller
 :class:`sip.simplewrapper` super-type is normally used.  Finally it uses
@@ -397,11 +393,11 @@ By default SIP does not check for overflow when converting Python number
 objects to C/C++ types.  Overflowed values are undefined - it cannot be assumed
 that upper bits are simply discarded.
 
-SIP v4.19.4 allowed overflow checking to be enabled and disabled by the wrapper
-author (using :c:func:`sipEnableOverflowChecking()`) or by the application
-developer (using :py:func:`sip.enableoverflowchecking()`).
+SIP allows overflow checking to be enabled and disabled by the bindings author
+(using :c:func:`sipEnableOverflowChecking()`) or by the application developer
+(using :py:func:`sip.enableoverflowchecking()`).
 
-It is recommended that wrapper authors should always enable overflow checking
+It is recommended that bindings authors should always enable overflow checking
 by default.
 
 
@@ -412,16 +408,13 @@ SIP supports Python's buffer interface in that whenever C/C++ requires a
 ``char`` or ``char *`` type then any Python type that supports the buffer
 interface (including ordinary Python strings) can be used.
 
-If a buffer is made up of a number of segments then all but the first will be
-ignored.
-
 
 Support for Wide Characters
 ---------------------------
 
-SIP v4.6 introduced support for wide characters (i.e. the ``wchar_t`` type).
-Python's C API includes support for converting between unicode objects and wide
-character strings and arrays.  When converting from a unicode object to wide
+SIP supports the use of wide characters (i.e. the ``wchar_t`` type).  Python's
+C API includes support for converting between ``str`` objects and wide
+character strings and arrays.  When converting from a ``str`` object to wide
 characters SIP creates the string or array on the heap (using memory allocated
 using :c:func:`sipMalloc()`).  This then raises the problem of how this memory
 is subsequently freed.

@@ -437,16 +437,9 @@ Classic Division and True Division
 ----------------------------------
 
 SIP supports the ``__div__`` and ``__truediv__`` special methods (and the
-corresponding inplace versions) for both Python v2 and v3.
-
-For Python v2 the ``__div__`` method will be used for both classic and true
-division if a ``__truediv__`` method is not defined.
-
-For Python v3 the ``__div__`` method will be used for true division if a
-``__truediv__`` method is not defined.
-
-For all versions of Python, if both methods are defined then ``__div__``
-should be defined first.
+corresponding inplace versions).  The ``__div__`` method will be used for true
+division if a ``__truediv__`` method is not defined.  If both methods are
+defined then ``__div__`` should be defined first.
 
 
 Namespaces

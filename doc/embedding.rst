@@ -8,10 +8,9 @@ instances between the application and the interpreter.
 
 The API is exported by the SIP module as a ``sipAPIDef`` data structure
 containing a set of function pointers.  The data structure is defined in the
-SIP header file ``sip.h``.  When using Python v2.7, or Python v3.1 or later the
-data structure is wrapped as a Python ``PyCapsule`` object.  When using other
-versions of Python the data structure is wrapped as a Python ``PyCObject``
-object.  It is referenced by the name ``_C_API`` in the SIP module dictionary.
+SIP header file :file:`sip.h`.  The data structure is wrapped as a Python
+``PyCapsule`` object.  It is referenced by the name ``_C_API`` in the ``sip``
+module dictionary.
 
 Each member of the data structure is a pointer to one of the functions of the
 SIP API.  The name of the member can be derived from the function name by
@@ -31,7 +30,7 @@ interpreter.
 The following code fragment shows how to get a pointer to the ``sipAPIDef``
 data structure::
 
-    #include <sip.h>
+    #include "sip.h"
 
     const sipAPIDef *get_sip_api()
     {

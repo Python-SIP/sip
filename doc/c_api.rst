@@ -124,8 +124,8 @@ specification files.
 .. c:macro:: SIP_VERSION_STR
 
     This is a C preprocessor symbol that defines the SIP version number
-    represented as a string.  For development versions it will contain either
-    ``.dev`` or ``-snapshot-``.
+    represented as a string.  For development versions it will contain
+    ``.dev``.
 
 
 .. c:function:: sipErrorState sipBadCallableArg(int arg_nr, PyObject *arg)
@@ -216,14 +216,13 @@ specification files.
     to be passed. 
 
     ``a`` (string) [char]
-        Convert a C/C++ ``char`` to a Python v2 or v3 string object.
+        Convert a C/C++ ``char`` to a Python ``str`` object.
 
     ``b`` (boolean) [int]
         Convert a C/C++ ``int`` to a Python boolean.
 
     ``c`` (string/bytes) [char]
-        Convert a C/C++ ``char`` to a Python v2 string object or a Python v3
-        bytes object.
+        Convert a C/C++ ``char`` to a Python ``bytes`` object.
 
     ``d`` (float) [double]
         Convert a C/C++ ``double`` to a Python floating point number.
@@ -235,9 +234,9 @@ specification files.
         Convert a C/C++ ``float`` to a Python floating point number.
 
     ``g`` (string/bytes) [char \*, :c:macro:`Py_ssize_t`]
-        Convert a C/C++ character array and its length to a Python v2 string
-        object or a Python v3 bytes object.  If the array is ``NULL`` then the
-        length is ignored and the result is ``Py_None``.
+        Convert a C/C++ character array and its length to a Python ``bytes``
+        object.  If the array is ``NULL`` then the length is ignored and the
+        result is ``Py_None``.
 
     ``h`` (integer) [short]
         Convert a C/C++ ``short`` to a Python integer.
@@ -262,9 +261,9 @@ specification files.
         to a Python tuple.  Note that copies of the array elements are made.
 
     ``s`` (string/bytes) [char \*]
-        Convert a C/C++ ``'\0'`` terminated string to a Python v2 string object
-        or a Python v3 bytes object.  If the string pointer is ``NULL`` then
-        the result is ``Py_None``.
+        Convert a C/C++ ``'\0'`` terminated string to a Python ``bytes``
+        object.  If the string pointer is ``NULL`` then the result is
+        ``Py_None``.
 
     ``t`` (long) [unsigned short]
         Convert a C/C++ ``unsigned short`` to a Python long.
@@ -273,18 +272,16 @@ specification files.
         Convert a C/C++ ``unsigned int`` to a Python long.
 
     ``w`` (unicode/string) [wchar_t]
-        Convert a C/C++ wide character to a Python v2 unicode object or a
-        Python v3 string object.
+        Convert a C/C++ wide character to a Python ``str`` object.
 
     ``x`` (unicode/string) [wchar_t \*]
         Convert a C/C++ ``L'\0'`` terminated wide character string to a Python
-        v2 unicode object or a Python v3 string object.  If the string pointer
-        is ``NULL`` then the result is ``Py_None``.
+        ``str`` object.  If the string pointer is ``NULL`` then the result is
+        ``Py_None``.
 
     ``A`` (string) [char \*]
-        Convert a C/C++ ``'\0'`` terminated string to a Python v2 or v3 string
-        object.  If the string pointer is ``NULL`` then the result is
-        ``Py_None``.
+        Convert a C/C++ ``'\0'`` terminated string to a Python ``str`` object.
+        If the string pointer is ``NULL`` then the result is ``Py_None``.
 
     ``D`` (wrapped instance) [*type* \*, const :c:type:`sipTypeDef` \*, PyObject \*]
         Convert a C structure, C++ class or mapped type instance to a Python
@@ -504,9 +501,10 @@ specification files.
 
 .. c:function:: int sipConvertFromSliceObject(PyObject *slice, Py_ssize_t length, Py_ssize_t *start, Py_ssize_t *stop, Py_ssize_t *step, Py_ssize_t *slicelength)
 
-    This is a thin wrapper around the Python :c:func:`PySlice_GetIndicesEx()`
-    function provided to make it easier to write handwritten code that is
-    compatible with SIP v3.x and versions of Python earlier that v2.3.
+    For Python v3.6 and earlier this is a thin wrapper around Python's
+    :c:func:`PySlice_GetIndicesEx()` function.  For Python v3.7 and later it
+    implements the same functionality using the preferred
+    :c:func:`PySlice_Unpack()` and :c:func:`PySlice_AdjustIndices()` functions.
 
 
 .. c:function:: PyObject *sipConvertFromType(void *cpp, const sipTypeDef *td, PyObject *transferObj)
@@ -1283,10 +1281,6 @@ specification files.
 
         The bound object.
 
-    .. c:member:: PyObject *pm_class
-
-        The class.  (Python v2 only.)
-
 
 .. c:function:: sipNewUserTypeFunc sipSetNewUserTypeHandler(const sipTypeDef *td, sipNewUserTypeFunc handler)
 
@@ -1344,17 +1338,15 @@ specification files.
     ``ae`` (object) [char \*]
         Convert a Python string-like object of length 1 to a C/C++ ``char``
         according to the encoding ``e``.  ``e`` can either be ``A`` for ASCII,
-        ``L`` for Latin-1, or ``8`` for UTF-8.  For Python v2 the object may be
-        either a string or a unicode object that can be encoded.  For Python v3
-        the object may either be a bytes object or a string object that can be
-        encoded.  An object that supports the buffer protocol may also be used.
+        ``L`` for Latin-1, or ``8`` for UTF-8.  The object may either be a
+        ``bytes`` object or a ``str`` object that can be encoded.  An object
+        that supports the buffer protocol may also be used.
 
     ``b`` (integer) [bool \*]
         Convert a Python integer to a C/C++ ``bool``.
 
-    ``c`` (string/bytes) [char \*]
-        Convert a Python v2 string object or a Python v3 bytes object of length
-        1 to a C/C++ ``char``.
+    ``c`` (bytes) [char \*]
+        Convert a Python ``bytes`` object of length 1 to a C/C++ ``char``.
 
     ``d`` (float) [double \*]
         Convert a Python floating point number to a C/C++ ``double``.
@@ -1365,11 +1357,10 @@ specification files.
     ``f`` (float) [float \*]
         Convert a Python floating point number to a C/C++ ``float``.
 
-    ``g`` (string/bytes) [const char \*\*, :c:macro:`Py_ssize_t` \*]
-        Convert a Python v2 string object or a Python v3 bytes object to a
-        C/C++ character array and its length.  If the Python object is
-        ``Py_None`` then the array and length are ``NULL`` and zero
-        respectively.
+    ``g`` (bytes) [const char \*\*, :c:macro:`Py_ssize_t` \*]
+        Convert a Python ``bytes`` object to a C/C++ character array and its
+        length.  If the Python object is ``Py_None`` then the array and length
+        are ``NULL`` and zero respectively.
 
     ``h`` (integer) [short \*]
         Convert a Python integer to a C/C++ ``short``.
@@ -1395,14 +1386,13 @@ specification files.
     ``u`` (long) [unsigned int \*]
         Convert a Python long to a C/C++ ``unsigned int``.
 
-    ``w`` (unicode/string) [wchar_t \*]
-        Convert a Python v2 string or unicode object or a Python v3 string
-        object of length 1 to a C/C++ wide character.
+    ``w`` (string) [wchar_t \*]
+        Convert a Python ``str`` object of length 1 to a C/C++ wide character.
 
-    ``x`` (unicode/string) [wchar_t \*\*]
-        Convert a Python v2 string or unicode object or a Python v3 string
-        object to a C/C++ ``L'\0'`` terminated wide character string.  If the
-        Python object is ``Py_None`` then the string is ``NULL``.
+    ``x`` (string) [wchar_t \*\*]
+        Convert a Python ``str`` object to a C/C++ ``L'\0'`` terminated wide
+        character string.  If the Python object is ``Py_None`` then the string
+        is ``NULL``.
 
     ``Ae`` (object) [int, const char \*\*]
         Convert a Python string-like object to a C/C++ ``'\0'`` terminated
@@ -1411,27 +1401,24 @@ specification files.
         ``Py_None`` then the string is ``NULL``.  The integer uniquely
         identifies the object in the context defined by the ``S`` format
         character and allows an extra reference to the object to be kept to
-        ensure that the string remains valid.  For Python v2 the object may be
-        either a string or a unicode object that can be encoded.  For Python v3
-        the object may either be a bytes object or a string object that can be
-        encoded.  An object that supports the buffer protocol may also be used.
+        ensure that the string remains valid.  The object may either be a
+        ``bytes`` object or a ``str`` object that can be encoded.  An object
+        that supports the buffer protocol may also be used.
 
-    ``B`` (string/bytes) [int, const char \*\*]
-        Convert a Python v2 string object or a Python v3 bytes object to a
-        C/C++ ``'\0'`` terminated string.  If the Python object is ``Py_None``
-        then the string is ``NULL``.  The integer uniquely identifies the
-        object in the context defined by the ``S`` format character and allows
-        an extra reference to the object to be kept to ensure that the string
-        remains valid.
+    ``B`` (bytes) [int, const char \*\*]
+        Convert a Python ``bytes`` object to a C/C++ ``'\0'`` terminated
+        string.  If the Python object is ``Py_None`` then the string is
+        ``NULL``.  The integer uniquely identifies the object in the context
+        defined by the ``S`` format character and allows an extra reference to
+        the object to be kept to ensure that the string remains valid.
 
     ``F`` (wrapped enum) [:c:type:`sipTypeDef` \*, enum \*]
         Convert a Python named enum type to the corresponding C/C++ ``enum``.
 
-    ``G`` (unicode/string) [wchar_t \*\*, :c:macro:`Py_ssize_t` \*]
-        Convert a Python v2 string or unicode object or a Python v3 string
-        object to a C/C++ wide character array and its length.  If the Python
-        object is ``Py_None`` then the array and length are ``NULL`` and zero
-        respectively.
+    ``G`` (string) [wchar_t \*\*, :c:macro:`Py_ssize_t` \*]
+        Convert a Python ``str`` object to a C/C++ wide character array and its
+        length.  If the Python object is ``Py_None`` then the array and length
+        are ``NULL`` and zero respectively.
 
     ``Hf`` (wrapped instance) [const :c:type:`sipTypeDef` \*, int \*, void \*\*]
         Convert a Python object to a C structure, C++ class or mapped type
@@ -1876,8 +1863,6 @@ specification files.
 
     This returns information about the contents of a Python unicode object.
 
-    This is only supported for Python v3.3 and later.
-
     :param obj:
         the unicode object.
     :param char_size:
@@ -1897,8 +1882,6 @@ specification files.
     This creates a Python unicode object that will hold a set number of
     characters, each character being of a certain size.
 
-    This is only supported for Python v3.3 and later.
-
     :param len:
         the number of characters.
     :param maxchar:
@@ -1917,8 +1900,6 @@ specification files.
 
     This updates the buffer of a Python unicode object with a character at a
     particular position.
-
-    This is only supported for Python v3.3 and later.
 
     :param kind:
         the value that represents the number of bytes (either 1, 2 or 4) used

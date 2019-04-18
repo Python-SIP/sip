@@ -13,22 +13,8 @@ Some directives are used to specify handwritten code.  Handwritten code must
 not define names that start with the prefix ``sip``.
 
 
-Revised Directive Syntax
-------------------------
-
-The directive syntax used in older versions has some problems:
-
-- it is inconsistent in places
-
-- it can be problematic to parse
-
-- it is inflexible.
-
-SIP v4.12 introduced a revised directive syntax that addresses these problems
-and deprecates the old syntax.  Support for the old syntax will be removed in
-SIP v5.
-
-The revised syntax is:
+Directive Syntax
+----------------
 
 .. parsed-literal::
 
@@ -61,10 +47,6 @@ sub-directives.  In this case the syntax is:
 
 Ordinary C/C++ statements may also have sub-directives.  These will also be
 enclosed in braces.
-
-The documentation for each directive describes the revised syntax.  The older
-syntax should be used if compatibility with versions of SIP prior to v4.12 is
-required.
 
 
 List of Directives
@@ -139,7 +121,7 @@ C++ or C name.
 
 For example::
 
-    %Module PyQt4.QtCore
+    %Module PyQt5.QtCore
     {
         %AutoPyName(remove_leading="Q")
     }
@@ -154,8 +136,7 @@ For example::
     %End
 
 This directive (along with :directive:`%BIReleaseBufferCode`) is used to
-specify code that implements the buffer interface of Python v3.  If Python v2
-is being used then this is ignored.
+specify code that implements Python's buffer interface.
 
 The variables that are made available to the handwritten code depend on
 whether or not the limited Python API is enabled or not.  The following
@@ -192,39 +173,22 @@ PyObject \*sipSelf
 
 .. directive:: %BIGetCharBufferCode
 
+.. deprecated:: 5.0
+    This will be removed in v5.1.
+
 .. parsed-literal::
 
     %BIGetCharBufferCode
         *code*
     %End
 
-This directive (along with :directive:`%BIGetReadBufferCode`,
-:directive:`%BIGetSegCountCode` and :directive:`%BIGetWriteBufferCode`) is used
-to specify code that implements the buffer interface of Python v2.  If Python
-v3 is being used then this is ignored.
-
-The following variables are made available to the handwritten code:
-
-*type* \*sipCpp
-    This is a pointer to the structure or class instance.  Its *type* is a
-    pointer to the structure or class.
-
-void \*\*sipPtrPtr
-    This is the pointer used to return the address of the character buffer.
-
-:c:macro:`SIP_SSIZE_T` sipRes
-    The handwritten code should set this to the length of the character buffer
-    or -1 if there was an error.
-
-:c:macro:`SIP_SSIZE_T` sipSegment
-    This is the number of the segment of the character buffer.
-
-PyObject \*sipSelf
-    This is the Python object that wraps the structure or class instance, i.e.
-    ``self``.
+This directive is ignored.
 
 
 .. directive:: %BIGetReadBufferCode
+
+.. deprecated:: 5.0
+    This will be removed in v5.1.
 
 .. parsed-literal::
 
@@ -232,33 +196,13 @@ PyObject \*sipSelf
         *code*
     %End
 
-This directive (along with :directive:`%BIGetCharBufferCode`,
-:directive:`%BIGetSegCountCode` and :directive:`%BIGetWriteBufferCode`) is used
-to specify code that implements the buffer interface of Python v2.  If
-Python v3 is being used then this is ignored.
-
-The following variables are made available to the handwritten code:
-
-*type* \*sipCpp
-    This is a pointer to the structure or class instance.  Its *type* is a
-    pointer to the structure or class.
-
-void \*\*sipPtrPtr
-    This is the pointer used to return the address of the read buffer.
-
-:c:macro:`SIP_SSIZE_T` sipRes
-    The handwritten code should set this to the length of the read buffer or
-    -1 if there was an error.
-
-:c:macro:`SIP_SSIZE_T` sipSegment
-    This is the number of the segment of the read buffer.
-
-PyObject \*sipSelf
-    This is the Python object that wraps the structure or class instance, i.e.
-    ``self``.
+This directive is ignored.
 
 
 .. directive:: %BIGetSegCountCode
+
+.. deprecated:: 5.0
+    This will be removed in v5.1.
 
 .. parsed-literal::
 
@@ -266,31 +210,13 @@ PyObject \*sipSelf
         *code*
     %End
 
-This directive (along with :directive:`%BIGetCharBufferCode`,
-:directive:`%BIGetReadBufferCode` and :directive:`%BIGetWriteBufferCode`) is
-used to specify code that implements the buffer interface of Python v2.  If
-Python v3 is being used then this is ignored.
-
-The following variables are made available to the handwritten code:
-
-*type* \*sipCpp
-    This is a pointer to the structure or class instance.  Its *type* is a
-    pointer to the structure or class.
-
-:c:macro:`SIP_SSIZE_T` \*sipLenPtr
-    This is the pointer used to return the total length in bytes of all
-    segments of the buffer.
-
-:c:macro:`SIP_SSIZE_T` sipRes
-    The handwritten code should set this to the number of segments that make
-    up the buffer.
-
-PyObject \*sipSelf
-    This is the Python object that wraps the structure or class instance, i.e.
-    ``self``.
+This directive is ignored.
 
 
 .. directive:: %BIGetWriteBufferCode
+
+.. deprecated:: 5.0
+    This will be removed in v5.1.
 
 .. parsed-literal::
 
@@ -298,30 +224,7 @@ PyObject \*sipSelf
         *code*
     %End
 
-This directive (along with :directive:`%BIGetCharBufferCode`,
-:directive:`%BIGetReadBufferCode` and :directive:`%BIGetSegCountCode` is used
-to specify code that implements the buffer interface of Python v2.  If Python
-v3 is being used then this is ignored.
-
-The following variables are made available to the handwritten code:
-
-*type* \*sipCpp
-    This is a pointer to the structure or class instance.  Its *type* is a
-    pointer to the structure or class.
-
-void \*\*sipPtrPtr
-    This is the pointer used to return the address of the write buffer.
-
-:c:macro:`SIP_SSIZE_T` sipRes
-    The handwritten code should set this to the length of the write buffer or
-    -1 if there was an error.
-
-:c:macro:`SIP_SSIZE_T` sipSegment
-    This is the number of the segment of the write buffer.
-
-PyObject \*sipSelf
-    This is the Python object that wraps the structure or class instance, i.e.
-    ``self``.
+This directive is ignored.
 
 
 .. directive:: %BIReleaseBufferCode
@@ -333,8 +236,7 @@ PyObject \*sipSelf
     %End
 
 This directive (along with :directive:`%BIGetBufferCode`) is used to specify
-code that implements the buffer interface of Python v3.  If Python v2 is being
-used then this is ignored.
+code that implements Python's buffer interface.
 
 The variables that are made available to the handwritten code depend on
 whether or not the limited Python API is enabled or not.  The following
@@ -382,7 +284,7 @@ module's docstring.
 
 For example::
 
-    %CompositeModule PyQt4.Qt
+    %CompositeModule PyQt5.Qt
     %Include QtCore/QtCoremod.sip
     %Include QtGui/QtGuimod.sip
 
@@ -406,8 +308,9 @@ object.
 If used as part of a class specification then instances of the class will be
 automatically converted to the Python object, even though the class itself has
 been wrapped.  This behaviour can be changed on a temporary basis from an
-application by calling the :func:`sip.enableautoconversion` function, or from
-handwritten code by calling the :c:func:`sipEnableAutoconversion` function.
+application by calling the :py:func:`sip.enableautoconversion` function, or
+from handwritten code by calling the :c:func:`sipEnableAutoconversion`
+function.
 
 The following variables are made available to the handwritten code:
 
@@ -505,7 +408,7 @@ const sipTypeDef \*sipType
 The handwritten code must not explicitly return.
 
 The following example shows the sub-class conversion code for ``QEvent`` based
-class hierarchy in PyQt::
+class hierarchy in PyQt5::
 
     class QEvent
     {
@@ -550,9 +453,7 @@ specification.  The code is also called to determine if the Python object is of
 the correct type prior to conversion.
 
 When used as part of a class specification it can automatically convert
-additional types of Python object.  For example, PyQt uses it in the
-specification of the ``QString`` class to allow Python string objects and
-unicode objects to be used wherever ``QString`` instances are expected.
+additional types of Python object.
 
 The following variables are made available to the handwritten code:
 
@@ -694,7 +595,7 @@ copyright and licensing terms.
 For example::
 
     %Copying
-    Copyright (c) 2015 Riverbank Computing Limited
+    Copyright (c) 2019 Riverbank Computing Limited
     %End
 
 
@@ -773,7 +674,7 @@ See the section :ref:`ref-types-metatypes` for more details.
 
 For example::
 
-    %DefaultMetatype PyQt4.QtCore.pyqtWrapperType
+    %DefaultMetatype PyQt5.QtCore.pyqtWrapperType
 
 
 .. directive:: %DefaultSupertype
@@ -1096,8 +997,8 @@ The following variables are made available to the handwritten code:
 int sipRes
     The handwritten code should set this to the result to be returned.
 
-The following simplified example is taken from PyQt.  The ``QCustomEvent``
-class allows arbitary data to be attached to the event.  In PyQt this data is
+The following simplified example is taken from PyQt5.  The ``QCustomEvent``
+class allows arbitary data to be attached to the event.  In PyQt5 this data is
 always a Python object and so should be handled by the garbage collector::
 
     %GCClearCode
@@ -1145,7 +1046,7 @@ void \*sipArg
 int sipRes
     The handwritten code should set this to the result to be returned.
 
-The following simplified example is taken from PyQt's ``QCustomEvent`` class::
+The following simplified example is taken from PyQt5's ``QCustomEvent`` class::
 
     %GCTraverseCode
         PyObject *obj;
@@ -1862,7 +1763,7 @@ module's docstring.
 
 For example::
 
-    %Module(name=PyQt4.QtCore, version=5)
+    %Module PyQt5.QtCore
 
 
 .. directive:: %ModuleCode
