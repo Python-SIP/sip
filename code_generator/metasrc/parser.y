@@ -3047,48 +3047,16 @@ classline:  ifstart
             }
         }
     |   readbufcode {
-            if (notSkipping())
-            {
-                classDef *scope = currentScope();
-
-                if (scope->readbufcode != NULL)
-                    yyerror("%BIGetReadBufferCode already given for class");
-
-                appendCodeBlock(&scope->readbufcode, $1);
-            }
+            /* Remove in v5.1. */
         }
     |   writebufcode {
-            if (notSkipping())
-            {
-                classDef *scope = currentScope();
-
-                if (scope->writebufcode != NULL)
-                    yyerror("%BIGetWriteBufferCode already given for class");
-
-                appendCodeBlock(&scope->writebufcode, $1);
-            }
+            /* Remove in v5.1. */
         }
     |   segcountcode {
-            if (notSkipping())
-            {
-                classDef *scope = currentScope();
-
-                if (scope->segcountcode != NULL)
-                    yyerror("%BIGetSegCountCode already given for class");
-
-                appendCodeBlock(&scope->segcountcode, $1);
-            }
+            /* Remove in v5.1. */
         }
     |   charbufcode {
-            if (notSkipping())
-            {
-                classDef *scope = currentScope();
-
-                if (scope->charbufcode != NULL)
-                    yyerror("%BIGetCharBufferCode already given for class");
-
-                appendCodeBlock(&scope->charbufcode, $1);
-            }
+            /* Remove in v5.1. */
         }
     |   instancecode {
             if (notSkipping())
@@ -5838,10 +5806,6 @@ static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod,
     cd->clearcode = templateCode(pt, used, cd->clearcode, type_names, type_values);
     cd->getbufcode = templateCode(pt, used, cd->getbufcode, type_names, type_values);
     cd->releasebufcode = templateCode(pt, used, cd->releasebufcode, type_names, type_values);
-    cd->readbufcode = templateCode(pt, used, cd->readbufcode, type_names, type_values);
-    cd->writebufcode = templateCode(pt, used, cd->writebufcode, type_names, type_values);
-    cd->segcountcode = templateCode(pt, used, cd->segcountcode, type_names, type_values);
-    cd->charbufcode = templateCode(pt, used, cd->charbufcode, type_names, type_values);
     cd->instancecode = templateCode(pt, used, cd->instancecode, type_names, type_values);
     cd->picklecode = templateCode(pt, used, cd->picklecode, type_names, type_values);
     cd->finalcode = templateCode(pt, used, cd->finalcode, type_names, type_values);

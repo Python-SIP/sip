@@ -1263,12 +1263,8 @@ typedef struct _classDef {
     codeBlockList *convfromcode;        /* Convert from C++ code. */
     codeBlockList *travcode;            /* Traverse code. */
     codeBlockList *clearcode;           /* Clear code. */
-    codeBlockList *getbufcode;          /* Get buffer code (Python v3). */
-    codeBlockList *releasebufcode;      /* Release buffer code (Python v3). */
-    codeBlockList *readbufcode;         /* Read buffer code (Python v2). */
-    codeBlockList *writebufcode;        /* Write buffer code (Python v2). */
-    codeBlockList *segcountcode;        /* Segment count code (Python v2). */
-    codeBlockList *charbufcode;         /* Character buffer code (Python v2). */
+    codeBlockList *getbufcode;          /* Get buffer code. */
+    codeBlockList *releasebufcode;      /* Release buffer code. */
     codeBlockList *picklecode;          /* Pickle code. */
     codeBlockList *finalcode;           /* Finalisation code. */
     codeBlockList *typehintcode;        /* Type hint code. */
