@@ -77,7 +77,8 @@ def module(sip_module, documentation_dir=None, include_dir=None, module_dir=None
 
         if not no_sdist:
             # Created the sdist.
-            tf = tarfile.open(pkg_dir + '.tar.gz', 'w:gz')
+            tf = tarfile.open(pkg_dir + '.tar.gz', 'w:gz',
+                    format=tarfile.PAX_FORMAT)
 
             # Make sure that the names in the archive don't have a leading path
             # component.
