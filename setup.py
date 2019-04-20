@@ -24,7 +24,7 @@
 import glob
 import os
 
-from setuptools import Extension, setup
+from setuptools import Extension, find_packages, setup
 
 
 # Get the version number.
@@ -51,9 +51,9 @@ setup(
         version=version,
         license='SIP',
         python_requires='>=3.5',
-        packages=['sip5'],
+        packages=find_packages(),
         package_data={
-            'sip5.module': ['module_source/*'],
+            'sip5.module': ['source/*'],
         },
         ext_modules=[code_gen_module],
         entry_points={
