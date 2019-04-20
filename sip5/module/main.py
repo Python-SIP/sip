@@ -21,9 +21,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from .exceptions import handle_exception
+from ..exceptions import handle_exception
+from ..standard_arguments import StandardArgumentParser
+
 from .module import module
-from .standard_arguments import StandardArgumentParser
 
 
 def main():

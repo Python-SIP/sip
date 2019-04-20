@@ -29,7 +29,7 @@ from .module_abi import ABI_MAJOR, ABI_MINOR, ABI_MAINTENANCE
 
 
 # The directory containing the source code.
-_src_dir = os.path.join(os.path.dirname(__file__), 'module_source')
+_src_dir = os.path.join(os.path.dirname(__file__), 'source')
 
 
 def module(sip_module, documentation_dir=None, include_dir=None, module_dir=None, no_sdist=False, setup_cfg=None):

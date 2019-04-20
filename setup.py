@@ -53,12 +53,12 @@ setup(
         python_requires='>=3.5',
         packages=['sip5'],
         package_data={
-            'sip5': ['module_source/*'],
+            'sip5.module': ['module_source/*'],
         },
         ext_modules=[code_gen_module],
         entry_points={
             'console_scripts': [
                 'sip5 = sip5.sip5_main:main',
-                'sip5-module = sip5.module_main:main']
+                'sip5-module = sip5.module.main:main']
         }
      )
