@@ -50,7 +50,7 @@ def main():
             help="add <TAG> to the list of timeline backstops",
             metavar="TAG")
 
-    parser.add_argument('-c', dest='bindings_dir',
+    parser.add_argument('-c', dest='sources_dir',
             help="the name of the code directory [default not generated]",
             metavar="DIR")
 
@@ -115,7 +115,7 @@ def main():
 
     try:
         sip5(specification=args.specification, sip_module=args.sip_module,
-                bindings_dir=args.bindings_dir, include_dirs=args.include_dirs,
+                sources_dir=args.sources_dir, include_dirs=args.include_dirs,
                 tags=args.tags, backstops=args.backstops,
                 disabled_features=args.disabled_features,
                 exceptions=args.exceptions, parts=args.parts,
