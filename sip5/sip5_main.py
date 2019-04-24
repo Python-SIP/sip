@@ -21,7 +21,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from .bindings import bindings
+from .sip5 import sip5
 from .exceptions import handle_exception
 from .standard_arguments import StandardArgumentParser
 
@@ -114,7 +114,7 @@ def main():
     args = parser.parse_args()
 
     try:
-        bindings(specification=args.specification, sip_module=args.sip_module,
+        sip5(specification=args.specification, sip_module=args.sip_module,
                 bindings_dir=args.bindings_dir, include_dirs=args.include_dirs,
                 tags=args.tags, backstops=args.backstops,
                 disabled_features=args.disabled_features,
