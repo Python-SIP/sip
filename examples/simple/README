@@ -1,0 +1,4 @@
+To create and install the extension module, run:
+
+    python setup.py bdist_wheel
+    pip install dist/age-1.0-*.whl
