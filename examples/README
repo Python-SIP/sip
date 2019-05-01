@@ -1,5 +1,5 @@
 Before creating and of the example extension modules you need to create and
 install the sip module that they all rely on.  To do this, run:
 
-    sip5-module --module-dir . examples.sip
+    sip5-module examples.sip
     pip install examples_sip-X.Y.tar.gz

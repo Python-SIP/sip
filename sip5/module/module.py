@@ -35,6 +35,11 @@ _src_dir = os.path.join(os.path.dirname(__file__), 'source')
 def module(sip_module, documentation_dir=None, include_dir=None, module_dir=None, no_sdist=False, setup_cfg=None):
     """ Create the sdist for a sip module. """
 
+    # If no locations are specified then create the sdist in the current
+    # directory.
+    if documentation_dir is None and include_dir is None and module_dir is None:
+        module_dir = '.'
+
     # Create the patches.
     pypi_name = sip_module.replace('.', '_')
 

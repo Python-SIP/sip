@@ -34,7 +34,10 @@ The full set of command line options is:
     placed.  This file may then be installed by ``pip``, converted to a wheel
     by ``pip``, or uploaded to PyPI.  The name of the file will be derived from
     the fully qualified name of the module and the version number of the ABI
-    that the module implements.
+    that the module implements.  If this and the
+    :option:`--documentation-dir <sip5-module --documentation-dir>` and
+    :option:`--include-dir <sip-module --include-dir>` options are not
+    specified then the file is created in the current directory.
 
 .. cmdoption:: --no-sdist
 
