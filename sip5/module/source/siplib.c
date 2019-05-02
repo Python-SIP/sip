@@ -1889,9 +1889,13 @@ static int sip_api_init_module(sipExportedModuleDef *client,
     /* Create the module's enum members. */
     for (emd = client->em_enummembers, i = 0; i < client->em_nrenummembers; ++i, ++emd)
     {
+        sipTypeDef *etd = client->em_types[emd->em_enum];
         PyObject *mo;
 
-        if ((mo = sip_api_convert_from_enum(emd->em_val, client->em_types[emd->em_enum])) == NULL)
+        if (sipTypeIsScopedEnum(etd))
+            continue;
+
+        if ((mo = sip_api_convert_from_enum(emd->em_val, etd)) == NULL)
             return -1;
 
         if (PyDict_SetItemString(mod_dict, emd->em_name, mo) < 0)
