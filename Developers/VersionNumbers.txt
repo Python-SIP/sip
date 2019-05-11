@@ -66,20 +66,19 @@ version.
 Version Number Checks
 =====================
 
-SIP will generate code that will verify (after including sip.h) that the major
-ABI version number it is generating code for matches the major ABI version
-number defined in sip.h.
+SIP generates code that verifies (after including sip.h) that the major ABI
+version number it is generating code for matches the major ABI version number
+defined in sip.h.
 
-The bindings generator will produce code that is independent of the current
+The bindings generator must produce code that is independent of the current
 minor ABI version number (using pre-processor conditionals if necessary).  In
 other words it cannot assume that the sip.h file being used defines the current
 version of the ABI.
 
-An extension module will verify that the major ABI version number it is built
+An extension module verifiwa that the major ABI version number it is built
 against (i.e. that defined by the sip.h file used) matches the major ABI
-version number implemented by the sip module.  It will also verify that the
-minor ABI version number is less than or equal to that implemented by the sip
-module.
+version number implemented by the sip module.  It also verifies that the minor
+ABI version number is less than or equal to that implemented by the sip module.
 
 
 Dependency Checks

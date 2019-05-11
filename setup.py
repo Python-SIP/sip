@@ -53,6 +53,7 @@ setup(
         python_requires='>=3.5',
         packages=find_packages(),
         package_data={
+            'sip5': ['abi_version.h'],
             'sip5.module': ['source/*'],
         },
         ext_modules=[code_gen_module],

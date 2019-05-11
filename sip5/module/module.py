@@ -25,8 +25,6 @@ import os
 import shutil
 import tarfile
 
-from .module_abi import ABI_MAJOR, ABI_MINOR, ABI_MAINTENANCE
-
 
 # The directory containing the source code.
 _src_dir = os.path.join(os.path.dirname(__file__), 'source')
@@ -43,11 +41,12 @@ def module(sip_module, documentation_dir=None, include_dir=None, module_dir=None
     # Create the patches.
     pypi_name = sip_module.replace('.', '_')
 
-    version = (ABI_MAJOR << 16) | (ABI_MINOR << 8) | ABI_MAINTENANCE
+    abi_major, abi_minor, abi_maintenance = _read_abi_version()
+    version = (abi_major << 16) | (abi_minor << 8) | abi_maintenance
 
-    version_str = '%d.%d' % (ABI_MAJOR, ABI_MINOR)
-    if ABI_MAINTENANCE > 0:
-        version_str = '%s.%d' % (version_str, ABI_MAINTENANCE)
+    version_str = '%d.%d' % (abi_major, abi_minor)
+    if abi_maintenance > 0:
+        version_str = '%s.%d' % (version_str, abi_maintenance)
 
     sip_module_parts = sip_module.split('.')
 
@@ -57,8 +56,8 @@ def module(sip_module, documentation_dir=None, include_dir=None, module_dir=None
         '@SIP_MODULE_VERSION@': version_str,
 
         # These are internal.
-        '@_SIP_ABI_MAJOR@':     str(ABI_MAJOR),
-        '@_SIP_ABI_MINOR@':     str(ABI_MINOR),
+        '@_SIP_ABI_MAJOR@':     str(abi_major),
+        '@_SIP_ABI_MINOR@':     str(abi_minor),
         '@_SIP_ABI_VERSION@':   hex(version),
         '@_SIP_FQ_NAME@':       sip_module,
         '@_SIP_BASE_NAME@':     sip_module_parts[-1],
@@ -155,3 +154,28 @@ def _install_file(name_in, name_out, patches):
         f.write(data)
 
     return data
+
+
+def _read_abi_version():
+    """ Return a 3-tuple of the major, minor and maintenance version numbers of
+    the current ABI.
+    """
+
+    abi_major = abi_minor = abi_maintenance = -1
+
+    # Read the version from the header file shared with the code generator.
+    with open(os.path.join()) as vf:
+        for line in vf.read():
+            parts = line.strip().split()
+            if len(parts) == 3 and parts[0] == '#define':
+                name = parts[1]
+                value = parts[2]
+
+                if name == 'SIP5_ABI_MAJOR':
+                    abi_major = int(value)
+                elif name == 'SIP5_ABI_MINOR':
+                    abi_minor = int(value)
+                elif name == 'SIP5_ABI_MAINTENANCE':
+                    abi_maintenance = int(value)
+
+    return abi_major, abi_minor, abi_maintenance

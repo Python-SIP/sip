@@ -24,6 +24,7 @@
 #include <string.h>
 
 #include "sip.h"
+#include "../sip5/module/abi_version.h"
 
 
 /* Return the base (ie. C/C++) name of a super-type or meta-type. */
@@ -293,6 +294,7 @@ static int isString(argDef *ad);
 static scopedNameDef *stripScope(scopedNameDef *snd, int strip);
 static void prEnumMemberScope(enumMemberDef *emd, FILE *fp);
 static void normaliseSignalArg(argDef *ad);
+static void generate_include_sip_h(FILE *fp);
 
 
 /*
@@ -448,10 +450,7 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 
     declareLimitedAPI(py_debug, mod, fp);
 
-    prcode(fp,
-"\n"
-"#include <sip.h>\n"
-        );
+    generate_include_sip_h(fp);
 
     if (pluginPyQt5(pt))
         prcode(fp,
@@ -957,10 +956,9 @@ static void generateCompositeCpp(sipSpec *pt, const char *codeDir,
 
     declareLimitedAPI(py_debug, NULL, fp);
 
+    generate_include_sip_h(fp);
+
     prcode(fp,
-"\n"
-"#include <Python.h>\n"
-"#include <sip.h>\n"
 "\n"
 "\n"
 "static void sip_import_component_module(PyObject *d, const char *name)\n"
@@ -14646,4 +14644,19 @@ static void prEnumMemberScope(enumMemberDef *emd, FILE *fp)
         prcode(fp, "%U", ecd);
     else
         prcode(fp, "%S", classFQCName(ecd));
+}
+
+
+/*
+ * Generate the inclusion of sip.h.
+ */
+static void generate_include_sip_h(FILE *fp)
+{
+    prcode(fp,
+"\n"
+"#include <sip.h>\n"
+"#if SIP_API_MAJOR_NR != %d\n"
+"#error \"SIP is generating code for ABI v%d which is incompatible with sip.h.\"\n"
+"#endif\n"
+        , SIP5_ABI_MAJOR, SIP5_ABI_MAJOR);
 }
