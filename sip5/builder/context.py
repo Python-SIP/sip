@@ -21,26 +21,36 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-class BuilderException(Exception):
-    """ The base class for all builder exceptions. """
-
-    def __init__(self, text, detail=''):
-        """ Initialise the exception with its user friendly text and the
-        optional detail.
-        """
-
-        super().__init__()
-
-        self.text = text
-        self.detail = detail
+from .configuration import Configurable, Option
 
 
-class ConfigurationError(BuilderException):
-    """ An exception that encapsulates an error in a configuration file. """
+class BaseContext:
+    """ The base class of a package context. """
 
-    def __init__(self, configuration, line_nr, text, detail=''):
+    def __init__(self):
         """ Initialise the object. """
 
-        exception_text = "{}:{}:{}".format(configuration, line_nr, text)
+        self.action = None
+        self.build_dir = 'build'
+        self.verbose = False
+        self.warnings_are_errors = False
 
-        super().__init__(exception_text, detail)
+
+class PackageContext(BaseContext, Configurable):
+    """ The default implementation of a package context. """
+
+    # The configurable options.
+    _options = (
+        Option('verbose', option_type=bool,
+                help="enable verbose progress messages"),
+        Option('warnings_are_errors', option_type=bool,
+                help="handle warnings as errors"),
+        Option('build_dir', help="the build directory", metavar="DIR"),
+        Option('action', choices=('install', 'sdist', 'wheel'), action=True)
+    )
+
+    @classmethod
+    def get_options(cls):
+        """ Get the context-specific configurable options. """
+
+        return cls._options

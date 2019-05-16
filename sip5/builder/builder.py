@@ -21,35 +21,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-import os
+class BaseBuilder:
+    """ The base class of a module builder. """
 
-from ..module.module import module
+    pass
 
 
-class BindingsContext:
-    """ Encapsulate the bindings context for creating a package and its
-    component modules.
-    """
+class DistutilsBuilder(AbstractBuilder):
+    """ The implementation of a distutils-based builder. """
 
-    def __init__(self, sip_module, configuration):
-        """ Initialise the object. """
-
-        self.sip_module = sip_module
-        self.configuration = configuration
-
-        self.bindings_dir = None
-
-    def initialise(self):
-        """ Initialise the bindings context.  This may be called any number
-        of times.
-        """
-
-        # Only initialise once.
-        if self.bindings_dir is None:
-            # Create the bindings directory.
-            self.bindings_dir = os.path.abspath(
-                    self.configuration.bindings_dir if self.configuration.bindings_dir else 'bindings')
-            os.makedirs(self.bindings_dir, exist_ok=True)
-
-            # Create the sip.h file.
-            module(self.sip_module, include_dir=self.bindings_dir)
+    pass

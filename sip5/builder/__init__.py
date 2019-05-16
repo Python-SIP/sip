@@ -22,7 +22,9 @@
 
 
 # Publish the public API.
-from .bindings import Bindings, BindingsLocations
-from .bindings_configuration import BindingsConfiguration
-from .bindings_context import BindingsContext
-from .exceptions import Sip5ConfigurationError, Sip5Exception
+from .bindings import BaseBindings, ModuleBindings
+from .builder import BaseBuilder, DistutilsBuilder
+from .configuration import Configurable, ConfigurationParser, Option
+from .context import BaseContext, PackageContext
+from .exceptions import BuilderException, ConfigurationError
+from .package import Package

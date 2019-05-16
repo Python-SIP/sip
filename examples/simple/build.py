@@ -20,6 +20,19 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+from sip5.builder import Package
+
+
+# Define the package as it would appear in PyPI.  We also specify the name of
+# the sip module it uses.
+package = Package('age', sip_module='examples.sip')
+
+# Add the extension module created from the .sip specification file.
+package.add_module('age.sip')
+
+# Build the package according to the user supplied command line options..
+package.build()
+
 
 from setuptools import Extension, setup
 from sip5.bindings import Bindings, BindingsConfiguration, BindingsContext

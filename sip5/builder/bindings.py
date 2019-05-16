@@ -21,9 +21,48 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-import os
+import sys
 
-from ..sip5 import sip5
+from .configuration import Configurable, Option
+
+
+class BaseBindings:
+    """ The base class for a module bindings. """
+
+    def __init__(self, sip_file):
+        """ Initialise the object. """
+
+        self.sip_file = sip_file
+
+
+class ModuleBindings(BaseBindings, Configurable):
+    """ The default implementation of a module bindings. """
+
+    # The configurable options.
+    _options = (
+        Option('concatenate', option_type=int,
+                help="concatenate the generated bindings into N source files",
+                metavar="N"),
+        Option('debug', option_type=bool, help="build with debugging symbols"),
+        Option('docstrings', option_type=bool, default=True, command='no',
+                help="disable the generation of docstrings")
+        Option('generate_api', option_type=bool,
+                help="generate a QScintilla .api file"),
+        Option('generate_extracts', option_type=list,
+                help="generate an extract file", metavar="ID:FILE"),
+        Option('generate_pyi', option_type=bool,
+                help="generate a PEP 484 .pyi file")
+        Option('protected_is_public', option_type=bool,
+                default=(sys.platform != 'win32'), command='both',
+                help="disable the generation of docstrings"),
+        Option('tracing', type=bool, help="build with tracing support"),
+    )
+
+    @classmethod
+    def get_options(cls):
+        """ Get the context-specific configurable options. """
+
+        return cls._options
 
 
 class Bindings:
