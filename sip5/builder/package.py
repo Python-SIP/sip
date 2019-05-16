@@ -54,6 +54,8 @@ class Package:
         self._bindings_factory = bindings_factory
         self._builder_factory = builder_factory
 
+        self._modules = []
+
         # Get the configuration.
         try:
             self._configuration = self._configure(enable_configuration_file)
@@ -73,7 +75,7 @@ class Package:
     def add_module(self, sip_file):
         """ Add an extension module defined by a .sip file to the package. """
 
-        # TODO
+        self._modules.append(sip_file)
 
     def build(self):
         """ Build the package. """
@@ -87,6 +89,17 @@ class Package:
                 self._create_wheel()
         except Exception as e:
             self._handle_exception(e)
+
+    def information(self, message):
+        """ Print an informational message if verbose messages are enabled. """
+
+        if self._context.verbose:
+            print(message)
+
+    def progress(self, message):
+        """ Print a progress message is verbose messages are enabled. """
+
+        self.information(message + '...')
 
     def _configure(self, enable_configuration_file):
         """ Return a mapping of user supplied configuration names and values.

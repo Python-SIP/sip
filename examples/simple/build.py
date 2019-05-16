@@ -20,6 +20,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+
 from sip5.builder import Package
 
 
@@ -30,31 +31,5 @@ package = Package('age', sip_module='examples.sip')
 # Add the extension module created from the .sip specification file.
 package.add_module('age.sip')
 
-# Build the package according to the user supplied command line options..
+# Build the package according to the user supplied command line options.
 package.build()
-
-
-from setuptools import Extension, setup
-from sip5.bindings import Bindings, BindingsConfiguration, BindingsContext
-
-
-# Get a bindings configuration instance that contains the user supplied
-# bindings configuration.
-configuration = BindingsConfiguration()
-
-# Create a bindings context instance and give it the name of the package's sip
-# module.
-context = BindingsContext('examples.sip', configuration)
-
-# Create a bindings instance and give it the name of the SIP specification file
-# that defines the bindings.
-bindings = Bindings('age.sip', context)
-
-# Generate the bindings code.  It returns a BindingsLocation instance
-# containing the absolute file names of everything that was generated.
-locations = bindings.generate()
-
-age_module = Extension('examples.age', locations.sources,
-        include_dirs=locations.include_dirs)
-
-setup(name='age', version='1.0', ext_modules=[age_module])

@@ -33,7 +33,6 @@ class BaseContext:
         self.action = None
         self.build_dir = 'build'
         self.verbose = False
-        self.warnings_are_errors = False
 
 
 class PackageContext(BaseContext, Configurable):
@@ -43,8 +42,6 @@ class PackageContext(BaseContext, Configurable):
     _options = (
         Option('verbose', option_type=bool,
                 help="enable verbose progress messages"),
-        Option('warnings_are_errors', option_type=bool,
-                help="handle warnings as errors"),
         Option('build_dir', help="the build directory", metavar="DIR"),
         Option('action', choices=('install', 'sdist', 'wheel'), action=True)
     )
