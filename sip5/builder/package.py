@@ -22,6 +22,7 @@
 
 
 import os
+import shutil
 import sys
 
 from .configuration import Configurable
@@ -31,7 +32,7 @@ from .exceptions import BuilderException
 class Package:
     """ Encapsulate a package containing one or more extension modules. """
 
-    def __init__(self, name, *, version='1.0', enable_configuration_file=True, sip_module=None, context_factory=None, bindings_factory=None, builder_factory=None):
+    def __init__(self, name, *, version='1.0', enable_configuration_file=True, sip_module=None, installed_sip_h_dir=None, context_factory=None, bindings_factory=None, builder_factory=None):
         """ Initialise the object. """
 
         # Provide defaults for remaining unspecified arguments.
@@ -39,17 +40,18 @@ class Package:
             sip_module = name + '.sip'
 
         if context_factory is None:
-            from .context import PackageContext as context_factory
+            from .context import ConfigurableContext as context_factory
 
         if bindings_factory is None:
-            from .bindings import ModuleBindings as bindings_factory
+            from .bindings import ConfigurableBindings as bindings_factory
 
         if builder_factory is None:
             from .builder import DistutilsBuilder as builder_factory
 
         self._name = name
         self._version = version
-        self._sip_module = sip_module
+        self.sip_module = sip_module
+        self.installed_sip_h_dir = installed_sip_h_dir
         self._context = context_factory()
         self._bindings_factory = bindings_factory
         self._builder_factory = builder_factory
@@ -87,6 +89,7 @@ class Package:
                 self._create_sdist()
             elif self._context.action == 'wheel':
                 self._create_wheel()
+
         except Exception as e:
             self._handle_exception(e)
 
@@ -127,6 +130,8 @@ class Package:
     def _create_wheel(self):
         """ Create a wheel for the package. """
 
+        self._set_up_build_dir()
+
         raise NotImplemented
 
     def _handle_exception(self, e):
@@ -154,4 +159,20 @@ class Package:
     def _install(self):
         """ Install the package. """
 
+        self._set_up_build_dir()
+
         raise NotImplemented
+
+    def _set_up_build_dir(self):
+        """ Set up the build directory. """
+
+        # Make sure we have a clean build directory.
+        shutil.rmtree(self.build_dir, ignore_errors=True)
+        os.mkdir(self.build_dir)
+
+        # Create sip.h if we haven't been given a pre-installed copy.
+        if self.installed_sip_h_dir is None:
+            from ..module.module import module
+
+            module(self._sip_module, include_dir=self._build_dir)
+            self.installed_sip_h_dir = self._build_dir

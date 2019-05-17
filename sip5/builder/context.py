@@ -24,21 +24,21 @@
 from .configuration import Configurable, Option
 
 
-class BaseContext:
-    """ The base class of a package context. """
+class Context:
+    """ The encapsulation of a package context. """
 
-    def __init__(self):
+    def __init__(self, *, action='install', build_dir='build', verbose=False):
         """ Initialise the object. """
 
-        self.action = None
-        self.build_dir = 'build'
-        self.verbose = False
+        self.action = action
+        self.build_dir = build_dir
+        self.verbose = verbose
 
 
-class PackageContext(BaseContext, Configurable):
-    """ The default implementation of a package context. """
+class ConfigurableContext(Context, Configurable):
+    """ The user-configurable encapsulation of a package context. """
 
-    # The configurable options.
+    # The user-configurable options.
     _options = (
         Option('verbose', option_type=bool,
                 help="enable verbose progress messages"),
@@ -48,6 +48,6 @@ class PackageContext(BaseContext, Configurable):
 
     @classmethod
     def get_options(cls):
-        """ Get the context-specific configurable options. """
+        """ Get the user-configurable options. """
 
         return cls._options

@@ -22,9 +22,9 @@
 
 
 # Publish the public API.
-from .bindings import BaseBindings, ModuleBindings
+from .bindings import Bindings, ConfigurableBindings
 from .builder import BaseBuilder, DistutilsBuilder
 from .configuration import Configurable, ConfigurationParser, Option
-from .context import BaseContext, PackageContext
+from .context import Context, ConfigurableContext
 from .exceptions import BuilderException, ConfigurationError
 from .package import Package

@@ -27,7 +27,7 @@ class BaseBuilder:
     pass
 
 
-class DistutilsBuilder(AbstractBuilder):
+class DistutilsBuilder(Builder):
     """ The implementation of a distutils-based builder. """
 
     pass

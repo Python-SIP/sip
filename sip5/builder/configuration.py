@@ -22,7 +22,7 @@
 
 
 from abc import ABC, abstractmethod
-from argparse import ArgumentParser
+from argparse import ArgumentParser, SUPPRESS
 
 from .exceptions import ConfigurationError
 
@@ -34,61 +34,31 @@ class Configurable(ABC):
         """ Apply the user supplied configuration. """
 
         for option in self.get_options():
-            value = configuration[option.name]
-            if value is not None:
-                setattr(self, option.name, value)
+            name = option.name
+
+            if hasattr(configuration, name):
+                setattr(self, name, getattr(configuration, name))
 
     @classmethod
     @abstractmethod
     def get_options(cls):
-        """ Return the configurable's options. """
+        """ Get the user-configurable options. """
 
 
 class Option:
     """ Encapsulate a configuration option. """
 
-    # The map of option types and their default values.  All other types have a
-    # default of None.
-    _type_defaults = {
-        str:    '',
-        int:    0,
-        bool:   False
-    }
-
-    def __init__(self, name, *, argument_name=None, option_type=str, choices=None, default=None, help='', metavar=None, action=False, command=''):
+    def __init__(self, name, *, argument_name=None, option_type=str, choices=None, help='', metavar=None, action=False, inverted=False):
         """ Initialise the object. """
-
-        # The argument name defaults to the transformed option name.
-        if argument_name is None:
-            argument_name = name.replace('_', '-')
-
-            # Remove any plural.
-            if option_type is list and argument_name.endswith('s'):
-                argument_name = argument_name[:-1]
-
-        # Determine the default value based on the type.
-        if default is None:
-            default = self._type_defaults.get(option_type)
 
         self.name = name
         self.argument_name = argument_name
         self.option_type = option_type
         self.choices = choices
-        self.default = default
         self.help = help
         self.metavar = metavar
         self.action = action
-        self.command = command
-
-    def get_argument(self, negated=False):
-        """ Return the command line argument name. """
-
-        prefix = '' if self.action else '--'
-
-        if negated:
-            prefix += 'no-'
-
-        return prefix + self.argument_name
+        self.inverted = inverted
 
 
 class ConfigurationParser:
@@ -99,7 +69,7 @@ class ConfigurationParser:
     def __init__(self, version, enable_configuration_file):
         """ Initialise the object. """
 
-        self._parser = ArgumentParser()
+        self._parser = ArgumentParser(argument_default=SUPPRESS)
 
         self._parser.add_argument('-V', '--version', action='version',
                 version=version)
@@ -116,25 +86,35 @@ class ConfigurationParser:
         """ Add a configurable's options to the parser. """
 
         for option in configurable.get_options():
-            if option.option_type is bool:
-                if option.command != 'no':
-                    parser.add_argument(option.get_argument(),
-                            dest=option.name, choices=option.choices,
-                            action='store_true', help=option.help)
+            # The argument name defaults to the transformed option name.
+            argument_name = option.argument_name
 
-                if option.command != '':
-                    parser.add_argument(option.get_argument(negated=True),
-                            dest=option.name, choices=option.choices,
-                            action='store_false', help=option.help)
+            if argument_name is None:
+                argument_name = option.name.replace('_', '-')
+
+                if option.inverted:
+                    argument_name = 'no-' + argument_name
+
+                if not option.action:
+                    argument_name = '--' + argument_name
+
+                # Remove any plural.
+                if option.option_type is list and argument_name.endswith('s'):
+                    argument_name = argument_name[:-1]
+
+            if option.option_type is bool:
+                parser.add_argument(argument_name, dest=option.name,
+                        action=('store_false' if option.inverted
+                                else 'store_true'),
+                        help=option.help)
             elif option.option_type is list:
-                parser.add_argument(option.get_argument(), dest=option.name,
+                parser.add_argument(argument_name, dest=option.name,
                         choices=option.choices, action='append',
                         help=option.help, metavar=option.metavar)
             else:
-                parser.add_argument(option.get_argument(),
-                        type=option.option_type, dest=option.name,
-                        choices=option.choices, help=option.help,
-                        metavar=option.metavar)
+                parser.add_argument(argument_name, dest=option.name,
+                        type=option.option_type, choices=option.choices,
+                        help=option.help, metavar=option.metavar)
 
             # Save non-action options in case we have a configuration file.
             if not option.action:
@@ -146,19 +126,17 @@ class ConfigurationParser:
 
         configuration = self._parser.parse_args()
 
-        if self._enable_configuration_file:
-            configuration_file = configuration.configuration_file
-            del configuration.configuration_file
-
-            if configuration_file:
-                self._update_from_configuration_file(configuration,
-                        configuration_file)
+        if hasattr(configuration, 'configuration'):
+            self._update_from_configuration_file(configuration)
+            del configuration.configuration
 
         return configuration
 
-    def _update_from_configuration_file(self, configuration, configuration_file):
+    def _update_from_configuration_file(self, configuration):
         """ Update a configuration from the contents of a configuration file.
         """
+
+        configuration_file = configuration.configuration
 
         with open(configuration_file) as f:
             line_nr = 0
@@ -208,7 +186,7 @@ class ConfigurationParser:
                         raise ConfigurationError(configuration_file, line_nr,
                                 "error converting '{}'".format(value)) from e
 
-                # Only override the existing configuration if no value has been
+                # Only override the existing configuration if no value had been
                 # set.
-                if getattr(configuration, name) is None:
+                if not hasattr(configuration, name) is None:
                     setattr(configuration, name, cfg_value)

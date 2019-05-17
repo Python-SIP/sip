@@ -21,119 +21,80 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
+import os
 import sys
+
+from ..sip5 import sip5
 
 from .configuration import Configurable, Option
 
 
-class BaseBindings:
-    """ The base class for a module bindings. """
+class Bindings:
+    """ The encapsulation of a module's bindings. """
 
-    def __init__(self, sip_file):
+    def __init__(self, sip_file, *, backstops=None, concatenate=0, debug=False, disabled_features=None, docstrings=True, exceptions=False, generate_api=False, generate_extracts=False, generate_pyi=False, include_dirs=None, protected_is_public=None, release_gil=False, source_suffix=None, tags=None, tracing=False):
         """ Initialise the object. """
+
+        if protected_is_public is None:
+            protected_is_public = (sys.platform != 'win32')
 
         self.sip_file = sip_file
+        self.backstops = backstops
+        self.concatenate = concatenate
+        self.debug = debug
+        self.disabled_features = disabled_features
+        self.docstrings = docstrings
+        self.exceptions = exceptions
+        self.generate_api = generate_api
+        self.generate_extracts = generate_extracts
+        self.generate_pyi = generate_pyi
+        self.include_dirs = include_dirs
+        self.protected_is_public = protected_is_public
+        self.release_gil = release_gil
+        self.source_suffix = source_suffix
+        self.tags = tags
+        self.tracing = tracing
 
-
-class ModuleBindings(BaseBindings, Configurable):
-    """ The default implementation of a module bindings. """
-
-    # The configurable options.
-    _options = (
-        Option('concatenate', option_type=int,
-                help="concatenate the generated bindings into N source files",
-                metavar="N"),
-        Option('debug', option_type=bool, help="build with debugging symbols"),
-        Option('docstrings', option_type=bool, default=True, command='no',
-                help="disable the generation of docstrings")
-        Option('generate_api', option_type=bool,
-                help="generate a QScintilla .api file"),
-        Option('generate_extracts', option_type=list,
-                help="generate an extract file", metavar="ID:FILE"),
-        Option('generate_pyi', option_type=bool,
-                help="generate a PEP 484 .pyi file")
-        Option('protected_is_public', option_type=bool,
-                default=(sys.platform != 'win32'), command='both',
-                help="disable the generation of docstrings"),
-        Option('tracing', type=bool, help="build with tracing support"),
-    )
-
-    @classmethod
-    def get_options(cls):
-        """ Get the context-specific configurable options. """
-
-        return cls._options
-
-
-class Bindings:
-    """ Encapsulate the bindings defined by a .sip specification file. """
-
-    def __init__(self, sip_file, context, *, backstops=None, disabled_features=None, exceptions=False, module_name=None, release_gil=False, source_suffix=None, tags=None):
-        """ Initialise the object. """
-
-        self._sip_file = sip_file
-        self._context = context
-
-        # Derive the module name from the name of the .sip file if it wasn't
-        # explicitly specified.
-        if module_name is None:
-            module_name = os.path.basename(sip_file)
-            if module_name.endswith('.sip'):
-                module_name = module_name[:-4]
-
-        self._module_name = module_name
-
-        self._backstops = backstops
-        self._disabled_features = disabled_features
-        self._exceptions = exceptions
-        self._release_gil = release_gil
-        self._source_suffix = source_suffix
-        self._tags = tags
-
-    def generate(self):
+    def generate(self, package):
         """ Generate the bindings source code and optional additional extracts.
         Return a BindingsLocation instance containing the absolute file
         locations of everything that was generated.
         """
 
-        context = self._context
-        configuration = context.configuration
+        # Derive the module name from the name of the .sip file.
+        # TODO - this should be returned by the .sip parser.  The code
+        # generator should be given the name of the higher-level directory in
+        # which a module-specific sub-directory is created and the generated
+        # code placed in that.
+        module_name = os.path.basename(sip_file)
+        if module_name.endswith('.sip'):
+            module_name = module_name[:-4]
 
-        # Make sure the context is initialised.
-        context.initialise()
+        sources_dir = os.path.join(package.build_dir, module_name)
 
-        # Generate the bindings.
-        sources_dir = os.path.join(context.bindings_dir, self._module_name)
-        include_dirs = [context.bindings_dir, sources_dir]
-        parts = 0 if configuration.concatenate is None else configuration.concatenate
-
-        if configuration.generate_pyi:
-            pyi_extract = os.path.join(sources_dir, self._module_name + '.pyi')
+        if self.generate_pyi:
+            pyi_extract = os.path.join(sources_dir, module_name + '.pyi')
         else:
             pyi_extract = None
 
-        if configuration.generate_api:
-            api_extract = os.path.join(sources_dir, self._module_name + '.api')
+        if self.generate_api:
+            api_extract = os.path.join(sources_dir, module_name + '.api')
         else:
             api_extract = None
 
         # Make sure the module's sub-directory exists.
         os.makedirs(sources_dir, exist_ok=True)
 
-        sip5(self._sip_file, sip_module=context.sip_module,
-                sources_dir=sources_dir, include_dirs=include_dirs,
-                tags=self._tags, backstops=self._backstops,
-                disabled_features=self._disabled_features,
-                exceptions=self._exceptions, parts=parts,
-                source_suffix=self._source_suffix,
-                docstrings=configuration.docstrings,
-                protected_is_public=configuration.protected_is_public,
-                py_debug=configuration.debug, release_gil=self._release_gil,
-                tracing=configuration.tracing,
-                extracts=configuration.generate_extracts,
-                pyi_extract=pyi_extract, api_extract=api_extract,
-                warnings=configuration.warnings_are_errors,
-                warnings_are_errors=configuration.warnings_are_errors)
+        sip5(self.sip_file, sip_module=package.sip_module,
+                sources_dir=sources_dir, include_dirs=self.include_dirs,
+                tags=self.tags, backstops=self.backstops,
+                disabled_features=self.disabled_features,
+                exceptions=self.exceptions, parts=self.concatenate,
+                source_suffix=self.source_suffix, docstrings=self.docstrings,
+                protected_is_public=self.protected_is_public,
+                py_debug=self.debug, release_gil=self.release_gil,
+                tracing=self.tracing, extracts=self.generate_extracts,
+                pyi_extract=pyi_extract, api_extract=api_extract)
 
         # The locations of things that will have been generated.  Note that we
         # don't include anything for generic extracts as the arguments include
@@ -141,11 +102,12 @@ class Bindings:
         locations = BindingsLocations()
 
         locations.api_file = api_extract
-        locations.include_dirs = include_dirs
+        locations.include_dirs = [package.installed_sip_dir, sources_dir]
         locations.pyi_file = pyi_extract
 
         # Assume anything in the sources directory that looks like a C/C++
         # source file should be compiled.
+        # TODO - this should be returned by the code generator.
         sources = []
         for fn in os.listdir(sources_dir):
             if self._source_suffix:
@@ -157,6 +119,37 @@ class Bindings:
         locations.sources = [os.path.join(sources_dir, fn) for fn in sources]
 
         return locations
+
+
+class ConfigurableBindings(Bindings, Configurable):
+    """ The user-configurable encapsulation of a module's bindings. """
+
+    # The user-configurable options.
+    _options = (
+        Option('concatenate', option_type=int,
+                help="concatenate the generated bindings into N source files",
+                metavar="N"),
+        Option('debug', option_type=bool, help="build with debugging symbols"),
+        Option('docstrings', option_type=bool, inverted=True,
+                help="disable the generation of docstrings")
+        Option('generate_api', option_type=bool,
+                help="generate a QScintilla .api file"),
+        Option('generate_extracts', option_type=list,
+                help="generate an extract file", metavar="ID:FILE"),
+        Option('generate_pyi', option_type=bool,
+                help="generate a PEP 484 .pyi file")
+        Option('protected_is_public', option_type=bool,
+                help="enable the protected/public hack"),
+        Option('protected_is_public', option_type=bool, inverted=True,
+                help="disable the protected/public hack"),
+        Option('tracing', type=bool, help="build with tracing support"),
+    )
+
+    @classmethod
+    def get_options(cls):
+        """ Get the user-configurable options. """
+
+        return cls._options
 
 
 class BindingsLocations:
