@@ -35,15 +35,19 @@ def sip5(specification, sip_module=None, sources_dir=None, include_dirs=None, ta
         raise UserException("the name of the sip module must be given")
 
     # Set the globals.
+    # TODO: deprecate 'warnings' and 'warnings_are_errors' and use the warnings
+    # module to issue warnings.
     set_globals(SIP_VERSION, SIP_VERSION_STR, include_dirs, warnings,
             warnings_are_errors)
 
     # Parse the input file.
+    # TODO: return the name of the module.
     pt = parse(specification, True, tags, backstops, disabled_features,
             protected_is_public)
 
     # Generate the bindings.
     if sources_dir is not None:
+        # TODO: return the names of all generated files.
         generateCode(pt, sources_dir, source_suffix, exceptions, tracing,
                 release_gil, parts, tags, disabled_features, docstrings,
                 py_debug, sip_module)

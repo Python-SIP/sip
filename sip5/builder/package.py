@@ -56,7 +56,7 @@ class Package:
         self._bindings_factory = bindings_factory
         self._builder_factory = builder_factory
 
-        self._modules = []
+        self._bindings = []
 
         # Get the configuration.
         try:
@@ -74,10 +74,10 @@ class Package:
         self.build_dir = os.path.abspath(self._context.build_dir)
         os.chdir(os.path.dirname(__file__))
 
-    def add_module(self, sip_file):
-        """ Add an extension module defined by a .sip file to the package. """
+    def add_bindings(self, sip_file):
+        """ Add the bindings defined by a .sip file to the package. """
 
-        self._modules.append(sip_file)
+        self._bindings.append(self.bindings_factory(sip_file))
 
     def build(self):
         """ Build the package. """
@@ -176,3 +176,7 @@ class Package:
 
             module(self._sip_module, include_dir=self._build_dir)
             self.installed_sip_h_dir = self._build_dir
+
+        # Generate the source code for each module's bindings.
+        for bindings in self._bindings:
+            locations = bindings.generate(self)

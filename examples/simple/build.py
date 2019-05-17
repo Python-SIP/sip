@@ -28,8 +28,8 @@ from sip5.builder import Package
 # the sip module it uses.
 package = Package('age', sip_module='examples.sip')
 
-# Add the extension module created from the .sip specification file.
-package.add_module('age.sip')
+# Add the module bindings created from the .sip specification file.
+package.add_bindings('age.sip')
 
 # Build the package according to the user supplied command line options.
 package.build()

@@ -32,28 +32,26 @@ from .configuration import Configurable, Option
 class Bindings:
     """ The encapsulation of a module's bindings. """
 
-    def __init__(self, sip_file, *, backstops=None, concatenate=0, debug=False, disabled_features=None, docstrings=True, exceptions=False, generate_api=False, generate_extracts=False, generate_pyi=False, include_dirs=None, protected_is_public=None, release_gil=False, source_suffix=None, tags=None, tracing=False):
+    def __init__(self, sip_file):
         """ Initialise the object. """
 
-        if protected_is_public is None:
-            protected_is_public = (sys.platform != 'win32')
-
         self.sip_file = sip_file
-        self.backstops = backstops
-        self.concatenate = concatenate
-        self.debug = debug
-        self.disabled_features = disabled_features
-        self.docstrings = docstrings
-        self.exceptions = exceptions
-        self.generate_api = generate_api
-        self.generate_extracts = generate_extracts
+
+        self.backstops = None
+        self.concatenate = 0
+        self.debug = False
+        self.disabled_features = None
+        self.docstrings = True
+        self.exceptions = False
+        self.generate_api = False
+        self.generate_extracts = False
         self.generate_pyi = generate_pyi
-        self.include_dirs = include_dirs
-        self.protected_is_public = protected_is_public
-        self.release_gil = release_gil
-        self.source_suffix = source_suffix
-        self.tags = tags
-        self.tracing = tracing
+        self.include_dirs = None
+        self.protected_is_public = (sys.platform != 'win32')
+        self.release_gil = False
+        self.source_suffix = None
+        self.tags = None
+        self.tracing = False
 
     def generate(self, package):
         """ Generate the bindings source code and optional additional extracts.

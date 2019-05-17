@@ -1,4 +1,13 @@
 To create and install the extension module, run:
 
-    python setup.py bdist_wheel
-    pip install dist/age-1.0-*.whl
+    python build.py install
+
+To create and install an sdist, run::
+
+    python build.py sdist
+    pip install age-1.0.tar.gz
+
+To create and install a wheel, run::
+
+    python build.py wheel
+    pip install age-1.0-*.whl

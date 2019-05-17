@@ -27,12 +27,12 @@ from .configuration import Configurable, Option
 class Context:
     """ The encapsulation of a package context. """
 
-    def __init__(self, *, action='install', build_dir='build', verbose=False):
+    def __init__(self):
         """ Initialise the object. """
 
-        self.action = action
-        self.build_dir = build_dir
-        self.verbose = verbose
+        self.action = 'install'
+        self.build_dir = 'build'
+        self.verbose = False
 
 
 class ConfigurableContext(Context, Configurable):
