@@ -23,8 +23,8 @@
 
 # Publish the public API.
 from .bindings import Bindings, ConfigurableBindings
-from .builder import BaseBuilder, DistutilsBuilder
-from .configuration import Configurable, ConfigurationParser, Option
+from .builder import Builder, DistutilsBuilder
+from .configuration import Configurable, Option
 from .context import Context, ConfigurableContext
-from .exceptions import BuilderException, ConfigurationError
+from .exceptions import BuilderException
 from .package import Package

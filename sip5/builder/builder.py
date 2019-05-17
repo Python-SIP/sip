@@ -21,13 +21,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-class BaseBuilder:
-    """ The base class of a module builder. """
+class Builder:
+    """ The encapsulation of a code builder. """
 
     pass
 
 
 class DistutilsBuilder(Builder):
-    """ The implementation of a distutils-based builder. """
+    """ The implementation of a distutils-based code builder. """
 
     pass

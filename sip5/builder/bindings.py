@@ -129,18 +129,18 @@ class ConfigurableBindings(Bindings, Configurable):
                 metavar="N"),
         Option('debug', option_type=bool, help="build with debugging symbols"),
         Option('docstrings', option_type=bool, inverted=True,
-                help="disable the generation of docstrings")
+                help="disable the generation of docstrings"),
         Option('generate_api', option_type=bool,
                 help="generate a QScintilla .api file"),
         Option('generate_extracts', option_type=list,
                 help="generate an extract file", metavar="ID:FILE"),
         Option('generate_pyi', option_type=bool,
-                help="generate a PEP 484 .pyi file")
+                help="generate a PEP 484 .pyi file"),
         Option('protected_is_public', option_type=bool,
                 help="enable the protected/public hack"),
         Option('protected_is_public', option_type=bool, inverted=True,
                 help="disable the protected/public hack"),
-        Option('tracing', type=bool, help="build with tracing support"),
+        Option('tracing', option_type=bool, help="build with tracing support"),
     )
 
     @classmethod

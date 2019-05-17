@@ -24,7 +24,7 @@
 from abc import ABC, abstractmethod
 from argparse import ArgumentParser, SUPPRESS
 
-from .exceptions import ConfigurationError
+from .exceptions import BuilderException
 
 
 class Configurable(ABC):
@@ -59,6 +59,17 @@ class Option:
         self.metavar = metavar
         self.action = action
         self.inverted = inverted
+
+
+class ConfigurationError(BuilderException):
+    """ An exception that encapsulates an error in a configuration file. """
+
+    def __init__(self, configuration, line_nr, text, detail=''):
+        """ Initialise the object. """
+
+        exception_text = "{}:{}:{}".format(configuration, line_nr, text)
+
+        super().__init__(exception_text, detail)
 
 
 class ConfigurationParser:
@@ -103,16 +114,16 @@ class ConfigurationParser:
                     argument_name = argument_name[:-1]
 
             if option.option_type is bool:
-                parser.add_argument(argument_name, dest=option.name,
+                self._parser.add_argument(argument_name, dest=option.name,
                         action=('store_false' if option.inverted
                                 else 'store_true'),
                         help=option.help)
             elif option.option_type is list:
-                parser.add_argument(argument_name, dest=option.name,
+                self._parser.add_argument(argument_name, dest=option.name,
                         choices=option.choices, action='append',
                         help=option.help, metavar=option.metavar)
             else:
-                parser.add_argument(argument_name, dest=option.name,
+                self._parser.add_argument(argument_name, dest=option.name,
                         type=option.option_type, choices=option.choices,
                         help=option.help, metavar=option.metavar)
 

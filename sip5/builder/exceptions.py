@@ -33,14 +33,3 @@ class BuilderException(Exception):
 
         self.text = text
         self.detail = detail
-
-
-class ConfigurationError(BuilderException):
-    """ An exception that encapsulates an error in a configuration file. """
-
-    def __init__(self, configuration, line_nr, text, detail=''):
-        """ Initialise the object. """
-
-        exception_text = "{}:{}:{}".format(configuration, line_nr, text)
-
-        super().__init__(exception_text, detail)

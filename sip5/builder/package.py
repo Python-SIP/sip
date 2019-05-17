@@ -25,7 +25,7 @@ import os
 import shutil
 import sys
 
-from .configuration import Configurable
+from .configuration import Configurable, ConfigurationParser
 from .exceptions import BuilderException
 
 
@@ -108,16 +108,16 @@ class Package:
         """ Return a mapping of user supplied configuration names and values.
         """
 
-        parser = ConfigurationParser(self.version, enable_configuration_file)
+        parser = ConfigurationParser(self._version, enable_configuration_file)
 
         if isinstance(self._context, Configurable):
-            parse.add_options(self.context)
+            parser.add_options(self._context)
 
         if issubclass(self._bindings_factory, Configurable):
-            parse.add_options(self._bindings_factory)
+            parser.add_options(self._bindings_factory)
 
         if issubclass(self._builder_factory, Configurable):
-            parse.add_options(self._builder_factory)
+            parser.add_options(self._builder_factory)
 
         # Parse the configuration.
         return parser.parse()
@@ -139,7 +139,7 @@ class Package:
 
         script_name = os.path.basename(sys.argv[0])
 
-        if isinstance(BuilderException):
+        if isinstance(e, BuilderException):
             # An "expected" exception.
             if e.detail != '':
                 message = "{0}: {1}".format(e.text, e.detail)
