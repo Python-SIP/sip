@@ -48,8 +48,34 @@ class Configurable(ABC):
 class Option:
     """ Encapsulate a configuration option. """
 
+    # This is used to make sure each option (even if they are handling the same
+    # attribute) has a unique 'dest'.
+    option_nr = 0
+
     def __init__(self, name, *, argument_name=None, option_type=str, choices=None, help='', metavar=None, action=False, inverted=False):
         """ Initialise the object. """
+
+        # The argument name defaults to the transformed option name.
+        if argument_name is None:
+            argument_name = name.replace('_', '-')
+
+            if inverted:
+                argument_name = 'no-' + argument_name
+
+            if not action:
+                argument_name = '--' + argument_name
+
+            # Remove any plural.
+            if option_type is list and argument_name.endswith('s'):
+                argument_name = argument_name[:-1]
+
+        if action:
+            # argparse doesn't allow a 'dest' to be specified for positional
+            # arguments.
+            self.dest = name
+        else:
+            self.dest = 'd' + str(type(self).option_nr)
+            type(self).option_nr += 1
 
         self.name = name
         self.argument_name = argument_name
@@ -97,45 +123,46 @@ class ConfigurationParser:
         """ Add a configurable's options to the parser. """
 
         for option in configurable.get_options():
-            # The argument name defaults to the transformed option name.
-            argument_name = option.argument_name
-
-            if argument_name is None:
-                argument_name = option.name.replace('_', '-')
-
-                if option.inverted:
-                    argument_name = 'no-' + argument_name
-
-                if not option.action:
-                    argument_name = '--' + argument_name
-
-                # Remove any plural.
-                if option.option_type is list and argument_name.endswith('s'):
-                    argument_name = argument_name[:-1]
-
             if option.option_type is bool:
-                self._parser.add_argument(argument_name, dest=option.name,
+                self._parser.add_argument(option.argument_name,
+                        dest=option.dest,
                         action=('store_false' if option.inverted
                                 else 'store_true'),
                         help=option.help)
             elif option.option_type is list:
-                self._parser.add_argument(argument_name, dest=option.name,
-                        choices=option.choices, action='append',
-                        help=option.help, metavar=option.metavar)
-            else:
-                self._parser.add_argument(argument_name, dest=option.name,
+                self._parser.add_argument(option.argument_name,
+                        dest=option.dest, choices=option.choices,
+                        action='append', help=option.help,
+                        metavar=option.metavar)
+            elif option.action:
+                self._parser.add_argument(option.argument_name,
                         type=option.option_type, choices=option.choices,
                         help=option.help, metavar=option.metavar)
+            else:
+                self._parser.add_argument(option.argument_name,
+                        dest=option.dest, type=option.option_type,
+                        choices=option.choices, help=option.help,
+                        metavar=option.metavar)
 
-            # Save non-action options in case we have a configuration file.
-            if not option.action:
-                self._options.append(option)
+            self._options.append(option)
 
     def parse(self):
         """ Parse the configuration and return a mapping of name/value pairs.
         """
 
-        configuration = self._parser.parse_args()
+        args = self._parser.parse_args()
+
+        # Convert the parsed arguments to the option names.
+        configuration = type(args)()
+
+        for option in self._options:
+            if hasattr(args, option.dest):
+                if hasattr(configuration, option.name):
+                    raise BuilderException(
+                            "error: the '{}' option is incompatible with another "
+                            "specified option".format(option.argument_name))
+
+                setattr(configuration, option.name, getattr(args, option.dest))
 
         if hasattr(configuration, 'configuration'):
             self._update_from_configuration_file(configuration)
@@ -173,7 +200,7 @@ class ConfigurationParser:
                             "empty name or value")
 
                 for option in self._options:
-                    if option.name == name:
+                    if option.name == name and not option.action:
                         break
                 else:
                     raise ConfigurationError(configuration_file, line_nr,

@@ -44,8 +44,8 @@ class Bindings:
         self.docstrings = True
         self.exceptions = False
         self.generate_api = False
-        self.generate_extracts = False
-        self.generate_pyi = generate_pyi
+        self.generate_extracts = None
+        self.generate_pyi = False
         self.include_dirs = None
         self.protected_is_public = (sys.platform != 'win32')
         self.release_gil = False
@@ -64,7 +64,7 @@ class Bindings:
         # generator should be given the name of the higher-level directory in
         # which a module-specific sub-directory is created and the generated
         # code placed in that.
-        module_name = os.path.basename(sip_file)
+        module_name = os.path.basename(self.sip_file)
         if module_name.endswith('.sip'):
             module_name = module_name[:-4]
 
@@ -100,7 +100,7 @@ class Bindings:
         locations = BindingsLocations()
 
         locations.api_file = api_extract
-        locations.include_dirs = [package.installed_sip_dir, sources_dir]
+        locations.include_dirs = [package.installed_sip_h_dir, sources_dir]
         locations.pyi_file = pyi_extract
 
         # Assume anything in the sources directory that looks like a C/C++
@@ -108,8 +108,8 @@ class Bindings:
         # TODO - this should be returned by the code generator.
         sources = []
         for fn in os.listdir(sources_dir):
-            if self._source_suffix:
-                if fn.endswith(self._source_suffix):
+            if self.source_suffix:
+                if fn.endswith(self.source_suffix):
                     sources.append(fn)
             elif fn.endswith('.c') or fn.endswith('.cpp'):
                 sources.append(fn)
@@ -137,9 +137,9 @@ class ConfigurableBindings(Bindings, Configurable):
         Option('generate_pyi', option_type=bool,
                 help="generate a PEP 484 .pyi file"),
         Option('protected_is_public', option_type=bool,
-                help="enable the protected/public hack"),
+                help="enable the protected/public hack (default on non-Windows"),
         Option('protected_is_public', option_type=bool, inverted=True,
-                help="disable the protected/public hack"),
+                help="disable the protected/public hack (default on Windows)"),
         Option('tracing', option_type=bool, help="build with tracing support"),
     )
 

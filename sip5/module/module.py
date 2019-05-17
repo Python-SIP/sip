@@ -164,7 +164,7 @@ def _read_abi_version():
     abi_major = abi_minor = abi_maintenance = -1
 
     # Read the version from the header file shared with the code generator.
-    with open(os.path.join()) as vf:
+    with open(os.path.join(os.path.dirname(__file__), 'abi_version.h')) as vf:
         for line in vf.read():
             parts = line.strip().split()
             if len(parts) == 3 and parts[0] == '#define':

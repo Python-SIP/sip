@@ -72,12 +72,12 @@ class Package:
         # file and directory names are relative to the directory containing
         # this script.
         self.build_dir = os.path.abspath(self._context.build_dir)
-        os.chdir(os.path.dirname(__file__))
+        os.chdir(os.path.dirname(os.path.abspath(sys.argv[0])))
 
     def add_bindings(self, sip_file):
         """ Add the bindings defined by a .sip file to the package. """
 
-        self._bindings.append(self.bindings_factory(sip_file))
+        self._bindings.append(self._bindings_factory(sip_file))
 
     def build(self):
         """ Build the package. """
@@ -125,14 +125,14 @@ class Package:
     def _create_sdist(self):
         """ Create an sdist for the package. """
 
-        raise NotImplemented
+        raise NotImplementedError
 
     def _create_wheel(self):
         """ Create a wheel for the package. """
 
         self._set_up_build_dir()
 
-        raise NotImplemented
+        raise NotImplementedError
 
     def _handle_exception(self, e):
         """ Handle an exception. """
@@ -161,7 +161,7 @@ class Package:
 
         self._set_up_build_dir()
 
-        raise NotImplemented
+        raise NotImplementedError
 
     def _set_up_build_dir(self):
         """ Set up the build directory. """
@@ -174,8 +174,8 @@ class Package:
         if self.installed_sip_h_dir is None:
             from ..module.module import module
 
-            module(self._sip_module, include_dir=self._build_dir)
-            self.installed_sip_h_dir = self._build_dir
+            module(self.sip_module, include_dir=self.build_dir)
+            self.installed_sip_h_dir = self.build_dir
 
         # Generate the source code for each module's bindings.
         for bindings in self._bindings:
