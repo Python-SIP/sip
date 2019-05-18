@@ -21,13 +21,50 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-class Builder:
+from abc import ABC, abstractmethod
+
+
+class Builder(ABC):
     """ The encapsulation of a code builder. """
 
-    pass
+    def __init__(self, sources_dir, sources, include_dirs):
+        """ Initialise the object. """
+
+        self.sources_dir = sources_dir
+        self.sources = sources
+        self.include_dirs = include_dirs
+
+    @abstractmethod
+    def build_extension_module(self, bindings, package):
+        """ Build an extension module from the sources and return its full
+        pathname.
+        """
 
 
 class DistutilsBuilder(Builder):
     """ The implementation of a distutils-based code builder. """
 
-    pass
+    def build_extension_module(self, bindings, package):
+        """ Build an extension module from the sources and return its full
+        pathname.
+        """
+
+        # TODO: support package.verbose
+        from distutils.command.build_ext import build_ext
+        from distutils.dist import Distribution
+        from distutils.extension import Extension
+
+        dist = Distribution()
+
+        builder = build_ext(dist)
+        builder.build_lib = self.sources_dir
+        builder.debug = bindings.debug
+        builder.ensure_finalized()
+
+        builder.extensions = [
+            Extension(bindings.name, self.sources,
+                    include_dirs=self.include_dirs)]
+
+        builder.run()
+
+        return builder.get_ext_fullpath(bindings.name)

@@ -130,7 +130,7 @@ class Package:
     def _create_wheel(self):
         """ Create a wheel for the package. """
 
-        self._set_up_build_dir()
+        modules = self._build_modules()
 
         raise NotImplementedError
 
@@ -159,24 +159,36 @@ class Package:
     def _install(self):
         """ Install the package. """
 
-        self._set_up_build_dir()
+        modules = self._build_modules()
 
-        raise NotImplementedError
+        print("Built:", modules)
 
-    def _set_up_build_dir(self):
-        """ Set up the build directory. """
+    def _build_modules(self):
+        """ Build the extension modules and return their pathnames. """
 
         # Make sure we have a clean build directory.
         shutil.rmtree(self.build_dir, ignore_errors=True)
         os.mkdir(self.build_dir)
 
         # Create sip.h if we haven't been given a pre-installed copy.
-        if self.installed_sip_h_dir is None:
+        sip_h_dir = self.installed_sip_h_dir
+        if sip_h_dir is None:
             from ..module.module import module
 
             module(self.sip_module, include_dir=self.build_dir)
-            self.installed_sip_h_dir = self.build_dir
+            sip_h_dir = self.build_dir
 
-        # Generate the source code for each module's bindings.
+        # Build each module's bindings.
+        modules = []
+
         for bindings in self._bindings:
+            # Generate the source code.
             locations = bindings.generate(self)
+
+            # Compile the generated code.
+            builder = self._builder_factory(locations.sources_dir,
+                    locations.sources, [sip_h_dir, locations.sources_dir])
+
+            modules.append(builder.build_extension_module(bindings, self))
+
+        return modules

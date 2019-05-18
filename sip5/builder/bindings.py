@@ -53,6 +53,9 @@ class Bindings:
         self.tags = None
         self.tracing = False
 
+        # This is set by generate().
+        self.name = None
+
     def generate(self, package):
         """ Generate the bindings source code and optional additional extracts.
         Return a BindingsLocation instance containing the absolute file
@@ -67,6 +70,8 @@ class Bindings:
         module_name = os.path.basename(self.sip_file)
         if module_name.endswith('.sip'):
             module_name = module_name[:-4]
+        # TODO: temporary hack until sip5() returns the full package name.
+        self.name = 'example.age'
 
         sources_dir = os.path.join(package.build_dir, module_name)
 
@@ -97,10 +102,12 @@ class Bindings:
         # The locations of things that will have been generated.  Note that we
         # don't include anything for generic extracts as the arguments include
         # a file name.
+        # TODO: is this the best solution? Could have generated_sources etc but
+        # to be consistent with 'name' being set here, but we would then leave
+        # it to the builder to add the sip.h dir.
         locations = BindingsLocations()
 
         locations.api_file = api_extract
-        locations.include_dirs = [package.installed_sip_h_dir, sources_dir]
         locations.pyi_file = pyi_extract
 
         # Assume anything in the sources directory that looks like a C/C++
@@ -115,6 +122,7 @@ class Bindings:
                 sources.append(fn)
 
         locations.sources = [os.path.join(sources_dir, fn) for fn in sources]
+        locations.sources_dir = sources_dir
 
         return locations
 
@@ -158,6 +166,6 @@ class BindingsLocations:
         """ Initialise the object. """
 
         self.api_file = None
-        self.include_dirs = None
         self.pyi_file = None
         self.sources = None
+        self.sources_dir = None
