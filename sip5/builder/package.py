@@ -74,6 +74,9 @@ class Package:
         self.build_dir = os.path.abspath(self._context.build_dir)
         os.chdir(os.path.dirname(os.path.abspath(sys.argv[0])))
 
+        # We don't expose the context in the public API.
+        self.verbose = self._context.verbose
+
     def add_bindings(self, sip_file):
         """ Add the bindings defined by a .sip file to the package. """
 

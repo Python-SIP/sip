@@ -49,10 +49,12 @@ class DistutilsBuilder(Builder):
         pathname.
         """
 
-        # TODO: support package.verbose
         from distutils.command.build_ext import build_ext
         from distutils.dist import Distribution
         from distutils.extension import Extension
+        from distutils.log import ERROR, INFO, set_threshold
+
+        set_threshold(INFO if package.verbose else ERROR)
 
         dist = Distribution()
 
