@@ -21,10 +21,117 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from .exceptions import UserException
 from .code_generator import (set_globals, parse, generateCode,
         generateExtracts, generateAPI, generateXML, generateTypeHints)
+from .exceptions import handle_exception, UserException
+from .standard_arguments import StandardArgumentParser
 from .version import SIP_VERSION, SIP_VERSION_STR
+
+
+def main():
+    """ Create the bindings for a C/C++ library. """
+
+    # Parse the command line.
+    parser = StandardArgumentParser(
+            description="Generate Python extension modules for C/C++ "
+                    "libraries.",
+            fromfile_prefix_chars='@')
+
+    parser.add_include_dir_option()
+    parser.add_warnings_options()
+
+    parser.add_argument('specification',
+            help="the name of the specification file [default stdin]",
+            metavar="FILE", nargs='?')
+
+    parser.add_argument('-a', dest='api_extract',
+            help="the name of the QScintilla API file [default not generated]",
+            metavar="FILE")
+
+    parser.add_argument('-B', dest='backstops', action='append',
+            help="add <TAG> to the list of timeline backstops",
+            metavar="TAG")
+
+    parser.add_argument('-c', dest='sources_dir',
+            help="the name of the code directory [default not generated]",
+            metavar="DIR")
+
+    parser.add_argument('-D', dest='py_debug', action='store_true',
+            default=False,
+            help="generate code for a debug build of Python")
+
+    parser.add_argument('-e', dest='exceptions', action='store_true',
+            default=False,
+            help="enable support for exceptions [default disabled]")
+
+    parser.add_argument('-g', dest='release_gil', action='store_true',
+            default=False,
+            help="always release and reacquire the GIL [default only when "
+                    "specified]")
+
+    parser.add_argument('-j', dest='parts', type=int, default=0,
+            help="split the generated code into <FILES> files [default 1 per "
+                    "class]",
+            metavar="FILES")
+
+    parser.add_argument('-n', dest='sip_module',
+            help="the fully qualified name of the sip module",
+            metavar="NAME")
+
+    parser.add_argument('-o', dest='docstrings', action='store_true',
+            default=False,
+            help="enable the automatic generation of docstrings [default "
+                    "disabled]")
+
+    parser.add_argument('-P', dest='protected_is_public', action='store_true',
+            default=False,
+            help="enable the protected/public hack [default disabled]")
+
+    parser.add_argument('-r', dest='tracing', action='store_true',
+            default=False,
+            help="generate code with tracing enabled [default disabled]")
+
+    parser.add_argument('-s', dest='source_suffix',
+            help="the suffix to use for C or C++ source files [default \".c\" "
+                    "or \".cpp\"]",
+            metavar="SUFFIX")
+
+    parser.add_argument('-t', dest='tags', action='append',
+            help="add <TAG> to the list of versions/platforms to generate "
+                    "code for",
+            metavar="TAG")
+
+    parser.add_argument('-x', dest='disabled_features', action='append',
+            help="add <FEATURE> to the list of disabled features",
+            metavar="FEATURE")
+
+    parser.add_argument('-X', dest='extracts', action='append',
+            help="add <ID:FILE> to the list of extracts to generate",
+            metavar="ID:FILE")
+
+    parser.add_argument('-y', dest='pyi_extract',
+            help="the name of the .pyi stub file [default not generated]",
+            metavar="FILE")
+
+    args = parser.parse_args()
+
+    try:
+        sip5(specification=args.specification, sip_module=args.sip_module,
+                sources_dir=args.sources_dir, include_dirs=args.include_dirs,
+                tags=args.tags, backstops=args.backstops,
+                disabled_features=args.disabled_features,
+                exceptions=args.exceptions, parts=args.parts,
+                source_suffix=args.source_suffix, docstrings=args.docstrings,
+                protected_is_public=args.protected_is_public,
+                py_debug=args.py_debug, release_gil=args.release_gil,
+                tracing=args.tracing, extracts=args.extracts,
+                pyi_extract=args.pyi_extract, api_extract=args.api_extract,
+                warnings=args.warnings,
+                warnings_are_errors=args.warnings_are_errors)
+    except Exception as e:
+        handle_exception(e)
+
+    return 0
 
 
 def sip5(specification, sip_module=None, sources_dir=None, include_dirs=None, tags=None, backstops=None, disabled_features=None, exceptions=False, parts=0, source_suffix=None, docstrings=False, protected_is_public=False, py_debug=False, release_gil=False, tracing=False, extracts=None, pyi_extract=None, api_extract=None, warnings=False, warnings_are_errors=False):
@@ -35,19 +142,17 @@ def sip5(specification, sip_module=None, sources_dir=None, include_dirs=None, ta
         raise UserException("the name of the sip module must be given")
 
     # Set the globals.
-    # TODO: deprecate 'warnings' and 'warnings_are_errors' and use the warnings
-    # module to issue warnings.
+    # TODO: 'warnings' and 'warnings_are_errors' to alter the behaviour of the
+    # warnings module.
     set_globals(SIP_VERSION, SIP_VERSION_STR, include_dirs, warnings,
             warnings_are_errors)
 
     # Parse the input file.
-    # TODO: return the name of the module.
-    pt, module_name = parse(specification, True, tags, backstops,
-            disabled_features, protected_is_public)
+    pt, _ = parse(specification, True, tags, backstops, disabled_features,
+            protected_is_public)
 
     # Generate the bindings.
     if sources_dir is not None:
-        # TODO: return the names of all generated files.
         generateCode(pt, sources_dir, source_suffix, exceptions, tracing,
                 release_gil, parts, tags, disabled_features, docstrings,
                 py_debug, sip_module)
@@ -62,5 +167,3 @@ def sip5(specification, sip_module=None, sources_dir=None, include_dirs=None, ta
     # Generate the type hints file.
     if pyi_extract is not None:
         generateTypeHints(pt, pyi_extract)
-
-    return module_name

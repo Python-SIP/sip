@@ -24,7 +24,9 @@
 import os
 import sys
 
-from ..sip5 import sip5
+from ..code_generator import (set_globals, parse, generateCode,
+        generateExtracts, generateAPI, generateXML, generateTypeHints)
+from ..version import SIP_VERSION, SIP_VERSION_STR
 
 from .configuration import Configurable, Option
 
@@ -62,40 +64,44 @@ class Bindings:
         locations of everything that was generated.
         """
 
-        # Derive the module name from the name of the .sip file.
-        # TODO - this should be returned by the .sip parser.  The code
-        # generator should be given the name of the higher-level directory in
-        # which a module-specific sub-directory is created and the generated
-        # code placed in that.
-        module_name = os.path.basename(self.sip_file)
-        if module_name.endswith('.sip'):
-            module_name = module_name[:-4]
+        # Set the globals.
+        set_globals(SIP_VERSION, SIP_VERSION_STR, self.include_dirs,
+                package.verbose, True)
 
+        # Parse the input file.
+        pt, self.name = parse(self.sip_file, True, self.tags, self.backstops,
+            self.disabled_features, self.protected_is_public)
+
+        # Get the module name.
+        module_name = self.name.split('.')[-1]
+
+        # Make sure the module's sub-directory exists.
         sources_dir = os.path.join(package.build_dir, module_name)
+        os.makedirs(sources_dir, exist_ok=True)
 
-        if self.generate_pyi:
-            pyi_extract = os.path.join(sources_dir, module_name + '.pyi')
-        else:
-            pyi_extract = None
-
+        # Generate any API file.
         if self.generate_api:
             api_extract = os.path.join(sources_dir, module_name + '.api')
+            generateAPI(pt, api_extract)
         else:
             api_extract = None
 
-        # Make sure the module's sub-directory exists.
-        os.makedirs(sources_dir, exist_ok=True)
+        # Generate any extracts.
+        if self.generate_extracts:
+            generateExtracts(pt, extracts)
 
-        self.name = sip5(self.sip_file, sip_module=package.sip_module,
-                sources_dir=sources_dir, include_dirs=self.include_dirs,
-                tags=self.tags, backstops=self.backstops,
-                disabled_features=self.disabled_features,
-                exceptions=self.exceptions, parts=self.concatenate,
-                source_suffix=self.source_suffix, docstrings=self.docstrings,
-                protected_is_public=self.protected_is_public,
-                py_debug=self.debug, release_gil=self.release_gil,
-                tracing=self.tracing, extracts=self.generate_extracts,
-                pyi_extract=pyi_extract, api_extract=api_extract)
+        # Generate any type hints file.
+        if self.generate_pyi:
+            pyi_extract = os.path.join(sources_dir, module_name + '.pyi')
+            generateTypeHints(pt, pyi_extract)
+        else:
+            pyi_extract = None
+
+        # Generate the bindings.
+        generateCode(pt, sources_dir, self.source_suffix, self.exceptions,
+                self.tracing, self.release_gil, self.concatenate, self.tags,
+                self.disabled_features, self.docstrings, self.debug,
+                package.sip_module)
 
         # The locations of things that will have been generated.  Note that we
         # don't include anything for generic extracts as the arguments include

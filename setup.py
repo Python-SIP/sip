@@ -59,7 +59,7 @@ setup(
         ext_modules=[code_gen_module],
         entry_points={
             'console_scripts': [
-                'sip5 = sip5.sip5_main:main',
+                'sip5 = sip5.sip5:main',
                 'sip5-module = sip5.module.main:main']
         }
      )
