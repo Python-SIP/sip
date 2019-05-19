@@ -70,8 +70,6 @@ class Bindings:
         module_name = os.path.basename(self.sip_file)
         if module_name.endswith('.sip'):
             module_name = module_name[:-4]
-        # TODO: temporary hack until sip5() returns the full package name.
-        self.name = 'example.age'
 
         sources_dir = os.path.join(package.build_dir, module_name)
 
@@ -88,7 +86,7 @@ class Bindings:
         # Make sure the module's sub-directory exists.
         os.makedirs(sources_dir, exist_ok=True)
 
-        sip5(self.sip_file, sip_module=package.sip_module,
+        self.name = sip5(self.sip_file, sip_module=package.sip_module,
                 sources_dir=sources_dir, include_dirs=self.include_dirs,
                 tags=self.tags, backstops=self.backstops,
                 disabled_features=self.disabled_features,

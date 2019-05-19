@@ -131,7 +131,8 @@ static PyObject *py_parse(PyObject *self, PyObject *args)
 
     transform(pt, strict);
 
-    return PyCapsule_New(pt, NULL, NULL);
+    return Py_BuildValue("(Os)", PyCapsule_New(pt, NULL, NULL),
+            pt->module->fullname->text);
 }
 
 

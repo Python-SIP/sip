@@ -42,8 +42,8 @@ def sip5(specification, sip_module=None, sources_dir=None, include_dirs=None, ta
 
     # Parse the input file.
     # TODO: return the name of the module.
-    pt = parse(specification, True, tags, backstops, disabled_features,
-            protected_is_public)
+    pt, module_name = parse(specification, True, tags, backstops,
+            disabled_features, protected_is_public)
 
     # Generate the bindings.
     if sources_dir is not None:
@@ -62,3 +62,5 @@ def sip5(specification, sip_module=None, sources_dir=None, include_dirs=None, ta
     # Generate the type hints file.
     if pyi_extract is not None:
         generateTypeHints(pt, pyi_extract)
+
+    return module_name
