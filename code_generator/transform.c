@@ -618,10 +618,7 @@ static void setAllImports(moduleDef *mod)
 
     /* Check for recursive imports. */
     if (settingImports(mod))
-    {
-        fatalStart();
         fatal("Module %s is imported recursively\n", mod->name);
-    }
 
     setSettingImports(mod);
 
