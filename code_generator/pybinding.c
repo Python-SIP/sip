@@ -439,54 +439,16 @@ void warning(Warning w, const char *fmt, ...)
 
     if (strchr(fmt, '\n') != NULL)
     {
-        static PyObject *warn_callable = NULL;
-        static PyObject *future_warning = NULL;
+        int ret;
 
-        PyObject *ret;
-
-        if (warn_callable == NULL)
-        {
-            PyObject *module = PyImport_ImportModule("warnings");
-
-            if (module == NULL)
-            {
-                warning_text[0] = '\0';
-                longjmp(on_fatal_error, EXCEPTION_RAISED);
-            }
-
-            if (future_warning == NULL)
-            {
-                future_warning = PyObject_GetAttrString(module,
-                        "FutureWarning");
-
-                if (future_warning == NULL)
-                {
-                    Py_DECREF(module);
-                    warning_text[0] = '\0';
-                    longjmp(on_fatal_error, EXCEPTION_RAISED);
-                }
-            }
-
-            warn_callable = PyObject_GetAttrString(module, "warn");
-
-            Py_DECREF(module);
-
-            if (warn_callable == NULL)
-            {
-                warning_text[0] = '\0';
-                longjmp(on_fatal_error, EXCEPTION_RAISED);
-            }
-        }
-
-        if (w == DeprecationWarning)
-            ret = PyObject_CallFunction(warn_callable, "sO", warning_text,
-                    future_warning);
-        else
-            ret = PyObject_CallFunction(warn_callable, "s", warning_text);
+        ret = PyErr_WarnEx(
+                (w == DeprecationWarning ? PyExc_FutureWarning :
+                        PyExc_UserWarning),
+                warning_text, 1);
 
         warning_text[0] = '\0';
 
-        if (ret == NULL)
+        if (ret < 0)
             longjmp(on_fatal_error, EXCEPTION_RAISED);
     }
 }
