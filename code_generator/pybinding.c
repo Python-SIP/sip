@@ -35,10 +35,14 @@ int warnings;
 int warnings_are_fatal;
 
 /* Support for fatal error handling. */
+#define NO_EXCEPTION        0           /* No exception has been raised. */
+#define EXCEPTION_RAISED    1           /* An exception has been raised. */
+#define EXCEPTION_NEEDED    2           /* An exception needs to be raised. */
+
 static char error_text[1000];
 static jmp_buf on_fatal_error;
 static PyObject *exception_type;
-static PyObject *raise_exception(void);
+static void raise_exception(int action);
 
 /* Forward declarations. */
 static PyObject *py_set_globals(PyObject *self, PyObject *args);
@@ -113,7 +117,7 @@ static PyObject *py_parse(PyObject *self, PyObject *args)
     FILE *file;
     char *filename;
     stringList *versions, *backstops, *xfeatures;
-    int strict, protHack;
+    int strict, protHack, action;
 
     if (!PyArg_ParseTuple(args, "O&pO&O&O&p",
             fs_convertor, &filename,
@@ -136,8 +140,11 @@ static PyObject *py_parse(PyObject *self, PyObject *args)
         filename = "stdin";
     }
 
-    if (setjmp(on_fatal_error) != 0)
-        return raise_exception();
+    if ((action = setjmp(on_fatal_error)) != NO_EXCEPTION)
+    {
+        raise_exception(action);
+        return NULL;
+    }
 
     parse(pt, file, filename, strict, versions, backstops, xfeatures,
             protHack);
@@ -156,7 +163,7 @@ static PyObject *py_generateCode(PyObject *self, PyObject *args)
 {
     sipSpec *pt;
     char *codeDir, *srcSuffix, *sipName;
-    int exceptions, tracing, releaseGIL, parts, docs, py_debug;
+    int exceptions, tracing, releaseGIL, parts, docs, py_debug, action;
     stringList *versions, *xfeatures;
 
     if (!PyArg_ParseTuple(args, "O&O&O&pppiO&O&pps",
@@ -174,8 +181,11 @@ static PyObject *py_generateCode(PyObject *self, PyObject *args)
             &sipName))
         return NULL;
 
-    if (setjmp(on_fatal_error) != 0)
-        return raise_exception();
+    if ((action = setjmp(on_fatal_error)) != NO_EXCEPTION)
+    {
+        raise_exception(action);
+        return NULL;
+    }
 
     generateCode(pt, codeDir, srcSuffix, exceptions, tracing, releaseGIL,
             parts, versions, xfeatures, docs, py_debug, sipName);
@@ -191,14 +201,18 @@ static PyObject *py_generateExtracts(PyObject *self, PyObject *args)
 {
     sipSpec *pt;
     stringList *extracts;
+    int action;
 
     if (!PyArg_ParseTuple(args, "O&O&",
             sipSpec_convertor, &pt,
             stringList_convertor, &extracts))
         return NULL;
 
-    if (setjmp(on_fatal_error) != 0)
-        return raise_exception();
+    if ((action = setjmp(on_fatal_error)) != NO_EXCEPTION)
+    {
+        raise_exception(action);
+        return NULL;
+    }
 
     generateExtracts(pt, extracts);
 
@@ -213,14 +227,18 @@ static PyObject *py_generateAPI(PyObject *self, PyObject *args)
 {
     sipSpec *pt;
     char *apiFile;
+    int action;
 
     if (!PyArg_ParseTuple(args, "O&O&",
             sipSpec_convertor, &pt,
             fs_convertor, &apiFile))
         return NULL;
 
-    if (setjmp(on_fatal_error) != 0)
-        return raise_exception();
+    if ((action = setjmp(on_fatal_error)) != NO_EXCEPTION)
+    {
+        raise_exception(action);
+        return NULL;
+    }
 
     generateAPI(pt, pt->module, apiFile);
 
@@ -235,14 +253,18 @@ static PyObject *py_generateXML(PyObject *self, PyObject *args)
 {
     sipSpec *pt;
     char *xmlFile;
+    int action;
 
     if (!PyArg_ParseTuple(args, "O&O&",
             sipSpec_convertor, &pt,
             fs_convertor, &xmlFile))
         return NULL;
 
-    if (setjmp(on_fatal_error) != 0)
-        return raise_exception();
+    if ((action = setjmp(on_fatal_error)) != NO_EXCEPTION)
+    {
+        raise_exception(action);
+        return NULL;
+    }
 
     generateXML(pt, pt->module, xmlFile);
 
@@ -257,14 +279,18 @@ static PyObject *py_generateTypeHints(PyObject *self, PyObject *args)
 {
     sipSpec *pt;
     char *pyiFile;
+    int action;
 
     if (!PyArg_ParseTuple(args, "O&O&",
             sipSpec_convertor, &pt,
             fs_convertor, &pyiFile))
         return NULL;
 
-    if (setjmp(on_fatal_error) != 0)
-        return raise_exception();
+    if ((action = setjmp(on_fatal_error)) != NO_EXCEPTION)
+    {
+        raise_exception(action);
+        return NULL;
+    }
 
     generateTypeHints(pt, pt->module, pyiFile);
 
@@ -361,7 +387,7 @@ void fatal(const char *fmt, ...)
     va_end(ap);
 
     /* Raise an exception. */
-    longjmp(on_fatal_error, 1);
+    longjmp(on_fatal_error, EXCEPTION_NEEDED);
 }
 
 
@@ -381,19 +407,86 @@ void fatalAppend(const char *fmt, ...)
 
 
 /*
- * Convert the current fatal error text to an exception.
+ * Raise an exception if needed.
  */
-static PyObject *raise_exception(void)
+static void raise_exception(int action)
 {
-    PyObject *exception;
-
-    exception = PyObject_CallFunction(exception_type, "s", error_text);
+    if (action == EXCEPTION_NEEDED)
+        PyErr_SetString(exception_type, error_text);
 
     /*
      * The error text buffer may be used more than once as the Python exception
      * could be ignored.
      */
     error_text[0] = '\0';
+}
 
-    return exception;
+
+/*
+ * Display a warning message.
+ */
+void warning(Warning w, const char *fmt, ...)
+{
+    static char warning_text[1000];
+
+    va_list ap;
+    size_t used = strlen(warning_text);
+    size_t room = sizeof (warning_text) - used - 1;
+
+    va_start(ap, fmt);
+    vsnprintf(&warning_text[used], room, fmt, ap);
+    va_end(ap);
+
+    if (strchr(fmt, '\n') != NULL)
+    {
+        static PyObject *warn_callable = NULL;
+        static PyObject *future_warning = NULL;
+
+        PyObject *ret;
+
+        if (warn_callable == NULL)
+        {
+            PyObject *module = PyImport_ImportModule("warnings");
+
+            if (module == NULL)
+            {
+                warning_text[0] = '\0';
+                longjmp(on_fatal_error, EXCEPTION_RAISED);
+            }
+
+            if (future_warning == NULL)
+            {
+                future_warning = PyObject_GetAttrString(module,
+                        "FutureWarning");
+
+                if (future_warning == NULL)
+                {
+                    Py_DECREF(module);
+                    warning_text[0] = '\0';
+                    longjmp(on_fatal_error, EXCEPTION_RAISED);
+                }
+            }
+
+            warn_callable = PyObject_GetAttrString(module, "warn");
+
+            Py_DECREF(module);
+
+            if (warn_callable == NULL)
+            {
+                warning_text[0] = '\0';
+                longjmp(on_fatal_error, EXCEPTION_RAISED);
+            }
+        }
+
+        if (w == DeprecationWarning)
+            ret = PyObject_CallFunction(warn_callable, "sO", warning_text,
+                    future_warning);
+        else
+            ret = PyObject_CallFunction(warn_callable, "s", warning_text);
+
+        warning_text[0] = '\0';
+
+        if (ret == NULL)
+            longjmp(on_fatal_error, EXCEPTION_RAISED);
+    }
 }
