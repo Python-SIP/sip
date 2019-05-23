@@ -6664,8 +6664,8 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
                     if (avr == NULL)
                     {
                         fatalScopedName(classFQCName(cd));
-                        fprintf(stderr, "::");
-                        prOverloadName(stderr, od);
+                        fatalAppend("::");
+                        prOverloadName(NULL, od);
                         fatal(" has versioned and unversioned overloads\n");
                     }
 
@@ -13695,7 +13695,10 @@ void prOverloadName(FILE *fp, overDef *od)
         pt2 = od->cppname;
     }
 
-    fprintf(fp, "%s%s", pt1, pt2);
+    if (fp != NULL)
+        fprintf(fp, "%s%s", pt1, pt2);
+    else
+        fatalAppend("%s%s", pt1, pt2);
 }
 
 

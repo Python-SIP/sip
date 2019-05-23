@@ -739,11 +739,11 @@ static void moveClassCasts(sipSpec *pt, moduleDef *mod, classDef *cd)
             if (sameSignature(&(*ctp)->pysig, &ct->pysig, FALSE))
             {
                 fatalStart();
-                fprintf(stderr, "operator ");
+                fatalAppend("operator ");
                 fatalScopedName(classFQCName(dcd));
-                fprintf(stderr, "::");
+                fatalAppend("::");
                 fatalScopedName(classFQCName(dcd));
-                fprintf(stderr, "(");
+                fatalAppend("(");
                 fatalScopedName(classFQCName(cd));
                 fatal(") already defined\n");
             }
@@ -843,9 +843,9 @@ static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd)
         if (mdhead == NULL)
         {
             fatalStart();
-            fprintf(stderr, "%s:%d: One of the arguments of ", od->sloc.name,
+            fatalAppend("%s:%d: One of the arguments of ", od->sloc.name,
                     od->sloc.linenr);
-            prOverloadName(stderr, od);
+            prOverloadName(NULL, od);
             fatal(" must be a class or enum\n");
         }
 
@@ -860,18 +860,18 @@ static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd)
             if (second)
             {
                 fatalStart();
-                fprintf(stderr, "%s:%d: Argument 1 of ", od->sloc.name,
+                fatalAppend("%s:%d: Argument 1 of ", od->sloc.name,
                         od->sloc.linenr);
-                prOverloadName(stderr, od);
+                prOverloadName(NULL, od);
                 fatal(" must be a class or enum\n");
             }
 
             if (mod != gmd->module && arg0->atype == enum_type)
             {
                 fatalStart();
-                fprintf(stderr, "%s:%d: Argument 1 of ", od->sloc.name,
+                fatalAppend("%s:%d: Argument 1 of ", od->sloc.name,
                         od->sloc.linenr);
-                prOverloadName(stderr, od);
+                prOverloadName(NULL, od);
                 fatal(" must be a class\n");
             }
         }
@@ -1143,9 +1143,9 @@ static void setHierarchy(sipSpec *pt, classDef *base, classDef *cd,
             if (cl->cd->mro != NULL && hierBeingSet(cl->cd->mro))
             {
                 fatalStart();
-                fprintf(stderr, "Recursive class hierarchy detected: ");
+                fatalAppend("Recursive class hierarchy detected: ");
                 fatalScopedName(classFQCName(cd));
-                fprintf(stderr, " and ");
+                fatalAppend(" and ");
                 fatalScopedName(classFQCName(cl->cd));
                 fatal("\n");
             }
@@ -1523,7 +1523,7 @@ static void transformScopeOverloads(sipSpec *pt, int strict, classDef *c_scope,
                     ifaceFileDef *iff;
 
                     fatalStart();
-                    fprintf(stderr, "%s:%d: ", od->sloc.name, od->sloc.linenr);
+                    fatalAppend("%s:%d: ", od->sloc.name, od->sloc.linenr);
 
                     if (mt_scope != NULL)
                         iff = mt_scope->iff;
@@ -1535,7 +1535,7 @@ static void transformScopeOverloads(sipSpec *pt, int strict, classDef *c_scope,
                     if (iff != NULL)
                     {
                         fatalScopedName(iff->fqcname);
-                        fprintf(stderr, "::");
+                        fatalAppend("::");
                     }
 
                     fatal("%s() has overloaded functions with the same Python signature\n", od->common->pyname->text);
@@ -1990,12 +1990,12 @@ static void resolveFuncTypes(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         if ((res->atype != void_type || res->nrderefs != 0) && isVirtual(od) && !supportedType(c_scope, od, &od->cppsig->result, FALSE) && od->virtcode == NULL)
         {
             fatalStart();
-            fprintf(stderr, "%s:%d: ", od->sloc.name, od->sloc.linenr);
+            fatalAppend("%s:%d: ", od->sloc.name, od->sloc.linenr);
 
             if (c_scope != NULL)
             {
                 fatalScopedName(classFQCName(c_scope));
-                fprintf(stderr, "::");
+                fatalAppend("::");
             }
 
             fatal("%s() unsupported virtual function return type - provide %%VirtualCatcherCode\n", od->cppname);
@@ -2054,12 +2054,12 @@ static void resolvePySigTypes(sipSpec *pt, moduleDef *mod, classDef *scope,
         if (issignal)
         {
             fatalStart();
-            fprintf(stderr, "%s:%d: ", od->sloc.name, od->sloc.linenr);
+            fatalAppend("%s:%d: ", od->sloc.name, od->sloc.linenr);
 
             if (scope != NULL)
             {
                 fatalScopedName(classFQCName(scope));
-                fprintf(stderr, "::");
+                fatalAppend("::");
             }
 
             fatal("%s() signals must return void\n", od->cppname);
@@ -2077,12 +2077,12 @@ static void resolvePySigTypes(sipSpec *pt, moduleDef *mod, classDef *scope,
             if (need_meth)
             {
                 fatalStart();
-                fprintf(stderr, "%s:%d: ", od->sloc.name, od->sloc.linenr);
+                fatalAppend("%s:%d: ", od->sloc.name, od->sloc.linenr);
 
                 if (scope != NULL)
                 {
                     fatalScopedName(classFQCName(scope));
-                    fprintf(stderr, "::");
+                    fatalAppend("::");
                 }
 
                 fatal("%s() unsupported function return type - provide %%MethodCode and a %s signature\n", od->cppname, (pt->genc ? "C" : "C++"));
@@ -2105,12 +2105,12 @@ static void resolvePySigTypes(sipSpec *pt, moduleDef *mod, classDef *scope,
             if (!supportedType(scope,od,ad,FALSE))
             {
                 fatalStart();
-                fprintf(stderr, "%s:%d: ", od->sloc.name, od->sloc.linenr);
+                fatalAppend("%s:%d: ", od->sloc.name, od->sloc.linenr);
 
                 if (scope != NULL)
                 {
                     fatalScopedName(classFQCName(scope));
-                    fprintf(stderr, "::");
+                    fatalAppend("::");
                 }
 
                 fatal("%s() argument %d has an unsupported type for a Python signature\n", od->cppname, a + 1);
@@ -2121,12 +2121,12 @@ static void resolvePySigTypes(sipSpec *pt, moduleDef *mod, classDef *scope,
             fatalStart();
 
             if (od->sloc.name != NULL)
-                fprintf(stderr, "%s:%d: ", od->sloc.name, od->sloc.linenr);
+                fatalAppend("%s:%d: ", od->sloc.name, od->sloc.linenr);
 
             if (scope != NULL)
             {
                 fatalScopedName(classFQCName(scope));
-                fprintf(stderr, "::");
+                fatalAppend("::");
             }
 
             if (isVirtual(od))
@@ -2445,11 +2445,11 @@ static void ensureInput(classDef *cd,overDef *od,argDef *ad)
         if (cd != NULL)
         {
             fatalScopedName(classFQCName(cd));
-            fprintf(stderr, "::");
+            fatalAppend("::");
         }
 
         if (od != NULL)
-            fprintf(stderr, "%s", od->cppname);
+            fatalAppend("%s", od->cppname);
 
         fatal("() invalid argument type for /Out/\n");
     }
@@ -2493,12 +2493,12 @@ void fatalScopedName(scopedNameDef *snd)
 
     while (snd != NULL)
     {
-        fprintf(stderr, "%s", snd->name);
+        fatalAppend("%s", snd->name);
 
         snd = snd -> next;
 
         if (snd != NULL)
-            fprintf(stderr, "::");
+            fatalAppend("::");
     }
 }
 

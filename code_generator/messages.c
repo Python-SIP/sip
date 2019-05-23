@@ -25,6 +25,11 @@
 #include "sip.h"
 
 
+/* The text of the current error message. */
+static char error_text[1000];
+static int reset_error_text = TRUE;
+
+
 /*
  * Display a warning message.
  */
@@ -72,19 +77,44 @@ void warning(Warning w, const char *fmt, ...)
 
 
 /*
- * Display all or part of a one line error message describing a fatal error.
+ * Display a one line error message describing a fatal error.  This does not
+ * return.
  */
-void fatal(const char *fmt,...)
+void fatal(const char *fmt, ...)
 {
     va_list ap;
+    size_t used = strlen(error_text);
+    size_t room = sizeof (error_text) - used - 1;
 
     fatalStart();
 
     va_start(ap,fmt);
-    vfprintf(stderr,fmt,ap);
+    vsnprintf(&error_text[used], room, fmt, ap);
     va_end(ap);
 
+    /*
+     * The error text buffer may be used more than once as it used to raise a
+     * Python exception which could be ignored.
+     */
+    reset_error_text = TRUE;
+
+    /* TODO: longjmp() to 'raise' an exception. */
     exit(1);
+}
+
+
+/*
+ * Append to the current error message.
+ */
+void fatalAppend(const char *fmt, ...)
+{
+    va_list ap;
+    size_t used = strlen(error_text);
+    size_t room = sizeof (error_text) - used - 1;
+
+    va_start(ap, fmt);
+    vsnprintf(&error_text[used], room, fmt, ap);
+    va_end(ap);
 }
 
 
@@ -93,11 +123,9 @@ void fatal(const char *fmt,...)
  */
 void fatalStart()
 {
-    static int start = TRUE;
-
-    if (start)
+    if (reset_error_text)
     {
-        fprintf(stderr, "sip5: ");
-        start = FALSE;
+        error_text[0] = '\0';
+        reset_error_text = FALSE;
     }
 }
