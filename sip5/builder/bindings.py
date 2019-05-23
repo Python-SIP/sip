@@ -67,7 +67,7 @@ class Bindings:
 
         # Set the globals.
         set_globals(SIP_VERSION, SIP_VERSION_STR, BuilderException,
-                self.include_dirs, package.verbose, True)
+                self.include_dirs)
 
         # Parse the input file.
         pt, self.name = parse(self.sip_file, True, self.tags, self.backstops,

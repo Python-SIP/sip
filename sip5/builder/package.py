@@ -24,6 +24,7 @@
 import os
 import shutil
 import sys
+import warnings
 
 from .configuration import Configurable, ConfigurationParser
 from .exceptions import BuilderException
@@ -77,6 +78,9 @@ class Package:
         # We don't expose the context in the public API.
         self.verbose = self._context.verbose
 
+        if not self.verbose:
+            warnings.simplefilter('ignore', UserWarning)
+
     def add_bindings(self, sip_file):
         """ Add the bindings defined by a .sip file to the package. """
 
@@ -99,11 +103,11 @@ class Package:
     def information(self, message):
         """ Print an informational message if verbose messages are enabled. """
 
-        if self._context.verbose:
+        if self.verbose:
             print(message)
 
     def progress(self, message):
-        """ Print a progress message is verbose messages are enabled. """
+        """ Print a progress message if verbose messages are enabled. """
 
         self.information(message + '...')
 

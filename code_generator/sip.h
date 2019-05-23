@@ -1362,8 +1362,6 @@ typedef struct _parserContext {
 extern unsigned sipVersion;             /* The version of SIP. */
 extern const char *sipVersionStr;       /* The version of SIP as a string. */
 extern stringList *includeDirList;      /* The include directory list for SIP files. */
-extern int warnings;                    /* Set if warnings are enabled. */
-extern int warnings_are_fatal;          /* Set if warnings are errors. */
 
 
 void parse(sipSpec *, FILE *, char *, int, stringList *, stringList *,

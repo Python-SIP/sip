@@ -31,8 +31,6 @@
 unsigned sipVersion;
 const char *sipVersionStr;
 stringList *includeDirList;
-int warnings;
-int warnings_are_fatal;
 
 /* Support for fatal error handling. */
 #define NO_EXCEPTION        0           /* No exception has been raised. */
@@ -95,13 +93,11 @@ PyMODINIT_FUNC PyInit_code_generator(void)
  */
 static PyObject *py_set_globals(PyObject *self, PyObject *args)
 {
-    if (!PyArg_ParseTuple(args, "IsOO&pp",
+    if (!PyArg_ParseTuple(args, "IsOO&",
             &sipVersion,
             &sipVersionStr,
             &exception_type,
-            stringList_convertor, &includeDirList,
-            &warnings,
-            &warnings_are_fatal))
+            stringList_convertor, &includeDirList))
         return NULL;
 
     Py_RETURN_NONE;

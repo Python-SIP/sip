@@ -21,6 +21,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
+from warnings import simplefilter
+
 from .code_generator import (set_globals, parse, generateCode,
         generateExtracts, generateAPI, generateXML, generateTypeHints)
 from .exceptions import handle_exception, UserException
@@ -115,6 +117,15 @@ def main():
 
     args = parser.parse_args()
 
+    # Configure the handling of warnings.
+    if args.warnings:
+        if args.warnings_are_errors:
+            simplefilter('error', FutureWarning)
+            simplefilter('error', UserWarning)
+    else:
+        # Note that we don't suppress FutureWarnings.
+        simplefilter('ignore', UserWarning)
+
     try:
         sip5(specification=args.specification, sip_module=args.sip_module,
                 sources_dir=args.sources_dir, include_dirs=args.include_dirs,
@@ -125,16 +136,14 @@ def main():
                 protected_is_public=args.protected_is_public,
                 py_debug=args.py_debug, release_gil=args.release_gil,
                 tracing=args.tracing, extracts=args.extracts,
-                pyi_extract=args.pyi_extract, api_extract=args.api_extract,
-                warnings=args.warnings,
-                warnings_are_errors=args.warnings_are_errors)
+                pyi_extract=args.pyi_extract, api_extract=args.api_extract)
     except Exception as e:
         handle_exception(e)
 
     return 0
 
 
-def sip5(specification, sip_module=None, sources_dir=None, include_dirs=None, tags=None, backstops=None, disabled_features=None, exceptions=False, parts=0, source_suffix=None, docstrings=False, protected_is_public=False, py_debug=False, release_gil=False, tracing=False, extracts=None, pyi_extract=None, api_extract=None, warnings=False, warnings_are_errors=False):
+def sip5(specification, sip_module=None, sources_dir=None, include_dirs=None, tags=None, backstops=None, disabled_features=None, exceptions=False, parts=0, source_suffix=None, docstrings=False, protected_is_public=False, py_debug=False, release_gil=False, tracing=False, extracts=None, pyi_extract=None, api_extract=None):
     """ Create the bindings for a C/C++ library. """
 
     # The code generator requires the name of the sip module.
@@ -142,10 +151,7 @@ def sip5(specification, sip_module=None, sources_dir=None, include_dirs=None, ta
         raise UserException("the name of the sip module must be given")
 
     # Set the globals.
-    # TODO: 'warnings' and 'warnings_are_errors' to alter the behaviour of the
-    # warnings module.
-    set_globals(SIP_VERSION, SIP_VERSION_STR, UserException, include_dirs,
-            warnings, warnings_are_errors)
+    set_globals(SIP_VERSION, SIP_VERSION_STR, UserException, include_dirs)
 
     # Parse the input file.
     pt, _ = parse(specification, True, tags, backstops, disabled_features,
