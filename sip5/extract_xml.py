@@ -22,6 +22,7 @@
 
 
 from .code_generator import set_globals, parse, generateXML
+from .exceptions import UserException
 from .version import SIP_VERSION, SIP_VERSION_STR
 
 
@@ -29,8 +30,8 @@ def extract_xml(specification, xml_extract, include_dirs=None, warnings=False, w
     """ Create the XML extract. """
 
     # Set the globals.
-    set_globals(SIP_VERSION, SIP_VERSION_STR, include_dirs, warnings,
-            warnings_are_errors)
+    set_globals(SIP_VERSION, SIP_VERSION_STR, UserException, include_dirs,
+            warnings, warnings_are_errors)
 
     # Parse the input file.
     pt = parse(specification, False, None, None, None, False)

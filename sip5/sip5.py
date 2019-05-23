@@ -144,8 +144,8 @@ def sip5(specification, sip_module=None, sources_dir=None, include_dirs=None, ta
     # Set the globals.
     # TODO: 'warnings' and 'warnings_are_errors' to alter the behaviour of the
     # warnings module.
-    set_globals(SIP_VERSION, SIP_VERSION_STR, include_dirs, warnings,
-            warnings_are_errors)
+    set_globals(SIP_VERSION, SIP_VERSION_STR, UserException, include_dirs,
+            warnings, warnings_are_errors)
 
     # Parse the input file.
     pt, _ = parse(specification, True, tags, backstops, disabled_features,

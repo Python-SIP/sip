@@ -29,6 +29,7 @@ from ..code_generator import (set_globals, parse, generateCode,
 from ..version import SIP_VERSION, SIP_VERSION_STR
 
 from .configuration import Configurable, Option
+from .exceptions import BuilderException
 
 
 class Bindings:
@@ -65,8 +66,8 @@ class Bindings:
         """
 
         # Set the globals.
-        set_globals(SIP_VERSION, SIP_VERSION_STR, self.include_dirs,
-                package.verbose, True)
+        set_globals(SIP_VERSION, SIP_VERSION_STR, BuilderException,
+                self.include_dirs, package.verbose, True)
 
         # Parse the input file.
         pt, self.name = parse(self.sip_file, True, self.tags, self.backstops,

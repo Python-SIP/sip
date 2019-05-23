@@ -17,7 +17,10 @@
  */
 
 
+#include <setjmp.h>
+#include <stdarg.h>
 #include <stdio.h>
+#include <string.h>
 
 #include <Python.h>
 
@@ -30,6 +33,12 @@ const char *sipVersionStr;
 stringList *includeDirList;
 int warnings;
 int warnings_are_fatal;
+
+/* Support for fatal error handling. */
+static char error_text[1000];
+static jmp_buf on_fatal_error;
+static PyObject *exception_type;
+static PyObject *raise_exception(void);
 
 /* Forward declarations. */
 static PyObject *py_set_globals(PyObject *self, PyObject *args);
@@ -82,9 +91,10 @@ PyMODINIT_FUNC PyInit_code_generator(void)
  */
 static PyObject *py_set_globals(PyObject *self, PyObject *args)
 {
-    if (!PyArg_ParseTuple(args, "IsO&pp",
+    if (!PyArg_ParseTuple(args, "IsOO&pp",
             &sipVersion,
             &sipVersionStr,
+            &exception_type,
             stringList_convertor, &includeDirList,
             &warnings,
             &warnings_are_fatal))
@@ -126,6 +136,9 @@ static PyObject *py_parse(PyObject *self, PyObject *args)
         filename = "stdin";
     }
 
+    if (setjmp(on_fatal_error) != 0)
+        return raise_exception();
+
     parse(pt, file, filename, strict, versions, backstops, xfeatures,
             protHack);
 
@@ -161,6 +174,9 @@ static PyObject *py_generateCode(PyObject *self, PyObject *args)
             &sipName))
         return NULL;
 
+    if (setjmp(on_fatal_error) != 0)
+        return raise_exception();
+
     generateCode(pt, codeDir, srcSuffix, exceptions, tracing, releaseGIL,
             parts, versions, xfeatures, docs, py_debug, sipName);
 
@@ -181,6 +197,9 @@ static PyObject *py_generateExtracts(PyObject *self, PyObject *args)
             stringList_convertor, &extracts))
         return NULL;
 
+    if (setjmp(on_fatal_error) != 0)
+        return raise_exception();
+
     generateExtracts(pt, extracts);
 
     Py_RETURN_NONE;
@@ -199,6 +218,9 @@ static PyObject *py_generateAPI(PyObject *self, PyObject *args)
             sipSpec_convertor, &pt,
             fs_convertor, &apiFile))
         return NULL;
+
+    if (setjmp(on_fatal_error) != 0)
+        return raise_exception();
 
     generateAPI(pt, pt->module, apiFile);
 
@@ -219,6 +241,9 @@ static PyObject *py_generateXML(PyObject *self, PyObject *args)
             fs_convertor, &xmlFile))
         return NULL;
 
+    if (setjmp(on_fatal_error) != 0)
+        return raise_exception();
+
     generateXML(pt, pt->module, xmlFile);
 
     Py_RETURN_NONE;
@@ -237,6 +262,9 @@ static PyObject *py_generateTypeHints(PyObject *self, PyObject *args)
             sipSpec_convertor, &pt,
             fs_convertor, &pyiFile))
         return NULL;
+
+    if (setjmp(on_fatal_error) != 0)
+        return raise_exception();
 
     generateTypeHints(pt, pt->module, pyiFile);
 
@@ -315,4 +343,57 @@ static int stringList_convertor(PyObject *obj, stringList **slp)
     }
 
     return 1;
+}
+
+
+/*
+ * Display a one line error message describing a fatal error.  This does not
+ * return.
+ */
+void fatal(const char *fmt, ...)
+{
+    va_list ap;
+    size_t used = strlen(error_text);
+    size_t room = sizeof (error_text) - used - 1;
+
+    va_start(ap,fmt);
+    vsnprintf(&error_text[used], room, fmt, ap);
+    va_end(ap);
+
+    /* Raise an exception. */
+    longjmp(on_fatal_error, 1);
+}
+
+
+/*
+ * Append to the current error message.
+ */
+void fatalAppend(const char *fmt, ...)
+{
+    va_list ap;
+    size_t used = strlen(error_text);
+    size_t room = sizeof (error_text) - used - 1;
+
+    va_start(ap, fmt);
+    vsnprintf(&error_text[used], room, fmt, ap);
+    va_end(ap);
+}
+
+
+/*
+ * Convert the current fatal error text to an exception.
+ */
+static PyObject *raise_exception(void)
+{
+    PyObject *exception;
+
+    exception = PyObject_CallFunction(exception_type, "s", error_text);
+
+    /*
+     * The error text buffer may be used more than once as the Python exception
+     * could be ignored.
+     */
+    error_text[0] = '\0';
+
+    return exception;
 }

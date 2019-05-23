@@ -1383,7 +1383,6 @@ void deprecated(const char *msg);
 SIP_NORETURN void fatal(const char *fmt, ...);
 void fatalAppend(const char *fmt, ...);
 void fatalScopedName(scopedNameDef *);
-void fatalStart();
 void getSourceLocation(sourceLocation *slp);
 int setInputFile(FILE *open_fp, parserContext *pc, int optional);
 void resetLexerState();

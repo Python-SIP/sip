@@ -738,7 +738,6 @@ static void moveClassCasts(sipSpec *pt, moduleDef *mod, classDef *cd)
         for (ctp = &dcd->ctors; *ctp != NULL; ctp = &(*ctp)->next)
             if (sameSignature(&(*ctp)->pysig, &ct->pysig, FALSE))
             {
-                fatalStart();
                 fatalAppend("operator ");
                 fatalScopedName(classFQCName(dcd));
                 fatalAppend("::");
@@ -842,7 +841,6 @@ static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd)
 
         if (mdhead == NULL)
         {
-            fatalStart();
             fatalAppend("%s:%d: One of the arguments of ", od->sloc.name,
                     od->sloc.linenr);
             prOverloadName(NULL, od);
@@ -859,7 +857,6 @@ static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd)
         {
             if (second)
             {
-                fatalStart();
                 fatalAppend("%s:%d: Argument 1 of ", od->sloc.name,
                         od->sloc.linenr);
                 prOverloadName(NULL, od);
@@ -868,7 +865,6 @@ static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd)
 
             if (mod != gmd->module && arg0->atype == enum_type)
             {
-                fatalStart();
                 fatalAppend("%s:%d: Argument 1 of ", od->sloc.name,
                         od->sloc.linenr);
                 prOverloadName(NULL, od);
@@ -1142,7 +1138,6 @@ static void setHierarchy(sipSpec *pt, classDef *base, classDef *cd,
 
             if (cl->cd->mro != NULL && hierBeingSet(cl->cd->mro))
             {
-                fatalStart();
                 fatalAppend("Recursive class hierarchy detected: ");
                 fatalScopedName(classFQCName(cd));
                 fatalAppend(" and ");
@@ -1522,7 +1517,6 @@ static void transformScopeOverloads(sipSpec *pt, int strict, classDef *c_scope,
                 {
                     ifaceFileDef *iff;
 
-                    fatalStart();
                     fatalAppend("%s:%d: ", od->sloc.name, od->sloc.linenr);
 
                     if (mt_scope != NULL)
@@ -1989,7 +1983,6 @@ static void resolveFuncTypes(sipSpec *pt, moduleDef *mod, classDef *c_scope,
 
         if ((res->atype != void_type || res->nrderefs != 0) && isVirtual(od) && !supportedType(c_scope, od, &od->cppsig->result, FALSE) && od->virtcode == NULL)
         {
-            fatalStart();
             fatalAppend("%s:%d: ", od->sloc.name, od->sloc.linenr);
 
             if (c_scope != NULL)
@@ -2053,7 +2046,6 @@ static void resolvePySigTypes(sipSpec *pt, moduleDef *mod, classDef *scope,
     {
         if (issignal)
         {
-            fatalStart();
             fatalAppend("%s:%d: ", od->sloc.name, od->sloc.linenr);
 
             if (scope != NULL)
@@ -2076,7 +2068,6 @@ static void resolvePySigTypes(sipSpec *pt, moduleDef *mod, classDef *scope,
 
             if (need_meth)
             {
-                fatalStart();
                 fatalAppend("%s:%d: ", od->sloc.name, od->sloc.linenr);
 
                 if (scope != NULL)
@@ -2104,7 +2095,6 @@ static void resolvePySigTypes(sipSpec *pt, moduleDef *mod, classDef *scope,
         {
             if (!supportedType(scope,od,ad,FALSE))
             {
-                fatalStart();
                 fatalAppend("%s:%d: ", od->sloc.name, od->sloc.linenr);
 
                 if (scope != NULL)
@@ -2118,8 +2108,6 @@ static void resolvePySigTypes(sipSpec *pt, moduleDef *mod, classDef *scope,
         }
         else if (!supportedType(scope, od, ad, TRUE))
         {
-            fatalStart();
-
             if (od->sloc.name != NULL)
                 fatalAppend("%s:%d: ", od->sloc.name, od->sloc.linenr);
 
@@ -2440,8 +2428,6 @@ static void ensureInput(classDef *cd,overDef *od,argDef *ad)
 {
     if (isOutArg(ad))
     {
-        fatalStart();
-
         if (cd != NULL)
         {
             fatalScopedName(classFQCName(cd));
@@ -2489,8 +2475,6 @@ static void defaultOutput(argDef *ad)
  */
 void fatalScopedName(scopedNameDef *snd)
 {
-    fatalStart();
-
     while (snd != NULL)
     {
         fatalAppend("%s", snd->name);
