@@ -100,6 +100,8 @@ static PyObject *py_set_globals(PyObject *self, PyObject *args)
             stringList_convertor, &includeDirList))
         return NULL;
 
+    Py_INCREF(exception_type);
+
     Py_RETURN_NONE;
 }
 
