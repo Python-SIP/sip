@@ -69,9 +69,15 @@ class Bindings:
         set_globals(SIP_VERSION, SIP_VERSION_STR, BuilderException,
                 self.include_dirs)
 
-        # Parse the input file.
+        # Parse the input file.  All file and directory names are relative to
+        # the directory containing this script.
+        cwd = os.getcwd()
+        os.chdir(os.path.dirname(os.path.abspath(sys.argv[0])))
+
         pt, self.name = parse(self.sip_file, True, self.tags, self.backstops,
             self.disabled_features, self.protected_is_public)
+
+        os.chdir(cwd)
 
         # Get the module name.
         module_name = self.name.split('.')[-1]
@@ -84,6 +90,7 @@ class Bindings:
         if self.generate_api:
             api_extract = os.path.join(sources_dir, module_name + '.api')
             generateAPI(pt, api_extract)
+            api_extract = os.path.relpath(api_extract)
         else:
             api_extract = None
 
@@ -95,6 +102,7 @@ class Bindings:
         if self.generate_pyi:
             pyi_extract = os.path.join(sources_dir, module_name + '.pyi')
             generateTypeHints(pt, pyi_extract)
+            pyi_extract = os.path.relpath(pyi_extract)
         else:
             pyi_extract = None
 
@@ -107,9 +115,6 @@ class Bindings:
         # The locations of things that will have been generated.  Note that we
         # don't include anything for generic extracts as the arguments include
         # a file name.
-        # TODO: is this the best solution? Could have generated_sources etc but
-        # to be consistent with 'name' being set here, but we would then leave
-        # it to the builder to add the sip.h dir.
         locations = BindingsLocations()
 
         locations.api_file = api_extract
@@ -126,8 +131,9 @@ class Bindings:
             elif fn.endswith('.c') or fn.endswith('.cpp'):
                 sources.append(fn)
 
-        locations.sources = [os.path.join(sources_dir, fn) for fn in sources]
-        locations.sources_dir = sources_dir
+        locations.sources_dir = os.path.relpath(sources_dir)
+        locations.sources = [os.path.join(locations.sources_dir, fn)
+                for fn in sources]
 
         return locations
 

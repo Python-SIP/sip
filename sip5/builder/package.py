@@ -69,11 +69,8 @@ class Package:
         if isinstance(self._context, Configurable):
             self._context.configure(self._configuration)
 
-        # The build directory is relative to the current directory but all
-        # file and directory names are relative to the directory containing
-        # this script.
+        # The build directory is relative to the current directory.
         self.build_dir = os.path.abspath(self._context.build_dir)
-        os.chdir(os.path.dirname(os.path.abspath(sys.argv[0])))
 
         # We don't expose the context in the public API.
         self.verbose = self._context.verbose
@@ -184,6 +181,10 @@ class Package:
 
             module(self.sip_module, include_dir=self.build_dir)
             sip_h_dir = self.build_dir
+        else:
+            sip_h_dir = os.path.abspath(self.build_dir)
+
+        sip_h_dir = os.path.relpath(sip_h_dir)
 
         # Build each module's bindings.
         modules = []
