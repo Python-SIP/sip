@@ -54,6 +54,7 @@ static PyObject *py_generateTypeHints(PyObject *self, PyObject *args);
 static int fs_convertor(PyObject *obj, char **fsp);
 static int sipSpec_convertor(PyObject *obj, sipSpec **ptp);
 static int stringList_convertor(PyObject *obj, stringList **slp);
+static PyObject *stringList_convert_from(stringList *sl);
 
 
 /*
@@ -162,7 +163,7 @@ static PyObject *py_generateCode(PyObject *self, PyObject *args)
     sipSpec *pt;
     char *codeDir, *srcSuffix, *sipName;
     int exceptions, tracing, releaseGIL, parts, docs, py_debug, action;
-    stringList *versions, *xfeatures;
+    stringList *versions, *xfeatures, *sources;
 
     if (!PyArg_ParseTuple(args, "O&O&O&pppiO&O&pps",
             sipSpec_convertor, &pt,
@@ -185,10 +186,10 @@ static PyObject *py_generateCode(PyObject *self, PyObject *args)
         return NULL;
     }
 
-    generateCode(pt, codeDir, srcSuffix, exceptions, tracing, releaseGIL,
-            parts, versions, xfeatures, docs, py_debug, sipName);
+    sources = generateCode(pt, codeDir, srcSuffix, exceptions, tracing,
+            releaseGIL, parts, versions, xfeatures, docs, py_debug, sipName);
 
-    Py_RETURN_NONE;
+    return stringList_convert_from(sources);
 }
 
 
@@ -367,6 +368,42 @@ static int stringList_convertor(PyObject *obj, stringList **slp)
     }
 
     return 1;
+}
+
+
+/*
+ * Convert a stringList to a Python list of strings.
+ */
+static PyObject *stringList_convert_from(stringList *sl)
+{
+    PyObject *pyl;
+
+    if ((pyl = PyList_New(0)) == NULL)
+        return NULL;
+
+    while (sl != NULL)
+    {
+        PyObject *s;
+
+        if ((s = PyUnicode_DecodeLocale(sl->s, NULL)) == NULL)
+        {
+            Py_DECREF(pyl);
+            return NULL;
+        }
+
+        if (PyList_Append(pyl, s) < 0)
+        {
+            Py_DECREF(s);
+            Py_DECREF(pyl);
+            return NULL;
+        }
+
+        Py_DECREF(s);
+
+        sl = sl->next;
+    }
+
+    return pyl;
 }
 
 

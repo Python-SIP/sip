@@ -1368,7 +1368,7 @@ void parse(sipSpec *, FILE *, char *, int, stringList *, stringList *,
         stringList *, int);
 void parserEOF(const char *,parserContext *);
 void transform(sipSpec *, int);
-void generateCode(sipSpec *, char *, const char *, int, int, int, int,
+stringList *generateCode(sipSpec *, char *, const char *, int, int, int, int,
         stringList *needed_qualifiers, stringList *, int, int, const char *);
 void generateExtracts(sipSpec *pt, const stringList *extracts);
 void addExtractPart(sipSpec *pt, const char *id, int order, codeBlock *part);

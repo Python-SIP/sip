@@ -74,18 +74,19 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
         const char *codeDir, stringList *needed_qualifiers, stringList *xsl,
         int py_debug);
 static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
-        const char *srcSuffix, int parts, stringList *needed_qualifiers,
-        stringList *xsl, int py_debug, const char *sipName);
+        stringList **generated, const char *srcSuffix, int parts,
+        stringList *needed_qualifiers, stringList *xsl, int py_debug,
+        const char *sipName);
 static void generateCompositeCpp(sipSpec *pt, const char *codeDir,
-        int py_debug);
+        stringList **generated, int py_debug);
 static void generateSipImport(moduleDef *mod, const char *sipName, FILE *fp);
 static void generateSipImportVariables(FILE *fp);
 static void generateModInitStart(moduleDef *mod, int gen_c, FILE *fp);
 static void generateModDefinition(moduleDef *mod, const char *methods,
         FILE *fp);
 static void generateModDocstring(moduleDef *mod, FILE *fp);
-static void generateIfaceCpp(sipSpec *, int, ifaceFileDef *, int, const char *,
-        const char *, FILE *);
+static void generateIfaceCpp(sipSpec *, stringList **generated, int,
+        ifaceFileDef *, int, const char *, const char *, FILE *);
 static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp);
 static void generateImportedMappedTypeAPI(mappedTypeDef *mtd, moduleDef *mod,
         FILE *fp);
@@ -221,8 +222,8 @@ static int compareMethTab(const void *, const void *);
 static int compareEnumMembers(const void *, const void *);
 static char *getSubFormatChar(char, argDef *);
 static char *createIfaceFileName(const char *, ifaceFileDef *, const char *);
-static FILE *createCompilationUnit(moduleDef *mod, const char *fname,
-        const char *description);
+static FILE *createCompilationUnit(moduleDef *mod, stringList **generated,
+        const char *fname, const char *description);
 static FILE *createFile(moduleDef *mod, const char *fname,
         const char *description);
 static void closeFile(FILE *);
@@ -298,13 +299,15 @@ static void generate_include_sip_h(FILE *fp);
 
 
 /*
- * Generate the code from a specification.
+ * Generate the code from a specification and return a list of generated files.
  */
-void generateCode(sipSpec *pt, char *codeDir, const char *srcSuffix,
+stringList *generateCode(sipSpec *pt, char *codeDir, const char *srcSuffix,
         int except, int trace, int releaseGIL, int parts,
         stringList *needed_qualifiers, stringList *xsl, int docs, int py_debug,
         const char *sipName)
 {
+    stringList *generated = NULL;
+
     exceptions = except;
     tracing = trace;
     release_gil = releaseGIL;
@@ -315,10 +318,12 @@ void generateCode(sipSpec *pt, char *codeDir, const char *srcSuffix,
         srcSuffix = (generating_c ? ".c" : ".cpp");
 
     if (isComposite(pt->module))
-        generateCompositeCpp(pt, codeDir, py_debug);
+        generateCompositeCpp(pt, codeDir, &generated, py_debug);
     else
-        generateCpp(pt, pt->module, codeDir, srcSuffix, parts,
+        generateCpp(pt, pt->module, codeDir, &generated, srcSuffix, parts,
                 needed_qualifiers, xsl, py_debug, sipName);
+
+    return generated;
 }
 
 
@@ -945,14 +950,15 @@ static char *makePartName(const char *codeDir, const char *mname, int part,
  * Generate the C code for a composite module.
  */
 static void generateCompositeCpp(sipSpec *pt, const char *codeDir,
-        int py_debug)
+        stringList **generated, int py_debug)
 {
     char *cppfile;
     moduleDef *mod;
     FILE *fp;
 
     cppfile = concat(codeDir, "/sip", pt->module->name, "cmodule.c", NULL);
-    fp = createCompilationUnit(pt->module, cppfile, "Composite module code.");
+    fp = createCompilationUnit(pt->module, generated, cppfile,
+            "Composite module code.");
 
     declareLimitedAPI(py_debug, NULL, fp);
 
@@ -1060,8 +1066,9 @@ static void generateNameCache(sipSpec *pt, FILE *fp)
  * Generate the C/C++ code.
  */
 static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
-        const char *srcSuffix, int parts, stringList *needed_qualifiers,
-        stringList *xsl, int py_debug, const char *sipName)
+        stringList **generated, const char *srcSuffix, int parts,
+        stringList *needed_qualifiers, stringList *xsl, int py_debug,
+        const char *sipName)
 {
     char *cppfile;
     const char *mname = mod->name;
@@ -1100,7 +1107,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
     else
         cppfile = concat(codeDir, "/sip", mname, "cmodule", srcSuffix, NULL);
 
-    fp = createCompilationUnit(mod, cppfile, "Module code.");
+    fp = createCompilationUnit(mod, generated, cppfile, "Module code.");
 
     prcode(fp,
 "\n"
@@ -2116,7 +2123,8 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
                 ++this_part;
 
                 cppfile = makePartName(codeDir, mname, this_part, srcSuffix);
-                fp = createCompilationUnit(mod, cppfile, "Module code.");
+                fp = createCompilationUnit(mod, generated, cppfile,
+                        "Module code.");
 
                 prcode(fp,
 "\n"
@@ -2130,8 +2138,8 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
                 need_postinc = FALSE;
             }
 
-            generateIfaceCpp(pt, py_debug, iff, need_postinc, codeDir,
-                    srcSuffix,
+            generateIfaceCpp(pt, generated, py_debug, iff, need_postinc,
+                    codeDir, srcSuffix,
                     ((parts && iff->file_extension == NULL) ? fp : NULL));
         }
 
@@ -3467,9 +3475,9 @@ static int emptyIfaceFile(sipSpec *pt, ifaceFileDef *iff)
 /*
  * Generate the C/C++ code for an interface.
  */
-static void generateIfaceCpp(sipSpec *pt, int py_debug, ifaceFileDef *iff,
-        int need_postinc, const char *codeDir, const char *srcSuffix,
-        FILE *master)
+static void generateIfaceCpp(sipSpec *pt, stringList **generated, int py_debug,
+        ifaceFileDef *iff, int need_postinc, const char *codeDir,
+        const char *srcSuffix, FILE *master)
 {
     char *cppfile;
     const char *cmname = iff->module->name;
@@ -3487,7 +3495,7 @@ static void generateIfaceCpp(sipSpec *pt, int py_debug, ifaceFileDef *iff,
     if (master == NULL)
     {
         cppfile = createIfaceFileName(codeDir,iff,srcSuffix);
-        fp = createCompilationUnit(iff->module, cppfile,
+        fp = createCompilationUnit(iff->module, generated, cppfile,
                 "Interface wrapper code.");
 
         prcode(fp,
@@ -13166,13 +13174,14 @@ static void generatePreprocLine(int linenr, const char *fname, FILE *fp)
 /*
  * Create a source file.
  */
-static FILE *createCompilationUnit(moduleDef *mod, const char *fname,
-        const char *description)
+static FILE *createCompilationUnit(moduleDef *mod, stringList **generated,
+        const char *fname, const char *description)
 {
     FILE *fp = createFile(mod, fname, description);
 
-    if (fp != NULL)
-        generateCppCodeBlock(mod->unitcode, fp);
+    appendString(generated, sipStrdup(fname));
+
+    generateCppCodeBlock(mod->unitcode, fp);
 
     return fp;
 }

@@ -107,33 +107,21 @@ class Bindings:
             pyi_extract = None
 
         # Generate the bindings.
-        generateCode(pt, sources_dir, self.source_suffix, self.exceptions,
-                self.tracing, self.release_gil, self.concatenate, self.tags,
-                self.disabled_features, self.docstrings, self.debug,
-                package.sip_module)
+        sources = generateCode(pt, sources_dir, self.source_suffix,
+                self.exceptions, self.tracing, self.release_gil,
+                self.concatenate, self.tags, self.disabled_features,
+                self.docstrings, self.debug, package.sip_module)
 
         # The locations of things that will have been generated.  Note that we
         # don't include anything for generic extracts as the arguments include
         # a file name.
         locations = BindingsLocations()
 
+        locations.sources_dir = os.path.relpath(sources_dir)
+        locations.sources = [os.path.relpath(fn) for fn in sources]
+
         locations.api_file = api_extract
         locations.pyi_file = pyi_extract
-
-        # Assume anything in the sources directory that looks like a C/C++
-        # source file should be compiled.
-        # TODO - this should be returned by the code generator.
-        sources = []
-        for fn in os.listdir(sources_dir):
-            if self.source_suffix:
-                if fn.endswith(self.source_suffix):
-                    sources.append(fn)
-            elif fn.endswith('.c') or fn.endswith('.cpp'):
-                sources.append(fn)
-
-        locations.sources_dir = os.path.relpath(sources_dir)
-        locations.sources = [os.path.join(locations.sources_dir, fn)
-                for fn in sources]
 
         return locations
 
