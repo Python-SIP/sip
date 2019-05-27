@@ -31,15 +31,46 @@ from .exceptions import BuilderException
 
 
 class Package:
-    """ Encapsulate a package containing one or more extension modules. """
+    """ Encapsulate a package containing one or more sets of bindings. """
 
-    def __init__(self, name, *, version='1.0', enable_configuration_file=True, sip_module=None, installed_sip_h_dir=None, context_factory=None, bindings_factory=None, builder_factory=None):
-        """ Initialise the object. """
+    def __init__(self, name, *, version='1.0', enable_configuration_file=True, sip_module=None, sip_h_dir=None, context_factory=None, bindings_factory=None, builder_factory=None):
+        """ Initialise the package.
 
-        # Provide defaults for remaining unspecified arguments.
-        if sip_module is None:
-            sip_module = name + '.sip'
+        :param name:
+            is the name of the package as it will appear to PyPI.
+        :param version:
+            is the version number of the pckage as it will appear to PyPI.
+        :param enable_configuration_file:
+            is set if the user can specify the name of a configuration file on
+            the command line that provides default values of all other command
+            line options.
+        :param sip_module:
+            is the fully qualified name of the sip module shared by all sets of
+            bindings that are part of this package.  By default it is assumed
+            that the package will contain a single set of bindings and there
+            will be no shared sip module.
+        :param sip_h_dir:
+            is the name of the directory containing the sip.h file that defines
+            the ABI implemented by a shared sip module.  It is ignored if there
+            is no shared sip module, otherwise it must be specified.
+        :param context_factory:
+            is a callable that must return a Context instance.  If the callable
+            is a sub-class of the Configurable type then it may define
+            additional command line options.  The default callable returns a
+            ConfigurableContext instance.
+        :param bindings_factory:
+            is a callable that must return a Bindings instance.  If the
+            callable is a sub-class of the Configurable type then it may define
+            additional command line options.  The default callable returns a
+            BindingsContext instance.
+        :param builder_factory:
+            is a callable that must return a Context instance.  If the callable
+            is a sub-class of the Configurable type then it may define
+            additional command line options.  The default callable returns a
+            ConfigurableContext instance.
+        """
 
+        # Provide default factories.
         if context_factory is None:
             from .context import ConfigurableContext as context_factory
 
@@ -52,7 +83,7 @@ class Package:
         self._name = name
         self._version = version
         self.sip_module = sip_module
-        self.installed_sip_h_dir = installed_sip_h_dir
+        self.sip_h_dir = sip_h_dir
         self._context = context_factory()
         self._bindings_factory = bindings_factory
         self._builder_factory = builder_factory
@@ -72,6 +103,9 @@ class Package:
         # The build directory is relative to the current directory.
         self.build_dir = os.path.abspath(self._context.build_dir)
 
+        # The root directory is the one containing this script.
+        self.root_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
+
         # We don't expose the context in the public API.
         self.verbose = self._context.verbose
 
@@ -79,9 +113,9 @@ class Package:
             warnings.simplefilter('ignore', UserWarning)
 
     def add_bindings(self, sip_file):
-        """ Add the bindings defined by a .sip file to the package. """
+        """ Add the set of bindings defined by a .sip file to the package. """
 
-        self._bindings.append(self._bindings_factory(sip_file))
+        self._bindings.append(sip_file)
 
     def build(self):
         """ Build the package. """
@@ -170,32 +204,75 @@ class Package:
     def _build_modules(self):
         """ Build the extension modules and return their pathnames. """
 
+        # If no bindings were explicitly defined then see if there is a .sip
+        # file that might define a set that matches the name of the package.
+        nr_bindings = len(self._bindings)
+
+        if nr_bindings == 0:
+            sip_file = os.path.join(self.root_dir,
+                    self._name.split('.')[-1] + '.sip')
+
+            if not os.path.isfile(sip_file):
+                raise BuilderException(
+                        "no bindings have been specified and there is no file '{}'".format(sip_file))
+
+            self._bindings = [os.path.relpath(sip_file, self.root_dir)]
+        elif nr_bindings > 1 and self.sip_module is None:
+            raise BuilderException(
+                    "the name of a shared sip module must be specified when the package contains multiple sets of bindings")
+
+        # Check we have the sip.h file for any shared sip module.
+        if self.sip_module is not None and self.sip_h_dir is None:
+            raise BuilderException(
+                    "the directory containing sip.h must be specified when using a shared sip module")
+
         # Make sure we have a clean build directory.
         shutil.rmtree(self.build_dir, ignore_errors=True)
         os.mkdir(self.build_dir)
 
-        # Create sip.h if we haven't been given a pre-installed copy.
-        sip_h_dir = self.installed_sip_h_dir
-        if sip_h_dir is None:
+        # Create sip.h if we aren't using a shared sip module.
+        if self.sip_module is None:
             from ..module.module import module
 
             module(self.sip_module, include_dir=self.build_dir)
             sip_h_dir = self.build_dir
         else:
-            sip_h_dir = os.path.abspath(self.build_dir)
+            sip_h_dir = os.path.abspath(self.sip_h_dir)
 
         sip_h_dir = os.path.relpath(sip_h_dir)
 
-        # Build each module's bindings.
+        # Build each set of bindings.
         modules = []
 
-        for bindings in self._bindings:
+        for sip_file in self._bindings:
+            bindings = self._bindings_factory(sip_file)
+
             # Generate the source code.
             locations = bindings.generate(self)
 
+            # Add the sip module code if it is not shared.
+            if self.sip_module is None:
+                # TODO: implement this in the module sub-package
+                module_dir = os.path.join(
+                        os.path.dirname(os.path.dirname(__file__)), 'module',
+                        'source')
+
+                for fn in os.listdir(module_dir):
+                    if fn.endswith('.c') or fn.endswith('.cpp') or fn.endswith('.h'):
+                        src_fn = os.path.join(module_dir, fn)
+                        dst_fn = os.path.join(locations.sources_dir, fn)
+                        shutil.copyfile(src_fn, dst_fn)
+
+                        if not fn.endswith('.h'):
+                            locations.sources.append(dst_fn)
+
+            include_dirs = [locations.sources_dir]
+            if sip_h_dir != locations.sources_dir:
+                include_dirs.append(sip_h_dir)
+
             # Compile the generated code.
             builder = self._builder_factory(locations.sources_dir,
-                    locations.sources, [sip_h_dir, locations.sources_dir])
+                    locations.sources, include_dirs)
 
             modules.append(builder.build_extension_module(bindings, self))
 

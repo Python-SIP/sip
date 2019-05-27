@@ -33,12 +33,18 @@ _src_dir = os.path.join(os.path.dirname(__file__), 'source')
 def module(sip_module, documentation_dir=None, include_dir=None, module_dir=None, no_sdist=False, setup_cfg=None):
     """ Create the sdist for a sip module. """
 
+    # If a sip module is not specified then we are creating sip.h for a
+    # non-shared version of the sip module.
+    if sip_module is None:
+        sip_module = ''
+
     # If no locations are specified then create the sdist in the current
     # directory.
     if documentation_dir is None and include_dir is None and module_dir is None:
         module_dir = '.'
 
     # Create the patches.
+    # TODO: allow the PyPI name to be specified explicitly.
     pypi_name = sip_module.replace('.', '_')
 
     abi_major, abi_minor, abi_maintenance = _read_abi_version()
@@ -61,6 +67,7 @@ def module(sip_module, documentation_dir=None, include_dir=None, module_dir=None
         '@_SIP_ABI_VERSION@':   hex(version),
         '@_SIP_FQ_NAME@':       sip_module,
         '@_SIP_BASE_NAME@':     sip_module_parts[-1],
+        '@_SIP_MODULE_SHARED@': '1' if sip_module else '0',
         '@_SIP_MODULE_ENTRY@':  'PyInit_' + sip_module_parts[-1],
     }
 

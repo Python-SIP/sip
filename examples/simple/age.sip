@@ -1,6 +1,6 @@
 // Define the SIP wrapper to the age library.
 
-%Module examples.age
+%Module age
 
 class Age
 {

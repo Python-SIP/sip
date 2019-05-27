@@ -79,7 +79,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
         const char *sipName);
 static void generateCompositeCpp(sipSpec *pt, const char *codeDir,
         stringList **generated, int py_debug);
-static void generateSipImport(moduleDef *mod, const char *sipName, FILE *fp);
+static void generateSipAPI(moduleDef *mod, const char *sipName, FILE *fp);
 static void generateSipImportVariables(FILE *fp);
 static void generateModInitStart(moduleDef *mod, int gen_c, FILE *fp);
 static void generateModDefinition(moduleDef *mod, const char *methods,
@@ -2000,7 +2000,8 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "    PyObject *sipModule, *sipModuleDict;\n"
         );
 
-    generateSipImportVariables(fp);
+    if (sipName != NULL)
+        generateSipImportVariables(fp);
 
     /* Generate any pre-initialisation code. */
     generateCppCodeBlock(mod->preinitcode, fp);
@@ -2014,7 +2015,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "\n"
         );
 
-    generateSipImport(mod, sipName, fp);
+    generateSipAPI(mod, sipName, fp);
 
     /* Generate any initialisation code. */
     generateCppCodeBlock(mod->initcode, fp);
@@ -2215,10 +2216,24 @@ static void generateTypesTable(moduleDef *mod, FILE *fp)
 
 
 /*
- * Generate the code to import the sip module and get its API.
+ * Generate the code to get the sip API.
  */
-static void generateSipImport(moduleDef *mod, const char *sipName, FILE *fp)
+static void generateSipAPI(moduleDef *mod, const char *sipName, FILE *fp)
 {
+    /*
+     * If there is no sip module name then we are getting the API from a
+     * non-shared sip module.
+     */
+    if (sipName == NULL)
+    {
+        prcode(fp,
+"    if ((sipAPI_%s = sip_init_library()) == SIP_NULLPTR)\n"
+"        return SIP_NULLPTR;\n"
+            , mod->name);
+
+        return;
+    }
+
     /*
      * Note that we don't use PyCapsule_Import() because it doesn't handle
      * package.module.attribute.

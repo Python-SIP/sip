@@ -24,12 +24,9 @@
 from sip5.builder import Package
 
 
-# Define the package as it would appear in PyPI.  We also specify the full
-# package name of the sip module it uses.
-package = Package('age', sip_module='examples.sip')
-
-# Add the module bindings created from the .sip specification file.
-package.add_bindings('age.sip')
+# Define the package as it would appear in PyPI.  As we don't specify a set of
+# bindings to build the package will look for a similarly named .sip file.
+package = Package('age')
 
 # Build the package according to the user supplied command line options.
 package.build()

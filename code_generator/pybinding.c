@@ -165,7 +165,7 @@ static PyObject *py_generateCode(PyObject *self, PyObject *args)
     int exceptions, tracing, releaseGIL, parts, docs, py_debug, action;
     stringList *versions, *xfeatures, *sources;
 
-    if (!PyArg_ParseTuple(args, "O&O&O&pppiO&O&pps",
+    if (!PyArg_ParseTuple(args, "O&O&O&pppiO&O&ppz",
             sipSpec_convertor, &pt,
             fs_convertor, &codeDir,
             fs_convertor, &srcSuffix,

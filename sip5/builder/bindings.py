@@ -69,10 +69,9 @@ class Bindings:
         set_globals(SIP_VERSION, SIP_VERSION_STR, BuilderException,
                 self.include_dirs)
 
-        # Parse the input file.  All file and directory names are relative to
-        # the directory containing this script.
+        # Parse the input file.
         cwd = os.getcwd()
-        os.chdir(os.path.dirname(os.path.abspath(sys.argv[0])))
+        os.chdir(package.root_dir)
 
         pt, self.name = parse(self.sip_file, True, self.tags, self.backstops,
             self.disabled_features, self.protected_is_public)

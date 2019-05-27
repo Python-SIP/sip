@@ -47,6 +47,7 @@ extern "C" {
 #define SIP_API_MAJOR_NR    @_SIP_ABI_MAJOR@
 #define SIP_API_MINOR_NR    @_SIP_ABI_MINOR@
 
+#define _SIP_MODULE_SHARED  @_SIP_MODULE_SHARED@
 #define _SIP_MODULE_ENTRY   @_SIP_MODULE_ENTRY@
 
 
@@ -1612,6 +1613,8 @@ typedef struct _sipAPIDef {
             Py_ssize_t *slicelength);
     size_t (*api_long_as_size_t)(PyObject *o);
 } sipAPIDef;
+
+const sipAPIDef *sip_init_library(void);
 
 
 /*

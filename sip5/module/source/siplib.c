@@ -876,6 +876,7 @@ static int addTypeInstances(PyObject *dict, sipTypeInstanceDef *ti);
 static int addSingleTypeInstance(PyObject *dict, const char *name,
         void *cppPtr, const sipTypeDef *td, int initflags);
 static int addLicense(PyObject *dict, sipLicenseDef *lc);
+#if _SIP_MODULE_SHARED
 static PyObject *assign(PyObject *self, PyObject *args);
 static PyObject *cast(PyObject *self, PyObject *args);
 static PyObject *callDtor(PyObject *self, PyObject *args);
@@ -891,7 +892,9 @@ static PyObject *unwrapInstance(PyObject *self, PyObject *args);
 static PyObject *transferBack(PyObject *self, PyObject *args);
 static PyObject *transferTo(PyObject *self, PyObject *args);
 static PyObject *setDestroyOnExit(PyObject *self, PyObject *args);
+static void clear_wrapper(sipSimpleWrapper *sw);
 static void print_object(const char *label, PyObject *obj);
+#endif
 static void addToParent(sipWrapper *self, sipWrapper *owner);
 static void removeFromParent(sipWrapper *self);
 static void detachChildren(sipWrapper *self);
@@ -941,7 +944,7 @@ static int addMethod(PyObject *dict, PyMethodDef *pmd);
 static PyObject *create_property(sipVariableDef *vd);
 static PyObject *create_function(PyMethodDef *ml);
 static PyObject *sip_exit(PyObject *self, PyObject *args);
-static void register_exit_notifier(void);
+static int register_exit_notifier(void);
 static sipConvertFromFunc get_from_convertor(const sipTypeDef *td);
 static sipPyObject **autoconversion_disabled(const sipTypeDef *td);
 static void fix_slots(PyTypeObject *py_type, sipPySlotDef *psd);
@@ -954,7 +957,6 @@ static sipSimpleWrapper *deref_mixin(sipSimpleWrapper *w);
 static PyObject *wrap_simple_instance(void *cpp, const sipTypeDef *td,
         sipWrapper *owner, int flags);
 static void *resolve_proxy(const sipTypeDef *td, void *proxy);
-static void clear_wrapper(sipSimpleWrapper *sw);
 static PyObject *call_method(PyObject *method, const char *fmt, va_list va);
 static int importTypes(sipExportedModuleDef *client, sipImportedModuleDef *im,
         sipExportedModuleDef *em);
@@ -974,52 +976,17 @@ static int long_as_nonoverflow_int(PyObject *val_obj);
 
 
 /*
- * The Python module initialisation function.
+ * Initialise the module as a library.
  */
-#if defined(SIP_STATIC_MODULE)
-PyObject *_SIP_MODULE_ENTRY(void)
-#else
-PyMODINIT_FUNC _SIP_MODULE_ENTRY(void)
-#endif
+const sipAPIDef *sip_init_library(void)
 {
-    static PyMethodDef methods[] = {
-        {"assign", assign, METH_VARARGS, NULL},
-        {"cast", cast, METH_VARARGS, NULL},
-        {"delete", callDtor, METH_VARARGS, NULL},
-        {"dump", dumpWrapper, METH_O, NULL},
-        {"enableautoconversion", enableAutoconversion, METH_VARARGS, NULL},
-        {"enableoverflowchecking", sipEnableOverflowChecking, METH_VARARGS, NULL},
-        {"getapi", sipGetAPI, METH_VARARGS, NULL},
-        {"isdeleted", isDeleted, METH_VARARGS, NULL},
-        {"ispycreated", isPyCreated, METH_VARARGS, NULL},
-        {"ispyowned", isPyOwned, METH_VARARGS, NULL},
-        {"setapi", sipSetAPI, METH_VARARGS, NULL},
-        {"setdeleted", setDeleted, METH_VARARGS, NULL},
-        {"setdestroyonexit", setDestroyOnExit, METH_VARARGS, NULL},
-        {"settracemask", setTraceMask, METH_VARARGS, NULL},
-        {"transferback", transferBack, METH_VARARGS, NULL},
-        {"transferto", transferTo, METH_VARARGS, NULL},
-        {"wrapinstance", wrapInstance, METH_VARARGS, NULL},
-        {"unwrapinstance", unwrapInstance, METH_VARARGS, NULL},
-        {"_unpickle_type", unpickle_type, METH_VARARGS, NULL},
-        {"_unpickle_enum", unpickle_enum, METH_VARARGS, NULL},
-        {NULL, NULL, 0, NULL}
+    static PyMethodDef tu_md = {
+        "_unpickle_type", unpickle_type, METH_NOARGS, NULL
     };
 
-    static PyModuleDef module_def = {
-        PyModuleDef_HEAD_INIT,
-        SIP_MODULE_NAME,        /* m_name */
-        NULL,                   /* m_doc */
-        -1,                     /* m_size */
-        methods,                /* m_methods */
-        NULL,                   /* m_reload */
-        NULL,                   /* m_traverse */
-        NULL,                   /* m_clear */
-        NULL,                   /* m_free */
+    static PyMethodDef eu_md = {
+        "_unpickle_enum", unpickle_enum, METH_NOARGS, NULL
     };
-
-    int rc;
-    PyObject *mod, *mod_dict, *obj;
 
     /*
      * Remind ourselves to add support for capsule variables when we have
@@ -1071,23 +1038,100 @@ PyMODINIT_FUNC _SIP_MODULE_ENTRY(void)
     if (PyType_Ready(&sipArray_Type) < 0)
         return NULL;
 
+    /* These will always be needed. */
+    if (objectify("__init__", &init_name) < 0)
+        return NULL;
+
+    if ((empty_tuple = PyTuple_New(0)) == NULL)
+        return NULL;
+
+    /* Get a reference to the pickle helpers. */
+    if ((type_unpickler = PyCFunction_New(&tu_md, NULL)) == NULL)
+        return NULL;
+
+    if ((enum_unpickler = PyCFunction_New(&eu_md, NULL)) == NULL)
+        return NULL;
+
+    /* Initialise the object map. */
+    sipOMInit(&cppPyMap);
+
+    /* Make sure we are notified at the end of the exit process. */
+    if (Py_AtExit(finalise) < 0)
+        return NULL;
+
+    /* Make sure we are notified at the start of the exit process. */
+    if (register_exit_notifier() < 0)
+        return NULL;
+
+    /*
+     * Get the current interpreter.  This will be shared between all threads.
+     */
+    sipInterpreter = PyThreadState_Get()->interp;
+
+    return &sip_api;
+}
+
+
+#if _SIP_MODULE_SHARED
+/*
+ * The Python module initialisation function.
+ */
+#if defined(SIP_STATIC_MODULE)
+PyObject *_SIP_MODULE_ENTRY(void)
+#else
+PyMODINIT_FUNC _SIP_MODULE_ENTRY(void)
+#endif
+{
+    static PyMethodDef methods[] = {
+        {"assign", assign, METH_VARARGS, NULL},
+        {"cast", cast, METH_VARARGS, NULL},
+        {"delete", callDtor, METH_VARARGS, NULL},
+        {"dump", dumpWrapper, METH_O, NULL},
+        {"enableautoconversion", enableAutoconversion, METH_VARARGS, NULL},
+        {"enableoverflowchecking", sipEnableOverflowChecking, METH_VARARGS, NULL},
+        {"getapi", sipGetAPI, METH_VARARGS, NULL},
+        {"isdeleted", isDeleted, METH_VARARGS, NULL},
+        {"ispycreated", isPyCreated, METH_VARARGS, NULL},
+        {"ispyowned", isPyOwned, METH_VARARGS, NULL},
+        {"setapi", sipSetAPI, METH_VARARGS, NULL},
+        {"setdeleted", setDeleted, METH_VARARGS, NULL},
+        {"setdestroyonexit", setDestroyOnExit, METH_VARARGS, NULL},
+        {"settracemask", setTraceMask, METH_VARARGS, NULL},
+        {"transferback", transferBack, METH_VARARGS, NULL},
+        {"transferto", transferTo, METH_VARARGS, NULL},
+        {"wrapinstance", wrapInstance, METH_VARARGS, NULL},
+        {"unwrapinstance", unwrapInstance, METH_VARARGS, NULL},
+        {NULL, NULL, 0, NULL}
+    };
+
+    static PyModuleDef module_def = {
+        PyModuleDef_HEAD_INIT,
+        SIP_MODULE_NAME,        /* m_name */
+        NULL,                   /* m_doc */
+        -1,                     /* m_size */
+        methods,                /* m_methods */
+        NULL,                   /* m_reload */
+        NULL,                   /* m_traverse */
+        NULL,                   /* m_clear */
+        NULL,                   /* m_free */
+    };
+
+    const sipAPIDef *api;
+    int rc;
+    PyObject *mod, *mod_dict, *obj;
+
+    /* Initialise the static variables. */
+    if ((api = sip_init_library()) == NULL)
+        return NULL;
+
+    /* Create the module. */
     if ((mod = PyModule_Create(&module_def)) == NULL)
         return NULL;
 
     mod_dict = PyModule_GetDict(mod);
 
-    /* Get a reference to the pickle helpers. */
-    type_unpickler = PyDict_GetItemString(mod_dict, "_unpickle_type");
-    enum_unpickler = PyDict_GetItemString(mod_dict, "_unpickle_enum");
-
-    if (type_unpickler == NULL || enum_unpickler == NULL)
-    {
-        Py_DECREF(mod);
-        return NULL;
-    }
-
     /* Publish the SIP API. */
-    if ((obj = PyCapsule_New((void *)&sip_api, SIP_MODULE_NAME "._C_API", NULL)) == NULL)
+    if ((obj = PyCapsule_New((void *)api, SIP_MODULE_NAME "._C_API", NULL)) == NULL)
     {
         Py_DECREF(mod);
         return NULL;
@@ -1097,19 +1141,6 @@ PyMODINIT_FUNC _SIP_MODULE_ENTRY(void)
     Py_DECREF(obj);
 
     if (rc < 0)
-    {
-        Py_DECREF(mod);
-        return NULL;
-    }
-
-    /* These will always be needed. */
-    if (objectify("__init__", &init_name) < 0)
-    {
-        Py_DECREF(mod);
-        return NULL;
-    }
-
-    if ((empty_tuple = PyTuple_New(0)) == NULL)
     {
         Py_DECREF(mod);
         return NULL;
@@ -1136,26 +1167,6 @@ PyMODINIT_FUNC _SIP_MODULE_ENTRY(void)
     PyDict_SetItemString(mod_dict, "wrapper", (PyObject *)&sipWrapper_Type);
     PyDict_SetItemString(mod_dict, "voidptr", (PyObject *)&sipVoidPtr_Type);
 
-    /* Initialise the module if it hasn't already been done. */
-    if (sipInterpreter == NULL)
-    {
-        Py_AtExit(finalise);
-
-        /* Initialise the object map. */
-        sipOMInit(&cppPyMap);
-
-        sipQtSupport = NULL;
-
-        /*
-         * Get the current interpreter.  This will be shared between all
-         * threads.
-         */
-        sipInterpreter = PyThreadState_Get()->interp;
-    }
-
-    /* Make sure we are notified when starting to exit. */
-    register_exit_notifier();
-
     /*
      * Also install the package-specific module at the top level for backwards
      * compatibility.
@@ -1170,6 +1181,7 @@ PyMODINIT_FUNC _SIP_MODULE_ENTRY(void)
 
     return mod;
 }
+#endif
 
 
 /*
@@ -1198,6 +1210,7 @@ static void sip_api_trace(unsigned mask, const char *fmt, ...)
 }
 
 
+#if _SIP_MODULE_SHARED
 /*
  * Set the trace mask.
  */
@@ -1217,8 +1230,10 @@ static PyObject *setTraceMask(PyObject *self, PyObject *args)
 
     return NULL;
 }
+#endif
 
 
+#if _SIP_MODULE_SHARED
 /*
  * Dump various bits of potentially useful information to stdout.  Note that we
  * use the same calling convention as sys.getrefcount() so that it has the
@@ -1277,8 +1292,10 @@ static void print_object(const char *label, PyObject *obj)
 
     printf("\n");
 }
+#endif
 
 
+#if _SIP_MODULE_SHARED
 /*
  * Transfer the ownership of an instance to C/C++.
  */
@@ -1312,8 +1329,10 @@ static PyObject *transferTo(PyObject *self, PyObject *args)
 
     return NULL;
 }
+#endif
 
 
+#if _SIP_MODULE_SHARED
 /*
  * Transfer the ownership of an instance to Python.
  */
@@ -1333,8 +1352,10 @@ static PyObject *transferBack(PyObject *self, PyObject *args)
 
     return NULL;
 }
+#endif
 
 
+#if _SIP_MODULE_SHARED
 /*
  * Invoke the assignment operator for a C++ instance.
  */
@@ -1398,8 +1419,10 @@ static PyObject *assign(PyObject *self, PyObject *args)
     Py_INCREF(Py_None);
     return Py_None;
 }
+#endif
 
 
+#if _SIP_MODULE_SHARED
 /*
  * Cast an instance to one of it's sub or super-classes by returning a new
  * Python object with the superclass type wrapping the same C++ instance.
@@ -1440,8 +1463,10 @@ static PyObject *cast(PyObject *self, PyObject *args)
     return wrap_simple_instance(addr, wt->wt_td, NULL,
             (sw->sw_flags | SIP_NOT_IN_MAP) & ~SIP_PY_OWNED);
 }
+#endif
 
 
+#if _SIP_MODULE_SHARED
 /*
  * Call an instance's dtor.
  */
@@ -1468,8 +1493,10 @@ static PyObject *callDtor(PyObject *self, PyObject *args)
     Py_INCREF(Py_None);
     return Py_None;
 }
+#endif
 
 
+#if _SIP_MODULE_SHARED
 /*
  * Check if an instance still exists without raising an exception.
  */
@@ -1488,8 +1515,10 @@ static PyObject *isDeleted(PyObject *self, PyObject *args)
     Py_INCREF(res);
     return res;
 }
+#endif
 
 
+#if _SIP_MODULE_SHARED
 /*
  * Check if an instance was created by Python.
  */
@@ -1509,8 +1538,10 @@ static PyObject *isPyCreated(PyObject *self, PyObject *args)
     Py_INCREF(res);
     return res;
 }
+#endif
 
 
+#if _SIP_MODULE_SHARED
 /*
  * Check if an instance is owned by Python or C/C++.
  */
@@ -1529,8 +1560,10 @@ static PyObject *isPyOwned(PyObject *self, PyObject *args)
     Py_INCREF(res);
     return res;
 }
+#endif
 
 
+#if _SIP_MODULE_SHARED
 /*
  * Mark an instance as having been deleted.
  */
@@ -1548,8 +1581,10 @@ static PyObject *setDeleted(PyObject *self, PyObject *args)
     Py_INCREF(Py_None);
     return Py_None;
 }
+#endif
 
 
+#if _SIP_MODULE_SHARED
 /*
  * Unwrap an instance.
  */
@@ -1577,8 +1612,10 @@ static PyObject *unwrapInstance(PyObject *self, PyObject *args)
 
     return NULL;
 }
+#endif
 
 
+#if _SIP_MODULE_SHARED
 /*
  * Wrap an instance.
  */
@@ -1594,8 +1631,10 @@ static PyObject *wrapInstance(PyObject *self, PyObject *args)
 
     return NULL;
 }
+#endif
 
 
+#if _SIP_MODULE_SHARED
 /*
  * Set the destroy on exit flag from Python code.
  */
@@ -1611,6 +1650,7 @@ static PyObject *setDestroyOnExit(PyObject *self, PyObject *args)
 
     return NULL;
 }
+#endif
 
 
 /*
@@ -12284,7 +12324,7 @@ static PyObject *sip_exit(PyObject *self, PyObject *args)
 /*
  * Register the exit notifier with the atexit module.
  */
-static void register_exit_notifier(void)
+static int register_exit_notifier(void)
 {
     static PyMethodDef md = {
         "_sip_exit", sip_exit, METH_NOARGS, NULL
@@ -12293,12 +12333,12 @@ static void register_exit_notifier(void)
     PyObject *notifier, *register_func, *res;
 
     if ((notifier = PyCFunction_New(&md, NULL)) == NULL)
-        return;
+        return -1;
 
     if ((register_func = import_module_attr("atexit", "register")) == NULL)
     {
         Py_DECREF(notifier);
-        return;
+        return -1;
     }
 
     res = PyObject_CallFunctionObjArgs(register_func, notifier, NULL);
@@ -12306,6 +12346,8 @@ static void register_exit_notifier(void)
     Py_XDECREF(res);
     Py_DECREF(register_func);
     Py_DECREF(notifier);
+
+    return (res != NULL ? 0 : -1);
 }
 
 
@@ -12381,6 +12423,7 @@ static sipPyObject **autoconversion_disabled(const sipTypeDef *td)
 }
 
 
+#if _SIP_MODULE_SHARED
 /*
  * Enable or disable auto-conversion of a class that supports it.
  */
@@ -12416,6 +12459,7 @@ static PyObject *enableAutoconversion(PyObject *self, PyObject *args)
 
     return NULL;
 }
+#endif
 
 
 /*
@@ -12474,6 +12518,7 @@ static void *resolve_proxy(const sipTypeDef *td, void *proxy)
 }
 
 
+#if _SIP_MODULE_SHARED
 /*
  * Clear a simple wrapper.
  */
@@ -12492,6 +12537,7 @@ static void clear_wrapper(sipSimpleWrapper *sw)
 
     clear_access_func(sw);
 }
+#endif
 
 
 /*
