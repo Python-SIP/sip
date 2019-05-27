@@ -27,6 +27,8 @@ import sys
 import warnings
 
 from ..exceptions import handle_exception, UserException
+from ..distinfo import create_distinfo
+from ..install import install_module
 from ..module.module import copy_nonshared_sources
 
 from .configuration import Configurable, ConfigurationParser
@@ -177,12 +179,18 @@ class Package:
     def _install(self):
         """ Install the package. """
 
-        modules = self._build_modules()
+        target_dir = self._context.target_dir
+        installed = []
 
-        print("Built:", modules)
+        for module, module_fn in self._build_modules():
+            installed.append(install_module(module, module_fn, target_dir))
+
+        create_distinfo(installed, target_dir)
 
     def _build_modules(self):
-        """ Build the extension modules and return their pathnames. """
+        """ Build the extension modules and return ia 2-tuple of the fully
+        qualified module name and the pathname.
+        """
 
         # If no bindings were explicitly defined then see if there is a .sip
         # file that might define a set that matches the name of the package.
@@ -235,6 +243,8 @@ class Package:
             builder = self._builder_factory(locations.sources_dir,
                     locations.sources, include_dirs)
 
-            modules.append(builder.build_extension_module(bindings, self))
+            modules.append(
+                    (bindings.name,
+                            builder.build_extension_module(bindings, self)))
 
         return modules

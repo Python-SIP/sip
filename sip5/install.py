@@ -7,7 +7,7 @@
 # This copy of SIP may also used under the terms of the GNU General Public
 # License v2 or v3 as published by the Free Software Foundation which can be
 # found in the files LICENSE-GPL2 and LICENSE-GPL3 included in this package.
-#
+# 
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 # AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 # IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -21,41 +21,21 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from distutils.sysconfig import get_python_lib
-
-from .configuration import Configurable, Option
-
-
-class Context:
-    """ The encapsulation of a package context. """
-
-    def __init__(self):
-        """ Initialise the object. """
-
-        self.action = 'install'
-        self.build_dir = 'build'
-        self.verbose = False
-
-        # The default target directory is the Python installation's
-        # site-packages directory.
-        self.target_dir = get_python_lib(plat_specific=1)
+import os
+import shutil
 
 
-class ConfigurableContext(Context, Configurable):
-    """ The user-configurable encapsulation of a package context. """
+def install_module(module, module_fn, target_dir):
+    """ Install an extension module into a target directory. """
 
-    # The user-configurable options.
-    _options = (
-        Option('verbose', option_type=bool,
-                help="enable verbose progress messages"),
-        Option('build_dir', help="the build directory", metavar="DIR"),
-        Option('target_dir', help="the target installation directory",
-                metavar="DIR"),
-        Option('action', choices=('install', 'sdist', 'wheel'), action=True)
-    )
+    parts = [target_dir]
+    parts.extend(module.split('.')[:-1])
+    module_dir = os.path.join(*parts)
 
-    @classmethod
-    def get_options(cls):
-        """ Get the user-configurable options. """
+    os.makedirs(module_dir, exist_ok=True)
 
-        return cls._options
+    target_fn = os.path.join(module_dir, os.path.basename(module_fn))
+
+    shutil.copyfile(module_fn, target_fn)
+
+    return target_fn

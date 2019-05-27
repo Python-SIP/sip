@@ -7,7 +7,7 @@
 # This copy of SIP may also used under the terms of the GNU General Public
 # License v2 or v3 as published by the Free Software Foundation which can be
 # found in the files LICENSE-GPL2 and LICENSE-GPL3 included in this package.
-#
+# 
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 # AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 # IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -21,41 +21,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from distutils.sysconfig import get_python_lib
+def create_distinfo(installed, target_dir):
+    """ Create the dist-info directory for a list of installed files. """
 
-from .configuration import Configurable, Option
-
-
-class Context:
-    """ The encapsulation of a package context. """
-
-    def __init__(self):
-        """ Initialise the object. """
-
-        self.action = 'install'
-        self.build_dir = 'build'
-        self.verbose = False
-
-        # The default target directory is the Python installation's
-        # site-packages directory.
-        self.target_dir = get_python_lib(plat_specific=1)
-
-
-class ConfigurableContext(Context, Configurable):
-    """ The user-configurable encapsulation of a package context. """
-
-    # The user-configurable options.
-    _options = (
-        Option('verbose', option_type=bool,
-                help="enable verbose progress messages"),
-        Option('build_dir', help="the build directory", metavar="DIR"),
-        Option('target_dir', help="the target installation directory",
-                metavar="DIR"),
-        Option('action', choices=('install', 'sdist', 'wheel'), action=True)
-    )
-
-    @classmethod
-    def get_options(cls):
-        """ Get the user-configurable options. """
-
-        return cls._options
+    print("Installed:", installed)
