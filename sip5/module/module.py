@@ -30,13 +30,10 @@ import tarfile
 _src_dir = os.path.join(os.path.dirname(__file__), 'source')
 
 
+# TODO: this API needs reviewing to support how sip5-module will actually be
+# used.
 def module(sip_module, documentation_dir=None, include_dir=None, module_dir=None, no_sdist=False, setup_cfg=None):
     """ Create the sdist for a sip module. """
-
-    # If a sip module is not specified then we are creating sip.h for a
-    # non-shared version of the sip module.
-    if sip_module is None:
-        sip_module = ''
 
     # If no locations are specified then create the sdist in the current
     # directory.
@@ -46,30 +43,7 @@ def module(sip_module, documentation_dir=None, include_dir=None, module_dir=None
     # Create the patches.
     # TODO: allow the PyPI name to be specified explicitly.
     pypi_name = sip_module.replace('.', '_')
-
-    abi_major, abi_minor, abi_maintenance = _read_abi_version()
-    version = (abi_major << 16) | (abi_minor << 8) | abi_maintenance
-
-    version_str = '%d.%d' % (abi_major, abi_minor)
-    if abi_maintenance > 0:
-        version_str = '%s.%d' % (version_str, abi_maintenance)
-
-    sip_module_parts = sip_module.split('.')
-
-    patches = {
-        '@SIP_MODULE_NAME@':    pypi_name,
-        '@SIP_MODULE_PACKAGE@': sip_module_parts[0],
-        '@SIP_MODULE_VERSION@': version_str,
-
-        # These are internal.
-        '@_SIP_ABI_MAJOR@':     str(abi_major),
-        '@_SIP_ABI_MINOR@':     str(abi_minor),
-        '@_SIP_ABI_VERSION@':   hex(version),
-        '@_SIP_FQ_NAME@':       sip_module,
-        '@_SIP_BASE_NAME@':     sip_module_parts[-1],
-        '@_SIP_MODULE_SHARED@': '1' if sip_module else '0',
-        '@_SIP_MODULE_ENTRY@':  'PyInit_' + sip_module_parts[-1],
-    }
+    patches = _create_patches(sip_module, pypi_name)
 
     # Install the sip.rst file.
     if documentation_dir is not None:
@@ -81,7 +55,7 @@ def module(sip_module, documentation_dir=None, include_dir=None, module_dir=None
 
     # Create the source directory.
     if module_dir is not None:
-        full_pypi_name = pypi_name + '-' + version_str
+        full_pypi_name = pypi_name + '-' + patches['@SIP_MODULE_VERSION@']
         pkg_dir = os.path.join(module_dir, full_pypi_name)
 
         _install_code(pkg_dir, patches, setup_cfg)
@@ -103,8 +77,58 @@ def module(sip_module, documentation_dir=None, include_dir=None, module_dir=None
             shutil.rmtree(pkg_dir)
 
 
+def copy_nonshared_sources(sources_dir):
+    """ Copy the module sources as a non-shared module. """
+
+    # Copy the patched sip.h.
+    patches = _create_patches()
+    _install_source_file('sip.h', sources_dir, patches)
+
+    # Copy the remaining source code.
+    sources = []
+
+    for fn in os.listdir(_src_dir):
+        if fn.endswith('.c') or fn.endswith('.cpp') or fn.endswith('.h'):
+            src_fn = os.path.join(_src_dir, fn)
+            dst_fn = os.path.join(sources_dir, fn)
+            shutil.copyfile(src_fn, dst_fn)
+
+            if not fn.endswith('.h'):
+                sources.append(dst_fn)
+
+    return sources
+
+
+def _create_patches(sip_module='', pypi_name=''):
+    """ Return a dict of the patches. """
+
+    abi_major, abi_minor, abi_maintenance = _read_abi_version()
+    version = (abi_major << 16) | (abi_minor << 8) | abi_maintenance
+
+    version_str = '%d.%d' % (abi_major, abi_minor)
+    if abi_maintenance > 0:
+        version_str = '%s.%d' % (version_str, abi_maintenance)
+
+    sip_module_parts = sip_module.split('.')
+
+    return {
+        '@SIP_MODULE_NAME@':    pypi_name,
+        '@SIP_MODULE_PACKAGE@': sip_module_parts[0],
+        '@SIP_MODULE_VERSION@': version_str,
+
+        # These are internal.
+        '@_SIP_ABI_MAJOR@':     str(abi_major),
+        '@_SIP_ABI_MINOR@':     str(abi_minor),
+        '@_SIP_ABI_VERSION@':   hex(version),
+        '@_SIP_FQ_NAME@':       sip_module,
+        '@_SIP_BASE_NAME@':     sip_module_parts[-1],
+        '@_SIP_MODULE_SHARED@': '1' if sip_module else '0',
+        '@_SIP_MODULE_ENTRY@':  'PyInit_' + sip_module_parts[-1],
+    }
+
+
 def _install_code(target_dir, patches, setup_cfg):
-    """ Install the module code in a target directory. """
+    """ Install the shared module code in a target directory. """
 
     # Remove any existing directory.
     shutil.rmtree(target_dir, ignore_errors=True)

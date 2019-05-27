@@ -27,6 +27,7 @@ import sys
 import warnings
 
 from ..exceptions import handle_exception, UserException
+from ..module.module import copy_nonshared_sources
 
 from .configuration import Configurable, ConfigurationParser
 
@@ -201,24 +202,16 @@ class Package:
                     "the name of a shared sip module must be specified when the package contains multiple sets of bindings")
 
         # Check we have the sip.h file for any shared sip module.
-        if self.sip_module is not None and self.sip_h_dir is None:
-            raise UserException(
-                    "the directory containing sip.h must be specified when using a shared sip module")
+        if self.sip_module is not None:
+            if self.sip_h_dir is None:
+                raise UserException(
+                        "the directory containing sip.h must be specified when using a shared sip module")
+
+            sip_h_dir = os.path.relpath(os.path.abspath(self.sip_h_dir))
 
         # Make sure we have a clean build directory.
         shutil.rmtree(self.build_dir, ignore_errors=True)
         os.mkdir(self.build_dir)
-
-        # Create sip.h if we aren't using a shared sip module.
-        if self.sip_module is None:
-            from ..module.module import module
-
-            module(self.sip_module, include_dir=self.build_dir)
-            sip_h_dir = self.build_dir
-        else:
-            sip_h_dir = os.path.abspath(self.sip_h_dir)
-
-        sip_h_dir = os.path.relpath(sip_h_dir)
 
         # Build each set of bindings.
         modules = []
@@ -230,23 +223,12 @@ class Package:
             locations = bindings.generate(self)
 
             # Add the sip module code if it is not shared.
-            if self.sip_module is None:
-                # TODO: implement this in the module sub-package
-                module_dir = os.path.join(
-                        os.path.dirname(os.path.dirname(__file__)), 'module',
-                        'source')
-
-                for fn in os.listdir(module_dir):
-                    if fn.endswith('.c') or fn.endswith('.cpp') or fn.endswith('.h'):
-                        src_fn = os.path.join(module_dir, fn)
-                        dst_fn = os.path.join(locations.sources_dir, fn)
-                        shutil.copyfile(src_fn, dst_fn)
-
-                        if not fn.endswith('.h'):
-                            locations.sources.append(dst_fn)
-
             include_dirs = [locations.sources_dir]
-            if sip_h_dir != locations.sources_dir:
+
+            if self.sip_module is None:
+                locations.sources.extend(
+                        copy_nonshared_sources(locations.sources_dir))
+            else:
                 include_dirs.append(sip_h_dir)
 
             # Compile the generated code.
