@@ -26,7 +26,7 @@ from sip5.builder import Package
 
 # Define the package as it would appear in PyPI.  As we don't specify a set of
 # bindings to build the package will look for a similarly named .sip file.
-package = Package('age')
+package = Package('fib')
 
 # Build the package according to the user supplied command line options.
 package.build()
