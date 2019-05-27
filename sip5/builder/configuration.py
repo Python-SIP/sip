@@ -24,7 +24,7 @@
 from abc import ABC, abstractmethod
 from argparse import ArgumentParser, SUPPRESS
 
-from .exceptions import BuilderException
+from ..exceptions import UserException
 
 
 class Configurable(ABC):
@@ -87,7 +87,7 @@ class Option:
         self.inverted = inverted
 
 
-class ConfigurationError(BuilderException):
+class ConfigurationError(UserException):
     """ An exception that encapsulates an error in a configuration file. """
 
     def __init__(self, configuration, line_nr, text, detail=''):
@@ -158,7 +158,7 @@ class ConfigurationParser:
         for option in self._options:
             if hasattr(args, option.dest):
                 if hasattr(configuration, option.name):
-                    raise BuilderException(
+                    raise UserException(
                             "error: the '{}' option is incompatible with another "
                             "specified option".format(option.argument_name))
 

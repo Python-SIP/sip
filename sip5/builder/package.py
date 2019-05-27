@@ -26,8 +26,9 @@ import shutil
 import sys
 import warnings
 
+from ..exceptions import handle_exception, UserException
+
 from .configuration import Configurable, ConfigurationParser
-from .exceptions import BuilderException
 
 
 class Package:
@@ -94,7 +95,7 @@ class Package:
         try:
             self._configuration = self._configure(enable_configuration_file)
         except Exception as e:
-            self._handle_exception(e)
+            handle_exception(e)
 
         # Configure the context.
         if isinstance(self._context, Configurable):
@@ -129,7 +130,7 @@ class Package:
                 self._create_wheel()
 
         except Exception as e:
-            self._handle_exception(e)
+            handle_exception(e)
 
     def information(self, message):
         """ Print an informational message if verbose messages are enabled. """
@@ -172,28 +173,6 @@ class Package:
 
         raise NotImplementedError
 
-    def _handle_exception(self, e):
-        """ Handle an exception. """
-
-        script_name = os.path.basename(sys.argv[0])
-
-        if isinstance(e, BuilderException):
-            # An "expected" exception.
-            if e.detail != '':
-                message = "{0}: {1}".format(e.text, e.detail)
-            else:
-                message = e.text
-
-            print("{0}: {1}".format(script_name, message), file=sys.stderr)
-
-            sys.exit(1)
-
-        # An internal error.
-        print("{0}: An internal error occurred...".format(script_name),
-                file=sys.stderr)
-
-        raise e
-
     def _install(self):
         """ Install the package. """
 
@@ -213,17 +192,17 @@ class Package:
                     self._name.split('.')[-1] + '.sip')
 
             if not os.path.isfile(sip_file):
-                raise BuilderException(
+                raise UserException(
                         "no bindings have been specified and there is no file '{}'".format(sip_file))
 
             self._bindings = [os.path.relpath(sip_file, self.root_dir)]
         elif nr_bindings > 1 and self.sip_module is None:
-            raise BuilderException(
+            raise UserException(
                     "the name of a shared sip module must be specified when the package contains multiple sets of bindings")
 
         # Check we have the sip.h file for any shared sip module.
         if self.sip_module is not None and self.sip_h_dir is None:
-            raise BuilderException(
+            raise UserException(
                     "the directory containing sip.h must be specified when using a shared sip module")
 
         # Make sure we have a clean build directory.

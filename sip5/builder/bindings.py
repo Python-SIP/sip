@@ -26,10 +26,10 @@ import sys
 
 from ..code_generator import (set_globals, parse, generateCode,
         generateExtracts, generateAPI, generateXML, generateTypeHints)
+from ..exceptions import UserException
 from ..version import SIP_VERSION, SIP_VERSION_STR
 
 from .configuration import Configurable, Option
-from .exceptions import BuilderException
 
 
 class Bindings:
@@ -66,7 +66,7 @@ class Bindings:
         """
 
         # Set the globals.
-        set_globals(SIP_VERSION, SIP_VERSION_STR, BuilderException,
+        set_globals(SIP_VERSION, SIP_VERSION_STR, UserException,
                 self.include_dirs)
 
         # Parse the input file.

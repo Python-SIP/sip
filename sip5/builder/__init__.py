@@ -26,5 +26,4 @@ from .bindings import Bindings, ConfigurableBindings
 from .builder import Builder, DistutilsBuilder
 from .configuration import Configurable, Option
 from .context import Context, ConfigurableContext
-from .exceptions import BuilderException
 from .package import Package
