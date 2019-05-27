@@ -21,26 +21,26 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
+from argparse import ArgumentParser
 from warnings import simplefilter
 
-from .code_generator import (set_globals, parse, generateCode,
+from ..code_generator import (set_globals, parse, generateCode,
         generateExtracts, generateAPI, generateXML, generateTypeHints)
-from .exceptions import handle_exception, UserException
-from .standard_arguments import StandardArgumentParser
-from .version import SIP_VERSION, SIP_VERSION_STR
+from ..exceptions import handle_exception, UserException
+from ..version import SIP_VERSION, SIP_VERSION_STR
 
 
 def main():
     """ Create the bindings for a C/C++ library. """
 
     # Parse the command line.
-    parser = StandardArgumentParser(
+    parser = ArgumentParser(
             description="Generate Python extension modules for C/C++ "
                     "libraries.",
             fromfile_prefix_chars='@')
 
-    parser.add_include_dir_option()
-    parser.add_warnings_options()
+    parser.add_argument('-V', '--version', action='version',
+            version=SIP_VERSION_STR)
 
     parser.add_argument('specification',
             help="the name of the specification file [default stdin]",
@@ -66,10 +66,20 @@ def main():
             default=False,
             help="enable support for exceptions [default disabled]")
 
+    parser.add_argument('-f', '--warnings-are-errors',
+            dest='warnings_are_errors', action='store_true', default=False,
+            help="warnings are handled as errors")
+
     parser.add_argument('-g', dest='release_gil', action='store_true',
             default=False,
             help="always release and reacquire the GIL [default only when "
                     "specified]")
+
+    parser.add_argument('-I', '--include-dir', dest='include_dirs',
+            action='append',
+            help="add <DIR> to the list of directories to search when "
+                    "importing or including .sip files",
+            metavar="DIR")
 
     parser.add_argument('-j', dest='parts', type=int, default=0,
             help="split the generated code into <FILES> files [default 1 per "
@@ -103,6 +113,9 @@ def main():
                     "code for",
             metavar="TAG")
 
+    parser.add_argument('-w', dest='warnings', action='store_true',
+            default=False, help="enable warning messages [default disabled]")
+
     parser.add_argument('-x', dest='disabled_features', action='append',
             help="add <FEATURE> to the list of disabled features",
             metavar="FEATURE")
@@ -127,7 +140,7 @@ def main():
         simplefilter('ignore', UserWarning)
 
     try:
-        sip5(specification=args.specification, sip_module=args.sip_module,
+        sip5(args.specification, sip_module=args.sip_module,
                 sources_dir=args.sources_dir, include_dirs=args.include_dirs,
                 tags=args.tags, backstops=args.backstops,
                 disabled_features=args.disabled_features,
@@ -143,7 +156,7 @@ def main():
     return 0
 
 
-def sip5(specification, sip_module=None, sources_dir=None, include_dirs=None, tags=None, backstops=None, disabled_features=None, exceptions=False, parts=0, source_suffix=None, docstrings=False, protected_is_public=False, py_debug=False, release_gil=False, tracing=False, extracts=None, pyi_extract=None, api_extract=None):
+def sip5(specification, *, sip_module, sources_dir, include_dirs, tags, backstops, disabled_features, exceptions, parts, source_suffix, docstrings, protected_is_public, py_debug, release_gil, tracing, extracts, pyi_extract, api_extract):
     """ Create the bindings for a C/C++ library. """
 
     # The code generator requires the name of the sip module.
