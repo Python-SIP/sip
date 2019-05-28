@@ -43,10 +43,6 @@ def main():
             help="the fully qualified name of the sip module",
             metavar="NAME")
 
-    parser.add_argument('--documentation-dir', dest='documentation_dir',
-            help="the name of the directory where sip.rst will be installed",
-            metavar="DIR")
-
     parser.add_argument('--include-dir', dest='include_dir',
             help="the name of the directory where sip.h will be installed",
             metavar="DIR")
@@ -67,7 +63,6 @@ def main():
 
     try:
         module(sip_module=args.sip_modules[0],
-                documentation_dir=args.documentation_dir,
                 include_dir=args.include_dir, module_dir=args.module_dir,
                 no_sdist=args.no_sdist, setup_cfg=args.setup_cfg)
     except Exception as e:

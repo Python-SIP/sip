@@ -30,24 +30,20 @@ import tarfile
 _src_dir = os.path.join(os.path.dirname(__file__), 'source')
 
 
-# TODO: this API needs reviewing to support how sip5-module will actually be
-# used.
-def module(sip_module, documentation_dir=None, include_dir=None, module_dir=None, no_sdist=False, setup_cfg=None):
+# TODO: add support for including the .pyi file.
+def module(sip_module, include_dir=None, module_dir=None, no_sdist=False, setup_cfg=None):
     """ Create the sdist for a sip module. """
 
     # If no locations are specified then create the sdist in the current
     # directory.
-    if documentation_dir is None and include_dir is None and module_dir is None:
+    if include_dir is None and module_dir is None:
         module_dir = '.'
 
     # Create the patches.
-    # TODO: allow the PyPI name to be specified explicitly.
+    # TODO: allow the PyPI name to be specified explicitly - but is it only
+    # used in the documentation?
     pypi_name = sip_module.replace('.', '_')
     patches = _create_patches(sip_module, pypi_name)
-
-    # Install the sip.rst file.
-    if documentation_dir is not None:
-        _install_source_file('sip.rst', documentation_dir, patches)
 
     # Install the sip.h file.
     if include_dir is not None:

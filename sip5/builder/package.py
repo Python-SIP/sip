@@ -27,11 +27,11 @@ import sys
 import warnings
 
 from ..exceptions import handle_exception, UserException
-from ..distinfo import create_distinfo
-from ..install import install_module
 from ..module.module import copy_nonshared_sources
 
 from .configuration import Configurable, ConfigurationParser
+from .distinfo import create_distinfo
+from .install import install_module
 
 
 class Package:
