@@ -25,6 +25,7 @@ import os
 import shutil
 import sys
 import warnings
+import zipfile
 
 from ..exceptions import handle_exception, UserException
 from ..module.module import copy_nonshared_sources
@@ -175,16 +176,60 @@ class Package:
     def _create_wheel(self):
         """ Create a wheel for the package. """
 
-        modules = self._build_modules()
+        # Create the wheel tag.
+        major_minor = '{}{}'.format((sys.hexversion >> 24) & 0xff,
+                (sys.hexversion >> 16) & 0xff)
+        wheel_tag = 'cp{}'.format(major_minor)
 
-        raise NotImplementedError
+        try:
+            wheel_tag += '-cp' + major_minor + sys.abiflags
+        except AttributeError:
+            wheel_tag += '-none'
+
+        if sys.platform == 'win32':
+            wheel_tag += '-win32' if is_32 else '-win_amd64'
+        elif sys.platform == 'darwin':
+            wheel_tag += '-macosx_10_6_intel'
+        else:
+            # We assume that Linux wheels are PEP 513 compatible so that it can
+            # be uploaded to PyPI.
+            wheel_tag += '-manylinux1_x86_64'
+
+        # Create a temporary directory for the wheel.
+        wheel_dir = os.path.join(self.build_dir, 'wheel')
+        shutil.rmtree(wheel_dir, ignore_errors=True)
+        os.mkdir(wheel_dir)
+
+        # Install the wheel contents.
+        installed = []
+        for module, module_fn in self._build_modules():
+            installed.append(install_module(module, module_fn, wheel_dir))
+
+        create_distinfo(self, installed, wheel_dir, wheel_tag=wheel_tag)
+
+        wheel_file = os.path.abspath(
+                '{}-{}-{}.whl'.format(self.name, self.version, wheel_tag))
+
+        # Create the .whl file.
+        saved_cwd = os.getcwd()
+        os.chdir(wheel_dir)
+
+        with zipfile.ZipFile(wheel_file, 'w', compression=zipfile.ZIP_DEFLATED) as zf:
+            for dirpath, _, filenames in os.walk('.'):
+                for filename in filenames:
+                    # This will result in a name with no leading '.'.
+                    name = os.path.relpath(os.path.join(dirpath, filename))
+
+                    zf.write(name)
+
+        os.chdir(saved_cwd)
 
     def _install(self):
         """ Install the package. """
 
         target_dir = self._context.target_dir
-        installed = []
 
+        installed = []
         for module, module_fn in self._build_modules():
             installed.append(install_module(module, module_fn, target_dir))
 

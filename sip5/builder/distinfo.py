@@ -28,9 +28,17 @@ import shutil
 import sys
 
 from ..exceptions import UserException
+from ..version import SIP_VERSION_STR
 
 
-def create_distinfo(package, installed, target_dir):
+# The meta-data format defined in PEP345.
+METADATA_VERSION = '1.2'
+
+# The wheel format defined in PEP427.
+WHEEL_VERSION = '1.0'
+
+
+def create_distinfo(package, installed, target_dir, wheel_tag=None):
     """ Create the dist-info directory for a list of installed files. """
 
     # Make sure we have an empty dist-info directory.  Handle exceptions as the
@@ -54,23 +62,39 @@ def create_distinfo(package, installed, target_dir):
                 "unable create dist-info directory '{}'".format(distinfo_dir),
                 str(e))
 
-    # Create the INSTALLER file.
-    installer_fn = os.path.join(distinfo_dir, 'INSTALLER')
-    installer_f = open(installer_fn, 'w')
-    installer_f.write('sip5\n')
-    installer_f.close()
+    if wheel_tag is None:
+        # Create the INSTALLER file.
+        installer_fn = os.path.join(distinfo_dir, 'INSTALLER')
+        installer_f = open(installer_fn, 'w')
+        installer_f.write('sip {}\n'.format(SIP_VERSION_STR))
+        installer_f.close()
 
-    installed.append(installer_fn)
+        installed.append(installer_fn)
+    else:
+        # Create the WHEEL file.
+        WHEEL = '''Wheel-Version: {}
+Generator: sip {}
+Root-Is_Purelib: false
+Tag: {}
+'''
+
+        wheel_fn = os.path.join(distinfo_dir, 'WHEEL')
+        wheel_f = open(wheel_fn, 'w')
+        wheel_f.write(WHEEL.format(WHEEL_VERSION, SIP_VERSION_STR, wheel_tag))
+        wheel_f.close()
+
+        installed.append(wheel_fn)
 
     # Create the METADATA file.
-    METADATA = '''Metadata-Version: 1.1
+    METADATA = '''Metadata-Version: {}
 Name: {}
 Version: {}
 '''
 
     metadata_fn = os.path.join(distinfo_dir, 'METADATA')
     metadata_f = open(metadata_fn, 'w')
-    metadata_f.write(METADATA.format(package.name, package.version))
+    metadata_f.write(
+            METADATA.format(METADATA_VERSION, package.name, package.version))
     metadata_f.close()
 
     installed.append(metadata_fn)
