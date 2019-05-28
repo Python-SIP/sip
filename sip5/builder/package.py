@@ -84,8 +84,11 @@ class Package:
         if builder_factory is None:
             from .builder import DistutilsBuilder as builder_factory
 
-        self._name = name
-        self._version = version
+        # Normalise the PyPI name.
+        name = name.replace('-', '_')
+
+        self.name = name
+        self.version = version
         self.sip_module = sip_module
         self.sip_h_dir = sip_h_dir
         self._context = context_factory()
@@ -150,7 +153,7 @@ class Package:
         """ Return a mapping of user supplied configuration names and values.
         """
 
-        parser = ConfigurationParser(self._version, enable_configuration_file)
+        parser = ConfigurationParser(self.version, enable_configuration_file)
 
         if isinstance(self._context, Configurable):
             parser.add_options(self._context)
@@ -185,7 +188,7 @@ class Package:
         for module, module_fn in self._build_modules():
             installed.append(install_module(module, module_fn, target_dir))
 
-        create_distinfo(installed, target_dir)
+        create_distinfo(self, installed, target_dir)
 
     def _build_modules(self):
         """ Build the extension modules and return ia 2-tuple of the fully
@@ -198,7 +201,7 @@ class Package:
 
         if nr_bindings == 0:
             sip_file = os.path.join(self.root_dir,
-                    self._name.split('.')[-1] + '.sip')
+                    self.name.split('.')[-1] + '.sip')
 
             if not os.path.isfile(sip_file):
                 raise UserException(

@@ -21,7 +21,84 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-def create_distinfo(installed, target_dir):
+import base64
+import hashlib
+import os
+import shutil
+import sys
+
+from ..exceptions import UserException
+
+
+def create_distinfo(package, installed, target_dir):
     """ Create the dist-info directory for a list of installed files. """
 
-    print("Installed:", installed)
+    # Make sure we have an empty dist-info directory.  Handle exceptions as the
+    # user may be trying something silly with a system directory.
+    distinfo_dir = os.path.join(target_dir,
+            '{}-{}.dist-info'.format(package.name, package.version))
+
+    if os.path.exists(distinfo_dir):
+        try:
+            shutil.rmtree(distinfo_dir)
+        except Exception as e:
+            raise UserException(
+                    "unable remove old dist-info directory '{}'".format(
+                            distinfo_dir),
+                    str(e))
+
+    try:
+        os.mkdir(distinfo_dir)
+    except Exception as e:
+        raise UserException(
+                "unable create dist-info directory '{}'".format(distinfo_dir),
+                str(e))
+
+    # Create the INSTALLER file.
+    installer_fn = os.path.join(distinfo_dir, 'INSTALLER')
+    installer_f = open(installer_fn, 'w')
+    installer_f.write('sip5\n')
+    installer_f.close()
+
+    installed.append(installer_fn)
+
+    # Create the METADATA file.
+    METADATA = '''Metadata-Version: 1.1
+Name: {}
+Version: {}
+'''
+
+    metadata_fn = os.path.join(distinfo_dir, 'METADATA')
+    metadata_f = open(metadata_fn, 'w')
+    metadata_f.write(METADATA.format(package.name, package.version))
+    metadata_f.close()
+
+    installed.append(metadata_fn)
+
+    # Create the RECORD file.
+    record_fn = os.path.join(distinfo_dir, 'RECORD')
+    record_f = open(record_fn, 'w')
+
+    for fn in installed:
+        if fn.startswith(target_dir):
+            record_fn = fn[len(target_dir) + 1:]
+        elif fn.startswith(sys.prefix):
+            record_fn = os.path.relpath(fn, target_dir)
+        else:
+            record_fn = fn
+
+        record_fn = record_fn.replace(os.sep, '/')
+
+        fn_f = open(fn, 'rb')
+        data = fn_f.read()
+        fn_f.close()
+
+        digest = base64.urlsafe_b64encode(
+                hashlib.sha256(data).digest()).rstrip(b'=').decode('ascii')
+
+        record_f.write(
+                '{},sha256={},{}\n'.format(record_fn, digest, len(data)))
+
+    record_f.write('{}/RECORD,,\n'.format(os.path.basename(distinfo_dir)))
+
+    record_f.close()
