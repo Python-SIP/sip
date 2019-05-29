@@ -35,34 +35,34 @@ from .configuration import Configurable, Option
 class Bindings:
     """ The encapsulation of a module's bindings. """
 
-    def __init__(self, sip_file):
-        """ Initialise the object. """
+    def __init__(self, sip_file, *, backstops=None, concatenate=0, debug=False, disabled_features=None, docstrings=True, exceptions=False, generate_api=False, generate_extracts=None, generate_pyi=False, include_dirs=None, protected_is_public=None,, release_gil=False, source_suffix=None, tags=None, tracing=False):
+        """ Initialise the bindings. """
+
+        if protected_is_public is None:
+            protected_is_public = (sys.platform != 'win32')
 
         self.sip_file = sip_file
 
-        self.backstops = None
-        self.concatenate = 0
-        self.debug = False
-        self.disabled_features = None
-        self.docstrings = True
-        self.exceptions = False
-        self.generate_api = False
-        self.generate_extracts = None
-        self.generate_pyi = False
-        self.include_dirs = None
-        self.protected_is_public = (sys.platform != 'win32')
-        self.release_gil = False
-        self.source_suffix = None
-        self.tags = None
-        self.tracing = False
-
-        # This is set by generate().
-        self.name = None
+        self.backstops = backstop
+        self.concatenate = concatenate
+        self.debug = debug
+        self.disabled_features = disabled_features
+        self.docstrings = docstrings
+        self.exceptions = exceptions
+        self.generate_api = generate_api
+        self.generate_extracts = generate_extracts
+        self.generate_pyi = generate_pyi
+        self.include_dirs = include_dirs
+        self.protected_is_public = protected_is_public
+        self.release_gil = release_gil
+        self.source_suffix = source_suffix
+        self.tags = tags
+        self.tracing = tracing
 
     def generate(self, package):
         """ Generate the bindings source code and optional additional extracts.
-        Return a BindingsLocation instance containing the absolute file
-        locations of everything that was generated.
+        Return a GeneratedBindings instance containing the details of
+        everything that was generated.
         """
 
         # Set the globals.
@@ -73,10 +73,15 @@ class Bindings:
         cwd = os.getcwd()
         os.chdir(package.root_dir)
 
-        pt, self.name = parse(self.sip_file, True, self.tags, self.backstops,
-            self.disabled_features, self.protected_is_public)
+        pt, name = parse(self.sip_file, True, self.tags, self.backstops,
+                self.disabled_features, self.protected_is_public)
 
         os.chdir(cwd)
+
+        # The details of things that will have been generated.  Note that we
+        # don't include anything for generic extracts as the arguments include
+        # a file name.
+        generated = GeneratedBindings(name)
 
         # Get the module name.
         module_name = self.name.split('.')[-1]
@@ -89,9 +94,7 @@ class Bindings:
         if self.generate_api:
             api_extract = os.path.join(sources_dir, module_name + '.api')
             generateAPI(pt, api_extract)
-            api_extract = os.path.relpath(api_extract)
-        else:
-            api_extract = None
+            generated.api_file = os.path.relpath(api_extract)
 
         # Generate any extracts.
         if self.generate_extracts:
@@ -101,9 +104,7 @@ class Bindings:
         if self.generate_pyi:
             pyi_extract = os.path.join(sources_dir, module_name + '.pyi')
             generateTypeHints(pt, pyi_extract)
-            pyi_extract = os.path.relpath(pyi_extract)
-        else:
-            pyi_extract = None
+            generated.pyi_file = os.path.relpath(pyi_extract)
 
         # Generate the bindings.
         sources = generateCode(pt, sources_dir, self.source_suffix,
@@ -111,18 +112,10 @@ class Bindings:
                 self.concatenate, self.tags, self.disabled_features,
                 self.docstrings, self.debug, package.sip_module)
 
-        # The locations of things that will have been generated.  Note that we
-        # don't include anything for generic extracts as the arguments include
-        # a file name.
-        locations = BindingsLocations()
+        generated.sources_dir = os.path.relpath(sources_dir)
+        generated.sources = [os.path.relpath(fn) for fn in sources]
 
-        locations.sources_dir = os.path.relpath(sources_dir)
-        locations.sources = [os.path.relpath(fn) for fn in sources]
-
-        locations.api_file = api_extract
-        locations.pyi_file = pyi_extract
-
-        return locations
+        return generated
 
 
 class ConfigurableBindings(Bindings, Configurable):
@@ -156,13 +149,13 @@ class ConfigurableBindings(Bindings, Configurable):
         return cls._options
 
 
-class BindingsLocations:
-    """ The locations of the various files created by the bindings generator.
-    """
+class GeneratedBindings:
+    """ The bindings created by Bindings generate(). """
 
-    def __init__(self):
-        """ Initialise the object. """
+    def __init__(self, name):
+        """ Initialise the generated bindings. """
 
+        self.name = name
         self.api_file = None
         self.pyi_file = None
         self.sources = None

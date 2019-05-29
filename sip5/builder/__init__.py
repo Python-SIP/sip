@@ -22,7 +22,7 @@
 
 
 # Publish the public API.
-from .bindings import Bindings, ConfigurableBindings
+from .bindings import Bindings, ConfigurableBindings, GeneratedBindings
 from .builder import Builder, DistutilsBuilder
 from .configuration import Configurable, Option
 from .context import Context, ConfigurableContext

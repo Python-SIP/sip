@@ -276,23 +276,23 @@ class Package:
             bindings = self._bindings_factory(sip_file)
 
             # Generate the source code.
-            locations = bindings.generate(self)
+            generated = bindings.generate(self)
 
             # Add the sip module code if it is not shared.
-            include_dirs = [locations.sources_dir]
+            include_dirs = [generated.sources_dir]
 
             if self.sip_module is None:
-                locations.sources.extend(
-                        copy_nonshared_sources(locations.sources_dir))
+                generated.sources.extend(
+                        copy_nonshared_sources(generated.sources_dir))
             else:
                 include_dirs.append(sip_h_dir)
 
             # Compile the generated code.
-            builder = self._builder_factory(locations.sources_dir,
-                    locations.sources, include_dirs)
+            builder = self._builder_factory(generated.sources_dir,
+                    generated.sources, include_dirs)
 
             modules.append(
-                    (bindings.name,
+                    (generated.name,
                             builder.build_extension_module(bindings, self)))
 
         return modules
