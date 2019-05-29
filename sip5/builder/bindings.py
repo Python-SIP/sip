@@ -35,7 +35,7 @@ from .configuration import Configurable, Option
 class Bindings:
     """ The encapsulation of a module's bindings. """
 
-    def __init__(self, sip_file, *, backstops=None, concatenate=0, debug=False, disabled_features=None, docstrings=True, exceptions=False, generate_api=False, generate_extracts=None, generate_pyi=False, include_dirs=None, protected_is_public=None,, release_gil=False, source_suffix=None, tags=None, tracing=False):
+    def __init__(self, sip_file, *, backstops=None, concatenate=0, debug=False, disabled_features=None, docstrings=True, exceptions=False, generate_api=False, generate_extracts=None, generate_pyi=False, include_dirs=None, protected_is_public=None, release_gil=False, source_suffix=None, tags=None, tracing=False):
         """ Initialise the bindings. """
 
         if protected_is_public is None:
@@ -43,7 +43,7 @@ class Bindings:
 
         self.sip_file = sip_file
 
-        self.backstops = backstop
+        self.backstops = backstops
         self.concatenate = concatenate
         self.debug = debug
         self.disabled_features = disabled_features
@@ -84,7 +84,7 @@ class Bindings:
         generated = GeneratedBindings(name)
 
         # Get the module name.
-        module_name = self.name.split('.')[-1]
+        module_name = name.split('.')[-1]
 
         # Make sure the module's sub-directory exists.
         sources_dir = os.path.join(package.build_dir, module_name)

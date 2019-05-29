@@ -51,7 +51,8 @@ class ConfigurableContext(Context, Configurable):
         Option('build_dir', help="the build directory", metavar="DIR"),
         Option('target_dir', help="the target installation directory",
                 metavar="DIR"),
-        Option('action', choices=('install', 'sdist', 'wheel'), action=True)
+        Option('action', choices=('build', 'install', 'sdist', 'wheel'),
+                action=True)
     )
 
     @classmethod

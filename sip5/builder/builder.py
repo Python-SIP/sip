@@ -27,15 +27,16 @@ from abc import ABC, abstractmethod
 class Builder(ABC):
     """ The encapsulation of a code builder. """
 
-    def __init__(self, sources_dir, sources, include_dirs):
+    def __init__(self, sources_dir, sources, include_dirs, debug=False):
         """ Initialise the object. """
 
         self.sources_dir = sources_dir
         self.sources = sources
         self.include_dirs = include_dirs
+        self.debug = debug
 
     @abstractmethod
-    def build_extension_module(self, bindings, package):
+    def build_extension_module(self, name, package):
         """ Build an extension module from the sources and return its full
         pathname.
         """
@@ -44,7 +45,7 @@ class Builder(ABC):
 class DistutilsBuilder(Builder):
     """ The implementation of a distutils-based code builder. """
 
-    def build_extension_module(self, bindings, package):
+    def build_extension_module(self, name, package):
         """ Build an extension module from the sources and return its full
         pathname.
         """
@@ -60,13 +61,12 @@ class DistutilsBuilder(Builder):
 
         builder = build_ext(dist)
         builder.build_lib = self.sources_dir
-        builder.debug = bindings.debug
+        builder.debug = self.debug
         builder.ensure_finalized()
 
         builder.extensions = [
-            Extension(bindings.name, self.sources,
-                    include_dirs=self.include_dirs)]
+            Extension(name, self.sources, include_dirs=self.include_dirs)]
 
         builder.run()
 
-        return builder.get_ext_fullpath(bindings.name)
+        return builder.get_ext_fullpath(name)

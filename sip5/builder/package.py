@@ -129,7 +129,9 @@ class Package:
         """ Build the package. """
 
         try:
-            if self._context.action == 'install':
+            if self._context.action == 'build':
+                self._build()
+            elif self._context.action == 'install':
                 self._install()
             elif self._context.action == 'sdist':
                 self._create_sdist()
@@ -150,23 +152,11 @@ class Package:
 
         self.information(message + '...')
 
-    def _configure(self, enable_configuration_file):
-        """ Return a mapping of user supplied configuration names and values.
-        """
+    def _build(self):
+        """ Build the package.  This is really only for debugging purposes. """
 
-        parser = ConfigurationParser(self.version, enable_configuration_file)
-
-        if isinstance(self._context, Configurable):
-            parser.add_options(self._context)
-
-        if issubclass(self._bindings_factory, Configurable):
-            parser.add_options(self._bindings_factory)
-
-        if issubclass(self._builder_factory, Configurable):
-            parser.add_options(self._builder_factory)
-
-        # Parse the configuration.
-        return parser.parse()
+        self._create_build_dir()
+        self._build_modules()
 
     def _create_sdist(self):
         """ Create an sdist for the package. """
@@ -196,6 +186,7 @@ class Package:
             wheel_tag += '-manylinux1_x86_64'
 
         # Create a temporary directory for the wheel.
+        self._create_build_dir()
         wheel_dir = os.path.join(self.build_dir, 'wheel')
         shutil.rmtree(wheel_dir, ignore_errors=True)
         os.mkdir(wheel_dir)
@@ -224,8 +215,12 @@ class Package:
 
         os.chdir(saved_cwd)
 
+        self._remove_build_dir()
+
     def _install(self):
         """ Install the package. """
+
+        self._create_build_dir()
 
         target_dir = self._context.target_dir
 
@@ -235,9 +230,62 @@ class Package:
 
         create_distinfo(self, installed, target_dir)
 
+        self._remove_build_dir()
+
+    def _configure(self, enable_configuration_file):
+        """ Return a mapping of user supplied configuration names and values.
+        """
+
+        parser = ConfigurationParser(self.version, enable_configuration_file)
+
+        if isinstance(self._context, Configurable):
+            parser.add_options(self._context)
+
+        if issubclass(self._bindings_factory, Configurable):
+            parser.add_options(self._bindings_factory)
+
+        if issubclass(self._builder_factory, Configurable):
+            parser.add_options(self._builder_factory)
+
+        # Parse the configuration.
+        return parser.parse()
+
     def _build_modules(self):
         """ Build the extension modules and return ia 2-tuple of the fully
         qualified module name and the pathname.
+        """
+
+        modules = []
+
+        for sip_file in self._bindings:
+            bindings = self._bindings_factory(sip_file)
+
+            # Generate the source code.
+            generated = bindings.generate(self)
+
+            # Add the sip module code if it is not shared.
+            include_dirs = [generated.sources_dir]
+
+            if self.sip_module is None:
+                generated.sources.extend(
+                        copy_nonshared_sources(generated.sources_dir))
+            else:
+                include_dirs.append(sip_h_dir)
+
+            # Compile the generated code.
+            builder = self._builder_factory(generated.sources_dir,
+                    generated.sources, include_dirs, debug=bindings.debug)
+
+            modules.append(
+                    (generated.name,
+                            builder.build_extension_module(generated.name,
+                                    self)))
+
+        return modules
+
+    def _create_build_dir(self):
+        """ Create the build directory, first checking that all the
+        prerequisites have been met.
         """
 
         # If no bindings were explicitly defined then see if there is a .sip
@@ -269,30 +317,7 @@ class Package:
         shutil.rmtree(self.build_dir, ignore_errors=True)
         os.mkdir(self.build_dir)
 
-        # Build each set of bindings.
-        modules = []
+    def _remove_build_dir(self):
+        """ Remove the build directory. """
 
-        for sip_file in self._bindings:
-            bindings = self._bindings_factory(sip_file)
-
-            # Generate the source code.
-            generated = bindings.generate(self)
-
-            # Add the sip module code if it is not shared.
-            include_dirs = [generated.sources_dir]
-
-            if self.sip_module is None:
-                generated.sources.extend(
-                        copy_nonshared_sources(generated.sources_dir))
-            else:
-                include_dirs.append(sip_h_dir)
-
-            # Compile the generated code.
-            builder = self._builder_factory(generated.sources_dir,
-                    generated.sources, include_dirs)
-
-            modules.append(
-                    (generated.name,
-                            builder.build_extension_module(bindings, self)))
-
-        return modules
+        shutil.rmtree(self.build_dir)
