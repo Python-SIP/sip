@@ -27,6 +27,7 @@ import sys
 from ..code_generator import (set_globals, parse, generateCode,
         generateExtracts, generateAPI, generateXML, generateTypeHints)
 from ..exceptions import UserException
+from ..module.module import copy_nonshared_sources
 from ..version import SIP_VERSION, SIP_VERSION_STR
 
 from .configuration import Configurable, Option
@@ -112,8 +113,17 @@ class Bindings:
                 self.concatenate, self.tags, self.disabled_features,
                 self.docstrings, self.debug, package.sip_module)
 
+        # Add the sip module code if it is not shared.
+        include_dirs = [sources_dir]
+
+        if package.sip_module is None:
+            sources.extend(copy_nonshared_sources(sources_dir))
+        else:
+            include_dirs.append(sip_h_dir)
+
         generated.sources_dir = os.path.relpath(sources_dir)
         generated.sources = [os.path.relpath(fn) for fn in sources]
+        generated.include_dirs = [os.path.relpath(fn) for fn in include_dirs]
 
         return generated
 
@@ -160,3 +170,4 @@ class GeneratedBindings:
         self.pyi_file = None
         self.sources = None
         self.sources_dir = None
+        self.include_dirs = None

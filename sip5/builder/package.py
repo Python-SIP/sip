@@ -38,13 +38,17 @@ from .install import install_module
 class Package:
     """ Encapsulate a package containing one or more sets of bindings. """
 
-    def __init__(self, name, *, version='1.0', enable_configuration_file=True, sip_module=None, sip_h_dir=None, context_factory=None, bindings_factory=None, builder_factory=None):
+    def __init__(self, name, *, version='1.0', command_line_configuration=True, enable_configuration_file=True, sip_module=None, sip_h_dir=None, context_factory=None, bindings_factory=None, builder_factory=None):
         """ Initialise the package.
 
         :param name:
             is the name of the package as it will appear to PyPI.
         :param version:
             is the version number of the pckage as it will appear to PyPI.
+        :param command_line_configuration:
+            is set the build can be configured using command line options.
+            Command line options may not work as expected when using other
+            build systems (e.g. setuptools).
         :param enable_configuration_file:
             is set if the user can specify the name of a configuration file on
             the command line that provides default values of all other command
@@ -99,14 +103,17 @@ class Package:
         self._bindings = []
 
         # Get the configuration.
-        try:
-            self._configuration = self._configure(enable_configuration_file)
-        except Exception as e:
-            handle_exception(e)
+        if command_line_configuration:
+            try:
+                self._configuration = self._parse_configuration(
+                        enable_configuration_file)
+            except Exception as e:
+                handle_exception(e)
+        else:
+            self._configuration = None
 
         # Configure the context.
-        if isinstance(self._context, Configurable):
-            self._context.configure(self._configuration)
+        self._configure(self._context)
 
         # The build directory is relative to the current directory.
         self.build_dir = os.path.abspath(self._context.build_dir)
@@ -232,24 +239,6 @@ class Package:
 
         self._remove_build_dir()
 
-    def _configure(self, enable_configuration_file):
-        """ Return a mapping of user supplied configuration names and values.
-        """
-
-        parser = ConfigurationParser(self.version, enable_configuration_file)
-
-        if isinstance(self._context, Configurable):
-            parser.add_options(self._context)
-
-        if issubclass(self._bindings_factory, Configurable):
-            parser.add_options(self._bindings_factory)
-
-        if issubclass(self._builder_factory, Configurable):
-            parser.add_options(self._builder_factory)
-
-        # Parse the configuration.
-        return parser.parse()
-
     def _build_modules(self):
         """ Build the extension modules and return ia 2-tuple of the fully
         qualified module name and the pathname.
@@ -259,22 +248,16 @@ class Package:
 
         for sip_file in self._bindings:
             bindings = self._bindings_factory(sip_file)
+            self._configure(bindings)
 
             # Generate the source code.
             generated = bindings.generate(self)
 
-            # Add the sip module code if it is not shared.
-            include_dirs = [generated.sources_dir]
-
-            if self.sip_module is None:
-                generated.sources.extend(
-                        copy_nonshared_sources(generated.sources_dir))
-            else:
-                include_dirs.append(sip_h_dir)
-
             # Compile the generated code.
             builder = self._builder_factory(generated.sources_dir,
-                    generated.sources, include_dirs, debug=bindings.debug)
+                    generated.sources, generated.include_dirs,
+                    debug=bindings.debug)
+            self._configure(builder)
 
             modules.append(
                     (generated.name,
@@ -282,6 +265,12 @@ class Package:
                                     self)))
 
         return modules
+
+    def _configure(self, obj):
+        """ Configure an object if it is configurable. """
+
+        if self._configuration is not None and isinstance(obj, Configurable):
+            obj.configure(self._configuration)
 
     def _create_build_dir(self):
         """ Create the build directory, first checking that all the
@@ -311,11 +300,29 @@ class Package:
                 raise UserException(
                         "the directory containing sip.h must be specified when using a shared sip module")
 
-            sip_h_dir = os.path.relpath(os.path.abspath(self.sip_h_dir))
+            self.sip_h_dir = os.path.abspath(self.sip_h_dir)
 
         # Make sure we have a clean build directory.
         shutil.rmtree(self.build_dir, ignore_errors=True)
         os.mkdir(self.build_dir)
+
+    def _parse_configuration(self, enable_configuration_file):
+        """ Return a mapping of user supplied configuration names and values.
+        """
+
+        parser = ConfigurationParser(self.version, enable_configuration_file)
+
+        if isinstance(self._context, Configurable):
+            parser.add_options(self._context)
+
+        if issubclass(self._bindings_factory, Configurable):
+            parser.add_options(self._bindings_factory)
+
+        if issubclass(self._builder_factory, Configurable):
+            parser.add_options(self._builder_factory)
+
+        # Parse the configuration.
+        return parser.parse()
 
     def _remove_build_dir(self):
         """ Remove the build directory. """
