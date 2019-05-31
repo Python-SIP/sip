@@ -36,17 +36,37 @@ from .configuration import Configurable, Option
 class Bindings:
     """ The encapsulation of a module's bindings. """
 
-    def __init__(self, sip_file, *, backstops=None, concatenate=0, debug=False, disabled_features=None, docstrings=True, exceptions=False, generate_api=False, generate_extracts=None, generate_pyi=False, include_dirs=None, protected_is_public=None, release_gil=False, source_suffix=None, tags=None, tracing=False):
+    def __init__(self, package, sip_file, *, backstops=None, concatenate=0,
+            debug=False, define_macros=None, disabled_features=None,
+            docstrings=True, exceptions=False, generate_api=False,
+            generate_extracts=None, generate_pyi=False, include_dirs=None,
+            libraries=None, library_dirs=None, protected_is_public=None,
+            release_gil=False, sip_include_dirs=None, source_suffix=None,
+            tags=None, tracing=False):
         """ Initialise the bindings. """
+
+        if define_macros is None:
+            define_macros = []
+
+        if include_dirs is None:
+            include_dirs = []
+
+        if libraries is None:
+            libraries = []
+
+        if library_dirs is None:
+            library_dirs = []
 
         if protected_is_public is None:
             protected_is_public = (sys.platform != 'win32')
 
+        self.package = package
         self.sip_file = sip_file
 
         self.backstops = backstops
         self.concatenate = concatenate
         self.debug = debug
+        self.define_macros = define_macros
         self.disabled_features = disabled_features
         self.docstrings = docstrings
         self.exceptions = exceptions
@@ -54,13 +74,16 @@ class Bindings:
         self.generate_extracts = generate_extracts
         self.generate_pyi = generate_pyi
         self.include_dirs = include_dirs
+        self.libraries = libraries
+        self.library_dirs = library_dirs
         self.protected_is_public = protected_is_public
         self.release_gil = release_gil
         self.source_suffix = source_suffix
+        self.sip_include_dirs = sip_include_dirs
         self.tags = tags
         self.tracing = tracing
 
-    def generate(self, package):
+    def generate(self):
         """ Generate the bindings source code and optional additional extracts.
         Return a GeneratedBindings instance containing the details of
         everything that was generated.
@@ -68,11 +91,11 @@ class Bindings:
 
         # Set the globals.
         set_globals(SIP_VERSION, SIP_VERSION_STR, UserException,
-                self.include_dirs)
+                self.sip_include_dirs)
 
         # Parse the input file.
         cwd = os.getcwd()
-        os.chdir(package.root_dir)
+        os.chdir(self.package.root_dir)
 
         pt, name = parse(self.sip_file, True, self.tags, self.backstops,
                 self.disabled_features, self.protected_is_public)
@@ -88,7 +111,7 @@ class Bindings:
         module_name = name.split('.')[-1]
 
         # Make sure the module's sub-directory exists.
-        sources_dir = os.path.join(package.build_dir, module_name)
+        sources_dir = os.path.join(self.package.build_dir, module_name)
         os.makedirs(sources_dir, exist_ok=True)
 
         # Generate any API file.
@@ -111,15 +134,17 @@ class Bindings:
         sources = generateCode(pt, sources_dir, self.source_suffix,
                 self.exceptions, self.tracing, self.release_gil,
                 self.concatenate, self.tags, self.disabled_features,
-                self.docstrings, self.debug, package.sip_module)
+                self.docstrings, self.debug, self.package.sip_module)
 
         # Add the sip module code if it is not shared.
         include_dirs = [sources_dir]
 
-        if package.sip_module is None:
+        if self.package.sip_module is None:
             sources.extend(copy_nonshared_sources(sources_dir))
         else:
             include_dirs.append(sip_h_dir)
+
+        include_dirs.extend(self.include_dirs)
 
         generated.sources_dir = os.path.relpath(sources_dir)
         generated.sources = [os.path.relpath(fn) for fn in sources]

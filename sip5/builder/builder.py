@@ -27,16 +27,33 @@ from abc import ABC, abstractmethod
 class Builder(ABC):
     """ The encapsulation of a code builder. """
 
-    def __init__(self, sources_dir, sources, include_dirs, debug=False):
+    def __init__(self, sources_dir, sources, *, debug=False,
+            define_macros=None, include_dirs=None, libraries=None,
+            library_dirs=None):
         """ Initialise the object. """
+
+        if define_macros is None:
+            define_macros = []
+
+        if include_dirs is None:
+            include_dirs = []
+
+        if libraries is None:
+            libraries = []
+
+        if library_dirs is None:
+            library_dirs = []
 
         self.sources_dir = sources_dir
         self.sources = sources
-        self.include_dirs = include_dirs
         self.debug = debug
+        self.define_macros = define_macros
+        self.include_dirs = include_dirs
+        self.libraries = libraries
+        self.library_dirs = library_dirs
 
     @abstractmethod
-    def build_extension_module(self, name, package):
+    def build_extension_module(self, package, name):
         """ Build an extension module from the sources and return its full
         pathname.
         """
@@ -45,7 +62,7 @@ class Builder(ABC):
 class DistutilsBuilder(Builder):
     """ The implementation of a distutils-based code builder. """
 
-    def build_extension_module(self, name, package):
+    def build_extension_module(self, package, name):
         """ Build an extension module from the sources and return its full
         pathname.
         """
@@ -65,7 +82,9 @@ class DistutilsBuilder(Builder):
         builder.ensure_finalized()
 
         builder.extensions = [
-            Extension(name, self.sources, include_dirs=self.include_dirs)]
+            Extension(name, self.sources, define_macros=self.define_macros,
+                    include_dirs=self.include_dirs, libraries=self.libraries,
+                    library_dirs=self.library_dirs)]
 
         builder.run()
 

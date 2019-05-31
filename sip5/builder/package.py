@@ -127,10 +127,15 @@ class Package:
         if not self.verbose:
             warnings.simplefilter('ignore', UserWarning)
 
-    def add_bindings(self, sip_file):
+    def add_bindings(self, sip_file, **bindings_args):
         """ Add the set of bindings defined by a .sip file to the package. """
 
-        self._bindings.append(sip_file)
+        bindings = self._bindings_factory(self, sip_file, **bindings_args)
+        self._configure(bindings)
+
+        self._bindings.append(bindings)
+
+        return bindings
 
     def build(self):
         """ Build the package. """
@@ -246,23 +251,23 @@ class Package:
 
         modules = []
 
-        for sip_file in self._bindings:
-            bindings = self._bindings_factory(sip_file)
-            self._configure(bindings)
-
+        for bindings in self._bindings:
             # Generate the source code.
-            generated = bindings.generate(self)
+            generated = bindings.generate()
 
             # Compile the generated code.
             builder = self._builder_factory(generated.sources_dir,
-                    generated.sources, generated.include_dirs,
-                    debug=bindings.debug)
+                    generated.sources, debug=bindings.debug,
+                    define_macros=bindings.define_macros,
+                    include_dirs=generated.include_dirs,
+                    libraries=bindings.libraries,
+                    library_dirs=bindings.library_dirs)
             self._configure(builder)
 
             modules.append(
                     (generated.name,
-                            builder.build_extension_module(generated.name,
-                                    self)))
+                            builder.build_extension_module(self,
+                                    generated.name)))
 
         return modules
 
@@ -289,7 +294,11 @@ class Package:
                 raise UserException(
                         "no bindings have been specified and there is no file '{}'".format(sip_file))
 
-            self._bindings = [os.path.relpath(sip_file, self.root_dir)]
+            sip_file = os.path.relpath(sip_file, self.root_dir)
+            bindings = self._bindings_factory(self, sip_file)
+            self._configure(bindings)
+            self._bindings.append(bindings)
+
         elif nr_bindings > 1 and self.sip_module is None:
             raise UserException(
                     "the name of a shared sip module must be specified when the package contains multiple sets of bindings")

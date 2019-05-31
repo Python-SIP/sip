@@ -22,15 +22,15 @@
 
 
 from setuptools import Extension, setup
-from sip5.builder import Bindings, Package
+from sip5.builder import Package
 
 
 # Define the package as it would appear in PyPI.
 package = Package('fib', command_line_configuration=False)
 
 # Generate the source code of the bindings.
-bindings = Bindings('fib.sip')
-generated = bindings.generate(package)
+bindings = package.add_bindings('fib.sip')
+generated = bindings.generate()
 
 # Specify the generated source code to a setuptools Extension.
 fib_extension = Extension(generated.name, generated.sources,
