@@ -167,8 +167,12 @@ class Package:
     def _build(self):
         """ Build the package.  This is really only for debugging purposes. """
 
+        self.progress("Building the package")
+
         self._create_build_dir()
         self._build_modules()
+
+        self.information("The package has been built.")
 
     def _create_sdist(self):
         """ Create an sdist for the package. """
@@ -177,6 +181,8 @@ class Package:
 
     def _create_wheel(self):
         """ Create a wheel for the package. """
+
+        self.progress("Creating a wheel")
 
         # Create the wheel tag.
         major_minor = '{}{}'.format((sys.hexversion >> 24) & 0xff,
@@ -229,8 +235,12 @@ class Package:
 
         self._remove_build_dir()
 
+        self.information("The wheel has been created.")
+
     def _install(self):
         """ Install the package. """
+
+        self.progress("Installing the package")
 
         self._create_build_dir()
 
@@ -244,6 +254,8 @@ class Package:
 
         self._remove_build_dir()
 
+        self.information("The package has been installed.")
+
     def _build_modules(self):
         """ Build the extension modules and return ia 2-tuple of the fully
         qualified module name and the pathname.
@@ -252,6 +264,10 @@ class Package:
         modules = []
 
         for bindings in self._bindings:
+            self.progress(
+                    "Generating the bindings from {0}".format(
+                            bindings.sip_file))
+
             # Generate the source code.
             generated = bindings.generate()
 
@@ -263,6 +279,9 @@ class Package:
                     libraries=bindings.libraries,
                     library_dirs=bindings.library_dirs)
             self._configure(builder)
+
+            self.progress(
+                    "Building the bindings for {0}".format(generated.name))
 
             modules.append(
                     (generated.name,
@@ -292,7 +311,7 @@ class Package:
 
             if not os.path.isfile(sip_file):
                 raise UserException(
-                        "no bindings have been specified and there is no file '{}'".format(sip_file))
+                        "no bindings have been specified and there is no file '{0}'".format(sip_file))
 
             sip_file = os.path.relpath(sip_file, self.root_dir)
             bindings = self._bindings_factory(self, sip_file)
@@ -312,6 +331,8 @@ class Package:
             self.sip_h_dir = os.path.abspath(self.sip_h_dir)
 
         # Make sure we have a clean build directory.
+        self.progress("Creating the build directory")
+
         shutil.rmtree(self.build_dir, ignore_errors=True)
         os.mkdir(self.build_dir)
 
@@ -335,5 +356,7 @@ class Package:
 
     def _remove_build_dir(self):
         """ Remove the build directory. """
+
+        self.progress("Removing the build directory")
 
         shutil.rmtree(self.build_dir)
