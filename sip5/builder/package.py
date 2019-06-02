@@ -25,7 +25,6 @@ import os
 import shutil
 import sys
 import warnings
-import zipfile
 
 from ..exceptions import handle_exception, UserException
 from ..module.module import copy_nonshared_sources
@@ -177,7 +176,51 @@ class Package:
     def _create_sdist(self):
         """ Create an sdist for the package. """
 
-        raise NotImplementedError
+        self.progress("Creating an sdist")
+
+        # The sdist name.
+        sdist_name = '{}-{}'.format(self.name, self.version)
+
+        # Create the sdist root directory.
+        self._create_build_dir()
+        sdist_dir = os.path.join(self.build_dir, sdist_name)
+        os.mkdir(sdist_dir)
+
+        # Create the pyproject.toml file that will ensure this build system is
+        # installed.
+        # TODO
+
+        # Copy in the build script.
+        if os.path.basename(sys.argv[0]) != 'build.py':
+            raise UserException(
+                    "this script must be called 'build.py' when creating an "
+                    "sdist")
+
+        shutil.copy(os.path.join(self.root_dir, 'build.py'), sdist_dir)
+
+        # Copy in the .sip files for each set of bindings.
+        # TODO
+
+        # Copy in anything else the user has asked for.
+        # TODO
+
+        # Create the tarball.
+        sdist_file = os.path.abspath(sdist_name + '.tar.gz')
+
+        saved_cwd = os.getcwd()
+        os.chdir(self.build_dir)
+
+        import tarfile
+
+        tf = tarfile.open(sdist_file, 'w:gz', format=tarfile.PAX_FORMAT)
+        tf.add(sdist_name)
+        tf.close()
+
+        os.chdir(saved_cwd)
+
+        self._remove_build_dir()
+
+        self.information("The sdist has been created.")
 
     def _create_wheel(self):
         """ Create a wheel for the package. """
@@ -206,7 +249,6 @@ class Package:
         # Create a temporary directory for the wheel.
         self._create_build_dir()
         wheel_dir = os.path.join(self.build_dir, 'wheel')
-        shutil.rmtree(wheel_dir, ignore_errors=True)
         os.mkdir(wheel_dir)
 
         # Install the wheel contents.
@@ -223,7 +265,9 @@ class Package:
         saved_cwd = os.getcwd()
         os.chdir(wheel_dir)
 
-        with zipfile.ZipFile(wheel_file, 'w', compression=zipfile.ZIP_DEFLATED) as zf:
+        from zipfile import ZipFile, ZIP_DEFLATED
+
+        with ZipFile(wheel_file, 'w', compression=ZIP_DEFLATED) as zf:
             for dirpath, _, filenames in os.walk('.'):
                 for filename in filenames:
                     # This will result in a name with no leading '.'.

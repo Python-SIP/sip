@@ -83,6 +83,8 @@ class Bindings:
         self.tags = tags
         self.tracing = tracing
 
+        self._sip_files = None
+
     def generate(self):
         """ Generate the bindings source code and optional additional extracts.
         Return a GeneratedBindings instance containing the details of
@@ -94,18 +96,12 @@ class Bindings:
                 self.sip_include_dirs)
 
         # Parse the input file.
-        cwd = os.getcwd()
-        os.chdir(self.package.root_dir)
+        pt, name, sip_files = self._parse()
 
-        pt, name, sip_files = parse(self.sip_file, True, self.tags,
-                self.backstops, self.disabled_features,
-                self.protected_is_public)
-
-        # TODO: may be better if these were relative to root_dir, but how to
-        # handle %Includes that refer to files outside the root directory?
-        sip_files = [os.path.abspath(fn) for fn in sip_files]
-
-        os.chdir(cwd)
+        # Only save the .sip files if they haven't already been obtained
+        # (possibly by a sub-class).
+        if self._sip_files is None:
+            self._sip_files = sip_files
 
         # The details of things that will have been generated.  Note that we
         # don't include anything for generic extracts as the arguments include
@@ -154,9 +150,45 @@ class Bindings:
         generated.sources_dir = os.path.relpath(sources_dir)
         generated.sources = [os.path.relpath(fn) for fn in sources]
         generated.include_dirs = [os.path.relpath(fn) for fn in include_dirs]
-        generated.sip_files = sip_files
 
         return generated
+
+    def get_sip_files(self):
+        """ Return a list of .sip files that define the bindings.  These should
+        all be relative to the bindings root directory.
+        """
+
+        if self._sip_files is None:
+            # This default implementation uses the ones returned by the parser.
+            _, _, self._sip_files = self._parse()
+
+        # Check that the .sip file names are relative to the root directory and
+        # are within the root directory.
+        sip_files = []
+
+        for fn in self._sip_files:
+            fn = os.path.relpath(os.path.abspath(fn), self.root_dir)
+
+            if fn.startswith(os.pardir):
+                raise UserException(
+                        "all the .sip files that define the bindings must be "
+                        "in the '{0}' directory or a sub-directory".format(
+                                self.root_dir))
+
+            sip_files.append(fn)
+
+        return sip_files
+
+    def _parse(self):
+        """ Invoke the parser and return its results. """
+
+        cwd = os.getcwd()
+        os.chdir(self.package.root_dir)
+        results = parse(self.sip_file, True, self.tags, self.backstops,
+                self.disabled_features, self.protected_is_public)
+        os.chdir(cwd)
+
+        return results
 
 
 class ConfigurableBindings(Bindings, Configurable):
@@ -202,4 +234,3 @@ class GeneratedBindings:
         self.sources = None
         self.sources_dir = None
         self.include_dirs = None
-        self.sip_files = None
