@@ -58,6 +58,7 @@ static platformDef *currentPlatforms;   /* The current platforms list. */
 static platformDef *platformStack[MAX_NESTED_IF];   /* Stack of platforms. */
 static KwArgs defaultKwArgs;            /* The default keyword arguments support. */
 static int makeProtPublic;              /* Treat protected items as public. */
+static stringList **mainModuleSipFiles; /* The list of .sip files for the main module. */
 static int parsingCSignature;           /* An explicit C/C++ signature is being parsed. */
 
 
@@ -4297,7 +4298,8 @@ exceptionlist:  {
  * Parse the specification.
  */
 void parse(sipSpec *spec, FILE *fp, char *filename, int strict,
-        stringList *tsl, stringList *bsl, stringList *xfl, int protHack)
+        stringList *tsl, stringList *bsl, stringList *xfl, int protHack,
+        stringList **sip_files)
 {
     classTmplDef *tcd;
 
@@ -4326,6 +4328,7 @@ void parse(sipSpec *spec, FILE *fp, char *filename, int strict,
     sectionFlags = 0;
     defaultKwArgs = NoKwArgs;
     makeProtPublic = protHack;
+    mainModuleSipFiles = sip_files;
 
     newModule(fp, filename);
     spec->module = currentModule;
@@ -4459,6 +4462,10 @@ static void parseFile(FILE *fp, const char *name, moduleDef *prevmod,
 
     if (setInputFile(fp, &pc, optional))
         currentContext = pc;
+
+    /* Save the name of the file if this is the main module. */
+    if (prevmod == NULL)
+        appendString(mainModuleSipFiles, sipStrdup(name));
 }
 
 

@@ -115,7 +115,7 @@ static PyObject *py_parse(PyObject *self, PyObject *args)
     sipSpec *pt;
     FILE *file;
     char *filename;
-    stringList *versions, *backstops, *xfeatures;
+    stringList *versions, *backstops, *xfeatures, *sip_files;
     int strict, protHack, action;
 
     if (!PyArg_ParseTuple(args, "O&pO&O&O&p",
@@ -145,13 +145,15 @@ static PyObject *py_parse(PyObject *self, PyObject *args)
         return NULL;
     }
 
+    sip_files = NULL;
+
     parse(pt, file, filename, strict, versions, backstops, xfeatures,
-            protHack);
+            protHack, &sip_files);
 
     transform(pt, strict);
 
-    return Py_BuildValue("(Os)", PyCapsule_New(pt, NULL, NULL),
-            pt->module->fullname->text);
+    return Py_BuildValue("(NsN)", PyCapsule_New(pt, NULL, NULL),
+            pt->module->fullname->text, stringList_convert_from(sip_files));
 }
 
 

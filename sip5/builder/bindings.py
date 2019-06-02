@@ -97,8 +97,13 @@ class Bindings:
         cwd = os.getcwd()
         os.chdir(self.package.root_dir)
 
-        pt, name = parse(self.sip_file, True, self.tags, self.backstops,
-                self.disabled_features, self.protected_is_public)
+        pt, name, sip_files = parse(self.sip_file, True, self.tags,
+                self.backstops, self.disabled_features,
+                self.protected_is_public)
+
+        # TODO: may be better if these were relative to root_dir, but how to
+        # handle %Includes that refer to files outside the root directory?
+        sip_files = [os.path.abspath(fn) for fn in sip_files]
 
         os.chdir(cwd)
 
@@ -149,6 +154,7 @@ class Bindings:
         generated.sources_dir = os.path.relpath(sources_dir)
         generated.sources = [os.path.relpath(fn) for fn in sources]
         generated.include_dirs = [os.path.relpath(fn) for fn in include_dirs]
+        generated.sip_files = sip_files
 
         return generated
 
@@ -196,3 +202,4 @@ class GeneratedBindings:
         self.sources = None
         self.sources_dir = None
         self.include_dirs = None
+        self.sip_files = None
