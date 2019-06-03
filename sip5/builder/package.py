@@ -28,6 +28,7 @@ import warnings
 
 from ..exceptions import handle_exception, UserException
 from ..module.module import copy_nonshared_sources
+from ..version import SIP_VERSION
 
 from .configuration import Configurable, ConfigurationParser
 from .distinfo import create_distinfo
@@ -188,7 +189,17 @@ class Package:
 
         # Create the pyproject.toml file that will ensure this build system is
         # installed.
-        # TODO
+        with open(os.path.join(sdist_dir, 'pyproject.toml'), 'wt') as pp:
+            # The current version is the minimum that should be used and the
+            # next minor version may be incompatible.
+            major = (SIP_VERSION >> 16) & 0xff
+            minor = (SIP_VERSION >> 8) & 0xff
+            maint = SIP_VERSION & 0xff
+
+            pp.write('[build-system]\n')
+            pp.write(
+                    'requires = ["sip >={}.{}.{}, <{}.{}"]\n'.format(
+                            major, minor, maint, major, minor + 1))
 
         # Copy in the build script.
         if os.path.basename(sys.argv[0]) != 'build.py':

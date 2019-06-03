@@ -89,9 +89,10 @@ will eventually end up in sdist or wheel metadata).
 
 The sources for an extension module will be dependent on a specific minor
 version number of SIP (because a different minor version number implies some
-sort of incompatibility), for example ``>=5.0,<5.1``.  If the sources make use
-of a new feature introduced in a specific maintenance version then it will be
-dependent on that maintenance version, for example ``>=5.0.2,<5.1``.
+sort of incompatibility).  The sources may make use of a new feature introduced
+in a specific maintenance version.  Therefore the sources will require a
+minimum of the current maintenance version and require the same minor version,
+for example ``>=5.0.2,<5.1``.
 
 The binaries of an extension module will be dependent on a specific minor
 version number of the sip module (because a different minor version number
