@@ -199,7 +199,16 @@ class Package:
         shutil.copy(os.path.join(self.root_dir, 'build.py'), sdist_dir)
 
         # Copy in the .sip files for each set of bindings.
-        # TODO
+        for bindings in self._bindings:
+            for sip_file in bindings.get_sip_files():
+                # Make sure any sub-directories exist.
+                sip_dir = os.path.dirname(sip_file)
+                if sip_dir != '':
+                    os.makedirs(sip_dir, exist_ok=True)
+                else:
+                    sip_dir = sdist_dir
+
+                shutil.copy(os.path.join(self.root_dir, sip_file), sip_dir)
 
         # Copy in anything else the user has asked for.
         # TODO

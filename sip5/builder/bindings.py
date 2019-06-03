@@ -167,7 +167,7 @@ class Bindings:
         sip_files = []
 
         for fn in self._sip_files:
-            fn = os.path.relpath(os.path.abspath(fn), self.root_dir)
+            fn = os.path.relpath(os.path.abspath(fn), self.package.root_dir)
 
             if fn.startswith(os.pardir):
                 raise UserException(
