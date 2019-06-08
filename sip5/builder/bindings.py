@@ -30,58 +30,54 @@ from ..exceptions import UserException
 from ..module.module import copy_nonshared_sources
 from ..version import SIP_VERSION, SIP_VERSION_STR
 
-from .configuration import Configurable, Option
+from .configurable import Configurable, Option
+from .pyproject import PyProjectUndefinedOptionException
 
 
-class Bindings:
+class Bindings(Configurable):
     """ The encapsulation of a module's bindings. """
 
-    def __init__(self, package, sip_file, *, backstops=None, concatenate=0,
-            debug=False, define_macros=None, disabled_features=None,
-            docstrings=True, exceptions=False, generate_api=False,
-            generate_extracts=None, generate_pyi=False, include_dirs=None,
-            libraries=None, library_dirs=None, protected_is_public=None,
-            release_gil=False, sip_include_dirs=None, source_suffix=None,
-            tags=None, tracing=False):
+    # The configurable options.
+    options = (
+        Option('backstops', option_type=list),
+        Option('define_macros', option_type=list),
+        Option('disabled_features', option_type=list),
+        Option('exceptions', option_type=bool),
+        Option('include_dirs', option_type=list),
+        Option('libraries', option_type=list),
+        Option('library_dirs', option_type=list),
+        Option('release_gil', option_type=bool),
+        Option('sip_file'),
+        Option('sip_include_dirs', option_type=list),
+        Option('source_suffix'),
+        Option('tags', option_type=list),
+
+        Option('concatenate', option_type=int,
+                help="concatenate the generated bindings into N source files",
+                metavar="N"),
+        Option('debug', option_type=bool, help="build with debugging symbols"),
+        Option('docstrings', option_type=bool, inverted=True,
+                help="disable the generation of docstrings"),
+        Option('generate_api', option_type=bool,
+                help="generate a QScintilla .api file"),
+        Option('generate_extracts', option_type=list,
+                help="generate an extract file", metavar="ID:FILE"),
+        Option('generate_pyi', option_type=bool,
+                help="generate a PEP 484 .pyi file"),
+        Option('protected_is_public', option_type=bool,
+                help="enable the protected/public hack (default on non-Windows"),
+        Option('protected_is_public', option_type=bool, inverted=True,
+                help="disable the protected/public hack (default on Windows)"),
+        Option('tracing', option_type=bool, help="build with tracing support"),
+    )
+
+    def __init__(self, name, package):
         """ Initialise the bindings. """
 
-        if define_macros is None:
-            define_macros = []
+        super().__init__()
 
-        if include_dirs is None:
-            include_dirs = []
-
-        if libraries is None:
-            libraries = []
-
-        if library_dirs is None:
-            library_dirs = []
-
-        if protected_is_public is None:
-            protected_is_public = (sys.platform != 'win32')
-
+        self.name = name
         self.package = package
-        self.sip_file = sip_file
-
-        self.backstops = backstops
-        self.concatenate = concatenate
-        self.debug = debug
-        self.define_macros = define_macros
-        self.disabled_features = disabled_features
-        self.docstrings = docstrings
-        self.exceptions = exceptions
-        self.generate_api = generate_api
-        self.generate_extracts = generate_extracts
-        self.generate_pyi = generate_pyi
-        self.include_dirs = include_dirs
-        self.libraries = libraries
-        self.library_dirs = library_dirs
-        self.protected_is_public = protected_is_public
-        self.release_gil = release_gil
-        self.source_suffix = source_suffix
-        self.sip_include_dirs = sip_include_dirs
-        self.tags = tags
-        self.tracing = tracing
 
         self._sip_files = None
 
@@ -143,7 +139,7 @@ class Bindings:
         if self.package.sip_module is None:
             sources.extend(copy_nonshared_sources(sources_dir))
         else:
-            include_dirs.append(sip_h_dir)
+            include_dirs.append(self.package.sip_h_dir)
 
         include_dirs.extend(self.include_dirs)
 
@@ -179,6 +175,13 @@ class Bindings:
 
         return sip_files
 
+    def verify_configuration(self):
+        """ Verify that the configuration is complete and consistent. """
+
+        if not self.sip_file:
+            raise PyProjectUndefinedOptionException(
+                    'tool.sip.bindings.' + self.name, 'sip_name')
+
     def _parse(self):
         """ Invoke the parser and return its results. """
 
@@ -189,37 +192,6 @@ class Bindings:
         os.chdir(cwd)
 
         return results
-
-
-class ConfigurableBindings(Bindings, Configurable):
-    """ The user-configurable encapsulation of a module's bindings. """
-
-    # The user-configurable options.
-    _options = (
-        Option('concatenate', option_type=int,
-                help="concatenate the generated bindings into N source files",
-                metavar="N"),
-        Option('debug', option_type=bool, help="build with debugging symbols"),
-        Option('docstrings', option_type=bool, inverted=True,
-                help="disable the generation of docstrings"),
-        Option('generate_api', option_type=bool,
-                help="generate a QScintilla .api file"),
-        Option('generate_extracts', option_type=list,
-                help="generate an extract file", metavar="ID:FILE"),
-        Option('generate_pyi', option_type=bool,
-                help="generate a PEP 484 .pyi file"),
-        Option('protected_is_public', option_type=bool,
-                help="enable the protected/public hack (default on non-Windows"),
-        Option('protected_is_public', option_type=bool, inverted=True,
-                help="disable the protected/public hack (default on Windows)"),
-        Option('tracing', option_type=bool, help="build with tracing support"),
-    )
-
-    @classmethod
-    def get_options(cls):
-        """ Get the user-configurable options. """
-
-        return cls._options
 
 
 class GeneratedBindings:

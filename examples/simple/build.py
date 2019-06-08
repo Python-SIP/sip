@@ -24,9 +24,12 @@
 from sip5.builder import Package
 
 
-# Define the package as it would appear in PyPI.  As we don't specify a set of
-# bindings to build the package will look for a similarly named .sip file.
-package = Package('fib')
+# Define the package.  The pyproject.toml file will supply fixed parts of the
+# configuration.
+package = Package()
 
-# Build the package according to the user supplied command line options.
-package.build()
+
+# If the script explicitly run by the user the Build the package according to
+# the command line options.
+if __name__ == '__main__':
+    package.build()

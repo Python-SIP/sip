@@ -21,6 +21,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
+from distutils.sysconfig import get_python_lib
 import os
 import shutil
 import sys
@@ -28,126 +29,58 @@ import warnings
 
 from ..exceptions import handle_exception, UserException
 from ..module.module import copy_nonshared_sources
-from ..version import SIP_VERSION
 
-from .configuration import Configurable, ConfigurationParser
+from .bindings import Bindings
+from .configurable import Configurable, Option
 from .distinfo import create_distinfo
 from .install import install_module
+from .pyproject import (PyProject, PyProjectException,
+        PyProjectOptionException, PyProjectUndefinedOptionException)
 
 
-class Package:
+class Package(Configurable):
     """ Encapsulate a package containing one or more sets of bindings. """
 
-    def __init__(self, name, *, version='1.0', command_line_configuration=True, enable_configuration_file=True, sip_module=None, sip_h_dir=None, context_factory=None, bindings_factory=None, builder_factory=None):
-        """ Initialise the package.
+    # The configurable options.
+    options = (
+        Option('sip_h_dir'),
+        Option('sip_module'),
 
-        :param name:
-            is the name of the package as it will appear to PyPI.
-        :param version:
-            is the version number of the pckage as it will appear to PyPI.
-        :param command_line_configuration:
-            is set the build can be configured using command line options.
-            Command line options may not work as expected when using other
-            build systems (e.g. setuptools).
-        :param enable_configuration_file:
-            is set if the user can specify the name of a configuration file on
-            the command line that provides default values of all other command
-            line options.
-        :param sip_module:
-            is the fully qualified name of the sip module shared by all sets of
-            bindings that are part of this package.  By default it is assumed
-            that the package will contain a single set of bindings and there
-            will be no shared sip module.
-        :param sip_h_dir:
-            is the name of the directory containing the sip.h file that defines
-            the ABI implemented by a shared sip module.  It is ignored if there
-            is no shared sip module, otherwise it must be specified.
-        :param context_factory:
-            is a callable that must return a Context instance.  If the callable
-            is a sub-class of the Configurable type then it may define
-            additional command line options.  The default callable returns a
-            ConfigurableContext instance.
-        :param bindings_factory:
-            is a callable that must return a Bindings instance.  If the
-            callable is a sub-class of the Configurable type then it may define
-            additional command line options.  The default callable returns a
-            BindingsContext instance.
-        :param builder_factory:
-            is a callable that must return a Context instance.  If the callable
-            is a sub-class of the Configurable type then it may define
-            additional command line options.  The default callable returns a
-            ConfigurableContext instance.
-        """
+        Option('verbose', option_type=bool,
+                help="enable verbose progress messages"),
+        Option('build_dir', default='build', help="the build directory",
+                metavar="DIR"),
+        Option('target_dir', default=get_python_lib(plat_specific=1),
+                help="the target installation directory", metavar="DIR"),
+        Option('_action', choices=('build', 'install', 'sdist', 'wheel'),
+                default='build', action=True)
+    )
 
-        # Provide default factories.
-        if context_factory is None:
-            from .context import ConfigurableContext as context_factory
+    def __init__(self):
+        """ Initialise the package. """
 
-        if bindings_factory is None:
-            from .bindings import ConfigurableBindings as bindings_factory
+        super().__init__()
 
-        if builder_factory is None:
-            from .builder import DistutilsBuilder as builder_factory
-
-        # Normalise the PyPI name.
-        name = name.replace('-', '_')
-
-        self.name = name
-        self.version = version
-        self.sip_module = sip_module
-        self.sip_h_dir = sip_h_dir
-        self._context = context_factory()
-        self._bindings_factory = bindings_factory
-        self._builder_factory = builder_factory
+        # The current directory should contain pyproject.toml.
+        self.root_dir = os.getcwd()
 
         self._bindings = []
 
-        # Get the configuration.
-        if command_line_configuration:
-            try:
-                self._configuration = self._parse_configuration(
-                        enable_configuration_file)
-            except Exception as e:
-                handle_exception(e)
-        else:
-            self._configuration = None
-
-        # Configure the context.
-        self._configure(self._context)
-
-        # The build directory is relative to the current directory.
-        self.build_dir = os.path.abspath(self._context.build_dir)
-
-        # The root directory is the one containing this script.
-        self.root_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
-
-        # We don't expose the context in the public API.
-        self.verbose = self._context.verbose
-
-        if not self.verbose:
-            warnings.simplefilter('ignore', UserWarning)
-
-    def add_bindings(self, sip_file, **bindings_args):
-        """ Add the set of bindings defined by a .sip file to the package. """
-
-        bindings = self._bindings_factory(self, sip_file, **bindings_args)
-        self._configure(bindings)
-
-        self._bindings.append(bindings)
-
-        return bindings
-
     def build(self):
-        """ Build the package. """
+        """ Build the package as specified by the user. """
 
         try:
-            if self._context.action == 'build':
+            # Configure the package.
+            self.setup(enable_command_line_options=True)
+
+            # Perform the required action.
+            if self._action == 'build':
                 self._build()
-            elif self._context.action == 'install':
+            elif self._action == 'install':
                 self._install()
-            elif self._context.action == 'sdist':
+            elif self._action == 'sdist':
                 self._create_sdist()
-            elif self._context.action == 'wheel':
+            elif self._action == 'wheel':
                 self._create_wheel()
 
         except Exception as e:
@@ -164,12 +97,71 @@ class Package:
 
         self.information(message + '...')
 
+    def setup(self, enable_command_line_options=False):
+        """ Perform all the setup prior to performing the required action. """
+
+        # Create the initial configuration from the pyproject.toml file.
+        self._set_initial_configuration()
+
+        # If enabled, allow the user to supply command line options for (so far
+        # unspecified) parts of the configuration.
+        if enable_command_line_options:
+            self._configure_from_command_line()
+
+        # Make sure the configuration is complete.
+        self._finalise_configuration()
+
+        if not self.verbose:
+            warnings.simplefilter('ignore', UserWarning)
+
+        # Make sure we have a clean build directory and make it current.
+        self.progress("Creating the build directory")
+
+        self.build_dir = os.path.abspath(self.build_dir)
+        shutil.rmtree(self.build_dir, ignore_errors=True)
+        os.mkdir(self.build_dir)
+        os.chdir(self.build_dir)
+
+        # Allow a sub-class (in a user supplied script) to make any updates to
+        # the configuration.
+        self.update()
+
+        os.chdir(self.root_dir)
+
+        # Make sure the configuration is correct after any user supplied script
+        # has messed with it.
+        self._verify()
+
+    def update(self):
+        """ This should be re-implemented by any user supplied sub-class to
+        carry out any updates to the configuration (including the removal of
+        entire sets of bindings) as required.  The current directory will be
+        the temporary build directory.
+        """
+
+        # This default implementation does nothing.
+
+    def verify_configuration(self):
+        """ Verify that the configuration is complete and consistent. """
+
+        if len(self._bindings) > 1 and not self.sip_module:
+            raise PyProjectOptionException('tool.sip.package', 'sip_module',
+                    "must be define when the package contains multiple sets "
+                    "of bindings")
+
+        # Check we have the sip.h file for any shared sip module.
+        if self.sip_module:
+            if not self.sip_h_dir:
+                raise PyProjectOptionException('tool.sip.package', 'sip_h_dir',
+                        "must be define when using a shared sip module")
+
+            self.sip_h_dir = os.path.abspath(self.sip_h_dir)
+
     def _build(self):
         """ Build the package.  This is really only for debugging purposes. """
 
         self.progress("Building the package")
 
-        self._create_build_dir()
         self._build_modules()
 
         self.information("The package has been built.")
@@ -183,25 +175,18 @@ class Package:
         sdist_name = '{}-{}'.format(self.name, self.version)
 
         # Create the sdist root directory.
-        self._create_build_dir()
         sdist_dir = os.path.join(self.build_dir, sdist_name)
         os.mkdir(sdist_dir)
 
-        # Create the pyproject.toml file that will ensure this build system is
-        # installed.
-        with open(os.path.join(sdist_dir, 'pyproject.toml'), 'wt') as pp:
-            # The current version is the minimum that should be used and the
-            # next minor version may be incompatible.
-            major = (SIP_VERSION >> 16) & 0xff
-            minor = (SIP_VERSION >> 8) & 0xff
-            maint = SIP_VERSION & 0xff
+        # Copy the pyproject.toml file.
+        shutil.copy(os.path.join(self.root_dir, 'pyproject.toml'), sdist_dir)
 
-            pp.write('[build-system]\n')
-            pp.write(
-                    'requires = ["sip >={}.{}.{}, <{}.{}"]\n'.format(
-                            major, minor, maint, major, minor + 1))
+        # Create the PKG-INFO file.
+        # TODO ???
 
         # Copy in the build script.
+        # TODO: the name should be worked out from pyproject.toml (but what if
+        # the script imports other modules?)
         if os.path.basename(sys.argv[0]) != 'build.py':
             raise UserException(
                     "this script must be called 'build.py' when creating an "
@@ -267,7 +252,6 @@ class Package:
             wheel_tag += '-manylinux1_x86_64'
 
         # Create a temporary directory for the wheel.
-        self._create_build_dir()
         wheel_dir = os.path.join(self.build_dir, 'wheel')
         os.mkdir(wheel_dir)
 
@@ -306,9 +290,7 @@ class Package:
 
         self.progress("Installing the package")
 
-        self._create_build_dir()
-
-        target_dir = self._context.target_dir
+        target_dir = self.target_dir
 
         installed = []
         for module, module_fn in self._build_modules():
@@ -354,69 +336,40 @@ class Package:
 
         return modules
 
-    def _configure(self, obj):
-        """ Configure an object if it is configurable. """
+    def _configure_from_command_line(self):
+        """ Update the configuration from the user supplied command line. """
 
-        if self._configuration is not None and isinstance(obj, Configurable):
-            obj.configure(self._configuration)
+        from argparse import ArgumentParser, SUPPRESS
 
-    def _create_build_dir(self):
-        """ Create the build directory, first checking that all the
-        prerequisites have been met.
-        """
+        parser = ArgumentParser(argument_default=SUPPRESS)
 
-        # If no bindings were explicitly defined then see if there is a .sip
-        # file that might define a set that matches the name of the package.
-        nr_bindings = len(self._bindings)
+        parser.add_argument('-V', '--version', action='version',
+                version=self.version)
 
-        if nr_bindings == 0:
-            sip_file = os.path.join(self.root_dir,
-                    self.name.split('.')[-1] + '.sip')
+        # Add the user configurable options to the parser.
+        all_options = {}
+        
+        self.add_command_line_options(parser, all_options)
 
-            if not os.path.isfile(sip_file):
-                raise UserException(
-                        "no bindings have been specified and there is no file '{0}'".format(sip_file))
+        for bindings in self._bindings:
+            bindings.add_command_line_options(parser, all_options)
 
-            sip_file = os.path.relpath(sip_file, self.root_dir)
-            bindings = self._bindings_factory(self, sip_file)
-            self._configure(bindings)
-            self._bindings.append(bindings)
+        # Parse the arguments and update the corresponding configurables.
+        args = parser.parse_args()
 
-        elif nr_bindings > 1 and self.sip_module is None:
-            raise UserException(
-                    "the name of a shared sip module must be specified when the package contains multiple sets of bindings")
+        for option, configurables in all_options.items():
+            for configurable in configurables:
+                if hasattr(args, option.dest):
+                    setattr(configurable, options.name,
+                            getattr(args, option.dest))
 
-        # Check we have the sip.h file for any shared sip module.
-        if self.sip_module is not None:
-            if self.sip_h_dir is None:
-                raise UserException(
-                        "the directory containing sip.h must be specified when using a shared sip module")
+    def _finalise_configuration(self):
+        """ Finalise the package's configuration. """
 
-            self.sip_h_dir = os.path.abspath(self.sip_h_dir)
+        self.apply_defaults()
 
-        # Make sure we have a clean build directory.
-        self.progress("Creating the build directory")
-
-        shutil.rmtree(self.build_dir, ignore_errors=True)
-        os.mkdir(self.build_dir)
-
-    def _parse_configuration(self, enable_configuration_file):
-        """ Return a mapping of user supplied configuration names and values.
-        """
-
-        parser = ConfigurationParser(self.version, enable_configuration_file)
-
-        if isinstance(self._context, Configurable):
-            parser.add_options(self._context)
-
-        if issubclass(self._bindings_factory, Configurable):
-            parser.add_options(self._bindings_factory)
-
-        if issubclass(self._builder_factory, Configurable):
-            parser.add_options(self._builder_factory)
-
-        # Parse the configuration.
-        return parser.parse()
+        for bindings in self._bindings:
+            bindings.apply_defaults()
 
     def _remove_build_dir(self):
         """ Remove the build directory. """
@@ -424,3 +377,61 @@ class Package:
         self.progress("Removing the build directory")
 
         shutil.rmtree(self.build_dir)
+
+    def _set_initial_configuration(self):
+        """ Set the package's initial configuration. """
+
+        # Read the pyproject.toml file.
+        pyproject = PyProject()
+
+        # Get the metadata and extract the name and version.
+        self.metadata = pyproject.get_section('tool.sip.metadata',
+                required=True)
+
+        self.name = None
+        self.version = '1.0'
+
+        for md_name, md_value in self.metadata.items():
+            md_name = md_name.lower()
+            if md_name == 'name':
+                # Normalise the PyPI name.
+                self.name = md_value.replace('-', '_')
+            elif md_name == 'version':
+                self.version = md_value
+
+        if self.name is None:
+            raise PyProjectUndefinedOptionException('tool.sip.metadata',
+                    'Name')
+
+        self.configure(pyproject, 'tool.sip.package')
+
+        # Get the bindings.
+        for bindings_name in pyproject.get_all_subsections('tool.sip.bindings'):
+            section_name = bindings_name + '.' + bindings_name
+
+            bindings = Bindings(bindings_name, self)
+            bindings.configure(pyproject, section_name)
+
+            self._bindings.append(bindings)
+
+        # See if we can add a default set of bindings.
+        if not self._bindings:
+            # If there is a .sip file that might create bindings with the same
+            # name as the package then use it.
+            sip_file = self.name + '.sip'
+            if os.path.isfile(sip_file):
+                bindings = Bindings(self.name, self)
+                bindings.sip_file = sip_file
+                self._bindings.append(bindings)
+            else:
+                raise PyProjectException(
+                        "no bindings have been specified and there is no file "
+                        "'{0}'".format(sip_file))
+
+    def _verify(self):
+        """ Verify that the configuration is complete and consistent. """
+
+        self.verify_configuration()
+
+        for bindings in self._bindings:
+            bindings.verify_configuration()
