@@ -31,6 +31,7 @@ from ..exceptions import handle_exception, UserException
 from ..module.module import copy_nonshared_sources
 
 from .bindings import Bindings
+from .builder import DistutilsBuilder
 from .configurable import Configurable, Option
 from .distinfo import create_distinfo
 from .install import install_module
@@ -42,7 +43,7 @@ class Package(Configurable):
     """ Encapsulate a package containing one or more sets of bindings. """
 
     # The configurable options.
-    options = (
+    _options = (
         Option('sip_h_dir'),
         Option('sip_module'),
 
@@ -85,6 +86,11 @@ class Package(Configurable):
 
         except Exception as e:
             handle_exception(e)
+
+    def get_options(self):
+        """ Return a sequence of configurable options. """
+
+        return self._options
 
     def information(self, message):
         """ Print an informational message if verbose messages are enabled. """
@@ -318,13 +324,14 @@ class Package(Configurable):
             generated = bindings.generate()
 
             # Compile the generated code.
-            builder = self._builder_factory(generated.sources_dir,
+            # TODO: allow the package to define a default builder and the
+            # bindings to specify a specific builder.
+            builder = DistutilsBuilder(generated.sources_dir,
                     generated.sources, debug=bindings.debug,
                     define_macros=bindings.define_macros,
                     include_dirs=generated.include_dirs,
                     libraries=bindings.libraries,
                     library_dirs=bindings.library_dirs)
-            self._configure(builder)
 
             self.progress(
                     "Building the bindings for {0}".format(generated.name))
@@ -360,7 +367,7 @@ class Package(Configurable):
         for option, configurables in all_options.items():
             for configurable in configurables:
                 if hasattr(args, option.dest):
-                    setattr(configurable, options.name,
+                    setattr(configurable, option.name,
                             getattr(args, option.dest))
 
     def _finalise_configuration(self):

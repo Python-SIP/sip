@@ -29,14 +29,11 @@ class Configurable:
     a build script or (possibly) the user via command line options.
     """
 
-    # The sequence of configurable options.
-    options = ()
-
     def __init__(self):
         """ Initialise the object. """
 
         # Set the value for each option as undefined.
-        for option in self.options:
+        for option in self.get_options():
             setattr(self, option.name, None)
 
     def add_command_line_options(self, parser, all_options):
@@ -45,7 +42,7 @@ class Configurable:
         be applied to.
         """
 
-        for option in self.options:
+        for option in self.get_options():
             # If it has ready been set explicitly then the user cannot change
             # it.
             if getattr(self, option.name) is not None:
@@ -98,7 +95,7 @@ class Configurable:
         set yet.
         """
 
-        for option in self.options:
+        for option in self.get_options():
             value = getattr(self, option.name)
             if value is None:
                 value = option.default
@@ -130,7 +127,7 @@ class Configurable:
 
         for name, value in section:
             # Find the corresponding option.
-            for option in self.options:
+            for option in self.get_options():
                 if option.user_name == name:
                     break
             else:
@@ -145,6 +142,11 @@ class Configurable:
                                 type(value).__name__))
 
             setattr(self, option.name, value)
+
+    def get_options(self):
+        """ Return a sequence of configurable options. """
+
+        return ()
 
     def verify_configuration(self):
         """ Verify that the configuration is complete and consistent. """
@@ -174,7 +176,7 @@ class Option:
         if action:
             # argparse doesn't allow a 'dest' to be specified for positional
             # arguments.
-            self.dest = name
+            self.dest = user_name
         else:
             self.dest = 'd' + str(type(self).option_nr)
             type(self).option_nr += 1

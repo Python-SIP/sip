@@ -38,7 +38,7 @@ class Bindings(Configurable):
     """ The encapsulation of a module's bindings. """
 
     # The configurable options.
-    options = (
+    _options = (
         Option('backstops', option_type=list),
         Option('define_macros', option_type=list),
         Option('disabled_features', option_type=list),
@@ -136,10 +136,10 @@ class Bindings(Configurable):
         # Add the sip module code if it is not shared.
         include_dirs = [sources_dir]
 
-        if self.package.sip_module is None:
-            sources.extend(copy_nonshared_sources(sources_dir))
-        else:
+        if self.package.sip_module:
             include_dirs.append(self.package.sip_h_dir)
+        else:
+            sources.extend(copy_nonshared_sources(sources_dir))
 
         include_dirs.extend(self.include_dirs)
 
@@ -148,6 +148,11 @@ class Bindings(Configurable):
         generated.include_dirs = [os.path.relpath(fn) for fn in include_dirs]
 
         return generated
+
+    def get_options(self):
+        """ Return a sequence of configurable options. """
+
+        return self._options
 
     def get_sip_files(self):
         """ Return a list of .sip files that define the bindings.  These should
@@ -181,6 +186,9 @@ class Bindings(Configurable):
         if not self.sip_file:
             raise PyProjectUndefinedOptionException(
                     'tool.sip.bindings.' + self.name, 'sip_name')
+
+        if not self.source_suffix:
+            self.source_suffix = None
 
     def _parse(self):
         """ Invoke the parser and return its results. """
