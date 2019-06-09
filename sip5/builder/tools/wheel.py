@@ -7,7 +7,7 @@
 # This copy of SIP may also used under the terms of the GNU General Public
 # License v2 or v3 as published by the Free Software Foundation which can be
 # found in the files LICENSE-GPL2 and LICENSE-GPL3 included in this package.
-# 
+#
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 # AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 # IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -21,15 +21,21 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from sip5.builder import Package
+from ...exceptions import handle_exception
+
+from ..package import Package
 
 
-# Define the package.  The pyproject.toml file will supply fixed parts of the
-# configuration.
-package = Package()
+def main():
+    """ Build a wheel for the package from the command line. """
 
+    try:
+        package = Package.factory(tool='wheel',
+                description="Build a wheel for the package.")
+        package.progress("Building a wheel")
+        package.build_wheel()
+        package.information("The wheel has been built.")
+    except Exception as e:
+        handle_exception(e)
 
-# If the script explicitly run by the user the Build the package according to
-# the command line options.
-if __name__ == '__main__':
-    package.build()
+    return 0

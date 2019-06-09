@@ -21,21 +21,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-import os
-import shutil
+from sip5.builder import Package
 
 
-def install_module(module, module_fn, target_dir):
-    """ Install an extension module into a target directory. """
-
-    parts = [target_dir]
-    parts.extend(module.split('.')[:-1])
-    module_dir = os.path.join(*parts)
-
-    os.makedirs(module_dir, exist_ok=True)
-
-    target_fn = os.path.join(module_dir, os.path.basename(module_fn))
-
-    shutil.copyfile(module_fn, target_fn)
-
-    return target_fn
+# Define the package.  The pyproject.toml file will supply fixed parts of the
+# configuration.
+package = Package()

@@ -21,10 +21,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from argparse import ArgumentParser
-
+from ..argument_parser import ArgumentParser
 from ..exceptions import handle_exception
-from ..version import SIP_VERSION_STR
 
 from .module import module
 
@@ -33,11 +31,7 @@ def main():
     """ Create the code to build a sip module. """
 
     # Parse the command line.
-    parser = ArgumentParser(
-            description="Generate the code for a sip extension module.")
-
-    parser.add_argument('-V', '--version', action='version',
-            version=SIP_VERSION_STR)
+    parser = ArgumentParser("Generate the code for a sip extension module.")
 
     parser.add_argument(dest='sip_modules', nargs=1,
             help="the fully qualified name of the sip module",

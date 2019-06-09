@@ -21,25 +21,18 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from .package import Package
+from argparse import ArgumentParser as ArgParser
+
+from .version import SIP_VERSION_STR
 
 
-def build_sdist(sdist_directory, config_settings=None):
-    """ The PEP 517 hook for building an sdist from pyproject.toml. """
+class ArgumentParser(ArgParser):
+    """ An argument parser for all sip5 command line tools. """
 
-    # TODO: handle config_settings.
+    def __init__(self, description, **kwargs):
+        """ Initialise the parser. """
 
-    package = Package.factory()
+        super().__init__(description=description, **kwargs)
 
-    return package.build_sdist(sdist_directory)
-
-
-def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
-    """ The PEP 517 hook for building a wheel from pyproject.toml. """
-
-    # TODO: handle config_settings.
-    # TODO: handle metadata_directory.
-
-    package = Package.factory()
-
-    return package.build_wheel(wheel_directory)
+        self.add_argument('-V', '--version', action='version',
+                version=SIP_VERSION_STR)

@@ -54,10 +54,12 @@ class Bindings(Configurable):
 
         Option('concatenate', option_type=int,
                 help="concatenate the generated bindings into N source files",
-                metavar="N"),
-        Option('debug', option_type=bool, help="build with debugging symbols"),
+                metavar="N", tools='build install wheel'),
+        Option('debug', option_type=bool, help="build with debugging symbols",
+                tools='build install wheel'),
         Option('docstrings', option_type=bool, inverted=True,
-                help="disable the generation of docstrings"),
+                help="disable the generation of docstrings",
+                tools='build install wheel'),
         Option('generate_api', option_type=bool,
                 help="generate a QScintilla .api file"),
         Option('generate_extracts', option_type=list,
@@ -65,10 +67,13 @@ class Bindings(Configurable):
         Option('generate_pyi', option_type=bool,
                 help="generate a PEP 484 .pyi file"),
         Option('protected_is_public', option_type=bool,
-                help="enable the protected/public hack (default on non-Windows"),
+                help="enable the protected/public hack (default on non-Windows)",
+                tools='build install wheel'),
         Option('protected_is_public', option_type=bool, inverted=True,
-                help="disable the protected/public hack (default on Windows)"),
-        Option('tracing', option_type=bool, help="build with tracing support"),
+                help="disable the protected/public hack (default on Windows)",
+                tools='build install wheel'),
+        Option('tracing', option_type=bool, help="build with tracing support",
+                tools='build install wheel'),
     )
 
     def __init__(self, name, package):

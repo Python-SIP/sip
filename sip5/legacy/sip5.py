@@ -21,9 +21,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from argparse import ArgumentParser
 from warnings import simplefilter
 
+from ..argument_parser import ArgumentParser
 from ..code_generator import (set_globals, parse, generateCode,
         generateExtracts, generateAPI, generateXML, generateTypeHints)
 from ..exceptions import handle_exception, UserException
@@ -35,12 +35,8 @@ def main():
 
     # Parse the command line.
     parser = ArgumentParser(
-            description="Generate Python extension modules for C/C++ "
-                    "libraries.",
+            "Generate Python extension modules for C/C++ libraries.",
             fromfile_prefix_chars='@')
-
-    parser.add_argument('-V', '--version', action='version',
-            version=SIP_VERSION_STR)
 
     parser.add_argument('specification',
             help="the name of the specification file [default stdin]",

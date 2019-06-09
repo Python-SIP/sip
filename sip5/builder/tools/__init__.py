@@ -19,27 +19,3 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-
-
-from .package import Package
-
-
-def build_sdist(sdist_directory, config_settings=None):
-    """ The PEP 517 hook for building an sdist from pyproject.toml. """
-
-    # TODO: handle config_settings.
-
-    package = Package.factory()
-
-    return package.build_sdist(sdist_directory)
-
-
-def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
-    """ The PEP 517 hook for building a wheel from pyproject.toml. """
-
-    # TODO: handle config_settings.
-    # TODO: handle metadata_directory.
-
-    package = Package.factory()
-
-    return package.build_wheel(wheel_directory)

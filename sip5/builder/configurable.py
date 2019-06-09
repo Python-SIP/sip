@@ -36,7 +36,7 @@ class Configurable:
         for option in self.get_options():
             setattr(self, option.name, None)
 
-    def add_command_line_options(self, parser, all_options):
+    def add_command_line_options(self, parser, tool, all_options):
         """ Add the object's command line options to an argument parser and
         update a map of Object instances and the configurables that they should
         be applied to.
@@ -49,7 +49,11 @@ class Configurable:
                 continue
 
             # If there is no help then the user can never specify it.
-            if not option.help and not option.action:
+            if not option.help:
+                continue
+
+            # See if the option is applicable to this tool.
+            if option.tools and tool not in option.tools:
                 continue
 
             # See if the option has already been added.
@@ -62,33 +66,28 @@ class Configurable:
             # Add the option according to its type.
             argument_name = option.user_name
 
-            if option.action:
-                parser.add_argument(argument_name, type=option.option_type,
-                        choices=option.choices, help=option.help,
-                        metavar=option.metavar)
+            if option.inverted:
+                argument_name = 'no-' + argument_name
+
+            argument_name = '--' + argument_name
+
+            if option.option_type is bool:
+                parser.add_argument(argument_name, dest=option.dest,
+                        action=('store_false' if option.inverted
+                                else 'store_true'),
+                        help=option.help)
+            elif option.option_type is list:
+                # Remove any plural.
+                if argument_name.endswith('s'):
+                    argument_name = argument_name[:-1]
+
+                parser.add_argument(argument_name, dest=option.dest,
+                        choices=option.choices, action='append',
+                        help=option.help, metavar=option.metavar)
             else:
-                if option.inverted:
-                    argument_name = 'no-' + argument_name
-
-                argument_name = '--' + argument_name
-
-                if option.option_type is bool:
-                    parser.add_argument(argument_name, dest=option.dest,
-                            action=('store_false' if option.inverted
-                                    else 'store_true'),
-                            help=option.help)
-                elif option.option_type is list:
-                    # Remove any plural.
-                    if argument_name.endswith('s'):
-                        argument_name = argument_name[:-1]
-
-                    parser.add_argument(argument_name, dest=option.dest,
-                            choices=option.choices, action='append',
-                            help=option.help, metavar=option.metavar)
-                else:
-                    parser.add_argument(argument_name, dest=option.dest,
-                            type=option.option_type, choices=option.choices,
-                            help=option.help, metavar=option.metavar)
+                parser.add_argument(argument_name, dest=option.dest,
+                        type=option.option_type, choices=option.choices,
+                        help=option.help, metavar=option.metavar)
 
     def apply_defaults(self):
         """ Set default values for each configurable option that hasn't been
@@ -162,31 +161,18 @@ class Option:
     option_nr = 0
 
     def __init__(self, name, *, option_type=str, choices=None, default=None,
-            help='', metavar=None, action=False, inverted=False):
+            help='', metavar=None, inverted=False, tools=''):
         """ Initialise the option. """
 
-        # The user name is the transformed option name.
-        user_name = name
-
-        if user_name.startswith('_'):
-            user_name = user_name[1:]
-
-        user_name = user_name.replace('_', '-')
-
-        if action:
-            # argparse doesn't allow a 'dest' to be specified for positional
-            # arguments.
-            self.dest = user_name
-        else:
-            self.dest = 'd' + str(type(self).option_nr)
-            type(self).option_nr += 1
-
         self.name = name
-        self.user_name = user_name
+        self.user_name = name.replace('_', '-')
         self.option_type = option_type
         self.default = default
         self.choices = choices
         self.help = help
         self.metavar = metavar
-        self.action = action
         self.inverted = inverted
+        self.tools = tools.split()
+
+        self.dest = 'd' + str(type(self).option_nr)
+        type(self).option_nr += 1

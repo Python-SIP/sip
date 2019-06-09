@@ -21,25 +21,21 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from .package import Package
+from ...exceptions import handle_exception
+
+from ..package import Package
 
 
-def build_sdist(sdist_directory, config_settings=None):
-    """ The PEP 517 hook for building an sdist from pyproject.toml. """
+def main():
+    """ Install the package from the command line. """
 
-    # TODO: handle config_settings.
+    try:
+        package = Package.factory(tool='install',
+                description="Install the package.")
+        package.progress("Installing the package")
+        package.install()
+        package.information("The package has been installed.")
+    except Exception as e:
+        handle_exception(e)
 
-    package = Package.factory()
-
-    return package.build_sdist(sdist_directory)
-
-
-def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
-    """ The PEP 517 hook for building a wheel from pyproject.toml. """
-
-    # TODO: handle config_settings.
-    # TODO: handle metadata_directory.
-
-    package = Package.factory()
-
-    return package.build_wheel(wheel_directory)
+    return 0
