@@ -72,7 +72,7 @@ class Package(Configurable):
 
         try:
             # Configure the package.
-            self.setup(enable_command_line_options=True)
+            self.setup(PyProject(), enable_command_line_options=True)
 
             # Perform the required action.
             if self._action == 'build':
@@ -82,10 +82,72 @@ class Package(Configurable):
             elif self._action == 'sdist':
                 self._create_sdist()
             elif self._action == 'wheel':
-                self._create_wheel()
+                self.build_wheel()
 
         except Exception as e:
             handle_exception(e)
+
+    def build_wheel(self, wheel_directory='.'):
+        """ Build a wheel for the package and return the name of the wheel
+        file.
+        """
+
+        self.progress("Creating a wheel")
+
+        # Create the wheel tag.
+        major_minor = '{}{}'.format((sys.hexversion >> 24) & 0xff,
+                (sys.hexversion >> 16) & 0xff)
+        wheel_tag = 'cp{}'.format(major_minor)
+
+        try:
+            wheel_tag += '-cp' + major_minor + sys.abiflags
+        except AttributeError:
+            wheel_tag += '-none'
+
+        if sys.platform == 'win32':
+            wheel_tag += '-win32' if is_32 else '-win_amd64'
+        elif sys.platform == 'darwin':
+            wheel_tag += '-macosx_10_6_intel'
+        else:
+            # We assume that Linux wheels are PEP 513 compatible so that it can
+            # be uploaded to PyPI.
+            wheel_tag += '-manylinux1_x86_64'
+
+        # Create a temporary directory for the wheel.
+        wheel_build_dir = os.path.join(self.build_dir, 'wheel')
+        os.mkdir(wheel_build_dir)
+
+        # Install the wheel contents.
+        installed = []
+        for module, module_fn in self._build_modules():
+            installed.append(install_module(module, module_fn, wheel_build_dir))
+
+        create_distinfo(self, installed, wheel_build_dir, wheel_tag=wheel_tag)
+
+        wheel_file = '{}-{}-{}.whl'.format(self.name, self.version, wheel_tag)
+        wheel_path = os.path.abspath(os.path.join(wheel_directory, wheel_file))
+
+        # Create the .whl file.
+        saved_cwd = os.getcwd()
+        os.chdir(wheel_build_dir)
+
+        from zipfile import ZipFile, ZIP_DEFLATED
+
+        with ZipFile(wheel_path, 'w', compression=ZIP_DEFLATED) as zf:
+            for dirpath, _, filenames in os.walk('.'):
+                for filename in filenames:
+                    # This will result in a name with no leading '.'.
+                    name = os.path.relpath(os.path.join(dirpath, filename))
+
+                    zf.write(name)
+
+        os.chdir(saved_cwd)
+
+        self._remove_build_dir()
+
+        self.information("The wheel has been created.")
+
+        return wheel_file
 
     def get_options(self):
         """ Return a sequence of configurable options. """
@@ -103,11 +165,11 @@ class Package(Configurable):
 
         self.information(message + '...')
 
-    def setup(self, enable_command_line_options=False):
+    def setup(self, pyproject, enable_command_line_options=False):
         """ Perform all the setup prior to performing the required action. """
 
         # Create the initial configuration from the pyproject.toml file.
-        self._set_initial_configuration()
+        self._set_initial_configuration(pyproject)
 
         # If enabled, allow the user to supply command line options for (so far
         # unspecified) parts of the configuration.
@@ -188,17 +250,21 @@ class Package(Configurable):
         shutil.copy(os.path.join(self.root_dir, 'pyproject.toml'), sdist_dir)
 
         # Create the PKG-INFO file.
-        # TODO ???
+        #with open(os.path.join(sdist_dir, 'PKG-INFO'), 'wt') as pi:
+        #    # TODO
+        #    pi.write('Metadata-Version: 1.0\n')
+        #    pi.write('Name: {}\n'.format(self.name))
+        #    pi.write('Version: {}\n'.format(self.version))
 
         # Copy in the build script.
         # TODO: the name should be worked out from pyproject.toml (but what if
         # the script imports other modules?)
-        if os.path.basename(sys.argv[0]) != 'build.py':
-            raise UserException(
-                    "this script must be called 'build.py' when creating an "
-                    "sdist")
+        #if os.path.basename(sys.argv[0]) != 'build.py':
+        #    raise UserException(
+        #            "this script must be called 'build.py' when creating an "
+        #            "sdist")
 
-        shutil.copy(os.path.join(self.root_dir, 'build.py'), sdist_dir)
+        #shutil.copy(os.path.join(self.root_dir, 'build.py'), sdist_dir)
 
         # Copy in the .sip files for each set of bindings.
         for bindings in self._bindings:
@@ -232,64 +298,6 @@ class Package(Configurable):
         self._remove_build_dir()
 
         self.information("The sdist has been created.")
-
-    def _create_wheel(self):
-        """ Create a wheel for the package. """
-
-        self.progress("Creating a wheel")
-
-        # Create the wheel tag.
-        major_minor = '{}{}'.format((sys.hexversion >> 24) & 0xff,
-                (sys.hexversion >> 16) & 0xff)
-        wheel_tag = 'cp{}'.format(major_minor)
-
-        try:
-            wheel_tag += '-cp' + major_minor + sys.abiflags
-        except AttributeError:
-            wheel_tag += '-none'
-
-        if sys.platform == 'win32':
-            wheel_tag += '-win32' if is_32 else '-win_amd64'
-        elif sys.platform == 'darwin':
-            wheel_tag += '-macosx_10_6_intel'
-        else:
-            # We assume that Linux wheels are PEP 513 compatible so that it can
-            # be uploaded to PyPI.
-            wheel_tag += '-manylinux1_x86_64'
-
-        # Create a temporary directory for the wheel.
-        wheel_dir = os.path.join(self.build_dir, 'wheel')
-        os.mkdir(wheel_dir)
-
-        # Install the wheel contents.
-        installed = []
-        for module, module_fn in self._build_modules():
-            installed.append(install_module(module, module_fn, wheel_dir))
-
-        create_distinfo(self, installed, wheel_dir, wheel_tag=wheel_tag)
-
-        wheel_file = os.path.abspath(
-                '{}-{}-{}.whl'.format(self.name, self.version, wheel_tag))
-
-        # Create the .whl file.
-        saved_cwd = os.getcwd()
-        os.chdir(wheel_dir)
-
-        from zipfile import ZipFile, ZIP_DEFLATED
-
-        with ZipFile(wheel_file, 'w', compression=ZIP_DEFLATED) as zf:
-            for dirpath, _, filenames in os.walk('.'):
-                for filename in filenames:
-                    # This will result in a name with no leading '.'.
-                    name = os.path.relpath(os.path.join(dirpath, filename))
-
-                    zf.write(name)
-
-        os.chdir(saved_cwd)
-
-        self._remove_build_dir()
-
-        self.information("The wheel has been created.")
 
     def _install(self):
         """ Install the package. """
@@ -385,11 +393,8 @@ class Package(Configurable):
 
         shutil.rmtree(self.build_dir)
 
-    def _set_initial_configuration(self):
+    def _set_initial_configuration(self, pyproject):
         """ Set the package's initial configuration. """
-
-        # Read the pyproject.toml file.
-        pyproject = PyProject()
 
         # Get the metadata and extract the name and version.
         self.metadata = pyproject.get_section('tool.sip.metadata',
