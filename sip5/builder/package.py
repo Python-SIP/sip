@@ -64,8 +64,8 @@ class Package(Configurable):
 
         # The current directory should contain pyproject.toml.
         self.root_dir = os.getcwd()
+        self.bindings = {}
 
-        self._bindings = []
         self._temp_build_dir = None
 
     def build(self):
@@ -94,7 +94,7 @@ class Package(Configurable):
             shutil.copy(package_py, sdist_dir)
 
         # Copy in the .sip files for each set of bindings.
-        for bindings in self._bindings:
+        for bindings in self.bindings.values():
             for sip_file in bindings.get_sip_files():
                 # Make sure any sub-directories exist.
                 sip_dir = os.path.dirname(sip_file)
@@ -293,7 +293,7 @@ class Package(Configurable):
                 'builder')
 
         # Check we have the name of the sip module if it is shared.
-        if len(self._bindings) > 1 and not self.sip_module:
+        if len(self.bindings) > 1 and not self.sip_module:
             raise PyProjectOptionException('tool.sip.package', 'sip_module',
                     "must be define when the package contains multiple sets "
                     "of bindings")
@@ -336,7 +336,7 @@ class Package(Configurable):
 
         modules = []
 
-        for bindings in self._bindings:
+        for bindings in self.bindings.values():
             self.progress(
                     "Generating the bindings from {0}".format(
                             bindings.sip_file))
@@ -387,7 +387,7 @@ class Package(Configurable):
         
         self.add_command_line_options(parser, tool, all_options)
 
-        for bindings in self._bindings:
+        for bindings in self.bindings.values():
             bindings.add_command_line_options(parser, tool, all_options)
 
         # Parse the arguments and update the corresponding configurables.
@@ -415,7 +415,7 @@ class Package(Configurable):
 
         self.apply_defaults()
 
-        for bindings in self._bindings:
+        for bindings in self.bindings.values():
             bindings.apply_defaults()
 
     @staticmethod
@@ -502,17 +502,17 @@ class Package(Configurable):
             bindings = Bindings(bindings_name, self)
             bindings.configure(pyproject, section_name)
 
-            self._bindings.append(bindings)
+            self.bindings[bindings_name] = bindings
 
         # See if we can add a default set of bindings.
-        if not self._bindings:
+        if not self.bindings:
             # If there is a .sip file that might create bindings with the same
             # name as the package then use it.
             sip_file = self.name + '.sip'
             if os.path.isfile(sip_file):
                 bindings = Bindings(self.name, self)
                 bindings.sip_file = sip_file
-                self._bindings.append(bindings)
+                self.bindings[self.name] = bindings
             else:
                 raise PyProjectException(
                         "no bindings have been specified and there is no file "
@@ -523,5 +523,5 @@ class Package(Configurable):
 
         self.verify_configuration()
 
-        for bindings in self._bindings:
+        for bindings in self.bindings.values():
             bindings.verify_configuration()
