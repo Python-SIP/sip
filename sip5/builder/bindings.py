@@ -60,11 +60,11 @@ class Bindings(Configurable):
         Option('docstrings', option_type=bool, inverted=True,
                 help="disable the generation of docstrings",
                 tools='build install wheel'),
-        Option('generate_api', option_type=bool,
-                help="generate a QScintilla .api file"),
+        Option('generate_api', help="generate a QScintilla .api file",
+                metavar="FILE"),
         Option('generate_extracts', option_type=list,
                 help="generate an extract file", metavar="ID:FILE"),
-        Option('generate_pyi', option_type=bool,
+        Option('pep484_stubs', option_type=bool,
                 help="generate a PEP 484 .pyi file"),
         Option('protected_is_public', option_type=bool,
                 help="enable the protected/public hack (default on non-Windows)",
@@ -118,16 +118,14 @@ class Bindings(Configurable):
 
         # Generate any API file.
         if self.generate_api:
-            api_extract = os.path.join(sources_dir, module_name + '.api')
-            generateAPI(pt, api_extract)
-            generated.api_file = os.path.relpath(api_extract, sources_dir)
+            generateAPI(pt, generate_api)
 
         # Generate any extracts.
         if self.generate_extracts:
             generateExtracts(pt, extracts)
 
         # Generate any type hints file.
-        if self.generate_pyi:
+        if self.pep484_stubs:
             pyi_extract = os.path.join(sources_dir, module_name + '.pyi')
             generateTypeHints(pt, pyi_extract)
             generated.pyi_file = os.path.relpath(pyi_extract, sources_dir)
@@ -216,7 +214,6 @@ class GeneratedBindings:
         """ Initialise the generated bindings. """
 
         self.name = name
-        self.api_file = None
         self.pyi_file = None
         self.sources = None
         self.sources_dir = None
