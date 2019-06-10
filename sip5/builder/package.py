@@ -22,11 +22,13 @@
 
 
 from distutils.sysconfig import get_python_lib
+import importlib
 import os
 import shutil
 import sys
 import warnings
 
+from ..exceptions import UserException
 from ..module.module import copy_nonshared_sources
 
 from .bindings import Bindings
@@ -204,10 +206,31 @@ class Package(Configurable):
         # Get the contents of the pyproject.toml file.
         pyproject = PyProject()
 
-        # TODO: see if the .toml file specified a Package instance in a
-        # separate script.  If not see if there is one in a default location
-        # (ie. package:package).  Otherwise do the following code.
-        package = cls()
+        # Try and import a package.py file.
+        spec = importlib.util.spec_from_file_location('package', 'package.py')
+        package_module = importlib.util.module_from_spec(spec)
+
+        try:
+            spec.loader.exec_module(package_module)
+        except FileNotFoundError:
+            package_factory = cls
+        except Exception as e:
+            raise UserException("unable to import package.py", detail=str(e))
+        else:
+            # Look for a class that is a sub-class of Package.
+            for package_factory in package_module.__dict__.values():
+                if isinstance(package_factory, type):
+                    if issubclass(package_factory, Package):
+                        # Make sure the type is defined in package.py and not
+                        # imported by it.
+                        if package_factory.__module__ == 'package':
+                            break
+            else:
+                raise UserException(
+                        "package.py does not define a Package sub-class")
+
+        # Create the package.
+        package = package_factory()
 
         # Set the initial configuration from the pyproject.toml file.
         package._set_initial_configuration(pyproject)
@@ -365,6 +388,37 @@ class Package(Configurable):
 
         for bindings in self._bindings:
             bindings.apply_defaults()
+
+    @staticmethod
+    def _import_callable(callable_name, section_name, name):
+        """ Return a callable imported from a location specified as a value in
+        the pyproject.toml file.
+        """
+
+        # Extract the module and object names.
+        parts = callable_name.split(':')
+        if len(parts) != 2:
+            raise PyProjectOptionException(section_name, name,
+                    "must be defined as 'module:name'")
+
+        module_name, obj_name = parts
+
+        # Try and import the module.
+        try:
+            module = importlib.import_module(module_name)
+        except ImportError as e:
+            raise PyProjectOptionException(section_name, name,
+                    "unable to import '{0}'".format(module_name),
+                    detail=str(e))
+
+        # Get the callable.
+        obj = getattr(module, obj_name)
+        if obj is None:
+            raise PyProjectOptionException(section_name, name,
+                    "'{0}' module has no callable '{1}'".format(module_name,
+                            obj_name))
+
+        return obj
 
     @staticmethod
     def _install_module(module, module_fn, target_dir):
