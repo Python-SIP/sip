@@ -120,7 +120,7 @@ class Bindings(Configurable):
         if self.generate_api:
             api_extract = os.path.join(sources_dir, module_name + '.api')
             generateAPI(pt, api_extract)
-            generated.api_file = os.path.relpath(api_extract)
+            generated.api_file = os.path.relpath(api_extract, sources_dir)
 
         # Generate any extracts.
         if self.generate_extracts:
@@ -130,7 +130,7 @@ class Bindings(Configurable):
         if self.generate_pyi:
             pyi_extract = os.path.join(sources_dir, module_name + '.pyi')
             generateTypeHints(pt, pyi_extract)
-            generated.pyi_file = os.path.relpath(pyi_extract)
+            generated.pyi_file = os.path.relpath(pyi_extract, sources_dir)
 
         # Generate the bindings.
         sources = generateCode(pt, sources_dir, self.source_suffix,

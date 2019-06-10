@@ -155,13 +155,8 @@ class Package(Configurable):
         wheel_build_dir = os.path.join(self.build_dir, 'wheel')
         os.mkdir(wheel_build_dir)
 
-        # Install the wheel contents.
-        installed = []
-        for module, module_fn in self._build_modules():
-            installed.append(
-                    self._install_module(module, module_fn, wheel_build_dir))
-
-        create_distinfo(self, installed, wheel_build_dir, wheel_tag=wheel_tag)
+        # Build and copy the wheel contents.
+        self._build_and_install_modules(wheel_build_dir, wheel_tag=wheel_tag)
 
         wheel_file = '{}-{}-{}.whl'.format(self.name, self.version, wheel_tag)
         wheel_path = os.path.abspath(os.path.join(wheel_directory, wheel_file))
@@ -272,14 +267,7 @@ class Package(Configurable):
     def install(self):
         """ Install the package. """
 
-        target_dir = self.target_dir
-
-        installed = []
-        for module, module_fn in self._build_modules():
-            installed.append(
-                    self._install_module(module, module_fn, target_dir))
-
-        create_distinfo(self, installed, target_dir)
+        self._build_and_install_modules(self.target_dir)
 
         self._remove_build_dir()
 
@@ -318,9 +306,32 @@ class Package(Configurable):
 
             self.sip_h_dir = os.path.abspath(self.sip_h_dir)
 
+    def _build_and_install_modules(self, target_dir, wheel_tag=None):
+        """ Build and install the extension modules and create the .dist-info
+        directory.
+        """
+
+        installed = []
+
+        for module, module_fn, pyi_file in self._build_modules():
+            # Get the name of the individual module's directory.
+            parts = [target_dir]
+            parts.extend(module.split('.')[:-1])
+            module_dir = os.path.join(*parts)
+            os.makedirs(module_dir, exist_ok=True)
+
+            # Copy the extension module.
+            installed.append(self._install_file(module_fn, module_dir))
+
+            # Copy any .pyi file.
+            if pyi_file is not None:
+                installed.append(self._install_file(pyi_file, module_dir))
+
+        create_distinfo(self, installed, target_dir, wheel_tag=wheel_tag)
+
     def _build_modules(self):
-        """ Build the extension modules and return ia 2-tuple of the fully
-        qualified module name and the pathname.
+        """ Build the extension modules and return a 3-tuple of the fully
+        qualified module name, its pathname and the pathname of any .pyi file.
         """
 
         modules = []
@@ -332,6 +343,12 @@ class Package(Configurable):
 
             # Generate the source code.
             generated = bindings.generate()
+
+            if generated.pyi_file is None:
+                pyi_file = None
+            else:
+                pyi_file = os.path.join(generated.sources_dir,
+                        generated.pyi_files)
 
             # Compile the generated code.
             builder = self.builder(generated.sources_dir, generated.sources,
@@ -349,13 +366,11 @@ class Package(Configurable):
 
             saved_cwd = os.getcwd()
             os.chdir(generated.sources_dir)
-
-            modules.append(
-                    (generated.name,
-                            builder.build_extension_module(self,
-                                    generated.name)))
-
+            extension_module = builder.build_extension_module(self,
+                    generated.name)
             os.chdir(saved_cwd)
+
+            modules.append((generated.name, extension_module, pyi_file))
 
         return modules
 
@@ -435,18 +450,13 @@ class Package(Configurable):
         return obj
 
     @staticmethod
-    def _install_module(module, module_fn, target_dir):
-        """ Install an extension module into a target directory. """
+    def _install_file(fname, module_dir):
+        """ Install a file into a module-specific directory and return the
+        pathname of the installed file.
+        """
 
-        parts = [target_dir]
-        parts.extend(module.split('.')[:-1])
-        module_dir = os.path.join(*parts)
-
-        os.makedirs(module_dir, exist_ok=True)
-
-        target_fn = os.path.join(module_dir, os.path.basename(module_fn))
-
-        shutil.copyfile(module_fn, target_fn)
+        target_fn = os.path.join(module_dir, os.path.basename(fname))
+        shutil.copyfile(fname, target_fn)
 
         return target_fn
 
