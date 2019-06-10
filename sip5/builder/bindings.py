@@ -148,9 +148,11 @@ class Bindings(Configurable):
 
         include_dirs.extend(self.include_dirs)
 
-        generated.sources_dir = os.path.relpath(sources_dir)
-        generated.sources = [os.path.relpath(fn) for fn in sources]
-        generated.include_dirs = [os.path.relpath(fn) for fn in include_dirs]
+        generated.sources_dir = sources_dir
+        generated.sources = [os.path.relpath(fn, sources_dir)
+                for fn in sources]
+        generated.include_dirs = [os.path.relpath(fn, sources_dir)
+                for fn in include_dirs]
 
         return generated
 

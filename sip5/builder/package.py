@@ -26,6 +26,7 @@ import importlib
 import os
 import shutil
 import sys
+import tempfile
 import warnings
 
 from ..exceptions import UserException
@@ -50,10 +51,7 @@ class Package(Configurable):
 
         Option('verbose', option_type=bool,
                 help="enable verbose progress messages"),
-        # TODO: the default should be a temporary directory unless the tool is
-        # 'build'.
-        Option('build_dir', default='build', help="the build directory",
-                metavar="DIR"),
+        Option('build_dir', help="the build directory", metavar="DIR"),
         Option('target_dir', default=get_python_lib(plat_specific=1),
                 help="the target installation directory", metavar="DIR",
                 tools='install')
@@ -68,6 +66,7 @@ class Package(Configurable):
         self.root_dir = os.getcwd()
 
         self._bindings = []
+        self._temp_build_dir = None
 
     def build(self):
         """ Build the package in-situ. """
@@ -232,7 +231,7 @@ class Package(Configurable):
             package._configure_from_command_line(tool, description)
 
         # Make sure the configuration is complete.
-        package._finalise_configuration()
+        package._finalise_configuration(tool)
 
         if not package.verbose:
             warnings.simplefilter('ignore', UserWarning)
@@ -240,9 +239,11 @@ class Package(Configurable):
         # Make sure we have a clean build directory and make it current.
         package.progress("Creating the build directory")
 
-        package.build_dir = os.path.abspath(package.build_dir)
-        shutil.rmtree(package.build_dir, ignore_errors=True)
-        os.mkdir(package.build_dir)
+        if package._temp_build_dir is None:
+            package.build_dir = os.path.abspath(package.build_dir)
+            shutil.rmtree(package.build_dir, ignore_errors=True)
+            os.mkdir(package.build_dir)
+
         os.chdir(package.build_dir)
 
         # Allow a sub-class (in a user supplied script) to make any updates to
@@ -346,10 +347,15 @@ class Package(Configurable):
             self.progress(
                     "Building the bindings for {0}".format(generated.name))
 
+            saved_cwd = os.getcwd()
+            os.chdir(generated.sources_dir)
+
             modules.append(
                     (generated.name,
                             builder.build_extension_module(self,
                                     generated.name)))
+
+            os.chdir(saved_cwd)
 
         return modules
 
@@ -378,8 +384,19 @@ class Package(Configurable):
                     setattr(configurable, option.name,
                             getattr(args, option.dest))
 
-    def _finalise_configuration(self):
+    def _finalise_configuration(self, tool):
         """ Finalise the package's configuration. """
+
+        # For the build tool we want build_dir to default to a local 'build'
+        # directory (which we won't remove).  However, for other tools (and for
+        # PEP 517 frontends) we want to use a temporary directory in case the
+        # current directory is read-only.
+        if self.build_dir is None:
+            if tool == 'build':
+                self.build_dir = 'build'
+            else:
+                self._temp_build_dir = tempfile.TemporaryDirectory()
+                self.build_dir = self._temp_build_dir.name
 
         self.apply_defaults()
 
@@ -438,7 +455,7 @@ class Package(Configurable):
 
         self.progress("Removing the build directory")
 
-        shutil.rmtree(self.build_dir)
+        self._temp_build_dir = None
 
     def _set_initial_configuration(self, pyproject):
         """ Set the package's initial configuration. """
