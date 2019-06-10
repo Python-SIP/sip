@@ -27,7 +27,8 @@ from .package import Package
 def build_sdist(sdist_directory, config_settings=None):
     """ The PEP 517 hook for building an sdist from pyproject.toml. """
 
-    # TODO: handle config_settings.
+    # Note that we ignore config_settings until we have a frontend that we can
+    # fully test with.  (pip seems lacking at the moment.)
 
     package = Package.factory()
 
@@ -37,8 +38,8 @@ def build_sdist(sdist_directory, config_settings=None):
 def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
     """ The PEP 517 hook for building a wheel from pyproject.toml. """
 
-    # TODO: handle config_settings.
-    # TODO: handle metadata_directory.
+    # Note that we ignore config_settings until we have a frontend that we can
+    # fully test with.  (pip seems lacking at the moment.)
 
     package = Package.factory()
 
