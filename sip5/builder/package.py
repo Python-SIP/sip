@@ -32,7 +32,7 @@ from ..exceptions import UserException
 from ..module.module import copy_nonshared_sources
 
 from .bindings import Bindings
-from .builder import DistutilsBuilder
+from .builder import Builder
 from .configurable import Configurable, Option
 from .distinfo import create_distinfo
 from .pyproject import (PyProject, PyProjectException,
@@ -44,6 +44,7 @@ class Package(Configurable):
 
     # The configurable options.
     _options = (
+        Option('builder', default='sip5.builder:DistutilsBuilder'),
         Option('sip_h_dir'),
         Option('sip_module'),
 
@@ -308,6 +309,11 @@ class Package(Configurable):
     def verify_configuration(self):
         """ Verify that the configuration is complete and consistent. """
 
+        # Get the builder factory.
+        self.builder = self._import_callable(self.builder, 'tool.sip.package',
+                'builder')
+
+        # Check we have the name of the sip module if it is shared.
         if len(self._bindings) > 1 and not self.sip_module:
             raise PyProjectOptionException('tool.sip.package', 'sip_module',
                     "must be define when the package contains multiple sets "
@@ -337,14 +343,15 @@ class Package(Configurable):
             generated = bindings.generate()
 
             # Compile the generated code.
-            # TODO: allow the package to define a default builder and the
-            # bindings to specify a specific builder.
-            builder = DistutilsBuilder(generated.sources_dir,
-                    generated.sources, debug=bindings.debug,
-                    define_macros=bindings.define_macros,
+            builder = self.builder(generated.sources_dir, generated.sources,
+                    debug=bindings.debug, define_macros=bindings.define_macros,
                     include_dirs=generated.include_dirs,
                     libraries=bindings.libraries,
                     library_dirs=bindings.library_dirs)
+
+            if not isinstance(builder, Builder):
+                raise PyProjectOptionException('tool.sip.package', 'builder',
+                        "did not return a Builder instance")
 
             self.progress(
                     "Building the bindings for {0}".format(generated.name))
