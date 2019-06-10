@@ -31,9 +31,6 @@ from ..exceptions import UserException
 from ..version import SIP_VERSION_STR
 
 
-# The meta-data format defined in PEP345.
-METADATA_VERSION = '1.2'
-
 # The wheel format defined in PEP427.
 WHEEL_VERSION = '1.0'
 
@@ -66,7 +63,7 @@ def create_distinfo(package, installed, target_dir, wheel_tag=None):
         # Create the INSTALLER file.
         installer_fn = os.path.join(distinfo_dir, 'INSTALLER')
         installer_f = open(installer_fn, 'w')
-        installer_f.write('sip {}\n'.format(SIP_VERSION_STR))
+        installer_f.write('{}\n'.format(os.path.basename(sys.argv[0])))
         installer_f.close()
 
         installed.append(installer_fn)
@@ -86,15 +83,15 @@ Tag: {}
         installed.append(wheel_fn)
 
     # Create the METADATA file.
-    METADATA = '''Metadata-Version: {}
-Name: {}
-Version: {}
-'''
-
     metadata_fn = os.path.join(distinfo_dir, 'METADATA')
     metadata_f = open(metadata_fn, 'w')
-    metadata_f.write(
-            METADATA.format(METADATA_VERSION, package.name, package.version))
+
+    for name, value in package.metadata.items():
+        if isinstance(value, list):
+            value = ', '.join(value)
+
+        metadata_f.write('{}: {}\n'.format(name, value))
+
     metadata_f.close()
 
     installed.append(metadata_fn)

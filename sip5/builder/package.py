@@ -50,6 +50,8 @@ class Package(Configurable):
 
         Option('verbose', option_type=bool,
                 help="enable verbose progress messages"),
+        # TODO: the default should be a temporary directory unless the tool is
+        # 'build'.
         Option('build_dir', default='build', help="the build directory",
                 metavar="DIR"),
         Option('target_dir', default=get_python_lib(plat_specific=1),
@@ -87,22 +89,10 @@ class Package(Configurable):
         # Copy the pyproject.toml file.
         shutil.copy(os.path.join(self.root_dir, 'pyproject.toml'), sdist_dir)
 
-        # Create the PKG-INFO file.
-        #with open(os.path.join(sdist_dir, 'PKG-INFO'), 'wt') as pi:
-        #    # TODO
-        #    pi.write('Metadata-Version: 1.0\n')
-        #    pi.write('Name: {}\n'.format(self.name))
-        #    pi.write('Version: {}\n'.format(self.version))
-
-        # Copy in the build script.
-        # TODO: the name should be worked out from pyproject.toml (but what if
-        # the script imports other modules?)
-        #if os.path.basename(sys.argv[0]) != 'build.py':
-        #    raise UserException(
-        #            "this script must be called 'build.py' when creating an "
-        #            "sdist")
-
-        #shutil.copy(os.path.join(self.root_dir, 'build.py'), sdist_dir)
+        # Copy in any package.py.
+        package_py = os.path.join(self.root_dir, 'package.py')
+        if os.path.isfile(package_py):
+            shutil.copy(package_py, sdist_dir)
 
         # Copy in the .sip files for each set of bindings.
         for bindings in self._bindings:
@@ -458,7 +448,7 @@ class Package(Configurable):
                 required=True)
 
         self.name = None
-        self.version = '1.0'
+        self.version = None
 
         for md_name, md_value in self.metadata.items():
             md_name = md_name.lower()
@@ -471,6 +461,10 @@ class Package(Configurable):
         if self.name is None:
             raise PyProjectUndefinedOptionException('tool.sip.metadata',
                     'Name')
+
+        if self.version is None:
+            self.version = '1.0'
+            self.metadata['Version'] = self.version
 
         self.configure(pyproject, 'tool.sip.package')
 
