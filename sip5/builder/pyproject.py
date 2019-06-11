@@ -67,17 +67,6 @@ class PyProject:
         except Exception as e:
             raise PyProjectException("unable to parse file", str(e))
 
-    def get_all_subsections(self, section_name):
-        """ Return a sequence of sub-section names. """
-
-        subsection_names = []
-
-        section = self.get_section(section_name)
-        if section is not None:
-            subsection_names = section.keys()
-
-        return subsection_names
-
     def get_section(self, section_name, required=False):
         """ Return a sub-section with a dotted name. """
 

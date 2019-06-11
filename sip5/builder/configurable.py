@@ -116,13 +116,8 @@ class Configurable:
 
                 setattr(self, option.name, value)
 
-    def configure(self, pyproject, section_name):
+    def configure(self, section, section_name):
         """ Perform the initial configuration of an object. """
-
-        # The section is optional.
-        section = pyproject.get_section(section_name)
-        if section is None:
-            return
 
         for name, value in section:
             # Find the corresponding option.

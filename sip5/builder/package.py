@@ -498,14 +498,25 @@ class Package(Configurable):
             self.version = '1.0'
             self.metadata['Version'] = self.version
 
-        self.configure(pyproject, 'tool.sip.package')
+        package_section = pyproject.get_section('tool.sip.package')
+        if package_section is not None:
+            self.configure(package_section, 'tool.sip.package')
 
         # Get the bindings.
-        for bindings_name in pyproject.get_all_subsections('tool.sip.bindings'):
-            section_name = bindings_name + '.' + bindings_name
+        bindings_sections = pyproject.get_section('tool.sip.bindings')
+        if bindings_sections is None:
+            bindings_sections = []
+
+        for section in bindings_sections:
+            bindings_name = section.get('name')
+            if bindings_name is None:
+                raise PyProjectUndefinedOptionException('tool.sip.bindings',
+                        'name')
+
+            section_name = 'tool.sip.bindings[{}]'.format(bindings_name)
 
             bindings = Bindings(bindings_name, self)
-            bindings.configure(pyproject, section_name)
+            bindings.configure(section, section_name)
 
             self.bindings[bindings_name] = bindings
 
