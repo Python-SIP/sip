@@ -418,7 +418,18 @@ class Package(Configurable):
 
         for extra in self.install_extras:
             src = extra[0]
-            dst_dir = target_dir if len(extra) == 1 else os.path.join(target_dir, extra[1])
+
+            if len(extra) == 1:
+                dst_dir = target_dir
+            else:
+                dst_dir = extra[1]
+
+                if os.path.isabs(dst_dir):
+                    # Quietly ignore absolute pathnames when creating a wheel.
+                    if wheel_tag is not None:
+                        continue
+                else:
+                    dst_dir = os.path.join(target_dir, dst_dir)
 
             os.makedirs(dst_dir, exist_ok=True)
 
