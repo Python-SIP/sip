@@ -14681,7 +14681,7 @@ static void generate_include_sip_h(FILE *fp)
 {
     prcode(fp,
 "\n"
-"#include <sip.h>\n"
+"#include \"sip.h\"\n"
 "#if SIP_API_MAJOR_NR != %d\n"
 "#error \"SIP is generating code for ABI v%d which is incompatible with sip.h.\"\n"
 "#endif\n"

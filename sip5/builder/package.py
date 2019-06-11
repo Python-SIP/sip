@@ -337,17 +337,32 @@ class Package(Configurable):
 
         # Check we have the name of the sip module if it is shared.
         if len(self.bindings) > 1 and not self.sip_module:
-            raise PyProjectOptionException('tool.sip.package', 'sip_module',
-                    "must be define when the package contains multiple sets "
+            raise PyProjectOptionException('tool.sip.package', 'sip-module',
+                    "must be defined when the package contains multiple sets "
                     "of bindings")
 
         # Check we have the sip.h file for any shared sip module.
         if self.sip_module:
             if not self.sip_h_dir:
-                raise PyProjectOptionException('tool.sip.package', 'sip_h_dir',
-                        "must be define when using a shared sip module")
+                raise PyProjectOptionException('tool.sip.package', 'sip-h-dir',
+                        "must be defined when using a shared sip module")
 
             self.sip_h_dir = os.path.abspath(self.sip_h_dir)
+
+        # Check each set of bindings has a defining .sip file.
+        for bindings in self.bindings.values():
+            if bindings.sip_file:
+                continue
+
+            # See if there is a .sip file which might define the bindings.
+            sip_file = bindings.name + '.sip'
+            if not os.path.isfile(sip_file):
+                raise PyProjectException(
+                        "'sip-file' has not been defined for the '{0}' "
+                        "bindings and there is no file '{1}'".format(
+                                bindings.name, sip_file))
+
+            bindings.sip_file = sip_file
 
         # Verify the types of any install extras.
         def bad_extras():
@@ -630,31 +645,20 @@ class Package(Configurable):
             bindings_sections = []
 
         for section in bindings_sections:
-            bindings_name = section.get('name')
-            if bindings_name is None:
+            bindings = Bindings(self)
+            bindings.configure(section, 'tool.sip.bindings')
+
+            if bindings.name is None:
                 raise PyProjectUndefinedOptionException('tool.sip.bindings',
                         'name')
 
-            section_name = 'tool.sip.bindings[{}]'.format(bindings_name)
+            self.bindings[bindings.name] = bindings
 
-            bindings = Bindings(bindings_name, self)
-            bindings.configure(section, section_name)
-
-            self.bindings[bindings_name] = bindings
-
-        # See if we can add a default set of bindings.
+        # Add a default set of bindings if none were defined.
         if not self.bindings:
-            # If there is a .sip file that might create bindings with the same
-            # name as the package then use it.
-            sip_file = self.name + '.sip'
-            if os.path.isfile(sip_file):
-                bindings = Bindings(self.name, self)
-                bindings.sip_file = sip_file
-                self.bindings[self.name] = bindings
-            else:
-                raise PyProjectException(
-                        "no bindings have been specified and there is no file "
-                        "'{0}'".format(sip_file))
+            bindings = Bindings(self)
+            bindings.name = self.name
+            self.bindings[bindings.name] = bindings
 
     def _verify(self):
         """ Verify that the configuration is complete and consistent. """

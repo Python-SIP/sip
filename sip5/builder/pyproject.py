@@ -82,7 +82,7 @@ class PyProject:
 
                 return None
 
-        if not isinstance(section, OrderedDict):
+        if not isinstance(section, (OrderedDict, list)):
             raise PyProjectException(
                     "'{0}' is not a section".format(section_name))
 

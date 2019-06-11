@@ -1,4 +1,4 @@
-Before creating and of the example extension modules you need to create and
+Before creating any of the examples in this directory you need to create and
 install the sip module that they all rely on.  To do this, run:
 
     sip5-module examples.sip

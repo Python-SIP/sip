@@ -62,6 +62,10 @@ class Bindings(Configurable):
         # The list of C/C++ library directories to search.
         Option('library_dirs', option_type=list),
 
+        # The name of the bindings.  This never appears in generated code and
+        # is only used to identify the bindings to the user.
+        Option('name'),
+
         # Set to always release the Python GIL.
         Option('release_gil', option_type=bool),
 
@@ -103,12 +107,11 @@ class Bindings(Configurable):
                 tools='build install wheel'),
     )
 
-    def __init__(self, name, package):
+    def __init__(self, package):
         """ Initialise the bindings. """
 
         super().__init__()
 
-        self.name = name
         self.package = package
 
         self._sip_files = None
@@ -218,7 +221,7 @@ class Bindings(Configurable):
 
         if not self.sip_file:
             raise PyProjectUndefinedOptionException(
-                    'tool.sip.bindings.' + self.name, 'sip_name')
+                    'tool.sip.bindings.' + self.name, 'sip-name')
 
         if not self.source_suffix:
             self.source_suffix = None
