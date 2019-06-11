@@ -81,8 +81,20 @@ class DistutilsBuilder(Builder):
         builder.debug = self.debug
         builder.ensure_finalized()
 
+        # Convert the #defines.
+        define_macros = []
+        for macro in self.define_macros:
+            parts = macro.split('=', maxsplit=1)
+            name = parts[0]
+            try:
+                value = parts[1]
+            except IndexError:
+                value = None
+
+            define_macros.append((name, value))
+
         builder.extensions = [
-            Extension(name, self.sources, define_macros=self.define_macros,
+            Extension(name, self.sources, define_macros=define_macros,
                     include_dirs=self.include_dirs, libraries=self.libraries,
                     library_dirs=self.library_dirs)]
 

@@ -39,17 +39,43 @@ class Bindings(Configurable):
 
     # The configurable options.
     _options = (
+        # The list of backstop tags.
         Option('backstops', option_type=list),
+
+        # The list of #define names and values in the format "NAME" or
+        # "NAME=VALUE".
         Option('define_macros', option_type=list),
+
+        # The list of disabled feature tags.
         Option('disabled_features', option_type=list),
+
+        # Set if exception support is enabled.
         Option('exceptions', option_type=bool),
+
+        # The list of C/C++ include directories to search (using POSIX path
+        # separators).
         Option('include_dirs', option_type=list),
+
+        # The list of library names to link against.
         Option('libraries', option_type=list),
+
+        # The list of C/C++ library directories to search.
         Option('library_dirs', option_type=list),
+
+        # Set to always release the Python GIL.
         Option('release_gil', option_type=bool),
+
+        # The name of the .sip file that specifies the bindings.
         Option('sip_file'),
+
+        # The list of directories to search for .sip files (using POSIX path
+        # separators).
         Option('sip_include_dirs', option_type=list),
+
+        # The filename extension to use for generated source files.
         Option('source_suffix'),
+
+        # The list of tags to enable.
         Option('tags', option_type=list),
 
         Option('concatenate', option_type=int,

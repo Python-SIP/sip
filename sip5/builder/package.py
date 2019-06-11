@@ -45,8 +45,13 @@ class Package(Configurable):
 
     # The configurable options.
     _options = (
+        # The module:object of a callable that will return a Builder instance.
         Option('builder', default='sip5.builder:DistutilsBuilder'),
+
+        # The name of the directory containing sip.h.
         Option('sip_h_dir'),
+
+        # The fully qualified name of the sip module.
         Option('sip_module'),
 
         Option('verbose', option_type=bool,
