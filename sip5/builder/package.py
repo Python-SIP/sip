@@ -432,10 +432,24 @@ class Package(Configurable):
 
         sip_h_dir = self._get_sip_h_dir(target_dir)
 
-        for module, module_fn, pyi_file in self._build_modules(sip_h_dir):
+        # If we are using a copy of sip.h that is not already installed then
+        # install it.
+        if self.sip_module and self.sip_h != 'installed':
+            bindings_dir = self._get_installed_bindings_dir(target_dir)
+            os.makedirs(bindings_dir, exist_ok=True)
+
+            if self.sip_h != 'installed':
+                installed.append(
+                        self._install_file(os.path.join(sip_h_dir, 'sip.h'),
+                                bindings_dir))
+        else:
+            bindings_dir = None
+
+        for module, module_fn, sip_files, pyi_file in self._build_modules(sip_h_dir):
             # Get the name of the individual module's directory.
+            module_name_parts = module.split('.')
             parts = [target_dir]
-            parts.extend(module.split('.')[:-1])
+            parts.extend(module_name_parts[:-1])
             module_dir = os.path.join(*parts)
             os.makedirs(module_dir, exist_ok=True)
 
@@ -446,15 +460,13 @@ class Package(Configurable):
             if pyi_file is not None:
                 installed.append(self._install_file(pyi_file, module_dir))
 
-        # If we are using a copy of sip.h that is not already installed then
-        # install it.
-        if self.sip_module and self.sip_h != 'installed':
-            bindings_dir = self._get_installed_bindings_dir(target_dir)
-            os.makedirs(bindings_dir, exist_ok=True)
+            # Copy the .sip files.
+            if bindings_dir is not None:
+                sip_dir = os.path.join(bindings_dir, module_name_parts[-1])
+                os.makedirs(sip_dir, exist_ok=True)
 
-            installed.append(
-                    self._install_file(os.path.join(sip_h_dir, 'sip.h'),
-                            bindings_dir))
+                for sip_file in sip_files:
+                    installed.append(self._install_file(sip_file, sip_dir))
 
         # Install anything else the user has specified.
         for extra in self.install_extras:
@@ -488,9 +500,9 @@ class Package(Configurable):
         create_distinfo(self, installed, target_dir, wheel_tag=wheel_tag)
 
     def _build_modules(self, sip_h_dir):
-        """ Build the enabled extension modules and return a 3-tuple of the
-        fully qualified module name, its pathname and the pathname of any .pyi
-        file.
+        """ Build the enabled extension modules and return a 4-tuple of the
+        fully qualified module name, its pathname, the sequence of .sip files
+        and the pathname of any .pyi file.
         """
 
         modules = []
@@ -531,7 +543,9 @@ class Package(Configurable):
                     generated.name)
             os.chdir(saved_cwd)
 
-            modules.append((generated.name, extension_module, pyi_file))
+            modules.append(
+                    (generated.name, extension_module,
+                            bindings.get_sip_files(), pyi_file))
 
         return modules
 
