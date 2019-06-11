@@ -22,6 +22,7 @@
 
 
 from distutils.sysconfig import get_python_lib
+import glob
 import importlib
 import os
 import shutil
@@ -48,12 +49,17 @@ class Package(Configurable):
         # The module:object of a callable that will return a Builder instance.
         Option('builder', default='sip5.builder:DistutilsBuilder'),
 
+        # The list of extra files and directories, specified as glob patterns,
+        # to be copied to an sdist.
+        Option('sdist_extras', option_type=list),
+
         # The name of the directory containing sip.h.
         Option('sip_h_dir'),
 
         # The fully qualified name of the sip module.
         Option('sip_module'),
 
+        # The user-configurable options.
         Option('verbose', option_type=bool,
                 help="enable verbose progress messages"),
         Option('build_dir', help="the build directory", metavar="DIR"),
@@ -119,7 +125,23 @@ class Package(Configurable):
                 shutil.copy(os.path.join(self.root_dir, sip_file), sip_dir)
 
         # Copy in anything else the user has asked for.
-        # TODO
+        for extra in self.sdist_extras:
+            extra = os.path.abspath(extra)
+
+            if os.path.commonprefix([extra, self.root_dir]) != self.root_dir:
+                raise PyProjectOptionException('tool.sip.package',
+                        'sdist-extras',
+                        "must all be in the '{0}' directory or a sub-directory".format(self.root_dir))
+
+            extra = os.path.relpath(extra, self.root_dir)
+
+            for src in glob.glob(extra):
+                dst = os.path.join(sdist_dir, src)
+
+                if os.path.isfile(src):
+                    shutil.copyfile(src, dst)
+                elif os.path.isdir(src):
+                    shutil.copytree(src, dst)
 
         # Create the tarball.
         sdist_file = sdist_name + '.tar.gz'
@@ -361,6 +383,8 @@ class Package(Configurable):
             # Copy any .pyi file.
             if pyi_file is not None:
                 installed.append(self._install_file(pyi_file, module_dir))
+
+        # TODO: handle install_extras
 
         create_distinfo(self, installed, target_dir, wheel_tag=wheel_tag)
 

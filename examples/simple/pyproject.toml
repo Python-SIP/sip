@@ -6,3 +6,6 @@ build-backend = "sip5.builder.api"
 # Specify the PEP314 metadata for the package.  The 'Name' is required.
 [tool.sip.metadata]
 Name = "fib"
+
+[tool.sip.package]
+sdist-extras = ["README"]

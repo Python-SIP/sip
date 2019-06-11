@@ -122,7 +122,7 @@ class Configurable:
     def configure(self, section, section_name):
         """ Perform the initial configuration of an object. """
 
-        for name, value in section:
+        for name, value in section.items():
             # Find the corresponding option.
             for option in self.get_options():
                 if option.user_name == name:

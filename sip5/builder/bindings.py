@@ -78,6 +78,7 @@ class Bindings(Configurable):
         # The list of tags to enable.
         Option('tags', option_type=list),
 
+        # The user-configurable options.
         Option('concatenate', option_type=int,
                 help="concatenate the generated bindings into N source files",
                 metavar="N", tools='build install wheel'),
@@ -187,7 +188,7 @@ class Bindings(Configurable):
 
     def get_sip_files(self):
         """ Return a list of .sip files that define the bindings.  These should
-        all be relative to the bindings root directory.
+        all be relative to the package root directory.
         """
 
         if self._sip_files is None:
@@ -197,17 +198,18 @@ class Bindings(Configurable):
         # Check that the .sip file names are relative to the root directory and
         # are within the root directory.
         sip_files = []
+        root_dir = self.package.root_dir
 
         for fn in self._sip_files:
-            fn = os.path.relpath(os.path.abspath(fn), self.package.root_dir)
+            fn = os.path.abspath(fn)
 
-            if fn.startswith(os.pardir):
+            if os.path.commonprefix([fn, root_dir]) != root_dir:
                 raise UserException(
-                        "all the .sip files that define the bindings must be "
+                        "the .sip files that define the bindings must all be "
                         "in the '{0}' directory or a sub-directory".format(
-                                self.root_dir))
+                                root_dir))
 
-            sip_files.append(fn)
+            sip_files.append(os.path.relpath(fn, root_dir))
 
         return sip_files
 
