@@ -73,12 +73,18 @@ def module(sip_module, include_dir=None, module_dir=None, no_sdist=False, setup_
             shutil.rmtree(pkg_dir)
 
 
+def copy_sip_h(sources_dir, sip_module=''):
+    """ Copy the sip.h file. """
+
+    patches = _create_patches(sip_module)
+    _install_source_file('sip.h', sources_dir, patches)
+
+
 def copy_nonshared_sources(sources_dir):
     """ Copy the module sources as a non-shared module. """
 
     # Copy the patched sip.h.
-    patches = _create_patches()
-    _install_source_file('sip.h', sources_dir, patches)
+    copy_sip_h(sources_dir)
 
     # Copy the remaining source code.
     sources = []
@@ -95,7 +101,7 @@ def copy_nonshared_sources(sources_dir):
     return sources
 
 
-def _create_patches(sip_module='', pypi_name=''):
+def _create_patches(sip_module, pypi_name=''):
     """ Return a dict of the patches. """
 
     abi_major, abi_minor, abi_maintenance = _read_abi_version()

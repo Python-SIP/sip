@@ -31,7 +31,7 @@ import tempfile
 import warnings
 
 from ..exceptions import UserException
-from ..module.module import copy_nonshared_sources
+from ..module.module import copy_sip_h, copy_nonshared_sources
 
 from .bindings import Bindings
 from .builder import Builder
@@ -59,8 +59,12 @@ class Package(Configurable):
         # to be copied to an sdist.
         Option('sdist_extras', option_type=list),
 
-        # The name of the directory containing sip.h.
-        Option('sip_h_dir'),
+        # The location of the sip.h file.  If it is 'installed' then it is in
+        # the package's 'bindings' directory.  If it is 'generate' then a
+        # temporary copy is generated (and the user has to be careful about
+        # specifying compatible SIP ABIs).  Otherwise it is the name of a
+        # directory within the root directory.
+        Option('sip_h', default='installed'),
 
         # The fully qualified name of the sip module.
         Option('sip_module'),
@@ -117,6 +121,11 @@ class Package(Configurable):
         package_py = os.path.join(self.root_dir, 'package.py')
         if os.path.isfile(package_py):
             shutil.copy(package_py, sdist_dir)
+
+        # Copy in any sip.h file.
+        if self.sip_h not in ('generate', 'installed'):
+            rel_name = os.path.relpath(self.sip_h, self.root_dir)
+            shutil.copyfile(self.sip_h, os.path.join(sdist_dir, rel_name))
 
         # Copy in the .sip files for each set of bindings.
         for bindings in self.bindings.values():
@@ -341,13 +350,16 @@ class Package(Configurable):
                     "must be defined when the package contains multiple sets "
                     "of bindings")
 
-        # Check we have the sip.h file for any shared sip module.
+        # Check we will have the sip.h file for any shared sip module.
         if self.sip_module:
-            if not self.sip_h_dir:
-                raise PyProjectOptionException('tool.sip.package', 'sip-h-dir',
-                        "must be defined when using a shared sip module")
+            if self.sip_h not in ('generate', 'installed'):
+                self.sip_h = os.path.abspath(self.sip_h)
 
-            self.sip_h_dir = os.path.abspath(self.sip_h_dir)
+                if os.path.commonprefix([self.sip_h, self.root_dir]) != self.root_dir:
+                    raise PyProjectOptionException('tool.sip.package',
+                            'sip-h',
+                            "the sip.h file must be in the '{0}' directory or "
+                            "a sub-directory".format(self.root_dir))
 
         # Check each set of bindings has a defining .sip file.
         for bindings in self.bindings.values():
@@ -469,6 +481,19 @@ class Package(Configurable):
 
         modules = []
 
+        # Create the sip.h file if needed.
+        if self.sip_h == 'generate':
+            self.progress(
+                    "Generating a copy of sip.h for the {0} module".format(
+                            self.sip_module))
+
+            sip_h_dir = self.build_dir
+            copy_sip_h(sip_h_dir, self.sip_module)
+        elif self.sip_h == 'installed':
+            sip_h_dir = None
+        else:
+            sip_h_dir = self.sip_h
+
         for bindings_name in self.enable:
             bindings = self.bindings[bindings_name]
 
@@ -477,7 +502,7 @@ class Package(Configurable):
                             bindings.sip_file))
 
             # Generate the source code.
-            generated = bindings.generate()
+            generated = bindings.generate(sip_h_dir)
 
             if generated.pyi_file is None:
                 pyi_file = None

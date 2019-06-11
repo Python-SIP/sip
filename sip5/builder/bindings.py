@@ -116,10 +116,11 @@ class Bindings(Configurable):
 
         self._sip_files = None
 
-    def generate(self):
+    def generate(self, sip_h_dir):
         """ Generate the bindings source code and optional additional extracts.
-        Return a GeneratedBindings instance containing the details of
-        everything that was generated.
+        If the sip.h directory is not specified then assume there is an
+        installed copy.  Return a GeneratedBindings instance containing the
+        details of everything that was generated.
         """
 
         # Set the globals.
@@ -129,18 +130,25 @@ class Bindings(Configurable):
         # Parse the input file.
         pt, name, sip_files = self._parse()
 
+        name_parts = name.split('.')
+
+        if self.package.sip_module and len(name_parts) == 1:
+            raise UserException(
+                    "module '{0}' must be part of a package when used with a "
+                            "shared 'sip' module".format(name))
+
         # Only save the .sip files if they haven't already been obtained
         # (possibly by a sub-class).
         if self._sip_files is None:
             self._sip_files = sip_files
 
         # The details of things that will have been generated.  Note that we
-        # don't include anything for generic extracts as the arguments include
-        # a file name.
+        # don't include anything for .api files or generic extracts as the
+        # arguments include a file name.
         generated = GeneratedBindings(name)
 
         # Get the module name.
-        module_name = name.split('.')[-1]
+        module_name = name_parts[-1]
 
         # Make sure the module's sub-directory exists.
         sources_dir = os.path.join(self.package.build_dir, module_name)
@@ -170,7 +178,17 @@ class Bindings(Configurable):
         include_dirs = [sources_dir]
 
         if self.package.sip_module:
-            include_dirs.append(self.package.sip_h_dir)
+            if sip_h_dir is None:
+                # Assume there is an existing installation.
+                sip_h_dir = os.path.join(self.package.target_dir,
+                        name_parts[0], 'bindings')
+
+                if not os.path.isfile(os.path.join(sip_h_dir, 'sip.h')):
+                    raise PyProjectOptionException('tool.sip.package', 'sip-h',
+                            "sip.h is not installed in '{0}'".format(
+                                    sip_h_dir))
+
+            include_dirs.append(sip_h_dir)
         else:
             sources.extend(copy_nonshared_sources(sources_dir))
 
