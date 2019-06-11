@@ -3,9 +3,6 @@
 requires = ["sip >=4.20.0, <5.1"]
 build-backend = "sip5.builder.api"
 
-# Specify the PEP314 metadata for the package.  The 'Name' is required.
+# Specify the PEP 314 metadata for the package.  The 'Name' is required.
 [tool.sip.metadata]
 Name = "fib"
-
-[tool.sip.package]
-sdist-extras = ["README"]

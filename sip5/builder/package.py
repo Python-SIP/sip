@@ -49,6 +49,12 @@ class Package(Configurable):
         # The module:object of a callable that will return a Builder instance.
         Option('builder', default='sip5.builder:DistutilsBuilder'),
 
+        # The list of extra files and directories to be copied to an
+        # installation or a wheel.  An item can be a name (copied to the root
+        # of the installation) or a 2 element list of name and directory
+        # relative to the root of the installation.
+        Option('install_extras', option_type=list),
+
         # The list of extra files and directories, specified as glob patterns,
         # to be copied to an sdist.
         Option('sdist_extras', option_type=list),
@@ -142,6 +148,8 @@ class Package(Configurable):
                     shutil.copyfile(src, dst)
                 elif os.path.isdir(src):
                     shutil.copytree(src, dst)
+                else:
+                    raise UserException("unable to copy '{0}'".format(src))
 
         # Create the tarball.
         sdist_file = sdist_name + '.tar.gz'
@@ -341,7 +349,31 @@ class Package(Configurable):
 
             self.sip_h_dir = os.path.abspath(self.sip_h_dir)
 
-        # Do this again in case the list of disabled bindings has changed.
+        # Verify the types of any install extras.
+        def bad_extras():
+            raise PyProjectOptionException('tool.sip.package',
+                    'install-extras',
+                    "each element must be a sub-list of a source file or "
+                    "directory and an optional destination directory")
+
+        for extra in self.install_extras:
+            if not isinstance(extra, list):
+                bad_extras()
+
+            if len(extra) == 1:
+                src = extra[0]
+            elif len(extra) == 2:
+                src, dst = extra
+
+                if not isinstance(dst, str):
+                    bad_extras()
+            else:
+                bad_extras()
+
+            if not isinstance(src, str):
+                bad_extras()
+
+        # Do this again in case any user script has modified it.
         self._validate_enabled_bindings()
 
     def _validate_enabled_bindings(self):
@@ -384,7 +416,22 @@ class Package(Configurable):
             if pyi_file is not None:
                 installed.append(self._install_file(pyi_file, module_dir))
 
-        # TODO: handle install_extras
+        for extra in self.install_extras:
+            src = extra[0]
+            dst_dir = target_dir if len(extra) == 1 else os.path.join(target_dir, extra[1])
+
+            os.makedirs(dst_dir, exist_ok=True)
+
+            if os.path.isfile(src):
+                installed.append(self._install_file(src, dst_dir))
+            elif os.path.isdir(src):
+                dst = os.path.join(dst_dir, os.path.basename(src))
+
+                shutil.copytree(src, dst,
+                        copy_function=lambda s, d: installed.append(
+                                shutil.copy2(s, d)))
+            else:
+                raise UserException("unable to install '{0}'".format(src))
 
         create_distinfo(self, installed, target_dir, wheel_tag=wheel_tag)
 
