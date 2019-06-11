@@ -1,0 +1,15 @@
+# Specify sip v5 as the build system for the package.
+[build-system]
+requires = ["sip >=4.20.0, <5.1"]
+build-backend = "sip5.builder.api"
+
+# Specify the PEP 314 metadata for the package.  The 'Name' is required.
+[tool.sip.metadata]
+Name = "examples-core"
+
+[tool.sip.package]
+sip-h = "generate"
+sip-module = "examples.sip"
+
+[[tool.sip.bindings]]
+name = "core"
