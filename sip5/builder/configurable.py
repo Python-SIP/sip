@@ -36,13 +36,16 @@ class Configurable:
         for option in self.get_options():
             setattr(self, option.name, None)
 
-    def add_command_line_options(self, parser, tool, all_options):
+    def add_command_line_options(self, parser, tool, all_options, options=None):
         """ Add the object's command line options to an argument parser and
         update a map of Object instances and the configurables that they should
         be applied to.
         """
 
-        for option in self.get_options():
+        if options is None:
+            options = self.get_options()
+
+        for option in options:
             # If it has ready been set explicitly then the user cannot change
             # it.
             if getattr(self, option.name) is not None:

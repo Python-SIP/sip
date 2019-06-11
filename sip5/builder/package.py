@@ -62,6 +62,14 @@ class Package(Configurable):
                 tools='install')
     )
 
+    # The configurable options for multiple bindings.
+    _multibindings_options = (
+        Option('disable', help="disable the NAME bindings", metavar="NAME",
+                tools='build install wheel'),
+        Option('enable', help="enable the NAME bindings", metavar="NAME",
+                tools='build install wheel'),
+    )
+
     def __init__(self):
         """ Initialise the package. """
 
@@ -261,7 +269,7 @@ class Package(Configurable):
     def get_options(self):
         """ Return a sequence of configurable options. """
 
-        return self._options
+        return self._options + self._multibindings_options
 
     def information(self, message):
         """ Print an informational message if verbose messages are enabled. """
@@ -311,6 +319,28 @@ class Package(Configurable):
 
             self.sip_h_dir = os.path.abspath(self.sip_h_dir)
 
+        # Do this again in case the list of disabled bindings has changed.
+        self._validate_enabled_bindings()
+
+    def _validate_enabled_bindings(self):
+        """ Check the enabled bindings are valid and remove any disabled ones.
+        """
+
+        if self.enable:
+            # Check that the enable bindings are valid.
+            for bindings_name in self.enable:
+                if bindings_name not in self.bindings:
+                    raise UserException(
+                            "unknown bindings '{0}'".format(bindings_name))
+        else:
+            self.enable = list(self.bindings.keys())
+
+        for disabled in self.disable:
+            try:
+                self.enable.remove(disabled)
+            except ValueError:
+                pass
+
     def _build_and_install_modules(self, target_dir, wheel_tag=None):
         """ Build and install the extension modules and create the .dist-info
         directory.
@@ -335,13 +365,16 @@ class Package(Configurable):
         create_distinfo(self, installed, target_dir, wheel_tag=wheel_tag)
 
     def _build_modules(self):
-        """ Build the extension modules and return a 3-tuple of the fully
-        qualified module name, its pathname and the pathname of any .pyi file.
+        """ Build the enabled extension modules and return a 3-tuple of the
+        fully qualified module name, its pathname and the pathname of any .pyi
+        file.
         """
 
         modules = []
 
-        for bindings in self.bindings.values():
+        for bindings_name in self.enable:
+            bindings = self.bindings[bindings_name]
+
             self.progress(
                     "Generating the bindings from {0}".format(
                             bindings.sip_file))
@@ -390,7 +423,12 @@ class Package(Configurable):
         # Add the user configurable options to the parser.
         all_options = {}
         
-        self.add_command_line_options(parser, tool, all_options)
+        options = self._options
+        if len(self.bindings) > 1:
+            options += self._multibindings_options
+
+        self.add_command_line_options(parser, tool, all_options,
+                options=options)
 
         for bindings in self.bindings.values():
             bindings.add_command_line_options(parser, tool, all_options)
@@ -422,6 +460,8 @@ class Package(Configurable):
 
         for bindings in self.bindings.values():
             bindings.apply_defaults()
+
+        self._validate_enabled_bindings()
 
     @staticmethod
     def _import_callable(callable_name, section_name, name):
