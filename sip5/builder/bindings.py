@@ -118,9 +118,8 @@ class Bindings(Configurable):
 
     def generate(self, sip_h_dir):
         """ Generate the bindings source code and optional additional extracts.
-        If the sip.h directory is not specified then assume there is an
-        installed copy.  Return a GeneratedBindings instance containing the
-        details of everything that was generated.
+        Return a GeneratedBindings instance containing the details of
+        everything that was generated.
         """
 
         # Set the globals.
@@ -177,20 +176,10 @@ class Bindings(Configurable):
         # Add the sip module code if it is not shared.
         include_dirs = [sources_dir]
 
-        if self.package.sip_module:
-            if sip_h_dir is None:
-                # Assume there is an existing installation.
-                sip_h_dir = os.path.join(self.package.target_dir,
-                        name_parts[0], 'bindings')
-
-                if not os.path.isfile(os.path.join(sip_h_dir, 'sip.h')):
-                    raise PyProjectOptionException('tool.sip.package', 'sip-h',
-                            "sip.h is not installed in '{0}'".format(
-                                    sip_h_dir))
-
-            include_dirs.append(sip_h_dir)
-        else:
+        if sip_h_dir is None:
             sources.extend(copy_nonshared_sources(sources_dir))
+        else:
+            include_dirs.append(sip_h_dir)
 
         include_dirs.extend(self.include_dirs)
 

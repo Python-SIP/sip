@@ -100,7 +100,8 @@ class Package(Configurable):
     def build(self):
         """ Build the package in-situ. """
 
-        self._build_modules()
+        sip_h_dir = self._get_sip_h_dir(self.target_dir)
+        self._build_modules(sip_h_dir)
 
     def build_sdist(self, sdist_directory='.'):
         """ Build an sdist for the package and return the name of the sdist
@@ -123,7 +124,7 @@ class Package(Configurable):
             shutil.copy(package_py, sdist_dir)
 
         # Copy in any sip.h file.
-        if self.sip_h not in ('generate', 'installed'):
+        if self.sip_module and self.sip_h not in ('generate', 'installed'):
             rel_name = os.path.relpath(self.sip_h, self.root_dir)
             shutil.copyfile(self.sip_h, os.path.join(sdist_dir, rel_name))
 
@@ -429,7 +430,9 @@ class Package(Configurable):
 
         installed = []
 
-        for module, module_fn, pyi_file in self._build_modules():
+        sip_h_dir = self._get_sip_h_dir(target_dir)
+
+        for module, module_fn, pyi_file in self._build_modules(sip_h_dir):
             # Get the name of the individual module's directory.
             parts = [target_dir]
             parts.extend(module.split('.')[:-1])
@@ -443,6 +446,17 @@ class Package(Configurable):
             if pyi_file is not None:
                 installed.append(self._install_file(pyi_file, module_dir))
 
+        # If we are using a copy of sip.h that is not already installed then
+        # install it.
+        if self.sip_module and self.sip_h != 'installed':
+            bindings_dir = self._get_installed_bindings_dir(target_dir)
+            os.makedirs(bindings_dir, exist_ok=True)
+
+            installed.append(
+                    self._install_file(os.path.join(sip_h_dir, 'sip.h'),
+                            bindings_dir))
+
+        # Install anything else the user has specified.
         for extra in self.install_extras:
             src = extra[0]
 
@@ -473,26 +487,13 @@ class Package(Configurable):
 
         create_distinfo(self, installed, target_dir, wheel_tag=wheel_tag)
 
-    def _build_modules(self):
+    def _build_modules(self, sip_h_dir):
         """ Build the enabled extension modules and return a 3-tuple of the
         fully qualified module name, its pathname and the pathname of any .pyi
         file.
         """
 
         modules = []
-
-        # Create the sip.h file if needed.
-        if self.sip_h == 'generate':
-            self.progress(
-                    "Generating a copy of sip.h for the {0} module".format(
-                            self.sip_module))
-
-            sip_h_dir = self.build_dir
-            copy_sip_h(sip_h_dir, self.sip_module)
-        elif self.sip_h == 'installed':
-            sip_h_dir = None
-        else:
-            sip_h_dir = self.sip_h
 
         for bindings_name in self.enable:
             bindings = self.bindings[bindings_name]
@@ -584,6 +585,33 @@ class Package(Configurable):
             bindings.apply_defaults()
 
         self._validate_enabled_bindings()
+
+    def _get_installed_bindings_dir(self, target_dir):
+        """ Return the name of the installed bindings directory. """
+
+        return os.path.join(target_dir,self.sip_module.split('.')[0],
+                'bindings')
+
+    def _get_sip_h_dir(self, target_dir):
+        """ Return the name of the directory containing the sip.h file. """
+
+        if self.sip_module:
+            # Create the sip.h file if needed.
+            if self.sip_h == 'generate':
+                self.progress(
+                        "Generating a copy of sip.h for the {0} module".format(
+                                self.sip_module))
+
+                sip_h_dir = self.build_dir
+                copy_sip_h(sip_h_dir, self.sip_module)
+            elif self.sip_h == 'installed':
+                sip_h_dir = self._get_installed_bindings_dir(target_dir)
+            else:
+                sip_h_dir = self.sip_h
+        else:
+            sip_h_dir = None
+
+        return sip_h_dir
 
     @staticmethod
     def _import_callable(callable_name, section_name, name):
