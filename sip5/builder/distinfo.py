@@ -101,6 +101,8 @@ Tag: {}
     record_f = open(record_fn, 'w')
 
     for fn in installed:
+        fn = os.path.normpath(fn)
+
         if fn.startswith(target_dir):
             record_fn = fn[len(target_dir) + 1:]
         elif fn.startswith(sys.prefix):

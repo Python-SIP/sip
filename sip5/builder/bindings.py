@@ -24,11 +24,10 @@
 import os
 import sys
 
-from ..code_generator import (set_globals, parse, generateCode,
-        generateExtracts, generateAPI, generateXML, generateTypeHints)
+from ..code_generator import (parse, generateCode, generateExtracts,
+        generateAPI, generateXML, generateTypeHints)
 from ..exceptions import UserException
 from ..module.module import copy_nonshared_sources
-from ..version import SIP_VERSION, SIP_VERSION_STR
 
 from .configurable import Configurable, Option
 from .pyproject import PyProjectUndefinedOptionException
@@ -62,8 +61,9 @@ class Bindings(Configurable):
         # The list of C/C++ library directories to search.
         Option('library_dirs', option_type=list),
 
-        # The name of the bindings.  This never appears in generated code and
-        # is only used to identify the bindings to the user.
+        # The name of the bindings.  This never appears in generated code but
+        # is used in the default directory structure and to identify the
+        # bindings to the user.
         Option('name'),
 
         # Set to always release the Python GIL.
@@ -71,10 +71,6 @@ class Bindings(Configurable):
 
         # The name of the .sip file that specifies the bindings.
         Option('sip_file'),
-
-        # The list of directories to search for .sip files (using POSIX path
-        # separators).
-        Option('sip_include_dirs', option_type=list),
 
         # The filename extension to use for generated source files.
         Option('source_suffix'),
@@ -116,15 +112,22 @@ class Bindings(Configurable):
 
         self._sip_files = None
 
+    def configure(self, section, section_name):
+        """ Perform the initial configuration of the bindings. """
+
+        super().configure(section, section_name)
+
+        # We need to ensure the bindings have a name as soon as possible.
+        if not self.name:
+            raise PyProjectUndefinedOptionException('tool.sip.bindings',
+                    'name')
+
     def generate(self, sip_h_dir):
         """ Generate the bindings source code and optional additional extracts.
         Return a GeneratedBindings instance containing the details of
-        everything that was generated.
+        everything that was generated.  The current directory is set to the
+        directory containing the defining .sip file.
         """
-
-        # Set the globals.
-        set_globals(SIP_VERSION, SIP_VERSION_STR, UserException,
-                self.sip_include_dirs)
 
         # Parse the input file.
         pt, name, sip_files = self._parse()
@@ -146,11 +149,8 @@ class Bindings(Configurable):
         # arguments include a file name.
         generated = GeneratedBindings(name)
 
-        # Get the module name.
-        module_name = name_parts[-1]
-
         # Make sure the module's sub-directory exists.
-        sources_dir = os.path.join(self.package.build_dir, module_name)
+        sources_dir = os.path.join(self.package.build_dir, self.name)
         os.makedirs(sources_dir, exist_ok=True)
 
         # Generate any API file.
@@ -163,7 +163,7 @@ class Bindings(Configurable):
 
         # Generate any type hints file.
         if self.pep484_stubs:
-            pyi_extract = os.path.join(sources_dir, module_name + '.pyi')
+            pyi_extract = os.path.join(sources_dir, name_parts[-1] + '.pyi')
             generateTypeHints(pt, pyi_extract)
             generated.pyi_file = os.path.relpath(pyi_extract, sources_dir)
 
@@ -198,11 +198,28 @@ class Bindings(Configurable):
 
     def get_sip_files(self):
         """ Return a list of .sip files that define the bindings.  These should
-        all be relative to the package root directory.
+        all be relative to the package's sip-files-dir directory.
         """
 
+        # If there is a shared sip module then we assume that all the relevant
+        # files are in the bindings' sub-directory so we just walk that tree.
+        # of that directory.
+        if self.package.sip_module:
+            sip_files = []
+
+            sip_files_dir = os.path.join(self.package.sip_files_dir, self.name)
+            for dirpath, _, filenames in os.walk(sip_files_dir):
+                for fn in filenames:
+                    sip_files.append(
+                            os.path.relpath(os.path.join(dirpath, fn),
+                                    self.package.sip_files_dir))
+
+            return sip_files
+
+        # Otherwise (without a defined directory structure) we use the list of
+        # files that were parsed.
         if self._sip_files is None:
-            # This default implementation uses the ones returned by the parser.
+            # We haven't called the parser yet so do it now.
             _, _, self._sip_files = self._parse()
 
         # Check that the .sip file names are relative to the root directory and
@@ -226,9 +243,21 @@ class Bindings(Configurable):
     def verify_configuration(self):
         """ Verify that the configuration is complete and consistent. """
 
+        # Provide a default .sip file name if needed.
         if not self.sip_file:
-            raise PyProjectUndefinedOptionException(
-                    'tool.sip.bindings.' + self.name, 'sip-name')
+            if self.package.sip_module:
+                sip_file = os.path.join(self.name, self.name)
+            else:
+                sip_file = self.name
+
+            self.sip_file = sip_file + '.sip'
+
+        # Check the .sip file exists.
+        sip_path = os.path.join(self.package.sip_files_dir, self.sip_file)
+        if not os.path.isfile(sip_path):
+            raise PyProjectOptionException(
+                    'tool.sip.bindings', 'sip-file',
+                    "the file '{0}' for the '{1}' bindings does not exist".format(os.path.relpath(sip_path, self.package.root_dir), self.name))
 
         if not self.source_suffix:
             self.source_suffix = None
@@ -236,9 +265,12 @@ class Bindings(Configurable):
     def _parse(self):
         """ Invoke the parser and return its results. """
 
+        sip_path = os.path.join(self.package.sip_files_dir, self.sip_file)
+        sip_dir, sip_file = os.path.split(sip_path)
+
         cwd = os.getcwd()
-        os.chdir(self.package.root_dir)
-        results = parse(self.sip_file, True, self.tags, self.backstops,
+        os.chdir(sip_dir)
+        results = parse(sip_file, True, self.tags, self.backstops,
                 self.disabled_features, self.protected_is_public)
         os.chdir(cwd)
 

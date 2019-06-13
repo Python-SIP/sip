@@ -30,8 +30,10 @@ import sys
 import tempfile
 import warnings
 
+from ..code_generator import set_globals
 from ..exceptions import UserException
 from ..module.module import copy_sip_h, copy_nonshared_sources
+from ..version import SIP_VERSION, SIP_VERSION_STR
 
 from .bindings import Bindings
 from .builder import Builder
@@ -55,6 +57,11 @@ class Package(Configurable):
         # relative to the root of the installation.
         Option('install_extras', option_type=list),
 
+        # The name of the directory containing the .sip files.  If the sip
+        # module is shared then each set of bindings is in its own
+        # sub-directory.
+        Option('sip_files_dir', default=os.getcwd()),
+
         # The list of extra files and directories, specified as glob patterns,
         # to be copied to an sdist.
         Option('sdist_extras', option_type=list),
@@ -65,6 +72,9 @@ class Package(Configurable):
         # specifying compatible SIP ABIs).  Otherwise it is the name of a
         # directory within the root directory.
         Option('sip_h', default='installed'),
+
+        # The list of additional directories to search for .sip files.
+        Option('sip_include_dirs', option_type=list),
 
         # The fully qualified name of the sip module.
         Option('sip_module'),
@@ -112,33 +122,27 @@ class Package(Configurable):
         sdist_name = '{}-{}'.format(self.name, self.version)
 
         # Create the sdist root directory.
-        sdist_dir = os.path.join(self.build_dir, sdist_name)
-        os.mkdir(sdist_dir)
+        sdist_root = os.path.join(self.build_dir, sdist_name)
+        os.mkdir(sdist_root)
 
         # Copy the pyproject.toml file.
-        shutil.copy(os.path.join(self.root_dir, 'pyproject.toml'), sdist_dir)
+        shutil.copy(os.path.join(self.root_dir, 'pyproject.toml'), sdist_root)
 
         # Copy in any package.py.
         package_py = os.path.join(self.root_dir, 'package.py')
         if os.path.isfile(package_py):
-            shutil.copy(package_py, sdist_dir)
+            shutil.copy(package_py, sdist_root)
 
         # Copy in any sip.h file.
         if self.sip_module and self.sip_h not in ('generate', 'installed'):
-            rel_name = os.path.relpath(self.sip_h, self.root_dir)
-            shutil.copyfile(self.sip_h, os.path.join(sdist_dir, rel_name))
+            rel_sip_h = os.path.relpath(self.sip_h, self.root_dir)
+            target_sip_h = os.path.join(sdist_root, rel_sip_h)
+            self._ensure_subdirs_exist(target_sip_h)
+            shutil.copyfile(self.sip_h, target_sip_h)
 
         # Copy in the .sip files for each set of bindings.
         for bindings in self.bindings.values():
-            for sip_file in bindings.get_sip_files():
-                # Make sure any sub-directories exist.
-                sip_dir = os.path.dirname(sip_file)
-                if sip_dir != '':
-                    os.makedirs(sip_dir, exist_ok=True)
-                else:
-                    sip_dir = sdist_dir
-
-                shutil.copy(os.path.join(self.root_dir, sip_file), sip_dir)
+            self._install_sip_files(bindings, sdist_root)
 
         # Copy in anything else the user has asked for.
         for extra in self.sdist_extras:
@@ -152,7 +156,7 @@ class Package(Configurable):
             extra = os.path.relpath(extra, self.root_dir)
 
             for src in glob.glob(extra):
-                dst = os.path.join(sdist_dir, src)
+                dst = os.path.join(sdist_root, src)
 
                 if os.path.isfile(src):
                     shutil.copyfile(src, dst)
@@ -362,21 +366,6 @@ class Package(Configurable):
                             "the sip.h file must be in the '{0}' directory or "
                             "a sub-directory".format(self.root_dir))
 
-        # Check each set of bindings has a defining .sip file.
-        for bindings in self.bindings.values():
-            if bindings.sip_file:
-                continue
-
-            # See if there is a .sip file which might define the bindings.
-            sip_file = bindings.name + '.sip'
-            if not os.path.isfile(sip_file):
-                raise PyProjectException(
-                        "'sip-file' has not been defined for the '{0}' "
-                        "bindings and there is no file '{1}'".format(
-                                bindings.name, sip_file))
-
-            bindings.sip_file = sip_file
-
         # Verify the types of any install extras.
         def bad_extras():
             raise PyProjectOptionException('tool.sip.package',
@@ -404,25 +393,6 @@ class Package(Configurable):
         # Do this again in case any user script has modified it.
         self._validate_enabled_bindings()
 
-    def _validate_enabled_bindings(self):
-        """ Check the enabled bindings are valid and remove any disabled ones.
-        """
-
-        if self.enable:
-            # Check that the enable bindings are valid.
-            for bindings_name in self.enable:
-                if bindings_name not in self.bindings:
-                    raise UserException(
-                            "unknown bindings '{0}'".format(bindings_name))
-        else:
-            self.enable = list(self.bindings.keys())
-
-        for disabled in self.disable:
-            try:
-                self.enable.remove(disabled)
-            except ValueError:
-                pass
-
     def _build_and_install_modules(self, target_dir, wheel_tag=None):
         """ Build and install the extension modules and create the .dist-info
         directory.
@@ -445,7 +415,7 @@ class Package(Configurable):
         else:
             bindings_dir = None
 
-        for module, module_fn, sip_files, pyi_file in self._build_modules(sip_h_dir):
+        for bindings, module, module_fn, pyi_file in self._build_modules(sip_h_dir):
             # Get the name of the individual module's directory.
             module_name_parts = module.split('.')
             parts = [target_dir]
@@ -462,11 +432,8 @@ class Package(Configurable):
 
             # Copy the .sip files.
             if bindings_dir is not None:
-                sip_dir = os.path.join(bindings_dir, module_name_parts[-1])
-                os.makedirs(sip_dir, exist_ok=True)
-
-                for sip_file in sip_files:
-                    installed.append(self._install_file(sip_file, sip_dir))
+                installed.extend(
+                        self._install_sip_files(bindings, bindings_dir))
 
         # Install anything else the user has specified.
         for extra in self.install_extras:
@@ -501,10 +468,22 @@ class Package(Configurable):
 
     def _build_modules(self, sip_h_dir):
         """ Build the enabled extension modules and return a 4-tuple of the
-        fully qualified module name, its pathname, the sequence of .sip files
-        and the pathname of any .pyi file.
+        bindings object, the fully qualified module name, its pathname and the
+        pathname of any .pyi file.
         """
 
+        # Get the list of directories to search for .sip files.
+        sip_include_dirs = list(self.sip_include_dirs)
+
+        if self.sip_module:
+            sip_include_dirs.append(self.sip_files_dir)
+            sip_include_dirs.append(
+                    self._get_installed_bindings_dir(self.target_dir))
+
+        set_globals(SIP_VERSION, SIP_VERSION_STR, UserException,
+                sip_include_dirs)
+
+        # Build each enabled set of bindings.
         modules = []
 
         for bindings_name in self.enable:
@@ -544,8 +523,7 @@ class Package(Configurable):
             os.chdir(saved_cwd)
 
             modules.append(
-                    (generated.name, extension_module,
-                            bindings.get_sip_files(), pyi_file))
+                    (bindings, generated.name, extension_module, pyi_file))
 
         return modules
 
@@ -578,6 +556,14 @@ class Package(Configurable):
                 if hasattr(args, option.dest):
                     setattr(configurable, option.name,
                             getattr(args, option.dest))
+
+    @staticmethod
+    def _ensure_subdirs_exist(file_path):
+        """ Ensure that the parent directories of a file path exist. """
+
+        file_dir = os.path.dirname(file_path)
+        if file_dir != '':
+            os.makedirs(file_dir, exist_ok=True)
 
     def _finalise_configuration(self, tool):
         """ Finalise the package's configuration. """
@@ -669,6 +655,27 @@ class Package(Configurable):
 
         return target_fn
 
+    def _install_sip_files(self, bindings, target_dir):
+        """ Install the .sip files for a set of bindings in a target directory
+        and return a list of the installed files.
+        """
+
+        installed = []
+
+        rel_sip_files_dir = os.path.relpath(self.sip_files_dir, self.root_dir)
+        target_sip_files_dir = os.path.join(target_dir, rel_sip_files_dir)
+
+        for sip_file in bindings.get_sip_files():
+            source_sip_file = os.path.join(self.sip_files_dir, sip_file)
+            target_sip_file = os.path.join(target_sip_files_dir, sip_file)
+
+            self._ensure_subdirs_exist(target_sip_file)
+            shutil.copyfile(source_sip_file, target_sip_file)
+
+            installed.append(target_sip_file)
+
+        return installed
+
     def _remove_build_dir(self):
         """ Remove the build directory. """
 
@@ -714,11 +721,6 @@ class Package(Configurable):
         for section in bindings_sections:
             bindings = Bindings(self)
             bindings.configure(section, 'tool.sip.bindings')
-
-            if bindings.name is None:
-                raise PyProjectUndefinedOptionException('tool.sip.bindings',
-                        'name')
-
             self.bindings[bindings.name] = bindings
 
         # Add a default set of bindings if none were defined.
@@ -726,6 +728,25 @@ class Package(Configurable):
             bindings = Bindings(self)
             bindings.name = self.name
             self.bindings[bindings.name] = bindings
+
+    def _validate_enabled_bindings(self):
+        """ Check the enabled bindings are valid and remove any disabled ones.
+        """
+
+        if self.enable:
+            # Check that the enable bindings are valid.
+            for bindings_name in self.enable:
+                if bindings_name not in self.bindings:
+                    raise UserException(
+                            "unknown bindings '{0}'".format(bindings_name))
+        else:
+            self.enable = list(self.bindings.keys())
+
+        for disabled in self.disable:
+            try:
+                self.enable.remove(disabled)
+            except ValueError:
+                pass
 
     def _verify(self):
         """ Verify that the configuration is complete and consistent. """
