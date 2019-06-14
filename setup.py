@@ -51,6 +51,7 @@ setup(
         version=version,
         license='SIP',
         python_requires='>=3.5',
+        install_requires=['toml'],
         packages=find_packages(),
         package_data={
             'sip5': ['abi_version.h'],
