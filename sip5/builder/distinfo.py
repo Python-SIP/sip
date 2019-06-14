@@ -59,6 +59,9 @@ def create_distinfo(project, installed, target_dir, wheel_tag=None):
                 "unable create dist-info directory '{}'".format(distinfo_dir),
                 str(e))
 
+    # Reproducable builds.
+    installed.sort()
+
     if wheel_tag is None:
         # Create the INSTALLER file.
         installer_fn = os.path.join(distinfo_dir, 'INSTALLER')
