@@ -90,7 +90,7 @@ Tag: {}
         if isinstance(value, list):
             value = ', '.join(value)
 
-        metadata_f.write('{}: {}\n'.format(name, value))
+        metadata_f.write('{}: {}\n'.format(name.title(), value))
 
     metadata_f.close()
 

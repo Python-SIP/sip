@@ -119,7 +119,7 @@ class Project(Configurable):
         """
 
         # The sdist name.
-        sdist_name = '{}-{}'.format(self.name, self.version)
+        sdist_name = '{}-{}'.format(self.name.replace('-', '_'), self.version)
 
         # Create the sdist root directory.
         sdist_root = os.path.join(self.build_dir, sdist_name)
@@ -215,7 +215,8 @@ class Project(Configurable):
         # Build and copy the wheel contents.
         self._build_and_install_modules(wheel_build_dir, wheel_tag=wheel_tag)
 
-        wheel_file = '{}-{}-{}.whl'.format(self.name, self.version, wheel_tag)
+        wheel_file = '{}-{}-{}.whl'.format(self.name.replace('-', '_'),
+                self.version, wheel_tag)
         wheel_path = os.path.abspath(os.path.join(wheel_directory, wheel_file))
 
         # Create the .whl file.
@@ -687,33 +688,57 @@ class Project(Configurable):
         """ Set the project's initial configuration. """
 
         # Get the metadata and extract the name and version.
-        self.metadata = pyproject.get_section('tool.sip.metadata',
-                required=True)
-
+        self.metadata = OrderedDict()
         self.name = None
         self.version = None
+        metadata_version = None
 
+        metadata = pyproject.get_section('tool.sip', required=True)
         for md_name, md_value in self.metadata.items():
+            # Ignore sub-sections.
+            if pyproject.is_section(md_value):
+                continue
+
+            if not isinstance(md_value, str):
+                raise PyProjectOptionException('tool.sip', md_name,
+                        "must be a string")
+
             md_name = md_name.lower()
             if md_name == 'name':
-                # Normalise the PyPI name.
-                self.name = md_value.replace('-', '_')
+                if not md_value.isidentifier():
+                    raise PyProjectOptionException('tool.sip', 'name',
+                            "'{0}' is an invalid project name".format(
+                                    md_value))
+
+                self.name = md_value
             elif md_name == 'version':
                 self.version = md_value
+            elif md_name == 'metadata-version':
+                metadata_version = md_value
+
+            self.metadata[md_name] = md_value
 
         if self.name is None:
-            raise PyProjectUndefinedOptionException('tool.sip.metadata',
-                    'Name')
+            raise PyProjectUndefinedOptionException('tool.sip', 'name')
 
         if self.version is None:
             self.version = '1.0'
-            self.metadata['Version'] = self.version
+            self.metadata['version'] = self.version
 
+        if metadata_version is None:
+            # Default to PEP 566.
+            self.metadata['metadata-version'] = '2.1'
+
+        # This is cosmetic.
+        for name in ('version', 'name', 'metadata-version'):
+            self.metadata.move_to_end(name, last=False)
+
+        # Get the project configuration.
         project_section = pyproject.get_section('tool.sip.project')
         if project_section is not None:
             self.configure(project_section, 'tool.sip.project')
 
-        # Get the bindings.
+        # Get configuration for each set of bindings.
         bindings_sections = pyproject.get_section('tool.sip.bindings')
         if bindings_sections is None:
             bindings_sections = []

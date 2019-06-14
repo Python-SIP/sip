@@ -82,8 +82,14 @@ class PyProject:
 
                 return None
 
-        if not isinstance(section, (OrderedDict, list)):
+        if not self.is_section(section):
             raise PyProjectException(
                     "'{0}' is not a section".format(section_name))
 
         return section
+
+    @staticmethod
+    def is_section(value):
+        """ Returns True if a section value is itself a section. """
+
+        return isinstance(value, (OrderedDict, list))
