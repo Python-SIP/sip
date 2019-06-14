@@ -43,8 +43,8 @@ from .pyproject import (PyProject, PyProjectException,
         PyProjectOptionException, PyProjectUndefinedOptionException)
 
 
-class Package(Configurable):
-    """ Encapsulate a package containing one or more sets of bindings. """
+class Project(Configurable):
+    """ Encapsulate a project containing one or more sets of bindings. """
 
     # The configurable options.
     _options = (
@@ -67,7 +67,7 @@ class Package(Configurable):
         Option('sdist_extras', option_type=list),
 
         # The location of the sip.h file.  If it is 'installed' then it is in
-        # the package's 'bindings' directory.  If it is 'generate' then a
+        # the project's 'bindings' directory.  If it is 'generate' then a
         # temporary copy is generated (and the user has to be careful about
         # specifying compatible SIP ABIs).  Otherwise it is the name of a
         # directory within the root directory.
@@ -97,7 +97,7 @@ class Package(Configurable):
     )
 
     def __init__(self):
-        """ Initialise the package. """
+        """ Initialise the project. """
 
         super().__init__()
 
@@ -108,13 +108,13 @@ class Package(Configurable):
         self._temp_build_dir = None
 
     def build(self):
-        """ Build the package in-situ. """
+        """ Build the project in-situ. """
 
         sip_h_dir = self._get_sip_h_dir(self.target_dir)
         self._build_modules(sip_h_dir)
 
     def build_sdist(self, sdist_directory='.'):
-        """ Build an sdist for the package and return the name of the sdist
+        """ Build an sdist for the project and return the name of the sdist
         file.
         """
 
@@ -128,10 +128,10 @@ class Package(Configurable):
         # Copy the pyproject.toml file.
         shutil.copy(os.path.join(self.root_dir, 'pyproject.toml'), sdist_root)
 
-        # Copy in any package.py.
-        package_py = os.path.join(self.root_dir, 'package.py')
-        if os.path.isfile(package_py):
-            shutil.copy(package_py, sdist_root)
+        # Copy in any project.py.
+        project_py = os.path.join(self.root_dir, 'project.py')
+        if os.path.isfile(project_py):
+            shutil.copy(project_py, sdist_root)
 
         # Copy in any sip.h file.
         if self.sip_module and self.sip_h not in ('generate', 'installed'):
@@ -149,7 +149,7 @@ class Package(Configurable):
             extra = os.path.abspath(extra)
 
             if os.path.commonprefix([extra, self.root_dir]) != self.root_dir:
-                raise PyProjectOptionException('tool.sip.package',
+                raise PyProjectOptionException('tool.sip.project',
                         'sdist-extras',
                         "must all be in the '{0}' directory or a sub-directory".format(self.root_dir))
 
@@ -185,7 +185,7 @@ class Package(Configurable):
         return sdist_file
 
     def build_wheel(self, wheel_directory='.'):
-        """ Build a wheel for the package and return the name of the wheel
+        """ Build a wheel for the project and return the name of the wheel
         file.
         """
 
@@ -240,7 +240,7 @@ class Package(Configurable):
 
     @classmethod
     def factory(cls, tool='', description=''):
-        """ Return a Package instance fully configured for a particular command
+        """ Return a Project instance fully configured for a particular command
         line tool.  If no tool is specified then it is configured for a PEP 517
         frontend.
         """
@@ -248,67 +248,67 @@ class Package(Configurable):
         # Get the contents of the pyproject.toml file.
         pyproject = PyProject()
 
-        # Try and import a package.py file.
-        spec = importlib.util.spec_from_file_location('package', 'package.py')
-        package_module = importlib.util.module_from_spec(spec)
+        # Try and import a project.py file.
+        spec = importlib.util.spec_from_file_location('project', 'project.py')
+        project_module = importlib.util.module_from_spec(spec)
 
         try:
-            spec.loader.exec_module(package_module)
+            spec.loader.exec_module(project_module)
         except FileNotFoundError:
-            package_factory = cls
+            project_factory = cls
         except Exception as e:
-            raise UserException("unable to import package.py", detail=str(e))
+            raise UserException("unable to import project.py", detail=str(e))
         else:
-            # Look for a class that is a sub-class of Package.
-            for package_factory in package_module.__dict__.values():
-                if isinstance(package_factory, type):
-                    if issubclass(package_factory, Package):
-                        # Make sure the type is defined in package.py and not
+            # Look for a class that is a sub-class of Project.
+            for project_factory in project_module.__dict__.values():
+                if isinstance(project_factory, type):
+                    if issubclass(project_factory, Project):
+                        # Make sure the type is defined in project.py and not
                         # imported by it.
-                        if package_factory.__module__ == 'package':
+                        if project_factory.__module__ == 'project':
                             break
             else:
                 raise UserException(
-                        "package.py does not define a Package sub-class")
+                        "project.py does not define a Project sub-class")
 
-        # Create the package.
-        package = package_factory()
+        # Create the project.
+        project = project_factory()
 
         # Set the initial configuration from the pyproject.toml file.
-        package._set_initial_configuration(pyproject)
+        project._set_initial_configuration(pyproject)
 
         # Add any tool-specific command line options for (so far unspecified)
         # parts of the configuration.
         if tool:
-            package._configure_from_command_line(tool, description)
+            project._configure_from_command_line(tool, description)
 
         # Make sure the configuration is complete.
-        package._finalise_configuration(tool)
+        project._finalise_configuration(tool)
 
-        if not package.verbose:
+        if not project.verbose:
             warnings.simplefilter('ignore', UserWarning)
 
         # Make sure we have a clean build directory and make it current.
-        package.progress("Creating the build directory")
+        project.progress("Creating the build directory")
 
-        if package._temp_build_dir is None:
-            package.build_dir = os.path.abspath(package.build_dir)
-            shutil.rmtree(package.build_dir, ignore_errors=True)
-            os.mkdir(package.build_dir)
+        if project._temp_build_dir is None:
+            project.build_dir = os.path.abspath(project.build_dir)
+            shutil.rmtree(project.build_dir, ignore_errors=True)
+            os.mkdir(project.build_dir)
 
-        os.chdir(package.build_dir)
+        os.chdir(project.build_dir)
 
         # Allow a sub-class (in a user supplied script) to make any updates to
         # the configuration.
-        package.update()
+        project.update()
 
-        os.chdir(package.root_dir)
+        os.chdir(project.root_dir)
 
         # Make sure the configuration is correct after any user supplied script
         # has messed with it.
-        package._verify()
+        project._verify()
 
-        return package
+        return project
 
     def get_options(self):
         """ Return a sequence of configurable options. """
@@ -322,7 +322,7 @@ class Package(Configurable):
             print(message)
 
     def install(self):
-        """ Install the package. """
+        """ Install the project. """
 
         self._build_and_install_modules(self.target_dir)
 
@@ -346,13 +346,13 @@ class Package(Configurable):
         """ Verify that the configuration is complete and consistent. """
 
         # Get the builder factory.
-        self.builder = self._import_callable(self.builder, 'tool.sip.package',
+        self.builder = self._import_callable(self.builder, 'tool.sip.project',
                 'builder')
 
         # Check we have the name of the sip module if it is shared.
         if len(self.bindings) > 1 and not self.sip_module:
-            raise PyProjectOptionException('tool.sip.package', 'sip-module',
-                    "must be defined when the package contains multiple sets "
+            raise PyProjectOptionException('tool.sip.project', 'sip-module',
+                    "must be defined when the project contains multiple sets "
                     "of bindings")
 
         # Check we will have the sip.h file for any shared sip module.
@@ -361,14 +361,14 @@ class Package(Configurable):
                 self.sip_h = os.path.abspath(self.sip_h)
 
                 if os.path.commonprefix([self.sip_h, self.root_dir]) != self.root_dir:
-                    raise PyProjectOptionException('tool.sip.package',
+                    raise PyProjectOptionException('tool.sip.project',
                             'sip-h',
                             "the sip.h file must be in the '{0}' directory or "
                             "a sub-directory".format(self.root_dir))
 
         # Verify the types of any install extras.
         def bad_extras():
-            raise PyProjectOptionException('tool.sip.package',
+            raise PyProjectOptionException('tool.sip.project',
                     'install-extras',
                     "each element must be a sub-list of a source file or "
                     "directory and an optional destination directory")
@@ -510,7 +510,7 @@ class Package(Configurable):
                     library_dirs=bindings.library_dirs)
 
             if not isinstance(builder, Builder):
-                raise PyProjectOptionException('tool.sip.package', 'builder',
+                raise PyProjectOptionException('tool.sip.project', 'builder',
                         "did not return a Builder instance")
 
             self.progress(
@@ -566,7 +566,7 @@ class Package(Configurable):
             os.makedirs(file_dir, exist_ok=True)
 
     def _finalise_configuration(self, tool):
-        """ Finalise the package's configuration. """
+        """ Finalise the project's configuration. """
 
         # For the build tool we want build_dir to default to a local 'build'
         # directory (which we won't remove).  However, for other tools (and for
@@ -684,7 +684,7 @@ class Package(Configurable):
         self._temp_build_dir = None
 
     def _set_initial_configuration(self, pyproject):
-        """ Set the package's initial configuration. """
+        """ Set the project's initial configuration. """
 
         # Get the metadata and extract the name and version.
         self.metadata = pyproject.get_section('tool.sip.metadata',
@@ -709,9 +709,9 @@ class Package(Configurable):
             self.version = '1.0'
             self.metadata['Version'] = self.version
 
-        package_section = pyproject.get_section('tool.sip.package')
-        if package_section is not None:
-            self.configure(package_section, 'tool.sip.package')
+        project_section = pyproject.get_section('tool.sip.project')
+        if project_section is not None:
+            self.configure(project_section, 'tool.sip.project')
 
         # Get the bindings.
         bindings_sections = pyproject.get_section('tool.sip.bindings')

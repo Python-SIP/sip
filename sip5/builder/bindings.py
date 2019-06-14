@@ -103,12 +103,12 @@ class Bindings(Configurable):
                 tools='build install wheel'),
     )
 
-    def __init__(self, package):
+    def __init__(self, project):
         """ Initialise the bindings. """
 
         super().__init__()
 
-        self.package = package
+        self.project = project
 
         self._sip_files = None
 
@@ -134,9 +134,9 @@ class Bindings(Configurable):
 
         name_parts = name.split('.')
 
-        if self.package.sip_module and len(name_parts) == 1:
+        if self.project.sip_module and len(name_parts) == 1:
             raise UserException(
-                    "module '{0}' must be part of a package when used with a "
+                    "module '{0}' must be part of a project when used with a "
                             "shared 'sip' module".format(name))
 
         # Only save the .sip files if they haven't already been obtained
@@ -150,7 +150,7 @@ class Bindings(Configurable):
         generated = GeneratedBindings(name)
 
         # Make sure the module's sub-directory exists.
-        sources_dir = os.path.join(self.package.build_dir, self.name)
+        sources_dir = os.path.join(self.project.build_dir, self.name)
         os.makedirs(sources_dir, exist_ok=True)
 
         # Generate any API file.
@@ -171,7 +171,7 @@ class Bindings(Configurable):
         sources = generateCode(pt, sources_dir, self.source_suffix,
                 self.exceptions, self.tracing, self.release_gil,
                 self.concatenate, self.tags, self.disabled_features,
-                self.docstrings, self.debug, self.package.sip_module)
+                self.docstrings, self.debug, self.project.sip_module)
 
         # Add the sip module code if it is not shared.
         include_dirs = [sources_dir]
@@ -198,21 +198,21 @@ class Bindings(Configurable):
 
     def get_sip_files(self):
         """ Return a list of .sip files that define the bindings.  These should
-        all be relative to the package's sip-files-dir directory.
+        all be relative to the project's sip-files-dir directory.
         """
 
         # If there is a shared sip module then we assume that all the relevant
         # files are in the bindings' sub-directory so we just walk that tree.
         # of that directory.
-        if self.package.sip_module:
+        if self.project.sip_module:
             sip_files = []
 
-            sip_files_dir = os.path.join(self.package.sip_files_dir, self.name)
+            sip_files_dir = os.path.join(self.project.sip_files_dir, self.name)
             for dirpath, _, filenames in os.walk(sip_files_dir):
                 for fn in filenames:
                     sip_files.append(
                             os.path.relpath(os.path.join(dirpath, fn),
-                                    self.package.sip_files_dir))
+                                    self.project.sip_files_dir))
 
             return sip_files
 
@@ -225,7 +225,7 @@ class Bindings(Configurable):
         # Check that the .sip file names are relative to the root directory and
         # are within the root directory.
         sip_files = []
-        root_dir = self.package.root_dir
+        root_dir = self.project.root_dir
 
         for fn in self._sip_files:
             fn = os.path.abspath(fn)
@@ -245,7 +245,7 @@ class Bindings(Configurable):
 
         # Provide a default .sip file name if needed.
         if not self.sip_file:
-            if self.package.sip_module:
+            if self.project.sip_module:
                 sip_file = os.path.join(self.name, self.name)
             else:
                 sip_file = self.name
@@ -253,11 +253,11 @@ class Bindings(Configurable):
             self.sip_file = sip_file + '.sip'
 
         # Check the .sip file exists.
-        sip_path = os.path.join(self.package.sip_files_dir, self.sip_file)
+        sip_path = os.path.join(self.project.sip_files_dir, self.sip_file)
         if not os.path.isfile(sip_path):
             raise PyProjectOptionException(
                     'tool.sip.bindings', 'sip-file',
-                    "the file '{0}' for the '{1}' bindings does not exist".format(os.path.relpath(sip_path, self.package.root_dir), self.name))
+                    "the file '{0}' for the '{1}' bindings does not exist".format(os.path.relpath(sip_path, self.project.root_dir), self.name))
 
         if not self.source_suffix:
             self.source_suffix = None
@@ -265,7 +265,7 @@ class Bindings(Configurable):
     def _parse(self):
         """ Invoke the parser and return its results. """
 
-        sip_path = os.path.join(self.package.sip_files_dir, self.sip_file)
+        sip_path = os.path.join(self.project.sip_files_dir, self.sip_file)
         sip_dir, sip_file = os.path.split(sip_path)
 
         cwd = os.getcwd()

@@ -53,7 +53,7 @@ class Builder(ABC):
         self.library_dirs = library_dirs
 
     @abstractmethod
-    def build_extension_module(self, package, name):
+    def build_extension_module(self, project, name):
         """ Build an extension module from the sources and return its full
         pathname.
         """
@@ -62,7 +62,7 @@ class Builder(ABC):
 class DistutilsBuilder(Builder):
     """ The implementation of a distutils-based code builder. """
 
-    def build_extension_module(self, package, name):
+    def build_extension_module(self, project, name):
         """ Build an extension module from the sources and return its full
         pathname.
         """
@@ -72,7 +72,7 @@ class DistutilsBuilder(Builder):
         from distutils.extension import Extension
         from distutils.log import ERROR, INFO, set_threshold
 
-        set_threshold(INFO if package.verbose else ERROR)
+        set_threshold(INFO if project.verbose else ERROR)
 
         dist = Distribution()
 

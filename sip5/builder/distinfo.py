@@ -35,13 +35,13 @@ from ..version import SIP_VERSION_STR
 WHEEL_VERSION = '1.0'
 
 
-def create_distinfo(package, installed, target_dir, wheel_tag=None):
+def create_distinfo(project, installed, target_dir, wheel_tag=None):
     """ Create the dist-info directory for a list of installed files. """
 
     # Make sure we have an empty dist-info directory.  Handle exceptions as the
     # user may be trying something silly with a system directory.
     distinfo_dir = os.path.join(target_dir,
-            '{}-{}.dist-info'.format(package.name, package.version))
+            '{}-{}.dist-info'.format(project.name, project.version))
 
     if os.path.exists(distinfo_dir):
         try:
@@ -86,7 +86,7 @@ Tag: {}
     metadata_fn = os.path.join(distinfo_dir, 'METADATA')
     metadata_f = open(metadata_fn, 'w')
 
-    for name, value in package.metadata.items():
+    for name, value in project.metadata.items():
         if isinstance(value, list):
             value = ', '.join(value)
 

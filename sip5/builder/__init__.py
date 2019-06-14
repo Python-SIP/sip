@@ -25,4 +25,4 @@
 from .bindings import Bindings, GeneratedBindings
 from .builder import Builder, DistutilsBuilder
 from .configurable import Configurable, Option
-from .package import Package
+from .project import Project

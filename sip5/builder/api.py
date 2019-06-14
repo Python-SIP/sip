@@ -30,9 +30,9 @@ def build_sdist(sdist_directory, config_settings=None):
     # Note that we ignore config_settings until we have a frontend that we can
     # fully test with.  (pip seems lacking at the moment.)
 
-    package = Package.factory()
+    project = Project.factory()
 
-    return package.build_sdist(sdist_directory)
+    return project.build_sdist(sdist_directory)
 
 
 def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
@@ -41,6 +41,6 @@ def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
     # Note that we ignore config_settings until we have a frontend that we can
     # fully test with.  (pip seems lacking at the moment.)
 
-    package = Package.factory()
+    project = Project.factory()
 
-    return package.build_wheel(wheel_directory)
+    return project.build_wheel(wheel_directory)
