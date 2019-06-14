@@ -3,9 +3,9 @@
 =================
 
 There are three version numbers related to SIP.  These are the 3-part (major,
-minor, maintenance) version number of SIP itself (i.e. the bindings
-generator and build system), the 3-part version number of the sip module and
-the 2-part (major, minor) version number of the ABI.
+minor, patch) version number of SIP itself (i.e. the bindings generator and
+build system), the 3-part version number of the sip module and the 2-part
+(major, minor) version number of the ABI.
 
 All version numbers are public and are used to provide dependency information
 for PyPI, pip etc.
@@ -26,7 +26,7 @@ The major number is incremented (and the minor number reset to 0) when the ABI
 is changed in an incompatible way.  Examples are when functions are removed,
 when structure members are removed or when structure members are re-ordered.
 The minor number of the SIP version must also be incremented (and its
-maintenance number reset to 0).
+patch number reset to 0).
 
 The minor number is incremented when additional functionality is added to the
 ABI so that backwards compatibility is not affected.
@@ -36,15 +36,15 @@ Changing the sip Module Version
 ===============================
 
 The major number always matches the major number of the ABI version that the
-module implements and is changed under the same circumstances (and the
-maintenance number is reset to 0).
+module implements and is changed under the same circumstances (and the patch
+number is reset to 0).
 
 The minor number always matches the minor number of the ABI version that the
-module implements and is changed under the same circumstances (and the
-maintenance number is reset to 0).
+module implements and is changed under the same circumstances (and the patch
+number is reset to 0).
 
-The maintenance number is incremented whenever the implementation of the sip
-module changes without any change to the ABI.
+The patch number is incremented whenever the implementation of the sip module
+changes without any change to the ABI.
 
 
 Changing the SIP Version
@@ -52,13 +52,13 @@ Changing the SIP Version
 
 The major version number is always 5.
 
-The minor version is incremented (and the maintenance number reset to 0) when
-any change that affects compatibility is made.  Examples include a change to
-the ABI's major version number, the removal of support for a Python version,
-the removal of a deprecated directive or an incompatible change to the build
-system API.
+The minor version is incremented (and the patch number reset to 0) when any
+change that affects compatibility is made.  Examples include a change to the
+ABI's major version number, the removal of support for a Python version, the
+removal of a deprecated directive or an incompatible change to the build system
+API.
 
-The maintenance version is incremented whenever a compatible change is made.
+The patch version is incremented whenever a compatible change is made.
 Examples include any additional functionality or support for a new Python
 version.
 
@@ -75,7 +75,7 @@ minor ABI version number (using pre-processor conditionals if necessary).  In
 other words it cannot assume that the sip.h file being used defines the current
 version of the ABI.
 
-An extension module verifiwa that the major ABI version number it is built
+An extension module verifies that the major ABI version number it is built
 against (i.e. that defined by the sip.h file used) matches the major ABI
 version number implemented by the sip module.  It also verifies that the minor
 ABI version number is less than or equal to that implemented by the sip module.
@@ -90,13 +90,13 @@ will eventually end up in sdist or wheel metadata).
 The sources for an extension module will be dependent on a specific minor
 version number of SIP (because a different minor version number implies some
 sort of incompatibility).  The sources may make use of a new feature introduced
-in a specific maintenance version.  Therefore the sources will require a
-minimum of the current maintenance version and require the same minor version,
-for example ``>=5.0.2,<5.1``.
+in a specific patch version.  Therefore the sources will require a minimum of
+the current patch version and require the same minor version, for example
+``>=5.0.2,<5.1``.
 
 The binaries of an extension module will be dependent on a specific minor
 version number of the sip module (because a different minor version number
 implies a minimum level of required functionality), for example ``>=12.6,<13``.
 If the sources rely on a particular implementation of the sip module, typically
-for a bug fix, then it will be dependent on the maintenance version, for
-example ``>=12.6.2,<13``.
+for a bug fix, then it will be dependent on the patch version, for example
+``>=12.6.2,<13``.
