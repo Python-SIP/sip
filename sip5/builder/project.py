@@ -590,8 +590,11 @@ class Project(Configurable):
     def _get_installed_bindings_dir(self, target_dir):
         """ Return the name of the installed bindings directory. """
 
-        return os.path.join(target_dir,self.sip_module.split('.')[0],
-                'bindings')
+        name_parts = self.sip_module.split('.')
+        name_parts.insert(0, target_dir)
+        name_parts[-1] = 'bindings'
+
+        return os.path.join(*name_parts)
 
     def _get_sip_h_dir(self, target_dir):
         """ Return the name of the directory containing the sip.h file. """
