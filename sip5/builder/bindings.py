@@ -27,7 +27,7 @@ import sys
 from ..code_generator import (parse, generateCode, generateExtracts,
         generateAPI, generateXML, generateTypeHints)
 from ..exceptions import UserException
-from ..module.module import copy_nonshared_sources
+from ..module import copy_nonshared_sources
 
 from .configurable import Configurable, Option
 from .pyproject import PyProjectUndefinedOptionException
@@ -177,6 +177,7 @@ class Bindings(Configurable):
         include_dirs = [sources_dir]
 
         if sip_h_dir is None:
+            # TODO: abi_version
             sources.extend(copy_nonshared_sources(sources_dir))
         else:
             include_dirs.append(sip_h_dir)

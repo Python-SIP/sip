@@ -95,6 +95,10 @@ def _create_patches(sip_module, abi_version, project=''):
     sip_module_package_name = '.'.join(sip_module_parts[:-1])
     sip_module_name = sip_module_parts[-1]
 
+    # We special case this because this should be the only package requiring
+    # the support.
+    legacy = (sip_module == 'PyQt5.sip)
+
     return {
         # The public patches are those that might be needed in setup.cfg or any
         # automatically generated user documentation.
@@ -107,6 +111,7 @@ def _create_patches(sip_module, abi_version, project=''):
         '@_SIP_MODULE_NAME@':           sip_module_name,
         '@_SIP_MODULE_SHARED@':         '1' if sip_module else '0',
         '@_SIP_MODULE_ENTRY@':          'PyInit_' + sip_module_name,
+        '@_SIP_MODULE_LEGACY@':         "1" if legacy else "0",
         '@_SIP_VERSION@':               hex(SIP_VERSION),
         '@_SIP_VERSION_STR@':           SIP_VERSION_STR
     }

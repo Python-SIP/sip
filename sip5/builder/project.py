@@ -32,7 +32,7 @@ import warnings
 
 from ..code_generator import set_globals
 from ..exceptions import UserException
-from ..module.module import copy_sip_h, copy_nonshared_sources
+from ..module import copy_sip_h
 from ..version import SIP_VERSION, SIP_VERSION_STR
 
 from .bindings import Bindings
@@ -607,7 +607,8 @@ class Project(Configurable):
                                 self.sip_module))
 
                 sip_h_dir = self.build_dir
-                copy_sip_h(sip_h_dir, self.sip_module)
+                # TODO: abi_version
+                copy_sip_h(self.sip_module, sip_h_dir)
             elif self.sip_h == 'installed':
                 sip_h_dir = self._get_installed_bindings_dir(target_dir)
             else:

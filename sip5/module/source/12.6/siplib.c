@@ -1167,14 +1167,12 @@ PyMODINIT_FUNC _SIP_MODULE_ENTRY(void)
     PyDict_SetItemString(mod_dict, "wrapper", (PyObject *)&sipWrapper_Type);
     PyDict_SetItemString(mod_dict, "voidptr", (PyObject *)&sipVoidPtr_Type);
 
-    /*
-     * Also install the package-specific module at the top level for backwards
-     * compatibility.
-     */
-    /* TODO: replace with a single name derived from a new legacy-sip-module option */
-#if _SIP_MODULE_FQ_NAME != "sip" && _SIP_MODULE_NAME == "sip"
-    if (strcmp(_SIP_MODULE_FQ_NAME, "sip") != 0 && strcmp(_SIP_MODULE_NAME, "sip") == 0)
+#if _SIP_MODULE_LEGACY
     {
+        /*
+         * Also install the package-specific module at the top level for
+         * backwards compatibility.
+         */
         PyObject *modules = PySys_GetObject("modules");
 
         if (modules != NULL)
