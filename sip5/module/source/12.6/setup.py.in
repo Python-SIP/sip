@@ -29,11 +29,11 @@ from setuptools import Extension, setup
 # Build the extension module.
 module_src = glob.glob('*.c')
 module_src.extend(glob.glob('*.cpp'))
-module = Extension('@_SIP_FQ_NAME@', module_src)
+module = Extension('@_SIP_MODULE_FQ_NAME@', module_src)
 
 # Do the setup.
 setup(
-        name='@SIP_MODULE_NAME@',
+        name='@SIP_MODULE_PROJECT_NAME@',
         version='@SIP_MODULE_VERSION@',
         license='SIP',
         python_requires='>=3.5',

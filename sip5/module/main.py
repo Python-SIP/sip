@@ -34,31 +34,26 @@ def main():
     parser = ArgumentParser("Generate the code for a sip extension module.")
 
     parser.add_argument(dest='sip_modules', nargs=1,
-            help="the fully qualified name of the sip module",
-            metavar="NAME")
+            help="the fully qualified name of the sip module", metavar="NAME")
 
-    parser.add_argument('--include-dir', dest='include_dir',
-            help="the name of the directory where sip.h will be installed",
-            metavar="DIR")
+    parser.add_argument('--abi', dest='abi_version', help="the ABI version",
+            metavar="VERSION")
 
-    parser.add_argument('--module-dir', dest='module_dir',
-            help="the name of the directory where the code will be generated",
-            metavar="DIR")
+    parser.add_argument('--no-sdist', dest='sdist', action='store_false',
+            default=True, help="do not generate the sdist file")
 
-    parser.add_argument('--no-sdist', dest='no_sdist', action='store_true',
-            default=False,
-            help="do not generate the .tar.gz sdist file")
+    parser.add_argument('--project', dest='project',
+            help="the PyPI project name", metavar="NAME")
 
     parser.add_argument('--setup-cfg', dest='setup_cfg',
-            help="the name of the setup.cfg file to use",
-            metavar="FILE")
+            help="the name of the setup.cfg file to use", metavar="FILE")
 
     args = parser.parse_args()
 
     try:
-        module(sip_module=args.sip_modules[0],
-                include_dir=args.include_dir, module_dir=args.module_dir,
-                no_sdist=args.no_sdist, setup_cfg=args.setup_cfg)
+        module(sip_module=args.sip_modules[0], abi_version=args.abi_version,
+                project=args.project, sdist=args.sdist,
+                setup_cfg=args.setup_cfg)
     except Exception as e:
         handle_exception(e)
 

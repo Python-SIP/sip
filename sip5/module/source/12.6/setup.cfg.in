@@ -1,5 +1,5 @@
 [metadata]
-description = The sip module support for @SIP_MODULE_PACKAGE@
+description = The sip module support for @SIP_MODULE_PACKAGE_NAME@
 long_description = file: README
 author = Riverbank Computing Limited
 author_email = info@riverbankcomputing.com

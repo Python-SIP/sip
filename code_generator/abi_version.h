@@ -22,17 +22,14 @@
 
 
 // Define the current ABI version number.  The sip module must handle extension
-// modules with the same major number and with the same or earlier minor
-// number.  Whenever members are added to non-embedded data structures they
-// must be appended, the minor number incremented and the maintenance number
-// set to 0.  Whenever data structure members are removed or their offset
-// changed then the major number must be incremented and the minor and
-// maintenance numbers set to 0.  Other changes to the module source require
-// the maintenance number to be incremented.
-
+// modules with the same major version and with the same or earlier minor
+// version.  Whenever members are added to non-embedded data structures they
+// must be appended and the minor version incremented.  Whenever data structure
+// members are removed, their offset changed or members added when the data
+// structure is used in an array then the major version must be incremented and
+// the minor version set to 0.
 #define SIP5_ABI_MAJOR          12
 #define SIP5_ABI_MINOR          6
-#define SIP5_ABI_MAINTENANCE    0
 
 
 // ABI version history:

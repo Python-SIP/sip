@@ -19,3 +19,8 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+
+
+# Publish the API.  This is private to the rest of sip.
+from .abi_version import resolve_abi_version
+from .module import copy_nonshared_sources, copy_sip_h

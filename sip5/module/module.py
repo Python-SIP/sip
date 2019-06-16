@@ -25,74 +25,61 @@ import os
 import shutil
 import tarfile
 
+from ..version import SIP_VERSION, SIP_VERSION_STR
 
-# The directory containing the source code.
-_src_dir = os.path.join(os.path.dirname(__file__), 'source')
+from .abi_version import (get_module_source_dir, get_sip_module_version,
+        resolve_abi_version)
 
 
-# TODO: add support for including the .pyi file.
-def module(sip_module, include_dir=None, module_dir=None, no_sdist=False, setup_cfg=None):
+def module(sip_module, abi_version, project, sdist, setup_cfg):
     """ Create the sdist for a sip module. """
 
-    # If no locations are specified then create the sdist in the current
-    # directory.
-    if include_dir is None and module_dir is None:
-        module_dir = '.'
+    # Provide some defaults.
+    abi_version = resolve_abi_version(abi_version)
+
+    if project is None:
+        project = sip_module.replace('.', '_')
 
     # Create the patches.
-    # TODO: allow the PyPI name to be specified explicitly - but is it only
-    # used in the documentation?
-    pypi_name = sip_module.replace('.', '_')
-    patches = _create_patches(sip_module, pypi_name)
-
-    # Install the sip.h file.
-    if include_dir is not None:
-        _install_source_file('sip.h', include_dir, patches)
+    patches = _create_patches(sip_module, abi_version, project)
 
     # Create the source directory.
-    if module_dir is not None:
-        full_pypi_name = pypi_name + '-' + patches['@SIP_MODULE_VERSION@']
-        pkg_dir = os.path.join(module_dir, full_pypi_name)
+    sdist_dir = project + '-' + patches['@SIP_MODULE_VERSION@']
 
-        _install_code(pkg_dir, patches, setup_cfg)
+    _install_code(abi_version, sdist_dir, patches, setup_cfg)
 
-        if not no_sdist:
-            # Created the sdist.
-            tf = tarfile.open(pkg_dir + '.tar.gz', 'w:gz',
-                    format=tarfile.PAX_FORMAT)
+    if sdist:
+        # Created the sdist.
+        tf = tarfile.open(sdist_dir + '.tar.gz', 'w:gz',
+                format=tarfile.PAX_FORMAT)
+        tf.add(sdist_dir)
+        tf.close()
 
-            # Make sure that the names in the archive don't have a leading path
-            # component.
-            old_cwd = os.getcwd()
-            os.chdir(module_dir)
-            tf.add(full_pypi_name)
-            os.chdir(old_cwd)
-
-            tf.close()
-
-            shutil.rmtree(pkg_dir)
+        shutil.rmtree(sdist_dir)
 
 
-def copy_sip_h(sources_dir, sip_module=''):
+def copy_sip_h(sip_module, abi_version, target_dir):
     """ Copy the sip.h file. """
 
-    patches = _create_patches(sip_module)
-    _install_source_file('sip.h', sources_dir, patches)
+    patches = _create_patches(sip_module, abi_version)
+    _install_source_file('sip.h', get_module_source_dir(abi_version),
+            target_dir, patches)
 
 
-def copy_nonshared_sources(sources_dir):
+def copy_nonshared_sources(sip_module, abi_version, target_dir):
     """ Copy the module sources as a non-shared module. """
 
     # Copy the patched sip.h.
-    copy_sip_h(sources_dir)
+    copy_sip_h(sip_module, abi_version, target_dir)
 
     # Copy the remaining source code.
+    module_source_dir = get_module_source_dir(abi_version)
     sources = []
 
-    for fn in os.listdir(_src_dir):
+    for fn in os.listdir(module_source_dir):
         if fn.endswith('.c') or fn.endswith('.cpp') or fn.endswith('.h'):
-            src_fn = os.path.join(_src_dir, fn)
-            dst_fn = os.path.join(sources_dir, fn)
+            src_fn = os.path.join(module_source_dir, fn)
+            dst_fn = os.path.join(target_dir, fn)
             shutil.copyfile(src_fn, dst_fn)
 
             if not fn.endswith('.h'):
@@ -101,35 +88,31 @@ def copy_nonshared_sources(sources_dir):
     return sources
 
 
-def _create_patches(sip_module, pypi_name=''):
+def _create_patches(sip_module, abi_version, project=''):
     """ Return a dict of the patches. """
 
-    abi_major, abi_minor, abi_maintenance = _read_abi_version()
-    version = (abi_major << 16) | (abi_minor << 8) | abi_maintenance
-
-    version_str = '%d.%d' % (abi_major, abi_minor)
-    if abi_maintenance > 0:
-        version_str = '%s.%d' % (version_str, abi_maintenance)
-
     sip_module_parts = sip_module.split('.')
+    sip_module_package_name = '.'.join(sip_module_parts[:-1])
+    sip_module_name = sip_module_parts[-1]
 
     return {
-        '@SIP_MODULE_NAME@':    pypi_name,
-        '@SIP_MODULE_PACKAGE@': sip_module_parts[0],
-        '@SIP_MODULE_VERSION@': version_str,
+        # The public patches are those that might be needed in setup.cfg or any
+        # automatically generated user documentation.
+        '@SIP_MODULE_PROJECT_NAME@':    project,
+        '@SIP_MODULE_PACKAGE_NAME@':    sip_module_package_name,
+        '@SIP_MODULE_VERSION@':         get_sip_module_version(abi_version),
 
-        # These are internal.
-        '@_SIP_ABI_MAJOR@':     str(abi_major),
-        '@_SIP_ABI_MINOR@':     str(abi_minor),
-        '@_SIP_ABI_VERSION@':   hex(version),
-        '@_SIP_FQ_NAME@':       sip_module,
-        '@_SIP_BASE_NAME@':     sip_module_parts[-1],
-        '@_SIP_MODULE_SHARED@': '1' if sip_module else '0',
-        '@_SIP_MODULE_ENTRY@':  'PyInit_' + sip_module_parts[-1],
+        # These are internal to sip.h.
+        '@_SIP_MODULE_FQ_NAME@':        sip_module,
+        '@_SIP_MODULE_NAME@':           sip_module_name,
+        '@_SIP_MODULE_SHARED@':         '1' if sip_module else '0',
+        '@_SIP_MODULE_ENTRY@':          'PyInit_' + sip_module_name,
+        '@_SIP_VERSION@':               hex(SIP_VERSION),
+        '@_SIP_VERSION_STR@':           SIP_VERSION_STR
     }
 
 
-def _install_code(target_dir, patches, setup_cfg):
+def _install_code(abi_version, target_dir, patches, setup_cfg):
     """ Install the shared module code in a target directory. """
 
     # Remove any existing directory.
@@ -138,7 +121,9 @@ def _install_code(target_dir, patches, setup_cfg):
     os.mkdir(target_dir)
 
     # The source directory doesn't have sub-directories.
-    for name in os.listdir(_src_dir):
+    module_source_dir = get_module_source_dir(abi_version)
+
+    for name in os.listdir(module_source_dir):
         if name in ('sip.pyi', 'sip.rst.in'):
             continue
 
@@ -148,26 +133,27 @@ def _install_code(target_dir, patches, setup_cfg):
             # Don't install the default README if we are not using the default
             # setup.cfg.
             if name != 'README' or setup_cfg is None:
-                _install_source_file(name, target_dir, patches)
+                _install_source_file(name, module_source_dir, target_dir,
+                        patches)
         else:
-            shutil.copy(os.path.join(_src_dir, name), target_dir)
+            shutil.copy(os.path.join(module_source_dir, name), target_dir)
 
     # Overwrite setup.cfg is required.
     if setup_cfg is not None:
-        setup_cfg_text = _install_source_file(setup_cfg,
+        setup_cfg_text = _install_source_file(setup_cfg, module_source_dir,
                 os.path.join(target_dir, 'setup.cfg'), patches)
 
         # If the user's setup.cfg mentions sip.pyi then assume it is needed.
         if 'sip.pyi' in setup_cfg_text:
-            shutil.copy(os.path.join(_src_dir, 'sip.pyi'), target_dir)
+            shutil.copy(os.path.join(module_ourcec_dir, 'sip.pyi'), target_dir)
 
 
-def _install_source_file(name, target_dir, patches):
+def _install_source_file(name, module_source_dir, target_dir, patches):
     """ Install a source file in a target directory and return a copy of the
     contents of the file.
     """
 
-    return _install_file(os.path.join(_src_dir, name) + '.in',
+    return _install_file(os.path.join(module_source_dir, name) + '.in',
             os.path.join(target_dir, name), patches)
 
 
@@ -187,28 +173,3 @@ def _install_file(name_in, name_out, patches):
         f.write(data)
 
     return data
-
-
-def _read_abi_version():
-    """ Return a 3-tuple of the major, minor and maintenance version numbers of
-    the current ABI.
-    """
-
-    abi_major = abi_minor = abi_maintenance = -1
-
-    # Read the version from the header file shared with the code generator.
-    with open(os.path.join(os.path.dirname(__file__), 'abi_version.h')) as vf:
-        for line in vf:
-            parts = line.strip().split()
-            if len(parts) == 3 and parts[0] == '#define':
-                name = parts[1]
-                value = parts[2]
-
-                if name == 'SIP5_ABI_MAJOR':
-                    abi_major = int(value)
-                elif name == 'SIP5_ABI_MINOR':
-                    abi_minor = int(value)
-                elif name == 'SIP5_ABI_MAINTENANCE':
-                    abi_maintenance = int(value)
-
-    return abi_major, abi_minor, abi_maintenance

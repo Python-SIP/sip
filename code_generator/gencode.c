@@ -24,7 +24,7 @@
 #include <string.h>
 
 #include "sip.h"
-#include "../sip5/module/abi_version.h"
+#include "abi_version.h"
 
 
 /* Return the base (ie. C/C++) name of a super-type or meta-type. */
@@ -14682,8 +14682,5 @@ static void generate_include_sip_h(FILE *fp)
     prcode(fp,
 "\n"
 "#include \"sip.h\"\n"
-"#if SIP_API_MAJOR_NR != %d\n"
-"#error \"SIP is generating code for ABI v%d which is incompatible with sip.h.\"\n"
-"#endif\n"
-        , SIP5_ABI_MAJOR, SIP5_ABI_MAJOR);
+        );
 }

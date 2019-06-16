@@ -29,26 +29,34 @@ extern "C" {
 #endif
 
 
+/* The ABI version implemented. */
+#define SIP_ABI_MAJOR_VERSION       12
+#define SIP_ABI_MINOR_VERSION       6
+
+/* The patch version of this implementation of the ABI. */
+#define SIP_MODULE_PATCH_VERSION    0
+
+
 /* Sanity check on the Python version. */
 #if PY_VERSION_HEX < 0x03050000
 #error "This version of SIP requires Python v3.5 or later"
 #endif
 
 
-/*
- * Define the module name and version number.
- */
-#define SIP_MODULE_NAME     "@_SIP_FQ_NAME@"
-#define SIP_MODULE_BASENAME "@_SIP_BASE_NAME@"
+/* The version of the code generator. */
+#define SIP_VERSION                 @_SIP_VERSION@
+#define SIP_VERSION_STR             "@_SIP_VERSION_STR@"
 
-#define SIP_VERSION         @_SIP_ABI_VERSION@
-#define SIP_VERSION_STR     "@SIP_MODULE_VERSION@"
+/* These are all dependent on the user-specified name of the sip module. */
+#define _SIP_MODULE_FQ_NAME         "@_SIP_MODULE_FQ_NAME@"
+#define _SIP_MODULE_NAME            "@_SIP_MODULE_NAME@"
+#define _SIP_MODULE_SHARED          @_SIP_MODULE_SHARED@
+#define _SIP_MODULE_ENTRY           @_SIP_MODULE_ENTRY@
 
-#define SIP_API_MAJOR_NR    @_SIP_ABI_MAJOR@
-#define SIP_API_MINOR_NR    @_SIP_ABI_MINOR@
 
-#define _SIP_MODULE_SHARED  @_SIP_MODULE_SHARED@
-#define _SIP_MODULE_ENTRY   @_SIP_MODULE_ENTRY@
+/* Support the historical names. */
+#define SIP_API_MAJOR_NR    SIP_ABI_MAJOR_VERSION
+#define SIP_API_MINOR_NR    SIP_ABI_MINOR_VERSION
 
 
 /*

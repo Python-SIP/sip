@@ -51,10 +51,11 @@ The full set of command line options is:
     customised.  A number of macros may be specified in the :file:`setup.cfg`
     file:
 
-        ``@SIP_MODULE_NAME@`` is replaced by the fully qualified module name.
+        ``@SIP_MODULE_PACKAGE_NAME@`` is replaced by the name of the package
+        containing the ``sip`` module.
 
-        ``@SIP_MODULE_PACKAGE@`` is replaced by the name of the module's
-        package.
+        ``@SIP_MODULE_PROJECT_NAME@`` is replaced by the module's project name
+        as it would appear on PyPI.
 
         ``@SIP_MODULE_VERSION@`` is replaced by the version number of the
         module.

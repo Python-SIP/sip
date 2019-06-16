@@ -1106,7 +1106,7 @@ PyMODINIT_FUNC _SIP_MODULE_ENTRY(void)
 
     static PyModuleDef module_def = {
         PyModuleDef_HEAD_INIT,
-        SIP_MODULE_NAME,        /* m_name */
+        _SIP_MODULE_FQ_NAME,    /* m_name */
         NULL,                   /* m_doc */
         -1,                     /* m_size */
         methods,                /* m_methods */
@@ -1131,7 +1131,7 @@ PyMODINIT_FUNC _SIP_MODULE_ENTRY(void)
     mod_dict = PyModule_GetDict(mod);
 
     /* Publish the SIP API. */
-    if ((obj = PyCapsule_New((void *)api, SIP_MODULE_NAME "._C_API", NULL)) == NULL)
+    if ((obj = PyCapsule_New((void *)api, _SIP_MODULE_FQ_NAME "._C_API", NULL)) == NULL)
     {
         Py_DECREF(mod);
         return NULL;
@@ -1171,13 +1171,16 @@ PyMODINIT_FUNC _SIP_MODULE_ENTRY(void)
      * Also install the package-specific module at the top level for backwards
      * compatibility.
      */
-    if (strcmp(SIP_MODULE_NAME, "sip") != 0 && strcmp(SIP_MODULE_BASENAME, "sip") == 0)
+    /* TODO: replace with a single name derived from a new legacy-sip-module option */
+#if _SIP_MODULE_FQ_NAME != "sip" && _SIP_MODULE_NAME == "sip"
+    if (strcmp(_SIP_MODULE_FQ_NAME, "sip") != 0 && strcmp(_SIP_MODULE_NAME, "sip") == 0)
     {
         PyObject *modules = PySys_GetObject("modules");
 
         if (modules != NULL)
             PyDict_SetItemString(modules, "sip", mod);
     }
+#endif
 
     return mod;
 }

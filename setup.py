@@ -51,11 +51,10 @@ setup(
         version=version,
         license='SIP',
         python_requires='>=3.5',
-        install_requires=['toml'],
+        install_requires=['packaging', 'toml'],
         packages=find_packages(),
         package_data={
-            'sip5': ['abi_version.h'],
-            'sip5.module': ['source/*'],
+            'sip5.module': ['source/*/*'],
         },
         ext_modules=[code_gen_module],
         entry_points={
