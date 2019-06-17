@@ -129,13 +129,6 @@ class Project(Configurable):
         if os.path.isfile(project_py):
             shutil.copy(project_py, sdist_root)
 
-        # Copy in any sip.h file.
-        if self.sip_module and self.sip_h not in ('generate', 'installed'):
-            rel_sip_h = os.path.relpath(self.sip_h, self.root_dir)
-            target_sip_h = os.path.join(sdist_root, rel_sip_h)
-            self._ensure_subdirs_exist(target_sip_h)
-            shutil.copyfile(self.sip_h, target_sip_h)
-
         # Copy in the .sip files for each set of bindings.
         for bindings in self.bindings.values():
             self._install_sip_files(bindings, sdist_root)
@@ -354,17 +347,6 @@ class Project(Configurable):
             raise PyProjectOptionException('tool.sip.project', 'sip-module',
                     "must be defined when the project contains multiple sets "
                     "of bindings")
-
-        # Check we will have the sip.h file for any shared sip module.
-        if self.sip_module:
-            if self.sip_h not in ('generate', 'installed'):
-                self.sip_h = os.path.abspath(self.sip_h)
-
-                if os.path.commonprefix([self.sip_h, self.root_dir]) != self.root_dir:
-                    raise PyProjectOptionException('tool.sip.project',
-                            'sip-h',
-                            "the sip.h file must be in the '{0}' directory or "
-                            "a sub-directory".format(self.root_dir))
 
         # Verify the types of any install extras.
         def bad_extras():
@@ -683,7 +665,7 @@ class Project(Configurable):
 
             md_name = md_name.lower()
             if md_name == 'name':
-                if not md_value.isidentifier():
+                if not md_value.replace('-', '_').isidentifier():
                     raise PyProjectOptionException('tool.sip', 'name',
                             "'{0}' is an invalid project name".format(
                                     md_value))

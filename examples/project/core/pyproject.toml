@@ -11,5 +11,4 @@ name = "examples-core"
 name = "core"
 
 [tool.sip.project]
-sip-h = "generate"
 sip-module = "examples.sip"
