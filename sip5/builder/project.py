@@ -21,6 +21,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
+from collections import OrderedDict
 from distutils.sysconfig import get_python_lib
 import glob
 import importlib
@@ -32,7 +33,7 @@ import warnings
 
 from ..code_generator import set_globals
 from ..exceptions import UserException
-from ..module import copy_sip_h
+from ..module import copy_sip_h, resolve_abi_version
 from ..version import SIP_VERSION, SIP_VERSION_STR
 
 from .bindings import Bindings
@@ -48,6 +49,9 @@ class Project(Configurable):
 
     # The configurable options.
     _options = (
+        # The ABI version that the sip module should use.
+        Option('abi_version'),
+
         # The module:object of a callable that will return a Builder instance.
         Option('builder', default='sip5.builder:DistutilsBuilder'),
 
@@ -65,13 +69,6 @@ class Project(Configurable):
         # The list of extra files and directories, specified as glob patterns,
         # to be copied to an sdist.
         Option('sdist_extras', option_type=list),
-
-        # The location of the sip.h file.  If it is 'installed' then it is in
-        # the project's 'bindings' directory.  If it is 'generate' then a
-        # temporary copy is generated (and the user has to be careful about
-        # specifying compatible SIP ABIs).  Otherwise it is the name of a
-        # directory within the root directory.
-        Option('sip_h', default='installed'),
 
         # The list of additional directories to search for .sip files.
         Option('sip_include_dirs', option_type=list),
@@ -110,8 +107,7 @@ class Project(Configurable):
     def build(self):
         """ Build the project in-situ. """
 
-        sip_h_dir = self._get_sip_h_dir(self.target_dir)
-        self._build_modules(sip_h_dir)
+        self._build_modules()
 
     def build_sdist(self, sdist_directory='.'):
         """ Build an sdist for the project and return the name of the sdist
@@ -346,6 +342,9 @@ class Project(Configurable):
     def verify_configuration(self):
         """ Verify that the configuration is complete and consistent. """
 
+        # Make sure we have a valid ABI version.
+        self.abi_version = resolve_abi_version(self.abi_version)
+
         # Get the builder factory.
         self.builder = self._import_callable(self.builder, 'tool.sip.project',
                 'builder')
@@ -401,22 +400,15 @@ class Project(Configurable):
 
         installed = []
 
-        sip_h_dir = self._get_sip_h_dir(target_dir)
-
         # If we are using a copy of sip.h that is not already installed then
         # install it.
-        if self.sip_module and self.sip_h != 'installed':
+        if self.sip_module:
             bindings_dir = self._get_installed_bindings_dir(target_dir)
             os.makedirs(bindings_dir, exist_ok=True)
-
-            if self.sip_h != 'installed':
-                installed.append(
-                        self._install_file(os.path.join(sip_h_dir, 'sip.h'),
-                                bindings_dir))
         else:
             bindings_dir = None
 
-        for bindings, module, module_fn, pyi_file in self._build_modules(sip_h_dir):
+        for bindings, module, module_fn, pyi_file in self._build_modules():
             # Get the name of the individual module's directory.
             module_name_parts = module.split('.')
             parts = [target_dir]
@@ -467,11 +459,15 @@ class Project(Configurable):
 
         create_distinfo(self, installed, target_dir, wheel_tag=wheel_tag)
 
-    def _build_modules(self, sip_h_dir):
+    def _build_modules(self):
         """ Build the enabled extension modules and return a 4-tuple of the
         bindings object, the fully qualified module name, its pathname and the
         pathname of any .pyi file.
         """
+
+        # Generate the sip.h file for any shared sip module.
+        if self.sip_module:
+            copy_sip_h(self.abi_version, self.build_dir, self.sip_module)
 
         # Get the list of directories to search for .sip files.
         sip_include_dirs = list(self.sip_include_dirs)
@@ -495,7 +491,7 @@ class Project(Configurable):
                             bindings.sip_file))
 
             # Generate the source code.
-            generated = bindings.generate(sip_h_dir)
+            generated = bindings.generate()
 
             if generated.pyi_file is None:
                 pyi_file = None
@@ -596,28 +592,6 @@ class Project(Configurable):
 
         return os.path.join(*name_parts)
 
-    def _get_sip_h_dir(self, target_dir):
-        """ Return the name of the directory containing the sip.h file. """
-
-        if self.sip_module:
-            # Create the sip.h file if needed.
-            if self.sip_h == 'generate':
-                self.progress(
-                        "Generating a copy of sip.h for the {0} module".format(
-                                self.sip_module))
-
-                sip_h_dir = self.build_dir
-                # TODO: abi_version
-                copy_sip_h(self.sip_module, sip_h_dir)
-            elif self.sip_h == 'installed':
-                sip_h_dir = self._get_installed_bindings_dir(target_dir)
-            else:
-                sip_h_dir = self.sip_h
-        else:
-            sip_h_dir = None
-
-        return sip_h_dir
-
     @staticmethod
     def _import_callable(callable_name, section_name, name):
         """ Return a callable imported from a location specified as a value in
@@ -698,7 +672,7 @@ class Project(Configurable):
         metadata_version = None
 
         metadata = pyproject.get_section('tool.sip', required=True)
-        for md_name, md_value in self.metadata.items():
+        for md_name, md_value in metadata.items():
             # Ignore sub-sections.
             if pyproject.is_section(md_value):
                 continue
@@ -726,7 +700,7 @@ class Project(Configurable):
             raise PyProjectUndefinedOptionException('tool.sip', 'name')
 
         if self.version is None:
-            self.version = '1.0'
+            self.version = '0.1'
             self.metadata['version'] = self.version
 
         if metadata_version is None:

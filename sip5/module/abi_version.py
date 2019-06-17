@@ -67,10 +67,11 @@ def get_sip_module_version(abi_version):
 def resolve_abi_version(abi_version):
     """ Return a valided ABI version or the latest if none was given. """
 
-    if abi_version is None:
+    if abi_version:
+        if not os.path.isdir(get_module_source_dir(abi_version)):
+            raise UserException(
+                    "'{0}' is not a supported ABI version".format(abi_version))
+    else:
         abi_version = sorted(os.listdir(_module_source_dir), key=parse)[-1]
-    elif not os.path.isdir(get_module_source_dir(abi_version)):
-        raise UserException(
-                "'{0}' is not a supported ABI version".format(abi_version))
 
     return abi_version

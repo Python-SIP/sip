@@ -23,18 +23,18 @@
 
 from ...exceptions import handle_exception
 
-from ..package import Package
+from ..project import Project
 
 
 def main():
-    """ Build an sdist for the package from the command line. """
+    """ Build an sdist for the project from the command line. """
 
     try:
-        package = Package.factory(tool='sdist',
-                description="Build an sdist for the package.")
-        package.progress("Building an sdist")
-        package.build_sdist()
-        package.information("The sdist has been built.")
+        project = Project.factory(tool='sdist',
+                description="Build an sdist for the project.")
+        project.progress("Building an sdist")
+        project.build_sdist()
+        project.information("The sdist has been built.")
     except Exception as e:
         handle_exception(e)
 

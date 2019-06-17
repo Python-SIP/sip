@@ -122,7 +122,7 @@ class Bindings(Configurable):
             raise PyProjectUndefinedOptionException('tool.sip.bindings',
                     'name')
 
-    def generate(self, sip_h_dir):
+    def generate(self):
         """ Generate the bindings source code and optional additional extracts.
         Return a GeneratedBindings instance containing the details of
         everything that was generated.  The current directory is set to the
@@ -168,19 +168,25 @@ class Bindings(Configurable):
             generated.pyi_file = os.path.relpath(pyi_extract, sources_dir)
 
         # Generate the bindings.
-        sources = generateCode(pt, sources_dir, self.source_suffix,
-                self.exceptions, self.tracing, self.release_gil,
-                self.concatenate, self.tags, self.disabled_features,
-                self.docstrings, self.debug, self.project.sip_module)
+        abi_major, abi_minor = self.project.abi_version.split('.')
+        abi_version_nr = (int(abi_major) << 8) + int(abi_minor)
+
+        sources = generateCode(pt, abi_version_nr, sources_dir,
+                self.source_suffix, self.exceptions, self.tracing,
+                self.release_gil, self.concatenate, self.tags,
+                self.disabled_features, self.docstrings, self.debug,
+                self.project.sip_module)
 
         # Add the sip module code if it is not shared.
         include_dirs = [sources_dir]
 
-        if sip_h_dir is None:
-            # TODO: abi_version
-            sources.extend(copy_nonshared_sources(sources_dir))
+        if self.project.sip_module:
+            # sip.h will already be in the build directory.
+            include_dirs.append(self.project.build_dir)
         else:
-            include_dirs.append(sip_h_dir)
+            sources.extend(
+                    copy_nonshared_sources(self.project.abi_version,
+                            sources_dir))
 
         include_dirs.extend(self.include_dirs)
 

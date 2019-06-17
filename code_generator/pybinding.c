@@ -164,7 +164,7 @@ static PyObject *py_generateCode(PyObject *self, PyObject *args)
 {
     sipSpec *pt;
     char *codeDir, *srcSuffix, *sipName;
-    unsigned abi_version,
+    unsigned abi_version;
     int exceptions, tracing, releaseGIL, parts, docs, py_debug, action;
     stringList *versions, *xfeatures, *sources;
 

@@ -23,18 +23,18 @@
 
 from ...exceptions import handle_exception
 
-from ..package import Package
+from ..project import Project
 
 
 def main():
-    """ Install the package from the command line. """
+    """ Install the project from the command line. """
 
     try:
-        package = Package.factory(tool='install',
-                description="Install the package.")
-        package.progress("Installing the package")
-        package.install()
-        package.information("The package has been installed.")
+        project = Project.factory(tool='install',
+                description="Install the project.")
+        project.progress("Installing the project")
+        project.install()
+        project.information("The project has been installed.")
     except Exception as e:
         handle_exception(e)
 

@@ -23,18 +23,18 @@
 
 from ...exceptions import handle_exception
 
-from ..package import Package
+from ..project import Project
 
 
 def main():
-    """ Build the package in-situ from the command line. """
+    """ Build the project in-situ from the command line. """
 
     try:
-        package = Package.factory(tool='build',
-                description="Build the package in-situ.")
-        package.progress("Building the package")
-        package.build()
-        package.information("The package has been built.")
+        project = Project.factory(tool='build',
+                description="Build the project in-situ.")
+        project.progress("Building the project")
+        project.build()
+        project.information("The project has been built.")
     except Exception as e:
         handle_exception(e)
 

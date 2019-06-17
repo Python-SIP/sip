@@ -58,7 +58,7 @@ def module(sip_module, abi_version, project, sdist, setup_cfg):
         shutil.rmtree(sdist_dir)
 
 
-def copy_sip_h(sip_module, abi_version, target_dir):
+def copy_sip_h(abi_version, target_dir, sip_module=''):
     """ Copy the sip.h file. """
 
     patches = _create_patches(sip_module, abi_version)
@@ -66,11 +66,11 @@ def copy_sip_h(sip_module, abi_version, target_dir):
             target_dir, patches)
 
 
-def copy_nonshared_sources(sip_module, abi_version, target_dir):
+def copy_nonshared_sources(abi_version, target_dir):
     """ Copy the module sources as a non-shared module. """
 
     # Copy the patched sip.h.
-    copy_sip_h(sip_module, abi_version, target_dir)
+    copy_sip_h(abi_version, target_dir)
 
     # Copy the remaining source code.
     module_source_dir = get_module_source_dir(abi_version)
@@ -99,7 +99,7 @@ def _create_patches(sip_module, abi_version, project=''):
 
     # We special case this because this should be the only package requiring
     # the support.
-    legacy = (sip_module == 'PyQt5.sip)
+    legacy = (sip_module == 'PyQt5.sip')
 
     return {
         # The public patches are those that might be needed in setup.cfg or any

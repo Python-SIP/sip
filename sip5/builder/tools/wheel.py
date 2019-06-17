@@ -23,18 +23,18 @@
 
 from ...exceptions import handle_exception
 
-from ..package import Package
+from ..project import Project
 
 
 def main():
-    """ Build a wheel for the package from the command line. """
+    """ Build a wheel for the project from the command line. """
 
     try:
-        package = Package.factory(tool='wheel',
-                description="Build a wheel for the package.")
-        package.progress("Building a wheel")
-        package.build_wheel()
-        package.information("The wheel has been built.")
+        project = Project.factory(tool='wheel',
+                description="Build a wheel for the project.")
+        project.progress("Building a wheel")
+        project.build_wheel()
+        project.information("The wheel has been built.")
     except Exception as e:
         handle_exception(e)
 
