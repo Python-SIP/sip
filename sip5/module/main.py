@@ -36,8 +36,8 @@ def main():
     parser.add_argument(dest='sip_modules', nargs=1,
             help="the fully qualified name of the sip module", metavar="NAME")
 
-    parser.add_argument('--abi', dest='abi_version', help="the ABI version",
-            metavar="VERSION")
+    parser.add_argument('--abi-version', dest='abi_version',
+            help="the ABI version", metavar="VERSION")
 
     parser.add_argument('--no-sdist', dest='sdist', action='store_false',
             default=True, help="do not generate the sdist file")

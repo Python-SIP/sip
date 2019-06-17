@@ -24,7 +24,6 @@
 #include <string.h>
 
 #include "sip.h"
-#include "abi_version.h"
 
 
 /* Return the base (ie. C/C++) name of a super-type or meta-type. */
@@ -1869,7 +1868,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 "/* This defines this module. */\n"
 "sipExportedModuleDef sipModuleAPI_%s = {\n"
 "    0,\n"
-"    SIP_API_MINOR_NR,\n"
+"    SIP_ABI_MINOR_VERSION,\n"
 "    %n,\n"
 "    0,\n"
 "    sipStrings_%s,\n"
@@ -2022,7 +2021,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 
     prcode(fp,
 "    /* Export the module and publish it's API. */\n"
-"    if (sipExportModule(&sipModuleAPI_%s, SIP_API_MAJOR_NR, SIP_API_MINOR_NR, 0) < 0)\n"
+"    if (sipExportModule(&sipModuleAPI_%s, SIP_ABI_MAJOR_VERSION, SIP_ABI_MINOR_VERSION, 0) < 0)\n"
 "    {\n"
 "        Py_DECREF(sipModule);\n"
 "        return SIP_NULLPTR;\n"

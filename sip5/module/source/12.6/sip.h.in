@@ -23,25 +23,32 @@
 
 #include <Python.h>
 
+/* Sanity check on the Python version. */
+#if PY_VERSION_HEX < 0x03050000
+#error "This version of SIP requires Python v3.5 or later"
+#endif
+
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 
-/* The ABI version implemented. */
-#define SIP_ABI_MAJOR_VERSION       12
-#define SIP_ABI_MINOR_VERSION       6
-
 /* The patch version of this implementation of the ABI. */
 #define SIP_MODULE_PATCH_VERSION    0
 
 
-/* Sanity check on the Python version. */
-#if PY_VERSION_HEX < 0x03050000
-#error "This version of SIP requires Python v3.5 or later"
-#endif
+/*
+ * The changes to this version of the ABI.
+ *
+ * Added the '=' format character to sip_api_build_result().
+ * Added the '=' format character to sip_api_parse_result_ex().
+ */
 
+
+/* The ABI version implemented. */
+#define SIP_ABI_MAJOR_VERSION       @SIP_ABI_MAJOR_VERSION@
+#define SIP_ABI_MINOR_VERSION       @SIP_ABI_MINOR_VERSION@
 
 /* The version of the code generator. */
 #define SIP_VERSION                 @_SIP_VERSION@
@@ -53,7 +60,6 @@ extern "C" {
 #define _SIP_MODULE_SHARED          @_SIP_MODULE_SHARED@
 #define _SIP_MODULE_ENTRY           @_SIP_MODULE_ENTRY@
 #define _SIP_MODULE_LEGACY          @_SIP_MODULE_LEGACY@
-
 
 /* Support the historical names. */
 #define SIP_API_MAJOR_NR    SIP_ABI_MAJOR_VERSION

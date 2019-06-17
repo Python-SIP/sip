@@ -95,6 +95,8 @@ def _create_patches(sip_module, abi_version, project=''):
     sip_module_package_name = '.'.join(sip_module_parts[:-1])
     sip_module_name = sip_module_parts[-1]
 
+    abi_major, abi_minor = abi_version.split('.')
+
     # We special case this because this should be the only package requiring
     # the support.
     legacy = (sip_module == 'PyQt5.sip)
@@ -105,6 +107,10 @@ def _create_patches(sip_module, abi_version, project=''):
         '@SIP_MODULE_PROJECT_NAME@':    project,
         '@SIP_MODULE_PACKAGE_NAME@':    sip_module_package_name,
         '@SIP_MODULE_VERSION@':         get_sip_module_version(abi_version),
+
+        # For DRY.
+        '@SIP_ABI_MAJOR_VERSION@':      abi_major,
+        '@SIP_ABI_MINOR_VERSION@':      abi_minor,
 
         # These are internal to sip.h.
         '@_SIP_MODULE_FQ_NAME@':        sip_module,
