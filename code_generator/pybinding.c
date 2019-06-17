@@ -164,11 +164,13 @@ static PyObject *py_generateCode(PyObject *self, PyObject *args)
 {
     sipSpec *pt;
     char *codeDir, *srcSuffix, *sipName;
+    unsigned abi_version,
     int exceptions, tracing, releaseGIL, parts, docs, py_debug, action;
     stringList *versions, *xfeatures, *sources;
 
-    if (!PyArg_ParseTuple(args, "O&O&O&pppiO&O&ppz",
+    if (!PyArg_ParseTuple(args, "O&IO&O&pppiO&O&ppz",
             sipSpec_convertor, &pt,
+            &abi_version,
             fs_convertor, &codeDir,
             fs_convertor, &srcSuffix,
             &exceptions,
@@ -188,8 +190,9 @@ static PyObject *py_generateCode(PyObject *self, PyObject *args)
         return NULL;
     }
 
-    sources = generateCode(pt, codeDir, srcSuffix, exceptions, tracing,
-            releaseGIL, parts, versions, xfeatures, docs, py_debug, sipName);
+    sources = generateCode(pt, abi_version, codeDir, srcSuffix, exceptions,
+            tracing, releaseGIL, parts, versions, xfeatures, docs, py_debug,
+            sipName);
 
     return stringList_convert_from(sources);
 }

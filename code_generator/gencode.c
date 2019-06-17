@@ -300,10 +300,10 @@ static void generate_include_sip_h(FILE *fp);
 /*
  * Generate the code from a specification and return a list of generated files.
  */
-stringList *generateCode(sipSpec *pt, char *codeDir, const char *srcSuffix,
-        int except, int trace, int releaseGIL, int parts,
-        stringList *needed_qualifiers, stringList *xsl, int docs, int py_debug,
-        const char *sipName)
+stringList *generateCode(sipSpec *pt, unsigned abi_version, char *codeDir,
+        const char *srcSuffix, int except, int trace, int releaseGIL,
+        int parts, stringList *needed_qualifiers, stringList *xsl, int docs,
+        int py_debug, const char *sipName)
 {
     stringList *generated = NULL;
 
