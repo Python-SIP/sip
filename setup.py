@@ -60,6 +60,7 @@ setup(
         entry_points={
             'console_scripts': [
                 'sip5 = sip5.legacy.sip5:main',
+                'sip5-header = sip5.legacy.header:main',
                 'sip5-module = sip5.module.main:main',
                 'sip5-build = sip5.builder.tools.build:main',
                 'sip5-install = sip5.builder.tools.install:main',

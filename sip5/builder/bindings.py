@@ -169,9 +169,8 @@ class Bindings(Configurable):
 
         # Generate the bindings.
         abi_major, abi_minor = self.project.abi_version.split('.')
-        abi_version_nr = (int(abi_major) << 8) + int(abi_minor)
 
-        sources = generateCode(pt, abi_version_nr, sources_dir,
+        sources = generateCode(pt, int(abi_major), int(abi_minor), sources_dir,
                 self.source_suffix, self.exceptions, self.tracing,
                 self.release_gil, self.concatenate, self.tags,
                 self.disabled_features, self.docstrings, self.debug,

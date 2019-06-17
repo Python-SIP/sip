@@ -27,6 +27,7 @@ from ..argument_parser import ArgumentParser
 from ..code_generator import (set_globals, parse, generateCode,
         generateExtracts, generateAPI, generateXML, generateTypeHints)
 from ..exceptions import handle_exception, UserException
+from ..module import resolve_abi_version
 from ..version import SIP_VERSION, SIP_VERSION_STR
 
 
@@ -45,6 +46,9 @@ def main():
     parser.add_argument('-a', dest='api_extract',
             help="the name of the QScintilla API file [default not generated]",
             metavar="FILE")
+
+    parser.add_argument('--abi-version', dest='abi_version',
+            help="the ABI version", metavar="VERSION")
 
     parser.add_argument('-B', dest='backstops', action='append',
             help="add <TAG> to the list of timeline backstops",
@@ -137,8 +141,9 @@ def main():
 
     try:
         sip5(args.specification, sip_module=args.sip_module,
-                sources_dir=args.sources_dir, include_dirs=args.include_dirs,
-                tags=args.tags, backstops=args.backstops,
+                abi_version=args.abi_version, sources_dir=args.sources_dir,
+                include_dirs=args.include_dirs, tags=args.tags,
+                backstops=args.backstops,
                 disabled_features=args.disabled_features,
                 exceptions=args.exceptions, parts=args.parts,
                 source_suffix=args.source_suffix, docstrings=args.docstrings,
@@ -152,25 +157,28 @@ def main():
     return 0
 
 
-def sip5(specification, *, sip_module, sources_dir, include_dirs, tags, backstops, disabled_features, exceptions, parts, source_suffix, docstrings, protected_is_public, py_debug, release_gil, tracing, extracts, pyi_extract, api_extract):
+def sip5(specification, *, sip_module, abi_version, sources_dir, include_dirs, tags, backstops, disabled_features, exceptions, parts, source_suffix, docstrings, protected_is_public, py_debug, release_gil, tracing, extracts, pyi_extract, api_extract):
     """ Create the bindings for a C/C++ library. """
 
     # The code generator requires the name of the sip module.
     if sources_dir is not None and sip_module is None:
         raise UserException("the name of the sip module must be given")
 
+    # Check the ABI version.
+    abi_major, abi_minor = resolve_abi_version(abi_version).split('.')
+
     # Set the globals.
     set_globals(SIP_VERSION, SIP_VERSION_STR, UserException, include_dirs)
 
     # Parse the input file.
-    pt, _ = parse(specification, True, tags, backstops, disabled_features,
+    pt, _, _ = parse(specification, True, tags, backstops, disabled_features,
             protected_is_public)
 
     # Generate the bindings.
     if sources_dir is not None:
-        generateCode(pt, sources_dir, source_suffix, exceptions, tracing,
-                release_gil, parts, tags, disabled_features, docstrings,
-                py_debug, sip_module)
+        generateCode(pt, int(abi_major), int(abi_minor), sources_dir,
+                source_suffix, exceptions, tracing, release_gil, parts, tags,
+                disabled_features, docstrings, py_debug, sip_module)
 
     # Generate any extracts.
     generateExtracts(pt, extracts)
