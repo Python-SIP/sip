@@ -382,14 +382,6 @@ class Project(Configurable):
 
         installed = []
 
-        # If we are using a copy of sip.h that is not already installed then
-        # install it.
-        if self.sip_module:
-            bindings_dir = self._get_installed_bindings_dir(target_dir)
-            os.makedirs(bindings_dir, exist_ok=True)
-        else:
-            bindings_dir = None
-
         for bindings, module, module_fn, pyi_file in self._build_modules():
             # Get the name of the individual module's directory.
             module_name_parts = module.split('.')
@@ -405,8 +397,12 @@ class Project(Configurable):
             if pyi_file is not None:
                 installed.append(self._install_file(pyi_file, module_dir))
 
-            # Copy the .sip files.
-            if bindings_dir is not None:
+            # Write the configuration file and copy the .sip files.
+            if self.sip_module:
+                bindings_dir = self._get_bindings_dir(target_dir)
+
+                installed.append(bindings.write_configuration(bindings_dir))
+
                 installed.extend(
                         self._install_sip_files(bindings, bindings_dir))
 
@@ -447,17 +443,25 @@ class Project(Configurable):
         pathname of any .pyi file.
         """
 
-        # Generate the sip.h file for any shared sip module.
-        if self.sip_module:
-            copy_sip_h(self.abi_version, self.build_dir, self.sip_module)
-
         # Get the list of directories to search for .sip files.
         sip_include_dirs = list(self.sip_include_dirs)
 
         if self.sip_module:
+            # Add the project's sip directory.
             sip_include_dirs.append(self.sip_files_dir)
-            sip_include_dirs.append(
-                    self._get_installed_bindings_dir(self.target_dir))
+
+            # Add the bindings (specifically for the bindings .toml file) for
+            # this package.
+            local_bindings_dir = os.path.join(self.build_dir, 'bindings')
+            sip_include_dirs.append(local_bindings_dir)
+
+            # Add any bindings from previously installed packages.
+            sip_include_dirs.append(self._get_bindings_dir(self.target_dir))
+
+            # Generate the sip.h file for the shared sip module.
+            if self.sip_module:
+                copy_sip_h(self.abi_version, self.build_dir, self.sip_module)
+
 
         set_globals(SIP_VERSION, SIP_VERSION_STR, UserException,
                 sip_include_dirs)
@@ -471,6 +475,10 @@ class Project(Configurable):
             self.progress(
                     "Generating the bindings from {0}".format(
                             bindings.sip_file))
+
+            # Generate the bindings .toml file.
+            if self.sip_module:
+                bindings.write_configuration(local_bindings_dir)
 
             # Generate the source code.
             generated = bindings.generate()
@@ -565,8 +573,9 @@ class Project(Configurable):
 
         self._validate_enabled_bindings()
 
-    def _get_installed_bindings_dir(self, target_dir):
-        """ Return the name of the installed bindings directory. """
+    def _get_bindings_dir(self, target_dir):
+        """ Return the name of the bindings directory for a target directory.
+        """
 
         name_parts = self.sip_module.split('.')
         name_parts.insert(0, target_dir)
