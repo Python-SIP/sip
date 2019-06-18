@@ -12035,6 +12035,10 @@ static void newImport(const char *filename)
 
     if (mod == NULL)
     {
+        /* Read any configuration .toml file. */
+        parse_configuration_file(filename, &neededQualifiers,
+                &excludedQualifiers);
+
         newModule(NULL, filename);
         mod = currentModule;
     }

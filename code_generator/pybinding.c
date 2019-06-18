@@ -33,9 +33,9 @@ const char *sipVersionStr;
 stringList *includeDirList;
 
 /* Support for fatal error handling. */
-#define NO_EXCEPTION        0           /* No exception has been raised. */
-#define EXCEPTION_RAISED    1           /* An exception has been raised. */
-#define EXCEPTION_NEEDED    2           /* An exception needs to be raised. */
+#define NO_EXCEPTION        0           /* No exception has been set. */
+#define EXCEPTION_SET       1           /* An exception has been set. */
+#define EXCEPTION_NEEDED    2           /* An exception needs to be set. */
 
 static char error_text[1000];
 static jmp_buf on_fatal_error;
@@ -55,6 +55,7 @@ static int fs_convertor(PyObject *obj, char **fsp);
 static int sipSpec_convertor(PyObject *obj, sipSpec **ptp);
 static int stringList_convertor(PyObject *obj, stringList **slp);
 static PyObject *stringList_convert_from(stringList *sl);
+static void exception_set(void);
 
 
 /*
@@ -465,6 +466,15 @@ static void raise_exception(int action)
 
 
 /*
+ * Return to the Python interpreter after an exception has been set.
+ */
+static void exception_set(void)
+{
+    longjmp(on_fatal_error, EXCEPTION_SET);
+}
+
+
+/*
  * Display a warning message.
  */
 void warning(Warning w, const char *fmt, ...)
@@ -491,6 +501,18 @@ void warning(Warning w, const char *fmt, ...)
         warning_text[0] = '\0';
 
         if (ret < 0)
-            longjmp(on_fatal_error, EXCEPTION_RAISED);
+            exception_set();
     }
+}
+
+
+/*
+ * Parse any configuration .toml file and update the list of tags and disabled
+ * features.
+ */
+void parse_configuration_file(const char *sip_file, stringList **tags,
+        stringList **disabled)
+{
+    printf("Reading .toml file for %s\n", sip_file);
+    /*exception_set();*/
 }
