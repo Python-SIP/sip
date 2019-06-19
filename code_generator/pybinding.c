@@ -17,6 +17,7 @@
  */
 
 
+#include <assert.h>
 #include <setjmp.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -30,6 +31,8 @@
 /* Globals - see sip.h for their meanings. */
 unsigned sipVersion;
 const char *sipVersionStr;
+unsigned abiMajor;
+unsigned abiMinor;
 stringList *includeDirList;
 
 /* Support for fatal error handling. */
@@ -55,6 +58,7 @@ static int fs_convertor(PyObject *obj, char **fsp);
 static int sipSpec_convertor(PyObject *obj, sipSpec **ptp);
 static int stringList_convertor(PyObject *obj, stringList **slp);
 static PyObject *stringList_convert_from(stringList *sl);
+static int extend_stringList(stringList **slp, PyObject *py_list);
 static void exception_set(void);
 
 
@@ -95,9 +99,11 @@ PyMODINIT_FUNC PyInit_code_generator(void)
  */
 static PyObject *py_set_globals(PyObject *self, PyObject *args)
 {
-    if (!PyArg_ParseTuple(args, "IsOO&",
+    if (!PyArg_ParseTuple(args, "IsIIOO&",
             &sipVersion,
             &sipVersionStr,
+            &abiMajor,
+            &abiMinor,
             &exception_type,
             stringList_convertor, &includeDirList))
         return NULL;
@@ -165,14 +171,11 @@ static PyObject *py_generateCode(PyObject *self, PyObject *args)
 {
     sipSpec *pt;
     char *codeDir, *srcSuffix, *sipName;
-    unsigned abi_major, abi_minor;
     int exceptions, tracing, releaseGIL, parts, docs, py_debug, action;
     stringList *versions, *xfeatures, *sources;
 
-    if (!PyArg_ParseTuple(args, "O&IIO&O&pppiO&O&ppz",
+    if (!PyArg_ParseTuple(args, "O&O&O&pppiO&O&ppz",
             sipSpec_convertor, &pt,
-            &abi_major,
-            &abi_minor,
             fs_convertor, &codeDir,
             fs_convertor, &srcSuffix,
             &exceptions,
@@ -193,9 +196,8 @@ static PyObject *py_generateCode(PyObject *self, PyObject *args)
     }
 
 
-    sources = generateCode(pt, ((abi_major << 8) + abi_minor), codeDir,
-            srcSuffix, exceptions, tracing, releaseGIL, parts, versions,
-            xfeatures, docs, py_debug, sipName);
+    sources = generateCode(pt, codeDir, srcSuffix, exceptions, tracing,
+            releaseGIL, parts, versions, xfeatures, docs, py_debug, sipName);
 
     return stringList_convert_from(sources);
 }
@@ -364,18 +366,7 @@ static int stringList_convertor(PyObject *obj, stringList **slp)
         return 0;
     }
 
-    for (i = 0; i < PyList_GET_SIZE(obj); ++i)
-    {
-        PyObject *el;
-
-        if ((el = PyUnicode_EncodeLocale(PyList_GET_ITEM(obj, i), NULL)) == NULL)
-            return 0;
-
-        /* Leak the bytes object rather than strdup() its contents. */
-        appendString(slp, PyBytes_AS_STRING(el));
-    }
-
-    return 1;
+    return extend_stringList(slp, obj);
 }
 
 
@@ -412,6 +403,28 @@ static PyObject *stringList_convert_from(stringList *sl)
     }
 
     return pyl;
+}
+
+
+/*
+ * Extend a stringList by the contents fo a Python list of strings.
+ */
+static int extend_stringList(stringList **slp, PyObject *py_list)
+{
+    Py_ssize_t i;
+
+    for (i = 0; i < PyList_GET_SIZE(py_list); ++i)
+    {
+        PyObject *el = PyUnicode_EncodeLocale(PyList_GET_ITEM(py_list, i),
+                NULL);
+
+        if (el == NULL)
+            return 0;
+
+        appendString(slp, sipStrdup(PyBytes_AS_STRING(el)));
+    }
+
+    return 1;
 }
 
 
@@ -507,12 +520,64 @@ void warning(Warning w, const char *fmt, ...)
 
 
 /*
- * Parse any configuration .toml file and update the list of tags and disabled
- * features.
+ * Get the configuration of a set of bindings and update the list of tags and
+ * disabled features.
  */
-void parse_configuration_file(const char *sip_file, stringList **tags,
+void get_bindings_configuration(const char *sip_file, stringList **tags,
         stringList **disabled)
 {
-    printf("Reading .toml file for %s\n", sip_file);
-    /*exception_set();*/
+    static PyObject *get_bindings_configuration = NULL;
+
+    PyObject *sip_include_dirs, *res, *py_tags, *py_disabled;
+
+    /* Get the Python helper. */
+    if (get_bindings_configuration == NULL)
+    {
+        PyObject *mod;
+
+        if ((mod = PyImport_ImportModule("sip5.helpers")) == NULL)
+            exception_set();
+
+        get_bindings_configuration = PyObject_GetAttrString(mod,
+                "get_bindings_configuration");
+        Py_DECREF(mod);
+
+        if (get_bindings_configuration == NULL)
+            exception_set();
+    }
+
+    /* Call the helper. */
+    sip_include_dirs = stringList_convert_from(includeDirList);
+    res = PyObject_CallFunction(get_bindings_configuration, "IIsN", abiMajor,
+            abiMinor, sip_file, sip_include_dirs);
+
+    Py_XDECREF(sip_include_dirs);
+
+    if (res == NULL)
+        exception_set();
+
+    /* The result should be a 2-tuple of lists of strings. */
+    assert(PyTuple_Check(res));
+    assert(PyTuple_GET_SIZE(res) == 2);
+
+    py_tags = PyTuple_GET_ITEM(res, 0);
+    assert(PyList_Check(py_tags));
+
+    if (!extend_stringList(tags, py_tags))
+    {
+        Py_DECREF(res);
+        exception_set();
+    }
+
+    py_disabled = PyTuple_GET_ITEM(res, 0);
+    assert(PyList_Check(py_disabled));
+
+    if (!extend_stringList(disabled, py_disabled))
+    {
+        Py_DECREF(res);
+        exception_set();
+    }
+
+    /* Tidy up. */
+    Py_DECREF(res);
 }

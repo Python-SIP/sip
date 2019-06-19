@@ -169,13 +169,10 @@ class Bindings(Configurable):
             generated.pyi_file = os.path.relpath(pyi_extract, sources_dir)
 
         # Generate the bindings.
-        abi_major, abi_minor = self.project.abi_version.split('.')
-
-        sources = generateCode(pt, int(abi_major), int(abi_minor), sources_dir,
-                self.source_suffix, self.exceptions, self.tracing,
-                self.release_gil, self.concatenate, self.tags,
-                self.disabled_features, self.docstrings, self.debug,
-                self.project.sip_module)
+        sources = generateCode(pt, sources_dir, self.source_suffix,
+                self.exceptions, self.tracing, self.release_gil,
+                self.concatenate, self.tags, self.disabled_features,
+                self.docstrings, self.debug, self.project.sip_module)
 
         # Add the sip module code if it is not shared.
         include_dirs = [sources_dir]
