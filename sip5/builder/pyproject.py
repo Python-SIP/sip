@@ -24,16 +24,16 @@
 from collections import OrderedDict
 import toml
 
-from ..exceptions import UserException
+from ..exceptions import UserFileException, UserParseException
 
 
-class PyProjectException(UserException):
+class PyProjectException(UserFileException):
     """ An exception related to a pyproject.toml file. """
 
     def __init__(self, text, detail=''):
         """ Initialise the exception. """
 
-        super().__init__("pyproject.toml: " + text, detail=detail)
+        super().__init__("pyproject.toml", text, detail=detail)
 
 
 class PyProjectOptionException(PyProjectException):
@@ -65,7 +65,7 @@ class PyProject:
         try:
             self._pyproject = toml.load('pyproject.toml', _dict=OrderedDict)
         except Exception as e:
-            raise PyProjectException("unable to parse file", str(e))
+            raise UserParseException('pyproject.toml', detail=str(e))
 
     def get_section(self, section_name, required=False):
         """ Return a sub-section with a dotted name. """

@@ -39,6 +39,24 @@ class UserException(Exception):
         self.detail = detail
 
 
+class UserFileException(UserException):
+    """ An exception related to a specific file. """
+
+    def __init__(self, filename, text, detail=''):
+        """ Initialise the exception. """
+
+        super().__init__("{0}: {1}".format(filename, text), detail=detail)
+
+
+class UserParseException(UserFileException):
+    """ An exception related to the parsing of a specific file. """
+
+    def __init__(self, filename, detail=''):
+        """ Initialise the exception. """
+
+        super().__init__(filename, "unable to parse file", detail=detail)
+
+
 def handle_exception(e):
     """ Tell the user about an exception. """
 
