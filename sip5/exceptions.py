@@ -28,7 +28,7 @@ import sys
 class UserException(Exception):
     """ An exception capturing user friendly information. """
 
-    def __init__(self, text, detail=''):
+    def __init__(self, text, *, detail=''):
         """ Initialise the exception with its user friendly text and the
         optional detail.
         """
@@ -42,7 +42,7 @@ class UserException(Exception):
 class UserFileException(UserException):
     """ An exception related to a specific file. """
 
-    def __init__(self, filename, text, detail=''):
+    def __init__(self, filename, text, *, detail=''):
         """ Initialise the exception. """
 
         super().__init__("{0}: {1}".format(filename, text), detail=detail)
@@ -51,7 +51,7 @@ class UserFileException(UserException):
 class UserParseException(UserFileException):
     """ An exception related to the parsing of a specific file. """
 
-    def __init__(self, filename, detail=''):
+    def __init__(self, filename, *, detail=''):
         """ Initialise the exception. """
 
         super().__init__(filename, "unable to parse file", detail=detail)

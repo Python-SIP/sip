@@ -120,8 +120,8 @@ class Bindings(Configurable):
 
         # We need to ensure the bindings have a name as soon as possible.
         if not self.name:
-            raise PyProjectUndefinedOptionException('tool.sip.bindings',
-                    'name')
+            raise PyProjectUndefinedOptionException('name',
+                    section_name='tool.sip.bindings')
 
     def generate(self):
         """ Generate the bindings source code and optional additional extracts.
@@ -262,9 +262,12 @@ class Bindings(Configurable):
         # Check the .sip file exists.
         sip_path = os.path.join(self.project.sip_files_dir, self.sip_file)
         if not os.path.isfile(sip_path):
-            raise PyProjectOptionException(
-                    'tool.sip.bindings', 'sip-file',
-                    "the file '{0}' for the '{1}' bindings does not exist".format(os.path.relpath(sip_path, self.project.root_dir), self.name))
+            raise PyProjectOptionException('sip-file',
+                    "the file '{0}' for the '{1}' bindings does not "
+                            "exist".format(
+                                    os.path.relpath(sip_path,
+                                            self.project.root_dir), self.name),
+                    section_name='tool.sip.bindings')
 
         if not self.source_suffix:
             self.source_suffix = None

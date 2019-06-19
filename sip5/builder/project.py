@@ -138,9 +138,9 @@ class Project(Configurable):
             extra = os.path.abspath(extra)
 
             if os.path.commonprefix([extra, self.root_dir]) != self.root_dir:
-                raise PyProjectOptionException('tool.sip.project',
-                        'sdist-extras',
-                        "must all be in the '{0}' directory or a sub-directory".format(self.root_dir))
+                raise PyProjectOptionException('sdist-extras',
+                        "must all be in the '{0}' directory or a "
+                                "sub-directory".format(self.root_dir))
 
             extra = os.path.relpath(extra, self.root_dir)
 
@@ -347,16 +347,15 @@ class Project(Configurable):
 
         # Check we have the name of the sip module if it is shared.
         if len(self.bindings) > 1 and not self.sip_module:
-            raise PyProjectOptionException('tool.sip.project', 'sip-module',
+            raise PyProjectOptionException('sip-module',
                     "must be defined when the project contains multiple sets "
-                    "of bindings")
+                            "of bindings")
 
         # Verify the types of any install extras.
         def bad_extras():
-            raise PyProjectOptionException('tool.sip.project',
-                    'install-extras',
+            raise PyProjectOptionException('install-extras',
                     "each element must be a sub-list of a source file or "
-                    "directory and an optional destination directory")
+                            "directory and an optional destination directory")
 
         for extra in self.install_extras:
             if not isinstance(extra, list):
@@ -501,7 +500,7 @@ class Project(Configurable):
                     library_dirs=bindings.library_dirs)
 
             if not isinstance(builder, Builder):
-                raise PyProjectOptionException('tool.sip.project', 'builder',
+                raise PyProjectOptionException('builder',
                         "did not return a Builder instance")
 
             self.progress(
@@ -596,8 +595,9 @@ class Project(Configurable):
         # Extract the module and object names.
         parts = callable_name.split(':')
         if len(parts) != 2:
-            raise PyProjectOptionException(section_name, name,
-                    "must be defined as 'module:name'")
+            raise PyProjectOptionException(name,
+                    "must be defined as 'module:name'",
+                    section_name=section_name)
 
         module_name, obj_name = parts
 
@@ -605,16 +605,17 @@ class Project(Configurable):
         try:
             module = importlib.import_module(module_name)
         except ImportError as e:
-            raise PyProjectOptionException(section_name, name,
+            raise PyProjectOptionException(name,
                     "unable to import '{0}'".format(module_name),
-                    detail=str(e))
+                    section_name=section_name, detail=str(e))
 
         # Get the callable.
         obj = getattr(module, obj_name)
         if obj is None:
-            raise PyProjectOptionException(section_name, name,
+            raise PyProjectOptionException(name,
                     "'{0}' module has no callable '{1}'".format(module_name,
-                            obj_name))
+                            obj_name),
+                    section_name=section_name)
 
         return obj
 
@@ -673,15 +674,16 @@ class Project(Configurable):
                 continue
 
             if not isinstance(md_value, str):
-                raise PyProjectOptionException('tool.sip', md_name,
-                        "must be a string")
+                raise PyProjectOptionException(md_name, "must be a string",
+                        section_name='tool.sip')
 
             md_name = md_name.lower()
             if md_name == 'name':
                 if not md_value.replace('-', '_').isidentifier():
-                    raise PyProjectOptionException('tool.sip', 'name',
+                    raise PyProjectOptionException('name',
                             "'{0}' is an invalid project name".format(
-                                    md_value))
+                                    md_value),
+                            section_name='tool.sip')
 
                 self.name = md_value
             elif md_name == 'version':
@@ -692,7 +694,8 @@ class Project(Configurable):
             self.metadata[md_name] = md_value
 
         if self.name is None:
-            raise PyProjectUndefinedOptionException('tool.sip', 'name')
+            raise PyProjectUndefinedOptionException('name',
+                    section_name='tool.sip')
 
         if self.version is None:
             self.version = '0.1'

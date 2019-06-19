@@ -128,15 +128,16 @@ class Configurable:
                 if option.user_name == name:
                     break
             else:
-                raise PyProjectOptionException(section_name, name,
-                        "is not a supported option")
+                raise PyProjectOptionException(name,
+                        "is not a supported option", section_name=section_name)
 
             # Check the type of the option.
             if not isinstance(value, option.option_type):
-                raise PyProjectOptionException(section_name, name,
+                raise PyProjectOptionException(name,
                         "should be of type '{0}' and not '{1}'".format(
                                 option.option_type.__name__,
-                                type(value).__name__))
+                                type(value).__name__),
+                        section_name=section_name)
 
             setattr(self, option.name, value)
 

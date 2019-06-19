@@ -22,7 +22,8 @@
 
 
 # Publish the public API.
-from .bindings import Bindings, GeneratedBindings
 from .builder import Builder, DistutilsBuilder
-from .configurable import Configurable, Option
+from .configurable import Option
 from .project import Project
+from .pyproject import (PyProjectOptionException,
+        PyProjectUndefinedOptionException)

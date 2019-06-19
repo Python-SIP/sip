@@ -30,7 +30,7 @@ from ..exceptions import UserFileException, UserParseException
 class PyProjectException(UserFileException):
     """ An exception related to a pyproject.toml file. """
 
-    def __init__(self, text, detail=''):
+    def __init__(self, text, *, detail=''):
         """ Initialise the exception. """
 
         super().__init__("pyproject.toml", text, detail=detail)
@@ -39,8 +39,11 @@ class PyProjectException(UserFileException):
 class PyProjectOptionException(PyProjectException):
     """ An exception related to a specific option of a pyproject.toml file. """
 
-    def __init__(self, section_name, name, text, detail=''):
+    def __init__(self, name, text, *, section_name=None, detail=''):
         """ Initialise the exception. """
+
+        if section_name is None:
+            section_name = 'tool.sip.project'
 
         super().__init__("'{0}.{1}' {2}".format(section_name, name, text),
                 detail=detail)
@@ -50,7 +53,7 @@ class PyProjectUndefinedOptionException(PyProjectOptionException):
     """ An exception related to an undefined option of a pyproject.toml file.
     """
 
-    def __init__(self, section_name, name):
+    def __init__(self, name, *, section_name=None):
         """ Initialise the exception. """
 
         super().__init__(section_name, name, "must be defined")

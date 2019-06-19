@@ -1,7 +1,4 @@
-import sys
-
-from sip5 import UserException
-from sip5.builder import Option, Project
+from sip5.builder import Option, Project, PyProjectOptionException
 
 
 class CoreProject(Project):
@@ -26,21 +23,23 @@ class CoreProject(Project):
         if self.platform:
             # The option was set in pyproject.toml so we just verify the value.
             if self.platform not in ('Linux', 'macOS', 'Windows'):
-                raise UserException(
+                raise PyProjectOptionException('platform',
                         "'{0}' is not a valid platform".format(self.platform))
         else:
-            # The option wasn't specified in # pyproject.toml so we introspect
+            # The option wasn't specified in pyproject.toml so we introspect
             # the system.
-            if sys.platform == 'linux':
+
+            from sys import platform
+
+            if platform == 'linux':
                 self.platform = 'Linux'
-            elif sys.platform == 'darwin':
+            elif platform == 'darwin':
                 self.platform = 'macOS'
-            elif sys.platform == 'win32':
+            elif platform == 'win32':
                 self.platform = 'Windows'
             else:
-                raise UserException(
-                        "the '{0}' platform is not supported".format(
-                                sys.platform))
+                raise PyProjectOptionException('platform',
+                        "the '{0}' platform is not supported".format(platform))
 
         # Get the 'core' bindings and add the platform to the list of tags.
         core_bindings = self.bindings['core']
