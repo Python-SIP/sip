@@ -141,9 +141,9 @@ class Configurable:
             setattr(self, option.name, value)
 
     def get_options(self):
-        """ Return a sequence of configurable options. """
+        """ Return a list of configurable options. """
 
-        return ()
+        return list()
 
     def verify_configuration(self):
         """ Verify that the configuration is complete and consistent. """

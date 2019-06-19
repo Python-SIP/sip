@@ -4,11 +4,16 @@
 
 %Import core/core.sip
 
-class ExtrasObject
-{
-%TypeHeaderCode
-class ExtrasObject
-{
-};
+%If (!Windows)
+bool am_i_posix();
+%MethodCode
+    sipRes = true;
 %End
-};
+%End
+
+%If (Windows)
+bool am_i_posix();
+%MethodCode
+    sipRes = false;
+%End
+%End

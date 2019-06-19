@@ -196,9 +196,12 @@ class Bindings(Configurable):
         return generated
 
     def get_options(self):
-        """ Return a sequence of configurable options. """
+        """ Return the list of configurable options. """
 
-        return self._options
+        options = super().get_options()
+        options.extend(self._options)
+
+        return options
 
     def get_sip_files(self):
         """ Return a list of .sip files that define the bindings.  These should

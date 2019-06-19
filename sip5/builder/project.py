@@ -301,9 +301,13 @@ class Project(Configurable):
         return project
 
     def get_options(self):
-        """ Return a sequence of configurable options. """
+        """ Return the list of configurable options. """
 
-        return self._options + self._multibindings_options
+        options = super().get_options()
+        options.extend(self._options)
+        options.extend(self._multibindings_options)
+
+        return options
 
     def information(self, message):
         """ Print an informational message if verbose messages are enabled. """
@@ -325,9 +329,8 @@ class Project(Configurable):
 
     def update(self):
         """ This should be re-implemented by any user supplied sub-class to
-        carry out any updates to the configuration (including the removal of
-        entire sets of bindings) as required.  The current directory will be
-        the temporary build directory.
+        carry out any updates to the configuration as required.  The current
+        directory will be the temporary build directory.
         """
 
         # This default implementation does nothing.

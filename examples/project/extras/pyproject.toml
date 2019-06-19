@@ -3,12 +3,14 @@
 requires = ["sip >=4.20.0, <5.1"]
 build-backend = "sip5.builder.api"
 
-# Specify the PEP 522 metadata for the package.  The 'name' is required.
+# Specify the PEP 522 metadata for the project.
 [tool.sip]
 name = "examples-extras"
 
+# Specify each set of bindings.
 [[tool.sip.bindings]]
 name = "extras"
 
+# Configure the project itself.
 [tool.sip.project]
 sip-module = "examples.sip"
