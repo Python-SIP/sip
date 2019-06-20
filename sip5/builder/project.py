@@ -179,6 +179,11 @@ class Project(Configurable):
         """
 
         # Create the wheel tag.
+        # TODO: If all bindings use the limited API (need to extract that from
+        #   the parser) then include supported Python versions in the tag.  The
+        #   minimum version can be extracted from the metadata
+        #   'requires-python' and the maximum defined in pyproject.toml (and
+        #   default to a hardcoded value - the latest stable version + 1).
         major_minor = '{}{}'.format((sys.hexversion >> 24) & 0xff,
                 (sys.hexversion >> 16) & 0xff)
         wheel_tag = 'cp{}'.format(major_minor)
@@ -665,6 +670,7 @@ class Project(Configurable):
         self.name = None
         self.version = None
         metadata_version = None
+        requires_python = None
 
         metadata = pyproject.get_section('tool.sip', required=True)
         for md_name, md_value in metadata.items():
@@ -689,6 +695,8 @@ class Project(Configurable):
                 self.version = md_value
             elif md_name == 'metadata-version':
                 metadata_version = md_value
+            elif md_name == 'requires-python':
+                requires_python = md_value
 
             self.metadata[md_name] = md_value
 
@@ -704,8 +712,12 @@ class Project(Configurable):
             # Default to PEP 566.
             self.metadata['metadata-version'] = '2.1'
 
+        if requires_python is None:
+            # The minimal version of Python we support.
+            self.metadata['requires-python'] = '>=3.5'
+
         # This is cosmetic.
-        for name in ('version', 'name', 'metadata-version'):
+        for name in ('requires-python', 'version', 'name', 'metadata-version'):
             self.metadata.move_to_end(name, last=False)
 
         # Get the project configuration.

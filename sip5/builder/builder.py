@@ -24,6 +24,16 @@
 from abc import ABC, abstractmethod
 
 
+# TODO: There should be one builder per project (not per bindings). There
+#   should be separate prepare and compile stages.  sip5-build should have a
+#   --no-compile option.  The distutils builder will do nothing in prepare().
+#   Probably need the concept of a component. A BindingsComponent will be the
+#   only type (initially) supported by the distutils builder.
+#   Should installation also be handled by the builder? If so the distutils
+#   builder will need to handle the installation of other components (eg.
+#   .sip files, .toml file).  This will allow 'make install' to work for the
+#   qmake builder but will require it to create the .dist-info directory, so
+#   would need a sip5-distinfo tool.
 class Builder(ABC):
     """ The encapsulation of a code builder. """
 
@@ -59,6 +69,8 @@ class Builder(ABC):
         """
 
 
+# TODO: Make sure the correctly named .so files are created when the limited
+#   API is specified.
 class DistutilsBuilder(Builder):
     """ The implementation of a distutils-based code builder. """
 
