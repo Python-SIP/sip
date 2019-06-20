@@ -168,7 +168,8 @@ def sip5(specification, *, sip_module, abi_version, sources_dir, include_dirs, t
     abi_major, abi_minor = resolve_abi_version(abi_version).split('.')
 
     # Set the globals.
-    set_globals(SIP_VERSION, SIP_VERSION_STR, UserException, include_dirs)
+    set_globals(SIP_VERSION, SIP_VERSION_STR, int(abi_major), int(abi_minor),
+            UserException, include_dirs)
 
     # Parse the input file.
     pt, _, _ = parse(specification, True, tags, backstops, disabled_features,
@@ -176,9 +177,9 @@ def sip5(specification, *, sip_module, abi_version, sources_dir, include_dirs, t
 
     # Generate the bindings.
     if sources_dir is not None:
-        generateCode(pt, int(abi_major), int(abi_minor), sources_dir,
-                source_suffix, exceptions, tracing, release_gil, parts, tags,
-                disabled_features, docstrings, py_debug, sip_module)
+        generateCode(pt, sources_dir, source_suffix, exceptions, tracing,
+                release_gil, parts, tags, disabled_features, docstrings,
+                py_debug, sip_module)
 
     # Generate any extracts.
     generateExtracts(pt, extracts)
