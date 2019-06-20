@@ -464,7 +464,6 @@ class Project(Configurable):
             if self.sip_module:
                 copy_sip_h(self.abi_version, self.build_dir, self.sip_module)
 
-
         abi_major, abi_minor = self.abi_version.split('.')
         set_globals(SIP_VERSION, SIP_VERSION_STR, int(abi_major),
                 int(abi_minor), UserException, sip_include_dirs)
