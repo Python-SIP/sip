@@ -101,6 +101,9 @@ static PyTypeObject sipWrapperType_Type = {
     0,                      /* tp_del */
     0,                      /* tp_version_tag */
     0,                      /* tp_finalize */
+#if PY_VERSION_HEX >= 0x03080000
+    0,                      /* tp_vectorcall */
+#endif
 };
 
 
@@ -166,6 +169,9 @@ static sipWrapperType sipWrapper_Type = {
             0,              /* tp_del */
             0,              /* tp_version_tag */
             0,              /* tp_finalize */
+#if PY_VERSION_HEX >= 0x03080000
+            0,              /* tp_vectorcall */
+#endif
         },
         {
             0,              /* am_await */
@@ -752,6 +758,9 @@ static PyTypeObject sipEnumType_Type = {
     0,                      /* tp_del */
     0,                      /* tp_version_tag */
     0,                      /* tp_finalize */
+#if PY_VERSION_HEX >= 0x03080000
+    0,                      /* tp_vectorcall */
+#endif
 };
 
 
@@ -10897,6 +10906,9 @@ sipWrapperType sipSimpleWrapper_Type = {
             0,              /* tp_del */
             0,              /* tp_version_tag */
             0,              /* tp_finalize */
+#if PY_VERSION_HEX >= 0x03080000
+            0,              /* tp_vectorcall */
+#endif
         },
         {
             0,              /* am_await */

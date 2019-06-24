@@ -104,6 +104,9 @@ PyTypeObject sipMethodDescr_Type = {
     0,                      /* tp_del */
     0,                      /* tp_version_tag */
     0,                      /* tp_finalize */
+#if PY_VERSION_HEX >= 0x03080000
+    0,                      /* tp_vectorcall */
+#endif
 };
 
 
@@ -303,6 +306,9 @@ PyTypeObject sipVariableDescr_Type = {
     0,                      /* tp_del */
     0,                      /* tp_version_tag */
     0,                      /* tp_finalize */
+#if PY_VERSION_HEX >= 0x03080000
+    0,                      /* tp_vectorcall */
+#endif
 };
 
 
