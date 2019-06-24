@@ -353,8 +353,6 @@ static int sipSpec_convertor(PyObject *obj, sipSpec **ptp)
  */
 static int stringList_convertor(PyObject *obj, stringList **slp)
 {
-    Py_ssize_t i;
-
     *slp = NULL;
 
     if (obj == Py_None)
