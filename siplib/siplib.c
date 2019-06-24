@@ -1,7 +1,7 @@
 /*
  * SIP library code.
  *
- * Copyright (c) 2018 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2019 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -121,6 +121,9 @@ static PyTypeObject sipWrapperType_Type = {
 #if PY_VERSION_HEX >= 0x03040000
     0,                      /* tp_finalize */
 #endif
+#if PY_VERSION_HEX >= 0x03080000
+    0,                      /* tp_vectorcall */
+#endif
 };
 
 
@@ -189,6 +192,9 @@ static sipWrapperType sipWrapper_Type = {
 #endif
 #if PY_VERSION_HEX >= 0x03040000
             0,              /* tp_finalize */
+#endif
+#if PY_VERSION_HEX >= 0x03080000
+            0,              /* tp_vectorcall */
 #endif
         },
 #if PY_VERSION_HEX >= 0x03050000
@@ -810,6 +816,9 @@ static PyTypeObject sipEnumType_Type = {
     0,                      /* tp_version_tag */
 #if PY_VERSION_HEX >= 0x03040000
     0,                      /* tp_finalize */
+#endif
+#if PY_VERSION_HEX >= 0x03080000
+    0,                      /* tp_vectorcall */
 #endif
 };
 
@@ -11541,6 +11550,9 @@ sipWrapperType sipSimpleWrapper_Type = {
             0,              /* tp_version_tag */
 #if PY_VERSION_HEX >= 0x03040000
             0,              /* tp_finalize */
+#endif
+#if PY_VERSION_HEX >= 0x03080000
+            0,              /* tp_vectorcall */
 #endif
         },
 #if PY_VERSION_HEX >= 0x03050000
