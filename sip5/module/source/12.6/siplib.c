@@ -5926,11 +5926,18 @@ void sip_api_instance_destroyed(sipSimpleWrapper *sw)
  */
 static void sip_api_instance_destroyed_ex(sipSimpleWrapper **sipSelfp)
 {
+    /* If there is no interpreter just to the minimum and get out. */
+    if (sipInterpreter == NULL)
+    {
+        *sipSelfp = NULL;
+        return;
+    }
+
     SIP_BLOCK_THREADS
 
     sipSimpleWrapper *sipSelf = *sipSelfp;
 
-    if (sipSelf != NULL && sipInterpreter != NULL)
+    if (sipSelf != NULL)
     {
         PyObject *xtype, *xvalue, *xtb;
 
@@ -5961,15 +5968,15 @@ static void sip_api_instance_destroyed_ex(sipSimpleWrapper **sipSelfp)
         {
             removeFromParent((sipWrapper *)sipSelf);
         }
-    }
 
-    /*
-     * Normally this is done in the generated dealloc function.  However this
-     * is only called if the pointer/access function has not been reset (which
-     * it has).  It acts as a guard to prevent any further invocations of 
-     * reimplemented virtuals.
-     */
-    *sipSelfp = NULL;
+        /*
+         * Normally this is done in the generated dealloc function.  However
+         * this is only called if the pointer/access function has not been
+         * reset (which it has).  It acts as a guard to prevent any further
+         * invocations of reimplemented virtuals.
+         */
+        *sipSelfp = NULL;
+    }
 
     SIP_UNBLOCK_THREADS
 }
