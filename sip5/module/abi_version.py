@@ -61,7 +61,7 @@ def get_sip_module_version(abi_version):
                     "'SIP_MODULE_PATCH_VERSION' not found for ABI {0}".format(
                             abi_version))
 
-    return abi_version if patch_version == '0' else abi_version + '.' + patch_version
+    return abi_version + '.' + patch_version
 
 
 def resolve_abi_version(abi_version):
