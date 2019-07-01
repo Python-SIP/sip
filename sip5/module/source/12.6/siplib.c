@@ -990,11 +990,11 @@ static int long_as_nonoverflow_int(PyObject *val_obj);
 const sipAPIDef *sip_init_library(void)
 {
     static PyMethodDef tu_md = {
-        "_unpickle_type", unpickle_type, METH_NOARGS, NULL
+        "_unpickle_type", unpickle_type, METH_VARARGS, NULL
     };
 
     static PyMethodDef eu_md = {
-        "_unpickle_enum", unpickle_enum, METH_NOARGS, NULL
+        "_unpickle_enum", unpickle_enum, METH_VARARGS, NULL
     };
 
     /*
@@ -1168,6 +1168,13 @@ PyMODINIT_FUNC _SIP_MODULE_ENTRY(void)
         Py_DECREF(obj);
     }
 
+    /*
+     * TODO: we need to add all the objects added to the sip module to the top
+     * level package when there is no shared sip module (maybe with a sip
+     * prefix).  We can't just ignore them - pickling wouldn't work for one
+     * thing.
+     */
+
     /* Add the type objects, but don't worry about errors. */
     PyDict_SetItemString(mod_dict, "wrappertype",
             (PyObject *)&sipWrapperType_Type);
@@ -1175,6 +1182,10 @@ PyMODINIT_FUNC _SIP_MODULE_ENTRY(void)
             (PyObject *)&sipSimpleWrapper_Type);
     PyDict_SetItemString(mod_dict, "wrapper", (PyObject *)&sipWrapper_Type);
     PyDict_SetItemString(mod_dict, "voidptr", (PyObject *)&sipVoidPtr_Type);
+
+    /* Add the unpicklers, but don't worry about errors. */
+    PyDict_SetItemString(mod_dict, "_unpickle_type", type_unpickler);
+    PyDict_SetItemString(mod_dict, "_unpickle_enum", enum_unpickler);
 
 #if _SIP_MODULE_LEGACY
     {
