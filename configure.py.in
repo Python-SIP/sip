@@ -974,7 +974,7 @@ def main(argv):
     # Check the module name is valid.
     for m in module_path:
         # Python v2 doesn't have isidentifier() but we don't bother to provide
-        # an alternative.
+        # an alternative.
         try:
             if keyword.iskeyword(m) or not m.isidentifier():
                 siputils.error(
