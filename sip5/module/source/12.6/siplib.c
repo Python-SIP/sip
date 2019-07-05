@@ -982,20 +982,43 @@ static int convert_to_enum(PyObject *obj, const sipTypeDef *td, int allow_int);
 static void handle_failed_int_conversion(sipParseFailure *pf, PyObject *arg);
 static void enum_expected(PyObject *obj, const sipTypeDef *td);
 static int long_as_nonoverflow_int(PyObject *val_obj);
+static int dict_set_and_discard(PyObject *dict, const char *name,
+        PyObject *obj);
 
 
 /*
  * Initialise the module as a library.
  */
-const sipAPIDef *sip_init_library(void)
+const sipAPIDef *sip_init_library(PyObject *mod_dict)
 {
-    static PyMethodDef tu_md = {
-        "_unpickle_type", unpickle_type, METH_VARARGS, NULL
+    static PyMethodDef methods[] = {
+        /* This must be first. */
+        {"_unpickle_enum", unpickle_enum, METH_VARARGS, NULL},
+        /* This must be second. */
+        {"_unpickle_type", unpickle_type, METH_VARARGS, NULL},
+        {"assign", assign, METH_VARARGS, NULL},
+        {"cast", cast, METH_VARARGS, NULL},
+        {"delete", callDtor, METH_VARARGS, NULL},
+        {"dump", dumpWrapper, METH_O, NULL},
+        {"enableautoconversion", enableAutoconversion, METH_VARARGS, NULL},
+        {"enableoverflowchecking", sipEnableOverflowChecking, METH_VARARGS, NULL},
+        {"getapi", sipGetAPI, METH_VARARGS, NULL},
+        {"isdeleted", isDeleted, METH_VARARGS, NULL},
+        {"ispycreated", isPyCreated, METH_VARARGS, NULL},
+        {"ispyowned", isPyOwned, METH_VARARGS, NULL},
+        {"setapi", sipSetAPI, METH_VARARGS, NULL},
+        {"setdeleted", setDeleted, METH_VARARGS, NULL},
+        {"setdestroyonexit", setDestroyOnExit, METH_VARARGS, NULL},
+        {"settracemask", setTraceMask, METH_VARARGS, NULL},
+        {"transferback", transferBack, METH_VARARGS, NULL},
+        {"transferto", transferTo, METH_VARARGS, NULL},
+        {"wrapinstance", wrapInstance, METH_VARARGS, NULL},
+        {"unwrapinstance", unwrapInstance, METH_VARARGS, NULL},
+        {NULL, NULL, 0, NULL}
     };
 
-    static PyMethodDef eu_md = {
-        "_unpickle_enum", unpickle_enum, METH_VARARGS, NULL
-    };
+    PyObject *obj;
+    PyMethodDef *md;
 
     /*
      * Remind ourselves to add support for capsule variables when we have
@@ -1008,6 +1031,37 @@ const sipAPIDef *sip_init_library(void)
 #ifdef WITH_THREAD
     PyEval_InitThreads();
 #endif
+
+    /* Add the SIP version number. */
+    obj = PyLong_FromLong(SIP_VERSION);
+
+    if (dict_set_and_discard(mod_dict, "SIP_VERSION", obj) < 0)
+        return NULL;
+
+    obj = PyUnicode_FromString(SIP_VERSION_STR);
+
+    if (dict_set_and_discard(mod_dict, "SIP_VERSION_STR", obj) < 0)
+        return NULL;
+
+    /* Add the methods. */
+    for (md = methods; md->ml_name != NULL; ++md)
+    {
+        PyObject *meth = PyCFunction_New(md, NULL);
+
+        if (dict_set_and_discard(mod_dict, md->ml_name, meth) < 0)
+            return NULL;
+
+        if (md == &methods[0])
+        {
+            Py_INCREF(meth);
+            enum_unpickler = meth;
+        }
+        else if (md == &methods[1])
+        {
+            Py_INCREF(meth);
+            type_unpickler = meth;
+        }
+    }
 
     /* Initialise the types. */
     sipWrapperType_Type.tp_base = &PyType_Type;
@@ -1047,18 +1101,24 @@ const sipAPIDef *sip_init_library(void)
     if (PyType_Ready(&sipArray_Type) < 0)
         return NULL;
 
+    /* Add the public types. */
+    if (PyDict_SetItemString(mod_dict, "wrappertype", (PyObject *)&sipWrapperType_Type) < 0)
+        return NULL;
+
+    if (PyDict_SetItemString(mod_dict, "simplewrapper", (PyObject *)&sipSimpleWrapper_Type) < 0)
+        return NULL;
+
+    if (PyDict_SetItemString(mod_dict, "wrapper", (PyObject *)&sipWrapper_Type) < 0)
+        return NULL;
+
+    if (PyDict_SetItemString(mod_dict, "voidptr", (PyObject *)&sipVoidPtr_Type) < 0)
+        return NULL;
+
     /* These will always be needed. */
     if (objectify("__init__", &init_name) < 0)
         return NULL;
 
     if ((empty_tuple = PyTuple_New(0)) == NULL)
-        return NULL;
-
-    /* Get a reference to the pickle helpers. */
-    if ((type_unpickler = PyCFunction_New(&tu_md, NULL)) == NULL)
-        return NULL;
-
-    if ((enum_unpickler = PyCFunction_New(&eu_md, NULL)) == NULL)
         return NULL;
 
     /* Initialise the object map. */
@@ -1081,6 +1141,25 @@ const sipAPIDef *sip_init_library(void)
 }
 
 
+/*
+ * Set a dictionary item and discard the reference to the item even if there
+ * was an error.
+ */
+static int dict_set_and_discard(PyObject *dict, const char *name, PyObject *obj)
+{
+    int rc;
+
+    if (obj == NULL)
+        return -1;
+
+    rc = PyDict_SetItemString(dict, name, obj);
+
+    Py_DECREF(obj);
+
+    return rc;
+}
+
+
 #if _SIP_MODULE_SHARED
 /*
  * The Python module initialisation function.
@@ -1091,34 +1170,12 @@ PyObject *_SIP_MODULE_ENTRY(void)
 PyMODINIT_FUNC _SIP_MODULE_ENTRY(void)
 #endif
 {
-    static PyMethodDef methods[] = {
-        {"assign", assign, METH_VARARGS, NULL},
-        {"cast", cast, METH_VARARGS, NULL},
-        {"delete", callDtor, METH_VARARGS, NULL},
-        {"dump", dumpWrapper, METH_O, NULL},
-        {"enableautoconversion", enableAutoconversion, METH_VARARGS, NULL},
-        {"enableoverflowchecking", sipEnableOverflowChecking, METH_VARARGS, NULL},
-        {"getapi", sipGetAPI, METH_VARARGS, NULL},
-        {"isdeleted", isDeleted, METH_VARARGS, NULL},
-        {"ispycreated", isPyCreated, METH_VARARGS, NULL},
-        {"ispyowned", isPyOwned, METH_VARARGS, NULL},
-        {"setapi", sipSetAPI, METH_VARARGS, NULL},
-        {"setdeleted", setDeleted, METH_VARARGS, NULL},
-        {"setdestroyonexit", setDestroyOnExit, METH_VARARGS, NULL},
-        {"settracemask", setTraceMask, METH_VARARGS, NULL},
-        {"transferback", transferBack, METH_VARARGS, NULL},
-        {"transferto", transferTo, METH_VARARGS, NULL},
-        {"wrapinstance", wrapInstance, METH_VARARGS, NULL},
-        {"unwrapinstance", unwrapInstance, METH_VARARGS, NULL},
-        {NULL, NULL, 0, NULL}
-    };
-
     static PyModuleDef module_def = {
         PyModuleDef_HEAD_INIT,
         _SIP_MODULE_FQ_NAME,    /* m_name */
         NULL,                   /* m_doc */
         -1,                     /* m_size */
-        methods,                /* m_methods */
+        NULL,                   /* m_methods */
         NULL,                   /* m_reload */
         NULL,                   /* m_traverse */
         NULL,                   /* m_clear */
@@ -1126,12 +1183,7 @@ PyMODINIT_FUNC _SIP_MODULE_ENTRY(void)
     };
 
     const sipAPIDef *api;
-    int rc;
-    PyObject *mod, *mod_dict, *obj;
-
-    /* Initialise the static variables. */
-    if ((api = sip_init_library()) == NULL)
-        return NULL;
+    PyObject *mod, *mod_dict, *api_obj;
 
     /* Create the module. */
     if ((mod = PyModule_Create(&module_def)) == NULL)
@@ -1139,53 +1191,18 @@ PyMODINIT_FUNC _SIP_MODULE_ENTRY(void)
 
     mod_dict = PyModule_GetDict(mod);
 
+    /* Initialise the module dictionary and static variables. */
+    if ((api = sip_init_library(mod_dict)) == NULL)
+        return NULL;
+
     /* Publish the SIP API. */
-    if ((obj = PyCapsule_New((void *)api, _SIP_MODULE_FQ_NAME "._C_API", NULL)) == NULL)
+    api_obj = PyCapsule_New((void *)api, _SIP_MODULE_FQ_NAME "._C_API", NULL);
+
+    if (dict_set_and_discard(mod_dict, "_C_API", api_obj) < 0)
     {
         Py_DECREF(mod);
         return NULL;
     }
-
-    rc = PyDict_SetItemString(mod_dict, "_C_API", obj);
-    Py_DECREF(obj);
-
-    if (rc < 0)
-    {
-        Py_DECREF(mod);
-        return NULL;
-    }
-
-    /* Add the SIP version number, but don't worry about errors. */
-    if ((obj = PyLong_FromLong(SIP_VERSION)) != NULL)
-    {
-        PyDict_SetItemString(mod_dict, "SIP_VERSION", obj);
-        Py_DECREF(obj);
-    }
-
-    if ((obj = PyUnicode_FromString(SIP_VERSION_STR)) != NULL)
-    {
-        PyDict_SetItemString(mod_dict, "SIP_VERSION_STR", obj);
-        Py_DECREF(obj);
-    }
-
-    /*
-     * TODO: we need to add all the objects added to the sip module to the top
-     * level package when there is no shared sip module (maybe with a sip
-     * prefix).  We can't just ignore them - pickling wouldn't work for one
-     * thing.
-     */
-
-    /* Add the type objects, but don't worry about errors. */
-    PyDict_SetItemString(mod_dict, "wrappertype",
-            (PyObject *)&sipWrapperType_Type);
-    PyDict_SetItemString(mod_dict, "simplewrapper",
-            (PyObject *)&sipSimpleWrapper_Type);
-    PyDict_SetItemString(mod_dict, "wrapper", (PyObject *)&sipWrapper_Type);
-    PyDict_SetItemString(mod_dict, "voidptr", (PyObject *)&sipVoidPtr_Type);
-
-    /* Add the unpicklers, but don't worry about errors. */
-    PyDict_SetItemString(mod_dict, "_unpickle_type", type_unpickler);
-    PyDict_SetItemString(mod_dict, "_unpickle_enum", enum_unpickler);
 
 #if _SIP_MODULE_LEGACY
     {
@@ -1956,13 +1973,10 @@ static int sip_api_init_module(sipExportedModuleDef *client,
         if (sipTypeIsScopedEnum(etd))
             continue;
 
-        if ((mo = sip_api_convert_from_enum(emd->em_val, etd)) == NULL)
-            return -1;
+        mo = sip_api_convert_from_enum(emd->em_val, etd);
 
-        if (PyDict_SetItemString(mod_dict, emd->em_name, mo) < 0)
+        if (dict_set_and_discard(mod_dict, emd->em_name, mo) < 0)
             return -1;
-
-        Py_DECREF(mo);
     }
 
 
@@ -6821,17 +6835,9 @@ static PyObject *createScopedEnum(sipExportedModuleDef *client,
     {
         if (enm->em_enum == enum_nr)
         {
-            int rc;
-            PyObject *val;
+            PyObject *val = PyLong_FromLong(enm->em_val);
 
-            if ((val = PyLong_FromLong(enm->em_val)) == NULL)
-                goto rel_members;
-
-            rc = PyDict_SetItemString(members, enm->em_name, val);
-
-            Py_DECREF(val);
-
-            if (rc < 0)
+            if (dict_set_and_discard(members, enm->em_name, val) < 0)
                 goto rel_members;
         }
 
@@ -7034,17 +7040,9 @@ static int isNonlazyMethod(PyMethodDef *pmd)
  */
 static int addMethod(PyObject *dict, PyMethodDef *pmd)
 {
-    int rc;
-    PyObject *descr;
+    PyObject *descr = sipMethodDescr_New(pmd);
 
-    if ((descr = sipMethodDescr_New(pmd)) == NULL)
-        return -1;
-
-    rc = PyDict_SetItemString(dict, pmd->ml_name, descr);
-
-    Py_DECREF(descr);
-
-    return rc;
+    return dict_set_and_discard(dict, pmd->ml_name, descr);
 }
 
 
@@ -7073,7 +7071,6 @@ static int add_lazy_container_attrs(sipTypeDef *td, sipContainerDef *cod,
     /* Do the unscoped enum members. */
     for (enm = cod->cod_enummembers, i = 0; i < cod->cod_nrenummembers; ++i, ++enm)
     {
-        int rc;
         PyObject *val;
 
         if (enm->em_enum < 0)
@@ -7091,21 +7088,13 @@ static int add_lazy_container_attrs(sipTypeDef *td, sipContainerDef *cod,
             val = sip_api_convert_from_enum(enm->em_val, etd);
         }
 
-        if (val == NULL)
-            return -1;
-
-        rc = PyDict_SetItemString(dict, enm->em_name, val);
-
-        Py_DECREF(val);
-
-        if (rc < 0)
+        if (dict_set_and_discard(dict, enm->em_name, val) < 0)
             return -1;
     }
 
     /* Do the variables. */
     for (vd = cod->cod_variables, i = 0; i < cod->cod_nrvariables; ++i, ++vd)
     {
-        int rc;
         PyObject *descr;
 
         if (vd->vd_type == PropertyVariable)
@@ -7113,14 +7102,7 @@ static int add_lazy_container_attrs(sipTypeDef *td, sipContainerDef *cod,
         else
             descr = sipVariableDescr_New(vd, td, cod);
 
-        if (descr == NULL)
-            return -1;
-
-        rc = PyDict_SetItemString(dict, vd->vd_name, descr);
-
-        Py_DECREF(descr);
-
-        if (rc < 0)
+        if (dict_set_and_discard(dict, vd->vd_name, descr) < 0)
             return -1;
     }
 
@@ -8091,16 +8073,9 @@ static int addVoidPtrInstances(PyObject *dict,sipVoidPtrInstanceDef *vi)
 {
     while (vi->vi_name != NULL)
     {
-        int rc;
-        PyObject *w;
+        PyObject *w = sip_api_convert_from_void_ptr(vi->vi_val);
 
-        if ((w = sip_api_convert_from_void_ptr(vi->vi_val)) == NULL)
-            return -1;
-
-        rc = PyDict_SetItemString(dict,vi->vi_name,w);
-        Py_DECREF(w);
-
-        if (rc < 0)
+        if (dict_set_and_discard(dict, vi->vi_name, w) < 0)
             return -1;
 
         ++vi;
@@ -8117,7 +8092,6 @@ static int addCharInstances(PyObject *dict, sipCharInstanceDef *ci)
 {
     while (ci->ci_name != NULL)
     {
-        int rc;
         PyObject *w;
 
         switch (ci->ci_encoding)
@@ -8138,13 +8112,7 @@ static int addCharInstances(PyObject *dict, sipCharInstanceDef *ci)
             w = PyBytes_FromStringAndSize(&ci->ci_val, 1);
         }
 
-        if (w == NULL)
-            return -1;
-
-        rc = PyDict_SetItemString(dict, ci->ci_name, w);
-        Py_DECREF(w);
-
-        if (rc < 0)
+        if (dict_set_and_discard(dict, ci->ci_name, w) < 0)
             return -1;
 
         ++ci;
@@ -8161,7 +8129,6 @@ static int addStringInstances(PyObject *dict, sipStringInstanceDef *si)
 {
     while (si->si_name != NULL)
     {
-        int rc;
         PyObject *w;
 
         switch (si->si_encoding)
@@ -8203,13 +8170,7 @@ static int addStringInstances(PyObject *dict, sipStringInstanceDef *si)
             w = PyBytes_FromString(si->si_val);
         }
 
-        if (w == NULL)
-            return -1;
-
-        rc = PyDict_SetItemString(dict, si->si_name, w);
-        Py_DECREF(w);
-
-        if (rc < 0)
+        if (dict_set_and_discard(dict, si->si_name, w) < 0)
             return -1;
 
         ++si;
@@ -8226,16 +8187,9 @@ static int addIntInstances(PyObject *dict, sipIntInstanceDef *ii)
 {
     while (ii->ii_name != NULL)
     {
-        int rc;
-        PyObject *w;
+        PyObject *w = PyLong_FromLong(ii->ii_val);
 
-        if ((w = PyLong_FromLong(ii->ii_val)) == NULL)
-            return -1;
-
-        rc = PyDict_SetItemString(dict, ii->ii_name, w);
-        Py_DECREF(w);
-
-        if (rc < 0)
+        if (dict_set_and_discard(dict, ii->ii_name, w) < 0)
             return -1;
 
         ++ii;
@@ -8252,16 +8206,9 @@ static int addLongInstances(PyObject *dict,sipLongInstanceDef *li)
 {
     while (li->li_name != NULL)
     {
-        int rc;
-        PyObject *w;
+        PyObject *w = PyLong_FromLong(li->li_val);
 
-        if ((w = PyLong_FromLong(li->li_val)) == NULL)
-            return -1;
-
-        rc = PyDict_SetItemString(dict,li->li_name,w);
-        Py_DECREF(w);
-
-        if (rc < 0)
+        if (dict_set_and_discard(dict, li->li_name, w) < 0)
             return -1;
 
         ++li;
@@ -8278,16 +8225,9 @@ static int addUnsignedLongInstances(PyObject *dict, sipUnsignedLongInstanceDef *
 {
     while (uli->uli_name != NULL)
     {
-        int rc;
-        PyObject *w;
+        PyObject *w = PyLong_FromUnsignedLong(uli->uli_val);
 
-        if ((w = PyLong_FromUnsignedLong(uli->uli_val)) == NULL)
-            return -1;
-
-        rc = PyDict_SetItemString(dict, uli->uli_name, w);
-        Py_DECREF(w);
-
-        if (rc < 0)
+        if (dict_set_and_discard(dict, uli->uli_name, w) < 0)
             return -1;
 
         ++uli;
@@ -8304,20 +8244,15 @@ static int addLongLongInstances(PyObject *dict, sipLongLongInstanceDef *lli)
 {
     while (lli->lli_name != NULL)
     {
-        int rc;
         PyObject *w;
 
 #if defined(HAVE_LONG_LONG)
-        if ((w = PyLong_FromLongLong(lli->lli_val)) == NULL)
+        w = PyLong_FromLongLong(lli->lli_val);
 #else
-        if ((w = PyLong_FromLong(lli->lli_val)) == NULL)
+        w = PyLong_FromLong(lli->lli_val);
 #endif
-            return -1;
 
-        rc = PyDict_SetItemString(dict, lli->lli_name, w);
-        Py_DECREF(w);
-
-        if (rc < 0)
+        if (dict_set_and_discard(dict, lli->lli_name, w) < 0)
             return -1;
 
         ++lli;
@@ -8334,20 +8269,15 @@ static int addUnsignedLongLongInstances(PyObject *dict, sipUnsignedLongLongInsta
 {
     while (ulli->ulli_name != NULL)
     {
-        int rc;
         PyObject *w;
 
 #if defined(HAVE_LONG_LONG)
-        if ((w = PyLong_FromUnsignedLongLong(ulli->ulli_val)) == NULL)
+        w = PyLong_FromUnsignedLongLong(ulli->ulli_val);
 #else
-        if ((w = PyLong_FromUnsignedLong(ulli->ulli_val)) == NULL)
+        w = PyLong_FromUnsignedLong(ulli->ulli_val);
 #endif
-            return -1;
 
-        rc = PyDict_SetItemString(dict, ulli->ulli_name, w);
-        Py_DECREF(w);
-
-        if (rc < 0)
+        if (dict_set_and_discard(dict, ulli->ulli_name, w) < 0)
             return -1;
 
         ++ulli;
@@ -8364,16 +8294,9 @@ static int addDoubleInstances(PyObject *dict,sipDoubleInstanceDef *di)
 {
     while (di->di_name != NULL)
     {
-        int rc;
-        PyObject *w;
+        PyObject *w = PyFloat_FromDouble(di->di_val);
 
-        if ((w = PyFloat_FromDouble(di->di_val)) == NULL)
-            return -1;
-
-        rc = PyDict_SetItemString(dict,di->di_name,w);
-        Py_DECREF(w);
-
-        if (rc < 0)
+        if (dict_set_and_discard(dict, di->di_name, w) < 0)
             return -1;
 
         ++di;
@@ -8406,7 +8329,6 @@ static int addTypeInstances(PyObject *dict, sipTypeInstanceDef *ti)
 static int addSingleTypeInstance(PyObject *dict, const char *name,
         void *cppPtr, const sipTypeDef *td, int initflags)
 {
-    int rc;
     PyObject *obj;
 
     if (sipTypeIsEnum(td) || sipTypeIsScopedEnum(td))
@@ -8427,13 +8349,7 @@ static int addSingleTypeInstance(PyObject *dict, const char *name,
             obj = wrap_simple_instance(cppPtr, td, NULL, initflags);
     }
 
-    if (obj == NULL)
-        return -1;
-
-    rc = PyDict_SetItemString(dict, name, obj);
-    Py_DECREF(obj);
-
-    return rc;
+    return dict_set_and_discard(dict, name, obj);
 }
 
 
