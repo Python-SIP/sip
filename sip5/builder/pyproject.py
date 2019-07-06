@@ -81,7 +81,8 @@ class PyProject:
             except KeyError:
                 if required:
                     raise PyProjectException(
-                            "the '[{0}]' section is missing".format(name))
+                            "the '[{0}]' section is missing".format(
+                                    section_name))
 
                 return None
 

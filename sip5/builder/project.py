@@ -248,8 +248,15 @@ class Project(Configurable):
         project_module = importlib.util.module_from_spec(spec)
 
         try:
+            NotFoundError = ModuleNotFoundError
+        except NameError:
+            # For Python v3.5.
+            NotFoundError = FileNotFoundError
+
+        try:
             spec.loader.exec_module(project_module)
-        except FileNotFoundError:
+        except NotFoundError:
+            print(os.getcwd())
             project_factory = cls
         except Exception as e:
             raise UserException("unable to import project.py", detail=str(e))
@@ -532,9 +539,12 @@ class Project(Configurable):
         # Add the user configurable options to the parser.
         all_options = {}
         
-        options = self._options
-        if len(self.bindings) > 1:
-            options += self._multibindings_options
+        options = self.get_options()
+        if len(self.bindings) < 2:
+            # Remove the options that only make sense where the project has
+            # multiple bindings.
+            for multi in self._multibindings_options:
+                options.remove(multi)
 
         self.add_command_line_options(parser, tool, all_options,
                 options=options)
