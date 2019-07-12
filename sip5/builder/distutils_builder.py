@@ -29,6 +29,28 @@ from .builder import Builder
 class DistutilsBuilder(Builder):
     """ The implementation of a distutils-based project builder. """
 
+    def compile(self):
+        """ Compile the project.  The returned opaque object contains the
+        project's files to be installed.
+        """
+
+        # TODO
+        return None
+
+    def install_into_target(self, target_dir, opaque):
+        """ Install the project into a target directory.  The opaque object
+        contains the project's files to be installed.
+        """
+
+        # TODO
+
+    def install_into_wheel(self, wheel_dir, opaque):
+        """ Install the project into a wheel directory.  The opaque object
+        contains the project's files to be installed.
+        """
+
+        # TODO
+
     def build_extension_module(self, project, name):
         """ Build an extension module from the sources and return its full
         pathname.

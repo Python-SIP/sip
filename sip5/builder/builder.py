@@ -21,8 +21,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
+from abc import abstractmethod
 import glob
 import os
+import shutil
 
 from ..code_generator import set_globals
 from ..exceptions import UserException
@@ -30,15 +32,21 @@ from ..module import copy_sip_h
 from ..version import SIP_VERSION, SIP_VERSION_STR
 
 from .abstract_builder import AbstractBuilder
+from .configurable import Option
 from .distinfo import create_distinfo
 
 
 class Builder(AbstractBuilder):
     """ The default base implementation of a project builder. """
 
+    # The configurable options.
+    _options = (
+    )
+
     def build(self):
         """ Build the project in-situ. """
 
+        # self.compile()
         self._build_modules()
 
     def build_sdist(self, sdist_directory):
@@ -46,35 +54,39 @@ class Builder(AbstractBuilder):
         file.
         """
 
+        project = self.project
+
         # The sdist name.
-        sdist_name = '{}-{}'.format(self.name.replace('-', '_'), self.version)
+        sdist_name = '{}-{}'.format(project.name.replace('-', '_'),
+                project.version)
 
         # Create the sdist root directory.
-        sdist_root = os.path.join(self.build_dir, sdist_name)
+        sdist_root = os.path.join(project.build_dir, sdist_name)
         os.mkdir(sdist_root)
 
         # Copy the pyproject.toml file.
-        shutil.copy(os.path.join(self.root_dir, 'pyproject.toml'), sdist_root)
+        shutil.copy(os.path.join(project.root_dir, 'pyproject.toml'),
+                sdist_root)
 
         # Copy in any project.py.
-        project_py = os.path.join(self.root_dir, 'project.py')
+        project_py = os.path.join(project.root_dir, 'project.py')
         if os.path.isfile(project_py):
             shutil.copy(project_py, sdist_root)
 
         # Copy in the .sip files for each set of bindings.
-        for bindings in self.bindings.values():
+        for bindings in project.bindings.values():
             self._install_sip_files(bindings, sdist_root)
 
         # Copy in anything else the user has asked for.
-        for extra in self.sdist_extras:
+        for extra in project.sdist_extras:
             extra = os.path.abspath(extra)
 
-            if os.path.commonprefix([extra, self.root_dir]) != self.root_dir:
+            if os.path.commonprefix([extra, project.root_dir]) != project.root_dir:
                 raise PyProjectOptionException('sdist-extras',
                         "must all be in the '{0}' directory or a "
-                                "sub-directory".format(self.root_dir))
+                                "sub-directory".format(project.root_dir))
 
-            extra = os.path.relpath(extra, self.root_dir)
+            extra = os.path.relpath(extra, project.root_dir)
 
             for src in glob.glob(extra):
                 dst = os.path.join(sdist_root, src)
@@ -91,7 +103,7 @@ class Builder(AbstractBuilder):
         sdist_path = os.path.abspath(os.path.join(sdist_directory, sdist_file))
 
         saved_cwd = os.getcwd()
-        os.chdir(self.build_dir)
+        os.chdir(project.build_dir)
 
         import tarfile
 
@@ -101,14 +113,17 @@ class Builder(AbstractBuilder):
 
         os.chdir(saved_cwd)
 
-        self._remove_build_dir()
-
         return sdist_file
 
     def build_wheel(self, wheel_directory):
         """ Build a wheel for the project and return the name of the wheel
         file.
         """
+
+        # inventory = self.compile()
+        # self.install_into_wheel(wheel_dir, inventory)
+        # create distinfo dir
+        # create wheel.
 
         # Create the wheel tag.
         # TODO: If all bindings use the limited API (need to extract that from
@@ -161,16 +176,44 @@ class Builder(AbstractBuilder):
 
         os.chdir(saved_cwd)
 
-        self._remove_build_dir()
-
         return wheel_file
+
+    @abstractmethod
+    def compile(self):
+        """ Compile the project.  The returned opaque object will be passed to
+        install_into_target() and install_into_wheel().
+        """
+
+    def get_options(self):
+        """ Return the list of configurable options. """
+
+        options = super().get_options()
+        options.extend(self._options)
+
+        return options
 
     def install(self):
         """ Install the project. """
 
+        # inventory = self.compile()
+        # NOTE: QScintilla will also install to the Qt directory but not when
+        # creating a wheel (that will be part of the bundling process when the
+        # Qt directory is in the wheel).  Therefore need a hook to finalise an
+        # ordinary installation.
+        # self.install_into_target(target_dir, inventory)
         self._build_and_install_modules(self.target_dir)
 
-        self._remove_build_dir()
+    @abstractmethod
+    def install_into_target(self, target_dir, opaque):
+        """ Install the project into a target directory.  The opaque object was
+        returned by compile().
+        """
+
+    @abstractmethod
+    def install_into_wheel(self, wheel_dir, opaque):
+        """ Install the project into a wheel directory.  The opaque object was
+        returned by compile().
+        """
 
     def _build_and_install_modules(self, target_dir, wheel_tag=None):
         """ Build and install the extension modules and create the .dist-info
@@ -344,13 +387,16 @@ class Builder(AbstractBuilder):
         and return a list of the installed files.
         """
 
+        project = self.project
+
         installed = []
 
-        rel_sip_files_dir = os.path.relpath(self.sip_files_dir, self.root_dir)
+        rel_sip_files_dir = os.path.relpath(project.sip_files_dir,
+                project.root_dir)
         target_sip_files_dir = os.path.join(target_dir, rel_sip_files_dir)
 
         for sip_file in bindings.get_sip_files():
-            source_sip_file = os.path.join(self.sip_files_dir, sip_file)
+            source_sip_file = os.path.join(project.sip_files_dir, sip_file)
             target_sip_file = os.path.join(target_sip_files_dir, sip_file)
 
             self._ensure_subdirs_exist(target_sip_file)
@@ -360,14 +406,7 @@ class Builder(AbstractBuilder):
 
         return installed
 
-    def _remove_build_dir(self):
-        """ Remove the build directory. """
-
-        self.progress("Removing the build directory")
-
-        self._temp_build_dir = None
-
-    def __init__(self, sources_dir, sources, *, debug=False,
+    def z__init__(self, sources_dir, sources, *, debug=False,
             define_macros=None, include_dirs=None, libraries=None,
             library_dirs=None):
         """ Initialise the object. """
@@ -392,7 +431,6 @@ class Builder(AbstractBuilder):
         self.libraries = libraries
         self.library_dirs = library_dirs
 
-    @abstractmethod
     def build_extension_module(self, project, name):
         """ Build an extension module from the sources and return its full
         pathname.

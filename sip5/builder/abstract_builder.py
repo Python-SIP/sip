@@ -29,6 +29,11 @@ from .configurable import Configurable
 class AbstractBuilder(Configurable, ABC):
     """ This specifies the API of a builder. """
 
+    def __init__(self, project):
+        """ Initialise the builder. """
+
+        self.project = project
+
     @abstractmethod
     def build(self):
         """ Build the project in-situ. """

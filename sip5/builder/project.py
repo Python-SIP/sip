@@ -99,8 +99,8 @@ class Project(Configurable):
         self.root_dir = os.getcwd()
         self.bindings = {}
 
-        self._builder = None
         self._temp_build_dir = None
+        self._builder = None
 
     def build(self):
         """ Build the project in-situ. """
@@ -112,14 +112,20 @@ class Project(Configurable):
         file.
         """
 
-        return self._builder.build_sdist(sdist_directory)
+        sdist_file = self._builder.build_sdist(sdist_directory)
+        self._remove_build_dir()
+
+        return sdist_file
 
     def build_wheel(self, wheel_directory):
         """ Build a wheel for the project and return the name of the wheel
         file.
         """
 
-        return self._builder.build_wheel(wheel_directory)
+        wheel_file = self._builder.build_wheel(wheel_directory)
+        self._remove_build_dir()
+
+        return wheel_file
 
     @classmethod
     def factory(cls, tool='', description=''):
@@ -136,15 +142,8 @@ class Project(Configurable):
         project_module = importlib.util.module_from_spec(spec)
 
         try:
-            NotFoundError = ModuleNotFoundError
-        except NameError:
-            # For Python v3.5.
-            NotFoundError = FileNotFoundError
-
-        try:
             spec.loader.exec_module(project_module)
-        except NotFoundError:
-            print(os.getcwd())
+        except FileNotFoundError:
             project_factory = cls
         except Exception as e:
             raise UserException("unable to import project.py", detail=str(e))
@@ -208,9 +207,9 @@ class Project(Configurable):
             builder_factory = self._import_callable(self.builder,
                     'tool.sip.project', 'builder')
         else:
-            from .builder import DistutilsBuilder as builder_factory
+            from .distutils_builder import DistutilsBuilder as builder_factory
 
-        return builder_factory()
+        return builder_factory(self)
 
     def get_options(self):
         """ Return the list of configurable options. """
@@ -231,6 +230,7 @@ class Project(Configurable):
         """ Install the project. """
 
         self._builder.install()
+        self._remove_build_dir()
 
     def progress(self, message):
         """ Print a progress message if verbose messages are enabled. """
@@ -373,6 +373,13 @@ class Project(Configurable):
                     section_name=section_name)
 
         return obj
+
+    def _remove_build_dir(self):
+        """ Remove the build directory. """
+
+        self.progress("Removing the build directory")
+
+        self._temp_build_dir = None
 
     def _set_initial_configuration(self, pyproject):
         """ Set the project's initial configuration. """
