@@ -21,6 +21,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
+from distutils.command.build_ext import build_ext
+from distutils.dist import Distribution
+from distutils.extension import Extension
+from distutils.log import ERROR, INFO, set_threshold
+
+import os
+import shutil
+
 from .builder import Builder
 
 
@@ -30,49 +38,128 @@ class DistutilsBuilder(Builder):
     """ The implementation of a distutils-based project builder. """
 
     def compile(self):
-        """ Compile the project.  The returned opaque object contains the
-        project's files to be installed.
+        """ Compile the project.  The returned opaque object is a sequence of
+        4-tuples of the bindings object, the fully qualified module name, its
+        pathname and the pathname of any .pyi file.
         """
 
-        # TODO
-        return None
+        # Compile each enabled set of bindings.
+        modules = []
 
-    def install_into_target(self, target_dir, opaque):
+        for bindings_name in self.enable:
+            bindings = self.bindings[bindings_name]
+
+            self.project.progress(
+                    "Compiling the bindings for {0}".format(
+                            bindings.generated.name))
+
+            saved_cwd = os.getcwd()
+            os.chdir(bindings.generated.sources_dir)
+            extension_module = self._build_extension_module(bindings)
+            os.chdir(saved_cwd)
+
+            # TODO: why is this handled this way?
+            if generated.pyi_file is None:
+                pyi_file = None
+            else:
+                pyi_file = os.path.join(generated.sources_dir,
+                        generated.pyi_files)
+
+            modules.append(
+                    (bindings, bindings.generated.name, extension_module, pyi_file))
+
+        return modules
+
+    def install_into(self, opaque, target_dir, wheel_tag=None):
         """ Install the project into a target directory.  The opaque object
         contains the project's files to be installed.
         """
 
-        # TODO
+        installed = []
 
-    def install_into_wheel(self, wheel_dir, opaque):
-        """ Install the project into a wheel directory.  The opaque object
-        contains the project's files to be installed.
+        for bindings, module, module_fn, pyi_file in opaque:
+            # Get the name of the individual module's directory.
+            module_name_parts = module.split('.')
+            parts = [target_dir]
+            parts.extend(module_name_parts[:-1])
+            module_dir = os.path.join(*parts)
+            os.makedirs(module_dir, exist_ok=True)
+
+            # Copy the extension module.
+            installed.append(self._install_file(module_fn, module_dir))
+
+            # Copy any .pyi file.
+            if pyi_file is not None:
+                installed.append(self._install_file(pyi_file, module_dir))
+
+            # Write the configuration file and copy the .sip files.
+            if self.sip_module:
+                bindings_dir = self.get_bindings_dir(target_dir)
+
+                installed.append(bindings.write_configuration(bindings_dir))
+
+                installed.extend(
+                        self._install_sip_files(bindings, bindings_dir))
+
+        # Install anything else the user has specified.
+        for extra in self.install_extras:
+            src = extra[0]
+
+            if len(extra) == 1:
+                dst_dir = target_dir
+            else:
+                dst_dir = extra[1]
+
+                if os.path.isabs(dst_dir):
+                    # Quietly ignore absolute pathnames when creating a wheel.
+                    if wheel_tag is not None:
+                        continue
+                else:
+                    dst_dir = os.path.join(target_dir, dst_dir)
+
+            os.makedirs(dst_dir, exist_ok=True)
+
+            if os.path.isfile(src):
+                installed.append(self._install_file(src, dst_dir))
+            elif os.path.isdir(src):
+                dst = os.path.join(dst_dir, os.path.basename(src))
+
+                shutil.copytree(src, dst,
+                        copy_function=lambda s, d: installed.append(
+                                shutil.copy2(s, d)))
+            else:
+                raise UserException("unable to install '{0}'".format(src))
+
+        create_distinfo(self, installed, target_dir, wheel_tag=wheel_tag)
+
+    @staticmethod
+    def _install_file(fname, module_dir):
+        """ Install a file into a module-specific directory and return the
+        pathname of the installed file.
         """
 
-        # TODO
+        target_fn = os.path.join(module_dir, os.path.basename(fname))
+        shutil.copyfile(fname, target_fn)
 
-    def build_extension_module(self, project, name):
+        return target_fn
+
+    def _build_extension_module(self, bindings):
         """ Build an extension module from the sources and return its full
         pathname.
         """
 
-        from distutils.command.build_ext import build_ext
-        from distutils.dist import Distribution
-        from distutils.extension import Extension
-        from distutils.log import ERROR, INFO, set_threshold
-
-        set_threshold(INFO if project.verbose else ERROR)
+        set_threshold(INFO if self.project.verbose else ERROR)
 
         dist = Distribution()
 
-        builder = build_ext(dist)
-        builder.build_lib = self.sources_dir
-        builder.debug = self.debug
-        builder.ensure_finalized()
+        module_builder = build_ext(dist)
+        module_builder.build_lib = bindings.generated.sources_dir
+        module_builder.debug = self.debug
+        module_builder.ensure_finalized()
 
         # Convert the #defines.
         define_macros = []
-        for macro in self.define_macros:
+        for macro in bindings.define_macros:
             parts = macro.split('=', maxsplit=1)
             name = parts[0]
             try:
@@ -82,11 +169,13 @@ class DistutilsBuilder(Builder):
 
             define_macros.append((name, value))
 
-        builder.extensions = [
-            Extension(name, self.sources, define_macros=define_macros,
-                    include_dirs=self.include_dirs, libraries=self.libraries,
-                    library_dirs=self.library_dirs)]
+        module_builder.extensions = [
+            Extension(bindings.generated.name, bindings.generated.sources,
+                    define_macros=define_macros,
+                    include_dirs=bindings.include_dirs,
+                    libraries=bindings.libraries,
+                    library_dirs=bindings.library_dirs)]
 
-        builder.run()
+        module_builder.run()
 
-        return builder.get_ext_fullpath(name)
+        return module_builder.get_ext_fullpath(name)

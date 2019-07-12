@@ -98,21 +98,21 @@ class Project(Configurable):
         # The current directory should contain pyproject.toml.
         self.root_dir = os.getcwd()
         self.bindings = {}
+        self.builder = None
 
         self._temp_build_dir = None
-        self._builder = None
 
     def build(self):
         """ Build the project in-situ. """
 
-        self._builder._build()
+        self.builder._build()
 
     def build_sdist(self, sdist_directory):
         """ Build an sdist for the project and return the name of the sdist
         file.
         """
 
-        sdist_file = self._builder.build_sdist(sdist_directory)
+        sdist_file = self.builder.build_sdist(sdist_directory)
         self._remove_build_dir()
 
         return sdist_file
@@ -122,7 +122,7 @@ class Project(Configurable):
         file.
         """
 
-        wheel_file = self._builder.build_wheel(wheel_directory)
+        wheel_file = self.builder.build_wheel(wheel_directory)
         self._remove_build_dir()
 
         return wheel_file
@@ -229,7 +229,7 @@ class Project(Configurable):
     def install(self):
         """ Install the project. """
 
-        self._builder.install()
+        self.builder.install()
         self._remove_build_dir()
 
     def progress(self, message):
@@ -304,7 +304,7 @@ class Project(Configurable):
         self.add_command_line_options(parser, tool, all_options,
                 options=options)
 
-        self._builder.add_command_line_options(parser, tool, all_options)
+        self.builder.add_command_line_options(parser, tool, all_options)
 
         for bindings in self.bindings.values():
             bindings.add_command_line_options(parser, tool, all_options)
@@ -334,7 +334,7 @@ class Project(Configurable):
 
         self.apply_defaults()
 
-        self._builder.apply_defaults()
+        self.builder.apply_defaults()
 
         for bindings in self.bindings.values():
             bindings.apply_defaults()
@@ -445,15 +445,15 @@ class Project(Configurable):
             self.configure(project_section, 'tool.sip.project')
 
         # Create the builder.
-        self._builder = self.get_builder()
+        self.builder = self.get_builder()
 
-        if not isinstance(self._builder, AbstractBuilder):
+        if not isinstance(self.builder, AbstractBuilder):
             raise UserException(
                     "The project builder is not a AbstractBuilder sub-class")
 
         builder_section = pyproject.get_section('tool.sip.builder')
         if builder_section is not None:
-            self._builder.configure(builder_section, 'tool.sip.builder')
+            self.builder.configure(builder_section, 'tool.sip.builder')
 
         # Get configuration for each set of bindings.
         bindings_sections = pyproject.get_section('tool.sip.bindings')
@@ -495,7 +495,7 @@ class Project(Configurable):
 
         self.verify_configuration()
 
-        self._builder.verify_configuration()
+        self.builder.verify_configuration()
 
         for bindings in self.bindings.values():
             bindings.verify_configuration()

@@ -78,32 +78,6 @@ class Bindings(Configurable):
 
         # The list of tags to enable.
         Option('tags', option_type=list),
-
-        # The user-configurable options.
-        Option('concatenate', option_type=int,
-                help="concatenate the generated bindings into N source files",
-                metavar="N", tools='build install wheel'),
-        Option('debug', option_type=bool, help="build with debugging symbols",
-                tools='build install wheel'),
-        Option('docstrings', option_type=bool, inverted=True,
-                help="disable the generation of docstrings",
-                tools='build install wheel'),
-        Option('generate_api', help="generate a QScintilla .api file",
-                metavar="FILE", tools='build install wheel'),
-        Option('generate_extracts', option_type=list,
-                help="generate an extract file", metavar="ID:FILE",
-                tools='build install wheel'),
-        Option('pep484_stubs', option_type=bool,
-                help="generate a PEP 484 .pyi file",
-                tools='build install wheel'),
-        Option('protected_is_public', option_type=bool,
-                help="enable the protected/public hack (default on non-Windows)",
-                tools='build install wheel'),
-        Option('protected_is_public', option_type=bool, inverted=True,
-                help="disable the protected/public hack (default on Windows)",
-                tools='build install wheel'),
-        Option('tracing', option_type=bool, help="build with tracing support",
-                tools='build install wheel'),
     )
 
     def __init__(self, project):
@@ -112,6 +86,7 @@ class Bindings(Configurable):
         super().__init__()
 
         self.project = project
+        self.generated = None
 
         self._sip_files = None
 
@@ -127,17 +102,21 @@ class Bindings(Configurable):
 
     def generate(self):
         """ Generate the bindings source code and optional additional extracts.
-        Return a GeneratedBindings instance containing the details of
-        everything that was generated.  The current directory is set to the
-        directory containing the defining .sip file.
+        Set the 'generated' attribute to a GeneratedBindings instance
+        containing the details of everything that was generated.  When called
+        the current directory is set to the directory containing the defining
+        .sip file.
         """
+
+        project = self.project
+        builder = project.builder
 
         # Parse the input file.
         pt, name, sip_files = self._parse()
 
         name_parts = name.split('.')
 
-        if self.project.sip_module and len(name_parts) == 1:
+        if project.sip_module and len(name_parts) == 1:
             raise UserException(
                     "module '{0}' must be part of a project when used with a "
                             "shared 'sip' module".format(name))
@@ -153,7 +132,7 @@ class Bindings(Configurable):
         generated = GeneratedBindings(name)
 
         # Make sure the module's sub-directory exists.
-        sources_dir = os.path.join(self.project.build_dir, self.name)
+        sources_dir = os.path.join(project.build_dir, self.name)
         os.makedirs(sources_dir, exist_ok=True)
 
         # Generate any API file.
@@ -172,20 +151,19 @@ class Bindings(Configurable):
 
         # Generate the bindings.
         sources = generateCode(pt, sources_dir, self.source_suffix,
-                self.exceptions, self.tracing, self.release_gil,
-                self.concatenate, self.tags, self.disabled_features,
-                self.docstrings, self.debug, self.project.sip_module)
+                self.exceptions, builder.tracing, self.release_gil,
+                builder.concatenate, self.tags, self.disabled_features,
+                builder.docstrings, builder.debug, project.sip_module)
 
         # Add the sip module code if it is not shared.
         include_dirs = [sources_dir]
 
-        if self.project.sip_module:
+        if project.sip_module:
             # sip.h will already be in the build directory.
-            include_dirs.append(self.project.build_dir)
+            include_dirs.append(project.build_dir)
         else:
             sources.extend(
-                    copy_nonshared_sources(self.project.abi_version,
-                            sources_dir))
+                    copy_nonshared_sources(project.abi_version, sources_dir))
 
         include_dirs.extend(self.include_dirs)
 
@@ -195,7 +173,7 @@ class Bindings(Configurable):
         generated.include_dirs = [os.path.relpath(fn, sources_dir)
                 for fn in include_dirs]
 
-        return generated
+        self.generated = generated
 
     def get_options(self):
         """ Return the list of configurable options. """
