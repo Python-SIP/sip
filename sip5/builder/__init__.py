@@ -22,8 +22,10 @@
 
 
 # Publish the public API.
-from .builder import Builder, DistutilsBuilder
+from .abstract_builder import AbstractBuilder
+from .builder import Builder
 from .configurable import Option
+from .distutils_builder import DistutilsBuilder
 from .project import Project
 from .pyproject import (PyProjectOptionException,
         PyProjectUndefinedOptionException)

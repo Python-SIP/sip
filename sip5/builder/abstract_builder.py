@@ -21,21 +21,30 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from ...exceptions import handle_exception
+from abc import ABC, abstractmethod
 
-from ..project import Project
+from .configurable import Configurable
 
 
-def main():
-    """ Build an sdist for the project from the command line. """
+class AbstractBuilder(Configurable, ABC):
+    """ This specifies the API of a builder. """
 
-    try:
-        project = Project.factory(tool='sdist',
-                description="Build an sdist for the project.")
-        project.progress("Building an sdist")
-        project.build_sdist('.')
-        project.information("The sdist has been built.")
-    except Exception as e:
-        handle_exception(e)
+    @abstractmethod
+    def build(self):
+        """ Build the project in-situ. """
 
-    return 0
+    @abstractmethod
+    def build_sdist(self, sdist_directory):
+        """ Build an sdist for the project and return the name of the sdist
+        file.
+        """
+
+    @abstractmethod
+    def build_wheel(self, wheel_directory):
+        """ Build a wheel for the project and return the name of the wheel
+        file.
+        """
+
+    @abstractmethod
+    def install(self):
+        """ Install the project. """
