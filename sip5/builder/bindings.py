@@ -78,6 +78,35 @@ class Bindings(Configurable):
 
         # The list of tags to enable.
         Option('tags', option_type=list),
+
+        # The user-configurable options.  Although the use of a corresponding
+        # command line option will affect all sets of bindings, putting them
+        # here (as opposed to in Builder) means they can have individual
+        # values specified in pyproject.toml.
+        Option('concatenate', option_type=int,
+                help="concatenate the generated bindings into N source files",
+                metavar="N", tools='build install wheel'),
+        Option('debug', option_type=bool, help="build with debugging symbols",
+                tools='build install wheel'),
+        Option('docstrings', option_type=bool, inverted=True,
+                help="disable the generation of docstrings",
+                tools='build install wheel'),
+        Option('generate_api', help="generate a QScintilla .api file",
+                metavar="FILE", tools='build install wheel'),
+        Option('generate_extracts', option_type=list,
+                help="generate an extract file", metavar="ID:FILE",
+                tools='build install wheel'),
+        Option('pep484_stubs', option_type=bool,
+                help="generate a PEP 484 .pyi file",
+                tools='build install wheel'),
+        Option('protected_is_public', option_type=bool,
+                help="enable the protected/public hack (default on non-Windows)",
+                tools='build install wheel'),
+        Option('protected_is_public', option_type=bool, inverted=True,
+                help="disable the protected/public hack (default on Windows)",
+                tools='build install wheel'),
+        Option('tracing', option_type=bool, help="build with tracing support",
+                tools='build install wheel'),
     )
 
     def __init__(self, project):
@@ -109,7 +138,6 @@ class Bindings(Configurable):
         """
 
         project = self.project
-        builder = project.builder
 
         # Parse the input file.
         pt, name, sip_files = self._parse()
@@ -151,9 +179,9 @@ class Bindings(Configurable):
 
         # Generate the bindings.
         sources = generateCode(pt, sources_dir, self.source_suffix,
-                self.exceptions, builder.tracing, self.release_gil,
-                builder.concatenate, self.tags, self.disabled_features,
-                builder.docstrings, builder.debug, project.sip_module)
+                self.exceptions, self.tracing, self.release_gil,
+                self.concatenate, self.tags, self.disabled_features,
+                self.docstrings, self.debug, project.sip_module)
 
         # Add the sip module code if it is not shared.
         include_dirs = [sources_dir]

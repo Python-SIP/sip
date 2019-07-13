@@ -32,40 +32,10 @@ from ..module import copy_sip_h
 from ..version import SIP_VERSION, SIP_VERSION_STR
 
 from .abstract_builder import AbstractBuilder
-from .configurable import Option
 
 
 class Builder(AbstractBuilder):
     """ The default base implementation of a project builder. """
-
-    # The configurable options.
-    _options = (
-        # The user-configurable options.
-        Option('concatenate', option_type=int,
-                help="concatenate the generated bindings into N source files",
-                metavar="N", tools='build install wheel'),
-        Option('debug', option_type=bool, help="build with debugging symbols",
-                tools='build install wheel'),
-        Option('docstrings', option_type=bool, inverted=True,
-                help="disable the generation of docstrings",
-                tools='build install wheel'),
-        Option('generate_api', help="generate a QScintilla .api file",
-                metavar="FILE", tools='build install wheel'),
-        Option('generate_extracts', option_type=list,
-                help="generate an extract file", metavar="ID:FILE",
-                tools='build install wheel'),
-        Option('pep484_stubs', option_type=bool,
-                help="generate a PEP 484 .pyi file",
-                tools='build install wheel'),
-        Option('protected_is_public', option_type=bool,
-                help="enable the protected/public hack (default on non-Windows)",
-                tools='build install wheel'),
-        Option('protected_is_public', option_type=bool, inverted=True,
-                help="disable the protected/public hack (default on Windows)",
-                tools='build install wheel'),
-        Option('tracing', option_type=bool, help="build with tracing support",
-                tools='build install wheel'),
-    )
 
     def build(self):
         """ Build the project in-situ. """
@@ -212,14 +182,6 @@ class Builder(AbstractBuilder):
         name_parts[-1] = 'bindings'
 
         return os.path.join(*name_parts)
-
-    def get_options(self):
-        """ Return the list of configurable options. """
-
-        options = super().get_options()
-        options.extend(self._options)
-
-        return options
 
     def install(self):
         """ Install the project. """

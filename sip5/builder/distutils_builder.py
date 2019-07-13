@@ -154,7 +154,7 @@ class DistutilsBuilder(Builder):
 
         module_builder = build_ext(dist)
         module_builder.build_lib = bindings.generated.sources_dir
-        module_builder.debug = self.debug
+        module_builder.debug = bindings.debug
         module_builder.ensure_finalized()
 
         # Convert the #defines.
