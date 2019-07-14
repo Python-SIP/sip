@@ -29,6 +29,8 @@ from distutils.log import ERROR, INFO, set_threshold
 import os
 import shutil
 
+from ..exceptions import UserException
+
 from .builder import Builder
 from .distinfo import create_distinfo
 
@@ -174,6 +176,12 @@ class DistutilsBuilder(Builder):
                     libraries=bindings.libraries,
                     library_dirs=bindings.library_dirs)]
 
-        module_builder.run()
+        try:
+            module_builder.run()
+        except Exception as e:
+            raise UserException(
+                    "Unable to compile the bindings for '{0}'".format(
+                            bindings.generated.name),
+                    detail=str(e))
 
         return module_builder.get_ext_fullpath(bindings.generated.name)
