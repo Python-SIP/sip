@@ -25,6 +25,7 @@ from abc import abstractmethod
 import glob
 import os
 import shutil
+import sys
 
 from ..code_generator import set_globals
 from ..exceptions import UserException
@@ -113,6 +114,8 @@ class Builder(AbstractBuilder):
         file.
         """
 
+        project = self.project
+
         # Create the wheel tag.
         # TODO: If all bindings use the limited API (need to extract that from
         #   the parser) then include supported Python versions in the tag.  The
@@ -138,15 +141,15 @@ class Builder(AbstractBuilder):
             wheel_tag += '-manylinux1_x86_64'
 
         # Create a temporary directory for the wheel.
-        wheel_build_dir = os.path.join(self.build_dir, 'wheel')
+        wheel_build_dir = os.path.join(project.build_dir, 'wheel')
         os.mkdir(wheel_build_dir)
 
         # Build and copy the wheel contents.
         self.install_into(self._generate_and_compile(), wheel_build_dir,
                 wheel_tag=wheel_tag)
 
-        wheel_file = '{}-{}-{}.whl'.format(self.name.replace('-', '_'),
-                self.version, wheel_tag)
+        wheel_file = '{}-{}-{}.whl'.format(project.name.replace('-', '_'),
+                project.version, wheel_tag)
         wheel_path = os.path.abspath(os.path.join(wheel_directory, wheel_file))
 
         # Create the .whl file.
