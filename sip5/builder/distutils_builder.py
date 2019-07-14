@@ -30,6 +30,7 @@ import os
 import shutil
 
 from .builder import Builder
+from .distinfo import create_distinfo
 
 
 # TODO: Make sure the correctly named .so files are created when the limited
@@ -43,11 +44,15 @@ class DistutilsBuilder(Builder):
         pathname and the pathname of any .pyi file.
         """
 
+        project = self.project
+
         # Compile each enabled set of bindings.
         modules = []
 
-        for bindings_name in self.enable:
-            bindings = self.bindings[bindings_name]
+        set_threshold(INFO if project.verbose else ERROR)
+
+        for bindings_name in project.enable:
+            bindings = project.bindings[bindings_name]
 
             self.project.progress(
                     "Compiling the bindings for {0}".format(
@@ -58,15 +63,7 @@ class DistutilsBuilder(Builder):
             extension_module = self._build_extension_module(bindings)
             os.chdir(saved_cwd)
 
-            # TODO: why is this handled this way?
-            if generated.pyi_file is None:
-                pyi_file = None
-            else:
-                pyi_file = os.path.join(generated.sources_dir,
-                        generated.pyi_files)
-
-            modules.append(
-                    (bindings, bindings.generated.name, extension_module, pyi_file))
+            modules.append((bindings, extension_module))
 
         return modules
 
@@ -75,11 +72,13 @@ class DistutilsBuilder(Builder):
         contains the project's files to be installed.
         """
 
+        project = self.project
+
         installed = []
 
-        for bindings, module, module_fn, pyi_file in opaque:
+        for bindings, module_fn in opaque:
             # Get the name of the individual module's directory.
-            module_name_parts = module.split('.')
+            module_name_parts = bindings.generated.name.split('.')
             parts = [target_dir]
             parts.extend(module_name_parts[:-1])
             module_dir = os.path.join(*parts)
@@ -89,11 +88,12 @@ class DistutilsBuilder(Builder):
             installed.append(self._install_file(module_fn, module_dir))
 
             # Copy any .pyi file.
-            if pyi_file is not None:
-                installed.append(self._install_file(pyi_file, module_dir))
+            if bindings.generated.pyi_file:
+                installed.append(
+                        self._install_file(generated.pyi_file, module_dir))
 
             # Write the configuration file and copy the .sip files.
-            if self.sip_module:
+            if project.sip_module:
                 bindings_dir = self.get_bindings_dir(target_dir)
 
                 installed.append(bindings.write_configuration(bindings_dir))
@@ -102,7 +102,7 @@ class DistutilsBuilder(Builder):
                         self._install_sip_files(bindings, bindings_dir))
 
         # Install anything else the user has specified.
-        for extra in self.install_extras:
+        for extra in project.install_extras:
             src = extra[0]
 
             if len(extra) == 1:
@@ -130,7 +130,7 @@ class DistutilsBuilder(Builder):
             else:
                 raise UserException("unable to install '{0}'".format(src))
 
-        create_distinfo(self, installed, target_dir, wheel_tag=wheel_tag)
+        create_distinfo(project, installed, target_dir, wheel_tag=wheel_tag)
 
     @staticmethod
     def _install_file(fname, module_dir):
@@ -147,8 +147,6 @@ class DistutilsBuilder(Builder):
         """ Build an extension module from the sources and return its full
         pathname.
         """
-
-        set_threshold(INFO if self.project.verbose else ERROR)
 
         dist = Distribution()
 
@@ -178,4 +176,4 @@ class DistutilsBuilder(Builder):
 
         module_builder.run()
 
-        return module_builder.get_ext_fullpath(name)
+        return module_builder.get_ext_fullpath(bindings.generated.name)

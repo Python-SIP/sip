@@ -105,7 +105,7 @@ class Project(Configurable):
     def build(self):
         """ Build the project in-situ. """
 
-        self.builder._build()
+        self.builder.build()
 
     def build_sdist(self, sdist_directory):
         """ Build an sdist for the project and return the name of the sdist

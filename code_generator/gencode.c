@@ -2228,6 +2228,7 @@ static void generateSipAPI(moduleDef *mod, const char *sipName, FILE *fp)
         prcode(fp,
 "    if ((sipAPI_%s = sip_init_library(sipModuleDict)) == SIP_NULLPTR)\n"
 "        return SIP_NULLPTR;\n"
+"\n"
             , mod->name);
 
         return;

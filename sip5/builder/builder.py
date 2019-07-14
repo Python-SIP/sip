@@ -234,10 +234,10 @@ class Builder(AbstractBuilder):
                 int(abi_minor), UserException, sip_include_dirs)
 
         # Generate the code for each enabled set of bindings.
-        for bindings_name in self.enable:
+        for bindings_name in project.enable:
             bindings = project.bindings[bindings_name]
 
-            self.progress(
+            project.progress(
                     "Generating the bindings from {0}".format(
                             bindings.sip_file))
 

@@ -31,7 +31,7 @@ def main():
 
     try:
         project = Project.factory(tool='install',
-                description="Install the project.")
+                description="Build and install the project.")
         project.progress("Installing the project")
         project.install()
         project.information("The project has been installed.")

@@ -195,6 +195,8 @@ static PyObject *py_generateCode(PyObject *self, PyObject *args)
         return NULL;
     }
 
+    if (sipName != NULL && sipName[0] == '\0')
+        sipName = NULL;
 
     sources = generateCode(pt, codeDir, srcSuffix, exceptions, tracing,
             releaseGIL, parts, versions, xfeatures, docs, py_debug, sipName);
