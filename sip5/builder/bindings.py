@@ -21,6 +21,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
+import importlib
 import os
 import sys
 
@@ -140,14 +141,20 @@ class Bindings(Configurable):
         project = self.project
 
         # Parse the input file.
-        pt, name, sip_files = self._parse()
+        pt, name, uses_limited_api, sip_files = self._parse()
 
         name_parts = name.split('.')
+        uses_limited_api = bool(uses_limited_api)
 
-        if project.sip_module and len(name_parts) == 1:
+        if project.sip_module:
+            if len(name_parts) == 1:
+                raise UserException(
+                        "module '{0}' must be part of a project when used "
+                        "with a shared 'sip' module".format(name))
+        elif uses_limited_api:
             raise UserException(
-                    "module '{0}' must be part of a project when used with a "
-                            "shared 'sip' module".format(name))
+                    "module '{0}' cannot use the limited API without using a "
+                    "shared 'sip' module".format(name))
 
         # Only save the .sip files if they haven't already been obtained
         # (possibly by a sub-class).
@@ -157,7 +164,7 @@ class Bindings(Configurable):
         # The details of things that will have been generated.  Note that we
         # don't include anything for .api files or generic extracts as the
         # arguments include a file name.
-        generated = GeneratedBindings(name)
+        generated = GeneratedBindings(name, uses_limited_api)
 
         # Make sure the module's sub-directory exists.
         sources_dir = os.path.join(project.build_dir, self.name)
@@ -203,6 +210,21 @@ class Bindings(Configurable):
 
         self.generated = generated
 
+    def get_module_extension(self):
+        """ Return the filename extension that the module should have. """
+
+        if sys.platform == 'win32':
+            return '.pyd'
+
+        suffixes = importlib.machinery.EXTENSION_SUFFIXES
+
+        if self.generated.uses_limited_api:
+            for s in suffixes:
+                if '.abi3' in s:
+                    return s
+
+        return suffixes[0]
+
     def get_options(self):
         """ Return the list of configurable options. """
 
@@ -235,7 +257,7 @@ class Bindings(Configurable):
         # files that were parsed.
         if self._sip_files is None:
             # We haven't called the parser yet so do it now.
-            _, _, self._sip_files = self._parse()
+            _, _, _, self._sip_files = self._parse()
 
         # Check that the .sip file names are relative to the root directory and
         # are within the root directory.
@@ -324,10 +346,11 @@ module-disabled-features = [{}]
 class GeneratedBindings:
     """ The bindings created by Bindings generate(). """
 
-    def __init__(self, name):
+    def __init__(self, name, uses_limited_api):
         """ Initialise the generated bindings. """
 
         self.name = name
+        self.uses_limited_api = uses_limited_api
         self.pyi_file = None
         self.sources = None
         self.sources_dir = None

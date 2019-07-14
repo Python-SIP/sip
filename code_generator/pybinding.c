@@ -159,8 +159,9 @@ static PyObject *py_parse(PyObject *self, PyObject *args)
 
     transform(pt, strict);
 
-    return Py_BuildValue("(NsN)", PyCapsule_New(pt, NULL, NULL),
-            pt->module->fullname->text, stringList_convert_from(sip_files));
+    return Py_BuildValue("(NsiN)", PyCapsule_New(pt, NULL, NULL),
+            pt->module->fullname->text, useLimitedAPI(pt->module),
+            stringList_convert_from(sip_files));
 }
 
 

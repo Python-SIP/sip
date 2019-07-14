@@ -35,8 +35,6 @@ from .builder import Builder
 from .distinfo import create_distinfo
 
 
-# TODO: Make sure the correctly named .so files are created when the limited
-#   API is specified.
 class DistutilsBuilder(Builder):
     """ The implementation of a distutils-based project builder. """
 
@@ -152,9 +150,9 @@ class DistutilsBuilder(Builder):
 
         project = self.project
 
-        dist = Distribution()
+        distribution = Distribution()
 
-        module_builder = build_ext(dist)
+        module_builder = ExtensionCommand(distribution, bindings)
         module_builder.build_lib = bindings.generated.sources_dir
         module_builder.debug = bindings.debug
         module_builder.ensure_finalized()
@@ -193,3 +191,19 @@ class DistutilsBuilder(Builder):
                     detail=str(e))
 
         return module_builder.get_ext_fullpath(bindings.generated.name)
+
+
+class ExtensionCommand(build_ext):
+    """ Extend the distutils command to build an extension module. """
+
+    def __init__(self, distribution, bindings):
+        """ Initialise the object. """
+
+        super().__init__(distribution)
+
+        self._bindings = bindings
+
+    def get_ext_filename(self, ext_name):
+        """ Reimplemented to handle modules that use the limited API. """
+
+        return os.path.join(*ext_name.split('.')) + self._bindings.get_module_extension()

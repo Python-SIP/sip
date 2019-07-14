@@ -1,6 +1,6 @@
 // Define the SIP wrapper to the extras library.
 
-%Module(name=examples.extras)
+%Module(name=examples.extras, use_limited_api=True)
 
 %Import core/core.sip
 

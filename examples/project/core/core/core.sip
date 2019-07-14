@@ -1,6 +1,6 @@
 // Define the SIP wrapper to the core library.
 
-%Module(name=examples.core)
+%Module(name=examples.core, use_limited_api=True)
 
 %DefaultEncoding "ASCII"
 
