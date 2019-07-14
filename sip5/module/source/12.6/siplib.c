@@ -885,7 +885,6 @@ static int addTypeInstances(PyObject *dict, sipTypeInstanceDef *ti);
 static int addSingleTypeInstance(PyObject *dict, const char *name,
         void *cppPtr, const sipTypeDef *td, int initflags);
 static int addLicense(PyObject *dict, sipLicenseDef *lc);
-#if _SIP_MODULE_SHARED
 static PyObject *assign(PyObject *self, PyObject *args);
 static PyObject *cast(PyObject *self, PyObject *args);
 static PyObject *callDtor(PyObject *self, PyObject *args);
@@ -903,7 +902,6 @@ static PyObject *transferTo(PyObject *self, PyObject *args);
 static PyObject *setDestroyOnExit(PyObject *self, PyObject *args);
 static void clear_wrapper(sipSimpleWrapper *sw);
 static void print_object(const char *label, PyObject *obj);
-#endif
 static void addToParent(sipWrapper *self, sipWrapper *owner);
 static void removeFromParent(sipWrapper *self);
 static void detachChildren(sipWrapper *self);
@@ -1248,7 +1246,6 @@ static void sip_api_trace(unsigned mask, const char *fmt, ...)
 }
 
 
-#if _SIP_MODULE_SHARED
 /*
  * Set the trace mask.
  */
@@ -1268,10 +1265,8 @@ static PyObject *setTraceMask(PyObject *self, PyObject *args)
 
     return NULL;
 }
-#endif
 
 
-#if _SIP_MODULE_SHARED
 /*
  * Dump various bits of potentially useful information to stdout.  Note that we
  * use the same calling convention as sys.getrefcount() so that it has the
@@ -1330,10 +1325,8 @@ static void print_object(const char *label, PyObject *obj)
 
     printf("\n");
 }
-#endif
 
 
-#if _SIP_MODULE_SHARED
 /*
  * Transfer the ownership of an instance to C/C++.
  */
@@ -1367,10 +1360,8 @@ static PyObject *transferTo(PyObject *self, PyObject *args)
 
     return NULL;
 }
-#endif
 
 
-#if _SIP_MODULE_SHARED
 /*
  * Transfer the ownership of an instance to Python.
  */
@@ -1390,10 +1381,8 @@ static PyObject *transferBack(PyObject *self, PyObject *args)
 
     return NULL;
 }
-#endif
 
 
-#if _SIP_MODULE_SHARED
 /*
  * Invoke the assignment operator for a C++ instance.
  */
@@ -1457,10 +1446,8 @@ static PyObject *assign(PyObject *self, PyObject *args)
     Py_INCREF(Py_None);
     return Py_None;
 }
-#endif
 
 
-#if _SIP_MODULE_SHARED
 /*
  * Cast an instance to one of it's sub or super-classes by returning a new
  * Python object with the superclass type wrapping the same C++ instance.
@@ -1501,10 +1488,8 @@ static PyObject *cast(PyObject *self, PyObject *args)
     return wrap_simple_instance(addr, wt->wt_td, NULL,
             (sw->sw_flags | SIP_NOT_IN_MAP) & ~SIP_PY_OWNED);
 }
-#endif
 
 
-#if _SIP_MODULE_SHARED
 /*
  * Call an instance's dtor.
  */
@@ -1531,10 +1516,8 @@ static PyObject *callDtor(PyObject *self, PyObject *args)
     Py_INCREF(Py_None);
     return Py_None;
 }
-#endif
 
 
-#if _SIP_MODULE_SHARED
 /*
  * Check if an instance still exists without raising an exception.
  */
@@ -1553,10 +1536,8 @@ static PyObject *isDeleted(PyObject *self, PyObject *args)
     Py_INCREF(res);
     return res;
 }
-#endif
 
 
-#if _SIP_MODULE_SHARED
 /*
  * Check if an instance was created by Python.
  */
@@ -1576,10 +1557,8 @@ static PyObject *isPyCreated(PyObject *self, PyObject *args)
     Py_INCREF(res);
     return res;
 }
-#endif
 
 
-#if _SIP_MODULE_SHARED
 /*
  * Check if an instance is owned by Python or C/C++.
  */
@@ -1598,10 +1577,8 @@ static PyObject *isPyOwned(PyObject *self, PyObject *args)
     Py_INCREF(res);
     return res;
 }
-#endif
 
 
-#if _SIP_MODULE_SHARED
 /*
  * Mark an instance as having been deleted.
  */
@@ -1619,10 +1596,8 @@ static PyObject *setDeleted(PyObject *self, PyObject *args)
     Py_INCREF(Py_None);
     return Py_None;
 }
-#endif
 
 
-#if _SIP_MODULE_SHARED
 /*
  * Unwrap an instance.
  */
@@ -1650,10 +1625,8 @@ static PyObject *unwrapInstance(PyObject *self, PyObject *args)
 
     return NULL;
 }
-#endif
 
 
-#if _SIP_MODULE_SHARED
 /*
  * Wrap an instance.
  */
@@ -1669,10 +1642,8 @@ static PyObject *wrapInstance(PyObject *self, PyObject *args)
 
     return NULL;
 }
-#endif
 
 
-#if _SIP_MODULE_SHARED
 /*
  * Set the destroy on exit flag from Python code.
  */
@@ -1688,7 +1659,6 @@ static PyObject *setDestroyOnExit(PyObject *self, PyObject *args)
 
     return NULL;
 }
-#endif
 
 
 /*
@@ -12370,7 +12340,6 @@ static sipPyObject **autoconversion_disabled(const sipTypeDef *td)
 }
 
 
-#if _SIP_MODULE_SHARED
 /*
  * Enable or disable auto-conversion of a class that supports it.
  */
@@ -12406,7 +12375,6 @@ static PyObject *enableAutoconversion(PyObject *self, PyObject *args)
 
     return NULL;
 }
-#endif
 
 
 /*
@@ -12465,7 +12433,6 @@ static void *resolve_proxy(const sipTypeDef *td, void *proxy)
 }
 
 
-#if _SIP_MODULE_SHARED
 /*
  * Clear a simple wrapper.
  */
@@ -12484,7 +12451,6 @@ static void clear_wrapper(sipSimpleWrapper *sw)
 
     clear_access_func(sw);
 }
-#endif
 
 
 /*
