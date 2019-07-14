@@ -41,7 +41,8 @@ def create_distinfo(project, installed, target_dir, wheel_tag=None):
     # Make sure we have an empty dist-info directory.  Handle exceptions as the
     # user may be trying something silly with a system directory.
     distinfo_dir = os.path.join(target_dir,
-            '{}-{}.dist-info'.format(project.name, project.version))
+            '{}-{}.dist-info'.format(project.name.replace('-', '_'),
+                    project.version))
 
     if os.path.exists(distinfo_dir):
         try:
