@@ -150,6 +150,8 @@ class DistutilsBuilder(Builder):
         pathname.
         """
 
+        project = self.project
+
         dist = Distribution()
 
         module_builder = build_ext(dist)
@@ -169,10 +171,16 @@ class DistutilsBuilder(Builder):
 
             define_macros.append((name, value))
 
+        # Add the location of the sip.h file for any shared sip module.
+        if project.sip_module:
+            include_dirs = [project.build_dir]
+            include_dirs.extend(bindings.include_dirs)
+        else:
+            include_dirs = bindings.include_dirs
+
         module_builder.extensions = [
             Extension(bindings.generated.name, bindings.generated.sources,
-                    define_macros=define_macros,
-                    include_dirs=bindings.include_dirs,
+                    define_macros=define_macros, include_dirs=include_dirs,
                     libraries=bindings.libraries,
                     library_dirs=bindings.library_dirs)]
 
