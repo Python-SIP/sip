@@ -40,6 +40,11 @@ from .pyproject import (PyProject, PyProjectOptionException,
         PyProjectUndefinedOptionException)
 
 
+# The first and last supported minor versions of Python v3.
+FIRST_SUPPORTED_MINOR = 5
+LAST_SUPPORTED_MINOR = 8
+
+
 class Project(Configurable):
     """ Encapsulate a project containing one or more sets of bindings. """
 
@@ -433,7 +438,8 @@ class Project(Configurable):
 
         if requires_python is None:
             # The minimal version of Python we support.
-            self.metadata['requires-python'] = '>=3.5'
+            self.metadata['requires-python'] = '>=3.{}'.format(
+                    FIRST_SUPPORTED_MINOR)
 
         # This is cosmetic.
         for name in ('requires-python', 'version', 'name', 'metadata-version'):

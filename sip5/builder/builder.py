@@ -33,6 +33,7 @@ from ..module import copy_sip_h
 from ..version import SIP_VERSION, SIP_VERSION_STR
 
 from .abstract_builder import AbstractBuilder
+from .project import FIRST_SUPPORTED_MINOR, LAST_SUPPORTED_MINOR
 
 
 class Builder(AbstractBuilder):
@@ -116,20 +117,38 @@ class Builder(AbstractBuilder):
 
         project = self.project
 
-        # Create the wheel tag.
-        # TODO: If all bindings use the limited API (need to extract that from
-        #   the parser) then include supported Python versions in the tag.  The
-        #   minimum version can be extracted from the metadata
-        #   'requires-python' and the maximum defined in pyproject.toml (and
-        #   default to a hardcoded value - the latest stable version + 1).
-        major_minor = '{}{}'.format((sys.hexversion >> 24) & 0xff,
-                (sys.hexversion >> 16) & 0xff)
-        wheel_tag = 'cp{}'.format(major_minor)
+        # Create a temporary directory for the wheel.
+        wheel_build_dir = os.path.join(project.build_dir, 'wheel')
+        os.mkdir(wheel_build_dir)
 
-        try:
-            wheel_tag += '-cp' + major_minor + sys.abiflags
-        except AttributeError:
-            wheel_tag += '-none'
+        # Build the wheel contents.
+        opaque = self._generate_and_compile()
+
+        # If all enabled bindings use the limited API then the wheel does.
+        all_use_limited_api = True
+        for bindings_name in project.enable:
+            if not project.bindings[bindings_name].generated.uses_limited_api:
+                all_use_limited_api = False
+                break
+
+        # Create the wheel tag.
+        if all_use_limited_api:
+            vtags = ['cp3{}'.format(v)
+                    for v in range(FIRST_SUPPORTED_MINOR,
+                            LAST_SUPPORTED_MINOR + 1)]
+            wheel_tag = '.'.join(vtags)
+
+            wheel_tag += '-none' if sys.platform == 'win32' else '-abi3'
+        else:
+            major_minor = '{}{}'.format((sys.hexversion >> 24) & 0xff,
+                    (sys.hexversion >> 16) & 0xff)
+
+            wheel_tag = 'cp{}'.format(major_minor)
+
+            try:
+                wheel_tag += '-cp' + major_minor + sys.abiflags
+            except AttributeError:
+                wheel_tag += '-none'
 
         if sys.platform == 'win32':
             wheel_tag += '-win32' if is_32 else '-win_amd64'
@@ -140,13 +159,8 @@ class Builder(AbstractBuilder):
             # be uploaded to PyPI.
             wheel_tag += '-manylinux1_x86_64'
 
-        # Create a temporary directory for the wheel.
-        wheel_build_dir = os.path.join(project.build_dir, 'wheel')
-        os.mkdir(wheel_build_dir)
-
-        # Build and copy the wheel contents.
-        self.install_into(self._generate_and_compile(), wheel_build_dir,
-                wheel_tag=wheel_tag)
+        # Copy the wheel contents.
+        self.install_into(opaque, wheel_build_dir, wheel_tag=wheel_tag)
 
         wheel_file = '{}-{}-{}.whl'.format(project.name.replace('-', '_'),
                 project.version, wheel_tag)
