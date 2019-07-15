@@ -91,10 +91,11 @@ Tag: {}
     metadata_f = open(metadata_fn, 'w')
 
     for name, value in project.metadata.items():
-        if isinstance(value, list):
-            value = ', '.join(value)
+        if isinstance(value, str):
+            value = [value]
 
-        metadata_f.write('{}: {}\n'.format(name.title(), value))
+        for v in value:
+            metadata_f.write('{}: {}\n'.format(name.title(), v))
 
     metadata_f.close()
 

@@ -262,6 +262,30 @@ class Project(Configurable):
                     "must be defined when the project contains multiple sets "
                             "of bindings")
 
+        # If we use a shared sip module then add the dependency to the
+        # meta-data.
+        if self.sip_module:
+            requires_dist = self.metadata.get('requires-dist')
+            if requires_dist is None:
+                requires_dist = []
+            elif isinstance(requires_dist, str):
+                requires_dist = [requires_dist]
+
+            # Ignore if the module is already defined.
+            sip_project_name = self.sip_module.replace('.', '-')
+
+            for rd in requires_dist:
+                if rd.split()[0] == sip_project_name:
+                    break
+            else:
+                next_abi_major = int(self.abi_version.split('.')[0]) + 1
+
+                requires_dist.insert(0,
+                        '{} (>={}, <{})'.format(sip_project_name,
+                                self.abi_version, next_abi_major))
+
+                self.metadata['requires-dist'] = requires_dist
+
         # Verify the types of any install extras.
         def bad_extras():
             raise PyProjectOptionException('install-extras',
