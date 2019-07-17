@@ -24,37 +24,30 @@
 from ..argument_parser import ArgumentParser
 from ..exceptions import handle_exception
 
-from .module import module
+from .distinfo import distinfo
 
 
 def main():
-    """ Create the code to build a sip module. """
+    """ Create and populate a .dist-info directory. """
 
     # Parse the command line.
-    parser = ArgumentParser("Generate the code for a sip extension module.")
+    parser = ArgumentParser("Create and populate a .dist-info directory.")
 
-    parser.add_argument('--abi-version', dest='abi_version',
-            help="the ABI version", metavar="VERSION")
+    parser.add_argument('--prefix', dest='prefix',
+            help="the installation prefix directory", metavar="DIR")
 
-    parser.add_argument('--no-sdist', dest='sdist', action='store_false',
-            default=True, help="do not generate the sdist file")
+    parser.add_argument('--inventory', dest='inventory', required=True,
+            help="the file containing the names of the files in the project",
+            metavar="FILE")
 
-    parser.add_argument('--project', dest='project',
-            help="the PyPI project name", metavar="NAME")
-
-    parser.add_argument('--setup-cfg', dest='setup_cfg',
-            help="the name of the setup.cfg file to use", metavar="FILE")
-
-    parser.add_argument(dest='sip_modules', nargs=1,
-            help="the fully qualified name of the sip module",
-            metavar="module")
+    parser.add_argument(dest='names', nargs=1,
+            help="the name of the .dist-info directory", metavar='directory')
 
     args = parser.parse_args()
 
     try:
-        module(sip_module=args.sip_modules[0], abi_version=args.abi_version,
-                project=args.project, sdist=args.sdist,
-                setup_cfg=args.setup_cfg)
+        distinfo(name=args.names[0], inventory=args.inventory,
+                prefix=args.prefix)
     except Exception as e:
         handle_exception(e)
 

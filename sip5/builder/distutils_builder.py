@@ -29,10 +29,10 @@ from distutils.log import ERROR, INFO, set_threshold
 import os
 import shutil
 
+from ..distinfo import create_distinfo
 from ..exceptions import UserException
 
 from .builder import Builder
-from .distinfo import create_distinfo
 
 
 class DistutilsBuilder(Builder):
@@ -130,7 +130,12 @@ class DistutilsBuilder(Builder):
             else:
                 raise UserException("unable to install '{0}'".format(src))
 
-        create_distinfo(project, installed, target_dir, wheel_tag=wheel_tag)
+        distinfo_dir = os.path.join(target_dir,
+                '{}-{}.dist-info'.format(project.name.replace('-', '_'),
+                project.version))
+
+        create_distinfo(distinfo_dir, installed, project.metadata,
+                wheel_tag=wheel_tag)
 
     @staticmethod
     def _install_file(fname, module_dir):
