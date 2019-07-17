@@ -979,7 +979,7 @@ For example::
 
     public:
         Klass();
-    %Docstring deindented
+    %Docstring "deindented"
         This will be appended to the class's docstring and will not be indented.
 
             This will be indented by four spaces.
