@@ -45,7 +45,7 @@ class PyProjectOptionException(PyProjectException):
         if section_name is None:
             section_name = 'tool.sip.project'
 
-        super().__init__("'{0}.{1}' {2}".format(section_name, name, text),
+        super().__init__("'{0}.{1}': {2}".format(section_name, name, text),
                 detail=detail)
 
 

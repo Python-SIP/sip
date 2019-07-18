@@ -48,7 +48,7 @@ class Configurable:
         for option in options:
             # If it has already been set explicitly then the user cannot change
             # it.
-            if getattr(self, option.name, None) is not None:
+            if getattr(self, option.name) is not None:
                 continue
 
             # If there is no help then the user can never specify it.

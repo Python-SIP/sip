@@ -32,7 +32,8 @@ from ..module import copy_nonshared_sources
 from ..version import SIP_VERSION_STR
 
 from .configurable import Configurable, Option
-from .pyproject import PyProjectUndefinedOptionException
+from .pyproject import (PyProjectOptionException,
+        PyProjectUndefinedOptionException)
 
 
 class Bindings(Configurable):
