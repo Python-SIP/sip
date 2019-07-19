@@ -69,7 +69,7 @@ class Builder(AbstractBuilder):
             shutil.copy(project_py, sdist_root)
 
         # Copy in the .sip files for each set of bindings.
-        for bindings in project.bindings.values():
+        for bindings in project.bindings:
             self._install_sip_files(bindings, sdist_root)
 
         # Copy in anything else the user has asked for.
@@ -126,8 +126,8 @@ class Builder(AbstractBuilder):
 
         # If all enabled bindings use the limited API then the wheel does.
         all_use_limited_api = True
-        for bindings_name in project.enable:
-            if not project.bindings[bindings_name].generated.uses_limited_api:
+        for bindings in project.get_enabled_bindings():
+            if not bindings.generated.uses_limited_api:
                 all_use_limited_api = False
                 break
 
@@ -251,9 +251,7 @@ class Builder(AbstractBuilder):
                 int(abi_minor), UserException, sip_include_dirs)
 
         # Generate the code for each enabled set of bindings.
-        for bindings_name in project.enable:
-            bindings = project.bindings[bindings_name]
-
+        for bindings in project.get_enabled_bindings():
             project.progress(
                     "Generating the bindings from {0}".format(
                             bindings.sip_file))

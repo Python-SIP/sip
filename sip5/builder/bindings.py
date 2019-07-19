@@ -111,10 +111,10 @@ class Bindings(Configurable):
                 tools='build install wheel'),
     )
 
-    def __init__(self, project):
+    def __init__(self, project, **kwargs):
         """ Initialise the bindings. """
 
-        super().__init__()
+        super().__init__(**kwargs)
 
         self.project = project
         self.generated = None

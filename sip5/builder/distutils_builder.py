@@ -51,9 +51,7 @@ class DistutilsBuilder(Builder):
 
         set_threshold(INFO if project.verbose else ERROR)
 
-        for bindings_name in project.enable:
-            bindings = project.bindings[bindings_name]
-
+        for bindings in project.get_enabled_bindings():
             self.project.progress(
                     "Compiling the bindings for {0}".format(
                             bindings.generated.name))

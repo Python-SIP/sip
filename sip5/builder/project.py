@@ -95,14 +95,14 @@ class Project(Configurable):
                 tools='build install wheel'),
     )
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         """ Initialise the project. """
 
-        super().__init__()
+        super().__init__(**kwargs)
 
         # The current directory should contain pyproject.toml.
         self.root_dir = os.getcwd()
-        self.bindings = {}
+        self.bindings = []
         self.builder = None
 
         self._temp_build_dir = None
@@ -218,6 +218,13 @@ class Project(Configurable):
             from .distutils_builder import DistutilsBuilder as builder_factory
 
         return builder_factory(self)
+
+    def get_enabled_bindings(self):
+        """ A generator that returns the enabled bindings. """
+
+        for bindings in self.bindings:
+            if bindings.name in self.enable:
+                yield bindings
 
     def get_options(self):
         """ Return the list of configurable options. """
@@ -338,7 +345,7 @@ class Project(Configurable):
 
         self.builder.add_command_line_options(parser, tool, all_options)
 
-        for bindings in self.bindings.values():
+        for bindings in self.bindings:
             bindings.add_command_line_options(parser, tool, all_options)
 
         # Parse the arguments and update the corresponding configurables.
@@ -368,7 +375,7 @@ class Project(Configurable):
 
         self.builder.apply_defaults()
 
-        for bindings in self.bindings.values():
+        for bindings in self.bindings:
             bindings.apply_defaults()
 
         self._validate_enabled_bindings()
@@ -494,28 +501,37 @@ class Project(Configurable):
             bindings_sections = []
 
         for section in bindings_sections:
-            bindings = Bindings(self)
+            # If the bindings have already been defined then update them,
+            # otherwise create a new set.
+            name = section.get('name')
+            for bindings in self.bindings:
+                if bindings.name == name:
+                    break
+            else:
+                bindings = Bindings(self)
+                self.bindings.append(bindings)
+
             bindings.configure(section, 'tool.sip.bindings')
-            self.bindings[bindings.name] = bindings
 
         # Add a default set of bindings if none were defined.
         if not self.bindings:
-            bindings = Bindings(self)
-            bindings.name = self.name
-            self.bindings[bindings.name] = bindings
+            bindings = Bindings(self, name=self.name)
+            self.bindings.append(bindings)
 
     def _validate_enabled_bindings(self):
         """ Check the enabled bindings are valid and remove any disabled ones.
         """
 
+        names = [bindings.name for bindings in self.bindings]
+
         if self.enable:
             # Check that the enable bindings are valid.
             for bindings_name in self.enable:
-                if bindings_name not in self.bindings:
+                if bindings_name not in names:
                     raise UserException(
                             "unknown bindings '{0}'".format(bindings_name))
         else:
-            self.enable = list(self.bindings.keys())
+            self.enable = names
 
         for disabled in self.disable:
             try:
@@ -530,5 +546,5 @@ class Project(Configurable):
 
         self.builder.verify_configuration()
 
-        for bindings in self.bindings.values():
+        for bindings in self.bindings:
             bindings.verify_configuration()

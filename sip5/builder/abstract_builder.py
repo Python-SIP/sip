@@ -29,10 +29,10 @@ from .configurable import Configurable
 class AbstractBuilder(Configurable, ABC):
     """ This specifies the API of a builder. """
 
-    def __init__(self, project):
+    def __init__(self, project, **kwargs):
         """ Initialise the builder. """
 
-        super().__init__()
+        super().__init__(**kwargs)
 
         self.project = project
 

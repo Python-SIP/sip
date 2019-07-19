@@ -21,6 +21,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
+from ..exceptions import UserException
+
 from .pyproject import PyProjectOptionException
 
 
@@ -29,12 +31,23 @@ class Configurable:
     a build script or (possibly) the user via command line options.
     """
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         """ Initialise the object. """
 
-        # Set the value for each option as undefined.
+        # Set the value for each option from the keyword arguments or undefined
+        # if not specified.
+        names = []
+
         for option in self.get_options():
-            setattr(self, option.name, None)
+            name = option.name
+            names.append(name)
+
+            setattr(self, name, kwargs.get(name))
+
+        # Check that all keyword arguments are valid options.
+        for kw in kwargs.keys():
+            if kw not in names:
+                raise UserException("'{0}' is not a valid option".format(kw))
 
     def add_command_line_options(self, parser, tool, all_options, options=None):
         """ Add the object's command line options to an argument parser and

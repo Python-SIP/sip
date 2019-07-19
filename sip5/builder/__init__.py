@@ -23,6 +23,7 @@
 
 # Publish the public API.
 from .abstract_builder import AbstractBuilder
+from .bindings import Bindings
 from .builder import Builder
 from .configurable import Option
 from .distutils_builder import DistutilsBuilder
