@@ -406,6 +406,9 @@ static void sip_api_print_object(PyObject *o);
 static int sip_api_register_event_handler(sipEventType type,
         const sipTypeDef *td, void *handler);
 static void sip_api_instance_destroyed_ex(sipSimpleWrapper **sipSelfp);
+static void sip_api_visit_wrappers(sipWrapperVisitorFunc visitor,
+        void *closure);
+static int sip_api_register_exit_notifier(PyMethodDef *md);
 
 
 /*
@@ -542,7 +545,13 @@ static const sipAPIDef sip_api = {
     sip_api_call_error_handler,
     sip_api_init_mixin,
     sip_api_get_reference,
+    /*
+     * The following are part of the public API.
+     */
     sip_api_is_owned_by_python,
+    /*
+     * The following are not part of the public API.
+     */
     sip_api_is_derived_class,
     /*
      * The following may be used by Qt support code but by no other handwritten
@@ -597,6 +606,8 @@ static const sipAPIDef sip_api = {
      */
     sip_api_convert_from_slice_object,
     sip_api_long_as_size_t,
+    sip_api_visit_wrappers,
+    sip_api_register_exit_notifier,
 };
 
 
@@ -951,7 +962,6 @@ static int addMethod(PyObject *dict, PyMethodDef *pmd);
 static PyObject *create_property(sipVariableDef *vd);
 static PyObject *create_function(PyMethodDef *ml);
 static PyObject *sip_exit(PyObject *self, PyObject *args);
-static int register_exit_notifier(void);
 static sipConvertFromFunc get_from_convertor(const sipTypeDef *td);
 static sipPyObject **autoconversion_disabled(const sipTypeDef *td);
 static void fix_slots(PyTypeObject *py_type, sipPySlotDef *psd);
@@ -1013,6 +1023,10 @@ const sipAPIDef *sip_init_library(PyObject *mod_dict)
         {"wrapinstance", wrapInstance, METH_VARARGS, NULL},
         {"unwrapinstance", unwrapInstance, METH_VARARGS, NULL},
         {NULL, NULL, 0, NULL}
+    };
+
+    static PyMethodDef sip_exit_md = {
+        "_sip_exit", sip_exit, METH_NOARGS, NULL
     };
 
     PyObject *obj;
@@ -1127,7 +1141,7 @@ const sipAPIDef *sip_init_library(PyObject *mod_dict)
         return NULL;
 
     /* Make sure we are notified at the start of the exit process. */
-    if (register_exit_notifier() < 0)
+    if (sip_api_register_exit_notifier(&sip_exit_md) < 0)
         return NULL;
 
     /*
@@ -12239,32 +12253,29 @@ static PyObject *sip_exit(PyObject *self, PyObject *args)
 
 
 /*
- * Register the exit notifier with the atexit module.
+ * Register an exit notifier with the atexit module.
  */
-static int register_exit_notifier(void)
+static int sip_api_register_exit_notifier(PyMethodDef *md)
 {
-    static PyMethodDef md = {
-        "_sip_exit", sip_exit, METH_NOARGS, NULL
-    };
+    static PyObject *register_func = NULL;
+    PyObject *notifier, *res;
 
-    PyObject *notifier, *register_func, *res;
-
-    if ((notifier = PyCFunction_New(&md, NULL)) == NULL)
+    if (register_func == NULL && (register_func = import_module_attr("atexit", "register")) == NULL)
         return -1;
 
-    if ((register_func = import_module_attr("atexit", "register")) == NULL)
-    {
-        Py_DECREF(notifier);
+    if ((notifier = PyCFunction_New(md, NULL)) == NULL)
         return -1;
-    }
 
     res = PyObject_CallFunctionObjArgs(register_func, notifier, NULL);
 
-    Py_XDECREF(res);
-    Py_DECREF(register_func);
     Py_DECREF(notifier);
 
-    return (res != NULL ? 0 : -1);
+    if (res == NULL)
+        return -1;
+
+    Py_DECREF(res);
+
+    return 0;
 }
 
 
@@ -13194,4 +13205,26 @@ int sip_api_convert_from_slice_object(PyObject *slice, Py_ssize_t length,
 #else
     return PySlice_GetIndicesEx(slice, length, start, stop, step, slicelength);
 #endif
+}
+
+
+/*
+ * Call a visitor function for every wrapped object.
+ */
+static void sip_api_visit_wrappers(sipWrapperVisitorFunc visitor,
+        void *closure)
+{
+    const sipHashEntry *he;
+    unsigned long i;
+
+    for (he = cppPyMap.hash_array, i = 0; i < cppPyMap.size; ++i, ++he)
+    {
+        if (he->key != NULL)
+        {
+            sipSimpleWrapper *sw;
+
+            for (sw = he->first; sw != NULL; sw = sw->next)
+                visitor(sw, closure);
+        }
+    }
 }

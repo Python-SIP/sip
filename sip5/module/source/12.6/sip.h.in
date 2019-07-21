@@ -41,8 +41,9 @@ extern "C" {
 /*
  * The changes to this version of the ABI.
  *
- * Added the '=' format character to sip_api_build_result().
- * Added the '=' format character to sip_api_parse_result_ex().
+ * Added sip_api_visit_wrappers() to the public API.
+ * Added sip_api_register_exit_notifier() to the public API.
+ * sip_api_is_owned_by_python() is now part of the public API.
  */
 
 
@@ -259,6 +260,7 @@ typedef PyObject *(*sipVariableGetterFunc)(void *, PyObject *, PyObject *);
 typedef int (*sipVariableSetterFunc)(void *, PyObject *, PyObject *);
 typedef void *(*sipProxyResolverFunc)(void *);
 typedef int (*sipNewUserTypeFunc)(sipWrapperType *);
+typedef void (*sipWrapperVisitorFunc)(sipSimpleWrapper *, void *);
 
 
 #if !defined(Py_LIMITED_API)
@@ -1559,7 +1561,15 @@ typedef struct _sipAPIDef {
     int (*api_init_mixin)(PyObject *self, PyObject *args, PyObject *kwds,
             const sipClassTypeDef *ctd);
     PyObject *(*api_get_reference)(PyObject *self, int key);
+
+    /*
+     * The following are part of the public API.
+     */
     int (*api_is_owned_by_python)(sipSimpleWrapper *);
+
+    /*
+     * The following are not part of the public API.
+     */
     int (*api_is_derived_class)(sipSimpleWrapper *);
 
     /*
@@ -1627,6 +1637,8 @@ typedef struct _sipAPIDef {
             Py_ssize_t *start, Py_ssize_t *stop, Py_ssize_t *step,
             Py_ssize_t *slicelength);
     size_t (*api_long_as_size_t)(PyObject *o);
+    void (*api_visit_wrappers)(sipWrapperVisitorFunc visitor, void *closure);
+    int (*api_register_exit_notifier)(PyMethodDef *md);
 } sipAPIDef;
 
 const sipAPIDef *sip_init_library(PyObject *mod_dict);

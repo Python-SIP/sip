@@ -693,6 +693,10 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipLong_AsLongLong          sipAPI_%s->api_long_as_long_long\n"
 "#define sipLong_AsUnsignedLongLong  sipAPI_%s->api_long_as_unsigned_long_long\n"
 "#define sipLong_AsSizeT             sipAPI_%s->api_long_as_size_t\n"
+"#define sipVisitWrappers            sipAPI_%s->api_visit_wrappers\n"
+"#define sipRegisterExitNotifier     sipAPI_%s->api_register_exit_notifier\n"
+        ,mname
+        ,mname
         ,mname
         ,mname
         ,mname

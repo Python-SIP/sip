@@ -717,7 +717,7 @@ specification files.
 .. c:type:: sipDateDef
 
     This C structure is used with :c:func:`sipGetDate()`,
-    :c:func:`sipFromDate(), :c:func:`sipGetDateTime()` and
+    :c:func:`sipFromDate()`, :c:func:`sipGetDateTime()` and
     :c:func:`sipFromDateTime()` and encapsulates the components parts of a
     Python date.  The structure elements are as follows.
 
@@ -1107,6 +1107,18 @@ specification files.
         made.
     :return:
         a non-zero value if the API is enabled.
+
+
+.. c:function:: int sipIsOwnedByPython(sipSimpleWrapper *obj)
+
+    .. versionadded:: 4.19.19
+
+    This determines if a wrapped object is currently owned by Python.
+
+    :param obj:
+        the wrapped object.
+    :return:
+        a non-zero value if the object is currently owned by Python.
 
 
 .. c:function:: int sipIsUserType(const sipWrapperType *type)
@@ -1514,25 +1526,25 @@ specification files.
 
 .. c:function:: int sipRegisterAttributeGetter(const sipTypeDef *td, sipAttrGetterFunc getter)
 
-    This registers a handler that will called just before SIP needs to get an
-    attribute from a wrapped type's dictionary for the first time.  The handler
+    This registers a getter that will called just before SIP needs to get an
+    attribute from a wrapped type's dictionary for the first time.  The getter
     must then populate the type's dictionary with any lazy attributes.
 
     :param td:
         the optional :ref:`generated type structure <ref-type-structures>` that
-        determines which types the handler will be called for.
+        determines which types the getter will be called for.
     :param getter:
-        the handler function.
+        the getter function.
     :return:
         0 if there was no error, otherwise -1 is returned.
 
-    If *td* is not ``NULL`` then the handler will only be called for types with
-    that type or that are sub-classed from it.  Otherwise the handler will be
+    If *td* is not ``NULL`` then the getter will only be called for types with
+    that type or that are sub-classed from it.  Otherwise the getter will be
     called for all types.
 
-    A handler has the following signature.
+    A getter has the following signature.
 
-    int handler(const :c:type:`sipTypeDef` \*td, PyObject \*dict)
+    int getter(const :c:type:`sipTypeDef` \*td, PyObject \*dict)
 
         *td* is the generated type definition of the type whose dictionary is
         to be populated.
@@ -1542,6 +1554,19 @@ specification files.
         0 is returned if there was no error, otherwise -1 is returned.
 
     See the section :ref:`ref-lazy-type-attributes` for more details.
+
+
+.. c:function:: int sipRegisterExitNotifier(PyMethodDef *md)
+
+    .. versionadded:: 4.19.19
+
+    This registers a C function with Python's :py:mod:`atexit` module that will
+    be called when the interpreter terminates.
+
+    :param md:
+        the data structure that describes the C function to be called.
+    :return:
+        0 if there was no error, otherwise -1 is returned.
 
 
 .. c:function:: int sipRegisterProxyResolver(const sipTypeDef *td, sipProxyResolverFunc resolver)
@@ -1910,6 +1935,26 @@ specification files.
         the character (not byte) index of the character to be updated.
     :param value:
         the value of the new character.
+
+
+.. c:function:: void sipVisitWrappers(sipWrapperVisitorFunc visitor, void *closure)
+
+    .. versionadded:: 4.19.19
+
+    This calls a visitor function for every wrapper object.
+
+    :param visitor:
+        the visitor function.
+    :param closure:
+        a pointer that is passed to the visitor.
+
+    A visitor has the following signature.
+
+    void visitor(sipSimpleWrapper \*obj, void \*closure)
+
+        *obj* is the wrapped object being visited.
+
+        *closure* is the pointer passed to :c:func:`sipVisitWrappers()`.
 
 
 .. c:var:: PyTypeObject *sipVoidPtr_Type
