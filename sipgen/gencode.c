@@ -834,6 +834,8 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipLong_AsLongLong          sipAPI_%s->api_long_as_long_long\n"
 "#define sipLong_AsUnsignedLongLong  sipAPI_%s->api_long_as_unsigned_long_long\n"
 "#define sipLong_AsSizeT             sipAPI_%s->api_long_as_size_t\n"
+"#define sipVisitWrappers            sipAPI_%s->api_visit_wrappers\n"
+"#define sipRegisterExitNotifier     sipAPI_%s->api_register_exit_notifier\n"
 "\n"
 "/* These are deprecated. */\n"
 "#define sipMapStringToClass         sipAPI_%s->api_map_string_to_class\n"
@@ -858,6 +860,8 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipConvertFromMappedType    sipConvertFromType\n"
 "#define sipConvertFromNamedEnum(v, pt)  sipConvertFromEnum((v), ((sipEnumTypeObject *)(pt))->type)\n"
 "#define sipConvertFromNewInstance(p, wt, t) sipConvertFromNewType((p), (wt)->wt_td, (t))\n"
+        ,mname
+        ,mname
         ,mname
         ,mname
         ,mname
