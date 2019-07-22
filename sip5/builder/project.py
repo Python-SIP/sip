@@ -89,10 +89,10 @@ class Project(Configurable):
 
     # The configurable options for multiple bindings.
     _multibindings_options = (
-        Option('disable', help="disable the NAME bindings", metavar="NAME",
-                tools='build install wheel'),
-        Option('enable', help="enable the NAME bindings", metavar="NAME",
-                tools='build install wheel'),
+        Option('disable', option_type=list, help="disable the NAME bindings",
+                metavar="NAME", tools='build install wheel'),
+        Option('enable', option_type=list, help="enable the NAME bindings",
+                metavar="NAME", tools='build install wheel'),
     )
 
     def __init__(self, **kwargs):
@@ -197,7 +197,7 @@ class Project(Configurable):
 
         # Allow a sub-class (in a user supplied script) to make any updates to
         # the configuration.
-        project.update()
+        project.update(tool)
 
         os.chdir(project.root_dir)
 
@@ -247,12 +247,24 @@ class Project(Configurable):
         self.builder.install()
         self._remove_build_dir()
 
+    @staticmethod
+    def open_for_writing(fname):
+        """ Open a file for writing while handling any errors. """
+
+        try:
+            return open(fname, 'w')
+        except IOError as e:
+            raise UserException(
+                    "There was an error creating '{0}' - make sure you have "
+                    " write permission on the parent directory".format(fname),
+                    detail=str(e))
+
     def progress(self, message):
         """ Print a progress message if verbose messages are enabled. """
 
         self.information(message + '...')
 
-    def update(self):
+    def update(self, tool):
         """ This should be re-implemented by any user supplied sub-class to
         carry out any updates to the configuration as required.  The current
         directory will be the temporary build directory.
@@ -533,11 +545,12 @@ class Project(Configurable):
         else:
             self.enable = names
 
-        for disabled in self.disable:
-            try:
-                self.enable.remove(disabled)
-            except ValueError:
-                pass
+        if self.disable:
+            for disabled in self.disable:
+                try:
+                    self.enable.remove(disabled)
+                except ValueError:
+                    pass
 
     def _verify(self):
         """ Verify that the configuration is complete and consistent. """

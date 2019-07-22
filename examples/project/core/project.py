@@ -17,7 +17,7 @@ class CoreProject(Project):
 
         return options
 
-    def update(self):
+    def update(self, tool):
         """ Update the project. """
 
         if self.platform:

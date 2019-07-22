@@ -22,6 +22,8 @@
 
 
 # Publish the public API.
+from ..exceptions import UserException
+
 from .abstract_builder import AbstractBuilder
 from .bindings import Bindings
 from .builder import Builder
