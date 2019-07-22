@@ -55,11 +55,3 @@ class AbstractBuilder(Configurable, ABC):
     @abstractmethod
     def install(self):
         """ Install the project. """
-
-    def setup(self):
-        """ Perform any setup required.  This is called with the build
-        directory as the current directory.
-        """
-
-        # This default implementation does nothing.
-        pass

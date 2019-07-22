@@ -192,9 +192,6 @@ class Project(Configurable):
 
         os.chdir(project.build_dir)
 
-        # Allow the builder to do some setup.
-        project.builder.setup()
-
         # Allow a sub-class (in a user supplied script) to make any updates to
         # the configuration.
         project.update(tool)
