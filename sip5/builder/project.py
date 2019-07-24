@@ -63,6 +63,12 @@ class Project(Configurable):
         # relative to the root of the installation.
         Option('install_extras', option_type=list),
 
+        # Set if building for a debug version of Python.
+        Option('py_debug', option_type=bool)
+
+        # The name of the target Python platform.
+        Option('py_platform')
+
         # The name of the directory containing the .sip files.  If the sip
         # module is shared then each set of bindings is in its own
         # sub-directory.
@@ -106,6 +112,36 @@ class Project(Configurable):
         self.builder = None
 
         self._temp_build_dir = None
+
+    def apply_defaults(self, tool):
+        """ Set default values for options that haven't been set yet. """
+
+        # For the build tool we want build_dir to default to a local 'build'
+        # directory (which we won't remove).  However, for other tools (and for
+        # PEP 517 frontends) we want to use a temporary directory in case the
+        # current directory is read-only.
+        if self.build_dir is None:
+            if tool == 'build':
+                self.build_dir = 'build'
+            else:
+                self._temp_build_dir = tempfile.TemporaryDirectory()
+                self.build_dir = self._temp_build_dir.name
+
+        if self.py_debug is None:
+            self.py_debug = hasattr(sys, 'gettotalrefcount')
+
+        if self.py_platform is None:
+            self.py_platform = sys.platform
+
+        self._validate_enabled_bindings()
+
+        super().apply_defaults(tool)
+
+        # Set the defaults for the builder and bindings.
+        self.builder.apply_defaults(tool)
+
+        for bindings in self.bindings:
+            bindings.apply_defaults(tool)
 
     def build(self):
         """ Build the project in-situ. """
@@ -177,8 +213,9 @@ class Project(Configurable):
             project._configure_from_command_line(tool, description)
 
         # Make sure the configuration is complete.
-        project._finalise_configuration(tool)
+        project.apply_defaults(tool)
 
+        # Configure the warnings module.
         if not project.verbose:
             warnings.simplefilter('ignore', UserWarning)
 
@@ -200,7 +237,7 @@ class Project(Configurable):
 
         # Make sure the configuration is correct after any user supplied script
         # has messed with it.
-        project._verify()
+        project.verify_configuration(tool)
 
         return project
 
@@ -269,7 +306,7 @@ class Project(Configurable):
 
         # This default implementation does nothing.
 
-    def verify_configuration(self):
+    def verify_configuration(self, tool):
         """ Verify that the configuration is complete and consistent. """
 
         # Make sure we have a valid ABI version.
@@ -331,6 +368,12 @@ class Project(Configurable):
         # Do this again in case any user script has modified it.
         self._validate_enabled_bindings()
 
+        # Verify the configuration of the builder and bindings.
+        self.builder.verify_configuration(tool)
+
+        for bindings in self.bindings:
+            bindings.verify_configuration(tool)
+
     def _configure_from_command_line(self, tool, description):
         """ Update the configuration from the user supplied command line. """
 
@@ -365,29 +408,6 @@ class Project(Configurable):
                 if hasattr(args, option.dest):
                     setattr(configurable, option.name,
                             getattr(args, option.dest))
-
-    def _finalise_configuration(self, tool):
-        """ Finalise the project's configuration. """
-
-        # For the build tool we want build_dir to default to a local 'build'
-        # directory (which we won't remove).  However, for other tools (and for
-        # PEP 517 frontends) we want to use a temporary directory in case the
-        # current directory is read-only.
-        if self.build_dir is None:
-            if tool == 'build':
-                self.build_dir = 'build'
-            else:
-                self._temp_build_dir = tempfile.TemporaryDirectory()
-                self.build_dir = self._temp_build_dir.name
-
-        self.apply_defaults()
-
-        self.builder.apply_defaults()
-
-        for bindings in self.bindings:
-            bindings.apply_defaults()
-
-        self._validate_enabled_bindings()
 
     @staticmethod
     def _import_callable(callable_name, section_name, name):
@@ -548,13 +568,3 @@ class Project(Configurable):
                     self.enable.remove(disabled)
                 except ValueError:
                     pass
-
-    def _verify(self):
-        """ Verify that the configuration is complete and consistent. """
-
-        self.verify_configuration()
-
-        self.builder.verify_configuration()
-
-        for bindings in self.bindings:
-            bindings.verify_configuration()

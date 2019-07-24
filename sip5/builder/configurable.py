@@ -105,7 +105,7 @@ class Configurable:
                         type=option.option_type, choices=option.choices,
                         help=option.help, metavar=option.metavar)
 
-    def apply_defaults(self):
+    def apply_defaults(self, tool):
         """ Set default values for each configurable option that hasn't been
         set yet.
         """
@@ -159,7 +159,7 @@ class Configurable:
 
         return list()
 
-    def verify_configuration(self):
+    def verify_configuration(self, tool):
         """ Verify that the configuration is complete and consistent. """
 
         # This default implementation does nothing.

@@ -278,8 +278,25 @@ class Bindings(Configurable):
 
         return sip_files
 
-    def verify_configuration(self):
+    def verify_configuration(self, tool):
         """ Verify that the configuration is complete and consistent. """
+
+        super.verify_configuration(tool)
+
+        # On Windows the interpreter must be a debug build if a debug version
+        # is to be built and vice versa.
+        if sys.platform == 'win32':
+            if self.debug:
+                if not self.project.py_debug:
+                    raise UserException(
+                            "A debug version of Python must be used when "
+                            "building a debug version of the {0} "
+                            "bindings".format(self.name))
+            elif self.project.py_debug:
+                raise UserException(
+                        "A debug version of the {0} bindings must be built "
+                        "when a debug version of Python is used".format(
+                                self.name))
 
         # Provide a default .sip file name if needed.
         if not self.sip_file:
