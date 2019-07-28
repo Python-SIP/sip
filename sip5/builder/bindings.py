@@ -189,7 +189,7 @@ class Bindings(Configurable):
         sources = generateCode(pt, sources_dir, self.source_suffix,
                 self.exceptions, self.tracing, self.release_gil,
                 self.concatenate, self.tags, self.disabled_features,
-                self.docstrings, self.debug, project.sip_module)
+                self.docstrings, project.py_debug, project.sip_module)
 
         # Add the sip module code if it is not shared.
         include_dirs = [sources_dir]
@@ -278,10 +278,17 @@ class Bindings(Configurable):
 
         return sip_files
 
+    def is_buildable(self):
+        """ Return True if the bindings are buildable.  This will not be called
+        if the bindings have been explicitly enabled.
+        """
+
+        return True
+
     def verify_configuration(self, tool):
         """ Verify that the configuration is complete and consistent. """
 
-        super.verify_configuration(tool)
+        super().verify_configuration(tool)
 
         # On Windows the interpreter must be a debug build if a debug version
         # is to be built and vice versa.

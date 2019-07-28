@@ -126,7 +126,7 @@ class Builder(AbstractBuilder):
 
         # If all enabled bindings use the limited API then the wheel does.
         all_use_limited_api = True
-        for bindings in project.get_enabled_bindings():
+        for bindings in project.bindings:
             if not bindings.generated.uses_limited_api:
                 all_use_limited_api = False
                 break
@@ -250,8 +250,8 @@ class Builder(AbstractBuilder):
         set_globals(SIP_VERSION, SIP_VERSION_STR, int(abi_major),
                 int(abi_minor), UserException, sip_include_dirs)
 
-        # Generate the code for each enabled set of bindings.
-        for bindings in project.get_enabled_bindings():
+        # Generate the code for each set of bindings.
+        for bindings in project.bindings:
             project.progress(
                     "Generating the bindings from {0}".format(
                             bindings.sip_file))

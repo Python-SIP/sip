@@ -64,10 +64,10 @@ class Project(Configurable):
         Option('install_extras', option_type=list),
 
         # Set if building for a debug version of Python.
-        Option('py_debug', option_type=bool)
+        Option('py_debug', option_type=bool),
 
         # The name of the target Python platform.
-        Option('py_platform')
+        Option('py_platform'),
 
         # The name of the directory containing the .sip files.  If the sip
         # module is shared then each set of bindings is in its own
@@ -133,9 +133,11 @@ class Project(Configurable):
         if self.py_platform is None:
             self.py_platform = sys.platform
 
-        self._validate_enabled_bindings()
-
         super().apply_defaults(tool)
+
+        # Adjust the list of bindings according to what has been explicitly
+        # enabled and disabled.
+        self._enable_disable_bindings()
 
         # Set the defaults for the builder and bindings.
         self.builder.apply_defaults(tool)
@@ -253,13 +255,6 @@ class Project(Configurable):
 
         return builder_factory(self)
 
-    def get_enabled_bindings(self):
-        """ A generator that returns the enabled bindings. """
-
-        for bindings in self.bindings:
-            if bindings.name in self.enable:
-                yield bindings
-
     def get_options(self):
         """ Return the list of configurable options. """
 
@@ -305,6 +300,17 @@ class Project(Configurable):
         """
 
         # This default implementation does nothing.
+
+    def update_buildable_bindings(self):
+        """ Update the list of bindings to ensure they are either buildable or
+        have been explicitly enabled.
+        """
+
+        # Explicitly enabled bindings are assumed to be buildable.
+        if self.enable:
+            return
+
+        self.bindings = [b for b in self.bindings if b.is_buildable()]
 
     def verify_configuration(self, tool):
         """ Verify that the configuration is complete and consistent. """
@@ -365,9 +371,6 @@ class Project(Configurable):
             if not isinstance(src, str):
                 bad_extras()
 
-        # Do this again in case any user script has modified it.
-        self._validate_enabled_bindings()
-
         # Verify the configuration of the builder and bindings.
         self.builder.verify_configuration(tool)
 
@@ -408,6 +411,33 @@ class Project(Configurable):
                 if hasattr(args, option.dest):
                     setattr(configurable, option.name,
                             getattr(args, option.dest))
+
+    def _enable_disable_bindings(self):
+        """ Check the enabled bindings are valid and remove any disabled ones.
+        """
+
+        names = [bindings.name for bindings in self.bindings]
+
+        # Check that any explicitly enabled bindings are valid.
+        if self.enable:
+            for enabled in self.enable:
+                if enabled not in names:
+                    raise UserException(
+                            "unknown enabled bindings '{0}'".format(enabled))
+
+            # Only include explicitly enabled bindings.
+            self.bindings = [b for b in self.bindings if b.name in self.enable]
+
+        # Check that any explicitly disabled bindings are valid.
+        if self.disable:
+            for disabled in self.disable:
+                if disabled not in names:
+                    raise UserException(
+                            "unknown disabled bindings '{0}'".format(disabled))
+
+            # Remove any explicitly disabled bindings.
+            self.bindings = [b for b in self.bindings
+                    if b.name not in self.disable]
 
     @staticmethod
     def _import_callable(callable_name, section_name, name):
@@ -546,25 +576,3 @@ class Project(Configurable):
         if not self.bindings:
             bindings = Bindings(self, name=self.name)
             self.bindings.append(bindings)
-
-    def _validate_enabled_bindings(self):
-        """ Check the enabled bindings are valid and remove any disabled ones.
-        """
-
-        names = [bindings.name for bindings in self.bindings]
-
-        if self.enable:
-            # Check that the enable bindings are valid.
-            for bindings_name in self.enable:
-                if bindings_name not in names:
-                    raise UserException(
-                            "unknown bindings '{0}'".format(bindings_name))
-        else:
-            self.enable = names
-
-        if self.disable:
-            for disabled in self.disable:
-                try:
-                    self.enable.remove(disabled)
-                except ValueError:
-                    pass
