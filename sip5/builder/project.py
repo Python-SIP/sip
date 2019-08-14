@@ -69,6 +69,12 @@ class Project(Configurable):
         # The name of the target Python platform.
         Option('py_platform'),
 
+        # The major version number of the target Python installation.
+        Option('py_major_version', option_type=int),
+
+        # The minor version number of the target Python installation.
+        Option('py_minor_version', option_type=int),
+
         # The name of the directory containing the .sip files.  If the sip
         # module is shared then each set of bindings is in its own
         # sub-directory.
@@ -127,11 +133,15 @@ class Project(Configurable):
                 self._temp_build_dir = tempfile.TemporaryDirectory()
                 self.build_dir = self._temp_build_dir.name
 
-        if self.py_debug is None:
-            self.py_debug = hasattr(sys, 'gettotalrefcount')
+        if self.py_major_version is None or self.py_minor_version is None:
+            self.py_major_version = sys.hexversion >> 24
+            self.py_minor_version = (sys.hexversion >> 16) & 0x0ff
 
         if self.py_platform is None:
             self.py_platform = sys.platform
+
+        if self.py_debug is None:
+            self.py_debug = hasattr(sys, 'gettotalrefcount')
 
         super().apply_defaults(tool)
 
@@ -314,6 +324,16 @@ class Project(Configurable):
 
     def verify_configuration(self, tool):
         """ Verify that the configuration is complete and consistent. """
+
+        # Make sure we support the targeted version of Python.
+        py_version = (self.py_major_version, self.py_minor_version)
+        first_version = (3, FIRST_SUPPORTED_MINOR)
+        last_version = (3, LAST_SUPPORTED_MINOR)
+
+        if py_version < first_version or py_version > last_version:
+            raise UserException(
+                    "Python v{}.{} is not supported".format(
+                            self.py_major_version, self.py_minor_version))
 
         # Make sure we have a valid ABI version.
         self.abi_version = resolve_abi_version(self.abi_version)
