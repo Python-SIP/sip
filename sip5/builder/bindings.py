@@ -159,7 +159,10 @@ class Bindings(Configurable):
         pt, name, uses_limited_api, sip_files = self._parse()
 
         name_parts = name.split('.')
+
         uses_limited_api = bool(uses_limited_api)
+        if project.py_debug:
+            uses_limited_api = False
 
         if project.sip_module:
             if len(name_parts) == 1:
@@ -229,6 +232,9 @@ class Bindings(Configurable):
         if self.protected_is_public:
             generated.define_macros.append('SIP_PROTECTED_IS_PUBLIC')
             generated.define_macros.append('protected=public')
+
+        if generated.uses_limited_api:
+            generated.define_macros.append('Py_LIMITED_API=0x03040000')
 
         generated.define_macros.extend(self.define_macros)
 
