@@ -42,7 +42,7 @@ class Builder(AbstractBuilder):
     def build(self):
         """ Build the project in-situ. """
 
-        self._generate_and_compile()
+        self._generate_and_compile(self.project.target_dir)
 
     def build_sdist(self, sdist_directory):
         """ Build an sdist for the project and return the name of the sdist
@@ -122,7 +122,7 @@ class Builder(AbstractBuilder):
         os.mkdir(wheel_build_dir)
 
         # Build the wheel contents.
-        opaque = self._generate_and_compile()
+        opaque = self._generate_and_compile(wheel_build_dir)
 
         # If all enabled bindings use the limited API then the wheel does.
         all_use_limited_api = True
@@ -185,7 +185,7 @@ class Builder(AbstractBuilder):
         return wheel_file
 
     @abstractmethod
-    def compile(self):
+    def compile(self, target_dir):
         """ Compile the project.  The returned opaque object will be passed to
         install_into().
         """
@@ -203,8 +203,9 @@ class Builder(AbstractBuilder):
     def install(self):
         """ Install the project. """
 
-        self.install_into(self._generate_and_compile(),
-                self.project.target_dir)
+        target_dir = self.project.target_dir
+
+        self.install_into(self._generate_and_compile(target_dir), target_dir)
 
     @abstractmethod
     def install_into(self, opaque, target_dir, wheel_tag=None):
@@ -220,7 +221,7 @@ class Builder(AbstractBuilder):
         if file_dir != '':
             os.makedirs(file_dir, exist_ok=True)
 
-    def _generate_and_compile(self):
+    def _generate_and_compile(self, target_dir):
         """ Generate the bindings for all enable modules, pass to compile() and
         return the opaque object from compile().
         """
@@ -264,7 +265,7 @@ class Builder(AbstractBuilder):
             bindings.generate()
 
         # Compile the generated code.
-        return self.compile()
+        return self.compile(target_dir)
 
     def _install_sip_files(self, bindings, target_dir):
         """ Install the .sip files for a set of bindings in a target directory
