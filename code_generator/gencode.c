@@ -69,13 +69,13 @@ static int prcode_xml = FALSE;          /* Set if prcode is XML aware. */
 static int docstrings;                  /* Set if generating docstrings. */
 
 
-static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
+static const char *generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
         const char *codeDir, stringList *needed_qualifiers, stringList *xsl,
         int py_debug);
-static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
-        stringList **generated, const char *srcSuffix, int parts,
-        stringList *needed_qualifiers, stringList *xsl, int py_debug,
-        const char *sipName);
+static const char *generateCpp(sipSpec *pt, moduleDef *mod,
+        const char *codeDir, stringList **generated, const char *srcSuffix,
+        int parts, stringList *needed_qualifiers, stringList *xsl,
+        int py_debug, const char *sipName);
 static void generateCompositeCpp(sipSpec *pt, const char *codeDir,
         stringList **generated, int py_debug);
 static void generateSipAPI(moduleDef *mod, const char *sipName, FILE *fp);
@@ -303,7 +303,7 @@ static void generate_include_sip_h(FILE *fp);
 stringList *generateCode(sipSpec *pt, char *codeDir, const char *srcSuffix,
         int except, int trace, int releaseGIL, int parts,
         stringList *needed_qualifiers, stringList *xsl, int docs, int py_debug,
-        const char *sipName)
+        const char *sipName, const char **api_header)
 {
     stringList *generated = NULL;
 
@@ -317,10 +317,15 @@ stringList *generateCode(sipSpec *pt, char *codeDir, const char *srcSuffix,
         srcSuffix = (generating_c ? ".c" : ".cpp");
 
     if (isComposite(pt->module))
+    {
         generateCompositeCpp(pt, codeDir, &generated, py_debug);
+        *api_header = NULL;
+    }
     else
-        generateCpp(pt, pt->module, codeDir, &generated, srcSuffix, parts,
-                needed_qualifiers, xsl, py_debug, sipName);
+    {
+        *api_header = generateCpp(pt, pt->module, codeDir, &generated,
+                srcSuffix, parts, needed_qualifiers, xsl, py_debug, sipName);
+    }
 
     return generated;
 }
@@ -426,9 +431,10 @@ void generateExpression(valueDef *vd, int in_str, FILE *fp)
 
 
 /*
- * Generate the C++ internal module API header file.
+ * Generate the C++ internal module API header file and return its path name on
+ * the heap.
  */
-static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
+static const char *generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
         const char *codeDir, stringList *needed_qualifiers, stringList *xsl,
         int py_debug)
 {
@@ -931,7 +937,8 @@ static void generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
         );
 
     closeFile(fp);
-    free(hfile);
+
+    return hfile;
 }
 
 
@@ -1068,10 +1075,10 @@ static void generateNameCache(sipSpec *pt, FILE *fp)
 /*
  * Generate the C/C++ code.
  */
-static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
-        stringList **generated, const char *srcSuffix, int parts,
-        stringList *needed_qualifiers, stringList *xsl, int py_debug,
-        const char *sipName)
+static const char *generateCpp(sipSpec *pt, moduleDef *mod,
+        const char *codeDir, stringList **generated, const char *srcSuffix,
+        int parts, stringList *needed_qualifiers, stringList *xsl,
+        int py_debug, const char *sipName)
 {
     char *cppfile;
     const char *mname = mod->name;
@@ -2156,7 +2163,7 @@ static void generateCpp(sipSpec *pt, moduleDef *mod, const char *codeDir,
 
     mod->parts = parts;
 
-    generateInternalAPIHeader(pt, mod, codeDir, needed_qualifiers, xsl,
+    return generateInternalAPIHeader(pt, mod, codeDir, needed_qualifiers, xsl,
             py_debug);
 }
 

@@ -1373,7 +1373,8 @@ void get_bindings_configuration(const char *sip_file, stringList **tags,
 void parserEOF(const char *,parserContext *);
 void transform(sipSpec *, int);
 stringList *generateCode(sipSpec *, char *, const char *, int, int, int, int,
-        stringList *needed_qualifiers, stringList *, int, int, const char *);
+        stringList *needed_qualifiers, stringList *, int, int, const char *,
+        const char **api_header);
 void generateExtracts(sipSpec *pt, const stringList *extracts);
 void addExtractPart(sipSpec *pt, const char *id, int order, codeBlock *part);
 void generateAPI(sipSpec *pt, moduleDef *mod, const char *apiFile);

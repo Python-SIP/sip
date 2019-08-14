@@ -54,6 +54,9 @@ class Bindings(Configurable):
         # Set if exception support is enabled.
         Option('exceptions', option_type=bool),
 
+        # The list of additional .h files.
+        Option('headers', option_type=list),
+
         # The list of additional C/C++ include directories to search.
         Option('include_dirs', option_type=list),
 
@@ -203,10 +206,13 @@ class Bindings(Configurable):
             generateTypeHints(pt, generated.pyi_file)
 
         # Generate the bindings.
-        sources = generateCode(pt, sources_dir, self.source_suffix,
+        header, sources = generateCode(pt, sources_dir, self.source_suffix,
                 self.exceptions, self.tracing, self.release_gil,
                 self.concatenate, self.tags, self.disabled_features,
                 self.docstrings, project.py_debug, project.sip_module)
+
+        headers = [header]
+        headers.extend(self.headers)
 
         # Add the sip module code if it is not shared.
         include_dirs = [sources_dir]
@@ -226,6 +232,8 @@ class Bindings(Configurable):
                 for fn in sources]
         generated.include_dirs = [os.path.relpath(fn, sources_dir)
                 for fn in include_dirs]
+        generated.headers = [os.path.relpath(fn, sources_dir)
+                for fn in headers]
 
         generated.define_macros = []
 
@@ -409,4 +417,5 @@ class GeneratedBindings:
         self.define_macros = None
         self.sources = None
         self.sources_dir = None
+        self.headers = None
         self.include_dirs = None

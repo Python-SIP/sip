@@ -172,6 +172,7 @@ static PyObject *py_generateCode(PyObject *self, PyObject *args)
 {
     sipSpec *pt;
     char *codeDir, *srcSuffix, *sipName;
+    const char *api_header;
     int exceptions, tracing, releaseGIL, parts, docs, py_debug, action;
     stringList *versions, *xfeatures, *sources;
 
@@ -200,9 +201,10 @@ static PyObject *py_generateCode(PyObject *self, PyObject *args)
         sipName = NULL;
 
     sources = generateCode(pt, codeDir, srcSuffix, exceptions, tracing,
-            releaseGIL, parts, versions, xfeatures, docs, py_debug, sipName);
+            releaseGIL, parts, versions, xfeatures, docs, py_debug, sipName,
+            &api_header);
 
-    return stringList_convert_from(sources);
+    return Py_BuildValue("(sN)", api_header, stringList_convert_from(sources));
 }
 
 
