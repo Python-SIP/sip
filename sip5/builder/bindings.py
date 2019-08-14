@@ -121,6 +121,18 @@ class Bindings(Configurable):
 
         self._sip_files = None
 
+    def apply_defaults(self, tool):
+        """ Set default values for options that haven't been set yet. """
+
+        # We need to call the super-class first because we need py_platform, so
+        # remember if this had been initialised.
+        protected_is_public = self.protected_is_public
+
+        super().apply_defaults(tool)
+
+        if protected_is_public is None:
+            self.protected_is_public = (self.project.py_platform != 'win32')
+
     def configure(self, section, section_name):
         """ Perform the initial configuration of the bindings. """
 
