@@ -162,7 +162,7 @@ class DistutilsBuilder(Builder):
 
         # Convert the #defines.
         define_macros = []
-        for macro in bindings.define_macros:
+        for macro in bindings.generated.define_macros:
             parts = macro.split('=', maxsplit=1)
             name = parts[0]
             try:

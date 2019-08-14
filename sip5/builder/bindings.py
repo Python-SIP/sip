@@ -54,8 +54,7 @@ class Bindings(Configurable):
         # Set if exception support is enabled.
         Option('exceptions', option_type=bool),
 
-        # The list of C/C++ include directories to search (using POSIX path
-        # separators).
+        # The list of additional C/C++ include directories to search.
         Option('include_dirs', option_type=list),
 
         # The list of library names to link against.
@@ -77,6 +76,9 @@ class Bindings(Configurable):
 
         # The filename extension to use for generated source files.
         Option('source_suffix'),
+
+        # The list of additional C/C++ source files to compile and link.
+        Option('sources', option_type=list),
 
         # The list of tags to enable.
         Option('tags', option_type=list),
@@ -214,12 +216,21 @@ class Bindings(Configurable):
                     copy_nonshared_sources(project.abi_version, sources_dir))
 
         include_dirs.extend(self.include_dirs)
+        sources.extend(self.sources)
 
         generated.sources_dir = sources_dir
         generated.sources = [os.path.relpath(fn, sources_dir)
                 for fn in sources]
         generated.include_dirs = [os.path.relpath(fn, sources_dir)
                 for fn in include_dirs]
+
+        generated.define_macros = []
+
+        if self.protected_is_public:
+            generated.define_macros.append('SIP_PROTECTED_IS_PUBLIC')
+            generated.define_macros.append('protected=public')
+
+        generated.define_macros.extend(self.define_macros)
 
         self.generated = generated
 
@@ -389,6 +400,7 @@ class GeneratedBindings:
         self.name = name
         self.uses_limited_api = uses_limited_api
         self.pyi_file = None
+        self.define_macros = None
         self.sources = None
         self.sources_dir = None
         self.include_dirs = None
