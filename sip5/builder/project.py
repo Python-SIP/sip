@@ -22,7 +22,7 @@
 
 
 from collections import OrderedDict
-from distutils.sysconfig import get_python_lib
+from distutils.sysconfig import get_python_inc, get_python_lib
 import importlib
 import os
 import shutil
@@ -65,6 +65,9 @@ class Project(Configurable):
 
         # Set if building for a debug version of Python.
         Option('py_debug', option_type=bool),
+
+        # The name of the directory containing Python.h.
+        Option('py_include_dir', default=get_python_inc()),
 
         # The name of the target Python platform.
         Option('py_platform'),
