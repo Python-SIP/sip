@@ -118,6 +118,8 @@ class Configurable:
                     # Provide a default default based on the type.
                     if option.option_type is list:
                         value = []
+                    elif option.option_type is dict:
+                        value = {}
                     elif option.option_type is float:
                         value = 0.0
                     elif option.option_type is int:

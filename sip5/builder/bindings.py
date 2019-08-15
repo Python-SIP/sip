@@ -44,6 +44,9 @@ class Bindings(Configurable):
         # The list of backstop tags.
         Option('backstops', option_type=list),
 
+        # Any builder-specific name/value settings.
+        Option('builder_settings', option_type=dict),
+
         # The list of #define names and values in the format "NAME" or
         # "NAME=VALUE".
         Option('define_macros', option_type=list),
