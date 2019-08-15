@@ -127,7 +127,7 @@ class Builder(AbstractBuilder):
         # If all enabled bindings use the limited API then the wheel does.
         all_use_limited_api = True
         for bindings in project.bindings:
-            if not bindings.generated.uses_limited_api:
+            if not bindings.build_sources.uses_limited_api:
                 all_use_limited_api = False
                 break
 
@@ -185,7 +185,7 @@ class Builder(AbstractBuilder):
         return wheel_file
 
     @abstractmethod
-    def compile(self, target_dir):
+    def compile(self, buildables, target_dir):
         """ Compile the project.  The returned opaque object will be passed to
         install_into().
         """
@@ -222,8 +222,8 @@ class Builder(AbstractBuilder):
             os.makedirs(file_dir, exist_ok=True)
 
     def _generate_and_compile(self, target_dir):
-        """ Generate the bindings for all enable modules, pass to compile() and
-        return the opaque object from compile().
+        """ Generate the bindings for all enabled modules, pass to compile()
+        and return the opaque object from compile().
         """
 
         project = self.project
@@ -252,6 +252,8 @@ class Builder(AbstractBuilder):
                 int(abi_minor), UserException, sip_include_dirs)
 
         # Generate the code for each set of bindings.
+        buildables = []
+
         for bindings in project.bindings:
             project.progress(
                     "Generating the bindings from {0}".format(
@@ -262,10 +264,11 @@ class Builder(AbstractBuilder):
                 bindings.write_configuration(local_bindings_dir)
 
             # Generate the source code.
-            bindings.generate()
+            buildables.append(bindings.generate())
 
-        # Compile the generated code.
-        return self.compile(target_dir)
+        # Compile the project.
+        # TODO: allow other buildables to be added to the list to compile.
+        return self.compile(buildables, target_dir)
 
     def _install_sip_files(self, bindings, target_dir):
         """ Install the .sip files for a set of bindings in a target directory

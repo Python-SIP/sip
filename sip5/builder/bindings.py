@@ -21,7 +21,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-import importlib
 import os
 import sys
 
@@ -31,6 +30,7 @@ from ..exceptions import UserException
 from ..module import copy_nonshared_sources
 from ..version import SIP_VERSION_STR
 
+from .buildable import BuildableBindings
 from .configurable import Configurable, Option
 from .pyproject import (PyProjectOptionException,
         PyProjectUndefinedOptionException)
@@ -76,6 +76,9 @@ class Bindings(Configurable):
 
         # Set to always release the Python GIL.
         Option('release_gil', option_type=bool),
+
+        # Set to compile the module as a static library.
+        Option('static', option_type=bool),
 
         # The name of the .sip file that specifies the bindings.
         Option('sip_file'),
@@ -125,7 +128,7 @@ class Bindings(Configurable):
         super().__init__(**kwargs)
 
         self.project = project
-        self.generated = None
+        self.build_sources = None
 
         self._sip_files = None
 
@@ -153,18 +156,18 @@ class Bindings(Configurable):
 
     def generate(self):
         """ Generate the bindings source code and optional additional extracts.
-        Set the 'generated' attribute to a GeneratedBindings instance
-        containing the details of everything that was generated.  When called
-        the current directory is set to the directory containing the defining
-        .sip file.
+        and return a BuildableBindings instance containing the details of
+        everything needed to build the bindings.  When called the current
+        directory is set to the directory containing the defining .sip file.
         """
 
         project = self.project
 
         # Parse the input file.
-        pt, name, uses_limited_api, sip_files = self._parse()
+        pt, fq_name, uses_limited_api, sip_files = self._parse()
 
-        name_parts = name.split('.')
+        name_parts = fq_name.split('.')
+        buildable_name = name_parts[-1]
 
         uses_limited_api = bool(uses_limited_api)
         if project.py_debug:
@@ -174,25 +177,30 @@ class Bindings(Configurable):
             if len(name_parts) == 1:
                 raise UserException(
                         "module '{0}' must be part of a project when used "
-                        "with a shared 'sip' module".format(name))
+                        "with a shared 'sip' module".format(fq_name))
         elif uses_limited_api:
             raise UserException(
                     "module '{0}' cannot use the limited API without using a "
-                    "shared 'sip' module".format(name))
+                    "shared 'sip' module".format(fq_name))
 
         # Only save the .sip files if they haven't already been obtained
         # (possibly by a sub-class).
         if self._sip_files is None:
             self._sip_files = sip_files
 
+        # Make sure the module's sub-directory exists.
+        sources_dir = os.path.join(project.build_dir, buildable_name)
+        os.makedirs(sources_dir, exist_ok=True)
+
         # The details of things that will have been generated.  Note that we
         # don't include anything for .api files or generic extracts as the
         # arguments include a file name.
-        generated = GeneratedBindings(name, uses_limited_api)
+        build_sources = BuildableBindings(self, fq_name, buildable_name,
+                sources_dir, uses_limited_api)
 
-        # Make sure the module's sub-directory exists.
-        sources_dir = os.path.join(project.build_dir, self.name)
-        os.makedirs(sources_dir, exist_ok=True)
+        build_sources.builder_settings.extend(self.builder_settings)
+        build_sources.debug = self.debug
+        build_sources.static = self.static
 
         # Generate any API file.
         if self.generate_api:
@@ -204,9 +212,9 @@ class Bindings(Configurable):
 
         # Generate any type hints file.
         if self.pep484_stubs:
-            generated.pyi_file = os.path.join(sources_dir,
-                    name_parts[-1] + '.pyi')
-            generateTypeHints(pt, generated.pyi_file)
+            build_sources.pyi_file = os.path.join(sources_dir,
+                    buildable_name + '.pyi')
+            generateTypeHints(pt, build_sources.pyi_file)
 
         # Generate the bindings.
         header, sources = generateCode(pt, sources_dir, self.source_suffix,
@@ -214,57 +222,38 @@ class Bindings(Configurable):
                 self.concatenate, self.tags, self.disabled_features,
                 self.docstrings, project.py_debug, project.sip_module)
 
-        headers = [header]
-        headers.extend(self.headers)
+        if header:
+            build_sources.headers.append(header)
+
+        build_sources.headers.extend(self.headers)
+
+        build_sources.sources.extend(sources)
 
         # Add the sip module code if it is not shared.
-        include_dirs = [sources_dir]
+        build_sources.include_dirs.append(sources_dir)
 
         if project.sip_module:
             # sip.h will already be in the build directory.
-            include_dirs.append(project.build_dir)
+            build_sources.include_dirs.append(project.build_dir)
         else:
-            sources.extend(
+            build_sources.sources.extend(
                     copy_nonshared_sources(project.abi_version, sources_dir))
 
-        include_dirs.extend(self.include_dirs)
-        sources.extend(self.sources)
-
-        generated.sources_dir = sources_dir
-        generated.sources = [os.path.relpath(fn, sources_dir)
-                for fn in sources]
-        generated.include_dirs = [os.path.relpath(fn, sources_dir)
-                for fn in include_dirs]
-        generated.headers = [os.path.relpath(fn, sources_dir)
-                for fn in headers]
-
-        generated.define_macros = []
+        build_sources.include_dirs.extend(self.include_dirs)
+        build_sources.sources.extend(self.sources)
 
         if self.protected_is_public:
-            generated.define_macros.append('SIP_PROTECTED_IS_PUBLIC')
-            generated.define_macros.append('protected=public')
+            build_sources.define_macros.append('SIP_PROTECTED_IS_PUBLIC')
+            build_sources.define_macros.append('protected=public')
 
-        if generated.uses_limited_api:
-            generated.define_macros.append('Py_LIMITED_API=0x03040000')
+        build_sources.define_macros.extend(self.define_macros)
 
-        generated.define_macros.extend(self.define_macros)
+        build_sources.libraries.extend(self.libraries)
+        build_sources.library_dirs.extend(self.library_dirs)
 
-        self.generated = generated
+        build_sources.make_names_relative()
 
-    def get_module_extension(self):
-        """ Return the filename extension that the module should have. """
-
-        if sys.platform == 'win32':
-            return '.pyd'
-
-        suffixes = importlib.machinery.EXTENSION_SUFFIXES
-
-        if self.generated.uses_limited_api:
-            for s in suffixes:
-                if '.abi3' in s:
-                    return s
-
-        return suffixes[0]
+        return build_sources
 
     def get_options(self):
         """ Return the list of configurable options. """
@@ -406,19 +395,3 @@ module-disabled-features = [{}]
         os.chdir(cwd)
 
         return results
-
-
-class GeneratedBindings:
-    """ The bindings created by Bindings generate(). """
-
-    def __init__(self, name, uses_limited_api):
-        """ Initialise the generated bindings. """
-
-        self.name = name
-        self.uses_limited_api = uses_limited_api
-        self.pyi_file = None
-        self.define_macros = None
-        self.sources = None
-        self.sources_dir = None
-        self.headers = None
-        self.include_dirs = None

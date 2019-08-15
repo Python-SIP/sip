@@ -32,36 +32,33 @@ import shutil
 from ..distinfo import create_distinfo
 from ..exceptions import UserException
 
+from .buildable import BuildableBindings
 from .builder import Builder
 
 
 class DistutilsBuilder(Builder):
     """ The implementation of a distutils-based project builder. """
 
-    def compile(self):
+    def compile(self, buildables, target_dir):
         """ Compile the project.  The returned opaque object is a sequence of
-        4-tuples of the bindings object, the fully qualified module name, its
-        pathname and the pathname of any .pyi file.
+        2-tuples of the buildable object and the pathname of the compiled
+        module.
         """
 
-        project = self.project
-
-        # Compile each enabled set of bindings.
         modules = []
 
-        set_threshold(INFO if project.verbose else ERROR)
+        for buildable in buildables:
+            if not isinstance(buildable, BuildableBindings):
+                raise UserException(
+                        "DistutilsBuilder can only build BuildableBindings "
+                        "buildables")
 
-        for bindings in project.get_enabled_bindings():
-            self.project.progress(
-                    "Compiling the bindings for {0}".format(
-                            bindings.generated.name))
+            if buildable.static:
+                raise UserException(
+                        "DistutilsBuilder cannot build static modules")
 
-            saved_cwd = os.getcwd()
-            os.chdir(bindings.generated.sources_dir)
-            extension_module = self._build_extension_module(bindings)
-            os.chdir(saved_cwd)
-
-            modules.append((bindings, extension_module))
+            extension_module = self._build_extension_module(buildable)
+            modules.append((buildable, extension_module))
 
         return modules
 
@@ -74,9 +71,9 @@ class DistutilsBuilder(Builder):
 
         installed = []
 
-        for bindings, module_fn in opaque:
+        for buildable, module_fn in opaque:
             # Get the name of the individual module's directory.
-            module_name_parts = bindings.generated.name.split('.')
+            module_name_parts = buildable.fq_name.split('.')
             parts = [target_dir]
             parts.extend(module_name_parts[:-1])
             module_dir = os.path.join(*parts)
@@ -86,18 +83,20 @@ class DistutilsBuilder(Builder):
             installed.append(self._install_file(module_fn, module_dir))
 
             # Copy any .pyi file.
-            if bindings.generated.pyi_file:
+            if buildable.pyi_file:
                 installed.append(
-                        self._install_file(generated.pyi_file, module_dir))
+                        self._install_file(buildable.pyi_file, module_dir))
 
             # Write the configuration file and copy the .sip files.
             if project.sip_module:
                 bindings_dir = self.get_bindings_dir(target_dir)
 
+                # TODO: is this done elsewhere?
                 installed.append(bindings.write_configuration(bindings_dir))
 
                 installed.extend(
-                        self._install_sip_files(bindings, bindings_dir))
+                        self._install_sip_files(buildable.bindings,
+                                bindings_dir))
 
         # Install anything else the user has specified.
         for extra in project.install_extras:
@@ -146,23 +145,25 @@ class DistutilsBuilder(Builder):
 
         return target_fn
 
-    def _build_extension_module(self, bindings):
+    def _build_extension_module(self, buildable):
         """ Build an extension module from the sources and return its full
         pathname.
         """
 
         project = self.project
 
+        set_threshold(INFO if project.verbose else ERROR)
+
         distribution = Distribution()
 
-        module_builder = ExtensionCommand(distribution, bindings)
-        module_builder.build_lib = bindings.generated.sources_dir
-        module_builder.debug = bindings.debug
+        module_builder = ExtensionCommand(distribution, buildable)
+        module_builder.build_lib = buildable.sources_dir
+        module_builder.debug = buildable.debug
         module_builder.ensure_finalized()
 
         # Convert the #defines.
         define_macros = []
-        for macro in bindings.generated.define_macros:
+        for macro in buildable.define_macros:
             parts = macro.split('=', maxsplit=1)
             name = parts[0]
             try:
@@ -172,41 +173,45 @@ class DistutilsBuilder(Builder):
 
             define_macros.append((name, value))
 
-        # Add the location of the sip.h file for any shared sip module.
-        if project.sip_module:
-            include_dirs = [project.build_dir]
-            include_dirs.extend(bindings.include_dirs)
-        else:
-            include_dirs = bindings.include_dirs
-
         module_builder.extensions = [
-            Extension(bindings.generated.name, bindings.generated.sources,
-                    define_macros=define_macros, include_dirs=include_dirs,
-                    libraries=bindings.libraries,
-                    library_dirs=bindings.library_dirs)]
+            Extension(buildable.fq_name, buildable.sources,
+                    define_macros=define_macros,
+                    include_dirs=buildable.include_dirs,
+                    libraries=buildable.libraries,
+                    library_dirs=buildable.library_dirs)]
+
+        project.progress(
+                "Compiling the '{0}' module".format(buildable.fq_name))
+
+        saved_cwd = os.getcwd()
+        os.chdir(buildable.sources_dir)
 
         try:
             module_builder.run()
         except Exception as e:
             raise UserException(
-                    "Unable to compile the bindings for '{0}'".format(
-                            bindings.generated.name),
+                    "Unable to compile the '{0}' module".format(
+                            buildable.fq_name),
                     detail=str(e))
 
-        return module_builder.get_ext_fullpath(bindings.generated.name)
+        extension_module = module_builder.get_ext_fullpath(buildable.fq_name)
+
+        os.chdir(saved_cwd)
+
+        return extension_module
 
 
 class ExtensionCommand(build_ext):
     """ Extend the distutils command to build an extension module. """
 
-    def __init__(self, distribution, bindings):
+    def __init__(self, distribution, buildable):
         """ Initialise the object. """
 
         super().__init__(distribution)
 
-        self._bindings = bindings
+        self._buildable = buildable
 
     def get_ext_filename(self, ext_name):
         """ Reimplemented to handle modules that use the limited API. """
 
-        return os.path.join(*ext_name.split('.')) + self._bindings.get_module_extension()
+        return os.path.join(*ext_name.split('.')) + self._buildable.get_module_extension()

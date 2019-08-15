@@ -26,6 +26,7 @@ from ..exceptions import UserException
 
 from .abstract_builder import AbstractBuilder
 from .bindings import Bindings
+from .buildable import BuildableBindings, BuildableModule
 from .builder import Builder
 from .configurable import Option
 from .distutils_builder import DistutilsBuilder
