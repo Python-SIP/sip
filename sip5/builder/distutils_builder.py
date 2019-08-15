@@ -91,8 +91,9 @@ class DistutilsBuilder(Builder):
             if project.sip_module:
                 bindings_dir = self.get_bindings_dir(target_dir)
 
-                # TODO: is this done elsewhere?
-                installed.append(bindings.write_configuration(bindings_dir))
+                installed.append(
+                        buildable.bindings.write_configuration(buildable,
+                                bindings_dir))
 
                 installed.extend(
                         self._install_sip_files(buildable.bindings,

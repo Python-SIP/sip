@@ -259,12 +259,14 @@ class Builder(AbstractBuilder):
                     "Generating the bindings from {0}".format(
                             bindings.sip_file))
 
+            # Generate the source code.
+            buildable = bindings.generate()
+
             # Generate the bindings .toml file.
             if project.sip_module:
-                bindings.write_configuration(local_bindings_dir)
+                bindings.write_configuration(buildable, local_bindings_dir)
 
-            # Generate the source code.
-            buildables.append(bindings.generate())
+            buildables.append(buildable)
 
         # Compile the project.
         # TODO: allow other buildables to be added to the list to compile.

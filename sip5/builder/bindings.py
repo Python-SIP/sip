@@ -69,9 +69,8 @@ class Bindings(Configurable):
         # The list of C/C++ library directories to search.
         Option('library_dirs', option_type=list),
 
-        # The name of the bindings.  This never appears in generated code but
-        # is used in the default directory structure and to identify the
-        # bindings to the user.
+        # The name of the bindings.  This never appears in generated code and
+        # is used to identify the bindings to the user.
         Option('name'),
 
         # Set to always release the Python GIL.
@@ -356,16 +355,16 @@ class Bindings(Configurable):
         if not self.source_suffix:
             self.source_suffix = None
 
-    def write_configuration(self, bindings_dir):
+    def write_configuration(self, buildable, bindings_dir):
         """ Write the configuration of the bindings and return the name of the
         file.
         """
 
-        # Create a bindings-specific sub-sirectory.
-        bindings_dir = os.path.join(bindings_dir, self.name)
+        # Create a bindings-specific sub-directory.
+        bindings_dir = os.path.join(bindings_dir, buildable.name)
         os.makedirs(bindings_dir, exist_ok=True)
 
-        config_file = os.path.join(bindings_dir, self.name + '.toml')
+        config_file = os.path.join(bindings_dir, buildable.name + '.toml')
 
         with open(config_file, 'w') as cf:
             tags = ', '.join(['"{}"'.format(t) for t in self.tags])
