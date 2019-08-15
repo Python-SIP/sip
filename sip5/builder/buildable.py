@@ -61,9 +61,30 @@ class Buildable:
         self.library_dirs = self._relative_names(self.library_dirs)
 
     def _relative_names(self, names):
-        """ Return a list of times made relative to the sources directory. """
+        """ Return a list of times made relative to the sources directory.
+        Note that we only really do this for cosmetic reasons when doing a
+        simple build.
+        """
 
-        return [os.path.relpath(fn, self.sources_dir) for fn in names]
+        rel_names = []
+
+        for fn in names:
+            try:
+                common = os.path.commonpath([fn, self.sources_dir])
+                _, common = os.path.splitdrive(common)
+
+                if len(common) > 1:
+                    # Only convert to a relative name if there is at least one
+                    # parent directory in common.
+                    fn = os.path.relpath(fn, self.sources_dir)
+            except ValueError:
+                # This is most likely to happen if the build directory is on a
+                # different Windows drive.
+                pass
+
+            rel_names.append(fn)
+
+        return rel_names
 
 
 class BuildableModule(Buildable):
