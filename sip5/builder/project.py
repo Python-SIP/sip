@@ -325,12 +325,6 @@ class Project(Configurable):
 
         self.bindings = [b for b in self.bindings if b.is_buildable()]
 
-    def verbose(self, message):
-        """ Print an informational message if verbose messages are enabled. """
-
-        if self.verbose:
-            print(message)
-
     def verify_configuration(self, tool):
         """ Verify that the configuration is complete and consistent. """
 
