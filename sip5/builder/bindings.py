@@ -32,6 +32,7 @@ from ..version import SIP_VERSION_STR
 
 from .buildable import BuildableBindings
 from .configurable import Configurable, Option
+from .installable import Installable
 from .pyproject import (PyProjectOptionException,
         PyProjectUndefinedOptionException)
 
@@ -263,47 +264,29 @@ class Bindings(Configurable):
 
         return options
 
-    def get_sip_files(self):
-        """ Return a list of .sip files that define the bindings.  These should
-        all be relative to the project's sip-files-dir directory.
+    def get_sip_files(self, relative_to=None):
+        """ Return a Installable object containing the names of the .sip files
+        that define the bindings.  These will be relative to the directory
+        containing the main .sip file unless a directory was given.
         """
 
-        # If there is a shared sip module then we assume that all the relevant
-        # files are in the bindings' sub-directory so we just walk that tree.
-        # of that directory.
-        if self.project.sip_module:
-            sip_files = []
-
-            sip_files_dir = os.path.join(self.project.sip_files_dir, self.name)
-            for dirpath, _, filenames in os.walk(sip_files_dir):
-                for fn in filenames:
-                    sip_files.append(
-                            os.path.relpath(os.path.join(dirpath, fn),
-                                    self.project.sip_files_dir))
-
-            return sip_files
-
-        # Otherwise (without a defined directory structure) we use the list of
-        # files that were parsed.
+        # We use the list of files that were parsed.
         if self._sip_files is None:
             # We haven't called the parser yet so do it now.
             _, _, _, self._sip_files = self._parse()
 
-        # Check that the .sip file names are relative to the root directory and
-        # are within the root directory.
-        sip_files = []
-        root_dir = self.project.root_dir
+        sip_dir = os.path.dirname(self.sip_file)
+
+        if relative_to is None:
+            relative_to = sip_dir
+
+        sip_files = Installable(relative_to)
 
         for fn in self._sip_files:
-            fn = os.path.abspath(fn)
+            fn = os.path.join(sip_dir, fn)
+            fn = os.path.relpath(fn, relative_to)
 
-            if os.path.commonprefix([fn, root_dir]) != root_dir:
-                raise UserException(
-                        "the .sip files that define the bindings must all be "
-                        "in the '{0}' directory or a sub-directory".format(
-                                root_dir))
-
-            sip_files.append(os.path.relpath(fn, root_dir))
+            sip_files.files.append(fn)
 
         return sip_files
 
@@ -347,7 +330,7 @@ class Bindings(Configurable):
         if not os.path.isfile(self.sip_file):
             raise PyProjectOptionException('sip-file',
                     "the file '{0}' for the '{1}' bindings does not "
-                            "exist".format(self.sip_file self.name),
+                            "exist".format(self.sip_file, self.name),
                     section_name='tool.sip.bindings')
 
         if not self.source_suffix:

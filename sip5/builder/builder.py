@@ -70,7 +70,7 @@ class Builder(AbstractBuilder):
 
         # Copy in the .sip files for each set of bindings.
         for bindings in project.bindings:
-            self._install_sip_files(bindings, sdist_root)
+            bindings.get_sip_files(project.root_dir).install(sdist_root)
 
         # Copy in anything else the user has asked for.
         for extra in project.sdist_extras:
@@ -271,27 +271,3 @@ class Builder(AbstractBuilder):
         # Compile the project.
         # TODO: allow other buildables to be added to the list to compile.
         return self.compile(buildables, target_dir)
-
-    def _install_sip_files(self, bindings, target_dir):
-        """ Install the .sip files for a set of bindings in a target directory
-        and return a list of the installed files.
-        """
-
-        project = self.project
-
-        installed = []
-
-        rel_sip_files_dir = os.path.relpath(project.sip_files_dir,
-                project.root_dir)
-        target_sip_files_dir = os.path.join(target_dir, rel_sip_files_dir)
-
-        for sip_file in bindings.get_sip_files():
-            source_sip_file = os.path.join(project.sip_files_dir, sip_file)
-            target_sip_file = os.path.join(target_sip_files_dir, sip_file)
-
-            self._ensure_subdirs_exist(target_sip_file)
-            shutil.copyfile(source_sip_file, target_sip_file)
-
-            installed.append(target_sip_file)
-
-        return installed
