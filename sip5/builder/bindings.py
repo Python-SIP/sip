@@ -79,7 +79,8 @@ class Bindings(Configurable):
         # Set to compile the module as a static library.
         Option('static', option_type=bool),
 
-        # The name of the .sip file that specifies the bindings.
+        # The name of the .sip file that specifies the bindings relative to the
+        # project's 'sip_files_dir'.
         Option('sip_file'),
 
         # The filename extension to use for generated source files.
@@ -316,18 +317,20 @@ class Bindings(Configurable):
     def verify_configuration(self, tool):
         """ Verify that the configuration is complete and consistent. """
 
+        project = self.project
+
         super().verify_configuration(tool)
 
         # On Windows the interpreter must be a debug build if a debug version
         # is to be built and vice versa.
         if sys.platform == 'win32':
             if self.debug:
-                if not self.project.py_debug:
+                if not project.py_debug:
                     raise UserException(
                             "A debug version of Python must be used when "
                             "building a debug version of the {0} "
                             "bindings".format(self.name))
-            elif self.project.py_debug:
+            elif project.py_debug:
                 raise UserException(
                         "A debug version of the {0} bindings must be built "
                         "when a debug version of Python is used".format(
@@ -335,21 +338,16 @@ class Bindings(Configurable):
 
         # Provide a default .sip file name if needed.
         if not self.sip_file:
-            if self.project.sip_module:
-                sip_file = os.path.join(self.name, self.name)
-            else:
-                sip_file = self.name
+            self.sip_file = self.name + '.sip'
 
-            self.sip_file = sip_file + '.sip'
+        if not os.path.isabs(self.sip_file):
+            self.sip_file = os.path.join(project.sip_files_dir, self.sip_file)
 
         # Check the .sip file exists.
-        sip_path = os.path.join(self.project.sip_files_dir, self.sip_file)
-        if not os.path.isfile(sip_path):
+        if not os.path.isfile(self.sip_file):
             raise PyProjectOptionException('sip-file',
                     "the file '{0}' for the '{1}' bindings does not "
-                            "exist".format(
-                                    os.path.relpath(sip_path,
-                                            self.project.root_dir), self.name),
+                            "exist".format(self.sip_file self.name),
                     section_name='tool.sip.bindings')
 
         if not self.source_suffix:
