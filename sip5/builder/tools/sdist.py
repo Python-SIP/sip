@@ -34,7 +34,7 @@ def main():
                 description="Build an sdist for the project.")
         project.progress("Building an sdist")
         project.build_sdist('.')
-        project.information("The sdist has been built.")
+        project.progress("The sdist has been built.")
     except Exception as e:
         handle_exception(e)
 

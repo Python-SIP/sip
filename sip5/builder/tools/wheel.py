@@ -34,7 +34,7 @@ def main():
                 description="Build a wheel for the project.")
         project.progress("Building a wheel")
         project.build_wheel('.')
-        project.information("The wheel has been built.")
+        project.progress("The wheel has been built.")
     except Exception as e:
         handle_exception(e)
 

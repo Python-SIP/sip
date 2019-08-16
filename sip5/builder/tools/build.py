@@ -34,7 +34,7 @@ def main():
                 description="Build the project in-situ.")
         project.progress("Building the project")
         project.build()
-        project.information("The project has been built.")
+        project.progress("The project has been built.")
     except Exception as e:
         handle_exception(e)
 

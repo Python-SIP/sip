@@ -94,6 +94,8 @@ class Project(Configurable):
         Option('sip_module'),
 
         # The user-configurable options.
+        Option('quiet', option_type=bool,
+                help="disable all progress messages"),
         Option('verbose', option_type=bool,
                 help="enable verbose progress messages"),
         Option('build_dir', help="the build directory", metavar="DIR"),
@@ -277,12 +279,6 @@ class Project(Configurable):
 
         return options
 
-    def information(self, message):
-        """ Print an informational message if verbose messages are enabled. """
-
-        if self.verbose:
-            print(message)
-
     def install(self):
         """ Install the project. """
 
@@ -302,9 +298,13 @@ class Project(Configurable):
                     detail=str(e))
 
     def progress(self, message):
-        """ Print a progress message if verbose messages are enabled. """
+        """ Print a progress message unless they are disabled. """
 
-        self.information(message + '...')
+        if not self.quiet:
+            if message[-1] != '.':
+                message += '...'
+
+            print(message)
 
     def update(self, tool):
         """ This should be re-implemented by any user supplied sub-class to
@@ -324,6 +324,12 @@ class Project(Configurable):
             return
 
         self.bindings = [b for b in self.bindings if b.is_buildable()]
+
+    def verbose(self, message):
+        """ Print an informational message if verbose messages are enabled. """
+
+        if self.verbose:
+            print(message)
 
     def verify_configuration(self, tool):
         """ Verify that the configuration is complete and consistent. """

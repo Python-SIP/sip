@@ -34,7 +34,7 @@ def main():
                 description="Build and install the project.")
         project.progress("Installing the project")
         project.install()
-        project.information("The project has been installed.")
+        project.progress("The project has been installed.")
     except Exception as e:
         handle_exception(e)
 
