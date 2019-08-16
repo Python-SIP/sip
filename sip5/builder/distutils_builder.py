@@ -97,7 +97,7 @@ class DistutilsBuilder(Builder):
 
                 installed.extend(
                         buildable.bindings.get_sip_files().install(
-                                bindings_dir))
+                                os.path.join(bindings_dir, buildable.name)))
 
         # Install anything else the user has specified.
         for extra in project.install_extras:
