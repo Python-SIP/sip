@@ -127,12 +127,8 @@ class DistutilsBuilder(Builder):
             else:
                 raise UserException("unable to install '{0}'".format(src))
 
-        distinfo_dir = os.path.join(target_dir,
-                '{}-{}.dist-info'.format(project.name.replace('-', '_'),
-                project.version))
-
-        create_distinfo(distinfo_dir, installed, project.metadata,
-                wheel_tag=wheel_tag)
+        create_distinfo(project.get_distinfo_name(), installed,
+                project.metadata, wheel_tag=wheel_tag)
 
     @staticmethod
     def _install_file(fname, module_dir):

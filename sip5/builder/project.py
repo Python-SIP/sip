@@ -280,6 +280,14 @@ class Project(Configurable):
 
         return builder_factory(self)
 
+    def get_distinfo_name(self, target_dir):
+        """ Return the name of the .dist-info directory for a target directory.
+        """
+
+        return os.path.join(target_dir,
+                '{}-{}.dist-info'.format(self.name.replace('-', '_'),
+                self.version))
+
     def get_options(self):
         """ Return the list of configurable options. """
 
