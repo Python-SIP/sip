@@ -8100,11 +8100,13 @@ static void parseFile(FILE *fp, const char *name, moduleDef *prevmod,
     pc.prevmod = prevmod;
 
     if (setInputFile(fp, &pc, optional))
+    {
         currentContext = pc;
 
-    /* Save the name of the file if this is the main module. */
-    if (prevmod == NULL)
-        appendString(mainModuleSipFiles, sipStrdup(name));
+        /* Save the name of the file if this is the main module. */
+        if (prevmod == NULL)
+            appendString(mainModuleSipFiles, sipStrdup(name));
+    }
 }
 
 
