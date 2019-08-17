@@ -35,7 +35,7 @@ from ..version import SIP_VERSION_STR
 WHEEL_VERSION = '1.0'
 
 
-def distinfo(name, inventory, prefix):
+def distinfo(name, inventory, prefix, generator):
     """ Create and populate a .dist-info directory from an inventory file. """
 
     # Read the list of installed files.
@@ -55,12 +55,16 @@ def distinfo(name, inventory, prefix):
         'Version':          version
     }
 
-    create_distinfo(name, installed, metadata, prefix_dir=prefix)
+    create_distinfo(name, installed, metadata, prefix_dir=prefix,
+            generator=generator)
 
 
 def create_distinfo(distinfo_dir, installed, metadata, prefix_dir='',
-        wheel_tag=None):
+        wheel_tag=None, generator=None):
     """ Create and populate a .dist-info directory. """
+
+    if not generator:
+        generator = os.path.basename(sys.argv[0])
 
     # The prefix directory corresponds to DESTDIR or INSTALL_ROOT.
     real_distinfo_dir = prefix_dir + distinfo_dir
@@ -92,11 +96,11 @@ def create_distinfo(distinfo_dir, installed, metadata, prefix_dir='',
         installed.append(installer_fn)
 
         with open(prefix_dir + installer_fn, 'w') as installer_f:
-            installer_f.write('{}\n'.format(os.path.basename(sys.argv[0])))
+            print(generator, file=installer_f)
     else:
         # Create the WHEEL file.
         WHEEL = '''Wheel-Version: {}
-Generator: sip {}
+Generator: {} {}
 Root-Is_Purelib: false
 Tag: {}
 '''
@@ -106,7 +110,8 @@ Tag: {}
 
         with open(prefix_dir + wheel_fn, 'w') as wheel_f:
             wheel_f.write(
-                    WHEEL.format(WHEEL_VERSION, SIP_VERSION_STR, wheel_tag))
+                    WHEEL.format(WHEEL_VERSION, generator, SIP_VERSION_STR,
+                            wheel_tag))
 
     # Create the METADATA file.
     metadata_fn = os.path.join(distinfo_dir, 'METADATA')

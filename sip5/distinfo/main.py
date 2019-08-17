@@ -33,6 +33,10 @@ def main():
     # Parse the command line.
     parser = ArgumentParser("Create and populate a .dist-info directory.")
 
+    parser.add_argument('--generator', dest='generator',
+            help="the name of the program generating the directory",
+            metavar="NAME")
+
     parser.add_argument('--prefix', dest='prefix',
             help="the installation prefix directory", metavar="DIR")
 
@@ -47,7 +51,7 @@ def main():
 
     try:
         distinfo(name=args.names[0], inventory=args.inventory,
-                prefix=args.prefix)
+                prefix=args.prefix, generator=args.generator)
     except Exception as e:
         handle_exception(e)
 
