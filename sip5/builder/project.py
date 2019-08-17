@@ -258,6 +258,16 @@ class Project(Configurable):
 
         return project
 
+    def get_bindings_dir(self, target_dir):
+        """ Return the name of the bindings directory for a target directory.
+        """
+
+        name_parts = self.sip_module.split('.')
+        name_parts.insert(0, target_dir)
+        name_parts[-1] = 'bindings'
+
+        return os.path.join(*name_parts)
+
     def get_builder(self):
         """ Get the builder. """
 

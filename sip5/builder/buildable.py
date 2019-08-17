@@ -25,6 +25,10 @@ import importlib
 import os
 import sys
 
+from ..version import SIP_VERSION_STR
+
+from .installable import Installable
+
 
 class Buildable:
     """ Encapsulate the sources etc. used to build an extension module,
@@ -126,3 +130,39 @@ class BuildableBindings(BuildableModule):
         super().__init__(*args, **kwargs)
 
         self.bindings = bindings
+        self.configuration = None
+
+    def get_bindings_dir(self, target_dir):
+        """ Return the name of the bindings-specific bindings directory for a
+        target directory.
+        """
+
+        return os.path.join(self.bindings.project.get_bindings_dir(target_dir),
+                self.name)
+
+    def write_configuration(self, bindings_dir):
+        """ Write the configuration of the bindings. """
+
+        bindings = self.bindings
+
+        # Make sure the bindings directory exists.
+        os.makedirs(bindings_dir, exist_ok=True)
+
+        config_fn = self.name + '.toml'
+        config_path = os.path.join(bindings_dir, config_fn)
+
+        with open(config_path, 'w') as cf:
+            tags = ', '.join(['"{}"'.format(t) for t in bindings.tags])
+            disabled = ', '.join(
+                    ['"{}"'.format(f) for f in bindings.disabled_features])
+
+            cf.write("# Automatically generated configuration for {0}.\n".format(self.fq_name))
+            cf.write('''
+sip-version = "{}"
+sip-abi-version = "{}"
+module-tags = [{}]
+module-disabled-features = [{}]
+'''.format(SIP_VERSION_STR, bindings.project.abi_version, tags, disabled))
+
+        self.configuration = Installable(bindings_dir)
+        self.configuration.files.append(config_fn)

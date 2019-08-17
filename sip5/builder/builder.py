@@ -190,16 +190,6 @@ class Builder(AbstractBuilder):
         install_into().
         """
 
-    def get_bindings_dir(self, target_dir):
-        """ Return the name of the bindings directory for a target directory.
-        """
-
-        name_parts = self.project.sip_module.split('.')
-        name_parts.insert(0, target_dir)
-        name_parts[-1] = 'bindings'
-
-        return os.path.join(*name_parts)
-
     def install(self):
         """ Install the project. """
 
@@ -235,13 +225,14 @@ class Builder(AbstractBuilder):
             # Add the project's sip directory.
             sip_include_dirs.append(project.sip_files_dir)
 
-            # Add the bindings (specifically for the bindings .toml file) for
-            # this package.
+            # Add the local bindings directory to pick up the .toml files for
+            # any other bindings in this package.
             local_bindings_dir = os.path.join(project.build_dir, 'bindings')
             sip_include_dirs.append(local_bindings_dir)
 
             # Add any bindings from previously installed packages.
-            sip_include_dirs.append(self.get_bindings_dir(project.target_dir))
+            sip_include_dirs.append(
+                    project.get_bindings_dir(project.target_dir))
 
             # Generate the sip.h file for the shared sip module.
             copy_sip_h(project.abi_version, project.build_dir,
@@ -262,9 +253,10 @@ class Builder(AbstractBuilder):
             # Generate the source code.
             buildable = bindings.generate()
 
-            # Generate the bindings .toml file.
+            # Generate the bindings configuration file.
             if project.sip_module:
-                bindings.write_configuration(buildable, local_bindings_dir)
+                buildable.write_configuration(
+                        os.path.join(local_bindings_dir, buildable.name))
 
             buildables.append(buildable)
 

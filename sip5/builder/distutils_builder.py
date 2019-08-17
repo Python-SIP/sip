@@ -89,15 +89,13 @@ class DistutilsBuilder(Builder):
 
             # Write the configuration file and copy the .sip files.
             if project.sip_module:
-                bindings_dir = self.get_bindings_dir(target_dir)
+                bindings_dir = buildable.get_bindings_dir(target_dir)
 
-                installed.append(
-                        buildable.bindings.write_configuration(buildable,
-                                bindings_dir))
+                installed.append(buildable.configuration.install(bindings_dir))
 
                 installed.extend(
                         buildable.bindings.get_sip_files().install(
-                                os.path.join(bindings_dir, buildable.name)))
+                                bindings_dir))
 
         # Install anything else the user has specified.
         for extra in project.install_extras:

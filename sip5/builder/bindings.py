@@ -28,7 +28,6 @@ from ..code_generator import (parse, generateCode, generateExtracts,
         generateAPI, generateXML, generateTypeHints)
 from ..exceptions import UserException
 from ..module import copy_nonshared_sources
-from ..version import SIP_VERSION_STR
 
 from .buildable import BuildableBindings
 from .configurable import Configurable, Option
@@ -335,32 +334,6 @@ class Bindings(Configurable):
 
         if not self.source_suffix:
             self.source_suffix = None
-
-    def write_configuration(self, buildable, bindings_dir):
-        """ Write the configuration of the bindings and return the name of the
-        file.
-        """
-
-        # Create a bindings-specific sub-directory.
-        bindings_dir = os.path.join(bindings_dir, buildable.name)
-        os.makedirs(bindings_dir, exist_ok=True)
-
-        config_file = os.path.join(bindings_dir, buildable.name + '.toml')
-
-        with open(config_file, 'w') as cf:
-            tags = ', '.join(['"{}"'.format(t) for t in self.tags])
-            disabled = ', '.join(
-                    ['"{}"'.format(f) for f in self.disabled_features])
-
-            cf.write("# Automatically generated configuration for '{0}'.\n".format(self.name))
-            cf.write('''
-sip-version = "{}"
-sip-abi-version = "{}"
-module-tags = [{}]
-module-disabled-features = [{}]
-'''.format(SIP_VERSION_STR, self.project.abi_version, tags, disabled))
-
-        return config_file
 
     def _parse(self):
         """ Invoke the parser and return its results. """
