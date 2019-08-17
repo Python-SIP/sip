@@ -286,9 +286,15 @@ class Bindings(Configurable):
 
         for fn in self._sip_files:
             fn = os.path.join(sip_dir, fn)
-            fn = os.path.relpath(fn, relative_to)
 
-            sip_files.files.append(fn)
+            # The code generator does not report the full pathname of a .sip
+            # file (only names relative to the search directory in which it was
+            # found).  Therefore we need to check if it is actually in the
+            # directory we are installing from and ignore it if not.  This
+            # isn't really the right thing to do but is actually what we want
+            # when we have optional license .sip files.
+            if os.path.isfile(fn):
+                sip_files.files.append(os.path.relpath(fn, relative_to))
 
         return sip_files
 
