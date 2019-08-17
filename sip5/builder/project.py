@@ -32,17 +32,13 @@ import warnings
 
 from ..exceptions import UserException
 from ..module import resolve_abi_version
+from ..py_versions import FIRST_SUPPORTED_MINOR, LAST_SUPPORTED_MINOR
+from ..pyproject import (PyProject, PyProjectOptionException,
+        PyProjectUndefinedOptionException)
 
 from .abstract_builder import AbstractBuilder
 from .bindings import Bindings
 from .configurable import Configurable, Option
-from .pyproject import (PyProject, PyProjectOptionException,
-        PyProjectUndefinedOptionException)
-
-
-# The first and last supported minor versions of Python v3.
-FIRST_SUPPORTED_MINOR = 5
-LAST_SUPPORTED_MINOR = 8
 
 
 class Project(Configurable):
@@ -524,60 +520,9 @@ class Project(Configurable):
         """ Set the project's initial configuration. """
 
         # Get the metadata and extract the name and version.
-        self.metadata = OrderedDict()
-        self.name = None
-        self.version = None
-        metadata_version = None
-        requires_python = None
-
-        metadata = pyproject.get_section('tool.sip', required=True)
-        for md_name, md_value in metadata.items():
-            # Ignore sub-sections.
-            if pyproject.is_section(md_value):
-                continue
-
-            if not isinstance(md_value, str):
-                raise PyProjectOptionException(md_name, "must be a string",
-                        section_name='tool.sip')
-
-            md_name = md_name.lower()
-            if md_name == 'name':
-                if not md_value.replace('-', '_').isidentifier():
-                    raise PyProjectOptionException('name',
-                            "'{0}' is an invalid project name".format(
-                                    md_value),
-                            section_name='tool.sip')
-
-                self.name = md_value
-            elif md_name == 'version':
-                self.version = md_value
-            elif md_name == 'metadata-version':
-                metadata_version = md_value
-            elif md_name == 'requires-python':
-                requires_python = md_value
-
-            self.metadata[md_name] = md_value
-
-        if self.name is None:
-            raise PyProjectUndefinedOptionException('name',
-                    section_name='tool.sip')
-
-        if self.version is None:
-            self.version = '0.1'
-            self.metadata['version'] = self.version
-
-        if metadata_version is None:
-            # Default to PEP 566.
-            self.metadata['metadata-version'] = '2.1'
-
-        if requires_python is None:
-            # The minimal version of Python we support.
-            self.metadata['requires-python'] = '>=3.{}'.format(
-                    FIRST_SUPPORTED_MINOR)
-
-        # This is cosmetic.
-        for name in ('requires-python', 'version', 'name', 'metadata-version'):
-            self.metadata.move_to_end(name, last=False)
+        self.metadata = pyproject.get_metadata()
+        self.name = self.metadata['name']
+        self.version = self.metadata['version']
 
         # Get the project configuration.
         project_section = pyproject.get_section('tool.sip.project')

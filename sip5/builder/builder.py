@@ -30,10 +30,10 @@ import sys
 from ..code_generator import set_globals
 from ..exceptions import UserException
 from ..module import copy_sip_h
+from ..py_versions import FIRST_SUPPORTED_MINOR, LAST_SUPPORTED_MINOR
 from ..version import SIP_VERSION, SIP_VERSION_STR
 
 from .abstract_builder import AbstractBuilder
-from .project import FIRST_SUPPORTED_MINOR, LAST_SUPPORTED_MINOR
 
 
 class Builder(AbstractBuilder):

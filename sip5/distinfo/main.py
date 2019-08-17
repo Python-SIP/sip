@@ -40,6 +40,9 @@ def main():
     parser.add_argument('--prefix', dest='prefix',
             help="the installation prefix directory", metavar="DIR")
 
+    parser.add_argument('--project-root', dest='project_root',
+            help="the directory containing pyproject.toml", metavar="DIR")
+
     parser.add_argument('--inventory', dest='inventory', required=True,
             help="the file containing the names of the files in the project",
             metavar="FILE")
@@ -51,7 +54,8 @@ def main():
 
     try:
         distinfo(name=args.names[0], inventory=args.inventory,
-                prefix=args.prefix, generator=args.generator)
+                prefix=args.prefix, generator=args.generator,
+                project_root=args.project_root)
     except Exception as e:
         handle_exception(e)
 

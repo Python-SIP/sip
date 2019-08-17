@@ -21,15 +21,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-# Publish the public API.
-from ..exceptions import UserException
-from ..pyproject import (PyProjectOptionException,
-        PyProjectUndefinedOptionException)
-
-from .abstract_builder import AbstractBuilder
-from .bindings import Bindings
-from .buildable import BuildableBindings, BuildableModule
-from .builder import Builder
-from .configurable import Option
-from .distutils_builder import DistutilsBuilder
-from .project import Project
+# The first and last supported minor versions of Python v3.
+FIRST_SUPPORTED_MINOR = 5
+LAST_SUPPORTED_MINOR = 8

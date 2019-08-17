@@ -22,12 +22,14 @@
 
 
 import base64
+import collections
 import hashlib
 import os
 import shutil
 import sys
 
 from ..exceptions import UserException
+from ..pyproject import PyProject
 from ..version import SIP_VERSION_STR
 
 
@@ -35,7 +37,7 @@ from ..version import SIP_VERSION_STR
 WHEEL_VERSION = '1.0'
 
 
-def distinfo(name, inventory, prefix, generator):
+def distinfo(name, inventory, prefix, generator, project_root):
     """ Create and populate a .dist-info directory from an inventory file. """
 
     # Read the list of installed files.
@@ -45,15 +47,23 @@ def distinfo(name, inventory, prefix, generator):
     if prefix is None:
         prefix = ''
 
-    # TODO: need to read pyproject.toml to get the full meta-data.
-    distinfo_base = os.path.basename(name)
-    pkg_name, version = os.path.splitext(distinfo_base)[0].split('-')
+    if project_root is None:
+        # Default to what we can extract from the name of the .dist-info
+        # directory.
+        distinfo_base = os.path.basename(name)
+        pkg_name, version = os.path.splitext(distinfo_base)[0].split('-')
 
-    metadata = {
-        'Metadata-Version': '1.1',
-        'Name':             pkg_name,
-        'Version':          version
-    }
+        metadata = collections.OrderedDict()
+        metadata['name'] = pkg_name
+        metadata['version'] = version
+    else:
+        # Get the metadata from the pyproject.toml file.
+        saved = os.getcwd()
+        os.chdir(project_root)
+        pyproject = PyProject()
+        os.chdir(saved)
+
+        metadata = pyproject.get_metadata()
 
     create_distinfo(name, installed, metadata, prefix_dir=prefix,
             generator=generator)
@@ -63,7 +73,7 @@ def create_distinfo(distinfo_dir, installed, metadata, prefix_dir='',
         wheel_tag=None, generator=None):
     """ Create and populate a .dist-info directory. """
 
-    if not generator:
+    if generator is None:
         generator = os.path.basename(sys.argv[0])
 
     # The prefix directory corresponds to DESTDIR or INSTALL_ROOT.

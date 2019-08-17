@@ -28,12 +28,12 @@ from ..code_generator import (parse, generateCode, generateExtracts,
         generateAPI, generateXML, generateTypeHints)
 from ..exceptions import UserException
 from ..module import copy_nonshared_sources
+from ..pyproject import (PyProjectOptionException,
+        PyProjectUndefinedOptionException)
 
 from .buildable import BuildableBindings
 from .configurable import Configurable, Option
 from .installable import Installable
-from .pyproject import (PyProjectOptionException,
-        PyProjectUndefinedOptionException)
 
 
 class Bindings(Configurable):

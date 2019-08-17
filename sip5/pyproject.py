@@ -24,7 +24,8 @@
 from collections import OrderedDict
 import toml
 
-from ..exceptions import UserFileException, UserParseException
+from .exceptions import UserFileException, UserParseException
+from .py_versions import FIRST_SUPPORTED_MINOR
 
 
 class PyProjectException(UserFileException):
@@ -69,6 +70,64 @@ class PyProject:
             self._pyproject = toml.load('pyproject.toml', _dict=OrderedDict)
         except Exception as e:
             raise UserParseException('pyproject.toml', detail=str(e))
+
+    def get_metadata(self):
+        """ Return an OrderedDict containing the PEP 522 metadata. """
+
+        metadata = OrderedDict()
+        name = None
+        version = None
+        metadata_version = None
+        requires_python = None
+
+        for md_name, md_value in self.get_section('tool.sip', required=True).items():
+            # Ignore sub-sections.
+            if self.is_section(md_value):
+                continue
+
+            if not isinstance(md_value, str):
+                raise PyProjectOptionException(md_name, "must be a string",
+                        section_name='tool.sip')
+
+            md_name = md_name.lower()
+            if md_name == 'name':
+                if not md_value.replace('-', '_').isidentifier():
+                    raise PyProjectOptionException('name',
+                            "'{0}' is an invalid project name".format(
+                                    md_value),
+                            section_name='tool.sip')
+
+                name = md_value
+            elif md_name == 'version':
+                version = md_value
+            elif md_name == 'metadata-version':
+                metadata_version = md_value
+            elif md_name == 'requires-python':
+                requires_python = md_value
+
+            metadata[md_name] = md_value
+
+        if name is None:
+            raise PyProjectUndefinedOptionException('name',
+                    section_name='tool.sip')
+
+        if version is None:
+            metadata['version'] = '0.1'
+
+        if metadata_version is None:
+            # Default to PEP 566.
+            metadata['metadata-version'] = '2.1'
+
+        if requires_python is None:
+            # The minimal version of Python we support.
+            metadata['requires-python'] = '>=3.{}'.format(
+                    FIRST_SUPPORTED_MINOR)
+
+        # This is cosmetic.
+        for name in ('requires-python', 'version', 'name', 'metadata-version'):
+            metadata.move_to_end(name, last=False)
+
+        return metadata
 
     def get_section(self, section_name, required=False):
         """ Return a sub-section with a dotted name. """

@@ -22,8 +22,7 @@
 
 
 from ..exceptions import UserException
-
-from .pyproject import PyProjectOptionException
+from ..pyproject import PyProjectOptionException
 
 
 class Configurable:
