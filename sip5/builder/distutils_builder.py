@@ -83,9 +83,10 @@ class DistutilsBuilder(Builder):
             installed.append(self._install_file(module_fn, module_dir))
 
             # Copy any .pyi file.
-            if buildable.pyi_file:
+            if buildable.pyi_file is not None:
                 installed.append(
-                        self._install_file(buildable.pyi_file, module_dir))
+                        buildable.pyi_file.install(
+                                buildable.get_install_dir(target_dir)))
 
             # Write the configuration file and copy the .sip files.
             if project.sip_module:

@@ -103,6 +103,12 @@ class BuildableModule(Buildable):
         self.pyi_file = None
         self.static = False
 
+    def get_install_dir(self, target_dir):
+        """ Return the directory the buildable should be installed in. """
+
+        return os.path.join(target_dir,
+                os.sep.join(self.fq_name.split('.')[:-1]))
+
     def get_module_extension(self):
         """ Return the filename extension that a module should have. """
 

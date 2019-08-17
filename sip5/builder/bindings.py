@@ -212,9 +212,12 @@ class Bindings(Configurable):
 
         # Generate any type hints file.
         if self.pep484_stubs:
-            build_sources.pyi_file = os.path.join(sources_dir,
-                    buildable_name + '.pyi')
-            generateTypeHints(pt, build_sources.pyi_file)
+            pyi_fn = buildable_name + '.pyi'
+
+            build_sources.pyi_file = Installable(sources_dir)
+            build_sources.pyi_file.files.append(pyi_fn)
+
+            generateTypeHints(pt, os.path.join(sources_dir, pyi_fn))
 
         # Generate the bindings.
         header, sources = generateCode(pt, sources_dir, self.source_suffix,
