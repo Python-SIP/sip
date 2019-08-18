@@ -50,6 +50,7 @@ class Buildable:
         self.library_dirs = []
         self.debug = False
         self.builder_settings = []
+        self.installables = []
 
         if self.uses_limited_api:
             self.define_macros.append('Py_LIMITED_API=0x03040000')
@@ -100,14 +101,14 @@ class BuildableModule(Buildable):
         super().__init__(*args, **kwargs)
 
         self.fq_name = fq_name
-        self.pyi_file = None
         self.static = False
 
-    def get_install_dir(self, target_dir):
-        """ Return the directory the buildable should be installed in. """
+    def get_install_dir(self):
+        """ Return the directory the extension module should be installed in
+        relative to the eventual target directory.
+        """
 
-        return os.path.join(target_dir,
-                os.sep.join(self.fq_name.split('.')[:-1]))
+        return os.sep.join(self.fq_name.split('.')[:-1])
 
     def get_module_extension(self):
         """ Return the filename extension that a module should have. """
@@ -136,8 +137,8 @@ class BuildableBindings(BuildableModule):
         super().__init__(*args, **kwargs)
 
         self.bindings = bindings
-        self.configuration = None
 
+    # TODO: still needed?
     def get_bindings_dir(self, target_dir):
         """ Return the name of the bindings-specific bindings directory for a
         target directory.
@@ -146,17 +147,34 @@ class BuildableBindings(BuildableModule):
         return os.path.join(self.bindings.project.get_bindings_dir(target_dir),
                 self.name)
 
+    def get_bindings_installable(self, name):
+        """ Return an installable for the buildable's bindings directory. """
+
+        name_parts = self.bindings.project.sip_module.split('.')
+        name_parts[-1] = 'bindings'
+        name_parts.append(self.name)
+
+        return Installable(name, target_subdir=os.path.join(*name_parts))
+
     def write_configuration(self, bindings_dir):
-        """ Write the configuration of the bindings. """
+        """ Write the configuration of the bindings and add it as an
+        installable.
+        """
 
         bindings = self.bindings
 
         # Make sure the bindings directory exists.
+        bindings_dir = os.path.join(bindings_dir, self.name)
         os.makedirs(bindings_dir, exist_ok=True)
 
-        config_fn = self.name + '.toml'
-        config_path = os.path.join(bindings_dir, config_fn)
+        config_path = os.path.join(bindings_dir, self.name + '.toml')
 
+        # Create an installable for the configuration file.
+        installable = self.get_bindings_installable('config')
+        installable.files.append(config_path)
+        self.installables.append(installable)
+
+        # Write the configuration file.
         with open(config_path, 'w') as cf:
             tags = ', '.join(['"{}"'.format(t) for t in bindings.tags])
             disabled = ', '.join(
@@ -169,6 +187,3 @@ sip-abi-version = "{}"
 module-tags = [{}]
 module-disabled-features = [{}]
 '''.format(SIP_VERSION_STR, bindings.project.abi_version, tags, disabled))
-
-        self.configuration = Installable(bindings_dir)
-        self.configuration.files.append(config_fn)

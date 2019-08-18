@@ -42,7 +42,8 @@ class Builder(AbstractBuilder):
     def build(self):
         """ Build the project in-situ. """
 
-        self._generate_and_compile(self.project.target_dir)
+        self._generate_bindings()
+        self.compile(self.project.target_dir)
 
     def build_sdist(self, sdist_directory):
         """ Build an sdist for the project and return the name of the sdist
@@ -59,6 +60,7 @@ class Builder(AbstractBuilder):
         sdist_root = os.path.join(project.build_dir, sdist_name)
         os.mkdir(sdist_root)
 
+        # TODO: copy everything except the sdist_excludes list
         # Copy the pyproject.toml file.
         shutil.copy(os.path.join(project.root_dir, 'pyproject.toml'),
                 sdist_root)
@@ -122,7 +124,8 @@ class Builder(AbstractBuilder):
         os.mkdir(wheel_build_dir)
 
         # Build the wheel contents.
-        opaque = self._generate_and_compile(wheel_build_dir)
+        self._generate_bindings()
+        self.compile(wheel_build_dir)
 
         # If all enabled bindings use the limited API then the wheel does.
         all_use_limited_api = True
@@ -185,36 +188,24 @@ class Builder(AbstractBuilder):
         return wheel_file
 
     @abstractmethod
-    def compile(self, buildables, target_dir):
-        """ Compile the project.  The returned opaque object will be passed to
-        install_into().
-        """
+    def compile(self, target_dir):
+        """ Compile the project. """
 
     def install(self):
         """ Install the project. """
 
         target_dir = self.project.target_dir
 
-        self.install_into(self._generate_and_compile(target_dir), target_dir)
+        self._generate_bindings()
+        self.compile(target_dir)
+        self.install_into(target_dir)
 
     @abstractmethod
-    def install_into(self, opaque, target_dir, wheel_tag=None):
-        """ Install the project into a target directory.  The opaque object was
-        returned by compile().
-        """
+    def install_into(self, target_dir, wheel_tag=None):
+        """ Install the project into a target directory. """
 
-    @staticmethod
-    def _ensure_subdirs_exist(file_path):
-        """ Ensure that the parent directories of a file path exist. """
-
-        file_dir = os.path.dirname(file_path)
-        if file_dir != '':
-            os.makedirs(file_dir, exist_ok=True)
-
-    def _generate_and_compile(self, target_dir):
-        """ Generate the bindings for all enabled modules, pass to compile()
-        and return the opaque object from compile().
-        """
+    def _generate_bindings(self):
+        """ Generate the bindings for all enabled modules. """
 
         project = self.project
 
@@ -243,8 +234,6 @@ class Builder(AbstractBuilder):
                 int(abi_minor), UserException, sip_include_dirs)
 
         # Generate the code for each set of bindings.
-        buildables = []
-
         for bindings in project.bindings:
             project.progress(
                     "Generating the bindings from {0}".format(
@@ -255,11 +244,6 @@ class Builder(AbstractBuilder):
 
             # Generate the bindings configuration file.
             if project.sip_module:
-                buildable.write_configuration(
-                        os.path.join(local_bindings_dir, buildable.name))
+                buildable.write_configuration(local_bindings_dir)
 
-            buildables.append(buildable)
-
-        # Compile the project.
-        # TODO: allow other buildables to be added to the list to compile.
-        return self.compile(buildables, target_dir)
+            project.buildables.append(buildable)

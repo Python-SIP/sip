@@ -22,35 +22,44 @@
 
 
 import os
-import shutil
+from shutil import copy2, copytree
 
 
 class Installable:
-    """ Encapsulate a list of files that can be installed. """
+    """ Encapsulate a list of files and directories that will be installed into
+    a target directory.
+    """
 
-    def __init__(self, installed_from):
-        """ Initialise the installable. """
-
-        self.installed_from = installed_from
-        self.files = []
-
-    def install(self, target_dir):
-        """ Install the files in a target directory and return a list of the
-        installed files.
+    def __init__(self, name, target_subdir=None):
+        """ Initialise the installable.  The optional target_subdir is the
+        path of a sub-directory of the eventual target where the files will be
+        installed.
         """
 
-        installed = []
+        self.name = name
+        self.target_subdir = target_subdir
+        self.files = []
+
+    def get_full_target_dir(self, target_dir):
+        """ Return the full target directory name. """
+
+        if self.target_subdir:
+            target_dir = os.path.join(target_dir, self.target_subdir)
+
+        return target_dir
+
+    def install(self, target_dir, installed, do_install=True):
+        """ Optionally install the files in a target directory and update the
+        given list of installed files.
+        """
+
+        target_dir = self.get_full_target_dir(target_dir)
+        os.makedirs(target_dir, exist_ok=True)
 
         for fn in self.files:
-            src_fn = os.path.join(self.installed_from, fn)
-            dst_fn = os.path.join(target_dir, fn)
+            t_path = os.path.join(target_dir, os.path.basename(fn)))
+            installed.append(t_path)
 
-            dst_dir = os.path.dirname(dst_fn)
-            if dst_dir != '':
-                os.makedirs(dst_dir, exist_ok=True)
-
-            shutil.copyfile(src_fn, dst_fn)
-
-            installed.append(dst_fn)
-
-        return installed
+            if do_install:
+                copy_fn = copytree if os.path.isdir(fn) else copy2
+                copy_fn(fn, t_path)

@@ -128,9 +128,6 @@ class Bindings(Configurable):
         super().__init__(**kwargs)
 
         self.project = project
-        self.build_sources = None
-
-        self._sip_files = None
 
     def apply_defaults(self, tool):
         """ Set default values for options that haven't been set yet. """
@@ -157,8 +154,7 @@ class Bindings(Configurable):
     def generate(self):
         """ Generate the bindings source code and optional additional extracts.
         and return a BuildableBindings instance containing the details of
-        everything needed to build the bindings.  When called the current
-        directory is set to the directory containing the defining .sip file.
+        everything needed to build the bindings.
         """
 
         project = self.project
@@ -183,11 +179,6 @@ class Bindings(Configurable):
                     "module '{0}' cannot use the limited API without using a "
                     "shared 'sip' module".format(fq_name))
 
-        # Only save the .sip files if they haven't already been obtained
-        # (possibly by a sub-class).
-        if self._sip_files is None:
-            self._sip_files = sip_files
-
         # Make sure the module's sub-directory exists.
         sources_dir = os.path.join(project.build_dir, buildable_name)
         os.makedirs(sources_dir, exist_ok=True)
@@ -195,15 +186,17 @@ class Bindings(Configurable):
         # The details of things that will have been generated.  Note that we
         # don't include anything for .api files or generic extracts as the
         # arguments include a file name.
-        build_sources = BuildableBindings(self, fq_name, buildable_name,
+        buildable = BuildableBindings(self, fq_name, buildable_name,
                 sources_dir, uses_limited_api)
 
-        build_sources.builder_settings.extend(self.builder_settings)
-        build_sources.debug = self.debug
-        build_sources.static = self.static
+        # TODO: these can be removed as we have access to the bindings object.
+        buildable.builder_settings.extend(self.builder_settings)
+        buildable.debug = self.debug
+        buildable.static = self.static
 
         # Generate any API file.
         if self.generate_api:
+            # TODO: add an installable (but we need to concat the files).
             generateAPI(pt, generate_api)
 
         # Generate any extracts.
@@ -214,9 +207,10 @@ class Bindings(Configurable):
         if self.pep484_stubs:
             pyi_fn = buildable_name + '.pyi'
 
-            build_sources.pyi_file = Installable(sources_dir)
-            build_sources.pyi_file.files.append(pyi_fn)
+            buildable.pyi_file = Installable('pyi', sources_dir)
+            buildable.pyi_file.files.append(pyi_fn)
 
+            # TODO: add an installable.
             generateTypeHints(pt, os.path.join(sources_dir, pyi_fn))
 
         # Generate the bindings.
@@ -226,37 +220,39 @@ class Bindings(Configurable):
                 self.docstrings, project.py_debug, project.sip_module)
 
         if header:
-            build_sources.headers.append(header)
+            buildable.headers.append(header)
 
-        build_sources.headers.extend(self.headers)
+        buildable.headers.extend(self.headers)
 
-        build_sources.sources.extend(sources)
+        buildable.sources.extend(sources)
 
         # Add the sip module code if it is not shared.
-        build_sources.include_dirs.append(sources_dir)
+        buildable.include_dirs.append(sources_dir)
 
         if project.sip_module:
             # sip.h will already be in the build directory.
-            build_sources.include_dirs.append(project.build_dir)
+            buildable.include_dirs.append(project.build_dir)
+
+            # TODO: add an installable for the .sip files
         else:
-            build_sources.sources.extend(
+            buildable.sources.extend(
                     copy_nonshared_sources(project.abi_version, sources_dir))
 
-        build_sources.include_dirs.extend(self.include_dirs)
-        build_sources.sources.extend(self.sources)
+        buildable.include_dirs.extend(self.include_dirs)
+        buildable.sources.extend(self.sources)
 
         if self.protected_is_public:
-            build_sources.define_macros.append('SIP_PROTECTED_IS_PUBLIC')
-            build_sources.define_macros.append('protected=public')
+            buildable.define_macros.append('SIP_PROTECTED_IS_PUBLIC')
+            buildable.define_macros.append('protected=public')
 
-        build_sources.define_macros.extend(self.define_macros)
+        buildable.define_macros.extend(self.define_macros)
 
-        build_sources.libraries.extend(self.libraries)
-        build_sources.library_dirs.extend(self.library_dirs)
+        buildable.libraries.extend(self.libraries)
+        buildable.library_dirs.extend(self.library_dirs)
 
-        build_sources.make_names_relative()
+        buildable.make_names_relative()
 
-        return build_sources
+        return buildable
 
     def get_options(self):
         """ Return the list of configurable options. """
@@ -266,6 +262,7 @@ class Bindings(Configurable):
 
         return options
 
+    # TODO: shouldn't be needed once sdist is changed.
     def get_sip_files(self, relative_to=None):
         """ Return a Installable object containing the names of the .sip files
         that define the bindings.  These will be relative to the directory
@@ -282,7 +279,7 @@ class Bindings(Configurable):
         if relative_to is None:
             relative_to = sip_dir
 
-        sip_files = Installable(relative_to)
+        sip_files = Installable('sip', relative_to)
 
         for fn in self._sip_files:
             fn = os.path.join(sip_dir, fn)

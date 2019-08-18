@@ -27,119 +27,50 @@ from distutils.extension import Extension
 from distutils.log import ERROR, INFO, set_threshold
 
 import os
-import shutil
 
 from ..distinfo import create_distinfo
 from ..exceptions import UserException
 
-from .buildable import BuildableBindings
+from .buildable import BuildableModule
 from .builder import Builder
+from .installable import Installable
 
 
 class DistutilsBuilder(Builder):
     """ The implementation of a distutils-based project builder. """
 
-    def compile(self, buildables, target_dir):
-        """ Compile the project.  The returned opaque object is a sequence of
-        2-tuples of the buildable object and the pathname of the compiled
-        module.
-        """
+    def compile(self, target_dir):
+        """ Compile the project. """
 
-        modules = []
+        for buildable in self.buildables:
+            if isinstance(buildable, BuildableModule):
+                if buildable.static:
+                    raise UserException(
+                            "DistutilsBuilder cannot build static modules")
 
-        for buildable in buildables:
-            if not isinstance(buildable, BuildableBindings):
+                self._build_extension_module(buildable)
+            else:
                 raise UserException(
-                        "DistutilsBuilder can only build BuildableBindings "
-                        "buildables")
+                        "DistutilsBuilder can only build extension modules")
 
-            if buildable.static:
-                raise UserException(
-                        "DistutilsBuilder cannot build static modules")
-
-            extension_module = self._build_extension_module(buildable)
-            modules.append((buildable, extension_module))
-
-        return modules
-
-    def install_into(self, opaque, target_dir, wheel_tag=None):
-        """ Install the project into a target directory.  The opaque object
-        contains the project's files to be installed.
-        """
+    def install_into(self, target_dir, wheel_tag=None):
+        """ Install the project into a target directory. """
 
         project = self.project
 
         installed = []
 
-        for buildable, module_fn in opaque:
-            # Get the name of the individual module's directory.
-            module_name_parts = buildable.fq_name.split('.')
-            parts = [target_dir]
-            parts.extend(module_name_parts[:-1])
-            module_dir = os.path.join(*parts)
-            os.makedirs(module_dir, exist_ok=True)
+        # Install any project-level installables.
+        for installable in project.installables:
+            installable.install(target_dir, installed)
 
-            # Copy the extension module.
-            installed.append(self._install_file(module_fn, module_dir))
-
-            # Copy any .pyi file.
-            if buildable.pyi_file is not None:
-                installed.append(
-                        buildable.pyi_file.install(
-                                buildable.get_install_dir(target_dir)))
-
-            # Write the configuration file and copy the .sip files.
-            if project.sip_module:
-                bindings_dir = buildable.get_bindings_dir(target_dir)
-
-                installed.append(buildable.configuration.install(bindings_dir))
-
-                installed.extend(
-                        buildable.bindings.get_sip_files().install(
-                                bindings_dir))
-
-        # Install anything else the user has specified.
-        for extra in project.install_extras:
-            src = extra[0]
-
-            if len(extra) == 1:
-                dst_dir = target_dir
-            else:
-                dst_dir = extra[1]
-
-                if os.path.isabs(dst_dir):
-                    # Quietly ignore absolute pathnames when creating a wheel.
-                    if wheel_tag is not None:
-                        continue
-                else:
-                    dst_dir = os.path.join(target_dir, dst_dir)
-
-            os.makedirs(dst_dir, exist_ok=True)
-
-            if os.path.isfile(src):
-                installed.append(self._install_file(src, dst_dir))
-            elif os.path.isdir(src):
-                dst = os.path.join(dst_dir, os.path.basename(src))
-
-                shutil.copytree(src, dst,
-                        copy_function=lambda s, d: installed.append(
-                                shutil.copy2(s, d)))
-            else:
-                raise UserException("unable to install '{0}'".format(src))
+        # Install any installables from built buildables.
+        for buildable in project.buildables:
+            for installable in buildable.installables:
+                installable.install(target_dir, installed)
 
         create_distinfo(project.get_distinfo_name(), installed,
                 project.metadata, wheel_tag=wheel_tag)
-
-    @staticmethod
-    def _install_file(fname, module_dir):
-        """ Install a file into a module-specific directory and return the
-        pathname of the installed file.
-        """
-
-        target_fn = os.path.join(module_dir, os.path.basename(fname))
-        shutil.copyfile(fname, target_fn)
-
-        return target_fn
 
     def _build_extension_module(self, buildable):
         """ Build an extension module from the sources and return its full
@@ -190,11 +121,12 @@ class DistutilsBuilder(Builder):
                             buildable.fq_name),
                     detail=str(e))
 
-        extension_module = module_builder.get_ext_fullpath(buildable.fq_name)
+        # Add the extension module to the buildable's list of installables.
+        buildable.installables.append(
+                Installable('module',
+                        target_subdir=buildable.get_install_dir()))
 
         os.chdir(saved_cwd)
-
-        return extension_module
 
 
 class ExtensionCommand(build_ext):

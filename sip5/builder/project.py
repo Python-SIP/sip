@@ -53,12 +53,6 @@ class Project(Configurable):
         # instance.
         Option('builder'),
 
-        # The list of extra files and directories to be copied to an
-        # installation or a wheel.  An item can be a name (copied to the root
-        # of the installation) or a 2 element list of name and directory
-        # relative to the root of the installation.
-        Option('install_extras', option_type=list),
-
         # Set if building for a debug version of Python.
         Option('py_debug', option_type=bool),
 
@@ -81,6 +75,7 @@ class Project(Configurable):
 
         # The list of extra files and directories, specified as glob patterns,
         # to be copied to an sdist.
+        # TODO: change this to be sdist_excludes
         Option('sdist_extras', option_type=list),
 
         # The list of additional directories to search for .sip files.
@@ -117,6 +112,8 @@ class Project(Configurable):
         self.root_dir = os.getcwd()
         self.bindings = []
         self.builder = None
+        self.buildables = []
+        self.installables = []
 
         self._temp_build_dir = None
 
@@ -254,6 +251,7 @@ class Project(Configurable):
 
         return project
 
+    # TODO: still needed?
     def get_bindings_dir(self, target_dir):
         """ Return the name of the bindings directory for a target directory.
         """
@@ -384,29 +382,6 @@ class Project(Configurable):
                                 self.abi_version, next_abi_major))
 
                 self.metadata['requires-dist'] = requires_dist
-
-        # Verify the types of any install extras.
-        def bad_extras():
-            raise PyProjectOptionException('install-extras',
-                    "each element must be a sub-list of a source file or "
-                            "directory and an optional destination directory")
-
-        for extra in self.install_extras:
-            if not isinstance(extra, list):
-                bad_extras()
-
-            if len(extra) == 1:
-                src = extra[0]
-            elif len(extra) == 2:
-                src, dst = extra
-
-                if not isinstance(dst, str):
-                    bad_extras()
-            else:
-                bad_extras()
-
-            if not isinstance(src, str):
-                bad_extras()
 
         # Verify the configuration of the builder and bindings.
         self.builder.verify_configuration(tool)

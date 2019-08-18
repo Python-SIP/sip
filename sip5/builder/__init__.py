@@ -32,4 +32,5 @@ from .buildable import BuildableBindings, BuildableModule
 from .builder import Builder
 from .configurable import Option
 from .distutils_builder import DistutilsBuilder
+from .installable import Installable
 from .project import Project
