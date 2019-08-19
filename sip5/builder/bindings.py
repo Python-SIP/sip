@@ -189,7 +189,6 @@ class Bindings(Configurable):
         buildable = BuildableBindings(self, fq_name, buildable_name,
                 sources_dir, uses_limited_api)
 
-        # TODO: these can be removed as we have access to the bindings object.
         buildable.builder_settings.extend(self.builder_settings)
         buildable.debug = self.debug
         buildable.static = self.static
@@ -205,13 +204,13 @@ class Bindings(Configurable):
 
         # Generate any type hints file.
         if self.pep484_stubs:
-            pyi_fn = buildable_name + '.pyi'
+            pyi_path = os.path.join(sources_dir, buildable_name + '.pyi')
 
-            buildable.pyi_file = Installable('pyi', sources_dir)
-            buildable.pyi_file.files.append(pyi_fn)
+            generateTypeHints(pt, pyi_path)
 
-            # TODO: add an installable.
-            generateTypeHints(pt, os.path.join(sources_dir, pyi_fn))
+            installable = Installable('pyi', buildable.get_install_dir())
+            installable.files.append(pyi_path)
+            buildable.installables.append(installable)
 
         # Generate the bindings.
         header, sources = generateCode(pt, sources_dir, self.source_suffix,
@@ -233,7 +232,25 @@ class Bindings(Configurable):
             # sip.h will already be in the build directory.
             buildable.include_dirs.append(project.build_dir)
 
-            # TODO: add an installable for the .sip files
+            # Add an installable for the .sip files.
+            installable = buildable.get_bindings_installable('sip')
+
+            sip_dir = os.path.dirname(self.sip_file)
+
+            for fn in sip_files:
+                sip_path = os.path.join(sip_dir, fn)
+
+                # The code generator does not report the full pathname of a
+                # .sip file (only names relative to the search directory in
+                # which it was found).  Therefore we need to check if it is
+                # actually in the directory we are installing from and ignore
+                # it if not.  This isn't really the right thing to do but is
+                # actually what we want when we have optional license .sip
+                # files.
+                if os.path.isfile(sip_path):
+                    installable.files.append(sip_path)
+
+            buildable.installables.append(installable)
         else:
             buildable.sources.extend(
                     copy_nonshared_sources(project.abi_version, sources_dir))
@@ -261,39 +278,6 @@ class Bindings(Configurable):
         options.extend(self._options)
 
         return options
-
-    # TODO: shouldn't be needed once sdist is changed.
-    def get_sip_files(self, relative_to=None):
-        """ Return a Installable object containing the names of the .sip files
-        that define the bindings.  These will be relative to the directory
-        containing the main .sip file unless a directory was given.
-        """
-
-        # We use the list of files that were parsed.
-        if self._sip_files is None:
-            # We haven't called the parser yet so do it now.
-            _, _, _, self._sip_files = self._parse()
-
-        sip_dir = os.path.dirname(self.sip_file)
-
-        if relative_to is None:
-            relative_to = sip_dir
-
-        sip_files = Installable('sip', relative_to)
-
-        for fn in self._sip_files:
-            fn = os.path.join(sip_dir, fn)
-
-            # The code generator does not report the full pathname of a .sip
-            # file (only names relative to the search directory in which it was
-            # found).  Therefore we need to check if it is actually in the
-            # directory we are installing from and ignore it if not.  This
-            # isn't really the right thing to do but is actually what we want
-            # when we have optional license .sip files.
-            if os.path.isfile(fn):
-                sip_files.files.append(os.path.relpath(fn, relative_to))
-
-        return sip_files
 
     def is_buildable(self):
         """ Return True if the bindings are buildable.  This will not be called

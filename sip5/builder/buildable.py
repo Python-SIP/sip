@@ -138,23 +138,13 @@ class BuildableBindings(BuildableModule):
 
         self.bindings = bindings
 
-    # TODO: still needed?
-    def get_bindings_dir(self, target_dir):
-        """ Return the name of the bindings-specific bindings directory for a
-        target directory.
-        """
-
-        return os.path.join(self.bindings.project.get_bindings_dir(target_dir),
-                self.name)
-
     def get_bindings_installable(self, name):
         """ Return an installable for the buildable's bindings directory. """
 
-        name_parts = self.bindings.project.sip_module.split('.')
-        name_parts[-1] = 'bindings'
-        name_parts.append(self.name)
+        target_subdir = os.path.join(self.bindings.project.get_bindings_dir(),
+                self.name)
 
-        return Installable(name, target_subdir=os.path.join(*name_parts))
+        return Installable(name, target_subdir=target_subdir)
 
     def write_configuration(self, bindings_dir):
         """ Write the configuration of the bindings and add it as an

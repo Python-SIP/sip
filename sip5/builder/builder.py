@@ -43,7 +43,11 @@ class Builder(AbstractBuilder):
         """ Build the project in-situ. """
 
         self._generate_bindings()
-        self.compile(self.project.target_dir)
+        self.build_project(self.project.target_dir)
+
+    @abstractmethod
+    def build_project(self, target_dir):
+        """ Build the project. """
 
     def build_sdist(self, sdist_directory):
         """ Build an sdist for the project and return the name of the sdist
@@ -60,40 +64,34 @@ class Builder(AbstractBuilder):
         sdist_root = os.path.join(project.build_dir, sdist_name)
         os.mkdir(sdist_root)
 
-        # TODO: copy everything except the sdist_excludes list
-        # Copy the pyproject.toml file.
-        shutil.copy(os.path.join(project.root_dir, 'pyproject.toml'),
-                sdist_root)
+        # Get a list of all excluded files.
+        excluded = []
+        for patt in project.sdist_excludes:
+            excluded.extend(glob.glob(os.path.join(project.root_dir, patt)))
 
-        # Copy in any project.py.
-        project_py = os.path.join(project.root_dir, 'project.py')
-        if os.path.isfile(project_py):
-            shutil.copy(project_py, sdist_root)
+        for dname, dirnames, filenames in os.walk(project.root_dir):
+            # Always ignore certain directories.
+            if dname == project.build_dir:
+                del dirnames[:]
+                continue
 
-        # Copy in the .sip files for each set of bindings.
-        for bindings in project.bindings:
-            bindings.get_sip_files(project.root_dir).install(sdist_root)
+            try:
+                dirnames.remove('__pycache__')
+            except ValueError:
+                pass
 
-        # Copy in anything else the user has asked for.
-        for extra in project.sdist_extras:
-            extra = os.path.abspath(extra)
+            # Copy each file non-excluded file.
+            for s_fn in filenames:
+                s_fn_path = os.path.join(dname, s_fn)
 
-            if os.path.commonprefix([extra, project.root_dir]) != project.root_dir:
-                raise PyProjectOptionException('sdist-extras',
-                        "must all be in the '{0}' directory or a "
-                                "sub-directory".format(project.root_dir))
+                if s_fn_path in excluded:
+                    continue
 
-            extra = os.path.relpath(extra, project.root_dir)
+                d_fn_path = os.path.join(sdist_root,
+                        os.path.relpath(s_fn_path, project.root_dir))
+                os.makedirs(os.path.dirname(d_fn_path), exist_ok=True)
 
-            for src in glob.glob(extra):
-                dst = os.path.join(sdist_root, src)
-
-                if os.path.isfile(src):
-                    shutil.copyfile(src, dst)
-                elif os.path.isdir(src):
-                    shutil.copytree(src, dst)
-                else:
-                    raise UserException("unable to copy '{0}'".format(src))
+                shutil.copy2(s_fn_path, d_fn_path)
 
         # Create the tarball.
         sdist_file = sdist_name + '.tar.gz'
@@ -125,11 +123,11 @@ class Builder(AbstractBuilder):
 
         # Build the wheel contents.
         self._generate_bindings()
-        self.compile(wheel_build_dir)
+        self.build_project(wheel_build_dir)
 
         # If all enabled bindings use the limited API then the wheel does.
         all_use_limited_api = True
-        for bindings in project.bindings:
+        for bindings in project.bindings.values():
             if not bindings.build_sources.uses_limited_api:
                 all_use_limited_api = False
                 break
@@ -163,7 +161,7 @@ class Builder(AbstractBuilder):
             wheel_tag += '-manylinux1_x86_64'
 
         # Copy the wheel contents.
-        self.install_into(opaque, wheel_build_dir, wheel_tag=wheel_tag)
+        self.install_project(opaque, wheel_build_dir, wheel_tag=wheel_tag)
 
         wheel_file = '{}-{}-{}.whl'.format(project.name.replace('-', '_'),
                 project.version, wheel_tag)
@@ -187,21 +185,17 @@ class Builder(AbstractBuilder):
 
         return wheel_file
 
-    @abstractmethod
-    def compile(self, target_dir):
-        """ Compile the project. """
-
     def install(self):
         """ Install the project. """
 
         target_dir = self.project.target_dir
 
         self._generate_bindings()
-        self.compile(target_dir)
-        self.install_into(target_dir)
+        self.build_project(target_dir)
+        self.install_project(target_dir)
 
     @abstractmethod
-    def install_into(self, target_dir, wheel_tag=None):
+    def install_project(self, target_dir, wheel_tag=None):
         """ Install the project into a target directory. """
 
     def _generate_bindings(self):
@@ -223,7 +217,8 @@ class Builder(AbstractBuilder):
 
             # Add any bindings from previously installed packages.
             sip_include_dirs.append(
-                    project.get_bindings_dir(project.target_dir))
+                    os.path.join(project.target_dir,
+                            project.get_bindings_dir()))
 
             # Generate the sip.h file for the shared sip module.
             copy_sip_h(project.abi_version, project.build_dir,
@@ -234,7 +229,7 @@ class Builder(AbstractBuilder):
                 int(abi_minor), UserException, sip_include_dirs)
 
         # Generate the code for each set of bindings.
-        for bindings in project.bindings:
+        for bindings in project.bindings.values():
             project.progress(
                     "Generating the bindings from {0}".format(
                             bindings.sip_file))

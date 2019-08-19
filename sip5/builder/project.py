@@ -73,10 +73,10 @@ class Project(Configurable):
         # sub-directory.
         Option('sip_files_dir', default=os.getcwd()),
 
-        # The list of extra files and directories, specified as glob patterns,
-        # to be copied to an sdist.
-        # TODO: change this to be sdist_excludes
-        Option('sdist_extras', option_type=list),
+        # The list of files and directories, specified as glob patterns
+        # relative to the project directory, that should be excluded from an
+        # sdist.
+        Option('sdist_excludes', option_type=list),
 
         # The list of additional directories to search for .sip files.
         Option('sip_include_dirs', option_type=list),
@@ -110,7 +110,7 @@ class Project(Configurable):
 
         # The current directory should contain pyproject.toml.
         self.root_dir = os.getcwd()
-        self.bindings = []
+        self.bindings = OrderedDict()
         self.builder = None
         self.buildables = []
         self.installables = []
@@ -150,7 +150,7 @@ class Project(Configurable):
         # Set the defaults for the builder and bindings.
         self.builder.apply_defaults(tool)
 
-        for bindings in self.bindings:
+        for bindings in self.bindings.values():
             bindings.apply_defaults(tool)
 
     def build(self):
@@ -251,13 +251,10 @@ class Project(Configurable):
 
         return project
 
-    # TODO: still needed?
-    def get_bindings_dir(self, target_dir):
-        """ Return the name of the bindings directory for a target directory.
-        """
+    def get_bindings_dir(self):
+        """ Return the name of the bindings directory. """
 
         name_parts = self.sip_module.split('.')
-        name_parts.insert(0, target_dir)
         name_parts[-1] = 'bindings'
 
         return os.path.join(*name_parts)
@@ -335,7 +332,9 @@ class Project(Configurable):
         if self.enable:
             return
 
-        self.bindings = [b for b in self.bindings if b.is_buildable()]
+        for b in self.bindings.values():
+            if not b.is_buildable():
+                del self.bindings[b.name]
 
     def verify_configuration(self, tool):
         """ Verify that the configuration is complete and consistent. """
@@ -386,7 +385,7 @@ class Project(Configurable):
         # Verify the configuration of the builder and bindings.
         self.builder.verify_configuration(tool)
 
-        for bindings in self.bindings:
+        for bindings in self.bindings.values():
             bindings.verify_configuration(tool)
 
     def _configure_from_command_line(self, tool, description):
@@ -412,7 +411,7 @@ class Project(Configurable):
 
         self.builder.add_command_line_options(parser, tool, all_options)
 
-        for bindings in self.bindings:
+        for bindings in self.bindings.values():
             bindings.add_command_line_options(parser, tool, all_options)
 
         # Parse the arguments and update the corresponding configurables.
@@ -428,7 +427,7 @@ class Project(Configurable):
         """ Check the enabled bindings are valid and remove any disabled ones.
         """
 
-        names = [bindings.name for bindings in self.bindings]
+        names = list(self.bindings.keys())
 
         # Check that any explicitly enabled bindings are valid.
         if self.enable:
@@ -438,7 +437,9 @@ class Project(Configurable):
                             "unknown enabled bindings '{0}'".format(enabled))
 
             # Only include explicitly enabled bindings.
-            self.bindings = [b for b in self.bindings if b.name in self.enable]
+            for b in self.bindings.values():
+                if b.name not in self.enable:
+                    del self.bindings[b.name]
 
         # Check that any explicitly disabled bindings are valid.
         if self.disable:
@@ -448,8 +449,9 @@ class Project(Configurable):
                             "unknown disabled bindings '{0}'".format(disabled))
 
             # Remove any explicitly disabled bindings.
-            self.bindings = [b for b in self.bindings
-                    if b.name not in self.disable]
+            for b in self.bindings.values():
+                if b.name in self.disable:
+                    del self.bindings[b.name]
 
     @staticmethod
     def _import_callable(callable_name, section_name, name):
@@ -521,19 +523,19 @@ class Project(Configurable):
             bindings_sections = []
 
         for section in bindings_sections:
-            # If the bindings have already been defined then update them,
-            # otherwise create a new set.
+            # Check the bindings don't already exist.
             name = section.get('name')
-            for bindings in self.bindings:
-                if bindings.name == name:
-                    break
-            else:
-                bindings = Bindings(self)
-                self.bindings.append(bindings)
+            if name in self.bindings:
+                raise PyProjectOptionException('name',
+                        "the '{0}' bindings have already been defined".format(
+                                name),
+                        section_name='tool.sip.bindings')
 
+            bindings = Bindings(self)
             bindings.configure(section, 'tool.sip.bindings')
+            self.bindings[bindings.name] = bindings
 
         # Add a default set of bindings if none were defined.
         if not self.bindings:
             bindings = Bindings(self, name=self.name)
-            self.bindings.append(bindings)
+            self.bindings[bindings.name] = bindings

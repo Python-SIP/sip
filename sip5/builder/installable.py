@@ -57,7 +57,7 @@ class Installable:
         os.makedirs(target_dir, exist_ok=True)
 
         for fn in self.files:
-            t_path = os.path.join(target_dir, os.path.basename(fn)))
+            t_path = os.path.join(target_dir, os.path.basename(fn))
             installed.append(t_path)
 
             if do_install:

@@ -39,8 +39,8 @@ from .installable import Installable
 class DistutilsBuilder(Builder):
     """ The implementation of a distutils-based project builder. """
 
-    def compile(self, target_dir):
-        """ Compile the project. """
+    def build_project(self, target_dir):
+        """ Build the project. """
 
         for buildable in self.buildables:
             if isinstance(buildable, BuildableModule):
@@ -53,7 +53,7 @@ class DistutilsBuilder(Builder):
                 raise UserException(
                         "DistutilsBuilder can only build extension modules")
 
-    def install_into(self, target_dir, wheel_tag=None):
+    def install_project(self, target_dir, wheel_tag=None):
         """ Install the project into a target directory. """
 
         project = self.project
