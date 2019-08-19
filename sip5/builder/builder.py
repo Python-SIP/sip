@@ -34,6 +34,7 @@ from ..py_versions import FIRST_SUPPORTED_MINOR, LAST_SUPPORTED_MINOR
 from ..version import SIP_VERSION, SIP_VERSION_STR
 
 from .abstract_builder import AbstractBuilder
+from .installable import Installable
 
 
 class Builder(AbstractBuilder):
@@ -229,6 +230,8 @@ class Builder(AbstractBuilder):
                 int(abi_minor), UserException, sip_include_dirs)
 
         # Generate the code for each set of bindings.
+        api_files = []
+
         for bindings in project.bindings.values():
             project.progress(
                     "Generating the bindings from {0}".format(
@@ -237,8 +240,35 @@ class Builder(AbstractBuilder):
             # Generate the source code.
             buildable = bindings.generate()
 
+            if not bindings.internal:
+                api_files.append(
+                        os.path.join(project.build_dir,
+                                buildable.name + '.api'))
+
             # Generate the bindings configuration file.
             if project.sip_module:
                 buildable.write_configuration(local_bindings_dir)
 
             project.buildables.append(buildable)
+
+        # Create the .api file if required.
+        if project.api_dir:
+            api_fn = project.name + '.api'
+
+            project.progress("Generating the {0} file".format(api_fn))
+
+            # Concatanate the individual .api files.
+            api_path = os.path.join(project.build_dir, api_fn)
+            api_f = project.open_for_writing(api_path)
+
+            for part_fn in api_files:
+                with open(part_fn) as part_f:
+                    api_f.write(part_f.read())
+
+            api_f.close()
+
+            # Add an Installable for the requested API file.
+            installable = Installable('api',
+                    target_subdir=os.path.abspath(project.api_dir))
+            installable.files.append(api_path)
+            project.installables.append(installable)

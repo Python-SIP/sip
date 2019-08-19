@@ -63,6 +63,10 @@ class Bindings(Configurable):
         # The list of additional C/C++ include directories to search.
         Option('include_dirs', option_type=list),
 
+        # Set if the bindings are internal.  Internal bindings don't have their
+        # .sip, .pyi or .api files installed.
+        Option('internal', option_type=bool),
+
         # The list of library names to link against.
         Option('libraries', option_type=list),
 
@@ -94,7 +98,7 @@ class Bindings(Configurable):
 
         # The user-configurable options.  Although the use of a corresponding
         # command line option will affect all sets of bindings, putting them
-        # here (as opposed to in Builder) means they can have individual
+        # here (as opposed to in Project) means they can have individual
         # values specified in pyproject.toml.
         Option('concatenate', option_type=int,
                 help="concatenate the generated bindings into N source files",
@@ -104,8 +108,6 @@ class Bindings(Configurable):
         Option('docstrings', option_type=bool, inverted=True,
                 help="disable the generation of docstrings",
                 tools='build install wheel'),
-        Option('generate_api', help="generate a QScintilla .api file",
-                metavar="FILE", tools='build install wheel'),
         Option('generate_extracts', option_type=list,
                 help="generate an extract file", metavar="ID:FILE",
                 tools='build install wheel'),
@@ -172,12 +174,12 @@ class Bindings(Configurable):
         if project.sip_module:
             if len(name_parts) == 1:
                 raise UserException(
-                        "module '{0}' must be part of a project when used "
-                        "with a shared 'sip' module".format(fq_name))
+                        "'{0}' must be part of a project when used with a "
+                        "shared 'sip' module".format(buildable_name))
         elif uses_limited_api:
             raise UserException(
-                    "module '{0}' cannot use the limited API without using a "
-                    "shared 'sip' module".format(fq_name))
+                    "'{0}' cannot use the limited API without using a shared "
+                    "'sip' module".format(buildable_name))
 
         # Make sure the module's sub-directory exists.
         sources_dir = os.path.join(project.build_dir, buildable_name)
@@ -194,16 +196,24 @@ class Bindings(Configurable):
         buildable.static = self.static
 
         # Generate any API file.
-        if self.generate_api:
-            # TODO: add an installable (but we need to concat the files).
-            generateAPI(pt, generate_api)
+        if project.api_dir and not self.internal:
+            project.progress(
+                    "Generating the .api file for '{0}'".format(
+                            buildable_name))
+
+            generateAPI(pt,
+                    os.path.join(project.build_dir, buildable_name + '.api'))
 
         # Generate any extracts.
         if self.generate_extracts:
             generateExtracts(pt, extracts)
 
         # Generate any type hints file.
-        if self.pep484_stubs:
+        if self.pep484_stubs and not self.internal:
+            project.progress(
+                    "Generating the .pyi file for '{0}'".format(
+                            buildable_name))
+
             pyi_path = os.path.join(sources_dir, buildable_name + '.pyi')
 
             generateTypeHints(pt, pyi_path)
@@ -232,25 +242,26 @@ class Bindings(Configurable):
             # sip.h will already be in the build directory.
             buildable.include_dirs.append(project.build_dir)
 
-            # Add an installable for the .sip files.
-            installable = buildable.get_bindings_installable('sip')
+            if not self.internal:
+                # Add an installable for the .sip files.
+                installable = buildable.get_bindings_installable('sip')
 
-            sip_dir = os.path.dirname(self.sip_file)
+                sip_dir = os.path.dirname(self.sip_file)
 
-            for fn in sip_files:
-                sip_path = os.path.join(sip_dir, fn)
+                for fn in sip_files:
+                    sip_path = os.path.join(sip_dir, fn)
 
-                # The code generator does not report the full pathname of a
-                # .sip file (only names relative to the search directory in
-                # which it was found).  Therefore we need to check if it is
-                # actually in the directory we are installing from and ignore
-                # it if not.  This isn't really the right thing to do but is
-                # actually what we want when we have optional license .sip
-                # files.
-                if os.path.isfile(sip_path):
-                    installable.files.append(sip_path)
+                    # The code generator does not report the full pathname of a
+                    # .sip file (only names relative to the search directory in
+                    # which it was found).  Therefore we need to check if it is
+                    # actually in the directory we are installing from and
+                    # ignore it if not.  This isn't really the right thing to
+                    # do but is actually what we want when we have optional
+                    # license .sip files.
+                    if os.path.isfile(sip_path):
+                        installable.files.append(sip_path)
 
-            buildable.installables.append(installable)
+                buildable.installables.append(installable)
         else:
             buildable.sources.extend(
                     copy_nonshared_sources(project.abi_version, sources_dir))

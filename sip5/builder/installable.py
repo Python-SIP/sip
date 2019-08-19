@@ -33,7 +33,8 @@ class Installable:
     def __init__(self, name, target_subdir=None):
         """ Initialise the installable.  The optional target_subdir is the
         path of a sub-directory of the eventual target where the files will be
-        installed.
+        installed.  If target_subdir is an absolute pathname then it is used as
+        the eventual target name.
         """
 
         self.name = name
@@ -44,7 +45,10 @@ class Installable:
         """ Return the full target directory name. """
 
         if self.target_subdir:
-            target_dir = os.path.join(target_dir, self.target_subdir)
+            if os.path.isabs(self.target_subdir):
+                target_dir = self.target_subdir
+            else:
+                target_dir = os.path.join(target_dir, self.target_subdir)
 
         return target_dir
 

@@ -92,7 +92,9 @@ class Project(Configurable):
         Option('build_dir', help="the build directory", metavar="DIR"),
         Option('target_dir', default=get_python_lib(plat_specific=1),
                 help="the target installation directory", metavar="DIR",
-                tools='install')
+                tools='install'),
+        Option('api_dir', help="generate a QScintilla .api file in DIR",
+                metavar="DIR", tools='build install wheel'),
     )
 
     # The configurable options for multiple bindings.
