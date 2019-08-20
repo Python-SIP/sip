@@ -53,6 +53,9 @@ class Project(Configurable):
         # instance.
         Option('builder'),
 
+        # Set if an __init__.py should be installed.
+        Option('dunder_init', option_type=bool, default=True),
+
         # Set if building for a debug version of Python.
         Option('py_debug', option_type=bool),
 
@@ -280,6 +283,12 @@ class Project(Configurable):
         return os.path.join(target_dir,
                 '{}-{}.dist-info'.format(self.name.replace('-', '_'),
                 self.version))
+
+    def get_dunder_init(self):
+        """ Return the contents of the __init__.py to install. """
+
+        # This default implementation will create an empty file.
+        return ''
 
     def get_options(self):
         """ Return the list of configurable options. """

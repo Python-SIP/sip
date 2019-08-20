@@ -251,6 +251,19 @@ class Builder(AbstractBuilder):
 
             project.buildables.append(buildable)
 
+        # Create __init__.py if required.
+        if project.dunder_init:
+            init_path = os.path.join(project.build_dir, '__init__.py')
+
+            init_f = project.open_for_writing(init_path)
+            init_f.write(project.get_dunder_init())
+            init_f.close()
+
+            installable = Installable('init',
+                    os.path.dirname(project.get_bindings_dir()))
+            installable.files.append(init_path)
+            project.installables.append(installable)
+
         # Create the .api file if required.
         if project.api_dir:
             api_fn = project.name + '.api'
