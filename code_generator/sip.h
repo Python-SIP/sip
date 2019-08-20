@@ -1458,6 +1458,7 @@ void generateBaseType(ifaceFileDef *scope, argDef *ad, int use_typename,
         int strip, FILE *fp);
 void normaliseArgs(signatureDef *sd);
 void restoreArgs(signatureDef *sd);
+void initialiseLexer();
 
 
 /* These are only here because bison publically references them. */

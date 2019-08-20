@@ -55,10 +55,11 @@ static struct inputFile {
     parserContext pc;                   /* The parser context. */
 } inputFileStack[MAX_INCLUDE_DEPTH];
 
-static int currentFile = -1;            /* Index of the current input file. */
+static int currentFile;                 /* Index of the current input file. */
 static char codeLine[MAX_CODE_LINE_LENGTH + 2]; /* The current code line. */
-static int codeIdx = -1;                /* Index of next code character. */
-static int parenDepth = 0;              /* The current depth of (...). */
+static int codeIdx;                     /* Index of next code character. */
+static int parenDepth;                  /* The current depth of (...). */
+static stringList *allFiles;            /* The list of all input files. */
 
 static FILE *openFile(const char *);
 static void fatallex(char *);
@@ -628,6 +629,19 @@ int yywrap()
 
 
 /*
+ * Initialise the lexer.
+ */
+void initialiseLexer()
+{
+    /* Initialise all the globals. */
+    currentFile = -1;
+    codeIdx = -1;
+    parenDepth = 0;
+    allFiles = NULL;
+}
+
+
+/*
  * Get the current source location.
  */
 void getSourceLocation(sourceLocation *slp)
@@ -655,7 +669,6 @@ void getSourceLocation(sourceLocation *slp)
  */
 int setInputFile(FILE *open_fp, parserContext *pc, int optional)
 {
-    static stringList *all = NULL;
     char *cwd, *fullname = NULL;
     FILE *fp = open_fp;
 
@@ -718,7 +731,7 @@ int setInputFile(FILE *open_fp, parserContext *pc, int optional)
     {
         stringList *sl;
 
-        for (sl = all; sl != NULL; sl = sl->next)
+        for (sl = allFiles; sl != NULL; sl = sl->next)
             if (strcmp(sl->s, fullname) == 0)
             {
                 fclose(fp);
@@ -727,7 +740,7 @@ int setInputFile(FILE *open_fp, parserContext *pc, int optional)
     }
 
     /* Remember the filename. */
-    appendString(&all, sipStrdup(fullname));
+    appendString(&allFiles, sipStrdup(fullname));
 
     yyin = fp;
 

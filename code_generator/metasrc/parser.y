@@ -4303,6 +4303,8 @@ void parse(sipSpec *spec, FILE *fp, char *filename, int strict,
 {
     classTmplDef *tcd;
 
+    initialiseLexer();
+
     /* Initialise the spec. */
  
     memset(spec, 0, sizeof (sipSpec));
