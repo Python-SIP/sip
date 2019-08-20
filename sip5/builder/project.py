@@ -534,17 +534,16 @@ class Project(Configurable):
             bindings_sections = []
 
         for section in bindings_sections:
-            # Check the bindings don't already exist.
+            # See if the bindings have already been created (by a project.py).
             name = section.get('name')
-            if name in self.bindings:
-                raise PyProjectOptionException('name',
-                        "the '{0}' bindings have already been defined".format(
-                                name),
-                        section_name='tool.sip.bindings')
 
-            bindings = Bindings(self)
+            bindings = self.bindings.get(name)
+
+            if bindings is None:
+                bindings = Bindings(self)
+                self.bindings[name] = bindings
+
             bindings.configure(section, 'tool.sip.bindings')
-            self.bindings[bindings.name] = bindings
 
         # Add a default set of bindings if none were defined.
         if not self.bindings:
