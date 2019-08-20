@@ -37,6 +37,16 @@ from ..version import SIP_VERSION_STR
 WHEEL_VERSION = '1.0'
 
 
+class Wheel:
+    """ Encapsulate the wheel-specific meta-data. """
+
+    def __init__(self, tag, console_scripts):
+        """ Initialise the Wheel object. """
+
+        self.tag = tag
+        self.console_scripts = console_scripts
+
+
 def distinfo(name, inventory, prefix, generator, project_root):
     """ Create and populate a .dist-info directory from an inventory file. """
 
@@ -70,7 +80,7 @@ def distinfo(name, inventory, prefix, generator, project_root):
 
 
 def create_distinfo(distinfo_dir, installed, metadata, prefix_dir='',
-        wheel_tag=None, generator=None):
+        wheel=None, generator=None):
     """ Create and populate a .dist-info directory. """
 
     if generator is None:
@@ -100,7 +110,7 @@ def create_distinfo(distinfo_dir, installed, metadata, prefix_dir='',
     # Reproducable builds.
     installed.sort()
 
-    if wheel_tag is None:
+    if wheel is None:
         # Create the INSTALLER file.
         installer_fn = os.path.join(distinfo_dir, 'INSTALLER')
         installed.append(installer_fn)
@@ -108,6 +118,16 @@ def create_distinfo(distinfo_dir, installed, metadata, prefix_dir='',
         with open(prefix_dir + installer_fn, 'w') as installer_f:
             print(generator, file=installer_f)
     else:
+        # Define any entry points.
+        if wheel.console_scripts:
+            eps_fn = os.path.join(distinfo_dir, 'entry_points.txt')
+            installed.append(eps_fn)
+
+            with open(prefix_dir + eps_fn, 'w') as eps_f:
+                eps_f.write(
+                        '[console_scripts]\n' + '\n'.join(
+                                wheel.console_scripts) + '\n')
+
         # Create the WHEEL file.
         WHEEL = '''Wheel-Version: {}
 Generator: {} {}
@@ -121,7 +141,7 @@ Tag: {}
         with open(prefix_dir + wheel_fn, 'w') as wheel_f:
             wheel_f.write(
                     WHEEL.format(WHEEL_VERSION, generator, SIP_VERSION_STR,
-                            wheel_tag))
+                            wheel.tag))
 
     # Create the METADATA file.
     metadata_fn = os.path.join(distinfo_dir, 'METADATA')

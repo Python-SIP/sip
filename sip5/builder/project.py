@@ -119,6 +119,7 @@ class Project(Configurable):
         self.builder = None
         self.buildables = []
         self.installables = []
+        self.wheel = None
 
         self._temp_build_dir = None
 
@@ -275,6 +276,11 @@ class Project(Configurable):
             from .distutils_builder import DistutilsBuilder as builder_factory
 
         return builder_factory(self)
+
+    def get_console_scripts(self):
+        """ Return a list of entry points for any console scripts. """
+
+        return []
 
     def get_distinfo_name(self, target_dir):
         """ Return the name of the .dist-info directory for a target directory.

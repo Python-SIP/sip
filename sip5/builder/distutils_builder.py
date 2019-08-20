@@ -53,7 +53,7 @@ class DistutilsBuilder(Builder):
                 raise UserException(
                         "DistutilsBuilder can only build extension modules")
 
-    def install_project(self, target_dir, wheel_tag=None):
+    def install_project(self, target_dir):
         """ Install the project into a target directory. """
 
         project = self.project
@@ -70,7 +70,7 @@ class DistutilsBuilder(Builder):
                 installable.install(target_dir, installed)
 
         create_distinfo(project.get_distinfo_name(), installed,
-                project.metadata, wheel_tag=wheel_tag)
+                project.metadata, project.wheel)
 
     def _build_extension_module(self, buildable):
         """ Build an extension module from the sources and return its full

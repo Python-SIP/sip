@@ -28,6 +28,7 @@ import shutil
 import sys
 
 from ..code_generator import set_globals
+from ..distinfo import Wheel
 from ..exceptions import UserException
 from ..module import copy_sip_h
 from ..py_versions import FIRST_SUPPORTED_MINOR, LAST_SUPPORTED_MINOR
@@ -124,7 +125,6 @@ class Builder(AbstractBuilder):
 
         # Build the wheel contents.
         self._generate_bindings()
-        self.build_project(wheel_build_dir)
 
         # If all enabled bindings use the limited API then the wheel does.
         all_use_limited_api = True
@@ -161,8 +161,13 @@ class Builder(AbstractBuilder):
             # be uploaded to PyPI.
             wheel_tag += '-manylinux1_x86_64'
 
+        # Save the wheel details.
+        project.wheel = Wheel(wheel_tag, project.get_console_scripts())
+
+        self.build_project(wheel_build_dir)
+
         # Copy the wheel contents.
-        self.install_project(opaque, wheel_build_dir, wheel_tag=wheel_tag)
+        self.install_project(wheel_build_dir)
 
         wheel_file = '{}-{}-{}.whl'.format(project.name.replace('-', '_'),
                 project.version, wheel_tag)
@@ -196,7 +201,7 @@ class Builder(AbstractBuilder):
         self.install_project(target_dir)
 
     @abstractmethod
-    def install_project(self, target_dir, wheel_tag=None):
+    def install_project(self, target_dir):
         """ Install the project into a target directory. """
 
     def _generate_bindings(self):
