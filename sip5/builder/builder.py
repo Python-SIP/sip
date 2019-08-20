@@ -245,9 +245,9 @@ class Builder(AbstractBuilder):
                         os.path.join(project.build_dir,
                                 buildable.name + '.api'))
 
-            # Generate the bindings configuration file.
-            if project.sip_module:
-                buildable.write_configuration(local_bindings_dir)
+                # Generate the bindings configuration file.
+                if project.sip_module:
+                    buildable.write_configuration(local_bindings_dir)
 
             project.buildables.append(buildable)
 
