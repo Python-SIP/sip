@@ -15,3 +15,4 @@ name = "extras"
 # Configure the project itself.
 [tool.sip.project]
 sip-module = "examples.sip"
+dunder-init = False
