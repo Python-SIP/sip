@@ -236,8 +236,6 @@ class Project(Configurable):
             warnings.simplefilter('ignore', UserWarning)
 
         # Make sure we have a clean build directory and make it current.
-        project.progress("Creating the build directory")
-
         if project._temp_build_dir is None:
             project.build_dir = os.path.abspath(project.build_dir)
             shutil.rmtree(project.build_dir, ignore_errors=True)
@@ -254,6 +252,10 @@ class Project(Configurable):
         # Make sure the configuration is correct after any user supplied script
         # has messed with it.
         project.verify_configuration(tool)
+
+        project.progress(
+                "These bindings will be built: {}.".format(
+                        ', '.join(project.bindings.keys())))
 
         return project
 

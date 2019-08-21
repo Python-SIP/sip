@@ -32,7 +32,6 @@ def main():
     try:
         project = Project.factory(tool='install',
                 description="Build and install the project.")
-        project.progress("Installing the project")
         project.install()
         project.progress("The project has been installed.")
     except Exception as e:

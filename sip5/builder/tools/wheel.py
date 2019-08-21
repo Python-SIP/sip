@@ -32,7 +32,6 @@ def main():
     try:
         project = Project.factory(tool='wheel',
                 description="Build a wheel for the project.")
-        project.progress("Building a wheel")
         project.build_wheel('.')
         project.progress("The wheel has been built.")
     except Exception as e:

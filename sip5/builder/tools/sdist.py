@@ -32,7 +32,6 @@ def main():
     try:
         project = Project.factory(tool='sdist',
                 description="Build an sdist for the project.")
-        project.progress("Building an sdist")
         project.build_sdist('.')
         project.progress("The sdist has been built.")
     except Exception as e:

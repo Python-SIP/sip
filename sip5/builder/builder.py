@@ -242,8 +242,7 @@ class Builder(AbstractBuilder):
 
         for bindings in project.bindings.values():
             project.progress(
-                    "Generating the bindings from {0}".format(
-                            bindings.sip_file))
+                    "Generating the {0} bindings".format(bindings.name))
 
             # Generate the source code.
             buildable = bindings.generate()

@@ -32,7 +32,6 @@ def main():
     try:
         project = Project.factory(tool='build',
                 description="Build the project in-situ.")
-        project.progress("Building the project")
         project.build()
         project.progress("The project has been built.")
     except Exception as e:
