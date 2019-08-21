@@ -39,6 +39,7 @@ class Buildable:
         """ Initialise the buildable. """
 
         self.name = name
+        self.builder_settings = []
         self.installables = []
 
 

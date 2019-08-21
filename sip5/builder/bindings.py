@@ -191,6 +191,7 @@ class Bindings(Configurable):
         buildable = BuildableBindings(self, fq_name, buildable_name,
                 sources_dir, uses_limited_api)
 
+        buildable.builder_settings.extend(self.builder_settings)
         buildable.debug = self.debug
         buildable.static = self.static
 
