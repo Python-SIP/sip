@@ -44,7 +44,7 @@ class Bindings(Configurable):
         # The list of backstop tags.
         Option('backstops', option_type=list),
 
-        # Any builder-specific settings.
+        # Any bindings level builder-specific settings.
         Option('builder_settings', option_type=list),
 
         # The list of #define names and values in the format "NAME" or
@@ -191,7 +191,6 @@ class Bindings(Configurable):
         buildable = BuildableBindings(self, fq_name, buildable_name,
                 sources_dir, uses_limited_api)
 
-        buildable.builder_settings.extend(self.builder_settings)
         buildable.debug = self.debug
         buildable.static = self.static
 

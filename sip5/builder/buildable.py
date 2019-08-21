@@ -39,12 +39,10 @@ class Buildable:
         """ Initialise the buildable. """
 
         self.name = name
-        self.debug = False
-        self.builder_settings = []
         self.installables = []
 
 
-class BuildableFromSources:
+class BuildableFromSources(Buildable):
     """ Encapsulate the sources used to build an extension module, executable
     etc.
     """
@@ -63,6 +61,7 @@ class BuildableFromSources:
         self.include_dirs = []
         self.libraries = []
         self.library_dirs = []
+        self.debug = False
 
         if self.uses_limited_api:
             self.define_macros.append('Py_LIMITED_API=0x03040000')
