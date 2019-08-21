@@ -25,6 +25,7 @@ from abc import abstractmethod
 import glob
 import os
 import shutil
+import stat
 import sys
 
 from ..code_generator import set_globals
@@ -45,6 +46,7 @@ class Builder(AbstractBuilder):
         """ Build the project in-situ. """
 
         self._generate_bindings()
+        self._generate_scripts()
         self.build_project(self.project.target_dir)
 
     @abstractmethod
@@ -197,6 +199,7 @@ class Builder(AbstractBuilder):
         target_dir = self.project.target_dir
 
         self._generate_bindings()
+        self._generate_scripts()
         self.build_project(target_dir)
         self.install_project(target_dir)
 
@@ -290,3 +293,60 @@ class Builder(AbstractBuilder):
                     target_subdir=os.path.abspath(project.api_dir))
             installable.files.append(api_path)
             project.installables.append(installable)
+
+    def _generate_scripts(self):
+        """ Generate the scripts for any entry points. """
+
+        project = self.project
+
+        # Handle the trivial case.
+        console_scripts = project.get_console_scripts()
+        if not console_scripts:
+            return
+
+        # Create an installable for the scripts.
+        installable = Installable('scripts',
+                target_subdir=os.path.dirname(sys.executable))
+
+        for ep in console_scripts:
+            # Parse the entry point.
+            ep_parts = ep.replace(' ', '').split('=')
+
+            if len(ep_parts) != 2:
+                raise UserException(
+                        "'{0}' is an invalid console script specification".format(ep))
+
+            script, module = ep_parts
+
+            # Remove any callable name.
+            module = module.split(':')[0]
+
+            if project.py_platform == 'win32':
+                script += '.bat'
+
+            project.progress("Generating the {} script".format(script))
+
+            script_path = os.path.join(project.build_dir, script)
+            installable.files.append(script_path)
+
+            script_f = project.open_for_writing(script_path)
+
+            if project.py_platform == 'win32':
+                script_f.write(
+                        '@{} -m {} %1 %2 %3 %4 %5 %6 %7 %8 %9\n'.format(
+                                sys.executable, module))
+            else:
+                script_f.write('#!/bin/sh\n')
+                script_f.write(
+                        'exec %s -m %s ${1+"$@"}\n' % (sys.executable,
+                                module))
+
+            script_f.close()
+
+            # Make the script executable.
+            os.chmod(script_path,
+                    stat.S_IRUSR|stat.S_IWUSR|stat.S_IXUSR|
+                    stat.S_IRGRP|stat.S_IXGRP|
+                    stat.S_IROTH|stat.S_IXOTH)
+
+        project.installables.append(installable)
