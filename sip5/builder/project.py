@@ -351,7 +351,7 @@ class Project(Configurable):
         if self.enable:
             return
 
-        for b in self.bindings.values():
+        for b in list(self.bindings.values()):
             if not b.is_buildable():
                 del self.bindings[b.name]
 
