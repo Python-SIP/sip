@@ -51,7 +51,8 @@ class DistutilsBuilder(Builder):
                 self._build_extension_module(buildable)
             else:
                 raise UserException(
-                        "DistutilsBuilder can only build extension modules")
+                        "DistutilsBuilder cannot build '{0}' buildables".format(
+                                type(buildable).__name__))
 
     def install_project(self, target_dir):
         """ Install the project into a target directory. """

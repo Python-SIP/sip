@@ -31,14 +31,29 @@ from .installable import Installable
 
 
 class Buildable:
-    """ Encapsulate the sources etc. used to build an extension module,
-    executable etc.
+    """ Encapsulate the components used to build something that can be
+    installed.
+    """
+
+    def __init__(self, name):
+        """ Initialise the buildable. """
+
+        self.name = name
+        self.debug = False
+        self.builder_settings = []
+        self.installables = []
+
+
+class BuildableFromSources:
+    """ Encapsulate the sources used to build an extension module, executable
+    etc.
     """
 
     def __init__(self, name, sources_dir, uses_limited_api=False):
-        """ Initialise the sources. """
+        """ Initialise the buildable. """
 
-        self.name = name
+        super().__init__(name)
+
         self.sources_dir = sources_dir
         self.uses_limited_api = uses_limited_api
 
@@ -48,9 +63,6 @@ class Buildable:
         self.include_dirs = []
         self.libraries = []
         self.library_dirs = []
-        self.debug = False
-        self.builder_settings = []
-        self.installables = []
 
         if self.uses_limited_api:
             self.define_macros.append('Py_LIMITED_API=0x03040000')
@@ -92,8 +104,8 @@ class Buildable:
         return rel_names
 
 
-class BuildableModule(Buildable):
-    """ Encapsulate the sources etc. used to build an extension module. """
+class BuildableModule(BuildableFromSources):
+    """ Encapsulate the sources used to build an extension module. """
 
     def __init__(self, fq_name, *args, **kwargs):
         """ Initialise the sources. """
@@ -127,8 +139,8 @@ class BuildableModule(Buildable):
 
 
 class BuildableBindings(BuildableModule):
-    """ Encapsulate the sources etc. used to build the extension module for a
-    set of bindings.
+    """ Encapsulate the sources used to build the extension module for a set of
+    bindings.
     """
 
     def __init__(self, bindings, *args, **kwargs):

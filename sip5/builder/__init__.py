@@ -28,7 +28,7 @@ from ..pyproject import (PyProjectOptionException,
 
 from .abstract_builder import AbstractBuilder
 from .bindings import Bindings
-from .buildable import BuildableBindings, BuildableModule
+from .buildable import Buildable, BuildableBindings, BuildableModule
 from .builder import Builder
 from .configurable import Option
 from .distutils_builder import DistutilsBuilder
