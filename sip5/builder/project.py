@@ -26,6 +26,7 @@ from distutils.sysconfig import get_python_inc, get_python_lib
 import importlib
 import os
 import shutil
+import subprocess
 import sys
 import tempfile
 import warnings
@@ -184,6 +185,12 @@ class Project(Configurable):
 
         return wheel_file
 
+    @staticmethod
+    def close_command_pipe(pipe):
+        """ Close the pipe returned by open_command_pipe(). """
+
+        return pipe.wait()
+
     @classmethod
     def factory(cls, tool='', description=''):
         """ Return a Project instance fully configured for a particular command
@@ -312,6 +319,17 @@ class Project(Configurable):
 
         self.builder.install()
         self._remove_build_dir()
+
+    def open_command_pipe(self, cmd, and_stderr=False):
+        """ Return a pipe from which a command's output can be read. """
+
+        if self.verbose:
+            print(cmd)
+
+        stderr = subprocess.STDOUT if and_stderr else subprocess.PIPE
+
+        return subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE, stderr=stderr)
 
     @staticmethod
     def open_for_writing(fname):
