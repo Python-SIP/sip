@@ -22,7 +22,7 @@
 
 
 # Publish the public API.
-from ..exceptions import UserException
+from ..exceptions import handle_exception, UserException
 from ..pyproject import (PyProjectOptionException,
         PyProjectUndefinedOptionException)
 
