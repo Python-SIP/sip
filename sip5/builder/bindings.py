@@ -83,8 +83,8 @@ class Bindings(Configurable):
         # Set to compile the module as a static library.
         Option('static', option_type=bool),
 
-        # The name of the .sip file that specifies the bindings relative to the
-        # project's 'sip_files_dir'.
+        # The name of the .sip file that specifies the bindings.  If it is
+        # relative then it is relative to the project's 'sip_files_dir'.
         Option('sip_file'),
 
         # The filename extension to use for generated source files.

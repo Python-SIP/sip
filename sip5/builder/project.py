@@ -185,12 +185,6 @@ class Project(Configurable):
 
         return wheel_file
 
-    @staticmethod
-    def close_command_pipe(pipe):
-        """ Close the pipe returned by open_command_pipe(). """
-
-        return pipe.wait()
-
     @classmethod
     def factory(cls, tool='', description=''):
         """ Return a Project instance fully configured for a particular command
@@ -320,17 +314,6 @@ class Project(Configurable):
         self.builder.install()
         self._remove_build_dir()
 
-    def open_command_pipe(self, cmd, and_stderr=False):
-        """ Return a pipe from which a command's output can be read. """
-
-        if self.verbose:
-            print(cmd)
-
-        stderr = subprocess.STDOUT if and_stderr else subprocess.PIPE
-
-        return subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE, stderr=stderr)
-
     @staticmethod
     def open_for_writing(fname):
         """ Open a file for writing while handling any errors. """
@@ -351,6 +334,24 @@ class Project(Configurable):
                 message += '...'
 
             print(message)
+
+    def read_command_pipe(self, cmd, and_stderr=False):
+        """ A generator for each line of a pipe from a command's stdout. """
+
+        if self.verbose:
+            print(cmd)
+
+        stderr = subprocess.STDOUT if and_stderr else subprocess.PIPE
+
+        pipe = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE, stderr=stderr)
+
+        for line in pipe.stdout:
+            yield str(line, encoding=sys.stdout.encoding)
+
+        rc = pipe.wait()
+        if rc != 0:
+            raise UserException("'{0}' failed returning {1}".format(cmd, rc))
 
     def update(self, tool):
         """ This should be re-implemented by any user supplied sub-class to
