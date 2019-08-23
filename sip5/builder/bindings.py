@@ -164,22 +164,19 @@ class Bindings(Configurable):
         # Parse the input file.
         pt, fq_name, uses_limited_api, sip_files = self._parse()
 
-        name_parts = fq_name.split('.')
-        buildable_name = name_parts[-1]
-
         uses_limited_api = bool(uses_limited_api)
         if project.py_debug:
             uses_limited_api = False
 
         if project.sip_module:
-            if len(name_parts) == 1:
+            if '.' not in fq_name:
                 raise UserException(
                         "'{0}' must be part of a project when used with a "
-                        "shared 'sip' module".format(buildable_name))
+                        "shared 'sip' module".format(fq_name))
         elif uses_limited_api:
             raise UserException(
                     "'{0}' cannot use the limited API without using a shared "
-                    "'sip' module".format(buildable_name))
+                    "'sip' module".format(fq_name))
 
         # The details of things that will have been generated.  Note that we
         # don't include anything for .api files or generic extracts as the
@@ -194,10 +191,10 @@ class Bindings(Configurable):
         if project.api_dir and not self.internal:
             project.progress(
                     "Generating the .api file for '{0}'".format(
-                            buildable_name))
+                            buildable.target))
 
             generateAPI(pt,
-                    os.path.join(project.build_dir, buildable_name + '.api'))
+                    os.path.join(project.build_dir, buildable.target + '.api'))
 
         # Generate any extracts.
         if self.generate_extracts:
@@ -207,10 +204,10 @@ class Bindings(Configurable):
         if self.pep484_stubs and not self.internal:
             project.progress(
                     "Generating the .pyi file for '{0}'".format(
-                            buildable_name))
+                            buildable.target))
 
             pyi_path = os.path.join(buildable.build_dir,
-                    buildable_name + '.pyi')
+                    buildable.target + '.pyi')
 
             generateTypeHints(pt, pyi_path)
 

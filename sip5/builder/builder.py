@@ -250,7 +250,7 @@ class Builder(AbstractBuilder):
             if not bindings.internal:
                 api_files.append(
                         os.path.join(project.build_dir,
-                                buildable.name + '.api'))
+                                buildable.target + '.api'))
 
                 # Generate the bindings configuration file.
                 if project.sip_module:

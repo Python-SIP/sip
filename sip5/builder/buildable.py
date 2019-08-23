@@ -52,11 +52,12 @@ class BuildableFromSources(Buildable):
     etc.
     """
 
-    def __init__(self, project, name, uses_limited_api=False):
+    def __init__(self, project, name, target, uses_limited_api=False):
         """ Initialise the buildable. """
 
         super().__init__(project, name)
 
+        self.target = target
         self.uses_limited_api = uses_limited_api
 
         self.define_macros = []
@@ -110,10 +111,11 @@ class BuildableFromSources(Buildable):
 class BuildableModule(BuildableFromSources):
     """ Encapsulate the sources used to build an extension module. """
 
-    def __init__(self, project, fq_name, *args, **kwargs):
+    def __init__(self, project, name, fq_name, uses_limited_api=False):
         """ Initialise the sources. """
 
-        super().__init__(project, fq_name.split('.')[-1], *args, **kwargs)
+        super().__init__(project, name, fq_name.split('.')[-1],
+                uses_limited_api)
 
         self.fq_name = fq_name
         self.static = False
@@ -146,10 +148,11 @@ class BuildableBindings(BuildableModule):
     bindings.
     """
 
-    def __init__(self, bindings, *args, **kwargs):
+    def __init__(self, bindings, fq_name, uses_limited_api=False):
         """ Initialise the sources. """
 
-        super().__init__(bindings.project, *args, **kwargs)
+        super().__init__(bindings.project, fq_name.split('.')[-1], fq_name,
+                uses_limited_api)
 
         self.bindings = bindings
 
