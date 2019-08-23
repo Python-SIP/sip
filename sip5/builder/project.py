@@ -93,6 +93,8 @@ class Project(Configurable):
                 help="disable all progress messages"),
         Option('verbose', option_type=bool,
                 help="enable verbose progress messages"),
+        Option('name', help="the name used in sdist and wheel file names",
+                metavar="NAME", tools='sdist wheel'),
         Option('build_dir', help="the build directory", metavar="DIR"),
         Option('target_dir', default=get_python_lib(plat_specific=1),
                 help="the target installation directory", metavar="DIR",
@@ -126,6 +128,10 @@ class Project(Configurable):
 
     def apply_defaults(self, tool):
         """ Set default values for options that haven't been set yet. """
+
+        # This is only used when creating sdist and wheel files.
+        if self.name is None:
+            self.name = self.metadata['name']
 
         # For the build tool we want build_dir to default to a local 'build'
         # directory (which we won't remove).  However, for other tools (and for
@@ -533,9 +539,8 @@ class Project(Configurable):
     def _set_initial_configuration(self, pyproject):
         """ Set the project's initial configuration. """
 
-        # Get the metadata and extract the name and version.
+        # Get the metadata and extract the version.
         self.metadata = pyproject.get_metadata()
-        self.name = self.metadata['name']
         self.version = self.metadata['version']
 
         # Get the project configuration.
@@ -573,5 +578,5 @@ class Project(Configurable):
 
         # Add a default set of bindings if none were defined.
         if not self.bindings:
-            bindings = Bindings(self, name=self.name)
+            bindings = Bindings(self, name=self.metadata['name'])
             self.bindings[bindings.name] = bindings
