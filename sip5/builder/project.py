@@ -528,8 +528,6 @@ class Project(Configurable):
     def _remove_build_dir(self):
         """ Remove the build directory. """
 
-        self.progress("Removing the build directory")
-
         self._temp_build_dir = None
 
     def _set_initial_configuration(self, pyproject):
