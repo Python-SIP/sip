@@ -28,8 +28,7 @@ from ..code_generator import (parse, generateCode, generateExtracts,
         generateAPI, generateXML, generateTypeHints)
 from ..exceptions import UserException
 from ..module import copy_nonshared_sources
-from ..pyproject import (PyProjectOptionException,
-        PyProjectUndefinedOptionException)
+from ..pyproject import PyProjectUndefinedOptionException
 
 from .buildable import BuildableBindings
 from .configurable import Configurable, Option
@@ -160,6 +159,19 @@ class Bindings(Configurable):
         """
 
         project = self.project
+
+        # Provide a default .sip file name if needed.
+        if not self.sip_file:
+            self.sip_file = self.name + '.sip'
+
+        if not os.path.isabs(self.sip_file):
+            self.sip_file = os.path.join(project.sip_files_dir, self.sip_file)
+
+        # Check the .sip file exists.
+        if not os.path.isfile(self.sip_file):
+            raise UserException(
+                    "the file '{0}' for the '{1}' bindings does not "
+                            "exist".format(self.sip_file, self.name))
 
         # Parse the input file.
         pt, fq_name, uses_limited_api, sip_files = self._parse()
@@ -311,20 +323,6 @@ class Bindings(Configurable):
                         "A debug version of the {0} bindings must be built "
                         "when a debug version of Python is used".format(
                                 self.name))
-
-        # Provide a default .sip file name if needed.
-        if not self.sip_file:
-            self.sip_file = self.name + '.sip'
-
-        if not os.path.isabs(self.sip_file):
-            self.sip_file = os.path.join(project.sip_files_dir, self.sip_file)
-
-        # Check the .sip file exists.
-        if not os.path.isfile(self.sip_file):
-            raise PyProjectOptionException('sip-file',
-                    "the file '{0}' for the '{1}' bindings does not "
-                            "exist".format(self.sip_file, self.name),
-                    section_name='tool.sip.bindings')
 
         if not self.source_suffix:
             self.source_suffix = None

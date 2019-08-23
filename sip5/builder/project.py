@@ -254,9 +254,10 @@ class Project(Configurable):
         # has messed with it.
         project.verify_configuration(tool)
 
-        project.progress(
-                "These bindings will be built: {}.".format(
-                        ', '.join(project.bindings.keys())))
+        if tool != 'sdist':
+            project.progress(
+                    "These bindings will be built: {}.".format(
+                            ', '.join(project.bindings.keys())))
 
         return project
 
