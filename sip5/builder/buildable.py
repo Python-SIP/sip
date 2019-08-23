@@ -110,7 +110,7 @@ class BuildableModule(BuildableFromSources):
     def __init__(self, fq_name, *args, **kwargs):
         """ Initialise the sources. """
 
-        super().__init__(*args, **kwargs)
+        super().__init__(fq_name.split('.')[-1], *args, **kwargs)
 
         self.fq_name = fq_name
         self.static = False

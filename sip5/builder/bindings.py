@@ -188,8 +188,8 @@ class Bindings(Configurable):
         # The details of things that will have been generated.  Note that we
         # don't include anything for .api files or generic extracts as the
         # arguments include a file name.
-        buildable = BuildableBindings(self, fq_name, buildable_name,
-                sources_dir, uses_limited_api)
+        buildable = BuildableBindings(self, fq_name, sources_dir,
+                uses_limited_api)
 
         buildable.builder_settings.extend(self.builder_settings)
         buildable.debug = self.debug
