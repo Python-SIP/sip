@@ -36,6 +36,7 @@ from ..py_versions import FIRST_SUPPORTED_MINOR, LAST_SUPPORTED_MINOR
 from ..version import SIP_VERSION, SIP_VERSION_STR
 
 from .abstract_builder import AbstractBuilder
+from .buildable import BuildableFromSources
 from .installable import Installable
 
 
@@ -128,12 +129,13 @@ class Builder(AbstractBuilder):
         # Build the wheel contents.
         self._generate_bindings()
 
-        # If all enabled bindings use the limited API then the wheel does.
+        # If all buildables use the limited API then the wheel does.
         all_use_limited_api = True
-        for bindings in project.bindings.values():
-            if not bindings.build_sources.uses_limited_api:
-                all_use_limited_api = False
-                break
+        for buildable in project.buildables:
+            if isinstance(buildable, BuildableFromSources):
+                if not buildable.uses_limited_api:
+                    all_use_limited_api = False
+                    break
 
         # Create the wheel tag.
         if all_use_limited_api:

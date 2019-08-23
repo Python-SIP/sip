@@ -47,15 +47,15 @@ class Wheel:
         self.console_scripts = console_scripts
 
 
-def distinfo(name, inventory, prefix, generator, project_root):
+def distinfo(name, console_scripts, generator, inventory, prefix, project_root,
+        wheel_tag):
     """ Create and populate a .dist-info directory from an inventory file. """
+
+    wheel = Wheel(wheel_tag, console_scripts) if wheel_tag else None
 
     # Read the list of installed files.
     with open(inventory) as inventory_f:
         installed = inventory_f.read().strip().split('\n')
-
-    if prefix is None:
-        prefix = ''
 
     if project_root is None:
         # Default to what we can extract from the name of the .dist-info
@@ -75,12 +75,15 @@ def distinfo(name, inventory, prefix, generator, project_root):
 
         metadata = pyproject.get_metadata()
 
-    create_distinfo(name, installed, metadata, prefix_dir=prefix,
+    if prefix is None:
+        prefix = ''
+
+    create_distinfo(name, wheel, installed, metadata, prefix_dir=prefix,
             generator=generator)
 
 
-def create_distinfo(distinfo_dir, installed, metadata, prefix_dir='',
-        wheel=None, generator=None):
+def create_distinfo(distinfo_dir, wheel, installed, metadata, prefix_dir='',
+        generator=None):
     """ Create and populate a .dist-info directory. """
 
     if generator is None:

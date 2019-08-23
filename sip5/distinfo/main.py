@@ -33,19 +33,26 @@ def main():
     # Parse the command line.
     parser = ArgumentParser("Create and populate a .dist-info directory.")
 
-    parser.add_argument('--generator', dest='generator',
+    parser.add_argument('--console-script', dest='console_scripts',
+            action='append', help="the entry point of a console script",
+            metavar='ENTRY-POINT')
+
+    parser.add_argument('--generator',
             help="the name of the program generating the directory",
             metavar="NAME")
 
-    parser.add_argument('--prefix', dest='prefix',
-            help="the installation prefix directory", metavar="DIR")
-
-    parser.add_argument('--project-root', dest='project_root',
-            help="the directory containing pyproject.toml", metavar="DIR")
-
-    parser.add_argument('--inventory', dest='inventory', required=True,
+    parser.add_argument('--inventory', required=True,
             help="the file containing the names of the files in the project",
             metavar="FILE")
+
+    parser.add_argument('--prefix', help="the installation prefix directory",
+            metavar="DIR")
+
+    parser.add_argument('--project-root',
+            help="the directory containing pyproject.toml", metavar="DIR")
+
+    parser.add_argument('--wheel-tag',
+            help="the tag if a wheel is being created", metavar="TAG")
 
     parser.add_argument(dest='names', nargs=1,
             help="the name of the .dist-info directory", metavar='directory')
@@ -53,9 +60,10 @@ def main():
     args = parser.parse_args()
 
     try:
-        distinfo(name=args.names[0], inventory=args.inventory,
-                prefix=args.prefix, generator=args.generator,
-                project_root=args.project_root)
+        distinfo(name=args.names[0], console_scripts=args.console_scripts,
+                generator=args.generator, inventory=args.inventory,
+                prefix=args.prefix, project_root=args.project_root,
+                wheel_tag=args.wheel_tag)
     except Exception as e:
         handle_exception(e)
 

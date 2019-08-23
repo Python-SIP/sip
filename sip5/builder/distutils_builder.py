@@ -70,8 +70,8 @@ class DistutilsBuilder(Builder):
             for installable in buildable.installables:
                 installable.install(target_dir, installed)
 
-        create_distinfo(project.get_distinfo_name(), installed,
-                project.metadata, project.wheel)
+        create_distinfo(project.get_distinfo_name(), project.wheel, installed,
+                project.metadata)
 
     def _build_extension_module(self, buildable):
         """ Build an extension module from the sources and return its full
