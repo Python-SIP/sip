@@ -181,15 +181,10 @@ class Bindings(Configurable):
                     "'{0}' cannot use the limited API without using a shared "
                     "'sip' module".format(buildable_name))
 
-        # Make sure the module's sub-directory exists.
-        sources_dir = os.path.join(project.build_dir, buildable_name)
-        os.makedirs(sources_dir, exist_ok=True)
-
         # The details of things that will have been generated.  Note that we
         # don't include anything for .api files or generic extracts as the
         # arguments include a file name.
-        buildable = BuildableBindings(self, fq_name, sources_dir,
-                uses_limited_api)
+        buildable = BuildableBindings(self, fq_name, uses_limited_api)
 
         buildable.builder_settings.extend(self.builder_settings)
         buildable.debug = self.debug
@@ -214,19 +209,21 @@ class Bindings(Configurable):
                     "Generating the .pyi file for '{0}'".format(
                             buildable_name))
 
-            pyi_path = os.path.join(sources_dir, buildable_name + '.pyi')
+            pyi_path = os.path.join(buildable.build_dir,
+                    buildable_name + '.pyi')
 
             generateTypeHints(pt, pyi_path)
 
-            installable = Installable('pyi', buildable.get_install_dir())
+            installable = Installable('pyi', buildable.get_install_subdir())
             installable.files.append(pyi_path)
             buildable.installables.append(installable)
 
         # Generate the bindings.
-        header, sources = generateCode(pt, sources_dir, self.source_suffix,
-                self.exceptions, self.tracing, self.release_gil,
-                self.concatenate, self.tags, self.disabled_features,
-                self.docstrings, project.py_debug, project.sip_module)
+        header, sources = generateCode(pt, buildable.build_dir,
+                self.source_suffix, self.exceptions, self.tracing,
+                self.release_gil, self.concatenate, self.tags,
+                self.disabled_features, self.docstrings, project.py_debug,
+                project.sip_module)
 
         if header:
             buildable.headers.append(header)
@@ -236,7 +233,7 @@ class Bindings(Configurable):
         buildable.sources.extend(sources)
 
         # Add the sip module code if it is not shared.
-        buildable.include_dirs.append(sources_dir)
+        buildable.include_dirs.append(buildable.build_dir)
 
         if project.sip_module:
             # sip.h will already be in the build directory.
@@ -264,7 +261,8 @@ class Bindings(Configurable):
                 buildable.installables.append(installable)
         else:
             buildable.sources.extend(
-                    copy_nonshared_sources(project.abi_version, sources_dir))
+                    copy_nonshared_sources(project.abi_version,
+                            buildable.build_dir))
 
         buildable.include_dirs.extend(self.include_dirs)
         buildable.sources.extend(self.sources)
@@ -277,8 +275,6 @@ class Bindings(Configurable):
 
         buildable.libraries.extend(self.libraries)
         buildable.library_dirs.extend(self.library_dirs)
-
-        buildable.make_names_relative()
 
         return buildable
 

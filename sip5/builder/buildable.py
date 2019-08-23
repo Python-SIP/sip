@@ -35,12 +35,16 @@ class Buildable:
     installed.
     """
 
-    def __init__(self, name):
+    def __init__(self, project, name):
         """ Initialise the buildable. """
 
+        self.project = project
         self.name = name
         self.builder_settings = []
         self.installables = []
+
+        self.build_dir = os.path.join(project.build_dir, name)
+        os.makedirs(self.build_dir, exist_ok=True)
 
 
 class BuildableFromSources(Buildable):
@@ -48,12 +52,11 @@ class BuildableFromSources(Buildable):
     etc.
     """
 
-    def __init__(self, name, sources_dir, uses_limited_api=False):
+    def __init__(self, project, name, uses_limited_api=False):
         """ Initialise the buildable. """
 
-        super().__init__(name)
+        super().__init__(project, name)
 
-        self.sources_dir = sources_dir
         self.uses_limited_api = uses_limited_api
 
         self.define_macros = []
@@ -68,32 +71,32 @@ class BuildableFromSources(Buildable):
             self.define_macros.append('Py_LIMITED_API=0x03040000')
 
     def make_names_relative(self):
-        """ Make the names of source file, header files and include directories
-        relative to the sources directory.
+        """ Make all file and directory names relative to the build directory.
         """
 
+        # Make the file names relative to the build directory.
         self.include_dirs = self._relative_names(self.include_dirs)
         self.headers = self._relative_names(self.headers)
         self.sources = self._relative_names(self.sources)
         self.library_dirs = self._relative_names(self.library_dirs)
 
     def _relative_names(self, names):
-        """ Return a list of times made relative to the sources directory.
-        Note that we only really do this for cosmetic reasons when doing a
-        simple build.
+        """ Return a list of times made relative to build directory.  Note that
+        we only really do this for cosmetic reasons to simplify what the user
+        might see.
         """
 
         rel_names = []
 
         for fn in names:
             try:
-                common = os.path.commonpath([fn, self.sources_dir])
+                common = os.path.commonpath([fn, self.build_dir])
                 _, common = os.path.splitdrive(common)
 
                 if len(common) > 1:
                     # Only convert to a relative name if there is at least one
                     # parent directory in common.
-                    fn = os.path.relpath(fn, self.sources_dir)
+                    fn = os.path.relpath(fn, self.build_dir)
             except ValueError:
                 # This is most likely to happen if the build directory is on a
                 # different Windows drive.
@@ -107,17 +110,17 @@ class BuildableFromSources(Buildable):
 class BuildableModule(BuildableFromSources):
     """ Encapsulate the sources used to build an extension module. """
 
-    def __init__(self, fq_name, *args, **kwargs):
+    def __init__(self, project, fq_name, *args, **kwargs):
         """ Initialise the sources. """
 
-        super().__init__(fq_name.split('.')[-1], *args, **kwargs)
+        super().__init__(project, fq_name.split('.')[-1], *args, **kwargs)
 
         self.fq_name = fq_name
         self.static = False
 
-    def get_install_dir(self):
-        """ Return the directory the extension module should be installed in
-        relative to the eventual target directory.
+    def get_install_subdir(self):
+        """ Return the sub-directory the extension module should be installed
+        in relative to the eventual target directory.
         """
 
         return os.sep.join(self.fq_name.split('.')[:-1])
@@ -146,14 +149,14 @@ class BuildableBindings(BuildableModule):
     def __init__(self, bindings, *args, **kwargs):
         """ Initialise the sources. """
 
-        super().__init__(*args, **kwargs)
+        super().__init__(bindings.project, *args, **kwargs)
 
         self.bindings = bindings
 
     def get_bindings_installable(self, name):
         """ Return an installable for the buildable's bindings directory. """
 
-        target_subdir = os.path.join(self.bindings.project.get_bindings_dir(),
+        target_subdir = os.path.join(self.project.get_bindings_dir(),
                 self.name)
 
         return Installable(name, target_subdir=target_subdir)
@@ -162,8 +165,6 @@ class BuildableBindings(BuildableModule):
         """ Write the configuration of the bindings and add it as an
         installable.
         """
-
-        bindings = self.bindings
 
         # Make sure the bindings directory exists.
         bindings_dir = os.path.join(bindings_dir, self.name)
@@ -177,6 +178,8 @@ class BuildableBindings(BuildableModule):
         self.installables.append(installable)
 
         # Write the configuration file.
+        bindings = self.bindings
+
         with open(config_path, 'w') as cf:
             tags = ', '.join(['"{}"'.format(t) for t in bindings.tags])
             disabled = ', '.join(
@@ -188,4 +191,4 @@ sip-version = "{}"
 sip-abi-version = "{}"
 module-tags = [{}]
 module-disabled-features = [{}]
-'''.format(SIP_VERSION_STR, bindings.project.abi_version, tags, disabled))
+'''.format(SIP_VERSION_STR, self.project.abi_version, tags, disabled))

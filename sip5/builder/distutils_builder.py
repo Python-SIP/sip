@@ -85,7 +85,7 @@ class DistutilsBuilder(Builder):
         distribution = Distribution()
 
         module_builder = ExtensionCommand(distribution, buildable)
-        module_builder.build_lib = buildable.sources_dir
+        module_builder.build_lib = buildable.build_dir
         module_builder.debug = buildable.debug
         module_builder.ensure_finalized()
 
@@ -101,6 +101,8 @@ class DistutilsBuilder(Builder):
 
             define_macros.append((name, value))
 
+        buildable.make_names_relative()
+
         module_builder.extensions = [
             Extension(buildable.fq_name, buildable.sources,
                     define_macros=define_macros,
@@ -112,7 +114,7 @@ class DistutilsBuilder(Builder):
                 "Compiling the '{0}' module".format(buildable.fq_name))
 
         saved_cwd = os.getcwd()
-        os.chdir(buildable.sources_dir)
+        os.chdir(buildable.build_dir)
 
         try:
             module_builder.run()
@@ -125,7 +127,7 @@ class DistutilsBuilder(Builder):
         # Add the extension module to the buildable's list of installables.
         buildable.installables.append(
                 Installable('module',
-                        target_subdir=buildable.get_install_dir()))
+                        target_subdir=buildable.get_install_subdir()))
 
         os.chdir(saved_cwd)
 
