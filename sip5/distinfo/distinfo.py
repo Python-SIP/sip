@@ -40,18 +40,17 @@ WHEEL_VERSION = '1.0'
 class Wheel:
     """ Encapsulate the wheel-specific meta-data. """
 
-    def __init__(self, tag, console_scripts):
+    def __init__(self, tag):
         """ Initialise the Wheel object. """
 
         self.tag = tag
-        self.console_scripts = console_scripts
 
 
 def distinfo(name, console_scripts, generator, inventory, prefix, project_root,
         wheel_tag):
     """ Create and populate a .dist-info directory from an inventory file. """
 
-    wheel = Wheel(wheel_tag, console_scripts) if wheel_tag else None
+    wheel = Wheel(wheel_tag) if wheel_tag else None
 
     # Read the list of installed files.
     with open(inventory) as inventory_f:
@@ -78,12 +77,12 @@ def distinfo(name, console_scripts, generator, inventory, prefix, project_root,
     if prefix is None:
         prefix = ''
 
-    create_distinfo(name, wheel, installed, metadata, prefix_dir=prefix,
-            generator=generator)
+    create_distinfo(name, wheel, installed, metadata, console_scripts,
+            prefix_dir=prefix, generator=generator)
 
 
-def create_distinfo(distinfo_dir, wheel, installed, metadata, prefix_dir='',
-        generator=None):
+def create_distinfo(distinfo_dir, wheel, installed, metadata, console_scripts,
+        prefix_dir='', generator=None):
     """ Create and populate a .dist-info directory. """
 
     if generator is None:
@@ -122,14 +121,14 @@ def create_distinfo(distinfo_dir, wheel, installed, metadata, prefix_dir='',
             print(generator, file=installer_f)
     else:
         # Define any entry points.
-        if wheel.console_scripts:
+        if console_scripts:
             eps_fn = os.path.join(distinfo_dir, 'entry_points.txt')
             installed.append(eps_fn)
 
             with open(prefix_dir + eps_fn, 'w') as eps_f:
                 eps_f.write(
                         '[console_scripts]\n' + '\n'.join(
-                                wheel.console_scripts) + '\n')
+                                console_scripts) + '\n')
 
         # Create the WHEEL file.
         WHEEL = '''Wheel-Version: {}

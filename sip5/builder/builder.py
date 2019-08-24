@@ -51,7 +51,7 @@ class Builder(AbstractBuilder):
         self.build_project(self.project.target_dir)
 
     @abstractmethod
-    def build_project(self, target_dir):
+    def build_project(self, target_dir, wheel=None):
         """ Build the project. """
 
     def build_sdist(self, sdist_directory):
@@ -166,12 +166,12 @@ class Builder(AbstractBuilder):
             wheel_tag += '-manylinux1_x86_64'
 
         # Save the wheel details.
-        project.wheel = Wheel(wheel_tag, project.get_console_scripts())
+        wheel = Wheel(wheel_tag)
 
-        self.build_project(wheel_build_dir)
+        self.build_project(wheel_build_dir, wheel=wheel)
 
         # Copy the wheel contents.
-        self.install_project(wheel_build_dir)
+        self.install_project(wheel_build_dir, wheel=wheel)
 
         wheel_file = '{}-{}-{}.whl'.format(project.name.replace('-', '_'),
                 project.version, wheel_tag)
@@ -206,7 +206,7 @@ class Builder(AbstractBuilder):
         self.install_project(target_dir)
 
     @abstractmethod
-    def install_project(self, target_dir):
+    def install_project(self, target_dir, wheel=None):
         """ Install the project into a target directory. """
 
     def _generate_bindings(self):
@@ -301,7 +301,7 @@ class Builder(AbstractBuilder):
         project = self.project
 
         # Handle the trivial case.
-        console_scripts = project.get_console_scripts()
+        console_scripts = project.console_scripts
         if not console_scripts:
             return
 

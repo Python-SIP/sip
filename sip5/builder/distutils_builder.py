@@ -39,7 +39,7 @@ from .installable import Installable
 class DistutilsBuilder(Builder):
     """ The implementation of a distutils-based project builder. """
 
-    def build_project(self, target_dir):
+    def build_project(self, target_dir, wheel=None):
         """ Build the project. """
 
         for buildable in self.buildables:
@@ -54,7 +54,7 @@ class DistutilsBuilder(Builder):
                         "DistutilsBuilder cannot build '{0}' buildables".format(
                                 type(buildable).__name__))
 
-    def install_project(self, target_dir):
+    def install_project(self, target_dir, wheel=None):
         """ Install the project into a target directory. """
 
         project = self.project
@@ -70,8 +70,8 @@ class DistutilsBuilder(Builder):
             for installable in buildable.installables:
                 installable.install(target_dir, installed)
 
-        create_distinfo(project.get_distinfo_name(), project.wheel, installed,
-                project.metadata)
+        create_distinfo(project.get_distinfo_name(), wheel, installed,
+                project.metadata, project.console_scripts)
 
     def _build_extension_module(self, buildable):
         """ Build an extension module from the sources and return its full

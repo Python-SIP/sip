@@ -54,6 +54,9 @@ class Project(Configurable):
         # instance.
         Option('builder'),
 
+        # The list of console script entry points.
+        Option('console_scripts', option_type=list),
+
         # Set if an __init__.py should be installed.
         Option('dunder_init', option_type=bool, default=True),
 
@@ -122,7 +125,6 @@ class Project(Configurable):
         self.builder = None
         self.buildables = []
         self.installables = []
-        self.wheel = None
 
         self._temp_build_dir = None
 
@@ -286,11 +288,6 @@ class Project(Configurable):
             from .distutils_builder import DistutilsBuilder as builder_factory
 
         return builder_factory(self)
-
-    def get_console_scripts(self):
-        """ Return a list of entry points for any console scripts. """
-
-        return []
 
     def get_distinfo_name(self, target_dir):
         """ Return the name of the .dist-info directory for a target directory.
