@@ -339,7 +339,7 @@ class Project(Configurable):
 
             print(message)
 
-    def read_command_pipe(self, cmd, and_stderr=False):
+    def read_command_pipe(self, cmd, and_stderr=False, fatal=True):
         """ A generator for each line of a pipe from a command's stdout. """
 
         if self.verbose:
@@ -354,8 +354,16 @@ class Project(Configurable):
             yield str(line, encoding=sys.stdout.encoding)
 
         rc = pipe.wait()
-        if rc != 0:
+        if rc != 0 and fatal:
             raise UserException("'{0}' failed returning {1}".format(cmd, rc))
+
+    def run_command(self, args, fatal=True):
+        """ Run a command and display the output if requested. """
+
+        # Read stdout and stderr until there is no more output.
+        for line in self.read_command_pipe(' '.join(args), and_stderr=True, fatal=fatal):
+            if self.verbose:
+                sys.stdout.write(line)
 
     def update(self, tool):
         """ This should be re-implemented by any user supplied sub-class to
@@ -479,7 +487,7 @@ class Project(Configurable):
                             "unknown enabled bindings '{0}'".format(enabled))
 
             # Only include explicitly enabled bindings.
-            for b in self.bindings.values():
+            for b in list(self.bindings.values()):
                 if b.name not in self.enable:
                     del self.bindings[b.name]
 
@@ -491,7 +499,7 @@ class Project(Configurable):
                             "unknown disabled bindings '{0}'".format(disabled))
 
             # Remove any explicitly disabled bindings.
-            for b in self.bindings.values():
+            for b in list(self.bindings.values()):
                 if b.name in self.disable:
                     del self.bindings[b.name]
 
