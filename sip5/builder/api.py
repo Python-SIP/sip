@@ -21,7 +21,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from .package import Package
+from .project import Project
 
 
 def build_sdist(sdist_directory, config_settings=None):
