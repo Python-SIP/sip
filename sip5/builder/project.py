@@ -131,6 +131,11 @@ class Project(Configurable):
     def apply_defaults(self, tool):
         """ Set default values for options that haven't been set yet. """
 
+        # If we the backend to a 3rd-party frontend (most probably pip) then
+        # let it handle the verbosity of messages.
+        if self.verbose is None and tool == '':
+            self.verbose = True
+
         # This is only used when creating sdist and wheel files.
         if self.name is None:
             self.name = self.metadata['name']
@@ -337,13 +342,13 @@ class Project(Configurable):
             if message[-1] != '.':
                 message += '...'
 
-            print(message)
+            print(message, flush=True)
 
     def read_command_pipe(self, cmd, and_stderr=False, fatal=True):
         """ A generator for each line of a pipe from a command's stdout. """
 
         if self.verbose:
-            print(cmd)
+            print(cmd, flush=True)
 
         stderr = subprocess.STDOUT if and_stderr else subprocess.PIPE
 
