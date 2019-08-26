@@ -109,8 +109,8 @@ class Bindings(Configurable):
         Option('generate_extracts', option_type=list,
                 help="generate an extract file", metavar="ID:FILE",
                 tools='build install wheel'),
-        Option('pep484_stubs', option_type=bool,
-                help="generate a PEP 484 .pyi file",
+        Option('pep484_pyi', option_type=bool, inverted=True,
+                help="disable the generation of PEP 484 .pyi files",
                 tools='build install wheel'),
         Option('protected_is_public', option_type=bool,
                 help="enable the protected/public hack (default on non-Windows)",
@@ -212,7 +212,7 @@ class Bindings(Configurable):
             generateExtracts(pt, extracts)
 
         # Generate any type hints file.
-        if self.pep484_stubs and not self.internal:
+        if self.pep484_pyi and not self.internal:
             project.progress(
                     "Generating the .pyi file for '{0}'".format(
                             buildable.target))
