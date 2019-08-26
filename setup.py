@@ -35,7 +35,7 @@ try:
     version_file.close()
 except FileNotFoundError:
     # Provide a minimal version file.
-    version = '0.0.dev0'
+    version = '0.1.0.dev0'
     version_file = open(version_file_name, 'w')
     version_file.write('SIP_VERSION = 0\nSIP_VERSION_STR = \'%s\'\n' % version)
     version_file.close()
