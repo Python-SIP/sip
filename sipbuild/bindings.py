@@ -169,7 +169,7 @@ class Bindings(Configurable):
         # Check the .sip file exists.
         if not os.path.isfile(self.sip_file):
             raise UserException(
-                    "the file '{0}' for the '{1}' bindings does not "
+                    "the file '{0}' for the {1} bindings does not "
                             "exist".format(self.sip_file, self.name))
 
         # Parse the input file.
@@ -182,11 +182,11 @@ class Bindings(Configurable):
         if project.sip_module:
             if '.' not in fq_name:
                 raise UserException(
-                        "'{0}' must be part of a project when used with a "
+                        "{0} must be part of a project when used with a "
                         "shared 'sip' module".format(fq_name))
         elif uses_limited_api:
             raise UserException(
-                    "'{0}' cannot use the limited API without using a shared "
+                    "{0} cannot use the limited API without using a shared "
                     "'sip' module".format(fq_name))
 
         # The details of things that will have been generated.  Note that we
@@ -201,8 +201,7 @@ class Bindings(Configurable):
         # Generate any API file.
         if project.api_dir and not self.internal:
             project.progress(
-                    "Generating the .api file for '{0}'".format(
-                            buildable.target))
+                    "Generating the {0} .api file".format(buildable.target))
 
             generateAPI(pt,
                     os.path.join(project.build_dir, buildable.target + '.api'))
@@ -214,8 +213,7 @@ class Bindings(Configurable):
         # Generate any type hints file.
         if self.pep484_pyi and not self.internal:
             project.progress(
-                    "Generating the .pyi file for '{0}'".format(
-                            buildable.target))
+                    "Generating the {0} .pyi file".format(buildable.target))
 
             pyi_path = os.path.join(buildable.build_dir,
                     buildable.target + '.pyi')
