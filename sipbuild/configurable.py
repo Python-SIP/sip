@@ -21,8 +21,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from ..exceptions import UserException
-from ..pyproject import PyProjectOptionException
+from .exceptions import UserException
+from .pyproject import PyProjectOptionException
 
 
 class Configurable:

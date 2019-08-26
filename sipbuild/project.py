@@ -31,15 +31,14 @@ import sys
 import tempfile
 import warnings
 
-from ..exceptions import UserException
-from ..module import resolve_abi_version
-from ..py_versions import FIRST_SUPPORTED_MINOR, LAST_SUPPORTED_MINOR
-from ..pyproject import (PyProject, PyProjectOptionException,
-        PyProjectUndefinedOptionException)
-
 from .abstract_builder import AbstractBuilder
 from .bindings import Bindings
 from .configurable import Configurable, Option
+from .exceptions import UserException
+from .module import resolve_abi_version
+from .py_versions import FIRST_SUPPORTED_MINOR, LAST_SUPPORTED_MINOR
+from .pyproject import (PyProject, PyProjectOptionException,
+        PyProjectUndefinedOptionException)
 
 
 class Project(Configurable):

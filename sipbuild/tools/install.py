@@ -21,19 +21,18 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from ...exceptions import handle_exception
-
+from ..exceptions import handle_exception
 from ..project import Project
 
 
 def main():
-    """ Build the project in-situ from the command line. """
+    """ Install the project from the command line. """
 
     try:
-        project = Project.factory(tool='build',
-                description="Build the project in-situ.")
-        project.build()
-        project.progress("The project has been built.")
+        project = Project.factory(tool='install',
+                description="Build and install the project.")
+        project.install()
+        project.progress("The project has been installed.")
     except Exception as e:
         handle_exception(e)
 

@@ -21,18 +21,19 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from argparse import ArgumentParser as ArgParser
+from ..exceptions import handle_exception
+from ..project import Project
 
-from .version import SIP_VERSION_STR
 
+def main():
+    """ Build the project in-situ from the command line. """
 
-class ArgumentParser(ArgParser):
-    """ An argument parser for all sip5 command line tools. """
+    try:
+        project = Project.factory(tool='build',
+                description="Build the project in-situ.")
+        project.build()
+        project.progress("The project has been built.")
+    except Exception as e:
+        handle_exception(e)
 
-    def __init__(self, description, **kwargs):
-        """ Initialise the parser. """
-
-        super().__init__(description=description, **kwargs)
-
-        self.add_argument('-V', '--version', action='version',
-                version=SIP_VERSION_STR)
+    return 0

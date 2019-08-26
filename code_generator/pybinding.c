@@ -1,5 +1,5 @@
 /*
- * The transitional Python bindings for the C parts of the sip5 code generator.
+ * The transitional Python bindings for the C parts of the sip code generator.
  *
  * Copyright (c) 2019 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
@@ -63,7 +63,7 @@ static void exception_set(void);
 
 
 /*
- * The _sip5 module initialisation function.
+ * The sipbuild.code_generator module initialisation function.
  */
 PyMODINIT_FUNC PyInit_code_generator(void)
 {
@@ -80,14 +80,14 @@ PyMODINIT_FUNC PyInit_code_generator(void)
 
     static PyModuleDef module_def = {
         PyModuleDef_HEAD_INIT,
-        "sip5.code_generator",  /* m_name */
-        NULL,                   /* m_doc */
-        -1,                     /* m_size */
-        methods,                /* m_methods */
-        NULL,                   /* m_reload */
-        NULL,                   /* m_traverse */
-        NULL,                   /* m_clear */
-        NULL,                   /* m_free */
+        "sipbuild.code_generator",  /* m_name */
+        NULL,                       /* m_doc */
+        -1,                         /* m_size */
+        methods,                    /* m_methods */
+        NULL,                       /* m_reload */
+        NULL,                       /* m_traverse */
+        NULL,                       /* m_clear */
+        NULL,                       /* m_free */
     };
 
     return PyModule_Create(&module_def);
@@ -539,7 +539,7 @@ void get_bindings_configuration(const char *sip_file, stringList **tags,
     {
         PyObject *mod;
 
-        if ((mod = PyImport_ImportModule("sip5.helpers")) == NULL)
+        if ((mod = PyImport_ImportModule("sipbuild.helpers")) == NULL)
             exception_set();
 
         get_bindings_configuration = PyObject_GetAttrString(mod,

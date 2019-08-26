@@ -1,4 +1,4 @@
-from sip5.builder import Option, Project, PyProjectOptionException
+from sipbuild import Option, Project, PyProjectOptionException
 
 
 class CoreProject(Project):

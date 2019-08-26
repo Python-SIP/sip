@@ -25,9 +25,8 @@ import importlib
 import os
 import sys
 
-from ..version import SIP_VERSION_STR
-
 from .installable import Installable
+from .version import SIP_VERSION_STR
 
 
 class Buildable:

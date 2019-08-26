@@ -21,19 +21,18 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from ...exceptions import handle_exception
-
+from ..exceptions import handle_exception
 from ..project import Project
 
 
 def main():
-    """ Install the project from the command line. """
+    """ Build an sdist for the project from the command line. """
 
     try:
-        project = Project.factory(tool='install',
-                description="Build and install the project.")
-        project.install()
-        project.progress("The project has been installed.")
+        project = Project.factory(tool='sdist',
+                description="Build an sdist for the project.")
+        project.build_sdist('.')
+        project.progress("The sdist has been built.")
     except Exception as e:
         handle_exception(e)
 

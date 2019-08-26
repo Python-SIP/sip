@@ -21,20 +21,15 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from ...exceptions import handle_exception
-
-from ..project import Project
-
-
-def main():
-    """ Build an sdist for the project from the command line. """
-
-    try:
-        project = Project.factory(tool='sdist',
-                description="Build an sdist for the project.")
-        project.build_sdist('.')
-        project.progress("The sdist has been built.")
-    except Exception as e:
-        handle_exception(e)
-
-    return 0
+# Publish the public API.
+from .abstract_builder import AbstractBuilder
+from .bindings import Bindings
+from .buildable import Buildable, BuildableBindings, BuildableModule
+from .builder import Builder
+from .configurable import Option
+from .distutils_builder import DistutilsBuilder
+from .exceptions import handle_exception, UserException
+from .installable import Installable
+from .project import Project
+from .pyproject import (PyProjectOptionException,
+        PyProjectUndefinedOptionException)

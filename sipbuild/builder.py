@@ -28,16 +28,15 @@ import shutil
 import stat
 import sys
 
-from ..code_generator import set_globals
-from ..distinfo import Wheel
-from ..exceptions import UserException
-from ..module import copy_sip_h
-from ..py_versions import FIRST_SUPPORTED_MINOR, LAST_SUPPORTED_MINOR
-from ..version import SIP_VERSION, SIP_VERSION_STR
-
 from .abstract_builder import AbstractBuilder
 from .buildable import BuildableFromSources
+from .code_generator import set_globals
+from .distinfo import Wheel
+from .exceptions import UserException
 from .installable import Installable
+from .module import copy_sip_h
+from .py_versions import FIRST_SUPPORTED_MINOR, LAST_SUPPORTED_MINOR
+from .version import SIP_VERSION, SIP_VERSION_STR
 
 
 class Builder(AbstractBuilder):

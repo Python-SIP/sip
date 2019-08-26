@@ -28,11 +28,10 @@ from distutils.log import ERROR, INFO, set_threshold
 
 import os
 
-from ..distinfo import create_distinfo
-from ..exceptions import UserException
-
 from .buildable import BuildableModule
 from .builder import Builder
+from .distinfo import create_distinfo
+from .exceptions import UserException
 from .installable import Installable
 
 

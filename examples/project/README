@@ -1,5 +1,5 @@
 Before running any of the examples in this directory you need to create and
 install the sip module that they all rely on.  To do this, run:
 
-    sip5-module examples.sip
+    sip-module examples.sip
     pip install examples_sip-X.Y.tar.gz

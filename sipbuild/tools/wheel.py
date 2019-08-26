@@ -19,3 +19,21 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+
+
+from ..exceptions import handle_exception
+from ..project import Project
+
+
+def main():
+    """ Build a wheel for the project from the command line. """
+
+    try:
+        project = Project.factory(tool='wheel',
+                description="Build a wheel for the project.")
+        project.build_wheel('.')
+        project.progress("The wheel has been built.")
+    except Exception as e:
+        handle_exception(e)
+
+    return 0

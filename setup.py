@@ -28,7 +28,7 @@ from setuptools import Extension, find_packages, setup
 
 
 # Get the version number.
-version_file_name = os.path.join('sip5', 'version.py')
+version_file_name = os.path.join('sipbuild', 'version.py')
 try:
     version_file = open(version_file_name)
     version = version_file.read().strip().split('\n')[1].split()[-1][1:-1]
@@ -42,7 +42,7 @@ except FileNotFoundError:
 
 # Build the code generator extension module.
 code_gen_src = glob.glob(os.path.join('code_generator', '*.c'))
-code_gen_module = Extension('sip5.code_generator', code_gen_src,
+code_gen_module = Extension('sipbuild.code_generator', code_gen_src,
         include_dirs=['code_generator'])
 
 # Do the setup.
@@ -54,18 +54,18 @@ setup(
         install_requires=['packaging', 'toml'],
         packages=find_packages(),
         package_data={
-            'sip5.module': ['source/*/*'],
+            'sipbuild.module': ['source/*/*'],
         },
         ext_modules=[code_gen_module],
         entry_points={
             'console_scripts': [
-                'sip5 = sip5.legacy.sip5:main',
-                'sip5-distinfo = sip5.distinfo.main:main',
-                'sip5-header = sip5.legacy.header:main',
-                'sip5-module = sip5.module.main:main',
-                'sip5-build = sip5.builder.tools.build:main',
-                'sip5-install = sip5.builder.tools.install:main',
-                'sip5-sdist = sip5.builder.tools.sdist:main',
-                'sip5-wheel = sip5.builder.tools.wheel:main']
+                'sip-distinfo = sipbuild.distinfo.main:main',
+                'sip-module = sipbuild.module.main:main',
+                'sip-build = sipbuild.builder.tools.build:main',
+                'sip-install = sipbuild.builder.tools.install:main',
+                'sip-sdist = sipbuild.builder.tools.sdist:main',
+                'sip-wheel = sipbuild.builder.tools.wheel:main',
+                'sip5 = sipbuild.legacy.sip5:main',
+                'sip5-header = sipbuild.legacy.header:main']
         }
      )

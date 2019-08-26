@@ -21,20 +21,18 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from ...exceptions import handle_exception
+from argparse import ArgumentParser as ArgParser
 
-from ..project import Project
+from .version import SIP_VERSION_STR
 
 
-def main():
-    """ Build a wheel for the project from the command line. """
+class ArgumentParser(ArgParser):
+    """ An argument parser for all sip command line tools. """
 
-    try:
-        project = Project.factory(tool='wheel',
-                description="Build a wheel for the project.")
-        project.build_wheel('.')
-        project.progress("The wheel has been built.")
-    except Exception as e:
-        handle_exception(e)
+    def __init__(self, description, **kwargs):
+        """ Initialise the parser. """
 
-    return 0
+        super().__init__(description=description, **kwargs)
+
+        self.add_argument('-V', '--version', action='version',
+                version=SIP_VERSION_STR)

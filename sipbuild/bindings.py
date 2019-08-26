@@ -24,15 +24,14 @@
 import os
 import sys
 
-from ..code_generator import (parse, generateCode, generateExtracts,
-        generateAPI, generateXML, generateTypeHints)
-from ..exceptions import UserException
-from ..module import copy_nonshared_sources
-from ..pyproject import PyProjectUndefinedOptionException
-
 from .buildable import BuildableBindings
+from .code_generator import (parse, generateCode, generateExtracts,
+        generateAPI, generateXML, generateTypeHints)
 from .configurable import Configurable, Option
+from .exceptions import UserException
 from .installable import Installable
+from .module import copy_nonshared_sources
+from .pyproject import PyProjectUndefinedOptionException
 
 
 class Bindings(Configurable):

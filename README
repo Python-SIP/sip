@@ -26,7 +26,7 @@ Python starting with v3.5.
 The sip module provides support functions to the automatically generated
 code.  The sip module is installed as part of the same Python package as the
 generated extension modules.  Unlike the extension modules the sip module is
-specific to a particular version of Python (e.g. v3.5, v3.6, v3.7).
+specific to a particular version of Python (e.g. v3.5, v3.6, v3.7, v3.8).
 
 The specification files contain a description of the interface of the C or C++
 library, i.e. the classes, methods, functions and variables.  The format of a

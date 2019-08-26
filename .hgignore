@@ -5,6 +5,6 @@ ChangeLog
 build
 doc/html
 sip.egg-info
-sip5/version.py
-sip5/*.pyd
-sip5/*.so
+sipbuild/version.py
+sipbuild/*.pyd
+sipbuild/*.so
