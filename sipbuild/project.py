@@ -446,7 +446,7 @@ class Project(Configurable):
         """ Update the configuration from the user supplied command line. """
 
         from argparse import SUPPRESS
-        from ..argument_parser import ArgumentParser
+        from .argument_parser import ArgumentParser
 
         parser = ArgumentParser(description, argument_default=SUPPRESS)
 
