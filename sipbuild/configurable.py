@@ -151,6 +151,12 @@ class Configurable:
                                 type(value).__name__),
                         section_name=section_name)
 
+            # Check the option hasn't already been initialised.
+            if getattr(self, option.name) is not None:
+                raise PyProjectOptionException(name,
+                        "has already been set in code and cannot be changed",
+                        section_name=section_name)
+
             setattr(self, option.name, value)
 
     def get_options(self):
@@ -165,7 +171,15 @@ class Configurable:
 
 
 class Option:
-    """ Encapsulate a configuration option. """
+    """ Encapsulate a configuration option.  This defines and implements an
+    attribute of a Configurable object.  The value of the attribute can be set
+    either by __init__(), the pyproject.toml file and by the user using a
+    command line argument (in that order).  Once the value is set it cannot be
+    changed subsequently.  For example, if an attribute is set
+    in pyproject.toml then the user will not then be able to modify it from the
+    command line.  The value can only be changed from the command line if the
+    Option object has help text specified.
+    """
 
     # This is used to make sure each option (even if they are handling the same
     # attribute) has a unique 'dest'.

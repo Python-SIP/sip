@@ -375,7 +375,9 @@ class Project(Configurable):
         directory will be the temporary build directory.
         """
 
-        # This default implementation does nothing.
+        # This default implementation calls update_buildable_bindings().
+        if tool != 'sdist':
+            self.update_buildable_bindings()
 
     def update_buildable_bindings(self):
         """ Update the list of bindings to ensure they are either buildable or
@@ -580,12 +582,12 @@ class Project(Configurable):
             bindings = self.bindings.get(name)
 
             if bindings is None:
-                bindings = Bindings(self)
-                self.bindings[name] = bindings
+                bindings = Bindings(self, name)
+                self.bindings[bindings.name] = bindings
 
             bindings.configure(section, 'tool.sip.bindings')
 
         # Add a default set of bindings if none were defined.
         if not self.bindings:
-            bindings = Bindings(self, name=self.metadata['name'])
+            bindings = Bindings(self, self.metadata['name'])
             self.bindings[bindings.name] = bindings

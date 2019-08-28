@@ -31,7 +31,6 @@ from .configurable import Configurable, Option
 from .exceptions import UserException
 from .installable import Installable
 from .module import copy_nonshared_sources
-from .pyproject import PyProjectUndefinedOptionException
 
 
 class Bindings(Configurable):
@@ -70,10 +69,6 @@ class Bindings(Configurable):
 
         # The list of C/C++ library directories to search.
         Option('library_dirs', option_type=list),
-
-        # The name of the bindings.  This never appears in generated code and
-        # is used to identify the bindings to the user.
-        Option('name'),
 
         # Set to always release the Python GIL.
         Option('release_gil', option_type=bool),
@@ -122,12 +117,13 @@ class Bindings(Configurable):
                 tools='build install wheel'),
     )
 
-    def __init__(self, project, **kwargs):
+    def __init__(self, project, name, **kwargs):
         """ Initialise the bindings. """
 
         super().__init__(**kwargs)
 
         self.project = project
+        self.name = name
 
     def apply_defaults(self, tool):
         """ Set default values for options that haven't been set yet. """
@@ -140,16 +136,6 @@ class Bindings(Configurable):
 
         if protected_is_public is None:
             self.protected_is_public = (self.project.py_platform != 'win32')
-
-    def configure(self, section, section_name):
-        """ Perform the initial configuration of the bindings. """
-
-        super().configure(section, section_name)
-
-        # We need to ensure the bindings have a name as soon as possible.
-        if not self.name:
-            raise PyProjectUndefinedOptionException('name',
-                    section_name='tool.sip.bindings')
 
     def generate(self):
         """ Generate the bindings source code and optional additional extracts.
