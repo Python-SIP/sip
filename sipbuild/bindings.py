@@ -125,17 +125,13 @@ class Bindings(Configurable):
         self.project = project
         self.name = name
 
-    def apply_defaults(self, tool):
-        """ Set default values for options that haven't been set yet. """
+    def apply_user_defaults(self, tool):
+        """ Set default values for user options that haven't been set yet. """
 
-        # We need to call the super-class first because we need py_platform, so
-        # remember if this had been initialised.
-        protected_is_public = self.protected_is_public
-
-        super().apply_defaults(tool)
-
-        if protected_is_public is None:
+        if self.protected_is_public is None:
             self.protected_is_public = (self.project.py_platform != 'win32')
+
+        super().apply_user_defaults(tool)
 
     def generate(self):
         """ Generate the bindings source code and optional additional extracts.

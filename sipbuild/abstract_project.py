@@ -70,7 +70,7 @@ class AbstractProject(ABC):
                 # The default project factory.
                 from .project import Project as project_factory
         else:
-            project_factory = cls.import_callable(factory_name, cls)
+            project_factory = cls.import_callable(project_factory_name, cls)
 
         project = project_factory()
 

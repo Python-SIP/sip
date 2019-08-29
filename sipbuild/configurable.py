@@ -104,12 +104,77 @@ class Configurable:
                         type=option.option_type, choices=option.choices,
                         help=option.help, metavar=option.metavar)
 
-    def apply_defaults(self, tool):
-        """ Set default values for each configurable option that hasn't been
+    def apply_nonuser_defaults(self, tool):
+        """ Set default values for each non-user configurable option that
+        hasn't been set yet.
+        """
+
+        self._apply_defaults(tool, user=False)
+
+    def apply_user_defaults(self, tool):
+        """ Set default values for each user configurable option that hasn't
+        been set yet.
+        """
+
+        self._apply_defaults(tool, user=True)
+
+    def configure(self, pyproject, section_name, tool):
+        """ Perform the initial configuration of an object. """
+
+        section = pyproject.get_section(section_name)
+
+        if section is not None:
+            for name, value in section.items():
+                # Find the corresponding option.
+                for option in self.get_options():
+                    if option.user_name == name:
+                        break
+                else:
+                    raise PyProjectOptionException(name,
+                            "is not a supported option",
+                            section_name=section_name)
+
+                # Check the type of the option.
+                if not isinstance(value, option.option_type):
+                    raise PyProjectOptionException(name,
+                            "should be of type '{0}' and not '{1}'".format(
+                                    option.option_type.__name__,
+                                    type(value).__name__),
+                            section_name=section_name)
+
+                # Check the option hasn't already been initialised.
+                if getattr(self, option.name) is not None:
+                    raise PyProjectOptionException(name,
+                            "has already been set in code and cannot be "
+                            "changed",
+                            section_name=section_name)
+
+                setattr(self, option.name, value)
+
+        self.apply_nonuser_defaults(tool)
+
+    def get_options(self):
+        """ Return a list of configurable options. """
+
+        return list()
+
+    def verify_configuration(self, tool):
+        """ Verify that the configuration is complete and consistent. """
+
+        # This default implementation does nothing.
+
+    def _apply_defaults(self, tool, user):
+        """ Set default values for each user/non-user option that hasn't been
         set yet.
         """
 
         for option in self.get_options():
+            if user and not option.help:
+                continue
+
+            if not user and option.help:
+                continue
+
             value = getattr(self, option.name)
             if value is None:
                 value = option.default
@@ -130,44 +195,6 @@ class Configurable:
                     value = option.option_type(value)
 
                 setattr(self, option.name, value)
-
-    def configure(self, section, section_name):
-        """ Perform the initial configuration of an object. """
-
-        for name, value in section.items():
-            # Find the corresponding option.
-            for option in self.get_options():
-                if option.user_name == name:
-                    break
-            else:
-                raise PyProjectOptionException(name,
-                        "is not a supported option", section_name=section_name)
-
-            # Check the type of the option.
-            if not isinstance(value, option.option_type):
-                raise PyProjectOptionException(name,
-                        "should be of type '{0}' and not '{1}'".format(
-                                option.option_type.__name__,
-                                type(value).__name__),
-                        section_name=section_name)
-
-            # Check the option hasn't already been initialised.
-            if getattr(self, option.name) is not None:
-                raise PyProjectOptionException(name,
-                        "has already been set in code and cannot be changed",
-                        section_name=section_name)
-
-            setattr(self, option.name, value)
-
-    def get_options(self):
-        """ Return a list of configurable options. """
-
-        return list()
-
-    def verify_configuration(self, tool):
-        """ Verify that the configuration is complete and consistent. """
-
-        # This default implementation does nothing.
 
 
 class Option:

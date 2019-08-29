@@ -49,9 +49,12 @@ class Project(AbstractProject, Configurable):
         # The ABI version that the sip module should use.
         Option('abi_version'),
 
-        # The module:object of a callable that will return an AbstractBuilder
-        # instance.
-        Option('builder'),
+        # The callable that will return an Bindings instance.  This is used for
+        # bindings implicitly defined in the .toml file.
+        Option('bindings_factory'),
+
+        # The callable that will return an AbstractBuilder instance.
+        Option('builder_factory'),
 
         # The list of console script entry points.
         Option('console_scripts', option_type=list),
@@ -118,7 +121,7 @@ class Project(AbstractProject, Configurable):
 
         super().__init__(**kwargs)
 
-        # The current directory should contain pyproject.toml.
+        # The current directory should contain the .toml file.
         self.root_dir = os.getcwd()
         self.bindings = OrderedDict()
         self.bindings_factories = []
@@ -128,8 +131,39 @@ class Project(AbstractProject, Configurable):
 
         self._temp_build_dir = None
 
-    def apply_defaults(self, tool):
-        """ Set default values for options that haven't been set yet. """
+    def apply_nonuser_defaults(self, tool):
+        """ Set default values for non-user options that haven't been set yet.
+        """
+
+        if self.bindings_factory is None:
+            self.bindings_factory = Bindings
+        elif isinstance(self.bindings_factory, str):
+            # Convert the name to a callable.
+            self.bindings_factory = self.import_callable(self.bindings_factory,
+                    Bindings)
+
+        if self.builder_factory is None:
+            from .distutils_builder import DistutilsBuilder
+            self.builder_factory = DistutilsBuilder
+        elif isinstance(self.builder_factory, str):
+            # Convert the name to a callable.
+            self.builder_factory = self.import_callable(self.builder_factory,
+                    AbstractBuilder)
+
+        if self.py_major_version is None or self.py_minor_version is None:
+            self.py_major_version = sys.hexversion >> 24
+            self.py_minor_version = (sys.hexversion >> 16) & 0x0ff
+
+        if self.py_platform is None:
+            self.py_platform = sys.platform
+
+        if self.py_debug is None:
+            self.py_debug = hasattr(sys, 'gettotalrefcount')
+
+        super().apply_nonuser_defaults(tool)
+
+    def apply_user_defaults(self, tool):
+        """ Set default values for user options that haven't been set yet. """
 
         # If we the backend to a 3rd-party frontend (most probably pip) then
         # let it handle the verbosity of messages.
@@ -151,27 +185,17 @@ class Project(AbstractProject, Configurable):
                 self._temp_build_dir = tempfile.TemporaryDirectory()
                 self.build_dir = self._temp_build_dir.name
 
-        if self.py_major_version is None or self.py_minor_version is None:
-            self.py_major_version = sys.hexversion >> 24
-            self.py_minor_version = (sys.hexversion >> 16) & 0x0ff
-
-        if self.py_platform is None:
-            self.py_platform = sys.platform
-
-        if self.py_debug is None:
-            self.py_debug = hasattr(sys, 'gettotalrefcount')
-
-        super().apply_defaults(tool)
+        super().apply_user_defaults(tool)
 
         # Adjust the list of bindings according to what has been explicitly
         # enabled and disabled.
         self._enable_disable_bindings()
 
-        # Set the defaults for the builder and bindings.
-        self.builder.apply_defaults(tool)
+        # Set the user defaults for the builder and bindings.
+        self.builder.apply_user_defaults(tool)
 
         for bindings in self.bindings.values():
-            bindings.apply_defaults(tool)
+            bindings.apply_user_defaults(tool)
 
     def build(self):
         """ Build the project in-situ. """
@@ -207,17 +231,6 @@ class Project(AbstractProject, Configurable):
         name_parts[-1] = 'bindings'
 
         return os.path.join(*name_parts)
-
-    def get_builder(self):
-        """ Get the builder. """
-
-        # This default implementation gets the factory from the .toml file.
-        if self.builder:
-            builder_factory = self.import_callable(self.builder)
-        else:
-            from .distutils_builder import DistutilsBuilder as builder_factory
-
-        return builder_factory(self)
 
     def get_distinfo_name(self, target_dir):
         """ Return the name of the .dist-info directory for a target directory.
@@ -304,7 +317,7 @@ class Project(AbstractProject, Configurable):
             self.bindings[bindings.name] = bindings
 
         # Set the initial configuration from the pyproject.toml file.
-        self._set_initial_configuration(pyproject)
+        self._set_initial_configuration(pyproject, tool)
 
         # Add any tool-specific command line options for (so far unspecified)
         # parts of the configuration.
@@ -312,7 +325,7 @@ class Project(AbstractProject, Configurable):
             self._configure_from_command_line(tool, tool_description)
 
         # Make sure the configuration is complete.
-        self.apply_defaults(tool)
+        self.apply_user_defaults(tool)
 
         # Configure the warnings module.
         if not self.verbose:
@@ -486,47 +499,36 @@ class Project(AbstractProject, Configurable):
 
         self._temp_build_dir = None
 
-    def _set_initial_configuration(self, pyproject):
+    def _set_initial_configuration(self, pyproject, tool):
         """ Set the project's initial configuration. """
 
         # Get the metadata and extract the version.
         self.metadata = pyproject.get_metadata()
         self.version = self.metadata['version']
 
-        # Get the project configuration.
-        project_section = pyproject.get_section('tool.sip.project')
-        if project_section is not None:
-            self.configure(project_section, 'tool.sip.project')
+        # Configure the project.
+        self.configure(pyproject, 'tool.sip.project', tool)
 
-        # Create the builder.
-        self.builder = self.get_builder()
+        # Create and configure the builder.
+        self.builder = self.builder_factory(self)
+        self.builder.configure(pyproject, 'tool.sip.builder', tool)
 
-        if not isinstance(self.builder, AbstractBuilder):
-            raise UserException(
-                    "The project builder is not a AbstractBuilder sub-class")
-
-        builder_section = pyproject.get_section('tool.sip.builder')
-        if builder_section is not None:
-            self.builder.configure(builder_section, 'tool.sip.builder')
-
-        # Get configuration for each set of bindings.
+        # Configure each set of bindings.
         bindings_sections = pyproject.get_section('tool.sip.bindings')
         if bindings_sections is None:
-            bindings_sections = []
+            bindings_sections = {}
 
-        for section in bindings_sections:
+        for name in bindings_sections.keys():
             # See if the bindings have already been created (by a project.py).
-            name = section.get('name')
-
             bindings = self.bindings.get(name)
 
             if bindings is None:
-                bindings = Bindings(self, name)
+                bindings = self.bindings_factory(self, name)
                 self.bindings[bindings.name] = bindings
 
-            bindings.configure(section, 'tool.sip.bindings')
+            bindings.configure(pyproject, 'tool.sip.bindings.' + name, tool)
 
         # Add a default set of bindings if none were defined.
         if not self.bindings:
-            bindings = Bindings(self, self.metadata['name'])
+            bindings = self.bindings_factory(self, self.metadata['name'])
             self.bindings[bindings.name] = bindings
