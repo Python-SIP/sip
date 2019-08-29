@@ -23,7 +23,6 @@
 
 from collections import OrderedDict
 from distutils.sysconfig import get_python_inc, get_python_lib
-import importlib
 import os
 import shutil
 import subprocess
@@ -32,16 +31,17 @@ import tempfile
 import warnings
 
 from .abstract_builder import AbstractBuilder
+from .abstract_project import AbstractProject
 from .bindings import Bindings
 from .configurable import Configurable, Option
 from .exceptions import UserException
 from .module import resolve_abi_version
 from .py_versions import FIRST_SUPPORTED_MINOR, LAST_SUPPORTED_MINOR
-from .pyproject import (PyProject, PyProjectOptionException,
+from .pyproject import (PyProjectOptionException,
         PyProjectUndefinedOptionException)
 
 
-class Project(Configurable):
+class Project(AbstractProject, Configurable):
     """ Encapsulate a project containing one or more sets of bindings. """
 
     # The configurable options.
@@ -121,6 +121,7 @@ class Project(Configurable):
         # The current directory should contain pyproject.toml.
         self.root_dir = os.getcwd()
         self.bindings = OrderedDict()
+        self.bindings_factories = []
         self.builder = None
         self.buildables = []
         self.installables = []
@@ -197,84 +198,10 @@ class Project(Configurable):
 
         return wheel_file
 
-    @classmethod
-    def factory(cls, tool='', description=''):
-        """ Return a Project instance fully configured for a particular command
-        line tool.  If no tool is specified then it is configured for a PEP 517
-        frontend.
-        """
-
-        # Get the contents of the pyproject.toml file.
-        pyproject = PyProject()
-
-        # Try and import a project.py file.
-        spec = importlib.util.spec_from_file_location('project', 'project.py')
-        project_module = importlib.util.module_from_spec(spec)
-
-        try:
-            spec.loader.exec_module(project_module)
-        except FileNotFoundError:
-            project_factory = cls
-        except Exception as e:
-            raise UserException("unable to import project.py", detail=str(e))
-        else:
-            # Look for a class that is a sub-class of Project.
-            for project_factory in project_module.__dict__.values():
-                if isinstance(project_factory, type):
-                    if issubclass(project_factory, Project):
-                        # Make sure the type is defined in project.py and not
-                        # imported by it.
-                        if project_factory.__module__ == 'project':
-                            break
-            else:
-                raise UserException(
-                        "project.py does not define a Project sub-class")
-
-        # Create the project.
-        project = project_factory()
-
-        # Set the initial configuration from the pyproject.toml file.
-        project._set_initial_configuration(pyproject)
-
-        # Add any tool-specific command line options for (so far unspecified)
-        # parts of the configuration.
-        if tool:
-            project._configure_from_command_line(tool, description)
-
-        # Make sure the configuration is complete.
-        project.apply_defaults(tool)
-
-        # Configure the warnings module.
-        if not project.verbose:
-            warnings.simplefilter('ignore', UserWarning)
-
-        # Make sure we have a clean build directory and make it current.
-        if project._temp_build_dir is None:
-            project.build_dir = os.path.abspath(project.build_dir)
-            shutil.rmtree(project.build_dir, ignore_errors=True)
-            os.mkdir(project.build_dir)
-
-        os.chdir(project.build_dir)
-
-        # Allow a sub-class (in a user supplied script) to make any updates to
-        # the configuration.
-        project.update(tool)
-
-        os.chdir(project.root_dir)
-
-        # Make sure the configuration is correct after any user supplied script
-        # has messed with it.
-        project.verify_configuration(tool)
-
-        if tool != 'sdist':
-            project.progress(
-                    "These bindings will be built: {}.".format(
-                            ', '.join(project.bindings.keys())))
-
-        return project
-
     def get_bindings_dir(self):
-        """ Return the name of the bindings directory. """
+        """ Return the name of the 'bindings' directory relative to the
+        eventual target directory.
+        """
 
         name_parts = self.sip_module.split('.')
         name_parts[-1] = 'bindings'
@@ -286,8 +213,7 @@ class Project(Configurable):
 
         # This default implementation gets the factory from the .toml file.
         if self.builder:
-            builder_factory = self._import_callable(self.builder,
-                    'tool.sip.project', 'builder')
+            builder_factory = self.import_callable(self.builder)
         else:
             from .distutils_builder import DistutilsBuilder as builder_factory
 
@@ -369,6 +295,52 @@ class Project(Configurable):
             if self.verbose:
                 sys.stdout.write(line)
 
+    def setup(self, pyproject, tool, tool_description):
+        """ Complete the configuration of the project. """
+
+        # Create any programmatically defined bindings.
+        for bindings_factory in self.bindings_factories:
+            bindings = bindings_factory(self)
+            self.bindings[bindings.name] = bindings
+
+        # Set the initial configuration from the pyproject.toml file.
+        self._set_initial_configuration(pyproject)
+
+        # Add any tool-specific command line options for (so far unspecified)
+        # parts of the configuration.
+        if tool:
+            self._configure_from_command_line(tool, tool_description)
+
+        # Make sure the configuration is complete.
+        self.apply_defaults(tool)
+
+        # Configure the warnings module.
+        if not self.verbose:
+            warnings.simplefilter('ignore', UserWarning)
+
+        # Make sure we have a clean build directory and make it current.
+        if self._temp_build_dir is None:
+            self.build_dir = os.path.abspath(self.build_dir)
+            shutil.rmtree(self.build_dir, ignore_errors=True)
+            os.mkdir(self.build_dir)
+
+        os.chdir(self.build_dir)
+
+        # Allow a sub-class (in a user supplied script) to make any updates to
+        # the configuration.
+        self.update(tool)
+
+        os.chdir(self.root_dir)
+
+        # Make sure the configuration is correct after any user supplied script
+        # has messed with it.
+        self.verify_configuration(tool)
+
+        if tool != 'sdist':
+            self.progress(
+                    "These bindings will be built: {}.".format(
+                            ', '.join(self.bindings.keys())))
+
     def update(self, tool):
         """ This should be re-implemented by any user supplied sub-class to
         carry out any updates to the configuration as required.  The current
@@ -444,13 +416,13 @@ class Project(Configurable):
         for bindings in self.bindings.values():
             bindings.verify_configuration(tool)
 
-    def _configure_from_command_line(self, tool, description):
+    def _configure_from_command_line(self, tool, tool_description):
         """ Update the configuration from the user supplied command line. """
 
         from argparse import SUPPRESS
         from .argument_parser import ArgumentParser
 
-        parser = ArgumentParser(description, argument_default=SUPPRESS)
+        parser = ArgumentParser(tool_description, argument_default=SUPPRESS)
 
         # Add the user configurable options to the parser.
         all_options = {}
@@ -508,39 +480,6 @@ class Project(Configurable):
             for b in list(self.bindings.values()):
                 if b.name in self.disable:
                     del self.bindings[b.name]
-
-    @staticmethod
-    def _import_callable(callable_name, section_name, name):
-        """ Return a callable imported from a location specified as a value in
-        the pyproject.toml file.
-        """
-
-        # Extract the module and object names.
-        parts = callable_name.split(':')
-        if len(parts) != 2:
-            raise PyProjectOptionException(name,
-                    "must be defined as 'module:name'",
-                    section_name=section_name)
-
-        module_name, obj_name = parts
-
-        # Try and import the module.
-        try:
-            module = importlib.import_module(module_name)
-        except ImportError as e:
-            raise PyProjectOptionException(name,
-                    "unable to import '{0}'".format(module_name),
-                    section_name=section_name, detail=str(e))
-
-        # Get the callable.
-        obj = getattr(module, obj_name)
-        if obj is None:
-            raise PyProjectOptionException(name,
-                    "'{0}' module has no callable '{1}'".format(module_name,
-                            obj_name),
-                    section_name=section_name)
-
-        return obj
 
     def _remove_build_dir(self):
         """ Remove the build directory. """

@@ -72,7 +72,7 @@ class PyProject:
             raise UserParseException('pyproject.toml', detail=str(e))
 
     def get_metadata(self):
-        """ Return an OrderedDict containing the PEP 522 metadata. """
+        """ Return an OrderedDict containing the PEP 522 meta-data. """
 
         metadata = OrderedDict()
         name = None
@@ -80,7 +80,7 @@ class PyProject:
         metadata_version = None
         requires_python = None
 
-        for md_name, md_value in self.get_section('tool.sip', required=True).items():
+        for md_name, md_value in self.get_section('tool.sip.metadata', required=True).items():
             # Ignore sub-sections.
             if self.is_section(md_value):
                 continue

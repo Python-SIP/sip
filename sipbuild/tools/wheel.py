@@ -21,16 +21,16 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
+from ..abstract_project import AbstractProject
 from ..exceptions import handle_exception
-from ..project import Project
 
 
 def main():
     """ Build a wheel for the project from the command line. """
 
     try:
-        project = Project.factory(tool='wheel',
-                description="Build a wheel for the project.")
+        project = AbstractProject.bootstrap('wheel',
+                "Build a wheel for the project.")
         project.build_wheel('.')
         project.progress("The wheel has been built.")
     except Exception as e:

@@ -4,5 +4,5 @@ requires = ["sip >=4.20.0, <6"]
 build-backend = "sipbuild.api"
 
 # Specify the PEP 522 metadata for the project.
-[tool.sip]
+[tool.sip.metadata]
 name = "fib"

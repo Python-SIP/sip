@@ -21,16 +21,16 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
+from ..abstract_project import AbstractProject
 from ..exceptions import handle_exception
-from ..project import Project
 
 
 def main():
     """ Install the project from the command line. """
 
     try:
-        project = Project.factory(tool='install',
-                description="Build and install the project.")
+        project = AbstractProject.bootstrap('install',
+                "Build and install the project.")
         project.install()
         project.progress("The project has been installed.")
     except Exception as e:

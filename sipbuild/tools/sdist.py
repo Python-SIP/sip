@@ -21,16 +21,16 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
+from ..abstract_project import AbstractProject
 from ..exceptions import handle_exception
-from ..project import Project
 
 
 def main():
     """ Build an sdist for the project from the command line. """
 
     try:
-        project = Project.factory(tool='sdist',
-                description="Build an sdist for the project.")
+        project = AbstractProject.bootstrap('sdist',
+                "Build an sdist for the project.")
         project.build_sdist('.')
         project.progress("The sdist has been built.")
     except Exception as e:

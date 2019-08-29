@@ -21,16 +21,16 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
+from ..abstract_project import AbstractProject
 from ..exceptions import handle_exception
-from ..project import Project
 
 
 def main():
     """ Build the project in-situ from the command line. """
 
     try:
-        project = Project.factory(tool='build',
-                description="Build the project in-situ.")
+        project = AbstractProject.bootstrap('build',
+                "Build the project in-situ.")
         project.build()
         project.progress("The project has been built.")
     except Exception as e:

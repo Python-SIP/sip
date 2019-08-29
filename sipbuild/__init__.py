@@ -23,6 +23,7 @@
 
 # Publish the public API.
 from .abstract_builder import AbstractBuilder
+from .abstract_project import AbstractProject
 from .bindings import Bindings
 from .buildable import Buildable, BuildableBindings, BuildableModule
 from .builder import Builder
