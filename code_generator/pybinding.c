@@ -122,14 +122,13 @@ static PyObject *py_parse(PyObject *self, PyObject *args)
     sipSpec *pt;
     FILE *file;
     char *filename;
-    stringList *versions, *backstops, *xfeatures, *sip_files;
+    stringList *versions, *xfeatures, *sip_files;
     int strict, protHack, action;
 
-    if (!PyArg_ParseTuple(args, "O&pO&O&O&p",
+    if (!PyArg_ParseTuple(args, "O&pO&O&p",
             fs_convertor, &filename,
             &strict,
             stringList_convertor, &versions,
-            stringList_convertor, &backstops,
             stringList_convertor, &xfeatures,
             &protHack))
         return NULL;
@@ -154,8 +153,8 @@ static PyObject *py_parse(PyObject *self, PyObject *args)
 
     sip_files = NULL;
 
-    parse(pt, file, filename, strict, versions, backstops, xfeatures,
-            protHack, &sip_files);
+    parse(pt, file, filename, strict, versions, NULL, xfeatures, protHack,
+            &sip_files);
 
     transform(pt, strict);
 

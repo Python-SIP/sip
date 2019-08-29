@@ -513,22 +513,21 @@ class Project(AbstractProject, Configurable):
         self.builder = self.builder_factory(self)
         self.builder.configure(pyproject, 'tool.sip.builder', tool)
 
-        # Configure each set of bindings.
+        # For each set of bindings configuration make sure a bindings object
+        # exists, creating it if necessary.
         bindings_sections = pyproject.get_section('tool.sip.bindings')
-        if bindings_sections is None:
-            bindings_sections = {}
-
-        for name in bindings_sections.keys():
-            # See if the bindings have already been created (by a project.py).
-            bindings = self.bindings.get(name)
-
-            if bindings is None:
-                bindings = self.bindings_factory(self, name)
-                self.bindings[bindings.name] = bindings
-
-            bindings.configure(pyproject, 'tool.sip.bindings.' + name, tool)
+        if bindings_sections is not None:
+            for name in bindings_sections.keys():
+                if name not in self.bindings:
+                    bindings = self.bindings_factory(self, name)
+                    self.bindings[bindings.name] = bindings
 
         # Add a default set of bindings if none were defined.
         if not self.bindings:
             bindings = self.bindings_factory(self, self.metadata['name'])
             self.bindings[bindings.name] = bindings
+
+        # Now configure each set of bindings.
+        for bindings in self.bindings.values():
+            bindings.configure(pyproject, 'tool.sip.bindings.' + bindings.name,
+                    tool)

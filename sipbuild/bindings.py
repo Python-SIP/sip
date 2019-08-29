@@ -38,9 +38,6 @@ class Bindings(Configurable):
 
     # The configurable options.
     _options = (
-        # The list of backstop tags.
-        Option('backstops', option_type=list),
-
         # Any bindings level builder-specific settings.
         Option('builder_settings', option_type=list),
 
@@ -314,8 +311,8 @@ class Bindings(Configurable):
 
         cwd = os.getcwd()
         os.chdir(sip_dir)
-        results = parse(sip_file, True, self.tags, self.backstops,
-                self.disabled_features, self.protected_is_public)
+        results = parse(sip_file, True, self.tags, self.disabled_features,
+                self.protected_is_public)
         os.chdir(cwd)
 
         return results
