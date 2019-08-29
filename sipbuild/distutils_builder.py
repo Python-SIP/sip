@@ -70,7 +70,7 @@ class DistutilsBuilder(Builder):
                 installable.install(target_dir, installed)
 
         create_distinfo(project.get_distinfo_name(), wheel, installed,
-                project.metadata, project.console_scripts)
+                project.metadata, project.root_dir, project.console_scripts)
 
     def _build_extension_module(self, buildable):
         """ Build an extension module from the sources and return its full

@@ -77,12 +77,12 @@ def distinfo(name, console_scripts, generator, inventory, prefix, project_root,
     if prefix is None:
         prefix = ''
 
-    create_distinfo(name, wheel, installed, metadata, console_scripts,
-            prefix_dir=prefix, generator=generator)
+    create_distinfo(name, wheel, installed, metadata, project_root,
+            console_scripts, prefix_dir=prefix, generator=generator)
 
 
-def create_distinfo(distinfo_dir, wheel, installed, metadata, console_scripts,
-        prefix_dir='', generator=None):
+def create_distinfo(distinfo_dir, wheel, installed, metadata, project_root,
+        console_scripts, prefix_dir='', generator=None):
     """ Create and populate a .dist-info directory. """
 
     if generator is None:
@@ -150,12 +150,23 @@ Tag: {}
     installed.append(metadata_fn)
 
     with open(prefix_dir + metadata_fn, 'w') as metadata_f:
-        for name, value in metadata.items():
-            if isinstance(value, str):
-                value = [value]
+        description = None
 
-            for v in value:
-                metadata_f.write('{}: {}\n'.format(name.title(), v))
+        for name, value in metadata.items():
+            if name == 'description-file':
+                description = value
+            else:
+                if isinstance(value, str):
+                    value = [value]
+
+                for v in value:
+                    metadata_f.write('{}: {}\n'.format(name.title(), v))
+
+        if description is not None:
+            metadata_f.write('\n')
+
+            with open(os.path.join(project_root, description)) as description_f:
+                metadata_f.write(description_f.read())
 
     # Create the RECORD file.
     record_fn = os.path.join(distinfo_dir, 'RECORD')
