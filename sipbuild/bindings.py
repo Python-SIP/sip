@@ -152,7 +152,9 @@ class Bindings(Configurable):
                             "exist".format(self.sip_file, self.name))
 
         # Parse the input file.
-        pt, fq_name, uses_limited_api, sip_files = self._parse()
+        pt, fq_name, uses_limited_api, sip_files = parse(
+                os.path.join(project.sip_files_dir, self.sip_file), True,
+                self.tags, self.disabled_features, self.protected_is_public)
 
         uses_limited_api = bool(uses_limited_api)
         if project.py_debug:
@@ -302,17 +304,3 @@ class Bindings(Configurable):
 
         if not self.source_suffix:
             self.source_suffix = None
-
-    def _parse(self):
-        """ Invoke the parser and return its results. """
-
-        sip_path = os.path.join(self.project.sip_files_dir, self.sip_file)
-        sip_dir, sip_file = os.path.split(sip_path)
-
-        cwd = os.getcwd()
-        os.chdir(sip_dir)
-        results = parse(sip_file, True, self.tags, self.disabled_features,
-                self.protected_is_public)
-        os.chdir(cwd)
-
-        return results
