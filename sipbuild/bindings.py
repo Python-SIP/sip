@@ -165,7 +165,8 @@ class Bindings(Configurable):
         # Parse the input file.
         pt, fq_name, uses_limited_api, sip_files = parse(
                 os.path.join(project.sip_files_dir, self.sip_file), True,
-                self.tags, self.disabled_features, self.protected_is_public)
+                self.tags, None, self.disabled_features,
+                self.protected_is_public)
 
         uses_limited_api = bool(uses_limited_api)
         if project.py_debug:
