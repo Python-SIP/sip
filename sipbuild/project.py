@@ -350,7 +350,7 @@ class Project(AbstractProject, Configurable):
         # has messed with it.
         self.verify_configuration(tool)
 
-        if tool != 'sdist':
+        if tool != 'sdist' and self.bindings:
             self.progress(
                     "These bindings will be built: {}.".format(
                             ', '.join(self.bindings.keys())))
