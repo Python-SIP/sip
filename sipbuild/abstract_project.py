@@ -108,6 +108,8 @@ class AbstractProject(ABC):
 
         # See if the name refers to a .py file.
         if name.endswith('.py'):
+            name = name.replace('/', os.sep)
+
             module_name = name[:-3]
             object_name = None
 
