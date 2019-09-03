@@ -62,7 +62,7 @@ class Builder(AbstractBuilder):
 
         # The sdist name.
         sdist_name = '{}-{}'.format(project.name.replace('-', '_'),
-                project.version)
+                project.version_str)
 
         # Create the sdist root directory.
         sdist_root = os.path.join(project.build_dir, sdist_name)
@@ -173,7 +173,7 @@ class Builder(AbstractBuilder):
         self.install_project(wheel_build_dir, wheel=wheel)
 
         wheel_file = '{}-{}-{}.whl'.format(project.name.replace('-', '_'),
-                project.version, wheel_tag)
+                project.version_str, wheel_tag)
         wheel_path = os.path.abspath(os.path.join(wheel_directory, wheel_file))
 
         # Create the .whl file.

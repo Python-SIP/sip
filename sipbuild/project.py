@@ -24,6 +24,7 @@
 from collections import OrderedDict
 from distutils.sysconfig import get_python_inc, get_python_lib
 import os
+import packaging
 import shutil
 import subprocess
 import sys
@@ -238,7 +239,7 @@ class Project(AbstractProject, Configurable):
 
         return os.path.join(target_dir,
                 '{}-{}.dist-info'.format(self.name.replace('-', '_'),
-                self.version))
+                self.version_str))
 
     def get_dunder_init(self):
         """ Return the contents of the __init__.py to install. """
@@ -504,7 +505,21 @@ class Project(AbstractProject, Configurable):
 
         # Get the metadata and extract the version.
         self.metadata = pyproject.get_metadata()
-        self.version = self.metadata['version']
+        self.version_str = self.metadata['version']
+
+        # Convert the version as a string to number.
+        base_version = packaging.version.parse(self.version_str).base_version
+        base_version = base_version.split('.')
+
+        while len(base_version) < 3:
+            base_version.append('0')
+
+        version = 0
+        for part in base_version:
+            version <<= 8
+            version += int(part)
+
+        self.version = version
 
         # Configure the project.
         self.configure(pyproject, 'tool.sip.project', tool)
