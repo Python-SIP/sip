@@ -133,7 +133,7 @@ class Bindings(Configurable):
         else:
             self.sip_file = self.sip_file.replace('/', os.sep)
 
-        super().apply_user_defaults(tool)
+        super().apply_nonuser_defaults(tool)
 
         if not os.path.isabs(self.sip_file):
             self.sip_file = os.path.join(
