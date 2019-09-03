@@ -51,6 +51,9 @@ class Bindings(Configurable):
         # Set if exception support is enabled.
         Option('exceptions', option_type=bool),
 
+        # The list of extracts to generate.
+        Option('generate_extracts', option_type=list),
+
         # The list of additional .h files.
         Option('headers', option_type=list),
 
@@ -97,9 +100,6 @@ class Bindings(Configurable):
                 tools='build install wheel'),
         Option('docstrings', option_type=bool, inverted=True,
                 help="disable the generation of docstrings",
-                tools='build install wheel'),
-        Option('generate_extracts', option_type=list,
-                help="generate an extract file", metavar="ID:FILE",
                 tools='build install wheel'),
         Option('pep484_pyi', option_type=bool, inverted=True,
                 help="disable the generation of PEP 484 .pyi files",
