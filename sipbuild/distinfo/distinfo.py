@@ -165,6 +165,9 @@ Tag: {}
         if description is not None:
             metadata_f.write('\n')
 
+            # The description file uses posix separators.
+            description = description.replace('/', os.sep)
+
             with open(os.path.join(project_root, description)) as description_f:
                 metadata_f.write(description_f.read())
 
