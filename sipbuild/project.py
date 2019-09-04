@@ -381,6 +381,12 @@ class Project(AbstractProject, Configurable):
     def verify_configuration(self, tool):
         """ Verify that the configuration is complete and consistent. """
 
+        # Make sure relevent paths are absolute and use native separators.
+        self.sip_files_dir = self.sip_files_dir.replace('/', os.sep)
+        if not os.path.isabs(self.sip_files_dir):
+            self.sip_files_dir = os.path.join(self.root_dir,
+                    self.sip_files_dir)
+
         # Make sure we support the targeted version of Python.
         py_version = (self.py_major_version, self.py_minor_version)
         first_version = (3, FIRST_SUPPORTED_MINOR)

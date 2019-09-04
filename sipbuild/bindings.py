@@ -130,21 +130,8 @@ class Bindings(Configurable):
         # Provide a default .sip file name if needed.
         if self.sip_file is None:
             self.sip_file = self.name + '.sip'
-        else:
-            self.sip_file = self.sip_file.replace('/', os.sep)
 
         super().apply_nonuser_defaults(tool)
-
-        if not os.path.isabs(self.sip_file):
-            self.sip_file = os.path.join(
-                    self.project.sip_files_dir.replace('/', os.sep),
-                    self.sip_file)
-
-        # Check the .sip file exists.
-        if not os.path.isfile(self.sip_file):
-            raise UserException(
-                    "the file '{0}' for the {1} bindings does not "
-                            "exist".format(self.sip_file, self.name))
 
     def apply_user_defaults(self, tool):
         """ Set default values for user options that haven't been set yet. """
@@ -163,8 +150,7 @@ class Bindings(Configurable):
         project = self.project
 
         # Parse the input file.
-        pt, fq_name, uses_limited_api, sip_files = parse(
-                os.path.join(project.sip_files_dir, self.sip_file), True,
+        pt, fq_name, uses_limited_api, sip_files = parse(self.sip_file, True,
                 self.tags, None, self.disabled_features,
                 self.protected_is_public)
 
@@ -298,6 +284,17 @@ class Bindings(Configurable):
         project = self.project
 
         super().verify_configuration(tool)
+
+        # Make sure relevent paths are absolute and use native separators.
+        self.sip_file = self.sip_file.replace('/', os.sep)
+        if not os.path.isabs(self.sip_file):
+            self.sip_file = os.path.join(project.sip_files_dir, self.sip_file)
+
+        # Check the .sip file exists.
+        if not os.path.isfile(self.sip_file):
+            raise UserException(
+                    "the file '{0}' for the {1} bindings does not "
+                            "exist".format(self.sip_file, self.name))
 
         # On Windows the interpreter must be a debug build if a debug version
         # is to be built and vice versa.
