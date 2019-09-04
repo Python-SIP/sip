@@ -54,7 +54,8 @@ def distinfo(name, console_scripts, generator, inventory, prefix, project_root,
 
     # Read the list of installed files.
     with open(inventory) as inventory_f:
-        installed = inventory_f.read().strip().split('\n')
+        installed_lines = inventory_f.read().strip()
+        installed = installed_lines.split('\n') if installed_lines else []
 
     if project_root is None:
         # Default to what we can extract from the name of the .dist-info
