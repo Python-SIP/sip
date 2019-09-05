@@ -105,16 +105,12 @@ class Project(AbstractProject, Configurable):
         Option('target_dir', default=get_python_lib(plat_specific=1),
                 help="the target installation directory", metavar="DIR",
                 tools='install'),
-        Option('api_dir', help="generate a QScintilla .api file in DIR",
-                metavar="DIR", tools='build install wheel'),
-    )
-
-    # The configurable options for multiple bindings.
-    _multibindings_options = (
         Option('disable', option_type=list, help="disable the NAME bindings",
                 metavar="NAME", tools='build install wheel'),
         Option('enable', option_type=list, help="enable the NAME bindings",
                 metavar="NAME", tools='build install wheel'),
+        Option('api_dir', help="generate a QScintilla .api file in DIR",
+                metavar="DIR", tools='build install wheel'),
     )
 
     def __init__(self, **kwargs):
@@ -251,8 +247,8 @@ class Project(AbstractProject, Configurable):
         """ Return the list of configurable options. """
 
         options = super().get_options()
+
         options.extend(self._options)
-        options.extend(self._multibindings_options)
 
         return options
 
@@ -448,11 +444,6 @@ class Project(AbstractProject, Configurable):
         all_options = {}
         
         options = self.get_options()
-        if len(self.bindings) < 2:
-            # Remove the options that only make sense where the project has
-            # multiple bindings.
-            for multi in self._multibindings_options:
-                options.remove(multi)
 
         self.add_command_line_options(parser, tool, all_options,
                 options=options)
