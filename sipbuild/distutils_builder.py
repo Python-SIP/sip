@@ -38,6 +38,13 @@ from .installable import Installable
 class DistutilsBuilder(Builder):
     """ The implementation of a distutils-based project builder. """
 
+    def build_executable(self, buildable, fatal=True):
+        """ Build an executable from a BuildableExecutable object and return
+        the relative pathname of the executable.
+        """
+
+        raise UserException("DistutilsBuilder cannot build executables")
+
     def build_project(self, target_dir, wheel=None):
         """ Build the project. """
 

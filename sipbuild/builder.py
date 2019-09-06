@@ -50,6 +50,12 @@ class Builder(AbstractBuilder):
         self.build_project(self.project.target_dir)
 
     @abstractmethod
+    def build_executable(self, buildable, fatal=True):
+        """ Build an executable from a BuildableExecutable object and return
+        the relative pathname of the executable.
+        """
+
+    @abstractmethod
     def build_project(self, target_dir, wheel=None):
         """ Build the project. """
 

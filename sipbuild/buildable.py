@@ -107,6 +107,10 @@ class BuildableFromSources(Buildable):
         return rel_names
 
 
+class BuildableExecutable(BuildableFromSources):
+    """ Encapsulate the sources used to build an executable. """
+
+
 class BuildableModule(BuildableFromSources):
     """ Encapsulate the sources used to build an extension module. """
 
