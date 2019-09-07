@@ -1,3 +1,7 @@
+v4.19.19 ??? September 2019
+  - Added sipIsOwnedByPython(), sipRegisterExitNotifier() and
+    sipVisitWrappers() to the C API.
+
 v4.19.18 5th July 2019
   - Bug fixes.
 
@@ -14,7 +18,7 @@ v4.19.15 19th March 2019
 v4.19.14 10th February 2019
   - The reference count displayed by sip.dump() now has the same caveat as
     sys.getrefcount().
-  - Added SIP_NULLPTR to the public API.
+  - Added SIP_NULLPTR to the C API.
   - Added support for size_t.
   - Added sipLong_AsSizeT() to the C API.
   - Added the '=' format characters to sipBuildResult() and sipParseResult().
