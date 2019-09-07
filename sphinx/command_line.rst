@@ -43,6 +43,8 @@ The full set of command line options is:
 
     .. versionadded:: 4.16
 
+    .. deprecated:: 4.19.19
+
     The tag is added to the list of *backstops*.  The option may be given more
     than once if multiple timelines have been defined.  See the
     :directive:`%Timeline` directive for more details.

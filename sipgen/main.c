@@ -260,6 +260,9 @@ int main(int argc, char **argv)
     }
 
     /* Issue warnings after they (might) have been enabled. */
+    if (backstops != NULL)
+        warning(DeprecationWarning, "the -B flag is deprecated\n");
+
     if (docFile != NULL)
         warning(DeprecationWarning, "the -d flag is deprecated\n");
 
@@ -595,7 +598,7 @@ static void help(void)
 "    -V          display the %s version number\n"
 "    -a file     the name of the QScintilla API file [default not generated]\n"
 "    -b file     the name of the build file [default none generated]\n"
-"    -B tag      add tag to the list of timeline backstops\n"
+"    -B tag      add tag to the list of timeline backstops (deprecated)\n"
 "    -c dir      the name of the code directory [default not generated]\n"
 "    -d file     the name of the documentation file (deprecated) [default not generated]\n"
 "    -D          generate code for a debug build of Python\n"
