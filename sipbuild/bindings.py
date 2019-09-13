@@ -281,6 +281,9 @@ class Bindings(Configurable):
     def verify_configuration(self, tool):
         """ Verify that the configuration is complete and consistent. """
 
+        if tool == 'sdist':
+            return
+
         project = self.project
 
         super().verify_configuration(tool)
