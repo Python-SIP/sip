@@ -256,6 +256,31 @@ class Project(AbstractProject, Configurable):
 
         return options
 
+    def get_requires_dist(self):
+        """ Return any 'Requires-Dist' to add to the project's meta-data. """
+
+        # The only requirement is for the sip module.
+        if not self.sip_module:
+            return None
+
+        requires_dist = self.metadata.get('requires-dist')
+        if requires_dist is None:
+            requires_dist = []
+        elif isinstance(requires_dist, str):
+            requires_dist = [requires_dist]
+
+        # Ignore if the module is already defined.
+        sip_project_name = self.sip_module.replace('.', '-')
+
+        for rd in requires_dist:
+            if rd.split()[0] == sip_project_name:
+                return None
+
+        next_abi_major = int(self.abi_version.split('.')[0]) + 1
+
+        return '{} (>={}, <{})'.format(sip_project_name, self.abi_version,
+                next_abi_major)
+
     def install(self):
         """ Install the project. """
 
@@ -405,30 +430,6 @@ class Project(AbstractProject, Configurable):
             raise PyProjectOptionException('sip-module',
                     "must be defined when the project contains multiple sets "
                             "of bindings")
-
-        # If we use a shared sip module then add the dependency to the
-        # meta-data.
-        if self.sip_module:
-            requires_dist = self.metadata.get('requires-dist')
-            if requires_dist is None:
-                requires_dist = []
-            elif isinstance(requires_dist, str):
-                requires_dist = [requires_dist]
-
-            # Ignore if the module is already defined.
-            sip_project_name = self.sip_module.replace('.', '-')
-
-            for rd in requires_dist:
-                if rd.split()[0] == sip_project_name:
-                    break
-            else:
-                next_abi_major = int(self.abi_version.split('.')[0]) + 1
-
-                requires_dist.insert(0,
-                        '{} (>={}, <{})'.format(sip_project_name,
-                                self.abi_version, next_abi_major))
-
-                self.metadata['requires-dist'] = requires_dist
 
         # Verify the configuration of the builder and bindings.
         self.builder.verify_configuration(tool)

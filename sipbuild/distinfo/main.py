@@ -51,6 +51,9 @@ def main():
     parser.add_argument('--project-root',
             help="the directory containing pyproject.toml", metavar="DIR")
 
+    parser.add_argument('--requires-dist', help="additional Requires-Dist",
+            metavar="EXPR")
+
     parser.add_argument('--wheel-tag',
             help="the tag if a wheel is being created", metavar="TAG")
 
@@ -63,7 +66,7 @@ def main():
         distinfo(name=args.names[0], console_scripts=args.console_scripts,
                 generator=args.generator, inventory=args.inventory,
                 prefix=args.prefix, project_root=args.project_root,
-                wheel_tag=args.wheel_tag)
+                requires_dist=args.requires_dist, wheel_tag=args.wheel_tag)
     except Exception as e:
         handle_exception(e)
 
