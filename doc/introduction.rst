@@ -5,18 +5,16 @@ SIP is a tool for automatically generating `Python <https://www.python.org>`__
 bindings for C and C++ libraries.  SIP was originally developed in 1998 for
 `PyQt <https://www.riverbankcomputing.com/software/pyqt>`__ - the Python
 bindings for the Qt GUI toolkit - but is suitable for generating bindings for
-any C or C++ library.
+any C or C++ library.  SIP can also be used write self contained extension
+modules, i.e. without a library to be wrapped.
 
 This version of SIP generates bindings for Python v3.5 and later.
 
-There are many other similar tools available.  One of the original such tools
-is `SWIG <http://www.swig.org>`__ and, in fact, SIP is so called because it
-started out as a small SWIG.  Unlike SWIG, SIP is specifically designed for
-bringing together Python and C/C++ and goes to great lengths to make the
-integration as tight as possible.
+SIP can be installed from the `Python Package Index
+<https://pypi.org/project/SIP/>`__ using :program:`pip`.
 
-The homepage for SIP is https://www.riverbankcomputing.com/software/sip.  Here
-you will always find the latest stable version and the latest version of this
+The homepage is https://www.riverbankcomputing.com/software/sip.  Here you can
+find the latest development source packages and the latest version of this
 documentation.
 
 SIP can also be downloaded from the
@@ -37,6 +35,17 @@ Features
 --------
 
 SIP, and the bindings it produces, have the following features:
+
+- bindings run under Linux, Windows, macOS, Android and iOS
+
+- bindings can be built to use the `PEP 384
+  <https://www.python.org/dev/peps/pep-0384/>`__ stable ABI so that they do not
+  need to be built for each supported version of Python
+
+- an extendable, `PEP 517
+  <https://www.python.org/dev/peps/pep-0517/>`__-compliant build system that
+  will build and install your bindings and create sdist and wheel files that
+  you can upload to PyPI
 
 - bindings are fast to load and minimise memory consumption especially when
   only a small sub-set of a large library is being used
@@ -102,54 +111,97 @@ SIP, and the bindings it produces, have the following features:
   class library, including any platform specific or optional features, to be
   described in a single set of specification files 
 
-- support for the automatic generation of PEP 484 type hint stub files
+- support for the automatic generation of `PEP 484
+  <https://www.python.org/dev/peps/pep-0484/>`__ type hint stub files
 
 - the ability to include documentation in the specification files which can be
   extracted and subsequently processed by external tools
 
 - the ability to include copyright notices and licensing information in the
   specification files that is automatically included in all generated source
-  code
-
-- a build system, written in Python, that you can extend to configure, compile
-  and install your own bindings without worrying about platform specific issues
-
-- SIP, and the bindings it produces, runs under Linux, Windows, macOS, Android
-  and iOS.
+  code.
 
 
-SIP Components
---------------
+SIP Overview
+------------
 
-At its simplest level the SIP code generator creates the C or C++ source code
-from :file:`.sip` specification files that is compiled to produce a Python
-extension module that implement Python bindings around a C or C++ library.  If
-there are a number of C/C++ libraries then corresponding extension modules may
-be created that make up a single Python package.  The C/C++ libraries will
-typically have mutual dependencies which are reflected in the Python extension
-modules.  The extension modules will automatically import each other as
-required.
+At its simplest a SIP project contains a specification file (:file:`.sip` file)
+that describes the API that the generated bindings will wrap, and a
+:file:`pyproject.toml` file that describes how the bindings will be built.  A
+:ref:`specification <ref-using>` file is very like a C/C++ header file with
+embedded :ref:`directives <ref-directives>` and
+:ref:`annotations <ref-annotations>`.  The format of a :file:`pyproject.toml`
+file is described in `PEP 518 <https://www.python.org/dev/peps/pep-0518/>`__.
 
-The SIP code generator is called :program:`sip5`.  It is covered in detail in
-:ref:`ref-using`.  This is a drop-in replacement for the ``sip`` code generator
-in SIP v4.
+A SIP project can either be a *standalone* project or a *package* project.  A
+standalone project implements a single set of bindings (i.e. a single extension
+module) that cannot be extended by another set of bindings.  A package project
+implements one or more sets of mutually dependent bindings (i.e. one set of
+bindings will import another set of bindings).  Such bindings may be defined in
+the same project or a completely different package project (possibly with a
+different maintainer).  Typically the bindings of all related package projects
+will be installed as part of a single top-level Python package.  For example,
+the whole of PyQt5 is current implemented as 6 separate package projects each
+containing between 1 and 52 sets of bindings all installed as part or the
+:mod:`PyQt5` top-level package.
 
-SIP will also create a ``sip`` extension module for the package that is
-imported automatically by generated extension modules.  This implements a
-number of utility functions used internally by the generated extension modules.
-The ``sip`` module, when compiled, supports a specific version of Python (e.g.
-v3.6 or v3.7) and means that generated extension modules do not have to be
-compiled for a specific version of Python.  The ``sip`` module also implements
-a public API that provides access to Python code of useful low-level features.
+SIP also generates a :mod:`sip` module which performs the following functions:
 
-The ``sip`` extension module implements a binary ABI that is used by generated
-extension module.  SIP will generate a :file:`sip.h` file that defines the ABI
-and is added to the source code of the generated extension modules.
+- it implements a private C API used by the bindings of package projects that
+  allows them to interact
 
-Finally SIP will generate a :file:`sip.rst` reST document that describes the
-public API implemented by the ``sip`` module which can then be included as part
-of any documentation for the generated extension modules.
+- it implements a public C API used by bindings authors in hand-written code in
+  situations where SIP's normal behaviour is insufficient and also when
+  embedding Python in C/C++ applications
 
-The ``sip`` extension module, the :file:`sip.h` header file and the
-:file:`sip.rst` documentation are all created by the :program:`sip5-module`
-program.
+- it implements a public Python API used by application authors typically to
+  configure the behaviour of bindings and to aid debugging.
+
+The :mod:`sip` module does not use the `PEP 384
+<https://www.python.org/dev/peps/pep-0384/>`__ stable ABI and so must be built
+for each supported version of Python.
+
+When used with standalone projects the :mod:`sip` module is not a separate
+module and is instead embedded in the single set of bindings.  When used with
+package projects the :mod:`sip` module is a separate extension module installed
+somewhere under the top-level package.
+
+`PEP 517 <https://www.python.org/dev/peps/pep-0517/>`__ describes the concepts
+of a *build frontend* and a *build backend*.  SIP implements a compliant
+backend and provides a number of frontends each performing a specific type of
+build.
+
+:program:`sip-build`
+    This builds the project but does not install it.  This is useful when
+    developing a set of bindings.
+
+:program:`sip-install`
+    This builds and installs the bindings.
+
+:program:`sip-sdist`
+    This creates an sdist (a source distribution) that can be uploaded to PyPI.
+
+:program:`sip-wheel`
+    This creates a wheel (a binary distribution) that can be uploaded to PyPI.
+
+:program:`pip` can also be used as a build frontend.  This has the advantage
+that the user does not need to explicitly install SIP, :program:`pip` will do
+that automatically.  However it has the disadvantage that :program:`pip` does
+not (yet) allow the user to configure the backend using command line options.
+
+SIP also includes some additional command line tools.
+
+:program:`sip-module`
+    This builds and installs the :mod:`sip` module for one or more package
+    projects.  It will optionally create an sdist for the module that can be
+    uploaded to PyPI or built as a wheel.
+
+:program:`sip5`
+    This is is a drop-in replacement for the :program:`sip` code generator from
+    SIP v4.  It is provided as an aid in moving projects from SIP v4 to SIP v5
+    and will be removed in SIP v6.
+
+:program:`sip5-header`
+    This installs a local copy of the :file:`sip.h` file included with SIP v4.
+    It is provided as an aid in moving projects from SIP v4 to SIP v5 and will
+    be removed in SIP v6.

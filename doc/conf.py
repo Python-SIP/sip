@@ -48,7 +48,7 @@ copyright = '{0} Riverbank Computing Limited'.format(
 # built documents.
 #
 # The full version, including alpha/beta/rc tags.
-version_file = open(os.path.join('..', 'sip5', 'version.py'))
+version_file = open(os.path.join('..', 'sipbuild', 'version.py'))
 release = version_file.read().strip().split('\n')[1].split()[-1][1:-1]
 version_file.close()
 del version_file
