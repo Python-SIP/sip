@@ -48,7 +48,7 @@ class DistutilsBuilder(Builder):
     def build_project(self, target_dir, wheel=None):
         """ Build the project. """
 
-        for buildable in self.buildables:
+        for buildable in self.project.buildables:
             if isinstance(buildable, BuildableModule):
                 if buildable.static:
                     raise UserException(
@@ -76,14 +76,12 @@ class DistutilsBuilder(Builder):
             for installable in buildable.installables:
                 installable.install(target_dir, installed)
 
-        create_distinfo(project.get_distinfo_name(), wheel, installed,
+        create_distinfo(project.get_distinfo_dir(target_dir), wheel, installed,
                 project.metadata, project.get_requires_dist(),
                 project.root_dir, project.console_scripts)
 
     def _build_extension_module(self, buildable):
-        """ Build an extension module from the sources and return its full
-        pathname.
-        """
+        """ Build an extension module from the sources. """
 
         project = self.project
 
@@ -132,9 +130,11 @@ class DistutilsBuilder(Builder):
                     detail=str(e))
 
         # Add the extension module to the buildable's list of installables.
-        buildable.installables.append(
-                Installable('module',
-                        target_subdir=buildable.get_install_subdir()))
+        installable = Installable('module',
+                target_subdir=buildable.get_install_subdir())
+        installable.files.append(
+                module_builder.get_ext_fullpath(buildable.fq_name))
+        buildable.installables.append(installable)
 
         os.chdir(saved_cwd)
 

@@ -233,7 +233,7 @@ class Project(AbstractProject, Configurable):
 
         return os.path.join(*name_parts)
 
-    def get_distinfo_name(self, target_dir):
+    def get_distinfo_dir(self, target_dir):
         """ Return the name of the .dist-info directory for a target directory.
         """
 
@@ -425,11 +425,16 @@ class Project(AbstractProject, Configurable):
         # Make sure we have a valid ABI version.
         self.abi_version = resolve_abi_version(self.abi_version)
 
-        # Check we have the name of the sip module if it is shared.
-        if len(self.bindings) > 1 and not self.sip_module:
-            raise PyProjectOptionException('sip-module',
-                    "must be defined when the project contains multiple sets "
-                            "of bindings")
+        # Checks for standalone projects.
+        if not self.sip_module:
+            # Check there is only one set of bindings.
+            if len(self.bindings) > 1:
+                raise PyProjectOptionException('sip-module',
+                        "must be defined when the project contains multiple "
+                        "sets of bindings")
+
+            # Disable __init__.py.
+            self.dunder_init = False
 
         # Verify the configuration of the builder and bindings.
         self.builder.verify_configuration(tool)
