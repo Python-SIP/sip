@@ -1,5 +1,7 @@
-SIP Specification Files
-=======================
+.. _ref-specification:
+
+Specification Files
+===================
 
 A SIP specification consists of some C/C++ type and function declarations and
 some directives.  The declarations may contain annotations which provide SIP

@@ -122,14 +122,14 @@ SIP, and the bindings it produces, have the following features:
   code.
 
 
-SIP Overview
-------------
+Overview
+--------
 
 At its simplest a SIP project contains a specification file (:file:`.sip` file)
 that describes the API that the generated bindings will wrap, and a
 :file:`pyproject.toml` file that describes how the bindings will be built.  A
-:ref:`specification <ref-using>` file is very like a C/C++ header file with
-embedded :ref:`directives <ref-directives>` and
+:ref:`specification <ref-specification>` file is very like a C/C++ header file
+with embedded :ref:`directives <ref-directives>` and
 :ref:`annotations <ref-annotations>`.  The format of a :file:`pyproject.toml`
 file is described in `PEP 518 <https://www.python.org/dev/peps/pep-0518/>`__.
 
@@ -147,10 +147,10 @@ containing between 1 and 52 sets of bindings all installed as part or the
 
 SIP also generates a :mod:`sip` module which performs the following functions:
 
-- it implements a private C API used by the bindings of package projects that
+- it implements a private C ABI used by the bindings of package projects that
   allows them to interact
 
-- it implements a public C API used by bindings authors in hand-written code in
+- it implements a public C ABI used by bindings authors in hand-written code in
   situations where SIP's normal behaviour is insufficient and also when
   embedding Python in C/C++ applications
 
@@ -160,6 +160,10 @@ SIP also generates a :mod:`sip` module which performs the following functions:
 The :mod:`sip` module does not use the `PEP 384
 <https://www.python.org/dev/peps/pep-0384/>`__ stable ABI and so must be built
 for each supported version of Python.
+
+The version number of the :mod:`sip` module is the version number of the ABI
+that the module implements. Like SIP itself, this uses `semantic versioning
+<https://semver.org/spec/v2.0.0.html>`__.
 
 When used with standalone projects the :mod:`sip` module is not a separate
 module and is instead embedded in the single set of bindings.  When used with
@@ -191,6 +195,12 @@ not (yet) allow the user to configure the backend using command line options.
 
 SIP also includes some additional command line tools.
 
+:program:`sip-distinfo`
+    This creates and populates a :file:`.dist-info` directory of an
+    installation or a wheel.  It is provided for build systems that extend the
+    SIP build system and need to create the :file:`.dist-info` directory from
+    an external tool such as :program:`make`.
+
 :program:`sip-module`
     This builds and installs the :mod:`sip` module for one or more package
     projects.  It will optionally create an sdist for the module that can be
@@ -205,3 +215,14 @@ SIP also includes some additional command line tools.
     This installs a local copy of the :file:`sip.h` file included with SIP v4.
     It is provided as an aid in moving projects from SIP v4 to SIP v5 and will
     be removed in SIP v6.
+
+
+Installation
+------------
+
+To install SIP from PyPI, run::
+
+    pip install sip
+
+SIP is also included with all of the major Linux distributions.  However, it
+may be a version or two out of date.

@@ -5,7 +5,7 @@ SIP Reference Guide
     :maxdepth: 2
 
     introduction
-    installation
+    examples
     sip5
     sip5_module
     using
