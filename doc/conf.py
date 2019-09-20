@@ -115,32 +115,32 @@ htmlhelp_basename = 'SIPdoc'
 def setup(app):
     """ Define roles specific to SIP. """
 
-    app.add_description_unit('argument-annotation', 'aanno',
+    app.add_object_type('argument-annotation', 'aanno',
             indextemplate='single: %s (argument annotation)')
 
-    app.add_description_unit('class-annotation', 'canno',
+    app.add_object_type('class-annotation', 'canno',
             indextemplate='single: %s (class annotation)')
 
-    app.add_description_unit('enum-annotation', 'eanno',
+    app.add_object_type('enum-annotation', 'eanno',
             indextemplate='single: %s (enum annotation)')
 
-    app.add_description_unit('exception-annotation', 'xanno',
+    app.add_object_type('exception-annotation', 'xanno',
             indextemplate='single: %s (exception annotation)')
 
-    app.add_description_unit('function-annotation', 'fanno',
+    app.add_object_type('function-annotation', 'fanno',
             indextemplate='single: %s (function annotation)')
 
-    app.add_description_unit('mapped-type-annotation', 'manno',
+    app.add_object_type('mapped-type-annotation', 'manno',
             indextemplate='single: %s (mapped type annotation)')
 
-    app.add_description_unit('typedef-annotation', 'tanno',
+    app.add_object_type('typedef-annotation', 'tanno',
             indextemplate='single: %s (typedef annotation)')
 
-    app.add_description_unit('variable-annotation', 'vanno',
+    app.add_object_type('variable-annotation', 'vanno',
             indextemplate='single: %s (variable annotation)')
 
-    app.add_description_unit('directive', 'directive',
-            indextemplate='single: %s (directive)')
-
-    app.add_description_unit('sip-type', 'stype',
+    app.add_object_type('sip-type', 'stype',
             indextemplate='single: %s (SIP type)')
+
+    app.add_crossref_type('directive', 'directive',
+            indextemplate='single: %s (directive)')

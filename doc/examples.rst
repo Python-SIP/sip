@@ -90,8 +90,9 @@ Using a Real Library
 
 If there was a real ``fib`` library to be wrapped, with a corresponding
 :file:`fib.h` header file, then the :file:`pyproject.toml` file would look more
-like that shown below::
+like that shown below.
 
+.. parsed-literal::
     # Specify sip v5 as the build system for the package.
     [build-system]
     requires = ["sip >=5, <6"]
@@ -115,8 +116,9 @@ compiler.
 Note that POSIX path separators are used.  SIP will automatically convert these
 to native path separators when required.
 
-The :file:`.sip` file would look more like that shown below::
+The :file:`.sip` file would look more like that shown below.
 
+.. parsed-literal::
     // Define the SIP wrapper to the (actual) fib library.
 
     %Module(name=fib, language="C")

@@ -5,21 +5,10 @@ Directives
 
 In this section we describe each of the directives that can be used in
 specification files.  All directives begin with ``%`` as the first
-non-whitespace character in a line.
-
-Some directives have arguments or contain blocks of code or documentation.  In
-the following descriptions these are shown in *italics*.  Optional arguments
-are enclosed in [*brackets*].
-
-Some directives are used to specify handwritten code.  Handwritten code must
-not define names that start with the prefix ``sip``.
-
-
-Directive Syntax
-----------------
+non-whitespace character in a line.  The format of a generic directive is
+shown below.
 
 .. parsed-literal::
-
     %Directive(arg = value, ...)
     {
         %Sub-directive
@@ -39,10 +28,9 @@ Sub-directives may be specified in any order.  If no sub-directives are
 specified then the braces can be omitted.
 
 If a directive is used to specify handwritten code then it may not have
-sub-directives.  In this case the syntax is:
+sub-directives.  In this case the format is:
 
 .. parsed-literal::
-
     %Directive(arg = value, ...)
         *code*
     %End
@@ -50,14 +38,19 @@ sub-directives.  In this case the syntax is:
 Ordinary C/C++ statements may also have sub-directives.  These will also be
 enclosed in braces.
 
+In the following descriptions arguments or blocks are shown in *italics*.
+Optional arguments are enclosed in [*brackets*].
 
-List of Directives
-------------------
+Some directives are used to specify handwritten code.  Handwritten code must
+not define names that start with the prefix ``sip``.
+
 
 .. directive:: %AccessCode
 
-.. parsed-literal::
+:directive:`%AccessCode`
+------------------------
 
+.. parsed-literal::
     %AccessCode
         *code*
     %End
@@ -89,11 +82,13 @@ For example::
 
 .. directive:: %API
 
+:directive:`%API`
+-----------------
+
 .. deprecated:: 5.0
-    This will be removed in v5.1.
+    This will be removed in v6.
 
 .. parsed-literal::
-
     %API(name = *name*, version = *integer*)
 
 This directive is used to define an API and set its default version number.  A
@@ -108,8 +103,10 @@ For example::
 
 .. directive:: %AutoPyName
 
-.. parsed-literal::
+:directive:`%AutoPyName`
+------------------------
 
+.. parsed-literal::
     %AutoPyName(remove_leading = *string*)
 
 This is a sub-directive of the :directive:`%Module` directive used to specify a
@@ -131,8 +128,10 @@ For example::
 
 .. directive:: %BIGetBufferCode
 
-.. parsed-literal::
+:directive:`%BIGetBufferCode`
+-----------------------------
 
+.. parsed-literal::
     %BIGetBufferCode
         *code*
     %End
@@ -175,11 +174,13 @@ PyObject \*sipSelf
 
 .. directive:: %BIGetCharBufferCode
 
+:directive:`%BIGetCharBufferCode`
+---------------------------------
+
 .. deprecated:: 5.0
-    This will be removed in v5.1.
+    This will be removed in v6.
 
 .. parsed-literal::
-
     %BIGetCharBufferCode
         *code*
     %End
@@ -189,11 +190,13 @@ This directive is ignored.
 
 .. directive:: %BIGetReadBufferCode
 
+:directive:`%BIGetReadBufferCode`
+---------------------------------
+
 .. deprecated:: 5.0
-    This will be removed in v5.1.
+    This will be removed in v6.
 
 .. parsed-literal::
-
     %BIGetReadBufferCode
         *code*
     %End
@@ -203,11 +206,13 @@ This directive is ignored.
 
 .. directive:: %BIGetSegCountCode
 
+:directive:`%BIGetSegCountCode`
+-------------------------------
+
 .. deprecated:: 5.0
-    This will be removed in v5.1.
+    This will be removed in v6.
 
 .. parsed-literal::
-
     %BIGetSegCountCode
         *code*
     %End
@@ -217,11 +222,13 @@ This directive is ignored.
 
 .. directive:: %BIGetWriteBufferCode
 
+:directive:`%BIGetWriteBufferCode`
+----------------------------------
+
 .. deprecated:: 5.0
-    This will be removed in v5.1.
+    This will be removed in v6.
 
 .. parsed-literal::
-
     %BIGetWriteBufferCode
         *code*
     %End
@@ -231,8 +238,10 @@ This directive is ignored.
 
 .. directive:: %BIReleaseBufferCode
 
-.. parsed-literal::
+:directive:`%BIReleaseBufferCode`
+---------------------------------
 
+.. parsed-literal::
     %BIReleaseBufferCode
         *code*
     %End
@@ -259,8 +268,10 @@ PyObject \*sipSelf
 
 .. directive:: %CompositeModule
 
-.. parsed-literal::
+:directive:`%CompositeModule`
+-----------------------------
 
+.. parsed-literal::
     %CompositeModule(name = *dotted-name*)
     {
         [:directive:`%Docstring`]
@@ -296,8 +307,10 @@ don't have to remember which individual module an object is defined in.
 
 .. directive:: %ConvertFromTypeCode
 
-.. parsed-literal::
+:directive:`%ConvertFromTypeCode`
+---------------------------------
 
+.. parsed-literal::
     %ConvertFromTypeCode
         *code*
     %End
@@ -371,8 +384,10 @@ list of ``QWidget`` instances::
 
 .. directive:: %ConvertToSubClassCode
 
-.. parsed-literal::
+:directive:`%ConvertToSubClassCode`
+-----------------------------------
 
+.. parsed-literal::
     %ConvertToSubClassCode
         *code*
     %End
@@ -442,8 +457,10 @@ class hierarchy in PyQt5::
 
 .. directive:: %ConvertToTypeCode
 
-.. parsed-literal::
+:directive:`%ConvertToTypeCode`
+-------------------------------
 
+.. parsed-literal::
     %ConvertToTypeCode
         *code*
     %End
@@ -584,8 +601,10 @@ prevent recursive calls to the handwritten code.
 
 .. directive:: %Copying
 
-.. parsed-literal::
+:directive:`%Copying`
+---------------------
 
+.. parsed-literal::
     %Copying
         *text*
     %End
@@ -603,8 +622,10 @@ For example::
 
 .. directive:: %DefaultDocstringFormat
 
-.. parsed-literal::
+:directive:`%DefaultDocstringFormat`
+------------------------------------
 
+.. parsed-literal::
     %DefaultDocstringFormat(name = ["raw" | "deindented"])
 
 This directive is used to specify the default formatting of docstrings, i.e.
@@ -621,8 +642,10 @@ For example::
 
 .. directive:: %DefaultDocstringSignature
 
-.. parsed-literal::
+:directive:`%DefaultDocstringSignature`
+---------------------------------------
 
+.. parsed-literal::
     %DefaultDocstringSignature(name = ["discarded" | "prepended" | "appended"])
 
 This directive is used to specify the default positioning of signatures in
@@ -640,8 +663,10 @@ For example::
 
 .. directive:: %DefaultEncoding
 
-.. parsed-literal::
+:directive:`%DefaultEncoding`
+-----------------------------
 
+.. parsed-literal::
     %DefaultEncoding(name = ["ASCII" | "Latin-1" | "UTF-8" | "None"])
 
 This directive is used to specify the default encoding used for ``char``,
@@ -659,8 +684,10 @@ For example::
 
 .. directive:: %DefaultMetatype
 
-.. parsed-literal::
+:directive:`%DefaultMetatype`
+-----------------------------
 
+.. parsed-literal::
     %DefaultMetatype(name = *dotted-name*)
 
 This directive is used to specify the Python type that should be used as the
@@ -681,8 +708,10 @@ For example::
 
 .. directive:: %DefaultSupertype
 
-.. parsed-literal::
+:directive:`%DefaultSupertype`
+------------------------------
 
+.. parsed-literal::
     %DefaultSupertype(name = *dotted-name*)
 
 This directive is used to specify the Python type that should be used as the
@@ -703,8 +732,10 @@ For example::
 
 .. directive:: %Docstring
 
-.. parsed-literal::
+:directive:`%Docstring`
+-----------------------
 
+.. parsed-literal::
     %Docstring(format = ["raw" | "deindented"], signature = ["discarded" | "prepended" | "appended"])
         *text*
     %End
@@ -719,7 +750,6 @@ The docstring of a function or method is made up of the concatenated docstrings
 specified for each of the overloads.
 
 .. note::
-
     Specifying an explicit docstring will mean that SIP will generate less
     informative exceptions (i.e. without a full signature) when it fails to
     match a set of arguments to any function or method overload.
@@ -774,14 +804,19 @@ For example::
 
 .. directive:: %End
 
+:directive:`%End`
+-----------------
+
 This isn't a directive in itself, but is used to terminate a number of
 directives that allow a block of handwritten code or text to be specified.
 
 
 .. directive:: %Exception
 
-.. parsed-literal::
+:directive:`%Exception`
+-----------------------
 
+.. parsed-literal::
     %Exception *name* [(*base-exception*)]
     {
         [:directive:`%TypeHeaderCode`]
@@ -832,8 +867,10 @@ be caught by default if there is no ``throw`` clause.
 
 .. directive:: %ExportedHeaderCode
 
-.. parsed-literal::
+:directive:`%ExportedHeaderCode`
+--------------------------------
 
+.. parsed-literal::
     %ExportedHeaderCode
         *code*
     %End
@@ -848,8 +885,10 @@ Python modules should not explicitly call functions in another Python module.
 
 .. directive:: %ExportedTypeHintCode
 
-.. parsed-literal::
+:directive:`%ExportedTypeHintCode`
+----------------------------------
 
+.. parsed-literal::
     %ExportedTypeHintCode
         *code*
     %End
@@ -864,8 +903,10 @@ itself.
 
 .. directive:: %Extract
 
-.. parsed-literal::
+:directive:`%Extract`
+---------------------
 
+.. parsed-literal::
     %Extract(id = *name* [, order = *integer*])
         *text*
     %End
@@ -900,8 +941,10 @@ For example::
 
 .. directive:: %Feature
 
-.. parsed-literal::
+:directive:`%Feature`
+---------------------
 
+.. parsed-literal::
     %Feature(name = *name*)
 
 This directive is used to declare a feature.  Features (along with
@@ -928,8 +971,10 @@ For example::
 
 .. directive:: %FinalisationCode
 
-.. parsed-literal::
+:directive:`%FinalisationCode`
+------------------------------
 
+.. parsed-literal::
     %FinalisationCode
         *code*
     %End
@@ -970,8 +1015,10 @@ PyObject \*\*sipUnused
 
 .. directive:: %GCClearCode
 
-.. parsed-literal::
+:directive:`%GCClearCode`
+-------------------------
 
+.. parsed-literal::
     %GCClearCode
         *code*
     %End
@@ -1022,8 +1069,10 @@ always a Python object and so should be handled by the garbage collector::
 
 .. directive:: %GCTraverseCode
 
-.. parsed-literal::
+:directive:`%GCTraverseCode`
+----------------------------
 
+.. parsed-literal::
     %GCTraverseCode
         *code*
     %End
@@ -1066,8 +1115,10 @@ The following simplified example is taken from PyQt5's ``QCustomEvent`` class::
 
 .. directive:: %GetCode
 
-.. parsed-literal::
+:directive:`%GetCode`
+---------------------
 
+.. parsed-literal::
     %GetCode
         *code*
     %End
@@ -1141,8 +1192,10 @@ For example::
 
 .. directive:: %HideNamespace
 
-.. parsed-literal::
+:directive:`%HideNamespace`
+---------------------------
 
+.. parsed-literal::
     %HideNamespace(name = *name*)
 
 This directive is used to specify that a C++ namespace, which would normally be
@@ -1156,8 +1209,10 @@ indirection.
 
 .. directive:: %If
 
-.. parsed-literal::
+:directive:`%If`
+----------------
 
+.. parsed-literal::
     %If (*expression*)
         *specification*
     %End
@@ -1165,7 +1220,6 @@ indirection.
 where
 
 .. parsed-literal::
-
     *expression* ::= [*ored-qualifiers* | *range*]
 
     *ored-qualifiers* ::= [*qualifier* | *qualifier* **||** *ored-qualifiers*]
@@ -1207,8 +1261,8 @@ For example::
         // Process this if either V2_0 or V3_0 is enabled.
     %End
 
-    %If (SIP_4_13 - )
-        // SIP v4.13 and later will process this.
+    %If (SIP_5_1_0 - )
+        // SIP v5.1.0 and later will process this.
     %End
 
     %If ( - )
@@ -1221,8 +1275,10 @@ nested :directive:`%If` directives.
 
 .. directive:: %Import
 
-.. parsed-literal::
+:directive:`%Import`
+--------------------
 
+.. parsed-literal::
     %Import(name = *filename*)
 
 This directive is used to import the specification of another module.  This is
@@ -1239,13 +1295,15 @@ Directory separators must always be ``/``.
 
 For example::
 
-    %Import qt/qtmod.sip
+    %Import QtCore/QtCoremod.sip
 
 
 .. directive:: %Include
 
-.. parsed-literal::
+:directive:`%Include`
+---------------------
 
+.. parsed-literal::
     %Include(name = *filename* [, optional = [True | False]])
 
 This directive is used to include contents of another file as part of the
@@ -1268,8 +1326,10 @@ For example::
 
 .. directive:: %InitialisationCode
 
-.. parsed-literal::
+:directive:`%InitialisationCode`
+--------------------------------
 
+.. parsed-literal::
     %InitialisationCode
         *code*
     %End
@@ -1291,8 +1351,10 @@ For example::
 
 .. directive:: %InstanceCode
 
-.. parsed-literal::
+:directive:`%InstanceCode`
+--------------------------
 
+.. parsed-literal::
     %InstanceCode
         *code*
     %End
@@ -1315,8 +1377,10 @@ The following variable is made available to the handwritten code:
 
 .. directive:: %License
 
-.. parsed-literal::
+:directive:`%License`
+---------------------
 
+.. parsed-literal::
     %License(type = *string*
             [, licensee = *string*]
             [, signature = *string*]
@@ -1352,8 +1416,10 @@ For example::
 
 .. directive:: %MappedType
 
-.. parsed-literal::
+:directive:`%MappedType`
+------------------------
 
+.. parsed-literal::
     template<*type-list*>
     %MappedType *type*
     {
@@ -1493,8 +1559,10 @@ instances when appropriate.
 
 .. directive:: %MethodCode
 
-.. parsed-literal::
+:directive:`%MethodCode`
+------------------------
 
+.. parsed-literal::
     %MethodCode
         *code*
     %End
@@ -1699,8 +1767,10 @@ then the pattern should instead be::
 
 .. directive:: %Module
 
-.. parsed-literal::
+:directive:`%Module`
+--------------------
 
+.. parsed-literal::
     %Module(name = *dotted-name*
             [, all_raise_py_exception = [True | False]]
             [, call_super_init = [True | False]]
@@ -1770,8 +1840,10 @@ For example::
 
 .. directive:: %ModuleCode
 
-.. parsed-literal::
+:directive:`%ModuleCode`
+------------------------
 
+.. parsed-literal::
     %ModuleCode
         *code*
     %End
@@ -1796,8 +1868,10 @@ For example::
 
 .. directive:: %ModuleHeaderCode
 
-.. parsed-literal::
+:directive:`%ModuleHeaderCode`
+------------------------------
 
+.. parsed-literal::
     %ModuleHeaderCode
         *code*
     %End
@@ -1817,8 +1891,10 @@ For example::
 
 .. directive:: %PickleCode
 
-.. parsed-literal::
+:directive:`%PickleCode`
+------------------------
 
+.. parsed-literal::
     %PickleCode
         *code*
     %End
@@ -1861,8 +1937,10 @@ handwritten code.
 
 .. directive:: %Platforms
 
-.. parsed-literal::
+:directive:`%Platforms`
+-----------------------
 
+.. parsed-literal::
     %Platforms {*name* *name* ...}
 
 This directive is used to declare a set of platforms.  Platforms (along with
@@ -1893,8 +1971,10 @@ For example::
 
 .. directive:: %PostInitialisationCode
 
-.. parsed-literal::
+:directive:`%PostInitialisationCode`
+------------------------------------
 
+.. parsed-literal::
     %PostInitialisationCode
         *code*
     %End
@@ -1920,8 +2000,10 @@ For example::
 
 .. directive:: %PreInitialisationCode
 
-.. parsed-literal::
+:directive:`%PreInitialisationCode`
+-----------------------------------
 
+.. parsed-literal::
     %PreInitialisationCode
         *code*
     %End
@@ -1939,8 +2021,10 @@ For example::
 
 .. directive:: %Property
 
-.. parsed-literal::
+:directive:`%Property`
+----------------------
 
+.. parsed-literal::
     %Property(name = *name*, get = *name* [, set = *name*])
     {
         [:directive:`%Docstring`]
@@ -1972,8 +2056,10 @@ For example::
 
 .. directive:: %PreMethodCode
 
-.. parsed-literal::
+:directive:`%PreMethodCode`
+---------------------------
 
+.. parsed-literal::
     %PreMethodCode
         *code*
     %End
@@ -1986,8 +2072,10 @@ before the :directive:`%MethodCode` directive if it is also given.
 
 .. directive:: %RaiseCode
 
-.. parsed-literal::
+:directive:`%RaiseCode`
+-----------------------
 
+.. parsed-literal::
     %RaiseCode
         *code*
     %End
@@ -2018,8 +2106,10 @@ See the :directive:`%Exception` directive for an example.
 
 .. directive:: %SetCode
 
-.. parsed-literal::
+:directive:`%SetCode`
+---------------------
 
+.. parsed-literal::
     %SetCode
         *code*
     %End
@@ -2055,8 +2145,10 @@ PyObject \*sipPyType
 
 .. directive:: %Timeline
 
-.. parsed-literal::
+:directive:`%Timeline`
+----------------------
 
+.. parsed-literal::
     %Timeline {*name* *name* ...}
 
 This directive is used to declare a set of versions released over a period of
@@ -2104,8 +2196,10 @@ For example::
 
 .. directive:: %TypeCode
 
-.. parsed-literal::
+:directive:`%TypeCode`
+----------------------
 
+.. parsed-literal::
     %TypeCode
         *code*
     %End
@@ -2140,8 +2234,10 @@ option is used.
 
 .. directive:: %TypeHeaderCode
 
-.. parsed-literal::
+:directive:`%TypeHeaderCode`
+----------------------------
 
+.. parsed-literal::
     %TypeHeaderCode
         *code*
     %End
@@ -2167,8 +2263,10 @@ For example::
 
 .. directive:: %TypeHintCode
 
-.. parsed-literal::
+:directive:`%TypeHintCode`
+--------------------------
 
+.. parsed-literal::
     %TypeHintCode
         *code*
     %End
@@ -2182,8 +2280,10 @@ placed in the PEP 484 type hint stub file for the module or class.
 
 .. directive:: %UnitCode
 
-.. parsed-literal::
+:directive:`%UnitCode`
+----------------------
 
+.. parsed-literal::
     %UnitCode
         *code*
     %End
@@ -2195,8 +2295,10 @@ typically used to ``#include`` a C++ precompiled header file.
 
 .. directive:: %UnitPostIncludeCode
 
-.. parsed-literal::
+:directive:`%UnitPostIncludeCode`
+---------------------------------
 
+.. parsed-literal::
     %UnitPostIncludeCode
         *code*
     %End
@@ -2208,8 +2310,10 @@ C++ source file).
 
 .. directive:: %VirtualCallCode
 
-.. parsed-literal::
+:directive:`%VirtualCallCode`
+-----------------------------
 
+.. parsed-literal::
     %VirtualCallCode
         *code*
     %End
@@ -2242,8 +2346,10 @@ context of a method:
 
 .. directive:: %VirtualCatcherCode
 
-.. parsed-literal::
+:directive:`%VirtualCatcherCode`
+--------------------------------
 
+.. parsed-literal::
     %VirtualCatcherCode
         *code*
     %End
@@ -2364,8 +2470,10 @@ For example::
 
 .. directive:: %VirtualErrorHandler
 
-.. parsed-literal::
+:directive:`%VirtualErrorHandler`
+---------------------------------
 
+.. parsed-literal::
     %VirtualErrorHandler(name = *name*)
         *code*
     %End
