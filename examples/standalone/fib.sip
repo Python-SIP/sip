@@ -1,4 +1,4 @@
-// Define the SIP wrapper to the fib library.
+// Define the SIP wrapper to the (theoretical) fib library.
 
 %Module(name=fib, language="C")
 
