@@ -924,6 +924,14 @@ extract.
 An extract is written to a file using the :option:`-X <sip5 -X>` command line
 option.
 
+TODO: sip-extract???
+
+sip-extract --id NAME [--output FILE] .sip
+
+It needs to recognise timelines, features and platforms and so there needs to
+be a Bindings.extract() similar to Bindings.generate().  Does this mean that
+sip-extract is a tool like sip-build etc?
+
 For example::
 
     %Extract example
@@ -954,7 +962,8 @@ are processed or ignored.
 
 Features are mutually independent of each other - any combination of features
 may be enabled or disabled.  By default all features are enabled.  The
-:option:`-x <sip5 -x>` command line option is used to disable a feature.
+``disabled-features`` value of the bindings section in :file:`pyproject.toml`
+is used to specify any disabled features.
 
 If a feature is enabled then SIP will automatically generate a corresponding C
 preprocessor symbol for use by handwritten code.  The symbol is the name of
@@ -1289,7 +1298,7 @@ If ``name`` cannot be opened then SIP prepends ``name`` with the name of the
 directory containing the current specification file (i.e. the one containing
 the :directive:`%Import` directive) and tries again.  If this also fails then
 SIP prepends ``name`` with each of the directories, in turn, specified by the
-:option:`-I <sip5 -I>` command line option.
+``sip-include-dirs`` value of the project section in :file:`pyproject.toml`.
 
 Directory separators must always be ``/``.
 
@@ -1949,8 +1958,8 @@ This directive is used to declare a set of platforms.  Platforms (along with
 are processed or ignored.
 
 Platforms are mutually exclusive - only one platform can be enabled at a time.
-By default all platforms are disabled.  The SIP :option:`-t <sip5 -t>` command
-line option is used to enable a platform.
+By default all platforms are disabled.  The ``tags`` value of the bindings
+section in :file:`pyproject.toml` is used to enable a platform.
 
 If a platform is enabled then SIP will automatically generate a corresponding C
 preprocessor symbol for use by handwritten code.  The symbol is the name of
@@ -2157,21 +2166,16 @@ are used by the :directive:`%If` directive to control whether or not parts of a
 specification are processed or ignored.
 
 Versions are mutually exclusive - only one version can be enabled at a time.
-The SIP :option:`-t <sip5 -t>` command line option is used to enable a version.
-If a timeline does not have a version explicitly enabled then the latest
-version will be enabled automatically.
-
-The :option:`-B <sip5 -B>` command line option may be used to define a
-*backstop* for a timeline.  Instead of automatically enabling the latest
-version, the version immediately preceeding the backstop is enabled instead.
+The ``tags`` value of the bindings section in :file:`pyproject.toml` is used to
+enable a version.  If a timeline does not have a version explicitly enabled
+then the latest version will be enabled automatically.
 
 The :directive:`%Timeline` directive can be used any number of times in a
 module to allow multiple libraries to be wrapped in the same module.
 
-SIP automatically defines a timeline containing all versions of SIP since
-v4.12.  The name of the version is ``SIP_`` followed by the individual parts of
-the version number separated by an underscore.  SIP v4.12 is therefore
-``SIP_4_12`` and SIP v4.13.2 is ``SIP_4_13_2``.
+SIP automatically defines a timeline containing all versions of SIP.  The name
+of the version is ``SIP_`` followed by the individual parts of the version
+number separated by an underscore.  SIP v5.0.1 is therefore ``SIP_5_0_1``.
 
 If a particular version is enabled then SIP will automatically generate a
 corresponding C preprocessor symbol for use by handwritten code.  The symbol is
