@@ -132,7 +132,7 @@ class Project(AbstractProject, Configurable):
 
         self._temp_build_dir = None
 
-    def apply_nonuser_defaults(self, tool):
+    def apply_nonuser_options(self, tool):
         """ Set default values for non-user options that haven't been set yet.
         """
 
@@ -161,9 +161,9 @@ class Project(AbstractProject, Configurable):
         if self.py_debug is None:
             self.py_debug = hasattr(sys, 'gettotalrefcount')
 
-        super().apply_nonuser_defaults(tool)
+        super().apply_nonuser_options(tool)
 
-    def apply_user_defaults(self, tool):
+    def apply_user_options(self, tool):
         """ Set default values for user options that haven't been set yet. """
 
         # If we the backend to a 3rd-party frontend (most probably pip) then
@@ -186,17 +186,17 @@ class Project(AbstractProject, Configurable):
                 self._temp_build_dir = tempfile.TemporaryDirectory()
                 self.build_dir = self._temp_build_dir.name
 
-        super().apply_user_defaults(tool)
+        super().apply_user_options(tool)
 
         # Adjust the list of bindings according to what has been explicitly
         # enabled and disabled.
         self._enable_disable_bindings()
 
         # Set the user defaults for the builder and bindings.
-        self.builder.apply_user_defaults(tool)
+        self.builder.apply_user_options(tool)
 
         for bindings in self.bindings.values():
-            bindings.apply_user_defaults(tool)
+            bindings.apply_user_options(tool)
 
     def build(self):
         """ Build the project in-situ. """
@@ -351,7 +351,7 @@ class Project(AbstractProject, Configurable):
             self._configure_from_command_line(tool, tool_description)
 
         # Make sure the configuration is complete.
-        self.apply_user_defaults(tool)
+        self.apply_user_options(tool)
 
         # Configure the warnings module.
         if not self.verbose:
