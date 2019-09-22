@@ -1,8 +1,16 @@
 Legacy Command Line Tools
 =========================
 
+The command line tools described in this section are provided as an aid in
+moving projects from the SIP v4 build system (such as it is) to the SIP v5
+build system.  They will be removed in SIP v6.
+
+
 :program:`sip5`
 ---------------
+
+:program:`sip5` is a drop-in replacement for the :program:`sip` code generator
+included with SIP v4.
 
 The syntax of the :program:`sip5` command line is::
 
@@ -31,11 +39,15 @@ The full set of command line options is:
     used by the SciTE editor but must be sorted first.)  By default the file is
     not generated.
 
+.. cmdoption:: --abi-version <VERSION>
+
+    The version of the ABI implemented by the :mod:`sip` module is ``VERSION``.
+    By the default the latest version is used.
+
 .. cmdoption:: -B <TAG>
 
     The tag is added to the list of *backstops*.  The option may be given more
-    than once if multiple timelines have been defined.  See the
-    :directive:`%Timeline` directive for more details.
+    than once if multiple timelines have been defined.
 
 .. cmdoption:: -c <DIR>
 
@@ -69,7 +81,7 @@ The full set of command line options is:
     :directive:`%Import` directive.  Directory separators must always be ``/``.
     This option may be given any number of times.
 
-.. cmdoption:: -j <NUMBER>
+.. cmdoption:: -j <FILES>
 
     The generated code is split into the given number of files.  This makes it
     easier to use the parallel build facility of most modern implementations of
@@ -78,7 +90,7 @@ The full set of command line options is:
 
 .. cmdoption:: -n <NAME>
 
-    The fully qualified name of the ``sip`` module (i.e. including the
+    The fully qualified name of the :mod:`sip` module (i.e. including the
     package name).
 
 .. cmdoption:: -o
@@ -140,4 +152,33 @@ line using the ``@`` prefix.
 :program:`sip5-header`
 ----------------------
 
-TODO
+:program:`sip5-header` installs a local copy of the :file:`sip.h` header file
+included with SIP v4.
+
+The syntax of the :program:`sip5-header` command line is::
+
+    sip5-header [options] name
+
+``name`` is the fully qualified name of the :mod:`sip` module.
+
+The full set of command line options is:
+
+.. program:: sip5-header
+
+.. cmdoption:: -h
+
+    Display a help message.
+
+.. cmdoption:: -V
+
+    Display the SIP version number.
+
+.. cmdoption:: --abi-version <VERSION>
+
+    The version of the ABI defined by the :file:`sip.h` file is ``VERSION``.
+    By the default the latest version is used.
+
+.. cmdoption:: --include-dir <DIR>
+
+    The :file:`sip.h` file is written to the directory ``DIR``.  The default is
+    the current directory.

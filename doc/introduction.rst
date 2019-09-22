@@ -214,9 +214,9 @@ SIP also includes some additional command line tools.
     and will be removed in SIP v6.
 
 :program:`sip5-header`
-    This installs a local copy of the :file:`sip.h` file included with SIP v4.
-    It is provided as an aid in moving projects from SIP v4 to SIP v5 and will
-    be removed in SIP v6.
+    This installs a local copy of the :file:`sip.h` header file included with
+    SIP v4.  It is provided as an aid in moving projects from SIP v4 to SIP v5
+    and will be removed in SIP v6.
 
 
 Installation
