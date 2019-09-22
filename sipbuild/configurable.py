@@ -104,14 +104,14 @@ class Configurable:
                         type=option.option_type, choices=option.choices,
                         help=option.help, metavar=option.metavar)
 
-    def apply_nonuser_options(self, tool):
+    def apply_nonuser_defaults(self, tool):
         """ Set default values for each non-user configurable option that
         hasn't been set yet.
         """
 
         self._apply_defaults(tool, user=False)
 
-    def apply_user_options(self, tool):
+    def apply_user_defaults(self, tool):
         """ Set default values for each user configurable option that hasn't
         been set yet.
         """
@@ -151,7 +151,7 @@ class Configurable:
 
                 setattr(self, option.name, value)
 
-        self.apply_nonuser_options(tool)
+        self.apply_nonuser_defaults(tool)
 
     def get_options(self):
         """ Return a list of configurable options. """

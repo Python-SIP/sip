@@ -116,7 +116,7 @@ class Bindings(Configurable):
         self.project = project
         self.name = name
 
-    def apply_nonuser_options(self, tool):
+    def apply_nonuser_defaults(self, tool):
         """ Set default values for each non-user configurable option that
         hasn't been set yet.
         """
@@ -125,15 +125,15 @@ class Bindings(Configurable):
         if self.sip_file is None:
             self.sip_file = self.name + '.sip'
 
-        super().apply_nonuser_options(tool)
+        super().apply_nonuser_defaults(tool)
 
-    def apply_user_options(self, tool):
+    def apply_user_defaults(self, tool):
         """ Set default values for user options that haven't been set yet. """
 
         if self.protected_is_public is None:
             self.protected_is_public = (self.project.py_platform != 'win32')
 
-        super().apply_user_options(tool)
+        super().apply_user_defaults(tool)
 
     def generate(self):
         """ Generate the bindings source code and optional additional extracts.

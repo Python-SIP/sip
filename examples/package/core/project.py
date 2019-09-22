@@ -17,8 +17,8 @@ class CoreProject(Project):
 
         return options
 
-    def apply_nonuser_options(self, tool):
-        """ Handle any non-user options. """
+    def apply_nonuser_defaults(self, tool):
+        """ Apply any non-user defaults. """
 
         if self.platform is None:
             # The option wasn't specified in pyproject.toml so we introspect
@@ -41,8 +41,8 @@ class CoreProject(Project):
                 raise PyProjectOptionException('platform',
                         "'{0}' is not a valid platform".format(self.platform))
 
-        # Set the defaults for the standard options.
-        super().apply_nonuser_options(tool)
+        # Apply the defaults for the standard options.
+        super().apply_nonuser_defaults(tool)
 
     def update(self, tool):
         """ Update the project configuration. """

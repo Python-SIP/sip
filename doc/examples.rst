@@ -190,8 +190,8 @@ specify the locations of the ``fib`` header file and library.
 
             return options
 
-        def apply_user_options(self, tool):
-            """ Handle any user supplied options. """
+        def apply_user_defaults(self, tool):
+            """ Apply any user defaults. """
 
             # Ensure any user supplied include directory is an absolute path.
             if self.fib_include_dir is not None:
@@ -201,8 +201,8 @@ specify the locations of the ``fib`` header file and library.
             if self.fib_library_dir is not None:
                 self.library_dir = os.path.abspath(self.fib_library_dir)
 
-            # Set the defaults for the standard options.
-            super().apply_user_options(tool)
+            # Apply the defaults for the standard options.
+            super().apply_user_defaults(tool)
 
         def update(self, tool):
             """ Update the project configuration. """
@@ -230,7 +230,7 @@ and therefore are also added as command line options to each of SIP's build
 tools.  Note that in both :file:`pyproject.toml` and the command line any
 ``_`` in the :class:`~sipbuild.Option` name is converted to ``-``.
 
-The :meth:`~sipbuild.Project.apply_user_options` method is reimplemented to
+The :meth:`~sipbuild.Project.apply_user_defaults` method is reimplemented to
 provide a default value for an :class:`~sipbuild.Option`.  Note that the value
 is accessed as an instance attribute of the object for which the
 :class:`~sipbuild.Option` is defined.  In this case there are no default values
