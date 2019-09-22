@@ -137,13 +137,89 @@ Configuring a Build
 ...................
 
 How should a project deal with the situation where, for example, the ``fib``
-library has been installed in a non-standard location?
+library has been installed in a non-standard location?  There are a couple of
+possible approaches:
 
-TODO - user modifications to pyproject.toml
+- the user modifies :file:`pyproject.toml` to set the values of
+  ``include-dirs`` and ``library-dirs`` appropriately
 
-TODO - project.py to search a list of locations
+- the project provides command line options to SIP's build tools (i.e.
+  :program:`sip-build`, :program:`sip-install` and :program:`sip-wheel`) that
+  allows the user to specifiy the locations.
 
-TODO - project.py providing a command line options to specify the locations
+The first approach, while not particularly user friendly, is legitimate so long
+as you document it.  However note that it cannot work when building and
+installing directly from an sdist because :program:`pip` does not currently
+fully implement `PEP 517 <https://www.python.org/dev/peps/pep-0517/>`__.
+
+The second approach is the most flexible but requires code to implement it.  If
+SIP finds a file called (by default) :file:`project.py` in the same directory
+as :file:`pyproject.toml` then it is assumed to be an extension to the build
+system.  Specifically it is expected to implement a class that is a sub-class
+of SIP's :mod:`~sipbuild.AbstractProject` class.
+
+Below is a complete :file:`project.py` that adds options to allow the user to
+specify the locations of the ``fib`` header file and library.
+
+.. parsed-literal::
+    import os
+
+    from sipbuild import Option, Project
+
+
+    class FibProject(Project):
+        """ A project that adds an additional configuration options to specify
+        the locations of the fib header file and library.
+        """
+
+        def get_options(self):
+            """ Return the sequence of configurable options. """
+
+            # Get the standard options.
+            options = super().get_options()
+
+            # Add our new options.
+            inc_dir_option = Option('fib_include_dir',
+                    help="the directory containing fib.h", metavar="DIR")
+            options.append(inc_dir_option)
+
+            lib_dir_option = Option('fib_library_dir',
+                    help="the directory containing the fib library",
+                    metavar="DIR")
+            options.append(lib_dir_option)
+
+            return options
+
+        def apply_user_options(self, tool):
+            """ Handle any user supplied options. """
+
+            # Get the fib bindings object.
+            fib_bindings = self.bindings['fib']
+
+            # Apply any user supplied include directory.
+            if self.fib_include_dir is not None:
+                fib_bindings.include_dirs = [os.path.abspath(self.fib_include_dir)]
+
+            # Apply any user supplied library directory.
+            if self.fib_library_dir is not None:
+                fib_bindings.library_dirs = [os.path.abspath(self.fib_library_dir)]
+
+The :meth:`~sipbuild.Project.get_options` method is reimplemented to add two
+new :class:`~sipbuild.Option` instances.  An :class:`~sipbuild.Option` defines
+a key that can be used in :file:`pyproject.toml`.  Because these
+:class:`~sipbuild.Option`\s are defined as part of the
+:class:`~sipbuild.Project` then the keys are used in the ``[tool.sip.project]``
+section of :file:`pyproject.toml`.  In addition, because each
+:class:`~sipbuild.Option` has help text, these are defined as *user options*
+and therefore are also added as command line options to each of SIP's build
+tools.  Note that in both :file:`pyproject.toml` and the command line any
+``_`` in the :class:`~sipbuild.Option` name is converted to ``-``.
+
+The :meth:`~sipbuild.Project.apply_user_options` method is reimplemented to
+update the :class:`~sipbuild.Bindings` object for the ``fib`` bindings with any
+values provided by the user from the command line.  Note that the value of an
+:class:`~sipbuild.Option` is accessed as an instance attribute of the object
+for which the :class:`~sipbuild.Option` is defined.
 
 
 Package Projects
