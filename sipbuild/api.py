@@ -30,7 +30,7 @@ def build_sdist(sdist_directory, config_settings=None):
     # Note that we ignore config_settings until we have a frontend that we can
     # fully test with.  (pip seems lacking at the moment.)
 
-    project = AbstractProject.bootstrap()
+    project = AbstractProject.bootstrap('pep517')
 
     return project.build_sdist(sdist_directory)
 
@@ -41,6 +41,6 @@ def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
     # Note that we ignore config_settings until we have a frontend that we can
     # fully test with.  (pip seems lacking at the moment.)
 
-    project = AbstractProject.bootstrap()
+    project = AbstractProject.bootstrap('pep517')
 
     return project.build_wheel(wheel_directory)

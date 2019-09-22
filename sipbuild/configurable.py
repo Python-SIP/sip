@@ -208,12 +208,18 @@ class Option:
     Option object has help text specified.
     """
 
+    # The tools that will build a set of bindings.
+    BUILD_TOOLS = ('build', 'install', 'pep517', 'wheel')
+
+    # All the valid tools.
+    _ALL_TOOLS = BUILD_TOOLS + ('sdist', )
+
     # This is used to make sure each option (even if they are handling the same
     # attribute) has a unique 'dest'.
     option_nr = 0
 
     def __init__(self, name, *, option_type=str, choices=None, default=None,
-            help='', metavar=None, inverted=False, tools=''):
+            help='', metavar=None, inverted=False, tools=None):
         """ Initialise the option. """
 
         self.name = name
@@ -224,7 +230,17 @@ class Option:
         self.help = help
         self.metavar = metavar
         self.inverted = inverted
-        self.tools = tools.split()
+
+        if tools is None:
+            self.tools = self.BUILD_TOOLS
+        else:
+            for tool in tools:
+                if tool not in self._ALL_TOOLS:
+                    raise UserException(
+                            "'{0}' option has an invalid tools '{1}'".format(
+                                    name, tool))
+
+            self.tools = tools
 
         self.dest = 'd' + str(type(self).option_nr)
         type(self).option_nr += 1

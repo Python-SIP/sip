@@ -100,21 +100,21 @@ class Project(AbstractProject, Configurable):
         Option('verbose', option_type=bool,
                 help="enable verbose progress messages"),
         Option('name', help="the name used in sdist and wheel file names",
-                metavar="NAME", tools='sdist wheel'),
+                metavar="NAME", tools=['sdist', 'wheel']),
         Option('build_dir', help="the build directory", metavar="DIR"),
         Option('target_dir', default=get_python_lib(plat_specific=1),
                 help="the target installation directory", metavar="DIR",
-                tools='install'),
+                tools=['install']),
         Option('api_dir', help="generate a QScintilla .api file in DIR",
-                metavar="DIR", tools='build install wheel'),
+                metavar="DIR"),
     )
 
     # The configurable options for multiple bindings.
     _multibindings_options = (
         Option('disable', option_type=list, help="disable the NAME bindings",
-                metavar="NAME", tools='build install wheel'),
+                metavar="NAME"),
         Option('enable', option_type=list, help="enable the NAME bindings",
-                metavar="NAME", tools='build install wheel'),
+                metavar="NAME"),
     )
 
     def __init__(self, **kwargs):
@@ -347,7 +347,7 @@ class Project(AbstractProject, Configurable):
 
         # Add any tool-specific command line options for (so far unspecified)
         # parts of the configuration.
-        if tool:
+        if tool != 'pep517':
             self._configure_from_command_line(tool, tool_description)
 
         # Make sure the configuration is complete.
@@ -375,7 +375,7 @@ class Project(AbstractProject, Configurable):
         # has messed with it.
         self.verify_configuration(tool)
 
-        if tool != 'sdist' and self.bindings:
+        if tool in Option.BUILD_TOOLS and self.bindings:
             self.progress(
                     "These bindings will be built: {}.".format(
                             ', '.join(self.bindings.keys())))
@@ -387,7 +387,7 @@ class Project(AbstractProject, Configurable):
         """
 
         # This default implementation calls update_buildable_bindings().
-        if tool != 'sdist':
+        if tool in Option.BUILD_TOOLS:
             self.update_buildable_bindings()
 
     def update_buildable_bindings(self):

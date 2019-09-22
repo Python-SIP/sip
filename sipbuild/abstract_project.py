@@ -33,10 +33,9 @@ class AbstractProject(ABC):
     """ This specifies the API of a project. """
 
     @classmethod
-    def bootstrap(cls, tool='', tool_description=''):
+    def bootstrap(cls, tool, tool_description=''):
         """ Return an AbstractProject instance fully configured for a
-        particular command line tool.  If no tool is specified then it is
-        configured for a PEP 517 frontend.
+        particular command line tool.
         """
 
         # Get the contents of the pyproject.toml file.

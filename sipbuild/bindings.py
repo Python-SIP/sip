@@ -95,23 +95,17 @@ class Bindings(Configurable):
         # values specified in pyproject.toml.
         Option('concatenate', option_type=int,
                 help="concatenate the generated bindings into N source files",
-                metavar="N", tools='build install wheel'),
-        Option('debug', option_type=bool, help="build with debugging symbols",
-                tools='build install wheel'),
+                metavar="N"),
+        Option('debug', option_type=bool, help="build with debugging symbols"),
         Option('docstrings', option_type=bool, inverted=True,
-                help="disable the generation of docstrings",
-                tools='build install wheel'),
+                help="disable the generation of docstrings"),
         Option('pep484_pyi', option_type=bool,
-                help="enable the generation of PEP 484 .pyi files",
-                tools='build install wheel'),
+                help="enable the generation of PEP 484 .pyi files"),
         Option('protected_is_public', option_type=bool,
-                help="enable the protected/public hack (default on non-Windows)",
-                tools='build install wheel'),
+                help="enable the protected/public hack (default on non-Windows)"),
         Option('protected_is_public', option_type=bool, inverted=True,
-                help="disable the protected/public hack (default on Windows)",
-                tools='build install wheel'),
-        Option('tracing', option_type=bool, help="build with tracing support",
-                tools='build install wheel'),
+                help="disable the protected/public hack (default on Windows)"),
+        Option('tracing', option_type=bool, help="build with tracing support"),
     )
 
     def __init__(self, project, name, **kwargs):
@@ -281,7 +275,7 @@ class Bindings(Configurable):
     def verify_configuration(self, tool):
         """ Verify that the configuration is complete and consistent. """
 
-        if tool == 'sdist':
+        if tool not in Option.BUILD_TOOLS:
             return
 
         project = self.project
