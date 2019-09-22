@@ -61,7 +61,7 @@ class Project(AbstractProject, Configurable):
         Option('console_scripts', option_type=list),
 
         # Set if an __init__.py should be installed.
-        Option('dunder_init', option_type=bool, default=True),
+        Option('dunder_init', option_type=bool, default=False),
 
         # Set if building for a debug version of Python.
         Option('py_debug', option_type=bool),
@@ -433,7 +433,7 @@ class Project(AbstractProject, Configurable):
                         "must be defined when the project contains multiple "
                         "sets of bindings")
 
-            # Disable __init__.py.
+            # Make sure __init__.py is disabled.
             self.dunder_init = False
 
         # Verify the configuration of the builder and bindings.
