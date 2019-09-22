@@ -4,16 +4,15 @@ Command Line Tools
 :program:`sip-build`
 --------------------
 
-The syntax of the :program:`sip5` command line is::
+TODO
 
-    sip5 [options] [specification]
+The syntax of the :program:`sip-build` command line is::
 
-``specification`` is the name of the specification file for the module.  If it
-is omitted then ``stdin`` is used.
+    sip-build [options]
 
 The full set of command line options is:
 
-.. program:: sip5
+.. program:: sip-build
 
 .. cmdoption:: -h
 
@@ -142,9 +141,47 @@ line using the ``@`` prefix.
 
 TODO
 
+The syntax of the :program:`sip-distinfo` command line is::
+
+    sip-distinfo [options] directory
+
+TODO
+
+The full set of command line options is:
+
+.. program:: sip-distinfo
+
+.. cmdoption:: -h
+
+    Display a help message.
+
+.. cmdoption:: -V
+
+    Display the SIP version number.
+
+TODO
+
 
 :program:`sip-install`
 ----------------------
+
+TODO
+
+The syntax of the :program:`sip-install` command line is::
+
+    sip-install [options]
+
+The full set of command line options is:
+
+.. program:: sip-install
+
+.. cmdoption:: -h
+
+    Display a help message.
+
+.. cmdoption:: -V
+
+    Display the SIP version number.
 
 TODO
 
@@ -188,7 +225,7 @@ The full set of command line options is:
     by ``pip``, or uploaded to PyPI.  The name of the file will be derived from
     the fully qualified name of the module and the version number of the ABI
     that the module implements.  If this and the
-    :option:`--documentation-dir <sip5-module --documentation-dir>` and
+    :option:`--documentation-dir <sip-module --documentation-dir>` and
     :option:`--include-dir <sip-module --include-dir>` options are not
     specified then the file is created in the current directory.
 
@@ -219,8 +256,44 @@ The full set of command line options is:
 
 TODO
 
+The syntax of the :program:`sip-sdist` command line is::
+
+    sip-sdist [options]
+
+The full set of command line options is:
+
+.. program:: sip-sdist
+
+.. cmdoption:: -h
+
+    Display a help message.
+
+.. cmdoption:: -V
+
+    Display the SIP version number.
+
+TODO
+
 
 :program:`sip-wheel`
 --------------------
+
+TODO
+
+The syntax of the :program:`sip-wheel` command line is::
+
+    sip-wheel [options]
+
+The full set of command line options is:
+
+.. program:: sip-wheel
+
+.. cmdoption:: -h
+
+    Display a help message.
+
+.. cmdoption:: -V
+
+    Display the SIP version number.
 
 TODO
