@@ -6,8 +6,8 @@ SIP Reference Guide
 
     introduction
     examples
-    sip5
-    sip5_module
+    command_line_tools
+    legacy_command_line_tools
     using
     specification_files
     directives

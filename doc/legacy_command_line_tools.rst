@@ -1,5 +1,8 @@
-The :program:`sip5` Command Line
-================================
+Legacy Command Line Tools
+=========================
+
+:program:`sip5`
+---------------
 
 The syntax of the :program:`sip5` command line is::
 
@@ -132,3 +135,9 @@ The full set of command line options is:
 
 Command line options can also be placed in a file and passed on the command
 line using the ``@`` prefix.
+
+
+:program:`sip5-header`
+----------------------
+
+TODO
