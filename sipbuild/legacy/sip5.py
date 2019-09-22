@@ -66,8 +66,8 @@ def main():
             default=False,
             help="enable support for exceptions [default disabled]")
 
-    parser.add_argument('-f', '--warnings-are-errors',
-            dest='warnings_are_errors', action='store_true', default=False,
+    parser.add_argument('-f', dest='warnings_are_errors', action='store_true',
+            default=False,
             help="warnings are handled as errors")
 
     parser.add_argument('-g', dest='release_gil', action='store_true',
@@ -75,8 +75,7 @@ def main():
             help="always release and reacquire the GIL [default only when "
                     "specified]")
 
-    parser.add_argument('-I', '--include-dir', dest='include_dirs',
-            action='append',
+    parser.add_argument('-I', dest='include_dirs', action='append',
             help="add <DIR> to the list of directories to search when "
                     "importing or including .sip files",
             metavar="DIR")

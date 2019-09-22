@@ -34,7 +34,7 @@ def main():
     parser = ArgumentParser("Install sip.h for a private sip module.")
 
     parser.add_argument(dest='sip_modules', nargs=1,
-            help="the fully qualified name of the sip module", metavar="NAME")
+            help="the fully qualified name of the sip module", metavar="name")
 
     parser.add_argument('--abi-version',
             help="the ABI version", metavar="VERSION")
