@@ -245,10 +245,131 @@ provided by the user from the command line.
 Package Projects
 ----------------
 
-We now describe two package projects.  The ``core`` project contains a single
-set of bindings called :mod:`~examples.core`.  The ``extras`` project contains
-a single set of bindings called :mod:`~examples.extras`.  The
+We now describe two package projects.  The ``examples-core`` project contains a
+single set of bindings called :mod:`~examples.core`.  The ``examples-extras``
+project contains a single set of bindings called :mod:`~examples.extras`.  The
 :mod:`~examples.extras` module imports the :mod:`~examples.core` module.  Both
 modules are part of the top-level :mod:`examples` package.  The
 :mod:`~examples.sip` module required by all related package projects is also
 part of the top-level :mod:`examples` package.
+
+Again with this example, in order to make it self-contained, we are not
+creating bindings for real libraries but instead embedding the implementation
+within the :file:`.sip` files.
+
+
+:mod:`examples.sip`
+...................
+
+In order to create an sdist for the :mod:`~examples.sip` module, run::
+
+    sip-module examples.sip
+
+If you want to create a wheel from the sdist then run::
+
+    pip wheel examples_sip-X.Y.Z.tar.gz
+
+``X.Y.Z`` is the version number of the ABI implemented by the
+:mod:`~examples.sip` module and it will default to the latest version.
+
+
+:mod:`examples.core`
+....................
+
+We now look at the :file:`pyproject.toml` file for the ``examples-core``
+project (downloadable from 
+:download:`here <../examples/package/core/pyproject.toml>`) below.
+
+.. literalinclude:: ../examples/package/core/pyproject.toml
+
+Compared to the standalone project's version of the file we have added the
+``[tool.sip.bindings.core]`` section to specify that the project contains a
+single set of bindings called :mod:`~examples.core`.  We need to do this
+because the name is no longer the same as the name of the project itself as
+defined by the ``name`` key of the ``[tool.sip.metadata]`` section.  The
+bindings section is empty because all the default values are appropriate in
+this case.
+
+We have also added the ``[tool.sip.project]`` section containing the
+``sip-module`` key, which specifies the full package name of the
+:mod:`~examples.sip` module and the ``dunder-init`` key, which specifies that
+an :file:`__init__.py` file (empty by default) is created in the top-level
+:mod:`examples` package.
+
+We next look at the :file:`core.sip` file (downloadable from 
+:download:`here <../examples/package/core/core.sip>`) below.
+
+.. literalinclude:: ../examples/package/core/core.sip
+
+The :directive:`%Module` directive, as well as specifying the full package name
+of the :mod:`~examples.core` module, specifies that the bindings will use the
+`PEP 384 <https://www.python.org/dev/peps/pep-0384/>`__ stable ABI.
+
+The :directive:`%DefaultEncoding` directive specifies that any character
+conversions between C/C++ and Python ``str`` objects will default to the ASCII
+codec.
+
+The :directive:`%Platforms` directive defines three mutually exclusive *tags*
+that can be used by :directive:`%If` directives to select platform-specific
+parts of the bindings.
+
+The remaining parts of the file are three different platform-specific
+implementations of a function called :c:func:`what_am_i` which just returns a
+name for the platform.
+
+We are then left will the question as to how we specify which of the platform
+tags should selected for a particular build.  For this we need the
+:file:`project.py` file file (downloadable from
+:download:`here <../examples/package/core/project.py>`) shown below.
+
+.. literalinclude:: ../examples/package/core/project.py
+
+As before we reimplement the :meth:`~sipbuild.Project.get_options` method to
+add a new :class:`~sipbuild.Option` instance to specify the platform tag.
+Because no help text has been specified the :class:`~sipbuild.Option` can only
+be used as a key in the ``[tool.sip.project]`` section of
+:file:`pyproject.toml` and will not be added to the command line options of the
+build tools.
+
+We reimplement the :meth:`~sipbuild.Project.apply_nonuser_defaults` method
+provide a default value for the new :class:`~sipbuild.Option` if it hasn't been
+specified in :file:`pyproject.toml`.  If it has been specified in
+:file:`pyproject.toml` then we validate it.  (Why would be want to specify the
+platform in :file:`pyproject.toml`?  Perhaps we are cross-compiling and
+introspecting the host platform would be inappropriate.)
+
+The :meth:`~sipbuild.Project.update` method is reimplemented to update the
+:class:`~sipbuild.Bindings` object for the ``core`` bindings with the validated
+platform tag.
+
+
+:mod:`examples.extras`
+......................
+
+We now look at the :file:`pyproject.toml` file for the ``example-extras``
+project (downloadable from
+:download:`here <../examples/package/extras/pyproject.toml>`) below.
+
+.. literalinclude:: ../examples/package/extras/pyproject.toml
+
+Compared to the ``examples-core`` project's version of the file we have added
+the ``requires-dist`` key to the ``[tool.sip.metadata]`` section which will
+ensure that the ``examples-core`` project will be automatically installed as a
+prerequisite of the ``examples-extras`` project.
+
+Of course we have specifed an appropriately named bindings section.
+
+We have also removed the ``dunder-init`` key from the
+``[tool.sip.project.section]`` section.
+
+We next look at the :file:`extras.sip` file (downloadable from 
+:download:`here <../examples/package/extras/extras.sip>`) below.
+
+.. literalinclude:: ../examples/package/extras/extras.sip
+
+This is very similar to the :mod:`~examples.core` module in that it implements
+simple platform-specific functions.  The key thing to notice is that there is
+no need to specify the platform tag as part of the configuration as it is
+obtained automatically from the installed ``examples-core`` project.
+
+The ``examples-extras`` project has no need for a :file:`project.py` file.

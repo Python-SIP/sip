@@ -14,4 +14,3 @@ requires-dist = "examples-core"
 # Configure the project itself.
 [tool.sip.project]
 sip-module = "examples.sip"
-dunder-init = false
