@@ -529,7 +529,14 @@ class Project(AbstractProject, Configurable):
         version = 0
         for part in base_version:
             version <<= 8
-            version += int(part)
+
+            try:
+                version += int(part)
+            except ValueError:
+                raise PyProjectOptionException('version',
+                        "'{0}' is an invalid version number".format(
+                                self.version_str),
+                        section_name='tool.sip.metadata')
 
         self.version = version
 
