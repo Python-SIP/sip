@@ -17,15 +17,10 @@ class CoreProject(Project):
 
         return options
 
-    def update(self, tool):
-        """ Update the project. """
+    def apply_nonuser_options(self, tool):
+        """ Handle any non-user options. """
 
-        if self.platform:
-            # The option was set in pyproject.toml so we just verify the value.
-            if self.platform not in ('Linux', 'macOS', 'Windows'):
-                raise PyProjectOptionException('platform',
-                        "'{0}' is not a valid platform".format(self.platform))
-        else:
+        if self.platform is None:
             # The option wasn't specified in pyproject.toml so we introspect
             # the system.
 
@@ -40,6 +35,17 @@ class CoreProject(Project):
             else:
                 raise PyProjectOptionException('platform',
                         "the '{0}' platform is not supported".format(platform))
+        else:
+            # The option was set in pyproject.toml so we just verify the value.
+            if self.platform not in ('Linux', 'macOS', 'Windows'):
+                raise PyProjectOptionException('platform',
+                        "'{0}' is not a valid platform".format(self.platform))
+
+        # Set the defaults for the standard options.
+        super().apply_nonuser_options(tool)
+
+    def update(self, tool):
+        """ Update the project configuration. """
 
         # Get the 'core' bindings and add the platform to the list of tags.
         core_bindings = self.bindings['core']

@@ -1,6 +1,6 @@
 # Specify sip v5 as the build system for the package.
 [build-system]
-requires = ["sip >=4.20.0, <6"]
+requires = ["sip >=5, <6"]
 build-backend = "sipbuild.api"
 
 # Specify the PEP 522 metadata for the project.
@@ -9,10 +9,9 @@ name = "examples-extras"
 requires-dist = "examples-core"
 
 # Specify each set of bindings.
-[[tool.sip.bindings]]
-name = "extras"
+[tool.sip.bindings.extras]
 
 # Configure the project itself.
 [tool.sip.project]
 sip-module = "examples.sip"
-dunder-init = False
+dunder-init = false

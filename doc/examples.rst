@@ -193,16 +193,31 @@ specify the locations of the ``fib`` header file and library.
         def apply_user_options(self, tool):
             """ Handle any user supplied options. """
 
+            # Ensure any user supplied include directory is an absolute path.
+            if self.fib_include_dir is not None:
+                self.fib_include_dir = os.path.abspath(self.fib_include_dir)
+
+            # Ensure any user supplied library directory is an absolute path.
+            if self.fib_library_dir is not None:
+                self.library_dir = os.path.abspath(self.fib_library_dir)
+
+            # Set the defaults for the standard options.
+            super().apply_user_options(tool)
+
+        def update(self, tool):
+            """ Update the project configuration. """
+
             # Get the fib bindings object.
             fib_bindings = self.bindings['fib']
 
-            # Apply any user supplied include directory.
+            # Use any user supplied include directory.
             if self.fib_include_dir is not None:
-                fib_bindings.include_dirs = [os.path.abspath(self.fib_include_dir)]
+                fib_bindings.include_dirs = [self.fib_include_dir]
 
-            # Apply any user supplied library directory.
+            # Use any user supplied library directory.
             if self.fib_library_dir is not None:
-                fib_bindings.library_dirs = [os.path.abspath(self.fib_library_dir)]
+                fib_bindings.library_dirs = [self.fib_library_dir]
+
 
 The :meth:`~sipbuild.Project.get_options` method is reimplemented to add two
 new :class:`~sipbuild.Option` instances.  An :class:`~sipbuild.Option` defines
@@ -216,13 +231,24 @@ tools.  Note that in both :file:`pyproject.toml` and the command line any
 ``_`` in the :class:`~sipbuild.Option` name is converted to ``-``.
 
 The :meth:`~sipbuild.Project.apply_user_options` method is reimplemented to
-update the :class:`~sipbuild.Bindings` object for the ``fib`` bindings with any
-values provided by the user from the command line.  Note that the value of an
-:class:`~sipbuild.Option` is accessed as an instance attribute of the object
-for which the :class:`~sipbuild.Option` is defined.
+provide a default value for an :class:`~sipbuild.Option`.  Note that the value
+is accessed as an instance attribute of the object for which the
+:class:`~sipbuild.Option` is defined.  In this case there are no default values
+but we want to make sure that any values that are provided are absolute path
+names.
+
+The :meth:`~sipbuild.Project.update` method is reimplemented to update the
+:class:`~sipbuild.Bindings` object for the ``fib`` bindings with any values
+provided by the user from the command line.
 
 
 Package Projects
 ----------------
 
-TODO
+We now describe two package projects.  The ``core`` project contains a single
+set of bindings called :mod:`~examples.core`.  The ``extras`` project contains
+a single set of bindings called :mod:`~examples.extras`.  The
+:mod:`~examples.extras` module imports the :mod:`~examples.core` module.  Both
+modules are part of the top-level :mod:`examples` package.  The
+:mod:`~examples.sip` module required by all related package projects is also
+part of the top-level :mod:`examples` package.
