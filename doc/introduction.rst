@@ -180,7 +180,7 @@ build.
     developing a set of bindings.
 
 :program:`sip-install`
-    This builds and installs the bindings.
+    This builds and installs a project.
 
 :program:`sip-sdist`
     This creates an sdist (a source distribution) that can be uploaded to PyPI.
@@ -204,9 +204,8 @@ SIP also includes some additional command line tools.
     an external tool such as :program:`make`.
 
 :program:`sip-module`
-    This builds and installs the :mod:`sip` module for one or more package
-    projects.  It will optionally create an sdist for the module that can be
-    uploaded to PyPI or built as a wheel.
+    This builds an sdist for the :mod:`sip` module for a set of package
+    projects.
 
 :program:`sip5`
     This is is a drop-in replacement for the :program:`sip` code generator from

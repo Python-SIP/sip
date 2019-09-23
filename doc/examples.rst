@@ -355,7 +355,8 @@ project (downloadable from
 Compared to the ``examples-core`` project's version of the file we have added
 the ``requires-dist`` key to the ``[tool.sip.metadata]`` section which will
 ensure that the ``examples-core`` project will be automatically installed as a
-prerequisite of the ``examples-extras`` project.
+prerequisite of the ``examples-extras`` project.  SIP will automatically add a
+similar line to ensure the :mod:`~examples.sip` module is also installed.
 
 Of course we have specifed an appropriately named bindings section.
 

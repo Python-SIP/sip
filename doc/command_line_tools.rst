@@ -1,10 +1,17 @@
 Command Line Tools
 ==================
 
+Note that, for the build tools, the command line options described in this
+section are the standard options.  Any of these options could be removed, or
+new options added, by build system extensions including project-specific
+:file:`project.py` files.
+
+
 :program:`sip-build`
 --------------------
 
-TODO
+:program:`sip-build` builds a project but does not install it.  This is useful
+when developing a set of bindings.
 
 The syntax of the :program:`sip-build` command line is::
 
@@ -14,158 +21,160 @@ The full set of command line options is:
 
 .. program:: sip-build
 
-.. cmdoption:: -h
+.. option:: -h
 
     Display a help message.
 
-.. cmdoption:: -V
+.. option:: -V
 
     Display the SIP version number.
 
-.. cmdoption:: -a <FILE>
+.. option:: --quiet
 
-    The name of the QScintilla API file to generate.  This file contains a
-    description of the module API in a form that the QScintilla editor
-    component can use for auto-completion and call tips.  (The file may also be
-    used by the SciTE editor but must be sorted first.)  By default the file is
-    not generated.
+    All progress messages are disabled.
 
-.. cmdoption:: -B <TAG>
+.. option:: --verbose
 
-    The tag is added to the list of *backstops*.  The option may be given more
-    than once if multiple timelines have been defined.  See the
-    :directive:`%Timeline` directive for more details.
+    Verbose progress messages are enabled.
 
-.. cmdoption:: -c <DIR>
+.. option:: --api-dir <DIR>
 
-    The name of the directory (which must exist) into which all of the
-    generated C or C++ code is placed.  By default no code is generated.
+    A QScintilla :file:`.api` file is created in ``DIR``.
 
-.. cmdoption:: -D
+.. option:: --build-dir <DIR>
 
-    Code is generated for a debug build of Python.
+    ``DIR`` is created as a build directory in which all generated files will
+    be created.  The build directory is not removed after the build has been
+    completed.  The default value is ``build``.
 
-.. cmdoption:: -e
+.. option:: --concatenate <N>
 
-    Support for C++ exceptions is enabled.  This causes all calls to C++ code
-    to be enclosed in ``try``/``catch`` blocks and C++ exceptions to be
-    converted to Python exceptions.  By default exception support is disabled.
+    The generated code is split into ``N`` files.  By default one file is
+    generated for each C structure or C++ class.  Specifying a low value of
+    ``N`` can significantly speed up the build of large projects.
 
-.. cmdoption:: -f
+.. option:: --disable <NAME>
 
-    Warnings are handled as if they were errors and the program terminates.
+    The ``NAME`` bindings are disabled and will not be built.  This option may
+    be specified multiple times.  It is only available if the project contains
+    multiple sets of bindings.
 
-.. cmdoption:: -g
+.. option:: --enable <NAME>
 
-    The Python GIL is released before making any calls to the C/C++ library
-    being wrapped and reacquired afterwards.  See :ref:`ref-gil` and the
-    :fanno:`ReleaseGIL` and :fanno:`HoldGIL` annotations.
+    The ``NAME`` bindings are enabled and will be built.  Any associated
+    configuration tests that would normally be run to determine if the bindings
+    should be built are suppressed.  This option may be specified multiple
+    times.  It is only available if the project contains multiple sets of
+    bindings.
 
-.. cmdoption:: -I <DIR>
+.. option:: --debug
 
-    The directory is added to the list of directories searched when looking for
-    a specification file given in an :directive:`%Include` or
-    :directive:`%Import` directive.  Directory separators must always be ``/``.
-    This option may be given any number of times.
+    A build with debugging symbols is performed.
 
-.. cmdoption:: -j <NUMBER>
+.. option:: --no-docstrings
 
-    The generated code is split into the given number of files.  This makes it
-    easier to use the parallel build facility of most modern implementations of
-    ``make``.  By default 1 file is generated for each C structure or C++
-    class.
+    The generation of docstrings that describe the signature of all functions,
+    methods and constructors is disabled.
 
-.. cmdoption:: -n <NAME>
+.. option:: --pep484-pyi
 
-    The fully qualified name of the ``sip`` module (i.e. including the
-    package name).
+    The generation of the Python type hints stub file is enabled.  This file
+    contains a description of the project's APIs that is compliant with `PEP
+    484 <https://www.python.org/dev/peps/pep-0484/>`__.
 
-.. cmdoption:: -o
+.. option:: --protected-is-public
 
-    Docstrings will be automatically generated that describe the signature of
-    all functions, methods and constructors.
-
-.. cmdoption:: -P
-
-    By default SIP generates code to provide access to protected C++ functions
-    from Python.  On some platforms (notably Linux, but not Windows) this code
+    SIP can generate code to provide access to protected C++ functions from
+    Python.  On some platforms (notably Linux, but not Windows) this code
     can be avoided if the ``protected`` keyword is redefined as ``public``
     during compilation.  This can result in a significant reduction in the size
-    of a generated Python module.  This option disables the generation of the
-    extra code.
+    of a generated Python module.  This option enables the redefinition of
+    ``protected`` and is the default on all platforms except Windows.
 
-.. cmdoption:: -r
+.. option:: --no-protected-is-public
+
+    This option disables the redefinition of ``protected`` to access protected
+    C++ functions from Python and is the default on Windows.
+
+.. option:: --tracing
 
     Debugging statements that trace the execution of the bindings are
     automatically generated.  By default the statements are not generated.
-
-.. cmdoption:: -s <SUFFIX>
-
-    The suffix to use for generated C or C++ source files.  By default ``.c``
-    is used for C and ``.cpp`` for C++.
-
-.. cmdoption:: -t <TAG>
-
-    The SIP version tag (declared using a :directive:`%Timeline` directive) or
-    the SIP platform tag (declared using the :directive:`%Platforms` directive)
-    to generate code for.  This option may be given any number of times so long
-    as the tags do not conflict.
-
-.. cmdoption:: -w
-
-    The display of warning messages is enabled.  By default warning messages
-    are disabled.
-
-.. cmdoption:: -x <FEATURE>
-
-    The feature (declared using the :directive:`%Feature` directive) is
-    disabled.
-
-.. cmdoption:: -X <ID:FILE>
-
-    The extract (defined with the :directive:`%Extract` directive) with the
-    identifier ``ID`` is written to the file ``FILE``.
-
-.. cmdoption:: -y <FILE>
-
-    The name of the Python type hints stub file to generate.  This file
-    contains a description of the module API that is compliant with PEP 484.
-    By default the file is not generated.
-
-Command line options can also be placed in a file and passed on the command
-line using the ``@`` prefix.
 
 
 :program:`sip-distinfo`
 -----------------------
 
-TODO
+:program:`sip-distinfo` creates and populates a :file:`.dist-info` directory of
+an installation or a wheel.  It is provided for build systems that extend the
+SIP build system and need to create the :file:`.dist-info` directory from an
+external tool such as :program:`make`.
 
 The syntax of the :program:`sip-distinfo` command line is::
 
     sip-distinfo [options] directory
 
-TODO
+``directory`` is the full path name of the directory to create.
 
 The full set of command line options is:
 
 .. program:: sip-distinfo
 
-.. cmdoption:: -h
+.. option:: -h
 
     Display a help message.
 
-.. cmdoption:: -V
+.. option:: -V
 
     Display the SIP version number.
 
-TODO
+.. option:: --console-script <ENTRY-POINT>
+
+    The console entry point ``ENTRY-POINT`` is added to the wheel.  It is
+    ignored if the :option:`--wheel-tag` option is not specified.  This option
+    may be specified multiple times.
+
+.. option:: --generator <NAME>
+
+    If the :option:`--wheel-tag` option is specified then ``NAME`` is written
+    as the ``Generator`` in the :file:`WHEEL` file in the :file:`.dist-info`
+    directory.  Otherwise ``NAME`` is written to the :file:`INSTALLER` file.
+    By default ``sip-distinfo`` is written.
+
+.. option:: --inventory <FILE>
+
+    ``FILE`` contains a list of the relative names of the files, one per line, 
+    that comprise the installation or wheel contents.  This option must be
+    specified.
+
+.. option:: --prefix <DIR>
+
+    This option is provided as an aid to Linux package builders.  ``DIR`` is
+    used to pass the commonly used values of ``DESTDIR`` or ``INSTALL_ROOT``.
+    If specified it should have a trailing native path separator.
+
+.. option:: --project-root <DIR>
+
+    The name of the directory containing the project's :file:`pyproject.toml`
+    file is ``DIR``.  This option must be specified.
+
+.. option:: --requires-dist <EXPR>
+
+    ``EXPR`` is added to the list of prerequisites written to the
+    :file:`METADATA` file in the :file:`.dist-info` directory.  It is normally
+    used to specify a particular version of a package project's :mod:`sip`
+    module.
+
+.. option:: --wheel-tag <TAG>
+
+    ``TAG`` is written as the ``Tag`` in the :file:`WHEEL` file in the
+    :file:`.dist-info` directory.
 
 
 :program:`sip-install`
 ----------------------
 
-TODO
+:program:`sip-install` builds and installs a project.
 
 The syntax of the :program:`sip-install` command line is::
 
@@ -175,21 +184,93 @@ The full set of command line options is:
 
 .. program:: sip-install
 
-.. cmdoption:: -h
+.. option:: -h
 
     Display a help message.
 
-.. cmdoption:: -V
+.. option:: -V
 
     Display the SIP version number.
 
-TODO
+.. option:: --quiet
+
+    All progress messages are disabled.
+
+.. option:: --verbose
+
+    Verbose progress messages are enabled.
+
+.. option:: --api-dir <DIR>
+
+    A QScintilla :file:`.api` file is created in ``DIR``.
+
+.. option:: --build-dir <DIR>
+
+    ``DIR`` is created as a build directory in which all generated files will
+    be created.  This build directory is not removed after the build has been
+    completed.  By default a temporary build directory is created which is
+    removed after the build has been completed.
+
+.. option:: --concatenate <N>
+
+    The generated code is split into ``N`` files.  By default one file is
+    generated for each C structure or C++ class.  Specifying a low value of
+    ``N`` can significantly speed up the build of large projects.
+
+.. option:: --disable <NAME>
+
+    The ``NAME`` bindings are disabled and will not be built.  This option may
+    be specified multiple times.  It is only available if the project contains
+    multiple sets of bindings.
+
+.. option:: --enable <NAME>
+
+    The ``NAME`` bindings are enabled and will be built.  Any associated
+    configuration tests that would normally be run to determine if the bindings
+    should be built are suppressed.  This option may be specified multiple
+    times.  It is only available if the project contains multiple sets of
+    bindings.
+
+.. option:: --debug
+
+    A build with debugging symbols is performed.
+
+.. option:: --no-docstrings
+
+    The generation of docstrings that describe the signature of all functions,
+    methods and constructors is disabled.
+
+.. option:: --pep484-pyi
+
+    The generation of the Python type hints stub file is enabled.  This file
+    contains a description of the project's APIs that is compliant with `PEP
+    484 <https://www.python.org/dev/peps/pep-0484/>`__.
+
+.. option:: --protected-is-public
+
+    SIP can generate code to provide access to protected C++ functions from
+    Python.  On some platforms (notably Linux, but not Windows) this code
+    can be avoided if the ``protected`` keyword is redefined as ``public``
+    during compilation.  This can result in a significant reduction in the size
+    of a generated Python module.  This option enables the redefinition of
+    ``protected`` and is the default on all platforms except Windows.
+
+.. option:: --no-protected-is-public
+
+    This option disables the redefinition of ``protected`` to access protected
+    C++ functions from Python and is the default on Windows.
+
+.. option:: --tracing
+
+    Debugging statements that trace the execution of the bindings are
+    automatically generated.  By default the statements are not generated.
 
 
 :program:`sip-module`
 ---------------------
 
-TODO
+:program:`sip-module` builds an sdist for the :mod:`sip` module for a set of
+package projects.
 
 The syntax of the :program:`sip-module` command line is::
 
@@ -202,47 +283,38 @@ The full set of command line options is:
 
 .. program:: sip-module
 
-.. cmdoption:: -h
+.. option:: -h
 
     Display a help message.
 
-.. cmdoption:: -V
+.. option:: -V
 
     Display the SIP version number.
 
-.. cmdoption:: --documentation-dir <DIR>
+.. option:: --abi-version <VERSION>
 
-    The directory in which a copy of the :file:`sip.rst` file is placed.
+    The version of the ABI implemented by the :mod:`sip` module is ``VERSION``.
+    By the default the latest version is used.
 
-.. cmdoption:: --include-dir <DIR>
-
-    The directory in which a copy of the :file:`sip.h` file is placed.
-
-.. cmdoption:: --module-dir <DIR>
-
-    The directory in which a copy of the module's sdist ``.tar.gz`` file is
-    placed.  This file may then be installed by ``pip``, converted to a wheel
-    by ``pip``, or uploaded to PyPI.  The name of the file will be derived from
-    the fully qualified name of the module and the version number of the ABI
-    that the module implements.  If this and the
-    :option:`--documentation-dir <sip-module --documentation-dir>` and
-    :option:`--include-dir <sip-module --include-dir>` options are not
-    specified then the file is created in the current directory.
-
-.. cmdoption:: --no-sdist
+.. option:: --no-sdist
 
     Instead of creating an sdist ``.tar.gz`` file, the module source is left as
     a directory where the contents can be subsequently modified if required.
 
-.. cmdoption:: --setup-cfg <FILE>
+.. option:: --project <NAME>
 
-    The :file:`setup.cfg` file added to the sdist ``.tar.gz`` file instead of
-    the default version.  This allows the meta-data included in the sdist to be
-    customised.  A number of macros may be specified in the :file:`setup.cfg`
-    file:
+    The name of the project as it would appear on PyPI is ``NAME``.  By default
+    the name is derived from the fully qualified name of the :mod:`sip`
+    module.
 
-        ``@SIP_MODULE_PACKAGE_NAME@`` is replaced by the name of the package
-        containing the ``sip`` module.
+.. option:: --setup-cfg <FILE>
+
+    ``FILE`` is copied to the sdist as :file:`setup.cfg` instead of the default
+    version.  This allows the meta-data included in the sdist to be customised.
+    A number of macros may be specified in the :file:`setup.cfg` file:
+
+        ``@SIP_MODULE_PACKAGE_NAME@`` is replaced by the fully qualified name
+        of the :mod:`sip` module.
 
         ``@SIP_MODULE_PROJECT_NAME@`` is replaced by the module's project name
         as it would appear on PyPI.
@@ -254,7 +326,8 @@ The full set of command line options is:
 :program:`sip-sdist`
 --------------------
 
-TODO
+:program:`sip-sdist` creates an sdist (a source distribution) than be uploaded
+to PyPI.
 
 The syntax of the :program:`sip-sdist` command line is::
 
@@ -264,21 +337,25 @@ The full set of command line options is:
 
 .. program:: sip-sdist
 
-.. cmdoption:: -h
+.. option:: -h
 
     Display a help message.
 
-.. cmdoption:: -V
+.. option:: -V
 
     Display the SIP version number.
 
-TODO
+.. option:: --name <NAME>
+
+    ``NAME`` is used instead of the PyPI project name in the
+    :file:`pyproject.toml` file in the name of the sdist file.
 
 
 :program:`sip-wheel`
 --------------------
 
-TODO
+:program:`sip-wheel` creates a wheel (a binary distribution) than be uploaded
+to PyPI.
 
 The syntax of the :program:`sip-wheel` command line is::
 
@@ -288,12 +365,88 @@ The full set of command line options is:
 
 .. program:: sip-wheel
 
-.. cmdoption:: -h
+.. option:: -h
 
     Display a help message.
 
-.. cmdoption:: -V
+.. option:: -V
 
     Display the SIP version number.
 
-TODO
+.. option:: --quiet
+
+    All progress messages are disabled.
+
+.. option:: --verbose
+
+    Verbose progress messages are enabled.
+
+.. option:: --api-dir <DIR>
+
+    A QScintilla :file:`.api` file is created in ``DIR``.
+
+.. option:: --build-dir <DIR>
+
+    ``DIR`` is created as a build directory in which all generated files will
+    be created.  This build directory is not removed after the build has been
+    completed.  By default a temporary build directory is created which is
+    removed after the build has been completed.
+
+.. option:: --concatenate <N>
+
+    The generated code is split into ``N`` files.  By default one file is
+    generated for each C structure or C++ class.  Specifying a low value of
+    ``N`` can significantly speed up the build of large projects.
+
+.. option:: --disable <NAME>
+
+    The ``NAME`` bindings are disabled and will not be built.  This option may
+    be specified multiple times.  It is only available if the project contains
+    multiple sets of bindings.
+
+.. option:: --enable <NAME>
+
+    The ``NAME`` bindings are enabled and will be built.  Any associated
+    configuration tests that would normally be run to determine if the bindings
+    should be built are suppressed.  This option may be specified multiple
+    times.  It is only available if the project contains multiple sets of
+    bindings.
+
+.. option:: --name <NAME>
+
+    ``NAME`` is used instead of the PyPI project name in the
+    :file:`pyproject.toml` file in the name of the wheel file.
+
+.. option:: --debug
+
+    A build with debugging symbols is performed.
+
+.. option:: --no-docstrings
+
+    The generation of docstrings that describe the signature of all functions,
+    methods and constructors is disabled.
+
+.. option:: --pep484-pyi
+
+    The generation of the Python type hints stub file is enabled.  This file
+    contains a description of the project's APIs that is compliant with `PEP
+    484 <https://www.python.org/dev/peps/pep-0484/>`__.
+
+.. option:: --protected-is-public
+
+    SIP can generate code to provide access to protected C++ functions from
+    Python.  On some platforms (notably Linux, but not Windows) this code
+    can be avoided if the ``protected`` keyword is redefined as ``public``
+    during compilation.  This can result in a significant reduction in the size
+    of a generated Python module.  This option enables the redefinition of
+    ``protected`` and is the default on all platforms except Windows.
+
+.. option:: --no-protected-is-public
+
+    This option disables the redefinition of ``protected`` to access protected
+    C++ functions from Python and is the default on Windows.
+
+.. option:: --tracing
+
+    Debugging statements that trace the execution of the bindings are
+    automatically generated.  By default the statements are not generated.
