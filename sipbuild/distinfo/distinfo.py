@@ -22,7 +22,6 @@
 
 
 import base64
-import collections
 import hashlib
 import os
 import shutil
@@ -50,6 +49,9 @@ def distinfo(name, console_scripts, generator, inventory, prefix, project_root,
         requires_dist, wheel_tag):
     """ Create and populate a .dist-info directory from an inventory file. """
 
+    if prefix is None:
+        prefix = ''
+
     wheel = Wheel(wheel_tag) if wheel_tag else None
 
     # Read the list of installed files.
@@ -57,29 +59,14 @@ def distinfo(name, console_scripts, generator, inventory, prefix, project_root,
         installed_lines = inventory_f.read().strip()
         installed = installed_lines.split('\n') if installed_lines else []
 
-    if project_root is None:
-        # Default to what we can extract from the name of the .dist-info
-        # directory.
-        distinfo_base = os.path.basename(name)
-        pkg_name, version = os.path.splitext(distinfo_base)[0].split('-')
+    # Get the pyproject.toml file.
+    saved = os.getcwd()
+    os.chdir(project_root)
+    pyproject = PyProject()
+    os.chdir(saved)
 
-        metadata = collections.OrderedDict()
-        metadata['name'] = pkg_name
-        metadata['version'] = version
-    else:
-        # Get the metadata from the pyproject.toml file.
-        saved = os.getcwd()
-        os.chdir(project_root)
-        pyproject = PyProject()
-        os.chdir(saved)
-
-        metadata = pyproject.get_metadata()
-
-    if prefix is None:
-        prefix = ''
-
-    create_distinfo(name, wheel, installed, metadata, requires_dist,
-            project_root, console_scripts, prefix_dir=prefix,
+    create_distinfo(name, wheel, installed, pyproject.get_metadata(),
+            requires_dist, project_root, console_scripts, prefix_dir=prefix,
             generator=generator)
 
 

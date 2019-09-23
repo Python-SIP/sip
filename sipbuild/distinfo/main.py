@@ -48,7 +48,7 @@ def main():
     parser.add_argument('--prefix', help="the installation prefix directory",
             metavar="DIR")
 
-    parser.add_argument('--project-root',
+    parser.add_argument('--project-root', required=True,
             help="the directory containing pyproject.toml", metavar="DIR")
 
     parser.add_argument('--requires-dist', help="additional Requires-Dist",
