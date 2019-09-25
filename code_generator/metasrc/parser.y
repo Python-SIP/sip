@@ -566,37 +566,37 @@ statement:  {
     } modstatement
     ;
 
-modstatement:   module
-    |   compmodule
-    |   plugin
-    |   copying
-    |   include
-    |   import
+modstatement:   plugin
     |   api
-    |   timeline
-    |   platforms
-    |   feature
-    |   license
+    |   compmodule
+    |   copying
     |   defdocstringfmt
     |   defdocstringsig
     |   defencoding
     |   defmetatype
     |   defsupertype
-    |   hiddenns
     |   exphdrcode
-    |   modhdrcode
-    |   modcode
-    |   preinitcode
+    |   exptypehintcode
+    |   extract
+    |   feature
+    |   hiddenns
+    |   import
+    |   include
     |   initcode
+    |   license
+    |   mappedtype
+    |   module
+    |   modcode
+    |   modhdrcode
+    |   platforms
+    |   preinitcode
     |   postinitcode
+    |   timeline
+    |   modtypehintcode
     |   unitcode
     |   unitpostinccode
-    |   exptypehintcode
-    |   modtypehintcode
-    |   extract
-    |   mappedtype
-    |   mappedtypetmpl
     |   virterrorhandler
+    |   mappedtypetmpl
     |   nsstatement
     ;
 
@@ -826,7 +826,7 @@ veh_arg: TK_NAME '=' TK_NAME_VALUE {
     ;
 
 api:    TK_API '(' api_arg_list ')' {
-            deprecated("The %API directive is deprecated and will be removed in v5.1");
+            deprecated("The %API directive is deprecated and will be removed in v6");
 
             if (notSkipping())
             {
@@ -3048,16 +3048,16 @@ classline:  ifstart
             }
         }
     |   readbufcode {
-            /* Remove in v5.1. */
+            /* Remove in v6. */
         }
     |   writebufcode {
-            /* Remove in v5.1. */
+            /* Remove in v6. */
         }
     |   segcountcode {
-            /* Remove in v5.1. */
+            /* Remove in v6. */
         }
     |   charbufcode {
-            /* Remove in v5.1. */
+            /* Remove in v6. */
         }
     |   instancecode {
             if (notSkipping())
@@ -8818,7 +8818,7 @@ static apiVersionRangeDef *getAPIRange(optFlags *optflgs)
     if ((of = getOptFlag(optflgs, "API", api_range_flag)) == NULL)
         return NULL;
 
-    deprecated("The /API/ annotation is deprecated and will be removed in v5.1");
+    deprecated("The /API/ annotation is deprecated and will be removed in v6");
 
     return of->fvalue.aval;
 }
