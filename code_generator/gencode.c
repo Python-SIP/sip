@@ -5277,10 +5277,9 @@ int isInplaceNumberSlot(memberDef *md)
     slotType st = md->slot;
 
     return (st == iadd_slot || st == isub_slot || st == imul_slot ||
-        st == idiv_slot || st == imod_slot || st == ifloordiv_slot ||
-        st == itruediv_slot || st == ior_slot || st == ixor_slot ||
-        st == iand_slot || st == ilshift_slot || st == irshift_slot ||
-        st == imatmul_slot);
+        st == imod_slot || st == ifloordiv_slot || st == itruediv_slot ||
+        st == ior_slot || st == ixor_slot || st == iand_slot ||
+        st == ilshift_slot || st == irshift_slot || st == imatmul_slot);
 }
 
 
@@ -5303,10 +5302,9 @@ int isNumberSlot(memberDef *md)
     slotType st = md->slot;
 
     return (st == add_slot || st == sub_slot || st == mul_slot ||
-        st == div_slot || st == mod_slot || st == floordiv_slot ||
-        st == truediv_slot || st == and_slot || st == or_slot ||
-        st == xor_slot || st == lshift_slot || st == rshift_slot ||
-        st == matmul_slot);
+        st == mod_slot || st == floordiv_slot || st == truediv_slot ||
+        st == and_slot || st == or_slot || st == xor_slot ||
+        st == lshift_slot || st == rshift_slot || st == matmul_slot);
 }
 
 
@@ -10008,10 +10006,6 @@ static const char *slotName(slotType st)
         sn = "repeat_slot";
         break;
 
-    case div_slot:
-        sn = "div_slot";
-        break;
-
     case mod_slot:
         sn = "mod_slot";
         break;
@@ -10062,10 +10056,6 @@ static const char *slotName(slotType st)
 
     case irepeat_slot:
         sn = "irepeat_slot";
-        break;
-
-    case idiv_slot:
-        sn = "idiv_slot";
         break;
 
     case imod_slot:
@@ -11991,7 +11981,6 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
             generateBinarySlotCall(mod, scope, od, "*", deref, fp);
             break;
 
-        case div_slot:
         case truediv_slot:
             generateNumberSlotCall(mod, od, "/", fp);
             break;
@@ -12035,7 +12024,6 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
             generateBinarySlotCall(mod, scope, od, "*=", deref, fp);
             break;
 
-        case idiv_slot:
         case itruediv_slot:
             generateBinarySlotCall(mod, scope, od, "/=", deref, fp);
             break;
@@ -13619,7 +13607,6 @@ void prOverloadName(FILE *fp, overDef *od)
         pt2 = "*";
         break;
 
-    case div_slot:
     case truediv_slot:
         pt2 = "/";
         break;
@@ -13660,7 +13647,6 @@ void prOverloadName(FILE *fp, overDef *od)
         pt2 = "*=";
         break;
 
-    case idiv_slot:
     case itruediv_slot:
         pt2 = "/=";
         break;

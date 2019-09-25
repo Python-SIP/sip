@@ -569,7 +569,7 @@ typedef enum {
     sub_slot,
     mul_slot,
     repeat_slot,
-    div_slot,
+    div_slot,       /* No longer used. */
     mod_slot,
     floordiv_slot,
     truediv_slot,
@@ -583,7 +583,7 @@ typedef enum {
     isub_slot,
     imul_slot,
     irepeat_slot,
-    idiv_slot,
+    idiv_slot,      /* No longer used. */
     imod_slot,
     ifloordiv_slot,
     itruediv_slot,

@@ -3588,7 +3588,7 @@ function:   cpptype TK_NAME_VALUE '(' arglist ')' optconst optfinal optexception
 operatorname:   '+'     {$$ = "__add__";}
     |   '-'     {$$ = "__sub__";}
     |   '*'     {$$ = "__mul__";}
-    |   '/'     {$$ = "__div__";}
+    |   '/'     {$$ = "__truediv__";}
     |   '%'     {$$ = "__mod__";}
     |   '&'     {$$ = "__and__";}
     |   '|'     {$$ = "__or__";}
@@ -3598,7 +3598,7 @@ operatorname:   '+'     {$$ = "__add__";}
     |   '+' '='     {$$ = "__iadd__";}
     |   '-' '='     {$$ = "__isub__";}
     |   '*' '='     {$$ = "__imul__";}
-    |   '/' '='     {$$ = "__idiv__";}
+    |   '/' '='     {$$ = "__itruediv__";}
     |   '%' '='     {$$ = "__imod__";}
     |   '&' '='     {$$ = "__iand__";}
     |   '|' '='     {$$ = "__ior__";}
@@ -4982,8 +4982,6 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd,
 
             case sub_slot:
             case isub_slot:
-            case div_slot:
-            case idiv_slot:
             case mod_slot:
             case imod_slot:
             case floordiv_slot:
@@ -7392,7 +7390,6 @@ static memberDef *findFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         {"__add__", add_slot, FALSE, 1},
         {"__sub__", sub_slot, FALSE, 1},
         {"__mul__", mul_slot, FALSE, 1},
-        {"__div__", div_slot, FALSE, 1},
         {"__mod__", mod_slot, FALSE, 1},
         {"__floordiv__", floordiv_slot, TRUE, 1},
         {"__truediv__", truediv_slot, FALSE, 1},
@@ -7404,7 +7401,6 @@ static memberDef *findFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         {"__iadd__", iadd_slot, FALSE, 1},
         {"__isub__", isub_slot, FALSE, 1},
         {"__imul__", imul_slot, FALSE, 1},
-        {"__idiv__", idiv_slot, FALSE, 1},
         {"__imod__", imod_slot, FALSE, 1},
         {"__ifloordiv__", ifloordiv_slot, TRUE, 1},
         {"__itruediv__", itruediv_slot, FALSE, 1},

@@ -949,13 +949,13 @@ static const yytype_uint16 yyprhs[] =
 static const yytype_int16 yyrhs[] =
 {
      160,     0,    -1,   161,    -1,   160,   161,    -1,    -1,   162,
-     163,    -1,   246,    -1,   239,    -1,   177,    -1,   264,    -1,
-     256,    -1,   260,    -1,   185,    -1,   214,    -1,   206,    -1,
-     210,    -1,   223,    -1,   165,    -1,   169,    -1,   173,    -1,
-     227,    -1,   231,    -1,   235,    -1,   265,    -1,   266,    -1,
-     279,    -1,   281,    -1,   282,    -1,   283,    -1,   284,    -1,
-     285,    -1,   286,    -1,   287,    -1,   298,    -1,   194,    -1,
-     196,    -1,   181,    -1,   164,    -1,   218,    -1,   222,    -1,
+     163,    -1,   177,    -1,   185,    -1,   239,    -1,   264,    -1,
+     165,    -1,   169,    -1,   173,    -1,   227,    -1,   231,    -1,
+     265,    -1,   286,    -1,   298,    -1,   210,    -1,   235,    -1,
+     260,    -1,   256,    -1,   282,    -1,   223,    -1,   194,    -1,
+     246,    -1,   279,    -1,   266,    -1,   206,    -1,   281,    -1,
+     283,    -1,   214,    -1,   287,    -1,   284,    -1,   285,    -1,
+     181,    -1,   196,    -1,   164,    -1,   218,    -1,   222,    -1,
      202,    -1,   326,    -1,   332,    -1,   329,    -1,   188,    -1,
      325,    -1,   304,    -1,   361,    -1,   385,    -1,   267,    -1,
        5,   166,    -1,    32,    -1,   137,   167,   138,    -1,   168,
@@ -1424,10 +1424,10 @@ static const yytype_uint16 yydefact[] =
      529,   533,   534,   535,   536,   537,   538,   539,   540,   541,
      542,   543,   276,     0,   521,     0,     0,   544,   545,     0,
        0,   130,   119,     0,   145,     0,     0,     0,   546,     0,
-       0,     0,     5,    37,    17,    18,    19,     8,    36,    12,
-      44,    34,    35,    40,    14,    15,    13,    38,    39,    16,
-      20,    21,    22,     7,     6,    10,    11,     9,    23,    24,
-      49,    25,    26,    27,    28,    29,    30,    31,    32,    33,
+       0,     0,     5,    37,    10,    11,    12,     6,    35,     7,
+      44,    24,    36,    40,    28,    18,    31,    38,    39,    23,
+      13,    14,    19,     8,    25,    21,    20,     9,    15,    27,
+      49,    26,    29,    22,    30,    33,    34,    16,    32,    17,
       46,   516,   313,   314,    45,    41,    43,   336,    42,    47,
       48,     0,   513,     0,    51,     0,    50,    57,     0,    56,
       63,     0,    62,    69,     0,    68,    75,     0,     0,   272,
@@ -3173,7 +3173,7 @@ yyreduce:
   case 80:
 #line 828 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            deprecated("The %API directive is deprecated and will be removed in v5.1");
+            deprecated("The %API directive is deprecated and will be removed in v6");
 
             if (notSkipping())
             {
@@ -5947,28 +5947,28 @@ yyreduce:
   case 373:
 #line 3050 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            /* Remove in v5.1. */
+            /* Remove in v6. */
         }
     break;
 
   case 374:
 #line 3053 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            /* Remove in v5.1. */
+            /* Remove in v6. */
         }
     break;
 
   case 375:
 #line 3056 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            /* Remove in v5.1. */
+            /* Remove in v6. */
         }
     break;
 
   case 376:
 #line 3059 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            /* Remove in v5.1. */
+            /* Remove in v6. */
         }
     break;
 
@@ -6629,7 +6629,7 @@ yyreduce:
 
   case 430:
 #line 3591 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
-    {(yyval.text) = "__div__";}
+    {(yyval.text) = "__truediv__";}
     break;
 
   case 431:
@@ -6679,7 +6679,7 @@ yyreduce:
 
   case 440:
 #line 3601 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
-    {(yyval.text) = "__idiv__";}
+    {(yyval.text) = "__itruediv__";}
     break;
 
   case 441:
@@ -8621,8 +8621,6 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd,
 
             case sub_slot:
             case isub_slot:
-            case div_slot:
-            case idiv_slot:
             case mod_slot:
             case imod_slot:
             case floordiv_slot:
@@ -11031,7 +11029,6 @@ static memberDef *findFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         {"__add__", add_slot, FALSE, 1},
         {"__sub__", sub_slot, FALSE, 1},
         {"__mul__", mul_slot, FALSE, 1},
-        {"__div__", div_slot, FALSE, 1},
         {"__mod__", mod_slot, FALSE, 1},
         {"__floordiv__", floordiv_slot, TRUE, 1},
         {"__truediv__", truediv_slot, FALSE, 1},
@@ -11043,7 +11040,6 @@ static memberDef *findFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         {"__iadd__", iadd_slot, FALSE, 1},
         {"__isub__", isub_slot, FALSE, 1},
         {"__imul__", imul_slot, FALSE, 1},
-        {"__idiv__", idiv_slot, FALSE, 1},
         {"__imod__", imod_slot, FALSE, 1},
         {"__ifloordiv__", ifloordiv_slot, TRUE, 1},
         {"__itruediv__", itruediv_slot, FALSE, 1},
@@ -12457,7 +12453,7 @@ static apiVersionRangeDef *getAPIRange(optFlags *optflgs)
     if ((of = getOptFlag(optflgs, "API", api_range_flag)) == NULL)
         return NULL;
 
-    deprecated("The /API/ annotation is deprecated and will be removed in v5.1");
+    deprecated("The /API/ annotation is deprecated and will be removed in v6");
 
     return of->fvalue.aval;
 }
