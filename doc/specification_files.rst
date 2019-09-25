@@ -4,45 +4,10 @@ Specification Files
 ===================
 
 A SIP specification consists of some C/C++ type and function declarations and
-some directives.  The declarations may contain annotations which provide SIP
-with additional information that cannot be expressed in C/C++.  SIP does not
-include a full C/C++ parser.
-
-It is important to understand that a SIP specification describes the Python
-API, i.e. the API available to the Python programmer when they ``import`` the
-generated module.  It does not have to accurately represent the underlying
-C/C++ library.  There is nothing wrong with omitting functions that make
-little sense in a Python context, or adding functions implemented with
-handwritten code that have no C/C++ equivalent.  It is even possible (and
-sometimes necessary) to specify a different super-class hierarchy for a C++
-class.  All that matters is that the generated code compiles properly.
-
-In most cases the Python API matches the C/C++ API.  In some cases handwritten
-code (see :directive:`%MethodCode`) is used to map from one to the other
-without SIP having to know the details itself.  However, there are a few cases
-where SIP generates a thin wrapper around a C++ method or constructor (see
-:ref:`ref-derived-classes`) and needs to know the exact C++ signature.  To deal
-with these cases SIP allows two signatures to be specified.  For example::
-
-    class Klass
-    {
-    public:
-        // The Python signature is a tuple, but the underlying C++ signature
-        // is a 2 element array.
-        Klass(SIP_PYTUPLE) [(int *)];
-    %MethodCode
-            int iarr[2];
-
-            if (PyArg_ParseTuple(a0, "ii", &iarr[0], &iarr[1]))
-            {
-                // Note that we use the SIP generated derived class
-                // constructor.
-                Py_BEGIN_ALLOW_THREADS
-                sipCpp = new sipKlass(iarr);
-                Py_END_ALLOW_THREADS
-            }
-    %End
-    };
+some :ref:`directives <ref-directives>`.  The declarations may contain
+:ref:`annotations <ref-annotations>` which provide SIP with additional
+information that cannot be expressed in C/C++.  SIP does not implement a full
+C/C++ parser.
 
 
 Syntax Definition
@@ -52,7 +17,6 @@ The following is a semi-formal description of the syntax of a specification
 file.
 
 .. parsed-literal::
-
     *specification* ::= {*module-statement*}
 
     *module-statement* ::= [*module-directive* | *statement*]
@@ -60,8 +24,9 @@ file.
     *module-directive* ::= [
             :directive:`%API` |
             :directive:`%CompositeModule` |
-            :directive:`%ConsolidatedModule` |
             :directive:`%Copying` |
+            :directive:`%DefaultDocstringFormat` |
+            :directive:`%DefaultDocstringSignature` |
             :directive:`%DefaultEncoding` |
             :directive:`%DefaultMetatype` |
             :directive:`%DefaultSupertype` |
@@ -69,6 +34,7 @@ file.
             :directive:`%ExportedTypeHintCode` |
             :directive:`%Extract` |
             :directive:`%Feature` |
+            :directive:`%HideNamespace` |
             :directive:`%Import` |
             :directive:`%Include` |
             :directive:`%InitialisationCode` |
@@ -77,13 +43,14 @@ file.
             :directive:`%Module` |
             :directive:`%ModuleCode` |
             :directive:`%ModuleHeaderCode` |
-            :directive:`%OptionalInclude` |
             :directive:`%Platforms` |
             :directive:`%PreInitialisationCode` |
             :directive:`%PostInitialisationCode` |
             :directive:`%Timeline` |
             :directive:`%TypeHintCode` |
             :directive:`%UnitCode` |
+            :directive:`%UnitPostIncludeCode` |
+            :directive:`%VirtualErrorHandler` |
             *mapped-type-template*]
 
     *statement* :: [*class-statement* | *function* | *variable*]
@@ -117,12 +84,14 @@ file.
             :directive:`%ConvertToSubClassCode` |
             :directive:`%ConvertToTypeCode` |
             :directive:`%Docstring` |
+            :directive:`%FinalisationCode` |
             :directive:`%GCClearCode` |
             :directive:`%GCTraverseCode` |
             :directive:`%InstanceCode` |
             :directive:`%PickleCode` |
             :directive:`%TypeCode` |
             :directive:`%TypeHeaderCode` |
+            :directive:`%TypeHintCode` |
             *constructor* |
             *destructor* |
             *method* |
@@ -435,13 +404,44 @@ This is a ``PyObject *`` that is a Python tuple object.
 This is a ``PyObject *`` that is a Python type object.
 
 
-Classic Division and True Division
-----------------------------------
+Python API vs. C/C++ API
+------------------------
 
-SIP supports the ``__div__`` and ``__truediv__`` special methods (and the
-corresponding inplace versions).  The ``__div__`` method will be used for true
-division if a ``__truediv__`` method is not defined.  If both methods are
-defined then ``__div__`` should be defined first.
+It is important to understand that a SIP specification describes the Python
+API, i.e. the API available to the Python programmer when they ``import`` the
+generated module.  It does not have to accurately represent the underlying
+C/C++ library.  There is nothing wrong with omitting functions that make
+little sense in a Python context, or adding functions implemented with
+handwritten code that have no C/C++ equivalent.  It is even possible (and
+sometimes necessary) to specify a different super-class hierarchy for a C++
+class.  All that matters is that the generated code compiles properly.
+
+In most cases the Python API matches the C/C++ API.  In some cases handwritten
+code (see :directive:`%MethodCode`) is used to map from one to the other
+without SIP having to know the details itself.  However, there are a few cases
+where SIP generates a thin wrapper around a C++ method or constructor (see
+:ref:`ref-derived-classes`) and needs to know the exact C++ signature.  To deal
+with these cases SIP allows two signatures to be specified.  For example::
+
+    class Klass
+    {
+    public:
+        // The Python signature is a tuple, but the underlying C++ signature
+        // is a 2 element array.
+        Klass(SIP_PYTUPLE) [(int *)];
+    %MethodCode
+            int iarr[2];
+
+            if (PyArg_ParseTuple(a0, "ii", &iarr[0], &iarr[1]))
+            {
+                // Note that we use the SIP generated derived class
+                // constructor.
+                Py_BEGIN_ALLOW_THREADS
+                sipCpp = new sipKlass(iarr);
+                Py_END_ALLOW_THREADS
+            }
+    %End
+    };
 
 
 Namespaces

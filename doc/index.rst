@@ -8,9 +8,10 @@ SIP Reference Guide
     examples
     command_line_tools
     legacy_command_line_tools
-    using
     specification_files
     directives
     annotations
+    other_topics
     c_api
-    embedding
+    pyproject_toml
+    sipbuild_api

@@ -150,7 +150,7 @@ SIP also generates a :mod:`sip` module which performs the following functions:
 - it implements a private C ABI used by the bindings of package projects that
   allows them to interact
 
-- it implements a public C ABI used by bindings authors in hand-written code in
+- it implements a public C API used by bindings authors in hand-written code in
   situations where SIP's normal behaviour is insufficient and also when
   embedding Python in C/C++ applications
 
