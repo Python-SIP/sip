@@ -78,18 +78,18 @@ The full set of command line options is:
 
 .. option:: --pep484-pyi
 
-    The generation of the Python type hints stub file is enabled.  This file
-    contains a description of the project's APIs that is compliant with `PEP
-    484 <https://www.python.org/dev/peps/pep-0484/>`__.
+    The generation of Python type hints stub files is enabled.  These files
+    contain a description of a module's API that is compliant with `PEP 484
+    <https://www.python.org/dev/peps/pep-0484/>`__.
 
 .. option:: --protected-is-public
 
     SIP can generate code to provide access to protected C++ functions from
-    Python.  On some platforms (notably Linux, but not Windows) this code
-    can be avoided if the ``protected`` keyword is redefined as ``public``
-    during compilation.  This can result in a significant reduction in the size
-    of a generated Python module.  This option enables the redefinition of
-    ``protected`` and is the default on all platforms except Windows.
+    Python.  On non-Windows platforms this code can be avoided if the
+    ``protected`` keyword is redefined as ``public`` during compilation.  This
+    can result in a significant reduction in the size of a generated Python
+    module.  This option enables the redefinition of ``protected`` and is the
+    default on all platforms except Windows.
 
 .. option:: --no-protected-is-public
 
@@ -247,18 +247,18 @@ The full set of command line options is:
 
 .. option:: --pep484-pyi
 
-    The generation of the Python type hints stub file is enabled.  This file
-    contains a description of the project's APIs that is compliant with `PEP
-    484 <https://www.python.org/dev/peps/pep-0484/>`__.
+    The generation of Python type hints stub files is enabled.  These files
+    contain a description of a module's API that is compliant with `PEP 484
+    <https://www.python.org/dev/peps/pep-0484/>`__.
 
 .. option:: --protected-is-public
 
     SIP can generate code to provide access to protected C++ functions from
-    Python.  On some platforms (notably Linux, but not Windows) this code
-    can be avoided if the ``protected`` keyword is redefined as ``public``
-    during compilation.  This can result in a significant reduction in the size
-    of a generated Python module.  This option enables the redefinition of
-    ``protected`` and is the default on all platforms except Windows.
+    Python.  On non-Windows platforms this code can be avoided if the
+    ``protected`` keyword is redefined as ``public`` during compilation.  This
+    can result in a significant reduction in the size of a generated Python
+    module.  This option enables the redefinition of ``protected`` and is the
+    default on all platforms except Windows.
 
 .. option:: --no-protected-is-public
 
@@ -438,18 +438,18 @@ The full set of command line options is:
 
 .. option:: --pep484-pyi
 
-    The generation of the Python type hints stub file is enabled.  This file
-    contains a description of the project's APIs that is compliant with `PEP
-    484 <https://www.python.org/dev/peps/pep-0484/>`__.
+    The generation of Python type hints stub files is enabled.  These files
+    contain a description of a module's API that is compliant with `PEP 484
+    <https://www.python.org/dev/peps/pep-0484/>`__.
 
 .. option:: --protected-is-public
 
     SIP can generate code to provide access to protected C++ functions from
-    Python.  On some platforms (notably Linux, but not Windows) this code
-    can be avoided if the ``protected`` keyword is redefined as ``public``
-    during compilation.  This can result in a significant reduction in the size
-    of a generated Python module.  This option enables the redefinition of
-    ``protected`` and is the default on all platforms except Windows.
+    Python.  On non-Windows platforms this code can be avoided if the
+    ``protected`` keyword is redefined as ``public`` during compilation.  This
+    can result in a significant reduction in the size of a generated Python
+    module.  This option enables the redefinition of ``protected`` and is the
+    default on all platforms except Windows.
 
 .. option:: --no-protected-is-public
 

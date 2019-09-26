@@ -164,4 +164,115 @@ is then called to create the required object.
 Bindings Sections
 -----------------
 
-TODO
+Each set of bindings has its own section called ``[tool.sip.bindings.name]``
+where ``name`` is the name of the bindings.  If no bindings are explicitly
+defined then SIP will look in the directory containing the
+:file:`pyproject.toml` file for a :file:`.sip` file with the same name as the
+value of the ``name`` key in the ``[tool.sip.metadata]`` section and, if found,
+will assume that it defines the bindings of a standalone project.
+
+Unless stated otherwise, all values are strings.
+
+**builder-settings**
+    The value is a list of values that are passed to the builder.  It is up to
+    the builder to determine how these values are used.
+
+**concatenate**
+    The value, interpreted as a number, specifies that the generated code is
+    split into that number of source files.  By default one file is generated
+    for each C structure or C++ class.  Specifying a low value can
+    significantly speed up the build of large projects.  This is also a user
+    option.
+
+**debug**
+    The boolean value specifies if a build with debugging symbols is performed.
+    By default a debug build is not performed.  This is also a user option.
+
+**define-macros**
+    The value is a list of ``#define`` names and values in the form ``"NAME"``
+    or ``"NAME=VALUE"``.
+
+**disabled-features**
+    The value is a list of disabled :directive:`%Feature` tags.
+
+**docstrings**
+    The boolean value specifies if docstrings that describe the signature of
+    all functions, methods and constructors should be generated.  By default
+    docstrings are generated.  This is also a user option.
+
+**exceptions**
+    The boolean values specifies if support for C++ exceptions in the library
+    being wrapped is enabled.  By default exception support is disabled.
+
+**generate-extracts**
+    TODO - how are extracts to be handled?
+
+**headers**
+    The value is a list of additional :file:`.h` header files needed to build
+    the bindings.
+
+**include-dirs**
+    The value is a list of additional directories to search for :file:`.h`
+    header files.
+
+**internal**
+    The boolean value specifies if the set of bindings are internal.  Internal
+    bindings never have :file:`.sip`, :file:`.pyi` or :file:`.api` files
+    installed.  By default the bindings are not internal.
+
+**libraries**
+    The value is a list of libraries to link the source code with and should
+    include any library being wrapped.
+
+**library-dirs**
+    The value is a list of directories that will be searched, in addition to
+    the standard system directories, for any libraries.
+
+**pep484-pyi**
+    The boolean value specifies if a Python type hints stub file is generated.
+    This file contains a description of the module's API that is compliant with
+    `PEP 484 <https://www.python.org/dev/peps/pep-0484/>`__.  By default the
+    stub file is not generated.  This is also a user option.
+
+**protected-is-public**
+    The boolean value specifies if SIP redefines the ``protected`` keyword as
+    ``public`` during compilation.  On non-Windows platforms this can result in
+    a significant reduction in the size of a generated Python module.  By
+    default SIP redefines the keyword on non-Windows platforms.  This is also a
+    user option.
+
+**release-gil**
+    The boolean value specifies if the Python GIL is always released when
+    calling a function in the library being wrapped irrespective of any
+    :fanno:`HoldGIL` or :fanno:`ReleaseGIL` annotation.  By default the GIL is
+    only released as determined by those annotations.
+
+**static**
+    The boolean value specifies that the bindings should be built as a static
+    library.  By default the bindings are built as a dynamically loaded
+    library.  Note that not all builders (including the default
+    :class:`~sipbuild.DistutilsBuilder` builder) can build static libraries.
+
+**sip-file**
+    The name of the :file:`.sip` specification file that defines the set of
+    bindings.  If it is a relative name then it is assumed to be relative to
+    the value of the ``sip-files-dir`` key of the ``[tool.sip.project]``
+    section.  By default it is the name of the bindings with :file:`.sip`
+    appended.
+
+**source-suffix**
+    The value is the extension used for the generated source files.  By default
+    this is :file:`.c` for C bindings and :file:`.cpp` for C++ bindings.
+
+**sources**
+    The value is a list of additional C/C++ source files needed to build the
+    bindings.
+
+**tags**
+    The value is a list of :directive:`%Platforms` and :directive:`%Timeline`
+    tags used to configure the bindings.
+
+**tracing**
+    The boolean value specifies that debugging statements that trace the
+    execution of the bindings are automatically generated.  Be default the
+    statements are not generated.  This is also a user option.
