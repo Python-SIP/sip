@@ -51,7 +51,7 @@ class BuildableFromSources(Buildable):
     etc.
     """
 
-    def __init__(self, project, name, target, uses_limited_api=False):
+    def __init__(self, project, name, target, *, uses_limited_api=False):
         """ Initialise the buildable. """
 
         super().__init__(project, name)
@@ -114,11 +114,11 @@ class BuildableExecutable(BuildableFromSources):
 class BuildableModule(BuildableFromSources):
     """ Encapsulate the sources used to build an extension module. """
 
-    def __init__(self, project, name, fq_name, uses_limited_api=False):
+    def __init__(self, project, name, fq_name, *, uses_limited_api=False):
         """ Initialise the sources. """
 
         super().__init__(project, name, fq_name.split('.')[-1],
-                uses_limited_api)
+                uses_limited_api=uses_limited_api)
 
         self.fq_name = fq_name
         self.static = False
@@ -151,11 +151,11 @@ class BuildableBindings(BuildableModule):
     bindings.
     """
 
-    def __init__(self, bindings, fq_name, uses_limited_api=False):
+    def __init__(self, bindings, fq_name, *, uses_limited_api=False):
         """ Initialise the sources. """
 
         super().__init__(bindings.project, fq_name.split('.')[-1], fq_name,
-                uses_limited_api)
+                uses_limited_api=uses_limited_api)
 
         self.bindings = bindings
 

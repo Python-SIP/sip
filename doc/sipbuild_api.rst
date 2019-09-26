@@ -31,17 +31,17 @@ Classes
     TODO
 
 
-.. class:: BuildableBindings(bindings, fq_name, uses_limited_api=False)
+.. class:: BuildableBindings(bindings, fq_name, \*, uses_limited_api=False)
 
     TODO
 
 
-.. class:: BuildableExecutable(project, name, target, uses_limited_api=False)
+.. class:: BuildableExecutable(project, name, target, \*, uses_limited_api=False)
 
     TODO
 
 
-.. class:: BuildableModule(project, name, fq_name, uses_limited_api=False)
+.. class:: BuildableModule(project, name, fq_name, \*, uses_limited_api=False)
 
     TODO
 
@@ -56,12 +56,12 @@ Classes
     TODO
 
 
-.. class:: Installable(name, target_subdir=None)
+.. class:: Installable(name, \*, target_subdir=None)
 
     TODO
 
 
-.. class:: Option(name, \*, option_type=str, choices=None, default=None, help='', metavar=None, inverted=False, tools=None)
+.. class:: Option(name, \*, option_type=str, choices=None, default=None, help=None, metavar=None, inverted=False, tools=None)
 
     TODO
 
@@ -74,7 +74,7 @@ Classes
 Exceptions
 ----------
 
-.. exception:: PyProjectOptionException(name, text, \*, section_name=None, detail='')
+.. exception:: PyProjectOptionException(name, text, \*, section_name=None, detail=None)
 
     TODO
 
@@ -84,7 +84,7 @@ Exceptions
     TODO
 
 
-.. exception:: UserException(text, \*, detail='')
+.. exception:: UserException(text, \*, detail=None)
 
     TODO
 

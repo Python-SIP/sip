@@ -274,7 +274,7 @@ class Builder(AbstractBuilder):
             init_f.close()
 
             installable = Installable('init',
-                    os.path.dirname(project.get_bindings_dir()))
+                    target_subdir=os.path.dirname(project.get_bindings_dir()))
             installable.files.append(init_path)
             project.installables.append(installable)
 

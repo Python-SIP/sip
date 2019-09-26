@@ -165,7 +165,8 @@ class Bindings(Configurable):
         # The details of things that will have been generated.  Note that we
         # don't include anything for .api files or generic extracts as the
         # arguments include a file name.
-        buildable = BuildableBindings(self, fq_name, uses_limited_api)
+        buildable = BuildableBindings(self, fq_name,
+                uses_limited_api=uses_limited_api)
 
         buildable.builder_settings.extend(self.builder_settings)
         buildable.debug = self.debug
@@ -193,7 +194,8 @@ class Bindings(Configurable):
 
             generateTypeHints(pt, pyi_path)
 
-            installable = Installable('pyi', buildable.get_install_subdir())
+            installable = Installable('pyi',
+                    target_subdir=buildable.get_install_subdir())
             installable.files.append(pyi_path)
             buildable.installables.append(installable)
 

@@ -64,7 +64,7 @@ class Configurable:
                 continue
 
             # If there is no help then the user can never specify it.
-            if not option.help:
+            if option.help is None:
                 continue
 
             # See if the option is applicable to this tool.
@@ -169,10 +169,10 @@ class Configurable:
         """
 
         for option in self.get_options():
-            if user and not option.help:
+            if user and option.help is None:
                 continue
 
-            if not user and option.help:
+            if not user and option.help is not None:
                 continue
 
             value = getattr(self, option.name)
@@ -219,7 +219,7 @@ class Option:
     option_nr = 0
 
     def __init__(self, name, *, option_type=str, choices=None, default=None,
-            help='', metavar=None, inverted=False, tools=None):
+            help=None, metavar=None, inverted=False, tools=None):
         """ Initialise the option. """
 
         self.name = name

@@ -31,7 +31,7 @@ from .py_versions import FIRST_SUPPORTED_MINOR
 class PyProjectException(UserFileException):
     """ An exception related to a pyproject.toml file. """
 
-    def __init__(self, text, *, detail=''):
+    def __init__(self, text, *, detail=None):
         """ Initialise the exception. """
 
         super().__init__("pyproject.toml", text, detail=detail)
@@ -40,7 +40,7 @@ class PyProjectException(UserFileException):
 class PyProjectOptionException(PyProjectException):
     """ An exception related to a specific option of a pyproject.toml file. """
 
-    def __init__(self, name, text, *, section_name=None, detail=''):
+    def __init__(self, name, text, *, section_name=None, detail=None):
         """ Initialise the exception. """
 
         if section_name is None:

@@ -30,7 +30,7 @@ class Installable:
     a target directory.
     """
 
-    def __init__(self, name, target_subdir=None):
+    def __init__(self, name, *, target_subdir=None):
         """ Initialise the installable.  The optional target_subdir is the
         path of a sub-directory of the eventual target where the files will be
         installed.  If target_subdir is an absolute pathname then it is used as
