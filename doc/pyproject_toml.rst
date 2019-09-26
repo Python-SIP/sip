@@ -5,6 +5,17 @@ Note that, for the build tools, the keys described in this section are the
 standard keys.  Any of these keys could be removed, or new keys added, by build
 system extensions including project-specific :file:`project.py` files.
 
+Some string values are interpreted as a Python callable.  A callable can be
+interpreted in three different ways.  If the value has a :file:`.py` extension
+then it is assumed to be the name of a Python script which is then imported.
+The imported module is then searched for an object that is of a type (or
+sub-type) expected by the particular key.  If the value is a simple name then
+it is assumed to be the name of a module which is then imported and searched as
+before.  Finally if the value contains an embedded ``:`` then the part to the
+left of the ``:`` is taken to be the name of a module and the part to the right
+is taken to be the name of a factory callable within the module.  The factory
+is then called to create the required object.
+
 
 ``[build-system]`` Section
 --------------------------
@@ -20,6 +31,18 @@ following::
 This specifies that v5 of the ``sip`` package at PyPI should be used.  You may
 want to adjust the ``requires`` value if you use features introduced in a later
 version of SIP.
+
+
+``[tool.sip]`` Section
+----------------------
+
+The key/values in this section apply to the build system as a whole.  Unless
+stated otherwise, all values are strings.
+
+**project-factory**
+    The value is a callable that will return an object that is a sub-class
+    of :class:`~sipbuild.AbstractProject`.  The default builder factory is
+    :file:`project.py`.
 
 
 ``[tool.sip.metadata]`` Section
@@ -47,17 +70,6 @@ Note that SIP does not check the validity of the key/values in this section.
 
 The key/values in this section apply to the project as a whole.  Unless stated
 otherwise, all values are strings.
-
-Some string values are interpreted as a Python callable.  A callable can be
-interpreted in three different ways.  If the value has a :file:`.py` extension
-then it is assumed to be the name of a Python script which is then imported.
-The imported module is then searched for an object that is of a type (or
-sub-type) expected by the particular key.  If the value is a simple name then
-it is assumed to be the name of a module which is then imported and searched as
-before.  Finally if the value contains an embedded ``:`` then the part to the
-left of the ``:`` is taken to be the name of a module and the part to the right
-is taken to be the name of a factory callable within the module.  The factory
-is then called to create the required object.
 
 **abi-version**
     The value is the version number of the ABI of the :mod:`sip` module being
