@@ -60,12 +60,12 @@ setup(
         entry_points={
             'console_scripts': [
                 'sip-distinfo = sipbuild.distinfo.main:main',
-                'sip-module = sipbuild.module.main:main',
+                'sip-header = sipbuild.module.header_main:main',
+                'sip-module = sipbuild.module.module_main:main',
                 'sip-build = sipbuild.tools.build:main',
                 'sip-install = sipbuild.tools.install:main',
                 'sip-sdist = sipbuild.tools.sdist:main',
                 'sip-wheel = sipbuild.tools.wheel:main',
-                'sip5 = sipbuild.legacy.sip5:main',
-                'sip5-header = sipbuild.legacy.header:main']
+                'sip5 = sipbuild.legacy.sip5:main']
         }
      )

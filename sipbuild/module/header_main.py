@@ -24,14 +24,15 @@
 from ..argument_parser import ArgumentParser
 from ..exceptions import handle_exception
 
-from ..module import copy_sip_h, resolve_abi_version
+from .abi_version import resolve_abi_version
+from .module import copy_sip_h
 
 
 def main():
-    """ Install the sip.h file for a private sip module. """
+    """ Install the sip.h file for the sip module. """
 
     # Parse the command line.
-    parser = ArgumentParser("Install sip.h for a private sip module.")
+    parser = ArgumentParser("Install sip.h for the sip module.")
 
     parser.add_argument(dest='sip_modules', nargs=1,
             help="the fully qualified name of the sip module", metavar="name")
