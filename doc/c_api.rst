@@ -6,6 +6,10 @@ C API for Handwritten Code
 In this section we describe the C API, provided by the :mod:`sip` module, that
 can be used by handwritten code in specification files.
 
+The API is declared in the :file:`sip.h` header file.  SIP will ensure this
+file is installed in a location such that the compiler will automatically find
+it.
+
 
 .. c:macro:: SIP_API_MAJOR_NR
 
@@ -2107,9 +2111,9 @@ that embed the Python interpreter and need to pass C/C++ instances between the
 application and the interpreter.
 
 The API is exported by the :mod:`sip` module as a ``sipAPIDef`` data structure
-containing a set of function pointers.  The data structure is wrapped as a
-Python ``PyCapsule`` object.  It is referenced by the name ``_C_API`` in the
-:mod:`sip` module's dictionary.
+(defined in the :file:`sip.h` header file) containing a set of function
+pointers.  The data structure is wrapped as a Python ``PyCapsule`` object.  It
+is referenced by the name ``_C_API`` in the :mod:`sip` module's dictionary.
 
 Each member of the data structure is a pointer to one of the functions of the
 C API.  The name of the member can be derived from the function name by
@@ -2126,8 +2130,6 @@ to directly and must be obtained using the :c:func:`sipFindType()` function.
 Of course, the corresponding modules must already have been imported into the
 interpreter.
 
-TODO - what about the sip.h file?
-
 The following code fragment shows how to get a pointer to the ``sipAPIDef``
 data structure::
 
@@ -2140,3 +2142,6 @@ data structure::
 
 ``"sip._C_API"`` should be replaced by the fully qualified name of the
 :mod:`sip` module.
+
+If you need to install a local copy of the :file:`sip.h` header file then you
+can do so with :program:`sip-header`.

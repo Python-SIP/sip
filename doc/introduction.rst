@@ -203,17 +203,17 @@ SIP also includes some additional command line tools.
     SIP build system and need to create the :file:`.dist-info` directory from
     an external tool such as :program:`make`.
 
+:program:`sip-header`
+    The :mod:`sip` module's ABI is defined in a :file:`sip.h` header file.
+    Normally you do not need to worry about this but this program will install
+    a local copy of the it.
+
 :program:`sip-module`
     This builds an sdist for the :mod:`sip` module for a set of package
     projects.
 
 :program:`sip5`
     This is is a drop-in replacement for the :program:`sip` code generator from
-    SIP v4.  It is provided as an aid in moving projects from SIP v4 to SIP v5
-    and will be removed in SIP v6.
-
-:program:`sip5-header`
-    This installs a local copy of the :file:`sip.h` header file included with
     SIP v4.  It is provided as an aid in moving projects from SIP v4 to SIP v5
     and will be removed in SIP v6.
 

@@ -176,6 +176,40 @@ The full set of command line options is:
     :file:`.dist-info` directory.
 
 
+:program:`sip-header`
+---------------------
+
+:program:`sip-header` installs a local copy of the :file:`sip.h` header file.
+
+The syntax of the :program:`sip-header` command line is::
+
+    sip-header [options] name
+
+``name`` is the fully qualified name of the :mod:`sip` module.
+
+The full set of command line options is:
+
+.. program:: sip-header
+
+.. option:: -h
+
+    Display a help message.
+
+.. option:: -V
+
+    Display the SIP version number.
+
+.. option:: --abi-version <VERSION>
+
+    The version of the ABI defined by the :file:`sip.h` file is ``VERSION``.
+    By the default the latest version is used.
+
+.. option:: --include-dir <DIR>
+
+    The :file:`sip.h` file is written to the directory ``DIR``.  The default is
+    the current directory.
+
+
 :program:`sip-install`
 ----------------------
 
