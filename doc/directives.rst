@@ -921,17 +921,6 @@ The part's optional ``order`` determines its position relative to the extract's
 other parts.  If the order is not specified then the part is appended to the
 extract.
 
-An extract is written to a file using the :option:`-X <sip5 -X>` command line
-option.
-
-TODO: sip-extract???
-
-sip-extract --id NAME [--output FILE] .sip
-
-It needs to recognise timelines, features and platforms and so there needs to
-be a Bindings.extract() similar to Bindings.generate().  Does this mean that
-sip-extract is a tool like sip-build etc?
-
 For example::
 
     %Extract example

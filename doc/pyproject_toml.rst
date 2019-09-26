@@ -205,7 +205,9 @@ Unless stated otherwise, all values are strings.
     being wrapped is enabled.  By default exception support is disabled.
 
 **generate-extracts**
-    TODO - how are extracts to be handled?
+    The value is a list of extracts (defined by the :directive:`%Extract`
+    directive).  Each value is the identifier of the extract and the name of
+    the file that the extract is written to separated by a ``:``.
 
 **headers**
     The value is a list of additional :file:`.h` header files needed to build
@@ -244,8 +246,8 @@ Unless stated otherwise, all values are strings.
 **release-gil**
     The boolean value specifies if the Python GIL is always released when
     calling a function in the library being wrapped irrespective of any
-    :fanno:`HoldGIL` or :fanno:`ReleaseGIL` annotation.  By default the GIL is
-    only released as determined by those annotations.
+    :fanno:`ReleaseGIL` annotation.  By default the GIL is only released as
+    determined by :fanno:`ReleaseGIL`.
 
 **static**
     The boolean value specifies that the bindings should be built as a static

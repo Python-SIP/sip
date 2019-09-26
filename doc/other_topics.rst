@@ -200,9 +200,8 @@ API.  By default SIP does not release the GIL when making calls to the C/C++
 library being wrapped.  The :fanno:`ReleaseGIL` annotation can be used to
 override this behaviour when required.
 
-TODO - replace the reference to sip5 below.
-
-If SIP is given the :option:`-g <sip5 -g>` command line option then the default
+If the ``release-gil`` key is set to ``true`` in the bindings-specific section
+of the ``pyproject.toml`` file then (for that set of bindings) then the default
 behaviour is changed and SIP releases the GIL every time is makes calls to the
 C/C++ library being wrapped.  The :fanno:`HoldGIL` annotation can be used to
 override this behaviour when required.
