@@ -8,6 +8,9 @@
 TODO
 
 
+Classes
+-------
+
 .. class:: AbstractBuilder(project, \*\*kwargs)
 
     TODO
@@ -53,11 +56,6 @@ TODO
     TODO
 
 
-.. function:: handle_exception(e)
-
-    TODO
-
-
 .. class:: Installable(name, target_subdir=None)
 
     TODO
@@ -67,6 +65,14 @@ TODO
 
     TODO
 
+
+.. class:: Project(\*\*kwargs)
+
+    TODO
+
+
+Exceptions
+----------
 
 .. exception:: PyProjectOptionException(name, text, \*, section_name=None, detail='')
 
@@ -78,11 +84,14 @@ TODO
     TODO
 
 
-.. class:: Project(\*\*kwargs)
+.. exception:: UserException(text, \*, detail='')
 
     TODO
 
 
-.. exception:: UserException(text, \*, detail='')
+Functions
+---------
+
+.. function:: handle_exception(e)
 
     TODO
