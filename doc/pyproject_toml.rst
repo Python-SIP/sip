@@ -31,6 +31,11 @@ project as specified in `PEP 566
 values for ``metadata-version``, ``requires-python`` and ``version``.  The only
 value that must be specified is ``name``.
 
+SIP also implements the additional ``description-file`` key.  The value of this
+is the name of a file (relative to the directory containing
+:file:`pyproject.toml`) that contains a description of the project.  The
+description is read and appended to the meta-data.
+
 If a value is a list of individual values then the key will be repeated in the
 generated meta-data for each of those values.
 
