@@ -96,6 +96,11 @@ The full set of command line options is:
     This option disables the redefinition of ``protected`` to access protected
     C++ functions from Python and is the default on Windows.
 
+.. option:: --target-dir <DIR>
+
+    The project will eventually be installed in ``DIR``.  By default it is the
+    :file:`site-packages` directory of the Python installation.
+
 .. option:: --tracing
 
     Debugging statements that trace the execution of the bindings are
@@ -259,6 +264,11 @@ The full set of command line options is:
 
     This option disables the redefinition of ``protected`` to access protected
     C++ functions from Python and is the default on Windows.
+
+.. option:: --target-dir <DIR>
+
+    The project will be installed in ``DIR``.  By default it is the
+    :file:`site-packages` directory of the Python installation.
 
 .. option:: --tracing
 
