@@ -104,7 +104,7 @@ class Project(AbstractProject, Configurable):
         Option('build_dir', help="the build directory", metavar="DIR"),
         Option('target_dir', default=get_python_lib(plat_specific=1),
                 help="the target installation directory", metavar="DIR",
-                tools=['install']),
+                tools=['build', 'install']),
         Option('api_dir', help="generate a QScintilla .api file in DIR",
                 metavar="DIR"),
     )
