@@ -37,6 +37,10 @@ h2 a:visited {
     text-decoration: none;
 }
 
+dl.field-list > dt {
+    background: none;
+}
+
 th.field-name {
     background: none;
 }
