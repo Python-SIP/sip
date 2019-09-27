@@ -82,7 +82,7 @@ class PyProject:
 
         for md_name, md_value in self.get_section('tool.sip.metadata', required=True).items():
             # Ignore sub-sections.
-            if self.is_section(md_value):
+            if self._is_section(md_value):
                 continue
 
             if not isinstance(md_value, str):
@@ -129,7 +129,7 @@ class PyProject:
 
         return metadata
 
-    def get_section(self, section_name, required=False):
+    def get_section(self, section_name, *, required=False):
         """ Return a sub-section with a dotted name. """
 
         section = self._pyproject
@@ -145,14 +145,14 @@ class PyProject:
 
                 return None
 
-        if not self.is_section(section):
+        if not self._is_section(section):
             raise PyProjectException(
                     "'{0}' is not a section".format(section_name))
 
         return section
 
     @staticmethod
-    def is_section(value):
+    def _is_section(value):
         """ Returns True if a section value is itself a section. """
 
         return isinstance(value, (OrderedDict, list))

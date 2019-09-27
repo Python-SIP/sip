@@ -308,7 +308,7 @@ class Project(AbstractProject, Configurable):
 
             print(message, flush=True)
 
-    def read_command_pipe(self, cmd, and_stderr=False, fatal=True):
+    def read_command_pipe(self, cmd, *, and_stderr=False, fatal=True):
         """ A generator for each line of a pipe from a command's stdout. """
 
         if self.verbose:
@@ -326,7 +326,7 @@ class Project(AbstractProject, Configurable):
         if rc != 0 and fatal:
             raise UserException("'{0}' failed returning {1}".format(cmd, rc))
 
-    def run_command(self, args, fatal=True):
+    def run_command(self, args, *, fatal=True):
         """ Run a command and display the output if requested. """
 
         # Read stdout and stderr until there is no more output.

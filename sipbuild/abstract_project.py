@@ -165,5 +165,9 @@ class AbstractProject(ABC):
         return obj
 
     @abstractmethod
+    def install(self):
+        """ Install the project. """
+
+    @abstractmethod
     def setup(self, pyproject, tool, tool_description):
         """ Complete the configuration of the project. """
