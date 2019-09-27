@@ -77,7 +77,7 @@ class DistutilsBuilder(Builder):
                 installable.install(target_dir, installed)
 
         create_distinfo(project.get_distinfo_dir(target_dir), wheel, installed,
-                project.metadata, project.get_requires_dist(),
+                project.metadata, project.get_requires_dists(),
                 project.root_dir, project.console_scripts)
 
     def _build_extension_module(self, buildable):

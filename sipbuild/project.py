@@ -256,12 +256,12 @@ class Project(AbstractProject, Configurable):
 
         return options
 
-    def get_requires_dist(self):
+    def get_requires_dists(self):
         """ Return any 'Requires-Dist' to add to the project's meta-data. """
 
         # The only requirement is for the sip module.
         if not self.sip_module:
-            return None
+            return []
 
         requires_dist = self.metadata.get('requires-dist')
         if requires_dist is None:
@@ -274,12 +274,12 @@ class Project(AbstractProject, Configurable):
 
         for rd in requires_dist:
             if rd.split()[0] == sip_project_name:
-                return None
+                return []
 
         next_abi_major = int(self.abi_version.split('.')[0]) + 1
 
-        return '{} (>={}, <{})'.format(sip_project_name, self.abi_version,
-                next_abi_major)
+        return ['{} (>={}, <{})'.format(sip_project_name, self.abi_version,
+                next_abi_major)]
 
     def install(self):
         """ Install the project. """

@@ -46,7 +46,7 @@ class Wheel:
 
 
 def distinfo(name, console_scripts, generator, inventory, prefix, project_root,
-        requires_dist, wheel_tag):
+        requires_dists, wheel_tag):
     """ Create and populate a .dist-info directory from an inventory file. """
 
     if prefix is None:
@@ -66,11 +66,11 @@ def distinfo(name, console_scripts, generator, inventory, prefix, project_root,
     os.chdir(saved)
 
     create_distinfo(name, wheel, installed, pyproject.get_metadata(),
-            requires_dist, project_root, console_scripts, prefix_dir=prefix,
+            requires_dists, project_root, console_scripts, prefix_dir=prefix,
             generator=generator)
 
 
-def create_distinfo(distinfo_dir, wheel, installed, metadata, requires_dist,
+def create_distinfo(distinfo_dir, wheel, installed, metadata, requires_dists,
         project_root, console_scripts, prefix_dir='', generator=None):
     """ Create and populate a .dist-info directory. """
 
@@ -138,13 +138,12 @@ Tag: {}
     metadata_fn = os.path.join(distinfo_dir, 'METADATA')
     installed.append(metadata_fn)
 
-    if requires_dist:
+    if requires_dists:
         rd = metadata.get('requires-dist', [])
         if isinstance(rd, str):
             rd = [rd]
 
-        rd.insert(0, requires_dist)
-        metadata['requires-dist'] = rd
+        metadata['requires-dist'] = requires_dists + rd
 
     with open(prefix_dir + metadata_fn, 'w') as metadata_f:
         description = None
