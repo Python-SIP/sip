@@ -57,7 +57,7 @@ class PyProjectUndefinedOptionException(PyProjectOptionException):
     def __init__(self, name, *, section_name=None):
         """ Initialise the exception. """
 
-        super().__init__(section_name, name, "must be defined")
+        super().__init__(name, "must be defined", section_name=section_name)
 
 
 class PyProject:
