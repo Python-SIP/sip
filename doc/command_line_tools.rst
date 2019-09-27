@@ -168,7 +168,7 @@ The full set of command line options is:
     ``EXPR`` is added to the list of prerequisites written to the
     :file:`METADATA` file in the :file:`.dist-info` directory.  It is normally
     used to specify a particular version of a package project's :mod:`sip`
-    module.
+    module.  This option may be specified multiple times.
 
 .. option:: --wheel-tag <TAG>
 

@@ -45,6 +45,13 @@ stated otherwise, all values are strings.
     :file:`project.py`.
 
 
+``[tool.sip.builder]`` Section
+------------------------------
+
+The SIP build system does not define any key/values in this section but build
+system extensions may do so.
+
+
 ``[tool.sip.metadata]`` Section
 -------------------------------
 
@@ -83,7 +90,8 @@ otherwise, all values are strings.
 **bindings-factory**
     The value is a callable that will return an object that is a sub-class
     of :class:`~sipbuild.Bindings`.  The default bindings factory is
-    :class:`~sipbuild.Bindings`.
+    :class:`~sipbuild.Bindings`.  Bindings factories can also be specified
+    programmatically using :attr:`~sipbuild.Project.bindings_factories`.
 
 **build-dir**
     The value is the name of a directory in which all generated files will be
