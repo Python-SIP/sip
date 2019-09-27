@@ -308,8 +308,10 @@ class Project(AbstractProject, Configurable):
 
             print(message, flush=True)
 
-    def read_command_pipe(self, cmd, *, and_stderr=False, fatal=True):
+    def read_command_pipe(self, args, *, and_stderr=False, fatal=True):
         """ A generator for each line of a pipe from a command's stdout. """
+
+        cms = ' '.join(args)
 
         if self.verbose:
             print(cmd, flush=True)
@@ -330,7 +332,7 @@ class Project(AbstractProject, Configurable):
         """ Run a command and display the output if requested. """
 
         # Read stdout and stderr until there is no more output.
-        for line in self.read_command_pipe(' '.join(args), and_stderr=True, fatal=fatal):
+        for line in self.read_command_pipe(args, and_stderr=True, fatal=fatal):
             if self.verbose:
                 sys.stdout.write(line)
 
