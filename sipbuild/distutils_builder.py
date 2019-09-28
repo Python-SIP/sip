@@ -38,14 +38,14 @@ from .installable import Installable
 class DistutilsBuilder(Builder):
     """ The implementation of a distutils-based project builder. """
 
-    def build_executable(self, buildable, fatal=True):
+    def build_executable(self, buildable, *, fatal=True):
         """ Build an executable from a BuildableExecutable object and return
         the relative pathname of the executable.
         """
 
         raise UserException("DistutilsBuilder cannot build executables")
 
-    def build_project(self, target_dir, wheel=None):
+    def build_project(self, target_dir, *, wheel_tag=None):
         """ Build the project. """
 
         for buildable in self.project.buildables:
@@ -60,7 +60,7 @@ class DistutilsBuilder(Builder):
                         "DistutilsBuilder cannot build '{0}' buildables".format(
                                 type(buildable).__name__))
 
-    def install_project(self, target_dir, wheel=None):
+    def install_project(self, target_dir, *, wheel_tag=None):
         """ Install the project into a target directory. """
 
         project = self.project
@@ -76,8 +76,8 @@ class DistutilsBuilder(Builder):
             for installable in buildable.installables:
                 installable.install(target_dir, installed)
 
-        create_distinfo(project.get_distinfo_dir(target_dir), wheel, installed,
-                project.metadata, project.get_requires_dists(),
+        create_distinfo(project.get_distinfo_dir(target_dir), wheel_tag,
+                installed, project.metadata, project.get_requires_dists(),
                 project.root_dir, project.console_scripts)
 
     def _build_extension_module(self, buildable):

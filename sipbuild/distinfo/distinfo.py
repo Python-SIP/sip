@@ -36,23 +36,12 @@ from ..version import SIP_VERSION_STR
 WHEEL_VERSION = '1.0'
 
 
-class Wheel:
-    """ Encapsulate the wheel-specific meta-data. """
-
-    def __init__(self, tag):
-        """ Initialise the Wheel object. """
-
-        self.tag = tag
-
-
 def distinfo(name, console_scripts, generator, inventory, prefix, project_root,
         requires_dists, wheel_tag):
     """ Create and populate a .dist-info directory from an inventory file. """
 
     if prefix is None:
         prefix = ''
-
-    wheel = Wheel(wheel_tag) if wheel_tag else None
 
     # Read the list of installed files.
     with open(inventory) as inventory_f:
@@ -70,8 +59,9 @@ def distinfo(name, console_scripts, generator, inventory, prefix, project_root,
             generator=generator)
 
 
-def create_distinfo(distinfo_dir, wheel, installed, metadata, requires_dists,
-        project_root, console_scripts, prefix_dir='', generator=None):
+def create_distinfo(distinfo_dir, wheel_tag, installed, metadata,
+        requires_dists, project_root, console_scripts, prefix_dir='',
+        generator=None):
     """ Create and populate a .dist-info directory. """
 
     if generator is None:
@@ -101,7 +91,7 @@ def create_distinfo(distinfo_dir, wheel, installed, metadata, requires_dists,
     # Reproducable builds.
     installed.sort()
 
-    if wheel is None:
+    if wheel_tag is None:
         # Create the INSTALLER file.
         installer_fn = os.path.join(distinfo_dir, 'INSTALLER')
         installed.append(installer_fn)
@@ -132,7 +122,7 @@ Tag: {}
         with open(prefix_dir + wheel_fn, 'w') as wheel_f:
             wheel_f.write(
                     WHEEL.format(WHEEL_VERSION, generator, SIP_VERSION_STR,
-                            wheel.tag))
+                            wheel_tag))
 
     # Create the METADATA file.
     metadata_fn = os.path.join(distinfo_dir, 'METADATA')

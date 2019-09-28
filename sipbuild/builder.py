@@ -31,7 +31,6 @@ import sys
 from .abstract_builder import AbstractBuilder
 from .buildable import BuildableFromSources
 from .code_generator import set_globals
-from .distinfo import Wheel
 from .exceptions import UserException
 from .installable import Installable
 from .module import copy_sip_h
@@ -50,13 +49,13 @@ class Builder(AbstractBuilder):
         self.build_project(self.project.target_dir)
 
     @abstractmethod
-    def build_executable(self, buildable, fatal=True):
+    def build_executable(self, buildable, *, fatal=True):
         """ Build an executable from a BuildableExecutable object and return
         the relative pathname of the executable.
         """
 
     @abstractmethod
-    def build_project(self, target_dir, wheel=None):
+    def build_project(self, target_dir, *, wheel_tag=None):
         """ Build the project. """
 
     def build_sdist(self, sdist_directory):
@@ -170,13 +169,10 @@ class Builder(AbstractBuilder):
             # be uploaded to PyPI.
             wheel_tag += '-manylinux1_x86_64'
 
-        # Save the wheel details.
-        wheel = Wheel(wheel_tag)
-
-        self.build_project(wheel_build_dir, wheel=wheel)
+        self.build_project(wheel_build_dir, wheel_tag=wheel_tag)
 
         # Copy the wheel contents.
-        self.install_project(wheel_build_dir, wheel=wheel)
+        self.install_project(wheel_build_dir, wheel_tag=wheel_tag)
 
         wheel_file = '{}-{}-{}.whl'.format(project.name.replace('-', '_'),
                 project.version_str, wheel_tag)
@@ -211,7 +207,7 @@ class Builder(AbstractBuilder):
         self.install_project(target_dir)
 
     @abstractmethod
-    def install_project(self, target_dir, wheel=None):
+    def install_project(self, target_dir, *, wheel_tag=None):
         """ Install the project into a target directory. """
 
     def _generate_bindings(self):
