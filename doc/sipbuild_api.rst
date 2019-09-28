@@ -20,13 +20,45 @@ build systems.
 
 .. class:: AbstractBuilder(project, \*\*kwargs)
 
-    TODO
+    An abstract class that defines the API of a builder.
 
-    :param Project project: TODO
+    :param Project project: is the project.
     :param \*\*kwargs: are keyword arguments that define the initial values of
         any corresponding :class:`~sipbuild.Option` defined by the builder.  An
         :class:`~sipbuild.Option` value set in this way cannot be overridden in
         the :file:`pyproject.toml` file or by using a tool command line option.
+
+    .. method:: build()
+        :abstractmethod:
+
+        Build the project but do not install it.
+
+    .. method:: build_sdist(sdist_directory)
+        :abstractmethod:
+
+        Build an sdist for the project.
+
+        :param str sdist_directory: is the name of the directory in which the
+            sdist is created.
+        :return: the name of the sdist file (excluding any path).
+
+    .. method:: build_wheel(wheel_directory)
+        :abstractmethod:
+
+        Build a wheel for the project.
+
+        :param str wheel_directory: is the name of the directory in which the
+            wheel is created.
+        :return: the name of the wheel file (excluding any path).
+
+    .. method:: install()
+        :abstractmethod:
+
+        Build and install the project.
+
+    .. attribute:: project
+
+        The :class:`~sipbuild.Project` object.
 
 
 :class:`~sipbuild.AbstractProject`
@@ -65,11 +97,11 @@ build systems.
         Import a callable from a script or module.  The callable is identified
         either by its name (if specified) or its type.
 
-        :param str name: specifies a script (with a :file:`.py` extension), a
-            module or the name of an object in a module (specified as
+        :param str name: is a script (with a :file:`.py` extension), a module
+            or the name of an object in a module (specified as
             ``module:name``).
-        :param type base_type: the type of the callable and is ignored if the
-            name of the callable is explicitly specified.
+        :param type base_type: is the type of the callable and is ignored if
+            the name of the callable is explicitly specified.
         :return: the callable.
 
     .. method:: install()
@@ -93,15 +125,53 @@ build systems.
 
 .. class:: Bindings(project, name, \*\*kwargs)
 
-    TODO
+    The encapsulation of a set of bindings.
 
-    :param Project project: TODO
-    :param str name: TODO
+    :param Project project: is the project.
+    :param str name: is the name of the bindings.
     :param \*\*kwargs: are keyword arguments that define the initial values of
         any corresponding :class:`~sipbuild.Option` defined by the bindings.
         An :class:`~sipbuild.Option` value set in this way cannot be overridden
         in the :file:`pyproject.toml` file or by using a tool command line
         option.
+
+    .. method:: apply_nonuser_defaults(tool)
+
+        Called by the bindings to set the default values of any non-user
+        options (i.e. those that cannot be set from a tool command line).  If
+        it is re-implemented in a sub-class then the super-class version should
+        be called.
+
+        :param str tool: is the name of the tool being used.
+
+    .. method:: apply_user_defaults(tool)
+
+        Called by the bindings to set the default values of any user options
+        (i.e. those that can be set from a tool command line).  If it is
+        re-implemented in a sub-class then the super-class version should be
+        called.
+
+        :param str tool: is the name of the tool being used.
+
+    .. method:: get_options()
+
+        Called by the bindings to get the list of the bindings's options.  If
+        it is re-implemented in a sub-class then the super-class version should
+        be called.
+
+        :return: the list of :class:`~sipbuild.Option` objects.
+
+    .. method:: is_buildable()
+
+        Called by the builder to determine if the bindings are buildable.  This
+        will not be called if the bindings have been explicitly enabled.  The
+        default implementation returns ``True``.
+
+        :return: ``True`` if the bindings are buildable.
+
+    .. attribute:: project
+
+        The :class:`~sipbuild.Project` object.
 
 
 :class:`~sipbuild.Buildable`
@@ -109,10 +179,33 @@ build systems.
 
 .. class:: Buildable(project, name)
 
-    TODO
+    Encapsulate a generic buildable.
 
-    :param Project project: TODO
-    :param str name: TODO
+    :param Project project: is the project.
+    :param str name: is the name of the buildable.
+
+    .. attribute:: build_dir
+
+        The name of the buildable-specific build directory.  This will be
+        created automatically.
+
+    .. attribute:: build_settings
+
+        A list of values that are passed to the builder. It is up to the
+        builder to determine how these values are used.
+
+    .. attribute:: installables
+
+        The list of :class:`~sipbuild.Installable` objects created by the
+        builder to describe what was built.
+
+    .. attribute:: name
+
+        The name of the buildable.
+
+    .. attribute:: project
+
+        The :class:`~sipbuild.Project` object.
 
 
 :class:`~sipbuild.BuildableBindings`
@@ -120,11 +213,17 @@ build systems.
 
 .. class:: BuildableBindings(bindings, fq_name, \*, uses_limited_api=False)
 
-    TODO
+    A :class:`~sipbuild.BuildableModule` sub-class that encapsulates the Python
+    extension module for a set of bindings.
 
-    :param Bindings bindings: TODO
-    :param str fq_name: TODO
-    :param bool uses_limited_api: TODO
+    :param Bindings bindings: is the bindings.
+    :param str fq_name: is the fully qualified name of the bindings module.
+    :param bool uses_limited_api: is ``True`` if the source code uses only the
+        limited Python API.
+
+    .. attribute:: bindings
+
+        The :class:`~sipbuild.Bindings` object.
 
 
 :class:`~sipbuild.BuildableExecutable`
@@ -132,12 +231,74 @@ build systems.
 
 .. class:: BuildableExecutable(project, name, target, \*, uses_limited_api=False)
 
-    TODO
+    A :class:`~sipbuild.BuildableFromSources` sub-class that encapsulates an
+    executable.
 
-    :param Project project: TODO
-    :param str name: TODO
-    :param str target: TODO
-    :param bool uses_limited_api: TODO
+    :param Project project: is the project.
+    :param str name: is the name of the buildable.
+    :param str target: is the platform-independent name of the executable being
+        built.
+    :param bool uses_limited_api: is ``True`` if the source code uses only the
+        limited Python API.
+
+
+:class:`~sipbuild.BuildableFromSources`
+---------------------------------------
+
+.. class:: BuildableFromSources(project, name, target, \*, uses_limited_api=False)
+
+    A :class:`~sipbuild.Buildable` sub-class that encapsulates a target that is
+    built from source code.
+
+    :param Project project: is the project.
+    :param str name: is the name of the buildable.
+    :param str target: is the name of the target being built.
+    :param bool uses_limited_api: is ``True`` if the source code uses only the
+        limited Python API.
+
+    .. attribute:: debug
+
+        ``True`` if a build with debugging symbols should be performed.
+
+    .. attribute:: define_macros
+
+        The list of ``#define`` names and values in the form ``"NAME"`` or
+        ``"NAME=VALUE"``.
+
+    .. attribute:: headers
+
+        The list of :file:`.h` header files.
+
+    .. attribute:: include_dirs
+
+        The list of directories that will be searched, in additional to the
+        standard system directores, for :file:`.h` header files.
+
+    .. attribute:: libraries
+
+        The list of libraries to link the source code with.
+
+    .. attribute:: library_dirs
+
+        The list of directories that will be searched, in addition to the
+        standard system directories, for any libraries.
+
+    .. method:: make_names_relative()
+
+        Make all the file names relative to the build directory.  This isn't
+        necessary but can make any build files easier to read by the user.
+
+    .. attribute:: sources
+
+        The list of source files.
+
+    .. attribute:: target
+
+        The name of the target being built.
+
+    .. attribute:: uses_limited_api
+
+        ``True`` if the source code uses only the limited Python API.
 
 
 :class:`~sipbuild.BuildableModule`
@@ -145,12 +306,36 @@ build systems.
 
 .. class:: BuildableModule(project, name, fq_name, \*, uses_limited_api=False)
 
-    TODO
+    A :class:`~sipbuild.BuildableFromSources` sub-class that encapsulates a
+    Python extension module.
 
-    :param Project project: TODO
-    :param str name: TODO
-    :param str fq_name: TODO
-    :param bool uses_limited_api: TODO
+    :param Project project: is the project.
+    :param str name: is the name of the buildable.
+    :param str fq_name: is the fully qualified name of the module.
+    :param bool uses_limited_api: is ``True`` if the source code uses only the
+        limited Python API.
+
+    .. attribute:: fq_name
+
+        The fully qualified name of the module.
+
+    .. method:: get_install_subdir()
+
+        Get the name of the sub-directory (relative to any future target
+        installation directory) that the module should be installed in.
+
+        :return: the name of the sub-directory.
+
+    .. method:: get_module_extension()
+
+        Get the platform-specific file name extension that a module should
+        have.
+
+        :return: the extension.
+
+    .. attribute:: static
+
+        ``True`` if the module should be built as a static library.
 
 
 :class:`~sipbuild.Builder`
@@ -158,23 +343,78 @@ build systems.
 
 .. class:: Builder(project, \*\*kwargs)
 
-    TODO
+    The default base implementation of a builder.
 
-    :param Project project: TODO
+    :param Project project: is the project
     :param \*\*kwargs: are keyword arguments that define the initial values of
         any corresponding :class:`~sipbuild.Option` defined by the builder.  An
         :class:`~sipbuild.Option` value set in this way cannot be overridden in
         the :file:`pyproject.toml` file or by using a tool command line option.
 
+    .. method:: apply_nonuser_defaults(tool)
 
-:class:`~sipbuild.DisutilsBuilder`
-----------------------------------
+        Called by the builder to set the default values of any non-user options
+        (i.e. those that cannot be set from a tool command line).  If it is
+        re-implemented in a sub-class then the super-class version should be
+        called.
+
+        :param str tool: is the name of the tool being used.
+
+    .. method:: apply_user_defaults(tool)
+
+        Called by the builder to set the default values of any user options
+        (i.e. those that can be set from a tool command line).  If it is
+        re-implemented in a sub-class then the super-class version should be
+        called.
+
+        :param str tool: is the name of the tool being used.
+
+    .. method:: build_executable(buildable, \*, fatal=True)
+        :abstractmethod:
+
+        Build an executable from a buildable.
+
+        :param BuildableExecutable buildable: is the buildable.
+        :param bool fatal: is ``True`` if a :exc:`~sipbuild.UserException`
+            should be raised if the build failed.
+        :return: the relative path name of the built executable.
+
+    .. method:: build_project(target_dir, \*, wheel_tag=None)
+        :abstractmethod:
+
+        Build the project either to be installed for use or to create a wheel.
+
+        :param str target_dir: is the directory in which the project will be
+            installed in.
+        :param str wheel_tag: is the wheel tag if a wheel is being created.
+
+    .. method:: get_options()
+
+        Called by the builder to get the list of the builder's options.  If
+        it is re-implemented in a sub-class then the super-class version should
+        be called.
+
+        :return: the list of :class:`~sipbuild.Option` objects.
+
+    .. method:: install_project(target_dir, \*, wheel_tag=None)
+        :abstractmethod:
+
+        Install a built project either for use or to create a wheel.
+
+        :param str target_dir: is the directory in which the project will be
+            installed in.
+        :param str wheel_tag: is the wheel tag if a wheel is being created.
+
+
+:class:`~sipbuild.DistutilsBuilder`
+-----------------------------------
 
 .. class:: DistutilsBuilder(project, \*\*kwargs)
 
-    TODO
+    A :class:`~sipbuild.Builder` that uses the Python :mod:`distutils` package
+    to perform builds.
 
-    :param Project project: TODO
+    :param Project project: is the project.
     :param \*\*kwargs: are keyword arguments that define the initial values of
         any corresponding :class:`~sipbuild.Option` defined by the builder.  An
         :class:`~sipbuild.Option` value set in this way cannot be overridden in
@@ -197,10 +437,44 @@ build systems.
 
 .. class:: Installable(name, \*, target_subdir=None)
 
-    TODO
+    Encapsulate a list of files that will be installed in the same directory.
 
-    :param str name: TODO
-    :param str target_subdir: TODO
+    :param str name: is the name of the installable.
+    :param str target_subdir: is the relative path name of a sub-directory in
+        which the installable's files will be installed.  If it is an absolute
+        path name then it is used as the eventual full target directory.
+
+    .. attribute:: files
+
+        The list of file names to be installed.
+
+    .. method:: get_full_target_dir(target_dir)
+
+        Get the full path name of the directory where the installable's file
+        will be installed.
+
+        :param str target_dir: is the name of target directory.
+        :return: the full path name of the sub-directory within the target
+            directory where the files will be installed.
+
+    .. method:: install(target_dir, installed, \*, do_install=True)
+
+        Install the installable's files in a target directory.
+
+        :param str target_dir: is the name of the target directory.
+        :param list[str] installed: is a list of installed files which is
+            updated with the newly installed files.  The list is always updated
+            even if the files are not actually installed.
+        :param bool do_install: is ``True`` if the files are actually to be
+            installed.
+
+    .. attribute:: name
+
+        The name of the installable.
+
+    .. attribute:: target_subdir
+
+        The name of the target sub-directory.
 
 
 :class:`~sipbuild.Option`
@@ -271,7 +545,7 @@ build systems.
     .. attribute:: bindings_factories
 
         The list of bindings factories which when called will return a
-        :class:`~sipbuild.Bindings` instance.  There may or may not be a
+        :class:`~sipbuild.Bindings` object.  There may or may not be a
         corresponding section in the :file:`pyproject.toml` file.
 
     .. attribute:: builder

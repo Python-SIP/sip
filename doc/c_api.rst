@@ -1686,9 +1686,8 @@ it.
     is :class:`sip.simplewrapper`.  It is an extension of the ``PyObject``
     structure and so may be safely cast to it.
 
-    When the limited Python API is enabled and Python v3.2 or later is being
-    used then it is only available as an opaque (i.e. incomplete) type and the
-    following members are not available.
+    When the limited Python API is enabled then it is only available as an
+    opaque (i.e. incomplete) type and the following members are not available.
 
     .. c:member:: void *data
 
@@ -1723,8 +1722,8 @@ it.
     implementation of :class:`sip.simplewrapper`.  It may be safely cast to
     :c:type:`sipWrapperType`.
 
-    When the limited Python API is enabled and Python v3.2 or later is being
-    used then it is only available as an opaque (i.e. incomplete) type.
+    When the limited Python API is enabled then it is only available as an
+    opaque (i.e. incomplete) type.
 
 
 .. c:type:: sipTimeDef
@@ -1968,8 +1967,8 @@ it.
     :c:type:`sipSimpleWrapper` and ``PyObject`` structures and so may be safely
     cast to both.
 
-    When the limited Python API is enabled and Python v3.2 or later is being
-    used then it is only available as an opaque (i.e. incomplete) type.
+    When the limited Python API is enabled then it is only available as an
+    opaque (i.e. incomplete) type.
 
 
 .. c:var:: PyTypeObject *sipWrapper_Type
@@ -1986,8 +1985,8 @@ it.
     extension of the ``PyObject`` structure) and so may be safely cast to
     ``PyTypeObject`` (and ``PyObject``).
 
-    When the limited Python API is enabled and Python v3.2 or later is being
-    used then it is only available as an opaque (i.e. incomplete) type.
+    When the limited Python API is enabled then it is only available as an
+    opaque (i.e. incomplete) type.
 
 
 .. c:var:: PyTypeObject *sipWrapperType_Type

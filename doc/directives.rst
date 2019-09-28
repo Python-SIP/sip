@@ -1820,10 +1820,11 @@ instead.  It also affects the name of the variable created when the
 :aanno:`GetWrapper` argument annotation is used.
 
 ``use_limited_api`` specifies that the generated code will only use the
-limited Python API defined in PEP 384.  It also ensures that the C preprocessor
-symbol ``Py_LIMITED_API`` is defined before the ``Python.h`` header file is
-included.  Python extensions built in this way are independent of the version
-of Python being used.  It is ignored for Python v2.
+limited Python API defined in `PEP 384
+<https://www.python.org/dev/peps/pep-0384/>`__.  It also ensures that the C
+preprocessor symbol ``Py_LIMITED_API`` is defined before the :file:`Python.h`
+header file is included.  Python extensions built in this way are independent
+of the version of Python being used.
 
 The optional :directive:`%AutoPyName` sub-directive is used to specify a rule
 for automatically providing Python names.
