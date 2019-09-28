@@ -52,7 +52,7 @@ class Installable:
 
         return target_dir
 
-    def install(self, target_dir, installed, do_install=True):
+    def install(self, target_dir, installed, *, do_install=True):
         """ Optionally install the files in a target directory and update the
         given list of installed files.
         """
