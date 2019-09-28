@@ -26,7 +26,7 @@ from .abstract_builder import AbstractBuilder
 from .abstract_project import AbstractProject
 from .bindings import Bindings
 from .buildable import (Buildable, BuildableBindings, BuildableExecutable,
-        BuildableModule)
+        BuildableFromSources, BuildableModule)
 from .builder import Builder
 from .configurable import Option
 from .distutils_builder import DistutilsBuilder
