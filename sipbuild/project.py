@@ -311,7 +311,7 @@ class Project(AbstractProject, Configurable):
     def read_command_pipe(self, args, *, and_stderr=False, fatal=True):
         """ A generator for each line of a pipe from a command's stdout. """
 
-        cms = ' '.join(args)
+        cmd = ' '.join(args)
 
         if self.verbose:
             print(cmd, flush=True)
