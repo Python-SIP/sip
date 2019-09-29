@@ -21,6 +21,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
+from argparse import SUPPRESS
 from warnings import simplefilter
 
 from ..argument_parser import ArgumentParser
@@ -84,6 +85,8 @@ def main():
             help="split the generated code into <FILES> files [default 1 per "
                     "class]",
             metavar="FILES")
+
+    parser.add_argument('-m', dest='xml_extract', help=SUPPRESS)
 
     parser.add_argument('-n', dest='sip_module',
             help="the fully qualified name of the sip module",
@@ -149,14 +152,18 @@ def main():
                 protected_is_public=args.protected_is_public,
                 py_debug=args.py_debug, release_gil=args.release_gil,
                 tracing=args.tracing, extracts=args.extracts,
-                pyi_extract=args.pyi_extract, api_extract=args.api_extract)
+                pyi_extract=args.pyi_extract, api_extract=args.api_extract,
+                xml_extract=args.xml_extract)
     except Exception as e:
         handle_exception(e)
 
     return 0
 
 
-def sip5(specification, *, sip_module, abi_version, sources_dir, include_dirs, tags, backstops, disabled_features, exceptions, parts, source_suffix, docstrings, protected_is_public, py_debug, release_gil, tracing, extracts, pyi_extract, api_extract):
+def sip5(specification, *, sip_module, abi_version, sources_dir, include_dirs,
+        tags, backstops, disabled_features, exceptions, parts, source_suffix,
+        docstrings, protected_is_public, py_debug, release_gil, tracing,
+        extracts, pyi_extract, api_extract, xml_extract):
     """ Create the bindings for a C/C++ library. """
 
     # The code generator requires the name of the sip module.
@@ -190,3 +197,6 @@ def sip5(specification, *, sip_module, abi_version, sources_dir, include_dirs, t
     # Generate the type hints file.
     if pyi_extract is not None:
         generateTypeHints(pt, pyi_extract)
+
+    # Generate the XML file.
+        generateXML(pt, xml_extract)
