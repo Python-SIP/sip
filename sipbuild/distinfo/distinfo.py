@@ -54,7 +54,7 @@ def distinfo(name, console_scripts, generator, inventory, prefix, project_root,
     pyproject = PyProject()
     os.chdir(saved)
 
-    create_distinfo(name, wheel, installed, pyproject.get_metadata(),
+    create_distinfo(name, wheel_tag, installed, pyproject.get_metadata(),
             requires_dists, project_root, console_scripts, prefix_dir=prefix,
             generator=generator)
 
