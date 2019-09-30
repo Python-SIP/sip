@@ -178,7 +178,7 @@ def sip5(specification, *, sip_module, abi_version, sources_dir, include_dirs,
             UserException, include_dirs)
 
     # Parse the input file.
-    pt, _, _, _ = parse(specification, True, tags, backstops,
+    pt, _, _, _ = parse(specification, (xml_extract is None), tags, backstops,
             disabled_features, protected_is_public)
 
     # Generate the bindings.
