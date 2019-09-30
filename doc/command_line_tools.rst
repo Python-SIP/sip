@@ -176,40 +176,6 @@ The full set of command line options is:
     :file:`.dist-info` directory.
 
 
-:program:`sip-header`
----------------------
-
-:program:`sip-header` installs a local copy of the :file:`sip.h` header file.
-
-The syntax of the :program:`sip-header` command line is::
-
-    sip-header [options] name
-
-``name`` is the fully qualified name of the :mod:`sip` module.
-
-The full set of command line options is:
-
-.. program:: sip-header
-
-.. option:: -h
-
-    Display a help message.
-
-.. option:: -V
-
-    Display the SIP version number.
-
-.. option:: --abi-version <VERSION>
-
-    The version of the ABI defined by the :file:`sip.h` file is ``VERSION``.
-    By the default the latest version is used.
-
-.. option:: --include-dir <DIR>
-
-    The :file:`sip.h` file is written to the directory ``DIR``.  The default is
-    the current directory.
-
-
 :program:`sip-install`
 ----------------------
 
@@ -313,15 +279,15 @@ The full set of command line options is:
 :program:`sip-module`
 ---------------------
 
-:program:`sip-module` builds an sdist for the :mod:`sip` module for a set of
-package projects.
+:program:`sip-module` builds one of more of the elements of the :mod:`sip`
+module for a set of package projects.
 
 The syntax of the :program:`sip-module` command line is::
 
     sip-module [options] name
 
-``name`` is the fully qualified name of the ``sip`` module (i.e. including the
-package name).
+``name`` is the fully qualified name of the :mod:`sip` module (i.e. including
+the package name).
 
 The full set of command line options is:
 
@@ -340,16 +306,16 @@ The full set of command line options is:
     The version of the ABI implemented by the :mod:`sip` module is ``VERSION``.
     By the default the latest version is used.
 
-.. option:: --no-sdist
-
-    Instead of creating an sdist ``.tar.gz`` file, the module source is left as
-    a directory where the contents can be subsequently modified if required.
-
 .. option:: --project <NAME>
 
     The name of the project as it would appear on PyPI is ``NAME``.  By default
     the name is derived from the fully qualified name of the :mod:`sip`
     module.
+
+.. option:: --sdist
+
+    Create an sdist which can then be installed by :program:`pip` or uploaded
+    to PyPI.
 
 .. option:: --setup-cfg <FILE>
 
@@ -357,14 +323,31 @@ The full set of command line options is:
     version.  This allows the meta-data included in the sdist to be customised.
     A number of macros may be specified in the :file:`setup.cfg` file:
 
-        ``@SIP_MODULE_PACKAGE_NAME@`` is replaced by the fully qualified name
+        ``@SIP_MODULE_FQ_NAME@`` is replaced by the fully qualified name
         of the :mod:`sip` module.
+
+        ``@SIP_MODULE_PACKAGE_NAME@`` is replaced by the module's project
+        top-level package name.
 
         ``@SIP_MODULE_PROJECT_NAME@`` is replaced by the module's project name
         as it would appear on PyPI.
 
         ``@SIP_MODULE_VERSION@`` is replaced by the version number of the
         module.
+
+.. option:: --sip-h
+
+    Create a :file:`sip.h` header file that defines the C ABI implemented by
+    the :mod:`sip` module.
+
+.. option:: --sip-rst
+
+    Create a :file:`sip.rst` file that documents the Python API implemented by
+    the :mod:`sip` module.
+
+.. option:: --target-dir <DIR>
+
+    Each of the module's elements will be created in ``DIR``.
 
 
 :program:`sip-sdist`

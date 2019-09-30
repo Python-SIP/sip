@@ -2143,4 +2143,4 @@ data structure::
 :mod:`sip` module.
 
 If you need to install a local copy of the :file:`sip.h` header file then you
-can do so with :program:`sip-header`.
+can do so with :program:`sip-module`.
