@@ -199,4 +199,5 @@ def sip5(specification, *, sip_module, abi_version, sources_dir, include_dirs,
         generateTypeHints(pt, pyi_extract)
 
     # Generate the XML file.
+    if xml_extract is not None:
         generateXML(pt, xml_extract)
