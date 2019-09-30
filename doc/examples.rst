@@ -263,7 +263,7 @@ within the :file:`.sip` files.
 
 In order to create an sdist for the :mod:`~examples.sip` module, run::
 
-    sip-module examples.sip
+    sip-module --sdist examples.sip
 
 If you want to create a wheel from the sdist then run::
 
