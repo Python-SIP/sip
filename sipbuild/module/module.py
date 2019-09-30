@@ -31,8 +31,9 @@ from .abi_version import (get_module_source_dir, get_sip_module_version,
         resolve_abi_version)
 
 
-def module(sip_module, abi_version, project, sdist, setup_cfg):
-    """ Create the sdist for a sip module. """
+def module(sip_module, abi_version, project, sdist, setup_cfg, sip_h, sip_rst,
+        target_dir):
+    """ Create the various elements of a sip module. """
 
     # Provide some defaults.
     abi_version = resolve_abi_version(abi_version)
@@ -43,19 +44,25 @@ def module(sip_module, abi_version, project, sdist, setup_cfg):
     # Create the patches.
     patches = _create_patches(sip_module, abi_version, project)
 
-    # Create the source directory.
+    # The names of generated files.
     sdist_dir = project + '-' + patches['@SIP_MODULE_VERSION@']
+    sip_h_fn = 'sip.h'
+    sip_rst_fn = 'sip.rst'
 
-    _install_code(abi_version, sdist_dir, patches, setup_cfg)
+    if target_dir:
+        sdist_dir = os.path.join(target_dir, sdist_dir)
+        sip_h_fn = os.path.join(target_dir, sip_h_fn)
+        sip_rst_fn = os.path.join(target_dir, sip_rst_fn)
 
+    # Generate the required files.
     if sdist:
-        # Created the sdist.
-        tf = tarfile.open(sdist_dir + '.tar.gz', 'w:gz',
-                format=tarfile.PAX_FORMAT)
-        tf.add(sdist_dir)
-        tf.close()
+        _create_sdist(sdist_dir, abi_version, patches, setup_cfg)
 
-        shutil.rmtree(sdist_dir)
+    if sip_h:
+        _create_sip_file(sip_h_fn, abi_version, patches)
+
+    if sip_rst:
+        _create_sip_file(sip_rst_fn, abi_version, patches)
 
 
 def copy_sip_h(abi_version, target_dir, sip_module=''):
@@ -104,6 +111,7 @@ def _create_patches(sip_module, abi_version, project=''):
     return {
         # The public patches are those that might be needed in setup.cfg or any
         # automatically generated user documentation.
+        '@SIP_MODULE_FQ_NAME@':         sip_module,
         '@SIP_MODULE_PROJECT_NAME@':    project,
         '@SIP_MODULE_PACKAGE_NAME@':    sip_module_package_name,
         '@SIP_MODULE_VERSION@':         get_sip_module_version(abi_version),
@@ -123,13 +131,13 @@ def _create_patches(sip_module, abi_version, project=''):
     }
 
 
-def _install_code(abi_version, target_dir, patches, setup_cfg):
-    """ Install the shared module code in a target directory. """
+def _create_sdist(sdist_dir, abi_version, patches, setup_cfg):
+    """ Create the sdist. """
 
-    # Remove any existing directory.
-    shutil.rmtree(target_dir, ignore_errors=True)
+    # Remove any existing source directory.
+    shutil.rmtree(sdist_dir, ignore_errors=True)
 
-    os.mkdir(target_dir)
+    os.mkdir(sdist_dir)
 
     # The source directory doesn't have sub-directories.
     module_source_dir = get_module_source_dir(abi_version)
@@ -144,19 +152,36 @@ def _install_code(abi_version, target_dir, patches, setup_cfg):
             # Don't install the default README if we are not using the default
             # setup.cfg.
             if name != 'README' or setup_cfg is None:
-                _install_source_file(name, module_source_dir, target_dir,
+                _install_source_file(name, module_source_dir, sdist_dir,
                         patches)
         else:
-            shutil.copy(os.path.join(module_source_dir, name), target_dir)
+            shutil.copy(os.path.join(module_source_dir, name), sdist_dir)
 
     # Overwrite setup.cfg is required.
     if setup_cfg is not None:
         setup_cfg_text = _install_source_file(setup_cfg, module_source_dir,
-                os.path.join(target_dir, 'setup.cfg'), patches)
+                os.path.join(sdist_dir, 'setup.cfg'), patches)
 
         # If the user's setup.cfg mentions sip.pyi then assume it is needed.
         if 'sip.pyi' in setup_cfg_text:
-            shutil.copy(os.path.join(module_ourcec_dir, 'sip.pyi'), target_dir)
+            shutil.copy(os.path.join(module_ourcec_dir, 'sip.pyi'), sdist_dir)
+
+    # Created the sdist file.
+    tf = tarfile.open(sdist_dir + '.tar.gz', 'w:gz', format=tarfile.PAX_FORMAT)
+    tf.add(sdist_dir)
+    tf.close()
+
+    # Tidy up.
+    shutil.rmtree(sdist_dir)
+
+
+def _create_sip_file(sip_file_fn, abi_version, patches):
+    """ Create a patched file from the module source directory. """
+
+    dname, fname = os.path.split(os.path.abspath(sip_file_fn))
+
+    _install_source_file(fname, get_module_source_dir(abi_version), dname,
+            patches)
 
 
 def _install_source_file(name, module_source_dir, target_dir, patches):

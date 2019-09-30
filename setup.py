@@ -60,8 +60,7 @@ setup(
         entry_points={
             'console_scripts': [
                 'sip-distinfo = sipbuild.distinfo.main:main',
-                'sip-header = sipbuild.module.header_main:main',
-                'sip-module = sipbuild.module.module_main:main',
+                'sip-module = sipbuild.module.main:main',
                 'sip-build = sipbuild.tools.build:main',
                 'sip-install = sipbuild.tools.install:main',
                 'sip-sdist = sipbuild.tools.sdist:main',
