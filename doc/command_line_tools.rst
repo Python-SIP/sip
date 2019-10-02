@@ -21,11 +21,11 @@ The full set of command line options is:
 
 .. program:: sip-build
 
-.. option:: -h
+.. option:: -h, --help
 
     Display a help message.
 
-.. option:: -V
+.. option:: -V, --version
 
     Display the SIP version number.
 
@@ -125,11 +125,11 @@ The full set of command line options is:
 
 .. program:: sip-distinfo
 
-.. option:: -h
+.. option:: -h, --help
 
     Display a help message.
 
-.. option:: -V
+.. option:: -V, --version
 
     Display the SIP version number.
 
@@ -189,11 +189,11 @@ The full set of command line options is:
 
 .. program:: sip-install
 
-.. option:: -h
+.. option:: -h, --help
 
     Display a help message.
 
-.. option:: -V
+.. option:: -V, --version
 
     Display the SIP version number.
 
@@ -293,11 +293,11 @@ The full set of command line options is:
 
 .. program:: sip-module
 
-.. option:: -h
+.. option:: -h, --help
 
     Display a help message.
 
-.. option:: -V
+.. option:: -V, --version
 
     Display the SIP version number.
 
@@ -364,11 +364,11 @@ The full set of command line options is:
 
 .. program:: sip-sdist
 
-.. option:: -h
+.. option:: -h, --help
 
     Display a help message.
 
-.. option:: -V
+.. option:: -V, --version
 
     Display the SIP version number.
 
@@ -392,11 +392,11 @@ The full set of command line options is:
 
 .. program:: sip-wheel
 
-.. option:: -h
+.. option:: -h, --help
 
     Display a help message.
 
-.. option:: -V
+.. option:: -V, --version
 
     Display the SIP version number.
 
