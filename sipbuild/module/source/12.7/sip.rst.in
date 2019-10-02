@@ -180,6 +180,11 @@ some functionality that can be used by applications.
     use the default :py:class:`~@SIP_MODULE_FQ_NAME@.wrapper` type but do not
     support the concept of object ownership.
 
+    .. py:method:: __dtor__
+
+        If the wrapped instance is a C++ class with a virtual destructor then
+        this is called by the destructor.
+
 
 .. py:data:: SIP_VERSION
 
