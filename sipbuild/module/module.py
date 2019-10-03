@@ -23,7 +23,8 @@
 
 import os
 import shutil
-import tarfile
+import subprocess
+import sys
 
 from ..version import SIP_VERSION, SIP_VERSION_STR
 
@@ -166,10 +167,16 @@ def _create_sdist(sdist_dir, abi_version, patches, setup_cfg):
         if 'sip.pyi' in setup_cfg_text:
             shutil.copy(os.path.join(module_ourcec_dir, 'sip.pyi'), sdist_dir)
 
-    # Created the sdist file.
-    tf = tarfile.open(sdist_dir + '.tar.gz', 'w:gz', format=tarfile.PAX_FORMAT)
-    tf.add(sdist_dir)
-    tf.close()
+    # Create the sdist file using setuptools.  This means any user supplied
+    # setup.cfg should be handled correctly.
+    saved_cwd = os.getcwd()
+    os.chdir(sdist_dir)
+
+    subprocess.run(
+            [sys.executable, 'setup.py', '--quiet', 'sdist', '--dist-dir',
+                    '..'])
+
+    os.chdir(saved_cwd)
 
     # Tidy up.
     shutil.rmtree(sdist_dir)
