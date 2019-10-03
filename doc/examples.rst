@@ -98,7 +98,7 @@ like that shown below.
     requires = ["sip >=5, <6"]
     build-backend = "sipbuild.api"
 
-    # Specify the PEP 522 metadata for the project.
+    # Specify the PEP 566 metadata for the project.
     [tool.sip.metadata]
     name = "fib"
 

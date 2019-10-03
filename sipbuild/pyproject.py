@@ -72,7 +72,7 @@ class PyProject:
             raise UserParseException('pyproject.toml', detail=str(e))
 
     def get_metadata(self):
-        """ Return an OrderedDict containing the PEP 522 meta-data. """
+        """ Return an OrderedDict containing the PEP 566 meta-data. """
 
         metadata = OrderedDict()
         name = None
