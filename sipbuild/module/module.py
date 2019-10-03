@@ -147,7 +147,7 @@ def _create_sdist(sdist_dir, abi_version, patches, setup_cfg):
         if name in ('sip.pyi', 'sip.rst.in'):
             continue
 
-        if name.endswith('.in'):
+        if name != 'MANIFEST.in' and name.endswith('.in'):
             name = name[:-3]
 
             # Don't install the default README if we are not using the default
