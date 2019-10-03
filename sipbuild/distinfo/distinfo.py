@@ -32,7 +32,7 @@ from ..pyproject import PyProject
 from ..version import SIP_VERSION_STR
 
 
-# The wheel format defined in PEP427.
+# The wheel format defined in PEP 427.
 WHEEL_VERSION = '1.0'
 
 
@@ -126,36 +126,9 @@ Tag: {}
 
     # Create the METADATA file.
     metadata_fn = os.path.join(distinfo_dir, 'METADATA')
+    write_metadata(metadata, requires_dists, metadata_fn, project_root,
+            prefix_dir=prefix_dir)
     installed.append(metadata_fn)
-
-    if requires_dists:
-        rd = metadata.get('requires-dist', [])
-        if isinstance(rd, str):
-            rd = [rd]
-
-        metadata['requires-dist'] = requires_dists + rd
-
-    with open(prefix_dir + metadata_fn, 'w') as metadata_f:
-        description = None
-
-        for name, value in metadata.items():
-            if name == 'description-file':
-                description = value
-            else:
-                if isinstance(value, str):
-                    value = [value]
-
-                for v in value:
-                    metadata_f.write('{}: {}\n'.format(name.title(), v))
-
-        if description is not None:
-            metadata_f.write('\n')
-
-            # The description file uses posix separators.
-            description = description.replace('/', os.sep)
-
-            with open(os.path.join(project_root, description)) as description_f:
-                metadata_f.write(description_f.read())
 
     # Create the RECORD file.
     record_fn = os.path.join(distinfo_dir, 'RECORD')
@@ -204,3 +177,37 @@ Tag: {}
                         '{},sha256={},{}\n'.format(fn_name, digest, len(data)))
 
         record_f.write('{}/RECORD,,\n'.format(distinfo_base))
+
+
+def write_metadata(metadata, requires_dists, metadata_fn, project_root,
+        prefix_dir=''):
+    """ Write the meta-data, with additional requirements to a file. """
+
+    if requires_dists:
+        rd = metadata.get('requires-dist', [])
+        if isinstance(rd, str):
+            rd = [rd]
+
+        metadata['requires-dist'] = requires_dists + rd
+
+    with open(prefix_dir + metadata_fn, 'w') as metadata_f:
+        description = None
+
+        for name, value in metadata.items():
+            if name == 'description-file':
+                description = value
+            else:
+                if isinstance(value, str):
+                    value = [value]
+
+                for v in value:
+                    metadata_f.write('{}: {}\n'.format(name.title(), v))
+
+        if description is not None:
+            metadata_f.write('\n')
+
+            # The description file uses posix separators.
+            description = description.replace('/', os.sep)
+
+            with open(os.path.join(project_root, description)) as description_f:
+                metadata_f.write(description_f.read())

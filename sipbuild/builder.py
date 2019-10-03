@@ -31,6 +31,7 @@ import sys
 from .abstract_builder import AbstractBuilder
 from .buildable import BuildableFromSources
 from .code_generator import set_globals
+from .distinfo import write_metadata
 from .exceptions import UserException
 from .installable import Installable
 from .module import copy_sip_h
@@ -101,6 +102,11 @@ class Builder(AbstractBuilder):
                 os.makedirs(os.path.dirname(d_fn_path), exist_ok=True)
 
                 shutil.copy2(s_fn_path, d_fn_path)
+
+        # Create the PKG-INFO file.  This is assumed to be identical to the
+        # .dist-info/METADATA file.
+        write_metadata(project.metadata, project.get_requires_dists(),
+                os.path.join(sdist_root, 'PKG-INFO'), project.root_dir)
 
         # Create the tarball.
         sdist_file = sdist_name + '.tar.gz'

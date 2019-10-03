@@ -22,4 +22,4 @@
 
 
 # Publish the API.  This is private to the rest of sip.
-from .distinfo import create_distinfo
+from .distinfo import create_distinfo, write_metadata
