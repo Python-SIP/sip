@@ -37,29 +37,29 @@ The full set of command line options is:
 
     Verbose progress messages are enabled.
 
-.. option:: --api-dir <DIR>
+.. option:: --api-dir DIR
 
     A QScintilla :file:`.api` file is created in ``DIR``.
 
-.. option:: --build-dir <DIR>
+.. option:: --build-dir DIR
 
     ``DIR`` is created as a build directory in which all generated files will
     be created.  The build directory is not removed after the build has been
     completed.  The default value is ``build``.
 
-.. option:: --concatenate <N>
+.. option:: --concatenate N
 
     The generated code is split into ``N`` files.  By default one file is
     generated for each C structure or C++ class.  Specifying a low value of
     ``N`` can significantly speed up the build of large projects.
 
-.. option:: --disable <NAME>
+.. option:: --disable NAME
 
     The ``NAME`` bindings are disabled and will not be built.  This option may
     be specified multiple times.  It is only available if the project contains
     multiple sets of bindings.
 
-.. option:: --enable <NAME>
+.. option:: --enable NAME
 
     The ``NAME`` bindings are enabled and will be built.  Any associated
     configuration tests that would normally be run to determine if the bindings
@@ -96,7 +96,7 @@ The full set of command line options is:
     This option disables the redefinition of ``protected`` to access protected
     C++ functions from Python and is the default on Windows.
 
-.. option:: --target-dir <DIR>
+.. option:: --target-dir DIR
 
     The project will eventually be installed in ``DIR``.  By default it is the
     :file:`site-packages` directory of the Python installation.
@@ -133,44 +133,44 @@ The full set of command line options is:
 
     Display the SIP version number.
 
-.. option:: --console-script <ENTRY-POINT>
+.. option:: --console-script ENTRY-POINT
 
     The console entry point ``ENTRY-POINT`` is added to the wheel.  It is
     ignored if the :option:`--wheel-tag` option is not specified.  This option
     may be specified multiple times.
 
-.. option:: --generator <NAME>
+.. option:: --generator NAME
 
     If the :option:`--wheel-tag` option is specified then ``NAME`` is written
     as the ``Generator`` in the :file:`WHEEL` file in the :file:`.dist-info`
     directory.  Otherwise ``NAME`` is written to the :file:`INSTALLER` file.
     By default ``sip-distinfo`` is written.
 
-.. option:: --inventory <FILE>
+.. option:: --inventory FILE
 
     ``FILE`` contains a list of the relative names of the files, one per line, 
     that comprise the installation or wheel contents.  This option must be
     specified.
 
-.. option:: --prefix <DIR>
+.. option:: --prefix DIR
 
     This option is provided as an aid to Linux package builders.  ``DIR`` is
     used to pass the commonly used values of ``DESTDIR`` or ``INSTALL_ROOT``.
     If specified it should have a trailing native path separator.
 
-.. option:: --project-root <DIR>
+.. option:: --project-root DIR
 
     The name of the directory containing the project's :file:`pyproject.toml`
     file is ``DIR``.  This option must be specified.
 
-.. option:: --requires-dist <EXPR>
+.. option:: --requires-dist EXPR
 
     ``EXPR`` is added to the list of prerequisites written to the
     :file:`METADATA` file in the :file:`.dist-info` directory.  It is normally
     used to specify a particular version of a package project's :mod:`sip`
     module.  This option may be specified multiple times.
 
-.. option:: --wheel-tag <TAG>
+.. option:: --wheel-tag TAG
 
     ``TAG`` is written as the ``Tag`` in the :file:`WHEEL` file in the
     :file:`.dist-info` directory.
@@ -205,30 +205,30 @@ The full set of command line options is:
 
     Verbose progress messages are enabled.
 
-.. option:: --api-dir <DIR>
+.. option:: --api-dir DIR
 
     A QScintilla :file:`.api` file is created in ``DIR``.
 
-.. option:: --build-dir <DIR>
+.. option:: --build-dir DIR
 
     ``DIR`` is created as a build directory in which all generated files will
     be created.  This build directory is not removed after the build has been
     completed.  By default a temporary build directory is created which is
     removed after the build has been completed.
 
-.. option:: --concatenate <N>
+.. option:: --concatenate N
 
     The generated code is split into ``N`` files.  By default one file is
     generated for each C structure or C++ class.  Specifying a low value of
     ``N`` can significantly speed up the build of large projects.
 
-.. option:: --disable <NAME>
+.. option:: --disable NAME
 
     The ``NAME`` bindings are disabled and will not be built.  This option may
     be specified multiple times.  It is only available if the project contains
     multiple sets of bindings.
 
-.. option:: --enable <NAME>
+.. option:: --enable NAME
 
     The ``NAME`` bindings are enabled and will be built.  Any associated
     configuration tests that would normally be run to determine if the bindings
@@ -265,7 +265,7 @@ The full set of command line options is:
     This option disables the redefinition of ``protected`` to access protected
     C++ functions from Python and is the default on Windows.
 
-.. option:: --target-dir <DIR>
+.. option:: --target-dir DIR
 
     The project will be installed in ``DIR``.  By default it is the
     :file:`site-packages` directory of the Python installation.
@@ -301,12 +301,12 @@ The full set of command line options is:
 
     Display the SIP version number.
 
-.. option:: --abi-version <VERSION>
+.. option:: --abi-version VERSION
 
     The version of the ABI implemented by the :mod:`sip` module is ``VERSION``.
     By the default the latest version is used.
 
-.. option:: --project <NAME>
+.. option:: --project NAME
 
     The name of the project as it would appear on PyPI is ``NAME``.  By default
     the name is derived from the fully qualified name of the :mod:`sip`
@@ -317,7 +317,7 @@ The full set of command line options is:
     Create an sdist which can then be installed by :program:`pip` or uploaded
     to PyPI.
 
-.. option:: --setup-cfg <FILE>
+.. option:: --setup-cfg FILE
 
     ``FILE`` is copied to the sdist as :file:`setup.cfg` instead of the default
     version.  This allows the meta-data included in the sdist to be customised.
@@ -345,7 +345,7 @@ The full set of command line options is:
     Create a :file:`sip.rst` file that documents the Python API implemented by
     the :mod:`sip` module.
 
-.. option:: --target-dir <DIR>
+.. option:: --target-dir DIR
 
     Each of the module's elements will be created in ``DIR``.
 
@@ -372,7 +372,7 @@ The full set of command line options is:
 
     Display the SIP version number.
 
-.. option:: --name <NAME>
+.. option:: --name NAME
 
     ``NAME`` is used instead of the PyPI project name in the
     :file:`pyproject.toml` file in the name of the sdist file.
@@ -408,30 +408,30 @@ The full set of command line options is:
 
     Verbose progress messages are enabled.
 
-.. option:: --api-dir <DIR>
+.. option:: --api-dir DIR
 
     A QScintilla :file:`.api` file is created in ``DIR``.
 
-.. option:: --build-dir <DIR>
+.. option:: --build-dir DIR
 
     ``DIR`` is created as a build directory in which all generated files will
     be created.  This build directory is not removed after the build has been
     completed.  By default a temporary build directory is created which is
     removed after the build has been completed.
 
-.. option:: --concatenate <N>
+.. option:: --concatenate N
 
     The generated code is split into ``N`` files.  By default one file is
     generated for each C structure or C++ class.  Specifying a low value of
     ``N`` can significantly speed up the build of large projects.
 
-.. option:: --disable <NAME>
+.. option:: --disable NAME
 
     The ``NAME`` bindings are disabled and will not be built.  This option may
     be specified multiple times.  It is only available if the project contains
     multiple sets of bindings.
 
-.. option:: --enable <NAME>
+.. option:: --enable NAME
 
     The ``NAME`` bindings are enabled and will be built.  Any associated
     configuration tests that would normally be run to determine if the bindings
@@ -439,7 +439,7 @@ The full set of command line options is:
     times.  It is only available if the project contains multiple sets of
     bindings.
 
-.. option:: --name <NAME>
+.. option:: --name NAME
 
     ``NAME`` is used instead of the PyPI project name in the
     :file:`pyproject.toml` file in the name of the wheel file.

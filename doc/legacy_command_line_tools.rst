@@ -31,7 +31,7 @@ The full set of command line options is:
 
     Display the SIP version number.
 
-.. option:: -a <FILE>
+.. option:: -a FILE
 
     The name of the QScintilla API file to generate.  This file contains a
     description of the module API in a form that the QScintilla editor
@@ -39,17 +39,17 @@ The full set of command line options is:
     used by the SciTE editor but must be sorted first.)  By default the file is
     not generated.
 
-.. option:: --abi-version <VERSION>
+.. option:: --abi-version VERSION
 
     The version of the ABI implemented by the :mod:`sip` module is ``VERSION``.
     By the default the latest version is used.
 
-.. option:: -B <TAG>
+.. option:: -B TAG
 
     The tag is added to the list of *backstops*.  The option may be given more
     than once if multiple timelines have been defined.
 
-.. option:: -c <DIR>
+.. option:: -c DIR
 
     The name of the directory (which must exist) into which all of the
     generated C or C++ code is placed.  By default no code is generated.
@@ -74,21 +74,21 @@ The full set of command line options is:
     being wrapped and reacquired afterwards.  See :ref:`ref-gil` and the
     :fanno:`ReleaseGIL` and :fanno:`HoldGIL` annotations.
 
-.. option:: -I <DIR>
+.. option:: -I DIR
 
     The directory is added to the list of directories searched when looking for
     a specification file given in an :directive:`%Include` or
     :directive:`%Import` directive.  Directory separators must always be ``/``.
     This option may be given any number of times.
 
-.. option:: -j <FILES>
+.. option:: -j FILES
 
     The generated code is split into the given number of files.  This makes it
     easier to use the parallel build facility of most modern implementations of
     ``make``.  By default 1 file is generated for each C structure or C++
     class.
 
-.. option:: -n <NAME>
+.. option:: -n NAME
 
     The fully qualified name of the :mod:`sip` module (i.e. including the
     package name).
@@ -112,12 +112,12 @@ The full set of command line options is:
     Debugging statements that trace the execution of the bindings are
     automatically generated.  By default the statements are not generated.
 
-.. option:: -s <SUFFIX>
+.. option:: -s SUFFIX
 
     The suffix to use for generated C or C++ source files.  By default ``.c``
     is used for C and ``.cpp`` for C++.
 
-.. option:: -t <TAG>
+.. option:: -t TAG
 
     The SIP version tag (declared using a :directive:`%Timeline` directive) or
     the SIP platform tag (declared using the :directive:`%Platforms` directive)
@@ -129,17 +129,17 @@ The full set of command line options is:
     The display of warning messages is enabled.  By default warning messages
     are disabled.
 
-.. option:: -x <FEATURE>
+.. option:: -x FEATURE
 
     The feature (declared using the :directive:`%Feature` directive) is
     disabled.
 
-.. option:: -X <ID:FILE>
+.. option:: -X ID:FILE
 
     The extract (defined with the :directive:`%Extract` directive) with the
     identifier ``ID`` is written to the file ``FILE``.
 
-.. option:: -y <FILE>
+.. option:: -y FILE
 
     The name of the Python type hints stub file to generate.  This file
     contains a description of the module API that is compliant with PEP 484.
