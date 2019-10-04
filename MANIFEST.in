@@ -1,2 +1,3 @@
 include ChangeLog LICENSE* NEWS
+include code_generator/*.h code_generator/metasrc/*
 graft doc
