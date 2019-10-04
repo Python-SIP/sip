@@ -167,7 +167,9 @@ class Builder(AbstractBuilder):
                 wheel_tag += '-none'
 
         if sys.platform == 'win32':
-            wheel_tag += '-win32' if is_32 else '-win_amd64'
+            import struct
+
+            wheel_tag += '-win32' if struct.calcsize('P') == 4 else '-win_amd64'
         elif sys.platform == 'darwin':
             wheel_tag += '-macosx_10_6_intel'
         else:
