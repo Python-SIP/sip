@@ -313,7 +313,7 @@ some functionality that can be used by applications.
     .. py:method:: asarray(size=-1)
 
         This returns the block of memory as an
-        :py::class:`~@SIP_MODULE_FQ_NAME@.array` object.  The memory is **not**
+        :py:class:`~@SIP_MODULE_FQ_NAME@.array` object.  The memory is **not**
         copied.
         
         :param int size:
