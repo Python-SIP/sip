@@ -318,7 +318,7 @@ implementations of a function called :c:func:`what_am_i` which just returns a
 name for the platform.
 
 We are then left will the question as to how we specify which of the platform
-tags should selected for a particular build.  For this we need the
+tags should be selected for a particular build.  For this we need the
 :file:`project.py` file file (downloadable from
 :download:`here <../examples/package/core/project.py>`) shown below.
 
