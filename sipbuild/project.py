@@ -38,7 +38,7 @@ from .configurable import Configurable, Option
 from .exceptions import UserException
 from .module import resolve_abi_version
 from .py_versions import FIRST_SUPPORTED_MINOR, LAST_SUPPORTED_MINOR
-from .pyproject import (PyProjectOptionException,
+from .pyproject import (PyProjectException, PyProjectOptionException,
         PyProjectUndefinedOptionException)
 
 
@@ -351,6 +351,12 @@ class Project(AbstractProject, Configurable):
         # parts of the configuration.
         if tool != 'pep517':
             self._configure_from_command_line(tool, tool_description)
+
+        # Now that any help has been given we can report a missing
+        # pyproject.toml file.
+        if pyproject.pyproject_missing:
+            raise PyProjectException(
+                    "there is no such file in the current directory")
 
         # Make sure the configuration is complete.
         self.apply_user_defaults(tool)

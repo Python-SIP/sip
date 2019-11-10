@@ -69,10 +69,14 @@ class PyProject:
         try:
             self._pyproject = toml.load('pyproject.toml', _dict=OrderedDict)
         except Exception as e:
-            raise UserParseException('pyproject.toml', detail=str(e))
+            self._pyproject = None
 
     def get_metadata(self):
         """ Return an OrderedDict containing the PEP 566 meta-data. """
+
+        if self.pyproject_missing:
+            # Provide a minimal default.
+            return dict(name='unknown', version='0.1')
 
         metadata = OrderedDict()
         name = None
@@ -132,6 +136,9 @@ class PyProject:
     def get_section(self, section_name, *, required=False):
         """ Return a sub-section with a dotted name. """
 
+        if self.pyproject_missing:
+            return None
+
         section = self._pyproject
 
         for part in section_name.split('.'):
@@ -150,6 +157,12 @@ class PyProject:
                     "'{0}' is not a section".format(section_name))
 
         return section
+
+    @property
+    def pyproject_missing(self):
+        """ Returns True if there was no pyproject.toml file. """
+
+        return self._pyproject is None
 
     @staticmethod
     def _is_section(value):
