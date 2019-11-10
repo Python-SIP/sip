@@ -199,7 +199,7 @@ specify the locations of the ``fib`` header file and library.
 
             # Ensure any user supplied library directory is an absolute path.
             if self.fib_library_dir is not None:
-                self.library_dir = os.path.abspath(self.fib_library_dir)
+                self.fib_library_dir = os.path.abspath(self.fib_library_dir)
 
             # Apply the defaults for the standard options.
             super().apply_user_defaults(tool)
