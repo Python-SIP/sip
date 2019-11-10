@@ -21,7 +21,7 @@ normally used it means that the example is entirely self contained.  Later in
 this section we will describe the changes to the project that would be needed
 if a separate library was being wrapped.
 
-First of all in the project's :file:`pyproject.toml` file (downloadable from
+First of all is the project's :file:`pyproject.toml` file (downloadable from
 :download:`here <../examples/standalone/pyproject.toml>`) which we show in its
 entirety below.
 
