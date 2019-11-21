@@ -573,7 +573,7 @@ void get_bindings_configuration(const char *sip_file, stringList **tags,
         exception_set();
     }
 
-    py_disabled = PyTuple_GET_ITEM(res, 0);
+    py_disabled = PyTuple_GET_ITEM(res, 1);
     assert(PyList_Check(py_disabled));
 
     if (!extend_stringList(disabled, py_disabled))
