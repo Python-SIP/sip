@@ -2477,8 +2477,13 @@ enumline:   ifstart
                 emd->platforms = currentPlatforms;
                 emd->next = NULL;
 
-                checkAttributes(currentSpec, currentModule, emd->ed->ecd,
-                        emd->ed->emtd, emd->pyname->text, FALSE);
+                /*
+                 * Note that we don't check that members of scoped enums are
+                 * unique.
+                 */
+                if (!isScopedEnum(currentEnum))
+                    checkAttributes(currentSpec, currentModule, emd->ed->ecd,
+                            emd->ed->emtd, emd->pyname->text, FALSE);
 
                 /* Append to preserve the order. */
                 for (tail = &currentEnum->members; *tail != NULL; tail = &(*tail)->next)
