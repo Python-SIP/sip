@@ -72,20 +72,21 @@ def create_distinfo(distinfo_dir, wheel_tag, installed, metadata,
 
     # Make sure we have an empty dist-info directory.  Handle exceptions as the
     # user may be trying something silly with a system directory.
-    if os.path.exists(distinfo_dir):
+    if os.path.exists(real_distinfo_dir):
         try:
-            shutil.rmtree(distinfo_dir)
+            shutil.rmtree(real_distinfo_dir)
         except Exception as e:
             raise UserException(
                     "unable remove old dist-info directory '{}'".format(
-                            distinfo_dir),
+                            real_distinfo_dir),
                     str(e))
 
     try:
-        os.mkdir(distinfo_dir)
+        os.mkdir(real_distinfo_dir)
     except Exception as e:
         raise UserException(
-                "unable create dist-info directory '{}'".format(distinfo_dir),
+                "unable create dist-info directory '{}'".format(
+                        real_distinfo_dir),
                 str(e))
 
     # Reproducable builds.
