@@ -1,3 +1,6 @@
+v4.19.20 ??? December 2019
+  - Bug fixes.
+
 v4.19.19 14th September 2019
   - Added sipIsOwnedByPython(), sipRegisterExitNotifier() and
     sipVisitWrappers() to the C API.
