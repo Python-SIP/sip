@@ -157,11 +157,11 @@ Tag: {}
                 all_fns = [real_name]
 
             for fn in all_fns:
-                fn = os.path.normcase(fn)
+                norm_fn = os.path.normcase(fn)
 
-                if fn.startswith(real_distinfo_path):
+                if norm_fn.startswith(real_distinfo_path):
                     fn_name = fn[len(real_distinfo_path) + 1:].replace('\\', '/')
-                elif fn.startswith(prefix_dir + sys.prefix):
+                elif norm_fn.startswith(prefix_dir + sys.prefix):
                     fn_name = os.path.relpath(
                             fn, real_distinfo_path).replace('\\', '/')
                 else:
