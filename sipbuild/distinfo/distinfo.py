@@ -135,29 +135,29 @@ Tag: {}
     record_fn = os.path.join(distinfo_dir, 'RECORD')
 
     distinfo_path, distinfo_base = os.path.split(distinfo_dir)
+    real_distinfo_path = os.path.normcase(prefix_dir + distinfo_path)
 
     with open(prefix_dir + record_fn, 'w') as record_f:
         for name in installed:
-            native_name = prefix_dir + name.replace('/', os.sep)
-            if os.path.isdir(native_name):
+            real_name = prefix_dir + name
+            if os.path.isdir(real_name):
                 all_fns = []
 
-                for root, dirs, files in os.walk(native_name):
+                for root, dirs, files in os.walk(real_name):
                     # Reproducable builds.
                     dirs.sort()
                     files.sort()
 
                     for f in files:
-                        all_fns.append(
-                                os.path.join(root, f).replace(os.sep, '/'))
+                        all_fns.append(os.path.join(root, f))
 
                     if '__pycache__' in dirs:
                         dirs.remove('__pycache__')
             else:
-                all_fns = [prefix_dir + name]
+                all_fns = [real_name]
 
             for fn in all_fns:
-                real_distinfo_path = prefix_dir + distinfo_path
+                fn = os.path.normcase(fn)
 
                 if fn.startswith(real_distinfo_path):
                     fn_name = fn[len(real_distinfo_path) + 1:].replace('\\', '/')
