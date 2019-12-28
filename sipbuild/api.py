@@ -33,10 +33,6 @@ def build_sdist(sdist_directory, config_settings=None):
 
     project = AbstractProject.bootstrap('pep517')
 
-    # TODO: Move the verbose attribute (and any related ones) to
-    # AbstractProject.
-    project.verbose = True
-
     # pip executes this in a separate process and doesn't handle exceptions
     # very well.  However it does capture stdout and (eventually) show it to
     # the user so we use our standard exception handling.
@@ -53,10 +49,6 @@ def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
     # fully test with.  (pip seems lacking at the moment.)
 
     project = AbstractProject.bootstrap('pep517')
-
-    # TODO: Move the verbose attribute (and any related ones) to
-    # AbstractProject.
-    project.verbose = True
 
     # pip executes this in a separate process and doesn't handle exceptions
     # very well.  However it does capture stdout and (eventually) show it to

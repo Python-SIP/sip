@@ -351,6 +351,10 @@ class Project(AbstractProject, Configurable):
         # parts of the configuration.
         if tool != 'pep517':
             self._configure_from_command_line(tool, tool_description)
+        else:
+            # Until pip improves it's error reporting we give the user all the
+            # help we can.
+            self.verbose = True
 
         # Now that any help has been given we can report a missing
         # pyproject.toml file.
