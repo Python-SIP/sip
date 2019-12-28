@@ -22,6 +22,7 @@
 
 
 from .abstract_project import AbstractProject
+from .exceptions import handle_exception
 
 
 def build_sdist(sdist_directory, config_settings=None):
@@ -32,7 +33,17 @@ def build_sdist(sdist_directory, config_settings=None):
 
     project = AbstractProject.bootstrap('pep517')
 
-    return project.build_sdist(sdist_directory)
+    # TODO: Move the verbose attribute (and any related ones) to
+    # AbstractProject.
+    project.verbose = True
+
+    # pip executes this in a separate process and doesn't handle exceptions
+    # very well.  However it does capture stdout and (eventually) show it to
+    # the user so we use our standard exception handling.
+    try:
+        return project.build_sdist(sdist_directory)
+    except Exception as e:
+        handle_exception(e)
 
 
 def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
@@ -43,4 +54,14 @@ def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
 
     project = AbstractProject.bootstrap('pep517')
 
-    return project.build_wheel(wheel_directory)
+    # TODO: Move the verbose attribute (and any related ones) to
+    # AbstractProject.
+    project.verbose = True
+
+    # pip executes this in a separate process and doesn't handle exceptions
+    # very well.  However it does capture stdout and (eventually) show it to
+    # the user so we use our standard exception handling.
+    try:
+        return project.build_wheel(wheel_directory)
+    except Exception as e:
+        handle_exception(e)
