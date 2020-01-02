@@ -173,9 +173,22 @@ class Builder(AbstractBuilder):
         elif sys.platform == 'darwin':
             wheel_tag += '-macosx_10_6_intel'
         else:
-            # We assume that Linux wheels are PEP 513 compatible so that it can
-            # be uploaded to PyPI.
-            wheel_tag += '-manylinux1_x86_64'
+            if project.minimum_glibc_version > (2, 17):
+                # PEP 600.
+                manylinux = 'manylinux_{}_{}'.format(
+                        project.minimum_glibc_version[0],
+                        project.minimum_glibc_version[1])
+            elif project.minimum_glibc_version > (2, 12):
+                # PEP 599.
+                manylinux = 'manylinux2014'
+            elif project.minimum_glibc_version > (2, 5):
+                # PEP 571.
+                manylinux = 'manylinux2010'
+            else:
+                # PEP 513.
+                manylinux = 'manylinux1'
+
+            wheel_tag += '-{}_x86_64'.format(manylinux)
 
         self.build_project(wheel_build_dir, wheel_tag=wheel_tag)
 

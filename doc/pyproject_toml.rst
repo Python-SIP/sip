@@ -123,6 +123,12 @@ otherwise, all values are strings.
     installed in the top level package directory.  By default it is not
     installed and the value is ignored for standalone projects.
 
+**minimum-glibc-version**
+    The minimum GLIBC version required by the project specified as a 2-tuple of
+    the major and minor version numbers.  This is used to determine the correct
+    platform tag to use for Linux wheels.  The default version of GLIBC is v2.5
+    which corresponds to the ``manylinux1_x86_64`` platform tag.
+
 **name**
     The value is used instead of the value of the ``name`` key in the
     ``[tool.sip.metadata]`` section in the name of an sdist or wheel.  This is

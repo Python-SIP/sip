@@ -63,6 +63,10 @@ class Project(AbstractProject, Configurable):
         # Set if an __init__.py should be installed.
         Option('dunder_init', option_type=bool, default=False),
 
+        # The minimum GLIBC version required by the project.  This is used to
+        # determine the correct platform tag to use for Linux wheels.
+        Option('minimum_glibc_version'),
+
         # Set if building for a debug version of Python.
         Option('py_debug', option_type=bool),
 
@@ -150,6 +154,22 @@ class Project(AbstractProject, Configurable):
             # Convert the name to a callable.
             self.builder_factory = self.import_callable(self.builder_factory,
                     AbstractBuilder)
+
+        if self.minimum_glibc_version is None:
+            self.minimum_glibc_version = (2, 5)
+        else:
+            parts = self.minimum_glibc_version.split('.')
+
+            try:
+                if len(parts) != 2:
+                    raise ValueError()
+
+                self.minimum_glibc_version = (int(parts[0]), int(parts[1]))
+            except ValueError:
+                raise PyProjectOptionException('minimum-glibc-version',
+                        "'{0}' is an invalid GLIBC version number".format(
+                                self.minimum_glibc_version),
+                        section_name='tool.sip.project')
 
         if self.py_major_version is None or self.py_minor_version is None:
             self.py_major_version = sys.hexversion >> 24
