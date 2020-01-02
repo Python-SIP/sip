@@ -50,7 +50,7 @@ setup(
         name='sip',
         version=version,
         license='SIP',
-        python_requires='>=3.5',
+        python_requires='>=3.5.1',
         install_requires=['packaging', 'toml'],
         packages=find_packages(),
         package_data={

@@ -21,7 +21,7 @@ normally used it means that the example is entirely self contained.  Later in
 this section we will describe the changes to the project that would be needed
 if a separate library was being wrapped.
 
-First of all in the project's :file:`pyproject.toml` file (downloadable from
+First of all is the project's :file:`pyproject.toml` file (downloadable from
 :download:`here <../examples/standalone/pyproject.toml>`) which we show in its
 entirety below.
 
@@ -199,7 +199,7 @@ specify the locations of the ``fib`` header file and library.
 
             # Ensure any user supplied library directory is an absolute path.
             if self.fib_library_dir is not None:
-                self.library_dir = os.path.abspath(self.fib_library_dir)
+                self.fib_library_dir = os.path.abspath(self.fib_library_dir)
 
             # Apply the defaults for the standard options.
             super().apply_user_defaults(tool)
@@ -318,7 +318,7 @@ implementations of a function called :c:func:`what_am_i` which just returns a
 name for the platform.
 
 We are then left will the question as to how we specify which of the platform
-tags should selected for a particular build.  For this we need the
+tags should be selected for a particular build.  For this we need the
 :file:`project.py` file file (downloadable from
 :download:`here <../examples/package/core/project.py>`) shown below.
 
