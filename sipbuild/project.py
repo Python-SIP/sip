@@ -157,22 +157,6 @@ class Project(AbstractProject, Configurable):
             self.builder_factory = self.import_callable(self.builder_factory,
                     AbstractBuilder)
 
-        if self.minimum_glibc_version is None:
-            self.minimum_glibc_version = (2, 5)
-        else:
-            parts = self.minimum_glibc_version.split('.')
-
-            try:
-                if len(parts) != 2:
-                    raise ValueError()
-
-                self.minimum_glibc_version = (int(parts[0]), int(parts[1]))
-            except ValueError:
-                raise PyProjectOptionException('minimum-glibc-version',
-                        "'{0}' is an invalid GLIBC version number".format(
-                                self.minimum_glibc_version),
-                        section_name='tool.sip.project')
-
         if self.py_major_version is None or self.py_minor_version is None:
             self.py_major_version = sys.hexversion >> 24
             self.py_minor_version = (sys.hexversion >> 16) & 0x0ff
@@ -445,6 +429,24 @@ class Project(AbstractProject, Configurable):
             if self.build_tag == '' or not self.build_tag[0].isdigit():
                 raise PyProjectOptionException('build-tag',
                         "must begin with a digit", section='tool.sip.project')
+
+        # Make sure any minimum GLIBC version is valid and convert it to a
+        # 2-tuple.
+        if self.minimum_glibc_version is None:
+            self.minimum_glibc_version = (2, 5)
+        else:
+            parts = self.minimum_glibc_version.split('.')
+
+            try:
+                if len(parts) != 2:
+                    raise ValueError()
+
+                self.minimum_glibc_version = (int(parts[0]), int(parts[1]))
+            except ValueError:
+                raise PyProjectOptionException('minimum-glibc-version',
+                        "'{0}' is an invalid GLIBC version number".format(
+                                self.minimum_glibc_version),
+                        section_name='tool.sip.project')
 
         # Make sure relevent paths are absolute and use native separators.
         self.sip_files_dir = self.sip_files_dir.replace('/', os.sep)
