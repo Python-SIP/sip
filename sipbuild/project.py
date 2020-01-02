@@ -106,6 +106,8 @@ class Project(AbstractProject, Configurable):
         Option('name', help="the name used in sdist and wheel file names",
                 metavar="NAME", tools=['sdist', 'wheel']),
         Option('build_dir', help="the build directory", metavar="DIR"),
+        Option('build_tag', help="the build tag to be used in the wheel name",
+                metavar="TAG", tools=['wheel']),
         Option('target_dir', default=get_python_lib(plat_specific=1),
                 help="the target installation directory", metavar="DIR",
                 tools=['build', 'install']),
@@ -437,6 +439,12 @@ class Project(AbstractProject, Configurable):
 
     def verify_configuration(self, tool):
         """ Verify that the configuration is complete and consistent. """
+
+        # Make sure any build tag is valid.
+        if self.build_tag is not None:
+            if self.build_tag == '' or not self.build_tag[0].isdigit():
+                raise PyProjectOptionException('build-tag',
+                        "must begin with a digit", section='tool.sip.project')
 
         # Make sure relevent paths are absolute and use native separators.
         self.sip_files_dir = self.sip_files_dir.replace('/', os.sep)

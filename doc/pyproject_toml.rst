@@ -99,6 +99,10 @@ otherwise, all values are strings.
     completed.  The default depends on which build tool is being used.  This is
     also a user option.
 
+**build-tag**
+    The value is the build tag to be used in the name of a wheel.  This is also
+    a user option.
+
 **builder-factory**
     The value is a callable that will return an object that is a sub-class
     of :class:`~sipbuild.AbstractBuilder`.  The default builder factory is

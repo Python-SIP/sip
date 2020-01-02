@@ -419,6 +419,11 @@ The full set of command line options is:
     completed.  By default a temporary build directory is created which is
     removed after the build has been completed.
 
+.. option:: --build-tag TAG
+
+    ``TAG`` is the build tag to be used in the name of the wheel.  By default
+    the name of the wheel does not include a build tag.
+
 .. option:: --concatenate N
 
     The generated code is split into ``N`` files.  By default one file is

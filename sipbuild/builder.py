@@ -195,8 +195,13 @@ class Builder(AbstractBuilder):
         # Copy the wheel contents.
         self.install_project(wheel_build_dir, wheel_tag=wheel_tag)
 
-        wheel_file = '{}-{}-{}.whl'.format(project.name.replace('-', '_'),
-                project.version_str, wheel_tag)
+        wheel_file = '{}-{}'.format(project.name.replace('-', '_'),
+                project.version_str)
+
+        if project.build_tag is not None:
+            wheel_file += '_{}'.format(project.build_tag)
+
+        wheel_file += '-{}-.whl'.format(wheel_tag)
         wheel_path = os.path.abspath(os.path.join(wheel_directory, wheel_file))
 
         # Create the .whl file.

@@ -2,6 +2,9 @@ v5.1.0 ??? January 2020
   - Added the 'minimum-glibc-version' project option to specify the minimum
     GLIBC version required by the project.  This is used to determine the
     correct platform tag to use for Linux wheels.
+  - Added the 'build-tag' project option to specify the build tag to be used in
+    the name of a wheel.  sip-wheel has a corresponding '--build-tag' command
+    line option.
 
 v5.0.1 19th December 2019
   - Bug fixes.
