@@ -152,12 +152,7 @@ class Bindings(Configurable):
         if project.py_debug:
             uses_limited_api = False
 
-        if project.sip_module:
-            if '.' not in fq_name:
-                raise UserException(
-                        "{0} must be part of a project when used with a "
-                        "shared 'sip' module".format(fq_name))
-        elif uses_limited_api:
+        if uses_limited_api and not project.sip_module:
             raise UserException(
                     "{0} cannot use the limited API without using a shared "
                     "'sip' module".format(fq_name))
