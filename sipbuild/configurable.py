@@ -283,7 +283,7 @@ class Option:
             self.tools = tools
 
         if option_type in (str, list):
-            self.markers = True is markers is None else markers
+            self.markers = True if markers is None else markers
         elif markers is not None:
             raise UserException(
                     "'{0}' option must be a str or list to support "

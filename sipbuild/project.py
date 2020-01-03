@@ -85,7 +85,7 @@ class Project(AbstractProject, Configurable):
         # The name of the directory containing the .sip files.  If the sip
         # module is shared then each set of bindings is in its own
         # sub-directory.
-        Option('sip_files_dir', default='.')
+        Option('sip_files_dir', default='.'),
 
         # The list of files and directories, specified as glob patterns
         # relative to the project directory, that should be excluded from an
@@ -440,10 +440,10 @@ class Project(AbstractProject, Configurable):
         """ Verify that the configuration is complete and consistent. """
 
         # Make sure any build tag is valid.
-        if self.build_tag is not None:
-            if self.build_tag == '' or not self.build_tag[0].isdigit():
-                raise PyProjectOptionException('build-tag',
-                        "must begin with a digit", section='tool.sip.project')
+        if self.build_tag and not self.build_tag[0].isdigit():
+            raise PyProjectOptionException('build-tag',
+                    "'{0}' must begin with a digit".format(self.build_tag),
+                    section_name='tool.sip.project')
 
         # Make sure any minimum GLIBC version is valid and convert it to a
         # 2-tuple.
@@ -466,7 +466,7 @@ class Project(AbstractProject, Configurable):
         # Make sure relevent paths are absolute and use native separators.
         self.sip_files_dir = self.project_path(self.sip_files_dir)
         self.sip_include_dirs = [self.project_path(d)
-                for d in self.sip_include_dirs])
+                for d in self.sip_include_dirs]
 
         # Make sure we support the targeted version of Python.
         py_version = (self.py_major_version, self.py_minor_version)
