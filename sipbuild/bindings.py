@@ -1,4 +1,4 @@
-# Copyright (c) 2019, Riverbank Computing Limited
+# Copyright (c) 2020, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -285,9 +285,13 @@ class Bindings(Configurable):
         super().verify_configuration(tool)
 
         # Make sure relevent paths are absolute and use native separators.
-        self.sip_file = self.sip_file.replace('/', os.sep)
-        if not os.path.isabs(self.sip_file):
-            self.sip_file = os.path.join(project.sip_files_dir, self.sip_file)
+        self.include_dirs = [project.project_path(d)
+                for d in self.include_dirs]
+        self.library_dirs = [project.project_path(d)
+                for d in self.library_dirs]
+        self.sip_file = project.project_path(self.sip_file,
+                relative_to=project.sip_files_dir)
+        self.sources = [project.project_path(s) for s in self.sources]
 
         # Check the .sip file exists.
         if not os.path.isfile(self.sip_file):

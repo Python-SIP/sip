@@ -85,7 +85,7 @@ class Project(AbstractProject, Configurable):
         # The name of the directory containing the .sip files.  If the sip
         # module is shared then each set of bindings is in its own
         # sub-directory.
-        Option('sip_files_dir', default=os.getcwd()),
+        Option('sip_files_dir', default='.')
 
         # The list of files and directories, specified as glob patterns
         # relative to the project directory, that should be excluded from an
@@ -314,6 +314,21 @@ class Project(AbstractProject, Configurable):
 
             print(message, flush=True)
 
+    def project_path(self, path, relative_to=None):
+        """ Return a normalised version of a path.  A relative path is assumed
+        to be relate to the project directory or some other provided directory.
+        """
+
+        path = os.path.normpath(path)
+
+        if os.path.isabs(path):
+            return path
+
+        if relative_to is None:
+            relative_to = self.root_dir
+
+        return os.path.normpath(os.path.join(relative_to, path))
+
     def read_command_pipe(self, args, *, and_stderr=False, fatal=True):
         """ A generator for each line of a pipe from a command's stdout. """
 
@@ -449,10 +464,9 @@ class Project(AbstractProject, Configurable):
                         section_name='tool.sip.project')
 
         # Make sure relevent paths are absolute and use native separators.
-        self.sip_files_dir = self.sip_files_dir.replace('/', os.sep)
-        if not os.path.isabs(self.sip_files_dir):
-            self.sip_files_dir = os.path.join(self.root_dir,
-                    self.sip_files_dir)
+        self.sip_files_dir = self.project_path(self.sip_files_dir)
+        self.sip_include_dirs = [self.project_path(d)
+                for d in self.sip_include_dirs])
 
         # Make sure we support the targeted version of Python.
         py_version = (self.py_major_version, self.py_minor_version)

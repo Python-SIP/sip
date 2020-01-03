@@ -7,6 +7,7 @@ v5.1.0 ??? January 2020
     line option.
   - The values of str and list options in pyproject.toml files can now contain
     environment markers as defined in PEP 508.
+  - Added Project.project_path() to the API.
 
 v5.0.1 19th December 2019
   - Bug fixes.

@@ -630,6 +630,18 @@ build systems.
 
         :param str message: is the text of the message.
 
+    .. py:method:: project_path(path, relative_to=None)
+
+        A file or directory path, possibly using POSIX separators and possibly
+        relative to another directory is converted to an absolute path with
+        native separators.
+
+        :param str path: is the path.
+        :param str relative_to: is the absolute path of a directory that the
+            supplied path is relative to.  The default is the project
+            directory.
+        :return: the converted path.
+
     .. py:method:: read_command_pipe(args, \*, and_stderr=False, fatal=True)
 
         Create a generator that will return each line of a command's
