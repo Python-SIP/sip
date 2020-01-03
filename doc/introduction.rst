@@ -125,11 +125,11 @@ SIP, and the bindings it produces, have the following features:
 Overview
 --------
 
-At its simplest a SIP project contains a specification file (:file:`.sip` file)
-that describes the API that the generated bindings will wrap, and a
-:file:`pyproject.toml` file that describes how the bindings will be built.  A
-:ref:`specification <ref-specification>` file is very like a C/C++ header file
-with embedded :ref:`directives <ref-directives>` and
+At its simplest a SIP project contains a :ref:`specification file
+<ref-specification>` (:file:`.sip` file) that describes the API that the
+generated bindings will wrap, and a :file:`pyproject.toml` file that describes
+how the bindings will be built.  A specification file is very like a C/C++
+header file with embedded :ref:`directives <ref-directives>` and
 :ref:`annotations <ref-annotations>`.  The format of a :file:`pyproject.toml`
 file is described in `PEP 518 <https://www.python.org/dev/peps/pep-0518/>`__.
 
@@ -139,11 +139,12 @@ module) that cannot be extended by another set of bindings.  A package project
 implements one or more sets of mutually dependent bindings (i.e. one set of
 bindings will import another set of bindings).  Such bindings may be defined in
 the same project or a completely different package project (possibly with a
-different maintainer).  Typically the bindings of all related package projects
+different maintainer).  Often the bindings of all related package projects
 will be installed as part of a single top-level Python package.  For example,
 the whole of PyQt5 is current implemented as 6 separate package projects each
-containing between 1 and 52 sets of bindings all installed as part or the
-:mod:`PyQt5` top-level package.
+containing between 1 and 52 sets of bindings all installed as part of the
+:mod:`PyQt5` top-level package.  However there are also 3rd-party packages that
+extend PyQt5 but are not installed in the :mod:`PyQt5` top-level package.
 
 SIP also generates a :mod:`sip` module which performs the following functions:
 
