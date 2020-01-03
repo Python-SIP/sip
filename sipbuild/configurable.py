@@ -1,4 +1,4 @@
-# Copyright (c) 2019, Riverbank Computing Limited
+# Copyright (c) 2020, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -20,6 +20,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+
+from packaging.markers import Marker
 
 from .exceptions import UserException
 from .pyproject import PyProjectOptionException
@@ -149,6 +151,22 @@ class Configurable:
                             "changed",
                             section_name=section_name)
 
+                # Evaluate any environment markers if the option supports them.
+                if option.markers:
+                    if isinstance(value, list):
+                        new_value = []
+
+                        for v in value:
+                            v = self._handle_marker(v, name, section_name)
+                            if v is not None:
+                                new_value.append(v)
+
+                        value = new_value
+                    else:
+                        # Note that this will use the option's default value if
+                        # any marker evaluates as False.
+                        value = self._handle_marker(value, name, section_name)
+
                 setattr(self, option.name, value)
 
         self.apply_nonuser_defaults(tool)
@@ -196,6 +214,28 @@ class Configurable:
 
                 setattr(self, option.name, value)
 
+    @staticmethod
+    def _handle_marker(value, name, section_name):
+        """ Handle any environment marker in a value.  The value is returned if
+        a marker evaluates to True.  None is returned if a marker evaluates to
+        False.
+        """
+
+        # Handle the trivial case of there being no marker.
+        if ';' not in value:
+            return value
+
+        value, marker = value.split(';', maxsplit=1)
+
+        try:
+            satisfied = Marker(marker).evaluate()
+        except:
+            raise PyProjectOptionException(name,
+                    "has an invalid marker '{0}'".format(marker),
+                    section_name=section_name)
+
+        return value if satisfied else None
+
 
 class Option:
     """ Encapsulate a configuration option.  This defines and implements an
@@ -219,7 +259,7 @@ class Option:
     option_nr = 0
 
     def __init__(self, name, *, option_type=str, choices=None, default=None,
-            help=None, metavar=None, inverted=False, tools=None):
+            help=None, metavar=None, inverted=False, tools=None, markers=None):
         """ Initialise the option. """
 
         self.name = name
@@ -241,6 +281,13 @@ class Option:
                                     name, tool))
 
             self.tools = tools
+
+        if option_type in (str, list):
+            self.markers = True is markers is None else markers
+        elif markers is not None:
+            raise UserException(
+                    "'{0}' option must be a str or list to support "
+                    "environment markers".format(name))
 
         self.dest = 'd' + str(type(self).option_nr)
         type(self).option_nr += 1

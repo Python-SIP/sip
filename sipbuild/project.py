@@ -1,4 +1,4 @@
-# Copyright (c) 2019, Riverbank Computing Limited
+# Copyright (c) 2020, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -52,10 +52,10 @@ class Project(AbstractProject, Configurable):
 
         # The callable that will return an Bindings instance.  This is used for
         # bindings implicitly defined in the .toml file.
-        Option('bindings_factory'),
+        Option('bindings_factory', markers=False),
 
         # The callable that will return an AbstractBuilder instance.
-        Option('builder_factory'),
+        Option('builder_factory', markers=False),
 
         # The list of console script entry points.
         Option('console_scripts', option_type=list),
