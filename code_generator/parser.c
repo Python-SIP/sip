@@ -1,13 +1,14 @@
-/* A Bison parser, made by GNU Bison 3.0.4.  */
+/* A Bison parser, made by GNU Bison 2.3.  */
 
-/* Bison implementation for Yacc-like parsers in C
+/* Skeleton implementation for Bison's Yacc-like parsers in C
 
-   Copyright (C) 1984, 1989-1990, 2000-2015 Free Software Foundation, Inc.
+   Copyright (C) 1984, 1989, 1990, 2000, 2001, 2002, 2003, 2004, 2005, 2006
+   Free Software Foundation, Inc.
 
-   This program is free software: you can redistribute it and/or modify
+   This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   the Free Software Foundation; either version 2, or (at your option)
+   any later version.
 
    This program is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,7 +16,9 @@
    GNU General Public License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor,
+   Boston, MA 02110-1301, USA.  */
 
 /* As a special exception, you may create a larger work that contains
    part or all of the Bison parser skeleton and distribute that work
@@ -44,7 +47,7 @@
 #define YYBISON 1
 
 /* Bison version.  */
-#define YYBISON_VERSION "3.0.4"
+#define YYBISON_VERSION "2.3"
 
 /* Skeleton name.  */
 #define YYSKELETON_NAME "yacc.c"
@@ -52,17 +55,294 @@
 /* Pure parsers.  */
 #define YYPURE 0
 
-/* Push parsers.  */
-#define YYPUSH 0
+/* Using locations.  */
+#define YYLSP_NEEDED 0
 
-/* Pull parsers.  */
-#define YYPULL 1
+
+
+/* Tokens.  */
+#ifndef YYTOKENTYPE
+# define YYTOKENTYPE
+   /* Put the tokens into the symbol table, so that GDB and other debuggers
+      know about them.  */
+   enum yytokentype {
+     TK_API = 258,
+     TK_AUTOPYNAME = 259,
+     TK_DEFDOCSTRFMT = 260,
+     TK_DEFDOCSTRSIG = 261,
+     TK_DEFENCODING = 262,
+     TK_PLUGIN = 263,
+     TK_VIRTERRORHANDLER = 264,
+     TK_EXPTYPEHINTCODE = 265,
+     TK_TYPEHINTCODE = 266,
+     TK_DOCSTRING = 267,
+     TK_EXTRACT = 268,
+     TK_ACCESSCODE = 269,
+     TK_GETCODE = 270,
+     TK_SETCODE = 271,
+     TK_PREINITCODE = 272,
+     TK_INITCODE = 273,
+     TK_POSTINITCODE = 274,
+     TK_FINALCODE = 275,
+     TK_UNITCODE = 276,
+     TK_UNITPOSTINCLUDECODE = 277,
+     TK_MODCODE = 278,
+     TK_TYPECODE = 279,
+     TK_COPYING = 280,
+     TK_MAPPEDTYPE = 281,
+     TK_CODELINE = 282,
+     TK_IF = 283,
+     TK_END = 284,
+     TK_NAME_VALUE = 285,
+     TK_PATH_VALUE = 286,
+     TK_STRING_VALUE = 287,
+     TK_VIRTUALCATCHERCODE = 288,
+     TK_TRAVERSECODE = 289,
+     TK_CLEARCODE = 290,
+     TK_GETBUFFERCODE = 291,
+     TK_RELEASEBUFFERCODE = 292,
+     TK_READBUFFERCODE = 293,
+     TK_WRITEBUFFERCODE = 294,
+     TK_SEGCOUNTCODE = 295,
+     TK_CHARBUFFERCODE = 296,
+     TK_PICKLECODE = 297,
+     TK_VIRTUALCALLCODE = 298,
+     TK_METHODCODE = 299,
+     TK_PREMETHODCODE = 300,
+     TK_INSTANCECODE = 301,
+     TK_FROMTYPE = 302,
+     TK_TOTYPE = 303,
+     TK_TOSUBCLASS = 304,
+     TK_INCLUDE = 305,
+     TK_IMPORT = 306,
+     TK_EXPHEADERCODE = 307,
+     TK_MODHEADERCODE = 308,
+     TK_TYPEHEADERCODE = 309,
+     TK_MODULE = 310,
+     TK_COMPOMODULE = 311,
+     TK_CLASS = 312,
+     TK_STRUCT = 313,
+     TK_PUBLIC = 314,
+     TK_PROTECTED = 315,
+     TK_PRIVATE = 316,
+     TK_SIGNALS = 317,
+     TK_SIGNAL_METHOD = 318,
+     TK_SLOTS = 319,
+     TK_SLOT_METHOD = 320,
+     TK_BOOL = 321,
+     TK_SHORT = 322,
+     TK_INT = 323,
+     TK_LONG = 324,
+     TK_FLOAT = 325,
+     TK_DOUBLE = 326,
+     TK_CHAR = 327,
+     TK_WCHAR_T = 328,
+     TK_VOID = 329,
+     TK_PYOBJECT = 330,
+     TK_PYTUPLE = 331,
+     TK_PYLIST = 332,
+     TK_PYDICT = 333,
+     TK_PYCALLABLE = 334,
+     TK_PYSLICE = 335,
+     TK_PYTYPE = 336,
+     TK_PYBUFFER = 337,
+     TK_VIRTUAL = 338,
+     TK_ENUM = 339,
+     TK_SIGNED = 340,
+     TK_UNSIGNED = 341,
+     TK_SCOPE = 342,
+     TK_LOGICAL_OR = 343,
+     TK_CONST = 344,
+     TK_STATIC = 345,
+     TK_PYSSIZET = 346,
+     TK_SIZET = 347,
+     TK_NUMBER_VALUE = 348,
+     TK_REAL_VALUE = 349,
+     TK_TYPEDEF = 350,
+     TK_NAMESPACE = 351,
+     TK_TIMELINE = 352,
+     TK_PLATFORMS = 353,
+     TK_FEATURE = 354,
+     TK_LICENSE = 355,
+     TK_QCHAR_VALUE = 356,
+     TK_TRUE_VALUE = 357,
+     TK_FALSE_VALUE = 358,
+     TK_NULL_VALUE = 359,
+     TK_OPERATOR = 360,
+     TK_THROW = 361,
+     TK_EXCEPTION = 362,
+     TK_RAISECODE = 363,
+     TK_EXPLICIT = 364,
+     TK_TEMPLATE = 365,
+     TK_FINAL = 366,
+     TK_ELLIPSIS = 367,
+     TK_DEFMETATYPE = 368,
+     TK_DEFSUPERTYPE = 369,
+     TK_PROPERTY = 370,
+     TK_HIDE_NS = 371,
+     TK_FORMAT = 372,
+     TK_GET = 373,
+     TK_ID = 374,
+     TK_KWARGS = 375,
+     TK_LANGUAGE = 376,
+     TK_LICENSEE = 377,
+     TK_NAME = 378,
+     TK_OPTIONAL = 379,
+     TK_ORDER = 380,
+     TK_REMOVELEADING = 381,
+     TK_SET = 382,
+     TK_SIGNATURE = 383,
+     TK_TIMESTAMP = 384,
+     TK_TYPE = 385,
+     TK_USEARGNAMES = 386,
+     TK_USELIMITEDAPI = 387,
+     TK_ALLRAISEPYEXC = 388,
+     TK_CALLSUPERINIT = 389,
+     TK_DEFERRORHANDLER = 390,
+     TK_VERSION = 391
+   };
+#endif
+/* Tokens.  */
+#define TK_API 258
+#define TK_AUTOPYNAME 259
+#define TK_DEFDOCSTRFMT 260
+#define TK_DEFDOCSTRSIG 261
+#define TK_DEFENCODING 262
+#define TK_PLUGIN 263
+#define TK_VIRTERRORHANDLER 264
+#define TK_EXPTYPEHINTCODE 265
+#define TK_TYPEHINTCODE 266
+#define TK_DOCSTRING 267
+#define TK_EXTRACT 268
+#define TK_ACCESSCODE 269
+#define TK_GETCODE 270
+#define TK_SETCODE 271
+#define TK_PREINITCODE 272
+#define TK_INITCODE 273
+#define TK_POSTINITCODE 274
+#define TK_FINALCODE 275
+#define TK_UNITCODE 276
+#define TK_UNITPOSTINCLUDECODE 277
+#define TK_MODCODE 278
+#define TK_TYPECODE 279
+#define TK_COPYING 280
+#define TK_MAPPEDTYPE 281
+#define TK_CODELINE 282
+#define TK_IF 283
+#define TK_END 284
+#define TK_NAME_VALUE 285
+#define TK_PATH_VALUE 286
+#define TK_STRING_VALUE 287
+#define TK_VIRTUALCATCHERCODE 288
+#define TK_TRAVERSECODE 289
+#define TK_CLEARCODE 290
+#define TK_GETBUFFERCODE 291
+#define TK_RELEASEBUFFERCODE 292
+#define TK_READBUFFERCODE 293
+#define TK_WRITEBUFFERCODE 294
+#define TK_SEGCOUNTCODE 295
+#define TK_CHARBUFFERCODE 296
+#define TK_PICKLECODE 297
+#define TK_VIRTUALCALLCODE 298
+#define TK_METHODCODE 299
+#define TK_PREMETHODCODE 300
+#define TK_INSTANCECODE 301
+#define TK_FROMTYPE 302
+#define TK_TOTYPE 303
+#define TK_TOSUBCLASS 304
+#define TK_INCLUDE 305
+#define TK_IMPORT 306
+#define TK_EXPHEADERCODE 307
+#define TK_MODHEADERCODE 308
+#define TK_TYPEHEADERCODE 309
+#define TK_MODULE 310
+#define TK_COMPOMODULE 311
+#define TK_CLASS 312
+#define TK_STRUCT 313
+#define TK_PUBLIC 314
+#define TK_PROTECTED 315
+#define TK_PRIVATE 316
+#define TK_SIGNALS 317
+#define TK_SIGNAL_METHOD 318
+#define TK_SLOTS 319
+#define TK_SLOT_METHOD 320
+#define TK_BOOL 321
+#define TK_SHORT 322
+#define TK_INT 323
+#define TK_LONG 324
+#define TK_FLOAT 325
+#define TK_DOUBLE 326
+#define TK_CHAR 327
+#define TK_WCHAR_T 328
+#define TK_VOID 329
+#define TK_PYOBJECT 330
+#define TK_PYTUPLE 331
+#define TK_PYLIST 332
+#define TK_PYDICT 333
+#define TK_PYCALLABLE 334
+#define TK_PYSLICE 335
+#define TK_PYTYPE 336
+#define TK_PYBUFFER 337
+#define TK_VIRTUAL 338
+#define TK_ENUM 339
+#define TK_SIGNED 340
+#define TK_UNSIGNED 341
+#define TK_SCOPE 342
+#define TK_LOGICAL_OR 343
+#define TK_CONST 344
+#define TK_STATIC 345
+#define TK_PYSSIZET 346
+#define TK_SIZET 347
+#define TK_NUMBER_VALUE 348
+#define TK_REAL_VALUE 349
+#define TK_TYPEDEF 350
+#define TK_NAMESPACE 351
+#define TK_TIMELINE 352
+#define TK_PLATFORMS 353
+#define TK_FEATURE 354
+#define TK_LICENSE 355
+#define TK_QCHAR_VALUE 356
+#define TK_TRUE_VALUE 357
+#define TK_FALSE_VALUE 358
+#define TK_NULL_VALUE 359
+#define TK_OPERATOR 360
+#define TK_THROW 361
+#define TK_EXCEPTION 362
+#define TK_RAISECODE 363
+#define TK_EXPLICIT 364
+#define TK_TEMPLATE 365
+#define TK_FINAL 366
+#define TK_ELLIPSIS 367
+#define TK_DEFMETATYPE 368
+#define TK_DEFSUPERTYPE 369
+#define TK_PROPERTY 370
+#define TK_HIDE_NS 371
+#define TK_FORMAT 372
+#define TK_GET 373
+#define TK_ID 374
+#define TK_KWARGS 375
+#define TK_LANGUAGE 376
+#define TK_LICENSEE 377
+#define TK_NAME 378
+#define TK_OPTIONAL 379
+#define TK_ORDER 380
+#define TK_REMOVELEADING 381
+#define TK_SET 382
+#define TK_SIGNATURE 383
+#define TK_TIMESTAMP 384
+#define TK_TYPE 385
+#define TK_USEARGNAMES 386
+#define TK_USELIMITEDAPI 387
+#define TK_ALLRAISEPYEXC 388
+#define TK_CALLSUPERINIT 389
+#define TK_DEFERRORHANDLER 390
+#define TK_VERSION 391
 
 
 
 
 /* Copy the first part of user declarations.  */
-#line 19 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:339  */
+#line 19 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
 
 #include <stdlib.h>
 #include <string.h>
@@ -245,15 +525,11 @@ static int isBackstop(qualDef *qd);
 static void checkEllipsis(signatureDef *sd);
 static scopedNameDef *fullyQualifiedName(scopedNameDef *snd);
 
-#line 249 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:339  */
 
-# ifndef YY_NULLPTR
-#  if defined __cplusplus && 201103L <= __cplusplus
-#   define YY_NULLPTR nullptr
-#  else
-#   define YY_NULLPTR 0
-#  endif
-# endif
+/* Enabling traces.  */
+#ifndef YYDEBUG
+# define YYDEBUG 0
+#endif
 
 /* Enabling verbose error messages.  */
 #ifdef YYERROR_VERBOSE
@@ -263,302 +539,15 @@ static scopedNameDef *fullyQualifiedName(scopedNameDef *snd);
 # define YYERROR_VERBOSE 0
 #endif
 
-/* In a future release of Bison, this section will be replaced
-   by #include "parser.h".  */
-#ifndef YY_YY_HOME_PHIL_HG_SIP_CODE_GENERATOR_PARSER_H_INCLUDED
-# define YY_YY_HOME_PHIL_HG_SIP_CODE_GENERATOR_PARSER_H_INCLUDED
-/* Debug traces.  */
-#ifndef YYDEBUG
-# define YYDEBUG 0
-#endif
-#if YYDEBUG
-extern int yydebug;
+/* Enabling the token table.  */
+#ifndef YYTOKEN_TABLE
+# define YYTOKEN_TABLE 0
 #endif
 
-/* Token type.  */
-#ifndef YYTOKENTYPE
-# define YYTOKENTYPE
-  enum yytokentype
-  {
-    TK_API = 258,
-    TK_AUTOPYNAME = 259,
-    TK_DEFDOCSTRFMT = 260,
-    TK_DEFDOCSTRSIG = 261,
-    TK_DEFENCODING = 262,
-    TK_PLUGIN = 263,
-    TK_VIRTERRORHANDLER = 264,
-    TK_EXPTYPEHINTCODE = 265,
-    TK_TYPEHINTCODE = 266,
-    TK_DOCSTRING = 267,
-    TK_EXTRACT = 268,
-    TK_ACCESSCODE = 269,
-    TK_GETCODE = 270,
-    TK_SETCODE = 271,
-    TK_PREINITCODE = 272,
-    TK_INITCODE = 273,
-    TK_POSTINITCODE = 274,
-    TK_FINALCODE = 275,
-    TK_UNITCODE = 276,
-    TK_UNITPOSTINCLUDECODE = 277,
-    TK_MODCODE = 278,
-    TK_TYPECODE = 279,
-    TK_COPYING = 280,
-    TK_MAPPEDTYPE = 281,
-    TK_CODELINE = 282,
-    TK_IF = 283,
-    TK_END = 284,
-    TK_NAME_VALUE = 285,
-    TK_PATH_VALUE = 286,
-    TK_STRING_VALUE = 287,
-    TK_VIRTUALCATCHERCODE = 288,
-    TK_TRAVERSECODE = 289,
-    TK_CLEARCODE = 290,
-    TK_GETBUFFERCODE = 291,
-    TK_RELEASEBUFFERCODE = 292,
-    TK_READBUFFERCODE = 293,
-    TK_WRITEBUFFERCODE = 294,
-    TK_SEGCOUNTCODE = 295,
-    TK_CHARBUFFERCODE = 296,
-    TK_PICKLECODE = 297,
-    TK_VIRTUALCALLCODE = 298,
-    TK_METHODCODE = 299,
-    TK_PREMETHODCODE = 300,
-    TK_INSTANCECODE = 301,
-    TK_FROMTYPE = 302,
-    TK_TOTYPE = 303,
-    TK_TOSUBCLASS = 304,
-    TK_INCLUDE = 305,
-    TK_IMPORT = 306,
-    TK_EXPHEADERCODE = 307,
-    TK_MODHEADERCODE = 308,
-    TK_TYPEHEADERCODE = 309,
-    TK_MODULE = 310,
-    TK_COMPOMODULE = 311,
-    TK_CLASS = 312,
-    TK_STRUCT = 313,
-    TK_PUBLIC = 314,
-    TK_PROTECTED = 315,
-    TK_PRIVATE = 316,
-    TK_SIGNALS = 317,
-    TK_SIGNAL_METHOD = 318,
-    TK_SLOTS = 319,
-    TK_SLOT_METHOD = 320,
-    TK_BOOL = 321,
-    TK_SHORT = 322,
-    TK_INT = 323,
-    TK_LONG = 324,
-    TK_FLOAT = 325,
-    TK_DOUBLE = 326,
-    TK_CHAR = 327,
-    TK_WCHAR_T = 328,
-    TK_VOID = 329,
-    TK_PYOBJECT = 330,
-    TK_PYTUPLE = 331,
-    TK_PYLIST = 332,
-    TK_PYDICT = 333,
-    TK_PYCALLABLE = 334,
-    TK_PYSLICE = 335,
-    TK_PYTYPE = 336,
-    TK_PYBUFFER = 337,
-    TK_VIRTUAL = 338,
-    TK_ENUM = 339,
-    TK_SIGNED = 340,
-    TK_UNSIGNED = 341,
-    TK_SCOPE = 342,
-    TK_LOGICAL_OR = 343,
-    TK_CONST = 344,
-    TK_STATIC = 345,
-    TK_PYSSIZET = 346,
-    TK_SIZET = 347,
-    TK_NUMBER_VALUE = 348,
-    TK_REAL_VALUE = 349,
-    TK_TYPEDEF = 350,
-    TK_NAMESPACE = 351,
-    TK_TIMELINE = 352,
-    TK_PLATFORMS = 353,
-    TK_FEATURE = 354,
-    TK_LICENSE = 355,
-    TK_QCHAR_VALUE = 356,
-    TK_TRUE_VALUE = 357,
-    TK_FALSE_VALUE = 358,
-    TK_NULL_VALUE = 359,
-    TK_OPERATOR = 360,
-    TK_THROW = 361,
-    TK_EXCEPTION = 362,
-    TK_RAISECODE = 363,
-    TK_EXPLICIT = 364,
-    TK_TEMPLATE = 365,
-    TK_FINAL = 366,
-    TK_ELLIPSIS = 367,
-    TK_DEFMETATYPE = 368,
-    TK_DEFSUPERTYPE = 369,
-    TK_PROPERTY = 370,
-    TK_HIDE_NS = 371,
-    TK_FORMAT = 372,
-    TK_GET = 373,
-    TK_ID = 374,
-    TK_KWARGS = 375,
-    TK_LANGUAGE = 376,
-    TK_LICENSEE = 377,
-    TK_NAME = 378,
-    TK_OPTIONAL = 379,
-    TK_ORDER = 380,
-    TK_REMOVELEADING = 381,
-    TK_SET = 382,
-    TK_SIGNATURE = 383,
-    TK_TIMESTAMP = 384,
-    TK_TYPE = 385,
-    TK_USEARGNAMES = 386,
-    TK_USELIMITEDAPI = 387,
-    TK_ALLRAISEPYEXC = 388,
-    TK_CALLSUPERINIT = 389,
-    TK_DEFERRORHANDLER = 390,
-    TK_VERSION = 391
-  };
-#endif
-/* Tokens.  */
-#define TK_API 258
-#define TK_AUTOPYNAME 259
-#define TK_DEFDOCSTRFMT 260
-#define TK_DEFDOCSTRSIG 261
-#define TK_DEFENCODING 262
-#define TK_PLUGIN 263
-#define TK_VIRTERRORHANDLER 264
-#define TK_EXPTYPEHINTCODE 265
-#define TK_TYPEHINTCODE 266
-#define TK_DOCSTRING 267
-#define TK_EXTRACT 268
-#define TK_ACCESSCODE 269
-#define TK_GETCODE 270
-#define TK_SETCODE 271
-#define TK_PREINITCODE 272
-#define TK_INITCODE 273
-#define TK_POSTINITCODE 274
-#define TK_FINALCODE 275
-#define TK_UNITCODE 276
-#define TK_UNITPOSTINCLUDECODE 277
-#define TK_MODCODE 278
-#define TK_TYPECODE 279
-#define TK_COPYING 280
-#define TK_MAPPEDTYPE 281
-#define TK_CODELINE 282
-#define TK_IF 283
-#define TK_END 284
-#define TK_NAME_VALUE 285
-#define TK_PATH_VALUE 286
-#define TK_STRING_VALUE 287
-#define TK_VIRTUALCATCHERCODE 288
-#define TK_TRAVERSECODE 289
-#define TK_CLEARCODE 290
-#define TK_GETBUFFERCODE 291
-#define TK_RELEASEBUFFERCODE 292
-#define TK_READBUFFERCODE 293
-#define TK_WRITEBUFFERCODE 294
-#define TK_SEGCOUNTCODE 295
-#define TK_CHARBUFFERCODE 296
-#define TK_PICKLECODE 297
-#define TK_VIRTUALCALLCODE 298
-#define TK_METHODCODE 299
-#define TK_PREMETHODCODE 300
-#define TK_INSTANCECODE 301
-#define TK_FROMTYPE 302
-#define TK_TOTYPE 303
-#define TK_TOSUBCLASS 304
-#define TK_INCLUDE 305
-#define TK_IMPORT 306
-#define TK_EXPHEADERCODE 307
-#define TK_MODHEADERCODE 308
-#define TK_TYPEHEADERCODE 309
-#define TK_MODULE 310
-#define TK_COMPOMODULE 311
-#define TK_CLASS 312
-#define TK_STRUCT 313
-#define TK_PUBLIC 314
-#define TK_PROTECTED 315
-#define TK_PRIVATE 316
-#define TK_SIGNALS 317
-#define TK_SIGNAL_METHOD 318
-#define TK_SLOTS 319
-#define TK_SLOT_METHOD 320
-#define TK_BOOL 321
-#define TK_SHORT 322
-#define TK_INT 323
-#define TK_LONG 324
-#define TK_FLOAT 325
-#define TK_DOUBLE 326
-#define TK_CHAR 327
-#define TK_WCHAR_T 328
-#define TK_VOID 329
-#define TK_PYOBJECT 330
-#define TK_PYTUPLE 331
-#define TK_PYLIST 332
-#define TK_PYDICT 333
-#define TK_PYCALLABLE 334
-#define TK_PYSLICE 335
-#define TK_PYTYPE 336
-#define TK_PYBUFFER 337
-#define TK_VIRTUAL 338
-#define TK_ENUM 339
-#define TK_SIGNED 340
-#define TK_UNSIGNED 341
-#define TK_SCOPE 342
-#define TK_LOGICAL_OR 343
-#define TK_CONST 344
-#define TK_STATIC 345
-#define TK_PYSSIZET 346
-#define TK_SIZET 347
-#define TK_NUMBER_VALUE 348
-#define TK_REAL_VALUE 349
-#define TK_TYPEDEF 350
-#define TK_NAMESPACE 351
-#define TK_TIMELINE 352
-#define TK_PLATFORMS 353
-#define TK_FEATURE 354
-#define TK_LICENSE 355
-#define TK_QCHAR_VALUE 356
-#define TK_TRUE_VALUE 357
-#define TK_FALSE_VALUE 358
-#define TK_NULL_VALUE 359
-#define TK_OPERATOR 360
-#define TK_THROW 361
-#define TK_EXCEPTION 362
-#define TK_RAISECODE 363
-#define TK_EXPLICIT 364
-#define TK_TEMPLATE 365
-#define TK_FINAL 366
-#define TK_ELLIPSIS 367
-#define TK_DEFMETATYPE 368
-#define TK_DEFSUPERTYPE 369
-#define TK_PROPERTY 370
-#define TK_HIDE_NS 371
-#define TK_FORMAT 372
-#define TK_GET 373
-#define TK_ID 374
-#define TK_KWARGS 375
-#define TK_LANGUAGE 376
-#define TK_LICENSEE 377
-#define TK_NAME 378
-#define TK_OPTIONAL 379
-#define TK_ORDER 380
-#define TK_REMOVELEADING 381
-#define TK_SET 382
-#define TK_SIGNATURE 383
-#define TK_TIMESTAMP 384
-#define TK_TYPE 385
-#define TK_USEARGNAMES 386
-#define TK_USELIMITEDAPI 387
-#define TK_ALLRAISEPYEXC 388
-#define TK_CALLSUPERINIT 389
-#define TK_DEFERRORHANDLER 390
-#define TK_VERSION 391
-
-/* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
-
-union YYSTYPE
+typedef union YYSTYPE
+#line 202 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
 {
-#line 202 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:355  */
-
     char            qchar;
     char            *text;
     long            number;
@@ -600,25 +589,22 @@ union YYSTYPE
     variableCfg     variable;
     vehCfg          veh;
     int             token;
-
-#line 605 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:355  */
-};
-
-typedef union YYSTYPE YYSTYPE;
-# define YYSTYPE_IS_TRIVIAL 1
+}
+/* Line 193 of yacc.c.  */
+#line 595 "/Users/phil/hg/sip/code_generator/parser.c"
+	YYSTYPE;
+# define yystype YYSTYPE /* obsolescent; will be withdrawn */
 # define YYSTYPE_IS_DECLARED 1
+# define YYSTYPE_IS_TRIVIAL 1
 #endif
 
 
-extern YYSTYPE yylval;
-
-int yyparse (void);
-
-#endif /* !YY_YY_HOME_PHIL_HG_SIP_CODE_GENERATOR_PARSER_H_INCLUDED  */
 
 /* Copy the second part of user declarations.  */
 
-#line 622 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:358  */
+
+/* Line 216 of yacc.c.  */
+#line 608 "/Users/phil/hg/sip/code_generator/parser.c"
 
 #ifdef short
 # undef short
@@ -632,8 +618,11 @@ typedef unsigned char yytype_uint8;
 
 #ifdef YYTYPE_INT8
 typedef YYTYPE_INT8 yytype_int8;
-#else
+#elif (defined __STDC__ || defined __C99__FUNC__ \
+     || defined __cplusplus || defined _MSC_VER)
 typedef signed char yytype_int8;
+#else
+typedef short int yytype_int8;
 #endif
 
 #ifdef YYTYPE_UINT16
@@ -653,7 +642,8 @@ typedef short int yytype_int16;
 #  define YYSIZE_T __SIZE_TYPE__
 # elif defined size_t
 #  define YYSIZE_T size_t
-# elif ! defined YYSIZE_T
+# elif ! defined YYSIZE_T && (defined __STDC__ || defined __C99__FUNC__ \
+     || defined __cplusplus || defined _MSC_VER)
 #  include <stddef.h> /* INFRINGES ON USER NAME SPACE */
 #  define YYSIZE_T size_t
 # else
@@ -667,67 +657,38 @@ typedef short int yytype_int16;
 # if defined YYENABLE_NLS && YYENABLE_NLS
 #  if ENABLE_NLS
 #   include <libintl.h> /* INFRINGES ON USER NAME SPACE */
-#   define YY_(Msgid) dgettext ("bison-runtime", Msgid)
+#   define YY_(msgid) dgettext ("bison-runtime", msgid)
 #  endif
 # endif
 # ifndef YY_
-#  define YY_(Msgid) Msgid
-# endif
-#endif
-
-#ifndef YY_ATTRIBUTE
-# if (defined __GNUC__                                               \
-      && (2 < __GNUC__ || (__GNUC__ == 2 && 96 <= __GNUC_MINOR__)))  \
-     || defined __SUNPRO_C && 0x5110 <= __SUNPRO_C
-#  define YY_ATTRIBUTE(Spec) __attribute__(Spec)
-# else
-#  define YY_ATTRIBUTE(Spec) /* empty */
-# endif
-#endif
-
-#ifndef YY_ATTRIBUTE_PURE
-# define YY_ATTRIBUTE_PURE   YY_ATTRIBUTE ((__pure__))
-#endif
-
-#ifndef YY_ATTRIBUTE_UNUSED
-# define YY_ATTRIBUTE_UNUSED YY_ATTRIBUTE ((__unused__))
-#endif
-
-#if !defined _Noreturn \
-     && (!defined __STDC_VERSION__ || __STDC_VERSION__ < 201112)
-# if defined _MSC_VER && 1200 <= _MSC_VER
-#  define _Noreturn __declspec (noreturn)
-# else
-#  define _Noreturn YY_ATTRIBUTE ((__noreturn__))
+#  define YY_(msgid) msgid
 # endif
 #endif
 
 /* Suppress unused-variable warnings by "using" E.  */
 #if ! defined lint || defined __GNUC__
-# define YYUSE(E) ((void) (E))
+# define YYUSE(e) ((void) (e))
 #else
-# define YYUSE(E) /* empty */
+# define YYUSE(e) /* empty */
 #endif
 
-#if defined __GNUC__ && 407 <= __GNUC__ * 100 + __GNUC_MINOR__
-/* Suppress an incorrect diagnostic about yylval being uninitialized.  */
-# define YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN \
-    _Pragma ("GCC diagnostic push") \
-    _Pragma ("GCC diagnostic ignored \"-Wuninitialized\"")\
-    _Pragma ("GCC diagnostic ignored \"-Wmaybe-uninitialized\"")
-# define YY_IGNORE_MAYBE_UNINITIALIZED_END \
-    _Pragma ("GCC diagnostic pop")
+/* Identity function, used to suppress warnings about constant conditions.  */
+#ifndef lint
+# define YYID(n) (n)
 #else
-# define YY_INITIAL_VALUE(Value) Value
+#if (defined __STDC__ || defined __C99__FUNC__ \
+     || defined __cplusplus || defined _MSC_VER)
+static int
+YYID (int i)
+#else
+static int
+YYID (i)
+    int i;
 #endif
-#ifndef YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN
-# define YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN
-# define YY_IGNORE_MAYBE_UNINITIALIZED_END
+{
+  return i;
+}
 #endif
-#ifndef YY_INITIAL_VALUE
-# define YY_INITIAL_VALUE(Value) /* Nothing. */
-#endif
-
 
 #if ! defined yyoverflow || YYERROR_VERBOSE
 
@@ -746,11 +707,11 @@ typedef short int yytype_int16;
 #    define alloca _alloca
 #   else
 #    define YYSTACK_ALLOC alloca
-#    if ! defined _ALLOCA_H && ! defined EXIT_SUCCESS
+#    if ! defined _ALLOCA_H && ! defined _STDLIB_H && (defined __STDC__ || defined __C99__FUNC__ \
+     || defined __cplusplus || defined _MSC_VER)
 #     include <stdlib.h> /* INFRINGES ON USER NAME SPACE */
-      /* Use EXIT_SUCCESS as a witness for stdlib.h.  */
-#     ifndef EXIT_SUCCESS
-#      define EXIT_SUCCESS 0
+#     ifndef _STDLIB_H
+#      define _STDLIB_H 1
 #     endif
 #    endif
 #   endif
@@ -758,8 +719,8 @@ typedef short int yytype_int16;
 # endif
 
 # ifdef YYSTACK_ALLOC
-   /* Pacify GCC's 'empty if-body' warning.  */
-#  define YYSTACK_FREE(Ptr) do { /* empty */; } while (0)
+   /* Pacify GCC's `empty if-body' warning.  */
+#  define YYSTACK_FREE(Ptr) do { /* empty */; } while (YYID (0))
 #  ifndef YYSTACK_ALLOC_MAXIMUM
     /* The OS might guarantee only one guard page at the bottom of the stack,
        and a page size can be as small as 4096 bytes.  So we cannot safely
@@ -773,23 +734,25 @@ typedef short int yytype_int16;
 #  ifndef YYSTACK_ALLOC_MAXIMUM
 #   define YYSTACK_ALLOC_MAXIMUM YYSIZE_MAXIMUM
 #  endif
-#  if (defined __cplusplus && ! defined EXIT_SUCCESS \
+#  if (defined __cplusplus && ! defined _STDLIB_H \
        && ! ((defined YYMALLOC || defined malloc) \
-             && (defined YYFREE || defined free)))
+	     && (defined YYFREE || defined free)))
 #   include <stdlib.h> /* INFRINGES ON USER NAME SPACE */
-#   ifndef EXIT_SUCCESS
-#    define EXIT_SUCCESS 0
+#   ifndef _STDLIB_H
+#    define _STDLIB_H 1
 #   endif
 #  endif
 #  ifndef YYMALLOC
 #   define YYMALLOC malloc
-#   if ! defined malloc && ! defined EXIT_SUCCESS
+#   if ! defined malloc && ! defined _STDLIB_H && (defined __STDC__ || defined __C99__FUNC__ \
+     || defined __cplusplus || defined _MSC_VER)
 void *malloc (YYSIZE_T); /* INFRINGES ON USER NAME SPACE */
 #   endif
 #  endif
 #  ifndef YYFREE
 #   define YYFREE free
-#   if ! defined free && ! defined EXIT_SUCCESS
+#   if ! defined free && ! defined _STDLIB_H && (defined __STDC__ || defined __C99__FUNC__ \
+     || defined __cplusplus || defined _MSC_VER)
 void free (void *); /* INFRINGES ON USER NAME SPACE */
 #   endif
 #  endif
@@ -799,14 +762,14 @@ void free (void *); /* INFRINGES ON USER NAME SPACE */
 
 #if (! defined yyoverflow \
      && (! defined __cplusplus \
-         || (defined YYSTYPE_IS_TRIVIAL && YYSTYPE_IS_TRIVIAL)))
+	 || (defined YYSTYPE_IS_TRIVIAL && YYSTYPE_IS_TRIVIAL)))
 
 /* A type that is properly aligned for any stack member.  */
 union yyalloc
 {
-  yytype_int16 yyss_alloc;
-  YYSTYPE yyvs_alloc;
-};
+  yytype_int16 yyss;
+  YYSTYPE yyvs;
+  };
 
 /* The size of the maximum gap between one aligned stack and the next.  */
 # define YYSTACK_GAP_MAXIMUM (sizeof (union yyalloc) - 1)
@@ -817,45 +780,41 @@ union yyalloc
      ((N) * (sizeof (yytype_int16) + sizeof (YYSTYPE)) \
       + YYSTACK_GAP_MAXIMUM)
 
-# define YYCOPY_NEEDED 1
+/* Copy COUNT objects from FROM to TO.  The source and destination do
+   not overlap.  */
+# ifndef YYCOPY
+#  if defined __GNUC__ && 1 < __GNUC__
+#   define YYCOPY(To, From, Count) \
+      __builtin_memcpy (To, From, (Count) * sizeof (*(From)))
+#  else
+#   define YYCOPY(To, From, Count)		\
+      do					\
+	{					\
+	  YYSIZE_T yyi;				\
+	  for (yyi = 0; yyi < (Count); yyi++)	\
+	    (To)[yyi] = (From)[yyi];		\
+	}					\
+      while (YYID (0))
+#  endif
+# endif
 
 /* Relocate STACK from its old location to the new one.  The
    local variables YYSIZE and YYSTACKSIZE give the old and new number of
    elements in the stack, and YYPTR gives the new location of the
    stack.  Advance YYPTR to a properly aligned location for the next
    stack.  */
-# define YYSTACK_RELOCATE(Stack_alloc, Stack)                           \
-    do                                                                  \
-      {                                                                 \
-        YYSIZE_T yynewbytes;                                            \
-        YYCOPY (&yyptr->Stack_alloc, Stack, yysize);                    \
-        Stack = &yyptr->Stack_alloc;                                    \
-        yynewbytes = yystacksize * sizeof (*Stack) + YYSTACK_GAP_MAXIMUM; \
-        yyptr += yynewbytes / sizeof (*yyptr);                          \
-      }                                                                 \
-    while (0)
+# define YYSTACK_RELOCATE(Stack)					\
+    do									\
+      {									\
+	YYSIZE_T yynewbytes;						\
+	YYCOPY (&yyptr->Stack, Stack, yysize);				\
+	Stack = &yyptr->Stack;						\
+	yynewbytes = yystacksize * sizeof (*Stack) + YYSTACK_GAP_MAXIMUM; \
+	yyptr += yynewbytes / sizeof (*yyptr);				\
+      }									\
+    while (YYID (0))
 
 #endif
-
-#if defined YYCOPY_NEEDED && YYCOPY_NEEDED
-/* Copy COUNT objects from SRC to DST.  The source and destination do
-   not overlap.  */
-# ifndef YYCOPY
-#  if defined __GNUC__ && 1 < __GNUC__
-#   define YYCOPY(Dst, Src, Count) \
-      __builtin_memcpy (Dst, Src, (Count) * sizeof (*(Src)))
-#  else
-#   define YYCOPY(Dst, Src, Count)              \
-      do                                        \
-        {                                       \
-          YYSIZE_T yyi;                         \
-          for (yyi = 0; yyi < (Count); yyi++)   \
-            (Dst)[yyi] = (Src)[yyi];            \
-        }                                       \
-      while (0)
-#  endif
-# endif
-#endif /* !YYCOPY_NEEDED */
 
 /* YYFINAL -- State number of the termination state.  */
 #define YYFINAL  4
@@ -868,19 +827,17 @@ union yyalloc
 #define YYNNTS  238
 /* YYNRULES -- Number of rules.  */
 #define YYNRULES  553
-/* YYNSTATES -- Number of states.  */
+/* YYNRULES -- Number of states.  */
 #define YYNSTATES  953
 
-/* YYTRANSLATE[YYX] -- Symbol number corresponding to YYX as returned
-   by yylex, with out-of-bounds checking.  */
+/* YYTRANSLATE(YYLEX) -- Bison symbol number corresponding to YYLEX.  */
 #define YYUNDEFTOK  2
 #define YYMAXUTOK   391
 
-#define YYTRANSLATE(YYX)                                                \
+#define YYTRANSLATE(YYX)						\
   ((unsigned int) (YYX) <= YYMAXUTOK ? yytranslate[YYX] : YYUNDEFTOK)
 
-/* YYTRANSLATE[TOKEN-NUM] -- Symbol number corresponding to TOKEN-NUM
-   as returned by yylex, without out-of-bounds checking.  */
+/* YYTRANSLATE[YYLEX] -- Bison symbol number corresponding to YYLEX.  */
 static const yytype_uint8 yytranslate[] =
 {
        0,     2,     2,     2,     2,     2,     2,     2,     2,     2,
@@ -926,7 +883,233 @@ static const yytype_uint8 yytranslate[] =
 };
 
 #if YYDEBUG
-  /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
+/* YYPRHS[YYN] -- Index of the first RHS symbol of rule number YYN in
+   YYRHS.  */
+static const yytype_uint16 yyprhs[] =
+{
+       0,     0,     3,     5,     8,     9,    12,    14,    16,    18,
+      20,    22,    24,    26,    28,    30,    32,    34,    36,    38,
+      40,    42,    44,    46,    48,    50,    52,    54,    56,    58,
+      60,    62,    64,    66,    68,    70,    72,    74,    76,    78,
+      80,    82,    84,    86,    88,    90,    92,    94,    96,    98,
+     100,   103,   105,   109,   111,   115,   119,   122,   124,   128,
+     130,   134,   138,   141,   143,   147,   149,   153,   157,   160,
+     162,   166,   168,   172,   176,   180,   182,   186,   188,   192,
+     196,   201,   203,   207,   211,   215,   221,   222,   226,   231,
+     233,   236,   238,   240,   242,   244,   247,   248,   254,   255,
+     262,   267,   269,   272,   274,   276,   278,   280,   283,   286,
+     288,   290,   292,   307,   308,   314,   315,   319,   321,   324,
+     325,   331,   333,   336,   338,   341,   343,   347,   349,   353,
+     357,   358,   364,   366,   369,   371,   372,   378,   380,   383,
+     387,   392,   394,   398,   400,   403,   404,   406,   410,   412,
+     416,   420,   424,   428,   432,   435,   437,   441,   443,   447,
+     451,   454,   456,   460,   462,   466,   470,   473,   475,   479,
+     481,   485,   489,   493,   495,   499,   501,   505,   509,   510,
+     515,   517,   520,   522,   524,   526,   530,   531,   534,   538,
+     540,   544,   548,   552,   556,   560,   564,   568,   572,   576,
+     577,   582,   584,   587,   589,   591,   593,   595,   597,   599,
+     600,   602,   605,   607,   611,   613,   617,   621,   625,   628,
+     630,   634,   636,   640,   644,   647,   650,   653,   656,   659,
+     662,   665,   668,   671,   674,   677,   680,   683,   686,   689,
+     692,   695,   698,   701,   704,   707,   710,   713,   716,   719,
+     722,   726,   728,   732,   736,   740,   741,   743,   747,   749,
+     753,   757,   761,   762,   764,   768,   770,   774,   776,   780,
+     784,   788,   791,   793,   796,   797,   807,   808,   810,   812,
+     813,   815,   816,   818,   820,   823,   825,   827,   832,   833,
+     835,   836,   839,   840,   843,   845,   849,   851,   853,   855,
+     857,   859,   861,   862,   864,   866,   868,   870,   872,   874,
+     878,   879,   883,   886,   888,   890,   894,   896,   898,   900,
+     902,   907,   910,   912,   914,   916,   918,   920,   922,   923,
+     925,   929,   936,   949,   950,   951,   960,   961,   965,   970,
+     971,   972,   981,   982,   985,   987,   991,   994,   995,   997,
+     999,  1001,  1002,  1006,  1007,  1009,  1012,  1014,  1016,  1018,
+    1020,  1022,  1024,  1026,  1028,  1030,  1032,  1034,  1036,  1038,
+    1040,  1042,  1044,  1046,  1048,  1050,  1052,  1054,  1056,  1058,
+    1060,  1062,  1064,  1066,  1068,  1071,  1074,  1077,  1081,  1085,
+    1089,  1092,  1096,  1100,  1102,  1106,  1110,  1114,  1118,  1119,
+    1124,  1126,  1129,  1131,  1133,  1135,  1137,  1139,  1140,  1142,
+    1143,  1147,  1149,  1161,  1162,  1166,  1168,  1180,  1181,  1182,
+    1189,  1190,  1191,  1199,  1217,  1225,  1243,  1260,  1262,  1264,
+    1266,  1268,  1270,  1272,  1274,  1276,  1279,  1282,  1285,  1288,
+    1291,  1294,  1297,  1300,  1303,  1306,  1310,  1314,  1316,  1319,
+    1322,  1324,  1327,  1330,  1333,  1335,  1338,  1339,  1341,  1342,
+    1344,  1345,  1348,  1349,  1353,  1355,  1359,  1361,  1365,  1367,
+    1373,  1375,  1377,  1378,  1381,  1382,  1385,  1386,  1389,  1390,
+    1393,  1395,  1396,  1398,  1402,  1405,  1406,  1410,  1411,  1415,
+    1417,  1418,  1422,  1424,  1426,  1428,  1429,  1433,  1435,  1441,
+    1442,  1446,  1448,  1451,  1453,  1455,  1458,  1461,  1464,  1469,
+    1473,  1477,  1478,  1480,  1481,  1485,  1488,  1490,  1495,  1498,
+    1501,  1503,  1505,  1508,  1510,  1512,  1515,  1518,  1522,  1524,
+    1526,  1528,  1531,  1534,  1536,  1538,  1540,  1542,  1544,  1546,
+    1548,  1550,  1552,  1554,  1556,  1558,  1560,  1562,  1564,  1568,
+    1569,  1574,  1575,  1577
+};
+
+/* YYRHS -- A `-1'-separated list of the rules' RHS.  */
+static const yytype_int16 yyrhs[] =
+{
+     160,     0,    -1,   161,    -1,   160,   161,    -1,    -1,   162,
+     163,    -1,   177,    -1,   185,    -1,   239,    -1,   264,    -1,
+     165,    -1,   169,    -1,   173,    -1,   227,    -1,   231,    -1,
+     265,    -1,   286,    -1,   298,    -1,   210,    -1,   235,    -1,
+     260,    -1,   256,    -1,   282,    -1,   223,    -1,   194,    -1,
+     246,    -1,   279,    -1,   266,    -1,   206,    -1,   281,    -1,
+     283,    -1,   214,    -1,   287,    -1,   284,    -1,   285,    -1,
+     181,    -1,   196,    -1,   164,    -1,   218,    -1,   222,    -1,
+     202,    -1,   326,    -1,   332,    -1,   329,    -1,   188,    -1,
+     325,    -1,   304,    -1,   361,    -1,   385,    -1,   267,    -1,
+       5,   166,    -1,    32,    -1,   137,   167,   138,    -1,   168,
+      -1,   167,   139,   168,    -1,   123,   140,    32,    -1,     6,
+     170,    -1,    32,    -1,   137,   171,   138,    -1,   172,    -1,
+     171,   139,   172,    -1,   123,   140,    32,    -1,     7,   174,
+      -1,    32,    -1,   137,   175,   138,    -1,   176,    -1,   175,
+     139,   176,    -1,   123,   140,    32,    -1,     8,   178,    -1,
+      30,    -1,   137,   179,   138,    -1,   180,    -1,   179,   139,
+     180,    -1,   123,   140,    30,    -1,     9,   182,   302,    -1,
+      30,    -1,   137,   183,   138,    -1,   184,    -1,   183,   139,
+     184,    -1,   123,   140,    30,    -1,     3,   137,   186,   138,
+      -1,   187,    -1,   186,   139,   187,    -1,   123,   140,   349,
+      -1,   136,   140,    93,    -1,   107,   319,   189,   366,   190,
+      -1,    -1,   137,   319,   138,    -1,   141,   191,   142,   143,
+      -1,   192,    -1,   191,   192,    -1,   218,    -1,   222,    -1,
+     193,    -1,   267,    -1,   108,   302,    -1,    -1,    26,   393,
+     366,   195,   198,    -1,    -1,   331,    26,   393,   366,   197,
+     198,    -1,   141,   199,   142,   143,    -1,   200,    -1,   199,
+     200,    -1,   218,    -1,   222,    -1,   267,    -1,   280,    -1,
+      47,   302,    -1,    48,   302,    -1,   276,    -1,   304,    -1,
+     201,    -1,    90,   389,    30,   137,   374,   138,   363,   395,
+     366,   359,   143,   297,   372,   371,    -1,    -1,    96,    30,
+     203,   204,   143,    -1,    -1,   141,   205,   142,    -1,   164,
+      -1,   205,   164,    -1,    -1,    98,   207,   141,   208,   142,
+      -1,   209,    -1,   208,   209,    -1,    30,    -1,    99,   211,
+      -1,    30,    -1,   137,   212,   138,    -1,   213,    -1,   212,
+     139,   213,    -1,   123,   140,   349,    -1,    -1,    97,   215,
+     141,   216,   142,    -1,   217,    -1,   216,   217,    -1,    30,
+      -1,    -1,    28,   137,   219,   221,   138,    -1,    30,    -1,
+     144,    30,    -1,   220,    88,    30,    -1,   220,    88,   144,
+      30,    -1,   220,    -1,   307,   145,   307,    -1,    29,    -1,
+     100,   224,    -1,    -1,    32,    -1,   137,   225,   138,    -1,
+     226,    -1,   225,   139,   226,    -1,   130,   140,    32,    -1,
+     122,   140,    32,    -1,   128,   140,    32,    -1,   129,   140,
+      32,    -1,   113,   228,    -1,   254,    -1,   137,   229,   138,
+      -1,   230,    -1,   229,   139,   230,    -1,   123,   140,   254,
+      -1,   114,   232,    -1,   254,    -1,   137,   233,   138,    -1,
+     234,    -1,   233,   139,   234,    -1,   123,   140,   254,    -1,
+     116,   236,    -1,   319,    -1,   137,   237,   138,    -1,   238,
+      -1,   237,   139,   238,    -1,   123,   140,   319,    -1,    56,
+     240,   243,    -1,   254,    -1,   137,   241,   138,    -1,   242,
+      -1,   241,   139,   242,    -1,   123,   140,   254,    -1,    -1,
+     141,   244,   142,   143,    -1,   245,    -1,   244,   245,    -1,
+     218,    -1,   222,    -1,   293,    -1,    55,   247,   251,    -1,
+      -1,   254,   248,    -1,   137,   249,   138,    -1,   250,    -1,
+     249,   139,   250,    -1,   120,   140,    32,    -1,   121,   140,
+      32,    -1,   123,   140,   254,    -1,   131,   140,   322,    -1,
+     132,   140,   322,    -1,   133,   140,   322,    -1,   134,   140,
+     322,    -1,   135,   140,    30,    -1,    -1,   141,   252,   142,
+     143,    -1,   253,    -1,   252,   253,    -1,   218,    -1,   222,
+      -1,   289,    -1,   293,    -1,    30,    -1,    31,    -1,    -1,
+      93,    -1,    50,   257,    -1,    31,    -1,   137,   258,   138,
+      -1,   259,    -1,   258,   139,   259,    -1,   123,   140,    31,
+      -1,   124,   140,   322,    -1,    51,   261,    -1,    31,    -1,
+     137,   262,   138,    -1,   263,    -1,   262,   139,   263,    -1,
+     123,   140,    31,    -1,    25,   302,    -1,    52,   302,    -1,
+      53,   302,    -1,    54,   302,    -1,    34,   302,    -1,    35,
+     302,    -1,    36,   302,    -1,    37,   302,    -1,    38,   302,
+      -1,    39,   302,    -1,    40,   302,    -1,    41,   302,    -1,
+      46,   302,    -1,    42,   302,    -1,    20,   302,    -1,    23,
+     302,    -1,    24,   302,    -1,    17,   302,    -1,    18,   302,
+      -1,    19,   302,    -1,    21,   302,    -1,    22,   302,    -1,
+      10,   302,    -1,    11,   302,    -1,    11,   302,    -1,     4,
+     290,    -1,   137,   291,   138,    -1,   292,    -1,   291,   139,
+     292,    -1,   126,   140,    32,    -1,    12,   294,   302,    -1,
+      -1,    32,    -1,   137,   295,   138,    -1,   296,    -1,   295,
+     139,   296,    -1,   117,   140,    32,    -1,   128,   140,    32,
+      -1,    -1,   293,    -1,    13,   299,   302,    -1,    30,    -1,
+     137,   300,   138,    -1,   301,    -1,   300,   139,   301,    -1,
+     119,   140,    30,    -1,   125,   140,    93,    -1,   303,    29,
+      -1,    27,    -1,   303,    27,    -1,    -1,    84,   306,   307,
+     366,   305,   141,   308,   142,   143,    -1,    -1,    57,    -1,
+      58,    -1,    -1,    30,    -1,    -1,   309,    -1,   310,    -1,
+     309,   310,    -1,   218,    -1,   222,    -1,    30,   312,   366,
+     311,    -1,    -1,   139,    -1,    -1,   140,   317,    -1,    -1,
+     140,   314,    -1,   317,    -1,   314,   315,   317,    -1,   145,
+      -1,   146,    -1,   147,    -1,   148,    -1,   149,    -1,   150,
+      -1,    -1,   144,    -1,   151,    -1,   145,    -1,   146,    -1,
+     147,    -1,   149,    -1,   318,   316,   323,    -1,    -1,   137,
+     319,   138,    -1,    87,   320,    -1,   320,    -1,   321,    -1,
+     320,    87,   321,    -1,    30,    -1,   102,    -1,   103,    -1,
+     319,    -1,   393,   137,   324,   138,    -1,   141,   142,    -1,
+      94,    -1,    93,    -1,   322,    -1,   104,    -1,    32,    -1,
+     101,    -1,    -1,   314,    -1,   324,   139,   314,    -1,    95,
+     389,    30,   366,   143,   297,    -1,    95,   389,   137,   147,
+      30,   138,   137,   394,   138,   366,   143,   297,    -1,    -1,
+      -1,    58,   319,   327,   335,   366,   328,   339,   143,    -1,
+      -1,   331,   330,   332,    -1,   110,   152,   394,   153,    -1,
+      -1,    -1,    57,   319,   333,   335,   366,   334,   339,   143,
+      -1,    -1,   154,   336,    -1,   337,    -1,   336,   139,   337,
+      -1,   338,   319,    -1,    -1,    59,    -1,    60,    -1,    61,
+      -1,    -1,   141,   340,   142,    -1,    -1,   341,    -1,   340,
+     341,    -1,   218,    -1,   222,    -1,   202,    -1,   326,    -1,
+     332,    -1,   329,    -1,   188,    -1,   325,    -1,   304,    -1,
+     342,    -1,   293,    -1,   280,    -1,   267,    -1,   268,    -1,
+     269,    -1,   270,    -1,   271,    -1,   272,    -1,   273,    -1,
+     274,    -1,   275,    -1,   276,    -1,   277,    -1,   278,    -1,
+     288,    -1,   354,    -1,   351,    -1,   377,    -1,    49,   302,
+      -1,    48,   302,    -1,    47,   302,    -1,    59,   350,   154,
+      -1,    60,   350,   154,    -1,    61,   350,   154,    -1,    62,
+     154,    -1,   115,   343,   346,    -1,   137,   344,   138,    -1,
+     345,    -1,   344,   139,   345,    -1,   118,   140,    30,    -1,
+     123,   140,   349,    -1,   127,   140,    30,    -1,    -1,   141,
+     347,   142,   143,    -1,   348,    -1,   347,   348,    -1,   218,
+      -1,   222,    -1,   293,    -1,    30,    -1,    32,    -1,    -1,
+      64,    -1,    -1,    83,   352,   353,    -1,   353,    -1,   151,
+      30,   137,   138,   395,   365,   366,   143,   372,   371,   373,
+      -1,    -1,   109,   355,   356,    -1,   356,    -1,    30,   137,
+     374,   138,   395,   366,   357,   143,   297,   372,   371,    -1,
+      -1,    -1,   155,   358,   137,   374,   138,   156,    -1,    -1,
+      -1,   155,   360,   389,   137,   374,   138,   156,    -1,   389,
+      30,   137,   374,   138,   363,   364,   395,   365,   366,   359,
+     143,   297,   372,   371,   373,   370,    -1,   389,   105,   140,
+     137,   389,   138,   143,    -1,   389,   105,   362,   137,   374,
+     138,   363,   364,   395,   365,   366,   359,   143,   372,   371,
+     373,   370,    -1,   105,   389,   137,   374,   138,   363,   364,
+     395,   365,   366,   359,   143,   372,   371,   373,   370,    -1,
+     146,    -1,   145,    -1,   147,    -1,   148,    -1,   157,    -1,
+     149,    -1,   150,    -1,   158,    -1,   152,   152,    -1,   153,
+     153,    -1,   146,   140,    -1,   145,   140,    -1,   147,   140,
+      -1,   148,   140,    -1,   157,   140,    -1,   149,   140,    -1,
+     150,   140,    -1,   158,   140,    -1,   152,   152,   140,    -1,
+     153,   153,   140,    -1,   151,    -1,   137,   138,    -1,   155,
+     156,    -1,   152,    -1,   152,   140,    -1,   140,   140,    -1,
+     144,   140,    -1,   153,    -1,   153,   140,    -1,    -1,    89,
+      -1,    -1,   111,    -1,    -1,   140,    93,    -1,    -1,   148,
+     367,   148,    -1,   368,    -1,   367,   139,   368,    -1,    30,
+      -1,    30,   140,   369,    -1,   254,    -1,    30,   154,   255,
+     145,   255,    -1,    32,    -1,    93,    -1,    -1,    43,   302,
+      -1,    -1,    44,   302,    -1,    -1,    45,   302,    -1,    -1,
+      33,   302,    -1,   375,    -1,    -1,   376,    -1,   375,   139,
+     376,    -1,   390,   313,    -1,    -1,    63,   378,   380,    -1,
+      -1,    65,   379,   380,    -1,   380,    -1,    -1,    90,   381,
+     382,    -1,   382,    -1,   383,    -1,   385,    -1,    -1,    83,
+     384,   361,    -1,   361,    -1,   389,    30,   366,   386,   143,
+      -1,    -1,   141,   387,   142,    -1,   388,    -1,   387,   388,
+      -1,   218,    -1,   222,    -1,    14,   302,    -1,    15,   302,
+      -1,    16,   302,    -1,    89,   393,   392,   391,    -1,   393,
+     392,   391,    -1,   389,   307,   366,    -1,    -1,   149,    -1,
+      -1,   392,   147,    89,    -1,   392,   147,    -1,   319,    -1,
+     319,   152,   394,   153,    -1,    58,   319,    -1,    86,    67,
+      -1,    67,    -1,    86,    -1,    86,    68,    -1,    68,    -1,
+      69,    -1,    86,    69,    -1,    69,    69,    -1,    86,    69,
+      69,    -1,    70,    -1,    71,    -1,    66,    -1,    85,    72,
+      -1,    86,    72,    -1,    72,    -1,    73,    -1,    74,    -1,
+      75,    -1,    76,    -1,    77,    -1,    78,    -1,    79,    -1,
+      80,    -1,    81,    -1,    82,    -1,    91,    -1,    92,    -1,
+     112,    -1,   389,    -1,   394,   139,   389,    -1,    -1,   106,
+     137,   396,   138,    -1,    -1,   319,    -1,   396,   139,   319,
+      -1
+};
+
+/* YYRLINE[YYN] -- source line where rule number YYN was defined.  */
 static const yytype_uint16 yyrline[] =
 {
        0,   546,   546,   547,   550,   550,   569,   570,   571,   572,
@@ -988,7 +1171,7 @@ static const yytype_uint16 yyrline[] =
 };
 #endif
 
-#if YYDEBUG || YYERROR_VERBOSE || 0
+#if YYDEBUG || YYERROR_VERBOSE || YYTOKEN_TABLE
 /* YYTNAME[SYMBOL-NUM] -- String name of the symbol SYMBOL-NUM.
    First, the terminals, then, starting at YYNTOKENS, nonterminals.  */
 static const char *const yytname[] =
@@ -1028,7 +1211,7 @@ static const char *const yytname[] =
   "TK_DEFERRORHANDLER", "TK_VERSION", "'('", "')'", "','", "'='", "'{'",
   "'}'", "';'", "'!'", "'-'", "'+'", "'*'", "'/'", "'&'", "'|'", "'~'",
   "'<'", "'>'", "':'", "'['", "']'", "'%'", "'^'", "$accept",
-  "specification", "statement", "$@1", "modstatement", "nsstatement",
+  "specification", "statement", "@1", "modstatement", "nsstatement",
   "defdocstringfmt", "defdocstringfmt_args", "defdocstringfmt_arg_list",
   "defdocstringfmt_arg", "defdocstringsig", "defdocstringsig_args",
   "defdocstringsig_arg_list", "defdocstringsig_arg", "defencoding",
@@ -1037,19 +1220,19 @@ static const char *const yytname[] =
   "veh_args", "veh_arg_list", "veh_arg", "api", "api_arg_list", "api_arg",
   "exception", "baseexception", "exception_body",
   "exception_body_directives", "exception_body_directive", "raisecode",
-  "mappedtype", "$@2", "mappedtypetmpl", "$@3", "mtdefinition", "mtbody",
-  "mtline", "mtfunction", "namespace", "$@4", "optnsbody", "nsbody",
-  "platforms", "$@5", "platformlist", "platform", "feature",
-  "feature_args", "feature_arg_list", "feature_arg", "timeline", "$@6",
-  "qualifierlist", "qualifiername", "ifstart", "$@7", "oredqualifiers",
-  "qualifiers", "ifend", "license", "license_args", "license_arg_list",
-  "license_arg", "defmetatype", "defmetatype_args", "defmetatype_arg_list",
+  "mappedtype", "@2", "mappedtypetmpl", "@3", "mtdefinition", "mtbody",
+  "mtline", "mtfunction", "namespace", "@4", "optnsbody", "nsbody",
+  "platforms", "@5", "platformlist", "platform", "feature", "feature_args",
+  "feature_arg_list", "feature_arg", "timeline", "@6", "qualifierlist",
+  "qualifiername", "ifstart", "@7", "oredqualifiers", "qualifiers",
+  "ifend", "license", "license_args", "license_arg_list", "license_arg",
+  "defmetatype", "defmetatype_args", "defmetatype_arg_list",
   "defmetatype_arg", "defsupertype", "defsupertype_args",
   "defsupertype_arg_list", "defsupertype_arg", "hiddenns", "hiddenns_args",
   "hiddenns_arg_list", "hiddenns_arg", "compmodule", "compmodule_args",
   "compmodule_arg_list", "compmodule_arg", "compmodule_body",
   "compmodule_body_directives", "compmodule_body_directive", "module",
-  "module_args", "$@8", "module_arg_list", "module_arg", "module_body",
+  "module_args", "@8", "module_arg_list", "module_arg", "module_body",
   "module_body_directives", "module_body_directive", "dottedname",
   "optnumber", "include", "include_args", "include_arg_list",
   "include_arg", "import", "import_args", "import_arg_list", "import_arg",
@@ -1062,31 +1245,30 @@ static const char *const yytname[] =
   "autopyname_args", "autopyname_arg_list", "autopyname_arg", "docstring",
   "docstring_args", "docstring_arg_list", "docstring_arg", "optdocstring",
   "extract", "extract_args", "extract_arg_list", "extract_arg",
-  "codeblock", "codelines", "enum", "$@9", "optenumkey", "optname",
+  "codeblock", "codelines", "enum", "@9", "optenumkey", "optname",
   "optenumbody", "enumbody", "enumline", "optcomma", "optenumassign",
   "optassign", "expr", "binop", "optunop", "value", "optcast",
   "scopedname", "scopednamehead", "scopepart", "bool_value", "simplevalue",
-  "exprlist", "typedef", "struct", "$@10", "$@11", "classtmpl", "$@12",
-  "template", "class", "$@13", "$@14", "superclasses", "superlist",
+  "exprlist", "typedef", "struct", "@10", "@11", "classtmpl", "@12",
+  "template", "class", "@13", "@14", "superclasses", "superlist",
   "superclass", "class_access", "optclassbody", "classbody", "classline",
   "property", "property_args", "property_arg_list", "property_arg",
   "property_body", "property_body_directives", "property_body_directive",
-  "name_or_string", "optslot", "dtor", "$@15", "dtor_decl", "ctor", "$@16",
-  "simplector", "optctorsig", "$@17", "optsig", "$@18", "function",
+  "name_or_string", "optslot", "dtor", "@15", "dtor_decl", "ctor", "@16",
+  "simplector", "optctorsig", "@17", "optsig", "@18", "function",
   "operatorname", "optconst", "optfinal", "optabstract", "optflags",
   "flaglist", "flag", "flagvalue", "virtualcallcode", "methodcode",
   "premethodcode", "virtualcatchercode", "arglist", "rawarglist",
-  "argvalue", "varmember", "$@19", "$@20", "simple_varmem", "$@21",
-  "varmem", "member", "$@22", "variable", "variable_body",
-  "variable_body_directives", "variable_body_directive", "cpptype",
-  "argtype", "optref", "deref", "basetype", "cpptypelist", "optexceptions",
-  "exceptionlist", YY_NULLPTR
+  "argvalue", "varmember", "@19", "@20", "simple_varmem", "@21", "varmem",
+  "member", "@22", "variable", "variable_body", "variable_body_directives",
+  "variable_body_directive", "cpptype", "argtype", "optref", "deref",
+  "basetype", "cpptypelist", "optexceptions", "exceptionlist", 0
 };
 #endif
 
 # ifdef YYPRINT
-/* YYTOKNUM[NUM] -- (External) token number corresponding to the
-   (internal) symbol number NUM (which must be that of a token).  */
+/* YYTOKNUM[YYLEX-NUM] -- Internal token number corresponding to
+   token YYLEX-NUM.  */
 static const yytype_uint16 yytoknum[] =
 {
        0,   256,   257,   258,   259,   260,   261,   262,   263,   264,
@@ -1108,121 +1290,131 @@ static const yytype_uint16 yytoknum[] =
 };
 # endif
 
-#define YYPACT_NINF -771
-
-#define yypact_value_is_default(Yystate) \
-  (!!((Yystate) == (-771)))
-
-#define YYTABLE_NINF -519
-
-#define yytable_value_is_error(Yytable_value) \
-  0
-
-  /* YYPACT[STATE-NUM] -- Index in YYTABLE of the portion describing
-     STATE-NUM.  */
-static const yytype_int16 yypact[] =
+/* YYR1[YYN] -- Symbol number of symbol that rule YYN derives.  */
+static const yytype_uint16 yyr1[] =
 {
-    -771,   171,  -771,  1099,  -771,  -771,    43,    62,    71,    72,
-      41,    46,   161,   161,    48,   161,   161,   161,   161,   161,
-     161,   161,  1263,    63,  -771,  -771,    14,    50,   161,   161,
-     161,    52,    54,   125,   125,  -771,  -771,  -771,   160,  -771,
-    -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,
-    -771,  -771,   310,   165,   288,   225,  1263,  -771,  -771,  1210,
-     232,  -771,  -771,    57,    74,  1210,   125,   124,  -771,    61,
-      65,    33,  -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,
-    -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,
-    -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,
-    -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,
-    -771,   181,   251,  -771,  -771,  -771,  -771,   316,  -771,  -771,
-    -771,    60,  -771,   108,  -771,   230,  -771,  -771,   242,  -771,
-    -771,   247,  -771,  -771,   252,  -771,  -771,   260,   161,  -771,
-    -771,    92,  -771,  -771,    67,   161,  -771,  -771,  -771,  -771,
-    -771,  -771,  -771,   125,   231,  -771,  -771,   258,  -771,  -771,
-     262,  -771,  -771,  -771,  -771,  -771,  -771,   157,   274,  -771,
-     275,   276,  -771,  -771,    26,  -771,  -771,  -771,   343,  -771,
-    -771,  -771,   355,  -771,   251,  -771,    70,  -771,   289,   312,
-    -771,   345,  -771,  -771,   153,  -771,   336,   346,  1210,   371,
-    -771,  -771,   383,  -771,  -771,   384,  -771,  -771,  1210,   225,
-    1263,   452,    88,   495,   118,   272,   372,   250,  -771,   373,
-     253,  -771,   374,   255,  -771,   375,   263,  -771,   376,   265,
-    -771,   377,   267,  -771,  -771,  -771,  -771,   378,   379,   269,
-    -771,  -771,  -771,   490,  -771,     2,   381,   382,   271,  -771,
-     386,   283,  -771,   387,   388,   389,   390,   391,   392,   393,
-     395,   290,  -771,   210,  -771,  -771,   396,   294,  -771,   105,
-    -771,   370,   370,  -771,   231,  -771,   118,   231,   397,   398,
-     493,   507,   400,   324,  -771,   402,   403,   410,   411,   326,
-    -771,  1210,   125,   231,  -771,   -27,   412,   328,  -771,   413,
-     331,  -771,   414,   333,  -771,     5,  -771,   231,  -771,  1210,
-     415,   417,   116,   418,   419,   420,   421,   427,   428,   430,
-    -771,    -3,   101,   401,   431,   432,   436,   449,  -771,  -771,
-     334,   481,  -771,   108,   543,  -771,   230,   544,  -771,   242,
-     563,  -771,   247,   569,  -771,   252,   571,  -771,   260,   574,
-     512,  -771,    67,   466,    87,  -771,   469,   462,   584,   527,
-     480,   475,   590,   293,  -771,   258,   593,  -771,   262,   594,
-     595,   447,   293,   293,   293,   293,   598,  -771,   157,   492,
-      76,  -771,  -771,    37,  -771,  -771,  -771,   447,  -771,   275,
-    -771,  -771,    18,  -771,  -771,   257,   231,   231,  -771,  -771,
-     488,   603,   741,   506,  -771,    34,  -771,  -771,    40,  -771,
-     334,  -771,   345,   606,   619,   622,   623,  -771,   153,   518,
-     519,  -771,   343,   521,   524,   522,  1210,  -771,   447,  -771,
-     371,   447,  -771,   383,   125,  -771,   384,  -771,  -771,   526,
-     256,   516,  -771,  1210,  -771,  -771,  -771,  -771,  -771,  -771,
-    -771,  -771,  -771,   525,  -771,   528,  -771,  -771,  -771,  1210,
-    -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,
-    -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,    84,
-     490,  -771,   330,  -771,  -771,    20,  -771,   343,  -771,  -771,
-    -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,
-    -771,  -771,  -771,  -771,   540,  -771,  -771,    25,   161,   532,
-    -771,  -771,  -771,   534,  -771,  -771,  -771,  -771,   530,  -771,
-     125,  -771,  -771,   529,   655,   533,  -771,   644,  -771,  -771,
-    -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,
-    -771,   589,  1210,   231,   542,  -771,  -771,    82,  -771,  -771,
-    -771,  -771,  -771,  -771,  -771,  -771,   469,   589,   161,   161,
-     161,  -771,  -771,    39,  -771,  -771,   561,  -771,  -771,   566,
-     551,  -771,  -771,  -771,  -771,  -771,   161,   161,   161,   161,
-    1210,    51,  -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,
-    -771,   650,  -771,   541,   341,  -771,   567,   568,   347,  -771,
-    -771,  -771,  -771,   257,  -771,   565,   565,   295,  -771,  -771,
-     545,  -771,  -771,  -771,   616,  -771,  -771,   125,   202,  -771,
-     190,   161,    32,  -771,  -771,  -771,  -771,  -771,  -771,   616,
-    -771,  -771,  -771,  -771,  -771,   591,   589,   639,  -771,  -771,
-    -771,  -771,   679,   599,  -771,  -771,   705,  -771,   540,   711,
-     712,  -771,    25,  -771,   988,   602,   604,   608,  -771,  -771,
-     610,   295,  -771,  1210,  -771,   640,   612,  -771,  -771,  -771,
-    -771,  -771,  -771,   542,  -771,  -771,  -771,  -771,  -771,  -771,
-     228,  -771,   614,  -771,   640,  -771,   616,  -771,   613,   618,
-    -771,  -771,  -771,  -771,  -771,  -771,   161,   161,   624,   161,
-     161,   161,   161,   161,   161,   161,   161,   161,   161,   161,
-     161,   689,   689,   689,   605,  -771,  -771,   609,  -771,  -771,
-     626,   734,  -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,
-    -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,
-    -771,  -771,  -771,  -771,  -771,  -771,   869,  -771,  -771,  -771,
-    -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,
-    -771,   542,   231,   625,  -771,   350,   628,   627,  -771,  -771,
-    -771,  -771,  -771,  -771,  -771,   630,    80,  -771,  -771,   629,
-    -771,   627,   640,   639,  1210,  -771,  -771,  1210,  -771,  -771,
-    -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,
-    -771,   620,   621,   631,  -771,   369,   369,   632,   511,  1152,
-     743,   134,   635,   641,  -771,  -771,  -771,   638,  -771,   231,
-     125,   686,   231,  -771,   224,   231,   627,  -771,   642,   643,
-    -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,    79,  -771,
-     624,  -771,   647,   648,   649,   352,  -771,   105,  -771,   646,
-    -771,  -771,   651,  -771,   354,  -771,   636,   202,   360,   636,
-     231,   589,   640,   645,   760,   334,   762,  -771,   134,  -771,
-    -771,  -771,    30,  -771,   640,   655,  -771,   125,  -771,   653,
-    -771,   542,   657,   636,   640,   231,  -771,  -771,  -771,  -771,
-     658,  -771,   627,  -771,  -771,  1210,   748,   202,   655,   659,
-     231,   669,  -771,   231,   666,   161,   761,   748,   748,   636,
-    -771,   661,   688,  1210,  -771,   161,   796,   761,   761,   691,
-     698,   655,   748,   700,  -771,   161,   797,   796,   796,   655,
-    1210,   748,   761,   683,  -771,   161,  -771,   797,   797,   748,
-     703,   761,   796,  -771,  -771,  -771,  -771,   761,   687,  -771,
-    -771,  -771,  -771
+       0,   159,   160,   160,   162,   161,   163,   163,   163,   163,
+     163,   163,   163,   163,   163,   163,   163,   163,   163,   163,
+     163,   163,   163,   163,   163,   163,   163,   163,   163,   163,
+     163,   163,   163,   163,   163,   163,   163,   163,   164,   164,
+     164,   164,   164,   164,   164,   164,   164,   164,   164,   164,
+     165,   166,   166,   167,   167,   168,   169,   170,   170,   171,
+     171,   172,   173,   174,   174,   175,   175,   176,   177,   178,
+     178,   179,   179,   180,   181,   182,   182,   183,   183,   184,
+     185,   186,   186,   187,   187,   188,   189,   189,   190,   191,
+     191,   192,   192,   192,   192,   193,   195,   194,   197,   196,
+     198,   199,   199,   200,   200,   200,   200,   200,   200,   200,
+     200,   200,   201,   203,   202,   204,   204,   205,   205,   207,
+     206,   208,   208,   209,   210,   211,   211,   212,   212,   213,
+     215,   214,   216,   216,   217,   219,   218,   220,   220,   220,
+     220,   221,   221,   222,   223,   224,   224,   224,   225,   225,
+     226,   226,   226,   226,   227,   228,   228,   229,   229,   230,
+     231,   232,   232,   233,   233,   234,   235,   236,   236,   237,
+     237,   238,   239,   240,   240,   241,   241,   242,   243,   243,
+     244,   244,   245,   245,   245,   246,   248,   247,   247,   249,
+     249,   250,   250,   250,   250,   250,   250,   250,   250,   251,
+     251,   252,   252,   253,   253,   253,   253,   254,   254,   255,
+     255,   256,   257,   257,   258,   258,   259,   259,   260,   261,
+     261,   262,   262,   263,   264,   265,   266,   267,   268,   269,
+     270,   271,   272,   273,   274,   275,   276,   277,   278,   279,
+     280,   281,   282,   283,   284,   285,   286,   287,   288,   289,
+     290,   291,   291,   292,   293,   294,   294,   294,   295,   295,
+     296,   296,   297,   297,   298,   299,   299,   300,   300,   301,
+     301,   302,   303,   303,   305,   304,   306,   306,   306,   307,
+     307,   308,   308,   309,   309,   310,   310,   310,   311,   311,
+     312,   312,   313,   313,   314,   314,   315,   315,   315,   315,
+     315,   315,   316,   316,   316,   316,   316,   316,   316,   317,
+     318,   318,   319,   319,   320,   320,   321,   322,   322,   323,
+     323,   323,   323,   323,   323,   323,   323,   323,   324,   324,
+     324,   325,   325,   327,   328,   326,   330,   329,   331,   333,
+     334,   332,   335,   335,   336,   336,   337,   338,   338,   338,
+     338,   339,   339,   340,   340,   340,   341,   341,   341,   341,
+     341,   341,   341,   341,   341,   341,   341,   341,   341,   341,
+     341,   341,   341,   341,   341,   341,   341,   341,   341,   341,
+     341,   341,   341,   341,   341,   341,   341,   341,   341,   341,
+     341,   342,   343,   344,   344,   345,   345,   345,   346,   346,
+     347,   347,   348,   348,   348,   349,   349,   350,   350,   352,
+     351,   351,   353,   355,   354,   354,   356,   357,   358,   357,
+     359,   360,   359,   361,   361,   361,   361,   362,   362,   362,
+     362,   362,   362,   362,   362,   362,   362,   362,   362,   362,
+     362,   362,   362,   362,   362,   362,   362,   362,   362,   362,
+     362,   362,   362,   362,   362,   362,   363,   363,   364,   364,
+     365,   365,   366,   366,   367,   367,   368,   368,   369,   369,
+     369,   369,   370,   370,   371,   371,   372,   372,   373,   373,
+     374,   375,   375,   375,   376,   378,   377,   379,   377,   377,
+     381,   380,   380,   382,   382,   384,   383,   383,   385,   386,
+     386,   387,   387,   388,   388,   388,   388,   388,   389,   389,
+     390,   391,   391,   392,   392,   392,   393,   393,   393,   393,
+     393,   393,   393,   393,   393,   393,   393,   393,   393,   393,
+     393,   393,   393,   393,   393,   393,   393,   393,   393,   393,
+     393,   393,   393,   393,   393,   393,   393,   394,   394,   395,
+     395,   396,   396,   396
 };
 
-  /* YYDEFACT[STATE-NUM] -- Default reduction number in state STATE-NUM.
-     Performed when YYTABLE does not specify something else to do.  Zero
-     means the default is an error.  */
+/* YYR2[YYN] -- Number of symbols composing right hand side of rule YYN.  */
+static const yytype_uint8 yyr2[] =
+{
+       0,     2,     1,     2,     0,     2,     1,     1,     1,     1,
+       1,     1,     1,     1,     1,     1,     1,     1,     1,     1,
+       1,     1,     1,     1,     1,     1,     1,     1,     1,     1,
+       1,     1,     1,     1,     1,     1,     1,     1,     1,     1,
+       1,     1,     1,     1,     1,     1,     1,     1,     1,     1,
+       2,     1,     3,     1,     3,     3,     2,     1,     3,     1,
+       3,     3,     2,     1,     3,     1,     3,     3,     2,     1,
+       3,     1,     3,     3,     3,     1,     3,     1,     3,     3,
+       4,     1,     3,     3,     3,     5,     0,     3,     4,     1,
+       2,     1,     1,     1,     1,     2,     0,     5,     0,     6,
+       4,     1,     2,     1,     1,     1,     1,     2,     2,     1,
+       1,     1,    14,     0,     5,     0,     3,     1,     2,     0,
+       5,     1,     2,     1,     2,     1,     3,     1,     3,     3,
+       0,     5,     1,     2,     1,     0,     5,     1,     2,     3,
+       4,     1,     3,     1,     2,     0,     1,     3,     1,     3,
+       3,     3,     3,     3,     2,     1,     3,     1,     3,     3,
+       2,     1,     3,     1,     3,     3,     2,     1,     3,     1,
+       3,     3,     3,     1,     3,     1,     3,     3,     0,     4,
+       1,     2,     1,     1,     1,     3,     0,     2,     3,     1,
+       3,     3,     3,     3,     3,     3,     3,     3,     3,     0,
+       4,     1,     2,     1,     1,     1,     1,     1,     1,     0,
+       1,     2,     1,     3,     1,     3,     3,     3,     2,     1,
+       3,     1,     3,     3,     2,     2,     2,     2,     2,     2,
+       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+       3,     1,     3,     3,     3,     0,     1,     3,     1,     3,
+       3,     3,     0,     1,     3,     1,     3,     1,     3,     3,
+       3,     2,     1,     2,     0,     9,     0,     1,     1,     0,
+       1,     0,     1,     1,     2,     1,     1,     4,     0,     1,
+       0,     2,     0,     2,     1,     3,     1,     1,     1,     1,
+       1,     1,     0,     1,     1,     1,     1,     1,     1,     3,
+       0,     3,     2,     1,     1,     3,     1,     1,     1,     1,
+       4,     2,     1,     1,     1,     1,     1,     1,     0,     1,
+       3,     6,    12,     0,     0,     8,     0,     3,     4,     0,
+       0,     8,     0,     2,     1,     3,     2,     0,     1,     1,
+       1,     0,     3,     0,     1,     2,     1,     1,     1,     1,
+       1,     1,     1,     1,     1,     1,     1,     1,     1,     1,
+       1,     1,     1,     1,     1,     1,     1,     1,     1,     1,
+       1,     1,     1,     1,     2,     2,     2,     3,     3,     3,
+       2,     3,     3,     1,     3,     3,     3,     3,     0,     4,
+       1,     2,     1,     1,     1,     1,     1,     0,     1,     0,
+       3,     1,    11,     0,     3,     1,    11,     0,     0,     6,
+       0,     0,     7,    17,     7,    17,    16,     1,     1,     1,
+       1,     1,     1,     1,     1,     2,     2,     2,     2,     2,
+       2,     2,     2,     2,     2,     3,     3,     1,     2,     2,
+       1,     2,     2,     2,     1,     2,     0,     1,     0,     1,
+       0,     2,     0,     3,     1,     3,     1,     3,     1,     5,
+       1,     1,     0,     2,     0,     2,     0,     2,     0,     2,
+       1,     0,     1,     3,     2,     0,     3,     0,     3,     1,
+       0,     3,     1,     1,     1,     0,     3,     1,     5,     0,
+       3,     1,     2,     1,     1,     2,     2,     2,     4,     3,
+       3,     0,     1,     0,     3,     2,     1,     4,     2,     2,
+       1,     1,     2,     1,     1,     2,     2,     3,     1,     1,
+       1,     2,     2,     1,     1,     1,     1,     1,     1,     1,
+       1,     1,     1,     1,     1,     1,     1,     1,     3,     0,
+       4,     0,     1,     3
+};
+
+/* YYDEFACT[STATE-NAME] -- Default rule to reduce with in state
+   STATE-NUM when YYTABLE doesn't specify something else to do.  Zero
+   means the default is an error.  */
 static const yytype_uint16 yydefact[] =
 {
        4,     4,     2,     0,     1,     3,     0,     0,     0,     0,
@@ -1323,36 +1515,7 @@ static const yytype_uint16 yydefact[] =
      412,   112,   419
 };
 
-  /* YYPGOTO[NTERM-NUM].  */
-static const yytype_int16 yypgoto[] =
-{
-    -771,  -771,   841,  -771,  -771,  -358,  -771,  -771,  -771,   508,
-    -771,  -771,  -771,   513,  -771,  -771,  -771,   503,  -771,  -771,
-    -771,   502,  -771,  -771,  -771,   509,  -771,  -771,   517,  -603,
-    -771,  -771,  -771,   233,  -771,  -771,  -771,  -771,  -771,   300,
-    -771,   277,  -771,  -585,  -771,  -771,  -771,  -771,  -771,  -771,
-     451,  -771,  -771,  -771,   448,  -771,  -771,  -771,   456,  -236,
-    -771,  -771,  -771,  -235,  -771,  -771,  -771,   444,  -771,  -771,
-    -771,   433,  -771,  -771,  -771,   435,  -771,  -771,  -771,   429,
-    -771,  -771,  -771,   477,  -771,  -771,   472,  -771,  -771,  -771,
-    -771,   491,  -771,  -771,   487,     3,    89,  -771,  -771,  -771,
-     510,  -771,  -771,  -771,   505,  -771,  -771,  -771,  -459,  -771,
-    -771,  -771,  -771,  -771,  -771,  -771,  -771,  -536,  -771,  -771,
-    -771,  -531,  -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,
-    -771,  -771,  -771,   223,  -238,  -771,  -771,   222,  -655,  -771,
-    -771,  -771,   531,   -13,  -771,  -453,  -771,  -771,  -219,  -771,
-    -771,   215,  -771,  -771,  -771,  -658,  -771,  -771,  -611,  -771,
-     -23,   822,   670,  -336,  -771,  -771,  -530,  -527,  -771,  -771,
-    -525,  -771,   875,  -197,  -771,  -771,   615,  -771,   279,  -771,
-     280,  -771,   139,  -771,  -771,  -771,    22,  -771,  -771,    16,
-    -390,  -212,  -771,  -771,    93,  -771,  -771,    81,  -771,  -771,
-    -770,  -771,    -2,  -771,  -535,  -462,  -724,  -200,  -771,   416,
-    -771,  -435,  -668,  -680,  -694,  -300,  -771,   353,  -771,  -771,
-    -771,  -301,  -771,    85,  -771,  -771,    21,  -771,  -771,   338,
-     -46,  -771,   637,   729,    -4,  -187,  -644,  -771
-};
-
-  /* YYDEFGOTO[NTERM-NUM].  */
+/* YYDEFGOTO[NTERM-NUM].  */
 static const yytype_int16 yydefgoto[] =
 {
       -1,     1,     2,     3,    72,    73,    74,   126,   220,   221,
@@ -1381,9 +1544,143 @@ static const yytype_int16 yydefgoto[] =
      121,   423,   329,   214,   122,   295,   767,   854
 };
 
-  /* YYTABLE[YYPACT[STATE-NUM]] -- What to do in state STATE-NUM.  If
-     positive, shift that token.  If negative, reduce the rule whose
-     number is the opposite.  If YYTABLE_NINF, syntax error.  */
+/* YYPACT[STATE-NUM] -- Index in YYTABLE of the portion describing
+   STATE-NUM.  */
+#define YYPACT_NINF -771
+static const yytype_int16 yypact[] =
+{
+    -771,   171,  -771,  1099,  -771,  -771,    43,    62,    71,    72,
+      41,    46,   161,   161,    48,   161,   161,   161,   161,   161,
+     161,   161,  1263,    63,  -771,  -771,    14,    50,   161,   161,
+     161,    52,    54,   125,   125,  -771,  -771,  -771,   160,  -771,
+    -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,
+    -771,  -771,   310,   165,   288,   225,  1263,  -771,  -771,  1210,
+     232,  -771,  -771,    57,    74,  1210,   125,   124,  -771,    61,
+      65,    33,  -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,
+    -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,
+    -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,
+    -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,
+    -771,   181,   251,  -771,  -771,  -771,  -771,   316,  -771,  -771,
+    -771,    60,  -771,   108,  -771,   230,  -771,  -771,   242,  -771,
+    -771,   247,  -771,  -771,   252,  -771,  -771,   260,   161,  -771,
+    -771,    92,  -771,  -771,    67,   161,  -771,  -771,  -771,  -771,
+    -771,  -771,  -771,   125,   231,  -771,  -771,   258,  -771,  -771,
+     262,  -771,  -771,  -771,  -771,  -771,  -771,   157,   274,  -771,
+     275,   276,  -771,  -771,    26,  -771,  -771,  -771,   343,  -771,
+    -771,  -771,   355,  -771,   251,  -771,    70,  -771,   289,   312,
+    -771,   345,  -771,  -771,   153,  -771,   336,   346,  1210,   371,
+    -771,  -771,   383,  -771,  -771,   384,  -771,  -771,  1210,   225,
+    1263,   452,    88,   495,   118,   272,   372,   250,  -771,   373,
+     253,  -771,   374,   255,  -771,   375,   263,  -771,   376,   265,
+    -771,   377,   267,  -771,  -771,  -771,  -771,   378,   379,   269,
+    -771,  -771,  -771,   490,  -771,     2,   381,   382,   271,  -771,
+     386,   283,  -771,   387,   388,   389,   390,   391,   392,   393,
+     395,   290,  -771,   210,  -771,  -771,   396,   294,  -771,   105,
+    -771,   370,   370,  -771,   231,  -771,   118,   231,   397,   398,
+     493,   507,   400,   324,  -771,   402,   403,   410,   411,   326,
+    -771,  1210,   125,   231,  -771,   -27,   412,   328,  -771,   413,
+     331,  -771,   414,   333,  -771,     5,  -771,   231,  -771,  1210,
+     415,   417,   116,   418,   419,   420,   421,   427,   428,   430,
+    -771,    -3,   101,   401,   431,   432,   436,   449,  -771,  -771,
+     334,   481,  -771,   108,   543,  -771,   230,   544,  -771,   242,
+     563,  -771,   247,   569,  -771,   252,   571,  -771,   260,   574,
+     512,  -771,    67,   466,    87,  -771,   469,   462,   584,   527,
+     480,   475,   590,   293,  -771,   258,   593,  -771,   262,   594,
+     595,   447,   293,   293,   293,   293,   598,  -771,   157,   492,
+      76,  -771,  -771,    37,  -771,  -771,  -771,   447,  -771,   275,
+    -771,  -771,    18,  -771,  -771,   257,   231,   231,  -771,  -771,
+     488,   603,   741,   506,  -771,    34,  -771,  -771,    40,  -771,
+     334,  -771,   345,   606,   619,   622,   623,  -771,   153,   518,
+     519,  -771,   343,   521,   524,   522,  1210,  -771,   447,  -771,
+     371,   447,  -771,   383,   125,  -771,   384,  -771,  -771,   526,
+     256,   516,  -771,  1210,  -771,  -771,  -771,  -771,  -771,  -771,
+    -771,  -771,  -771,   525,  -771,   528,  -771,  -771,  -771,  1210,
+    -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,
+    -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,    84,
+     490,  -771,   330,  -771,  -771,    20,  -771,   343,  -771,  -771,
+    -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,
+    -771,  -771,  -771,  -771,   540,  -771,  -771,    25,   161,   532,
+    -771,  -771,  -771,   534,  -771,  -771,  -771,  -771,   530,  -771,
+     125,  -771,  -771,   529,   655,   533,  -771,   644,  -771,  -771,
+    -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,
+    -771,   589,  1210,   231,   542,  -771,  -771,    82,  -771,  -771,
+    -771,  -771,  -771,  -771,  -771,  -771,   469,   589,   161,   161,
+     161,  -771,  -771,    39,  -771,  -771,   561,  -771,  -771,   566,
+     551,  -771,  -771,  -771,  -771,  -771,   161,   161,   161,   161,
+    1210,    51,  -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,
+    -771,   650,  -771,   541,   341,  -771,   567,   568,   347,  -771,
+    -771,  -771,  -771,   257,  -771,   565,   565,   295,  -771,  -771,
+     545,  -771,  -771,  -771,   616,  -771,  -771,   125,   202,  -771,
+     190,   161,    32,  -771,  -771,  -771,  -771,  -771,  -771,   616,
+    -771,  -771,  -771,  -771,  -771,   591,   589,   639,  -771,  -771,
+    -771,  -771,   679,   599,  -771,  -771,   705,  -771,   540,   711,
+     712,  -771,    25,  -771,   988,   602,   604,   608,  -771,  -771,
+     610,   295,  -771,  1210,  -771,   640,   612,  -771,  -771,  -771,
+    -771,  -771,  -771,   542,  -771,  -771,  -771,  -771,  -771,  -771,
+     228,  -771,   614,  -771,   640,  -771,   616,  -771,   613,   618,
+    -771,  -771,  -771,  -771,  -771,  -771,   161,   161,   624,   161,
+     161,   161,   161,   161,   161,   161,   161,   161,   161,   161,
+     161,   689,   689,   689,   605,  -771,  -771,   609,  -771,  -771,
+     626,   734,  -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,
+    -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,
+    -771,  -771,  -771,  -771,  -771,  -771,   869,  -771,  -771,  -771,
+    -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,
+    -771,   542,   231,   625,  -771,   350,   628,   627,  -771,  -771,
+    -771,  -771,  -771,  -771,  -771,   630,    80,  -771,  -771,   629,
+    -771,   627,   640,   639,  1210,  -771,  -771,  1210,  -771,  -771,
+    -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,
+    -771,   620,   621,   631,  -771,   369,   369,   632,   511,  1152,
+     743,   134,   635,   641,  -771,  -771,  -771,   638,  -771,   231,
+     125,   686,   231,  -771,   224,   231,   627,  -771,   642,   643,
+    -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,    79,  -771,
+     624,  -771,   647,   648,   649,   352,  -771,   105,  -771,   646,
+    -771,  -771,   651,  -771,   354,  -771,   636,   202,   360,   636,
+     231,   589,   640,   645,   760,   334,   762,  -771,   134,  -771,
+    -771,  -771,    30,  -771,   640,   655,  -771,   125,  -771,   653,
+    -771,   542,   657,   636,   640,   231,  -771,  -771,  -771,  -771,
+     658,  -771,   627,  -771,  -771,  1210,   748,   202,   655,   659,
+     231,   669,  -771,   231,   666,   161,   761,   748,   748,   636,
+    -771,   661,   688,  1210,  -771,   161,   796,   761,   761,   691,
+     698,   655,   748,   700,  -771,   161,   797,   796,   796,   655,
+    1210,   748,   761,   683,  -771,   161,  -771,   797,   797,   748,
+     703,   761,   796,  -771,  -771,  -771,  -771,   761,   687,  -771,
+    -771,  -771,  -771
+};
+
+/* YYPGOTO[NTERM-NUM].  */
+static const yytype_int16 yypgoto[] =
+{
+    -771,  -771,   841,  -771,  -771,  -358,  -771,  -771,  -771,   508,
+    -771,  -771,  -771,   513,  -771,  -771,  -771,   503,  -771,  -771,
+    -771,   502,  -771,  -771,  -771,   509,  -771,  -771,   517,  -603,
+    -771,  -771,  -771,   233,  -771,  -771,  -771,  -771,  -771,   300,
+    -771,   277,  -771,  -585,  -771,  -771,  -771,  -771,  -771,  -771,
+     451,  -771,  -771,  -771,   448,  -771,  -771,  -771,   456,  -236,
+    -771,  -771,  -771,  -235,  -771,  -771,  -771,   444,  -771,  -771,
+    -771,   433,  -771,  -771,  -771,   435,  -771,  -771,  -771,   429,
+    -771,  -771,  -771,   477,  -771,  -771,   472,  -771,  -771,  -771,
+    -771,   491,  -771,  -771,   487,     3,    89,  -771,  -771,  -771,
+     510,  -771,  -771,  -771,   505,  -771,  -771,  -771,  -459,  -771,
+    -771,  -771,  -771,  -771,  -771,  -771,  -771,  -536,  -771,  -771,
+    -771,  -531,  -771,  -771,  -771,  -771,  -771,  -771,  -771,  -771,
+    -771,  -771,  -771,   223,  -238,  -771,  -771,   222,  -655,  -771,
+    -771,  -771,   531,   -13,  -771,  -453,  -771,  -771,  -219,  -771,
+    -771,   215,  -771,  -771,  -771,  -658,  -771,  -771,  -611,  -771,
+     -23,   822,   670,  -336,  -771,  -771,  -530,  -527,  -771,  -771,
+    -525,  -771,   875,  -197,  -771,  -771,   615,  -771,   279,  -771,
+     280,  -771,   139,  -771,  -771,  -771,    22,  -771,  -771,    16,
+    -390,  -212,  -771,  -771,    93,  -771,  -771,    81,  -771,  -771,
+    -770,  -771,    -2,  -771,  -535,  -462,  -724,  -200,  -771,   416,
+    -771,  -435,  -668,  -680,  -694,  -300,  -771,   353,  -771,  -771,
+    -771,  -301,  -771,    85,  -771,  -771,    21,  -771,  -771,   338,
+     -46,  -771,   637,   729,    -4,  -187,  -644,  -771
+};
+
+/* YYTABLE[YYPACT[STATE-NUM]].  What to do in state STATE-NUM.  If
+   positive, shift that token.  If negative, reduce the rule which
+   number is the opposite.  If zero, do what YYDEFACT says.
+   If YYTABLE_NINF, syntax error.  */
+#define YYTABLE_NINF -519
 static const yytype_int16 yytable[] =
 {
      142,   119,   146,   147,   148,   149,   150,   151,   152,   439,
@@ -1668,8 +1965,8 @@ static const yytype_int16 yycheck[] =
       -1,    -1,    -1,    -1,    -1,   112
 };
 
-  /* YYSTOS[STATE-NUM] -- The (internal number of the) accessing
-     symbol of state STATE-NUM.  */
+/* YYSTOS[STATE-NUM] -- The (internal number of the) accessing
+   symbol of state STATE-NUM.  */
 static const yytype_uint16 yystos[] =
 {
        0,   160,   161,   162,     0,   161,     3,     5,     6,     7,
@@ -1770,163 +2067,95 @@ static const yytype_uint16 yystos[] =
      373,   371,   156
 };
 
-  /* YYR1[YYN] -- Symbol number of symbol that rule YYN derives.  */
-static const yytype_uint16 yyr1[] =
-{
-       0,   159,   160,   160,   162,   161,   163,   163,   163,   163,
-     163,   163,   163,   163,   163,   163,   163,   163,   163,   163,
-     163,   163,   163,   163,   163,   163,   163,   163,   163,   163,
-     163,   163,   163,   163,   163,   163,   163,   163,   164,   164,
-     164,   164,   164,   164,   164,   164,   164,   164,   164,   164,
-     165,   166,   166,   167,   167,   168,   169,   170,   170,   171,
-     171,   172,   173,   174,   174,   175,   175,   176,   177,   178,
-     178,   179,   179,   180,   181,   182,   182,   183,   183,   184,
-     185,   186,   186,   187,   187,   188,   189,   189,   190,   191,
-     191,   192,   192,   192,   192,   193,   195,   194,   197,   196,
-     198,   199,   199,   200,   200,   200,   200,   200,   200,   200,
-     200,   200,   201,   203,   202,   204,   204,   205,   205,   207,
-     206,   208,   208,   209,   210,   211,   211,   212,   212,   213,
-     215,   214,   216,   216,   217,   219,   218,   220,   220,   220,
-     220,   221,   221,   222,   223,   224,   224,   224,   225,   225,
-     226,   226,   226,   226,   227,   228,   228,   229,   229,   230,
-     231,   232,   232,   233,   233,   234,   235,   236,   236,   237,
-     237,   238,   239,   240,   240,   241,   241,   242,   243,   243,
-     244,   244,   245,   245,   245,   246,   248,   247,   247,   249,
-     249,   250,   250,   250,   250,   250,   250,   250,   250,   251,
-     251,   252,   252,   253,   253,   253,   253,   254,   254,   255,
-     255,   256,   257,   257,   258,   258,   259,   259,   260,   261,
-     261,   262,   262,   263,   264,   265,   266,   267,   268,   269,
-     270,   271,   272,   273,   274,   275,   276,   277,   278,   279,
-     280,   281,   282,   283,   284,   285,   286,   287,   288,   289,
-     290,   291,   291,   292,   293,   294,   294,   294,   295,   295,
-     296,   296,   297,   297,   298,   299,   299,   300,   300,   301,
-     301,   302,   303,   303,   305,   304,   306,   306,   306,   307,
-     307,   308,   308,   309,   309,   310,   310,   310,   311,   311,
-     312,   312,   313,   313,   314,   314,   315,   315,   315,   315,
-     315,   315,   316,   316,   316,   316,   316,   316,   316,   317,
-     318,   318,   319,   319,   320,   320,   321,   322,   322,   323,
-     323,   323,   323,   323,   323,   323,   323,   323,   324,   324,
-     324,   325,   325,   327,   328,   326,   330,   329,   331,   333,
-     334,   332,   335,   335,   336,   336,   337,   338,   338,   338,
-     338,   339,   339,   340,   340,   340,   341,   341,   341,   341,
-     341,   341,   341,   341,   341,   341,   341,   341,   341,   341,
-     341,   341,   341,   341,   341,   341,   341,   341,   341,   341,
-     341,   341,   341,   341,   341,   341,   341,   341,   341,   341,
-     341,   342,   343,   344,   344,   345,   345,   345,   346,   346,
-     347,   347,   348,   348,   348,   349,   349,   350,   350,   352,
-     351,   351,   353,   355,   354,   354,   356,   357,   358,   357,
-     359,   360,   359,   361,   361,   361,   361,   362,   362,   362,
-     362,   362,   362,   362,   362,   362,   362,   362,   362,   362,
-     362,   362,   362,   362,   362,   362,   362,   362,   362,   362,
-     362,   362,   362,   362,   362,   362,   363,   363,   364,   364,
-     365,   365,   366,   366,   367,   367,   368,   368,   369,   369,
-     369,   369,   370,   370,   371,   371,   372,   372,   373,   373,
-     374,   375,   375,   375,   376,   378,   377,   379,   377,   377,
-     381,   380,   380,   382,   382,   384,   383,   383,   385,   386,
-     386,   387,   387,   388,   388,   388,   388,   388,   389,   389,
-     390,   391,   391,   392,   392,   392,   393,   393,   393,   393,
-     393,   393,   393,   393,   393,   393,   393,   393,   393,   393,
-     393,   393,   393,   393,   393,   393,   393,   393,   393,   393,
-     393,   393,   393,   393,   393,   393,   393,   394,   394,   395,
-     395,   396,   396,   396
-};
+#define yyerrok		(yyerrstatus = 0)
+#define yyclearin	(yychar = YYEMPTY)
+#define YYEMPTY		(-2)
+#define YYEOF		0
 
-  /* YYR2[YYN] -- Number of symbols on the right hand side of rule YYN.  */
-static const yytype_uint8 yyr2[] =
-{
-       0,     2,     1,     2,     0,     2,     1,     1,     1,     1,
-       1,     1,     1,     1,     1,     1,     1,     1,     1,     1,
-       1,     1,     1,     1,     1,     1,     1,     1,     1,     1,
-       1,     1,     1,     1,     1,     1,     1,     1,     1,     1,
-       1,     1,     1,     1,     1,     1,     1,     1,     1,     1,
-       2,     1,     3,     1,     3,     3,     2,     1,     3,     1,
-       3,     3,     2,     1,     3,     1,     3,     3,     2,     1,
-       3,     1,     3,     3,     3,     1,     3,     1,     3,     3,
-       4,     1,     3,     3,     3,     5,     0,     3,     4,     1,
-       2,     1,     1,     1,     1,     2,     0,     5,     0,     6,
-       4,     1,     2,     1,     1,     1,     1,     2,     2,     1,
-       1,     1,    14,     0,     5,     0,     3,     1,     2,     0,
-       5,     1,     2,     1,     2,     1,     3,     1,     3,     3,
-       0,     5,     1,     2,     1,     0,     5,     1,     2,     3,
-       4,     1,     3,     1,     2,     0,     1,     3,     1,     3,
-       3,     3,     3,     3,     2,     1,     3,     1,     3,     3,
-       2,     1,     3,     1,     3,     3,     2,     1,     3,     1,
-       3,     3,     3,     1,     3,     1,     3,     3,     0,     4,
-       1,     2,     1,     1,     1,     3,     0,     2,     3,     1,
-       3,     3,     3,     3,     3,     3,     3,     3,     3,     0,
-       4,     1,     2,     1,     1,     1,     1,     1,     1,     0,
-       1,     2,     1,     3,     1,     3,     3,     3,     2,     1,
-       3,     1,     3,     3,     2,     2,     2,     2,     2,     2,
-       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
-       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
-       3,     1,     3,     3,     3,     0,     1,     3,     1,     3,
-       3,     3,     0,     1,     3,     1,     3,     1,     3,     3,
-       3,     2,     1,     2,     0,     9,     0,     1,     1,     0,
-       1,     0,     1,     1,     2,     1,     1,     4,     0,     1,
-       0,     2,     0,     2,     1,     3,     1,     1,     1,     1,
-       1,     1,     0,     1,     1,     1,     1,     1,     1,     3,
-       0,     3,     2,     1,     1,     3,     1,     1,     1,     1,
-       4,     2,     1,     1,     1,     1,     1,     1,     0,     1,
-       3,     6,    12,     0,     0,     8,     0,     3,     4,     0,
-       0,     8,     0,     2,     1,     3,     2,     0,     1,     1,
-       1,     0,     3,     0,     1,     2,     1,     1,     1,     1,
-       1,     1,     1,     1,     1,     1,     1,     1,     1,     1,
-       1,     1,     1,     1,     1,     1,     1,     1,     1,     1,
-       1,     1,     1,     1,     2,     2,     2,     3,     3,     3,
-       2,     3,     3,     1,     3,     3,     3,     3,     0,     4,
-       1,     2,     1,     1,     1,     1,     1,     0,     1,     0,
-       3,     1,    11,     0,     3,     1,    11,     0,     0,     6,
-       0,     0,     7,    17,     7,    17,    16,     1,     1,     1,
-       1,     1,     1,     1,     1,     2,     2,     2,     2,     2,
-       2,     2,     2,     2,     2,     3,     3,     1,     2,     2,
-       1,     2,     2,     2,     1,     2,     0,     1,     0,     1,
-       0,     2,     0,     3,     1,     3,     1,     3,     1,     5,
-       1,     1,     0,     2,     0,     2,     0,     2,     0,     2,
-       1,     0,     1,     3,     2,     0,     3,     0,     3,     1,
-       0,     3,     1,     1,     1,     0,     3,     1,     5,     0,
-       3,     1,     2,     1,     1,     2,     2,     2,     4,     3,
-       3,     0,     1,     0,     3,     2,     1,     4,     2,     2,
-       1,     1,     2,     1,     1,     2,     2,     3,     1,     1,
-       1,     2,     2,     1,     1,     1,     1,     1,     1,     1,
-       1,     1,     1,     1,     1,     1,     1,     1,     3,     0,
-       4,     0,     1,     3
-};
+#define YYACCEPT	goto yyacceptlab
+#define YYABORT		goto yyabortlab
+#define YYERROR		goto yyerrorlab
 
 
-#define yyerrok         (yyerrstatus = 0)
-#define yyclearin       (yychar = YYEMPTY)
-#define YYEMPTY         (-2)
-#define YYEOF           0
+/* Like YYERROR except do call yyerror.  This remains here temporarily
+   to ease the transition to the new meaning of YYERROR, for GCC.
+   Once GCC version 2 has supplanted version 1, this can go.  */
 
-#define YYACCEPT        goto yyacceptlab
-#define YYABORT         goto yyabortlab
-#define YYERROR         goto yyerrorlab
-
+#define YYFAIL		goto yyerrlab
 
 #define YYRECOVERING()  (!!yyerrstatus)
 
-#define YYBACKUP(Token, Value)                                  \
-do                                                              \
-  if (yychar == YYEMPTY)                                        \
-    {                                                           \
-      yychar = (Token);                                         \
-      yylval = (Value);                                         \
-      YYPOPSTACK (yylen);                                       \
-      yystate = *yyssp;                                         \
-      goto yybackup;                                            \
-    }                                                           \
-  else                                                          \
-    {                                                           \
+#define YYBACKUP(Token, Value)					\
+do								\
+  if (yychar == YYEMPTY && yylen == 1)				\
+    {								\
+      yychar = (Token);						\
+      yylval = (Value);						\
+      yytoken = YYTRANSLATE (yychar);				\
+      YYPOPSTACK (1);						\
+      goto yybackup;						\
+    }								\
+  else								\
+    {								\
       yyerror (YY_("syntax error: cannot back up")); \
-      YYERROR;                                                  \
-    }                                                           \
-while (0)
-
-/* Error token number */
-#define YYTERROR        1
-#define YYERRCODE       256
+      YYERROR;							\
+    }								\
+while (YYID (0))
 
 
+#define YYTERROR	1
+#define YYERRCODE	256
+
+
+/* YYLLOC_DEFAULT -- Set CURRENT to span from RHS[1] to RHS[N].
+   If N is 0, then set CURRENT to the empty location which ends
+   the previous symbol: RHS[0] (always defined).  */
+
+#define YYRHSLOC(Rhs, K) ((Rhs)[K])
+#ifndef YYLLOC_DEFAULT
+# define YYLLOC_DEFAULT(Current, Rhs, N)				\
+    do									\
+      if (YYID (N))                                                    \
+	{								\
+	  (Current).first_line   = YYRHSLOC (Rhs, 1).first_line;	\
+	  (Current).first_column = YYRHSLOC (Rhs, 1).first_column;	\
+	  (Current).last_line    = YYRHSLOC (Rhs, N).last_line;		\
+	  (Current).last_column  = YYRHSLOC (Rhs, N).last_column;	\
+	}								\
+      else								\
+	{								\
+	  (Current).first_line   = (Current).last_line   =		\
+	    YYRHSLOC (Rhs, 0).last_line;				\
+	  (Current).first_column = (Current).last_column =		\
+	    YYRHSLOC (Rhs, 0).last_column;				\
+	}								\
+    while (YYID (0))
+#endif
+
+
+/* YY_LOCATION_PRINT -- Print the location on the stream.
+   This macro was not mandated originally: define only if we know
+   we won't break user code: when these are the locations we know.  */
+
+#ifndef YY_LOCATION_PRINT
+# if defined YYLTYPE_IS_TRIVIAL && YYLTYPE_IS_TRIVIAL
+#  define YY_LOCATION_PRINT(File, Loc)			\
+     fprintf (File, "%d.%d-%d.%d",			\
+	      (Loc).first_line, (Loc).first_column,	\
+	      (Loc).last_line,  (Loc).last_column)
+# else
+#  define YY_LOCATION_PRINT(File, Loc) ((void) 0)
+# endif
+#endif
+
+
+/* YYLEX -- calling `yylex' with the right arguments.  */
+
+#ifdef YYLEX_PARAM
+# define YYLEX yylex (YYLEX_PARAM)
+#else
+# define YYLEX yylex ()
+#endif
 
 /* Enable debugging if requested.  */
 #if YYDEBUG
@@ -1936,46 +2165,54 @@ while (0)
 #  define YYFPRINTF fprintf
 # endif
 
-# define YYDPRINTF(Args)                        \
-do {                                            \
-  if (yydebug)                                  \
-    YYFPRINTF Args;                             \
-} while (0)
+# define YYDPRINTF(Args)			\
+do {						\
+  if (yydebug)					\
+    YYFPRINTF Args;				\
+} while (YYID (0))
 
-/* This macro is provided for backward compatibility. */
-#ifndef YY_LOCATION_PRINT
-# define YY_LOCATION_PRINT(File, Loc) ((void) 0)
-#endif
-
-
-# define YY_SYMBOL_PRINT(Title, Type, Value, Location)                    \
-do {                                                                      \
-  if (yydebug)                                                            \
-    {                                                                     \
-      YYFPRINTF (stderr, "%s ", Title);                                   \
-      yy_symbol_print (stderr,                                            \
-                  Type, Value); \
-      YYFPRINTF (stderr, "\n");                                           \
-    }                                                                     \
-} while (0)
+# define YY_SYMBOL_PRINT(Title, Type, Value, Location)			  \
+do {									  \
+  if (yydebug)								  \
+    {									  \
+      YYFPRINTF (stderr, "%s ", Title);					  \
+      yy_symbol_print (stderr,						  \
+		  Type, Value); \
+      YYFPRINTF (stderr, "\n");						  \
+    }									  \
+} while (YYID (0))
 
 
-/*----------------------------------------.
-| Print this symbol's value on YYOUTPUT.  |
-`----------------------------------------*/
+/*--------------------------------.
+| Print this symbol on YYOUTPUT.  |
+`--------------------------------*/
 
+/*ARGSUSED*/
+#if (defined __STDC__ || defined __C99__FUNC__ \
+     || defined __cplusplus || defined _MSC_VER)
 static void
 yy_symbol_value_print (FILE *yyoutput, int yytype, YYSTYPE const * const yyvaluep)
+#else
+static void
+yy_symbol_value_print (yyoutput, yytype, yyvaluep)
+    FILE *yyoutput;
+    int yytype;
+    YYSTYPE const * const yyvaluep;
+#endif
 {
-  FILE *yyo = yyoutput;
-  YYUSE (yyo);
   if (!yyvaluep)
     return;
 # ifdef YYPRINT
   if (yytype < YYNTOKENS)
     YYPRINT (yyoutput, yytoknum[yytype], *yyvaluep);
+# else
+  YYUSE (yyoutput);
 # endif
-  YYUSE (yytype);
+  switch (yytype)
+    {
+      default:
+	break;
+    }
 }
 
 
@@ -1983,11 +2220,22 @@ yy_symbol_value_print (FILE *yyoutput, int yytype, YYSTYPE const * const yyvalue
 | Print this symbol on YYOUTPUT.  |
 `--------------------------------*/
 
+#if (defined __STDC__ || defined __C99__FUNC__ \
+     || defined __cplusplus || defined _MSC_VER)
 static void
 yy_symbol_print (FILE *yyoutput, int yytype, YYSTYPE const * const yyvaluep)
+#else
+static void
+yy_symbol_print (yyoutput, yytype, yyvaluep)
+    FILE *yyoutput;
+    int yytype;
+    YYSTYPE const * const yyvaluep;
+#endif
 {
-  YYFPRINTF (yyoutput, "%s %s (",
-             yytype < YYNTOKENS ? "token" : "nterm", yytname[yytype]);
+  if (yytype < YYNTOKENS)
+    YYFPRINTF (yyoutput, "token %s (", yytname[yytype]);
+  else
+    YYFPRINTF (yyoutput, "nterm %s (", yytname[yytype]);
 
   yy_symbol_value_print (yyoutput, yytype, yyvaluep);
   YYFPRINTF (yyoutput, ")");
@@ -1998,54 +2246,66 @@ yy_symbol_print (FILE *yyoutput, int yytype, YYSTYPE const * const yyvaluep)
 | TOP (included).                                                   |
 `------------------------------------------------------------------*/
 
+#if (defined __STDC__ || defined __C99__FUNC__ \
+     || defined __cplusplus || defined _MSC_VER)
 static void
-yy_stack_print (yytype_int16 *yybottom, yytype_int16 *yytop)
+yy_stack_print (yytype_int16 *bottom, yytype_int16 *top)
+#else
+static void
+yy_stack_print (bottom, top)
+    yytype_int16 *bottom;
+    yytype_int16 *top;
+#endif
 {
   YYFPRINTF (stderr, "Stack now");
-  for (; yybottom <= yytop; yybottom++)
-    {
-      int yybot = *yybottom;
-      YYFPRINTF (stderr, " %d", yybot);
-    }
+  for (; bottom <= top; ++bottom)
+    YYFPRINTF (stderr, " %d", *bottom);
   YYFPRINTF (stderr, "\n");
 }
 
-# define YY_STACK_PRINT(Bottom, Top)                            \
-do {                                                            \
-  if (yydebug)                                                  \
-    yy_stack_print ((Bottom), (Top));                           \
-} while (0)
+# define YY_STACK_PRINT(Bottom, Top)				\
+do {								\
+  if (yydebug)							\
+    yy_stack_print ((Bottom), (Top));				\
+} while (YYID (0))
 
 
 /*------------------------------------------------.
 | Report that the YYRULE is going to be reduced.  |
 `------------------------------------------------*/
 
+#if (defined __STDC__ || defined __C99__FUNC__ \
+     || defined __cplusplus || defined _MSC_VER)
 static void
-yy_reduce_print (yytype_int16 *yyssp, YYSTYPE *yyvsp, int yyrule)
+yy_reduce_print (YYSTYPE *yyvsp, int yyrule)
+#else
+static void
+yy_reduce_print (yyvsp, yyrule)
+    YYSTYPE *yyvsp;
+    int yyrule;
+#endif
 {
-  unsigned long int yylno = yyrline[yyrule];
   int yynrhs = yyr2[yyrule];
   int yyi;
+  unsigned long int yylno = yyrline[yyrule];
   YYFPRINTF (stderr, "Reducing stack by rule %d (line %lu):\n",
-             yyrule - 1, yylno);
+	     yyrule - 1, yylno);
   /* The symbols being reduced.  */
   for (yyi = 0; yyi < yynrhs; yyi++)
     {
-      YYFPRINTF (stderr, "   $%d = ", yyi + 1);
-      yy_symbol_print (stderr,
-                       yystos[yyssp[yyi + 1 - yynrhs]],
-                       &(yyvsp[(yyi + 1) - (yynrhs)])
-                                              );
-      YYFPRINTF (stderr, "\n");
+      fprintf (stderr, "   $%d = ", yyi + 1);
+      yy_symbol_print (stderr, yyrhs[yyprhs[yyrule] + yyi],
+		       &(yyvsp[(yyi + 1) - (yynrhs)])
+		       		       );
+      fprintf (stderr, "\n");
     }
 }
 
-# define YY_REDUCE_PRINT(Rule)          \
-do {                                    \
-  if (yydebug)                          \
-    yy_reduce_print (yyssp, yyvsp, Rule); \
-} while (0)
+# define YY_REDUCE_PRINT(Rule)		\
+do {					\
+  if (yydebug)				\
+    yy_reduce_print (yyvsp, Rule); \
+} while (YYID (0))
 
 /* Nonzero means print parse trace.  It is left uninitialized so that
    multiple parsers can coexist.  */
@@ -2059,7 +2319,7 @@ int yydebug;
 
 
 /* YYINITDEPTH -- initial size of the parser's stacks.  */
-#ifndef YYINITDEPTH
+#ifndef	YYINITDEPTH
 # define YYINITDEPTH 200
 #endif
 
@@ -2074,6 +2334,7 @@ int yydebug;
 # define YYMAXDEPTH 10000
 #endif
 
+
 
 #if YYERROR_VERBOSE
 
@@ -2082,8 +2343,15 @@ int yydebug;
 #   define yystrlen strlen
 #  else
 /* Return the length of YYSTR.  */
+#if (defined __STDC__ || defined __C99__FUNC__ \
+     || defined __cplusplus || defined _MSC_VER)
 static YYSIZE_T
 yystrlen (const char *yystr)
+#else
+static YYSIZE_T
+yystrlen (yystr)
+    const char *yystr;
+#endif
 {
   YYSIZE_T yylen;
   for (yylen = 0; yystr[yylen]; yylen++)
@@ -2099,8 +2367,16 @@ yystrlen (const char *yystr)
 #  else
 /* Copy YYSRC to YYDEST, returning the address of the terminating '\0' in
    YYDEST.  */
+#if (defined __STDC__ || defined __C99__FUNC__ \
+     || defined __cplusplus || defined _MSC_VER)
 static char *
 yystpcpy (char *yydest, const char *yysrc)
+#else
+static char *
+yystpcpy (yydest, yysrc)
+    char *yydest;
+    const char *yysrc;
+#endif
 {
   char *yyd = yydest;
   const char *yys = yysrc;
@@ -2130,27 +2406,27 @@ yytnamerr (char *yyres, const char *yystr)
       char const *yyp = yystr;
 
       for (;;)
-        switch (*++yyp)
-          {
-          case '\'':
-          case ',':
-            goto do_not_strip_quotes;
+	switch (*++yyp)
+	  {
+	  case '\'':
+	  case ',':
+	    goto do_not_strip_quotes;
 
-          case '\\':
-            if (*++yyp != '\\')
-              goto do_not_strip_quotes;
-            /* Fall through.  */
-          default:
-            if (yyres)
-              yyres[yyn] = *yyp;
-            yyn++;
-            break;
+	  case '\\':
+	    if (*++yyp != '\\')
+	      goto do_not_strip_quotes;
+	    /* Fall through.  */
+	  default:
+	    if (yyres)
+	      yyres[yyn] = *yyp;
+	    yyn++;
+	    break;
 
-          case '"':
-            if (yyres)
-              yyres[yyn] = '\0';
-            return yyn;
-          }
+	  case '"':
+	    if (yyres)
+	      yyres[yyn] = '\0';
+	    return yyn;
+	  }
     do_not_strip_quotes: ;
     }
 
@@ -2161,209 +2437,211 @@ yytnamerr (char *yyres, const char *yystr)
 }
 # endif
 
-/* Copy into *YYMSG, which is of size *YYMSG_ALLOC, an error message
-   about the unexpected token YYTOKEN for the state stack whose top is
-   YYSSP.
-
-   Return 0 if *YYMSG was successfully written.  Return 1 if *YYMSG is
-   not large enough to hold the message.  In that case, also set
-   *YYMSG_ALLOC to the required number of bytes.  Return 2 if the
-   required number of bytes is too large to store.  */
-static int
-yysyntax_error (YYSIZE_T *yymsg_alloc, char **yymsg,
-                yytype_int16 *yyssp, int yytoken)
+/* Copy into YYRESULT an error message about the unexpected token
+   YYCHAR while in state YYSTATE.  Return the number of bytes copied,
+   including the terminating null byte.  If YYRESULT is null, do not
+   copy anything; just return the number of bytes that would be
+   copied.  As a special case, return 0 if an ordinary "syntax error"
+   message will do.  Return YYSIZE_MAXIMUM if overflow occurs during
+   size calculation.  */
+static YYSIZE_T
+yysyntax_error (char *yyresult, int yystate, int yychar)
 {
-  YYSIZE_T yysize0 = yytnamerr (YY_NULLPTR, yytname[yytoken]);
-  YYSIZE_T yysize = yysize0;
-  enum { YYERROR_VERBOSE_ARGS_MAXIMUM = 5 };
-  /* Internationalized format string. */
-  const char *yyformat = YY_NULLPTR;
-  /* Arguments of yyformat. */
-  char const *yyarg[YYERROR_VERBOSE_ARGS_MAXIMUM];
-  /* Number of reported tokens (one for the "unexpected", one per
-     "expected"). */
-  int yycount = 0;
+  int yyn = yypact[yystate];
 
-  /* There are many possibilities here to consider:
-     - If this state is a consistent state with a default action, then
-       the only way this function was invoked is if the default action
-       is an error action.  In that case, don't check for expected
-       tokens because there are none.
-     - The only way there can be no lookahead present (in yychar) is if
-       this state is a consistent state with a default action.  Thus,
-       detecting the absence of a lookahead is sufficient to determine
-       that there is no unexpected or expected token to report.  In that
-       case, just report a simple "syntax error".
-     - Don't assume there isn't a lookahead just because this state is a
-       consistent state with a default action.  There might have been a
-       previous inconsistent state, consistent state with a non-default
-       action, or user semantic action that manipulated yychar.
-     - Of course, the expected token list depends on states to have
-       correct lookahead information, and it depends on the parser not
-       to perform extra reductions after fetching a lookahead from the
-       scanner and before detecting a syntax error.  Thus, state merging
-       (from LALR or IELR) and default reductions corrupt the expected
-       token list.  However, the list is correct for canonical LR with
-       one exception: it will still contain any token that will not be
-       accepted due to an error action in a later state.
-  */
-  if (yytoken != YYEMPTY)
+  if (! (YYPACT_NINF < yyn && yyn <= YYLAST))
+    return 0;
+  else
     {
-      int yyn = yypact[*yyssp];
-      yyarg[yycount++] = yytname[yytoken];
-      if (!yypact_value_is_default (yyn))
-        {
-          /* Start YYX at -YYN if negative to avoid negative indexes in
-             YYCHECK.  In other words, skip the first -YYN actions for
-             this state because they are default actions.  */
-          int yyxbegin = yyn < 0 ? -yyn : 0;
-          /* Stay within bounds of both yycheck and yytname.  */
-          int yychecklim = YYLAST - yyn + 1;
-          int yyxend = yychecklim < YYNTOKENS ? yychecklim : YYNTOKENS;
-          int yyx;
+      int yytype = YYTRANSLATE (yychar);
+      YYSIZE_T yysize0 = yytnamerr (0, yytname[yytype]);
+      YYSIZE_T yysize = yysize0;
+      YYSIZE_T yysize1;
+      int yysize_overflow = 0;
+      enum { YYERROR_VERBOSE_ARGS_MAXIMUM = 5 };
+      char const *yyarg[YYERROR_VERBOSE_ARGS_MAXIMUM];
+      int yyx;
 
-          for (yyx = yyxbegin; yyx < yyxend; ++yyx)
-            if (yycheck[yyx + yyn] == yyx && yyx != YYTERROR
-                && !yytable_value_is_error (yytable[yyx + yyn]))
-              {
-                if (yycount == YYERROR_VERBOSE_ARGS_MAXIMUM)
-                  {
-                    yycount = 1;
-                    yysize = yysize0;
-                    break;
-                  }
-                yyarg[yycount++] = yytname[yyx];
-                {
-                  YYSIZE_T yysize1 = yysize + yytnamerr (YY_NULLPTR, yytname[yyx]);
-                  if (! (yysize <= yysize1
-                         && yysize1 <= YYSTACK_ALLOC_MAXIMUM))
-                    return 2;
-                  yysize = yysize1;
-                }
-              }
-        }
+# if 0
+      /* This is so xgettext sees the translatable formats that are
+	 constructed on the fly.  */
+      YY_("syntax error, unexpected %s");
+      YY_("syntax error, unexpected %s, expecting %s");
+      YY_("syntax error, unexpected %s, expecting %s or %s");
+      YY_("syntax error, unexpected %s, expecting %s or %s or %s");
+      YY_("syntax error, unexpected %s, expecting %s or %s or %s or %s");
+# endif
+      char *yyfmt;
+      char const *yyf;
+      static char const yyunexpected[] = "syntax error, unexpected %s";
+      static char const yyexpecting[] = ", expecting %s";
+      static char const yyor[] = " or %s";
+      char yyformat[sizeof yyunexpected
+		    + sizeof yyexpecting - 1
+		    + ((YYERROR_VERBOSE_ARGS_MAXIMUM - 2)
+		       * (sizeof yyor - 1))];
+      char const *yyprefix = yyexpecting;
+
+      /* Start YYX at -YYN if negative to avoid negative indexes in
+	 YYCHECK.  */
+      int yyxbegin = yyn < 0 ? -yyn : 0;
+
+      /* Stay within bounds of both yycheck and yytname.  */
+      int yychecklim = YYLAST - yyn + 1;
+      int yyxend = yychecklim < YYNTOKENS ? yychecklim : YYNTOKENS;
+      int yycount = 1;
+
+      yyarg[0] = yytname[yytype];
+      yyfmt = yystpcpy (yyformat, yyunexpected);
+
+      for (yyx = yyxbegin; yyx < yyxend; ++yyx)
+	if (yycheck[yyx + yyn] == yyx && yyx != YYTERROR)
+	  {
+	    if (yycount == YYERROR_VERBOSE_ARGS_MAXIMUM)
+	      {
+		yycount = 1;
+		yysize = yysize0;
+		yyformat[sizeof yyunexpected - 1] = '\0';
+		break;
+	      }
+	    yyarg[yycount++] = yytname[yyx];
+	    yysize1 = yysize + yytnamerr (0, yytname[yyx]);
+	    yysize_overflow |= (yysize1 < yysize);
+	    yysize = yysize1;
+	    yyfmt = yystpcpy (yyfmt, yyprefix);
+	    yyprefix = yyor;
+	  }
+
+      yyf = YY_(yyformat);
+      yysize1 = yysize + yystrlen (yyf);
+      yysize_overflow |= (yysize1 < yysize);
+      yysize = yysize1;
+
+      if (yysize_overflow)
+	return YYSIZE_MAXIMUM;
+
+      if (yyresult)
+	{
+	  /* Avoid sprintf, as that infringes on the user's name space.
+	     Don't have undefined behavior even if the translation
+	     produced a string with the wrong number of "%s"s.  */
+	  char *yyp = yyresult;
+	  int yyi = 0;
+	  while ((*yyp = *yyf) != '\0')
+	    {
+	      if (*yyp == '%' && yyf[1] == 's' && yyi < yycount)
+		{
+		  yyp += yytnamerr (yyp, yyarg[yyi++]);
+		  yyf += 2;
+		}
+	      else
+		{
+		  yyp++;
+		  yyf++;
+		}
+	    }
+	}
+      return yysize;
     }
-
-  switch (yycount)
-    {
-# define YYCASE_(N, S)                      \
-      case N:                               \
-        yyformat = S;                       \
-      break
-      YYCASE_(0, YY_("syntax error"));
-      YYCASE_(1, YY_("syntax error, unexpected %s"));
-      YYCASE_(2, YY_("syntax error, unexpected %s, expecting %s"));
-      YYCASE_(3, YY_("syntax error, unexpected %s, expecting %s or %s"));
-      YYCASE_(4, YY_("syntax error, unexpected %s, expecting %s or %s or %s"));
-      YYCASE_(5, YY_("syntax error, unexpected %s, expecting %s or %s or %s or %s"));
-# undef YYCASE_
-    }
-
-  {
-    YYSIZE_T yysize1 = yysize + yystrlen (yyformat);
-    if (! (yysize <= yysize1 && yysize1 <= YYSTACK_ALLOC_MAXIMUM))
-      return 2;
-    yysize = yysize1;
-  }
-
-  if (*yymsg_alloc < yysize)
-    {
-      *yymsg_alloc = 2 * yysize;
-      if (! (yysize <= *yymsg_alloc
-             && *yymsg_alloc <= YYSTACK_ALLOC_MAXIMUM))
-        *yymsg_alloc = YYSTACK_ALLOC_MAXIMUM;
-      return 1;
-    }
-
-  /* Avoid sprintf, as that infringes on the user's name space.
-     Don't have undefined behavior even if the translation
-     produced a string with the wrong number of "%s"s.  */
-  {
-    char *yyp = *yymsg;
-    int yyi = 0;
-    while ((*yyp = *yyformat) != '\0')
-      if (*yyp == '%' && yyformat[1] == 's' && yyi < yycount)
-        {
-          yyp += yytnamerr (yyp, yyarg[yyi++]);
-          yyformat += 2;
-        }
-      else
-        {
-          yyp++;
-          yyformat++;
-        }
-  }
-  return 0;
 }
 #endif /* YYERROR_VERBOSE */
+
 
 /*-----------------------------------------------.
 | Release the memory associated to this symbol.  |
 `-----------------------------------------------*/
 
+/*ARGSUSED*/
+#if (defined __STDC__ || defined __C99__FUNC__ \
+     || defined __cplusplus || defined _MSC_VER)
 static void
 yydestruct (const char *yymsg, int yytype, YYSTYPE *yyvaluep)
+#else
+static void
+yydestruct (yymsg, yytype, yyvaluep)
+    const char *yymsg;
+    int yytype;
+    YYSTYPE *yyvaluep;
+#endif
 {
   YYUSE (yyvaluep);
+
   if (!yymsg)
     yymsg = "Deleting";
   YY_SYMBOL_PRINT (yymsg, yytype, yyvaluep, yylocationp);
 
-  YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN
-  YYUSE (yytype);
-  YY_IGNORE_MAYBE_UNINITIALIZED_END
+  switch (yytype)
+    {
+
+      default:
+	break;
+    }
 }
+
+
+/* Prevent warnings from -Wmissing-prototypes.  */
+
+#ifdef YYPARSE_PARAM
+#if defined __STDC__ || defined __cplusplus
+int yyparse (void *YYPARSE_PARAM);
+#else
+int yyparse ();
+#endif
+#else /* ! YYPARSE_PARAM */
+#if defined __STDC__ || defined __cplusplus
+int yyparse (void);
+#else
+int yyparse ();
+#endif
+#endif /* ! YYPARSE_PARAM */
 
 
 
-
-/* The lookahead symbol.  */
+/* The look-ahead symbol.  */
 int yychar;
 
-/* The semantic value of the lookahead symbol.  */
+/* The semantic value of the look-ahead symbol.  */
 YYSTYPE yylval;
+
 /* Number of syntax errors so far.  */
 int yynerrs;
+
 
 
 /*----------.
 | yyparse.  |
 `----------*/
 
+#ifdef YYPARSE_PARAM
+#if (defined __STDC__ || defined __C99__FUNC__ \
+     || defined __cplusplus || defined _MSC_VER)
+int
+yyparse (void *YYPARSE_PARAM)
+#else
+int
+yyparse (YYPARSE_PARAM)
+    void *YYPARSE_PARAM;
+#endif
+#else /* ! YYPARSE_PARAM */
+#if (defined __STDC__ || defined __C99__FUNC__ \
+     || defined __cplusplus || defined _MSC_VER)
 int
 yyparse (void)
+#else
+int
+yyparse ()
+
+#endif
+#endif
 {
-    int yystate;
-    /* Number of tokens to shift before error messages enabled.  */
-    int yyerrstatus;
-
-    /* The stacks and their tools:
-       'yyss': related to states.
-       'yyvs': related to semantic values.
-
-       Refer to the stacks through separate pointers, to allow yyoverflow
-       to reallocate them elsewhere.  */
-
-    /* The state stack.  */
-    yytype_int16 yyssa[YYINITDEPTH];
-    yytype_int16 *yyss;
-    yytype_int16 *yyssp;
-
-    /* The semantic value stack.  */
-    YYSTYPE yyvsa[YYINITDEPTH];
-    YYSTYPE *yyvs;
-    YYSTYPE *yyvsp;
-
-    YYSIZE_T yystacksize;
-
+  
+  int yystate;
   int yyn;
   int yyresult;
-  /* Lookahead token as an internal (translated) token number.  */
+  /* Number of tokens to shift before error messages enabled.  */
+  int yyerrstatus;
+  /* Look-ahead token as an internal (translated) token number.  */
   int yytoken = 0;
-  /* The variables used to return semantic value and location from the
-     action routines.  */
-  YYSTYPE yyval;
-
 #if YYERROR_VERBOSE
   /* Buffer for error messages, and its allocated size.  */
   char yymsgbuf[128];
@@ -2371,22 +2649,54 @@ yyparse (void)
   YYSIZE_T yymsg_alloc = sizeof yymsgbuf;
 #endif
 
+  /* Three stacks and their tools:
+     `yyss': related to states,
+     `yyvs': related to semantic values,
+     `yyls': related to locations.
+
+     Refer to the stacks thru separate pointers, to allow yyoverflow
+     to reallocate them elsewhere.  */
+
+  /* The state stack.  */
+  yytype_int16 yyssa[YYINITDEPTH];
+  yytype_int16 *yyss = yyssa;
+  yytype_int16 *yyssp;
+
+  /* The semantic value stack.  */
+  YYSTYPE yyvsa[YYINITDEPTH];
+  YYSTYPE *yyvs = yyvsa;
+  YYSTYPE *yyvsp;
+
+
+
 #define YYPOPSTACK(N)   (yyvsp -= (N), yyssp -= (N))
+
+  YYSIZE_T yystacksize = YYINITDEPTH;
+
+  /* The variables used to return semantic value and location from the
+     action routines.  */
+  YYSTYPE yyval;
+
 
   /* The number of symbols on the RHS of the reduced rule.
      Keep to zero when no symbol should be popped.  */
   int yylen = 0;
-
-  yyssp = yyss = yyssa;
-  yyvsp = yyvs = yyvsa;
-  yystacksize = YYINITDEPTH;
 
   YYDPRINTF ((stderr, "Starting parse\n"));
 
   yystate = 0;
   yyerrstatus = 0;
   yynerrs = 0;
-  yychar = YYEMPTY; /* Cause a token to be read.  */
+  yychar = YYEMPTY;		/* Cause a token to be read.  */
+
+  /* Initialize stack pointers.
+     Waste one element of value and location stack
+     so that they stay on the same level as the state stack.
+     The wasted elements are never initialized.  */
+
+  yyssp = yyss;
+  yyvsp = yyvs;
+
   goto yysetstate;
 
 /*------------------------------------------------------------.
@@ -2407,23 +2717,25 @@ yyparse (void)
 
 #ifdef yyoverflow
       {
-        /* Give user a chance to reallocate the stack.  Use copies of
-           these so that the &'s don't force the real ones into
-           memory.  */
-        YYSTYPE *yyvs1 = yyvs;
-        yytype_int16 *yyss1 = yyss;
+	/* Give user a chance to reallocate the stack.  Use copies of
+	   these so that the &'s don't force the real ones into
+	   memory.  */
+	YYSTYPE *yyvs1 = yyvs;
+	yytype_int16 *yyss1 = yyss;
 
-        /* Each stack pointer address is followed by the size of the
-           data in use in that stack, in bytes.  This used to be a
-           conditional around just the two extra args, but that might
-           be undefined if yyoverflow is a macro.  */
-        yyoverflow (YY_("memory exhausted"),
-                    &yyss1, yysize * sizeof (*yyssp),
-                    &yyvs1, yysize * sizeof (*yyvsp),
-                    &yystacksize);
 
-        yyss = yyss1;
-        yyvs = yyvs1;
+	/* Each stack pointer address is followed by the size of the
+	   data in use in that stack, in bytes.  This used to be a
+	   conditional around just the two extra args, but that might
+	   be undefined if yyoverflow is a macro.  */
+	yyoverflow (YY_("memory exhausted"),
+		    &yyss1, yysize * sizeof (*yyssp),
+		    &yyvs1, yysize * sizeof (*yyvsp),
+
+		    &yystacksize);
+
+	yyss = yyss1;
+	yyvs = yyvs1;
       }
 #else /* no yyoverflow */
 # ifndef YYSTACK_RELOCATE
@@ -2431,22 +2743,23 @@ yyparse (void)
 # else
       /* Extend the stack our own way.  */
       if (YYMAXDEPTH <= yystacksize)
-        goto yyexhaustedlab;
+	goto yyexhaustedlab;
       yystacksize *= 2;
       if (YYMAXDEPTH < yystacksize)
-        yystacksize = YYMAXDEPTH;
+	yystacksize = YYMAXDEPTH;
 
       {
-        yytype_int16 *yyss1 = yyss;
-        union yyalloc *yyptr =
-          (union yyalloc *) YYSTACK_ALLOC (YYSTACK_BYTES (yystacksize));
-        if (! yyptr)
-          goto yyexhaustedlab;
-        YYSTACK_RELOCATE (yyss_alloc, yyss);
-        YYSTACK_RELOCATE (yyvs_alloc, yyvs);
+	yytype_int16 *yyss1 = yyss;
+	union yyalloc *yyptr =
+	  (union yyalloc *) YYSTACK_ALLOC (YYSTACK_BYTES (yystacksize));
+	if (! yyptr)
+	  goto yyexhaustedlab;
+	YYSTACK_RELOCATE (yyss);
+	YYSTACK_RELOCATE (yyvs);
+
 #  undef YYSTACK_RELOCATE
-        if (yyss1 != yyssa)
-          YYSTACK_FREE (yyss1);
+	if (yyss1 != yyssa)
+	  YYSTACK_FREE (yyss1);
       }
 # endif
 #endif /* no yyoverflow */
@@ -2454,17 +2767,15 @@ yyparse (void)
       yyssp = yyss + yysize - 1;
       yyvsp = yyvs + yysize - 1;
 
+
       YYDPRINTF ((stderr, "Stack size increased to %lu\n",
-                  (unsigned long int) yystacksize));
+		  (unsigned long int) yystacksize));
 
       if (yyss + yystacksize - 1 <= yyssp)
-        YYABORT;
+	YYABORT;
     }
 
   YYDPRINTF ((stderr, "Entering state %d\n", yystate));
-
-  if (yystate == YYFINAL)
-    YYACCEPT;
 
   goto yybackup;
 
@@ -2474,20 +2785,20 @@ yyparse (void)
 yybackup:
 
   /* Do appropriate processing given the current state.  Read a
-     lookahead token if we need one and don't already have one.  */
+     look-ahead token if we need one and don't already have one.  */
 
-  /* First try to decide what to do without reference to lookahead token.  */
+  /* First try to decide what to do without reference to look-ahead token.  */
   yyn = yypact[yystate];
-  if (yypact_value_is_default (yyn))
+  if (yyn == YYPACT_NINF)
     goto yydefault;
 
-  /* Not known => get a lookahead token if don't already have one.  */
+  /* Not known => get a look-ahead token if don't already have one.  */
 
-  /* YYCHAR is either YYEMPTY or YYEOF or a valid lookahead symbol.  */
+  /* YYCHAR is either YYEMPTY or YYEOF or a valid look-ahead symbol.  */
   if (yychar == YYEMPTY)
     {
       YYDPRINTF ((stderr, "Reading a token: "));
-      yychar = yylex ();
+      yychar = YYLEX;
     }
 
   if (yychar <= YYEOF)
@@ -2509,27 +2820,29 @@ yybackup:
   yyn = yytable[yyn];
   if (yyn <= 0)
     {
-      if (yytable_value_is_error (yyn))
-        goto yyerrlab;
+      if (yyn == 0 || yyn == YYTABLE_NINF)
+	goto yyerrlab;
       yyn = -yyn;
       goto yyreduce;
     }
+
+  if (yyn == YYFINAL)
+    YYACCEPT;
 
   /* Count tokens shifted since error; after three, turn off error
      status.  */
   if (yyerrstatus)
     yyerrstatus--;
 
-  /* Shift the lookahead token.  */
+  /* Shift the look-ahead token.  */
   YY_SYMBOL_PRINT ("Shifting", yytoken, &yylval, &yylloc);
 
-  /* Discard the shifted token.  */
-  yychar = YYEMPTY;
+  /* Discard the shifted token unless it is eof.  */
+  if (yychar != YYEOF)
+    yychar = YYEMPTY;
 
   yystate = yyn;
-  YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN
   *++yyvsp = yylval;
-  YY_IGNORE_MAYBE_UNINITIALIZED_END
 
   goto yynewstate;
 
@@ -2552,7 +2865,7 @@ yyreduce:
   yylen = yyr2[yyn];
 
   /* If YYLEN is nonzero, implement the default value of the action:
-     '$$ = $1'.
+     `$$ = $1'.
 
      Otherwise, the following line sets YYVAL to garbage.
      This behavior is undocumented and Bison
@@ -2566,7 +2879,7 @@ yyreduce:
   switch (yyn)
     {
         case 4:
-#line 550 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 550 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             /*
              * We don't do these in parserEOF() because the parser is reading
@@ -2584,11 +2897,10 @@ yyreduce:
                 previousFile = NULL;
             }
     }
-#line 2588 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 49:
-#line 614 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 614 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -2597,167 +2909,151 @@ yyreduce:
                 if (scope == NULL)
                     yyerror("%TypeHeaderCode can only be used in a namespace, class or mapped type");
 
-                appendCodeBlock(&scope->iff->hdrcode, (yyvsp[0].codeb));
+                appendCodeBlock(&scope->iff->hdrcode, (yyvsp[(1) - (1)].codeb));
             }
         }
-#line 2604 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 50:
-#line 627 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 627 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
-                currentModule->defdocstringfmt = convertFormat((yyvsp[0].defdocstringfmt).name);
+                currentModule->defdocstringfmt = convertFormat((yyvsp[(2) - (2)].defdocstringfmt).name);
         }
-#line 2613 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 51:
-#line 633 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 633 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             resetLexerState();
 
-            (yyval.defdocstringfmt).name = (yyvsp[0].text);
+            (yyval.defdocstringfmt).name = (yyvsp[(1) - (1)].text);
         }
-#line 2623 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 52:
-#line 638 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 638 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.defdocstringfmt) = (yyvsp[-1].defdocstringfmt);
+            (yyval.defdocstringfmt) = (yyvsp[(2) - (3)].defdocstringfmt);
         }
-#line 2631 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 54:
-#line 644 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 644 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.defdocstringfmt) = (yyvsp[-2].defdocstringfmt);
+            (yyval.defdocstringfmt) = (yyvsp[(1) - (3)].defdocstringfmt);
 
-            switch ((yyvsp[0].defdocstringfmt).token)
+            switch ((yyvsp[(3) - (3)].defdocstringfmt).token)
             {
-            case TK_NAME: (yyval.defdocstringfmt).name = (yyvsp[0].defdocstringfmt).name; break;
+            case TK_NAME: (yyval.defdocstringfmt).name = (yyvsp[(3) - (3)].defdocstringfmt).name; break;
             }
         }
-#line 2644 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 55:
-#line 654 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 654 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.defdocstringfmt).token = TK_NAME;
 
-            (yyval.defdocstringfmt).name = (yyvsp[0].text);
+            (yyval.defdocstringfmt).name = (yyvsp[(3) - (3)].text);
         }
-#line 2654 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 56:
-#line 661 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 661 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
-                currentModule->defdocstringsig = convertSignature((yyvsp[0].defdocstringsig).name);
+                currentModule->defdocstringsig = convertSignature((yyvsp[(2) - (2)].defdocstringsig).name);
         }
-#line 2663 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 57:
-#line 667 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 667 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             resetLexerState();
 
-            (yyval.defdocstringsig).name = (yyvsp[0].text);
+            (yyval.defdocstringsig).name = (yyvsp[(1) - (1)].text);
         }
-#line 2673 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 58:
-#line 672 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 672 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.defdocstringsig) = (yyvsp[-1].defdocstringsig);
+            (yyval.defdocstringsig) = (yyvsp[(2) - (3)].defdocstringsig);
         }
-#line 2681 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 60:
-#line 678 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 678 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.defdocstringsig) = (yyvsp[-2].defdocstringsig);
+            (yyval.defdocstringsig) = (yyvsp[(1) - (3)].defdocstringsig);
 
-            switch ((yyvsp[0].defdocstringsig).token)
+            switch ((yyvsp[(3) - (3)].defdocstringsig).token)
             {
-            case TK_NAME: (yyval.defdocstringsig).name = (yyvsp[0].defdocstringsig).name; break;
+            case TK_NAME: (yyval.defdocstringsig).name = (yyvsp[(3) - (3)].defdocstringsig).name; break;
             }
         }
-#line 2694 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 61:
-#line 688 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 688 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.defdocstringsig).token = TK_NAME;
 
-            (yyval.defdocstringsig).name = (yyvsp[0].text);
+            (yyval.defdocstringsig).name = (yyvsp[(3) - (3)].text);
         }
-#line 2704 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 62:
-#line 695 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 695 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
-                if ((currentModule->encoding = convertEncoding((yyvsp[0].defencoding).name)) == no_type)
+                if ((currentModule->encoding = convertEncoding((yyvsp[(2) - (2)].defencoding).name)) == no_type)
                     yyerror("The %DefaultEncoding name must be one of \"ASCII\", \"Latin-1\", \"UTF-8\" or \"None\"");
             }
         }
-#line 2716 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 63:
-#line 704 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 704 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             resetLexerState();
 
-            (yyval.defencoding).name = (yyvsp[0].text);
+            (yyval.defencoding).name = (yyvsp[(1) - (1)].text);
         }
-#line 2726 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 64:
-#line 709 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 709 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.defencoding) = (yyvsp[-1].defencoding);
+            (yyval.defencoding) = (yyvsp[(2) - (3)].defencoding);
         }
-#line 2734 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 66:
-#line 715 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 715 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.defencoding) = (yyvsp[-2].defencoding);
+            (yyval.defencoding) = (yyvsp[(1) - (3)].defencoding);
 
-            switch ((yyvsp[0].defencoding).token)
+            switch ((yyvsp[(3) - (3)].defencoding).token)
             {
-            case TK_NAME: (yyval.defencoding).name = (yyvsp[0].defencoding).name; break;
+            case TK_NAME: (yyval.defencoding).name = (yyvsp[(3) - (3)].defencoding).name; break;
             }
         }
-#line 2747 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 67:
-#line 725 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 725 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.defencoding).token = TK_NAME;
 
-            (yyval.defencoding).name = (yyvsp[0].text);
+            (yyval.defencoding).name = (yyvsp[(3) - (3)].text);
         }
-#line 2757 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 68:
-#line 732 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 732 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             /*
              * Note that %Plugin is internal in SIP v4.  The current thinking
@@ -2765,56 +3061,51 @@ yyreduce:
              */
 
             if (notSkipping())
-                appendString(&currentSpec->plugins, (yyvsp[0].plugin).name);
+                appendString(&currentSpec->plugins, (yyvsp[(2) - (2)].plugin).name);
         }
-#line 2771 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 69:
-#line 743 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 743 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             resetLexerState();
 
-            (yyval.plugin).name = (yyvsp[0].text);
+            (yyval.plugin).name = (yyvsp[(1) - (1)].text);
         }
-#line 2781 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 70:
-#line 748 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 748 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.plugin) = (yyvsp[-1].plugin);
+            (yyval.plugin) = (yyvsp[(2) - (3)].plugin);
         }
-#line 2789 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 72:
-#line 754 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 754 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.plugin) = (yyvsp[-2].plugin);
+            (yyval.plugin) = (yyvsp[(1) - (3)].plugin);
 
-            switch ((yyvsp[0].plugin).token)
+            switch ((yyvsp[(3) - (3)].plugin).token)
             {
-            case TK_NAME: (yyval.plugin).name = (yyvsp[0].plugin).name; break;
+            case TK_NAME: (yyval.plugin).name = (yyvsp[(3) - (3)].plugin).name; break;
             }
         }
-#line 2802 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 73:
-#line 764 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 764 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.plugin).token = TK_NAME;
 
-            (yyval.plugin).name = (yyvsp[0].text);
+            (yyval.plugin).name = (yyvsp[(3) - (3)].text);
         }
-#line 2812 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 74:
-#line 771 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 771 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            if ((yyvsp[-1].veh).name == NULL)
+            if ((yyvsp[(2) - (3)].veh).name == NULL)
                 yyerror("%VirtualErrorHandler must have a 'name' argument");
 
             if (notSkipping())
@@ -2823,7 +3114,7 @@ yyreduce:
 
                 /* Check there isn't already a handler with the same name. */
                 for (tailp = &currentSpec->errorhandlers; (veh = *tailp) != NULL; tailp = &veh->next)
-                    if (strcmp(veh->name, (yyvsp[-1].veh).name) == 0)
+                    if (strcmp(veh->name, (yyvsp[(2) - (3)].veh).name) == 0)
                         break;
 
                 if (veh != NULL)
@@ -2831,8 +3122,8 @@ yyreduce:
 
                 veh = sipMalloc(sizeof (virtErrorHandler));
 
-                veh->name = (yyvsp[-1].veh).name;
-                appendCodeBlock(&veh->code, (yyvsp[0].codeb));
+                veh->name = (yyvsp[(2) - (3)].veh).name;
+                appendCodeBlock(&veh->code, (yyvsp[(3) - (3)].codeb));
                 veh->mod = currentModule;
                 veh->index = -1;
                 veh->next = NULL;
@@ -2840,52 +3131,47 @@ yyreduce:
                 *tailp = veh;
             }
         }
-#line 2844 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 75:
-#line 800 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 800 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             resetLexerState();
 
-            (yyval.veh).name = (yyvsp[0].text);
+            (yyval.veh).name = (yyvsp[(1) - (1)].text);
         }
-#line 2854 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 76:
-#line 805 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 805 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.veh) = (yyvsp[-1].veh);
+            (yyval.veh) = (yyvsp[(2) - (3)].veh);
         }
-#line 2862 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 78:
-#line 811 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 811 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.veh) = (yyvsp[-2].veh);
+            (yyval.veh) = (yyvsp[(1) - (3)].veh);
 
-            switch ((yyvsp[0].veh).token)
+            switch ((yyvsp[(3) - (3)].veh).token)
             {
-            case TK_NAME: (yyval.veh).name = (yyvsp[0].veh).name; break;
+            case TK_NAME: (yyval.veh).name = (yyvsp[(3) - (3)].veh).name; break;
             }
         }
-#line 2875 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 79:
-#line 821 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 821 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.veh).token = TK_NAME;
 
-            (yyval.veh).name = (yyvsp[0].text);
+            (yyval.veh).name = (yyvsp[(3) - (3)].text);
         }
-#line 2885 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 80:
-#line 828 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 828 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             deprecated("The %API directive is deprecated and will be removed in v6");
 
@@ -2893,16 +3179,16 @@ yyreduce:
             {
                 apiVersionRangeDef *avd;
 
-                if (findAPI(currentSpec, (yyvsp[-1].api).name) != NULL)
+                if (findAPI(currentSpec, (yyvsp[(3) - (4)].api).name) != NULL)
                     yyerror("The API name in the %API directive has already been defined");
 
-                if ((yyvsp[-1].api).version < 1)
+                if ((yyvsp[(3) - (4)].api).version < 1)
                     yyerror("The version number in the %API directive must be greater than or equal to 1");
 
                 avd = sipMalloc(sizeof (apiVersionRangeDef));
 
-                avd->api_name = cacheName(currentSpec, (yyvsp[-1].api).name);
-                avd->from = (yyvsp[-1].api).version;
+                avd->api_name = cacheName(currentSpec, (yyvsp[(3) - (4)].api).name);
+                avd->from = (yyvsp[(3) - (4)].api).version;
                 avd->to = -1;
 
                 avd->next = currentModule->api_versions;
@@ -2912,47 +3198,43 @@ yyreduce:
                     setIsUsedName(avd->api_name);
             }
         }
-#line 2916 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 82:
-#line 857 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 857 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.api) = (yyvsp[-2].api);
+            (yyval.api) = (yyvsp[(1) - (3)].api);
 
-            switch ((yyvsp[0].api).token)
+            switch ((yyvsp[(3) - (3)].api).token)
             {
-            case TK_NAME: (yyval.api).name = (yyvsp[0].api).name; break;
-            case TK_VERSION: (yyval.api).version = (yyvsp[0].api).version; break;
+            case TK_NAME: (yyval.api).name = (yyvsp[(3) - (3)].api).name; break;
+            case TK_VERSION: (yyval.api).version = (yyvsp[(3) - (3)].api).version; break;
             }
         }
-#line 2930 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 83:
-#line 868 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 868 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.api).token = TK_NAME;
 
-            (yyval.api).name = (yyvsp[0].text);
+            (yyval.api).name = (yyvsp[(3) - (3)].text);
             (yyval.api).version = 0;
         }
-#line 2941 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 84:
-#line 874 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 874 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.api).token = TK_VERSION;
 
             (yyval.api).name = NULL;
-            (yyval.api).version = (yyvsp[0].number);
+            (yyval.api).version = (yyvsp[(3) - (3)].number);
         }
-#line 2952 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 85:
-#line 882 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 882 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -2965,20 +3247,20 @@ yyreduce:
                 exceptionDef *xd;
                 const char *pyname;
 
-                checkAnnos(&(yyvsp[-1].optflags), annos);
+                checkAnnos(&(yyvsp[(4) - (5)].optflags), annos);
 
                 if (currentSpec->genc)
                     yyerror("%Exception not allowed in a C module");
 
-                if ((yyvsp[0].exception).raise_code == NULL)
+                if ((yyvsp[(5) - (5)].exception).raise_code == NULL)
                     yyerror("%Exception must have a %RaiseCode sub-directive");
 
-                pyname = getPythonName(currentModule, &(yyvsp[-1].optflags), scopedNameTail((yyvsp[-3].scpvalp)));
+                pyname = getPythonName(currentModule, &(yyvsp[(4) - (5)].optflags), scopedNameTail((yyvsp[(2) - (5)].scpvalp)));
 
                 checkAttributes(currentSpec, currentModule, NULL, NULL,
                         pyname, FALSE);
 
-                xd = findException(currentSpec, (yyvsp[-3].scpvalp), TRUE);
+                xd = findException(currentSpec, (yyvsp[(2) - (5)].scpvalp), TRUE);
 
                 if (xd->cd != NULL)
                     yyerror("%Exception name has already been seen as a class name - it must be defined before being used");
@@ -2988,30 +3270,28 @@ yyreduce:
 
                 /* Complete the definition. */
                 xd->iff->module = currentModule;
-                appendCodeBlock(&xd->iff->hdrcode, (yyvsp[0].exception).type_header_code);
+                appendCodeBlock(&xd->iff->hdrcode, (yyvsp[(5) - (5)].exception).type_header_code);
                 xd->pyname = pyname;
-                xd->bibase = (yyvsp[-2].exceptionbase).bibase;
-                xd->base = (yyvsp[-2].exceptionbase).base;
-                appendCodeBlock(&xd->raisecode, (yyvsp[0].exception).raise_code);
+                xd->bibase = (yyvsp[(3) - (5)].exceptionbase).bibase;
+                xd->base = (yyvsp[(3) - (5)].exceptionbase).base;
+                appendCodeBlock(&xd->raisecode, (yyvsp[(5) - (5)].exception).raise_code);
 
-                if (getOptFlag(&(yyvsp[-1].optflags), "Default", bool_flag) != NULL)
+                if (getOptFlag(&(yyvsp[(4) - (5)].optflags), "Default", bool_flag) != NULL)
                     currentModule->defexception = xd;
             }
         }
-#line 3002 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 86:
-#line 929 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 929 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.exceptionbase).bibase = NULL;
             (yyval.exceptionbase).base = NULL;
         }
-#line 3011 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 87:
-#line 933 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 933 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             exceptionDef *xd;
 
@@ -3020,13 +3300,13 @@ yyreduce:
 
             /* See if it is a defined exception. */
             for (xd = currentSpec->exceptions; xd != NULL; xd = xd->next)
-                if (compareScopedNames(xd->iff->fqcname, (yyvsp[-1].scpvalp)) == 0)
+                if (compareScopedNames(xd->iff->fqcname, (yyvsp[(2) - (3)].scpvalp)) == 0)
                 {
                     (yyval.exceptionbase).base = xd;
                     break;
                 }
 
-            if (xd == NULL && (yyvsp[-1].scpvalp)->next == NULL && strncmp((yyvsp[-1].scpvalp)->name, "SIP_", 4) == 0)
+            if (xd == NULL && (yyvsp[(2) - (3)].scpvalp)->next == NULL && strncmp((yyvsp[(2) - (3)].scpvalp)->name, "SIP_", 4) == 0)
             {
                 /* See if it is a builtin exception. */
 
@@ -3107,7 +3387,7 @@ yyreduce:
                 char **cp;
 
                 for (cp = builtins; *cp != NULL; ++cp)
-                    if (strcmp((yyvsp[-1].scpvalp)->name + 4, *cp) == 0)
+                    if (strcmp((yyvsp[(2) - (3)].scpvalp)->name + 4, *cp) == 0)
                     {
                         (yyval.exceptionbase).bibase = *cp;
                         break;
@@ -3117,54 +3397,49 @@ yyreduce:
             if ((yyval.exceptionbase).bibase == NULL && (yyval.exceptionbase).base == NULL)
                 yyerror("Unknown exception base type");
         }
-#line 3121 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 88:
-#line 1040 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1040 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.exception) = (yyvsp[-2].exception);
+            (yyval.exception) = (yyvsp[(2) - (4)].exception);
         }
-#line 3129 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 90:
-#line 1046 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1046 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.exception) = (yyvsp[-1].exception);
+            (yyval.exception) = (yyvsp[(1) - (2)].exception);
 
-            switch ((yyvsp[0].exception).token)
+            switch ((yyvsp[(2) - (2)].exception).token)
             {
-            case TK_RAISECODE: (yyval.exception).raise_code = (yyvsp[0].exception).raise_code; break;
-            case TK_TYPEHEADERCODE: (yyval.exception).type_header_code = (yyvsp[0].exception).type_header_code; break;
+            case TK_RAISECODE: (yyval.exception).raise_code = (yyvsp[(2) - (2)].exception).raise_code; break;
+            case TK_TYPEHEADERCODE: (yyval.exception).type_header_code = (yyvsp[(2) - (2)].exception).type_header_code; break;
             }
         }
-#line 3143 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 91:
-#line 1057 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1057 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.exception).token = TK_IF;
         }
-#line 3151 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 92:
-#line 1060 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1060 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.exception).token = TK_END;
         }
-#line 3159 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 93:
-#line 1063 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1063 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
                 (yyval.exception).token = TK_RAISECODE;
-                (yyval.exception).raise_code = (yyvsp[0].codeb);
+                (yyval.exception).raise_code = (yyvsp[(1) - (1)].codeb);
             }
             else
             {
@@ -3174,16 +3449,15 @@ yyreduce:
 
             (yyval.exception).type_header_code = NULL;
         }
-#line 3178 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 94:
-#line 1077 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1077 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
                 (yyval.exception).token = TK_TYPEHEADERCODE;
-                (yyval.exception).type_header_code = (yyvsp[0].codeb);
+                (yyval.exception).type_header_code = (yyvsp[(1) - (1)].codeb);
             }
             else
             {
@@ -3193,19 +3467,17 @@ yyreduce:
 
             (yyval.exception).raise_code = NULL;
         }
-#line 3197 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 95:
-#line 1093 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1093 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.codeb) = (yyvsp[0].codeb);
+            (yyval.codeb) = (yyvsp[(2) - (2)].codeb);
         }
-#line 3205 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 96:
-#line 1098 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1098 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -3221,16 +3493,15 @@ yyreduce:
                     NULL
                 };
 
-                checkAnnos(&(yyvsp[0].optflags), annos);
+                checkAnnos(&(yyvsp[(3) - (3)].optflags), annos);
 
-                currentMappedType = newMappedType(currentSpec, &(yyvsp[-1].memArg), &(yyvsp[0].optflags));
+                currentMappedType = newMappedType(currentSpec, &(yyvsp[(2) - (3)].memArg), &(yyvsp[(3) - (3)].optflags));
             }
         }
-#line 3230 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 98:
-#line 1120 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1120 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -3248,7 +3519,7 @@ yyreduce:
                 mappedTypeTmplDef *mtt;
                 ifaceFileDef *iff;
 
-                checkAnnos(&(yyvsp[0].optflags), annos);
+                checkAnnos(&(yyvsp[(4) - (4)].optflags), annos);
 
                 if (currentSpec->genc)
                     yyerror("%MappedType templates not allowed in a C module");
@@ -3257,32 +3528,32 @@ yyreduce:
                  * Check the template arguments are basic types or simple
                  * names.
                  */
-                for (a = 0; a < (yyvsp[-3].signature).nrArgs; ++a)
+                for (a = 0; a < (yyvsp[(1) - (4)].signature).nrArgs; ++a)
                 {
-                    argDef *ad = &(yyvsp[-3].signature).args[a];
+                    argDef *ad = &(yyvsp[(1) - (4)].signature).args[a];
 
                     if (ad->atype == defined_type && ad->u.snd->next != NULL)
                         yyerror("%MappedType template arguments must be simple names");
                 }
 
-                if ((yyvsp[-1].memArg).atype != template_type)
+                if ((yyvsp[(3) - (4)].memArg).atype != template_type)
                     yyerror("%MappedType template must map a template type");
 
-                (yyvsp[-1].memArg).u.td->fqname  = fullyQualifiedName((yyvsp[-1].memArg).u.td->fqname);
+                (yyvsp[(3) - (4)].memArg).u.td->fqname  = fullyQualifiedName((yyvsp[(3) - (4)].memArg).u.td->fqname);
 
                 /* Check a template hasn't already been provided. */
                 for (mtt = currentSpec->mappedtypetemplates; mtt != NULL; mtt = mtt->next)
-                    if (compareScopedNames(mtt->mt->type.u.td->fqname, (yyvsp[-1].memArg).u.td->fqname ) == 0 && sameTemplateSignature(&mtt->mt->type.u.td->types, &(yyvsp[-1].memArg).u.td->types, TRUE))
+                    if (compareScopedNames(mtt->mt->type.u.td->fqname, (yyvsp[(3) - (4)].memArg).u.td->fqname ) == 0 && sameTemplateSignature(&mtt->mt->type.u.td->types, &(yyvsp[(3) - (4)].memArg).u.td->types, TRUE))
                         yyerror("%MappedType template for this type has already been defined");
 
-                (yyvsp[-1].memArg).nrderefs = 0;
-                (yyvsp[-1].memArg).argflags = 0;
+                (yyvsp[(3) - (4)].memArg).nrderefs = 0;
+                (yyvsp[(3) - (4)].memArg).argflags = 0;
 
                 mtt = sipMalloc(sizeof (mappedTypeTmplDef));
 
-                mtt->sig = (yyvsp[-3].signature);
-                mtt->mt = allocMappedType(currentSpec, &(yyvsp[-1].memArg));
-                mappedTypeAnnos(mtt->mt, &(yyvsp[0].optflags));
+                mtt->sig = (yyvsp[(1) - (4)].signature);
+                mtt->mt = allocMappedType(currentSpec, &(yyvsp[(3) - (4)].memArg));
+                mappedTypeAnnos(mtt->mt, &(yyvsp[(4) - (4)].optflags));
                 mtt->next = currentSpec->mappedtypetemplates;
 
                 currentSpec->mappedtypetemplates = mtt;
@@ -3295,11 +3566,10 @@ yyreduce:
                 mtt->mt->iff = iff;
             }
         }
-#line 3299 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 100:
-#line 1186 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1186 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -3312,89 +3582,82 @@ yyreduce:
                 currentMappedType = NULL;
             }
         }
-#line 3316 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 105:
-#line 1206 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1206 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
-                appendCodeBlock(&currentMappedType->iff->hdrcode, (yyvsp[0].codeb));
+                appendCodeBlock(&currentMappedType->iff->hdrcode, (yyvsp[(1) - (1)].codeb));
         }
-#line 3325 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 106:
-#line 1210 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1210 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
-                appendCodeBlock(&currentMappedType->typecode, (yyvsp[0].codeb));
+                appendCodeBlock(&currentMappedType->typecode, (yyvsp[(1) - (1)].codeb));
         }
-#line 3334 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 107:
-#line 1214 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1214 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
                 if (currentMappedType->convfromcode != NULL)
                     yyerror("%MappedType has more than one %ConvertFromTypeCode directive");
 
-                appendCodeBlock(&currentMappedType->convfromcode, (yyvsp[0].codeb));
+                appendCodeBlock(&currentMappedType->convfromcode, (yyvsp[(2) - (2)].codeb));
             }
         }
-#line 3348 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 108:
-#line 1223 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1223 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
                 if (currentMappedType->convtocode != NULL)
                     yyerror("%MappedType has more than one %ConvertToTypeCode directive");
 
-                appendCodeBlock(&currentMappedType->convtocode, (yyvsp[0].codeb));
+                appendCodeBlock(&currentMappedType->convtocode, (yyvsp[(2) - (2)].codeb));
             }
         }
-#line 3362 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 109:
-#line 1232 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1232 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
                 if (currentMappedType->instancecode != NULL)
                     yyerror("%MappedType has more than one %InstanceCode directive");
 
-                appendCodeBlock(&currentMappedType->instancecode, (yyvsp[0].codeb));
+                appendCodeBlock(&currentMappedType->instancecode, (yyvsp[(1) - (1)].codeb));
             }
         }
-#line 3376 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 112:
-#line 1245 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1245 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
-                applyTypeFlags(currentModule, &(yyvsp[-12].memArg), &(yyvsp[-5].optflags));
+                applyTypeFlags(currentModule, &(yyvsp[(2) - (14)].memArg), &(yyvsp[(9) - (14)].optflags));
 
-                (yyvsp[-9].signature).result = (yyvsp[-12].memArg);
+                (yyvsp[(5) - (14)].signature).result = (yyvsp[(2) - (14)].memArg);
 
                 newFunction(currentSpec, currentModule, NULL, NULL,
-                        currentMappedType, 0, TRUE, FALSE, FALSE, FALSE, (yyvsp[-11].text),
-                        &(yyvsp[-9].signature), (yyvsp[-7].number), FALSE, &(yyvsp[-5].optflags), (yyvsp[0].codeb), NULL, NULL, (yyvsp[-6].throwlist), (yyvsp[-4].optsignature), (yyvsp[-2].docstr),
-                        FALSE, (yyvsp[-1].codeb));
+                        currentMappedType, 0, TRUE, FALSE, FALSE, FALSE, (yyvsp[(3) - (14)].text),
+                        &(yyvsp[(5) - (14)].signature), (yyvsp[(7) - (14)].number), FALSE, &(yyvsp[(9) - (14)].optflags), (yyvsp[(14) - (14)].codeb), NULL, NULL, (yyvsp[(8) - (14)].throwlist), (yyvsp[(10) - (14)].optsignature), (yyvsp[(12) - (14)].docstr),
+                        FALSE, (yyvsp[(13) - (14)].codeb));
             }
         }
-#line 3394 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 113:
-#line 1260 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1260 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (currentSpec -> genc)
                 yyerror("namespace definition not allowed in a C module");
@@ -3410,18 +3673,17 @@ yyreduce:
                     scope = NULL;
 
                 ns = newClass(currentSpec, namespace_iface, NULL,
-                        text2scopedName(scope, (yyvsp[0].text)), NULL, NULL, NULL, NULL);
+                        text2scopedName(scope, (yyvsp[(2) - (2)].text)), NULL, NULL, NULL, NULL);
 
                 pushScope(ns);
 
                 sectionFlags = 0;
             }
         }
-#line 3421 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 114:
-#line 1281 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1281 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -3436,11 +3698,10 @@ yyreduce:
                 popScope();
             }
         }
-#line 3440 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 119:
-#line 1305 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1305 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -3451,11 +3712,10 @@ yyreduce:
                         yyerror("%Platforms has already been defined for this module");
             }
         }
-#line 3455 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 120:
-#line 1315 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1315 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -3473,78 +3733,70 @@ yyreduce:
                     yyerror("No more than one of these %Platforms must be specified with the -t flag");
             }
         }
-#line 3477 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 123:
-#line 1338 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1338 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            newQualifier(currentModule, -1, 0, notSkipping(), (yyvsp[0].text),
+            newQualifier(currentModule, -1, 0, notSkipping(), (yyvsp[(1) - (1)].text),
                     platform_qualifier);
         }
-#line 3486 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 124:
-#line 1344 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1344 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            newQualifier(currentModule, -1, 0, notSkipping(), (yyvsp[0].feature).name,
+            newQualifier(currentModule, -1, 0, notSkipping(), (yyvsp[(2) - (2)].feature).name,
                     feature_qualifier);
         }
-#line 3495 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 125:
-#line 1350 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1350 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             resetLexerState();
 
-            (yyval.feature).name = (yyvsp[0].text);
+            (yyval.feature).name = (yyvsp[(1) - (1)].text);
         }
-#line 3505 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 126:
-#line 1355 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1355 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.feature) = (yyvsp[-1].feature);
+            (yyval.feature) = (yyvsp[(2) - (3)].feature);
         }
-#line 3513 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 128:
-#line 1361 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1361 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.feature) = (yyvsp[-2].feature);
+            (yyval.feature) = (yyvsp[(1) - (3)].feature);
 
-            switch ((yyvsp[0].feature).token)
+            switch ((yyvsp[(3) - (3)].feature).token)
             {
-            case TK_NAME: (yyval.feature).name = (yyvsp[0].feature).name; break;
+            case TK_NAME: (yyval.feature).name = (yyvsp[(3) - (3)].feature).name; break;
             }
         }
-#line 3526 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 129:
-#line 1371 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1371 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.feature).token = TK_NAME;
 
-            (yyval.feature).name = (yyvsp[0].text);
+            (yyval.feature).name = (yyvsp[(3) - (3)].text);
         }
-#line 3536 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 130:
-#line 1378 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1378 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             currentTimelineOrder = 0;
         }
-#line 3544 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 131:
-#line 1381 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1381 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -3566,28 +3818,25 @@ yyreduce:
                 currentModule->nrtimelines++;
             }
         }
-#line 3570 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 134:
-#line 1408 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1408 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             newQualifier(currentModule, currentModule->nrtimelines,
-                    currentTimelineOrder++, TRUE, (yyvsp[0].text), time_qualifier);
+                    currentTimelineOrder++, TRUE, (yyvsp[(1) - (1)].text), time_qualifier);
         }
-#line 3579 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 135:
-#line 1414 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1414 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             currentPlatforms = NULL;
         }
-#line 3587 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 136:
-#line 1416 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1416 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (stackPtr >= MAX_NESTED_IF)
                 yyerror("Internal error: increase the value of MAX_NESTED_IF");
@@ -3595,89 +3844,81 @@ yyreduce:
             /* Nested %Ifs are implicit logical ands. */
 
             if (stackPtr > 0)
-                (yyvsp[-1].boolean) = ((yyvsp[-1].boolean) && skipStack[stackPtr - 1]);
+                (yyvsp[(4) - (5)].boolean) = ((yyvsp[(4) - (5)].boolean) && skipStack[stackPtr - 1]);
 
-            skipStack[stackPtr] = (yyvsp[-1].boolean);
+            skipStack[stackPtr] = (yyvsp[(4) - (5)].boolean);
 
             platformStack[stackPtr] = currentPlatforms;
 
             ++stackPtr;
         }
-#line 3607 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 137:
-#line 1433 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1433 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.boolean) = platOrFeature((yyvsp[0].text), FALSE);
+            (yyval.boolean) = platOrFeature((yyvsp[(1) - (1)].text), FALSE);
         }
-#line 3615 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 138:
-#line 1436 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1436 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.boolean) = platOrFeature((yyvsp[0].text), TRUE);
+            (yyval.boolean) = platOrFeature((yyvsp[(2) - (2)].text), TRUE);
         }
-#line 3623 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 139:
-#line 1439 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1439 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.boolean) = (platOrFeature((yyvsp[0].text), FALSE) || (yyvsp[-2].boolean));
+            (yyval.boolean) = (platOrFeature((yyvsp[(3) - (3)].text), FALSE) || (yyvsp[(1) - (3)].boolean));
         }
-#line 3631 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 140:
-#line 1442 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1442 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.boolean) = (platOrFeature((yyvsp[0].text), TRUE) || (yyvsp[-3].boolean));
+            (yyval.boolean) = (platOrFeature((yyvsp[(4) - (4)].text), TRUE) || (yyvsp[(1) - (4)].boolean));
         }
-#line 3639 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 142:
-#line 1448 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1448 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.boolean) = timePeriod((yyvsp[-2].text), (yyvsp[0].text));
+            (yyval.boolean) = timePeriod((yyvsp[(1) - (3)].text), (yyvsp[(3) - (3)].text));
         }
-#line 3647 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 143:
-#line 1453 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1453 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (stackPtr-- <= 0)
                 yyerror("Too many %End directives");
 
             currentPlatforms = (stackPtr == 0 ? NULL : platformStack[stackPtr - 1]);
         }
-#line 3658 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 144:
-#line 1461 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1461 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            if ((yyvsp[0].license).type == NULL)
+            if ((yyvsp[(2) - (2)].license).type == NULL)
                 yyerror("%License must have a 'type' argument");
 
             if (notSkipping())
             {
                 currentModule->license = sipMalloc(sizeof (licenseDef));
 
-                currentModule->license->type = (yyvsp[0].license).type;
-                currentModule->license->licensee = (yyvsp[0].license).licensee;
-                currentModule->license->sig = (yyvsp[0].license).signature;
-                currentModule->license->timestamp = (yyvsp[0].license).timestamp;
+                currentModule->license->type = (yyvsp[(2) - (2)].license).type;
+                currentModule->license->licensee = (yyvsp[(2) - (2)].license).licensee;
+                currentModule->license->sig = (yyvsp[(2) - (2)].license).signature;
+                currentModule->license->timestamp = (yyvsp[(2) - (2)].license).timestamp;
             }
         }
-#line 3677 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 145:
-#line 1477 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1477 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             resetLexerState();
 
@@ -3686,264 +3927,241 @@ yyreduce:
             (yyval.license).signature = NULL;
             (yyval.license).timestamp = NULL;
         }
-#line 3690 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 146:
-#line 1485 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1485 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.license).type = (yyvsp[0].text);
+            (yyval.license).type = (yyvsp[(1) - (1)].text);
             (yyval.license).licensee = NULL;
             (yyval.license).signature = NULL;
             (yyval.license).timestamp = NULL;
         }
-#line 3701 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 147:
-#line 1491 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1491 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.license) = (yyvsp[-1].license);
+            (yyval.license) = (yyvsp[(2) - (3)].license);
         }
-#line 3709 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 149:
-#line 1497 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1497 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.license) = (yyvsp[-2].license);
+            (yyval.license) = (yyvsp[(1) - (3)].license);
 
-            switch ((yyvsp[0].license).token)
+            switch ((yyvsp[(3) - (3)].license).token)
             {
-            case TK_TYPE: (yyval.license).type = (yyvsp[0].license).type; break;
-            case TK_LICENSEE: (yyval.license).licensee = (yyvsp[0].license).licensee; break;
-            case TK_SIGNATURE: (yyval.license).signature = (yyvsp[0].license).signature; break;
-            case TK_TIMESTAMP: (yyval.license).timestamp = (yyvsp[0].license).timestamp; break;
+            case TK_TYPE: (yyval.license).type = (yyvsp[(3) - (3)].license).type; break;
+            case TK_LICENSEE: (yyval.license).licensee = (yyvsp[(3) - (3)].license).licensee; break;
+            case TK_SIGNATURE: (yyval.license).signature = (yyvsp[(3) - (3)].license).signature; break;
+            case TK_TIMESTAMP: (yyval.license).timestamp = (yyvsp[(3) - (3)].license).timestamp; break;
             }
         }
-#line 3725 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 150:
-#line 1510 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1510 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.license).token = TK_NAME;
 
-            (yyval.license).type = (yyvsp[0].text);
+            (yyval.license).type = (yyvsp[(3) - (3)].text);
             (yyval.license).licensee = NULL;
             (yyval.license).signature = NULL;
             (yyval.license).timestamp = NULL;
         }
-#line 3738 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 151:
-#line 1518 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1518 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.license).token = TK_LICENSEE;
 
             (yyval.license).type = NULL;
-            (yyval.license).licensee = (yyvsp[0].text);
+            (yyval.license).licensee = (yyvsp[(3) - (3)].text);
             (yyval.license).signature = NULL;
             (yyval.license).timestamp = NULL;
         }
-#line 3751 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 152:
-#line 1526 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1526 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.license).token = TK_SIGNATURE;
 
             (yyval.license).type = NULL;
             (yyval.license).licensee = NULL;
-            (yyval.license).signature = (yyvsp[0].text);
+            (yyval.license).signature = (yyvsp[(3) - (3)].text);
             (yyval.license).timestamp = NULL;
         }
-#line 3764 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 153:
-#line 1534 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1534 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.license).token = TK_TIMESTAMP;
 
             (yyval.license).type = NULL;
             (yyval.license).licensee = NULL;
             (yyval.license).signature = NULL;
-            (yyval.license).timestamp = (yyvsp[0].text);
+            (yyval.license).timestamp = (yyvsp[(3) - (3)].text);
         }
-#line 3777 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 154:
-#line 1544 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1544 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
                 if (currentModule->defmetatype != NULL)
                     yyerror("%DefaultMetatype has already been defined for this module");
 
-                currentModule->defmetatype = cacheName(currentSpec, (yyvsp[0].defmetatype).name);
+                currentModule->defmetatype = cacheName(currentSpec, (yyvsp[(2) - (2)].defmetatype).name);
             }
         }
-#line 3791 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 155:
-#line 1555 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1555 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             resetLexerState();
 
-            (yyval.defmetatype).name = (yyvsp[0].text);
+            (yyval.defmetatype).name = (yyvsp[(1) - (1)].text);
         }
-#line 3801 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 156:
-#line 1560 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1560 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.defmetatype) = (yyvsp[-1].defmetatype);
+            (yyval.defmetatype) = (yyvsp[(2) - (3)].defmetatype);
         }
-#line 3809 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 158:
-#line 1566 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1566 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.defmetatype) = (yyvsp[-2].defmetatype);
+            (yyval.defmetatype) = (yyvsp[(1) - (3)].defmetatype);
 
-            switch ((yyvsp[0].defmetatype).token)
+            switch ((yyvsp[(3) - (3)].defmetatype).token)
             {
-            case TK_NAME: (yyval.defmetatype).name = (yyvsp[0].defmetatype).name; break;
+            case TK_NAME: (yyval.defmetatype).name = (yyvsp[(3) - (3)].defmetatype).name; break;
             }
         }
-#line 3822 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 159:
-#line 1576 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1576 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.defmetatype).token = TK_NAME;
 
-            (yyval.defmetatype).name = (yyvsp[0].text);
+            (yyval.defmetatype).name = (yyvsp[(3) - (3)].text);
         }
-#line 3832 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 160:
-#line 1583 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1583 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
                 if (currentModule->defsupertype != NULL)
                     yyerror("%DefaultSupertype has already been defined for this module");
 
-                currentModule->defsupertype = cacheName(currentSpec, (yyvsp[0].defsupertype).name);
+                currentModule->defsupertype = cacheName(currentSpec, (yyvsp[(2) - (2)].defsupertype).name);
             }
         }
-#line 3846 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 161:
-#line 1594 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1594 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             resetLexerState();
 
-            (yyval.defsupertype).name = (yyvsp[0].text);
+            (yyval.defsupertype).name = (yyvsp[(1) - (1)].text);
         }
-#line 3856 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 162:
-#line 1599 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1599 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.defsupertype) = (yyvsp[-1].defsupertype);
+            (yyval.defsupertype) = (yyvsp[(2) - (3)].defsupertype);
         }
-#line 3864 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 164:
-#line 1605 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1605 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.defsupertype) = (yyvsp[-2].defsupertype);
+            (yyval.defsupertype) = (yyvsp[(1) - (3)].defsupertype);
 
-            switch ((yyvsp[0].defsupertype).token)
+            switch ((yyvsp[(3) - (3)].defsupertype).token)
             {
-            case TK_NAME: (yyval.defsupertype).name = (yyvsp[0].defsupertype).name; break;
+            case TK_NAME: (yyval.defsupertype).name = (yyvsp[(3) - (3)].defsupertype).name; break;
             }
         }
-#line 3877 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 165:
-#line 1615 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1615 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.defsupertype).token = TK_NAME;
 
-            (yyval.defsupertype).name = (yyvsp[0].text);
+            (yyval.defsupertype).name = (yyvsp[(3) - (3)].text);
         }
-#line 3887 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 166:
-#line 1622 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1622 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
                 classDef *ns;
 
                 ns = newClass(currentSpec, namespace_iface, NULL,
-                        fullyQualifiedName((yyvsp[0].hiddenns).name), NULL, NULL, NULL, NULL);
+                        fullyQualifiedName((yyvsp[(2) - (2)].hiddenns).name), NULL, NULL, NULL, NULL);
                 setHiddenNamespace(ns);
             }
         }
-#line 3902 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 167:
-#line 1634 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1634 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             resetLexerState();
 
-            (yyval.hiddenns).name = (yyvsp[0].scpvalp);
+            (yyval.hiddenns).name = (yyvsp[(1) - (1)].scpvalp);
         }
-#line 3912 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 168:
-#line 1639 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1639 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.hiddenns) = (yyvsp[-1].hiddenns);
+            (yyval.hiddenns) = (yyvsp[(2) - (3)].hiddenns);
         }
-#line 3920 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 170:
-#line 1645 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1645 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.hiddenns) = (yyvsp[-2].hiddenns);
+            (yyval.hiddenns) = (yyvsp[(1) - (3)].hiddenns);
 
-            switch ((yyvsp[0].hiddenns).token)
+            switch ((yyvsp[(3) - (3)].hiddenns).token)
             {
-            case TK_NAME: (yyval.hiddenns).name = (yyvsp[0].hiddenns).name; break;
+            case TK_NAME: (yyval.hiddenns).name = (yyvsp[(3) - (3)].hiddenns).name; break;
             }
         }
-#line 3933 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 171:
-#line 1655 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1655 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.hiddenns).token = TK_NAME;
 
-            (yyval.hiddenns).name = (yyvsp[0].scpvalp);
+            (yyval.hiddenns).name = (yyvsp[(3) - (3)].scpvalp);
         }
-#line 3943 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 172:
-#line 1662 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1662 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -3954,109 +4172,99 @@ yyreduce:
                 if (currentModule->fullname != NULL)
                     yyerror("%CompositeModule must appear before any %Module directive");
 
-                setModuleName(currentSpec, currentModule, (yyvsp[-1].compmodule).name);
-                currentModule->docstring = (yyvsp[0].compmodule).docstring;
+                setModuleName(currentSpec, currentModule, (yyvsp[(2) - (3)].compmodule).name);
+                currentModule->docstring = (yyvsp[(3) - (3)].compmodule).docstring;
 
                 setIsComposite(currentModule);
             }
         }
-#line 3964 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 173:
-#line 1680 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1680 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             resetLexerState();
 
-            (yyval.compmodule).name = (yyvsp[0].text);
+            (yyval.compmodule).name = (yyvsp[(1) - (1)].text);
         }
-#line 3974 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 174:
-#line 1685 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1685 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.compmodule) = (yyvsp[-1].compmodule);
+            (yyval.compmodule) = (yyvsp[(2) - (3)].compmodule);
         }
-#line 3982 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 176:
-#line 1691 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1691 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.compmodule) = (yyvsp[-2].compmodule);
+            (yyval.compmodule) = (yyvsp[(1) - (3)].compmodule);
 
-            switch ((yyvsp[0].compmodule).token)
+            switch ((yyvsp[(3) - (3)].compmodule).token)
             {
-            case TK_NAME: (yyval.compmodule).name = (yyvsp[0].compmodule).name; break;
+            case TK_NAME: (yyval.compmodule).name = (yyvsp[(3) - (3)].compmodule).name; break;
             }
         }
-#line 3995 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 177:
-#line 1701 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1701 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.compmodule).token = TK_NAME;
 
-            (yyval.compmodule).name = (yyvsp[0].text);
+            (yyval.compmodule).name = (yyvsp[(3) - (3)].text);
         }
-#line 4005 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 178:
-#line 1708 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1708 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.compmodule).token = 0;
             (yyval.compmodule).docstring = NULL;
         }
-#line 4014 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 179:
-#line 1712 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1712 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.compmodule) = (yyvsp[-2].compmodule);
+            (yyval.compmodule) = (yyvsp[(2) - (4)].compmodule);
         }
-#line 4022 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 181:
-#line 1718 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1718 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.compmodule) = (yyvsp[-1].compmodule);
+            (yyval.compmodule) = (yyvsp[(1) - (2)].compmodule);
 
-            switch ((yyvsp[0].compmodule).token)
+            switch ((yyvsp[(2) - (2)].compmodule).token)
             {
-            case TK_DOCSTRING: (yyval.compmodule).docstring = (yyvsp[0].compmodule).docstring; break;
+            case TK_DOCSTRING: (yyval.compmodule).docstring = (yyvsp[(2) - (2)].compmodule).docstring; break;
             }
         }
-#line 4035 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 182:
-#line 1728 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1728 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.compmodule).token = TK_IF;
         }
-#line 4043 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 183:
-#line 1731 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1731 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.compmodule).token = TK_END;
         }
-#line 4051 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 184:
-#line 1734 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1734 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
                 (yyval.compmodule).token = TK_DOCSTRING;
-                (yyval.compmodule).docstring = (yyvsp[0].docstr);
+                (yyval.compmodule).docstring = (yyvsp[(1) - (1)].docstr);
             }
             else
             {
@@ -4064,81 +4272,75 @@ yyreduce:
                 (yyval.compmodule).docstring = NULL;
             }
         }
-#line 4068 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 185:
-#line 1748 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1748 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            if ((yyvsp[-1].module).name == NULL)
+            if ((yyvsp[(2) - (3)].module).name == NULL)
                 yyerror("%Module must have a 'name' argument");
 
             if (notSkipping())
                 currentModule = configureModule(currentSpec, currentModule,
-                        currentContext.filename, (yyvsp[-1].module).name, (yyvsp[-1].module).c_module,
-                        (yyvsp[-1].module).kwargs, (yyvsp[-1].module).use_arg_names, (yyvsp[-1].module).use_limited_api,
-                        (yyvsp[-1].module).call_super_init, (yyvsp[-1].module).all_raise_py_exc,
-                        (yyvsp[-1].module).def_error_handler, (yyvsp[0].module).docstring);
+                        currentContext.filename, (yyvsp[(2) - (3)].module).name, (yyvsp[(2) - (3)].module).c_module,
+                        (yyvsp[(2) - (3)].module).kwargs, (yyvsp[(2) - (3)].module).use_arg_names, (yyvsp[(2) - (3)].module).use_limited_api,
+                        (yyvsp[(2) - (3)].module).call_super_init, (yyvsp[(2) - (3)].module).all_raise_py_exc,
+                        (yyvsp[(2) - (3)].module).def_error_handler, (yyvsp[(3) - (3)].module).docstring);
         }
-#line 4084 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 186:
-#line 1761 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1761 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {resetLexerState();}
-#line 4090 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 187:
-#line 1761 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1761 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.module).c_module = FALSE;
             (yyval.module).kwargs = defaultKwArgs;
-            (yyval.module).name = (yyvsp[-1].text);
+            (yyval.module).name = (yyvsp[(1) - (2)].text);
             (yyval.module).use_arg_names = FALSE;
             (yyval.module).use_limited_api = FALSE;
             (yyval.module).all_raise_py_exc = FALSE;
             (yyval.module).call_super_init = -1;
             (yyval.module).def_error_handler = NULL;
         }
-#line 4105 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 188:
-#line 1771 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1771 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.module) = (yyvsp[-1].module);
+            (yyval.module) = (yyvsp[(2) - (3)].module);
         }
-#line 4113 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 190:
-#line 1777 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1777 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.module) = (yyvsp[-2].module);
+            (yyval.module) = (yyvsp[(1) - (3)].module);
 
-            switch ((yyvsp[0].module).token)
+            switch ((yyvsp[(3) - (3)].module).token)
             {
-            case TK_KWARGS: (yyval.module).kwargs = (yyvsp[0].module).kwargs; break;
-            case TK_LANGUAGE: (yyval.module).c_module = (yyvsp[0].module).c_module; break;
-            case TK_NAME: (yyval.module).name = (yyvsp[0].module).name; break;
-            case TK_USEARGNAMES: (yyval.module).use_arg_names = (yyvsp[0].module).use_arg_names; break;
-            case TK_USELIMITEDAPI: (yyval.module).use_limited_api = (yyvsp[0].module).use_limited_api; break;
-            case TK_ALLRAISEPYEXC: (yyval.module).all_raise_py_exc = (yyvsp[0].module).all_raise_py_exc; break;
-            case TK_CALLSUPERINIT: (yyval.module).call_super_init = (yyvsp[0].module).call_super_init; break;
-            case TK_DEFERRORHANDLER: (yyval.module).def_error_handler = (yyvsp[0].module).def_error_handler; break;
+            case TK_KWARGS: (yyval.module).kwargs = (yyvsp[(3) - (3)].module).kwargs; break;
+            case TK_LANGUAGE: (yyval.module).c_module = (yyvsp[(3) - (3)].module).c_module; break;
+            case TK_NAME: (yyval.module).name = (yyvsp[(3) - (3)].module).name; break;
+            case TK_USEARGNAMES: (yyval.module).use_arg_names = (yyvsp[(3) - (3)].module).use_arg_names; break;
+            case TK_USELIMITEDAPI: (yyval.module).use_limited_api = (yyvsp[(3) - (3)].module).use_limited_api; break;
+            case TK_ALLRAISEPYEXC: (yyval.module).all_raise_py_exc = (yyvsp[(3) - (3)].module).all_raise_py_exc; break;
+            case TK_CALLSUPERINIT: (yyval.module).call_super_init = (yyvsp[(3) - (3)].module).call_super_init; break;
+            case TK_DEFERRORHANDLER: (yyval.module).def_error_handler = (yyvsp[(3) - (3)].module).def_error_handler; break;
             }
         }
-#line 4133 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 191:
-#line 1794 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1794 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.module).token = TK_KWARGS;
 
             (yyval.module).c_module = FALSE;
-            (yyval.module).kwargs = convertKwArgs((yyvsp[0].text));
+            (yyval.module).kwargs = convertKwArgs((yyvsp[(3) - (3)].text));
             (yyval.module).name = NULL;
             (yyval.module).use_arg_names = FALSE;
             (yyval.module).use_limited_api = FALSE;
@@ -4146,17 +4348,16 @@ yyreduce:
             (yyval.module).call_super_init = -1;
             (yyval.module).def_error_handler = NULL;
         }
-#line 4150 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 192:
-#line 1806 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1806 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.module).token = TK_LANGUAGE;
 
-            if (strcmp((yyvsp[0].text), "C++") == 0)
+            if (strcmp((yyvsp[(3) - (3)].text), "C++") == 0)
                 (yyval.module).c_module = FALSE;
-            else if (strcmp((yyvsp[0].text), "C") == 0)
+            else if (strcmp((yyvsp[(3) - (3)].text), "C") == 0)
                 (yyval.module).c_module = TRUE;
             else
                 yyerror("%Module 'language' argument must be either \"C++\" or \"C\"");
@@ -4169,45 +4370,42 @@ yyreduce:
             (yyval.module).call_super_init = -1;
             (yyval.module).def_error_handler = NULL;
         }
-#line 4173 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 193:
-#line 1824 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1824 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.module).token = TK_NAME;
 
             (yyval.module).c_module = FALSE;
             (yyval.module).kwargs = defaultKwArgs;
-            (yyval.module).name = (yyvsp[0].text);
+            (yyval.module).name = (yyvsp[(3) - (3)].text);
             (yyval.module).use_arg_names = FALSE;
             (yyval.module).use_limited_api = FALSE;
             (yyval.module).all_raise_py_exc = FALSE;
             (yyval.module).call_super_init = -1;
             (yyval.module).def_error_handler = NULL;
         }
-#line 4190 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 194:
-#line 1836 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1836 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.module).token = TK_USEARGNAMES;
 
             (yyval.module).c_module = FALSE;
             (yyval.module).kwargs = defaultKwArgs;
             (yyval.module).name = NULL;
-            (yyval.module).use_arg_names = (yyvsp[0].boolean);
+            (yyval.module).use_arg_names = (yyvsp[(3) - (3)].boolean);
             (yyval.module).use_limited_api = FALSE;
             (yyval.module).all_raise_py_exc = FALSE;
             (yyval.module).call_super_init = -1;
             (yyval.module).def_error_handler = NULL;
         }
-#line 4207 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 195:
-#line 1848 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1848 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.module).token = TK_USELIMITEDAPI;
 
@@ -4215,16 +4413,15 @@ yyreduce:
             (yyval.module).kwargs = defaultKwArgs;
             (yyval.module).name = NULL;
             (yyval.module).use_arg_names = FALSE;
-            (yyval.module).use_limited_api = (yyvsp[0].boolean);
+            (yyval.module).use_limited_api = (yyvsp[(3) - (3)].boolean);
             (yyval.module).all_raise_py_exc = FALSE;
             (yyval.module).call_super_init = -1;
             (yyval.module).def_error_handler = NULL;
         }
-#line 4224 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 196:
-#line 1860 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1860 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.module).token = TK_ALLRAISEPYEXC;
 
@@ -4233,15 +4430,14 @@ yyreduce:
             (yyval.module).name = NULL;
             (yyval.module).use_arg_names = FALSE;
             (yyval.module).use_limited_api = FALSE;
-            (yyval.module).all_raise_py_exc = (yyvsp[0].boolean);
+            (yyval.module).all_raise_py_exc = (yyvsp[(3) - (3)].boolean);
             (yyval.module).call_super_init = -1;
             (yyval.module).def_error_handler = NULL;
         }
-#line 4241 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 197:
-#line 1872 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1872 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.module).token = TK_CALLSUPERINIT;
 
@@ -4251,14 +4447,13 @@ yyreduce:
             (yyval.module).use_arg_names = FALSE;
             (yyval.module).use_limited_api = FALSE;
             (yyval.module).all_raise_py_exc = FALSE;
-            (yyval.module).call_super_init = (yyvsp[0].boolean);
+            (yyval.module).call_super_init = (yyvsp[(3) - (3)].boolean);
             (yyval.module).def_error_handler = NULL;
         }
-#line 4258 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 198:
-#line 1884 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1884 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.module).token = TK_DEFERRORHANDLER;
 
@@ -4269,72 +4464,65 @@ yyreduce:
             (yyval.module).use_limited_api = FALSE;
             (yyval.module).all_raise_py_exc = FALSE;
             (yyval.module).call_super_init = -1;
-            (yyval.module).def_error_handler = (yyvsp[0].text);
+            (yyval.module).def_error_handler = (yyvsp[(3) - (3)].text);
         }
-#line 4275 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 199:
-#line 1898 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1898 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.module).token = 0;
             (yyval.module).docstring = NULL;
         }
-#line 4284 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 200:
-#line 1902 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1902 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.module) = (yyvsp[-2].module);
+            (yyval.module) = (yyvsp[(2) - (4)].module);
         }
-#line 4292 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 202:
-#line 1908 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1908 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.module) = (yyvsp[-1].module);
+            (yyval.module) = (yyvsp[(1) - (2)].module);
 
-            switch ((yyvsp[0].module).token)
+            switch ((yyvsp[(2) - (2)].module).token)
             {
-            case TK_DOCSTRING: (yyval.module).docstring = (yyvsp[0].module).docstring; break;
+            case TK_DOCSTRING: (yyval.module).docstring = (yyvsp[(2) - (2)].module).docstring; break;
             }
         }
-#line 4305 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 203:
-#line 1918 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1918 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.module).token = TK_IF;
         }
-#line 4313 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 204:
-#line 1921 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1921 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.module).token = TK_END;
         }
-#line 4321 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 205:
-#line 1924 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1924 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.module).token = TK_AUTOPYNAME;
         }
-#line 4329 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 206:
-#line 1927 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1927 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
                 (yyval.module).token = TK_DOCSTRING;
-                (yyval.module).docstring = (yyvsp[0].docstr);
+                (yyval.module).docstring = (yyvsp[(1) - (1)].docstr);
             }
             else
             {
@@ -4342,11 +4530,10 @@ yyreduce:
                 (yyval.module).docstring = NULL;
             }
         }
-#line 4346 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 208:
-#line 1942 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1942 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             /*
              * The grammar design is a bit broken and this is the easiest way
@@ -4355,402 +4542,360 @@ yyreduce:
 
             char *cp;
 
-            for (cp = (yyvsp[0].text); *cp != '\0'; ++cp)
+            for (cp = (yyvsp[(1) - (1)].text); *cp != '\0'; ++cp)
                 if (*cp != '.' && *cp != '_' && !isalnum(*cp))
                     yyerror("Invalid character in name");
 
-            (yyval.text) = (yyvsp[0].text);
+            (yyval.text) = (yyvsp[(1) - (1)].text);
         }
-#line 4365 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 209:
-#line 1958 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1958 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.number) = -1;
         }
-#line 4373 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 211:
-#line 1964 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1964 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            if ((yyvsp[0].include).name == NULL)
+            if ((yyvsp[(2) - (2)].include).name == NULL)
                 yyerror("%Include must have a 'name' argument");
 
             if (notSkipping())
-                parseFile(NULL, (yyvsp[0].include).name, NULL, (yyvsp[0].include).optional);
+                parseFile(NULL, (yyvsp[(2) - (2)].include).name, NULL, (yyvsp[(2) - (2)].include).optional);
         }
-#line 4385 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 212:
-#line 1973 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1973 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             resetLexerState();
 
-            (yyval.include).name = (yyvsp[0].text);
+            (yyval.include).name = (yyvsp[(1) - (1)].text);
             (yyval.include).optional = FALSE;
         }
-#line 4396 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 213:
-#line 1979 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1979 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.include) = (yyvsp[-1].include);
+            (yyval.include) = (yyvsp[(2) - (3)].include);
         }
-#line 4404 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 215:
-#line 1985 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1985 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.include) = (yyvsp[-2].include);
+            (yyval.include) = (yyvsp[(1) - (3)].include);
 
-            switch ((yyvsp[0].include).token)
+            switch ((yyvsp[(3) - (3)].include).token)
             {
-            case TK_NAME: (yyval.include).name = (yyvsp[0].include).name; break;
-            case TK_OPTIONAL: (yyval.include).optional = (yyvsp[0].include).optional; break;
+            case TK_NAME: (yyval.include).name = (yyvsp[(3) - (3)].include).name; break;
+            case TK_OPTIONAL: (yyval.include).optional = (yyvsp[(3) - (3)].include).optional; break;
             }
         }
-#line 4418 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 216:
-#line 1996 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 1996 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.include).token = TK_NAME;
 
-            (yyval.include).name = (yyvsp[0].text);
+            (yyval.include).name = (yyvsp[(3) - (3)].text);
             (yyval.include).optional = FALSE;
         }
-#line 4429 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 217:
-#line 2002 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2002 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.include).token = TK_OPTIONAL;
 
             (yyval.include).name = NULL;
-            (yyval.include).optional = (yyvsp[0].boolean);
+            (yyval.include).optional = (yyvsp[(3) - (3)].boolean);
         }
-#line 4440 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 218:
-#line 2010 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2010 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
-                newImport((yyvsp[0].import).name);
+                newImport((yyvsp[(2) - (2)].import).name);
         }
-#line 4449 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 219:
-#line 2016 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2016 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             resetLexerState();
 
-            (yyval.import).name = (yyvsp[0].text);
+            (yyval.import).name = (yyvsp[(1) - (1)].text);
         }
-#line 4459 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 220:
-#line 2021 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2021 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.import) = (yyvsp[-1].import);
+            (yyval.import) = (yyvsp[(2) - (3)].import);
         }
-#line 4467 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 222:
-#line 2027 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2027 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.import) = (yyvsp[-2].import);
+            (yyval.import) = (yyvsp[(1) - (3)].import);
 
-            switch ((yyvsp[0].import).token)
+            switch ((yyvsp[(3) - (3)].import).token)
             {
-            case TK_NAME: (yyval.import).name = (yyvsp[0].import).name; break;
+            case TK_NAME: (yyval.import).name = (yyvsp[(3) - (3)].import).name; break;
             }
         }
-#line 4480 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 223:
-#line 2037 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2037 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.import).token = TK_NAME;
 
-            (yyval.import).name = (yyvsp[0].text);
+            (yyval.import).name = (yyvsp[(3) - (3)].text);
         }
-#line 4490 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 224:
-#line 2044 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2044 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
-                appendCodeBlock(&currentModule->copying, (yyvsp[0].codeb));
+                appendCodeBlock(&currentModule->copying, (yyvsp[(2) - (2)].codeb));
         }
-#line 4499 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 225:
-#line 2050 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2050 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
-                appendCodeBlock(&currentSpec->exphdrcode, (yyvsp[0].codeb));
+                appendCodeBlock(&currentSpec->exphdrcode, (yyvsp[(2) - (2)].codeb));
         }
-#line 4508 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 226:
-#line 2056 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2056 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
-                appendCodeBlock(&currentModule->hdrcode, (yyvsp[0].codeb));
+                appendCodeBlock(&currentModule->hdrcode, (yyvsp[(2) - (2)].codeb));
         }
-#line 4517 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 227:
-#line 2062 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2062 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.codeb) = (yyvsp[0].codeb);
+            (yyval.codeb) = (yyvsp[(2) - (2)].codeb);
         }
-#line 4525 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 228:
-#line 2067 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2067 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.codeb) = (yyvsp[0].codeb);
+            (yyval.codeb) = (yyvsp[(2) - (2)].codeb);
         }
-#line 4533 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 229:
-#line 2072 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2072 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.codeb) = (yyvsp[0].codeb);
+            (yyval.codeb) = (yyvsp[(2) - (2)].codeb);
         }
-#line 4541 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 230:
-#line 2077 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2077 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.codeb) = (yyvsp[0].codeb);
+            (yyval.codeb) = (yyvsp[(2) - (2)].codeb);
         }
-#line 4549 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 231:
-#line 2082 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2082 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.codeb) = (yyvsp[0].codeb);
+            (yyval.codeb) = (yyvsp[(2) - (2)].codeb);
         }
-#line 4557 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 232:
-#line 2087 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2087 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.codeb) = (yyvsp[0].codeb);
+            (yyval.codeb) = (yyvsp[(2) - (2)].codeb);
         }
-#line 4565 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 233:
-#line 2092 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2092 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.codeb) = (yyvsp[0].codeb);
+            (yyval.codeb) = (yyvsp[(2) - (2)].codeb);
         }
-#line 4573 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 234:
-#line 2097 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2097 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.codeb) = (yyvsp[0].codeb);
+            (yyval.codeb) = (yyvsp[(2) - (2)].codeb);
         }
-#line 4581 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 235:
-#line 2102 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2102 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.codeb) = (yyvsp[0].codeb);
+            (yyval.codeb) = (yyvsp[(2) - (2)].codeb);
         }
-#line 4589 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 236:
-#line 2107 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2107 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.codeb) = (yyvsp[0].codeb);
+            (yyval.codeb) = (yyvsp[(2) - (2)].codeb);
         }
-#line 4597 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 237:
-#line 2112 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2112 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.codeb) = (yyvsp[0].codeb);
+            (yyval.codeb) = (yyvsp[(2) - (2)].codeb);
         }
-#line 4605 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 238:
-#line 2117 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2117 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.codeb) = (yyvsp[0].codeb);
+            (yyval.codeb) = (yyvsp[(2) - (2)].codeb);
         }
-#line 4613 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 239:
-#line 2122 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2122 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
-                appendCodeBlock(&currentModule->cppcode, (yyvsp[0].codeb));
+                appendCodeBlock(&currentModule->cppcode, (yyvsp[(2) - (2)].codeb));
         }
-#line 4622 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 240:
-#line 2128 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2128 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.codeb) = (yyvsp[0].codeb);
+            (yyval.codeb) = (yyvsp[(2) - (2)].codeb);
         }
-#line 4630 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 241:
-#line 2133 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2133 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
-                appendCodeBlock(&currentModule->preinitcode, (yyvsp[0].codeb));
+                appendCodeBlock(&currentModule->preinitcode, (yyvsp[(2) - (2)].codeb));
         }
-#line 4639 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 242:
-#line 2139 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2139 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
-                appendCodeBlock(&currentModule->initcode, (yyvsp[0].codeb));
+                appendCodeBlock(&currentModule->initcode, (yyvsp[(2) - (2)].codeb));
         }
-#line 4648 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 243:
-#line 2145 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2145 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
-                appendCodeBlock(&currentModule->postinitcode, (yyvsp[0].codeb));
+                appendCodeBlock(&currentModule->postinitcode, (yyvsp[(2) - (2)].codeb));
         }
-#line 4657 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 244:
-#line 2151 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2151 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
-                appendCodeBlock(&currentModule->unitcode, (yyvsp[0].codeb));
+                appendCodeBlock(&currentModule->unitcode, (yyvsp[(2) - (2)].codeb));
         }
-#line 4666 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 245:
-#line 2157 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2157 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
-                appendCodeBlock(&currentModule->unitpostinccode, (yyvsp[0].codeb));
+                appendCodeBlock(&currentModule->unitpostinccode, (yyvsp[(2) - (2)].codeb));
         }
-#line 4675 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 246:
-#line 2163 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2163 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping() && !inMainModule())
-                appendCodeBlock(&currentSpec->exptypehintcode, (yyvsp[0].codeb));
+                appendCodeBlock(&currentSpec->exptypehintcode, (yyvsp[(2) - (2)].codeb));
         }
-#line 4684 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 247:
-#line 2169 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2169 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
-                appendCodeBlock(&currentModule->typehintcode, (yyvsp[0].codeb));
+                appendCodeBlock(&currentModule->typehintcode, (yyvsp[(2) - (2)].codeb));
         }
-#line 4693 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 248:
-#line 2175 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2175 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.codeb) = (yyvsp[0].codeb);
+            (yyval.codeb) = (yyvsp[(2) - (2)].codeb);
         }
-#line 4701 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 249:
-#line 2180 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2180 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
-                addAutoPyName(currentModule, (yyvsp[0].autopyname).remove_leading);
+                addAutoPyName(currentModule, (yyvsp[(2) - (2)].autopyname).remove_leading);
         }
-#line 4710 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 250:
-#line 2186 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2186 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.autopyname) = (yyvsp[-1].autopyname);
+            (yyval.autopyname) = (yyvsp[(2) - (3)].autopyname);
         }
-#line 4718 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 252:
-#line 2192 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2192 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.autopyname) = (yyvsp[-2].autopyname);
+            (yyval.autopyname) = (yyvsp[(1) - (3)].autopyname);
 
-            switch ((yyvsp[0].autopyname).token)
+            switch ((yyvsp[(3) - (3)].autopyname).token)
             {
-            case TK_REMOVELEADING: (yyval.autopyname).remove_leading = (yyvsp[0].autopyname).remove_leading; break;
+            case TK_REMOVELEADING: (yyval.autopyname).remove_leading = (yyvsp[(3) - (3)].autopyname).remove_leading; break;
             }
         }
-#line 4731 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 253:
-#line 2202 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2202 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.autopyname).token = TK_REMOVELEADING;
 
-            (yyval.autopyname).remove_leading = (yyvsp[0].text);
+            (yyval.autopyname).remove_leading = (yyvsp[(3) - (3)].text);
         }
-#line 4741 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 254:
-#line 2209 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2209 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.docstr) = sipMalloc(sizeof(docstringDef));
 
-            (yyval.docstr)->signature = (yyvsp[-1].docstring).signature;
-            (yyval.docstr)->text = (yyvsp[0].codeb)->frag;
-            free((yyvsp[0].codeb));
+            (yyval.docstr)->signature = (yyvsp[(2) - (3)].docstring).signature;
+            (yyval.docstr)->text = (yyvsp[(3) - (3)].codeb)->frag;
+            free((yyvsp[(3) - (3)].codeb));
 
             /* Format the docstring. */
-            if ((yyvsp[-1].docstring).format == deindented)
+            if ((yyvsp[(2) - (3)].docstring).format == deindented)
             {
                 const char *cp;
                 char *dp;
@@ -4824,166 +4969,151 @@ yyreduce:
                 *dp = '\0';
             }
         }
-#line 4828 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 255:
-#line 2293 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2293 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.docstring).format = currentModule->defdocstringfmt;
             (yyval.docstring).signature = currentModule->defdocstringsig;
         }
-#line 4837 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 256:
-#line 2297 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2297 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             resetLexerState();
 
-            (yyval.docstring).format = convertFormat((yyvsp[0].text));
+            (yyval.docstring).format = convertFormat((yyvsp[(1) - (1)].text));
             (yyval.docstring).signature = currentModule->defdocstringsig;
         }
-#line 4848 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 257:
-#line 2303 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2303 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.docstring) = (yyvsp[-1].docstring);
+            (yyval.docstring) = (yyvsp[(2) - (3)].docstring);
         }
-#line 4856 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 259:
-#line 2309 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2309 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.docstring) = (yyvsp[-2].docstring);
+            (yyval.docstring) = (yyvsp[(1) - (3)].docstring);
 
-            switch ((yyvsp[0].docstring).token)
+            switch ((yyvsp[(3) - (3)].docstring).token)
             {
-            case TK_FORMAT: (yyval.docstring).format = (yyvsp[0].docstring).format; break;
-            case TK_SIGNATURE: (yyval.docstring).signature = (yyvsp[0].docstring).signature; break;
+            case TK_FORMAT: (yyval.docstring).format = (yyvsp[(3) - (3)].docstring).format; break;
+            case TK_SIGNATURE: (yyval.docstring).signature = (yyvsp[(3) - (3)].docstring).signature; break;
             }
         }
-#line 4870 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 260:
-#line 2320 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2320 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.docstring).token = TK_FORMAT;
 
-            (yyval.docstring).format = convertFormat((yyvsp[0].text));
+            (yyval.docstring).format = convertFormat((yyvsp[(3) - (3)].text));
             (yyval.docstring).signature = currentModule->defdocstringsig;
         }
-#line 4881 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 261:
-#line 2326 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2326 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.docstring).token = TK_SIGNATURE;
 
             (yyval.docstring).format = currentModule->defdocstringfmt;
-            (yyval.docstring).signature = convertSignature((yyvsp[0].text));
+            (yyval.docstring).signature = convertSignature((yyvsp[(3) - (3)].text));
         }
-#line 4892 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 262:
-#line 2334 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2334 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.docstr) = NULL;
         }
-#line 4900 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 264:
-#line 2340 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2340 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            if ((yyvsp[-1].extract).id == NULL)
+            if ((yyvsp[(2) - (3)].extract).id == NULL)
                 yyerror("%Extract must have an 'id' argument");
 
             if (notSkipping())
-                addExtractPart(currentSpec, (yyvsp[-1].extract).id, (yyvsp[-1].extract).order, (yyvsp[0].codeb));
+                addExtractPart(currentSpec, (yyvsp[(2) - (3)].extract).id, (yyvsp[(2) - (3)].extract).order, (yyvsp[(3) - (3)].codeb));
         }
-#line 4912 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 265:
-#line 2349 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2349 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             resetLexerState();
 
-            (yyval.extract).id = (yyvsp[0].text);
+            (yyval.extract).id = (yyvsp[(1) - (1)].text);
             (yyval.extract).order = -1;
         }
-#line 4923 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 266:
-#line 2355 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2355 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.extract) = (yyvsp[-1].extract);
+            (yyval.extract) = (yyvsp[(2) - (3)].extract);
         }
-#line 4931 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 268:
-#line 2361 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2361 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.extract) = (yyvsp[-2].extract);
+            (yyval.extract) = (yyvsp[(1) - (3)].extract);
 
-            switch ((yyvsp[0].extract).token)
+            switch ((yyvsp[(3) - (3)].extract).token)
             {
-            case TK_ID: (yyval.extract).id = (yyvsp[0].extract).id; break;
-            case TK_ORDER: (yyval.extract).order = (yyvsp[0].extract).order; break;
+            case TK_ID: (yyval.extract).id = (yyvsp[(3) - (3)].extract).id; break;
+            case TK_ORDER: (yyval.extract).order = (yyvsp[(3) - (3)].extract).order; break;
             }
         }
-#line 4945 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 269:
-#line 2372 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2372 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.extract).token = TK_ID;
 
-            (yyval.extract).id = (yyvsp[0].text);
+            (yyval.extract).id = (yyvsp[(3) - (3)].text);
             (yyval.extract).order = -1;
         }
-#line 4956 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 270:
-#line 2378 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2378 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.extract).token = TK_ORDER;
 
-            if ((yyvsp[0].number) < 0)
+            if ((yyvsp[(3) - (3)].number) < 0)
                 yyerror("The 'order' of an %Extract directive must not be negative");
 
             (yyval.extract).id = NULL;
-            (yyval.extract).order = (yyvsp[0].number);
+            (yyval.extract).order = (yyvsp[(3) - (3)].number);
         }
-#line 4970 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 273:
-#line 2393 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2393 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.codeb) = (yyvsp[-1].codeb);
+            (yyval.codeb) = (yyvsp[(1) - (2)].codeb);
 
-            append(&(yyval.codeb)->frag, (yyvsp[0].codeb)->frag);
+            append(&(yyval.codeb)->frag, (yyvsp[(2) - (2)].codeb)->frag);
 
-            free((yyvsp[0].codeb)->frag);
-            free((yyvsp[0].codeb));
+            free((yyvsp[(2) - (2)].codeb)->frag);
+            free((yyvsp[(2) - (2)].codeb));
         }
-#line 4983 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 274:
-#line 2403 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2403 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -4994,63 +5124,57 @@ yyreduce:
                     NULL
                 };
 
-                checkAnnos(&(yyvsp[0].optflags), annos);
+                checkAnnos(&(yyvsp[(4) - (4)].optflags), annos);
 
                 if (sectionFlags != 0 && (sectionFlags & ~(SECT_IS_PUBLIC | SECT_IS_PROT)) != 0)
                     yyerror("Class enums must be in the public or protected sections");
 
-                if (currentSpec->genc && (yyvsp[-2].boolean))
+                if (currentSpec->genc && (yyvsp[(2) - (4)].boolean))
                     yyerror("Scoped enums not allowed in a C module");
 
                 currentEnum = newEnum(currentSpec, currentModule,
-                        currentMappedType, (yyvsp[-1].text), &(yyvsp[0].optflags), sectionFlags, (yyvsp[-2].boolean));
+                        currentMappedType, (yyvsp[(3) - (4)].text), &(yyvsp[(4) - (4)].optflags), sectionFlags, (yyvsp[(2) - (4)].boolean));
             }
         }
-#line 5010 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 276:
-#line 2427 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2427 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.boolean) = FALSE;
         }
-#line 5018 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 277:
-#line 2430 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2430 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.boolean) = TRUE;
         }
-#line 5026 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 278:
-#line 2433 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2433 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.boolean) = TRUE;
         }
-#line 5034 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 279:
-#line 2438 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2438 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.text) = NULL;
         }
-#line 5042 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 280:
-#line 2441 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2441 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.text) = (yyvsp[0].text);
+            (yyval.text) = (yyvsp[(1) - (1)].text);
         }
-#line 5050 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 287:
-#line 2456 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2456 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -5062,15 +5186,15 @@ yyreduce:
 
                 enumMemberDef *emd, **tail;
 
-                checkAnnos(&(yyvsp[-1].optflags), annos);
+                checkAnnos(&(yyvsp[(3) - (4)].optflags), annos);
 
                 /* Note that we don't use the assigned value. */
                 emd = sipMalloc(sizeof (enumMemberDef));
 
                 emd->pyname = cacheName(currentSpec,
-                        getPythonName(currentModule, &(yyvsp[-1].optflags), (yyvsp[-3].text)));
-                emd->cname = (yyvsp[-3].text);
-                emd->no_typehint = getNoTypeHint(&(yyvsp[-1].optflags));
+                        getPythonName(currentModule, &(yyvsp[(3) - (4)].optflags), (yyvsp[(1) - (4)].text)));
+                emd->cname = (yyvsp[(1) - (4)].text);
+                emd->no_typehint = getNoTypeHint(&(yyvsp[(3) - (4)].optflags));
                 emd->ed = currentEnum;
                 emd->platforms = currentPlatforms;
                 emd->next = NULL;
@@ -5093,232 +5217,207 @@ yyreduce:
                     setIsUsedName(emd->pyname);
             }
         }
-#line 5097 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 292:
-#line 2508 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2508 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.valp) = NULL;
         }
-#line 5105 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 293:
-#line 2511 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2511 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.valp) = (yyvsp[0].valp);
+            (yyval.valp) = (yyvsp[(2) - (2)].valp);
         }
-#line 5113 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 295:
-#line 2517 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2517 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             valueDef *vd;
  
-            if ((yyvsp[-2].valp) -> vtype == string_value || (yyvsp[0].valp) -> vtype == string_value)
+            if ((yyvsp[(1) - (3)].valp) -> vtype == string_value || (yyvsp[(3) - (3)].valp) -> vtype == string_value)
                 yyerror("Invalid binary operator for string");
  
             /* Find the last value in the existing expression. */
  
-            for (vd = (yyvsp[-2].valp); vd -> next != NULL; vd = vd -> next)
+            for (vd = (yyvsp[(1) - (3)].valp); vd -> next != NULL; vd = vd -> next)
                 ;
  
-            vd -> vbinop = (yyvsp[-1].qchar);
-            vd -> next = (yyvsp[0].valp);
+            vd -> vbinop = (yyvsp[(2) - (3)].qchar);
+            vd -> next = (yyvsp[(3) - (3)].valp);
 
-            (yyval.valp) = (yyvsp[-2].valp);
+            (yyval.valp) = (yyvsp[(1) - (3)].valp);
         }
-#line 5134 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 296:
-#line 2535 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2535 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.qchar) = '-';
         }
-#line 5142 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 297:
-#line 2538 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2538 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.qchar) = '+';
         }
-#line 5150 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 298:
-#line 2541 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2541 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.qchar) = '*';
         }
-#line 5158 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 299:
-#line 2544 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2544 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.qchar) = '/';
         }
-#line 5166 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 300:
-#line 2547 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2547 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.qchar) = '&';
         }
-#line 5174 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 301:
-#line 2550 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2550 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.qchar) = '|';
         }
-#line 5182 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 302:
-#line 2555 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2555 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.qchar) = '\0';
         }
-#line 5190 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 303:
-#line 2558 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2558 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.qchar) = '!';
         }
-#line 5198 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 304:
-#line 2561 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2561 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.qchar) = '~';
         }
-#line 5206 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 305:
-#line 2564 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2564 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.qchar) = '-';
         }
-#line 5214 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 306:
-#line 2567 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2567 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.qchar) = '+';
         }
-#line 5222 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 307:
-#line 2570 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2570 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.qchar) = '*';
         }
-#line 5230 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 308:
-#line 2573 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2573 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.qchar) = '&';
         }
-#line 5238 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 309:
-#line 2578 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2578 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            if ((yyvsp[-1].qchar) != '\0' && (yyvsp[0].value).vtype == string_value)
+            if ((yyvsp[(2) - (3)].qchar) != '\0' && (yyvsp[(3) - (3)].value).vtype == string_value)
                 yyerror("Invalid unary operator for string");
  
             /* Convert the value to a simple expression on the heap. */
             (yyval.valp) = sipMalloc(sizeof (valueDef));
  
-            *(yyval.valp) = (yyvsp[0].value);
-            (yyval.valp)->vunop = (yyvsp[-1].qchar);
+            *(yyval.valp) = (yyvsp[(3) - (3)].value);
+            (yyval.valp)->vunop = (yyvsp[(2) - (3)].qchar);
             (yyval.valp)->vbinop = '\0';
-            (yyval.valp)->cast = (yyvsp[-2].scpvalp);
+            (yyval.valp)->cast = (yyvsp[(1) - (3)].scpvalp);
             (yyval.valp)->next = NULL;
         }
-#line 5256 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 310:
-#line 2593 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2593 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.scpvalp) = NULL;
         }
-#line 5264 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 311:
-#line 2596 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2596 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.scpvalp) = (yyvsp[-1].scpvalp);
+            (yyval.scpvalp) = (yyvsp[(2) - (3)].scpvalp);
         }
-#line 5272 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 312:
-#line 2601 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2601 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (currentSpec->genc)
                 yyerror("Scoped names are not allowed in a C module");
 
-            (yyval.scpvalp) = scopeScopedName(NULL, (yyvsp[0].scpvalp));
+            (yyval.scpvalp) = scopeScopedName(NULL, (yyvsp[(2) - (2)].scpvalp));
         }
-#line 5283 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 315:
-#line 2611 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2611 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (currentSpec->genc)
                 yyerror("Scoped names are not allowed in a C module");
 
-            appendScopedName(&(yyvsp[-2].scpvalp), (yyvsp[0].scpvalp));
+            appendScopedName(&(yyvsp[(1) - (3)].scpvalp), (yyvsp[(3) - (3)].scpvalp));
         }
-#line 5294 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 316:
-#line 2619 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2619 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.scpvalp) = text2scopePart((yyvsp[0].text));
+            (yyval.scpvalp) = text2scopePart((yyvsp[(1) - (1)].text));
         }
-#line 5302 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 317:
-#line 2624 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2624 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.boolean) = TRUE;
         }
-#line 5310 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 318:
-#line 2627 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2627 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.boolean) = FALSE;
         }
-#line 5318 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 319:
-#line 2632 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2632 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             /*
              * We let the C++ compiler decide if the value is a valid one - no
@@ -5326,111 +5425,100 @@ yyreduce:
              */
 
             (yyval.value).vtype = scoped_value;
-            (yyval.value).u.vscp = (yyvsp[0].scpvalp);
+            (yyval.value).u.vscp = (yyvsp[(1) - (1)].scpvalp);
         }
-#line 5332 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 320:
-#line 2641 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2641 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             fcallDef *fcd;
 
             fcd = sipMalloc(sizeof (fcallDef));
-            *fcd = (yyvsp[-1].fcall);
-            fcd -> type = (yyvsp[-3].memArg);
+            *fcd = (yyvsp[(3) - (4)].fcall);
+            fcd -> type = (yyvsp[(1) - (4)].memArg);
 
             (yyval.value).vtype = fcall_value;
             (yyval.value).u.fcd = fcd;
         }
-#line 5347 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 321:
-#line 2651 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2651 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.value).vtype = empty_value;
         }
-#line 5355 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 322:
-#line 2654 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2654 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.value).vtype = real_value;
-            (yyval.value).u.vreal = (yyvsp[0].real);
+            (yyval.value).u.vreal = (yyvsp[(1) - (1)].real);
         }
-#line 5364 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 323:
-#line 2658 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2658 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.value).vtype = numeric_value;
-            (yyval.value).u.vnum = (yyvsp[0].number);
+            (yyval.value).u.vnum = (yyvsp[(1) - (1)].number);
         }
-#line 5373 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 324:
-#line 2662 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2662 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.value).vtype = numeric_value;
-            (yyval.value).u.vnum = (yyvsp[0].boolean);
+            (yyval.value).u.vnum = (yyvsp[(1) - (1)].boolean);
         }
-#line 5382 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 325:
-#line 2666 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2666 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.value).vtype = numeric_value;
             (yyval.value).u.vnum = 0;
         }
-#line 5391 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 326:
-#line 2670 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2670 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.value).vtype = string_value;
-            (yyval.value).u.vstr = (yyvsp[0].text);
+            (yyval.value).u.vstr = (yyvsp[(1) - (1)].text);
         }
-#line 5400 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 327:
-#line 2674 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2674 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.value).vtype = qchar_value;
-            (yyval.value).u.vqchar = (yyvsp[0].qchar);
+            (yyval.value).u.vqchar = (yyvsp[(1) - (1)].qchar);
         }
-#line 5409 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 328:
-#line 2680 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2680 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             /* No values. */
 
             (yyval.fcall).nrArgs = 0;
         }
-#line 5419 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 329:
-#line 2685 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2685 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             /* The single or first expression. */
 
-            (yyval.fcall).args[0] = (yyvsp[0].valp);
+            (yyval.fcall).args[0] = (yyvsp[(1) - (1)].valp);
             (yyval.fcall).nrArgs = 1;
         }
-#line 5430 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 330:
-#line 2691 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2691 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             /* Check that it wasn't ...(,expression...). */
 
@@ -5439,19 +5527,18 @@ yyreduce:
 
             /* Check there is room. */
 
-            if ((yyvsp[-2].fcall).nrArgs == MAX_NR_ARGS)
+            if ((yyvsp[(1) - (3)].fcall).nrArgs == MAX_NR_ARGS)
                 yyerror("Internal error - increase the value of MAX_NR_ARGS");
 
-            (yyval.fcall) = (yyvsp[-2].fcall);
+            (yyval.fcall) = (yyvsp[(1) - (3)].fcall);
 
-            (yyval.fcall).args[(yyval.fcall).nrArgs] = (yyvsp[0].valp);
+            (yyval.fcall).args[(yyval.fcall).nrArgs] = (yyvsp[(3) - (3)].valp);
             (yyval.fcall).nrArgs++;
         }
-#line 5451 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 331:
-#line 2709 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2709 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -5467,17 +5554,16 @@ yyreduce:
                     NULL
                 };
 
-                checkAnnos(&(yyvsp[-2].optflags), annos);
+                checkAnnos(&(yyvsp[(4) - (6)].optflags), annos);
 
-                applyTypeFlags(currentModule, &(yyvsp[-4].memArg), &(yyvsp[-2].optflags));
-                newTypedef(currentSpec, currentModule, (yyvsp[-3].text), &(yyvsp[-4].memArg), &(yyvsp[-2].optflags), (yyvsp[0].docstr));
+                applyTypeFlags(currentModule, &(yyvsp[(2) - (6)].memArg), &(yyvsp[(4) - (6)].optflags));
+                newTypedef(currentSpec, currentModule, (yyvsp[(3) - (6)].text), &(yyvsp[(2) - (6)].memArg), &(yyvsp[(4) - (6)].optflags), (yyvsp[(6) - (6)].docstr));
             }
         }
-#line 5477 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 332:
-#line 2730 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2730 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -5495,42 +5581,40 @@ yyreduce:
                 signatureDef *sig;
                 argDef ftype;
 
-                checkAnnos(&(yyvsp[-2].optflags), annos);
+                checkAnnos(&(yyvsp[(10) - (12)].optflags), annos);
 
-                applyTypeFlags(currentModule, &(yyvsp[-10].memArg), &(yyvsp[-2].optflags));
+                applyTypeFlags(currentModule, &(yyvsp[(2) - (12)].memArg), &(yyvsp[(10) - (12)].optflags));
 
                 memset(&ftype, 0, sizeof (argDef));
 
                 /* Create the full signature on the heap. */
                 sig = sipMalloc(sizeof (signatureDef));
-                *sig = (yyvsp[-4].signature);
-                sig->result = (yyvsp[-10].memArg);
+                *sig = (yyvsp[(8) - (12)].signature);
+                sig->result = (yyvsp[(2) - (12)].memArg);
 
                 /* Create the full type. */
                 ftype.atype = function_type;
                 ftype.nrderefs = 1;
                 ftype.u.sa = sig;
 
-                newTypedef(currentSpec, currentModule, (yyvsp[-7].text), &ftype, &(yyvsp[-2].optflags), (yyvsp[0].docstr));
+                newTypedef(currentSpec, currentModule, (yyvsp[(5) - (12)].text), &ftype, &(yyvsp[(10) - (12)].optflags), (yyvsp[(12) - (12)].docstr));
             }
         }
-#line 5518 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 333:
-#line 2768 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2768 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            if (currentSpec -> genc && (yyvsp[0].scpvalp)->next != NULL)
+            if (currentSpec -> genc && (yyvsp[(2) - (2)].scpvalp)->next != NULL)
                 yyerror("Namespaces not allowed in a C module");
 
             if (notSkipping())
                 currentSupers = NULL;
         }
-#line 5530 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 334:
-#line 2774 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2774 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -5561,35 +5645,32 @@ yyreduce:
                     NULL
                 };
 
-                checkAnnos(&(yyvsp[0].optflags), annos);
+                checkAnnos(&(yyvsp[(5) - (5)].optflags), annos);
 
                 if (currentSpec->genc && currentSupers != NULL)
                     yyerror("Super-classes not allowed in a C module struct");
 
-                defineClass((yyvsp[-3].scpvalp), currentSupers, &(yyvsp[0].optflags));
+                defineClass((yyvsp[(2) - (5)].scpvalp), currentSupers, &(yyvsp[(5) - (5)].optflags));
                 sectionFlags = SECT_IS_PUBLIC;
             }
         }
-#line 5574 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 335:
-#line 2812 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2812 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
-                completeClass((yyvsp[-6].scpvalp), &(yyvsp[-3].optflags), (yyvsp[-1].boolean));
+                completeClass((yyvsp[(2) - (8)].scpvalp), &(yyvsp[(5) - (8)].optflags), (yyvsp[(7) - (8)].boolean));
         }
-#line 5583 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 336:
-#line 2818 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2818 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {currentIsTemplate = TRUE;}
-#line 5589 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 337:
-#line 2818 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2818 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (currentSpec->genc)
                 yyerror("Class templates not allowed in a C module");
@@ -5601,12 +5682,12 @@ yyreduce:
                 /*
                  * Make sure there is room for the extra class name argument.
                  */
-                if ((yyvsp[-2].signature).nrArgs == MAX_NR_ARGS)
+                if ((yyvsp[(1) - (3)].signature).nrArgs == MAX_NR_ARGS)
                     yyerror("Internal error - increase the value of MAX_NR_ARGS");
 
                 tcd = sipMalloc(sizeof (classTmplDef));
-                tcd->sig = (yyvsp[-2].signature);
-                tcd->cd = (yyvsp[0].klass);
+                tcd->sig = (yyvsp[(1) - (3)].signature);
+                tcd->cd = (yyvsp[(3) - (3)].klass);
                 tcd->next = currentSpec->classtemplates;
 
                 currentSpec->classtemplates = tcd;
@@ -5614,19 +5695,17 @@ yyreduce:
 
             currentIsTemplate = FALSE;
         }
-#line 5618 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 338:
-#line 2844 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2844 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.signature) = (yyvsp[-1].signature);
+            (yyval.signature) = (yyvsp[(3) - (4)].signature);
         }
-#line 5626 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 339:
-#line 2849 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2849 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (currentSpec->genc)
                 yyerror("Class definition not allowed in a C module");
@@ -5634,11 +5713,10 @@ yyreduce:
             if (notSkipping())
                 currentSupers = NULL;
         }
-#line 5638 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 340:
-#line 2855 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2855 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -5668,32 +5746,30 @@ yyreduce:
                     NULL
                 };
 
-                checkAnnos(&(yyvsp[0].optflags), annos);
+                checkAnnos(&(yyvsp[(5) - (5)].optflags), annos);
 
-                defineClass((yyvsp[-3].scpvalp), currentSupers, &(yyvsp[0].optflags));
+                defineClass((yyvsp[(2) - (5)].scpvalp), currentSupers, &(yyvsp[(5) - (5)].optflags));
                 sectionFlags = SECT_IS_PRIVATE;
             }
         }
-#line 5678 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 341:
-#line 2889 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2889 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
-                (yyval.klass) = completeClass((yyvsp[-6].scpvalp), &(yyvsp[-3].optflags), (yyvsp[-1].boolean));
+                (yyval.klass) = completeClass((yyvsp[(2) - (8)].scpvalp), &(yyvsp[(5) - (8)].optflags), (yyvsp[(7) - (8)].boolean));
         }
-#line 5687 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 346:
-#line 2903 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2903 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            if (notSkipping() && (yyvsp[-1].token) == TK_PUBLIC)
+            if (notSkipping() && (yyvsp[(1) - (2)].token) == TK_PUBLIC)
             {
                 argDef ad;
                 classDef *super;
-                scopedNameDef *snd = (yyvsp[0].scpvalp);
+                scopedNameDef *snd = (yyvsp[(2) - (2)].scpvalp);
 
                 /*
                  * This is a hack to allow typedef'ed classes to be used before
@@ -5738,59 +5814,52 @@ yyreduce:
                 appendToClassList(&currentSupers, super);
             }
         }
-#line 5742 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 347:
-#line 2955 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2955 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
         (yyval.token) = TK_PUBLIC;
         }
-#line 5750 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 348:
-#line 2958 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2958 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
         (yyval.token) = TK_PUBLIC;
         }
-#line 5758 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 349:
-#line 2961 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2961 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
         (yyval.token) = TK_PROTECTED;
         }
-#line 5766 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 350:
-#line 2964 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2964 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
         (yyval.token) = TK_PRIVATE;
         }
-#line 5774 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 351:
-#line 2969 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2969 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.boolean) = FALSE;
         }
-#line 5782 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 352:
-#line 2972 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2972 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.boolean) = TRUE;
         }
-#line 5790 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 366:
-#line 2992 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 2992 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -5799,32 +5868,29 @@ yyreduce:
                 if (scope->docstring != NULL)
                     yyerror("%Docstring already given for class");
 
-                scope->docstring = (yyvsp[0].docstr);
+                scope->docstring = (yyvsp[(1) - (1)].docstr);
             }
         }
-#line 5806 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 367:
-#line 3003 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3003 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
-                appendCodeBlock(&currentScope()->cppcode, (yyvsp[0].codeb));
+                appendCodeBlock(&currentScope()->cppcode, (yyvsp[(1) - (1)].codeb));
         }
-#line 5815 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 368:
-#line 3007 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3007 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
-                appendCodeBlock(&currentScope()->iff->hdrcode, (yyvsp[0].codeb));
+                appendCodeBlock(&currentScope()->iff->hdrcode, (yyvsp[(1) - (1)].codeb));
         }
-#line 5824 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 369:
-#line 3011 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3011 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -5833,14 +5899,13 @@ yyreduce:
                 if (scope->travcode != NULL)
                     yyerror("%GCTraverseCode already given for class");
 
-                appendCodeBlock(&scope->travcode, (yyvsp[0].codeb));
+                appendCodeBlock(&scope->travcode, (yyvsp[(1) - (1)].codeb));
             }
         }
-#line 5840 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 370:
-#line 3022 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3022 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -5849,14 +5914,13 @@ yyreduce:
                 if (scope->clearcode != NULL)
                     yyerror("%GCClearCode already given for class");
 
-                appendCodeBlock(&scope->clearcode, (yyvsp[0].codeb));
+                appendCodeBlock(&scope->clearcode, (yyvsp[(1) - (1)].codeb));
             }
         }
-#line 5856 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 371:
-#line 3033 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3033 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -5865,14 +5929,13 @@ yyreduce:
                 if (scope->getbufcode != NULL)
                     yyerror("%BIGetBufferCode already given for class");
 
-                appendCodeBlock(&scope->getbufcode, (yyvsp[0].codeb));
+                appendCodeBlock(&scope->getbufcode, (yyvsp[(1) - (1)].codeb));
             }
         }
-#line 5872 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 372:
-#line 3044 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3044 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -5881,46 +5944,41 @@ yyreduce:
                 if (scope->releasebufcode != NULL)
                     yyerror("%BIReleaseBufferCode already given for class");
 
-                appendCodeBlock(&scope->releasebufcode, (yyvsp[0].codeb));
+                appendCodeBlock(&scope->releasebufcode, (yyvsp[(1) - (1)].codeb));
             }
         }
-#line 5888 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 373:
-#line 3055 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3055 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             /* Remove in v6. */
         }
-#line 5896 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 374:
-#line 3058 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3058 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             /* Remove in v6. */
         }
-#line 5904 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 375:
-#line 3061 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3061 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             /* Remove in v6. */
         }
-#line 5912 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 376:
-#line 3064 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3064 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             /* Remove in v6. */
         }
-#line 5920 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 377:
-#line 3067 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3067 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -5929,14 +5987,13 @@ yyreduce:
                 if (scope->instancecode != NULL)
                     yyerror("%InstanceCode already given for class");
 
-                appendCodeBlock(&scope->instancecode, (yyvsp[0].codeb));
+                appendCodeBlock(&scope->instancecode, (yyvsp[(1) - (1)].codeb));
             }
         }
-#line 5936 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 378:
-#line 3078 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3078 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -5945,14 +6002,13 @@ yyreduce:
                 if (scope->picklecode != NULL)
                     yyerror("%PickleCode already given for class");
 
-                appendCodeBlock(&scope->picklecode, (yyvsp[0].codeb));
+                appendCodeBlock(&scope->picklecode, (yyvsp[(1) - (1)].codeb));
             }
         }
-#line 5952 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 379:
-#line 3089 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3089 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -5961,14 +6017,13 @@ yyreduce:
                 if (scope->finalcode != NULL)
                     yyerror("%FinalisationCode already given for class");
 
-                appendCodeBlock(&scope->finalcode, (yyvsp[0].codeb));
+                appendCodeBlock(&scope->finalcode, (yyvsp[(1) - (1)].codeb));
             }
         }
-#line 5968 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 380:
-#line 3100 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3100 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -5977,14 +6032,13 @@ yyreduce:
                 if (scope->typehintcode != NULL)
                     yyerror("%TypeHintCode already given for class");
 
-                appendCodeBlock(&scope->typehintcode, (yyvsp[0].codeb));
+                appendCodeBlock(&scope->typehintcode, (yyvsp[(1) - (1)].codeb));
             }
         }
-#line 5984 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 384:
-#line 3114 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3114 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -5993,14 +6047,13 @@ yyreduce:
                 if (scope->convtosubcode != NULL)
                     yyerror("Class has more than one %ConvertToSubClassCode directive");
 
-                appendCodeBlock(&scope->convtosubcode, (yyvsp[0].codeb));
+                appendCodeBlock(&scope->convtosubcode, (yyvsp[(2) - (2)].codeb));
             }
         }
-#line 6000 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 385:
-#line 3125 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3125 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -6009,14 +6062,13 @@ yyreduce:
                 if (scope->convtocode != NULL)
                     yyerror("Class has more than one %ConvertToTypeCode directive");
 
-                appendCodeBlock(&scope->convtocode, (yyvsp[0].codeb));
+                appendCodeBlock(&scope->convtocode, (yyvsp[(2) - (2)].codeb));
             }
         }
-#line 6016 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 386:
-#line 3136 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3136 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -6025,50 +6077,46 @@ yyreduce:
                 if (scope->convfromcode != NULL)
                     yyerror("Class has more than one %ConvertFromTypeCode directive");
 
-                appendCodeBlock(&scope->convfromcode, (yyvsp[0].codeb));
+                appendCodeBlock(&scope->convfromcode, (yyvsp[(2) - (2)].codeb));
             }
         }
-#line 6032 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 387:
-#line 3147 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3147 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (currentSpec -> genc)
                 yyerror("public section not allowed in a C module");
 
             if (notSkipping())
-                sectionFlags = SECT_IS_PUBLIC | (yyvsp[-1].number);
+                sectionFlags = SECT_IS_PUBLIC | (yyvsp[(2) - (3)].number);
         }
-#line 6044 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 388:
-#line 3154 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3154 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (currentSpec -> genc)
                 yyerror("protected section not allowed in a C module");
 
             if (notSkipping())
-                sectionFlags = SECT_IS_PROT | (yyvsp[-1].number);
+                sectionFlags = SECT_IS_PROT | (yyvsp[(2) - (3)].number);
         }
-#line 6056 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 389:
-#line 3161 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3161 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (currentSpec -> genc)
                 yyerror("private section not allowed in a C module");
 
             if (notSkipping())
-                sectionFlags = SECT_IS_PRIVATE | (yyvsp[-1].number);
+                sectionFlags = SECT_IS_PRIVATE | (yyvsp[(2) - (3)].number);
         }
-#line 6068 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 390:
-#line 3168 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3168 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (currentSpec -> genc)
                 yyerror("signals section not allowed in a C module");
@@ -6076,137 +6124,125 @@ yyreduce:
             if (notSkipping())
                 sectionFlags = SECT_IS_SIGNAL;
         }
-#line 6080 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 391:
-#line 3177 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3177 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            if ((yyvsp[-1].property).name == NULL)
+            if ((yyvsp[(2) - (3)].property).name == NULL)
                 yyerror("A %Property directive must have a 'name' argument");
 
-            if ((yyvsp[-1].property).get == NULL)
+            if ((yyvsp[(2) - (3)].property).get == NULL)
                 yyerror("A %Property directive must have a 'get' argument");
 
             if (notSkipping())
                 addProperty(currentSpec, currentModule, currentScope(),
-                        (yyvsp[-1].property).name, (yyvsp[-1].property).get, (yyvsp[-1].property).set, (yyvsp[0].property).docstring);
+                        (yyvsp[(2) - (3)].property).name, (yyvsp[(2) - (3)].property).get, (yyvsp[(2) - (3)].property).set, (yyvsp[(3) - (3)].property).docstring);
         }
-#line 6096 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 392:
-#line 3190 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3190 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.property) = (yyvsp[-1].property);
+            (yyval.property) = (yyvsp[(2) - (3)].property);
         }
-#line 6104 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 394:
-#line 3196 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3196 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.property) = (yyvsp[-2].property);
+            (yyval.property) = (yyvsp[(1) - (3)].property);
 
-            switch ((yyvsp[0].property).token)
+            switch ((yyvsp[(3) - (3)].property).token)
             {
-            case TK_GET: (yyval.property).get = (yyvsp[0].property).get; break;
-            case TK_NAME: (yyval.property).name = (yyvsp[0].property).name; break;
-            case TK_SET: (yyval.property).set = (yyvsp[0].property).set; break;
+            case TK_GET: (yyval.property).get = (yyvsp[(3) - (3)].property).get; break;
+            case TK_NAME: (yyval.property).name = (yyvsp[(3) - (3)].property).name; break;
+            case TK_SET: (yyval.property).set = (yyvsp[(3) - (3)].property).set; break;
             }
         }
-#line 6119 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 395:
-#line 3208 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3208 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.property).token = TK_GET;
 
-            (yyval.property).get = (yyvsp[0].text);
+            (yyval.property).get = (yyvsp[(3) - (3)].text);
             (yyval.property).name = NULL;
             (yyval.property).set = NULL;
         }
-#line 6131 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 396:
-#line 3215 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3215 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.property).token = TK_NAME;
 
             (yyval.property).get = NULL;
-            (yyval.property).name = (yyvsp[0].text);
+            (yyval.property).name = (yyvsp[(3) - (3)].text);
             (yyval.property).set = NULL;
         }
-#line 6143 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 397:
-#line 3222 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3222 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.property).token = TK_SET;
 
             (yyval.property).get = NULL;
             (yyval.property).name = NULL;
-            (yyval.property).set = (yyvsp[0].text);
+            (yyval.property).set = (yyvsp[(3) - (3)].text);
         }
-#line 6155 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 398:
-#line 3231 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3231 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.property).token = 0;
             (yyval.property).docstring = NULL;
         }
-#line 6164 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 399:
-#line 3235 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3235 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.property) = (yyvsp[-2].property);
+            (yyval.property) = (yyvsp[(2) - (4)].property);
         }
-#line 6172 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 401:
-#line 3241 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3241 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.property) = (yyvsp[-1].property);
+            (yyval.property) = (yyvsp[(1) - (2)].property);
 
-            switch ((yyvsp[0].property).token)
+            switch ((yyvsp[(2) - (2)].property).token)
             {
-            case TK_DOCSTRING: (yyval.property).docstring = (yyvsp[0].property).docstring; break;
+            case TK_DOCSTRING: (yyval.property).docstring = (yyvsp[(2) - (2)].property).docstring; break;
             }
         }
-#line 6185 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 402:
-#line 3251 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3251 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.property).token = TK_IF;
         }
-#line 6193 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 403:
-#line 3254 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3254 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.property).token = TK_END;
         }
-#line 6201 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 404:
-#line 3257 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3257 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
                 (yyval.property).token = TK_DOCSTRING;
-                (yyval.property).docstring = (yyvsp[0].docstr);
+                (yyval.property).docstring = (yyvsp[(1) - (1)].docstr);
             }
             else
             {
@@ -6214,33 +6250,29 @@ yyreduce:
                 (yyval.property).docstring = NULL;
             }
         }
-#line 6218 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 407:
-#line 3275 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3275 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.number) = 0;
         }
-#line 6226 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 408:
-#line 3278 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3278 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.number) = SECT_IS_SLOT;
         }
-#line 6234 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 409:
-#line 3284 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3284 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {currentIsVirt = TRUE;}
-#line 6240 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 412:
-#line 3288 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3288 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             /* Note that we allow non-virtual dtors in C modules. */
 
@@ -6254,22 +6286,22 @@ yyreduce:
 
                 classDef *cd = currentScope();
 
-                checkAnnos(&(yyvsp[-4].optflags), annos);
+                checkAnnos(&(yyvsp[(7) - (11)].optflags), annos);
 
-                if (strcmp(classBaseName(cd),(yyvsp[-9].text)) != 0)
+                if (strcmp(classBaseName(cd),(yyvsp[(2) - (11)].text)) != 0)
                     yyerror("Destructor doesn't have the same name as its class");
 
                 if (isDtor(cd))
                     yyerror("Destructor has already been defined");
 
-                if (currentSpec -> genc && (yyvsp[-2].codeb) == NULL)
+                if (currentSpec -> genc && (yyvsp[(9) - (11)].codeb) == NULL)
                     yyerror("Destructor in C modules must include %MethodCode");
 
 
-                appendCodeBlock(&cd->dealloccode, (yyvsp[-2].codeb));  /* premethodcode */
-                appendCodeBlock(&cd->dealloccode, (yyvsp[-1].codeb)); /* methodcode */
-                appendCodeBlock(&cd->dtorcode, (yyvsp[0].codeb));
-                cd -> dtorexceptions = (yyvsp[-6].throwlist);
+                appendCodeBlock(&cd->dealloccode, (yyvsp[(9) - (11)].codeb));  /* premethodcode */
+                appendCodeBlock(&cd->dealloccode, (yyvsp[(10) - (11)].codeb)); /* methodcode */
+                appendCodeBlock(&cd->dtorcode, (yyvsp[(11) - (11)].codeb));
+                cd -> dtorexceptions = (yyvsp[(5) - (11)].throwlist);
 
                 /*
                  * Note that we don't apply the protected/public hack to dtors
@@ -6277,7 +6309,7 @@ yyreduce:
                  */
                 cd->classflags |= sectionFlags;
 
-                if ((yyvsp[-5].number))
+                if ((yyvsp[(6) - (11)].number))
                 {
                     if (!currentIsVirt)
                         yyerror("Abstract destructor must be virtual");
@@ -6289,7 +6321,7 @@ yyreduce:
                  * The class has a shadow if we have a virtual dtor or some
                  * dtor code.
                  */
-                if (currentIsVirt || (yyvsp[-1].codeb) != NULL)
+                if (currentIsVirt || (yyvsp[(10) - (11)].codeb) != NULL)
                 {
                     if (currentSpec -> genc)
                         yyerror("Virtual destructor or %VirtualCatcherCode not allowed in a C module");
@@ -6297,25 +6329,23 @@ yyreduce:
                     setNeedsShadow(cd);
                 }
 
-                if (getReleaseGIL(&(yyvsp[-4].optflags)))
+                if (getReleaseGIL(&(yyvsp[(7) - (11)].optflags)))
                     setIsReleaseGILDtor(cd);
-                else if (getHoldGIL(&(yyvsp[-4].optflags)))
+                else if (getHoldGIL(&(yyvsp[(7) - (11)].optflags)))
                     setIsHoldGILDtor(cd);
             }
 
             currentIsVirt = FALSE;
         }
-#line 6309 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 413:
-#line 3354 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3354 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {currentCtorIsExplicit = TRUE;}
-#line 6315 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 416:
-#line 3358 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3358 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             /* Note that we allow ctors in C modules. */
 
@@ -6338,11 +6368,11 @@ yyreduce:
                     NULL
                 };
 
-                checkAnnos(&(yyvsp[-5].optflags), annos);
+                checkAnnos(&(yyvsp[(6) - (11)].optflags), annos);
 
                 if (currentSpec -> genc)
                 {
-                    if ((yyvsp[-1].codeb) == NULL && (yyvsp[-8].signature).nrArgs != 0)
+                    if ((yyvsp[(10) - (11)].codeb) == NULL && (yyvsp[(3) - (11)].signature).nrArgs != 0)
                         yyerror("Constructors with arguments in C modules must include %MethodCode");
 
                     if (currentCtorIsExplicit)
@@ -6352,87 +6382,80 @@ yyreduce:
                 if ((sectionFlags & (SECT_IS_PUBLIC | SECT_IS_PROT | SECT_IS_PRIVATE)) == 0)
                     yyerror("Constructor must be in the public, private or protected sections");
 
-                newCtor(currentModule, (yyvsp[-10].text), sectionFlags, &(yyvsp[-8].signature), &(yyvsp[-5].optflags), (yyvsp[0].codeb), (yyvsp[-6].throwlist), (yyvsp[-4].optsignature),
-                        currentCtorIsExplicit, (yyvsp[-2].docstr), (yyvsp[-1].codeb));
+                newCtor(currentModule, (yyvsp[(1) - (11)].text), sectionFlags, &(yyvsp[(3) - (11)].signature), &(yyvsp[(6) - (11)].optflags), (yyvsp[(11) - (11)].codeb), (yyvsp[(5) - (11)].throwlist), (yyvsp[(7) - (11)].optsignature),
+                        currentCtorIsExplicit, (yyvsp[(9) - (11)].docstr), (yyvsp[(10) - (11)].codeb));
             }
 
-            free((yyvsp[-10].text));
+            free((yyvsp[(1) - (11)].text));
 
             currentCtorIsExplicit = FALSE;
         }
-#line 6364 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 417:
-#line 3404 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3404 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.optsignature) = NULL;
         }
-#line 6372 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 418:
-#line 3407 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3407 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             parsingCSignature = TRUE;
         }
-#line 6380 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 419:
-#line 3409 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3409 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.optsignature) = sipMalloc(sizeof (signatureDef));
 
-            *(yyval.optsignature) = (yyvsp[-2].signature);
+            *(yyval.optsignature) = (yyvsp[(4) - (6)].signature);
 
             parsingCSignature = FALSE;
         }
-#line 6392 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 420:
-#line 3418 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3418 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.optsignature) = NULL;
         }
-#line 6400 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 421:
-#line 3421 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3421 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             parsingCSignature = TRUE;
         }
-#line 6408 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 422:
-#line 3423 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3423 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.optsignature) = sipMalloc(sizeof (signatureDef));
 
-            *(yyval.optsignature) = (yyvsp[-2].signature);
-            (yyval.optsignature)->result = (yyvsp[-4].memArg);
+            *(yyval.optsignature) = (yyvsp[(5) - (7)].signature);
+            (yyval.optsignature)->result = (yyvsp[(3) - (7)].memArg);
 
             parsingCSignature = FALSE;
         }
-#line 6421 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 423:
-#line 3433 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3433 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
-                applyTypeFlags(currentModule, &(yyvsp[-16].memArg), &(yyvsp[-7].optflags));
+                applyTypeFlags(currentModule, &(yyvsp[(1) - (17)].memArg), &(yyvsp[(10) - (17)].optflags));
 
-                (yyvsp[-13].signature).result = (yyvsp[-16].memArg);
+                (yyvsp[(4) - (17)].signature).result = (yyvsp[(1) - (17)].memArg);
 
                 newFunction(currentSpec, currentModule, currentScope(), NULL,
                         NULL, sectionFlags, currentIsStatic, currentIsSignal,
-                        currentIsSlot, currentIsVirt, (yyvsp[-15].text), &(yyvsp[-13].signature), (yyvsp[-11].number), (yyvsp[-8].number), &(yyvsp[-7].optflags),
-                        (yyvsp[-2].codeb), (yyvsp[-1].codeb), (yyvsp[0].codeb), (yyvsp[-9].throwlist), (yyvsp[-6].optsignature), (yyvsp[-4].docstr), (yyvsp[-10].number), (yyvsp[-3].codeb));
+                        currentIsSlot, currentIsVirt, (yyvsp[(2) - (17)].text), &(yyvsp[(4) - (17)].signature), (yyvsp[(6) - (17)].number), (yyvsp[(9) - (17)].number), &(yyvsp[(10) - (17)].optflags),
+                        (yyvsp[(15) - (17)].codeb), (yyvsp[(16) - (17)].codeb), (yyvsp[(17) - (17)].codeb), (yyvsp[(8) - (17)].throwlist), (yyvsp[(11) - (17)].optsignature), (yyvsp[(13) - (17)].docstr), (yyvsp[(7) - (17)].number), (yyvsp[(14) - (17)].codeb));
             }
 
             currentIsStatic = FALSE;
@@ -6440,11 +6463,10 @@ yyreduce:
             currentIsSlot = FALSE;
             currentIsVirt = FALSE;
         }
-#line 6444 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 424:
-#line 3451 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3451 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             /*
              * It looks like an assignment operator (though we don't bother to
@@ -6465,11 +6487,10 @@ yyreduce:
             currentIsSlot = FALSE;
             currentIsVirt = FALSE;
         }
-#line 6469 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 425:
-#line 3471 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3471 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -6490,23 +6511,23 @@ yyreduce:
                     ns_scope = NULL;
                 }
 
-                applyTypeFlags(currentModule, &(yyvsp[-16].memArg), &(yyvsp[-6].optflags));
+                applyTypeFlags(currentModule, &(yyvsp[(1) - (17)].memArg), &(yyvsp[(11) - (17)].optflags));
 
                 /* Handle the unary '+' and '-' operators. */
-                if ((cd != NULL && (yyvsp[-12].signature).nrArgs == 0) || (cd == NULL && (yyvsp[-12].signature).nrArgs == 1))
+                if ((cd != NULL && (yyvsp[(5) - (17)].signature).nrArgs == 0) || (cd == NULL && (yyvsp[(5) - (17)].signature).nrArgs == 1))
                 {
-                    if (strcmp((yyvsp[-14].text), "__add__") == 0)
-                        (yyvsp[-14].text) = "__pos__";
-                    else if (strcmp((yyvsp[-14].text), "__sub__") == 0)
-                        (yyvsp[-14].text) = "__neg__";
+                    if (strcmp((yyvsp[(3) - (17)].text), "__add__") == 0)
+                        (yyvsp[(3) - (17)].text) = "__pos__";
+                    else if (strcmp((yyvsp[(3) - (17)].text), "__sub__") == 0)
+                        (yyvsp[(3) - (17)].text) = "__neg__";
                 }
 
-                (yyvsp[-12].signature).result = (yyvsp[-16].memArg);
+                (yyvsp[(5) - (17)].signature).result = (yyvsp[(1) - (17)].memArg);
 
                 newFunction(currentSpec, currentModule, cd, ns_scope, NULL,
                         sectionFlags, currentIsStatic, currentIsSignal,
-                        currentIsSlot, currentIsVirt, (yyvsp[-14].text), &(yyvsp[-12].signature), (yyvsp[-10].number), (yyvsp[-7].number), &(yyvsp[-6].optflags),
-                        (yyvsp[-2].codeb), (yyvsp[-1].codeb), (yyvsp[0].codeb), (yyvsp[-8].throwlist), (yyvsp[-5].optsignature), NULL, (yyvsp[-9].number), (yyvsp[-3].codeb));
+                        currentIsSlot, currentIsVirt, (yyvsp[(3) - (17)].text), &(yyvsp[(5) - (17)].signature), (yyvsp[(7) - (17)].number), (yyvsp[(10) - (17)].number), &(yyvsp[(11) - (17)].optflags),
+                        (yyvsp[(15) - (17)].codeb), (yyvsp[(16) - (17)].codeb), (yyvsp[(17) - (17)].codeb), (yyvsp[(9) - (17)].throwlist), (yyvsp[(12) - (17)].optsignature), NULL, (yyvsp[(8) - (17)].number), (yyvsp[(14) - (17)].codeb));
             }
 
             currentIsStatic = FALSE;
@@ -6514,23 +6535,22 @@ yyreduce:
             currentIsSlot = FALSE;
             currentIsVirt = FALSE;
         }
-#line 6518 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 426:
-#line 3515 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3515 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
                 char *sname;
                 classDef *scope = currentScope();
 
-                if (scope == NULL || (yyvsp[-12].signature).nrArgs != 0)
+                if (scope == NULL || (yyvsp[(4) - (16)].signature).nrArgs != 0)
                     yyerror("Operator casts must be specified in a class and have no arguments");
 
-                applyTypeFlags(currentModule, &(yyvsp[-14].memArg), &(yyvsp[-6].optflags));
+                applyTypeFlags(currentModule, &(yyvsp[(2) - (16)].memArg), &(yyvsp[(10) - (16)].optflags));
 
-                switch ((yyvsp[-14].memArg).atype)
+                switch ((yyvsp[(2) - (16)].memArg).atype)
                 {
                 case defined_type:
                     sname = NULL;
@@ -6566,12 +6586,12 @@ yyreduce:
 
                 if (sname != NULL)
                 {
-                    (yyvsp[-12].signature).result = (yyvsp[-14].memArg);
+                    (yyvsp[(4) - (16)].signature).result = (yyvsp[(2) - (16)].memArg);
 
                     newFunction(currentSpec, currentModule, scope, NULL, NULL,
                             sectionFlags, currentIsStatic, currentIsSignal,
-                            currentIsSlot, currentIsVirt, sname, &(yyvsp[-12].signature), (yyvsp[-10].number), (yyvsp[-7].number),
-                            &(yyvsp[-6].optflags), (yyvsp[-2].codeb), (yyvsp[-1].codeb), (yyvsp[0].codeb), (yyvsp[-8].throwlist), (yyvsp[-5].optsignature), NULL, (yyvsp[-9].number), (yyvsp[-3].codeb));
+                            currentIsSlot, currentIsVirt, sname, &(yyvsp[(4) - (16)].signature), (yyvsp[(6) - (16)].number), (yyvsp[(9) - (16)].number),
+                            &(yyvsp[(10) - (16)].optflags), (yyvsp[(14) - (16)].codeb), (yyvsp[(15) - (16)].codeb), (yyvsp[(16) - (16)].codeb), (yyvsp[(8) - (16)].throwlist), (yyvsp[(11) - (16)].optsignature), NULL, (yyvsp[(7) - (16)].number), (yyvsp[(13) - (16)].codeb));
                 }
                 else
                 {
@@ -6579,11 +6599,11 @@ yyreduce:
 
                     /* Check it doesn't already exist. */
                     for (al = scope->casts; al != NULL; al = al->next)
-                        if (compareScopedNames((yyvsp[-14].memArg).u.snd, al->arg.u.snd) == 0)
+                        if (compareScopedNames((yyvsp[(2) - (16)].memArg).u.snd, al->arg.u.snd) == 0)
                             yyerror("This operator cast has already been specified in this class");
 
                     al = sipMalloc(sizeof (argList));
-                    al->arg = (yyvsp[-14].memArg);
+                    al->arg = (yyvsp[(2) - (16)].memArg);
                     al->next = scope->casts;
 
                     scope->casts = al;
@@ -6595,303 +6615,260 @@ yyreduce:
             currentIsSlot = FALSE;
             currentIsVirt = FALSE;
         }
-#line 6599 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 427:
-#line 3593 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3593 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__add__";}
-#line 6605 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 428:
-#line 3594 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3594 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__sub__";}
-#line 6611 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 429:
-#line 3595 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3595 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__mul__";}
-#line 6617 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 430:
-#line 3596 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3596 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__truediv__";}
-#line 6623 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 431:
-#line 3597 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3597 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__mod__";}
-#line 6629 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 432:
-#line 3598 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3598 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__and__";}
-#line 6635 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 433:
-#line 3599 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3599 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__or__";}
-#line 6641 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 434:
-#line 3600 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3600 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__xor__";}
-#line 6647 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 435:
-#line 3601 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3601 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__lshift__";}
-#line 6653 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 436:
-#line 3602 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3602 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__rshift__";}
-#line 6659 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 437:
-#line 3603 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3603 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__iadd__";}
-#line 6665 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 438:
-#line 3604 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3604 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__isub__";}
-#line 6671 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 439:
-#line 3605 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3605 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__imul__";}
-#line 6677 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 440:
-#line 3606 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3606 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__itruediv__";}
-#line 6683 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 441:
-#line 3607 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3607 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__imod__";}
-#line 6689 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 442:
-#line 3608 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3608 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__iand__";}
-#line 6695 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 443:
-#line 3609 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3609 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__ior__";}
-#line 6701 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 444:
-#line 3610 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3610 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__ixor__";}
-#line 6707 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 445:
-#line 3611 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3611 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__ilshift__";}
-#line 6713 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 446:
-#line 3612 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3612 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__irshift__";}
-#line 6719 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 447:
-#line 3613 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3613 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__invert__";}
-#line 6725 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 448:
-#line 3614 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3614 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__call__";}
-#line 6731 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 449:
-#line 3615 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3615 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__getitem__";}
-#line 6737 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 450:
-#line 3616 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3616 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__lt__";}
-#line 6743 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 451:
-#line 3617 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3617 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__le__";}
-#line 6749 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 452:
-#line 3618 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3618 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__eq__";}
-#line 6755 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 453:
-#line 3619 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3619 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__ne__";}
-#line 6761 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 454:
-#line 3620 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3620 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__gt__";}
-#line 6767 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 455:
-#line 3621 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3621 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {(yyval.text) = "__ge__";}
-#line 6773 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 456:
-#line 3624 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3624 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.number) = FALSE;
         }
-#line 6781 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 457:
-#line 3627 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3627 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.number) = TRUE;
         }
-#line 6789 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 458:
-#line 3632 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3632 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.number) = FALSE;
         }
-#line 6797 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 459:
-#line 3635 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3635 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.number) = TRUE;
         }
-#line 6805 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 460:
-#line 3640 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3640 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.number) = 0;
         }
-#line 6813 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 461:
-#line 3643 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3643 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            if ((yyvsp[0].number) != 0)
+            if ((yyvsp[(2) - (2)].number) != 0)
                 yyerror("Abstract virtual function '= 0' expected");
 
             (yyval.number) = TRUE;
         }
-#line 6824 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 462:
-#line 3651 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3651 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.optflags).nrFlags = 0;
         }
-#line 6832 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 463:
-#line 3654 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3654 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.optflags) = (yyvsp[-1].optflags);
+            (yyval.optflags) = (yyvsp[(2) - (3)].optflags);
         }
-#line 6840 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 464:
-#line 3660 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3660 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.optflags).flags[0] = (yyvsp[0].flag);
+            (yyval.optflags).flags[0] = (yyvsp[(1) - (1)].flag);
             (yyval.optflags).nrFlags = 1;
         }
-#line 6849 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 465:
-#line 3664 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3664 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             /* Check there is room. */
 
-            if ((yyvsp[-2].optflags).nrFlags == MAX_NR_FLAGS)
+            if ((yyvsp[(1) - (3)].optflags).nrFlags == MAX_NR_FLAGS)
                 yyerror("Too many optional flags");
 
-            (yyval.optflags) = (yyvsp[-2].optflags);
+            (yyval.optflags) = (yyvsp[(1) - (3)].optflags);
 
-            (yyval.optflags).flags[(yyval.optflags).nrFlags++] = (yyvsp[0].flag);
+            (yyval.optflags).flags[(yyval.optflags).nrFlags++] = (yyvsp[(3) - (3)].flag);
         }
-#line 6864 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 466:
-#line 3676 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3676 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.flag).ftype = bool_flag;
-            (yyval.flag).fname = (yyvsp[0].text);
+            (yyval.flag).fname = (yyvsp[(1) - (1)].text);
         }
-#line 6873 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 467:
-#line 3680 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3680 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.flag) = (yyvsp[0].flag);
-            (yyval.flag).fname = (yyvsp[-2].text);
+            (yyval.flag) = (yyvsp[(3) - (3)].flag);
+            (yyval.flag).fname = (yyvsp[(1) - (3)].text);
         }
-#line 6882 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 468:
-#line 3686 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3686 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.flag).ftype = (strchr((yyvsp[0].text), '.') != NULL) ? dotted_name_flag : name_flag;
-            (yyval.flag).fvalue.sval = (yyvsp[0].text);
+            (yyval.flag).ftype = (strchr((yyvsp[(1) - (1)].text), '.') != NULL) ? dotted_name_flag : name_flag;
+            (yyval.flag).fvalue.sval = (yyvsp[(1) - (1)].text);
         }
-#line 6891 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 469:
-#line 3690 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3690 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             apiVersionRangeDef *avd;
             int from, to;
@@ -6899,117 +6876,106 @@ yyreduce:
             (yyval.flag).ftype = api_range_flag;
 
             /* Check that the API is known. */
-            if ((avd = findAPI(currentSpec, (yyvsp[-4].text))) == NULL)
+            if ((avd = findAPI(currentSpec, (yyvsp[(1) - (5)].text))) == NULL)
                 yyerror("unknown API name in API annotation");
 
             if (inMainModule())
                 setIsUsedName(avd->api_name);
 
             /* Unbounded values are represented by 0. */
-            if ((from = (yyvsp[-2].number)) < 0)
+            if ((from = (yyvsp[(3) - (5)].number)) < 0)
                 from = 0;
 
-            if ((to = (yyvsp[0].number)) < 0)
+            if ((to = (yyvsp[(5) - (5)].number)) < 0)
                 to = 0;
 
             (yyval.flag).fvalue.aval = convertAPIRange(currentModule, avd->api_name,
                     from, to);
         }
-#line 6919 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 470:
-#line 3713 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3713 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.flag).ftype = string_flag;
-            (yyval.flag).fvalue.sval = convertFeaturedString((yyvsp[0].text));
+            (yyval.flag).fvalue.sval = convertFeaturedString((yyvsp[(1) - (1)].text));
         }
-#line 6928 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 471:
-#line 3717 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3717 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.flag).ftype = integer_flag;
-            (yyval.flag).fvalue.ival = (yyvsp[0].number);
+            (yyval.flag).fvalue.ival = (yyvsp[(1) - (1)].number);
         }
-#line 6937 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 472:
-#line 3723 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3723 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.codeb) = NULL;
         }
-#line 6945 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 473:
-#line 3726 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3726 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.codeb) = (yyvsp[0].codeb);
+            (yyval.codeb) = (yyvsp[(2) - (2)].codeb);
         }
-#line 6953 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 474:
-#line 3731 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3731 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.codeb) = NULL;
         }
-#line 6961 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 475:
-#line 3734 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3734 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.codeb) = (yyvsp[0].codeb);
+            (yyval.codeb) = (yyvsp[(2) - (2)].codeb);
         }
-#line 6969 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 476:
-#line 3739 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3739 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.codeb) = NULL;
         }
-#line 6977 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 477:
-#line 3742 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3742 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.codeb) = (yyvsp[0].codeb);
+            (yyval.codeb) = (yyvsp[(2) - (2)].codeb);
         }
-#line 6985 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 478:
-#line 3747 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3747 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.codeb) = NULL;
         }
-#line 6993 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 479:
-#line 3750 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3750 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.codeb) = (yyvsp[0].codeb);
+            (yyval.codeb) = (yyvsp[(2) - (2)].codeb);
         }
-#line 7001 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 480:
-#line 3755 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3755 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             int a, nrarray, nrarraysize;
 
             nrarray = nrarraysize = 0;
 
-            for (a = 0; a < (yyvsp[0].signature).nrArgs; ++a)
+            for (a = 0; a < (yyvsp[(1) - (1)].signature).nrArgs; ++a)
             {
-                argDef *ad = &(yyvsp[0].signature).args[a];
+                argDef *ad = &(yyvsp[(1) - (1)].signature).args[a];
 
                 if (isArray(ad))
                     ++nrarray;
@@ -7021,93 +6987,84 @@ yyreduce:
             if (nrarray != nrarraysize || nrarray > 1)
                 yyerror("/Array/ and /ArraySize/ must both be given and at most once");
 
-            (yyval.signature) = (yyvsp[0].signature);
+            (yyval.signature) = (yyvsp[(1) - (1)].signature);
         }
-#line 7027 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 481:
-#line 3778 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3778 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             /* No arguments. */
 
             (yyval.signature).nrArgs = 0;
         }
-#line 7037 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 482:
-#line 3783 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3783 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             /* The single or first argument. */
 
-            (yyval.signature).args[0] = (yyvsp[0].memArg);
+            (yyval.signature).args[0] = (yyvsp[(1) - (1)].memArg);
             (yyval.signature).nrArgs = 1;
         }
-#line 7048 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 483:
-#line 3789 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3789 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             /* Check that it wasn't ...(,arg...). */
-            if ((yyvsp[-2].signature).nrArgs == 0)
+            if ((yyvsp[(1) - (3)].signature).nrArgs == 0)
                 yyerror("First argument of the list is missing");
 
             /*
              * If this argument has no default value, then the
              * previous one mustn't either.
              */
-            if ((yyvsp[0].memArg).defval == NULL && (yyvsp[-2].signature).args[(yyvsp[-2].signature).nrArgs - 1].defval != NULL)
+            if ((yyvsp[(3) - (3)].memArg).defval == NULL && (yyvsp[(1) - (3)].signature).args[(yyvsp[(1) - (3)].signature).nrArgs - 1].defval != NULL)
                 yyerror("Compulsory argument given after optional argument");
 
             /* Check there is room. */
-            if ((yyvsp[-2].signature).nrArgs == MAX_NR_ARGS)
+            if ((yyvsp[(1) - (3)].signature).nrArgs == MAX_NR_ARGS)
                 yyerror("Internal error - increase the value of MAX_NR_ARGS");
 
-            (yyval.signature) = (yyvsp[-2].signature);
+            (yyval.signature) = (yyvsp[(1) - (3)].signature);
 
-            (yyval.signature).args[(yyval.signature).nrArgs] = (yyvsp[0].memArg);
+            (yyval.signature).args[(yyval.signature).nrArgs] = (yyvsp[(3) - (3)].memArg);
             (yyval.signature).nrArgs++;
         }
-#line 7074 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 484:
-#line 3812 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3812 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.memArg) = (yyvsp[-1].memArg);
-            (yyval.memArg).defval = (yyvsp[0].valp);
+            (yyval.memArg) = (yyvsp[(1) - (2)].memArg);
+            (yyval.memArg).defval = (yyvsp[(2) - (2)].valp);
         }
-#line 7083 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 485:
-#line 3819 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3819 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {currentIsSignal = TRUE;}
-#line 7089 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 487:
-#line 3820 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3820 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {currentIsSlot = TRUE;}
-#line 7095 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 490:
-#line 3825 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3825 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {currentIsStatic = TRUE;}
-#line 7101 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 495:
-#line 3835 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3835 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {currentIsVirt = TRUE;}
-#line 7107 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 498:
-#line 3839 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3839 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
@@ -7121,75 +7078,69 @@ yyreduce:
                     NULL
                 };
 
-                checkAnnos(&(yyvsp[-2].optflags), annos);
+                checkAnnos(&(yyvsp[(3) - (5)].optflags), annos);
 
-                newVar(currentSpec, currentModule, (yyvsp[-3].text), currentIsStatic, &(yyvsp[-4].memArg),
-                        &(yyvsp[-2].optflags), (yyvsp[-1].variable).access_code, (yyvsp[-1].variable).get_code, (yyvsp[-1].variable).set_code,
+                newVar(currentSpec, currentModule, (yyvsp[(2) - (5)].text), currentIsStatic, &(yyvsp[(1) - (5)].memArg),
+                        &(yyvsp[(3) - (5)].optflags), (yyvsp[(4) - (5)].variable).access_code, (yyvsp[(4) - (5)].variable).get_code, (yyvsp[(4) - (5)].variable).set_code,
                         sectionFlags);
             }
 
             currentIsStatic = FALSE;
         }
-#line 7134 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 499:
-#line 3863 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3863 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.variable).token = 0;
             (yyval.variable).access_code = NULL;
             (yyval.variable).get_code = NULL;
             (yyval.variable).set_code = NULL;
         }
-#line 7145 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 500:
-#line 3869 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3869 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.variable) = (yyvsp[-1].variable);
+            (yyval.variable) = (yyvsp[(2) - (3)].variable);
         }
-#line 7153 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 502:
-#line 3875 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3875 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.variable) = (yyvsp[-1].variable);
+            (yyval.variable) = (yyvsp[(1) - (2)].variable);
 
-            switch ((yyvsp[0].variable).token)
+            switch ((yyvsp[(2) - (2)].variable).token)
             {
-            case TK_ACCESSCODE: (yyval.variable).access_code = (yyvsp[0].variable).access_code; break;
-            case TK_GETCODE: (yyval.variable).get_code = (yyvsp[0].variable).get_code; break;
-            case TK_SETCODE: (yyval.variable).set_code = (yyvsp[0].variable).set_code; break;
+            case TK_ACCESSCODE: (yyval.variable).access_code = (yyvsp[(2) - (2)].variable).access_code; break;
+            case TK_GETCODE: (yyval.variable).get_code = (yyvsp[(2) - (2)].variable).get_code; break;
+            case TK_SETCODE: (yyval.variable).set_code = (yyvsp[(2) - (2)].variable).set_code; break;
             }
         }
-#line 7168 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 503:
-#line 3887 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3887 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.variable).token = TK_IF;
         }
-#line 7176 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 504:
-#line 3890 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3890 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.variable).token = TK_END;
         }
-#line 7184 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 505:
-#line 3893 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3893 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
                 (yyval.variable).token = TK_ACCESSCODE;
-                (yyval.variable).access_code = (yyvsp[0].codeb);
+                (yyval.variable).access_code = (yyvsp[(2) - (2)].codeb);
             }
             else
             {
@@ -7200,16 +7151,15 @@ yyreduce:
             (yyval.variable).get_code = NULL;
             (yyval.variable).set_code = NULL;
         }
-#line 7204 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 506:
-#line 3908 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3908 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
                 (yyval.variable).token = TK_GETCODE;
-                (yyval.variable).get_code = (yyvsp[0].codeb);
+                (yyval.variable).get_code = (yyvsp[(2) - (2)].codeb);
             }
             else
             {
@@ -7220,16 +7170,15 @@ yyreduce:
             (yyval.variable).access_code = NULL;
             (yyval.variable).set_code = NULL;
         }
-#line 7224 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 507:
-#line 3923 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3923 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (notSkipping())
             {
                 (yyval.variable).token = TK_SETCODE;
-                (yyval.variable).set_code = (yyvsp[0].codeb);
+                (yyval.variable).set_code = (yyvsp[(2) - (2)].codeb);
             }
             else
             {
@@ -7240,38 +7189,35 @@ yyreduce:
             (yyval.variable).access_code = NULL;
             (yyval.variable).get_code = NULL;
         }
-#line 7244 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 508:
-#line 3940 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3940 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.memArg) = (yyvsp[-2].memArg);
-            add_derefs(&(yyval.memArg), &(yyvsp[-1].memArg));
-            (yyval.memArg).argflags |= ARG_IS_CONST | (yyvsp[0].number);
+            (yyval.memArg) = (yyvsp[(2) - (4)].memArg);
+            add_derefs(&(yyval.memArg), &(yyvsp[(3) - (4)].memArg));
+            (yyval.memArg).argflags |= ARG_IS_CONST | (yyvsp[(4) - (4)].number);
         }
-#line 7254 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 509:
-#line 3945 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3945 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            (yyval.memArg) = (yyvsp[-2].memArg);
-            add_derefs(&(yyval.memArg), &(yyvsp[-1].memArg));
-            (yyval.memArg).argflags |= (yyvsp[0].number);
+            (yyval.memArg) = (yyvsp[(1) - (3)].memArg);
+            add_derefs(&(yyval.memArg), &(yyvsp[(2) - (3)].memArg));
+            (yyval.memArg).argflags |= (yyvsp[(3) - (3)].number);
 
             /* PyObject * is a synonym for SIP_PYOBJECT. */
-            if ((yyvsp[-2].memArg).atype == defined_type && strcmp((yyvsp[-2].memArg).u.snd->name, "PyObject") == 0 && (yyvsp[-2].memArg).u.snd->next == NULL && (yyvsp[-1].memArg).nrderefs == 1 && (yyvsp[0].number) == 0)
+            if ((yyvsp[(1) - (3)].memArg).atype == defined_type && strcmp((yyvsp[(1) - (3)].memArg).u.snd->name, "PyObject") == 0 && (yyvsp[(1) - (3)].memArg).u.snd->next == NULL && (yyvsp[(2) - (3)].memArg).nrderefs == 1 && (yyvsp[(3) - (3)].number) == 0)
             {
                 (yyval.memArg).atype = pyobject_type;
                 (yyval.memArg).nrderefs = 0;
             }
         }
-#line 7271 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 510:
-#line 3959 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 3959 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             const char *annos[] = {
                 "AllowNone",
@@ -7300,54 +7246,54 @@ yyreduce:
 
             optFlag *of;
 
-            checkAnnos(&(yyvsp[0].optflags), annos);
+            checkAnnos(&(yyvsp[(3) - (3)].optflags), annos);
 
-            (yyval.memArg) = (yyvsp[-2].memArg);
-            (yyval.memArg).name = cacheName(currentSpec, (yyvsp[-1].text));
+            (yyval.memArg) = (yyvsp[(1) - (3)].memArg);
+            (yyval.memArg).name = cacheName(currentSpec, (yyvsp[(2) - (3)].text));
 
-            handleKeepReference(&(yyvsp[0].optflags), &(yyval.memArg), currentModule);
+            handleKeepReference(&(yyvsp[(3) - (3)].optflags), &(yyval.memArg), currentModule);
 
-            if ((of = getOptFlag(&(yyvsp[0].optflags), "ScopesStripped", opt_integer_flag)) != NULL)
+            if ((of = getOptFlag(&(yyvsp[(3) - (3)].optflags), "ScopesStripped", opt_integer_flag)) != NULL)
                 if (((yyval.memArg).scopes_stripped = of->fvalue.ival) <= 0)
                     yyerror("/ScopesStripped/ must be greater than 0");
 
-            if (getAllowNone(&(yyvsp[0].optflags)))
+            if (getAllowNone(&(yyvsp[(3) - (3)].optflags)))
                 (yyval.memArg).argflags |= ARG_ALLOW_NONE;
 
-            if (getDisallowNone(&(yyvsp[0].optflags)))
+            if (getDisallowNone(&(yyvsp[(3) - (3)].optflags)))
                 (yyval.memArg).argflags |= ARG_DISALLOW_NONE;
 
-            if (getOptFlag(&(yyvsp[0].optflags),"GetWrapper",bool_flag) != NULL)
+            if (getOptFlag(&(yyvsp[(3) - (3)].optflags),"GetWrapper",bool_flag) != NULL)
                 (yyval.memArg).argflags |= ARG_GET_WRAPPER;
 
-            if (getOptFlag(&(yyvsp[0].optflags),"Array",bool_flag) != NULL)
+            if (getOptFlag(&(yyvsp[(3) - (3)].optflags),"Array",bool_flag) != NULL)
                 (yyval.memArg).argflags |= ARG_ARRAY;
 
-            if (getOptFlag(&(yyvsp[0].optflags),"ArraySize",bool_flag) != NULL)
+            if (getOptFlag(&(yyvsp[(3) - (3)].optflags),"ArraySize",bool_flag) != NULL)
                 (yyval.memArg).argflags |= ARG_ARRAY_SIZE;
 
-            if (getTransfer(&(yyvsp[0].optflags)))
+            if (getTransfer(&(yyvsp[(3) - (3)].optflags)))
                 (yyval.memArg).argflags |= ARG_XFERRED;
 
-            if (getOptFlag(&(yyvsp[0].optflags),"TransferThis",bool_flag) != NULL)
+            if (getOptFlag(&(yyvsp[(3) - (3)].optflags),"TransferThis",bool_flag) != NULL)
                 (yyval.memArg).argflags |= ARG_THIS_XFERRED;
 
-            if (getOptFlag(&(yyvsp[0].optflags),"TransferBack",bool_flag) != NULL)
+            if (getOptFlag(&(yyvsp[(3) - (3)].optflags),"TransferBack",bool_flag) != NULL)
                 (yyval.memArg).argflags |= ARG_XFERRED_BACK;
 
-            if (getOptFlag(&(yyvsp[0].optflags),"In",bool_flag) != NULL)
+            if (getOptFlag(&(yyvsp[(3) - (3)].optflags),"In",bool_flag) != NULL)
                 (yyval.memArg).argflags |= ARG_IN;
 
-            if (getOptFlag(&(yyvsp[0].optflags),"Out",bool_flag) != NULL)
+            if (getOptFlag(&(yyvsp[(3) - (3)].optflags),"Out",bool_flag) != NULL)
                 (yyval.memArg).argflags |= ARG_OUT;
 
-            if (getOptFlag(&(yyvsp[0].optflags), "ResultSize", bool_flag) != NULL)
+            if (getOptFlag(&(yyvsp[(3) - (3)].optflags), "ResultSize", bool_flag) != NULL)
                 (yyval.memArg).argflags |= ARG_RESULT_SIZE;
 
-            if (getOptFlag(&(yyvsp[0].optflags), "NoCopy", bool_flag) != NULL)
+            if (getOptFlag(&(yyvsp[(3) - (3)].optflags), "NoCopy", bool_flag) != NULL)
                 (yyval.memArg).argflags |= ARG_NO_COPY;
 
-            if (getOptFlag(&(yyvsp[0].optflags),"Constrained",bool_flag) != NULL)
+            if (getOptFlag(&(yyvsp[(3) - (3)].optflags),"Constrained",bool_flag) != NULL)
             {
                 (yyval.memArg).argflags |= ARG_CONSTRAINED;
 
@@ -7375,86 +7321,78 @@ yyreduce:
                 }
             }
 
-            applyTypeFlags(currentModule, &(yyval.memArg), &(yyvsp[0].optflags));
-            (yyval.memArg).typehint_value = getTypeHintValue(&(yyvsp[0].optflags));
+            applyTypeFlags(currentModule, &(yyval.memArg), &(yyvsp[(3) - (3)].optflags));
+            (yyval.memArg).typehint_value = getTypeHintValue(&(yyvsp[(3) - (3)].optflags));
         }
-#line 7382 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 511:
-#line 4067 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 4067 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.number) = 0;
         }
-#line 7390 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 512:
-#line 4070 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 4070 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (currentSpec -> genc)
                 yyerror("References not allowed in a C module");
 
             (yyval.number) = ARG_IS_REF;
         }
-#line 7401 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 513:
-#line 4078 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 4078 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.memArg).nrderefs = 0;
         }
-#line 7409 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 514:
-#line 4081 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 4081 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            add_new_deref(&(yyval.memArg), &(yyvsp[-2].memArg), TRUE);
+            add_new_deref(&(yyval.memArg), &(yyvsp[(1) - (3)].memArg), TRUE);
         }
-#line 7417 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 515:
-#line 4084 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 4084 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            add_new_deref(&(yyval.memArg), &(yyvsp[-1].memArg), FALSE);
+            add_new_deref(&(yyval.memArg), &(yyvsp[(1) - (2)].memArg), FALSE);
         }
-#line 7425 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 516:
-#line 4089 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 4089 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = defined_type;
-            (yyval.memArg).u.snd = (yyvsp[0].scpvalp);
+            (yyval.memArg).u.snd = (yyvsp[(1) - (1)].scpvalp);
 
             /* Try and resolve typedefs as early as possible. */
             resolveAnyTypedef(currentSpec, &(yyval.memArg));
         }
-#line 7438 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 517:
-#line 4097 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 4097 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             templateDef *td;
 
             td = sipMalloc(sizeof(templateDef));
-            td->fqname = (yyvsp[-3].scpvalp);
-            td->types = (yyvsp[-1].signature);
+            td->fqname = (yyvsp[(1) - (4)].scpvalp);
+            td->types = (yyvsp[(3) - (4)].signature);
 
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = template_type;
             (yyval.memArg).u.td = td;
         }
-#line 7454 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 518:
-#line 4108 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 4108 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
 
@@ -7462,375 +7400,329 @@ yyreduce:
             if (currentSpec -> genc)
             {
                 (yyval.memArg).atype = defined_type;
-                (yyval.memArg).u.snd = (yyvsp[0].scpvalp);
+                (yyval.memArg).u.snd = (yyvsp[(2) - (2)].scpvalp);
             }
             else
             {
                 (yyval.memArg).atype = struct_type;
-                (yyval.memArg).u.sname = (yyvsp[0].scpvalp);
+                (yyval.memArg).u.sname = (yyvsp[(2) - (2)].scpvalp);
             }
         }
-#line 7474 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 519:
-#line 4123 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 4123 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = ushort_type;
         }
-#line 7483 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 520:
-#line 4127 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 4127 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = short_type;
         }
-#line 7492 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 521:
-#line 4131 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 4131 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = uint_type;
         }
-#line 7501 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 522:
-#line 4135 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 4135 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = uint_type;
         }
-#line 7510 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 523:
-#line 4139 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 4139 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = int_type;
         }
-#line 7519 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 524:
-#line 4143 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 4143 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = long_type;
         }
-#line 7528 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 525:
-#line 4147 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 4147 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = ulong_type;
         }
-#line 7537 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 526:
-#line 4151 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 4151 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = longlong_type;
         }
-#line 7546 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 527:
-#line 4155 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 4155 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = ulonglong_type;
         }
-#line 7555 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 528:
-#line 4159 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 4159 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = float_type;
         }
-#line 7564 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 529:
-#line 4163 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 4163 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = double_type;
         }
-#line 7573 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 530:
-#line 4167 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 4167 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = bool_type;
         }
-#line 7582 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 531:
-#line 4171 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 4171 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = sstring_type;
         }
-#line 7591 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 532:
-#line 4175 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 4175 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = ustring_type;
         }
-#line 7600 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 533:
-#line 4179 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 4179 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = string_type;
         }
-#line 7609 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 534:
-#line 4183 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 4183 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = wstring_type;
         }
-#line 7618 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 535:
-#line 4187 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 4187 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = void_type;
         }
-#line 7627 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 536:
-#line 4191 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 4191 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = pyobject_type;
         }
-#line 7636 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 537:
-#line 4195 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 4195 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = pytuple_type;
         }
-#line 7645 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 538:
-#line 4199 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 4199 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = pylist_type;
         }
-#line 7654 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 539:
-#line 4203 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 4203 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = pydict_type;
         }
-#line 7663 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 540:
-#line 4207 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 4207 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = pycallable_type;
         }
-#line 7672 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 541:
-#line 4211 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 4211 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = pyslice_type;
         }
-#line 7681 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 542:
-#line 4215 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 4215 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = pytype_type;
         }
-#line 7690 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 543:
-#line 4219 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 4219 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = pybuffer_type;
         }
-#line 7699 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 544:
-#line 4223 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 4223 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = ssize_type;
         }
-#line 7708 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 545:
-#line 4227 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 4227 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = size_type;
         }
-#line 7717 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 546:
-#line 4231 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 4231 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             memset(&(yyval.memArg), 0, sizeof (argDef));
             (yyval.memArg).atype = ellipsis_type;
         }
-#line 7726 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 547:
-#line 4237 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 4237 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             /* The single or first type. */
 
-            (yyval.signature).args[0] = (yyvsp[0].memArg);
+            (yyval.signature).args[0] = (yyvsp[(1) - (1)].memArg);
             (yyval.signature).nrArgs = 1;
         }
-#line 7737 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 548:
-#line 4243 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 4243 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             /* Check there is nothing after an ellipsis. */
-            if ((yyvsp[-2].signature).args[(yyvsp[-2].signature).nrArgs - 1].atype == ellipsis_type)
+            if ((yyvsp[(1) - (3)].signature).args[(yyvsp[(1) - (3)].signature).nrArgs - 1].atype == ellipsis_type)
                 yyerror("An ellipsis must be at the end of the argument list");
 
             /* Check there is room. */
-            if ((yyvsp[-2].signature).nrArgs == MAX_NR_ARGS)
+            if ((yyvsp[(1) - (3)].signature).nrArgs == MAX_NR_ARGS)
                 yyerror("Internal error - increase the value of MAX_NR_ARGS");
 
-            (yyval.signature) = (yyvsp[-2].signature);
+            (yyval.signature) = (yyvsp[(1) - (3)].signature);
 
-            (yyval.signature).args[(yyval.signature).nrArgs] = (yyvsp[0].memArg);
+            (yyval.signature).args[(yyval.signature).nrArgs] = (yyvsp[(3) - (3)].memArg);
             (yyval.signature).nrArgs++;
         }
-#line 7756 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 549:
-#line 4259 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 4259 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             (yyval.throwlist) = NULL;
         }
-#line 7764 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 550:
-#line 4262 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 4262 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             if (currentSpec->genc)
                 yyerror("Exceptions not allowed in a C module");
 
-            (yyval.throwlist) = (yyvsp[-1].throwlist);
+            (yyval.throwlist) = (yyvsp[(3) - (4)].throwlist);
         }
-#line 7775 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 551:
-#line 4270 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 4270 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             /* Empty list so use a blank. */
 
             (yyval.throwlist) = sipMalloc(sizeof (throwArgs));
             (yyval.throwlist) -> nrArgs = 0;
         }
-#line 7786 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 552:
-#line 4276 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 4276 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             /* The only or first exception. */
 
             (yyval.throwlist) = sipMalloc(sizeof (throwArgs));
             (yyval.throwlist) -> nrArgs = 1;
-            (yyval.throwlist) -> args[0] = findException(currentSpec, (yyvsp[0].scpvalp), FALSE);
+            (yyval.throwlist) -> args[0] = findException(currentSpec, (yyvsp[(1) - (1)].scpvalp), FALSE);
         }
-#line 7798 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
   case 553:
-#line 4283 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1646  */
+#line 4283 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
             /* Check that it wasn't ...(,arg...). */
 
-            if ((yyvsp[-2].throwlist) -> nrArgs == 0)
+            if ((yyvsp[(1) - (3)].throwlist) -> nrArgs == 0)
                 yyerror("First exception of throw specifier is missing");
 
             /* Check there is room. */
 
-            if ((yyvsp[-2].throwlist) -> nrArgs == MAX_NR_ARGS)
+            if ((yyvsp[(1) - (3)].throwlist) -> nrArgs == MAX_NR_ARGS)
                 yyerror("Internal error - increase the value of MAX_NR_ARGS");
 
-            (yyval.throwlist) = (yyvsp[-2].throwlist);
-            (yyval.throwlist) -> args[(yyval.throwlist) -> nrArgs++] = findException(currentSpec, (yyvsp[0].scpvalp), FALSE);
+            (yyval.throwlist) = (yyvsp[(1) - (3)].throwlist);
+            (yyval.throwlist) -> args[(yyval.throwlist) -> nrArgs++] = findException(currentSpec, (yyvsp[(3) - (3)].scpvalp), FALSE);
         }
-#line 7817 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
     break;
 
 
-#line 7821 "/home/phil/hg/sip/code_generator/parser.c" /* yacc.c:1646  */
+/* Line 1267 of yacc.c.  */
+#line 7724 "/Users/phil/hg/sip/code_generator/parser.c"
       default: break;
     }
-  /* User semantic actions sometimes alter yychar, and that requires
-     that yytoken be updated with the new translation.  We take the
-     approach of translating immediately before every use of yytoken.
-     One alternative is translating here after every semantic action,
-     but that translation would be missed if the semantic action invokes
-     YYABORT, YYACCEPT, or YYERROR immediately after altering yychar or
-     if it invokes YYBACKUP.  In the case of YYABORT or YYACCEPT, an
-     incorrect destructor might then be invoked immediately.  In the
-     case of YYERROR or YYBACKUP, subsequent parser actions might lead
-     to an incorrect destructor call or verbose syntax error message
-     before the lookahead is translated.  */
   YY_SYMBOL_PRINT ("-> $$ =", yyr1[yyn], &yyval, &yyloc);
 
   YYPOPSTACK (yylen);
@@ -7839,7 +7731,8 @@ yyreduce:
 
   *++yyvsp = yyval;
 
-  /* Now 'shift' the result of the reduction.  Determine what state
+
+  /* Now `shift' the result of the reduction.  Determine what state
      that goes to, based on the state we popped back to and the rule
      number reduced by.  */
 
@@ -7854,14 +7747,10 @@ yyreduce:
   goto yynewstate;
 
 
-/*--------------------------------------.
-| yyerrlab -- here on detecting error.  |
-`--------------------------------------*/
+/*------------------------------------.
+| yyerrlab -- here on detecting error |
+`------------------------------------*/
 yyerrlab:
-  /* Make sure we have latest lookahead translation.  See comments at
-     user semantic actions for why this is necessary.  */
-  yytoken = yychar == YYEMPTY ? YYEMPTY : YYTRANSLATE (yychar);
-
   /* If not already recovering from an error, report this error.  */
   if (!yyerrstatus)
     {
@@ -7869,36 +7758,37 @@ yyerrlab:
 #if ! YYERROR_VERBOSE
       yyerror (YY_("syntax error"));
 #else
-# define YYSYNTAX_ERROR yysyntax_error (&yymsg_alloc, &yymsg, \
-                                        yyssp, yytoken)
       {
-        char const *yymsgp = YY_("syntax error");
-        int yysyntax_error_status;
-        yysyntax_error_status = YYSYNTAX_ERROR;
-        if (yysyntax_error_status == 0)
-          yymsgp = yymsg;
-        else if (yysyntax_error_status == 1)
-          {
-            if (yymsg != yymsgbuf)
-              YYSTACK_FREE (yymsg);
-            yymsg = (char *) YYSTACK_ALLOC (yymsg_alloc);
-            if (!yymsg)
-              {
-                yymsg = yymsgbuf;
-                yymsg_alloc = sizeof yymsgbuf;
-                yysyntax_error_status = 2;
-              }
-            else
-              {
-                yysyntax_error_status = YYSYNTAX_ERROR;
-                yymsgp = yymsg;
-              }
-          }
-        yyerror (yymsgp);
-        if (yysyntax_error_status == 2)
-          goto yyexhaustedlab;
+	YYSIZE_T yysize = yysyntax_error (0, yystate, yychar);
+	if (yymsg_alloc < yysize && yymsg_alloc < YYSTACK_ALLOC_MAXIMUM)
+	  {
+	    YYSIZE_T yyalloc = 2 * yysize;
+	    if (! (yysize <= yyalloc && yyalloc <= YYSTACK_ALLOC_MAXIMUM))
+	      yyalloc = YYSTACK_ALLOC_MAXIMUM;
+	    if (yymsg != yymsgbuf)
+	      YYSTACK_FREE (yymsg);
+	    yymsg = (char *) YYSTACK_ALLOC (yyalloc);
+	    if (yymsg)
+	      yymsg_alloc = yyalloc;
+	    else
+	      {
+		yymsg = yymsgbuf;
+		yymsg_alloc = sizeof yymsgbuf;
+	      }
+	  }
+
+	if (0 < yysize && yysize <= yymsg_alloc)
+	  {
+	    (void) yysyntax_error (yymsg, yystate, yychar);
+	    yyerror (yymsg);
+	  }
+	else
+	  {
+	    yyerror (YY_("syntax error"));
+	    if (yysize != 0)
+	      goto yyexhaustedlab;
+	  }
       }
-# undef YYSYNTAX_ERROR
 #endif
     }
 
@@ -7906,24 +7796,24 @@ yyerrlab:
 
   if (yyerrstatus == 3)
     {
-      /* If just tried and failed to reuse lookahead token after an
-         error, discard it.  */
+      /* If just tried and failed to reuse look-ahead token after an
+	 error, discard it.  */
 
       if (yychar <= YYEOF)
-        {
-          /* Return failure if at end of input.  */
-          if (yychar == YYEOF)
-            YYABORT;
-        }
+	{
+	  /* Return failure if at end of input.  */
+	  if (yychar == YYEOF)
+	    YYABORT;
+	}
       else
-        {
-          yydestruct ("Error: discarding",
-                      yytoken, &yylval);
-          yychar = YYEMPTY;
-        }
+	{
+	  yydestruct ("Error: discarding",
+		      yytoken, &yylval);
+	  yychar = YYEMPTY;
+	}
     }
 
-  /* Else will try to reuse lookahead token after shifting the error
+  /* Else will try to reuse look-ahead token after shifting the error
      token.  */
   goto yyerrlab1;
 
@@ -7939,7 +7829,7 @@ yyerrorlab:
   if (/*CONSTCOND*/ 0)
      goto yyerrorlab;
 
-  /* Do not reclaim the symbols of the rule whose action triggered
+  /* Do not reclaim the symbols of the rule which action triggered
      this YYERROR.  */
   YYPOPSTACK (yylen);
   yylen = 0;
@@ -7952,37 +7842,38 @@ yyerrorlab:
 | yyerrlab1 -- common code for both syntax error and YYERROR.  |
 `-------------------------------------------------------------*/
 yyerrlab1:
-  yyerrstatus = 3;      /* Each real token shifted decrements this.  */
+  yyerrstatus = 3;	/* Each real token shifted decrements this.  */
 
   for (;;)
     {
       yyn = yypact[yystate];
-      if (!yypact_value_is_default (yyn))
-        {
-          yyn += YYTERROR;
-          if (0 <= yyn && yyn <= YYLAST && yycheck[yyn] == YYTERROR)
-            {
-              yyn = yytable[yyn];
-              if (0 < yyn)
-                break;
-            }
-        }
+      if (yyn != YYPACT_NINF)
+	{
+	  yyn += YYTERROR;
+	  if (0 <= yyn && yyn <= YYLAST && yycheck[yyn] == YYTERROR)
+	    {
+	      yyn = yytable[yyn];
+	      if (0 < yyn)
+		break;
+	    }
+	}
 
       /* Pop the current state because it cannot handle the error token.  */
       if (yyssp == yyss)
-        YYABORT;
+	YYABORT;
 
 
       yydestruct ("Error: popping",
-                  yystos[yystate], yyvsp);
+		  yystos[yystate], yyvsp);
       YYPOPSTACK (1);
       yystate = *yyssp;
       YY_STACK_PRINT (yyss, yyssp);
     }
 
-  YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN
+  if (yyn == YYFINAL)
+    YYACCEPT;
+
   *++yyvsp = yylval;
-  YY_IGNORE_MAYBE_UNINITIALIZED_END
 
 
   /* Shift the error token.  */
@@ -8006,7 +7897,7 @@ yyabortlab:
   yyresult = 1;
   goto yyreturn;
 
-#if !defined yyoverflow || YYERROR_VERBOSE
+#ifndef yyoverflow
 /*-------------------------------------------------.
 | yyexhaustedlab -- memory exhaustion comes here.  |
 `-------------------------------------------------*/
@@ -8017,22 +7908,17 @@ yyexhaustedlab:
 #endif
 
 yyreturn:
-  if (yychar != YYEMPTY)
-    {
-      /* Make sure we have latest lookahead translation.  See comments at
-         user semantic actions for why this is necessary.  */
-      yytoken = YYTRANSLATE (yychar);
-      yydestruct ("Cleanup: discarding lookahead",
-                  yytoken, &yylval);
-    }
-  /* Do not reclaim the symbols of the rule whose action triggered
+  if (yychar != YYEOF && yychar != YYEMPTY)
+     yydestruct ("Cleanup: discarding lookahead",
+		 yytoken, &yylval);
+  /* Do not reclaim the symbols of the rule which action triggered
      this YYABORT or YYACCEPT.  */
   YYPOPSTACK (yylen);
   YY_STACK_PRINT (yyss, yyssp);
   while (yyssp != yyss)
     {
       yydestruct ("Cleanup: popping",
-                  yystos[*yyssp], yyvsp);
+		  yystos[*yyssp], yyvsp);
       YYPOPSTACK (1);
     }
 #ifndef yyoverflow
@@ -8043,9 +7929,12 @@ yyreturn:
   if (yymsg != yymsgbuf)
     YYSTACK_FREE (yymsg);
 #endif
-  return yyresult;
+  /* Make sure YYID is used.  */
+  return YYID (yyresult);
 }
-#line 4299 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1906  */
+
+
+#line 4299 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
 
 
 
@@ -12964,3 +12853,4 @@ static void checkEllipsis(signatureDef *sd)
         if (sd->args[a].atype == ellipsis_type && a < sd->nrArgs - 1)
             yyerror("An ellipsis must be at the end of the argument list if /NoArgParser/ is not specified");
 }
+

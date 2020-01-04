@@ -1,6 +1,6 @@
-#line 2 "/home/phil/hg/sip/code_generator/lexer.c"
+#line 2 "/Users/phil/hg/sip/code_generator/lexer.c"
 
-#line 4 "/home/phil/hg/sip/code_generator/lexer.c"
+#line 4 "/Users/phil/hg/sip/code_generator/lexer.c"
 
 #define  YY_INT_ALIGNED short int
 
@@ -9,7 +9,7 @@
 #define FLEX_SCANNER
 #define YY_FLEX_MAJOR_VERSION 2
 #define YY_FLEX_MINOR_VERSION 5
-#define YY_FLEX_SUBMINOR_VERSION 37
+#define YY_FLEX_SUBMINOR_VERSION 35
 #if YY_FLEX_SUBMINOR_VERSION > 0
 #define FLEX_BETA
 #endif
@@ -47,6 +47,7 @@ typedef int16_t flex_int16_t;
 typedef uint16_t flex_uint16_t;
 typedef int32_t flex_int32_t;
 typedef uint32_t flex_uint32_t;
+typedef uint64_t flex_uint64_t;
 #else
 typedef signed char flex_int8_t;
 typedef short int flex_int16_t;
@@ -54,6 +55,7 @@ typedef int flex_int32_t;
 typedef unsigned char flex_uint8_t; 
 typedef unsigned short int flex_uint16_t;
 typedef unsigned int flex_uint32_t;
+#endif /* ! C99 */
 
 /* Limits of integral types. */
 #ifndef INT8_MIN
@@ -83,8 +85,6 @@ typedef unsigned int flex_uint32_t;
 #ifndef UINT32_MAX
 #define UINT32_MAX             (4294967295U)
 #endif
-
-#endif /* ! C99 */
 
 #endif /* ! FLEXINT_H */
 
@@ -356,7 +356,7 @@ static void yy_fatal_error (yyconst char msg[]  );
  */
 #define YY_DO_BEFORE_ACTION \
 	(yytext_ptr) = yy_bp; \
-	yyleng = (size_t) (yy_cp - yy_bp); \
+	yyleng = (yy_size_t) (yy_cp - yy_bp); \
 	(yy_hold_char) = *yy_cp; \
 	*yy_cp = '\0'; \
 	(yy_c_buf_p) = yy_cp;
@@ -1429,7 +1429,7 @@ int yy_flex_debug = 0;
 #define YY_MORE_ADJ 0
 #define YY_RESTORE_YY_MORE_OFFSET
 char *yytext;
-#line 1 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 1 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 /*
  * The SIP lexer.
  *
@@ -1447,7 +1447,7 @@ char *yytext;
  * SIP is supplied WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
-#line 20 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 20 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -1498,7 +1498,7 @@ static void fatallex(char *);
 
 
 
-#line 1502 "/home/phil/hg/sip/code_generator/lexer.c"
+#line 1502 "/Users/phil/hg/sip/code_generator/lexer.c"
 
 #define INITIAL 0
 #define code 1
@@ -1601,7 +1601,7 @@ static int input (void );
 /* This used to be an fputs(), but since the string might contain NUL's,
  * we now use fwrite().
  */
-#define ECHO do { if (fwrite( yytext, yyleng, 1, yyout )) {} } while (0)
+#define ECHO fwrite( yytext, yyleng, 1, yyout )
 #endif
 
 /* Gets input and stuffs it into "buf".  number of characters read, or YY_NULL,
@@ -1612,7 +1612,7 @@ static int input (void );
 	if ( YY_CURRENT_BUFFER_LVALUE->yy_is_interactive ) \
 		{ \
 		int c = '*'; \
-		size_t n; \
+		yy_size_t n; \
 		for ( n = 0; n < max_size && \
 			     (c = getc( yyin )) != EOF && c != '\n'; ++n ) \
 			buf[n] = (char) c; \
@@ -1697,10 +1697,10 @@ YY_DECL
 	register char *yy_cp, *yy_bp;
 	register int yy_act;
     
-#line 75 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 75 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 
 
-#line 1704 "/home/phil/hg/sip/code_generator/lexer.c"
+#line 1704 "/Users/phil/hg/sip/code_generator/lexer.c"
 
 	if ( !(yy_init) )
 		{
@@ -1786,362 +1786,362 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 77 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 77 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {BEGIN directive_start; return TK_API;}
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 78 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 78 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {BEGIN directive_start; return TK_AUTOPYNAME;}
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 79 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 79 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {BEGIN directive_start; return TK_COMPOMODULE;}
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 80 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 80 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {BEGIN directive_start; return TK_DEFDOCSTRFMT;}
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 81 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 81 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {BEGIN directive_start; return TK_DEFDOCSTRSIG;}
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 82 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 82 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {BEGIN directive_start; return TK_DEFENCODING;}
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 83 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 83 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {BEGIN directive_start; return TK_DEFMETATYPE;}
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 84 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 84 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {BEGIN directive_start; return TK_DEFSUPERTYPE;}
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 85 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 85 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_END;}
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 86 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 86 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {BEGIN INITIAL; return TK_END;}
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 87 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 87 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_EXCEPTION;}
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 88 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 88 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {BEGIN directive_start; return TK_FEATURE;}
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 89 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 89 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {BEGIN directive_start; return TK_HIDE_NS;}
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 90 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 90 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_IF;}
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 91 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 91 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {BEGIN directive_start; return TK_IMPORT;}
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 92 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 92 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {BEGIN directive_start; return TK_INCLUDE;}
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 93 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 93 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {BEGIN directive_start; return TK_LICENSE;}
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 94 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 94 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_MAPPEDTYPE;}
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 95 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 95 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {BEGIN directive_start; return TK_MODULE;}
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 96 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 96 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_PLATFORMS;}
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 97 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 97 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {BEGIN directive_start; return TK_PLUGIN;}
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 98 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 98 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {BEGIN directive_start; return TK_PROPERTY;}
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 99 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 99 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_TIMELINE;}
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 101 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 101 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_CLASS;}
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 102 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 102 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_STRUCT;}
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 103 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 103 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_PUBLIC;}
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 104 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 104 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_PROTECTED;}
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
-#line 105 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 105 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_PRIVATE;}
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
-#line 106 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 106 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_SIGNALS;}
 	YY_BREAK
 case 30:
 YY_RULE_SETUP
-#line 107 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 107 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_SIGNALS;}
 	YY_BREAK
 case 31:
 YY_RULE_SETUP
-#line 108 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 108 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_SIGNAL_METHOD;}
 	YY_BREAK
 case 32:
 YY_RULE_SETUP
-#line 109 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 109 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_SLOTS;}
 	YY_BREAK
 case 33:
 YY_RULE_SETUP
-#line 110 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 110 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_SLOTS;}
 	YY_BREAK
 case 34:
 YY_RULE_SETUP
-#line 111 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 111 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_SLOT_METHOD;}
 	YY_BREAK
 case 35:
 YY_RULE_SETUP
-#line 112 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 112 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_CHAR;}
 	YY_BREAK
 case 36:
 YY_RULE_SETUP
-#line 113 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 113 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_WCHAR_T;}
 	YY_BREAK
 case 37:
 YY_RULE_SETUP
-#line 114 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 114 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_BOOL;}
 	YY_BREAK
 case 38:
 YY_RULE_SETUP
-#line 115 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 115 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_SHORT;}
 	YY_BREAK
 case 39:
 YY_RULE_SETUP
-#line 116 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 116 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_INT;}
 	YY_BREAK
 case 40:
 YY_RULE_SETUP
-#line 117 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 117 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_LONG;}
 	YY_BREAK
 case 41:
 YY_RULE_SETUP
-#line 118 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 118 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_FLOAT;}
 	YY_BREAK
 case 42:
 YY_RULE_SETUP
-#line 119 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 119 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_DOUBLE;}
 	YY_BREAK
 case 43:
 YY_RULE_SETUP
-#line 120 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 120 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_VOID;}
 	YY_BREAK
 case 44:
 YY_RULE_SETUP
-#line 121 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 121 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_VIRTUAL;}
 	YY_BREAK
 case 45:
 YY_RULE_SETUP
-#line 122 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 122 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_ENUM;}
 	YY_BREAK
 case 46:
 YY_RULE_SETUP
-#line 123 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 123 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_SIGNED;}
 	YY_BREAK
 case 47:
 YY_RULE_SETUP
-#line 124 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 124 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_UNSIGNED;}
 	YY_BREAK
 case 48:
 YY_RULE_SETUP
-#line 125 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 125 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_CONST;}
 	YY_BREAK
 case 49:
 YY_RULE_SETUP
-#line 126 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 126 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_STATIC;}
 	YY_BREAK
 case 50:
 YY_RULE_SETUP
-#line 127 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 127 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_TRUE_VALUE;}
 	YY_BREAK
 case 51:
 YY_RULE_SETUP
-#line 128 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 128 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_FALSE_VALUE;}
 	YY_BREAK
 case 52:
 YY_RULE_SETUP
-#line 129 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 129 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_NULL_VALUE;}
 	YY_BREAK
 case 53:
 YY_RULE_SETUP
-#line 130 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 130 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_TYPEDEF;}
 	YY_BREAK
 case 54:
 YY_RULE_SETUP
-#line 131 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 131 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_NAMESPACE;}
 	YY_BREAK
 case 55:
 YY_RULE_SETUP
-#line 132 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 132 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_OPERATOR;}
 	YY_BREAK
 case 56:
 YY_RULE_SETUP
-#line 133 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 133 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_THROW;}
 	YY_BREAK
 case 57:
 YY_RULE_SETUP
-#line 134 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 134 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_EXPLICIT;}
 	YY_BREAK
 case 58:
 YY_RULE_SETUP
-#line 135 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 135 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_TEMPLATE;}
 	YY_BREAK
 case 59:
 YY_RULE_SETUP
-#line 136 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 136 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_FINAL;}
 	YY_BREAK
 case 60:
 YY_RULE_SETUP
-#line 137 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 137 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_SIZET;}
 	YY_BREAK
 case 61:
 YY_RULE_SETUP
-#line 138 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 138 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_SCOPE;}
 	YY_BREAK
 case 62:
 YY_RULE_SETUP
-#line 139 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 139 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_LOGICAL_OR;}
 	YY_BREAK
 case 63:
 YY_RULE_SETUP
-#line 140 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 140 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_PYOBJECT;}
 	YY_BREAK
 case 64:
 YY_RULE_SETUP
-#line 141 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 141 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_PYTUPLE;}
 	YY_BREAK
 case 65:
 YY_RULE_SETUP
-#line 142 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 142 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_PYLIST;}
 	YY_BREAK
 case 66:
 YY_RULE_SETUP
-#line 143 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 143 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_PYDICT;}
 	YY_BREAK
 case 67:
 YY_RULE_SETUP
-#line 144 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 144 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_PYCALLABLE;}
 	YY_BREAK
 case 68:
 YY_RULE_SETUP
-#line 145 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 145 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_PYSLICE;}
 	YY_BREAK
 case 69:
 YY_RULE_SETUP
-#line 146 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 146 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_PYTYPE;}
 	YY_BREAK
 case 70:
 YY_RULE_SETUP
-#line 147 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 147 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_PYBUFFER;}
 	YY_BREAK
 case 71:
 YY_RULE_SETUP
-#line 148 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 148 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_PYSSIZET;}
 	YY_BREAK
 case 72:
 YY_RULE_SETUP
-#line 149 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 149 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* Remove in v5.1. */
     return TK_PYSSIZET;
@@ -2149,122 +2149,122 @@ YY_RULE_SETUP
 	YY_BREAK
 case 73:
 YY_RULE_SETUP
-#line 153 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 153 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_ELLIPSIS;}
 	YY_BREAK
 case 74:
 YY_RULE_SETUP
-#line 155 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 155 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_FORMAT;}
 	YY_BREAK
 case 75:
 YY_RULE_SETUP
-#line 156 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 156 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_GET;}
 	YY_BREAK
 case 76:
 YY_RULE_SETUP
-#line 157 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 157 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_ID;}
 	YY_BREAK
 case 77:
 YY_RULE_SETUP
-#line 158 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 158 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_KWARGS;}
 	YY_BREAK
 case 78:
 YY_RULE_SETUP
-#line 159 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 159 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_LANGUAGE;}
 	YY_BREAK
 case 79:
 YY_RULE_SETUP
-#line 160 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 160 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_LICENSEE;}
 	YY_BREAK
 case 80:
 YY_RULE_SETUP
-#line 161 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 161 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_NAME;}
 	YY_BREAK
 case 81:
 YY_RULE_SETUP
-#line 162 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 162 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_OPTIONAL;}
 	YY_BREAK
 case 82:
 YY_RULE_SETUP
-#line 163 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 163 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_ORDER;}
 	YY_BREAK
 case 83:
 YY_RULE_SETUP
-#line 164 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 164 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_REMOVELEADING;}
 	YY_BREAK
 case 84:
 YY_RULE_SETUP
-#line 165 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 165 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_SET;}
 	YY_BREAK
 case 85:
 YY_RULE_SETUP
-#line 166 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 166 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_SIGNATURE;}
 	YY_BREAK
 case 86:
 YY_RULE_SETUP
-#line 167 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 167 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_TIMESTAMP;}
 	YY_BREAK
 case 87:
 YY_RULE_SETUP
-#line 168 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 168 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_TYPE;}
 	YY_BREAK
 case 88:
 YY_RULE_SETUP
-#line 169 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 169 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_USEARGNAMES;}
 	YY_BREAK
 case 89:
 YY_RULE_SETUP
-#line 170 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 170 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_USELIMITEDAPI;}
 	YY_BREAK
 case 90:
 YY_RULE_SETUP
-#line 171 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 171 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_ALLRAISEPYEXC;}
 	YY_BREAK
 case 91:
 YY_RULE_SETUP
-#line 172 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 172 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_CALLSUPERINIT;}
 	YY_BREAK
 case 92:
 YY_RULE_SETUP
-#line 173 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 173 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_DEFERRORHANDLER;}
 	YY_BREAK
 case 93:
 YY_RULE_SETUP
-#line 174 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 174 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_VERSION;}
 	YY_BREAK
 case 94:
 YY_RULE_SETUP
-#line 176 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 176 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_TRUE_VALUE;}
 	YY_BREAK
 case 95:
 YY_RULE_SETUP
-#line 177 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 177 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {return TK_FALSE_VALUE;}
 	YY_BREAK
 case 96:
 YY_RULE_SETUP
-#line 180 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 180 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* Ignore whitespace. */
     ;
@@ -2272,7 +2272,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 97:
 YY_RULE_SETUP
-#line 185 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 185 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /*
      * Maintain the parenthesis depth so that we don't enter the 'code' state
@@ -2287,7 +2287,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 98:
 YY_RULE_SETUP
-#line 197 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 197 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* Maintain the parenthesis depth. */
     --parenDepth;
@@ -2300,7 +2300,7 @@ YY_RULE_SETUP
 case 99:
 /* rule 99 can match eol */
 YY_RULE_SETUP
-#line 206 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 206 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* Maintain the line number. */
     ++inputFileStack[currentFile].sloc.linenr;
@@ -2313,7 +2313,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 100:
 YY_RULE_SETUP
-#line 216 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 216 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* Ignore C++ style comments. */
     ;
@@ -2321,7 +2321,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 101:
 YY_RULE_SETUP
-#line 222 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 222 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* A signed decimal number. */
     yylval.number = strtol(yytext,NULL,0);
@@ -2330,7 +2330,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 102:
 YY_RULE_SETUP
-#line 229 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 229 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* A floating point number. */
     yylval.real = strtod(yytext,NULL);
@@ -2339,7 +2339,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 103:
 YY_RULE_SETUP
-#line 236 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 236 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* An unsigned hexadecimal number. */
     yylval.number = strtol(yytext,NULL,16);
@@ -2348,7 +2348,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 104:
 YY_RULE_SETUP
-#line 243 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 243 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* An identifier name. */
     yylval.text = sipStrdup(yytext);
@@ -2357,7 +2357,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 105:
 YY_RULE_SETUP
-#line 250 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 250 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* A relative pathname. */
     yylval.text = sipStrdup(yytext);
@@ -2367,7 +2367,7 @@ YY_RULE_SETUP
 case 106:
 /* rule 106 can match eol */
 YY_RULE_SETUP
-#line 257 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 257 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* A double-quoted string. */
     char ch, *dp, *sp;
@@ -2406,7 +2406,7 @@ YY_RULE_SETUP
 case 107:
 /* rule 107 can match eol */
 YY_RULE_SETUP
-#line 293 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 293 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* A single-quoted character. */
     if (strlen(yytext) != 3)
@@ -2419,7 +2419,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 108:
 YY_RULE_SETUP
-#line 304 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 304 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* Ignore C-style comments. */
     yy_push_state(ccomment);
@@ -2428,28 +2428,28 @@ YY_RULE_SETUP
 case 109:
 /* rule 109 can match eol */
 YY_RULE_SETUP
-#line 308 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 308 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     ++inputFileStack[currentFile].sloc.linenr;
 }
 	YY_BREAK
 case 110:
 YY_RULE_SETUP
-#line 311 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 311 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     yy_pop_state();
 }
 	YY_BREAK
 case 111:
 YY_RULE_SETUP
-#line 314 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 314 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     ;
 }
 	YY_BREAK
 case 112:
 YY_RULE_SETUP
-#line 319 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 319 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* The software license. */
     codeIdx = 0;
@@ -2458,7 +2458,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 113:
 YY_RULE_SETUP
-#line 325 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 325 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* The start of a from-type code block. */
     codeIdx = 0;
@@ -2467,7 +2467,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 114:
 YY_RULE_SETUP
-#line 331 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 331 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* The start of a to-type code block. */
     codeIdx = 0;
@@ -2476,7 +2476,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 115:
 YY_RULE_SETUP
-#line 337 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 337 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* The start of a to-sub-class code block. */
     codeIdx = 0;
@@ -2485,7 +2485,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 116:
 YY_RULE_SETUP
-#line 343 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 343 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* The start of an exported header code block. */
     codeIdx = 0;
@@ -2494,7 +2494,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 117:
 YY_RULE_SETUP
-#line 349 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 349 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* The start of part of an extract. */
     codeIdx = 0;
@@ -2506,7 +2506,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 118:
 YY_RULE_SETUP
-#line 358 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 358 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* The start of a module header code block. */
     codeIdx = 0;
@@ -2515,7 +2515,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 119:
 YY_RULE_SETUP
-#line 364 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 364 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* The start of a type header code block. */
     codeIdx = 0;
@@ -2524,7 +2524,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 120:
 YY_RULE_SETUP
-#line 370 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 370 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* The start of a pre-initialisation code block. */
     codeIdx = 0;
@@ -2533,7 +2533,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 121:
 YY_RULE_SETUP
-#line 376 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 376 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* The start of an initialisation code block. */
     codeIdx = 0;
@@ -2542,7 +2542,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 122:
 YY_RULE_SETUP
-#line 382 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 382 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* The start of a post-initialisation code block. */
     codeIdx = 0;
@@ -2551,7 +2551,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 123:
 YY_RULE_SETUP
-#line 388 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 388 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* The start of a class finalisation code block. */
     codeIdx = 0;
@@ -2560,7 +2560,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 124:
 YY_RULE_SETUP
-#line 394 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 394 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* The start of a unit code block. */
     codeIdx = 0;
@@ -2569,7 +2569,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 125:
 YY_RULE_SETUP
-#line 400 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 400 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* The start of a unit post-include code block. */
     codeIdx = 0;
@@ -2578,7 +2578,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 126:
 YY_RULE_SETUP
-#line 406 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 406 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* The start of a module code block. */
     codeIdx = 0;
@@ -2587,7 +2587,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 127:
 YY_RULE_SETUP
-#line 412 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 412 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* The start of a type code block. */
     codeIdx = 0;
@@ -2596,7 +2596,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 128:
 YY_RULE_SETUP
-#line 418 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 418 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* The start of a C++ method code block. */
     codeIdx = 0;
@@ -2605,7 +2605,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 129:
 YY_RULE_SETUP
-#line 424 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 424 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* The start of a C++ code block to insert before the MethodCode. */
     codeIdx = 0;
@@ -2614,7 +2614,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 130:
 YY_RULE_SETUP
-#line 430 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 430 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* The start of a C++ virtual call code block. */
     codeIdx = 0;
@@ -2623,7 +2623,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 131:
 YY_RULE_SETUP
-#line 436 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 436 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* The start of a C++ virtual code block. */
     codeIdx = 0;
@@ -2632,7 +2632,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 132:
 YY_RULE_SETUP
-#line 442 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 442 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* The start of a traverse code block. */
     codeIdx = 0;
@@ -2641,7 +2641,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 133:
 YY_RULE_SETUP
-#line 448 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 448 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* The start of a clear code block. */
     codeIdx = 0;
@@ -2650,7 +2650,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 134:
 YY_RULE_SETUP
-#line 454 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 454 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* The start of a get buffer code block. */
     codeIdx = 0;
@@ -2659,7 +2659,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 135:
 YY_RULE_SETUP
-#line 460 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 460 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* The start of a release buffer code block. */
     codeIdx = 0;
@@ -2668,7 +2668,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 136:
 YY_RULE_SETUP
-#line 466 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 466 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* The start of a read buffer code block. */
     codeIdx = 0;
@@ -2677,7 +2677,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 137:
 YY_RULE_SETUP
-#line 472 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 472 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* The start of a write buffer code block. */
     codeIdx = 0;
@@ -2686,7 +2686,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 138:
 YY_RULE_SETUP
-#line 478 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 478 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* The start of a segment count code block. */
     codeIdx = 0;
@@ -2695,7 +2695,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 139:
 YY_RULE_SETUP
-#line 484 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 484 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* The start of a char buffer code block. */
     codeIdx = 0;
@@ -2704,7 +2704,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 140:
 YY_RULE_SETUP
-#line 490 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 490 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* The start of a create instance code block. */
     codeIdx = 0;
@@ -2713,7 +2713,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 141:
 YY_RULE_SETUP
-#line 496 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 496 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* The start of a pickle code block. */
     codeIdx = 0;
@@ -2722,7 +2722,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 142:
 YY_RULE_SETUP
-#line 502 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 502 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* The start of a raise Python exception code block. */
     codeIdx = 0;
@@ -2731,7 +2731,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 143:
 YY_RULE_SETUP
-#line 508 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 508 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* The start of an exported type hint code block. */
     codeIdx = 0;
@@ -2740,7 +2740,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 144:
 YY_RULE_SETUP
-#line 514 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 514 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* The start of a type hint code block. */
     codeIdx = 0;
@@ -2749,7 +2749,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 145:
 YY_RULE_SETUP
-#line 520 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 520 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* The start of a docstring block. */
     codeIdx = 0;
@@ -2761,7 +2761,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 146:
 YY_RULE_SETUP
-#line 529 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 529 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* The start of an access code block. */
     codeIdx = 0;
@@ -2770,7 +2770,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 147:
 YY_RULE_SETUP
-#line 535 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 535 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* The start of a get code block. */
     codeIdx = 0;
@@ -2779,7 +2779,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 148:
 YY_RULE_SETUP
-#line 541 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 541 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* The start of a set code block. */
     codeIdx = 0;
@@ -2788,7 +2788,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 149:
 YY_RULE_SETUP
-#line 547 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 547 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* The start of part of a virtual error handler. */
     codeIdx = 0;
@@ -2800,7 +2800,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 150:
 YY_RULE_SETUP
-#line 556 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 556 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* The end of a code block. */
     BEGIN INITIAL;
@@ -2811,7 +2811,7 @@ YY_RULE_SETUP
 case 151:
 /* rule 151 can match eol */
 YY_RULE_SETUP
-#line 563 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 563 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* The end of a code line . */
     struct inputFile *ifp;
@@ -2833,7 +2833,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 152:
 YY_RULE_SETUP
-#line 582 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 582 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* The contents of a code line. */
     if (codeIdx == MAX_CODE_LINE_LENGTH)
@@ -2844,7 +2844,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 153:
 YY_RULE_SETUP
-#line 590 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 590 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 {
     /* Anything else is returned as is. */
     return yytext[0];
@@ -2852,10 +2852,10 @@ YY_RULE_SETUP
 	YY_BREAK
 case 154:
 YY_RULE_SETUP
-#line 595 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 595 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 ECHO;
 	YY_BREAK
-#line 2859 "/home/phil/hg/sip/code_generator/lexer.c"
+#line 2859 "/Users/phil/hg/sip/code_generator/lexer.c"
 case YY_STATE_EOF(INITIAL):
 case YY_STATE_EOF(code):
 case YY_STATE_EOF(ccomment):
@@ -3052,7 +3052,7 @@ static int yy_get_next_buffer (void)
 			{ /* Not enough room in the buffer - grow it. */
 
 			/* just a shorter name for the current buffer */
-			YY_BUFFER_STATE b = YY_CURRENT_BUFFER_LVALUE;
+			YY_BUFFER_STATE b = YY_CURRENT_BUFFER;
 
 			int yy_c_buf_p_offset =
 				(int) ((yy_c_buf_p) - b->yy_ch_buf);
@@ -3186,7 +3186,7 @@ static int yy_get_next_buffer (void)
 	yy_current_state = yy_nxt[yy_base[yy_current_state] + (unsigned int) yy_c];
 	yy_is_jam = (yy_current_state == 1148);
 
-		return yy_is_jam ? 0 : yy_current_state;
+	return yy_is_jam ? 0 : yy_current_state;
 }
 
     static void yyunput (int c, register char * yy_bp )
@@ -3274,7 +3274,7 @@ static int yy_get_next_buffer (void)
 				case EOB_ACT_END_OF_FILE:
 					{
 					if ( yywrap( ) )
-						return EOF;
+						return 0;
 
 					if ( ! (yy_did_buffer_switch_on_eof) )
 						YY_NEW_FILE;
@@ -3412,6 +3412,10 @@ static void yy_load_buffer_state  (void)
 	yyfree((void *) b  );
 }
 
+#ifndef __cplusplus
+extern int isatty (int );
+#endif /* __cplusplus */
+    
 /* Initializes or reinitializes a buffer.
  * This function is sometimes called more than once on the same buffer,
  * such as during a yyrestart() or at EOF.
@@ -3616,8 +3620,8 @@ YY_BUFFER_STATE yy_scan_string (yyconst char * yystr )
 
 /** Setup the input buffer state to scan the given bytes. The next call to yylex() will
  * scan from a @e copy of @a bytes.
- * @param yybytes the byte buffer to scan
- * @param _yybytes_len the number of bytes in the buffer pointed to by @a bytes.
+ * @param bytes the byte buffer to scan
+ * @param len the number of bytes in the buffer pointed to by @a bytes.
  * 
  * @return the newly allocated buffer state object.
  */
@@ -3625,8 +3629,7 @@ YY_BUFFER_STATE yy_scan_bytes  (yyconst char * yybytes, yy_size_t  _yybytes_len 
 {
 	YY_BUFFER_STATE b;
 	char *buf;
-	yy_size_t n;
-	yy_size_t i;
+	yy_size_t n, i;
     
 	/* Get memory for full buffer, including space for trailing EOB's. */
 	n = _yybytes_len + 2;
@@ -3901,7 +3904,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 595 "/home/phil/hg/sip/code_generator/metasrc/lexer.l"
+#line 595 "/Users/phil/hg/sip/code_generator/metasrc/lexer.l"
 
 
 
