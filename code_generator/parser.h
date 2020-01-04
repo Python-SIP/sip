@@ -1,14 +1,13 @@
-/* A Bison parser, made by GNU Bison 2.3.  */
+/* A Bison parser, made by GNU Bison 3.0.4.  */
 
-/* Skeleton interface for Bison's Yacc-like parsers in C
+/* Bison interface for Yacc-like parsers in C
 
-   Copyright (C) 1984, 1989, 1990, 2000, 2001, 2002, 2003, 2004, 2005, 2006
-   Free Software Foundation, Inc.
+   Copyright (C) 1984, 1989-1990, 2000-2015 Free Software Foundation, Inc.
 
-   This program is free software; you can redistribute it and/or modify
+   This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2, or (at your option)
-   any later version.
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
 
    This program is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,9 +15,7 @@
    GNU General Public License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software
-   Foundation, Inc., 51 Franklin Street, Fifth Floor,
-   Boston, MA 02110-1301, USA.  */
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 /* As a special exception, you may create a larger work that contains
    part or all of the Bison parser skeleton and distribute that work
@@ -33,147 +30,156 @@
    This special exception was added by the Free Software Foundation in
    version 2.2 of Bison.  */
 
-/* Tokens.  */
+#ifndef YY_YY_HOME_PHIL_HG_SIP_CODE_GENERATOR_PARSER_H_INCLUDED
+# define YY_YY_HOME_PHIL_HG_SIP_CODE_GENERATOR_PARSER_H_INCLUDED
+/* Debug traces.  */
+#ifndef YYDEBUG
+# define YYDEBUG 0
+#endif
+#if YYDEBUG
+extern int yydebug;
+#endif
+
+/* Token type.  */
 #ifndef YYTOKENTYPE
 # define YYTOKENTYPE
-   /* Put the tokens into the symbol table, so that GDB and other debuggers
-      know about them.  */
-   enum yytokentype {
-     TK_API = 258,
-     TK_AUTOPYNAME = 259,
-     TK_DEFDOCSTRFMT = 260,
-     TK_DEFDOCSTRSIG = 261,
-     TK_DEFENCODING = 262,
-     TK_PLUGIN = 263,
-     TK_VIRTERRORHANDLER = 264,
-     TK_EXPTYPEHINTCODE = 265,
-     TK_TYPEHINTCODE = 266,
-     TK_DOCSTRING = 267,
-     TK_EXTRACT = 268,
-     TK_ACCESSCODE = 269,
-     TK_GETCODE = 270,
-     TK_SETCODE = 271,
-     TK_PREINITCODE = 272,
-     TK_INITCODE = 273,
-     TK_POSTINITCODE = 274,
-     TK_FINALCODE = 275,
-     TK_UNITCODE = 276,
-     TK_UNITPOSTINCLUDECODE = 277,
-     TK_MODCODE = 278,
-     TK_TYPECODE = 279,
-     TK_COPYING = 280,
-     TK_MAPPEDTYPE = 281,
-     TK_CODELINE = 282,
-     TK_IF = 283,
-     TK_END = 284,
-     TK_NAME_VALUE = 285,
-     TK_PATH_VALUE = 286,
-     TK_STRING_VALUE = 287,
-     TK_VIRTUALCATCHERCODE = 288,
-     TK_TRAVERSECODE = 289,
-     TK_CLEARCODE = 290,
-     TK_GETBUFFERCODE = 291,
-     TK_RELEASEBUFFERCODE = 292,
-     TK_READBUFFERCODE = 293,
-     TK_WRITEBUFFERCODE = 294,
-     TK_SEGCOUNTCODE = 295,
-     TK_CHARBUFFERCODE = 296,
-     TK_PICKLECODE = 297,
-     TK_VIRTUALCALLCODE = 298,
-     TK_METHODCODE = 299,
-     TK_PREMETHODCODE = 300,
-     TK_INSTANCECODE = 301,
-     TK_FROMTYPE = 302,
-     TK_TOTYPE = 303,
-     TK_TOSUBCLASS = 304,
-     TK_INCLUDE = 305,
-     TK_IMPORT = 306,
-     TK_EXPHEADERCODE = 307,
-     TK_MODHEADERCODE = 308,
-     TK_TYPEHEADERCODE = 309,
-     TK_MODULE = 310,
-     TK_COMPOMODULE = 311,
-     TK_CLASS = 312,
-     TK_STRUCT = 313,
-     TK_PUBLIC = 314,
-     TK_PROTECTED = 315,
-     TK_PRIVATE = 316,
-     TK_SIGNALS = 317,
-     TK_SIGNAL_METHOD = 318,
-     TK_SLOTS = 319,
-     TK_SLOT_METHOD = 320,
-     TK_BOOL = 321,
-     TK_SHORT = 322,
-     TK_INT = 323,
-     TK_LONG = 324,
-     TK_FLOAT = 325,
-     TK_DOUBLE = 326,
-     TK_CHAR = 327,
-     TK_WCHAR_T = 328,
-     TK_VOID = 329,
-     TK_PYOBJECT = 330,
-     TK_PYTUPLE = 331,
-     TK_PYLIST = 332,
-     TK_PYDICT = 333,
-     TK_PYCALLABLE = 334,
-     TK_PYSLICE = 335,
-     TK_PYTYPE = 336,
-     TK_PYBUFFER = 337,
-     TK_VIRTUAL = 338,
-     TK_ENUM = 339,
-     TK_SIGNED = 340,
-     TK_UNSIGNED = 341,
-     TK_SCOPE = 342,
-     TK_LOGICAL_OR = 343,
-     TK_CONST = 344,
-     TK_STATIC = 345,
-     TK_PYSSIZET = 346,
-     TK_SIZET = 347,
-     TK_NUMBER_VALUE = 348,
-     TK_REAL_VALUE = 349,
-     TK_TYPEDEF = 350,
-     TK_NAMESPACE = 351,
-     TK_TIMELINE = 352,
-     TK_PLATFORMS = 353,
-     TK_FEATURE = 354,
-     TK_LICENSE = 355,
-     TK_QCHAR_VALUE = 356,
-     TK_TRUE_VALUE = 357,
-     TK_FALSE_VALUE = 358,
-     TK_NULL_VALUE = 359,
-     TK_OPERATOR = 360,
-     TK_THROW = 361,
-     TK_EXCEPTION = 362,
-     TK_RAISECODE = 363,
-     TK_EXPLICIT = 364,
-     TK_TEMPLATE = 365,
-     TK_FINAL = 366,
-     TK_ELLIPSIS = 367,
-     TK_DEFMETATYPE = 368,
-     TK_DEFSUPERTYPE = 369,
-     TK_PROPERTY = 370,
-     TK_HIDE_NS = 371,
-     TK_FORMAT = 372,
-     TK_GET = 373,
-     TK_ID = 374,
-     TK_KWARGS = 375,
-     TK_LANGUAGE = 376,
-     TK_LICENSEE = 377,
-     TK_NAME = 378,
-     TK_OPTIONAL = 379,
-     TK_ORDER = 380,
-     TK_REMOVELEADING = 381,
-     TK_SET = 382,
-     TK_SIGNATURE = 383,
-     TK_TIMESTAMP = 384,
-     TK_TYPE = 385,
-     TK_USEARGNAMES = 386,
-     TK_USELIMITEDAPI = 387,
-     TK_ALLRAISEPYEXC = 388,
-     TK_CALLSUPERINIT = 389,
-     TK_DEFERRORHANDLER = 390,
-     TK_VERSION = 391
-   };
+  enum yytokentype
+  {
+    TK_API = 258,
+    TK_AUTOPYNAME = 259,
+    TK_DEFDOCSTRFMT = 260,
+    TK_DEFDOCSTRSIG = 261,
+    TK_DEFENCODING = 262,
+    TK_PLUGIN = 263,
+    TK_VIRTERRORHANDLER = 264,
+    TK_EXPTYPEHINTCODE = 265,
+    TK_TYPEHINTCODE = 266,
+    TK_DOCSTRING = 267,
+    TK_EXTRACT = 268,
+    TK_ACCESSCODE = 269,
+    TK_GETCODE = 270,
+    TK_SETCODE = 271,
+    TK_PREINITCODE = 272,
+    TK_INITCODE = 273,
+    TK_POSTINITCODE = 274,
+    TK_FINALCODE = 275,
+    TK_UNITCODE = 276,
+    TK_UNITPOSTINCLUDECODE = 277,
+    TK_MODCODE = 278,
+    TK_TYPECODE = 279,
+    TK_COPYING = 280,
+    TK_MAPPEDTYPE = 281,
+    TK_CODELINE = 282,
+    TK_IF = 283,
+    TK_END = 284,
+    TK_NAME_VALUE = 285,
+    TK_PATH_VALUE = 286,
+    TK_STRING_VALUE = 287,
+    TK_VIRTUALCATCHERCODE = 288,
+    TK_TRAVERSECODE = 289,
+    TK_CLEARCODE = 290,
+    TK_GETBUFFERCODE = 291,
+    TK_RELEASEBUFFERCODE = 292,
+    TK_READBUFFERCODE = 293,
+    TK_WRITEBUFFERCODE = 294,
+    TK_SEGCOUNTCODE = 295,
+    TK_CHARBUFFERCODE = 296,
+    TK_PICKLECODE = 297,
+    TK_VIRTUALCALLCODE = 298,
+    TK_METHODCODE = 299,
+    TK_PREMETHODCODE = 300,
+    TK_INSTANCECODE = 301,
+    TK_FROMTYPE = 302,
+    TK_TOTYPE = 303,
+    TK_TOSUBCLASS = 304,
+    TK_INCLUDE = 305,
+    TK_IMPORT = 306,
+    TK_EXPHEADERCODE = 307,
+    TK_MODHEADERCODE = 308,
+    TK_TYPEHEADERCODE = 309,
+    TK_MODULE = 310,
+    TK_COMPOMODULE = 311,
+    TK_CLASS = 312,
+    TK_STRUCT = 313,
+    TK_PUBLIC = 314,
+    TK_PROTECTED = 315,
+    TK_PRIVATE = 316,
+    TK_SIGNALS = 317,
+    TK_SIGNAL_METHOD = 318,
+    TK_SLOTS = 319,
+    TK_SLOT_METHOD = 320,
+    TK_BOOL = 321,
+    TK_SHORT = 322,
+    TK_INT = 323,
+    TK_LONG = 324,
+    TK_FLOAT = 325,
+    TK_DOUBLE = 326,
+    TK_CHAR = 327,
+    TK_WCHAR_T = 328,
+    TK_VOID = 329,
+    TK_PYOBJECT = 330,
+    TK_PYTUPLE = 331,
+    TK_PYLIST = 332,
+    TK_PYDICT = 333,
+    TK_PYCALLABLE = 334,
+    TK_PYSLICE = 335,
+    TK_PYTYPE = 336,
+    TK_PYBUFFER = 337,
+    TK_VIRTUAL = 338,
+    TK_ENUM = 339,
+    TK_SIGNED = 340,
+    TK_UNSIGNED = 341,
+    TK_SCOPE = 342,
+    TK_LOGICAL_OR = 343,
+    TK_CONST = 344,
+    TK_STATIC = 345,
+    TK_PYSSIZET = 346,
+    TK_SIZET = 347,
+    TK_NUMBER_VALUE = 348,
+    TK_REAL_VALUE = 349,
+    TK_TYPEDEF = 350,
+    TK_NAMESPACE = 351,
+    TK_TIMELINE = 352,
+    TK_PLATFORMS = 353,
+    TK_FEATURE = 354,
+    TK_LICENSE = 355,
+    TK_QCHAR_VALUE = 356,
+    TK_TRUE_VALUE = 357,
+    TK_FALSE_VALUE = 358,
+    TK_NULL_VALUE = 359,
+    TK_OPERATOR = 360,
+    TK_THROW = 361,
+    TK_EXCEPTION = 362,
+    TK_RAISECODE = 363,
+    TK_EXPLICIT = 364,
+    TK_TEMPLATE = 365,
+    TK_FINAL = 366,
+    TK_ELLIPSIS = 367,
+    TK_DEFMETATYPE = 368,
+    TK_DEFSUPERTYPE = 369,
+    TK_PROPERTY = 370,
+    TK_HIDE_NS = 371,
+    TK_FORMAT = 372,
+    TK_GET = 373,
+    TK_ID = 374,
+    TK_KWARGS = 375,
+    TK_LANGUAGE = 376,
+    TK_LICENSEE = 377,
+    TK_NAME = 378,
+    TK_OPTIONAL = 379,
+    TK_ORDER = 380,
+    TK_REMOVELEADING = 381,
+    TK_SET = 382,
+    TK_SIGNATURE = 383,
+    TK_TIMESTAMP = 384,
+    TK_TYPE = 385,
+    TK_USEARGNAMES = 386,
+    TK_USELIMITEDAPI = 387,
+    TK_ALLRAISEPYEXC = 388,
+    TK_CALLSUPERINIT = 389,
+    TK_DEFERRORHANDLER = 390,
+    TK_VERSION = 391
+  };
 #endif
 /* Tokens.  */
 #define TK_API 258
@@ -311,13 +317,13 @@
 #define TK_DEFERRORHANDLER 390
 #define TK_VERSION 391
 
-
-
-
+/* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
-typedef union YYSTYPE
-#line 202 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
+
+union YYSTYPE
 {
+#line 202 "/home/phil/hg/sip/code_generator/metasrc/parser.y" /* yacc.c:1909  */
+
     char            qchar;
     char            *text;
     long            number;
@@ -359,14 +365,18 @@ typedef union YYSTYPE
     variableCfg     variable;
     vehCfg          veh;
     int             token;
-}
-/* Line 1529 of yacc.c.  */
-#line 365 "/Users/phil/hg/sip/code_generator/parser.h"
-	YYSTYPE;
-# define yystype YYSTYPE /* obsolescent; will be withdrawn */
-# define YYSTYPE_IS_DECLARED 1
+
+#line 370 "/home/phil/hg/sip/code_generator/parser.h" /* yacc.c:1909  */
+};
+
+typedef union YYSTYPE YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
+# define YYSTYPE_IS_DECLARED 1
 #endif
+
 
 extern YYSTYPE yylval;
 
+int yyparse (void);
+
+#endif /* !YY_YY_HOME_PHIL_HG_SIP_CODE_GENERATOR_PARSER_H_INCLUDED  */

@@ -198,7 +198,7 @@ class Builder(AbstractBuilder):
         wheel_file = '{}-{}'.format(project.name.replace('-', '_'),
                 project.version_str)
 
-        if project.build_tag is not None:
+        if project.build_tag:
             wheel_file += '_{}'.format(project.build_tag)
 
         wheel_file += '-{}-.whl'.format(wheel_tag)
