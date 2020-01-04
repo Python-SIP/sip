@@ -52,10 +52,10 @@ class Project(AbstractProject, Configurable):
 
         # The callable that will return an Bindings instance.  This is used for
         # bindings implicitly defined in the .toml file.
-        Option('bindings_factory', markers=False),
+        Option('bindings_factory'),
 
         # The callable that will return an AbstractBuilder instance.
-        Option('builder_factory', markers=False),
+        Option('builder_factory'),
 
         # The list of console script entry points.
         Option('console_scripts', option_type=list),

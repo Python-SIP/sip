@@ -152,20 +152,15 @@ class Configurable:
                             section_name=section_name)
 
                 # Evaluate any environment markers if the option supports them.
-                if option.markers:
-                    if isinstance(value, list):
-                        new_value = []
+                if isinstance(value, list):
+                    new_value = []
 
-                        for v in value:
-                            v = self._handle_marker(v, name, section_name)
-                            if v is not None:
-                                new_value.append(v)
+                    for v in value:
+                        v = self._handle_marker(v, name, section_name)
+                        if v is not None:
+                            new_value.append(v)
 
-                        value = new_value
-                    else:
-                        # Note that this will use the option's default value if
-                        # any marker evaluates as False.
-                        value = self._handle_marker(value, name, section_name)
+                    value = new_value
 
                 setattr(self, option.name, value)
 
@@ -259,7 +254,7 @@ class Option:
     option_nr = 0
 
     def __init__(self, name, *, option_type=str, choices=None, default=None,
-            help=None, metavar=None, inverted=False, tools=None, markers=None):
+            help=None, metavar=None, inverted=False, tools=None):
         """ Initialise the option. """
 
         self.name = name
@@ -281,13 +276,6 @@ class Option:
                                     name, tool))
 
             self.tools = tools
-
-        if option_type in (str, list):
-            self.markers = True if markers is None else markers
-        elif markers is not None:
-            raise UserException(
-                    "'{0}' option must be a str or list to support "
-                    "environment markers".format(name))
 
         self.dest = 'd' + str(type(self).option_nr)
         type(self).option_nr += 1

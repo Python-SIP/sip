@@ -491,7 +491,7 @@ build systems.
 :py:class:`~sipbuild.Option`
 ----------------------------
 
-.. py:class:: Option(name, \*, option_type=str, choices=None, default=None, help=None, metavar=None, inverted=False, tools=None, markers=None)
+.. py:class:: Option(name, \*, option_type=str, choices=None, default=None, help=None, metavar=None, inverted=False, tools=None)
 
     Encapsulate a configurable option.  Option values may be specified in code,
     in the :file:`pyproject.toml` file or on the command line of SIP's tools.
@@ -514,11 +514,6 @@ build systems.
     :param list[str] tools: is the list of tools that use the option as a
         command line option.  If it isn't specified then the list of build
         tools is used, i.e. ``['build', 'install', 'pep517', 'wheel']``.
-    :param bool markers: is set if the value may contain environment markers as
-        defined in `PEP 508 <https://www.python.org/dev/peps/pep-0508/>`__.
-        This may only be specified (and by default is ``True``) for str and
-        list options.  When specified for list options then markers are
-        evaluated for each of the elements of the list value.
 
 
 :py:class:`~sipbuild.Project`

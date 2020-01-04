@@ -48,9 +48,8 @@ stated otherwise, all values are strings.
 ``[tool.sip.builder]`` Section
 ------------------------------
 
-Unless stated otherwise, the values of all string and list options may contain
-environment markers as defined in `PEP 508
-<https://www.python.org/dev/peps/pep-0508/>`__.
+Unless stated otherwise, the values of all list options may contain environment
+markers as defined in `PEP 508 <https://www.python.org/dev/peps/pep-0508/>`__.
 
 The SIP build system does not define any key/values in this section but build
 system extensions may do so.
@@ -81,7 +80,7 @@ Note that SIP does not check the validity of the key/values in this section.
 
 The key/values in this section apply to the project as a whole.  Unless stated
 otherwise, all values are strings.  Unless stated otherwise, the values of all
-string and list options may contain environment markers as defined in `PEP 508
+list options may contain environment markers as defined in `PEP 508
 <https://www.python.org/dev/peps/pep-0508/>`__.
 
 **abi-version**
@@ -97,8 +96,7 @@ string and list options may contain environment markers as defined in `PEP 508
     The value is a callable that will return an object that is a sub-class
     of :class:`~sipbuild.Bindings`.  The default bindings factory is
     :class:`~sipbuild.Bindings`.  Bindings factories can also be specified
-    programmatically using :attr:`~sipbuild.Project.bindings_factories`.  The
-    value may not contain environment markers.
+    programmatically using :attr:`~sipbuild.Project.bindings_factories`.
 
 **build-dir**
     The value is the name of a directory in which all generated files will be
@@ -113,8 +111,7 @@ string and list options may contain environment markers as defined in `PEP 508
 **builder-factory**
     The value is a callable that will return an object that is a sub-class
     of :class:`~sipbuild.AbstractBuilder`.  The default builder factory is
-    :class:`~sipbuild.DistutilsBuilder`.  The value may not contain environment
-    markers.
+    :class:`~sipbuild.DistutilsBuilder`.
 
 **console-scripts**
     The value is a list of entry points that defines one or more console
@@ -215,8 +212,8 @@ value of the ``name`` key in the ``[tool.sip.metadata]`` section and, if found,
 will assume that it defines the bindings of a standalone project.
 
 Unless stated otherwise, all values are strings.  Unless stated otherwise, the
-values of all string and list options may contain environment markers as
-defined in `PEP 508 <https://www.python.org/dev/peps/pep-0508/>`__.
+values of all list options may contain environment markers as defined in `PEP
+508 <https://www.python.org/dev/peps/pep-0508/>`__.
 
 **builder-settings**
     The value is a list of values that are passed to the builder.  It is up to
