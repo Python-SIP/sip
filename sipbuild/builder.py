@@ -199,7 +199,7 @@ class Builder(AbstractBuilder):
                 project.version_str)
 
         if project.build_tag:
-            wheel_file += '_{}'.format(project.build_tag)
+            wheel_file += '-{}'.format(project.build_tag)
 
         wheel_file += '-{}.whl'.format(wheel_tag)
         wheel_path = os.path.abspath(os.path.join(wheel_directory, wheel_file))
