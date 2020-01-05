@@ -1,4 +1,4 @@
-v5.1.0 ??? January 2020
+v5.1.0 6th January 2020
   - Added the 'minimum-glibc-version' project option to specify the minimum
     GLIBC version required by the project.  This is used to determine the
     correct platform tag to use for Linux wheels.
