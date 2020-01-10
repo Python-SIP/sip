@@ -447,9 +447,7 @@ class Project(AbstractProject, Configurable):
 
         # Make sure any minimum GLIBC version is valid and convert it to a
         # 2-tuple.
-        if self.minimum_glibc_version is None:
-            self.minimum_glibc_version = (2, 5)
-        else:
+        if self.minimum_glibc_version:
             parts = self.minimum_glibc_version.split('.')
 
             try:
@@ -462,6 +460,8 @@ class Project(AbstractProject, Configurable):
                         "'{0}' is an invalid GLIBC version number".format(
                                 self.minimum_glibc_version),
                         section_name='tool.sip.project')
+        else:
+            self.minimum_glibc_version = (2, 5)
 
         # Make sure relevent paths are absolute and use native separators.
         self.sip_files_dir = self.project_path(self.sip_files_dir)
