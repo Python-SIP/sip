@@ -1,7 +1,7 @@
 /*
  * SIP library code.
  *
- * Copyright (c) 2019 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2020 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -544,6 +544,7 @@ static const sipAPIDef sip_api = {
     sip_api_parse_result_ex,
     sip_api_call_error_handler,
     sip_api_init_mixin,
+    /* Note: this is no longer used. */
     sip_api_get_reference,
     /*
      * The following are part of the public API.
@@ -8716,6 +8717,7 @@ static void sip_api_keep_reference(PyObject *self, int key, PyObject *obj)
 
 /*
  * Get an object that has an extra reference.
+ * Note: thi sis no longer used.
  */
 static PyObject *sip_api_get_reference(PyObject *self, int key)
 {
