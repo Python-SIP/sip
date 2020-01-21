@@ -1,7 +1,7 @@
 /*
  * The SIP module interface.
  *
- * Copyright (c) 2018 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2020 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -1875,6 +1875,7 @@ typedef struct _sipAPIDef {
             sipSimpleWrapper *, sip_gilstate_t);
     int (*api_init_mixin)(PyObject *self, PyObject *args, PyObject *kwds,
             const sipClassTypeDef *ctd);
+    /* Note: this is no longer used. */
     PyObject *(*api_get_reference)(PyObject *self, int key);
 
     /*
