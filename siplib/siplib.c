@@ -601,7 +601,6 @@ static const sipAPIDef sip_api = {
     sip_api_parse_result_ex,
     sip_api_call_error_handler,
     sip_api_init_mixin,
-    /* Note: this is no longer used. */
     sip_api_get_reference,
     sip_api_is_owned_by_python,
     sip_api_is_derived_class,
@@ -9320,7 +9319,6 @@ static void sip_api_keep_reference(PyObject *self, int key, PyObject *obj)
 
 /*
  * Get an object that has an extra reference.
- * Note: thi sis no longer used.
  */
 static PyObject *sip_api_get_reference(PyObject *self, int key)
 {
