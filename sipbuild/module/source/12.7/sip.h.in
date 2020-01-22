@@ -1560,7 +1560,6 @@ typedef struct _sipAPIDef {
             sipSimpleWrapper *, sip_gilstate_t);
     int (*api_init_mixin)(PyObject *self, PyObject *args, PyObject *kwds,
             const sipClassTypeDef *ctd);
-    /* Note: this is no longer used. */
     PyObject *(*api_get_reference)(PyObject *self, int key);
 
     /*

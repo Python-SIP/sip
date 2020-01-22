@@ -640,6 +640,7 @@ static const char *generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipVisitSlot                sipAPI_%s->api_visit_slot\n"
 "#define sipWrappedTypeName(wt)      ((wt)->wt_td->td_cname)\n"
 "#define sipDeprecated               sipAPI_%s->api_deprecated\n"
+"#define sipGetReference             sipAPI_%s->api_get_reference\n"
 "#define sipKeepReference            sipAPI_%s->api_keep_reference\n"
 "#define sipRegisterProxyResolver    sipAPI_%s->api_register_proxy_resolver\n"
 "#define sipRegisterPyType           sipAPI_%s->api_register_py_type\n"
@@ -700,6 +701,7 @@ static const char *generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipLong_AsSizeT             sipAPI_%s->api_long_as_size_t\n"
 "#define sipVisitWrappers            sipAPI_%s->api_visit_wrappers\n"
 "#define sipRegisterExitNotifier     sipAPI_%s->api_register_exit_notifier\n"
+        ,mname
         ,mname
         ,mname
         ,mname
@@ -4330,7 +4332,23 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
     last_arg = (generating_c || usedInCode(vd->getcode, "sipPyType")) ? "sipPyType" : "";
 
     needsNew = ((atype == class_type || atype == mapped_type) && vd->type.nrderefs == 0 && isConstArg(&vd->type));
-    key = (atype == class_type && vd->type.nrderefs == 0 && !isStaticVar(vd) && !isConstArg(&vd->type)) ? vd->module->next_key-- : 0;
+
+    /*
+     * If the variable is itself a non-const instance of a wrapped class then
+     * two things must happen.  Firstly, the getter must return the same Python
+     * object each time - it must not re-wrap the the instance.  This is
+     * because the Python object can contain important state information that
+     * must not be lost (specifically references to other Python objects that
+     * it owns).  Therefore the Python object wrapping the containing class
+     * must cache a reference to the Python object wrapping the variable.
+     * Secondly, the Python object wrapping the containing class must not be
+     * garbage collected before the Python object wrapping the variable is
+     * (because the latter references memory, ie. the variable itself, that is
+     * managed by the former).  Therefore the Python object wrapping the
+     * variable must keep a reference to the Python object wrapping the
+     * containing class (but only if the latter is non-static).
+     */
+    key = (atype == class_type && vd->type.nrderefs == 0 && !isConstArg(&vd->type)) ? vd->module->next_key-- : 0;
 
     second_arg = (generating_c || key < 0 ) ? "sipPySelf" : "";
 
@@ -4408,6 +4426,28 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
         return;
     }
 
+    /* Get any previously wrapped cached object. */
+    if (key < 0)
+    {
+        if (isStaticVar(vd))
+            prcode(fp,
+"    if (sipPy)\n"
+"    {\n"
+"        Py_INCREF(sipPy);\n"
+"        return sipPy;\n"
+"    }\n"
+"\n"
+                );
+        else
+            prcode(fp,
+"    sipPy = sipGetReference(sipPySelf, %d);\n"
+"\n"
+"    if (sipPy)\n"
+"        return sipPy;\n"
+"\n"
+                , key);
+    }
+
     if (needsNew)
     {
         if (generating_c)
@@ -4456,11 +4496,29 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
                 , iff->fqcname);
 
             if (key < 0)
+            {
                 prcode(fp,
-"    sipKeepReference(sipPy, %d, sipPySelf);\n"
+"\n"
+"    if (sipPy)\n"
+"    {\n"
+"        sipKeepReference(sipPy, %d, sipPySelf);\n"
+                    , key);
+
+                if (isStaticVar(vd))
+                    prcode(fp,
+"        Py_INCREF(sipPy);\n"
+                        );
+                else
+                    prcode(fp,
+"        sipKeepReference(sipPySelf, %d, sipPy);\n"
+                        , key);
+
+                prcode(fp,
+"    }\n"
 "\n"
 "    return sipPy;\n"
-                        , key);
+                    );
+            }
         }
 
         break;
@@ -4701,6 +4759,10 @@ static void generateVariableSetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
     char *deref;
     int might_be_temp, keep, need_py, need_cpp;
 
+    /*
+     * We need to keep a reference to the original Python object if it
+     * providing the memory that the C/C++ variable is pointing to.
+     */
     keep = keepPyReference(&vd->type);
 
     if (generating_c || !isStaticVar(vd))
