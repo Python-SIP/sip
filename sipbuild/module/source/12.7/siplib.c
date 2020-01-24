@@ -8729,6 +8729,7 @@ static PyObject *sip_api_get_reference(PyObject *self, int key)
         return NULL;
 
     obj = PyDict_GetItem(dict, key_obj);
+    Py_DECREF(key_obj);
     Py_XINCREF(obj);
 
     return obj;
