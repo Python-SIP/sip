@@ -1,7 +1,7 @@
 /*
  * The SIP parser.
  *
- * Copyright (c) 2019 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2020 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -100,7 +100,7 @@ static memberDef *findFunction(sipSpec *, moduleDef *, classDef *,
 static void checkAttributes(sipSpec *, moduleDef *, classDef *,
         mappedTypeDef *, const char *, int);
 static void newModule(FILE *fp, const char *filename);
-static moduleDef *allocModule();
+static moduleDef *allocModule(void);
 static void parseFile(FILE *fp, const char *name, moduleDef *prevmod,
         int optional);
 static void handleEOF(void);
@@ -4432,7 +4432,7 @@ static void newModule(FILE *fp, const char *filename)
 /*
  * Allocate and initialise the memory for a new module.
  */
-static moduleDef *allocModule()
+static moduleDef *allocModule(void)
 {
     moduleDef *newmod, **tailp;
 

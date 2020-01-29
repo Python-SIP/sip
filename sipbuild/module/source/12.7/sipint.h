@@ -164,7 +164,7 @@ sipClassTypeDef *sipGetGeneratedClassType(const sipEncodedTypeDef *enc,
         const sipClassTypeDef *ctd);
 void sipSaveMethod(sipPyMethod *pm,PyObject *meth);
 int sipGetPending(void **pp, sipWrapper **op, int *fp);
-int sipIsPending();
+int sipIsPending(void);
 PyObject *sipWrapInstance(void *cpp,  PyTypeObject *py_type, PyObject *args,
         sipWrapper *owner, int flags);
 void *sipConvertRxEx(sipWrapper *txSelf, const char *sigargs,

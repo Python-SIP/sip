@@ -369,7 +369,7 @@ static void *sip_api_get_mixin_address(sipSimpleWrapper *w,
         const sipTypeDef *td);
 static int sip_api_register_proxy_resolver(const sipTypeDef *td,
         sipProxyResolverFunc resolver);
-static PyInterpreterState *sip_api_get_interpreter();
+static PyInterpreterState *sip_api_get_interpreter(void);
 static sipNewUserTypeFunc sip_api_set_new_user_type_handler(
         const sipTypeDef *td, sipNewUserTypeFunc handler);
 static void sip_api_set_type_user_data(sipWrapperType *wt, void *data);
@@ -1237,7 +1237,7 @@ PyMODINIT_FUNC _SIP_MODULE_ENTRY(void)
 /*
  * Return the current interpreter, if there is one.
  */
-static PyInterpreterState *sip_api_get_interpreter()
+static PyInterpreterState *sip_api_get_interpreter(void)
 {
     return sipInterpreter;
 }

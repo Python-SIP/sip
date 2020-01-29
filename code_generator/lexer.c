@@ -1433,7 +1433,7 @@ char *yytext;
 /*
  * The SIP lexer.
  *
- * Copyright (c) 2019 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2020 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -3912,7 +3912,7 @@ void yyfree (void * ptr )
  * Hook into EOF handling.  Return 0 if there is more to process.
  */
 
-int yywrap()
+int yywrap(void)
 {
     char *cwd;
     struct inputFile *ifp;
@@ -3945,7 +3945,7 @@ int yywrap()
 /*
  * Initialise the lexer.
  */
-void initialiseLexer()
+void initialiseLexer(void)
 {
     /* Initialise all the globals. */
     currentFile = -1;
@@ -4149,7 +4149,7 @@ static void fatallex(char *s)
  * argument to be given without parentheses to get out of the 'directive_start'
  * state before an opening parenthesis is seen in another context.
  */
-void resetLexerState()
+void resetLexerState(void)
 {
     BEGIN INITIAL;
 }
