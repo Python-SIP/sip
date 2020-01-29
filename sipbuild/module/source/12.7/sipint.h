@@ -177,7 +177,11 @@ sipSimpleWrapper *sipOMFindObject(sipObjectMap *om, void *key,
 void sipOMAddObject(sipObjectMap *om, sipSimpleWrapper *val);
 int sipOMRemoveObject(sipObjectMap *om, sipSimpleWrapper *val);
 
-void sipSetBool(void *ptr,int val);
+#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
+#define sipSetBool(p, v)    (*(_Bool *)(p) = (v))
+#else
+#error "Sorry, a compiler that supports C99 is required"
+#endif
 
 
 #ifdef __cplusplus
