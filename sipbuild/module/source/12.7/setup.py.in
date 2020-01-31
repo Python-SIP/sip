@@ -22,11 +22,24 @@
 
 
 import glob
+import sys
 
 from setuptools import Extension, setup
 
 
+# Build the extension module.
+module_src = glob.glob('*.c')
+
+if sys.platform == 'win32':
+    module_src.append('bool.cpp')
+
+module = Extension('@_SIP_MODULE_FQ_NAME@', module_src)
+
 # Do the setup.
-setup(name='@SIP_MODULE_PROJECT_NAME@', version='@SIP_MODULE_VERSION@',
-        license='SIP', python_requires='>=3.5',
-        ext_modules=[Extension('@_SIP_MODULE_FQ_NAME@', glob.glob('*.c'))])
+setup(
+        name='@SIP_MODULE_PROJECT_NAME@',
+        version='@SIP_MODULE_VERSION@',
+        license='SIP',
+        python_requires='>=3.5',
+        ext_modules=[module]
+     )

@@ -1,7 +1,7 @@
 /*
  * This file defines the SIP library internal interfaces.
  *
- * Copyright (c) 2019 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2020 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -179,8 +179,6 @@ int sipOMRemoveObject(sipObjectMap *om, sipSimpleWrapper *val);
 
 #if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
 #define sipSetBool(p, v)    (*(_Bool *)(p) = (v))
-#else
-#error "Sorry, a compiler that supports C99 is required"
 #endif
 
 
