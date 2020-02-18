@@ -2010,14 +2010,14 @@ signature of an event handler is specific to the event type.
     This is the enum that defines the different event types.
 
 
-.. :cpp:enumerator:: sipEventWrappedInstance
+.. cpp:enumerator:: sipEventWrappedInstance
 
     This event is triggered whenever a C/C++ instance that is created by C/C++
     (and not by Python) is wrapped.  The handler is passed a ``void *`` which
     is the address of the C/C++ instance.
 
 
-.. :cpp:enumerator:: sipEventCollectingWrapper
+.. cpp:enumerator:: sipEventCollectingWrapper
 
     This event is triggered whenever a Python wrapper object is being garbage
     collected.  The handler is passed a pointer to the
