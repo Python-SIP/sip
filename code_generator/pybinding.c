@@ -532,7 +532,7 @@ void get_bindings_configuration(const char *sip_file, stringList **tags,
 {
     static PyObject *get_bindings_configuration = NULL;
 
-    PyObject *sip_include_dirs, *res, *py_tags, *py_disabled;
+    PyObject *res, *py_tags, *py_disabled;
 
     /* Get the Python helper. */
     if (get_bindings_configuration == NULL)
@@ -551,9 +551,8 @@ void get_bindings_configuration(const char *sip_file, stringList **tags,
     }
 
     /* Call the helper. */
-    sip_include_dirs = stringList_convert_from(includeDirList);
     res = PyObject_CallFunction(get_bindings_configuration, "IIsN", abiMajor,
-            abiMinor, sip_file, sip_include_dirs);
+            abiMinor, sip_file, stringList_convert_from(includeDirList));
 
     if (res == NULL)
         exception_set();
