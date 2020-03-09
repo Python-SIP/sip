@@ -339,15 +339,14 @@ class Project(AbstractProject, Configurable):
 
         stderr = subprocess.STDOUT if and_stderr else subprocess.PIPE
 
-        pipe = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE, stderr=stderr)
+        with subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE, stderr=stderr) as pipe:
+            for line in pipe.stdout:
+                yield str(line, encoding=sys.stdout.encoding)
 
-        for line in pipe.stdout:
-            yield str(line, encoding=sys.stdout.encoding)
-
-        rc = pipe.wait()
-        if rc != 0 and fatal:
-            raise UserException("'{0}' failed returning {1}".format(cmd, rc))
+        if pipe.returncode != 0 and fatal:
+            raise UserException(
+                    "'{0}' failed returning {1}".format(cmd, pipe.returncode))
 
     def run_command(self, args, *, fatal=True):
         """ Run a command and display the output if requested. """
