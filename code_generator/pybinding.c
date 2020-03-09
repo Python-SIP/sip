@@ -555,8 +555,6 @@ void get_bindings_configuration(const char *sip_file, stringList **tags,
     res = PyObject_CallFunction(get_bindings_configuration, "IIsN", abiMajor,
             abiMinor, sip_file, sip_include_dirs);
 
-    Py_XDECREF(sip_include_dirs);
-
     if (res == NULL)
         exception_set();
 
