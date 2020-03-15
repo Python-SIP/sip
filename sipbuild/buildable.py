@@ -1,4 +1,4 @@
-# Copyright (c) 2019, Riverbank Computing Limited
+# Copyright (c) 2020, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -25,6 +25,7 @@ import importlib
 import os
 import sys
 
+from .exceptions import UserException
 from .installable import Installable
 from .version import SIP_VERSION_STR
 
@@ -55,6 +56,13 @@ class BuildableFromSources(Buildable):
         """ Initialise the buildable. """
 
         super().__init__(project, name)
+
+        if project.py_debug:
+            uses_limited_api = False
+        elif uses_limited_api and not project.sip_module:
+            raise UserException(
+                    "{0} cannot use the limited API without using a shared "
+                    "'sip' module".format(name))
 
         self.target = target
         self.uses_limited_api = uses_limited_api
