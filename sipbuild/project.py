@@ -376,11 +376,10 @@ class Project(AbstractProject, Configurable):
             # help we can.
             self.verbose = True
 
-        # Now that any help has been given we can report a missing
+        # Now that any help has been given we can report a problematic
         # pyproject.toml file.
-        if pyproject.pyproject_missing:
-            raise PyProjectException(
-                    "there is no such file in the current directory")
+        if pyproject.toml_error:
+            raise PyProjectException(pyproject.toml_error)
 
         # Make sure the configuration is complete.
         self.apply_user_defaults(tool)
