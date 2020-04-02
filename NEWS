@@ -1,3 +1,8 @@
+v5.1.2 ??? April 2020
+  - The latest version of the module ABI is v12.7.2.
+  - The examples are now included in the sdist.
+  - Bug fixes.
+
 v5.1.1 31st January 2020
   - Bug fixes.
 
