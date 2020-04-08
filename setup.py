@@ -1,4 +1,4 @@
-# Copyright (c) 2019, Riverbank Computing Limited
+# Copyright (c) 2020, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -41,7 +41,7 @@ except FileNotFoundError:
     version_file.close()
 
 # Build the code generator extension module.
-code_gen_src = glob.glob(os.path.join('code_generator', '*.c'))
+code_gen_src = sorted(glob.glob(os.path.join('code_generator', '*.c')))
 code_gen_module = Extension('sipbuild.code_generator', code_gen_src,
         include_dirs=['code_generator'])
 

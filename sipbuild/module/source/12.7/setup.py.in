@@ -28,7 +28,7 @@ from setuptools import Extension, setup
 
 
 # Build the extension module.
-module_src = glob.glob('*.c')
+module_src = sorted(glob.glob('*.c'))
 
 if sys.platform == 'win32':
     module_src.append('bool.cpp')
