@@ -203,6 +203,16 @@ class Builder(AbstractBuilder):
 
         wheel_tag = '-'.join(wheel_tag)
 
+        # Add any wheel contents defined by the project.
+        for nr, (patt, target_subdir) in enumerate(project.wheel_includes):
+            wheel_includes = glob.glob(os.path.join(project.root_dir, patt))
+            if wheel_includes:
+                installable = Installable(
+                        'wheel_includes_{}'.format(nr) if nr else 'wheel_includes',
+                        target_subdir=target_subdir)
+                installable.files.extend(wheel_includes)
+                project.installables.append(installable)
+
         # Build the project.
         self.build_project(wheel_build_dir, wheel_tag=wheel_tag)
 
@@ -311,7 +321,7 @@ class Builder(AbstractBuilder):
             init_f.close()
 
             installable = Installable('init',
-                    target_subdir=os.path.dirname(project.get_bindings_dir()))
+                    target_subdir=project.get_package_dir())
             installable.files.append(init_path)
             project.installables.append(installable)
 

@@ -98,6 +98,15 @@ class Project(AbstractProject, Configurable):
         # The fully qualified name of the sip module.
         Option('sip_module'),
 
+        # The list of files and directories, specified as glob patterns
+        # relative to the project directory, that should be included in a
+        # wheel.  If an element of list is a string then it is a pattern and
+        # files and directories are installed in the target directory.  If an
+        # element is a 2-tuple then the first part is the pattern and the
+        # second part is the name of a sub-directory relative to the target
+        # directory where the files and directories are installed.
+        Option('wheel_includes', option_type=list),
+
         # The user-configurable options.
         Option('quiet', option_type=bool,
                 help="disable all progress messages"),
@@ -238,10 +247,7 @@ class Project(AbstractProject, Configurable):
         eventual target directory.
         """
 
-        name_parts = self.sip_module.split('.')
-        name_parts[-1] = 'bindings'
-
-        return os.path.join(*name_parts)
+        return os.path.join(self.get_package_dir(), 'bindings')
 
     def get_distinfo_dir(self, target_dir):
         """ Return the name of the .dist-info directory for a target directory.
@@ -265,6 +271,21 @@ class Project(AbstractProject, Configurable):
         options.extend(self._multibindings_options)
 
         return options
+
+    def get_package_dir(self):
+        """ Return the name of the package directory relative to the eventual
+        target directory.  This is the directory containing the shared sip
+        module (if there is one) or the target directory (if not).  It will
+        normally be where the individual bindings are installed.
+        """
+
+        if self.sip_module:
+            name_parts = self.sip_module.split('.')
+            del name_parts[-1]
+
+            return os.path.join(*name_parts)
+
+        return ''
 
     def get_requires_dists(self):
         """ Return any 'Requires-Dist' to add to the project's meta-data. """
@@ -493,6 +514,27 @@ class Project(AbstractProject, Configurable):
 
             # Make sure __init__.py is disabled.
             self.dunder_init = False
+
+        # Check any wheel includes are valid and make sure all elements are
+        # 2-tuples.
+        normalised = []
+
+        for wheel_include in self.wheel_includes:
+            if isinstance(wheel_include, str):
+                normalised.append((wheel_include, None))
+            else:
+                try:
+                    wheel_include, subdir = wheel_include
+                except TypeError:
+                    wheel_include = subdir = None
+
+                if isinstance(wheel_include, str) and isinstance(subdir, str):
+                    normalised.append((wheel_include, subdir))
+                else:
+                    raise PyProjectOptionException('wheel-includes',
+                            "elements must be strings or 2-tuples of strings")
+
+        self.wheel_includes = normalised
 
         # Verify the configuration of the builder and bindings.
         self.builder.verify_configuration(tool)
