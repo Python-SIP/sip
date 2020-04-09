@@ -1,7 +1,7 @@
 /*
  * The SIP parser.
  *
- * Copyright (c) 2019 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2020 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -100,7 +100,7 @@ static memberDef *findFunction(sipSpec *, moduleDef *, classDef *,
 static void checkAttributes(sipSpec *, moduleDef *, classDef *,
         mappedTypeDef *, const char *, int);
 static void newModule(FILE *fp, const char *filename);
-static moduleDef *allocModule();
+static moduleDef *allocModule(void);
 static void parseFile(FILE *fp, const char *name, moduleDef *prevmod,
         int optional);
 static void handleEOF(void);
@@ -134,9 +134,9 @@ static const char *getTypeHintValue(optFlags *optflgs);
 static void getTypeHints(optFlags *optflgs, typeHintDef **in,
         typeHintDef **out);
 static int getNoTypeHint(optFlags *optflgs);
-static void templateSignature(signatureDef *sd, int result, classTmplDef *tcd,
-        templateDef *td, classDef *ncd, scopedNameDef *type_names,
-        scopedNameDef *type_values);
+static void templateSignature(signatureDef *sd, KwArgs kwargs, int result,
+        classTmplDef *tcd, templateDef *td, classDef *ncd,
+        scopedNameDef *type_names, scopedNameDef *type_values);
 static void templateType(argDef *ad, classTmplDef *tcd, templateDef *td,
         classDef *ncd, scopedNameDef *type_names, scopedNameDef *type_values);
 static int search_back(const char *end, const char *start, const char *target);
@@ -4432,7 +4432,7 @@ static void newModule(FILE *fp, const char *filename)
 /*
  * Allocate and initialise the memory for a new module.
  */
-static moduleDef *allocModule()
+static moduleDef *allocModule(void)
 {
     moduleDef *newmod, **tailp;
 
@@ -5774,8 +5774,8 @@ static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod,
         /* Start with a shallow copy. */
         *nct = *oct;
 
-        templateSignature(&nct->pysig, FALSE, tcd, td, cd, type_names,
-                type_values);
+        templateSignature(&nct->pysig, oct->kwargs, FALSE, tcd, td, cd,
+                type_names, type_values);
 
         if (oct->cppsig == NULL)
             nct->cppsig = NULL;
@@ -5787,8 +5787,8 @@ static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod,
 
             *nct->cppsig = *oct->cppsig;
 
-            templateSignature(nct->cppsig, FALSE, tcd, td, cd, type_names,
-                    type_values);
+            templateSignature(nct->cppsig, NoKwArgs, FALSE, tcd, td, cd,
+                    type_names, type_values);
         }
 
         nct->methodcode = templateCode(pt, used, nct->methodcode, type_names, type_values);
@@ -5894,8 +5894,8 @@ static overDef *instantiateTemplateOverloads(sipSpec *pt, overDef *tod,
                 break;
             }
 
-        templateSignature(&nod->pysig, TRUE, tcd, td, cd, type_names,
-                type_values);
+        templateSignature(&nod->pysig, od->kwargs, TRUE, tcd, td, cd,
+                type_names, type_values);
 
         if (od->cppsig == &od->pysig)
             nod->cppsig = &nod->pysig;
@@ -5905,8 +5905,8 @@ static overDef *instantiateTemplateOverloads(sipSpec *pt, overDef *tod,
 
             *nod->cppsig = *od->cppsig;
 
-            templateSignature(nod->cppsig, TRUE, tcd, td, cd, type_names,
-                    type_values);
+            templateSignature(nod->cppsig, NoKwArgs, TRUE, tcd, td, cd,
+                    type_names, type_values);
         }
 
         nod->methodcode = templateCode(pt, used, nod->methodcode, type_names, type_values);
@@ -6064,9 +6064,9 @@ static void instantiateTemplateTypedefs(sipSpec *pt, classTmplDef *tcd,
 /*
  * Replace any template arguments in a signature.
  */
-static void templateSignature(signatureDef *sd, int result, classTmplDef *tcd,
-        templateDef *td, classDef *ncd, scopedNameDef *type_names,
-        scopedNameDef *type_values)
+static void templateSignature(signatureDef *sd, KwArgs kwargs, int result,
+        classTmplDef *tcd, templateDef *td, classDef *ncd,
+        scopedNameDef *type_names, scopedNameDef *type_values)
 {
     int a;
 
@@ -6074,7 +6074,18 @@ static void templateSignature(signatureDef *sd, int result, classTmplDef *tcd,
         templateType(&sd->result, tcd, td, ncd, type_names, type_values);
 
     for (a = 0; a < sd->nrArgs; ++a)
-        templateType(&sd->args[a], tcd, td, ncd, type_names, type_values);
+    {
+        argDef *ad = &sd->args[a];
+
+        templateType(ad, tcd, td, ncd, type_names, type_values);
+
+        /* Make sure we have the name of any keyword argument. */
+        if (inMainModule() && ad->name != NULL)
+        {
+            if (kwargs == AllKwArgs || (kwargs == OptionalKwArgs && ad->defval != NULL))
+                setIsUsedName(ad->name);
+        }
+    }
 }
 
 
@@ -6096,8 +6107,8 @@ static void templateType(argDef *ad, classTmplDef *tcd, templateDef *td,
         *new_td = *ad->u.td;
         ad->u.td = new_td;
 
-        templateSignature(&ad->u.td->types, FALSE, tcd, td, ncd, type_names,
-                type_values);
+        templateSignature(&ad->u.td->types, NoKwArgs, FALSE, tcd, td, ncd,
+                type_names, type_values);
 
         return;
     }

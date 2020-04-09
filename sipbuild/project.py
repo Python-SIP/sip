@@ -339,15 +339,14 @@ class Project(AbstractProject, Configurable):
 
         stderr = subprocess.STDOUT if and_stderr else subprocess.PIPE
 
-        pipe = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE, stderr=stderr)
+        with subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE, stderr=stderr) as pipe:
+            for line in pipe.stdout:
+                yield str(line, encoding=sys.stdout.encoding)
 
-        for line in pipe.stdout:
-            yield str(line, encoding=sys.stdout.encoding)
-
-        rc = pipe.wait()
-        if rc != 0 and fatal:
-            raise UserException("'{0}' failed returning {1}".format(cmd, rc))
+        if pipe.returncode != 0 and fatal:
+            raise UserException(
+                    "'{0}' failed returning {1}".format(cmd, pipe.returncode))
 
     def run_command(self, args, *, fatal=True):
         """ Run a command and display the output if requested. """
@@ -377,11 +376,10 @@ class Project(AbstractProject, Configurable):
             # help we can.
             self.verbose = True
 
-        # Now that any help has been given we can report a missing
+        # Now that any help has been given we can report a problematic
         # pyproject.toml file.
-        if pyproject.pyproject_missing:
-            raise PyProjectException(
-                    "there is no such file in the current directory")
+        if pyproject.toml_error:
+            raise PyProjectException(pyproject.toml_error)
 
         # Make sure the configuration is complete.
         self.apply_user_defaults(tool)
@@ -447,9 +445,7 @@ class Project(AbstractProject, Configurable):
 
         # Make sure any minimum GLIBC version is valid and convert it to a
         # 2-tuple.
-        if self.minimum_glibc_version is None:
-            self.minimum_glibc_version = (2, 5)
-        else:
+        if self.minimum_glibc_version:
             parts = self.minimum_glibc_version.split('.')
 
             try:
@@ -462,6 +458,8 @@ class Project(AbstractProject, Configurable):
                         "'{0}' is an invalid GLIBC version number".format(
                                 self.minimum_glibc_version),
                         section_name='tool.sip.project')
+        else:
+            self.minimum_glibc_version = (2, 5)
 
         # Make sure relevent paths are absolute and use native separators.
         self.sip_files_dir = self.project_path(self.sip_files_dir)

@@ -1,7 +1,7 @@
 /*
  * The main header file for SIP.
  *
- * Copyright (c) 2019 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2020 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -1388,7 +1388,7 @@ void fatalAppend(const char *fmt, ...);
 void fatalScopedName(scopedNameDef *);
 void getSourceLocation(sourceLocation *slp);
 int setInputFile(FILE *open_fp, parserContext *pc, int optional);
-void resetLexerState();
+void resetLexerState(void);
 void *sipMalloc(size_t n);
 void *sipCalloc(size_t nr, size_t n);
 char *sipStrdup(const char *);
@@ -1434,7 +1434,7 @@ ifaceFileDef *findIfaceFile(sipSpec *pt, moduleDef *mod,
 int pluginPyQt5(sipSpec *pt);
 SIP_NORETURN void yyerror(char *);
 void yywarning(char *);
-int yylex();
+int yylex(void);
 nameDef *cacheName(sipSpec *pt, const char *name);
 scopedNameDef *encodedTemplateName(templateDef *td);
 apiVersionRangeDef *findAPI(sipSpec *pt, const char *name);
@@ -1458,7 +1458,7 @@ void generateBaseType(ifaceFileDef *scope, argDef *ad, int use_typename,
         int strip, FILE *fp);
 void normaliseArgs(signatureDef *sd);
 void restoreArgs(signatureDef *sd);
-void initialiseLexer();
+void initialiseLexer(void);
 
 
 /* These are only here because bison publically references them. */

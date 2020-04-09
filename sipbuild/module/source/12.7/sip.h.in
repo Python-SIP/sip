@@ -1,7 +1,7 @@
 /*
  * The SIP module interface.
  *
- * Copyright (c) 2019 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2020 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -35,7 +35,7 @@ extern "C" {
 
 
 /* The patch version of this implementation of the ABI. */
-#define SIP_MODULE_PATCH_VERSION    0
+#define SIP_MODULE_PATCH_VERSION    2
 
 
 /*
@@ -1467,7 +1467,7 @@ typedef struct _sipAPIDef {
             Py_ssize_t len, int flags);
     int (*api_register_proxy_resolver)(const sipTypeDef *td,
             sipProxyResolverFunc resolver);
-    PyInterpreterState *(*api_get_interpreter)();
+    PyInterpreterState *(*api_get_interpreter)(void);
     sipNewUserTypeFunc (*api_set_new_user_type_handler)(const sipTypeDef *,
             sipNewUserTypeFunc);
     void (*api_set_type_user_data)(sipWrapperType *, void *);

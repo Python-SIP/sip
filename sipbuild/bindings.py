@@ -149,13 +149,6 @@ class Bindings(Configurable):
                 self.disabled_features, self.protected_is_public)
 
         uses_limited_api = bool(uses_limited_api)
-        if project.py_debug:
-            uses_limited_api = False
-
-        if uses_limited_api and not project.sip_module:
-            raise UserException(
-                    "{0} cannot use the limited API without using a shared "
-                    "'sip' module".format(fq_name))
 
         # The details of things that will have been generated.  Note that we
         # don't include anything for .api files or generic extracts as the

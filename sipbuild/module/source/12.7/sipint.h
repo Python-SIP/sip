@@ -1,7 +1,7 @@
 /*
  * This file defines the SIP library internal interfaces.
  *
- * Copyright (c) 2019 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2020 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -164,7 +164,7 @@ sipClassTypeDef *sipGetGeneratedClassType(const sipEncodedTypeDef *enc,
         const sipClassTypeDef *ctd);
 void sipSaveMethod(sipPyMethod *pm,PyObject *meth);
 int sipGetPending(void **pp, sipWrapper **op, int *fp);
-int sipIsPending();
+int sipIsPending(void);
 PyObject *sipWrapInstance(void *cpp,  PyTypeObject *py_type, PyObject *args,
         sipWrapper *owner, int flags);
 void *sipConvertRxEx(sipWrapper *txSelf, const char *sigargs,
@@ -177,7 +177,9 @@ sipSimpleWrapper *sipOMFindObject(sipObjectMap *om, void *key,
 void sipOMAddObject(sipObjectMap *om, sipSimpleWrapper *val);
 int sipOMRemoveObject(sipObjectMap *om, sipSimpleWrapper *val);
 
-void sipSetBool(void *ptr,int val);
+#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
+#define sipSetBool(p, v)    (*(_Bool *)(p) = (v))
+#endif
 
 
 #ifdef __cplusplus

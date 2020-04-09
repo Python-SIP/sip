@@ -1296,27 +1296,6 @@ it.
         The bound object.
 
 
-.. c:function:: sipNewUserTypeFunc sipSetNewUserTypeHandler(const sipTypeDef *td, sipNewUserTypeFunc handler)
-
-    The allows a function to be specified that is called whenever a user
-    defined sub-class of a C/C++ type is created (i.e. one implemented in
-    Python).  It is normalled called from a module's
-    :directive:`%PostInitialisationCode`.  It is provided as an alternative to
-    providing a meta-type when the limited Python API is enabled.
-
-    :param td:
-        the :ref:`generated type structure <ref-type-structures>` corresponding
-        to the C/C++ type.
-    :param handler:
-        the function that is called whenever a user defined sub-class of the
-        type is created.  The function takes a single argument which is the
-        :c:type:`sipWrapperType` of the user defined class.  It returns an
-        :c:type:`int` which is 0 if there was no error.  A Python exception is
-        raised and -1 returned if there was an error.
-    :return:
-        the previously installed handler.  This allows handlers to be chained.
-
-
 .. c:function:: int sipParseResult(int *iserr, PyObject *method, PyObject *result, const char *format, ...)
 
     This converts a Python object (usually returned by a method) to C/C++ based
@@ -1528,7 +1507,7 @@ it.
 
 .. c:function:: int sipRegisterAttributeGetter(const sipTypeDef *td, sipAttrGetterFunc getter)
 
-    This registers a getter that will called just before SIP needs to get an
+    This registers a getter that will be called just before SIP needs to get an
     attribute from a wrapped type's dictionary for the first time.  The getter
     must then populate the type's dictionary with any lazy attributes.
 
@@ -1571,7 +1550,7 @@ it.
 
 .. c:function:: int sipRegisterProxyResolver(const sipTypeDef *td, sipProxyResolverFunc resolver)
 
-    This registers a resolver that will called just before SIP wraps a C/C++
+    This registers a resolver that will be called just before SIP wraps a C/C++
     pointer in a Python object.  The resolver may choose to replace the C/C++
     pointer with the address of another object.  Typically this is used to
     replace a proxy by the object that is being proxied for.
@@ -1654,6 +1633,27 @@ it.
     :param destroy:
         non-zero if all C++ instances and C structures owned by Python should
         be destroyed when the interpreter exits.  This is the default.
+
+
+.. c:function:: sipNewUserTypeFunc sipSetNewUserTypeHandler(const sipTypeDef *td, sipNewUserTypeFunc handler)
+
+    The allows a function to be specified that is called whenever a user
+    defined sub-class of a C/C++ type is created (i.e. one implemented in
+    Python).  It is normalled called from a module's
+    :directive:`%PostInitialisationCode`.  It is provided as an alternative to
+    providing a meta-type when the limited Python API is enabled.
+
+    :param td:
+        the :ref:`generated type structure <ref-type-structures>` corresponding
+        to the C/C++ type.
+    :param handler:
+        the function that is called whenever a user defined sub-class of the
+        type is created.  The function takes a single argument which is the
+        :c:type:`sipWrapperType` of the user defined class.  It returns an
+        :c:type:`int` which is 0 if there was no error.  A Python exception is
+        raised and -1 returned if there was an error.
+    :return:
+        the previously installed handler.  This allows handlers to be chained.
 
 
 .. c:function:: void sipSetTypeUserData(sipWrapperType *type, void *data)
@@ -2010,14 +2010,14 @@ signature of an event handler is specific to the event type.
     This is the enum that defines the different event types.
 
 
-.. :cpp:enumerator:: sipEventWrappedInstance
+.. cpp:enumerator:: sipEventWrappedInstance
 
     This event is triggered whenever a C/C++ instance that is created by C/C++
     (and not by Python) is wrapped.  The handler is passed a ``void *`` which
     is the address of the C/C++ instance.
 
 
-.. :cpp:enumerator:: sipEventCollectingWrapper
+.. cpp:enumerator:: sipEventCollectingWrapper
 
     This event is triggered whenever a Python wrapper object is being garbage
     collected.  The handler is passed a pointer to the
