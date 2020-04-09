@@ -1,4 +1,4 @@
-# Copyright (c) 2019, Riverbank Computing Limited
+# Copyright (c) 2020, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -181,7 +181,7 @@ class Builder(AbstractBuilder):
 
             prefix = 'linux_'
 
-            if platform_tag.startswith(prefix) and platform.manylinux:
+            if platform_tag.startswith(prefix) and project.manylinux:
                 if project.minimum_glibc_version > (2, 17):
                     # PEP 600.
                     manylinux = 'manylinux_{}_{}'.format(
@@ -197,7 +197,7 @@ class Builder(AbstractBuilder):
                     # PEP 513.
                     manylinux = 'manylinux1'
 
-                platform_tag = manylinux + platform_tag[len(prefix):]
+                platform_tag = manylinux + '_' + platform_tag[len(prefix):]
 
         wheel_tag.append(platform_tag)
 
