@@ -1,3 +1,8 @@
+v5.2.0 ??? April 2020
+  - Added the 'manylinux' project option to disable the support for 'manylinux'
+    part of the platform tag to be used in the name of a wheel.  sip-wheel has
+    a corresponding '--no-manylinux' command line option.
+
 v5.1.2 3rd April 2020
   - The latest version of the module ABI is v12.7.2.
   - The examples are now included in the sdist.
