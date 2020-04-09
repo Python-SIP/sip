@@ -108,6 +108,10 @@ class Project(AbstractProject, Configurable):
         Option('build_dir', help="the build directory", metavar="DIR"),
         Option('build_tag', help="the build tag to be used in the wheel name",
                 metavar="TAG", tools=['wheel']),
+        Option('manylinux', option_type=bool, inverted=True,
+                help="disable the use of manylinux in the platform tag used "
+                        "in the wheel name",
+                tools=['wheel']),
         Option('target_dir', default=get_python_lib(plat_specific=1),
                 help="the target installation directory", metavar="DIR",
                 tools=['build', 'install']),

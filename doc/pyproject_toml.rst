@@ -132,11 +132,19 @@ list options may contain environment markers as defined in `PEP 508
     installed in the top level package directory.  By default it is not
     installed and the value is ignored for standalone projects.
 
+**manylinux**
+    The boolean value specifies if support for ``manylinux`` in the platform
+    tag of a name of a wheel is enabled.  By default ``manylinux`` support is
+    enabled.  It should only be disabled if support for older versions of
+    :program:`pip` is required.  This is also a user option.
+
 **minimum-glibc-version**
     The minimum GLIBC version required by the project specified as a 2-tuple of
     the major and minor version numbers.  This is used to determine the correct
     platform tag to use for Linux wheels.  The default version of GLIBC is v2.5
-    which corresponds to the ``manylinux1_x86_64`` platform tag.
+    which corresponds to ``manylinux1``.  It is ignored if the ``manylinux``
+    option is False.
+    ZZZ
 
 **name**
     The value is used instead of the value of the ``name`` key in the

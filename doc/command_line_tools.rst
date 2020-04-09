@@ -444,6 +444,12 @@ The full set of command line options is:
     times.  It is only available if the project contains multiple sets of
     bindings.
 
+.. option:: --no-manylinux
+
+    Support for ``manylinux`` in the platform tag of a name of a wheel is
+    disabled.  It should only be used if support for older versions of
+    :program:`pip` is required.
+
 .. option:: --name NAME
 
     ``NAME`` is used instead of the PyPI project name in the
