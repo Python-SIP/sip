@@ -233,3 +233,11 @@ To install SIP from PyPI, run::
 
 SIP is also included with all of the major Linux distributions.  However, it
 may be a version or two out of date.
+
+
+Support for Old Versions of Python
+----------------------------------
+
+When a Python version reaches it's end-of-life, support for it will be removed
+in the next minor release of SIP.  For example, if the current version of SIP
+is v5.x.y then the support will be removed in v5.x+1.0.
