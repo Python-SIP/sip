@@ -1,4 +1,4 @@
-v5.2.0 ??? April 2020
+v5.2.0 10th April 2020
   - Added the 'manylinux' project option to disable the support for 'manylinux'
     part of the platform tag to be used in the name of a wheel.  sip-wheel has
     a corresponding '--no-manylinux' command line option.
