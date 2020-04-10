@@ -536,6 +536,12 @@ class Project(AbstractProject, Configurable):
 
         self.wheel_includes = normalised
 
+        # Make sure that any .api directory is relative when building a wheel.
+        if tool == 'wheel' and self.api_dir:
+            if os.path.isabs(self.api_dir) or os.path.dirname(self.api_dir) == '..':
+                raise PyProjectOptionException('api-dir',
+                        "must be relative when building a wheel")
+
         # Verify the configuration of the builder and bindings.
         self.builder.verify_configuration(tool)
 

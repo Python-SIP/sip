@@ -410,7 +410,8 @@ The full set of command line options is:
 
 .. option:: --api-dir DIR
 
-    A QScintilla :file:`.api` file is created in ``DIR``.
+    A QScintilla :file:`.api` file is created in ``DIR``.  This must be a name
+    relative to the directory where the wheel will be installed.
 
 .. option:: --build-dir DIR
 

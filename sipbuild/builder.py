@@ -342,8 +342,7 @@ class Builder(AbstractBuilder):
             api_f.close()
 
             # Add an Installable for the requested API file.
-            installable = Installable('api',
-                    target_subdir=os.path.abspath(project.api_dir))
+            installable = Installable('api', target_subdir=project.api_dir)
             installable.files.append(api_path)
             project.installables.append(installable)
 
