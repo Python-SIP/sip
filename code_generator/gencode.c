@@ -2263,10 +2263,12 @@ static void generateSipAPI(moduleDef *mod, const char *sipName, FILE *fp)
 "\n"
 "    if (sip_capiobj == SIP_NULLPTR || !PyCapsule_CheckExact(sip_capiobj))\n"
 "    {\n"
+"        PyErr_SetString(PyExc_AttributeError, \"%s._C_API is missing or has the wrong type\");\n"
 "        Py_DECREF(sipModule);\n"
 "        return SIP_NULLPTR;\n"
 "    }\n"
 "\n"
+        , sipName
         , sipName);
 
     if (generating_c)
